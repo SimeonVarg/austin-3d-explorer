@@ -58,6 +58,7 @@
       // Slope is deprioritised for now; revisit with a draped, non-exaggerated
       // approach later. See addTerrain() below (kept, not called).
       if (activeDate) addBuildingLayers(snapshotUrlFor(activeDate));
+      if (typeof initSigns === 'function') initSigns(map);
       if (typeof cleanupBasemap === 'function') cleanupBasemap(map);
       initControls(map);
       if (manifest) initDateSwitcher(map, manifest, activeDate, onDateChanged);
@@ -72,6 +73,7 @@
     map.on('styledata', () => {
       if (activeDate && !map.getSource('austin-buildings')) {
         addBuildingLayers(snapshotUrlFor(activeDate));
+        if (typeof initSigns === 'function') initSigns(map);
         if (typeof applyTimeOfDay === 'function')
           applyTimeOfDay(map, window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P);
       }

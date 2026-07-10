@@ -200,6 +200,9 @@
         ['interpolate',['linear'],['zoom'],15.5,0,16,s.signGlow]);
     }
 
+    // Curated branded landmark signs (signs.js) — glow in their brand colors.
+    if (typeof applySignGlowLayer === 'function') applySignGlowLayer(map, s.signGlow);
+
     const vig = document.getElementById('vignette');
     if (vig) vig.style.opacity = String(clamp01((p - 0.35) / 0.65) * 0.55);
   }
