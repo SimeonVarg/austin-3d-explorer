@@ -66,7 +66,10 @@
     });
 
     map.on('styledata', () => {
-      if (activeDate && !map.getSource('austin-buildings')) {
+      const hasSrc = !!map.getSource('austin-buildings');
+      console.log('[styledata] fired. has austin-buildings source:', hasSrc, '| activeDate:', activeDate);
+      if (activeDate && !hasSrc) {
+        console.log('[styledata] re-adding building layers');
         addBuildingLayers(snapshotUrlFor(activeDate));
         if (typeof applyTimeOfDay === 'function')
           applyTimeOfDay(map, window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P);

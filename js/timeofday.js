@@ -96,45 +96,49 @@
     if (_cleaned) return;
     const style = map.getStyle();
     if (!style || !style.layers) return;
+    const hidden = [], kept = [], ours = [];
     for (const layer of style.layers) {
-      if (isOurLayer(layer)) continue;
+      if (isOurLayer(layer)) { ours.push(layer.id); continue; }
       const id   = layer.id;
       const idl  = id.toLowerCase();
       const src  = (layer['source-layer'] || '').toLowerCase();
       const type = layer.type;
 
       // Background — keep, tinted as ground
-      if (type === 'background') { _bgLayers.push(id); continue; }
+      if (type === 'background') { _bgLayers.push(id); kept.push(id + '[bg]'); continue; }
 
       // All basemap symbol layers = labels/icons — hide the lot
-      if (type === 'symbol') { hide(map, id); continue; }
+      if (type === 'symbol') { hide(map, id); hidden.push(id); continue; }
 
       // Basemap fill-extrusion buildings — hide (we render our own)
-      if (type === 'fill-extrusion') { hide(map, id); continue; }
+      if (type === 'fill-extrusion') { hide(map, id); hidden.push(id + '[fill-ext]'); continue; }
 
       // Water fills / lines — keep, tinted
       if (src === 'water' || src === 'ocean' || idl === 'water' || idl === 'ocean') {
-        (type === 'line' ? _waterLines : _waterFills).push(id); continue;
+        (type === 'line' ? _waterLines : _waterFills).push(id); kept.push(id + '[water]'); continue;
       }
       // Waterways (Waller Creek!) — keep as thin water lines
-      if (src === 'waterway') { _waterLines.push(id); continue; }
+      if (src === 'waterway') { _waterLines.push(id); kept.push(id + '[waterway]'); continue; }
 
       // Parks — keep as ground-tinted fills
-      if (src === 'park') { type === 'fill' ? _groundFills.push(id) : hide(map, id); continue; }
+      if (src === 'park') { type === 'fill' ? _groundFills.push(id) : hide(map, id); kept.push(id + '[park]'); continue; }
 
       // Road lines — thin and tint the important ones, hide the rest
       if (type === 'line') {
-        if (isMajorRoad(idl, src)) { _roadLines.push(id); thinRoad(map, id); }
-        else                       { hide(map, id); }
+        if (isMajorRoad(idl, src)) { _roadLines.push(id); thinRoad(map, id); kept.push(id + '[road]'); }
+        else                       { hide(map, id); hidden.push(id + '[minor-road]'); }
         continue;
       }
 
-      // Fill layers (landuse, landcover, boundaries, etc.) — tint as ground;
-      // this keeps the base land visible rather than hiding it and leaving holes
-      if (type === 'fill') { _groundFills.push(id); continue; }
+      // Fill layers (landuse, landcover, boundaries, etc.) — tint as ground
+      if (type === 'fill') { _groundFills.push(id); kept.push(id + '[fill]'); continue; }
 
-      // Everything else (raster, heatmap, circle, etc.) — leave as-is
+      // Everything else — leave as-is
+      kept.push(id + '[other]');
     }
+    console.log('[cleanupBasemap] OUR layers (skipped):', ours);
+    console.log('[cleanupBasemap] Hidden:', hidden);
+    console.log('[cleanupBasemap] Kept:', kept);
     _cleaned = true;
   }
 
