@@ -1,0 +1,97 @@
+name: Build Austin building data
+
+# Phone-friendly: trigger this from Kiro / the GitHub mobile UI ("Run workflow").
+# It runs the whole accuracy pipeline in the cloud and commits a dated snapshot
+# back to the repo (data/snapshots/<date>/), so you never need a computer for the
+# data step, and old snapshots are never overwritten. If a previous snapshot
+# exists, it also computes a before/after diff for the change-animation feature.
+
+on:
+  workflow_dispatch:      # manual "Run workflow" button
+  push:
+    paths:
+      - "scripts/**"      # rebuild when the pipeline or overrides change
+      - ".github/workflows/build-data.yml"
+
+permissions:
+  contents: write         # allow the action to commit the baked data
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set snapshot date
+        run: echo "SNAPSHOT_DATE=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
+      - name: Determine previous snapshot
+        id: prev
+        run: |
+          if [ -f data/manifest.json ]; then
+            prev=$(python3 -c "import json; print(json.load(open('data/manifest.json')).get('latest') or '')")
+          else
+            prev=""
+          fi
+          echo "prev=$prev" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install DuckDB
+        run: |
+          curl -L -o duckdb.zip https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64.zip
+          unzip duckdb.zip
+          sudo mv duckdb /usr/local/bin/
+          duckdb --version
+
+      - name: Install tippecanoe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsqlite3-dev zlib1g-dev
+          git clone --depth 1 https://github.com/felt/tippecanoe.git
+          make -C tippecanoe -j"$(nproc)"
+          sudo make -C tippecanoe install
+          tippecanoe --version
+
+      - name: Install Python deps
+        run: pip install shapely
+
+      - name: Extract Overture buildings
+        run: bash scripts/extract.sh
+
+      - name: Enrich (heights + OSM names + known-building corrections)
+        run: |
+          set -a; source scripts/config.sh; set +a
+          python3 scripts/enrich.py
+
+      - name: Build PMTiles
+        run: bash scripts/tile.sh
+
+      - name: Diff against previous snapshot
+        if: steps.prev.outputs.prev != '' && steps.prev.outputs.prev != env.SNAPSHOT_DATE
+        run: |
+          mkdir -p data/diffs
+          python3 scripts/diff_snapshots.py \
+            "data/snapshots/${{ steps.prev.outputs.prev }}/buildings.enriched.geojson" \
+            "data/snapshots/${{ env.SNAPSHOT_DATE }}/buildings.enriched.geojson" \
+            "data/diffs/${{ steps.prev.outputs.prev }}_to_${{ env.SNAPSHOT_DATE }}.geojson"
+
+      - name: Update manifest
+        run: python3 scripts/update_manifest.py
+
+      - name: Commit baked data
+        run: |
+          git config user.name  "austin-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          # Stage the whole data dir: on the first run there's no data/diffs yet
+          # (nothing to diff against), so naming subfolders explicitly would fail.
+          git add data
+          if git diff --cached --quiet; then
+            echo "No data changes."
+          else
+            git commit -m "Add ${SNAPSHOT_DATE} snapshot of Austin building data"
+            git push
+          fi

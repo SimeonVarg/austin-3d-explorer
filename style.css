@@ -1,0 +1,158 @@
+/* ── Reset & base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #1a1208;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── HUD ──────────────────────────────────────────────────────── */
+#hud {
+  position: absolute;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 12, 4, 0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,180,60,0.25);
+  border-radius: 10px;
+  padding: 8px 18px;
+  color: #f5dfa0;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#hud-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#hud-snapshot {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-top: 2px;
+}
+
+/* ── Controls hint ────────────────────────────────────────────── */
+#controls-hint {
+  position: absolute;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 12, 4, 0.65);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,180,60,0.15);
+  border-radius: 8px;
+  padding: 6px 14px;
+  color: rgba(245,223,160,0.75);
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.mobile-hint { display: none; }
+
+@media (hover: none) and (pointer: coarse) {
+  .desktop-hint { display: none; }
+  .mobile-hint  { display: inline; }
+}
+
+/* ── Debug panel ──────────────────────────────────────────────── */
+#debug-panel {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: rgba(20, 12, 4, 0.72);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,180,60,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #f5dfa0;
+  font-size: 13px;
+  z-index: 10;
+  user-select: none;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 15px; height: 15px;
+  cursor: pointer;
+  accent-color: #f5a623;
+}
+
+#debug-legend {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+#debug-legend.hidden { display: none; }
+
+.legend-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* ── Mobile joystick ──────────────────────────────────────────── */
+#joystick-zone {
+  display: none;
+  position: absolute;
+  bottom: 70px; left: 32px;
+  z-index: 20;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  #joystick-zone { display: block; }
+}
+
+#joystick-base {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,180,60,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+#joystick-knob {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: rgba(245,166,35,0.55);
+  border: 2px solid rgba(245,166,35,0.9);
+  pointer-events: none;
+  transition: transform 0.05s;
+}
+
+/* ── MapLibre overrides ───────────────────────────────────────── */
+.maplibregl-ctrl-attrib {
+  font-size: 10px !important;
+  background: rgba(20,12,4,0.6) !important;
+  color: rgba(245,223,160,0.6) !important;
+}
+
+.maplibregl-ctrl-attrib a { color: rgba(245,166,35,0.8) !important; }
+
+/* Hide default nav controls — we use custom ones */
+.maplibregl-ctrl-top-left,
+.maplibregl-ctrl-top-right { display: none; }
