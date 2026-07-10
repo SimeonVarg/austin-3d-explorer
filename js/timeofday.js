@@ -98,29 +98,54 @@
     if (!style || !style.layers) return;
     for (const layer of style.layers) {
       if (isOurLayer(layer)) continue;
-      const id  = layer.id;
-      const idl = id.toLowerCase();
-      const src = (layer['source-layer'] || '').toLowerCase();
+      const id   = layer.id;
+      const idl  = id.toLowerCase();
+      const src  = (layer['source-layer'] || '').toLowerCase();
       const type = layer.type;
-      if (type === 'background')                               { _bgLayers.push(id); continue; }
-      if (type === 'symbol')                                   { hide(map, id); continue; }
-      if (src === 'water'    || idl.includes('water'))         { (type === 'line' ? _waterLines : _waterFills).push(id); continue; }
-      if (src === 'waterway' || idl.includes('waterway'))      { _waterLines.push(id); continue; }
-      if (src === 'park'     || idl.includes('park'))          { type === 'fill' ? _groundFills.push(id) : hide(map, id); continue; }
-      if (src === 'building' || idl.includes('building'))      { hide(map, id); continue; }
-      if (src === 'transportation' || type === 'line') {
-        if (isMajorRoad(idl)) { _roadLines.push(id); thinRoad(map, id); }
-        else                  { hide(map, id); }
+
+      // Background — keep, tinted as ground
+      if (type === 'background') { _bgLayers.push(id); continue; }
+
+      // All basemap symbol layers = labels/icons — hide the lot
+      if (type === 'symbol') { hide(map, id); continue; }
+
+      // Basemap fill-extrusion buildings — hide (we render our own)
+      if (type === 'fill-extrusion') { hide(map, id); continue; }
+
+      // Water fills / lines — keep, tinted
+      if (src === 'water' || src === 'ocean' || idl === 'water' || idl === 'ocean') {
+        (type === 'line' ? _waterLines : _waterFills).push(id); continue;
+      }
+      // Waterways (Waller Creek!) — keep as thin water lines
+      if (src === 'waterway') { _waterLines.push(id); continue; }
+
+      // Parks — keep as ground-tinted fills
+      if (src === 'park') { type === 'fill' ? _groundFills.push(id) : hide(map, id); continue; }
+
+      // Road lines — thin and tint the important ones, hide the rest
+      if (type === 'line') {
+        if (isMajorRoad(idl, src)) { _roadLines.push(id); thinRoad(map, id); }
+        else                       { hide(map, id); }
         continue;
       }
-      hide(map, id);
+
+      // Fill layers (landuse, landcover, boundaries, etc.) — tint as ground;
+      // this keeps the base land visible rather than hiding it and leaving holes
+      if (type === 'fill') { _groundFills.push(id); continue; }
+
+      // Everything else (raster, heatmap, circle, etc.) — leave as-is
     }
     _cleaned = true;
   }
 
-  function isMajorRoad(idl) {
-    return /motorway|trunk|primary|secondary|tertiary|main|street|road_|highway/.test(idl) &&
-           !/path|pedestrian|service|track|minor|footway|cycleway|rail|ferry|construction/.test(idl);
+  function isMajorRoad(idl, src) {
+    // Match by source-layer name (more reliable than ID heuristics)
+    if (src === 'transportation') {
+      return /motorway|trunk|primary|secondary|tertiary/.test(idl) &&
+             !/path|pedestrian|service|track|minor|footway|cycleway|rail|ferry|construction|bridge|tunnel/.test(idl);
+    }
+    // Fallback: ID-based heuristic for styles that don't use 'transportation' source-layer
+    return /motorway|trunk|primary|secondary|tertiary/.test(idl);
   }
   function hide(map, id) { try { map.setLayoutProperty(id,'visibility','none'); } catch(e){} }
   function thinRoad(map, id) {
