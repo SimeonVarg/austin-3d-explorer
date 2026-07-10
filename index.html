@@ -17,6 +17,9 @@
 <body>
   <div id="map"></div>
 
+  <!-- Night vignette overlay (opacity driven by time-of-day) -->
+  <div id="vignette"></div>
+
   <!-- HUD -->
   <div id="hud">
     <div id="hud-title">Austin 3D Explorer</div>
@@ -66,6 +69,18 @@
     </div>
   </div>
 
+  <!-- Time-of-day slider (sun → moon) + play button -->
+  <div id="tod-panel">
+    <span id="tod-sun" aria-hidden="true">☀️</span>
+    <div id="tod-slider-wrap">
+      <input id="tod-slider" type="range" min="0" max="1" step="0.01"
+             value="0.30" aria-label="Time of day" />
+    </div>
+    <span id="tod-moon" aria-hidden="true">🌙</span>
+    <button id="tod-play" title="Auto day/night cycle">▶</button>
+  </div>
+
+  <script src="js/timeofday.js"></script>
   <script src="js/controls.js"></script>
   <script src="js/date-switcher.js"></script>
   <script src="js/diff-tour.js"></script>

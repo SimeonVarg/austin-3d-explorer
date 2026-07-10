@@ -245,6 +245,81 @@ html, body {
   text-align: center;
 }
 
+/* ── Night vignette overlay ───────────────────────────────────── */
+#vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;                 /* above the map, below the UI panels */
+  pointer-events: none;
+  opacity: 0;                 /* driven by applyTimeOfDay */
+  transition: opacity 0.2s linear;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0,0,0,0) 45%,
+    rgba(0,0,0,0.55) 100%
+  );
+}
+
+/* ── Time-of-day panel (right edge) ───────────────────────────── */
+#tod-panel {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(20, 12, 4, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,180,60,0.2);
+  border-radius: 20px;
+  padding: 12px 8px;
+}
+
+#tod-sun, #tod-moon {
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+
+#tod-slider-wrap {
+  height: 170px;
+  width: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Horizontal range rotated 90° clockwise → sun (0) at top, moon (1) at bottom */
+#tod-slider {
+  width: 170px;
+  transform: rotate(90deg);
+  cursor: pointer;
+  accent-color: #f5a623;
+}
+
+#tod-play {
+  background: rgba(245,166,35,0.2);
+  border: 1px solid rgba(245,166,35,0.4);
+  color: #f5dfa0;
+  border-radius: 50%;
+  width: 30px; height: 30px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#tod-play:hover { background: rgba(245,166,35,0.4); }
+
+/* Shrink slightly on short screens so it doesn't crowd other panels */
+@media (max-height: 560px) {
+  #tod-slider-wrap { height: 120px; }
+  #tod-slider { width: 120px; }
+}
+
 /* ── MapLibre overrides ───────────────────────────────────────── */
 .maplibregl-ctrl-attrib {
   font-size: 10px !important;

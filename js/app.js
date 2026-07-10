@@ -5,11 +5,12 @@
  *  1. Register PMTiles protocol.
  *  2. Fetch data/manifest.json, resolve the latest (or selected) snapshot.
  *  3. Init MapLibre with OpenFreeMap basemap + terrain DEM.
- *  4. Add fill-extrusion + label layers from the snapshot PMTiles.
- *  5. Init flythrough controls (controls.js).
- *  6. Init date switcher (date-switcher.js) — shows when >1 snapshot exists.
- *  7. Gate debug panel behind ?debug=1 or Shift+D.
- *  8. Wire diff-tour (diff-tour.js) — triggered by date-switcher when a diff exists.
+ *  4. Add fill-extrusion + sign-glow + label layers from the snapshot PMTiles.
+ *  5. Clean up the Liberty basemap clutter (timeofday.js).
+ *  6. Init flythrough controls (controls.js).
+ *  7. Init date switcher (date-switcher.js) — shows when >1 snapshot exists.
+ *  8. Gate debug panel behind ?debug=1 or Shift+D.
+ *  9. Apply the default time-of-day mood and wire the slider (timeofday.js).
  *
  * addBuildingLayers() is intentionally left on window so date-switcher.js
  * can call it after a source swap.
@@ -30,7 +31,14 @@
     bearing: 15,
   };
 
+  // Default time-of-day (late afternoon). Falls back if timeofday.js is absent.
+  const DEFAULT_P = (typeof window.TOD_DEFAULT_P === 'number') ? window.TOD_DEFAULT_P : 0.30;
+
   // ── Colour palettes ─────────────────────────────────────────────
+  // NOTE: the building fill-extrusion colour is normally driven by
+  // timeofday.js (applyTimeOfDay). COLOR_NORMAL is only the pre-mood fallback
+  // used at first paint before applyTimeOfDay runs. COLOR_DEBUG is the dev-only
+  // "colour by height source" overlay.
   const COLOR_NORMAL = [
     'interpolate', ['linear'],
     ['get', 'final_height'],
@@ -119,6 +127,10 @@
       addTerrain();
       if (activeDate) addBuildingLayers(snapshotUrlFor(activeDate));
 
+      // Strip Liberty clutter down to a clean low-poly base and categorise
+      // the surviving layers for time-of-day tinting.
+      if (typeof cleanupBasemap === 'function') cleanupBasemap(map);
+
       initControls(map);
 
       if (manifest) {
@@ -127,12 +139,21 @@
 
       applyDebugVisibility();
       wireDebugToggle();
+
+      // Time of day — apply the default mood, then wire the slider + play UI.
+      if (typeof applyTimeOfDay === 'function') {
+        applyTimeOfDay(map, DEFAULT_P);
+        initTimeOfDayUI(map, DEFAULT_P);
+      }
     });
 
     // Re-add layers if the base style ever reloads
     map.on('styledata', () => {
       if (activeDate && !map.getSource('austin-buildings')) {
         addBuildingLayers(snapshotUrlFor(activeDate));
+        if (typeof applyTimeOfDay === 'function') {
+          applyTimeOfDay(map, window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P);
+        }
       }
     });
   }
@@ -208,7 +229,49 @@
       });
     }
 
-    // Name labels — float above the roof, fade in at zoom 15.5+
+    // Shared layout for the two sign layers (glow + label).
+    const signLayout = {
+      'text-field':         ['get', 'name'],
+      'text-font':          ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+      'text-size': [
+        'interpolate', ['linear'], ['zoom'],
+        15.5, 9,
+        17,   13,
+        19,   16,
+      ],
+      'text-anchor':        'center',
+      'symbol-placement':   'point',
+      'text-offset':        [0, -1],
+    };
+
+    // Sign glow — a fat blurred warm halo that sits UNDER the label. Its
+    // opacity is driven by timeofday.js (0 in daylight, full at night). Built
+    // off whatever the sign source is, so curated branded signs can swap in
+    // later without touching this layer. Uses allow-overlap so signs reliably
+    // glow at night even where the crisp label layer collides.
+    if (!map.getLayer('buildings-signs-glow')) {
+      map.addLayer({
+        id:             'buildings-signs-glow',
+        type:           'symbol',
+        source:         'austin-buildings',
+        'source-layer': 'buildings',
+        minzoom:        15.5,
+        filter:         ['!=', ['get', 'name'], null],
+        layout: Object.assign({}, signLayout, {
+          'text-allow-overlap':    true,
+          'text-ignore-placement': true,
+        }),
+        paint: {
+          'text-color':      '#ffd9a0',
+          'text-halo-color': '#ff7a2f',
+          'text-halo-width': 8,
+          'text-halo-blur':  6,
+          'text-opacity':    0,   // set by applyTimeOfDay
+        },
+      });
+    }
+
+    // Name labels — crisp text on top of the glow, fade in at zoom 15.5+
     if (!map.getLayer('buildings-labels')) {
       map.addLayer({
         id:             'buildings-labels',
@@ -217,20 +280,9 @@
         'source-layer': 'buildings',
         minzoom:        15.5,
         filter:         ['!=', ['get', 'name'], null],
-        layout: {
-          'text-field':            ['get', 'name'],
-          'text-font':             ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          'text-size': [
-            'interpolate', ['linear'], ['zoom'],
-            15.5, 9,
-            17,   13,
-            19,   16,
-          ],
-          'text-anchor':           'center',
-          'text-allow-overlap':    false,
-          'symbol-placement':      'point',
-          'text-offset':           [0, -1],
-        },
+        layout: Object.assign({}, signLayout, {
+          'text-allow-overlap': false,
+        }),
         paint: {
           'text-color':      '#fff8e8',
           'text-halo-color': 'rgba(30,15,0,0.85)',
@@ -278,12 +330,23 @@
 
     toggle.addEventListener('change', () => {
       const on = toggle.checked;
+      window.__debugActive = on;
       if (legend) legend.classList.toggle('hidden', !on);
       if (!map.getLayer('buildings-3d')) return;
-      map.setPaintProperty('buildings-3d', 'fill-extrusion-color',
-        on ? COLOR_DEBUG : COLOR_NORMAL);
-      map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity',
-        on ? BUILDING_OPACITY_DEBUG : BUILDING_OPACITY);
+
+      if (on) {
+        // Dev overlay: colour by height source
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-color', COLOR_DEBUG);
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', BUILDING_OPACITY_DEBUG);
+      } else {
+        // Restore the current time-of-day mood (not the flat fallback)
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', BUILDING_OPACITY);
+        if (typeof applyTimeOfDay === 'function') {
+          applyTimeOfDay(map, window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P);
+        } else {
+          map.setPaintProperty('buildings-3d', 'fill-extrusion-color', COLOR_NORMAL);
+        }
+      }
     });
   }
 

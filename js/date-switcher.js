@@ -69,18 +69,11 @@ function initDateSwitcher(map, manifest, currentSnapshot, onDateChange) {
  * Preserves the layer paint/layout by re-adding them after the source swap.
  */
 function swapBuildingSource(map, newUrl) {
-  // Capture current paint state before removing layers
-  const extrusionColor   = map.getLayer('buildings-3d')
-    ? map.getPaintProperty('buildings-3d', 'fill-extrusion-color')
-    : null;
-  const extrusionOpacity = map.getLayer('buildings-3d')
-    ? map.getPaintProperty('buildings-3d', 'fill-extrusion-opacity')
-    : null;
-
-  // Remove layers that depend on this source
-  if (map.getLayer('buildings-labels')) map.removeLayer('buildings-labels');
-  if (map.getLayer('buildings-3d'))     map.removeLayer('buildings-3d');
-  if (map.getSource('austin-buildings')) map.removeSource('austin-buildings');
+  // Remove all layers that depend on this source (order: top → bottom)
+  if (map.getLayer('buildings-labels'))     map.removeLayer('buildings-labels');
+  if (map.getLayer('buildings-signs-glow')) map.removeLayer('buildings-signs-glow');
+  if (map.getLayer('buildings-3d'))         map.removeLayer('buildings-3d');
+  if (map.getSource('austin-buildings'))    map.removeSource('austin-buildings');
 
   // Re-add the source with the new URL
   map.addSource('austin-buildings', {
@@ -93,12 +86,16 @@ function swapBuildingSource(map, newUrl) {
   // Re-add layers — app.js exposes addBuildingLayers globally for this
   if (typeof addBuildingLayers === 'function') {
     addBuildingLayers(newUrl);
-    // Restore any non-default paint state (e.g. debug mode was active)
-    if (extrusionColor && map.getLayer('buildings-3d')) {
-      map.setPaintProperty('buildings-3d', 'fill-extrusion-color',   extrusionColor);
-    }
-    if (extrusionOpacity && map.getLayer('buildings-3d')) {
-      map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', extrusionOpacity);
+
+    // Re-apply the current time-of-day mood so the new buildings + sign glow
+    // match the rest of the scene (colour ramp, sign glow, etc.). This also
+    // covers the debug case: applyTimeOfDay skips the building ramp while
+    // window.__debugActive is set, leaving the debug colouring in place.
+    if (typeof applyTimeOfDay === 'function') {
+      const p = (window.__todCurrentP != null)
+        ? window.__todCurrentP
+        : (window.TOD_DEFAULT_P != null ? window.TOD_DEFAULT_P : 0.30);
+      applyTimeOfDay(map, p);
     }
   }
 }
