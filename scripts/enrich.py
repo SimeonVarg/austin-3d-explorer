@@ -104,8 +104,17 @@ def main():
         with open(hero_path) as f:
             heroes = {h["match_name"].lower(): h for h in json.load(f)}
 
+    # OSM names are enrichment, not essential (heights come from Overture), and
+    # the public Overpass API is occasionally flaky/rate-limited. Don't let a
+    # transient Overpass failure kill the whole pipeline -- fall back to no OSM
+    # names and carry on with the Overture data we already have.
     print("Querying Overpass for OSM names/heights...", file=sys.stderr)
-    osm_pts, osm_tags = overpass_buildings()
+    try:
+        osm_pts, osm_tags = overpass_buildings()
+    except Exception as exc:  # noqa: BLE001 -- best-effort enrichment
+        print(f"  WARNING: Overpass query failed ({exc}); "
+              f"continuing without OSM names.", file=sys.stderr)
+        osm_pts, osm_tags = [], []
     tree = STRtree(osm_pts) if osm_pts else None
 
     def nearest_osm(geom):

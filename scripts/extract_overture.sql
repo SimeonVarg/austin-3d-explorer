@@ -20,7 +20,11 @@ COPY (
         height                      AS overture_height,   -- metres, LiDAR-derived (may be NULL)
         num_floors                  AS num_floors,        -- may be NULL
         class                       AS building_class,
-        ST_GeomFromWKB(geometry)    AS geometry
+        -- Current Overture releases, read with the spatial extension loaded,
+        -- already decode this column to a native GEOMETRY in CRS84 (lon/lat),
+        -- so no ST_GeomFromWKB conversion is needed -- pass it straight through.
+        -- (CRS84 is lon/lat order, exactly what GeoJSON/RFC7946 wants.)
+        geometry                    AS geometry
     FROM read_parquet(
         getenv('OVERTURE_S3') || '/theme=buildings/type=building/*.parquet',
         hive_partitioning = 1
