@@ -111,8 +111,12 @@
           'fill-extrusion-height':['get','final_height'],
           'fill-extrusion-base':0,
           'fill-extrusion-opacity':BUILDING_OPACITY,
-          'fill-extrusion-ambient-occlusion-intensity':0.35,
-          'fill-extrusion-ambient-occlusion-radius':3,
+          // NOTE: fill-extrusion-ambient-occlusion-* are MapLibre v5-only. This
+          // app loads v4.7.1, where they're invalid and cause addLayer to reject
+          // the whole layer — so buildings never rendered (you were seeing the
+          // basemap's own buildings, which cleanupBasemap then hid). Use
+          // vertical-gradient (v4-valid) for depth instead.
+          'fill-extrusion-vertical-gradient':true,
         },
       });
     }

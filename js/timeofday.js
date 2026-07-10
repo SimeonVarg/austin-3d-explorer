@@ -87,9 +87,11 @@
 
   function isOurLayer(layer) {
     return layer.source === 'austin-buildings' ||
+           layer.source === 'austin-signs'      ||
            layer.source === 'terrain-dem'      ||
            layer.id === 'hillshade'            ||
-           layer.id.startsWith('buildings-');
+           layer.id.startsWith('buildings-')   ||
+           layer.id.startsWith('signs-');
   }
 
   function cleanupBasemap(map) {
