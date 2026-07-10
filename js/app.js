@@ -7,7 +7,9 @@
   const protocol = new pmtiles.Protocol();
   maplibregl.addProtocol('pmtiles', protocol.tile.bind(protocol));
 
-  const SPAWN = { center: [-97.7404, 30.2849], zoom: 16.8, pitch: 62, bearing: 15 };
+  // Spawn inside the West Campus tower cluster (Dobie, Castilian, Skyloft,
+  // Moontower, Ion nearby) so you're among buildings on load, not on a lawn.
+  const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 60, bearing: 90 };
   const DEFAULT_P = (typeof window.TOD_DEFAULT_P === 'number') ? window.TOD_DEFAULT_P : 0.30;
 
   const COLOR_NORMAL = ['interpolate',['linear'],['get','final_height'],0,'#c8a96e',20,'#b8956a',40,'#a07850',70,'#8a6040',100,'#6b4226'];

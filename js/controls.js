@@ -10,7 +10,9 @@
 
 function initControls(map) {
   // ── Config ────────────────────────────────────────────────────
-  const MOVE_SPEED   = 0.00012;  // degrees per ms at base speed
+  const MOVE_SPEED   = 0.0000004; // deg/ms base; scaled by zoom below. The old
+                                  // value (0.00012) was ~300x too fast — a single
+                                  // joystick nudge flung the camera km away.
   const SPRINT_MULT  = 3.5;      // held Shift multiplier
   const VERT_SPEED   = 1.2;      // altitude change m/s
   const LOOK_SENS_D  = 0.25;     // desktop drag degrees per px
@@ -188,7 +190,10 @@ function initControls(map) {
     }
 
     if (fwd !== 0 || right !== 0) {
-      const speed  = MOVE_SPEED * dt * sprint;
+      // Scale by zoom so movement covers a consistent fraction of the view at
+      // any height (faster when zoomed out, finer when down among buildings).
+      const zoomScale = Math.pow(2, 16 - map.getZoom());
+      const speed  = MOVE_SPEED * dt * sprint * zoomScale;
       const center = map.getCenter();
       const dLon   =  fwd  * Math.sin(bearingRad) * speed + right * Math.cos(bearingRad) * speed;
       const dLat   =  fwd  * Math.cos(bearingRad) * speed - right * Math.sin(bearingRad) * speed;
