@@ -23,8 +23,9 @@ was already committed); running steps 1–3 locally is enough for a one-off test
 
 Edit `scripts/config.sh`:
 - **Bounding box** — the modeled area (defaults to UT + West Campus + The Drag).
-- **`OVERTURE_RELEASE`** — bump to the latest tag from
-  https://docs.overturemaps.org/release/latest/
+- **`OVERTURE_RELEASE`** — leave as `latest` (auto-detects the newest release
+  that exists in Overture's bucket). Only pin a `YYYY-MM-DD.N` tag for a fixed,
+  reproducible source. `OVERTURE_RELEASE_FALLBACK` is used if detection fails.
 - **`METERS_PER_LEVEL`** — storey height for the `levels → height` fallback.
 - **`SNAPSHOT_DATE`** — defaults to today (UTC); override for a backfill run.
 

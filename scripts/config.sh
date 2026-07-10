@@ -9,13 +9,19 @@ export BBOX_MIN_LAT="30.276"
 export BBOX_MAX_LON="-97.726"
 export BBOX_MAX_LAT="30.296"
 
-# Overture Maps release to pull. Overture ships monthly; bump this to the latest
-# release tag from https://docs.overturemaps.org/release/latest/
-# Format is YYYY-MM-DD.N
-export OVERTURE_RELEASE="2025-06-25.0"
+# Overture Maps release to pull. Overture ships ~monthly under versioned S3
+# folders. Default "latest" makes extract.sh auto-detect the newest release that
+# actually exists in the bucket, so this never breaks when an old release ages
+# out. Pin a specific YYYY-MM-DD.N tag only if you want a fixed source.
+export OVERTURE_RELEASE="${OVERTURE_RELEASE:-latest}"
 
-# Overture S3 bucket (public, no credentials required).
-export OVERTURE_S3="s3://overturemaps-us-west-2/release/${OVERTURE_RELEASE}"
+# Verified-good release used if auto-detection can't reach the bucket. Bump this
+# occasionally from https://docs.overturemaps.org/release/latest/
+export OVERTURE_RELEASE_FALLBACK="2026-06-17.0"
+
+# Public bucket (no credentials required). OVERTURE_S3 is finalized in extract.sh
+# once the release is resolved.
+export OVERTURE_BUCKET="s3://overturemaps-us-west-2/release"
 
 # Every pipeline run produces a dated SNAPSHOT, never overwrites a previous one.
 # This is what makes the "pick a date" / before-after-animation feature possible.
