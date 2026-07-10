@@ -52,7 +52,11 @@
     });
 
     map.on('load', () => {
-      addTerrain();
+      // NOTE: terrain intentionally disabled. Terrain + setSky + 3D
+      // fill-extrusions made buildings render one frame then get culled behind
+      // the raised ground surface (and caused buildings to float on slopes).
+      // Slope is deprioritised for now; revisit with a draped, non-exaggerated
+      // approach later. See addTerrain() below (kept, not called).
       if (activeDate) addBuildingLayers(snapshotUrlFor(activeDate));
       if (typeof cleanupBasemap === 'function') cleanupBasemap(map);
       initControls(map);
@@ -66,10 +70,7 @@
     });
 
     map.on('styledata', () => {
-      const hasSrc = !!map.getSource('austin-buildings');
-      console.log('[styledata] fired. has austin-buildings source:', hasSrc, '| activeDate:', activeDate);
-      if (activeDate && !hasSrc) {
-        console.log('[styledata] re-adding building layers');
+      if (activeDate && !map.getSource('austin-buildings')) {
         addBuildingLayers(snapshotUrlFor(activeDate));
         if (typeof applyTimeOfDay === 'function')
           applyTimeOfDay(map, window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P);
@@ -126,7 +127,10 @@
         id:'buildings-signs-glow', type:'symbol',
         source:'austin-buildings', 'source-layer':'buildings',
         minzoom:15.5, filter:['!=',['get','name'],null],
-        layout:Object.assign({},signLayout,{'text-allow-overlap':true,'text-ignore-placement':true}),
+        // Declutter like the label layer so night mode isn't a wall of
+        // overlapping glow. Curated branded signs (data/signs.json) layer
+        // on top of this as the real hero signage.
+        layout:Object.assign({},signLayout,{'text-allow-overlap':false}),
         paint:{'text-color':'#ffd9a0','text-halo-color':'#ff7a2f','text-halo-width':8,'text-halo-blur':6,'text-opacity':0},
       });
     }
