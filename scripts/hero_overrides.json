@@ -1,0 +1,32 @@
+[
+  {
+    "match_name": "Main Building",
+    "display_name": "UT Tower",
+    "height": 94.0,
+    "note": "UT Tower is ~307 ft to the top; automatic sources sometimes miscount it."
+  },
+  {
+    "match_name": "Dobie Twenty21",
+    "display_name": "Dobie Twenty21",
+    "height": 82.0,
+    "note": "27 floors."
+  },
+  {
+    "match_name": "Dobie Center",
+    "display_name": "Dobie Twenty21",
+    "height": 82.0,
+    "note": "Alias — OSM may still tag the old name."
+  },
+  {
+    "match_name": "The Castilian",
+    "display_name": "The Castilian",
+    "height": 60.0,
+    "note": "~18 floors."
+  },
+  {
+    "match_name": "Gregory Gymnasium",
+    "display_name": "Gregory Gym",
+    "height": 20.0,
+    "note": "Historic; low but wide footprint."
+  }
+]

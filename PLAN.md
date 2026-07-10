@@ -2,6 +2,15 @@
 
 > A browser-based, flyable low-poly 3D recreation of downtown Austin (UT campus, The Drag, Wampus corridor, Speedway) hosted on GitHub Pages. No install required — anyone with a link can explore it.
 
+> **⚠️ Accuracy strategy update:** See [`RESEARCH.md`](./RESEARCH.md) for the
+> research-backed data-and-accuracy plan. It supersedes this doc where they
+> disagree. Key changes: heights come from **Overture Maps (LiDAR-derived)** with
+> an OSM fallback chain, not from OSM `building:levels` alone; the data is
+> **pre-baked** into dated snapshots by a GitHub Action rather than queried live
+> or updated in the background; and **no building is hand-modeled** — everything,
+> including landmarks, renders automatically from data. The concrete pipeline
+> lives in [`scripts/`](./scripts/).
+
 ---
 
 ## Origin & Vision
@@ -22,20 +31,34 @@ This project started from a conversation about what's possible to build entirely
 ### Phase 1 — Accurate Geography + All Buildings + Signs
 - Real street grid for the UT/Wampus/Speedway area
 - Every building as a 3D massed volume at its correct location
-- Approximate heights from OSM data
+- LiDAR-derived heights from Overture Maps, with OSM fallback chain (see `RESEARCH.md`)
+- Real terrain (DEM) so the West Campus → Waller Creek slope reads correctly
 - Building names and signs as visible labels/billboards
 - Trees, parks, Waller Creek
 - Flythrough navigation (keyboard + touch)
 - Low-poly stylized color palette (warm Austin vibe)
 
-### Phase 2 — Hero Building Detail
-Manually model accurate silhouettes and facade features for landmark buildings:
+### Phase 2 — Landmark Accuracy Pass
+No manual 3D modeling — every building, including landmarks, is a data-driven
+extrusion (see `RESEARCH.md` §2). This phase is about improving the *data*, not
+building geometry by hand:
 - UT Tower
-- Dobie 21 (stepped tower profile)
-- McCombs School of Business (angular glass facade)
+- Dobie Twenty21 (formerly Dobie 21)
+- McCombs School of Business
 - Gregory Gym
 - The Drag storefronts
 - Wampus apartment buildings with recognizable color schemes + logos
+
+For each: verify/correct height and current name in `scripts/hero_overrides.json`
+(plain numbers, not modeling), and use `roof:shape`/`roof:height` from OSM where
+available for a non-flat roof.
+
+### Phase 3 — Versioning & "What Changed"
+Data foundation already built (see `RESEARCH.md` §7): dated snapshots +
+before/after diffs + `data/manifest.json`. Remaining work is front-end only:
+- Date switcher UI to view any past snapshot
+- "What changed" mode: fly to each building in a diff and animate it between
+  its old and new height
 
 ---
 
@@ -67,7 +90,7 @@ Key landmarks to feature:
 | **MapLibre GL JS** | WebGL map renderer, 3D building extrusions, game-like navigation |
 | **OpenFreeMap** | Free OSM vector tiles — no API key, no billing, CDN-hosted |
 | **Overpass API** | Fetch real building names, POIs, signs for UT/Wampus area |
-| **Three.js** | Custom 3D layer: signs, logos, hero building detail models |
+| **Three.js** | Custom 3D layer: sign/logo billboards placed on top of the automatic extrusions |
 | **GitHub Pages** | Free hosting — shareable URL, works on any device |
 
 ### Why This Stack
@@ -97,11 +120,11 @@ Key landmarks to feature:
 | Feature | Source | Achievable? |
 |---|---|---|
 | Accurate street layout | OSM vector tiles | ✅ Automatic |
-| Building footprints at real locations | OSM | ✅ Automatic |
-| Approximate height/floors | OSM `building:levels` tag | ✅ Most buildings |
-| Building names as signs | OSM `name` tag + Overpass | ✅ Yes |
+| Building footprints at real locations | Overture + City of Austin + OSM | ✅ Automatic |
+| Accurate height/floors | Overture (LiDAR) → OSM `height` → `building:levels` | ✅ Most buildings, LiDAR-backed |
+| Building names as signs | OSM `name`/`brand` + Overpass (verify 2026 names) | ✅ Yes |
 | Apartment logos / branding | Manual placement (coded) | ✅ Yes |
-| Hero building silhouettes | Manual Three.js geometry | ✅ With effort |
+| Landmark building shape | Automatic extrusion from data — no hand modeling | ✅ As good as the data |
 | Window patterns, balcony details | Approximated textures | ⚠️ Stylized |
 | Photorealistic facades | Photogrammetry / Street View | ❌ Not feasible |
 
@@ -150,6 +173,8 @@ Signs are flat texture planes (billboards) placed at real GPS coordinates. This 
 - Not photorealistic (no photogrammetry, no Street View data)
 - Not a native app (browser-only)
 - Not dependent on any paid APIs
+- Not manually 3D-modeled — every building is data-driven, no hand modeling
+- Not a live map — each snapshot is baked on demand, never auto-updates in the background
 
 ---
 
@@ -160,21 +185,28 @@ Signs are flat texture planes (billboards) placed at real GPS coordinates. This 
 - [ ] Navigation style — fly freely, or constrained to streets/sidewalks?
 - [ ] Starting point — spawn on The Drag? UT Tower plaza? Wampus?
 - [ ] Mobile touch controls — joystick overlay? Swipe to look?
-- [ ] Phase 2 priority buildings — which hero buildings first?
+- [ ] Phase 2 priority — which landmarks get their data double-checked first?
+- [ ] Date-switcher UI — dropdown of dates, or a slider?
+- [ ] How to surface "what changed" — a toast/banner, a dedicated tour mode, or both?
 
 ---
 
 ## Next Steps
 
-1. Scaffold the GitHub Pages project (HTML/JS boilerplate)
-2. Integrate MapLibre GL JS + OpenFreeMap tiles
-3. Enable 3D building extrusions for the UT/Wampus bounding box
-4. Add game-like flythrough controls
-5. Query Overpass API for building names in the area
-6. Place name labels/signs at building locations
-7. Apply low-poly color style
-8. Deploy to GitHub Pages
-9. Begin Phase 2 hero building modeling
+1. Run the data pipeline (`.github/workflows/build-data.yml`) to bake the first
+   dated snapshot — Overture footprints + LiDAR heights + OSM names
+2. Scaffold the GitHub Pages project (HTML/JS boilerplate)
+3. Integrate MapLibre GL JS + OpenFreeMap basemap tiles
+4. Load the snapshot's `austin.pmtiles` (via `data/manifest.json`) and render
+   `fill-extrusion` from `final_height`
+5. Add terrain (DEM `raster-dem` source) so buildings sit on real elevation
+6. Add game-like flythrough controls
+7. Place name labels/signs at building locations (verify current 2026 names)
+8. Apply low-poly color style
+9. Deploy to GitHub Pages
+10. Phase 2: double-check landmark data in `hero_overrides.json`
+11. Phase 3: build the date switcher + "what changed" animation UI on top of
+    `data/manifest.json` and the diff files
 
 ---
 
