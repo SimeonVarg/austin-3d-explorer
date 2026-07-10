@@ -1,13 +1,18 @@
 /**
  * app.js — Austin 3D Explorer main entry point
  *
- * 1. Registers the PMTiles protocol with MapLibre.
- * 2. Fetches data/manifest.json to find the latest snapshot date.
- * 3. Initialises MapLibre with an OpenFreeMap basemap.
- * 4. On map load: adds austin.pmtiles as a vector source, then:
- *    - fill-extrusion layer  (buildings, height = final_height)
- *    - symbol layer          (building name labels, skipping nulls)
- * 5. Debug toggle: re-colours buildings by source_height.
+ * Responsibilities:
+ *  1. Register PMTiles protocol.
+ *  2. Fetch data/manifest.json, resolve the latest (or selected) snapshot.
+ *  3. Init MapLibre with OpenFreeMap basemap + terrain DEM.
+ *  4. Add fill-extrusion + label layers from the snapshot PMTiles.
+ *  5. Init flythrough controls (controls.js).
+ *  6. Init date switcher (date-switcher.js) — shows when >1 snapshot exists.
+ *  7. Gate debug panel behind ?debug=1 or Shift+D.
+ *  8. Wire diff-tour (diff-tour.js) — triggered by date-switcher when a diff exists.
+ *
+ * addBuildingLayers() is intentionally left on window so date-switcher.js
+ * can call it after a source swap.
  */
 
 (function () {
@@ -40,40 +45,63 @@
     'match', ['get', 'source_height'],
     'overture',      '#4CAF50',  // green  — LiDAR
     'hero_override', '#9C27B0',  // purple — manual correction
-    '#FF9800',                   // orange — estimated (osm_*, class_default, floors)
+    '#FF9800',                   // orange — estimated
   ];
 
   const BUILDING_OPACITY       = 0.92;
   const BUILDING_OPACITY_DEBUG = 0.88;
 
-  let map = null;
+  // ── State ────────────────────────────────────────────────────────
+  let map           = null;
+  let activeDate    = null; // currently loaded snapshot date string
+  let manifest      = null;
 
-  // ── Manifest → latest snapshot ───────────────────────────────────
-  async function resolveSnapshot() {
+  // ── Debug gate ───────────────────────────────────────────────────
+  // Debug panel visible only with ?debug=1 OR after Shift+D is pressed.
+  const debugParam = new URLSearchParams(window.location.search).get('debug') === '1';
+  let debugVisible = debugParam;
+
+  function applyDebugVisibility() {
+    const panel = document.getElementById('debug-panel');
+    if (!panel) return;
+    panel.classList.toggle('hidden', !debugVisible);
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.shiftKey && e.key === 'D') {
+      debugVisible = !debugVisible;
+      applyDebugVisibility();
+    }
+  });
+
+  // ── Manifest → snapshot ──────────────────────────────────────────
+  async function loadManifest() {
     try {
       const res = await fetch('data/manifest.json');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const manifest = await res.json();
-      if (!manifest.latest) throw new Error('manifest.latest missing');
-
-      document.getElementById('hud-snapshot').textContent =
-        `Data snapshot: ${manifest.latest}`;
-
-      return {
-        url:  `pmtiles://data/snapshots/${manifest.latest}/austin.pmtiles`,
-        date: manifest.latest,
-      };
+      return await res.json();
     } catch (err) {
       console.warn('manifest.json not found or invalid:', err.message);
-      document.getElementById('hud-snapshot').textContent =
-        'No snapshot found — run the data pipeline first';
       return null;
     }
   }
 
+  function snapshotUrlFor(date) {
+    return `pmtiles://data/snapshots/${date}/austin.pmtiles`;
+  }
+
   // ── Map init ─────────────────────────────────────────────────────
   async function init() {
-    const snapshot = await resolveSnapshot();
+    manifest = await loadManifest();
+
+    if (manifest && manifest.latest) {
+      activeDate = manifest.latest;
+      document.getElementById('hud-snapshot').textContent =
+        `Data snapshot: ${activeDate}`;
+    } else {
+      document.getElementById('hud-snapshot').textContent =
+        'No snapshot found — run the data pipeline first';
+    }
 
     map = new maplibregl.Map({
       container:  'map',
@@ -88,21 +116,69 @@
     });
 
     map.on('load', () => {
-      if (snapshot) addBuildingLayers(snapshot.url);
+      addTerrain();
+      if (activeDate) addBuildingLayers(snapshotUrlFor(activeDate));
+
       initControls(map);
+
+      if (manifest) {
+        initDateSwitcher(map, manifest, activeDate, onDateChanged);
+      }
+
+      applyDebugVisibility();
       wireDebugToggle();
     });
 
-    // Re-add layers if the style reloads (shouldn't happen normally, but safe)
+    // Re-add layers if the base style ever reloads
     map.on('styledata', () => {
-      if (snapshot && !map.getSource('austin-buildings')) {
-        addBuildingLayers(snapshot.url);
+      if (activeDate && !map.getSource('austin-buildings')) {
+        addBuildingLayers(snapshotUrlFor(activeDate));
       }
     });
   }
 
-  // ── PMTiles source + layers ──────────────────────────────────────
-  function addBuildingLayers(pmtilesUrl) {
+  // ── Terrain ──────────────────────────────────────────────────────
+  // Uses the USGS 3DEP terrain tiles served through MapTiler's free public
+  // endpoint. These are the same LiDAR-derived elevation values referenced in
+  // RESEARCH.md §4 — the West Campus → Waller Creek slope will read correctly.
+  // No API key required for this public endpoint.
+  function addTerrain() {
+    if (map.getSource('terrain-dem')) return;
+
+    map.addSource('terrain-dem', {
+      type:      'raster-dem',
+      // MapTiler public USGS terrain tiles — free, no key required
+      url:       'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+      tileSize:  512,
+    });
+
+    map.setTerrain({
+      source:     'terrain-dem',
+      exaggeration: 1.5,   // slight boost so the 30 m creek-to-campus rise reads clearly
+    });
+
+    // Subtle hillshade layer underneath buildings
+    if (!map.getLayer('hillshade')) {
+      map.addLayer(
+        {
+          id:     'hillshade',
+          type:   'hillshade',
+          source: 'terrain-dem',
+          paint: {
+            'hillshade-illumination-anchor': 'map',
+            'hillshade-intensity':           0.25,
+            'hillshade-shadow-color':        '#3a200a',
+            'hillshade-highlight-color':     '#f5dfa0',
+          },
+        },
+        'water', // insert below the water layer so it doesn't overwrite it
+      );
+    }
+  }
+
+  // ── Building layers ───────────────────────────────────────────────
+  // Exposed on window so date-switcher.js can call it after a source swap.
+  window.addBuildingLayers = function addBuildingLayers(pmtilesUrl) {
     if (!map.getSource('austin-buildings')) {
       map.addSource('austin-buildings', {
         type:    'vector',
@@ -112,7 +188,7 @@
       });
     }
 
-    // Extrusion
+    // Fill-extrusion
     if (!map.getLayer('buildings-3d')) {
       map.addLayer({
         id:             'buildings-3d',
@@ -165,6 +241,31 @@
         },
       });
     }
+  };
+
+  // ── Date change callback ──────────────────────────────────────────
+  function onDateChanged(newDate) {
+    const prevDate = activeDate;
+    activeDate = newDate;
+
+    document.getElementById('hud-snapshot').textContent =
+      `Data snapshot: ${newDate}`;
+
+    // If there's a diff between prevDate and newDate, offer the tour
+    if (!manifest || !prevDate || prevDate === newDate) return;
+    const diffs = manifest.diffs || [];
+    const diffFile = diffs.find(d =>
+      d.includes(`${prevDate}_to_${newDate}`) ||
+      d.includes(`${newDate}_to_${prevDate}`)
+    );
+    if (diffFile) {
+      // Auto-start the diff tour so the user immediately sees what changed
+      const from = diffFile.match(/(\d{4}-\d{2}-\d{2})_to_/)?.[1];
+      const to   = diffFile.match(/_to_(\d{4}-\d{2}-\d{2})/)?.[1];
+      if (from && to && typeof initDiffTour === 'function') {
+        initDiffTour(map, manifest, from, to);
+      }
+    }
   }
 
   // ── Debug toggle ──────────────────────────────────────────────────
@@ -175,7 +276,7 @@
 
     toggle.addEventListener('change', () => {
       const on = toggle.checked;
-      legend.classList.toggle('hidden', !on);
+      if (legend) legend.classList.toggle('hidden', !on);
       if (!map.getLayer('buildings-3d')) return;
       map.setPaintProperty('buildings-3d', 'fill-extrusion-color',
         on ? COLOR_DEBUG : COLOR_NORMAL);
@@ -184,5 +285,6 @@
     });
   }
 
+  // ── Go ────────────────────────────────────────────────────────────
   init();
 })();
