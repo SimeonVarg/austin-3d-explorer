@@ -138,18 +138,20 @@
   }
 
   // ── Terrain ──────────────────────────────────────────────────────
-  // Uses the USGS 3DEP terrain tiles served through MapTiler's free public
-  // endpoint. These are the same LiDAR-derived elevation values referenced in
-  // RESEARCH.md §4 — the West Campus → Waller Creek slope will read correctly.
-  // No API key required for this public endpoint.
+  // Global elevation from the AWS Open Data "Terrain Tiles" set (Mapzen/Tilezen
+  // Terrarium-encoded PNGs). Free, no API key, and — unlike the previous
+  // demotiles.maplibre.org demo endpoint — it actually has coverage for Austin,
+  // so the West Campus → Waller Creek slope (RESEARCH.md §4) renders instead of
+  // silently staying flat.
   function addTerrain() {
     if (map.getSource('terrain-dem')) return;
 
     map.addSource('terrain-dem', {
-      type:      'raster-dem',
-      // MapTiler public USGS terrain tiles — free, no key required
-      url:       'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
-      tileSize:  512,
+      type:     'raster-dem',
+      tiles:    ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+      encoding: 'terrarium',
+      tileSize: 256,
+      maxzoom:  15,
     });
 
     map.setTerrain({
