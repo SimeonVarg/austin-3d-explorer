@@ -8,6 +8,39 @@
 
 ---
 
+## ★ FOR FABLE 5 — your environment, mandate, and first steps
+
+**Read this first.** You are a different setup from the previous agent, and that
+changes almost everything.
+
+- **You run on the user's actual desktop computer**, with access to his local
+  **projects folder**. The previous agent ran in a locked cloud sandbox that
+  **could not open the live site in a browser** — that single limitation caused
+  most of the pain in this project (guess-and-ship instead of verify). **You do
+  not have that limitation.** Use it.
+- **First steps:**
+  1. **Read the existing `CLAUDE.md` in the projects folder** (the user keeps one)
+     — follow whatever conventions/instructions it sets.
+  2. **Create a dedicated folder for this project** inside the projects folder and
+     work there (clone `SimeonVarg/austin-3d-explorer` into it).
+  3. **Establish your own way to verify what the user actually sees — this is your
+     responsibility, not something spelled out for you here.** You're on a real
+     desktop: you can open the live URL, run a real browser, use dev tools,
+     screenshot, run whatever local server or headless setup you like. Figure out
+     a reliable loop and use it *before* claiming any fix works. (See §8 for how
+     the previous agent worked around not having this — you can do better.)
+- **You have full freedom.** Change the **tech stack, architecture, libraries,
+  dependencies, tools, hosting — anything** — if it makes the project better or
+  easier to verify. Nothing here is sacred. The MapLibre 4.7.1 / PMTiles / Vercel
+  choices were pragmatic, not principled, and they caused real problems (see §7,
+  §9). If upgrading MapLibre to v5, switching renderers (e.g. three.js/deck.gl),
+  changing hosting, or restructuring the app gets to a **beautiful, accurate,
+  flyable West Campus faster — do it.** The more you own end-to-end, the better.
+- **The goal is the look and feel**, which the debugging churn kept us from. Get
+  the engine confirmed working, then spend your energy making it *beautiful*. 
+
+---
+
 ## 0. Who's who / how this project is built
 
 - **The user (Simeon)** is building this **entirely from a phone** using the
@@ -369,3 +402,4 @@ Assuming the in-memory fix is confirmed on live (`loaded:` ~1482):
 - **Spawn:** `[-97.7434, 30.2857]`, zoom 16.5, pitch 60, bearing 90.
 - **Golden rule:** verify rendering changes in the local real-code harness (and/or
   the on-screen `#diag`) **before** telling the user it's fixed.
+  quick aside from simeon editing from github - i changed main branch to default from add-plan
