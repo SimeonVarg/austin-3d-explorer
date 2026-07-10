@@ -92,12 +92,16 @@
     function updateDiag() {
       const el = document.getElementById('diag');
       if (!el || !map) return;
-      let rendered = 'n/a';
-      try { rendered = map.getLayer('buildings-3d') ? map.queryRenderedFeatures({ layers: ['buildings-3d'] }).length : 'no-layer'; } catch (e) {}
+      // loaded = features present in loaded tiles (camera-independent, the real
+      // "did tiles load" signal). view = queryRenderedFeatures (in-view only,
+      // unreliable for 3D at an angle — informational).
+      let loaded = 'n/a', view = 'n/a';
+      try { loaded = map.getSource('austin-buildings') ? map.querySourceFeatures('austin-buildings', { sourceLayer: 'buildings' }).length : 'no-src'; } catch (e) {}
+      try { view = map.getLayer('buildings-3d') ? map.queryRenderedFeatures({ layers: ['buildings-3d'] }).length : 'no-layer'; } catch (e) {}
       let srcLoaded = '?';
       try { srcLoaded = map.getSource('austin-buildings') ? map.isSourceLoaded('austin-buildings') : 'no-src'; } catch (e) {}
       el.textContent =
-        `bldgs:${rendered}  src:${srcLoaded}  z:${map.getZoom().toFixed(1)}  err:${errCount}` +
+        `loaded:${loaded}  view:${view}  src:${srcLoaded}  z:${map.getZoom().toFixed(1)}  err:${errCount}` +
         (lastErr ? `\n${lastErr}` : '');
     }
     setInterval(updateDiag, 1000);
