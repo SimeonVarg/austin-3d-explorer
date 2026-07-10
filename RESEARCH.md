@@ -14,11 +14,12 @@
 |---|---|---|
 | Heights from OSM `building:levels` | <20% completeness in most cities; West Campus is a patchwork | **Overture Maps** buildings (LiDAR-derived heights) with OSM fallback |
 | Footprints from OSM only | Crowd-sourced, uneven | **City of Austin** LiDAR-digitized footprints + Overture merge |
-| Live Overpass query at runtime | Slow, rate-limited, non-deterministic | **Pre-bake** into a bundled PMTiles/GeoJSON file |
+| Live Overpass query at runtime | Slow, rate-limited, non-deterministic, and the scene would silently drift as OSM changes | **Pre-bake** into dated, versioned snapshots — never a live feed |
 | Flat ground | West Campus slopes to Waller Creek | **Terrain DEM** (MapLibre `raster-dem`) |
-| `fill-extrusion` = "high detail" | Flat-topped prisms look generic | **Hybrid:** extrusions for mass, glTF for ~10 hero buildings |
-| Trust OSM `name` tag for signs | Names/branding lag reality | **Verify 2026 names/colors/logos** manually |
-| Do everything on-device (phone) | Overture/Blender are not phone tools | **GitHub Action** runs the data pipeline in the cloud |
+| No way to see the city age | Buildings do go up/down; a static site would just quietly go stale | **Dated snapshots + diffs** power a date switch and a before/after change animation |
+| Trust OSM `name` tag for signs | Names/branding lag reality | **Verify 2026 names/colors/logos** in the (optional) corrections file |
+| Do everything on-device (phone) | Overture/DuckDB/tippecanoe are not phone tools | **GitHub Action** runs the whole data pipeline in the cloud, triggered by a button |
+| Manual 3D modeling of landmark buildings | Not something you want to do by hand | **Fully automatic:** every building, including landmarks, renders from Overture/OSM data; only optional *numbers* (not shapes) can be corrected |
 
 ---
 
@@ -55,23 +56,27 @@
 
 ---
 
-## 2. Geometry strategy — "high detail" done honestly
+## 2. Geometry strategy — fully automatic, no manual modeling
 
-MapLibre `fill-extrusion` produces flat-topped prisms. That's fine for the
-*background city*, but it is **not** "high detail." Split the work:
+Every building — landmarks included — renders the same way: `fill-extrusion`
+from the baked footprint + `final_height`. MapLibre extrudes the footprint
+straight up into a flat-topped prism. No one hand-models anything in a 3D tool.
 
-- **Background buildings (~hundreds):** `fill-extrusion` from baked footprints +
-  heights. Cheap, fast on mobile. Use `roof:shape` / `roof:height` where OSM has it
-  so not every roof is flat.
-- **Hero buildings (~10):** hand-modeled glTF with setbacks, stepped profiles,
-  recognizable rooftops (UT Tower, Dobie Twenty21's stepped tower, McCombs' angular
-  glass, Gregory Gym). Placed via the MapLibre **Three.js custom layer** (or
-  `maplibre-three-plugin`), which shares MapLibre's depth buffer and camera so the
-  models sit correctly among the extrusions.
+This means "detail" for a given building is purely a function of how good its
+*data* is, not of manual effort:
+- Where OSM has `roof:shape` / `roof:height`, use it — gets non-flat roofs on
+  some buildings for free, still 100% automatic.
+- For a short list of landmark buildings (UT Tower, Dobie Twenty21, Gregory Gym,
+  etc.), `scripts/hero_overrides.json` lets you correct just the *height number*
+  or *display name* if the automatic sources are wrong — still plain data entry,
+  not modeling. See `scripts/README.md`.
+- If Overture ever adds richer per-building shape data (setbacks, roof
+  geometry) it plugs into this same pipeline automatically — nothing about the
+  app needs to change to take advantage of it later.
 
-**Hero build workflow (desktop step, one-time):** start from the real footprint,
-extrude to the correct height, add setbacks/roof from photos, export glTF. Keep
-poly counts low — stylization is the goal, not photoreal.
+**Bottom line:** if a landmark isn't well-represented by the data, it's a plain
+box like everything else — that's an acceptable outcome, not a gap to fill by
+hand.
 
 ---
 
@@ -113,22 +118,45 @@ elevation data and enable hillshade for subtle relief.
 
 ## 6. Validation loop
 
-Before modeling heroes, overlay the baked footprints/heights against:
+Before trusting a snapshot, overlay the baked footprints/heights against:
 - recent satellite imagery (footprint alignment), and
 - the UT interactive campus map (names + which building is which).
 
-Catch bad footprints/heights in data, not in 3D.
+Catch bad footprints/heights in the data, using `source_height` (see
+`scripts/README.md`) to see which buildings were guessed vs. LiDAR-measured.
 
 ---
 
-## 7. Phone-first workflow (Kiro + GitHub)
+## 7. Versioning — snapshots instead of a live feed
+
+Explicitly **not** a live map. Every pipeline run bakes a fixed, dated snapshot
+(`data/snapshots/<date>/`) and never overwrites a previous one. This is what
+makes two things possible:
+
+- **A date switch** — view the city as it was baked on any past run, not just
+  "now."
+- **A change animation** — when a run finds a previous snapshot, it
+  automatically diffs the two (matched by Overture's stable building id) and
+  writes every building that appeared, disappeared, or changed height to
+  `data/diffs/<from>_to_<to>.geojson`. The front end can fly to each one and
+  animate `old_height → new_height`.
+
+`data/manifest.json` indexes all snapshots and diffs for the front end to read.
+See `scripts/README.md` §"Versioning" for the exact file format and
+`scripts/diff_snapshots.py` / `scripts/update_manifest.py` for the
+implementation. The front-end date picker + animation UI itself is not built
+yet — the data side is ready for it.
+
+---
+
+## 8. Phone-first workflow (Kiro + GitHub)
 
 The accuracy pipeline uses tools that don't run on a phone (DuckDB over Overture
-GeoParquet, `tippecanoe`, Blender). Solution: **run the data pipeline in a GitHub
-Action** you trigger from Kiro. It fetches Overture for the bbox, builds the
-height fallback chain, enriches with OSM names, and commits `data/austin.pmtiles`
-back to the repo. You never need a computer for the data step; only the one-time
-hero glTF modeling benefits from a desktop (and can be done incrementally).
+GeoParquet, `tippecanoe`). Solution: **run the data pipeline in a GitHub Action**
+you trigger from Kiro. It fetches Overture for the bbox, builds the height
+fallback chain, enriches with OSM names, diffs against the last snapshot, and
+commits everything back to the repo. You never need a computer for any of it —
+there is no separate modeling step that requires a desktop.
 
 See `.github/workflows/build-data.yml` and `scripts/` for the concrete pipeline.
 

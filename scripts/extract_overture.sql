@@ -11,7 +11,11 @@ SET s3_region = 'us-west-2';
 
 COPY (
     SELECT
-        id,
+        id,                                                -- Overture GERS id: stable
+                                                             -- across releases, used to
+                                                             -- match buildings between
+                                                             -- snapshots for the diff/
+                                                             -- change-animation feature.
         names.primary               AS name,
         height                      AS overture_height,   -- metres, LiDAR-derived (may be NULL)
         num_floors                  AS num_floors,        -- may be NULL
@@ -28,5 +32,5 @@ COPY (
       AND bbox.ymin >= CAST(getenv('BBOX_MIN_LAT') AS DOUBLE)
       AND bbox.ymax <= CAST(getenv('BBOX_MAX_LAT') AS DOUBLE)
 )
-TO 'data/buildings.geojson'
+TO '__OUTPUT_PATH__'
 WITH (FORMAT gdal, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'RFC7946=YES');

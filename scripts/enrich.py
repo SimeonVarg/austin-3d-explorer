@@ -12,8 +12,11 @@ Name/brand come from OpenStreetMap via Overpass (OSM is the gold standard for
 labels). Heights prefer Overture (LiDAR-derived), then OSM tags, then
 levels x METERS_PER_LEVEL, then a class default.
 
-Manual corrections for recognizable hero buildings live in
-scripts/hero_overrides.json and win over everything.
+scripts/hero_overrides.json is an optional, pre-filled list of known corrections
+(a name + a height number) for a few landmark buildings where the automatic
+sources are wrong or missing. It's plain data, not a modeling step -- editing a
+number in that file, or leaving it alone, is the only "manual" input this
+pipeline ever needs.
 """
 import json
 import os
@@ -143,7 +146,7 @@ def main():
             source = "class_default"
             n_default += 1
 
-        # Manual hero override wins.
+        # A known-correction override (scripts/hero_overrides.json) wins if present.
         if name and name.lower() in heroes:
             hero = heroes[name.lower()]
             height = hero.get("height", height)

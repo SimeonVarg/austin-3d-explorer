@@ -6,6 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/config.sh
 
+mkdir -p "$(dirname "${BUILDINGS_PMTILES}")"
 echo "Building ${BUILDINGS_PMTILES} from ${BUILDINGS_ENRICHED}"
 
 tippecanoe \

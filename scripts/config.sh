@@ -17,11 +17,19 @@ export OVERTURE_RELEASE="2025-06-25.0"
 # Overture S3 bucket (public, no credentials required).
 export OVERTURE_S3="s3://overturemaps-us-west-2/release/${OVERTURE_RELEASE}"
 
+# Every pipeline run produces a dated SNAPSHOT, never overwrites a previous one.
+# This is what makes the "pick a date" / before-after-animation feature possible.
+# Override with e.g. SNAPSHOT_DATE=2026-01-01 scripts/extract.sh for a backfill.
+export SNAPSHOT_DATE="${SNAPSHOT_DATE:-$(date -u +%Y-%m-%d)}"
+
 # Output locations (committed back to the repo by the GitHub Action).
 export DATA_DIR="data"
-export BUILDINGS_GEOJSON="${DATA_DIR}/buildings.geojson"
-export BUILDINGS_ENRICHED="${DATA_DIR}/buildings.enriched.geojson"
-export BUILDINGS_PMTILES="${DATA_DIR}/austin.pmtiles"
+export SNAPSHOT_DIR="${DATA_DIR}/snapshots/${SNAPSHOT_DATE}"
+export BUILDINGS_GEOJSON="${SNAPSHOT_DIR}/buildings.geojson"
+export BUILDINGS_ENRICHED="${SNAPSHOT_DIR}/buildings.enriched.geojson"
+export BUILDINGS_PMTILES="${SNAPSHOT_DIR}/austin.pmtiles"
+export MANIFEST_JSON="${DATA_DIR}/manifest.json"
+export DIFFS_DIR="${DATA_DIR}/diffs"
 
 # Default storey height (metres) for the levels->height fallback.
 export METERS_PER_LEVEL="3.2"
