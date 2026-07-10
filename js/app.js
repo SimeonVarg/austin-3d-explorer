@@ -53,6 +53,30 @@
       maxPitch:85, antialias:true, scrollZoom:false,
     });
 
+    // ── Live diagnostics ──────────────────────────────────────────
+    // On-screen readout so the deployed app can report its own runtime state
+    // (screenshot it to debug). Captures map errors + rebuilds a status line
+    // every second: building features currently rendered, whether the tile
+    // source is loaded, current zoom, and any tile/source error.
+    let errCount = 0, lastErr = '';
+    map.on('error', (e) => {
+      errCount++;
+      lastErr = (e && e.error && e.error.message) ? String(e.error.message).slice(0, 90) : 'unknown';
+      console.warn('MAP ERROR:', lastErr);
+    });
+    function updateDiag() {
+      const el = document.getElementById('diag');
+      if (!el || !map) return;
+      let rendered = 'n/a';
+      try { rendered = map.getLayer('buildings-3d') ? map.queryRenderedFeatures({ layers: ['buildings-3d'] }).length : 'no-layer'; } catch (e) {}
+      let srcLoaded = '?';
+      try { srcLoaded = map.getSource('austin-buildings') ? map.isSourceLoaded('austin-buildings') : 'no-src'; } catch (e) {}
+      el.textContent =
+        `bldgs:${rendered}  src:${srcLoaded}  z:${map.getZoom().toFixed(1)}  err:${errCount}` +
+        (lastErr ? `\n${lastErr}` : '');
+    }
+    setInterval(updateDiag, 1000);
+
     map.on('load', () => {
       // NOTE: terrain intentionally disabled. Terrain + setSky + 3D
       // fill-extrusions made buildings render one frame then get culled behind
