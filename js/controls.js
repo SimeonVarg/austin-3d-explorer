@@ -79,11 +79,25 @@ function initControls(map) {
     map.getCanvas().style.cursor = 'crosshair';
   }
 
-  // ── Touch look (right half of screen) ────────────────────────
+  // ── Touch look (single finger) + pinch zoom (two fingers) ────
+  const MIN_ZOOM = 13, MAX_ZOOM = 19;
   let lookTouchId = null;
   let lastTouchX = 0, lastTouchY = 0;
+  let pinchActive = false, pinchStartDist = 0, pinchStartZoom = 0;
+
+  function touchDist(a, b) {
+    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+  }
 
   function onTouchStart(e) {
+    // Two fingers on the map → pinch-zoom; suppress look while pinching.
+    if (e.touches.length >= 2) {
+      pinchActive = true;
+      pinchStartDist = touchDist(e.touches[0], e.touches[1]);
+      pinchStartZoom = map.getZoom();
+      lookTouchId = null;
+      return;
+    }
     for (const t of e.changedTouches) {
       const rightHalf = t.clientX > window.innerWidth / 2;
       if (rightHalf && lookTouchId === null) {
@@ -95,6 +109,14 @@ function initControls(map) {
   }
   function onTouchMove(e) {
     e.preventDefault();
+    // Pinch: zoom by the ratio of current to starting finger distance.
+    if (pinchActive && e.touches.length >= 2) {
+      const d = touchDist(e.touches[0], e.touches[1]);
+      if (pinchStartDist > 0) {
+        map.setZoom(clamp(pinchStartZoom + Math.log2(d / pinchStartDist), MIN_ZOOM, MAX_ZOOM));
+      }
+      return;
+    }
     for (const t of e.changedTouches) {
       if (t.identifier === lookTouchId) {
         const dx = t.clientX - lastTouchX;
@@ -110,6 +132,7 @@ function initControls(map) {
     }
   }
   function onTouchEnd(e) {
+    if (e.touches.length < 2) pinchActive = false;
     for (const t of e.changedTouches) {
       if (t.identifier === lookTouchId) lookTouchId = null;
     }

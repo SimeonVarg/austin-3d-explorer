@@ -73,6 +73,10 @@
     });
 
     map.on('styledata', () => {
+      // Strip the basemap's own buildings/POIs as soon as the style parses —
+      // earlier than the 'load' event — so they never flash on screen. The
+      // _cleaned guard inside makes repeat calls no-ops.
+      if (typeof cleanupBasemap === 'function') cleanupBasemap(map);
       if (activeDate && !map.getSource('austin-buildings')) {
         addBuildingLayers(snapshotUrlFor(activeDate));
         if (typeof initSigns === 'function') initSigns(map);
