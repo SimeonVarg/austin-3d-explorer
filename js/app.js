@@ -34,7 +34,26 @@
     try { const r = await fetch('data/manifest.json'); if (!r.ok) throw new Error(r.status); return await r.json(); }
     catch(e) { console.warn('manifest:', e.message); return null; }
   }
-  function snapshotUrlFor(date) { return `pmtiles://data/snapshots/${date}/austin.pmtiles`; }
+  // Download the whole .pmtiles once and read tiles from memory instead of via
+  // HTTP range requests. The file is small (~0.6 MB) and this sidesteps hosts
+  // (e.g. Vercel) that Brotli-compress the file and/or don't support byte-range
+  // requests — which silently breaks range-based PMTiles so most tiles never
+  // load. Host-agnostic; verified against a Vercel-mimicking server.
+  const registeredKeys = new Set();
+  async function registerSnapshotSource(date) {
+    const key = `austin-${date}.pmtiles`;
+    if (!registeredKeys.has(key)) {
+      const resp = await fetch(`data/snapshots/${date}/austin.pmtiles`);
+      if (!resp.ok) throw new Error(`pmtiles HTTP ${resp.status}`);
+      const buf = await resp.arrayBuffer();
+      protocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([buf], key))));
+      registeredKeys.add(key);
+    }
+    return `pmtiles://${key}`;
+  }
+  window.registerSnapshotSource = registerSnapshotSource;
+
+  function snapshotUrlFor(date) { return `pmtiles://austin-${date}.pmtiles`; }
 
   // ── Init ──────────────────────────────────────────────────────────
   async function init() {
@@ -45,6 +64,12 @@
       if (el) el.textContent = `Data snapshot: ${activeDate}`;
     } else {
       if (el) el.textContent = 'No snapshot found — run the data pipeline first';
+    }
+
+    // Load the snapshot fully into memory before the map needs it.
+    if (activeDate) {
+      try { await registerSnapshotSource(activeDate); }
+      catch (e) { console.warn('pmtiles load failed:', e.message); }
     }
 
     map = new maplibregl.Map({

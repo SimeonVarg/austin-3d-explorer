@@ -26,22 +26,25 @@ function initDateSwitcher(map, manifest, currentSnapshot, onDateChange) {
   if (snapshots.length <= 1) { panel.classList.add('hidden'); return; }
   panel.classList.remove('hidden');
 
-  select.addEventListener('change', () => {
+  select.addEventListener('change', async () => {
     const newDate = select.value;
     if (newDate === currentSnapshot) return;
-    swapBuildingSource(map, `pmtiles://data/snapshots/${newDate}/austin.pmtiles`);
+    await swapBuildingSource(map, newDate);
     if (typeof onDateChange === 'function') onDateChange(newDate);
   });
 }
 
-function swapBuildingSource(map, newUrl) {
+async function swapBuildingSource(map, date) {
   if (map.getLayer('buildings-labels'))     map.removeLayer('buildings-labels');
   if (map.getLayer('buildings-signs-glow')) map.removeLayer('buildings-signs-glow');
   if (map.getLayer('buildings-3d'))         map.removeLayer('buildings-3d');
   if (map.getSource('austin-buildings'))    map.removeSource('austin-buildings');
-  map.addSource('austin-buildings', { type:'vector', url:newUrl, minzoom:12, maxzoom:16 });
+  // Load the newly-selected snapshot into memory (see app.js), then rebuild.
+  const url = (typeof window.registerSnapshotSource === 'function')
+    ? await window.registerSnapshotSource(date)
+    : `pmtiles://austin-${date}.pmtiles`;
   if (typeof addBuildingLayers === 'function') {
-    addBuildingLayers(newUrl);
+    addBuildingLayers(url);
     if (typeof applyTimeOfDay === 'function') {
       const p = window.__todCurrentP != null ? window.__todCurrentP
               : (window.TOD_DEFAULT_P != null ? window.TOD_DEFAULT_P : 0.30);
