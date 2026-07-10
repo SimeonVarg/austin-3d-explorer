@@ -2,6 +2,13 @@
 
 > A browser-based, flyable low-poly 3D recreation of downtown Austin (UT campus, The Drag, Wampus corridor, Speedway) hosted on GitHub Pages. No install required — anyone with a link can explore it.
 
+> **⚠️ Accuracy strategy update:** See [`RESEARCH.md`](./RESEARCH.md) for the
+> research-backed data-and-accuracy plan. It supersedes this doc where they
+> disagree — most importantly, heights come from **Overture Maps (LiDAR-derived)**
+> with an OSM fallback chain, not from OSM `building:levels` alone, and the data is
+> **pre-baked** into `data/austin.pmtiles` by a GitHub Action rather than queried
+> live. The concrete pipeline lives in [`scripts/`](./scripts/).
+
 ---
 
 ## Origin & Vision
@@ -22,7 +29,8 @@ This project started from a conversation about what's possible to build entirely
 ### Phase 1 — Accurate Geography + All Buildings + Signs
 - Real street grid for the UT/Wampus/Speedway area
 - Every building as a 3D massed volume at its correct location
-- Approximate heights from OSM data
+- LiDAR-derived heights from Overture Maps, with OSM fallback chain (see `RESEARCH.md`)
+- Real terrain (DEM) so the West Campus → Waller Creek slope reads correctly
 - Building names and signs as visible labels/billboards
 - Trees, parks, Waller Creek
 - Flythrough navigation (keyboard + touch)
@@ -97,9 +105,9 @@ Key landmarks to feature:
 | Feature | Source | Achievable? |
 |---|---|---|
 | Accurate street layout | OSM vector tiles | ✅ Automatic |
-| Building footprints at real locations | OSM | ✅ Automatic |
-| Approximate height/floors | OSM `building:levels` tag | ✅ Most buildings |
-| Building names as signs | OSM `name` tag + Overpass | ✅ Yes |
+| Building footprints at real locations | Overture + City of Austin + OSM | ✅ Automatic |
+| Accurate height/floors | Overture (LiDAR) → OSM `height` → `building:levels` | ✅ Most buildings, LiDAR-backed |
+| Building names as signs | OSM `name`/`brand` + Overpass (verify 2026 names) | ✅ Yes |
 | Apartment logos / branding | Manual placement (coded) | ✅ Yes |
 | Hero building silhouettes | Manual Three.js geometry | ✅ With effort |
 | Window patterns, balcony details | Approximated textures | ⚠️ Stylized |
@@ -166,15 +174,17 @@ Signs are flat texture planes (billboards) placed at real GPS coordinates. This 
 
 ## Next Steps
 
-1. Scaffold the GitHub Pages project (HTML/JS boilerplate)
-2. Integrate MapLibre GL JS + OpenFreeMap tiles
-3. Enable 3D building extrusions for the UT/Wampus bounding box
-4. Add game-like flythrough controls
-5. Query Overpass API for building names in the area
-6. Place name labels/signs at building locations
-7. Apply low-poly color style
-8. Deploy to GitHub Pages
-9. Begin Phase 2 hero building modeling
+1. Run the data pipeline (`.github/workflows/build-data.yml`) to bake
+   `data/austin.pmtiles` — Overture footprints + LiDAR heights + OSM names
+2. Scaffold the GitHub Pages project (HTML/JS boilerplate)
+3. Integrate MapLibre GL JS + OpenFreeMap basemap tiles
+4. Load `austin.pmtiles` and render `fill-extrusion` from `final_height`
+5. Add terrain (DEM `raster-dem` source) so buildings sit on real elevation
+6. Add game-like flythrough controls
+7. Place name labels/signs at building locations (verify current 2026 names)
+8. Apply low-poly color style
+9. Deploy to GitHub Pages
+10. Phase 2: hand-model hero buildings as glTF, place via Three.js custom layer
 
 ---
 

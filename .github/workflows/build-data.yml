@@ -1,0 +1,68 @@
+name: Build Austin building data
+
+# Phone-friendly: trigger this from Kiro / the GitHub mobile UI ("Run workflow").
+# It runs the whole accuracy pipeline in the cloud and commits data/austin.pmtiles
+# back to the repo, so you never need a computer for the data step.
+
+on:
+  workflow_dispatch:      # manual "Run workflow" button
+  push:
+    paths:
+      - "scripts/**"      # rebuild when the pipeline or overrides change
+      - ".github/workflows/build-data.yml"
+
+permissions:
+  contents: write         # allow the action to commit the baked data
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install DuckDB
+        run: |
+          curl -L -o duckdb.zip https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64.zip
+          unzip duckdb.zip
+          sudo mv duckdb /usr/local/bin/
+          duckdb --version
+
+      - name: Install tippecanoe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsqlite3-dev zlib1g-dev
+          git clone --depth 1 https://github.com/felt/tippecanoe.git
+          make -C tippecanoe -j"$(nproc)"
+          sudo make -C tippecanoe install
+          tippecanoe --version
+
+      - name: Install Python deps
+        run: pip install shapely
+
+      - name: Extract Overture buildings
+        run: bash scripts/extract.sh
+
+      - name: Enrich (heights + OSM names + hero overrides)
+        run: |
+          set -a; source scripts/config.sh; set +a
+          python3 scripts/enrich.py
+
+      - name: Build PMTiles
+        run: bash scripts/tile.sh
+
+      - name: Commit baked data
+        run: |
+          git config user.name  "austin-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/austin.pmtiles data/buildings.enriched.geojson
+          if git diff --cached --quiet; then
+            echo "No data changes."
+          else
+            git commit -m "Rebuild Austin building data (Overture + OSM + heights)"
+            git push
+          fi

@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Step 2 of the data pipeline: enrich Overture footprints.
+
+Takes the raw Overture GeoJSON (footprints + LiDAR-derived heights) and produces
+an enriched GeoJSON where every building has:
+
+  - final_height : metres, from a documented fallback chain
+  - name         : Overture name, else nearest OSM name, else None
+  - source_height: which source the height came from (for QA)
+
+Name/brand come from OpenStreetMap via Overpass (OSM is the gold standard for
+labels). Heights prefer Overture (LiDAR-derived), then OSM tags, then
+levels x METERS_PER_LEVEL, then a class default.
+
+Manual corrections for recognizable hero buildings live in
+scripts/hero_overrides.json and win over everything.
+"""
+import json
+import os
+import sys
+import urllib.parse
+import urllib.request
+
+from shapely.geometry import shape, Point  # pip install shapely
+from shapely.strtree import STRtree
+
+MPL = float(os.environ.get("METERS_PER_LEVEL", "3.2"))
+BBOX = (
+    float(os.environ["BBOX_MIN_LAT"]),
+    float(os.environ["BBOX_MIN_LON"]),
+    float(os.environ["BBOX_MAX_LAT"]),
+    float(os.environ["BBOX_MAX_LON"]),
+)
+IN = os.environ["BUILDINGS_GEOJSON"]
+OUT = os.environ["BUILDINGS_ENRICHED"]
+
+# Sensible default heights (m) when a building has no height signal at all.
+CLASS_DEFAULT = {
+    "residential": 9.0,
+    "apartments": 18.0,
+    "commercial": 12.0,
+    "retail": 6.0,
+    "education": 12.0,
+    "civic": 12.0,
+    "industrial": 8.0,
+}
+FALLBACK_DEFAULT = 8.0
+
+
+def overpass_buildings():
+    """Fetch OSM buildings (name/brand/height/levels) for the bbox."""
+    s, w, n, e = BBOX
+    query = f"""
+    [out:json][timeout:120];
+    (way["building"]({s},{w},{n},{e});
+     relation["building"]({s},{w},{n},{e}););
+    out tags center;
+    """
+    req = urllib.request.Request(
+        "https://overpass-api.de/api/interpreter",
+        data=b"data=" + urllib.parse.quote(query).encode(),
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    with urllib.request.urlopen(req, timeout=180) as r:
+        data = json.load(r)
+
+    pts, recs = [], []
+    for el in data.get("elements", []):
+        c = el.get("center") or {}
+        if "lat" not in c:
+            continue
+        tags = el.get("tags", {})
+        pts.append(Point(c["lon"], c["lat"]))
+        recs.append(tags)
+    return pts, recs
+
+
+def osm_height(tags):
+    for key in ("height", "building:height"):
+        if key in tags:
+            try:
+                return float(str(tags[key]).split()[0]), "osm_height"
+            except ValueError:
+                pass
+    for key in ("building:levels", "levels"):
+        if key in tags:
+            try:
+                return float(tags[key]) * MPL, "osm_levels"
+            except ValueError:
+                pass
+    return None, None
+
+
+def main():
+    with open(IN) as f:
+        fc = json.load(f)
+
+    heroes = {}
+    hero_path = "scripts/hero_overrides.json"
+    if os.path.exists(hero_path):
+        with open(hero_path) as f:
+            heroes = {h["match_name"].lower(): h for h in json.load(f)}
+
+    print("Querying Overpass for OSM names/heights...", file=sys.stderr)
+    osm_pts, osm_tags = overpass_buildings()
+    tree = STRtree(osm_pts) if osm_pts else None
+
+    def nearest_osm(geom):
+        if tree is None:
+            return {}
+        c = geom.centroid
+        idx = tree.nearest(c)
+        # STRtree.nearest returns an index (shapely 2.x) or geometry (1.x).
+        pt = osm_pts[idx] if isinstance(idx, int) else idx
+        # Only trust the match if the OSM node sits inside/near this footprint.
+        if geom.contains(pt) or geom.distance(pt) < 1e-4:
+            return osm_tags[osm_pts.index(pt)] if not isinstance(idx, int) else osm_tags[idx]
+        return {}
+
+    n_over = n_osm = n_levels = n_default = n_hero = 0
+    for feat in fc["features"]:
+        geom = shape(feat["geometry"])
+        p = feat["properties"]
+        tags = nearest_osm(geom)
+
+        name = p.get("name") or tags.get("name") or tags.get("brand")
+
+        # Height fallback chain.
+        height = p.get("overture_height")
+        source = "overture" if height else None
+        if not height:
+            h, src = osm_height(tags)
+            if h:
+                height, source = h, src
+                n_osm += 1 if src == "osm_height" else 0
+                n_levels += 1 if src == "osm_levels" else 0
+        else:
+            n_over += 1
+        if not height and p.get("num_floors"):
+            height, source = float(p["num_floors"]) * MPL, "overture_floors"
+        if not height:
+            height = CLASS_DEFAULT.get(p.get("building_class"), FALLBACK_DEFAULT)
+            source = "class_default"
+            n_default += 1
+
+        # Manual hero override wins.
+        if name and name.lower() in heroes:
+            hero = heroes[name.lower()]
+            height = hero.get("height", height)
+            name = hero.get("display_name", name)
+            source = "hero_override"
+            n_hero += 1
+
+        p.update(
+            name=name,
+            final_height=round(float(height), 1),
+            source_height=source,
+        )
+
+    with open(OUT, "w") as f:
+        json.dump(fc, f)
+
+    print(
+        f"Enriched {len(fc['features'])} buildings -> {OUT}\n"
+        f"  heights: overture={n_over} osm_h={n_osm} osm_levels={n_levels} "
+        f"default={n_default} hero_overrides={n_hero}",
+        file=sys.stderr,
+    )
+
+
+if __name__ == "__main__":
+    main()
