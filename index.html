@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Austin 3D Explorer</title>
+
+  <!-- MapLibre GL JS -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+  <!-- PMTiles protocol plugin -->
+  <script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-title">Austin 3D Explorer</div>
+    <div id="hud-snapshot"></div>
+  </div>
+
+  <!-- Controls hint -->
+  <div id="controls-hint">
+    <span class="desktop-hint">WASD / ↑↓←→ move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E up/down</span>
+    <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; swipe to look</span>
+  </div>
+
+  <!-- Debug toggle -->
+  <div id="debug-panel">
+    <label class="toggle-label">
+      <input type="checkbox" id="debug-toggle" />
+      Color by height source
+    </label>
+    <div id="debug-legend" class="hidden">
+      <span class="legend-dot" style="background:#4CAF50"></span> LiDAR
+      <span class="legend-dot" style="background:#FF9800"></span> Estimated
+      <span class="legend-dot" style="background:#9C27B0"></span> Override
+    </div>
+  </div>
+
+  <!-- Mobile joystick -->
+  <div id="joystick-zone">
+    <div id="joystick-base">
+      <div id="joystick-knob"></div>
+    </div>
+  </div>
+
+  <script src="js/controls.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
