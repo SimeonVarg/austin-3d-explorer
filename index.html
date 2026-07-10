@@ -4,38 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Austin 3D Explorer</title>
-
-  <!-- MapLibre GL JS -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-
-  <!-- PMTiles protocol plugin -->
   <script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
-
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="map"></div>
-
-  <!-- HUD -->
+  <div id="vignette"></div>
   <div id="hud">
     <div id="hud-title">Austin 3D Explorer</div>
     <div id="hud-snapshot"></div>
   </div>
-
-  <!-- Controls hint -->
   <div id="controls-hint">
     <span class="desktop-hint">WASD / ↑↓←→ move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E up/down</span>
     <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; swipe to look</span>
   </div>
-
-  <!-- Date switcher (bottom-left, above joystick on mobile) -->
   <div id="date-panel">
     <div id="date-label">Snapshot</div>
     <select id="date-select"></select>
   </div>
-
-  <!-- Diff tour banner (hidden until a diff is active) -->
   <div id="diff-banner" class="hidden">
     <span id="diff-info"></span>
     <div id="diff-controls">
@@ -45,8 +33,6 @@
       <button id="diff-exit" title="Exit tour">✕</button>
     </div>
   </div>
-
-  <!-- Debug panel — shown only when ?debug=1 or Shift+D toggled -->
   <div id="debug-panel" class="hidden">
     <label class="toggle-label">
       <input type="checkbox" id="debug-toggle" />
@@ -58,14 +44,18 @@
       <span class="legend-dot" style="background:#9C27B0"></span> Override
     </div>
   </div>
-
-  <!-- Mobile joystick -->
   <div id="joystick-zone">
-    <div id="joystick-base">
-      <div id="joystick-knob"></div>
-    </div>
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
   </div>
-
+  <div id="tod-panel">
+    <span id="tod-sun" aria-hidden="true">☀️</span>
+    <div id="tod-slider-wrap">
+      <input id="tod-slider" type="range" min="0" max="1" step="0.01" value="0.30" aria-label="Time of day" />
+    </div>
+    <span id="tod-moon" aria-hidden="true">🌙</span>
+    <button id="tod-play" title="Auto day/night cycle">▶</button>
+  </div>
+  <script src="js/timeofday.js"></script>
   <script src="js/controls.js"></script>
   <script src="js/date-switcher.js"></script>
   <script src="js/diff-tour.js"></script>

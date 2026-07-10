@@ -1,259 +1,80 @@
-/* ── Reset & base ─────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1a1208}
+#map{position:absolute;inset:0}
 
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #1a1208;
-}
+#vignette{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .2s linear;
+  background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
 
-#map {
-  position: absolute;
-  inset: 0;
-}
+#hud{position:absolute;top:16px;left:50%;transform:translateX(-50%);
+  background:rgba(20,12,4,.72);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,180,60,.25);border-radius:10px;
+  padding:8px 18px;color:#f5dfa0;text-align:center;pointer-events:none;z-index:10}
+#hud-title{font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+#hud-snapshot{font-size:11px;opacity:.65;margin-top:2px}
 
-/* ── HUD ──────────────────────────────────────────────────────── */
-#hud {
-  position: absolute;
-  top: 16px; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(20, 12, 4, 0.72);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,180,60,0.25);
-  border-radius: 10px;
-  padding: 8px 18px;
-  color: #f5dfa0;
-  text-align: center;
-  pointer-events: none;
-  z-index: 10;
-}
+#controls-hint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
+  background:rgba(20,12,4,.65);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,180,60,.15);border-radius:8px;
+  padding:6px 14px;color:rgba(245,223,160,.75);font-size:12px;
+  pointer-events:none;z-index:10;white-space:nowrap}
+.mobile-hint{display:none}
+@media(hover:none)and(pointer:coarse){.desktop-hint{display:none}.mobile-hint{display:inline}}
 
-#hud-title {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
+#debug-panel{position:absolute;top:72px;right:16px;
+  background:rgba(20,12,4,.72);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,180,60,.2);border-radius:10px;
+  padding:10px 14px;color:#f5dfa0;font-size:13px;z-index:10;user-select:none}
+#debug-panel.hidden{display:none}
+.toggle-label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.toggle-label input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:#f5a623}
+#debug-legend{margin-top:8px;display:flex;flex-direction:column;gap:4px;font-size:12px}
+#debug-legend.hidden{display:none}
+.legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 
-#hud-snapshot {
-  font-size: 11px;
-  opacity: 0.65;
-  margin-top: 2px;
-}
+#joystick-zone{display:none;position:absolute;bottom:70px;left:32px;z-index:20}
+@media(hover:none)and(pointer:coarse){#joystick-zone{display:block}}
+#joystick-base{width:100px;height:100px;border-radius:50%;
+  background:rgba(255,255,255,.08);border:2px solid rgba(255,180,60,.3);
+  display:flex;align-items:center;justify-content:center;touch-action:none}
+#joystick-knob{width:40px;height:40px;border-radius:50%;
+  background:rgba(245,166,35,.55);border:2px solid rgba(245,166,35,.9);
+  pointer-events:none;transition:transform .05s}
 
-/* ── Controls hint ────────────────────────────────────────────── */
-#controls-hint {
-  position: absolute;
-  bottom: 24px; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(20, 12, 4, 0.65);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,180,60,0.15);
-  border-radius: 8px;
-  padding: 6px 14px;
-  color: rgba(245,223,160,0.75);
-  font-size: 12px;
-  pointer-events: none;
-  z-index: 10;
-  white-space: nowrap;
-}
+#date-panel{position:absolute;bottom:70px;right:16px;
+  background:rgba(20,12,4,.72);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,180,60,.2);border-radius:10px;
+  padding:8px 12px;color:#f5dfa0;font-size:13px;z-index:10;display:flex;align-items:center;gap:8px}
+#date-panel.hidden{display:none}
+#date-label{font-size:11px;opacity:.65;white-space:nowrap}
+#date-select{background:rgba(40,24,8,.9);border:1px solid rgba(255,180,60,.3);
+  border-radius:6px;color:#f5dfa0;font-size:13px;padding:3px 6px;cursor:pointer;outline:none;max-width:130px}
+#date-select option{background:#1a1208;color:#f5dfa0}
 
-.mobile-hint { display: none; }
+#diff-banner{position:absolute;top:72px;left:16px;
+  background:rgba(20,12,4,.82);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,180,60,.35);border-radius:10px;
+  padding:10px 14px;color:#f5dfa0;font-size:13px;z-index:10;max-width:280px}
+#diff-banner.hidden{display:none}
+#diff-info{display:block;font-size:12px;opacity:.85;margin-bottom:8px;line-height:1.5}
+#diff-controls{display:flex;align-items:center;gap:6px}
+#diff-controls button{background:rgba(245,166,35,.2);border:1px solid rgba(245,166,35,.4);
+  border-radius:6px;color:#f5dfa0;font-size:15px;line-height:1;padding:3px 9px;cursor:pointer;transition:background .15s}
+#diff-controls button:hover{background:rgba(245,166,35,.4)}
+#diff-counter{font-size:12px;opacity:.7;flex:1;text-align:center}
 
-@media (hover: none) and (pointer: coarse) {
-  .desktop-hint { display: none; }
-  .mobile-hint  { display: inline; }
-}
+#tod-panel{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:10;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  background:rgba(20,12,4,.55);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,180,60,.2);border-radius:20px;padding:12px 8px}
+#tod-sun,#tod-moon{font-size:16px;line-height:1;user-select:none}
+#tod-slider-wrap{height:170px;width:34px;display:flex;align-items:center;justify-content:center}
+#tod-slider{width:170px;transform:rotate(90deg);cursor:pointer;accent-color:#f5a623}
+#tod-play{background:rgba(245,166,35,.2);border:1px solid rgba(245,166,35,.4);
+  color:#f5dfa0;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:13px;
+  display:flex;align-items:center;justify-content:center}
+#tod-play:hover{background:rgba(245,166,35,.4)}
+@media(max-height:560px){#tod-slider-wrap{height:120px}#tod-slider{width:120px}}
 
-/* ── Debug panel — hidden until ?debug=1 or Shift+D ──────────── */
-#debug-panel {
-  position: absolute;
-  top: 72px; right: 16px;   /* below the HUD — no collision */
-  background: rgba(20, 12, 4, 0.72);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,180,60,0.2);
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #f5dfa0;
-  font-size: 13px;
-  z-index: 10;
-  user-select: none;
-}
-
-#debug-panel.hidden { display: none; }
-
-.toggle-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.toggle-label input[type="checkbox"] {
-  width: 15px; height: 15px;
-  cursor: pointer;
-  accent-color: #f5a623;
-}
-
-#debug-legend {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-}
-
-#debug-legend.hidden { display: none; }
-
-.legend-dot {
-  display: inline-block;
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  margin-right: 5px;
-  vertical-align: middle;
-}
-
-/* ── Mobile joystick ──────────────────────────────────────────── */
-#joystick-zone {
-  display: none;
-  position: absolute;
-  bottom: 70px; left: 32px;
-  z-index: 20;
-}
-
-@media (hover: none) and (pointer: coarse) {
-  #joystick-zone { display: block; }
-}
-
-#joystick-base {
-  width: 100px; height: 100px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,180,60,0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: none;
-}
-
-#joystick-knob {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: rgba(245,166,35,0.55);
-  border: 2px solid rgba(245,166,35,0.9);
-  pointer-events: none;
-  transition: transform 0.05s;
-}
-
-/* ── Date switcher panel ──────────────────────────────────────── */
-#date-panel {
-  position: absolute;
-  bottom: 70px; right: 16px;
-  background: rgba(20, 12, 4, 0.72);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,180,60,0.2);
-  border-radius: 10px;
-  padding: 8px 12px;
-  color: #f5dfa0;
-  font-size: 13px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-#date-panel.hidden { display: none; }
-
-#date-label {
-  font-size: 11px;
-  opacity: 0.65;
-  white-space: nowrap;
-}
-
-#date-select {
-  background: rgba(40, 24, 8, 0.9);
-  border: 1px solid rgba(255,180,60,0.3);
-  border-radius: 6px;
-  color: #f5dfa0;
-  font-size: 13px;
-  padding: 3px 6px;
-  cursor: pointer;
-  outline: none;
-  max-width: 130px;
-}
-
-#date-select option {
-  background: #1a1208;
-  color: #f5dfa0;
-}
-
-/* diff-tour entry per option — shows when a diff is available */
-#date-select option.has-diff::after { content: ' ↔'; }
-
-/* ── Diff tour banner ─────────────────────────────────────────── */
-#diff-banner {
-  position: absolute;
-  top: 72px; left: 16px;
-  background: rgba(20, 12, 4, 0.82);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,180,60,0.35);
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #f5dfa0;
-  font-size: 13px;
-  z-index: 10;
-  max-width: 280px;
-}
-
-#diff-banner.hidden { display: none; }
-
-#diff-info {
-  display: block;
-  font-size: 12px;
-  opacity: 0.85;
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-#diff-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-#diff-controls button {
-  background: rgba(245,166,35,0.2);
-  border: 1px solid rgba(245,166,35,0.4);
-  border-radius: 6px;
-  color: #f5dfa0;
-  font-size: 15px;
-  line-height: 1;
-  padding: 3px 9px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-#diff-controls button:hover {
-  background: rgba(245,166,35,0.4);
-}
-
-#diff-counter {
-  font-size: 12px;
-  opacity: 0.7;
-  flex: 1;
-  text-align: center;
-}
-
-/* ── MapLibre overrides ───────────────────────────────────────── */
-.maplibregl-ctrl-attrib {
-  font-size: 10px !important;
-  background: rgba(20,12,4,0.6) !important;
-  color: rgba(245,223,160,0.6) !important;
-}
-
-.maplibregl-ctrl-attrib a { color: rgba(245,166,35,0.8) !important; }
-
-/* Hide default nav controls — we use custom ones */
-.maplibregl-ctrl-top-left,
-.maplibregl-ctrl-top-right { display: none; }
+.maplibregl-ctrl-attrib{font-size:10px!important;background:rgba(20,12,4,.6)!important;color:rgba(245,223,160,.6)!important}
+.maplibregl-ctrl-attrib a{color:rgba(245,166,35,.8)!important}
+.maplibregl-ctrl-top-left,.maplibregl-ctrl-top-right{display:none}
