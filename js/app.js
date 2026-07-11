@@ -182,7 +182,11 @@
 
     const signLayout = {
       'text-field':['get','name'],
-      'text-font':['Open Sans Semibold','Arial Unicode MS Bold'],
+      // Must be a fontstack that exists on the style's glyph server
+      // (OpenFreeMap serves only Noto Sans Regular/Bold/Italic). A missing
+      // fontstack 404s and MapLibre then discards the ENTIRE tile — buildings
+      // included — so a bad font here blanks the whole map.
+      'text-font':['Noto Sans Bold'],
       'text-size':['interpolate',['linear'],['zoom'],15.5,9,17,13,19,16],
       'text-anchor':'center', 'symbol-placement':'point', 'text-offset':[0,-1],
     };

@@ -27,7 +27,9 @@
 
   const BASE_LAYOUT = {
     'text-field': ['get', 'label'],
-    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+    // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph server —
+    // a missing fontstack 404s and MapLibre discards the whole tile.
+    'text-font': ['Noto Sans Bold'],
     'text-size': TEXT_SIZE,
     'text-anchor': 'center',
     'text-padding': 6,
