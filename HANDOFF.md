@@ -271,6 +271,19 @@ really started because rendering bugs ate the time. That's the next chapter.
     Proven: against a Vercel-mimicking server, range-based rendered 0 buildings,
     in-memory rendered 238; full app in harness = `loaded:1482, err:0`.
 11. **Diagnostics readout** added (temporary) so the deployed app self-reports.
+12. **[Fable 5, July 10] Buildings STILL didn't render live after #10 — missing
+    fonts killed every tile.** Both sign layers requested the fontstack
+    `Open Sans Semibold/Bold, Arial Unicode MS Bold`, which **does not exist on
+    OpenFreeMap's glyph server** (404). When a glyph fetch 404s, MapLibre
+    discards the ENTIRE vector tile that needed it — fill-extrusion buildings
+    included — and marks the tile loaded-but-empty with **no error event**
+    (`err:0`, `src:true`, `loaded:0`). The previous harness never caught this
+    because it stubbed all glyph requests with empty-but-valid responses (§8's
+    glyph gotcha) — the stub masked the live failure. Fixed: both layers use
+    `Noto Sans Bold` (OpenFreeMap serves only Noto Sans Regular/Bold/Italic —
+    any new text layer must stick to those). Verified against the real font
+    server on a desktop browser: `loaded:1072 view:294 err:0`, buildings and
+    branded signs render; live files confirmed byte-identical after deploy.
 
 ---
 
