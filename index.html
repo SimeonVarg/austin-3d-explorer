@@ -4,15 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Austin 3D Explorer</title>
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="map"></div>
   <div id="vignette"></div>
-  <div id="diag">starting…</div>
   <div id="hud">
     <div id="hud-title">Austin 3D Explorer</div>
     <div id="hud-snapshot"></div>
@@ -51,7 +49,7 @@
   <div id="tod-panel">
     <span id="tod-sun" aria-hidden="true">☀️</span>
     <div id="tod-slider-wrap">
-      <input id="tod-slider" type="range" min="0" max="1" step="0.01" value="0.30" aria-label="Time of day" />
+      <input id="tod-slider" type="range" min="0" max="1" step="0.01" value="0.12" aria-label="Time of day" />
     </div>
     <span id="tod-moon" aria-hidden="true">🌙</span>
     <button id="tod-play" title="Auto day/night cycle">▶</button>

@@ -416,3 +416,59 @@ Assuming the in-memory fix is confirmed on live (`loaded:` ~1482):
 - **Golden rule:** verify rendering changes in the local real-code harness (and/or
   the on-screen `#diag`) **before** telling the user it's fixed.
   quick aside from simeon editing from github - i changed main branch to default from add-plan
+
+---
+
+## 13. July 10 late-night overhaul — detail + visuals pass (supersedes parts of §11-12)
+
+Simeon confirmed buildings load, then asked for the fun part in one shot: max
+low-poly building detail (esp. West Campus apartments + UT buildings), drastically
+better day/night/sky/landscape, keep signs/glow/controls. What changed:
+
+**Architecture: PMTiles is GONE from the client.**
+- Buildings are now a plain GeoJSON source: `data/snapshots/<date>/buildings.detailed.geojson`
+  (~1.4 MB raw, ~big-savings brotli'd by Vercel; MapLibre client-tiles it in a worker).
+  This also permanently kills the Vercel byte-range/Brotli failure class (§7).
+- MapLibre upgraded 4.7.1 → **5.24.0**. v5 notes: `antialias` must live in
+  `canvasContextAttributes`; `map.on()` no longer chains; sky needs the horizon
+  on-screen — we run `setVerticalFieldOfView(58)` + spawn pitch 64 so the
+  `setSky` gradient actually shows. MapLibre has NO ambient-occlusion/flood-light
+  (that's Mapbox v3) — night "flood light" is faked with `circle-blur` ground
+  pools under signs (`signs-ground-glow` layer).
+
+**Data added (all fetched from OSM Overpass, scripts in `scripts/`):**
+- `data/parts.geojson` → baked to `parts.detailed.geojson`: 23 `building:part`
+  volumes (incl. the 94 m UT Tower shaft on its 6.4 m base). Base buildings that
+  parts replace carry `has_parts=1` and are filtered out of `buildings-3d`.
+- `data/trees.geojson`: 498 real campus trees (octagon canopy + trunk extrusions).
+- `data/landscape.geojson`: 52 pitches + fountain fills.
+- `data/hero_designs.json`: curated real-world palettes for all 48 signed
+  landmarks + ~19 OSM-name variants (UT limestone + red tile, Dobie gold glass,
+  Skyloft blue, Castilian white...) plus per-`building_class` palette variants.
+- OSM colour tags in this bbox are nearly nonexistent (5 buildings, 1 with real
+  colours — Sutton Hall). Curated designs + class palettes carry the look; more
+  data genuinely does not exist upstream.
+
+**Bake step (`scripts/bake_detail.py <date>`):** merges base buildings + parts +
+OSM tags + hero designs; bakes per-feature wall/roof colours for day/golden/night
+(`wd/wg/wn`, `rd/rg/rn`) with deterministic per-building shade jitter. Hero
+matching is sign-location-based disambiguated by height, then fuzzy-name.
+Re-run it after editing `hero_designs.json`, then hard-reload.
+
+**Client rendering:**
+- `timeofday.js` v2: one `interpolate` expression with constant-`p` input blends
+  each feature's baked colours — per-building identity at every hour. Scene
+  keyframes drive sky (v5 `setSky`), light, ground/park/road/water/tree/pitch.
+  Parks/landcover get their own GREEN bucket now (they were pavement-tinted).
+  Pattern fills (plaza hatching) are hidden — they ignore tints and glow at night.
+- Roof caps: top 1.2 m of every building ≥4 m re-extruded in roof colour
+  (`buildings-roof`/`parts-roof`) — UT's red-tile roofs read from the air.
+- v5 renders wide text halos as solid slabs; the old glow-underlay symbol layers
+  are REMOVED (orphaned glow text made colored blocks where labels decluttered).
+  Neon = label brand-halo widening at night + ground pools.
+- Default time is now p=0.12 (late morning; palette variety visible on load).
+
+**Verification:** everything above was verified in the `_harness.html` preview
+loop (day/golden/night screenshots at spawn, UT Tower south-mall shot, West
+Campus street shot). Screenshot tip: hidden-tab compositor serves ONE STALE
+FRAME — always screenshot twice and trust the second.

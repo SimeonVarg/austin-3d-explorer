@@ -35,14 +35,20 @@ function initDateSwitcher(map, manifest, currentSnapshot, onDateChange) {
 }
 
 async function swapBuildingSource(map, date) {
-  if (map.getLayer('buildings-labels'))     map.removeLayer('buildings-labels');
-  if (map.getLayer('buildings-signs-glow')) map.removeLayer('buildings-signs-glow');
-  if (map.getLayer('buildings-3d'))         map.removeLayer('buildings-3d');
-  if (map.getSource('austin-buildings'))    map.removeSource('austin-buildings');
-  // Load the newly-selected snapshot into memory (see app.js), then rebuild.
-  const url = (typeof window.registerSnapshotSource === 'function')
-    ? await window.registerSnapshotSource(date)
-    : `pmtiles://austin-${date}.pmtiles`;
+  // Buildings are a plain GeoJSON source now — just repoint its data URL.
+  const src = map.getSource('austin-buildings');
+  const url = (typeof window.snapshotUrlFor === 'function')
+    ? window.snapshotUrlFor(date)
+    : `data/snapshots/${date}/buildings.detailed.geojson`;
+  if (src && typeof src.setData === 'function') {
+    src.setData(url);
+    if (typeof applyTimeOfDay === 'function') {
+      const p = window.__todCurrentP != null ? window.__todCurrentP
+              : (window.TOD_DEFAULT_P != null ? window.TOD_DEFAULT_P : 0.30);
+      applyTimeOfDay(map, p);
+    }
+    return;
+  }
   if (typeof addBuildingLayers === 'function') {
     addBuildingLayers(url);
     if (typeof applyTimeOfDay === 'function') {

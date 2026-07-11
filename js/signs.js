@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  const SRC = 'austin-signs', GLOW = 'signs-glow', LABEL = 'signs-label';
+  const SRC = 'austin-signs', GLOW = 'signs-glow', LABEL = 'signs-label', POOL = 'signs-ground-glow';
 
   // Heroes (priority 1) are larger and win placement. Sizes ramp with zoom.
   const TEXT_SIZE = [
@@ -42,23 +42,33 @@
       map.addSource(SRC, { type: 'geojson', data: 'data/signs.json' });
     }
 
-    // Glow underlay — colored blurred halo, always laid out, faded by time.
-    if (!map.getLayer(GLOW)) {
+    // Ground light pool — a soft brand-coloured disc flat on the ground under
+    // each landmark. MapLibre has no fill-extrusion flood light, so this is
+    // the low-poly stand-in: circles pitched into the map plane, blurred wide,
+    // faded up at night by applySignGlowLayer. Inserted BELOW the building
+    // layers so towers rise out of their own light.
+    if (!map.getLayer(POOL)) {
+      const beforeId = map.getLayer('buildings-3d') ? 'buildings-3d' : undefined;
       map.addLayer({
-        id: GLOW, type: 'symbol', source: SRC, minzoom: 13,
-        layout: Object.assign({}, BASE_LAYOUT, {
-          'text-allow-overlap': true,
-          'text-ignore-placement': true,
-        }),
+        id: POOL, type: 'circle', source: SRC, minzoom: 13,
         paint: {
-          'text-color': ['get', 'color'],
-          'text-halo-color': ['get', 'color'],
-          'text-halo-width': 7,
-          'text-halo-blur': 5,
-          'text-opacity': 0, // driven by applySignGlowLayer()
+          'circle-pitch-alignment': 'map',
+          'circle-color': ['get', 'color'],
+          'circle-blur': 1.4,
+          'circle-radius': ['interpolate', ['exponential', 2], ['zoom'],
+            13, ['match', ['get', 'priority'], 1, 10, 6],
+            16, ['match', ['get', 'priority'], 1, 60, 34],
+            19, ['match', ['get', 'priority'], 1, 380, 220],
+          ],
+          'circle-opacity': 0, // driven by applySignGlowLayer()
         },
-      });
+      }, beforeId);
     }
+
+    // NOTE: there is deliberately NO separate glow-underlay symbol layer.
+    // A second text layer with allow-overlap renders orphaned colour blocks
+    // wherever the label layer's declutterer dropped the label (v5). The neon
+    // comes from the label's own brand halo widening at night + ground pools.
 
     // Label — white text, thin brand halo, decluttered.
     if (!map.getLayer(LABEL)) {
@@ -80,12 +90,13 @@
   // signGlow: 0 = day (no glow), 1 = night (full neon). Called from timeofday.js.
   window.applySignGlowLayer = function applySignGlowLayer(map, signGlow) {
     const g = Math.max(0, Math.min(1, signGlow));
-    if (map.getLayer && map.getLayer(GLOW)) {
-      try { map.setPaintProperty(GLOW, 'text-opacity', g); } catch (e) {}
-    }
-    // Nudge the label's brand halo brighter as night falls so it reads as lit.
+    // The label's brand halo widens as night falls so it reads as lit neon.
     if (map.getLayer && map.getLayer(LABEL)) {
-      try { map.setPaintProperty(LABEL, 'text-halo-width', 1.6 + g * 1.6); } catch (e) {}
+      try { map.setPaintProperty(LABEL, 'text-halo-width', 1.6 + g * 2.2); } catch (e) {}
+    }
+    // Ground light pools bloom with the night.
+    if (map.getLayer && map.getLayer(POOL)) {
+      try { map.setPaintProperty(POOL, 'circle-opacity', g * 0.38); } catch (e) {}
     }
   };
 })();

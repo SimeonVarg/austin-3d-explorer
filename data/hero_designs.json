@@ -1,0 +1,927 @@
+{
+ "buildings": {
+  "UT Tower": {
+   "wall": "#e5dbc2",
+   "trim": "#eee6d2",
+   "roof": "#9c4a2f",
+   "night_window": "#f2b46e",
+   "confidence": "known",
+   "notes": "Cream Cordova limestone shaft with red-tile base and gold clock faces; glows muted burnt orange at night."
+  },
+  "Main Building": {
+   "wall": "#e5dbc2",
+   "trim": "#eee6d2",
+   "roof": "#9c4a2f",
+   "night_window": "#f2b46e",
+   "confidence": "known",
+   "notes": "OSM alias for the UT Tower / Main Building."
+  },
+  "DKR Stadium": {
+   "wall": "#b7b1a6",
+   "trim": "#c9c4ba",
+   "roof": "#756f66",
+   "night_window": "#e8a664",
+   "confidence": "known",
+   "notes": "Warm poured-concrete bowl with burnt-orange accent glow under the decks."
+  },
+  "Darrell K Royal-Texas Memorial Stadium": {
+   "wall": "#b7b1a6",
+   "trim": "#c9c4ba",
+   "roof": "#756f66",
+   "night_window": "#e8a664",
+   "confidence": "known",
+   "notes": "OSM alias (hyphen) for DKR Stadium."
+  },
+  "Darrell K Royal–Texas Memorial Stadium": {
+   "wall": "#b7b1a6",
+   "trim": "#c9c4ba",
+   "roof": "#756f66",
+   "night_window": "#e8a664",
+   "confidence": "known",
+   "notes": "OSM alias (en dash) for DKR Stadium."
+  },
+  "Moody Center": {
+   "wall": "#4c4c51",
+   "trim": "#c9a878",
+   "roof": "#434347",
+   "night_window": "#e9e4d6",
+   "confidence": "known",
+   "notes": "Black metal skin with a warm wood-slat canopy band; trim carries the wood tone."
+  },
+  "Gregory Gym": {
+   "wall": "#a05b45",
+   "trim": "#e3d7bd",
+   "roof": "#96492f",
+   "night_window": "#f2cd84",
+   "confidence": "known",
+   "notes": "Red brick Spanish-Renaissance with cream cast-stone trim and red clay tile roof."
+  },
+  "Gregory Gymnasium": {
+   "wall": "#a05b45",
+   "trim": "#e3d7bd",
+   "roof": "#96492f",
+   "night_window": "#f2cd84",
+   "confidence": "known",
+   "notes": "OSM alias for Gregory Gym."
+  },
+  "PCL": {
+   "wall": "#b3ab9e",
+   "trim": "#c5beb2",
+   "roof": "#8c857a",
+   "night_window": "#e9e9d4",
+   "confidence": "known",
+   "notes": "Brutalist warm-gray concrete hexagon; cool fluorescent library glow at night."
+  },
+  "Perry-Castañeda Library": {
+   "wall": "#b3ab9e",
+   "trim": "#c5beb2",
+   "roof": "#8c857a",
+   "night_window": "#e9e9d4",
+   "confidence": "known",
+   "notes": "OSM alias (hyphen) for PCL."
+  },
+  "Perry–Castañeda Library": {
+   "wall": "#b3ab9e",
+   "trim": "#c5beb2",
+   "roof": "#8c857a",
+   "night_window": "#e9e9d4",
+   "confidence": "known",
+   "notes": "OSM alias (en dash) for PCL."
+  },
+  "McCombs": {
+   "wall": "#d8cdb3",
+   "trim": "#e6ddc7",
+   "roof": "#9a5138",
+   "night_window": "#ecd396",
+   "confidence": "known",
+   "notes": "Pale limestone business-school block in the campus Mediterranean palette."
+  },
+  "McCombs School of Business": {
+   "wall": "#d8cdb3",
+   "trim": "#e6ddc7",
+   "roof": "#9a5138",
+   "night_window": "#ecd396",
+   "confidence": "known",
+   "notes": "OSM alias for McCombs."
+  },
+  "Rowling Hall": {
+   "wall": "#cec3ac",
+   "trim": "#ded4c0",
+   "roof": "#7c7367",
+   "night_window": "#e8d8a6",
+   "confidence": "known",
+   "notes": "Modern limestone panels and glass with a flat dark roof; graduate business school."
+  },
+  "Robert B. Rowling Hall": {
+   "wall": "#cec3ac",
+   "trim": "#ded4c0",
+   "roof": "#7c7367",
+   "night_window": "#e8d8a6",
+   "confidence": "known",
+   "notes": "OSM alias for Rowling Hall."
+  },
+  "Blanton Museum": {
+   "wall": "#e2d7be",
+   "trim": "#ebe2cd",
+   "roof": "#9c4a2f",
+   "night_window": "#eedfb0",
+   "confidence": "known",
+   "notes": "Limestone museum with red tile roof in the campus core style."
+  },
+  "Blanton Museum of Art": {
+   "wall": "#e2d7be",
+   "trim": "#ebe2cd",
+   "roof": "#9c4a2f",
+   "night_window": "#eedfb0",
+   "confidence": "known",
+   "notes": "OSM alias for the Blanton Museum."
+  },
+  "Harry Ransom Center": {
+   "wall": "#cdc4b0",
+   "trim": "#dbd3c2",
+   "roof": "#8a8274",
+   "night_window": "#ddd4ba",
+   "confidence": "known",
+   "notes": "Mostly windowless limestone-clad archive box; dim, cool night presence."
+  },
+  "LBJ Library": {
+   "wall": "#e1dac9",
+   "trim": "#eae4d6",
+   "roof": "#b5ac9a",
+   "night_window": "#e7ddc2",
+   "confidence": "known",
+   "notes": "Monolithic pale travertine slab with the wider top floor reading as a warm-gray cap."
+  },
+  "LBJ Presidential Library": {
+   "wall": "#e1dac9",
+   "trim": "#eae4d6",
+   "roof": "#b5ac9a",
+   "night_window": "#e7ddc2",
+   "confidence": "known",
+   "notes": "OSM alias for the LBJ Library."
+  },
+  "Lyndon Baines Johnson Library and Museum": {
+   "wall": "#e1dac9",
+   "trim": "#eae4d6",
+   "roof": "#b5ac9a",
+   "night_window": "#e7ddc2",
+   "confidence": "known",
+   "notes": "OSM alias for the LBJ Library."
+  },
+  "Jester": {
+   "wall": "#c2b6a0",
+   "trim": "#d2c7b2",
+   "roof": "#948d7c",
+   "night_window": "#f2d692",
+   "confidence": "known",
+   "notes": "Huge tan-concrete brutalist residence towers; lots of warm dorm-window glow."
+  },
+  "Jester Center": {
+   "wall": "#c2b6a0",
+   "trim": "#d2c7b2",
+   "roof": "#948d7c",
+   "night_window": "#f2d692",
+   "confidence": "known",
+   "notes": "OSM alias for Jester."
+  },
+  "Beauford H. Jester Center": {
+   "wall": "#c2b6a0",
+   "trim": "#d2c7b2",
+   "roof": "#948d7c",
+   "night_window": "#f2d692",
+   "confidence": "known",
+   "notes": "OSM alias for Jester."
+  },
+  "Kinsolving": {
+   "wall": "#d5c6a6",
+   "trim": "#e2d6ba",
+   "roof": "#8d8373",
+   "night_window": "#f2da9c",
+   "confidence": "known",
+   "notes": "Mid-century pale tan brick women's residence hall with limestone banding."
+  },
+  "The Co-op": {
+   "wall": "#c7bdac",
+   "trim": "#d6cdbd",
+   "roof": "#8d8679",
+   "night_window": "#eeb570",
+   "confidence": "inferred",
+   "notes": "Neutral stucco storefront on the Drag; night glow leans burnt orange from Co-op branding."
+  },
+  "University Co-op": {
+   "wall": "#c7bdac",
+   "trim": "#d6cdbd",
+   "roof": "#8d8679",
+   "night_window": "#eeb570",
+   "confidence": "inferred",
+   "notes": "OSM alias for The Co-op."
+  },
+  "Texas Union": {
+   "wall": "#e4dabf",
+   "trim": "#ede5d1",
+   "roof": "#99492f",
+   "night_window": "#f0d494",
+   "confidence": "known",
+   "notes": "Spanish-Mediterranean cream limestone with red clay tile roof."
+  },
+  "Texas Union Building": {
+   "wall": "#e4dabf",
+   "trim": "#ede5d1",
+   "roof": "#99492f",
+   "night_window": "#f0d494",
+   "confidence": "known",
+   "notes": "OSM alias for the Texas Union."
+  },
+  "Bass Concert Hall": {
+   "wall": "#c9c0ac",
+   "trim": "#d8d1c0",
+   "roof": "#8a8375",
+   "night_window": "#ead9a2",
+   "confidence": "known",
+   "notes": "Large limestone-and-concrete performing arts block east of the tower."
+  },
+  "Gates Dell Complex": {
+   "wall": "#d2c8b1",
+   "trim": "#e0d8c5",
+   "roof": "#867d6e",
+   "night_window": "#e8e2c6",
+   "confidence": "known",
+   "notes": "GDC: limestone bands with metal panels and lots of glass; the CS building."
+  },
+  "Battle Hall": {
+   "wall": "#e6dcc3",
+   "trim": "#eee7d4",
+   "roof": "#9c4a2f",
+   "night_window": "#f0d89a",
+   "confidence": "known",
+   "notes": "Cass Gilbert original: the archetypal cream limestone + red tile campus building."
+  },
+  "Dobie Twenty21": {
+   "wall": "#a2865a",
+   "trim": "#bda578",
+   "roof": "#6e5a3d",
+   "night_window": "#f0cb86",
+   "confidence": "known",
+   "notes": "Bronze-gold reflective glass tower, a skyline fixture next to campus."
+  },
+  "Dobie Center": {
+   "wall": "#a2865a",
+   "trim": "#bda578",
+   "roof": "#6e5a3d",
+   "night_window": "#f0cb86",
+   "confidence": "known",
+   "notes": "OSM alias for Dobie Twenty21."
+  },
+  "The Castilian": {
+   "wall": "#dcd7cc",
+   "trim": "#e9e5db",
+   "roof": "#a19b8f",
+   "night_window": "#eede9e",
+   "confidence": "known",
+   "notes": "White/off-white concrete panel tower, one of the oldest West Campus high-rises."
+  },
+  "Skyloft": {
+   "wall": "#7e9aab",
+   "trim": "#9cb3c1",
+   "roof": "#5d6f7b",
+   "night_window": "#d3e4ee",
+   "confidence": "known",
+   "notes": "Blue glass curtain-wall tower; cool glow at night."
+  },
+  "Moontower": {
+   "wall": "#90897c",
+   "trim": "#a6a093",
+   "roof": "#666157",
+   "night_window": "#e6d5a2",
+   "confidence": "inferred",
+   "notes": "Modern mid-tone panel tower with darker accents; kept neutral warm gray."
+  },
+  "21 Rio": {
+   "wall": "#c2b6a2",
+   "trim": "#d2c8b6",
+   "roof": "#82796b",
+   "night_window": "#dfe7eb",
+   "confidence": "known",
+   "notes": "Tall beige/tan precast tower with blue-tinted glazing."
+  },
+  "Union on 24th": {
+   "wall": "#babcbd",
+   "trim": "#cdcfcf",
+   "roof": "#7e8082",
+   "night_window": "#e2eaee",
+   "confidence": "inferred",
+   "notes": "New sleek tower; light gray-white panels and glass."
+  },
+  "Inspire on 22nd": {
+   "wall": "#b4afa5",
+   "trim": "#c7c3ba",
+   "roof": "#76726a",
+   "night_window": "#d7eae6",
+   "confidence": "inferred",
+   "notes": "Modern panel tower; night glow carries a faint teal cast from its branding."
+  },
+  "Signature 1909": {
+   "wall": "#ac9776",
+   "trim": "#c1af91",
+   "roof": "#73644f",
+   "night_window": "#eeda9f",
+   "confidence": "known",
+   "notes": "Champagne/bronze metal panel and glass high-rise."
+  },
+  "Callaway House": {
+   "wall": "#a2614b",
+   "trim": "#c9b395",
+   "roof": "#6e5a4c",
+   "night_window": "#f2cf8a",
+   "confidence": "known",
+   "notes": "Red-brown brick with tan stone banding; dorm-style private hall."
+  },
+  "Ion": {
+   "wall": "#54555b",
+   "trim": "#6e6f75",
+   "roof": "#45464b",
+   "night_window": "#e5dec8",
+   "confidence": "known",
+   "notes": "Dark charcoal modern tower with warm interior glow."
+  },
+  "Rise": {
+   "wall": "#b6aa96",
+   "trim": "#c8beac",
+   "roof": "#7b7264",
+   "night_window": "#f0c78c",
+   "confidence": "inferred",
+   "notes": "Modern stucco/panel mid-rise; warm orange-leaning night glow from branding."
+  },
+  "The Standard": {
+   "wall": "#aa8267",
+   "trim": "#c6b093",
+   "roof": "#6c594a",
+   "night_window": "#ecd79e",
+   "confidence": "inferred",
+   "notes": "Newer high-rise mixing brick-red and cream facade panels."
+  },
+  "Pointe on Rio": {
+   "wall": "#99a4aa",
+   "trim": "#b1bbc0",
+   "roof": "#656f74",
+   "night_window": "#dbe6eb",
+   "confidence": "inferred",
+   "notes": "Blue-gray panel mid-rise; cool glass tones."
+  },
+  "Villas on Rio": {
+   "wall": "#d8c7a8",
+   "trim": "#e5d7bc",
+   "roof": "#96563b",
+   "night_window": "#f0d598",
+   "confidence": "inferred",
+   "notes": "Cream stucco walk-up with terracotta roof tones."
+  },
+  "The Nine": {
+   "wall": "#afaba2",
+   "trim": "#c3bfb7",
+   "roof": "#6e6a62",
+   "night_window": "#e6dec0",
+   "confidence": "inferred",
+   "notes": "Modern gray/white cottage-style community with dark accents."
+  },
+  "21 Pearl": {
+   "wall": "#c3bdb1",
+   "trim": "#d4cfc5",
+   "roof": "#7e796f",
+   "night_window": "#e8d7a6",
+   "confidence": "inferred",
+   "notes": "White/gray panel mid-rise with warm wood accent tones."
+  },
+  "Torre": {
+   "wall": "#b29c89",
+   "trim": "#c6b3a1",
+   "roof": "#746459",
+   "night_window": "#edd19e",
+   "confidence": "inferred",
+   "notes": "Warm taupe panel tower; kept muted terra-neutral."
+  },
+  "Crest at Pearl": {
+   "wall": "#b8b69f",
+   "trim": "#cac8b4",
+   "roof": "#7b7967",
+   "night_window": "#e4daac",
+   "confidence": "inferred",
+   "notes": "Garden-style stucco in sage-cream tones."
+  },
+  "The Mark": {
+   "wall": "#a8a39b",
+   "trim": "#bbb7b0",
+   "roof": "#6d6963",
+   "night_window": "#ead4a0",
+   "confidence": "inferred",
+   "notes": "Gray panel modern mid-rise."
+  },
+  "2400 Nueces": {
+   "wall": "#9ea8af",
+   "trim": "#b5bec3",
+   "roof": "#697177",
+   "night_window": "#d8e4ea",
+   "confidence": "inferred",
+   "notes": "Blue-gray glass and panel mid-rise tower."
+  },
+  "GrandMarc": {
+   "wall": "#a87d5e",
+   "trim": "#c7b696",
+   "roof": "#6e5b4b",
+   "night_window": "#ecd49e",
+   "confidence": "inferred",
+   "notes": "Brick and tan stucco student mid-rise."
+  },
+  "The Quarters": {
+   "wall": "#d5c6aa",
+   "trim": "#e2d6bf",
+   "roof": "#8f8779",
+   "night_window": "#ecd7a2",
+   "confidence": "known",
+   "notes": "Cream stucco Quarters buildings scattered through West Campus."
+  },
+  "Villas on Guadalupe": {
+   "wall": "#ccb793",
+   "trim": "#dccaab",
+   "roof": "#91573c",
+   "night_window": "#eed094",
+   "confidence": "inferred",
+   "notes": "Tan stucco with terracotta roof tones on the north Drag."
+  },
+  "Raising Cane's": {
+   "wall": "#dcd5c7",
+   "trim": "#e9e3d7",
+   "roof": "#a4443a",
+   "night_window": "#f4b09e",
+   "confidence": "known",
+   "notes": "White walls with muted Cane's-red roof band and reddish sign glow."
+  },
+  "Chick-fil-A": {
+   "wall": "#d8cebd",
+   "trim": "#e6ddcf",
+   "roof": "#9b4038",
+   "night_window": "#f5c8b0",
+   "confidence": "known",
+   "notes": "Cream brick with muted brand-red roof accents."
+  },
+  "In-N-Out": {
+   "wall": "#e5e1d5",
+   "trim": "#ece9df",
+   "roof": "#b03a30",
+   "night_window": "#f5d78c",
+   "confidence": "known",
+   "notes": "White building, red roof stripe, warm yellow glow (crossed palms energy, muted)."
+  },
+  "Whataburger": {
+   "wall": "#e7dfce",
+   "trim": "#eee8da",
+   "roof": "#ce7b3a",
+   "night_window": "#f5c384",
+   "confidence": "known",
+   "notes": "White with the signature orange-striped A-frame roof, desaturated."
+  },
+  "Kerbey Lane": {
+   "wall": "#b8bfa3",
+   "trim": "#cbd1b9",
+   "roof": "#798066",
+   "night_window": "#ecdc9a",
+   "confidence": "inferred",
+   "notes": "Painted cafe storefront; muted sage-green to match the brand."
+  },
+  "Dirty Martin's": {
+   "wall": "#e1dbc9",
+   "trim": "#ebe7d9",
+   "roof": "#a04a3a",
+   "night_window": "#f0cd92",
+   "confidence": "known",
+   "notes": "Old white burger shack with red accents, on the Drag since 1926."
+  },
+  "Texas Chili Parlor": {
+   "wall": "#8e4a3c",
+   "trim": "#a86450",
+   "roof": "#5e453a",
+   "night_window": "#ecc286",
+   "confidence": "known",
+   "notes": "Red-painted dive-bar storefront with dark roof; warm neon-ish glow."
+  },
+  "Scholz Garten": {
+   "wall": "#dcd0a8",
+   "trim": "#e8dec0",
+   "roof": "#7c8274",
+   "night_window": "#ecdb9c",
+   "confidence": "known",
+   "notes": "Historic German beer garden; pale yellow-cream clapboard, gray-green metal roof."
+  },
+  "P. Terry's": {
+   "wall": "#e3ded1",
+   "trim": "#ece8dc",
+   "roof": "#8a8478",
+   "night_window": "#f0d596",
+   "confidence": "known",
+   "notes": "Mid-century-modern white stand with angled roof and warm wood accents."
+  },
+  "Cain & Abel's": {
+   "wall": "#b79972",
+   "trim": "#cab28e",
+   "roof": "#745f4a",
+   "night_window": "#eec78a",
+   "confidence": "inferred",
+   "notes": "Tan wood-and-patio West Campus bar; warm beer-light glow."
+  },
+  "Chipotle": {
+   "wall": "#7a7268",
+   "trim": "#918a7e",
+   "roof": "#565049",
+   "night_window": "#eac48c",
+   "confidence": "known",
+   "notes": "Brand-standard dark metal and wood storefront."
+  }
+ },
+ "classes": {
+  "university": {
+   "palettes": [
+    {
+     "wall": "#e8ddc4",
+     "trim": "#efe7d3",
+     "roof": "#9c4a2f"
+    },
+    {
+     "wall": "#ddd2b6",
+     "trim": "#e9e0c9",
+     "roof": "#a1543a"
+    },
+    {
+     "wall": "#d2c6ab",
+     "trim": "#e2d8c0",
+     "roof": "#8f4a33"
+    }
+   ],
+   "night_window": "#f0d48e"
+  },
+  "apartments": {
+   "palettes": [
+    {
+     "wall": "#d6c7ab",
+     "trim": "#e4d8c1",
+     "roof": "#8f8272"
+    },
+    {
+     "wall": "#b3aea4",
+     "trim": "#c6c2b9",
+     "roof": "#6f6b62"
+    },
+    {
+     "wall": "#a3705a",
+     "trim": "#bf9377",
+     "roof": "#6e5648"
+    },
+    {
+     "wall": "#93a3ad",
+     "trim": "#adbac2",
+     "roof": "#5f6c74"
+    }
+   ],
+   "night_window": "#efd6a0"
+  },
+  "dormitory": {
+   "palettes": [
+    {
+     "wall": "#cfc0a2",
+     "trim": "#ded1b8",
+     "roof": "#96543b"
+    },
+    {
+     "wall": "#c4b8a2",
+     "trim": "#d4c9b4",
+     "roof": "#8d8271"
+    },
+    {
+     "wall": "#b9ab93",
+     "trim": "#cabfa9",
+     "roof": "#7d7263"
+    }
+   ],
+   "night_window": "#f2da96"
+  },
+  "parking": {
+   "palettes": [
+    {
+     "wall": "#b3b0a9",
+     "trim": "#c2bfb9",
+     "roof": "#8a8781"
+    },
+    {
+     "wall": "#a5a29b",
+     "trim": "#b5b2ac",
+     "roof": "#7c7973"
+    },
+    {
+     "wall": "#bdbab2",
+     "trim": "#ccc9c2",
+     "roof": "#93908a"
+    }
+   ],
+   "night_window": "#ded9c8"
+  },
+  "commercial": {
+   "palettes": [
+    {
+     "wall": "#c9bfae",
+     "trim": "#d8cfc0",
+     "roof": "#857c6d"
+    },
+    {
+     "wall": "#b5aa9a",
+     "trim": "#c6bcae",
+     "roof": "#746a5c"
+    },
+    {
+     "wall": "#cec2a8",
+     "trim": "#ddd3bd",
+     "roof": "#8b6a4d"
+    }
+   ],
+   "night_window": "#f0cf92"
+  },
+  "office": {
+   "palettes": [
+    {
+     "wall": "#9aa7ad",
+     "trim": "#b2bdc2",
+     "roof": "#677277"
+    },
+    {
+     "wall": "#c2b8a4",
+     "trim": "#d2c9b8",
+     "roof": "#7f776a"
+    },
+    {
+     "wall": "#aeaca6",
+     "trim": "#c0beb8",
+     "roof": "#74726c"
+    }
+   ],
+   "night_window": "#e3e4d2"
+  },
+  "church": {
+   "palettes": [
+    {
+     "wall": "#ded3bc",
+     "trim": "#ebe2d0",
+     "roof": "#6d6a70"
+    },
+    {
+     "wall": "#96604c",
+     "trim": "#b28066",
+     "roof": "#55483f"
+    },
+    {
+     "wall": "#e6e1d3",
+     "trim": "#eeebe0",
+     "roof": "#77716a"
+    }
+   ],
+   "night_window": "#f0d69c"
+  },
+  "retail": {
+   "palettes": [
+    {
+     "wall": "#d8cdb8",
+     "trim": "#e5dcca",
+     "roof": "#8f5b45"
+    },
+    {
+     "wall": "#c1b6a6",
+     "trim": "#d1c8ba",
+     "roof": "#6f6a60"
+    },
+    {
+     "wall": "#b7a68e",
+     "trim": "#c9baa5",
+     "roof": "#7c6a55"
+    }
+   ],
+   "night_window": "#f2cf8e"
+  },
+  "house": {
+   "palettes": [
+    {
+     "wall": "#b7bda3",
+     "trim": "#c9ceb8",
+     "roof": "#6d675c"
+    },
+    {
+     "wall": "#ded5bf",
+     "trim": "#eae3d1",
+     "roof": "#79705f"
+    },
+    {
+     "wall": "#aab4b4",
+     "trim": "#c0c8c8",
+     "roof": "#626c6e"
+    },
+    {
+     "wall": "#cbb894",
+     "trim": "#dbcbab",
+     "roof": "#77664f"
+    }
+   ],
+   "night_window": "#f2d696"
+  },
+  "detached": {
+   "palettes": [
+    {
+     "wall": "#d3c9ae",
+     "trim": "#e1d9c3",
+     "roof": "#74695a"
+    },
+    {
+     "wall": "#b9ada0",
+     "trim": "#cac0b5",
+     "roof": "#665e54"
+    },
+    {
+     "wall": "#c9b3a4",
+     "trim": "#d9c7ba",
+     "roof": "#706055"
+    }
+   ],
+   "night_window": "#f0d294"
+  },
+  "residential": {
+   "palettes": [
+    {
+     "wall": "#c6bba7",
+     "trim": "#d5ccbb",
+     "roof": "#7b7060"
+    },
+    {
+     "wall": "#b0a89a",
+     "trim": "#c2bbaf",
+     "roof": "#6a635a"
+    },
+    {
+     "wall": "#cfc0a4",
+     "trim": "#ded1ba",
+     "roof": "#8a5f47"
+    }
+   ],
+   "night_window": "#f0d69a"
+  },
+  "school": {
+   "palettes": [
+    {
+     "wall": "#a86e54",
+     "trim": "#c2917a",
+     "roof": "#6b5a4e"
+    },
+    {
+     "wall": "#d0c3a8",
+     "trim": "#dfd4bf",
+     "roof": "#8a5340"
+    }
+   ],
+   "night_window": "#efd390"
+  },
+  "library": {
+   "palettes": [
+    {
+     "wall": "#b5ada0",
+     "trim": "#c7c0b4",
+     "roof": "#8d867b"
+    },
+    {
+     "wall": "#ddd2b8",
+     "trim": "#eae1cb",
+     "roof": "#9a5138"
+    }
+   ],
+   "night_window": "#e9e6d2"
+  },
+  "college": {
+   "palettes": [
+    {
+     "wall": "#e2d7bd",
+     "trim": "#ede5d0",
+     "roof": "#9a4e33"
+    },
+    {
+     "wall": "#d5c9ad",
+     "trim": "#e3d9c2",
+     "roof": "#8e4c36"
+    }
+   ],
+   "night_window": "#f0d58e"
+  },
+  "stadium": {
+   "palettes": [
+    {
+     "wall": "#b9b2a8",
+     "trim": "#cbc5bb",
+     "roof": "#6f6a63"
+    },
+    {
+     "wall": "#aaa49a",
+     "trim": "#bcb7ad",
+     "roof": "#635f58"
+    }
+   ],
+   "night_window": "#e8ad72"
+  },
+  "public": {
+   "palettes": [
+    {
+     "wall": "#d9cfba",
+     "trim": "#e7dfcd",
+     "roof": "#8b8274"
+    },
+    {
+     "wall": "#b6b1a5",
+     "trim": "#c7c3b8",
+     "roof": "#716c62"
+    }
+   ],
+   "night_window": "#eedca2"
+  },
+  "shed": {
+   "palettes": [
+    {
+     "wall": "#a08a70",
+     "trim": "#b39e85",
+     "roof": "#6b5c4a"
+    },
+    {
+     "wall": "#b0aea6",
+     "trim": "#c0beb7",
+     "roof": "#85837c"
+    }
+   ],
+   "night_window": "#d9cfae"
+  },
+  "greenhouse": {
+   "palettes": [
+    {
+     "wall": "#c9d6c6",
+     "trim": "#dbe4d8",
+     "roof": "#a7b3a4"
+    },
+    {
+     "wall": "#bccabf",
+     "trim": "#cfdad1",
+     "roof": "#9aa89d"
+    }
+   ],
+   "night_window": "#e4ecd8"
+  },
+  "roof": {
+   "palettes": [
+    {
+     "wall": "#c4beb2",
+     "trim": "#d3cec4",
+     "roof": "#8e887c"
+    },
+    {
+     "wall": "#b0aa9e",
+     "trim": "#c1bcb2",
+     "roof": "#7a746a"
+    }
+   ],
+   "night_window": "#ded8c4"
+  },
+  "default": {
+   "palettes": [
+    {
+     "wall": "#d8c5a2",
+     "trim": "#e5d5b8",
+     "roof": "#84705a"
+    },
+    {
+     "wall": "#b9c0b0",
+     "trim": "#cbd1c3",
+     "roof": "#68705f"
+    },
+    {
+     "wall": "#a9b2bd",
+     "trim": "#bfc7d0",
+     "roof": "#5e6873"
+    },
+    {
+     "wall": "#b2795c",
+     "trim": "#c99a7e",
+     "roof": "#64472f"
+    },
+    {
+     "wall": "#ded5c2",
+     "trim": "#e9e2d3",
+     "roof": "#8d8472"
+    },
+    {
+     "wall": "#c0a98e",
+     "trim": "#d2bfa8",
+     "roof": "#70604c"
+    }
+   ],
+   "night_window": "#ecd7a0"
+  }
+ }
+}
