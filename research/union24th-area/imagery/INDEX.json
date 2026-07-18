@@ -1,0 +1,1613 @@
+[
+ {
+  "file": "aerial/area_z17.jpg",
+  "building": "AREA",
+  "angle": "nadir",
+  "source": "Esri World Imagery (Esri, Maxar, Earthstar Geographics)",
+  "zoom": 17,
+  "tiles_ok": 16
+ },
+ {
+  "file": "aerial/area_z19.jpg",
+  "building": "AREA",
+  "angle": "nadir",
+  "source": "Esri World Imagery (Esri, Maxar, Earthstar Geographics)",
+  "zoom": 19,
+  "tiles_ok": 156
+ },
+ {
+  "file": "aerial/union-on-24th_nadir_z20.jpg",
+  "building": "union-on-24th",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/the-standard-at-austin_nadir_z20.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/villas-on-24th_nadir_z20.jpg",
+  "building": "villas-on-24th",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/regents-west-at-24th_nadir_z20.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/the-mark-austin_nadir_z20.jpg",
+  "building": "the-mark-austin",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/hilltop-austin_nadir_z20.jpg",
+  "building": "hilltop-austin",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/shell-24th_nadir_z20.jpg",
+  "building": "shell-24th",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/yugo-austin-rio_nadir_z20.jpg",
+  "building": "yugo-austin-rio",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/yugo-austin-waterloo_nadir_z20.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/phi-kappa-sigma_nadir_z20.jpg",
+  "building": "phi-kappa-sigma",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/2400-nueces_nadir_z20.jpg",
+  "building": "2400-nueces",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/twenty-two-15_nadir_z20.jpg",
+  "building": "twenty-two-15",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/quarters-hardin-house_nadir_z20.jpg",
+  "building": "quarters-hardin-house",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/block-on-25th-east_nadir_z20.jpg",
+  "building": "block-on-25th-east",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/block-on-25th-west_nadir_z20.jpg",
+  "building": "block-on-25th-west",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/delta-gamma_nadir_z20.jpg",
+  "building": "delta-gamma",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/kappa-delta_nadir_z20.jpg",
+  "building": "kappa-delta",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/alpha-chi-omega_nadir_z20.jpg",
+  "building": "alpha-chi-omega",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/pi-beta-phi_nadir_z20.jpg",
+  "building": "pi-beta-phi",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/seneca-falls-coop_nadir_z20.jpg",
+  "building": "seneca-falls-coop",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/new-guild-coop_nadir_z20.jpg",
+  "building": "new-guild-coop",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/whitehall-coop_nadir_z20.jpg",
+  "building": "whitehall-coop",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/arab-cowboy_nadir_z20.jpg",
+  "building": "arab-cowboy",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/cain-and-abels_nadir_z20.jpg",
+  "building": "cain-and-abels",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/victory-lap_nadir_z20.jpg",
+  "building": "victory-lap",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/san-antonio-garage_nadir_z20.jpg",
+  "building": "san-antonio-garage",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/unidentified-36m-2200-block_nadir_z20.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/unidentified-30m-23rd_nadir_z20.jpg",
+  "building": "unidentified-30m-23rd",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/skyloft-austin_nadir_z20.jpg",
+  "building": "skyloft-austin",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/inspire-on-22nd_nadir_z20.jpg",
+  "building": "inspire-on-22nd",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/the-castilian_nadir_z20.jpg",
+  "building": "the-castilian",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "aerial/rise-at-west-campus_nadir_z20.jpg",
+  "building": "rise-at-west-campus",
+  "angle": "nadir",
+  "source": "Esri World Imagery",
+  "zoom": 20
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_00.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Exterior_Web_-15-1200x630-cropped.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_01.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Exterior_Web_-15-1200x630-cropped.jpg?p=157755",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_02.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/Union_Website_Hero.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_03.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Drone_Web_-10_Mobile-.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_04.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Drone_Print_-4-1410x921.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_05.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Drone_Web_-17-795x913.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_06.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Drone_Web_-22-1410x921.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_07.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Exterior_Web_-15-1410x921.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_08.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Exterior_Print_-27.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_09.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Interiors_Web_-27_10col.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_10.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Interiors_Web_-25-1410x921.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/perkinswill_11.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://perkinswill.com/wp-content/uploads/2024/12/The_Union_Interiors_Web_-16-795x564.jpg",
+  "source_page": "https://perkinswill.com/project/union-on-24th/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/unitedforming_00.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://www.unitedforming.com/storage/app/uploads/public/65e/e5d/30e/65ee5d30e37b6359201824.jpg",
+  "source_page": "https://www.unitedforming.com/projects/union-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/unitedforming_01.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://www.unitedforming.com/storage/app/uploads/public/65e/e5d/30a/65ee5d30a934f352008170.jpg",
+  "source_page": "https://www.unitedforming.com/projects/union-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/union-on-24th/unitedforming_02.jpg",
+  "building": "union-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://www.unitedforming.com/storage/app/uploads/public/65e/e5d/316/65ee5d3167ec8154186443.jpg",
+  "source_page": "https://www.unitedforming.com/projects/union-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_00.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/2019/03/StandardAustin_Ext_14_300ppi_small-scaled.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_01.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_01_300ppi_small-scaled-pm88s155q7p52gswi3pduj48p6sv332evwnycfgv0g.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_02.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_01_300ppi_small-scaled-pm88s155q7s4hkuerhrsmu8spvnx9zy4ipikzgqcxs.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_03.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_14_300ppi_small-scaled-pm88s07bjdnuquu9nlara1cs3sxhvdyojs0gv5i96o.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_04.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_14_300ppi_small-scaled-pm88s07bjdqu5yvrwzd62chc4hsk2aue6kv3i6rr40.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_05.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_41_300ppi_small-scaled-pm88s07bjdnuquu9nlara1cs3sxhvdyojs0gv5i96o.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_06.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_41_300ppi_small-scaled-pm88s07bjdqu5yvrwzd62chc4hsk2aue6kv3i6rr40.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_07.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_78_300ppi_small-scaled-pm88s07bjdnuquu9nlara1cs3sxhvdyojs0gv5i96o.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_08.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_78_300ppi_small-scaled-pm88s07bjdqu5yvrwzd62chc4hsk2aue6kv3i6rr40.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_09.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_95_300ppi._smalljpg-scaled-pm88s07bjdnuquu9nlara1cs3sxhvdyojs0gv5i96o.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_10.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Ext_95_300ppi._smalljpg-scaled-pm88s07bjdqu5yvrwzd62chc4hsk2aue6kv3i6rr40.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/humphreys_11.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://humphreys.com/wp-content/uploads/bfi_thumb/StandardAustin_Int_02_300ppi_small-scaled-pm88s07bjdnuquu9nlara1cs3sxhvdyojs0gv5i96o.jpg",
+  "source_page": "https://humphreys.com/project/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/landmarkproperties_00.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.landmarkproperties.com/wp-content/uploads/2021/06/header-bg-6.jpg",
+  "source_page": "https://www.landmarkproperties.com/property/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/landmarkproperties_01.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.landmarkproperties.com/wp-content/uploads/2021/06/amenities-1-6.jpg",
+  "source_page": "https://www.landmarkproperties.com/property/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/landmarkproperties_02.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.landmarkproperties.com/wp-content/uploads/2021/06/amenities-2-6.jpg",
+  "source_page": "https://www.landmarkproperties.com/property/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/landmarkproperties_03.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.landmarkproperties.com/wp-content/uploads/2021/06/amenities-3-6.jpg",
+  "source_page": "https://www.landmarkproperties.com/property/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/landmarkproperties_04.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.landmarkproperties.com/wp-content/uploads/2021/06/amenities-4-6.jpg",
+  "source_page": "https://www.landmarkproperties.com/property/the-standard-at-austin/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-standard-at-austin/designenvironments_00.jpg",
+  "building": "the-standard-at-austin",
+  "angle": "unknown (analyze)",
+  "source": "http://static1.squarespace.com/static/61afb8f544114b54e8fcfe15/684c9fa4a4c75d2e6580b639/6850712d5054424f35fb3daa/1750102710370/StandardAustin_Ext_86_300ppi.jpg?format=1500w",
+  "source_page": "https://www.designenvironments.com/projects/the-standard-at-austin",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_00.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "http://static1.squarespace.com/static/535feeb9e4b0140e2647e4ad/t/6a208fe158b73f530a6adf94/1780518881796/Villas+on+24th+-+Rhode+Partners+%2810%29.jpg?format=1500w",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_01.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1755113794214-BW27XLXFHP57I4PL9C26/Villas%2Bon%2B24th%2B-%2BWest%2BCampus%2BStudent%2BHousing%2B-%2BRhode%2BPartners%2B%25281%2529.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_02.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1757358576126-RVIRXLA1DXWEBZWBT6WN/Villas-On-24th-AustinTX-7.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_03.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1762376899642-FK8O3URNJ7CYD5RAA6QN/DSC09312.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_04.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1762376888627-OIXAEK529JDMDM98GU62/DSC09338.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_05.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1757358576764-B7PY5QB1CQ63L45TFLAI/Villas-On-24th-AustinTX-8.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_06.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1762815197645-JZ56DRWLDELI65HV0AB0/DSC09908.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_07.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1762377685732-VIHFBUGHWTU04EXNDMV1/DSC09918.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_08.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1757358574123-HI18PFQUK2SWPXLOERG5/Villas+on+24th+-++%282%29.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_09.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1757358574163-86W1TILIL8X7D43A5E4I/Villas+on+24th+-++%281%29.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_10.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1757358575088-IKBPOXIY7N3SX2NN3SF7/Villas+on+24th+-++%283%29.jpg",
+  "source_page": "https://www.rhodepartners.com/villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_00.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/eef83d30-9d76-492e-8636-a5896e4eb4a1/Villas+on+24th+-+Rhode+Partners+-+Photo+by+Patrick+Wong+%282%29.jpg",
+  "source_page": "https://www.rhodepartners.com/student-housing-villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_01.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/b8b64fc3-d4e4-4fe1-8252-46fbf0703821/Villas+on+24th+-++%283%29.jpg",
+  "source_page": "https://www.rhodepartners.com/student-housing-villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_02.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/83ab1da2-c557-4e0a-a357-b7a20837bed1/Villas+on+24th+-++%282%29.jpg",
+  "source_page": "https://www.rhodepartners.com/student-housing-villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_03.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1848a306-ce37-47bc-8beb-9ade38715205/08302024_VillasOn24th-04+Lightened.jpg",
+  "source_page": "https://www.rhodepartners.com/student-housing-villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_04.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/1744154546359-NXK0B64JGWXHQDDMJ7W5/Screenshot+2025-04-08+172440.jpg",
+  "source_page": "https://www.rhodepartners.com/student-housing-villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_05.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/e23d37a9-e104-4163-b285-ba766ddfb311/Villas+on+24th+-+Rhode+Partners+%286%29.jpg",
+  "source_page": "https://www.rhodepartners.com/student-housing-villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/villas-on-24th/rhodepartners_06.jpg",
+  "building": "villas-on-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://images.squarespace-cdn.com/content/v1/535feeb9e4b0140e2647e4ad/81656e25-94d4-4dbd-a064-38798e9ea7da/Villas+on+24th+-+Rhode+Partners+%288%29.jpg",
+  "source_page": "https://www.rhodepartners.com/student-housing-villas-on-24th",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_00.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/Regents+24-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_01.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/1_RegentsWestat24th_Clubhouse_2_kmgzzn-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_02.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/9_RegentsWestat24th_Study_Lounge_2_m4wrbh-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_03.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/8_RegentsWestat24th_Study_Lounge_1_up8f0k-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_04.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/6_RegentsWestat24th_Coffee_Bar_3_wumiys-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_05.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/10_RegentsWestat24th_Study_Lounge_4_czkn1i-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_06.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/Regents_24th_12_m2o2m0-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_07.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/3_RegentsWestat24th_Clubhouse_6_qt2aw2-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_08.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/2_RegentsWestat24th_Clubhouse_4_qktbdp-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_09.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/4_RegentsWestat24th_Clubhouse_7_me50xs-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_10.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/7_RegentsWestat24th_Meeting_Room_1_vub4ef-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswest24_11.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1631edf0/dms3rep/multi/opt/5_RegentsWestat24th_Coffee_Bar_1_lhsben-1920w.jpg",
+  "source_page": "https://www.regentswest24.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswestcampus_00.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1538bbc7/dms3rep/multi/opt/1_RegentsWestat24th_Clubhouse_2_kmgzzn-1920w-c4d34812-1026w.webp",
+  "source_page": "https://www.regentswestcampus.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/regents-west-at-24th/regentswestcampus_01.jpg",
+  "building": "regents-west-at-24th",
+  "angle": "unknown (analyze)",
+  "source": "https://lirp.cdn-website.com/1538bbc7/dms3rep/multi/opt/Regents_26th_3_grmjh6-1920w-4ca18e29-1026w.jpg",
+  "source_page": "https://www.regentswestcampus.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_00.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2024/11/pool.webp",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_01.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2024/11/pool-1257x597.webp",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_02.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2024/11/the-mark.webp",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_03.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2024/11/bedroom.webp",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_04.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2026/02/IMG_8519-aspect-ratio-250-250.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_05.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/07/rambler-25-892x667.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_06.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/05/rambler-v2-10_websize-892x667.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_07.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/themes/lv-bode/library/files/images/footer.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_08.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2024/11/the-mark-769x512.webp",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_09.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2024/11/pool-769x734.webp",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/rambleratx_10.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2024/11/bedroom-769x885.webp",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/en_00.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://media.uhzcdn.com/image/1381/01HWNHES498SEQY7YT4DK9XTZ5_z.webp",
+  "source_page": "https://en.uhomes.com/us/austin/detail-apartments-1615392",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/en_01.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://media.uhzcdn.com/image/1381/01HWNHES498SEQY7YT4DK9XTZ5_g.webp",
+  "source_page": "https://en.uhomes.com/us/austin/detail-apartments-1615392",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/en_02.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://media.uhzcdn.com/image/1399/01HWNHF07VXEQVDEJKCSJWH3VE_z.webp",
+  "source_page": "https://en.uhomes.com/us/austin/detail-apartments-1615392",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/en_03.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://media.uhzcdn.com/image/1381/01HWNHF6SPC95XA2QSC05BWWT3_z.webp",
+  "source_page": "https://en.uhomes.com/us/austin/detail-apartments-1615392",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/en_04.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://media.uhzcdn.com/image/1383/01HWNHFG1EMXZWPBFX631MKE1Z_z.webp",
+  "source_page": "https://en.uhomes.com/us/austin/detail-apartments-1615392",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/the-mark-austin/en_05.jpg",
+  "building": "the-mark-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://media.uhzcdn.com/image/1399/01HWNHFPQWYRGCZ2WG0VVP0FX7_z.webp",
+  "source_page": "https://en.uhomes.com/us/austin/detail-apartments-1615392",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_00.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-austin.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_01.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-pool.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_02.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-unit.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_03.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2026/02/IMG_8519-aspect-ratio-250-250.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_04.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2023/08/1N3A3791-Enhanced-NR-892x667.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_05.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/07/Screen-Shot-2022-07-05-at-6.57.57-PM-892x667.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_06.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/themes/lv-bode/library/files/images/footer.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_07.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-austin-769x577.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_08.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-austin-1600x1200.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_09.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-austin-1920x1440.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_10.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-pool-769x576.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/hilltop-austin/rambleratx_11.jpg",
+  "building": "hilltop-austin",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/hilltop-pool-1600x1199.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-rio/yugo_00.jpg",
+  "building": "yugo-austin-rio",
+  "angle": "unknown (analyze)",
+  "source": "https://yugo.com/resource/blob/844880/a561c22545a0cd30e93623861da2a51b/vcarb-image-data.jpg",
+  "source_page": "https://yugo.com/en-us/global/united-states-of-america/austin-tx",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-rio/yugo_01.jpg",
+  "building": "yugo-austin-rio",
+  "angle": "unknown (analyze)",
+  "source": "https://yugo.com/resource/blob/667142/fa42241871986e441586e68f0af4e4d2/how-to-prepare-for-life-after-university-picture-data.jpg",
+  "source_page": "https://yugo.com/en-us/global/united-states-of-america/austin-tx",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-rio/yugo_02.jpg",
+  "building": "yugo-austin-rio",
+  "angle": "unknown (analyze)",
+  "source": "https://yugo.com/resource/blob/688424/47ffa7738e753e052c9510e2d82ac39d/happy-uni-life-data.jpg",
+  "source_page": "https://yugo.com/en-us/global/united-states-of-america/austin-tx",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-rio/yugo_03.jpg",
+  "building": "yugo-austin-rio",
+  "angle": "unknown (analyze)",
+  "source": "https://yugo.com/resource/blob/813392/554372437aa6ce7582eda3db191ad7fa/ut-austin-image-1-data.jpg",
+  "source_page": "https://yugo.com/en-us/global/united-states-of-america/austin-tx",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-rio/yugo_04.jpg",
+  "building": "yugo-austin-rio",
+  "angle": "unknown (analyze)",
+  "source": "https://yugo.com/resource/blob/859042/a45b53b54e1f0d7a2247936967b10ec4/national-code-updated-2026-data.png",
+  "source_page": "https://yugo.com/en-us/global/united-states-of-america/austin-tx",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_00.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/09/WaterlooATX_Kristian-Alveo_lowres-10.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_01.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/09/WaterlooATX_Kristian-Alveo_lowres-10-1600x597.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_02.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/09/DSC07147.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_03.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/09/DSC06511.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_04.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/09/Waterloo-Austin-Texas-2022-2.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_05.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2026/02/IMG_6479-aspect-ratio-250-250.jpeg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_06.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2023/08/1N3A3791-Enhanced-NR-892x667.jpg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_07.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/uploads/2022/06/054-319364-Ruckus-043_8042243-scaled-1-892x667.jpeg",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/yugo-austin-waterloo/rambleratx_08.jpg",
+  "building": "yugo-austin-waterloo",
+  "angle": "unknown (analyze)",
+  "source": "https://www.rambleratx.com/wp-content/themes/lv-bode/library/files/images/footer.png",
+  "source_page": "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/phi-kappa-sigma/sigmaalumnicorp_00.jpg",
+  "building": "phi-kappa-sigma",
+  "angle": "unknown (analyze)",
+  "source": "http://sigmaalumnicorp.com/wp-content/uploads/2016/11/University-of-Texas-Tower-Austin-TX-.jpg",
+  "source_page": "https://sigmaalumnicorp.com/history-of-the-sigma-chapter-of-phi-kappa-sigma/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/phi-kappa-sigma/sigmaalumnicorp_01.jpg",
+  "building": "phi-kappa-sigma",
+  "angle": "unknown (analyze)",
+  "source": "https://sigmaalumnicorp.com/wp-content/uploads/2016/11/University-of-Texas-Tower-Austin-TX-.jpg",
+  "source_page": "https://sigmaalumnicorp.com/history-of-the-sigma-chapter-of-phi-kappa-sigma/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/phi-kappa-sigma/sigmaalumnicorp_02.jpg",
+  "building": "phi-kappa-sigma",
+  "angle": "unknown (analyze)",
+  "source": "https://sigmaalumnicorp.com/wp-content/uploads/2016/11/University-of-Texas-Tower-Austin-TX--768x1152.jpg",
+  "source_page": "https://sigmaalumnicorp.com/history-of-the-sigma-chapter-of-phi-kappa-sigma/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/phi-kappa-sigma/sigmaalumnicorp_03.jpg",
+  "building": "phi-kappa-sigma",
+  "angle": "unknown (analyze)",
+  "source": "https://sigmaalumnicorp.com/wp-content/uploads/2016/11/University-of-Texas-Tower-Austin-TX--683x1024.jpg",
+  "source_page": "https://sigmaalumnicorp.com/history-of-the-sigma-chapter-of-phi-kappa-sigma/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_00.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_01.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?w=642",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_02.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/2025/03/mhgy4zrst2szyfg8wym1-2400nueces-2.jpg?w=644",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_03.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/2025/03/wjdrebvvq21jo5rczzta-2400nueces-12.jpg?w=489",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_04.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=300",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_05.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=768",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_06.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=1024",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_07.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=1536",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_08.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=2048",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_09.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=642",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_10.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=310",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/architectmagazine_11.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.architectmagazine.com/wp-content/uploads/sites/5/-0001/in1qvzcasbagsatonrjl-2400nueces-1.jpg?resize=200",
+  "source_page": "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/powerdesigninc_00.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://www.powerdesigninc.us/hubfs/21769130/2400_Nueces_Vertical-1.jpg",
+  "source_page": "https://www.powerdesigninc.us/projects/2400-nueces",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/swfcontract_00.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://embed.widencdn.net/img/springswindowfashions/rogejes6oz/x420px/FW_2400Nueces02.jpeg?crop=false&amp;position=c&amp;q=85",
+  "source_page": "https://www.swfcontract.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/swfcontract_01.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://embed.widencdn.net/img/springswindowfashions/miabgtvgup/x420px/SS_2400Nueces19_edited.jpeg?crop=false&amp;position=c&amp;q=85",
+  "source_page": "https://www.swfcontract.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/swfcontract_02.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://embed.widencdn.net/img/springswindowfashions/iyohvsmieg/x420px/VB_2400Nueces10.jpeg?crop=false&amp;position=c&amp;q=85",
+  "source_page": "https://www.swfcontract.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/swfcontract_03.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://embed.widencdn.net/img/springswindowfashions/phpssnelhm/x420px/VB_2400Nueces11.jpeg?crop=false&amp;position=c&amp;q=85",
+  "source_page": "https://www.swfcontract.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/2400-nueces/swfcontract_04.jpg",
+  "building": "2400-nueces",
+  "angle": "unknown (analyze)",
+  "source": "https://embed.widencdn.net/img/springswindowfashions/6wig3swu21/x420px@2x/SS_2400Nueces24.jpeg?crop=false&amp;position=c&amp;q=85",
+  "source_page": "https://www.swfcontract.com/project-gallery/2400-nueces/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/quarters-hardin-house/w2rep_00.jpg",
+  "building": "quarters-hardin-house",
+  "angle": "unknown (analyze)",
+  "source": "https://w2rep.com/wp-content/uploads/2015/01/harden-exterior2.jpg",
+  "source_page": "https://w2rep.com/portfolio_page/hardin-house-austin-texas/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/quarters-hardin-house/w2rep_01.jpg",
+  "building": "quarters-hardin-house",
+  "angle": "unknown (analyze)",
+  "source": "https://w2rep.com/wp-content/uploads/2015/01/harden-interior.jpg",
+  "source_page": "https://w2rep.com/portfolio_page/hardin-house-austin-texas/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_00.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com/getmedia/90a1ab7e-7009-45ac-af2a-db2f145359c2/671-Hero-Image-1440x576-1-8-262.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_01.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com:443/getmedia/dbe2c79e-ab0c-43dc-96b5-33c29e8464c5/ATX-Summer-CB-Promo-Box-5-14-26.jpg?width=530&amp;height=349&amp;ext=.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_02.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com:443/getmedia/b42cafc1-b7a7-4c35-9bb3-8fdb22972bff/671-Savings-Promo-Box-6-29-26.jpg?width=530&amp;height=349&amp;ext=.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_03.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com:443/getmedia/0b9ea619-77ef-457a-a972-2e9012557e68/671-GC-Promo-Box-4-13-262.jpg?width=530&amp;height=349&amp;ext=.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_04.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com:443/getmedia/a97d18c9-31e2-40ab-afc6-6e43d3e52798/671-3-Bed-3-Bath-Promo-Box-2-20-262-(1).jpg?width=530&amp;height=349&amp;ext=.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_05.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com:443/getmedia/b3c6ca73-04f5-486f-9782-d30e5a8bf8c5/671-Summer-Backfill-Promo-Box-3-26-26.jpg?width=530&amp;height=349&amp;ext=.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_06.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com:443/getmedia/b377e5e3-6053-44dd-ae6a-a163fd5bc75f/671-Fees-Promo-Box-1-21-262.jpg?width=530&amp;height=349&amp;ext=.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_07.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com/getmedia/96e627e5-a5ac-4d23-beca-edbc6d06df4a/671-Rio-4-Bed-4-Bath-Premium-ORIGINAL-01?width=660&amp;height=445&amp;ext=.png",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_08.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com/getmedia/c41bdaa5-8a60-4240-ba93-70d9188460ba/671-23rd-2-Bed-2-Bath-A-Premium-Private-01?width=660&amp;height=445&amp;ext=.png",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_09.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com/getmedia/846628b7-15ea-487b-b622-4ddad0117c91/671_01_exterior.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_10.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com/getmedia/fbbb41a2-831f-48dd-b786-4c650cb2ea1e/671_02_roof.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/block-on-25th-east/americancampus_11.jpg",
+  "building": "block-on-25th-east",
+  "angle": "unknown (analyze)",
+  "source": "https://www.americancampus.com/getmedia/ea5d6123-e51c-4f77-b146-7fa101600b4a/671_03_roof.jpg",
+  "source_page": "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_00.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/Arrakis_1.jpg?resize=1000%2C750&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_01.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/Helios_1.jpg?resize=1000%2C751&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_02.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/NewGuild_1.jpg?resize=1000%2C750&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_03.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/Eden_1.jpg?resize=1000%2C750&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_04.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/Seneca_1.jpg?resize=1000%2C749&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_05.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/Royal_1.jpg?resize=1000%2C750&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_06.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2025/05/IMG_2044-1-scaled.jpg?resize=1080%2C810&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_07.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/HOC_1.jpg?resize=1000%2C755&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_08.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2025/05/IMG_2047-scaled.jpg?resize=1080%2C810&#038;ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_09.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/Arrakis_1.jpg?w=1000&ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_10.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/Helios_1.jpg?w=1000&ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/new-guild-coop/iccaustin_11.jpg",
+  "building": "new-guild-coop",
+  "angle": "unknown (analyze)",
+  "source": "https://i0.wp.com/www.iccaustin.coop/wp-content/uploads/2015/03/NewGuild_1.jpg?w=1000&ssl=1",
+  "source_page": "https://www.iccaustin.coop/about/our-communities/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_00.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/08/55-SQFT-2010.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_01.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/09/56-SQFT-0275.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_02.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/08/9-SQFT-0050.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_03.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/06/1A.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_04.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/06/1B.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_05.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/06/3A.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_06.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/06/4B1.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_07.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/06/5B1.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_08.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/06/6B1-MEDIA.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_09.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/plugins/wp-google-maps//images/default.png",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_10.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/08/55-SQFT-2010-1024x576.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "web/unidentified-36m-2200-block/villasatsangabriel_11.jpg",
+  "building": "unidentified-36m-2200-block",
+  "angle": "unknown (analyze)",
+  "source": "https://villasatsangabriel.com/wp-content/uploads/2025/08/55-SQFT-2010-768x432.webp",
+  "source_page": "https://villasatsangabriel.com/",
+  "license": "copyrighted - private modeling reference only"
+ },
+ {
+  "file": "wikimedia/commons_00.jpg",
+  "building": "AREA",
+  "angle": "street-level (see title)",
+  "title": "File:Neill cochran house 2007.jpg",
+  "source": "https://upload.wikimedia.org/wikipedia/commons/d/df/Neill_cochran_house_2007.jpg",
+  "license": "CC BY 4.0",
+  "artist": "Larry D. Moore"
+ },
+ {
+  "file": "wikimedia/commons_01.jpg",
+  "building": "AREA",
+  "angle": "street-level (see title)",
+  "title": "File:Texas federation womens clubs headquarters 2007.jpg",
+  "source": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Texas_federation_womens_clubs_headquarters_2007.jpg",
+  "license": "CC BY 4.0",
+  "artist": "Larry D. Moore"
+ },
+ {
+  "file": "wikimedia/commons_02.jpg",
+  "building": "AREA",
+  "angle": "street-level (see title)",
+  "title": "File:UT Pep Rally at Co-op 2012-10-05.JPG",
+  "source": "https://upload.wikimedia.org/wikipedia/commons/5/5d/UT_Pep_Rally_at_Co-op_2012-10-05.JPG",
+  "license": "CC BY-SA 3.0",
+  "artist": "Gu\u00f0s\u00feegn"
+ }
+]
