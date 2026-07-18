@@ -1,0 +1,406 @@
+{
+ "_readme": "Curated research on every significant building surrounding Union on 24th (701 W 24th St). Used by scripts/fetch_reference_imagery.py to download reference images, and by the desktop image-analysis workflow. true_height_m is the best real-world estimate; snapshot_height_m is what the baked 2026-07-11 data says (LiDAR flights predate the new towers, so several are badly wrong). confidence: high = multiple corroborating sources, med = single source or inferred, low = candidate/uncertain.",
+ "subject": {
+  "slug": "union-on-24th",
+  "name": "Union on 24th",
+  "address": "701 W 24th St, Austin, TX 78705",
+  "block": "South side of W 24th between Pearl St and San Gabriel St",
+  "centroid": [-97.745162, 30.287679],
+  "stories": 29,
+  "true_height_m": 94.5,
+  "snapshot_height_m": 97.5,
+  "built": 2024,
+  "developer": "Greystar (developed + self-performed construction)",
+  "architect": "Perkins&Will (with Greystar's Austin design studio)",
+  "units": "552 units / 1,448 beds; $262M project",
+  "facade": "Light gray/white panel + floor-to-ceiling glass tower on a podium",
+  "confidence": "high",
+  "image_pages": [
+   "https://perkinswill.com/project/union-on-24th/",
+   "https://www.unitedforming.com/projects/union-24th",
+   "https://www.unionon24th.com/",
+   "https://skyscraperpage.com/cities/?buildingID=120190",
+   "https://www.greystar.com/union-on-24th-austin-tx/p_20475",
+   "https://www.apartments.com/union-on-24th-austin-tx/ssxr1l5/"
+  ]
+ },
+ "tier1_adjacent": [
+  {
+   "slug": "the-standard-at-austin",
+   "name": "The Standard at Austin",
+   "address": "715 W 23rd St, Austin, TX 78705",
+   "block": "One block S of Union; W 23rd between Pearl and San Gabriel",
+   "centroid": [-97.745708, 30.286997],
+   "stories": 17,
+   "true_height_m": 57,
+   "snapshot_height_m": 20.5,
+   "snapshot_note": "BAKED HEIGHT WRONG - stale pre-2021 LiDAR. Needs hero_override ~57 m.",
+   "built": 2021,
+   "developer": "Landmark Properties",
+   "architect": "Humphreys & Partners Architects (won SHB Best Architecture & Design 2022)",
+   "units": "287 units / 989 beds",
+   "facade": "17-story high-rise; verify materials/colors from photos",
+   "confidence": "high",
+   "priority_note": "USER-FLAGGED PRIORITY ('especially standard')",
+   "image_pages": [
+    "https://humphreys.com/project/the-standard-at-austin/",
+    "https://www.landmarkproperties.com/property/the-standard-at-austin/",
+    "https://thestandardaustin.landmark-properties.com/",
+    "https://www.designenvironments.com/projects/the-standard-at-austin",
+    "https://www.apartments.com/the-standard-at-austin-austin-tx/656p4kt/",
+    "https://www.rambleratx.com/resources/apartment-review-standard-austin/",
+    "https://yieldpro.com/2023/12/landmark-properties-closes-on-recapitalization-of-the-standard-at-austin-student-housing-community/"
+   ]
+  },
+  {
+   "slug": "villas-on-24th",
+   "name": "Villas on 24th",
+   "address": "2313 Rio Grande St (block bounded by W 24th / Pearl / Rio Grande)",
+   "block": "Directly E of Union across Pearl St",
+   "centroid": [-97.744343, 30.287648],
+   "stories": 30,
+   "true_height_m": 100,
+   "snapshot_height_m": 8.0,
+   "snapshot_note": "BAKED HEIGHT BADLY WRONG (class default) - tower opened Fall 2025, after LiDAR. Needs hero_override ~100 m.",
+   "built": 2025,
+   "developer": "Villas Student Housing; acquired by Core Spaces (largest single-asset student trade of 2025)",
+   "architect": "RHODE Partners",
+   "units": "199 units / 670 beds; 275,000 sf; 2 below-grade + 3 above-grade parking levels + 25 residential levels",
+   "facade": "Distinctive geometric PREFABRICATED PANEL system (Sika Parex panelization) creating movement/texture/shadow; amenity deck with basketball sky court",
+   "confidence": "high",
+   "image_pages": [
+    "https://www.rhodepartners.com/villas-on-24th",
+    "https://www.rhodepartners.com/student-housing-villas-on-24th",
+    "https://www.rhodepartners.com/villas-on-24th-tops-out",
+    "https://www.rhodepartners.com/villas-on-24th-breaks-ground-in-west-campus",
+    "https://archello.com/project/villas-on-24th",
+    "https://educationsnapshots.com/projects/392664/villas-on-24th/",
+    "https://www.e-architect.com/america/villas-on-24th-austin-texas-residential-tower",
+    "https://usa.sika.com/parex/en/systems/panelization.list.html/projects/villas-on-24th.html",
+    "https://www.villason24th.com/",
+    "https://studenthousingbusiness.com/villas-student-housing-breaks-ground-on-30-story-student-housing-project-near-university-of-texas/"
+   ]
+  },
+  {
+   "slug": "regents-west-at-24th",
+   "name": "Regents West at 24th",
+   "address": "2401 San Gabriel St, Austin, TX 78705",
+   "block": "Directly W of Union across San Gabriel St",
+   "centroid": [-97.746051, 30.287755],
+   "stories": 6,
+   "true_height_m": 20,
+   "snapshot_height_m": 18.0,
+   "snapshot_note": "Snapshot footprint here is LABELED 'The Mark Austin' - likely an OSM mislabel; The Mark's address is 812 W 23rd. Resolve visually from aerial crops.",
+   "built": 2012,
+   "units": "233 units, mid-rise",
+   "confidence": "med",
+   "image_pages": [
+    "https://www.regentswest24.com/",
+    "https://www.apartments.com/regents-west-at-24th-and-26th-austin-tx/dkvv1gh/",
+    "https://www.apartmentfinder.com/Texas/Austin-Apartments/Regents-West-At-24Th-And-26Th-Apartments-5lvn5gm",
+    "https://www.regentswestcampus.com/"
+   ]
+  },
+  {
+   "slug": "the-mark-austin",
+   "name": "The Mark Austin",
+   "address": "812 W 23rd St, Austin, TX 78705",
+   "block": "SW of Union; 23rd between San Gabriel and Leon (tower may read from 24th too)",
+   "centroid": [-97.746745, 30.28706],
+   "stories": 17,
+   "true_height_m": 55,
+   "snapshot_height_m": 25.3,
+   "snapshot_note": "Built 2023 (post-LiDAR) - snapshot height stale; and the 'The Mark Austin' NAME in the snapshot sits on the Regents West block. Needs hero_override ~55 m on the correct footprint.",
+   "built": 2023,
+   "units": "studio to 6-bedroom student units",
+   "confidence": "med",
+   "image_pages": [
+    "https://www.themarkatx.com/",
+    "https://www.rambleratx.com/resources/apartment-review-the-mark/",
+    "https://www.apartments.com/the-mark-at-austin-austin-tx/q6cd56z/",
+    "https://en.uhomes.com/us/austin/detail-apartments-1615392"
+   ]
+  },
+  {
+   "slug": "hilltop-austin",
+   "name": "HillTop Austin",
+   "address": "2400 San Gabriel St, Austin, TX 78705",
+   "block": "NW corner of 24th & San Gabriel (diagonal from Union)",
+   "centroid": [-97.74605, 30.2881],
+   "stories": null,
+   "true_height_m": null,
+   "snapshot_height_m": null,
+   "snapshot_note": "Identify exact footprint from aerial crops; luxury student mid-rise",
+   "confidence": "low",
+   "image_pages": [
+    "https://www.rambleratx.com/resources/apartment-review-hilltop/",
+    "https://www.mystudentdigs.com/properties/am-1437208"
+   ]
+  },
+  {
+   "slug": "shell-24th",
+   "name": "Shell station (W 24th)",
+   "address": "N side of 700-block W 24th St, across from Union",
+   "centroid": [-97.744935, 30.288062],
+   "stories": 1,
+   "true_height_m": 5.4,
+   "snapshot_height_m": 5.4,
+   "facade": "Fuel canopy + small convenience store; adjacent unnamed 10.8 m retail strip to the N",
+   "confidence": "high",
+   "image_pages": []
+  },
+  {
+   "slug": "yugo-austin-rio",
+   "name": "Yugo Austin Rio",
+   "address": "620 W 24th St, Austin, TX 78705",
+   "block": "E of Union, S side of 24th, Rio Grande-Pearl block",
+   "centroid": [-97.744396, 30.288207],
+   "stories": 4,
+   "true_height_m": 11.9,
+   "snapshot_height_m": 11.9,
+   "snapshot_note": "Snapshot pin is N of 24th; address says S side - resolve from aerials",
+   "confidence": "med",
+   "image_pages": [
+    "https://yugo.com/en-us/global/united-states-of-america/austin-tx"
+   ]
+  },
+  {
+   "slug": "yugo-austin-waterloo",
+   "name": "Yugo Austin Waterloo",
+   "address": "2400 Seton Ave, Austin, TX 78705 (corner Seton & W 24th)",
+   "centroid": [-97.744087, 30.288294],
+   "stories": 3,
+   "true_height_m": 8.4,
+   "snapshot_height_m": 8.4,
+   "snapshot_note": "Low-rise per LiDAR. (A search snippet claiming '300 ft/25 levels' conflates a different property - ignore it.)",
+   "confidence": "med",
+   "image_pages": [
+    "https://www.rambleratx.com/resources/apartment-review-waterloo/",
+    "https://www.apartments.com/yugo-austin-waterloo-austin-tx/x4r9fkp/",
+    "https://www.forrentuniversity.com/tx/austin/yugo-austin-waterloo/84r99k2"
+   ]
+  },
+  {
+   "slug": "phi-kappa-sigma",
+   "name": "Phi Kappa Sigma house (ΦΚΣ)",
+   "address": "OSM places it just N of 24th on the San Gabriel-Pearl block; alumni corp lists 2402 Rio Grande (and historically 2505 San Gabriel)",
+   "centroid": [-97.745024, 30.288367],
+   "stories": 3,
+   "true_height_m": 9.4,
+   "snapshot_height_m": 9.4,
+   "confidence": "low",
+   "image_pages": [
+    "https://texas-phi-kappa-sigma.odoo.com/housing",
+    "https://sigmaalumnicorp.com/history-of-the-sigma-chapter-of-phi-kappa-sigma/"
+   ]
+  }
+ ],
+ "tier2_nearby": [
+  {
+   "slug": "2400-nueces",
+   "name": "2400 Nueces",
+   "address": "2400 Nueces St, Austin, TX 78705",
+   "centroid": [-97.743505, 30.288211],
+   "stories": 16,
+   "true_height_m": null,
+   "snapshot_height_m": 21.2,
+   "snapshot_note": "Sources say 16-story (built 2012-13, UT-affiliated); snapshot pin sits near Rio Grande, and 21.2 m contradicts 16 stories. Building is 10 stepped 'bars' in an S-shape with distinct material/color per bar + reflective rainscreen - heights vary by bar. Resolve from aerials.",
+   "built": 2013,
+   "units": "304 units",
+   "confidence": "med",
+   "image_pages": [
+    "https://www.architectmagazine.com/project-gallery/2400-nueces/",
+    "https://www.powerdesigninc.us/projects/2400-nueces",
+    "https://www.swfcontract.com/project-gallery/2400-nueces/",
+    "https://housing.utexas.edu/housing/2400-nueces-apartments",
+    "https://www.apartments.com/2400-nueces-austin-tx/xyjvscm/"
+   ]
+  },
+  {
+   "slug": "twenty-two-15",
+   "name": "Twenty Two 15",
+   "address": "2215 San Gabriel/Pearl area (sources conflict: '2215 Rio Grande' vs site '2215west.com')",
+   "centroid": [-97.744563, 30.286325],
+   "stories": 8,
+   "true_height_m": 27.3,
+   "snapshot_height_m": 27.3,
+   "built": null,
+   "confidence": "med",
+   "image_pages": [
+    "https://www.2215west.com/",
+    "https://www.umovefree.com/Apartment/twenty-two-15-apartments-austin-tx/"
+   ]
+  },
+  {
+   "slug": "quarters-hardin-house",
+   "name": "The Quarters at Hardin House (Hardin House complex)",
+   "address": "Hardin House main: 2206 Rio Grande St; complex of 6 properties, 223 residents; women's dorm since 1937, Main House built 1966",
+   "centroid": [-97.74457, 30.28591],
+   "stories": 4,
+   "true_height_m": 12.2,
+   "snapshot_height_m": 12.2,
+   "confidence": "med",
+   "image_pages": [
+    "https://www.hardinhouse.com/",
+    "http://www.hardinhouse.com/Houses/Main-House.aspx",
+    "https://w2rep.com/portfolio_page/hardin-house-austin-texas/",
+    "https://www.quartersoncampus.com/graysonhouse/",
+    "https://www.quartersoncampus.com/nueceshouse/"
+   ]
+  },
+  {
+   "slug": "block-on-25th-east",
+   "name": "The Block on 25th East",
+   "address": "702 W 25th St, Austin, TX 78705 (American Campus 'The Block' portfolio)",
+   "centroid": [-97.745572, 30.289617],
+   "stories": 9,
+   "true_height_m": 28.1,
+   "snapshot_height_m": 28.1,
+   "confidence": "med",
+   "image_pages": [
+    "https://www.americancampus.com/student-apartments/tx/austin/the-block",
+    "http://www.apartmentninjas.com/the-block-on-25th-east/"
+   ]
+  },
+  {
+   "slug": "block-on-25th-west",
+   "name": "The Block on 25th West",
+   "address": "W 25th St W of Pearl",
+   "centroid": [-97.74635, 30.289773],
+   "stories": 8,
+   "true_height_m": 26.8,
+   "snapshot_height_m": 26.8,
+   "confidence": "med",
+   "image_pages": [
+    "https://www.apartmenthomeliving.com/apartment-finder/The-Block-on-25th-West-Austin-TX-78705-1919036"
+   ]
+  },
+  {
+   "slug": "delta-gamma",
+   "name": "Delta Gamma house ('The Deeg')",
+   "centroid": [-97.744287, 30.288955],
+   "true_height_m": 12.5,
+   "snapshot_height_m": 12.5,
+   "confidence": "med",
+   "image_pages": ["https://www.texasdeltagamma.com/the-deeg"]
+  },
+  {
+   "slug": "kappa-delta",
+   "name": "Kappa Delta house",
+   "centroid": [-97.743383, 30.287627],
+   "true_height_m": 8.2,
+   "snapshot_height_m": 8.2,
+   "confidence": "med",
+   "image_pages": []
+  },
+  {
+   "slug": "alpha-chi-omega",
+   "name": "Alpha Chi Omega house",
+   "centroid": [-97.743325, 30.289053],
+   "true_height_m": 8.7,
+   "snapshot_height_m": 8.7,
+   "confidence": "med",
+   "image_pages": []
+  },
+  {
+   "slug": "pi-beta-phi",
+   "name": "Pi Beta Phi house",
+   "centroid": [-97.742991, 30.286879],
+   "true_height_m": 12.0,
+   "snapshot_height_m": 12.0,
+   "confidence": "med",
+   "image_pages": []
+  },
+  {
+   "slug": "seneca-falls-coop",
+   "name": "Seneca Falls Cooperative (ICC; ex-Varsity House, ICC since 1973)",
+   "centroid": [-97.74351, 30.287164],
+   "true_height_m": 9.4,
+   "snapshot_height_m": 9.4,
+   "confidence": "med",
+   "image_pages": ["https://iccaustin.coop/seneca/"]
+  },
+  {
+   "slug": "new-guild-coop",
+   "name": "New Guild Cooperative (ICC; 510 W 23rd, ex-'White House' at 23rd & Nueces)",
+   "centroid": [-97.743494, 30.286863],
+   "true_height_m": 12.3,
+   "snapshot_height_m": 12.3,
+   "confidence": "med",
+   "image_pages": ["https://www.iccaustin.coop/about/our-communities/"]
+  },
+  {
+   "slug": "whitehall-coop",
+   "name": "Whitehall Cooperative (2500 Nueces St; large 2-story house, N corner 25th & Nueces, co-op since 1955)",
+   "centroid": [-97.743301, 30.289399],
+   "true_height_m": 12.8,
+   "snapshot_height_m": 12.8,
+   "confidence": "high",
+   "image_pages": ["http://whitehallcoop.com/"]
+  },
+  {
+   "slug": "arab-cowboy",
+   "name": "Arab Cowboy Cafe & Hookah Lounge",
+   "address": "901 W 24th St",
+   "centroid": [-97.746983, 30.287884],
+   "true_height_m": 8.0,
+   "snapshot_height_m": 8.0,
+   "confidence": "high",
+   "image_pages": []
+  },
+  {
+   "slug": "cain-and-abels",
+   "name": "Cain & Abel's (new location since 2023)",
+   "address": "907 W 24th St (original 2313 Rio Grande corner spot closed Apr 2023)",
+   "centroid": [-97.747356, 30.287888],
+   "true_height_m": 6.3,
+   "snapshot_height_m": 6.3,
+   "confidence": "high",
+   "image_pages": ["https://abels.com/", "https://abels.com/about"]
+  },
+  {
+   "slug": "victory-lap",
+   "name": "Victory Lap + The Diner at Victory Lap",
+   "centroid": [-97.742825, 30.288082],
+   "true_height_m": 8.8,
+   "snapshot_height_m": 8.8,
+   "confidence": "med",
+   "image_pages": []
+  },
+  {
+   "slug": "san-antonio-garage",
+   "name": "San Antonio Garage (UT SAG)",
+   "centroid": [-97.742584, 30.288588],
+   "true_height_m": 23.0,
+   "snapshot_height_m": 23.0,
+   "confidence": "high",
+   "image_pages": []
+  },
+  {
+   "slug": "unidentified-36m-2200-block",
+   "name": "UNIDENTIFIED ~12-story tower, 2200-block San Gabriel/Pearl",
+   "centroid": [-97.745136, 30.28634],
+   "true_height_m": 36.6,
+   "snapshot_height_m": 36.6,
+   "snapshot_note": "Candidates: The Villas at San Gabriel, 2200/2210 San Gabriel, or a Quarters property. Identify from aerial crop + street imagery.",
+   "confidence": "low",
+   "image_pages": ["https://villasatsangabriel.com/"]
+  },
+  {
+   "slug": "unidentified-30m-23rd",
+   "name": "UNIDENTIFIED ~10-story building S of 23rd W of San Gabriel",
+   "centroid": [-97.745815, 30.28634],
+   "true_height_m": 30.2,
+   "snapshot_height_m": 30.2,
+   "snapshot_note": "Possibly part of The Standard complex or 22nd-block property.",
+   "confidence": "low",
+   "image_pages": []
+  }
+ ],
+ "tier3_skyline_context": [
+  {"slug": "skyloft-austin", "name": "Skyloft Austin", "centroid": [-97.74356, 30.286151], "true_height_m": 57.9, "snapshot_height_m": 57.9, "note": "Already curated in hero_designs.json", "image_pages": []},
+  {"slug": "inspire-on-22nd", "name": "Inspire on 22nd", "centroid": [-97.744121, 30.285427], "true_height_m": 56.4, "snapshot_height_m": 56.4, "note": "Already curated in hero_designs.json", "image_pages": []},
+  {"slug": "the-castilian", "name": "The Castilian", "centroid": [-97.742365, 30.28738], "true_height_m": 60.0, "snapshot_height_m": 60.0, "note": "Already curated in hero_designs.json", "image_pages": []},
+  {"slug": "rise-at-west-campus", "name": "Rise at West Campus", "centroid": [-97.744094, 30.285855], "true_height_m": null, "snapshot_height_m": 18.0, "note": "class_default height - verify from images", "image_pages": []}
+ ]
+}
