@@ -145,6 +145,29 @@ Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
 
 Union itself (97.5 m baked vs 310 ft actual) is fine.
 
+## Image-verified observations (from the fetched imagery, 2026-07-18)
+
+Spot-checks of `imagery/` already settle a few things:
+
+- **Union on 24th's facade is NOT light gray-white.** The RHODE aerial photo
+  (`web/villas-on-24th/rhodepartners_00.jpg`) catches Union at the right edge
+  ("UNION" podium sign visible): the tower reads **dark bronze-brown panel
+  grid with prominent cream/white boxed window surrounds**, dark podium. The
+  `hero_designs.json` entry (marked *inferred*) needs replacing after the
+  desktop color pass.
+- **The Standard at Austin** (`web/the-standard-at-austin/humphreys_00.jpg`,
+  street-corner shot with signage): **5-story podium** wrapping a 17-story
+  tower; palette = charcoal-gray panel + cream/limestone panels laid in a
+  dashed/striped pattern, **rust-orange accent bands** at the balconies, glass
+  corner bays, rooftop terrace rail. Multiple angles in the folder.
+- **Villas on 24th**: white geometric precast grid with irregular window
+  rhythm, glass-crowned top floors, dark faceted podium — the same photo shows
+  its true scale vs Union (they're near-twins in height, confirming ~100 m).
+- **Aerial vintage:** the Esri tiles show Union topped-out and the Villas site
+  still under construction with a crane — so the nadir crops are ~2023-24
+  flights. Fine for footprints/roofs of everything older; do not use them to
+  judge Villas on 24th's finished roof.
+
 ## Open questions for the desktop pass
 
 1. Which footprint is Regents West vs The Mark vs HillTop on the west side?
