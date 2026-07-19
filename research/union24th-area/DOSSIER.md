@@ -32,23 +32,32 @@
 
 ## The neighborhood in one picture
 
-Union on 24th (29 fl, 2024) no longer stands alone — it's the NW anchor of a
-new **three-tower cluster** on the 23rd/24th blocks between Rio Grande and San
-Gabriel, with low-rise Greek/co-op/retail fabric to the north and east:
+Union on 24th (29 fl, 2024) no longer stands alone — it anchors a new
+**three-tower cluster** on the 23rd/24th blocks, with low-rise Greek/co-op/
+retail fabric north and east. Street grid (verified against confirmed
+addresses + footprints): W→E **Leon, San Gabriel, Pearl, Rio Grande, Nueces,
+San Antonio**; W-street numbering steps 900/800/700/600/500 at those streets.
 
 ```
-        W 25th St ─────────────────────────────────────────────
-   Block on 25th W/E (8-9 fl)      Delta Gamma   Whitehall co-op
-        ── W 24½ ──   ΦΚΣ, retail strip, Shell
-        W 24th St ─────────────────────────────────────────────
-   HillTop│Regents W  ██ UNION ON 24TH ██   │Villas on │ Yugo Rio/
-   (24th &│ at 24th   (29 fl, subject)      │24th (30fl│ Waterloo (3-4 fl)
-   San Gab│ (6 fl)                          │ NEW 2025)│ 2400 Nueces (E)
-        W 23rd St ─────────────────────────────────────────────
-   The Mark (17 fl, 2023)   THE STANDARD (17 fl, 2021)   New Guild co-op
-        ── 2200 block: Twenty Two 15 (8 fl), unidentified ~12 fl tower,
-           Hardin House complex, Seneca Falls co-op
+        W 25th St ──────────────────────────────────────────────────
+   Block on 25th W/E (8-9 fl)     Delta Gamma(2419 RG)  Whitehall co-op
+        ── W 24½ ──  ΦΚΣ, retail strip, Shell (N side of 24th)
+        W 24th St ──────────────────────────────────────────────────
+  HillTop │ Regents West at 24th │██ UNION ON 24TH ██│ Villas on │2400
+  8fl 2020│ 6 fl 2012, courtyard │  (29 fl, subject) │ 24th 30fl │Nueces
+  W of San│ (mislabeled "The     │───────────────────│ NEW 2025  │S-bars
+  Gabriel │  Mark" in the data)  │ THE STANDARD 17fl │ E side of │2 pools
+          │ The Mark 17fl (23rd) │  (podium at Pearl)│ Rio Grande│
+        W 23rd St ──────────────────────────────────────────────────
+     2200 block: Twenty Two 15 (2215 RG), unidentified ~12 fl tower+garage,
+     Hardin House complex, Seneca Falls + New Guild co-ops
 ```
+
+**Key relationships (all verified):** The Standard shares **Union's own
+block** (Union fronts 24th, Standard fronts 23rd, podium corner at 23rd &
+Pearl). Villas on 24th faces Union **directly across Rio Grande St**. Across
+Pearl to the west: Regents West (north half, fronting 24th) and The Mark
+(south half, fronting 23rd). HillTop is NW at 24th & San Gabriel.
 
 Skyline context farther out (already curated in `hero_designs.json`): Skyloft,
 Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
@@ -57,7 +66,8 @@ Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
 
 ## Subject recap — Union on 24th
 
-- **701 W 24th St**; south side of W 24th, Pearl → San Gabriel.
+- **701 W 24th St**; south side of W 24th, Rio Grande → Pearl (north half of
+  the block it shares with The Standard).
 - **29 stories, ~310 ft (94.5 m)** — baked height 97.5 m is essentially right.
 - Opened **2024**; **Greystar** developed + built ($262 M, 552 units/1,448
   beds); design **Perkins&Will** with Greystar's Austin studio.
@@ -68,7 +78,9 @@ Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
 ## Tier 1 — the buildings touching Union's blocks
 
 ### The Standard at Austin ★ user-flagged priority
-- **715 W 23rd St** — one block S of Union (same Pearl→San Gabriel block).
+- **715 W 23rd St** — **the south half of Union's own block** (Rio
+  Grande↔Pearl); its podium corner sits at 23rd & Pearl (street sign visible
+  in `humphreys_00.jpg`).
 - **17 stories**, completed **Fall 2021**; **Humphreys & Partners** for
   **Landmark Properties**; 287 units / 989 beds; won Student Housing Business
   "Best Architecture & Design" 2022.
@@ -78,8 +90,9 @@ Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
   (Humphreys + Landmark pages have pro shots from multiple angles).
 
 ### Villas on 24th (the new tower next door)
-- **2313 Rio Grande St**, block bounded by W 24th / Pearl / Rio Grande —
-  directly **E across Pearl** from Union.
+- **2313 Rio Grande St** — directly **E across Rio Grande St** from Union;
+  its snapshot footprint is the excavation-with-crane site in the ~2023
+  aerial (assignment verified).
 - **30 stories** (2 below-grade parking, 3 above-grade parking, 25
   residential), 275k sf, 199 units / 670 beds; opened **Fall 2025**; design
   **RHODE Partners**; acquired by Core Spaces (largest single-asset student
@@ -91,19 +104,26 @@ Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
   be fixed for the scene to read right.
 
 ### Regents West at 24th
-- **2401 San Gabriel St** — directly **W across San Gabriel**. **6 stories,
-  2012**, 233 units, mid-rise; baked 18 m ≈ fine.
-- ⚠ The snapshot labels this block **"The Mark Austin" — mislabel** (The Mark
-  is at 812 W 23rd). Confirm from aerial crops and fix the sign/label data.
+- **2401 San Gabriel St** — **W across Pearl** from Union: the north half of
+  the Pearl↔San Gabriel block, fronting 24th. **6 stories, 2012**, 233 units.
+- ✔ **Mislabel confirmed visually:** the snapshot footprint here is labeled
+  "The Mark Austin", but the aerial shows a 6-story full-block courtyard
+  building with pool — Regents West's massing, not a 17-story tower. Fix the
+  label; baked ~18 m height is fine.
 
 ### The Mark Austin
-- **812 W 23rd St** (San Gabriel → Leon block, SW of Union). **17 stories,
-  2023**, studio–6BR. Baked 25.3 m is the pre-2023 site → true ≈ **55 m**,
-  needs override once the right footprint is confirmed.
+- **812 W 23rd St** — south half of the same Pearl↔San Gabriel block,
+  fronting 23rd. **17 stories, 2023**, studio–6BR. The 25.3 m footprint at
+  (-97.7467, 30.2871) with the furnished roof-amenity deck is its podium;
+  LiDAR caught the tower mid-construction → true ≈ **55 m**, needs override.
 
 ### HillTop Austin
-- **2400 San Gabriel St** — NW corner 24th & San Gabriel, diagonal from Union.
-  Luxury student mid-rise; stories unconfirmed — resolve from imagery.
+- **2400 San Gabriel St** — NW of Union, W side of San Gabriel at 24th.
+  **8 stories, built 2020** (≈26 m; nearby baked heights are stale/pre-2020).
+- ✔ Facade verified from the drone shot (`web/hilltop-austin/rambleratx_00`):
+  white/cream body, dark bronze vertical tower feature, rust-orange recessed
+  balconies, 2-story red-brick retail podium with 2nd-level pool deck; a
+  historic limestone/wood storefront survives next door on 24th.
 
 ### North side of W 24th (Union's front door)
 - **Shell station** (fuel canopy, 5.4 m) + an unnamed **10.8 m retail strip**.
@@ -128,9 +148,15 @@ Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
   (**Arab Cowboy** 901, **Cain & Abel's** 907 — moved here 2023 from the old
   2313 Rio Grande corner, which is now the Villas on 24th site), **Victory
   Lap**, and UT's **San Antonio Garage** (23 m).
-- **Two unidentified mid-rises** flagged in `buildings.json`
-  (`unidentified-36m-2200-block`, `unidentified-30m-23rd`) — ID them from the
-  aerial crops + shot-list captures.
+- **Sorority addresses confirmed:** Delta Gamma 2419 Rio Grande, Kappa Delta
+  2315 Nueces, Pi Beta Phi 2300 San Antonio. **Twenty Two 15 = 2215 Rio
+  Grande** (confirmed). **2400 Nueces's label is correct** — the aerial shows
+  its S-shaped bars and both courtyard pools exactly as the architecture
+  press describes.
+- **Two unidentified mid-rises remain** (`unidentified-36m-2200-block`: a
+  ~12-story tower + parking deck mid-block behind The Standard, candidates
+  2222 Rio Grande/"Karnes"/The Ruckus/a Quarters property;
+  `unidentified-30m-23rd`) — ID them from the shot-list captures.
 
 ## Data corrections queue (feed into scripts/hero_overrides.json when confirmed)
 
@@ -139,8 +165,9 @@ Moontower, Inspire on 22nd, The Castilian, 21 Rio, Rise.
 | Villas on 24th | 8.0 m | **~100 m** (30 fl) | Opened fall 2025, post-LiDAR |
 | The Standard at Austin | 20.5 m | **~57 m** (17 fl) | Built 2021, post-LiDAR |
 | The Mark Austin | 25.3 m | **~55 m** (17 fl) | Built 2023, post-LiDAR |
-| "The Mark Austin" label | — | is **Regents West at 24th** | OSM mislabel |
-| 2400 Nueces | 21.2 m | 16-fl claim, stepped bars | verify visually |
+| "The Mark Austin" label | — | is **Regents West at 24th** | OSM mislabel, confirmed from aerial |
+| HillTop Austin | ~10-13 m (stale) | **~26 m** (8 fl) | Built 2020, post-LiDAR |
+| 2400 Nueces | 21.2 m | stepped bars vary | label verified; per-bar heights from photos |
 | Rise at West Campus | 18 m (default) | verify | class default |
 
 Union itself (97.5 m baked vs 310 ft actual) is fine.
@@ -170,9 +197,14 @@ Spot-checks of `imagery/` already settle a few things:
 
 ## Open questions for the desktop pass
 
-1. Which footprint is Regents West vs The Mark vs HillTop on the west side?
-2. Identity of the two unnamed mid-rises south of 23rd.
-3. ΦΚΣ house address/footprint.
-4. Per-bar colors of 2400 Nueces (Architect Magazine gallery should settle it).
-5. Facade palettes (wall/trim/roof/night-window) for: The Standard, Villas on
-   24th, The Mark, Regents West, HillTop → new `hero_designs.json` entries.
+Resolved this session: Regents West vs The Mark vs HillTop footprints (see
+above), 2400 Nueces label, Twenty Two 15 address, sorority addresses.
+
+Still open (needs street-level captures / desktop):
+1. Identity of the two unnamed mid-rises south of 23rd
+   (`unidentified-36m-2200-block`, `unidentified-30m-23rd`).
+2. ΦΚΣ house footprint (OSM pin vs alumni-corp address 2402 Rio Grande).
+3. Per-bar colors of 2400 Nueces (Architect Magazine gallery should settle it).
+4. Facade palettes (wall/trim/roof/night-window) for: The Standard, Villas on
+   24th, The Mark, Regents West, HillTop → new `hero_designs.json` entries,
+   plus fixing Union's own palette (dark bronze, not light gray).
