@@ -1,6 +1,6 @@
 # Fetched reference imagery summary
 
-Total images: 205
+Total images: 212
 
 - 2400-nueces: 19
 - AREA: 5
@@ -10,7 +10,7 @@ Total images: 205
 - block-on-25th-west: 1
 - cain-and-abels: 1
 - delta-gamma: 1
-- hilltop-austin: 13
+- hilltop-austin: 19
 - inspire-on-22nd: 1
 - kappa-delta: 1
 - new-guild-coop: 13
@@ -24,7 +24,7 @@ Total images: 205
 - shell-24th: 1
 - skyloft-austin: 1
 - the-castilian: 1
-- the-mark-austin: 18
+- the-mark-austin: 19
 - the-standard-at-austin: 19
 - twenty-two-15: 1
 - unidentified-30m-23rd: 1
