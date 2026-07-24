@@ -1,0 +1,52 @@
+name: Fetch Union-24th reference imagery
+
+# Downloads reference photos + aerials for the buildings around Union on 24th
+# (research/union24th-area/) and commits them back to the branch that triggered
+# the run. Runs in Actions because the agent sandbox has no open internet.
+# Trigger from the phone via "Run workflow", or automatically by pushing changes
+# to buildings.json / the fetch script.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "research/union24th-area/buildings.json"
+      - "scripts/fetch_reference_imagery.py"
+      - ".github/workflows/fetch-reference-imagery.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-imagery-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install requests pillow
+
+      - name: Fetch imagery
+        run: python3 scripts/fetch_reference_imagery.py
+
+      - name: Commit imagery
+        run: |
+          git config user.name  "austin-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add research/union24th-area/imagery
+          if git diff --cached --quiet; then
+            echo "No imagery changes."
+          else
+            git commit -m "Fetch reference imagery for Union-on-24th surroundings"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
