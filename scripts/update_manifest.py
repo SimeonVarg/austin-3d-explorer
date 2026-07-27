@@ -15,13 +15,25 @@ DIFFS_DIR = os.path.join(DATA_DIR, "diffs")
 MANIFEST_PATH = os.path.join(DATA_DIR, "manifest.json")
 
 
+# The front end fetches these directly; a snapshot missing either renders as
+# an empty map, so it must not be published in the manifest.
+REQUIRED_FILES = ("buildings.detailed.geojson", "parts.detailed.geojson")
+
+
 def list_snapshots():
     if not os.path.isdir(SNAPSHOTS_DIR):
         return []
-    return sorted(
-        d for d in os.listdir(SNAPSHOTS_DIR)
-        if os.path.isdir(os.path.join(SNAPSHOTS_DIR, d))
-    )
+    snapshots = []
+    for d in sorted(os.listdir(SNAPSHOTS_DIR)):
+        path = os.path.join(SNAPSHOTS_DIR, d)
+        if not os.path.isdir(path):
+            continue
+        missing = [f for f in REQUIRED_FILES if not os.path.isfile(os.path.join(path, f))]
+        if missing:
+            print(f"  [skip] {d}: missing {', '.join(missing)} — run bake_detail.py {d}")
+            continue
+        snapshots.append(d)
+    return snapshots
 
 
 def list_diffs():
