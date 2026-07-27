@@ -10,6 +10,12 @@
       "to": "2026-07-11",
       "file": "diffs/2026-07-10_to_2026-07-11.geojson",
       "changed_count": 0
+    },
+    {
+      "from": "2026-07-11",
+      "to": "2026-07-27",
+      "file": "diffs/2026-07-11_to_2026-07-27.geojson",
+      "changed_count": 12
     }
   ]
 }
