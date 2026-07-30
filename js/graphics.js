@@ -642,22 +642,34 @@
       const dts = [];
       let last = null;
       const t0 = performance.now();
-      const driving = () => { try { return !!(window.__fly && window.__fly.eye().driving); } catch (e) { return false; } };
+      // `driving` also counts an in-flight easeTo: the probe's bearing nudge and
+      // snapshot-restore CANCEL an ease (measured: the intro tween froze at
+      // bearing 257 of a 250 target). While either is running the camera is
+      // already forcing real frames, so the nudge is unnecessary anyway.
+      const driving = () => {
+        try {
+          if (window.__fly && window.__fly.eye().driving) return true;
+          return !!(_map && typeof _map.isEasing === 'function' && _map.isEasing());
+        } catch (e) { return false; }
+      };
       // Snapshot and restore rather than trusting the alternating nudge to cancel:
       // with an odd frame count, or two probes overlapping, it does not. Measured
-      // 1.68 deg of leftover drift before this.
-      let bearing0 = null;
+      // 1.68 deg of leftover drift before this. Restore ONLY if we nudged — an
+      // unconditional jumpTo at the end would cancel an ease that started
+      // mid-probe and strand the camera off-pose.
+      let bearing0 = null, nudged = false, sawEase = false;
       try { bearing0 = _map ? _map.getBearing() : null; } catch (e) {}
       const done = (v) => {
-        if (bearing0 !== null) { try { _map.jumpTo({ bearing: bearing0 }); } catch (e) {} }
+        if (nudged && !sawEase && bearing0 !== null) { try { _map.jumpTo({ bearing: bearing0 }); } catch (e) {} }
         resolve(v);
       };
       const step = ts => {
         if (autoCancelled) return done(null);
         if (last !== null) dts.push(ts - last);
         last = ts;
+        try { if (_map && typeof _map.isEasing === 'function' && _map.isEasing()) sawEase = true; } catch (e) {}
         if (_map && !driving()) {
-          try { _map.jumpTo({ bearing: bearing0 + (dts.length % 2 ? 0.01 : -0.01) }); } catch (e) {}
+          try { _map.jumpTo({ bearing: bearing0 + (dts.length % 2 ? 0.01 : -0.01) }); nudged = true; } catch (e) {}
         }
         if (performance.now() - t0 < ms) return requestAnimationFrame(step);
         // FOUR frames, not twelve. The first cut demanded 12 and a machine slow
@@ -684,28 +696,48 @@
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
     if (med > 21.5 && GFX.preset === 'balanced') {
       usePreset('performance', true);
-      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`);
+      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
+        TOAST_PROBE_MS);
     } else {
+      // Changed nothing -> say nothing. The old confirmation toast sat over the
+      // hero frame for 5.2 s on every first visit, announcing a no-op.
       save();
-      toast(`${fps.toFixed(0)} fps — keeping ${GFX.preset}. Press G for graphics settings.`);
     }
     console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms (${fps.toFixed(0)} fps) -> ${GFX.preset}`);
     return { med, fps, preset: GFX.preset };
   }
   window.__gfxProbe = runProbe;
 
-  function scheduleAutoDetect() {
-    autoTimer = setTimeout(() => { if (!autoCancelled) runProbe(); }, 11000);  // the intro tween runs 9 s
+  // The probe must not land while a camera ease is in flight: measureFrames'
+  // nudge/restore cancels an easeTo mid-tween (measured: the long intro froze
+  // at bearing 257 of a 250 target). Deferring — not skipping — keeps the
+  // downgrade path alive for weak phones; an ease is real rendering load
+  // anyway, so waiting costs nothing.
+  const PROBE_DELAY_MS = 11000;   // first attempt; the intro tween runs ~9-11.5 s
+  const PROBE_RETRY_MS = 3500;    // re-check cadence while an ease is still running
+  const TOAST_PROBE_MS = 2600;    // the downgrade toast (the default hold covered the hero frame)
+  const TOAST_DEFAULT_MS = 5200;
+
+  function scheduleAutoDetect(delay) {
+    autoTimer = setTimeout(() => {
+      autoTimer = null;
+      if (autoCancelled) return;
+      let easing = false;
+      try { easing = !!(_map && typeof _map.isEasing === 'function' && _map.isEasing()); } catch (e) {}
+      if (easing) { scheduleAutoDetect(PROBE_RETRY_MS); return; }
+      runProbe();
+    }, delay == null ? PROBE_DELAY_MS : delay);
   }
 
-  function toast(msg) {
+  function toast(msg, ms) {
     let t = document.getElementById('gfx-toast');
     if (!t) t = el('gfx-toast');
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => t.classList.remove('show'), 5200);
+    toast._t = setTimeout(() => t.classList.remove('show'), ms == null ? TOAST_DEFAULT_MS : ms);
   }
+  window.__gfxToast = toast;      // debug/test hook
 
   // ── Menu ──────────────────────────────────────────────────────────
   let panel = null, rows = {}, fpsRaf = null;
