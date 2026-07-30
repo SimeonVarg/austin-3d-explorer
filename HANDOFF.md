@@ -475,6 +475,65 @@ FRAME — always screenshot twice and trust the second.
 
 ---
 
+## 21. July 29 2026 — the "idle bearing drift" was the intro (and the wheel bug it uncovered)
+
+### The report: not a drift — don't re-investigate
+
+A control test measured the bearing going **84.85 -> 89.19 in 1.6 s with no input**
+(`__fly.eye().driving === false` at both ends) and concluded js/controls.js was
+leaking a write while idle.
+
+It was not. That is the **9-second cinematic intro `easeTo`** in app.js
+`startIntro()`: bearing 60 -> 90, ease-out cubic. Reproduced exactly — with the
+intro on, the same recipe reads 85.00 -> 88.44 and **`map.isEasing()` is true at
+both samples**, while `driving` is correctly false because the arbitration is
+deliberately standing aside for it. With `?intro=0` genuinely applied, the pose
+is **bit-exact stable** (dBearing 0.0000, span 0.0000) over 12-second idle
+windows at five seeded poses — including pitch 84 against `maxPitch: 85`, and
+zoom 14.6 where `altCeiling()` binds hard — and after every class of input is
+released. There is no drift, no `pendingYaw` decay, no stray `jumpTo`, and no
+MapLibre renormalisation. `node scripts/verify/idle.mjs` asserts all of it.
+
+**The inference that caused this.** `__fly.eye().driving` answers exactly one
+question: *did controls.js write the camera last frame*. It is not "is the camera
+moving". Any external animation — the intro, R-to-home, diff-tour's `flyTo` —
+moves the pose with `driving` false the whole time, because standing aside is the
+entire point of the arbitration. `eye()` now publishes `mapEasing` and
+`mapMoving` next to `driving` so that mistake is not available again.
+
+### The real bug it uncovered: `syncFromMap()` ate the input that woke it
+
+Building the regression test turned up something genuine. `syncFromMap()` ended
+with `pendingYaw = pendingPitch = wheelLogAcc = touchLogAcc = 0`, and it is called
+on the **not-driving -> driving transition** — a transition triggered *by* those
+accumulators. So the input that woke the controller was discarded on arrival.
+
+The wheel is the only input with no accompanying held state (a drag has
+`lookPointerId`, a key has `keys[code]`, a pinch has `pointerCount() >= 2` — all
+of which make `inputActive` true on their own and survive the wipe). The wheel is
+pure accumulator, so it lost **100%** of its signal: from a resting camera every
+scroll notch was eaten and the altitude never moved. Measured before the fix —
+three separate notches, `altUser` 201.6 -> 201.6 -> 201.6 -> 201.6, with the
+`wheel` listener confirmed firing all three times. After: 201.6 -> 310.6 -> 478.4
+-> 736.9, each x1.54 = `exp(240 * WHEEL_GAIN)`, exactly as designed.
+
+This hid behind the existing suite because `movement.mjs` tests altitude with
+**Q/E**, not the wheel, and an ad-hoc wheel check passes if it runs within ~3 s of
+a `W` burst — momentum keeps `driving` true (`TAU_DECEL` 0.45 s from 40 m/s to
+`V_EPS` 0.05 is about 3.0 s), so `wasDriving` is already true and no wipe happens.
+Test the wheel **from a resting camera** or the assertion is worthless.
+
+The fix is a deletion: `syncFromMap()` no longer touches the input accumulators.
+Resetting inputs is `clearInputs()`'s job (blur / tab hide). Every idle frame
+already has them at zero by definition — if any were non-zero, `driving` would be
+true — so removing the line changes nothing on the idle path. Drags also stop
+losing their last sliver of motion, and a scroll now cancels the intro *and*
+applies its altitude change instead of only cancelling it.
+
+`movement.mjs` 14/14 and `collision.mjs` 8/8 still pass.
+
+---
+
 ## 20. July 29 2026 (later) — performance, the graphics menu, and a real sky
 
 Five things were reported at once: the desktop was "super laggy"; the phone was

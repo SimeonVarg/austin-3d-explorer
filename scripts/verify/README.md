@@ -30,6 +30,7 @@ Then, from `scripts/verify`:
 
 ```bash
 node movement.mjs      # camera: symmetry, vertical control, momentum, stuck keys (14 assertions)
+node idle.mjs          # the camera must not move when nobody is touching it (18 assertions)
 node collision.mjs     # never inside a building, streets stay flyable, joystick+look (8 assertions)
 node sky.mjs           # one-sun coherence, disc projection, blend invariants (12 assertions)
 node dusk.mjs          # the dusk handover must be continuous (prints worst frame-to-frame change)
@@ -54,6 +55,17 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
 - **The controller owns the camera while flying.** A seeded test must wait for
   `!__fly.eye().driving` *before* placing the camera, or its `jumpTo` is
   overwritten on the next frame.
+- **`driving === false` does NOT mean the camera is still.** It means only that
+  `js/controls.js` did not write the camera last frame. External animations — the
+  9 s cinematic intro, R-to-home, diff-tour's `flyTo` — move the pose with
+  `driving` false throughout, because standing aside is what the arbitration is
+  *for*. Wait on `!driving && !map.isEasing()`, or read the `mapEasing` /
+  `mapMoving` fields `__fly.eye()` publishes. Skipping this is how the intro tween
+  got reported as a bearing drift leaking out of controls.js (HANDOFF §21).
+- **Test the wheel from a RESTING camera.** A wheel assertion within ~3 s of a `W`
+  burst passes even when the wheel is completely dead, because momentum keeps the
+  controller driving and hides the bug. That is how a 100%-signal-loss wheel
+  defect survived a 14-assertion movement suite.
 - **After `setData`, a GeoJSON source re-tiles in a worker.** Sampling 700 ms
   later returns the previous state — this made a shadow test report a bogus 43°
   error. Wait for `idle`.

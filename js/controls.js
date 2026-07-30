@@ -229,7 +229,14 @@ function initControls(map, scene) {
     eye.lng = c.lng - lead * Math.sin(rad(bearing)) / mLon(eye.lat);
     altUser = alt; altFloor = 0;
     vel.e = 0; vel.n = 0;
-    pendingYaw = pendingPitch = wheelLogAcc = touchLogAcc = 0;
+    // NOTHING here may clear pendingYaw/pendingPitch/wheelLogAcc/touchLogAcc.
+    // This runs on the not-driving -> driving transition, and that transition is
+    // triggered BY those accumulators — clearing them here discards the very
+    // input that woke the controller up. The wheel is the only input with no
+    // accompanying held state (a drag has lookPointerId, a key has keys[code]),
+    // so it lost 100% of its signal: from a resting camera every scroll notch
+    // was eaten and altitude never moved. Drags lost their last sliver too.
+    // Resetting inputs is clearInputs()'s job (blur / tab hide), not this one's.
   }
 
   let lastWrite = null;
@@ -725,8 +732,17 @@ function initControls(map, scene) {
 
   window.__flyRebuildCollision = sc => { buildHeightField(sc); };
   window.__fly = {
+    // `driving` answers ONE question: did this file write the camera last frame.
+    // It is not "is the camera moving" — while an external animation runs (the
+    // cinematic intro, R-to-home, diff-tour's flyTo) the arbitration deliberately
+    // stands aside and driving reads false while the pose changes anyway. Reading
+    // driving===false as "nobody is steering" is how a 9-second intro tween got
+    // reported as a bearing drift leaking out of this file. `mapEasing` is
+    // published alongside it so that inference is never available again.
     eye: () => ({ lng: eye.lng, lat: eye.lat, alt, altUser, altFloor,
-                  vE: vel.e, vN: vel.n, bearing, pitch, driving: wasDriving }),
+                  vE: vel.e, vN: vel.n, bearing, pitch, driving: wasDriving,
+                  mapEasing: !!(map.isEasing && map.isEasing()),
+                  mapMoving: !!(map.isMoving && map.isMoving()) }),
     roofAt: (lng, lat, r) => maxHeightIn(lng, lat, r == null ? R_CAM : r),
     indexed: () => gridBuilt,
     gridBytes: () => (grid ? grid.byteLength : 0),
