@@ -475,6 +475,53 @@ FRAME — always screenshot twice and trust the second.
 
 ---
 
+## 21. July 30 2026 (overnight) — the beauty pass
+
+*(Being written as the night progresses; the morning report finalises it.)*
+
+The brief: nothing is broken, tonight is about beauty. AWS is putting footage of
+this app on the official Kiro channels; Simeon picks what to film in the
+morning. Bar: a stranger scrolling stops. Branch: `feat/night-beauty`.
+
+### 21.0 THE TOP NEXT ITEM — the snapshot data (deliberately NOT touched tonight)
+
+The biggest real product gap is the data story: two distinct datasets and a diff
+of twelve unnamed sheds. It is open-ended data work with uncertain payoff, which
+is why the overnight brief explicitly excluded it. **Whoever picks this project
+up next: start here.** Make the snapshot dates mean something — real diffs of
+real named buildings between real dates — or fold the date UI away until the
+data earns it. Nothing tonight touched `data/` or the diff pipeline.
+
+### 21.1 The opening frame (framing pass, main session)
+
+- The app now opens at **p = 0.50, peak golden hour** (`TOD_DEFAULT_P`,
+  js/timeofday.js) — it used to open at 0.12, a pale flat morning that hid the
+  app's best hour. Chosen against p = 0.47 by rendering both: at 0.47 the sun
+  sits just above a portrait frame leaving a halo ring; at 0.50 the disc
+  anchors the frame. `?p=<0..1>` overrides the opening hour for filming.
+- **Spawn pose faces the sunset**: pitch 74 / bearing 250 (was 64 / 90). At
+  pitch 64 a portrait frame kept ~6% sky and the golden-hour sun was BEHIND the
+  camera; now the horizon sits about a fifth from the top and the disc, god
+  rays and lens ghosts are all in frame. (`SPAWN`, js/app.js.)
+- **The intro travels**: it starts low over campus ~430 m east and flies west
+  down the 24th St canyon into the tower cluster, settling on the sunset pose —
+  two chained easeTo legs, every value in the `INTRO` block (js/app.js).
+  Verified frame-by-frame (portrait): towers pass the frame edges, no geometry
+  clipping, and with the auto-detect probe cancelled the flight lands on the
+  exact spawn pose. The probe used to stomp the ease mid-flight — the fix
+  (probe defers while `map.isEasing()`) belongs to graphics.js.
+- **The white void is gone**: a brand-dark `#veil` (index.html/style.css) holds
+  an authored title card from the first paint until the map's first idle frame
+  (capped by `INTRO.maxVeilMs`), then lifts as the flight departs. The first
+  thing a visitor ever sees is the city already golden and in motion.
+- **`?clip=1` cinematic capture mode**: hides all chrome (HUD, hints, panels,
+  joystick, gear, toast) for filming; attribution stays for the license.
+- **Phone chrome shrink** (style.css ≤640/≤520 blocks): the time-of-day pill
+  dropped from 278 px (a third of a 390×844 frame) to ~210 px; the HUD loses
+  the snapshot line on small screens; attribution links dimmed from orange to
+  quiet cream. OSM ghost labels no longer smudge the spawn frame — the
+  buildings-labels fade ramp now starts below the spawn zoom (16.8→17.5).
+
 ## 20. July 29 2026 (later) — performance, the graphics menu, and a real sky
 
 Five things were reported at once: the desktop was "super laggy"; the phone was

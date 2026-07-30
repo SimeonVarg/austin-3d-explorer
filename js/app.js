@@ -21,10 +21,15 @@
 
   // Spawn inside the West Campus tower cluster (Dobie, Castilian, Skyloft,
   // Moontower, Ion nearby) so you're among buildings on load, not on a lawn.
-  // Pitch 64 + a 58° vertical FOV keep the horizon (and the v5 sky gradient)
-  // on screen — at the default 36.87° FOV the sky is invisible below ~71°.
-  const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 64, bearing: 90 };
-  const DEFAULT_P = (typeof window.TOD_DEFAULT_P === 'number') ? window.TOD_DEFAULT_P : 0.30;
+  // Pitch 74 (was 64) holds the horizon about a fifth from the top of a
+  // portrait frame instead of a tenth — the sky work is finally IN the phone
+  // frame. Bearing 250 faces the golden-hour sun (az ≈ 247–256 near p = 0.5)
+  // instead of leaving it behind the camera. Both are one-line taste edits.
+  const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 74, bearing: 250 };
+  // ?p=0.32 overrides the opening hour for filming without touching the UI.
+  const urlP = parseFloat(new URLSearchParams(window.location.search).get('p'));
+  const DEFAULT_P = (isFinite(urlP) && urlP >= 0 && urlP <= 1) ? urlP
+    : (typeof window.TOD_DEFAULT_P === 'number') ? window.TOD_DEFAULT_P : 0.30;
 
   const COLOR_DEBUG = ['match',['get','source_height'],'overture','#4CAF50','hero_override','#9C27B0','#FF9800'];
   const BUILDING_OPACITY = 1.0, BUILDING_OPACITY_DEBUG = 0.88;
@@ -195,7 +200,7 @@
     step('dates',    () => { if (manifest) initDateSwitcher(map, manifest, activeDate, onDateChanged); });
     step('debug',    () => { applyDebugVisibility(); wireDebugToggle(); });
     step('tod',      () => { applyTimeOfDay(map, p); initTimeOfDayUI(map, p); });
-    step('intro',    () => startIntro());
+    step('reveal',   () => revealAndIntro());
   }
 
   // ── Building layers ───────────────────────────────────────────────
@@ -379,14 +384,17 @@
     map.addLayer({
       id:'buildings-labels', type:'symbol',
       source:'austin-buildings',
-      minzoom:16.4, filter:['==',['get','lbl'],1],
+      // Held back until you descend BELOW the spawn zoom (16.5): at spawn the
+      // curated signs carry the identity, and the old 16.4 start meant dozens
+      // of 10–40%-opacity ghost labels smudging the hero frame.
+      minzoom:16.7, filter:['==',['get','lbl'],1],
       layout:{
         'text-field':['get','name'],
         // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
         // server — a missing fontstack 404s and MapLibre discards the whole
         // tile it was needed for.
         'text-font':['Noto Sans Regular'],
-        'text-size':['interpolate',['linear'],['zoom'],16.4,10,18,12,19.5,14],
+        'text-size':['interpolate',['linear'],['zoom'],16.7,10,18,12,19.5,14],
         'text-anchor':'center', 'text-offset':[0,-0.6],
         'text-max-width':7, 'text-padding':9,
         'text-allow-overlap':false,
@@ -394,20 +402,57 @@
       },
       paint:{
         'text-color':'#f3e6cd','text-halo-color':'rgba(24,14,5,0.9)','text-halo-width':1.3,
-        'text-opacity':['interpolate',['linear'],['zoom'],16.4,0,17.1,0.82],
+        'text-opacity':['interpolate',['linear'],['zoom'],16.8,0,17.5,0.82],
       },
     });
   }
 
   // ── Cinematic intro ───────────────────────────────────────────────
-  // A slow dolly-in on load. It costs nothing and it's the difference between
-  // "a map loaded" and "a place opened". Any input cancels it immediately.
-  function startIntro() {
-    if (new URLSearchParams(window.location.search).get('intro') === '0') return;
-    let cancelled = false;
+  // A real journey now, not a dolly around a fixed centre: the flight starts
+  // low over campus ~430 m east of the spawn, runs west down the 24th Street
+  // canyon with the towers rising past the frame edges, then sweeps into the
+  // spawn pose facing the sunset. Any input cancels it immediately.
+  // Every value here is a one-line taste edit.
+  const INTRO = {
+    startEastM: 430,                     // where the flight begins, m east of spawn
+    midEastM: 80,                        // leg-1 endpoint, m east of spawn
+    startZoom: 17.25, midZoom: 16.85,    // low over the street → rising
+    startPitch: 70,   midPitch: 72,      // street-focused → lifting the eyes
+    startBearing: 274, midBearing: 266,  // near-west the whole run…
+    leg1Ms: 6200, leg2Ms: 5200,          // …then the arrival settle onto SPAWN
+    maxVeilMs: 7000,                     // a stalled tile must never hold a black screen
+  };
+
+  // The veil (see index.html/#veil) holds an authored dark frame over the
+  // basemap's pale first paint. The intro start pose is primed UNDER the veil,
+  // so the tiles it needs are loading before anything is visible; on the first
+  // idle frame (or the timeout) the veil lifts and the flight departs — the
+  // first thing a visitor ever sees is the city already golden and in motion.
+  function revealAndIntro() {
+    const doIntro = new URLSearchParams(window.location.search).get('intro') !== '0';
+    const flight = doIntro ? primeIntro() : null;
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      const veil = document.getElementById('veil');
+      if (veil) {
+        veil.classList.add('lift');
+        veil.addEventListener('transitionend', () => veil.remove(), { once: true });
+        setTimeout(() => { const v = document.getElementById('veil'); if (v) v.remove(); }, 2600);
+      }
+      if (flight) flight.fly();
+    };
+    map.once('idle', reveal);
+    setTimeout(reveal, INTRO.maxVeilMs);
+  }
+
+  function primeIntro() {
+    let cancelled = false, leg2Timer = null;
     const cancel = () => {
       if (cancelled) return;
       cancelled = true;
+      clearTimeout(leg2Timer);
       map.stop();
       // Land on the full spawn pose. Stopping mid-ease used to strand the
       // camera at whatever partial zoom/pitch the tween had reached.
@@ -418,13 +463,28 @@
     const off = () => evts.forEach(e => window.removeEventListener(e, cancel, true));
     evts.forEach(e => window.addEventListener(e, cancel, true));
 
-    map.jumpTo({ center: SPAWN.center, zoom: SPAWN.zoom - 1.35, pitch: 52, bearing: SPAWN.bearing - 30 });
-    map.easeTo({
-      center: SPAWN.center, zoom: SPAWN.zoom, pitch: SPAWN.pitch, bearing: SPAWN.bearing,
-      duration: 9000,
-      easing: t => 1 - Math.pow(1 - t, 3),   // ease-out cubic: fast settle, long drift
-    });
-    setTimeout(off, 9600);
+    const eastOf = m => [
+      SPAWN.center[0] + m / (111195.08 * Math.cos(SPAWN.center[1] * Math.PI / 180)),
+      SPAWN.center[1],
+    ];
+    map.jumpTo({ center: eastOf(INTRO.startEastM), zoom: INTRO.startZoom,
+                 pitch: INTRO.startPitch, bearing: INTRO.startBearing });
+
+    const fly = () => {
+      if (cancelled) return;
+      map.easeTo({ center: eastOf(INTRO.midEastM), zoom: INTRO.midZoom,
+                   pitch: INTRO.midPitch, bearing: INTRO.midBearing,
+                   duration: INTRO.leg1Ms,
+                   easing: t => 0.5 - 0.5 * Math.cos(Math.PI * t) });  // gentle both ends
+      leg2Timer = setTimeout(() => {
+        if (cancelled) return;
+        map.easeTo({ center: SPAWN.center, zoom: SPAWN.zoom, pitch: SPAWN.pitch, bearing: SPAWN.bearing,
+                     duration: INTRO.leg2Ms,
+                     easing: t => 1 - Math.pow(1 - t, 3) });           // long settle
+        setTimeout(off, INTRO.leg2Ms + 600);
+      }, INTRO.leg1Ms + 30);
+    };
+    return { fly };
   }
 
   // ── Date change ───────────────────────────────────────────────────

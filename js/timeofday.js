@@ -22,8 +22,11 @@
 (function () {
   'use strict';
 
-  // Late-morning default: full palette variety visible, faint warmth.
-  const TOD_DEFAULT_P = 0.12;
+  // The opening hour. Golden hour is the best hour this app has — violet→rose→
+  // orange sky, god rays, amber walls — and it used to open at 0.12, a pale flat
+  // morning that hid all of it. 0.50 is peak golden (sun ~6° up in the WSW).
+  // One-line taste override; 0.12 is the old late-morning look.
+  const TOD_DEFAULT_P = 0.50;
 
   // ── Scene keyframes (everything not carried by the facade patterns) ──
   //
