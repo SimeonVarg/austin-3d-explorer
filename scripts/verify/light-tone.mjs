@@ -67,7 +67,10 @@ async function stats(buf, regions) {
 async function pose(p, pitch, bearing, filmic, hideOverlays) {
   await page.evaluate(async ({ p, pitch, bearing, filmic, hideOverlays }) => {
     const m = window.__map;
-    Object.assign(window.GFX, window.GFX_PRESETS.cinematic, { filmic });
+    // autoExposure OFF: this test isolates the tone curve, and the cinematic
+    // preset now carries AE — its gain drifts between the paired shots and
+    // becomes an uncontrolled variable (caught when the preset gained AE).
+    Object.assign(window.GFX, window.GFX_PRESETS.cinematic, { filmic, autoExposure: false });
     window.applyGraphics();
     for (const id of ['sky', 'fx-canvas', 'haze', 'vignette', 'fx-grain'])
       { const e = document.getElementById(id); if (e) e.style.visibility = hideOverlays ? 'hidden' : ''; }
