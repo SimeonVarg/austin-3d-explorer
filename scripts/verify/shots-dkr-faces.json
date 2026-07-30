@@ -1,0 +1,7 @@
+[
+ {"name":"F1-west",  "p":0.25, "gfx":"cinematic", "center":[-97.73520,30.28360], "zoom":17.5, "pitch":62, "bearing":90},
+ {"name":"F2-north", "p":0.25, "gfx":"cinematic", "center":[-97.73280,30.28620], "zoom":17.5, "pitch":62, "bearing":180},
+ {"name":"F3-east",  "p":0.25, "gfx":"cinematic", "center":[-97.72990,30.28380], "zoom":17.5, "pitch":62, "bearing":270},
+ {"name":"F4-south", "p":0.25, "gfx":"cinematic", "center":[-97.73230,30.28090], "zoom":17.5, "pitch":62, "bearing":0},
+ {"name":"F5-wgold", "p":0.50, "gfx":"cinematic", "center":[-97.73520,30.28360], "zoom":17.5, "pitch":62, "bearing":90}
+]

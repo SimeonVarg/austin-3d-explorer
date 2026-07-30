@@ -14,4 +14,8 @@ data/roof_band_*.png
 # Reference input to a bake, never shipped; at --zoom 20 it is 120 MB, and the
 # tiles it is stitched from are already cached under data/imagery_cache.
 data/capitol_aerial.png
+# Same deal for the DKR nadir reference — 7.3 MB, and it is the input the
+# stadium bake's luma measurements were read off (see scripts/bake_stadium.py),
+# not something the site ever loads.
+data/dkr_aerial.png
 scripts/_overpass_probe.json
