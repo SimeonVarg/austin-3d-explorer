@@ -353,6 +353,8 @@
 
     // Curated branded landmark signs (signs.js) — glow + ground light pools.
     if (typeof applySignGlowLayer === 'function') applySignGlowLayer(map, s.signGlow, p);
+    // Streetlights (night.js) — lamp pools fade up through dusk.
+    if (typeof applyNightLayer === 'function') applyNightLayer(map, p);
 
     if (typeof setHazeColor === 'function') setHazeColor(s.fog, s.haze);
     if (typeof updateSky === 'function') updateSky(map, p);
