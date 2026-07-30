@@ -69,8 +69,12 @@
     { key: 'flare',       label: 'Lens flare',     min: 0, max: 1, step: 0.02, group: 'lens' },
     { key: 'dof',         label: 'Distance blur',  min: 0, max: 1, step: 0.02, group: 'lens' },
     { key: 'exposure',    label: 'Exposure',       min: 0.7, max: 1.4, step: 0.01, group: 'grade' },
+    { key: 'autoExposure', label: 'Auto exposure', type: 'bool', group: 'grade',
+      hint: 'Nudges exposure toward the hour’s typical brightness, metered from the rendered frame. Needs the preserved buffer bloom uses (reload with bloom > 0).' },
     { key: 'contrast',    label: 'Contrast',       min: 0.8, max: 1.5, step: 0.01, group: 'grade' },
     { key: 'saturation',  label: 'Saturation',     min: 0.6, max: 1.6, step: 0.01, group: 'grade' },
+    { key: 'filmic',      label: 'Filmic curve',   min: 0, max: 1, step: 0.02, group: 'grade',
+      hint: 'Tone curve with a toe and a shoulder: highlights roll off instead of clipping to flat white, shadows keep detail instead of crushing to black.' },
     { key: 'vignette',    label: 'Vignette',       min: 0, max: 1.6, step: 0.02, group: 'grade' },
     { key: 'grain',       label: 'Film grain',     min: 0, max: 1, step: 0.02, group: 'grade' },
     { key: 'ao',          label: 'Contact shadows', type: 'bool', group: 'world' },
@@ -89,7 +93,7 @@
   const PRESETS = {
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
-      exposure: 1.0, contrast: 1.0, saturation: 1.0, vignette: 0.6, grain: 0,
+      exposure: 1.0, autoExposure: false, contrast: 1.0, saturation: 1.0, filmic: 0, vignette: 0.6, grain: 0,
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58,
     },
     balanced: {
@@ -100,17 +104,17 @@
       // a full-screen `overlay` blend running every frame. It is a taste effect,
       // not a depth or lighting cue, so it earns its keep at cinematic and not in
       // the default that has to feel smooth.
-      exposure: 1.03, contrast: 1.06, saturation: 1.1, vignette: 1.0, grain: 0,
+      exposure: 1.03, autoExposure: true, contrast: 1.06, saturation: 1.1, filmic: 0.65, vignette: 1.0, grain: 0,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58,
     },
     cinematic: {
       renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0.45,
-      exposure: 1.05, contrast: 1.12, saturation: 1.18, vignette: 1.25, grain: 0.22,
+      exposure: 1.05, autoExposure: true, contrast: 1.12, saturation: 1.18, filmic: 0.8, vignette: 1.25, grain: 0.22,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
     },
     ultra: {
       renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0.50,
-      exposure: 1.05, contrast: 1.14, saturation: 1.2, vignette: 1.25, grain: 0.18,
+      exposure: 1.05, autoExposure: true, contrast: 1.14, saturation: 1.2, filmic: 0.8, vignette: 1.25, grain: 0.18,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
     },
   };
@@ -131,7 +135,7 @@
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
   window.GFX_MSAA = !!GFX.msaa;
-  window.GFX_PDB = GFX.bloom > 0.01;
+  window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
 
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(GFX)); } catch (e) {}
@@ -265,18 +269,237 @@
     applyGrade();
   };
 
+  // ── Filmic tone curve ─────────────────────────────────────────────
+  // `brightness() contrast()` is a straight line through [0,1] that CLIPS both
+  // ends: with exposure 1.05 x contrast 1.12 everything above ~0.90 lands on
+  // flat 255 (the golden-hour horizon was a plateau with zero gradient) and
+  // shadows crush symmetrically to flat 0. A film curve instead has a TOE
+  // (shadows compress gently, keeping detail) and a SHOULDER (highlights roll
+  // off asymptotically, never slamming into white).
+  //
+  // CSS has no LUT primitive, but SVG filters do: feComponentTransfer
+  // type="table" is a per-channel lookup table, and `filter: url(#a3d-tone)`
+  // chains it with the other CSS filter functions. So exposure, contrast AND
+  // the curve are baked into ONE table here — that matters, because CSS filter
+  // functions clamp between stages, so a separate brightness() would have
+  // already destroyed the overshoot the shoulder exists to recover.
+  //
+  // The curve: IDENTITY through the mid-band, a cubic-Hermite shoulder above
+  // SHOULDER_AT and a cubic-Hermite toe below TOE_AT, each with slope 1 at the
+  // join so the transition is invisible. The first cut used a tanh S-curve
+  // through a pivot instead — its slope at the pivot was 1.5, which re-graded
+  // every midtone (measured: night city mean 46 -> 16, day city -16%). The hour
+  // grades are already tuned; the curve's ONLY job is to rescue the ends.
+  const TONE = {
+    SAMPLES: 33,        // LUT resolution; feComponentTransfer lerps between entries
+    TOE_AT: 0.14,       // below this the toe starts (display-linear units)
+    SHOULDER_AT: 0.72,  // above this the shoulder starts
+    OVER: 1.28,         // highlight headroom: linear values up to this stay distinct
+    UNDER: -0.10,       // shadow headroom for contrast-crushed negatives
+    FLOOR: 0.010,       // what the deepest shadow maps to (a lifted, detailed black)
+    END_SLOPE: 0.06,    // curve slope at the far ends (0 = hard plateau again)
+  };
+  let toneFuncs = null, toneLast = null;
+
+  function ensureToneFilter() {
+    if (toneFuncs) return true;
+    try {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('width', '0');
+      svg.setAttribute('height', '0');
+      svg.style.cssText = 'position:absolute;left:-9999px;top:-9999px';
+      const filter = document.createElementNS(NS, 'filter');
+      filter.setAttribute('id', 'a3d-tone');
+      // sRGB, not the SVG default linearRGB: the grade is authored against the
+      // frame as displayed, and linearRGB silently re-lights the whole scene.
+      filter.setAttribute('color-interpolation-filters', 'sRGB');
+      const fct = document.createElementNS(NS, 'feComponentTransfer');
+      toneFuncs = ['feFuncR', 'feFuncG', 'feFuncB'].map(tag => {
+        const f = document.createElementNS(NS, tag);
+        f.setAttribute('type', 'table');
+        f.setAttribute('tableValues', '0 1');
+        fct.appendChild(f);
+        return f;
+      });
+      filter.appendChild(fct);
+      svg.appendChild(filter);
+      document.body.appendChild(svg);
+      return true;
+    } catch (e) { toneFuncs = null; return false; }
+  }
+
+  /** Cubic Hermite on [0,1] with g(0)=0, g(1)=1 and given end slopes. */
+  function hermite01(t, m0, m1) {
+    const t2 = t * t, t3 = t2 * t;
+    return (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) + (t3 - t2) * m1;
+  }
+
+  /** The filmic map for one unclamped display-linear value. */
+  function toneCurve(lin) {
+    const T = TONE;
+    if (lin >= T.SHOULDER_AT) {
+      // [SHOULDER_AT .. OVER] -> [SHOULDER_AT .. 1], slope 1 at the join.
+      const t = Math.min(1, (lin - T.SHOULDER_AT) / (T.OVER - T.SHOULDER_AT));
+      const m0 = (T.OVER - T.SHOULDER_AT) / (1 - T.SHOULDER_AT);   // slope 1 in display units
+      return T.SHOULDER_AT + (1 - T.SHOULDER_AT) * hermite01(t, m0, T.END_SLOPE);
+    }
+    if (lin <= T.TOE_AT) {
+      // [UNDER .. TOE_AT] -> [FLOOR .. TOE_AT], slope 1 at the join.
+      const t = Math.max(0, (lin - T.UNDER) / (T.TOE_AT - T.UNDER));
+      const m1 = (T.TOE_AT - T.UNDER) / (T.TOE_AT - T.FLOOR);      // slope 1 in display units
+      return T.FLOOR + (T.TOE_AT - T.FLOOR) * hermite01(t, T.END_SLOPE, m1);
+    }
+    return lin;                                                    // mid-band: identity
+  }
+
+  /** exposure+contrast+filmic in one table. Returns false if the SVG route failed. */
+  function updateToneLUT(ex, co, strength) {
+    if (!ensureToneFilter()) return false;
+    const key = `${ex.toFixed(3)}|${co.toFixed(3)}|${strength.toFixed(2)}`;
+    if (toneLast === key) return true;
+    toneLast = key;
+    const vals = [];
+    for (let i = 0; i < TONE.SAMPLES; i++) {
+      const x = i / (TONE.SAMPLES - 1);
+      const lin = (x * ex - 0.5) * co + 0.5;          // UNCLAMPED linear grade
+      const out = clamp01(lin) * (1 - strength) + clamp01(toneCurve(lin)) * strength;
+      vals.push(out.toFixed(4));
+    }
+    const table = vals.join(' ');
+    for (const f of toneFuncs) f.setAttribute('tableValues', table);
+    return true;
+  }
+
+  // ── Auto-exposure ─────────────────────────────────────────────────
+  // Mean luma is nearly free once the preserved buffer exists for bloom: one
+  // 40x24 drawImage of the GL canvas + getImageData per frame. Two design
+  // decisions that matter:
+  //   1. OPEN LOOP. It meters the RAW frame, before the CSS grade applies the
+  //      gain, so the gain cannot feed back on its own output and pump.
+  //   2. The target is NOT fixed mid-grey. The day look is intentionally
+  //      high-key (raw mean ~0.6) and the night look intentionally dark
+  //      (~0.08); a 0.42 target would permanently re-grade both. The target
+  //      follows the hour's AUTHORED typical luma, so at a normal flying pose
+  //      the gain sits at ~1.0 and it only corrects DEVIATIONS — staring into
+  //      bright sky pulls back, a dark canyon of towers lifts.
+  const AE = {
+    // Typical RAW frame luma at each hour's spawn pose — measured by
+    // light-ae.mjs on SETTLED, idle frames, not guessed. (A 0.075 night guess
+    // pegged the clamp; a 0.80 day read turned out to be a mid-shadow-load
+    // frame. Settled poses across the whole day cluster remarkably tight:
+    // day 0.49-0.56, golden 0.49-0.50, night 0.135-0.136 — flat-lit
+    // extrusions — so with the knee below, real poses meter as "authored".)
+    TARGET_DAY: 0.52,
+    TARGET_GOLDEN: 0.50,
+    TARGET_NIGHT: 0.135,
+    KNEE: 0.16,           // log-space dead zone: deviations within ~±17% of the
+                          // hour's target are the AUTHORED look and get NO
+                          // correction — only real outliers move the gain
+    STRENGTH: 0.7,        // fraction of the beyond-knee correction applied
+    TAU_MS: 900,          // EMA time constant of the meter
+    MIN: 0.85, MAX: 1.20, // hard gain clamps
+    W: 40, H: 24,         // meter buffer
+    DEADBAND: 0.006,      // skip the style write for gain moves below this
+  };
+  let aeCv = null, aeCtx = null, aeLuma = null, aeGain = 1, aeLast = 0;
+
+  function aeMeter(F) {
+    if (!(GFX.autoExposure && bloomOK && mapCanvas)) {
+      if (aeGain !== 1) { aeGain = 1; aeLuma = null; aeLast = 0; applyGrade(); }
+      return;
+    }
+    const now = performance.now();
+    const dt = aeLast ? Math.min(250, now - aeLast) : 16.7;
+    aeLast = now;
+    if (!aeCv) {
+      aeCv = document.createElement('canvas');
+      aeCv.width = AE.W; aeCv.height = AE.H;
+      aeCtx = aeCv.getContext('2d', { willReadFrequently: true });
+    }
+    let luma = null;
+    try {
+      aeCtx.drawImage(mapCanvas, 0, 0, AE.W, AE.H);
+      const d = aeCtx.getImageData(0, 0, AE.W, AE.H).data;
+      let s = 0;
+      for (let i = 0; i < d.length; i += 4) s += d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722;
+      luma = s / (255 * (d.length / 4));
+    } catch (e) { return; }
+    aeLuma = aeLuma == null ? luma : aeLuma + (luma - aeLuma) * (1 - Math.exp(-dt / AE.TAU_MS));
+    const target = (AE.TARGET_DAY + (AE.TARGET_GOLDEN - AE.TARGET_DAY) * F.golden) * (1 - F.night)
+                 + AE.TARGET_NIGHT * F.night;
+    const err = Math.log(target / Math.max(0.02, aeLuma));
+    const mag = Math.max(0, Math.abs(err) - AE.KNEE);        // dead zone first
+    const g = Math.max(AE.MIN, Math.min(AE.MAX,
+      Math.exp(Math.sign(err) * mag * AE.STRENGTH)));
+    if (Math.abs(g - aeGain) > AE.DEADBAND) { aeGain = g; applyGrade(); }
+  }
+  window.__ae = () => ({ gain: aeGain, luma: aeLuma });   // debug/test hook
+  // Test hook: the EMA deliberately persists across hour changes in
+  // production; a test sampling five poses back to back needs a clean seed.
+  window.__aeReset = () => { aeLuma = null; aeLast = 0; };
+
   function applyGrade() {
     const host = document.getElementById('map');
     if (!host) return;
-    const ex = (grade.exposure || 1) * GFX.exposure;
+    const ex = (grade.exposure || 1) * GFX.exposure * aeGain;
     const co = (grade.contrast || 1) * GFX.contrast;
     const sa = (grade.saturation || 1) * GFX.saturation;
+    const filmic = GFX.filmic || 0;
     const parts = [];
-    if (Math.abs(ex - 1) > 0.004) parts.push(`brightness(${ex.toFixed(3)})`);
-    if (Math.abs(co - 1) > 0.004) parts.push(`contrast(${co.toFixed(3)})`);
-    if (Math.abs(sa - 1) > 0.004) parts.push(`saturate(${sa.toFixed(3)})`);
-    host.style.filter = parts.length ? parts.join(' ') : '';
-    if (elVig) elVig.style.opacity = String(clamp01((grade.vignette || 0) * GFX.vignette));
+    if (filmic > 0.01 && updateToneLUT(ex, co, filmic)) {
+      // Exposure and contrast live inside the LUT; saturation stays a plain
+      // CSS function after it, same relative order as the legacy chain.
+      parts.push('url(#a3d-tone)');
+      if (Math.abs(sa - 1) > 0.004) parts.push(`saturate(${sa.toFixed(3)})`);
+    } else {
+      if (Math.abs(ex - 1) > 0.004) parts.push(`brightness(${ex.toFixed(3)})`);
+      if (Math.abs(co - 1) > 0.004) parts.push(`contrast(${co.toFixed(3)})`);
+      if (Math.abs(sa - 1) > 0.004) parts.push(`saturate(${sa.toFixed(3)})`);
+    }
+    const filterStr = parts.length ? parts.join(' ') : '';
+    if (host.style.filter !== filterStr) host.style.filter = filterStr;
+    if (elVig) {
+      elVig.style.opacity = String(clamp01((grade.vignette || 0) * GFX.vignette));
+      applyVignetteTint();
+    }
+  }
+
+  // ── Vignette tint by hour ─────────────────────────────────────────
+  // One black radial at every hour is a missed cue: real optics go warm-dark
+  // at golden hour and blue-black at night, and a plain black corner at
+  // midday reads as dirt on the lens. The element's gradient is rewritten
+  // inline from these keyframes (style.css keeps the plain-black fallback);
+  // its OPACITY stays the hour grade x the user's slider, exactly as before.
+  const VIG_HOURS = [
+    { p: 0.00, c: [16, 18, 24],  a: 0.42 },   // midday: near-neutral, barely there
+    { p: 0.35, c: [26, 16, 8],   a: 0.55 },
+    { p: 0.50, c: [40, 15, 2],   a: 0.72 },   // golden: warm-dark
+    { p: 0.68, c: [18, 10, 26],  a: 0.68 },   // dusk: violet
+    { p: 1.00, c: [3, 6, 20],    a: 0.74 },   // night: blue-black
+  ];
+  const VIG_INNER = 54;      // % radius where the tint starts (0 in the centre)
+  const VIG_PQ = 96;         // p quantisation for the style rewrite
+  let vigLastQ = null;
+
+  function applyVignetteTint() {
+    const p = clamp01(window.__todCurrentP != null ? window.__todCurrentP : 0.3);
+    const q = Math.round(p * VIG_PQ);
+    if (q === vigLastQ) return;
+    vigLastQ = q;
+    let a = VIG_HOURS[0], b = VIG_HOURS[VIG_HOURS.length - 1], t = 0;
+    for (let i = 1; i < VIG_HOURS.length; i++) {
+      if (p <= VIG_HOURS[i].p) {
+        a = VIG_HOURS[i - 1]; b = VIG_HOURS[i];
+        t = (p - a.p) / (b.p - a.p);
+        break;
+      }
+    }
+    const c = [0, 1, 2].map(i => Math.round(a.c[i] + (b.c[i] - a.c[i]) * t));
+    const al = (a.a + (b.a - a.a) * t).toFixed(3);
+    elVig.style.background =
+      `radial-gradient(ellipse at center, rgba(0,0,0,0) ${VIG_INNER}%, ` +
+      `rgba(${c[0]},${c[1]},${c[2]},${al}) 100%)`;
   }
 
   function fxWanted() {
@@ -291,10 +514,27 @@
   }
 
   // ── Per-frame pass ────────────────────────────────────────────────
+  // Taste values for the rays/flare pass, exposed as window.FX_TUNE so any of
+  // them can be overruled live from the console with a one-line edit.
+  const FX_TUNE = {
+    RAYS: {
+      ANISO: 0.85,     // 0 = uniform starburst fan, 1 = fully horizon-weighted
+      HORIZ_EXP: 2.4,  // falloff of wedge alpha with angle from horizontal
+      UP_FACTOR: 0.5,  // upward wedges keep this fraction (shafts streak side/down)
+      GAIN: 1.35,      // compensates the light the anisotropy removes
+    },
+    GHOSTS: {
+      SKY_DAMP: 0.35,  // ghosts above the horizon dim by this (second-sun fix)
+    },
+  };
+  window.FX_TUNE = FX_TUNE;
+
   let grainStep = 0;
 
   window.renderFX = function renderFX(map, F) {
     if (!F) return;
+
+    aeMeter(F);
 
     // Distance blur: strongest at the horizon, gone by mid-frame. This is the
     // only depth cue available without a depth buffer, and it happens to match
@@ -406,6 +646,7 @@
 
     if (rayA > 0.004) {
       const N = 22;
+      const T = FX_TUNE.RAYS;
       // The sun's azimuth seeds the ray phase, so the fan rotates with the sun
       // over the day instead of being welded to the screen.
       const phase = S.az * 0.031;
@@ -418,7 +659,15 @@
         const k = Math.sin(i * 78.233 + 1.7) * 0.5 + 0.5;
         const len = diag * (0.30 + 0.90 * j);
         const halfW = (0.004 + 0.016 * k) * diag;
-        const a = rayA * (0.22 + 0.55 * k);
+        // Shafts from a low sun streak sideways and down, they do not radiate
+        // uniformly — a uniform fan reads as a starburst sticker. Weight each
+        // wedge by its angle from horizontal (canvas y grows DOWN, so
+        // sin(ang) < 0 is an upward wedge).
+        const sinA = Math.sin(ang);
+        const wHor = Math.pow(1 - Math.abs(sinA), T.HORIZ_EXP);
+        const wDir = wHor * (sinA < 0 ? T.UP_FACTOR : 1);
+        const w = (1 - T.ANISO) + T.ANISO * wDir;
+        const a = rayA * T.GAIN * (0.22 + 0.55 * k) * w;
         if (a < 0.003) continue;
         fx.save();
         fx.translate(S.x, S.y);
@@ -458,19 +707,28 @@
       // Ghosts along the sun -> screen-centre axis, continuing past centre.
       const cx = F.W / 2, cy = F.H / 2;
       const vx = cx - S.x, vy = cy - S.y;
+      // The two big warm ghosts used to be [1.05, 0.066, rose] and
+      // [1.72, 0.088, warm amber] — at some bearings the amber one landed in
+      // open sky as a large soft glow with no streak context and read as a
+      // SECOND SUN (orbit-mid.png). Smaller now, and the biggest one is COOL:
+      // a blue ghost never reads as a celestial body.
       const GHOSTS = [
         [0.42, 0.048, [120, 190, 255], 0.20],
         [0.72, 0.026, [255, 190, 120], 0.30],
-        [1.05, 0.066, [255, 130, 170], 0.13],
+        [1.05, 0.052, [255, 130, 170], 0.13],
         [1.34, 0.034, [150, 255, 215], 0.20],
-        [1.72, 0.088, [255, 205, 140], 0.09],
+        [1.72, 0.058, [168, 196, 255], 0.08],
         [2.05, 0.020, [190, 170, 255], 0.24],
       ];
       for (const [k, rf, c, m] of GHOSTS) {
         const gx = S.x + vx * k, gy = S.y + vy * k;
         const r = rf * diag;
         if (gx < -r || gx > F.W + r || gy < -r || gy > F.H + r) continue;
-        const a = flA * m;
+        let a = flA * m;
+        // A ghost floating ABOVE the horizon is what creates the second-sun
+        // illusion; one overlapping the city reads as a lens artifact. Damp
+        // the sky ones instead of deleting them.
+        if (gy < F.horizonPx - r * 0.3) a *= FX_TUNE.GHOSTS.SKY_DAMP;
         if (a < 0.003) continue;
         const rg = fx.createRadialGradient(gx, gy, 0, gx, gy, r);
         // Hollow centre with a bright rim — an iris ghost, not a soft blob.
@@ -529,22 +787,34 @@
       const dts = [];
       let last = null;
       const t0 = performance.now();
-      const driving = () => { try { return !!(window.__fly && window.__fly.eye().driving); } catch (e) { return false; } };
+      // `driving` also counts an in-flight easeTo: the probe's bearing nudge and
+      // snapshot-restore CANCEL an ease (measured: the intro tween froze at
+      // bearing 257 of a 250 target). While either is running the camera is
+      // already forcing real frames, so the nudge is unnecessary anyway.
+      const driving = () => {
+        try {
+          if (window.__fly && window.__fly.eye().driving) return true;
+          return !!(_map && typeof _map.isEasing === 'function' && _map.isEasing());
+        } catch (e) { return false; }
+      };
       // Snapshot and restore rather than trusting the alternating nudge to cancel:
       // with an odd frame count, or two probes overlapping, it does not. Measured
-      // 1.68 deg of leftover drift before this.
-      let bearing0 = null;
+      // 1.68 deg of leftover drift before this. Restore ONLY if we nudged — an
+      // unconditional jumpTo at the end would cancel an ease that started
+      // mid-probe and strand the camera off-pose.
+      let bearing0 = null, nudged = false, sawEase = false;
       try { bearing0 = _map ? _map.getBearing() : null; } catch (e) {}
       const done = (v) => {
-        if (bearing0 !== null) { try { _map.jumpTo({ bearing: bearing0 }); } catch (e) {} }
+        if (nudged && !sawEase && bearing0 !== null) { try { _map.jumpTo({ bearing: bearing0 }); } catch (e) {} }
         resolve(v);
       };
       const step = ts => {
         if (autoCancelled) return done(null);
         if (last !== null) dts.push(ts - last);
         last = ts;
+        try { if (_map && typeof _map.isEasing === 'function' && _map.isEasing()) sawEase = true; } catch (e) {}
         if (_map && !driving()) {
-          try { _map.jumpTo({ bearing: bearing0 + (dts.length % 2 ? 0.01 : -0.01) }); } catch (e) {}
+          try { _map.jumpTo({ bearing: bearing0 + (dts.length % 2 ? 0.01 : -0.01) }); nudged = true; } catch (e) {}
         }
         if (performance.now() - t0 < ms) return requestAnimationFrame(step);
         // FOUR frames, not twelve. The first cut demanded 12 and a machine slow
@@ -571,28 +841,48 @@
     // Downgrade only — see the note above on why an upgrade is unmeasurable.
     if (med > 21.5 && GFX.preset === 'balanced') {
       usePreset('performance', true);
-      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`);
+      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`,
+        TOAST_PROBE_MS);
     } else {
+      // Changed nothing -> say nothing. The old confirmation toast sat over the
+      // hero frame for 5.2 s on every first visit, announcing a no-op.
       save();
-      toast(`${fps.toFixed(0)} fps — keeping ${GFX.preset}. Press G for graphics settings.`);
     }
     console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms (${fps.toFixed(0)} fps) -> ${GFX.preset}`);
     return { med, fps, preset: GFX.preset };
   }
   window.__gfxProbe = runProbe;
 
-  function scheduleAutoDetect() {
-    autoTimer = setTimeout(() => { if (!autoCancelled) runProbe(); }, 11000);  // the intro tween runs 9 s
+  // The probe must not land while a camera ease is in flight: measureFrames'
+  // nudge/restore cancels an easeTo mid-tween (measured: the long intro froze
+  // at bearing 257 of a 250 target). Deferring — not skipping — keeps the
+  // downgrade path alive for weak phones; an ease is real rendering load
+  // anyway, so waiting costs nothing.
+  const PROBE_DELAY_MS = 11000;   // first attempt; the intro tween runs ~9-11.5 s
+  const PROBE_RETRY_MS = 3500;    // re-check cadence while an ease is still running
+  const TOAST_PROBE_MS = 2600;    // the downgrade toast (the default hold covered the hero frame)
+  const TOAST_DEFAULT_MS = 5200;
+
+  function scheduleAutoDetect(delay) {
+    autoTimer = setTimeout(() => {
+      autoTimer = null;
+      if (autoCancelled) return;
+      let easing = false;
+      try { easing = !!(_map && typeof _map.isEasing === 'function' && _map.isEasing()); } catch (e) {}
+      if (easing) { scheduleAutoDetect(PROBE_RETRY_MS); return; }
+      runProbe();
+    }, delay == null ? PROBE_DELAY_MS : delay);
   }
 
-  function toast(msg) {
+  function toast(msg, ms) {
     let t = document.getElementById('gfx-toast');
     if (!t) t = el('gfx-toast');
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => t.classList.remove('show'), 5200);
+    toast._t = setTimeout(() => t.classList.remove('show'), ms == null ? TOAST_DEFAULT_MS : ms);
   }
+  window.__gfxToast = toast;      // debug/test hook
 
   // ── Menu ──────────────────────────────────────────────────────────
   let panel = null, rows = {}, fpsRaf = null;
