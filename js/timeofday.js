@@ -39,7 +39,7 @@
       lightColor: '#ffeeda', lightIntensity: 0.28, lightPosition: [1.15, 205, 32],
       ground: '#ded3bc', park: '#a9c489', road: '#e2dac7', roadCasing: '#bfb49d',
       water: '#8fbccd',
-      canopy: '#7d9a62', trunk: '#6b4f38',
+      canopy: '#7d9a62', canopyLo: '#93ad70', canopyHi: '#5f7d4a', trunk: '#6b4f38',
       pitch: '#94b573', fountain: '#a5cbd8',
       signGlow: 0, labelHalo: 'rgba(24,14,5,0.9)', vignette: 0.10, haze: 0.92,
     },
@@ -49,7 +49,7 @@
       lightColor: '#ffd7a8', lightIntensity: 0.30, lightPosition: [1.35, 252, 76],
       ground: '#d9b98c', park: '#a9a866', road: '#e8c79a', roadCasing: '#b78c60',
       water: '#c9a184',
-      canopy: '#8a935a', trunk: '#5f4632',
+      canopy: '#8a935a', canopyLo: '#a3a468', canopyHi: '#6a7343', trunk: '#5f4632',
       pitch: '#a2a768', fountain: '#d4b894',
       signGlow: 0.42, labelHalo: 'rgba(46,18,0,0.88)', vignette: 0.26, haze: 0.72,
     },
@@ -64,7 +64,7 @@
       lightColor: '#8fa0e0', lightIntensity: 0.04, lightPosition: [1.4, 300, 60],
       ground: '#090b12', park: '#0b120e', road: '#2a2519', roadCasing: '#0b0d13',
       water: '#070f1e',
-      canopy: '#111a14', trunk: '#100d0c',
+      canopy: '#111a14', canopyLo: '#16211a', canopyHi: '#0c130f', trunk: '#100d0c',
       pitch: '#0d1512', fountain: '#0e1c30',
       signGlow: 1.0, labelHalo: 'rgba(4,4,12,0.92)', vignette: 0.38, haze: 0.55,
     },
@@ -302,7 +302,8 @@
 
     if (typeof updateShadows === 'function') updateShadows(map, p);
 
-    safePaint(map, 'trees-canopy', 'fill-extrusion-color', s.canopy);
+    safePaint(map, 'trees-canopy', 'fill-extrusion-color',
+      ['interpolate', ['linear'], ['get', 'h'], 6, s.canopyLo, 15, s.canopyHi]);
     safePaint(map, 'trees-trunk',  'fill-extrusion-color', s.trunk);
     safePaint(map, 'landscape-pitch',    'fill-color', s.pitch);
     safePaint(map, 'landscape-fountain', 'fill-color', s.fountain);

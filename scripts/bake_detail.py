@@ -77,18 +77,35 @@ def stable01(key):
     return int(hashlib.md5(key.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
 
 
-# Time-of-day transforms applied to a base (day) colour. Night is NOT just
-# darkening: walls keep a hint of hue, windows read as lit via night_window mix.
+# Time-of-day transforms applied to a base (day) colour.
 GOLDEN_TINT = '#ffb26a'
+
+
+def night_wall(day_hex):
+    """day -> night WALL colour: strongly darkened and shifted cool.
+
+    This used to mix 30% of the warm `night_window` tint straight into the wall
+    (`wn = lerp(dark, night_window, 0.30)`), on the theory that a flat prism had
+    to imply its own lighting. The measured result was a city of mid olive-khaki
+    walls after dark — #63615b, #7b6d53 — sitting BRIGHTER than the night sky
+    behind them, so the skyline had no silhouette at all.
+
+    The facade patterns now carry lit windows (js/facades.js), so the wall is
+    free to go properly dark and give those windows something to read against.
+    Keep this formula in sync with nothing — js/facades.js consumes `wn`
+    directly, and this is the single definition.
+    """
+    r, g, b = hex_to_rgb(day_hex)
+    dark = (r * 0.24, g * 0.24, b * 0.24)
+    cool = (17, 22, 42)
+    return rgb_to_hex(*(dark[i] + (cool[i] - dark[i]) * 0.5 for i in range(3)))
 
 
 def make_tod_colors(day_hex, night_window_hex):
     """day -> (wd, wg, wn) wall colours for day / golden hour / night."""
     # Golden: warm cast but keep each building's identity readable.
     wg = lerp_hex(day_hex, GOLDEN_TINT, 0.16)
-    dark = lerp_hex(adjust_light(day_hex, -0.38), '#141a2e', 0.50)  # moonlit base
-    wn = lerp_hex(dark, night_window_hex, 0.30)                     # lit-window cast
-    return day_hex, wg, wn
+    return day_hex, wg, night_wall(day_hex)
 
 
 def make_roof_colors(roof_hex):

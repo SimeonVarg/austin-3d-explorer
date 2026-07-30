@@ -12,8 +12,8 @@
  *     change_type   — "added" | "removed" | "height_changed"
  *     old_height    — number | null  (null for "added")
  *     new_height    — number | null  (null for "removed")
- *     lon           — centroid longitude
- *     lat           — centroid latitude
+ *   Geometry: the building FOOTPRINT (Polygon / MultiPolygon), not a point —
+ *   a centroid is derived here.
  *
  * Public API (called from app.js):
  *   initDiffTour(map, manifest, fromDate, toDate)
@@ -46,8 +46,14 @@
 
     // Find the right diff file in the manifest
     const diffs = manifest.diffs || [];
-    const diffFile = diffs.find(d =>
-      d.includes(`${fromDate}_to_${toDate}`));
+    const fileOf = d => (d && typeof d === 'object') ? (d.file || '') : String(d);
+    const match = diffs.find(d => {
+      const f = fileOf(d);
+      return f.includes(`${fromDate}_to_${toDate}`) || f.includes(`${toDate}_to_${fromDate}`);
+    });
+    // manifest paths already include the "diffs/" prefix; strip it so the fetch
+    // below does not end up requesting data/diffs/diffs/...
+    const diffFile = match ? fileOf(match).replace(/^diffs\//, '') : null;
 
     if (!diffFile) {
       showBanner(`No diff found between ${fromDate} and ${toDate}.`, true);
@@ -64,11 +70,15 @@
       return;
     }
 
-    _features = (geojson.features || []).filter(f =>
-      f.properties && f.geometry &&
-      f.geometry.type === 'Point' &&
-      f.properties.change_type
-    );
+    // scripts/diff_snapshots.py writes POLYGON footprints, not points. This
+    // used to filter for `geometry.type === 'Point'`, so every feature was
+    // discarded and the tour always reported "No changed buildings found" —
+    // it had never once run. Accept whatever geometry the diff carries and
+    // derive a centroid.
+    _features = (geojson.features || [])
+      .filter(f => f.properties && f.geometry && f.properties.change_type)
+      .map(f => Object.assign({}, f, { _centre: centroidOf(f.geometry) }))
+      .filter(f => f._centre);
 
     if (_features.length === 0) {
       showBanner('No changed buildings found in this diff.', true);
@@ -88,11 +98,32 @@
     if (_tweenRaf) cancelAnimationFrame(_tweenRaf);
     _tweenRaf = null;
     hideBanner();
-    // Restore original height expression
-    if (_map && _map.getLayer('buildings-3d')) {
-      _map.setPaintProperty('buildings-3d', 'fill-extrusion-height',
-        ['get', 'final_height']);
+    restoreHeights();
+  }
+
+  /** Put the wall and roof-cap height expressions back the way app.js set them. */
+  function restoreHeights() {
+    if (!_map) return;
+    if (_map.getLayer('buildings-3d')) {
+      _map.setPaintProperty('buildings-3d', 'fill-extrusion-height', ['get', 'final_height']);
     }
+    if (_map.getLayer('buildings-roof')) {
+      _map.setPaintProperty('buildings-roof', 'fill-extrusion-height', ['+', ['get', 'final_height'], 0.4]);
+      _map.setPaintProperty('buildings-roof', 'fill-extrusion-base',   ['-', ['get', 'final_height'], 1.2]);
+    }
+  }
+
+  // ── Geometry ──────────────────────────────────────────────────────
+  /** Mean of a footprint's outer ring. Good enough to fly a camera to. */
+  function centroidOf(geom) {
+    if (!geom) return null;
+    if (geom.type === 'Point') return geom.coordinates;
+    const rings = geom.type === 'Polygon' ? [geom.coordinates[0]]
+                : geom.type === 'MultiPolygon' ? geom.coordinates.map(p => p[0])
+                : [];
+    let x = 0, y = 0, n = 0;
+    for (const ring of rings) for (const c of (ring || [])) { x += c[0]; y += c[1]; n++; }
+    return n ? [x / n, y / n] : null;
   }
 
   // ── Navigation ────────────────────────────────────────────────────
@@ -102,7 +133,7 @@
 
     const feat  = _features[idx];
     const props = feat.properties;
-    const [lon, lat] = feat.geometry.coordinates;
+    const [lon, lat] = feat._centre;
 
     updateBanner(props, idx);
 
@@ -158,20 +189,26 @@
       const ease = easeInOutCubic(t);
       const h    = from + (to - from) * ease;
 
-      // Drive height for this specific building, keep others on data
+      // Drive height for this specific building, keep others on data. The roof
+      // cap has to follow, or a growing building leaves its parapet hanging in
+      // mid-air at the old height.
       _map.setPaintProperty('buildings-3d', 'fill-extrusion-height', [
-        'case',
-        ['==', ['get', 'id'], bid], h,
-        ['get', 'final_height'],
+        'case', ['==', ['get', 'id'], bid], h, ['get', 'final_height'],
       ]);
+      if (_map.getLayer('buildings-roof')) {
+        _map.setPaintProperty('buildings-roof', 'fill-extrusion-height', [
+          'case', ['==', ['get', 'id'], bid], h + 0.4, ['+', ['get', 'final_height'], 0.4],
+        ]);
+        _map.setPaintProperty('buildings-roof', 'fill-extrusion-base', [
+          'case', ['==', ['get', 'id'], bid], Math.max(0, h - 1.2), ['-', ['get', 'final_height'], 1.2],
+        ]);
+      }
 
       if (t < 1) {
         _tweenRaf = requestAnimationFrame(frame);
       } else {
         _tweenRaf = null;
-        // Restore full data-driven expression so other buildings are unaffected
-        _map.setPaintProperty('buildings-3d', 'fill-extrusion-height',
-          ['get', 'final_height']);
+        restoreHeights();
       }
     }
 
