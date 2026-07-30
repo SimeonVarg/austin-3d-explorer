@@ -350,6 +350,16 @@
     for (const id of _roadLines)   safePaint(map, id, 'line-color', _casings.has(id) ? s.roadCasing : s.road);
 
     safePaint(map, 'buildings-labels', 'text-halo-color', s.labelHalo);
+    // OSM labels recede after dark: the curated brand signage is the night
+    // story, and the full-white names outshone the lit windows themselves.
+    // Ramp stops mirror the layer definition in app.js (16.8 → 17.5).
+    {
+      const OSM_LABEL_NIGHT_DIM = 0.45;   // 0 = untouched, 1 = invisible at night
+      const nightAmt = (typeof window.skyBodies === 'function') ? window.skyBodies(p).night : 0;
+      const lblMax = 0.82 * (1 - OSM_LABEL_NIGHT_DIM * nightAmt);
+      safePaint(map, 'buildings-labels', 'text-opacity',
+        ['interpolate', ['linear'], ['zoom'], 16.8, 0, 17.5, +lblMax.toFixed(3)]);
+    }
 
     // Curated branded landmark signs (signs.js) — glow + ground light pools.
     if (typeof applySignGlowLayer === 'function') applySignGlowLayer(map, s.signGlow, p);
