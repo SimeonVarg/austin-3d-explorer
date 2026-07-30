@@ -636,6 +636,35 @@ blend layer is still a full-screen blend to the compositor. Opening the panel ad
 `body.gfx-open`, which slides the time-of-day slider and the snapshot picker clear;
 the panel otherwise sits exactly on top of both.
 
+### 20.6b The auto-detect probe was measuring nothing
+
+Worth its own note, because it looked like it worked. The probe fired, reported
+"60 fps", and **upgraded** to cinematic — on a machine that had just been called
+super laggy. Two independent faults:
+
+1. **It measured an IDLE camera.** MapLibre renders nothing when the camera is
+   parked, so a flat 16.7 ms means "no work was done", not "there is headroom".
+   The probe now nudges the bearing 0.01 deg per frame (skipped if the user is
+   already flying, which is representative on its own) and snapshots/restores the
+   bearing around itself.
+2. **It could upgrade at all.** vsync clamps the measurement at 16.7 ms, so "hits
+   60 at balanced" and "could run three times that" are indistinguishable. There
+   is only ever evidence for a downgrade. It now steps down to `performance` or
+   stays put; cinematic and ultra are opt-in.
+
+And the guard was backwards: it required 12 frames and otherwise said "cannot
+judge, keep the heavier preset". A machine too slow to render 12 frames in 1.4 s
+is emphatically slow — failing to gather frames IS the measurement. Threshold is
+now 4 frames, which only trips on a backgrounded tab.
+
+`window.__gfxProbe()` runs it on demand so a test does not have to wait out the
+11 s delay. Waiting is how a broken probe went unnoticed.
+
+**Unrelated pre-existing bug found while verifying this:** the map bearing drifts
+on its own while idle — 4.33 deg in 1.6 s with no probe running, `intro=0`, and
+`__fly.eye().driving === false` the whole time. Not caused by anything in this
+change (the probe's restore actually reduces it). Spawned as a follow-up.
+
 ### 20.7 Also fixed in passing
 
 `diff-tour.js` scheduled `setTimeout(hideBanner, 3500)` for its transient messages

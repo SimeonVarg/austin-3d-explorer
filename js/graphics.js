@@ -492,42 +492,97 @@
   // Presets are guesses about a machine we cannot see, so measure instead. Runs
   // once ever (the result is persisted), well after load so tile decoding and
   // the intro tween are not counted as the steady-state cost.
-  // Cancelled the instant the user touches anything, because a probe that lands
-  // 11 seconds in and silently resets a preset the user just picked is worse
-  // than no probe at all. (It also made the graphics test flaky: auto-detect
-  // fired mid-run and put renderScale back, which read as the render-scale lever
-  // not working at all.)
+  // Two things this got wrong, both worth remembering.
+  //
+  // 1. IT MEASURED AN IDLE CAMERA. MapLibre renders nothing when the camera is
+  //    parked, so the probe saw a flat 16.7 ms, concluded "60 fps, plenty of
+  //    headroom" and UPGRADED to cinematic — on a machine that had just been
+  //    described as super laggy while flying. The probe now nudges the bearing by
+  //    a hundredth of a degree per frame (alternating, so it nets to zero and is
+  //    invisible) to force a real redraw, and skips the nudge if the user is
+  //    already flying, which is representative on its own.
+  // 2. IT COULD UPGRADE AT ALL. vsync clamps the measurement at 16.7 ms, so
+  //    "hits 60 at balanced" and "could run three times that" are
+  //    indistinguishable — there is no evidence for an upgrade, only for a
+  //    downgrade. Auto-detect now only ever steps DOWN to performance; cinematic
+  //    and ultra stay opt-in.
+  //
+  // It is also cancelled the instant the user touches anything, because a probe
+  // that lands 11 seconds in and silently resets a preset the user just picked is
+  // worse than no probe at all. (That also made the graphics test flaky: it fired
+  // mid-run and put renderScale back, which read as the render-scale lever not
+  // working.)
   let autoTimer = null, autoCancelled = false;
   function cancelAutoDetect() {
     autoCancelled = true;
     if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
   }
 
-  function scheduleAutoDetect() {
-    autoTimer = setTimeout(() => {
-      if (autoCancelled) return;
+  /**
+   * Measure `ms` of real frame times and return the median, or null if the probe
+   * could not gather enough frames. Exposed as `window.__gfxProbe()` so a test can
+   * run it in a second instead of waiting out the 11 s delay — waiting was how a
+   * broken probe went unnoticed in the first place.
+   */
+  function measureFrames(ms) {
+    return new Promise(resolve => {
       const dts = [];
       let last = null;
       const t0 = performance.now();
+      const driving = () => { try { return !!(window.__fly && window.__fly.eye().driving); } catch (e) { return false; } };
+      // Snapshot and restore rather than trusting the alternating nudge to cancel:
+      // with an odd frame count, or two probes overlapping, it does not. Measured
+      // 1.68 deg of leftover drift before this.
+      let bearing0 = null;
+      try { bearing0 = _map ? _map.getBearing() : null; } catch (e) {}
+      const done = (v) => {
+        if (bearing0 !== null) { try { _map.jumpTo({ bearing: bearing0 }); } catch (e) {} }
+        resolve(v);
+      };
       const step = ts => {
-        if (autoCancelled) return;
+        if (autoCancelled) return done(null);
         if (last !== null) dts.push(ts - last);
         last = ts;
-        if (performance.now() - t0 < 1400) return requestAnimationFrame(step);
-        finish();
-      };
-      const finish = () => {
-        if (autoCancelled || dts.length < 12) return;
-        const s = dts.slice().sort((a, b) => a - b);
-        const med = s[Math.floor(s.length / 2)];
-        const pick = med > 30 ? 'performance' : med > 20.5 ? 'balanced' : 'cinematic';
-        GFX.autoDetected = true;
-        usePreset(pick, true);
-        toast(`Graphics: ${pick} — auto-detected at ${(1000 / med).toFixed(0)} fps. Press G to change.`);
-        console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms -> ${pick}`);
+        if (_map && !driving()) {
+          try { _map.jumpTo({ bearing: bearing0 + (dts.length % 2 ? 0.01 : -0.01) }); } catch (e) {}
+        }
+        if (performance.now() - t0 < ms) return requestAnimationFrame(step);
+        // FOUR frames, not twelve. The first cut demanded 12 and a machine slow
+        // enough to miss that — under ~9 fps — got "cannot judge, keep the
+        // heavier preset", which is exactly backwards: failing to gather frames
+        // IS the measurement. Below 4 there is genuinely nothing to take a median
+        // of (a backgrounded tab, a page that never rendered).
+        if (dts.length < 4) return done(null);
+        const sorted = dts.slice().sort((a, b) => a - b);
+        done(sorted[Math.floor(sorted.length / 2)]);
       };
       requestAnimationFrame(step);
-    }, 11000);          // the intro tween runs 9 s
+    });
+  }
+
+  async function runProbe() {
+    const med = await measureFrames(1400);
+    if (med == null || autoCancelled) {
+      console.log('[graphics] auto-detect: not enough frames to judge, keeping ' + GFX.preset);
+      return null;
+    }
+    const fps = 1000 / med;
+    GFX.autoDetected = true;
+    // Downgrade only — see the note above on why an upgrade is unmeasurable.
+    if (med > 21.5 && GFX.preset === 'balanced') {
+      usePreset('performance', true);
+      toast(`${fps.toFixed(0)} fps measured — switched to the Performance preset. Press G to change.`);
+    } else {
+      save();
+      toast(`${fps.toFixed(0)} fps — keeping ${GFX.preset}. Press G for graphics settings.`);
+    }
+    console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms (${fps.toFixed(0)} fps) -> ${GFX.preset}`);
+    return { med, fps, preset: GFX.preset };
+  }
+  window.__gfxProbe = runProbe;
+
+  function scheduleAutoDetect() {
+    autoTimer = setTimeout(() => { if (!autoCancelled) runProbe(); }, 11000);  // the intro tween runs 9 s
   }
 
   function toast(msg) {
