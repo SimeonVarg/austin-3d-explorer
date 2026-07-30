@@ -201,6 +201,11 @@
     step('debug',    () => { applyDebugVisibility(); wireDebugToggle(); });
     step('tod',      () => { applyTimeOfDay(map, p); initTimeOfDayUI(map, p); });
     step('reveal',   () => revealAndIntro());
+    // Never in the pixel harness: a camera that starts moving on its own mid-
+    // assertion is exactly the flake the trap list warns about. Drift is
+    // verified through index.html scripts instead.
+    step('idle',     () => { if (!window.__HARNESS) initIdleCinema(); });
+    step('photo',    () => initPhotoKey());
   }
 
   // ── Building layers ───────────────────────────────────────────────
@@ -485,6 +490,79 @@
       }, INTRO.leg1Ms + 30);
     };
     return { fly };
+  }
+
+  // ── Idle cinema ───────────────────────────────────────────────────
+  // After DRIFT.idleMs of input silence the camera begins a slow orbital
+  // drift and the hour creeps forward — an unattended screen becomes a
+  // screensaver of the city instead of a frozen frame. Any input (or any
+  // camera movement that isn't ours) returns control instantly.
+  // ?drift=0 disables it for scripted runs against index.html.
+  const DRIFT = {
+    idleMs: 25000,      // input silence before the drift starts
+    stepMs: 12000,      // one easing leg
+    bearingStep: 13,    // degrees per leg, clockwise toward the sun's set point
+    pStep: 0.010,       // hour creep per leg (bounces at 0 and 1)
+    zoomBreathe: 0.05,  // gentle alternating zoom in/out per leg
+  };
+  function initIdleCinema() {
+    if (new URLSearchParams(window.location.search).get('drift') === '0') return;
+    let idleTimer = null, legTimer = null, drifting = false, legIx = 0, pDir = 1;
+    const banner = document.getElementById('diff-banner');
+    const canRun = () => document.visibilityState === 'visible' &&
+                         (!banner || banner.classList.contains('hidden')) &&
+                         !(window.__fly && window.__fly.eye().driving) &&
+                         !(map.isEasing && map.isEasing());
+    const stop = () => {
+      if (drifting && map.isEasing && map.isEasing()) map.stop();
+      drifting = false;
+      clearTimeout(legTimer);
+    };
+    const rearm = () => { stop(); clearTimeout(idleTimer); idleTimer = setTimeout(begin, DRIFT.idleMs); };
+    const begin = () => {
+      if (!canRun()) { clearTimeout(idleTimer); idleTimer = setTimeout(begin, DRIFT.idleMs); return; }
+      drifting = true;
+      legIx = 0;
+      leg();
+    };
+    const leg = () => {
+      if (!drifting) return;
+      // The hour creeps unless the auto day-cycle is already driving it.
+      const play = document.getElementById('tod-play');
+      if (!(play && play.classList.contains('playing'))) {
+        let p = (window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P) + pDir * DRIFT.pStep;
+        if (p >= 1) { p = 1; pDir = -1; } else if (p <= 0) { p = 0; pDir = 1; }
+        const sl = document.getElementById('tod-slider');
+        if (sl) sl.value = String(p);
+        applyTimeOfDay(map, p);
+      }
+      legIx++;
+      map.easeTo({
+        bearing: map.getBearing() - DRIFT.bearingStep,
+        zoom: map.getZoom() + (legIx % 2 ? DRIFT.zoomBreathe : -DRIFT.zoomBreathe),
+        duration: DRIFT.stepMs,
+        easing: t => t,                       // linear: constant, calm
+      }, { drift: true });
+      legTimer = setTimeout(leg, DRIFT.stepMs + 60);
+    };
+    // Camera movement that is NOT drift-tagged re-arms the countdown; our own
+    // legs are tagged so the drift cannot reset itself.
+    map.on('movestart', e => { if (!e || !e.drift) rearm(); });
+    ['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(t =>
+      window.addEventListener(t, rearm, { capture: true, passive: true }));
+    rearm();
+  }
+
+  // ── Photo mode ────────────────────────────────────────────────────
+  // P toggles the same chrome-free view as ?clip=1 — for lining up a shot
+  // live without reloading. Ignored while a form control has focus.
+  function initPhotoKey() {
+    window.addEventListener('keydown', e => {
+      if (e.code !== 'KeyP' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      document.documentElement.classList.toggle('clip');
+    });
   }
 
   // ── Date change ───────────────────────────────────────────────────

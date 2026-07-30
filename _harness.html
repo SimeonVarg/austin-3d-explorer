@@ -28,7 +28,7 @@
     <div id="hud-snapshot"></div>
   </div>
   <div id="controls-hint">
-    <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset</span>
+    <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset &nbsp;|&nbsp; P photo</span>
     <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; swipe to look &nbsp;|&nbsp; two fingers for altitude</span>
   </div>
   <div id="date-panel">
@@ -66,7 +66,7 @@
     <span id="tod-moon" aria-hidden="true">🌙</span>
     <button id="tod-play" title="Auto day/night cycle">▶</button>
   </div>
-  <script>/* HARNESS: expose the map instance + keep the drawing buffer so we can pixel-sample our own output */ (function(){ var RealMap = maplibregl.Map; function HookedMap(opts){ opts = opts || {}; opts.canvasContextAttributes = Object.assign({}, opts.canvasContextAttributes, { preserveDrawingBuffer: true }); var m = Reflect.construct(RealMap, [opts]); window.__map = m; return m; } HookedMap.prototype = RealMap.prototype; Object.setPrototypeOf(HookedMap, RealMap); maplibregl.Map = HookedMap; })();</script>
+  <script>/* HARNESS: expose the map instance + keep the drawing buffer so we can pixel-sample our own output */ window.__HARNESS = true; (function(){ var RealMap = maplibregl.Map; function HookedMap(opts){ opts = opts || {}; opts.canvasContextAttributes = Object.assign({}, opts.canvasContextAttributes, { preserveDrawingBuffer: true }); var m = Reflect.construct(RealMap, [opts]); window.__map = m; return m; } HookedMap.prototype = RealMap.prototype; Object.setPrototypeOf(HookedMap, RealMap); maplibregl.Map = HookedMap; })();</script>
   <script src="js/graphics.js"></script>
   <script src="js/sky.js"></script>
   <script src="js/atmosphere.js"></script>
