@@ -5,12 +5,12 @@
  *   shotsJson: [{name, p, center:[lng,lat], zoom, pitch, bearing}]
  */
 import { chromium } from 'playwright-core';
-import { chromePath } from './chrome.mjs';
+import { chromePath, BASE as SERVER } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const EXE = chromePath();
-const BASE = 'http://127.0.0.1:8099/_harness.html';
+const BASE = SERVER + '/_harness.html';
 const OUT = process.argv[2] || 'shot';
 const SHOTS = process.argv[3]
   ? JSON.parse(fs.readFileSync(process.argv[3], 'utf8'))
