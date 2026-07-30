@@ -474,6 +474,21 @@
   }
 
   // ── Per-frame pass ────────────────────────────────────────────────
+  // Taste values for the rays/flare pass, exposed as window.FX_TUNE so any of
+  // them can be overruled live from the console with a one-line edit.
+  const FX_TUNE = {
+    RAYS: {
+      ANISO: 0.85,     // 0 = uniform starburst fan, 1 = fully horizon-weighted
+      HORIZ_EXP: 2.4,  // falloff of wedge alpha with angle from horizontal
+      UP_FACTOR: 0.5,  // upward wedges keep this fraction (shafts streak side/down)
+      GAIN: 1.35,      // compensates the light the anisotropy removes
+    },
+    GHOSTS: {
+      SKY_DAMP: 0.35,  // ghosts above the horizon dim by this (second-sun fix)
+    },
+  };
+  window.FX_TUNE = FX_TUNE;
+
   let grainStep = 0;
 
   window.renderFX = function renderFX(map, F) {
@@ -591,6 +606,7 @@
 
     if (rayA > 0.004) {
       const N = 22;
+      const T = FX_TUNE.RAYS;
       // The sun's azimuth seeds the ray phase, so the fan rotates with the sun
       // over the day instead of being welded to the screen.
       const phase = S.az * 0.031;
@@ -603,7 +619,15 @@
         const k = Math.sin(i * 78.233 + 1.7) * 0.5 + 0.5;
         const len = diag * (0.30 + 0.90 * j);
         const halfW = (0.004 + 0.016 * k) * diag;
-        const a = rayA * (0.22 + 0.55 * k);
+        // Shafts from a low sun streak sideways and down, they do not radiate
+        // uniformly — a uniform fan reads as a starburst sticker. Weight each
+        // wedge by its angle from horizontal (canvas y grows DOWN, so
+        // sin(ang) < 0 is an upward wedge).
+        const sinA = Math.sin(ang);
+        const wHor = Math.pow(1 - Math.abs(sinA), T.HORIZ_EXP);
+        const wDir = wHor * (sinA < 0 ? T.UP_FACTOR : 1);
+        const w = (1 - T.ANISO) + T.ANISO * wDir;
+        const a = rayA * T.GAIN * (0.22 + 0.55 * k) * w;
         if (a < 0.003) continue;
         fx.save();
         fx.translate(S.x, S.y);
@@ -643,19 +667,28 @@
       // Ghosts along the sun -> screen-centre axis, continuing past centre.
       const cx = F.W / 2, cy = F.H / 2;
       const vx = cx - S.x, vy = cy - S.y;
+      // The two big warm ghosts used to be [1.05, 0.066, rose] and
+      // [1.72, 0.088, warm amber] — at some bearings the amber one landed in
+      // open sky as a large soft glow with no streak context and read as a
+      // SECOND SUN (orbit-mid.png). Smaller now, and the biggest one is COOL:
+      // a blue ghost never reads as a celestial body.
       const GHOSTS = [
         [0.42, 0.048, [120, 190, 255], 0.20],
         [0.72, 0.026, [255, 190, 120], 0.30],
-        [1.05, 0.066, [255, 130, 170], 0.13],
+        [1.05, 0.052, [255, 130, 170], 0.13],
         [1.34, 0.034, [150, 255, 215], 0.20],
-        [1.72, 0.088, [255, 205, 140], 0.09],
+        [1.72, 0.058, [168, 196, 255], 0.08],
         [2.05, 0.020, [190, 170, 255], 0.24],
       ];
       for (const [k, rf, c, m] of GHOSTS) {
         const gx = S.x + vx * k, gy = S.y + vy * k;
         const r = rf * diag;
         if (gx < -r || gx > F.W + r || gy < -r || gy > F.H + r) continue;
-        const a = flA * m;
+        let a = flA * m;
+        // A ghost floating ABOVE the horizon is what creates the second-sun
+        // illusion; one overlapping the city reads as a lens artifact. Damp
+        // the sky ones instead of deleting them.
+        if (gy < F.horizonPx - r * 0.3) a *= FX_TUNE.GHOSTS.SKY_DAMP;
         if (a < 0.003) continue;
         const rg = fx.createRadialGradient(gx, gy, 0, gx, gy, r);
         // Hollow centre with a bright rim — an iris ghost, not a soft blob.

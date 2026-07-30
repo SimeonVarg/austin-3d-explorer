@@ -32,7 +32,10 @@ const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 
-await page.goto(`${BASE}/_harness.html`, { waitUntil: 'networkidle', timeout: 60000 });
+// intro=0: without it the intro easeTo is still flying during the first shots
+// and a jumpTo pose gets overridden mid-settle (caught by an A/B pair whose
+// two frames were at visibly different camera states).
+await page.goto(`${BASE}/_harness.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4000);
 // The graphics auto-detect probe rewrites every setting 11 s after load, which
@@ -47,6 +50,11 @@ for (const s of SHOTS) {
       else if (typeof s.gfx === 'object') Object.assign(window.GFX, s.gfx);
       window.applyGraphics();
     }
+    // `tune` patches window.FX_TUNE (rays/ghost taste values) for A/B shots.
+    if (s.tune && window.FX_TUNE) {
+      for (const [grp, vals] of Object.entries(s.tune))
+        if (window.FX_TUNE[grp]) Object.assign(window.FX_TUNE[grp], vals);
+    }
     if (s.center) m.jumpTo({ center: s.center, zoom: s.zoom ?? 16.5, pitch: s.pitch ?? 64, bearing: s.bearing ?? 90 });
     if (typeof s.p === 'number') {
       const sl = document.getElementById('tod-slider'); if (sl) sl.value = String(s.p);
@@ -54,8 +62,18 @@ for (const s of SHOTS) {
     }
   }, s);
   // Data-driven paint and the facade atlas don't land in the same frame.
-  // Settle, repaint, shoot twice, keep the second.
+  // Settle, wait for genuine idle (the FIRST shot after load once rendered
+  // with the near-field building tiles simply absent), repaint, shoot twice,
+  // keep the second.
   await page.waitForTimeout(4000);
+  await page.evaluate(() => new Promise(res => {
+    const m = window.__map;
+    let done = false;
+    const onIdle = () => { if (!done) { done = true; m.off('idle', onIdle); res(); } };
+    m.on('idle', onIdle);
+    m.triggerRepaint();
+    setTimeout(onIdle, 8000);
+  }));
   await page.evaluate(() => window.__map.triggerRepaint());
   await page.waitForTimeout(1500);
   const file = path.join(outDir, `${OUT}-${s.name}.png`);

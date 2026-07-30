@@ -1,0 +1,6 @@
+[
+ {"name":"sunfan-new",   "p":0.47, "gfx":"cinematic", "tune":{"RAYS":{"ANISO":0.85}}, "center":[-97.7434,30.2857], "zoom":16.3, "pitch":84, "bearing":256},
+ {"name":"sunfan-old",   "p":0.47, "gfx":"cinematic", "tune":{"RAYS":{"ANISO":0}},    "center":[-97.7434,30.2857], "zoom":16.3, "pitch":84, "bearing":256},
+ {"name":"ghost-new",    "p":0.47, "gfx":"cinematic", "tune":{"RAYS":{"ANISO":0.85},"GHOSTS":{"SKY_DAMP":0.35}}, "center":[-97.7434,30.2857], "zoom":16.3, "pitch":80, "bearing":210},
+ {"name":"ghost-old",    "p":0.47, "gfx":"cinematic", "tune":{"GHOSTS":{"SKY_DAMP":1.0}}, "center":[-97.7434,30.2857], "zoom":16.3, "pitch":80, "bearing":210}
+]
