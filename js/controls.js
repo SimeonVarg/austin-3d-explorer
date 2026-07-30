@@ -90,6 +90,51 @@ function initControls(map, scene) {
 
   const JOY_RADIUS = 34, JOY_DEAD = 0.12, JOY_EXPO = 1.6;
 
+  // ── TUNE — the camera FEEL, all in one place ──────────────────────
+  // Every value the motion beauty pass added lives here so any of it can be
+  // overruled in one line (also live: window.__fly.tune.BANK_MAX = 3).
+  // Angles in degrees, times in seconds, distances in metres.
+  // All of these are OUTPUT effects: they are derived offsets applied around
+  // writeToMap and never mutate the eye/alt/bearing/pitch state, so the
+  // arbitration rule and every collision guarantee are untouched.
+  const TUNE = {
+    BANK_MAX: 5,           // max roll into a turn
+    BANK_PER_DEGPS: 0.08,  // deg of roll per deg/s of smoothed yaw rate
+    BANK_STRAFE: 1.5,      // deg of lean at full strafe input
+    TAU_YAW_RATE: 0.12,    // smoothing on the measured yaw rate
+    TAU_BANK_IN: 0.30,     // roll response into a turn
+    TAU_BANK_OUT: 0.18,    // roll return to level (reaches <0.05 deg in under 1 s from BANK_MAX)
+    YAW_RATE_CLAMP: 240,   // deg/s cap on spikes from coalesced drag events on slow frames
+    ROLL_EPS: 0.02,        // below this, with a level target, roll snaps to exactly 0
+
+    FOV_KICK: 4,           // extra vertical FOV at full sprint speed (scales with |vel|/sprint max)
+    TAU_FOV: 0.45,         // FOV ease, both directions
+    FOV_EPS: 0.02,         // snap-back-to-base threshold
+
+    BOB_AMP_ALT: 0.45,     // hover-bob altitude amplitude (upward only — never dips below the floor)
+    BOB_AMP_PITCH: 0.12,   // hover-bob pitch amplitude
+    BOB_PERIOD: 5.0,       // hover-bob breathing period
+    BOB_MAX_SPEED: 1.5,    // m/s — bob only engages below this horizontal speed
+    BOB_TIMEOUT: 8.0,      // s after the last real input the bob is fully wound down (lets `driving` release)
+    BOB_FADE: 2.0,         // fade-out tail leading into BOB_TIMEOUT
+    TAU_BOB: 0.7,          // bob engage/disengage ease
+
+    SETTLE_AMP: 0.7,       // one-shot dip when arriving at a stop, m
+    SETTLE_DUR: 0.9,       // duration of the settle dip
+    SETTLE_MIN_SPEED: 12,  // must have been going at least this fast for a settle to fire
+    SETTLE_TRIG_SPEED: 2,  // settle fires when speed decays through this
+
+    PITCH_SPEED: 2.0,      // deg of pitch-up (toward the horizon) at full sprint speed; 0 disables
+    TAU_PITCH_SPD: 1.2,    // ease into the speed pitch
+    TAU_PITCH_SPD_OUT: 0.4,// ease back out (fast, so it never fights the user)
+    PITCH_SPD_IDLE: 3.0,   // s without manual pitch input before it may engage
+
+    WALL_TAU: 0.22,        // velocity damping when fully wall-blocked (was: instant zero)
+    WALL_STEER: 55,        // deg/s the blocked velocity swings toward the freer side
+    WALL_PROBE_AHEAD: 10,  // m ahead for the left/right freer-side probes
+    WALL_PROBE_ANGLE: 40,  // deg either side of the motion heading for those probes
+  };
+
   // ── State — the camera eye is the truth ───────────────────────────
   const eye = { lng: 0, lat: 0 };
   let alt = 0, altUser = 0, altFloor = 0;
@@ -103,6 +148,34 @@ function initControls(map, scene) {
   let sprintHeld = false;
 
   let ALT_REF = 230, HOME = null;
+
+  // ── Feel-effect state (derived OUTPUT offsets — never part of the eye) ──
+  const ROLL_OK = typeof map.getRoll === 'function' && typeof map.setRoll === 'function';
+  const FOV_OK = typeof map.setVerticalFieldOfView === 'function' &&
+                 typeof map.getVerticalFieldOfView === 'function';
+  const baseFov = () => (window.GFX && typeof window.GFX.fov === 'number') ? window.GFX.fov : 58;
+  let yawRate = 0;            // smoothed d(bearing)/dt, deg/s
+  let rollNow = 0;            // written to the map each driven frame; MUST be 0 on handback
+  let fovKickNow = 0;         // deg above the graphics menu's base FOV
+  let bobGain = 0;            // eased 0..1 hover-bob engagement
+  let settleT = Infinity;     // time into the one-shot landing settle
+  let peakSpeed = 0, prevSpeed = 0;
+  let pitchSpdNow = 0;        // deg of speed-adaptive pitch-up
+  let lastRealInputT = -1e9, lastPitchInputT = -1e9;   // in simTime seconds
+  let fxAltOff = 0, fxPitchOff = 0;   // this frame's output offsets
+  let fxLive = false;         // true while any effect still needs to write
+
+  /** Snap every effect to zero and put the map's roll/FOV back to neutral.
+   *  Called on every hand-back so external animations always start level. */
+  function resetEffectsHard() {
+    yawRate = 0; rollNow = 0; fovKickNow = 0; bobGain = 0;
+    settleT = Infinity; peakSpeed = 0; prevSpeed = 0; pitchSpdNow = 0;
+    fxAltOff = 0; fxPitchOff = 0; fxLive = false;
+    if (ROLL_OK && map.getRoll() !== 0) map.setRoll(0);
+    if (FOV_OK && Math.abs(map.getVerticalFieldOfView() - baseFov()) > 0.001) {
+      map.setVerticalFieldOfView(baseFov());
+    }
+  }
 
   // ── Height field ──────────────────────────────────────────────────
   // A dense max-roof grid. Footprints are RASTERISED, not bbox-stamped: a
@@ -234,22 +307,72 @@ function initControls(map, scene) {
 
   let lastWrite = null;
   function writeToMap() {
-    const lead = alt * Math.tan(rad(pitch));
+    // The feel effects (hover bob, landing settle, speed pitch, bank roll) are
+    // applied HERE, as derived output offsets on top of the eye state. The eye,
+    // alt, bearing and pitch state stay exactly what the movement and collision
+    // systems computed, so every guarantee they make still holds.
+    const outPitch = clamp(pitch + fxPitchOff, PITCH_MIN,
+                           Math.max(pitch, Math.min(PITCH_MAX, pitchCap())));
+    let outAlt = alt + fxAltOff;
+    if (gridBuilt) {
+      const h = maxHeightIn(eye.lng, eye.lat, R_CAM);
+      if (h > 0) outAlt = Math.max(outAlt, h + HARD_CLEAR);   // an offset may never dip below the hard net
+    }
+    outAlt = Math.max(outAlt, 12);
+    const lead = outAlt * Math.tan(rad(outPitch));
     const cLat = eye.lat + lead * Math.cos(rad(bearing)) / M_LAT;
     const cLng = eye.lng + lead * Math.sin(rad(bearing)) / mLon(eye.lat);
-    const D = alt / Math.cos(rad(pitch));
+    const D = outAlt / Math.cos(rad(outPitch));
     const z = clamp(Math.log2(C * Math.cos(rad(cLat)) * camPx() / (512 * D)), ZOOM_MIN, ZOOM_MAX);
     if (lastWrite &&
         Math.abs(lastWrite.lng - cLng) < 1e-9 && Math.abs(lastWrite.lat - cLat) < 1e-9 &&
         Math.abs(lastWrite.z - z) < 1e-4 && Math.abs(lastWrite.b - bearing) < 1e-4 &&
-        Math.abs(lastWrite.p - pitch) < 1e-4) return;
-    lastWrite = { lng: cLng, lat: cLat, z, b: bearing, p: pitch };
+        Math.abs(lastWrite.p - outPitch) < 1e-4 &&
+        Math.abs((lastWrite.r || 0) - rollNow) < 1e-3) return;
+    lastWrite = { lng: cLng, lat: cLat, z, b: bearing, p: outPitch, r: rollNow };
     // eventData {fly:true} lets other modules ignore camera events we caused.
-    map.jumpTo({ center: [cLng, cLat], zoom: z, bearing, pitch }, { fly: true });
+    const pose = { center: [cLng, cLat], zoom: z, bearing, pitch: outPitch };
+    // jumpTo without `roll` KEEPS the current roll (measured on the vendored
+    // 5.24), so roll must be written explicitly every frame it is non-neutral
+    // and explicitly zeroed on hand-back (resetEffectsHard).
+    if (ROLL_OK) pose.roll = rollNow;
+    map.jumpTo(pose, { fly: true });
   }
 
   // ── Collision ─────────────────────────────────────────────────────
   const blockedAt = (lng, lat) => maxHeightIn(lng, lat, R_CAM) + SKIN > alt;
+
+  /**
+   * Wall deflection (TUNE.WALL_*): called when a substep found the way blocked.
+   * Damps the blocked velocity component(s) over ~WALL_TAU instead of zeroing
+   * them instantly, and swings the velocity toward whichever side of the
+   * heading has more clearance, so hitting a facade reads as a deflection that
+   * slips down the street rather than a face-plant. Positions are NEVER
+   * advanced here — only the free axis is applied by the caller — so this
+   * cannot introduce penetration; the block-and-slide guarantee is untouched.
+   */
+  function wallDeflect(sdt, eBlk, nBlk) {
+    const f = Math.exp(-sdt / TUNE.WALL_TAU);
+    if (eBlk) vel.e *= f;
+    if (nBlk) vel.n *= f;
+    const spB = Math.hypot(vel.e, vel.n);
+    if (spB < 0.02) { if (eBlk && nBlk) { vel.e = 0; vel.n = 0; } return; }
+    const hd = Math.atan2(vel.e, vel.n);           // motion heading, rad from north
+    const pa = rad(TUNE.WALL_PROBE_ANGLE);
+    const probe = a => maxHeightIn(
+      eye.lng + Math.sin(a) * TUNE.WALL_PROBE_AHEAD / mLon(eye.lat),
+      eye.lat + Math.cos(a) * TUNE.WALL_PROBE_AHEAD / M_LAT, R_CAM);
+    const hL = probe(hd - pa), hR = probe(hd + pa);
+    let rot = 0;                                   // + rotates the velocity clockwise (to the right)
+    if (hR + SKIN <= alt && hL + SKIN > alt)      rot =  rad(TUNE.WALL_STEER) * sdt;
+    else if (hL + SKIN <= alt && hR + SKIN > alt) rot = -rad(TUNE.WALL_STEER) * sdt;
+    else if (hL !== hR) rot = (hR < hL ? 1 : -1) * rad(TUNE.WALL_STEER) * sdt;
+    if (rot) {
+      const cR = Math.cos(rot), sR = Math.sin(rot), ve = vel.e, vn = vel.n;
+      vel.e = ve * cR + vn * sR;
+      vel.n = vn * cR - ve * sR;
+    }
+  }
 
   function speedBrake() {
     if (!gridBuilt) return 1;
@@ -443,6 +566,9 @@ function initControls(map, scene) {
     pendingYaw = pendingPitch = wheelLogAcc = touchLogAcc = 0;
     vel.e = 0; vel.n = 0;
     lastTs = null;
+    // Hand the camera back level and at base FOV: goHome()'s easeTo (and any
+    // other external animation that follows a clearInputs) must start neutral.
+    resetEffectsHard();
     syncInputActive();
     canvas.style.cursor = 'crosshair';
   }
@@ -512,26 +638,51 @@ function initControls(map, scene) {
                         pendingYaw !== 0 || pendingPitch !== 0 ||
                         wheelLogAcc !== 0 || touchLogAcc !== 0;
     const resolvedAlt = clamp(Math.max(altUser, altFloor), ALT_MIN, altCeiling());
-    const driving = inputActive ||
-                    Math.hypot(vel.e, vel.n) > V_EPS ||
-                    Math.abs(alt - resolvedAlt) > 0.05;
+    // realDrive is the original driving test. fxLive extends ownership only
+    // while a feel effect (bank return, FOV relax, bob, settle) still has a
+    // non-negligible output offset to write; every effect decays to exactly
+    // zero in bounded time after the last real input, so ownership always
+    // releases. See the yield rule below for what happens if something
+    // external starts animating during that tail.
+    const realDrive = inputActive ||
+                      Math.hypot(vel.e, vel.n) > V_EPS ||
+                      Math.abs(alt - resolvedAlt) > 0.05;
+    const driving = realDrive || fxLive;
 
-    if (!driving) { wasDriving = false; syncFromMap(); return; }
+    if (!driving) {
+      if (wasDriving) resetEffectsHard();          // hand back level, at base FOV
+      else if (ROLL_OK && map.getRoll() !== 0 && !(map.isEasing && map.isEasing())) {
+        map.setRoll(0);                            // self-heal: nothing else in this app sets roll
+      }
+      wasDriving = false; syncFromMap(); return;
+    }
     if (!wasDriving) {
       if (map.isEasing && map.isEasing()) map.stop();
       syncFromMap();
       wasDriving = true;
+    } else if (!realDrive && map.isEasing && map.isEasing()) {
+      // Yield rule: only decaying effects were holding ownership and something
+      // external (goHome's easeTo, diff-tour's flyTo) has started animating.
+      // Snap the effects to neutral and release before writing anything, so the
+      // external animation runs to completion untouched.
+      resetEffectsHard();
+      wasDriving = false;
+      return;
     }
+    if (inputActive) lastRealInputT = simTime;
 
     // ── Look
-    if (pendingYaw)   { bearing = wrap360(bearing - pendingYaw); pendingYaw = 0; }
-    if (pendingPitch) { pitch = clamp(pitch + pendingPitch, PITCH_MIN, pitchCap()); pendingPitch = 0; }
+    let appliedYaw = 0;                            // signed Δbearing this frame, deg
+    if (pendingYaw)   { appliedYaw = -pendingYaw; bearing = wrap360(bearing - pendingYaw); pendingYaw = 0; }
+    if (pendingPitch) { pitch = clamp(pitch + pendingPitch, PITCH_MIN, pitchCap());
+                        lastPitchInputT = simTime; pendingPitch = 0; }
 
     // ── Altitude intent (multiplicative: one key-second is always the same
     // proportional change, so it feels identical at 20 m and at 800 m)
     let L = vertKey * VERT_GAIN * dt * sprint;
     L += wheelLogAcc; wheelLogAcc = 0;
     L += touchLogAcc; touchLogAcc = 0;
+    const vertActive = L !== 0;                    // any vertical intent this frame (keys, wheel, touch)
     if (L) altUser *= Math.exp(L);
     // Don't let the user bank a low altitude while riding a rooftop and then
     // drop down a shaft the moment the roof ends.
@@ -548,7 +699,9 @@ function initControls(map, scene) {
     // means 1.41x speed.
     const m = Math.hypot(fwd, strafe);
     if (m > 1) { fwd /= m; strafe /= m; }
-    const spd = clamp(SPEED_REF * Math.pow(alt / ALT_REF, SPEED_EXP), SPEED_MIN, SPEED_MAX) * sprint;
+    const spdBase = clamp(SPEED_REF * Math.pow(alt / ALT_REF, SPEED_EXP), SPEED_MIN, SPEED_MAX);
+    const spd = spdBase * sprint;
+    const strafeIn = strafe;                       // normalised strafe input, for the bank lean
     const brake = speedBrake();
     const b = rad(bearing);
     const tE = (fwd * Math.sin(b) + strafe * Math.cos(b)) * spd * brake;
@@ -598,12 +751,14 @@ function initControls(map, scene) {
           stepFloor = Math.max(stepFloor, hObs + SKIN_V);
           eye.lng = pLng; eye.lat = pLat;
         } else if (!blockedAt(pLng, eye.lat)) {
-          eye.lng = pLng; vel.n = 0;
+          // Slide east-west; the blocked northward component deflects (damped
+          // + steered by wallDeflect) instead of zeroing instantly. Exactly one
+          // axis of POSITION is still applied, as before.
+          eye.lng = pLng; wallDeflect(sdt, false, true);
         } else if (!blockedAt(eye.lng, pLat)) {
-          eye.lat = pLat; vel.e = 0;
+          eye.lat = pLat; wallDeflect(sdt, true, false);
         } else {
-          vel.e = 0; vel.n = 0;
-          break;
+          wallDeflect(sdt, true, true);
         }
       }
     }
@@ -633,6 +788,83 @@ function initControls(map, scene) {
     if (gridBuilt) {
       const h = maxHeightIn(eye.lng, eye.lat, R_CAM);
       if (h > 0 && alt < h + HARD_CLEAR) { alt = altUser = h + HARD_CLEAR; }
+    }
+
+    // ── Feel effects (TUNE block). All pure output offsets; each one decays
+    // to exactly zero in bounded time after the last real input, which is what
+    // lets `driving` release and external animations run. ─────────────
+    {
+      const sp = Math.hypot(vel.e, vel.n);
+
+      // Bank roll: smoothed yaw rate plus a small strafe lean, clamped.
+      // Sign convention measured on the vendored MapLibre: roll > 0 renders as
+      // a right bank (horizon right end up), and bearing increasing = turning
+      // right, so bank = +k * yawRate banks INTO the turn.
+      const instYaw = clamp(appliedYaw / dt, -TUNE.YAW_RATE_CLAMP, TUNE.YAW_RATE_CLAMP);
+      yawRate += (instYaw - yawRate) * (1 - Math.exp(-dt / TUNE.TAU_YAW_RATE));
+      let bankT = 0;
+      if (ROLL_OK) {
+        bankT = clamp(yawRate * TUNE.BANK_PER_DEGPS + strafeIn * TUNE.BANK_STRAFE,
+                      -TUNE.BANK_MAX, TUNE.BANK_MAX);
+        const tb = Math.abs(bankT) > Math.abs(rollNow) ? TUNE.TAU_BANK_IN : TUNE.TAU_BANK_OUT;
+        rollNow += (bankT - rollNow) * (1 - Math.exp(-dt / tb));
+        if (Math.abs(bankT) < 1e-3 && Math.abs(rollNow) < TUNE.ROLL_EPS) rollNow = 0;
+      }
+
+      // FOV kick: fraction of the sprint-speed maximum at this altitude, so it
+      // responds to what the camera is DOING, not to key state. Kicks relative
+      // to the graphics menu's live base FOV and snaps back exactly to it.
+      if (FOV_OK) {
+        const fovT = TUNE.FOV_KICK * clamp(sp / (spdBase * SPRINT), 0, 1);
+        fovKickNow += (fovT - fovKickNow) * (1 - Math.exp(-dt / TUNE.TAU_FOV));
+        if (fovT < TUNE.FOV_EPS && fovKickNow < TUNE.FOV_EPS) fovKickNow = 0;
+        const want = baseFov() + fovKickNow;
+        // Written BEFORE writeToMap so the derived zoom compensates in the same
+        // frame (camPx() reads the live FOV) and the world scale stays anchored.
+        if (Math.abs(map.getVerticalFieldOfView() - want) > 0.005) {
+          map.setVerticalFieldOfView(want);
+        }
+      }
+
+      // Landing settle: a one-shot eased dip when arriving at a stop from speed.
+      if (prevSpeed >= TUNE.SETTLE_TRIG_SPEED && sp < TUNE.SETTLE_TRIG_SPEED &&
+          peakSpeed >= TUNE.SETTLE_MIN_SPEED && settleT >= TUNE.SETTLE_DUR) {
+        settleT = 0; peakSpeed = 0;
+      }
+      peakSpeed = Math.max(peakSpeed, sp);
+      prevSpeed = sp;
+      let settleOff = 0;
+      if (settleT < TUNE.SETTLE_DUR) {
+        settleOff = -TUNE.SETTLE_AMP * Math.sin(PI * (settleT / TUNE.SETTLE_DUR));
+        settleT += dt;
+      }
+
+      // Hover bob: a slow upward breathing while actively hovering. Winds down
+      // to zero within BOB_TIMEOUT of the last real input so ownership releases.
+      const tSince = simTime - lastRealInputT;
+      const bobT = (tSince < TUNE.BOB_TIMEOUT && sp < TUNE.BOB_MAX_SPEED &&
+                    vertKey === 0 && !vertActive) ? 1 : 0;
+      bobGain += (bobT - bobGain) * (1 - Math.exp(-dt / TUNE.TAU_BOB));
+      if (bobT === 0 && bobGain < 0.01) bobGain = 0;
+      const bobAmp = bobGain * clamp((TUNE.BOB_TIMEOUT - tSince) / TUNE.BOB_FADE, 0, 1);
+      const ph = 2 * PI * simTime / TUNE.BOB_PERIOD;
+      const bobAlt = bobAmp * TUNE.BOB_AMP_ALT * (0.5 - 0.5 * Math.cos(ph));
+      const bobPitch = bobAmp * TUNE.BOB_AMP_PITCH * Math.sin(ph + 1.1);
+
+      // Speed-adaptive pitch: ease toward the horizon at sustained speed, only
+      // when the user hasn't touched pitch recently; backs out fast if they do.
+      if (TUNE.PITCH_SPEED > 0) {
+        const idleOk = (simTime - lastPitchInputT) > TUNE.PITCH_SPD_IDLE;
+        const pT = idleOk ? TUNE.PITCH_SPEED * clamp(sp / (spdBase * SPRINT), 0, 1) : 0;
+        const tp = pT > pitchSpdNow ? TUNE.TAU_PITCH_SPD : TUNE.TAU_PITCH_SPD_OUT;
+        pitchSpdNow += (pT - pitchSpdNow) * (1 - Math.exp(-dt / tp));
+        if (pT === 0 && pitchSpdNow < 0.02) pitchSpdNow = 0;
+      }
+
+      fxAltOff = bobAlt + settleOff;
+      fxPitchOff = bobPitch + pitchSpdNow;
+      fxLive = rollNow !== 0 || fovKickNow > 0 || bobAmp > 0.005 ||
+               settleT < TUNE.SETTLE_DUR || pitchSpdNow > 0;
     }
 
     writeToMap();
@@ -733,6 +965,12 @@ function initControls(map, scene) {
     consts: { ALT_REF, ALT_MIN, ALT_MAX, ZOOM_MIN, ZOOM_MAX, R_CAM, HARD_CLEAR,
               SPEED_REF, SPEED_EXP, TAU_ACCEL, TAU_DECEL, VERT_GAIN, SPRINT },
     simTime: () => simTime,
+    // Feel-effect debug/override surface: `tune` is the live TUNE object (any
+    // value can be overruled at runtime), `fx` is this frame's derived outputs.
+    tune: TUNE,
+    fx: () => ({ roll: rollNow, fovKick: fovKickNow, altOff: fxAltOff,
+                 pitchOff: fxPitchOff, yawRate, live: fxLive,
+                 rollOk: ROLL_OK, fovOk: FOV_OK }),
     ticks: 0, tickMsAvg: 0,
   };
 

@@ -10,7 +10,9 @@
  *        node verify-movement.mjs --report   (print the table, never fail)
  */
 import { chromium } from 'playwright-core';
-import { chromePath } from './chrome.mjs';
+// BASE honours VERIFY_URL so parallel worktrees can each test their own serve
+// (chrome.mjs has exported it for this purpose all along). No assertion change.
+import { chromePath, BASE } from './chrome.mjs';
 const EXE = chromePath();
 const REPORT_ONLY = process.argv.includes('--report');
 
@@ -19,7 +21,7 @@ const browser = await chromium.launch({ executablePath: EXE, headless: true,
 const page = await browser.newPage({ viewport: { width: 800, height: 560 } });
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
-await page.goto('http://127.0.0.1:8099/index.html?intro=0', { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(5000);
 
