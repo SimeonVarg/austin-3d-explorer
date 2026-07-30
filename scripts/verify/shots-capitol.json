@@ -1,0 +1,7 @@
+[
+ {"name":"C1-congress-south", "p":0.25, "gfx":"cinematic", "center":[-97.73905,30.28250], "zoom":15.9, "pitch":70, "bearing":180},
+ {"name":"C2-complex-air",    "p":0.25, "gfx":"cinematic", "center":[-97.73870,30.28100], "zoom":15.4, "pitch":58, "bearing":170},
+ {"name":"C3-bullock",        "p":0.25, "gfx":"cinematic", "center":[-97.73900,30.28110], "zoom":17.2, "pitch":72, "bearing":180},
+ {"name":"C4-capitol-site",   "p":0.25, "gfx":"cinematic", "center":[-97.73940,30.27900], "zoom":16.2, "pitch":74, "bearing":180},
+ {"name":"C5-from-south",     "p":0.25, "gfx":"cinematic", "center":[-97.73920,30.27500], "zoom":15.7, "pitch":68, "bearing":0}
+]

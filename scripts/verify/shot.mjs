@@ -10,7 +10,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const EXE = chromePath();
-const BASE = SERVER + '/_harness.html';
+// ?intro=0 matters more than it looks. The intro easeTo does not START until a
+// couple of seconds in, so a "wait until not easing" check passes BEFORE it has
+// begun — the script then places the camera and the intro immediately flies it
+// away. Every shot list's FIRST frame came back at the intro's end pose (a DKR
+// list returned West Campus) while shots 2..n were correct, which reads exactly
+// like a bad pose rather than a harness bug. ?drift=0 stops the idle cinematic
+// from stealing the camera back on a long list.
+const BASE = SERVER + '/_harness.html?intro=0&drift=0';
 const OUT = process.argv[2] || 'shot';
 const SHOTS = process.argv[3]
   ? JSON.parse(fs.readFileSync(process.argv[3], 'utf8'))
@@ -31,12 +38,41 @@ const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 
-await page.goto(BASE, { waitUntil: 'networkidle', timeout: 60000 });
+// `?intro=0` skips the 9 s opening flight. Without it the FIRST shot in every
+// list is unreliable: the intro is a map.flyTo, not the flight controller, so
+// `__fly.eye().driving` stays FALSE throughout and there is nothing to wait on
+// — the jumpTo lands and is overwritten a frame later. Two Capitol runs
+// screenshotted West Campus and read as "the buildings are missing".
+await page.goto(BASE + (BASE.includes('?') ? '&' : '?') + 'intro=0',
+                { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+// The scene is several MB of GeoJSON across four sources and each one tiles in
+// a worker. Wait for the sources, not for a clock.
+await page.waitForFunction(() => {
+  const m = window.__map;
+  if (!m || !m.getSource('austin-buildings')) return false;
+  return ['austin-buildings', 'austin-ground', 'austin-trees']
+    .every(s => !m.getSource(s) || m.isSourceLoaded(s));
+}, null, { timeout: 90000 }).catch(() => console.log('WARN: sources not all loaded'));
 await page.waitForTimeout(4000);
 // The graphics auto-detect probe rewrites every setting 11 s after load, which
 // would silently change the look halfway through a shot list.
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+// The intro flythrough owns the camera for ~9 s and overwrites jumpTo on the very
+// next frame. Without this wait the FIRST shot in every list was taken mid-intro,
+// pointing wherever the intro happened to be — which is how a DKR shot list came
+// back showing West Campus. Shots 2..n looked fine, so it read as a bad pose
+// rather than a harness bug.
+await page.waitForFunction(
+  () => {
+    const m = window.__map;
+    if (m.isEasing && m.isEasing()) return false;
+    try { if (window.__fly.eye().driving) return false; } catch (e) {}
+    return true;
+  },
+  null, { timeout: 40000 },
+).catch(() => {});
+await page.waitForTimeout(500);
 
 for (const s of SHOTS) {
   await page.evaluate(async (s) => {
@@ -48,7 +84,10 @@ for (const s of SHOTS) {
       else if (typeof s.gfx === 'object') Object.assign(window.GFX, s.gfx);
       window.applyGraphics();
     }
-    if (s.center) m.jumpTo({ center: s.center, zoom: s.zoom ?? 16.5, pitch: s.pitch ?? 64, bearing: s.bearing ?? 90 });
+    if (s.center) {
+      if (m.isEasing && m.isEasing()) m.stop();
+      m.jumpTo({ center: s.center, zoom: s.zoom ?? 16.5, pitch: s.pitch ?? 64, bearing: s.bearing ?? 90 });
+    }
     if (typeof s.p === 'number') {
       const sl = document.getElementById('tod-slider'); if (sl) sl.value = String(s.p);
       window.applyTimeOfDay(m, s.p);
@@ -59,6 +98,17 @@ for (const s of SHOTS) {
   // a throwaway shot first — the first frame after a big time-of-day jump can
   // still be showing the previous state.
   await page.waitForTimeout(4000);
+  // A GeoJSON source re-tiles in a worker after a camera move, and a fixed
+  // sleep is not long enough for a source that was still being fetched. Without
+  // this, a nadir shot of the stadium came back showing the GROUND layer's flat
+  // fill where the seating bowl should be — a missing layer that reads exactly
+  // like a broken one.
+  await page.evaluate(() => new Promise(r => {
+    const m = window.__map;
+    if (m.loaded()) return r();
+    m.once('idle', r);
+    setTimeout(r, 15000);
+  }));
   await page.evaluate(() => window.__map.triggerRepaint());
   await page.waitForTimeout(1500);
   const file = path.join(outDir, `${OUT}-${s.name}.png`);

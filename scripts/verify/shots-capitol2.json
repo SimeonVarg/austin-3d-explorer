@@ -1,0 +1,8 @@
+[
+ {"name":"A1-congress-approach", "p":0.25, "gfx":"cinematic", "center":[-97.74032,30.27460], "zoom":16.5, "pitch":72, "bearing":0},
+ {"name":"A2-dome-close",        "p":0.25, "gfx":"cinematic", "center":[-97.74032,30.27473], "zoom":17.6, "pitch":66, "bearing":25},
+ {"name":"A3-grounds-air",       "p":0.25, "gfx":"cinematic", "center":[-97.74000,30.27560], "zoom":15.7, "pitch":58, "bearing":345},
+ {"name":"A4-complex-from-north","p":0.25, "gfx":"cinematic", "center":[-97.73950,30.27760], "zoom":15.5, "pitch":70, "bearing":178},
+ {"name":"A5-golden",            "p":0.50, "gfx":"cinematic", "center":[-97.74032,30.27460], "zoom":16.5, "pitch":72, "bearing":0},
+ {"name":"A6-night",             "p":0.88, "gfx":"cinematic", "center":[-97.74032,30.27460], "zoom":16.5, "pitch":72, "bearing":0}
+]

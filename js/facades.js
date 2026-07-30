@@ -154,6 +154,82 @@
     }
   }
 
+  // ── DKR's four elevations, and the two bands they share ─────────────
+  //
+  // These are the tiles for the stacked wall bands baked by bake_stadium.py.
+  // Each band is 11-25 m tall, so a 20 m tile shows roughly one repeat and the
+  // texture can finally mean something instead of marching up 63 m of wall.
+  //
+  // STILL ANCHOR-AGNOSTIC. The tile's vertical phase within a band is not
+  // controllable, so no tile below puts a one-off feature near its top or
+  // bottom edge — that is what produced a phantom dark-light-dark stripe three
+  // times up the wall on the first attempt. Vertical hierarchy comes from the
+  // BAND BOUNDARIES, which are geometry, not from the texture.
+  const DKR = {
+    GAIN: 1.15,            // the pattern removes ~13% of mean luma; put it back
+    WARM: 0.22,
+    WARM_TINT: [232, 222, 206],
+
+    // sp — concourse arcade. Massive piers, deep portals between them. This is
+    // the band at eye level from San Jacinto, so it does most of the work of
+    // saying "you cannot walk into an office building here".
+    SP_BAYS: 4,            // per 20 m -> 5 m bay centres
+    SP_PIER: 7,            // px (~2.2 m) of pier
+    SP_VOID: 0.56,         // how dark the opening goes. 0.74 went effectively
+                           // black and the plinth read as a row of teeth
+                           // rather than an arcade you could walk into.
+    SP_FLOOR: 0.34,        // light spilling across the floor of the opening
+    SP_NIGHT: 0.42,        // a lit concourse is a continuous glow, not panes
+
+    // sb — Bellmont Hall (west): eleven levels of 1972 concrete with deep-set
+    // horizontal window bands and slim vertical fins.
+    SB_TIERS: 5,           // ~4 m floor-to-floor
+    SB_GLASS_H: 5,
+    SB_REVEAL: 0.20,       // lit hood over each band
+    SB_SPANDREL: 0.13,
+    SB_FIN_EVERY: 8,
+    SB_FIN_LIGHT: 0.11,
+
+    // sn — 2008 north end zone: brick veneer, punched windows, pier towers.
+    SN_COURSE: 4,          // px between mortar courses
+    SN_COURSE_DARK: 0.07,
+    SN_COLS: 5, SN_TIERS: 5,
+    SN_W: 6, SN_H: 8,
+    SN_TOWER_EVERY: 32, SN_TOWER_W: 9, SN_TOWER_LIGHT: 0.13,
+
+    // sf — east grandstand back: cast-in-place concrete, board-formed, almost
+    // solid. A few narrow slots are the backs of the vomitories.
+    SF_BOARD: 4,           // px between form-board lines
+    SF_BOARD_DARK: 0.06,
+    SF_SLOTS: 3, SF_SLOT_W: 3, SF_SLOT_DARK: 0.50,
+
+    // sg — 2021 south end zone: club and suite levels, so horizontal glazing.
+    SG_TIERS: 4,           // ~5 m floor-to-floor
+    SG_GLASS_H: 8,
+    SG_MULLION: 6,
+    SG_METAL: 0.10,        // spandrel panel, cooler than the concrete
+
+    // sd — back of the upper deck. NOT a blank wall: the first cut made this a
+    // near-featureless slab and, at 34% of a 63 m elevation, it became the
+    // dominant surface and read as fog. What is actually up there is the
+    // exposed structural bay rhythm carrying the raked deck — piers with
+    // shallow recesses between them. Lower contrast than the plinth, because
+    // these recesses are shallow and those are holes through the building.
+    SD_BAYS: 4,            // per 20 m -> 5 m bay centres, same grid as the piers below
+    SD_PIER: 6,
+    SD_RECESS: 0.10,       // 0.19 turned the whole top third into a picket fence
+    SD_PIER_LIGHT: 0.05,
+    SD_PANEL: 11,          // px between vertical joints inside a recess
+    SD_JOINT_DARK: 0.10,
+    SD_STAIN: 0.05,        // faint vertical weathering, the thing that stops a
+                           // large surface reading as untextured plastic
+  };
+
+  // How much each tile darkens its wall on average, and therefore how much
+  // brightness to put back. One shared 1.15 over-lit the near-blank fascia into
+  // a pale haze while barely covering the deep-portal plinth.
+  const DKR_GAIN = { sp: 1.20, sb: 1.14, sn: 1.10, sf: 1.06, sg: 1.12, sd: 1.04 };
+
   let palette = [];   // [{ wd, wg, wn }]
   let combos = [];    // ['md07', 'tw03', ...] — only families/buckets in use
 
@@ -304,11 +380,42 @@
       }))
       .sort((a, b) => b.n - a.n);
 
-    const kept = all.slice(0, TARGET_BUCKETS);
+    // 2b. Protected colours survive the cut regardless of how few buildings
+    // wear them. Keeping the 14 most POPULOUS tones is the right default —
+    // it is what stops 900 near-duplicates becoming mud — but it also means a
+    // one-off material on a landmark is guaranteed to lose, and gets folded
+    // into whatever tan its neighbours happen to average to. That is how the
+    // Texas Capitol came back with a Sunset Red granite dome (its own layer)
+    // standing on tan office walls (this atlas). A protected entry keeps its
+    // EXACT colour rather than its group's mean, because the point is the
+    // material, not the neighbourhood.
+    const protectedIn = Array.isArray(window.FACADE_PROTECTED) ? window.FACADE_PROTECTED : [];
+    const protectedBuckets = [];
+    const protectedKeys = new Map();               // group key → protected idx
+    for (const spec of protectedIn) {
+      if (!spec || !spec.wd) continue;
+      const rgb = hexToRgb(spec.wd);
+      const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+      const key = s < 0.10
+        ? `n${Math.floor(l * 5)}`
+        : `${Math.floor(h * 12)}-${Math.floor(l * 5)}-${s < 0.22 ? 0 : 1}`;
+      if (protectedKeys.has(key)) continue;
+      protectedKeys.set(key, protectedBuckets.length);
+      protectedBuckets.push({
+        key, n: 0, wd: rgb,
+        wg: hexToRgb(spec.wg || spec.wd),
+        wn: hexToRgb(spec.wn || spec.wd),
+      });
+    }
+
+    const kept = protectedBuckets.concat(
+      all.filter(g => !protectedKeys.has(g.key))
+         .slice(0, Math.max(0, TARGET_BUCKETS - protectedBuckets.length)));
     const index = new Map();                       // group key → bucket idx
     kept.forEach((k, i) => index.set(k.key, i));
     // 3. fold the tail into its nearest survivor
-    for (const g of all.slice(TARGET_BUCKETS)) {
+    for (const g of all) {
+      if (index.has(g.key)) continue;
       let best = 0, bestD = Infinity;
       kept.forEach((k, i) => { const d = dist2(g.wd, k.wd); if (d < bestD) { bestD = d; best = i; } });
       index.set(g.key, best);
@@ -358,6 +465,46 @@
     }
   };
 
+  // The stadium's perimeter wall is baked geometry, not a building feature, so
+  // it misses quantiseFacades. It also needs something the buildings source
+  // cannot express: a different pattern per ELEVATION and per HEIGHT BAND. The
+  // tile repeats every ~20 m in both axes, so a single 63 m extrusion can only
+  // ever wear one texture from grade to rim — which is precisely the "big
+  // repetitive window pattern" being fixed. bake_stadium.py emits twelve wall
+  // features (four sides x three bands) each carrying its own `fam` and `wd`.
+  window.quantiseStadiumFacades = function quantiseStadiumFacades(map, features) {
+    if (!palette.length) return 0;
+    let added = 0;
+    const own = new Map();          // baked hex -> palette index
+    for (const f of features) {
+      const p = f.properties;
+      if (!p || p.kind !== 'wall' || !p.wd) continue;
+      // Its OWN palette entries, not the nearest of the city's fourteen. Those
+      // buckets are the means of Austin's building colours and are almost all
+      // tan; snapping to them turned the 2008 north end zone's brick veneer
+      // back into tan and erased the one elevation with a different material.
+      let idx = own.get(p.wd);
+      if (idx == null) {
+        idx = palette.length;
+        palette.push({ wd: p.wd, wg: p.wg || p.wd, wn: p.wn || p.wd });
+        own.set(p.wd, idx);
+      }
+      const fam = p.fam || 'st';
+      p.wp = fam + String(idx).padStart(2, '0');
+      p.wf = fam;
+      if (combos.indexOf(p.wp) === -1) combos.push(p.wp);
+      // initFacades has already run by now, so a new combo has no image yet and
+      // MapLibre would paint the wall transparent.
+      try {
+        if (!(map.hasImage && map.hasImage(p.wp))) {
+          map.addImage(p.wp, tileData(fam, idx, window.__todCurrentP != null ? window.__todCurrentP : 0.5));
+          added++;
+        }
+      } catch (e) { /* already added */ }
+    }
+    return added;
+  };
+
   // ── pattern drawing ───────────────────────────────────────────────
   function lerpHexAt(bucket, p) {
     return p <= 0.5
@@ -376,6 +523,182 @@
   function css(rgb, alpha) {
     return `rgba(${Math.round(rgb[0])},${Math.round(rgb[1])},${Math.round(rgb[2])},${alpha == null ? 1 : alpha})`;
   }
+
+  // ── DKR's per-elevation tiles ─────────────────────────────────────
+  // One function per band family. All six share the same preamble: lift the
+  // wall (the pattern costs ~13% of mean luma) and pull it a little toward warm
+  // concrete, gated on luminance so a dark surface is left alone.
+  function dkrWall(wall, fam) {
+    let w = wall.map(c => Math.min(250, c * (DKR_GAIN[fam] || DKR.GAIN)));
+    const lum = (0.30 * w[0] + 0.59 * w[1] + 0.11 * w[2]) / 255;
+    return mix(w, DKR.WARM_TINT, DKR.WARM * Math.max(0, Math.min(1, (lum - 0.35) / 0.30)));
+  }
+
+  const DKR_TILES = {
+    /** sp — concourse arcade: piers with deep portals between them. */
+    sp(ctx, wall, dark, night, golden, glass, seed) {
+      const T = TILE, w = dkrWall(wall, 'sp');
+      const fill = (c, x, y, ww, hh) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, ww, hh); };
+      fill(w, 0, 0, T, T);
+      const bay = T / DKR.SP_BAYS;
+      const voidC = mix(w, [0, 0, 0], DKR.SP_VOID);
+      const floor = mix(voidC, [255, 240, 215], DKR.SP_FLOOR * (1 - dark));
+      const lit = mix(voidC, [255, 186, 110], DKR.SP_NIGHT * night);
+      for (let b = 0; b < DKR.SP_BAYS; b++) {
+        const x = Math.round(b * bay) + DKR.SP_PIER;
+        const ow = Math.round(bay) - DKR.SP_PIER;
+        if (ow <= 0) continue;
+        const back = night > 0.02 ? lit : voidC;
+        fill(back, x, 0, ow, T);
+        // The opening is a hole through a thick wall, so one jamb is in deep
+        // shade and the far side of the reveal catches light. Both run the FULL
+        // tile height — nothing here may key off the top or bottom edge.
+        fill(mix(back, [0, 0, 0], 0.40), x, 0, 1, T);
+        fill(mix(back, night > 0.02 ? [255, 210, 150] : floor, 0.5), x + ow - 1, 0, 1, T);
+      }
+      // Piers last so they stand IN FRONT of the openings.
+      const hi = mix(mix(w, [255, 255, 255], 0.09 * (1 - dark * 0.8)), [255, 198, 132], 0.22 * golden);
+      const sha = mix(w, [0, 0, 0], 0.30);
+      for (let b = 0; b < DKR.SP_BAYS; b++) {
+        const x = Math.round(b * bay);
+        fill(hi, x, 0, DKR.SP_PIER, T);
+        fill(sha, x + DKR.SP_PIER, 0, 1, T);
+      }
+    },
+
+    /** sb — Bellmont Hall: 1972 concrete, deep horizontal window bands. */
+    sb(ctx, wall, dark, night, golden, glass, seed) {
+      const T = TILE, w = dkrWall(wall, 'sb');
+      const fill = (c, x, y, ww, hh) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, ww, hh); };
+      fill(w, 0, 0, T, T);
+      const step = T / DKR.SB_TIERS;
+      for (let k = 0; k < DKR.SB_TIERS; k++) {
+        const y = Math.round(k * step + (step - DKR.SB_GLASS_H) / 2);
+        fill(mix(w, [0, 0, 0], DKR.SB_SPANDREL), 0, y - 2, T, DKR.SB_GLASS_H + 4);
+        fill(glass, 0, y, T, DKR.SB_GLASS_H);
+        // A lit hood over the band is what makes it read RECESSED rather than
+        // painted on — the single cheapest depth cue on a flat extrusion.
+        fill(mix(w, [255, 255, 255], DKR.SB_REVEAL * (1 - dark * 0.8)), 0, y - 1, T, 1);
+        if (night > 0.02) {
+          for (let c = 0; c < 10; c++) {
+            const r = hash01(seed, k, c);
+            if (r > 0.34) continue;
+            const tone = pickTone(hash01(seed + 11, k, c));
+            const br = PANE_BRIGHT_MIN + (PANE_BRIGHT_MAX - PANE_BRIGHT_MIN) * (1 - Math.pow(hash01(seed + 3, k, c), 2));
+            fill(mix(glass, tone, night * br), Math.round(c * T / 10) + 1, y, Math.round(T / 10) - 2, DKR.SB_GLASS_H);
+          }
+        }
+      }
+      const fin = mix(w, [255, 255, 255], DKR.SB_FIN_LIGHT * (1 - dark * 0.8));
+      for (let x = 0; x < T; x += DKR.SB_FIN_EVERY) {
+        fill(fin, x, 0, 2, T);
+        fill(mix(w, [0, 0, 0], 0.16), x + 2, 0, 1, T);
+      }
+    },
+
+    /** sn — 2008 north end zone: brick veneer, punched windows, pier towers. */
+    sn(ctx, wall, dark, night, golden, glass, seed) {
+      const T = TILE, w = dkrWall(wall, 'sn');
+      const fill = (c, x, y, ww, hh) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, ww, hh); };
+      fill(w, 0, 0, T, T);
+      const course = mix(w, [0, 0, 0], DKR.SN_COURSE_DARK);
+      for (let y = 0; y < T; y += DKR.SN_COURSE) fill(course, 0, y, T, 1);
+      const stepX = T / DKR.SN_COLS, stepY = T / DKR.SN_TIERS;
+      for (let r = 0; r < DKR.SN_TIERS; r++) {
+        for (let c = 0; c < DKR.SN_COLS; c++) {
+          const x = Math.round(c * stepX + (stepX - DKR.SN_W) / 2);
+          const y = Math.round(r * stepY + (stepY - DKR.SN_H) / 2);
+          fill(mix(w, [255, 255, 255], 0.16 * (1 - dark * 0.8)), x - 1, y - 1, DKR.SN_W + 2, DKR.SN_H + 2);
+          let pane = glass;
+          if (night > 0.02 && hash01(seed, r, c) < 0.22) {
+            pane = mix(glass, pickTone(hash01(seed + 5, r, c)), night * 0.8);
+          }
+          fill(pane, x, y, DKR.SN_W, DKR.SN_H);
+        }
+      }
+      const tower = mix(w, [255, 255, 255], DKR.SN_TOWER_LIGHT * (1 - dark * 0.8));
+      for (let x = 0; x < T; x += DKR.SN_TOWER_EVERY) {
+        fill(tower, x, 0, DKR.SN_TOWER_W, T);
+        fill(mix(w, [0, 0, 0], 0.20), x + DKR.SN_TOWER_W, 0, 1, T);
+      }
+    },
+
+    /** sf — east grandstand back: board-formed concrete, near solid. */
+    sf(ctx, wall, dark, night, golden, glass, seed) {
+      const T = TILE, w = dkrWall(wall, 'sf');
+      const fill = (c, x, y, ww, hh) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, ww, hh); };
+      fill(w, 0, 0, T, T);
+      const board = mix(w, [0, 0, 0], DKR.SF_BOARD_DARK);
+      const lip = mix(w, [255, 255, 255], 0.05 * (1 - dark * 0.8));
+      for (let x = 0; x < T; x += DKR.SF_BOARD) { fill(board, x, 0, 1, T); fill(lip, x + 1, 0, 1, T); }
+      const slot = mix(w, [0, 0, 0], DKR.SF_SLOT_DARK);
+      const glow = mix(slot, [255, 186, 110], 0.30 * night);
+      for (let s = 0; s < DKR.SF_SLOTS; s++) {
+        const x = Math.round((s + 0.5) * T / DKR.SF_SLOTS) - 1;
+        fill(night > 0.02 ? glow : slot, x, 0, DKR.SF_SLOT_W, T);
+      }
+    },
+
+    /** sg — 2021 south end zone: club and suite levels, horizontal glazing. */
+    sg(ctx, wall, dark, night, golden, glass, seed) {
+      const T = TILE, w = dkrWall(wall, 'sg');
+      const fill = (c, x, y, ww, hh) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, ww, hh); };
+      const metal = mix(w, [206, 212, 219], DKR.SG_METAL);
+      fill(metal, 0, 0, T, T);
+      const step = T / DKR.SG_TIERS;
+      for (let k = 0; k < DKR.SG_TIERS; k++) {
+        const y = Math.round(k * step + (step - DKR.SG_GLASS_H) / 2);
+        fill(glass, 0, y, T, DKR.SG_GLASS_H);
+        fill(mix(metal, [255, 255, 255], 0.16 * (1 - dark * 0.8)), 0, y - 1, T, 1);
+        fill(mix(metal, [0, 0, 0], 0.18), 0, y + DKR.SG_GLASS_H, T, 1);
+        // Club levels are lit as a continuous room, not as a pane scatter.
+        if (night > 0.02) {
+          fill(mix(glass, [255, 214, 168], night * 0.62), 0, y, T, DKR.SG_GLASS_H);
+          for (let c = 0; c < 8; c++) {
+            if (hash01(seed, k, c) > 0.45) continue;
+            fill(mix(glass, [255, 232, 200], night * 0.78),
+                 Math.round(c * T / 8) + 1, y, Math.round(T / 8) - 2, DKR.SG_GLASS_H);
+          }
+        }
+        for (let x = 0; x < T; x += DKR.SG_MULLION) {
+          fill(mix(metal, [0, 0, 0], 0.22), x, y, 1, DKR.SG_GLASS_H);
+        }
+      }
+    },
+
+    /** sd — back of the upper deck: the exposed structural bay rhythm. */
+    sd(ctx, wall, dark, night, golden, glass, seed) {
+      const T = TILE, w = dkrWall(wall, 'sd');
+      const fill = (c, x, y, ww, hh) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, ww, hh); };
+      fill(w, 0, 0, T, T);
+      const bay = T / DKR.SD_BAYS;
+      const recess = mix(w, [0, 0, 0], DKR.SD_RECESS);
+      const joint = mix(recess, [0, 0, 0], DKR.SD_JOINT_DARK);
+      for (let b = 0; b < DKR.SD_BAYS; b++) {
+        const x = Math.round(b * bay) + DKR.SD_PIER;
+        const ow = Math.round(bay) - DKR.SD_PIER;
+        if (ow <= 0) continue;
+        fill(recess, x, 0, ow, T);
+        for (let j = x + DKR.SD_PANEL; j < x + ow; j += DKR.SD_PANEL) fill(joint, j, 0, 1, T);
+      }
+      // Weathering streaks. Deterministic and full height, so they tile.
+      for (let s = 0; s < 7; s++) {
+        const x = Math.round(hash01(seed + 91, s, 0) * T);
+        const wd = 1 + Math.round(hash01(seed + 92, s, 0) * 2);
+        ctx.fillStyle = css(mix(w, [0, 0, 0], DKR.SD_STAIN), 0.6);
+        ctx.fillRect(x, 0, wd, T);
+      }
+      // Piers last, standing in front of the recesses.
+      const hi = mix(mix(w, [255, 255, 255], DKR.SD_PIER_LIGHT * (1 - dark * 0.8)),
+                     [255, 198, 132], 0.20 * golden);
+      const sha = mix(w, [0, 0, 0], 0.22);
+      for (let b = 0; b < DKR.SD_BAYS; b++) {
+        const x = Math.round(b * bay);
+        fill(hi, x, 0, DKR.SD_PIER, T);
+        fill(sha, x + DKR.SD_PIER, 0, 1, T);
+      }
+    },
+  };
 
   /** Draw one (family, bucket) tile for time-of-day p into a canvas ctx. */
   function drawTile(ctx, fam, bucketIdx, p) {
@@ -413,6 +736,11 @@
     if (fam === 'st') {
       // Stadium/arena masonry: piers and bays, not windows. See drawStadium.
       drawStadium(ctx, wall, dark, night, golden, bucketIdx * 4 + 3);
+      return;
+    }
+
+    if (fam.length === 2 && fam[0] === 's' && DKR_TILES[fam]) {
+      DKR_TILES[fam](ctx, wall, dark, night, golden, glass, bucketIdx * 4 + 5);
       return;
     }
 
