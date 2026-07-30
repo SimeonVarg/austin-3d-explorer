@@ -71,6 +71,8 @@
     { key: 'exposure',    label: 'Exposure',       min: 0.7, max: 1.4, step: 0.01, group: 'grade' },
     { key: 'contrast',    label: 'Contrast',       min: 0.8, max: 1.5, step: 0.01, group: 'grade' },
     { key: 'saturation',  label: 'Saturation',     min: 0.6, max: 1.6, step: 0.01, group: 'grade' },
+    { key: 'filmic',      label: 'Filmic curve',   min: 0, max: 1, step: 0.02, group: 'grade',
+      hint: 'Tone curve with a toe and a shoulder: highlights roll off instead of clipping to flat white, shadows keep detail instead of crushing to black.' },
     { key: 'vignette',    label: 'Vignette',       min: 0, max: 1.6, step: 0.02, group: 'grade' },
     { key: 'grain',       label: 'Film grain',     min: 0, max: 1, step: 0.02, group: 'grade' },
     { key: 'ao',          label: 'Contact shadows', type: 'bool', group: 'world' },
@@ -89,7 +91,7 @@
   const PRESETS = {
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
-      exposure: 1.0, contrast: 1.0, saturation: 1.0, vignette: 0.6, grain: 0,
+      exposure: 1.0, contrast: 1.0, saturation: 1.0, filmic: 0, vignette: 0.6, grain: 0,
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58,
     },
     balanced: {
@@ -100,17 +102,17 @@
       // a full-screen `overlay` blend running every frame. It is a taste effect,
       // not a depth or lighting cue, so it earns its keep at cinematic and not in
       // the default that has to feel smooth.
-      exposure: 1.03, contrast: 1.06, saturation: 1.1, vignette: 1.0, grain: 0,
+      exposure: 1.03, contrast: 1.06, saturation: 1.1, filmic: 0.65, vignette: 1.0, grain: 0,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58,
     },
     cinematic: {
       renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0.45,
-      exposure: 1.05, contrast: 1.12, saturation: 1.18, vignette: 1.25, grain: 0.22,
+      exposure: 1.05, contrast: 1.12, saturation: 1.18, filmic: 0.8, vignette: 1.25, grain: 0.22,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
     },
     ultra: {
       renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0.50,
-      exposure: 1.05, contrast: 1.14, saturation: 1.2, vignette: 1.25, grain: 0.18,
+      exposure: 1.05, contrast: 1.14, saturation: 1.2, filmic: 0.8, vignette: 1.25, grain: 0.18,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
     },
   };
@@ -265,17 +267,128 @@
     applyGrade();
   };
 
+  // ── Filmic tone curve ─────────────────────────────────────────────
+  // `brightness() contrast()` is a straight line through [0,1] that CLIPS both
+  // ends: with exposure 1.05 x contrast 1.12 everything above ~0.90 lands on
+  // flat 255 (the golden-hour horizon was a plateau with zero gradient) and
+  // shadows crush symmetrically to flat 0. A film curve instead has a TOE
+  // (shadows compress gently, keeping detail) and a SHOULDER (highlights roll
+  // off asymptotically, never slamming into white).
+  //
+  // CSS has no LUT primitive, but SVG filters do: feComponentTransfer
+  // type="table" is a per-channel lookup table, and `filter: url(#a3d-tone)`
+  // chains it with the other CSS filter functions. So exposure, contrast AND
+  // the curve are baked into ONE table here — that matters, because CSS filter
+  // functions clamp between stages, so a separate brightness() would have
+  // already destroyed the overshoot the shoulder exists to recover.
+  //
+  // The curve: IDENTITY through the mid-band, a cubic-Hermite shoulder above
+  // SHOULDER_AT and a cubic-Hermite toe below TOE_AT, each with slope 1 at the
+  // join so the transition is invisible. The first cut used a tanh S-curve
+  // through a pivot instead — its slope at the pivot was 1.5, which re-graded
+  // every midtone (measured: night city mean 46 -> 16, day city -16%). The hour
+  // grades are already tuned; the curve's ONLY job is to rescue the ends.
+  const TONE = {
+    SAMPLES: 33,        // LUT resolution; feComponentTransfer lerps between entries
+    TOE_AT: 0.14,       // below this the toe starts (display-linear units)
+    SHOULDER_AT: 0.72,  // above this the shoulder starts
+    OVER: 1.28,         // highlight headroom: linear values up to this stay distinct
+    UNDER: -0.10,       // shadow headroom for contrast-crushed negatives
+    FLOOR: 0.010,       // what the deepest shadow maps to (a lifted, detailed black)
+    END_SLOPE: 0.06,    // curve slope at the far ends (0 = hard plateau again)
+  };
+  let toneFuncs = null, toneLast = null;
+
+  function ensureToneFilter() {
+    if (toneFuncs) return true;
+    try {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('width', '0');
+      svg.setAttribute('height', '0');
+      svg.style.cssText = 'position:absolute;left:-9999px;top:-9999px';
+      const filter = document.createElementNS(NS, 'filter');
+      filter.setAttribute('id', 'a3d-tone');
+      // sRGB, not the SVG default linearRGB: the grade is authored against the
+      // frame as displayed, and linearRGB silently re-lights the whole scene.
+      filter.setAttribute('color-interpolation-filters', 'sRGB');
+      const fct = document.createElementNS(NS, 'feComponentTransfer');
+      toneFuncs = ['feFuncR', 'feFuncG', 'feFuncB'].map(tag => {
+        const f = document.createElementNS(NS, tag);
+        f.setAttribute('type', 'table');
+        f.setAttribute('tableValues', '0 1');
+        fct.appendChild(f);
+        return f;
+      });
+      filter.appendChild(fct);
+      svg.appendChild(filter);
+      document.body.appendChild(svg);
+      return true;
+    } catch (e) { toneFuncs = null; return false; }
+  }
+
+  /** Cubic Hermite on [0,1] with g(0)=0, g(1)=1 and given end slopes. */
+  function hermite01(t, m0, m1) {
+    const t2 = t * t, t3 = t2 * t;
+    return (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) + (t3 - t2) * m1;
+  }
+
+  /** The filmic map for one unclamped display-linear value. */
+  function toneCurve(lin) {
+    const T = TONE;
+    if (lin >= T.SHOULDER_AT) {
+      // [SHOULDER_AT .. OVER] -> [SHOULDER_AT .. 1], slope 1 at the join.
+      const t = Math.min(1, (lin - T.SHOULDER_AT) / (T.OVER - T.SHOULDER_AT));
+      const m0 = (T.OVER - T.SHOULDER_AT) / (1 - T.SHOULDER_AT);   // slope 1 in display units
+      return T.SHOULDER_AT + (1 - T.SHOULDER_AT) * hermite01(t, m0, T.END_SLOPE);
+    }
+    if (lin <= T.TOE_AT) {
+      // [UNDER .. TOE_AT] -> [FLOOR .. TOE_AT], slope 1 at the join.
+      const t = Math.max(0, (lin - T.UNDER) / (T.TOE_AT - T.UNDER));
+      const m1 = (T.TOE_AT - T.UNDER) / (T.TOE_AT - T.FLOOR);      // slope 1 in display units
+      return T.FLOOR + (T.TOE_AT - T.FLOOR) * hermite01(t, T.END_SLOPE, m1);
+    }
+    return lin;                                                    // mid-band: identity
+  }
+
+  /** exposure+contrast+filmic in one table. Returns false if the SVG route failed. */
+  function updateToneLUT(ex, co, strength) {
+    if (!ensureToneFilter()) return false;
+    const key = `${ex.toFixed(3)}|${co.toFixed(3)}|${strength.toFixed(2)}`;
+    if (toneLast === key) return true;
+    toneLast = key;
+    const vals = [];
+    for (let i = 0; i < TONE.SAMPLES; i++) {
+      const x = i / (TONE.SAMPLES - 1);
+      const lin = (x * ex - 0.5) * co + 0.5;          // UNCLAMPED linear grade
+      const out = clamp01(lin) * (1 - strength) + clamp01(toneCurve(lin)) * strength;
+      vals.push(out.toFixed(4));
+    }
+    const table = vals.join(' ');
+    for (const f of toneFuncs) f.setAttribute('tableValues', table);
+    return true;
+  }
+
   function applyGrade() {
     const host = document.getElementById('map');
     if (!host) return;
     const ex = (grade.exposure || 1) * GFX.exposure;
     const co = (grade.contrast || 1) * GFX.contrast;
     const sa = (grade.saturation || 1) * GFX.saturation;
+    const filmic = GFX.filmic || 0;
     const parts = [];
-    if (Math.abs(ex - 1) > 0.004) parts.push(`brightness(${ex.toFixed(3)})`);
-    if (Math.abs(co - 1) > 0.004) parts.push(`contrast(${co.toFixed(3)})`);
-    if (Math.abs(sa - 1) > 0.004) parts.push(`saturate(${sa.toFixed(3)})`);
-    host.style.filter = parts.length ? parts.join(' ') : '';
+    if (filmic > 0.01 && updateToneLUT(ex, co, filmic)) {
+      // Exposure and contrast live inside the LUT; saturation stays a plain
+      // CSS function after it, same relative order as the legacy chain.
+      parts.push('url(#a3d-tone)');
+      if (Math.abs(sa - 1) > 0.004) parts.push(`saturate(${sa.toFixed(3)})`);
+    } else {
+      if (Math.abs(ex - 1) > 0.004) parts.push(`brightness(${ex.toFixed(3)})`);
+      if (Math.abs(co - 1) > 0.004) parts.push(`contrast(${co.toFixed(3)})`);
+      if (Math.abs(sa - 1) > 0.004) parts.push(`saturate(${sa.toFixed(3)})`);
+    }
+    const filterStr = parts.length ? parts.join(' ') : '';
+    if (host.style.filter !== filterStr) host.style.filter = filterStr;
     if (elVig) elVig.style.opacity = String(clamp01((grade.vignette || 0) * GFX.vignette));
   }
 
