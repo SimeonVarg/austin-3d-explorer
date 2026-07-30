@@ -567,6 +567,48 @@ on the merged tree. Its dusk half races the facade-atlas repaint under load —
 `night-dusk-truth.mjs` (steady-state, atlas-byte read) is the reliable dusk
 pattern, and the steady-state p=0.66 frame was verified correct by eye.
 
+### 21.4 Light (light workstream, merged)
+
+Filmic tone curve: exposure+contrast+curve baked into ONE SVG
+`feComponentTransfer` LUT in the canvas filter chain (CSS clamps between
+stages, so a separate brightness() would destroy what the shoulder recovers);
+identity mid-band, Hermite toe/shoulder; `TONE` block + `GFX.filmic` slider.
+Verified by pixels: golden flat-255 plateau 0.227%→0%, night flat-black
+0.96%→0%. Auto-exposure: 40×24 mean-luma meter per frame, open-loop
+(pre-grade, cannot pump), EMA τ=900 ms, clamps 0.85–1.20, target follows the
+HOUR's authored luma (a fixed mid-grey target would re-grade the intentional
+high-key day / dark night); `GFX.autoExposure`. God rays weighted by angle
+from horizontal (ink ratio 3.42 vs 1.16 uniform) — glare streaks, not a
+starburst. Second-sun ghost killed (sky-ghost ink −34–42% at every bearing).
+The auto-detect probe now DEFERS while map.isEasing() (it was stomping the
+new intro mid-flight) and is silent unless it actually downgrades. Vignette
+tints by hour (`VIG_HOURS`). Clouds carry a lit rim and shaded base; a Belt
+of Venus rises anti-solar at dusk (p 0.50–0.70); bright stars twinkle with no
+new rAF loop. Perf: interleaved A/B vs a pristine baseline — dropped-min 0
+both, p50 18.0 ms both; the whole pass costs less than run-to-run noise.
+
+### 21.5 Motion (motion workstream, merged — with two suite lessons)
+
+Bank roll into turns (native MapLibre roll, capability-checked), FOV kick
+under speed, hover bob + landing settle, speed-adaptive pitch, and wall
+deflection (damped + steered toward the freer side) — all as derived OUTPUT
+offsets around writeToMap; the eye/alt/bearing/pitch state and every
+collision guarantee untouched; everything in one `TUNE` block, live-tunable
+via `__fly.tune`. Roll and FOV are hard-reset on every hand-back plus a
+self-heal on the idle path. The agent died before finalising; its one
+COMMITTED increment was merged and re-verified here (motion-feel 19/19,
+movement 14/14 ×2, collision 8/8); its uncommitted wall-deflection iteration
+was left out — unverified code doesn't ship.
+
+Two movement.mjs defects the feel pass exposed (both now fixed in-file):
+the speed ruler measured map.getCenter() — eye + a lead that now breathes
+with dynamic pitch — instead of the eye; and __reset was a bare jumpTo that
+the controller overwrote while it owned the camera (ownership now lasts ~8 s
+after keyup for the bob wind-down), so positions accumulated leg over leg
+until the DIAGONAL legs hit the soft data fence — a rock-stable-looking
+diagonal/cardinal of 0.73 that was really the fence crushing vel.n. The eye
+moved at exactly 56.71 m/s on both headings throughout.
+
 ## 20. July 29 2026 (later) — performance, the graphics menu, and a real sky
 
 Five things were reported at once: the desktop was "super laggy"; the phone was
