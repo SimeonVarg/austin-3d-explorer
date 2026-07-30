@@ -205,6 +205,7 @@
     // assertion is exactly the flake the trap list warns about. Drift is
     // verified through index.html scripts instead.
     step('idle',     () => { if (!window.__HARNESS) initIdleCinema(); });
+    step('orbit',    () => initLandmarkOrbit());
     step('photo',    () => initPhotoKey());
   }
 
@@ -551,6 +552,61 @@
     ['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(t =>
       window.addEventListener(t, rearm, { capture: true, passive: true }));
     rearm();
+  }
+
+  // ── Landmark orbit ────────────────────────────────────────────────
+  // Tap a landmark sign and the camera glides to that building and slowly
+  // circles it. Any input hands control straight back. A tap is a press under
+  // ORBIT.tapMs that moved less than ORBIT.tapPx — everything else is a look
+  // swipe and never reaches here.
+  const ORBIT = {
+    zoom: 17.1, pitch: 73,      // the framing the approach settles on
+    approachMs: 2400,           // glide to the landmark
+    legMs: 9000, bearingStep: 40,  // one slow circling leg (linear, chained)
+    tapMs: 350, tapPx: 9, hitPad: 14,
+  };
+  function initLandmarkOrbit() {
+    const canvas = map.getCanvas();
+    let downAt = 0, downX = 0, downY = 0;
+    let orbiting = false, legTimer = null;
+    const stop = () => {
+      if (!orbiting) return;
+      orbiting = false;
+      clearTimeout(legTimer);
+      if (map.isEasing && map.isEasing()) map.stop();
+    };
+    canvas.addEventListener('pointerdown', e => {
+      downAt = performance.now(); downX = e.clientX; downY = e.clientY;
+      stop();                              // touching the world during an orbit ends it
+    });
+    canvas.addEventListener('pointerup', e => {
+      if (performance.now() - downAt > ORBIT.tapMs) return;
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > ORBIT.tapPx) return;
+      let hits = [];
+      try {
+        const p = ORBIT.hitPad;
+        // Only RENDERED labels can be hit — which is the correct contract: you
+        // tap a sign you can see. (A not-yet-rendered label is not tappable.)
+        hits = map.queryRenderedFeatures(
+          [[e.clientX - p, e.clientY - p], [e.clientX + p, e.clientY + p]],
+          { layers: ['signs-label'] });
+      } catch (err) { return; }
+      const f = hits && hits[0];
+      if (!f || !f.geometry || f.geometry.type !== 'Point') return;
+      const target = f.geometry.coordinates.slice(0, 2);
+      orbiting = true;
+      map.easeTo({ center: target, zoom: ORBIT.zoom, pitch: ORBIT.pitch,
+                   duration: ORBIT.approachMs }, { orbit: true });
+      const leg = () => {
+        if (!orbiting) return;
+        map.easeTo({ bearing: map.getBearing() + ORBIT.bearingStep,
+                     duration: ORBIT.legMs, easing: t => t }, { orbit: true });
+        legTimer = setTimeout(leg, ORBIT.legMs + 50);
+      };
+      legTimer = setTimeout(leg, ORBIT.approachMs + 60);
+    });
+    window.addEventListener('wheel', stop, { capture: true, passive: true });
+    window.addEventListener('keydown', stop, true);
   }
 
   // ── Photo mode ────────────────────────────────────────────────────
