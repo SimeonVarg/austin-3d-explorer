@@ -45,6 +45,57 @@
   let palette = [];   // [{ wd, wg, wn }]
   let combos = [];    // ['md07', 'tw03', ...] — only families/buckets in use
 
+  // ── Night windows — every taste value in one place ─────────────────
+  //
+  // Real cities are not one amber. Most windows are warm-white at slightly
+  // different temperatures, a minority are cooler fluorescent/office light,
+  // and the occasional pane flickers TV-blue. Weights are relative (normalised
+  // at pick time). Order matters: the warm tones come first so a per-family
+  // warm bias (below) can compress rolls into the warm end of the list.
+  const WINDOW_TONES = [
+    { rgb: [255, 191, 115], w: 0.40 },  // warm incandescent
+    { rgb: [255, 209, 150], w: 0.30 },  // warm-white LED
+    { rgb: [244, 235, 200], w: 0.18 },  // neutral white
+    { rgb: [205, 219, 235], w: 0.09 },  // cool fluorescent (office)
+    { rgb: [150, 190, 255], w: 0.03 },  // TV blue
+  ];
+  // Per-pane brightness, biased BRIGHT (1 - roll² keeps most panes near full
+  // and leaves a dim tail). First cut used roll² — biased dim — and measurably
+  // hollowed the city out: lit-pixel share in a fixed night crop fell from
+  // 3.97% to 2.13% and the skyline went sleepy.
+  const PANE_BRIGHT_MIN = 0.40;
+  const PANE_BRIGHT_MAX = 1.00;
+  // A rare "hot pane" much brighter than its neighbours — pushed toward white.
+  const HOT_PANE_RATE  = 0.05;   // fraction of LIT panes
+  const HOT_PANE_BOOST = 0.35;   // extra mix toward white
+  // Occupancy range per family, hashed per (family × bucket) into a continuous
+  // value — replaces the old `0.14 + (bucketIdx % 5) * 0.06`, which lit
+  // neighbouring buildings in five visible lockstep classes. Family baselines
+  // are urban truth: offices (tw) go dark at night, walk-up apartments (md)
+  // don't, houses (lo) glow warm but sparse.
+  // The roll is squared before mapping into the range, so most buildings sit
+  // near the low end and a scatter run lively — matching the baseline look's
+  // density (the dominant colour buckets sat at the low end of the old
+  // formula too; a uniform roll here measured 2× the baseline lit-pixel
+  // share and washed the skyline).
+  const OCCUPANCY = {
+    lo: [0.14, 0.40],
+    md: [0.12, 0.42],
+    tw: [0.08, 0.36],
+    dk: [0.00, 0.00],  // parking decks have no glazing (drawn as bands)
+  };
+  // Compresses a family's tone roll into the warm end of WINDOW_TONES.
+  // 1.0 = full palette; 0.6 = houses almost never go fluorescent.
+  const TONE_WARM_BIAS = { lo: 0.60, md: 1.00, tw: 1.00, dk: 1.00 };
+
+  const TONE_CUM = [];
+  { let acc = 0; for (const t of WINDOW_TONES) TONE_CUM.push(acc += t.w); }
+  function pickTone(roll) {
+    const x = roll * TONE_CUM[TONE_CUM.length - 1];
+    for (let i = 0; i < TONE_CUM.length; i++) if (x <= TONE_CUM[i]) return WINDOW_TONES[i].rgb;
+    return WINDOW_TONES[WINDOW_TONES.length - 1].rgb;
+  }
+
   // ── colour helpers ────────────────────────────────────────────────
   function hexToRgb(hex) {
     const h = hex.replace('#', '');
@@ -236,11 +287,6 @@
     let glass = mix(wall, [46, 58, 74], 0.62);
     glass = mix(glass, [255, 176, 96], golden * 0.45);
     glass = mix(glass, [12, 15, 28], dark * 0.9);
-    // Two brightnesses of lit window. One flat value makes every tower read as
-    // a block of white noise from a distance; a dim tier gives the skyline
-    // texture and keeps the bright ones feeling like actual lights.
-    const litBright = [232, 176, 104];
-    const litDim    = [126, 100, 66];
 
     if (fam === 'dk') {
       // Parking deck: open horizontal slots + a thin bright deck edge.
@@ -267,9 +313,17 @@
     // fades toward the wall as night falls, leaving only the lit panes.
     const frame = mix(wall, [255, 255, 255], 0.22 * (1 - dark * 0.85));
     const sill  = mix(wall, [0, 0, 0], 0.3);
-    // Occupancy varies by bucket so neighbouring buildings don't light up in
-    // lockstep — a whole city at one brightness reads as a texture, not a city.
-    const occupancy = 0.14 + (bucketIdx % 5) * 0.06;
+    // Continuous occupancy per (family × bucket) hash — see OCCUPANCY above.
+    // `seed` decorrelates the per-pane rolls between families sharing a bucket
+    // and between the four rolls each pane makes (lit / tone / bright / hot);
+    // the salts are primes far larger than any bucket index so the streams
+    // can't collide.
+    const famIdx = fam === 'lo' ? 0 : fam === 'md' ? 1 : fam === 'tw' ? 2 : 3;
+    const seed = bucketIdx * 4 + famIdx;
+    const occRange = OCCUPANCY[fam] || OCCUPANCY.md;
+    const occRoll = hash01(seed + 4001, 0, 0);
+    const occupancy = occRange[0] + (occRange[1] - occRange[0]) * occRoll * occRoll;
+    const warmBias = TONE_WARM_BIAS[fam] != null ? TONE_WARM_BIAS[fam] : 1;
 
     for (let r = 0; r < g.rows; r++) {
       for (let c = 0; c < g.cols; c++) {
@@ -277,12 +331,20 @@
         ctx.fillStyle = css(frame);
         ctx.fillRect(x - 1, y - 1, g.w + 2, g.h + 2);
 
-        const roll = hash01(bucketIdx, r, c);
+        const roll = hash01(seed, r, c);
         const isLit = night > 0.05 && roll < occupancy;
-        const lit = roll < occupancy * 0.45 ? litBright : litDim;
-        ctx.fillStyle = isLit
-          ? css(mix(glass, lit, Math.min(1, night * 1.3)))
-          : css(glass);
+        if (isLit) {
+          let tone = pickTone(hash01(seed + 1009, r, c) * warmBias);
+          const bRoll = hash01(seed + 2003, r, c);
+          let bright = PANE_BRIGHT_MIN + (PANE_BRIGHT_MAX - PANE_BRIGHT_MIN) * (1 - bRoll * bRoll);
+          if (hash01(seed + 3001, r, c) < HOT_PANE_RATE) {
+            tone = mix(tone, [255, 255, 255], HOT_PANE_BOOST);
+            bright = PANE_BRIGHT_MAX;
+          }
+          ctx.fillStyle = css(mix(glass, tone, Math.min(1, night * 1.3) * bright));
+        } else {
+          ctx.fillStyle = css(glass);
+        }
         ctx.fillRect(x, y, g.w, g.h);
 
         // Sill shadow — one pixel of contact under every opening.
