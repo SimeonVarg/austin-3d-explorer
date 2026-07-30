@@ -206,6 +206,7 @@
     // verified through index.html scripts instead.
     step('idle',     () => { if (!window.__HARNESS) initIdleCinema(); });
     step('orbit',    () => initLandmarkOrbit());
+    step('tour',     () => initTourKey());
     step('photo',    () => initPhotoKey());
   }
 
@@ -435,7 +436,9 @@
   // idle frame (or the timeout) the veil lifts and the flight departs — the
   // first thing a visitor ever sees is the city already golden and in motion.
   function revealAndIntro() {
-    const doIntro = new URLSearchParams(window.location.search).get('intro') !== '0';
+    const q = new URLSearchParams(window.location.search);
+    const doTour = q.get('tour') === '1';           // ?tour=1 replaces the intro
+    const doIntro = !doTour && q.get('intro') !== '0';
     const flight = doIntro ? primeIntro() : null;
     let revealed = false;
     const reveal = () => {
@@ -448,6 +451,7 @@
         setTimeout(() => { const v = document.getElementById('veil'); if (v) v.remove(); }, 2600);
       }
       if (flight) flight.fly();
+      else if (doTour) startTour();
     };
     map.once('idle', reveal);
     setTimeout(reveal, INTRO.maxVeilMs);
@@ -608,6 +612,61 @@
     window.addEventListener('wheel', stop, { capture: true, passive: true });
     window.addEventListener('keydown', stop, true);
   }
+
+  // ── The Forty Acres tour ──────────────────────────────────────────
+  // A pre-authored tracking shot through the campus landmarks: down the Drag,
+  // up the South Mall to the Tower, a quarter-orbit, across to DKR, and a long
+  // settle back into the sunset. T starts it (and ?tour=1 starts it in place
+  // of the intro — ?clip=1&tour=1 is a pure footage run). Any input ends it
+  // where it is. Every waypoint is a one-line taste edit.
+  const TOUR = [
+    // [center,                zoom,  pitch, bearing, ms]
+    // Every hero arrival is followed by a short push-in dwell, so the postcard
+    // is HELD on screen instead of existing for a single frame between legs.
+    [[-97.7414, 30.2838],      16.6,  73,    160,     8000],   // south down the Drag
+    [[-97.7394, 30.2841],      16.95, 75,    5,       7500],   // arrive: South Mall, Tower ahead
+    [[-97.73935, 30.2848],     17.1,  74.5,  5,       4000],   // dwell: push in on the Tower
+    [[-97.73932, 30.28601],    17.0,  73,    62,      8000],   // quarter-orbit the Tower
+    [[-97.7335, 30.2839],      16.5,  71,    95,      9000],   // glide to DKR
+    [[-97.7333, 30.28396],     16.62, 71.5,  95,      3500],   // dwell: push in on DKR
+    [[SPAWN.center[0], SPAWN.center[1]], SPAWN.zoom, SPAWN.pitch, SPAWN.bearing, 10500], // home into the sunset
+  ];
+  let _tourStop = null;
+  function startTour() {
+    if (_tourStop) _tourStop();
+    let cancelled = false, timer = null;
+    const evts = ['pointerdown', 'wheel', 'keydown', 'touchstart'];
+    const stop = () => {
+      if (cancelled) return;
+      cancelled = true;
+      clearTimeout(timer);
+      if (map.isEasing && map.isEasing()) map.stop();
+      evts.forEach(t => window.removeEventListener(t, stop, true));
+      _tourStop = null;
+    };
+    _tourStop = stop;
+    // Deferred a tick so the T keydown that started us doesn't also stop us.
+    setTimeout(() => { if (!cancelled) evts.forEach(t => window.addEventListener(t, stop, true)); }, 80);
+    let i = 0;
+    const leg = () => {
+      if (cancelled || i >= TOUR.length) { if (!cancelled) stop(); return; }
+      const [center, zoom, pitch, bearing, ms] = TOUR[i++];
+      map.easeTo({ center, zoom, pitch, bearing, duration: ms,
+                   easing: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 },  // ease-in-out
+                 { tour: true });
+      timer = setTimeout(leg, ms + 80);
+    };
+    leg();
+  }
+  function initTourKey() {
+    window.addEventListener('keydown', e => {
+      if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      startTour();
+    });
+  }
+  window.__startTour = startTour;   // for scripted verification
 
   // ── Photo mode ────────────────────────────────────────────────────
   // P toggles the same chrome-free view as ?clip=1 — for lining up a shot
