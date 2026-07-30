@@ -70,6 +70,15 @@ jobs:
       - name: Build PMTiles
         run: bash scripts/tile.sh
 
+      # THIS STEP IS LOAD-BEARING. buildings.detailed.geojson is what the front
+      # end actually fetches; buildings.enriched.geojson is only an input to it.
+      # Without this the snapshot is born dead — update_manifest.py refuses to
+      # publish it (which is the fail-safe that has twice stopped a broken
+      # `latest` reaching the live site), so the new data silently never appears.
+      # That happened for both 2026-07-27 and 2026-07-30 before this step existed.
+      - name: Bake render-ready detail (colours, parts, hero designs)
+        run: python3 scripts/bake_detail.py "${{ env.SNAPSHOT_DATE }}"
+
       - name: Diff against previous snapshot
         if: steps.prev.outputs.prev != '' && steps.prev.outputs.prev != env.SNAPSHOT_DATE
         run: |
