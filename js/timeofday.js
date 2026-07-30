@@ -342,6 +342,7 @@
 
     if (typeof updateShadows === 'function') updateShadows(map, p);
     if (typeof window.applyGroundColors === 'function') window.applyGroundColors(map, p);
+    if (typeof window.applyPropColors === 'function') window.applyPropColors(map, p);
 
     safePaint(map, 'trees-canopy', 'fill-extrusion-color',
       ['interpolate', ['linear'], ['get', 'h'], 6, s.canopyLo, 15, s.canopyHi]);

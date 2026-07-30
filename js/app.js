@@ -187,6 +187,7 @@
       // After the buildings exist (initGround inserts itself UNDER them) and
       // before shadows, so the swept shadows land on the real surfaces.
       step('ground',   () => { if (typeof initGround === 'function') initGround(map); });
+      step('props',    () => { if (typeof initProps === 'function') initProps(map); });
       step('shadows',  () => initShadows(map, scene.buildings.features, p));
       step('detail',   () => addDetailLayers(scene));
       step('labels',   () => addLabelLayers());
