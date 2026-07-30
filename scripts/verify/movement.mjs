@@ -10,7 +10,9 @@
  *        node verify-movement.mjs --report   (print the table, never fail)
  */
 import { chromium } from 'playwright-core';
-import { chromePath } from './chrome.mjs';
+// BASE honours VERIFY_URL so parallel worktrees can each test their own serve
+// (chrome.mjs has exported it for this purpose all along). No assertion change.
+import { chromePath, BASE } from './chrome.mjs';
 const EXE = chromePath();
 const REPORT_ONLY = process.argv.includes('--report');
 
@@ -19,13 +21,29 @@ const browser = await chromium.launch({ executablePath: EXE, headless: true,
 const page = await browser.newPage({ viewport: { width: 800, height: 560 } });
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
-await page.goto('http://127.0.0.1:8099/index.html?intro=0', { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(5000);
 
 await page.evaluate(() => {
   const m = window.__map;
-  window.__reset = (b, z, p) => m.jumpTo({ center: [-97.7434, 30.2857], zoom: z ?? 16.5, pitch: p ?? 64, bearing: b ?? 90 });
+  // README trap: a seeded jumpTo is OVERWRITTEN on the next frame while the
+  // controller still owns the camera — and since the camera-feel pass the
+  // ownership tail after keyup is ~8 s (bob/settle wind-down), not ~3 s.
+  // Measured failure mode of the old sync reset: every leg's pose reset was
+  // silently ignored, positions accumulated ~230 m per leg, and the diagonal
+  // legs ran into the soft data fence, which crushed vel.n — a stable-looking
+  // diagonal/cardinal of 0.73 that was really the fence, not the input math.
+  // Returning a promise makes every page.evaluate(__reset) call wait it out.
+  window.__reset = (b, z, p) => new Promise(res => {
+    const tryIt = () => {
+      if (!window.__fly.eye().driving) {
+        m.jumpTo({ center: [-97.7434, 30.2857], zoom: z ?? 16.5, pitch: p ?? 64, bearing: b ?? 90 });
+        res();
+      } else setTimeout(tryIt, 120);
+    };
+    tryIt();
+  });
   window.__idle = () => !window.__fly.eye().driving;
   window.__cam = () => {
     const c = m.getCenter();
@@ -55,14 +73,22 @@ async function speedOnce(keys, bearing, ms = 2500) {
   // Measure against the camera's OWN integrated time (__fly.simTime), not the
   // wall clock: headless swiftshader renders at ~4 fps here, so wall-clock
   // speed would be a property of the renderer, not of the movement system.
+  //
+  // And measure the EYE (__fly.eye()), not map.getCenter(): center = eye +
+  // alt*tan(pitch) along the bearing, and since the camera-feel pass the
+  // rendered pitch carries dynamic output offsets (speed pitch, bob), so the
+  // lead length breathes during a run. Measured: center-based speed read a
+  // stable diagonal/cardinal of 0.73 while the eye moved at exactly 56.71 m/s
+  // on BOTH headings — the old ruler was measuring the feel offsets, not the
+  // movement. The eye is the movement system's state; measure that.
   for (const k of keys) await page.keyboard.down(k);
   await page.waitForTimeout(1500);           // spend the acceleration ramp first
-  const before = await page.evaluate(() => ({ cam: window.__cam(), t: window.__fly.simTime() }));
+  const before = await page.evaluate(() => ({ e: window.__fly.eye(), t: window.__fly.simTime() }));
   await page.waitForTimeout(ms);
-  const after = await page.evaluate(() => ({ cam: window.__cam(), t: window.__fly.simTime() }));
+  const after = await page.evaluate(() => ({ e: window.__fly.eye(), t: window.__fly.simTime() }));
   for (const k of keys) await page.keyboard.up(k);
   await page.waitForTimeout(900);
-  const m = await page.evaluate(([a, b]) => window.__metres(a, b), [before.cam, after.cam]);
+  const m = await page.evaluate(([a, b]) => window.__metres(a, b), [before.e, after.e]);
   const dtSim = after.t - before.t;
   return dtSim < 0.3 ? NaN : m / dtSim;      // too few ticks to be meaningful
 }

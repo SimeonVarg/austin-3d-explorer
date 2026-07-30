@@ -475,6 +475,215 @@ FRAME — always screenshot twice and trust the second.
 
 ---
 
+## 22. July 30 2026 — the ground pass (make it read like campus)
+
+The complaint: the intro flies past the UT Tower and the ground under it is
+empty — flat green, undifferentiated grey, nothing at people scale. It read
+like a basemap with buildings pushed up.
+
+### 22.1 The rule that governs this whole pass
+
+**Position factual, form generative, and say which is which.** Every script
+here prints its own provenance block. Nothing is scattered for looks.
+
+### 22.2 What was sourced, and from where
+
+| Layer | Count | Position source |
+|---|---|---|
+| paths/plazas/lawns/water/pitches (`ground.geojson`) | 2,881 | OSM |
+| trees (`trees.geojson`) | 2,572 | city survey 878, OSM 489, **aerial imagery 1,205** |
+| art / furniture / construction (`props.geojson`) | 501 | OSM |
+| pitched roofs (`roofs.geojson`) | 26 buildings | terracotta tile read off aerial imagery |
+
+**`scripts/survey_ground.py` caches every raw Overpass response under
+`data/osm_cache/`** so nothing depends on that flaky API twice. Two hard-won
+notes: an Overpass union group needs a `;` after it or every mirror answers
+400 Bad Request (reads exactly like an outage), and running the queries back
+to back earns a 429 then a cascade of 504s — pace them.
+
+### 22.3 The tree problem, and the imagery answer
+
+Neither survey covers the malls: OSM has 498 trees in the bbox and **none** on
+them; the City of Austin inventory (Socrata `wrik-xasw`) has 1,566 with species
+and trunk diameter and **none** on them either — the city surveys city land and
+UT is state property. Its coverage also sits mostly at the eastern edge, leaving
+the spawn and the flight corridor with **2 trees between them**.
+
+So `scripts/detect_canopy.py` reads crowns off current nadir aerial imagery —
+legitimate, and how OSM itself is made. Canopy separates from lawn on the two
+things that actually differ: a crown is **darker** than mown grass and far more
+**textured** at 0.26 m/px. `--debug` draws every detection onto the photograph,
+which is how they were accepted by eye: crowns land on real trees, the open
+South Mall lawn correctly stays empty with live oaks along its edges, and the
+roofs and Littlefield Fountain stay untreed.
+
+**NOTE for whoever reads this next: the "USGS LiDAR already in this project" is
+Overture's LiDAR-*derived building heights*, not a point cloud.** There are no
+vegetation returns to mine. That premise was checked and is false.
+
+### 22.4 Roofs — the loudest generated-look tell
+
+`fill-extrusion` has exactly one roof shape: flat. WHICH buildings have tile
+(therefore pitched) roofs is **sourced**: each footprint is scored for
+terracotta against the imagery, calibrated on the only ground truth available —
+Sutton Hall (OSM `hipped`) scores 0.58, University Teaching Center (OSM `flat`)
+scores 0.00, and the campus spread is sharply bimodal. The SHAPE is generative:
+six stepped inset caps. Offsetting a long rectangle inward collapses its short
+axis to a line, so an elongated hall grows its own ridge. Reads as a pitch at
+flying altitude; reads as steps up close, which is stated, not hidden.
+
+### 22.5 Two measurement lessons
+
+- **The paths rendered correctly from the first try and were still invisible.**
+  Concrete at luma 185 on a ground of 188.5 is 3.5 points of separation. Proved
+  with a magenta pass (6.2% of frame) before touching anything, then fixed by
+  dropping the catch-all `ground` from a pale sand to a mid warm grey.
+- **Tree density is a parameter, not a cull.** Measured: the full set cost
+  ~6–7 fps; the ground fills were within noise. Every tree carries `d`, a
+  keep-order biased by crown size, so thinning drops small trees first and the
+  mean canopy height *rises* 9.3 m → 13.8 m. `GFX.treeDensity` is in the menu.
+  Back to 0 dropped-min / 59.4 fps at balanced.
+
+### 22.6 Still missing (asked, not guessed)
+
+Org tents on Speedway, the Jester courtyard interior, construction at the Tower
+base and the Catholic Center, food carts, and parked cars are **not placed** —
+no source carries them and the brief forbids guessing. See the report.
+
+## 21. July 30 2026 (overnight) — the beauty pass
+
+*(Being written as the night progresses; the morning report finalises it.)*
+
+The brief: nothing is broken, tonight is about beauty. AWS is putting footage of
+this app on the official Kiro channels; Simeon picks what to film in the
+morning. Bar: a stranger scrolling stops. Branch: `feat/night-beauty`.
+
+### 21.0 THE TOP NEXT ITEM — the snapshot data (deliberately NOT touched tonight)
+
+The biggest real product gap is the data story: two distinct datasets and a diff
+of twelve unnamed sheds. It is open-ended data work with uncertain payoff, which
+is why the overnight brief explicitly excluded it. **Whoever picks this project
+up next: start here.** Make the snapshot dates mean something — real diffs of
+real named buildings between real dates — or fold the date UI away until the
+data earns it. Nothing tonight touched `data/` or the diff pipeline.
+
+### 21.1 The opening frame (framing pass, main session)
+
+- The app now opens at **p = 0.50, peak golden hour** (`TOD_DEFAULT_P`,
+  js/timeofday.js) — it used to open at 0.12, a pale flat morning that hid the
+  app's best hour. Chosen against p = 0.47 by rendering both: at 0.47 the sun
+  sits just above a portrait frame leaving a halo ring; at 0.50 the disc
+  anchors the frame. `?p=<0..1>` overrides the opening hour for filming.
+- **Spawn pose faces the sunset**: pitch 74 / bearing 250 (was 64 / 90). At
+  pitch 64 a portrait frame kept ~6% sky and the golden-hour sun was BEHIND the
+  camera; now the horizon sits about a fifth from the top and the disc, god
+  rays and lens ghosts are all in frame. (`SPAWN`, js/app.js.)
+- **The intro travels**: it starts low over campus ~430 m east and flies west
+  down the 24th St canyon into the tower cluster, settling on the sunset pose —
+  two chained easeTo legs, every value in the `INTRO` block (js/app.js).
+  Verified frame-by-frame (portrait): towers pass the frame edges, no geometry
+  clipping, and with the auto-detect probe cancelled the flight lands on the
+  exact spawn pose. The probe used to stomp the ease mid-flight — the fix
+  (probe defers while `map.isEasing()`) belongs to graphics.js.
+- **The white void is gone**: a brand-dark `#veil` (index.html/style.css) holds
+  an authored title card from the first paint until the map's first idle frame
+  (capped by `INTRO.maxVeilMs`), then lifts as the flight departs. The first
+  thing a visitor ever sees is the city already golden and in motion.
+- **`?clip=1` cinematic capture mode**: hides all chrome (HUD, hints, panels,
+  joystick, gear, toast) for filming; attribution stays for the license.
+- **Phone chrome shrink** (style.css ≤640/≤520 blocks): the time-of-day pill
+  dropped from 278 px (a third of a 390×844 frame) to ~210 px; the HUD loses
+  the snapshot line on small screens; attribution links dimmed from orange to
+  quiet cream. OSM ghost labels no longer smudge the spawn frame — the
+  buildings-labels fade ramp now starts below the spawn zoom (16.8→17.5).
+
+### 21.2 Presence (main session)
+
+- **Idle cinema** (`DRIFT`, js/app.js): after 25 s of input silence the camera
+  begins a slow tagged-easeTo orbit with the hour creeping forward (bouncing at
+  day/night). Any input — or any untagged camera movement — reclaims control
+  instantly. Gated out of the pixel harness via `__HARNESS`; `?drift=0` for
+  scripted runs. Verified drift-check.mjs 4/4.
+- **Landmark orbit** (`ORBIT`, js/app.js): tap a rendered sign label → the
+  camera glides to that building and slowly circles it; any input ends it.
+  Verified orbit-check.mjs 4/4 (glide lands 0.3 m from the sign). Honest test
+  lesson: only RENDERED labels are tappable, and glyphs load late under load —
+  the test waits for the label like a human would.
+- **The Forty Acres tour** (`TOUR`, js/app.js): T or `?tour=1` flies a ~50 s
+  authored route — the Drag, the South Mall with a held push-in dwell on the
+  UT Tower postcard, a quarter-orbit, DKR with its own dwell, and a long
+  settle home into the sunset. `?clip=1&tour=1` is a pure footage run. First
+  cut was rejected by looking (Tower beat sampled mid-swing, Dobie dominated);
+  dwell beats fixed it. tour-check.mjs 2/2.
+- **Photo mode**: P toggles the same chrome-free view as `?clip=1`, live.
+
+### 21.3 The night city (night workstream, merged)
+
+Windows: five colour temperatures with weights (`WINDOW_TONES`, facades.js) —
+warm incandescent through TV-blue — per-pane brightness with a dim tail, 5%
+hot panes, and occupancy de-lockstepped from `bucketIdx % 5` to a continuous
+per-(family × bucket) hash with per-family baselines (towers dimmest).
+Streetlights: 1,201 lamps (482 major sodium / 719 minor warm) sampled from the
+basemap's transportation geometry after idle, two circle layers inserted below
+the extrusions so towers occlude, opacity ramping p 0.58→0.85 (`LIGHTS`,
+night.js). Parking decks go cool-fluorescent after dark. Height falloff inside
+a building was SKIPPED honestly: the facade tile repeats in world space every
+~20 m of height, so it is not expressible without faking it badly.
+
+**Harness truth learned tonight — the stock silhouette.mjs night check is
+racy.** Cross-run evidence: bit-identical PASS values (55.8/21.2) and
+bit-identical FAIL values (10.2/16.2) each appeared at MULTIPLE different
+commits — the failure follows machine load, not code. Mechanism: its
+single-column scan can "hit" a building at its very first row (y=0.05, deep in
+the sky at that pose), after which it samples a dark tower wall as "sky". The
+corrected ruler is `night-silhouette.mjs` (parts layers in the scan, sky
+sampled above the computed horizon, median of 7 columns): night margin +20.9
+on the merged tree. Its dusk half races the facade-atlas repaint under load —
+`night-dusk-truth.mjs` (steady-state, atlas-byte read) is the reliable dusk
+pattern, and the steady-state p=0.66 frame was verified correct by eye.
+
+### 21.4 Light (light workstream, merged)
+
+Filmic tone curve: exposure+contrast+curve baked into ONE SVG
+`feComponentTransfer` LUT in the canvas filter chain (CSS clamps between
+stages, so a separate brightness() would destroy what the shoulder recovers);
+identity mid-band, Hermite toe/shoulder; `TONE` block + `GFX.filmic` slider.
+Verified by pixels: golden flat-255 plateau 0.227%→0%, night flat-black
+0.96%→0%. Auto-exposure: 40×24 mean-luma meter per frame, open-loop
+(pre-grade, cannot pump), EMA τ=900 ms, clamps 0.85–1.20, target follows the
+HOUR's authored luma (a fixed mid-grey target would re-grade the intentional
+high-key day / dark night); `GFX.autoExposure`. God rays weighted by angle
+from horizontal (ink ratio 3.42 vs 1.16 uniform) — glare streaks, not a
+starburst. Second-sun ghost killed (sky-ghost ink −34–42% at every bearing).
+The auto-detect probe now DEFERS while map.isEasing() (it was stomping the
+new intro mid-flight) and is silent unless it actually downgrades. Vignette
+tints by hour (`VIG_HOURS`). Clouds carry a lit rim and shaded base; a Belt
+of Venus rises anti-solar at dusk (p 0.50–0.70); bright stars twinkle with no
+new rAF loop. Perf: interleaved A/B vs a pristine baseline — dropped-min 0
+both, p50 18.0 ms both; the whole pass costs less than run-to-run noise.
+
+### 21.5 Motion (motion workstream, merged — with two suite lessons)
+
+Bank roll into turns (native MapLibre roll, capability-checked), FOV kick
+under speed, hover bob + landing settle, speed-adaptive pitch, and wall
+deflection (damped + steered toward the freer side) — all as derived OUTPUT
+offsets around writeToMap; the eye/alt/bearing/pitch state and every
+collision guarantee untouched; everything in one `TUNE` block, live-tunable
+via `__fly.tune`. Roll and FOV are hard-reset on every hand-back plus a
+self-heal on the idle path. The agent died before finalising; its one
+COMMITTED increment was merged and re-verified here (motion-feel 19/19,
+movement 14/14 ×2, collision 8/8); its uncommitted wall-deflection iteration
+was left out — unverified code doesn't ship.
+
+Two movement.mjs defects the feel pass exposed (both now fixed in-file):
+the speed ruler measured map.getCenter() — eye + a lead that now breathes
+with dynamic pitch — instead of the eye; and __reset was a bare jumpTo that
+the controller overwrote while it owned the camera (ownership now lasts ~8 s
+after keyup for the bob wind-down), so positions accumulated leg over leg
+until the DIAGONAL legs hit the soft data fence — a rock-stable-looking
+diagonal/cardinal of 0.73 that was really the fence crushing vel.n. The eye
+moved at exactly 56.71 m/s on both headings throughout.
+
 ## 20. July 29 2026 (later) — performance, the graphics menu, and a real sky
 
 Five things were reported at once: the desktop was "super laggy"; the phone was

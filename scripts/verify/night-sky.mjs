@@ -1,12 +1,11 @@
+﻿// night-workstream copy of sky.mjs - identical assertions, but honours VERIFY_URL
+// (the original hardcodes :8099, which is a DIFFERENT checkout when worktrees run in parallel)
 /**
- * verify-sky.mjs — assert the sky is COHERENT, not just pretty.
+ * verify-sky.mjs â€” assert the sky is COHERENT, not just pretty.
  * The central claim is "one sun": the ground shadows, MapLibre's light and the
  * visible disc must all agree. That is measurable, so measure it.
  */
 import { chromium } from 'playwright-core';
-// BASE (not a hardcoded 8099): every other script honours VERIFY_URL via
-// chrome.mjs, and with several worktrees serving different code on different
-// ports, a hardcoded port here silently asserts SOMEONE ELSE'S build.
 import { chromePath, BASE } from './chrome.mjs';
 const EXE = chromePath();
 const browser = await chromium.launch({ executablePath: EXE, headless: true,
@@ -21,7 +20,7 @@ await page.waitForTimeout(4500);
 const results = [];
 const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
 
-// ── 1. Shadows point away from the sun, at every hour ──────────────
+// â”€â”€ 1. Shadows point away from the sun, at every hour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 {
   const rows = await page.evaluate(async () => {
     const m = window.__map;
@@ -30,7 +29,7 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
       window.applyTimeOfDay(m, p);
       // updateShadows debounces ~140 ms, then setData, and THEN the GeoJSON
       // source re-tiles in a worker. Reading too early returns the previous
-      // hour's shadows — which is what made this test claim a 43 deg error.
+      // hour's shadows â€” which is what made this test claim a 43 deg error.
       await new Promise(r => setTimeout(r, 400));
       await new Promise(res => {
         let done = false;
@@ -88,10 +87,10 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
     if (reach < 1.0) continue;                 // covered by the shortening assertion below
     const expected = (r.sunAz + 180) % 360;
     const err = Math.abs(((r.shadowAz - expected + 540) % 360) - 180);
-    check(`shadows point away from the sun at p=${r.p} (sun ${r.sunElev.toFixed(0)}° up)`,
-      err < 20, `sun az ${r.sunAz.toFixed(0)}° → shadows ${r.shadowAz.toFixed(0)}°, expected ~${expected.toFixed(0)}° (off ${err.toFixed(0)}°)`);
+    check(`shadows point away from the sun at p=${r.p} (sun ${r.sunElev.toFixed(0)}Â° up)`,
+      err < 20, `sun az ${r.sunAz.toFixed(0)}Â° â†’ shadows ${r.shadowAz.toFixed(0)}Â°, expected ~${expected.toFixed(0)}Â° (off ${err.toFixed(0)}Â°)`);
   }
-  // Physically: the lower the sun, the longer the shadows — but shadows.js caps
+  // Physically: the lower the sun, the longer the shadows â€” but shadows.js caps
   // reach at MAX_LENGTH = 2.4 building heights on purpose, so that at any
   // elevation below ~22.6 deg the length stops growing. Encode the cap, or the
   // assertion fails on correct behaviour (21 deg and 6 deg are both capped and
@@ -100,7 +99,7 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
   const eff = e => Math.min(MAX_REACH, 1 / Math.tan(e * Math.PI / 180));
   const bySun = rows.filter(r => r.n).sort((a, b) => b.sunElev - a.sunElev);   // highest sun first
   let ok = true;
-  const detail = bySun.map(r => `${r.sunElev.toFixed(0)}°(reach ${eff(r.sunElev).toFixed(2)})→${Math.round(r.meanArea)}m²`);
+  const detail = bySun.map(r => `${r.sunElev.toFixed(0)}Â°(reach ${eff(r.sunElev).toFixed(2)})â†’${Math.round(r.meanArea)}mÂ²`);
   for (let i = 1; i < bySun.length; i++) {
     const a = bySun[i - 1], c = bySun[i];
     if (eff(c.sunElev) > eff(a.sunElev) * 1.02) {
@@ -112,7 +111,7 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
   check('shadow size tracks the sun elevation, respecting the 2.4x reach cap', ok, detail.join('  '));
 }
 
-// ── 2. MapLibre's light agrees with the same sun ───────────────────
+// â”€â”€ 2. MapLibre's light agrees with the same sun â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 {
   const rows = await page.evaluate(async () => {
     const m = window.__map, out = [];
@@ -130,18 +129,18 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
     worstAz = Math.max(worstAz, Math.abs(((r.lightAz - r.sunAz + 540) % 360) - 180));
     worstEl = Math.max(worstEl, Math.abs((90 - r.lightPolar) - r.sunElev));
   }
-  check('setLight azimuth equals the shared sun azimuth', worstAz < 0.5, `worst mismatch ${worstAz.toFixed(2)}°`);
-  check('setLight polar equals 90 minus the sun elevation', worstEl < 0.5, `worst mismatch ${worstEl.toFixed(2)}°`);
+  check('setLight azimuth equals the shared sun azimuth', worstAz < 0.5, `worst mismatch ${worstAz.toFixed(2)}Â°`);
+  check('setLight polar equals 90 minus the sun elevation', worstEl < 0.5, `worst mismatch ${worstEl.toFixed(2)}Â°`);
 }
 
-// ── 3. The disc projects where the geometry says it should ─────────
+// â”€â”€ 3. The disc projects where the geometry says it should â”€â”€â”€â”€â”€â”€â”€â”€â”€
 {
   const r = await page.evaluate(async () => {
     const m = window.__map;
     window.applyTimeOfDay(m, 0.5);
     const sun = window.skyBodies(0.5).sun;
     // Aim at the sun's azimuth and pitch as far up as the map allows. maxPitch is
-    // 85, so the sun will sit ABOVE the view axis, not on it — which is exactly
+    // 85, so the sun will sit ABOVE the view axis, not on it â€” which is exactly
     // what makes this a real test of the projection rather than a tautology.
     m.jumpTo({ center: [-97.7434, 30.2857], zoom: 16.4, bearing: sun.az, pitch: 85 });
     await new Promise(r => setTimeout(r, 900));
@@ -168,12 +167,12 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
   check('sun disc lands where the camera geometry predicts',
     dx < 6 && dy < 8,
     `disc at (${r.cx?.toFixed(0)}, ${r.cy?.toFixed(0)}), predicted (${r.expectedX.toFixed(0)}, ${r.expectedY.toFixed(0)}) ` +
-    `for sun elev ${r.sun.elev}° vs view axis ${r.axisElev}°`);
+    `for sun elev ${r.sun.elev}Â° vs view axis ${r.axisElev}Â°`);
   check('sun disc is visible when in front of the camera',
     r.opacity > 0.2, `opacity ${r.opacity}`);
 }
 
-// ── 4. Behind the camera the disc must be hidden ───────────────────
+// â”€â”€ 4. Behind the camera the disc must be hidden â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 {
   const o = await page.evaluate(async () => {
     const m = window.__map;
@@ -187,7 +186,7 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
     `core ${o.core}, bloom ${o.bloom}`);
 }
 
-// ── 5. The sun must be gone once it sets, and the moon must show ───
+// â”€â”€ 5. The sun must be gone once it sets, and the moon must show â”€â”€â”€
 {
   const o = await page.evaluate(async () => {
     const m = window.__map;
@@ -203,7 +202,7 @@ const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
     o.sunUp === false && o.core > 0.2, `sunUp=${o.sunUp}, disc opacity ${o.core}, night=${o.night.toFixed(2)}`);
 }
 
-// ── 6. Nothing in the sky may hide a building ─────────────────────
+// â”€â”€ 6. Nothing in the sky may hide a building â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 {
   const o = await page.evaluate(() => {
     const ids = ['sky-canvas', 'sky-glow', 'sky-bloom', 'sky-core'];

@@ -1,0 +1,6 @@
+[
+ {"name":"clouds-day",    "p":0.25, "gfx":"cinematic", "center":[-97.7434,30.2857], "zoom":16.4, "pitch":84, "bearing":90},
+ {"name":"clouds-golden", "p":0.49, "gfx":"cinematic", "center":[-97.7434,30.2857], "zoom":16.4, "pitch":84, "bearing":250},
+ {"name":"belt-east",     "p":0.58, "gfx":"cinematic", "center":[-97.7434,30.2857], "zoom":16.4, "pitch":84, "bearing":86},
+ {"name":"night-stars",   "p":0.95, "gfx":"cinematic", "center":[-97.7434,30.2857], "zoom":16.4, "pitch":84, "bearing":20}
+]

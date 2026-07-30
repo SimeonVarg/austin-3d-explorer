@@ -1,6 +1,24 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1a1208}
 #map{position:absolute;inset:0}
+
+/* ── First paint: an authored dark hold instead of a white void ───────
+   The basemap paints a pale plain long before our scene exists — the first
+   ~2.7 s used to be chrome floating on a near-white void. The veil holds the
+   brand dark until the first fully-built frame (map idle, capped by
+   INTRO.maxVeilMs in app.js), then lifts as the intro flight departs. */
+#veil{position:absolute;inset:0;z-index:60;background:#140c04;display:flex;align-items:center;justify-content:center;
+  transition:opacity 1.15s ease;pointer-events:none}
+#veil.lift{opacity:0}
+#veil-mark{display:flex;flex-direction:column;align-items:center;gap:15px;animation:veil-in 1.2s ease}
+#veil-mark svg{filter:drop-shadow(0 6px 22px rgba(245,166,35,.28))}
+#veil-title{font-size:12px;font-weight:600;letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;
+  color:#f5dfa0;opacity:.85}
+@keyframes veil-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── ?clip=1: cinematic capture — scene only. Attribution stays (license). */
+.clip #hud,.clip #controls-hint,.clip #date-panel,.clip #tod-panel,.clip #joystick-zone,
+.clip #debug-panel,.clip #diff-banner,.clip #gfx-button,.clip #gfx-panel,.clip #gfx-toast{display:none!important}
 /* Sky overlay (js/sky.js): sun/moon disc, bloom, azimuth-anchored horizon glow,
    stars and clouds. Everything here uses `mix-blend-mode:screen` so it can only
    ADD light — a 97 m tower crossing the horizon line picks up bloom instead of
@@ -211,17 +229,31 @@ html.has-touch #joystick-zone{display:block}
   #gfx-presets{grid-template-columns:1fr 1fr 1fr 1fr}
   .gfx-name{flex:0 0 96px}
   #gfx-toast{bottom:auto;top:56px}
+  /* The time-of-day pill measured 278 px tall on a 390x844 phone — a third of
+     the frame parked over the scene's heart. Same control, ~24% smaller. */
+  #tod-slider-wrap{height:112px;width:28px}
+  #tod-slider{width:112px}
+  #tod-panel{gap:7px;padding:10px 7px}
+  #tod-sun,#tod-moon{font-size:12px}
+  #tod-play{width:26px;height:26px;font-size:10px}
+  #date-select{max-width:112px;font-size:12px}
 }
 
-.maplibregl-ctrl-attrib{font-size:10px!important;background:rgba(20,12,4,.6)!important;color:rgba(245,223,160,.6)!important}
-.maplibregl-ctrl-attrib a{color:rgba(245,166,35,.8)!important}
+/* Attribution: present (license) but quiet — the old orange links were the
+   brightest text in every golden-hour frame. */
+.maplibregl-ctrl-attrib{font-size:10px!important;background:rgba(20,12,4,.55)!important;color:rgba(245,223,160,.5)!important;opacity:.75}
+.maplibregl-ctrl-attrib a{color:rgba(245,223,160,.65)!important}
 .maplibregl-ctrl-top-left,.maplibregl-ctrl-top-right{display:none}
 
 /* Narrow screens: the hint and the attribution bar sat on top of each other,
    and the snapshot picker crowded the joystick. */
 @media(max-width:520px){
   #controls-hint{bottom:38px;font-size:10.5px;padding:5px 12px}
-  #hud{max-width:calc(100vw - 32px)}
+  #hud{max-width:calc(100vw - 32px);padding:6px 16px}
+  #hud-title{font-size:11px}
+  /* The date pill already shows the snapshot date — the HUD needn't repeat it
+     on a frame this small. */
+  #hud-snapshot{display:none}
   #date-panel{bottom:96px;right:12px;padding:6px 9px}
   #date-label{display:none}
   #tod-panel{right:8px;padding:10px 7px}

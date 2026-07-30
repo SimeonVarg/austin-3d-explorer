@@ -1,0 +1,5 @@
+[
+ {"name":"R1-halls-close",  "p":0.50, "gfx":"cinematic", "center":[-97.73870,30.28510], "zoom":18.0, "pitch":66, "bearing":300},
+ {"name":"R2-mall-halls",   "p":0.50, "gfx":"cinematic", "center":[-97.73935,30.28480], "zoom":17.4, "pitch":72, "bearing":10},
+ {"name":"R3-day-halls",    "p":0.25, "gfx":"cinematic", "center":[-97.73870,30.28510], "zoom":18.0, "pitch":66, "bearing":300}
+]

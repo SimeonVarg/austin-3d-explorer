@@ -21,10 +21,15 @@
 
   // Spawn inside the West Campus tower cluster (Dobie, Castilian, Skyloft,
   // Moontower, Ion nearby) so you're among buildings on load, not on a lawn.
-  // Pitch 64 + a 58° vertical FOV keep the horizon (and the v5 sky gradient)
-  // on screen — at the default 36.87° FOV the sky is invisible below ~71°.
-  const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 64, bearing: 90 };
-  const DEFAULT_P = (typeof window.TOD_DEFAULT_P === 'number') ? window.TOD_DEFAULT_P : 0.30;
+  // Pitch 74 (was 64) holds the horizon about a fifth from the top of a
+  // portrait frame instead of a tenth — the sky work is finally IN the phone
+  // frame. Bearing 250 faces the golden-hour sun (az ≈ 247–256 near p = 0.5)
+  // instead of leaving it behind the camera. Both are one-line taste edits.
+  const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 74, bearing: 250 };
+  // ?p=0.32 overrides the opening hour for filming without touching the UI.
+  const urlP = parseFloat(new URLSearchParams(window.location.search).get('p'));
+  const DEFAULT_P = (isFinite(urlP) && urlP >= 0 && urlP <= 1) ? urlP
+    : (typeof window.TOD_DEFAULT_P === 'number') ? window.TOD_DEFAULT_P : 0.30;
 
   const COLOR_DEBUG = ['match',['get','source_height'],'overture','#4CAF50','hero_override','#9C27B0','#FF9800'];
   const BUILDING_OPACITY = 1.0, BUILDING_OPACITY_DEBUG = 0.88;
@@ -179,11 +184,17 @@
       // logs "image not found" and paints the walls transparent.
       step('facades',  () => initFacades(map, p));
       step('buildings',() => addBuildingLayers(scene));
+      // After the buildings exist (initGround inserts itself UNDER them) and
+      // before shadows, so the swept shadows land on the real surfaces.
+      step('ground',   () => { if (typeof initGround === 'function') initGround(map); });
+      step('props',    () => { if (typeof initProps === 'function') initProps(map); });
       step('shadows',  () => initShadows(map, scene.buildings.features, p));
+      step('roofs',    () => addRoofLayers());
       step('detail',   () => addDetailLayers(scene));
       step('labels',   () => addLabelLayers());
     }
     step('signs',    () => initSigns(map, scene && scene.signs));
+    step('night',    () => { if (typeof initNight === 'function') initNight(map); });
     step('sky',      () => initSky(map));
     step('haze',     () => initAtmosphere(map));
     // After sky (renderFX is driven from updateSky) and after the layers exist,
@@ -194,7 +205,14 @@
     step('dates',    () => { if (manifest) initDateSwitcher(map, manifest, activeDate, onDateChanged); });
     step('debug',    () => { applyDebugVisibility(); wireDebugToggle(); });
     step('tod',      () => { applyTimeOfDay(map, p); initTimeOfDayUI(map, p); });
-    step('intro',    () => startIntro());
+    step('reveal',   () => revealAndIntro());
+    // Never in the pixel harness: a camera that starts moving on its own mid-
+    // assertion is exactly the flake the trap list warns about. Drift is
+    // verified through index.html scripts instead.
+    step('idle',     () => { if (!window.__HARNESS) initIdleCinema(); });
+    step('orbit',    () => initLandmarkOrbit());
+    step('tour',     () => initTourKey());
+    step('photo',    () => initPhotoKey());
   }
 
   // ── Building layers ───────────────────────────────────────────────
@@ -296,6 +314,47 @@
     }
   };
 
+  // Tree density: 1.0 draws every tree, 0.5 keeps the biggest half, and so on.
+  // Lives on GFX so the graphics menu and the auto-detect probe can move it.
+  window.treeFilter = function treeFilter(kind) {
+    const dens = (window.GFX && typeof window.GFX.treeDensity === 'number')
+      ? window.GFX.treeDensity : 1;
+    return dens >= 1
+      ? ['==', ['get', 'kind'], kind]
+      : ['all', ['==', ['get', 'kind'], kind], ['<=', ['get', 'd'], dens]];
+  };
+  window.applyTreeDensity = function applyTreeDensity(map) {
+    for (const [id, kind] of [['trees-trunk', 'trunk'], ['trees-canopy', 'canopy']]) {
+      try { if (map.getLayer(id)) map.setFilter(id, window.treeFilter(kind)); } catch (e) {}
+    }
+  };
+
+  // ── Pitched roofs on the historic halls ───────────────────────────
+  // fill-extrusion has exactly one roof shape — flat — and a campus of flat
+  // prisms is the loudest tell that a scene is generated. data/roofs.geojson
+  // (scripts/bake_roofs.py) approximates a hip with STEPPED INSET CAPS.
+  // WHICH buildings is factual: each footprint was scored for terracotta tile
+  // against nadir aerial imagery, calibrated on the buildings OSM tags with
+  // roof:shape (Sutton Hall hipped → 0.58, University Teaching Center flat →
+  // 0.00). The stepped SHAPE is generative and reads as a pitch from the air.
+  window.addRoofLayers = function addRoofLayers() {
+    if (map.getSource('austin-roofs')) return;
+    map.addSource('austin-roofs', { type:'geojson', data:'data/roofs.geojson' });
+    if (!map.getLayer('roofs-pitched')) {
+      map.addLayer({
+        id:'roofs-pitched', type:'fill-extrusion', source:'austin-roofs', minzoom:14,
+        paint:{
+          // Same baked per-feature colours as the wall cap it sits on, so the
+          // two can never drift apart across the day.
+          'fill-extrusion-color':['to-color',['get','rd']],
+          'fill-extrusion-height':['get','h'],
+          'fill-extrusion-base':['get','b'],
+          'fill-extrusion-opacity':1.0,
+        },
+      });
+    }
+  };
+
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──
   function addDetailLayers(sc) {
     if (!map.getSource('austin-parts')) {
@@ -323,10 +382,16 @@
     if (!map.getSource('austin-trees')) {
       map.addSource('austin-trees', { type:'geojson', data:'data/trees.geojson' });
     }
+    // Tree DENSITY is a parameter, not a cull. Every tree carries `d`, a
+    // keep-order in 0..1 biased so that thinning drops the small trees first
+    // and keeps the big live oaks — which are what you actually see from 60 m.
+    // Measured at 1440x900: the full set costs ~6-7 fps against trees-off, and
+    // the trees are the cost (the ground fills are within noise). So the knob
+    // exists and the presets set it; nothing is silently dropped.
     if (!map.getLayer('trees-trunk')) {
       map.addLayer({
         id:'trees-trunk', type:'fill-extrusion', source:'austin-trees',
-        minzoom:14, filter:['==',['get','kind'],'trunk'],
+        minzoom:14, filter:window.treeFilter('trunk'),
         paint:{
           'fill-extrusion-color':'#6b4f38',
           'fill-extrusion-height':['get','h'],
@@ -338,7 +403,7 @@
     if (!map.getLayer('trees-canopy')) {
       map.addLayer({
         id:'trees-canopy', type:'fill-extrusion', source:'austin-trees',
-        minzoom:14, filter:['==',['get','kind'],'canopy'],
+        minzoom:14, filter:window.treeFilter('canopy'),
         paint:{
           'fill-extrusion-color':['interpolate',['linear'],['get','h'],6,'#93ad70',15,'#5f7d4a'],
           'fill-extrusion-height':['get','h'],
@@ -378,14 +443,17 @@
     map.addLayer({
       id:'buildings-labels', type:'symbol',
       source:'austin-buildings',
-      minzoom:16.4, filter:['==',['get','lbl'],1],
+      // Held back until you descend BELOW the spawn zoom (16.5): at spawn the
+      // curated signs carry the identity, and the old 16.4 start meant dozens
+      // of 10–40%-opacity ghost labels smudging the hero frame.
+      minzoom:16.7, filter:['==',['get','lbl'],1],
       layout:{
         'text-field':['get','name'],
         // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
         // server — a missing fontstack 404s and MapLibre discards the whole
         // tile it was needed for.
         'text-font':['Noto Sans Regular'],
-        'text-size':['interpolate',['linear'],['zoom'],16.4,10,18,12,19.5,14],
+        'text-size':['interpolate',['linear'],['zoom'],16.7,10,18,12,19.5,14],
         'text-anchor':'center', 'text-offset':[0,-0.6],
         'text-max-width':7, 'text-padding':9,
         'text-allow-overlap':false,
@@ -393,20 +461,60 @@
       },
       paint:{
         'text-color':'#f3e6cd','text-halo-color':'rgba(24,14,5,0.9)','text-halo-width':1.3,
-        'text-opacity':['interpolate',['linear'],['zoom'],16.4,0,17.1,0.82],
+        'text-opacity':['interpolate',['linear'],['zoom'],16.8,0,17.5,0.82],
       },
     });
   }
 
   // ── Cinematic intro ───────────────────────────────────────────────
-  // A slow dolly-in on load. It costs nothing and it's the difference between
-  // "a map loaded" and "a place opened". Any input cancels it immediately.
-  function startIntro() {
-    if (new URLSearchParams(window.location.search).get('intro') === '0') return;
-    let cancelled = false;
+  // A real journey now, not a dolly around a fixed centre: the flight starts
+  // low over campus ~430 m east of the spawn, runs west down the 24th Street
+  // canyon with the towers rising past the frame edges, then sweeps into the
+  // spawn pose facing the sunset. Any input cancels it immediately.
+  // Every value here is a one-line taste edit.
+  const INTRO = {
+    startEastM: 430,                     // where the flight begins, m east of spawn
+    midEastM: 80,                        // leg-1 endpoint, m east of spawn
+    startZoom: 17.25, midZoom: 16.85,    // low over the street → rising
+    startPitch: 70,   midPitch: 72,      // street-focused → lifting the eyes
+    startBearing: 274, midBearing: 266,  // near-west the whole run…
+    leg1Ms: 6200, leg2Ms: 5200,          // …then the arrival settle onto SPAWN
+    maxVeilMs: 7000,                     // a stalled tile must never hold a black screen
+  };
+
+  // The veil (see index.html/#veil) holds an authored dark frame over the
+  // basemap's pale first paint. The intro start pose is primed UNDER the veil,
+  // so the tiles it needs are loading before anything is visible; on the first
+  // idle frame (or the timeout) the veil lifts and the flight departs — the
+  // first thing a visitor ever sees is the city already golden and in motion.
+  function revealAndIntro() {
+    const q = new URLSearchParams(window.location.search);
+    const doTour = q.get('tour') === '1';           // ?tour=1 replaces the intro
+    const doIntro = !doTour && q.get('intro') !== '0';
+    const flight = doIntro ? primeIntro() : null;
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      const veil = document.getElementById('veil');
+      if (veil) {
+        veil.classList.add('lift');
+        veil.addEventListener('transitionend', () => veil.remove(), { once: true });
+        setTimeout(() => { const v = document.getElementById('veil'); if (v) v.remove(); }, 2600);
+      }
+      if (flight) flight.fly();
+      else if (doTour) startTour();
+    };
+    map.once('idle', reveal);
+    setTimeout(reveal, INTRO.maxVeilMs);
+  }
+
+  function primeIntro() {
+    let cancelled = false, leg2Timer = null;
     const cancel = () => {
       if (cancelled) return;
       cancelled = true;
+      clearTimeout(leg2Timer);
       map.stop();
       // Land on the full spawn pose. Stopping mid-ease used to strand the
       // camera at whatever partial zoom/pitch the tween had reached.
@@ -417,13 +525,211 @@
     const off = () => evts.forEach(e => window.removeEventListener(e, cancel, true));
     evts.forEach(e => window.addEventListener(e, cancel, true));
 
-    map.jumpTo({ center: SPAWN.center, zoom: SPAWN.zoom - 1.35, pitch: 52, bearing: SPAWN.bearing - 30 });
-    map.easeTo({
-      center: SPAWN.center, zoom: SPAWN.zoom, pitch: SPAWN.pitch, bearing: SPAWN.bearing,
-      duration: 9000,
-      easing: t => 1 - Math.pow(1 - t, 3),   // ease-out cubic: fast settle, long drift
+    const eastOf = m => [
+      SPAWN.center[0] + m / (111195.08 * Math.cos(SPAWN.center[1] * Math.PI / 180)),
+      SPAWN.center[1],
+    ];
+    map.jumpTo({ center: eastOf(INTRO.startEastM), zoom: INTRO.startZoom,
+                 pitch: INTRO.startPitch, bearing: INTRO.startBearing });
+
+    const fly = () => {
+      if (cancelled) return;
+      map.easeTo({ center: eastOf(INTRO.midEastM), zoom: INTRO.midZoom,
+                   pitch: INTRO.midPitch, bearing: INTRO.midBearing,
+                   duration: INTRO.leg1Ms,
+                   easing: t => 0.5 - 0.5 * Math.cos(Math.PI * t) });  // gentle both ends
+      leg2Timer = setTimeout(() => {
+        if (cancelled) return;
+        map.easeTo({ center: SPAWN.center, zoom: SPAWN.zoom, pitch: SPAWN.pitch, bearing: SPAWN.bearing,
+                     duration: INTRO.leg2Ms,
+                     easing: t => 1 - Math.pow(1 - t, 3) });           // long settle
+        setTimeout(off, INTRO.leg2Ms + 600);
+      }, INTRO.leg1Ms + 30);
+    };
+    return { fly };
+  }
+
+  // ── Idle cinema ───────────────────────────────────────────────────
+  // After DRIFT.idleMs of input silence the camera begins a slow orbital
+  // drift and the hour creeps forward — an unattended screen becomes a
+  // screensaver of the city instead of a frozen frame. Any input (or any
+  // camera movement that isn't ours) returns control instantly.
+  // ?drift=0 disables it for scripted runs against index.html.
+  const DRIFT = {
+    idleMs: 25000,      // input silence before the drift starts
+    stepMs: 12000,      // one easing leg
+    bearingStep: 13,    // degrees per leg, clockwise toward the sun's set point
+    pStep: 0.010,       // hour creep per leg (bounces at 0 and 1)
+    zoomBreathe: 0.05,  // gentle alternating zoom in/out per leg
+  };
+  function initIdleCinema() {
+    if (new URLSearchParams(window.location.search).get('drift') === '0') return;
+    let idleTimer = null, legTimer = null, drifting = false, legIx = 0, pDir = 1;
+    const banner = document.getElementById('diff-banner');
+    const canRun = () => document.visibilityState === 'visible' &&
+                         (!banner || banner.classList.contains('hidden')) &&
+                         !(window.__fly && window.__fly.eye().driving) &&
+                         !(map.isEasing && map.isEasing());
+    const stop = () => {
+      if (drifting && map.isEasing && map.isEasing()) map.stop();
+      drifting = false;
+      clearTimeout(legTimer);
+    };
+    const rearm = () => { stop(); clearTimeout(idleTimer); idleTimer = setTimeout(begin, DRIFT.idleMs); };
+    const begin = () => {
+      if (!canRun()) { clearTimeout(idleTimer); idleTimer = setTimeout(begin, DRIFT.idleMs); return; }
+      drifting = true;
+      legIx = 0;
+      leg();
+    };
+    const leg = () => {
+      if (!drifting) return;
+      // The hour creeps unless the auto day-cycle is already driving it.
+      const play = document.getElementById('tod-play');
+      if (!(play && play.classList.contains('playing'))) {
+        let p = (window.__todCurrentP != null ? window.__todCurrentP : DEFAULT_P) + pDir * DRIFT.pStep;
+        if (p >= 1) { p = 1; pDir = -1; } else if (p <= 0) { p = 0; pDir = 1; }
+        const sl = document.getElementById('tod-slider');
+        if (sl) sl.value = String(p);
+        applyTimeOfDay(map, p);
+      }
+      legIx++;
+      map.easeTo({
+        bearing: map.getBearing() - DRIFT.bearingStep,
+        zoom: map.getZoom() + (legIx % 2 ? DRIFT.zoomBreathe : -DRIFT.zoomBreathe),
+        duration: DRIFT.stepMs,
+        easing: t => t,                       // linear: constant, calm
+      }, { drift: true });
+      legTimer = setTimeout(leg, DRIFT.stepMs + 60);
+    };
+    // Camera movement that is NOT drift-tagged re-arms the countdown; our own
+    // legs are tagged so the drift cannot reset itself.
+    map.on('movestart', e => { if (!e || !e.drift) rearm(); });
+    ['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(t =>
+      window.addEventListener(t, rearm, { capture: true, passive: true }));
+    rearm();
+  }
+
+  // ── Landmark orbit ────────────────────────────────────────────────
+  // Tap a landmark sign and the camera glides to that building and slowly
+  // circles it. Any input hands control straight back. A tap is a press under
+  // ORBIT.tapMs that moved less than ORBIT.tapPx — everything else is a look
+  // swipe and never reaches here.
+  const ORBIT = {
+    zoom: 17.1, pitch: 73,      // the framing the approach settles on
+    approachMs: 2400,           // glide to the landmark
+    legMs: 9000, bearingStep: 40,  // one slow circling leg (linear, chained)
+    tapMs: 350, tapPx: 9, hitPad: 14,
+  };
+  function initLandmarkOrbit() {
+    const canvas = map.getCanvas();
+    let downAt = 0, downX = 0, downY = 0;
+    let orbiting = false, legTimer = null;
+    const stop = () => {
+      if (!orbiting) return;
+      orbiting = false;
+      clearTimeout(legTimer);
+      if (map.isEasing && map.isEasing()) map.stop();
+    };
+    canvas.addEventListener('pointerdown', e => {
+      downAt = performance.now(); downX = e.clientX; downY = e.clientY;
+      stop();                              // touching the world during an orbit ends it
     });
-    setTimeout(off, 9600);
+    canvas.addEventListener('pointerup', e => {
+      if (performance.now() - downAt > ORBIT.tapMs) return;
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > ORBIT.tapPx) return;
+      let hits = [];
+      try {
+        const p = ORBIT.hitPad;
+        // Only RENDERED labels can be hit — which is the correct contract: you
+        // tap a sign you can see. (A not-yet-rendered label is not tappable.)
+        hits = map.queryRenderedFeatures(
+          [[e.clientX - p, e.clientY - p], [e.clientX + p, e.clientY + p]],
+          { layers: ['signs-label'] });
+      } catch (err) { return; }
+      const f = hits && hits[0];
+      if (!f || !f.geometry || f.geometry.type !== 'Point') return;
+      const target = f.geometry.coordinates.slice(0, 2);
+      orbiting = true;
+      map.easeTo({ center: target, zoom: ORBIT.zoom, pitch: ORBIT.pitch,
+                   duration: ORBIT.approachMs }, { orbit: true });
+      const leg = () => {
+        if (!orbiting) return;
+        map.easeTo({ bearing: map.getBearing() + ORBIT.bearingStep,
+                     duration: ORBIT.legMs, easing: t => t }, { orbit: true });
+        legTimer = setTimeout(leg, ORBIT.legMs + 50);
+      };
+      legTimer = setTimeout(leg, ORBIT.approachMs + 60);
+    });
+    window.addEventListener('wheel', stop, { capture: true, passive: true });
+    window.addEventListener('keydown', stop, true);
+  }
+
+  // ── The Forty Acres tour ──────────────────────────────────────────
+  // A pre-authored tracking shot through the campus landmarks: down the Drag,
+  // up the South Mall to the Tower, a quarter-orbit, across to DKR, and a long
+  // settle back into the sunset. T starts it (and ?tour=1 starts it in place
+  // of the intro — ?clip=1&tour=1 is a pure footage run). Any input ends it
+  // where it is. Every waypoint is a one-line taste edit.
+  const TOUR = [
+    // [center,                zoom,  pitch, bearing, ms]
+    // Every hero arrival is followed by a short push-in dwell, so the postcard
+    // is HELD on screen instead of existing for a single frame between legs.
+    [[-97.7414, 30.2838],      16.6,  73,    160,     8000],   // south down the Drag
+    [[-97.7394, 30.2841],      16.95, 75,    5,       7500],   // arrive: South Mall, Tower ahead
+    [[-97.73935, 30.2848],     17.1,  74.5,  5,       4000],   // dwell: push in on the Tower
+    [[-97.73932, 30.28601],    17.0,  73,    62,      8000],   // quarter-orbit the Tower
+    [[-97.7335, 30.2839],      16.5,  71,    95,      9000],   // glide to DKR
+    [[-97.7333, 30.28396],     16.62, 71.5,  95,      3500],   // dwell: push in on DKR
+    [[SPAWN.center[0], SPAWN.center[1]], SPAWN.zoom, SPAWN.pitch, SPAWN.bearing, 10500], // home into the sunset
+  ];
+  let _tourStop = null;
+  function startTour() {
+    if (_tourStop) _tourStop();
+    let cancelled = false, timer = null;
+    const evts = ['pointerdown', 'wheel', 'keydown', 'touchstart'];
+    const stop = () => {
+      if (cancelled) return;
+      cancelled = true;
+      clearTimeout(timer);
+      if (map.isEasing && map.isEasing()) map.stop();
+      evts.forEach(t => window.removeEventListener(t, stop, true));
+      _tourStop = null;
+    };
+    _tourStop = stop;
+    // Deferred a tick so the T keydown that started us doesn't also stop us.
+    setTimeout(() => { if (!cancelled) evts.forEach(t => window.addEventListener(t, stop, true)); }, 80);
+    let i = 0;
+    const leg = () => {
+      if (cancelled || i >= TOUR.length) { if (!cancelled) stop(); return; }
+      const [center, zoom, pitch, bearing, ms] = TOUR[i++];
+      map.easeTo({ center, zoom, pitch, bearing, duration: ms,
+                   easing: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 },  // ease-in-out
+                 { tour: true });
+      timer = setTimeout(leg, ms + 80);
+    };
+    leg();
+  }
+  function initTourKey() {
+    window.addEventListener('keydown', e => {
+      if (e.code !== 'KeyT' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      startTour();
+    });
+  }
+  window.__startTour = startTour;   // for scripted verification
+
+  // ── Photo mode ────────────────────────────────────────────────────
+  // P toggles the same chrome-free view as ?clip=1 — for lining up a shot
+  // live without reloading. Ignored while a form control has focus.
+  function initPhotoKey() {
+    window.addEventListener('keydown', e => {
+      if (e.code !== 'KeyP' || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
+      document.documentElement.classList.toggle('clip');
+    });
   }
 
   // ── Date change ───────────────────────────────────────────────────

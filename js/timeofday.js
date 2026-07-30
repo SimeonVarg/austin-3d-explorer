@@ -22,8 +22,11 @@
 (function () {
   'use strict';
 
-  // Late-morning default: full palette variety visible, faint warmth.
-  const TOD_DEFAULT_P = 0.12;
+  // The opening hour. Golden hour is the best hour this app has — violet→rose→
+  // orange sky, god rays, amber walls — and it used to open at 0.12, a pale flat
+  // morning that hid all of it. 0.50 is peak golden (sun ~6° up in the WSW).
+  // One-line taste override; 0.12 is the old late-morning look.
+  const TOD_DEFAULT_P = 0.50;
 
   // ── Scene keyframes (everything not carried by the facade patterns) ──
   //
@@ -39,7 +42,13 @@
       sky: '#5d94cf', horizon: '#c8e0f0', fog: '#c4dcee',
       skyBlend: 0.72, horizonBlend: 0.92, fogGround: 0.08,
       lightColor: '#ffeeda', lightIntensity: 0.28, lightPosition: [1.15, 205, 32],
-      ground: '#ded3bc', park: '#a9c489', road: '#e2dac7', roadCasing: '#bfb49d',
+      // `ground` is the catch-all under everything OSM does not classify. It
+      // used to be a pale sand (#ded3bc, luma 208) — brighter than a concrete
+      // path, so the real walked paths in ground.geojson were invisible
+      // against it (measured: 3.5 luma of separation at golden hour, which is
+      // nothing). Dropped to a mid warm grey so pale paving reads light on it
+      // and asphalt reads dark, which is what a campus actually looks like.
+      ground: '#b0a898', park: '#a9c489', road: '#e2dac7', roadCasing: '#bfb49d',
       water: '#8fbccd',
       canopy: '#7d9a62', canopyLo: '#93ad70', canopyHi: '#5f7d4a', trunk: '#6b4f38',
       pitch: '#94b573', fountain: '#a5cbd8',
@@ -50,7 +59,7 @@
       sky: '#6a2a4a', horizon: '#ffb45e', fog: '#ffb45e',
       skyBlend: 0.86, horizonBlend: 0.94, fogGround: 0.06,
       lightColor: '#ffd7a8', lightIntensity: 0.30, lightPosition: [1.35, 252, 76],
-      ground: '#d9b98c', park: '#a9a866', road: '#e8c79a', roadCasing: '#b78c60',
+      ground: '#b3936f', park: '#a9a866', road: '#e8c79a', roadCasing: '#b78c60',
       water: '#c9a184',
       canopy: '#8a935a', canopyLo: '#a3a468', canopyHi: '#6a7343', trunk: '#5f4632',
       pitch: '#a2a768', fountain: '#d4b894',
@@ -329,9 +338,12 @@
     if (!window.__debugActive) {
       safePaint(map, 'buildings-roof','fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
       safePaint(map, 'parts-roof',    'fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
+      safePaint(map, 'roofs-pitched', 'fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
     }
 
     if (typeof updateShadows === 'function') updateShadows(map, p);
+    if (typeof window.applyGroundColors === 'function') window.applyGroundColors(map, p);
+    if (typeof window.applyPropColors === 'function') window.applyPropColors(map, p);
 
     safePaint(map, 'trees-canopy', 'fill-extrusion-color',
       ['interpolate', ['linear'], ['get', 'h'], 6, s.canopyLo, 15, s.canopyHi]);
@@ -347,9 +359,21 @@
     for (const id of _roadLines)   safePaint(map, id, 'line-color', _casings.has(id) ? s.roadCasing : s.road);
 
     safePaint(map, 'buildings-labels', 'text-halo-color', s.labelHalo);
+    // OSM labels recede after dark: the curated brand signage is the night
+    // story, and the full-white names outshone the lit windows themselves.
+    // Ramp stops mirror the layer definition in app.js (16.8 → 17.5).
+    {
+      const OSM_LABEL_NIGHT_DIM = 0.45;   // 0 = untouched, 1 = invisible at night
+      const nightAmt = (typeof window.skyBodies === 'function') ? window.skyBodies(p).night : 0;
+      const lblMax = 0.82 * (1 - OSM_LABEL_NIGHT_DIM * nightAmt);
+      safePaint(map, 'buildings-labels', 'text-opacity',
+        ['interpolate', ['linear'], ['zoom'], 16.8, 0, 17.5, +lblMax.toFixed(3)]);
+    }
 
     // Curated branded landmark signs (signs.js) — glow + ground light pools.
     if (typeof applySignGlowLayer === 'function') applySignGlowLayer(map, s.signGlow, p);
+    // Streetlights (night.js) — lamp pools fade up through dusk.
+    if (typeof applyNightLayer === 'function') applyNightLayer(map, p);
 
     if (typeof setHazeColor === 'function') setHazeColor(s.fog, s.haze);
     if (typeof updateSky === 'function') updateSky(map, p);

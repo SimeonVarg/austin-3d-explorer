@@ -1,0 +1,5 @@
+[
+ {"name":"spawn-golden", "p":0.47, "gfx":"cinematic", "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"spawn-day",    "p":0.12, "gfx":"balanced",  "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"spawn-night",  "p":0.90, "gfx":"cinematic", "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90}
+]
