@@ -522,6 +522,51 @@ data earns it. Nothing tonight touched `data/` or the diff pipeline.
   quiet cream. OSM ghost labels no longer smudge the spawn frame — the
   buildings-labels fade ramp now starts below the spawn zoom (16.8→17.5).
 
+### 21.2 Presence (main session)
+
+- **Idle cinema** (`DRIFT`, js/app.js): after 25 s of input silence the camera
+  begins a slow tagged-easeTo orbit with the hour creeping forward (bouncing at
+  day/night). Any input — or any untagged camera movement — reclaims control
+  instantly. Gated out of the pixel harness via `__HARNESS`; `?drift=0` for
+  scripted runs. Verified drift-check.mjs 4/4.
+- **Landmark orbit** (`ORBIT`, js/app.js): tap a rendered sign label → the
+  camera glides to that building and slowly circles it; any input ends it.
+  Verified orbit-check.mjs 4/4 (glide lands 0.3 m from the sign). Honest test
+  lesson: only RENDERED labels are tappable, and glyphs load late under load —
+  the test waits for the label like a human would.
+- **The Forty Acres tour** (`TOUR`, js/app.js): T or `?tour=1` flies a ~50 s
+  authored route — the Drag, the South Mall with a held push-in dwell on the
+  UT Tower postcard, a quarter-orbit, DKR with its own dwell, and a long
+  settle home into the sunset. `?clip=1&tour=1` is a pure footage run. First
+  cut was rejected by looking (Tower beat sampled mid-swing, Dobie dominated);
+  dwell beats fixed it. tour-check.mjs 2/2.
+- **Photo mode**: P toggles the same chrome-free view as `?clip=1`, live.
+
+### 21.3 The night city (night workstream, merged)
+
+Windows: five colour temperatures with weights (`WINDOW_TONES`, facades.js) —
+warm incandescent through TV-blue — per-pane brightness with a dim tail, 5%
+hot panes, and occupancy de-lockstepped from `bucketIdx % 5` to a continuous
+per-(family × bucket) hash with per-family baselines (towers dimmest).
+Streetlights: 1,201 lamps (482 major sodium / 719 minor warm) sampled from the
+basemap's transportation geometry after idle, two circle layers inserted below
+the extrusions so towers occlude, opacity ramping p 0.58→0.85 (`LIGHTS`,
+night.js). Parking decks go cool-fluorescent after dark. Height falloff inside
+a building was SKIPPED honestly: the facade tile repeats in world space every
+~20 m of height, so it is not expressible without faking it badly.
+
+**Harness truth learned tonight — the stock silhouette.mjs night check is
+racy.** Cross-run evidence: bit-identical PASS values (55.8/21.2) and
+bit-identical FAIL values (10.2/16.2) each appeared at MULTIPLE different
+commits — the failure follows machine load, not code. Mechanism: its
+single-column scan can "hit" a building at its very first row (y=0.05, deep in
+the sky at that pose), after which it samples a dark tower wall as "sky". The
+corrected ruler is `night-silhouette.mjs` (parts layers in the scan, sky
+sampled above the computed horizon, median of 7 columns): night margin +20.9
+on the merged tree. Its dusk half races the facade-atlas repaint under load —
+`night-dusk-truth.mjs` (steady-state, atlas-byte read) is the reliable dusk
+pattern, and the steady-state p=0.66 frame was verified correct by eye.
+
 ## 20. July 29 2026 (later) — performance, the graphics menu, and a real sky
 
 Five things were reported at once: the desktop was "super laggy"; the phone was
