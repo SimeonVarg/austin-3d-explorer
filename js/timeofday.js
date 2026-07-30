@@ -34,14 +34,17 @@
   // The sky fog values are still passed through so the dome itself reads right.
   const PRESETS = {
     day: {
-      sky: '#21529f', horizon: '#b7daec', fog: '#b7daec',
-      skyBlend: 0.5, horizonBlend: 0.92, fogGround: 0.08,
+      // sky/horizon/fog/skyBlend/haze are OWNED BY `ROUTES` below — these values
+      // are the p=0 anchors and must stay equal to the route's first key.
+      sky: '#5d94cf', horizon: '#c8e0f0', fog: '#c4dcee',
+      skyBlend: 0.72, horizonBlend: 0.92, fogGround: 0.08,
       lightColor: '#ffeeda', lightIntensity: 0.28, lightPosition: [1.15, 205, 32],
       ground: '#ded3bc', park: '#a9c489', road: '#e2dac7', roadCasing: '#bfb49d',
       water: '#8fbccd',
       canopy: '#7d9a62', canopyLo: '#93ad70', canopyHi: '#5f7d4a', trunk: '#6b4f38',
       pitch: '#94b573', fountain: '#a5cbd8',
       signGlow: 0, labelHalo: 'rgba(24,14,5,0.9)', vignette: 0.10, haze: 0.92,
+      exposure: 1.00, contrast: 1.03, saturation: 1.02,
     },
     golden: {
       sky: '#6a2a4a', horizon: '#ffb45e', fog: '#ffb45e',
@@ -52,10 +55,11 @@
       canopy: '#8a935a', canopyLo: '#a3a468', canopyHi: '#6a7343', trunk: '#5f4632',
       pitch: '#a2a768', fountain: '#d4b894',
       signGlow: 0.42, labelHalo: 'rgba(46,18,0,0.88)', vignette: 0.26, haze: 0.72,
+      exposure: 1.02, contrast: 1.07, saturation: 1.14,
     },
     night: {
       sky: '#040713', horizon: '#2c3a63', fog: '#3a4a72',
-      skyBlend: 0.6, horizonBlend: 0.9, fogGround: 0.1,
+      skyBlend: 0.60, horizonBlend: 0.9, fogGround: 0.1,
       // Near-zero intensity on purpose. MapLibre's extrusion lighting washes
       // faces toward a warm mid-tone as intensity rises: at 0.3 the baked navy
       // roof #10121d renders #312c1b (measured), which put an olive tarp over
@@ -67,6 +71,7 @@
       canopy: '#111a14', canopyLo: '#16211a', canopyHi: '#0c130f', trunk: '#100d0c',
       pitch: '#0d1512', fountain: '#0e1c30',
       signGlow: 1.0, labelHalo: 'rgba(4,4,12,0.92)', vignette: 0.38, haze: 0.55,
+      exposure: 0.95, contrast: 1.08, saturation: 0.88,
     },
   };
 
@@ -87,18 +92,43 @@
   function lerpArr(a, b, t) { return a.map((v,i) => lerpNum(v, b[i], t)); }
   function clamp01(v) { return Math.max(0, Math.min(1, v)); }
 
-  // Twilight cannot be a straight RGB lerp. Interpolating golden→night directly
-  // drags the highest-alpha layers through desaturated tan and then dead-neutral
-  // grey — measured: haze colour (174,123,87) khaki at p=0.65 and (74,60,62) at
-  // p=0.875. Real twilight goes orange → rose → violet → deep blue and never
-  // loses its saturation. These four tracks override the linear result for
-  // p > 0.5; their p=0.50 and p=1.00 keys equal PRESETS.golden and PRESETS.night
-  // exactly, so there is no discontinuity at either end of the sweep.
-  const DUSK = {
-    sky:     [[0.50, '#6a2a4a'], [0.60, '#3a1c48'], [0.72, '#10173a'], [1.00, '#040713']],
-    horizon: [[0.50, '#ffb45e'], [0.60, '#b0526a'], [0.72, '#3a4780'], [1.00, '#2c3a63']],
-    fog:     [[0.50, '#ffb45e'], [0.60, '#965460'], [0.72, '#33406e'], [1.00, '#3a4a72']],
-    haze:    [[0.50, 0.72],      [0.60, 0.68],      [0.72, 0.60],      [1.00, 0.55]],
+  // ── The sky route ─────────────────────────────────────────────────
+  //
+  // The sky cannot be a straight lerp between three presets. Interpolating
+  // golden→night directly drags the highest-alpha layers through desaturated tan
+  // and then dead-neutral grey; interpolating day→golden is worse, because
+  // #21529f→#6a2a4a passes through PURPLE — measured, the rendered sky at p=0.30
+  // was #4d3a6c, a dark violet, for the whole middle of the afternoon.
+  //
+  // So both halves are routed. The day half stays blue, pales, and only then
+  // swings warm; the evening half goes orange → rose → violet → deep blue and
+  // never loses saturation. Keys at p=0.00/0.50/1.00 equal the matching PRESETS
+  // field exactly, so nothing can step at a boundary.
+  //
+  // Two things were also wrong with the DAY sky independent of the route.
+  // Measured at the top of the visible band: #284e97 — S 58%, L 37%, against
+  // roughly S 40-55% / L 55-70% for a real clear sky. Too dark and slightly too
+  // saturated is exactly what reads as "deep blue, like I'm in space", so the
+  // day zenith is lighter and a touch greener in hue (211° vs 226°, which was
+  // drifting toward indigo). And `sky-horizon-blend` was 0.5, which kept the
+  // pale horizon colour so low that at any flying pitch you saw almost pure
+  // zenith; 0.72 spreads the pale band up into the part of the sky you can
+  // actually see.
+  const ROUTES = {
+    sky: [
+      [0.00, '#5d94cf'], [0.25, '#5a8ec6'], [0.40, '#5f7ba8'], [0.50, '#6a2a4a'],
+      [0.60, '#3a1c48'], [0.72, '#10173a'], [1.00, '#040713'],
+    ],
+    horizon: [
+      [0.00, '#c8e0f0'], [0.25, '#d8e3ec'], [0.40, '#f4d2a6'], [0.50, '#ffb45e'],
+      [0.60, '#b0526a'], [0.72, '#3a4780'], [1.00, '#2c3a63'],
+    ],
+    fog: [
+      [0.00, '#c4dcee'], [0.25, '#d4e0ea'], [0.40, '#f2cfa2'], [0.50, '#ffb45e'],
+      [0.60, '#965460'], [0.72, '#33406e'], [1.00, '#3a4a72'],
+    ],
+    haze:     [[0.00, 0.92], [0.50, 0.72], [0.60, 0.68], [0.72, 0.60], [1.00, 0.55]],
+    skyBlend: [[0.00, 0.72], [0.40, 0.80], [0.50, 0.86], [0.72, 0.70], [1.00, 0.60]],
   };
   function duskAt(keys, p) {
     if (p <= keys[0][0]) return keys[0][1];
@@ -125,7 +155,9 @@
       else if (av[0] === '#')          out[k] = lerpHex(av, bv, t);
       else                             out[k] = t < 0.5 ? av : bv; // rgba strings snap
     }
-    if (p > 0.5) for (const k of Object.keys(DUSK)) out[k] = duskAt(DUSK[k], p);
+    // Routed fields win over the linear preset blend across the WHOLE range,
+    // not just p > 0.5 as before.
+    for (const k of Object.keys(ROUTES)) out[k] = duskAt(ROUTES[k], p);
     return out;
   }
 
@@ -259,11 +291,10 @@
 
     if (!heavy) {
       // Cheap per-frame work only: the sky overlay is camera-dependent and must
-      // not be quantised, and the vignette is a single style write.
+      // not be quantised, and the grade is a handful of style writes.
       if (typeof updateSky === 'function') updateSky(map, p);
       if (typeof setHazeColor === 'function') setHazeColor(s.fog, s.haze);
-      const vigFast = document.getElementById('vignette');
-      if (vigFast) vigFast.style.opacity = String(s.vignette);
+      applyGradeFor(s);
       return;
     }
 
@@ -323,6 +354,23 @@
     if (typeof setHazeColor === 'function') setHazeColor(s.fog, s.haze);
     if (typeof updateSky === 'function') updateSky(map, p);
 
+    applyGradeFor(s);
+  }
+
+  /**
+   * Hand the hour's colour grade to graphics.js, which multiplies it by the
+   * user's own exposure/contrast/saturation/vignette offsets. The vignette used
+   * to be written straight to the element from here, so the graphics menu's
+   * vignette slider was overwritten on the next time-of-day tick.
+   */
+  function applyGradeFor(s) {
+    if (typeof window.setGrade === 'function') {
+      window.setGrade({
+        exposure: s.exposure, contrast: s.contrast,
+        saturation: s.saturation, vignette: s.vignette,
+      });
+      return;
+    }
     const vig = document.getElementById('vignette');
     if (vig) vig.style.opacity = String(s.vignette);
   }

@@ -34,10 +34,20 @@ page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 await page.goto(BASE, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4000);
+// The graphics auto-detect probe rewrites every setting 11 s after load, which
+// would silently change the look halfway through a shot list.
+await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 
 for (const s of SHOTS) {
   await page.evaluate(async (s) => {
     const m = window.__map;
+    // `gfx` is either a preset name or an object of overrides, so a shot list can
+    // compare quality levels side by side.
+    if (s.gfx && window.GFX) {
+      if (typeof s.gfx === 'string' && window.GFX_PRESETS[s.gfx]) Object.assign(window.GFX, window.GFX_PRESETS[s.gfx]);
+      else if (typeof s.gfx === 'object') Object.assign(window.GFX, s.gfx);
+      window.applyGraphics();
+    }
     if (s.center) m.jumpTo({ center: s.center, zoom: s.zoom ?? 16.5, pitch: s.pitch ?? 64, bearing: s.bearing ?? 90 });
     if (typeof s.p === 'number') {
       const sl = document.getElementById('tod-slider'); if (sl) sl.value = String(s.p);

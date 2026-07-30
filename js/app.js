@@ -125,11 +125,20 @@
       container:'map', style:'https://tiles.openfreemap.org/styles/liberty',
       center:SPAWN.center, zoom:SPAWN.zoom, pitch:SPAWN.pitch, bearing:SPAWN.bearing,
       maxPitch:85, scrollZoom:false, attributionControl:{ compact:true },
-      // v5: antialias moved into canvasContextAttributes
-      canvasContextAttributes: { antialias: true },
+      // v5: antialias moved into canvasContextAttributes. It defaults OFF here
+      // because it is the most expensive single option in the whole app —
+      // measured over a 4 s flight at 2560x1400, turning MSAA off took dropped
+      // frames from 128 to 53. There is no way to change it on a live WebGL
+      // context, so it has to be read from the saved settings at construction;
+      // the graphics menu offers it with a reload prompt.
+      // preserveDrawingBuffer is what lets the bloom pass read the rendered frame
+      // back out (graphics.js). It is not free, so it is only requested when the
+      // saved settings actually want bloom.
+      canvasContextAttributes: { antialias: !!window.GFX_MSAA, preserveDrawingBuffer: !!window.GFX_PDB },
     });
     window.__map = map;
-    if (typeof map.setVerticalFieldOfView === 'function') map.setVerticalFieldOfView(58);
+    if (typeof map.setVerticalFieldOfView === 'function')
+      map.setVerticalFieldOfView((window.GFX && window.GFX.fov) || 58);
 
     map.on('error', (e) => {
       const msg = (e && e.error && e.error.message) ? e.error.message : 'unknown';
@@ -177,6 +186,9 @@
     step('signs',    () => initSigns(map, scene && scene.signs));
     step('sky',      () => initSky(map));
     step('haze',     () => initAtmosphere(map));
+    // After sky (renderFX is driven from updateSky) and after the layers exist,
+    // because applyGraphics() toggles buildings-ao / buildings-shadow.
+    step('graphics', () => initGraphics(map));
     step('basemap',  () => cleanupBasemap(map));
     step('controls', () => initControls(map, scene));
     step('dates',    () => { if (manifest) initDateSwitcher(map, manifest, activeDate, onDateChanged); });
@@ -192,6 +204,32 @@
   const NO_PARTS = ['!', ['has', 'has_parts']];
   const CAP_MIN_HEIGHT = 2.5; // sheds don't get a parapet cap
 
+  // Parapet cap geometry. It used to be `base: h - 1.2, height: h + 0.4` — a cap
+  // whose side faces were EXACTLY COPLANAR with the wall's over a 1.2 m band.
+  // Two coplanar surfaces with different colours is textbook z-fighting: which
+  // one wins is decided by depth-buffer rounding, so it flips as the camera
+  // moves. Desktop's 24-bit depth mostly hides it; a phone's does not, which is
+  // exactly where it showed up ("roofs glitch out while I'm moving").
+  // Sitting the cap ON the wall instead of inside it removes the shared surface
+  // altogether, and reads the same from the air — a raised parapet lip.
+  // The remaining risk after removing the shared side faces is the two
+  // horizontal faces: the wall's top at h and the cap's top just above it. A
+  // phone's depth buffer is often 16-bit, and MapLibre's far plane at a flying
+  // pitch is kilometres away, so a fraction of a metre of separation at
+  // mid-distance can fall below the depth resolution and let the wall's roof
+  // poke through the cap's in a speckle. Scaling the lift with height gives the
+  // buildings that are furthest away (the tall ones you see across the city) the
+  // most separation, and 1.0-1.5 m is a real parapet anyway.
+  const capLiftNum = h => Math.max(1.0, 0.015 * h);            // metres, for a known h
+  const capLift    = h => ['max', 1.0, ['*', 0.015, h]];       // the same rule, as an expression
+  const capHeight  = h => ['+', h, capLift(h)];
+  const capBase    = h => h;
+  // Exported because diff-tour.js overrides these same two properties while it
+  // tweens a building's height and then has to restore them. It used to carry
+  // its own copy of the `+0.4 / -1.2` literals in three places, so the geometry
+  // rule lived in two files and could silently diverge.
+  window.CAP_GEOM = { liftFor: capLiftNum, height: capHeight, base: capBase, minHeight: CAP_MIN_HEIGHT };
+
   function facadePaint(heightExpr, baseExpr) {
     return {
       'fill-extrusion-pattern': window.FACADE_PATTERN_EXPR,
@@ -205,6 +243,33 @@
   window.addBuildingLayers = function addBuildingLayers(sc) {
     if (!map.getSource('austin-buildings')) {
       map.addSource('austin-buildings', { type:'geojson', data: sc.buildings });
+    }
+    // Contact shadows (ambient occlusion, near enough). A blurred dark line ON
+    // the footprint outline puts half its width inside the building — where the
+    // extrusion hides it — and half outside, which lands as a soft dark halo
+    // hugging every base. Without it, extrusions look pasted onto the ground
+    // rather than standing on it, and no amount of sun shadow fixes that,
+    // because sun shadow falls on one side only. No NO_PARTS filter here: a
+    // parts building still has a ground footprint that needs grounding.
+    if (!map.getLayer('buildings-ao')) {
+      map.addLayer({
+        id:'buildings-ao', type:'line', source:'austin-buildings', minzoom:14,
+        layout:{ 'line-join':'round', visibility: (window.GFX && window.GFX.ao === false) ? 'none' : 'visible' },
+        paint:{
+          'line-color':'#120c06',
+          // First attempt used 0.38 alpha on a ~5 px line and was invisible in a
+          // side-by-side render. Occlusion is a big soft gradient, not an
+          // outline: the blur has to be WIDER than the line for the hard edge to
+          // disappear, and the opacity has to be high enough to survive it.
+          // Blur radius is fill rate: at 84 px on ~2,400 footprints this layer
+          // measured 3.6 fps at 2560x1400. Halving the radii keeps the halo
+          // reading as occlusion (it still exceeds the line width, which is what
+          // hides the hard edge) at roughly half the overdraw.
+          'line-opacity':['interpolate',['linear'],['zoom'],14,0.32,16,0.62,18,0.74],
+          'line-width':['interpolate',['exponential',1.6],['zoom'],14,1.5,16,4,18,12,20,28],
+          'line-blur' :['interpolate',['exponential',1.6],['zoom'],14,2,16,7,18,19,20,44],
+        },
+      });
     }
     if (!map.getLayer('buildings-3d')) {
       map.addLayer({
@@ -223,8 +288,8 @@
         filter:['all', NO_PARTS, ['>=', ['get','final_height'], CAP_MIN_HEIGHT]],
         paint:{
           'fill-extrusion-color':['to-color',['get','rd']],
-          'fill-extrusion-height':['+', ['get','final_height'], 0.4],
-          'fill-extrusion-base':['-', ['get','final_height'], 1.2],
+          'fill-extrusion-height':capHeight(['get','final_height']),
+          'fill-extrusion-base':capBase(['get','final_height']),
           'fill-extrusion-opacity':1.0,
         },
       });
@@ -248,8 +313,8 @@
         filter:['>=', ['-', ['get','h'], ['get','base']], CAP_MIN_HEIGHT],
         paint:{
           'fill-extrusion-color':['to-color',['get','rd']],
-          'fill-extrusion-height':['+', ['get','h'], 0.4],
-          'fill-extrusion-base':['-', ['get','h'], 1.2],
+          'fill-extrusion-height':capHeight(['get','h']),
+          'fill-extrusion-base':capBase(['get','h']),
           'fill-extrusion-opacity':1.0,
         },
       });

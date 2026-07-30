@@ -59,6 +59,7 @@
     <button id="tod-play" title="Auto day/night cycle">▶</button>
   </div>
   <script>/* HARNESS: expose the map instance + keep the drawing buffer so we can pixel-sample our own output */ (function(){ var RealMap = maplibregl.Map; function HookedMap(opts){ opts = opts || {}; opts.canvasContextAttributes = Object.assign({}, opts.canvasContextAttributes, { preserveDrawingBuffer: true }); var m = Reflect.construct(RealMap, [opts]); window.__map = m; return m; } HookedMap.prototype = RealMap.prototype; Object.setPrototypeOf(HookedMap, RealMap); maplibregl.Map = HookedMap; })();</script>
+  <script src="js/graphics.js"></script>
   <script src="js/sky.js"></script>
   <script src="js/atmosphere.js"></script>
   <script src="js/facades.js"></script>

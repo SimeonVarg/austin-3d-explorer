@@ -1,0 +1,11 @@
+[
+ {"name":"01-day-spawn",     "p":0.12, "gfx":"balanced", "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"02-day-pitchup",   "p":0.12, "gfx":"cinematic","center":[-97.7434,30.2857], "zoom":16.2, "pitch":80, "bearing":110},
+ {"name":"03-afternoon",     "p":0.30, "gfx":"cinematic","center":[-97.7434,30.2857], "zoom":16.5, "pitch":72, "bearing":250},
+ {"name":"04-golden-sun",    "p":0.47, "gfx":"cinematic","center":[-97.7434,30.2857], "zoom":16.3, "pitch":78, "bearing":250},
+ {"name":"05-golden-city",   "p":0.50, "gfx":"cinematic","center":[-97.7434,30.2857], "zoom":16.6, "pitch":66, "bearing":250},
+ {"name":"06-dusk",          "p":0.66, "gfx":"cinematic","center":[-97.7434,30.2857], "zoom":16.5, "pitch":70, "bearing":250},
+ {"name":"07-night",         "p":0.92, "gfx":"cinematic","center":[-97.7434,30.2857], "zoom":16.5, "pitch":70, "bearing":90},
+ {"name":"08-perf-preset",   "p":0.12, "gfx":"performance","center":[-97.7434,30.2857],"zoom":16.5,"pitch":64,"bearing":90},
+ {"name":"09-noFX-baseline", "p":0.47, "gfx":{"bloom":0,"godRays":0,"flare":0,"dof":0,"grain":0,"vignette":0.6,"exposure":1,"contrast":1,"saturation":1,"ao":false}, "center":[-97.7434,30.2857], "zoom":16.3, "pitch":78, "bearing":250}
+]
