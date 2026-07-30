@@ -78,6 +78,20 @@
       getJSON('data/signs.json', { type:'FeatureCollection', features: [] }),
     ]);
 
+    // The Capitol Complex, south of the snapshot's own bbox, is spliced in
+    // HERE — before quantisation and before the label pass — so it earns
+    // facade patterns, shadows, labels and collision like anything else
+    // rather than being a second class of building. See js/capitol.js.
+    if (typeof mergeCapitolScene === 'function') {
+      await mergeCapitolScene(buildings, parts);
+    }
+
+    // Union on 24th arrives from Overture as one solid quad, so its 36 m court —
+    // the most visible feature in West Campus from the air — is simply missing.
+    // Footprint is not overridable via hero_overrides.json, so it is corrected in
+    // place here, before quantisation, for the same reason the Capitol is.
+    if (typeof applyUnion24 === 'function') applyUnion24(buildings.features);
+
     // Facade quantisation — assigns wp (pattern id) + wf (family) per feature.
     let stats = null;
     if (typeof quantiseFacades === 'function') {
@@ -192,6 +206,9 @@
       step('roofs',    () => addRoofLayers());
       step('stadium',  () => addStadiumLayers());
       step('detail',   () => addDetailLayers(scene));
+      // After 'ground' and 'detail': initCapitol merges into austin-ground and
+      // austin-trees, so both sources have to exist first.
+      step('capitol',  () => { if (typeof initCapitol === 'function') initCapitol(map); });
       step('labels',   () => addLabelLayers());
     }
     step('signs',    () => initSigns(map, scene && scene.signs));
@@ -330,14 +347,18 @@
     }
   };
 
-  // ── Pitched roofs on the historic halls ───────────────────────────
+  // ── Pitched roofs across campus ───────────────────────────────────
   // fill-extrusion has exactly one roof shape — flat — and a campus of flat
   // prisms is the loudest tell that a scene is generated. data/roofs.geojson
-  // (scripts/bake_roofs.py) approximates a hip with STEPPED INSET CAPS.
-  // WHICH buildings is factual: each footprint was scored for terracotta tile
-  // against nadir aerial imagery, calibrated on the buildings OSM tags with
-  // roof:shape (Sutton Hall hipped → 0.58, University Teaching Center flat →
-  // 0.00). The stepped SHAPE is generative and reads as a pitch from the air.
+  // (scripts/bake_roofs.py) approximates a hip with STEPPED INSET FACETS on 100
+  // buildings. WHICH buildings, and HOW FAR IN the slope runs, are both factual:
+  // each footprint's offset rings are sampled for terracotta against nadir
+  // aerial imagery, calibrated on the buildings OSM tags with roof:shape. The
+  // stepped SHAPE is generative and reads as a pitch from the air.
+  // Each facet carries `az`, the direction its slope faces, and its colour is
+  // chosen between a dark and a bright baked end by timeofday.js from the live
+  // sun — without that, every horizontal tread shades identically and the roof
+  // renders as a flat plane with stripes on it. See roofFacetColor().
   window.addRoofLayers = function addRoofLayers() {
     if (map.getSource('austin-roofs')) return;
     map.addSource('austin-roofs', { type:'geojson', data:'data/roofs.geojson' });
@@ -345,8 +366,10 @@
       map.addLayer({
         id:'roofs-pitched', type:'fill-extrusion', source:'austin-roofs', minzoom:14,
         paint:{
-          // Same baked per-feature colours as the wall cap it sits on, so the
-          // two can never drift apart across the day.
+          // Derived from the same baked per-feature colours as the wall cap it
+          // sits on, so the two can never drift apart across the day. This is
+          // only the first frame's value — applyTimeOfDay replaces it with the
+          // sun-aware per-facet expression immediately.
           'fill-extrusion-color':['to-color',['get','rd']],
           'fill-extrusion-height':['get','h'],
           'fill-extrusion-base':['get','b'],
@@ -356,38 +379,142 @@
     }
   };
 
-  // ── Stadium seating bowl ──────────────────────────────────────────
-  // A stadium footprint is a ring, so extruding it gives a flat-topped mesa
-  // with a hole — the one thing a stadium never looks like. These are
-  // concentric bands offset from the building's OWN inner ring, each lower
-  // than the last, so the bowl steps down to the turf. See bake_stadium.py.
-  const SEAT_COL = ['#b3b0a8', '#bda88c', '#1a1c24'];   // day / golden / night
+  // ── Stadium: an open bowl, not a mesa ─────────────────────────────
+  // A stadium footprint is a ring, and extruding it gives a solid lid with a
+  // pit in it — DKR's ring is 82% of its footprint area, so 82% of the stadium
+  // was being drawn as roof. In the aerial almost all of that is open seating,
+  // and it is the BRIGHTEST large surface in the photograph. So the building's
+  // own extrusion is replaced here by a thin perimeter WALL plus SEATING bands
+  // that span the full ring. See scripts/bake_stadium.py.
+  //
+  // Seating tones. Two measured facts set these. First, in the aerial the deck
+  // is the BRIGHTEST large surface in the photograph. Second, and less obvious:
+  // an extrusion's top face picks up the sun tint, so it renders far warmer
+  // than the colour you type. A neutral #c9bdaa (R/B 1.18) came back on screen
+  // at R/B 1.85 — sand, indistinguishable from the tan campus around it, while
+  // the flat ground fill next to it only warmed to 1.34. So these are entered
+  // COOL to land neutral, which is also what the material actually is:
+  // aluminium bench seating on concrete, not stone.
+  // The night values are deliberately as dark as a night WALL. An unlit bowl is
+  // not a pale lid: the first cut left the deck at luma ~70 against a city at
+  // ~30 and DKR glowed as the brightest thing on the east side of campus, which
+  // is the inverted-silhouette failure night-silhouette.mjs exists to catch.
+  const SEAT_COL = {
+    lower:     ['#b4bdca', '#c2c1be', '#1c1f27'],   // day / golden / night
+    concourse: ['#949ca7', '#9f9e9a', '#15181e'],   // in shade under the deck
+    upper:     ['#c4cedc', '#d0d0cd', '#20242c'],
+  };
+  // The parapet ring reads as the top of the bowl from every angle. Reusing the
+  // building's baked roof colour (#756f66) put a wide chocolate-brown band right
+  // around the rim; the real one is the same pale concrete as the structure.
+  const RIM_COL = ['#b4b7bb', '#c1bcb2', '#191c25'];
+  window.SEAT_COL = SEAT_COL;
+  const hx3 = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  // Same day→golden→night ramp every other colour in the scene uses.
+  const rampAt = (trio, p) => {
+    const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
+    const A = hx3(trio[p <= 0.5 ? 0 : 1]), B = hx3(trio[p <= 0.5 ? 1 : 2]);
+    return '#' + [0,1,2].map(i =>
+      Math.round(A[i] + (B[i]-A[i])*t).toString(16).padStart(2,'0')).join('');
+  };
+  const seatColourAt = p => {
+    const e = ['match', ['get', 's']];
+    for (const k of Object.keys(SEAT_COL)) e.push(k, rampAt(SEAT_COL[k], p));
+    e.push(rampAt(SEAT_COL.lower, p));
+    return e;
+  };
+
   window.addStadiumLayers = function addStadiumLayers() {
     if (map.getSource('austin-stadium')) return;
-    map.addSource('austin-stadium', { type:'geojson', data:'data/stadium.geojson' });
-    if (!map.getLayer('stadium-seating')) {
-      map.addLayer({
-        id:'stadium-seating', type:'fill-extrusion', source:'austin-stadium', minzoom:14,
-        paint:{
-          'fill-extrusion-color': SEAT_COL[0],
-          'fill-extrusion-height':['get','h'],
-          'fill-extrusion-base':0,
-          'fill-extrusion-opacity':1.0,
-          'fill-extrusion-vertical-gradient':true,
-        },
-      });
-    }
+    // Fetched rather than handed to addSource as a URL because the same
+    // document carries `replacedBuildingIds`, and the buildings layers have to
+    // stop drawing those before the wall can be seen. One request, both uses.
+    fetch('data/stadium.geojson').then(r => r.json()).then(gj => {
+      if (map.getSource('austin-stadium')) return;
+      // Stamp the facade pattern BEFORE addSource. MapLibre serialises GeoJSON
+      // to its worker on addSource, so a later mutation of the same objects
+      // never reaches the tiles — the walls would render with no pattern.
+      if (typeof window.quantiseStadiumFacades === 'function') {
+        window.quantiseStadiumFacades(map, gj.features);
+      }
+      map.addSource('austin-stadium', { type:'geojson', data: gj });
+      // This runs after a fetch, so the label layers may already exist. Without
+      // an anchor these extrusions would be appended above them and swallow
+      // every label behind the stadium.
+      //
+      // The anchor must be the first symbol layer AFTER our buildings, not the
+      // first in the style: the basemap puts symbol layers right after
+      // `background`, and anchoring there dropped the whole stadium to the
+      // BOTTOM of the stack, under `ground-areas` and `buildings-shadow`. It
+      // still rendered — as tiers, in roughly the right shape — just repainted
+      // by the ground fill on top of it, which measured as a deck at luma 99
+      // where the aerial says it should be the brightest surface in the frame.
+      const stack = map.getStyle().layers;
+      const after = Math.max(0, stack.findIndex(l => l.id === 'buildings-3d'));
+      const anchor = (stack.slice(after + 1).find(l => l.type === 'symbol') || {}).id;
+
+      const gone = gj.replacedBuildingIds || [];
+      if (gone.length) {
+        const notReplaced = ['!', ['in', ['get','id'], ['literal', gone]]];
+        for (const id of ['buildings-3d', 'buildings-roof']) {
+          if (!map.getLayer(id)) continue;
+          const f = map.getFilter(id);
+          try { map.setFilter(id, f ? ['all', f, notReplaced] : notReplaced); } catch (e) {}
+        }
+      }
+
+      // The perimeter wall. Same facade paint as every other building, so it
+      // picks up the `st` tile, the day/night atlas and the vertical gradient
+      // without a second code path.
+      if (!map.getLayer('stadium-wall')) {
+        map.addLayer({
+          id:'stadium-wall', type:'fill-extrusion', source:'austin-stadium', minzoom:14,
+          filter:['==', ['get','kind'], 'wall'],
+          paint: Object.assign(facadePaint(['get','h'], ['get','base']), {
+            // OFF, unlike every other building. The gradient darkens the bottom
+            // of an extrusion, and these are three stacked extrusions per side —
+            // so it restarted at each band boundary and put a dark line under
+            // all three. On the 9.4 m plinth the whole band fell inside the
+            // gradient and the arcade rendered as a row of black teeth. The
+            // band tones already carry the vertical hierarchy.
+            'fill-extrusion-vertical-gradient': false,
+          }),
+        }, anchor);
+      }
+      // ... and its parapet cap, matching the rule every other roof follows.
+      if (!map.getLayer('stadium-wall-roof')) {
+        map.addLayer({
+          id:'stadium-wall-roof', type:'fill-extrusion', source:'austin-stadium', minzoom:14,
+          // Only the topmost band gets a parapet. Capping every band would put a
+          // lip at 10.7 m and 37.8 m as well — three ledges up a blank wall.
+          filter:['all', ['==', ['get','kind'], 'wall'], ['==', ['get','band'], 'fascia']],
+          paint:{
+            'fill-extrusion-color': rampAt(RIM_COL, window.__todCurrentP != null ? window.__todCurrentP : 0.5),
+            'fill-extrusion-height':capHeight(['get','h']),
+            'fill-extrusion-base':capBase(['get','h']),
+            'fill-extrusion-opacity':1.0,
+          },
+        }, anchor);
+      }
+      if (!map.getLayer('stadium-seating')) {
+        map.addLayer({
+          id:'stadium-seating', type:'fill-extrusion', source:'austin-stadium', minzoom:14,
+          filter:['==', ['get','kind'], 'seat'],
+          paint:{
+            'fill-extrusion-color': seatColourAt(window.__todCurrentP != null ? window.__todCurrentP : 0.5),
+            'fill-extrusion-height':['get','h'],
+            'fill-extrusion-base':0,
+            'fill-extrusion-opacity':1.0,
+            'fill-extrusion-vertical-gradient':true,
+          },
+        }, anchor);
+      }
+    }).catch(() => {});
   };
   window.applyStadiumColors = function applyStadiumColors(p) {
     if (!map || !map.getLayer || !map.getLayer('stadium-seating')) return;
-    const hx = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
-    const a = p <= 0.5 ? SEAT_COL[0] : SEAT_COL[1];
-    const b = p <= 0.5 ? SEAT_COL[1] : SEAT_COL[2];
-    const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
-    const A = hx(a), B = hx(b);
-    const c = '#' + [0,1,2].map(i =>
-      Math.round(A[i] + (B[i]-A[i])*t).toString(16).padStart(2,'0')).join('');
-    try { map.setPaintProperty('stadium-seating', 'fill-extrusion-color', c); } catch (e) {}
+    try { map.setPaintProperty('stadium-seating', 'fill-extrusion-color', seatColourAt(p)); } catch (e) {}
+    try { map.setPaintProperty('stadium-wall-roof', 'fill-extrusion-color', rampAt(RIM_COL, p)); } catch (e) {}
   };
 
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──
