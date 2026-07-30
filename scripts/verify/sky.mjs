@@ -4,14 +4,17 @@
  * visible disc must all agree. That is measurable, so measure it.
  */
 import { chromium } from 'playwright-core';
-import { chromePath } from './chrome.mjs';
+// BASE (not a hardcoded 8099): every other script honours VERIFY_URL via
+// chrome.mjs, and with several worktrees serving different code on different
+// ports, a hardcoded port here silently asserts SOMEONE ELSE'S build.
+import { chromePath, BASE } from './chrome.mjs';
 const EXE = chromePath();
 const browser = await chromium.launch({ executablePath: EXE, headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 900, height: 620 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
-await page.goto('http://127.0.0.1:8099/index.html?intro=0', { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4500);
 
