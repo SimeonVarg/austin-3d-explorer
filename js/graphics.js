@@ -459,7 +459,47 @@
     }
     const filterStr = parts.length ? parts.join(' ') : '';
     if (host.style.filter !== filterStr) host.style.filter = filterStr;
-    if (elVig) elVig.style.opacity = String(clamp01((grade.vignette || 0) * GFX.vignette));
+    if (elVig) {
+      elVig.style.opacity = String(clamp01((grade.vignette || 0) * GFX.vignette));
+      applyVignetteTint();
+    }
+  }
+
+  // ── Vignette tint by hour ─────────────────────────────────────────
+  // One black radial at every hour is a missed cue: real optics go warm-dark
+  // at golden hour and blue-black at night, and a plain black corner at
+  // midday reads as dirt on the lens. The element's gradient is rewritten
+  // inline from these keyframes (style.css keeps the plain-black fallback);
+  // its OPACITY stays the hour grade x the user's slider, exactly as before.
+  const VIG_HOURS = [
+    { p: 0.00, c: [16, 18, 24],  a: 0.42 },   // midday: near-neutral, barely there
+    { p: 0.35, c: [26, 16, 8],   a: 0.55 },
+    { p: 0.50, c: [40, 15, 2],   a: 0.72 },   // golden: warm-dark
+    { p: 0.68, c: [18, 10, 26],  a: 0.68 },   // dusk: violet
+    { p: 1.00, c: [3, 6, 20],    a: 0.74 },   // night: blue-black
+  ];
+  const VIG_INNER = 54;      // % radius where the tint starts (0 in the centre)
+  const VIG_PQ = 96;         // p quantisation for the style rewrite
+  let vigLastQ = null;
+
+  function applyVignetteTint() {
+    const p = clamp01(window.__todCurrentP != null ? window.__todCurrentP : 0.3);
+    const q = Math.round(p * VIG_PQ);
+    if (q === vigLastQ) return;
+    vigLastQ = q;
+    let a = VIG_HOURS[0], b = VIG_HOURS[VIG_HOURS.length - 1], t = 0;
+    for (let i = 1; i < VIG_HOURS.length; i++) {
+      if (p <= VIG_HOURS[i].p) {
+        a = VIG_HOURS[i - 1]; b = VIG_HOURS[i];
+        t = (p - a.p) / (b.p - a.p);
+        break;
+      }
+    }
+    const c = [0, 1, 2].map(i => Math.round(a.c[i] + (b.c[i] - a.c[i]) * t));
+    const al = (a.a + (b.a - a.a) * t).toFixed(3);
+    elVig.style.background =
+      `radial-gradient(ellipse at center, rgba(0,0,0,0) ${VIG_INNER}%, ` +
+      `rgba(${c[0]},${c[1]},${c[2]},${al}) 100%)`;
   }
 
   function fxWanted() {
