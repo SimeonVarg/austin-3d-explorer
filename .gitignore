@@ -1,3 +1,10 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Regenerable pipeline caches and debug renders (see scripts/detect_canopy.py).
+# data/osm_cache IS committed on purpose — small JSON, and it makes the ground
+# bake reproducible without depending on Overpass being up.
+data/imagery_cache/
+data/canopy_debug_*.png
+scripts/_overpass_probe.json
