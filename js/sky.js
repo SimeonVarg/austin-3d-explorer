@@ -65,6 +65,41 @@
     { p: 1.00, az: 118, elev: 24 },
   ];
 
+  // ── Taste constants (LIGHT beauty pass, July 30 2026) ─────────────
+  // Exposed as window.SKY_TUNE so any value can be overruled live from the
+  // console with a one-line edit.
+  const SKY_TUNE = {
+    // Clouds: each lobe's radial gradient is offset toward the lighting body
+    // and falls off into a shaded base colour, so day clouds get a bright top
+    // over a soft grey base and a low golden sun lights their undersides.
+    CLOUD: {
+      OFFSET: 0.45,           // gradient centre offset toward the light, fraction of lobe r
+      BASE: [160, 170, 192],  // shaded-side colour at full day (grey-blue)
+      BASE_MIX: 0.68,         // how far the far side falls toward BASE (0 = flat lobes again)
+      RIM: 1.22,              // alpha gain on the lit core
+    },
+    // Belt of Venus: at dusk the ANTI-solar horizon carries a rosy band above
+    // the rising earth-shadow. A screen blend cannot darken, so the shadow is
+    // a cool blue lift under a rose one — the contrast is what reads.
+    BELT: {
+      P0: 0.50, P1: 0.585, P2: 0.70,           // ramp in / peak / ramp out (in p)
+      ROSE: [255, 138, 150], ROSE_A: 0.22,
+      BLUE: [58, 78, 138],   BLUE_A: 0.20,
+      ROSE_ELEV: 4.2, BLUE_ELEV: 0.8,          // band centres, degrees above horizon
+      RX: 0.62, RY_ROSE: 0.085, RY_BLUE: 0.05, // ellipse radii, fractions of max(W,H)
+      STOPS: [[0, 1], [0.45, 0.5], [1, 0]],
+    },
+    // Star twinkle for the bright ~quarter of the field. Driven by the clock
+    // inside the existing redraw path — NO new rAF loop, so a parked camera
+    // at a fixed hour costs nothing (and its stars simply hold still).
+    TWINKLE: {
+      MAG: 0.62,      // only stars brighter than this twinkle
+      AMP: 0.35,      // peak-to-trough alpha swing, fraction of the star's alpha
+      SPEED: 0.0012,  // rad/ms base angular speed
+    },
+  };
+  window.SKY_TUNE = SKY_TUNE;
+
   function track(keys, p) {
     p = clamp01(p);
     if (p <= keys[0].p) return { az: keys[0].az, elev: keys[0].elev };
@@ -401,6 +436,23 @@
       }
     }
 
+    // Belt of Venus — the dusk band on the horizon OPPOSITE the sun. Two
+    // stacked lobes: rose above, the cool earth-shadow lift below it. Drawn
+    // before the body washes so those stay on top.
+    const BELT = SKY_TUNE.BELT;
+    const beltW = p <= BELT.P0 || p >= BELT.P2 ? 0
+      : p <= BELT.P1 ? (p - BELT.P0) / (BELT.P1 - BELT.P0)
+      : 1 - (p - BELT.P1) / (BELT.P2 - BELT.P1);
+    if (beltW > 0.02) {
+      const antiAz = (B.sun.az + 180) % 360;
+      const rosePos = project(antiAz, BELT.ROSE_ELEV);
+      const bluePos = project(antiAz, BELT.BLUE_ELEV);
+      drawGlow(rosePos, BELT.RX * S, BELT.RY_ROSE * S,
+        BELT.ROSE_A * beltW * rosePos.fade, BELT.ROSE, BELT.STOPS);
+      drawGlow(bluePos, BELT.RX * S * 0.9, BELT.RY_BLUE * S,
+        BELT.BLUE_A * beltW * bluePos.fade, BELT.BLUE, BELT.STOPS);
+    }
+
     // Wide washes — one per body, anchored to its AZIMUTH at the horizon, so
     // the sky brightens in the right direction even when the disc is off-screen.
     const hzSun = project(B.sun.az, 0.5);
@@ -432,11 +484,20 @@
     const nClouds = Math.round(clouds.length * (G.clouds == null ? 1 : G.clouds));
 
     if (B.night > 0.02 && nStars > 0) {
+      const TW = SKY_TUNE.TWINKLE;
+      const now = performance.now();
       for (let si = 0; si < nStars; si++) {
         const s = stars[si];
         const q = project(s.az, s.elev);
         if (!q.front || q.x < -8 || q.x > W + 8 || q.y < -8 || q.y > H) continue;
-        const a = B.night * s.mag;
+        let a = B.night * s.mag;
+        // Twinkle rides the existing redraw (camera moves, the auto cycle) —
+        // deliberately NO dedicated loop, so a parked sky stays free and
+        // simply holds still. Phase from the star's azimuth, rate from its
+        // magnitude, so the field shimmers instead of pulsing in unison.
+        if (s.mag > TW.MAG) {
+          a *= 1 - TW.AMP * (0.5 + 0.5 * Math.sin(now * TW.SPEED * (0.6 + s.mag) + s.az * 7.3));
+        }
         const r = 0.55 + s.mag * 1.25;
         ctx.fillStyle = `rgba(238,244,255,${a.toFixed(3)})`;
         ctx.beginPath();
@@ -456,7 +517,11 @@
     // Clouds: lit from the side the body is on, so they warm up at golden hour.
     const cloudA = (0.26 + 0.50 * B.golden) * (1 - B.night * 0.88);
     if (cloudA > 0.02 && nClouds > 0) {
+      const CS = SKY_TUNE.CLOUD;
       const lit = mix([255, 255, 255], haloCol, 0.35 + 0.45 * B.golden);
+      // Shaded base: grey-blue by day; at golden hour it relaxes toward the
+      // lit colour so sunset clouds catch fire instead of going leaden.
+      const base = mix(lit, CS.BASE, CS.BASE_MIX * (1 - 0.55 * B.golden));
       const degPx = (() => {                    // pixels per degree, near centre
         const a = project(map.getBearing(), 0), b2 = project(map.getBearing() + 1, 0);
         return (a.front && b2.front) ? Math.max(2, Math.abs(b2.x - a.x)) : 12;
@@ -466,6 +531,19 @@
         const q = project(c.az, c.elev);
         if (!q.front || q.x < -W || q.x > W * 2) continue;
         const a0 = cloudA * c.a;
+        // Direction from this cloud toward the lighting body, in (az, elev)
+        // space — a proxy for screen direction that keeps working when the
+        // body itself is off-screen. The azimuth term is CLAMPED and scaled
+        // by cos(elev): raw az differences span ±180° and drowned out the
+        // elevation term entirely (measured: a 64°-high noon sun produced a
+        // 0.5 px top-light tilt because far-azimuth clouds read the light as
+        // sideways). A high day sun lights cloud TOPS; a setting sun lights
+        // their UNDERSIDES.
+        const dAzRaw = ((body.az - c.az + 540) % 360) - 180;
+        const dAzL = clamp(dAzRaw, -60, 60) * Math.cos(rad(Math.max(0, body.elev)));
+        const dElL = body.elev - c.elev;
+        const Ld = Math.hypot(dAzL, dElL) || 1;
+        const lx = dAzL / Ld, ly = -dElL / Ld;   // screen y grows downward
         for (const lb of c.lobes) {
           const lq = project(c.az + lb.dAz, c.elev + lb.dEl);
           if (!lq.front) continue;
@@ -477,11 +555,18 @@
           ctx.scale(1, c.squash);
           // Build the gradient AFTER the transform, centred on the origin —
           // a gradient created in untransformed space then translated/scaled
-          // lands nowhere near the shape it is meant to fill.
-          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-          g.addColorStop(0, rgba(lit, a));
-          g.addColorStop(0.55, rgba(lit, a * 0.42));
-          g.addColorStop(1, rgba(lit, 0));
+          // lands nowhere near the shape it is meant to fill. The INNER
+          // circle is offset toward the light IN LOCAL COORDS — a first cut
+          // "de-squashed" the y offset (divided by squash) to chase screen
+          // proportions and pushed the inner point OUTSIDE the outer circle
+          // (|offset| up to 1.16r), a degenerate cone that erased the shading
+          // it was meant to create. Local units keep it inside: the offset is
+          // proportional to the ellipse's own short axis.
+          const off = CS.OFFSET * r;
+          const g = ctx.createRadialGradient(lx * off, ly * off, 0, 0, 0, r);
+          g.addColorStop(0, rgba(lit, Math.min(1, a * CS.RIM)));
+          g.addColorStop(0.55, rgba(mix(lit, base, 0.6), a * 0.42));
+          g.addColorStop(1, rgba(base, 0));
           ctx.fillStyle = g;
           ctx.beginPath();
           ctx.arc(0, 0, r, 0, PI * 2);
