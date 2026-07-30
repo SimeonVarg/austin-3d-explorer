@@ -87,6 +87,11 @@
   // Compresses a family's tone roll into the warm end of WINDOW_TONES.
   // 1.0 = full palette; 0.6 = houses almost never go fluorescent.
   const TONE_WARM_BIAS = { lo: 0.60, md: 1.00, tw: 1.00, dk: 1.00 };
+  // Parking decks at night: the deck-edge strip takes a cool fluorescent cast
+  // and a touch more brightness — garages are the one building type lit cool.
+  const DK_EDGE_NIGHT_TINT  = [190, 210, 235];
+  const DK_EDGE_NIGHT_MIX   = 0.55;   // how far the edge shifts toward the tint
+  const DK_EDGE_NIGHT_BOOST = 0.14;   // extra white in the edge at full night
 
   const TONE_CUM = [];
   { let acc = 0; for (const t of WINDOW_TONES) TONE_CUM.push(acc += t.w); }
@@ -290,11 +295,14 @@
 
     if (fam === 'dk') {
       // Parking deck: open horizontal slots + a thin bright deck edge.
+      // At night the edge goes cool-fluorescent (see DK_EDGE_NIGHT_*).
       const shade = mix(wall, [0, 0, 0], 0.55 + night * 0.2);
+      let edge = mix(wall, [255, 255, 255], 0.18 + night * DK_EDGE_NIGHT_BOOST);
+      edge = mix(edge, DK_EDGE_NIGHT_TINT, night * DK_EDGE_NIGHT_MIX);
       for (let y = 5; y < TILE; y += 13) {
         ctx.fillStyle = css(shade);
         ctx.fillRect(0, y, TILE, 7);
-        ctx.fillStyle = css(mix(wall, [255, 255, 255], 0.18), 0.85);
+        ctx.fillStyle = css(edge, 0.85);
         ctx.fillRect(0, y + 7, TILE, 1);
       }
       return;
