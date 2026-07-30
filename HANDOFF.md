@@ -475,6 +475,81 @@ FRAME — always screenshot twice and trust the second.
 
 ---
 
+## 22. July 30 2026 — the ground pass (make it read like campus)
+
+The complaint: the intro flies past the UT Tower and the ground under it is
+empty — flat green, undifferentiated grey, nothing at people scale. It read
+like a basemap with buildings pushed up.
+
+### 22.1 The rule that governs this whole pass
+
+**Position factual, form generative, and say which is which.** Every script
+here prints its own provenance block. Nothing is scattered for looks.
+
+### 22.2 What was sourced, and from where
+
+| Layer | Count | Position source |
+|---|---|---|
+| paths/plazas/lawns/water/pitches (`ground.geojson`) | 2,881 | OSM |
+| trees (`trees.geojson`) | 2,572 | city survey 878, OSM 489, **aerial imagery 1,205** |
+| art / furniture / construction (`props.geojson`) | 501 | OSM |
+| pitched roofs (`roofs.geojson`) | 26 buildings | terracotta tile read off aerial imagery |
+
+**`scripts/survey_ground.py` caches every raw Overpass response under
+`data/osm_cache/`** so nothing depends on that flaky API twice. Two hard-won
+notes: an Overpass union group needs a `;` after it or every mirror answers
+400 Bad Request (reads exactly like an outage), and running the queries back
+to back earns a 429 then a cascade of 504s — pace them.
+
+### 22.3 The tree problem, and the imagery answer
+
+Neither survey covers the malls: OSM has 498 trees in the bbox and **none** on
+them; the City of Austin inventory (Socrata `wrik-xasw`) has 1,566 with species
+and trunk diameter and **none** on them either — the city surveys city land and
+UT is state property. Its coverage also sits mostly at the eastern edge, leaving
+the spawn and the flight corridor with **2 trees between them**.
+
+So `scripts/detect_canopy.py` reads crowns off current nadir aerial imagery —
+legitimate, and how OSM itself is made. Canopy separates from lawn on the two
+things that actually differ: a crown is **darker** than mown grass and far more
+**textured** at 0.26 m/px. `--debug` draws every detection onto the photograph,
+which is how they were accepted by eye: crowns land on real trees, the open
+South Mall lawn correctly stays empty with live oaks along its edges, and the
+roofs and Littlefield Fountain stay untreed.
+
+**NOTE for whoever reads this next: the "USGS LiDAR already in this project" is
+Overture's LiDAR-*derived building heights*, not a point cloud.** There are no
+vegetation returns to mine. That premise was checked and is false.
+
+### 22.4 Roofs — the loudest generated-look tell
+
+`fill-extrusion` has exactly one roof shape: flat. WHICH buildings have tile
+(therefore pitched) roofs is **sourced**: each footprint is scored for
+terracotta against the imagery, calibrated on the only ground truth available —
+Sutton Hall (OSM `hipped`) scores 0.58, University Teaching Center (OSM `flat`)
+scores 0.00, and the campus spread is sharply bimodal. The SHAPE is generative:
+six stepped inset caps. Offsetting a long rectangle inward collapses its short
+axis to a line, so an elongated hall grows its own ridge. Reads as a pitch at
+flying altitude; reads as steps up close, which is stated, not hidden.
+
+### 22.5 Two measurement lessons
+
+- **The paths rendered correctly from the first try and were still invisible.**
+  Concrete at luma 185 on a ground of 188.5 is 3.5 points of separation. Proved
+  with a magenta pass (6.2% of frame) before touching anything, then fixed by
+  dropping the catch-all `ground` from a pale sand to a mid warm grey.
+- **Tree density is a parameter, not a cull.** Measured: the full set cost
+  ~6–7 fps; the ground fills were within noise. Every tree carries `d`, a
+  keep-order biased by crown size, so thinning drops small trees first and the
+  mean canopy height *rises* 9.3 m → 13.8 m. `GFX.treeDensity` is in the menu.
+  Back to 0 dropped-min / 59.4 fps at balanced.
+
+### 22.6 Still missing (asked, not guessed)
+
+Org tents on Speedway, the Jester courtyard interior, construction at the Tower
+base and the Catholic Center, food carts, and parked cars are **not placed** —
+no source carries them and the brief forbids guessing. See the report.
+
 ## 21. July 30 2026 (overnight) — the beauty pass
 
 *(Being written as the night progresses; the morning report finalises it.)*
