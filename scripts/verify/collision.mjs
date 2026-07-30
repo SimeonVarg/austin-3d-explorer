@@ -5,14 +5,16 @@
  * Also covers the headline mobile fix: joystick and look at the same time.
  */
 import { chromium } from 'playwright-core';
-import { chromePath } from './chrome.mjs';
+// BASE honours VERIFY_URL so parallel worktrees can each test their own serve
+// (chrome.mjs has exported it for this purpose all along). No assertion change.
+import { chromePath, BASE } from './chrome.mjs';
 const EXE = chromePath();
 const browser = await chromium.launch({ executablePath: EXE, headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: 800, height: 560 }, hasTouch: true });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
-await page.goto('http://127.0.0.1:8099/index.html?intro=0', { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForFunction(() => window.__fly && window.__fly.indexed(), null, { timeout: 30000 });
 await page.waitForTimeout(3000);
