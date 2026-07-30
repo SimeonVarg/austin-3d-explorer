@@ -184,6 +184,7 @@
       step('labels',   () => addLabelLayers());
     }
     step('signs',    () => initSigns(map, scene && scene.signs));
+    step('night',    () => { if (typeof initNight === 'function') initNight(map); });
     step('sky',      () => initSky(map));
     step('haze',     () => initAtmosphere(map));
     // After sky (renderFX is driven from updateSky) and after the layers exist,
