@@ -181,6 +181,48 @@
     ];
   }
 
+  // ── Pitched-roof facet shading ────────────────────────────────────
+  // `fill-extrusion` tops are always horizontal, so MapLibre shades every tread
+  // of a stepped hip roof identically and the roof comes back reading as a flat
+  // plane with rings drawn on it. Each facet in `roofs.geojson` therefore
+  // carries `az` — the compass direction that slope faces — plus the two ends of
+  // its shade range (rd/rg bright, rdd/rgd dark), and the colour is picked
+  // between them HERE, from the live sun.
+  //
+  // It has to happen here rather than in the bake: baking the tint into the
+  // day/golden/night keys was tried, and `bakedColor`'s lerp averaged a
+  // morning sun at az 98 against a golden one at az 256 into flat grey at
+  // p=0.25. Shading baked at fixed hours cannot survive being interpolated.
+  //
+  // Same sun as the shadows, the disc and setLight (sky.js §1). The three
+  // constants below must match ROOF_SHADE in scripts/bake_roofs.py.
+  const ROOF_SHADE = { ambient: 0.35, lo: 0.70, hi: 1.28, tilt: 38 };
+
+  function roofFacetColor(p) {
+    const sun = (typeof window.skyBodies === 'function')
+      ? window.skyBodies(clamp01(p)).sun : { az: 180, elev: 45 };
+    const R = Math.PI / 180;
+    const A = ROOF_SHADE.ambient;
+    const sinT = Math.sin(ROOF_SHADE.tilt * R), cosT = Math.cos(ROOF_SHADE.tilt * R);
+    const sinE = Math.sin(sun.elev * R),        cosE = Math.cos(sun.elev * R);
+    // A flat cap is what rd/rg/rn were baked for, so a facet is only ever
+    // brighter or darker than its own building by what its tilt earns.
+    const flat = A + (1 - A) * Math.max(0, sinE);
+    // dot(normal, sun) for a slope of `tilt` facing `az`, reduced to a single
+    // cosine of the azimuth difference plus a constant.
+    const k1 = sinT * cosE, k2 = cosT * sinE;
+    const dot = ['+', ['*', k1, ['cos', ['*', R, ['-', ['get', 'az'], sun.az]]]], k2];
+    const lit = ['+', A, ['*', 1 - A, ['max', 0, dot]]];
+    // 0 at the dark end of the baked range, 1 at the bright end. `interpolate`
+    // clamps outside its stops, so no clamp is needed here.
+    const t = ['/', ['-', ['/', lit, Math.max(flat, 1e-4)], ROOF_SHADE.lo],
+                    ROOF_SHADE.hi - ROOF_SHADE.lo];
+    return ['interpolate', ['linear'], t,
+      0, bakedColor(p, 'rdd', 'rgd', 'rn'),
+      1, bakedColor(p, 'rd',  'rg',  'rn'),
+    ];
+  }
+
   // ── Basemap cleanup ───────────────────────────────────────────────
   let _bgLayers=[], _groundFills=[], _parkFills=[], _waterFills=[], _waterLines=[], _roadLines=[];
   let _cleaned = false;
@@ -338,13 +380,16 @@
     if (!window.__debugActive) {
       safePaint(map, 'buildings-roof','fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
       safePaint(map, 'parts-roof',    'fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
-      safePaint(map, 'roofs-pitched', 'fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
+      // Pitched roofs are per-FACET: same baked colours, picked between their
+      // shaded ends by the direction each slope faces. See roofFacetColor.
+      safePaint(map, 'roofs-pitched', 'fill-extrusion-color', roofFacetColor(p));
       if (typeof window.applyStadiumColors === 'function') window.applyStadiumColors(p);
     }
 
     if (typeof updateShadows === 'function') updateShadows(map, p);
     if (typeof window.applyGroundColors === 'function') window.applyGroundColors(map, p);
     if (typeof window.applyPropColors === 'function') window.applyPropColors(map, p);
+    if (typeof window.applyCapitolColors === 'function') window.applyCapitolColors(map, p);
 
     safePaint(map, 'trees-canopy', 'fill-extrusion-color',
       ['interpolate', ['linear'], ['get', 'h'], 6, s.canopyLo, 15, s.canopyHi]);
