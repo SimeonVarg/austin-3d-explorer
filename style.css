@@ -1,21 +1,47 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#1a1208}
 #map{position:absolute;inset:0}
-#vignette{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .2s linear;
-  background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
+/* Sky overlay (js/sky.js): sun/moon disc, bloom, azimuth-anchored horizon glow,
+   stars and clouds. Everything here uses `mix-blend-mode:screen` so it can only
+   ADD light — a 97 m tower crossing the horizon line picks up bloom instead of
+   being painted over. */
+#sky{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+#sky-canvas{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:screen}
+#sky-glow,#sky-bloom,#sky-core{position:absolute;left:0;top:0;pointer-events:none;
+  mix-blend-mode:screen;will-change:transform,opacity;border-radius:50%}
+#sky-core{border-radius:50%}
 
+/* Aerial-perspective band pinned to the horizon (js/atmosphere.js). MapLibre's
+   own sky fog never reaches the ground, so this is what gives the scene depth
+   and hides the straight edge where the building data stops. */
+#haze{position:absolute;left:0;right:0;top:0;height:26%;z-index:4;pointer-events:none;opacity:0}
+#vignette{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .2s linear;
+  background:radial-gradient(ellipse at center,rgba(0,0,0,0) 58%,rgba(0,0,0,.5) 100%)}
+
+/* Chrome sits quietly over the scene: thin, low-contrast, and it fades out of
+   the way once you start flying (js/app.js adds .flying to <body>). */
 #hud{position:absolute;top:16px;left:50%;transform:translateX(-50%);
-  background:rgba(20,12,4,.72);backdrop-filter:blur(8px);
-  border:1px solid rgba(255,180,60,.25);border-radius:10px;
-  padding:8px 18px;color:#f5dfa0;text-align:center;pointer-events:none;z-index:10}
-#hud-title{font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-#hud-snapshot{font-size:11px;opacity:.65;margin-top:2px}
+  background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
+  border:1px solid rgba(255,190,90,.16);border-radius:999px;
+  box-shadow:0 6px 24px rgba(0,0,0,.28);
+  padding:7px 20px;color:#f7e6bd;text-align:center;pointer-events:none;z-index:10;
+  transition:opacity .5s ease}
+#hud-title{font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+#hud-snapshot{font-size:10px;opacity:.5;margin-top:1px;letter-spacing:.04em}
 
 #controls-hint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);
-  background:rgba(20,12,4,.65);backdrop-filter:blur(6px);
-  border:1px solid rgba(255,180,60,.15);border-radius:8px;
-  padding:6px 14px;color:rgba(245,223,160,.75);font-size:12px;
-  pointer-events:none;z-index:10;white-space:nowrap}
+  background:rgba(18,11,4,.5);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,190,90,.12);border-radius:999px;
+  padding:6px 16px;color:rgba(245,223,160,.7);font-size:11.5px;letter-spacing:.02em;
+  pointer-events:none;z-index:10;white-space:nowrap;transition:opacity .5s ease}
+/* controls.js adds .flying after 200ms of genuine camera input and removes it
+   again after 4s idle, so the hint always comes back. The side panels fade too
+   — on a phone a right-thumb look swipe otherwise drags the time-of-day slider
+   into night or pops open the snapshot picker. */
+body.flying #controls-hint{opacity:0}
+body.flying #hud{opacity:.35}
+body.flying #tod-panel,body.flying #date-panel{opacity:.25;pointer-events:none;transition:opacity .3s ease}
+#tod-panel,#date-panel{transition:opacity .3s ease}
 .mobile-hint{display:none}
 /* Width-based, not (hover/pointer) which mis-detects phones (esp. in Safari
    "Request Desktop Website" mode) and hid the mobile hint + joystick. */
@@ -33,9 +59,13 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 .legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 
 /* Visible by default so the movement control can never silently vanish on a
-   phone; hidden only on genuinely wide (desktop) screens that use WASD. */
-#joystick-zone{display:block;position:absolute;bottom:70px;left:32px;z-index:20}
+   phone; hidden only on genuinely wide (desktop) screens that use WASD.
+   `html.has-touch` (set by controls.js from navigator.maxTouchPoints) brings it
+   back on a touch device that is wide anyway — an iPad in landscape is 1366px
+   and would otherwise lose its only translation control. */
+#joystick-zone{display:block;position:absolute;bottom:70px;left:32px;z-index:20;touch-action:none}
 @media(min-width:1025px){#joystick-zone{display:none}}
+html.has-touch #joystick-zone{display:block}
 #joystick-base{width:100px;height:100px;border-radius:50%;
   background:rgba(255,255,255,.08);border:2px solid rgba(255,180,60,.3);
   display:flex;align-items:center;justify-content:center;touch-action:none}
@@ -66,18 +96,30 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 #diff-counter{font-size:12px;opacity:.7;flex:1;text-align:center}
 
 #tod-panel{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:10;
-  display:flex;flex-direction:column;align-items:center;gap:8px;
-  background:rgba(20,12,4,.55);backdrop-filter:blur(8px);
-  border:1px solid rgba(255,180,60,.2);border-radius:20px;padding:12px 8px}
-#tod-sun,#tod-moon{font-size:16px;line-height:1;user-select:none}
+  display:flex;flex-direction:column;align-items:center;gap:9px;
+  background:rgba(18,11,4,.5);backdrop-filter:blur(10px) saturate(1.1);
+  border:1px solid rgba(255,190,90,.16);border-radius:999px;padding:13px 9px;
+  box-shadow:0 6px 24px rgba(0,0,0,.3)}
+#tod-sun,#tod-moon{font-size:15px;line-height:1;user-select:none;opacity:.85}
 #tod-slider-wrap{height:170px;width:34px;display:flex;align-items:center;justify-content:center}
 #tod-slider{width:170px;transform:rotate(90deg);cursor:pointer;accent-color:#f5a623}
-#tod-play{background:rgba(245,166,35,.2);border:1px solid rgba(245,166,35,.4);
-  color:#f5dfa0;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:13px;
-  display:flex;align-items:center;justify-content:center}
-#tod-play:hover{background:rgba(245,166,35,.4)}
+#tod-play{background:rgba(245,166,35,.16);border:1px solid rgba(245,166,35,.35);
+  color:#f5dfa0;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:11px;
+  display:flex;align-items:center;justify-content:center;transition:background .15s,box-shadow .15s}
+#tod-play:hover{background:rgba(245,166,35,.34)}
+#tod-play.playing{background:rgba(245,166,35,.42);box-shadow:0 0 12px rgba(245,166,35,.45)}
 @media(max-height:560px){#tod-slider-wrap{height:120px}#tod-slider{width:120px}}
 
 .maplibregl-ctrl-attrib{font-size:10px!important;background:rgba(20,12,4,.6)!important;color:rgba(245,223,160,.6)!important}
 .maplibregl-ctrl-attrib a{color:rgba(245,166,35,.8)!important}
 .maplibregl-ctrl-top-left,.maplibregl-ctrl-top-right{display:none}
+
+/* Narrow screens: the hint and the attribution bar sat on top of each other,
+   and the snapshot picker crowded the joystick. */
+@media(max-width:520px){
+  #controls-hint{bottom:38px;font-size:10.5px;padding:5px 12px}
+  #hud{max-width:calc(100vw - 32px)}
+  #date-panel{bottom:96px;right:12px;padding:6px 9px}
+  #date-label{display:none}
+  #tod-panel{right:8px;padding:10px 7px}
+}

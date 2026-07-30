@@ -472,3 +472,365 @@ Re-run it after editing `hero_designs.json`, then hard-reload.
 loop (day/golden/night screenshots at spawn, UT Tower south-mall shot, West
 Campus street shot). Screenshot tip: hidden-tab compositor serves ONE STALE
 FRAME — always screenshot twice and trust the second.
+
+---
+
+## 18. July 29 2026 — sky, second pass (critique-driven)
+
+A 5-agent critique of the sky built in §17 (cinematographer / art-director /
+night-specialist lenses, plus a graphics-engineer recon that pulled MapLibre's
+actual sky fragment shader out of the dist). It found one outright bug and two
+structural defects, all in the default pitch-64 frame. Every number below was
+re-measured here before acting on it.
+
+**THE BUG — the horizon glow teleported at dusk.** `useMoon = !B.sunUp &&
+B.moon.elev > -2` flips when the sun sets AND the moon crosses −2°, and those
+coincide. Reproduced exactly: between p=0.5924 and p=0.5926 — **one frame of the
+32 s auto cycle** — the glow's azimuth jumped **176.6°** (western horizon to
+eastern) and its alpha dropped 0.459 → 0.168.
+Fix: both bodies are now always drawn on independent schedules. The sun's
+afterglow decays over its own elevation (`wSun`, reaching zero at −20°) while the
+moon's rises over its own; they genuinely overlap from p=0.64, warm west and cool
+east on screen together. **Measured worst frame-to-frame change: 0.291 → 0.00054,
+a 540× reduction.**
+
+**DEFECT 1 — the haze band was aimed below the horizon.** `#haze` is the only
+layer in the sky stack with no blend mode, so it genuinely paints over geometry.
+At pitch 64 / H=800 the horizon is at y=48 px and the old 13% stop peaked at
+**y=61 — thirteen pixels below it** — laying 0.87 alpha just under the horizon and
+still 0.48 at y=130, exactly where mid-distance rooflines live. Re-aimed to hug
+the horizon: it now touches ~8 px of the 48 px of visible sky instead of 20, and
+mid-distance alpha drops ~70%. This, not the sun bloom, was most of why golden
+hour lost the mid-distance city.
+
+**DEFECT 2 — the value ladder was inverted at both ends.**
+- Day: road luma 231 > horizon 223 > sky 122. The pavement was the brightest
+  thing in a daylight exterior and a wall had 13 codes of separation from the sky
+  behind it. Deepened `sky` to `#21529f`, gave the horizon chroma (`#b7daec`),
+  dropped the road to `#e2dac7`.
+- Night: measured **sky luma 55.8 vs wall 21.2 → separation +34.6**, up from
+  about −9 (the city glowed against a *darker* sky). Lifted the night horizon and
+  fog, added an omnidirectional city-skyglow band at the horizon, softened the
+  vignette.
+
+**Two more real bugs found while implementing**
+- *The sky was painting the city.* The horizon washes are ellipses centred on the
+  horizon, so half of each landed below it — at dusk an 825×561 px lobe of deep
+  red at 0.31 alpha screen-blended the **whole frame magenta, ground included**.
+  Fixed by clipping the entire canvas sky pass to `y < horizon + 1.8%`. Light on
+  buildings is `setLight`'s job; the sky's job stops at the horizon.
+- *MapLibre's extrusion lighting doesn't tint, it DISTORTS — and it was making the
+  roofs wine-purple.* Measured at golden hour: a baked roof of `#a1866b` (warm
+  tan) rendered **`#543031`** at intensity 0.58 with a saturated light, `#8e5031`
+  at 0.18, and `#7d6045` with a neutral light at 0.30. Same mechanism that turned
+  the night roofs olive in §17. Day/golden intensity dropped to 0.28/0.30 with
+  less saturated light colours; the *position* still comes from the shared sun,
+  because that is the coherence shadows depend on.
+
+**And one the critique's own measurement exposed:** the walls darkened on a
+`p` schedule that lagged the sun, leaving them 60% golden-lit at p=0.7 when the
+sun was already 8° below the horizon — an **inverted dusk silhouette** (sky 75.7
+vs wall 88.5). `facades.js` now uses two night factors: `dark` (sun-elevation
+driven) for the wall and its glass, `night` (p-driven) for the lit windows, whose
+lag is deliberate — city lights come up as the sky finishes darkening. Dusk
+separation went **−12.8 → +30.7**.
+
+**Also:** twilight no longer lerps through khaki (a straight golden→night RGB lerp
+put the haze at (174,123,87) at p=0.65 and dead-neutral (74,60,62) at p=0.875) —
+four `DUSK` tracks route it orange → rose → violet → deep blue with saturation
+held up, and their endpoints equal `PRESETS.golden`/`PRESETS.night` exactly so
+there is no seam. `applyTimeOfDay` now quantises its expensive half to 1/128 of
+p (**1,920 heavy passes per sweep → 128**) while the sky overlay still updates
+every frame; and `setSky` drops from 7 properties to 3, since `fog-color`,
+`horizon-fog-blend` and `fog-ground-blend` are terrain-only here.
+
+**Banding, measured** (nobody had checked): `stepsOf2plus = 0` at day, golden and
+night — every transition is a single code, so there are no hard edges. Night does
+show ~9 px flat runs (21 unique colours over 192 px). A dither was deliberately
+NOT shipped: its value depends on what the night sliver looks like after the
+skyglow band and lifted horizon, and it should be re-measured before adding
+another full-frame layer.
+
+**Perf** (min-of-60, not mean — a mean on a busy machine measures the machine;
+an earlier mean-based run reported *day* getting 3× slower after a change that
+only touches the night path): sky overlay redraw at 900×800 is **1.0 ms night /
+0.4 ms golden / 0.2 ms day**. Star halos are blitted from a cached sprite rather
+than building ~78 `createRadialGradient` objects per frame.
+
+Suites: sky 12/12, movement 14/14, collision 8/8, plus `duskcheck.mjs` and
+`silhouette.mjs` in the scratchpad.
+
+**Rejected, with reasons** (the judge's full list is in the workflow transcript):
+pitch-driven `sky-horizon-blend` (rests on unverifiable MapLibre shader
+internals, +5.7% day payoff, regresses night); crepuscular rays (most expensive
+item, high-pitch-dominant); Milky Way and a high cirrus shelf (both live above
++3°, worth nothing at the default pitch); a directional downtown light dome
+(downtown bears 179° against a spawn bearing of 90 — completely off-screen).
+
+---
+
+## 17. July 29 2026 — the sky (js/sky.js)
+
+**Fixed a real incoherence first: there were TWO suns.** `shadows.js` walked its
+own arc (az 150→245, elev 64→20) while `setLight` used another (az 205→252,
+elev 58→14) — 55° apart at p=0. Shadows pointed one way and the scene was lit
+from somewhere else. `skyBodies(p)` in `js/sky.js` is now the single source of
+truth for shadow direction, MapLibre's light, and the visible disc. Verified:
+`setLight` azimuth matches the shared sun to **0.00°**, and the shadow hulls
+point anti-solar to within 2–9° wherever that is measurable.
+
+Shadow opacity and existence now derive from the real solar **elevation** rather
+than a hardcoded p, so they can never disagree with where the sun visibly is —
+below the horizon there are no shadows at all.
+
+**The geometry fact that drove the whole design.** MapLibre pitch is measured
+from straight down, so the view axis is at `(pitch - 90)°` and the top of the
+frame is at `(pitch - 90 + fov/2)°`. At the spawn pitch of 64 with a 58° FOV
+that is **+3°** — you can see three degrees of sky. A sun disc is therefore
+invisible at the default view no matter where you put it. So:
+- the **horizon glow** (a wide gradient anchored to the sun's *azimuth* at the
+  horizon) and a **low cloud band** carry the default frame;
+- the **disc** is the reward for pitching up, or for golden hour;
+- the **moon peaks at 24°**, not overhead — a moon high in the dome is a moon
+  nobody ever sees at a flying pitch.
+
+**Technique: DOM/canvas overlays with `mix-blend-mode: screen`.** Screen
+blending can only ADD light, so a 97 m tower crossing the horizon line is never
+painted over — it picks up bloom instead, which is what a bright sky does to a
+silhouette. Elements: `#sky-canvas` (520 stars + 22 multi-lobe clouds),
+`#sky-glow`, `#sky-bloom`, `#sky-core`. All `pointer-events:none`, all asserted
+to be `screen` in the test suite.
+
+**A custom WebGL layer was tried and rejected.** `{type:'custom'}` inserted at
+the bottom of the style DOES own the sky — but it also painted over the ground
+plane. Proven by rendering it solid magenta: the roads went magenta too, while
+the buildings stayed correct. Screenshot-verified, not reasoned about.
+
+**Bugs found and fixed while building it**
+- Stars were weighted toward the zenith "to keep the horizon clean". Result: two
+  visible stars, because at a flying pitch you only ever see the first ~20°.
+  Now biased LOW (`1.5 + rnd^1.5 * 62`).
+- Clouds were single blurred ellipses and read as smudges on the glass. Now
+  clusters of 3–5 lobes.
+- A canvas `createRadialGradient` was built BEFORE `translate`/`scale`, so it
+  landed nowhere near the shape it filled. Build gradients after the transform,
+  centred on the origin.
+- The haze band reached 7% above the horizon, which at the spawn pitch meant the
+  haze — not the sky gradient — was most of the visible sky. Pulled to 2.5%.
+
+**Three harness traps worth remembering** (each produced a confident false
+failure before being understood):
+1. `GeoJSONSource` does not expose `_data` in v5 — use `querySourceFeatures`.
+2. After `setData`, the source **re-tiles in a worker**. Sampling 700 ms later
+   returned the *previous* hour's shadows and made the test report a 43° error.
+   Wait for `idle`.
+3. `pitch = 90 + sunElev` is clamped by `maxPitch: 85`, so "look straight at the
+   sun" does not put it at screen centre. The disc's 109 px offset was *correct*.
+   The fixed assertion predicts the position from the actual pose and matches
+   **pixel-exactly** (450,201 predicted, 450,201 measured).
+
+Also: `MAX_LENGTH = 2.4` caps shadow reach on purpose, so below ~22.6° of solar
+elevation shadows stop lengthening. Any test asserting "lower sun → bigger
+shadows" must encode that cap or it fails on correct behaviour.
+
+Suite: `scratchpad/verify-sky.mjs` — 12/12. Movement 14/14 and collision 8/8
+still pass.
+
+---
+
+## 16. July 29 2026 — the movement system rewrite (FLYCAM)
+
+`js/controls.js` was rewritten. A 5-lens audit produced 75 candidate defects; 47
+survived adversarial verification. The headline ones were then reproduced and
+measured in a headless harness before anything was changed — several
+"obvious" readings turned out to be wrong until measured.
+
+**The one structural change.** The camera EYE is now the state; MapLibre's
+`center`/`zoom` are OUTPUTS, derived once per frame and written with a single
+`map.jumpTo()`. Nothing else in the file calls setCenter/setZoom/setBearing/
+setPitch. Steering `center` in degrees is what made a whole family of defects
+*expressible*; steering the eye in metres makes them unrepresentable.
+
+**Measured before → after** (headless, 800×560, timing-independent):
+
+| | before | after |
+|---|---|---|
+| east/west vs north/south speed | 0.854 | **1.000** |
+| diagonal (W+D) vs cardinal | 1.445 | **1.001** |
+| one tap of Q at spawn | zoom 16.5 → **13.35**, then dead | 16.5 → 16.33, keeps working |
+| 4 s of "descend" on E | camera at **9.8 km** | descends normally |
+| drag-to-look at fixed zoom | altitude 302 → 187 m | **211 → 211 m** |
+| key held while window blurs | flies away forever | released |
+| WASD while a slider is focused | camera moves 6.2 m | **0.0 m** |
+| assertion suite | 4/14 | **22/22** |
+
+**The five defects that mattered most**
+1. `zoomToAlt()` returned Web-Mercator **metres-per-pixel**, not altitude — 1.69
+   at the spawn zoom where the camera was really 230 m up. Both Q and E clamped
+   to `MIN_ALT` on the first frame and teleported to zoom 13.35; `scrollZoom` is
+   off, so on desktop there was **no way back except reloading**.
+2. Longitude deltas were never divided by `cos(latitude)`, so E/W ran 13% slow
+   and any diagonal heading crabbed ~4° off course — 35 m of drift over 500 m.
+3. The input vector was never normalised: W+D was 41% faster than W.
+4. On mobile the joystick thumb was counted in `TouchEvent.touches`, so the
+   canvas entered pinch-zoom the moment a second thumb landed. **Moving and
+   looking at the same time was impossible** — the one scheme the UI advertises.
+5. No blur/visibilitychange reset, so alt-tabbing mid-flight left the key down
+   and the camera flying forever. Keys are now indexed by `e.code`, not `e.key`
+   (macOS Option+W reports `∑` on keydown and `w` on keyup, which latches a
+   key-indexed map permanently).
+
+**What's new:** altitude-scaled speed (6 m/s at street level for reading signs,
+~40 m/s at spawn, Shift ×2.5); acceleration and glide (τ 0.20 s / 0.45 s);
+wheel-to-altitude on desktop; two-finger and double-tap-drag altitude on mobile;
+look works anywhere on the canvas (the right-half-only gate is gone); R returns
+home; a soft fence at the data edge; chrome that fades while flying and comes
+back after 4 s.
+
+**Collision.** A 6 m max-roof grid built from the in-memory snapshot at load
+(626 KB, ~155 k cells, footprints *rasterised* not bbox-stamped). Small 6 m probe
+on purpose: a large anticipatory probe lifts the camera over the buildings
+flanking every West Campus street, which would make "fly down the street and
+read the signs" unreachable. Verified: 528 sampled frames of randomised
+low-altitude flight with a worst clearance of 18.55 m and never once inside;
+a street flight starting at 24 m between 21 m buildings peaks at **24 m** (zero
+unrequested lift); flying at the 98 m tower from 140 m out **brakes and stops
+6 m from it** rather than entering or climbing over.
+
+**Three traps, all of which cost real time here**
+- **MapLibre uses 512-px tiles.** The `156543.03392` constant in every tutorial
+  is the 256-px convention and gives exactly **2× the true altitude**. Use
+  `C = 40030228.884` and `/(512 * 2^z)`. Two of the audit's own suggested fixes
+  contained this error.
+- **`map.getFreeCameraOptions()` does not exist in MapLibre 5.24** (that is
+  Mapbox). Verified `undefined` at runtime. `map.transform.getCameraAltitude()`
+  and `getCameraLngLat()` do exist and were used to check the closed forms.
+- **`setPointerCapture` can throw**, and an unguarded call takes the whole
+  `pointerdown` handler with it — which silently disables look. Wrap it.
+
+**A bug this rewrite introduced and then caught:** `driving` initially included
+`altFloor > 0.05`. Because the floor is a standing *response* rather than an
+intent, that pinned `driving` true forever whenever the camera rested over a
+building, so the controller would have owned the camera permanently and stomped
+on the intro, the R reset and the diff tour. It now compares against the
+*resolved* target altitude. Verified: after the 9 s intro, `driving === false`
+and `tickMsAvg === 0` — the controller never wrote a frame during the cinematic.
+
+**Also fixed:** `DT_BAIL` was 0.25 s, which was meant to swallow tab-restore gaps
+but actually discarded **every frame slower than 4 fps** — measured 8.85 m/s
+against a 40 m/s target on a slow renderer. Now 1.0 s, with `DT_MAX` 0.1 s and a
+substepped collision walk so a longer step still cannot tunnel through a facade.
+
+**Verification lives in the session scratchpad** (`verify-movement.mjs`,
+`verify-collision.mjs`). Both drive the real `index.html`. The key trick: measure
+against the camera's **own integrated time** (`window.__fly.simTime()`), never
+wall-clock — headless swiftshader runs at 4–20 fps here, so wall-clock speed
+measures the renderer, not the movement system. `window.__fly` also exposes
+`eye()`, `roofAt()`, `indexed()` and `gridBytes()` for assertions. Seeded tests
+must wait for `!driving` **before** placing the camera; the controller owns the
+camera while flying and will overwrite an external `jumpTo` on the next frame.
+
+---
+
+## 15. July 29 2026 — the art pass that was still owed (current state)
+
+The July 10 overhaul got the *engine* right and the *look* wrong. This pass was
+purely visual, driven by a real render→pixel-sample→assert loop rather than
+reasoning (see "verification" below). What changed, and why:
+
+**Facades — buildings have windows now.** MapLibre v5's
+`fill-extrusion-pattern` tiles in WORLD space, so a window grid keeps a
+constant physical size as you fly. That is the single biggest upgrade available
+to a fill-extrusion city, and it's what §14 assumed was impossible here.
+The catch: a pattern REPLACES `fill-extrusion-color`, so per-building colour
+would be lost. `js/facades.js` fixes that by quantising the 911 baked wall
+colours into ~14 adaptive buckets and generating one canvas pattern per
+(facade family × bucket) — 38 images in practice. Families are `lo` / `md` /
+`tw` / `dk` (low-rise, walk-up, tower, parking deck) picked from height+class.
+The atlas is repainted in place (`map.updateImage`) whenever the time-of-day
+changes, so glass is cool-dark by day, amber at golden hour, and a varied
+scatter of windows lights warm at night.
+*The 14-bucket flattening is a feature, not a compromise — 14 deliberate tones
+beat 911 muddy near-duplicates.*
+
+**Ground shadows.** MapLibre has no shadow casting, and `fill-translate` isn't
+data-driven, so every building would cast the same shadow regardless of height.
+`js/shadows.js` builds real geometry instead: per footprint, offset a copy by
+`height / tan(sun elevation)` away from the sun and take the convex hull of
+both — the swept silhouette. Derived on the client from the GeoJSON that's
+already downloading, so it costs zero payload and the sun swings with the
+slider (debounced 140 ms).
+
+**Label declutter.** This was the worst offence: ~70 rainbow-coloured labels
+covered 60% of every frame and read as a debug overlay. Fixes: OSM names are
+gated to zoom ≥16.4 and height ≥12 m, sorted so tall buildings win placement,
+and **deduped against the curated signs** ("The Mark" / "The Mark Austin" both
+showed). Curated signs are calm cream by day and only take their brand colour
+after dark, which is when a lit sign is supposed to be what you notice.
+383 named buildings → 184 eligible; visible-at-once dropped by roughly 4×.
+
+**Atmosphere.** `js/atmosphere.js` is a horizon haze band tracking the camera
+pitch. **MapLibre's `setSky` fog does not work for this** — sweeping
+`fog-ground-blend` from 0 to 1 leaves every ground and building pixel
+bit-identical (measured). That fog only paints the sky dome. The DOM band gives
+the scene aerial perspective and buries the straight seam where the bbox ends.
+
+**Two measured bugs worth remembering:**
+- *Night was olive.* `bake_detail.py` mixes 30% of a warm "lit window" tint into
+  the WALL colour (`wn = lerp(dark, night_window, 0.30)`), landing the whole
+  city on mid olive-khaki (#63615b, #7b6d53) after dark. Now that windows carry
+  the light, `facades.js` derives a proper dark cool wall from `wd` and ignores
+  the baked `wn`. (The baked `wn` is still in the data; nothing re-baked.)
+- *`setLight` intensity lifts and warms extrusion faces.* At intensity 0.3 the
+  baked navy roof `#10121d` rendered `#312c1b` — an olive tarp over the night
+  city. At intensity ~0 the baked colour comes through. Night now runs at 0.04.
+  If a colour ever renders "wrong but plausible", suspect the light first.
+
+**Also fixed / added:**
+- `date-switcher.js` crashed on `d.match is not a function` — manifest `diffs`
+  are objects now, not strings. That crash was silently killing **everything
+  after it in the init sequence** (sky, shadows, signage, the intro). Init is
+  now stage-isolated (`step()` in app.js) so one failure can't cascade.
+- A `text-opacity` expression nesting two zoom curves inside a `case` was
+  rejected outright ("Only one zoom-based step or interpolate subexpression may
+  be used") — and a rejected paint property takes the whole layer with it.
+  Zoom-interpolate on the outside, `case` in the outputs.
+- The `2026-07-27` snapshot was dead data: no detail bake, not in the manifest.
+  Baked and registered; it's now `latest`, which also lights up the date
+  switcher and the 12-building diff vs `2026-07-11`.
+- Sign ground-glow pools were 60 px at z16 / 380 px at z19 and merged into one
+  wash; tightened to 20/150 at 0.2 opacity.
+- Cinematic dolly-in on load (9 s, cancels on any input); chrome fades back
+  once you take the controls; roads widened into readable ribbons with casings;
+  restyled HUD; inline SVG favicon.
+
+**Verification (this is the part to keep).** `scratchpad/shot.mjs` +
+`_harness.html` drive the REAL app in headless Chrome and screenshot it.
+Critical details:
+- The bundled Playwright Chromium on this machine is broken ("side-by-side
+  configuration is incorrect"); launch with
+  `executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe'`.
+- `_harness.html` forces `preserveDrawingBuffer: true` so `gl.readPixels` can
+  sample **our own output** — assert on hex values, don't eyeball.
+- To find which layer owns a pixel, hide layers one at a time and diff. That's
+  how the olive was pinned to `buildings-roof`, and how "roads are the problem"
+  was disproved (paint every line layer magenta — one render settles it).
+- **Data-driven paint expressions and the facade atlas do not land in the same
+  frame as the call.** A screenshot taken too soon after a big time-of-day jump
+  shows the PREVIOUS state — that's what produced a "black roofs" and
+  "brand-coloured day labels" scare that did not reproduce in a fresh session.
+  Settle ~4 s, `triggerRepaint`, then screenshot twice and trust the second.
+
+---
+
+## 14. Where the project went next (July 11–12, 2026)
+
+Simeon judged the July 10 overhaul **1/10 vs expectations** — fill-extrusion
+prisms can never deliver real facades (Union on 24th's checkered panels,
+recessed windows, terraces). The visual ambition moved to a sibling project:
+**`Projects/utx-diorama`** — Google Photorealistic 3D Tiles + Blender diorama
+stage + a three.js "workbench" where hero buildings are rebuilt procedurally
+from architect reference photos. Read **`utx-diorama/PROJECT_OVERVIEW.md`**
+for the full journey and its lessons. This repo stays live (flyover-utx.vercel.app)
+and untouched; its baked data (`buildings.detailed.geojson`, `signs.json`,
+`hero_designs.json`) feeds the diorama's footprint/palette pipelines.

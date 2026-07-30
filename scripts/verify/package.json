@@ -1,0 +1,19 @@
+{
+  "name": "austin-3d-explorer-verify",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dev-only verification harness. Drives the real app in headless Chrome and asserts measurable scene properties. Adds nothing to the site itself.",
+  "type": "module",
+  "scripts": {
+    "movement": "node movement.mjs",
+    "collision": "node collision.mjs",
+    "sky": "node sky.mjs",
+    "dusk": "node dusk.mjs",
+    "silhouette": "node silhouette.mjs",
+    "banding": "node banding.mjs",
+    "all": "node movement.mjs && node collision.mjs && node sky.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}
