@@ -475,6 +475,114 @@ FRAME — always screenshot twice and trust the second.
 
 ---
 
+## 23. July 30 2026 — the Capitol Complex (south of campus)
+
+**The complaint:** "can you get the government buildings south of campus looking
+a lot better — check whether they even exist."
+
+**What was actually there.** They existed, and that was the smaller half of the
+problem. `scripts/config.sh` models `30.276..30.296`, and that south edge falls
+one block NORTH of the Capitol grounds. So the scene held the *back* of the
+state complex — the Bullock, Bush, Barbara Jordan, Travis, Stephen F. Austin —
+as anonymous tan boxes, and then stopped dead in an empty tan plain exactly
+where the **Texas Capitol, its 22 acres of grounds and the Governor's Mansion**
+belong. Flying south from campus, the city ended at MLK.
+
+The heights were wrong too, and consistently in one direction: Overture reads
+these buildings at roughly half true size. The **14-storey George H.W. Bush
+State Office Building was a 24.9 m box** — 1.8 m per floor.
+
+**What was added** (`scripts/fetch_capitol.py` → `scripts/bake_capitol.py`,
+six data files, `js/capitol.js`):
+
+| | |
+|---|---|
+| new modelled strip | `30.2710..30.2762`, full lon span — one block past the grounds |
+| buildings | **604** from OSM, 78% with a recorded `height` or `building:levels` |
+| the Texas Capitol | its real OSM footprint + **13 building:parts**, plus bespoke dome geometry |
+| grounds | 322 areas + 1,480 paths — the Great Walk, the drives, the lawns |
+| trees | **306** on the Capitol grounds; `trees.geojson` stopped at 30.27597 |
+| corrected | 12 state buildings recoloured, **5 raised** (Bush 24.9 → 50.4 m) |
+
+**The design rule: add nothing new where something exists.** Five of the six
+baked files are merged into sources the app already has — `austin-buildings`,
+`austin-parts`, `austin-ground`, `austin-trees` — so the new area inherits
+facade patterns, ground shadows, label placement and dedup, the collision grid,
+the day→night palette, the tree-density knob and the z-order for free and
+permanently. Only the dome needed a layer of its own.
+
+**The Capitol's massing is not invented.** OSM models it with building:parts,
+and the numbers corroborate from two directions: the drum part carries
+`height=75, roof:shape=dome`, the lantern part carries `height=92`, and 92 m is
+the documented **302.64 ft** to the tip of the Goddess of Liberty's star. What
+IS generative is form — `fill-extrusion` has one roof shape, so the dome, the
+24-column drum colonnade, the mansard skirt, the pavilion caps and the Bullock's
+rotunda are stacked rings, the same trick `bake_stadium.py` uses for the bowl.
+
+**Things that were measured rather than recalled**
+- The Capitol's roof is **pale grey-green standing-seam metal**, not terracotta
+  — four clean samples off a z20 nadir tile (`#b7b8aa #aaaa9d #b5b6a7 #8d9085`).
+  Worth knowing, because the campus roof pass would have tiled it in clay.
+- The dome reads **lighter than the walls** from above (`#c9bba9 #ccb7a0
+  #c0af9f`): it is sheet metal painted to match granite, and paint on a curved
+  surface facing the sky is not a quarried wall. It has its own colour on purpose.
+- The Capitol's **long axis runs east–west**, not north–south. The footprint's
+  bbox is 167.9 × 102.6 m, which also settles which dimension the documented
+  566 ft belongs to.
+- The **granite wall colour is generative and labelled as such.** A nadir tile
+  shows roofs; the few vertical strips it shows are shadowed or one pixel wide.
+  Sampling those would have been a measurement in name only.
+
+**Five bugs worth not repeating**
+
+1. **`_harness.html` keeps a hand-maintained COPY of index.html's script list.**
+   `capitol.js` was added to `index.html` only, and three shot runs "proved" the
+   Capitol Complex had not changed. A module missing from the harness renders a
+   scene that looks fine and is not the one the site serves. Both files now say so.
+2. **The intro cinematic is a `map.flyTo`, not the flight controller.** So
+   `__fly.eye().driving` stays **false** for its entire 9 s, the README's
+   "wait for `!driving`" returns immediately, and the `jumpTo` after it is
+   overwritten a frame later. Two probe runs screenshotted West Campus and were
+   nearly read as "the buildings are missing at the Capitol". The fix is
+   `?intro=0`; `shot.mjs` now loads with it.
+3. **`fill-extrusion-vertical-gradient` on a stacked dome is 18 dark bands.**
+   It darkens the bottom of *each* extrusion — right for one 30 m building,
+   wrong for eighteen 1.3 m discs. With it on the dome read as a brown cone;
+   off, MapLibre's per-facet shading carries the curvature.
+4. **The facade quantiser will always lose a landmark's material.** Keeping the
+   14 most POPULOUS tones is the right default and it also guarantees that a
+   one-off granite on one building folds into whatever tan its neighbours
+   average to — which put a pink dome on brown walls. `facades.js` now honours
+   `window.FACADE_PROTECTED`: a protected tone keeps its own bucket and its
+   *exact* colour, because the point is the material, not the neighbourhood.
+5. **Overpass: `out` takes verbosity BEFORE geometry** (`out tags geom`, never
+   `out geom tags`), and a tag key with a colon must be quoted
+   (`way["area:highway"]`). Both are 400s, and 400 will never fix itself — the
+   fetcher now fails fast on it instead of spending six minutes retrying mirrors.
+
+**Two judgement calls, stated rather than hidden**
+- **Levels → metres uses 3.6 m for civic/office**, not `config.sh`'s 3.2, which
+  is a residential figure. At 3.2 the 14-storey Bush building is shorter than
+  the 12-storey apartment blocks on Nueces. Generative, and reported by the bake.
+- **The overrides pass may only touch a curated list inside a box around the
+  complex.** The first cut matched any snapshot building whose name OSM also
+  knew, which quietly raised **Dobie Twenty21 from its curated 82 m hero height
+  to 99.2 m** and The Linden to 89.6 — a West Campus edit from a pass with no
+  business there. The list is now the permission.
+
+**Corrections are a runtime patch, not a rewrite of the snapshot.**
+`data/capitol_overrides.json` is applied in `mergeCapitolScene()` on every load.
+`buildings.detailed.geojson` is a generated artefact and a re-run of
+`bake_detail.py` would silently undo anything written into it.
+
+**Still owed here:** the Capitol's south portico and its steps; the monuments on
+the south lawn (the `historic`/`memorial` nodes are fetched and cached but not
+baked); the Bullock's bronze Lone Star; and 7 downtown building *relations*
+that Overpass returned without member geometry and the bake skips — all hotels
+and condos, none of them government, and the count is reported.
+
+---
+
 ## 22. July 30 2026 — the ground pass (make it read like campus)
 
 The complaint: the intro flies past the UT Tower and the ground under it is
@@ -493,7 +601,7 @@ here prints its own provenance block. Nothing is scattered for looks.
 | paths/plazas/lawns/water/pitches (`ground.geojson`) | 2,881 | OSM |
 | trees (`trees.geojson`) | 2,572 | city survey 878, OSM 489, **aerial imagery 1,205** |
 | art / furniture / construction (`props.geojson`) | 501 | OSM |
-| pitched roofs (`roofs.geojson`) | 26 buildings | terracotta tile read off aerial imagery |
+| pitched roofs (`roofs.geojson`) | 100 buildings | terracotta tile read off aerial imagery |
 
 **`scripts/survey_ground.py` caches every raw Overpass response under
 `data/osm_cache/`** so nothing depends on that flaky API twice. Two hard-won
@@ -526,11 +634,64 @@ vegetation returns to mine. That premise was checked and is false.
 `fill-extrusion` has exactly one roof shape: flat. WHICH buildings have tile
 (therefore pitched) roofs is **sourced**: each footprint is scored for
 terracotta against the imagery, calibrated on the only ground truth available —
-Sutton Hall (OSM `hipped`) scores 0.58, University Teaching Center (OSM `flat`)
-scores 0.00, and the campus spread is sharply bimodal. The SHAPE is generative:
-six stepped inset caps. Offsetting a long rectangle inward collapses its short
-axis to a line, so an elongated hall grows its own ridge. Reads as a pitch at
-flying altitude; reads as steps up close, which is stated, not hidden.
+the five buildings OSM tags with `roof:shape`. The SHAPE is generative: stepped
+inset facets at a 5:12 pitch. Offsetting a long rectangle inward collapses its
+short axis to a line, so an elongated hall grows its own ridge. Reads as a pitch
+at flying altitude; reads as steps up close, which is stated, not hidden.
+
+**v2 (July 30) — "the roofs are still flat".** They were, on 96% of campus, for
+two mechanical reasons and one rendering one. All three are worth knowing:
+
+1. **The rule was never run.** `data/imagery_cache` held only the 176 z19 tiles
+   fetched for an unrelated research task, so the bake reported `no_imagery
+   1933` against `tiled 26` and every unscored building fell through to flat.
+   Nothing was wrong with the rule; it had no photograph to read.
+   `scripts/fetch_roof_imagery.py` derives the tile list from the footprints
+   themselves and fills the cache (1,192 tiles). 26 → 76 buildings.
+2. **The rule asked the wrong question.** v1 averaged terracotta over the WHOLE
+   footprint and needed 0.50. But most of these hips are a tiled BAND around a
+   flat membrane deck, so Welch, Calhoun, Hogg Auditorium, Gregory Gym, the
+   Blanton, Goldsmith and Gearing all scored 0.30–0.55 and were thrown away —
+   by their own decks. v2 walks INWARD from the eave and samples each offset
+   ring, so the slope's run is measured per building and stops where the tile
+   stops. 76 → 100, and the run is now data instead of an assumption.
+   `python scripts/probe_roofs.py --sheet` writes the contact sheet that made
+   this obvious; looking at the crops took ten seconds and was worth more than
+   any amount of reasoning about the histogram.
+3. **Stepped rings render flat, and no amount of pitch fixes that.** Every tread
+   is horizontal, MapLibre shades horizontal tops identically, and the result is
+   a flat plane with stripes on it — corrugated iron, not a roof. So each step
+   is now one quad PER EDGE carrying `az`, the direction that slope faces, and
+   `timeofday.js` picks its colour between a baked dark and bright end from the
+   LIVE sun (`roofFacetColor`). The four slopes of a hip then differ, the hip
+   diagonals appear, and the lighting rotates with the same sun as the shadows.
+
+   Baking that tint into rd/rg/rn instead was tried first and failed in a way
+   worth remembering: `bakedColor` LERPS day→golden, the morning sun sits at
+   az 98 and the golden one at az 256, and at p=0.25 every facet averaged back
+   to flat grey. **Directional shading cannot be baked at fixed hours and then
+   interpolated across the day.**
+
+Three geometry bugs found by looking at renders rather than at code:
+
+- **Folded offsets.** A mitred offset turns inside out where a building is
+  narrower than twice the offset. The Union's thin wings became spikes that
+  rendered as steps floating over a flat plane. `fold_free_run` caps the slope
+  at the last offset where the ring is still a true offset (every vertex still
+  `d` from the wall that made it). Demanding EVERY vertex be clean dropped 34
+  buildings whose single light-well notch folds early — Batts, Parlin, Rainey —
+  so the test tolerates a tenth of the ring and `valid_step` cleans the rest.
+- **The missing top.** The slope's interior was left on the wall cap while the
+  band climbed 3 m above it, so the steps genuinely floated. It is now always
+  filled at the top of the slope; its colour is the photograph's call (measured
+  membrane grey where the middle is not tile, the building's tile where it is).
+- **1 m wall jogs.** Shading by direction turns a staircase-shaped wall into
+  alternating bright/dark dashes. The roof is simplified (Douglas–Peucker, 1.1 m
+  — under the eave overhang) before offsetting.
+
+Cost: measured with `scripts/verify/roof-perf.mjs`, roofs on vs off over the
+halls, interleaved reps. The spreads overlap in both runs — **no measurable
+frame cost**, which is the honest reading, not "free".
 
 ### 22.5 Two measurement lessons
 

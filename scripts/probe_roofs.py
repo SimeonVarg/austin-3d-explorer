@@ -12,6 +12,7 @@ Usage: python scripts/probe_roofs.py
 import json
 import math
 import os
+import sys
 
 import numpy as np
 from PIL import Image
@@ -82,6 +83,39 @@ def point_in_ring(x, y, ring):
     return inside
 
 
+def crop(ring, px=190):
+    """Cut this footprint's bbox out of the z19 imagery, as an RGB array.
+
+    Looking at the photograph is the only honest way to settle a threshold: the
+    detector's number can be wrong for reasons (tree shadow, HVAC decks) that a
+    person spots in one glance. `--sheet` writes every crop into one labelled
+    contact sheet.
+    """
+    lons = [p[0] for p in ring]; lats = [p[1] for p in ring]
+    w, e, s, n = min(lons), max(lons), min(lats), max(lats)
+    out = np.zeros((px, px, 3), np.uint8)
+    for j in range(px):
+        for i in range(px):
+            c = px_at(w + (e - w) * (i + 0.5) / px, n - (n - s) * (j + 0.5) / px)
+            if c is not None:
+                out[j, i] = c
+    return out
+
+
+def contact_sheet(rows, path, cols=6, cell=190):
+    """rows: [(tile_frac, name, ring)] -> one labelled PNG."""
+    from PIL import ImageDraw
+    r = (len(rows) + cols - 1) // cols
+    img = Image.new("RGB", (cols * cell, r * (cell + 18)), (18, 18, 18))
+    d = ImageDraw.Draw(img)
+    for k, (fr, nm, ring) in enumerate(rows):
+        x, y = (k % cols) * cell, (k // cols) * (cell + 18)
+        img.paste(Image.fromarray(crop(ring, cell)), (x, y))
+        d.text((x + 3, y + cell + 3), "%.2f %s" % (fr, nm[:26]), fill=(235, 235, 235))
+    img.save(path)
+    print("  wrote", path)
+
+
 def main():
     bl = json.load(open(os.path.join(ROOT, "data/snapshots/2026-07-30/buildings.detailed.geojson"),
                         encoding="utf-8"))["features"]
@@ -103,7 +137,12 @@ def main():
             fr, n = tile_frac(ring_of(f))
             print("  %-46s osm=%-18s tile_frac=%.2f (n=%d)" % (nm[:46], known[nm], fr, n))
 
-    print("\nSPREAD — a sample of campus buildings in the cached imagery")
+    # The whole campus, not a sample of one block. The cache used to hold only
+    # the 176 tiles of an unrelated research bbox, so this probe could only ever
+    # see a corner of the campus and the bimodality claim rested on ~95
+    # buildings. `scripts/fetch_roof_imagery.py` now fills the cache from the
+    # footprints themselves, so the spread below is the real one.
+    print("\nSPREAD — every campus building the imagery covers")
     rows = []
     for f in bl:
         p = f["properties"]
@@ -113,16 +152,16 @@ def main():
         r = ring_of(f)
         cx = sum(q[0] for q in r) / len(r)
         cy = sum(q[1] for q in r) / len(r)
-        if not (-97.7452 <= cx <= -97.7375 and 30.2838 <= cy <= 30.2876):
+        if not (-97.7480 <= cx <= -97.7280 and 30.2790 <= cy <= 30.2930):
             continue
         fr, n = tile_frac(r, 260)
         if n >= 40:
-            rows.append((fr, h, p.get("name") or "(unnamed)"))
-    rows.sort(reverse=True)
+            rows.append((fr, h, p.get("name") or "(unnamed)", r))
+    rows.sort(key=lambda t: -t[0])
     print("  buildings sampled:", len(rows))
-    for fr, h, nm in rows[:12]:
+    for fr, h, nm, _ in rows[:12]:
         print("   HIGH %.2f  h=%4.1f  %s" % (fr, h, nm[:44]))
-    for fr, h, nm in rows[-8:]:
+    for fr, h, nm, _ in rows[-8:]:
         print("   LOW  %.2f  h=%4.1f  %s" % (fr, h, nm[:44]))
     import statistics
     fr_all = [r[0] for r in rows]
@@ -130,6 +169,24 @@ def main():
         print("  tile_frac: median %.2f  >0.5: %d  <0.15: %d" % (
             statistics.median(fr_all), sum(1 for v in fr_all if v > 0.5),
             sum(1 for v in fr_all if v < 0.15)))
+        print("\n  HISTOGRAM (is the spread still bimodal campus-wide?)")
+        for lo in [i / 10 for i in range(10)]:
+            n = sum(1 for v in fr_all if lo <= v < lo + 0.1)
+            print("   %.1f-%.1f %4d %s" % (lo, lo + 0.1, n, "#" * min(60, n)))
+        # The threshold is a judgement call, so print what lives either side of
+        # it by name — that is the only way to sanity-check it against a campus
+        # you can picture.
+        print("\n  THE MIDDLE BAND (0.15-0.60) — named, because this is where the call is made")
+        for fr, h, nm, _ in rows:
+            if 0.15 <= fr < 0.60 and nm != "(unnamed)":
+                print("   %.2f  h=%4.1f  %s" % (fr, h, nm[:52]))
+
+    if "--sheet" in sys.argv:
+        print("\nCONTACT SHEETS — look at the photograph before trusting the number")
+        band = [(fr, nm, r) for fr, h, nm, r in rows if 0.15 <= fr < 0.62]
+        contact_sheet(band, os.path.join(ROOT, "data", "roof_band_015_062.png"))
+        low = [(fr, nm, r) for fr, h, nm, r in rows if 0.05 <= fr < 0.15][:36]
+        contact_sheet(low, os.path.join(ROOT, "data", "roof_band_005_015.png"))
 
 
 if __name__ == "__main__":

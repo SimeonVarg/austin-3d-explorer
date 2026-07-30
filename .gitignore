@@ -7,4 +7,11 @@ __pycache__/
 # bake reproducible without depending on Overpass being up.
 data/imagery_cache/
 data/canopy_debug_*.png
+# Contact sheets from `python scripts/probe_roofs.py --sheet` — how the roof
+# threshold gets checked against the actual photograph. Regenerable, and large.
+data/roof_band_*.png
+# The stitched Capitol Complex nadir reference (scripts/fetch_capitol_aerial.py).
+# Reference input to a bake, never shipped; at --zoom 20 it is 120 MB, and the
+# tiles it is stitched from are already cached under data/imagery_cache.
+data/capitol_aerial.png
 scripts/_overpass_probe.json
