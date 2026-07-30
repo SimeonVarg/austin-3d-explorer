@@ -1,0 +1,10 @@
+[
+ {"name":"01-golden-spawn",   "p":0.50, "gfx":"cinematic", "center":[-97.7434,30.2857],  "zoom":16.5,  "pitch":74, "bearing":250},
+ {"name":"02-golden-canyon",  "p":0.50, "gfx":"cinematic", "center":[-97.7412,30.2857],  "zoom":16.95, "pitch":71, "bearing":270},
+ {"name":"03-golden-uttower", "p":0.48, "gfx":"cinematic", "center":[-97.7404,30.2853],  "zoom":17.0,  "pitch":74, "bearing":60},
+ {"name":"04-day-dkr",        "p":0.28, "gfx":"cinematic", "center":[-97.7346,30.2833],  "zoom":16.6,  "pitch":70, "bearing":82},
+ {"name":"05-noon-campus",    "p":0.25, "gfx":"cinematic", "center":[-97.7380,30.2860],  "zoom":16.4,  "pitch":68, "bearing":120},
+ {"name":"06-dusk-belt-east", "p":0.63, "gfx":"cinematic", "center":[-97.7434,30.2857],  "zoom":16.5,  "pitch":74, "bearing":76},
+ {"name":"07-night-skyline",  "p":0.92, "gfx":"cinematic", "center":[-97.7420,30.2850],  "zoom":15.9,  "pitch":71, "bearing":250},
+ {"name":"08-night-street",   "p":0.92, "gfx":"cinematic", "center":[-97.7440,30.2860],  "zoom":17.5,  "pitch":78, "bearing":250}
+]
