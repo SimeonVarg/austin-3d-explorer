@@ -1,0 +1,7 @@
+[
+ {"name":"D1-west-side",  "p":0.25, "gfx":"cinematic", "center":[-97.73520,30.28396], "zoom":16.9, "pitch":68, "bearing":90},
+ {"name":"D2-south-end",  "p":0.25, "gfx":"cinematic", "center":[-97.73286,30.28150], "zoom":17.0, "pitch":70, "bearing":0},
+ {"name":"D3-nw-air",     "p":0.25, "gfx":"cinematic", "center":[-97.73450,30.28560], "zoom":16.6, "pitch":60, "bearing":135},
+ {"name":"D4-close-west", "p":0.25, "gfx":"cinematic", "center":[-97.73430,30.28396], "zoom":17.8, "pitch":74, "bearing":90},
+ {"name":"D5-golden",     "p":0.50, "gfx":"cinematic", "center":[-97.73520,30.28396], "zoom":16.9, "pitch":68, "bearing":90}
+]

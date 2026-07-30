@@ -49,20 +49,20 @@
     day: {
       limestone:'#efe6cf', concrete:'#dfd9cb', paving:'#e6ddc9', brick:'#9a6249',
       asphalt:'#6e6960', gravel:'#c9bfa9', dirt:'#a28b6c', sand:'#e2d2ab',
-      grass:'#8fa869', turf:'#7d9c5e', wood:'#5d7a48', water:'#8fbccd',
-      track:'#a8503c',
+      grass:'#8fa869', turf:'#4f7a3c', wood:'#5d7a48', water:'#8fbccd',
+      track:'#a8503c', endzone:'#bf5700',
     },
     golden: {
       limestone:'#f4e0b8', concrete:'#e3cba6', paving:'#ecd6ac', brick:'#8f5439',
       asphalt:'#6b5c4c', gravel:'#cdb28d', dirt:'#a37f5b', sand:'#e7cb9c',
-      grass:'#8a9457', turf:'#7a8b4e', wood:'#5a6a3c', water:'#c9a184',
-      track:'#a5482f',
+      grass:'#8a9457', turf:'#4a6b36', wood:'#5a6a3c', water:'#c9a184',
+      track:'#a5482f', endzone:'#b04e00',
     },
     night: {
       limestone:'#1b1e28', concrete:'#181b24', paving:'#1a1d26',
       brick:'#1d1720', asphalt:'#12141b', gravel:'#1b1a22', dirt:'#191620',
-      sand:'#201d26', grass:'#111a14', turf:'#0f1712', wood:'#0c130f',
-      water:'#070f1e', track:'#1d1418',
+      sand:'#201d26', grass:'#111a14', turf:'#0d1710', wood:'#0c130f',
+      water:'#070f1e', track:'#1d1418', endzone:'#2a1608',
     },
   };
   const KEYS = Object.keys(SURF.day);

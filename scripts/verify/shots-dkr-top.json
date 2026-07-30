@@ -1,0 +1,4 @@
+[
+ {"name":"T1-nadir",  "p":0.25, "gfx":"cinematic", "center":[-97.73255,30.28365], "zoom":16.6, "pitch":12, "bearing":0},
+ {"name":"T2-oblique","p":0.25, "gfx":"cinematic", "center":[-97.73255,30.28365], "zoom":16.7, "pitch":42, "bearing":20}
+]

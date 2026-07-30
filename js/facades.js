@@ -35,15 +35,128 @@
   //   md  walk-ups, campus halls: punched-window grid
   //   tw  towers: dense curtain-wall grid
   //   dk  parking decks: open horizontal slots, no glass
+  //   st  stadiums + arenas: masonry piers, NOT windows (see drawStadium)
   const GRIDS = {
     lo: { rows: 2, cols: 3, w: 13, h: 11 },
     md: { rows: 5, cols: 4, w: 10, h: 8 },
     tw: { rows: 6, cols: 6, w: 7,  h: 7 },
     dk: null, // drawn as bands
+    st: null, // drawn as piers + spandrel/slot tiers (drawStadium)
   };
+
+  // ── Stadium facade ──────────────────────────────────────────────────
+  // A stadium is not an office building, and DKR in particular has almost NO
+  // glass: what reads as windows in every photograph is open VOID — recessed
+  // slots, vomitory mouths, the shadow under a cantilevered deck. A punched
+  // window grid therefore puts glazing where there is literally a hole. The
+  // right read is a structural frame: full-height piers crossed by stacked
+  // spandrel-and-slot bands, one material, one colour, light doing the work.
+  //
+  // Researched, not assumed. The obvious guess — brick, because the north end
+  // zone masonry is well documented — is WRONG for the building as a whole:
+  // the dominant surface is cast-in-place concrete, repainted 2012-13 and
+  // again on the west face in 2017, reading warm off-white. Brick appears only
+  // at the 2008 north end zone. Sampled references: sunlit painted concrete on
+  // DKR's own concourse decks #C5C1B6 (from data/dkr_aerial.png), recessed
+  // voids #14100A, deck soffit in shade #4E433F, UT burnt orange #BF5700
+  // (Pantone 159, published).
+  //
+  // ANCHOR-AGNOSTIC BY DESIGN. The tile repeats every ~20 m VERTICALLY as well
+  // as horizontally, so nothing here may assume it sits at the roofline or at
+  // grade. A first cut had a fascia band near the tile top and a plinth band at
+  // the bottom; they landed adjacent across the seam and produced a phantom
+  // dark-light-dark stripe three times up the wall. Everything below is
+  // designed to tile.
+  const STADIUM = {
+    GAIN: 1.15,            // wall lift: the pattern removes ~13% of mean luma
+    WARM: 0.25,            // pull toward warm concrete, luminance-gated
+    WARM_TINT: [232, 222, 206],
+
+    TIERS: 5,              // bands per 20 m -> ~4.0 m floor-to-floor
+    SLOT_H: 4,             // px recessed slot (~1.25 m)
+    SLOT_DARK: 0.50,
+    CORE_DARK: 0.66,       // 1 px deep core at the head of the slot
+    LIP_LIGHT: 0.16,       // 1 px sunlit hood above the slot
+
+    CONCOURSE_TIER: 1,     // one tier in five is the deep concourse band, so a
+    CONCOURSE_H: 7,        // concourse recurs every 20 m -> 3 on a 63 m bowl,
+    CONCOURSE_DARK: 0.58,  // which is what DKR actually has
+
+    PIERS: 4,              // per 20 m -> 5.0 m bay centres
+    PIER_W: 5,             // px (~1.6 m)
+    MAJOR_PIER_W: 7,       // pier 0 is the wider circulation pier
+    PIER_LIGHT: 0.10,
+    PIER_SHADOW: 0.28,     // hard shadow down the right flank of each pier
+    GOLDEN_WARM: 0.25,
+
+    NIGHT_GLOW: [255, 186, 110],
+    NIGHT_CONCOURSE: 0.30, // a lit concourse is a RIBBON, not a window scatter
+    NIGHT_PORTAL: 0.35,
+    PORTAL_RATE: 0.30,
+  };
+
+  /** One stadium tile: prepared wall, spandrel/slot tiers, night ribbon, piers. */
+  function drawStadium(ctx, wall, dark, night, golden, seed) {
+    const T = TILE;
+    const fill = (c, x, y, w, h) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, w, h); };
+
+    // Brightness compensation. The pattern darkens the wall ~13% on average, so
+    // without this DKR renders darker and greyer than its baked colour intends.
+    // MULTIPLICATIVE on purpose: a mix-to-white would lift a dark building far
+    // more in relative terms and turn Moody Center's #4c4c51 into mid grey.
+    let w = wall.map(c => Math.min(250, c * STADIUM.GAIN));
+    const lum = (0.30 * w[0] + 0.59 * w[1] + 0.11 * w[2]) / 255;
+    // Gate the warm-concrete pull on luminance so it applies to DKR and the
+    // pale grandstands and effectively not at all to a dark arena.
+    const warmT = STADIUM.WARM * Math.max(0, Math.min(1, (lum - 0.35) / 0.30));
+    w = mix(w, STADIUM.WARM_TINT, warmT);
+
+    fill(w, 0, 0, T, T);
+
+    // ── horizontal tiers: spandrel, then a recessed slot with a lit hood
+    let concourseY = 0, concourseH = 0;
+    for (let k = 0; k < STADIUM.TIERS; k++) {
+      const y1 = Math.round((k + 1) * T / STADIUM.TIERS);
+      const isC = (k === STADIUM.CONCOURSE_TIER);
+      const sh = isC ? STADIUM.CONCOURSE_H : STADIUM.SLOT_H;
+      const sy = y1 - sh - 1;                       // 1 px of spandrel below each
+      fill(mix(w, [255, 255, 255], STADIUM.LIP_LIGHT * (1 - dark * 0.8)), 0, sy - 1, T, 1);
+      fill(mix(w, [0, 0, 0], isC ? STADIUM.CONCOURSE_DARK : STADIUM.SLOT_DARK), 0, sy, T, sh);
+      fill(mix(w, [0, 0, 0], STADIUM.CORE_DARK), 0, sy, T, 1);
+      if (isC) { concourseY = sy; concourseH = sh; }
+    }
+
+    // ── night: a continuous ribbon of concourse light, with brighter portals.
+    // Deliberately NOT the per-pane scatter the window families use — a lit
+    // stadium concourse is a strip, and the slots staying dark is what keeps
+    // DKR reading as the big silhouette on the east side of campus.
+    if (night > 0.02 && concourseH) {
+      const base = mix(w, [0, 0, 0], STADIUM.CONCOURSE_DARK);
+      const glow = mix(base, STADIUM.NIGHT_GLOW, STADIUM.NIGHT_CONCOURSE * night);
+      fill(glow, 0, concourseY, T, concourseH);
+      for (let b = 0; b < 8; b++) {
+        if (hash01(seed + 7001, b, 0) > STADIUM.PORTAL_RATE) continue;
+        fill(mix(glow, STADIUM.NIGHT_GLOW, STADIUM.NIGHT_PORTAL * night),
+             Math.round(b * T / 8) + 2, concourseY + 1, 4, concourseH - 2);
+      }
+    }
+
+    // ── piers last, so they cross the slots and the night ribbon like real
+    // structure standing in front of the openings.
+    const hi = mix(mix(w, [255, 255, 255], STADIUM.PIER_LIGHT * (1 - dark * 0.8)),
+                   [255, 198, 132], STADIUM.GOLDEN_WARM * golden);
+    const sha = mix(w, [0, 0, 0], STADIUM.PIER_SHADOW);
+    for (let i = 0; i < STADIUM.PIERS; i++) {
+      const x = Math.round(i * T / STADIUM.PIERS);
+      const pw = i === 0 ? STADIUM.MAJOR_PIER_W : STADIUM.PIER_W;
+      fill(hi, x, 0, pw, T);
+      fill(sha, x + pw, 0, 1, T);
+    }
+  }
 
   let palette = [];   // [{ wd, wg, wn }]
   let combos = [];    // ['md07', 'tw03', ...] — only families/buckets in use
+
 
   // ── Night windows — every taste value in one place ─────────────────
   //
@@ -146,6 +259,10 @@
   function familyFor(props) {
     const cls = props.building_class || '';
     if (/parking|garage|carport/.test(cls)) return 'dk';
+    // A stadium is not an office building. Before this, DKR was 63 m tall so it
+    // fell through to `tw` and wore a dense curtain-wall grid — the single
+    // loudest wrong note on campus. Class comes from the Overture/OSM bake.
+    if (/stadium|arena|sports_centre|grandstand/.test(cls)) return 'st';
     const h = props.final_height || 0;
     if (h < 5)  return 'lo';
     if (h >= 26) return 'tw';
@@ -292,6 +409,12 @@
     let glass = mix(wall, [46, 58, 74], 0.62);
     glass = mix(glass, [255, 176, 96], golden * 0.45);
     glass = mix(glass, [12, 15, 28], dark * 0.9);
+
+    if (fam === 'st') {
+      // Stadium/arena masonry: piers and bays, not windows. See drawStadium.
+      drawStadium(ctx, wall, dark, night, golden, bucketIdx * 4 + 3);
+      return;
+    }
 
     if (fam === 'dk') {
       // Parking deck: open horizontal slots + a thin bright deck edge.

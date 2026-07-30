@@ -339,6 +339,7 @@
       safePaint(map, 'buildings-roof','fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
       safePaint(map, 'parts-roof',    'fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
       safePaint(map, 'roofs-pitched', 'fill-extrusion-color', bakedColor(p,'rd','rg','rn'));
+      if (typeof window.applyStadiumColors === 'function') window.applyStadiumColors(p);
     }
 
     if (typeof updateShadows === 'function') updateShadows(map, p);

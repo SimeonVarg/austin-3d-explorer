@@ -190,6 +190,7 @@
       step('props',    () => { if (typeof initProps === 'function') initProps(map); });
       step('shadows',  () => initShadows(map, scene.buildings.features, p));
       step('roofs',    () => addRoofLayers());
+      step('stadium',  () => addStadiumLayers());
       step('detail',   () => addDetailLayers(scene));
       step('labels',   () => addLabelLayers());
     }
@@ -355,6 +356,40 @@
     }
   };
 
+  // ── Stadium seating bowl ──────────────────────────────────────────
+  // A stadium footprint is a ring, so extruding it gives a flat-topped mesa
+  // with a hole — the one thing a stadium never looks like. These are
+  // concentric bands offset from the building's OWN inner ring, each lower
+  // than the last, so the bowl steps down to the turf. See bake_stadium.py.
+  const SEAT_COL = ['#b3b0a8', '#bda88c', '#1a1c24'];   // day / golden / night
+  window.addStadiumLayers = function addStadiumLayers() {
+    if (map.getSource('austin-stadium')) return;
+    map.addSource('austin-stadium', { type:'geojson', data:'data/stadium.geojson' });
+    if (!map.getLayer('stadium-seating')) {
+      map.addLayer({
+        id:'stadium-seating', type:'fill-extrusion', source:'austin-stadium', minzoom:14,
+        paint:{
+          'fill-extrusion-color': SEAT_COL[0],
+          'fill-extrusion-height':['get','h'],
+          'fill-extrusion-base':0,
+          'fill-extrusion-opacity':1.0,
+          'fill-extrusion-vertical-gradient':true,
+        },
+      });
+    }
+  };
+  window.applyStadiumColors = function applyStadiumColors(p) {
+    if (!map || !map.getLayer || !map.getLayer('stadium-seating')) return;
+    const hx = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+    const a = p <= 0.5 ? SEAT_COL[0] : SEAT_COL[1];
+    const b = p <= 0.5 ? SEAT_COL[1] : SEAT_COL[2];
+    const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
+    const A = hx(a), B = hx(b);
+    const c = '#' + [0,1,2].map(i =>
+      Math.round(A[i] + (B[i]-A[i])*t).toString(16).padStart(2,'0')).join('');
+    try { map.setPaintProperty('stadium-seating', 'fill-extrusion-color', c); } catch (e) {}
+  };
+
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──
   function addDetailLayers(sc) {
     if (!map.getSource('austin-parts')) {
@@ -414,23 +449,12 @@
       });
     }
 
-    if (!map.getSource('austin-landscape')) {
-      map.addSource('austin-landscape', { type:'geojson', data:'data/landscape.geojson' });
-    }
-    if (!map.getLayer('landscape-pitch')) {
-      map.addLayer({
-        id:'landscape-pitch', type:'fill', source:'austin-landscape',
-        filter:['==',['get','kind'],'pitch'],
-        paint:{ 'fill-color':'#9dbd7e', 'fill-opacity':0.9 },
-      }, map.getLayer('buildings-shadow') ? 'buildings-shadow' : 'buildings-3d');
-    }
-    if (!map.getLayer('landscape-fountain')) {
-      map.addLayer({
-        id:'landscape-fountain', type:'fill', source:'austin-landscape',
-        filter:['==',['get','kind'],'fountain'],
-        paint:{ 'fill-color':'#b7d2dc', 'fill-opacity':1 },
-      }, map.getLayer('buildings-shadow') ? 'buildings-shadow' : 'buildings-3d');
-    }
+    // NOTE: the old `austin-landscape` pitch/fountain layers are GONE.
+    // data/ground.geojson now carries every pitch (101 of them) and fountain
+    // with a real surface class, and it drew them correctly — but
+    // landscape-pitch sat ABOVE ground-areas in the style and repainted each
+    // one flat green, which is what was burying DKR's burnt-orange end zones.
+    // One source for the ground, not two.
   }
   window.addDetailLayers = addDetailLayers;
 

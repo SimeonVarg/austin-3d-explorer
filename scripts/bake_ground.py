@@ -42,6 +42,8 @@ SURFACE_MAP = {
     "limestone": "limestone", "stone": "limestone", "rock": "limestone",
     "artificial_turf": "turf", "synthetic": "turf",
 }
+# The burnt-orange end zones of a Texas football field. Not an OSM surface —
+# a derived class, see the end-zone pass in main().
 
 # What a thing IS, when its surface is not tagged. This is a GENERATIVE default:
 # an untagged campus footway is overwhelmingly concrete here (of the corridor's
@@ -72,6 +74,11 @@ AREA_USE = {
     "parking": "parking", "construction": "construction", "brownfield": "construction",
     "sand": "sand",
 }
+
+# Values that are a BUILDING or an enclosure, not a ground surface. Without
+# this, `leisure=stadium` on DKR became a 235x231 m rust-red "track" slab laid
+# over the entire bowl, burying the actual field inside it.
+NOT_GROUND = {"stadium", "sports_centre", "grandstand", "pavilion", "building"}
 
 M_LAT = 111320.0
 unmapped_surface = Counter()
@@ -219,6 +226,9 @@ def main():
     for el in load("landuse"):
         t = el.get("tags", {}) or {}
         val = t.get("landuse") or t.get("natural") or t.get("leisure")
+        if val in NOT_GROUND:
+            stats["skipped_not_ground"] += 1
+            continue
         use = AREA_USE.get(val)
         if not use:
             continue
@@ -238,6 +248,7 @@ def main():
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": [r]},
                 "properties": {"k": "area", "u": use, "s": surf,
+                               **({"sport": t["sport"]} if t.get("sport") else {}),
                                **({"name": t["name"]} if t.get("name") else {})},
             })
             stats["area_" + use] += 1
@@ -248,6 +259,9 @@ def main():
             t = el.get("tags", {}) or {}
             val = (t.get("natural") or t.get("amenity") or t.get("leisure")
                    or t.get("water") or t.get("sport"))
+            if val in NOT_GROUND:
+                stats["skipped_not_ground"] += 1
+                continue
             use = AREA_USE.get(val, default_use)
             if el.get("type") == "way" and t.get("service") == "parking_aisle":
                 continue                       # aisles are lines; the lot covers it
@@ -262,12 +276,78 @@ def main():
                     "type": "Feature",
                     "geometry": {"type": "Polygon", "coordinates": [r]},
                     "properties": {"k": "area", "u": use, "s": surf,
+                                   **({"sport": t["sport"]} if t.get("sport") else {}),
                                    **({"name": t["name"]} if t.get("name") else {})},
                 })
                 stats["area_" + use] += 1
 
-    # Areas first, paths last, so paths draw ON TOP of the lawns they cross.
-    feats.sort(key=lambda f: 0 if f["properties"]["k"] == "area" else 1)
+    # ---- American football fields get their end zones ---------------------
+    # A gridiron read from the air IS the identity of a stadium, and the end
+    # zones are what make it read as one rather than as a green rectangle.
+    # POSITION is factual: the pitch polygon is OSM's. The SPLIT is derived —
+    # a regulation field is 120 yd long including two 10 yd end zones, so the
+    # end zones are the outer 9.144/109.73 = 8.33% of the long axis at each
+    # end. Applied to the polygon's own long axis, not to a guessed rectangle.
+    END_ZONE_FRAC = 9.144 / 109.728
+    extra = []
+    for f in feats:
+        pr = f["properties"]
+        if pr.get("u") != "pitch" or pr.get("sport") != "american_football":
+            continue
+        ring = f["geometry"]["coordinates"][0]
+        lat0 = sum(q[1] for q in ring) / len(ring)
+        kx = math.cos(math.radians(lat0))
+        xs = [q[0] * kx for q in ring]
+        ys = [q[1] for q in ring]
+        # Long axis of the bounding box decides which pair of ends to cut.
+        w_m = (max(xs) - min(xs)) * M_LAT
+        h_m = (max(ys) - min(ys)) * M_LAT
+        along_x = w_m >= h_m
+        lo, hi = (min(xs), max(xs)) if along_x else (min(ys), max(ys))
+        cut = (hi - lo) * END_ZONE_FRAC
+        for a, b in ((lo, lo + cut), (hi - cut, hi)):
+            if along_x:
+                box = [[a / kx, min(ys)], [b / kx, min(ys)],
+                       [b / kx, max(ys)], [a / kx, max(ys)]]
+            else:
+                box = [[min(xs) / kx, a], [max(xs) / kx, a],
+                       [max(xs) / kx, b], [min(xs) / kx, b]]
+            box.append(list(box[0]))
+            extra.append({
+                "type": "Feature",
+                "geometry": {"type": "Polygon",
+                             "coordinates": [[[round(x, 6), round(y, 6)] for x, y in box]]},
+                "properties": {"k": "area", "u": "endzone", "s": "endzone",
+                               "name": pr.get("name", "")},
+            })
+        stats["endzones"] += 2
+    feats.extend(extra)
+
+    # The same polygon can arrive from several caches (a pitch is in landuse AND
+    # sport AND surfaces), which stacked four copies of the DKR field. Key on
+    # geometry + use and keep one.
+    seen, deduped = set(), []
+    for f in feats:
+        if f["properties"]["k"] == "area":
+            r = f["geometry"]["coordinates"][0]
+            key = (f["properties"]["u"], round(sum(q[0] for q in r) / len(r), 6),
+                   round(sum(q[1] for q in r) / len(r), 6), len(r))
+            if key in seen:
+                stats["deduped_area"] += 1
+                continue
+            seen.add(key)
+        deduped.append(f)
+    feats = deduped
+
+    # Draw order: big areas first, then small areas on top of them, then paths
+    # over everything. Without the size term a 30,000 m2 lawn painted over the
+    # field it contains.
+    def order(f):
+        if f["properties"]["k"] != "area":
+            return (2, 0)
+        r = f["geometry"]["coordinates"][0]
+        return (0 if f["properties"]["u"] != "endzone" else 1, -area_m2(r))
+    feats.sort(key=order)
 
     fc = {"type": "FeatureCollection", "features": feats}
     with open(OUT, "w", encoding="utf-8") as f:
