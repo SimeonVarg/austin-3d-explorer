@@ -189,6 +189,7 @@
       step('ground',   () => { if (typeof initGround === 'function') initGround(map); });
       step('props',    () => { if (typeof initProps === 'function') initProps(map); });
       step('shadows',  () => initShadows(map, scene.buildings.features, p));
+      step('roofs',    () => addRoofLayers());
       step('detail',   () => addDetailLayers(scene));
       step('labels',   () => addLabelLayers());
     }
@@ -325,6 +326,32 @@
   window.applyTreeDensity = function applyTreeDensity(map) {
     for (const [id, kind] of [['trees-trunk', 'trunk'], ['trees-canopy', 'canopy']]) {
       try { if (map.getLayer(id)) map.setFilter(id, window.treeFilter(kind)); } catch (e) {}
+    }
+  };
+
+  // ── Pitched roofs on the historic halls ───────────────────────────
+  // fill-extrusion has exactly one roof shape — flat — and a campus of flat
+  // prisms is the loudest tell that a scene is generated. data/roofs.geojson
+  // (scripts/bake_roofs.py) approximates a hip with STEPPED INSET CAPS.
+  // WHICH buildings is factual: each footprint was scored for terracotta tile
+  // against nadir aerial imagery, calibrated on the buildings OSM tags with
+  // roof:shape (Sutton Hall hipped → 0.58, University Teaching Center flat →
+  // 0.00). The stepped SHAPE is generative and reads as a pitch from the air.
+  window.addRoofLayers = function addRoofLayers() {
+    if (map.getSource('austin-roofs')) return;
+    map.addSource('austin-roofs', { type:'geojson', data:'data/roofs.geojson' });
+    if (!map.getLayer('roofs-pitched')) {
+      map.addLayer({
+        id:'roofs-pitched', type:'fill-extrusion', source:'austin-roofs', minzoom:14,
+        paint:{
+          // Same baked per-feature colours as the wall cap it sits on, so the
+          // two can never drift apart across the day.
+          'fill-extrusion-color':['to-color',['get','rd']],
+          'fill-extrusion-height':['get','h'],
+          'fill-extrusion-base':['get','b'],
+          'fill-extrusion-opacity':1.0,
+        },
+      });
     }
   };
 
