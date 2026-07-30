@@ -69,6 +69,8 @@
     { key: 'flare',       label: 'Lens flare',     min: 0, max: 1, step: 0.02, group: 'lens' },
     { key: 'dof',         label: 'Distance blur',  min: 0, max: 1, step: 0.02, group: 'lens' },
     { key: 'exposure',    label: 'Exposure',       min: 0.7, max: 1.4, step: 0.01, group: 'grade' },
+    { key: 'autoExposure', label: 'Auto exposure', type: 'bool', group: 'grade',
+      hint: 'Nudges exposure toward the hour’s typical brightness, metered from the rendered frame. Needs the preserved buffer bloom uses (reload with bloom > 0).' },
     { key: 'contrast',    label: 'Contrast',       min: 0.8, max: 1.5, step: 0.01, group: 'grade' },
     { key: 'saturation',  label: 'Saturation',     min: 0.6, max: 1.6, step: 0.01, group: 'grade' },
     { key: 'filmic',      label: 'Filmic curve',   min: 0, max: 1, step: 0.02, group: 'grade',
@@ -91,7 +93,7 @@
   const PRESETS = {
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
-      exposure: 1.0, contrast: 1.0, saturation: 1.0, filmic: 0, vignette: 0.6, grain: 0,
+      exposure: 1.0, autoExposure: false, contrast: 1.0, saturation: 1.0, filmic: 0, vignette: 0.6, grain: 0,
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58,
     },
     balanced: {
@@ -102,17 +104,17 @@
       // a full-screen `overlay` blend running every frame. It is a taste effect,
       // not a depth or lighting cue, so it earns its keep at cinematic and not in
       // the default that has to feel smooth.
-      exposure: 1.03, contrast: 1.06, saturation: 1.1, filmic: 0.65, vignette: 1.0, grain: 0,
+      exposure: 1.03, autoExposure: true, contrast: 1.06, saturation: 1.1, filmic: 0.65, vignette: 1.0, grain: 0,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58,
     },
     cinematic: {
       renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0.45,
-      exposure: 1.05, contrast: 1.12, saturation: 1.18, filmic: 0.8, vignette: 1.25, grain: 0.22,
+      exposure: 1.05, autoExposure: true, contrast: 1.12, saturation: 1.18, filmic: 0.8, vignette: 1.25, grain: 0.22,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
     },
     ultra: {
       renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0.50,
-      exposure: 1.05, contrast: 1.14, saturation: 1.2, filmic: 0.8, vignette: 1.25, grain: 0.18,
+      exposure: 1.05, autoExposure: true, contrast: 1.14, saturation: 1.2, filmic: 0.8, vignette: 1.25, grain: 0.18,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
     },
   };
@@ -133,7 +135,7 @@
   // kept; asking for it only when bloom is actually wanted means the performance
   // preset stops paying for it on the next load.
   window.GFX_MSAA = !!GFX.msaa;
-  window.GFX_PDB = GFX.bloom > 0.01;
+  window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
 
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(GFX)); } catch (e) {}
@@ -369,10 +371,78 @@
     return true;
   }
 
+  // ── Auto-exposure ─────────────────────────────────────────────────
+  // Mean luma is nearly free once the preserved buffer exists for bloom: one
+  // 40x24 drawImage of the GL canvas + getImageData per frame. Two design
+  // decisions that matter:
+  //   1. OPEN LOOP. It meters the RAW frame, before the CSS grade applies the
+  //      gain, so the gain cannot feed back on its own output and pump.
+  //   2. The target is NOT fixed mid-grey. The day look is intentionally
+  //      high-key (raw mean ~0.6) and the night look intentionally dark
+  //      (~0.08); a 0.42 target would permanently re-grade both. The target
+  //      follows the hour's AUTHORED typical luma, so at a normal flying pose
+  //      the gain sits at ~1.0 and it only corrects DEVIATIONS — staring into
+  //      bright sky pulls back, a dark canyon of towers lifts.
+  const AE = {
+    // Typical RAW frame luma at each hour's spawn pose — measured by
+    // light-ae.mjs on SETTLED, idle frames, not guessed. (A 0.075 night guess
+    // pegged the clamp; a 0.80 day read turned out to be a mid-shadow-load
+    // frame. Settled poses across the whole day cluster remarkably tight:
+    // day 0.49-0.56, golden 0.49-0.50, night 0.135-0.136 — flat-lit
+    // extrusions — so with the knee below, real poses meter as "authored".)
+    TARGET_DAY: 0.52,
+    TARGET_GOLDEN: 0.50,
+    TARGET_NIGHT: 0.135,
+    KNEE: 0.16,           // log-space dead zone: deviations within ~±17% of the
+                          // hour's target are the AUTHORED look and get NO
+                          // correction — only real outliers move the gain
+    STRENGTH: 0.7,        // fraction of the beyond-knee correction applied
+    TAU_MS: 900,          // EMA time constant of the meter
+    MIN: 0.85, MAX: 1.20, // hard gain clamps
+    W: 40, H: 24,         // meter buffer
+    DEADBAND: 0.006,      // skip the style write for gain moves below this
+  };
+  let aeCv = null, aeCtx = null, aeLuma = null, aeGain = 1, aeLast = 0;
+
+  function aeMeter(F) {
+    if (!(GFX.autoExposure && bloomOK && mapCanvas)) {
+      if (aeGain !== 1) { aeGain = 1; aeLuma = null; aeLast = 0; applyGrade(); }
+      return;
+    }
+    const now = performance.now();
+    const dt = aeLast ? Math.min(250, now - aeLast) : 16.7;
+    aeLast = now;
+    if (!aeCv) {
+      aeCv = document.createElement('canvas');
+      aeCv.width = AE.W; aeCv.height = AE.H;
+      aeCtx = aeCv.getContext('2d', { willReadFrequently: true });
+    }
+    let luma = null;
+    try {
+      aeCtx.drawImage(mapCanvas, 0, 0, AE.W, AE.H);
+      const d = aeCtx.getImageData(0, 0, AE.W, AE.H).data;
+      let s = 0;
+      for (let i = 0; i < d.length; i += 4) s += d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722;
+      luma = s / (255 * (d.length / 4));
+    } catch (e) { return; }
+    aeLuma = aeLuma == null ? luma : aeLuma + (luma - aeLuma) * (1 - Math.exp(-dt / AE.TAU_MS));
+    const target = (AE.TARGET_DAY + (AE.TARGET_GOLDEN - AE.TARGET_DAY) * F.golden) * (1 - F.night)
+                 + AE.TARGET_NIGHT * F.night;
+    const err = Math.log(target / Math.max(0.02, aeLuma));
+    const mag = Math.max(0, Math.abs(err) - AE.KNEE);        // dead zone first
+    const g = Math.max(AE.MIN, Math.min(AE.MAX,
+      Math.exp(Math.sign(err) * mag * AE.STRENGTH)));
+    if (Math.abs(g - aeGain) > AE.DEADBAND) { aeGain = g; applyGrade(); }
+  }
+  window.__ae = () => ({ gain: aeGain, luma: aeLuma });   // debug/test hook
+  // Test hook: the EMA deliberately persists across hour changes in
+  // production; a test sampling five poses back to back needs a clean seed.
+  window.__aeReset = () => { aeLuma = null; aeLast = 0; };
+
   function applyGrade() {
     const host = document.getElementById('map');
     if (!host) return;
-    const ex = (grade.exposure || 1) * GFX.exposure;
+    const ex = (grade.exposure || 1) * GFX.exposure * aeGain;
     const co = (grade.contrast || 1) * GFX.contrast;
     const sa = (grade.saturation || 1) * GFX.saturation;
     const filmic = GFX.filmic || 0;
@@ -408,6 +478,8 @@
 
   window.renderFX = function renderFX(map, F) {
     if (!F) return;
+
+    aeMeter(F);
 
     // Distance blur: strongest at the horizon, gone by mid-frame. This is the
     // only depth cue available without a depth buffer, and it happens to match
