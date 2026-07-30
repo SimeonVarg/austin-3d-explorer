@@ -262,13 +262,22 @@ def main():
         squash = 0.82 + det01(lon, lat, "sq") * 0.30
         rot = det01(lon, lat, "rot") * 45.0
         base = round(h_m * (0.30 + det01(lon, lat, "b") * 0.10), 2)
+        d_trunk = round(0.62 * max(0.0, min(1.0, 1.0 - (r_m - 1.8) / 10.0))
+                        + 0.38 * det01(lon, lat, "dens"), 4)
         feats.append({
             "type": "Feature",
-            "properties": {"kind": "trunk", "h": round(base + 0.4, 2), "base": 0},
+            "properties": {"kind": "trunk", "h": round(base + 0.4, 2), "base": 0,
+                           "d": d_trunk},
             "geometry": {"type": "Polygon",
                          "coordinates": [square(lon, lat, max(0.25, r_m * 0.075))]},
         })
-        p = {"kind": "canopy", "h": round(h_m, 2), "base": base,
+        # `d` is a keep-order in 0..1 for the density control (GFX.treeDensity
+        # filters `d <= density`). Biased by size so thinning drops small trees
+        # first — the big live oaks are what you actually see from 60 m — with
+        # a deterministic jitter so the survivors never form visible bands.
+        d = round(0.62 * max(0.0, min(1.0, 1.0 - (r_m - 1.8) / 10.0))
+                  + 0.38 * det01(lon, lat, "dens"), 4)
+        p = {"kind": "canopy", "h": round(h_m, 2), "base": base, "d": d,
              "leaf": leaf, "sp": key, "src": src}
         if dbh:
             p["dbh"] = dbh

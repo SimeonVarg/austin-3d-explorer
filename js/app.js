@@ -312,6 +312,21 @@
     }
   };
 
+  // Tree density: 1.0 draws every tree, 0.5 keeps the biggest half, and so on.
+  // Lives on GFX so the graphics menu and the auto-detect probe can move it.
+  window.treeFilter = function treeFilter(kind) {
+    const dens = (window.GFX && typeof window.GFX.treeDensity === 'number')
+      ? window.GFX.treeDensity : 1;
+    return dens >= 1
+      ? ['==', ['get', 'kind'], kind]
+      : ['all', ['==', ['get', 'kind'], kind], ['<=', ['get', 'd'], dens]];
+  };
+  window.applyTreeDensity = function applyTreeDensity(map) {
+    for (const [id, kind] of [['trees-trunk', 'trunk'], ['trees-canopy', 'canopy']]) {
+      try { if (map.getLayer(id)) map.setFilter(id, window.treeFilter(kind)); } catch (e) {}
+    }
+  };
+
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──
   function addDetailLayers(sc) {
     if (!map.getSource('austin-parts')) {
@@ -339,10 +354,16 @@
     if (!map.getSource('austin-trees')) {
       map.addSource('austin-trees', { type:'geojson', data:'data/trees.geojson' });
     }
+    // Tree DENSITY is a parameter, not a cull. Every tree carries `d`, a
+    // keep-order in 0..1 biased so that thinning drops the small trees first
+    // and keeps the big live oaks — which are what you actually see from 60 m.
+    // Measured at 1440x900: the full set costs ~6-7 fps against trees-off, and
+    // the trees are the cost (the ground fills are within noise). So the knob
+    // exists and the presets set it; nothing is silently dropped.
     if (!map.getLayer('trees-trunk')) {
       map.addLayer({
         id:'trees-trunk', type:'fill-extrusion', source:'austin-trees',
-        minzoom:14, filter:['==',['get','kind'],'trunk'],
+        minzoom:14, filter:window.treeFilter('trunk'),
         paint:{
           'fill-extrusion-color':'#6b4f38',
           'fill-extrusion-height':['get','h'],
@@ -354,7 +375,7 @@
     if (!map.getLayer('trees-canopy')) {
       map.addLayer({
         id:'trees-canopy', type:'fill-extrusion', source:'austin-trees',
-        minzoom:14, filter:['==',['get','kind'],'canopy'],
+        minzoom:14, filter:window.treeFilter('canopy'),
         paint:{
           'fill-extrusion-color':['interpolate',['linear'],['get','h'],6,'#93ad70',15,'#5f7d4a'],
           'fill-extrusion-height':['get','h'],
