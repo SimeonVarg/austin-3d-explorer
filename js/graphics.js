@@ -1,0 +1,730 @@
+/**
+ * graphics.js — the post-process stack, and a menu to drive it
+ *
+ * MapLibre gives you no shader hooks: you cannot insert a pass into its pipeline
+ * and you cannot read its framebuffer without `preserveDrawingBuffer`, which
+ * costs a full-frame copy on every draw. So the "RTX" layer here is built the way
+ * a compositor can do it for free — as blend layers stacked over the WebGL
+ * canvas:
+ *
+ *   downscale + threshold + blur + add -> bloom      (canvas, from the GL canvas)
+ *   additive wedges from the sun       -> god rays   (canvas)
+ *   ghosts + anamorphic streak         -> lens flare (canvas)
+ *   masked blur at the horizon         -> aerial DOF (CSS backdrop-filter)
+ *   tonemap/exposure/saturation        -> grade      (CSS filter on #map)
+ *   overlay noise                      -> film grain (tiled canvas)
+ *
+ * BLOOM: CSS CANNOT DO THIS, and the way it fails is worth writing down. The
+ * obvious trick is one full-screen div with
+ * `backdrop-filter: brightness(.45) contrast(4) blur(25px)` and
+ * `mix-blend-mode: screen` — threshold, blur, add, all in the compositor, free.
+ * It does not work. Chrome paints the filtered backdrop as the element's own
+ * content and the blend mode never gets to add it back, so instead of light on
+ * top of the frame you get a crushed, dark, BLURRED copy laid over it at the
+ * element's opacity. Rendered side by side the whole city went muddy brown and
+ * soft — a screen blend can only ever lighten, so "it got darker" was proof the
+ * blend was not happening.
+ *
+ * So bloom is done for real: copy the GL canvas into a 256-px-wide scratch canvas
+ * with `filter = brightness(t) contrast(4) blur(r)` (that one drawImage does the
+ * downscale, the threshold and the blur at once), then composite it back up over
+ * the frame with `globalCompositeOperation = 'lighter'`. Cheap because the blur
+ * happens at 1/10 resolution, which is also where a bloom belongs.
+ *
+ * The catch is that reading the GL canvas needs `preserveDrawingBuffer`, which
+ * cannot be changed on a live context. So it is switched on at construction
+ * whenever the SAVED bloom setting is above zero, and turning bloom on from zero
+ * asks for a reload — the same deal as MSAA. Measured cost of the buffer plus the
+ * pass, flying at 2560x1400: 56.8 -> 46.0 fps.
+ *
+ * EVERY effect here costs fill rate, and this app was already GPU-bound before
+ * any of them existed: measured at 2560x1400 the baseline dropped 53.6% of its
+ * frames while flying. So each one is individually switchable, presets exist, the
+ * first run auto-detects, and the menu shows live fps — turning an effect on and
+ * watching what it costs is the whole point.
+ *
+ * Public (window) API:
+ *   GFX                      — the live settings object (read by sky.js, app.js)
+ *   initGraphics(map)        — build the DOM, restore settings, wire the menu
+ *   renderFX(map, skyFrame)  — per-frame pass, called by sky.js
+ *   applyGraphics()          — push settings to the map/CSS after a change
+ *   setGrade(grade)          — time-of-day grade, called by timeofday.js
+ *   GFX_MSAA                 — read by app.js at map construction
+ */
+(function () {
+  'use strict';
+
+  const KEY = 'austin3d.gfx.v1';
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+
+  // ── Settings ──────────────────────────────────────────────────────
+  // `renderScale` multiplies devicePixelRatio: 0.75 on a 2x display still draws
+  // 1.5x native. It is the master lever — cost scales with its square.
+  const SCHEMA = [
+    { key: 'renderScale', label: 'Render scale',   min: 0.5,  max: 2,   step: 0.05, group: 'perf', fmt: v => v.toFixed(2) + '×' },
+    { key: 'msaa',        label: 'Anti-aliasing',  type: 'bool', group: 'perf', reload: true,
+      hint: 'MSAA. The most expensive single option: turning it off cut dropped frames from 128 to 53 in a 4 s flight at 2560×1400.' },
+    { key: 'bloom',       label: 'Bloom',          min: 0, max: 1, step: 0.02, group: 'lens' },
+    { key: 'godRays',     label: 'God rays',       min: 0, max: 1, step: 0.02, group: 'lens' },
+    { key: 'flare',       label: 'Lens flare',     min: 0, max: 1, step: 0.02, group: 'lens' },
+    { key: 'dof',         label: 'Distance blur',  min: 0, max: 1, step: 0.02, group: 'lens' },
+    { key: 'exposure',    label: 'Exposure',       min: 0.7, max: 1.4, step: 0.01, group: 'grade' },
+    { key: 'contrast',    label: 'Contrast',       min: 0.8, max: 1.5, step: 0.01, group: 'grade' },
+    { key: 'saturation',  label: 'Saturation',     min: 0.6, max: 1.6, step: 0.01, group: 'grade' },
+    { key: 'vignette',    label: 'Vignette',       min: 0, max: 1.6, step: 0.02, group: 'grade' },
+    { key: 'grain',       label: 'Film grain',     min: 0, max: 1, step: 0.02, group: 'grade' },
+    { key: 'ao',          label: 'Contact shadows', type: 'bool', group: 'world' },
+    { key: 'shadows',     label: 'Sun shadows',    type: 'bool', group: 'world' },
+    { key: 'clouds',      label: 'Clouds',         min: 0, max: 1, step: 0.05, group: 'world' },
+    { key: 'stars',       label: 'Stars',          min: 0, max: 1, step: 0.05, group: 'world' },
+    { key: 'fov',         label: 'Field of view',  min: 42, max: 82, step: 1, group: 'world', fmt: v => v.toFixed(0) + '°' },
+  ];
+  const GROUPS = [
+    ['perf',  'Performance'],
+    ['lens',  'Light & lens'],
+    ['grade', 'Colour & film'],
+    ['world', 'World'],
+  ];
+
+  const PRESETS = {
+    performance: {
+      renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
+      exposure: 1.0, contrast: 1.0, saturation: 1.0, vignette: 0.6, grain: 0,
+      ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58,
+    },
+    balanced: {
+      renderScale: 1.0, msaa: false, bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0.30,
+      // Grain is OFF at balanced. Measured per-effect at 2560x1400 it was the
+      // most expensive thing in the preset — removing it returned 4.8 fps, more
+      // than the colour grade (3.8) or the contact shadows (3.6) — because it is
+      // a full-screen `overlay` blend running every frame. It is a taste effect,
+      // not a depth or lighting cue, so it earns its keep at cinematic and not in
+      // the default that has to feel smooth.
+      exposure: 1.03, contrast: 1.06, saturation: 1.1, vignette: 1.0, grain: 0,
+      ao: true, shadows: true, clouds: 1, stars: 1, fov: 58,
+    },
+    cinematic: {
+      renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0.45,
+      exposure: 1.05, contrast: 1.12, saturation: 1.18, vignette: 1.25, grain: 0.22,
+      ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
+    },
+    ultra: {
+      renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0.50,
+      exposure: 1.05, contrast: 1.14, saturation: 1.2, vignette: 1.25, grain: 0.18,
+      ao: true, shadows: true, clouds: 1, stars: 1, fov: 62,
+    },
+  };
+
+  const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', autoDetected: false });
+  window.GFX = GFX;
+
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (saved && typeof saved === 'object') {
+    for (const s of SCHEMA) if (saved[s.key] !== undefined) GFX[s.key] = saved[s.key];
+    if (saved.preset) GFX.preset = saved.preset;
+    GFX.autoDetected = !!saved.autoDetected;
+  }
+  // Read before the map exists — app.js needs both at construction time, and
+  // neither `antialias` nor `preserveDrawingBuffer` can be changed on a live
+  // WebGL context. Bloom needs to read the GL canvas, so it needs the buffer
+  // kept; asking for it only when bloom is actually wanted means the performance
+  // preset stops paying for it on the next load.
+  window.GFX_MSAA = !!GFX.msaa;
+  window.GFX_PDB = GFX.bloom > 0.01;
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(GFX)); } catch (e) {}
+  }
+
+  // ── DOM ───────────────────────────────────────────────────────────
+  let _map = null, fxCanvas = null, fx = null, mapCanvas = null;
+  let bloomCv = null, bloomCtx = null, bloomOK = false;
+  let elDof = null, elGrain = null, elVig = null;
+  let grade = { exposure: 1, contrast: 1, saturation: 1, tint: null, vignette: 0.1 };
+
+  // The FX canvas holds nothing but soft gradients — bloom, shafts, flare ghosts
+  // — so it is rendered at half linear resolution and CSS-scaled back up. That is
+  // invisible in the result and it quarters the texture the compositor has to
+  // re-upload every frame. The sky canvas learned the same lesson the expensive
+  // way: it was uploading 13.7 MB/frame at 2560x1400, 98% of it empty.
+  const FX_SCALE = 0.5;
+  const BLOOM_W = 256;
+
+  function el(id, parent) {
+    const d = document.createElement('div');
+    d.id = id;
+    (parent || document.body).appendChild(d);
+    return d;
+  }
+
+  /**
+   * A 50%-grey noise tile. Composited with `overlay`, mid-grey is a no-op and
+   * the deviations become grain, so this darkens and lightens symmetrically
+   * instead of just fogging the frame.
+   */
+  function grainTile(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d');
+    const img = g.createImageData(size, size);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = 128 + (Math.random() - 0.5) * 150;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+
+  window.initGraphics = function initGraphics(map) {
+    _map = map;
+
+    // Order is the post-processing order, bottom to top: distance blur reads the
+    // raw geometry, bloom must see the sky overlay and the rays, and the
+    // vignette has to survive the bloom that would otherwise re-light the
+    // corners it just darkened. Grain goes last, over everything.
+    elDof = el('fx-dof');                       // z 2 — under #sky
+    fxCanvas = document.createElement('canvas');
+    fxCanvas.id = 'fx-canvas';                  // z 6 — bloom/rays over the sky
+    document.body.appendChild(fxCanvas);
+    fx = fxCanvas.getContext('2d');
+    elVig = document.getElementById('vignette');// z 7 (already in the markup)
+    elGrain = el('fx-grain');                   // z 8
+    elGrain.style.backgroundImage = `url(${grainTile(128)})`;
+
+    mapCanvas = map.getCanvas();
+    bloomCv = document.createElement('canvas');
+    bloomCtx = bloomCv.getContext('2d');
+
+    // Did we actually get the buffer we asked for? Don't assume — if bloom is
+    // turned on mid-session the context was created without it and the copy
+    // would come back solid black, which looks exactly like "bloom is subtle".
+    try {
+      const gl = mapCanvas.getContext('webgl2') || mapCanvas.getContext('webgl');
+      bloomOK = !!(gl && gl.getContextAttributes().preserveDrawingBuffer);
+    } catch (e) { bloomOK = false; }
+    if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
+
+    buildMenu();
+    applyGraphics();
+    if (!GFX.autoDetected) scheduleAutoDetect();
+  };
+
+  // ── Apply ─────────────────────────────────────────────────────────
+  window.applyGraphics = function applyGraphics() {
+    if (!_map) return;
+
+    // Render scale. MapLibre takes an absolute ratio, so multiply the device's.
+    const dpr = window.devicePixelRatio || 1;
+    if (typeof _map.setPixelRatio === 'function') {
+      const want = +(dpr * GFX.renderScale).toFixed(3);
+      if (Math.abs((_map.getPixelRatio ? _map.getPixelRatio() : dpr) - want) > 0.001) {
+        try { _map.setPixelRatio(want); } catch (e) {}
+      }
+    }
+
+    if (typeof _map.setVerticalFieldOfView === 'function' &&
+        Math.abs(_map.getVerticalFieldOfView() - GFX.fov) > 0.01) {
+      try { _map.setVerticalFieldOfView(GFX.fov); } catch (e) {}
+    }
+
+    setLayers(['buildings-ao', 'parts-ao'], GFX.ao);
+    setLayers(['buildings-shadow'], GFX.shadows);
+
+    applyGrade();
+    applyGrain();
+
+    // An element with no work to do is display:none, not opacity:0 — a
+    // zero-opacity full-screen blend layer is still a full-screen blend layer to
+    // the compositor.
+    if (elDof) elDof.style.display = GFX.dof > 0.01 ? 'block' : 'none';
+    if (fxCanvas) fxCanvas.style.display = fxWanted() ? 'block' : 'none';
+
+    // Bloom asked for after the context was built without preserveDrawingBuffer
+    // needs a reload to take effect. Say so rather than drawing nothing.
+    if (GFX.bloom > 0.01 && !bloomOK) markReload();
+
+    save();
+    if (typeof window.updateSky === 'function' && _map)
+      window.updateSky(_map, window.__todCurrentP != null ? window.__todCurrentP : 0.3);
+  };
+
+  function setLayers(ids, on) {
+    for (const id of ids) {
+      try {
+        if (_map.getLayer && _map.getLayer(id))
+          _map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+      } catch (e) {}
+    }
+  }
+
+  /** Time-of-day grade, multiplied by the user's offsets. */
+  window.setGrade = function setGrade(g) {
+    grade = Object.assign({}, grade, g || {});
+    applyGrade();
+  };
+
+  function applyGrade() {
+    const host = document.getElementById('map');
+    if (!host) return;
+    const ex = (grade.exposure || 1) * GFX.exposure;
+    const co = (grade.contrast || 1) * GFX.contrast;
+    const sa = (grade.saturation || 1) * GFX.saturation;
+    const parts = [];
+    if (Math.abs(ex - 1) > 0.004) parts.push(`brightness(${ex.toFixed(3)})`);
+    if (Math.abs(co - 1) > 0.004) parts.push(`contrast(${co.toFixed(3)})`);
+    if (Math.abs(sa - 1) > 0.004) parts.push(`saturate(${sa.toFixed(3)})`);
+    host.style.filter = parts.length ? parts.join(' ') : '';
+    if (elVig) elVig.style.opacity = String(clamp01((grade.vignette || 0) * GFX.vignette));
+  }
+
+  function fxWanted() {
+    return (GFX.bloom > 0.01 && bloomOK) || GFX.godRays > 0.01 || GFX.flare > 0.01;
+  }
+
+  function applyGrain() {
+    if (!elGrain) return;
+    if (GFX.grain <= 0.01) { elGrain.style.display = 'none'; return; }
+    elGrain.style.display = 'block';
+    elGrain.style.opacity = (GFX.grain * 0.5).toFixed(3);
+  }
+
+  // ── Per-frame pass ────────────────────────────────────────────────
+  let grainStep = 0;
+
+  window.renderFX = function renderFX(map, F) {
+    if (!F) return;
+
+    // Distance blur: strongest at the horizon, gone by mid-frame. This is the
+    // only depth cue available without a depth buffer, and it happens to match
+    // what aerial haze does anyway, so it reads as distance rather than as blur.
+    if (elDof && GFX.dof > 0.01) {
+      const hz = F.horizonPx;
+      if (hz < -40 || hz > F.H) {
+        elDof.style.opacity = '0';
+      } else {
+        const top = Math.max(0, hz);
+        // 0.34H from the horizon is not "the distance" at a high pitch — it is
+        // the whole mid-ground, and it was visibly blurring buildings you were
+        // flying past.
+        const h = Math.min(F.H - top, 0.24 * F.H);
+        elDof.style.opacity = '1';
+        elDof.style.top = top.toFixed(0) + 'px';
+        elDof.style.height = h.toFixed(0) + 'px';
+        elDof.style.backdropFilter = elDof.style.webkitBackdropFilter =
+          `blur(${(0.9 + 3.0 * GFX.dof).toFixed(2)}px)`;
+      }
+    }
+
+    if (elGrain && GFX.grain > 0.01) {
+      // Cycled from the render pass rather than its own rAF: a dedicated loop
+      // would force a compositor frame forever, including when the camera is
+      // parked, for a effect nobody looks at while nothing moves.
+      grainStep = (grainStep + 1) % 7;
+      const o = [0, 37, 71, 113, 17, 89, 53][grainStep];
+      elGrain.style.backgroundPosition = `${o}px ${(o * 3) % 128}px`;
+    }
+
+    if (!fxCanvas) return;
+    const S = F.sun;
+    // Rays and ghosts need the sun itself in frame. Below the horizon there is
+    // no disc to shaft from, and the moon does not throw god rays.
+    const sunLive = S.front && S.elev > -1 && S.fade > 0.02 && !F.moonUp;
+    const wantBloom = GFX.bloom > 0.01 && bloomOK;
+    const wantRays = sunLive && (GFX.godRays > 0.01 || GFX.flare > 0.01);
+
+    if (!wantBloom && !wantRays) {
+      // Clear ONCE, then leave it alone: clearing an untouched canvas every frame
+      // still dirties it and forces a fresh upload.
+      if (fxCanvas.dataset.blank !== '1') {
+        fx.setTransform(1, 0, 0, 1, 0, 0);
+        fx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+        fxCanvas.dataset.blank = '1';
+      }
+      return;
+    }
+    fxCanvas.dataset.blank = '0';
+
+    if (fxCanvas.width !== Math.round(F.W * FX_SCALE) || fxCanvas.height !== Math.round(F.H * FX_SCALE)) {
+      fxCanvas.width = Math.round(F.W * FX_SCALE);
+      fxCanvas.height = Math.round(F.H * FX_SCALE);
+      fxCanvas.style.width = F.W + 'px';
+      fxCanvas.style.height = F.H + 'px';
+    }
+    // Draw in CSS pixels regardless of the backing scale.
+    fx.setTransform(FX_SCALE, 0, 0, FX_SCALE, 0, 0);
+    fx.clearRect(0, 0, F.W, F.H);
+    fx.globalCompositeOperation = 'lighter';
+
+    // ── Bloom ──
+    // One drawImage does the downscale, the highlight threshold and the blur
+    // together; a second adds it back over the frame. The threshold is what makes
+    // this a bloom and not a haze — without the crush, shadows lift as much as
+    // highlights.
+    if (wantBloom) {
+      const bh = Math.max(48, Math.round(BLOOM_W * F.H / Math.max(1, F.W)));
+      if (bloomCv.width !== BLOOM_W || bloomCv.height !== bh) { bloomCv.width = BLOOM_W; bloomCv.height = bh; }
+      const a = GFX.bloom;
+      // `contrast(4)` maps out = 4*in - 1.5, so after `brightness(t)` only inputs
+      // above 0.375/t survive at all. That threshold is the difference between a
+      // bloom and a haze, and it is easy to get wrong in BOTH directions:
+      //   t = 0.50  -> keeps everything above 0.75. Golden hour (R near 1.0 over
+      //               half the frame) came through as one orange wash that
+      //               bleached the mid-distance city white.
+      //   t = 0.404 -> keeps only above 0.93, which nothing in a DAYTIME frame
+      //               reaches: the pale sky tops out around 0.91, so bloom
+      //               silently did nothing for most of the day. Caught by a test
+      //               that checks day and golden separately.
+      // ~0.48 keeps the top fifth of the range. The bleaching turned out to be
+      // the alpha (0.89, now 0.4), not the threshold.
+      const thr = 0.50 - 0.04 * a;
+      const blur = (2.2 + 4.0 * a).toFixed(2);   // in 256-px space: ~10x that on screen
+      bloomCtx.setTransform(1, 0, 0, 1, 0, 0);
+      bloomCtx.globalCompositeOperation = 'source-over';
+      bloomCtx.clearRect(0, 0, BLOOM_W, bh);
+      bloomCtx.filter = `brightness(${thr.toFixed(2)}) contrast(4) saturate(1.3) blur(${blur}px)`;
+      try { bloomCtx.drawImage(mapCanvas, 0, 0, BLOOM_W, bh); } catch (e) { bloomOK = false; }
+      bloomCtx.filter = 'none';
+      // 0.45 + 0.75a put cinematic at 0.89 and buried the city under its own
+      // highlights. Bloom is a highlight lift, not a second exposure.
+      fx.globalAlpha = Math.min(1, 0.16 + 0.38 * a);
+      fx.drawImage(bloomCv, 0, 0, F.W, F.H);
+      fx.globalAlpha = 1;
+    }
+
+    if (!wantRays) { fx.globalCompositeOperation = 'source-over'; return; }
+
+    const col = F.haloColour;
+    const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+    const diag = Math.hypot(F.W, F.H);
+
+    // Shafts are a low-sun phenomenon; a noon sun does not throw visible rays,
+    // it just glares. Ramp them in as the sun drops below ~35 deg.
+    const lowSun = clamp01(1 - Math.max(0, S.elev) / 35);
+    const rayA = GFX.godRays * S.fade * (0.16 + 0.5 * lowSun) * (0.5 + 0.5 * F.golden);
+
+    if (rayA > 0.004) {
+      const N = 22;
+      // The sun's azimuth seeds the ray phase, so the fan rotates with the sun
+      // over the day instead of being welded to the screen.
+      const phase = S.az * 0.031;
+      for (let i = 0; i < N; i++) {
+        const t = i / N;
+        const ang = t * Math.PI * 2 + phase;
+        // Deterministic per-ray variation — no Math.random, or the fan would
+        // hiss with noise every frame.
+        const j = Math.sin(i * 12.9898 + 4.1) * 0.5 + 0.5;
+        const k = Math.sin(i * 78.233 + 1.7) * 0.5 + 0.5;
+        const len = diag * (0.30 + 0.90 * j);
+        const halfW = (0.004 + 0.016 * k) * diag;
+        const a = rayA * (0.22 + 0.55 * k);
+        if (a < 0.003) continue;
+        fx.save();
+        fx.translate(S.x, S.y);
+        fx.rotate(ang);
+        const g = fx.createLinearGradient(0, 0, len, 0);
+        // Falls off fast. A shaft is brightest in the first fifth of its
+        // length; the old slow ramp is what made the fan read as a ring of hard
+        // triangles instead of light.
+        g.addColorStop(0, rgba(col, a));
+        g.addColorStop(0.14, rgba(col, a * 0.46));
+        g.addColorStop(0.42, rgba(col, a * 0.13));
+        g.addColorStop(1, rgba(col, 0));
+        fx.fillStyle = g;
+        fx.beginPath();
+        fx.moveTo(0, 0);
+        fx.lineTo(len, -halfW);
+        fx.lineTo(len, halfW);
+        fx.closePath();
+        fx.fill();
+        fx.restore();
+      }
+    }
+
+    const flA = GFX.flare * S.fade;
+    if (flA > 0.004) {
+      // Anamorphic streak. One horizontal bar through the disc — the single most
+      // recognisable "this is a camera looking at a light" cue there is.
+      const sw = diag * (0.30 + 0.55 * F.golden);
+      const sh = Math.max(2, 0.004 * diag);
+      const g = fx.createLinearGradient(S.x - sw, 0, S.x + sw, 0);
+      g.addColorStop(0, rgba(col, 0));
+      g.addColorStop(0.5, rgba(col, flA * 0.36));
+      g.addColorStop(1, rgba(col, 0));
+      fx.fillStyle = g;
+      fx.fillRect(S.x - sw, S.y - sh / 2, sw * 2, sh);
+
+      // Ghosts along the sun -> screen-centre axis, continuing past centre.
+      const cx = F.W / 2, cy = F.H / 2;
+      const vx = cx - S.x, vy = cy - S.y;
+      const GHOSTS = [
+        [0.42, 0.048, [120, 190, 255], 0.20],
+        [0.72, 0.026, [255, 190, 120], 0.30],
+        [1.05, 0.066, [255, 130, 170], 0.13],
+        [1.34, 0.034, [150, 255, 215], 0.20],
+        [1.72, 0.088, [255, 205, 140], 0.09],
+        [2.05, 0.020, [190, 170, 255], 0.24],
+      ];
+      for (const [k, rf, c, m] of GHOSTS) {
+        const gx = S.x + vx * k, gy = S.y + vy * k;
+        const r = rf * diag;
+        if (gx < -r || gx > F.W + r || gy < -r || gy > F.H + r) continue;
+        const a = flA * m;
+        if (a < 0.003) continue;
+        const rg = fx.createRadialGradient(gx, gy, 0, gx, gy, r);
+        // Hollow centre with a bright rim — an iris ghost, not a soft blob.
+        rg.addColorStop(0, rgba(c, a * 0.30));
+        rg.addColorStop(0.72, rgba(c, a * 0.16));
+        rg.addColorStop(0.92, rgba(c, a));
+        rg.addColorStop(1, rgba(c, 0));
+        fx.fillStyle = rg;
+        fx.beginPath();
+        fx.arc(gx, gy, r, 0, Math.PI * 2);
+        fx.fill();
+      }
+    }
+
+    fx.globalCompositeOperation = 'source-over';
+  };
+
+  // ── Auto-detect ───────────────────────────────────────────────────
+  // Presets are guesses about a machine we cannot see, so measure instead. Runs
+  // once ever (the result is persisted), well after load so tile decoding and
+  // the intro tween are not counted as the steady-state cost.
+  // Cancelled the instant the user touches anything, because a probe that lands
+  // 11 seconds in and silently resets a preset the user just picked is worse
+  // than no probe at all. (It also made the graphics test flaky: auto-detect
+  // fired mid-run and put renderScale back, which read as the render-scale lever
+  // not working at all.)
+  let autoTimer = null, autoCancelled = false;
+  function cancelAutoDetect() {
+    autoCancelled = true;
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+  }
+
+  function scheduleAutoDetect() {
+    autoTimer = setTimeout(() => {
+      if (autoCancelled) return;
+      const dts = [];
+      let last = null;
+      const t0 = performance.now();
+      const step = ts => {
+        if (autoCancelled) return;
+        if (last !== null) dts.push(ts - last);
+        last = ts;
+        if (performance.now() - t0 < 1400) return requestAnimationFrame(step);
+        finish();
+      };
+      const finish = () => {
+        if (autoCancelled || dts.length < 12) return;
+        const s = dts.slice().sort((a, b) => a - b);
+        const med = s[Math.floor(s.length / 2)];
+        const pick = med > 30 ? 'performance' : med > 20.5 ? 'balanced' : 'cinematic';
+        GFX.autoDetected = true;
+        usePreset(pick, true);
+        toast(`Graphics: ${pick} — auto-detected at ${(1000 / med).toFixed(0)} fps. Press G to change.`);
+        console.log(`[graphics] auto-detect median frame ${med.toFixed(1)} ms -> ${pick}`);
+      };
+      requestAnimationFrame(step);
+    }, 11000);          // the intro tween runs 9 s
+  }
+
+  function toast(msg) {
+    let t = document.getElementById('gfx-toast');
+    if (!t) t = el('gfx-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.remove('show'), 5200);
+  }
+
+  // ── Menu ──────────────────────────────────────────────────────────
+  let panel = null, rows = {}, fpsRaf = null;
+
+  function usePreset(name, keepAuto) {
+    const p = PRESETS[name];
+    if (!p) return;
+    if (!keepAuto) cancelAutoDetect();
+    const msaaWas = GFX.msaa;
+    Object.assign(GFX, p);
+    GFX.preset = name;
+    if (!keepAuto) GFX.autoDetected = true;
+    applyGraphics();
+    syncMenu();
+    if (GFX.msaa !== msaaWas) markReload();
+  }
+
+  function markReload() {
+    const b = document.getElementById('gfx-reload');
+    if (b) b.classList.add('show');
+  }
+
+  function buildMenu() {
+    const btn = document.createElement('button');
+    btn.id = 'gfx-button';
+    btn.title = 'Graphics settings (G)';
+    btn.setAttribute('aria-label', 'Graphics settings');
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">' +
+      '<circle cx="12" cy="12" r="3.1"/><path d="M12 2.6v3M12 18.4v3M2.6 12h3M18.4 12h3' +
+      'M5.4 5.4l2.1 2.1M16.5 16.5l2.1 2.1M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1"/></svg>';
+    document.body.appendChild(btn);
+
+    panel = el('gfx-panel');
+    panel.classList.add('hidden');
+
+    const head = document.createElement('div');
+    head.id = 'gfx-head';
+    head.innerHTML = '<span id="gfx-title">Graphics</span>' +
+      '<span id="gfx-fps">—</span>' +
+      '<button id="gfx-close" title="Close">✕</button>';
+    panel.appendChild(head);
+
+    const presetRow = document.createElement('div');
+    presetRow.id = 'gfx-presets';
+    for (const name of Object.keys(PRESETS)) {
+      const b = document.createElement('button');
+      b.className = 'gfx-preset';
+      b.dataset.preset = name;
+      b.textContent = name[0].toUpperCase() + name.slice(1);
+      b.addEventListener('click', () => usePreset(name));
+      presetRow.appendChild(b);
+    }
+    panel.appendChild(presetRow);
+
+    const body = document.createElement('div');
+    body.id = 'gfx-body';
+    panel.appendChild(body);
+
+    for (const [gid, gLabel] of GROUPS) {
+      const h = document.createElement('div');
+      h.className = 'gfx-group';
+      h.textContent = gLabel;
+      body.appendChild(h);
+      for (const s of SCHEMA.filter(x => x.group === gid)) body.appendChild(makeRow(s));
+    }
+
+    const foot = document.createElement('div');
+    foot.id = 'gfx-foot';
+    foot.innerHTML =
+      '<button id="gfx-reload" title="Anti-aliasing changes need a new WebGL context">Reload to apply AA</button>' +
+      '<button id="gfx-reset">Reset</button>';
+    panel.appendChild(foot);
+
+    foot.querySelector('#gfx-reset').addEventListener('click', () => usePreset('balanced'));
+    foot.querySelector('#gfx-reload').addEventListener('click', () => location.reload());
+    head.querySelector('#gfx-close').addEventListener('click', () => toggle(false));
+    btn.addEventListener('click', () => toggle(panel.classList.contains('hidden')));
+
+    // `G` is a settings key, not a movement key, so it does not collide with
+    // WASD/QE. Ignore it while a control has focus or the slider would eat it.
+    window.addEventListener('keydown', e => {
+      if (e.key !== 'g' && e.key !== 'G') return;
+      const t = e.target;
+      if (t && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName)) return;
+      toggle(panel.classList.contains('hidden'));
+    });
+
+    syncMenu();
+  }
+
+  function makeRow(s) {
+    const row = document.createElement('label');
+    row.className = 'gfx-row';
+    if (s.hint) row.title = s.hint;
+    const name = document.createElement('span');
+    name.className = 'gfx-name';
+    name.textContent = s.label;
+    row.appendChild(name);
+
+    if (s.type === 'bool') {
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'gfx-check';
+      cb.addEventListener('change', () => {
+        cancelAutoDetect();
+        GFX[s.key] = cb.checked;
+        GFX.preset = 'custom';
+        applyGraphics();
+        syncPresetButtons();
+        if (s.reload) markReload();
+      });
+      row.appendChild(cb);
+      rows[s.key] = { input: cb };
+      return row;
+    }
+
+    const val = document.createElement('span');
+    val.className = 'gfx-val';
+    const rng = document.createElement('input');
+    rng.type = 'range';
+    rng.min = s.min; rng.max = s.max; rng.step = s.step;
+    const fmt = s.fmt || (v => v.toFixed(2));
+    rng.addEventListener('input', () => {
+      cancelAutoDetect();
+      GFX[s.key] = parseFloat(rng.value);
+      GFX.preset = 'custom';
+      val.textContent = fmt(GFX[s.key]);
+      applyGraphics();
+      syncPresetButtons();
+    });
+    row.appendChild(rng);
+    row.appendChild(val);
+    rows[s.key] = { input: rng, val, fmt };
+    return row;
+  }
+
+  function syncPresetButtons() {
+    if (!panel) return;
+    for (const b of panel.querySelectorAll('.gfx-preset'))
+      b.classList.toggle('active', b.dataset.preset === GFX.preset);
+  }
+
+  function syncMenu() {
+    if (!panel) return;
+    for (const s of SCHEMA) {
+      const r = rows[s.key];
+      if (!r) continue;
+      if (s.type === 'bool') r.input.checked = !!GFX[s.key];
+      else { r.input.value = String(GFX[s.key]); r.val.textContent = r.fmt(GFX[s.key]); }
+    }
+    syncPresetButtons();
+  }
+
+  function toggle(on) {
+    if (!panel) return;
+    panel.classList.toggle('hidden', !on);
+    // The open panel sits exactly on top of the time-of-day slider and the
+    // snapshot picker on a desktop layout; style.css slides them clear.
+    document.body.classList.toggle('gfx-open', on);
+    const btn = document.getElementById('gfx-button');
+    if (btn) btn.classList.toggle('active', on);
+    if (on) { syncMenu(); startFps(); } else stopFps();
+  }
+
+  /** Live fps, only while the menu is open — the point is watching an option cost something. */
+  function startFps() {
+    stopFps();
+    const out = document.getElementById('gfx-fps');
+    let last = null, acc = 0, n = 0;
+    const step = ts => {
+      if (last !== null) { acc += ts - last; n++; }
+      last = ts;
+      if (acc > 420 && n) {
+        const ms = acc / n;
+        if (out) {
+          out.textContent = `${(1000 / ms).toFixed(0)} fps · ${ms.toFixed(1)} ms`;
+          out.className = ms < 20 ? 'good' : ms < 34 ? 'ok' : 'bad';
+        }
+        acc = 0; n = 0;
+      }
+      fpsRaf = requestAnimationFrame(step);
+    };
+    fpsRaf = requestAnimationFrame(step);
+  }
+  function stopFps() { if (fpsRaf) cancelAnimationFrame(fpsRaf); fpsRaf = null; }
+
+  window.GFX_PRESETS = PRESETS;
+  window.cancelGraphicsAutoDetect = cancelAutoDetect;
+})();

@@ -11,7 +11,11 @@
     "dusk": "node dusk.mjs",
     "silhouette": "node silhouette.mjs",
     "banding": "node banding.mjs",
-    "all": "node movement.mjs && node collision.mjs && node sky.mjs"
+    "all": "node movement.mjs && node collision.mjs && node sky.mjs && node graphics.mjs && node difftour.mjs",
+    "graphics": "node graphics.mjs",
+    "roofz": "node roofz.mjs",
+    "skycolour": "node skycolour.mjs",
+    "perf": "node perf3.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.49.0"

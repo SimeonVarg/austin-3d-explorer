@@ -259,16 +259,35 @@
     redraw();
   };
 
-  function resize() {
+  /**
+   * Size the canvas to the SKY BAND, not the viewport.
+   *
+   * Everything in this pass is already clipped to `hzPx + 0.018H` (see the clip
+   * note in updateSky), so the rest of the element was pure waste — and not
+   * cheap waste: a canvas whose contents change is re-uploaded to the GPU as a
+   * texture every frame. Measured at 2560x1400: 13.7 MB/frame of which 98.2% was
+   * transparent, 0.8 GB/s of bandwidth to move nothing. The band is at most
+   * ~0.44H (pitch 85, the steepest the camera allows) and typically 0.06H at the
+   * spawn pitch of 64.
+   *
+   * Height is quantised to STEP so pitching doesn't reallocate the backing store
+   * every frame, and it only shrinks once two full steps of slack accumulate.
+   */
+  const STEP = 96;
+  let cssH = 0;
+  function resize(needCssH) {
     if (!canvas || !_map) return;
     const cv = _map.getCanvas();
     const w = cv.clientWidth, h = cv.clientHeight;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    const want = Math.min(h, Math.max(STEP, Math.ceil((needCssH + 8) / STEP) * STEP));
+    const grow = want > cssH, shrink = want <= cssH - 2 * STEP;
+    if (canvas.width !== Math.round(w * dpr) || grow || shrink || !cssH) {
+      cssH = want;
       canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+      canvas.height = Math.round(cssH * dpr);
       canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
+      canvas.style.height = cssH + 'px';
     }
     return dpr;
   }
@@ -280,10 +299,12 @@
     if (!host || !map) return;
     _p = p;
     const B = window.skyBodies(p);
-    const dpr = resize() || 1;
     const project = projector(map);
     const cv = map.getCanvas();
     const W = cv.clientWidth, H = cv.clientHeight;
+    // Horizon first: it decides how tall the canvas has to be this frame.
+    const hzPxEarly = horizonPx(map);
+    const dpr = resize(Math.max(0, hzPxEarly) + 0.018 * H) || 1;
 
     // Which body is lighting the sky, and in what colour.
     const useMoon = !B.sunUp && B.moon.elev > -2;
@@ -328,11 +349,11 @@
 
     // ── Canvas pass ──
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, cssH);
     ctx.globalCompositeOperation = 'lighter';
 
     const S = Math.max(W, H);
-    const hzPx = horizonPx(map);
+    const hzPx = hzPxEarly;
 
     // CLIP EVERYTHING IN THE SKY PASS TO THE SKY. The horizon washes are
     // ellipses centred on the horizon line, so without this half of each one
@@ -403,8 +424,16 @@
     drawGlow(hzSun, 0.16 * S, 0.042 * S, hotASun, haloCol, HOT);
     drawGlow(hzMoon, 0.16 * S, 0.042 * S, hotAMoon, moonHalo, HOT);
 
-    if (B.night > 0.02) {
-      for (const s of stars) {
+    // Star and cloud counts are quality settings (graphics.js). Both arrays are
+    // built from a seeded shuffle, so a prefix is an unbiased random subset —
+    // no need to regenerate anything when the slider moves.
+    const G = window.GFX || {};
+    const nStars = Math.round(stars.length * (G.stars == null ? 1 : G.stars));
+    const nClouds = Math.round(clouds.length * (G.clouds == null ? 1 : G.clouds));
+
+    if (B.night > 0.02 && nStars > 0) {
+      for (let si = 0; si < nStars; si++) {
+        const s = stars[si];
         const q = project(s.az, s.elev);
         if (!q.front || q.x < -8 || q.x > W + 8 || q.y < -8 || q.y > H) continue;
         const a = B.night * s.mag;
@@ -426,13 +455,14 @@
 
     // Clouds: lit from the side the body is on, so they warm up at golden hour.
     const cloudA = (0.26 + 0.50 * B.golden) * (1 - B.night * 0.88);
-    if (cloudA > 0.02) {
+    if (cloudA > 0.02 && nClouds > 0) {
       const lit = mix([255, 255, 255], haloCol, 0.35 + 0.45 * B.golden);
       const degPx = (() => {                    // pixels per degree, near centre
         const a = project(map.getBearing(), 0), b2 = project(map.getBearing() + 1, 0);
         return (a.front && b2.front) ? Math.max(2, Math.abs(b2.x - a.x)) : 12;
       })();
-      for (const c of clouds) {
+      for (let ci = 0; ci < nClouds; ci++) {
+        const c = clouds[ci];
         const q = project(c.az, c.elev);
         if (!q.front || q.x < -W || q.x > W * 2) continue;
         const a0 = cloudA * c.a;
@@ -462,6 +492,20 @@
     }
     ctx.restore();                       // end sky clip
     ctx.globalCompositeOperation = 'source-over';
+
+    // ── Hand the frame to the post-process pass ──
+    // graphics.js needs the sun's screen position, and it must run in the SAME
+    // pass: registering its own map.on('move') would recompute an identical
+    // projection and could land either side of this one, so god rays would lag
+    // the sun by a frame while turning. Publishing the frame and calling
+    // straight through makes the ordering impossible to get wrong.
+    window.skyFrame = {
+      W, H, dpr, horizonPx: hzPx,
+      sun: { x: pos.x, y: pos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
+      moonUp: useMoon, colour: coreCol, haloColour: haloCol,
+      golden: B.golden, night: B.night, p,
+    };
+    if (typeof window.renderFX === 'function') window.renderFX(map, window.skyFrame);
   };
 
   function place(el, pos, sizePx, alpha, background) {

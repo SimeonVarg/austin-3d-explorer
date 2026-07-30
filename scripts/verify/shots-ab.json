@@ -1,0 +1,7 @@
+[
+ {"name":"A-none",   "p":0.12, "gfx":{"bloom":0,"godRays":0,"flare":0,"dof":0,"grain":0,"vignette":0.6,"exposure":1,"contrast":1,"saturation":1,"ao":false}, "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"B-bloom",  "p":0.12, "gfx":{"bloom":0.34,"godRays":0,"flare":0,"dof":0,"grain":0,"vignette":0.6,"exposure":1,"contrast":1,"saturation":1,"ao":false}, "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"C-dof",    "p":0.12, "gfx":{"bloom":0,"godRays":0,"flare":0,"dof":0.28,"grain":0,"vignette":0.6,"exposure":1,"contrast":1,"saturation":1,"ao":false}, "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"D-grain",  "p":0.12, "gfx":{"bloom":0,"godRays":0,"flare":0,"dof":0,"grain":0.1,"vignette":0.6,"exposure":1,"contrast":1,"saturation":1,"ao":false}, "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"E-ao",     "p":0.12, "gfx":{"bloom":0,"godRays":0,"flare":0,"dof":0,"grain":0,"vignette":0.6,"exposure":1,"contrast":1,"saturation":1,"ao":true}, "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90}
+]

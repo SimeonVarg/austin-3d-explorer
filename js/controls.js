@@ -309,6 +309,7 @@ function initControls(map, scene) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     try { canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId); } catch (err) {}
     canvasPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    syncInputActive();
     e.preventDefault();
 
     if (pointerCount() >= 2) { lookPointerId = null; tapDragId = null; rebasePinch(); return; }
@@ -366,6 +367,7 @@ function initControls(map, scene) {
 
   function releasePointer(e) {
     canvasPointers.delete(e.pointerId);
+    syncInputActive();
     try { canvas.releasePointerCapture && canvas.releasePointerCapture(e.pointerId); } catch (err) {}
     if (e.pointerId === tapDragId) tapDragId = null;
     if (e.pointerId === lookPointerId) lookPointerId = null;
@@ -441,12 +443,26 @@ function initControls(map, scene) {
     pendingYaw = pendingPitch = wheelLogAcc = touchLogAcc = 0;
     vel.e = 0; vel.n = 0;
     lastTs = null;
+    syncInputActive();
     canvas.style.cursor = 'crosshair';
   }
   const onBlur = () => clearInputs();
   const onVisibility = () => { if (document.hidden) clearInputs(); };
 
   // ── Chrome fade ───────────────────────────────────────────────────
+  //
+  // `.flying` has a deliberate 4-second idle tail so the hint always comes back,
+  // and style.css used to hang `pointer-events:none` on the side panels off it.
+  // That made the time-of-day slider dead for four seconds after every burst of
+  // flying, with nothing to do but wait — the exact thing it felt like. The
+  // protection is only needed while a finger is actually down (a right-thumb
+  // look swipe must not drag the slider), so it now rides `.input-active`, which
+  // is on for precisely the duration of the gesture.
+  function syncInputActive() {
+    const on = canvasPointers.size > 0 || joyPointerId !== null;
+    document.body.classList.toggle('input-active', on);
+  }
+
   let flyingSince = 0, flyingTimer = null;
   function markFlying() {
     flyingSince = flyingSince || performance.now();
@@ -669,6 +685,7 @@ function initControls(map, scene) {
     try { joystickBase.setPointerCapture && joystickBase.setPointerCapture(e.pointerId); } catch (err) {}
     const r = joystickBase.getBoundingClientRect();
     joyOx = r.left + r.width / 2; joyOy = r.top + r.height / 2;
+    syncInputActive();
     e.preventDefault(); e.stopPropagation();
     markFlying();
   }
@@ -686,6 +703,7 @@ function initControls(map, scene) {
   function onJoyUp(e) {
     if (e.pointerId !== joyPointerId) return;
     joyPointerId = null; joyFwd = 0; joyStrafe = 0;
+    syncInputActive();
     if (joystickKnob) joystickKnob.style.transform = '';
     try { joystickBase.releasePointerCapture && joystickBase.releasePointerCapture(e.pointerId); } catch (err) {}
   }

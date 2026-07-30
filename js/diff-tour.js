@@ -101,6 +101,15 @@
     restoreHeights();
   }
 
+  // The cap geometry rule belongs to app.js; this file only overrides it and has
+  // to put it back byte-for-byte. Keeping a second copy of the literals here is
+  // how the two silently disagree after one of them is tuned.
+  const CAP = () => window.CAP_GEOM || {
+    liftFor: h => Math.max(1.0, 0.015 * h),
+    height:  h => ['+', h, ['max', 1.0, ['*', 0.015, h]]],
+    base:    h => h,
+  };
+
   /** Put the wall and roof-cap height expressions back the way app.js set them. */
   function restoreHeights() {
     if (!_map) return;
@@ -108,8 +117,9 @@
       _map.setPaintProperty('buildings-3d', 'fill-extrusion-height', ['get', 'final_height']);
     }
     if (_map.getLayer('buildings-roof')) {
-      _map.setPaintProperty('buildings-roof', 'fill-extrusion-height', ['+', ['get', 'final_height'], 0.4]);
-      _map.setPaintProperty('buildings-roof', 'fill-extrusion-base',   ['-', ['get', 'final_height'], 1.2]);
+      const C = CAP();
+      _map.setPaintProperty('buildings-roof', 'fill-extrusion-height', C.height(['get', 'final_height']));
+      _map.setPaintProperty('buildings-roof', 'fill-extrusion-base',   C.base(['get', 'final_height']));
     }
   }
 
@@ -196,11 +206,12 @@
         'case', ['==', ['get', 'id'], bid], h, ['get', 'final_height'],
       ]);
       if (_map.getLayer('buildings-roof')) {
+        const C = CAP();
         _map.setPaintProperty('buildings-roof', 'fill-extrusion-height', [
-          'case', ['==', ['get', 'id'], bid], h + 0.4, ['+', ['get', 'final_height'], 0.4],
+          'case', ['==', ['get', 'id'], bid], h + C.liftFor(h), C.height(['get', 'final_height']),
         ]);
         _map.setPaintProperty('buildings-roof', 'fill-extrusion-base', [
-          'case', ['==', ['get', 'id'], bid], Math.max(0, h - 1.2), ['-', ['get', 'final_height'], 1.2],
+          'case', ['==', ['get', 'id'], bid], Math.max(0, h), C.base(['get', 'final_height']),
         ]);
       }
 
@@ -254,7 +265,19 @@
     if (prev) prev.disabled = idx === 0;
     if (next) next.disabled = idx === _features.length - 1;
 
+    clearAutoHide();          // a live tour must outlive any pending auto-hide
     banner.classList.remove('hidden');
+  }
+
+  // The transient messages ("No changed buildings found in this diff.") hide
+  // themselves after 3.5 s. That timer used to be un-cancellable, and switching
+  // snapshots twice inside 3.5 s — which is exactly what stepping backwards
+  // through the list does — let the FIRST message's timer fire on top of the
+  // SECOND selection's running tour: banner gone, ✕/‹/› unreachable, tour still
+  // active and still overriding building heights.
+  let _autoHide = null;
+  function clearAutoHide() {
+    if (_autoHide) { clearTimeout(_autoHide); _autoHide = null; }
   }
 
   function showBanner(msg, autoHide) {
@@ -264,11 +287,13 @@
     if (!banner) return;
     if (info)  info.textContent = msg;
     if (ctrl)  ctrl.style.display = 'none';
+    clearAutoHide();
     banner.classList.remove('hidden');
-    if (autoHide) setTimeout(hideBanner, 3500);
+    if (autoHide) _autoHide = setTimeout(hideBanner, 3500);
   }
 
   function hideBanner() {
+    clearAutoHide();
     const banner = document.getElementById('diff-banner');
     const ctrl   = document.getElementById('diff-controls');
     if (banner) banner.classList.add('hidden');

@@ -475,6 +475,188 @@ FRAME — always screenshot twice and trust the second.
 
 ---
 
+## 20. July 29 2026 (later) — performance, the graphics menu, and a real sky
+
+Five things were reported at once: the desktop was "super laggy"; the phone was
+smooth but "roofs glitch out while I'm moving"; the time-of-day slider needed you
+to *wait* after moving; the daytime sky was "too deep blue like I'm in space"; and
+the whole thing was "too map-like" against a wanted "4K RTX / Minecraft shader"
+look, with a menu to customise it.
+
+### 20.1 The lag was fill rate, not JavaScript
+
+Baseline at 2560x1400, flying: **27.9 fps with 53.6% of frames dropped**. The
+median frame time was 16.7 ms — sitting exactly on vsync — which is why a median
+is a useless performance metric here and everything is now counted in dropped
+frames.
+
+Four independent levers each roughly halved the drops. Ranked:
+
+| lever | effect |
+|---|---|
+| `antialias: false` | 128 -> 53 dropped frames. One flag, the biggest single win. |
+| basemap (40 Liberty layers) | 128 -> 54 |
+| the DOM overlay stack | 128 -> 55 |
+| the 23 widened road-line layers | 128 -> 64 |
+
+`antialias` now defaults **off** and is a menu option with a reload prompt (it
+cannot be changed on a live WebGL context). Render scale via `map.setPixelRatio`
+— which does exist in 5.24 and works, 1100 -> 550 px verified — is the master
+lever and supersedes MSAA anyway, since a scale above 1 supersamples.
+
+**The sky canvas was uploading 13.7 MB every frame and 98.2% of it was empty.**
+Everything in that pass was already clipped to `hzPx + 0.018H`; the element was
+just full-screen anyway. It is now sized to the sky band (quantised to 96 px steps
+so pitching does not reallocate the backing store), measured at **21% of a
+full-screen buffer at the spawn pitch and 12% in the test viewport**. Same lesson
+applied to the new FX canvas, which renders at half linear resolution because it
+holds nothing but soft gradients.
+
+Per-effect cost, measured on a deterministic bearing sweep, median of 3
+interleaved runs at 2560x1400: **film grain 4.8 fps, colour grade 3.8, contact
+shadows 3.6, distance blur 0.8.** Grain is therefore OFF in `balanced` — it is a
+taste effect, not a depth cue — and the contact-shadow blur radii were halved
+(84 px was pure overdraw across ~2,400 footprints).
+
+Honest bottom line: **`balanced` with all the new effects runs at about the same
+speed as the old build did** (35.3 fps / 106 dropped against 35.3 / 107). Turning
+MSAA off buys 45.3 fps / 63 dropped, and the effects spend it back.
+`performance` is 49.0 fps / 46 dropped. So what was really gained is *the choice*,
+plus a much better-looking scene at parity.
+
+### 20.2 The time-of-day lockout (the easiest real bug)
+
+`style.css` hung `pointer-events: none` on the side panels off `body.flying` — and
+`.flying` has a deliberate **4-second idle tail** so the hint always comes back. So
+after every burst of flying the slider was dead for four seconds with nothing to do
+but wait. That is exactly what was reported.
+
+The protection is real (on a phone a right-thumb look swipe drags the slider into
+night) but it only needs to last as long as the gesture. `controls.js` now sets
+`body.input-active` on pointerdown and clears it on pointerup; the *fade* still
+follows `.flying`, and hover/focus brings the panel back to full opacity.
+
+### 20.3 The roofs — what was fixed, and what was NOT verified
+
+The parapet cap was `base: h - 1.2, height: h + 0.4`. Its side faces were therefore
+**exactly coplanar with the wall's over a 1.2 m band, in a different colour**, which
+makes the winner undefined. It is now `base: h, height: h + max(1.0, 0.015h)` — the
+cap sits ON the wall, shares no surface, and separates the two roof planes by
+1.0-1.5 m instead of 0.4 m (scaled with height so the tall buildings, seen from
+furthest away, get the most separation).
+
+**This was not reproduced.** `scripts/verify/roofz.mjs` measures speckle density in
+the old and new configurations at three poses and finds them within ~1% — and that
+null result is expected, not reassuring: swiftshader rasterises with a 24-bit depth
+buffer, and MapLibre draws `buildings-roof` after `buildings-3d` with `LEQUAL`, so
+on a buffer with enough precision the later layer wins every tie deterministically.
+A phone's buffer is often 16-bit. The change is justified on the geometry, not on a
+repro. **Needs a real phone to confirm.**
+
+Also fixed while in there: `diff-tour.js` carried its own copy of the
+`+0.4 / -1.2` literals in three places. The rule now lives once in
+`window.CAP_GEOM`.
+
+### 20.4 The sky was wrong on both halves of the slider
+
+Measured at the top of the visible band, day read **#284e97 — S 58%, L 37%**,
+against roughly S 40-55% / L 55-70% for a real sky. Too dark and slightly too
+saturated is exactly "deep blue, like I'm in space". And it was FLAT: one colour
+across the whole band, because `sky-horizon-blend` was 0.5, which kept the pale
+horizon colour so low that at any flying pitch you only ever saw near-pure zenith.
+
+Worse, and not reported: **the day-to-golden half dragged through purple.**
+`#21529f -> #6a2a4a` is a lerp through violet, and the rendered sky at p=0.30 —
+mid-afternoon — was **#4d3a6c, a dark plum**. The `DUSK` route had already solved
+this exact problem for the golden-to-night half in section 18; it just never
+covered the first half. It is now one `ROUTES` table across the whole 0-to-1 range.
+
+After: day runs **#5c93cd (S 53%, L 58%) -> #b4d1e8 (L 81%)** across the band — a
+real gradient in the reference range — and p=0.30 is a desaturating blue-grey
+afternoon instead of plum.
+
+### 20.5 The post-process stack (js/graphics.js)
+
+    downscale + threshold + blur + add  -> bloom       (canvas, from the GL canvas)
+    additive wedges from the sun        -> god rays    (canvas)
+    ghosts + anamorphic streak          -> lens flare  (canvas)
+    masked blur at the horizon          -> aerial DOF  (CSS backdrop-filter)
+    exposure/contrast/saturation        -> grade       (CSS filter on #map)
+    overlay noise                       -> film grain  (tiled canvas)
+    blurred dark line on the footprint  -> contact shadows (a MapLibre line layer)
+
+**The bloom trap, because it cost the most time.** The obvious approach is one
+full-screen div with `backdrop-filter: brightness(.45) contrast(4) blur(25px)` and
+`mix-blend-mode: screen` — threshold, blur and add, free, in the compositor. **It
+does not work.** Chrome paints the filtered backdrop as the element's own content
+and the blend mode never adds it back, so you get a crushed, dark, blurred copy
+laid *over* the frame. Rendered side by side the whole city went muddy brown and
+soft. A screen blend can only ever lighten, so "it got darker" was the proof.
+
+Bloom is now real: copy the GL canvas into a 256-px scratch canvas with
+`filter = brightness(t) contrast(4) blur(r)` (one `drawImage` does the downscale,
+the threshold and the blur together), then composite it back with
+`globalCompositeOperation = 'lighter'`. Needs `preserveDrawingBuffer`, which is
+requested at construction only when the saved bloom setting is above zero, so the
+performance preset stops paying for it on the next load.
+
+**The threshold is wrong in both directions and a test now pins it.**
+`contrast(4)` maps `out = 4*in - 1.5`, so after `brightness(t)` only inputs above
+`0.375/t` survive. At t=0.50 golden hour came through as one orange wash that
+bleached the mid-distance city white. At t=0.404 nothing in a *daytime* frame
+reaches the cutoff (the pale sky tops out near 0.91), so bloom silently did nothing
+for half the slider — caught only because `graphics.mjs` samples day and golden
+separately. Landed at t≈0.48. The bleaching turned out to be the alpha (0.89, now
+0.4), not the threshold.
+
+Contact shadows deserve a note: a blurred dark **line on the footprint outline**
+puts half its width inside the building, where the extrusion hides it, and half
+outside — a soft occlusion halo at every base. Sun shadow only ever falls on one
+side, so this is what actually makes the extrusions stand on the ground instead of
+looking pasted onto it. The first attempt, 0.38 alpha on a 5 px line, was invisible
+in a side-by-side render: occlusion is a wide gradient, and the blur has to exceed
+the line width or all you get is an outline.
+
+### 20.6 The menu
+
+Gear at top right, `G` to toggle, bottom sheet on a phone. Four presets
+(Performance / Balanced / Cinematic / Ultra), 16 individual settings, live fps in
+the header, persisted to `localStorage`. Built **from JS, not markup**, so
+`_harness.html` cannot drift out of sync with `index.html` — that duplication has
+already cost one debugging session.
+
+First run measures ~1.4 s of frame times and picks a preset. It is **cancelled by
+the first deliberate change**, because a probe that lands 11 seconds in and
+silently resets a preset the user just picked is worse than no probe at all (it
+also made `graphics.mjs` flaky in exactly that way). Tests and shot lists call
+`window.cancelGraphicsAutoDetect()` up front.
+
+Effects at zero are `display: none`, not `opacity: 0` — a zero-opacity full-screen
+blend layer is still a full-screen blend to the compositor. Opening the panel adds
+`body.gfx-open`, which slides the time-of-day slider and the snapshot picker clear;
+the panel otherwise sits exactly on top of both.
+
+### 20.7 Also fixed in passing
+
+`diff-tour.js` scheduled `setTimeout(hideBanner, 3500)` for its transient messages
+with no way to cancel it. Switching snapshots twice inside 3.5 s — which is what
+stepping backwards through the list does — let the first message's timer fire on
+top of the second selection's *running* tour: banner gone, prev/next/exit
+unreachable, tour still active and still overriding building heights. Found by
+`difftour.mjs` timing out on a click.
+
+### 20.8 State
+
+Suites green: graphics 27/27, movement 14/14, collision 8/8, sky 12/12,
+difftour 11/11, silhouette 2/2. `roofz.mjs` reports and asserts nothing, by design.
+
+Still not done, still needs a human with the phone: **none of this has been tested
+on real iOS hardware.** The mobile checks use a synthetic 390x844 viewport with
+`hasTouch`. Specifically unverified: the two-finger altitude gesture, the
+joystick-plus-look combination, `mix-blend-mode` and `backdrop-filter` over a
+WebGL canvas in Safari, and whether the roof change actually cures the reported
+glitch.
+
 ## 19. July 29 2026 — shipped, plus the backlog
 
 Everything in §15–§18 is **merged to `main` and live**, verified by driving

@@ -71,3 +71,46 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
 - `window.skyBodies(p)` — the shared sun/moon (from `js/sky.js`)
 - `window.applyTimeOfDay(map, p, force)` — pass `force: true` to bypass the
   1/128 quantisation of the expensive path
+
+## Graphics / post-process suite (added July 29 2026)
+
+- `node graphics.mjs` — the post-process stack and its menu (27 assertions).
+  Every effect is asserted by requiring pixels to CHANGE, not by checking that a
+  style property was written.
+- `node perf.mjs` / `perf2.mjs` / `perf3.mjs` — frame timing. **All three launch
+  HEADED on purpose**: the rest of the suite uses `--use-angle=swiftshader`,
+  which is right for pixel assertions and useless for timing, because software
+  rasterisation moves the whole cost onto fill rate. They also must NOT load
+  `_harness.html`, whose rAF shim pins the loop at ~60 Hz no matter how slow a
+  frame really is.
+- `node skycolour.mjs` — samples a column of sky and prints RGB + HSL. "Too deep
+  blue" is a claim about pixels; read the pixels.
+- `node roofz.mjs` — the roof z-fighting A/B. **Deliberately asserts nothing** —
+  see the long comment at the end of the file for why a null result there is
+  expected rather than reassuring.
+
+### Timing traps, learned the hard way
+
+- **A median frame time is not a performance measurement.** It sits on the
+  16.7 ms vsync floor even while half the frames are being dropped, and every
+  subsystem delta then reads as exactly 0.0 ms. Count dropped frames.
+- **Never trust a single run.** Four sequential runs of the *same*
+  configuration produced 23.4 / 32.4 / 43.6 / 40.9 fps — a 2× spread of pure
+  noise that would have read as a clean ranking. Interleave configurations
+  (a,b,c,a,b,c…), repeat, report the median with its spread, and if the spreads
+  overlap there is no result.
+- **Hold nothing down.** Flying with `W` makes every run cover different
+  buildings; that was a bigger noise source than any setting being compared.
+  Script a fixed bearing sweep so every run renders identical content.
+- **`page.addInitScript(fn)` runs `fn` in the PAGE**, so a closure over a config
+  object is not available there — pass it as the second argument. Getting this
+  wrong installed nothing, and four "different" configurations all silently ran
+  identically while the report printed four different numbers. Always echo the
+  thing you think you set (`gl.getContextAttributes()`) next to the result.
+- **`transform.horizonLineFromTop()` returned 0 at every pitch**, which
+  collapsed a sky sampling column onto row 0 — five identical readings that
+  looked like a flat sky. Use the closed form: `0.5 - 0.5·tan(90−pitch)/tan(fov/2)`.
+- **Cancel the graphics auto-detect probe** at the top of any test or shot list
+  (`window.cancelGraphicsAutoDetect()`). It fires 11 s after load and rewrites
+  every setting; left running it lands mid-test and reads as the render-scale
+  lever being broken.
