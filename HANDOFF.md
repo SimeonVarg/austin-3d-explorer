@@ -475,6 +475,70 @@ FRAME — always screenshot twice and trust the second.
 
 ---
 
+## 19. July 29 2026 — shipped, plus the backlog
+
+Everything in §15–§18 is **merged to `main` and live**, verified by driving
+flyover-utx.vercel.app itself (not localhost): HTTP 200, `window.skyBodies` and
+`window.__fly` present, 38 facade patterns registered, collision grid indexed,
+45 shadows, 30 signs, snapshot `2026-07-27`, intro landing on the exact spawn
+pose, zero page errors. **The verification harness is now in the repo** at
+`scripts/verify/` with its own README — it lived in an ephemeral scratchpad
+before, which §8 already records as expensive. `_harness.html` is tracked now
+too; it was in `.git/info/exclude`, which is how the tooling got lost last time.
+
+### `wn` is fixed at the source
+`bake_detail.py` used to mix 30% of the warm `night_window` tint into the WALL,
+landing the city on olive-khaki after dark. `js/facades.js` worked around it by
+deriving its own night wall and ignoring `wn`. There is now ONE definition:
+`bake_detail.py:night_wall()`, verified to produce **byte-identical values to the
+old JS derivation across all 2,453 features (0 mismatches, worst channel diff 0)**,
+so the workaround could be deleted with a guarantee of no visual change. All three
+snapshots re-baked.
+
+### The diff tour had never once run
+`diff-tour.js` filtered for `f.geometry.type === 'Point'`, but
+`diff_snapshots.py` emits **Polygon** footprints — so every feature was discarded
+and it always reported "No changed buildings found in this diff." It also called
+`d.includes()` on `manifest.diffs` entries, which are objects now (the same crash
+class that took down `date-switcher.js`), and its height tween moved the wall but
+not the roof cap, leaving a growing building's parapet hanging in mid-air.
+All three fixed; centroids are derived from whatever geometry the diff carries.
+Now verified end to end (`scripts/verify/difftour.mjs`, 9/9): banner reads
+"1 / 12", camera flies 733 m to the first changed building, `next` advances to
+2 / 12, and exit restores both height expressions.
+
+### Trees: an upstream data gap, not a rendering bug — don't re-investigate
+Measured: **zero trees within 200 m of spawn**, nearest 373 m, median distance
+1,232 m, and over half of all 498 sit in two 400 m cells on the UT campus side.
+The spawn is in West Campus, where OSM has no tree data at all.
+`fetch_trees_landscape.py` already queries **both** `natural=tree` nodes *and*
+`natural=tree_row` ways (interpolated every 8 m), so 498 is everything upstream
+has — the same situation §13 records for building colours.
+Where trees *do* exist they render well; screenshot the LBJ Library / Sid
+Richardson walks at `[-97.7291, 30.2850]` to see hundreds of them.
+**Do not synthesise West Campus street trees.** That is inventing geography, and
+it contradicts both §1 ("everything is data-driven, not manually modelled") and
+the playbook's rule about never inventing structure. If you want them, extend the
+Overpass fetch or contribute to OSM.
+One real fix applied: every canopy was the identical green, so a cluster read as
+stamped copies. Canopy colour now interpolates over `h` (which already varies
+7–15 m per tree), so bigger crowns read darker. No data change, one expression.
+
+### Still not verified
+**Nothing has been tested on a real iPhone.** Mobile checks use a synthetic
+390×844 viewport with `hasTouch`. The joystick-plus-look fix, the two-finger
+altitude gesture, and `mix-blend-mode: screen` over a WebGL canvas in Safari are
+measured headless but not seen on real hardware. That is the next thing worth
+doing, and it needs a human with the phone.
+
+### Deliberately not done
+The night dither — banding measured clean (`stepsOf2plus = 0` at every hour;
+night shows ~9 px flat runs of single-code steps). Whether that still matters
+after the skyglow band and lifted horizon should be **re-measured** before adding
+another full-frame layer. `scripts/verify/banding.mjs` does the measurement.
+
+---
+
 ## 18. July 29 2026 — sky, second pass (critique-driven)
 
 A 5-agent critique of the sky built in §17 (cinematographer / art-director /

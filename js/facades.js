@@ -76,17 +76,17 @@
   }
 
   /**
-   * The baked `wn` blends 30% of a warm "lit window" tint into the WALL
-   * (scripts/bake_detail.py: `wn = lerp(dark, night_window, 0.30)`), which
-   * lands the whole city on a mid olive-khaki after dark — #63615b, #7b6d53.
-   * That made sense when a wall was a flat prism and had to imply its own
-   * lighting; now the windows in the pattern carry the light, so the wall goes
-   * properly dark and cool and the lit windows get something to read against.
+   * Night walls come from the baked `wn`, which is now correct.
+   *
+   * History worth keeping, so nobody re-adds it: the bake used to mix 30% of a
+   * warm "lit window" tint into the WALL, landing the whole city on mid
+   * olive-khaki after dark (#63615b, #7b6d53) — brighter than the night sky
+   * behind it, so the skyline had no silhouette. This file worked around it by
+   * deriving its own night wall and ignoring `wn`. That workaround is gone:
+   * scripts/bake_detail.py:night_wall() now IS that derivation, verified to
+   * produce byte-identical values across all 2,453 features, so there is one
+   * definition instead of two.
    */
-  function nightWall(dayRgb) {
-    return mix(dayRgb.map(v => v * 0.24), [17, 22, 42], 0.5);
-  }
-
   function familyFor(props) {
     const cls = props.building_class || '';
     if (/parking|garage|carport/.test(cls)) return 'dk';
@@ -117,7 +117,7 @@
       if (!g) { g = { n: 0, wd: [0,0,0], wg: [0,0,0], wn: [0,0,0] }; groups.set(key, g); }
       g.n++;
       const acc = (arr, c) => { arr[0]+=c[0]; arr[1]+=c[1]; arr[2]+=c[2]; };
-      acc(g.wd, rgb); acc(g.wg, hexToRgb(p.wg || p.wd)); acc(g.wn, nightWall(rgb));
+      acc(g.wd, rgb); acc(g.wg, hexToRgb(p.wg || p.wd)); acc(g.wn, hexToRgb(p.wn || p.wd));
     }
 
     // 2. keep the most populous groups, mean-colour each

@@ -275,7 +275,7 @@
         id:'trees-canopy', type:'fill-extrusion', source:'austin-trees',
         minzoom:14, filter:['==',['get','kind'],'canopy'],
         paint:{
-          'fill-extrusion-color':'#7d9a62',
+          'fill-extrusion-color':['interpolate',['linear'],['get','h'],6,'#93ad70',15,'#5f7d4a'],
           'fill-extrusion-height':['get','h'],
           'fill-extrusion-base':['get','base'],
           'fill-extrusion-opacity':1.0,
