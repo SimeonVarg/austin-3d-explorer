@@ -1,5 +1,10 @@
 /**
  * date-switcher.js — Snapshot date picker for Austin 3D Explorer
+ *
+ * The picker only announces the change; app.js owns the swap, because the
+ * buildings source is fed an enriched in-memory FeatureCollection (facade
+ * patterns, shadow geometry, label dedup) rather than a URL. Re-pointing the
+ * source at a raw URL here would silently strip all of that.
  */
 
 function initDateSwitcher(map, manifest, currentSnapshot, onDateChange) {
@@ -8,9 +13,12 @@ function initDateSwitcher(map, manifest, currentSnapshot, onDateChange) {
   if (!panel || !select) return;
 
   const snapshots = manifest.snapshots || [];
+  // manifest.diffs entries are objects ({from, to, file, changed_count}); older
+  // manifests wrote bare filename strings. Accept both.
   const datesWithDiff = new Set();
   for (const d of (manifest.diffs || [])) {
-    const m = d.match(/\d{4}-\d{2}-\d{2}_to_(\d{4}-\d{2}-\d{2})/);
+    if (d && typeof d === 'object') { if (d.to) datesWithDiff.add(d.to); continue; }
+    const m = String(d).match(/\d{4}-\d{2}-\d{2}_to_(\d{4}-\d{2}-\d{2})/);
     if (m) datesWithDiff.add(m[1]);
   }
 
@@ -26,35 +34,11 @@ function initDateSwitcher(map, manifest, currentSnapshot, onDateChange) {
   if (snapshots.length <= 1) { panel.classList.add('hidden'); return; }
   panel.classList.remove('hidden');
 
+  let active = currentSnapshot;
   select.addEventListener('change', async () => {
     const newDate = select.value;
-    if (newDate === currentSnapshot) return;
-    await swapBuildingSource(map, newDate);
-    if (typeof onDateChange === 'function') onDateChange(newDate);
+    if (newDate === active) return;
+    active = newDate;
+    if (typeof onDateChange === 'function') await onDateChange(newDate);
   });
-}
-
-async function swapBuildingSource(map, date) {
-  // Buildings are a plain GeoJSON source now — just repoint its data URL.
-  const src = map.getSource('austin-buildings');
-  const url = (typeof window.snapshotUrlFor === 'function')
-    ? window.snapshotUrlFor(date)
-    : `data/snapshots/${date}/buildings.detailed.geojson`;
-  if (src && typeof src.setData === 'function') {
-    src.setData(url);
-    if (typeof applyTimeOfDay === 'function') {
-      const p = window.__todCurrentP != null ? window.__todCurrentP
-              : (window.TOD_DEFAULT_P != null ? window.TOD_DEFAULT_P : 0.30);
-      applyTimeOfDay(map, p);
-    }
-    return;
-  }
-  if (typeof addBuildingLayers === 'function') {
-    addBuildingLayers(url);
-    if (typeof applyTimeOfDay === 'function') {
-      const p = window.__todCurrentP != null ? window.__todCurrentP
-              : (window.TOD_DEFAULT_P != null ? window.TOD_DEFAULT_P : 0.30);
-      applyTimeOfDay(map, p);
-    }
-  }
 }
