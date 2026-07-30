@@ -42,7 +42,13 @@
       sky: '#5d94cf', horizon: '#c8e0f0', fog: '#c4dcee',
       skyBlend: 0.72, horizonBlend: 0.92, fogGround: 0.08,
       lightColor: '#ffeeda', lightIntensity: 0.28, lightPosition: [1.15, 205, 32],
-      ground: '#ded3bc', park: '#a9c489', road: '#e2dac7', roadCasing: '#bfb49d',
+      // `ground` is the catch-all under everything OSM does not classify. It
+      // used to be a pale sand (#ded3bc, luma 208) — brighter than a concrete
+      // path, so the real walked paths in ground.geojson were invisible
+      // against it (measured: 3.5 luma of separation at golden hour, which is
+      // nothing). Dropped to a mid warm grey so pale paving reads light on it
+      // and asphalt reads dark, which is what a campus actually looks like.
+      ground: '#b0a898', park: '#a9c489', road: '#e2dac7', roadCasing: '#bfb49d',
       water: '#8fbccd',
       canopy: '#7d9a62', canopyLo: '#93ad70', canopyHi: '#5f7d4a', trunk: '#6b4f38',
       pitch: '#94b573', fountain: '#a5cbd8',
@@ -53,7 +59,7 @@
       sky: '#6a2a4a', horizon: '#ffb45e', fog: '#ffb45e',
       skyBlend: 0.86, horizonBlend: 0.94, fogGround: 0.06,
       lightColor: '#ffd7a8', lightIntensity: 0.30, lightPosition: [1.35, 252, 76],
-      ground: '#d9b98c', park: '#a9a866', road: '#e8c79a', roadCasing: '#b78c60',
+      ground: '#b3936f', park: '#a9a866', road: '#e8c79a', roadCasing: '#b78c60',
       water: '#c9a184',
       canopy: '#8a935a', canopyLo: '#a3a468', canopyHi: '#6a7343', trunk: '#5f4632',
       pitch: '#a2a768', fountain: '#d4b894',
@@ -335,6 +341,7 @@
     }
 
     if (typeof updateShadows === 'function') updateShadows(map, p);
+    if (typeof window.applyGroundColors === 'function') window.applyGroundColors(map, p);
 
     safePaint(map, 'trees-canopy', 'fill-extrusion-color',
       ['interpolate', ['linear'], ['get', 'h'], 6, s.canopyLo, 15, s.canopyHi]);

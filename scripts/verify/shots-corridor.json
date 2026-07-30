@@ -1,0 +1,8 @@
+[
+ {"name":"A-tower-southmall", "p":0.50, "gfx":"cinematic", "center":[-97.73935,30.2848],  "zoom":17.10, "pitch":74.5, "bearing":5},
+ {"name":"B-intro-start",     "p":0.50, "gfx":"cinematic", "center":[-97.73892,30.2857],  "zoom":17.25, "pitch":70,   "bearing":274},
+ {"name":"C-intro-mid",       "p":0.50, "gfx":"cinematic", "center":[-97.74100,30.2857],  "zoom":16.95, "pitch":71,   "bearing":270},
+ {"name":"D-mainmall-plaza",  "p":0.50, "gfx":"cinematic", "center":[-97.73950,30.28525], "zoom":17.60, "pitch":72,   "bearing":180},
+ {"name":"E-southmall-low",   "p":0.50, "gfx":"cinematic", "center":[-97.73955,30.28440], "zoom":18.10, "pitch":78,   "bearing":0},
+ {"name":"F-tower-day",       "p":0.25, "gfx":"cinematic", "center":[-97.73935,30.2848],  "zoom":17.10, "pitch":74.5, "bearing":5}
+]
