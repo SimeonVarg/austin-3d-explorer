@@ -337,6 +337,8 @@ def bake_roads(stats, warnings):
     feats = []
     ways_by_node = {}          # node id -> [(way tags, geometry, index)]
     unknown_surface = Counter()
+    emitted_ids = set()        # OSM way ids already drawn, so the far-field
+                               # query cannot draw the same arterial twice
 
     def in_detail(g):
         return any(DETAIL_BB[0] <= p["lon"] <= DETAIL_BB[2]
@@ -399,6 +401,7 @@ def bake_roads(stats, warnings):
         feats.append({"type": "Feature",
                       "geometry": {"type": "LineString", "coordinates": pts},
                       "properties": props})
+        emitted_ids.add(el.get("id"))
         stats["road_" + cls] += 1
         if wt:
             stats["road_width_FROM_LANES"] += 1
@@ -410,6 +413,43 @@ def bake_roads(stats, warnings):
         if cls in ("motorway", "trunk", "primary", "secondary", "tertiary") and detail:
             for i, nid in enumerate(el.get("nodes") or []):
                 ways_by_node.setdefault(nid, []).append((props, g, i))
+
+    # ---- the far-field arterial armature ---------------------------------
+    # Taking the roads off the basemap took them off the WHOLE WORLD, and the
+    # basemap had global coverage. A wide establishing shot came back with the
+    # far third of the frame blank tan and the city reading as a plate -- see
+    # shots/before-wide-day.png against shots/roads-wide-day.png.
+    #
+    # So motorways, trunks, primaries and secondaries are pulled over a box about
+    # four times the outer ring and appended. Nothing smaller: at 5 km out a
+    # residential street is sub-pixel. Geometry is simplified five times harder,
+    # because at that distance 6 m is well under a pixel, and the cycleway and
+    # bike-lane properties are dropped -- a bike lane 6 km away is not a thing.
+    for el in load("roads_far"):
+        if el.get("type") != "way" or el.get("id") in emitted_ids:
+            continue
+        t = el.get("tags", {}) or {}
+        g = el.get("geometry") or []
+        if len(g) < 2:
+            continue
+        if t.get("tunnel") or _layer(t) < 0:
+            continue
+        hw = t.get("highway")
+        cls = LINKS.get(hw, hw)
+        n = lane_count(t)
+        w = round(n * LANE_M + KERB_M, 1) if n else (
+            LINK_W if hw in LINKS else CLASS_W.get(hw, 12.0))
+        pts = simplify([[round(p["lon"], 5), round(p["lat"], 5)] for p in g], 6.0)
+        props = {"k": "road", "c": cls, "w": w, "wt": 1 if n else 0,
+                 "s": "asphalt", "far": 1}
+        if hw in LINKS:
+            props["lk"] = 1
+        if (t.get("oneway") or "") in ("yes", "1", "true"):
+            props["ow"] = 1
+        feats.append({"type": "Feature",
+                      "geometry": {"type": "LineString", "coordinates": pts},
+                      "properties": props})
+        stats["road_far_" + cls] += 1
 
     # ---- separate cycle ways --------------------------------------------
     for el in load("cycleways"):

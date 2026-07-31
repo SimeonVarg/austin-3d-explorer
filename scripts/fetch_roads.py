@@ -53,10 +53,24 @@ QUERIES = {
                  'way["highway"~"^(path|footway|pedestrian)$"]["bicycle"~"^(designated|yes)$"]({b});)',
 }
 
+# The FAR FIELD. Taking the roads off the basemap took them off the whole world,
+# and the basemap had global coverage: a wide establishing shot used to show the
+# grid running to the horizon and came back with the far third of the frame blank
+# tan, reading as a city on a plate. That is a real regression and it is visible
+# in shots/before-wide-day.png next to shots/roads-wide-day.png.
+#
+# The fix is proportionate rather than total: only the ARTERIAL ARMATURE, over a
+# box about four times the outer ring. At 5+ km out a residential street is
+# sub-pixel and contributes nothing; the motorways and the primaries are the
+# whole read.
+FAR_BBOX = "30.180,-97.900,30.400,-97.600"
+FAR_QUERY = ('(way["highway"~"^(motorway|trunk|primary|secondary|'
+             'motorway_link|trunk_link|primary_link)$"]({b});)')
 
-def fetch(body, tries=8):
+
+def fetch(body, tries=8, bbox=BBOX):
     """Same politeness contract as survey_ground.fetch -- Overpass punishes loops."""
-    q = "[out:json][timeout:180];%s;\nout body geom;" % body.format(b=BBOX)
+    q = "[out:json][timeout:180];%s;\nout body geom;" % body.format(b=bbox)
     payload = urllib.parse.urlencode({"data": q}).encode()
     last = None
     for attempt in range(tries):
@@ -91,7 +105,8 @@ REPORT_KEYS = [
 def main():
     refresh = "--refresh" in sys.argv
     os.makedirs(CACHE, exist_ok=True)
-    for key, body in QUERIES.items():
+    todo = list(QUERIES.items()) + [("roads_far", FAR_QUERY)]
+    for key, body in todo:
         path = os.path.join(CACHE, key + ".json")
         if os.path.exists(path) and not refresh:
             with open(path, encoding="utf-8") as f:
@@ -99,7 +114,7 @@ def main():
             src = "cached"
         else:
             sys.stderr.write("fetching %s...\n" % key)
-            data = fetch(body)
+            data = fetch(body, bbox=FAR_BBOX if key == "roads_far" else BBOX)
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, separators=(",", ":"))
             src = "fetched"

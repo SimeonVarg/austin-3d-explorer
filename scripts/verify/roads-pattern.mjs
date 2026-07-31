@@ -115,9 +115,16 @@ for (const zoom of ZOOMS) {
     const north = Math.hypot(b.x - a.x, b.y - a.y) / 22.2;   // px per metre (CSS)
     const corridorPx = 9.14 * north * dpr;
     if (!(corridorPx > 2)) return { corridorPx: 0 };
-    // Sample a column band inside the corridor, down the frame. Nadir + bearing
-    // 0 means the mall runs vertically, so "along" is y.
-    const half = Math.max(1, Math.floor(corridorPx * 0.30));
+    // Sample a NARROW column at the corridor centre, down the frame. Nadir +
+    // bearing 0 means the mall runs vertically, so "along" is y.
+    //
+    // Averaging across 60% of the corridor width (the first attempt) destroys
+    // the signal this is trying to find: a herringbone is symmetric about the
+    // corridor axis, so averaging across it cancels the zigzag almost exactly
+    // and leaves only the cross-street gaps, whose autocorrelation pins to the
+    // smallest allowed lag. Both broken versions of this script returned
+    // "period = 3 px" at every zoom for that reason.
+    const half = 1;
     const col = new Float64Array(H);
     let lit = 0;
     for (let y = 0; y < H; y++) {
@@ -129,10 +136,20 @@ for (const zoom of ZOOMS) {
       col[y] = c ? s / c : 0;
       if (col[y] > 40) lit++;
     }
-    let lo = 0, hi = H - 1;
-    while (lo < H && col[lo] < 40) lo++;
-    while (hi > lo && col[hi] < 40) hi--;
-    const seg = Array.from(col.slice(lo, hi + 1));
+    // The LONGEST UNBROKEN lit run, not the span between the first and last lit
+    // pixel: the mall is crossed by half a dozen walkways, and including those
+    // black gaps puts a step function into the autocorrelation that swamps a
+    // metre-scale bond.
+    let lo = 0, hi = -1, runStart = -1;
+    for (let y = 0; y <= H; y++) {
+      const on = y < H && col[y] > 40;
+      if (on && runStart < 0) runStart = y;
+      if (!on && runStart >= 0) {
+        if (y - runStart > hi - lo) { lo = runStart; hi = y - 1; }
+        runStart = -1;
+      }
+    }
+    const seg = hi >= lo ? Array.from(col.slice(lo, hi + 1)) : [];
     if (seg.length < 40) return { corridorPx: +corridorPx.toFixed(1), samples: seg.length };
     const mean = seg.reduce((p, q) => p + q, 0) / seg.length;
     const d = seg.map(v => v - mean);
@@ -161,15 +178,34 @@ for (const r of rows) {
     (r.corridorPx ? (r.periodPx / r.corridorPx).toFixed(3) : '-').padStart(17),
     String(r.sd ?? '-').padStart(6), String(r.samples ?? '-').padStart(8));
 }
-const ok = rows.filter(r => r.corridorPx > 8 && r.periodPx);
+// HONEST VERDICT, or none.
+//
+// The bond is 2 herringbone cells across a 9.14 m corridor, so its along-corridor
+// period is at best a few pixels until the corridor itself is 30 px wide. Below
+// that the autocorrelation has nothing to lock onto and pins to the smallest
+// allowed lag, and a table of identical 3s is NOT evidence of a constant period —
+// it is evidence of a corridor that is 8 px wide. Two earlier versions of this
+// script printed confident and OPPOSITE conclusions off exactly those rows.
+// So the verdict only fires when at least three rows actually resolve the bond.
+const RESOLVED_PX = 30;
+const ok = rows.filter(r => r.corridorPx >= RESOLVED_PX && r.periodPx > 3);
+console.log('\nrows where the corridor is at least %d px wide (the bond can be resolved): %d of %d',
+            RESOLVED_PX, ok.length, rows.length);
 if (ok.length >= 3) {
   const ratios = ok.map(r => r.periodPx / r.corridorPx);
   const periods = ok.map(r => r.periodPx);
   const spread = a => (Math.max(...a) - Math.min(...a)) / (a.reduce((p, q) => p + q, 0) / a.length);
-  console.log('\nrelative spread of period/corridor: %s', spread(ratios).toFixed(3));
+  console.log('relative spread of period/corridor: %s', spread(ratios).toFixed(3));
   console.log('relative spread of periodPx alone : %s', spread(periods).toFixed(3));
   console.log(spread(ratios) < spread(periods)
     ? '=> line-pattern is stretched to the LINE WIDTH: world-locked, the bond keeps its size.'
     : '=> line-pattern is NATIVE-PIXEL locked: the bond changes size with zoom.');
+} else {
+  console.log('=> NO VERDICT. Not enough zooms resolve the bond to tell the two laws apart.');
+  console.log('   What IS established here is the `corridorPx` column: the mall is drawn at a');
+  console.log('   constant WORLD width (it doubles per zoom level, 8.1 px at z15.5 to 50.3 at');
+  console.log('   z18.5), so the 30 ft corridor is 30 ft at every altitude. Whether the BOND');
+  console.log('   inside it keeps its size is settled by looking at the frames instead —');
+  console.log('   shots-roads.json renders it at z15.5, z16.9 and z18.1.');
 }
 await browser.close();
