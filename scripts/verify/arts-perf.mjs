@@ -38,7 +38,7 @@
  * Usage:  node arts-perf.mjs [reps]      # needs the repo served; set VERIFY_URL
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = Number(process.argv[2] || 4);
 const MS = 4200;
@@ -51,13 +51,7 @@ const POSES = {
   cruise: { center: [-97.73480, 30.28360], zoom: 15.6, pitch: 70 },
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox',
-         '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',
-         '--disable-background-timer-throttling',
-         '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 90000 });
@@ -153,4 +147,4 @@ for (const [poseName, res] of Object.entries(out)) {
               (d >= 0 ? '+' : '') + d + ' frames dropped, ' +
               (t >= 0 ? '+' : '') + t.toFixed(2) + ' ms at p50\n');
 }
-await browser.close();
+await browser.__done();

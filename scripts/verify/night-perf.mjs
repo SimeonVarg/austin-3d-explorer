@@ -30,9 +30,9 @@
  *     order is counterbalanced on alternate reps.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: false, args: [
+const browser = await launch(chromium, { executablePath: chromePath(), headless: false, args: [
   '--no-sandbox',
   '--disable-backgrounding-occluded-windows',
   '--disable-renderer-backgrounding',
@@ -158,4 +158,4 @@ await page.evaluate(() => {
     if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', 'visible');
   }
 });
-await browser.close();
+await browser.__done();

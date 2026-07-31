@@ -25,7 +25,7 @@
  * Usage: node tower-perf.mjs [reps]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = parseInt(process.argv[2] || '4', 10);
 const MS = 4200;
@@ -37,14 +37,7 @@ const CONFIGS = {
   after: 'on',
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox',
-         '--disable-backgrounding-occluded-windows',
-         '--disable-renderer-backgrounding',
-         '--disable-background-timer-throttling',
-         '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 120000 });
@@ -136,4 +129,4 @@ console.log('tower source features tiled into the current viewport:', n);
 console.log('NOTE: absolute fps here is worthless if anything else is using the GPU.\n' +
             'The A/B is still valid — same machine, interleaved, counterbalanced — but\n' +
             'read the DELTA against the within-config spread, never the fps column.');
-await browser.close();
+await browser.__done();

@@ -12,7 +12,7 @@
  *   -both (what ships).
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -21,11 +21,7 @@ const SHOTS = JSON.parse(fs.readFileSync(process.argv[3] || 'shots-tex.json', 'u
 const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1200, height: 820 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -108,4 +104,4 @@ if (sheet && sheet.startsWith('data:image/png')) {
                    Buffer.from(sheet.split(',')[1], 'base64'));
   console.log('WROTE', path.join(outDir, `${OUT}-tiles.png`));
 }
-await browser.close();
+await browser.__done();

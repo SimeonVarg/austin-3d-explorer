@@ -6,17 +6,12 @@
  * then asserts a wheel input ends the orbit immediately.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
 
 const SKYLOFT = [-97.74356, 30.28615];
 
-const browser = await chromium.launch({
-  executablePath: chromePath(),
-  headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1000, height: 750 }, deviceScaleFactor: 1 });
 let pass = 0, fail = 0;
 const check = (ok, name, detail) => {
@@ -44,7 +39,7 @@ const pt = await page.evaluate((c) => {
 }, SKYLOFT);
 const inView = pt.x > 10 && pt.x < 990 && pt.y > 10 && pt.y < 740;
 check(inView, 'Skyloft sign label is rendered and on screen at spawn', `(${pt.x.toFixed(0)}, ${pt.y.toFixed(0)})`);
-if (!inView) { console.log('\ncannot tap off-screen; aborting'); await browser.close(); process.exit(1); }
+if (!inView) { console.log('\ncannot tap off-screen; aborting'); await browser.__done(); process.exit(1); }
 
 await page.mouse.click(pt.x, pt.y);
 await page.waitForTimeout(3200);   // approach should have finished
@@ -70,5 +65,5 @@ check(!c2.easing && Math.abs(c2.b - c1.b) < 0.5, 'input ends the orbit immediate
   `easing ${c1.easing}->${c2.easing}, bearing ${c1.b.toFixed(1)}->${c2.b.toFixed(1)}`);
 
 console.log(`\n${pass}/${pass + fail} passed`);
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

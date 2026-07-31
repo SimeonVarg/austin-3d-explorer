@@ -10,15 +10,10 @@
  * Wall-clock waits are fine here: the drift is wall-clock scheduled.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
 
-const browser = await chromium.launch({
-  executablePath: chromePath(),
-  headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 700 }, deviceScaleFactor: 1 });
 let pass = 0, fail = 0;
 const check = (ok, name, detail) => {
@@ -73,5 +68,5 @@ check(before && !hidden && restored, 'P toggles photo mode (chrome away and back
   `visible ${before} -> ${hidden} -> ${restored}`);
 
 console.log(`\n${pass}/${pass + fail} passed`);
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

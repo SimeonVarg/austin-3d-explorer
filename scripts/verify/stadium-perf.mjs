@@ -13,15 +13,12 @@
  * MINIMUM of the reps — a mean measures the machine.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = 4, MS = 3600;
 const STADIUM_LAYERS = ['stadium-wall', 'stadium-wall-roof', 'stadium-seating'];
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox', '--disable-frame-rate-limit'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
@@ -70,4 +67,4 @@ for (const k of ['on', 'off']) {
 }
 console.log(`\ncost of the bowl: ${min(res.on) - min(res.off)} dropped frames, ` +
             `${(best(res.off) - best(res.on)).toFixed(1)} fps`);
-await browser.close();
+await browser.__done();

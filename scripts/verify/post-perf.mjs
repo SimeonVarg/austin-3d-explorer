@@ -13,7 +13,7 @@
  * MINIMUM of the reps reported — a mean measures the machine.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = 3, MS = 3200;
 // Isolate each candidate inside the post stack, not the stack as a whole.
@@ -27,18 +27,7 @@ const CONFIGS = {
                      vignette: 0, grain: 0, godRays: 0, flare: 0, dof: 0 },
 };
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox', '--disable-frame-rate-limit'] });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-await page.goto(SERVER + '/index.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 60000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
-await page.waitForTimeout(12000);
-await page.evaluate(() => {
-  window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect();
-  // Pin the preset so auto-detect cannot change the workload mid-run, and pick
-  // the one that actually has bloom + auto-exposure on.
-  Object.assign(window.GFX, window.GFX_PRESETS.balanced); window.applyGraphics();
-});
+const browser = await launch(chromium);
 
 async function run(over) {
   return page.evaluate(async ({ over, MS }) => {
@@ -80,4 +69,4 @@ const dNew = Math.min(...res['throttled'].map(r => r.dropped));
 const fOld = Math.max(...res['every-frame'].map(r => r.fps));
 const fNew = Math.max(...res['throttled'].map(r => r.fps));
 console.log(`\nthrottling the two readbacks: ${dOld - dNew} fewer dropped frames, ${(fNew - fOld).toFixed(1)} fps`);
-await browser.close();
+await browser.__done();

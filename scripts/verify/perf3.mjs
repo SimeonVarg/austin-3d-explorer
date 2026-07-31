@@ -15,7 +15,7 @@
  * If the spreads overlap, there is no result.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 
 const REPS = 4;
 
@@ -53,7 +53,7 @@ const CONFIGS = [
     ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58 }],
 ];
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: false, args: ['--no-sandbox'] });
+const browser = await launch(chromium, { headless: false });
 
 async function once(cfg) {
   const page = await browser.newPage({ viewport: { width: 2560, height: 1400 } });
@@ -128,4 +128,4 @@ console.log('\nSky canvas is sized to the sky band, not the viewport: ' +
   (s.viewBytes / 1048576).toFixed(1) + ' MB for a full-screen one (' +
   (100 * s.skyBytes / s.viewBytes).toFixed(0) + '%).');
 
-await browser.close();
+await browser.__done();

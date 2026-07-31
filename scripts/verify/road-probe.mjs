@@ -12,13 +12,9 @@
  * histogram of the transportation features actually loaded over campus.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -131,4 +127,4 @@ for (const t of TRUTH) {
   console.log(t.name.padEnd(26) + (r ? r.cls : 'NO FEATURE').padEnd(12) +
               String(r ? r.oneway : '-').padEnd(8) + marking.padEnd(14) + t.real);
 }
-await browser.close();
+await browser.__done();

@@ -16,17 +16,13 @@
  * Usage: node ground-flatness.mjs [p]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const P = parseFloat(process.argv[2] ?? '0.14');
 const POSE = { center: [-97.7370, 30.2810], zoom: 16.1, pitch: 68, bearing: 86 };
 const BLOCK = 16;
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -168,4 +164,4 @@ for (const [k, r] of Object.entries(results)) {
 console.log('\nsurfaceSd  mean sd of the flattest 80% of blocks (drops kerb/edge blocks)');
 console.log('%flat<X    share of blocks with luma sd below X — the "reads as paper" share');
 console.log('colours    distinct 6-bit-per-channel colours; the metric jitter moves');
-await browser.close();
+await browser.__done();

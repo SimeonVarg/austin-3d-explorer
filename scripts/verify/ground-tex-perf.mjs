@@ -18,7 +18,7 @@
  * Usage: node ground-tex-perf.mjs [reps]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = parseInt(process.argv[2] || '3', 10);
 const MS = 4200;
@@ -32,14 +32,7 @@ const CONFIGS = {
   after:   { roads: true,  texture: true,  jitter: true  },
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox',
-         '--disable-backgrounding-occluded-windows',
-         '--disable-renderer-backgrounding',
-         '--disable-background-timer-throttling',
-         '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 120000 });
@@ -127,4 +120,4 @@ for (const k of ['roads', 'noTex', 'after']) {
     spread('before') + ', ' + k + ' ' + spread(k) + ')');
 }
 console.log('\nIf a delta is smaller than the within-config spread there is no result.');
-await browser.close();
+await browser.__done();

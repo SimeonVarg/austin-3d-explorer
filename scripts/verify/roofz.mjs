@@ -15,23 +15,9 @@
  * expressions back with setPaintProperty.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
-// A phone: small viewport, high device pixel ratio, which is where it was seen.
-const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
-const errs = [];
-page.on('pageerror', e => errs.push(e.message));
-
-await page.goto(`${BASE}/_harness.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
-await page.waitForTimeout(5000);
-await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-// Post effects would add their own soft gradients on top; measure the geometry.
-await page.evaluate(() => {
-  Object.assign(window.GFX, { bloom: 0, godRays: 0, flare: 0, dof: 0, grain: 0, vignette: 0 });
-  window.applyGraphics();
-});
+const browser = await launch(chromium);
 
 const out = await page.evaluate(async () => {
   const m = window.__map;
@@ -148,4 +134,4 @@ console.log('      Software rasterisation has 24-bit depth and MapLibre breaks c
 console.log('      deterministically by draw order, so this harness cannot reproduce a');
 console.log('      16-bit mobile depth fight. Confirm on real hardware.');
 if (errs.length) console.log('page errors: ' + errs.slice(0, 3).join(' | '));
-await browser.close();
+await browser.__done();

@@ -17,17 +17,13 @@
  * Usage: node moody-roofprobe.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const POSE = { center: [-97.731845, 30.280934], zoom: 16.6, pitch: 68, bearing: 90 };
 // The Moody roof in this pose, in canvas pixels, read off the rendered frame.
 const ROI = [640, 330, 800, 400];
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 
 async function probe(label, query, layers) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
@@ -101,4 +97,4 @@ await probe('BEFORE (?moody=0) — which layer is the pale roof?', '&moody=0',
             ['buildings-roof', 'buildings-3d', 'roofscape-', 'roofs-pitched']);
 await probe('AFTER (?moody=1)', '&moody=1',
             ['moody-cap', 'moody-roof', 'moody-wall', 'roofscape-']);
-await browser.close();
+await browser.__done();

@@ -21,7 +21,7 @@
  *   writes shots/moody-before-<name>.png and shots/moody-after-<name>.png
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -41,11 +41,7 @@ const WARMUP = { name: '00-warmup', p: 0.25, gfx: 'cinematic',
 // renderer running out of room. Relaunching between the two halves also
 // guarantees the `after` run cannot inherit any state the `before` run left.
 async function runPass(label, extraQuery) {
-  const browser = await chromium.launch({
-    executablePath: chromePath(), headless: true,
-    args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-           '--ignore-gpu-blocklist', '--no-sandbox'],
-  });
+  const browser = await launch(chromium);
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const errors = [];
   page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
@@ -148,7 +144,7 @@ async function runPass(label, extraQuery) {
   if (missed.length) console.log('  ' + missed.length + ' SHOT(S) MISSED:', missed.join(', '));
   if (errors.length) console.log('  ERRORS', errors.slice(0, 6));
   await page.close();
-  await browser.close();
+  await browser.__done();
   return missed;
 }
 

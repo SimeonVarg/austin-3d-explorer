@@ -6,44 +6,9 @@
  * discarded and it always reported "No changed buildings found in this diff."
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
-const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
-const errs = [];
-page.on('pageerror', e => errs.push(e.message));
-page.on('console', m => { if (m.type() === 'error') errs.push('[console] ' + m.text()); });
-
-const results = [];
-const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
-
-function report() {
-  console.log('');
-  for (const r of results) {
-    console.log((r.pass ? ' PASS  ' : '*FAIL  ') + r.name);
-    console.log('         ' + r.detail);
-  }
-  console.log('');
-  console.log(results.filter(r => r.pass).length + '/' + results.length + ' passed');
-}
-
-// A Playwright timeout used to kill this script before it printed anything, and
-// a bare stack trace tells you nothing about which assertion was in flight.
-process.on('uncaughtException', async (e) => {
-  check('ran to completion', false, String(e && e.message).split(/\r?\n/)[0]);
-  try {
-    const st = await page.evaluate(() => ({
-      banner: document.getElementById('diff-banner').className,
-      info: (document.getElementById('diff-info') || {}).textContent,
-      counter: (document.getElementById('diff-counter') || {}).textContent,
-      active: (document.getElementById('date-select') || {}).value,
-    }));
-    console.log('DOM at failure: ' + JSON.stringify(st));
-  } catch (e2) { /* page already gone */ }
-  report();
-  try { await browser.close(); } catch (e3) {}
-  process.exit(1);
-});
+const browser = await launch(chromium);
 
 await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
@@ -63,7 +28,7 @@ const pair = await page.evaluate(async () => {
   return best ? { from: best.from, to: best.to, n: best.changed_count } : null;
 });
 check('manifest has a diff with changes to tour', !!pair, pair ? JSON.stringify(pair) : 'none found');
-if (!pair) { report(); await browser.close(); process.exit(1); }
+if (!pair) { report(); await browser.__done(); process.exit(1); }
 
 const before = await page.evaluate(() => {
   const c = window.__map.getCenter();
@@ -133,5 +98,5 @@ check('exit hides the banner', restored.banner, String(restored.banner));
 check('no uncaught page errors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
 
 report();
-await browser.close();
+await browser.__done();
 process.exit(results.every(r => r.pass) ? 0 : 1);

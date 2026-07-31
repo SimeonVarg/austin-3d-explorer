@@ -12,13 +12,13 @@
  * a busy machine measures the machine).
  */
 import { chromium } from 'playwright-core';
-import { chromePath } from './chrome.mjs';
+import { chromePath, launch } from './chrome.mjs';
 
 const BASE_B = process.env.VERIFY_URL || 'http://127.0.0.1:8100';
 const BASE_A = process.env.BASELINE_URL || 'http://127.0.0.1:8102';
 const REPS = 4;
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: false, args: ['--no-sandbox'] });
+const browser = await launch(chromium, { headless: false });
 
 async function makePage(base) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -89,4 +89,4 @@ console.log(`B light    : dropped min ${min(B, 'dropped')} [${min(B, 'dropped')}
   `fps best ${max(B, 'fps').toFixed(1)}  p50 best ${min(B, 'p50').toFixed(2)} ms`);
 console.log('If the dropped-frame ranges overlap, there is no measurable regression.');
 
-await browser.close();
+await browser.__done();

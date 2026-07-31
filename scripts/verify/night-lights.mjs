@@ -6,9 +6,9 @@
  * present so the occlusion order means something.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: GL_ARGS });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => console.log('PAGEERROR', e.message));
 page.on('console', m => { if (/\[night\]/.test(m.text())) console.log(' ', m.text()); });
@@ -97,5 +97,5 @@ const checks = [
 console.log(JSON.stringify(r));
 let fail = 0;
 for (const [name, ok] of checks) { console.log(`${ok ? ' PASS' : '*FAIL'}  ${name}`); if (!ok) fail++; }
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

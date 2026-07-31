@@ -12,56 +12,11 @@
 import { chromium } from 'playwright-core';
 // BASE honours VERIFY_URL so parallel worktrees can each test their own serve
 // (chrome.mjs has exported it for this purpose all along). No assertion change.
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 const EXE = chromePath();
 const REPORT_ONLY = process.argv.includes('--report');
 
-const browser = await chromium.launch({ executablePath: EXE, headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'] });
-const page = await browser.newPage({ viewport: { width: 800, height: 560 } });
-const pageErrors = [];
-page.on('pageerror', e => pageErrors.push(e.message));
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
-await page.waitForTimeout(5000);
-
-await page.evaluate(() => {
-  const m = window.__map;
-  // README trap: a seeded jumpTo is OVERWRITTEN on the next frame while the
-  // controller still owns the camera — and since the camera-feel pass the
-  // ownership tail after keyup is ~8 s (bob/settle wind-down), not ~3 s.
-  // Measured failure mode of the old sync reset: every leg's pose reset was
-  // silently ignored, positions accumulated ~230 m per leg, and the diagonal
-  // legs ran into the soft data fence, which crushed vel.n — a stable-looking
-  // diagonal/cardinal of 0.73 that was really the fence, not the input math.
-  // Returning a promise makes every page.evaluate(__reset) call wait it out.
-  window.__reset = (b, z, p) => new Promise(res => {
-    const tryIt = () => {
-      if (!window.__fly.eye().driving) {
-        m.jumpTo({ center: [-97.7434, 30.2857], zoom: z ?? 16.5, pitch: p ?? 64, bearing: b ?? 90 });
-        res();
-      } else setTimeout(tryIt, 120);
-    };
-    tryIt();
-  });
-  window.__idle = () => !window.__fly.eye().driving;
-  window.__cam = () => {
-    const c = m.getCenter();
-    return { lng: c.lng, lat: c.lat, zoom: m.getZoom(), pitch: m.getPitch(), bearing: m.getBearing(),
-             alt: m.transform.getCameraAltitude() };
-  };
-  window.__metres = (a, b) => Math.hypot((b.lat - a.lat) * 111320,
-                                          (b.lng - a.lng) * 111320 * Math.cos(a.lat * Math.PI / 180));
-  window.__startClock = () => {
-    window.__dt = 0; window.__frames = 0; window.__clockOn = true;
-    let last = null;
-    const step = ts => { if (!window.__clockOn) return;
-      if (last !== null) { window.__dt += Math.min(ts - last, 64); window.__frames++; }
-      last = ts; requestAnimationFrame(step); };
-    requestAnimationFrame(step);
-  };
-  window.__stopClock = () => { window.__clockOn = false; return { dt: window.__dt, frames: window.__frames }; };
-});
+const browser = await launch(chromium);
 
 const median = a => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
 const results = [];
@@ -249,5 +204,5 @@ const pass = results.filter(r => r.pass).length;
 console.log('');
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 console.log(`\n${pass}/${results.length} passed`);
-await browser.close();
+await browser.__done();
 if (!REPORT_ONLY && pass !== results.length) process.exit(1);

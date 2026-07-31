@@ -7,15 +7,11 @@
  * "I can't see it" and "it isn't there" are different bugs.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
 
 const P = parseFloat(process.argv[2] ?? '0.5');
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERROR', e.message));
 
@@ -80,4 +76,4 @@ const px = await page.evaluate(() => {
            magentaPct: +(100 * mag / (w * h)).toFixed(2), tealPct: +(100 * teal / (w * h)).toFixed(2) };
 });
 console.log('PIXELS', JSON.stringify(px));
-await browser.close();
+await browser.__done();

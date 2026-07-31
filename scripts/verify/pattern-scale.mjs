@@ -19,15 +19,11 @@
  * useful if its feature size survives the camera we actually ship.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const PERIOD = 32;   // stripe period inside the 32x32 tile
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1000, height: 800 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -112,4 +108,4 @@ for (const z of [16.0, 16.5, 17.0]) {
   const r = await measure(z, 70);
   console.log('zoom %s  periodPx %s  runs %s', z.toFixed(1), String(r.periodPx).padStart(5), r.runs);
 }
-await browser.close();
+await browser.__done();

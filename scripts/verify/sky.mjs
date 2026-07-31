@@ -7,10 +7,9 @@ import { chromium } from 'playwright-core';
 // BASE (not a hardcoded 8099): every other script honours VERIFY_URL via
 // chrome.mjs, and with several worktrees serving different code on different
 // ports, a hardcoded port here silently asserts SOMEONE ELSE'S build.
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 const EXE = chromePath();
-const browser = await chromium.launch({ executablePath: EXE, headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'] });
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 620 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
@@ -226,4 +225,4 @@ check('no uncaught page errors', errs.length === 0, errs.slice(0, 3).join(' | ')
 console.log('');
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
-await browser.close();
+await browser.__done();

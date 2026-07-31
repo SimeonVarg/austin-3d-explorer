@@ -9,11 +9,11 @@
  * scene, so the assertion is on per-channel survival ratios.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 import path from 'node:path';
 import fs from 'node:fs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
@@ -120,5 +120,5 @@ check('no uncaught page errors', errs.length === 0, errs.slice(0, 3).join(' | ')
 console.log('');
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
-await browser.close();
+await browser.__done();
 process.exit(results.every(r => r.pass) ? 0 : 1);

@@ -8,28 +8,9 @@
  * requiring the pixels to DIFFER — not by checking that a style property was set.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
-const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
-const errs = [];
-page.on('pageerror', e => errs.push(e.message));
-page.on('console', m => { if (m.type() === 'error') errs.push('[console] ' + m.text()); });
-
-const results = [];
-const check = (n, pass, d) => results.push({ name: n, pass, detail: String(d) });
-function report() {
-  console.log('');
-  for (const r of results) {
-    console.log((r.pass ? ' PASS  ' : '*FAIL  ') + r.name);
-    console.log('         ' + r.detail);
-  }
-  console.log('\n' + results.filter(r => r.pass).length + '/' + results.length + ' passed');
-}
-process.on('uncaughtException', async (e) => {
-  check('ran to completion', false, String(e && e.message).split(/\r?\n/)[0]);
-  report(); try { await browser.close(); } catch (x) {} process.exit(1);
-});
+const browser = await launch(chromium);
 
 await page.goto(`${BASE}/_harness.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
@@ -286,5 +267,5 @@ check('settings persist to localStorage', Math.abs(stored - 0.77) < 1e-6, 'store
 check('no uncaught page errors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
 
 report();
-await browser.close();
+await browser.__done();
 process.exit(results.every(r => r.pass) ? 0 : 1);

@@ -53,7 +53,7 @@
  *         --atlas-only runs just that and skips the sweeps.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 
 // 4 reps by default, not 3: with four configurations, four reps rotates each of
 // them into first position exactly once, which cancels the warm-up the first
@@ -114,19 +114,7 @@ const CONFIGS = {
   'both-off': { pattern: false, gfx: false },
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  // Without these Chrome throttles rAF in a window it thinks is occluded and
-  // the harness measures the window manager: a previous run in this repo
-  // reported p10 of exactly 50.00 ms vs 49.90 ms — 20 Hz, quantised, identical
-  // for both configurations. VSYNC STAYS ON; with it off a WebGL frame delta
-  // measures how fast the CPU can submit draw calls, not how long the GPU takes.
-  args: ['--no-sandbox',
-         '--disable-backgrounding-occluded-windows',
-         '--disable-renderer-backgrounding',
-         '--disable-background-timer-throttling',
-         '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 
 /** Everything that happens inside one page load: all four configurations. */
 async function runRep(pathName, path, order) {
@@ -592,7 +580,7 @@ if (ATLAS) {
   await page.close();
 }
 
-if (!verdicts.length) { await browser.close(); process.exit(0); }
+if (!verdicts.length) { await browser.__done(); process.exit(0); }
 
 console.log('\n\n==== SUMMARY ====');
 for (const v of verdicts) {
@@ -605,4 +593,4 @@ console.log(verdicts.every(v => !v.supported)
   ? '\nOVERALL: the claim is REFUTED on every path measured.'
   : '\nOVERALL: at least one path supports the claim — read the per-path numbers.');
 
-await browser.close();
+await browser.__done();

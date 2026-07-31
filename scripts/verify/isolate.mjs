@@ -10,7 +10,7 @@
  *   default layer prefixes: stadium
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -21,11 +21,7 @@ const KEEP = process.argv.slice(4).length ? process.argv.slice(4) : ['stadium'];
 const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -60,4 +56,4 @@ for (const s of SHOTS) {
   await page.screenshot({ path: file });
   console.log('WROTE', file);
 }
-await browser.close();
+await browser.__done();

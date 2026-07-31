@@ -22,7 +22,7 @@
  * Usage: node moody-check.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const MOODY = [-97.730624, 30.280934];
 const HDB = [-97.734702, 30.277917];
@@ -33,11 +33,7 @@ const ok = (cond, label, extra) => {
   else { fail++; console.log('  FAIL ' + label + (extra !== undefined ? '   ' + JSON.stringify(extra) : '')); }
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -422,5 +418,5 @@ const real = errors.filter(e => !/Failed to load resource|favicon/i.test(e));
 ok(real.length === 0, 'no console errors', real.slice(0, 6));
 
 console.log('\n%d passed, %d failed', pass, fail);
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

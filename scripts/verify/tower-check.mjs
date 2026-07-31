@@ -16,7 +16,7 @@
  * Usage: node tower-check.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const C = [-97.739325, 30.286015];
 
@@ -30,11 +30,7 @@ function near(v, want, tol, label) {
      `got ${(+v).toFixed(3)}, want ${want} +/- ${tol}`);
 }
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
@@ -331,5 +327,5 @@ near(capW / shaftW, 0.45, 0.16, 'cap width / shaft width');
 
 console.log('\npage errors:', errs.length ? errs.slice(0, 5) : 'none');
 console.log(`\n${pass} passed, ${fail} failed`);
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

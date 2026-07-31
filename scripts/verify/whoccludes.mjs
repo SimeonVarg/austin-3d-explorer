@@ -13,18 +13,14 @@
  * Usage: node whoccludes.mjs <shots.json> <sampleX> <sampleY>
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 
 const SHOTS = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const SX = parseInt(process.argv[3] || '720', 10);
 const SY = parseInt(process.argv[4] || '450', 10);
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 60000 });
@@ -77,4 +73,4 @@ for (const l of above) {
   await page.waitForTimeout(120);
 }
 console.log('\nculprits: %s', hits.length ? hits.map(h => h.id).join(', ') : '(none — nothing above it is covering that pixel)');
-await browser.close();
+await browser.__done();

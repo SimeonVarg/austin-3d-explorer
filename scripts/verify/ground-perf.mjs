@@ -10,7 +10,7 @@
  * floor even while half the frames are being dropped.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = 3;
 const MS = 4200;
@@ -22,10 +22,7 @@ const CONFIGS = {
   neither:  { trees: false, ground: false },
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox', '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 90000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });
@@ -78,4 +75,4 @@ for (const [k, arr] of Object.entries(results)) {
   console.log('%-11s %6d        %6.1f      [%s]',
     k, Math.min(...drops), Math.max(...fps), drops.join(', '));
 }
-await browser.close();
+await browser.__done();

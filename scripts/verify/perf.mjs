@@ -17,15 +17,11 @@
  * time, plus the JS self-time of the two per-frame overlays.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 
 const FRAMES = 150;
 
-const browser = await chromium.launch({
-  executablePath: chromePath(),
-  headless: false,
-  args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 
@@ -176,4 +172,4 @@ if (sw) console.log('   sky canvas texture upload = ' +
   (sw * sh * 4 / 1048576).toFixed(1) + ' MB/frame  (' +
   (sw * sh * 4 * 60 / 1073741824).toFixed(2) + ' GB/s at 60 fps)');
 
-await browser.close();
+await browser.__done();

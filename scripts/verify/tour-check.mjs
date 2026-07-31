@@ -6,15 +6,10 @@
  * home, then asserts input cancels a fresh tour immediately.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
 
-const browser = await chromium.launch({
-  executablePath: chromePath(),
-  headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1000, height: 750 }, deviceScaleFactor: 1 });
 let pass = 0, fail = 0;
 const check = (ok, name, detail) => {
@@ -64,5 +59,5 @@ check(!c2.easing && Math.abs(c2.b - c1.b) < 0.5, 'input ends the tour where it i
   `easing ${c1.easing}->${c2.easing}, bearing ${c1.b.toFixed(1)}->${c2.b.toFixed(1)}`);
 
 console.log(`\n${pass}/${pass + fail} passed`);
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

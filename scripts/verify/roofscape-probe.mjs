@@ -23,7 +23,7 @@
  * Usage: node roofscape-probe.mjs [--p 0.32] [--zoom 16.9]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
 
 const arg = (k, d) => {
@@ -33,11 +33,7 @@ const arg = (k, d) => {
 const P = arg('--p', 0.32);
 const ZOOM = arg('--zoom', 16.9);
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 // _harness.html forces preserveDrawingBuffer, which is the only way to read the
 // GL canvas back out at all.
@@ -87,7 +83,7 @@ const lum = ([r, g, b]) => 0.299 * r + 0.587 * g + 0.114 * b;
 const med = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
 
 console.log(`p=${P} zoom=${ZOOM} preset=cinematic   samples=${out.length}`);
-if (!out.length) { console.log('NO DECK PIXELS — layer missing or camera wrong'); await browser.close(); process.exit(1); }
+if (!out.length) { console.log('NO DECK PIXELS — layer missing or camera wrong'); await browser.__done(); process.exit(1); }
 
 // Bucket by typed luma so the transfer curve is visible, not just an average.
 const buckets = [[0, 100], [100, 125], [125, 150], [150, 175], [175, 255]];
@@ -112,4 +108,4 @@ console.log(`         luma  ${lum(allT).toFixed(1)} -> ${lum(allR).toFixed(1)}  
             `(gain ${(lum(allR) / lum(allT)).toFixed(2)})`);
 console.log(`         R/B   ${(allT[0] / allT[2]).toFixed(2)} -> ${(allR[0] / allR[2]).toFixed(2)}   ` +
             `(warm shift ${((allR[0] / allR[2]) / (allT[0] / allT[2])).toFixed(2)}x)`);
-await browser.close();
+await browser.__done();

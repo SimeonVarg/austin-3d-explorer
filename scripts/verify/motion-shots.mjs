@@ -13,7 +13,7 @@
  * to numbers. Screenshots land in shots/ (gitignored).
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,40 +21,7 @@ import { fileURLToPath } from 'node:url';
 const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'shots');
 fs.mkdirSync(DIR, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
-await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-await page.waitForFunction(() => window.__fly && window.__fly.indexed(), null, { timeout: 30000 });
-await page.waitForTimeout(4000);
-
-await page.evaluate(() => {
-  window.__raf = () => new Promise(r => requestAnimationFrame(r));
-  window.__settle = async (n = 400) => {
-    for (let i = 0; i < n; i++) { if (!window.__fly.eye().driving) return true; await window.__raf(); }
-    return false;
-  };
-  window.__key = (code, down) => window.dispatchEvent(
-    new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
-  window.__drag = { id: 91, x: 0, y: 0 };
-  window.__dragStart = (x, y) => {
-    window.__drag.x = x; window.__drag.y = y;
-    window.__map.getCanvas().dispatchEvent(new PointerEvent('pointerdown', { pointerId: 91,
-      pointerType: 'mouse', button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true, isPrimary: true }));
-  };
-  window.__dragMove = (dx, dy) => {
-    window.__drag.x += dx; window.__drag.y += dy;
-    window.__map.getCanvas().dispatchEvent(new PointerEvent('pointermove', { pointerId: 91,
-      pointerType: 'mouse', clientX: window.__drag.x, clientY: window.__drag.y,
-      movementX: dx, movementY: dy, bubbles: true, cancelable: true, isPrimary: true }));
-  };
-  window.__dragEnd = () => {
-    window.__map.getCanvas().dispatchEvent(new PointerEvent('pointerup', { pointerId: 91,
-      pointerType: 'mouse', clientX: window.__drag.x, clientY: window.__drag.y,
-      bubbles: true, cancelable: true, isPrimary: true }));
-  };
-});
+const browser = await launch(chromium);
 
 async function shot(name) {
   await page.screenshot({ path: path.join(DIR, name) });
@@ -140,5 +107,5 @@ await page.evaluate(async () => {
   window.__key('ShiftLeft', false);
 });
 
-await browser.close();
+await browser.__done();
 console.log('done — LOOK at the files in scripts/verify/shots/');

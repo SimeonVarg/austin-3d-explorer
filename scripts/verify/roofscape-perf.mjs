@@ -20,7 +20,7 @@
  * Usage: node roofscape-perf.mjs [--zoom 16.4] [--reps 4]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
 
 const arg = (k, d) => {
@@ -51,10 +51,7 @@ const CONFIGS = ONLY ? {
   major: { detail: 0.45, minorOff: true },
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox', '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 90000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });
@@ -140,4 +137,4 @@ for (const [k, arr] of Object.entries(results)) {
   console.log(k.padEnd(11) + String(Math.min(...drops)).padStart(7)
     + Math.max(...fps).toFixed(1).padStart(13) + '      [' + drops.join(', ') + ']');
 }
-await browser.close();
+await browser.__done();

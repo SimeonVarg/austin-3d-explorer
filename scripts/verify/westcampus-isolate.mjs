@@ -18,7 +18,7 @@
  * Usage: node westcampus-isolate.mjs [shotsJson]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE as SERVER } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -45,34 +45,7 @@ function centerFor(s) {
           s.look[1] + (push * Math.cos(b)) / 111320];
 }
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
-await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 90000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
-await page.waitForFunction(() => window.__map.getSource('austin-westcampus'), null, { timeout: 60000 })
-  .catch(() => console.log('WARN: westcampus source never appeared'));
-await page.waitForTimeout(8000);
-await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-
-// ORDER MATTERS, and getting it wrong wasted a run each way.
-//
-// 1. Set the hour FIRST. applyWestcampusColors() rewrites wc-solid's colour, so
-//    keying before a time-of-day call just paints the key straight back over.
-// 2. Turn the post-process stack OFF. With bloom and tone mapping on, a keyed
-//    pixel does not come back anywhere near the hex that was set, and the whole
-//    frame is pushed warm — a first attempt at scoring these renders classified
-//    the sunset sky as "base red" and the tan ground as "solid yellow" and
-//    reported 57% / 23% coverage for a pass that covers a few percent. With the
-//    stack off, an exact-hex test is exact.
-await page.evaluate(() => {
-  const m = window.__map;
-  window.applyTimeOfDay(m, 0.12, true);
-  if (window.GFX) {
-    Object.assign(window.GFX, { bloom: false, vignette: false, grain: false,
-                                tone: false, ao: false, rays: false });
-    if (window.applyGraphics) window.applyGraphics();
-  }
-});
+const browser = await launch(chromium);
 // The atlas repaint that applyTimeOfDay triggers has to land before we key, or
 // the key is written and then overwritten. See westcampus-shot.mjs.
 await page.waitForTimeout(5000);
@@ -156,4 +129,4 @@ for (const s of SHOTS) {
   console.log(s.name.padEnd(16),
     Object.entries(share).map(([k, v]) => k + '=' + v + '%').join('  '));
 }
-await browser.close();
+await browser.__done();

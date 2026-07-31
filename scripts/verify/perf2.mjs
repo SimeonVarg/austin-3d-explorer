@@ -13,11 +13,9 @@
  *   Q4  How much of the sky canvas is empty (i.e. free to reclaim)?
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false, args: ['--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 2560, height: 1400 } });
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 
@@ -212,4 +210,4 @@ const aaOff = await (async () => {
 })();
 console.log('   dropped frames: AA on ' + base.dropped + ' -> AA off ' + aaOff.dropped);
 
-await browser.close();
+await browser.__done();

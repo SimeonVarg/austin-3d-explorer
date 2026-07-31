@@ -8,15 +8,11 @@
  * all", and this asks the map directly instead of inferring from a screenshot.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 
 const SHOTS = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 page.on('console', m => { if (/error|stadium|image/i.test(m.text())) console.log('CONSOLE:', m.text()); });
@@ -55,4 +51,4 @@ for (const s of SHOTS) {
   });
   console.log(JSON.stringify(info, null, 2));
 }
-await browser.close();
+await browser.__done();

@@ -11,12 +11,12 @@
  *    toast, and briefly. cancelGraphicsAutoDetect must still work.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 
 // HEADED on purpose: this is a TIMING test. Headless swiftshader renders a
 // nudged frame in ~400 ms, which starves the probe below its 4-frame minimum
 // and the "probe ran after the ease" claim becomes untestable.
-const browser = await chromium.launch({ executablePath: chromePath(), headless: false, args: ['--no-sandbox'] });
+const browser = await launch(chromium, { headless: false });
 const results = [];
 const check = (n, pass, d) => results.push({ name: n, pass, detail: String(d) });
 const wrapDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
@@ -138,5 +138,5 @@ const wrapDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 console.log('');
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
-await browser.close();
+await browser.__done();
 process.exit(results.every(r => r.pass) ? 0 : 1);

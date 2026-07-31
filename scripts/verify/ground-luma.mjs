@@ -17,7 +17,7 @@
  * Usage: node ground-luma.mjs [p ...]      (default: 0.14 0.5 0.92)
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const PS = process.argv.slice(2).length ? process.argv.slice(2).map(Number) : [0.14, 0.5, 0.92];
 
@@ -35,11 +35,7 @@ const KEYS = {
   ground: [255, 255, 0],
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -186,4 +182,4 @@ for (const r of rows) {
     r.areaPct.toFixed(1).padStart(5), r.groundPct.toFixed(1).padStart(5));
 }
 console.log('\n(luma = Rec.709 on the real render; class = nearest key colour in the mask render)');
-await browser.close();
+await browser.__done();

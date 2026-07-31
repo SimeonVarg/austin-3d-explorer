@@ -14,7 +14,7 @@
  * every time-of-day jump, repaint, screenshot twice and keep the second.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -32,12 +32,7 @@ const VIEW = MODE === 'portrait'
 const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: EXE,
-  headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage(VIEW);
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
@@ -71,4 +66,4 @@ for (const s of SHOTS) {
   console.log('WROTE', file);
 }
 if (errors.length) console.log('ERRORS', errors.slice(0, 8));
-await browser.close();
+await browser.__done();

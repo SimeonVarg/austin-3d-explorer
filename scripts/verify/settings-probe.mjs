@@ -8,13 +8,9 @@
  * have opposite consequences, so this drives the toggle directly.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 600 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 page.on('console', m => { if (m.type() === 'error') console.log('CONSOLE-ERR', m.text()); });
@@ -105,4 +101,4 @@ for (const s of STEPS) {
 }
 console.log('\ndarkPx%      our asphalt on screen — must track the roads flag');
 console.log('paleRoadPx%  the basemap cream — must go UP when we hand the roads back');
-await browser.close();
+await browser.__done();

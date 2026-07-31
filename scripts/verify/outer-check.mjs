@@ -16,11 +16,9 @@
  * Usage:  node outer-check.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true, args: GL_ARGS,
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const logs = [];
 page.on('console', m => logs.push(m.text()));
@@ -144,5 +142,5 @@ console.log(`\n${checks.length - failed}/${checks.length} passed`);
 console.log(`ring: ${ring.features.length} buildings, ${towers.length} towers, ` +
             `${avgVerts.toFixed(1)} vertices/footprint average`);
 
-await browser.close();
+await browser.__done();
 process.exit(failed ? 1 : 0);

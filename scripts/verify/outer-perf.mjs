@@ -24,7 +24,7 @@
  * Usage:  node outer-perf.mjs [reps]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE } from './chrome.mjs';
+import { chromePath, BASE, launch } from './chrome.mjs';
 
 const REPS = Number(process.argv[2] || 3);
 // 12 s capture x 2 configurations x 3 paths x REPS. Keep REPS >= 2.
@@ -83,28 +83,7 @@ const PATHS = {
   },
 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  // The first run of this reported a p10 of EXACTLY 50.00 ms against 49.90 ms —
-  // 20 Hz, quantised, identical for both configurations. That is not a scene
-  // cost, it is Chrome throttling requestAnimationFrame in a window it thinks
-  // is occluded, which it was: three other agents had 32 Chrome windows in
-  // front of it. Without these flags the harness measures the window manager.
-  //
-  // VSYNC STAYS ON, and that decision took three wrong runs to reach. With it
-  // OFF, a WebGL frame delta measures how fast the CPU can SUBMIT draw calls,
-  // not how long the GPU takes to execute them — the fastest frames came back
-  // at 1.9 ms for a scene of 10,000 extrusions, which is a queue depth, not a
-  // render. With it ON, the delta includes the wait for the GPU, so the number
-  // is real; it just cannot resolve anything faster than the refresh. The way
-  // out is to make the scene genuinely GPU-bound (see VW/VH below), which is
-  // exactly why perf3.mjs runs at 2560x1400.
-  args: ['--no-sandbox',
-         '--disable-backgrounding-occluded-windows',
-         '--disable-renderer-backgrounding',
-         '--disable-background-timer-throttling',
-         '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 
 async function once(pathName, outerOn) {
   const page = await browser.newPage({ viewport: { width: VW, height: VH } });
@@ -308,4 +287,4 @@ for (const name of Object.keys(PATHS)) {
 console.log('summary (paired median GPU delta):', Object.entries(rows)
   .map(([k, v]) => `${k} ${v >= 0 ? '+' : ''}${v.toFixed(2)} ms`).join('   |   '));
 
-await browser.close();
+await browser.__done();

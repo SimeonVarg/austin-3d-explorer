@@ -13,7 +13,7 @@
  * "more colour temperatures now" claim a number instead of an impression.
  */
 import { chromium } from 'playwright-core';
-import { chromePath } from './chrome.mjs';
+import { chromePath, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -25,7 +25,7 @@ const MIN_SHARE = 0.005;  // a bin must hold >= 0.5% of lit pixels to count
 const files = process.argv.slice(2);
 if (!files.length) { console.error('usage: node night-variety.mjs <shot.png> ...'); process.exit(1); }
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
+const browser = await launch(chromium);
 const page = await browser.newPage();
 
 for (const f of files) {
@@ -68,4 +68,4 @@ for (const f of files) {
   console.log(`  distinct hue bins (>=0.5% of lit): ${distinct}`);
   console.log(`  ${hist}`);
 }
-await browser.close();
+await browser.__done();

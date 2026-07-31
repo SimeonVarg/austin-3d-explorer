@@ -22,7 +22,7 @@
  * Usage:  node arts-check.mjs        # needs the repo served; set VERIFY_URL
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
 const W = 1100, H = 740;
 
@@ -49,55 +49,7 @@ const ok = (c, msg, extra) => {
   console.log(`${c ? 'ok  ' : 'FAIL'}  ${msg}${extra != null ? '   [' + extra + ']' : ''}`);
 };
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
-const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
-const errors = [];
-page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
-page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-
-await page.goto(BASE + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 60000 });
-// Wait for the PASS, not for the style: it self-boots after buildings-3d exists,
-// which on the software rasteriser is several seconds after isStyleLoaded().
-await page.waitForFunction(() => {
-  const m = window.__map;
-  return m && m.getLayer && m.getLayer('arts-solid') && m.getSource('austin-arts');
-}, null, { timeout: 120000 });
-// The graphics auto-detect rewrites every setting ~11 s in, which would change
-// the look halfway through the run.
-await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-await page.waitForTimeout(2500);
-
-// ── 1. wiring ────────────────────────────────────────────────────────
-const wiring = await page.evaluate(() => {
-  const m = window.__map;
-  const ids = m.getStyle().layers.map(l => l.id);
-  const gone = ['d997136f-049e-4769-be88-dab62a98fac6', 'a5ec01b5-8575-406d-9711-1b5486b71838',
-                '8a27170d-b961-40a6-830b-1073a83dabe2', '4f12c48f-87c0-4928-9c50-1d73cc590e81',
-                '31901788-06c4-440c-8b95-bf8061f074cc', 'f6fbb1e7-945c-47ff-8071-17af0ea713cc'];
-  const filt = JSON.stringify(m.getFilter('buildings-3d') || null);
-  return {
-    layers: ids.filter(i => i.startsWith('arts-')),
-    idxArts: ids.indexOf('arts-solid'),
-    idxB3d: ids.indexOf('buildings-3d'),
-    idxGround: ids.indexOf('ground-areas'),
-    replacedInFilter: gone.filter(g => filt.includes(g)).length,
-    panelImg: m.hasImage('arts-hrc-panel'),
-    glassImg: m.hasImage('arts-bass-glass'),
-    // Asked FUNCTIONALLY, not by looking for the __arts marker. Six modules
-    // wrap applyTimeOfDay by polling, so which one ends up outermost is a race:
-    // the marker check passed one run and failed the next while the behaviour
-    // was identical both times. What matters is that moving p moves this pass's
-    // paint, so that is what gets asked.
-    todHooked: (() => {
-      window.applyTimeOfDay(m, 0.10, true);
-      const a = JSON.stringify(m.getPaintProperty('arts-solid', 'fill-extrusion-color'));
-      window.applyTimeOfDay(m, 0.80, true);
-      const b = JSON.stringify(m.getPaintProperty('arts-solid', 'fill-extrusion-color'));
-      return a !== b;
-    })(),
-    vgSolid: m.getPaintProperty('arts-solid', 'fill-extrusion-vertical-gradient'),
-  };
-});
+const browser = await launch(chromium);
 ok(wiring.layers.length === 4, 'four arts layers exist', wiring.layers.join(','));
 ok(wiring.idxArts > wiring.idxB3d, 'arts is anchored ABOVE buildings-3d, not at the bottom of the stack',
    `arts@${wiring.idxArts} > b3d@${wiring.idxB3d}`);
@@ -449,5 +401,5 @@ const petalMaskN = await mask();
 
 ok(errors.length === 0, 'no console errors', errors.slice(0, 3).join(' | '));
 console.log(`\n${pass} passed, ${fail} failed`);
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

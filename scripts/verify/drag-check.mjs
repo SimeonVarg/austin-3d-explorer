@@ -18,12 +18,9 @@
  * here (scripts/verify/README.md). VERIFY_URL=http://127.0.0.1:8127 node drag-check.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: [...GL_ARGS, '--ignore-gpu-blocklist'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
@@ -261,5 +258,5 @@ for (const a of A) {
 console.log('\nglazing audit:');
 for (const r of R.audit) console.log(' ', JSON.stringify(r));
 console.log(`\n${A.length - fail}/${A.length} passed`);
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

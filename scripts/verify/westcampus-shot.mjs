@@ -9,7 +9,7 @@
  * Usage: node westcampus-shot.mjs <outPrefix> [shotsJson] [off]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE as SERVER } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -51,7 +51,7 @@ function centerFor(s) {
           s.look[1] + (push * Math.cos(b)) / 111320];
 }
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -133,4 +133,4 @@ for (const s of SHOTS) {
               'cam=' + JSON.stringify(cam));
 }
 if (errors.length) console.log('ERRORS', errors.slice(0, 10));
-await browser.close();
+await browser.__done();

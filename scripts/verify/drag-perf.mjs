@@ -25,7 +25,7 @@
  * Usage: VERIFY_URL=http://127.0.0.1:8127 node drag-perf.mjs [reps]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = parseInt(process.argv[2] || '4', 10);
 const MS = 4200;
@@ -34,14 +34,7 @@ const CONFIGS = { off: false, on: true };
 // the new geometry is a real share of the pixels rather than four pixels of it.
 const POSE = { center: [-97.7405, 30.2855], zoom: 16.7, pitch: 72 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox',
-         '--disable-backgrounding-occluded-windows',
-         '--disable-renderer-backgrounding',
-         '--disable-background-timer-throttling',
-         '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 120000 });
@@ -109,4 +102,4 @@ console.log(`\ndelta (dropped frames over ${MS} ms, MIN of ${REPS} reps): ` +
             (d >= 0 ? '+' : '') + d);
 console.log(`within-config spread: off ${spread('off')}, on ${spread('on')}`);
 console.log('If the delta is smaller than the spread there is no result.');
-await browser.close();
+await browser.__done();

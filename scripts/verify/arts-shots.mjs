@@ -9,7 +9,7 @@
  * Usage:  node arts-shots.mjs <prefix> <on|off> [shots.json]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -20,7 +20,7 @@ const SHOTS = JSON.parse(fs.readFileSync(process.argv[4] || 'shots-arts.json', '
 const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
@@ -73,4 +73,4 @@ for (const s of SHOTS) {
   console.log('WROTE', path.basename(file));
 }
 if (errors.length) console.log('ERRORS', errors.slice(0, 6));
-await browser.close();
+await browser.__done();

@@ -31,7 +31,7 @@
  * Usage: node moody-perf.mjs [reps]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = parseInt(process.argv[2] || '3', 10);
 const MS = 4200;
@@ -39,14 +39,7 @@ const MS = 4200;
 // the geometry under test is actually on screen for every frame counted.
 const POSE = { center: [-97.7304, 30.27726], zoom: 15.9, pitch: 70 };
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: false,
-  args: ['--no-sandbox',
-         '--disable-backgrounding-occluded-windows',
-         '--disable-renderer-backgrounding',
-         '--disable-background-timer-throttling',
-         '--disable-features=CalculateNativeWinOcclusion'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 120000 });
@@ -144,4 +137,4 @@ console.log('  applyTimeOfDay  (whole hook)    ' + repaint.all.toFixed(2) + ' ms
 console.log('  this pass is ' + (100 * repaint.moody / Math.max(repaint.all, 0.01)).toFixed(0) +
             '% of the time-of-day step.');
 
-await browser.close();
+await browser.__done();

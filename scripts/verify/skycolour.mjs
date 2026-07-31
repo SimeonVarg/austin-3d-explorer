@@ -10,9 +10,9 @@
  * preserveDrawingBuffer, which only the harness page forces.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 
@@ -82,4 +82,4 @@ console.log('\nReference: a real clear midday sky reads roughly S 35-55% / L 55-
 console.log('zenith and pales to S 15-25% / L 80-88% at the horizon. S above ~60% with');
 console.log('L below ~45% is the "outer space" look.');
 
-await browser.close();
+await browser.__done();

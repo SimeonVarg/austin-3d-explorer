@@ -17,7 +17,7 @@
  * Usage: node moody-pose.mjs            (prints the solved shot list)
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 // name, [lng,lat], bearing, zoom, pitch, wanted screen-Y fraction.
 //
@@ -37,11 +37,7 @@ const WANT = [
   ['precinct',      [-97.733000, 30.279500], 315, 15.7, 70, 0.42],
 ];
 
-const browser = await chromium.launch({
-  executablePath: chromePath(), headless: true,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-         '--ignore-gpu-blocklist', '--no-sandbox'],
-});
+const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -88,4 +84,4 @@ for (const o of out) {
   console.log(' {"name":"%s","center":[%s,%s],"zoom":%s,"pitch":%s,"bearing":%s},',
     o.name, o.center[0], o.center[1], o.zoom, o.pitch, o.bearing);
 }
-await browser.close();
+await browser.__done();

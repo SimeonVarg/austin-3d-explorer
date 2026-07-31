@@ -13,49 +13,9 @@
  * Prints findings; exits 1 only if roll or FOV APIs are missing entirely.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
-const page = await browser.newPage({ viewport: { width: 800, height: 560 } });
-const pageErrors = [];
-page.on('pageerror', e => pageErrors.push(e.message));
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
-await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
-await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-await page.waitForTimeout(4000);
-
-const caps = await page.evaluate(async () => {
-  const m = window.__map;
-  const out = {};
-  out.hasGetRoll = typeof m.getRoll === 'function';
-  out.hasSetRoll = typeof m.setRoll === 'function';
-  out.hasSetFov = typeof m.setVerticalFieldOfView === 'function';
-  out.hasGetFov = typeof m.getVerticalFieldOfView === 'function';
-  out.rollEnabledOpt = typeof m.rollEnabled === 'function' ? m.rollEnabled() : 'n/a';
-
-  // jumpTo roll round-trip
-  if (out.hasGetRoll) {
-    const c = m.getCenter();
-    m.jumpTo({ center: [c.lng, c.lat], roll: 5 }, { fly: true });
-    await new Promise(r => requestAnimationFrame(r));
-    out.jumpToRollRoundTrip = m.getRoll();
-    // does a jumpTo WITHOUT roll reset it or keep it?
-    m.jumpTo({ center: [c.lng, c.lat] }, { fly: true });
-    await new Promise(r => requestAnimationFrame(r));
-    out.rollAfterJumpToWithoutRoll = m.getRoll();
-    if (out.hasSetRoll) { m.setRoll(0); }
-  }
-
-  // FOV round-trip
-  if (out.hasSetFov && out.hasGetFov) {
-    const f0 = m.getVerticalFieldOfView();
-    m.setVerticalFieldOfView(f0 + 4);
-    await new Promise(r => requestAnimationFrame(r));
-    out.fovRoundTrip = [f0, m.getVerticalFieldOfView()];
-    m.setVerticalFieldOfView(f0);
-  }
-  return out;
-});
+const browser = await launch(chromium);
 console.log('caps:', JSON.stringify(caps, null, 2));
 
 // easeTo behaviour with roll left non-zero
@@ -103,7 +63,7 @@ await shotAtRoll(-5, 'motion-caps-roll-5.png');
 await page.evaluate(() => window.__map.setRoll(0));
 
 if (pageErrors.length) console.log('page errors:', pageErrors.slice(0, 5));
-await browser.close();
+await browser.__done();
 const ok = caps.hasGetRoll && caps.hasSetFov;
 console.log(ok ? 'CAPS OK — native roll + FOV both available' : 'CAPS MISSING — see above');
 process.exit(ok ? 0 : 1);
