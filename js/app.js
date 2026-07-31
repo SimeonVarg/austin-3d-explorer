@@ -505,36 +505,87 @@
    * symbol lies flat on the turf exactly the way paint does, costs one icon, and
    * stays legible because MapLibre scales it per zoom rather than per metre.
    */
+  // The Longhorn silhouette, as supplied by Simeon. My own attempt at drawing
+  // one from proportions came out looking like a beetle — short stubby horns on
+  // an oversized head — and a real longhorn mark is overwhelmingly HORN: nearly
+  // two to one across, with a small head low between the roots.
+  //
+  // Kept as SVG path data and filled through Path2D rather than loaded as an
+  // <img>, because Path2D is SYNCHRONOUS. An image would have to decode before
+  // map.addImage could take it, which means either an async hole in the layer
+  // setup or a frame where the field has no mark on it.
+  const LONGHORN_PATH = 'M0 0c-9.484 2.578-20.969 0.665-30.204-2.164-17.64-5.659-32.6'
+    + '99-17.641-49.091-26.211-8.655-3.661-20.555-4.41-28.542 0.583-1.913 1.358-5.38 0'
+    + '.388-5.38 0.388-1.109 0.831-2.352 1.148-3.856 0.611-3.994-2.914-8.155 1.58-12.3'
+    + '96-0.75-4.242 2.33-8.402-2.164-12.396 0.75-1.505 0.537-2.747 0.22-3.856-0.611 0'
+    + ' 0-3.469 0.97-5.382-0.388-7.986-4.993-19.885-4.244-28.539-0.583-16.394 8.57-31.'
+    + '452 20.552-49.092 26.211-9.236 2.829-20.72 4.742-30.205 2.164-1.248-0.832-2.664'
+    + '-2.331-2.331-4.161 0.666-1.082 1.333-2.58 2.747-2.83 33.95 5.076 52.254-28.623 '
+    + '80.712-37.526 0.055-0.361-1.609-1.747-3.413-2.718-4.021-2.22-9.985-1.359-10.4-6'
+    + '.851 1.081-3.413 5.241-4.661 8.237-5.991 7.073-3.997 15.562-0.668 21.967 2.578 '
+    + '0.748 0.75 1.997 0.334 2.578-0.416-0.499-15.395 11.234-25.63 13.397-39.941 1.24'
+    + '9-6.657-2.912-11.564-3.411-17.806-0.055-2.303 1.747-0.778 2.718-8.404 0.417-1.3'
+    + '87 3.884-5.271 7.018-6.906 2.893-1.14 6.246-1.472 9.651-1.383 3.404-0.089 6.757'
+    + ' 0.243 9.65 1.383 3.134 1.635 6.602 5.519 7.015 6.906 0.974 7.626 2.776 6.101 2'
+    + '.721 8.404-0.5 6.242-4.66 11.149-3.412 17.806 2.164 14.311 13.896 24.546 13.396'
+    + ' 39.941 0.584 0.75 1.833 1.166 2.581 0.416 6.405-3.246 14.892-6.575 21.967-2.57'
+    + '8 2.995 1.33 7.155 2.578 8.237 5.991-0.417 5.492-6.381 4.631-10.4 6.851-1.805 0'
+    + '.971-3.469 2.357-3.415 2.718 28.459 8.903 46.765 42.602 80.714 37.526 1.414 0.2'
+    + '5 2.08 1.748 2.744 2.83 0.323 1.828-1.09 3.327-2.338 4.159';
+  const LONGHORN_VB = [331.62189, 168.97772];   // the source viewBox
+
   function longhornImage() {
-    const S = 128, c = document.createElement('canvas');
-    c.width = S; c.height = S;
+    const W = 512, H = Math.round(W * LONGHORN_VB[1] / LONGHORN_VB[0]);
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
     const x = c.getContext('2d');
     x.fillStyle = '#bf5700';                 // UT burnt orange, the official hex
-    x.strokeStyle = '#bf5700';
-    x.lineCap = 'round'; x.lineJoin = 'round';
-    // Horns: one shallow S per side, sweeping out then hooking up. Drawn as a
-    // stroked curve rather than a filled outline so the tips stay sharp at the
-    // couple of pixels they occupy from altitude.
-    x.lineWidth = S * 0.085;
-    for (const s of [-1, 1]) {
-      x.beginPath();
-      x.moveTo(S * 0.5, S * 0.42);
-      x.bezierCurveTo(S * (0.5 + s * 0.20), S * 0.30, S * (0.5 + s * 0.40), S * 0.30,
-                      S * (0.5 + s * 0.455), S * 0.40);
-      x.stroke();
-      x.beginPath();                          // the upward hook at the tip
-      x.arc(S * (0.5 + s * 0.44), S * 0.40, S * 0.055, 0, Math.PI * 2);
-      x.fill();
-    }
-    // Head and muzzle: a tapering shield under the horns.
-    x.beginPath();
-    x.moveTo(S * 0.5, S * 0.36);
-    x.bezierCurveTo(S * 0.30, S * 0.40, S * 0.30, S * 0.60, S * 0.42, S * 0.74);
-    x.bezierCurveTo(S * 0.46, S * 0.80, S * 0.54, S * 0.80, S * 0.58, S * 0.74);
-    x.bezierCurveTo(S * 0.70, S * 0.60, S * 0.70, S * 0.40, S * 0.5, S * 0.36);
-    x.closePath();
-    x.fill();
-    return x.getImageData(0, 0, S, S);
+    x.scale(W / LONGHORN_VB[0], H / LONGHORN_VB[1]);
+    // The two <g> transforms off the source SVG, in order. The outer one flips
+    // Y, which is why the mark would be upside down without it.
+    x.transform(1.25, 0, 0, -1.25, -390.11, 305.09);
+    x.translate(574.03, 241.88);
+    x.fill(new Path2D(LONGHORN_PATH));
+    return x.getImageData(0, 0, W, H);
+  }
+
+  /**
+   * End zone lettering, drawn to fit rather than set as map text.
+   *
+   * Two reasons it cannot be a `text-field`. First, LONGHORNS is nine characters
+   * against TEXAS's five, so at one shared size the long word runs off both
+   * sidelines — which is exactly what happened. A real field solves that the way
+   * this does: the word is CONDENSED to the width available, so both end zones
+   * read at the same cap height and the same span. Second, the only fonts on
+   * OpenFreeMap's glyph server are Noto Sans Regular/Bold/Italic, and none of
+   * them is the heavy athletic block that end zone paint actually uses.
+   *
+   * Drawing it into a canvas and squeezing it horizontally gets both, and gets
+   * them identically on every machine — no dependency on which fonts happen to
+   * be installed.
+   */
+  function endZoneImage(word) {
+    const W = 640, H = 150, PAD = 10;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    const base = 118;
+    x.font = '900 ' + base + 'px "Arial Black","Helvetica Neue",Arial,sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    const spaced = word.split('').join(' ');   // thin space, like real paint
+    const m = x.measureText(spaced).width || 1;
+    x.translate(W / 2, H / 2);
+    x.scale(Math.min(2.2, (W - PAD * 2) / m), 1);   // condense to fit the field
+    // Paint has a soft edge against the turf, not a hard vector one. A dark
+    // outline under white gives that and keeps the letters legible at the dozen
+    // pixels they occupy from the flying camera.
+    x.lineJoin = 'round';
+    x.strokeStyle = 'rgba(40,26,14,.55)';
+    x.lineWidth = 9;
+    x.strokeText(spaced, 0, 4);
+    x.fillStyle = '#f4f1ea';
+    x.fillText(spaced, 0, 4);
+    return x.getImageData(0, 0, W, H);
   }
 
   window.addStadiumLayers = function addStadiumLayers() {
@@ -645,33 +696,36 @@
       // these flat on the turf and turn them with the camera — without both,
       // they stand up and face the viewer like a map pin.
       if (!map.getLayer('stadium-paint')) {
-        try { if (!map.hasImage('dkr-longhorn')) map.addImage('dkr-longhorn', longhornImage()); } catch (e) {}
+        try {
+          if (!map.hasImage('dkr-longhorn')) map.addImage('dkr-longhorn', longhornImage());
+          for (const w of ['TEXAS', 'LONGHORNS']) {
+            if (!map.hasImage('dkr-word-' + w)) map.addImage('dkr-word-' + w, endZoneImage(w));
+          }
+        } catch (e) {}
         map.addLayer({
           id:'stadium-paint', type:'symbol', source:'austin-stadium', minzoom:15,
           filter:['in', ['get','kind'], ['literal', ['letter','mark']]],
           layout:{
-            'text-field':['coalesce', ['get','t'], ''],
-            'text-font':['Noto Sans Bold'],
-            // Sized to the paint, not to taste. A real end zone letter is about
-            // 6 m of cap height inside a 9.14 m end zone; the first cut rendered
-            // ~12 m caps spanning nearly the full 48.77 m field width, so TEXAS
-            // overflowed the end zone and printed across the seating. Base 2
-            // tracks ground scale exactly, so this holds at every zoom.
-            'text-size':['interpolate',['exponential',2],['zoom'], 15,3.4, 19,54.4],
-            'text-letter-spacing':0.16,
-            'text-rotate':['get','rot'],
-            'text-rotation-alignment':'map',
-            'text-pitch-alignment':'map',
-            'text-allow-overlap':true, 'text-ignore-placement':true,
-            'icon-image':['case', ['==', ['get','kind'], 'mark'], 'dkr-longhorn', ''],
-            // The real midfield mark is ~15 m across; the first cut drew ~9 m.
-            'icon-size':['interpolate',['exponential',2],['zoom'], 15,0.095, 19,1.52],
+            // Both the words and the mark are drawn images, not map text — see
+            // endZoneImage() for why a text-field could not do this.
+            'icon-image':['case', ['==', ['get','kind'], 'mark'],
+                          'dkr-longhorn', ['concat', 'dkr-word-', ['get', 't']]],
+            // Sized in METRES, then converted once. The word canvas is 640 px
+            // and should span ~40 m of the 48.77 m field width; the Longhorn
+            // canvas is 512 px and should span ~15 m, which is the real mark.
+            // The mark's figure was calibrated by MEASURING it off a render —
+            // the arithmetic answer came out 3x too small, because MapLibre's
+            // zoom is defined per 512 px tile and the screenshot is not.
+            // Base 2 tracks ground scale exactly, so both hold at every zoom.
+            'icon-size':['interpolate',['exponential',2],['zoom'],
+                         15, ['case', ['==', ['get','kind'], 'mark'], 0.0213, 0.0151],
+                         19, ['case', ['==', ['get','kind'], 'mark'], 0.3405, 0.242]],
             'icon-rotate':['get','rot'],
             'icon-rotation-alignment':'map',
             'icon-pitch-alignment':'map',
             'icon-allow-overlap':true, 'icon-ignore-placement':true,
           },
-          paint:{ 'text-color':'#f0ece4', 'text-opacity':0.94, 'icon-opacity':0.95 },
+          paint:{ 'icon-opacity':0.95 },
         }, anchor);
       }
     }).catch(() => {});
