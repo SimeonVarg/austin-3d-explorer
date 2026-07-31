@@ -91,6 +91,90 @@
     st: null, // drawn as piers + spandrel/slot tiers (drawStadium)
   };
 
+  // ── Wall material ───────────────────────────────────────────────────
+  //
+  // The wall between the openings was a flat colour field, which is the other
+  // half of "ALL walls are just so many windows" — there was no wall, only a
+  // grid.
+  //
+  // WHAT CANNOT BE DRAWN, measured rather than assumed. At this app's flying
+  // zooms a 64 px repeat covers 30-59 m, so one texel is 0.43-0.65 m of wall
+  // and the smallest feature that survives camera motion is about two texels,
+  // ~1.0-1.3 m. That rules out every masonry unit outright: a modular brick
+  // course is 0.068 m = 0.1 texels; an ashlar course 0.2-0.3 m = 0.3-0.7; a
+  // precast panel joint 0.019 m = 0.03. Drawing brick at the 1 px floor does
+  // not draw brick — it asserts a 0.5 m course, which is concrete block, and
+  // states it confidently on a limestone hall. So no coursing, on anything.
+  //
+  // WHAT SURVIVES, and is therefore all we draw: block-to-block value scatter
+  // at ~2 m, vertical weathering, and the structural bay.
+  //
+  // Also ruled out by the tile itself: cornices, plinths, string courses and
+  // ground-floor storefronts. The tile repeats vertically with no anchor, so
+  // anything keyed to the top or bottom of a building appears every ~40 m up
+  // the wall. That needs stacked geometry (bake_stadium.py does it for DKR) and
+  // is not attempted here.
+  const WALL = {
+    CELL: 4,                     // px per mottle cell -> 1.7-2.6 m, one block face
+    MOTTLE:  { lo: 0.070, mr: 0.075, mh: 0.080, tr: 0.055, tg: 0.030 },
+    STREAKS: { lo: 3, mr: 5, mh: 7, tr: 6, tg: 3 },
+    STREAK_DARK: 0.07,
+    STREAK_ALPHA: 0.22,
+    PIER: { mr: 1, mh: 1, tr: 1 },   // masonry families only; not tg, not lo
+    PIER_LIGHT: 0.045,
+    PIER_SHADOW: 0.055,
+  };
+
+  // The mottle depends only on (family, seed) — not on wall colour and not on
+  // the hour — so it is built once and composited. Emitting 256 fillRects per
+  // tile instead would land on updateFacades, which repaints every image on
+  // every time-of-day step.
+  // Cells are signed deltas in [-1,1], not a canvas. The first cut built a 64x64
+  // canvas per (family,bucket) and composited it with drawImage; correct, but it
+  // took the atlas repaint from 44 ms to 230 ms, because the tile context is
+  // `willReadFrequently` (it has to be — tileData ends in getImageData) and
+  // drawImage into a CPU-backed canvas takes the slow path. applyTimeOfDay
+  // quantises to 1/128, so dragging the hour slider would have paid that 128
+  // times. Applied to the pixel buffer we are already reading instead.
+  const _noise = new Map();
+  function noiseCells(seed) {
+    let a = _noise.get(seed);
+    if (a) return a;
+    const N = TILE / WALL.CELL;
+    a = new Float32Array(N * N);
+    for (let i = 0; i < a.length; i++) a[i] = hash01(seed + 5501, i % N, (i / N) | 0) * 2 - 1;
+    _noise.set(seed, a);
+    return a;
+  }
+
+  // Set by drawTile, consumed by tileData on the same call.
+  let _mottle = null;
+
+  /** Fill a full-height column, wrapping across the tile seam. */
+  function fillWrap(ctx, x, w, style) {
+    ctx.fillStyle = style;
+    x = ((x % TILE) + TILE) % TILE;
+    ctx.fillRect(x, 0, w, TILE);
+    if (x + w > TILE) ctx.fillRect(x - TILE, 0, w, TILE);
+  }
+
+  function drawWallMaterial(ctx, fam, wall, dark, seed) {
+    // Mottle is handed to tileData rather than drawn — see noiseCells above.
+    const amp = WALL.MOTTLE[fam];
+    _mottle = amp ? { cells: noiseCells(seed), amp: amp * (1 - dark * 0.6) } : null;
+    // Weathering: aperiodic in x, CONSTANT in y, so it tiles in both axes with
+    // no anchor dependency and cannot moire against the window grid. Same
+    // technique as DKR's `sd` band, which is the one large flat surface in this
+    // file that already does not read as plastic.
+    const n = WALL.STREAKS[fam] || 0;
+    for (let s = 0; s < n; s++) {
+      const x = Math.round(hash01(seed + 5623, s, 0) * TILE);
+      const w = 2 + Math.round(hash01(seed + 5641, s, 0) * 2);   // 2-4 px, never 1
+      fillWrap(ctx, x, w, css(mix(wall, [0, 0, 0], WALL.STREAK_DARK),
+                              WALL.STREAK_ALPHA * (1 - dark * 0.7)));
+    }
+  }
+
   // Runtime audit. Cheap, runs once, and turns a silent 2x error into a console
   // line. Exposed so a verification script can assert on it too.
   window.facadeGridAudit = function facadeGridAudit() {
@@ -839,9 +923,35 @@
     const stepX = TILE / g.cols, stepY = TILE / g.rows;
     const offX = (stepX - g.w) / 2, offY = (stepY - g.h) / 2;
 
-    // Faint floor lines give the wall texture even where windows are sparse.
-    ctx.fillStyle = css(mix(wall, [0, 0, 0], 0.14), 0.55);
-    for (let r = 0; r < g.rows; r++) ctx.fillRect(0, Math.round(r * stepY), TILE, 1);
+    // WHAT USED TO BE HERE, and why it is gone: a full-width dark line across
+    // the whole tile at EVERY floor —
+    //     for (let r = 0; r < g.rows; r++) ctx.fillRect(0, r * stepY, TILE, 1);
+    // — sold as "faint floor lines give the wall texture". Combined with the
+    // per-window head shadow and sill landing on those same rows, that is three
+    // horizontal darks per storey, one of them spanning the entire facade.
+    // Continuous full-width horizontal banding is not texture: it is the exact
+    // primitive the `dk` family uses to say PARKING DECK (see the `dk` branch
+    // above, which draws bands at a 13 px pitch and nothing else). So every
+    // building in the city was wearing the garage texture, reported verbatim as
+    // "maybe theyre all garages going all the way up". It stays in `dk`, which
+    // is a garage. Wall texture now comes from material, below.
+    const famIdx = ['lo','mr','mh','tr','tg','dk','st'].indexOf(fam) + 1;
+    const seed = bucketIdx * 4 + famIdx;
+    drawWallMaterial(ctx, fam, wall, dark, seed);
+
+    // Pilaster relief, LOCKED to the window column pitch and given no count of
+    // its own. A second vertical frequency near but not equal to the window
+    // pitch beats against it, and that is the ribbed-metal failure this file has
+    // already shipped once.
+    if (WALL.PIER[fam]) {
+      const lit = css(mix(wall, [255,255,255], WALL.PIER_LIGHT * (1 - dark * 0.8)));
+      const sha = css(mix(wall, [0,0,0], WALL.PIER_SHADOW * (1 - dark * 0.5)));
+      for (let c = 0; c < g.cols; c++) {
+        const xc = Math.round(c * stepX);       // cell boundary = pier centre
+        fillWrap(ctx, xc - 1, 2, lit);
+        fillWrap(ctx, xc + 1, 1, sha);
+      }
+    }
 
     // A bright reveal reads as a recessed opening in daylight, but after dark a
     // pale grid over every wall turns the city into graph paper — so the frame
@@ -853,8 +963,6 @@
     // and between the four rolls each pane makes (lit / tone / bright / hot);
     // the salts are primes far larger than any bucket index so the streams
     // can't collide.
-    const famIdx = ['lo','mr','mh','tr','tg','dk','st'].indexOf(fam) + 1;
-    const seed = bucketIdx * 4 + famIdx;
     const occRange = OCCUPANCY[fam] || OCCUPANCY.mh;
     const occRoll = hash01(seed + 4001, 0, 0);
     const occupancy = occRange[0] + (occRange[1] - occRange[0]) * occRoll * occRoll;
@@ -910,9 +1018,29 @@
       _canvas.width = _canvas.height = TILE;
       _ctx = _canvas.getContext('2d', { willReadFrequently: true });
     }
+    _mottle = null;
     drawTile(_ctx, fam, bucketIdx, p);
     const img = _ctx.getImageData(0, 0, TILE, TILE);
-    return { width: TILE, height: TILE, data: new Uint8Array(img.data.buffer.slice(0)) };
+    const d = img.data;
+    if (_mottle) {
+      // Block-to-block value scatter, one 4 px cell = ~2 m of wall. Applied over
+      // the finished tile so the openings pick it up too, which is right: the
+      // glass in a weathered wall is not uniformly clean either.
+      const { cells, amp } = _mottle;
+      const N = TILE / WALL.CELL;
+      for (let y = 0; y < TILE; y++) {
+        const row = ((y / WALL.CELL) | 0) * N;
+        for (let x = 0; x < TILE; x++) {
+          const t = cells[row + ((x / WALL.CELL) | 0)];
+          if (!t) continue;
+          const k = amp * Math.abs(t), tgt = t < 0 ? 0 : 255, i = (y * TILE + x) * 4;
+          d[i]     += (tgt - d[i])     * k;
+          d[i + 1] += (tgt - d[i + 1]) * k;
+          d[i + 2] += (tgt - d[i + 2]) * k;
+        }
+      }
+    }
+    return { width: TILE, height: TILE, data: new Uint8Array(d.buffer.slice(0)) };
   }
 
   function parseId(id) { return { fam: id.slice(0, 2), idx: parseInt(id.slice(2), 10) }; }
