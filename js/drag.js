@@ -112,8 +112,13 @@
     GYM_BAYS: 3, GYM_VOID: 5, GYM_VOID_DARK: 0.52, GYM_JAMB: 0.30,
     GYM_PIER_LIGHT: 0.055,
     // gymFrieze — the arcaded corbel table under the gable. Its individual
-    // arches are 0.9 m and unresolvable, so what is drawn is the RHYTHM: a
-    // dentil every 4 px, which is the frequency, at the value it averages to.
+    // arches are ~0.9 m, which is 1.4 tile pixels, so they cannot be drawn at
+    // their real pitch: a 1-px-on/1-px-off rhythm is a checkerboard that moires
+    // against the pixel grid as you fly. So the band is drawn at 4 px (2.5 m),
+    // roughly every third arch, at the value the real band averages to — a
+    // lighter, finely textured strip under the gable. The FREQUENCY IS WRONG
+    // and the value and position are right; that is the trade, and it is the
+    // same one js/facades.js makes when it refuses to draw brick coursing.
     GYM_DENTIL: 4, GYM_DENTIL_DARK: 0.13, GYM_FRIEZE_LIFT: 0.05,
 
     // uniArcade — the Union's ground-floor run of round-arched windows.
@@ -409,6 +414,23 @@
   };
 
   // ── image registration ──────────────────────────────────────────────
+  // The mottle depends only on the seed — not on colour and not on the hour —
+  // so it is built once per combo as signed deltas in [-1,1] and reused. The
+  // first cut re-hashed per PIXEL inside the repaint loop: 4,096 hashes a tile
+  // times sixteen tiles on every time-of-day step, and applyTimeOfDay quantises
+  // to 1/128, so dragging the hour slider would have paid it 128 times.
+  // js/facades.js learned the same lesson the harder way (44 ms -> 230 ms).
+  const _noise = new Map();
+  function noiseCells(seed) {
+    let a = _noise.get(seed);
+    if (a) return a;
+    const N = TILE / T.MOTTLE_CELL;
+    a = new Float32Array(N * N);
+    for (let i = 0; i < a.length; i++) a[i] = hash01(seed + 5501, i % N, (i / N) | 0) * 2 - 1;
+    _noise.set(seed, a);
+    return a;
+  }
+
   let _canvas = null, _ctx = null;
   const _combos = [];          // [{id, fam, wd, wg, wn}]
 
@@ -457,10 +479,12 @@
     // ~2.5 m, one block face. Written into the buffer we are already reading
     // rather than composited, for the reason above.
     const N = TILE / T.MOTTLE_CELL, amp = T.MOTTLE * (1 - k.dark * 0.6);
+    const cells = noiseCells(combo.seed);
     for (let y = 0; y < TILE; y++) {
-      const row = ((y / T.MOTTLE_CELL) | 0);
+      const row = ((y / T.MOTTLE_CELL) | 0) * N;
       for (let x = 0; x < TILE; x++) {
-        const t = hash01(combo.seed + 5501, (x / T.MOTTLE_CELL) | 0, row) * 2 - 1;
+        const t = cells[row + ((x / T.MOTTLE_CELL) | 0)];
+        if (!t) continue;
         const kk = amp * Math.abs(t), tgt = t < 0 ? 0 : 255, i = (y * TILE + x) * 4;
         d[i] += (tgt - d[i]) * kk;
         d[i + 1] += (tgt - d[i + 1]) * kk;

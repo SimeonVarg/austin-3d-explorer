@@ -228,8 +228,14 @@ t('every tile within its glazing/gap spec', R.audit.every(r => r.ok),
 // pass was demonstrably repainting.
 t('applyTimeOfDay is wrapped', R.todHooked);
 const tile = f => R.tiles.find(t => t.fam === f) || { day: 0, night: 0 };
+// 2.2x, not 3x. The first version of this asserted 3x and passed at 24 -> 146,
+// and then failed at 54 -> 146 — because the DAY value was deliberately raised:
+// a shopfront at 24 rendered as a near-black stripe under every building, which
+// reads as a void rather than as glass, so the glass was lightened and given a
+// sky reflection. The ratio moved for a reason that is an improvement, and a
+// threshold that fails on an intended change is a wrong threshold.
 t('shopfronts light up at night, hard',
-  tile('shopGlass').night > tile('shopGlass').day * 3,
+  tile('shopGlass').night > tile('shopGlass').day * 2.2,
   `${tile('shopGlass').day} -> ${tile('shopGlass').night}`);
 t('sign bands light up at night',
   tile('signBand').night > tile('signBand').day,

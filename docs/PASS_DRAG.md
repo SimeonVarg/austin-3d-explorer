@@ -100,9 +100,15 @@ it twice, and both times the fix was to enter the value **cool of the sample**:
 | | entered | rendered R/B | rendered luma | what it should have matched |
 |---|---|---|---|---|
 | PCL wall, first cut | `#b8b0a5` (R/B 1.11) | **1.75** | 146 | the tan brick building next door: **1.41** |
-| PCL wall, corrected | `#adb0af` (R/B 1.00) | *(see PR)* | | |
+| PCL wall, corrected | `#adb0af` (R/B 1.00) | **1.52** | 113 | (same-frame neighbour still 1.41) |
 | PCL roof, first cut | `#a9a6a2` (R/B 1.04, luma 167) | **1.51** | **211** | a concrete roof next door: **1.19 / 173** |
-| PCL roof, corrected | `#7f868c` | *(see PR)* | | |
+| PCL roof, corrected | `#7f868c` | **1.43** | **146** | (same-frame concrete roof **1.21 / 143**) |
+
+The roof is now matched (146 against 143). The wall is still **8% warmer in R/B than the
+tan brick building next door** — better than the 24% it started at, and it is now clearly
+*darker* than that neighbour (113 against 131), which is what makes it read as a heavy
+concrete mass rather than another tan box. One more cooling step would close it; I stopped
+here and am reporting the residual rather than claiming it is fixed.
 
 PCL is a grey precast box: it should be the **coolest** large mass on that block, and the
 first cut made it warmer than a brick building. The second lever, which is also physically
@@ -278,7 +284,28 @@ mask rather than an eyeballed crop.
   `js/facades.js` — no shared palette entry is claimed.
 - `?drag=0` removes the pass at load, for the perf A/B.
 
-## 9. Still missing
+## 9. Frame cost
+
+Measured with `scripts/verify/drag-perf.mjs` — headed, `index.html`, a scripted bearing
+sweep so every run renders identical content, configurations interleaved and
+counterbalanced, minimum of the reps, dropped frames rather than median frame time.
+
+| run | off (dropped, MIN) | on (dropped, MIN) | delta | within-config spread |
+|---|---|---|---|---|
+| 4 reps | 165 | 189 | **+24** | off 108, on 44 |
+| 6 reps | 175 | 168 | **−7** | off 52, on 51 |
+
+**There is no result, and that is the honest reading.** The two runs disagree in sign and
+both deltas are far inside their own within-config spread, which is the script's own
+stated stop condition. The machine was running five other agents' verification harnesses
+at the time (33 concurrent Chrome/node processes; best fps 10–18, against a scene that
+normally holds 30+), so this is a noise measurement, not a cost measurement. What can be
+said without measuring: the pass adds **101 fill-extrusion features in 2 layers and 16
+64×64 atlas images**, against a scene that already carries ~12,000 trees, ~6,000 props,
+12,058 roof features and a 7,625-building outer ring — and it removes 24 generic
+extrusions and their roof caps. Re-run it on an idle machine before trusting any number.
+
+## 10. Still missing
 
 - **Per-elevation blindness on PCL.** The real building has whole elevations that are
   blank from grade to parapet; here every elevation carries the coffer field at the same
@@ -293,3 +320,23 @@ mask rather than an eyeballed crop.
   one-line change to `DRAG_LAT_MAX`.
 - The four retail upper-floor tones are assigned by a hash of the building id. The range
   is from the street; no individual building's colour is sourced.
+- **PCL is still 8% warmer in R/B than the tan brick building next door** (1.52 vs 1.41),
+  down from 24%. See §2a.
+- **`shadows.js` still sweeps PCL's ground shadow from its baked 15.8 m**, so the shadow is
+  about half the length the 27.5 m mass should cast. That file belongs to another pass.
+- **The frame cost is unmeasured**, not zero — see §9. The A/B ran, and returned noise.
+- Gregory's corbel table is drawn at roughly every third arch (2.5 m rather than 0.9 m),
+  because the real pitch is 1.4 tile pixels and a 1-px rhythm moires against the pixel
+  grid as the camera moves. The value and position are right; the frequency is not.
+
+## 11. Renders
+
+Before/after pairs at two times of day, from the flying camera, in `docs/shots/`:
+`drag-street-{day,night}-{before,after}.jpg`, `drag-shopfront-{day,night}-{before,after}.jpg`,
+`drag-pcl-{day,night}-{before,after}.jpg`, `drag-gym-day-{before,after}.jpg`,
+`drag-union-day-{before,after}.jpg`, plus `drag-wide-{day,gold,night}.jpg`.
+
+"Before" is the same build with `?drag=0`, which makes `js/drag.js` return before it adds
+a layer OR touches `buildings-3d`'s filter — so the 24 replaced buildings are drawn by the
+generic path again, from the same camera at the same hour. Hiding the drag layers instead
+would leave those 24 filtered out and the "before" would be 24 holes in the city.

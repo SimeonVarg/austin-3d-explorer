@@ -1,0 +1,6 @@
+[
+  { "name": "pcl-day",   "p": 0.14, "center": [-97.73820, 30.28282], "zoom": 17.05, "pitch": 66, "bearing": 205 },
+  { "name": "pcl-night", "p": 0.84, "center": [-97.73820, 30.28282], "zoom": 17.05, "pitch": 66, "bearing": 205 },
+  { "name": "gym-day",   "p": 0.14, "center": [-97.73635, 30.28408], "zoom": 17.15, "pitch": 66, "bearing": 96 },
+  { "name": "union-day",   "p": 0.14, "center": [-97.74113, 30.28648], "zoom": 17.25, "pitch": 68, "bearing": 72 }
+]

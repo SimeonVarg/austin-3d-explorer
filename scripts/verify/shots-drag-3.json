@@ -1,0 +1,5 @@
+[
+  { "name": "wide-day",   "p": 0.14, "center": [-97.73980, 30.28500], "zoom": 15.95, "pitch": 62, "bearing": 20 },
+  { "name": "wide-gold",  "p": 0.50, "center": [-97.73980, 30.28500], "zoom": 15.95, "pitch": 62, "bearing": 20 },
+  { "name": "wide-night", "p": 0.84, "center": [-97.73980, 30.28500], "zoom": 15.95, "pitch": 62, "bearing": 20 }
+]
