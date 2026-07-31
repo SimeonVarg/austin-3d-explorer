@@ -433,19 +433,37 @@
   // The A/B split is also wider than the first cut. The aerial's deck has a luma
   // SD of 51.6; the first render managed 35-42, so the stripe was still being
   // averaged away.
+  // NIGHT IS BURNT ORANGE ON PURPOSE, and it is sourced. DKR's 2023-24 lighting
+  // upgrade is an instant-start multi-colour LED system whose signature trick is
+  // turning the entire stadium burnt orange, and it is the most recognisable
+  // thing the building does after dark.
+  //
+  // These values are set against a MEASUREMENT, after the first attempt failed.
+  // Sampling a night frame: DKR came out at mean luma 12.6 against unlit ground
+  // and trees at 13.4 — the stadium was literally indistinguishable from bare
+  // dirt — while the lit city ran mean 33 with highlights to 92. A cautious lift
+  // to ~40 as entered rendered at 12.6, because night attenuation here is about
+  // 0.32x; landing at a visible ~45-55 needs entered luma near 150, which is
+  // where these sit.
+  //
+  // This does NOT break the rule that an unlit surface must never come out
+  // brighter than the city around it — the rule is about UNLIT things. A
+  // floodlit stadium genuinely is one of the brightest objects in a night city,
+  // and the void bands stay dark on purpose so the bowl still reads as a bowl
+  // rather than as one orange blob.
   const SEAT_COL = {
-    lower:     ['#9aacc3', '#b0aea9', '#1c1f27'],   // day / golden / night
-    lowerB:    ['#8395ab', '#9c9a96', '#171a21'],
-    mid:       ['#a1b2c8', '#b6b4af', '#1e212a'],
-    midB:      ['#899ab0', '#a2a09b', '#191c24'],
-    upper:     ['#a7bbd4', '#bcbab5', '#20242c'],
-    upperB:    ['#8fa3ba', '#a8a6a1', '#1a1e26'],
-    stain:     ['#8b8d8d', '#9a9083', '#191a1e'],   // measured: luma 122.9, R/B 1.32
-    stainB:    ['#808282', '#8d8478', '#15161a'],
-    orange:    ['#91706b', '#a3785f', '#211a17'],   // club chairbacks
-    orangeB:   ['#82645f', '#946b55', '#1c1613'],
-    void:      ['#41454f', '#3f3c36', '#080a0d'],   // the slot under an overhang
-    concourse: ['#849aa7', '#9f9e9a', '#15181e'],   // in shade under the deck
+    lower:     ['#9aacc3', '#b0aea9', '#d87c34'],   // day / golden / night
+    lowerB:    ['#8395ab', '#9c9a96', '#c26e2c'],
+    mid:       ['#a1b2c8', '#b6b4af', '#e08438'],
+    midB:      ['#899ab0', '#a2a09b', '#ca7530'],
+    upper:     ['#a7bbd4', '#bcbab5', '#e88c3e'],
+    upperB:    ['#8fa3ba', '#a8a6a1', '#d27a34'],
+    stain:     ['#8b8d8d', '#9a9083', '#c07038'],   // measured: luma 122.9, R/B 1.32
+    stainB:    ['#808282', '#8d8478', '#ac6430'],
+    orange:    ['#91706b', '#a3785f', '#f09a48'],   // club chairbacks, most lit
+    orangeB:   ['#82645f', '#946b55', '#d8883e'],
+    void:      ['#41454f', '#3f3c36', '#2a1810'],   // the slot STAYS dark: it is
+    concourse: ['#849aa7', '#9f9e9a', '#8a5228'],   // what gives the bowl shape
   };
   // The parapet ring reads as the top of the bowl from every angle. Reusing the
   // building's baked roof colour (#756f66) put a wide chocolate-brown band right
@@ -477,6 +495,47 @@
     ? ['interpolate', ['linear'], p / 0.5, 0, ['get', 'cd'], 1, ['get', 'cg']]
     : ['interpolate', ['linear'], (p - 0.5) / 0.5, 0, ['get', 'cg'], 1, ['get', 'cn']]);
   const DETAIL_KINDS = ['turf', 'paint', 'board', 'logo', 'ramp', 'mast', 'aisle'];
+
+  /**
+   * The midfield Longhorn, drawn once into a canvas and registered as an image.
+   *
+   * It cannot be geometry. The real mark is about 15 m across, which is thirty
+   * pixels from the flying camera, and an alphabet or a silhouette built from
+   * polygons would be a hundred features to fill thirty pixels. A map-aligned
+   * symbol lies flat on the turf exactly the way paint does, costs one icon, and
+   * stays legible because MapLibre scales it per zoom rather than per metre.
+   */
+  function longhornImage() {
+    const S = 128, c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const x = c.getContext('2d');
+    x.fillStyle = '#bf5700';                 // UT burnt orange, the official hex
+    x.strokeStyle = '#bf5700';
+    x.lineCap = 'round'; x.lineJoin = 'round';
+    // Horns: one shallow S per side, sweeping out then hooking up. Drawn as a
+    // stroked curve rather than a filled outline so the tips stay sharp at the
+    // couple of pixels they occupy from altitude.
+    x.lineWidth = S * 0.085;
+    for (const s of [-1, 1]) {
+      x.beginPath();
+      x.moveTo(S * 0.5, S * 0.42);
+      x.bezierCurveTo(S * (0.5 + s * 0.20), S * 0.30, S * (0.5 + s * 0.40), S * 0.30,
+                      S * (0.5 + s * 0.455), S * 0.40);
+      x.stroke();
+      x.beginPath();                          // the upward hook at the tip
+      x.arc(S * (0.5 + s * 0.44), S * 0.40, S * 0.055, 0, Math.PI * 2);
+      x.fill();
+    }
+    // Head and muzzle: a tapering shield under the horns.
+    x.beginPath();
+    x.moveTo(S * 0.5, S * 0.36);
+    x.bezierCurveTo(S * 0.30, S * 0.40, S * 0.30, S * 0.60, S * 0.42, S * 0.74);
+    x.bezierCurveTo(S * 0.46, S * 0.80, S * 0.54, S * 0.80, S * 0.58, S * 0.74);
+    x.bezierCurveTo(S * 0.70, S * 0.60, S * 0.70, S * 0.40, S * 0.5, S * 0.36);
+    x.closePath();
+    x.fill();
+    return x.getImageData(0, 0, S, S);
+  }
 
   window.addStadiumLayers = function addStadiumLayers() {
     if (map.getSource('austin-stadium')) return;
@@ -579,6 +638,40 @@
             'fill-extrusion-opacity':1.0,
             'fill-extrusion-vertical-gradient':false,
           },
+        }, anchor);
+      }
+      // What is painted ON the grass: TEXAS / LONGHORNS and the midfield mark.
+      // `*-pitch-alignment: map` and `*-rotation-alignment: map` are what lay
+      // these flat on the turf and turn them with the camera — without both,
+      // they stand up and face the viewer like a map pin.
+      if (!map.getLayer('stadium-paint')) {
+        try { if (!map.hasImage('dkr-longhorn')) map.addImage('dkr-longhorn', longhornImage()); } catch (e) {}
+        map.addLayer({
+          id:'stadium-paint', type:'symbol', source:'austin-stadium', minzoom:15,
+          filter:['in', ['get','kind'], ['literal', ['letter','mark']]],
+          layout:{
+            'text-field':['coalesce', ['get','t'], ''],
+            'text-font':['Noto Sans Bold'],
+            // Sized to the paint, not to taste. A real end zone letter is about
+            // 6 m of cap height inside a 9.14 m end zone; the first cut rendered
+            // ~12 m caps spanning nearly the full 48.77 m field width, so TEXAS
+            // overflowed the end zone and printed across the seating. Base 2
+            // tracks ground scale exactly, so this holds at every zoom.
+            'text-size':['interpolate',['exponential',2],['zoom'], 15,3.4, 19,54.4],
+            'text-letter-spacing':0.16,
+            'text-rotate':['get','rot'],
+            'text-rotation-alignment':'map',
+            'text-pitch-alignment':'map',
+            'text-allow-overlap':true, 'text-ignore-placement':true,
+            'icon-image':['case', ['==', ['get','kind'], 'mark'], 'dkr-longhorn', ''],
+            // The real midfield mark is ~15 m across; the first cut drew ~9 m.
+            'icon-size':['interpolate',['exponential',2],['zoom'], 15,0.095, 19,1.52],
+            'icon-rotate':['get','rot'],
+            'icon-rotation-alignment':'map',
+            'icon-pitch-alignment':'map',
+            'icon-allow-overlap':true, 'icon-ignore-placement':true,
+          },
+          paint:{ 'text-color':'#f0ece4', 'text-opacity':0.94, 'icon-opacity':0.95 },
         }, anchor);
       }
     }).catch(() => {});

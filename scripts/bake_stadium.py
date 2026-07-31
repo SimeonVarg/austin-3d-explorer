@@ -222,6 +222,7 @@ SIDE_MID = {
 BURNT_ORANGE = "#bf5700"
 COL = {
     "turf":     "#3f6b3a",   # FieldTurf, darker green since the 2021 install
+    "turf_lit": "#5e9a52",   # ... and under the floodlights
     "endzone":  BURNT_ORANGE,
     "paint":    "#e8e6e0",   # yard lines and lettering
     "board":    "#14161c",   # the video board, dark and matte in daylight
@@ -230,6 +231,7 @@ COL = {
     "orangeseat": "#a85426",  # chairbacks: burnt orange, weathered and dusty
     "ramp":     "#b6b0a4",   # pale concrete ramp towers
     "mast":     "#8e9299",
+    "mast_lit": "#cfe0f2",   # the lamp array, on
     "aisle":    "#c6c1b6",   # pale concrete stair, brighter than the benches
 }
 
@@ -609,15 +611,19 @@ def build(feature, stats):
     # against the photograph by overlay before it was committed.
     ca, sa = math.cos(axis - math.pi / 2), math.sin(axis - math.pi / 2)
     fx, fy = c
+    # Under the floodlights the grass is the brightest thing in the bowl, so it
+    # gets a night override like the video board rather than following the wall
+    # ramp into the dark.
     out.append(feat(rect(fx, fy, FIELD_W_M, FIELD_L_M, axis - math.pi / 2), lat0,
-                    {"kind": "turf", "h": FIELD_H, "col": COL["turf"], "name": name}))
+                    {"kind": "turf", "h": FIELD_H, "col": COL["turf"],
+                     "night": COL["turf_lit"], "name": name}))
     stats["field"] += 1
     for s in (1, -1):
         ey = s * (FIELD_L_M - ENDZONE_M) / 2
         out.append(feat(rect(fx - ey * sa, fy + ey * ca, FIELD_W_M, ENDZONE_M,
                              axis - math.pi / 2), lat0,
                         {"kind": "paint", "h": FIELD_H + 0.08,
-                         "col": COL["endzone"], "name": name}))
+                         "col": COL["endzone"], "night": "#a8501c", "name": name}))
         stats["field"] += 1
     # Yard lines every 5 yd across the 100 yd of play. A real line is 10 cm; at
     # this camera's half-metre-per-pixel that is a fifth of a pixel and simply
@@ -629,8 +635,39 @@ def build(feature, stats):
         out.append(feat(rect(fx - yy * sa, fy + yy * ca, FIELD_W_M, 0.90,
                              axis - math.pi / 2), lat0,
                         {"kind": "paint", "h": FIELD_H + 0.16,
-                         "col": COL["paint"], "name": name}))
+                         "col": COL["paint"], "night": "#b8b4ac", "name": name}))
         stats["field"] += 1
+
+    # 4b. what is painted ON the turf -------------------------------------
+    # Lettering and the midfield mark cannot be polygons at this scale — the end
+    # zone letters are ~5 m tall, which is ten pixels from the flying camera, and
+    # a polygon alphabet would be a hundred features to draw ten pixels. They are
+    # emitted as POINTS instead and drawn by a symbol layer with map-aligned
+    # pitch and rotation, so the text and the mark lie flat on the grass the way
+    # paint does. See `stadium-paint` in js/app.js.
+    #
+    # Bearing is reported in MapLibre's convention (degrees clockwise from north)
+    # rather than the maths convention this file works in, so the layer can use
+    # it directly without a second conversion nobody would remember to make.
+    rot = (90.0 - math.degrees(axis)) % 360.0
+    for s, word in ((1, "TEXAS"), (-1, "LONGHORNS")):
+        ey = s * (FIELD_L_M / 2 - ENDZONE_M / 2)
+        px_, py_ = fx - ey * sa, fy + ey * ca
+        lon, lat = to_ll([(px_, py_)], lat0)[0]
+        out.append({"type": "Feature",
+                    "properties": {"kind": "letter", "t": word,
+                                   # Each end zone reads from its own side, so
+                                   # the two words face opposite ways — exactly
+                                   # as they are painted.
+                                   "rot": round((rot + (0 if s > 0 else 180)) % 360, 2),
+                                   "name": name},
+                    "geometry": {"type": "Point", "coordinates": [lon, lat]}})
+        stats["letters"] += 1
+    lon, lat = to_ll([(fx, fy)], lat0)[0]
+    out.append({"type": "Feature",
+                "properties": {"kind": "mark", "rot": round(rot, 2), "name": name},
+                "geometry": {"type": "Point", "coordinates": [lon, lat]}})
+    stats["mark"] += 1
 
     # 5. the video board -------------------------------------------------
     # 17.0 x 41.0 m, south end, facing the field. Published, not measured — the
@@ -673,7 +710,7 @@ def build(feature, stats):
             lt = min(0.98, math.hypot(lc[0] - hp[0], lc[1] - hp[1]) / span)
     out.append(feat(rect(lc[0], lc[1], LONGHORN_W_M, LONGHORN_D_M, axis - math.pi / 2),
                     lat0, {"kind": "logo", "h": round(deck_height(lt, h) + 0.45, 2),
-                           "col": BURNT_ORANGE, "name": name}))
+                           "col": BURNT_ORANGE, "night": "#e07a30", "name": name}))
     stats["logo"] += 1
 
     # 7. ramp towers and light masts --------------------------------------
@@ -698,9 +735,13 @@ def build(feature, stats):
         out.append(feat(rect(wp[0], wp[1], MAST_W_M, MAST_W_M, axis), lat0,
                         {"kind": "mast", "h": MAST_TOP_M, "base": round(h * 0.9, 2),
                          "col": COL["mast"], "name": name}))
+        # The HEAD is a lamp array, so like the video board it is the one part
+        # that must not follow the wall ramp down into the dark — an unlit
+        # floodlight over a stadium is a thing nobody has ever seen.
         out.append(feat(rect(wp[0], wp[1], MAST_HEAD_W_M, 1.6, axis), lat0,
                         {"kind": "mast", "h": MAST_TOP_M + 2.2, "base": MAST_TOP_M - 2.0,
-                         "col": COL["mast"], "name": name}))
+                         "col": COL["mast"], "golden": "#d8c39c",
+                         "night": COL["mast_lit"], "name": name}))
         stats["masts"] += 1
     return out
 
