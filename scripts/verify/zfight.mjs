@@ -200,8 +200,12 @@ for (const s of SHOTS) {
       // negative here is worse than a false positive -- it says fixed.
       const ok = (r) => r['austin-buildings'] > 200 && r['austin-roofscape'] > 0;
       let ready = await sceneReady();
-      for (let t = 0; t < 3 && !ok(ready); t++) {
-        await settle(5000);
+      // Six, not three. The Moody/Erwin pose sits at the edge of the detailed
+      // bbox and pulls a lot of new tiles at once; three 5 s retries were not
+      // enough for it and it scored INVALID on a scene that would have been
+      // ready shortly after.
+      for (let t = 0; t < 6 && !ok(ready); t++) {
+        await settle(6000);
         ready = await sceneReady();
       }
       s.__tiled = ready['austin-buildings'];

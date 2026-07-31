@@ -303,6 +303,47 @@ are three different bugs that produce an identical screenshot.
 
 ---
 
+## The sweep, after all of it
+
+Twelve poses across the detailed bbox, day / golden / night, `balanced` and
+`cinematic`, 200–900 m up at 48–66° of pitch — `scripts/verify/shots-sweep.json`,
+scored with the guarded `zfight.mjs`. `bldg/roof` is how many features of
+`austin-buildings` / `austin-roofscape` were actually tiled at that camera, which
+is the difference between "clean" and "empty".
+
+```
+pose                    bldg/roof   moved   flicker   clusters
+fac-close                 1785/3021   12.8%   0.048%   (none)     <- the reported defect
+tower-main                4612/6795   13.5%   0.034%   (none)     <- the other one
+wc-roofs                  6180/8840   18.2%   0.066%   (none)
+wc-roofs-hi               5078/7368   17.5%   0.051%   (none)
+moody-arena               4418/9137   13.9%   0.080%   (none)
+arts-precinct             5784/8566   14.5%   0.081%   (none)
+drag-corridor             1835/4072   13.5%   0.054%   (none)
+core-wide                 6147/8313   20.8%   0.142%   (none)
+core-golden               5802/8031   17.5%   0.112%   (none)
+core-night                5334/7228    7.4%   0.038%   (none)
+east-block                6483/8579   16.1%   0.043%   (none)
+wc-night                  5841/8820    6.7%   0.040%   (none)
+```
+
+Twelve of twelve clean, and every one of them scanned a scene that had actually
+loaded. That is a sweep, not a proof of absence: it says nothing about poses not
+in the list, and `zfight.mjs` cannot see a coplanar pair that is off screen —
+which is what `coplanar.mjs` is for.
+
+**One thing this table replaced.** An earlier run of `moody-arena` flagged 2.48%
+of the frame in twelve clusters, all on the ground plane — paths, plaza edges,
+the walkway network — and it was very nearly filed as a `js/ground.js` defect.
+It was not one. That run scanned a scene whose sources had not finished tiling
+(`-2 buildings tiled`), and the loading churn scored as flicker. The same pose
+with the scene actually loaded is clean. **Two runs of mine disagreed, and the
+one that agreed with my hypothesis was the wrong one** — which is the whole
+reason the `bldg/roof` column now exists and prints `INVALID` instead of a
+number.
+
+---
+
 ## The checks, and what each one is for
 
 Four new scripts in `scripts/verify/`. The first three are static — no browser,
