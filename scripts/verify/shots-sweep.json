@@ -1,0 +1,14 @@
+[
+ {"name":"fac-close",    "p":0.12, "gfx":"balanced",  "center":[-97.74053,30.28638], "zoom":17.8, "pitch":50, "bearing":20},
+ {"name":"tower-main",   "p":0.12, "gfx":"balanced",  "center":[-97.73932,30.28601], "zoom":17.3, "pitch":62, "bearing":0},
+ {"name":"wc-roofs",     "p":0.12, "gfx":"balanced",  "center":[-97.74350,30.28480], "zoom":16.4, "pitch":55, "bearing":45},
+ {"name":"wc-roofs-hi",  "p":0.47, "gfx":"cinematic", "center":[-97.74300,30.28350], "zoom":16.0, "pitch":48, "bearing":330},
+ {"name":"moody-arena",  "p":0.12, "gfx":"balanced",  "center":[-97.73250,30.28320], "zoom":16.6, "pitch":58, "bearing":300},
+ {"name":"arts-precinct","p":0.47, "gfx":"cinematic", "center":[-97.73800,30.28230], "zoom":16.6, "pitch":60, "bearing":20},
+ {"name":"drag-corridor","p":0.12, "gfx":"balanced",  "center":[-97.74180,30.28480], "zoom":16.8, "pitch":66, "bearing":180},
+ {"name":"core-wide",    "p":0.12, "gfx":"balanced",  "center":[-97.73900,30.28550], "zoom":15.4, "pitch":62, "bearing":90},
+ {"name":"core-golden",  "p":0.47, "gfx":"cinematic", "center":[-97.73900,30.28550], "zoom":15.4, "pitch":62, "bearing":270},
+ {"name":"core-night",   "p":0.90, "gfx":"cinematic", "center":[-97.73900,30.28550], "zoom":15.6, "pitch":60, "bearing":135},
+ {"name":"east-block",   "p":0.12, "gfx":"balanced",  "center":[-97.72900,30.28600], "zoom":16.2, "pitch":58, "bearing":250},
+ {"name":"wc-night",     "p":0.90, "gfx":"cinematic", "center":[-97.74350,30.28480], "zoom":16.2, "pitch":56, "bearing":45}
+]

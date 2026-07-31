@@ -70,6 +70,15 @@ DECK_ITEM = 0.10       # m thick: pool water, turf, sport court
 SHADE_H = 3.2          # m to the underside of a shade structure
 SHADE_T = 0.28
 FURN_H = 0.75          # m of cabana / furniture cluster
+# Anything standing on the amenity deck clamps to this far BELOW final_height,
+# not to final_height itself. The mechanical penthouse is already drawn topping
+# out at exactly final_height — that is deliberate, the LiDAR high point IS the
+# penthouse — so a shade trellis or a crown sign clamped to the same number
+# lands its top face exactly coplanar with the penthouse's. Two coplanar tops
+# have no draw order and flicker as the camera moves. Moontower had three
+# surfaces at 57.30 m: the penthouse, the trellis and the sign. The penthouse is
+# the tallest thing on a real roof anyway. See docs/PASS_GLITCH.md.
+ROOF_CLEAR = 0.35
 SIGN_T = 0.5           # m thick crown sign plate
 
 # `s` classes below are coloured by js/westcampus.js, NOT by the facade atlas.
@@ -583,7 +592,7 @@ def build(feature, spec, stats):
             # Clamped to the building's own LiDAR high point. A pergola on a roof
             # deck IS in the point cloud, so anything of ours standing above
             # `final_height` is this bake inventing height the data does not have.
-            sh1 = min(top + SHADE_H + SHADE_T, H)
+            sh1 = min(top + SHADE_H + SHADE_T, H - ROOF_CLEAR)
             out.append(solid_feature(r, max(top + 0.4, sh1 - SHADE_T), sh1,
                                      "shade", name, lon0, lat0))
             # a cabana / furniture cluster under it, so the shade has something
@@ -611,7 +620,8 @@ def build(feature, spec, stats):
         du, dv, w, h = spec["sign"]
         vf = v1 + dv
         r = rect_uv(ang, du - w / 2, vf - SIGN_T / 2, du + w / 2, vf + SIGN_T / 2)
-        out.append(solid_feature(r, roof_z, min(roof_z + h, H), "sign", name, lon0, lat0))
+        out.append(solid_feature(r, roof_z, min(roof_z + h, H - ROOF_CLEAR),
+                                 "sign", name, lon0, lat0))
         stats["sign"] += 1
 
     return out
@@ -650,13 +660,26 @@ def main():
     combos = sorted({(f["properties"]["fam"], f["properties"]["wd"])
                      for f in out if f["properties"]["kind"] == "wall"})
 
-    fc = {"type": "FeatureCollection", "features": out, "replacedBuildingIds": replaced}
+    # Every tower here authors its OWN roof — a deck, a mechanical penthouse, a
+    # pool, shade structures, terrace furniture. bake_roofscape.py must not also
+    # put a generic deck and a field of condensers up there, and until this list
+    # existed it did: the generic deck is baked at `final_height + parapet lift`
+    # while the pass's topmost element is the mech penthouse at final_height
+    # exactly, so nine towers carried a 0.25 m slab and its clutter hovering
+    # 1.0-1.1 m above the penthouse with clear sky under it. See
+    # docs/PASS_GLITCH.md.
+    #
+    # This is the whole list, not a subset: there is no West Campus tower in
+    # this bake whose roof is left to the generic bakes.
+    fc = {"type": "FeatureCollection", "features": out,
+          "replacedBuildingIds": replaced, "authoredRoofIds": replaced}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
     print(json.dumps({
         "features": len(out),
         "buildings": stats["buildings"],
         "replaced_building_ids": replaced,
+        "authored_roof_ids": len(replaced),
         "new_atlas_images": len(combos),
         "atlas_combos": ["%s %s" % c for c in combos],
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),

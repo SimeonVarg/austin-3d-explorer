@@ -271,12 +271,16 @@ def _ix(a, b, axis, val):
     return (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
 
 
-def offset(pts, d):
-    """Offset a closed ring by d metres; positive grows it. From bake_stadium."""
-    p = ccw(pts)
+# How far a mitered corner may travel from its source vertex, as a multiple of
+# the offset distance. A right angle needs 1.41; anything past 4 is a corner so
+# sharp that the miter is a spike rather than a corner, and a spike is never
+# what a roof facet wants.
+MITER_LIMIT = 4.0
+
+
+def _miter(p, d):
+    """One pass of the naive miter offset: move every edge line, re-intersect."""
     n = len(p)
-    if n < 3:
-        return None
     lines = []
     for i in range(n):
         x0, y0 = p[i]
@@ -286,7 +290,7 @@ def offset(pts, d):
         if L < 1e-9:
             return None
         nx, ny = dy / L, -dx / L
-        lines.append((x0 + nx * d, y0 + ny * d, dx, dy))
+        lines.append((x0 + nx * d, y0 + ny * d, dx / L, dy / L))
     out = []
     for i in range(n):
         ax, ay, adx, ady = lines[i - 1]
@@ -295,10 +299,78 @@ def offset(pts, d):
         if abs(den) < 1e-9:
             return None
         t = ((bx - ax) * bdy - (by - ay) * bdx) / den
-        out.append((ax + adx * t, ay + ady * t))
-    if abs(signed_area(out)) <= 1.0:
-        return None
+        vx, vy = ax + adx * t, ay + ady * t
+        # The clamp. Without it one near-degenerate corner puts a vertex an
+        # arbitrary distance away and the extrusion draws a sliver out to it.
+        px, py = p[i]
+        r = math.hypot(vx - px, vy - py)
+        lim = MITER_LIMIT * abs(d)
+        if r > lim:
+            k = lim / r
+            vx, vy = px + (vx - px) * k, py + (vy - py) * k
+        out.append((vx, vy))
     return out
+
+
+def _folded_edge(p, out):
+    """Index of the first source edge the offset turned back on itself, or None.
+
+    An edge shorter than the offset distance cannot survive the offset: its two
+    ends cross and the edge comes out pointing backwards. That is the signal
+    that the edge should have been consumed, not moved.
+    """
+    n = len(p)
+    for i in range(n):
+        ax, ay = p[i]
+        bx, by = p[(i + 1) % n]
+        dx, dy = bx - ax, by - ay
+        L = math.hypot(dx, dy)
+        if L < 1e-9:
+            return i
+        ox = out[(i + 1) % n][0] - out[i][0]
+        oy = out[(i + 1) % n][1] - out[i][1]
+        if (ox * dx + oy * dy) / L < -1e-9:
+            return i
+    return None
+
+
+def offset(pts, d):
+    """Offset a closed ring by d metres; positive grows it. From bake_stadium.
+
+    The plain version of this — offset every edge line, intersect consecutive
+    pairs, done — is correct only while no edge is shorter than |d|. The Main
+    Building's roof arms come out of `clip_box`, and a clip line that grazes a
+    vertex leaves an edge a metre long. Inset by 2.55 m that edge inverts; inset
+    again, the two nearly-antiparallel offset lines meet 350 m away.
+
+    That is not hypothetical. It shipped: `mb-roof-e`'s top band carried a vertex
+    at 30.289238 while the other seven sat at 30.2860, and the extrusion drew it
+    as a terracotta sliver running the length of the campus into the Biomedical
+    Engineering Building. See docs/PASS_GLITCH.md.
+
+    So: clamp the miter, and when an edge folds, remove it from the SOURCE and
+    solve again rather than patching the vertex it produced. Fixing the rule,
+    not the cell.
+    """
+    p = ccw(pts)
+    if len(p) < 3:
+        return None
+    # Bounded: each pass either succeeds or removes one vertex.
+    for _ in range(len(p)):
+        out = _miter(p, d)
+        if out is None:
+            return None
+        bad = _folded_edge(p, out)
+        if bad is None:
+            if abs(signed_area(out)) <= 1.0:
+                return None
+            return out
+        # Collapse the folded edge by dropping its far end. Its neighbours then
+        # miter directly against each other, which is what an inset hip does.
+        del p[(bad + 1) % len(p)]
+        if len(p) < 3:
+            return None
+    return None
 
 
 def dedupe(pts, eps=1e-6):
@@ -605,6 +677,39 @@ def build(feature, stats):
     return b.out
 
 
+
+# The Main Building is 120 m across at its widest. Nothing this bake emits has
+# any business spanning more than that, and the one time something did, it was
+# a 356 m sliver that reached the Biomedical Engineering Building. The bake now
+# refuses to write it. A guard on the OUTPUT catches every future cause of the
+# same symptom, not just the miter bug that caused it this time.
+MAX_RING_SPAN_M = 140.0
+
+
+def check(out):
+    """Refuse to write geometry that cannot be part of this building."""
+    bad = []
+    for i, f in enumerate(out):
+        p = f["properties"]
+        for ring in f["geometry"]["coordinates"]:
+            lons = [q[0] for q in ring]
+            lats = [q[1] for q in ring]
+            if not all(math.isfinite(q) for q in lons + lats):
+                bad.append("#%d %s: non-finite vertex" % (i, p.get("part")))
+                continue
+            lat0 = sum(lats) / len(lats)
+            w = (max(lons) - min(lons)) * 111320 * math.cos(math.radians(lat0))
+            h = (max(lats) - min(lats)) * 110574
+            span = math.hypot(w, h)
+            if span > MAX_RING_SPAN_M:
+                bad.append("#%d %s (%s): ring spans %.0f m (%.0f x %.0f)"
+                           % (i, p.get("part"), p.get("kind"), span, w, h))
+        if p["h"] < p["base"]:
+            bad.append("#%d %s: height %.2f below base %.2f"
+                       % (i, p.get("part"), p["h"], p["base"]))
+    return bad
+
+
 def main():
     feats = json.load(open(SNAP, encoding="utf-8"))["features"]
     hit = [f for f in feats if f["properties"].get("id") == TOWER_ID]
@@ -612,6 +717,11 @@ def main():
         raise SystemExit("UT Tower id %s not in the snapshot" % TOWER_ID)
     stats = Counter()
     out = build(hit[0], stats)
+
+    bad = check(out)
+    if bad:
+        raise SystemExit("bake_tower: refusing to write bad geometry:\n  "
+                         + "\n  ".join(bad))
 
     fc = {"type": "FeatureCollection", "features": out,
           "replacedBuildingIds": [TOWER_ID],

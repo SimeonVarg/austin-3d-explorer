@@ -371,13 +371,22 @@ def main():
         print("  %-34s h=%5.1f  ->  %2d features" % (name[:34],
               f["properties"].get("final_height") or 0, len(made)))
 
-    fc = {"type": "FeatureCollection", "features": out, "replacedBuildingIds": replaced}
+    # All three author their own roof, so the generic roof bakes must leave them
+    # alone. The Moody Center is the one that was VISIBLE: its authored roof
+    # tops out at 28.7 m, and bake_roofscape.py — which knew only about the
+    # stadium — was putting 253 features of measured arena-roof plant on it at
+    # heights up to 30.65 m, so condensers and a plant screen stood ~2 m proud
+    # of the arena's own roof with nothing under them. The two hospital blocks
+    # were the same bug hidden inside taller authored crowns.
+    fc = {"type": "FeatureCollection", "features": out,
+          "replacedBuildingIds": replaced, "authoredRoofIds": replaced}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
 
     print(json.dumps({
         "features": len(out),
         "replaced_building_ids": replaced,
+        "authored_roof_ids": len(replaced),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
         "provenance": {
