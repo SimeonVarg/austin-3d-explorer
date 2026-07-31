@@ -264,10 +264,25 @@ Without it the knob still exists and still works, via `setRoofDetail()`.
 
 Everything below was produced against the real app, served from this worktree.
 
+Screenshots live in `scripts/verify/shots/`, which is gitignored (regenerable) —
+the commands below reproduce every frame this document refers to.
+
 > **A trap that cost a round here:** port 8099 (the port `scripts/verify/README.md`
 > documents) was already held by **another agent's** server, and it answered 404
 > for `scripts/bake_roofscape.py`. The first set of "before" screenshots was of a
-> different worktree. Every command below pins `VERIFY_URL` to a private port.
+> different worktree, and they looked plausible — brown roofs either way. Every
+> command below pins `VERIFY_URL` to a private port. If you are running more than
+> one worktree, check `curl -o /dev/null -w '%{http_code}' <url>/scripts/bake_roofscape.py`
+> before trusting a single frame.
+
+> **The self-install path is what was verified.** `roofscape-shot.mjs` injects
+> `js/roofs.js` with `addScriptTag` into the real app rather than loading a
+> special harness copy, so the `autoInstall` block is the code path every
+> screenshot and timing number here went through. Its final diagnostic:
+> `{"injected":true,"detailLoaded":true,"deck":1482,"major":1451,"minor":3317}`.
+> Note that `autoInstall` waits for `isStyleLoaded()` **and** `buildings-3d`; in a
+> browser tab that never finishes building the scene it correctly installs
+> nothing, which is the intended behaviour rather than a failure.
 
 ```bash
 cd scripts/verify && npm install
