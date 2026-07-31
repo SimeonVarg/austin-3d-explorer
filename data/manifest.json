@@ -25,5 +25,19 @@
       "file": "diffs/2026-07-27_to_2026-07-30.geojson",
       "changed_count": 0
     }
-  ]
+  ],
+  "outer_ring": {
+    "file": "outer_ring.geojson",
+    "note": "Context, not a snapshot. Date-independent, like capitol.geojson / ground.geojson / trees.geojson. Read by js/outer.js; ignored by the date switcher and the diff tour.",
+    "bbox": {
+      "minlon": -97.788,
+      "minlat": 30.24,
+      "maxlon": -97.702,
+      "maxlat": 30.315
+    },
+    "overture_release": "2026-07-22.0",
+    "built_against_snapshot": "2026-07-30",
+    "buildings": 7625,
+    "towers": 114
+  }
 }

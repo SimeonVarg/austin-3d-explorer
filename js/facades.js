@@ -848,6 +848,65 @@
     }
   };
 
+  /**
+   * Snap the OUTER RING's towers onto patterns that already exist — and only
+   * onto those.
+   *
+   * The outer ring (js/outer.js) is deliberately cheaper than the core: 6,800
+   * simplified footprints wearing a flat colour, no atlas, no cap, no shadow.
+   * Downtown towers are the one exception, because the skyline silhouette is
+   * the whole reason the box reaches south, and a 267 m flat slab reads as a
+   * monolith rather than a building.
+   *
+   * The rule that makes that exception free is here: this NEVER calls addImage.
+   * quantiseStadiumFacades may, because twelve stadium walls carrying materials
+   * the city palette does not have is worth twelve textures. A hundred downtown
+   * towers are not worth a hundred more, and the atlas is a texture upload plus
+   * a repaint on every time-of-day tick — the cost is per IMAGE, not per
+   * building. So each tower takes the nearest EXISTING (family, bucket) combo,
+   * and if the family it wants has no combo at all it borrows another family's
+   * at the same bucket. Zero new images, zero new cost per frame.
+   *
+   * Call after quantiseFacades and after initFacades.
+   */
+  window.quantiseOuterFacades = function quantiseOuterFacades(features) {
+    if (!palette.length || !combos.length) return 0;
+    // bucket index -> the combos that exist for it, keyed by family
+    const have = new Map();
+    for (const id of combos) {
+      const { fam, idx } = parseId(id);
+      if (!have.has(idx)) have.set(idx, new Map());
+      have.get(idx).set(fam, id);
+    }
+    const buckets = palette.map(k => hexToRgb(k.wd));
+    let n = 0;
+    for (const f of features) {
+      const p = f.properties;
+      if (!p || !p.wd) continue;
+      const rgb = hexToRgb(p.wd);
+      let best = 0, bestD = Infinity;
+      for (let i = 0; i < buckets.length; i++) {
+        const d = dist2(rgb, buckets[i]);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      // Walk outward from the nearest bucket until one has ANY pattern.
+      let pick = null;
+      for (let step = 0; step < palette.length && !pick; step++) {
+        for (const idx of [best - step, best + step]) {
+          const fams = have.get(idx);
+          if (!fams) continue;
+          pick = fams.get('tw') || fams.get('md') || fams.values().next().value;
+          if (pick) break;
+        }
+      }
+      if (!pick) continue;
+      p.wp = pick;
+      p.wf = pick.slice(0, 2);
+      n++;
+    }
+    return n;
+  };
+
   // Fall back to a plain fill where a feature somehow has no pattern.
   window.FACADE_PATTERN_EXPR = ['coalesce', ['get', 'wp'], 'md00'];
   window.facadePalette = () => palette;

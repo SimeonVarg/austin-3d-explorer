@@ -1,0 +1,16 @@
+{
+  "release": "2026-07-22.0",
+  "bbox": {
+    "minlon": -97.788,
+    "minlat": 30.24,
+    "maxlon": -97.702,
+    "maxlat": 30.315
+  },
+  "core_bbox": {
+    "minlon": -97.752,
+    "minlat": 30.276,
+    "maxlon": -97.726,
+    "maxlat": 30.296
+  },
+  "raw_count": 47238
+}

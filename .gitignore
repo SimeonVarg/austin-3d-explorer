@@ -19,3 +19,9 @@ data/capitol_aerial.png
 # not something the site ever loads.
 data/dkr_aerial.png
 scripts/_overpass_probe.json
+
+# The raw Overture pull for the outer ring (scripts/extract_outer.py): 19.7 MB
+# of intermediate that scripts/bake_outer.py turns into a 2.4 MB render file.
+# Regenerable in ~6 minutes and pinned by data/outer/outer_source.json, which
+# records the exact release it came from and IS committed.
+data/outer/outer_raw.geojson

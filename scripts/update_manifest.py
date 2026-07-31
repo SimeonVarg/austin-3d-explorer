@@ -57,6 +57,13 @@ def list_diffs():
     return diffs
 
 
+# Keys this script does NOT own. It rebuilds the manifest from disk, so anything
+# written by another pass would be silently deleted on the next pipeline run —
+# which is how a provenance record rots without anyone noticing. Carry them
+# through instead.
+FOREIGN_KEYS = ("outer_ring",)
+
+
 def main():
     snapshots = list_snapshots()
     manifest = {
@@ -64,9 +71,21 @@ def main():
         "latest": snapshots[-1] if snapshots else None,
         "diffs": list_diffs(),
     }
+    carried = []
+    if os.path.isfile(MANIFEST_PATH):
+        try:
+            with open(MANIFEST_PATH) as f:
+                old = json.load(f)
+            for k in FOREIGN_KEYS:
+                if k in old:
+                    manifest[k] = old[k]
+                    carried.append(k)
+        except Exception as exc:  # noqa: BLE001 -- a corrupt manifest is rebuilt
+            print(f"  [warn] could not read the old manifest ({exc})")
     with open(MANIFEST_PATH, "w") as f:
         json.dump(manifest, f, indent=2)
-    print(f"manifest.json: {len(snapshots)} snapshot(s), {len(manifest['diffs'])} diff(s)")
+    print(f"manifest.json: {len(snapshots)} snapshot(s), {len(manifest['diffs'])} diff(s)"
+          + (f", carried forward: {', '.join(carried)}" if carried else ""))
 
 
 if __name__ == "__main__":

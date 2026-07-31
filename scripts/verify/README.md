@@ -89,6 +89,37 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
   see the long comment at the end of the file for why a null result there is
   expected rather than reassuring.
 
+## Outer ring suite (added July 30 2026)
+
+- `node outer-check.mjs` — the outer ring is what `docs/OUTER_RING.md` claims
+  (20 assertions). Most of them are NEGATIVES — no AO layer, no labels, no
+  facade pattern on the bulk of the ring, zero new atlas images — because those
+  are the regressions that look fine in a screenshot and cost frames.
+- `node outer-perf.mjs [reps]` — the A/B. Same build, same camera path, same
+  settings, `?outer=0` turning the ring off at load. Headed, `index.html`.
+- `node shot.mjs v2 shots-outer.json` — twelve poses along the intended flight
+  paths, including three that deliberately face the new boundary.
+
+### Two traps this suite added to the list
+
+- **Serve on a port nobody else is using.** Three agents were serving the repo
+  on 8099 from three different worktrees; every request went to whichever bound
+  first, and `data/outer_ring.geojson` 404'd while sitting on disk. Use
+  `VERIFY_URL=http://127.0.0.1:8123` and a matching `http.server` port.
+- **Chrome throttles rAF in a window it thinks is occluded.** The first timing
+  run reported a p10 of exactly 50.00 ms against 49.90 ms — 20 Hz, quantised,
+  identical for both configurations, which is the window manager, not the
+  scene. `outer-perf.mjs` now launches with
+  `--disable-backgrounding-occluded-windows --disable-renderer-backgrounding
+  --disable-background-timer-throttling
+  --disable-features=CalculateNativeWinOcclusion` and calls `bringToFront()`.
+  `perf.mjs`/`perf2.mjs`/`perf3.mjs` do **not** yet, so their numbers are only
+  trustworthy on an otherwise idle desktop.
+- **`queryRenderedFeatures` returns 0 at a flying pitch.** At pitch 77 it
+  reported zero features for `buildings-3d` in a scene visibly full of
+  buildings. Count `querySourceFeatures` instead, or you will spend an hour
+  debugging a renderer that is working.
+
 ### Timing traps, learned the hard way
 
 - **A median frame time is not a performance measurement.** It sits on the
