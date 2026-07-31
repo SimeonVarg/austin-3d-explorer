@@ -241,6 +241,13 @@ few centimetres deep, so it has to be a *value step* relative to the panel — a
 a value step is also the only thing that minifies gracefully, because it
 averages into the field instead of aliasing into bars.
 
+**A scatter of lit cells is what an OFFICE building does at night.** The first
+night render of the Ransom Center's panel field was a dark blank slab with a few
+bright dots — lit windows in a dark wall, which is precisely what this facade is
+not. Translucent glass lit from behind glows all over and unevenly, so the tile
+carries two night terms: a uniform wash across the whole field plus a scatter on
+top of it.
+
 **A sub-metre ledge between two bands aliases into a dashed white line** that
 reads as a rendering fault. The Ransom Center's fin band left a 0.3 m ledge
 under the panel field and the Bass parapet left 0.6 m; both are now flush. A
@@ -266,10 +273,44 @@ python -m http.server 8146 --bind 127.0.0.1        # from the repo root
 cd scripts/verify
 VERIFY_URL=http://127.0.0.1:8146 node arts-check.mjs        # 28 assertions
 VERIFY_URL=http://127.0.0.1:8146 node arts-perf.mjs         # interleaved A/B
-VERIFY_URL=http://127.0.0.1:8146 node shot.mjs arts shots-arts.json
+VERIFY_URL=http://127.0.0.1:8146 node arts-shots.mjs after on  shots-arts.json
+VERIFY_URL=http://127.0.0.1:8146 node arts-shots.mjs before off shots-arts.json
 python scripts/overlay_arts_footprints.py          # footprints on nadir imagery
 python scripts/sample_arts_colours.py              # every hex in this document
 ```
+
+### Frame cost
+
+Interleaved A/B on one page, two discarded warm-up reps, five measured reps,
+**minimum** of the reps, headed Chrome, `index.html`, no screenshots during the
+run:
+
+| pose | config | dropped (min) | fps (best) | p50 (min) | p90 (min) |
+|---|---|---|---|---|---|
+| close (z17.0, the precinct filling the frame) | arts ON | 0 | 52.6 | 18.60 ms | 20.50 ms |
+| | arts off | 0 | 54.8 | 18.00 ms | 19.80 ms |
+| | **delta** | **+0** | | **+0.60 ms** | |
+| cruise (z15.6, the altitude the app flies) | arts ON | 2 | 51.3 | 19.10 ms | 21.40 ms |
+| | arts off | 3 | 52.3 | 18.60 ms | 21.40 ms |
+| | **delta** | **−1** | | **+0.50 ms** | |
+
+Added: **79 features / 46 KB** of GeoJSON, 4 layers, 2 registered 64 px images.
+Zero features added to any existing source; sixteen removed from `buildings-3d`.
+
+**The rig was wrong twice before it was right, and both wrong versions were
+flattering.** Measuring without discarded warm-up reps produced a steeply
+descending series inside each configuration (142 → 136 → 31 → 29), so the
+minimum just reported whichever side held the deepest slots in the warm-up
+curve. And running the A and the B as two Chrome *pages* on `?arts=0` reported
+the scene as consistently **faster** with 79 extra features in it — 20.3 ms
+against 22.0 ms at p50, same direction at both poses at every rep count, which
+is not a thing 79 features can do. Two live MapLibre tabs sharing a GPU process
+are not treated symmetrically and no amount of interleaving fixes a confound
+that lives in the harness. `ground-perf.mjs` toggles layer visibility on one
+page for exactly this reason; `arts-perf.mjs` does now too. `?arts=0` still
+exists — it is how `arts-shots.mjs` takes a BEFORE.
+
+### Assertions
 
 `arts-check.mjs` asserts wiring (four layers, anchored above `buildings-3d` and
 above `ground-areas`, every replaced id filtered out, both images registered,
@@ -277,7 +318,14 @@ vertical-gradient off, the day/night hook live) and then measures pixels:
 stacked geometry on the LBJ, two materials with glass in the minority on Bass,
 Kelly cooler and lighter than the Blanton, twelve petals covering the right area
 and spread over the right distance, golden hour and night moving, and the panel
-tile neutral rather than tan.
+tile neutral rather than tan. **28 assertions, all passing.**
+
+### Screenshots
+
+`docs/shots/arts-*-{before,after}.jpg` — ten poses, each shot twice off the same
+build with `?arts=0` as the BEFORE, at day, golden hour and night.
+`arts-kelly-crop-*.jpg` is a crop, because Kelly's *Austin* is a 20 m object and
+a full frame does not show what changed.
 
 ---
 

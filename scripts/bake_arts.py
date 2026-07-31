@@ -390,10 +390,6 @@ def to_ll(pts, lat0):
     return [[round(x / (M_LAT * k), 7), round(y / M_LAT, 7)] for (x, y) in ring]
 
 
-def centroid(pts):
-    return (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
-
-
 def circle(lon, lat, r_m, n=20):
     k = math.cos(math.radians(lat))
     return [[round(lon + r_m * math.cos(2 * math.pi * i / n) / (M_LAT * k), 7),
