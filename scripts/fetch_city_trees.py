@@ -34,6 +34,8 @@ CACHE = os.path.join(DATA, "osm_cache")
 OUT = os.path.join(DATA, "trees.geojson")
 CITY_CACHE = os.path.join(CACHE, "city_trees.json")
 CANOPY_DETECTED = os.path.join(DATA, "canopy_detected.json")
+GROUND = os.path.join(DATA, "ground.geojson")
+MANIFEST = os.path.join(DATA, "manifest.json")
 
 BBOX = (30.276, -97.752, 30.296, -97.726)          # s, w, n, e
 SOCRATA = "https://data.austintexas.gov/resource/wrik-xasw.json"
@@ -68,6 +70,48 @@ DEFAULT_GROUP = ("other", 0.18, 2.0, 9.0, 0.33, 4.5, 20.0, "broadleaved")
 SKIP_SPECIES = ("stump", "vacant", "removed", "dead", "empty", "planting site")
 MIN_DBH_IN = 2.0        # below this it is a sapling, not something you see at 60 m
 DEDUPE_M = 4.0          # a city tree and an OSM tree this close are one tree
+
+# ── Imagery-detected crowns: what kind of tree is that blob? ───────────
+# GENERATIVE, but not arbitrary. The detector measures a crown RADIUS off the
+# photograph and nothing else, so the species has to be inferred — and the thing
+# a nadir photo genuinely tells you about a Central Texas tree is its habit:
+# a 9 m-radius crown on this campus is a live oak, a 2.5 m one is a crepe
+# myrtle, and the ones standing in the Waller Creek corridor are bald cypress.
+# So: bucket by measured radius, break ties with a deterministic hash against
+# the real regional mix, and override near water. Each species then gets its own
+# height-from-radius habit, which is what makes the canopy read as a mixed stand
+# instead of one shrub cloned 8,000 times — the colour ramp in timeofday.js is
+# driven by height, so species variety IS tonal variety here.
+#   (key, leaf, Ah, H0, maxH, squash_lo, squash_hi)
+HABIT = {
+    "liveoak":  ("broadleaved", 1.00, 3.2, 17.0, 0.86, 1.14),   # wide and low
+    "pecan":    ("broadleaved", 1.85, 3.0, 26.0, 0.80, 1.06),   # tall, open
+    "elm":      ("broadleaved", 1.55, 2.8, 22.0, 0.82, 1.10),   # cedar elm
+    "magnolia": ("broadleaved", 1.35, 3.0, 17.0, 0.90, 1.08),   # dense, conical
+    "crape":    ("broadleaved", 1.30, 1.4,  8.0, 0.84, 1.16),   # multi-stem, low
+    "cypress":  ("needleleaved", 2.10, 4.0, 28.0, 0.88, 1.04),  # bald cypress
+    "cedar":    ("needleleaved", 1.70, 2.6, 18.0, 0.86, 1.08),  # Ashe juniper
+}
+# Radius bucket -> candidate species and their share of that bucket. Weights are
+# the campus/West-Campus mix, not a state-wide inventory: live oak dominates
+# everything with a big crown, the small stuff is overwhelmingly crepe myrtle.
+RADIUS_MIX = [
+    (7.0, (("liveoak", 0.62), ("pecan", 0.20), ("elm", 0.18))),
+    (5.0, (("liveoak", 0.45), ("elm", 0.24), ("pecan", 0.16), ("magnolia", 0.15))),
+    (3.4, (("liveoak", 0.30), ("elm", 0.22), ("magnolia", 0.20), ("crape", 0.20), ("cedar", 0.08))),
+    (0.0, (("crape", 0.58), ("magnolia", 0.18), ("cedar", 0.14), ("elm", 0.10))),
+]
+WATER_SPECIES = "cypress"
+WATER_NEAR_M = 26.0     # inside this of mapped water, a big crown is a cypress
+
+# A crown detected on top of a building footprint is a green roof, a courtyard
+# tree read one wall too far, or a shadow — never a tree standing on a roof.
+REJECT_ON_BUILDINGS = True
+# Canopy `base` is where the crown starts up the trunk. Below this there is no
+# visible trunk to draw: a crepe myrtle branches from the ground, and a 5-point
+# box 0.3 m across is invisible at every zoom this scene is flown at. Skipping
+# those trunks is most of what keeps the feature count affordable.
+TRUNK_MIN_BASE_M = 2.4
 
 
 def group_for(species):
@@ -111,6 +155,123 @@ def square(lon, lat, half_m):
          [lon + dlon, lat + dlat], [lon - dlon, lat + dlat]]
     r.append(list(r[0]))
     return [[round(x, 6) for x in p] for p in r]
+
+
+# ── A tiny polygon index, so 12,000 crowns can be tested against 2,400
+# footprints without 29 million point-in-polygon calls. ────────────────
+class PolyIndex(object):
+    CELL = 0.0006          # ~60 m; a campus building spans a few cells
+
+    def __init__(self):
+        self.cells = {}
+        self.n = 0
+
+    @staticmethod
+    def _rings(geom):
+        if not geom:
+            return []
+        t = geom.get("type")
+        if t == "Polygon":
+            return [geom["coordinates"][0]] if geom["coordinates"] else []
+        if t == "MultiPolygon":
+            return [p[0] for p in geom["coordinates"] if p]
+        return []
+
+    def add(self, geom):
+        for ring in self._rings(geom):
+            if len(ring) < 4:
+                continue
+            xs = [c[0] for c in ring]
+            ys = [c[1] for c in ring]
+            box = (min(xs), min(ys), max(xs), max(ys))
+            self.n += 1
+            i0, i1 = int(box[0] / self.CELL), int(box[2] / self.CELL)
+            j0, j1 = int(box[1] / self.CELL), int(box[3] / self.CELL)
+            for i in range(i0, i1 + 1):
+                for j in range(j0, j1 + 1):
+                    self.cells.setdefault((i, j), []).append((box, ring))
+
+    def contains(self, lon, lat):
+        for box, ring in self.cells.get((int(lon / self.CELL), int(lat / self.CELL)), ()):
+            if lon < box[0] or lon > box[2] or lat < box[1] or lat > box[3]:
+                continue
+            inside = False
+            n = len(ring)
+            j = n - 1
+            for i in range(n):
+                xi, yi = ring[i][0], ring[i][1]
+                xj, yj = ring[j][0], ring[j][1]
+                if (yi > lat) != (yj > lat) and \
+                        lon < (xj - xi) * (lat - yi) / ((yj - yi) or 1e-12) + xi:
+                    inside = not inside
+                j = i
+            if inside:
+                return True
+        return False
+
+    def near(self, lon, lat, radius_m):
+        """True if any indexed ring has a vertex within radius_m."""
+        rlon = radius_m / (M_LAT * math.cos(math.radians(lat)))
+        rlat = radius_m / M_LAT
+        span = int(max(rlon, rlat) / self.CELL) + 1
+        ci, cj = int(lon / self.CELL), int(lat / self.CELL)
+        for di in range(-span, span + 1):
+            for dj in range(-span, span + 1):
+                for box, ring in self.cells.get((ci + di, cj + dj), ()):
+                    if lon < box[0] - rlon or lon > box[2] + rlon or \
+                            lat < box[1] - rlat or lat > box[3] + rlat:
+                        continue
+                    for c in ring:
+                        dxm = (c[0] - lon) * M_LAT * math.cos(math.radians(lat))
+                        dym = (c[1] - lat) * M_LAT
+                        if dxm * dxm + dym * dym <= radius_m * radius_m:
+                            return True
+        return False
+
+
+def latest_buildings():
+    """The newest snapshot's footprints. Read-only — the buildings bake is not
+    ours; we only ask it where the roofs are."""
+    try:
+        with open(MANIFEST, encoding="utf-8") as f:
+            date = json.load(f)["latest"]
+    except Exception:                                             # noqa: BLE001
+        return None
+    p = os.path.join(DATA, "snapshots", date, "buildings.geojson")
+    if not os.path.exists(p):
+        return None
+    idx = PolyIndex()
+    with open(p, encoding="utf-8") as f:
+        for feat in json.load(f).get("features", []):
+            idx.add(feat.get("geometry"))
+    return idx
+
+
+def water_index():
+    idx = PolyIndex()
+    if not os.path.exists(GROUND):
+        return idx
+    with open(GROUND, encoding="utf-8") as f:
+        for feat in json.load(f).get("features", []):
+            if (feat.get("properties") or {}).get("s") == "water":
+                idx.add(feat.get("geometry"))
+    return idx
+
+
+def species_for(lon, lat, r_m, near_water):
+    """Pick a species for an imagery-detected crown. GENERATIVE — see HABIT."""
+    if near_water and r_m >= 3.0:
+        return WATER_SPECIES
+    for lo, mix in RADIUS_MIX:
+        if r_m >= lo:
+            u = det01(lon, lat, "sp")
+            acc = 0.0
+            for key, w in mix:
+                acc += w
+                if u <= acc:
+                    return key
+            return mix[-1][0]
+    return "crape"
 
 
 def fetch_city():
@@ -212,20 +373,37 @@ def main():
     # dedupe below and keeps its species.
     stats["imagery_rows"] = 0
     stats["imagery_used"] = 0
+    stats["imagery_on_building"] = 0
+    stats["imagery_on_water"] = 0
     if os.path.exists(CANOPY_DETECTED):
         with open(CANOPY_DETECTED, encoding="utf-8") as f:
             det = json.load(f)
+        bld = latest_buildings() if REJECT_ON_BUILDINGS else None
+        wat = water_index()
+        sys.stderr.write("indexed %s building rings, %d water rings\n"
+                         % (bld.n if bld else "no", wat.n))
         for tag, blk in sorted(det.items()):
             for t in blk.get("trees", []):
                 stats["imagery_rows"] += 1
-                r_m = float(t["r"])
-                h_m = float(t["h"])
+                lon, lat = float(t["lon"]), float(t["lat"])
                 # A detected blob wider than a real single crown is a canopy
                 # mass; keep it but cap the drawn crown so it cannot become a
                 # 28 m green dome over the mall.
-                r_m = min(r_m, 11.0)
-                trees.append((float(t["lon"]), float(t["lat"]), r_m, h_m,
-                              "broadleaved", "detected", "imagery", None))
+                r_m = min(float(t["r"]), 11.0)
+                if bld is not None and bld.contains(lon, lat):
+                    stats["imagery_on_building"] += 1
+                    continue
+                if wat.contains(lon, lat):
+                    stats["imagery_on_water"] += 1
+                    continue
+                key = species_for(lon, lat, r_m, wat.near(lon, lat, WATER_NEAR_M))
+                leaf, Ah, H0, mH, _slo, _shi = HABIT[key]
+                # HEIGHT is modelled from the measured radius by that species'
+                # habit — a pecan of a given spread is far taller than a live
+                # oak of the same spread, and that difference is most of what
+                # makes a mixed stand read as mixed.
+                h_m = max(4.0, min(mH, Ah * r_m + H0))
+                trees.append((lon, lat, r_m, h_m, leaf, key, "imagery", None))
                 stats["imagery_used"] += 1
 
     # ---- dedupe: same tree in more than one source ----------------------
@@ -254,29 +432,57 @@ def main():
         cell.setdefault((cx, cy), []).append(t)
         kept.append(t)
 
+    # ---- keep-order --------------------------------------------------------
+    # `d` drives GFX.treeDensity, which filters `d <= density`. The first
+    # version computed it from a size formula, which meant the fraction of trees
+    # a given density actually drew depended on the size DISTRIBUTION — at 2,572
+    # trees the "balanced" 0.675 drew 1,544 (60%), and after this pass grew the
+    # set 4x the same number would have drawn a wildly different share. So `d` is
+    # now a QUANTILE: sort by importance, and d is the rank in 0..1. Density
+    # 0.675 draws 67.5% of the trees, always, whatever the file contains.
+    #
+    # Importance is size-biased with a deterministic jitter — thinning drops
+    # small trees first (the big live oaks are what you actually see from 60 m)
+    # but never in bands, because the jitter breaks up any spatial run.
+    order = []
+    for i, (lon, lat, r_m, h_m, leaf, key, src, dbh) in enumerate(kept):
+        size = max(0.0, min(1.0, (r_m - 1.8) / 9.0))
+        order.append((-(0.68 * size + 0.32 * det01(lon, lat, "dens")), i))
+    order.sort()
+    rank = [0.0] * len(kept)
+    n = max(1, len(kept) - 1)
+    for pos, (_, i) in enumerate(order):
+        rank[i] = pos / n
+
     # ---- emit -----------------------------------------------------------
     feats = []
-    for lon, lat, r_m, h_m, leaf, key, src, dbh in kept:
+    trunks = 0
+    for i, (lon, lat, r_m, h_m, leaf, key, src, dbh) in enumerate(kept):
         # Deterministic per-tree variation so a row of the same species does not
-        # look stamped. FORM only — never position.
-        squash = 0.82 + det01(lon, lat, "sq") * 0.30
+        # look stamped. FORM only — never position. Squash range is per-habit:
+        # a bald cypress is a narrow column, a live oak sprawls.
+        slo, shi = HABIT.get(key, (None, 0, 0, 0, 0.82, 1.12))[4:6]
+        squash = slo + det01(lon, lat, "sq") * (shi - slo)
         rot = det01(lon, lat, "rot") * 45.0
-        base = round(h_m * (0.30 + det01(lon, lat, "b") * 0.10), 2)
-        d_trunk = round(0.62 * max(0.0, min(1.0, 1.0 - (r_m - 1.8) / 10.0))
-                        + 0.38 * det01(lon, lat, "dens"), 4)
-        feats.append({
-            "type": "Feature",
-            "properties": {"kind": "trunk", "h": round(base + 0.4, 2), "base": 0,
-                           "d": d_trunk},
-            "geometry": {"type": "Polygon",
-                         "coordinates": [square(lon, lat, max(0.25, r_m * 0.075))]},
-        })
-        # `d` is a keep-order in 0..1 for the density control (GFX.treeDensity
-        # filters `d <= density`). Biased by size so thinning drops small trees
-        # first — the big live oaks are what you actually see from 60 m — with
-        # a deterministic jitter so the survivors never form visible bands.
-        d = round(0.62 * max(0.0, min(1.0, 1.0 - (r_m - 1.8) / 10.0))
-                  + 0.38 * det01(lon, lat, "dens"), 4)
+        # Where the crown starts up the trunk. Low-branching habits (crepe
+        # myrtle, magnolia) carry their crown near the ground; an open-grown
+        # pecan holds it high. Driven off the species, not a flat 30%.
+        lift = 0.16 if key in ("crape", "magnolia") else (0.34 if key in ("pecan", "cypress") else 0.28)
+        base = round(h_m * (lift + det01(lon, lat, "b") * 0.08), 2)
+        d = round(rank[i], 4)
+        # A trunk is only drawn where a missing one would read as a floating
+        # blob. Below TRUNK_MIN_BASE_M the crown all but touches the ground and
+        # the trunk is a 0.3 m box nobody can see — half the features in the
+        # file, for nothing.
+        if base >= TRUNK_MIN_BASE_M:
+            feats.append({
+                "type": "Feature",
+                "properties": {"kind": "trunk", "h": round(base + 0.4, 2), "base": 0,
+                               "d": d},
+                "geometry": {"type": "Polygon",
+                             "coordinates": [square(lon, lat, max(0.25, r_m * 0.075))]},
+            })
+            trunks += 1
         p = {"kind": "canopy", "h": round(h_m, 2), "base": base, "d": d,
              "leaf": leaf, "sp": key, "src": src}
         if dbh:
@@ -292,9 +498,23 @@ def main():
 
     canopies = [f for f in feats if f["properties"]["kind"] == "canopy"]
     hs = [f["properties"]["h"] for f in canopies]
+
+    # Zone split, the number the brief actually asks for. Longitudes are the
+    # ones in the brief: West Campus / the malls and the Drag / east campus.
+    def zone_of(f):
+        lon = f["geometry"]["coordinates"][0][0][0]
+        return "west" if lon < -97.741 else ("mid" if lon <= -97.734 else "east")
+    zones = {"west": 0, "mid": 0, "east": 0}
+    for f in canopies:
+        zones[zone_of(f)] += 1
+
     report = {
         "trees": len(canopies),
         "features": len(feats),
+        "trunks": trunks,
+        "by_zone": zones,
+        "draws_at_density": {str(v): sum(1 for f in canopies if f["properties"]["d"] <= v)
+                             for v in (0.35, 0.52, 0.675, 1.0)},
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "stats": stats,
         "height_m": {"min": round(min(hs), 1), "max": round(max(hs), 1),

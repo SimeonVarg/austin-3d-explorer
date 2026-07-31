@@ -1,0 +1,14 @@
+[
+ {"name":"southmall-day","p":0.14,"center":[-97.7394,30.2842],"zoom":16.55,"pitch":66,"bearing":352},
+ {"name":"speedway-day","p":0.14,"center":[-97.7370,30.2865],"zoom":17.0,"pitch":72,"bearing":186},
+ {"name":"eastmall-day","p":0.14,"center":[-97.7336,30.2860],"zoom":16.7,"pitch":70,"bearing":272},
+ {"name":"dkr-day","p":0.14,"center":[-97.7320,30.2836],"zoom":16.2,"pitch":64,"bearing":320},
+ {"name":"guadalupe-day","p":0.14,"center":[-97.7418,30.2860],"zoom":17.1,"pitch":72,"bearing":10},
+ {"name":"westcampus-day","p":0.14,"center":[-97.7455,30.2870],"zoom":16.9,"pitch":70,"bearing":95},
+ {"name":"southmall-night","p":0.92,"center":[-97.7394,30.2842],"zoom":16.55,"pitch":66,"bearing":352},
+ {"name":"speedway-night","p":0.92,"center":[-97.7370,30.2865],"zoom":17.0,"pitch":72,"bearing":186},
+ {"name":"eastmall-night","p":0.92,"center":[-97.7336,30.2860],"zoom":16.7,"pitch":70,"bearing":272},
+ {"name":"dkr-night","p":0.92,"center":[-97.7320,30.2836],"zoom":16.2,"pitch":64,"bearing":320},
+ {"name":"guadalupe-night","p":0.92,"center":[-97.7418,30.2860],"zoom":17.1,"pitch":72,"bearing":10},
+ {"name":"westcampus-night","p":0.92,"center":[-97.7455,30.2870],"zoom":16.9,"pitch":70,"bearing":95}
+]
