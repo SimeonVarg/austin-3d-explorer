@@ -1,0 +1,5 @@
+[
+ {"name":"park","p":0.14,"center":[-97.72777,30.27969],"zoom":17.4,"pitch":62,"bearing":0},
+ {"name":"lawn","p":0.14,"center":[-97.72646,30.28560],"zoom":17.2,"pitch":64,"bearing":0},
+ {"name":"creek","p":0.14,"center":[-97.73452,30.28095],"zoom":17.2,"pitch":64,"bearing":0}
+]

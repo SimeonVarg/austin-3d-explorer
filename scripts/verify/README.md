@@ -120,6 +120,57 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
   buildings. Count `querySourceFeatures` instead, or you will spend an hour
   debugging a renderer that is working.
 
+## Ground texture / roads suite (added July 31 2026)
+
+See `docs/GROUND_TEXTURE.md` for what these found.
+
+- `node ground-luma.mjs [p ...]` — the luma separation between paths, areas,
+  roads and the catch-all ground, by POSITIVE identification: one render for
+  colour, a second with each class painted a key colour for the mask, then the
+  first render's luma averaged inside each mask. **This is the guard on the
+  pale-paving trap.** If path-vs-ground ever falls back toward single digits,
+  the bug that made the entire path network invisible is back.
+- `node pattern-scale.mjs` — what `fill-pattern` actually does at zoom. It is
+  anchored in TILE space at the image's native pixel size and resets at every
+  integer zoom, so a tile's size in METRES halves each level (32 px measured
+  33.0 m at z16, 16.5 m at z17, 8.2 m at z18). Only scale-free noise survives.
+- `node ground-flatness.mjs [p]` — "reads as paper" as a number: the share of
+  16×16 blocks whose luma sd is near zero, plus a distinct-colour count, with
+  each technique isolated so neither gets credit for the other's result.
+- `node tex-inspect.mjs <prefix> <shots.json>` — one surface with the pattern
+  on, off and alone, plus the raw tiles at 3×, in a single browser session.
+- `node ground-tex-perf.mjs [reps]` — the A/B for the roads and the textures.
+- `node road-probe.mjs` — what the basemap carries under `transportation`.
+- `node settings-probe.mjs` — drives the `GROUND` flags and asserts on PIXELS.
+
+### Three more traps
+
+- **Do not hand a full framebuffer back through `page.evaluate`.** Returning
+  `Array.from(buf)` for a 1280×800 canvas is 4M numbers through CDP; it ran for
+  twenty minutes at 2 GB of RSS before it was killed. Do the reduction in the
+  page and return the aggregate. `ground-luma.mjs` keeps the luma plane in a
+  `window` global between the two passes for exactly this reason.
+- **Node's `console.log` does not understand `%8d`.** It leaves the specifier as
+  literal text and then shifts every later argument into the wrong slot. One
+  A/B table printed a config echo claiming the roads layer was hidden in the
+  configuration that had just switched it on. Use `padStart`, not printf.
+- **Interleaving is not enough on its own — counterbalance the order.** The
+  machine drifts upward across a run (183 dropped frames in the first rep, 193
+  in the fourth), so whichever configuration always runs first in the rep gets
+  the coolest slot and wins by construction. `ground-tex-perf.mjs` reverses the
+  order on alternate reps.
+
+### And one bug this suite caught that reasoning did not
+
+`GROUND.roads = false` then `true` left the roads switched off. Our road layers
+read from the basemap's own `transportation` source-layer, so the routine that
+hides "every visible transportation line" matched them too and hid them again on
+the same call that had just shown them. The style flags and the pixels agreed —
+27.8% of the pose was our asphalt with roads on, 3.2% with them off, and 3.2%
+again after turning them back on. Reading the flag alone would have found it;
+reading the flag in the same JS turn as the write would NOT have, because the
+table then lags a full step and reads as a reporting artifact.
+
 ### Timing traps, learned the hard way
 
 - **A median frame time is not a performance measurement.** It sits on the
