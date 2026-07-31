@@ -175,7 +175,7 @@ async function sceneReady() {
   });
 }
 
-console.log('pose                     tiled   moved   flicker   clusters (px @ screen box)');
+console.log('pose                    bldg/roof   moved   flicker   clusters (px @ screen box)');
 for (const s of SHOTS) {
   // Three poses along a STEADY zoom-in. The step is small enough that no real
   // edge travels more than a pixel or two, and monotonic so that anything that
@@ -194,24 +194,31 @@ for (const s of SHOTS) {
     await settle(k === 0 ? 4000 : 1800);
     // Give a cold pose a second chance before believing anything about it.
     if (k === 0) {
+      // Roofscape as well as buildings: js/roofs.js used to give up installing
+      // altogether on a race, and a flicker scan of a scene with no roofscape
+      // in it reports "(none)" for a roof defect that is still there. A false
+      // negative here is worse than a false positive -- it says fixed.
+      const ok = (r) => r['austin-buildings'] > 200 && r['austin-roofscape'] > 0;
       let ready = await sceneReady();
-      for (let t = 0; t < 3 && !(ready['austin-buildings'] > 200); t++) {
+      for (let t = 0; t < 3 && !ok(ready); t++) {
         await settle(5000);
         ready = await sceneReady();
       }
       s.__tiled = ready['austin-buildings'];
+      s.__roofs = ready['austin-roofscape'];
     }
     await page.evaluate((k) => window.__zf.grab(k), k);
   }
   const r = await page.evaluate(() => window.__zf.scan(14, 30, 220, 6));
   const pct = ((r.flagged / r.total) * 100).toFixed(3);
-  const cold = !(s.__tiled > 200);
+  const cold = !(s.__tiled > 200 && s.__roofs > 0);
   console.log(
-    s.name.padEnd(24) + String(s.__tiled).padStart(7) +
+    s.name.padEnd(24) + (s.__tiled + '/' + s.__roofs).padStart(11) +
     (r.movedPct.toFixed(1) + '%').padStart(8) +
     (pct + '%').padStart(9) + '   ' +
     (cold
-      ? 'INVALID: only ' + s.__tiled + ' buildings tiled - the scene had not loaded'
+      ? 'INVALID: ' + s.__tiled + ' buildings / ' + s.__roofs +
+        ' roofscape tiled - the scene had not loaded'
       : r.movedPct < 1
         ? 'INVALID: the camera barely moved, this result means nothing'
         : r.clusters.length

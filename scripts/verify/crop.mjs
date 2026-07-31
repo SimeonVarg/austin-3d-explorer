@@ -42,6 +42,8 @@ await page.setContent(
    </script></body>`);
 await page.waitForFunction(() => document.title === 'ok' || document.title === 'err', null, { timeout: 30000 });
 if (await page.title() === 'err') { console.error('could not load', url); process.exit(1); }
-await page.screenshot({ path: out });
+// docs/shots/ is jpg by convention and these are photographs of a render, not
+// line art — a 1.2 MB PNG of a city becomes ~200 KB with nothing visible lost.
+await page.screenshot(/\.jpe?g$/i.test(out) ? { path: out, type: 'jpeg', quality: 88 } : { path: out });
 await browser.close();
 console.log('wrote', out);
