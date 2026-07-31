@@ -1,0 +1,115 @@
+{
+  "m_per_px": 0.1289,
+  "half_width_m": {
+    "speedway_brick   (OSM surface=paving_stones)": 3.5,
+    "speedway_south   (OSM surface=asphalt, same corridor)": 3.5,
+    "inner_campus_dr  (asphalt control)": 3.0
+  },
+  "targets": {
+    "speedway_brick   (OSM surface=paving_stones)": {
+      "lit": {
+        "n": 14561,
+        "pct": 64.3,
+        "mean_hex": "#b6a488",
+        "mean_rgb": [
+          182,
+          164,
+          136
+        ],
+        "luma": 165.8
+      },
+      "shadow": {
+        "n": 6113,
+        "pct": 27.0,
+        "mean_hex": "#36342f",
+        "mean_rgb": [
+          54,
+          52,
+          47
+        ],
+        "luma": 52.1
+      },
+      "canopy": {
+        "n": 1986,
+        "pct": 8.8,
+        "mean_hex": "#6b735b",
+        "mean_rgb": [
+          107,
+          115,
+          91
+        ],
+        "luma": 111.6
+      }
+    },
+    "speedway_south   (OSM surface=asphalt, same corridor)": {
+      "lit": {
+        "n": 15175,
+        "pct": 93.2,
+        "mean_hex": "#c8b08e",
+        "mean_rgb": [
+          200,
+          176,
+          142
+        ],
+        "luma": 178.6
+      },
+      "shadow": {
+        "n": 1024,
+        "pct": 6.3,
+        "mean_hex": "#403a30",
+        "mean_rgb": [
+          64,
+          58,
+          48
+        ],
+        "luma": 58.6
+      },
+      "canopy": {
+        "n": 81,
+        "pct": 0.5,
+        "mean_hex": "#666c52",
+        "mean_rgb": [
+          102,
+          108,
+          82
+        ],
+        "luma": 104.8
+      }
+    },
+    "inner_campus_dr  (asphalt control)": {
+      "lit": {
+        "n": 1530,
+        "pct": 25.8,
+        "mean_hex": "#a19b89",
+        "mean_rgb": [
+          161,
+          155,
+          137
+        ],
+        "luma": 155.0
+      },
+      "shadow": {
+        "n": 3966,
+        "pct": 67.0,
+        "mean_hex": "#302f32",
+        "mean_rgb": [
+          48,
+          47,
+          50
+        ],
+        "luma": 47.4
+      },
+      "canopy": {
+        "n": 426,
+        "pct": 7.2,
+        "mean_hex": "#6a7057",
+        "mean_rgb": [
+          106,
+          112,
+          87
+        ],
+        "luma": 108.9
+      }
+    }
+  }
+}
