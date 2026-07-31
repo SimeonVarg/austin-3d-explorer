@@ -251,20 +251,51 @@
   // line in buildScene() this waits for the map and the buildings to exist and
   // then inserts itself. Registering properly is one line and is documented; if
   // that line is ever added, the `getSource` guard above makes this a no-op.
-  (function autoInstall() {
+  //
+  // THIS USED TO POLL `isStyleLoaded() && getLayer('buildings-3d')` TOGETHER,
+  // 600 times at 100 ms, AND THEN GIVE UP IN SILENCE. Both halves are wrong.
+  //
+  // `map.isStyleLoaded()` is not "the style has been parsed" — it is false
+  // while ANY source in the style is still loading, and this scene carries the
+  // core buildings, the outer ring, the ground, ~12,000 trees, ~6,000 props and
+  // six self-booting building passes that each add their own source seconds
+  // apart. Probed 30 s after load on an idle machine it is still false while
+  // `buildings-3d` has existed for ages. So the conjunction was only ever
+  // satisfied if the poll happened to sample during a momentary gap in source
+  // loading — which is a coin flip, and when it lost, the ENTIRE roofscape
+  // (3,649 + 8,034 features) simply was not in the scene and nothing said so.
+  // A screenshot of that is a plausible-looking city with plain lids, which is
+  // exactly the state this pass exists to fix. It is also how this file's
+  // 12,058 features sat dead in the repo for days once before.
+  //
+  // The fix is the shape every other pass in this repo uses and that
+  // docs/PASS_COMMON.md tells passes to copy verbatim from js/outer.js: take
+  // the style's own `load` EVENT rather than polling a predicate that includes
+  // it, then poll only for the thing that actually has to exist. And if it ever
+  // does give up, say so at error level — a silent give-up is worse than a
+  // crash, because the scene still renders.
+  function boot() {
+    const map = window.__map;
+    if (!map) return setTimeout(boot, 60);
+
     let tries = 0;
-    const tick = () => {
-      const m = window.__map;
-      if (m && m.isStyleLoaded && m.isStyleLoaded() && m.getLayer('buildings-3d')) {
-        try { window.initRoofscape(m); } catch (e) { console.warn('[roofscape]', e); }
-        return;
+    const go = () => {
+      if (!map.getLayer('buildings-3d')) {
+        if (++tries > 500) {           // ~60 s, and then LOUDLY
+          console.error('[roofscape] buildings-3d never appeared after 60 s — ' +
+                        'the roofscape is NOT in this scene');
+          return;
+        }
+        return setTimeout(go, 120);
       }
-      if (++tries < 600) setTimeout(tick, 100);
+      try { window.initRoofscape(map); } catch (e) { console.error('[roofscape]', e); }
     };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => setTimeout(tick, 200));
-    } else {
-      setTimeout(tick, 200);
-    }
-  })();
+    if (map.isStyleLoaded && map.isStyleLoaded()) go();
+    else map.once('load', () => setTimeout(go, 0));
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(boot, 200));
+  } else {
+    setTimeout(boot, 200);
+  }
 })();
