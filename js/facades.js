@@ -1,11 +1,11 @@
 /**
  * facades.js — procedural facade textures for Austin 3D Explorer
  *
- * MapLibre v5 supports `fill-extrusion-pattern`, and it tiles in WORLD space:
- * a pattern keeps a constant physical size as you fly, so a window grid reads
- * as real windows rather than screen-space noise. That is the single biggest
- * upgrade available to a fill-extrusion city — it turns flat prisms into
- * buildings.
+ * MapLibre v5 supports `fill-extrusion-pattern`. NOTE, because the comment
+ * here used to say the opposite and it cost a whole investigation: the pattern
+ * does NOT tile in world space. It is scaled by the TILE grid, so a 64 px
+ * repeat covers ~14.8 m at tile zoom 18 and doubles with every zoom out —
+ * ~118 m by zoom 15. See the measurement note above GRIDS.
  *
  * The catch: a pattern REPLACES `fill-extrusion-color`, so per-building colour
  * would be lost. Fix: quantise the 900-odd baked wall colours down to a small
@@ -36,10 +36,37 @@
   //   tw  towers: dense curtain-wall grid
   //   dk  parking decks: open horizontal slots, no glass
   //   st  stadiums + arenas: masonry piers, NOT windows (see drawStadium)
+  // ── The scale bug these numbers exist to fix ────────────────────────
+  //
+  // The module header above used to claim the pattern tiles in WORLD space and
+  // "keeps a constant physical size as you fly". MEASURED, that is false: a
+  // 64 px repeat covers ~14.8 m at tile zoom 18, ~30 m at 17, ~59 m at 16 and
+  // ~118 m at 15. It HALVES at every integer zoom, because MapLibre scales
+  // *-pattern by the tile grid, not by the world. Confirmed by rendering one
+  // tower at z17.6 / z16.6 / z15.6 and counting window rows down its face: the
+  // count halves each step. If the pattern were world-locked it would not move.
+  //
+  // The old grids were sized for a 20 m tile, which only exists near zoom 18.
+  // At the zooms this app actually flies — 15 to 17 — the same tile spans
+  // 30-118 m, so one "window" was drawn 5 to 18 m across. That is the whole of
+  // the reported "huge blocky uniform windows": a scale bug, not a taste one.
+  //
+  // These are sized for the middle of the real flying range (tile zoom 16-17,
+  // 30-59 m per tile), which puts floor-to-floor in the 3-6 m band where it
+  // belongs. Very close in they read as fine texture, which is the correct
+  // failure direction — a real window at cruise IS sub-pixel.
+  //
+  // GLAZING is the second correction. Measured references: UT campus historic
+  // 15-18%, mid-century academic ~20-26%, West Campus student mid-rise 20-28%,
+  // curtain-wall towers 55-70%. The old `md` was 39% and `tw` 43% — the
+  // midpoint of everything, which is why one texture looked wrong on a
+  // limestone hall AND on a glass tower. `tg` now goes UP, the rest come DOWN.
   const GRIDS = {
-    lo: { rows: 2, cols: 3, w: 13, h: 11 },
-    md: { rows: 5, cols: 4, w: 10, h: 8 },
-    tw: { rows: 6, cols: 6, w: 7,  h: 7 },
+    lo: { rows: 3, cols: 4, w: 5,  h: 6,  glaze: 0.088 },  // houses, sheds
+    mr: { rows: 8, cols: 7, w: 5,  h: 5,  glaze: 0.171 },  // 2-3 storey walk-ups, shops
+    mh: { rows: 10, cols: 8, w: 5, h: 4,  glaze: 0.195 },  // 4-7 storey campus halls
+    tr: { rows: 12, cols: 9, w: 4, h: 4,  glaze: 0.211 },  // residential towers
+    tg: { rows: 12, cols: 10, w: 5, h: 4, glaze: 0.586 },  // curtain wall: glass, not punched
     dk: null, // drawn as bands
     st: null, // drawn as piers + spandrel/slot tiers (drawStadium)
   };
@@ -269,13 +296,17 @@
   // share and washed the skyline).
   const OCCUPANCY = {
     lo: [0.14, 0.40],
-    md: [0.12, 0.42],
+    mr: [0.13, 0.42],   // walk-ups and shops: people are home
+    mh: [0.12, 0.40],   // campus halls: partly offices, partly dorms
+    tr: [0.16, 0.46],   // residential towers stay lit latest
+    tg: [0.08, 0.34],   // offices go dark
+    md: [0.12, 0.42],   // kept: parts still classify into it via span
     tw: [0.08, 0.36],
     dk: [0.00, 0.00],  // parking decks have no glazing (drawn as bands)
   };
   // Compresses a family's tone roll into the warm end of WINDOW_TONES.
   // 1.0 = full palette; 0.6 = houses almost never go fluorescent.
-  const TONE_WARM_BIAS = { lo: 0.60, md: 1.00, tw: 1.00, dk: 1.00 };
+  const TONE_WARM_BIAS = { lo: 0.60, mr: 0.85, mh: 1.00, tr: 0.80, tg: 1.00, md: 1.00, tw: 1.00, dk: 1.00 };
   // Parking decks at night: the deck-edge strip takes a cool fluorescent cast
   // and a touch more brightness — garages are the one building type lit cool.
   const DK_EDGE_NIGHT_TINT  = [190, 210, 235];
@@ -332,6 +363,8 @@
    * produce byte-identical values across all 2,453 features, so there is one
    * definition instead of two.
    */
+  const RESIDENTIAL = /apartment|dormitory|residential|hotel|condo/;
+
   function familyFor(props) {
     const cls = props.building_class || '';
     if (/parking|garage|carport/.test(cls)) return 'dk';
@@ -340,9 +373,15 @@
     // loudest wrong note on campus. Class comes from the Overture/OSM bake.
     if (/stadium|arena|sports_centre|grandstand/.test(cls)) return 'st';
     const h = props.final_height || 0;
-    if (h < 5)  return 'lo';
-    if (h >= 26) return 'tw';
-    return 'md';
+    if (h < 5)   return 'lo';
+    if (h < 12)  return 'mr';
+    if (h < 26)  return 'mh';
+    // A residential tower is punched windows with balconies; an office tower is
+    // curtain wall. They were one family, so a student high-rise and a downtown
+    // glass box wore the same texture. Only ~15% of features carry a class, so
+    // class is consulted ONLY where it changes the answer - everything else is
+    // decided by height, which every feature has.
+    return RESIDENTIAL.test(cls) ? 'tr' : 'tg';
   }
 
   // ── quantisation ──────────────────────────────────────────────────
@@ -458,7 +497,7 @@
       let best = 0, bestD = Infinity;
       palette.forEach((k, i) => { const d = dist2(rgb, hexToRgb(k.wd)); if (d < bestD) { bestD = d; best = i; } });
       const span = (p.h || 0) - (p.base || 0);
-      const fam = span >= 26 ? 'tw' : span < 5 ? 'lo' : 'md';
+      const fam = span < 5 ? 'lo' : span < 12 ? 'mr' : span < 26 ? 'mh' : 'tg';
       p.wp = fam + String(best).padStart(2, '0');
       p.wf = fam;
       if (combos.indexOf(p.wp) === -1) combos.push(p.wp);
@@ -777,9 +816,9 @@
     // and between the four rolls each pane makes (lit / tone / bright / hot);
     // the salts are primes far larger than any bucket index so the streams
     // can't collide.
-    const famIdx = fam === 'lo' ? 0 : fam === 'md' ? 1 : fam === 'tw' ? 2 : 3;
+    const famIdx = ['lo','mr','mh','tr','tg','dk','st'].indexOf(fam) + 1;
     const seed = bucketIdx * 4 + famIdx;
-    const occRange = OCCUPANCY[fam] || OCCUPANCY.md;
+    const occRange = OCCUPANCY[fam] || OCCUPANCY.mh;
     const occRoll = hash01(seed + 4001, 0, 0);
     const occupancy = occRange[0] + (occRange[1] - occRange[0]) * occRoll * occRoll;
     const warmBias = TONE_WARM_BIAS[fam] != null ? TONE_WARM_BIAS[fam] : 1;
@@ -787,8 +826,14 @@
     for (let r = 0; r < g.rows; r++) {
       for (let c = 0; c < g.cols; c++) {
         const x = Math.round(c * stepX + offX), y = Math.round(r * stepY + offY);
-        ctx.fillStyle = css(frame);
-        ctx.fillRect(x - 1, y - 1, g.w + 2, g.h + 2);
+        // NO bright rectangle around the opening. A 1 px light frame on all four
+        // sides is the single biggest contributor to the "blocky" read — it
+        // outlines every window like a cell in a spreadsheet, and no real
+        // building has one. Real depth is directional: the head is in shadow,
+        // the sill catches light. Head goes on first so the glass covers its
+        // inner edge; the sill is drawn after the pane, below.
+        ctx.fillStyle = css(mix(wall, [0, 0, 0], 0.30), 0.7 * (1 - dark * 0.6));
+        ctx.fillRect(x, y - 1, g.w, 1);
 
         const roll = hash01(seed, r, c);
         const isLit = night > 0.05 && roll < occupancy;
@@ -806,9 +851,17 @@
         }
         ctx.fillRect(x, y, g.w, g.h);
 
-        // Sill shadow — one pixel of contact under every opening.
+        // Reveal: the jamb the opening is recessed behind, on one side only.
+        // One-sided because the sun is on one side — a symmetric reveal reads
+        // as an outline again, which is what we just removed.
+        if (g.w >= 4) {
+          ctx.fillStyle = css(mix(glass, [0, 0, 0], 0.35), 0.75);
+          ctx.fillRect(x, y, 1, g.h);
+        }
+        // Sill — a lit lip directly under the opening. Sits tight against the
+        // pane (was one pixel clear of it, which read as a detached underline).
         ctx.fillStyle = css(sill, 0.6 * (1 - dark * 0.6));
-        ctx.fillRect(x - 1, y + g.h + 1, g.w + 2, 1);
+        ctx.fillRect(x - 1, y + g.h, g.w + 2, 1);
       }
     }
   }
@@ -895,7 +948,7 @@
         for (const idx of [best - step, best + step]) {
           const fams = have.get(idx);
           if (!fams) continue;
-          pick = fams.get('tw') || fams.get('md') || fams.values().next().value;
+          pick = fams.get('tg') || fams.get('mh') || fams.get('mr') || fams.values().next().value;
           if (pick) break;
         }
       }
@@ -908,6 +961,6 @@
   };
 
   // Fall back to a plain fill where a feature somehow has no pattern.
-  window.FACADE_PATTERN_EXPR = ['coalesce', ['get', 'wp'], 'md00'];
+  window.FACADE_PATTERN_EXPR = ['coalesce', ['get', 'wp'], 'mh00'];
   window.facadePalette = () => palette;
 })();
