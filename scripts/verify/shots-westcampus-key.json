@@ -1,0 +1,5 @@
+[
+  { "name": "castilian", "p": 0.14, "center": [-97.74245, 30.28660], "zoom": 16.75, "pitch": 66, "bearing": 0 },
+  { "name": "dobie",     "p": 0.14, "center": [-97.74117, 30.28250], "zoom": 16.35, "pitch": 65, "bearing": 0 },
+  { "name": "cluster",   "p": 0.14, "center": [-97.74330, 30.28270], "zoom": 15.90, "pitch": 68, "bearing": 0 }
+]

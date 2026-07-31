@@ -1,0 +1,6 @@
+[
+  { "name": "close-castilian", "p": 0.14, "look": [-97.74241, 30.28731], "dist": 130, "zoom": 17.6, "pitch": 62, "bearing": 15 },
+  { "name": "close-cambridge", "p": 0.14, "look": [-97.74041, 30.28077], "dist": 120, "zoom": 17.7, "pitch": 62, "bearing": 255 },
+  { "name": "close-dobie",     "p": 0.14, "look": [-97.74117, 30.28337], "dist": 170, "zoom": 17.3, "pitch": 60, "bearing": 300 },
+  { "name": "close-moontower", "p": 0.16, "look": [-97.74315, 30.28567], "dist": 130, "zoom": 17.6, "pitch": 62, "bearing": 25 }
+]
