@@ -102,7 +102,14 @@ for (const path of files) {
       const h = (hi[1] - lo[1]) * M_PER_DEG_LAT;
       const span = Math.hypot(w, h);
       if (span > maxSpan) { maxSpan = span; maxSpanIdx = i; }
-      if (span > 260) issues.push(`${tag} ring${ri}: spans ${span.toFixed(0)} m (${w.toFixed(0)}x${h.toFixed(0)})`);
+      // 320 m, not 260. Sid Richardson Hall is a genuinely 279 m long building
+      // (98 x 279 m bbox, 7,336 m^2 of real footprint) and its roofscape deck
+      // is the longest legitimate ring in the detailed set. A threshold under
+      // that flags a correct building every run, and a linter that always
+      // prints one known-good complaint is a linter people stop reading.
+      // The SLIVER test below is the one that actually caught the Tower spike;
+      // this is only a backstop for something long AND fat.
+      if (span > 320) issues.push(`${tag} ring${ri}: spans ${span.toFixed(0)} m (${w.toFixed(0)}x${h.toFixed(0)})`);
 
       // 0.02 m^2, not 0.5. The tower's window slots are a real 1.42 x 0.30 m
       // and its clock dials 3.05 x 0.16 m, so a half-square-metre floor flags

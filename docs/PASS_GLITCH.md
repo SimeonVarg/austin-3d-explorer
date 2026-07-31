@@ -303,6 +303,44 @@ are three different bugs that produce an identical screenshot.
 
 ---
 
+## Where the static checks stand now
+
+```
+$ node scripts/verify/dupids.mjs
+COLLISIONS (one id claimed by two or more bakes)         none
+CLAIMED BUT NOT IN THE DETAILED SNAPSHOT                 none
+
+$ node scripts/verify/geomlint.mjs
+tower.geojson                 225 features  clean   (largest ring 118 m)
+westcampus.geojson            145 features  clean   (largest ring 112 m)
+drag.geojson                  101 features  clean   (largest ring 170 m)
+arts.geojson                   79 features  clean   (largest ring 159 m)
+moody.geojson                  17 features  clean   (largest ring 232 m)
+roofscape.geojson            3649 features  clean   (largest ring 296 m)
+roofscape.detail.geojson     8034 features  clean   (largest ring 23 m)
+roofs.geojson                2883 features  clean   (largest ring 193 m)
+
+$ node scripts/verify/coplanar.mjs
+…all clean except roofs.geojson, 51 pairs — defect 9, filed above.
+```
+
+And, as a regression test on the linter itself rather than on the data, the
+pre-fix `tower.geojson` still fails it:
+
+```
+$ node scripts/verify/geomlint.mjs <the old file>
+tower.before.json  225 features  1 ISSUE(S)
+    #12 roof ring0: spans 358 m (39x356)
+```
+
+That check matters because the span threshold had to be *raised* to 320 m: Sid
+Richardson Hall is a genuinely 279 m long building and its roofscape deck was
+being flagged every run. A linter that always prints one known-good complaint is
+a linter people stop reading — but loosening it is only safe if the thing it was
+written to catch still trips it.
+
+---
+
 ## The sweep, after all of it
 
 Twelve poses across the detailed bbox, day / golden / night, `balanced` and
