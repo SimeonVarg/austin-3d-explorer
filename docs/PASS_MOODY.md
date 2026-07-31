@@ -181,10 +181,30 @@ Section 4a is the second question.
 
 | | Result |
 |---|---|
-| Moody roof planes, isolated | 17,358 px, mean luma 208.2 |
-| Dell Med wall, isolated | 366 wall rows, **10 distinct luma levels**, p10 116 → p90 203 |
+| Moody roof planes, isolated | 143,328 px (14.0% of frame), mean luma 142.5 |
+| Moody wall bands, isolated | 148,566 px (14.5%), mean luma 136.4 — **ratio 1.05** |
+| Dell Med wall, isolated | 366 wall rows, **10 distinct luma levels**, p10 120 → p90 203 |
 | Glazing grid | 21.1% against the measured 19.8%; reveal 5.3% against 5.6% |
-| Night | precinct mean luma 182.5 day → **38.5** night, identical 21.0% coverage |
+| Night | precinct mean luma 182.6 day → **38.5** night, identical 21.0% coverage |
+
+**That 1.05 is a defect, and it is reported rather than tuned away.** The roof
+planes go in at luma ~220 and the bronze fascia at 68 — a 3.3× difference in the
+data. From a 55° pitch almost all of both samples is TOP FACES, and this
+renderer lifts a dark top face and pulls down a bright one until they very
+nearly meet. So the dark rim the design intends does not read from directly
+above. It does read from a lower pitch, where the fascia's side face is what you
+see, and that is the pose the matched screenshots use. `moody-check.mjs`
+therefore asserts only that the roof is not *darker* than the wall it caps, and
+prints the ratio.
+
+**These numbers moved between runs before they settled, and that is worth
+recording.** The Moody roof measured 17,358 px at mean luma 208.2 on one run and
+143,328 px at 142.5 on the next, from identical code and an identical pose — the
+first run sampled a bright sliver of a roof that had not finished arriving, and
+208.2 was written into an earlier draft of this table before the second run
+caught it. `settle()` now waits on `areTilesLoaded()` and a feature count rather
+than on `map.loaded()`, which can return true in the gap between a `jumpTo` and
+the tile requests it triggers.
 
 ## 4a. What actually changed on screen — and one claim I had to retract
 
@@ -290,6 +310,13 @@ next time instead of passing quietly.
 
 ## 5. Still missing
 
+- **The dark roof rim does not read from directly above** (§4, ratio 1.05). The
+  oversail is real geometry and it reads at a flying pitch, but a nadir or
+  near-nadir view flattens the bronze fascia and the pale membrane into each
+  other. Fixing it properly means entering the fascia far darker than its
+  material actually is, purely to survive the top-face lift — the same trick
+  `app.js` uses in reverse for the stadium seating. I did not do it, because it
+  needs the A/B at three pitches to get right and would have been a guess.
 - **The visible delta is modest, and the numbers above are the honest size of
   it.** At the distance this camera flies, three buildings out of 2,453 gaining
   a band structure is a detail, not a transformation. The strongest single
