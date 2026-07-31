@@ -412,10 +412,18 @@
   // and leaves a dim tail). First cut used roll² — biased dim — and measurably
   // hollowed the city out: lit-pixel share in a fixed night crop fell from
   // 3.97% to 2.13% and the skyline went sleepy.
-  const PANE_BRIGHT_MIN = 0.40;
+  //
+  // MIN raised 0.40 -> 0.58 by the July 31 night pass. The dim tail was the
+  // half of the scatter you could not see. Measured by night-luma.mjs with the
+  // streetlights hidden, so this is the windows alone: lit window pixels were
+  // 4.5% of a night frame at the campus core and 2.8% at the western edge, with
+  // a MEDIAN lit pane at luma 70-86 — against unlit pale limestone that was the
+  // brightest large surface in the same frame. The floor of the tail is what
+  // moves here; PANE_BRIGHT_MAX is untouched, so nothing new clips.
+  const PANE_BRIGHT_MIN = 0.58;
   const PANE_BRIGHT_MAX = 1.00;
   // A rare "hot pane" much brighter than its neighbours — pushed toward white.
-  const HOT_PANE_RATE  = 0.05;   // fraction of LIT panes
+  const HOT_PANE_RATE  = 0.07;   // fraction of LIT panes (was 0.05)
   const HOT_PANE_BOOST = 0.35;   // extra mix toward white
   // Occupancy range per family, hashed per (family × bucket) into a continuous
   // value — replaces the old `0.14 + (bucketIdx % 5) * 0.06`, which lit
@@ -427,19 +435,46 @@
   // density (the dominant colour buckets sat at the low end of the old
   // formula too; a uniform roll here measured 2× the baseline lit-pixel
   // share and washed the skyline).
+  //
+  // The LOW ends were raised by the July 31 night pass (the high ends move with
+  // them, by the same amount, so the spread per family is unchanged). Because
+  // the roll is squared, the low end is what most buildings actually get:
+  // E[occupancy] = lo + (hi-lo)/3, so raising `lo` by 0.12 moves the typical
+  // building's occupancy by the full 0.12 while a building at the top of its
+  // range barely notices. That is deliberately the shape of the fix — the
+  // complaint is that the ordinary background city is too dark, not that the
+  // liveliest towers are.
+  //
+  // Ceiling on this: the same comment above warns that a uniform (unsquared)
+  // roll measured 2x the baseline lit-pixel share and washed the skyline out.
+  // These land at ~1.5-1.7x the baseline mean occupancy, deliberately under it.
+  // The check that says so is `scripts/verify/night-luma.mjs --baseline`, which
+  // asserts the unlit mass did not rise with the lights. NOT night-silhouette
+  // .mjs: that one locates its roofline with queryRenderedFeatures and finds no
+  // column about two thirds of the time at its own pose (see docs/PASS_NIGHT.md
+  // §4), so a green run from it is not evidence of much.
   const OCCUPANCY = {
-    lo: [0.14, 0.40],
-    mr: [0.13, 0.42],   // walk-ups and shops: people are home
-    mh: [0.12, 0.40],   // campus halls: partly offices, partly dorms
-    tr: [0.16, 0.46],   // residential towers stay lit latest
-    tg: [0.08, 0.34],   // offices go dark
-    md: [0.12, 0.42],   // kept: parts still classify into it via span
-    tw: [0.08, 0.36],
+    lo: [0.22, 0.46],   // houses: warm but sparse, moved least
+    mr: [0.25, 0.54],   // walk-ups and shops: people are home
+    mh: [0.24, 0.52],   // campus halls: partly offices, partly dorms
+    tr: [0.28, 0.58],   // residential towers stay lit latest
+    tg: [0.20, 0.46],   // offices go dark — but not to 8% of panes
+    md: [0.24, 0.54],   // kept: parts still classify into it via span
+    tw: [0.20, 0.48],
     dk: [0.00, 0.00],  // parking decks have no glazing (drawn as bands)
   };
   // Compresses a family's tone roll into the warm end of WINDOW_TONES.
   // 1.0 = full palette; 0.6 = houses almost never go fluorescent.
-  const TONE_WARM_BIAS = { lo: 0.60, mr: 0.85, mh: 1.00, tr: 0.80, tg: 1.00, md: 1.00, tw: 1.00, dk: 1.00 };
+  //
+  // `mh` and `tg` — campus halls and campus offices — were pulled warm by the
+  // July 31 night pass as the facade half of the warm-core/cool-edge read.
+  // Be honest about how weak a lever this is: the atlas is keyed by
+  // (family x colour bucket) and carries NO position, so it cannot do a spatial
+  // gradient at all. It only works here because the campus families happen to
+  // sit in the core and the residential ones (`mr`, `tr`) happen to sit in West
+  // Campus. The gradient that is actually spatial is the streetlights'
+  // (js/night.js, WARM_ANCHOR).
+  const TONE_WARM_BIAS = { lo: 0.60, mr: 0.85, mh: 0.74, tr: 0.80, tg: 0.86, md: 1.00, tw: 1.00, dk: 1.00 };
   // Parking decks at night: the deck-edge strip takes a cool fluorescent cast
   // and a touch more brightness — garages are the one building type lit cool.
   const DK_EDGE_NIGHT_TINT  = [190, 210, 235];

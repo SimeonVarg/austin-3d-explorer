@@ -1,0 +1,7 @@
+[
+ {"name":"core",   "p":0.92, "gfx":"cinematic", "center":[-97.7395,30.2860], "zoom":16.00, "pitch":68, "bearing":200},
+ {"name":"wide",   "p":0.92, "gfx":"cinematic", "center":[-97.7420,30.2850], "zoom":15.20, "pitch":70, "bearing":120},
+ {"name":"street", "p":0.92, "gfx":"cinematic", "center":[-97.7415,30.2865], "zoom":17.00, "pitch":72, "bearing":30},
+ {"name":"west",   "p":0.92, "gfx":"cinematic", "center":[-97.7470,30.2865], "zoom":16.30, "pitch":62, "bearing":100},
+ {"name":"dusk",   "p":0.70, "gfx":"cinematic", "center":[-97.7395,30.2860], "zoom":16.00, "pitch":68, "bearing":200}
+]
