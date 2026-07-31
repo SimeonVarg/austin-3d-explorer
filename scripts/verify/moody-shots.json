@@ -1,0 +1,10 @@
+[
+ {"name":"M1-moody-west",    "p":0.25, "gfx":"cinematic", "center":[-97.731845,30.280934], "zoom":16.6, "pitch":68, "bearing":90},
+ {"name":"M4-moody-golden",  "p":0.50, "gfx":"cinematic", "center":[-97.731845,30.280934], "zoom":16.6, "pitch":68, "bearing":90},
+ {"name":"M5-moody-night",   "p":0.90, "gfx":"cinematic", "center":[-97.731845,30.280934], "zoom":16.6, "pitch":68, "bearing":90},
+
+ {"name":"H1-dellmed-west",  "p":0.25, "gfx":"cinematic", "center":[-97.736067,30.277481], "zoom":16.7, "pitch":68, "bearing":86},
+ {"name":"H4-dellmed-night", "p":0.90, "gfx":"cinematic", "center":[-97.736067,30.277481], "zoom":16.7, "pitch":68, "bearing":86},
+
+ {"name":"P1-precinct-day",  "p":0.28, "gfx":"cinematic", "center":[-97.730400,30.277255], "zoom":15.7, "pitch":70, "bearing":315}
+]
