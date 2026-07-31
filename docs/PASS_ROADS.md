@@ -528,3 +528,33 @@ cd scripts/verify && VERIFY_URL=http://127.0.0.1:8171 node roads-probe.mjs
 - `ground-luma.mjs` — unchanged, and used as-is for the `before` column.
 - `scripts/sample_bike_lane_paint.py` / `sample_speedway_colour.py` — the imagery
   measurements above, re-runnable.
+
+---
+
+## The frames
+
+From the flying camera (`scripts/verify/shots-roads.json`), in `docs/shots/`.
+`before` is a pristine `git archive HEAD` tree served on its own port, so the
+pairs differ only by this branch.
+
+| | before | after |
+|---|---|---|
+| Speedway, looking up the mall, z16.9 | `roads-speedway-along-before.jpg` | `roads-speedway-along-after.jpg` |
+| Speedway from altitude, z15.5 | `roads-speedway-high-before.jpg` | `roads-speedway-high-after.jpg` |
+| Speedway across the corridor, z16.6 | `roads-speedway-across-before.jpg` | `roads-speedway-across-after.jpg` |
+| Speedway close, z18.1 | `roads-speedway-close-before.jpg` | `roads-speedway-close-after.jpg` |
+| Speedway, golden | `roads-speedway-golden-before.jpg` | `roads-speedway-golden-after.jpg` |
+| Speedway, night | `roads-speedway-night-before.jpg` | `roads-speedway-night-after.jpg` |
+| Guadalupe / the Drag, day | `roads-drag-day-before.jpg` | `roads-drag-day-after.jpg` |
+| Guadalupe close (the green lane) | `roads-drag-close-before.jpg` | `roads-drag-close-after.jpg` |
+| Guadalupe, night | `roads-drag-night-before.jpg` | `roads-drag-night-after.jpg` |
+| MLK east, day | `roads-mlk-day-before.jpg` | `roads-mlk-day-after.jpg` |
+| Dean Keeton, day | `roads-deankeeton-day-before.jpg` | `roads-deankeeton-day-after.jpg` |
+| Wide establishing, z14.3 | `roads-wide-day-before.jpg` | `roads-wide-day-after.jpg` |
+| West Campus, day | `roads-westcampus-day-before.jpg` | `roads-westcampus-day-after.jpg` |
+
+Reference imagery and the measurements taken off it are in `research/speedway/`:
+`guadalupe_green_lane_z20.png` (the green ribbon, unmistakable),
+`sanjacinto_track_z20.png` (a protected track that is NOT green),
+`herringbone_candidates.png` (the bond, three scales, tiled 3x3 to prove it
+wraps), `bike_paint.json`, `samples.json`, `centreline_samples.json`.
