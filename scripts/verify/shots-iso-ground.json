@@ -1,0 +1,6 @@
+[
+ {"name":"campus","p":0.14,"center":[-97.7345,30.2855],"zoom":16.4,"pitch":68,"bearing":300},
+ {"name":"creek","p":0.14,"center":[-97.7340,30.2818],"zoom":17.0,"pitch":66,"bearing":10},
+ {"name":"lawns","p":0.14,"center":[-97.7285,30.2860],"zoom":17.0,"pitch":64,"bearing":250},
+ {"name":"pond","p":0.14,"center":[-97.7292,30.2932],"zoom":16.6,"pitch":66,"bearing":180}
+]

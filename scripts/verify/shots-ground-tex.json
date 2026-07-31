@@ -1,0 +1,10 @@
+[
+ {"name":"drag-day","p":0.14,"center":[-97.7418,30.2855],"zoom":16.3,"pitch":70,"bearing":8},
+ {"name":"mlk-day","p":0.14,"center":[-97.7370,30.2810],"zoom":16.1,"pitch":68,"bearing":86},
+ {"name":"westcampus-day","p":0.14,"center":[-97.7455,30.2870],"zoom":16.9,"pitch":70,"bearing":95},
+ {"name":"southmall-day","p":0.14,"center":[-97.7394,30.2842],"zoom":16.55,"pitch":66,"bearing":352},
+ {"name":"drag-golden","p":0.50,"center":[-97.7418,30.2855],"zoom":16.3,"pitch":70,"bearing":8},
+ {"name":"drag-night","p":0.92,"center":[-97.7418,30.2855],"zoom":16.3,"pitch":70,"bearing":8},
+ {"name":"mlk-night","p":0.92,"center":[-97.7370,30.2810],"zoom":16.1,"pitch":68,"bearing":86},
+ {"name":"southmall-night","p":0.92,"center":[-97.7394,30.2842],"zoom":16.55,"pitch":66,"bearing":352}
+]
