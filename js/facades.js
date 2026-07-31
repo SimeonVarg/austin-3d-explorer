@@ -61,14 +61,51 @@
   // curtain-wall towers 55-70%. The old `md` was 39% and `tw` 43% — the
   // midpoint of everything, which is why one texture looked wrong on a
   // limestone hall AND on a glass tower. `tg` now goes UP, the rest come DOWN.
+  // A WALL IS MOSTLY WALL. That is the rule the first cut of these numbers broke
+  // and it is worth stating as a rule, because the failure does not look like
+  // "too much glass" — it looks like scaffolding. Packing the openings closer
+  // together left 1.3 to 3 px of wall between them, and at any real viewing
+  // distance those hairlines fuse: the facade stops reading as punched windows
+  // and starts reading as ribbed metal, or a parking deck with no floors.
+  //
+  // So the constraint is on the GAP, not just the ratio: at least MIN_PIER px of
+  // wall across and MIN_SPANDREL px down, between every pair of openings.
+  //
+  // `want` is the intended glazing fraction, and it is CHECKED against the
+  // geometry at load (see the audit below) rather than trusted. The previous
+  // values carried hand-written comments claiming half the glazing the numbers
+  // actually produced — 17.1% written next to a grid that computes to 34.2% —
+  // and that wrong number was reported as a fix. Arithmetic in a comment is a
+  // claim; arithmetic in code is a fact.
+  const MIN_PIER = 5, MIN_SPANDREL = 3;
   const GRIDS = {
-    lo: { rows: 3, cols: 4, w: 5,  h: 6,  glaze: 0.088 },  // houses, sheds
-    mr: { rows: 8, cols: 7, w: 5,  h: 5,  glaze: 0.171 },  // 2-3 storey walk-ups, shops
-    mh: { rows: 10, cols: 8, w: 5, h: 4,  glaze: 0.195 },  // 4-7 storey campus halls
-    tr: { rows: 12, cols: 9, w: 4, h: 4,  glaze: 0.211 },  // residential towers
-    tg: { rows: 12, cols: 10, w: 5, h: 4, glaze: 0.586 },  // curtain wall: glass, not punched
+    lo: { rows: 2, cols: 3, w: 8, h: 7, want: 0.08 },  // houses, sheds
+    mr: { rows: 6, cols: 5, w: 6, h: 4, want: 0.18 },  // 2-3 storey walk-ups, shops
+    mh: { rows: 8, cols: 5, w: 5, h: 4, want: 0.20 },  // 4-7 storey campus halls
+    tr: { rows: 9, cols: 5, w: 5, h: 4, want: 0.22 },  // residential towers
+    // `curtain` exempts a family from the pier/spandrel minimum: real curtain
+    // wall IS tight glass on thin mullions, so the gap rule that stops punched
+    // facades reading as scaffolding is simply the wrong rule here.
+    tg: { rows: 10, cols: 7, w: 6, h: 5, want: 0.51, curtain: true },
     dk: null, // drawn as bands
     st: null, // drawn as piers + spandrel/slot tiers (drawStadium)
+  };
+
+  // Runtime audit. Cheap, runs once, and turns a silent 2x error into a console
+  // line. Exposed so a verification script can assert on it too.
+  window.facadeGridAudit = function facadeGridAudit() {
+    const rows = [];
+    for (const [fam, g] of Object.entries(GRIDS)) {
+      if (!g) continue;
+      const glaze = (g.rows * g.cols * g.w * g.h) / (TILE * TILE);
+      const pier = TILE / g.cols - g.w, spandrel = TILE / g.rows - g.h;
+      const ok = Math.abs(glaze - g.want) < 0.04 &&
+                 (g.curtain || (pier >= MIN_PIER && spandrel >= MIN_SPANDREL));
+      rows.push({ fam, glaze: +(glaze * 100).toFixed(1), want: +(g.want * 100).toFixed(1),
+                  pierPx: +pier.toFixed(1), spandrelPx: +spandrel.toFixed(1), ok });
+      if (!ok) console.warn('[facades] grid out of spec:', fam, rows[rows.length - 1]);
+    }
+    return rows;
   };
 
   // ── Stadium facade ──────────────────────────────────────────────────
