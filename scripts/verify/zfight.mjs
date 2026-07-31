@@ -151,7 +151,31 @@ async function settle(ms) {
   await page.waitForTimeout(700);
 }
 
-console.log('pose                     moved   flicker   clusters (px @ screen box)');
+/**
+ * Is there actually a city in this frame?
+ *
+ * `map.loaded()` and `idle` both go true on a pose whose sources have not
+ * finished tiling — README, "A cold server will hand you a phantom bug". A
+ * drag-corridor pose in this suite came back with the ground plane, the
+ * building SHADOWS and no extrusions at all, and the loading noise in it
+ * scored as a flicker cluster. A scan of an empty scene is not a clean scene.
+ *
+ * `queryRenderedFeatures` is useless here (it returns 0 for fill-extrusion at a
+ * flying pitch), so count what the source has tiled instead.
+ */
+async function sceneReady() {
+  return page.evaluate(() => {
+    const m = window.__map;
+    const out = {};
+    for (const s of ['austin-buildings', 'austin-roofscape']) {
+      if (!m.getSource(s)) { out[s] = -1; continue; }
+      out[s] = m.isSourceLoaded(s) ? m.querySourceFeatures(s).length : -2;
+    }
+    return out;
+  });
+}
+
+console.log('pose                     tiled   moved   flicker   clusters (px @ screen box)');
 for (const s of SHOTS) {
   // Three poses along a STEADY zoom-in. The step is small enough that no real
   // edge travels more than a pixel or two, and monotonic so that anything that
@@ -168,22 +192,42 @@ for (const s of SHOTS) {
       if (typeof s.p === 'number') window.applyTimeOfDay(m, s.p, true);
     }, { s, k, D });
     await settle(k === 0 ? 4000 : 1800);
+    // Give a cold pose a second chance before believing anything about it.
+    if (k === 0) {
+      let ready = await sceneReady();
+      for (let t = 0; t < 3 && !(ready['austin-buildings'] > 200); t++) {
+        await settle(5000);
+        ready = await sceneReady();
+      }
+      s.__tiled = ready['austin-buildings'];
+    }
     await page.evaluate((k) => window.__zf.grab(k), k);
   }
   const r = await page.evaluate(() => window.__zf.scan(14, 30, 220, 6));
   const pct = ((r.flagged / r.total) * 100).toFixed(3);
+  const cold = !(s.__tiled > 200);
   console.log(
-    s.name.padEnd(24) + (r.movedPct.toFixed(1) + '%').padStart(7) +
+    s.name.padEnd(24) + String(s.__tiled).padStart(7) +
+    (r.movedPct.toFixed(1) + '%').padStart(8) +
     (pct + '%').padStart(9) + '   ' +
-    (r.movedPct < 1
-      ? 'INVALID: the camera barely moved, this result means nothing'
-      : r.clusters.length
-        ? r.clusters.map(c => `${c.n}@[${c.box.join(',')}]`).join('  ')
-        : '(none)')
+    (cold
+      ? 'INVALID: only ' + s.__tiled + ' buildings tiled - the scene had not loaded'
+      : r.movedPct < 1
+        ? 'INVALID: the camera barely moved, this result means nothing'
+        : r.clusters.length
+          ? r.clusters.map(c => `${c.n}@[${c.box.join(',')}]`).join('  ')
+          : '(none)')
   );
+  if (cold) continue;
+  // Write the mask, or DELETE a stale one from an earlier run. Leaving the
+  // previous run's mask on disk when this run found nothing is how a fixed
+  // defect gets re-reported: a stale PNG is indistinguishable from a fresh one,
+  // and this file's own first cut left exactly that behind.
+  const maskPath = path.join(outDir, `${OUT}-${s.name}-flicker.png`);
   if (r.clusters.length) {
-    fs.writeFileSync(path.join(outDir, `${OUT}-${s.name}-flicker.png`),
-                     Buffer.from(r.mask.split(',')[1], 'base64'));
+    fs.writeFileSync(maskPath, Buffer.from(r.mask.split(',')[1], 'base64'));
+  } else {
+    try { fs.unlinkSync(maskPath); } catch (e) { /* nothing to clear */ }
   }
 }
 await browser.close();

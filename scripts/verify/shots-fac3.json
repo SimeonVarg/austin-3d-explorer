@@ -1,0 +1,38 @@
+[
+ {
+  "name": "fac-roof",
+  "p": 0.12,
+  "gfx": "balanced",
+  "center": [
+   -97.74053,
+   30.28636
+  ],
+  "zoom": 17.6,
+  "pitch": 62,
+  "bearing": 135
+ },
+ {
+  "name": "fac-roof-n",
+  "p": 0.12,
+  "gfx": "balanced",
+  "center": [
+   -97.74053,
+   30.28636
+  ],
+  "zoom": 17.6,
+  "pitch": 58,
+  "bearing": 315
+ },
+ {
+  "name": "fac-roof-top",
+  "p": 0.12,
+  "gfx": "balanced",
+  "center": [
+   -97.74053,
+   30.28636
+  ],
+  "zoom": 18,
+  "pitch": 25,
+  "bearing": 0
+ }
+]
