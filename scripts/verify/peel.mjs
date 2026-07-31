@@ -26,7 +26,7 @@
  *   node peel.mjs fac shots-fac.json roofscape roofs-pitched buildings-roof
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -41,7 +41,7 @@ if (!GROUPS.length) {
 const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({
+const browser = await launch(chromium, {
   executablePath: chromePath(), headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
          '--ignore-gpu-blocklist', '--no-sandbox'],
@@ -157,4 +157,4 @@ for (const s of SHOTS) {
   }
 }
 
-await browser.close();
+await browser.__done();

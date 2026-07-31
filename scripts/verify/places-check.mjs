@@ -36,7 +36,7 @@
  * Usage: node places-check.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE as SERVER } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -111,7 +111,7 @@ ok('A', 'every place declares its colour provenance as S or G',
    sourced.size + ' sourced / ' + generative.size + ' generative');
 
 // ── the browser half ────────────────────────────────────────────────────
-const browser = await chromium.launch({
+const browser = await launch(chromium, {
   executablePath: chromePath(), headless: true,
   args: [...GL_ARGS, '--ignore-gpu-blocklist'],
 });
@@ -429,5 +429,5 @@ if (tint.n > 500) {
 console.log('\n' + (fail ? 'FAIL' : 'PASS') + ' — ' + pass + ' ok, ' + fail + ' failed');
 if (errors.length) console.log('CONSOLE ERRORS', errors.slice(0, 10));
 console.log('\nstats', JSON.stringify(live.stats));
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

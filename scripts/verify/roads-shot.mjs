@@ -11,7 +11,7 @@
  *   shotsJson: [{name, p, center:[lng,lat], zoom, pitch, bearing}]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -32,7 +32,7 @@ const SHOTS = process.argv[3]
 const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({
+const browser = await launch(chromium, {
   executablePath: EXE,
   headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
@@ -137,4 +137,4 @@ const diag = await page.evaluate(() => {
 });
 console.log('DIAG', JSON.stringify(diag, null, 1));
 if (errors.length) console.log('ERRORS', errors.slice(0, 12));
-await browser.close();
+await browser.__done();

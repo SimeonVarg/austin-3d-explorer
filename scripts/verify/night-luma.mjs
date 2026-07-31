@@ -61,7 +61,7 @@
  *         VERIFY_URL=http://127.0.0.1:8113 node night-luma.mjs --lamps
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 import fs from 'node:fs';
 
 // The same four poses `night-shots.json` screenshots, so a number here and a
@@ -99,7 +99,7 @@ const BASE_JSON = argv.includes('--baseline') ? argv[argv.indexOf('--baseline') 
 // reported here and A/B'd in the PR rather than asserted as an absolute.
 const AE_CEIL = 0.1585;
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: GL_ARGS });
 // 960x600, not 1440x900. Every number this script reports is a percentage or a
 // percentile, so it is resolution-independent — but the settle is not. Headless
 // swiftshader rasterises in software, so 2.25x fewer pixels is 2.25x less work
@@ -423,5 +423,5 @@ A/B against ${BASE_JSON}
 console.log('');
 
 if (jsonOut) { fs.writeFileSync(jsonOut, JSON.stringify({ p: P, lampGen, results, lamps }, null, 1)); console.log('WROTE ' + jsonOut); }
-await browser.close();
+await browser.__done();
 process.exit(fail ? 1 : 0);

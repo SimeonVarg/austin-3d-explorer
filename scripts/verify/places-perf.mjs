@@ -32,7 +32,7 @@
  * Usage: VERIFY_URL=http://127.0.0.1:8127 node places-perf.mjs [reps]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = parseInt(process.argv[2] || '4', 10);
 const MS = 4200;
@@ -47,7 +47,7 @@ const CONFIGS = { off: { on: false, labels: false },
 // pose the flying camera actually reaches.
 const POSE = { center: [-97.7418, 30.2866], zoom: 16.4, pitch: 71 };
 
-const browser = await chromium.launch({
+const browser = await launch(chromium, {
   executablePath: chromePath(), headless: false,
   args: ['--no-sandbox',
          '--disable-backgrounding-occluded-windows',
@@ -128,4 +128,4 @@ console.log(`  whole pass          ${min('on') - min('off') >= 0 ? '+' : ''}${mi
 console.log('within-config spread: ' +
   Object.keys(results).map(k => k + ' ' + spread(k)).join(', '));
 console.log('If a delta is smaller than the spread there is no result.');
-await browser.close();
+await browser.__done();

@@ -21,7 +21,7 @@
  *          node roads-perf.mjs [reps]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 
 const REPS = parseInt(process.argv[2] || '5', 10);
 const MS = 4200;
@@ -45,7 +45,7 @@ const CONFIGS = {
   after:    { url: SERVER, set: { bike: true, stopBars: true, speedway: true } },
 };
 
-const browser = await chromium.launch({
+const browser = await launch(chromium, {
   executablePath: chromePath(), headless: false,
   args: ['--no-sandbox',
          '--disable-backgrounding-occluded-windows',
@@ -141,4 +141,4 @@ for (const k of ['roadsOnly', 'after']) {
     spread('head') + ', ' + k + ' ' + spread(k) + ')');
 }
 console.log('\nIf a delta is smaller than the within-config spread there is no result.');
-await browser.close();
+await browser.__done();

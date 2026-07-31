@@ -38,7 +38,7 @@
  * Usage: node zfight.mjs <shots.json> [outPrefix]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -47,7 +47,7 @@ const OUT = process.argv[3] || 'zf';
 const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({
+const browser = await launch(chromium, {
   executablePath: chromePath(), headless: true,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
          '--ignore-gpu-blocklist', '--no-sandbox'],
@@ -241,4 +241,4 @@ for (const s of SHOTS) {
     try { fs.unlinkSync(maskPath); } catch (e) { /* nothing to clear */ }
   }
 }
-await browser.close();
+await browser.__done();

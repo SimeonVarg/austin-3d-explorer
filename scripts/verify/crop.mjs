@@ -15,7 +15,7 @@
  * Usage: node crop.mjs <in.png|url> <x> <y> <w> <h> <out.png> [scale=3]
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
 
 const [, , file, X, Y, W, H, out, scaleArg] = process.argv;
@@ -24,7 +24,7 @@ const url = /^https?:/.test(file)
   ? file
   : SERVER + '/' + path.relative(path.resolve('../..'), path.resolve(file)).split(path.sep).join('/');
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
+const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage({ viewport: { width: Math.round(W * S), height: Math.round(H * S) } });
 await page.setContent(
   `<body style="margin:0;background:#000">
@@ -45,5 +45,5 @@ if (await page.title() === 'err') { console.error('could not load', url); proces
 // docs/shots/ is jpg by convention and these are photographs of a render, not
 // line art — a 1.2 MB PNG of a city becomes ~200 KB with nothing visible lost.
 await page.screenshot(/\.jpe?g$/i.test(out) ? { path: out, type: 'jpeg', quality: 88 } : { path: out });
-await browser.close();
+await browser.__done();
 console.log('wrote', out);

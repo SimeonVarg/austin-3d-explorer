@@ -26,14 +26,14 @@
  * Usage: node roads-pattern.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE as SERVER } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE as SERVER, launch } from './chrome.mjs';
 
 // Straight down the middle of the brick corridor, nadir, so the mall runs
 // vertically up the frame and "along" is the image's y axis.
 const CENTRE = [-97.73718, 30.28650];
 const ZOOMS = [15.5, 16.0, 16.5, 17.0, 17.5, 18.0, 18.5];
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: GL_ARGS });
 const page = await browser.newPage({ viewport: { width: 900, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -208,4 +208,4 @@ if (ok.length >= 3) {
   console.log('   inside it keeps its size is settled by looking at the frames instead —');
   console.log('   shots-roads.json renders it at z15.5, z16.9 and z18.1.');
 }
-await browser.close();
+await browser.__done();

@@ -28,7 +28,7 @@
  * end which poses it never got.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, BASE as SERVER } from './chrome.mjs';
+import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -47,7 +47,7 @@ const outDir = path.resolve('shots');
 fs.mkdirSync(outDir, { recursive: true });
 
 async function openSession() {
-  const browser = await chromium.launch({
+  const browser = await launch(chromium, {
     executablePath: chromePath(), headless: true,
     args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
            '--ignore-gpu-blocklist', '--no-sandbox'],
@@ -124,7 +124,7 @@ for (const s of SHOTS) {
       done = true;
     } catch (e) {
       console.log('RETRY', s.name, '-', String(e.message).split(/\r?\n/)[0]);
-      try { await sess.browser.close(); } catch (e2) {}
+      try { await sess.browser.__done(); } catch (e2) {}
       sess = null;
     }
   }

@@ -14,9 +14,9 @@
  * Usage: node roads-probe.mjs
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE as SERVER } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE as SERVER, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: GL_ARGS });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 page.on('console', m => { if (m.type() === 'error') console.log('CONSOLE', m.text()); });
@@ -138,4 +138,4 @@ for (const r of resolved) {
   console.log('  %s offset=%s', ''.padEnd(20), r.offset);
 }
 
-await browser.close();
+await browser.__done();

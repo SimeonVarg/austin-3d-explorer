@@ -8,9 +8,9 @@
  * layer owns it before changing a value.
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: GL_ARGS });
 const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
 page.on('pageerror', e => console.log('PAGEERROR', e.message));
 await page.goto(`${BASE}/_harness.html?intro=0&drift=0`, { waitUntil: 'networkidle', timeout: 60000 });
@@ -60,4 +60,4 @@ console.log('Top flat colours over the near-nadir night ground plane:');
 for (const t of r.top) console.log(`   rgb(${t.rgb.padEnd(12)}) luma ${String(t.luma).padStart(6)}   ${t.share}% of frame`);
 console.log('\nStill-visible non-symbol layers and their painted colour:');
 for (const v of r.visible) console.log(`   ${v.id.padEnd(34)} ${v.type.padEnd(16)} ${JSON.stringify(v.color)}`);
-await browser.close();
+await browser.__done();

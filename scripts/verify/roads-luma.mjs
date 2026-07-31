@@ -25,7 +25,7 @@
  * Usage: node roads-luma.mjs [p ...]      (default: 0.14 0.5 0.92)
  */
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE as SERVER } from './chrome.mjs';
+import { chromePath, GL_ARGS, BASE as SERVER, launch } from './chrome.mjs';
 
 const PS = process.argv.slice(2).length ? process.argv.slice(2).map(Number) : [0.14, 0.5, 0.92];
 
@@ -46,7 +46,7 @@ const KEYS = {
   ground: [255, 255, 0],
 };
 
-const browser = await chromium.launch({ executablePath: chromePath(), headless: true, args: GL_ARGS });
+const browser = await launch(chromium, { executablePath: chromePath(), headless: true, args: GL_ARGS });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));
 
@@ -216,4 +216,4 @@ for (const [label, pose] of [['SOUTH MALL / GUADALUPE', POSE], ['SPEEDWAY / EAST
 }
 console.log('\nGUARD: path-gnd must stay near the pre-pass 42.0 / 47.2 / 21.0 (day/golden/night).');
 console.log('brick-path is the NEW separation: Speedway must not read as another concrete walk.');
-await browser.close();
+await browser.__done();
