@@ -1,0 +1,6 @@
+[
+ {"name":"N1-core",    "p":0.32, "gfx":"cinematic", "center":[-97.73870,30.28640], "zoom":16.90, "pitch":0, "bearing":0},
+ {"name":"N2-west",    "p":0.32, "gfx":"cinematic", "center":[-97.74640,30.28720], "zoom":16.90, "pitch":0, "bearing":0},
+ {"name":"N3-drag",    "p":0.32, "gfx":"cinematic", "center":[-97.74190,30.28530], "zoom":17.10, "pitch":0, "bearing":0},
+ {"name":"N4-athletic","p":0.32, "gfx":"cinematic", "center":[-97.73280,30.28450], "zoom":16.70, "pitch":0, "bearing":0}
+]
