@@ -1,0 +1,8 @@
+[
+ {"name":"D1-campus-core", "p":0.32, "gfx":"cinematic", "center":[-97.73930,30.28580], "zoom":16.30, "pitch":58, "bearing":205},
+ {"name":"D2-athletics",   "p":0.32, "gfx":"cinematic", "center":[-97.73320,30.28380], "zoom":16.20, "pitch":56, "bearing":250},
+ {"name":"D3-west-campus", "p":0.32, "gfx":"cinematic", "center":[-97.74620,30.28720], "zoom":16.30, "pitch":58, "bearing":110},
+ {"name":"D4-the-drag",    "p":0.32, "gfx":"cinematic", "center":[-97.74200,30.28560], "zoom":16.70, "pitch":54, "bearing":20},
+ {"name":"D5-core-nadir",  "p":0.32, "gfx":"cinematic", "center":[-97.73870,30.28620], "zoom":17.10, "pitch":22, "bearing":0},
+ {"name":"D6-wc-nadir",    "p":0.32, "gfx":"cinematic", "center":[-97.74560,30.28640], "zoom":17.10, "pitch":22, "bearing":0}
+]

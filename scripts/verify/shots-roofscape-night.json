@@ -1,0 +1,6 @@
+[
+ {"name":"K1-west-dusk",  "p":0.62, "gfx":"cinematic", "center":[-97.74620,30.28720], "zoom":16.30, "pitch":58, "bearing":110},
+ {"name":"K2-west-night", "p":0.90, "gfx":"cinematic", "center":[-97.74620,30.28720], "zoom":16.30, "pitch":58, "bearing":110},
+ {"name":"K3-core-night", "p":0.90, "gfx":"cinematic", "center":[-97.73930,30.28580], "zoom":16.30, "pitch":58, "bearing":205},
+ {"name":"K4-west-morn",  "p":0.08, "gfx":"cinematic", "center":[-97.74620,30.28720], "zoom":16.30, "pitch":58, "bearing":110}
+]
