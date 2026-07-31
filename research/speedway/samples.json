@@ -1,0 +1,167 @@
+{
+  "zoom": 20,
+  "m_per_px": 0.1289,
+  "tiles_ok": 400,
+  "source": "Esri World Imagery (ArcGIS Online), nadir",
+  "samples": {
+    "speedway_brick_n": {
+      "lonlat": [
+        -97.737,
+        30.2879
+      ],
+      "px": [
+        2394,
+        961
+      ],
+      "radius_px": 23,
+      "n": 1653,
+      "mean_hex": "#b7a186",
+      "mean_rgb": [
+        183,
+        161,
+        134
+      ],
+      "luma": 163.7,
+      "modal_hexes": [
+        "#e1c4a2",
+        "#ddc09e",
+        "#e4c7a5",
+        "#dec19f",
+        "#d2b99b"
+      ]
+    },
+    "speedway_brick_m": {
+      "lonlat": [
+        -97.73718,
+        30.2865
+      ],
+      "px": [
+        2260,
+        2170
+      ],
+      "radius_px": 23,
+      "n": 1653,
+      "mean_hex": "#71745e",
+      "mean_rgb": [
+        113,
+        116,
+        94
+      ],
+      "luma": 113.8,
+      "modal_hexes": [
+        "#777b64",
+        "#9a9f7f",
+        "#b5b998",
+        "#262827",
+        "#6a6e57"
+      ]
+    },
+    "speedway_brick_s": {
+      "lonlat": [
+        -97.7373,
+        30.2851
+      ],
+      "px": [
+        2170,
+        3379
+      ],
+      "radius_px": 23,
+      "n": 1653,
+      "mean_hex": "#505244",
+      "mean_rgb": [
+        80,
+        82,
+        68
+      ],
+      "luma": 80.6,
+      "modal_hexes": [
+        "#6c745f",
+        "#5f6156",
+        "#50534a",
+        "#1a1819",
+        "#525544"
+      ]
+    },
+    "speedway_south_tagged_asphalt": {
+      "lonlat": [
+        -97.73745,
+        30.2838
+      ],
+      "px": [
+        2059,
+        4502
+      ],
+      "radius_px": 23,
+      "n": 1653,
+      "mean_hex": "#6b6e55",
+      "mean_rgb": [
+        107,
+        110,
+        85
+      ],
+      "luma": 107.6,
+      "modal_hexes": [
+        "#707557",
+        "#6e7458",
+        "#575a45",
+        "#636852",
+        "#6b7059"
+      ]
+    },
+    "speedway_south_tagged_asphalt2": {
+      "lonlat": [
+        -97.73755,
+        30.2828
+      ],
+      "px": [
+        1984,
+        5365
+      ],
+      "radius_px": 23,
+      "n": 1653,
+      "mean_hex": "#a7997b",
+      "mean_rgb": [
+        167,
+        153,
+        123
+      ],
+      "luma": 153.8,
+      "modal_hexes": [
+        "#e1c498",
+        "#e4c79b",
+        "#e5c89c",
+        "#e0c397",
+        "#e9ca9e"
+      ]
+    },
+    "sanjacinto_asphalt": {
+      "error": "outside mosaic"
+    },
+    "eastmall_paving": {
+      "lonlat": [
+        -97.7383,
+        30.2864
+      ],
+      "px": [
+        1425,
+        2257
+      ],
+      "radius_px": 23,
+      "n": 1653,
+      "mean_hex": "#48493b",
+      "mean_rgb": [
+        72,
+        73,
+        59
+      ],
+      "luma": 71.8,
+      "modal_hexes": [
+        "#1c1b16",
+        "#575944",
+        "#61604c",
+        "#4d513a",
+        "#656759"
+      ]
+    }
+  }
+}

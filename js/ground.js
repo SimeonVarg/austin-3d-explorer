@@ -37,17 +37,11 @@
     kerbLight: 0.10,        // how much the path edge lightens (fake bevel)
 
     // ── Roads ─────────────────────────────────────────────────────────
+    // Roads now come from data/roads.geojson — real OSM, with a real lane
+    // count where OSM has one. See the roads section further down for why the
+    // basemap's vector tiles could not carry this pass.
     roads: true,            // false = hand the roads back to the basemap
     roadWidthScale: 1.0,
-    // Metres of pavement, edge to edge, by OpenMapTiles `class`. GENERATIVE:
-    // the tiles carry no width and no lane count, so these are the honest
-    // typical section for each class in Austin, not a measurement.
-    roadWidth: {
-      motorway: 30, trunk: 24, primary: 20, secondary: 16,
-      tertiary: 12.5, minor: 9.5, service: 5.5,
-    },
-    roadLinkWidth: 8.5,     // ramps (`ramp` = 1) are one lane plus shoulders
-    roadFallbackWidth: 9,
     roadCasingScale: 1.16,  // kerb + gutter, as a multiple of the pavement
     roadCasingDark: 0.38,   // how much darker than the asphalt the kerb reads
     roadMinZoom: 12.6,
@@ -61,6 +55,11 @@
     laneClasses: ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'],
     laneMinZoom: 15.3,
     laneWidthFrac: 0.035,   // of the road width, so dashes stay metre-true
+    // OVER-SCALE, DECLARED. A US lane line is 4 in (0.10 m) wide. The camera
+    // flies at 200–900 m, where one pixel is ~0.5 m, so a true-scale lane line
+    // is a fifth of a pixel and does not exist. laneMinPx holds it at ~1.1 px,
+    // i.e. it is drawn about 5x over-scale, and the low opacity below is what
+    // keeps that from reading as a kerb.
     laneMinPx: 1.1,
     // In line-width units, so constant in METRES. 1:3 on:off, which is the real
     // US ratio (10 ft line, 30 ft gap). The first pass ran 2.6:3.6 at width
@@ -71,6 +70,62 @@
     laneCool: '#c6c2b6',    // lane divider on a oneway carriageway
     laneOpacity: 0.42,
     laneNightFade: 0.5,     // markings still catch headlights, just dimmer
+
+    // ── Bike lanes ────────────────────────────────────────────────────
+    // Drawn ONLY where OSM says a lane physically exists: cycleway /
+    // cycleway:left / cycleway:right / cycleway:both in {lane, track,
+    // opposite_lane, opposite_track, shoulder}. A `shared_lane` is a sharrow
+    // stencilled on a shared travel lane and gets NOTHING; `separate` is mapped
+    // as its own way and would otherwise be drawn twice. The rule lives in
+    // scripts/bake_ground.py (CYCLE_KIND) and the data carries the verdict.
+    //
+    // A 6 ft bike lane is 1.8 m, which is 3.6 px at the flying camera's ~0.5 m
+    // per pixel. Unlike a lane stripe, this is TRUE SCALE — a bike lane is one
+    // of the few road markings large enough to draw honestly from up here.
+    bike: true,
+    bikeWidth: 1.8,
+    bikeMinZoom: 14.4,
+    bikeOpacity: 0.95,
+    bikeMinPx: 1.0,         // never let it vanish entirely on the way up
+    // MEASURED, not assumed. scripts/sample_bike_lane_paint.py sweeps z20 nadir
+    // imagery across every tagged lane in the core and scores green paint as
+    // (G−R > 5 AND R−B < 12). Result: 301 m of Guadalupe's west-side protected
+    // track comes back 37–52% green against a 0–2% carriageway background, and
+    // NOTHING else in the modelled area clears 35%. So green is painted on
+    // three OSM ways and nowhere else. Painting the network green would have
+    // been wrong; painting none of it would have missed the one real one.
+    bikeGreenFromData: true,
+
+    // ── Stop bars ─────────────────────────────────────────────────────
+    // OVER-SCALE, DECLARED. A real stop bar is 12–24 in (0.3–0.6 m) deep and
+    // spans one direction of travel. The LENGTH here is true — half the
+    // carriageway, from the data's own width. The DEPTH is drawn at 1.6 m,
+    // roughly 3x over-scale, because 0.5 m is one pixel and one pixel of
+    // anti-aliased white at 60° of pitch is nothing.
+    stopBars: true,
+    stopBarDepth: 1.6,
+    stopBarMinZoom: 15.4,
+    stopBarOpacity: 0.5,
+    stopBarColor: '#cdc9bd',
+
+    // ── Speedway Mall ─────────────────────────────────────────────────
+    // A 30 ft golden sand-molded brick corridor in a HERRINGBONE bond, laid at
+    // 45° to the corridor because it carries emergency vehicles (PWP Landscape
+    // Architecture's project record for the Speedway Corridor). The brick
+    // colour is sampled off nadir imagery, not guessed — see SURF.brickpave.
+    //
+    // OVER-SCALE, DECLARED. A paver is 8 x 4 in (0.203 x 0.102 m). Drawn at
+    // true scale the whole weave is a tenth of a pixel from the flying camera.
+    // The tile below puts 2 herringbone cells across the 9.1 m corridor, which
+    // makes a "brick" 1.61 x 0.80 m — 7.9x over-scale — and 1.6 px wide at
+    // 400 m. That is the smallest thing that can read at all, and it is what
+    // makes Speedway read as laid units rather than as another grey ribbon.
+    speedway: true,
+    speedwayTile: 128,      // px; line-pattern stretches this ACROSS the line
+    speedwayCells: 2,       // herringbone cells across the corridor
+    speedwayAngle: 45,      // degrees to the corridor axis
+    speedwayOpacity: 0.72,
+    speedwayNightFade: 0.45,
 
     // ── Texture ───────────────────────────────────────────────────────
     // MEASURED (scripts/verify/pattern-scale.mjs): fill-pattern is anchored in
@@ -105,12 +160,16 @@
   };
   window.GROUND = GROUND;
 
-  const SRC = 'austin-ground';
+  const SRC = 'austin-ground', RSRC = 'austin-roads';
   const AREA = 'ground-areas', TEX = 'ground-texture', BASE_TEX = 'ground-base-texture';
   const ROAD_CASE = 'ground-road-casing', ROAD = 'ground-road', LANE = 'ground-road-lane';
+  const BIKE_L = 'ground-bike-left', BIKE_R = 'ground-bike-right';
+  const CYCLE = 'ground-cycleway', STOPBAR = 'ground-stopbar';
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
+  const SPEEDWAY = 'ground-speedway-brick';
   const TEX_IMG = { grass: 'gnd-tex-grass', asphalt: 'gnd-tex-asphalt',
                     water: 'gnd-tex-water', paving: 'gnd-tex-paving' };
+  const HERRING_IMG = 'gnd-tex-herringbone';
 
   // ── Surface palettes, per hour ──────────────────────────────────────
   // Chosen against the protected palette: terracotta roofs over tan/olive
@@ -128,23 +187,48 @@
     // measured gap between a road and a footpath was 6.2 luma by day and 0.4
     // luma at night, which is why a six-lane arterial and a 2 m walkway were
     // the same object. Keep asphalt at least 60 luma below `concrete`.
+    //
+    // The five entries after `endzone` are this pass's:
+    //
+    // `roadconcrete` — a concrete CARRIAGEWAY, which is a real thing here: East
+    //   MLK is tagged surface=concrete for most of its length. It sits between
+    //   asphalt and a footpath, never near either.
+    // `brickpave`    — Speedway Mall. SAMPLED, not chosen: nadir imagery over
+    //   the corridor gives sunlit brick rgb(200,176,142), a chroma ratio of
+    //   1 : 0.880 : 0.710, against an asphalt control of 1 : 0.96 : 0.85 in the
+    //   same frame. That ratio is what is reproduced here; the lightness is
+    //   raised to the palette's own pale-paving band, because this palette is
+    //   stylised and the aerial is hazy. scripts/sample_speedway_colour.py.
+    // `bikelane` / `biketrack` — a painted lane and a protected track. Both are
+    //   asphalt, lifted slightly: a bike lane sits outside the wheel tracks so
+    //   it never gets the polish, and that IS how it reads from above.
+    // `bikegreen`    — MEASURED off the Guadalupe protected lane, rgb(158,168,151)
+    //   in the aerial, scaled by the 0.73 the palette applies to that image's
+    //   asphalt so it lands in the same relationship here. Used on 301 m of one
+    //   street and nowhere else — see GROUND.bikeGreenFromData.
     day: {
       limestone:'#efe6cf', concrete:'#dfd9cb', paving:'#e6ddc9', brick:'#9a6249',
       asphalt:'#5e6165', gravel:'#c9bfa9', dirt:'#a28b6c', sand:'#e2d2ab',
       grass:'#8fa869', turf:'#4f7a3c', wood:'#5d7a48', water:'#8fbccd',
       track:'#a8503c', endzone:'#bf5700',
+      roadconcrete:'#7c7d78', brickpave:'#e9cca4',
+      bikelane:'#6d7075', biketrack:'#7a7d80', bikegreen:'#737b6e',
     },
     golden: {
       limestone:'#f4e0b8', concrete:'#e3cba6', paving:'#ecd6ac', brick:'#8f5439',
       asphalt:'#655d5a', gravel:'#cdb28d', dirt:'#a37f5b', sand:'#e7cb9c',
       grass:'#8a9457', turf:'#4a6b36', wood:'#5a6a3c', water:'#c9a184',
       track:'#a5482f', endzone:'#b04e00',
+      roadconcrete:'#857c72', brickpave:'#eec69b',
+      bikelane:'#75706c', biketrack:'#827c76', bikegreen:'#7a7a66',
     },
     night: {
       limestone:'#1b1e28', concrete:'#181b24', paving:'#1a1d26',
       brick:'#1d1720', asphalt:'#0d1017', gravel:'#1b1a22', dirt:'#191620',
       sand:'#201d26', grass:'#111a14', turf:'#0d1710', wood:'#0c130f',
       water:'#070f1e', track:'#1d1418', endzone:'#2a1608',
+      roadconcrete:'#14161c', brickpave:'#241d1f',
+      bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
     },
   };
   const KEYS = Object.keys(SURF.day);
@@ -156,6 +240,8 @@
   const TEX_FAMILY = {
     grass: 'grass', turf: 'grass', wood: 'grass', endzone: 'grass',
     asphalt: 'asphalt', track: 'asphalt',
+    roadconcrete: 'asphalt', bikelane: 'asphalt', biketrack: 'asphalt',
+    bikegreen: 'asphalt', brickpave: 'paving',
     water: 'water',
   };
 
@@ -244,69 +330,69 @@
 
   // ── Roads ───────────────────────────────────────────────────────────
   //
-  // Roads are NOT in data/ground.geojson: bake_ground.py reads footways,
-  // plazas, landuse, water, sport and parking, and nothing drivable. Every road
-  // in the frame was the Liberty basemap's own `transportation` lines, kept by
+  // Roads were the Liberty basemap's own `transportation` lines, kept by
   // cleanupBasemap and painted from the `road`/`roadCasing` entries in
   // timeofday.js — a pale warm cream, ONE width for every class. Measured, that
   // put a six-lane arterial 6.2 luma from a 2 m campus footpath by day and 0.4
-  // luma from it at night. They were the same object.
+  // luma from it at night. They were the same object. The previous pass fixed
+  // the TONE by taking those layers over and redrawing them off the same vector
+  // tiles with a width per OpenMapTiles `class`.
   //
-  // Fixing it inside timeofday.js was not enough even in principle: styleRoad
-  // writes one width expression across every kept layer, so a motorway and a
-  // residential street cannot differ, and the layer ids come from whatever
-  // version of the basemap style loads. So this takes the roads over: the
-  // basemap's road lines are hidden and redrawn here off the same vector tiles,
-  // with width by class and the asphalt tone from the palette above. Set
-  // GROUND.roads = false to hand them straight back.
-  const ROAD_CLASSES = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'minor', 'service'];
+  // This pass takes the DATA over too, because the tiles cannot carry the rest
+  // of the job. The `transportation` source-layer holds `class`, `subclass`,
+  // `oneway`, `ramp` and `brunnel`, and that is all. It has:
+  //
+  //   no `lanes`      -> every width was a guess per class, so a 2-lane
+  //                      San Jacinto and a 5-lane MLK were both "secondary"
+  //   no cycleway tag -> a bike lane could not exist even in principle
+  //   no `name`       -> Speedway could not be told from anything
+  //   no `surface`    -> East MLK's concrete carriageway could not be drawn
+  //
+  // So the geometry now comes from data/roads.geojson (scripts/fetch_roads.py
+  // -> scripts/bake_ground.py), baked over the OUTER-RING bbox, which is about
+  // what the camera can see from 900 m. The basemap's road lines stay hidden.
+  // Set GROUND.roads = false to hand them straight back.
   let _hiddenBasemapRoads = [];
 
-  /** The vector source the basemap tiles come from, whatever it is called. */
-  function vectorSourceId(map) {
-    const s = map.getStyle().sources;
-    return Object.keys(s).find(id => s[id].type === 'vector');
-  }
+  const ROAD_FILTER = ['==', ['get', 'k'], 'road'];
+  const CYCLE_FILTER = ['==', ['get', 'k'], 'cycle'];
+  const STOPBAR_FILTER = ['==', ['get', 'k'], 'stopbar'];
 
-  /** Metres of pavement for this feature. */
-  function roadMetres() {
-    const m = ['match', ['get', 'class']];
-    for (const k of ROAD_CLASSES) m.push(k, GROUND.roadWidth[k]);
-    m.push(GROUND.roadFallbackWidth);
-    return ['case', ['==', ['get', 'ramp'], 1], GROUND.roadLinkWidth, m];
-  }
+  /** Metres of pavement, straight off the feature. */
   function roadWidthExpr(scale) {
-    const m = roadMetres();
     return ['interpolate', ['exponential', 2], ['zoom'],
-      13, ['*', m, PX_AT(13) * scale],
-      21, ['*', m, PX_AT(21) * scale]];
+      13, ['*', ['get', 'w'], PX_AT(13) * scale],
+      21, ['*', ['get', 'w'], PX_AT(21) * scale]];
   }
-  const ROAD_FILTER = ['all',
-    ['==', ['geometry-type'], 'LineString'],
-    ['match', ['get', 'class'], ROAD_CLASSES, true, false],
-    ['!=', ['get', 'brunnel'], 'tunnel'],
-  ];
   /**
-   * Alleys and driveways (`service`, 246 of them over campus) are real and they
-   * are what breaks a West Campus block up — but at altitude 246 extra hairlines
-   * read as noise, so they arrive on a zoom fade. Written as stop VALUES of a
-   * top-level zoom interpolate because ['zoom'] is only legal there.
+   * Alleys, driveways and parking aisles are real and they are what breaks a
+   * West Campus block up — but at altitude thousands of extra hairlines read as
+   * noise, so they arrive on a zoom fade. Written as stop VALUES of a top-level
+   * zoom interpolate because ['zoom'] is only legal there.
    */
   function roadOpacityExpr(base) {
-    const isService = ['==', ['get', 'class'], 'service'];
+    const isService = ['==', ['get', 'c'], 'service'];
     return ['interpolate', ['linear'], ['zoom'],
       GROUND.roadServiceFade[0], ['case', isService, 0, base],
       GROUND.roadServiceFade[1], base];
   }
+  /** The carriageway's own surface: asphalt unless OSM says concrete. */
+  function roadColorExpr(pal) {
+    return ['match', ['get', 's'],
+      'roadconcrete', pal.roadconcrete,
+      'paving', pal.paving,
+      'gravel', pal.gravel,
+      'dirt', pal.dirt,
+      pal.asphalt];
+  }
   const LANE_FILTER = () => ['all',
-    ['==', ['geometry-type'], 'LineString'],
-    ['match', ['get', 'class'], GROUND.laneClasses, true, false],
-    ['!=', ['get', 'ramp'], 1],
-    ['!=', ['get', 'brunnel'], 'tunnel'],
+    ROAD_FILTER,
+    ['match', ['get', 'c'], GROUND.laneClasses, true, false],
+    ['!=', ['get', 'lk'], 1],
   ];
   /** Constant in metres where it can be, with a floor so it never disappears. */
   function laneWidthExpr() {
-    const m = ['*', roadMetres(), GROUND.laneWidthFrac];
+    const m = ['*', ['get', 'w'], GROUND.laneWidthFrac];
     return ['interpolate', ['exponential', 2], ['zoom'],
       GROUND.laneMinZoom, GROUND.laneMinPx,
       17, ['max', GROUND.laneMinPx, ['*', m, PX_AT(17)]],
@@ -317,8 +403,55 @@
     const n = nightAmt(p);
     const dim = c => lerpHex(c, '#0a0c12', n * GROUND.laneNightFade);
     return ['case',
-      ['any', ['==', ['get', 'oneway'], 1], ['==', ['get', 'oneway'], -1]],
+      ['any', ['==', ['get', 'ow'], 1], ['==', ['get', 'ow'], -1]],
       dim(GROUND.laneCool), dim(GROUND.laneWarm)];
+  }
+
+  // ── Bike lanes ──────────────────────────────────────────────────────
+  //
+  // One layer per side, offset from the road centreline. `line-offset` is
+  // positive to the RIGHT of the line's direction, which is exactly OSM's own
+  // left/right convention, so the two agree without a sign fudge.
+  //
+  // The lane occupies the outer 1.8 m of the pavement, and `w` already INCLUDES
+  // it (bake_ground.py adds BIKE_M per tagged side), so its centre sits at
+  // w/2 − 0.9 m. That is why a "2 lane" street with lanes both sides comes out
+  // 12.0 m and not 8.4 m, and it is why the lane lands on the pavement instead
+  // of in the gutter.
+  const bikeOffsetM = () => ['-', ['/', ['get', 'w'], 2], GROUND.bikeWidth / 2];
+  function bikeOffsetExpr(sign) {
+    const m = ['*', bikeOffsetM(), sign];
+    return ['interpolate', ['exponential', 2], ['zoom'],
+      13, ['*', m, PX_AT(13)],
+      21, ['*', m, PX_AT(21)]];
+  }
+  function bikeWidthExpr() {
+    return ['interpolate', ['exponential', 2], ['zoom'],
+      13, ['max', GROUND.bikeMinPx, GROUND.bikeWidth * PX_AT(13)],
+      17, ['max', GROUND.bikeMinPx, GROUND.bikeWidth * PX_AT(17)],
+      21, GROUND.bikeWidth * PX_AT(21)];
+  }
+  /**
+   * `gp` is set by the bake ONLY on ways where green paint was measured in
+   * nadir imagery. `bl`/`br` are 1 for a painted lane and 2 for a protected
+   * track. Nothing else reaches this expression, because the bake dropped
+   * `shared_lane`, `share_busway`, `separate` and `no` before writing the file.
+   */
+  function bikeColorExpr(pal, sideKey) {
+    const green = GROUND.bikeGreenFromData
+      ? [['==', ['get', 'gp'], 1], pal.bikegreen] : [];
+    return ['case',
+      ...green,
+      ['==', ['get', sideKey], 2], pal.biketrack,
+      pal.bikelane];
+  }
+  const bikeFilter = sideKey => ['all', ROAD_FILTER, ['>', ['get', sideKey], 0]];
+
+  /** Stop-bar depth, over-scale, with a floor. See GROUND.stopBarDepth. */
+  function stopBarWidthExpr() {
+    return ['interpolate', ['exponential', 2], ['zoom'],
+      GROUND.stopBarMinZoom, Math.max(1, GROUND.stopBarDepth * PX_AT(GROUND.stopBarMinZoom)),
+      21, GROUND.stopBarDepth * PX_AT(21)];
   }
 
   // ── Texture tiles ───────────────────────────────────────────────────
@@ -424,11 +557,104 @@
     return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
   }
 
+  /**
+   * The Speedway Mall herringbone, as pure ALPHA — dark joints, per-brick
+   * lightness jitter, no colour. Same reason as the four tiles above: colour
+   * inside an image means redrawing it on every time-of-day tick.
+   *
+   * THE PATTERN. A herringbone is the two-brick L-pair {H at (0,0) size 2W x W,
+   * V at (2W,0) size W x 2W} repeated on a lattice. Brute-forcing which lattice
+   * actually tiles (see the note in docs/PASS_ROADS.md) gives generators
+   * (W, −W) and (4W, 0), whose axis-aligned period is exactly 4W x 4W — and the
+   * first thing this got wrong was a four-brick cell that produced a PINWHEEL,
+   * which was obvious the moment it was rendered and looked at, and invisible
+   * on paper.
+   *
+   * Rotated 45° to the corridor (the real bond, chosen because Speedway carries
+   * emergency vehicles), the smallest axis-aligned period becomes 4W·√2. So the
+   * tile is drawn oversized, rotated, and cropped to a window whose side is an
+   * exact whole number of those periods — which is what makes it wrap.
+   *
+   * The per-brick jitter is hashed on the brick's position MODULO the tile, not
+   * on its lattice index. Hash the index and the brick clipped by the right
+   * edge gets a different tone from the one that continues at the left edge,
+   * and the tile seams show as a grid the instant it is laid down a 700 m
+   * corridor.
+   */
+  function drawHerringbone(T, cells, angDeg) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = T;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.clearRect(0, 0, T, T);
+
+    const a = angDeg * Math.PI / 180;
+    const period = 4 * (angDeg ? Math.SQRT2 : 1);     // in units of W
+    const W = T / (cells * period);
+    const JOINT = Math.max(0.9, W * 0.09);
+    const ca = Math.cos(a), sa = Math.sin(a), c = T / 2;
+
+    // Deterministic hash of a wrapped pixel position -> [0,1).
+    const h01 = (x, y) => {
+      const xi = ((Math.round(x) % T) + T) % T, yi = ((Math.round(y) % T) + T) % T;
+      let s = (xi * 73856093) ^ (yi * 19349663);
+      s = (s ^ (s >>> 13)) >>> 0;
+      return ((s * 1274126177) >>> 0) / 4294967296;
+    };
+
+    ctx.fillStyle = 'rgba(0,0,0,0.42)';               // the mortar joint
+    ctx.fillRect(0, 0, T, T);
+
+    // Lattice space -> tile space, once. Brick coordinates below are centred on
+    // the origin, so this is translate-then-rotate and nothing else; an extra
+    // translate(-c,-c) here silently shifts every brick by half a tile and the
+    // pattern stops wrapping.
+    ctx.translate(c, c);
+    ctx.rotate(a);
+
+    const PAIR = [[0, 0, 2, 1], [2, 0, 1, 2]];
+    const reach = Math.ceil(T / W) + 4;
+    for (let i = -reach; i <= reach; i++) {
+      for (let j = -Math.ceil(reach / 4) - 2; j <= Math.ceil(reach / 4) + 2; j++) {
+        const ox = (i + 4 * j) * W, oy = -i * W;
+        for (const [bx, by, bw, bh] of PAIR) {
+          const x0 = ox + bx * W, y0 = oy + by * W;
+          const cx = x0 + bw * W / 2, cy = y0 + bh * W / 2;
+          const px = c + cx * ca - cy * sa, py = c + cx * sa + cy * ca;
+          if (px < -2 * W || px > T + 2 * W || py < -2 * W || py > T + 2 * W) continue;
+          const t = h01(px, py);
+          // Brick faces: mostly light, a scatter of darker ones. A real
+          // sand-molded brick field is never one tone, and this is the only
+          // thing in the tile that survives being 1.6 px wide at 400 m.
+          const v = t < 0.30 ? -(0.05 + t * 0.25) : (0.03 + (t - 0.30) * 0.22);
+          const fx = x0 + JOINT / 2, fy = y0 + JOINT / 2;
+          const fw = bw * W - JOINT, fh = bh * W - JOINT;
+          // Clear the joint back out of the brick's face, then lay the face on.
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.fillStyle = '#000';
+          ctx.fillRect(fx, fy, fw, fh);
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = v < 0 ? `rgba(0,0,0,${(-v).toFixed(3)})`
+                                : `rgba(255,255,255,${v.toFixed(3)})`;
+          ctx.fillRect(fx, fy, fw, fh);
+        }
+      }
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const d = ctx.getImageData(0, 0, T, T);
+    return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
+  }
+
   function initTextures(map) {
     const T = GROUND.texTile;
     for (const [family, id] of Object.entries(TEX_IMG)) {
       if (map.hasImage && map.hasImage(id)) continue;
       try { map.addImage(id, drawTexture(family, T)); } catch (e) {}
+    }
+    if (GROUND.speedway && !(map.hasImage && map.hasImage(HERRING_IMG))) {
+      try {
+        map.addImage(HERRING_IMG, drawHerringbone(
+          GROUND.speedwayTile, GROUND.speedwayCells, GROUND.speedwayAngle));
+      } catch (e) {}
     }
   }
   /** ['match', ['get','s'], …, imageName] — one tile per surface family. */
@@ -458,6 +684,11 @@
     return +(GROUND.texOpacity * GROUND.texStrength.paving * GROUND.texGroundOpacity *
              (1 - n * (1 - GROUND.texNightFade))).toFixed(3);
   }
+  /** The brick weave keeps more of itself after dark than the ground grain. */
+  function speedwayTexOpacity(p) {
+    const n = nightAmt(p);
+    return +(GROUND.speedwayOpacity * (1 - n * (1 - GROUND.speedwayNightFade))).toFixed(3);
+  }
 
   window.initGround = function initGround(map) {
     if (!GROUND.on || map.getSource(SRC)) return;
@@ -465,6 +696,14 @@
     // ['id'] is null for every feature and 4,900 areas stay 14 exact hexes.
     // Nothing in the app puts feature-state on this source, so it is free.
     map.addSource(SRC, { type: 'geojson', data: 'data/ground.geojson', generateId: true });
+    // Roads are their own source: they come from a different bbox (the outer
+    // ring, so arterials do not end in mid-frame), they want a lower minzoom
+    // than the ground fill, and keeping them separate means GROUND.roads=false
+    // costs nothing at all rather than filtering 11,000 features out of a
+    // source the fill layers also read.
+    if (GROUND.roads && !map.getSource(RSRC)) {
+      map.addSource(RSRC, { type: 'geojson', data: 'data/roads.geojson' });
+    }
 
     // Under everything of ours: the buildings' contact shadows and extrusions
     // must sit ON the ground, not under it.
@@ -549,43 +788,99 @@
         },
       }, under);
     }
+
+    // The herringbone rides ON TOP of the Speedway path's own brick colour, so
+    // the image can stay colourless and time of day stays one setPaintProperty.
+    // `line-pattern` is the only pattern property that suits a corridor: it is
+    // stretched ACROSS the line and repeated ALONG it, so unlike fill-pattern it
+    // does not reset at every integer zoom. Measured in roads-pattern.mjs.
+    if (GROUND.texture && GROUND.speedway && !map.getLayer(SPEEDWAY)) {
+      map.addLayer({
+        id: SPEEDWAY, type: 'line', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['all', ['==', ['get', 'k'], 'path'],
+                        ['==', ['get', 's'], 'brickpave']],
+        layout: { 'line-join': 'round', 'line-cap': 'butt' },
+        paint: {
+          'line-pattern': HERRING_IMG,
+          'line-width': widthExpr(GROUND.widthScale),
+          'line-opacity': speedwayTexOpacity(p),
+        },
+      }, under);
+    }
   };
 
   function addRoadLayers(map, pal, p, under) {
-    const vec = vectorSourceId(map);
-    if (!vec) { console.warn('[ground] no vector source; roads left on the basemap'); return; }
-
+    if (!map.getSource(RSRC)) {
+      console.warn('[ground] no roads source; roads left on the basemap');
+      return;
+    }
     // Hide the basemap's own road lines FIRST. Leaving them on paints a pale
     // cream ribbon under every road we draw, which shows at every kerb.
     hideBasemapRoads(map);
 
-    if (!map.getLayer(ROAD_CASE)) {
-      map.addLayer({
-        id: ROAD_CASE, type: 'line', source: vec, 'source-layer': 'transportation',
-        minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
-        layout: { 'line-join': 'round', 'line-cap': 'butt' },
+    const L = (id, opts) => { if (!map.getLayer(id)) map.addLayer(opts, under); };
+
+    L(ROAD_CASE, {
+      id: ROAD_CASE, type: 'line', source: RSRC,
+      minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
+      layout: { 'line-join': 'round', 'line-cap': 'butt' },
+      paint: {
+        'line-color': darken(pal.asphalt, GROUND.roadCasingDark),
+        'line-width': roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale),
+        'line-opacity': roadOpacityExpr(0.9),
+      },
+    });
+    L(ROAD, {
+      id: ROAD, type: 'line', source: RSRC,
+      minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
+      layout: { 'line-join': 'round', 'line-cap': 'butt' },
+      paint: {
+        'line-color': roadColorExpr(pal),
+        'line-width': roadWidthExpr(GROUND.roadWidthScale),
+        'line-opacity': roadOpacityExpr(1),
+      },
+    });
+
+    // Bike lanes sit ON the carriageway, so they go over the road and under the
+    // centre line — a lane marking crossing a bike lane is what the junction
+    // actually looks like.
+    if (GROUND.bike) {
+      for (const [id, sideKey, sign] of [[BIKE_L, 'bl', -1], [BIKE_R, 'br', 1]]) {
+        L(id, {
+          id, type: 'line', source: RSRC,
+          minzoom: GROUND.bikeMinZoom, filter: bikeFilter(sideKey),
+          layout: { 'line-join': 'round', 'line-cap': 'butt' },
+          paint: {
+            'line-color': bikeColorExpr(pal, sideKey),
+            'line-width': bikeWidthExpr(),
+            'line-offset': bikeOffsetExpr(sign),
+            'line-opacity': GROUND.bikeOpacity,
+          },
+        });
+      }
+      // Separate `highway=cycleway` ways: the Shoal Creek and Waller Creek
+      // trails, the Dell Med paths, the campus shared-use routes. They are not
+      // a marking on a road, they are their own piece of ground.
+      L(CYCLE, {
+        id: CYCLE, type: 'line', source: RSRC,
+        minzoom: GROUND.bikeMinZoom, filter: CYCLE_FILTER,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': darken(pal.asphalt, GROUND.roadCasingDark),
-          'line-width': roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale),
-          'line-opacity': roadOpacityExpr(0.9),
+          'line-color': ['match', ['get', 's'],
+            'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
+            pal.biketrack],
+          'line-width': ['interpolate', ['exponential', 2], ['zoom'],
+            14, ['*', ['get', 'w'], PX_AT(14)],
+            21, ['*', ['get', 'w'], PX_AT(21)]],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'],
+            GROUND.bikeMinZoom, 0, GROUND.bikeMinZoom + 1.0, GROUND.bikeOpacity],
         },
-      }, under);
+      });
     }
-    if (!map.getLayer(ROAD)) {
-      map.addLayer({
-        id: ROAD, type: 'line', source: vec, 'source-layer': 'transportation',
-        minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
-        layout: { 'line-join': 'round', 'line-cap': 'butt' },
-        paint: {
-          'line-color': pal.asphalt,
-          'line-width': roadWidthExpr(GROUND.roadWidthScale),
-          'line-opacity': roadOpacityExpr(1),
-        },
-      }, under);
-    }
-    if (GROUND.lanes && !map.getLayer(LANE)) {
-      map.addLayer({
-        id: LANE, type: 'line', source: vec, 'source-layer': 'transportation',
+
+    if (GROUND.lanes) {
+      L(LANE, {
+        id: LANE, type: 'line', source: RSRC,
         minzoom: GROUND.laneMinZoom, filter: LANE_FILTER(),
         layout: { 'line-join': 'round', 'line-cap': 'butt' },
         paint: {
@@ -594,7 +889,21 @@
           'line-dasharray': GROUND.laneDash.slice(),
           'line-opacity': GROUND.laneOpacity,
         },
-      }, under);
+      });
+    }
+    if (GROUND.stopBars) {
+      L(STOPBAR, {
+        id: STOPBAR, type: 'line', source: RSRC,
+        minzoom: GROUND.stopBarMinZoom, filter: STOPBAR_FILTER,
+        layout: { 'line-cap': 'butt' },
+        paint: {
+          'line-color': GROUND.stopBarColor,
+          'line-width': stopBarWidthExpr(),
+          'line-opacity': ['interpolate', ['linear'], ['zoom'],
+            GROUND.stopBarMinZoom, 0,
+            GROUND.stopBarMinZoom + 0.8, GROUND.stopBarOpacity],
+        },
+      });
     }
   }
 
@@ -607,14 +916,15 @@
    */
   function hideBasemapRoads(map) {
     if (_hiddenBasemapRoads.length) return;
-    // OUR road layers read from the same vector source and the same
+    // Our road layers used to read from the same vector source and the same
     // `transportation` source-layer, so "every visible transportation line"
-    // matches them too. It cost a real bug: toggling GROUND.roads back ON
+    // matched them too. It cost a real bug: toggling GROUND.roads back ON
     // showed the three layers and then this immediately hid them again on the
     // same call, and the frame proved it — our asphalt covered 27.8% of the
     // pose with roads on, 3.2% with them off, and 3.2% again after turning
-    // them back on. Assert on pixels and the lie is one line long.
-    const ours = new Set([ROAD, ROAD_CASE, LANE]);
+    // them back on. They now sit on a geojson source and cannot match, but the
+    // guard stays: it is one line, and the failure it prevents was invisible.
+    const ours = new Set([ROAD, ROAD_CASE, LANE, BIKE_L, BIKE_R, CYCLE, STOPBAR]);
     for (const l of map.getStyle().layers) {
       if (ours.has(l.id)) continue;
       if ((l['source-layer'] || '') !== 'transportation') continue;
@@ -644,9 +954,19 @@
     // no getImageData readback, no atlas upload, nothing per tick.
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
-    set(ROAD, 'line-color', pal.asphalt);
+    set(SPEEDWAY, 'line-opacity', speedwayTexOpacity(p));
+    set(ROAD, 'line-color', roadColorExpr(pal));
     set(ROAD_CASE, 'line-color', darken(pal.asphalt, GROUND.roadCasingDark));
     set(LANE, 'line-color', laneColorExpr(p));
+    set(BIKE_L, 'line-color', bikeColorExpr(pal, 'bl'));
+    set(BIKE_R, 'line-color', bikeColorExpr(pal, 'br'));
+    set(CYCLE, 'line-color', ['match', ['get', 's'],
+      'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
+      pal.biketrack]);
+    // The stop bar is paint, and paint at night is whatever the headlights and
+    // the signal give it. Same ramp as the lane markings.
+    set(STOPBAR, 'line-color',
+        lerpHex(GROUND.stopBarColor, '#0a0c12', nightAmt(p) * GROUND.laneNightFade));
   };
 
   /** Re-read GROUND after a live edit (widths, opacity, scale). */
@@ -661,9 +981,17 @@
     set(LANE, 'line-width', laneWidthExpr());
     set(LANE, 'line-dasharray', GROUND.laneDash.slice());
     set(LANE, 'line-opacity', GROUND.laneOpacity);
+    set(BIKE_L, 'line-width', bikeWidthExpr());
+    set(BIKE_R, 'line-width', bikeWidthExpr());
+    set(BIKE_L, 'line-offset', bikeOffsetExpr(-1));
+    set(BIKE_R, 'line-offset', bikeOffsetExpr(1));
+    for (const id of [BIKE_L, BIKE_R]) set(id, 'line-opacity', GROUND.bikeOpacity);
+    set(STOPBAR, 'line-width', stopBarWidthExpr());
+    set(SPEEDWAY, 'line-width', widthExpr(GROUND.widthScale));
     const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
+    set(SPEEDWAY, 'line-opacity', speedwayTexOpacity(p));
 
     const show = (id, on) => {
       try { map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch (e) {}
@@ -671,8 +999,11 @@
     for (const id of [AREA, PATH, PATH_CASE]) show(id, GROUND.on);
     show(TEX, GROUND.on && GROUND.texture);
     show(BASE_TEX, GROUND.on && GROUND.texture && GROUND.texGround);
+    show(SPEEDWAY, GROUND.on && GROUND.texture && GROUND.speedway);
     for (const id of [ROAD, ROAD_CASE]) show(id, GROUND.on && GROUND.roads);
     show(LANE, GROUND.on && GROUND.roads && GROUND.lanes);
+    for (const id of [BIKE_L, BIKE_R, CYCLE]) show(id, GROUND.on && GROUND.roads && GROUND.bike);
+    show(STOPBAR, GROUND.on && GROUND.roads && GROUND.stopBars);
     // Turning our roads off has to give the basemap's back, or the scene ends
     // up with no roads at all and that reads as a broken layer, not a setting.
     if (GROUND.on && GROUND.roads) hideBasemapRoads(map); else showBasemapRoads(map);

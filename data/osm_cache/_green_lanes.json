@@ -1,0 +1,9 @@
+{
+ "threshold_green_frac": 0.35,
+ "rule": "peak_green >= 0.35 AND |peak_offset| <= modelled_half_width + 2 m",
+ "green_way_ids": [
+  201680476,
+  655414277,
+  1354456442
+ ]
+}

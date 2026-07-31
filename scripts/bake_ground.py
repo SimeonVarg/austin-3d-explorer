@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Bake the cached OSM ground data (data/osm_cache/*.json) into one render-ready
-data/ground.geojson.
+"""Bake the cached OSM ground data (data/osm_cache/*.json) into render-ready
+data/ground.geojson AND data/roads.geojson.
 
 TRUTH RULE, which governs this whole file: every POSITION here comes from OSM.
 Nothing is scattered, invented or nudged for looks. What is generative is FORM —
@@ -25,6 +25,18 @@ from collections import Counter
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "data", "osm_cache")
 OUT = os.path.join(ROOT, "data", "ground.geojson")
+OUT_ROADS = os.path.join(ROOT, "data", "roads.geojson")
+
+# The detailed bbox. Inside it we keep every driveway and parking aisle; outside
+# it those are 4,000 hairlines the camera never resolves, and they double the
+# file for nothing.
+DETAIL_BB = (-97.752, 30.276, -97.726, 30.296)
+
+# Speedway Mall: 30 ft, from PWP Landscape Architecture's own project record for
+# the Speedway Corridor -- "narrowed to a pedestrian-friendly 30 feet wide".
+# SOURCED. The brick, the herringbone and the extent all come from the same
+# record; see docs/PASS_ROADS.md.
+SPEEDWAY_W = 9.1
 
 # ---------------------------------------------------------------- surfaces --
 # OSM surface value -> our surface class. Anything unmapped is reported, never
@@ -162,6 +174,361 @@ def area_m2(ring):
     return abs(a) * 0.5 * M_LAT * M_LAT
 
 
+# ============================================================== the roads ==
+#
+# Roads used to come from the Liberty basemap's OpenMapTiles `transportation`
+# source-layer, which carries `class`, `subclass`, `oneway`, `ramp` and
+# `brunnel` and nothing else. No lane count, so every width was a guess per
+# class; no name, so Speedway could not be told from San Jacinto; and no
+# cycleway tags at all, so a bike lane could not exist even in principle.
+#
+# This reads OSM directly (scripts/fetch_roads.py) over the outer-ring bbox --
+# the area the camera can actually see from 900 m -- and emits every road with
+# what it really is.
+
+# Metres of one US urban travel lane, and the kerb/gutter allowance either side.
+# These two are the only GENERATIVE numbers in the width model; everything they
+# multiply is OSM's own lane count.
+LANE_M = 3.4
+KERB_M = 1.6
+BIKE_M = 1.8      # a 6 ft bike lane
+BUFF_M = 0.9      # a 3 ft painted buffer, where cycleway:*:buffer=yes
+
+# Fallback pavement width by highway class, for the 78% of ways OSM does not
+# give a lane count. GENERATIVE: an honest typical section, not a survey.
+CLASS_W = {
+    "motorway": 30.0, "trunk": 24.0, "primary": 18.0, "secondary": 15.0,
+    "tertiary": 12.0, "unclassified": 9.5, "residential": 9.5,
+    "living_street": 8.0, "busway": 8.0, "road": 9.0, "service": 5.5,
+}
+LINKS = {"motorway_link": "motorway", "trunk_link": "trunk", "primary_link": "primary",
+         "secondary_link": "secondary", "tertiary_link": "tertiary"}
+LINK_W = 7.5      # a ramp is one lane plus shoulders
+
+# What each OSM cycleway value MEANS, and therefore whether a lane may be drawn
+# for it. This table IS the "render a lane only where the data says one exists"
+# rule. Anything not in it draws nothing -- in particular `shared_lane` (a
+# sharrow stencilled on a shared travel lane), `share_busway`, and `separate`
+# (which is mapped as its own way and would otherwise be drawn twice).
+CYCLE_KIND = {
+    "lane": 1, "opposite_lane": 1, "shoulder": 1,
+    "track": 2, "opposite_track": 2,
+}
+CYCLE_IGNORED = ("shared_lane", "share_busway", "separate", "no", "shared",
+                 "shared_parking_lane", "crossing", "sidepath", "planned", "link",
+                 "traffic_island")
+
+# The surface of a road, when OSM bothers to say. Concrete carriageways are real
+# here -- East MLK is tagged concrete for most of its length.
+ROAD_SURF = {"asphalt": "asphalt", "chipseal": "asphalt", "paved": "asphalt",
+             "concrete": "roadconcrete", "concrete:plates": "roadconcrete",
+             "concrete:lanes": "roadconcrete",
+             "paving_stones": "paving", "sett": "paving", "bricks": "brick",
+             "gravel": "gravel", "compacted": "gravel", "unpaved": "gravel",
+             "fine_gravel": "gravel", "dirt": "dirt", "ground": "dirt",
+             "grass_paver": "gravel"}
+
+
+def lane_count(t):
+    """OSM `lanes`, defensively. Values like '2;3' and '4' both occur."""
+    raw = t.get("lanes")
+    if raw is None:
+        return 0
+    try:
+        n = int(str(raw).split(";")[0].strip())
+    except ValueError:
+        return 0
+    return n if 1 <= n <= 12 else 0
+
+
+def cycle_sides(t):
+    """-> (left, right) each 0 none / 1 painted lane / 2 protected track.
+
+    OSM's scheme is a fallback chain: `cycleway:left` beats `cycleway:both`
+    beats plain `cycleway`. Reading only `cycleway` would miss 663 of the 883
+    tagged ways in this extract, and reading `cycleway:both` as if it were
+    one-sided would draw half the lanes that exist.
+    """
+    both = t.get("cycleway:both") or t.get("cycleway")
+    out = []
+    for side in ("left", "right"):
+        raw = t.get("cycleway:" + side) or both
+        out.append(CYCLE_KIND.get((raw or "").strip(), 0))
+    # `bicycle=designated` on a road with no cycleway tag is a bike ROUTE, not a
+    # lane. It gets nothing, deliberately.
+    return out[0], out[1]
+
+
+def cycle_buffer(t, side):
+    both = t.get("cycleway:both:buffer")
+    v = t.get("cycleway:%s:buffer" % side) or both
+    return 1 if (v or "").strip() == "yes" else 0
+
+
+def road_width(t, bl, br):
+    """Pavement width in metres, and whether the lane count was OSM's.
+
+    lanes x 3.4 + 1.6 is the whole model. It is checkable: MLK is tagged 5 or 6
+    lanes and comes out 18.6-22.0 m, Guadalupe 4-5 lanes gives 15.2-18.6 m, and
+    San Jacinto's 2-3 lanes gives 8.4-11.8 m. Those are three visibly different
+    roads, which is the entire complaint.
+    """
+    hw = t.get("highway")
+    n = lane_count(t)
+    if n:
+        w, tagged = n * LANE_M + KERB_M, 1
+    elif hw in LINKS:
+        w, tagged = LINK_W, 0
+    else:
+        w, tagged = CLASS_W.get(hw, 9.0), 0
+    # A bike lane is pavement too, and it is why a "2 lane" street measures
+    # wider than 8.4 m on the ground.
+    for side, kind in (("left", bl), ("right", br)):
+        if kind:
+            w += BIKE_M + (BUFF_M if cycle_buffer(t, side) else 0.0)
+    return round(w, 1), tagged
+
+
+def simplify(pts, eps_m):
+    """Ramer-Douglas-Peucker on lon/lat, tolerance in metres.
+
+    Purely a file-size measure: at the tolerance used (1.2 m) nothing moves by
+    more than a quarter of a rendered pixel at the zoom the camera flies at.
+    """
+    if len(pts) < 3:
+        return pts
+    lat0 = pts[0][1]
+    kx = math.cos(math.radians(lat0)) * M_LAT
+    ky = M_LAT
+    eps = eps_m
+
+    def rdp(seq):
+        if len(seq) < 3:
+            return seq
+        (x0, y0), (x1, y1) = seq[0], seq[-1]
+        ax, ay = (x1 - x0) * kx, (y1 - y0) * ky
+        L = math.hypot(ax, ay)
+        worst, wi = -1.0, 0
+        for i in range(1, len(seq) - 1):
+            px_, py = (seq[i][0] - x0) * kx, (seq[i][1] - y0) * ky
+            d = abs(px_ * ay - py * ax) / L if L > 1e-9 else math.hypot(px_, py)
+            if d > worst:
+                worst, wi = d, i
+        if worst <= eps:
+            return [seq[0], seq[-1]]
+        return rdp(seq[:wi + 1])[:-1] + rdp(seq[wi:])
+
+    import sys as _sys
+    _sys.setrecursionlimit(10000)
+    return rdp(pts)
+
+
+def bake_roads(stats, warnings):
+    """data/roads.geojson: carriageways, bike lanes, cycle paths, stop bars."""
+    green_ids = set()
+    gp = os.path.join(CACHE, "_green_lanes.json")
+    if os.path.exists(gp):
+        with open(gp, encoding="utf-8") as f:
+            green_ids = set(json.load(f).get("green_way_ids", []))
+    else:
+        warnings.append("_green_lanes.json missing; no green paint will be drawn "
+                        "(run scripts/sample_bike_lane_paint.py)")
+
+    feats = []
+    ways_by_node = {}          # node id -> [(way tags, geometry, index)]
+    unknown_surface = Counter()
+
+    def in_detail(g):
+        return any(DETAIL_BB[0] <= p["lon"] <= DETAIL_BB[2]
+                   and DETAIL_BB[1] <= p["lat"] <= DETAIL_BB[3] for p in g)
+
+    # ---- carriageways ---------------------------------------------------
+    for el in load("roads"):
+        if el.get("type") != "way":
+            continue
+        t = el.get("tags", {}) or {}
+        g = el.get("geometry") or []
+        if len(g) < 2:
+            continue
+        hw = t.get("highway")
+        # Underground is not ground. A tunnel drawn on the surface puts I-35's
+        # lower deck through the middle of a city block.
+        if t.get("tunnel") in ("yes", "building_passage") or _layer(t) < 0:
+            stats["road_skipped_tunnel"] += 1
+            continue
+        svc = t.get("service")
+        detail = in_detail(g)
+        if not detail and (hw == "service" and svc in ("parking_aisle", "driveway",
+                                                       "drive-through")):
+            stats["road_skipped_far_service"] += 1
+            continue
+
+        bl, br = cycle_sides(t)
+        w, wt = road_width(t, bl, br)
+        cls = LINKS.get(hw, hw)
+        surf_raw = (t.get("surface") or "").strip().lower()
+        surf = ROAD_SURF.get(surf_raw, "asphalt")
+        if surf_raw and surf_raw not in ROAD_SURF:
+            unknown_surface[surf_raw] += 1
+        pts = simplify([[round(p["lon"], 6), round(p["lat"], 6)] for p in g], 1.2)
+        n_lanes = lane_count(t)
+        props = {
+            "k": "road", "c": cls, "w": w, "wt": wt, "s": surf,
+        }
+        if hw in LINKS:
+            props["lk"] = 1
+        if n_lanes:
+            props["ln"] = n_lanes
+        if (t.get("oneway") or "") in ("yes", "1", "true"):
+            props["ow"] = 1
+        elif (t.get("oneway") or "") == "-1":
+            props["ow"] = -1
+        if t.get("bridge"):
+            props["bg"] = 1
+        if svc:
+            props["sv"] = svc
+        if bl:
+            props["bl"] = bl
+        if br:
+            props["br"] = br
+        if (bl or br) and el.get("id") in green_ids:
+            props["gp"] = 1
+            stats["road_green_painted"] += 1
+        if t.get("name"):
+            props["name"] = t["name"]
+        feats.append({"type": "Feature",
+                      "geometry": {"type": "LineString", "coordinates": pts},
+                      "properties": props})
+        stats["road_" + cls] += 1
+        if wt:
+            stats["road_width_FROM_LANES"] += 1
+        else:
+            stats["road_width_from_class_default"] += 1
+        if bl or br:
+            stats["road_with_bike_lane"] += 1
+        # Remember the way against its nodes, for the stop bars.
+        if cls in ("motorway", "trunk", "primary", "secondary", "tertiary") and detail:
+            for i, nid in enumerate(el.get("nodes") or []):
+                ways_by_node.setdefault(nid, []).append((props, g, i))
+
+    # ---- separate cycle ways --------------------------------------------
+    for el in load("cycleways"):
+        if el.get("type") != "way":
+            continue
+        t = el.get("tags", {}) or {}
+        g = el.get("geometry") or []
+        if len(g) < 2:
+            continue
+        if t.get("tunnel") or _layer(t) < 0:
+            continue
+        # A `cycleway=crossing` is a road marking across a junction, not a path.
+        # Drawing them lays a hatch across every intersection -- the same trap
+        # the footway bake already hits with footway=crossing.
+        if t.get("cycleway") == "crossing" or t.get("footway") == "crossing":
+            stats["cycle_skipped_crossing"] += 1
+            continue
+        hw = t.get("highway")
+        if hw != "cycleway" and (t.get("bicycle") or "") not in ("designated",):
+            # A footway merely signed bicycle=yes is a footpath; the footway
+            # bake already draws it, and drawing it again doubles it.
+            stats["cycle_skipped_shared_footway"] += 1
+            continue
+        w = parse_width(t.get("width")) or 0
+        pts = simplify([[round(p["lon"], 6), round(p["lat"], 6)] for p in g], 1.2)
+        surf_raw = (t.get("surface") or "").strip().lower()
+        feats.append({
+            "type": "Feature",
+            "geometry": {"type": "LineString", "coordinates": pts},
+            "properties": {
+                "k": "cycle", "w": round(w or 2.5, 1), "wt": 1 if w else 0,
+                "s": ROAD_SURF.get(surf_raw, "asphalt"),
+                **({"sg": 1} if t.get("segregated") == "yes" else {}),
+                **({"name": t["name"]} if t.get("name") else {}),
+            },
+        })
+        stats["cycle_path"] += 1
+
+    # ---- stop bars at signalised approaches ------------------------------
+    # A real stop bar is 12-24 in deep and spans one direction of travel. At the
+    # altitude the camera flies at one pixel is ~0.5 m, so the DEPTH is drawn
+    # over-scale (js/ground.js, GROUND.stopBarDepth) and the LENGTH is true.
+    # That is declared, not hidden -- see docs/PASS_ROADS.md.
+    signals = [el for el in load("furn_vertical")
+               if el.get("type") == "node"
+               and (el.get("tags") or {}).get("highway") == "traffic_signals"]
+    SETBACK = 5.5          # metres back from the junction node
+    for nd in signals:
+        for props, g, i in ways_by_node.get(nd["id"], []):
+            half = props["w"] / 2.0
+            for direction in (-1, 1):
+                p = _walk(g, i, SETBACK * direction)
+                if p is None:
+                    continue
+                (lon, lat), (ux, uy) = p
+                # Approaching WITH the way's direction, the driver's right is
+                # the way's right; approaching against it, the driver's right is
+                # the way's left. So the two bars sit on opposite sides, which
+                # is exactly how a two-way junction looks from the air.
+                if direction > 0 and props.get("ow"):
+                    continue                     # no opposing approach on a oneway
+                sgn = 1.0 if direction < 0 else -1.0
+                nx, ny = -uy * sgn, ux * sgn
+                kx = math.cos(math.radians(lat)) * M_LAT
+                a = [lon, lat]
+                b = [lon + nx * half / kx, lat + ny * half / M_LAT]
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "LineString",
+                                 "coordinates": [[round(a[0], 6), round(a[1], 6)],
+                                                 [round(b[0], 6), round(b[1], 6)]]},
+                    "properties": {"k": "stopbar", "c": props["c"]},
+                })
+                stats["stopbar"] += 1
+
+    fc = {"type": "FeatureCollection", "features": feats}
+    with open(OUT_ROADS, "w", encoding="utf-8") as f:
+        json.dump(fc, f, separators=(",", ":"))
+    stats["road_unknown_surface_values"] = dict(unknown_surface)
+    stats["roads_file_kb"] = round(os.path.getsize(OUT_ROADS) / 1024, 1)
+    stats["roads_features"] = len(feats)
+    stats["signals_seen"] = len(signals)
+    return feats
+
+
+def _layer(t):
+    try:
+        return int(str(t.get("layer", 0)).strip())
+    except ValueError:
+        return 0
+
+
+def _walk(g, i, dist_m):
+    """Walk `dist_m` along a way from vertex i. -> ((lon,lat), unit tangent)."""
+    if not (0 <= i < len(g)):
+        return None
+    step = 1 if dist_m > 0 else -1
+    need = abs(dist_m)
+    j = i
+    while 0 <= j + step < len(g):
+        a, b = g[j], g[j + step]
+        kx = math.cos(math.radians(a["lat"])) * M_LAT
+        dx = (b["lon"] - a["lon"]) * kx
+        dy = (b["lat"] - a["lat"]) * M_LAT
+        L = math.hypot(dx, dy)
+        if L < 1e-9:
+            j += step
+            continue
+        if L >= need:
+            t = need / L
+            lon = a["lon"] + (b["lon"] - a["lon"]) * t
+            lat = a["lat"] + (b["lat"] - a["lat"]) * t
+            # Tangent points along the way's own direction, always.
+            return ([lon, lat], (dx / L * step, dy / L * step))
+        need -= L
+        j += step
+    return None
+
+
 def main():
     feats = []
     stats = Counter()
@@ -172,7 +539,11 @@ def main():
             continue
         t = el.get("tags", {}) or {}
         hw = t.get("highway")
-        if hw not in ("footway", "steps", "path", "cycleway", "pedestrian"):
+        # `cycleway` used to be drawn here as a pale footpath. It now belongs to
+        # roads.geojson, which knows it is bike infrastructure and draws it as
+        # such. Leaving it in both files drew the same 50 ways twice, at two
+        # different widths, in two different colours.
+        if hw not in ("footway", "steps", "path", "pedestrian"):
             continue
         # A pedestrian AREA is a plaza, not a line — handled with the areas.
         if t.get("area") == "yes":
@@ -188,6 +559,25 @@ def main():
         use = "steps" if hw == "steps" else hw
         surf, tagged = surface_of(t, use)
         w = parse_width(t.get("width")) or parse_width(t.get("est_width"))
+        extra = {}
+
+        # ---- Speedway Mall -------------------------------------------------
+        # OSM tags the corridor in two halves: surface=paving_stones north of
+        # ~23rd and surface=asphalt south of it. The asphalt half is a STALE tag.
+        # PWP's project record says the whole corridor from Jester Circle to
+        # Dean Keeton was reconstructed as a 30 ft brick mall, and the nadir
+        # imagery agrees flatly -- the "asphalt" half samples rgb(200,176,142),
+        # a warm tan, while a real asphalt control 100 m away samples
+        # rgb(161,155,137). See scripts/sample_speedway_colour.py. The photo
+        # beats the derived tag.
+        if (t.get("name") or "") == "Speedway" and hw == "pedestrian":
+            surf, tagged = "brickpave", False
+            w = SPEEDWAY_W          # 30 ft, PWP; sourced, not measured by us
+            extra["src"] = "pwp30ft"
+            stats["speedway_mall_segments"] += 1
+            if (t.get("surface") or "") == "asphalt":
+                stats["speedway_stale_asphalt_overridden"] += 1
+
         feats.append({
             "type": "Feature",
             "geometry": {"type": "LineString", "coordinates": coords},
@@ -195,6 +585,7 @@ def main():
                 "k": "path", "u": use, "s": surf,
                 "w": round(w or DEFAULT_WIDTH.get(use, 2.0), 1),
                 "wt": 1 if w else 0,
+                **extra,
                 **({"name": t["name"]} if t.get("name") else {}),
             },
         })
@@ -353,11 +744,13 @@ def main():
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(fc, f, separators=(",", ":"))
 
+    bake_roads(stats, warnings)
+
     size_kb = os.path.getsize(OUT) / 1024
     report = {
         "features": len(feats),
         "file_kb": round(size_kb, 1),
-        "counts": dict(sorted(stats.items())),
+        "counts": dict(sorted(stats.items(), key=lambda kv: kv[0])),
         "paths_with_TAGGED_width": sum(1 for f in feats if f["properties"].get("wt") == 1),
         "paths_with_DEFAULT_width": sum(1 for f in feats
                                         if f["properties"]["k"] == "path" and f["properties"].get("wt") == 0),

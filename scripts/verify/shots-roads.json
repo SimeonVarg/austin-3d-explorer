@@ -1,0 +1,15 @@
+[
+ {"name":"speedway-along","p":0.14,"center":[-97.7373,30.2852],"zoom":16.9,"pitch":70,"bearing":2},
+ {"name":"speedway-high","p":0.14,"center":[-97.7371,30.2856],"zoom":15.5,"pitch":72,"bearing":186},
+ {"name":"speedway-across","p":0.14,"center":[-97.7374,30.2864],"zoom":16.6,"pitch":62,"bearing":96},
+ {"name":"speedway-close","p":0.14,"center":[-97.7372,30.2861],"zoom":18.1,"pitch":56,"bearing":22},
+ {"name":"speedway-golden","p":0.50,"center":[-97.7373,30.2852],"zoom":16.9,"pitch":70,"bearing":2},
+ {"name":"speedway-night","p":0.92,"center":[-97.7373,30.2852],"zoom":16.9,"pitch":70,"bearing":2},
+ {"name":"drag-day","p":0.14,"center":[-97.7418,30.2855],"zoom":16.8,"pitch":66,"bearing":8},
+ {"name":"drag-close","p":0.14,"center":[-97.7420,30.2848],"zoom":17.9,"pitch":58,"bearing":10},
+ {"name":"drag-night","p":0.92,"center":[-97.7418,30.2855],"zoom":16.8,"pitch":66,"bearing":8},
+ {"name":"mlk-day","p":0.14,"center":[-97.7370,30.2810],"zoom":16.1,"pitch":68,"bearing":86},
+ {"name":"deankeeton-day","p":0.14,"center":[-97.7385,30.2888],"zoom":16.6,"pitch":66,"bearing":92},
+ {"name":"wide-day","p":0.14,"center":[-97.7400,30.2840],"zoom":14.3,"pitch":72,"bearing":20},
+ {"name":"westcampus-day","p":0.14,"center":[-97.7455,30.2870],"zoom":16.9,"pitch":70,"bearing":95}
+]
