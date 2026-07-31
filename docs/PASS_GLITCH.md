@@ -28,6 +28,7 @@ stop each class coming back.
 | 7 | Eight more coplanar `plant`/`unit` pairs across the city | `roofscape-*` | same detector fault as #1 | **fixed** |
 | 8 | PCL, the Bass/PAC and the ten Snohetta petals carry decks and clutter buried metres inside taller authored geometry | `roofscape-*` | same as #3 — invisible, but ~130 features re-tiled and drawn every frame | **fixed** |
 | 9 | 51 coplanar pairs in `data/roofs.geojson` — each pitched roof's ridge cap shares a top plane with its own top slope step | `roofs-pitched` (`bake_roofs.py`) | `top = base + 0.35 + rise` for both the last step and the ridge cap | **NOT fixed — see below** |
+| 10 | **The entire roofscape — 11,683 features — is absent from the scene on a coin flip, and nothing says so** | `js/roofs.js` | `autoInstall` polled `isStyleLoaded() && getLayer('buildings-3d')` 600× and gave up in silence | **fixed** |
 
 Two things Simeon's report implied that turned out to be **false**, and they are
 worth recording because acting on either would have made the scene worse:
@@ -246,6 +247,62 @@ decision alongside run/eave, so this file stops being un-rebakeable.
 
 ---
 
+## 10. The one that was not on anybody's list
+
+This was found by accident, chasing what looked like a regression, and it is
+probably the most consequential thing in this document.
+
+**Symptom.** The scene renders. The city looks fine. Every roof is a plain lid
+in `rd` — which is precisely the state `js/roofs.js` exists to fix — and there
+is no error, no warning, and no missing-data message anywhere.
+
+`js/roofs.js`'s self-install was:
+
+```js
+const tick = () => {
+  const m = window.__map;
+  if (m && m.isStyleLoaded && m.isStyleLoaded() && m.getLayer('buildings-3d')) { … return; }
+  if (++tries < 600) setTimeout(tick, 100);      // …and then nothing at all
+};
+```
+
+`map.isStyleLoaded()` is not "the style has been parsed". It is **false while any
+source in the style is still loading**, and this scene carries the core
+buildings, the outer ring, the ground, ~12,000 trees, ~6,000 props and six
+self-booting building passes that each add their own source seconds apart.
+Probed 30 s after load on an idle machine it is still false while `buildings-3d`
+has existed for ages:
+
+```
+hasInit: "function"   ← the module parsed and ran
+hasB3D:  true         ← buildings-3d exists
+styleLoaded: false    ← …so the conjunction is never satisfied
+hasSrc:  false        ← austin-roofscape was never added
+```
+
+So the conjunction only ever held if a poll happened to sample during a momentary
+gap in source loading. A coin flip. When it lost, **11,683 features were not in
+the scene and nothing said so.** This file's own header records that these
+features "sat dead in the repo for days" once before; this is the same outcome by
+a different route.
+
+It lost during this session's own verification and cost real time: the "after"
+screenshot of FAC came back with no roofscape *and no UT Tower*, which reads
+exactly like "the fix deleted the roof".
+
+**Fix.** The shape `docs/PASS_COMMON.md` tells every pass to copy verbatim from
+`js/outer.js`: take the style's own `load` **event** rather than polling a
+predicate that contains it, then poll only for the thing that actually has to
+exist. And if it ever does give up, `console.error` — a silent give-up is worse
+than a crash, because the scene still renders and looks plausible.
+
+**`scripts/verify/srcprobe.mjs`** is what settled it, and it is kept because the
+distinction it draws has no other source: *the module never booted* vs *the
+source never loaded* vs *the source loaded but nothing is tiled at this camera*
+are three different bugs that produce an identical screenshot.
+
+---
+
 ## The checks, and what each one is for
 
 Four new scripts in `scripts/verify/`. The first three are static — no browser,
@@ -259,6 +316,7 @@ no server, no camera — which is why they are the ones to run first.
 | `zfight.mjs` | does anything actually flicker when the camera moves? |
 | `peel.mjs` | which layer group is responsible for what I am looking at? |
 | `crop.mjs` | magnify a region of a shot so a defect can be *seen* |
+| `srcprobe.mjs` | did every pass boot, is its source loaded, is anything tiled here? |
 
 `roofowner.mjs` is the one-off that produced the table in §3; it attributes every
 roof feature to a building by point-in-polygon and is kept because "who is
