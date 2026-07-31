@@ -120,8 +120,20 @@ for (const k of ['noDetail', 'after']) {
 }
 console.log('\nIf a delta is smaller than the within-config spread there is no result.');
 
-const n = await page.evaluate(() => {
-  try { return window.__map.querySourceFeatures('austin-tower').length; } catch (e) { return -1; }
+// Turn the layers back ON before counting. A GeoJSON source stops keeping tiles
+// for a layer nobody is drawing, so asking straight after the last rep — which
+// is `before`, because the order reverses on odd reps — reported 0 features and
+// read as "the tower never loaded" rather than "nothing was asking for it".
+const n = await page.evaluate(async () => {
+  const m = window.__map;
+  for (const id of ['tower-wall', 'tower-solid', 'tower-detail']) {
+    try { if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', 'visible'); } catch (e) {}
+  }
+  await new Promise(r => { if (m.loaded()) r(); else m.once('idle', r); setTimeout(r, 8000); });
+  try { return m.querySourceFeatures('austin-tower').length; } catch (e) { return -1; }
 });
 console.log('tower source features tiled into the current viewport:', n);
+console.log('NOTE: absolute fps here is worthless if anything else is using the GPU.\n' +
+            'The A/B is still valid — same machine, interleaved, counterbalanced — but\n' +
+            'read the DELTA against the within-config spread, never the fps column.');
 await browser.close();

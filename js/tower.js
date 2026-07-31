@@ -215,6 +215,14 @@
   // pattern id -> { fam, trio, seed }. Built from the BAKE's own colours, so the
   // hexes live in exactly one place (scripts/bake_tower.py) and the two halves
   // cannot drift apart.
+  //
+  // `pat` and `fam` are DIFFERENT properties and the difference matters: `fam`
+  // is how the tile is drawn, `pat` is which image the feature asks for. Seven
+  // bands share the plain-ashlar family and four different palettes, so the
+  // bake allocates `twplain`, `twplain2`, `twplain3`… — one image per
+  // (family, colour). Keying the image off the family alone made every crown
+  // band inherit whichever palette happened to be emitted first, which by day
+  // was invisible and at night left the top 28 m of the Tower unlit.
   let _pats = null;
 
   function collectPatterns(gj) {
@@ -223,7 +231,7 @@
     for (const f of gj.features) {
       const p = f.properties;
       if (!p || !p.pat || pats[p.pat]) continue;
-      pats[p.pat] = { fam: p.pat, trio: [p.wd, p.wg, p.wn], seed: seed += 7 };
+      pats[p.pat] = { fam: p.fam || p.pat, trio: [p.wd, p.wg, p.wn], seed: seed += 7 };
     }
     return pats;
   }
@@ -376,6 +384,10 @@
       }, anchor);
     }
 
+    // Exposed for scripts/verify/tower-*.mjs, which must not carry its own copy
+    // of the image list — the bake allocates one per (family, palette) and that
+    // set grows whenever a band gets its own colour.
+    window.__towerPats = Object.keys(_pats);
     console.log('[tower]', gj.features.length, 'features,', nImg, 'pattern images,',
                 'replacing', (gj.replacedBuildingIds || []).length, 'building +',
                 '2 OSM parts');

@@ -239,12 +239,35 @@ bezel about one pixel wide from a flying camera. The dial is drawn at 3.05 m so
 the ring gets the pixels. It is the one measurement in this pass that is
 knowingly wrong, and it is wrong on purpose.
 
-And one thing the harness itself got wrong twice, recorded because the next
-person will hit it: the silhouette test isolates the tower and measures its
-width per scanline. Keying on "not sky" reported the shaft as **1440 px wide** —
-the whole viewport — because with every other layer hidden the basemap's tan
-`background` is not sky either. Painting the tower magenta, which
-`scripts/verify/README.md` already tells you to do, fixed it in one line.
+**A pattern image IS a colour, so it cannot be shared by two palettes.** Found by
+re-reading the module rather than by looking, which is why it is worth writing
+down. The first cut let the drawing family name *be* the image id. Seven bands
+use the plain-ashlar family — the Main Building's entablature and its two
+terraces, then the tower's cornice, clock stage, belfry plinth, belfry
+entablature and cap — and `js/tower.js` builds each image from the **first**
+feature it sees carrying that id. So the entire crown inherited the Main
+Building trim's palette. By day that was invisible (`#e7ddc9` against
+`#ddd2c0`); at night the trim is unlit `#12101c` and the crown is floodlit
+`#dd6420`, so **the top 28 m of the Tower went dark in the one shot the night
+state exists for**. The bake now allocates one image per (family, *whole trio*)
+— `twplain`, `twplain2`, `twplain3` — and keying on the day hex alone was not
+enough either, because the cornice and the crown share a daylight limestone and
+differ only under the floods. `tower-check.mjs` asserts no id carries two
+palettes.
+
+And two things the harness itself got wrong, recorded because the next person
+will hit them:
+
+- The silhouette test isolates the tower and measures its width per scanline.
+  Keying on "not sky" reported the shaft as **1440 px wide** — the whole
+  viewport — because with every other layer hidden the basemap's tan
+  `background` is not sky either. Painting the tower magenta, which
+  `scripts/verify/README.md` already tells you to do, fixed it in one line.
+- The night sample raced the atlas repaint and once read a **fully daylit frame**
+  at p = 0.95, reporting 1 orange pixel — which reads as "the night state is
+  broken" rather than "the harness was early". It now reads twice and trusts the
+  second, and asserts the frame is actually night before asserting anything
+  about it.
 
 ---
 
@@ -290,6 +313,74 @@ pieces tile it exactly.
   `buildings-3d` **and** `parts-3d`, wraps `window.applyTimeOfDay`, and anchors
   to the first symbol layer *after* `buildings-3d`.
 - No HTML was touched. No file owned by another pass was touched.
+
+---
+
+## 5b. Verification
+
+```bash
+python -m http.server 8151 --bind 127.0.0.1        # from the repo root
+cd scripts/verify
+VERIFY_URL=http://127.0.0.1:8151 node tower-check.mjs   # 18 assertions
+VERIFY_URL=http://127.0.0.1:8151 node tower-shot.mjs tower both
+VERIFY_URL=http://127.0.0.1:8151 node tower-perf.mjs 4
+```
+
+Serve on a port nobody else is using. Six passes were running against this repo
+at once while this was written, and `scripts/verify/README.md` already records
+what happens when three of them share 8099.
+
+`tower-check.mjs` measures the **silhouette**: everything else hidden, the tower
+painted magenta, and the run of key-coloured pixels counted per scanline.
+Measured profile, crown to shaft:
+
+```
+76 80 81 82 | 95 99 103 106 107 108 110 112 113 115 117 | 165 170 175 178 181 184 187 189 187
+```
+
+Cap, belfry, clock stage — two abrupt setbacks, and shaft/cap = **2.46×**. A
+single prism gives one width and a ratio of 1.00. It also asserts belfry/shaft =
+0.44 and cap/shaft = 0.41 (against 0.49 and 0.45 in plan; the crown reads ~10%
+narrow because it is further from a camera looking up).
+
+Two assertions had to be rewritten to test the right thing, and both are worth
+knowing about:
+
+- **`applyTimeOfDay` is wrapped** — was checked by looking for the `__tower`
+  marker this module puts on its wrapper. Six modules wrap that global and each
+  wraps whatever it found, so the marker is only visible on whichever wrapped
+  *last*. The assertion therefore passed or failed depending on the load order
+  of the **other five passes**. It now drives the global at two hours and
+  asserts this layer's paint changed.
+- **The two superseded parts** were counted with `querySourceFeatures`, which
+  answers only for tiles the renderer currently holds and returned 0 from two
+  different camera poses. It now reads the snapshot over HTTP and asserts that
+  exactly two features carry `#e5dbc2` — which is the property the filter
+  actually depends on, and the only line that would notice a future snapshot
+  giving that hex to a third part.
+
+### Frame cost
+
+Interleaved A/B on one build (`?tower=0` equivalent, layers toggled),
+counterbalanced on alternate reps, **minimum of 4 reps**, dropped frames over
+4.2 s of scripted bearing sweep, headed Chrome:
+
+| config | dropped (MIN) | all reps |
+|---|---|---|
+| before | 189 | 200, 199, 189, 211 |
+| bands + roofs only | 184 | 192, 193, 200, 184 |
+| after (everything) | 187 | 199, 187, 198, 215 |
+
+**No measurable cost.** The deltas are −5 and −2 frames against within-config
+spreads of 16 and 28 — smaller than the noise, which by this suite's own rule
+means there is no result. That is the expected answer for 225 features added to
+a scene already carrying ~12,000 trees, ~6,000 props, 12,058 roof features and a
+7,625-building outer ring.
+
+The absolute numbers (12-15 fps, ~190 dropped in *every* configuration including
+`before`) are meaningless: five other headless Chrome instances were driving the
+same GPU. The A/B is still valid — same machine, same build, interleaved and
+counterbalanced — but only as a delta.
 
 ---
 

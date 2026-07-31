@@ -366,6 +366,32 @@ class Bake(object):
         self.f = frame
         self.out = []
         self.stats = stats
+        # (family, day hex) -> image id. A pattern image IS a colour — the tile
+        # is generated from the band's own trio — so two bands that share a
+        # drawing family but not a palette need two images.
+        #
+        # This exists because the first cut let the family name BE the image id.
+        # Seven bands use the plain-ashlar family (the Main Building's
+        # entablature and its two terraces, then the tower's cornice, clock
+        # stage, belfry plinth, belfry entablature and cap) and js/tower.js
+        # builds each image from the FIRST feature it sees carrying that id — so
+        # the whole crown silently inherited the Main Building trim's palette.
+        # By day that was invisible (#e7ddc9 against #ddd2c0). At night the trim
+        # is unlit #24252c and the crown is floodlit #dd6420, so the top 28 m of
+        # the Tower went dark in the one shot the night state exists for.
+        self.pat_ids = {}
+
+    def pat_id(self, fam, cols):
+        # The whole TRIO, not just the day hex. The cornice and the crown share
+        # a daylight limestone and differ only at night (#c9501c against
+        # #dd6420, because the floods are closer to the crown), so keying on
+        # `wd` alone merged exactly the two bands whose difference only exists
+        # in the shot this pass built the night state for.
+        key = (fam, cols["wd"], cols["wg"], cols["wn"])
+        if key not in self.pat_ids:
+            n = sum(1 for k in self.pat_ids if k[0] == fam)
+            self.pat_ids[key] = fam if n == 0 else "%s%d" % (fam, n + 1)
+        return self.pat_ids[key]
 
     def add(self, uv, base, top, cols, kind, part, pat=None, extra=None):
         uv = dedupe(uv)
@@ -376,7 +402,10 @@ class Bake(object):
               "base": round(base, 2), "h": round(top, 2)}
         pr.update(cols)
         if pat:
-            pr["pat"] = pat
+            # `fam` is how it is DRAWN, `pat` is which image it uses. They are
+            # the same string only when a family has one palette.
+            pr["fam"] = pat
+            pr["pat"] = self.pat_id(pat, cols)
         if extra:
             pr.update(extra)
         self.out.append({"type": "Feature", "properties": pr,
@@ -589,10 +618,14 @@ def main():
           "replacedPartWallColour": PART_WD}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
+    pats = sorted({(f["properties"].get("pat"), f["properties"].get("fam"),
+                    f["properties"]["wd"], f["properties"]["wn"])
+                   for f in out if f["properties"].get("pat")})
     print(json.dumps({
         "features": len(out),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
+        "patterns": ["%s (%s) %s -> %s" % p for p in pats],
         "replaced_building_ids": [TOWER_ID],
         "replaced_parts_by_wall_colour": PART_WD,
         "provenance": {

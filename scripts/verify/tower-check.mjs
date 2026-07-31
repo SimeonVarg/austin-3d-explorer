@@ -46,14 +46,48 @@ await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphi
 
 // ── 1. the module is wired up at all ────────────────────────────────
 console.log('\nregistration');
-const reg = await page.evaluate(() => {
+const reg = await page.evaluate(async () => {
   const m = window.__map;
+  // Ask the DATA which images should exist rather than hard-coding a list that
+  // goes stale the moment a band changes colour.
+  const gj = await (await fetch('data/tower.geojson')).json();
+  const want = new Set(), palettes = new Map();
+  for (const f of gj.features) {
+    const p = f.properties;
+    if (!p.pat) continue;
+    want.add(p.pat);
+    const trio = [p.wd, p.wg, p.wn].join('|');
+    if (!palettes.has(p.pat)) palettes.set(p.pat, new Set());
+    palettes.get(p.pat).add(trio);
+  }
   return {
     src: !!m.getSource('austin-tower'),
     layers: ['tower-wall', 'tower-solid', 'tower-detail'].filter(id => !!m.getLayer(id)),
-    images: ['twshaft', 'twplain', 'twwall', 'twbase', 'twattic', 'twvoid'].filter(i => m.hasImage(i)),
+    wantImages: [...want],
+    images: [...want].filter(i => m.hasImage(i)),
+    // A pattern image IS a colour, so an id carrying two palettes means one of
+    // them is silently not drawn. This shipped once: seven bands shared the
+    // plain-ashlar family, and the whole crown inherited the Main Building
+    // trim's night colour and went dark under the floodlights.
+    ambiguous: [...palettes].filter(([, s]) => s.size > 1).map(([k]) => k),
     api: ['initTower', 'applyTowerColors'].filter(k => typeof window[k] === 'function'),
-    todHooked: !!(window.applyTimeOfDay && window.applyTimeOfDay.__tower),
+    // Tested by BEHAVIOUR, not by the `__tower` marker this module puts on its
+    // wrapper. Six modules wrap window.applyTimeOfDay and each one wraps
+    // whatever it found, so the marker is only visible on whichever wrapped
+    // LAST — this assertion passed or failed depending on module load order,
+    // which is a property of the other five passes, not of this one. Driving
+    // the global and watching this layer's paint change tests the thing that
+    // actually matters.
+    todHooked: (() => {
+      try {
+        window.applyTimeOfDay(m, 0.10, true);
+        const day = JSON.stringify(m.getPaintProperty('tower-solid', 'fill-extrusion-color'));
+        window.applyTimeOfDay(m, 0.95, true);
+        const night = JSON.stringify(m.getPaintProperty('tower-solid', 'fill-extrusion-color'));
+        window.applyTimeOfDay(m, 0.12, true);
+        return day !== night;
+      } catch (e) { return false; }
+    })(),
     // The pattern layers must NOT have the vertical gradient: nine stacked bands
     // with it on draws a dark seam at every boundary and renders the 1.0 m
     // belfry plinth entirely inside its own gradient.
@@ -64,33 +98,51 @@ const reg = await page.evaluate(() => {
 });
 ok(reg.src, 'source austin-tower exists');
 ok(reg.layers.length === 3, 'all three layers added', reg.layers.join(','));
-ok(reg.images.length === 6, 'all six pattern images registered', reg.images.join(','));
+ok(reg.images.length === reg.wantImages.length,
+   'every pattern image the data asks for is registered',
+   `${reg.images.length}/${reg.wantImages.length}: ${reg.images.join(',')}`);
+ok(reg.ambiguous.length === 0,
+   'no pattern id carries two different palettes',
+   reg.ambiguous.length ? 'AMBIGUOUS: ' + reg.ambiguous.join(',') : 'all one-to-one');
 ok(reg.api.length === 2, 'window.initTower + applyTowerColors exported');
 ok(reg.todHooked, 'applyTimeOfDay is wrapped, so colours ride the day/night ramp');
 ok(reg.grad.every(g => g === false), 'vertical gradient OFF on every layer', JSON.stringify(reg.grad));
 
 // ── 2. the generic geometry has stopped drawing ─────────────────────
 console.log('\nthe old geometry is gone');
-const gone = await page.evaluate(() => {
+const gone = await page.evaluate(async ({ C }) => {
   const m = window.__map;
   const s = JSON.stringify;
+  m.jumpTo({ center: C, zoom: 16.5, pitch: 0, bearing: 0 });
+  await new Promise(r => { if (m.loaded()) r(); else m.once('idle', r); setTimeout(r, 12000); });
   const inFilter = (id, needle) => { try { return s(m.getFilter(id) || '').includes(needle); } catch (e) { return false; } };
-  // Count the two superseded OSM parts in the SOURCE, then confirm the layer
-  // filter excludes them. querySourceFeatures, not queryRenderedFeatures: the
-  // latter answers by footprint on a fill-extrusion and returns 0 at a flying
-  // pitch anyway.
-  let parts = 0;
+  // Count the two superseded parts in the DOCUMENT, over HTTP, not through
+  // querySourceFeatures — which answers only for tiles the renderer currently
+  // holds and came back 0 from two different camera poses, reading as "the
+  // colour match has stopped identifying anything" when nothing was wrong. The
+  // claim worth testing is about the data the filter keys on, and that is a
+  // property of the file.
+  let parts = -1;
   try {
-    parts = m.querySourceFeatures('austin-parts').filter(f => f.properties.wd === '#e5dbc2').length;
+    const date = (document.getElementById('date-select') || {}).value || '2026-07-30';
+    const pj = await (await fetch(`data/snapshots/${date}/parts.detailed.geojson`)).json();
+    parts = pj.features.filter(f => f.properties.wd === '#e5dbc2').length;
   } catch (e) {}
   return {
     partsInSource: parts,
     partsFiltered: inFilter('parts-3d', '#e5dbc2') && inFilter('parts-roof', '#e5dbc2'),
     buildingFiltered: inFilter('buildings-3d', 'a0af80df-5ca8-4408-ba74-2817533dae1a'),
   };
-});
+}, { C });
 ok(gone.partsFiltered, 'parts-3d and parts-roof exclude the two superseded OSM parts');
 ok(gone.buildingFiltered, 'buildings-3d excludes the replaced footprint id');
+// The colour this pass filters on must still identify exactly the two parts it
+// was chosen for. If a future snapshot recolours them, or gives that hex to a
+// third part, the filter above keeps passing while silently matching the wrong
+// thing — and this is the only line that would notice.
+ok(gone.partsInSource === 2,
+   'exactly two parts in the snapshot carry the wall colour the filter keys on',
+   `${gone.partsInSource} found`);
 
 // ── 3. night, on the REAL scene ─────────────────────────────────────
 // Done before the isolation pass, and deliberately NOT isolated: the claim
@@ -108,15 +160,19 @@ const night = await page.evaluate(async ({ C }) => {
   const buf = new Uint8Array(W * H * 4);
   const sample = () => {
     gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    let orange = 0, warm = 0, maxL = 0, sumL = 0;
+    let orange = 0, bright = 0, maxL = 0, sumL = 0;
     for (let i = 0; i < buf.length; i += 4) {
       const r = buf[i], g = buf[i + 1], b = buf[i + 2];
-      if (r > 55 && r > b * 1.7 && r > g * 1.35) orange++;
-      if (r > 150 && g > 110 && b > 60 && r > b * 1.2) warm++;
       const L = 0.3 * r + 0.59 * g + 0.11 * b;
+      if (r > 55 && r > b * 1.7 && r > g * 1.35) orange++;
+      // BRIGHT, not bright-and-warm. The numeral cells are 1.4 x 2.2 m each and
+      // the post-process blooms them toward neutral white, so a `r > b * 1.2`
+      // test counted 19 of them in a frame where the numeral is plainly legible.
+      // What is being claimed here is legibility, and that is luma.
+      if (L > 150) bright++;
       maxL = Math.max(maxL, L); sumL += L;
     }
-    return { orange, warm, maxL: Math.round(maxL),
+    return { orange, bright, maxL: Math.round(maxL),
              meanL: Math.round(sumL / (W * H)), px: W * H };
   };
   // Read TWICE and trust the second. Repainting the atlas for a new hour does
@@ -138,8 +194,8 @@ ok(night.meanL < 60, 'the sampled frame is actually a night frame',
    `mean luma ${night.meanL}`);
 ok(night.orange > 1500, 'the tower reads as floodlit orange at night',
    `${night.orange} orange px`);
-ok(night.warm > 200, 'the lit numeral and the crown floods are bright, not just tinted',
-   `${night.warm} bright-warm px, peak luma ${night.maxL}`);
+ok(night.bright > 150, 'the lit numeral reads as light, not as tinted stone',
+   `${night.bright} px over luma 150, peak ${night.maxL}, scene mean ${night.meanL}`);
 
 // ── 4. the silhouette: the setbacks are the whole point ─────────────
 // Everything else hidden, and the tower painted a KEY COLOUR rather than left

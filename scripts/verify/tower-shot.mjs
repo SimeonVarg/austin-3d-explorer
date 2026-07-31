@@ -120,7 +120,10 @@ async function run(tag, extraQuery) {
       layers: ['tower-wall', 'tower-solid', 'tower-detail'].filter(has),
       partsFilter: (() => { try { return JSON.stringify(m.getFilter('parts-3d')); } catch (e) { return 'n/a'; } })(),
       buildingsFilter: (() => { try { return JSON.stringify(m.getFilter('buildings-3d')).slice(0, 160); } catch (e) { return 'n/a'; } })(),
-      images: ['twshaft', 'twplain', 'twwall', 'twbase', 'twattic', 'twvoid'].filter(i => m.hasImage(i)),
+      // Asked of the DATA, not a hard-coded list: the bake allocates one image
+      // per (family, palette), so the set grows whenever a band gets its own
+      // colour and a fixed list quietly stops covering it.
+      images: (window.__towerPats || []).filter(i => m.hasImage(i)),
     };
   });
   console.log(tag.toUpperCase() + ' DIAG', JSON.stringify(diag, null, 1));
