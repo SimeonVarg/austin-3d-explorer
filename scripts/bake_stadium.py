@@ -354,20 +354,35 @@ def ray_hit(c, ang, ring):
 
 
 def long_axis(ring):
-    """Angle of the ring's longest diameter. For a football hole that is the axis
-    the field runs along, which is what 'end zone' means."""
+    """Angle of the ring's longest EDGE — the axis the field runs along.
+
+    This used to take the longest DIAGONAL, between any two vertices, and the
+    comment above it confidently called that "the axis the field runs along".
+    It is not. DKR's field hole is a 68.4 x 123.3 m rectangle, so the longest
+    distance between two of its corners is the 141.0 m diagonal at bearing
+    114.4 deg, while the actual long side runs at 85.3 deg. Everything keyed to
+    this angle was therefore rotated by TWENTY-NINE DEGREES: the turf, the end
+    zones, the yard lines, the video board, the Longhorn balcony, the light
+    masts, and — least visibly and most damagingly — the N/S/E/W side
+    assignment, which put the 2008 brick north elevation across the wrong faces
+    of the building.
+
+    Classic case of writing down a rule and never checking it reproduces the one
+    example available. On a rectangle the longest edge is the answer; on any
+    convex ring it is still the right reading of "which way does this thing run".
+    """
     best, bang = -1.0, 0.0
     n = len(ring)
     for i in range(n):
-        for j in range(i + 1, n):
-            dx = ring[j][0] - ring[i][0]
-            dy = ring[j][1] - ring[i][1]
-            d = dx * dx + dy * dy
-            if d > best:
-                best, bang = d, math.atan2(dy, dx)
-    # The longest diameter is found between an arbitrary PAIR, so its direction is
-    # arbitrary too — and the first run labelled the south end "N" for exactly
-    # that reason. Point it north so the side names mean what they say.
+        ax, ay = ring[i]
+        bx, by = ring[(i + 1) % n]
+        d = math.hypot(bx - ax, by - ay)
+        if d > best:
+            best, bang = d, math.atan2(by - ay, bx - ax)
+    # The edge direction is still arbitrary in SIGN — an edge traversed the other
+    # way points 180 deg off, and the first version of this labelled the south
+    # end "N" for exactly that reason. Point it north so the names mean what they
+    # say.
     if math.sin(bang) < 0:
         bang += math.pi
     return bang
@@ -643,8 +658,21 @@ def build(feature, stats):
     # generative.
     ly = sgn * (FIELD_L_M / 2 + 20.0)
     lc = (fx - ly * sa, fy + ly * ca)
+    # Its height must be the height of the SEATING IT IS CLAD ON, plus a little.
+    # A hard-coded deck_height(0.42) put it at 8.2 m — well below the south bowl
+    # around it — so a 65 x 22 m slab sat buried inside the seating, punching out
+    # through the deck and z-fighting with every band it intersected. That is the
+    # "huge block that appears and disappears" — coplanar surfaces flickering as
+    # the camera moves. Measure its own radial position and sit ON the bowl.
+    lang = math.atan2(lc[1] - c[1], lc[0] - c[0])
+    hp, wp = ray_hit(c, lang, hole), ray_hit(c, lang, inner)
+    lt = 0.42
+    if hp and wp:
+        span = math.hypot(wp[0] - hp[0], wp[1] - hp[1])
+        if span > 1e-6:
+            lt = min(0.98, math.hypot(lc[0] - hp[0], lc[1] - hp[1]) / span)
     out.append(feat(rect(lc[0], lc[1], LONGHORN_W_M, LONGHORN_D_M, axis - math.pi / 2),
-                    lat0, {"kind": "logo", "h": round(deck_height(0.42, h), 2),
+                    lat0, {"kind": "logo", "h": round(deck_height(lt, h) + 0.45, 2),
                            "col": BURNT_ORANGE, "name": name}))
     stats["logo"] += 1
 
