@@ -49,12 +49,15 @@ await page.evaluate(async (pose) => {
   if (m.isEasing && m.isEasing()) m.stop();
   m.jumpTo(pose);
 }, POSE);
-await page.waitForTimeout(2500);
-await page.evaluate(() => new Promise(r => {
+// Wait for the CONDITION, not for a clock. `m.loaded()` can return true while
+// the source is still tiling in its worker, so a fixed settle here is a coin
+// toss on a busy machine — and when it loses, querySourceFeatures returns an
+// empty array and three assertions below pass VACUOUSLY against nothing.
+await page.waitForFunction(() => {
   const m = window.__map;
-  if (m.loaded()) return r();
-  m.once('idle', r); setTimeout(r, 15000);
-}));
+  const f = m.querySourceFeatures('austin-westcampus') || [];
+  return f.length > 40 && f.some(x => x.properties && x.properties.kind === 'wall');
+}, null, { timeout: 60000 }).catch(() => console.log('WARN: westcampus source never tiled at the pose'));
 await page.waitForTimeout(1500);
 
 const d = await page.evaluate(async () => {

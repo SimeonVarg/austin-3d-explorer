@@ -114,6 +114,14 @@
   // replaced ids, so applyWestcampusSettings() can put the generic prisms back.
   // Without that, turning the pass off leaves ten holes in the city rather than
   // ten plain towers, and the A/B measures the wrong thing.
+  //
+  // This snapshot is order-dependent: addStadiumLayers() subtracts DKR's id from
+  // the same filters after its own fetch resolves, so if that landed AFTER this
+  // did, restoring would also un-hide DKR's prism. In practice the stadium wins
+  // the race (its clause is already present when we snapshot — the perf script
+  // echoes the filter next to every timing, so a run where that stopped being
+  // true would show up rather than quietly skew the numbers). It only affects
+  // scripts/verify/westcampus-perf.mjs; nothing on the site calls this.
   const _priorFilter = {};
 
   window.initWestcampus = async function initWestcampus(map) {
