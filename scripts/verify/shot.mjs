@@ -48,12 +48,33 @@ await page.goto(BASE + (BASE.includes('?') ? '&' : '?') + 'intro=0',
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 // The scene is several MB of GeoJSON across four sources and each one tiles in
 // a worker. Wait for the sources, not for a clock.
+//
+// The list below MUST include the self-booting building passes. It used to be
+// the three core sources only, and that is not enough: every pass module polls
+// for the map, fetches its own document and adds its source some seconds after
+// the three core ones are done, so a shot taken at that moment is a real render
+// of a scene that is missing whole buildings. A `g2` FAC shot in the
+// building-pass-defect session came back with no UT Tower and no roofscape at
+// all and was briefly read as a regression that the fix had caused.
+//
+// `!m.getSource(s)` is deliberately treated as "fine" — a pass whose module is
+// disabled must not hang the run — so this is a wait, not an assertion. That is
+// why the sceneReady() count in zfight.mjs exists as well.
 await page.waitForFunction(() => {
   const m = window.__map;
   if (!m || !m.getSource('austin-buildings')) return false;
-  return ['austin-buildings', 'austin-ground', 'austin-trees']
+  return ['austin-buildings', 'austin-ground', 'austin-trees',
+          'austin-roofscape', 'austin-tower', 'austin-westcampus',
+          'austin-drag', 'austin-arts', 'austin-moody', 'austin-stadium']
     .every(s => !m.getSource(s) || m.isSourceLoaded(s));
 }, null, { timeout: 90000 }).catch(() => console.log('WARN: sources not all loaded'));
+// ...and the sources have to EXIST before "is it loaded" means anything. A
+// module that has not added its source yet passes the test above vacuously.
+await page.waitForFunction(() => {
+  const m = window.__map;
+  return ['austin-roofscape', 'austin-tower', 'austin-westcampus',
+          'austin-drag', 'austin-arts'].filter(s => m.getSource(s)).length >= 5;
+}, null, { timeout: 60000 }).catch(() => console.log('WARN: some pass sources never appeared'));
 await page.waitForTimeout(4000);
 // The graphics auto-detect probe rewrites every setting 11 s after load, which
 // would silently change the look halfway through a shot list.

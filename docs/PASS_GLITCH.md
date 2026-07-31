@@ -277,6 +277,30 @@ carries a building id.
   move. It also excludes pixels whose 3×3 neighbourhood is not flat: a z-fight is
   a *surface* flickering, and a one-pixel edge straddling two colours flips for
   ordinary rasterisation reasons.
+- **`shot.mjs` waited for three sources and there are ten.** The README's
+  cold-server section describes this and the fix was still missing: the wait list
+  was `austin-buildings`, `austin-ground`, `austin-trees`, and every building pass
+  self-boots, polls for the map and adds its own source *seconds later*. A shot
+  taken in that window is a real render of a scene missing whole buildings. It
+  bit this session directly and in the most misleading possible way: the "after"
+  screenshot of the Flawn Academic Center came back with **no roofscape and no UT
+  Tower**, which reads exactly like "the fix deleted the roof". It had not — the
+  same pose re-run with the sources waited for is correct. `shot.mjs` now waits
+  for all ten, and additionally waits for the pass sources to *exist*, because a
+  module that has not added its source yet passes an `isSourceLoaded` test
+  vacuously.
+- **The same phantom scored as a defect in `zfight.mjs`.** A drag-corridor pose
+  returned the ground plane, the building shadows and no extrusions at all, and
+  the loading noise in it clustered as flicker. `map.loaded()` and `idle` are both
+  true on that frame, so neither is a guard. The script now counts
+  `querySourceFeatures('austin-buildings')` — `queryRenderedFeatures` returns 0
+  for fill-extrusion at a flying pitch — gives a cold pose three more settles, and
+  prints `INVALID` with the count rather than a number nobody should believe.
+  **A scan of an empty scene is not a clean scene**, and a false negative here is
+  worse than a false positive: it says a defect is fixed when nothing was tested.
+- **A stale mask PNG reads exactly like a fresh one.** `zfight.mjs` now deletes
+  the mask for a pose that comes back clean. Its own first (broken) run left a
+  mask on disk that was briefly read as a current result from the corrected run.
 - **`isolate.mjs` can silently fail to isolate.** One run in this session
   returned a frame with every building still visible under `KEEP=['roofscape']`.
   `peel.mjs` re-reads `visibility` in a *later* JS turn and prints which layers
