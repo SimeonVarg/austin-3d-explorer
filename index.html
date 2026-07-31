@@ -73,6 +73,15 @@
   <script src="js/capitol.js"></script>
   <script src="js/union24.js"></script>
   <script src="js/props.js"></script>
+  <!-- Both of these self-boot once loaded; app.js never calls them. Without
+       these two lines the modules simply never run, and because _harness.html
+       already had js/outer.js, the VERIFICATION HARNESS rendered the outer ring
+       while the live site did not — the exact divergence _harness.html's own
+       comment warns about. js/roofs.js was in neither file, so the roofscape's
+       12,058 features were dead weight on both. Load after facades.js: outer.js
+       waits on quantiseOuterFacades before it will add its layers. -->
+  <script src="js/roofs.js"></script>
+  <script src="js/outer.js"></script>
   <script src="js/shadows.js"></script>
   <script src="js/timeofday.js"></script>
   <script src="js/signs.js"></script>

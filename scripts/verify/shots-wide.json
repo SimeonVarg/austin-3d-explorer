@@ -1,0 +1,4 @@
+[
+ {"name":"W1-downtown","p":0.42,"gfx":"cinematic","center":[-97.7430,30.2880],"zoom":14.4,"pitch":72,"bearing":195},
+ {"name":"W2-roofs","p":0.30,"gfx":"cinematic","center":[-97.7440,30.2860],"zoom":16.6,"pitch":55,"bearing":140}
+]

@@ -85,13 +85,18 @@
   <script src="js/controls.js"></script>
   <script src="js/date-switcher.js"></script>
   <script src="js/diff-tour.js"></script>
-  <!-- The outer ring. It bootstraps itself off window.__map, so the position in
-       this list does not matter; anywhere before </body> works.
-       *** index.html NEEDS THE SAME LINE. *** It is not there yet — js/app.js
-       and index.html are owned by another pass — so until it is pasted, this
-       harness renders the ring and the live site does not. See
-       docs/OUTER_RING.md. (While you are here: union24.js is in index.html and
-       NOT in this list, which is the same divergence one level down.) -->
+  <!-- These four bootstrap themselves off window.__map, so position in this list
+       does not matter; anywhere before </body> works.
+
+       KEEP THIS LIST IDENTICAL TO index.html. Every entry below was, at some
+       point, in exactly one of the two files, and a harness that loads a
+       different set of modules than the site measures a scene nobody can visit:
+       the outer ring rendered here and not on the site, union24 rendered on the
+       site and not here, and js/roofs.js — the roofscape's 12,058 features —
+       was in neither, so it never ran anywhere at all. A verification harness
+       is only worth its runtime if it loads what the site loads. -->
+  <script src="js/roofs.js"></script>
+  <script src="js/union24.js"></script>
   <script src="js/outer.js"></script>
   <script src="js/app.js"></script>
 </body>
