@@ -186,6 +186,11 @@
   // its sky, shadows and signage), and that failure mode is invisible on screen.
   function step(name, fn) {
     try { fn(); } catch (e) { console.error(`[buildScene] ${name} failed:`, e); }
+    // The load screen's progress is these calls and nothing else — no timer, no
+    // fake creep. A stage that throws still reports, because the user is waiting
+    // on the stage AFTER it and a bar frozen at 40% is a worse lie than one that
+    // moves on. js/loader.js ignores names it does not know.
+    try { if (window.loaderStage) window.loaderStage(name); } catch (e) {}
   }
 
   function buildScene() {
@@ -715,6 +720,9 @@
     const reveal = () => {
       if (revealed) return;
       revealed = true;
+      // Fill the skyline before the veil goes, so the last thing seen is the
+      // city fully lit rather than a bar stranded at 80%.
+      try { if (window.loaderDone) window.loaderDone(); } catch (e) {}
       const veil = document.getElementById('veil');
       if (veil) {
         veil.classList.add('lift');

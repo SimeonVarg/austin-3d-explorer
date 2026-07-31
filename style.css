@@ -16,6 +16,91 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
   color:#f5dfa0;opacity:.85}
 @keyframes veil-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
+/* ── The load screen: a skyline that lights up as the city is built ───
+   EVERY MOVING THING HERE IS A COMPOSITOR PROPERTY — transform or opacity —
+   and that is not a style preference, it is the whole design constraint. The
+   wait is ~20 s and almost none of it is network: all 44 requests and 2.2 MB
+   land by 2.5 s, and the rest is the main thread flat out parsing ~22 MB of
+   GeoJSON and tiling 12,000 trees, 7,625 outer buildings and 12,058 roof
+   features. Animate on that thread and the screen freezes solid for seconds at
+   a time, which reads as a crashed page — worse than showing nothing. Anything
+   using width, height, top or filter transitions belongs nowhere near this
+   block. See js/loader.js. */
+/* Stacked, not absolutely positioned. The first cut floated the footer at
+   bottom:0 over a skyline that also sat at the bottom, so the title and the
+   progress rail printed straight across the buildings. */
+#veil-load{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+  align-items:center;overflow:hidden;padding-bottom:8vh}
+
+/* Sunrise behind the skyline. Breathes on transform+opacity only. */
+#vl-glow{position:absolute;left:50%;bottom:16%;width:150vmax;height:150vmax;transform:translate(-50%,50%);
+  background:radial-gradient(circle at 50% 50%,rgba(245,166,35,.30) 0%,rgba(181,82,46,.16) 26%,
+    rgba(181,82,46,0) 58%);animation:vl-breathe 7.5s ease-in-out infinite;pointer-events:none}
+@keyframes vl-breathe{0%,100%{opacity:.72;transform:translate(-50%,50%) scale(1)}
+  50%{opacity:1;transform:translate(-50%,50%) scale(1.07)}}
+
+/* The skyline. One bar per build stage, in the order app.js runs them. */
+#vl-city{position:relative;display:flex;align-items:flex-end;gap:clamp(3px,.9vw,9px);
+  width:min(78vw,760px);height:min(34vh,240px)}
+/* The buildings light in sequence on a CSS stagger — --i * STEP — rather than
+   one per build stage. Measured reason: all 26 stages fire within 276 ms, so
+   stage-driven lighting flashes the whole skyline on at once and then nothing
+   moves for the seven seconds that are the actual wait. A keyframe with a delay
+   is also the only thing that keeps running while the main thread is blocked. */
+.vl-bar{position:relative;flex:1 1 0;height:var(--h);border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,#2b1a0e 0%,#190f06 100%);
+  transform:scaleY(.86);transform-origin:50% 100%;opacity:.5}
+#veil-load.building .vl-bar{animation:vl-rise .9s cubic-bezier(.16,1,.3,1) both;
+  animation-delay:calc(var(--i) * .42s)}
+@keyframes vl-rise{from{transform:scaleY(.86);opacity:.5}to{transform:scaleY(1);opacity:1}}
+/* The lit face, faded in over the silhouette rather than swapped for it. */
+.vl-bar u{position:absolute;inset:0;border-radius:3px 3px 0 0;opacity:0;
+  background:linear-gradient(180deg,#f5a623 0%,#c9702a 45%,#7d3a1c 100%);
+  box-shadow:0 0 22px rgba(245,166,35,.42),0 0 60px rgba(245,166,35,.18)}
+#veil-load.building .vl-bar u{animation:vl-lit 1s ease both;animation-delay:calc(var(--i) * .42s)}
+@keyframes vl-lit{from{opacity:0}to{opacity:.92}}
+/* Windows come up just behind the face, then shimmer for as long as it takes. */
+.vl-bar s{position:absolute;inset:14% 16% 6%;display:flex;flex-wrap:wrap;align-content:flex-start;
+  gap:11% 16%;opacity:0;text-decoration:none}
+#veil-load.building .vl-bar s{animation:vl-lit 1s ease both,vl-flicker 3.4s ease-in-out infinite;
+  animation-delay:calc(var(--i) * .42s + .16s),calc(var(--i) * .42s + 1.1s)}
+.vl-bar s i{width:42%;height:5%;min-height:2px;background:#ffe6b0;border-radius:1px;opacity:.85}
+@keyframes vl-flicker{0%,100%{opacity:.92}42%{opacity:.62}68%{opacity:1}}
+
+/* Ground line the skyline stands on. */
+#vl-ground{position:relative;width:100vw;height:1px;flex:none;
+  background:linear-gradient(90deg,rgba(245,166,35,0),rgba(245,166,35,.55) 22%,
+    rgba(245,166,35,.55) 78%,rgba(245,166,35,0))}
+
+#vl-foot{position:relative;display:flex;flex-direction:column;align-items:center;
+  gap:12px;margin-top:30px;padding:0 20px;animation:veil-in 1s ease}
+#vl-title{font-size:12px;font-weight:600;letter-spacing:.34em;padding-left:.34em;text-transform:uppercase;
+  color:#f5dfa0;opacity:.9}
+#vl-rail{position:relative;width:min(62vw,330px);height:2px;border-radius:2px;
+  background:rgba(245,223,160,.16);overflow:hidden}
+#vl-fill{position:absolute;inset:0;transform:scaleX(0);transform-origin:0 50%;border-radius:2px;
+  background:linear-gradient(90deg,#b5522e,#f5a623);transition:transform .55s cubic-bezier(.16,1,.3,1)}
+#vl-row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  width:min(62vw,330px);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase}
+#vl-status{color:#e8cf9a;opacity:.72}
+#vl-pct{color:#f5a623;opacity:.9;font-variant-numeric:tabular-nums}
+/* The last beat: whatever has not lit yet lights NOW, and the whole skyline
+   flares, so the final frame is a finished city rather than a half-built one. */
+#veil-load.vl-done .vl-bar{animation:none;transform:scaleY(1);opacity:1}
+#veil-load.vl-done .vl-bar u{animation:none;opacity:1}
+#veil-load.vl-done .vl-bar s{animation:vl-flicker 3.4s ease-in-out infinite;opacity:1}
+#veil-load.vl-done #vl-glow{animation:none;opacity:1;transform:translate(-50%,50%) scale(1.16)}
+
+@media (max-width:560px){
+  #vl-city{width:88vw;height:24vh;gap:3px}
+  #vl-rail,#vl-row{width:78vw}
+}
+@media (prefers-reduced-motion:reduce){
+  #vl-glow,#veil-load.building .vl-bar,#veil-load.building .vl-bar u,
+  #veil-load.building .vl-bar s{animation-duration:.01ms;animation-delay:0s}
+  .vl-bar,.vl-bar u,.vl-bar s,#vl-fill{transition-duration:.01ms}
+}
+
 /* ── ?clip=1: cinematic capture — scene only. Attribution stays (license). */
 .clip #hud,.clip #controls-hint,.clip #date-panel,.clip #tod-panel,.clip #joystick-zone,
 .clip #debug-panel,.clip #diff-banner,.clip #gfx-button,.clip #gfx-panel,.clip #gfx-toast{display:none!important}
