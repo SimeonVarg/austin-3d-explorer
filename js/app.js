@@ -399,10 +399,48 @@
   // not a pale lid: the first cut left the deck at luma ~70 against a city at
   // ~30 and DKR glowed as the brightest thing on the east side of campus, which
   // is the inverted-silhouette failure night-silhouette.mjs exists to catch.
+  //
+  // The A/B pairs are the ROW STRIPE. The aerial's deck has a luma SD of 51.6
+  // and a p10/p90 of 79/228 — it is not a silver surface, it is a hard fine
+  // stripe of lit plank against shadowed riser, and painting its MEAN is why
+  // v1's bowl read as a smooth dish. bake_stadium.py now emits 44 stepped bands
+  // instead of 12 so the geometry itself supplies the risers; these alternating
+  // tones keep that stripe alive at 200-900 m, where a 0.74 m step is well under
+  // one pixel and the geometry alone would average back to flat.
+  //
+  // `orange` is the chairback seating that fills the top third of the lower bowl
+  // in every interior photograph. Entered COOL for the same reason as the rest:
+  // a top face that renders at R/B 1.85 from an input of 1.18 turns a true burnt
+  // orange into traffic cone.
+  // `stain` is the measured one: clean aluminium reads luma 149.5 in the aerial
+  // and weathered aluminium 122.9, in blotches two to eight metres across, and
+  // that mottling is a large part of why the real deck never looks like a
+  // painted surface. `void` is the black slot under each deck's overhang — the
+  // two dark bands that, more than anything else, are what makes a bowl read as
+  // a bowl from above.
+  // These are not guesses. The first cut of them was, and it measured wrong: an
+  // isolated nadir render sampled at R/B 1.21-1.33 and luma 162-176 across the
+  // three decks, against the aerial's 1.09 and 149.5. Every deck was coming out
+  // at or beyond the warmth of *stained* aluminium, and too bright. The gain
+  // from entered to rendered came out at R/B x1.46, so these are entered at
+  // R x0.94 / B x1.06 and 9% darker to land on the photograph.
+  //
+  // The A/B split is also wider than the first cut. The aerial's deck has a luma
+  // SD of 51.6; the first render managed 35-42, so the stripe was still being
+  // averaged away.
   const SEAT_COL = {
-    lower:     ['#b4bdca', '#c2c1be', '#1c1f27'],   // day / golden / night
-    concourse: ['#949ca7', '#9f9e9a', '#15181e'],   // in shade under the deck
-    upper:     ['#c4cedc', '#d0d0cd', '#20242c'],
+    lower:     ['#9aacc3', '#b0aea9', '#1c1f27'],   // day / golden / night
+    lowerB:    ['#8395ab', '#9c9a96', '#171a21'],
+    mid:       ['#a1b2c8', '#b6b4af', '#1e212a'],
+    midB:      ['#899ab0', '#a2a09b', '#191c24'],
+    upper:     ['#a7bbd4', '#bcbab5', '#20242c'],
+    upperB:    ['#8fa3ba', '#a8a6a1', '#1a1e26'],
+    stain:     ['#8b8d8d', '#9a9083', '#191a1e'],   // measured: luma 122.9, R/B 1.32
+    stainB:    ['#808282', '#8d8478', '#15161a'],
+    orange:    ['#91706b', '#a3785f', '#211a17'],   // club chairbacks
+    orangeB:   ['#82645f', '#946b55', '#1c1613'],
+    void:      ['#41454f', '#3f3c36', '#080a0d'],   // the slot under an overhang
+    concourse: ['#849aa7', '#9f9e9a', '#15181e'],   // in shade under the deck
   };
   // The parapet ring reads as the top of the bowl from every angle. Reusing the
   // building's baked roof colour (#756f66) put a wide chocolate-brown band right
@@ -423,6 +461,17 @@
     e.push(rampAt(SEAT_COL.lower, p));
     return e;
   };
+  // Everything that is not wall or seating — turf, yard paint, the video board,
+  // the Longhorn balcony, the ramp towers, the light masts, the aisle stairs —
+  // is seven different materials that must all ride the same day ramp as the
+  // rest of the scene. Rather than seven layers, the bake writes a day/golden/
+  // night trio onto each feature and this blends between two of them. The input
+  // to `interpolate` is a plain number, which is a legal expression: it just
+  // evaluates the blend once per feature instead of per zoom level.
+  const detailColourAt = p => (p <= 0.5
+    ? ['interpolate', ['linear'], p / 0.5, 0, ['get', 'cd'], 1, ['get', 'cg']]
+    : ['interpolate', ['linear'], (p - 0.5) / 0.5, 0, ['get', 'cg'], 1, ['get', 'cn']]);
+  const DETAIL_KINDS = ['turf', 'paint', 'board', 'logo', 'ramp', 'mast', 'aisle'];
 
   window.addStadiumLayers = function addStadiumLayers() {
     if (map.getSource('austin-stadium')) return;
@@ -509,12 +558,31 @@
           },
         }, anchor);
       }
+      // Turf, yard paint, the video board, the Longhorn balcony, the ramp
+      // towers, the light masts and the aisle stairs — one layer, seven
+      // materials, colour carried per feature. The vertical gradient is off:
+      // these are stacked on and around the seating, and a gradient that
+      // restarts per extrusion would put a dark line under every one of them.
+      if (!map.getLayer('stadium-detail')) {
+        map.addLayer({
+          id:'stadium-detail', type:'fill-extrusion', source:'austin-stadium', minzoom:14,
+          filter:['in', ['get','kind'], ['literal', DETAIL_KINDS]],
+          paint:{
+            'fill-extrusion-color': detailColourAt(window.__todCurrentP != null ? window.__todCurrentP : 0.5),
+            'fill-extrusion-height':['get','h'],
+            'fill-extrusion-base':['coalesce', ['get','base'], 0],
+            'fill-extrusion-opacity':1.0,
+            'fill-extrusion-vertical-gradient':false,
+          },
+        }, anchor);
+      }
     }).catch(() => {});
   };
   window.applyStadiumColors = function applyStadiumColors(p) {
     if (!map || !map.getLayer || !map.getLayer('stadium-seating')) return;
     try { map.setPaintProperty('stadium-seating', 'fill-extrusion-color', seatColourAt(p)); } catch (e) {}
     try { map.setPaintProperty('stadium-wall-roof', 'fill-extrusion-color', rampAt(RIM_COL, p)); } catch (e) {}
+    try { map.setPaintProperty('stadium-detail', 'fill-extrusion-color', detailColourAt(p)); } catch (e) {}
   };
 
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──

@@ -1,0 +1,86 @@
+[
+ {
+  "name": "T0-nadir-neutral",
+  "p": 0.04,
+  "gfx": "cinematic",
+  "center": [
+   -97.732614,
+   30.283821
+  ],
+  "zoom": 16.55,
+  "pitch": 0,
+  "bearing": 0
+ },
+ {
+  "name": "T1-nadir",
+  "p": 0.3,
+  "gfx": "cinematic",
+  "center": [
+   -97.732614,
+   30.283821
+  ],
+  "zoom": 16.55,
+  "pitch": 0,
+  "bearing": 0
+ },
+ {
+  "name": "S1-south-low",
+  "p": 0.3,
+  "gfx": "cinematic",
+  "center": [
+   -97.732614,
+   30.28315
+  ],
+  "zoom": 17.25,
+  "pitch": 72,
+  "bearing": 0
+ },
+ {
+  "name": "W1-west-close",
+  "p": 0.3,
+  "gfx": "cinematic",
+  "center": [
+   -97.7335,
+   30.283821
+  ],
+  "zoom": 17.35,
+  "pitch": 70,
+  "bearing": 90
+ },
+ {
+  "name": "N1-north-face",
+  "p": 0.3,
+  "gfx": "cinematic",
+  "center": [
+   -97.732614,
+   30.28465
+  ],
+  "zoom": 17.3,
+  "pitch": 72,
+  "bearing": 180
+ },
+ {
+  "name": "E1-east-air",
+  "p": 0.3,
+  "gfx": "cinematic",
+  "center": [
+   -97.7316,
+   30.2835
+  ],
+  "zoom": 16.9,
+  "pitch": 58,
+  "bearing": 290
+ },
+ {
+  "name": "X1-night",
+  "p": 0.92,
+  "gfx": "cinematic",
+  "center": [
+   -97.732614,
+   30.28315
+  ],
+  "zoom": 17.25,
+  "pitch": 72,
+  "bearing": 0
+ }
+]
