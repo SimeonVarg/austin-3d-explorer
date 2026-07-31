@@ -1,0 +1,141 @@
+[
+ {
+  "site": "lbj",
+  "file": "cited/12_LBJ_Library_March_2024_01_jpg.jpg",
+  "commons": "File:LBJ Library March 2024 01.jpg",
+  "license": "CC BY-SA 4.0",
+  "credit": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Found5dollar&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"U",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/LBJ_Library_March_2024_01.jpg/1920px-LBJ_Library_March_2024_01.jpg"
+ },
+ {
+  "site": "lbj",
+  "file": "aerial_lbj_z20.jpg",
+  "src": "Esri World Imagery",
+  "z": 20,
+  "tiles": 25,
+  "centre_tile": [
+   239630,
+   431653
+  ],
+  "centre_frac": [
+   0.8111359999747947,
+   0.5035083557013422
+  ]
+ },
+ {
+  "site": "kelly",
+  "file": "cited/04_Austin_Building_East_Elevation_2018_jpg.jpg",
+  "commons": "File:Austin Building East Elevation 2018.jpg",
+  "license": "CC BY 4.0",
+  "credit": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200pa\" class=\"extiw\" title=\"en:User:Nv8200pa\">Larry D. Moore</a>",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Austin_Building_East_Elevation_2018.jpg/1920px-Austin_Building_East_Elevation_2018.jpg"
+ },
+ {
+  "site": "kelly",
+  "file": "cited/07_Austin_Building_Southeast_Corner_2018_jpg.jpg",
+  "commons": "File:Austin Building Southeast Corner 2018.jpg",
+  "license": "CC BY 4.0",
+  "credit": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200pa\" class=\"extiw\" title=\"en:User:Nv8200pa\">Larry D. Moore</a>",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Austin_Building_Southeast_Corner_2018.jpg/1920px-Austin_Building_Southeast_Corner_2018.jpg"
+ },
+ {
+  "site": "kelly",
+  "file": "cited/11_Blanton_Museum_grounds_2025_jpg.jpg",
+  "commons": "File:Blanton Museum grounds 2025.jpg",
+  "license": "CC BY 4.0",
+  "credit": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Stevensaylor&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"U",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Blanton_Museum_grounds_2025.jpg/1920px-Blanton_Museum_grounds_2025.jpg"
+ },
+ {
+  "site": "kelly",
+  "file": "cited/12_Blanton_Museum_of_Art___UT_Austin__54984937578__jpg.jpg",
+  "commons": "File:Blanton Museum of Art - UT Austin (54984937578).jpg",
+  "license": "CC BY 4.0",
+  "credit": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/83136374@N05\">ajay_suresh</a>",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Blanton_Museum_of_Art_-_UT_Austin_%2854984937578%29.jpg/1920px-Blanton_Museum_of_Art_-_UT_Austin_%2854984937578%29.jpg"
+ },
+ {
+  "site": "kelly",
+  "file": "aerial_kelly_z20.jpg",
+  "src": "Esri World Imagery",
+  "z": 20,
+  "tiles": 25,
+  "centre_tile": [
+   239605,
+   431667
+  ],
+  "centre_frac": [
+   0.9657102222263347,
+   0.7375516180181876
+  ]
+ },
+ {
+  "site": "blanton",
+  "file": "aerial_blanton_z20.jpg",
+  "src": "Esri World Imagery",
+  "z": 20,
+  "tiles": 25,
+  "centre_tile": [
+   239607,
+   431670
+  ],
+  "centre_frac": [
+   0.13079466667841189,
+   0.09858964470913634
+  ]
+ },
+ {
+  "site": "ransom",
+  "file": "cited/09_Harry_ransom_center_2012_jpg.jpg",
+  "commons": "File:Harry ransom center 2012.jpg",
+  "license": "CC BY 4.0",
+  "credit": "<a href=\"https://en.wikipedia.org/wiki/User:Nv8200p\" class=\"extiw\" title=\"w:User:Nv8200p\">Larry D. Moore</a>",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Harry_ransom_center_2012.jpg"
+ },
+ {
+  "site": "ransom",
+  "file": "aerial_ransom_z20.jpg",
+  "src": "Esri World Imagery",
+  "z": 20,
+  "tiles": 25,
+  "centre_tile": [
+   239596,
+   431658
+  ],
+  "centre_frac": [
+   0.033365333336405456,
+   0.7654534973553382
+  ]
+ },
+ {
+  "site": "bass",
+  "file": "cited/00_Bass_Concert_Hall___UT_Austin__54985000414__jpg.jpg",
+  "commons": "File:Bass Concert Hall - UT Austin (54985000414).jpg",
+  "license": "CC BY 4.0",
+  "credit": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/83136374@N05\">ajay_suresh</a>",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Bass_Concert_Hall_-_UT_Austin_%2854985000414%29.jpg/1920px-Bass_Concert_Hall_-_UT_Austin_%2854985000414%29.jpg"
+ },
+ {
+  "site": "bass",
+  "file": "cited/06_LBJ_Library_and_Museum_02_jpg.jpg",
+  "commons": "File:LBJ Library and Museum 02.jpg",
+  "license": "CC BY-SA 4.0",
+  "credit": "<a href=\"//commons.wikimedia.org/wiki/User:Farragutful\" title=\"User:Farragutful\">Farragutful</a>",
+  "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/LBJ_Library_and_Museum_02.jpg/1920px-LBJ_Library_and_Museum_02.jpg"
+ },
+ {
+  "site": "bass",
+  "file": "aerial_bass_z20.jpg",
+  "src": "Esri World Imagery",
+  "z": 20,
+  "tiles": 25,
+  "centre_tile": [
+   239625,
+   431652
+  ],
+  "centre_frac": [
+   0.743018666660646,
+   0.15427817520685494
+  ]
+ }
+]

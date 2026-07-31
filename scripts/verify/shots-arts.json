@@ -1,0 +1,12 @@
+[
+  {"name":"blanton-day",   "p":0.12, "center":[-97.73742,30.28110], "zoom":17.2, "pitch":60, "bearing":40},
+  {"name":"blanton-golden","p":0.50, "center":[-97.73742,30.28110], "zoom":17.2, "pitch":60, "bearing":40},
+  {"name":"petals-day",    "p":0.12, "center":[-97.73775,30.28105], "zoom":17.9, "pitch":56, "bearing":25},
+  {"name":"kelly-day",     "p":0.12, "center":[-97.73782,30.28168], "zoom":18.0, "pitch":58, "bearing":330},
+  {"name":"ransom-day",    "p":0.12, "center":[-97.74123,30.28434], "zoom":17.1, "pitch":62, "bearing":125},
+  {"name":"ransom-night",  "p":0.88, "center":[-97.74123,30.28434], "zoom":17.1, "pitch":62, "bearing":125},
+  {"name":"bass-day",      "p":0.12, "center":[-97.73115,30.28612], "zoom":17.6, "pitch":56, "bearing":350},
+  {"name":"bass-night",    "p":0.88, "center":[-97.73115,30.28612], "zoom":17.6, "pitch":56, "bearing":350},
+  {"name":"lbj-day",       "p":0.12, "center":[-97.72960,30.28572], "zoom":17.3, "pitch":60, "bearing":230},
+  {"name":"lbj-golden",    "p":0.50, "center":[-97.72960,30.28572], "zoom":17.3, "pitch":60, "bearing":230}
+]
