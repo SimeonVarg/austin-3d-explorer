@@ -82,6 +82,17 @@
        waits on quantiseOuterFacades before it will add its layers. -->
   <script src="js/roofs.js"></script>
   <script src="js/outer.js"></script>
+  <!-- The five parallel building passes (docs/FIVE_BUILDING_PASSES.md). These tags are
+       committed AHEAD of the code so that no pass has to edit this file — six sessions
+       editing one script list is a guaranteed conflict, and the opposite failure is the
+       one three lines above. Each file is an empty IIFE until its pass lands. Loaded
+       after facades.js and outer.js for the same reason outer.js is: they self-boot and
+       wait on the facade atlas. KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/tower.js"></script>
+  <script src="js/westcampus.js"></script>
+  <script src="js/drag.js"></script>
+  <script src="js/arts.js"></script>
+  <script src="js/moody.js"></script>
   <script src="js/shadows.js"></script>
   <script src="js/timeofday.js"></script>
   <script src="js/signs.js"></script>
