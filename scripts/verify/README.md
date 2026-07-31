@@ -196,3 +196,26 @@ table then lags a full step and reads as a reporting artifact.
   (`window.cancelGraphicsAutoDetect()`). It fires 11 s after load and rewrites
   every setting; left running it lands mid-test and reads as the render-scale
   lever being broken.
+
+## A cold server will hand you a phantom bug
+
+Symptom: a large GeoJSON layer — the stadium is the worst offender at ~300 KB
+and 523 features — is simply ABSENT from the frame, leaving a flat hole at its
+own footprint while the city around it looks completely normal. It renders fine
+from other poses, which makes it look like a view-dependent rendering defect.
+
+It is not. `shot.mjs` waits a fixed time after `jumpTo`, and that is not enough
+to fetch, tile and paint a large source when the HTTP server has just started
+and nothing is in the browser or OS cache. `isolate.mjs` waits on the map's own
+`idle` event instead, which is why it will happily draw the same layer at the
+same pose and appear to contradict the screenshot.
+
+This cost three wrong diagnoses in one session — "the camera is aimed wrong",
+then "the layer is being occluded", then "it is a real defect at this pose".
+The discriminator is cheap: **run the same pose twice.** If the second run shows
+it, the server was cold. `whoccludes.mjs` (does any layer above it cover this
+pixel?) and `dkrdiag.mjs` (is the source tiled and are the layers visible?) are
+in this directory to settle the other two hypotheses without guessing.
+
+Note that `queryRenderedFeatures` is useless for this check — it returns 0 for
+fill-extrusion layers even at poses that demonstrably render.
