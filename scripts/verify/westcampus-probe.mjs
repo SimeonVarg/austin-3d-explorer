@@ -110,6 +110,20 @@ const d = await page.evaluate(async () => {
     names: [...new Set(feats.map(f => f.properties.name))].length,
     // No band may be inverted or zero-height — a silent way to lose a storey.
     badSpan: feats.filter(f => f.properties.h - f.properties.base <= 0.02).length,
+    // Nothing may stand ABOVE the building's own LiDAR high point. The mechanical
+    // penthouse is cut OUT of final_height, not stacked on top of it, and a roof
+    // pergola is in the point cloud too. The first cut lifted the penthouse onto
+    // the parapet coping and left all ten a metre taller than the data says.
+    tooTall: (() => {
+      const src = m.querySourceFeatures('austin-buildings') || [];
+      const fh = {};
+      for (const f of src) if (f.properties && f.properties.name) fh[f.properties.name] = f.properties.final_height;
+      const top = {};
+      for (const f of feats) top[f.properties.name] = Math.max(top[f.properties.name] || 0, f.properties.h);
+      return Object.entries(top)
+        .filter(([n, t]) => fh[n] != null && t - fh[n] > 0.05)
+        .map(([n, t]) => `${n} ${t.toFixed(2)} > ${fh[n]}`);
+    })(),
     // Bands within one building must tile with no gap and no overlap.
     // Keyed by (building, STACK). A stepped building has two parallel stacks —
     // the tower and the lower wing — and sorting all of its bands into one list
@@ -166,6 +180,7 @@ ok('wc-wall sits above buildings-3d', d.order.iWall > d.order.iB3d,
    `wall@${d.order.iWall} b3d@${d.order.iB3d}`);
 ok('no zero-height features', d.badSpan === 0, String(d.badSpan));
 ok('no vertical gaps between bands', d.gaps.length === 0, d.gaps.join(' | '));
+ok('nothing stands above final_height', d.tooTall.length === 0, d.tooTall.join(' | '));
 ok('no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
 const failed = results.filter(r => !r.pass);

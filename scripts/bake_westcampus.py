@@ -478,6 +478,10 @@ def build(feature, spec, stats):
     if tower_top <= z + 2.0:
         stats["stack_too_short"] += 1
         tower_top = z + 2.0
+    # Where anything standing ON the roof has to start: on top of the parapet
+    # coping, not at the parapet. wc-wall-cap extrudes the WHOLE footprint from
+    # h to h + cap_lift(h), so a deck at the parapet is inside it and invisible.
+    roof_z = parapet + cap_lift(parapet)
     tfam, tcol = spec["tower"]
     stack.append(("tower", z, tower_top, tfam, tcol))
     stack.append(("crown", tower_top, parapet, cfam, ccol))
@@ -562,7 +566,7 @@ def build(feature, spec, stats):
         elif where == "step" and step_rings:
             dz, dring = step_top + cap_lift(step_top), step_rings[0]
         else:
-            dz, dring = parapet + cap_lift(H), (tower_rings[0] if (tplan or step) else outer)
+            dz, dring = roof_z, (tower_rings[0] if (tplan or step) else outer)
         slab = offset(dring + [dring[0]], -DECK_INSET) or (dring + [dring[0]])
         out.append(solid_feature(ccw(slab), dz, dz + DECK_SLAB, "deck", name, lon0, lat0))
         stats["deck"] += 1
@@ -576,7 +580,11 @@ def build(feature, spec, stats):
         if spec.get("shade"):
             du, dv, w, l = spec["shade"]
             r = rect_uv(ang, du - w / 2, dv - l / 2, du + w / 2, dv + l / 2)
-            out.append(solid_feature(r, top + SHADE_H, top + SHADE_H + SHADE_T,
+            # Clamped to the building's own LiDAR high point. A pergola on a roof
+            # deck IS in the point cloud, so anything of ours standing above
+            # `final_height` is this bake inventing height the data does not have.
+            sh1 = min(top + SHADE_H + SHADE_T, H)
+            out.append(solid_feature(r, max(top + 0.4, sh1 - SHADE_T), sh1,
                                      "shade", name, lon0, lat0))
             # a cabana / furniture cluster under it, so the shade has something
             # to shade — a floating plate on its own reads as an error
@@ -585,13 +593,17 @@ def build(feature, spec, stats):
             stats["shade"] += 2
 
     # ── mechanical penthouse -----------------------------------------
-    if mech_h > 0.2:
+    if mech_h > 0.2 and H - roof_z > 0.6:
         core = tower_rings[0] if (tplan or step) else outer
         pen = offset(core + [core[0]], -max(4.0, min(12.0, (v1 - v0) * 0.26)))
         if pen:
-            mz = parapet + cap_lift(H)
-            out.append(solid_feature(ccw(pen), mz, mz + mech_h,
-                                     "mech", name, lon0, lat0))
+            # Tops out at EXACTLY final_height. That is the whole point of
+            # cutting the penthouse out of the LiDAR high point rather than
+            # stacking it on: the high point in the point cloud IS the
+            # penthouse. The first cut set the base to parapet + cap_lift and
+            # the height to mech_h, which put every one of the ten a metre
+            # taller than the data says it is.
+            out.append(solid_feature(ccw(pen), roof_z, H, "mech", name, lon0, lat0))
             stats["mech"] += 1
 
     # ── crown sign ----------------------------------------------------
@@ -599,8 +611,7 @@ def build(feature, spec, stats):
         du, dv, w, h = spec["sign"]
         vf = v1 + dv
         r = rect_uv(ang, du - w / 2, vf - SIGN_T / 2, du + w / 2, vf + SIGN_T / 2)
-        sz = parapet + cap_lift(H)
-        out.append(solid_feature(r, sz, sz + h, "sign", name, lon0, lat0))
+        out.append(solid_feature(r, roof_z, min(roof_z + h, H), "sign", name, lon0, lat0))
         stats["sign"] += 1
 
     return out

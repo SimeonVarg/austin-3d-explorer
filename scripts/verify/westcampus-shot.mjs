@@ -99,18 +99,17 @@ for (const s of SHOTS) {
   // the city came back missing and it read exactly like this pass deleting
   // buildings. It was the shutter, not the scene. (Confirmed by rendering the
   // identical pose without a time-of-day call, which came back full.)
-  const settle = async () => {
-    await page.waitForTimeout(4000);
-    await page.evaluate(() => new Promise(r => {
+  const settle = async (ms, cap) => {
+    await page.waitForTimeout(ms);
+    await page.evaluate((cap) => new Promise(r => {
       const m = window.__map;
       if (m.loaded()) return r();
-      m.once('idle', r); setTimeout(r, 15000);
-    }));
+      m.once('idle', r); setTimeout(r, cap);
+    }), cap);
   };
-  await settle();
+  await settle(3500, 12000);
   await page.evaluate(() => window.__map.triggerRepaint());
-  await settle();
-  await page.waitForTimeout(1500);
+  await settle(2500, 6000);
   // Echo the camera we ACTUALLY have, immediately before the shutter. Two
   // different pose lists once produced byte-identical frames here and it read as
   // the renderer being broken; without this line there is nothing to check the

@@ -1,10 +1,7 @@
 [
-  { "name": "cluster-day",     "p": 0.12, "center": [-97.74330, 30.28270], "zoom": 15.90, "pitch": 68, "bearing": 0 },
-  { "name": "cluster-golden",  "p": 0.42, "center": [-97.74330, 30.28270], "zoom": 15.90, "pitch": 68, "bearing": 0 },
-  { "name": "cluster-night",   "p": 0.88, "center": [-97.74330, 30.28270], "zoom": 15.90, "pitch": 68, "bearing": 0 },
-  { "name": "castilian-day",   "p": 0.14, "center": [-97.74245, 30.28660], "zoom": 16.75, "pitch": 66, "bearing": 0 },
-  { "name": "dobie-day",       "p": 0.14, "center": [-97.74117, 30.28250], "zoom": 16.35, "pitch": 65, "bearing": 0 },
-  { "name": "decks-day",       "p": 0.18, "look":   [-97.74300, 30.28530], "dist": 330, "zoom": 16.90, "pitch": 48, "bearing": 200 },
-  { "name": "decks-golden",    "p": 0.42, "look":   [-97.74300, 30.28530], "dist": 330, "zoom": 16.90, "pitch": 48, "bearing": 200 },
-  { "name": "cluster-night2",  "p": 0.86, "center": [-97.74245, 30.28660], "zoom": 16.75, "pitch": 66, "bearing": 0 }
+  { "name": "cluster-day",    "p": 0.12, "center": [-97.74330, 30.28270], "zoom": 15.90, "pitch": 68, "bearing": 0 },
+  { "name": "cluster-night",  "p": 0.88, "center": [-97.74330, 30.28270], "zoom": 15.90, "pitch": 68, "bearing": 0 },
+  { "name": "castilian-day",  "p": 0.14, "center": [-97.74245, 30.28660], "zoom": 16.75, "pitch": 66, "bearing": 0 },
+  { "name": "dobie-day",      "p": 0.14, "center": [-97.74117, 30.28250], "zoom": 16.35, "pitch": 65, "bearing": 0 },
+  { "name": "decks-golden",   "p": 0.42, "look":   [-97.74300, 30.28530], "dist": 330, "zoom": 16.90, "pitch": 48, "bearing": 200 }
 ]
