@@ -1,0 +1,145 @@
+[
+  {
+    "name": "01-westcampus-spawn",
+    "p": 0.3,
+    "center": [
+      -97.7434,
+      30.2857
+    ],
+    "zoom": 16.5,
+    "pitch": 74,
+    "bearing": 250
+  },
+  {
+    "name": "02-campus-to-downtown",
+    "p": 0.3,
+    "center": [
+      -97.742,
+      30.288
+    ],
+    "zoom": 15.1,
+    "pitch": 77,
+    "bearing": 178
+  },
+  {
+    "name": "03-capitol-approach",
+    "p": 0.3,
+    "center": [
+      -97.742,
+      30.279
+    ],
+    "zoom": 15.4,
+    "pitch": 76,
+    "bearing": 186
+  },
+  {
+    "name": "04-downtown-skyline",
+    "p": 0.3,
+    "center": [
+      -97.746,
+      30.276
+    ],
+    "zoom": 14.9,
+    "pitch": 78,
+    "bearing": 195
+  },
+  {
+    "name": "05-lake-north-shore",
+    "p": 0.3,
+    "center": [
+      -97.753,
+      30.27
+    ],
+    "zoom": 14.7,
+    "pitch": 80,
+    "bearing": 140
+  },
+  {
+    "name": "06-over-the-lake-east",
+    "p": 0.3,
+    "center": [
+      -97.76,
+      30.264
+    ],
+    "zoom": 14.6,
+    "pitch": 81,
+    "bearing": 80
+  },
+  {
+    "name": "07-skyline-from-south",
+    "p": 0.3,
+    "center": [
+      -97.745,
+      30.253
+    ],
+    "zoom": 14.6,
+    "pitch": 79,
+    "bearing": 8
+  },
+  {
+    "name": "07b-edge-south",
+    "p": 0.3,
+    "center": [
+      -97.748,
+      30.248
+    ],
+    "zoom": 14.4,
+    "pitch": 81,
+    "bearing": 190
+  },
+  {
+    "name": "08-edge-west",
+    "p": 0.3,
+    "center": [
+      -97.762,
+      30.287
+    ],
+    "zoom": 14.4,
+    "pitch": 81,
+    "bearing": 272
+  },
+  {
+    "name": "09-edge-north",
+    "p": 0.3,
+    "center": [
+      -97.744,
+      30.298
+    ],
+    "zoom": 14.4,
+    "pitch": 81,
+    "bearing": 2
+  },
+  {
+    "name": "10-edge-southeast",
+    "p": 0.3,
+    "center": [
+      -97.73,
+      30.265
+    ],
+    "zoom": 14.4,
+    "pitch": 81,
+    "bearing": 120
+  },
+  {
+    "name": "11-night-skyline",
+    "p": 0.88,
+    "center": [
+      -97.745,
+      30.283
+    ],
+    "zoom": 14.8,
+    "pitch": 78,
+    "bearing": 183
+  },
+  {
+    "name": "12-golden-westcampus",
+    "p": 0.5,
+    "center": [
+      -97.7434,
+      30.2857
+    ],
+    "zoom": 16.5,
+    "pitch": 74,
+    "bearing": 250
+  }
+]

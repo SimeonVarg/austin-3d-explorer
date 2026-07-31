@@ -1,0 +1,637 @@
+{
+ "_readme": "Height corrections for the outer ring only. Matched by POSITION (within OUTER_HEIGHT_MATCH_M in bake_outer.py), never by name. Regenerate with make_outer_heights.py; hand edits survive a re-bake.",
+ "_generated": "scripts/make_outer_heights.py",
+ "_min_height_m": 45.0,
+ "by_point": [
+  {
+   "name": "Waterline",
+   "lon": -97.739542,
+   "lat": 30.261083,
+   "height": 315.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Sixth and Guadalupe",
+   "lon": -97.74669,
+   "lat": 30.269654,
+   "height": 267.0,
+   "source": "wikipedia (osm had levels=63.0 only)"
+  },
+  {
+   "name": "The Republic",
+   "lon": -97.747746,
+   "lat": 30.26676,
+   "height": 216.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "The Independent",
+   "lon": -97.751167,
+   "lat": 30.267801,
+   "height": 209.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "The Austonian",
+   "lon": -97.744493,
+   "lat": 30.264794,
+   "height": 208.2,
+   "source": "wikipedia (osm had levels=56.0 only)"
+  },
+  {
+   "name": "ATX Tower",
+   "lon": -97.746026,
+   "lat": 30.268676,
+   "height": 205.7,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Modern Austin Residences",
+   "lon": -97.738483,
+   "lat": 30.260431,
+   "height": 200.6,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "415 Colorado",
+   "lon": -97.744243,
+   "lat": 30.267087,
+   "height": 195.1,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Block 185",
+   "lon": -97.750451,
+   "lat": 30.265571,
+   "height": 181.1,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Fairmont Austin",
+   "lon": -97.738204,
+   "lat": 30.262108,
+   "height": 180.0,
+   "source": "wikipedia (osm had levels=37.0 only)"
+  },
+  {
+   "name": "360 Condominiums",
+   "lon": -97.74968,
+   "lat": 30.26742,
+   "height": 177.1,
+   "source": "wikipedia; not in osm (overture had 148.8)"
+  },
+  {
+   "name": "44 East",
+   "lon": -97.739065,
+   "lat": 30.255928,
+   "height": 174.7,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Paseo",
+   "lon": -97.738867,
+   "lat": 30.259364,
+   "height": 172.8,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "The Travis",
+   "lon": -97.74029,
+   "lat": 30.2601,
+   "height": 171.3,
+   "source": "wikipedia; not in osm (overture had None)"
+  },
+  {
+   "name": "Indeed Tower",
+   "lon": -97.744264,
+   "lat": 30.26902,
+   "height": 165.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Hanover Republic Square",
+   "lon": -97.745997,
+   "lat": 30.267623,
+   "height": 157.3,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Frost Bank Tower",
+   "lon": -97.742699,
+   "lat": 30.266409,
+   "height": 157.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Hanover Brazos Street",
+   "lon": -97.742299,
+   "lat": 30.264521,
+   "height": 156.4,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "700 River",
+   "lon": -97.738547,
+   "lat": 30.25791,
+   "height": 152.4,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Fifth & West Residence",
+   "lon": -97.7505,
+   "lat": 30.26951,
+   "height": 139.9,
+   "source": "wikipedia; not in osm (overture had 19.2)"
+  },
+  {
+   "name": "Vesper ATX",
+   "lon": -97.73761,
+   "lat": 30.25967,
+   "height": 138.7,
+   "source": "wikipedia; not in osm (overture had 7.9)"
+  },
+  {
+   "name": "300 Colorado",
+   "lon": -97.745492,
+   "lat": 30.26603,
+   "height": 135.9,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Northshore",
+   "lon": -97.74951,
+   "lat": 30.265319,
+   "height": 129.3,
+   "source": "wikipedia (osm had levels=38.0 only)"
+  },
+  {
+   "name": "Spring",
+   "lon": -97.754138,
+   "lat": 30.269081,
+   "height": 123.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "One American Center",
+   "lon": -97.743209,
+   "lat": 30.2686,
+   "height": 122.2,
+   "source": "wikipedia (osm had levels=32.0 only)"
+  },
+  {
+   "name": null,
+   "lon": -97.749198,
+   "lat": 30.266023,
+   "height": 122.0,
+   "source": "osm height tag"
+  },
+  {
+   "name": "111 Congress",
+   "lon": -97.743548,
+   "lat": 30.263547,
+   "height": 121.3,
+   "source": "wikipedia (osm had levels=42.0 only)"
+  },
+  {
+   "name": "Colorado Tower",
+   "lon": -97.744689,
+   "lat": 30.265885,
+   "height": 121.0,
+   "source": "wikipedia (osm had levels=29.0 only)"
+  },
+  {
+   "name": "Austin Proper",
+   "lon": -97.750109,
+   "lat": 30.266281,
+   "height": 121.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Third + Shoal",
+   "lon": -97.749989,
+   "lat": 30.266693,
+   "height": 118.6,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Austin Marriott Downtown",
+   "lon": -97.74146,
+   "lat": 30.26286,
+   "height": 117.7,
+   "source": "wikipedia; not in osm (overture had 11.6)"
+  },
+  {
+   "name": "The Waller",
+   "lon": -97.734548,
+   "lat": 30.271353,
+   "height": 113.0,
+   "source": "wikipedia (osm had levels=32.0 only)"
+  },
+  {
+   "name": "The Quincy",
+   "lon": -97.738866,
+   "lat": 30.26072,
+   "height": 112.5,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "405 Colorado",
+   "lon": -97.74438,
+   "lat": 30.266724,
+   "height": 110.6,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Alexan Waterloo",
+   "lon": -97.733814,
+   "lat": 30.271057,
+   "height": 110.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Natiivo",
+   "lon": -97.73888,
+   "lat": 30.2564,
+   "height": 109.1,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Hyatt Centric Congress Avenue Austin",
+   "lon": -97.741761,
+   "lat": 30.269652,
+   "height": 105.5,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Seaholm Residences",
+   "lon": -97.752087,
+   "lat": 30.267219,
+   "height": 104.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Dobie Twenty21",
+   "lon": -97.741345,
+   "lat": 30.283383,
+   "height": 103.9,
+   "source": "osm levels=31.0 x 3.35"
+  },
+  {
+   "name": "Windsor on the Lake",
+   "lon": -97.739512,
+   "lat": 30.255972,
+   "height": 103.3,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Norwood Tower",
+   "lon": -97.745616,
+   "lat": 30.269167,
+   "height": 100.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "Aloft Austin Downtown",
+   "lon": -97.742117,
+   "lat": 30.268677,
+   "height": 100.0,
+   "source": "wikipedia (osm had levels=32.0 only)"
+  },
+  {
+   "name": "Norwood Tower",
+   "lon": -97.743227,
+   "lat": 30.269529,
+   "height": 100.0,
+   "source": "wikipedia (osm had levels=15.0 only)"
+  },
+  {
+   "name": "The Monarch",
+   "lon": -97.752161,
+   "lat": 30.269109,
+   "height": 98.0,
+   "source": "osm+wikipedia agree"
+  },
+  {
+   "name": "100 Congress",
+   "lon": -97.744788,
+   "lat": 30.264,
+   "height": 97.5,
+   "source": "wikipedia (osm had levels=22.0 only)"
+  },
+  {
+   "name": "Union on 24th",
+   "lon": -97.74525,
+   "lat": 30.287636,
+   "height": 97.5,
+   "source": "osm height tag"
+  },
+  {
+   "name": "San Jacinto Center",
+   "lon": -97.742891,
+   "lat": 30.262416,
+   "height": 94.5,
+   "source": "wikipedia (osm had levels=21.0 only)"
+  },
+  {
+   "name": "301 Congress",
+   "lon": -97.743062,
+   "lat": 30.265327,
+   "height": 93.3,
+   "source": "wikipedia (osm had levels=22.0 only)"
+  },
+  {
+   "name": "Hotel ZaZa",
+   "lon": -97.746257,
+   "lat": 30.26726,
+   "height": 93.0,
+   "source": "wikipedia (osm had levels=24.0 only)"
+  },
+  {
+   "name": "Skyhouse Austin",
+   "lon": -97.739108,
+   "lat": 30.257262,
+   "height": 80.4,
+   "source": "osm levels=24.0 x 3.35"
+  },
+  {
+   "name": "Westgate Tower",
+   "lon": -97.742882,
+   "lat": 30.27408,
+   "height": 80.0,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Capitol Tower",
+   "lon": -97.73974,
+   "lat": 30.270593,
+   "height": 75.0,
+   "source": "osm height tag"
+  },
+  {
+   "name": "The Shore",
+   "lon": -97.739351,
+   "lat": 30.259481,
+   "height": 73.7,
+   "source": "osm levels=22.0 x 3.35"
+  },
+  {
+   "name": "The Castilian",
+   "lon": -97.74241,
+   "lat": 30.287313,
+   "height": 73.7,
+   "source": "osm levels=22.0 x 3.35"
+  },
+  {
+   "name": "Rise on 8th",
+   "lon": -97.747104,
+   "lat": 30.2717,
+   "height": 73.7,
+   "source": "osm levels=22.0 x 3.35"
+  },
+  {
+   "name": "21 Rio",
+   "lon": -97.744722,
+   "lat": 30.284284,
+   "height": 73.5,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Moody Bank Tower",
+   "lon": -97.743273,
+   "lat": 30.278329,
+   "height": 72.5,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Hilton Garden Inn",
+   "lon": -97.741628,
+   "lat": 30.279339,
+   "height": 70.1,
+   "source": "osm height tag"
+  },
+  {
+   "name": null,
+   "lon": -97.7426,
+   "lat": 30.27071,
+   "height": 67.0,
+   "source": "osm levels=20.0 x 3.35"
+  },
+  {
+   "name": "Shoal Creek Walk",
+   "lon": -97.75238,
+   "lat": 30.270518,
+   "height": 67.0,
+   "source": "osm height tag"
+  },
+  {
+   "name": "The Catherine",
+   "lon": -97.748078,
+   "lat": 30.259691,
+   "height": 63.6,
+   "source": "osm levels=19.0 x 3.35"
+  },
+  {
+   "name": "Oneut",
+   "lon": -97.744232,
+   "lat": 30.2698,
+   "height": 63.6,
+   "source": "osm levels=19.0 x 3.35"
+  },
+  {
+   "name": "DKR Memorial Stadium",
+   "lon": -97.732614,
+   "lat": 30.283822,
+   "height": 63.0,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Heman Marion Sweatt Travis County Courthouse",
+   "lon": -97.745276,
+   "lat": 30.273374,
+   "height": 62.8,
+   "source": "osm height tag"
+  },
+  {
+   "name": "The Callaway House Austin",
+   "lon": -97.743451,
+   "lat": 30.284728,
+   "height": 62.5,
+   "source": "osm height tag"
+  },
+  {
+   "name": "citizenM Austin Downtown",
+   "lon": -97.74357,
+   "lat": 30.269071,
+   "height": 62.2,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Hilton Garden Inn Austin Downtown",
+   "lon": -97.735558,
+   "lat": 30.26536,
+   "height": 60.3,
+   "source": "osm levels=18.0 x 3.35"
+  },
+  {
+   "name": "The Westin Austin Downtown",
+   "lon": -97.740329,
+   "lat": 30.266641,
+   "height": 60.3,
+   "source": "osm levels=18.0 x 3.35"
+  },
+  {
+   "name": "5th and Colorado",
+   "lon": -97.745,
+   "lat": 30.267341,
+   "height": 60.3,
+   "source": "osm levels=18.0 x 3.35"
+  },
+  {
+   "name": "RiverSouth",
+   "lon": -97.74928,
+   "lat": 30.258948,
+   "height": 59.4,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Ion Austin",
+   "lon": -97.743264,
+   "lat": 30.284273,
+   "height": 59.1,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Fairfield Inn & Suites Austin Downtown",
+   "lon": -97.737958,
+   "lat": 30.258869,
+   "height": 58.5,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Skyloft Austin",
+   "lon": -97.743518,
+   "lat": 30.286205,
+   "height": 57.9,
+   "source": "osm height tag"
+  },
+  {
+   "name": "DoubleTree Suites by Hilton Austin Downtown Capitol",
+   "lon": -97.74253,
+   "lat": 30.277371,
+   "height": 57.7,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Moontower",
+   "lon": -97.743149,
+   "lat": 30.285666,
+   "height": 57.3,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Inspire on 22nd",
+   "lon": -97.744185,
+   "lat": 30.285412,
+   "height": 56.4,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Cambridge Tower",
+   "lon": -97.740406,
+   "lat": 30.280729,
+   "height": 55.0,
+   "source": "osm height tag"
+  },
+  {
+   "name": "2400 Nueces",
+   "lon": -97.74345,
+   "lat": 30.288407,
+   "height": 53.6,
+   "source": "osm levels=16.0 x 3.35"
+  },
+  {
+   "name": "Innovation Tower",
+   "lon": -97.7347,
+   "lat": 30.274164,
+   "height": 53.6,
+   "source": "osm levels=16.0 x 3.35"
+  },
+  {
+   "name": "Cambria Hotel Austin Downtown",
+   "lon": -97.73812,
+   "lat": 30.258432,
+   "height": 53.3,
+   "source": "osm height tag"
+  },
+  {
+   "name": "William P. Clements, Jr. Building",
+   "lon": -97.742234,
+   "lat": 30.278087,
+   "height": 50.2,
+   "source": "osm levels=15.0 x 3.35"
+  },
+  {
+   "name": "Omni Austin Hotel Downtown",
+   "lon": -97.740406,
+   "lat": 30.268938,
+   "height": 50.2,
+   "source": "osm levels=15.0 x 3.35"
+  },
+  {
+   "name": "Capitol Center",
+   "lon": -97.741113,
+   "lat": 30.271386,
+   "height": 50.2,
+   "source": "osm levels=15.0 x 3.35"
+  },
+  {
+   "name": "Texas Medical Association",
+   "lon": -97.743474,
+   "lat": 30.277725,
+   "height": 48.9,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Hyde Park Baptist Church",
+   "lon": -97.731872,
+   "lat": 30.302225,
+   "height": 48.1,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Rebekah Baines Johnson Tower",
+   "lon": -97.733715,
+   "lat": 30.253105,
+   "height": 47.7,
+   "source": "osm height tag"
+  },
+  {
+   "name": "Physics, Math, and Astronomy Building",
+   "lon": -97.73632,
+   "lat": 30.288846,
+   "height": 46.9,
+   "source": "osm levels=14.0 x 3.35"
+  },
+  {
+   "name": "Holiday Inn Austin Town Lake",
+   "lon": -97.737478,
+   "lat": 30.2536,
+   "height": 46.9,
+   "source": "osm levels=14.0 x 3.35"
+  },
+  {
+   "name": "George H.W. Bush State Office Building",
+   "lon": -97.73758,
+   "lat": 30.279881,
+   "height": 46.9,
+   "source": "osm levels=14.0 x 3.35"
+  },
+  {
+   "name": "Jester West Hall",
+   "lon": -97.736679,
+   "lat": 30.282111,
+   "height": 46.9,
+   "source": "osm levels=14.0 x 3.35"
+  }
+ ]
+}

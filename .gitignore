@@ -27,3 +27,9 @@ scripts/_overpass_probe.json
 # document a change live in docs/shots/ as JPEGs instead.
 scripts/verify/shots/
 scripts/verify/node_modules/
+
+# The raw Overture pull for the outer ring (scripts/extract_outer.py): 19.7 MB
+# of intermediate that scripts/bake_outer.py turns into a 2.4 MB render file.
+# Regenerable in ~6 minutes and pinned by data/outer/outer_source.json, which
+# records the exact release it came from and IS committed.
+data/outer/outer_raw.geojson

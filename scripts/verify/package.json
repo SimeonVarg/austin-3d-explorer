@@ -15,7 +15,9 @@
     "graphics": "node graphics.mjs",
     "roofz": "node roofz.mjs",
     "skycolour": "node skycolour.mjs",
-    "perf": "node perf3.mjs"
+    "perf": "node perf3.mjs",
+    "outer": "node outer-check.mjs",
+    "outer-perf": "node outer-perf.mjs"
   },
   "dependencies": {
     "playwright-core": "^1.49.0"

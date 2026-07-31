@@ -82,6 +82,9 @@
     { key: 'treeDensity', label: 'Tree density',   min: 0.2, max: 1, step: 0.025, group: 'world',
       fmt: v => Math.round(v * 100) + '%',
       hint: 'Thins the small trees first and keeps the big live oaks. The full 2,572 trees cost about 6–7 fps at 1440×900; this is the knob for that, rather than dropping a region.' },
+    { key: 'outerDensity', label: 'Outer city',    min: 0.2, max: 1, step: 0.025, group: 'world',
+      fmt: v => Math.round(v * 100) + '%',
+      hint: 'The rest of Austin outside the modelled core — downtown, the lake, the neighbourhoods. Thins the small and the far first; the downtown towers rank in the top 2% and are never dropped. Turning it to 20% is the cheapest way to buy frames back on a weak GPU.' },
     { key: 'clouds',      label: 'Clouds',         min: 0, max: 1, step: 0.05, group: 'world' },
     { key: 'stars',       label: 'Stars',          min: 0, max: 1, step: 0.05, group: 'world' },
     { key: 'fov',         label: 'Field of view',  min: 42, max: 82, step: 1, group: 'world', fmt: v => v.toFixed(0) + '°' },
@@ -97,7 +100,7 @@
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
       exposure: 1.0, autoExposure: false, contrast: 1.0, saturation: 1.0, filmic: 0, vignette: 0.6, grain: 0,
-      ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58, treeDensity: 0.52,
+      ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58, treeDensity: 0.52, outerDensity: 0.45,
     },
     balanced: {
       renderScale: 1.0, msaa: false, bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0.30,
@@ -108,17 +111,17 @@
       // not a depth or lighting cue, so it earns its keep at cinematic and not in
       // the default that has to feel smooth.
       exposure: 1.03, autoExposure: true, contrast: 1.06, saturation: 1.1, filmic: 0.65, vignette: 1.0, grain: 0,
-      ao: true, shadows: true, clouds: 1, stars: 1, fov: 58, treeDensity: 0.675,
+      ao: true, shadows: true, clouds: 1, stars: 1, fov: 58, treeDensity: 0.675, outerDensity: 1,
     },
     cinematic: {
       renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0.45,
       exposure: 1.05, autoExposure: true, contrast: 1.12, saturation: 1.18, filmic: 0.8, vignette: 1.25, grain: 0.22,
-      ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1,
+      ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
     ultra: {
       renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0.50,
       exposure: 1.05, autoExposure: true, contrast: 1.14, saturation: 1.2, filmic: 0.8, vignette: 1.25, grain: 0.18,
-      ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1,
+      ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
   };
 
@@ -242,6 +245,10 @@
     // it thins the small trees and keeps the big oaks rather than clipping a
     // region away. See window.treeFilter in app.js.
     if (typeof window.applyTreeDensity === 'function') window.applyTreeDensity(_map);
+    // Same idea one scale up: the outer ring is filtered on a baked importance
+    // rank, so this thins the small and the far and never the skyline.
+    // See js/outer.js:densityFilter.
+    if (typeof window.applyOuterSettings === 'function') window.applyOuterSettings(_map);
     if (typeof window.applyGroundSettings === 'function') window.applyGroundSettings(_map);
 
     applyGrade();

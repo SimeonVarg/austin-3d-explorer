@@ -1,0 +1,127 @@
+{
+  "date": "2026-07-30",
+  "outer_bbox": {
+    "minlon": -97.788,
+    "minlat": 30.24,
+    "maxlon": -97.702,
+    "maxlat": 30.315
+  },
+  "core_bbox": {
+    "minlon": -97.752,
+    "minlat": 30.276,
+    "maxlon": -97.726,
+    "maxlat": 30.296
+  },
+  "downtown_bbox": {
+    "minlon": -97.758,
+    "minlat": 30.256,
+    "maxlon": -97.728,
+    "maxlat": 30.277
+  },
+  "raw_candidates": 47238,
+  "kept": 7625,
+  "towers": 114,
+  "dropped_too_small": 39179,
+  "dropped_duplicate": 434,
+  "height_source": {
+    "overture": 7459,
+    "osm_height": 5,
+    "osm_levels": 4,
+    "overture_floors": 1,
+    "class_default": 87,
+    "curated": 63,
+    "podium_rule": 6
+  },
+  "podium_rule_examples": [
+    {
+      "name": "IBC Bank Plaza",
+      "was": 27.7,
+      "floors": 13,
+      "now": 45.5
+    },
+    {
+      "name": "Northshore",
+      "was": 19.9,
+      "floors": 38,
+      "now": 133.0
+    },
+    {
+      "name": "Skyhouse Austin",
+      "was": 27.8,
+      "floors": 24,
+      "now": 84.0
+    },
+    {
+      "name": "Fairmont Austin",
+      "was": 20.6,
+      "floors": 37,
+      "now": 129.5
+    },
+    {
+      "name": "Hilton Garden Inn Austin Downtown",
+      "was": 31.5,
+      "floors": 18,
+      "now": 63.0
+    },
+    {
+      "name": "The Westin Austin Downtown",
+      "was": 25.8,
+      "floors": 18,
+      "now": 63.0
+    },
+    {
+      "name": "Omni Austin Hotel Downtown",
+      "was": 25.0,
+      "floors": 15,
+      "now": 52.5
+    },
+    {
+      "name": "The Beverly at Medical Center",
+      "was": 12.2,
+      "floors": 8,
+      "now": 28.0
+    },
+    {
+      "name": "Hyatt House",
+      "was": 19.8,
+      "floors": 9,
+      "now": 31.5
+    },
+    {
+      "name": null,
+      "was": 13.1,
+      "floors": 8,
+      "now": 28.0
+    },
+    {
+      "name": "One American Center",
+      "was": 24.1,
+      "floors": 32,
+      "now": 112.0
+    },
+    {
+      "name": "Lavaca Plaza",
+      "was": 25.4,
+      "floors": 11,
+      "now": 38.5
+    }
+  ],
+  "vertices_in": 459536,
+  "vertices_out": 70518,
+  "vertices_saved_pct": 84.7,
+  "kept_by_km_from_core": {
+    "0": 5711,
+    "1": 1415,
+    "2": 459,
+    "3": 40
+  },
+  "file_kb": 2655,
+  "rules": {
+    "keep_any_height_m": 24.0,
+    "area_floor_m2": 115.0,
+    "area_per_km_m2": 170.0,
+    "tower_h_m": 40.0,
+    "fade_band_m": 750.0,
+    "fade_max": 0.34
+  }
+}
