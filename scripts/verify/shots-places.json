@@ -1,0 +1,10 @@
+[
+  { "name": "fly-drag-day",     "p": 0.14, "center": [-97.74190, 30.28680], "zoom": 16.90, "pitch": 68, "bearing": 300 },
+  { "name": "fly-drag-gold",    "p": 0.50, "center": [-97.74190, 30.28680], "zoom": 16.90, "pitch": 68, "bearing": 300 },
+  { "name": "fly-drag-night",   "p": 0.86, "center": [-97.74190, 30.28680], "zoom": 16.90, "pitch": 68, "bearing": 300 },
+  { "name": "fly-wide-day",     "p": 0.14, "center": [-97.74100, 30.28560], "zoom": 16.50, "pitch": 66, "bearing": 20 },
+  { "name": "street-drag-day",  "p": 0.14, "center": [-97.74195, 30.28700], "zoom": 18.10, "pitch": 72, "bearing": 292 },
+  { "name": "street-drag-night","p": 0.86, "center": [-97.74195, 30.28700], "zoom": 18.10, "pitch": 72, "bearing": 292 },
+  { "name": "street-coop-day",  "p": 0.14, "center": [-97.74205, 30.28600], "zoom": 18.10, "pitch": 72, "bearing": 292 },
+  { "name": "westcampus-day",   "p": 0.14, "center": [-97.74495, 30.28660], "zoom": 17.90, "pitch": 70, "bearing": 205 }
+]
