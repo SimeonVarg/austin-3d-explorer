@@ -84,10 +84,14 @@ feature is flagged `wt: 0` so the split can be counted rather than claimed.
 | service | 5.5 | alleys, driveways, parking aisles |
 | any `*_link` | 7.5 | a ramp is one lane plus shoulders |
 
-**Measured share: 2,646 of 10,120 ways (26.1%) take their width from a real lane
-count.** The other 74% are service roads, driveways and residential streets that
-OSM does not count lanes on — and those are exactly the ones where a typical
-section is a safe guess.
+**Measured share: 8,027 of 16,344 road ways (49.1%) take their width from a real
+lane count.** Within the outer ring alone it is 2,646 of 10,120 (26.1%) — lower,
+because that set is dominated by 4,617 service roads and 2,335 residential streets
+that OSM does not count lanes on. The far-field armature is almost all arterials
+and almost all of it is tagged, which is why the overall figure is nearly double.
+
+Either way, the roads that carry the scene are the measured ones, and the guessed
+ones are exactly those where a typical section is a safe guess.
 
 ### The named streets the complaint was about
 
@@ -395,42 +399,55 @@ the concrete tone, this is the number that will break first.
 
 ---
 
-## 7. Frame cost: none that can be measured, and the noise floor is worse this time
+## 7. Frame cost: the measurement does not resolve it, and here is the proof
 
 "Before" is not a setting here — the road geometry used to come from vector tiles
-and now comes from a 2.5 MB GeoJSON source, and no `GROUND` flag reproduces that.
-So `roads-perf.mjs` serves a pristine `git archive HEAD` tree on a second port
-and alternates the **page**: one browser, one window, one machine, reloaded
-between configurations, counterbalanced (the order reverses on alternate reps),
-minimum of the reps, dropped frames over a 4.2 s scripted bearing sweep, headed.
+and now comes from a 3.8 MB GeoJSON source, and no `GROUND` flag reproduces that.
+So `roads-perf.mjs` serves a pristine `git archive HEAD` tree on a second port and
+alternates the **page**: one browser, one window, one machine, reloaded between
+configurations, counterbalanced (the order reverses on alternate reps), minimum of
+the reps, dropped frames over a 4.2 s scripted bearing sweep, headed.
+
+It was run twice — once before the far-field armature was added and once after,
+so the second run is measuring 50% more road data than the first.
 
 ```
-config      dropMIN   fpsBest   all reps                what was on
-head           120      19.2    [170, 210, 173, 120, 121]   roads from the basemap tiles
-roadsOnly      112      30.9    [135, 192, 112, 132, 120]   roads from GeoJSON, nothing else new
-after          110      31.6    [179, 179, 110, 285, 121]   + bike lanes, cycleways, stop bars, brick
+RUN 1  (roads.geojson 2.5 MB)
+config      dropMIN   fpsBest   all reps
+head           120      19.2    [170, 210, 173, 120, 121]
+roadsOnly      112      30.9    [135, 192, 112, 132, 120]
+after          110      31.6    [179, 179, 110, 285, 121]
+delta vs head:  roadsOnly -8    after -10      spreads: head 90, roadsOnly 80, after 175
 
-delta vs head (MIN of 5):   roadsOnly  -8      after  -10
-within-config spread:       head 90    roadsOnly 80    after 175
+RUN 2  (roads.geojson 3.8 MB, +6,224 far-field ways)
+config      dropMIN   fpsBest   all reps
+head           116      31.8    [117, 175, 172, 165, 116]
+roadsOnly       33      42.9    [133,  33, 135,  92, 108]
+after           25      43.2    [ 98,  25, 123,  80,  64]
+delta vs head:  roadsOnly -83   after -91      spreads: head 59, roadsOnly 102, after 98
 ```
 
-**There is no result here, and that is the finding** — the same conclusion the
-texture pass reached, by the same rule: every delta is far smaller than the
-spread one configuration produces on its own, and both deltas came out
-*negative*, which cannot be real for a build that strictly does more work.
+**There is no result here, and the two runs together are what proves it.** Three
+things say so and any one of them would be enough:
 
-One caveat this run has that the previous pass's did not, and it matters: the
-spread is 80–175 dropped frames here against 27 there. That is because the
-configurations are separated by a full page reload rather than a settings toggle,
-so each rep carries fresh tile state and fresh GC pressure. **The noise floor of
-this measurement is roughly three times worse than the ground-texture one**, so
-"no measurable cost" is a weaker claim here than it was there. What can be said
-honestly is that any real cost is below ~175 dropped frames per 4.2 s on this
-machine, and that the `fpsBest` column moved the wrong way for a regression
-(19.2 → 31.6).
+1. Every delta in both runs is **negative** — the build that strictly does more
+   work measured *faster*. That cannot be real.
+2. Every delta is smaller than or comparable to the spread one configuration
+   produces on its own.
+3. The same configuration, `roadsOnly`, returned a minimum of **112 in run 1 and
+   33 in run 2** — a 3.4× swing on more data, not less. If the harness could
+   resolve a difference this size it would not do that.
 
-The design reason to expect it to be cheap is that the added per-frame work is
-four line layers on one extra source; the herringbone tile is generated once at
+What can be said honestly is a bound: any real cost is below roughly 100 dropped
+frames per 4.2 s on this machine, which is where the measurement floor sits. The
+noise floor here is 2–6× worse than the ground-texture pass's (spread 27) for a
+structural reason — the configurations are separated by a full page reload rather
+than a settings toggle, so each rep carries fresh tile state and fresh GC
+pressure. That is the price of "before" not being a setting, and it is the main
+weakness in this pass's verification.
+
+The design reason to expect it to be cheap is unchanged: the added per-frame work
+is four line layers on one extra source, the herringbone tile is generated once at
 load and never regenerated, and time of day moves opacities rather than redrawing
 images.
 
