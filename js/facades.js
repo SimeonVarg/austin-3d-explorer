@@ -339,11 +339,19 @@
     SB_FIN_LIGHT: 0.11,
 
     // sn — 2008 north end zone: brick veneer, punched windows, pier towers.
-    SN_COURSE: 4,          // px between mortar courses
-    SN_COURSE_DARK: 0.07,
-    SN_COLS: 5, SN_TIERS: 5,
-    SN_W: 6, SN_H: 8,
-    SN_TOWER_EVERY: 32, SN_TOWER_W: 9, SN_TOWER_LIGHT: 0.13,
+    // North end zone: chamfered brick piers with OPEN bays between them, per
+    // the 2008 photograph. 3 bays across a 64 px tile puts the pier centres at
+    // roughly 5-10 m depending on zoom, which is the real spacing.
+    SN_BAYS: 3,
+    SN_PIER: 11,           // px of brick pier
+    SN_PIER_LIGHT: 0.11,
+    SN_PIER_SHADE: 0.26,   // the chamfered return, in shadow
+    SN_STONE: 0.30,        // buff cast-stone quoin at the chamfer
+    SN_VOID: 0.62,         // how dark the open bay goes
+    SN_SLAB: 0.34,         // lit slab edge of each concourse deck inside
+    SN_DECK: 9,            // px between those decks
+    SN_MULLION: 4,
+    SN_NIGHT: 0.30,
 
     // sf — east grandstand back: cast-in-place concrete, board-formed, almost
     // solid. A few narrow slots are the backs of the vomitories.
@@ -376,7 +384,11 @@
   // How much each tile darkens its wall on average, and therefore how much
   // brightness to put back. One shared 1.15 over-lit the near-blank fascia into
   // a pale haze while barely covering the deep-portal plinth.
-  const DKR_GAIN = { sp: 1.20, sb: 1.14, sn: 1.10, sf: 1.06, sg: 1.12, sd: 1.04 };
+  // Per-family brightness. `sn` is BELOW 1 on purpose: it is the one brick
+  // elevation, the gain and the warm tint together were lifting it into the same
+  // pale tan as the concrete sides, and a north end zone that does not read as
+  // brick is the whole per-side facade idea failing quietly.
+  const DKR_GAIN = { sp: 1.20, sb: 1.14, sn: 0.92, sf: 1.06, sg: 1.12, sd: 1.04 };
 
   let palette = [];   // [{ wd, wg, wn }]
   let combos = [];    // ['md07', 'tw03', ...] — only families/buckets in use
@@ -756,30 +768,71 @@
       }
     },
 
-    /** sn — 2008 north end zone: brick veneer, punched windows, pier towers. */
+    /** sn — 2008 north end zone. NOT a window wall; go and look at it.
+     *
+     * The reference is Commons `DKR_new_north_end_2008-08-30.JPG`, and it shows
+     * something this tile previously got completely wrong. There is no punched
+     * window grid on the north elevation. There are MASSIVE CHAMFERED BRICK
+     * PIERS, and between them the bays are simply OPEN — you see straight
+     * through to the stacked concourse decks inside, their slab edges catching
+     * light against a deep shadow. That open-bay-and-pier rhythm is the entire
+     * character of the elevation, and it is what the contractor meant by
+     * "radiused block walls on the pedestrian ramps ... creates the angular
+     * expression seen from the exterior".
+     *
+     * Drawing windows here was the same mistake as the city-wide one: reaching
+     * for a window because it is a building, instead of looking at the building.
+     * A few bays do carry tall grey-mullioned glass, so those are kept — as the
+     * exception the photograph shows them to be, roughly one bay in three.
+     */
     sn(ctx, wall, dark, night, golden, glass, seed) {
       const T = TILE, w = dkrWall(wall, 'sn');
       const fill = (c, x, y, ww, hh) => { ctx.fillStyle = css(c); ctx.fillRect(x, y, ww, hh); };
       fill(w, 0, 0, T, T);
-      const course = mix(w, [0, 0, 0], DKR.SN_COURSE_DARK);
-      for (let y = 0; y < T; y += DKR.SN_COURSE) fill(course, 0, y, T, 1);
-      const stepX = T / DKR.SN_COLS, stepY = T / DKR.SN_TIERS;
-      for (let r = 0; r < DKR.SN_TIERS; r++) {
-        for (let c = 0; c < DKR.SN_COLS; c++) {
-          const x = Math.round(c * stepX + (stepX - DKR.SN_W) / 2);
-          const y = Math.round(r * stepY + (stepY - DKR.SN_H) / 2);
-          fill(mix(w, [255, 255, 255], 0.16 * (1 - dark * 0.8)), x - 1, y - 1, DKR.SN_W + 2, DKR.SN_H + 2);
-          let pane = glass;
-          if (night > 0.02 && hash01(seed, r, c) < 0.22) {
-            pane = mix(glass, pickTone(hash01(seed + 5, r, c)), night * 0.8);
+      // Brick coursing is 68 mm and one texel is half a metre, so a "course"
+      // here would be a lie about the material. What survives at this scale is
+      // block-to-block colour scatter, which is what brick actually reads as.
+      const bay = T / DKR.SN_BAYS;
+      const deep = mix(w, [0, 0, 0], DKR.SN_VOID);
+      const slab = mix(deep, [235, 226, 210], DKR.SN_SLAB * (1 - dark * 0.7));
+      const rail = mix(deep, [90, 110, 96], 0.45);          // the green guardrails
+      const litVoid = mix(deep, [255, 196, 122], DKR.SN_NIGHT * night);
+      for (let b = 0; b < DKR.SN_BAYS; b++) {
+        const x = Math.round(b * bay) + DKR.SN_PIER;
+        const ow = Math.round(bay) - DKR.SN_PIER;
+        if (ow <= 0) continue;
+        const isGlass = ((b + (seed | 0)) % 3) === 1;
+        if (isGlass) {
+          // A tall grey-mullioned curtain panel, set back behind the piers.
+          fill(mix(w, [138, 146, 152], 0.75), x - 1, 0, ow + 2, T);
+          fill(glass, x, 0, ow, T);
+          if (night > 0.02) fill(mix(glass, [255, 226, 186], night * 0.55), x, 0, ow, T);
+          for (let m = 0; m < ow; m += DKR.SN_MULLION) fill(mix(w, [0, 0, 0], 0.34), x + m, 0, 1, T);
+        } else {
+          fill(night > 0.02 ? litVoid : deep, x, 0, ow, T);
+          // The stacked concourse decks seen through the opening. These run the
+          // FULL tile height and repeat on the tile's own period — nothing here
+          // may key off a top or a bottom edge, because the pattern has neither.
+          for (let y = DKR.SN_DECK; y < T; y += DKR.SN_DECK) {
+            fill(slab, x, y, ow, 2);
+            fill(rail, x, y - 2, ow, 2);
           }
-          fill(pane, x, y, DKR.SN_W, DKR.SN_H);
+          fill(mix(deep, [0, 0, 0], 0.45), x, 0, 1, T);       // shaded jamb
         }
       }
-      const tower = mix(w, [255, 255, 255], DKR.SN_TOWER_LIGHT * (1 - dark * 0.8));
-      for (let x = 0; x < T; x += DKR.SN_TOWER_EVERY) {
-        fill(tower, x, 0, DKR.SN_TOWER_W, T);
-        fill(mix(w, [0, 0, 0], 0.20), x + DKR.SN_TOWER_W, 0, 1, T);
+      // Piers last, so they stand in FRONT of the openings. Each is chamfered:
+      // a lit return on one side, a shadowed one on the other, which is what
+      // gives the elevation its faceted, sawtooth read from an oblique camera.
+      const face = mix(mix(w, [255, 255, 255], DKR.SN_PIER_LIGHT * (1 - dark * 0.8)),
+                       [255, 198, 132], 0.20 * golden);
+      const cham = mix(w, [0, 0, 0], DKR.SN_PIER_SHADE);
+      const stone = mix(w, [232, 224, 205], DKR.SN_STONE);   // buff cast stone
+      for (let b = 0; b < DKR.SN_BAYS; b++) {
+        const x = Math.round(b * bay);
+        fill(face, x, 0, DKR.SN_PIER, T);
+        fill(stone, x + 1, 0, 2, T);                          // quoin at the chamfer
+        fill(cham, x + DKR.SN_PIER - 2, 0, 2, T);
+        fill(mix(w, [0, 0, 0], 0.24), x + DKR.SN_PIER, 0, 1, T);
       }
     },
 

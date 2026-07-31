@@ -1,0 +1,20 @@
+{
+  "image": "dkr_aerial_geo.png",
+  "bbox": [
+    -97.73456828860019,
+    30.282153182177506,
+    -97.7306598113998,
+    30.285490117822494
+  ],
+  "size": [
+    2915,
+    2882
+  ],
+  "zoom": 20,
+  "tiles_ok": 156,
+  "tiles_total": 156,
+  "m_per_px_x": 0.12889131766645565,
+  "m_per_px_y": 0.12889232338656553,
+  "source": "Esri World Imagery (Esri, Maxar, Earthstar Geographics)",
+  "note": "Web Mercator. Linear lon/lat mapping is exact in x and good to <0.1 px in y over a 380 m tall frame at this latitude."
+}
