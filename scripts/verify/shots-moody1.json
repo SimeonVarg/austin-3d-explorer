@@ -1,0 +1,14 @@
+[
+ {
+  "name": "moody-arena",
+  "p": 0.12,
+  "gfx": "balanced",
+  "center": [
+   -97.7325,
+   30.2832
+  ],
+  "zoom": 16.6,
+  "pitch": 58,
+  "bearing": 300
+ }
+]

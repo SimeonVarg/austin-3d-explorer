@@ -577,8 +577,17 @@ def main():
         if hit:
             clash.append({"file": other + ".geojson", "ids": hit})
 
+    # PCL only. Every other building in this pass is redrawn at the height the
+    # snapshot gives it and capped at h + the shared parapet lift, so the
+    # generic deck and clutter bake_roofscape.py puts on it lands exactly on
+    # that cap — which is correct and is most of the Drag's rooftop interest.
+    # PCL is the exception: its baked 15.8 m is rejected in favour of a
+    # photographed 27.5 m, so the roofscape's deck and 33 clutter features sit
+    # 11.7 m down inside the library, invisible and paid for on every frame.
+    # Declaring it here is what lets the roof bake skip it.
     fc = {"type": "FeatureCollection", "features": out,
-          "replacedBuildingIds": replaced}
+          "replacedBuildingIds": replaced,
+          "authoredRoofIds": [PCL_ID]}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
 

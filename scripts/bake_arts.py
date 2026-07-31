@@ -410,6 +410,13 @@ def rect(lon, lat, w, d, bearing_deg):
     return ring + [ring[0]]
 
 
+# 4 cm. Ellsworth Kelly's "Austin" is 20 x 23 m and about 8 m tall, so from the
+# flying camera one pixel of it is roughly half a metre: this is a twelfth of a
+# pixel, far below anything the viewer can see, and far above what the depth
+# buffer needs to pick a winner and keep picking it.
+KELLY_ARM_EPS = 0.04
+
+
 def kelly_vault(ring_ll, H, out, stats):
     """The double barrel vault, as two crossing ridges rather than one mound.
 
@@ -417,7 +424,11 @@ def kelly_vault(ring_ll, H, out, stats):
     rises and keeps its ridge full length, so this fits an oriented frame to the
     footprint, measures each arm's width in that frame, and emits one rectangle
     per arm per step, narrowed only across the arm. The two rectangles overlap at
-    the crossing, which is correct and which fill-extrusion handles for free.
+    the crossing, which is correct — but "fill-extrusion handles it for free",
+    which this comment used to claim, is only true of the VOLUME. The union
+    reads as one vault; the two TOP FACES in the shared crossing are exactly
+    coplanar, and coplanar tops have no draw order, so the crossing flickered
+    as the camera moved. `KELLY_ARM_EPS` below is the fix.
 
     Nothing here is a magic number: the frame comes from the footprint's own
     longest edge and the arm widths are measured at the footprint's own extremes.
@@ -463,7 +474,13 @@ def kelly_vault(ring_ll, H, out, stats):
     for step, (narrow, f0, f1) in enumerate(KELLY_VAULT):
         b, h = H * f0, H * f1
         emit(armX[0] + narrow, armX[1] - narrow, y0, y1, b, h, "vaultN%d" % step)
-        emit(x0, x1, armY[0] + narrow, armY[1] - narrow, b, h, "vaultE%d" % step)
+        # The E-W barrel's steps are lifted by KELLY_ARM_EPS so no step of it
+        # is ever coplanar with the step of the N-S barrel it crosses. Only the
+        # TOP moves: raising the base too would open a 4 cm ring of sky between
+        # this step and the one below it, and a gap is a worse defect than the
+        # one being fixed. Overlapping by 4 cm is invisible and safe.
+        emit(x0, x1, armY[0] + narrow, armY[1] - narrow,
+             b, h + KELLY_ARM_EPS, "vaultE%d" % step)
     return dict(W=round(W, 1), D=round(D, 1),
                 armX=round(armX[1] - armX[0], 1), armY=round(armY[1] - armY[0], 1))
 
@@ -631,13 +648,30 @@ def main():
           % ("petals", "Snohetta plaza canopy (%d of 12 from snapshot)" % len(PETAL_IDS),
              PETAL_H, stats["petal_bands"]))
 
-    fc = {"type": "FeatureCollection", "features": out, "replacedBuildingIds": replaced}
+    # Which of these buildings' roofs does this pass author itself?
+    #
+    # Only the two that are drawn TALLER than the snapshot says. The LBJ, the
+    # Blanton, the Smith and the Ransom are all redrawn at their snapshot
+    # height and capped at h + the shared parapet lift, so bake_roofs.py's
+    # pitched stack and bake_roofscape.py's deck land exactly on that cap —
+    # correct, and in the Blanton's and the Smith's case it is where their tile
+    # hip roofs come from. Do not take those away.
+    #
+    # The Bass/PAC is drawn to 24 m against a baked 14.6, and the ten Snohetta
+    # petals to 12.2 m against a class-default 8.0, so the generic decks and
+    # clutter for those sit several metres down inside the authored geometry:
+    # invisible, and re-tiled and drawn on every frame for nothing.
+    authored = [f["properties"]["id"] for i8, f in
+                ((i8, byid.get(i8)) for i8 in ["31901788"] + PETAL_IDS) if f]
+    fc = {"type": "FeatureCollection", "features": out,
+          "replacedBuildingIds": replaced, "authoredRoofIds": authored}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
 
     print(json.dumps({
         "features": len(out),
         "replaced_building_ids": len(replaced),
+        "authored_roof_ids": len(authored),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
         "provenance": {

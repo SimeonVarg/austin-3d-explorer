@@ -1,0 +1,4 @@
+[
+ {"name":"fac-close", "p":0.12, "gfx":"balanced", "center":[-97.74053,30.28638], "zoom":18.2, "pitch":48, "bearing":20},
+ {"name":"fac-nadir", "p":0.12, "gfx":"balanced", "center":[-97.74053,30.28638], "zoom":18.2, "pitch":0,  "bearing":20}
+]

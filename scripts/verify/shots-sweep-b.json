@@ -1,0 +1,74 @@
+[
+ {
+  "name": "drag-corridor",
+  "p": 0.12,
+  "gfx": "balanced",
+  "center": [
+   -97.7418,
+   30.2848
+  ],
+  "zoom": 16.8,
+  "pitch": 66,
+  "bearing": 180
+ },
+ {
+  "name": "core-wide",
+  "p": 0.12,
+  "gfx": "balanced",
+  "center": [
+   -97.739,
+   30.2855
+  ],
+  "zoom": 15.4,
+  "pitch": 62,
+  "bearing": 90
+ },
+ {
+  "name": "core-golden",
+  "p": 0.47,
+  "gfx": "cinematic",
+  "center": [
+   -97.739,
+   30.2855
+  ],
+  "zoom": 15.4,
+  "pitch": 62,
+  "bearing": 270
+ },
+ {
+  "name": "core-night",
+  "p": 0.9,
+  "gfx": "cinematic",
+  "center": [
+   -97.739,
+   30.2855
+  ],
+  "zoom": 15.6,
+  "pitch": 60,
+  "bearing": 135
+ },
+ {
+  "name": "east-block",
+  "p": 0.12,
+  "gfx": "balanced",
+  "center": [
+   -97.729,
+   30.286
+  ],
+  "zoom": 16.2,
+  "pitch": 58,
+  "bearing": 250
+ },
+ {
+  "name": "wc-night",
+  "p": 0.9,
+  "gfx": "cinematic",
+  "center": [
+   -97.7435,
+   30.2848
+  ],
+  "zoom": 16.2,
+  "pitch": 56,
+  "bearing": 45
+ }
+]

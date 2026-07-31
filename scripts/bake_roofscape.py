@@ -215,6 +215,15 @@ def MAX_FOR(area_m2):
 # rather than noise. Tier is decided by SIZE, not by kind — a big condenser
 # bank reads from the air and a small penthouse does not.
 TIER0_M2 = 11.0
+# Two same-kind boxes at the same height sharing more than this fraction of the
+# smaller one's area are one object detected twice. 0.35 rather than something
+# near 1.0 because the two halves of a split louvre screen come back as two
+# rectangles that each also cover the gap, so the pair overlaps substantially
+# without either containing the other.
+COPLANAR_COVER = 0.35
+# ...and when they overlap by LESS than that, they are two real objects that
+# abut. Lift the later one by this much rather than deleting it.
+COPLANAR_STAGGER = 0.25
 TIER0_HT = 2.4
 
 
@@ -698,12 +707,35 @@ def main():
     # not roof (see addStadiumLayers). A deck baked from the footprint would hang
     # a single enormous slab over the open bowl — the most visible possible bug
     # in the scene. Same document, same list.
+    #
+    # DKR was the FIRST building to need this and for two years it was the only
+    # one hard-coded here, which quietly became wrong the day five building
+    # passes landed at once. A pass that redraws a building at a height the
+    # snapshot does not carry, or that authors its own penthouse and deck, owns
+    # that building's roof — and this bake was still baking a generic one:
+    #
+    #   nine West Campus towers got a 0.25 m deck and a field of condensers
+    #   hovering 1.0-1.1 m above their authored mechanical penthouses;
+    #   the Moody Center got 253 features of arena plant standing ~2 m proud of
+    #   its authored roof;
+    #   PCL, the Bass/PAC and the ten Snohetta petals got decks buried metres
+    #   down inside taller authored geometry, drawn on every frame for nothing.
+    #
+    # So the exclusion list is now DECLARED BY THE PASSES rather than hard-coded
+    # here: any bake in data/ may carry `authoredRoofIds`. The stadium keeps
+    # using `replacedBuildingIds` because app.js, not a bake script, owns it.
+    # See docs/PASS_GLITCH.md.
     replaced = set()
-    try:
-        st = json.load(open(os.path.join(ROOT, "data", "stadium.geojson"), encoding="utf-8"))
-        replaced = set(st.get("replacedBuildingIds") or [])
-    except Exception:
-        pass
+    for fn in sorted(os.listdir(os.path.join(ROOT, "data"))):
+        if not fn.endswith(".geojson"):
+            continue
+        try:
+            gj = json.load(open(os.path.join(ROOT, "data", fn), encoding="utf-8"))
+        except Exception:
+            continue
+        if fn == "stadium.geojson":
+            replaced |= set(gj.get("replacedBuildingIds") or [])
+        replaced |= set(gj.get("authoredRoofIds") or [])
     cache = {} if remeasure else json.load(open(SURVEY, encoding="utf-8"))
 
     out = []
@@ -728,7 +760,7 @@ def main():
             stats["already_pitched"] += 1     # bake_roofs.py owns these
             continue
         if bid in replaced:
-            stats["replaced_by_stadium"] += 1
+            stats["roof_authored_by_a_pass"] += 1
             continue
         if p.get("has_parts"):
             # parts-3d draws this building's real massing at its own heights, so
@@ -796,6 +828,21 @@ def main():
         biggest = 0.0
         draw = s["blobs"][:MAX_FOR(s["area"])]
         n = max(1, len(draw))
+        # Rectangles already emitted on THIS roof, as (cx, cy, w, l, top), so a
+        # second blob describing the same equipment field can be recognised.
+        #
+        # The detector labels connected components in a threshold mask, and a
+        # big louvre screen with a gap down the middle comes back as two
+        # components. Each is then drawn as its ORIENTED BOUNDING RECTANGLE, and
+        # two bounding rectangles of two halves of one object are two ~identical
+        # rectangles — same kind, so same KIND_H, so the SAME TOP HEIGHT. Two
+        # coplanar top faces have no defined draw order, and the shared area
+        # breaks into a comb of scanlines that flips as the camera moves.
+        #
+        # That shipped: the Flawn Academic Center carried two `plant` slabs at
+        # 14.45-15.95 m sharing 94% of 1,887 m^2, and the whole roof visibly
+        # glitched from the air. Nine roofs were affected. See docs/PASS_GLITCH.md.
+        emitted = []
         for i, b in enumerate(draw):
             kind = b["k"]
             if kind == "pool":
@@ -823,6 +870,49 @@ def main():
             if clearance((ccx, ccy), poly) < min(w, l) * 0.5 + 0.25:
                 stats["clipped_at_parapet"] += 1
                 continue
+            # Coplanar-duplicate guard. `draw` is sorted biggest-first, so the
+            # survivor is always the larger reading of the object. Compared in
+            # the roof's own frame: every box on this roof shares `th`, so
+            # projecting the centre offset onto that frame's axes makes the two
+            # rectangles axis-aligned with respect to each other and the overlap
+            # exact rather than a bbox approximation.
+            top_h = round(deck_h + ht, 2)
+
+            def _shared(ox_, oy_, ow, ol):
+                dx, dy = ccx - ox_, ccy - oy_
+                du = abs(dx * math.cos(th) + dy * math.sin(th))
+                dv = abs(-dx * math.sin(th) + dy * math.cos(th))
+                return (max(0.0, (w + ow) / 2.0 - du) *
+                        max(0.0, (l + ol) / 2.0 - dv))
+
+            dup = False
+            for _ in range(4):
+                bump = False
+                for (ox_, oy_, ow, ol, otop) in emitted:
+                    if abs(otop - top_h) > 0.005:
+                        continue
+                    sh = _shared(ox_, oy_, ow, ol)
+                    if sh <= 0.0:
+                        continue
+                    if sh >= COPLANAR_COVER * max(w * l, 1e-6):
+                        dup = True
+                        break
+                    # A PARTIAL overlap is two different objects that happen to
+                    # abut, so deleting one would delete something the
+                    # photograph actually saw. Separate them in z instead: two
+                    # adjacent equipment screens are not level in reality
+                    # either, and 0.25 m is a sixth of a pixel from the flying
+                    # camera while being far more than the depth buffer needs.
+                    top_h = round(top_h + COPLANAR_STAGGER, 2)
+                    bump = True
+                    stats["coplanar_staggered"] += 1
+                    break
+                if dup or not bump:
+                    break
+            if dup:
+                stats["coplanar_duplicate"] += 1
+                continue
+
             lm = b.get("lm", 120)
             # Plant is metal and concrete: it lives in a narrower, cooler band
             # than the deck it stands on, and it must not out-shine a white
@@ -844,12 +934,13 @@ def main():
                     # first, so turning the knob down thins the specks and keeps
                     # the plant that actually reads.
                     "d": round(i / n, 3),
-                    "b": deck_h, "h": round(deck_h + ht, 2),
+                    "b": deck_h, "h": top_h,
                     "rd": col,
                     "rg": like(col, p.get("rd"), p.get("rg")),
                     "rn": night_of(col, p.get("rn")),
                 },
             })
+            emitted.append((ccx, ccy, w, l, top_h))
             placed += 1
             biggest = max(biggest, a)
             stats["k_" + kind] += 1
