@@ -1,0 +1,97 @@
+{
+ "furn_barrier": {
+  "source": "fetched",
+  "elements": 1248,
+  "tags": {
+   "barrier": {
+    "kerb": 940,
+    "bollard": 159,
+    "gate": 77,
+    "lift_gate": 7,
+    "fence": 44,
+    "wall": 21
+   },
+   "landuse": {
+    "cemetery": 1,
+    "recreation_ground": 1
+   }
+  }
+ },
+ "furn_transit": {
+  "source": "fetched",
+  "elements": 137,
+  "tags": {
+   "highway": {
+    "bus_stop": 84
+   },
+   "public_transport": {
+    "platform": 85
+   },
+   "amenity": {
+    "bicycle_rental": 9,
+    "shelter": 43
+   }
+  }
+ },
+ "furn_seating": {
+  "source": "fetched",
+  "elements": 92,
+  "tags": {
+   "amenity": {
+    "atm": 5,
+    "bicycle_repair_station": 7,
+    "post_box": 6,
+    "vending_machine": 3,
+    "charging_station": 9,
+    "shelter": 42,
+    "toilets": 2
+   },
+   "leisure": {
+    "picnic_table": 5,
+    "fitness_station": 1,
+    "outdoor_seating": 8,
+    "garden": 4
+   }
+  }
+ },
+ "furn_vertical": {
+  "source": "fetched",
+  "elements": 406,
+  "tags": {
+   "highway": {
+    "traffic_signals": 80,
+    "street_lamp": 194
+   },
+   "tourism": {
+    "information": 6
+   },
+   "man_made": {
+    "flagpole": 12,
+    "mast": 38,
+    "surveillance": 13,
+    "monitoring_station": 1,
+    "street_cabinet": 1
+   },
+   "emergency": {
+    "fire_hydrant": 8,
+    "phone": 43,
+    "defibrillator": 9
+   },
+   "advertising": {
+    "billboard": 1
+   }
+  }
+ },
+ "furn_planting": {
+  "source": "fetched",
+  "elements": 33,
+  "tags": {
+   "leisure": {
+    "garden": 4
+   },
+   "landuse": {
+    "flowerbed": 29
+   }
+  }
+ }
+}

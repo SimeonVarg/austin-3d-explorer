@@ -19,3 +19,11 @@ data/capitol_aerial.png
 # not something the site ever loads.
 data/dkr_aerial.png
 scripts/_overpass_probe.json
+
+# Local dev tooling (launch.json for the preview server, agent worktrees).
+.claude/
+
+# Verification renders are regenerable (scripts/verify/shot.mjs); the ones that
+# document a change live in docs/shots/ as JPEGs instead.
+scripts/verify/shots/
+scripts/verify/node_modules/
