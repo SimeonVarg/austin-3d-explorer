@@ -64,7 +64,23 @@ function initControls(map, scene) {
   const SENS_YAW_MOUSE = 0.20, SENS_PITCH_MOUSE = 0.13;
   const SENS_YAW_TOUCH = 0.18, SENS_PITCH_TOUCH = 0.11;
   const LOOK_DEADZONE = 0.4;
-  const PITCH_MIN = 5, PITCH_MAX = 85;
+  // MapLibre 5.24's own hard ceiling is exactly 90 deg, verified against the
+  // running library rather than the docs (scripts/verify/pitch-probe.mjs):
+  // setMaxPitch(95), (100) and (120) are all ACCEPTED and every one of them
+  // still reaches 90.00. Pitch is measured from straight down, so 90 is the
+  // camera level with the horizon — this stack cannot tip past it, and "straight
+  // up" does not exist here at any setting.
+  //
+  // We stop at 88 rather than 90 because the eye->pose derivation below divides
+  // by cos(pitch) and multiplies by tan(pitch): at 90 the map centre is at
+  // infinity and the derived zoom is NaN. At 88 the lead is 28.6 x altitude,
+  // which is a real place; at 89.5 it is 114 x, which leaves the modelled world.
+  //
+  // What 88 buys: the top of the frame sits at (pitch - 90 + fov/2) degrees
+  // above horizontal, so 88 with the default 58 fov shows 27 deg of sky, and 41
+  // deg at the menu's 82 fov maximum. That is the whole of "looking up" that
+  // exists in this renderer.
+  const PITCH_MIN = 5, PITCH_MAX = 88;
 
   const ALT_MIN = 18, ALT_MAX = 900, ALT_SLACK = 30;
   const VERT_GAIN = 0.25;          // per second, multiplicative
@@ -286,9 +302,30 @@ function initControls(map, scene) {
   // pitch. Doing it the other way — nudging the camera toward a legal pose —
   // would mean the view moves without the user asking, which is the exact
   // failure this rewrite exists to remove.
+  const PITCH_REACH = 2.8;      // 2974 m -> 8327 m, the outer ring's own extent
   const dMax = () => camPx() * mpp(ZOOM_MIN, eye.lat);
-  const altCeiling = () => Math.min(ALT_MAX, dMax() * Math.cos(rad(pitch)));
-  const pitchCap = () => Math.min(PITCH_MAX, deg(Math.acos(clamp(alt / dMax(), 0, 1))));
+  // altCeiling is the same bound seen from the other side, and it has to use the
+  // same reach or the two disagree: at pitch 88 with the un-widened dMax it
+  // collapsed to 104 m, so looking up PUSHED THE CAMERA DOWN — measured, a drag
+  // from 880 m ended at 91 m. Widened, the ceiling at pitch 88 is ~291 m.
+  const altCeiling = () => Math.min(ALT_MAX, dMax() * PITCH_REACH * Math.cos(rad(pitch)));
+
+  // PITCH_REACH is why looking up used to stop working as soon as you climbed.
+  //
+  // pitchCap is acos(alt / dMax), and dMax is fixed by ZOOM_MIN — 2974 m on an
+  // 800 px canvas at this latitude. So the cap was 85 only below 259 m of
+  // altitude, and fell to 82.3 at 400 m, 78.4 at 600 m and 72.4 at the 900 m
+  // ALT_MAX. Climbing quietly took the sky away, which is exactly the reported
+  // "I want to be able to look up".
+  //
+  // The bound itself is real: the derived zoom falls as pitch rises, and
+  // ZOOM_MIN is the floor. But ZOOM_MIN 14.0 was chosen when the modelled world
+  // ended at the 2.5 km core. The outer ring is 8.3 km across now, so the camera
+  // can legitimately look further before it runs out of city. PITCH_REACH
+  // reflects that, and nothing else changes: this widens what the LOOK input is
+  // allowed to ask for, it never moves the camera on its own.
+  const pitchCap = () => Math.min(PITCH_MAX,
+    deg(Math.acos(clamp(alt / (dMax() * PITCH_REACH), 0, 1))));
 
   // ── Read/write the MapLibre pose ──────────────────────────────────
   function syncFromMap() {
