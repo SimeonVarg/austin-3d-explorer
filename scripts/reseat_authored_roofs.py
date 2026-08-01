@@ -106,6 +106,15 @@ def inside(pt, ring):
     return c
 
 
+def area(g):
+    """Shoelace, in squared degrees. Only ever compared against itself."""
+    a = 0.0
+    for r in rings(g):
+        for i in range(len(r) - 1):
+            a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]
+    return abs(a) / 2
+
+
 def load(fn):
     p = os.path.join(DATA, fn)
     if not os.path.exists(p):
@@ -253,10 +262,49 @@ def main():
                             bgrid.setdefault((gx, gy), []).append(f)
 
             def bldg(pt):
+                """Which building does a roof at this point belong to?
+
+                SMALLEST CONTAINING FOOTPRINT, not the first one found, and the
+                difference is the whole of this script's two worst reports.
+
+                Footprints overlap: 131 of the 2,831 roof features whose centroid
+                lands on a building land on TWO of them (4.6%, measured
+                2026-08-01). Returning whichever the grid happened to list first
+                meant a roof correctly seated on a low wing could be attributed
+                to the tall neighbour that contains it, and then read as buried
+                by the height difference. That is exactly what produced:
+
+                    -12.00 m  3fb4507f
+                     -6.35 m  Austin Recreation Center
+
+                Neither was a defect. The Rec Center's own roof is at 16.05 on a
+                15.70 cap - a 0.35 m float, the ordinary base-plate case this
+                script already fixes. It only looked like a 6.35 m burial because
+                a 9.35 m roof belonging to the 8 m building inside its footprint
+                was being counted as the Rec Center's lowest feature.
+
+                The queue's stated hypothesis - "final_height changed under a
+                roof baked against the old value" - was also wrong: 3fb4507f has
+                read final_height 24.8 in every snapshot back to 2026-07-10.
+
+                Smallest-containing-footprint is the standard most-specific-
+                polygon rule and it is the right one here: a footprint drawn
+                inside another footprint is a more precise statement about that
+                patch of ground than the one that encloses it.
+
+                THE REAL FIX IS UPSTREAM AND IS NOT DONE. bake_roofs.py knows
+                exactly which building it is baking each roof for and throws that
+                away; stamping a `pid` would make this lookup unnecessary. It is
+                not done here because re-baking roofs.geojson would overwrite the
+                hand-verified reseats in commits 12eb981 and baf2678.
+                """
+                best, best_a = None, None
                 for f in bgrid.get((int(pt[0] * 2000), int(pt[1] * 2000)), []):
                     if any(inside(pt, r) for r in rings(f["geometry"])):
-                        return f
-                return None
+                        a = area(f["geometry"])
+                        if best is None or a < best_a:
+                            best, best_a = f, a
+                return best
 
             lowest2, owner2 = {}, {}
             for f in feats:
@@ -305,9 +353,22 @@ def main():
                     print("    %+6.2f m  %s" % (d, owner2[bid]["properties"].get("name")
                                                 or bid[:8]))
                 moved += moved2
+            # WHAT IS LEFT HERE IS EXPECTED, AND SHOULD NOT BE "FIXED" BLIND.
+            # After the attribution fix in bldg() the only remaining entries are
+            # Blanton Museum of Art and the Edgar A. Smith Building, both at
+            # exactly 1.00 m, both with their lowest roof feature sitting at
+            # exactly `final_height` rather than at the cap top. That is a roof
+            # authored to the wall line instead of the parapet, and at least one
+            # of them is deliberate: commit 12eb981, "Blanton's roof was floating
+            # one metre above Blanton", moved it there after looking at it.
+            #
+            # So do not close this gap on arithmetic. 1.00 m is also exactly
+            # max(1.0, 0.015*h) for a building of this height, which makes the
+            # two indistinguishable without a render. If you want to settle it,
+            # screenshot the parapet edge - do not reason about it.
             if buried:
-                print("  roofs BURIED inside their own building (not moved, different "
-                      "fix): %d" % len(buried))
+                print("  roofs seated at wall top rather than cap top (not moved, "
+                      "see the comment): %d" % len(buried))
                 for bid, d in sorted(buried.items(), key=lambda kv: -kv[1])[:5]:
                     print("    -%.2f m  %s" % (d, owner2[bid]["properties"].get("name")
                                                or bid[:8]))
