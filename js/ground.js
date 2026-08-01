@@ -141,6 +141,10 @@
     texStrength: {          // per surface family, 0..1
       grass: 1.0, asphalt: 0.9, water: 0.95, paving: 0.5,
     },
+    // The creek's implied depth. Set creekBank false for a flat creek.
+    creekBank: true,
+    creekBankColor: '#22301f',
+    creekBankOpacity: 0.55,
     texNightFade: 0.55,     // texture recedes after dark, never vanishes
     texWaterNightKeep: 0.8, // water keeps more of it — still reads as water
     // The catch-all ground under everything OSM does not classify measured 54%
@@ -162,6 +166,7 @@
 
   const SRC = 'austin-ground', RSRC = 'austin-roads';
   const AREA = 'ground-areas', TEX = 'ground-texture', BASE_TEX = 'ground-base-texture';
+  const BANK = 'ground-creek-bank';
   const ROAD_CASE = 'ground-road-casing', ROAD = 'ground-road', LANE = 'ground-road-lane';
   const BIKE_L = 'ground-bike-left', BIKE_R = 'ground-bike-right';
   const CYCLE = 'ground-cycleway', STOPBAR = 'ground-stopbar';
@@ -210,6 +215,11 @@
       limestone:'#efe6cf', concrete:'#dfd9cb', paving:'#e6ddc9', brick:'#9a6249',
       asphalt:'#5e6165', gravel:'#c9bfa9', dirt:'#a28b6c', sand:'#e2d2ab',
       grass:'#8fa869', turf:'#4f7a3c', wood:'#5d7a48', water:'#8fbccd',
+      // Waller Creek is a shaded, tree-covered channel, not open lake. Same
+      // reason the endzone is not pavement: one `water` class was painting a 7 m
+      // wooded creek and 600 m of Lady Bird Lake the same pale blue.
+      // A pond keeps still-water blue but loses the lake's brightness.
+      creek:'#4f6b52', pond:'#7fa8bb',
       track:'#a8503c', endzone:'#bf5700',
       roadconcrete:'#7c7d78', brickpave:'#e9cca4',
       bikelane:'#6d7075', biketrack:'#7a7d80', bikegreen:'#737b6e',
@@ -218,6 +228,7 @@
       limestone:'#f4e0b8', concrete:'#e3cba6', paving:'#ecd6ac', brick:'#8f5439',
       asphalt:'#655d5a', gravel:'#cdb28d', dirt:'#a37f5b', sand:'#e7cb9c',
       grass:'#8a9457', turf:'#4a6b36', wood:'#5a6a3c', water:'#c9a184',
+      creek:'#5c6b4c', pond:'#b0947f',
       track:'#a5482f', endzone:'#b04e00',
       roadconcrete:'#857c72', brickpave:'#eec69b',
       bikelane:'#75706c', biketrack:'#827c76', bikegreen:'#7a7a66',
@@ -226,7 +237,8 @@
       limestone:'#1b1e28', concrete:'#181b24', paving:'#1a1d26',
       brick:'#1d1720', asphalt:'#0d1017', gravel:'#1b1a22', dirt:'#191620',
       sand:'#201d26', grass:'#111a14', turf:'#0d1710', wood:'#0c130f',
-      water:'#070f1e', track:'#1d1418', endzone:'#2a1608',
+      water:'#070f1e', creek:'#080f0c', pond:'#060d18',
+      track:'#1d1418', endzone:'#2a1608',
       roadconcrete:'#14161c', brickpave:'#241d1f',
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
     },
@@ -242,7 +254,7 @@
     asphalt: 'asphalt', track: 'asphalt',
     roadconcrete: 'asphalt', bikelane: 'asphalt', biketrack: 'asphalt',
     bikegreen: 'asphalt', brickpave: 'paving',
-    water: 'water',
+    water: 'water', creek: 'water', pond: 'water',
   };
 
   // ── colour helpers (same convention as timeofday.js) ────────────────
@@ -740,6 +752,39 @@
           'fill-color': jitterExpr(pal, GROUND.jitter),
           'fill-opacity': GROUND.areaOpacity,
           'fill-antialias': true,
+        },
+      }, under);
+    }
+
+    // ── The creek's cut bank ─────────────────────────────────────────
+    //
+    // "Make that area read as a green creek with actual depth." There is no
+    // terrain in this scene — no DEM, no MapLibre terrain source — so depth has
+    // to be implied rather than modelled, and the honest cheap way is the shadow
+    // a cut bank throws on its own water. A blurred dark line drawn ALONG the
+    // creek polygon's own edge reads, from a flying camera, as the channel being
+    // below the ground either side of it.
+    //
+    // Deliberately not an extrusion: a fill-extrusion cannot go DOWN from the
+    // ground plane, so a sunk channel would need every surrounding surface
+    // raised instead, which is a re-bake of the entire ground and every building
+    // base. That is the "campus-wide terrain" idea, and it is correctly out of
+    // scope — one line layer gets most of the read for none of the cost.
+    if (GROUND.creekBank && !map.getLayer(BANK)) {
+      map.addLayer({
+        id: BANK, type: 'line', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['all', ['==', ['get', 'k'], 'area'], ['==', ['get', 's'], 'creek']],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': GROUND.creekBankColor,
+          // Wide enough to read as a bank rather than an outline, and scaled
+          // with zoom so it stays the same few metres of ground at every
+          // altitude instead of a constant screen width.
+          'line-width': ['interpolate', ['exponential', 2], ['zoom'],
+                         14, 1.5, 17, 9, 19, 30],
+          'line-blur': ['interpolate', ['exponential', 2], ['zoom'],
+                        14, 1, 17, 6, 19, 20],
+          'line-opacity': GROUND.creekBankOpacity,
         },
       }, under);
     }
