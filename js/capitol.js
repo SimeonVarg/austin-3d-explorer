@@ -106,17 +106,43 @@
    * parse, paid once at load, in exchange for the ground and the trees having
    * exactly one definition each.
    */
+  /**
+   * Append the Capitol's features to a source that is already loaded.
+   *
+   * THIS USED TO DOWNLOAD THE ENTIRE BASE FILE A SECOND TIME. `setData` replaces
+   * a source wholesale, so to add 60 Capitol trees it re-fetched all 25,341 of
+   * the city's, concatenated, and handed the lot back. Measured with
+   * scripts/verify/payload.mjs on 2026-08-01: `data/trees.geojson` fetched twice
+   * at 9.13 MB and `data/ground.geojson` twice at 0.81 MB — **9.94 MB, a quarter
+   * of the 39.7 MB a first-time visitor downloads**, for features they already
+   * had. The second fetch is usually a cache hit so it never showed up as slow
+   * network; what it actually cost was a second full JSON parse and a complete
+   * re-tile of the biggest source in the app, on the main thread, during load.
+   *
+   * `updateData` (MapLibre 4+, confirmed present in the 5.24.0 bundle) takes a
+   * DIFF instead. `{ add: [...] }` appends in the worker and leaves the existing
+   * tiles alone. The base file is never named, let alone fetched.
+   *
+   * baseUrl is kept only for the fallback path, so that pinning MapLibre to an
+   * older build degrades to the old behaviour instead of silently dropping the
+   * Capitol.
+   */
   async function mergeIntoSource(map, srcId, baseUrl, extraUrl, label) {
     const src = map.getSource(srcId);
     if (!src) { console.warn('[capitol] no source', srcId); return 0; }
-    const [base, extra] = await Promise.all([
-      getJSON(baseUrl, EMPTY), getJSON(extraUrl, EMPTY),
-    ]);
+    const extra = await getJSON(extraUrl, EMPTY);
     const add = extra.features || [];
     if (!add.length) return 0;
-    src.setData({ type: 'FeatureCollection',
-                  features: (base.features || []).concat(add) });
-    console.log('[capitol]', add.length, label, 'merged into', srcId);
+    if (typeof src.updateData === 'function') {
+      src.updateData({ add });
+      console.log('[capitol]', add.length, label, 'appended to', srcId);
+    } else {
+      const base = await getJSON(baseUrl, EMPTY);
+      src.setData({ type: 'FeatureCollection',
+                    features: (base.features || []).concat(add) });
+      console.warn('[capitol] no updateData on', srcId,
+                   '- refetched', baseUrl, 'to merge', label);
+    }
     return add.length;
   }
 
