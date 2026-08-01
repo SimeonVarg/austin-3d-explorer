@@ -109,12 +109,26 @@ This item is just: can we build the tiles at all, and are they lossless.
 
 **Blocked on M1.** Do not wire broken scripts into CI.
 
-Two payoffs, and the second is the one that was under-sold: it gets the suite off
-Simeon's laptop, *and* it is what makes an agent session fast. A verification pass
-is ~10 browser runs at 1.5–3.5 minutes each, serialised on purpose because eight
-concurrent headless Chromes is exactly what left 38 orphaned processes and pinned
-his machine. Run them concurrently on somebody else's hardware and wall clock
-becomes the slowest single script instead of the sum.
+**Read this before designing the matrix — it is measured, not assumed.** The
+obvious framing is "run them all at once and the wall clock becomes the slowest
+one". That is true *across machines* and false *on one machine*, and the
+difference decides the whole design.
+
+`scripts/verify/run.mjs` (Acer, PR #38) runs scripts concurrently on one box. It
+buys **1.5×**, not the 4× you would expect from four jobs — because this suite
+renders on the **CPU** on purpose (SwiftShader, for pixel determinism), so
+concurrent runs do not overlap, they queue for the same cores. 213 s serial
+became 143.7 s at three-at-a-time.
+
+Worse, and this is the trap: **contention manufactures false failures.**
+`retint.mjs` asserts the scene finishes retinting within 2500 ms. Alone it passes
+5/5; three-at-a-time it FAILS, with nothing broken. `run.mjs` carries a
+`SERIAL_ONLY` list for exactly this — reuse it rather than rediscovering it, and
+note it is **not** just the `-perf` family.
+
+So on Actions, put each shard **on its own runner**, where the cores really are
+separate. That is where the concurrency is real. Do not put four jobs on one
+runner and expect four times the throughput.
 
 - `.github/workflows/verify.yml`, `workflow_dispatch` so it is a button in the
   GitHub mobile UI. Copy the shape of `build-data.yml`, which already carries the
@@ -167,6 +181,38 @@ Chrome processes or the 8099 port collision.
 Simeon has already approved this as an idle-time chore. It is last because both
 lanes append to `HANDOFF.md` as they finish passes, so doing it while the other
 machine is busy guarantees a conflict.
+
+---
+
+## M7. Re-qualify pixel scripts onto hardware GL — the biggest speed lever there is
+
+**Take this if M1–M6 are done or blocked. It is worth more than everything above
+it except M1.**
+
+~100 scripts here render on the CPU at **3.7 fps** where this machine's discrete
+GPU does **35.3**. That 9.4× is why a 14-script loop takes 21 minutes, and it
+dwarfs anything parallelism can buy (see M4 — parallelism is 1.5×).
+
+They are on SwiftShader for a real reason: hardware and software rasterisers
+disagree on **26–42% of pixels**, worst channel delta 192/255, so any script
+asserting an exact hex would break. **That reason does not apply to all of
+them.** `retint.mjs` asserts "is night darker than 38 luma". `horizon-probe`
+asserts a line is above the buildings. Coarse, threshold-shaped assertions
+survive a backend change; exact-hex ones do not.
+
+**What:** triage every browser script into `exact-hex` (stays on SwiftShader,
+forever) and `threshold` (can move). For each candidate, run it on both backends
+and confirm the verdict is identical **with margin** — a threshold assertion that
+only just passes on hardware is not qualified, it is lucky. Add `gl: 'hardware'`
+only to the ones that pass that bar, and record the margin in the script's
+header so nobody has to re-derive it.
+
+`scripts/verify/gl-check.mjs` (Acer, PR #37) asserts the launch shapes resolve to
+the backend they ask for; lean on it rather than trusting a flag list.
+
+**Do not bulk-convert.** A pixel script that silently changes verdict is the
+worst possible outcome here — worse than a slow suite, because it is a suite that
+lies. One at a time, with the both-backends comparison in the PR.
 
 ---
 
