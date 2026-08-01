@@ -494,7 +494,7 @@ def build(feature, stats):
     inner_ring = offset(outer + [outer[0]], -WALL_THICK_M)
     if inner_ring is None:
         stats["wall_offset_failed"] += 1
-        return []
+        return [], None
     inner = ccw(inner_ring)
     c = centroid(hole)
     axis = long_axis(hole)
@@ -607,67 +607,37 @@ def build(feature, stats):
             stats["aisles"] += 1
 
     # 4. the field ------------------------------------------------------
-    # Regulation dimensions on the hole's own centroid and long axis. Confirmed
-    # against the photograph by overlay before it was committed.
+    # NOT emitted as features any more. The whole field — turf, mow stripes,
+    # yard lines, hash marks, numbers, end zones, lettering and the midfield
+    # Longhorn — is ONE image, registered to the four corners reported below and
+    # drawn by a raster layer under the stadium walls. See fieldImage() in
+    # js/app.js.
+    #
+    # The reason is occlusion, and it is not a preference. The lettering and the
+    # mark were a `symbol` layer, and MapLibre symbols do not depth-test against
+    # fill-extrusions: they are composited on top of the frame, so TEXAS and the
+    # Longhorn were legible through 63 m of grandstand from outside the stadium.
+    # No symbol-layer setting fixes that. A raster on the ground plane is real
+    # ground — the walls are drawn after it and paint over it exactly as they do
+    # over every other surface.
+    #
+    # It also buys the field twenty-seven fewer features and everything a real
+    # field has: a polygon alphabet was never going to happen.
     ca, sa = math.cos(axis - math.pi / 2), math.sin(axis - math.pi / 2)
     fx, fy = c
-    # Under the floodlights the grass is the brightest thing in the bowl, so it
-    # gets a night override like the video board rather than following the wall
-    # ramp into the dark.
-    out.append(feat(rect(fx, fy, FIELD_W_M, FIELD_L_M, axis - math.pi / 2), lat0,
-                    {"kind": "turf", "h": FIELD_H, "col": COL["turf"],
-                     "night": COL["turf_lit"], "name": name}))
-    stats["field"] += 1
-    for s in (1, -1):
-        ey = s * (FIELD_L_M - ENDZONE_M) / 2
-        out.append(feat(rect(fx - ey * sa, fy + ey * ca, FIELD_W_M, ENDZONE_M,
-                             axis - math.pi / 2), lat0,
-                        {"kind": "paint", "h": FIELD_H + 0.08,
-                         "col": COL["endzone"], "night": "#a8501c", "name": name}))
-        stats["field"] += 1
-    # Yard lines every 5 yd across the 100 yd of play. A real line is 10 cm; at
-    # this camera's half-metre-per-pixel that is a fifth of a pixel and simply
-    # does not exist. 0.9 m is a deliberate over-scale - the narrowest width
-    # that actually renders - and nothing else in the scene says 'football
-    # field' half as loudly.
-    for i in range(21):
-        yy = -45.72 + i * 4.572
-        out.append(feat(rect(fx - yy * sa, fy + yy * ca, FIELD_W_M, 0.90,
-                             axis - math.pi / 2), lat0,
-                        {"kind": "paint", "h": FIELD_H + 0.16,
-                         "col": COL["paint"], "night": "#b8b4ac", "name": name}))
-        stats["field"] += 1
-
-    # 4b. what is painted ON the turf -------------------------------------
-    # Lettering and the midfield mark cannot be polygons at this scale — the end
-    # zone letters are ~5 m tall, which is ten pixels from the flying camera, and
-    # a polygon alphabet would be a hundred features to draw ten pixels. They are
-    # emitted as POINTS instead and drawn by a symbol layer with map-aligned
-    # pitch and rotation, so the text and the mark lie flat on the grass the way
-    # paint does. See `stadium-paint` in js/app.js.
-    #
-    # Bearing is reported in MapLibre's convention (degrees clockwise from north)
-    # rather than the maths convention this file works in, so the layer can use
-    # it directly without a second conversion nobody would remember to make.
-    rot = (90.0 - math.degrees(axis)) % 360.0
-    for s, word in ((1, "TEXAS"), (-1, "LONGHORNS")):
-        ey = s * (FIELD_L_M / 2 - ENDZONE_M / 2)
-        px_, py_ = fx - ey * sa, fy + ey * ca
-        lon, lat = to_ll([(px_, py_)], lat0)[0]
-        out.append({"type": "Feature",
-                    "properties": {"kind": "letter", "t": word,
-                                   # Each end zone reads from its own side, so
-                                   # the two words face opposite ways — exactly
-                                   # as they are painted.
-                                   "rot": round((rot + (0 if s > 0 else 180)) % 360, 2),
-                                   "name": name},
-                    "geometry": {"type": "Point", "coordinates": [lon, lat]}})
-        stats["letters"] += 1
-    lon, lat = to_ll([(fx, fy)], lat0)[0]
-    out.append({"type": "Feature",
-                "properties": {"kind": "mark", "rot": round(rot, 2), "name": name},
-                "geometry": {"type": "Point", "coordinates": [lon, lat]}})
-    stats["mark"] += 1
+    # Corners in the order an `image` source wants them: top-left, top-right,
+    # bottom-right, bottom-left, with the image's top edge at the north end.
+    nx, ny = math.cos(axis), math.sin(axis)          # along the field, northward
+    ex, ey_ = math.sin(axis), -math.cos(axis)        # across it, eastward
+    HL, HW = FIELD_L_M / 2, FIELD_W_M / 2
+    corners_m = [
+        (fx + nx * HL - ex * HW, fy + ny * HL - ey_ * HW),   # NW -> image TL
+        (fx + nx * HL + ex * HW, fy + ny * HL + ey_ * HW),   # NE -> image TR
+        (fx - nx * HL + ex * HW, fy - ny * HL + ey_ * HW),   # SE -> image BR
+        (fx - nx * HL - ex * HW, fy - ny * HL - ey_ * HW),   # SW -> image BL
+    ]
+    field_corners = [to_ll([p], lat0)[0] for p in corners_m]
+    stats["field_image"] += 1
 
     # 5. the video board -------------------------------------------------
     # 17.0 x 41.0 m, south end, facing the field. Published, not measured — the
@@ -743,7 +713,7 @@ def build(feature, stats):
                          "col": COL["mast"], "golden": "#d8c39c",
                          "night": COL["mast_lit"], "name": name}))
         stats["masts"] += 1
-    return out
+    return out, field_corners
 
 
 # Buildings that are structurally PART of the stadium but carry their own
@@ -767,7 +737,7 @@ SIDE_H = {}          # filled from ANNEX_INTO_SIDE at run time
 
 def main():
     feats = json.load(open(SNAP, encoding="utf-8"))["features"]
-    out, replaced = [], []
+    out, replaced, field_corners = [], [], None
     stats = Counter()
     for f in feats:
         nm = f["properties"].get("name") or ""
@@ -787,10 +757,11 @@ def main():
         if (p.get("final_height") or 0) < 12:
             stats["skipped_low"] += 1
             continue
-        made = build(f, stats)
+        made, corners = build(f, stats)
         if not made:
             continue
         out.extend(made)
+        field_corners = corners
         # The building's own extrusion has to STOP being drawn, or its 63 m lid
         # buries every band underneath it. app.js filters these ids out.
         replaced.append(p.get("id"))
@@ -798,12 +769,17 @@ def main():
         print("  %-30s h=%5.1f  ->  %d features" % ((p.get("name") or "?")[:30],
                                                     p.get("final_height") or 0, len(made)))
 
-    fc = {"type": "FeatureCollection", "features": out, "replacedBuildingIds": replaced}
+    # fieldCorners rides on the FeatureCollection rather than in a feature: it
+    # is not geometry to draw, it is the registration for the field image, and
+    # app.js reads it off the same fetch it already makes.
+    fc = {"type": "FeatureCollection", "features": out,
+          "replacedBuildingIds": replaced, "fieldCorners": field_corners}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
     print(json.dumps({
         "features": len(out),
         "replaced_building_ids": replaced,
+        "field_corners": field_corners,
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
         # The west side is 85.2 m from field wall to perimeter, so this says how

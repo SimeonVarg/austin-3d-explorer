@@ -494,7 +494,7 @@
   const detailColourAt = p => (p <= 0.5
     ? ['interpolate', ['linear'], p / 0.5, 0, ['get', 'cd'], 1, ['get', 'cg']]
     : ['interpolate', ['linear'], (p - 0.5) / 0.5, 0, ['get', 'cg'], 1, ['get', 'cn']]);
-  const DETAIL_KINDS = ['turf', 'paint', 'board', 'logo', 'ramp', 'mast', 'aisle'];
+  const DETAIL_KINDS = ['board', 'logo', 'ramp', 'mast', 'aisle'];
 
   /**
    * The midfield Longhorn, drawn once into a canvas and registered as an image.
@@ -550,43 +550,105 @@
   }
 
   /**
-   * End zone lettering, drawn to fit rather than set as map text.
+   * The whole field as ONE image, registered to its four real corners.
    *
-   * Two reasons it cannot be a `text-field`. First, LONGHORNS is nine characters
-   * against TEXAS's five, so at one shared size the long word runs off both
-   * sidelines — which is exactly what happened. A real field solves that the way
-   * this does: the word is CONDENSED to the width available, so both end zones
-   * read at the same cap height and the same span. Second, the only fonts on
-   * OpenFreeMap's glyph server are Noto Sans Regular/Bold/Italic, and none of
-   * them is the heavy athletic block that end zone paint actually uses.
+   * Why an image and not layers of geometry plus a symbol layer, which is what
+   * this was: MapLibre `symbol` layers DO NOT DEPTH-TEST AGAINST FILL
+   * EXTRUSIONS. They are composited over the finished frame, so TEXAS and the
+   * midfield Longhorn were legible through 63 m of grandstand from outside the
+   * stadium. There is no symbol-layer setting that fixes it — not
+   * pitch-alignment, not sort key, not placement. The only fix is to stop being
+   * a symbol. A raster on the ground plane is ordinary ground: the walls are
+   * drawn after it and paint over it exactly as they do over the streets.
    *
-   * Drawing it into a canvas and squeezing it horizontally gets both, and gets
-   * them identically on every machine — no dependency on which fonts happen to
-   * be installed.
+   * Fill-extrusion-pattern would not have worked either — it is locked to the
+   * tile, so one field image would repeat rather than land once on the field.
+   * An `image` source takes explicit corner coordinates, which is precisely the
+   * "put this picture exactly there" primitive this needs.
+   *
+   * Canvas is portrait with NORTH AT THE TOP, matching the corner order the bake
+   * emits (NW, NE, SE, SW).
    */
-  function endZoneImage(word) {
-    const W = 640, H = 150, PAD = 10;
+  const FIELD_L = 109.73, FIELD_W = 48.77, ENDZONE = 9.14;
+  function fieldImage() {
+    const H = 1400, W = Math.round(H * FIELD_W / FIELD_L);
+    const S = H / FIELD_L;                       // px per metre
     const c = document.createElement('canvas');
     c.width = W; c.height = H;
     const x = c.getContext('2d');
-    const base = 118;
-    x.font = '900 ' + base + 'px "Arial Black","Helvetica Neue",Arial,sans-serif';
+    const m = v => v * S;
+
+    x.fillStyle = '#3f6b3a';                     // FieldTurf, post-2021 dark green
+    x.fillRect(0, 0, W, H);
+    // Mow stripes run ACROSS the field, in bands the width of five yards, which
+    // is why a real field looks banded from the air rather than flat green.
+    x.fillStyle = 'rgba(255,255,255,.045)';
+    for (let i = 0; i < 24; i += 2) x.fillRect(0, m(ENDZONE + i * 4.572), W, m(4.572));
+
+    // End zones. Burnt orange since the 2021 turf, which also darkened the green.
+    x.fillStyle = '#bf5700';
+    x.fillRect(0, 0, W, m(ENDZONE));
+    x.fillRect(0, H - m(ENDZONE), W, m(ENDZONE));
+    // The orange border runs only to the 20-yard lines — NOT around the whole
+    // field. That is the specific thing the 2021 repaint changed and it is
+    // visible in the aerial.
+    const b = m(1.5), to20 = m(ENDZONE + 18.29);
+    for (const [y0, y1] of [[0, to20], [H - to20, H]]) {
+      x.fillRect(0, y0, b, y1 - y0);
+      x.fillRect(W - b, y0, b, y1 - y0);
+    }
+
+    // Yard lines every 5 yd, goal line to goal line.
+    x.fillStyle = '#f0ece4';
+    for (let i = 0; i <= 20; i++) x.fillRect(0, m(ENDZONE + i * 4.572) - 1, W, 2.5);
+    x.fillRect(0, m(ENDZONE) - 1, W, 4);                      // goal lines, heavier
+    x.fillRect(0, H - m(ENDZONE) - 3, W, 4);
+    // College hash marks sit 20 yd in from each sideline, one per yard.
+    const hx = [m(18.29), W - m(18.29)];
+    for (let yd = 1; yd < 100; yd++) {
+      const y = m(ENDZONE + yd * 0.9144);
+      for (const h of hx) x.fillRect(h - m(0.3), y - 1, m(0.6), 2);
+    }
+
+    // Yard numbers, facing the nearer sideline the way they are painted.
+    x.font = '900 ' + Math.round(m(1.6)) + 'px "Arial Black",Arial,sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    const spaced = word.split('').join(' ');   // thin space, like real paint
-    const m = x.measureText(spaced).width || 1;
-    x.translate(W / 2, H / 2);
-    x.scale(Math.min(2.2, (W - PAD * 2) / m), 1);   // condense to fit the field
-    // Paint has a soft edge against the turf, not a hard vector one. A dark
-    // outline under white gives that and keeps the letters legible at the dozen
-    // pixels they occupy from the flying camera.
-    x.lineJoin = 'round';
-    x.strokeStyle = 'rgba(40,26,14,.55)';
-    x.lineWidth = 9;
-    x.strokeText(spaced, 0, 4);
-    x.fillStyle = '#f4f1ea';
-    x.fillText(spaced, 0, 4);
-    return x.getImageData(0, 0, W, H);
+    for (let i = 1; i <= 9; i++) {
+      const n = String(i <= 5 ? i * 10 : (10 - i) * 10);
+      const y = m(ENDZONE + i * 9.144);
+      for (const [px_, rot] of [[m(7.5), Math.PI / 2], [W - m(7.5), -Math.PI / 2]]) {
+        x.save(); x.translate(px_, y); x.rotate(rot);
+        x.fillText(n, 0, 0); x.restore();
+      }
+    }
+
+    // End zone lettering. Each word is condensed to the width available, which
+    // is how a real field fits LONGHORNS and TEXAS at the same cap height.
+    const word = (w, cy, flip) => {
+      x.save(); x.translate(W / 2, cy); if (flip) x.rotate(Math.PI);
+      x.font = '900 ' + Math.round(m(5.4)) + 'px "Arial Black",Arial,sans-serif';
+      const t = w.split('').join(' ');
+      x.scale(Math.min(1.6, (W - m(3)) / (x.measureText(t).width || 1)), 1);
+      x.fillStyle = '#f4f1ea';
+      x.fillText(t, 0, 0);
+      x.restore();
+    };
+    word('TEXAS', m(ENDZONE / 2), false);
+    word('LONGHORNS', H - m(ENDZONE / 2), true);
+
+    // Midfield Longhorn, ~15 m across, from Simeon's SVG.
+    x.save();
+    const lw = m(15), lh = lw * LONGHORN_VB[1] / LONGHORN_VB[0];
+    x.translate(W / 2 - lw / 2, H / 2 - lh / 2);
+    x.scale(lw / LONGHORN_VB[0], lh / LONGHORN_VB[1]);
+    x.transform(1.25, 0, 0, -1.25, -390.11, 305.09);
+    x.translate(574.03, 241.88);
+    x.fillStyle = '#bf5700';
+    x.fill(new Path2D(LONGHORN_PATH));
+    x.restore();
+    return c.toDataURL('image/png');
   }
+
 
   window.addStadiumLayers = function addStadiumLayers() {
     if (map.getSource('austin-stadium')) return;
@@ -625,6 +687,21 @@
           const f = map.getFilter(id);
           try { map.setFilter(id, f ? ['all', f, notReplaced] : notReplaced); } catch (e) {}
         }
+      }
+
+      // THE FIELD, before anything else, so every stadium layer added after it
+      // draws on top and hides it exactly the way the real grandstand does.
+      // This replaced a symbol layer that rendered TEXAS and the Longhorn
+      // straight through the building from outside.
+      if (gj.fieldCorners && !map.getSource('austin-field')) {
+        map.addSource('austin-field', {
+          type: 'image', url: fieldImage(), coordinates: gj.fieldCorners,
+        });
+        map.addLayer({
+          id:'stadium-field', type:'raster', source:'austin-field', minzoom:14,
+          paint:{ 'raster-opacity':1, 'raster-fade-duration':0,
+                  'raster-resampling':'linear' },
+        }, anchor);
       }
 
       // The perimeter wall. Same facade paint as every other building, so it
@@ -691,43 +768,6 @@
           },
         }, anchor);
       }
-      // What is painted ON the grass: TEXAS / LONGHORNS and the midfield mark.
-      // `*-pitch-alignment: map` and `*-rotation-alignment: map` are what lay
-      // these flat on the turf and turn them with the camera — without both,
-      // they stand up and face the viewer like a map pin.
-      if (!map.getLayer('stadium-paint')) {
-        try {
-          if (!map.hasImage('dkr-longhorn')) map.addImage('dkr-longhorn', longhornImage());
-          for (const w of ['TEXAS', 'LONGHORNS']) {
-            if (!map.hasImage('dkr-word-' + w)) map.addImage('dkr-word-' + w, endZoneImage(w));
-          }
-        } catch (e) {}
-        map.addLayer({
-          id:'stadium-paint', type:'symbol', source:'austin-stadium', minzoom:15,
-          filter:['in', ['get','kind'], ['literal', ['letter','mark']]],
-          layout:{
-            // Both the words and the mark are drawn images, not map text — see
-            // endZoneImage() for why a text-field could not do this.
-            'icon-image':['case', ['==', ['get','kind'], 'mark'],
-                          'dkr-longhorn', ['concat', 'dkr-word-', ['get', 't']]],
-            // Sized in METRES, then converted once. The word canvas is 640 px
-            // and should span ~40 m of the 48.77 m field width; the Longhorn
-            // canvas is 512 px and should span ~15 m, which is the real mark.
-            // The mark's figure was calibrated by MEASURING it off a render —
-            // the arithmetic answer came out 3x too small, because MapLibre's
-            // zoom is defined per 512 px tile and the screenshot is not.
-            // Base 2 tracks ground scale exactly, so both hold at every zoom.
-            'icon-size':['interpolate',['exponential',2],['zoom'],
-                         15, ['case', ['==', ['get','kind'], 'mark'], 0.0213, 0.0151],
-                         19, ['case', ['==', ['get','kind'], 'mark'], 0.3405, 0.242]],
-            'icon-rotate':['get','rot'],
-            'icon-rotation-alignment':'map',
-            'icon-pitch-alignment':'map',
-            'icon-allow-overlap':true, 'icon-ignore-placement':true,
-          },
-          paint:{ 'icon-opacity':0.95 },
-        }, anchor);
-      }
     }).catch(() => {});
   };
   window.applyStadiumColors = function applyStadiumColors(p) {
@@ -735,6 +775,14 @@
     try { map.setPaintProperty('stadium-seating', 'fill-extrusion-color', seatColourAt(p)); } catch (e) {}
     try { map.setPaintProperty('stadium-wall-roof', 'fill-extrusion-color', rampAt(RIM_COL, p)); } catch (e) {}
     try { map.setPaintProperty('stadium-detail', 'fill-extrusion-color', detailColourAt(p)); } catch (e) {}
+    // The field image is a photograph of paint, not a material, so it rides
+    // the day ramp as exposure rather than as colour. Floodlit at night, so
+    // it dims far less than the unlit structure around it.
+    try {
+      const night = Math.max(0, (p - 0.62) / 0.38);
+      map.setPaintProperty('stadium-field', 'raster-brightness-max', 1 - 0.42 * night);
+      map.setPaintProperty('stadium-field', 'raster-saturation', -0.10 * night);
+    } catch (e) {}
   };
 
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──
