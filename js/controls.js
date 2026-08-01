@@ -64,7 +64,23 @@ function initControls(map, scene) {
   const SENS_YAW_MOUSE = 0.20, SENS_PITCH_MOUSE = 0.13;
   const SENS_YAW_TOUCH = 0.18, SENS_PITCH_TOUCH = 0.11;
   const LOOK_DEADZONE = 0.4;
-  const PITCH_MIN = 5, PITCH_MAX = 85;
+  // MapLibre 5.24's own hard ceiling is exactly 90 deg, verified against the
+  // running library rather than the docs (scripts/verify/pitch-probe.mjs):
+  // setMaxPitch(95), (100) and (120) are all ACCEPTED and every one of them
+  // still reaches 90.00. Pitch is measured from straight down, so 90 is the
+  // camera level with the horizon — this stack cannot tip past it, and "straight
+  // up" does not exist here at any setting.
+  //
+  // We stop at 88 rather than 90 because the eye->pose derivation below divides
+  // by cos(pitch) and multiplies by tan(pitch): at 90 the map centre is at
+  // infinity and the derived zoom is NaN. At 88 the lead is 28.6 x altitude,
+  // which is a real place; at 89.5 it is 114 x, which leaves the modelled world.
+  //
+  // What 88 buys: the top of the frame sits at (pitch - 90 + fov/2) degrees
+  // above horizontal, so 88 with the default 58 fov shows 27 deg of sky, and 41
+  // deg at the menu's 82 fov maximum. That is the whole of "looking up" that
+  // exists in this renderer.
+  const PITCH_MIN = 5, PITCH_MAX = 88;
 
   const ALT_MIN = 18, ALT_MAX = 900, ALT_SLACK = 30;
   const VERT_GAIN = 0.25;          // per second, multiplicative
@@ -288,6 +304,25 @@ function initControls(map, scene) {
   // failure this rewrite exists to remove.
   const dMax = () => camPx() * mpp(ZOOM_MIN, eye.lat);
   const altCeiling = () => Math.min(ALT_MAX, dMax() * Math.cos(rad(pitch)));
+
+  // DO NOT WIDEN THIS. It looks like a needless restriction and it is not.
+  //
+  // The eye is the state and zoom is DERIVED from it: z comes from
+  // D = alt/cos(pitch), and z is clamped to ZOOM_MIN. pitchCap is exactly the
+  // pitch at which that clamp is about to bite — acos(alt/dMax) is the same
+  // equation solved for pitch. Allow more, and the derived zoom saturates while
+  // the centre keeps travelling, so the EYE moves even though nothing asked it
+  // to.
+  //
+  // That is not theory. A previous pass multiplied dMax here by 2.8 to let the
+  // camera look up while high, shipped it, and the report back was that looking
+  // up TELEPORTED the camera to the edge of the map and looking back down
+  // returned it. Reproduced and measured below by scripts/verify/lookup-check.mjs:
+  // at 450 m the eye jumped 5.6 km.
+  //
+  // Looking up while high therefore needs a lower ZOOM_MIN, not a wider cap —
+  // and that re-budgets every zoom in the app (most layers start at minzoom 14),
+  // so it is its own pass with its own verification.
   const pitchCap = () => Math.min(PITCH_MAX, deg(Math.acos(clamp(alt / dMax(), 0, 1))));
 
   // ── Read/write the MapLibre pose ──────────────────────────────────

@@ -250,7 +250,15 @@
     // read as a cloud.
     for (let i = 0; i < 22; i++) {
       const az = rnd() * 360;
-      const elev = 2.2 + Math.pow(rnd(), 1.6) * 14;
+      // Clouds used to stop at 16.2 deg of elevation, which was right when the
+      // camera stopped at pitch 85 minus an altitude penalty and only ever
+      // showed a sliver of sky. With the ceiling at 88 the top of the frame is
+      // 27 deg up at the default fov and 41 at the menu's maximum, and a sky
+      // that is bare gradient above 16 reads as a backdrop rather than a sky.
+      // Still biased LOW — the same lesson the stars learned at js/sky.js:232,
+      // where weighting toward the zenith produced two visible stars — so the
+      // horizon band keeps most of them and the high ones thin out.
+      const elev = 2.2 + Math.pow(rnd(), 1.75) * 40;
       const span = 4 + rnd() * 9;
       const lobes = [];
       const n = 3 + Math.floor(rnd() * 3);
@@ -262,7 +270,13 @@
           a: 0.5 + rnd() * 0.5,
         });
       }
-      out.push({ az, elev, lobes, a: 0.45 + rnd() * 0.55, squash: 0.30 + rnd() * 0.22 });
+      // A cloud deck is a plane, not a dome: the higher up the sky you look, the
+      // nearer and larger the cloud actually is, but it also thins as it stops
+      // being seen edge-on. Fading with elevation is what keeps the new high
+      // band from reading as the low band stamped overhead.
+      const hi = Math.min(1, Math.max(0, (elev - 14) / 26));
+      out.push({ az, elev, lobes, a: (0.45 + rnd() * 0.55) * (1 - 0.45 * hi),
+                 squash: (0.30 + rnd() * 0.22) * (1 + 0.9 * hi) });
     }
     return out;
   }
