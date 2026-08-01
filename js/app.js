@@ -143,7 +143,10 @@
     map = new maplibregl.Map({
       container:'map', style:'https://tiles.openfreemap.org/styles/liberty',
       center:SPAWN.center, zoom:SPAWN.zoom, pitch:SPAWN.pitch, bearing:SPAWN.bearing,
-      maxPitch:85, scrollZoom:false, attributionControl:{ compact:true },
+      // 88, not 85: MapLibre 5.24's own hard ceiling is 90 (verified against the
+      // running library, scripts/verify/pitch-probe.mjs) and the flycam's
+      // eye->pose derivation goes singular there. See js/controls.js PITCH_MAX.
+      maxPitch:88, scrollZoom:false, attributionControl:{ compact:true },
       // v5: antialias moved into canvasContextAttributes. It defaults OFF here
       // because it is the most expensive single option in the whole app —
       // measured over a 4 s flight at 2560x1400, turning MSAA off took dropped
