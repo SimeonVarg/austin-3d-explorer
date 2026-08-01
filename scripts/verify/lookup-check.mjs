@@ -96,21 +96,22 @@ const low = await lookUpFrom(120);
 const mid = await lookUpFrom(450);
 const high = await lookUpFrom(880);
 
-check('a drag reaches the ceiling low down', low.pitch >= 87.5,
+check('a drag reaches the ceiling low down', low.pitch >= 86,
   `seeded ${low.seededAlt} m, ended ${low.alt} m -> pitch ${low.pitch}, ${low.skyTopDeg} deg of sky above the horizon`);
-// This is the actual complaint: the old cap was acos(alt/dMax) against a fixed
-// 2974 m, so it fell to 78.4 at 600 m and 72.4 at the 900 m ceiling.
-check('climbing no longer takes the sky away', high.pitch >= 82 && high.alt > 500,
-  `seeded ${high.seededAlt} m, ended ${high.alt} m -> pitch ${high.pitch} (old cap here: 72.4)`);
-// THE HONEST TRADE, asserted at its real value rather than wished away.
-// Looking up still costs altitude, because the derived zoom bottoms out at
-// ZOOM_MIN and the code expresses that floor as an altitude ceiling:
-// altCeiling = dMax * PITCH_REACH * cos(pitch), which at pitch 88 is ~291 m.
-// Before this change it was ~104 m. Removing the trade entirely means lowering
-// ZOOM_MIN, which re-budgets every zoom in the app and is its own pass.
-check('looking up no longer dumps the camera to the rooftops',
-  high.alt > 200,
-  `seeded ${high.seededAlt} m -> ${high.alt} m at pitch ${high.pitch} (was 91 m; ceiling here is ~291 m)`);
+// THE CAP IS ALTITUDE-DEPENDENT BY DESIGN, and these thresholds now say so.
+//
+// An earlier version of this file demanded pitch >= 82 at 880 m, which only the
+// widened pitchCap could deliver — and that widening is exactly what shipped the
+// teleport. An assertion that encodes a bug will keep the bug. What is true is
+// that pitchCap = acos(alt/dMax) is the pitch at which the derived zoom is about
+// to hit ZOOM_MIN, so the reachable pitch necessarily FALLS as you climb: ~87 at
+// 150 m, ~80 at 450 m, ~70 at 880 m. Looking up while high needs a lower
+// ZOOM_MIN, not a wider cap.
+check('the reachable pitch falls with altitude, as the zoom floor requires',
+  high.pitch > 68 && high.pitch < low.pitch,
+  `${low.alt} m -> ${low.pitch} deg, ${high.alt} m -> ${high.pitch} deg`);
+check('altitude is never traded away for pitch', high.alt > high.seededAlt * 0.95,
+  `seeded ${high.seededAlt} m -> ${high.alt} m after the drag`);
 check('the cap rises monotonically as it should, not backwards',
   low.pitch >= mid.pitch - 0.01 && mid.pitch >= high.pitch - 0.01,
   `${low.alt}m:${low.pitch}  ${mid.alt}m:${mid.pitch}  ${high.alt}m:${high.pitch}`);
@@ -131,6 +132,62 @@ for (const [name, p] of [['day', 0.18], ['night', 0.86]]) {
   await page.screenshot({ path: path.join(outDir, `lookup-${name}.png`) });
 }
 fs.existsSync(path.join(outDir, '_t.png')) && fs.unlinkSync(path.join(outDir, '_t.png'));
+
+// ── THE REGRESSION THIS SUITE MISSED THE FIRST TIME ──────────────────
+//
+// Shipped, then reported: "i look up and it TPS me to the edge of the map where
+// i was looking ... then i look back down and it puts me back". The suite was
+// green because every assertion was about PITCH. None was about the thing a
+// look gesture must never do — move you.
+//
+// The eye is the state; centre and zoom are derived, and zoom is clamped to
+// ZOOM_MIN. Past the pitch where that clamp bites, the derived zoom saturates
+// while the centre keeps travelling, so the eye slides out to the horizon.
+// Looking back down un-clamps it and it snaps home, which is exactly the
+// "teleport, then return" described.
+async function eyeDriftFromLookingUp(altM) {
+  await page.waitForTimeout(8500);          // the controller keeps the camera ~8 s
+  await page.evaluate(async alt => {
+    const m = window.__map;
+    for (let i = 0; i < 40 && window.__fly.eye().driving; i++)
+      await new Promise(r => setTimeout(r, 100));
+    const C = 40030228.884, lat = 30.2857, pitch = 60;
+    const camPx = 0.5 * m.getCanvas().clientHeight /
+      Math.tan((m.getVerticalFieldOfView ? m.getVerticalFieldOfView() : 58) * Math.PI / 360);
+    m.jumpTo({ center: [-97.7434, lat], pitch, bearing: 250,
+      zoom: Math.log2(C * Math.cos(lat * Math.PI / 180) * camPx /
+                      (512 * (alt / Math.cos(pitch * Math.PI / 180)))) });
+  }, altM);
+  await page.waitForTimeout(1200);
+  const before = await page.evaluate(() => {
+    const e = window.__fly.eye(); return { lng: e.lng, lat: e.lat, alt: e.alt, pitch: e.pitch };
+  });
+  for (let pass = 0; pass < 2; pass++) {
+    await page.mouse.move(500, 80);
+    await page.mouse.down();
+    for (let y = 80; y <= 640; y += 20) { await page.mouse.move(500, y); await page.waitForTimeout(16); }
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+  }
+  await page.waitForTimeout(1600);
+  return page.evaluate(([b]) => {
+    const e = window.__fly.eye();
+    // Metres on the ground between where the eye was and where it ended up.
+    const dLat = (e.lat - b.lat) * 111320;
+    const dLng = (e.lng - b.lng) * 111320 * Math.cos(b.lat * Math.PI / 180);
+    return { moved: +Math.hypot(dLat, dLng).toFixed(1), pitchFrom: +b.pitch.toFixed(1),
+             pitchTo: +e.pitch.toFixed(2), altFrom: +b.alt.toFixed(0), altTo: +e.alt.toFixed(0) };
+  }, [before]);
+}
+
+for (const alt of [150, 450, 880]) {
+  const d = await eyeDriftFromLookingUp(alt);
+  // A look gesture may change where you are LOOKING. It may never change where
+  // you ARE. The tolerance is the flycam's own glide tail, not a fudge.
+  check(`looking up from ${alt} m does not move the camera`, d.moved < 40,
+    `eye moved ${d.moved} m while pitch went ${d.pitchFrom} -> ${d.pitchTo} ` +
+    `(altitude ${d.altFrom} -> ${d.altTo})`);
+}
 
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
 

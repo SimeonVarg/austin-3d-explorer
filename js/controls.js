@@ -302,30 +302,28 @@ function initControls(map, scene) {
   // pitch. Doing it the other way — nudging the camera toward a legal pose —
   // would mean the view moves without the user asking, which is the exact
   // failure this rewrite exists to remove.
-  const PITCH_REACH = 2.8;      // 2974 m -> 8327 m, the outer ring's own extent
   const dMax = () => camPx() * mpp(ZOOM_MIN, eye.lat);
-  // altCeiling is the same bound seen from the other side, and it has to use the
-  // same reach or the two disagree: at pitch 88 with the un-widened dMax it
-  // collapsed to 104 m, so looking up PUSHED THE CAMERA DOWN — measured, a drag
-  // from 880 m ended at 91 m. Widened, the ceiling at pitch 88 is ~291 m.
-  const altCeiling = () => Math.min(ALT_MAX, dMax() * PITCH_REACH * Math.cos(rad(pitch)));
+  const altCeiling = () => Math.min(ALT_MAX, dMax() * Math.cos(rad(pitch)));
 
-  // PITCH_REACH is why looking up used to stop working as soon as you climbed.
+  // DO NOT WIDEN THIS. It looks like a needless restriction and it is not.
   //
-  // pitchCap is acos(alt / dMax), and dMax is fixed by ZOOM_MIN — 2974 m on an
-  // 800 px canvas at this latitude. So the cap was 85 only below 259 m of
-  // altitude, and fell to 82.3 at 400 m, 78.4 at 600 m and 72.4 at the 900 m
-  // ALT_MAX. Climbing quietly took the sky away, which is exactly the reported
-  // "I want to be able to look up".
+  // The eye is the state and zoom is DERIVED from it: z comes from
+  // D = alt/cos(pitch), and z is clamped to ZOOM_MIN. pitchCap is exactly the
+  // pitch at which that clamp is about to bite — acos(alt/dMax) is the same
+  // equation solved for pitch. Allow more, and the derived zoom saturates while
+  // the centre keeps travelling, so the EYE moves even though nothing asked it
+  // to.
   //
-  // The bound itself is real: the derived zoom falls as pitch rises, and
-  // ZOOM_MIN is the floor. But ZOOM_MIN 14.0 was chosen when the modelled world
-  // ended at the 2.5 km core. The outer ring is 8.3 km across now, so the camera
-  // can legitimately look further before it runs out of city. PITCH_REACH
-  // reflects that, and nothing else changes: this widens what the LOOK input is
-  // allowed to ask for, it never moves the camera on its own.
-  const pitchCap = () => Math.min(PITCH_MAX,
-    deg(Math.acos(clamp(alt / (dMax() * PITCH_REACH), 0, 1))));
+  // That is not theory. A previous pass multiplied dMax here by 2.8 to let the
+  // camera look up while high, shipped it, and the report back was that looking
+  // up TELEPORTED the camera to the edge of the map and looking back down
+  // returned it. Reproduced and measured below by scripts/verify/lookup-check.mjs:
+  // at 450 m the eye jumped 5.6 km.
+  //
+  // Looking up while high therefore needs a lower ZOOM_MIN, not a wider cap —
+  // and that re-budgets every zoom in the app (most layers start at minzoom 14),
+  // so it is its own pass with its own verification.
+  const pitchCap = () => Math.min(PITCH_MAX, deg(Math.acos(clamp(alt / dMax(), 0, 1))));
 
   // ── Read/write the MapLibre pose ──────────────────────────────────
   function syncFromMap() {
