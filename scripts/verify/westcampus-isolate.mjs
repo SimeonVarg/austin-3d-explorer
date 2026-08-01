@@ -1,30 +1,55 @@
 /**
+
  * westcampus-isolate.mjs — ONE labelled render that says where each band went.
+
  *
+
  * `queryRenderedFeatures` on a fill-extrusion answers by FOOTPRINT, so it cannot
+
  * tell you which band owns a pixel — and at a flying pitch it returns 0 anyway.
+
  * The repo's own answer to "where does this actually go" is to paint it a key
+
  * colour and take one render, and that is what this does: every band of the
+
  * stack gets a different flat colour in one frame, next to the same frame drawn
+
  * normally.
+
  *
+
  *   base   red        podium  magenta     tower  green
+
  *   crown  blue       solids  yellow
+
  *
+
  * It also prints the SHARE OF THE FRAME each key colour covers, which is the
+
  * number that actually matters: a 25 m parking podium that reads as 0.1% of a
+
  * pose is not doing any work, however correct it is in the data.
+
  *
+
  * Usage: node westcampus-isolate.mjs [shotsJson]
+
  */
+
 import { chromium } from 'playwright-core';
+
 import { chromePath, GL_ARGS, BASE as SERVER, launch } from './chrome.mjs';
+
 import fs from 'node:fs';
+
 import path from 'node:path';
 
 const SHOTS = JSON.parse(fs.readFileSync(process.argv[2] || 'shots-westcampus.json', 'utf8'))
+
   .filter(s => !/night|golden/.test(s.name));
+
 const outDir = path.resolve('../../shots');
+
 fs.mkdirSync(outDir, { recursive: true });
 
 const KEY = {
@@ -32,8 +57,11 @@ const KEY = {
 };
 
 // Same projection helper as westcampus-shot.mjs: a shot names the point to LOOK
+
 // at and how far in front of the camera to put it, not the map centre.
+
 const FOV_DEG = 58, VIEW_H = 900;
+
 function centerFor(s) {
   if (!s.look) return s.center;
   const lat = s.look[1], zoom = s.zoom ?? 16.5, pitch = s.pitch ?? 64;
@@ -46,9 +74,37 @@ function centerFor(s) {
 }
 
 const browser = await launch(chromium);
+
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+
+await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 90000 });
+
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
+
+await page.waitForFunction(() => window.__map.getSource('austin-westcampus'), null, { timeout: 60000 })
+
+  .catch(() => console.log('WARN: westcampus source never appeared'));
+
+await page.waitForTimeout(8000);
+
+await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+
+await page.evaluate(() => {
+  const m = window.__map;
+  window.applyTimeOfDay(m, 0.12, true);
+  if (window.GFX) {
+    Object.assign(window.GFX, { bloom: false, vignette: false, grain: false,
+                                tone: false, ao: false, rays: false });
+    if (window.applyGraphics) window.applyGraphics();
+  }
+});
+
 // The atlas repaint that applyTimeOfDay triggers has to land before we key, or
+
 // the key is written and then overwritten. See westcampus-shot.mjs.
+
 await page.waitForTimeout(5000);
+
 await page.evaluate(() => new Promise(r => {
   const m = window.__map;
   if (m.loaded()) return r();
@@ -66,6 +122,7 @@ await page.evaluate((KEY) => {
 }, KEY);
 
 const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+
 for (const s of SHOTS) {
   s.center = centerFor(s);
   await page.evaluate((s) => {
@@ -129,4 +186,5 @@ for (const s of SHOTS) {
   console.log(s.name.padEnd(16),
     Object.entries(share).map(([k, v]) => k + '=' + v + '%').join('  '));
 }
+
 await browser.__done();

@@ -1,23 +1,92 @@
 /**
+
  * motion-feel.mjs — assertions for the camera FEEL pass (bank roll, FOV kick,
  * hover bob, landing settle, and the arbitration hand-back).
+
  *
+
  * All timings are measured against window.__fly.simTime(), never the wall
+
  * clock (headless swiftshader runs 4–20 fps). Inputs are dispatched as
+
  * KeyboardEvent/PointerEvent inside the page so a whole gesture happens in
+
  * page-frame lockstep regardless of renderer speed.
+
  *
+
  * Usage: node motion-feel.mjs   (exit 1 on failure)
+
  */
+
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
 const browser = await launch(chromium);
 
+const page = await browser.newPage({ viewport: { width: 800, height: 560 } });
+
+const pageErrors = [];
+
+page.on('pageerror', e => pageErrors.push(e.message));
+
+await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+
+await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+
+await page.waitForFunction(() => window.__fly && window.__fly.indexed(), null, { timeout: 30000 });
+
+await page.waitForTimeout(3000);
+
+const results = [];
+
+const check = (name, pass, detail) => results.push({ name, pass, detail });
+
+await page.evaluate(() => {
+  window.__raf = () => new Promise(r => requestAnimationFrame(r));
+  // Wait until the controller releases the camera — REQUIRED before any
+  // external jumpTo, or the seed is overwritten next frame. The feel effects
+  // (bob) can hold ownership up to BOB_TIMEOUT sim-seconds after the last
+  // input, so the budget is generous.
+  window.__settle = async (frames = 400) => {
+    for (let i = 0; i < frames; i++) {
+      if (!window.__fly.eye().driving) return true;
+      await window.__raf();
+    }
+    return false;
+  };
+  window.__key = (code, down) => window.dispatchEvent(
+    new KeyboardEvent(down ? 'keydown' : 'keyup', { code, bubbles: true }));
+  // A synthetic mouse look-drag on the canvas: n steps of dx,dy each.
+  window.__dragStart = (x, y) => {
+    const cv = window.__map.getCanvas();
+    cv.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 77, pointerType: 'mouse',
+      button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true, isPrimary: true }));
+    window.__dragXY = { x, y };
+  };
+  window.__dragMove = (dx, dy) => {
+    const cv = window.__map.getCanvas();
+    window.__dragXY.x += dx; window.__dragXY.y += dy;
+    cv.dispatchEvent(new PointerEvent('pointermove', { pointerId: 77, pointerType: 'mouse',
+      clientX: window.__dragXY.x, clientY: window.__dragXY.y,
+      movementX: dx, movementY: dy, bubbles: true, cancelable: true, isPrimary: true }));
+  };
+  window.__dragEnd = () => {
+    const cv = window.__map.getCanvas();
+    cv.dispatchEvent(new PointerEvent('pointerup', { pointerId: 77, pointerType: 'mouse',
+      clientX: window.__dragXY.x, clientY: window.__dragXY.y, bubbles: true, cancelable: true, isPrimary: true }));
+  };
+});
+
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
+
 const TUNE = await page.evaluate(() => window.__fly.tune);
+
 console.log('TUNE:', JSON.stringify(TUNE));
 
 // ── 1. BANK: roll rises with yaw rate, correct sign, clamped, returns to 0 ──
+
 {
   const r = await page.evaluate(async () => {
     await window.__settle();
@@ -64,6 +133,7 @@ console.log('TUNE:', JSON.stringify(TUNE));
 }
 
 // ── 2. STRAFE LEAN: A/D lean opposite ways; level again after release ──
+
 {
   const r = await page.evaluate(async () => {
     const F = window.__fly, m = window.__map;
@@ -92,6 +162,7 @@ console.log('TUNE:', JSON.stringify(TUNE));
 }
 
 // ── 3. FOV KICK: rises with actual speed, restores base exactly ──
+
 {
   const r = await page.evaluate(async () => {
     const F = window.__fly, m = window.__map;
@@ -133,6 +204,7 @@ console.log('TUNE:', JSON.stringify(TUNE));
 }
 
 // ── 4. HOVER BOB: breathes while hovering, wound down by BOB_TIMEOUT ──
+
 {
   const r = await page.evaluate(async () => {
     const F = window.__fly, m = window.__map, T = F.tune;
@@ -173,6 +245,7 @@ console.log('TUNE:', JSON.stringify(TUNE));
 }
 
 // ── 5. LANDING SETTLE: a one-shot dip on arriving from speed ──
+
 {
   const r = await page.evaluate(async () => {
     const F = window.__fly;
@@ -196,6 +269,7 @@ console.log('TUNE:', JSON.stringify(TUNE));
 }
 
 // ── 6. ARBITRATION: external easeTo ~2 s after input stops runs untouched ──
+
 {
   const r = await page.evaluate(async () => {
     const F = window.__fly, m = window.__map;
@@ -230,6 +304,7 @@ console.log('TUNE:', JSON.stringify(TUNE));
 }
 
 // ── 7. YIELD: an easeTo started DURING the bob-hold window still wins ──
+
 {
   const r = await page.evaluate(async () => {
     const F = window.__fly, m = window.__map;
@@ -262,8 +337,13 @@ console.log('TUNE:', JSON.stringify(TUNE));
 check('no uncaught page errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | ') || 'none');
 
 console.log('');
+
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
+
 const pass = results.filter(r => r.pass).length;
+
 console.log(`\n${pass}/${results.length} passed`);
+
 await browser.__done();
+
 if (pass !== results.length) process.exit(1);

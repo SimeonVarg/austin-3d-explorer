@@ -1,23 +1,59 @@
 /**
+
  * roofz.mjs — "roofs glitch out while I'm moving" (reported on a phone).
+
  *
+
  * Diagnosis: the parapet cap was `base: h - 1.2, height: h + 0.4`, so its side
+
  * faces were EXACTLY COPLANAR with the wall's over a 1.2 m band, in a different
+
  * colour. Which surface wins is then decided by depth-buffer rounding, so it
+
  * flips as the camera moves. A desktop's 24-bit depth buffer usually hides it; a
+
  * phone's does not.
+
  *
+
  * Measuring it: z-fighting shows up as SPECKLE — isolated pixels that disagree
+
  * with both horizontal neighbours, densely, along the contested band. Window
+
  * patterns are high-frequency too, but they are identical in both configurations,
+
  * so comparing the old cap geometry against the new one at the same camera pose
+
  * isolates the fight. The A/B happens inside one page load, by writing the old
+
  * expressions back with setPaintProperty.
+
  */
+
 import { chromium } from 'playwright-core';
-import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
 const browser = await launch(chromium);
+
+const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
+
+const errs = [];
+
+page.on('pageerror', e => errs.push(e.message));
+
+await page.goto(`${BASE}/_harness.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+
+await page.waitForTimeout(5000);
+
+await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+
+await page.evaluate(() => {
+  Object.assign(window.GFX, { bloom: 0, godRays: 0, flare: 0, dof: 0, grain: 0, vignette: 0 });
+  window.applyGraphics();
+});
+
+import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
 const out = await page.evaluate(async () => {
   const m = window.__map;
@@ -93,10 +129,15 @@ const out = await page.evaluate(async () => {
 });
 
 console.log('\nSpeckle density in the mid-distance band (lower is better).');
+
 console.log('"overlapping" = the old cap, base h-1.2 / height h+0.4 — coplanar with the wall.');
+
 console.log('"stacked"     = the new cap, base h / height h+max(1, .015h) — no shared surface.\n');
+
 console.log('pose'.padEnd(24) + 'overlapping   stacked    change');
+
 let wins = 0;
+
 for (const r of out) {
   const d = r.after - r.before;
   const pct = r.before > 0 ? (100 * d / r.before) : 0;
@@ -106,32 +147,57 @@ for (const r of out) {
     r.after.toFixed(3).padStart(10) + '%' +
     (pct >= 0 ? '   +' : '   ') + pct.toFixed(1) + '%');
 }
+
 const meanBefore = out.reduce((a, r) => a + r.before, 0) / out.length;
+
 const meanAfter = out.reduce((a, r) => a + r.after, 0) / out.length;
+
 console.log('\nmean ' + meanBefore.toFixed(3) + '% -> ' + meanAfter.toFixed(3) + '%  (' +
   (100 * (meanAfter - meanBefore) / meanBefore).toFixed(1) + '%)  ' +
   wins + '/' + out.length + ' poses improved');
 
 // THIS SCRIPT DOES NOT ASSERT A PASS, and the reason matters.
+
 //
+
 // Measured here the two configurations come out within ~1% of each other, i.e.
+
 // no fight is visible at all. That is the EXPECTED result and it is not evidence
+
 // the fix was unnecessary — it is evidence this harness cannot see the bug:
+
 //
+
 //   * swiftshader rasterises in software with a 24-bit depth buffer, while the
+
 //     phone this was reported on very likely has 16-bit;
+
 //   * MapLibre draws buildings-roof after buildings-3d and depth-tests LEQUAL,
+
 //     so on a buffer with enough precision the later layer wins every tie
+
 //     deterministically — coplanar, but not flickering.
+
 //
+
 // So the change is justified on the geometry rather than on a repro: the old cap
+
 // shared a surface with the wall over a 1.2 m band, which makes the winner
+
 // undefined, and its top face sat only 0.4 m above the wall's. The new one shares
+
 // nothing and separates the two roof planes by 1.0-1.5 m. Strictly safer on every
+
 // device; whether it cures what was seen needs a real phone.
+
 console.log('\nNOTE: a null result here is expected — see the comment at the end of this file.');
+
 console.log('      Software rasterisation has 24-bit depth and MapLibre breaks coplanar ties');
+
 console.log('      deterministically by draw order, so this harness cannot reproduce a');
+
 console.log('      16-bit mobile depth fight. Confirm on real hardware.');
+
 if (errs.length) console.log('page errors: ' + errs.slice(0, 3).join(' | '));
+
 await browser.__done();
