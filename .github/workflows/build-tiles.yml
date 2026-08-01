@@ -1,0 +1,91 @@
+# Build the PMTiles archives and commit them back.
+#
+# WHY THIS IS SEPARATE FROM build-data.yml. That workflow re-extracts Overture,
+# re-enriches, re-bakes and re-tiles — five and a half minutes, and it produces a
+# new dated snapshot as a side effect. Tiling is the only step that changes when
+# you are iterating on tiling settings, and you do NOT want a new snapshot every
+# time you adjust a simplification flag.
+#
+# It is also the only way the Acer can build tiles at all: tippecanoe is a C++
+# build with no usable Windows install, so that lane cannot run scripts/tile.sh
+# locally. This is its hands.
+#
+# Phone-friendly: trigger from the GitHub mobile UI, same as build-data.
+name: Build PMTiles
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/tile.sh'
+      - 'scripts/config.sh'
+      - '.github/workflows/build-tiles.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  # Two of these committing to the same branch at once is a guaranteed conflict.
+  group: build-tiles-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tiles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      # Cached because building tippecanoe from source is ~90 s of the run and
+      # it changes about once a year.
+      - name: Cache tippecanoe
+        id: tippecanoe-cache
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/tippecanoe
+          key: tippecanoe-v2-${{ runner.os }}
+
+      - name: Install tippecanoe
+        if: steps.tippecanoe-cache.outputs.cache-hit != 'true'
+        run: |
+          # Same package set build-data.yml uses, which is known to work here.
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential libsqlite3-dev zlib1g-dev
+          git clone --depth 1 https://github.com/felt/tippecanoe.git
+          make -C tippecanoe -j"$(nproc)"
+          sudo make -C tippecanoe install
+
+      - name: Version
+        run: tippecanoe --version
+
+      - name: Build tiles
+        run: bash scripts/tile.sh
+
+      - name: Report what changed
+        run: |
+          echo "### PMTiles" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          ls -lh data/tiles/*.pmtiles 2>/dev/null | awk '{print $5, $9}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source GeoJSON they replace:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          ls -lh data/trees.geojson data/roads.geojson data/outer_ring.geojson \
+                 data/roofscape.detail.geojson data/props.geojson 2>/dev/null \
+            | awk '{print $5, $9}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/tiles data/snapshots
+          if git diff --cached --quiet; then
+            echo "no tile changes"
+          else
+            git commit -m "Rebuild PMTiles archives"
+            # Someone may have pushed while tippecanoe was running.
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
