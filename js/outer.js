@@ -187,8 +187,23 @@
       //               large footprints, which shows up as a wall face floating
       //               at a tile boundary — a visible artefact to save bytes
       //               that gzip mostly gets back anyway.
-      maxzoom: 15,
-      tolerance: 1.5,
+      // maxzoom 15 was already the right instinct and it is what
+      // window.PATTERN_TILING generalised to every other patterned source after
+      // the city-wide window flicker was traced to fill-extrusion-pattern being
+      // TILE-anchored and cross-faded between zoom levels. This source was the
+      // one that never got it, and it is the one carrying the 114 downtown
+      // towers' curtain-wall pattern (L_TOWER below) from OUTER.minZoom 12.6 —
+      // so a descent over downtown crosses an uncapped tile boundary and blends
+      // two scales of the same window grid onto one tower face. Same defect,
+      // most-filmed subject in the scene.
+      //
+      // Spread the shared block rather than restating the numbers, so the ring
+      // can never drift away from the rest of the city again. It resolves to
+      // maxzoom 16 / tolerance 0.5 / buffer 128 — a z16 tile is ~611 m and the
+      // ring's own bake has already removed 85% of its vertices, so the finer
+      // tolerance costs little and buys back the "wall face floating at a tile
+      // boundary" clipping this comment used to worry about.
+      ...(window.PATTERN_TILING || { maxzoom: 15, tolerance: 1.5 }),
     });
 
     // Underneath everything of ours. `buildings-ao` is the first layer app.js

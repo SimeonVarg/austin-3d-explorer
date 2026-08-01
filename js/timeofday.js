@@ -78,7 +78,22 @@
       lightColor: '#8fa0e0', lightIntensity: 0.04, lightPosition: [1.4, 300, 60],
       ground: '#090b12', park: '#0b120e', road: '#2a2519', roadCasing: '#0b0d13',
       water: '#070f1e',
-      canopy: '#111a14', canopyLo: '#16211a', canopyHi: '#0c130f', trunk: '#100d0c',
+      // "at night the trees are an ugly gray fix that." They were, and it is a
+      // LUMA HEADROOM problem rather than a hue one, so the fix is to author
+      // them brighter and not more saturated.
+      //
+      // The old values (#16211a / #0c130f / #100d0c) sit deep below the tone
+      // curve's toe, where its slope flattens toward END_SLOPE — which squeezes
+      // the inter-channel spread that IS the green-ness from about 4.3% down to
+      // 3.3%, and then the night grade's saturate(0.88) takes another 12%. What
+      // lands on screen is a 1-4% channel spread on values under 20/255, which
+      // is below display quantisation. That is the definition of grey.
+      //
+      // These clear the toe with the green channel still dominant, so the curve
+      // preserves the separation instead of crushing it. `canopy` is unused —
+      // js/timeofday.js:393-395 only ever reads canopyLo/canopyHi — and is kept
+      // only so the three presets stay the same shape.
+      canopy: '#1a2a1e', canopyLo: '#1e3a24', canopyHi: '#162a1a', trunk: '#221a15',
       pitch: '#0d1512', fountain: '#0e1c30',
       signGlow: 1.0, labelHalo: 'rgba(4,4,12,0.92)', vignette: 0.38,
       exposure: 0.95, contrast: 1.08, saturation: 0.88,
