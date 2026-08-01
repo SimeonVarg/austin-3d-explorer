@@ -39,7 +39,7 @@ const MS = 4200;
 // the geometry under test is actually on screen for every frame counted.
 const POSE = { center: [-97.7304, 30.27726], zoom: 15.9, pitch: 70 };
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 120000 });

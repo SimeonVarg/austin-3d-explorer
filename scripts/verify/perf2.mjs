@@ -15,7 +15,7 @@
 import { chromium } from 'playwright-core';
 import { chromePath, BASE, launch } from './chrome.mjs';
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 2560, height: 1400 } });
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 

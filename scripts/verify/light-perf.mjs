@@ -18,7 +18,7 @@ const BASE_B = process.env.VERIFY_URL || 'http://127.0.0.1:8100';
 const BASE_A = process.env.BASELINE_URL || 'http://127.0.0.1:8102';
 const REPS = 4;
 
-const browser = await launch(chromium, { headless: false });
+const browser = await launch(chromium, { headless: false, gl: 'hardware' });
 
 async function makePage(base) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });

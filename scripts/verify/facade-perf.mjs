@@ -114,7 +114,7 @@ const CONFIGS = {
   'both-off': { pattern: false, gfx: false },
 };
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 
 /** Everything that happens inside one page load: all four configurations. */
 async function runRep(pathName, path, order) {

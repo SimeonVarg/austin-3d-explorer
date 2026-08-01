@@ -51,7 +51,7 @@ const POSES = {
   cruise: { center: [-97.73480, 30.28360], zoom: 15.6, pitch: 70 },
 };
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 90000 });

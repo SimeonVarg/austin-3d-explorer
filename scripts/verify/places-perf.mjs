@@ -48,6 +48,7 @@ const CONFIGS = { off: { on: false, labels: false },
 const POSE = { center: [-97.7418, 30.2866], zoom: 16.4, pitch: 71 };
 
 const browser = await launch(chromium, {
+  gl: 'hardware',
   executablePath: chromePath(), headless: false,
   args: ['--no-sandbox',
          '--disable-backgrounding-occluded-windows',

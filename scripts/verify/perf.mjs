@@ -3,12 +3,25 @@
  *
  * Two hard-won rules are baked into this script.
  *
- * 1. RUN ON A REAL GPU. The rest of the suite launches headless with
+ * 1. RUN ON A REAL GPU. The rest of the suite launches with
  *    `--use-angle=swiftshader`, which is correct for pixel assertions and
  *    useless for timing: software rasterisation shifts the entire cost profile
  *    onto fill-rate, so a full-screen blended overlay looks catastrophic and a
- *    texture upload looks free. This one launches HEADED so Chrome uses the
- *    machine's actual GPU.
+ *    texture upload looks free.
+ *
+ *    THIS RULE WAS WRITTEN DOWN AND THEN NOT FOLLOWED, FOR MONTHS. The line
+ *    here used to read "this one launches HEADED so Chrome uses the machine's
+ *    actual GPU" — and the script called `launch(chromium)` bare, which forces
+ *    headless AND, under the old `opts.args || GL_ARGS`, handed back the full
+ *    SwiftShader set. So the one script in the suite whose header opens with
+ *    "run on a real GPU" was measuring a CPU rasteriser's fill rate. Every
+ *    number it has ever printed predates `gl: 'hardware'` below and should be
+ *    treated as unreliable rather than as a baseline.
+ *
+ *    It still runs HEADLESS. Headed was never what made it use the GPU; the
+ *    backend flags are, and a visible window on the machine you are working at
+ *    is a cost with no measurement value. `scripts/verify/gl-check.mjs` asserts
+ *    this launch shape actually resolves to the discrete GPU.
  * 2. DON'T LOAD _harness.html. Its rAF shim replaces requestAnimationFrame with
  *    setTimeout(16), which pins the loop at ~60 Hz no matter how slow a frame
  *    really is — you would measure the shim, not the app.
@@ -21,7 +34,7 @@ import { chromePath, BASE, launch } from './chrome.mjs';
 
 const FRAMES = 150;
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 

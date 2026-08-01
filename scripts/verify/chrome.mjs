@@ -151,9 +151,25 @@ export async function launch(chromium, opts = {}) {
   // reading of asking for a visible window to measure frames in. Headless still
   // defaults to SwiftShader for determinism. Either can be overridden with
   // `gl:` or VERIFY_GL.
+  // THE SECOND HALF OF THE SAME TRAP. Four timing scripts (lod-perf,
+  // places-perf, roads-perf, night-perf) pass their own `args` — the
+  // anti-throttling set that stops Chrome idling a background window — and under
+  // `opts.args || glArgsFor(...)` that REPLACED the GL flags rather than adding
+  // to them. So those four ran with no GL selection at all: ANGLE picked the
+  // platform default, which is hardware, but without --force_high_performance_gpu
+  // a laptop hands them the integrated chip. Not the disaster SwiftShader was,
+  // and still not the backend anyone chose.
+  //
+  // So `gl:` and `args:` are now orthogonal, which is what the names imply:
+  // `gl` picks the backend, `args` adds flags. An EXPLICIT gl (or VERIFY_GL) is
+  // unioned with whatever the caller passed. Only a caller that supplies args and
+  // says nothing about gl keeps the old replace-everything behaviour, because
+  // that is the one case where it might have been deliberate.
   const headed = opts.headless === false;
+  const explicitGl = opts.gl || process.env.VERIFY_GL;
   const args = [...new Set([
-    ...(opts.args || glArgsFor(opts.gl || (headed ? 'hardware' : null))),
+    ...(explicitGl ? glArgsFor(explicitGl) : []),
+    ...(opts.args || (explicitGl ? [] : glArgsFor(headed ? 'hardware' : null))),
     MARK_ARG,
   ])];
   delete opts.gl;

@@ -27,7 +27,7 @@ const CONFIGS = {
                      vignette: 0, grain: 0, godRays: 0, flare: 0, dof: 0 },
 };
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 
 async function run(over) {
   return page.evaluate(async ({ over, MS }) => {

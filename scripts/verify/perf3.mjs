@@ -53,7 +53,7 @@ const CONFIGS = [
     ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58 }],
 ];
 
-const browser = await launch(chromium, { headless: false });
+const browser = await launch(chromium, { headless: false, gl: 'hardware' });
 
 async function once(cfg) {
   const page = await browser.newPage({ viewport: { width: 2560, height: 1400 } });

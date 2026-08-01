@@ -83,7 +83,7 @@ const PATHS = {
   },
 };
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 
 async function once(pathName, outerOn) {
   const page = await browser.newPage({ viewport: { width: VW, height: VH } });
