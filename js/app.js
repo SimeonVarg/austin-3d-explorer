@@ -186,10 +186,13 @@
   // its sky, shadows and signage), and that failure mode is invisible on screen.
   function step(name, fn) {
     try { fn(); } catch (e) { console.error(`[buildScene] ${name} failed:`, e); }
-    // The load screen's progress is these calls and nothing else — no timer, no
-    // fake creep. A stage that throws still reports, because the user is waiting
-    // on the stage AFTER it and a bar frozen at 40% is a worse lie than one that
-    // moves on. js/loader.js ignores names it does not know.
+    // These calls are the NAMED part of the load screen's progress. They are
+    // only ~30% of it: measured, every stage fires inside 276 ms and the veil
+    // does not lift for another seven seconds, so the rest of the rail rides
+    // MapLibre's own per-source loading (window.loaderWatch, wired below). A
+    // stage that throws still reports, because the user is waiting on the stage
+    // AFTER it and a bar frozen at 40% is a worse lie than one that moves on.
+    // js/loader.js ignores names it does not know.
     try { if (window.loaderStage) window.loaderStage(name); } catch (e) {}
   }
 
@@ -216,6 +219,9 @@
       step('capitol',  () => { if (typeof initCapitol === 'function') initCapitol(map); });
       step('labels',   () => addLabelLayers());
     }
+    // The load screen's long tail is MapLibre tiling what buildScene() just
+    // handed it. Subscribe before that work starts, not after.
+    try { if (window.loaderWatch) window.loaderWatch(map); } catch (e) {}
     step('signs',    () => initSigns(map, scene && scene.signs));
     step('night',    () => { if (typeof initNight === 'function') initNight(map); });
     step('sky',      () => initSky(map));
