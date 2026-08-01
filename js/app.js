@@ -120,7 +120,18 @@
       // Only name buildings that are big enough to carry a label and aren't
       // already announced by a curated sign. This is what took the scene from
       // ~70 labels a frame down to something you can actually read.
-      if (name && !isDuplicate(name) && (p.final_height || 0) >= 12) { p.lbl = 1; labelled++; }
+      if (name && !isDuplicate(name) && (p.final_height || 0) >= 12) {
+        p.lbl = 1; labelled++;
+        // IMPORTANCE, so a corner shop does not announce itself from the sky.
+        // "make the distance u need to be near them really small if theyre
+        // insignificant." A layer's minzoom is a single number, so importance
+        // has to be stamped per feature and split across tiers below.
+        // Height is the only signal every building carries, and on this campus
+        // it tracks significance well enough: the Tower, Dobie and the downtown
+        // towers are the things you should be able to name from far away.
+        const h = p.final_height || 0;
+        p.lt = h >= 45 ? 0 : h >= 22 ? 1 : 2;
+      }
     }
 
     console.log('[scene]', buildings.features.length, 'buildings,',
@@ -903,32 +914,49 @@
   // Secondary tier: real OSM building names, held back until you're low
   // enough that they're context rather than clutter. Taller buildings win
   // placement so the skyline reads first.
+  // THREE TIERS, not one layer. A symbol layer's minzoom is a single number, and
+  // MapLibre will not take ['zoom'] inside a data filter, so "label big things
+  // from far away and small things only up close" has to be three layers over one
+  // source, split on the `lt` tier stamped at load. They share every other
+  // property, so the look is identical — only the distance at which a name is
+  // allowed to appear changes.
+  //
+  //   tier 0  >= 45 m   the Tower, Dobie, the downtown towers   from z15.8
+  //   tier 1  22-45 m   most of campus                          from z16.7
+  //   tier 2  12-22 m   halls, annexes, small blocks            from z17.8
+  const LABEL_TIERS = [
+    { id: 'buildings-labels',       lt: 0, minzoom: 15.8, fade: [15.9, 17.0] },
+    { id: 'buildings-labels-mid',   lt: 1, minzoom: 16.7, fade: [16.8, 17.5] },
+    { id: 'buildings-labels-minor', lt: 2, minzoom: 17.8, fade: [17.9, 18.4] },
+  ];
+
   function addLabelLayers() {
     if (map.getLayer('buildings-labels')) return;
-    map.addLayer({
-      id:'buildings-labels', type:'symbol',
-      source:'austin-buildings',
-      // Held back until you descend BELOW the spawn zoom (16.5): at spawn the
-      // curated signs carry the identity, and the old 16.4 start meant dozens
-      // of 10–40%-opacity ghost labels smudging the hero frame.
-      minzoom:16.7, filter:['==',['get','lbl'],1],
-      layout:{
-        'text-field':['get','name'],
-        // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
-        // server — a missing fontstack 404s and MapLibre discards the whole
-        // tile it was needed for.
-        'text-font':['Noto Sans Regular'],
-        'text-size':['interpolate',['linear'],['zoom'],16.7,10,18,12,19.5,14],
-        'text-anchor':'center', 'text-offset':[0,-0.6],
-        'text-max-width':7, 'text-padding':9,
-        'text-allow-overlap':false,
-        'symbol-sort-key':['-', 0, ['get','final_height']],
-      },
-      paint:{
-        'text-color':'#f3e6cd','text-halo-color':'rgba(24,14,5,0.9)','text-halo-width':1.3,
-        'text-opacity':['interpolate',['linear'],['zoom'],16.8,0,17.5,0.82],
-      },
-    });
+    for (const t of LABEL_TIERS) {
+      map.addLayer({
+        id: t.id, type:'symbol',
+        source:'austin-buildings',
+        minzoom: t.minzoom,
+        filter:['all', ['==',['get','lbl'],1], ['==',['get','lt'], t.lt]],
+        layout:{
+          'text-field':['get','name'],
+          // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
+          // server — a missing fontstack 404s and MapLibre discards the whole
+          // tile it was needed for.
+          'text-font':['Noto Sans Regular'],
+          'text-size':['interpolate',['linear'],['zoom'],
+                       t.minzoom, 10, t.minzoom + 1.3, 12, t.minzoom + 2.8, 14],
+          'text-anchor':'center', 'text-offset':[0,-0.6],
+          'text-max-width':7, 'text-padding':9,
+          'text-allow-overlap':false,
+          'symbol-sort-key':['-', 0, ['get','final_height']],
+        },
+        paint:{
+          'text-color':'#f3e6cd','text-halo-color':'rgba(24,14,5,0.9)','text-halo-width':1.3,
+          'text-opacity':['interpolate',['linear'],['zoom'], t.fade[0], 0, t.fade[1], 0.82],
+        },
+      });
+    }
   }
 
   // ── Cinematic intro ───────────────────────────────────────────────
