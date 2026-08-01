@@ -128,6 +128,19 @@ SwiftShader speed. What you gain is **parallelism** — many scripts at once —
 the thing you actually asked for: **a job cannot be left running.** It starts,
 finishes, and dies. There is nothing to forget and nothing to bill.
 
+**That parallelism is also the answer to "why did that response take 30 minutes?",
+and the first draft of this document under-sold it.** A verification pass is
+roughly ten browser runs at 1.5–3.5 minutes each, and they are run **one at a
+time on purpose** — eight headless Chromes at once is precisely what left 38
+orphaned processes on this laptop and pinned it at 100% CPU and memory. So the
+serialisation is not caution, it is a hard constraint of running on the machine
+the user is sitting at.
+
+Move the runs somewhere with no user sitting at it and the constraint goes away:
+wall clock becomes the slowest single script instead of the sum. A GPU makes *one*
+pass ~1.9× faster and that finding stands — but concurrency is the bigger lever
+for a session's turnaround, and unlike the GPU it is free.
+
 ### If you ever do want a cloud box anyway
 
 Prices read 2026-08-01. AWS figures come from four aggregators (vantage.sh,
@@ -160,10 +173,44 @@ Two hard rules if it ever happens:
 - **Never remove the watchdog or the reaper in `chrome.mjs`.** They exist because
   38 orphaned Chrome processes once took a laptop to 100% CPU and memory.
 
-## 5. Other YC benefits worth using
+## 5. Can any of this make the site faster for a *visitor*?
+
+Separate question from everything above, and the answer is **no — but not
+because the tools are bad.**
+
+**The site has no server.** A visitor opens the link, their browser downloads the
+data, and *their own device* draws the city. There is nothing running anywhere
+for a cloud service to speed up. Credits cannot render frames for somebody else's
+phone.
+
+The one architecture where they could is **pixel streaming** — render on a server
+farm and send video, the way cloud gaming works. Technically possible with the
+GPU credits. It is the wrong shape for this: you would pay per simultaneous
+viewer, forever, for a link that is about to be pointed at a large audience, and
+the thing loses its "it runs in your browser" story, which is most of why it is
+interesting.
+
+**So the visitor's experience is governed by one number: how many bytes they have
+to download before anything appears.** Measured 2026-08-01: **26.4 MB across 26
+files**, 3.8 MB gzipped. Largest single file `trees.geojson` at 9.13 MB.
+
+That is also the honest answer to *"what if I want to add more detail?"* Right
+now more detail means a slower site for everyone, because every file is the whole
+city whether the camera can see it or not. **Vector tiles remove that trade** —
+cut the data into tiles up front, and the browser fetches only what is under the
+camera. Detail stops costing load time.
+
+`scripts/tile.sh` already builds one (`austin.pmtiles`, 0.61 MB) on every data
+run, and **no code in the repo references it.** That is QUEUE item 1, and it is
+the highest-value thing on the list. It is engineering, not a purchase — no
+credit on the YC page helps.
+
+## 6. The YC catalogue, properly this time
+
+First pass saw 16 of the 27 deals; the rest were behind a sign-in wall. Corrected:
 
 Most of the catalogue is irrelevant to a static site with pre-baked map data — no
-database, no runtime AI calls, no phone calls. Two are worth a look:
+database, no runtime AI calls, no phone calls. What survives:
 
 - **Firecrawl** — a one-off scrape of UT's official building directory as a name
   source. `scripts/name_buildings.py` already exhausted every offline source in
@@ -171,7 +218,17 @@ database, no runtime AI calls, no phone calls. Two are worth a look:
   is mined dry; a different source is the only way forward. The free tier covers
   it. The real work is matching directory entries to footprints, which no tool
   does for you.
-- **Deepgram** — captions for the reel. Cheap, optional, changes nothing.
+- **Greptile** — a year free. **This reverses the first pass, which ruled it out
+  as "built for a team's pull-request volume".** That missed the actual setup:
+  two AI lanes both edit `js/app.js`, and Simeon merges pull requests he cannot
+  fully read. An independent reviewer on every PR is a real second pair of eyes.
+  QUEUE item 7.
+- **Deepgram — $15,000, not the $200 stated in the first pass.** Off by 75×. Still
+  only captions for the reel here, but worth knowing the size of it.
+- **Blaxel** — "sandboxes for AI agents". The paid analogue of QUEUE item 6:
+  somewhere other than the laptop to run browser passes concurrently. GitHub
+  Actions does the same job free on a public repo, so this is a fallback, not a
+  plan.
 
 **Explicitly not: Tavus and sync.** Both generate or lip-sync a person's face and
 voice. The Kiro reel is a testimonial in your own voice with you on camera. Using
@@ -180,13 +237,15 @@ that you did not say. Off the table regardless of how good they are.
 
 Ruled out with reasons: Roboflow (the roof and canopy detection already works and
 is calibrated; a new model means labelling a training set from scratch for an
-unproven gain), Greptile (built for a team's pull-request volume; `CLAUDE.md` and
-`HANDOFF.md` already do the don't-repeat-a-known-mistake job), Browser Use and
-Gumloop (less precise than the existing Python fetchers, which handle Overpass's
-specific rate-limit behaviour), and Supabase, Langfuse, Blaxel, AgentMail, Vapi,
-Bolna and Coinbase — nothing here needs them.
+unproven gain), Cursor (an AI editor — this workflow already has one), Browser Use
+and Gumloop (less precise than the existing Python fetchers, which handle
+Overpass's specific rate-limit behaviour), Google's $2k Gemini + Cloud, Microsoft
+Azure for Startups, OpenAI and Anthropic credits (a third, fourth and fifth pool
+for a workload that needs none of the first two), and Supabase, Langfuse,
+AgentMail, Fireworks AI, Sarvam AI, Razorpay, écentic, Vapi, Bolna and Coinbase —
+nothing here needs them.
 
-## 6. What I could not verify
+## 7. What I could not verify
 
 - **Real frame rates for this scene on a cloud T4 or A10.** Nobody has ever run
   this harness on cloud GPU hardware. Any claim about it is an expectation.
@@ -201,12 +260,16 @@ Bolna and Coinbase — nothing here needs them.
   pass in CI. That regression is the Mac lane's to fix, and wiring broken scripts
   into an automated run just teaches you to ignore red builds.
 
-## 7. The recommendation, in order
+## 8. The recommendation, in order
 
 1. **Done already** — hardware GL is available and the timing scripts no longer
    lie. Nearly 2× on any screenshot pass, $0.
-2. **Worth doing next** — a GitHub Actions workflow so a full pass runs off your
-   machine, triggered from your phone. Free, and it cannot be left on.
-3. **Probably never** — a cloud GPU. If it ever comes up, spend **one hour and
+2. **The one that changes what the project can become** — vector tiles, so more
+   detail stops meaning a slower site. `scripts/tile.sh` already builds the
+   archive and nothing loads it. QUEUE item 1. Also $0.
+3. **Worth doing next** — a GitHub Actions workflow so a full pass runs off your
+   machine, triggered from your phone. Free, it cannot be left on, and the
+   concurrency is what shortens a session.
+4. **Probably never** — a cloud GPU. If it ever comes up, spend **one hour and
    about 53 cents** proving it renders this scene faster than the laptop *before*
    building anything on top of it.
