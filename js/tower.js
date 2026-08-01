@@ -270,13 +270,17 @@
    * NO_PARTS filter already drops it — but a future bake that stops emitting
    * building:parts would otherwise put a 94 m grey box back inside all of this.
    *
-   * The two OSM building:parts have to go too, and they are the awkward half:
-   * parts.detailed.geojson properties are {h, base, wd, wg, wn, rd, rg, rn} and
-   * carry no id at all. They are matched on wall colour, which is unique to
-   * this building across all five snapshots on disk (checked; the only other
-   * feature anywhere with #e5dbc2 is a building called "The G", which has no
-   * parts and so never appears in that document). The bake writes the colour
-   * into the geojson rather than this file hard-coding it.
+   * The two OSM building:parts have to go too, and they used to be the awkward
+   * half: parts.detailed.geojson carried {h, base, wd, wg, wn, rd, rg, rn} and
+   * NO id, so they were matched on wall colour — unique to this building across
+   * every snapshot on disk, which was true and was still a time bomb. The moment
+   * a building is recoloured, an authored pass starts drawing on top of a raw
+   * OSM prism it can no longer see.
+   *
+   * scripts/bake_detail.py now emits `pid`, the parent building's id, so a part
+   * is filtered exactly the way its building is: by the SAME replacedBuildingIds
+   * list. The colour match is kept only as a fallback for an older snapshot
+   * loaded through the date switcher, which will not carry `pid`.
    */
   function hideOriginals(map, gj) {
     const ids = gj.replacedBuildingIds || [];
@@ -289,8 +293,11 @@
       }
     }
     const wd = gj.replacedPartWallColour;
-    if (wd) {
-      const keep = ['!=', ['get', 'wd'], wd];
+    const partKeep = [];
+    if (ids.length) partKeep.push(['!', ['in', ['get', 'pid'], ['literal', ids]]]);
+    if (wd) partKeep.push(['!=', ['get', 'wd'], wd]);
+    if (partKeep.length) {
+      const keep = partKeep.length > 1 ? ['all'].concat(partKeep) : partKeep[0];
       for (const id of ['parts-3d', 'parts-roof']) {
         if (!map.getLayer(id)) continue;
         const f = map.getFilter(id);

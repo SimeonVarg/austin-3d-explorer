@@ -264,14 +264,64 @@ for f in btags.get('features', []):
         tag_at[i] = f.get('properties') or {}
 
 # parts grouped under their parent building
+#
+# has_parts is a DESTRUCTIVE flag: js/app.js filters the building out of
+# buildings-3d/-roof entirely and trusts the parts to stand in for it. That is
+# only safe if the parts actually COVER the footprint, and a bare
+# centroid-in-footprint test never checked. Measured coverage on 2026-08-01:
+#
+#   Jesse H. Jones Comm A 100.0%   Bush 94.4%   Sutton 90.1%   LBJ 66.2%
+#   Hampton Inn 47.6%   UT Tower 25.7%   Dobie Twenty21 17.4%
+#   William B. Travis 2.9%   University Ave Church of Christ 2.6%
+#
+# So the William B. Travis Building — 3,746 m2, twelve storeys — was rendering
+# as a single 110 m2, 3.2 m pad, with its full-height contact shadow still drawn
+# around it. An empty lot with a shadow. Below the gate the parts are DROPPED and
+# the base extrudes normally, which is strictly better than a spike on 3% of the
+# plan. Do NOT "fix" this by scaling the tallest part up to final_height: on
+# Travis that puts a 38 m tower on a 110 m2 pad, which is worse than either.
+#
+# Dobie Twenty21 and UT Tower also fall below the gate, and that is the intended
+# outcome for them too: both are replaced by an authored pass (bake_westcampus /
+# bake_tower) that hides the base by id, so dropping their raw OSM parts removes
+# a second, differently-sized prism standing inside the authored massing.
+PART_COVERAGE_MIN = 0.85
+
+_M = (111320.0 * math.cos(math.radians(30.285)), 111320.0)
+
+
+def _planar(geom):
+    """Footprint in metres, for an area comparison. Local equirectangular is
+    accurate to well under 1% over a 6 km campus and needs no projection dep."""
+    from shapely.geometry import shape
+    from shapely.ops import transform
+    g = shape(geom)
+    if not g.is_valid:
+        g = g.buffer(0)
+    return transform(lambda x, y, z=None: (x * _M[0], y * _M[1]), g)
+
+
 part_parent = []
-has_parts = set()
+_by_parent = {}
 for pf in parts.get('features', []):
     c = centroid(pf['geometry'])
     i = find_building(c) if c else None
     part_parent.append(i)
     if i is not None:
-        has_parts.add(i)
+        _by_parent.setdefault(i, []).append(pf['geometry'])
+
+has_parts = set()
+part_coverage = {}
+if _by_parent:
+    from shapely.ops import unary_union
+    for i, geoms in _by_parent.items():
+        foot = _planar(feats[i]['geometry'])
+        if foot.area <= 0:
+            continue
+        cov = unary_union([_planar(g) for g in geoms]).intersection(foot).area / foot.area
+        part_coverage[i] = cov
+        if cov >= PART_COVERAGE_MIN:
+            has_parts.add(i)
 
 # ---------------------------------------------------------------- bake buildings
 matched_heroes, tagged, class_hits = 0, 0, 0
@@ -317,10 +367,16 @@ for i, f in enumerate(feats):
 
 # ---------------------------------------------------------------- bake parts
 part_feats = []
+dropped_parts = 0
 for pf, parent in zip(parts.get('features', []), part_parent):
     pp = pf.get('properties') or {}
     h = pp.get('height_m')
     if h is None:
+        continue
+    # The parent kept its own volume (coverage gate above), so this part would
+    # be a second prism standing inside a building that is still being drawn.
+    if parent is not None and parent not in has_parts:
+        dropped_parts += 1
         continue
     base = pp.get('min_height_m') or 0
     if parent is not None:
@@ -340,12 +396,25 @@ for pf, parent in zip(parts.get('features', []), part_parent):
         wall = pp.get('colour') or '#d8c09a'
         wd, wg, wn = make_tod_colors(wall, '#ffd9a0')
         rd, rg, rn = make_roof_colors(pp.get('roof_colour') or adjust_light(wall, -0.12))
+    # `pid` is the parent building's id. It was computed here all along and
+    # thrown away, which is why every consumer had to identify a part by its WALL
+    # COLOUR instead: js/tower.js:291-299 filters parts-3d on `wd == "#e5dbc2"`
+    # and says in its own comment that this is unique "across all five snapshots
+    # on disk (checked)". That is true and it is a time bomb — the moment a
+    # building is recoloured, an authored pass starts drawing on top of a raw OSM
+    # prism it can no longer see. With `pid` a pass filters parts the same way it
+    # filters buildings: by id.
+    props = {'h': round(float(h), 1), 'base': round(float(base), 1),
+             'wd': wd, 'wg': wg, 'wn': wn,
+             'rd': rd, 'rg': rg, 'rn': rn}
+    if parent is not None:
+        pid = feats[parent]['properties'].get('id')
+        if pid:
+            props['pid'] = pid
     part_feats.append({
         'type': 'Feature',
         'geometry': pf['geometry'],
-        'properties': {'h': round(float(h), 1), 'base': round(float(base), 1),
-                       'wd': wd, 'wg': wg, 'wn': wn,
-                       'rd': rd, 'rg': rg, 'rn': rn},
+        'properties': props,
     })
 
 # ---------------------------------------------------------------- write
@@ -360,6 +429,9 @@ with open(out_p, 'w', encoding='utf-8') as f:
 print(f'  buildings: {len(feats)}  heroes matched: {matched_heroes}  '
       f'osm-tagged: {tagged}  class-palette: {class_hits}')
 print(f'  buildings with parts (hidden base): {len(has_parts)}')
-print(f'  parts baked: {len(part_feats)}')
+for i, cov in sorted(part_coverage.items(), key=lambda kv: kv[1]):
+    nm = feats[i]['properties'].get('name') or feats[i]['properties'].get('id', '')[:8]
+    print(f'    {"keep " if i in has_parts else "DROP "}{cov * 100:5.1f}%  {nm}')
+print(f'  parts baked: {len(part_feats)}  (dropped below the coverage gate: {dropped_parts})')
 print(f'  wrote {out_b} ({os.path.getsize(out_b)//1024} KB)')
 print(f'  wrote {out_p} ({os.path.getsize(out_p)//1024} KB)')
