@@ -663,25 +663,46 @@ def build(feature, stats):
     # carved into a seating bowl, and designed to be seen from exactly the angle
     # this app flies at. Published dimensions; position within the south bowl is
     # generative.
-    ly = sgn * (FIELD_L_M / 2 + 20.0)
-    lc = (fx - ly * sa, fy + ly * ca)
-    # Its height must be the height of the SEATING IT IS CLAD ON, plus a little.
-    # A hard-coded deck_height(0.42) put it at 8.2 m — well below the south bowl
-    # around it — so a 65 x 22 m slab sat buried inside the seating, punching out
-    # through the deck and z-fighting with every band it intersected. That is the
-    # "huge block that appears and disappears" — coplanar surfaces flickering as
-    # the camera moves. Measure its own radial position and sit ON the bowl.
-    lang = math.atan2(lc[1] - c[1], lc[0] - c[0])
-    hp, wp = ray_hit(c, lang, hole), ray_hit(c, lang, inner)
-    lt = 0.42
-    if hp and wp:
-        span = math.hypot(wp[0] - hp[0], wp[1] - hp[1])
-        if span > 1e-6:
-            lt = min(0.98, math.hypot(lc[0] - hp[0], lc[1] - hp[1]) / span)
-    out.append(feat(rect(lc[0], lc[1], LONGHORN_W_M, LONGHORN_D_M, axis - math.pi / 2),
-                    lat0, {"kind": "logo", "h": round(deck_height(lt, h) + 0.45, 2),
-                           "col": BURNT_ORANGE, "night": "#e07a30", "name": name}))
-    stats["logo"] += 1
+    # A RECTANGLE WAS ALWAYS THE WRONG PRIMITIVE, and moving it up and down was
+    # never going to fix it. One flat slab has ONE height; the seating it is clad
+    # on climbs from 3.4 m to 58.6 m. So at whatever height it was given it
+    # floated over the bowl as a lid across half the stadium — first buried at
+    # 8.2 m and z-fighting, then hovering at 30.3 m. Both are the same bug:
+    # a horizontal plane cannot sit on a rake.
+    #
+    # The real thing is not an object in the bowl, it is the BOWL ITSELF clad in
+    # burnt orange panels — "the first time a logo was carved into a seating
+    # bowl". So it is built the way the seating is: one segment per seat band,
+    # each following that band's own step, over an arc of the south end. It
+    # climbs the rake because it IS the rake.
+    BAL_LO, BAL_HI = 0.34, 0.62          # radial extent within the bowl
+    BAL_HALF = math.radians(26.0)        # angular half-width of the arc
+    BAL_ARC = 26                         # points along it
+    south = axis + math.pi
+
+    def bal_pt(a, t):
+        hp2, wp2 = ray_hit(c, a, hole), ray_hit(c, a, inner)
+        if hp2 is None or wp2 is None:
+            return None
+        return (hp2[0] + (wp2[0] - hp2[0]) * t, hp2[1] + (wp2[1] - hp2[1]) * t)
+
+    for lo, hi, _cls in bands():
+        t0, t1 = max(lo, BAL_LO), min(hi, BAL_HI)
+        if t1 - t0 < 1e-4:
+            continue
+        outer_a, inner_a = [], []
+        for k in range(BAL_ARC + 1):
+            a = south - BAL_HALF + 2 * BAL_HALF * k / BAL_ARC
+            po, pi_ = bal_pt(a, t1), bal_pt(a, t0)
+            if po and pi_:
+                outer_a.append(po)
+                inner_a.append(pi_)
+        if len(outer_a) < 3:
+            continue
+        out.append(feat(outer_a + inner_a[::-1], lat0,
+                        {"kind": "logo", "h": round(deck_height(t1, h) + 0.12, 2),
+                         "col": BURNT_ORANGE, "night": "#e07a30", "name": name}))
+        stats["logo"] += 1
 
     # 7. ramp towers and light masts --------------------------------------
     for lon, lat, dia, ht in RAMPS:
