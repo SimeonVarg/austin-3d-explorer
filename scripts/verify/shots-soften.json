@@ -1,0 +1,5 @@
+[
+ {"name":"close-waggener","center":[-97.73760,30.28514],"zoom":18.0,"pitch":72,"bearing":180,"p":0.25},
+ {"name":"close-bme",     "center":[-97.73841,30.28918],"zoom":18.0,"pitch":72,"bearing":200,"p":0.25},
+ {"name":"mid-campus",    "center":[-97.73900,30.28650],"zoom":16.6,"pitch":68,"bearing":150,"p":0.25}
+]
