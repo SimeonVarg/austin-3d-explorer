@@ -451,13 +451,38 @@
   let _autoRaf=null, _autoDir=1;
   const AUTO_PER_MS = 1/32000;
 
+  /**
+   * ALWAYS retint through window.applyTimeOfDay, never the local one.
+   *
+   * This is why "going from night to day takes forever to render". Five pass
+   * modules — js/tower.js, js/arts.js, js/drag.js, js/moody.js, js/places.js —
+   * each WRAP window.applyTimeOfDay at boot so their own bands, atlases and
+   * baked colours retint with the rest of the scene. The slider handler and the
+   * auto-play loop below called the bare, IIFE-local `applyTimeOfDay` instead,
+   * which is the unwrapped original. So dragging the sun did retint the generic
+   * city and did NOT retint the UT Tower, the Harry Ransom Center, the Drag,
+   * Moody or the storefronts: they held whatever hour app.js last drove them to,
+   * and only snapped when some unrelated event happened to call the window
+   * property (js/app.js:1216 on a graphics change, for one).
+   *
+   * That is exactly the reported symptom — "the Ransom Center just became dark,
+   * didn't do anything, night just took that long to render", "the tower just
+   * became orange after having night on for like 5 minutes", "the black roofs
+   * took 2 minutes to correct". Nothing was slow. The retint was never called.
+   *
+   * js/arts.js:376-378 documents the opposite belief in a comment, and it is
+   * wrong. Route every UI path through the wrapper chain and there is no delay.
+   */
+  const retint = (map, p, force) =>
+    (window.applyTimeOfDay || applyTimeOfDay)(map, p, force);
+
   function initTimeOfDayUI(map, defaultP) {
     const slider = document.getElementById('tod-slider');
     const play   = document.getElementById('tod-play');
     const p0 = defaultP != null ? defaultP : TOD_DEFAULT_P;
     if (slider) {
       slider.value = String(p0);
-      slider.addEventListener('input', () => { stopAuto(play); applyTimeOfDay(map, parseFloat(slider.value)); });
+      slider.addEventListener('input', () => { stopAuto(play); retint(map, parseFloat(slider.value)); });
     }
     if (play) play.addEventListener('click', () => _autoRaf ? stopAuto(play) : startAuto(map, slider, play));
   }
@@ -472,7 +497,7 @@
       p += _autoDir * dt * AUTO_PER_MS;
       if (p >= 1) { p=1; _autoDir=-1; } else if (p <= 0) { p=0; _autoDir=1; }
       if (slider) slider.value = String(p);
-      applyTimeOfDay(map, p);
+      retint(map, p);
       _autoRaf = requestAnimationFrame(step);
     };
     _autoRaf = requestAnimationFrame(step);
