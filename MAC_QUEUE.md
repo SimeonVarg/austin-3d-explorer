@@ -184,14 +184,48 @@ machine is busy guarantees a conflict.
 
 ---
 
-## M7. Re-qualify pixel scripts onto hardware GL — the biggest speed lever there is
+## M7. ~~Re-qualify pixel scripts onto hardware GL~~ — WITHDRAWN, it does nothing
 
-**Take this if M1–M6 are done or blocked. It is worth more than everything above
-it except M1.**
+**Do not take this. It was measured and it is worth 1.0×.** Left in place with
+the numbers rather than deleted, so nobody re-derives the same wrong idea.
 
-~100 scripts here render on the CPU at **3.7 fps** where this machine's discrete
-GPU does **35.3**. That 9.4× is why a 14-script loop takes 21 minutes, and it
-dwarfs anything parallelism can buy (see M4 — parallelism is 1.5×).
+The reasoning was: ~100 scripts render on the CPU at 3.7 fps where this GPU does
+35.3, so moving them should be a 9.4× win. `scripts/verify/requalify.mjs`
+(Acer, PR #39) runs a script on both backends and compares. First two out:
+
+```
+retint          soft 141 s   hardware 138 s    1.0x
+horizon-probe   soft  80 s   hardware  74 s    1.1x
+```
+
+**The 9.4× is a rendering number and a whole script barely renders.** It loads
+28 MB, then it sleeps.
+
+### What actually costs the time — take this instead
+
+**880 seconds of hardcoded `waitForTimeout` across 87 scripts**, counted one pass
+per file with loops *not* multiplied. That is ~15 minutes of every full run spent
+deliberately doing nothing, on top of ~10–17 s per script re-loading the city.
+
+Worst offenders: `drift-check` 48 s, `lookup-check` 36 s, `srcprobe` 26 s,
+`arts-shots` 22 s, `light-probe` 19 s, `orbit-check` 19 s, `movement` 19 s.
+
+The fix is per-script and needs judgement, not a sweep: a `waitForTimeout(6000)`
+that could be a wait-for-actually-ready is free to remove; one that is masking a
+race will fail intermittently and cost someone a week. Do the big ones, one PR,
+with a before/after time in the description and each script run three times to
+prove it did not get flaky.
+
+Priority order for suite speed, measured not guessed: **sleeps → payload → more
+machines → GPU (last)**.
+
+### And a warning that applies to everything on this list
+
+Load time in this suite varies **11 s to 65 s for an identical page and identical
+flags** on a quiet machine. A single reading is worthless. The Acer built a whole
+theory today on one sample — that 33 scripts skipping `cancelGraphicsAutoDetect()`
+were paying ~50 s each — and two interleaved reps showed the probe costs nothing.
+CLAUDE.md rule 8 (minimum of interleaved reps) is not a style preference.
 
 They are on SwiftShader for a real reason: hardware and software rasterisers
 disagree on **26–42% of pixels**, worst channel delta 192/255, so any script
