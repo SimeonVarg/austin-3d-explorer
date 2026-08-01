@@ -54,7 +54,6 @@
   }
 
   function snapshotUrlFor(date) { return `data/snapshots/${date}/buildings.detailed.geojson`; }
-  window.snapshotUrlFor = snapshotUrlFor;
 
   // ── Scene data ────────────────────────────────────────────────────
   async function getJSON(url, fallback) {
@@ -143,10 +142,12 @@
   // ── Init ──────────────────────────────────────────────────────────
   async function init() {
     manifest = await loadManifest();
+    // The "Data snapshot: 2026-08-01" line is gone from the HUD with the rest of
+    // the feature. It sat in the top-centre of every single frame, which is dead
+    // weight in a flyover and worse in footage anyone else is going to watch.
     const el = document.getElementById('hud-snapshot');
     if (manifest && manifest.latest) {
       activeDate = manifest.latest;
-      if (el) el.textContent = `Data snapshot: ${activeDate}`;
     } else {
       if (el) el.textContent = 'No snapshot found — run the data pipeline first';
     }
@@ -193,7 +194,7 @@
   }
 
   // Each stage is isolated: a single throwing subsystem used to take down every
-  // stage after it (a stale date-switcher crash silently cost the whole scene
+  // stage after it (a crash in one boot stage silently cost the whole scene
   // its sky, shadows and signage), and that failure mode is invisible on screen.
   function step(name, fn) {
     try { fn(); } catch (e) { console.error(`[buildScene] ${name} failed:`, e); }
@@ -235,7 +236,6 @@
     step('graphics', () => initGraphics(map));
     step('basemap',  () => cleanupBasemap(map));
     step('controls', () => initControls(map, scene));
-    step('dates',    () => { if (manifest) initDateSwitcher(map, manifest, activeDate, onDateChanged); });
     step('debug',    () => { applyDebugVisibility(); wireDebugToggle(); });
     step('tod',      () => { applyTimeOfDay(map, p); initTimeOfDayUI(map, p); });
     step('reveal',   () => revealAndIntro());
@@ -306,10 +306,11 @@
   const capLift    = h => ['max', 1.0, ['*', 0.015, h]];       // the same rule, as an expression
   const capHeight  = h => ['+', h, capLift(h)];
   const capBase    = h => h;
-  // Exported because diff-tour.js overrides these same two properties while it
-  // tweens a building's height and then has to restore them. It used to carry
-  // its own copy of the `+0.4 / -1.2` literals in three places, so the geometry
-  // rule lived in two files and could silently diverge.
+  // Exported so anything that tweens a building's height can restore the cap
+  // rule rather than carrying its own copy of the literals — which is how the
+  // geometry rule once lived in two files and silently diverged. Its original
+  // consumer, the diff tour, was removed with the snapshot feature; the export
+  // stays because the rule belongs in one place either way.
   window.CAP_GEOM = { liftFor: capLiftNum, height: capHeight, base: capBase, minHeight: CAP_MIN_HEIGHT };
 
   function facadePaint(heightExpr, baseExpr) {
@@ -1228,31 +1229,12 @@
     });
   }
 
-  // ── Date change ───────────────────────────────────────────────────
-  async function onDateChanged(newDate) {
-    const prev = activeDate; activeDate = newDate;
-    const el = document.getElementById('hud-snapshot');
-    if (el) el.textContent = `Data snapshot: ${newDate}`;
-    if (prev !== newDate) {
-      scene = await loadScene(newDate);
-      if (typeof updateFacades === 'function') updateFacades(map, window.__todCurrentP ?? DEFAULT_P);
-      const bs = map.getSource('austin-buildings'); if (bs) bs.setData(scene.buildings);
-      const ps = map.getSource('austin-parts');     if (ps) ps.setData(scene.parts);
-      if (typeof initShadows === 'function') initShadows(map, scene.buildings.features, window.__todCurrentP ?? DEFAULT_P);
-      if (typeof window.__flyRebuildCollision === 'function') window.__flyRebuildCollision(scene);
-    }
-    if (!manifest || !prev || prev === newDate) return;
-    const diff = (manifest.diffs||[]).find(d => {
-      const f = typeof d === 'string' ? d : d.file || '';
-      return f.includes(`${prev}_to_${newDate}`) || f.includes(`${newDate}_to_${prev}`);
-    });
-    if (diff) {
-      const f = typeof diff === 'string' ? diff : diff.file || '';
-      const from = f.match(/(\d{4}-\d{2}-\d{2})_to_/)?.[1];
-      const to   = f.match(/_to_(\d{4}-\d{2}-\d{2})/)?.[1];
-      if (from && to && typeof initDiffTour === 'function') initDiffTour(map, manifest, from, to);
-    }
-  }
+  // The snapshot switcher and the "what changed" diff tour used to live here.
+  // Simeon: "get rid of the snapshot feature, we'll just do the latest one,
+  // snapshot feature is useless." The BAKE still writes into a dated folder and
+  // data/manifest.json still records it — that is how the data pipeline works and
+  // it is untouched. The client simply always loads `manifest.latest`, which boot
+  // was already doing; only the UI that let you pick a different one is gone.
 
   // ── Debug toggle ──────────────────────────────────────────────────
   function wireDebugToggle() {
