@@ -30,14 +30,15 @@
 
   // ── Scene keyframes (everything not carried by the facade patterns) ──
   //
-  // `fog` here is the aerial-perspective colour, tinted toward the SKY rather
-  // than the ground. It drives the horizon haze band in atmosphere.js — NOT
-  // MapLibre's `setSky` fog, which only paints the sky dome (sweeping
-  // fog-ground-blend 0→1 leaves every ground pixel bit-identical, measured).
-  // The sky fog values are still passed through so the dome itself reads right.
+  // `fog` is the aerial-perspective colour, tinted toward the SKY rather than
+  // the ground. It drove the #haze DOM band, which was REMOVED (it painted over
+  // geometry — see the branch note in HANDOFF). The track is kept because it is
+  // the right colour for anything that wants to fade the far field, and because
+  // MapLibre's own `setSky` fog cannot do that job: sweeping fog-ground-blend
+  // 0→1 leaves every ground pixel bit-identical, measured.
   const PRESETS = {
     day: {
-      // sky/horizon/fog/skyBlend/haze are OWNED BY `ROUTES` below — these values
+      // sky/horizon/fog/skyBlend are OWNED BY `ROUTES` below — these values
       // are the p=0 anchors and must stay equal to the route's first key.
       sky: '#5d94cf', horizon: '#c8e0f0', fog: '#c4dcee',
       skyBlend: 0.72, horizonBlend: 0.92, fogGround: 0.08,
@@ -52,7 +53,7 @@
       water: '#8fbccd',
       canopy: '#7d9a62', canopyLo: '#93ad70', canopyHi: '#5f7d4a', trunk: '#6b4f38',
       pitch: '#94b573', fountain: '#a5cbd8',
-      signGlow: 0, labelHalo: 'rgba(24,14,5,0.9)', vignette: 0.10, haze: 0.92,
+      signGlow: 0, labelHalo: 'rgba(24,14,5,0.9)', vignette: 0.10,
       exposure: 1.00, contrast: 1.03, saturation: 1.02,
     },
     golden: {
@@ -63,7 +64,7 @@
       water: '#c9a184',
       canopy: '#8a935a', canopyLo: '#a3a468', canopyHi: '#6a7343', trunk: '#5f4632',
       pitch: '#a2a768', fountain: '#d4b894',
-      signGlow: 0.42, labelHalo: 'rgba(46,18,0,0.88)', vignette: 0.26, haze: 0.72,
+      signGlow: 0.42, labelHalo: 'rgba(46,18,0,0.88)', vignette: 0.26,
       exposure: 1.02, contrast: 1.07, saturation: 1.14,
     },
     night: {
@@ -79,7 +80,7 @@
       water: '#070f1e',
       canopy: '#111a14', canopyLo: '#16211a', canopyHi: '#0c130f', trunk: '#100d0c',
       pitch: '#0d1512', fountain: '#0e1c30',
-      signGlow: 1.0, labelHalo: 'rgba(4,4,12,0.92)', vignette: 0.38, haze: 0.55,
+      signGlow: 1.0, labelHalo: 'rgba(4,4,12,0.92)', vignette: 0.38,
       exposure: 0.95, contrast: 1.08, saturation: 0.88,
     },
   };
@@ -136,7 +137,6 @@
       [0.00, '#c4dcee'], [0.25, '#d4e0ea'], [0.40, '#f2cfa2'], [0.50, '#ffb45e'],
       [0.60, '#965460'], [0.72, '#33406e'], [1.00, '#3a4a72'],
     ],
-    haze:     [[0.00, 0.92], [0.50, 0.72], [0.60, 0.68], [0.72, 0.60], [1.00, 0.55]],
     skyBlend: [[0.00, 0.72], [0.40, 0.80], [0.50, 0.86], [0.72, 0.70], [1.00, 0.60]],
   };
   function duskAt(keys, p) {
@@ -344,7 +344,6 @@
       // Cheap per-frame work only: the sky overlay is camera-dependent and must
       // not be quantised, and the grade is a handful of style writes.
       if (typeof updateSky === 'function') updateSky(map, p);
-      if (typeof setHazeColor === 'function') setHazeColor(s.fog, s.haze);
       applyGradeFor(s);
       return;
     }
@@ -421,7 +420,6 @@
     // Streetlights (night.js) — lamp pools fade up through dusk.
     if (typeof applyNightLayer === 'function') applyNightLayer(map, p);
 
-    if (typeof setHazeColor === 'function') setHazeColor(s.fog, s.haze);
     if (typeof updateSky === 'function') updateSky(map, p);
 
     applyGradeFor(s);

@@ -96,34 +96,74 @@
     ['world', 'World'],
   ];
 
+  // ── The grade is NOT a quality setting ──────────────────────────────
+  //
+  // A preset picks how much work the GPU does. It must not change what colour
+  // the city is. It used to: saturation ran 1.00 / 1.10 / 1.18 / 1.20 across the
+  // four presets and contrast 1.00 / 1.06 / 1.12 / 1.14, so turning the quality
+  // up also turned the colour up, and a machine that could only run
+  // `performance` saw a different-looking Austin from one that could run
+  // `ultra`. Reported as "higher graphics presets change the color character".
+  //
+  // These values multiply the HOUR's authored grade (js/timeofday.js PRESETS),
+  // which is where the look actually lives — applyGrade() computes
+  // `grade.saturation * GFX.saturation`. Holding this block constant means the
+  // hour alone decides colour, at every preset.
+  //
+  // TASTE: `saturation: 1.0` means "the authored hour, unmodified" — that is
+  // what natural means here. The old default multiplied it by 1.1. One number
+  // to change if it should be richer, and it changes everywhere at once, which
+  // is the point.
+  const GRADE = {
+    exposure: 1.03,
+    contrast: 1.06,
+    saturation: 1.0,
+    filmic: 0.65,
+    vignette: 1.0,
+  };
+
+  // `autoExposure` is deliberately NOT in GRADE, and it is the one honest
+  // exception to "presets never change colour".
+  //
+  // It cannot be free: GFX_PDB (line ~172) requests `preserveDrawingBuffer`
+  // whenever auto-exposure is on, so sharing it would force the preserved
+  // buffer onto the `performance` preset — the one that exists for machines
+  // already dropping frames. And it does not change the authored look anyway:
+  // its correction has a log-space KNEE of 0.16, so any pose within ~±17% of
+  // the hour's measured target gets NO correction at all, and settled poses
+  // cluster inside that (day 0.49-0.56, golden 0.49-0.50). It only pulls back
+  // when you stare into bright sky and lifts in a dark canyon. That is a
+  // corrective, not a look — so `performance` skips it and pays nothing.
+
+  // Grain is deliberately NOT in GRADE. It is a texture effect, not a colour
+  // one, and it is the most expensive item in the stack: measured per-effect at
+  // 2560x1400, removing it returned 4.8 fps — more than the colour grade (3.8)
+  // or the contact shadows (3.6) — because it is a full-screen `overlay` blend
+  // running every frame. So it earns its keep at cinematic and stays out of the
+  // default that has to feel smooth.
   const PRESETS = {
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
-      exposure: 1.0, autoExposure: false, contrast: 1.0, saturation: 1.0, filmic: 0, vignette: 0.6, grain: 0,
+      ...GRADE, autoExposure: false, grain: 0,
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58, treeDensity: 0.52, outerDensity: 0.45,
     },
     balanced: {
       renderScale: 1.0, msaa: false, bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0.30,
-      // Grain is OFF at balanced. Measured per-effect at 2560x1400 it was the
-      // most expensive thing in the preset — removing it returned 4.8 fps, more
-      // than the colour grade (3.8) or the contact shadows (3.6) — because it is
-      // a full-screen `overlay` blend running every frame. It is a taste effect,
-      // not a depth or lighting cue, so it earns its keep at cinematic and not in
-      // the default that has to feel smooth.
-      exposure: 1.03, autoExposure: true, contrast: 1.06, saturation: 1.1, filmic: 0.65, vignette: 1.0, grain: 0,
+      ...GRADE, autoExposure: true, grain: 0,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58, treeDensity: 0.675, outerDensity: 1,
     },
     cinematic: {
       renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0.45,
-      exposure: 1.05, autoExposure: true, contrast: 1.12, saturation: 1.18, filmic: 0.8, vignette: 1.25, grain: 0.22,
+      ...GRADE, autoExposure: true, grain: 0.22,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
     ultra: {
       renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0.50,
-      exposure: 1.05, autoExposure: true, contrast: 1.14, saturation: 1.2, filmic: 0.8, vignette: 1.25, grain: 0.18,
+      ...GRADE, autoExposure: true, grain: 0.18,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
   };
+  window.GFX_GRADE = GRADE;   // read by scripts/verify/preset-colour.mjs
 
   const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', autoDetected: false });
   window.GFX = GFX;
@@ -1087,4 +1127,8 @@
 
   window.GFX_PRESETS = PRESETS;
   window.cancelGraphicsAutoDetect = cancelAutoDetect;
+  // Test hook: preset-colour.mjs has to switch presets the way the menu does —
+  // via usePreset, so the reload marker, the menu sync and applyGraphics all
+  // run. Assigning to GFX directly would test a path no user can reach.
+  window.__usePreset = usePreset;
 })();

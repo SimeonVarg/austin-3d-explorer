@@ -98,7 +98,6 @@ if (THROTTLE > 1) {
 const T = {
   skyCanvas: `document.getElementById('sky-canvas').style.display=V`,
   skyAll:    `document.getElementById('sky').style.display=V`,
-  haze:      `document.getElementById('haze').style.display=V`,
   vignette:  `document.getElementById('vignette').style.display=V`,
 };
 
