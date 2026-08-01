@@ -29,9 +29,16 @@
  *
  * THE ONE EXCEPTION is downtown towers (`t=1`, at or above 40 m). They keep the
  * core's facade pattern and a roof cap, because the skyline silhouette is the
- * entire reason the box reaches south to the lake, and they cost nothing extra
- * in atlas terms — facades.js:quantiseOuterFacades snaps them onto patterns
- * that already exist and never registers a new image.
+ * entire reason the box reaches south to the lake.
+ *
+ * They used to snap onto the campus atlas and register no new image, which was
+ * cheap and wrong: the fourteen campus buckets are means of tan brick and
+ * limestone, so the Austonian, Frost Bank Tower, the Independent and 111 more
+ * arrived downtown wearing four or five browns and the skyline read as one mass.
+ * quantiseOuterFacades now clusters the towers on their OWN baked colours into
+ * ten buckets and registers ten images — the same call quantiseStadiumFacades
+ * makes, for the same reason, and bounded so the per-image atlas repaint stays
+ * cheap.
  *
  * REGISTRATION. This module bootstraps itself: it waits for window.__map and
  * for the core building layers to exist, then inserts itself underneath them.
@@ -59,6 +66,28 @@
     // At or above this a ring building is a tower: pattern + roof cap.
     // Matches TOWER_H in scripts/bake_outer.py, which stamps `t`.
     towerCap: true,
+    // ── The brown smear above 80 degrees of pitch ──────────────────
+    //
+    // The ring's low-rise half gets no roads, no trees, no ground detail and no
+    // pattern — by design, it is backdrop. Look near-horizontally and thousands
+    // of those flat prisms mass edge-on into one featureless brown plane that
+    // covers the real scene. Measured at the same camera, share of the lower
+    // frame that is flat ring brown:
+    //
+    //     pitch 70   6.6%      pitch 84   18.6%
+    //     pitch 78   6.1%      pitch 88   61.9%
+    //
+    // Nothing between 70 and 78, then it runs away. It was invisible until now
+    // because MapLibre's maxPitch was 85; the pitch ceiling was just raised to
+    // 90, which is what exposed it. Confirmed pre-existing and NOT caused by the
+    // tiling change below: reverting that to maxzoom 15 / tolerance 1.5 renders
+    // the identical frame.
+    //
+    // The TOWERS keep drawing at any pitch — the skyline silhouette is the whole
+    // reason this module reaches south to the lake, and 114 towers do not mass
+    // into anything. It is only the 7,511 low-rise prisms that go.
+    flatMaxPitch: 80,
+    flatFadePitch: 84,   // fully gone by here
     opacity: 1.0,
   };
   window.OUTER = OUTER;
@@ -134,7 +163,7 @@
     if (!sig || sig === _palSig) return;
     _palSig = sig;
     const towers = _gj.features.filter(f => f.properties && f.properties.t === 1);
-    const n = window.quantiseOuterFacades(towers);
+    const n = window.quantiseOuterFacades(towers, map);
     map.getSource(SRC).setData(_gj);
     console.log('[outer] facade palette changed —', n, 'towers re-snapped');
   }
@@ -158,19 +187,16 @@
     let patterned = 0;
     const towers = gj.features.filter(f => f.properties && f.properties.t === 1);
     if (typeof window.quantiseOuterFacades === 'function') {
-      patterned = window.quantiseOuterFacades(towers);
+      patterned = window.quantiseOuterFacades(towers, map);
     }
     _gj = gj;
     _palSig = paletteSignature();
 
-    // The snapshot picker is app.js's, and app.js is owned by another pass, so
-    // this listens to the <select> rather than asking for a callback.
-    const sel = document.getElementById('date-select');
-    if (sel) sel.addEventListener('change', () => {
-      // app.js refetches, re-quantises and setData()s the core source; give it
-      // a beat to land before reading the palette it produced.
-      setTimeout(() => resnapIfPaletteChanged(map), 1500);
-    });
+    // This used to listen to the snapshot <select> so it could re-snap when
+    // app.js reloaded a different date's buildings and re-derived the palette.
+    // The snapshot feature is gone, so there is no longer any event that can move
+    // the palette under the towers. resnapIfPaletteChanged() is kept and still
+    // correct — it is simply no longer wired to anything.
 
     map.addSource(SRC, {
       type: 'geojson',
@@ -187,8 +213,23 @@
       //               large footprints, which shows up as a wall face floating
       //               at a tile boundary — a visible artefact to save bytes
       //               that gzip mostly gets back anyway.
-      maxzoom: 15,
-      tolerance: 1.5,
+      // maxzoom 15 was already the right instinct and it is what
+      // window.PATTERN_TILING generalised to every other patterned source after
+      // the city-wide window flicker was traced to fill-extrusion-pattern being
+      // TILE-anchored and cross-faded between zoom levels. This source was the
+      // one that never got it, and it is the one carrying the 114 downtown
+      // towers' curtain-wall pattern (L_TOWER below) from OUTER.minZoom 12.6 —
+      // so a descent over downtown crosses an uncapped tile boundary and blends
+      // two scales of the same window grid onto one tower face. Same defect,
+      // most-filmed subject in the scene.
+      //
+      // Spread the shared block rather than restating the numbers, so the ring
+      // can never drift away from the rest of the city again. It resolves to
+      // maxzoom 16 / tolerance 0.5 / buffer 128 — a z16 tile is ~611 m and the
+      // ring's own bake has already removed 85% of its vertices, so the finer
+      // tolerance costs little and buys back the "wall face floating at a tile
+      // boundary" clipping this comment used to worry about.
+      ...(window.PATTERN_TILING || { maxzoom: 15, tolerance: 1.5 }),
     });
 
     // Underneath everything of ours. `buildings-ao` is the first layer app.js
@@ -255,9 +296,11 @@
       }, before);
     }
 
+    watchPitch(map);
+
     console.log('[outer]', gj.features.length, 'ring buildings (',
-                towers.length, 'towers,', patterned, 'patterned from the',
-                'existing atlas — 0 new images )');
+                towers.length, 'towers,', patterned, 'patterned on their own',
+                'clustered colours )');
   };
 
   window.applyOuterColors = function applyOuterColors(map, p) {
@@ -274,21 +317,55 @@
     // updateFacades() has already repainted by the time we get here.
   };
 
+  /**
+   * How much of the flat ring to draw at the current pitch. 1 below
+   * flatMaxPitch, 0 at flatFadePitch and above, linear between — a fade rather
+   * than a switch, so it cannot pop while the camera is tilting.
+   */
+  function flatOpacityFor(map) {
+    const pitch = map.getPitch ? map.getPitch() : 0;
+    if (pitch <= OUTER.flatMaxPitch) return OUTER.opacity;
+    if (pitch >= OUTER.flatFadePitch) return 0;
+    const t = (pitch - OUTER.flatMaxPitch) / (OUTER.flatFadePitch - OUTER.flatMaxPitch);
+    return OUTER.opacity * (1 - t);
+  }
+
   /** Re-read OUTER / GFX.outerDensity after a live edit or a preset change. */
   window.applyOuterSettings = function applyOuterSettings(map) {
     if (!map || !map.getLayer) return;
+    const flatOp = flatOpacityFor(map);
     for (const id of [L_FLAT, L_TOWER, L_TOWER_ROOF]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', OUTER.on ? 'visible' : 'none');
         map.setPaintProperty(id, 'fill-extrusion-opacity',
-                             id === L_TOWER_ROOF ? 1.0 : OUTER.opacity);
+                             id === L_TOWER_ROOF ? 1.0
+                             : id === L_FLAT ? flatOp : OUTER.opacity);
       } catch (e) {}
     }
     try {
       if (map.getLayer(L_FLAT)) map.setFilter(L_FLAT, densityFilter(NOT_TOWER));
     } catch (e) {}
   };
+
+  /**
+   * Follow the pitch. `pitch` fires on every frame of a tilt, so the opacity is
+   * only written when the bucket it lands in actually changes — otherwise this
+   * is a setPaintProperty per frame on a layer with 7,511 features.
+   */
+  let _lastFlatOp = null;
+  function watchPitch(map) {
+    const update = () => {
+      if (!map.getLayer(L_FLAT) || !OUTER.on) return;
+      const op = flatOpacityFor(map);
+      if (_lastFlatOp != null && Math.abs(op - _lastFlatOp) < 0.02) return;
+      _lastFlatOp = op;
+      try { map.setPaintProperty(L_FLAT, 'fill-extrusion-opacity', op); } catch (e) {}
+    };
+    map.on('pitch', update);
+    map.on('move', update);
+    update();
+  }
 
   // ── bootstrap ─────────────────────────────────────────────────────
   // A new module needs a <script> tag and nothing else. js/app.js is owned by

@@ -87,7 +87,12 @@
     // them" without rebuilding anything.
     labels: q.get('placelabels') !== '0',
     minZoom: 15,
-    labelMinZoom: 16.0,
+    // "restaurant names are a bit too visible from afar". They were: shop names
+    // started at z16 in BOLD white on a saturated brand halo, while building names
+    // started at 16.7 in regular weight — so a boba shop announced itself sooner
+    // and louder than the building it is inside. A storefront is a street-level
+    // detail; it should arrive when you are close enough to walk into it.
+    labelMinZoom: 17.3,
     opacity: 1.0,
   };
   window.PLACES = PLACES;
@@ -271,7 +276,7 @@
 
     const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
     try { map.addImage(GLASS_IMG, glassTile(p)); } catch (e) { /* already there */ }
-    map.addSource(SRC, { type: 'geojson', data: gj });
+    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
 
     // The anchor must be the first symbol layer AFTER the buildings, not the
     // first in the style. The basemap puts symbol layers immediately after
@@ -323,7 +328,7 @@
         layout: {
           'text-field': ['get', 'nm'],
           'text-font': ['Noto Sans Bold', 'Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], 16, 9.5, 18, 12.5],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 17.3, 8.5, 18.4, 11, 19.5, 12.5],
           'text-max-width': 8,
           'text-padding': 3,
           'text-allow-overlap': false,

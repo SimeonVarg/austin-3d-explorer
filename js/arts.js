@@ -284,7 +284,7 @@
     ensureImages(map, p);
 
     const glass = gj.features.filter(f => f.properties && f.properties.lyr === 'glass');
-    map.addSource(SRC, { type: 'geojson', data: gj });
+    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
 
     // The generic extrusions these bands supersede have to STOP being drawn or
     // the old box buries every band inside it. Same mechanism app.js uses for

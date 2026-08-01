@@ -1479,3 +1479,42 @@ from architect reference photos. Read **`utx-diorama/PROJECT_OVERVIEW.md`**
 for the full journey and its lessons. This repo stays live (flyover-utx.vercel.app)
 and untouched; its baked data (`buildings.detailed.geojson`, `signs.json`,
 `hero_designs.json`) feeds the diorama's footprint/palette pipelines.
+
+---
+
+## Acer lane, overnight 2026-08-01 — branch `acer/windows-pass`, PR #27
+
+Eleven commits. Full detail in the PR body; the four things worth carrying
+forward:
+
+1. **`fill-extrusion-pattern` is TILE-anchored and cross-fades between tile zoom
+   levels.** That is the whole cause of the city-wide "glitchy whenever I move".
+   Every patterned GeoJSON source must spread `window.PATTERN_TILING`
+   (`js/app.js`). If you add a new patterned source and skip it, the flicker comes
+   back on that source alone — which is exactly how `js/outer.js` kept it after
+   everything else was fixed.
+
+2. **Anything that drives time of day must call `window.applyTimeOfDay`, never a
+   module-local copy.** Five passes wrap the window property to retint their own
+   geometry. Calling the local original is why the Tower "took five minutes to
+   turn orange" — it was never asked to.
+
+3. **`scripts/verify/zfight.mjs` cannot see texture crawl.** It gates candidates
+   on a flat 3x3 neighbourhood, which is right for a z-fighting surface and
+   structurally blind to a shimmering window grid. Use
+   `scripts/verify/shimmer.mjs` for anything that moves under camera motion.
+
+4. **A green test on known-broken code is the only real proof a test works.**
+   `retint.mjs`'s first assertion passed on the broken build, because sky and
+   ground always did retint and they dominate a frame mean. Always run a new
+   assertion against the bug it is meant to catch before trusting it.
+
+Two traps recorded in the scripts themselves rather than here:
+`scripts/reseat_authored_roofs.py` (deleting 274 roof facets would have flattened
+Gregory Gym and the Union Building to fix a bug they did not have) and
+`scripts/bake_detail.py`'s part coverage gate (scaling a part up to
+`final_height` is worse than either failure).
+
+**Non-bug, do not chase:** `js/graphics.js` does NOT call the broken
+`transform.horizonLineFromTop()`. It reads `F.horizonPx` from `window.skyFrame`,
+built by `js/sky.js:166-171` from the correct closed form.

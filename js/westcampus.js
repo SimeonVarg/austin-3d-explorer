@@ -149,7 +149,7 @@
       added = window.quantiseStadiumFacades(map, gj.features);
     }
 
-    map.addSource(SRC, { type: 'geojson', data: gj });
+    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
 
     // The anchor must be the first symbol layer AFTER our buildings, not the
     // first in the style. The basemap puts its symbol layers immediately after

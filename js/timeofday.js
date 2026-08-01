@@ -78,7 +78,22 @@
       lightColor: '#8fa0e0', lightIntensity: 0.04, lightPosition: [1.4, 300, 60],
       ground: '#090b12', park: '#0b120e', road: '#2a2519', roadCasing: '#0b0d13',
       water: '#070f1e',
-      canopy: '#111a14', canopyLo: '#16211a', canopyHi: '#0c130f', trunk: '#100d0c',
+      // "at night the trees are an ugly gray fix that." They were, and it is a
+      // LUMA HEADROOM problem rather than a hue one, so the fix is to author
+      // them brighter and not more saturated.
+      //
+      // The old values (#16211a / #0c130f / #100d0c) sit deep below the tone
+      // curve's toe, where its slope flattens toward END_SLOPE — which squeezes
+      // the inter-channel spread that IS the green-ness from about 4.3% down to
+      // 3.3%, and then the night grade's saturate(0.88) takes another 12%. What
+      // lands on screen is a 1-4% channel spread on values under 20/255, which
+      // is below display quantisation. That is the definition of grey.
+      //
+      // These clear the toe with the green channel still dominant, so the curve
+      // preserves the separation instead of crushing it. `canopy` is unused —
+      // js/timeofday.js:393-395 only ever reads canopyLo/canopyHi — and is kept
+      // only so the three presets stay the same shape.
+      canopy: '#1a2a1e', canopyLo: '#1e3a24', canopyHi: '#162a1a', trunk: '#221a15',
       pitch: '#0d1512', fountain: '#0e1c30',
       signGlow: 1.0, labelHalo: 'rgba(4,4,12,0.92)', vignette: 0.38,
       exposure: 0.95, contrast: 1.08, saturation: 0.88,
@@ -451,13 +466,38 @@
   let _autoRaf=null, _autoDir=1;
   const AUTO_PER_MS = 1/32000;
 
+  /**
+   * ALWAYS retint through window.applyTimeOfDay, never the local one.
+   *
+   * This is why "going from night to day takes forever to render". Five pass
+   * modules — js/tower.js, js/arts.js, js/drag.js, js/moody.js, js/places.js —
+   * each WRAP window.applyTimeOfDay at boot so their own bands, atlases and
+   * baked colours retint with the rest of the scene. The slider handler and the
+   * auto-play loop below called the bare, IIFE-local `applyTimeOfDay` instead,
+   * which is the unwrapped original. So dragging the sun did retint the generic
+   * city and did NOT retint the UT Tower, the Harry Ransom Center, the Drag,
+   * Moody or the storefronts: they held whatever hour app.js last drove them to,
+   * and only snapped when some unrelated event happened to call the window
+   * property (js/app.js:1216 on a graphics change, for one).
+   *
+   * That is exactly the reported symptom — "the Ransom Center just became dark,
+   * didn't do anything, night just took that long to render", "the tower just
+   * became orange after having night on for like 5 minutes", "the black roofs
+   * took 2 minutes to correct". Nothing was slow. The retint was never called.
+   *
+   * js/arts.js:376-378 documents the opposite belief in a comment, and it is
+   * wrong. Route every UI path through the wrapper chain and there is no delay.
+   */
+  const retint = (map, p, force) =>
+    (window.applyTimeOfDay || applyTimeOfDay)(map, p, force);
+
   function initTimeOfDayUI(map, defaultP) {
     const slider = document.getElementById('tod-slider');
     const play   = document.getElementById('tod-play');
     const p0 = defaultP != null ? defaultP : TOD_DEFAULT_P;
     if (slider) {
       slider.value = String(p0);
-      slider.addEventListener('input', () => { stopAuto(play); applyTimeOfDay(map, parseFloat(slider.value)); });
+      slider.addEventListener('input', () => { stopAuto(play); retint(map, parseFloat(slider.value)); });
     }
     if (play) play.addEventListener('click', () => _autoRaf ? stopAuto(play) : startAuto(map, slider, play));
   }
@@ -472,7 +512,7 @@
       p += _autoDir * dt * AUTO_PER_MS;
       if (p >= 1) { p=1; _autoDir=-1; } else if (p <= 0) { p=0; _autoDir=1; }
       if (slider) slider.value = String(p);
-      applyTimeOfDay(map, p);
+      retint(map, p);
       _autoRaf = requestAnimationFrame(step);
     };
     _autoRaf = requestAnimationFrame(step);

@@ -1158,7 +1158,129 @@
         }
       }
     }
+    softenTile(d, fam);
     return { width: TILE, height: TILE, data: new Uint8Array(d.buffer.slice(0)) };
+  }
+
+  // ── The windows crawl while the camera moves ──────────────────────
+  //
+  // Reported: "it's glitchy whenever I move... a ton of diagonal lines that go
+  // across the window that are lit and not lit", and — the part that names the
+  // cause — on Biological Laboratories' north face, far away almost the whole
+  // wall crawls, and as the camera closes the NEARER side settles first while
+  // the far tenth holds out longest.
+  //
+  // That is texture minification, not z-fighting. Measured with
+  // scripts/verify/shimmer.mjs, which steps the camera in equal increments and
+  // counts sign changes in each pixel's luma: real geometry under a monotonic
+  // camera move changes monotonically, aliasing oscillates. Stripping
+  // fill-extrusion-pattern and painting flat colour instead cut the crawling
+  // share roughly in half at every pose (bme-near 6.96% -> 3.41%, waggener-n
+  // 9.78% -> 6.06%, and a 0.10 zoom step 40.23% -> 26.17%). The mask PNGs show
+  // the flagged pixels lying in the shape of the window grid itself.
+  //
+  // Two things make it unavoidable at source. MapLibre samples the pattern atlas
+  // LINEAR with no mipmaps — atlases cannot be mipmapped without bleeding
+  // between images — so there is no filtering as the texture minifies. And the
+  // pattern is TILE-locked, so its metres-per-texel HALVES at every integer
+  // zoom (measured: 33.0 m at z16, 16.5 at z17, 8.2 at z18), which drags the
+  // window pitch through the one-pixel danger zone on the way in.
+  //
+  // MSAA does not help: it antialiases geometry EDGES, not texture interiors.
+  // Measured at 4 samples, the crawl went UP on every pose, because smoothing
+  // edges adds small per-frame variation of its own. Depth is 24-bit here, so
+  // the file's older "a phone's 16-bit depth buffer" reasoning does not apply
+  // to this defect either.
+  //
+  // What is left is to stop putting energy into the tile at frequencies that
+  // cannot survive. This is a wrap-aware low-pass — the poor man's mipmap, done
+  // once at generation instead of per sample. RADIUS is in texels and one texel
+  // is 0.43-0.65 m of wall at the zooms this app flies, so a radius of 1 is a
+  // ~0.5 m soft edge: invisible from a flying camera, and the difference between
+  // a window that reads and a window that strobes.
+  //
+  // Per family, because the need is not uniform. `tg` is the worst by
+  // construction — 1.40 px of spandrel and 3.14 px of pier, the only family
+  // exempt from MIN_SPANDREL/MIN_PIER via `curtain: true` — and `lo` has big
+  // sparse openings that never approach the pixel floor.
+  //
+  // TASTE KNOB: set any of these to 0 to get the old razor-sharp, strobing tile
+  // back for that family. Nothing else has to change.
+  // HOW STRONG, measured rather than guessed. Every number below is a shimmer.mjs
+  // run, % of pixels crawling, same poses each time:
+  //
+  //   pose          pattern on   r1/a0.6   HERE     r6/a1.0   pattern OFF
+  //   bme-near          6.96       5.84     5.57      3.50        3.41
+  //   waggener-n        9.78       8.67     8.15      6.78        6.06
+  //   bme-zoom         40.23      38.76    38.72     26.16       26.17
+  //
+  // Two things to read off that, and the second one matters more than the fix.
+  //
+  // First, the crawl has a FLOOR — the pattern-off column — and a big enough
+  // low-pass reaches it exactly (26.16 against 26.17). So sharpness is the whole
+  // lever, and this is a pure sharpness-versus-crawl trade with a known bottom.
+  //
+  // Second, and honestly: RADIUS is doing the work, not amount, and the radius
+  // that gets most of the win is 6 — a 13-texel box, which at z17 is 3.4 m of
+  // wall and visibly mushes the windows. The setting below is the strongest one
+  // that still reads as punched windows up close, and it only recovers about a
+  // third of the available win at translation and almost none at the zoom step.
+  // A single fixed tile cannot be both crisp near and quiet far. The complete
+  // fix is two tiers switched by zoom — a soft tile on a far layer, the sharp
+  // one on a near layer — which is a bigger change than this and is written up
+  // in the PR rather than half-done here.
+  //
+  // The blur is in TEXEL space, which at least biases it the right way: a texel
+  // is 0.26 m of wall at z17 and 0.52 m at z16, so it softens hardest at the
+  // distances where the crawl is worst and least where you can read a window.
+  const SOFTEN = {
+    RADIUS: { lo: 0, mr: 2, mh: 2, tr: 2, tg: 3, dk: 2, st: 2 },
+    AMOUNT: { lo: 0, mr: 0.90, mh: 0.90, tr: 0.90, tg: 1.00, dk: 0.80, st: 0.70 },
+  };
+  // Exposed so scripts/verify/shimmer.mjs can sweep it, and so an aesthetic call
+  // here can be overruled from the console without an edit.
+  window.FACADE_SOFTEN = SOFTEN;
+
+  /**
+   * Separable box blur, WRAPPING on both axes, blended back over the original.
+   *
+   * The wrap is not a detail: the tile repeats, so a clamped blur would darken
+   * the four edges and put a visible grid seam every ~40 m up and across every
+   * wall in the city — which is the same class of bug as the fascia band that
+   * appeared three times up DKR's elevation.
+   */
+  function softenTile(d, fam) {
+    const r = SOFTEN.RADIUS[fam] | 0;
+    const a = SOFTEN.AMOUNT[fam] || 0;
+    if (!r || a <= 0) return;
+    const N = TILE * TILE, win = r * 2 + 1;
+    const tmp = new Float32Array(N * 3);
+    // horizontal
+    for (let y = 0; y < TILE; y++) {
+      for (let x = 0; x < TILE; x++) {
+        let s0 = 0, s1 = 0, s2 = 0;
+        for (let k = -r; k <= r; k++) {
+          const i = (y * TILE + ((x + k + TILE) % TILE)) * 4;
+          s0 += d[i]; s1 += d[i + 1]; s2 += d[i + 2];
+        }
+        const o = (y * TILE + x) * 3;
+        tmp[o] = s0 / win; tmp[o + 1] = s1 / win; tmp[o + 2] = s2 / win;
+      }
+    }
+    // vertical, and blend straight back into the pixel buffer
+    for (let x = 0; x < TILE; x++) {
+      for (let y = 0; y < TILE; y++) {
+        let s0 = 0, s1 = 0, s2 = 0;
+        for (let k = -r; k <= r; k++) {
+          const o = (((y + k + TILE) % TILE) * TILE + x) * 3;
+          s0 += tmp[o]; s1 += tmp[o + 1]; s2 += tmp[o + 2];
+        }
+        const i = (y * TILE + x) * 4;
+        d[i]     += (s0 / win - d[i])     * a;
+        d[i + 1] += (s1 / win - d[i + 1]) * a;
+        d[i + 2] += (s2 / win - d[i + 2]) * a;
+      }
+    }
   }
 
   function parseId(id) { return { fam: id.slice(0, 2), idx: parseInt(id.slice(2), 10) }; }
@@ -1212,8 +1334,110 @@
    *
    * Call after quantiseFacades and after initFacades.
    */
-  window.quantiseOuterFacades = function quantiseOuterFacades(features) {
+  /**
+   * The 114 downtown TOWERS get their own colours; the 7,511 low-rise buildings
+   * behind them keep snapping to the campus palette.
+   *
+   * "downtown - more accurate and more vibrant." The accuracy was already there:
+   * every named landmark is present at a curated height. The flatness was this
+   * function. It snapped every outer feature to the nearest of the fourteen
+   * CAMPUS buckets, which are the means of Austin's campus building colours and
+   * are almost all tan brick and limestone — so the Austonian, Frost Bank Tower,
+   * the Independent and 111 more arrived downtown wearing the same four or five
+   * browns, and the skyline read as one grey-brown mass.
+   *
+   * It is the same mistake quantiseStadiumFacades already records and refuses to
+   * make: "Its OWN palette entries, not the nearest of the city's fourteen...
+   * snapping to them turned the 2008 north end zone's brick veneer back into tan
+   * and erased the one elevation with a different material."
+   *
+   * So the towers are clustered on their own baked `wd` instead. Clustered, not
+   * one-per-hex: the atlas is repainted per image on every time-of-day step, so
+   * 114 new images would be a real cost for no visible gain at skyline distance.
+   * TOWER_BUCKETS is the knob — raise it for more variety, lower it for a
+   * cheaper atlas.
+   *
+   * The low-rise ring is deliberately left on the campus palette. It IS mostly
+   * the same brick and stucco as campus, it is 66x the feature count, and it is
+   * the backdrop rather than the subject.
+   */
+  const TOWER_BUCKETS = 10;
+
+  /** k-means on RGB, seeded evenly through the sorted-by-luma list. */
+  function clusterColours(hexes, k) {
+    const pts = hexes.map(hexToRgb);
+    if (pts.length <= k) return pts;
+    const lum = c => c[0] * 0.299 + c[1] * 0.587 + c[2] * 0.114;
+    const sorted = [...pts].sort((a, b) => lum(a) - lum(b));
+    let cent = Array.from({ length: k }, (_, i) =>
+      sorted[Math.floor((i + 0.5) * sorted.length / k)].slice());
+    for (let iter = 0; iter < 12; iter++) {
+      const sum = cent.map(() => [0, 0, 0, 0]);
+      for (const p of pts) {
+        let bi = 0, bd = Infinity;
+        for (let i = 0; i < cent.length; i++) {
+          const d = dist2(p, cent[i]);
+          if (d < bd) { bd = d; bi = i; }
+        }
+        sum[bi][0] += p[0]; sum[bi][1] += p[1]; sum[bi][2] += p[2]; sum[bi][3]++;
+      }
+      cent = cent.map((c, i) => sum[i][3]
+        ? [sum[i][0] / sum[i][3], sum[i][1] / sum[i][3], sum[i][2] / sum[i][3]]
+        : c);
+    }
+    return cent;
+  }
+
+  const toHex = c => '#' + c.map(v =>
+    Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+
+  window.quantiseOuterFacades = function quantiseOuterFacades(features, map) {
     if (!palette.length || !combos.length) return 0;
+    // Snapshot the campus bucket count BEFORE any tower entries are appended.
+    // The low-rise pass below must not snap a warehouse onto a glass tower's new
+    // colour, and must not overwrite the towers it is about to skip.
+    const campusBuckets = palette.length;
+
+    // ── towers first, on their own colours ──────────────────────────
+    const towers = features.filter(f => f.properties && f.properties.t === 1 && f.properties.wd);
+    let towersDone = 0;
+    if (towers.length && map) {
+      const cent = clusterColours(towers.map(f => f.properties.wd), TOWER_BUCKETS);
+      const idxOf = cent.map(c => {
+        const i = palette.length;
+        const wd = toHex(c);
+        // Golden and night are derived the way the bake derives them, so a tower
+        // follows the same day->golden->night ramp as everything else rather
+        // than sitting at one colour all day.
+        palette.push({
+          wd,
+          wg: toHex(c.map((v, j) => v * (j === 2 ? 0.92 : 1.06))),
+          wn: toHex(c.map((v, j) => v * 0.34 + [17, 22, 42][j] * 0.30)),
+        });
+        return i;
+      });
+      const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
+      for (const f of towers) {
+        const rgb = hexToRgb(f.properties.wd);
+        let best = 0, bd = Infinity;
+        for (let i = 0; i < cent.length; i++) {
+          const d = dist2(rgb, cent[i]);
+          if (d < bd) { bd = d; best = i; }
+        }
+        const idx = idxOf[best];
+        const id = 'tg' + String(idx).padStart(2, '0');
+        f.properties.wp = id;
+        f.properties.wf = 'tg';
+        if (combos.indexOf(id) === -1) combos.push(id);
+        // initFacades has already run, so a new combo has no image yet and
+        // MapLibre would paint the wall transparent.
+        try {
+          if (!(map.hasImage && map.hasImage(id))) map.addImage(id, tileData('tg', idx, p));
+        } catch (e) { /* already added */ }
+        towersDone++;
+      }
+    }
+
     // bucket index -> the combos that exist for it, keyed by family
     const have = new Map();
     for (const id of combos) {
@@ -1221,11 +1445,12 @@
       if (!have.has(idx)) have.set(idx, new Map());
       have.get(idx).set(fam, id);
     }
-    const buckets = palette.map(k => hexToRgb(k.wd));
+    const buckets = palette.slice(0, campusBuckets).map(k => hexToRgb(k.wd));
     let n = 0;
     for (const f of features) {
       const p = f.properties;
       if (!p || !p.wd) continue;
+      if (p.t === 1 && p.wp) continue;   // a tower already has its own colour
       const rgb = hexToRgb(p.wd);
       let best = 0, bestD = Infinity;
       for (let i = 0; i < buckets.length; i++) {
@@ -1247,7 +1472,7 @@
       p.wf = pick.slice(0, 2);
       n++;
     }
-    return n;
+    return n + towersDone;
   };
 
   // Fall back to a plain fill where a feature somehow has no pattern.

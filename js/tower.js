@@ -332,7 +332,7 @@
     // does not have is painted transparent, not defaulted.
     const nImg = registerPatterns(map, p);
 
-    map.addSource(SRC, { type: 'geojson', data: gj });
+    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
     hideOriginals(map, gj);
 
     // The anchor must be the first symbol layer AFTER our buildings. The

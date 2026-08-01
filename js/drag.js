@@ -583,7 +583,7 @@
     const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
     const combos = stampPatterns(gj.features);
     const imgs = registerImages(map, p);
-    map.addSource(SRC, { type: 'geojson', data: gj });
+    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
 
     _gone = gj.replacedBuildingIds || [];
     ensureFiltered(map);

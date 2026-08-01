@@ -1,0 +1,9 @@
+[
+ {"name":"pharmacy",  "center":[-97.73970,30.28723], "zoom":17.2, "pitch":72, "bearing":200, "p":1.0},
+ {"name":"tower-n",   "center":[-97.73932,30.28601], "zoom":17.0, "pitch":70, "bearing":180, "p":1.0},
+ {"name":"tower-s",   "center":[-97.73932,30.28601], "zoom":17.0, "pitch":70, "bearing":0,   "p":1.0},
+ {"name":"dkr",       "center":[-97.73286,30.28396], "zoom":16.3, "pitch":68, "bearing":180, "p":1.0},
+ {"name":"campus",    "center":[-97.73900,30.28650], "zoom":16.2, "pitch":66, "bearing":150, "p":1.0},
+ {"name":"trees",     "center":[-97.74053,30.28500], "zoom":17.4, "pitch":62, "bearing":90,  "p":1.0},
+ {"name":"downtown",  "center":[-97.74300,30.26900], "zoom":15.8, "pitch":70, "bearing":20,  "p":1.0}
+]

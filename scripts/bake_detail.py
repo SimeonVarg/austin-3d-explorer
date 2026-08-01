@@ -94,11 +94,38 @@ def night_wall(day_hex):
     free to go properly dark and give those windows something to read against.
     Keep this formula in sync with nothing — js/facades.js consumes `wn`
     directly, and this is the single definition.
+
+    THE SECOND CORRECTION, and the opposite failure. Simeon: "PCL and Tower and
+    some buildings on Guad and Ransom center are all more visible in the night
+    due to their color... but PCL, Greg walls, and guad buildings + union walls
+    are standouts so make everything else like that too." The pass-authored
+    buildings keep their material after dark; the other 2,453 do not.
+
+    Measured on the old constants (darken 0.24, blend 0.50 toward (17,22,42)):
+
+        wn luma   mean 32.9   stdev 3.4   min 20.4   max 40.0
+        max saturation 0.273
+
+    A stdev of 3.4 across brick, limestone, glass and painted concrete is not a
+    city at night, it is one colour. Blending HALF of every wall into a single
+    fixed triplet is what does it: a 200-luma limestone hall and an 80-luma
+    brick block both arrive within a few points of the same navy.
+
+    Darkening less and blending less keeps the day identity legible without
+    going back to the olive-khaki disaster above. New constants land at
+
+        wn luma   mean 49.7   stdev 6.7   max 63.4
+
+    — twice the spread, and still far below the ~90-100 that made the skyline
+    stop silhouetting against the sky. Both are taste knobs; lower DARKEN for a
+    blacker city, raise BLEND to pull everything back toward the same navy.
     """
+    DARKEN = 0.34     # how much of the day colour survives
+    BLEND = 0.30      # how far toward the fixed cool triplet everything goes
     r, g, b = hex_to_rgb(day_hex)
-    dark = (r * 0.24, g * 0.24, b * 0.24)
+    dark = (r * DARKEN, g * DARKEN, b * DARKEN)
     cool = (17, 22, 42)
-    return rgb_to_hex(*(dark[i] + (cool[i] - dark[i]) * 0.5 for i in range(3)))
+    return rgb_to_hex(*(dark[i] + (cool[i] - dark[i]) * BLEND for i in range(3)))
 
 
 def make_tod_colors(day_hex, night_window_hex):

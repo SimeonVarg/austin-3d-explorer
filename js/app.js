@@ -54,7 +54,6 @@
   }
 
   function snapshotUrlFor(date) { return `data/snapshots/${date}/buildings.detailed.geojson`; }
-  window.snapshotUrlFor = snapshotUrlFor;
 
   // ── Scene data ────────────────────────────────────────────────────
   async function getJSON(url, fallback) {
@@ -120,7 +119,18 @@
       // Only name buildings that are big enough to carry a label and aren't
       // already announced by a curated sign. This is what took the scene from
       // ~70 labels a frame down to something you can actually read.
-      if (name && !isDuplicate(name) && (p.final_height || 0) >= 12) { p.lbl = 1; labelled++; }
+      if (name && !isDuplicate(name) && (p.final_height || 0) >= 12) {
+        p.lbl = 1; labelled++;
+        // IMPORTANCE, so a corner shop does not announce itself from the sky.
+        // "make the distance u need to be near them really small if theyre
+        // insignificant." A layer's minzoom is a single number, so importance
+        // has to be stamped per feature and split across tiers below.
+        // Height is the only signal every building carries, and on this campus
+        // it tracks significance well enough: the Tower, Dobie and the downtown
+        // towers are the things you should be able to name from far away.
+        const h = p.final_height || 0;
+        p.lt = h >= 45 ? 0 : h >= 22 ? 1 : 2;
+      }
     }
 
     console.log('[scene]', buildings.features.length, 'buildings,',
@@ -132,10 +142,12 @@
   // ── Init ──────────────────────────────────────────────────────────
   async function init() {
     manifest = await loadManifest();
+    // The "Data snapshot: 2026-08-01" line is gone from the HUD with the rest of
+    // the feature. It sat in the top-centre of every single frame, which is dead
+    // weight in a flyover and worse in footage anyone else is going to watch.
     const el = document.getElementById('hud-snapshot');
     if (manifest && manifest.latest) {
       activeDate = manifest.latest;
-      if (el) el.textContent = `Data snapshot: ${activeDate}`;
     } else {
       if (el) el.textContent = 'No snapshot found — run the data pipeline first';
     }
@@ -185,7 +197,7 @@
   }
 
   // Each stage is isolated: a single throwing subsystem used to take down every
-  // stage after it (a stale date-switcher crash silently cost the whole scene
+  // stage after it (a crash in one boot stage silently cost the whole scene
   // its sky, shadows and signage), and that failure mode is invisible on screen.
   function step(name, fn) {
     try { fn(); } catch (e) { console.error(`[buildScene] ${name} failed:`, e); }
@@ -233,7 +245,6 @@
     step('graphics', () => initGraphics(map));
     step('basemap',  () => cleanupBasemap(map));
     step('controls', () => initControls(map, scene));
-    step('dates',    () => { if (manifest) initDateSwitcher(map, manifest, activeDate, onDateChanged); });
     step('debug',    () => { applyDebugVisibility(); wireDebugToggle(); });
     step('tod',      () => { applyTimeOfDay(map, p); initTimeOfDayUI(map, p); });
     step('reveal',   () => revealAndIntro());
@@ -250,6 +261,106 @@
   // Buildings whose volume is replaced by OSM building:parts carry
   // has_parts=1 and are excluded from the base layers; parts-* render the
   // detailed massing (podium + tower setbacks) instead.
+  // ── Why every patterned source is capped at maxzoom 16 ────────────
+  //
+  // Reported as "glitchy whenever I move", city-wide, worse at night, unrelated
+  // to the day cycle. A screen recording settled it in two frames: the same wall,
+  // one frame a clean regular grid of lit windows, the next frame that same grid
+  // PLUS a superimposed torn copy of itself at a narrower, squeezed scale. Not
+  // shimmer — two patterns at two different scales composited into one wall.
+  // In his words, "most of the vision is a blur between the states".
+  //
+  // That is what `*-pattern` does by design. MapLibre anchors it to the TILE, not
+  // to the world, so its size in metres is a function of the tile's zoom
+  // (measured: a 64 px repeat covers ~33 m at z16, ~16.5 at z17, ~8.2 at z18),
+  // and it CROSS-FADES between adjacent zoom levels while both are on screen.
+  // While the camera moves, tiles are constantly being served, replaced and
+  // over-zoomed, so a given wall keeps changing which tile zoom it is drawn from
+  // — and every one of those changes drags the window grid through a blend
+  // between two different scales. Stationary, nothing changes and it looks fine,
+  // which is exactly the reported behaviour.
+  //
+  // Capping the source's own maxzoom fixes it at the root. Above the cap every
+  // tile is an OVERSCALE of one level, so the pattern's size in tile units — and
+  // therefore in metres — stops changing, there is no adjacent level to fade to,
+  // and the window grid becomes world-locked the way it always should have been.
+  // 16 is the cap because a z16 tile is ~611 m at this latitude, which keeps
+  // geometry precision at 611/4096 = 0.15 m, far finer than any wall detail here.
+  //
+  // The same trick, for the same underlying reason, already fixed the lid over
+  // DKR's bowl (geojson-vt dropping a hole when a tile fell entirely inside it).
+  // Both are "the tile grid is not the world" bugs.
+  window.PATTERN_TILING = { maxzoom: 16, tolerance: 0.5, buffer: 128 };
+
+  // ── When the DKR field may be drawn ───────────────────────────────
+  //
+  // Taste knobs for the rule above. RIM_M is the top of the grandstand — above
+  // it you are looking down into an open bowl and the turf is genuinely visible.
+  // INSIDE_M is measured from the field centre and is generous enough to cover
+  // standing anywhere in the seating, so walking the concourse never blinks the
+  // field off. FADE_M is the band over which it crosses, so it cannot pop.
+  // ── When the DKR field may be drawn ───────────────────────────────
+  //
+  // The physical question is "is there grandstand between the eye and the
+  // turf". The robust proxy is PITCH plus how close you are LOOKING to the
+  // field: tilt down toward the bowl and you see into it; look side-on from
+  // outside and 63 m of seating is in the way.
+  //
+  // Deliberately NOT camera altitude, after two attempts that both measured as
+  // doing nothing:
+  //   map.getFreeCameraOptions() is a Mapbox API — MapLibre 5.24 has no such
+  //   method, so inside a try/catch it threw every frame and the gate silently
+  //   never ran.
+  //   window.__fly.eye() is maintained by the flight controller on its own loop
+  //   and does NOT resync after a jumpTo, so it reported a stale camera even
+  //   after a 4.5 s settle — two different poses probed back to back both
+  //   returned the previous one.
+  // getPitch() and getCenter() are correct on the frame they are read, which is
+  // the only property that matters here.
+  //
+  // All four are taste knobs.
+  const FIELD_VIS = {
+    LOOK_DOWN_PITCH: 62,   // at or below this you are looking into the bowl
+    SIDE_ON_PITCH: 74,     // by here it is fully side-on and the field is hidden
+    // Measured: from 50 m outside the east wall at pitch 79, the map centre is
+    // still 124 m from the field centre. So 130 counted that as "inside" and the
+    // gate did nothing. The bowl's own half-length is ~55 m, so anything past 70
+    // is outside the structure and cannot be looking in over the rim.
+    NEAR_M: 70,
+    FADE_M: 30,
+  };
+
+  function watchFieldVisibility(map, corners) {
+    // Field centre from the four baked corners (NW, NE, SE, SW).
+    const cx = corners.reduce((s, c) => s + c[0], 0) / corners.length;
+    const cy = corners.reduce((s, c) => s + c[1], 0) / corners.length;
+    const kx = 111320 * Math.cos(cy * Math.PI / 180);
+    let last = null;
+
+    const update = () => {
+      if (!map.getLayer('stadium-field')) return;
+      const c = map.getCenter();
+      const pitch = map.getPitch() || 0;
+      const d = Math.hypot((c.lng - cx) * kx, (c.lat - cy) * 111320);
+
+      // 1 when tilted down into the bowl, 0 when side-on.
+      const byPitch = 1 - Math.min(1, Math.max(0,
+        (pitch - FIELD_VIS.LOOK_DOWN_PITCH) /
+        (FIELD_VIS.SIDE_ON_PITCH - FIELD_VIS.LOOK_DOWN_PITCH)));
+      // 1 when the view is centred on the field, falling off outside it.
+      const byNear = 1 - Math.min(1, Math.max(0,
+        (d - FIELD_VIS.NEAR_M) / FIELD_VIS.FADE_M));
+      const t = Math.max(byPitch, byNear);
+
+      if (last != null && Math.abs(t - last) < 0.02) return;
+      last = t;
+      try { map.setPaintProperty('stadium-field', 'raster-opacity', t); } catch (e) {}
+    };
+    map.on('move', update);
+    map.on('pitch', update);
+    update();
+  }
+
   const NO_PARTS = ['!', ['has', 'has_parts']];
   const CAP_MIN_HEIGHT = 2.5; // sheds don't get a parapet cap
 
@@ -273,10 +384,11 @@
   const capLift    = h => ['max', 1.0, ['*', 0.015, h]];       // the same rule, as an expression
   const capHeight  = h => ['+', h, capLift(h)];
   const capBase    = h => h;
-  // Exported because diff-tour.js overrides these same two properties while it
-  // tweens a building's height and then has to restore them. It used to carry
-  // its own copy of the `+0.4 / -1.2` literals in three places, so the geometry
-  // rule lived in two files and could silently diverge.
+  // Exported so anything that tweens a building's height can restore the cap
+  // rule rather than carrying its own copy of the literals — which is how the
+  // geometry rule once lived in two files and silently diverged. Its original
+  // consumer, the diff tour, was removed with the snapshot feature; the export
+  // stays because the rule belongs in one place either way.
   window.CAP_GEOM = { liftFor: capLiftNum, height: capHeight, base: capBase, minHeight: CAP_MIN_HEIGHT };
 
   function facadePaint(heightExpr, baseExpr) {
@@ -291,7 +403,7 @@
 
   window.addBuildingLayers = function addBuildingLayers(sc) {
     if (!map.getSource('austin-buildings')) {
-      map.addSource('austin-buildings', { type:'geojson', data: sc.buildings });
+      map.addSource('austin-buildings', { type:'geojson', data: sc.buildings, ...window.PATTERN_TILING });
     }
     // Contact shadows (ambient occlusion, near enough). A blurred dark line ON
     // the footprint outline puts half its width inside the building — where the
@@ -713,10 +825,25 @@
         }
       }
 
-      // THE FIELD, before anything else, so every stadium layer added after it
-      // draws on top and hides it exactly the way the real grandstand does.
-      // This replaced a symbol layer that rendered TEXAS and the Longhorn
-      // straight through the building from outside.
+      // THE FIELD. Added before every other stadium layer, on the theory that
+      // whatever is drawn after it paints over it the way the real grandstand
+      // does. That is true of the 3D layers among themselves and it is NOT true
+      // here, because this is a `raster` layer and a raster does not depth-test
+      // against fill-extrusion — same reason the symbol layer it replaced drew
+      // TEXAS through the building.
+      //
+      // Reported: "when looking at DKR from top right looking down left the
+      // whole field bleeds through the wall and i can see just the field with
+      // the orange endzones through the walls." Reproduced from 50 m out at
+      // pitch 79: the end zone, the yard numbers and the turf paint as a
+      // horizontal band straight across the base of the stadium, over the
+      // buildings in front of it.
+      //
+      // Layer order cannot fix it and neither can any raster paint property. So
+      // the field is drawn only when you could actually SEE it: from inside the
+      // bowl's footprint, or from above the rim looking down. Outside and below,
+      // there is 63 m of grandstand between you and the turf, and the honest
+      // render is nothing.
       if (gj.fieldCorners && !map.getSource('austin-field')) {
         map.addSource('austin-field', {
           type: 'image', url: fieldImage(), coordinates: gj.fieldCorners,
@@ -726,6 +853,7 @@
           paint:{ 'raster-opacity':1, 'raster-fade-duration':0,
                   'raster-resampling':'linear' },
         }, anchor);
+        watchFieldVisibility(map, gj.fieldCorners);
       }
 
       // The perimeter wall. Same facade paint as every other building, so it
@@ -812,7 +940,7 @@
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──
   function addDetailLayers(sc) {
     if (!map.getSource('austin-parts')) {
-      map.addSource('austin-parts', { type:'geojson', data: sc.parts });
+      map.addSource('austin-parts', { type:'geojson', data: sc.parts, ...window.PATTERN_TILING });
     }
     if (!map.getLayer('parts-3d')) {
       map.addLayer({
@@ -881,32 +1009,49 @@
   // Secondary tier: real OSM building names, held back until you're low
   // enough that they're context rather than clutter. Taller buildings win
   // placement so the skyline reads first.
+  // THREE TIERS, not one layer. A symbol layer's minzoom is a single number, and
+  // MapLibre will not take ['zoom'] inside a data filter, so "label big things
+  // from far away and small things only up close" has to be three layers over one
+  // source, split on the `lt` tier stamped at load. They share every other
+  // property, so the look is identical — only the distance at which a name is
+  // allowed to appear changes.
+  //
+  //   tier 0  >= 45 m   the Tower, Dobie, the downtown towers   from z15.8
+  //   tier 1  22-45 m   most of campus                          from z16.7
+  //   tier 2  12-22 m   halls, annexes, small blocks            from z17.8
+  const LABEL_TIERS = [
+    { id: 'buildings-labels',       lt: 0, minzoom: 15.8, fade: [15.9, 17.0] },
+    { id: 'buildings-labels-mid',   lt: 1, minzoom: 16.7, fade: [16.8, 17.5] },
+    { id: 'buildings-labels-minor', lt: 2, minzoom: 17.8, fade: [17.9, 18.4] },
+  ];
+
   function addLabelLayers() {
     if (map.getLayer('buildings-labels')) return;
-    map.addLayer({
-      id:'buildings-labels', type:'symbol',
-      source:'austin-buildings',
-      // Held back until you descend BELOW the spawn zoom (16.5): at spawn the
-      // curated signs carry the identity, and the old 16.4 start meant dozens
-      // of 10–40%-opacity ghost labels smudging the hero frame.
-      minzoom:16.7, filter:['==',['get','lbl'],1],
-      layout:{
-        'text-field':['get','name'],
-        // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
-        // server — a missing fontstack 404s and MapLibre discards the whole
-        // tile it was needed for.
-        'text-font':['Noto Sans Regular'],
-        'text-size':['interpolate',['linear'],['zoom'],16.7,10,18,12,19.5,14],
-        'text-anchor':'center', 'text-offset':[0,-0.6],
-        'text-max-width':7, 'text-padding':9,
-        'text-allow-overlap':false,
-        'symbol-sort-key':['-', 0, ['get','final_height']],
-      },
-      paint:{
-        'text-color':'#f3e6cd','text-halo-color':'rgba(24,14,5,0.9)','text-halo-width':1.3,
-        'text-opacity':['interpolate',['linear'],['zoom'],16.8,0,17.5,0.82],
-      },
-    });
+    for (const t of LABEL_TIERS) {
+      map.addLayer({
+        id: t.id, type:'symbol',
+        source:'austin-buildings',
+        minzoom: t.minzoom,
+        filter:['all', ['==',['get','lbl'],1], ['==',['get','lt'], t.lt]],
+        layout:{
+          'text-field':['get','name'],
+          // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
+          // server — a missing fontstack 404s and MapLibre discards the whole
+          // tile it was needed for.
+          'text-font':['Noto Sans Regular'],
+          'text-size':['interpolate',['linear'],['zoom'],
+                       t.minzoom, 10, t.minzoom + 1.3, 12, t.minzoom + 2.8, 14],
+          'text-anchor':'center', 'text-offset':[0,-0.6],
+          'text-max-width':7, 'text-padding':9,
+          'text-allow-overlap':false,
+          'symbol-sort-key':['-', 0, ['get','final_height']],
+        },
+        paint:{
+          'text-color':'#f3e6cd','text-halo-color':'rgba(24,14,5,0.9)','text-halo-width':1.3,
+          'text-opacity':['interpolate',['linear'],['zoom'], t.fade[0], 0, t.fade[1], 0.82],
+        },
+      });
+    }
   }
 
   // ── Cinematic intro ───────────────────────────────────────────────
@@ -1178,31 +1323,12 @@
     });
   }
 
-  // ── Date change ───────────────────────────────────────────────────
-  async function onDateChanged(newDate) {
-    const prev = activeDate; activeDate = newDate;
-    const el = document.getElementById('hud-snapshot');
-    if (el) el.textContent = `Data snapshot: ${newDate}`;
-    if (prev !== newDate) {
-      scene = await loadScene(newDate);
-      if (typeof updateFacades === 'function') updateFacades(map, window.__todCurrentP ?? DEFAULT_P);
-      const bs = map.getSource('austin-buildings'); if (bs) bs.setData(scene.buildings);
-      const ps = map.getSource('austin-parts');     if (ps) ps.setData(scene.parts);
-      if (typeof initShadows === 'function') initShadows(map, scene.buildings.features, window.__todCurrentP ?? DEFAULT_P);
-      if (typeof window.__flyRebuildCollision === 'function') window.__flyRebuildCollision(scene);
-    }
-    if (!manifest || !prev || prev === newDate) return;
-    const diff = (manifest.diffs||[]).find(d => {
-      const f = typeof d === 'string' ? d : d.file || '';
-      return f.includes(`${prev}_to_${newDate}`) || f.includes(`${newDate}_to_${prev}`);
-    });
-    if (diff) {
-      const f = typeof diff === 'string' ? diff : diff.file || '';
-      const from = f.match(/(\d{4}-\d{2}-\d{2})_to_/)?.[1];
-      const to   = f.match(/_to_(\d{4}-\d{2}-\d{2})/)?.[1];
-      if (from && to && typeof initDiffTour === 'function') initDiffTour(map, manifest, from, to);
-    }
-  }
+  // The snapshot switcher and the "what changed" diff tour used to live here.
+  // Simeon: "get rid of the snapshot feature, we'll just do the latest one,
+  // snapshot feature is useless." The BAKE still writes into a dated folder and
+  // data/manifest.json still records it — that is how the data pipeline works and
+  // it is untouched. The client simply always loads `manifest.latest`, which boot
+  // was already doing; only the UI that let you pick a different one is gone.
 
   // ── Debug toggle ──────────────────────────────────────────────────
   function wireDebugToggle() {
