@@ -45,6 +45,29 @@
     GLOW: 'rgba(245,166,35,.30)',
   };
 
+  // ── The skyline's landmarks ─────────────────────────────────────────
+  //
+  // Reported: "replace the generic building silhouettes with iconic ones: the
+  // Capitol, the UT Tower, etc." Three of the fifteen bars are now shaped, and
+  // they are the three the stage order already puts in the right places: the
+  // buildings stage becomes the UT Tower, the capitol stage becomes the Capitol,
+  // and the outer-ring stage — the rest of Austin — becomes downtown's crown.
+  //
+  // THESE SHAPES ARE AUTHORED, NOT SOURCED. The repo does carry real footprints
+  // and real heights for all three, but a footprint is a plan and this is an
+  // elevation: nothing in data/ describes the Tower's setbacks or the Capitol's
+  // dome in the vertical, and bake_tower.py builds its massing from stacked
+  // rings rather than a profile. So these are drawn by hand to read at 40 px
+  // wide, and they are labelled as drawn rather than dressed up as data.
+  //
+  // The height each shape needs to be legible is its own, and overrides the
+  // stage's skyline height — a dome on a 52%-tall bar is a bump.
+  const SHAPES = {
+    buildings: { shape: 'ut-tower', h: 0.98 },
+    capitol:   { shape: 'capitol',  h: 0.62 },
+    outer:     { shape: 'frost',    h: 0.90 },
+  };
+
   // The stages, in the order app.js runs them, with the share of the wait each
   // one owns. The weights are not guesses: they are the measured split, and the
   // three that dominate are the three with the most features — trees and props
@@ -116,13 +139,18 @@
     for (let i = 0; i < STAGES.length; i++) {
       const b = document.createElement('div');
       b.className = 'vl-bar';
-      b.style.setProperty('--h', (STAGES[i][2] * 100).toFixed(1) + '%');
+      const land = SHAPES[STAGES[i][0]];
+      if (land) b.dataset.shape = land.shape;
+      b.style.setProperty('--h', ((land ? land.h : STAGES[i][2]) * 100).toFixed(1) + '%');
       // Two staggers. --i paces when this building lights up, spread across the
       // real wait; --d offsets its window shimmer so the skyline never pulses in
       // unison. Both are consumed by CSS animations, never by JS.
       b.style.setProperty('--i', i);
       b.style.setProperty('--d', (i * 0.13).toFixed(2) + 's');
-      const rows = Math.max(2, Math.round(STAGES[i][2] * L.LIT_ROWS));
+      // A grid of lit windows across a dome or a spire reads as a mistake, so
+      // the shaped bars carry fewer and the CSS insets them further.
+      const rows = land ? Math.max(2, Math.round(L.LIT_ROWS * 0.5))
+                        : Math.max(2, Math.round(STAGES[i][2] * L.LIT_ROWS));
       let win = '';
       for (let r = 0; r < rows; r++) win += '<i></i><i></i>';
       b.innerHTML = '<u></u><s>' + win + '</s>';
@@ -132,6 +160,7 @@
     fill = el.querySelector('#vl-fill');
     status = el.querySelector('#vl-status');
     pct = el.querySelector('#vl-pct');
+    startBootFloor();
     return true;
   }
 
@@ -153,27 +182,179 @@
   // COMPOSITOR, so it keeps gliding through exactly the multi-second main-thread
   // blocks that would freeze anything driven from JS. It never reaches 100%:
   // only loaderDone(), on the real first frame, does that.
-  const STAGE_SHARE = 0.34;
+  const STAGE_SHARE = 0.30;
   const CREEP_TO = 0.97, CREEP_MS = 7600;   // ~= INTRO.maxVeilMs in app.js
 
-  function paint() {
-    const f = Math.min(1, done / TOTAL) * STAGE_SHARE;
-    // Two style writes per stage. That is the entire per-frame JS cost of this
-    // screen, and it is why it keeps animating while the thread is buried.
-    if (fill) fill.style.transform = 'scaleX(' + f.toFixed(4) + ')';
+  // ── The tail, which used to be a lie ────────────────────────────────
+  //
+  // Reported: "The progress bar jumps from 7% to almost-done." Both numbers are
+  // exactly what the code above produces. `boot` is weighted 22 of 100 and every
+  // stage is capped at STAGE_SHARE, so the bar sits at 22 * 0.30 = 6.6% for the
+  // ~1.7 s of fetch and parse — that is the 7%. Then all fourteen remaining
+  // stages fire inside 276 ms, which takes it to 30% in a quarter of a second,
+  // and the last 70% was a timed CSS creep with no connection to anything.
+  //
+  // The tail is not idle time: it is MapLibre tiling and rasterising ~22 MB of
+  // GeoJSON across 22 sources. That HAS a real signal — each source reports
+  // isSourceLoaded() when its worker is done — and counting them is what the
+  // rail rides now.
+  //
+  // The floor stays, because it has a job the signal cannot do. While the main
+  // thread is buried, no event fires and no JS runs, so a purely event-driven
+  // rail freezes for seconds at a time and reads as a crashed page. The floor is
+  // a compositor-side transform that keeps gliding through those blocks. It is
+  // strictly a FLOOR: the moment a real reading is higher, the real reading
+  // wins, and the floor is capped below 100 so only loaderDone() can finish.
+  //
+  // These are the app's own sources. A source that never appears (a pass module
+  // disabled, a snapshot without the stadium) must not stall the bar, so the
+  // denominator counts sources that have been ADDED, and `expected` is only a
+  // floor under that count — an unknown source is progress, not a hang.
+  const SOURCES_EXPECTED = 22;
+  let srcSeen = new Set(), srcDone = new Set(), tailFrac = 0, finished = false;
+  // Where the compositor floor is currently gliding to. The real readings and
+  // the floor are two writers on one style property and the LAST WRITE WINS, so
+  // they have to cooperate rather than race: measured, every stage boundary was
+  // overwriting the long floor transition with its own 420 ms one, which pinned
+  // the rail at 30% for the whole tail and read exactly like the bug being
+  // fixed. A real reading now only takes the wheel when it is actually ahead of
+  // where the floor is going.
+  let floorTarget = 0;
+
+  function tailProgress() {
+    if (!srcSeen.size) return 0;
+    const denom = Math.max(SOURCES_EXPECTED, srcSeen.size);
+    return Math.min(1, srcDone.size / denom);
+  }
+
+  /**
+   * Where the rail is on screen RIGHT NOW, read off the compositor.
+   *
+   * This matters because the floor below is a CSS transition: the element's
+   * transform is its TARGET, not its current position, and comparing a real
+   * reading against the target would let a slow real reading pull the bar
+   * BACKWARDS mid-glide.
+   */
+  function shown() {
+    if (!fill) return 0;
+    try { return new DOMMatrixReadOnly(getComputedStyle(fill).transform).a; } catch (e) { return 0; }
+  }
+
+  // Debug/test hook, the same shape as window.__ae and window.__fly. The rail is
+  // a compositor transition, so SAMPLING it from the page cannot distinguish a
+  // smooth glide from a jump — the sampler shares the blocked main thread and
+  // gets ~13 readings across an 18 s load. What can be judged is every write:
+  // its target, how long it was given, and who made it.
+  window.__railWrites = [];
+  function note(kind, f, ms) {
+    try { window.__railWrites.push({ kind: kind, to: +f.toFixed(4), ms: ms, t: Math.round(performance.now()) }); } catch (e) {}
+  }
+
+  /** Move the rail to `f`, but never backwards. */
+  function railTo(f, ms, ease) {
+    if (!fill || finished) return;
+    if (f <= shown() + 0.0005) return;
+    note('real', f, ms);
+    fill.style.transitionDuration = ms + 'ms';
+    fill.style.transitionTimingFunction = ease || 'cubic-bezier(.16,1,.3,1)';
+    fill.style.transform = 'scaleX(' + f.toFixed(4) + ')';
     if (pct) pct.textContent = Math.round(f * 100) + '%';
+  }
+
+  /**
+   * THE FLOOR — and why it is a CSS transition and not a timer.
+   *
+   * The first attempt at fixing the jump drove the tail from setTimeout. It
+   * made things worse in the most instructive way: the trace showed the rail at
+   * 7%, 7%, then 39%, because the main thread is blocked for the entire tail and
+   * a timer on a blocked thread does not tick. That is precisely what this
+   * file's header has said since it was written. A single long CSS transition is
+   * handed to the COMPOSITOR, which has its own thread and keeps gliding through
+   * multi-second blocks — it is the only thing here that can.
+   *
+   * So the floor is a guarantee of motion, and the real readings below override
+   * it whenever the thread is free enough to produce one.
+   */
+  function floorTo(f, ms) {
+    if (!fill || finished) return;
+    floorTarget = Math.max(floorTarget, f);
+    note('floor', f, ms);
+    fill.style.transitionDuration = ms + 'ms';
+    fill.style.transitionTimingFunction = 'cubic-bezier(.12,.7,.25,1)';
+    fill.style.transform = 'scaleX(' + f.toFixed(4) + ')';
+  }
+
+  function paint() {
+    if (finished) return;
+    const stageF = Math.min(1, done / TOTAL) * STAGE_SHARE;
+    const real = stageF + tailFrac * (CREEP_TO - STAGE_SHARE);
+    // Only overtake the floor, never interrupt it. See floorTarget above.
+    if (real > floorTarget) railTo(real, 420);
+    else if (pct) pct.textContent = Math.round(Math.max(real, shown()) * 100) + '%';
+  }
+
+  /**
+   * Subscribe to the real thing. `sourcedata` fires per source per tile batch,
+   * and isSourceLoaded is the honest per-source "done" — it is what the shot
+   * scripts already wait on.
+   *
+   * HONEST LIMIT, measured: during the tail the main thread is saturated, so
+   * these handlers do not get to run and the readings arrive in a lump near the
+   * end rather than smoothly. The signal is real when it lands; the floor is
+   * what carries the bar in between. There is no third option on one thread.
+   */
+  window.loaderWatch = function loaderWatch(map) {
+    if (!map || !map.on) return;
+    const scan = () => {
+      if (finished) return;
+      let changed = false;
+      const srcs = (map.getStyle && map.getStyle().sources) || {};
+      for (const id of Object.keys(srcs)) {
+        if (!id.startsWith('austin')) continue;      // the basemap is not our wait
+        if (!srcSeen.has(id)) { srcSeen.add(id); changed = true; }
+        if (!srcDone.has(id)) {
+          let ok = false;
+          try { ok = map.isSourceLoaded(id); } catch (e) {}
+          if (ok) { srcDone.add(id); changed = true; }
+        }
+      }
+      if (changed) { tailFrac = tailProgress(); paint(); updateTailStatus(); }
+    };
+    map.on('sourcedata', scan);
+    map.on('idle', scan);
+    scan();
+    // buildScene() has handed everything over by the time app.js calls this, so
+    // this — not "all fifteen stage names have fired" — is when the named build
+    // is genuinely done. Gating the tail floor on the stage COUNT was wrong: a
+    // pass module that is disabled, or a stage renamed, leaves idx short forever
+    // and the floor never starts. Measured: the rail stopped at 30% and stayed.
+    settle();
+  };
+
+  // What the tail is actually doing, in words. Without this the status line read
+  // "Drawing the first frame" for seven seconds, which is the same
+  // non-information the old bar carried.
+  function updateTailStatus() {
+    if (!status || idx < STAGES.length) return;
+    const n = srcDone.size, d = Math.max(SOURCES_EXPECTED, srcSeen.size);
+    status.textContent = n >= d ? 'Drawing the first frame'
+                                : 'Tiling the city — ' + n + ' of ' + d + ' layers ready';
+  }
+
+  // The bar used to sit at 7% for the ~1.7 s of fetch and parse before
+  // buildScene() runs, because `boot` is the only stage that has fired by then.
+  // Nothing is measurable in that window — it is one long parse — so the floor
+  // starts immediately and covers it. Motion from the first paint.
+  function startBootFloor() {
+    setTimeout(() => floorTo(STAGE_SHARE * 0.9, 2400), 60);
   }
 
   function settle() {
     if (!fill) return;
-    if (status) status.textContent = 'Drawing the first frame';
-    fill.style.transitionDuration = CREEP_MS + 'ms';
-    fill.style.transitionTimingFunction = 'cubic-bezier(.12,.7,.25,1)';
-    fill.style.transform = 'scaleX(' + CREEP_TO + ')';
-    // The number cannot ride the compositor, so it stops counting rather than
-    // pretending to: a digit frozen mid-count reads as a hang, an ellipsis does
-    // not.
-    if (pct) pct.textContent = 'ALMOST';
+    updateTailStatus();
+    // Stop short of CREEP_TO so a real reading still has somewhere to go, and
+    // so only loaderDone() can finish the bar.
+    floorTo(STAGE_SHARE + (CREEP_TO - STAGE_SHARE) * 0.88, CREEP_MS);
   }
 
   /** Called by app.js at each stage boundary. Unknown names are ignored. */
@@ -201,11 +382,14 @@
     idx = STAGES.length;
     done = TOTAL;
     if (status) status.textContent = 'Welcome to Austin';
+    floorTarget = 1;
+    note('done', 1, 420);
     if (fill) {
       fill.style.transitionDuration = '420ms';
       fill.style.transitionTimingFunction = 'cubic-bezier(.16,1,.3,1)';
       fill.style.transform = 'scaleX(1)';
     }
+    finished = true;
     if (pct) pct.textContent = '100%';
     if (el) el.classList.add('vl-done');
   };
