@@ -1518,3 +1518,33 @@ Gregory Gym and the Union Building to fix a bug they did not have) and
 **Non-bug, do not chase:** `js/graphics.js` does NOT call the broken
 `transform.horizonLineFromTop()`. It reads `F.horizonPx` from `window.skyFrame`,
 built by `js/sky.js:166-171` from the correct closed form.
+
+### Acer overnight, part 2 — PR #33
+
+Finished the rest of Simeon's list. Four more rules worth carrying:
+
+5. **A DOM overlay cannot be depth-aware.** `#fx-dof`, the sun disc and the old
+   haze band are all viewport rectangles composited over the finished frame, so
+   any hard edge in one reads as a line drawn *over* the city. Feather them or
+   accept the line; there is no z-order that fixes it.
+
+6. **`window.__fly.eye()` does not resync after a `jumpTo`.** It is maintained by
+   the flight controller's own loop. Correct in normal flight, stale in any
+   scripted pose — two poses probed back to back both returned the previous
+   camera even after a 4.5 s settle. `map.getFreeCameraOptions()` is worse: it is
+   a MAPBOX api and MapLibre 5.24 does not have it, so inside a try/catch it
+   throws every frame and the catch silently swallows the whole feature.
+
+7. **Check the numbers before deleting geometry.** The first roof fix deleted 274
+   pitched facets; 222 of them were correct and it would have flattened Gregory
+   Gym and the Union Building to fix a bug they did not have.
+
+8. **"Authored top" is the wrong anchor on anything with a mast or a peak.**
+   Naively it wants to lift DKR's roof deck 81 m onto a floodlight and Moody's
+   19 m onto the arena ridge. `scripts/reseat_authored_roofs.py` refuses both and
+   prints why.
+
+Also: `js/outer.js`'s low-rise half masses into a featureless brown plane above
+~80 degrees of pitch and is now faded out there. That was pre-existing and was
+only reachable after the pitch ceiling went to 90 — verified by reverting the
+tiling change and rendering an identical frame.
