@@ -114,11 +114,6 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
   mix-blend-mode:screen;will-change:transform,opacity;border-radius:50%}
 #sky-core{border-radius:50%}
 
-/* Aerial-perspective band pinned to the horizon (js/atmosphere.js). MapLibre's
-   own sky fog never reaches the ground, so this is what gives the scene depth
-   and hides the straight edge where the building data stops. */
-#haze{position:absolute;left:0;right:0;top:0;height:26%;z-index:4;pointer-events:none;opacity:0}
-
 /* ── Post-process stack (js/graphics.js) ──────────────────────────────
    The z-order IS the post-processing order. Distance blur reads the raw
    geometry, so it sits under the sky; bloom has to see the sky and the god
