@@ -8,6 +8,22 @@ Ordered by value. Take from the top.
 
 ---
 
+## 0. DONE, not queued — the two biggest files were downloaded twice
+
+Kept here because it is the measurement that reframed item 1, not because there
+is work left. PR #35. `js/capitol.js` appended the Capitol's features with
+`setData`, which replaces a source wholesale, so 612 Capitol trees re-fetched all
+25,341 of the city's and 1,802 ground features re-fetched all of
+`ground.geojson`. **38.36 MB → 28.41 MB, 25.9% of a first-time visitor's
+download, on the wire twice.** `updateData({ add })` appends a diff instead.
+
+The cache does not save you and this is the part worth remembering: the two
+requests **overlap in flight**, so there is nothing cached yet to serve the
+second from. Verified against GitHub Pages' own `max-age=600` — the duplicates
+still report *0 from cache*. An in-flight duplicate is never cacheable.
+
+---
+
 ## 1. Vector tiles — add detail without making the site slower
 
 **Why.** A visitor to the site downloads **26.4 MB across 26 files** (3.8 MB
@@ -32,38 +48,76 @@ it). It writes `data/snapshots/<date>/austin.pmtiles` — 0.61 MB against the
 **Nothing in `js/` or `index.html` references that file.** The pipeline has been
 producing it, and CI has been spending build minutes on it, for weeks.
 
-**What.**
+**THIS IS NOT THE ONE-EVENING JOB THE ABOVE MAKES IT SOUND LIKE.** That was the
+first draft of this entry, written from file sizes before reading the load path.
+Reading it turned up three blockers. They are all solvable; none of them is
+solvable quickly, and a lane that starts by adding a `pmtiles://` URL will get a
+grey city and not understand why.
 
-1. **Wire up what exists.** Add the `pmtiles` protocol shim (`index.html`
-   already loads MapLibre from unpkg, so a second unpkg tag is consistent with
-   how this repo does dependencies — do not invent a vendoring scheme for one
-   file). Register the protocol before `map` is constructed, and point
-   `austin-buildings` at `pmtiles://data/snapshots/<date>/austin.pmtiles` with
-   `source-layer: 'buildings'`.
-2. **Check the properties survived.** Tippecanoe drops or renames nothing by
-   default here, but `bake_detail.py` writes `pid`, `final_height`, `base`,
-   `lt`, and the facade keys, and every one of those is read by an expression in
-   a paint property. A missing key fails *silently* as a default colour, so
-   assert a few named buildings by pixel before believing it.
-3. **Then tile `trees.geojson`.** It is 9.13 MB — the largest single file by 2.5×
-   and more than a third of the payload. It is also 25,341 fill-extrusion
-   features with `base`/`h`, which is exactly the shape tiling is good at.
-   Extend `tile.sh` with a second invocation rather than writing a new script.
-4. **Then the next four**: `roads` 3.70 MB, `outer_ring` 2.59 MB,
-   `roofscape.detail` 2.27 MB, `props` 2.19 MB. Together with trees that is
-   20 MB of the 26 MB.
+**Blocker 1 — the app enriches the whole city in the browser, all at once.**
+`loadScene()` in `js/app.js` fetches the entire building collection and then runs
+passes over it that need to see every feature simultaneously:
 
-**Watch for.** `window.PATTERN_TILING` caps every patterned GeoJSON source at
-`maxzoom: 16` — that is the fix for the city-wide motion flicker and it must not
-be lost in the move. `tile.sh` already writes `--maximum-zoom=16`, so the cap
-comes baked into the archive, but **verify the flicker has not returned** with
-`scripts/verify/shimmer.mjs` before and after. `zfight.mjs` cannot see this class
-of defect; it gates on a flat 3×3 neighbourhood and is structurally blind to
-texture crawl.
+- `quantiseFacades()` (`js/facades.js`) clusters window colours across all ~3,000
+  buildings and keeps the **14 most populous** tones, plus a protected list. Per
+  tile this is incoherent: a tile of West Campus and a tile of downtown would
+  each elect their own 14, and the shared atlas would no longer match the
+  geometry. This is the hard one.
+- `mergeCapitolScene()` splices in 604 Capitol buildings and 13 parts, and
+  patches 12 existing ones from `capitol_overrides.json`.
+- `applyUnion24()` rewrites Union on 24th's footprint to cut its courtyard.
+- The label pass stamps `lbl` and `lt` after de-duplicating names against
+  `signs.json` — a global comparison.
 
-**Measure it honestly.** Record total bytes fetched at load before and after,
-from the network panel, not from file sizes on disk. The win is only real if the
-*visitor* stops downloading it.
+All of it has to move into the Python bake, *before* tippecanoe. That is the
+actual project. Do it as its own change with the JS pass still in place and
+assert the two agree feature-for-feature, then delete the JS pass. Do not do
+both halves in one PR.
+
+**Blocker 2 — tippecanoe is not installed on the Acer.** The archive is only
+ever built in CI (`build-data.yml` compiles it from source). Nobody can iterate
+on tiling settings locally until that changes.
+
+**Blocker 3 — trees looked like the easy first target and are not, quite.**
+`js/capitol.js` appends 612 Capitol trees to `austin-trees` at runtime. That now
+uses `updateData`, which is a **GeoJSON-source API** — it does not exist on a
+vector-tile source. Capitol trees would need either their own source and a
+duplicated layer pair, or to be baked into the tree tiles upstream.
+
+**So the order is:**
+
+1. Install tippecanoe on at least one machine, or add a `workflow_dispatch` job
+   that builds an archive from a branch so tiling settings can be iterated at all.
+2. Port the enrichment to Python and prove parity with the JS pass. Biggest step
+   by far; probably several PRs.
+3. Tile `trees.geojson` first — 9.13 MB, the largest single file, 25,341
+   fill-extrusion features with `base`/`h`, and the only client-side dependency
+   is the Capitol append above.
+4. Then buildings, using the archive `tile.sh` already produces.
+5. Then `roads` 3.70 MB, `outer_ring` 2.59 MB, `roofscape.detail` 2.27 MB,
+   `props` 2.19 MB.
+
+**Watch for.**
+
+- `window.PATTERN_TILING` caps every patterned GeoJSON source at `maxzoom: 16`.
+  That is the fix for the city-wide motion flicker and it must not be lost.
+  `tile.sh` already writes `--maximum-zoom=16` so the cap bakes into the archive,
+  but **verify with `scripts/verify/shimmer.mjs` before and after.** `zfight.mjs`
+  cannot see this class of defect — it gates on a flat 3×3 neighbourhood and is
+  structurally blind to texture crawl.
+- **Tippecanoe simplifies geometry at low zooms by default.** That is a visual
+  quality change, not a delivery change, and it is the one thing here that could
+  make the city look worse. `--no-simplification-of-shared-nodes` and an explicit
+  `--simplification` are the knobs; pin them and take a before/after screenshot at
+  altitude before believing it is neutral.
+- Property loss is **silent** — a missing key renders as a default colour, not an
+  error. `bake_detail.py` writes `pid`, `final_height`, `base`, `lt` and the
+  facade keys, all read by paint expressions. Assert named buildings by pixel.
+
+**Measure with `scripts/verify/payload.mjs`**, and read its header first: two
+earlier hand-rolled versions of that measurement were wrong in opposite
+directions. File sizes on disk are not the payload, and content-length is not the
+wire.
 
 ---
 
