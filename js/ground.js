@@ -695,7 +695,7 @@
     // generateId is what makes the per-feature jitter possible: without it
     // ['id'] is null for every feature and 4,900 areas stay 14 exact hexes.
     // Nothing in the app puts feature-state on this source, so it is free.
-    map.addSource(SRC, { type: 'geojson', data: 'data/ground.geojson', generateId: true });
+    map.addSource(SRC, { type: 'geojson', data: 'data/ground.geojson', generateId: true, ...(window.PATTERN_TILING || {}) });
     // Roads are their own source: they come from a different bbox (the outer
     // ring, so arterials do not end in mid-frame), they want a lower minzoom
     // than the ground fill, and keeping them separate means GROUND.roads=false

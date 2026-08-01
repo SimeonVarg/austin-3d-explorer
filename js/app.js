@@ -241,6 +241,37 @@
   // Buildings whose volume is replaced by OSM building:parts carry
   // has_parts=1 and are excluded from the base layers; parts-* render the
   // detailed massing (podium + tower setbacks) instead.
+  // ── Why every patterned source is capped at maxzoom 16 ────────────
+  //
+  // Reported as "glitchy whenever I move", city-wide, worse at night, unrelated
+  // to the day cycle. A screen recording settled it in two frames: the same wall,
+  // one frame a clean regular grid of lit windows, the next frame that same grid
+  // PLUS a superimposed torn copy of itself at a narrower, squeezed scale. Not
+  // shimmer — two patterns at two different scales composited into one wall.
+  // In his words, "most of the vision is a blur between the states".
+  //
+  // That is what `*-pattern` does by design. MapLibre anchors it to the TILE, not
+  // to the world, so its size in metres is a function of the tile's zoom
+  // (measured: a 64 px repeat covers ~33 m at z16, ~16.5 at z17, ~8.2 at z18),
+  // and it CROSS-FADES between adjacent zoom levels while both are on screen.
+  // While the camera moves, tiles are constantly being served, replaced and
+  // over-zoomed, so a given wall keeps changing which tile zoom it is drawn from
+  // — and every one of those changes drags the window grid through a blend
+  // between two different scales. Stationary, nothing changes and it looks fine,
+  // which is exactly the reported behaviour.
+  //
+  // Capping the source's own maxzoom fixes it at the root. Above the cap every
+  // tile is an OVERSCALE of one level, so the pattern's size in tile units — and
+  // therefore in metres — stops changing, there is no adjacent level to fade to,
+  // and the window grid becomes world-locked the way it always should have been.
+  // 16 is the cap because a z16 tile is ~611 m at this latitude, which keeps
+  // geometry precision at 611/4096 = 0.15 m, far finer than any wall detail here.
+  //
+  // The same trick, for the same underlying reason, already fixed the lid over
+  // DKR's bowl (geojson-vt dropping a hole when a tile fell entirely inside it).
+  // Both are "the tile grid is not the world" bugs.
+  window.PATTERN_TILING = { maxzoom: 16, tolerance: 0.5, buffer: 128 };
+
   const NO_PARTS = ['!', ['has', 'has_parts']];
   const CAP_MIN_HEIGHT = 2.5; // sheds don't get a parapet cap
 
@@ -282,7 +313,7 @@
 
   window.addBuildingLayers = function addBuildingLayers(sc) {
     if (!map.getSource('austin-buildings')) {
-      map.addSource('austin-buildings', { type:'geojson', data: sc.buildings });
+      map.addSource('austin-buildings', { type:'geojson', data: sc.buildings, ...window.PATTERN_TILING });
     }
     // Contact shadows (ambient occlusion, near enough). A blurred dark line ON
     // the footprint outline puts half its width inside the building — where the
@@ -803,7 +834,7 @@
   // ── Detail layers: OSM building parts, trees, pitches, fountains ──
   function addDetailLayers(sc) {
     if (!map.getSource('austin-parts')) {
-      map.addSource('austin-parts', { type:'geojson', data: sc.parts });
+      map.addSource('austin-parts', { type:'geojson', data: sc.parts, ...window.PATTERN_TILING });
     }
     if (!map.getLayer('parts-3d')) {
       map.addLayer({

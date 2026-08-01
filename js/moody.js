@@ -516,7 +516,7 @@
     setTimeout(() => hideReplaced(map), 2500);
     map.once('idle', () => hideReplaced(map));
 
-    map.addSource(SRC, { type: 'geojson', data: gj });
+    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
 
     // The anchor must be the first symbol layer AFTER our buildings, not the
     // first in the style. The basemap puts symbol layers immediately after
