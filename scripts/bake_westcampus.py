@@ -134,9 +134,41 @@ PANEL_WARM = "#b8b1a5"      # warm off-white fibre-cement: 21 Rio, Inspire
 #    deck    where the amenity deck sits: 'podium' | 'step' | 'roof' | None
 #    balc    (faces, first_floor, floors) or None. faces: 'long' | 'both'
 #    step    (fraction_of_long_axis, side, top_m) — a lower wing, or None
-#    tplan   None, or (inset_m, du, dv, rot_deg, chamfer_m): a SEPARATE tower
-#            footprint sitting on the podium, for the one building where the
-#            source polygon is the podium and not the tower.
+#    tplan   None, or (inset_m, du, dv, rot_deg, chamfer_m, HALF_OF_SIDE_m): a
+#            SEPARATE tower footprint sitting on the podium, for the one building
+#            where the source polygon is the podium and not the tower.
+#            The last element is HALF OF THE SIDE, because that is what
+#            chamfered_square() puts its corners at. It is spelled out here, and
+#            written through _half_from_diagonal() at the call site, because this
+#            doc comment used to stop at `chamfer_m` and omit the sixth element
+#            altogether — so half-of-DIAGONAL was entered where half-of-SIDE is
+#            consumed, and Dobie's tower was baked at 1.95x its true plan area
+#            for as long as the pass has existed.
+
+
+def _shp(geom):
+    """Footprint in metres for an area comparison. Local scale factors, not a
+    projection: accurate to well under 1% over West Campus and dependency-free
+    apart from shapely, which bake_outer.py and enrich.py already use."""
+    from shapely.geometry import shape
+    from shapely.ops import transform
+    g = shape(geom)
+    if not g.is_valid:
+        g = g.buffer(0)
+    kx = 111320.0 * math.cos(math.radians(30.288))
+    return transform(lambda x, y, z=None: (x * kx, y * 111320.0), g)
+
+
+def _half_from_diagonal(d):
+    """Corner-to-corner across a square -> the `half` chamfered_square() wants.
+
+    Facades are measured off a nadir tile corner to corner when the building is
+    rotated to the street grid, so the diagonal is usually the number you have.
+    Converting here keeps the unit visible at the call site.
+    """
+    return round(d / (2 * math.sqrt(2)), 2)
+
+
 BUILDINGS = {
     # ── Dobie Twenty21, 1972, J. & G. Daverman. 27-storey tower on a two-level
     # mall + garage podium. The 1990 retrofit stripped the brick and left the
@@ -145,13 +177,31 @@ BUILDINGS = {
     # The source polygon is the WHOLE BLOCK (4,998 m2, 86 x 70 m). The tower is
     # a chamfered square rotated 45 deg to the grid, ~42 m across the diagonal,
     # measured off the z20 nadir against a 10 m grid — so it gets `tplan`.
+    # That diagonal is corroborated by OSM's own building:part for the tower
+    # (way/516187626), which is 100.0% inside this footprint and is therefore a
+    # usable ground truth for the tower's plan: minimum rotated rectangle
+    # 31.15 x 31.50 m, diagonal 44.3 m, area 867 m2, edges at 39.3 deg. Both
+    # routes to `half` agree at 15.66.
+    #
+    # Two numbers here were wrong and the second was hidden by the first.
+    #   half:  21.0 was half of the DIAGONAL, so the tower baked at 42 m on a
+    #          SIDE — 1,692 m2 against a true ~880.
+    #   du/dv: (10.5, -2.0) put the tower centre 18 m east of where it is. The
+    #          true centre in this bake's own local frame (metres east/north of
+    #          the vertex-mean origin the emitter uses) is (-7.53, -0.21).
+    # Together they cantilevered 371 m2 of a 55.7 m tall band past the block
+    # edge over open pavement. The rotation was always right: the footprint's
+    # obb sits at 174.9 deg and rot=45 lands the tower at 39.9 deg against a
+    # measured 39.3. None of this needs a render to check — see the overhang
+    # assertion in main(), which is what caught the centre after the size was
+    # fixed.
     "Dobie Twenty21": dict(
         base=(6.0, "sp", MASONRY),
         podium=(3, 3.6, "dk", "#c8c2b7"),
         tower=("tg", "#5f7a80"),
         crown=(5.0, "sf", CROWN_TEAL),
         mech=4.5, deck="podium", balc=None, step=None,
-        tplan=(0.0, 10.5, -2.0, 45.0, 6.0, 21.0),
+        tplan=(0.0, -7.53, -0.21, 45.0, 6.0, _half_from_diagonal(44.3)),
         pool=(-17.0, 22.0, 11.0, 10.0),
         turf=(26.0, -2.0, 13.0, 22.0), court=(24.0, -20.0, 11.0, 8.0),
     ),
@@ -638,6 +688,7 @@ def main():
     out, replaced = [], []
     stats = Counter()
     rows = []
+    made_by_building = []
     for name, spec in BUILDINGS.items():
         f = by_name.get(name)
         if not f:
@@ -646,12 +697,41 @@ def main():
             continue
         made = build(f, spec, stats)
         out.extend(made)
+        made_by_building.append((name, f["geometry"], made))
         replaced.append(f["properties"]["id"])
         rows.append((name, f["properties"]["final_height"], len(made)))
         stats["buildings"] += 1
 
     for n, h, c in sorted(rows, key=lambda r: -r[1]):
         print("  %-26s h=%5.1f  ->  %3d features" % (n[:26], h, c))
+
+    # No authored band may hang off its own building. A `tplan` tower is the only
+    # thing here whose plan is TYPED rather than derived from the source polygon,
+    # so it is the only one that can be wrong in a way no other check catches —
+    # and it was: Dobie's tower was entered at half-of-diagonal and baked 1.95x
+    # too big, cantilevering a 55.7 m slab 10 m past the block edge over open
+    # pavement. This is arithmetic, so it runs on every bake and needs no render.
+    # 3% tolerance absorbs the chamfer and the balcony/step overhangs that are
+    # meant to project.
+    OVERHANG_MAX = 0.03
+    bad_overhang = []
+    for name, foot_geom, made in made_by_building:
+        foot = _shp(foot_geom)
+        for g in made:
+            if g["properties"].get("kind") != "wall":
+                continue          # balconies and shades are MEANT to project
+            band = _shp(g["geometry"])
+            if band.area <= 0:
+                continue
+            outside = band.difference(foot).area / band.area
+            if outside > OVERHANG_MAX:
+                bad_overhang.append(
+                    "%s wall band base=%s h=%s: %.1f%% of its plan is outside the "
+                    "building footprint" % (name, g["properties"].get("base"),
+                                            g["properties"].get("h"), outside * 100))
+    if bad_overhang:
+        raise SystemExit("bake_westcampus: refusing to write overhanging geometry:\n  "
+                         + "\n  ".join(bad_overhang))
 
     # How many NEW facade atlas images this costs. The atlas is repainted on
     # every time-of-day tick and the cost is per IMAGE, so this number is the

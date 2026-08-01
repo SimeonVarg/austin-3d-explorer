@@ -1,0 +1,11 @@
+[
+ {"name":"dobie-w",  "center":[-97.74115,30.28339], "zoom":17.0, "pitch":72, "bearing":90,  "p":0.25},
+ {"name":"dobie-n",  "center":[-97.74115,30.28339], "zoom":17.0, "pitch":72, "bearing":180, "p":0.25},
+ {"name":"dobie-far","center":[-97.74115,30.28339], "zoom":16.1, "pitch":70, "bearing":120, "p":0.25},
+ {"name":"travis",   "center":[-97.73789,30.27907], "zoom":17.2, "pitch":68, "bearing":90,  "p":0.25},
+ {"name":"church",   "center":[-97.73947,30.28139], "zoom":17.6, "pitch":68, "bearing":90,  "p":0.25},
+ {"name":"lbj",      "center":[-97.73769,30.27795], "zoom":17.2, "pitch":68, "bearing":90,  "p":0.25},
+ {"name":"hampton",  "center":[-97.74082,30.27959], "zoom":17.4, "pitch":68, "bearing":90,  "p":0.25},
+ {"name":"bush",     "center":[-97.73773,30.27995], "zoom":17.3, "pitch":70, "bearing":90,  "p":0.25},
+ {"name":"tower",    "center":[-97.73932,30.28601], "zoom":17.0, "pitch":70, "bearing":180, "p":0.25}
+]

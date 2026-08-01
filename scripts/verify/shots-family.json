@@ -1,0 +1,7 @@
+[
+ {"name":"gary",   "center":[-97.73586,30.28750], "zoom":17.3, "pitch":70, "bearing":90,  "p":0.25},
+ {"name":"bme",    "center":[-97.73841,30.28918], "zoom":17.2, "pitch":70, "bearing":270, "p":0.25},
+ {"name":"patton", "center":[-97.73400,30.28530], "zoom":17.4, "pitch":68, "bearing":180, "p":0.25},
+ {"name":"ransom", "center":[-97.74019,30.28425], "zoom":17.3, "pitch":68, "bearing":90,  "p":0.25},
+ {"name":"downtown","center":[-97.74300,30.26900],"zoom":16.0, "pitch":70, "bearing":20,  "p":0.25}
+]

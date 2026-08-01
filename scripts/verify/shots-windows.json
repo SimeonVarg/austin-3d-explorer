@@ -1,0 +1,14 @@
+[
+ {"name":"dobie-w",    "center":[-97.74115,30.28339], "zoom":17.0, "pitch":72, "bearing":90,  "p":0.25},
+ {"name":"dobie-n",    "center":[-97.74115,30.28339], "zoom":17.0, "pitch":72, "bearing":180, "p":0.25},
+ {"name":"bush",       "center":[-97.73773,30.27995], "zoom":17.3, "pitch":70, "bearing":90,  "p":0.25},
+ {"name":"waggener",   "center":[-97.73760,30.28514], "zoom":17.6, "pitch":68, "bearing":180, "p":0.25},
+ {"name":"sanjac",     "center":[-97.73434,30.28233], "zoom":17.4, "pitch":70, "bearing":270, "p":0.25},
+ {"name":"prather",    "center":[-97.73501,30.28252], "zoom":17.6, "pitch":68, "bearing":270, "p":0.25},
+ {"name":"alumni",     "center":[-97.73439,30.28440], "zoom":17.5, "pitch":68, "bearing":180, "p":0.25},
+ {"name":"dkr-north",  "center":[-97.73286,30.28396], "zoom":16.4, "pitch":68, "bearing":180, "p":0.25},
+ {"name":"gary",       "center":[-97.73586,30.28750], "zoom":17.3, "pitch":70, "bearing":90,  "p":0.25},
+ {"name":"bme-e",      "center":[-97.73841,30.28918], "zoom":17.2, "pitch":70, "bearing":270, "p":0.25},
+ {"name":"bme-s",      "center":[-97.73841,30.28918], "zoom":17.2, "pitch":70, "bearing":0,   "p":0.25},
+ {"name":"bme-far",    "center":[-97.73841,30.28918], "zoom":16.2, "pitch":66, "bearing":300, "p":0.25}
+]
