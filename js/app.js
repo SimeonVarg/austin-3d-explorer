@@ -71,10 +71,14 @@
   }
 
   async function loadScene(date) {
-    const [buildings, parts, signs] = await Promise.all([
+    const [buildings, parts, signs, extraNames] = await Promise.all([
       getJSON(snapshotUrlFor(date), { type:'FeatureCollection', features: [] }),
       getJSON(`data/snapshots/${date}/parts.detailed.geojson`, { type:'FeatureCollection', features: [] }),
       getJSON('data/signs.json', { type:'FeatureCollection', features: [] }),
+      // Names recovered from the OSM cache by scripts/name_buildings.py for
+      // buildings the snapshot has none for. A side file, not a snapshot edit:
+      // a re-bake would silently wipe the latter.
+      getJSON('data/building_names.json', {}),
     ]);
 
     // The Capitol Complex, south of the snapshot's own bbox, is spliced in
@@ -115,6 +119,7 @@
     let labelled = 0;
     for (const f of buildings.features) {
       const p = f.properties;
+      if (!p.name && extraNames && extraNames[p.id]) p.name = extraNames[p.id];
       const name = p && p.name;
       // Only name buildings that are big enough to carry a label and aren't
       // already announced by a curated sign. This is what took the scene from

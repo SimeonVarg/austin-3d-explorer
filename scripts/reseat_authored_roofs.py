@@ -215,7 +215,104 @@ def main():
                     p[k] = round(p[k] + d, 2)
             moved += 1
 
-        if shift or dropped or refused:
+        # ── Pass 2: ordinary buildings whose roof floats a little ──────
+        #
+        # Nothing to do with the passes. Simeon: "building right in front of nano
+        # science and right behind molecular science (unnamed) has a diagonal
+        # roof". That is Anna Hiss Gymnasium — it has a name but sits below the
+        # 12 m label gate, so it reads as unnamed — and its hip starts 0.35 m
+        # above the top of its own parapet cap.
+        #
+        # Measured across all 100 pitched-roof buildings, roof base minus cap top
+        # (final_height + max(1.0, 0.015*h), the CAP_GEOM rule):
+        #
+        #     0.00 m   83 buildings    correct
+        #     0.35 m   13 buildings    floating - these
+        #    -1.00 m    2 buildings    buried, different problem
+        #    -6.30 m    1 building
+        #   -12.00 m    1 building
+        #
+        # The 0.35 is the thickness of the base plate bake_roofs.py lays under a
+        # hip. Where the lowest feature IS that plate the roof sits flush; on
+        # these 13 the plate is missing, so the lowest thing is a facet and the
+        # whole stack hangs by exactly its thickness.
+        #
+        # Only that small positive gap is closed. The buried ones need a
+        # different fix and are reported, not moved — lifting a roof 12 m on a
+        # guess is the same mistake as lifting DKR's deck onto a mast.
+        if fn == "roofs.geojson":
+            snapb = json.load(open(os.path.join(snap, latest, "buildings.detailed.geojson"),
+                                   encoding="utf-8"))["features"]
+            bgrid = {}
+            for f in snapb:
+                for r in rings(f["geometry"]):
+                    los = [p[0] for p in r]
+                    las = [p[1] for p in r]
+                    for gx in range(int(min(los) * 2000), int(max(los) * 2000) + 1):
+                        for gy in range(int(min(las) * 2000), int(max(las) * 2000) + 1):
+                            bgrid.setdefault((gx, gy), []).append(f)
+
+            def bldg(pt):
+                for f in bgrid.get((int(pt[0] * 2000), int(pt[1] * 2000)), []):
+                    if any(inside(pt, r) for r in rings(f["geometry"])):
+                        return f
+                return None
+
+            lowest2, owner2 = {}, {}
+            for f in feats:
+                c = centroid(f["geometry"])
+                if not c or (owner(c) is not None):
+                    continue                     # pass-claimed; handled above
+                bf = bldg(c)
+                if bf is None:
+                    continue
+                bid = bf["properties"]["id"]
+                owner2[bid] = bf
+                b = f["properties"].get("b")
+                if isinstance(b, (int, float)):
+                    lowest2[bid] = min(lowest2.get(bid, 1e9), float(b))
+
+            drop2, buried = {}, {}
+            for bid, lo in lowest2.items():
+                h = owner2[bid]["properties"].get("final_height") or 0
+                cap = h + max(1.0, 0.015 * h)
+                d = cap - lo                     # negative = floating above
+                if -MAX_DROP <= d < -MIN_SHIFT:
+                    drop2[bid] = d
+                elif d > MIN_SHIFT:
+                    buried[bid] = d
+
+            moved2 = 0
+            for f in feats:
+                c = centroid(f["geometry"])
+                if not c:
+                    continue
+                bf = bldg(c)
+                if bf is None:
+                    continue
+                d = drop2.get(bf["properties"].get("id"))
+                if d is None:
+                    continue
+                p = f["properties"]
+                for k in ("b", "base", "h"):
+                    if isinstance(p.get(k), (int, float)):
+                        p[k] = round(p[k] + d, 2)
+                moved2 += 1
+            if drop2:
+                print("  ordinary buildings whose hip floated above its own cap: %d"
+                      % len(drop2))
+                for bid, d in sorted(drop2.items(), key=lambda kv: kv[1]):
+                    print("    %+6.2f m  %s" % (d, owner2[bid]["properties"].get("name")
+                                                or bid[:8]))
+                moved += moved2
+            if buried:
+                print("  roofs BURIED inside their own building (not moved, different "
+                      "fix): %d" % len(buried))
+                for bid, d in sorted(buried.items(), key=lambda kv: -kv[1])[:5]:
+                    print("    -%.2f m  %s" % (d, owner2[bid]["properties"].get("name")
+                                               or bid[:8]))
+
+        if shift or dropped or refused or moved:
             print("%s: %d features" % (fn, len(feats)))
             counts = {}
             for f in feats:

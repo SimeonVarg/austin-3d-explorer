@@ -1,4 +1,3 @@
-[
- {"name":"treecluster","p":0.12,"center":[-97.7291,30.2850],"zoom":17.6,"pitch":70,"bearing":300},
- {"name":"treecluster-golden","p":0.45,"center":[-97.7291,30.2850],"zoom":17.6,"pitch":70,"bearing":300}
-]
+[{"name":"day","center":[-97.74053,30.28500],"zoom":17.6,"pitch":62,"bearing":90,"p":0.25},
+ {"name":"night","center":[-97.74053,30.28500],"zoom":17.6,"pitch":62,"bearing":90,"p":1.0},
+ {"name":"mall","center":[-97.73930,30.28480],"zoom":17.2,"pitch":68,"bearing":180,"p":0.25}]

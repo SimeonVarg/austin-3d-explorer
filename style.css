@@ -162,9 +162,24 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
    re-lights the corners the vignette just darkened; grain is last, over the lot.
    Each layer is display:none when its setting is 0 — a zero-opacity
    full-screen blend layer still costs the compositor a full-screen blend. */
+/* THE HORIZON LINE. Reported as "the horizon line is visible in front of the
+   tower (and any building the horizon line crosses through) it appears in FRONT
+   of that when it should be behind", and separately as "its the point where the
+   blur setting starts blurring, and above doesn't blur".
+
+   Both are this gradient. It began at `#000 0%` — full mask on the very first
+   row — so the distance blur switched from none to maximum across ONE PIXEL,
+   and that hard step is the line. It is a viewport-wide DOM rectangle, so it
+   cannot know what is in front of what: the step reads as a line drawn over the
+   UT Tower rather than behind it, because it is.
+
+   Feathering the top over the first 14% turns the step into a ramp. It does not
+   make the blur depth-aware — a DOM overlay never can, and that is the real
+   fix if this is ever revisited — but it removes the edge, which is the part
+   you can see. */
 #fx-dof{position:absolute;left:0;right:0;top:0;height:0;z-index:2;pointer-events:none;opacity:0;
-  -webkit-mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.85) 22%,rgba(0,0,0,.35) 58%,transparent 100%);
-  mask-image:linear-gradient(to bottom,#000 0%,rgba(0,0,0,.85) 22%,rgba(0,0,0,.35) 58%,transparent 100%)}
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.55) 8%,#000 20%,rgba(0,0,0,.82) 40%,rgba(0,0,0,.32) 68%,transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.55) 8%,#000 20%,rgba(0,0,0,.82) 40%,rgba(0,0,0,.32) 68%,transparent 100%)}
 /* Bloom, god rays and lens flare all composite additively out of this one
    canvas. It used to be accompanied by a #fx-bloom div doing
    backdrop-filter + mix-blend-mode:screen; that combination does not screen —

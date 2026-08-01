@@ -601,7 +601,18 @@
     // what aerial haze does anyway, so it reads as distance rather than as blur.
     if (elDof && GFX.dof > 0.01) {
       const hz = F.horizonPx;
-      if (hz < -40 || hz > F.H) {
+      // Was `hz < -40`. js/sky.js collapses its own canvas clip once the horizon
+      // is above -0.018*H (about -16 px at 900), so between those two thresholds
+      // there was a ~1.25 degree window of pitch where the sky had stopped
+      // decorating but this band had not stopped drawing — and with the horizon
+      // off the top of the viewport, `top` clamps to 0 and the blur pins itself
+      // across the top quarter of the frame with nothing but sky in it. That is
+      // the "pink gap between the actual horizon and where the line begins" that
+      // opens as you gain altitude.
+      //
+      // Above the viewport there is no ground band to blur, so the honest value
+      // is zero.
+      if (hz < 0 || hz > F.H) {
         elDof.style.opacity = '0';
       } else {
         const top = Math.max(0, hz);
