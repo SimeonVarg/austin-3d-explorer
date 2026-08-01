@@ -663,7 +663,23 @@
       if (typeof window.quantiseStadiumFacades === 'function') {
         window.quantiseStadiumFacades(map, gj.features);
       }
-      map.addSource('austin-stadium', { type:'geojson', data: gj });
+      // maxzoom 15 IS THE FIX FOR THE GIANT BLOCK OVER THE BOWL, and it is not
+      // a performance knob. Every seat band is a ring WITH A HOLE — the field.
+      // MapLibre tiles GeoJSON with geojson-vt, which clips each ring to each
+      // tile independently, and a tile that falls ENTIRELY INSIDE the hole gets
+      // a full-tile outer ring and a full-tile inner ring with the same winding.
+      // The hole is lost and that tile fills solid. The field hole is 68 x 123 m,
+      // so this cannot happen until tiles are smaller than that: at the default
+      // maxzoom 18 a tile is ~150 m and the bowl fills with a flat lid the
+      // moment you fly close, which is exactly the reported symptom.
+      //
+      // Capped at 15, one tile is ~1.2 km, far larger than the hole, so no tile
+      // can ever sit inside it; every closer view over-zooms that same intact
+      // geometry. Precision at 15 is 1200/4096 = 0.3 m, finer than the 0.74 m
+      // seat rows, so nothing visible is lost.
+      map.addSource('austin-stadium', {
+        type:'geojson', data: gj, maxzoom: 15, tolerance: 0.25, buffer: 128,
+      });
       // This runs after a fetch, so the label layers may already exist. Without
       // an anchor these extrusions would be appended above them and swallow
       // every label behind the stadium.
