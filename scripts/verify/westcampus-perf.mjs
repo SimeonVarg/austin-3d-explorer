@@ -32,7 +32,7 @@ const MS = 4200;
 // Sits in the middle of the cluster, so the sweep passes every one of the ten.
 const POSE = { center: [-97.74330, 30.28470], zoom: 16.5, pitch: 70 };
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.bringToFront();
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 120000 });

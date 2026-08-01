@@ -18,7 +18,7 @@ import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 const REPS = 4, MS = 3600;
 const STADIUM_LAYERS = ['stadium-wall', 'stadium-wall-roof', 'stadium-seating'];
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 await page.goto(SERVER + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });

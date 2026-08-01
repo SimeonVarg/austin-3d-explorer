@@ -22,7 +22,7 @@ const CONFIGS = {
   neither:  { trees: false, ground: false },
 };
 
-const browser = await launch(chromium);
+const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 await page.goto(SERVER + '/index.html?intro=0&drift=0', { timeout: 90000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });

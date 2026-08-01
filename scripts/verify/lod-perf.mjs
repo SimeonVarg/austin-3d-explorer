@@ -84,6 +84,7 @@ async function setScale(page, s) {
 }
 
 const browser = await launch(chromium, {
+  gl: 'hardware',
   headless: false,
   args: [
     '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding',

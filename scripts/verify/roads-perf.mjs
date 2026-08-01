@@ -46,6 +46,7 @@ const CONFIGS = {
 };
 
 const browser = await launch(chromium, {
+  gl: 'hardware',
   executablePath: chromePath(), headless: false,
   args: ['--no-sandbox',
          '--disable-backgrounding-occluded-windows',
