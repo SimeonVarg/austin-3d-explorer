@@ -66,6 +66,28 @@
     // At or above this a ring building is a tower: pattern + roof cap.
     // Matches TOWER_H in scripts/bake_outer.py, which stamps `t`.
     towerCap: true,
+    // ── The brown smear above 80 degrees of pitch ──────────────────
+    //
+    // The ring's low-rise half gets no roads, no trees, no ground detail and no
+    // pattern — by design, it is backdrop. Look near-horizontally and thousands
+    // of those flat prisms mass edge-on into one featureless brown plane that
+    // covers the real scene. Measured at the same camera, share of the lower
+    // frame that is flat ring brown:
+    //
+    //     pitch 70   6.6%      pitch 84   18.6%
+    //     pitch 78   6.1%      pitch 88   61.9%
+    //
+    // Nothing between 70 and 78, then it runs away. It was invisible until now
+    // because MapLibre's maxPitch was 85; the pitch ceiling was just raised to
+    // 90, which is what exposed it. Confirmed pre-existing and NOT caused by the
+    // tiling change below: reverting that to maxzoom 15 / tolerance 1.5 renders
+    // the identical frame.
+    //
+    // The TOWERS keep drawing at any pitch — the skyline silhouette is the whole
+    // reason this module reaches south to the lake, and 114 towers do not mass
+    // into anything. It is only the 7,511 low-rise prisms that go.
+    flatMaxPitch: 80,
+    flatFadePitch: 84,   // fully gone by here
     opacity: 1.0,
   };
   window.OUTER = OUTER;
@@ -274,9 +296,11 @@
       }, before);
     }
 
+    watchPitch(map);
+
     console.log('[outer]', gj.features.length, 'ring buildings (',
-                towers.length, 'towers,', patterned, 'patterned from the',
-                'existing atlas — 0 new images )');
+                towers.length, 'towers,', patterned, 'patterned on their own',
+                'clustered colours )');
   };
 
   window.applyOuterColors = function applyOuterColors(map, p) {
@@ -293,21 +317,55 @@
     // updateFacades() has already repainted by the time we get here.
   };
 
+  /**
+   * How much of the flat ring to draw at the current pitch. 1 below
+   * flatMaxPitch, 0 at flatFadePitch and above, linear between — a fade rather
+   * than a switch, so it cannot pop while the camera is tilting.
+   */
+  function flatOpacityFor(map) {
+    const pitch = map.getPitch ? map.getPitch() : 0;
+    if (pitch <= OUTER.flatMaxPitch) return OUTER.opacity;
+    if (pitch >= OUTER.flatFadePitch) return 0;
+    const t = (pitch - OUTER.flatMaxPitch) / (OUTER.flatFadePitch - OUTER.flatMaxPitch);
+    return OUTER.opacity * (1 - t);
+  }
+
   /** Re-read OUTER / GFX.outerDensity after a live edit or a preset change. */
   window.applyOuterSettings = function applyOuterSettings(map) {
     if (!map || !map.getLayer) return;
+    const flatOp = flatOpacityFor(map);
     for (const id of [L_FLAT, L_TOWER, L_TOWER_ROOF]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', OUTER.on ? 'visible' : 'none');
         map.setPaintProperty(id, 'fill-extrusion-opacity',
-                             id === L_TOWER_ROOF ? 1.0 : OUTER.opacity);
+                             id === L_TOWER_ROOF ? 1.0
+                             : id === L_FLAT ? flatOp : OUTER.opacity);
       } catch (e) {}
     }
     try {
       if (map.getLayer(L_FLAT)) map.setFilter(L_FLAT, densityFilter(NOT_TOWER));
     } catch (e) {}
   };
+
+  /**
+   * Follow the pitch. `pitch` fires on every frame of a tilt, so the opacity is
+   * only written when the bucket it lands in actually changes — otherwise this
+   * is a setPaintProperty per frame on a layer with 7,511 features.
+   */
+  let _lastFlatOp = null;
+  function watchPitch(map) {
+    const update = () => {
+      if (!map.getLayer(L_FLAT) || !OUTER.on) return;
+      const op = flatOpacityFor(map);
+      if (_lastFlatOp != null && Math.abs(op - _lastFlatOp) < 0.02) return;
+      _lastFlatOp = op;
+      try { map.setPaintProperty(L_FLAT, 'fill-extrusion-opacity', op); } catch (e) {}
+    };
+    map.on('pitch', update);
+    map.on('move', update);
+    update();
+  }
 
   // ── bootstrap ─────────────────────────────────────────────────────
   // A new module needs a <script> tag and nothing else. js/app.js is owned by
