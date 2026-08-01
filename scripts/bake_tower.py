@@ -646,7 +646,20 @@ def build(feature, stats):
     # mid-heights. Five is the point where the silhouette stops reading as a
     # stack of boxes at the altitude this app flies.
     cs_half_u, cs_half_v = W * S_CLOCK / 2, D * S_CLOCK / 2
-    c_gold = trio(C_GOLD, "#d8b04e", 0.10)
+    # "make sure clock on tower lights up... make the lights from the tower glow
+    # a bit (the clock and the orange)."
+    #
+    # The dial was already the brightest thing on the building after dark at
+    # #d8b04e, luma 176 — but night attenuates roughly 0.32x here (measured when
+    # the DKR floods were tuned), so it landed near 56 on screen: bright FOR the
+    # night city, and nowhere near the bloom threshold. It read as pale stone
+    # rather than as a lit dial.
+    #
+    # js/graphics.js already runs a bloom pass over the finished frame, so a
+    # surface bright enough gets its glow for free and no new layer is needed.
+    # Taking the dial to near-white puts it over that threshold while the tower
+    # around it stays limestone.
+    c_gold = trio(C_GOLD, "#fff3cf", 0.10)
     c_dial = trio(C_DIAL, N_DIALLIT, 0.05)
     for nu, nv in ((0, -1), (0, 1), (-1, 0), (1, 0)):
         along_u = (nu == 0)
