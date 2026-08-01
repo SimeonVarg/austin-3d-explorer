@@ -1334,8 +1334,110 @@
    *
    * Call after quantiseFacades and after initFacades.
    */
-  window.quantiseOuterFacades = function quantiseOuterFacades(features) {
+  /**
+   * The 114 downtown TOWERS get their own colours; the 7,511 low-rise buildings
+   * behind them keep snapping to the campus palette.
+   *
+   * "downtown - more accurate and more vibrant." The accuracy was already there:
+   * every named landmark is present at a curated height. The flatness was this
+   * function. It snapped every outer feature to the nearest of the fourteen
+   * CAMPUS buckets, which are the means of Austin's campus building colours and
+   * are almost all tan brick and limestone — so the Austonian, Frost Bank Tower,
+   * the Independent and 111 more arrived downtown wearing the same four or five
+   * browns, and the skyline read as one grey-brown mass.
+   *
+   * It is the same mistake quantiseStadiumFacades already records and refuses to
+   * make: "Its OWN palette entries, not the nearest of the city's fourteen...
+   * snapping to them turned the 2008 north end zone's brick veneer back into tan
+   * and erased the one elevation with a different material."
+   *
+   * So the towers are clustered on their own baked `wd` instead. Clustered, not
+   * one-per-hex: the atlas is repainted per image on every time-of-day step, so
+   * 114 new images would be a real cost for no visible gain at skyline distance.
+   * TOWER_BUCKETS is the knob — raise it for more variety, lower it for a
+   * cheaper atlas.
+   *
+   * The low-rise ring is deliberately left on the campus palette. It IS mostly
+   * the same brick and stucco as campus, it is 66x the feature count, and it is
+   * the backdrop rather than the subject.
+   */
+  const TOWER_BUCKETS = 10;
+
+  /** k-means on RGB, seeded evenly through the sorted-by-luma list. */
+  function clusterColours(hexes, k) {
+    const pts = hexes.map(hexToRgb);
+    if (pts.length <= k) return pts;
+    const lum = c => c[0] * 0.299 + c[1] * 0.587 + c[2] * 0.114;
+    const sorted = [...pts].sort((a, b) => lum(a) - lum(b));
+    let cent = Array.from({ length: k }, (_, i) =>
+      sorted[Math.floor((i + 0.5) * sorted.length / k)].slice());
+    for (let iter = 0; iter < 12; iter++) {
+      const sum = cent.map(() => [0, 0, 0, 0]);
+      for (const p of pts) {
+        let bi = 0, bd = Infinity;
+        for (let i = 0; i < cent.length; i++) {
+          const d = dist2(p, cent[i]);
+          if (d < bd) { bd = d; bi = i; }
+        }
+        sum[bi][0] += p[0]; sum[bi][1] += p[1]; sum[bi][2] += p[2]; sum[bi][3]++;
+      }
+      cent = cent.map((c, i) => sum[i][3]
+        ? [sum[i][0] / sum[i][3], sum[i][1] / sum[i][3], sum[i][2] / sum[i][3]]
+        : c);
+    }
+    return cent;
+  }
+
+  const toHex = c => '#' + c.map(v =>
+    Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+
+  window.quantiseOuterFacades = function quantiseOuterFacades(features, map) {
     if (!palette.length || !combos.length) return 0;
+    // Snapshot the campus bucket count BEFORE any tower entries are appended.
+    // The low-rise pass below must not snap a warehouse onto a glass tower's new
+    // colour, and must not overwrite the towers it is about to skip.
+    const campusBuckets = palette.length;
+
+    // ── towers first, on their own colours ──────────────────────────
+    const towers = features.filter(f => f.properties && f.properties.t === 1 && f.properties.wd);
+    let towersDone = 0;
+    if (towers.length && map) {
+      const cent = clusterColours(towers.map(f => f.properties.wd), TOWER_BUCKETS);
+      const idxOf = cent.map(c => {
+        const i = palette.length;
+        const wd = toHex(c);
+        // Golden and night are derived the way the bake derives them, so a tower
+        // follows the same day->golden->night ramp as everything else rather
+        // than sitting at one colour all day.
+        palette.push({
+          wd,
+          wg: toHex(c.map((v, j) => v * (j === 2 ? 0.92 : 1.06))),
+          wn: toHex(c.map((v, j) => v * 0.34 + [17, 22, 42][j] * 0.30)),
+        });
+        return i;
+      });
+      const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
+      for (const f of towers) {
+        const rgb = hexToRgb(f.properties.wd);
+        let best = 0, bd = Infinity;
+        for (let i = 0; i < cent.length; i++) {
+          const d = dist2(rgb, cent[i]);
+          if (d < bd) { bd = d; best = i; }
+        }
+        const idx = idxOf[best];
+        const id = 'tg' + String(idx).padStart(2, '0');
+        f.properties.wp = id;
+        f.properties.wf = 'tg';
+        if (combos.indexOf(id) === -1) combos.push(id);
+        // initFacades has already run, so a new combo has no image yet and
+        // MapLibre would paint the wall transparent.
+        try {
+          if (!(map.hasImage && map.hasImage(id))) map.addImage(id, tileData('tg', idx, p));
+        } catch (e) { /* already added */ }
+        towersDone++;
+      }
+    }
+
     // bucket index -> the combos that exist for it, keyed by family
     const have = new Map();
     for (const id of combos) {
@@ -1343,11 +1445,12 @@
       if (!have.has(idx)) have.set(idx, new Map());
       have.get(idx).set(fam, id);
     }
-    const buckets = palette.map(k => hexToRgb(k.wd));
+    const buckets = palette.slice(0, campusBuckets).map(k => hexToRgb(k.wd));
     let n = 0;
     for (const f of features) {
       const p = f.properties;
       if (!p || !p.wd) continue;
+      if (p.t === 1 && p.wp) continue;   // a tower already has its own colour
       const rgb = hexToRgb(p.wd);
       let best = 0, bestD = Infinity;
       for (let i = 0; i < buckets.length; i++) {
@@ -1369,7 +1472,7 @@
       p.wf = pick.slice(0, 2);
       n++;
     }
-    return n;
+    return n + towersDone;
   };
 
   // Fall back to a plain fill where a feature somehow has no pattern.

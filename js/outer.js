@@ -29,9 +29,16 @@
  *
  * THE ONE EXCEPTION is downtown towers (`t=1`, at or above 40 m). They keep the
  * core's facade pattern and a roof cap, because the skyline silhouette is the
- * entire reason the box reaches south to the lake, and they cost nothing extra
- * in atlas terms — facades.js:quantiseOuterFacades snaps them onto patterns
- * that already exist and never registers a new image.
+ * entire reason the box reaches south to the lake.
+ *
+ * They used to snap onto the campus atlas and register no new image, which was
+ * cheap and wrong: the fourteen campus buckets are means of tan brick and
+ * limestone, so the Austonian, Frost Bank Tower, the Independent and 111 more
+ * arrived downtown wearing four or five browns and the skyline read as one mass.
+ * quantiseOuterFacades now clusters the towers on their OWN baked colours into
+ * ten buckets and registers ten images — the same call quantiseStadiumFacades
+ * makes, for the same reason, and bounded so the per-image atlas repaint stays
+ * cheap.
  *
  * REGISTRATION. This module bootstraps itself: it waits for window.__map and
  * for the core building layers to exist, then inserts itself underneath them.
@@ -134,7 +141,7 @@
     if (!sig || sig === _palSig) return;
     _palSig = sig;
     const towers = _gj.features.filter(f => f.properties && f.properties.t === 1);
-    const n = window.quantiseOuterFacades(towers);
+    const n = window.quantiseOuterFacades(towers, map);
     map.getSource(SRC).setData(_gj);
     console.log('[outer] facade palette changed —', n, 'towers re-snapped');
   }
@@ -158,19 +165,16 @@
     let patterned = 0;
     const towers = gj.features.filter(f => f.properties && f.properties.t === 1);
     if (typeof window.quantiseOuterFacades === 'function') {
-      patterned = window.quantiseOuterFacades(towers);
+      patterned = window.quantiseOuterFacades(towers, map);
     }
     _gj = gj;
     _palSig = paletteSignature();
 
-    // The snapshot picker is app.js's, and app.js is owned by another pass, so
-    // this listens to the <select> rather than asking for a callback.
-    const sel = document.getElementById('date-select');
-    if (sel) sel.addEventListener('change', () => {
-      // app.js refetches, re-quantises and setData()s the core source; give it
-      // a beat to land before reading the palette it produced.
-      setTimeout(() => resnapIfPaletteChanged(map), 1500);
-    });
+    // This used to listen to the snapshot <select> so it could re-snap when
+    // app.js reloaded a different date's buildings and re-derived the palette.
+    // The snapshot feature is gone, so there is no longer any event that can move
+    // the palette under the towers. resnapIfPaletteChanged() is kept and still
+    // correct — it is simply no longer wired to anything.
 
     map.addSource(SRC, {
       type: 'geojson',
