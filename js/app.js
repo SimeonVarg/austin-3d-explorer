@@ -966,9 +966,22 @@
       });
     }
 
+    // data/trees.geojson is 9.13 MB — the largest single file the app fetches
+    // and a third of what a first-time visitor downloads before the city
+    // appears. As vector tiles the browser fetches only what is under the
+    // camera. js/tiles.js returns null if the archives are not built (a fresh
+    // clone, or a branch where CI has not run), and then this is byte-identical
+    // to what it always was. See scripts/tile.sh.
+    const treeTiles = window.tileSource && window.tileSource('trees');
     if (!map.getSource('austin-trees')) {
-      map.addSource('austin-trees', { type:'geojson', data:'data/trees.geojson' });
+      map.addSource('austin-trees', treeTiles
+        ? treeTiles.source
+        : { type:'geojson', data:'data/trees.geojson' });
     }
+    // Spread into BOTH tree layers. A vector source without `source-layer`
+    // draws absolutely nothing and reports no error, which reads as "the trees
+    // are gone" rather than as a wiring mistake.
+    const treeLP = treeTiles ? treeTiles.layerProps : {};
     // Tree DENSITY is a parameter, not a cull. Every tree carries `d`, a
     // keep-order in 0..1 biased so that thinning drops the small trees first
     // and keeps the big live oaks — which are what you actually see from 60 m.
@@ -977,7 +990,7 @@
     // exists and the presets set it; nothing is silently dropped.
     if (!map.getLayer('trees-trunk')) {
       map.addLayer({
-        id:'trees-trunk', type:'fill-extrusion', source:'austin-trees',
+        id:'trees-trunk', type:'fill-extrusion', source:'austin-trees', ...treeLP,
         minzoom:14, filter:window.treeFilter('trunk'),
         paint:{
           'fill-extrusion-color':'#6b4f38',
@@ -989,7 +1002,7 @@
     }
     if (!map.getLayer('trees-canopy')) {
       map.addLayer({
-        id:'trees-canopy', type:'fill-extrusion', source:'austin-trees',
+        id:'trees-canopy', type:'fill-extrusion', source:'austin-trees', ...treeLP,
         minzoom:14, filter:window.treeFilter('canopy'),
         paint:{
           'fill-extrusion-color':['interpolate',['linear'],['get','h'],6,'#93ad70',15,'#5f7d4a'],

@@ -9,6 +9,10 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23140c04'/%3E%3Crect x='5' y='15' width='7' height='12' fill='%23c9a06a'/%3E%3Crect x='13' y='6' width='7' height='21' fill='%23f5a623'/%3E%3Crect x='21' y='12' width='6' height='15' fill='%23b5522e'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <!-- Teaches MapLibre the pmtiles:// scheme. Must load before js/tiles.js
+       registers the protocol, and both must run before app.js builds the map. -->
+  <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
+  <script src="js/tiles.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
