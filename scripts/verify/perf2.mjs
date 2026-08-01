@@ -137,14 +137,14 @@ await page.waitForTimeout(800);
 
 // ── DOM overlay stack ─────────────────────────────────────────────────
 await page.evaluate(() => {
-  for (const id of ['sky', 'haze', 'vignette']) {
+  for (const id of ['sky', 'vignette']) {
     const e = document.getElementById(id); if (e) e.style.display = 'none';
   }
 });
 const no = await run('minus all DOM overlays');
 console.log('   dropped frames: ' + base.dropped + ' -> ' + no.dropped);
 await page.evaluate(() => {
-  for (const id of ['sky', 'haze', 'vignette']) {
+  for (const id of ['sky', 'vignette']) {
     const e = document.getElementById(id); if (e) e.style.display = '';
   }
 });
