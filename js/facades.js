@@ -532,6 +532,28 @@
    * definition instead of two.
    */
   const RESIDENTIAL = /apartment|dormitory|residential|hotel|condo/;
+  // Tall, and NOT curtain wall. Height alone cannot tell an office tower from a
+  // science building, and on this campus the difference is the whole look: a
+  // 1970s lab block is a punched masonry grid and a downtown office box is
+  // glass. The `tg` fallthrough was answering "is it over 26 m and not flats?"
+  // and calling everything else glass, which put 51% glazing on 19 university
+  // buildings, 3 churches, 2 hospitals, a presidential library and a chilled
+  // water plant. Named casualties included Patton Hall, the Harry Ransom
+  // Center, the Neural Molecular Science Building and Chilling Station No. 6.
+  //
+  // Two of the buildings Simeon reported sit here: Gary L. Thomas clears the
+  // 26 m line by 0.8 m (26.8 m over 8 floors is 3.35 m floor to floor, which is
+  // an academic building, not a tower) and Biomedical Engineering at 32.6 m.
+  // `tg` is also the only family exempt from the MIN_PIER / MIN_SPANDREL guard
+  // via `curtain: true`, so it is the one family whose mullions land near the
+  // pixel floor — which is the best available candidate for "glitches badly".
+  const PUNCHED = new RegExp([
+    'university', 'college', 'school', 'kindergarten',
+    'church', 'chapel', 'cathedral', 'synagogue', 'mosque', 'temple',
+    'hospital', 'clinic', 'civic', 'public', 'government',
+    'library', 'museum', 'train_station', 'transportation',
+    'industrial', 'manufacture', 'warehouse', 'utility', 'service',
+  ].join('|'));
 
   function familyFor(props) {
     const cls = props.building_class || '';
@@ -544,12 +566,16 @@
     if (h < 5)   return 'lo';
     if (h < 12)  return 'mr';
     if (h < 26)  return 'mh';
-    // A residential tower is punched windows with balconies; an office tower is
-    // curtain wall. They were one family, so a student high-rise and a downtown
-    // glass box wore the same texture. Only ~15% of features carry a class, so
-    // class is consulted ONLY where it changes the answer - everything else is
-    // decided by height, which every feature has.
-    return RESIDENTIAL.test(cls) ? 'tr' : 'tg';
+    // Above 26 m, class decides. Note the ORDER: a university dormitory matches
+    // both lists, and it is a dormitory first — punched windows with the
+    // residential rhythm, not a lab grid.
+    if (RESIDENTIAL.test(cls)) return 'tr';
+    // A tall punched building still wants the taller family's rhythm; `mh` is
+    // sized for a 4-7 storey hall and reads squat on a 40 m block.
+    if (PUNCHED.test(cls)) return h < 45 ? 'mh' : 'tr';
+    // Everything left is unclassed or genuinely commercial. Downtown's towers
+    // are almost entirely unclassed and land here, which is what `tg` is for.
+    return 'tg';
   }
 
   // ── quantisation ──────────────────────────────────────────────────
@@ -1007,7 +1033,11 @@
       return;
     }
 
-    const g = GRIDS[fam] || GRIDS.md;
+    // `GRIDS.md` does not exist — the families are lo/mr/mh/tr/tg/dk/st — so
+    // this fallback threw on an unregistered family instead of degrading to
+    // one. `mh` is the intended default: the punched campus-hall grid, the
+    // safest thing to put on a wall we cannot classify.
+    const g = GRIDS[fam] || GRIDS.mh;
     const stepX = TILE / g.cols, stepY = TILE / g.rows;
     const offX = (stepX - g.w) / 2, offY = (stepY - g.h) / 2;
 
@@ -1135,6 +1165,13 @@
 
   window.initFacades = function initFacades(map, p) {
     if (!palette.length) return 0;
+    // facadeGridAudit had ZERO call sites — the guard written to catch a grid
+    // whose arithmetic disagrees with its own `want`, in a file whose comments
+    // record shipping exactly that (17.1% written beside a grid computing
+    // 34.2%), had never once run. It is pure arithmetic over five constants, so
+    // running it at init costs nothing and warns in the console if a future edit
+    // pushes a family out of spec.
+    try { window.facadeGridAudit(); } catch (e) { /* audit must never break init */ }
     for (const id of combos) {
       const { fam, idx } = parseId(id);
       if (map.hasImage && map.hasImage(id)) continue;
