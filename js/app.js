@@ -292,6 +292,75 @@
   // Both are "the tile grid is not the world" bugs.
   window.PATTERN_TILING = { maxzoom: 16, tolerance: 0.5, buffer: 128 };
 
+  // ── When the DKR field may be drawn ───────────────────────────────
+  //
+  // Taste knobs for the rule above. RIM_M is the top of the grandstand — above
+  // it you are looking down into an open bowl and the turf is genuinely visible.
+  // INSIDE_M is measured from the field centre and is generous enough to cover
+  // standing anywhere in the seating, so walking the concourse never blinks the
+  // field off. FADE_M is the band over which it crosses, so it cannot pop.
+  // ── When the DKR field may be drawn ───────────────────────────────
+  //
+  // The physical question is "is there grandstand between the eye and the
+  // turf". The robust proxy is PITCH plus how close you are LOOKING to the
+  // field: tilt down toward the bowl and you see into it; look side-on from
+  // outside and 63 m of seating is in the way.
+  //
+  // Deliberately NOT camera altitude, after two attempts that both measured as
+  // doing nothing:
+  //   map.getFreeCameraOptions() is a Mapbox API — MapLibre 5.24 has no such
+  //   method, so inside a try/catch it threw every frame and the gate silently
+  //   never ran.
+  //   window.__fly.eye() is maintained by the flight controller on its own loop
+  //   and does NOT resync after a jumpTo, so it reported a stale camera even
+  //   after a 4.5 s settle — two different poses probed back to back both
+  //   returned the previous one.
+  // getPitch() and getCenter() are correct on the frame they are read, which is
+  // the only property that matters here.
+  //
+  // All four are taste knobs.
+  const FIELD_VIS = {
+    LOOK_DOWN_PITCH: 62,   // at or below this you are looking into the bowl
+    SIDE_ON_PITCH: 74,     // by here it is fully side-on and the field is hidden
+    // Measured: from 50 m outside the east wall at pitch 79, the map centre is
+    // still 124 m from the field centre. So 130 counted that as "inside" and the
+    // gate did nothing. The bowl's own half-length is ~55 m, so anything past 70
+    // is outside the structure and cannot be looking in over the rim.
+    NEAR_M: 70,
+    FADE_M: 30,
+  };
+
+  function watchFieldVisibility(map, corners) {
+    // Field centre from the four baked corners (NW, NE, SE, SW).
+    const cx = corners.reduce((s, c) => s + c[0], 0) / corners.length;
+    const cy = corners.reduce((s, c) => s + c[1], 0) / corners.length;
+    const kx = 111320 * Math.cos(cy * Math.PI / 180);
+    let last = null;
+
+    const update = () => {
+      if (!map.getLayer('stadium-field')) return;
+      const c = map.getCenter();
+      const pitch = map.getPitch() || 0;
+      const d = Math.hypot((c.lng - cx) * kx, (c.lat - cy) * 111320);
+
+      // 1 when tilted down into the bowl, 0 when side-on.
+      const byPitch = 1 - Math.min(1, Math.max(0,
+        (pitch - FIELD_VIS.LOOK_DOWN_PITCH) /
+        (FIELD_VIS.SIDE_ON_PITCH - FIELD_VIS.LOOK_DOWN_PITCH)));
+      // 1 when the view is centred on the field, falling off outside it.
+      const byNear = 1 - Math.min(1, Math.max(0,
+        (d - FIELD_VIS.NEAR_M) / FIELD_VIS.FADE_M));
+      const t = Math.max(byPitch, byNear);
+
+      if (last != null && Math.abs(t - last) < 0.02) return;
+      last = t;
+      try { map.setPaintProperty('stadium-field', 'raster-opacity', t); } catch (e) {}
+    };
+    map.on('move', update);
+    map.on('pitch', update);
+    update();
+  }
+
   const NO_PARTS = ['!', ['has', 'has_parts']];
   const CAP_MIN_HEIGHT = 2.5; // sheds don't get a parapet cap
 
@@ -756,10 +825,25 @@
         }
       }
 
-      // THE FIELD, before anything else, so every stadium layer added after it
-      // draws on top and hides it exactly the way the real grandstand does.
-      // This replaced a symbol layer that rendered TEXAS and the Longhorn
-      // straight through the building from outside.
+      // THE FIELD. Added before every other stadium layer, on the theory that
+      // whatever is drawn after it paints over it the way the real grandstand
+      // does. That is true of the 3D layers among themselves and it is NOT true
+      // here, because this is a `raster` layer and a raster does not depth-test
+      // against fill-extrusion — same reason the symbol layer it replaced drew
+      // TEXAS through the building.
+      //
+      // Reported: "when looking at DKR from top right looking down left the
+      // whole field bleeds through the wall and i can see just the field with
+      // the orange endzones through the walls." Reproduced from 50 m out at
+      // pitch 79: the end zone, the yard numbers and the turf paint as a
+      // horizontal band straight across the base of the stadium, over the
+      // buildings in front of it.
+      //
+      // Layer order cannot fix it and neither can any raster paint property. So
+      // the field is drawn only when you could actually SEE it: from inside the
+      // bowl's footprint, or from above the rim looking down. Outside and below,
+      // there is 63 m of grandstand between you and the turf, and the honest
+      // render is nothing.
       if (gj.fieldCorners && !map.getSource('austin-field')) {
         map.addSource('austin-field', {
           type: 'image', url: fieldImage(), coordinates: gj.fieldCorners,
@@ -769,6 +853,7 @@
           paint:{ 'raster-opacity':1, 'raster-fade-duration':0,
                   'raster-resampling':'linear' },
         }, anchor);
+        watchFieldVisibility(map, gj.fieldCorners);
       }
 
       // The perimeter wall. Same facade paint as every other building, so it
