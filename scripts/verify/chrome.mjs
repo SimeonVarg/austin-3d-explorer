@@ -38,7 +38,36 @@ export function chromePath() {
   );
 }
 
-/** Headless flags that make WebGL work without a GPU. */
+/**
+ * TWO GL BACKENDS, and choosing the wrong one costs either correctness or hours.
+ *
+ * THE MEASUREMENT THAT PROMPTED THIS (Acer, 2026-08-01, same scene, same pose):
+ *
+ *   --use-angle=swiftshader          3.7 fps   SwiftShader Device (Subzero)
+ *   no swiftshader flags            34.6 fps   AMD Radeon, D3D11
+ *   + --force_high_performance_gpu  35.3 fps   NVIDIA RTX 3050 Ti, D3D11
+ *
+ * 9.4x, for deleting three flags. The premise that this laptop "has no usable
+ * GPU" was never true — it has an RTX 3050 Ti. It was being TOLD not to use it.
+ * The comment that used to sit here said these were "flags that make WebGL work
+ * without a GPU", which was accurate and became load-bearing by accident.
+ *
+ * Note the discrete GPU is barely faster than the integrated one (35.3 vs 34.6).
+ * The win is hardware versus software, not which chip.
+ *
+ * SO WHY IS SWIFTSHADER STILL THE DEFAULT? Because it is deterministic. Around a
+ * hundred scripts here assert EXACT hex at named pixels, and hardware and
+ * software rasterisers legitimately disagree about antialiasing, blending and
+ * filtering. Swapping the backend under those would silently invalidate the
+ * suite — a much worse outcome than a slow suite. README already says software
+ * rendering is "right for pixel assertions and useless for timing".
+ *
+ * So: correctness scripts keep SwiftShader. Timing and screenshot scripts, where
+ * exact pixels do not matter but wall-clock does, ask for hardware.
+ *
+ *   VERIFY_GL=hardware node <script>     one run
+ *   launch(chromium, { gl: 'hardware' }) from inside a script
+ */
 export const GL_ARGS = [
   '--use-gl=angle',
   '--use-angle=swiftshader',
@@ -50,6 +79,27 @@ export const GL_ARGS = [
   '--renderer-process-limit=2',
   '--js-flags=--max-old-space-size=2048',
 ];
+
+/** Real GPU. No --use-angle, so ANGLE picks the platform default (D3D11 here). */
+export const HW_ARGS = [
+  '--no-sandbox',
+  '--disable-dev-shm-usage',
+  '--ignore-gpu-blocklist',
+  '--enable-gpu-rasterization',
+  // Without this a laptop hands headless Chrome the INTEGRATED chip. Costs
+  // nothing on a desktop or a machine with one GPU.
+  '--force_high_performance_gpu',
+];
+
+/**
+ * Is this run allowed a real GPU? Explicit opts.gl wins, then VERIFY_GL, then
+ * SwiftShader — so the default stays deterministic and nothing silently
+ * changes renderer under a pixel assertion.
+ */
+export function glArgsFor(pref) {
+  const want = pref || process.env.VERIFY_GL || 'swiftshader';
+  return want === 'hardware' ? HW_ARGS : GL_ARGS;
+}
 
 export const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8099';
 
@@ -88,7 +138,25 @@ export const MARK_ARG = '--enable-unsafe-swiftshader';
 export async function launch(chromium, opts = {}) {
   // A caller that supplies `args` is replacing the GL defaults on purpose (the
   // headed perf runs do), so respect that — but union in the marker either way.
-  const args = [...new Set([...(opts.args || GL_ARGS), MARK_ARG])];
+  //
+  // THE TRAP THIS COMMENT USED TO HIDE. `opts.args || GL_ARGS` means a caller
+  // that passes `{ headless: false }` and NO args silently gets the full
+  // SwiftShader set — so it runs headed, on a CPU rasteriser, measuring nothing
+  // it claims to measure. 17 of the 21 *-perf scripts were in exactly that
+  // state, including perf.mjs, whose own header opens "1. RUN ON A REAL GPU"
+  // and then calls `launch(chromium)` bare. Every frame-time A/B they have ever
+  // printed was a software rasteriser's fill rate.
+  //
+  // So: a HEADED run defaults to hardware, because there is no other honest
+  // reading of asking for a visible window to measure frames in. Headless still
+  // defaults to SwiftShader for determinism. Either can be overridden with
+  // `gl:` or VERIFY_GL.
+  const headed = opts.headless === false;
+  const args = [...new Set([
+    ...(opts.args || glArgsFor(opts.gl || (headed ? 'hardware' : null))),
+    MARK_ARG,
+  ])];
+  delete opts.gl;
   const browser = await chromium.launch({
     executablePath: chromePath(),
     headless: true,
