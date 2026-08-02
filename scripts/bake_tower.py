@@ -203,6 +203,7 @@ N_CORNICE = "#c9501c"
 N_LIT = "#ffdca8"       # a window in the numeral
 N_UNLIT = "#14161c"
 N_DIALLIT = "#f2ecc8"   # the dial is lit from behind and stays cream
+N_BEZEL = "#3a2f14"     # unlit bronze, so the lit dial has an edge to sit in
 N_DARK = "#12101c"      # everything not floodlit: the Main Building
 N_TILE = "#131020"
 
@@ -659,7 +660,7 @@ def build(feature, stats):
     # surface bright enough gets its glow for free and no new layer is needed.
     # Taking the dial to near-white puts it over that threshold while the tower
     # around it stays limestone.
-    c_gold = trio(C_GOLD, "#fff3cf", 0.10)
+    c_gold = trio(C_GOLD, N_BEZEL, 0.10)
     c_dial = trio(C_DIAL, N_DIALLIT, 0.05)
     for nu, nv in ((0, -1), (0, 1), (-1, 0), (1, 0)):
         along_u = (nu == 0)
