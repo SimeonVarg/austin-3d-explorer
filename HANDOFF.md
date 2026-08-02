@@ -2084,3 +2084,26 @@ something other than what the report said.
     set back under each candidate. It found the buried fountain water, it named
     the 12,569 m² hedge, and it killed the pond-colour theory. Sampling a
     hand-picked box has now been wrong three times in one night.
+
+49. **`acer/power-plant` (PR #67) — B7, and it was never construction.** North
+    of the Drama Building the snapshot already had `Hal C. Weaver Power Plant`,
+    its Annex, `Cooling Tower 1` and `UTM Cooling Tower 2`. It is UT's
+    chilled-water plant, rendered as four boxes on a bare yard — and the
+    "circular area with stuff" is the FAN DECKS on the tower roofs. Work out
+    what a place is from the data before deciding what to draw there.
+
+50. **A BOUNDING BOX IS NOT A SHAPE.** Both cooling towers are long thin
+    rectangles rotated ~20 degrees. Sizing from an axis-aligned bbox drew a
+    handrail visibly larger than the building it sat on and threw the fan decks
+    clean off the roof into the yard. Measure along the footprint's own longest
+    edge. This is the second time tonight a footprint's real geometry mattered
+    and its bbox lied — see also the sagitta fix in bake_roofs.
+
+51. **A LEVEL RUN HAS NO HEIGHT.** `beam()` spreads z0..z1 across its steps, so
+    a pipe from 4.6 to 4.6 is a stack of zero-height slabs and `add()` drops
+    every one. It reported `plant_pipes: 0` rather than failing.
+
+52. **The magenta-pixel threshold has to allow for lighting.** Counting
+    `r>150 && g<100 && b>150` under-reports badly, because MapLibre lights a
+    fill-extrusion and the warm day light pulls magenta's blue channel under
+    150. Use a mask captured once, not a per-frame threshold, or widen it.

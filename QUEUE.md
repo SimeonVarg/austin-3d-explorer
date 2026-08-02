@@ -44,9 +44,10 @@ else here is yours.
 | B4 depth / stairs | **DONE** #62 — a reusable step generator; the Littlefield Fountain has its basin and both flights. |
 | B3 Turtle Pond | **DONE** #63 #65 #66 — a 12,569 m² "garden" slab was covering it; twelve turtles in. |
 | B6 / A7 Waller Creek | **DONE** #65 — the creek-bank layer had never drawn a pixel; nothing set `s` to `creek`. Classified, banked and planted. |
+| B7 circular site behind Drama | **DONE** #67 — it is the Hal C. Weaver chilled-water plant. The circles are cooling-tower fan decks. |
 | B9 roof colour variety | **DONE** #60 — measured off the imagery, relative to the campus median, amplified 3.5x and declared. |
 
-**Still open: B2 (Kelly lawn), B7 (circular site behind Drama), B8 (sidewalks), C1 (buildings on tiles).** They are unchanged below.
+**Still open: B2 (Kelly lawn), B8 (sidewalks), C1 (buildings on tiles).** They are unchanged below.
 
 Three things worth carrying into the next pass:
 
@@ -275,6 +276,18 @@ shape classification already separates creek from pond — use it so the two get
 different treatments.
 
 ## B7. The circular thing behind the Drama Building
+
+> **DONE 2026-08-02 (PR #67).** It is UT's chilled-water plant — `Hal C. Weaver
+> Power Plant`, its Annex, `Cooling Tower 1` and `UTM Cooling Tower 2` are all
+> in the snapshot, north of the Drama Building, and they rendered as four plain
+> boxes on a bare yard. The circles are the **fan decks** on the cooling-tower
+> roofs. Fan stacks, roof handrails, three tanks and a pipe run added.
+>
+> **A bounding box is not a shape.** Both towers are long thin rectangles
+> rotated ~20 degrees; sizing from an axis-aligned bbox drew a handrail bigger
+> than its own building and put the fan decks in the yard. Measure along the
+> footprint's own longest edge.
+
 
 Simeon: *"the area that looks like it has construction behind drama building that
 circular area has stuff find it and add it."*
