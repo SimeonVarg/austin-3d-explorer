@@ -116,6 +116,39 @@ Three PRs, not one.
 
 ## M2. Downtown, in detail — the vector-tile proving ground
 
+> **Step 1 is half done, 2026-08-02, PR #71 `mac/outer-facade-bake`.**
+>
+> The partition is ported and **proved**: `scripts/bake_outer_facades.py`
+> computes each tower's facade bucket offline, and
+> `scripts/verify/outer-facade-parity.mjs` + `outer_facade_parity.py` check it
+> against a live run of `window.quantiseOuterFacades` — a bijection both ways
+> plus centroids, 114/114. Buckets are named `tb00..tb09`, an ordinal that
+> belongs to the tower data rather than to the campus palette's length.
+> `outer_ring.geojson` grew 2,508 bytes (+0.09%). `outer_ring.geojson` is
+> stamped and `data/outer_tower_palette.json` is written.
+>
+> **NOTHING RENDERS DIFFERENTLY YET.** Next, and these must land together in
+> one PR or the change is inert:
+>
+> 1. `js/facades.js`: expose something like
+>    `registerOuterTowerBuckets(buckets, map)` — push each bucket into
+>    `palette`, add its id to `combos` (so the time-of-day atlas re-render
+>    picks it up), and `map.addImage(id, tileData('tg', idx, p))`. That is the
+>    tower loop of `quantiseOuterFacades` minus the clustering.
+> 2. `js/outer.js` tile path: fetch `data/outer_tower_palette.json`, call the
+>    above BEFORE `addSource`, and stop calling `quantiseOuterFacades`.
+> 3. Re-tile `outer.pmtiles` so the archive carries `wp`. Flags are
+>    `TIPPE_COMMON` in `scripts/tile.sh`; tippecanoe 2.79 is in the `utx` env,
+>    so a local build takes seconds if the Build PMTiles workflow is slow.
+> 4. **Verify with a picture of downtown, not a byte count** — the whole
+>    symptom is that the towers are one colour, and every metric looks fine
+>    while they are.
+>
+> **Still blocked:** the other 7,511 low-rise ring features snap to the CAMPUS
+> palette, derived in the browser from the campus snapshot. Baking their `wp`
+> means porting that derivation too. They fall back to `mh00` on the tile path
+> and did before this work as well.
+
 *"since were changing to vectors i want downtown to be more detailed now ...
 before we transform main campus lets try it with all downtown."*
 
