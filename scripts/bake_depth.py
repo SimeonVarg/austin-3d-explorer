@@ -81,12 +81,41 @@ FLIGHT_RISE = 1.35          # total rise of a flank flight
 FLIGHT_WIDTH = 9.0          # metres across
 FLIGHT_LENGTH = 11.0        # metres along
 
+# ── Turtle Pond ───────────────────────────────────────────────────────
+#
+# "add turtle pond and add turtles"
+#
+# The pond itself needed no geometry in the end. It was invisible because a
+# 12,569 m2 OSM "garden" was baked as a raised prop slab over the whole block
+# (PR #63), and it was the wrong blue because nothing classified it as a pond
+# (PR #65). Both fixed elsewhere. What is left is the turtles.
+#
+# NO TERRACING HERE, and that is deliberate. `terrace()` is a BASIN tool and
+# Turtle Pond is not a basin: 218 m2 of water on a 122 m perimeter, a winding
+# ribbon under 4 m across for most of its length. A 1.6 m rim buffered in from
+# both banks left almost no water at all, and narrowing the courses to
+# 0.16-0.55 m over 1.1 m offsets put them near-coplanar with the ground fill and
+# rendered a stripe of z-fighting slivers across the lawn. Measure the shape
+# before choosing an offset.
+#
+# A DOZEN TURTLES. A handful reads as litter and fifty reads as a plague. They
+# are 24-42 cm shells with a head, which is all a turtle is at any altitude this
+# app flies, at mixed sizes and headings because a row of identical ones is a
+# pattern and a pattern reads as decoration rather than as life.
+TURTLE_N = 12
+TURTLE_R = (0.24, 0.42)     # shell radius range, metres
+TURTLE_SEED = 20260802      # deterministic: a bake must produce the same file twice
+TURTLE_BANK_M = 1.1         # within this of the edge, a turtle is hauled out
+TURTLE_FLOAT_Z = 0.05       # the lift that keeps a swimmer off the pond fill
+
 MATERIALS = {
     # Texas limestone, the material the whole mall is faced in. Day / golden /
     # night, matching the trio shape every other pass uses.
     "stone": ("#d8cfb8", "#e0cca4", "#23242e"),
     "stonedk": ("#bdb298", "#c5ab84", "#1d1e28"),   # the riser face, in shade
     "water": ("#5f86a0", "#6d87a0", "#141a26"),
+    # Wet dark olive. A turtle in Austin sun photographs almost black on top.
+    "shell": ("#4a4a34", "#56502f", "#12131a"),
 }
 
 
@@ -190,6 +219,23 @@ class Depth:
                 self.add(list(gm.exterior.coords), 0.0, z, m, name, hole_m)
         self.stats["terraces"] += 1
 
+    def dome(self, cx, cy, r, z0, h, mat, name, tiers=3, seg=8):
+        """Stacked chords of a hemisphere — the only curved top there is."""
+        for i in range(tiers):
+            t0, t1 = i / tiers, (i + 1) / tiers
+            rr = r * math.sqrt(max(0.0, 1.0 - ((t0 + t1) / 2) ** 2))
+            self.add([(cx + rr * math.cos(2 * math.pi * k / seg),
+                       cy + rr * math.sin(2 * math.pi * k / seg)) for k in range(seg)],
+                     z0 + h * t0, z0 + h * t1, mat, name)
+
+    def turtle(self, cx, cy, r, z, facing, name):
+        """A shell and a head. That is a turtle at sixty metres."""
+        self.dome(cx, cy, r, z, r * 0.78, "shell", name, tiers=3, seg=8)
+        hx, hy = cx + math.cos(facing) * r * 1.05, cy + math.sin(facing) * r * 1.05
+        self.add([(hx + r * 0.3 * math.cos(a), hy + r * 0.3 * math.sin(a))
+                  for a in (0.0, 1.571, 3.142, 4.712)], z, z + r * 0.42, "shell", name)
+        self.stats["turtles"] += 1
+
     def flight(self, cx, cy, along_deg, length, width, z0, z1, n, mat, name):
         """A straight run of n steps, each a slab at its own rising base."""
         a = math.radians(along_deg)
@@ -222,7 +268,7 @@ def main():
     cy = sum(y for _, y in ring_m) / len(ring_m)
 
     # The pool, and the hole the coping needs so the water can be seen.
-    from shapely.geometry import Polygon
+    from shapely.geometry import Polygon, Point
     pool = Polygon(ring_m).buffer(-FOUNTAIN_RIM_M, join_style=2)
     pool_ring = None
     if not pool.is_empty:
@@ -251,6 +297,36 @@ def main():
         d.flight(cx + side * (span / 2 + FLIGHT_WIDTH * 0.62), cy + 6.0,
                  90.0, FLIGHT_LENGTH, FLIGHT_WIDTH,
                  0.0, FLIGHT_RISE, FLIGHT_STEPS, "stone", "South Mall steps")
+
+    # ── The turtles ───────────────────────────────────────────────────
+    pring = load_area("Turtle Pond")
+    if pring is None:
+        print("  Turtle Pond not found - no turtles")
+    else:
+        wp = Polygon([to_m(x, y) for x, y in pring])
+        if not wp.is_valid:
+            wp = wp.buffer(0)
+        minx, miny, maxx, maxy = wp.bounds
+        rng, placed, tries = TURTLE_SEED, 0, 0
+        while placed < TURTLE_N and tries < 6000:
+            tries += 1
+            vals = []
+            for _ in range(3):
+                rng = (rng * 1103515245 + 12345) & 0x7FFFFFFF
+                vals.append(((rng >> 7) % 10000) / 10000.0)
+            fx, fy, fr = vals
+            x, y = minx + (maxx - minx) * fx, miny + (maxy - miny) * fy
+            if not wp.contains(Point(x, y)):
+                continue
+            r = TURTLE_R[0] + (TURTLE_R[1] - TURTLE_R[0]) * fr
+            # Hauled out on the edge, or floating. Both sit just above the flat
+            # pond fill; the lift is what stops a turtle z-fighting the water.
+            on_bank = wp.exterior.distance(Point(x, y)) < TURTLE_BANK_M
+            d.turtle(x, y, r, TURTLE_FLOAT_Z + (0.06 if on_bank else 0.0),
+                     fr * 6.283, "Turtle Pond")
+            placed += 1
+        if placed < TURTLE_N:
+            print("  only %d of %d turtles placed" % (placed, TURTLE_N))
 
     fc = {"type": "FeatureCollection", "features": d.feats}
     with open(OUT, "w", encoding="utf-8") as fh:
