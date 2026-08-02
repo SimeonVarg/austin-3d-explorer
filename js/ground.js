@@ -40,6 +40,10 @@
     // apparent thickness whether the path is under the camera or by the horizon.
     // Metres were the right unit for the path itself and the wrong one for this.
     kerbPx: 2.2,
+    // How far a footway stands proud of the road it runs beside. A real kerb is
+    // 150 mm; drawn at that it is a third of a pixel from flying altitude and
+    // does not exist. Set to 0 for a flat painted path.
+    pathRaise: 0.22,
     // Steps, terraces and basins from data/depth.geojson. false hands the
     // ground back to being perfectly flat.
     depth: true,
@@ -912,14 +916,29 @@
      */
     if (!map.getLayer(PATH)) {
       map.addLayer({
-        id: PATH, type: 'fill', source: SRC, minzoom: GROUND.minZoom,
+        id: PATH, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
         filter: ['==', ['get', 'k'], 'patharea'],
         paint: {
-          'fill-color': jitterExpr(pal, GROUND.pathJitter),
-          'fill-opacity': ['interpolate', ['linear'], ['zoom'],
-            GROUND.pathFadeZoom[0], 0, GROUND.pathFadeZoom[1], GROUND.pathOpacity],
+          'fill-extrusion-color': jitterExpr(pal, GROUND.pathJitter),
+          'fill-extrusion-base': 0,
+          // A KERB, NOT A PAINTED STRIP. "roads are wtv but sidewalks
+          // especially in wampus are a bit lame" — and the reason a West Campus
+          // block looked lame is that its footways were flat fills lying in the
+          // same plane as the asphalt, so a sidewalk was a pale rectangle
+          // rather than a thing you step up onto. A real kerb is 150 mm; this
+          // is drawn at pathRaise because at 150 mm the riser is a third of a
+          // pixel from any altitude this app flies, the same declared
+          // over-scale as the fountain courses and the lane markings.
+          //
+          // It also buys correctness for free: an extrusion depth-tests against
+          // the road extrusions and the buildings, where a fill does not.
+          'fill-extrusion-height': GROUND.pathRaise,
+          'fill-extrusion-opacity': GROUND.pathOpacity,
+          // OFF. The gradient darkens the bottom of every extrusion and this one
+          // is 0.22 m tall, so every sidewalk would be a dark ribbon.
+          'fill-extrusion-vertical-gradient': false,
         },
-      }, under);
+      });
     }
 
     /**
@@ -1138,7 +1157,7 @@
     const pal = paletteAt(p);
     const set = (id, prop, val) => { try { map.setPaintProperty(id, prop, val); } catch (e) {} };
     set(AREA, 'fill-color', jitterExpr(pal, GROUND.jitter));
-    set(PATH, 'fill-color', jitterExpr(pal, GROUND.pathJitter));
+    set(PATH, 'fill-extrusion-color', jitterExpr(pal, GROUND.pathJitter));
     set(PATH_CASE, 'line-color', jitterExpr(pal, GROUND.pathJitter, c => lighten(c, GROUND.kerbLight)));
     // The texture images carry no colour, so time of day only moves opacity —
     // no getImageData readback, no atlas upload, nothing per tick.
@@ -1168,8 +1187,8 @@
     // buffers the centreline), so there is no width to retune here. Changing
     // GROUND.widthScale means re-running the bake. The kerb is still paint.
     set(PATH_CASE, 'line-width', GROUND.kerbPx);
-    set(PATH, 'fill-opacity', ['interpolate', ['linear'], ['zoom'],
-      GROUND.pathFadeZoom[0], 0, GROUND.pathFadeZoom[1], GROUND.pathOpacity]);
+    set(PATH, 'fill-extrusion-height', GROUND.pathRaise);
+    set(PATH, 'fill-extrusion-opacity', GROUND.pathOpacity);
     set(AREA, 'fill-opacity', GROUND.areaOpacity);
     set(ROAD, 'line-width', roadWidthExpr(GROUND.roadWidthScale));
     set(ROAD_CASE, 'line-width', roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale));
