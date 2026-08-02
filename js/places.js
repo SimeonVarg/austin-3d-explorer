@@ -327,7 +327,14 @@
         filter: ['==', ['get', 'kind'], 'label'],
         layout: {
           'text-field': ['get', 'nm'],
-          'text-font': ['Noto Sans Bold', 'Open Sans Bold', 'Arial Unicode MS Bold'],
+          // ONE font, not a fallback list. MapLibre requests a fontstack as a
+          // single URL — the three names above became
+          // /fonts/Noto%20Sans%20Bold,Open%20Sans%20Bold,Arial%20Unicode%20MS%20Bold/0-255.pbf,
+          // which OpenFreeMap 404s because it serves only Noto Sans
+          // Regular/Bold/Italic. A 404 glyph is not cosmetic: MapLibre discards
+          // the ENTIRE tile that needed it, which is how every building once
+          // disappeared with err:0 and no console error (HANDOFF 7.12).
+          'text-font': ['Noto Sans Bold'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 17.3, 8.5, 18.4, 11, 19.5, 12.5],
           'text-max-width': 8,
           'text-padding': 3,
