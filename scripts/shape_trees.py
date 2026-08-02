@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-shape_trees.py — take the trees out of the buildings, and give each species its
-own crown.
+shape_trees.py — take the trees out of the surfaces they cannot stand in, and
+give each species its own crown.
 
-THREE REPORTED DEFECTS, one pass over data/trees.geojson.
+FOUR REPORTED DEFECTS, one pass over data/trees.geojson.
 
 1. "Trees clip through buildings and appear on top of them - fix the
    ordering/placement rule, not individual trees." It is not ordering. A tree
@@ -12,6 +12,21 @@ THREE REPORTED DEFECTS, one pass over data/trees.geojson.
    the imagery-detected crowns both place points that fall on buildings — a
    street tree recorded a few metres off, a crown blob that is really a rooftop
    planter — and nothing downstream ever checked. They are dropped here.
+
+1b. "some trees are in roads. this is not a fix trees in roads pass its a more
+   general pas" — and "get rid of big trees in the lawn in front of tower".
+
+   Right, and they are one mechanism, not two: a trunk cannot be in a surface
+   that has no room for a trunk. The building test above was the only one that
+   had ever been written. It is now ONE TABLE — `SURFACES` — covering the
+   carriageway, open water, the playing surfaces, and the named open lawns,
+   with the ground and road bakes as the source of truth.
+
+   THE TRUNK IS THE TEST, NOT THE CROWN. A live oak whose canopy hangs half way
+   over Guadalupe is right and this campus is full of them; the tree is only
+   wrong if the point it grows from is in the road. Everything below tests the
+   feature's own centre, which is the surveyed or detected tree position, and
+   never the crown's extent.
 
 2. "instead of octagonal prisms, if they could like taper off near the top."
    A fill-extrusion cannot taper: it is a prism with one radius. What it CAN do
@@ -25,6 +40,11 @@ THREE REPORTED DEFECTS, one pass over data/trees.geojson.
    wearing the same one. This pass replaces it with a RADIUS PROFILE PER SPECIES,
    sampled to as many tiers as the tree is big enough to earn.
 
+4. And then: "get rid of big trees in the lawn in front of tower." See
+   OPEN_LAWNS. Handled by the same table, because it is the same claim: the
+   South Mall panels are open grass in life and the canopy belongs on the
+   flanking walks.
+
 WHERE THE SPECIES COMES FROM. `data/trees.geojson` already carries `sp` on every
 canopy — liveoak 5,986, elm 3,145, crape 2,470, magnolia 1,917, pecan 1,866,
 cypress 989, cedar 796, oak 92, palm 2, and 793 "other". It is the City of
@@ -37,11 +57,26 @@ A live oak is broad and low and stays wide most of the way up; a cedar is a cone
 a crape myrtle is a small ball on a stick. Those three silhouettes are different
 enough that you can tell them apart from the air, which is the whole ask.
 
-WHY IT IS IDEMPOTENT NOW, and it was not before. The old version split crowns in
-place and wrote the file back, so running it twice split the split ones again.
-This one MERGES every tier of a crown back into a single crown first (same
-centroid, same species: take the outermost ring and the full base..h span) and
-regenerates from there. Run it as often as you like.
+IDEMPOTENCY, WHICH THIS FILE CLAIMED AND DID NOT HAVE. It MERGES every tier of a
+crown back into a single crown before regenerating, which is the right idea and
+was not enough. Two consecutive no-op runs measured 41,964 -> 41,487 -> 41,158
+features with nothing dropped, because the merge inferred the crown's extent
+from its widest TIER. Three separate leaks, all fixed here:
+
+  * "the widest ring is the crown's true extent" is false for every species
+    whose profile peaks below 1.0. A cedar's widest tier is 0.881 of its source
+    ring, so every cedar and cypress on campus lost 12% per run and eventually
+    fell under a TIERS_BY_RADIUS threshold. The source radius is carried on the
+    features now, as `r0`, and restored exactly.
+  * a tier carries TIER_TWIST_DEG * i of rotation and the merge did not undo
+    it, so a crown rotated further every run and never reached a fixed point.
+  * grouping on a centroid rounded to 1e-6 splits a crown in two when it sits
+    near a cell boundary, and each half grew its own head.
+
+Measured after the fix: run 1 drops what it should, runs 2 and 3 settle, and
+runs 4-7 are exact no-ops — 39,580 features, 0 dropped, every time. Coordinates
+still churn in the 7th decimal (1 cm) because the reconstruction round-trips
+through a rounded ring; crown SIZE and tier count are frozen by `r0` and do not.
 
 FEATURE COUNT IS THE COST MODEL. js/lod.js drops `trees-canopy` as one whole
 draw pass at altitude, so what matters is how many features exist at street
@@ -65,11 +100,93 @@ import os
 import sys
 from collections import Counter, defaultdict
 
+from shapely.geometry import LineString, Point, shape
+from shapely.strtree import STRtree
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 DRY = "--dry" in sys.argv
 
-# ── Taste block ───────────────────────────────────────────────────────
+# ── Taste block: WHERE A TRUNK CANNOT BE ──────────────────────────────
+#
+# One table, read against data/ground.geojson and data/roads.geojson. Each row
+# is a ground class and a verdict:
+#
+#   drop     is a trunk standing here physically impossible?
+#   inset_m  shrink the surface by this much before testing, so a trunk sitting
+#            on the kerb line survives a centreline that is a metre out.
+#
+# THE `False` ROWS ARE THE INTERESTING HALF, and they are why this is a table
+# and not a list of classes to delete. The city inventory's 869 trunks in this
+# bbox are SURVEYED positions — factual, per fetch_city_trees.py — so what
+# fraction of them land inside each surface is a direct measure of how much
+# authority that surface's polygon has:
+#
+#     inside a road carriageway     18 / 869   2.1%    <- the error floor
+#     inside a `footway` polygon   246 / 869  28.3%
+#
+# A quarter of Austin's surveyed street trees are not standing in the middle of
+# the sidewalk. A `footway` polygon is a 2 m ribbon widened from a centreline by
+# bake_ground.py, and it has less positional authority than the survey does —
+# and a tree well cut into a sidewalk is a real thing, as is a planting island
+# in a parking lot and a specimen tree in a plaza. Dropping footway + plaza +
+# parking would delete 1,103 trees to fix an artefact that is not there, and
+# would strip the Drag of the street trees that make it read as a street.
+#
+# So the drops are the surfaces where a tree well is impossible by definition:
+# something drives, floats or is played on every square metre of them.
+SURFACES = {
+    # (k, u) in ground.geojson         drop   inset_m
+    ("area", "water"):                (True,  0.0),
+    ("area", "fountain"):             (True,  0.0),
+    ("area", "pitch"):                (True,  0.0),
+    ("area", "endzone"):              (True,  0.0),
+    ("area", "track"):                (True,  0.0),
+    ("patharea", "footway"):          (False, 0.0),
+    ("patharea", "path"):             (False, 0.0),
+    ("patharea", "steps"):            (False, 0.0),
+    ("patharea", "pedestrian"):       (False, 0.0),
+    ("area", "plaza"):                (False, 0.0),
+    ("area", "parking"):              (False, 0.0),
+    ("area", "playground"):           (False, 0.0),
+    ("area", "construction"):         (False, 0.0),
+    ("area", "garden"):               (False, 0.0),
+    ("area", "lawn"):                 (False, 0.0),   # see OPEN_LAWNS
+    ("area", "park"):                 (False, 0.0),
+    ("area", "wood"):                 (False, 0.0),
+    ("area", "scrub"):                (False, 0.0),
+    ("area", "sand"):                 (False, 0.0),
+}
+
+# Roads and cycleways are LineStrings with a pavement width `w`, so they get
+# their own row. bake_ground.py builds `w` as `lanes * 3.4 + 1.6`, where the
+# 1.6 m is the kerb allowance for BOTH sides — so insetting by half of it puts
+# the test on the travelled way, where a car actually is, and lets a kerbside
+# tree well through.
+ROAD_KINDS = ("road", "cycle")
+ROAD_DROP = True
+ROAD_INSET_M = 0.8
+
+# A trunk inside a building footprint is inside the building. No inset: the
+# footprint is the wall.
+BUILDING_DROP = True
+
+# ── The open lawns (the Tower ask) ────────────────────────────────────
+#
+# A lawn is not a surface a tree cannot be in — most of campus is trees on
+# grass, and 599 trees stand in a mapped lawn. These specific panels are the
+# exception: the South Mall and the Main Mall in front of the Main Building are
+# open grass in life, with the live oaks lining the flanking walks. Each entry
+# is a SEED POINT; the lawn polygon containing it is the one that gets cleared,
+# so the rule survives a ground re-bake that changes the polygon. A seed that
+# matches nothing is reported loudly rather than passing silently.
+OPEN_LAWNS = [
+    (-97.73955, 30.28453, "South Mall panel, fountain to the Main Building"),
+    (-97.73909, 30.28532, "Main Mall, east of the Main Building"),
+    (-97.73986, 30.28538, "Main Mall, west of the Main Building"),
+]
+
+# ── Taste block: crown shape ──────────────────────────────────────────
 #
 # CROWN PROFILES, as (height fraction from the crown's base, radius fraction of
 # the source ring). Read off photographs of each species on this campus and
@@ -134,16 +251,119 @@ def centroid(ring):
     return (sum(p[0] for p in ring) / n, sum(p[1] for p in ring) / n)
 
 
-def inside(pt, ring):
-    x, y = pt
-    c = False
-    n = len(ring)
-    for i in range(n):
-        x1, y1 = ring[i][:2]
-        x2, y2 = ring[(i + 1) % n][:2]
-        if ((y1 > y) != (y2 > y)) and (x < (x2 - x1) * (y - y1) / ((y2 - y1) or 1e-12) + x1):
-            c = not c
-    return c
+# ── The forbidden-surface index ───────────────────────────────────────
+#
+# Everything below works in METRES on a local equirectangular projection about
+# the campus, the same one bake_ground.py uses. A buffer or an inset in degrees
+# is 14% narrower east-west than north-south at this latitude, which is exactly
+# the size of the margins being argued over.
+LON0, LAT0 = -97.74, 30.285
+M_LAT = 111320.0
+M_LON = 111320.0 * math.cos(math.radians(LAT0))
+
+
+def to_m(lon, lat):
+    return ((lon - LON0) * M_LON, (lat - LAT0) * M_LAT)
+
+
+def poly_m(geom):
+    """A shapely geometry from GeoJSON, reprojected to metres. Keeps holes:
+    a building with a courtyard is not solid, and a footway loop round a block
+    encloses the block rather than covering it."""
+    g = shape(geom)
+    if g.is_empty:
+        return None
+    from shapely.ops import transform
+    return transform(lambda x, y, z=None: to_m(x, y), g)
+
+
+class Surfaces(object):
+    """Named groups of metric polygons, each answering `hit(lon, lat)`."""
+
+    def __init__(self):
+        self.groups = []          # (label, drop, [polys], STRtree)
+
+    def add(self, label, drop, polys, inset_m=0.0):
+        polys = [p for p in polys if p is not None and not p.is_empty]
+        if inset_m:
+            polys = [q for q in (p.buffer(-inset_m) for p in polys)
+                     if not q.is_empty]
+        if not polys:
+            return
+        self.groups.append((label, drop, polys, STRtree(polys)))
+
+    def hits(self, lon, lat):
+        """Every label whose surface contains this point, drops first."""
+        p = Point(*to_m(lon, lat))
+        out = []
+        for label, drop, polys, tree in self.groups:
+            for i in tree.query(p):
+                if polys[i].contains(p):
+                    out.append((label, drop))
+                    break
+        return out
+
+
+def build_surfaces(buildings):
+    """Read ground.geojson + roads.geojson + the snapshot and index every class
+    named in SURFACES, dropped or not. The kept classes are indexed on purpose:
+    the per-class report is the only way to see what a verdict flip would cost.
+    """
+    S = Surfaces()
+    if BUILDING_DROP:
+        S.add("building", True, [poly_m(f["geometry"]) for f in buildings])
+
+    ground = json.load(open(os.path.join(DATA, "ground.geojson"),
+                            encoding="utf-8"))["features"]
+    by_class = defaultdict(list)
+    open_lawn = []
+    seeds = [(Point(*to_m(lo, la)), name) for lo, la, name in OPEN_LAWNS]
+    found = [False] * len(seeds)
+    for f in ground:
+        p = f["properties"]
+        key = (p.get("k"), p.get("u"))
+        if key not in SURFACES:
+            continue
+        g = poly_m(f["geometry"])
+        if g is None:
+            continue
+        if key == ("area", "lawn"):
+            for i, (pt, _name) in enumerate(seeds):
+                if g.contains(pt):
+                    found[i] = True
+                    open_lawn.append(g)
+                    break
+            else:
+                by_class[key].append(g)
+            continue
+        by_class[key].append(g)
+    for i, ok in enumerate(found):
+        if not ok:
+            print("  !! OPEN_LAWNS seed %d (%s) is in no lawn polygon — the "
+                  "ground bake moved it" % (i, seeds[i][1]))
+    S.add("open lawn", True, open_lawn)
+    for key, polys in sorted(by_class.items(), key=lambda kv: str(kv[0])):
+        drop, inset = SURFACES[key]
+        S.add("%s/%s" % key, drop, polys, inset)
+
+    roads = json.load(open(os.path.join(DATA, "roads.geojson"),
+                           encoding="utf-8"))["features"]
+    lanes = []
+    for f in roads:
+        p = f["properties"]
+        w = p.get("w")
+        if p.get("k") not in ROAD_KINDS or not w or \
+                f["geometry"]["type"] != "LineString":
+            continue
+        half = w / 2.0 - ROAD_INSET_M
+        if half <= 0:
+            continue
+        cs = [to_m(x, y) for x, y in f["geometry"]["coordinates"]]
+        if len(cs) < 2:
+            continue
+        lanes.append(LineString(cs).buffer(half, cap_style=2, join_style=2))
+    S.add("road carriageway", ROAD_DROP, lanes)
+    return S
 
 
 def shaped(ring, k, twist_deg=0.0, lat=30.285):
@@ -203,36 +423,59 @@ def main():
     B = json.load(open(os.path.join(snap, latest, "buildings.detailed.geojson"),
                        encoding="utf-8"))["features"]
 
-    # Grid the footprints so this is not 19,440 x 2,453 point-in-polygon tests.
-    grid = {}
-    for f in B:
-        for r in rings(f["geometry"]):
-            los = [p[0] for p in r]
-            las = [p[1] for p in r]
-            for cx in range(int(min(los) * 2000), int(max(los) * 2000) + 1):
-                for cy in range(int(min(las) * 2000), int(max(las) * 2000) + 1):
-                    grid.setdefault((cx, cy), []).append(r)
-
-    def in_building(pt):
-        for r in grid.get((int(pt[0] * 2000), int(pt[1] * 2000)), []):
-            if inside(pt, r):
-                return True
-        return False
-
     path = os.path.join(DATA, "trees.geojson")
     gj = json.load(open(path, encoding="utf-8"))
     feats = gj["features"]
     print("trees.geojson: %d features" % len(feats))
 
-    # 1. Drop anything standing inside a building.
+    # 1. Drop anything whose TRUNK stands in a surface that cannot hold one.
+    #    Verdicts are cached per position, because a five-tier crown asks the
+    #    same question five times.
+    S = build_surfaces(B)
+    verdict = {}
     keep, dropped = [], 0
+    # The report counts TREES, not features: a crown is up to five stacked
+    # canopy features plus a trunk, and charging a surface six times for one
+    # tree is how a count of 1,320 gets reported for 782 trees. One canopy
+    # feature per position at the same 6 dp the merge below groups on.
+    per_class = defaultdict(set)
+    charged = {}
     for f in feats:
         rs = rings(f["geometry"])
-        if rs and in_building(centroid(rs[0])):
+        if not rs:
+            keep.append(f)
+            continue
+        c = centroid(rs[0])
+        key = (round(c[0], 7), round(c[1], 7))
+        if key not in verdict:
+            verdict[key] = S.hits(c[0], c[1])
+        hits = verdict[key]
+        if f["properties"].get("kind") == "canopy":
+            tree = (round(c[0], 6), round(c[1], 6))
+            for label, _drop in hits:
+                per_class[label].add(tree)
+            for label, drop in hits:
+                if drop:
+                    charged.setdefault(tree, label)
+                    break
+        if any(drop for _label, drop in hits):
             dropped += 1
             continue
         keep.append(f)
-    print("  dropped inside a building footprint: %d" % dropped)
+    dropped_by = Counter(charged.values())
+
+    print("  --- trees standing in each ground surface ---")
+    for label, drop, _polys, _t in S.groups:
+        n = len(per_class[label])
+        # Every DROPPED class prints even at zero. A class that quietly stops
+        # matching — a renamed `u`, a ground re-bake — reads as "fixed" if the
+        # row just vanishes, and that is the failure this whole file exists to
+        # stop happening to trees.
+        if n or drop:
+            print("      %-22s %5d  %s" % (label, n, "DROPPED" if drop else "kept"))
+    print("  dropped %d trees (%s) = %d features"
+          % (sum(dropped_by.values()),
+             ", ".join("%s %d" % kv for kv in dropped_by.most_common()), dropped))
 
     # 2. MERGE existing tiers back into one crown each. Without this the pass is
     #    not idempotent: the previous version's two-tier crowns would each be
@@ -244,21 +487,85 @@ def main():
         return
     lat0 = centroid(rings(canopies[0]["geometry"])[0])[1]
 
+    # GROUPING HAS TO TOLERATE A ROUNDED CENTROID. `shaped()` rounds every
+    # vertex to 7 dp, so a tier's mean lands a few millimetres off its parent's
+    # — and a crown whose centroid sits near a 1e-6 boundary splits into two
+    # groups, each re-tiered as its own tree. That is the second half of the
+    # non-idempotency: crowns went 11,255 -> 11,280 -> 11,354 over three runs
+    # with nothing dropped, growing a duplicate head each time. So the key is
+    # claimed over its 3x3 neighbourhood of 1e-6 cells: +-0.11 m, which is far
+    # under the smallest gap between two real trees and far over the drift.
+    anchors = {}
     groups = defaultdict(list)
     for f in canopies:
         c = centroid(rings(f["geometry"])[0])
-        groups[(round(c[0], 6), round(c[1], 6), f["properties"].get("sp"))].append(f)
+        sp = f["properties"].get("sp")
+        ix, iy = int(round(c[0] * 1e6)), int(round(c[1] * 1e6))
+        key = anchors.get((ix, iy, sp))
+        if key is None:
+            key = (ix, iy, sp)
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    anchors.setdefault((ix + dx, iy + dy, sp), key)
+        groups[key].append(f)
     merged = []
+    recovered = 0
+    shrink = []
     for key, group in groups.items():
-        # The widest ring is the crown's true extent; the others are its tiers.
         base = min(float(f["properties"].get("base") or 0) for f in group)
         top = max(float(f["properties"].get("h") or 0) for f in group)
+        # Tiers are emitted bottom-up and tier i carries TIER_TWIST_DEG * i of
+        # rotation, so the twist is recoverable from where the tier sits in the
+        # stack. It HAS to be undone here or the crown rotates a little further
+        # every run, never reaches a fixed point, and its centroid keeps
+        # wandering by a few millimetres — which is enough to walk one tree per
+        # run across a kerb line and delete it.
+        order = sorted(group, key=lambda f: float(f["properties"].get("base") or 0))
         widest = max(group, key=lambda f: radius_m(rings(f["geometry"])[0], lat0))
+        untwist = -TIER_TWIST_DEG * order.index(widest)
         f = json.loads(json.dumps(widest))
-        f["properties"]["base"] = round(base, 2)
-        f["properties"]["h"] = round(top, 2)
+        p = f["properties"]
+        ring = rings(f["geometry"])[0]
+        r_wide = radius_m(ring, lat0)
+
+        # THE SOURCE RADIUS HAS TO BE CARRIED, NOT INFERRED, and this is the
+        # bug that made the file quietly non-idempotent for as long as it has
+        # existed. "The widest ring is the crown's true extent" is false for
+        # every species whose profile peaks below 1.0 — a cedar's widest TIER
+        # is 0.881 of its source ring, so each re-run shrank every cedar and
+        # cypress on campus by 12%, dropped some of them under a
+        # TIERS_BY_RADIUS threshold, and emitted fewer features. Measured: two
+        # consecutive no-op runs went 41,964 -> 41,487 -> 41,158 features with
+        # nothing dropped. `r0` is the source radius in metres, stamped on
+        # every tier, so the merge restores the ring EXACTLY.
+        r0 = float(p.get("r0") or 0)
+        if not r0:
+            # No stamp yet: undo the last run's shrink by dividing out the
+            # widest profile sample this crown's own tier count would have
+            # used. Exact for one run; earlier runs' shrink is not recoverable.
+            n_grp = len(group)
+            if n_grp > 1:
+                prof = PROFILES.get(p.get("sp") or DEFAULT_PROFILE,
+                                    PROFILES[DEFAULT_PROFILE])
+                kmax = max(profile_at(prof, (i + 0.5) / n_grp)
+                           for i in range(n_grp))
+            else:
+                kmax = 1.0
+            r0 = r_wide / kmax
+            recovered += 1
+            if abs(kmax - 1.0) > 0.02:
+                shrink.append(kmax)
+        if r_wide > 0 and (abs(r0 / r_wide - 1.0) > 1e-6 or untwist):
+            f["geometry"]["coordinates"] = [
+                shaped(ring, r0 / r_wide, untwist, lat0)]
+        p["base"] = round(base, 2)
+        p["h"] = round(top, 2)
+        p["r0"] = round(r0, 2)
         merged.append(f)
     print("  %d canopy features merged back to %d crowns" % (len(canopies), len(merged)))
+    if recovered:
+        print("  %d crowns had no r0 and were rescaled from their tier count"
+              " (%d of them by more than 2%%)" % (recovered, len(shrink)))
 
     # 3. Re-tier each crown against its species profile.
     out = list(others)
@@ -270,8 +577,11 @@ def main():
         base = float(p.get("base") or 0)
         top = float(p.get("h") or 0)
         span = top - base
-        r = radius_m(ring, lat0)
-        n = tiers_for(r)
+        # Tier off the carried source radius, not off a re-measurement of a
+        # ring whose coordinates were rounded to 7 dp: the measurement wobbles
+        # by ~11 mm and crowns sitting on a TIERS_BY_RADIUS threshold flip
+        # between runs because of it.
+        n = tiers_for(float(p.get("r0") or radius_m(ring, lat0)))
         if span < MIN_SPLIT_H or n <= 1:
             if span < MIN_SPLIT_H and n > 1:
                 span_skipped += 1
