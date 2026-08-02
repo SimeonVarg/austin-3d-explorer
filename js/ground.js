@@ -272,6 +272,14 @@
       // than the mown grass because it is never cut. If these three ever read
       // as one colour the whole creek pass is back to being a band of paint.
       understorey:'#6e8a4d',
+      // A PLANTING BED, which is the one thing a garden has that a lawn does
+      // not. Read off what a bed actually is from the air: dark hardwood mulch
+      // with foliage over it, so it is browner and lower in value than any
+      // grass here -- if it drifts toward `grass` the whole pass is invisible,
+      // and if it goes too dark the bed reads as a HOLE in the lawn, which is
+      // what the first cut at #4a442e did (67 luma against grass's 158, a 90
+      // luma gap). 100 against 158 is the separation that reads as planting.
+      bed:'#6f5f3d', gardenlawn:'#7d9c5c',
       track:'#a8503c', endzone:'#bf5700',
       roadconcrete:'#7c7d78', brickpave:'#e9cca4',
       bikelane:'#6d7075', biketrack:'#7a7d80', bikegreen:'#737b6e',
@@ -280,7 +288,7 @@
       limestone:'#f4e0b8', concrete:'#e3cba6', paving:'#ecd6ac', brick:'#8f5439',
       asphalt:'#655d5a', gravel:'#cdb28d', dirt:'#a37f5b', sand:'#e7cb9c',
       grass:'#8a9457', turf:'#4a6b36', wood:'#5a6a3c', water:'#c9a184',
-      creek:'#5c6b4c', pond:'#b0947f', understorey:'#6b7f42',
+      creek:'#5c6b4c', pond:'#b0947f', understorey:'#6b7f42', bed:'#75603a', gardenlawn:'#788b4c',
       track:'#a5482f', endzone:'#b04e00',
       roadconcrete:'#857c72', brickpave:'#eec69b',
       bikelane:'#75706c', biketrack:'#827c76', bikegreen:'#7a7a66',
@@ -290,7 +298,7 @@
       brick:'#1d1720', asphalt:'#0d1017', gravel:'#1b1a22', dirt:'#191620',
       sand:'#201d26', grass:'#111a14', turf:'#0d1710', wood:'#0c130f',
       water:'#070f1e', creek:'#080f0c', pond:'#060d18',
-      understorey:'#0e1510',
+      understorey:'#0e1510', bed:'#12100e', gardenlawn:'#0f1712',
       track:'#1d1418', endzone:'#2a1608',
       roadconcrete:'#14161c', brickpave:'#241d1f',
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
@@ -310,8 +318,8 @@
   // as "green paint" from the air — the colour was different and the grain was
   // not, so the eye merged them.
   const TEX_FAMILY = {
-    grass: 'grass', turf: 'grass', endzone: 'grass',
-    wood: 'canopy', understorey: 'canopy',
+    grass: 'grass', turf: 'grass', endzone: 'grass', gardenlawn: 'grass',
+    wood: 'canopy', understorey: 'canopy', bed: 'canopy',
     asphalt: 'asphalt', track: 'asphalt',
     roadconcrete: 'asphalt', bikelane: 'asphalt', biketrack: 'asphalt',
     bikegreen: 'asphalt', brickpave: 'paving',
@@ -854,6 +862,10 @@
     bankveg:   ['#5c7742', '#59683a', '#0a110c'],  // top of bank, planted
     bankshade: ['#425c33', '#3f5230', '#080d09'],  // the same bank, in its own shade
     bank:      ['#9a8f70', '#a08a63', '#131319'],  // Austin Chalk at the toe
+    // Turtle Pond's rim. Dressed limestone, so it is PALER and cooler than
+    // the creek's raw cut face -- a built edge and a broken bank should not
+    // be the same colour.
+    coping:    ['#c6bda4', '#cdb894', '#1b1c24'],
   };
   function bankColour(p) {
     const e = ['match', ['get', 'm']];

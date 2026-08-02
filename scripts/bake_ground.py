@@ -67,7 +67,13 @@ DEFAULT_SURFACE = {
     "lawn": "grass", "park": "grass", "wood": "wood", "scrub": "grass",
     "pitch": "grass", "track": "track", "parking": "asphalt",
     "water": "water", "fountain": "water", "sand": "sand",
-    "construction": "dirt", "playground": "sand", "garden": "grass",
+    "construction": "dirt", "playground": "sand",
+    # A GARDEN IS NOT A LAWN, and until this line it was: `u:'garden'` fell
+    # through to the same `grass` colour as every mown panel on campus, which is
+    # the whole of why the Memorial Garden read as a flat green rectangle. Its
+    # turf is watered, edged and shaded, so it is deeper and cooler than a mall
+    # lawn -- see SURF.gardenlawn in js/ground.js.
+    "garden": "gardenlawn",
 }
 
 # Drawn width in metres for paths OSM does not measure. GENERATIVE.
@@ -727,9 +733,17 @@ def _mean_width(poly):
     return (poly.area / (per / 2.0)) if per > 1e-6 else 0.0
 
 
-def _emit(feats, gm, props, stats, key, min_m2):
-    if CHANNEL["simplify_m"]:
-        gm = gm.simplify(CHANNEL["simplify_m"])
+def _emit(feats, gm, props, stats, key, min_m2, simplify_m=None):
+    """Emit a metric shapely geometry as lon/lat Polygon feature(s).
+
+    `simplify_m` defaults to the creek's 0.5 m, which is about a pixel at flying
+    altitude and right for a 3.9 km bank line. It is WRONG for a small round
+    thing: a 5.5 m specimen bed simplified at 0.5 m collapses to an octagon, and
+    it looked like one. Anything under ~10 m across passes its own tolerance.
+    """
+    tol = CHANNEL["simplify_m"] if simplify_m is None else simplify_m
+    if tol:
+        gm = gm.simplify(tol)
     parts = list(gm.geoms) if gm.geom_type == "MultiPolygon" else [gm]
     n = 0
     for g in parts:
@@ -843,6 +857,143 @@ def cut_creek_channels(feats, stats, warnings):
             _emit(feats, ring,
                   {"k": "area", "u": use, "s": surf, "src": "creek_" + label},
                   stats, "creek_zone_" + label, CHANNEL["min_m2"])
+    return feats
+
+
+# -------------------------------------------------------------- gardens --
+#
+# "turtle pond too many turtiles, fix this lawn in general its really bland"
+#
+# The Memorial Garden is a 2,190 m2 polygon OSM tags `leisure=garden` and names,
+# and everything downstream treated it as a lawn: AREA_USE maps it to
+# `u:'garden'`, DEFAULT_SURFACE gives `u:'garden'` the colour `grass`, and that
+# is the entire difference between a garden and a lawn in this file. So it
+# renders as a flat green rectangle with a 218 m2 blue disc in it, which is
+# exactly what he is looking at.
+#
+# NOTHING HERE IS DRAWN FREEHAND, and that matters because the truth rule at the
+# top of this file says every position comes from OSM. A garden's structure IS
+# its circulation -- the beds are what is left between the walks -- and this
+# campus's walks are all mapped. So:
+#
+#   * a BED is the band of ground a fixed distance back from a real walk, set
+#     inside a real garden polygon, minus a mown verge. The bed follows the path
+#     network because in life it does;
+#   * a SPECIMEN bed sits at the pole of inaccessibility of each remaining lawn
+#     panel -- the centre of the largest circle that fits in it. That is a
+#     derived point, not a chosen one, and it is exactly where a garden puts the
+#     one tree it wants you to look at;
+#   * the POND COPING is a ring buffered off the real pond, and it is applied
+#     only to a pond that sits in a built setting (a garden or a plaza), because
+#     a stone rim on a farm pond would be a lie. Turtle Pond has one in life --
+#     the low limestone edge people sit on to watch the turtles.
+#
+# The coping goes UP, unlike the creek. A raised rim is what is actually there,
+# and it costs none of the machinery the sunken channel needed.
+GARDEN = {
+    "bed_w": 3.0,          # depth of a planting border, out from the verge
+    "verge_w": 1.0,        # mown strip between the walk and the bed
+    "bed_min_m2": 5.0,
+    # A panel has to be big enough to earn a specimen, and the specimen is a
+    # fraction of the panel's own inscribed circle so a narrow strip never gets
+    # a bed wider than itself.
+    "specimen_min_panel_m2": 90.0,
+    "specimen_frac": 0.42,
+    "specimen_min_r": 1.6,
+    "specimen_max_r": 5.5,
+    "pond_coping_w": 1.2,      # width of the built rim
+    "pond_coping_h": 0.38,     # how far it stands proud -- a sitting height kerb
+    "pond_coping_touch_m": 6.0,  # how close a pond must be to a garden or plaza
+                                 # to count as being IN one
+    # Garden features are 2-12 m across, an order of magnitude smaller than a
+    # creek reach, so they carry their own simplify tolerance. At the creek's
+    # 0.5 m a specimen bed came out an octagon.
+    "simplify_m": 0.12,
+}
+
+
+def plant_gardens(feats, stats, warnings):
+    """Give every OSM `leisure=garden` the structure a garden actually has."""
+    try:
+        from shapely.ops import unary_union, polylabel
+    except ImportError:
+        warnings.append("shapely not installed: gardens left as flat lawn")
+        return feats
+
+    gardens, walks, ponds, built = [], [], [], []
+    for f in feats:
+        p = f["properties"]
+        if f["geometry"]["type"] != "Polygon":
+            continue
+        q = _poly_m(f["geometry"])
+        if q is None or q.is_empty:
+            continue
+        if p.get("k") == "area" and p.get("u") == "garden":
+            gardens.append((f, q))
+            built.append(q)
+        elif p.get("k") == "patharea":
+            walks.append(q)
+        elif p.get("k") == "area" and p.get("s") == "pond":
+            ponds.append((f, q))
+        elif p.get("k") == "area" and p.get("u") == "plaza":
+            built.append(q)
+    if not gardens:
+        warnings.append("no u:'garden' areas found -- gardens NOT planted")
+        return feats
+
+    walk_u = unary_union(walks) if walks else None
+    pond_u = unary_union([q for _, q in ponds]) if ponds else None
+
+    for gf, g in gardens:
+        name = gf["properties"].get("name") or "unnamed"
+        # ---- the planting borders ------------------------------------
+        inner = g
+        if pond_u is not None:
+            inner = inner.difference(pond_u)
+        beds = None
+        if walk_u is not None:
+            near = walk_u.buffer(GARDEN["verge_w"] + GARDEN["bed_w"], join_style=2)
+            verge = walk_u.buffer(GARDEN["verge_w"], join_style=2)
+            beds = inner.intersection(near).difference(verge)
+        if beds is not None and not beds.is_empty:
+            n = _emit(feats, beds,
+                      {"k": "area", "u": "bed", "s": "bed", "src": "garden_bed"},
+                      stats, "garden_bed", GARDEN["bed_min_m2"],
+                      simplify_m=GARDEN["simplify_m"])
+            if n:
+                inner = inner.difference(beds)
+
+        # ---- a specimen at the centre of each remaining panel --------
+        panels = list(inner.geoms) if inner.geom_type == "MultiPolygon" else [inner]
+        for panel in panels:
+            if panel.is_empty or panel.area < GARDEN["specimen_min_panel_m2"]:
+                continue
+            try:
+                pt = polylabel(panel, tolerance=0.4)
+            except Exception:
+                continue
+            r_in = panel.exterior.distance(pt)
+            r = max(GARDEN["specimen_min_r"],
+                    min(GARDEN["specimen_max_r"], r_in * GARDEN["specimen_frac"]))
+            _emit(feats, pt.buffer(r, quad_segs=6),
+                  {"k": "area", "u": "bed", "s": "bed", "src": "garden_specimen"},
+                  stats, "garden_specimen", GARDEN["bed_min_m2"],
+                  simplify_m=GARDEN["simplify_m"])
+        stats["garden_planted_" + name.replace(" ", "_")] += 1
+
+    # ---- the built pond edge -----------------------------------------
+    built_u = unary_union(built) if built else None
+    for pf, q in ponds:
+        if built_u is None or q.distance(built_u) > GARDEN["pond_coping_touch_m"]:
+            stats["pond_no_coping"] += 1
+            continue
+        ring = q.buffer(GARDEN["pond_coping_w"], join_style=1, quad_segs=4).difference(q)
+        if ring.is_empty:
+            continue
+        _emit(feats, ring,
+              {"k": "bank", "u": "coping", "m": "coping",
+               "b": 0.0, "h": GARDEN["pond_coping_h"]},
+              stats, "pond_coping", 1.0, simplify_m=GARDEN["simplify_m"])
     return feats
 
 
@@ -1106,6 +1257,16 @@ RANK = {
     # it (PR #62's finding), so the trench only exists BECAUSE every lawn, wood
     # and park polygon gives up its footprint here. See cut_creek_channels.
     ("bank", "channel"):        90,
+    # Same argument for the pond coping: it is a built rim standing 0.38 m
+    # proud, so the lawn under it has to give way or the fill paints over the
+    # kerb. It sits below the channel only because nothing ever asks them to
+    # compete -- keeping the two adjacent makes the ladder readable.
+    ("bank", "coping"):         88,
+    # A planting bed and a specimen roundel are the most specific thing in a
+    # garden, so they beat the garden turf they are cut out of. They are DERIVED
+    # from the walks, so they must not beat the walks -- and they do not: those
+    # are in the `path` band and this is the flat one.
+    ("area", "bed"):            50,
     ("area", "fountain"):       46,
     ("area", "water"):          44,
     ("area", "endzone"):        40,   # derived; must stay on top of its pitch
@@ -1604,6 +1765,11 @@ def main():
     feats = cut_creek_channels(feats, stats, warnings)
     feats = grow_precinct_lawns(feats, stats, warnings)
     feats = widen_paths(feats, stats, warnings)
+    # AFTER widen_paths on purpose: a garden's beds are derived from the
+    # walks around them and paths are still LineStrings until then. The
+    # precinct-lawn pass learned the same lesson the hard way (see its
+    # note about buffering the path lines by hand).
+    feats = plant_gardens(feats, stats, warnings)
 
     # The roads are baked BEFORE the ground is resolved now, because the
     # carriageway is one of the surfaces competing for the ground and the
