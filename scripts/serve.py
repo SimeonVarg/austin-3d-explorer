@@ -32,6 +32,19 @@ CACHE_CONTROL = "max-age=600"          # what GitHub Pages sends for this repo
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    # HTTP/1.1, NOT the stdlib's HTTP/1.0 default, and this is not cosmetic.
+    #
+    # Under 1.0 there is no keep-alive, so every request opens a new TCP
+    # connection. PMTiles makes one request per tile, so on a throttled
+    # connection each of those pays a fresh handshake. Measured with an 85 ms
+    # simulated latency, that made the tiled build look THREE TIMES SLOWER than
+    # the un-tiled one — a completely artificial result, since GitHub Pages
+    # serves HTTP/2 with multiplexing over a single connection.
+    #
+    # A test server that gets this wrong does not just add noise; it inverts the
+    # conclusion and would have argued for reverting the tiling work.
+    protocol_version = "HTTP/1.1"
+
     def end_headers(self):
         self.send_header("Cache-Control", CACHE_CONTROL)
         self.send_header("Accept-Ranges", "bytes")
@@ -91,7 +104,14 @@ port = int(sys.argv[1]) if len(sys.argv) > 1 else 8123
 root = sys.argv[2] if len(sys.argv) > 2 else os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))
 print("serving %s on http://127.0.0.1:%d  (ranges + cache headers)" % (root, port))
-http.server.HTTPServer(
+
+# ThreadingHTTPServer IS REQUIRED, NOT AN OPTIMISATION. Plain HTTPServer is
+# single-threaded; combined with the HTTP/1.1 keep-alive above, the first
+# browser connection stays open and every other request queues behind it
+# forever. The page then never finishes loading and every verify script times
+# out at its watchdog, which looks exactly like the app being broken. That is
+# how the previous ten minutes were spent.
+http.server.ThreadingHTTPServer(
     ("127.0.0.1", port),
     functools.partial(Handler, directory=root),
 ).serve_forever()
