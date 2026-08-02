@@ -39,3 +39,7 @@ data/outer/outer_raw.geojson
 # (data/dkr_aerial_geo.json) IS committed — it carries the exact bbox and
 # metres-per-pixel that every measurement in docs/PASS_DKR.md was taken with.
 data/dkr_aerial_geo.png
+
+# Captures written by scripts/verify/outer-facade-parity.mjs for its Python
+# comparator. Regenerated on every run; the assertion is the exit code.
+scripts/verify/out/
