@@ -1,5 +1,69 @@
 # Austin 3D Explorer — Full Handoff
 
+## 25. Aug 2 2026 — the DKR field stopped bleeding through the walls (mac lane)
+
+**Branch:** `mac/dkr-field-depth` — MAC_QUEUE M1a.
+
+The report — *"bug where field is visible through north wall still there"* — had
+been closed twice and come back twice, because every fix worked on the symptom.
+The premise underneath them, written in `js/app.js`, was:
+
+> A raster on the ground plane is ordinary ground: the walls are drawn after it
+> and paint over it exactly as they do over the streets.
+
+**That is false, and measuring it is what ended the bug.** `stadium-field` sat at
+style index **145** and `stadium-wall` at **146** — the wall genuinely is drawn
+after it — and the turf still painted on the outside face of the north wall. A
+`raster` layer does not share the depth buffer the 3D pass writes, so its
+position in the stack buys nothing. Symbols had already failed identically; the
+file even says so about the same layer, one paragraph up.
+
+**The experiment that decided it**, before writing any fix: three candidate
+layers over the *identical* quad — the raster, a `fill`, and a `fill-extrusion`
+0.3 m tall — photographed from outside the north wall and from over the rim.
+The fill-extrusion was invisible from outside and correctly cut by the near rim
+from above. So the field is now geometry, ~40 thin slabs (turf, mow bands, end
+zones, sideline border, yard and goal lines) built at runtime from the four
+baked `fieldCorners`, and **the camera gate is deleted** — `FIELD_VIS`,
+`watchFieldVisibility`, and `scripts/verify/fieldprobe.mjs`, whose only subject
+was the gate's opacity.
+
+**`scripts/verify/field-bleed.mjs`** is the durable part: it toggles the layer
+and calls the CHANGED PIXELS the field, so it cannot be fooled by anything else
+in the frame being green. **18 of 18 poses pass, day and night** — six outside
+poses at 0 px each (north was 3,318), and the three look-in poses still drawing
+4,187 / 8,527 / 11,129, which is the half that a "fix" that simply never draws
+the field would fail.
+
+**Three things worth keeping from getting there:**
+
+- **Two frames are not enough to diff a live scene.** A plain on/off diff
+  reported 5,694 "field" pixels in the bottom corner of a frame where the field
+  is not visible, at a mean rgb of 155,132,102 — pavement. Clouds and canopy
+  keep moving. The fix is three frames: on, off, on, and count only pixels that
+  changed with the toggle *and* agree across both on-frames.
+- **The expectation table was wrong before the code was.** Pitch 62 was listed
+  as a bleed case. The sight line from 398 m at pitch 62 clears the 63 m rim by
+  9 m — you are looking into the bowl and the turf is genuinely visible. The
+  arithmetic is now in the file for all three pitches.
+- **A 0.20 m yard line does not survive to the screen.** At the nadir the field
+  renders at 1.7 px/m, so it covers a third of a pixel and the lines came out as
+  broken dashes. The raster never had this problem because mipmapping averages
+  sub-pixel paint into a tint. Widened to 0.55 m and toned down to compensate;
+  both are taste knobs.
+
+**What this cost, and it is visible:** the yard numbers, the TEXAS / LONGHORNS
+end-zone wordmarks and the midfield Longhorn are gone — canvas text and an SVG
+path, neither of which survives to polygons without a path flattener. The
+before/after is in `shots/dkr/field-detail-traded.png`. **Restoring the
+wordmarks and the Longhorn as geometry belongs to M1b**, which is rebuilding the
+stadium anyway. A blocky rect font was considered and rejected here: the end
+zone is ~30 px wide from the nadir, so each stroke would land at 0.7 px and read
+as noise rather than as letters.
+
+**Do not reintroduce a raster or a symbol for the field.** Every version of that
+bleeds, and the bleed is the thing he keeps reporting.
+
 ## 24. Aug 1 2026 — the verification suite was dead and said nothing (mac lane)
 
 **Branch:** `mac/verify-suite-repair`

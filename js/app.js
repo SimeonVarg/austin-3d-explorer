@@ -297,74 +297,34 @@
   // Both are "the tile grid is not the world" bugs.
   window.PATTERN_TILING = { maxzoom: 16, tolerance: 0.5, buffer: 128 };
 
-  // ── When the DKR field may be drawn ───────────────────────────────
+  // ── The DKR field used to need a camera gate. It does not any more. ──
   //
-  // Taste knobs for the rule above. RIM_M is the top of the grandstand — above
-  // it you are looking down into an open bowl and the turf is genuinely visible.
-  // INSIDE_M is measured from the field centre and is generous enough to cover
-  // standing anywhere in the seating, so walking the concourse never blinks the
-  // field off. FADE_M is the band over which it crosses, so it cannot pop.
-  // ── When the DKR field may be drawn ───────────────────────────────
+  // What stood here was a per-frame rule that faded the turf out by PITCH and
+  // by how close the map CENTRE was to the field, because the turf painted
+  // straight through 63 m of grandstand. It was tuned three times and the
+  // report — "field is visible through north wall still there" — kept coming
+  // back, because the premise underneath it was wrong.
   //
-  // The physical question is "is there grandstand between the eye and the
-  // turf". The robust proxy is PITCH plus how close you are LOOKING to the
-  // field: tilt down toward the bowl and you see into it; look side-on from
-  // outside and 63 m of seating is in the way.
+  // The premise, written in this file, was: "A raster on the ground plane is
+  // ordinary ground: the walls are drawn after it and paint over it exactly as
+  // they do over the streets." That is measurably false. `stadium-field` sat at
+  // style index 145 and `stadium-wall` at 146 — the wall IS after it — and the
+  // turf still painted on the outside face of the north wall
+  // (scripts/verify/field-bleed.mjs, 3318 px at pitch 79, box 581,381-687,422;
+  // the frame is in the PR). A `raster` layer does not share the depth buffer
+  // the 3D pass writes, so being below a fill-extrusion in the stack buys
+  // nothing. Symbols had already failed the same way, for the same reason.
   //
-  // Deliberately NOT camera altitude, after two attempts that both measured as
-  // doing nothing:
-  //   map.getFreeCameraOptions() is a Mapbox API — MapLibre 5.24 has no such
-  //   method, so inside a try/catch it threw every frame and the gate silently
-  //   never ran.
-  //   window.__fly.eye() is maintained by the flight controller on its own loop
-  //   and does NOT resync after a jumpTo, so it reported a stale camera even
-  //   after a 4.5 s settle — two different poses probed back to back both
-  //   returned the previous one.
-  // getPitch() and getCenter() are correct on the frame they are read, which is
-  // the only property that matters here.
+  // A fill-extrusion over the identical quad, tested side by side: invisible
+  // from outside the north wall, fully visible and correctly cut by the near
+  // rim from above. So the field is now GEOMETRY (see fieldFeatures below) and
+  // the gate is gone. Nothing decides whether the turf "may" be drawn; the
+  // grandstand occludes it because it is in front of it, which is also true
+  // when half the field is behind the rim and no opacity number can express
+  // that.
   //
-  // All four are taste knobs.
-  const FIELD_VIS = {
-    LOOK_DOWN_PITCH: 62,   // at or below this you are looking into the bowl
-    SIDE_ON_PITCH: 74,     // by here it is fully side-on and the field is hidden
-    // Measured: from 50 m outside the east wall at pitch 79, the map centre is
-    // still 124 m from the field centre. So 130 counted that as "inside" and the
-    // gate did nothing. The bowl's own half-length is ~55 m, so anything past 70
-    // is outside the structure and cannot be looking in over the rim.
-    NEAR_M: 70,
-    FADE_M: 30,
-  };
-
-  function watchFieldVisibility(map, corners) {
-    // Field centre from the four baked corners (NW, NE, SE, SW).
-    const cx = corners.reduce((s, c) => s + c[0], 0) / corners.length;
-    const cy = corners.reduce((s, c) => s + c[1], 0) / corners.length;
-    const kx = 111320 * Math.cos(cy * Math.PI / 180);
-    let last = null;
-
-    const update = () => {
-      if (!map.getLayer('stadium-field')) return;
-      const c = map.getCenter();
-      const pitch = map.getPitch() || 0;
-      const d = Math.hypot((c.lng - cx) * kx, (c.lat - cy) * 111320);
-
-      // 1 when tilted down into the bowl, 0 when side-on.
-      const byPitch = 1 - Math.min(1, Math.max(0,
-        (pitch - FIELD_VIS.LOOK_DOWN_PITCH) /
-        (FIELD_VIS.SIDE_ON_PITCH - FIELD_VIS.LOOK_DOWN_PITCH)));
-      // 1 when the view is centred on the field, falling off outside it.
-      const byNear = 1 - Math.min(1, Math.max(0,
-        (d - FIELD_VIS.NEAR_M) / FIELD_VIS.FADE_M));
-      const t = Math.max(byPitch, byNear);
-
-      if (last != null && Math.abs(t - last) < 0.02) return;
-      last = t;
-      try { map.setPaintProperty('stadium-field', 'raster-opacity', t); } catch (e) {}
-    };
-    map.on('move', update);
-    map.on('pitch', update);
-    update();
-  }
+  // DO NOT reintroduce a raster or a symbol here to get finer paint detail
+  // back. Every version of that bleeds, and the bleed is what Simeon reports.
 
   const NO_PARTS = ['!', ['has', 'has_parts']];
   const CAP_MIN_HEIGHT = 2.5; // sheds don't get a parapet cap
@@ -675,104 +635,142 @@
   }
 
   /**
-   * The whole field as ONE image, registered to its four real corners.
+   * The whole field as FLAT GEOMETRY — one thin slab per class of paint.
    *
-   * Why an image and not layers of geometry plus a symbol layer, which is what
-   * this was: MapLibre `symbol` layers DO NOT DEPTH-TEST AGAINST FILL
-   * EXTRUSIONS. They are composited over the finished frame, so TEXAS and the
-   * midfield Longhorn were legible through 63 m of grandstand from outside the
-   * stadium. There is no symbol-layer setting that fixes it — not
-   * pitch-alignment, not sort key, not placement. The only fix is to stop being
-   * a symbol. A raster on the ground plane is ordinary ground: the walls are
-   * drawn after it and paint over it exactly as they do over the streets.
+   * This replaces a canvas image on an `image` source. The image was replacing a
+   * symbol layer. Both were abandoned for the same reason and it is worth
+   * writing down once, because it is the reason this bug came back twice:
    *
-   * Fill-extrusion-pattern would not have worked either — it is locked to the
-   * tile, so one field image would repeat rather than land once on the field.
-   * An `image` source takes explicit corner coordinates, which is precisely the
-   * "put this picture exactly there" primitive this needs.
+   *   symbol  — composited over the finished frame. TEXAS and the midfield
+   *             Longhorn were legible through 63 m of grandstand.
+   *   raster  — does not share the depth buffer the 3D pass writes. Being BELOW
+   *             the wall in the layer stack does not help: measured at style
+   *             index 145 against the wall's 146, the turf still painted on the
+   *             outside face of the north wall.
+   *   geometry— a fill-extrusion is in the 3D pass, so the grandstand occludes
+   *             it per pixel, at every angle, with no rule to tune. Measured
+   *             side by side against the raster on the identical quad:
+   *             0 px from outside the north wall, and correctly cut by the near
+   *             rim from above.
    *
-   * Canvas is portrait with NORTH AT THE TOP, matching the corner order the bake
-   * emits (NW, NE, SE, SW).
+   * WHAT THIS COSTS, stated plainly: the yard numbers, the TEXAS / LONGHORNS
+   * end-zone lettering and the midfield Longhorn are gone. They were canvas
+   * text and an SVG path, and neither survives the trip to polygons without a
+   * path flattener. Everything with an edge you can see from the air — turf,
+   * mow bands, end zones, the sideline border, yard and goal lines — is here.
+   * At the distance the field is legible from (200 m+, where 1 px is ~0.4 m) the
+   * numbers were already under two pixels tall. The hash marks are dropped for
+   * that reason too: 0.6 m wide is one and a half pixels.
+   *
+   * Field space is the canvas's: `u` runs west→east 0..FIELD_W, `v` runs
+   * north→south 0..FIELD_L, matching the corner order the bake emits
+   * (NW, NE, SE, SW). Every number below is the one that was in the canvas.
    */
   const FIELD_L = 109.73, FIELD_W = 48.77, ENDZONE = 9.14;
-  function fieldImage() {
-    const H = 1400, W = Math.round(H * FIELD_W / FIELD_L);
-    const S = H / FIELD_L;                       // px per metre
-    const c = document.createElement('canvas');
-    c.width = W; c.height = H;
-    const x = c.getContext('2d');
-    const m = v => v * S;
 
-    x.fillStyle = '#3f6b3a';                     // FieldTurf, post-2021 dark green
-    x.fillRect(0, 0, W, H);
-    // Mow stripes run ACROSS the field, in bands the width of five yards, which
-    // is why a real field looks banded from the air rather than flat green.
-    x.fillStyle = 'rgba(255,255,255,.045)';
-    for (let i = 0; i < 24; i += 2) x.fillRect(0, m(ENDZONE + i * 4.572), W, m(4.572));
+  // ── Taste block: the paint ──────────────────────────────────────────
+  // Straight off the canvas this replaces, so the day field is the same paint
+  // it has always been. `mow` is the canvas's 4.5% white wash over the turf,
+  // pre-blended: a real field looks banded from the air rather than flat green.
+  const FIELD_COL = {
+    turf: '#3f6b3a',   // FieldTurf, post-2021 dark green
+    mow:  '#477143',   // turf + 4.5% white — the five-yard mow band
+    end:  '#bf5700',   // end zones and the sideline border, burnt orange
+    line: '#dcd7cb',   // yard lines, goal lines — see FIELD_LINE_W
+  };
+  // A yard line is 4 inches (0.10 m) in life, and was 0.20 m on the canvas this
+  // replaces. Neither width survives as geometry. From the nadir the field
+  // renders at 1.7 px per metre, so a 0.20 m slab covers a third of a pixel and
+  // the rasteriser lights whichever pixel centres happen to land inside it: the
+  // lines came out as a field of broken dashes, which reads worse than no lines
+  // at all. The raster never had this problem because mipmapping averages
+  // sub-pixel paint into a continuous tint, and geometry has no such filter.
+  //
+  // So these are the widths that SURVIVE TO THE SCREEN rather than the widths
+  // on the pitch — about one pixel from over the rim — and FIELD_COL.line is
+  // pulled back from the canvas's #f0ece4 so the extra width does not also read
+  // as extra paint. All three are taste knobs.
+  const FIELD_LINE_W = 0.55, FIELD_GOAL_W = 0.80;
+  // Paint lies ON turf, so each class gets its own slab and the taller one
+  // wins. The order is the canvas's draw order. 6 cm steps: invisible at any
+  // distance the field can be seen from, and far coarser than the depth
+  // buffer's resolution there, so nothing z-fights.
+  const FIELD_Z = {
+    turf: [0, 0.20], mow: [0.20, 0.26], end: [0.26, 0.32],
+    border: [0.32, 0.38], line: [0.38, 0.44],
+  };
+  // Which paint each slab uses. `border` is the same orange as the end zones;
+  // it is a separate slab only so the yard lines can sit above it, exactly as
+  // the canvas drew the lines last.
+  const FIELD_PAINT = { turf: 'turf', mow: 'mow', end: 'end', border: 'end', line: 'line' };
 
-    // End zones. Burnt orange since the 2021 turf, which also darkened the green.
-    x.fillStyle = '#bf5700';
-    x.fillRect(0, 0, W, m(ENDZONE));
-    x.fillRect(0, H - m(ENDZONE), W, m(ENDZONE));
+  function fieldFeatures(corners) {
+    const [NW, NE, SE, SW] = corners;
+    const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+    const at = (u, v) => mix(mix(NW, NE, u / FIELD_W), mix(SW, SE, u / FIELD_W), v / FIELD_L);
+
+    const out = [];
+    const rect = (kind, u0, v0, u1, v1) => {
+      v0 = Math.max(0, v0); v1 = Math.min(FIELD_L, v1);
+      if (v1 - v0 <= 0 || u1 - u0 <= 0) return;
+      const [b, h] = FIELD_Z[kind];
+      out.push({ type: 'Feature',
+        properties: { t: FIELD_PAINT[kind], b, h },
+        geometry: { type: 'Polygon', coordinates: [[
+          at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1), at(u0, v0)]] } });
+    };
+
+    rect('turf', 0, 0, FIELD_W, FIELD_L);
+    // Mow bands run ACROSS the field, five yards wide, every other band.
+    for (let i = 0; i < 24; i += 2) {
+      rect('mow', 0, ENDZONE + i * 4.572, FIELD_W, ENDZONE + (i + 1) * 4.572);
+    }
+    rect('end', 0, 0, FIELD_W, ENDZONE);
+    rect('end', 0, FIELD_L - ENDZONE, FIELD_W, FIELD_L);
     // The orange border runs only to the 20-yard lines — NOT around the whole
     // field. That is the specific thing the 2021 repaint changed and it is
     // visible in the aerial.
-    const b = m(1.5), to20 = m(ENDZONE + 18.29);
-    for (const [y0, y1] of [[0, to20], [H - to20, H]]) {
-      x.fillRect(0, y0, b, y1 - y0);
-      x.fillRect(W - b, y0, b, y1 - y0);
+    const to20 = ENDZONE + 18.29;
+    for (const [v0, v1] of [[0, to20], [FIELD_L - to20, FIELD_L]]) {
+      rect('border', 0, v0, 1.5, v1);
+      rect('border', FIELD_W - 1.5, v0, FIELD_W, v1);
     }
-
-    // Yard lines every 5 yd, goal line to goal line.
-    x.fillStyle = '#f0ece4';
-    for (let i = 0; i <= 20; i++) x.fillRect(0, m(ENDZONE + i * 4.572) - 1, W, 2.5);
-    x.fillRect(0, m(ENDZONE) - 1, W, 4);                      // goal lines, heavier
-    x.fillRect(0, H - m(ENDZONE) - 3, W, 4);
-    // College hash marks sit 20 yd in from each sideline, one per yard.
-    const hx = [m(18.29), W - m(18.29)];
-    for (let yd = 1; yd < 100; yd++) {
-      const y = m(ENDZONE + yd * 0.9144);
-      for (const h of hx) x.fillRect(h - m(0.3), y - 1, m(0.6), 2);
+    // Yard lines every 5 yd, goal line to goal line; the goal lines heavier, as
+    // they are on a real field and as the canvas drew them.
+    for (let i = 0; i <= 20; i++) {
+      const w = (i === 0 || i === 20) ? FIELD_GOAL_W : FIELD_LINE_W;
+      const c = ENDZONE + i * 4.572;
+      rect('line', 0, c - w / 2, FIELD_W, c + w / 2);
     }
-
-    // Yard numbers, facing the nearer sideline the way they are painted.
-    x.font = '900 ' + Math.round(m(1.6)) + 'px "Arial Black",Arial,sans-serif';
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-    for (let i = 1; i <= 9; i++) {
-      const n = String(i <= 5 ? i * 10 : (10 - i) * 10);
-      const y = m(ENDZONE + i * 9.144);
-      for (const [px_, rot] of [[m(7.5), Math.PI / 2], [W - m(7.5), -Math.PI / 2]]) {
-        x.save(); x.translate(px_, y); x.rotate(rot);
-        x.fillText(n, 0, 0); x.restore();
-      }
-    }
-
-    // End zone lettering. Each word is condensed to the width available, which
-    // is how a real field fits LONGHORNS and TEXAS at the same cap height.
-    const word = (w, cy, flip) => {
-      x.save(); x.translate(W / 2, cy); if (flip) x.rotate(Math.PI);
-      x.font = '900 ' + Math.round(m(5.4)) + 'px "Arial Black",Arial,sans-serif';
-      const t = w.split('').join(' ');
-      x.scale(Math.min(1.6, (W - m(3)) / (x.measureText(t).width || 1)), 1);
-      x.fillStyle = '#f4f1ea';
-      x.fillText(t, 0, 0);
-      x.restore();
-    };
-    word('TEXAS', m(ENDZONE / 2), false);
-    word('LONGHORNS', H - m(ENDZONE / 2), true);
-
-    // Midfield Longhorn, ~15 m across, from Simeon's SVG.
-    x.save();
-    const lw = m(15), lh = lw * LONGHORN_VB[1] / LONGHORN_VB[0];
-    x.translate(W / 2 - lw / 2, H / 2 - lh / 2);
-    x.scale(lw / LONGHORN_VB[0], lh / LONGHORN_VB[1]);
-    x.transform(1.25, 0, 0, -1.25, -390.11, 305.09);
-    x.translate(574.03, 241.88);
-    x.fillStyle = '#bf5700';
-    x.fill(new Path2D(LONGHORN_PATH));
-    x.restore();
-    return c.toDataURL('image/png');
+    return out;
   }
+
+  /**
+   * The field's colour at time-of-day `p`.
+   *
+   * The raster this replaces rode the day ramp as EXPOSURE rather than colour —
+   * `raster-brightness-max` and `raster-saturation`, because paint on turf is a
+   * photograph of paint, not a material with its own night tone. That behaviour
+   * is reproduced here exactly, arithmetic and all, so this change moves the
+   * bleed and nothing else. DKR's actual night colour is a separate question and
+   * a separate pass (MAC_QUEUE M1c).
+   */
+  const fieldColourAt = p => {
+    const night = Math.max(0, (p - 0.62) / 0.38);
+    const k = 1 - 0.42 * night;            // was raster-brightness-max
+    const s = 1 - 0.10 * night;            // was raster-saturation
+    const dim = hex => {
+      const c = hx3(hex);
+      const L = 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+      return '#' + c.map(v =>
+        Math.max(0, Math.min(255, Math.round((L + (v - L) * s) * k)))
+          .toString(16).padStart(2, '0')).join('');
+    };
+    const e = ['match', ['get', 't']];
+    for (const [name, hex] of Object.entries(FIELD_COL)) e.push(name, dim(hex));
+    e.push(dim(FIELD_COL.turf));
+    return e;
+  };
 
 
   window.addStadiumLayers = function addStadiumLayers() {
@@ -830,35 +828,37 @@
         }
       }
 
-      // THE FIELD. Added before every other stadium layer, on the theory that
-      // whatever is drawn after it paints over it the way the real grandstand
-      // does. That is true of the 3D layers among themselves and it is NOT true
-      // here, because this is a `raster` layer and a raster does not depth-test
-      // against fill-extrusion — same reason the symbol layer it replaced drew
-      // TEXAS through the building.
-      //
-      // Reported: "when looking at DKR from top right looking down left the
-      // whole field bleeds through the wall and i can see just the field with
-      // the orange endzones through the walls." Reproduced from 50 m out at
-      // pitch 79: the end zone, the yard numbers and the turf paint as a
-      // horizontal band straight across the base of the stadium, over the
-      // buildings in front of it.
-      //
-      // Layer order cannot fix it and neither can any raster paint property. So
-      // the field is drawn only when you could actually SEE it: from inside the
-      // bowl's footprint, or from above the rim looking down. Outside and below,
-      // there is 63 m of grandstand between you and the turf, and the honest
-      // render is nothing.
+      // THE FIELD, as geometry in the same 3D pass as the grandstand, so the
+      // grandstand occludes it. Reported repeatedly: "when looking at DKR from
+      // top right looking down left the whole field bleeds through the wall and
+      // i can see just the field with the orange endzones through the walls."
+      // Every previous shape of this layer — symbol, then raster — was
+      // composited outside the depth buffer and bled; see fieldFeatures above
+      // for the measurement. There is no camera rule here any more and there
+      // should never be one again.
       if (gj.fieldCorners && !map.getSource('austin-field')) {
         map.addSource('austin-field', {
-          type: 'image', url: fieldImage(), coordinates: gj.fieldCorners,
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: fieldFeatures(gj.fieldCorners) },
+          // The field is 68 x 123 m and its slabs are thin bands within that. At
+          // the default maxzoom geojson-vt would clip them per tile; capping at
+          // 15 keeps one tile (~1.2 km) far larger than the whole field, the
+          // same reason the bowl's own source is capped — see above.
+          maxzoom: 15, tolerance: 0.25, buffer: 128,
         });
         map.addLayer({
-          id:'stadium-field', type:'raster', source:'austin-field', minzoom:14,
-          paint:{ 'raster-opacity':1, 'raster-fade-duration':0,
-                  'raster-resampling':'linear' },
+          id:'stadium-field', type:'fill-extrusion', source:'austin-field', minzoom:14,
+          paint:{
+            'fill-extrusion-color': fieldColourAt(window.__todCurrentP != null ? window.__todCurrentP : 0.5),
+            'fill-extrusion-base': ['get','b'],
+            'fill-extrusion-height': ['get','h'],
+            'fill-extrusion-opacity': 1.0,
+            // OFF: the gradient darkens the bottom of an extrusion, and these
+            // are 20 cm slabs, so the whole slab would fall inside it and the
+            // turf would render as a dark smear.
+            'fill-extrusion-vertical-gradient': false,
+          },
         }, anchor);
-        watchFieldVisibility(map, gj.fieldCorners);
       }
 
       // The perimeter wall. Same facade paint as every other building, so it
@@ -932,13 +932,12 @@
     try { map.setPaintProperty('stadium-seating', 'fill-extrusion-color', seatColourAt(p)); } catch (e) {}
     try { map.setPaintProperty('stadium-wall-roof', 'fill-extrusion-color', rampAt(RIM_COL, p)); } catch (e) {}
     try { map.setPaintProperty('stadium-detail', 'fill-extrusion-color', detailColourAt(p)); } catch (e) {}
-    // The field image is a photograph of paint, not a material, so it rides
-    // the day ramp as exposure rather than as colour. Floodlit at night, so
+    // The field is paint, not a material, so it rides the day ramp as exposure
+    // rather than as colour — fieldColourAt does the same arithmetic the
+    // raster's brightness/saturation properties used to. Floodlit at night, so
     // it dims far less than the unlit structure around it.
     try {
-      const night = Math.max(0, (p - 0.62) / 0.38);
-      map.setPaintProperty('stadium-field', 'raster-brightness-max', 1 - 0.42 * night);
-      map.setPaintProperty('stadium-field', 'raster-saturation', -0.10 * night);
+      map.setPaintProperty('stadium-field', 'fill-extrusion-color', fieldColourAt(p));
     } catch (e) {}
   };
 
