@@ -69,14 +69,38 @@ TIPPE_COMMON=(
   --buffer=16
 )
 
+# DISTANT HORIZONS — and why it is DROPPING, not simplifying.
+#
+# Simeon asked for far-away things to be scaled down: "thats kinda what i had in
+# mind with the distant horizons mod". The obvious knob is --simplification, and
+# a 1/4/8/12 sweep was built and dispatched. Every one produced BYTE-IDENTICAL
+# archives and CI reported "no tile changes" at all three settings.
+#
+# That is not a broken sweep, it is the answer: --simplification removes
+# VERTICES, and this geometry has none to spare. Trees and props are points.
+# The outer ring's own bake already removed 85% of its vertices. The far-field
+# roads were simplified five times harder at fetch. You cannot round off a
+# corner that was already rounded off.
+#
+# What DOES scale with distance is how MANY features are sent. A live oak at z13
+# is about four pixels, and there is no reason to ship all 25,341 of them to a
+# camera that high. So the scatter layers get a per-zoom drop rate: tippecanoe
+# keeps 1 in DROP_RATE^(maxzoom - z) features at each zoom below the max, and
+# keeps everything at z16 where you are close enough to count them.
+#
+# Only trees and props. Roads, the outer ring and the roofscape are structure —
+# dropping every third road is a hole in the city, not a level of detail.
+DROP_RATE="${DROP_RATE:-2.5}"
+SCATTER_FLAGS=( --drop-rate="${DROP_RATE}" )
+
 tile_layer () {
-  local src="$1" out="$2" layer="$3"
+  local src="$1" out="$2" layer="$3" extra=("${@:4}")
   if [ ! -f "${src}" ]; then
     echo "skip ${src} (not present)"
     return 0
   fi
   echo "Building ${out} from ${src}"
-  tippecanoe -o "${out}" --layer="${layer}" "${TIPPE_COMMON[@]}" "${src}"
+  tippecanoe -o "${out}" --layer="${layer}" "${TIPPE_COMMON[@]}" "${extra[@]}" "${src}"
   ls -lh "${out}" | awk '{print "  ->", $5, $9}'
 }
 
@@ -89,11 +113,11 @@ tile_layer "${BUILDINGS_ENRICHED}" "${BUILDINGS_PMTILES}" "buildings"
 echo
 echo "== scene layers =="
 mkdir -p "${DATA_DIR}/tiles"
-tile_layer "${DATA_DIR}/trees.geojson"            "${DATA_DIR}/tiles/trees.pmtiles"      "trees"
+tile_layer "${DATA_DIR}/trees.geojson"            "${DATA_DIR}/tiles/trees.pmtiles"      "trees" "${SCATTER_FLAGS[@]}"
 tile_layer "${DATA_DIR}/roads.geojson"            "${DATA_DIR}/tiles/roads.pmtiles"      "roads"
 tile_layer "${DATA_DIR}/outer_ring.geojson"       "${DATA_DIR}/tiles/outer.pmtiles"      "outer"
 tile_layer "${DATA_DIR}/roofscape.detail.geojson" "${DATA_DIR}/tiles/roofdetail.pmtiles" "roofdetail"
-tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtiles"      "props"
+tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtiles"      "props" "${SCATTER_FLAGS[@]}"
 
 echo
 echo "Done. Totals:"
