@@ -69,11 +69,12 @@
     // those would be 60 style writes a second for a decision that changes at
     // walking pace.
     settleMs: 140,
-    // At or above this the slider means "unlimited" and nothing is ever
-    // dropped. It matches the slider's own maximum in js/graphics.js, and the
-    // modelled world is 8.3 km across, so a 4 km detail radius from any camera
-    // inside it already reaches the data's edge.
-    unlimitedAt: 4000,
+    // At or above this the slider means "unlimited" and nothing is ever dropped.
+    // It matches the slider's own maximum in js/graphics.js. 1500 rather than
+    // 4000 because the camera cannot climb past ALT_MAX = 900 m: a threshold
+    // above that can never be crossed, which is how the whole control came to
+    // do nothing on three of the four presets.
+    unlimitedAt: 1500,
   };
 
   // The two tiers, coarsest last. Grouped by what they COST — one full
