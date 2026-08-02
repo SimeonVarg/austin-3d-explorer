@@ -53,6 +53,10 @@
     <span id="tod-moon" aria-hidden="true">🌙</span>
     <button id="tod-play" title="Auto day/night cycle">▶</button>
   </div>
+  <!-- BEFORE the Map hook, exactly as index.html has it at line 15: tiles.js
+       registers the pmtiles:// protocol and scales the tile workers, and both
+       have to happen before any Map is constructed. -->
+  <script src="js/tiles.js"></script>
   <script>/* HARNESS: expose the map instance + keep the drawing buffer so we can pixel-sample our own output */ window.__HARNESS = true; (function(){ var RealMap = maplibregl.Map; function HookedMap(opts){ opts = opts || {}; opts.canvasContextAttributes = Object.assign({}, opts.canvasContextAttributes, { preserveDrawingBuffer: true }); var m = Reflect.construct(RealMap, [opts]); window.__map = m; return m; } HookedMap.prototype = RealMap.prototype; Object.setPrototypeOf(HookedMap, RealMap); maplibregl.Map = HookedMap; })();</script>
   <!-- First, and before anything that can block: it owns the load screen. -->
   <script src="js/loader.js"></script>
