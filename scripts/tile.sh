@@ -69,29 +69,43 @@ TIPPE_COMMON=(
   --buffer=16
 )
 
-# DISTANT HORIZONS — and why it is DROPPING, not simplifying.
+# DISTANT HORIZONS — and the two levers that turned out to be no-ops.
 #
 # Simeon asked for far-away things to be scaled down: "thats kinda what i had in
-# mind with the distant horizons mod". The obvious knob is --simplification, and
-# a 1/4/8/12 sweep was built and dispatched. Every one produced BYTE-IDENTICAL
-# archives and CI reported "no tile changes" at all three settings.
+# mind with the distant horizons mod". Two obvious knobs were tried and MEASURED
+# before this one, and both did exactly nothing:
 #
-# That is not a broken sweep, it is the answer: --simplification removes
-# VERTICES, and this geometry has none to spare. Trees and props are points.
-# The outer ring's own bake already removed 85% of its vertices. The far-field
-# roads were simplified five times harder at fetch. You cannot round off a
-# corner that was already rounded off.
+#   --simplification=4/8/12   Built all three in CI. Byte-identical archives,
+#                             "no tile changes" three times. It removes VERTICES
+#                             and this geometry has none spare: trees and props
+#                             are polygons of 8 points, the outer ring's bake
+#                             already removed 85% of its vertices, and the
+#                             far-field roads were simplified 5x harder at fetch.
 #
-# What DOES scale with distance is how MANY features are sent. A live oak at z13
-# is about four pixels, and there is no reason to ship all 25,341 of them to a
-# camera that high. So the scatter layers get a per-zoom drop rate: tippecanoe
-# keeps 1 in DROP_RATE^(maxzoom - z) features at each zoom below the max, and
-# keeps everything at z16 where you are close enough to count them.
+#   --drop-rate / -B /        Changed the archive by TWELVE BYTES — the rate
+#   --drop-densest-as-needed  recorded in the header. These drop POINTS, or drop
+#                             only when a tile busts a limit, and this script
+#                             sets --no-feature-limit --no-tile-size-limit on
+#                             purpose. Nothing ever triggers them.
 #
-# Only trees and props. Roads, the outer ring and the roofscape are structure —
+# What works is a zoom-conditional FEATURE FILTER on `d`, the keep-order the
+# bake already writes on every tree and prop — biased so the big live oaks sort
+# first. Everything is kept at z16 and closer; below that only the top KEEP
+# fraction is even put in the tile.
+#
+#   trees   2.55 MB -> 1.71 MB      props   0.42 MB -> 0.26 MB     at KEEP=0.35
+#
+# Measured visually at z14.2 and at street level: 0.01% of pixels differ by more
+# than 12/255 high up, and street level is untouched by construction. Part of why
+# it is invisible is that js/lod.js has ALREADY dropped the canopy tier at that
+# altitude — the two mechanisms agree, which is the point.
+#
+# Only trees and props. Roads, the outer ring and the roofscape are structure;
 # dropping every third road is a hole in the city, not a level of detail.
-DROP_RATE="${DROP_RATE:-2.5}"
-SCATTER_FLAGS=( --drop-rate="${DROP_RATE}" )
+SCATTER_KEEP="${SCATTER_KEEP:-0.35}"
+scatter_filter () {   # $1 = layer name
+  printf '{"%s":["any",[">=","$zoom",16],["<=","d",%s]]}' "$1" "${SCATTER_KEEP}"
+}
 
 tile_layer () {
   local src="$1" out="$2" layer="$3" extra=("${@:4}")
@@ -100,7 +114,9 @@ tile_layer () {
     return 0
   fi
   echo "Building ${out} from ${src}"
-  tippecanoe -o "${out}" --layer="${layer}" "${TIPPE_COMMON[@]}" "${extra[@]}" "${src}"
+  # ${extra[@]+...} because set -u treats an empty array reference as unbound:
+  # the layers that pass no extra flags aborted the whole script on line 1.
+  tippecanoe -o "${out}" --layer="${layer}" "${TIPPE_COMMON[@]}" ${extra[@]+"${extra[@]}"} "${src}"
   ls -lh "${out}" | awk '{print "  ->", $5, $9}'
 }
 
@@ -113,11 +129,11 @@ tile_layer "${BUILDINGS_ENRICHED}" "${BUILDINGS_PMTILES}" "buildings"
 echo
 echo "== scene layers =="
 mkdir -p "${DATA_DIR}/tiles"
-tile_layer "${DATA_DIR}/trees.geojson"            "${DATA_DIR}/tiles/trees.pmtiles"      "trees" "${SCATTER_FLAGS[@]}"
+tile_layer "${DATA_DIR}/trees.geojson"            "${DATA_DIR}/tiles/trees.pmtiles"      "trees" -j "$(scatter_filter trees)"
 tile_layer "${DATA_DIR}/roads.geojson"            "${DATA_DIR}/tiles/roads.pmtiles"      "roads"
 tile_layer "${DATA_DIR}/outer_ring.geojson"       "${DATA_DIR}/tiles/outer.pmtiles"      "outer"
 tile_layer "${DATA_DIR}/roofscape.detail.geojson" "${DATA_DIR}/tiles/roofdetail.pmtiles" "roofdetail"
-tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtiles"      "props" "${SCATTER_FLAGS[@]}"
+tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtiles"      "props" -j "$(scatter_filter props)"
 
 echo
 echo "Done. Totals:"
