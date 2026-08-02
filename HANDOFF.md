@@ -2062,3 +2062,25 @@ something other than what the report said.
     order and palette are innocent, one unfollowed lead". Following that lead
     took twenty minutes and found a 1.25-hectare bug. **When a probe says "it is
     not any of the things I checked", that is a result, not a dead end.**
+
+46. **`acer/creek` (PR #65) — B6/A7, and the pass had shipped dead code.**
+    `js/ground.js` carried a `creek` and a `pond` colour in all three palettes
+    plus a whole `ground-creek-bank` layer with a paragraph justifying it — and
+    **nothing had ever set `s` to either**. Every water area was `s:"water"`, so
+    the bank layer matched nothing and had never drawn a pixel. Classified now
+    by the isoperimetric quotient Q=4πA/P²: seven creeks at Q ≤ 0.036, five
+    ponds at Q ≥ 0.183, a five-fold gap. Plus a 9 m wooded band either side.
+
+47. **`acer/turtles` (PR #66) — B3, and a theory that died in the measurement.**
+    I read the pond as rendering warm grey against an authored `#7fa8bb`, wrote
+    it up as the colour grade crushing blues, and changed the palette. Both
+    readings sampled the wrong pixels: an oblique crop of a thin ribbon, then
+    two shots at DIFFERENT ZOOMS compared pixel-for-pixel. Masking properly —
+    paint it magenta, keep those 69,967 indices, read the same set back — gave
+    `#7fa8bb → rgb(126,163,175)`, near-faithful. Reverted.
+
+48. **The magenta-mask trick is the tool to reach for.** Paint the thing under
+    test an impossible colour, record which pixels changed, then read that exact
+    set back under each candidate. It found the buried fountain water, it named
+    the 12,569 m² hedge, and it killed the pond-colour theory. Sampling a
+    hand-picked box has now been wrong three times in one night.
