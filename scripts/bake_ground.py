@@ -885,6 +885,318 @@ def widen_paths(feats, stats, warnings):
     return kept
 
 
+# ----------------------------------------------------- coincident surfaces --
+#
+# "speedway and 24th keep glitching on motion and combine on still, find out
+# other areas like this and fix"
+#
+# THE CAUSE, MEASURED. Two surfaces drawn at the same height over the same
+# ground have no defined winner. Where the winner is decided per pixel by
+# floating-point depth, it flips as the camera moves -- the "glitching" -- and
+# when the camera stops it settles on whichever won that frame, which is the
+# "combine". Speedway and 24th are two instances of it and there were 1,697:
+#
+#     337  patharea x patharea      1,791 m2   ALL at exactly 0.22 m in ONE
+#                                              fill-extrusion layer -> a true
+#                                              depth tie
+#     184  area x area             90,433 m2   two flat fills in one layer:
+#                                              no depth tie, but the loser is
+#                                              composited THROUGH the winner at
+#                                              fill-opacity 0.95
+#   1,176  road x patharea         38,713 m2   a 2.4 m sidewalk polygon standing
+#                                              0.22 m proud in the middle of a
+#                                              15 m carriageway
+#
+# At 24th and Speedway specifically: a 55.3 m2 pedestrian/asphalt patch and a
+# 51.4 m2 footway/concrete patch both sit on the brick mall at the same 0.22 m,
+# and East 24th's carriageway runs under both. Three surfaces, one plane.
+#
+# THE RULE, and it is one rule: ONE SQUARE METRE OF GROUND BELONGS TO EXACTLY
+# ONE DRAWN SURFACE. Every ground class has a rank; where two overlap, the
+# higher rank keeps the ground and the lower one gives it up. Nothing is moved
+# in z and no layer order changes -- the ambiguity is removed from the DATA, so
+# it cannot come back at a camera angle nobody photographed.
+#
+# The ranks below are the whole taste surface of this pass: reorder two lines
+# and the ground changes hands. They read as "the more specific, more built,
+# more identifying thing wins" -- a flight of steps beats the walk it lands on,
+# the brick mall beats the generic footway laid over it, water beats the wood
+# band planted along it, and the carriageway beats everything, because a
+# sidewalk does not lie on a road.
+RANK = {
+    # --- the 0.22 m band: k='patharea', one fill-extrusion layer -----------
+    ("patharea", "steps"):      64,
+    ("patharea", "pedestrian"): 60,
+    ("patharea", "path"):       56,
+    ("patharea", "footway"):    52,
+    # --- the flat band: k='area', one fill layer --------------------------
+    ("area", "fountain"):       46,
+    ("area", "water"):          44,
+    ("area", "endzone"):        40,   # derived; must stay on top of its pitch
+    ("area", "pitch"):          36,
+    ("area", "track"):          35,
+    ("area", "playground"):     34,
+    ("area", "sand"):           33,
+    ("area", "plaza"):          30,
+    ("area", "parking"):        28,
+    ("area", "construction"):   26,
+    ("area", "garden"):         24,
+    ("area", "wood"):           20,
+    ("area", "scrub"):          18,
+    ("area", "lawn"):           12,
+    ("area", "park"):           10,   # the biggest, most generic container
+}
+RANK_DEFAULT = 1                      # anything unranked loses to everything
+
+# Within one class, the bigger polygon keeps its ground; a tie after that falls
+# back to the feature's own index, so the result cannot depend on dict order.
+#
+# 0.5 m2 rather than widen_paths' 1.0: a subtraction leaves genuine narrow
+# strips (the pavement either side of a driveway crossing) that a union never
+# does, and 1.0 was eating them.
+RESOLVE_MIN_M2 = 0.5
+
+# How far inside the pavement edge the carriageway starts. bake_ground.py builds
+# `w` as lanes*LANE_M + KERB_M and the 1.6 is the kerb-and-gutter allowance for
+# BOTH sides, so half of it per side lands the cut on the travelled way. Same
+# number and same argument as the road test in shape_trees.py.
+CARRIAGEWAY_INSET_M = KERB_M / 2.0
+
+# CROSSING THE BANDS, one direction only. Areas are flat and paths stand 0.22 m
+# proud, so they cannot tie -- and cutting every lawn to the shape of the walks
+# over it would put a few hundred path-shaped holes in the ground for a defect
+# that does not exist. The ONE cross-band cut that earns itself is the
+# carriageway against the paths, because that one is visible: a pale concrete
+# slab standing across the middle of every junction.
+
+
+def _rank(p):
+    return RANK.get((p.get("k"), p.get("u")), RANK_DEFAULT)
+
+
+def _band(p):
+    """Which render band a feature is drawn in. Only same-band pairs can tie."""
+    return "path" if p.get("k") == "patharea" else "flat"
+
+
+# ONE metric frame for this whole pass. HANDOFF §32 records the trap: 1e-6 deg
+# is 0.096 m east-west and 0.111 m north-south here, and every margin in this
+# file is smaller than that difference, so nothing may be buffered, inset or
+# area-tested in degrees.
+_KX = math.cos(math.radians(LAT0)) * M_LAT
+
+
+def _poly_m(geom):
+    """A GeoJSON Polygon -> a shapely polygon in METRES, repaired if need be."""
+    from shapely.geometry import Polygon
+    rings = geom["coordinates"]
+    try:
+        q = Polygon([(x * _KX, y * M_LAT) for x, y in rings[0]],
+                    [[(x * _KX, y * M_LAT) for x, y in r] for r in rings[1:]])
+    except Exception:
+        return None
+    if not q.is_valid:
+        q = q.buffer(0)
+    return q
+
+
+def _line_m(coords):
+    return [(x * _KX, y * M_LAT) for x, y in coords]
+
+
+def _rings_ll(gm):
+    out = [[[round(x / _KX, 6), round(y / M_LAT, 6)] for x, y in gm.exterior.coords]]
+    out += [[[round(x / _KX, 6), round(y / M_LAT, 6)] for x, y in r.coords]
+            for r in gm.interiors]
+    return out
+
+
+def count_conflicts(feats, road_polys):
+    """Every pair of ground polygons that share ground at the same height.
+
+    THE PROBE LIVES IN THE BAKE on purpose. Four scripts write this file and
+    each has silently broken another at least once; a number printed by the run
+    that produced the data cannot go stale the way a separate script can.
+    """
+    try:
+        from shapely.strtree import STRtree
+    except ImportError:
+        return None
+    items = []
+    for f in feats:
+        if f["geometry"]["type"] != "Polygon":
+            continue
+        q = _poly_m(f["geometry"])
+        if q is None or q.is_empty:
+            continue
+        items.append((f["properties"], q))
+    n, a = 0, 0.0
+    by_class = Counter()
+    if items:
+        tree = STRtree([q for _, q in items])
+        for i, (p, q) in enumerate(items):
+            for bi in tree.query(q):
+                bi = int(bi)
+                if bi <= i:
+                    continue
+                p2, q2 = items[bi]
+                if _band(p) != _band(p2):
+                    continue
+                inter = q.intersection(q2)
+                if inter.area >= RESOLVE_MIN_M2:
+                    n += 1
+                    a += inter.area
+                    by_class["/".join(sorted([str(p.get("u")), str(p2.get("u"))]))] += 1
+    rn, ra = 0, 0.0
+    paths = [q for p, q in items if p.get("k") == "patharea"]
+    if road_polys and paths:
+        ptree = STRtree(paths)
+        for rq in road_polys:
+            for bi in ptree.query(rq):
+                inter = rq.intersection(paths[int(bi)])
+                if inter.area >= RESOLVE_MIN_M2:
+                    rn += 1
+                    ra += inter.area
+    return {"same_height_pairs": n, "same_height_m2": round(a),
+            "carriageway_x_path_pairs": rn, "carriageway_x_path_m2": round(ra),
+            "worst_same_height": dict(by_class.most_common(8))}
+
+
+def carriageway_polys(road_feats):
+    """Every travelled way in the detail area, as a metric polygon.
+
+    `far` ways are excluded and the reason is measurable: their centrelines are
+    simplified five times harder (6.0 m against 1.2 m), so cutting a 2.4 m
+    campus sidewalk with one would remove pavement that is really there.
+    """
+    try:
+        from shapely.geometry import LineString
+    except ImportError:
+        return []
+    out = []
+    for f in road_feats:
+        p = f["properties"]
+        if p.get("k") != "road" or p.get("far"):
+            continue
+        half = float(p.get("w") or 9.0) / 2.0 - CARRIAGEWAY_INSET_M
+        if half <= 0.2:
+            continue
+        try:
+            q = LineString(_line_m(f["geometry"]["coordinates"])).buffer(
+                half, cap_style=2, join_style=2, mitre_limit=2.0)
+        except Exception:
+            continue
+        if not q.is_empty:
+            out.append(q)
+    return out
+
+
+def resolve_ground_conflicts(feats, road_polys, stats, warnings):
+    """Give every square metre of ground to exactly one surface."""
+    try:
+        from shapely.strtree import STRtree
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: coincident surfaces NOT resolved "
+                        "-- Speedway/24th and 1,697 other pairs will z-fight")
+        return feats
+
+    kept, work = [], []
+    for i, f in enumerate(feats):
+        if f["geometry"]["type"] != "Polygon":
+            kept.append(f)
+            continue
+        q = _poly_m(f["geometry"])
+        if q is None or q.is_empty:
+            stats["resolve_dropped_degenerate"] += 1
+            continue
+        work.append({"f": f, "q": q, "a0": q.area, "i": i,
+                     "rank": _rank(f["properties"]), "band": _band(f["properties"])})
+
+    # Highest rank first, then largest, then original order. Every term is
+    # deterministic, so two runs of this bake hand the same ground to the same
+    # feature -- which is what makes the file reproducible byte for byte.
+    work.sort(key=lambda w: (-w["rank"], -w["a0"], w["i"]))
+
+    road_tree = STRtree(road_polys) if road_polys else None
+    settled = []          # metric geometries already given their ground
+    s_band = []
+    s_tree = None
+    REBUILD_EVERY = 64    # STRtree is immutable; rebuilding in blocks is the
+                          # cheapest way to keep a growing index queryable
+    pending = []
+
+    out = []
+    for w in work:
+        cutters = []
+        # Same band, higher rank: they have already taken their ground.
+        if s_tree is not None:
+            for bi in s_tree.query(w["q"]):
+                bi = int(bi)
+                if s_band[bi] == w["band"]:
+                    cutters.append(settled[bi])
+        for j, g in pending:
+            if s_band[j] == w["band"] and g.intersects(w["q"]):
+                cutters.append(g)
+        # The ONE cross-band cut, and only this one.
+        if w["band"] == "path" and road_tree is not None:
+            for bi in road_tree.query(w["q"]):
+                cutters.append(road_polys[int(bi)])
+        g = w["q"]
+        if cutters:
+            try:
+                g = g.difference(unary_union(cutters))
+            except Exception:
+                warnings.append("difference failed on a %s/%s; left uncut"
+                                % (w["f"]["properties"].get("k"),
+                                   w["f"]["properties"].get("u")))
+                g = w["q"]
+        # A feature claims the ground it ORIGINALLY covered, not the trimmed
+        # remainder: otherwise two lower-ranked features could both take the
+        # same square metre out of the middle of a third.
+        settled.append(w["q"])
+        s_band.append(w["band"])
+        pending.append((len(settled) - 1, w["q"]))
+        if len(pending) >= REBUILD_EVERY:
+            s_tree = STRtree(settled)
+            pending = []
+        w["q"] = g
+        if g.is_empty:
+            stats["resolve_covered_" + str(w["f"]["properties"].get("u"))] += 1
+            continue
+        out.append(w)
+
+    # Back to lon/lat. A subtraction can split one polygon into several, so a
+    # MultiPolygon result becomes several Polygon features -- the schema in this
+    # file is Polygon-only and three other bakes read it expecting that.
+    #
+    # A feature nothing touched is passed through UNCHANGED rather than
+    # re-emitted through the transform: a round trip through metres and back
+    # moves the last digit of a coordinate, and 1,100 features' worth of that
+    # is noise in every future diff of this file.
+    for w in out:
+        if w["q"].area >= w["a0"] - 1e-6:
+            kept.append(w["f"])
+            continue
+        stats["resolve_trimmed"] += 1
+        g = w["q"]
+        parts = list(g.geoms) if g.geom_type == "MultiPolygon" else [g]
+        made = 0
+        for gm in parts:
+            if gm.geom_type != "Polygon" or gm.is_empty or gm.area < RESOLVE_MIN_M2:
+                stats["resolve_sliver_dropped"] += 1
+                continue
+            kept.append({"type": "Feature",
+                         "geometry": {"type": "Polygon", "coordinates": _rings_ll(gm)},
+                         "properties": dict(w["f"]["properties"])})
+            made += 1
+        if made > 1:
+            stats["resolve_split_into_parts"] += made - 1
+        if made == 0:
+            stats["resolve_trimmed_to_nothing"] += 1
+    return kept
+
+
 def main():
     feats = []
     stats = Counter()
@@ -1097,6 +1409,18 @@ def main():
     feats = grow_precinct_lawns(feats, stats, warnings)
     feats = widen_paths(feats, stats, warnings)
 
+    # The roads are baked BEFORE the ground is resolved now, because the
+    # carriageway is one of the surfaces competing for the ground and the
+    # resolver needs its geometry. bake_roads() itself is unchanged and still
+    # writes data/roads.geojson byte for byte as it did.
+    road_feats = bake_roads(stats, warnings)
+    roads_m = carriageway_polys(road_feats)
+    stats["carriageways_as_cutters"] = len(roads_m)
+
+    before = count_conflicts(feats, roads_m)
+    feats = resolve_ground_conflicts(feats, roads_m, stats, warnings)
+    after = count_conflicts(feats, roads_m)
+
     # Draw order: big areas first, then small areas on top of them, then paths
     # over everything. Without the size term a 30,000 m2 lawn painted over the
     # field it contains.
@@ -1111,8 +1435,6 @@ def main():
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(fc, f, separators=(",", ":"))
 
-    bake_roads(stats, warnings)
-
     size_kb = os.path.getsize(OUT) / 1024
     report = {
         "features": len(feats),
@@ -1121,6 +1443,8 @@ def main():
         "paths_with_TAGGED_width": paths_tagged_w,
         "paths_with_DEFAULT_width": paths_default_w,
         "unmapped_surface_values": dict(unmapped_surface),
+        "coincident_surfaces_BEFORE": before,
+        "coincident_surfaces_AFTER": after,
         "warnings": warnings,
     }
     print(json.dumps(report, indent=2))
