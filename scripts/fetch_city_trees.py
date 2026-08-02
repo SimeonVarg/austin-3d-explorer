@@ -25,6 +25,7 @@ import json
 import math
 import os
 import sys
+from collections import defaultdict
 import urllib.parse
 import urllib.request
 
@@ -37,9 +38,48 @@ CANOPY_DETECTED = os.path.join(DATA, "canopy_detected.json")
 GROUND = os.path.join(DATA, "ground.geojson")
 MANIFEST = os.path.join(DATA, "manifest.json")
 
-BBOX = (30.276, -97.752, 30.296, -97.726)          # s, w, n, e
+# ── Coverage. THE BOX IS THE DEFECT, and it was measurable. ────────────
+#
+# Reported as *"the canopy stops at the campus edge — West Campus, East Austin,
+# everything south of the Capitol is bare tan. Austin reads as a dust bowl."*
+# It is not a filter and it is not the city's own coverage: it is this box.
+# Photographed before the fix in shots/tree-edge/northedge.png — a razor-straight
+# horizontal line of canopy across the frame at lat 30.2964, dense green in front
+# of it and flat tan behind, which is the north edge of the OLD box below:
+#
+#     old tree box     -97.7524..-97.7256   30.2757..30.2964    5.5 km²
+#     modelled city    -97.7880..-97.7020   30.2400..30.3150   71.4 km²
+#                      (data/outer_ring.geojson, the buildings you can see)
+#
+# Every tree source stopped at the small box while the buildings ran 13x wider,
+# so the city was drawn and then the trees were cut out of it. The city's own
+# inventory has plenty: 1,566 rows in the old box, 20,723 in the modelled-city
+# box — measured against the live Socrata endpoint, not assumed.
+#
+# CORE_BBOX is the old box and it still means something: it is where the
+# imagery-detected canopy exists (scripts/detect_canopy.py's grid covers exactly
+# it) and where the camera spends its time. Inside it nothing about this file's
+# behaviour changes. Outside it the trees are BACKDROP, and are built to a
+# cheaper recipe — see OUTER_* below.
+BBOX = (30.2400, -97.7880, 30.3150, -97.7020)      # s, w, n, e — modelled city
+CORE_BBOX = (30.276, -97.752, 30.296, -97.726)     # campus + West Campus + Drag
 SOCRATA = "https://data.austintexas.gov/resource/wrik-xasw.json"
 M_LAT = 111320.0
+
+# ── What a backdrop tree costs. ───────────────────────────────────────
+# Widening the box 13x cannot cost 13x the features. Outside CORE_BBOX a tree is
+# never closer to the camera than a couple of hundred metres in any pose the
+# tour flies, so it is drawn as canopy only:
+#
+#   OUTER_TRUNKS      a trunk is a second feature per tree and is sub-pixel at
+#                     that distance. Off.
+#   OUTER_MIN_DBH_IN  a 2-inch sapling models to a 3 m crown that is a couple of
+#                     pixels across from outside the core. Keep the street trees
+#                     that read as a street, drop the rest.
+# shape_trees.py reads CORE_BBOX from this file and caps the tier count out
+# there for the same reason (OUTER_MAX_TIERS).
+OUTER_TRUNKS = False
+OUTER_MIN_DBH_IN = 5.0
 
 # ── Allometry. GENERATIVE, from the FACTUAL measured diameter. ─────────
 # Trunk diameter is recorded in inches (DBH). Crown spread and height are
@@ -274,17 +314,36 @@ def species_for(lon, lat, r_m, near_water):
     return "crape"
 
 
+def in_box(lon, lat, box):
+    s, w, n, e = box
+    return s <= lat <= n and w <= lon <= e
+
+
 def fetch_city():
-    if os.path.exists(CITY_CACHE):
+    # THE CACHE IS KEYED ON THE BOX. It was `city_trees.json` flat, and that is a
+    # trap with teeth: widen BBOX with a cache on disk and this returns the OLD
+    # box's 1,566 rows, the run "succeeds", the file is rewritten, and the map
+    # looks exactly as broken as before with nothing to indicate why.
+    s, w, n, e = BBOX
+    cache = os.path.join(CACHE, "city_trees_%.4f_%.4f_%.4f_%.4f.json" % BBOX)
+    if os.path.exists(cache):
+        with open(cache, encoding="utf-8") as f:
+            return json.load(f)
+    if os.path.exists(CITY_CACHE) and BBOX == CORE_BBOX:
         with open(CITY_CACHE, encoding="utf-8") as f:
             return json.load(f)
-    s, w, n, e = BBOX
     where = ("latitude between %s and %s AND longtitude between %s and %s" % (s, n, w, e))
     url = SOCRATA + "?" + urllib.parse.urlencode({"$where": where, "$limit": "50000"})
     req = urllib.request.Request(url, headers={"User-Agent": "austin-3d-explorer/1.0"})
-    with urllib.request.urlopen(req, timeout=120) as r:
+    with urllib.request.urlopen(req, timeout=300) as r:
         rows = json.loads(r.read().decode())
-    with open(CITY_CACHE, "w", encoding="utf-8") as f:
+    # 50,000 is the Socrata page limit. A silently truncated page would read as
+    # "the city has no trees over there", which is the exact defect this widen
+    # exists to fix, so say so rather than shipping a half-covered city.
+    if len(rows) >= 50000:
+        sys.stderr.write("!! city inventory hit the 50,000-row page limit — "
+                         "coverage is TRUNCATED, page the query\n")
+    with open(cache, "w", encoding="utf-8") as f:
         json.dump(rows, f, separators=(",", ":"))
     return rows
 
@@ -317,7 +376,18 @@ def main():
     try:
         rows = fetch_city()
     except Exception as e:                                        # noqa: BLE001
-        sys.stderr.write("city inventory unavailable (%s); OSM only\n" % e)
+        # REFUSE, do not degrade. Without the inventory this writes a
+        # 498-tree file over a 23,000-tree one and prints a report that looks
+        # like a successful run — the whole city goes bare and the only clue is
+        # a line on stderr. The response is not cached, so the next run with a
+        # network is a full recovery; there is nothing to salvage by continuing.
+        sys.stderr.write("city inventory unavailable (%s)\n" % e)
+        if os.path.exists(OUT):
+            sys.stderr.write(
+                "REFUSING to rewrite %s from OSM alone — it would drop the "
+                "canopy to a few hundred trees. Delete it first if that is "
+                "really what you want.\n" % OUT)
+            sys.exit(2)
         rows = []
     stats["city_rows"] = len(rows)
     for r in rows:
@@ -333,7 +403,7 @@ def main():
             dbh = float(r.get("diameter"))
         except (TypeError, ValueError):
             dbh = 0.0
-        if dbh < MIN_DBH_IN:
+        if dbh < (MIN_DBH_IN if in_box(lon, lat, CORE_BBOX) else OUTER_MIN_DBH_IN):
             stats["city_skip_dbh"] += 1
             continue
         g = group_for(sp)
@@ -444,15 +514,25 @@ def main():
     # Importance is size-biased with a deterministic jitter — thinning drops
     # small trees first (the big live oaks are what you actually see from 60 m)
     # but never in bands, because the jitter breaks up any spatial run.
-    order = []
+    #
+    # THE QUANTILE IS PER ZONE, and it has to be, or widening the box silently
+    # re-tunes every graphics preset. One global rank over core+outer would make
+    # `d <= 0.52` mean "52% of a set 2.6x larger", i.e. 2.6x the trees drawn on
+    # campus at the medium preset — a perf change nobody asked for, arriving as
+    # a side effect of a coverage fix. Ranked inside each zone, 0.52 still draws
+    # 52% of the campus AND 52% of the backdrop: the slider keeps its meaning
+    # both globally and per zone, and the campus draws exactly what it did.
+    order_by_zone = defaultdict(list)
     for i, (lon, lat, r_m, h_m, leaf, key, src, dbh) in enumerate(kept):
         size = max(0.0, min(1.0, (r_m - 1.8) / 9.0))
-        order.append((-(0.68 * size + 0.32 * det01(lon, lat, "dens")), i))
-    order.sort()
+        z = "core" if in_box(lon, lat, CORE_BBOX) else "outer"
+        order_by_zone[z].append((-(0.68 * size + 0.32 * det01(lon, lat, "dens")), i))
     rank = [0.0] * len(kept)
-    n = max(1, len(kept) - 1)
-    for pos, (_, i) in enumerate(order):
-        rank[i] = pos / n
+    for z, order in order_by_zone.items():
+        order.sort()
+        n = max(1, len(order) - 1)
+        for pos, (_, i) in enumerate(order):
+            rank[i] = pos / n
 
     # ---- emit -----------------------------------------------------------
     feats = []
@@ -474,7 +554,7 @@ def main():
         # blob. Below TRUNK_MIN_BASE_M the crown all but touches the ground and
         # the trunk is a 0.3 m box nobody can see — half the features in the
         # file, for nothing.
-        if base >= TRUNK_MIN_BASE_M:
+        if base >= TRUNK_MIN_BASE_M and (OUTER_TRUNKS or in_box(lon, lat, CORE_BBOX)):
             feats.append({
                 "type": "Feature",
                 "properties": {"kind": "trunk", "h": round(base + 0.4, 2), "base": 0,
@@ -507,12 +587,20 @@ def main():
     zones = {"west": 0, "mid": 0, "east": 0}
     for f in canopies:
         zones[zone_of(f)] += 1
+    # The number the DUST BOWL defect is about: how much of the modelled city
+    # has trees on it at all. `core` is the old box; `outer` is everything the
+    # buildings cover that the canopy used to stop short of.
+    core_outer = {"core": 0, "outer": 0}
+    for f in canopies:
+        c = f["geometry"]["coordinates"][0][0]
+        core_outer["core" if in_box(c[0], c[1], CORE_BBOX) else "outer"] += 1
 
     report = {
         "trees": len(canopies),
         "features": len(feats),
         "trunks": trunks,
         "by_zone": zones,
+        "by_coverage": core_outer,
         "draws_at_density": {str(v): sum(1 for f in canopies if f["properties"]["d"] <= v)
                              for v in (0.35, 0.52, 0.675, 1.0)},
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),

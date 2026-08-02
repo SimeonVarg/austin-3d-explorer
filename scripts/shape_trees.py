@@ -94,6 +94,7 @@ or the app keeps serving the old shapes — `gh workflow run build-tiles.yml --r
 <branch>`, because tippecanoe has no usable Windows build. Verify locally with
 `?tiles=0`, which forces the GeoJSON fallback.
 """
+import hashlib
 import json
 import math
 import os
@@ -102,6 +103,11 @@ from collections import Counter, defaultdict
 
 from shapely.geometry import LineString, Point, shape
 from shapely.strtree import STRtree
+
+# CORE_BBOX is defined once, in the file that fetches against it. Duplicating
+# the numbers here is how the two halves of the tree pipeline would end up
+# disagreeing about where the campus ends.
+from fetch_city_trees import CORE_BBOX, in_box
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
@@ -229,6 +235,37 @@ DEFAULT_PROFILE = "other"
 # p75 6.81, p90 8.98, max 14.46).
 TIERS_BY_RADIUS = [(3.9, 1), (6.8, 3), (9.0, 4), (float("inf"), 5)]
 
+# Outside CORE_BBOX (see fetch_city_trees.py) a tree is backdrop. The tiers are
+# a silhouette you read from thirty metres; from the far side of downtown they
+# are three extra features per tree buying sub-pixel differences. Capped, and
+# capped as a NUMBER so it is one edit to spend more on them.
+OUTER_MAX_TIERS = 2
+
+# ── Taste block: the value gradient down a crown ──────────────────────
+#
+# Reported as *"every tier is the same flat colour, so from above a crown reads
+# as a wedding cake rather than as foliage."* True, and the shape work in PR #59
+# is what exposed it: `trees-canopy` is painted
+# `interpolate ['get','h'] 6 -> #93ad70, 15 -> #5f7d4a`, i.e. purely off the
+# tier's own top height, which does three unhelpful things at once — 34% of all
+# tiers sit outside the 6..15 m window and clamp to one flat endpoint (measured:
+# 8,489 below, 2,464 above, of 32,651), the stops are a SIZE ramp so two tiers of
+# one crown differ by a fraction of it, and the direction is inverted: higher
+# tier top = closer to the DARK end, so the lit top of the canopy is drawn
+# darker than the shaded underside.
+#
+# `tf` is the fix's data half: the tier's own centre as a fraction of the crown,
+# 0 at the base and 1 at the top, so a paint expression can ramp a value
+# gradient over it regardless of whether the crown has 1 tier or 5.
+# `j` is a per-TREE hue jitter bucket in 0..1, constant down a crown, so 39,580
+# trees can stop being one green.
+#
+# NEITHER IS READ YET. The paint lives in js/app.js:1075 and js/timeofday.js:409
+# and both are outside this pass's remit; baked here so that change is a one
+# liner. Cost of carrying them is in the PR.
+TIER_FRACTION_DP = 2      # tf rounding; ~13 distinct values, dictionary-cheap
+HUE_JITTER_STEPS = 8      # j buckets; 0, 1/7 ... 1
+
 # Each tier is rotated a little against the one below it. Two octagons stacked
 # in phase read as one octagonal prism with a step in it; out of phase, the
 # silhouette gains corners and reads round. Free — the ring already exists.
@@ -312,6 +349,15 @@ def build_surfaces(buildings):
     S = Surfaces()
     if BUILDING_DROP:
         S.add("building", True, [poly_m(f["geometry"]) for f in buildings])
+        # The snapshot's detailed footprints stop at the campus box, and the
+        # trees no longer do. Outside it the only footprints that exist are the
+        # outer ring's — without them a surveyed street tree in East Austin that
+        # lands on a house is kept, and the rule "a trunk is not inside a
+        # building" would quietly hold on campus only.
+        outer = os.path.join(DATA, "outer_ring.geojson")
+        if os.path.exists(outer):
+            of = json.load(open(outer, encoding="utf-8"))["features"]
+            S.add("outer building", True, [poly_m(f["geometry"]) for f in of])
 
     ground = json.load(open(os.path.join(DATA, "ground.geojson"),
                             encoding="utf-8"))["features"]
@@ -366,12 +412,23 @@ def build_surfaces(buildings):
     return S
 
 
-def shaped(ring, k, twist_deg=0.0, lat=30.285):
+def shaped(ring, k, twist_deg=0.0, lat=30.285, dp=7):
     """Scale a ring about its own centroid, optionally twisting it.
 
     The twist has to happen in METRES, not degrees, or a rotation at this
     latitude squashes the ring by cos(lat) — 13% at Austin, which is visible as
     an oval crown.
+
+    `dp` IS THE FIXED POINT, and it is why this pass is now byte-stable rather
+    than only count-stable. Reconstructing a crown from a tier is lossy: the
+    tier was rounded, so scaling it back out lands ~1e-7 from where it started,
+    and the next run's tier lands 1e-7 from THAT. Measured before this argument
+    existed: seven consecutive runs held 57,543 features but wrote seven
+    different files, and on one of them a crown drifted across an inset kerb
+    line and a tree was deleted for nothing. The merge reconstructs at dp=6,
+    which is the grid fetch_city_trees.octagon() already emits on — so the
+    reconstruction snaps back onto the source grid and run N+1 reproduces run N
+    exactly. 1e-6 is 11 cm; a crown is metres across.
     """
     cx, cy = centroid(ring)
     kx = math.cos(math.radians(lat))
@@ -389,7 +446,7 @@ def shaped(ring, k, twist_deg=0.0, lat=30.285):
         # 9.58 MB to 19.59 MB on a feature count that only rose 66%. Seven
         # places is 11 mm at this latitude, which is four orders of magnitude
         # finer than anything this scene can draw.
-        out.append([round(cx + x / kx, 7), round(cy + y, 7)])
+        out.append([round(cx + x / kx, dp), round(cy + y, dp)])
     return out
 
 
@@ -410,11 +467,27 @@ def profile_at(prof, t):
     return prof[-1][1]
 
 
-def tiers_for(r):
-    for lim, n in TIERS_BY_RADIUS:
+def tiers_for(r, outer=False):
+    n = TIERS_BY_RADIUS[-1][1]
+    for lim, k in TIERS_BY_RADIUS:
         if r < lim:
-            return n
-    return TIERS_BY_RADIUS[-1][1]
+            n = k
+            break
+    return min(n, OUTER_MAX_TIERS) if outer else n
+
+
+def jitter(lon, lat):
+    """A per-tree bucket in 0..1, stable across runs.
+
+    Keyed on the centroid rounded to 5 dp (~1 m), never on the raw one: every
+    tier is rebuilt through a 7-dp round trip and the centroid drifts by
+    millimetres, which is enough to flip a hash and repaint a tree on every
+    re-run for no reason.
+    """
+    k = "%.5f:%.5f" % (lon, lat)
+    u = int.from_bytes(hashlib.md5(k.encode()).digest()[:4], "big") / 0xFFFFFFFF
+    return round(min(HUE_JITTER_STEPS - 1, int(u * HUE_JITTER_STEPS))
+                 / (HUE_JITTER_STEPS - 1.0), 3)
 
 
 def main():
@@ -557,7 +630,13 @@ def main():
                 shrink.append(kmax)
         if r_wide > 0 and (abs(r0 / r_wide - 1.0) > 1e-6 or untwist):
             f["geometry"]["coordinates"] = [
-                shaped(ring, r0 / r_wide, untwist, lat0)]
+                shaped(ring, r0 / r_wide, untwist, lat0, dp=6)]
+        else:
+            # Untouched crowns have to sit on the same grid as reconstructed
+            # ones or a single-tier crown that later earns a second tier starts
+            # the drift all over again.
+            f["geometry"]["coordinates"] = [
+                [[round(x, 6), round(y, 6)] for x, y in ring]]
         p["base"] = round(base, 2)
         p["h"] = round(top, 2)
         p["r0"] = round(r0, 2)
@@ -571,20 +650,28 @@ def main():
     out = list(others)
     made = Counter()
     span_skipped = 0
+    outer_capped = 0
     for f in merged:
         p = f["properties"]
         ring = rings(f["geometry"])[0]
+        c = centroid(ring)
         base = float(p.get("base") or 0)
         top = float(p.get("h") or 0)
         span = top - base
+        p["j"] = jitter(c[0], c[1])
         # Tier off the carried source radius, not off a re-measurement of a
         # ring whose coordinates were rounded to 7 dp: the measurement wobbles
         # by ~11 mm and crowns sitting on a TIERS_BY_RADIUS threshold flip
         # between runs because of it.
-        n = tiers_for(float(p.get("r0") or radius_m(ring, lat0)))
+        r_src = float(p.get("r0") or radius_m(ring, lat0))
+        outside = not in_box(c[0], c[1], CORE_BBOX)
+        n = tiers_for(r_src, outside)
+        if outside and n < tiers_for(r_src):
+            outer_capped += 1
         if span < MIN_SPLIT_H or n <= 1:
             if span < MIN_SPLIT_H and n > 1:
                 span_skipped += 1
+            p["tf"] = 0.5
             out.append(f)
             made[1] += 1
             continue
@@ -593,16 +680,25 @@ def main():
             t0, t1 = i / n, (i + 1) / n
             # Sample the profile at the MIDDLE of the tier: sampling at its base
             # makes every crown one tier too wide, and at its top, one too thin.
-            k = profile_at(prof, (t0 + t1) / 2)
+            mid = (t0 + t1) / 2
+            k = profile_at(prof, mid)
             tier = json.loads(json.dumps(f))
             tier["properties"]["base"] = round(base + span * t0, 2)
             tier["properties"]["h"] = round(base + span * t1, 2)
+            # Where this tier sits in its own crown, 0 at the base and 1 at the
+            # top. The ONLY handle a paint expression has on "which tier is
+            # this" — `h` cannot serve, it is the geometry.
+            tier["properties"]["tf"] = round(mid, TIER_FRACTION_DP)
             tier["geometry"]["coordinates"] = [
                 shaped(ring, k, TIER_TWIST_DEG * i, lat0)]
             out.append(tier)
         made[n] += 1
 
     print("  crowns by tier count: %s" % dict(sorted(made.items())))
+    inside = sum(1 for f in merged
+                 if in_box(*centroid(rings(f["geometry"])[0]), box=CORE_BBOX))
+    print("  crowns: %d inside the core box, %d backdrop (%d tier-capped at %d)"
+          % (inside, len(merged) - inside, outer_capped, OUTER_MAX_TIERS))
     if span_skipped:
         print("  %d crowns too short to tier (< %.1f m of crown)" % (span_skipped, MIN_SPLIT_H))
     sp = Counter(f["properties"].get("sp") for f in merged)
