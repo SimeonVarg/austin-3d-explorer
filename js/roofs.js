@@ -186,13 +186,22 @@
     if (map.getZoom() < ROOFS.minorMinZoom - 0.45) return;
     _detailAsked = true;
     try {
+      // The detail tier streams as tiles when data/tiles/roofdetail.pmtiles is
+      // there, and falls back to the whole 2.27 MB GeoJSON when it is not.
+      // Source and layer are both built in THIS function, so layerProps can be
+      // a local — unlike the roads pass, where they live in different functions
+      // and a local threw out of scope and took the whole ground stage down.
+      const dTiles = window.tileSource && window.tileSource('roofdetail');
+      const dLP = dTiles ? dTiles.layerProps : {};
       if (!map.getSource(SRC_D)) {
-        map.addSource(SRC_D, { type: 'geojson', data: 'data/roofscape.detail.geojson' });
+        map.addSource(SRC_D, dTiles
+          ? dTiles.source
+          : { type: 'geojson', data: 'data/roofscape.detail.geojson' });
       }
       if (!map.getLayer(MINOR)) {
         const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
         map.addLayer({
-          id: MINOR, type: 'fill-extrusion', source: SRC_D, minzoom: ROOFS.minorMinZoom,
+          id: MINOR, type: 'fill-extrusion', source: SRC_D, ...dLP, minzoom: ROOFS.minorMinZoom,
           filter: filterFor(1),
           paint: {
             'fill-extrusion-color': bakedColor(p),
