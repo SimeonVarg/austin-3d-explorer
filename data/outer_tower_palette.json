@@ -1,62 +1,62 @@
 {
-  "note": "Facade buckets for the downtown towers, computed by scripts/bake_outer_facades.py from the towers' own baked wall colours. js/outer.js registers one atlas tile per id at boot so a tower on a vector tile keeps its curtain wall. Regenerate whenever outer_ring.geojson is re-baked.",
+  "note": "Facade buckets for the downtown towers, computed by scripts/bake_outer_facades.py from the towers' own baked wall colours. Each tower carries its bucket ORDINAL as `fb`; the browser maps that ordinal to a palette index it allocates at boot and registers one atlas tile per bucket. Do not stamp `wp` directly \u2014 the renderer reads it, and an unregistered pattern id paints the wall transparent. Regenerate whenever outer_ring.geojson is re-baked.",
   "buckets": [
     {
-      "id": "tb00",
+      "fb": 0,
       "wd": "#6a7783",
       "wg": "#707e79",
       "wn": "#292f39"
     },
     {
-      "id": "tb01",
+      "fb": 1,
       "wd": "#737f8c",
       "wg": "#7a8780",
       "wn": "#2c323c"
     },
     {
-      "id": "tb02",
+      "fb": 2,
       "wd": "#889aab",
       "wg": "#90a49d",
       "wn": "#333b47"
     },
     {
-      "id": "tb03",
+      "fb": 3,
       "wd": "#a8927c",
       "wg": "#b29b72",
       "wn": "#3e3837"
     },
     {
-      "id": "tb04",
+      "fb": 4,
       "wd": "#8a9dad",
       "wg": "#92a7a0",
       "wn": "#343c48"
     },
     {
-      "id": "tb05",
+      "fb": 5,
       "wd": "#8ca0b1",
       "wg": "#95aaa3",
       "wn": "#353d49"
     },
     {
-      "id": "tb06",
+      "fb": 6,
       "wd": "#92a5b6",
       "wg": "#9aafa7",
       "wn": "#373f4a"
     },
     {
-      "id": "tb07",
+      "fb": 7,
       "wd": "#b3afa7",
       "wg": "#bdb99a",
       "wn": "#424245"
     },
     {
-      "id": "tb08",
+      "fb": 8,
       "wd": "#c1c4c4",
       "wg": "#ccd0b5",
       "wn": "#47494f"
     },
     {
-      "id": "tb09",
+      "fb": 9,
       "wd": "#cacece",
       "wg": "#d6dbbe",
       "wn": "#4a4d53"
