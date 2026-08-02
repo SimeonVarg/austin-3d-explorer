@@ -1,360 +1,288 @@
-# QUEUE
+# QUEUE — Acer lane
 
-Work that is agreed and specified but not started. Anything in here should be
-pickable up by any lane without asking Simeon a question first — if it needs a
-decision from him, it does not belong here yet.
+Rewritten 2026-08-01, late, from Simeon's own list. Everything above this in git
+history is superseded.
 
-Ordered by value. Take from the top.
+Work top to bottom. One PR per item. Merge your own verified work, resolve your
+own conflicts, **never merge red**. If an item cannot be finished, write down why
+in the PR and move to the next — do not stop.
 
----
-
-## 0. DONE, not queued — the two biggest files were downloaded twice
-
-Kept here because it is the measurement that reframed item 1, not because there
-is work left. PR #35. `js/capitol.js` appended the Capitol's features with
-`setData`, which replaces a source wholesale, so 612 Capitol trees re-fetched all
-25,341 of the city's and 1,802 ground features re-fetched all of
-`ground.geojson`. **38.36 MB → 28.41 MB, 25.9% of a first-time visitor's
-download, on the wire twice.** `updateData({ add })` appends a diff instead.
-
-The cache does not save you and this is the part worth remembering: the two
-requests **overlap in flight**, so there is nothing cached yet to serve the
-second from. Verified against GitHub Pages' own `max-age=600` — the duplicates
-still report *0 from cache*. An in-flight duplicate is never cacheable.
+**The Mac owns `js/outer.js`, `js/stadium.js`, `js/lod.js`, `scripts/tile.sh` and
+`.github/workflows/` tonight** (MAC_QUEUE M1–M8). Stay out of those. Everything
+else here is yours.
 
 ---
 
-## 1. Vector tiles — add detail without making the site slower
+## The three traps that keep costing hours
 
-**Why.** A visitor to the site downloads **26.4 MB across 26 files** (3.8 MB
-gzipped) before anything is drawn, and every one of those files is the *whole
-city*, fetched whether or not the camera can see it. That is the ceiling on how
-much detail this project can ever have. Adding a nicer roofscape, more props,
-more trees currently means a slower first paint for everyone — so "make it more
-detailed" and "make it load fast" are in direct opposition.
+1. **`python -m http.server` cannot test this site.** It ignores `Range:`, which
+   PMTiles needs, and every feature in a tiled layer silently vanishes with no
+   console error. Use `python scripts/serve.py 8123`.
+2. **A missing layer makes every metric look BETTER.** Verify with a picture —
+   `node scripts/verify/tour.mjs day` and `night` — before believing a number.
+3. **Assert the effect, never the intention.** The Drag rendered white at night
+   for weeks while `window.__dragTodHooked` said `true`; the flag was set two
+   lines under the assignment that was missing.
 
-Vector tiles break that trade. The data is cut into small tiles up front and the
-browser fetches **only the tiles under the camera**. Detail stops costing load
-time, which is the point: it is the one change that lets the city keep growing.
-There is no cloud service that does this for you — the site renders entirely on
-the visitor's own device, so the only lever is what gets sent.
-
-**The half-built part.** `scripts/tile.sh` already exists, is already step 3 of
-the documented pipeline in `scripts/README.md`, and already runs in
-`.github/workflows/build-data.yml` (which builds tippecanoe from source to do
-it). It writes `data/snapshots/<date>/austin.pmtiles` — 0.61 MB against the
-1.41 MB `buildings.detailed.geojson` the app actually loads.
-
-**Nothing in `js/` or `index.html` references that file.** The pipeline has been
-producing it, and CI has been spending build minutes on it, for weeks.
-
-**THIS IS NOT THE ONE-EVENING JOB THE ABOVE MAKES IT SOUND LIKE.** That was the
-first draft of this entry, written from file sizes before reading the load path.
-Reading it turned up three blockers. They are all solvable; none of them is
-solvable quickly, and a lane that starts by adding a `pmtiles://` URL will get a
-grey city and not understand why.
-
-**Blocker 1 — the app enriches the whole city in the browser, all at once.**
-`loadScene()` in `js/app.js` fetches the entire building collection and then runs
-passes over it that need to see every feature simultaneously:
-
-- `quantiseFacades()` (`js/facades.js`) clusters window colours across all ~3,000
-  buildings and keeps the **14 most populous** tones, plus a protected list. Per
-  tile this is incoherent: a tile of West Campus and a tile of downtown would
-  each elect their own 14, and the shared atlas would no longer match the
-  geometry. This is the hard one.
-- `mergeCapitolScene()` splices in 604 Capitol buildings and 13 parts, and
-  patches 12 existing ones from `capitol_overrides.json`.
-- `applyUnion24()` rewrites Union on 24th's footprint to cut its courtyard.
-- The label pass stamps `lbl` and `lt` after de-duplicating names against
-  `signs.json` — a global comparison.
-
-All of it has to move into the Python bake, *before* tippecanoe. That is the
-actual project. Do it as its own change with the JS pass still in place and
-assert the two agree feature-for-feature, then delete the JS pass. Do not do
-both halves in one PR.
-
-**Blocker 2 — tippecanoe is not installed on the Acer.** The archive is only
-ever built in CI (`build-data.yml` compiles it from source). Nobody can iterate
-on tiling settings locally until that changes.
-
-**Blocker 3 — trees looked like the easy first target and are not, quite.**
-`js/capitol.js` appends 612 Capitol trees to `austin-trees` at runtime. That now
-uses `updateData`, which is a **GeoJSON-source API** — it does not exist on a
-vector-tile source. Capitol trees would need either their own source and a
-duplicated layer pair, or to be baked into the tree tiles upstream.
-
-**So the order is:**
-
-1. Install tippecanoe on at least one machine, or add a `workflow_dispatch` job
-   that builds an archive from a branch so tiling settings can be iterated at all.
-2. Port the enrichment to Python and prove parity with the JS pass. Biggest step
-   by far; probably several PRs.
-3. Tile `trees.geojson` first — 9.13 MB, the largest single file, 25,341
-   fill-extrusion features with `base`/`h`, and the only client-side dependency
-   is the Capitol append above.
-4. Then buildings, using the archive `tile.sh` already produces.
-5. Then `roads` 3.70 MB, `outer_ring` 2.59 MB, `roofscape.detail` 2.27 MB,
-   `props` 2.19 MB.
-
-**Watch for.**
-
-- `window.PATTERN_TILING` caps every patterned GeoJSON source at `maxzoom: 16`.
-  That is the fix for the city-wide motion flicker and it must not be lost.
-  `tile.sh` already writes `--maximum-zoom=16` so the cap bakes into the archive,
-  but **verify with `scripts/verify/shimmer.mjs` before and after.** `zfight.mjs`
-  cannot see this class of defect — it gates on a flat 3×3 neighbourhood and is
-  structurally blind to texture crawl.
-- **Tippecanoe simplifies geometry at low zooms by default.** That is a visual
-  quality change, not a delivery change, and it is the one thing here that could
-  make the city look worse. `--no-simplification-of-shared-nodes` and an explicit
-  `--simplification` are the knobs; pin them and take a before/after screenshot at
-  altitude before believing it is neutral.
-- Property loss is **silent** — a missing key renders as a default colour, not an
-  error. `bake_detail.py` writes `pid`, `final_height`, `base`, `lt` and the
-  facade keys, all read by paint expressions. Assert named buildings by pixel.
-
-**Measure with `scripts/verify/payload.mjs`**, and read its header first: two
-earlier hand-rolled versions of that measurement were wrong in opposite
-directions. File sizes on disk are not the payload, and content-length is not the
-wire.
+**Minimum of interleaved reps, never one reading.**
 
 ---
 
-## 2. Point the timing scripts at hardware GL and re-run every A/B
+# PART A — BUGS. These are visible and they come first.
 
-**Why:** `chrome.mjs` now supports `VERIFY_GL=hardware`, but the 17 `*-perf`
-scripts that were silently running on the CPU renderer have never produced a
-trustworthy number. Every frame-time comparison in `HANDOFF.md` that came from
-them is suspect.
+## A1. Movement dies on the Acer when the daylight slider moves
 
-**What:** add `gl: 'hardware'` (or run with `VERIFY_GL=hardware`) to each of
-`arts-perf`, `drag-perf`, `facade-perf`, `ground-perf`, `ground-tex-perf`,
-`moody-perf`, `outer-perf`, `perf`, `perf2`, `perf3`, `post-perf`, `roof-perf`,
-`roofscape-perf`, `stadium-perf`, `tower-perf`, `westcampus-perf`, `light-perf`.
-Then re-run the A/Bs that decided something and correct any conclusion that
-changes. Note in `scripts/verify/README.md` that a headed run now defaults to
-hardware.
+**Acer only. The Mac is fine — so this is reproducible on exactly one machine,
+which makes it a hardware/driver interaction, not a logic error.**
 
-**Do not** switch the ~100 pixel-assertion scripts. Measured: hardware and
-software renderers differ on 26-42% of pixels, worst channel delta 192/255.
+Simeon: *"on acer when i change daylight i can't move anymore - also sometimes
+even when i dont change movement stops."*
 
----
+Two symptoms, possibly one cause:
 
-## 3. Name the remaining buildings from a real source
+- moving the time-of-day slider kills WASD/drag input
+- movement sometimes stops on its own with no interaction
 
-**Why:** 2,069 of 2,453 buildings have no name.
-`scripts/name_buildings.py` already exhausted every offline source in the repo
-and recovered 32. OpenStreetMap is mined dry — a different source is the only way.
+**Where to look first.** A time-of-day step retints every pattern atlas —
+`js/facades.js` repaints its images and six passes push their own tiles. On a
+machine where that takes long enough, the main thread stalls; if the flight
+controller's loop is driven by `requestAnimationFrame` and something throws
+inside a retint, the loop dies silently and never restarts. Check `js/controls.js`
+for a rAF loop with no try/catch, and check whether an exception during retint
+leaves `__fly` stopped.
 
-**What:** scrape UT's official building directory
-(`utdirect.utexas.edu/apps/campus/buildings`) and the Wikipedia list of UT
-buildings. Firecrawl's free tier covers the fetch (YC student deal). The actual
-work is matching directory entries to footprints by address or coordinate, which
-no tool does for you. Write results into `data/building_names.json`, which
-`js/app.js` already reads at load — **not** into the snapshot, which a re-bake
-would wipe.
+**Reproduce before theorising.** Drive it headed on the Acer, move the slider,
+then send synthetic key events and assert the camera actually moved. Log every
+`pageerror`. The "sometimes even when i dont" case matters more than the slider
+case — find what they share.
 
----
+## A2. Roofs turn into windows in low detail mode
 
-## 4. Two roofs are buried inside their own buildings
+Simeon: *"when i go up on low detail mode the roofs of houses become windows this
+is pretty bad."*
 
-**Why:** `scripts/reseat_authored_roofs.py` reports them and deliberately refuses
-to move them, because lifting a roof on a guess is how you end up putting DKR's
-deck on top of a floodlight mast.
+Climbing with a low graphics preset makes house roofs render as window patterns.
+Almost certainly a facade pattern being applied to a roof layer when the roof
+layer is dropped or swapped by LOD — a roof taking the wall's `wp`, or
+`buildings-roof` being hidden so the wall pattern shows on the top face.
 
-**What:** an unnamed building (`3fb4507f`) is 12.00 m buried and the Austin
-Recreation Center 6.35 m. Work out why — most likely `final_height` changed under
-a roof baked against the old value — and fix the cause rather than the symptom.
+`js/lod.js` is the **Mac's** file tonight (MAC_QUEUE M7). Diagnose it, write the
+finding into that item, and fix only what lives outside `lod.js`. If the fix is
+inside it, hand it over rather than colliding.
 
----
+## A3. Speedway grows enormously wide as the camera nears horizontal
 
-## 5. The zoom-change shimmer
+Simeon: *"i look closer to horizontal (low) and speedway gets super wide and
+right after monochrome is a seperate layer thats a bit narrower that also grows
+wider as i approach 90 degrees see root cause and fix."*
 
-**Why:** capping every patterned source at `maxzoom: 16` fixed the flicker while
-flying (WASD is now at the floor), but a pure zoom change still crawls — 38.3%
-against a 26.2% floor. Q/E shimmers while held.
+**Two layers, one cause — find it once.** A road drawn as a `line` with a
+pixel-based width does not stay a fixed number of metres on the ground: at high
+pitch the same pixel width covers far more world distance, so the road fans out.
+`data/roads.geojson` carries a real `w` in metres (Speedway `w: 12.0`), so the
+data is right and the rendering is not.
 
-**What:** the fade is driven by the display zoom crossing an integer, not by
-which tile the geometry came from, so a source setting cannot reach it. The
-plausible fix is two pattern tiers switched by zoom — a softened tile on a far
-layer, the sharp one on a near layer. Costs about ten more atlas images and the
-per-image repaint recurs on every time-of-day step, so measure before committing.
+The fix is to draw width in metres, not pixels — either a fill/extrusion of the
+real footprint, or a `line-width` interpolated against zoom so it tracks ground
+scale. Check what `js/ground.js` already does for the asphalt; the second,
+narrower layer that also fans is the tell that this is one shared rule.
 
----
+`js/ground.js` may be quiet tonight but confirm against the Mac's open PRs first.
 
-## 6. Verify suite on GitHub Actions, triggered from your phone
+## A4. The Tower clock still does not shine at night
 
-**Why:** two reasons, and the second one was under-sold the first time.
+Reported before and still wrong. `data/tower.geojson` has 113 features with a
+bright night colour including `#ffdca8`, `#fff3cf` — so the *data* says lit.
+Check that those features are actually the clock faces, that nothing paints over
+them after dark, and that the clock is not being dimmed by the same ramp that
+darkens the shaft. Verify with a close night pose, not from altitude.
 
-The obvious one: it gets the suite off your laptop, free. See `docs/CLOUD.md` §4.
-A job cannot be left running, so there is nothing to forget and nothing to bill.
+## A5. Two buildings have diagonal roofs
 
-The one that matters more day to day: **it is what makes an agent session fast.**
-A verification pass is ~10 browser runs at 1.5–3.5 minutes each, and they are run
-**one at a time on purpose** — running eight headless Chromes at once is exactly
-what put 38 orphaned processes on the machine and pinned it at 100%. Actions
-runs them concurrently on somebody else's hardware, so the wall clock becomes the
-slowest single script instead of the sum. That is the real fix for a half-hour
-turnaround, and it costs nothing.
+Simeon: *"blanton has a diagonal roof ... theres another diagonal roof building a
+bit east of blanton."*
 
-**What:** `.github/workflows/verify.yml`, `workflow_dispatch` so it is a button
-in the GitHub mobile UI — copy the shape of `build-data.yml`, which already
-carries the "Phone-friendly: trigger this from Kiro / the GitHub mobile UI"
-comment.
+A roof plane running diagonally across a rectangular footprint. Find both, work
+out whether it is a bad hip axis in `scripts/bake_roofs.py` (an `az` computed
+from the wrong edge) or a footprint whose longest axis is misread. **Fix the
+rule, not the two buildings** — if the axis derivation is wrong it is wrong
+elsewhere too, so report how many buildings share the symptom.
 
-- `ubuntu-latest`, GitHub-hosted. **Not** self-hosted — this repo is public and a
-  self-hosted runner would let a stranger's pull request run code on your machine.
-- `CHROME_PATH=/usr/bin/google-chrome`; `chrome.mjs` already probes that path, so
-  no code change is needed.
-- `python -m http.server 8123` and `VERIFY_URL=http://127.0.0.1:8123` — the
-  README records that three agents once served on 8099 from different worktrees
-  and requests went to whichever bound first.
-- Matrix-shard the scripts so they run in parallel. Wall clock becomes the
-  slowest single script rather than the sum.
-- Upload `scripts/verify/shots/` as an artifact, and put the pass/fail table in
-  the job summary so it is readable on a phone without downloading anything.
+## A6. Battle Hall has a grey roof — is that right?
 
-**Blocked on:** the "page is not defined" regression — 15 scripts still crash
-instantly. Wiring broken scripts into CI just teaches you to ignore red builds.
-That fix is the Mac lane's.
+Cheap check, do it early. Battle Hall's roof is red clay tile in life. If it is
+grey in the render, find out whether it is missing from the authored roof set or
+picking a default. One line in the report either way.
 
-**Check first:** the free plan caps concurrent jobs (commonly cited as 20). Do
-not design a 40-way matrix before confirming it.
+## A7. The creek behind the Alumni Center just went murky
+
+Simeon: *"i tried doing a creek pass behind the alumni center it just made the
+water murky."*
+
+See Part B item B6 — the fix is the same work, so do them together.
 
 ---
 
-## 7. Turn on Greptile for pull-request review
+# PART B — MAKE THE SCENE REAL. Go wide here; this is the overnight work.
 
-**Why:** this reverses an earlier call. `docs/CLOUD.md` ruled Greptile out as
-"built for a team's pull-request volume". That missed the actual situation: two
-AI lanes both edit `js/app.js`, and Simeon merges pull requests he cannot fully
-read. An independent reviewer on every PR is a genuine second pair of eyes, not
-process overhead. Free for a year on the YC student deal.
+## B1. The public art is six grey boxes and the data is already good
 
-**What:** install the GitHub app on this repo, confirm it comments on an open PR,
-and note in `CLAUDE.md` that its review is advisory — a lane still owns its own
-verification, and a green Greptile comment is not a substitute for looking at the
-render.
+**This is the highest-value item in Part B and the most self-contained.**
+
+`data/props.geojson` already carries every one of these with a name, a height and
+an artist. `js/props.js` draws all of them with **one flat colour and one
+extrusion** — so a 7 m Nancy Rubins aluminium explosion and a 5.5 m steel
+sculpture are both a grey block.
+
+| in the data now | what it is |
+|---|---|
+| `Monochrome for Austin` — Nancy Rubins, h 7.0 | a burst of welded aluminium canoes |
+| `Clock Knot` — Mark di Suvero, h 5.5 | red-orange steel I-beams, a leaning knot |
+| `The West` — Donald Lipski, h 4.5 | a mirrored sphere on a ring |
+| `Diana the Huntress` — Anna Hyatt Huntington, h 5.5 | bronze figure with a bow |
+| `Austin` — Ellsworth Kelly, h 8.0 | a stone chapel with **coloured glass** |
+| `Sea Turtle` — Dylan Connor, h 4.2 | a bronze turtle |
+
+**What to do.** Author each one the way `js/capitol.js` authors the dome: a small
+generated form, per-piece, keyed on `name`, with its own colour and material.
+None of these needs to be a model — they need to be *recognisable at 60 m*. A
+canoe burst is a dozen thin angled slabs from a common origin. A knot is three
+crossed beams. A mirrored sphere is a stack of discs with a bright specular
+colour. Ellsworth Kelly's *Austin* is a white barrel-vaulted box with **coloured
+glass panels** — Simeon called this out specifically: *"chromatic circle of glass
+can you add that with the colors."*
+
+Keep the generic grey box as the fallback for everything unnamed. Parameterise
+every colour and dimension (rule 11).
+
+## B2. Ellsworth Kelly's lawn should look like somewhere you'd sit
+
+Simeon: *"that whole area is supposed to be green can you make it look nicer (not
+just add green lol)."*
+
+So: not a green polygon. Real ground surfaces from `data/ground.geojson`, path
+edging, scattered trees at real positions, benches from the props furniture set,
+and the paving pattern around the chapel. Look at what `ground.geojson` already
+carries for that block before adding anything new.
+
+## B3. Turtle Pond, with turtles
+
+`data/ground.geojson` **already has** `Turtle Pond` as `u: water, s: pond`, and
+`props.geojson` has a `Sea Turtle` statue. So the pond exists and is presumably
+flat blue.
+
+Give it: a depressed water surface with a bank, planting around the edge, and
+**actual turtles** — small dark low domes on the rocks and in the water, a
+handful, at slightly different sizes and angles. This is a texture-of-life
+detail; a dozen 30 cm domes will read from the air.
+
+## B4. Depth: stairs, terraces, sunken and raised ground
+
+Simeon: *"fountain in front of tower has stairs on both sides is that possible
+depth throughout or did we already rule that out."*
+
+**It is possible and it was never ruled out.** A `fill-extrusion` takes a `base`
+and a `height`, so a flight of steps is N thin extrusions at rising bases —
+exactly the trick `bake_roofs.py` already uses to imply a hip and
+`shape_trees.py` uses to taper a crown. Nothing new is needed.
+
+Do the Littlefield Fountain first because he named it: the basin, the steps on
+both flanks, the terrace it sits in. Then look for other places where the ground
+is not flat and currently pretends to be — the South Mall terraces are the
+obvious next one.
+
+Write it as a **reusable step generator in the bake**, not as hand-placed
+geometry, so the next terrace costs one call.
+
+## B5. Trees: real variety, rounder crowns
+
+Simeon: *"i said taper them and u added like one smaller octagon on top make it a
+big smoother, more like round tree type cool things and different types."*
+
+Fair. The current taper is one narrower octagon stacked on top — the minimum
+viable version of the idea.
+
+**Do it properly:** three or four tiers with a smooth radius curve rather than
+one step, and **distinct species profiles** rather than one shape scaled:
+
+- live oak — wide, low, spreading, the campus default
+- cedar elm / pecan — taller, narrower, higher crown
+- a conifer form — narrow and pointed
+- a small ornamental — low and round
+
+`data/trees.geojson` carries species where the city inventory had it — use it,
+and fall back to size-based assignment where it does not. **Watch the feature
+count**: `js/lod.js` drops `trees-canopy` as one pass at altitude and the file is
+already the largest in the app. More tiers means more features; measure the
+payload and the frame time before and after, and keep the tier count a
+parameter.
+
+## B6. Waller Creek behind the Alumni Center — depth and greenery
+
+The creek currently reads as murky flat water. Give it a **cut**: banks stepped
+down to the water with the same step generator from B4, water below grade rather
+than painted on top, and dense planting along both banks. The isoperimetric
+shape classification already separates creek from pond — use it so the two get
+different treatments.
+
+## B7. The circular thing behind the Drama Building
+
+Simeon: *"the area that looks like it has construction behind drama building that
+circular area has stuff find it and add it."*
+
+Find out what it actually is before modelling it — a circular plaza, an
+amphitheatre, a genuine construction site, a fountain. Check `ground.geojson` and
+OSM for what is recorded there. Then build it. Say in the PR what you concluded
+it is and how you decided.
+
+## B8. Sidewalks, especially West Campus
+
+Simeon: *"roads are wtv but sidewalks especially in wampus are a bit lame."*
+
+Kerb line, a slightly raised surface rather than a painted strip, crossings,
+tree pits, and a texture that is not one flat grey. West Campus first because he
+named it. This shares the ground pipeline with A3 — if the sidewalk width has the
+same pixel-vs-metres problem, fix it once.
+
+## B9. Roof colour: mostly burnt orange, some redder
+
+Simeon: *"some of the roofs on campus are not all burnt orange some of them are
+more red can we add a bit of variety corresponding to real color? i like the
+burnt orange but add a tiny bit of red to some."*
+
+**Corresponding to the real colour**, not random jitter — that is the whole ask.
+Sample the actual roofs from imagery where the roof survey has them, and where it
+does not, vary by building era or by pass. Keep the burnt orange dominant; this
+is a small deliberate spread, not a rainbow. Parameterise the spread so he can
+turn it down in one edit.
 
 ---
 
-## 8. Split HANDOFF.md
+# PART C — the tiling work that is still open
 
-**Why:** it is ~91 KB and every session reads all of it. Simeon has already
-approved this as an idle-time chore.
+## C1. Buildings on vector tiles
 
-**What:** a short current-state file plus `docs/JOURNAL.md` for the history.
-Keep the hard-won rules (the numbered list at the end) in the short file — those
-are the part that stops mistakes repeating.
+**Not done — Simeon assumed correctly.** Blocked on the same thing as the outer
+ring: `quantiseFacades` elects the 14 most populous window tones across the
+*whole* city and stamps `wp` per feature in the browser, which tiles cannot carry.
 
----
+Measured at **14 ms**, so this is a *correctness* blocker, not a performance one.
 
-## 9. ~~The Drag renders near-WHITE at night~~ — FIXED, PR #53
+The Mac is porting the outer ring's equivalent to Python as MAC_QUEUE M1. **Let
+that land first and copy its shape**: port, prove parity feature-for-feature with
+the JS pass still in place, then delete the JS.
 
-**One missing line.** `js/drag.js` built its time-of-day wrapper and never
-assigned it — `window.applyTimeOfDay = wrapped` was absent, and it is present in
-all four of the other passes that do the same thing. So `applyDragColors` was
-never called by the retint.
-
-    Drag tile uploads during a slider retint   0 -> 10
-    pale pixels below the horizon           6206 -> 1906
-
-Everything below is the diagnosis as it stood before the cause was found. **The
-four "tried and reverted" fixes were all wrong for the same reason** — they were
-retrying a function that was never being called. Kept because the reasoning is
-worth reading and because `window.__dragTodHooked` reporting `true` for a hook
-that did not exist is the trap, not the missing line.
-
-<details>
-<summary>original diagnosis</summary>
-
-
-
-**Found 2026-08-01 by `scripts/verify/night-pale.mjs` (new). Characterised, not
-fixed.** I spent a long time on it and every theory I had was wrong, so this is
-exactly what is established and what is not, rather than a guess left in the code.
-
-**The defect.** At night the Guadalupe streetwall — the Co-op, Chipotle, the
-shopfront strip — renders as a row of pale blocks against a black city. See
-`shots/tour/night-the-drag.png`. This is the inverted-silhouette failure, and it
-is the most visible kind of bug this scene has: one wrong building in a night
-frame takes the eye before anything else.
-
-**Measured.** `night-pale.mjs` hides one pass at a time and counts pale pixels
-below the horizon, because counting bright pixels tells you there is a problem
-and not where it lives. Of 3146 pale pixels at the DKR pose, `drag-*` accounts
-for **55.8%** and `drag-wall` alone for 31%. Nothing else is close — `stadium-*`
-16%, everything else under 2%.
-
-**Established, all measured, none assumed:**
-
-- `drag-wall` paints with `fill-extrusion-pattern`, a baked image. A pattern does
-  not respond to the time-of-day colour ramp; only re-uploading the image does.
-- The Drag DOES register a retint hook: `window.__dragTodHooked === true`, and
-  `applyDragColors` exists as a function.
-- Its six families are `pclCoffer, gymArcade, uniArcade, uniWin, retUpper,
-  shopGlass` (`dragTileAudit()`).
-- Calling `applyDragColors(map, 0.95)` **by hand** takes the pale count from 6206
-  to **1904**, and it then stays stable.
-- Waiting never does it: 24209 px at +2 s, 6208 at +6 s, and **6208 at +12 s and
-  +20 s**. It is not slow propagation.
-- Instrumenting `map.updateImage` across a real slider retint records **120 calls
-  and not one of them is a Drag family.** Tower (`tw*`), arts and moody tiles all
-  update. The Drag's do not.
-
-**So the hook is installed and the tiles are still never re-uploaded.** Those two
-facts together are the whole puzzle and I could not reconcile them.
-
-**Tried and reverted — do not repeat these:**
-
-- a second tile-push pass on `requestAnimationFrame` — no change, 6206
-- a second pass on `map.once('idle')` with a 2.5 s timer fallback — no change;
-  `idle` fires about a second in, well before the +6 s plateau
-- three timed retries at 1200 / 4000 / 8000 ms — no change
-- adding a `setPaintProperty` write alongside each retry, on the theory that it
-  forces the pattern atlas to rebuild — no change
-
-A fix that does not move the number is worse than no fix, because the comment
-above it will be believed.
-
-**Where to start.** The gap is between "the wrapper is installed" and "the
-`updateImage` calls never happen". Log inside `applyDragColors` itself during a
-real slider drag — **not** from `page.evaluate`, which is the one path already
-known to work and therefore proves nothing. Six passes wrap
-`window.applyTimeOfDay`, and the comment at `js/drag.js:805` already records that
-the `__drag` marker is unreliable for exactly that reason. Suspect the wrap chain
-before suspecting MapLibre.
-
-</details>
+**And yes, we can mix and match** — that is exactly what is running now. Trees,
+roads, roof detail and props are vector tiles; buildings, ground, the Capitol and
+every authored pass are still GeoJSON, in the same map, in the same style. There
+is no requirement to convert everything, and no penalty for not.
 
 ---
 
-## 10. `stadium-*` is still 16% of the pale pixels at night
+## Not negotiable
 
-Left over after item 9. `scripts/verify/night-pale.mjs` reports `stadium-*` as
-the second-largest contributor of wrongly-bright pixels after dark, and
-`data/stadium.geojson` has **499 of 511 features with no night colour at all**
-(`westcampus.geojson`: 109 of 145).
-
-That may be fine — `js/westcampus.js` colours its `solid` features from a `SOLID`
-lookup keyed on surface type rather than from a per-feature `wn`, and the stadium
-may do the same. **Check that before touching the data.** DKR is deliberately
-floodlit and reads correctly in `shots/tour/night-dkr-stadium.png`, so some of
-that 16% is meant to be there.
-
-**Already checked, so start from here.** Every pass that builds a time-of-day
-wrapper now installs it — arts, drag, moody, outer, places, tower and westcampus
-all report `builds=1 installs=1`:
-
-```bash
-for f in js/*.js; do
-  w=$(grep -c "const wrapped = function" "$f"); a=$(grep -c "window.applyTimeOfDay = wrapped" "$f")
-  [ "$w" -gt 0 ] && printf "%-16s builds=%s installs=%s\n" "$(basename $f)" "$w" "$a"
-done
-```
-
-**`stadium.js` does not appear in that list at all** — it never builds a wrapper,
-so it retints by some other route or not at all. That is the thread to pull.
-Worth keeping the loop above as a lint; item 9 was one missing line in exactly
-this shape and nothing in the suite would have caught it.
+1. **Never register a self-hosted GitHub runner.** Public repo.
+2. **Never remove the watchdog or reaper in `scripts/verify/chrome.mjs`.**
+3. **Never leave a browser or a server running.** `reap.mjs` and kill your server
+   before finishing every pass.
+4. **Record every pass in `HANDOFF.md`** with the branch name.
