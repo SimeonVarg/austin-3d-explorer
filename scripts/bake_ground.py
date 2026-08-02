@@ -789,13 +789,54 @@ CANOPY = {
     # through campus is bald cypress at the water, pecan and cedar elm above it,
     # live oak on the terrace -- three is enough to stop it reading as one green.
     "species": {
-        "cypress": (7.5, 17.0, 0.28),   # tall, narrow, blue-green
-        "pecan":   (11.5, 14.0, 0.40),  # broad, light, yellow-green
-        "liveoak": (10.0, 10.5, 0.32),  # wide and low, dark
+        "cypress": (6.5, 19.0, 0.28),   # tall, narrow, blue-green
+        "pecan":   (10.5, 16.0, 0.40),  # broad, light, yellow-green
+        "liveoak": (9.5, 11.5, 0.32),   # wide and low, dark
     },
     # Each crown's own radius and height are drawn from +/- this fraction of its
     # species' figures, so no two are identical and the top surface is lumpy.
-    "size_var": 0.30,
+    # SIZE VARIANCE IS THE ANTI-BLOCK KNOB and it is worth more than vertices.
+    # At 0.30 a species renders as one repeated slab: 261 pecans within +/-30%
+    # of each other, tops within a metre, and a cluster of them is a plateau.
+    # At 0.45 the same 261 span 5.8 to 15.2 m of radius and the canopy line is
+    # broken by neighbours that are half the height of each other. Costs zero
+    # bytes, which is the whole reason it is the first thing to reach for.
+    "size_var": 0.45,
+    # A LONE PRISM IS A BLOCK; A CLUSTER OF THEM IS A CANOPY. This is the fix
+    # for the thing the first render got wrong and it is worth stating plainly:
+    # eight sides, a wobbled ring and 45% size variance do NOT stop a single
+    # isolated crown from reading as a flat-topped green box
+    # (shots/creek/crop-corridor.png, the dark one standing alone over San
+    # Jacinto). What stops it is a NEIGHBOUR — two crowns that overlap merge
+    # into one silhouette with a stepped top, and three merge into foliage.
+    #
+    # So a crown must have at least `min_neighbours` others whose centres are
+    # within `touch` x (r_i + r_j), or it is not emitted. It costs nothing; it
+    # SAVES bytes, because the crowns it deletes are the ones stranded in the
+    # narrow reaches where the planted band is a few metres wide.
+    #
+    # AND `touch` IS 1.3, NOT THE 0.85 THAT WOULD MEAN "ACTUALLY OVERLAPPING",
+    # because 0.85 measured at 27 crowns out of 604. That is arithmetic, not a
+    # tuning accident: at spacing 20 m and mean radius 8.8 m, two lattice
+    # neighbours are ~20 m apart and 0.85 x (r_i + r_j) is 15 m, so almost
+    # nothing qualifies. Requiring literal overlap requires spacing under the
+    # crown DIAMETER, which is 1,206 crowns and 374 KB on an untiled file, and
+    # that is not a trade worth making for a defect only visible at 3x
+    # magnification of a z17.4 frame -- at the altitudes this camera flies
+    # (shots/creek/air.png, z16.2) the corridor already reads as a mass. 1.3
+    # keeps a crown that has company within ~24 m and drops the ones stranded
+    # alone in a narrow reach, which is where the block read actually happens.
+    #
+    # AND `min_neighbours` IS 1, WHICH IS THE HONEST ANSWER TO A MEASUREMENT.
+    # Requiring two neighbours kept 132 of 604, because the planted band is a
+    # 10-30 m ribbon and a 20 m lattice puts roughly ONE crown across it: there
+    # is no cluster to belong to. The band's own geometry, not the rule, is why
+    # this corridor is a line of trees rather than a wood, and the only way to
+    # change that is to halve the spacing -- 1,206 crowns, 374 KB, on a file
+    # that is not tiled. `spacing_m` is that knob and this is the number to
+    # quote when turning it.
+    "min_neighbours": 1,
+    "touch": 1.5,
     "base_frac": 0.34,          # underside of the foliage, as a fraction of top
     # SIDES 8, AND IT WAS 6, AND THE PICTURE IS THE ARGUMENT. Six sides at this
     # radius renders a flat-topped block -- shots/creek-after/recctr.png at
@@ -804,7 +845,7 @@ CANOPY = {
     # the spacing from 19 m back to 20 m. Below about 8 the silhouette is the
     # polygon; above it, it is the wobble.
     "sides": 8,                 # ring vertices; every extra one is ~25 bytes x N
-    "wobble": 0.24,             # per-vertex radius variation, kills the polygon
+    "wobble": 0.34,             # per-vertex radius variation, kills the polygon
     # Crowns are POSITIONS, not surfaces: 5 decimal places is 1.1 m here, which
     # is a fiftieth of a crown and a fifth of a pixel from flying altitude. 6 dp
     # everywhere else in this file costs 12 bytes per crown for nothing.
@@ -867,6 +908,8 @@ def plant_creek_canopy(feats, stats, warnings):
     dp, sides, var = CANOPY["coord_dp"], CANOPY["sides"], CANOPY["size_var"]
     made = 0
 
+    # ---- candidates on a staggered lattice ------------------------------
+    cand = []
     j = 0
     y = y0
     while y <= y1 + row_h:
@@ -884,40 +927,65 @@ def plant_creek_canopy(feats, stats, warnings):
                 r = r0 * (1.0 + (_h01(i, j, 4) - 0.5) * 2 * var)
                 h = h0 * (1.0 + (_h01(i, j, 5) - 0.5) * 2 * var)
                 if h >= CANOPY["min_h_m"]:
-                    a0 = _h01(i, j, 6) * math.tau
-                    ring = []
-                    for k in range(sides):
-                        a = a0 + math.tau * k / sides
-                        rk = r * (1.0 + (_h01(i, j, 10 + k) - 0.5) * 2 * CANOPY["wobble"])
-                        ring.append([round((cx + rk * math.cos(a)) / _KX, dp),
-                                     round((cy + rk * math.sin(a)) / M_LAT, dp)])
-                    ring.append(ring[0])
-                    feats.append({
-                        "type": "Feature",
-                        "geometry": {"type": "Polygon", "coordinates": [ring]},
-                        # `b` is NOT baked: js/ground.js derives it as
-                        # base_frac * h, which is 12 bytes x N saved on a file
-                        # that ships whole.
-                        # TWO decimal places on `h`, not one, and it is not
-                        # fussiness: crowns OVERLAP by design, and two
-                        # overlapping prisms with tops at exactly the same z is
-                        # the A2 z-fight. At 0.1 m a species has ~80 distinct
-                        # heights across 261 crowns and ties are common; at
-                        # 0.01 m they are ~1 in 800 and would have to overlap
-                        # as well. 3 bytes a crown, 1.8 KB in the file.
-                        "properties": {"k": "cnp", "m": sp, "h": round(h, 2)},
-                    })
-                    stats["canopy_" + sp] += 1
-                    made += 1
+                    cand.append((cx, cy, r, h, sp, i, j))
             x += S
             i += 1
         y += row_h
         j += 1
+    stats["canopy_candidates"] = len(cand)
+
+    # ---- drop the loners ------------------------------------------------
+    # O(n^2) over ~700 points is nothing, and an index here would be one more
+    # thing that can be wrong about a number nobody re-derives.
+    touch, need = CANOPY["touch"], CANOPY["min_neighbours"]
+    keep = []
+    for a in cand:
+        n = 0
+        for b in cand:
+            if b is a:
+                continue
+            if math.hypot(a[0] - b[0], a[1] - b[1]) <= touch * (a[2] + b[2]):
+                n += 1
+                if n >= need:
+                    break
+        if n >= need:
+            keep.append(a)
+    stats["canopy_dropped_isolated"] = len(cand) - len(keep)
+
+    # ---- emit -----------------------------------------------------------
+    covered = 0.0
+    for cx, cy, r, h, sp, i, j in keep:
+        a0 = _h01(i, j, 6) * math.tau
+        ring = []
+        for k in range(sides):
+            a = a0 + math.tau * k / sides
+            rk = r * (1.0 + (_h01(i, j, 10 + k) - 0.5) * 2 * CANOPY["wobble"])
+            ring.append([round((cx + rk * math.cos(a)) / _KX, dp),
+                         round((cy + rk * math.sin(a)) / M_LAT, dp)])
+        ring.append(ring[0])
+        feats.append({
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": [ring]},
+            # `b` is NOT baked: js/ground.js derives it as base_frac * h, which
+            # is 12 bytes x N saved on a file that ships whole.
+            #
+            # TWO decimal places on `h`, not one, and it is not fussiness:
+            # crowns OVERLAP by design, and two overlapping prisms with tops at
+            # exactly the same z is the A2 z-fight. At 0.1 m a species has ~80
+            # distinct heights across 261 crowns and ties are common; at 0.01 m
+            # they are ~1 in 800 and would have to overlap as well. 3 bytes a
+            # crown, 1.8 KB in the file.
+            "properties": {"k": "cnp", "m": sp, "h": round(h, 2)},
+        })
+        stats["canopy_" + sp] += 1
+        covered += math.pi * r * r
+        made += 1
 
     stats["canopy_crowns"] = made
-    if made:
-        stats["canopy_cover_pct"] = int(100 * min(1.0, made * math.pi *
-            (sum(CANOPY["species"][n][0] for n in names) / len(names)) ** 2 / max(1.0, area.area)))
+    # Crown area over band area. It is an UPPER bound -- crowns overlap, which
+    # is the point -- so read it as "how much foliage per square metre of band",
+    # not as closure. Under about 0.8 the corridor has holes you can see through.
+    stats["canopy_cover_ratio"] = round(covered / max(1.0, area.area), 2)
     return feats
 
 

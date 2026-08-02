@@ -1,5 +1,161 @@
 # Austin 3D Explorer — Full Handoff
 
+## 36. Aug 2 2026 — the creek's water was green, and the dark lines are fences (acer lane)
+
+**Branch:** `acer/creek-water-canopy`. HANDOFF §35 items **9** and **10**, which
+are one session because the second one turned out to take twenty minutes.
+
+### Item 10 first, because it is answered and it is not ours
+
+*"Sharp dark lines across the ground — one straight across Clark Field, one
+tracing a plot by the creek, ticks along kerbs. 3-4 px, hard-edged, (59,45,32)."*
+
+It is **`props-line`**, and one `queryRenderedFeatures` at the pixel he described
+said so:
+
+```
+(893,423)  props-line | austin-props | {"k":"line","u":"fence","h":1.9,"c":"dark","src":"osm"}  x4
+(713,507)  props-line | austin-props | {"k":"line","u":"fence","h":1.9,"c":"dark","src":"osm"}  x2
+```
+
+A column straight through the bar on Clark Field's north edge, tod 0.30:
+
+```
+y=421..424  157,80,59    the running track
+y=425..428   66,54,44    THE BAR
+y=429       168,87,64    a gap between panels
+y=430..433   65,54,44    THE BAR
+y=435       148,161,103  the infield
+```
+
+**(66,54,44), four pixels, one pixel of transition at each edge.** Hiding
+`props-line` removes both bars and changes nothing else:
+`shots/creek-before/crop-field.png` against `shots/creek-before/crop-fence-off.png`.
+
+**The cause is that a fence is modelled as an opaque wall.** `bake_props.py:121`
+is `"fence": (0.10, 1.90, "dark")` and `js/props.js:108` is
+`dark: ['#4e5058', '#4c4238', '#15171d']`. The 0.10 m width is honest and
+invisible — a fifth of a pixel from flying altitude. What you are seeing is the
+**1.90 m of vertical face**, which at 60° of pitch is exactly the 3-4 px
+reported. A chain-link fence round a ball field is ~90% air; drawn solid it is a
+black bar across the infield, and the same object is the "plot boundary by the
+creek" and the "ticks along kerbs".
+
+**Not fixed here.** `js/props.js` and `scripts/bake_props.py` belong to another
+lane this session and the brief limited this one to the ground. The fix is a
+line of paint, not geometry: either an opacity/colour for `u:'fence'` that is
+not the one shared with dark METAL, or a `fence_type` off OSM so chain-link
+reads as haze while a masonry wall stays solid.
+
+Also worth knowing, and it generalises: **the layer-hide sweep alone would have
+sent someone the wrong way.** Ranked by warm-dark pixels removed it reads
+`roofscape-major 12,704`, `props-line 7,797`, `buildings-3d 5,732` — and the top
+entry is just the dark tops of buildings, which are meant to be dark. The sweep
+says *where the dark pixels live*; only the query at the complained-about pixel
+says *what he is pointing at*. Run both.
+
+### Item 9 — the creek
+
+*"Waller Creek is still a green stripe. The channel is real in the data but there
+is NO WATER SURFACE and no canopy from flying altitude."*
+
+There has been a water prism in that channel since §34 cut it. **It was painted
+green.**
+
+```
+water     #41604a  rgb( 65, 96, 74)  luma 88   b-r =  +9
+bankshade #425c33  rgb( 66, 92, 51)  luma 82   b-r = -15
+```
+
+Six luma and the same hue, two metres apart on screen. Two surfaces that measure
+the same are one surface, and that is the whole of "it is still a green stripe":
+three passes changed the colour of the corridor and none of them changed the
+colour of the **water**. It is cool now — authored luma 118 between the chalk
+toe's 142 and the bank shade's 82, b-r +63 — plus a rippled top face.
+
+**And the ripple could not go on the water prism**, because a `fill-extrusion`
+takes `fill-extrusion-color` OR `fill-extrusion-pattern` and never both, so the
+pattern would have cost the water its time-of-day colour. It is its own 0.10 m
+slab standing on the water (`m:'sheen'`), which is under a fifth of a pixel from
+any altitude this camera flies and makes the depth order defined rather than
+undefined.
+
+**The canopy is baked as GEOMETRY here rather than waiting for
+`shape_trees.py`.** The `src:'creek_canopy'` hook was written for that file and
+nothing has ever read it, but the deeper point is that consuming it would not
+have been enough on its own: what makes a canopy legible from 200 m is that it
+is **ten metres off the ground**. A flat green polygon is a green stripe at
+every colour. So `CANOPY` in `bake_ground.py` plants 465 crown prisms over the
+understorey and canopy rings — three species, **one prism each**, because a
+stack is the wedding-cake defect §35 item 7 already names.
+
+Third thing in the same pass, and it is small and it mattered: **the scrub zone
+was painted `grass`**. Same colour AND same texture tile as a mown lawn, so the
+widest of the corridor's three "zones", the one right beside the water, was
+indistinguishable from the field next to it. Two of three zones were one zone.
+
+`data/ground.geojson` 1,332.3 → 1,483.5 KB, **+151.2 KB**. It is not tiled, so
+that is a real download. `CANOPY.spacing_m` is the single knob that trades it.
+
+### Four things that did NOT work, and the last one is the reusable one
+
+1. **The sheen was deleted by the resolver and the bake reported it as shipped.**
+   `k:'bank'` returns band `"flat"` from `_band`, so the sheen went into A2's
+   ladder at `RANK[('bank','channel')] = 90` — same band, same rank, same
+   footprint as the water prism it stands on. The resolver gave the ground to
+   whichever sorted first and trimmed the other to nothing. All seven were
+   emitted, all seven were deleted, **and the report still printed
+   `creek_water_sheen: 7`**, because that counter is incremented at emit time.
+   A statistic that counts intent rather than outcome is worse than no
+   statistic. `main()` now derives a `shipped` block by walking the feature list
+   it is about to write, which is the same argument `bake_art.py`'s re-measure
+   makes.
+2. **Requiring crowns to actually overlap kept 27 of 604.** The rule was right —
+   a lone prism reads as a flat-topped green box and two overlapping ones merge
+   into foliage — but the corridor is a 10-30 m ribbon and a 20 m lattice puts
+   roughly ONE crown across it. There is no cluster to join. Literal overlap
+   needs spacing under the crown diameter, which is 1,206 crowns and 374 KB on
+   an untiled file. The rule survives at `min_neighbours: 1`, `touch: 1.5`,
+   which deletes 139 genuinely stranded crowns and keeps 465.
+3. **Six-sided crowns render as cubes.** `shots/creek-after/crop-corridor.png`.
+   Eight sides plus a 0.34 per-vertex wobble plus **0.45 size variance** fixed
+   most of it, and the variance is the part that mattered: at 0.30 a species is
+   one repeated slab with every top within a metre of its neighbour, and a
+   cluster of those is a plateau. Variance costs zero bytes, which is why it is
+   the first knob to reach for and vertices are the last.
+4. **THE AUTHORED HEX IS NOT WHAT LANDS.** This scene is colour-graded warm, and
+   the section across the channel proves it: the chalk toe is authored `#9a8f70`
+   = (154,143,112) and arrives as **(124,91,52)** — roughly
+   (×0.81, ×0.64, ×0.46). A blue authored at (77,127,140) therefore renders near
+   (62,81,64), which is not blue. **Every colour decision in this repo that was
+   made by reading a hex was made in the wrong space.** What still works is
+   RELATIVE: on screen the water sits ~50 units of `b-r` above everything beside
+   it, and that is the number to quote, not the hex.
+
+### And a trap in the instrument, twice in one session
+
+The nadir section probe returned `(67-81)` on one run and a dead-flat
+`(80,90,57)` on the next, same pose, same tod. The second was **a tree crown
+top**. Nadir defeats an oblique occluder and does nothing at all about something
+directly overhead, and §34's rule — an occluded sample is a wrong answer, not a
+null one — applies to nadir too. The probe hides every layer that can stand over
+the channel now.
+
+**Also: `git add -A` in this checkout stages four other agents' in-flight work.**
+One commit here picked up `data/art.geojson`, `data/trees.geojson`,
+`js/facades.js`, `scripts/bake_art.py`, `scripts/shape_trees.py` and two other
+sessions' temp scripts before it was reset. Stage the files you named in the
+brief, by name, every time.
+
+### Housekeeping
+
+`tour.mjs`'s `waller-creek` pose is fixed: it sat at `-97.7330` with the channel
+130 m to the west, so the one tour frame named after the corridor photographed
+San Jacinto. It centres on the water at the Alumni Center reach now
+(`-97.7344, 30.2845`, z17.2, pitch 62, bearing 8) and both stretches Simeon
+named are in it. Pictures: `shots/creek-before/` against `shots/creek/`, and
+`shots/creek-night/` for the after-dark check — the canopy adds nothing pale.
+
 ## 35. Aug 2 2026 — the full day/night sweep on merged `main`, and the ten things it is still visibly wrong about (acer lane)
 
 **No code changed in this pass.** It is a read: pull `main`, run the whole sweep,
