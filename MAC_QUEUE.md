@@ -146,9 +146,38 @@ the level** (CLAUDE.md rule 9). Do not merge a level on your own judgement.
 **Also in `js/lod.js`, and this one is a bug, not taste:** *"when i go up on low
 detail mode the roofs of houses become windows this is pretty bad."* A wall
 pattern is landing on a roof face when LOD drops or swaps a layer — most likely
-`buildings-roof` being hidden so the wall's `wp` shows on the top face. The Acer
-will report anything it finds from outside `lod.js` into this item; the fix is
-yours. **Fix this before the taste call above** — it is visible and it is wrong.
+`buildings-roof` being hidden so the wall's `wp` shows on the top face.
+
+**The Acer diagnosed this on 2026-08-02 and that guess was right. You do not
+need to hunt for it: the cause is four entries in `lod.js` and the only open
+question is which layers belong in a tier.**
+
+`TIERS.mid` lists `buildings-roof`, `parts-roof` and `outer-tower-roof` next to
+the genuine detail layers. Those three are not detail — they are the CAP that
+covers the top face of every building extrusion. The walls are drawn with
+`fill-extrusion-pattern` carrying the window tone `wp`, and MapLibre applies a
+fill-extrusion pattern to the TOP face as well as the sides. So the moment the
+mid tier fires, every building's roof becomes the window grid off its own walls.
+That is the whole bug, and it fires exactly when he said it does: climbing, on a
+preset with a low render distance.
+
+Three ways to fix it, in the order I would try them:
+
+1. **Take the three cap layers out of `mid`.** Simplest, obviously correct,
+   costs one fill-extrusion pass at altitude. `lod-perf.mjs` already A/Bs tiers,
+   so measure what that pass actually costs before assuming it matters. The
+   other seven layers in `mid` (`trees-canopy`, `roofscape-*`, `roofs-pitched`,
+   `moody-roof`, `arts-cap`) are real detail and should stay.
+2. If that pass is expensive, keep hiding the caps but switch the wall layer
+   from `fill-extrusion-pattern` to a flat `fill-extrusion-color` at the same
+   time, so the top face reads as plain roof rather than as windows.
+3. Give the cap layers a third tier that drops later than `mid`.
+
+**Whatever you pick, prove it with a picture from altitude on the `performance`
+preset**, not with a frame-time number — the number gets BETTER when a layer
+goes missing, which is how this shipped in the first place.
+
+**Fix this before the taste call above** — it is visible and it is wrong.
 
 And: Simeon says the graphics menu is confusing and he does not think LOD works
 at all. **Check whether it actually does anything** — set a preset, fly up,
