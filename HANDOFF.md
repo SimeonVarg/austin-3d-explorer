@@ -1,5 +1,55 @@
 # Austin 3D Explorer — Full Handoff
 
+## 28. Aug 2 2026 — downtown's curtain wall, ported into the bake and proved (mac lane)
+
+**Branch:** `mac/outer-facade-bake` — MAC_QUEUE M2 step 1, the parity half.
+
+**The live symptom:** `shots/tour/day-downtown-skyline.png` is a field of
+identical brick-red boxes. When the outer ring moved onto vector tiles, downtown
+lost its curtain wall in the same commit — `quantiseOuterFacades` clusters the
+towers' baked wall colours in the BROWSER and writes `wp` at runtime, a vector
+tile cannot be mutated, so every tower falls through
+`['coalesce', ['get','wp'], 'mh00']` to one pattern.
+
+**What made it portable, and it is one sentence:** the tower assignment depends
+only on the TOWERS' own colours. `clusterColours` runs over
+`towers.map(f => f.wd)` and nothing else. Only the resulting bucket's *index*
+depends on the browser, because tower buckets are appended after the campus
+palette. So `scripts/bake_outer_facades.py` computes the partition offline and
+names buckets `tb00..tb09` — an ordinal that is a property of the tower data
+alone and cannot drift when the campus palette changes size.
+
+**Proved against the real function, not against a re-reading of it.**
+`outer-facade-parity.mjs` runs `window.quantiseOuterFacades` on the real data in
+a real browser and dumps what it decided; `outer_facade_parity.py` checks a
+**bijection both ways** between the two labellings plus the group centroids.
+Both directions matters: a one-way check passes happily when Python collapses
+ten buckets into three.
+
+```
+towers 114   python buckets 10   browser buckets 10
+sizes  tb00=13 tb01=9 tb02=7 tb03=16 tb04=12 tb05=11 tb06=17 tb07=3 tb08=11 tb09=15
+map    tb00->tg39 … tb09->tg48
+PASS — the bake partitions the towers exactly as the browser does
+```
+
+**Cost:** `outer_ring.geojson` 2,719,131 → 2,721,639 bytes, **+2,508 bytes**
+(+0.09%) for 114 towers' worth of `wp`/`wf`, plus a 1 KB
+`data/outer_tower_palette.json`. Idempotent — a second run reports `changed: 0`.
+
+**Deliberately NOT in this PR, and this is the thing to pick up next:** the
+browser side (register one atlas tile per `tb` ordinal at boot, read `wp` off
+the tile) and the re-tile that puts `wp` into `outer.pmtiles`. They have to land
+together or the change is inert, and inert code that looks done is how this
+regressed the first time. **Nothing renders differently yet.**
+
+**And the half that is genuinely blocked:** the other 7,511 low-rise ring
+features snap to the CAMPUS palette, which `js/facades.js` derives in the
+browser from the campus buildings snapshot. Baking their `wp` needs that
+derivation ported too. They fall back to `mh00` on the tile path and did so
+before this change as well — this is the tower half, and it is the half you can
+see.
+
 ## 27. Aug 2 2026 — DKR's night colour was not the defect. The ruler was. (mac lane)
 
 **Branch:** `mac/dkr-night` — MAC_QUEUE M1c. **No stadium data or colour was
