@@ -63,7 +63,9 @@ const ABOVE = 280;      // px of the box that sits above the map centre; a tall
  */
 const REAL = {
   'Monochrome for Austin': [15.24, 15.85, "50x52x41 ft — Landmarks UT / CultureMap"],
-  'Clock Knot':            [12.65,  6.60, "498x260x420 in — Landmarks UT / Wikipedia"],
+  // 420 in, not the 260: the caption compares against the piece's LARGEST
+  // horizontal, and quoting the smaller one flagged a correct Clock Knot red.
+  'Clock Knot':            [12.65, 10.67, "498x260x420 in — Landmarks UT / Wikipedia"],
   'The West':              [ 1.52,  3.87, "two 5 ft spheres, 12 ft 8 in overall — Met Museum"],
   'Circle with Towers':    [ 4.27,  7.82, "14 ft towers, 25.7 ft ring — Landmarks UT"],
   'Austin':                [ 8.03, 22.25, "60 x 73 x 26 ft 4 in, 2715 sq ft — Wikipedia"],

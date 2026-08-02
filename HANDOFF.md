@@ -28,6 +28,18 @@ Mustangs                3.2 -> 11.0 m long, three horses -> seven
 Sea Turtle              4.2 m -> 1.00 m    a bronze animal is animal-sized
 ```
 
+**The pictures.** `docs/shots/art-sheet-after.jpg` is the whole ten at one
+ground scale; the before/after pairs are `art-monochrome-before/after.jpg`,
+`art-clockknot-before/after.jpg` and `art-kelly-before.jpg`, and the two windows
+that were wrong are `art-kelly-east-tumbling.jpg` and
+`art-kelly-west-starburst.jpg`.
+
+**Unrelated defect the close-ups found, for A3:** a tree canopy stands directly
+on Sol LeWitt's *Circle with Towers* and hides most of it from every direction
+(`docs/shots/art-circle-towers.jpg`). The ring renders correctly — it is the
+tree that is in the wrong place. `shape_trees.py` drops trees inside buildings
+and checks nothing else, which is exactly what A3 says.
+
 **Size was only half of Monochrome.** The old recipe put fourteen slabs on ONE
 origin at even angles, and a single origin plus even angles is a daisy on a
 post, which is a tree — his word, and the right one. It is now 32 hulls sampled

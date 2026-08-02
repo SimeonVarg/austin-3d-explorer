@@ -238,7 +238,7 @@ DIMS = {
     "Sea Turtle":            ( 1.00,  1.80,  1.60,
         "est — a bronze animal is animal-sized. It was baked at the props file's "
         "4.2 m statue default, which is a turtle the size of a minibus."),
-    "Lone Star":             ( 3.50,  0.60,  2.70,
+    "Lone Star":             ( 3.50,  2.70,  0.60,
         "est — no published dimension found; a standing star marker, sized so a "
         "person reads as two thirds of it"),
 }
@@ -351,27 +351,30 @@ def art_clockknot(b, hw, hd, H):
     top member stops being horizontal-across and becomes the ring plus the hand.
     """
     ax, ay, az = 0.30, 0.10, H * 0.82        # the apex
-    feet = [(-hw * 0.97, -0.60, 0.52),       # the inverted V, splayed in x
-            ( hw * 0.95,  0.75, 0.52),
-            ( 0.10, -hd * 0.79, 0.46)]       # the third leg, raking back in y
+    # 0.68 m members, not 0.52. A 12.65 m di Suvero I-beam is 0.6-0.75 m deep,
+    # and at 0.52 the contact sheet read it as a spindly tripod rather than as
+    # steel. Measured on the sheet before changing it.
+    feet = [(-hw * 0.97, -0.60, 0.68),       # the inverted V, splayed in x
+            ( hw * 0.95,  0.75, 0.68),
+            ( 0.10, -hd * 0.79, 0.60)]       # the third leg, raking back in y
     for fx, fy, wide in feet:
         b.box(fx, fy, 1.05, 1.05, 0.0, 0.28, "granite")
         b.beam(fx, fy, 0.20, ax, ay, az, wide, "steelred", steps=7)
     # The beam that carries on THROUGH the knot to full height — this is what
     # makes the apex acute instead of a tripod's blunt top.
-    b.beam(ax, ay, az, ax - 1.15, ay + 0.70, H, 0.44, "steelred", steps=3)
+    b.beam(ax, ay, az, ax - 1.15, ay + 0.70, H, 0.58, "steelred", steps=3)
     # The knot: three short members crossing at the apex, plus the disc that
     # reads as the clock face from the air.
     for i in range(3):
         t = math.pi * i / 3
         b.beam(ax - 1.5 * math.cos(t), ay - 1.5 * math.sin(t), az - 0.9,
                ax + 1.5 * math.cos(t), ay + 1.5 * math.sin(t), az + 0.9,
-               0.40, "steelred", steps=3)
-    b.disc(ax, ay, 1.45, az - 0.30, az + 0.30, "steelred", seg=12)
+               0.48, "steelred", steps=3)
+    b.disc(ax, ay, 1.60, az - 0.30, az + 0.30, "steelred", seg=12)
     # The hand: a long near-level member reaching out at high level. Written
     # low-end-first so beam() gets z0 < z1.
     b.beam(ax - 0.10, hd * 0.98, az - 2.55, ax + 0.15, ay + 0.55, az - 1.45,
-           0.50, "steelred", steps=6)
+           0.58, "steelred", steps=6)
 
 
 def art_thewest(b, hw, hd, H):
@@ -674,13 +677,16 @@ def art_lonestar(b, hw, hd, H):
         a = math.pi / 2 + 2 * math.pi * i / 5      # a point straight up
         for s in range(3):
             t0, t1 = R * s / 3, R * (s + 1) / 3
-            y0, z0 = t0 * math.cos(a), t0 * math.sin(a)
-            y1, z1 = t1 * math.cos(a), t1 * math.sin(a)
-            ym, zm = (y0 + y1) / 2, (z0 + z1) / 2
+            # The star plane runs EAST-WEST. It ran north-south, which is
+            # edge-on from the direction this app is usually flown, and a star
+            # seen edge-on is a post -- which is what the contact sheet showed.
+            x0, z0 = t0 * math.cos(a), t0 * math.sin(a)
+            x1, z1 = t1 * math.cos(a), t1 * math.sin(a)
+            xm, zm = (x0 + x1) / 2, (z0 + z1) / 2
             w = wide * (1.0 - 0.75 * (s + 0.5) / 3)
-            dy = max(abs(y1 - y0) + w * 0.5, w)
+            dx = max(abs(x1 - x0) + w * 0.5, w)
             dz = max(abs(z1 - z0) + w * 0.5, w)
-            b.box(0.0, ym, 0.34, dy, cz + zm - dz / 2, cz + zm + dz / 2, "bronze")
+            b.box(xm, 0.0, dx, 0.34, cz + zm - dz / 2, cz + zm + dz / 2, "bronze")
 
 
 RECIPES = {
