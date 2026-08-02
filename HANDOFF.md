@@ -2280,3 +2280,33 @@ something other than what the report said.
     `r>150 && g<100 && b>150` under-reports badly, because MapLibre lights a
     fill-extrusion and the warm day light pulls magenta's blue channel under
     150. Use a mask captured once, not a per-frame threshold, or widen it.
+
+53. **`acer/kelly-lawn` (PR #69) — B2.** The chapel sat on a 38x54 m lawn in an
+    expanse of bare tan base ground. The lawn is GROWN out from the mapped one
+    until it meets the walks and the buildings, so the panel is derived from the
+    site rather than drawn freehand. **Ordering trap:** at that point in the bake
+    paths are still LineStrings — `widen_paths` polygonises them LATER — so they
+    are buffered by their own `w` here or the lawn swallows every walk.
+
+54. **`acer/sidewalks` (PR #70) — B8.** Footways were flat fills in the SAME
+    PLANE as the asphalt, so a sidewalk was a painted rectangle rather than a
+    thing you step onto. Now a 0.22 m fill-extrusion. It replaces the fill
+    rather than adding to it, so no extra pass, and it depth-tests against roads
+    and buildings where a fill does not.
+
+55. **C1 is SIZED, NOT STARTED, and that is deliberate.** The 114-line
+    `quantiseFacades` is a straight transcription; the pipeline ORDER around it
+    is the hard half — it runs after `mergeCapitolScene` appends 604 buildings
+    and registers `FACADE_PROTECTED`, and after `applyUnion24` rewrites a
+    footprint. Parity has to be proved across 7,625+ features. Measured prize:
+    **14 ms and 1.41 MB of a 9.74 MB payload.** Do it FIRST in a session.
+
+56. **Final sweep, 2026-08-02.** `tour.mjs` day, dusk and night all 12/12 clean.
+    `night-pale.mjs`: **872 pale pixels**, against 6,206 before the Drag fix and
+    1,906 after it. The only remaining contributor is `stadium-*` at 12.4%
+    (154 px, all `stadium-detail`) — the Mac's file, and it has a DKR night pass
+    in flight. The night scene is otherwise clean.
+
+57. **Still visibly wrong, from the dusk frames:** the far outer ring reads as a
+    flat tan band with a hard horizon line. It is the one thing in the three
+    sweeps that looks unfinished, and it is `js/outer.js` — the Mac's file.
