@@ -135,6 +135,12 @@
 
   let _added = false;
   let _gj = null;          // kept for the palette-churn re-snap, below
+  // `source-layer` for the ring's three layers, or {} on the GeoJSON fallback.
+  // MODULE SCOPE: the source is created in one place and the layers are built
+  // further down the same function. Declaring it beside addSource is what broke
+  // the roads pass — it went out of scope and took the whole ground stage with
+  // it.
+  let outerLP = {};
   let _palSig = null;
 
   /** A cheap signature of the facade palette, to notice when it changes. */
@@ -172,25 +178,42 @@
     if (!OUTER.on || _added || map.getSource(SRC)) return;
     _added = true;
 
-    let gj;
-    try {
-      gj = await getJSON(DATA);
-    } catch (e) {
-      console.warn('[outer]', e.message, '- ring not drawn');
-      return;
-    }
+    // TILES, AND THE ONE THING THEY COST HERE.
+    //
+    // The ring is 2.59 MB of GeoJSON against a 1.56 MB archive. But the tower
+    // facades are stamped ONTO THE FEATURES at runtime: quantiseOuterFacades
+    // clusters the 114 downtown towers' baked wall colours against the campus
+    // palette and writes `wp` on each one, and FACADE_PATTERN_EXPR is
+    // ['coalesce', ['get','wp'], 'mh00']. A vector tile cannot be mutated, and
+    // `wp` is not in the archive because it does not exist until the campus
+    // palette has been derived in the browser.
+    //
+    // So on the tile path every tower falls back to the 'mh00' pattern. That is
+    // a VISUAL change to the most-filmed subject in the scene, not a free win,
+    // which is why it is measured in the PR rather than assumed.
+    const outerTiles = window.tileSource && window.tileSource('outer');
+    outerLP = outerTiles ? outerTiles.layerProps : {};
 
-    // The towers are stamped with a pattern id BEFORE addSource. MapLibre
-    // serialises a GeoJSON source to its worker on addSource, so mutating the
-    // same objects afterwards changes nothing on screen — the same trap
-    // js/app.js documents for the stadium.
-    let patterned = 0;
-    const towers = gj.features.filter(f => f.properties && f.properties.t === 1);
-    if (typeof window.quantiseOuterFacades === 'function') {
-      patterned = window.quantiseOuterFacades(towers, map);
+    let gj = null, patterned = 0, towers = [];
+    if (!outerTiles) {
+      try {
+        gj = await getJSON(DATA);
+      } catch (e) {
+        console.warn('[outer]', e.message, '- ring not drawn');
+        return;
+      }
+
+      // The towers are stamped with a pattern id BEFORE addSource. MapLibre
+      // serialises a GeoJSON source to its worker on addSource, so mutating the
+      // same objects afterwards changes nothing on screen — the same trap
+      // js/app.js documents for the stadium.
+      towers = gj.features.filter(f => f.properties && f.properties.t === 1);
+      if (typeof window.quantiseOuterFacades === 'function') {
+        patterned = window.quantiseOuterFacades(towers, map);
+      }
+      _gj = gj;
+      _palSig = paletteSignature();
     }
-    _gj = gj;
-    _palSig = paletteSignature();
 
     // This used to listen to the snapshot <select> so it could re-snap when
     // app.js reloaded a different date's buildings and re-derived the palette.
@@ -198,7 +221,7 @@
     // the palette under the towers. resnapIfPaletteChanged() is kept and still
     // correct — it is simply no longer wired to anything.
 
-    map.addSource(SRC, {
+    map.addSource(SRC, outerTiles ? outerTiles.source : {
       type: 'geojson',
       data: gj,
       // Three tiler settings, and all three are the point of this layer.
@@ -242,7 +265,7 @@
 
     // 1. The ring proper: ONE fill-extrusion, flat colour, no cap, no AO.
     map.addLayer({
-      id: L_FLAT, type: 'fill-extrusion', source: SRC,
+      id: L_FLAT, type: 'fill-extrusion', source: SRC, ...outerLP,
       minzoom: OUTER.minZoom,
       filter: densityFilter(NOT_TOWER),
       paint: {
@@ -259,7 +282,7 @@
 
     // 2. The exception: downtown towers, on the core's existing atlas.
     map.addLayer({
-      id: L_TOWER, type: 'fill-extrusion', source: SRC,
+      id: L_TOWER, type: 'fill-extrusion', source: SRC, ...outerLP,
       minzoom: OUTER.minZoom,
       filter: IS_TOWER,
       paint: {
@@ -278,7 +301,7 @@
     const G = window.CAP_GEOM;
     if (OUTER.towerCap && G) {
       map.addLayer({
-        id: L_TOWER_ROOF, type: 'fill-extrusion', source: SRC,
+        id: L_TOWER_ROOF, type: 'fill-extrusion', source: SRC, ...outerLP,
         minzoom: OUTER.minZoom,
         filter: IS_TOWER,
         paint: {
@@ -298,9 +321,13 @@
 
     watchPitch(map);
 
-    console.log('[outer]', gj.features.length, 'ring buildings (',
-                towers.length, 'towers,', patterned, 'patterned on their own',
-                'clustered colours )');
+    if (outerTiles) {
+      console.log('[outer] ring streaming as tiles; tower facades fall back to the default pattern');
+    } else {
+      console.log('[outer]', gj.features.length, 'ring buildings (',
+                  towers.length, 'towers,', patterned, 'patterned on their own',
+                  'clustered colours )');
+    }
   };
 
   window.applyOuterColors = function applyOuterColors(map, p) {
