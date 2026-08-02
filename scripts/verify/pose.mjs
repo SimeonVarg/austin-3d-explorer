@@ -33,6 +33,9 @@ const TOD = parseFloat(opt('--tod', '0.30'));
 const W = parseInt(opt('--width', '1600'), 10);
 const H = parseInt(opt('--height', '1000'), 10);
 const SUFFIX = opt('--suffix', '');
+// Extra query string, e.g. --extra "&tiles=0" to force the GeoJSON fallback
+// when you have changed a tiled layer and cannot rebuild the archive locally.
+const EXTRA = opt('--extra', '');
 
 const poses = argv.filter(a => /^[\w-]+:-?[\d.]/.test(a)).map(a => {
   const [name, nums] = a.split(':');
@@ -49,7 +52,7 @@ const browser = await launch(chromium, { gl: 'hardware' });
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 
-await page.goto(BASE + '/index.html?intro=0&drift=0', { waitUntil: 'networkidle', timeout: 120000 });
+await page.goto(BASE + '/index.html?intro=0&drift=0' + EXTRA, { waitUntil: 'networkidle', timeout: 180000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 
