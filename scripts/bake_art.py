@@ -422,6 +422,120 @@ def generic(b, name, at, hw, hd, H):
     return "sculpture"
 
 
+# ── The power plant yard behind the Drama Building ────────────────────
+#
+# "the area that looks like it has construction behind drama building that
+# circular area has stuff find it and add it"
+#
+# WHAT IT ACTUALLY IS, worked out before modelling anything. Directly north of
+# the F. Loren Winship Drama Building the snapshot carries `Hal C. Weaver Power
+# Plant` (3,169 m2, 21.4 m), its Annex, `Cooling Tower 1` (714 m2, 11.6 m) and
+# `UTM Cooling Tower 2` (400 m2, 16.0 m). That is UT's chilled-water plant. It
+# renders as four plain boxes on a large bare tan yard, which is exactly what
+# "looks like it has construction" describes -- and the circular things are the
+# FAN STACKS on top of the cooling towers, which is what a cooling tower is from
+# the air: a rectangular cell with two or three big round fan decks on its roof.
+#
+# So this is not a construction site to be cleared. It is working plant that was
+# never drawn. Fan stacks, the handrail band round each roof, storage tanks and
+# a pipe run between them.
+#
+# The stacks are drawn TALLER than they are, and darker than the roof they stand
+# on. At true proportions a 2.5 m fan deck on a 16 m tower is a few pixels from
+# any altitude this app flies, and grey-on-grey it registered as nothing at all
+# in the first render. Same declared over-scale as the lane markings and the
+# fountain risers: the thing that has to survive is that you can tell there is
+# plant up there.
+PLANT = {
+    # name in the snapshot -> (roof height, n fan stacks, stack radius, rise)
+    "Cooling Tower 1":     (11.6, 3, 2.8, 3.6),
+    "UTM Cooling Tower 2": (16.0, 2, 3.0, 4.0),
+}
+PLANT_TANKS = [
+    # (lon, lat, radius, height) — in the yard between the plant and the towers
+    (-97.734620, 30.286600, 3.4, 7.5),
+    (-97.734480, 30.286530, 2.6, 6.0),
+    (-97.734740, 30.286480, 2.2, 5.2),
+]
+PLANT_RAIL_H = 1.1       # the handrail band that tops every industrial roof
+
+
+def bake_plant(b_for, snap_feats, stats):
+    """Fan stacks, tanks and pipework for the chilled-water plant."""
+    out = []
+    for f in snap_feats:
+        nm = str(f["properties"].get("name") or "")
+        if nm not in PLANT:
+            continue
+        roof, n, r, rise = PLANT[nm]
+        gm = f["geometry"]
+        ring = gm["coordinates"][0] if gm["type"] == "Polygon" else gm["coordinates"][0][0]
+        lon0 = sum(x for x, _ in ring[:-1]) / max(1, len(ring) - 1)
+        lat0 = sum(y for _, y in ring[:-1]) / max(1, len(ring) - 1)
+        pm = [to_m(x, y, lon0, lat0) for x, y in ring]
+
+        # THE FOOTPRINT'S OWN AXIS, not its bounding box. Both cooling towers
+        # are long thin rectangles rotated about 20 degrees, and sizing from an
+        # axis-aligned bbox put the handrail as a box visibly larger than the
+        # building and threw the fan stacks clean off the roof into the yard.
+        # A bbox is only the shape when the shape is axis-aligned.
+        best, ax, ay = 0.0, 1.0, 0.0
+        for (x0, y0), (x1, y1) in zip(pm, pm[1:]):
+            L = math.hypot(x1 - x0, y1 - y0)
+            if L > best:
+                best, ax, ay = L, (x1 - x0) / L, (y1 - y0) / L
+        cx0 = sum(x for x, _ in pm[:-1]) / max(1, len(pm) - 1)
+        cy0 = sum(y for _, y in pm[:-1]) / max(1, len(pm) - 1)
+        # Extent along that axis and across it, measured on the ring itself.
+        along = [(x - cx0) * ax + (y - cy0) * ay for x, y in pm]
+        across = [-(x - cx0) * ay + (y - cy0) * ax for x, y in pm]
+        halfL = (max(along) - min(along)) / 2
+        halfW = (max(across) - min(across)) / 2
+        rr = min(r, halfW * 0.82)          # a stack cannot be wider than the cell
+
+        b = Build(nm, lon0, lat0)
+        for i in range(n):
+            t = (i + 0.5) / n - 0.5
+            d = t * (halfL * 2 * 0.78)
+            cx, cy = cx0 + d * ax, cy0 + d * ay
+            b.disc(cx, cy, rr, roof, roof + rise, "bronzed", seg=12)
+            b.disc(cx, cy, rr * 0.78, roof + rise, roof + rise + 0.5, "alum", seg=12)
+        # The handrail: four slabs laid along the footprint's OWN edges, so it
+        # sits on the roof it belongs to whatever angle that roof is at.
+        for sgn in (1, -1):
+            b.box(cx0 + sgn * (halfW - 0.2) * -ay, cy0 + sgn * (halfW - 0.2) * ax,
+                  halfL * 2, 0.4, roof, roof + PLANT_RAIL_H, "steel",
+                  rot=math.atan2(ay, ax))
+            b.box(cx0 + sgn * (halfL - 0.2) * ax, cy0 + sgn * (halfL - 0.2) * ay,
+                  0.4, halfW * 2, roof, roof + PLANT_RAIL_H, "steel",
+                  rot=math.atan2(ay, ax))
+        out.extend(b.parts)
+        stats["plant_" + nm.replace(" ", "_")] += len(b.parts)
+
+    for lon, lat, r, h in PLANT_TANKS:
+        b = Build("Chilled Water Plant", lon, lat)
+        b.disc(0, 0, r, 0.0, h, "alum", seg=12)
+        b.disc(0, 0, r * 1.06, 0.0, 0.5, "granite", seg=12)      # the plinth
+        b.disc(0, 0, r * 0.55, h, h + 0.6, "steel", seg=10)      # the top vent
+        out.extend(b.parts)
+        stats["plant_tank"] += len(b.parts)
+
+    # A pipe run linking the tanks, at gantry height. Industrial sites read by
+    # their pipework more than by their vessels.
+    if len(PLANT_TANKS) >= 2:
+        b = Build("Chilled Water Plant", PLANT_TANKS[0][0], PLANT_TANKS[0][1])
+        for (l0, a0, _, _), (l1, a1, _, _) in zip(PLANT_TANKS, PLANT_TANKS[1:]):
+            x0, y0 = to_m(l0, a0, PLANT_TANKS[0][0], PLANT_TANKS[0][1])
+            x1, y1 = to_m(l1, a1, PLANT_TANKS[0][0], PLANT_TANKS[0][1])
+            # A LEVEL run still needs thickness: beam() spreads z0..z1 across
+            # its steps, so a pipe from 4.6 to 4.6 is a stack of zero-height
+            # slabs and add() drops every one of them. It reported 0 features.
+            b.beam(x0, y0, 4.6, x1, y1, 5.15, 0.55, "steel", steps=3)
+        out.extend(b.parts)
+        stats["plant_pipes"] += len(b.parts)
+    return out
+
+
 def main():
     src = json.load(open(SRC, encoding="utf-8"))
     feats, stats, authored = [], Counter(), []
@@ -452,6 +566,17 @@ def main():
         authored.append(name)
         feats.extend(b.parts)
         stats["parts"] += len(b.parts)
+
+    # The chilled-water plant rides in the same file: it is authored scene
+    # geometry drawn by the same layer, and it needs no source of its own.
+    try:
+        import glob
+        snapdir = sorted(glob.glob(os.path.join(ROOT, "data", "snapshots", "*", "")))[-1]
+        snap = json.load(open(os.path.join(snapdir, "buildings.detailed.geojson"),
+                              encoding="utf-8"))["features"]
+        feats.extend(bake_plant(None, snap, stats))
+    except (IndexError, FileNotFoundError) as e:
+        stats["plant_SKIPPED"] += 1
 
     fc = {"type": "FeatureCollection", "authored": sorted(set(authored)),
           "features": feats}
