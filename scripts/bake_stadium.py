@@ -164,6 +164,62 @@ MAST_HEAD_W_M = 9.0
 # gets its end zones called ends. Half-width in degrees for the two end sectors.
 END_SECTOR_DEG = 52.0
 
+# ── The arcade: entrance, shops, pillars, concourse ───────────────────
+#
+# *"want the entrance, and the shops, accurate pillars and whatnot."*
+#
+# Up to here the ground floor was ONE flat extrusion wearing the `sp` facade
+# tile, and that is why the stadium reads as a slab from the street no matter
+# how good the bowl above it is. A facade pattern cannot make a colonnade: it
+# has no vertical anchor and no idea where the wall's ends are, so it paints
+# piers that march through the corners and past the gates. The piers have to be
+# GEOMETRY, the same way js/drag.js builds shopfronts — separate features with
+# their own base and height, never a pattern trying to land something "at the
+# top".
+#
+# The model is the one DKR actually has, and the 2008 north-end photograph
+# (Commons, DKR_new_north_end_2008-08-30) describes it exactly: massive piers
+# standing proud of a wall that is SET BACK behind them, the bays between left
+# open and deeply shadowed, glazed frontage in the bays at street level, and a
+# continuous lintel over the whole run carrying the concourse above. Four
+# elements, and the depth between them is the whole effect — a colonnade drawn
+# flat is just a striped wall.
+#
+# The pitch is the one number here with a source: the north end's piers read at
+# roughly 25 ft centres in the photograph. Everything else is proportion off
+# that, and all of it is a one-line override.
+#
+# THE DEPTH NUMBERS ARE SET BY WHAT SURVIVES TO THE SCREEN, not by what a
+# drawing would use. The first cut had 2.0 m piers standing 2.2 m proud of a
+# 9.45 m plinth. At street level that read perfectly; from the oblique 200 m
+# the app actually flies at, the whole arcade was 71 px of a 470 px wall and
+# measured 0 magenta pixels on two of the four sides — the plaza grade and the
+# facade's own vertical ribbing ate it. Deepening the reveal is what fixed it,
+# not widening the piers: it is the SHADOW between pier and wall that reads at
+# distance, and a 2.2 m reveal throws almost none.
+ARCADE = {
+    "pitch_m":   7.6,    # pier centres. ~25 ft, off the 2008 photograph.
+    "pier_w_m":  2.4,    # pier width along the wall
+    "recess_m":  3.4,    # how far the wall behind them is set back
+    "shop_d_m":  0.3,    # glazed frontage stands this proud of the set-back wall
+    "shop_frac": 0.58,   # ... and rises this fraction of the plinth
+    "lintel_m":  2.0,    # the beam over the arcade, at the top of the plinth
+    "gate_lift": 1.7,    # the gate pylons are this many plinth-heights tall
+    "gate_w_m":  3.6,    # ... and this wide, being pylons rather than piers
+    "canopy_m":  5.0,    # how far the gate canopy reaches out over the plaza
+}
+# The piers take their SIDE's material, because that is the one thing about DKR
+# that four decades of additions guarantees: the north end really is red brick
+# and the west really is Bellmont's painted concrete. `bay` is the shadow
+# between them and is deliberately much darker than any wall in the scene — it
+# is a hole you see into, not a surface.
+ARCADE_COL = {
+    "bay":    "#4b463f",
+    "shop":   "#6d7a85",   # glazed frontage, reading as glass rather than sky
+    "gate":   "#332e29",   # the opening itself
+    "canopy": "#9c9486",
+}
+
 # ── The elevations, and why they differ ───────────────────────────────
 # A stadium wall is not one material from grade to rim, and DKR's four sides are
 # four different buildings from four different decades. A facade pattern has no
@@ -196,10 +252,17 @@ END_SECTOR_DEG = 52.0
 # The mid band ends at 0.66 of the wall — 41.6 m, eleven levels at a 3.8 m
 # academic floor-to-floor. That is not a chosen number: Bellmont Hall IS eleven
 # levels, and the upper deck sits on its roof.
+# The plinth was 0.15 and is now 0.19 — 12.0 m rather than 9.45 m. That is not
+# a cosmetic nudge: a stadium concourse arcade is two storeys plus its beam, and
+# at 9.45 m the colonnade below could not be seen from the distance this app
+# flies at (see ARCADE). 12 m is also closer to what the 2008 north-end
+# photograph shows, where the piers stand well clear of a person and the deck
+# above them is a full level. `mid` starts higher to match; Bellmont's eleven
+# levels still land inside it at a 3.8 m floor-to-floor.
 BANDS = [
     # name,     from,  to     (fractions of the wall height)
-    ("plinth",  0.00, 0.15),
-    ("mid",     0.15, 0.66),
+    ("plinth",  0.00, 0.19),
+    ("mid",     0.19, 0.66),
     ("fascia",  0.66, 1.00),
 ]
 PLINTH_FAM, PLINTH_COL = "sp", "#b3ada1"
@@ -480,6 +543,104 @@ def feat(ring_m, lat0, props, hole_m=None):
             "geometry": {"type": "Polygon", "coordinates": coords}}
 
 
+def arcade(O, I, BF, face, t_rec, side, plinth_h, lat0, name, stats):
+    """The colonnade along one wall run: piers, glazed frontage, lintel, gate.
+
+    O is the run's original outer face, I its inner face, BF the set-back wall
+    the piers stand in front of, and `face(t)` any parallel surface between O
+    and I. Everything below is built off arc length along O, so a run that bends
+    round a corner of the footprint gets piers that follow the bend instead of
+    marching through it — which is exactly what a facade pattern could not do.
+    """
+    made = []
+    segs = []
+    for k in range(len(O) - 1):
+        L = math.hypot(O[k + 1][0] - O[k][0], O[k + 1][1] - O[k][1])
+        if L > 1e-6:
+            segs.append((O[k], O[k + 1], BF[k], BF[k + 1], L))
+    total = sum(s[4] for s in segs)
+    if total < ARCADE["pitch_m"] * 2 or plinth_h < 2:
+        stats["arcade_run_too_short"] += 1
+        return made
+
+    pier_col = SIDE_MID.get(side, (PLINTH_FAM, PLINTH_COL))[1]
+
+    def at(s):
+        """Point, unit tangent and set-back twin at arc length `s` along O."""
+        acc = 0.0
+        for a, b, ab, bb, L in segs:
+            if acc + L >= s or (a, b) == (segs[-1][0], segs[-1][1]):
+                u = min(1.0, max(0.0, (s - acc) / L))
+                p = (a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u)
+                q = (ab[0] + (bb[0] - ab[0]) * u, ab[1] + (bb[1] - ab[1]) * u)
+                d = ((b[0] - a[0]) / L, (b[1] - a[1]) / L)
+                return p, d, q
+            acc += L
+        return segs[-1][1], (1.0, 0.0), segs[-1][3]
+
+    n_pier = max(2, int(round(total / ARCADE["pitch_m"])))
+    # The gate takes the two middle slots, and only on a run long enough to
+    # spare them. Its position is generative — the bake has no source for where
+    # DKR's gates are — but every side of a stadium has a way in, and a run with
+    # no opening at all is the thing that reads as a warehouse.
+    gate = (n_pier // 2 - 1, n_pier // 2) if n_pier >= 8 else ()
+
+    for j in range(n_pier):
+        s = total * (j + 0.5) / n_pier
+        is_gate = j in gate
+        w = ARCADE["gate_w_m"] if is_gate else ARCADE["pier_w_m"]
+        p, d, q = at(s)
+        half = w / 2
+        quad = [(p[0] - d[0] * half, p[1] - d[1] * half),
+                (p[0] + d[0] * half, p[1] + d[1] * half),
+                (q[0] + d[0] * half, q[1] + d[1] * half),
+                (q[0] - d[0] * half, q[1] - d[1] * half)]
+        made.append(feat(quad, lat0, {
+            "kind": "pier", "col": pier_col, "name": name,
+            "h": round(plinth_h * (ARCADE["gate_lift"] if is_gate else 1.0), 2)}))
+        stats["gate_pylons" if is_gate else "piers"] += 1
+
+    # The glazed frontage, standing just proud of the set-back wall so it reads
+    # as a shopfront in a reveal rather than as a painted stripe. It stops well
+    # under the lintel; the dark band above it is the open part of the bay.
+    made.append(feat(face(max(0.0, t_rec - ARCADE["shop_d_m"] / WALL_THICK_M))
+                     + BF[::-1], lat0, {
+        "kind": "shop", "col": ARCADE_COL["shop"], "name": name,
+        "h": round(plinth_h * ARCADE["shop_frac"], 2)}))
+    stats["shopfronts"] += 1
+
+    # The lintel runs the whole depth of the arcade at the top of the plinth: it
+    # is the beam over the piers AND the soffit you see from underneath, and it
+    # is what ties a row of columns into a colonnade.
+    made.append(feat(O + BF[::-1], lat0, {
+        "kind": "lintel", "col": PLINTH_COL, "name": name,
+        "base": round(plinth_h - ARCADE["lintel_m"], 2), "h": round(plinth_h, 2)}))
+    stats["lintels"] += 1
+
+    # The gate: a dark opening between the two pylons, and a canopy over it.
+    if gate:
+        s0 = total * (gate[0] + 0.5) / n_pier
+        s1 = total * (gate[1] + 0.5) / n_pier
+        p0, d0, q0 = at(s0)
+        p1, _d1, q1 = at(s1)
+        made.append(feat([q0, q1, p1, p0], lat0, {
+            "kind": "gate", "col": ARCADE_COL["gate"], "name": name,
+            "h": round(plinth_h * 1.02, 2)}))
+        # Outward is BF -> O, taken from the geometry rather than from a
+        # normal-of-the-tangent, which would depend on the ring's winding and
+        # would put the canopy inside the stadium on half the runs.
+        ox, oy = p0[0] - q0[0], p0[1] - q0[1]
+        oL = math.hypot(ox, oy) or 1.0
+        reach = ARCADE["canopy_m"]
+        nx, ny = ox / oL * reach, oy / oL * reach
+        made.append(feat([q0, q1, (p1[0] + nx, p1[1] + ny), (p0[0] + nx, p0[1] + ny)],
+                         lat0, {
+            "kind": "canopy", "col": ARCADE_COL["canopy"], "name": name,
+            "base": round(plinth_h * 0.92, 2), "h": round(plinth_h * 1.02, 2)}))
+        stats["gates"] += 1
+    return made
+
+
 # ── the bake ──────────────────────────────────────────────────────────
 def build(feature, stats):
     p = feature["properties"]
@@ -525,9 +686,28 @@ def build(feature, stats):
         if len(idxs) < 2:
             continue
         pts = [idxs[0]] + idxs[1:] + [(idxs[-1] + 1) % n]
-        poly = [outer[i] for i in pts] + [inner[i] for i in pts][::-1]
+        O = [outer[i] for i in pts]
+        I = [inner[i] for i in pts]
+        poly = O + I[::-1]
         if abs(signed_area(poly + [poly[0]])) < 5:
             continue
+        # A side can be taller than the bowl. The west is: Bellmont Hall is
+        # 72.5 m against the stadium's 63, and that 9.5 m of extra perimeter
+        # is a real, visible part of DKR's west elevation.
+        sh = SIDE_H.get(side, h)
+
+        # `t` walks from the outer face (0) to the inner face (1) of the wall
+        # band, so any surface parallel to this run is one lerp. The wall's
+        # inner ring is a true parallel offset of its outer one, which is what
+        # makes that legal.
+        def face(t, _O=O, _I=I):
+            return [(o[0] + (q[0] - o[0]) * t, o[1] + (q[1] - o[1]) * t)
+                    for o, q in zip(_O, _I)]
+
+        t_rec = min(0.85, ARCADE["recess_m"] / WALL_THICK_M)
+        BF = face(t_rec)                      # the set-back wall behind the piers
+        plinth_h = sh * BANDS[0][2]
+
         for bname, f0, f1 in BANDS:
             if bname == "plinth":
                 fam, col = PLINTH_FAM, PLINTH_COL
@@ -536,18 +716,19 @@ def build(feature, stats):
             else:
                 fam, col = SIDE_MID.get(side, (PLINTH_FAM, PLINTH_COL))
             wg, wn = wall_ramp(col)
-            # A side can be taller than the bowl. The west is: Bellmont Hall is
-            # 72.5 m against the stadium's 63, and that 9.5 m of extra perimeter
-            # is a real, visible part of DKR's west elevation.
-            sh = SIDE_H.get(side, h)
             pr = dict(base_props)
             pr.update({"kind": "wall", "side": side, "band": bname, "fam": fam,
                        "wd": col, "wg": wg, "wn": wn,
                        "h": round(sh * f1, 2), "base": round(sh * f0, 2),
                        "name": name, "building_class": "stadium", "final_height": sh})
-            out.append(feat(poly, lat0, pr))
+            # THE PLINTH IS SET BACK. That is the arcade: the piers below stand
+            # on the original face, and the depth between the two is what makes
+            # a colonnade read as one rather than as a striped wall.
+            out.append(feat((BF + I[::-1]) if bname == "plinth" else poly, lat0, pr))
             stats["wall_bands"] += 1
         stats["wall_segments"] += 1
+
+        out.extend(arcade(O, I, BF, face, t_rec, side, plinth_h, lat0, name, stats))
 
     # 2. the seating bowl ----------------------------------------------
     # One ray per wall vertex, so the bands inherit the footprint's real shape.

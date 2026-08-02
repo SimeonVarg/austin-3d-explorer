@@ -1,5 +1,54 @@
 # Austin 3D Explorer — Full Handoff
 
+## 26. Aug 2 2026 — DKR got a ground floor (mac lane)
+
+**Branch:** `mac/dkr-arcade` — MAC_QUEUE M1b. *"want the entrance, and the shops,
+accurate pillars and whatnot."*
+
+The bowl above had been worked on for two passes. The problem was never the
+bowl: from the street DKR was **one flat extrusion wearing a facade tile** from
+grade to rim, and a facade pattern cannot make a colonnade — it has no vertical
+anchor and no idea where the wall's ends are, so it paints piers that march
+through the corners and past the gates.
+
+So the ground floor is geometry now, in `scripts/bake_stadium.py`'s new
+`arcade()`: **108 piers, 8 gate pylons, 4 gates with canopies, 4 glazed
+shopfront bands and 4 lintels**, built off arc length along each wall run so a
+run that bends round a corner gets piers that follow the bend. The plinth wall
+itself is **set back behind them** — that reveal is the whole effect. Everything
+rides `stadium-detail`, which already interpolates a per-feature day/golden/
+night trio, so no new layer and no new colour path.
+
+**The number that mattered was the DEPTH, and only measurement found it.** The
+first cut was 2.0 m piers standing 2.2 m proud of the 9.45 m plinth. At street
+level it was perfect. At the oblique 200 m the app actually flies at, a
+diagnostic render — every arcade kind painted its own screaming hue, then
+counted — came back **0 pier pixels on two of the four sides**, against 12,061
+on the west. The arcade was 71 px of a 470 px wall and the plaza grade and the
+facade's own vertical ribbing ate it. Widening the piers would not have helped:
+**it is the shadow in the reveal that reads at distance.** Reveal 2.2 → 3.4 m
+and the plinth 0.15 → 0.19 of the wall (9.45 → 12.0 m, which is also closer to
+what the 2008 north-end photograph shows), and it reads from every side.
+
+**Two hours went into believing a render before checking the layer's own
+visibility.** Three separate probes said "no piers" and the cause was
+`js/lod.js` hiding `stadium-detail` above 315 m on the default preset — correct
+behaviour, invisible in a screenshot. `getLayoutProperty(id, 'visibility')` is
+one line and should have been the FIRST thing printed, not the fourth. The
+probe prints it now.
+
+**Also here: the midfield Longhorn is back, as geometry.** M1a traded it away
+with the raster. It is flattened out of Simeon's own SVG path by
+`SVGPathElement.getPointAtLength` — the browser's own flattener, exact, a dozen
+lines, and it cannot disagree with the path the way a hand-rolled bezier
+subdivider can. The path is one closed contour of `c` segments (checked).
+**The end-zone wordmarks are NOT coming back and this is the reason:** from the
+nadir the end zone is ~30 px wide, so a rect-font letter stroke lands at 0.7 px
+and reads as noise rather than as TEXAS. That is a measurement, not a
+preference — if it is ever wanted, it needs a different idea, not a font.
+
+**Not regressed:** `field-bleed.mjs` still 18/18 with the arcade in.
+
 ## 25. Aug 2 2026 — the DKR field stopped bleeding through the walls (mac lane)
 
 **Branch:** `mac/dkr-field-depth` — MAC_QUEUE M1a.
