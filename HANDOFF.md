@@ -1,5 +1,232 @@
 # Austin 3D Explorer — Full Handoff
 
+## 35. Aug 2 2026 — the full day/night sweep on merged `main`, and the ten things it is still visibly wrong about (acer lane)
+
+**No code changed in this pass.** It is a read: pull `main`, run the whole sweep,
+and then LOOK at all 24 frames rather than report that three scripts exited 0.
+His complaint this round is that passes stop at the first thing that works, so
+the deliverable here is the list of what is still wrong, ranked by how big it is
+on screen — not a confirmation that the last seven PRs landed.
+
+Served with `python scripts/serve.py 8136`; `tour.mjs day`, `tour.mjs night` and
+`night-pale.mjs`, all at `VERIFY_MAX_MS=900000`. 24 frames in `shots/tour/`, plus
+two poses in `shots/sweep-extra/` for work the tour does not cover.
+
+### The night-pale number first, because it is the one that gets quoted
+
+```
+pale pixels below the horizon, all layers on: 871      (was 872)
+(46 visible fill-extrusion layers)
+mean luma  counted 34.3   skipped (sky) 36.7
+
+by pass:      stadium-*  (5)     108   12.4%
+              places-*   (2)       6    0.7%
+inside stadium-*:   stadium-detail  154   17.7%
+inside stadium-detail, by kind:  *** KILLED — watchdog at 900000 ms ***
+```
+
+**871 against 872. Seven merged PRs moved it by one pixel**, which is right —
+none of them touched night — and the run **did not finish**: the by-kind pass that
+§27 added, the step that turns a layer name into a cause, hit the watchdog. So
+this script currently costs 15 minutes and returns less than it did in §27. Read
+the section at the bottom before quoting 871 as the state of night; it is
+measuring something much narrower than "is the city dark".
+
+### What was merged before the sweep, so all of it is in these frames
+
+```
+#74  acer/roof-hole-coverage         A1     3 diagonal roofs, 75 roofs with a hole
+#75  acer/fountain-steps             A5     terrace()/flight() grew a riser
+#76  acer/trees-off-surfaces         A3+A4  trunks out of roads, pitches, open lawns
+#77  acer/art-accurate-size          A8+A9  the DIMS table; Kelly's three windows
+#78  acer/ground-coincident-surfaces A2     the RANK ladder; Speedway x 24th
+#79  acer/creek-cut-channel          A7     Waller Creek cut below grade
+#80  acer/garden-structure           A6*    beds, specimens, a built pond coping
+#71 #72 #73  mac lane                       outer facade bake, LOD roof caps, `fb`
+8188868                                     one lane, all files — the Mac is off
+```
+
+Plus two `austin-data-bot` archive rebuilds (`7f78264`, `7084045`), so the tiled
+layers in these frames are current, not stale.
+
+### RANKED — what is still wrong, most visible first
+
+**1. DKR's seating bowl reads as daylit at night — and this one is a TASTE call,
+so it goes to Simeon.** The outer facade darkens correctly and the decks inside
+it do not, so the bowl is a flat caramel mass in a black city. In
+`night-pale.mjs`'s own frame the whole-frame median luma is **13.8** and a
+24,750 px box on the bowl medians **47.9** — 3.5x the city. It is legible from
+2 km: it is the brightest thing on the horizon in `night-west-campus`,
+`night-capitol`, `night-moody-arena` and `night-aerial-wide`.
+
+**It is authored, not broken.** `SEAT_COL` in `js/app.js:539` gives every seat
+band an explicitly burnt-orange night trio — `#d87c34`, `#e08438`, `#e88c3e`,
+`#f09a48` — and §27 examined exactly this and defended it as the 2023-24 LED
+upgrade. The intent is right and the result on screen is not, for a reason §27
+could not see from one pose: **DKR is the only lit object in the entire city.**
+Nothing else floodlights, the bowl casts no spill on its own facade or on the
+ground, and the decks are uniformly bright with no falloff — so it does not read
+as "the stadium is lit", it reads as "this object missed its night colour".
+CLAUDE.md rule 9 puts this in his hands, so: the picture is
+`docs/shots/sweep-night-dkr-glow.jpg`, and the choice is keep it, dim it to
+roughly half, or light a few other landmarks so it has company.
+
+**2. Every membrane roof on campus is ringed in burnt orange.** The cause is two
+layers disagreeing about one roof. `bake_roofs.py` gives a flat "membrane" roof
+its own sampled deck colour `dc` and `roofs.js` lays that deck over the top face;
+the parapet cap under it (`buildings-roof`, `js/app.js`) is still painted
+`['get','rd']`, the building's tile-roof colour. So a grey deck sits inside a
+terracotta ring. Measured on Calhoun Hall: ring **(191,77,30)** / **(204,89,41)**
+against a deck of **(159,132,99)**. It is on PCL, McCombs, the Moncrief-Neuhaus
+Athletic Center, every garage — hundreds of buildings in every day frame, and it
+reads as a selection highlight, not architecture.
+`docs/shots/sweep-roof-orange-ring.jpg`.
+
+**3. Downtown is still forty identical brick-red boxes.** Same hue, same flat
+grey cap, no crowns, no setbacks, no podiums, no glass. Austin's skyline is a
+glass skyline and this is a blockout. QUEUE **D2b** says why in one line — the
+bake landed and the render switch is still inert — and nothing in this sweep
+contradicts it. `docs/shots/sweep-downtown-boxes.jpg`.
+
+**4. The outer ring is a tan carpet by day and dead black by night.** Green
+pixels by screen row in `day-dkr-stadium`: **11.4% in the near field, 0.2% and
+0.0% in the far ring**, with a hard horizon and no recession. At night the same
+ground measures luma **13-19 across the whole band** — not one light past about a
+kilometre. This is QUEUE **D3**, which was written up as a dusk problem; it is
+every hour. `docs/shots/sweep-far-ring.jpg`.
+
+**5. Windows are still blurred, and on some buildings they have collapsed into
+bands.** QUEUE **D1** is untouched and it is the most-seen surface in the scene.
+Worst case is not softness, it is total loss: the garages and blocks south of the
+Blanton have no windows at all, just soft horizontal gradient stripes wrapping
+the box. `docs/shots/sweep-facade-bands.jpg`.
+
+**6. Night streetlights are a carpet of cold blue-white bokeh.** In
+`night-aerial-wide` **0.84%** of the frame is above luma 120 and **87% of those
+hot pixels are blue-white** against 13% warm — so the night palette is decided by
+the lamps, not by the city. The glows are larger than the buildings they stand
+between, many of them sit over rooftops rather than over streets, and the campus
+uses a warm lamp while the west and south use a cold one, with the seam visible.
+`docs/shots/sweep-night-lamps.jpg`.
+
+**7. Every tree is a stack of flat octagonal discs.** Three to five tiers, hard
+edges, one olive green. At any zoom past ~16.5 they read as wedding cakes. It is
+39,580 features and it is in every frame.
+`docs/shots/sweep-trees-and-blacklines.jpg`.
+
+**8. The canopy stops at the campus edge.** `day-aerial-wide` shows the whole
+city outside the core with essentially no trees — West Campus, East Austin and
+everything south of the Capitol are bare tan blocks with grey roads. Austin is a
+tree city and this reads as a dust bowl. Same root as (4): only mapped trees are
+drawn, so the ring gets nothing.
+
+**9. Waller Creek still reads as a green stripe.** §34's channel is real in the
+data — it is cut, three planting zones, its own texture — but from a normal
+flying altitude there is **no water surface and no canopy**, because §34's own
+note is still open: the trees live in `data/trees.geojson` and the
+`src:'creek_canopy'` hook has never been consumed. So the pass that was meant to
+end "a bit of green" currently delivers a slightly darker bit of green.
+`docs/shots/sweep-creek-no-canopy.jpg`.
+
+**10. Stray dark lines lie across the ground.** One runs dead straight across the
+Clark Field infield in `day-dkr-field`; a second traces a plot boundary by the
+creek in `day-waller-creek`; short dark ticks sit along kerbs in most day frames.
+Measured, it is **3-4 px wide with a hard edge**, `(59,45,32)` against the
+field's `(152,170,93)` — so it is NOT the blurred `buildings-ao` halo, which is
+`#120c06` under a 19 px blur. Something thin is being extruded at ground level in
+a dark brown. Not attributed yet; worth one `queryRenderedFeatures` at those
+coordinates. `docs/shots/sweep-trees-and-blacklines.jpg`.
+
+### Two things the tour does not photograph, shot separately
+
+**The Littlefield Fountain has no memorial.** A5 asked for the steps to be
+accurate and #75 gave `terrace()` a riser, which is real — but the landmark
+itself is **two flat blue-grey puddles with a tan coping and one six-step nub on
+the upper basin's corner.** The fountain's entire subject — Pompeo Coppini's
+bronze group, Columbia on a ship's prow with three horses and two mermen on a
+stone pedestal — is not in the scene at all, and neither are the curved flights
+the item explicitly named. `shots/sweep-extra/fountain.png`,
+`docs/shots/sweep-littlefield-no-memorial.jpg`.
+
+**A prop is floating.** Two long tan planks hang in mid-air, crossed at an angle,
+over the roadway just south of the fountain (`shots/sweep-extra/fountain.png`
+around x=1000, y=700). Nothing under them. Probably a bench or a shelter with
+broken geometry — one bad feature, but it is at eye level in a landmark shot.
+
+The Memorial Garden and Turtle Pond (#80) still have **no photograph on `main`**:
+my pose for them was mis-aimed and I did not spend a second load on it. #80's own
+`shots/garden/after3/pond.png` shows beds rendering as flat brown ovals on the
+lawn and specimens as 10-sided green boulders larger than the buildings' windows,
+so it is worth a real look before that item is called closed.
+
+### Below the line — real, smaller
+
+The **UT Tower's crown** is a blank tan box with one small clock face, no belfry
+columns and no lantern, and its shaft's window columns cover only the middle
+third of its width (`docs/shots/sweep-tower-crown.jpg`); at night the whole tower
+is one flat orange slab. The **South Mall lawn** is a flat untextured green
+rectangle now that A4 has cleared it. **Pools render teal** (~`(90,157,148)`,
+8 clusters in `day-west-campus` alone) and glow blue at night. **Small grey
+building labels** overlap each other and the Tower and are unreadable, while POI
+labels are a rainbow of brand colours. The **Capitol's body** is a windowless
+dark slab with no portico under a genuinely good dome. Ground **south of the
+Capitol and east of I-35** is bare tan for whole blocks — QUEUE **B3** never left
+campus.
+
+### The instrument problem, which is the reusable part of this pass
+
+**`night-pale.mjs` cannot see the defect it was written for.** Its threshold is
+`PALE = 120` luma, a constant. Measured in the very frame it writes
+(`shots/night-pale-before.png`):
+
+```
+whole-frame median luma            13.8
+DKR bowl, 24,750 px box            median 47.9   1 px over 120   8,196 px over 60
+Kelly's "Austin", night-blanton    median 94.0   0 px over 120   max 117.9
+```
+
+Both of those are the "inverted silhouette" failure the script's own docstring
+describes — a building-shaped patch staying pale while the city is dark — and
+both score **zero**. The 108 px the run does attribute to `stadium-*` are the
+floodlight lamps §27 already cleared; the 25,000 px of glowing bowl right next to
+them are invisible to it.
+
+A surface does not have to be bright to be wrong; it has to be bright *relative
+to the frame*, and at a night median of 13.8 anything over about 45 already reads
+as lit. A fixed 120 was calibrated against a brighter frame and has been quietly
+measuring almost nothing since. **The threshold should be a multiple of the
+frame's own median, not a constant** — and until it is, the number this script
+prints is not evidence that night is fixed.
+
+This is the same shape as the trap CLAUDE.md rule 10 already records: an
+instrument's defaults are part of its answer. The count went 6,206 -> 872 and
+everyone read that as 86% solved; what actually happened is that the pixels which
+survived the drop were the ones the threshold could still see.
+
+**And the second half of the caveat, which §27 already wrote down and nobody has
+acted on:** `_harness.html` is missing `js/tiles.js`, so in the harness
+`window.tileSource` is undefined and trees, roads, roof detail, props and the
+outer ring all silently fall back to GeoJSON. `night-pale.mjs` loads
+`_harness.html`. **Every number it prints is measured on a scene the site does
+not serve.** Two independent reasons to stop quoting this script's count as the
+state of night.
+
+### Housekeeping
+
+- Eight merged branches are still on `origin` — `acer/roof-hole-coverage`,
+  `acer/fountain-steps`, `acer/trees-off-surfaces`, `acer/art-accurate-size`,
+  `acer/ground-coincident-surfaces`, `acer/creek-cut-channel`,
+  `acer/garden-structure`, `mac/outer-bucket-inert`. CLAUDE.md rule 2 says delete
+  after merging.
+- **§31 and §33 are the same pass written twice** (`acer/art-accurate-size`), §33
+  being the later and fuller copy. Nothing points at §31.
+- `tour.mjs`'s `waller-creek` pose (`-97.7330, 30.2870`, bearing 180) does not
+  contain the creek; the corridor is only legible from the `moody-arena` pose.
+  The pose named after the newest ground work does not photograph it, and neither
+  the Littlefield fountain's new risers (#75) nor the Memorial Garden beds (#80)
+  appear in any tour pose at all. **A pass whose result no tour frame contains is
+  a pass nobody will notice regressing.**
+
 ## 34. Aug 2 2026 — the ground stopped fighting itself, the creek got cut, and a garden stopped being a lawn (acer lane)
 
 Three PRs: `acer/ground-coincident-surfaces` (#78), `acer/creek-cut-channel`
