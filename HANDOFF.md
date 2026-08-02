@@ -1,5 +1,100 @@
 # Austin 3D Explorer — Full Handoff
 
+## 38. Aug 2 2026 — the fountain had no memorial, and three rules that drew the rest of them wrong (acer lane)
+
+**Branch:** `acer/littlefield-memorial`, PR #89. §35's two loose ends plus the
+landmark half of A8, driven off the contact sheet rather than off a hunch.
+
+### The Littlefield Fountain
+
+*"the Littlefield Fountain has no memorial at all — two flat puddles and one
+six-step nub"*. `docs/shots/littlefield-before.jpg` and `-after.jpg` are the same
+camera. `bake_depth.py` built the pool correctly off a measured z20 nadir and #75
+gave its steps a riser — and nobody came back for the thing the pool exists to
+hold. Coppini's 1933 group is in it now: the hull of the Ship of State on a
+masonry pedestal, Columbia bearing the torch on the prow, three hippocampi
+drawing it, the Army and the Navy flanking in the water. **Five figures, three
+horses, one hull — that inventory is the accuracy test, and a statue on a block
+does not pass it.**
+
+**SIZE IS DERIVED, NOT GUESSED, and the derivation is off geometry this repo
+already had.** `bake_depth.py` measures the top channel at 125.2 m2 over a
+13.60 m run = **9.2 m clear**; the group fills it with the flankers just inside
+the copings, so 9.2 less two 0.6 m weir walls and a clearance = **7.00 m wide**.
+Height is a heroic-scale figure (2.75 m) on a prow deck 1.9 m over the water with
+the torch above her head = **6.90 m**. Both are in `DIMS` with the working
+written out, and `main()` re-measures the emitted file: 6.90 h, 7.9 x 10.1 m,
+93 parts, PASS. The mall axis and the tier geometry are **imported from
+`bake_depth.py`**, not restated — the mall runs 6 degrees east of north and two
+copies of that fact would drift.
+
+### Three rules the contact sheet convicted, and it took the sheet to see them
+
+`art-sheet.mjs`, 35 pieces at one ground scale, `docs/shots/art-sheet-littlefield.jpg`.
+No red borders. Then:
+
+1. **`beam()` took its step count from the CALLER and every caller guessed** — 2
+   to 7 steps for members from 0.4 m to 5.2 m long. Monochrome for Austin's
+   5.17 m back-stay at 4 steps is 1.29 m per slab and renders as a literal
+   six-tread STAIRCASE down the left of the sculpture. The count comes from the
+   member's own 3-D length now; `steps` is a floor. Measured across the file:
+   0.55 m/slab → 1,015 parts / 287 KB, 0.70 → 929 / 264, 0.85 → 875 / 249,
+   against 716 / 202 before. **0.70 taken.** *And the trap in it:* `add()` drops
+   anything under 2 cm, so slicing a shallow member finer DELETES it — §51 with
+   more steps — so the count is clamped by the member's own rise.
+2. **`generic('statue')` spent all the height on the FIGURE.** A constant
+   0.85-1.15 m plinth and then the whole remainder of the props file's 4.2 m
+   class default handed to the person: nine statues drawn 3.05-3.35 m tall, half
+   again over heroic, each reading as a bare brown stick. A bronze is
+   1.85-2.35 m; **the pedestal takes what the figure does not need.**
+3. **The Nature's Neighborhood bronzes — §33's own finding left half-done.** Six
+   small Texas natives by Lars Stanley and Dylan Connor arrive as `at=statue` at
+   4.2 m. §33 sized the Sea Turtle and stopped. Armadillo, Bat, Horned Lizard,
+   Prickly Pear and Bluebonnet were **each still a 4.2 m standing human figure.**
+
+### What did NOT work, and it is the useful half
+
+- **The "bench-shaped prop floating over the road beside the fountain" (§35) is
+  not a floating prop.** Magenta-masked it is `props-furn`, and `js/props.js`
+  draws that layer with `fill-extrusion-base: 0` — it cannot float. Measured:
+  **0** furniture features inside a road polygon within 200 m of the fountain,
+  and every furniture feature within 170 m is **≤ 2.73 m** tall. It is a
+  PITCHED-CAMERA MISREAD: at 60 degrees, ground objects NORTH of a tree sit
+  higher on screen than its base and read as hanging in its canopy. The playbook
+  already says a single 2D projection lies about depth; this is that.
+- **Four dead ends before that answer, ~90 minutes.** `queryRenderedFeatures`
+  answers a fill-extrusion by FOOTPRINT, so it confirmed a bicycle rack under a
+  pixel painted by something else. Guessing the sweep frame's camera from its
+  contents put me 400 m away at the Blanton. Scanning `props.geojson` for tall or
+  in-road furniture found nothing because there was nothing. **Only the magenta
+  mask answered it**, and it answered in one run.
+- **The head-on view is still the weak one.** From MLK the three horses
+  foreshorten into blocks. Splaying the team's heads 0.55 m outboard fixed most
+  of it; a fill-extrusion team pointing at the camera will not get better.
+- **Monochrome is improved, not cured** — a fine staircase instead of a coarse
+  one. Eight slabs is as far as that is worth taking.
+- **15 of the 35 tiles contain no visible sculpture and I fixed none of them.**
+  The Art Building group (Prometheus, Winged Victory, Swan's Dream, Amphora,
+  History of Black Bronze), The Color Inside, Square Tilt and Vermillion are
+  behind or on buildings; Circle with Towers is still under the tree §33
+  reported. `shape_trees.py` and the camera, not `bake_art.py`.
+
+### The working-directory hazard bit again, and this is the third time
+
+**§33's disaster repeated exactly.** Mid-session another agent ran `git checkout`
+in the shared tree, so a commit made on `acer/littlefield-memorial` landed on
+`acer/roof-orange-ring` instead — discovered only when a worktree checkout of my
+own branch came back at the wrong commit. It also deleted
+`scripts/verify/node_modules` under me again, which surfaces as
+`ERR_MODULE_NOT_FOUND` from `pose.mjs` and nothing else. Recovered by
+cherry-picking into `C:/Users/simip/Projects/austin-3d-lf`.
+
+**`git worktree add` is not advice any more, it is the only safe way to work in
+this repo while another session is running.** And note `main` is already checked
+out in `austin-3d-facades`, so `gh pr merge --delete-branch` fails on the local
+checkout step — merge without it and delete the remote branch by hand.
+
+
 ## 37. Aug 2 2026 — a membrane roof does not get a terracotta parapet (acer lane)
 
 **Branch:** `acer/roof-orange-ring`, PR #88. §35 item **2** — the
