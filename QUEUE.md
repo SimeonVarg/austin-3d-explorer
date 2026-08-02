@@ -41,9 +41,11 @@ else here is yours.
 | A7 creek murky | open, folded into B6 |
 | B1 six grey-box artworks | **DONE** #58 — all 34 pieces, 350 parts, ten recipes. Kelly's chromatic circle is in. |
 | B5 tree variety | **DONE** #59 — species profiles, 25,341 → 41,964 features, payload still DOWN at 9.74 MB. |
+| B4 depth / stairs | **DONE** #62 — a reusable step generator; the Littlefield Fountain has its basin and both flights. |
+| B3 Turtle Pond | **PARTLY** #63 — a 12,569 m² "garden" slab was covering it. Turtles and the water colour still open. |
 | B9 roof colour variety | **DONE** #60 — measured off the imagery, relative to the campus median, amplified 3.5x and declared. |
 
-**Still open: B2, B3, B4, B6, B7, B8, C1.** They are unchanged below.
+**Still open: B2, B3 (turtles + water colour), B6, B7, B8, C1.** They are unchanged below.
 
 Three things worth carrying into the next pass:
 
@@ -198,40 +200,30 @@ carries for that block before adding anything new.
 
 ## B3. Turtle Pond, with turtles
 
-> **ATTEMPTED 2026-08-02 AND ABANDONED WITHOUT MERGING. Read this before
-> starting; the premise in the paragraph below is wrong.**
+> **PARTLY SOLVED 2026-08-02 (PR #63) — read this before starting.**
 >
-> The item says "the pond exists and is presumably flat blue". It is not blue.
-> It does not render as water at all. Photographed at zoom 19.8 the pond's
-> footprint is plain lawn green, and a dozen turtles placed inside it sit on
-> grass — which is worse than no turtles.
+> The premise below is wrong: the pond was NOT "flat blue". It rendered as solid
+> lawn green because a `props-line` feature — an OSM `leisure=garden` **area**
+> baked as a 0.55 m raised slab, **12,569 m²** of it — was painted over the whole
+> Memorial Garden block including the pond. Capped at 150 m² in
+> `bake_props.py`; three features in the city exceeded it. The pond, its paths,
+> its beds and a bench are all visible now.
 >
-> What was checked, so it does not have to be checked again:
-> - `Turtle Pond` IS in `ground.geojson`, `k:area u:water s:water`, 77 vertices.
-> - It is at file index 412, AFTER `Memorial Garden` (grass) at 105, and the
->   bake sorts areas biggest-first, so the pond is drawn ON TOP of the lawn.
->   Draw order is not the problem.
-> - `paletteAt(p).water` is `#8fbccd`, a pale blue. The colour is not the
->   problem either.
-> - One lead, not yet followed: `js/capitol.js` appends 1,802 ground features
->   into `austin-ground` and the console carries
->   `GeoJSONSource "austin-ground": GeoJSON data is not compatible with
->   updateData`. If that append is replacing rather than merging, features late
->   in the file — the pond is at 412 of 1,561 — are a plausible casualty.
->   **Start there.**
+> **What is still to do here:**
+> 1. The pond reads **silver-grey, not blue**. `GROUND.texStrength.water` is
+>    0.95 and the water texture washes the `#8fbccd` fill out almost completely.
+>    Look at that number before anything else.
+> 2. The turtles. The generator works and is worth rebuilding: a `dome()` of
+>    stacked chords plus a head, twelve of them, placed deterministically (no
+>    `Math.random` in a bake that must produce the same file twice), half hauled
+>    out on the rim and half floating.
 >
-> Also learned, and it is a rule not a detail: **`terrace()` from
-> `scripts/bake_depth.py` is a BASIN tool and Turtle Pond is not a basin.** It is
-> a 60 m winding ribbon under 4 m across for most of its length. A 1.6 m rim
-> buffered in from both banks left almost no water; narrowing the courses to
-> 0.16–0.55 m over 1.1 m offsets made them near-coplanar with the ground fill
-> and the render came back as a stripe of z-fighting slivers across the lawn.
-> Measure the shape before choosing an offset.
->
-> The turtle generator itself works and is worth keeping when this is retried:
-> a `dome()` of stacked chords plus a head, twelve of them, placed
-> deterministically (no `Math.random` in a bake that has to produce the same
-> file twice), half hauled out on the rim and half floating.
+> **And a rule, not a detail: `terrace()` from `scripts/bake_depth.py` is a
+> BASIN tool and Turtle Pond is not a basin.** It is a 60 m winding ribbon under
+> 4 m across for most of its length. A 1.6 m rim buffered in from both banks left
+> almost no water; narrowing the courses to 0.16–0.55 m over 1.1 m offsets made
+> them near-coplanar with the ground fill and the render came back as a stripe of
+> z-fighting slivers across the lawn. Measure the shape before choosing an offset.
 
 
 `data/ground.geojson` **already has** `Turtle Pond` as `u: water, s: pond`, and

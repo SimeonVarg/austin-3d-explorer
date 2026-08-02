@@ -1972,3 +1972,44 @@ something other than what the report said.
     Looking at one thing from somewhere specific no longer means editing
     `tour.mjs` and then editing it back. Note `tour.mjs` itself needs
     `VERIFY_MAX_MS=900000` — twelve poses exceed the 300 s default watchdog.
+
+# 2026-08-02, Acer lane — second pass
+
+41. **`acer/ground-depth` (PR #62) — B4, and the answer is yes.** A step is a
+    thin extrusion at a raised base; nothing new was needed. `bake_depth.py`
+    has `terrace()` and `flight()` and the generator is the point, not the
+    fountain. **Everything builds UP**: buildings start at z=0 with no terrain,
+    and a `fill` does not depth-test against a `fill-extrusion`, so anything
+    sunk below the datum is painted over by the flat ground above it.
+
+42. **Four render-caught mistakes in that one pass, none of which reasoning
+    would have found.** (a) `pick` lives in props.js, not ground.js — it threw
+    and the WHOLE ground stage silently failed to build; the screenshot merely
+    looked bright. (b) Courses 140 mm apart rendered as one flat blob — what
+    carries a flight from the air is light/dark BANDING, not height. (c) Tan
+    steps on tan paving are tan paving. (d) The water never drew: colouring it
+    magenta gave ZERO pixels even with the coping hidden, because a course
+    1.15 m tall was a solid plug over water at 1.02 m.
+
+43. **`acer/giant-hedge` (PR #63) — chasing the turtles found something
+    bigger.** Turtle Pond renders as lawn. The feature is present, is returned
+    by queryRenderedFeatures on `ground-areas`, has the right draw order and the
+    right palette — and filtering that layer to the pond alone did not change
+    the pixel, so it was never the ground layer. **Hiding one layer at a time
+    named `props-line` in a single pass.** `bake_props.py` draws a tagged
+    planting AREA as a raised mass and OSM tags landscape blocks
+    `leisure=garden`: three slabs of 457, 2,406 and **12,569 m²**, the largest
+    sitting on the pond. Median line prop is 10 m² and p90 is 29, so a 150 m²
+    cap separates them with a clear gap.
+
+44. **A full `bake_props.py` re-bake on the Acer produces 2,244 features
+    against the shipped 9,022** — it needs city inventory data that is not in
+    the local cache. The rule went into the bake for next time; the shipped file
+    was edited surgically, three features, nothing else. **Check the feature
+    count after any re-bake before committing it.**
+
+45. **B3 was abandoned once and then reopened.** The first stop was right —
+    turtles on grass is worse than no turtles — but the write-up said "draw
+    order and palette are innocent, one unfollowed lead". Following that lead
+    took twenty minutes and found a 1.25-hectare bug. **When a probe says "it is
+    not any of the things I checked", that is a result, not a dead end.**
