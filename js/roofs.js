@@ -14,6 +14,18 @@
  *   deck    one polygon per building in its OWN colour, measured off z20 Esri
  *           nadir imagery. It sits ON the parapet cap app.js already draws
  *           (CAP_GEOM), inset 1.1 m, so the cap reads as a rim around it.
+ *
+ *           THAT RIM WAS BURNT ORANGE FOR AS LONG AS THIS FILE HAS EXISTED, on
+ *           every flat roof on campus, because `buildings-roof` is painted from
+ *           the BUILDING's `rd` — a terracotta roof colour — and this deck is
+ *           not. Measured at `day-tower-close`, the cap owned 9,543 px of
+ *           rgb(173,88,51) around 81,414 px of rgb(151,138,114) deck
+ *           (scripts/verify/roof-ring.mjs). It read as a selection highlight.
+ *           The rim is still there and still reads as a parapet — it is now
+ *           the deck's OWN colour, joined to the building offline by
+ *           scripts/bake_roofs.py and applied to the building feature in
+ *           js/app.js's loadScene. The sentence above is therefore still true;
+ *           what changed is which palette the rim comes out of.
  *   clutter condensers, AHUs, fans, ducts, plant screens, stair/lift
  *           penthouses and rooftop pools — position, footprint, orientation and
  *           colour all measured from the same imagery. Height is the one

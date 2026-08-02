@@ -1,0 +1,50 @@
+{
+  "tag": "before",
+  "tod": 0.3,
+  "pose": {
+    "center": [
+      -97.7392,
+      30.286
+    ],
+    "zoom": 17.4,
+    "pitch": 72,
+    "bearing": 20
+  },
+  "total": 1600000,
+  "layers": [
+    {
+      "id": "buildings-roof",
+      "px": 9537,
+      "mean": [
+        173,
+        88,
+        51
+      ],
+      "orange": 8900
+    },
+    {
+      "id": "roofscape-deck",
+      "px": 84061,
+      "mean": [
+        151,
+        138,
+        114
+      ],
+      "orange": 30
+    },
+    {
+      "id": "roofs-pitched",
+      "px": 181051,
+      "mean": [
+        141,
+        72,
+        41
+      ],
+      "orange": 149098
+    }
+  ],
+  "orangeTotal": 214997,
+  "orangeOther": 56969,
+  "capN": 9497,
+  "capNear": 5185
+}
