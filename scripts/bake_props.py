@@ -357,6 +357,23 @@ def poly_area_m2(ring):
 
 
 # ── loading ────────────────────────────────────────────────────────────
+# The largest a tagged planting area may be and still be drawn as a raised
+# prop. See the note at the call site: three features in the whole city exceed
+# it and every one of them is a landscape block mis-tagged as a garden.
+AREA_PLANTING_MAX_M2 = 150.0
+
+
+def ring_area_m2(ring):
+    if len(ring) < 4:
+        return 0.0
+    lat = sum(q[1] for q in ring) / len(ring)
+    kx = 111320.0 * math.cos(math.radians(lat))
+    a = 0.0
+    for (x0, y0), (x1, y1) in zip(ring, ring[1:]):
+        a += (x0 * kx) * (y1 * 111320.0) - (x1 * kx) * (y0 * 111320.0)
+    return abs(a) / 2.0
+
+
 def load(key):
     p = os.path.join(CACHE, key + ".json")
     if not os.path.exists(p):
@@ -627,6 +644,22 @@ def main():
                 t.get("leisure") if t.get("leisure") in AREA_PLANTING else None)
             if plant and coords[0] == coords[-1] and len(coords) >= 4:
                 ring = simplify_ring(coords, 0.8)
+                # A PLANTER IS SMALL. This branch draws a tagged planting AREA
+                # as a solid raised mass, and OSM tags whole landscape blocks
+                # `leisure=garden` -- so a 12,569 m2 garden came through as a
+                # 0.55 m green slab over 1.25 hectares of campus, and one of the
+                # three of them was sitting on top of Turtle Pond. The pond was
+                # in the source, was returned by queryRenderedFeatures, and was
+                # painted grass; hiding one layer at a time is what found it.
+                #
+                # The threshold is not a guess. Measured over all 142 line props:
+                # median 10 m2, p90 29 m2, then a gap to 457, 2,406 and 12,569 --
+                # all three `garden`. 150 m2 drops exactly those three and
+                # nothing else. Anything that big is landscape and belongs to
+                # ground.geojson, which already draws it as grass.
+                if ring_area_m2(ring) > AREA_PLANTING_MAX_M2:
+                    stats["planting_area_too_big"] += 1
+                    continue
                 feats.append({"type": "Feature",
                               "geometry": {"type": "Polygon", "coordinates": [ring]},
                               "properties": {"k": "line", "u": plant,
