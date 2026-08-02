@@ -247,3 +247,68 @@ approved this as an idle-time chore.
 **What:** a short current-state file plus `docs/JOURNAL.md` for the history.
 Keep the hard-won rules (the numbered list at the end) in the short file — those
 are the part that stops mistakes repeating.
+
+---
+
+## 9. The Drag renders near-WHITE at night
+
+**Found 2026-08-01 by `scripts/verify/night-pale.mjs` (new). Characterised, not
+fixed.** I spent a long time on it and every theory I had was wrong, so this is
+exactly what is established and what is not, rather than a guess left in the code.
+
+**The defect.** At night the Guadalupe streetwall — the Co-op, Chipotle, the
+shopfront strip — renders as a row of pale blocks against a black city. See
+`shots/tour/night-the-drag.png`. This is the inverted-silhouette failure, and it
+is the most visible kind of bug this scene has: one wrong building in a night
+frame takes the eye before anything else.
+
+**Measured.** `night-pale.mjs` hides one pass at a time and counts pale pixels
+below the horizon, because counting bright pixels tells you there is a problem
+and not where it lives. Of 3146 pale pixels at the DKR pose, `drag-*` accounts
+for **55.8%** and `drag-wall` alone for 31%. Nothing else is close — `stadium-*`
+16%, everything else under 2%.
+
+**Established, all measured, none assumed:**
+
+- `drag-wall` paints with `fill-extrusion-pattern`, a baked image. A pattern does
+  not respond to the time-of-day colour ramp; only re-uploading the image does.
+- The Drag DOES register a retint hook: `window.__dragTodHooked === true`, and
+  `applyDragColors` exists as a function.
+- Its six families are `pclCoffer, gymArcade, uniArcade, uniWin, retUpper,
+  shopGlass` (`dragTileAudit()`).
+- Calling `applyDragColors(map, 0.95)` **by hand** takes the pale count from 6206
+  to **1904**, and it then stays stable.
+- Waiting never does it: 24209 px at +2 s, 6208 at +6 s, and **6208 at +12 s and
+  +20 s**. It is not slow propagation.
+- Instrumenting `map.updateImage` across a real slider retint records **120 calls
+  and not one of them is a Drag family.** Tower (`tw*`), arts and moody tiles all
+  update. The Drag's do not.
+
+**So the hook is installed and the tiles are still never re-uploaded.** Those two
+facts together are the whole puzzle and I could not reconcile them.
+
+**Tried and reverted — do not repeat these:**
+
+- a second tile-push pass on `requestAnimationFrame` — no change, 6206
+- a second pass on `map.once('idle')` with a 2.5 s timer fallback — no change;
+  `idle` fires about a second in, well before the +6 s plateau
+- three timed retries at 1200 / 4000 / 8000 ms — no change
+- adding a `setPaintProperty` write alongside each retry, on the theory that it
+  forces the pattern atlas to rebuild — no change
+
+A fix that does not move the number is worse than no fix, because the comment
+above it will be believed.
+
+**Where to start.** The gap is between "the wrapper is installed" and "the
+`updateImage` calls never happen". Log inside `applyDragColors` itself during a
+real slider drag — **not** from `page.evaluate`, which is the one path already
+known to work and therefore proves nothing. Six passes wrap
+`window.applyTimeOfDay`, and the comment at `js/drag.js:805` already records that
+the `__drag` marker is unreliable for exactly that reason. Suspect the wrap chain
+before suspecting MapLibre.
+
+**While in there:** `stadium-*` is 16% of the pale pixels, and
+`data/stadium.geojson` has 499 of 511 features with no night colour at all
+(`westcampus.geojson`: 109 of 145). Those may be handled by a `SOLID`-style
+lookup keyed on surface — `js/westcampus.js` does exactly that — or they may be
+the same bug wearing a different hat.
