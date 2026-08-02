@@ -28,6 +28,37 @@ else here is yours.
 
 ---
 
+## Progress, 2026-08-02 — eight PRs merged, all verified, all branches deleted
+
+| item | state |
+|---|---|
+| A1 movement dies on the slider | **DONE** #54 — a focus guard, not hardware. Windows focuses sliders on click, macOS does not. |
+| A2 roofs become windows in low detail | **DIAGNOSED, handed to the Mac** — `TIERS.mid` hides the roof CAP; written into MAC_QUEUE M4 with three candidate fixes. |
+| A3 Speedway fans out | **DONE** #55 — paths are polygons now. Measured 3.69x too wide at pitch 86. **Roads still carry it.** |
+| A4 Tower clock at night | **DONE** #56 — the bezel was a solid near-white disc, not a ring. It cannot be made to GLOW in MapLibre 5.24; four measurements in the PR. |
+| A5 diagonal roofs | **DONE** #57 — a 2.1 m noise vertex folded the inset and deleted a whole 36 m slope. 1,050 of 2,455 footprints affected. |
+| A6 Battle Hall grey roof | **ANSWERED, no change** — it is terracotta. The grey roof is the West Mall Office Building next door. |
+| A7 creek murky | open, folded into B6 |
+| B1 six grey-box artworks | **DONE** #58 — all 34 pieces, 350 parts, ten recipes. Kelly's chromatic circle is in. |
+| B5 tree variety | **DONE** #59 — species profiles, 25,341 → 41,964 features, payload still DOWN at 9.74 MB. |
+| B9 roof colour variety | **DONE** #60 — measured off the imagery, relative to the campus median, amplified 3.5x and declared. |
+
+**Still open: B2, B3, B4, B6, B7, B8, C1.** They are unchanged below.
+
+Three things worth carrying into the next pass:
+
+- **`scripts/verify/pose.mjs` is new.** Photograph any pose from the command
+  line, one browser for the whole list. `--extra "&tiles=0"` forces the GeoJSON
+  fallback, which is how you verify a change to a TILED layer without
+  tippecanoe (there is no usable Windows build).
+- **`tour.mjs` needs `VERIFY_MAX_MS=900000`.** Twelve poses exceed the 300 s
+  default watchdog and it dies at pose 8 with no warning.
+- **Tiles are rebuilt with `gh workflow run build-tiles.yml --ref <branch>`.**
+  It commits the archives back to that branch in about 20 seconds. Any change to
+  trees, roads, outer, roofdetail or props does nothing in the app until you do.
+
+---
+
 # PART A — BUGS. These are visible and they come first.
 
 ## A1. Movement dies on the Acer when the daylight slider moves
