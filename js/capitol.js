@@ -106,17 +106,102 @@
    * parse, paid once at load, in exchange for the ground and the trees having
    * exactly one definition each.
    */
+  /**
+   * Append the Capitol's features to a source that is already loaded.
+   *
+   * THIS USED TO DOWNLOAD THE ENTIRE BASE FILE A SECOND TIME. `setData` replaces
+   * a source wholesale, so to add 60 Capitol trees it re-fetched all 25,341 of
+   * the city's, concatenated, and handed the lot back. Measured with
+   * scripts/verify/payload.mjs on 2026-08-01: `data/trees.geojson` fetched twice
+   * at 9.13 MB and `data/ground.geojson` twice at 0.81 MB — **9.94 MB, a quarter
+   * of the 39.7 MB a first-time visitor downloads**, for features they already
+   * had. The second fetch is usually a cache hit so it never showed up as slow
+   * network; what it actually cost was a second full JSON parse and a complete
+   * re-tile of the biggest source in the app, on the main thread, during load.
+   *
+   * `updateData` (MapLibre 4+, confirmed present in the 5.24.0 bundle) takes a
+   * DIFF instead. `{ add: [...] }` appends in the worker and leaves the existing
+   * tiles alone. The base file is never named, let alone fetched.
+   *
+   * baseUrl is kept only for the fallback path, so that pinning MapLibre to an
+   * older build degrades to the old behaviour instead of silently dropping the
+   * Capitol.
+   */
+  /**
+   * A VECTOR SOURCE CANNOT BE APPENDED TO AT ALL, which is the price of tiling.
+   *
+   * `updateData` and `setData` are GeoJSONSource methods. Once js/tiles.js swaps
+   * austin-trees over to a pmtiles archive, neither exists, and the Capitol's
+   * 612 trees have nowhere to go — silently, because a source that ignores you
+   * throws nothing.
+   *
+   * So the extras get their own GeoJSON source and a CLONE of every layer that
+   * was drawing the base one. Cloning is the part that matters: the whole design
+   * rule in this file is "add nothing new where something exists", because a
+   * second hand-written layer is how two definitions of the same thing drift
+   * apart. A clone taken from `getStyle()` at runtime cannot drift — change the
+   * tree colour ramp in app.js and the Capitol's trees change with it, since
+   * they are literally the same layer definition with one field swapped.
+   *
+   * `source-layer` is deleted from the clone on purpose. It is meaningless on a
+   * GeoJSON source and MapLibre rejects the layer outright if it is left in.
+   */
+  function cloneLayersOnto(map, srcId, newSrcId) {
+    const style = map.getStyle();
+    let n = 0;
+    for (const layer of (style.layers || [])) {
+      if (layer.source !== srcId) continue;
+      const copy = JSON.parse(JSON.stringify(layer));
+      copy.id = layer.id + '-capitol';
+      copy.source = newSrcId;
+      delete copy['source-layer'];
+      if (map.getLayer(copy.id)) continue;
+      // Insert directly above the layer it copies, so z-order is inherited
+      // rather than re-derived. Getting this wrong is how the Capitol's paths
+      // ended up under its own lawn once.
+      try { map.addLayer(copy, nextLayerAfter(style, layer.id)); n++; }
+      catch (e) { console.warn('[capitol] clone failed for', layer.id, e.message); }
+    }
+    return n;
+  }
+
+  function nextLayerAfter(style, id) {
+    const i = (style.layers || []).findIndex(l => l.id === id);
+    return (i >= 0 && style.layers[i + 1]) ? style.layers[i + 1].id : undefined;
+  }
+
   async function mergeIntoSource(map, srcId, baseUrl, extraUrl, label) {
     const src = map.getSource(srcId);
     if (!src) { console.warn('[capitol] no source', srcId); return 0; }
-    const [base, extra] = await Promise.all([
-      getJSON(baseUrl, EMPTY), getJSON(extraUrl, EMPTY),
-    ]);
+    const extra = await getJSON(extraUrl, EMPTY);
     const add = extra.features || [];
     if (!add.length) return 0;
-    src.setData({ type: 'FeatureCollection',
-                  features: (base.features || []).concat(add) });
-    console.log('[capitol]', add.length, label, 'merged into', srcId);
+
+    if (typeof src.updateData === 'function') {
+      src.updateData({ add });
+      console.log('[capitol]', add.length, label, 'appended to', srcId);
+    } else if (typeof src.setData === 'function') {
+      const base = await getJSON(baseUrl, EMPTY);
+      src.setData({ type: 'FeatureCollection',
+                    features: (base.features || []).concat(add) });
+      console.warn('[capitol] no updateData on', srcId,
+                   '- refetched', baseUrl, 'to merge', label);
+    } else {
+      // Tiled. Own source, cloned layers.
+      //
+      // `data: extra`, not `data: extraUrl` — the file is already parsed and in
+      // hand. Passing the URL makes MapLibre fetch it a SECOND time, which is
+      // precisely the bug this function was rewritten to remove an hour ago,
+      // reintroduced in the fix for a different problem. Measured with
+      // payload.mjs: capitol_trees.geojson 2x, 0 from cache.
+      const sideId = srcId + '-capitol';
+      if (!map.getSource(sideId)) {
+        map.addSource(sideId, { type: 'geojson', data: extra });
+      }
+      const n = cloneLayersOnto(map, srcId, sideId);
+      console.log('[capitol]', add.length, label, '->', sideId,
+                  '(' + n + ' layers cloned; ' + srcId + ' is tiled)');
+    }
     return add.length;
   }
 

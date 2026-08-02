@@ -1603,3 +1603,81 @@ Also: `js/outer.js`'s low-rise half masses into a featureless brown plane above
 ~80 degrees of pitch and is now faded out there. That was pre-existing and was
 only reachable after the pitch ceiling went to 90 — verified by reverting the
 tiling change and rendering an identical frame.
+
+---
+
+### Acer, 2026-08-01 — payload, roofs, GL. PRs #34-#37, none merged.
+
+Four branches, four PRs, deliberately small: `acer/cloud-proposal` (#34),
+`acer/no-double-fetch` (#35), `acer/buried-roofs` (#36),
+`acer/perf-hardware-gl` (#37, stacked on #34 — merge #34 first).
+
+Also on `main`, docs-only: `MAC_QUEUE.md`, six items for the other machine with
+a file-ownership table, so both lanes can run at once.
+
+**Nine more rules, and the first four are one rule wearing different clothes.**
+
+9. **An instrument's defaults are part of its result.** Three headlines had to be
+   walked back today, all before publishing, all caught by running the thing
+   rather than reasoning about it:
+   - `content-length` counts a cache hit at full price, so the first payload
+     measurement priced free bytes as savings;
+   - a CDP session opened on the **page** target cannot see MapLibre's **worker**
+     fetches, which is most of the app — it reported 7.22 MB for a 28.41 MB load;
+   - `perf.mjs` throttles the CPU **4×** by default, and its output read as real
+     performance. Unthrottled the app sits at the 18.0 ms vsync floor with every
+     delta at 0.0.
+
+10. **A duplicate request in flight is never cacheable.** `js/capitol.js` fetched
+    `trees.geojson` and `ground.geojson` a second time to concatenate features
+    for `setData`. The obvious objection is that a repeat seconds later is a free
+    cache hit — GitHub Pages sends `max-age=600`. Tested against exactly that
+    header: **0 from cache**, both times. MapLibre's worker starts the source
+    fetch and `initCapitol` starts its own moments later, so nothing is cached
+    yet to serve the second from. 9.95 MB, 25.9% of a first-time visitor's
+    download. `updateData({ add })` appends a diff instead.
+
+11. **Most-specific polygon wins.** `reseat_authored_roofs.py` matched a roof to
+    whichever containing footprint the grid listed first. 131 of 2,831 roof
+    centroids (4.6%) sit inside two footprints, so a roof correctly seated on a
+    low wing got attributed to the tall neighbour and read as buried. Both
+    reported "buried roofs" were this. Neither was a defect.
+
+12. **Check the stated cause before fixing it.** The queue said a roof was buried
+    because `final_height` changed under it. `3fb4507f` has read 24.8 in every
+    snapshot back to 2026-07-10.
+
+13. **The software rasteriser does not just make things slower, it reranks
+    them.** Same scene, same 4× throttle: on SwiftShader the vignette is 51% of
+    the frame and the basemap section is never even reached; on the GPU the
+    vignette is 15–29% and the OpenFreeMap basemap is the largest single cost,
+    more than double all our own extrusions. Every frame-time A/B in this file
+    that predates PR #37 was ranked against the wrong profile.
+
+14. **`gl:` and `args:` are orthogonal now.** `opts.args || GL_ARGS` was fixed
+    once for callers passing no args; it still replaced for callers passing some.
+    Four timing scripts pass an anti-throttling set and so selected no backend at
+    all — ANGLE's default is hardware, but without `--force_high_performance_gpu`
+    a laptop hands it the **integrated** chip. Measured: same script, own args,
+    AMD Radeon; add `gl:'hardware'`, NVIDIA RTX 3050 Ti.
+
+15. **`scripts/verify/node_modules` can be empty.** It was, today. All 187
+    scripts fail with a missing `playwright-core` and it looks like a code
+    regression. `cd scripts/verify && npm ci` first, always, before triaging a
+    "broken" harness.
+
+16. **Vector tiles are a project, not an evening.** `QUEUE.md` item 1 is
+    re-specified with three blockers found by reading the load path:
+    `quantiseFacades` elects the 14 most populous window tones across the *whole*
+    city and is incoherent per-tile; `mergeCapitolScene`, `applyUnion24` and the
+    label dedupe all need every feature at once; tippecanoe is not installed on
+    the Acer; and `capitol.js` appends Capitol trees with `updateData`, which
+    does not exist on a vector-tile source. Also: tippecanoe **simplifies
+    geometry at low zoom by default** — a visual-quality change hiding inside a
+    delivery change.
+
+17. **New instruments, both with their failure modes in the header:**
+    `payload.mjs` (what a visitor downloads, duplicates first),
+    `capitol-merge.mjs` (guards a silent failure — if the Capitol append breaks
+    you cannot tell from campus), `gl-check.mjs` (asserts each launch shape gets
+    the backend it asked for, because that bug has now shipped twice).
