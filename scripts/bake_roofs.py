@@ -447,6 +447,96 @@ def half_span(pts):
 # is the whole reason that file exists.
 AMBIENT    = 0.35             # how much light arrives with no direction at all
 SHADE_LO, SHADE_HI = 0.70, 1.28   # a roof, not a chrome ball
+
+# ── Real roof colour ──────────────────────────────────────────────────
+#
+# "some of the roofs on campus are not all burnt orange some of them are more
+# red can we add a bit of variety corresponding to real color? i like the burnt
+# orange but add a tiny bit of red to some."
+#
+# CORRESPONDING TO THE REAL COLOUR, which is the whole of the ask and the reason
+# this is not a random jitter. The imagery is already being read here to decide
+# WHICH roofs are tiled and how far the slope runs; reading what colour those
+# tiles are costs nothing extra, and it is the difference between "some variety"
+# and "the roofs that are redder in life are redder here".
+#
+# The measurement is the mean of the pixels along the eave ring that PASS
+# is_tile. Averaging the whole ring instead would fold in every overhanging live
+# oak and hand back a muddy brown that is nobody's roof.
+#
+# RELATIVE, NOT ABSOLUTE, and the first attempt got this wrong in a way the
+# numbers caught. Blending each authored colour a third of the way toward its
+# measured RGB dropped the median red/blue ratio of the campus roofs from 2.81
+# to 2.34 and the 10th percentile from 2.12 to 1.53 -- i.e. it made the roofs
+# LESS red on average, which is the opposite of the request. Nadir imagery of
+# Austin is hazy and sun-washed; its absolute values are not trustworthy.
+#
+# What IS trustworthy is the DIFFERENCE between two roofs in the same
+# photograph. So each roof is compared with the MEDIAN measured roof and moved
+# by that much: a roof that photographs redder than its neighbours is rendered
+# redder than its neighbours, against the authored burnt orange rather than
+# against the imagery. The campus median is unmoved by construction, which is
+# what "i like the burnt orange" requires.
+# AND IT IS AMPLIFIED, WHICH IS A DECLARED EXAGGERATION. Measured across 2,681
+# roof facets, the red/blue ratio runs 1.51 at the 10th percentile to 1.70 at
+# the 90th around a median of 1.603 -- a spread of about +/-6%. At gain 1.0 that
+# renders as a colour difference nobody can see, so the honest report would be
+# "the photograph says these roofs are all the same colour" -- and yet standing
+# on campus they are visibly not, because haze and a sun-washed nadir view
+# compress exactly this kind of difference.
+#
+# So the ORDERING is factual and the MAGNITUDE is not: gain 3.5 turns that +/-6%
+# into roughly +/-22%, which is a roof you can tell apart from its neighbour.
+# Same class of decision as the lane markings being drawn 5x over-scale, and
+# stated for the same reason. Set it to 1.0 for the literal measurement, or 0
+# for one colour everywhere.
+COLOUR_GAIN = 3.5
+COLOUR_CLAMP = (0.80, 1.30)   # hardest shove allowed, as a ratio on red/blue
+COLOUR_MIN_SAMPLES = 14   # ring samples needed before the mean means anything
+# Guard rails, in case a roof was measured under a cloud or through a tree. A
+# measurement outside these is thrown away rather than blended, because a grey
+# or a green roof here is a failed read, not a finding.
+COLOUR_MIN_LUMA, COLOUR_MAX_LUMA = 45.0, 235.0
+COLOUR_MIN_RB = 1.15      # red must beat blue by this much to be tile at all
+
+
+def measured_rb(meas):
+    """A roof's measured red/blue ratio, or None if the read is not usable."""
+    if not meas:
+        return None
+    r, g, b = meas
+    luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    if not (COLOUR_MIN_LUMA <= luma <= COLOUR_MAX_LUMA):
+        return None
+    rb = r / max(b, 1.0)
+    # A grey or a green here is a failed read -- a cloud, a tree, a deck the
+    # ring clipped -- not a finding about the roof.
+    return rb if rb >= COLOUR_MIN_RB else None
+
+
+def shift_to_measured(hexcol, rb, median_rb):
+    """Move an authored roof's red/blue toward how it compares with its peers.
+
+    Luma is held: the authored value carries the tonal level the whole palette
+    is built around, and letting hazy imagery move THAT is how a campus goes
+    muddy. Only the balance between the red and blue channels changes.
+    """
+    if not hexcol or rb is None or not median_rb or COLOUR_GAIN <= 0:
+        return hexcol
+    k = (rb / median_rb) ** COLOUR_GAIN
+    k = max(COLOUR_CLAMP[0], min(COLOUR_CLAMP[1], k))
+    if abs(k - 1.0) < 0.01:
+        return hexcol
+    src = [float(int(hexcol[i:i + 2], 16)) for i in (1, 3, 5)]
+    sl = 0.2126 * src[0] + 0.7152 * src[1] + 0.0722 * src[2]
+    # Push red up and blue down by the square root of k each, so their RATIO
+    # moves by k while their product -- and so roughly the luma -- does not.
+    m = math.sqrt(k)
+    out = [src[0] * m, src[1], src[2] / m]
+    nl = 0.2126 * out[0] + 0.7152 * out[1] + 0.0722 * out[2]
+    if nl > 1:
+        out = [v * sl / nl for v in out]
+    return "#" + "".join("%02x" % max(0, min(255, int(round(v)))) for v in out)
 # Shade as though the slope were steeper than it is. The geometry has to stay at
 # the real 5:12 or the halls grow spires, but at a 22.6 deg tilt under a 54 deg
 # sun the four slopes of a hip differ by about 20% — too little to make the hip
@@ -542,8 +632,11 @@ def ring_tile_frac(ring_m, lat0):
     a flat central deck is tile at 3 m in and membrane at 12 m in, and only a
     ring probe can tell those apart.
     """
-    ll = to_ll(ring_m, lat0)
     hit = tot = 0
+    # Sum the pixels that PASS is_tile, not all of them. Averaging the whole ring
+    # would fold in every overhanging live oak and every metre of deck the ring
+    # clipped, and hand back a muddy brown that is nobody's roof.
+    acc = [0.0, 0.0, 0.0]
     for (x0, y0), (x1, y1) in zip(ring_m, ring_m[1:]):
         L = math.hypot(x1 - x0, y1 - y0)
         n = max(1, int(L / 1.2))
@@ -555,8 +648,12 @@ def ring_tile_frac(ring_m, lat0):
             if c is None:
                 continue
             tot += 1
-            hit += is_tile(c)
-    return (hit / tot if tot else 0.0), tot
+            if is_tile(c):
+                hit += 1
+                for j in range(3):
+                    acc[j] += float(c[j])
+    mean = [round(v / hit, 1) for v in acc] if hit else None
+    return (hit / tot if tot else 0.0), tot, mean
 
 
 def tile_run(pm, lat0, hs):
@@ -569,16 +666,20 @@ def tile_run(pm, lat0, hs):
     run = 0.0
     misses = 0
     eave = 0.0
+    eave_col = None
+    eave_n = 0
     d = EAVE_D
     while d < hs:
         r = inset(pm, d)
         if r is None:
             break
-        fr, n = ring_tile_frac(r, lat0)
+        fr, n, mean = ring_tile_frac(r, lat0)
         if d == EAVE_D:
             eave = fr
+            eave_col = mean
+            eave_n = n
             if n < 8:
-                return 0.0, 0.0
+                return 0.0, 0.0, None
         if fr >= RING_MIN:
             run = d
             misses = 0
@@ -587,7 +688,10 @@ def tile_run(pm, lat0, hs):
             if misses > RING_MISSES:
                 break
         d += RING_STEP_M
-    return run, eave
+    # The EAVE ring's colour, not an average down the slope: the eave is the one
+    # ring that is all tile on every roof this rule accepts, and it is also the
+    # part a flying camera actually sees.
+    return run, eave, (eave_col if eave_n >= COLOUR_MIN_SAMPLES else None)
 
 
 def main():
@@ -622,11 +726,17 @@ def main():
                 stats["too_narrow"] += 1
                 continue
             key = "%s/%d" % (p.get("id"), ri)
-            if key in cache:
-                run, eave = cache[key]
+            if key in cache and len(cache[key]) >= 3:
+                run, eave, meas = cache[key]
+            elif key in cache:
+                # A cache written before roofs carried a measured colour. Keep
+                # its run/eave — those cost the minutes — and simply go without
+                # the colour rather than forcing a full --remeasure.
+                run, eave = cache[key][:2]
+                meas = None
             else:
-                run, eave = tile_run(pm, lat0, hs)
-                cache[key] = [round(run, 2), round(eave, 3)]
+                run, eave, meas = tile_run(pm, lat0, hs)
+                cache[key] = [round(run, 2), round(eave, 3), meas]
             if run < MIN_RUN_M:
                 stats["flat" if eave < RING_MIN else "tile_edge_only"] += 1
                 continue
@@ -638,6 +748,12 @@ def main():
             if run < MIN_RUN_M:
                 stats["too_narrow_to_slope"] += 1
                 continue
+
+            # The colour cannot be resolved yet: it is a comparison against the
+            # campus median and the campus is not measured until the loop ends.
+            # Stash the ratio on each facet and settle it in one pass below.
+            rb_here = measured_rb(meas)
+            rd_real, rg_real = p.get("rd"), p.get("rg")
 
             rise = min(RISE_MAX, PITCH * run)
             steps = max(STEPS_MIN, min(STEPS_MAX, int(round(run / STEP_TARGET_M))))
@@ -698,11 +814,12 @@ def main():
                             # parent's own baked roof colours so a facet can
                             # never drift from the cap it sits on. Which end it
                             # lands on is the live sun's call, in timeofday.js.
-                            "rd": tint(p.get("rd"), SHADE_HI),
-                            "rdd": tint(p.get("rd"), SHADE_LO),
-                            "rg": tint(p.get("rg"), SHADE_HI),
-                            "rgd": tint(p.get("rg"), SHADE_LO),
+                            "rd": tint(rd_real, SHADE_HI),
+                            "rdd": tint(rd_real, SHADE_LO),
+                            "rg": tint(rg_real, SHADE_HI),
+                            "rgd": tint(rg_real, SHADE_LO),
                             "rn": p.get("rn"),      # no sun at night, no tilt tint
+                            "_rb": rb_here,
                         },
                     })
                 made += 1
@@ -761,6 +878,42 @@ def main():
             if report:
                 area_fr, _ = tile_frac_area(ring)
                 rows.append((run, hs, eave, area_fr, rise, p.get("name") or "(unnamed)"))
+
+    # ── Settle the roof colours, now that the whole campus has been measured ──
+    #
+    # Each roof is moved by how its own measured red/blue compares with the
+    # MEDIAN measured roof, not by its absolute value. The median is unmoved by
+    # construction, so the authored burnt orange stays exactly where it was and
+    # only the spread around it is real.
+    rbs = sorted(f["properties"]["_rb"] for f in out
+                 if f["properties"].get("_rb") is not None)
+    median_rb = rbs[len(rbs) // 2] if rbs else None
+    if median_rb:
+        stats["colour_measured"] = len(rbs)
+        stats["colour_median_rb"] = round(median_rb, 3)
+        stats["colour_rb_p10_p90"] = [round(rbs[len(rbs) // 10], 2),
+                                      round(rbs[9 * len(rbs) // 10], 2)]
+    moved = 0
+    for f in out:
+        pr = f["properties"]
+        rb = pr.pop("_rb", None)
+        if rb is None or not median_rb:
+            continue
+        for hi, lo, src in (("rd", "rdd", "rd"), ("rg", "rgd", "rg")):
+            pass
+        rd0, rg0 = pr.get("rd"), pr.get("rg")
+        # rd/rdd and rg/rgd are the two ends of the same colour's shade range,
+        # so both ends have to move together or a facet's lit and shaded sides
+        # would come from different roofs.
+        base_d = shift_to_measured(tint(rd0, 1.0), rb, median_rb)
+        base_g = shift_to_measured(tint(rg0, 1.0), rb, median_rb)
+        if base_d != tint(rd0, 1.0):
+            moved += 1
+        pr["rd"] = tint(base_d, 1.0)
+        pr["rdd"] = tint(base_d, SHADE_LO / SHADE_HI)
+        pr["rg"] = tint(base_g, 1.0)
+        pr["rgd"] = tint(base_g, SHADE_LO / SHADE_HI)
+    stats["colour_from_imagery"] = moved
 
     fc = {"type": "FeatureCollection", "features": out}
     with open(OUT, "w", encoding="utf-8") as fh:
