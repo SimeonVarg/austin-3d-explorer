@@ -238,9 +238,14 @@
     DIST: { day: 5200, golden: 4200, night: 3400 },
     // Alpha at infinity, i.e. at the horizon line itself.
     MAX: { day: 0.62, golden: 0.58, night: 0.46 },
-    // How far below the horizon to bother drawing, as a fraction of frame
-    // height. Past this the ground is near enough that the haze is under 2%.
-    DEPTH: 0.34,
+    // How far below the horizon the element runs, as a multiple of frame
+    // height. It has to reach the BOTTOM OF THE FRAME and this is only a
+    // safety cap, because the curve does NOT reach zero on its own: measured
+    // at the z15.5 downtown pose, ending the gradient a third of the way down
+    // left it at alpha 0.126 and that termination was a hard horizontal seam
+    // straight across the towers (shots/final/seam.png). Ending off the bottom
+    // edge of the frame is the only place a non-zero alpha can end invisibly.
+    MAX_DEPTH: 4.0,
     STOPS: 14,           // gradient stops; the curve is steep near the horizon
     // Pull the haze colour toward the sky's own zenith by this much, so the
     // join is to the sky ABOVE the horizon rather than to the horizon band —
@@ -285,7 +290,7 @@
   function updateGroundHaze(map, p, hz, W, H) {
     if (!elHaze) return;
     if (!HAZE.on) { elHaze.style.opacity = '0'; return; }
-    const depthPx = HAZE.DEPTH * H;
+    const depthPx = Math.min(HAZE.MAX_DEPTH * H, H - hz);
     if (hz > H || depthPx < 2) { elHaze.style.opacity = '0'; return; }
 
     const fov = map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58;
