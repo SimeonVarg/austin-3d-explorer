@@ -250,7 +250,26 @@ are the part that stops mistakes repeating.
 
 ---
 
-## 9. The Drag renders near-WHITE at night
+## 9. ~~The Drag renders near-WHITE at night~~ — FIXED, PR #53
+
+**One missing line.** `js/drag.js` built its time-of-day wrapper and never
+assigned it — `window.applyTimeOfDay = wrapped` was absent, and it is present in
+all four of the other passes that do the same thing. So `applyDragColors` was
+never called by the retint.
+
+    Drag tile uploads during a slider retint   0 -> 10
+    pale pixels below the horizon           6206 -> 1906
+
+Everything below is the diagnosis as it stood before the cause was found. **The
+four "tried and reverted" fixes were all wrong for the same reason** — they were
+retrying a function that was never being called. Kept because the reasoning is
+worth reading and because `window.__dragTodHooked` reporting `true` for a hook
+that did not exist is the trap, not the missing line.
+
+<details>
+<summary>original diagnosis</summary>
+
+
 
 **Found 2026-08-01 by `scripts/verify/night-pale.mjs` (new). Characterised, not
 fixed.** I spent a long time on it and every theory I had was wrong, so this is
@@ -307,8 +326,35 @@ known to work and therefore proves nothing. Six passes wrap
 the `__drag` marker is unreliable for exactly that reason. Suspect the wrap chain
 before suspecting MapLibre.
 
-**While in there:** `stadium-*` is 16% of the pale pixels, and
-`data/stadium.geojson` has 499 of 511 features with no night colour at all
-(`westcampus.geojson`: 109 of 145). Those may be handled by a `SOLID`-style
-lookup keyed on surface — `js/westcampus.js` does exactly that — or they may be
-the same bug wearing a different hat.
+</details>
+
+---
+
+## 10. `stadium-*` is still 16% of the pale pixels at night
+
+Left over after item 9. `scripts/verify/night-pale.mjs` reports `stadium-*` as
+the second-largest contributor of wrongly-bright pixels after dark, and
+`data/stadium.geojson` has **499 of 511 features with no night colour at all**
+(`westcampus.geojson`: 109 of 145).
+
+That may be fine — `js/westcampus.js` colours its `solid` features from a `SOLID`
+lookup keyed on surface type rather than from a per-feature `wn`, and the stadium
+may do the same. **Check that before touching the data.** DKR is deliberately
+floodlit and reads correctly in `shots/tour/night-dkr-stadium.png`, so some of
+that 16% is meant to be there.
+
+**Already checked, so start from here.** Every pass that builds a time-of-day
+wrapper now installs it — arts, drag, moody, outer, places, tower and westcampus
+all report `builds=1 installs=1`:
+
+```bash
+for f in js/*.js; do
+  w=$(grep -c "const wrapped = function" "$f"); a=$(grep -c "window.applyTimeOfDay = wrapped" "$f")
+  [ "$w" -gt 0 ] && printf "%-16s builds=%s installs=%s\n" "$(basename $f)" "$w" "$a"
+done
+```
+
+**`stadium.js` does not appear in that list at all** — it never builds a wrapper,
+so it retints by some other route or not at all. That is the thread to pull.
+Worth keeping the loop above as a lint; item 9 was one missing line in exactly
+this shape and nothing in the suite would have caught it.
