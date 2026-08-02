@@ -90,9 +90,23 @@
       'arts-glass', 'moody-plant', 'places-glass', 'stadium-detail',
       'drag-cap', 'wc-wall-cap',
     ],
+    // NOT IN HERE: `buildings-roof`, `parts-roof`, `outer-tower-roof`. They were,
+    // and it is the bug Simeon reported as *"when i go up on low detail mode the
+    // roofs of houses become windows this is pretty bad."*
+    //
+    // Those three are not detail. They are the CAP over the top face of every
+    // building extrusion, and the walls under them are drawn with
+    // `fill-extrusion-pattern`, which MapLibre paints on the TOP face as well as
+    // the sides. Hide the cap and every roof in the city becomes the window grid
+    // off its own walls — photographed at detail 350 from 1,127 m in
+    // shots/lod/detail-350.png against shots/lod/detail-1500.png.
+    //
+    // It is also the wrong thing to drop on its own terms: from altitude, roofs
+    // are most of what you are looking at. The seven that remain are real detail
+    // — canopy, roofscape, pitched roofs, the Moody roof, the arts cap.
     mid: [
-      'trees-canopy', 'roofscape-major', 'roofscape-deck', 'buildings-roof',
-      'parts-roof', 'outer-tower-roof', 'roofs-pitched', 'moody-roof', 'arts-cap',
+      'trees-canopy', 'roofscape-major', 'roofscape-deck',
+      'roofs-pitched', 'moody-roof', 'arts-cap',
     ],
   };
   window.LOD_TIERS = TIERS;
