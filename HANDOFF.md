@@ -1,5 +1,158 @@
 # Austin 3D Explorer — Full Handoff
 
+## 34. Aug 2 2026 — the ground stopped fighting itself, the creek got cut, and a garden stopped being a lawn (acer lane)
+
+Three PRs: `acer/ground-coincident-surfaces` (#78), `acer/creek-cut-channel`
+(#79), `acer/garden-structure` (#80). QUEUE **A2**, **A7** and the garden half of
+**A6**. They are one thread — the second and third are only possible because of
+the mechanism the first put in.
+
+### A2 — one square metre of ground belongs to exactly one surface
+
+*"speedway and 24th keep glitching on motion and combine on still, find out
+other areas like this and fix"*
+
+**Photographed the flip before changing anything, and the instrument is the
+reusable part.** MapLibre keeps `center` at the SCREEN CENTRE at any
+zoom/pitch/bearing, so a sweep that holds a point at the centre and moves only
+the camera looks at one square metre of ground from many camera positions. At
+Speedway and 24th, nadir, bearing 0 against bearing 72:
+
+```
+bearing  0   the crossing's asphalt paints OVER the brick mall
+bearing 72   the brick mall paints OVER the crossing's asphalt
+```
+
+Both are `patharea`, both stand at exactly `GROUND.pathRaise` = 0.22 m, both are
+in the one `ground-paths` fill-extrusion. Two coplanar top faces have no defined
+winner. `docs/shots/ground-speedway-24th.jpg`.
+
+**Not two streets — 1,669 pairs**, walked mechanically, in metres:
+
+```
+  642  same-height polygon pairs        271,820 m2
+       337 patharea x patharea            1,791 m2   the true depth tie
+       184 area x area                   90,433 m2   one fill composited through
+                                                     another at 0.95
+1,027  carriageway x patharea            22,582 m2   a 2.4 m sidewalk slab
+                                                     standing 0.22 m proud
+                                                     across a 15 m road
+```
+
+**One rule: `RANK` in `bake_ground.py` orders every ground class; the higher rank
+keeps the ground and the lower one gives it up.** Nothing moved in z and no
+layer order changed — the ambiguity is out of the DATA, so it cannot come back
+at a camera angle nobody photographed.
+
+```
+same height     642 pairs / 271,820 m2  ->  16 pairs /  26 m2
+carriageway   1,027 pairs /  22,582 m2  ->  77 pairs / 102 m2
+```
+
+All 93 residuals are shapely's edge residue: **mean width 1-29 mm over spans of
+27-495 m**, a twentieth of a pixel from flying altitude. After, the same 10-pose
+bearing sweep reads ONE tone at both worst overlaps (max spread 15 sum-rgb,
+which is the light) against TWO before (max separation 237).
+
+**Three things that did NOT work:**
+
+1. **Diffing two near-identical poses.** 59% of pixels differ between two frames
+   0.3 m apart — and **48% differ between two frames at the SAME pose**. Clouds,
+   AA and light animation. It cannot see a z-fight at all.
+2. **Sweeping at pitch 25-60.** Half the samples came back tree green and trunk
+   brown. An occluded sample is not a null result, it is a wrong one. Nadir only.
+3. **Measuring areas in degrees.** The first probe built shapely polygons
+   straight off lon/lat. §32 already records this trap and it was walked into
+   again inside an hour.
+
+**The probe lives in the bake** and prints BEFORE and AFTER on every run, which
+is the regression net QUEUE B6 asks for, for the class it covers.
+
+### A7 — Waller Creek is a cut channel now
+
+*"you added a bit of green around the creeky water when i asked for more than
+just that ... not the bare minimum"*
+
+**What unblocked the depth was re-reading one sentence in PR #62.** It says a
+basin must build UP from z=0 because *"a `fill` does not depth-test against a
+`fill-extrusion`, so a basin sunk below z=0 is painted straight over by the flat
+ground fill above it."* True — of a fill drawn over that ground. So the answer
+was never to build upward, it was to **stop drawing the flat fill there**, and
+A2's resolver does exactly that for a living. `RANK[('bank','channel')] = 90`,
+every lawn/wood/park polygon gives up the footprint, `js/ground.js` drops
+`s:'creek'` from `ground-areas`, and with nothing flat over the hole
+`fill-extrusion-base` is free to go negative.
+
+Everything scales off the reach's own mean width (area / half-perimeter):
+
+```
+mean width  10.3  7.7  7.7  6.9  6.8  5.5  4.7 m
+depth       3.10 2.32 2.30 2.08 2.04 1.66 1.40 m
+```
+
+Planting is three zones, not one colour — scrub 74,145 m2, understorey
+79,222 m2, canopy 125,383 m2 — and `wood`/`understorey` wear their OWN texture
+tile. That last one matters more than it sounds: **the colour was already
+different from grass and the GRAIN was not, so at altitude the eye merged them**
+and the corridor read as paint.
+
+**Two things that did not work:**
+
+1. **One list for the horizontal run and the vertical drop.** That gives the
+   outermost course half the run at zero drop — a 2.6 m flat shelf at grade
+   wearing the chalk colour — and from the air it read as a **dirt track running
+   beside the water**. They are separate distributions now, and the bank is
+   green except at the toe.
+2. **Buffering a 3.9 km creek seven times with round joins.**
+   `data/ground.geojson` DOUBLED, 1,067 -> 2,081 KB, on a file that is not
+   tiled. `simplify(0.5 m)` and 3 segments per quarter turn: 1,306.6 KB.
+
+**And a bug the re-bake caught in A2's own ladder:** `pitch` outranked `sand`,
+and the five sand areas on this campus are **long-jump pits INSIDE a pitch
+polygon**, so all five were deleted. Small and specific beats large and generic.
+The bake reports every fully-covered feature by class for exactly this reason,
+and that report is what caught it.
+
+### A6 (garden half) — a garden is not a lawn
+
+**The whole cause is one table entry.** OSM tags the Memorial Garden
+`leisure=garden`, names it, and gives it 2,190 m2. `AREA_USE` maps that to
+`u:'garden'` and `DEFAULT_SURFACE` then hands `u:'garden'` the colour `grass`.
+The garden was being drawn. It was being drawn as a lawn.
+
+Nothing is freehand: a **bed** is the band 1.0 m back from a real walk, 3.0 m
+deep, inside a real garden polygon (11 of them); a **specimen** sits at each
+remaining lawn panel's pole of inaccessibility via `shapely.ops.polylabel` (12);
+the **pond coping** is a 1.2 m ring standing 0.38 m proud, applied BY A RULE — a
+pond earns a built edge if it lies within 6 m of a garden or a plaza, which 1 of
+5 does, and it is Turtle Pond. The other four are reported as `pond_no_coping`
+so the rule can be argued with.
+
+**Two more things that did not work:** `#4a442e` for a bed measures 67 luma
+against grass's 158 and read as a HOLE cut in the lawn rather than as planting
+(96 is right, and the number is in the comment); and **a 5.5 m specimen
+simplified at the creek's 0.5 m is an octagon**, which is exactly what it looked
+like. One simplify tolerance cannot serve a 3.9 km bank line and a 5 m circle.
+
+### Running total on the file
+
+`data/ground.geojson` 1,576 -> 2,353 features, 899.4 -> 1,332.3 KB. It is not
+tiled, so that is a real download. The split: +168 KB for A2's clipping, +239 KB
+for the creek, +26 KB for the gardens. `data/roads.geojson` is byte-identical
+throughout — `bake_roads()` was never edited, it just runs earlier now.
+
+### What this lane could NOT do, and where the hooks are
+
+The brief limited this pass to `scripts/bake_ground.py`, `js/ground.js` and
+`data/ground.geojson`. So the creek has no TREES and the garden has no BENCHES
+or specimen trees — those are points in `data/trees.geojson` and
+`data/props.geojson`. The hooks are in the data: the corridor carries
+`src:'creek_canopy'` / `creek_under` / `creek_scrub` and the garden carries
+`src:'garden_bed'` / `garden_specimen`, so a density rule in `shape_trees.py`
+and a bench run in `bake_props.py` are both short. **That is the highest-value
+follow-up on the board right now** — the ground under the creek is right and it
+is still missing its canopy.
+
 ## 33. Aug 2 2026 — the landmarks were the wrong SIZE, and no recipe could have fixed it
 
 **Branch:** `acer/art-accurate-size`. QUEUE A8 and A9 — the item he was most

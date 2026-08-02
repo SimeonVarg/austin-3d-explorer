@@ -58,7 +58,13 @@ fix the *rule* that produced them.
 Causes not yet ruled out: `valid_step`'s 0.9 clearance factor, `fold_free_run`
 capping, and footprints whose longest edge is not their principal axis.
 
-## A2. Speedway and 24th glitch on motion, combine when still
+## A2. Speedway and 24th glitch on motion, combine when still — **DONE** (PR #78)
+
+> Closed 2026-08-02. 642 same-height pairs / 271,820 m2 and 1,027 carriageway x
+> path overlaps became 16 / 26 m2 and 77 / 102 m2 under one rank ladder in
+> `bake_ground.py`. The flip is photographed in `docs/shots/ground-speedway-24th.jpg`.
+> See HANDOFF §34 — including the instrument, which is reusable: hold a point at
+> the SCREEN CENTRE and move only the camera.
 
 *"speedway and 24th keep glitching on motion and combine on still, find out
 other areas like this and fix"*
@@ -110,7 +116,14 @@ catch light. Then re-measure the Littlefield Fountain against a photograph:
 tread depth, riser height, how many, and whether the flights are straight or
 **curved. They are curved.**
 
-## A6. Turtle Pond: fewer turtles, and that garden is bland
+## A6. Turtle Pond: fewer turtles, and that garden is bland — **GARDEN HALF DONE** (PR #80)
+
+> Closed 2026-08-02 for the garden. Beds derived from the real walk network,
+> a specimen at each lawn panel's pole of inaccessibility, a built coping on
+> Turtle Pond, and `u:'garden'` finally has its own surface instead of falling
+> through to `grass` — which was the entire cause. **The turtle count is still
+> open** and belongs to `bake_depth.py`; benches belong to `bake_props.py`.
+> HANDOFF §34.
 
 *"turtle pond too many turtiles, fix this lawn in general its really bland"*
 
@@ -119,7 +132,15 @@ Then the harder half: the Memorial Garden block is a flat green rectangle. It is
 a *garden* — beds, a path loop, benches, specimen planting, a built pond edge.
 PR #63 only removed the slab that was hiding it; nothing has been drawn there.
 
-## A7. Waller Creek is not a bit of green
+## A7. Waller Creek is not a bit of green — **DONE** (PR #79)
+
+> Closed 2026-08-02. The channel is CUT — real geometry below z=0, which became
+> possible only because A2's resolver takes the flat fill off the footprint
+> first. Depth 1.40-3.10 m scaled off each reach's own width; planting is three
+> zones (scrub / understorey / canopy) with its own texture tile. Both named
+> stretches photographed. **STILL MISSING: the trees.** They live in
+> `data/trees.geojson` and the hook is `src:'creek_canopy'` / `creek_under` /
+> `creek_scrub` on the new corridor areas. HANDOFF §34.
 
 *"you added a bit of green around the creeky water when i asked for more than
 just that ... the creek behind patton and alumni is a very vibrant in depth
