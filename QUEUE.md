@@ -9,8 +9,10 @@ Work top to bottom. One PR per item. Merge your own verified work, resolve your
 own conflicts, **never merge red**. If an item cannot be finished, write down why
 in the item and move to the next — do not stop.
 
-**The Mac owns `js/outer.js`, `js/stadium.js`, `js/lod.js`, `js/facades.js`,
-`scripts/tile.sh` and `.github/workflows/`.** Stay out of those.
+**ONE LANE, ALL FILES, as of 2026-08-02** — *"stop just do everything yourself
+il lhave the mac do something else just do eveyrthing yourself you have total
+control"*. There is no ownership split any more. `MAC_QUEUE.md` is dead; its live
+items are folded in as Part D below.
 
 ---
 
@@ -226,11 +228,86 @@ another's output at least once. Feature counts per `k` and per `u`, plus file
 size, asserted against a recorded baseline. That would have caught the props
 re-bake producing 2,244 features against a shipped 9,022 (HANDOFF §44).
 
-## B7. Dusk: the far ring is a flat tan band
+---
 
-From the dusk sweep — the outer ring reads as a solid tan wall with a hard
-horizon line. The most unfinished thing in the three sweeps. `js/outer.js` is the
-Mac's, so it is written into MAC_QUEUE rather than fixed here.
+# PART D — WAS THE MAC'S, NOW MINE
+
+## D1. Windows are blurred, everywhere
+
+*"i dont like how windows in general are super blurred"*
+
+**The single most-seen surface in the scene** — every building in every frame.
+
+`js/facades.js` draws each pattern into a **64 px** canvas tile and hands it to
+MapLibre as a `fill-extrusion-pattern`. Candidates, by how likely each is to be
+the whole answer:
+
+1. **Tile resolution.** 64 px over 30–60 m of wall is a couple of pixels per
+   window. Try 128 and 256; measure the look AND the atlas cost.
+2. **`devicePixelRatio`** — a tile authored at 1x and composited at 2x is soft by
+   construction.
+3. **Mipmap / minification filter** — if MapLibre samples a downscaled mip at
+   flying distance, that explains "blurred at every zoom" rather than "blurred
+   close up".
+4. **The tile's own drawing** — anti-aliased 1 px strokes on a 64 px grid are
+   mush before anything else touches them.
+
+Measure before choosing: one wall, three distances, candidates side by side.
+
+## D2. Downtown is bland, and one window column renders per tower
+
+*"alot of downtown is super bland - make it look nice like the campus ... get
+data on all the buildings and stuff, parks and cool things in downtown and add
+them. also sometimes like one window column renders per downtown bulidng and its
+really bad"*
+
+**D2a — the one-column bug first.** It is a pattern-scale failure, not a data
+failure. `fill-extrusion-pattern` is TILE-anchored and its world size halves at
+every integer zoom; `window.PATTERN_TILING` pins the GeoJSON sources to z16 and
+`--maximum-zoom=16` pins the archives. A tower getting one column is being drawn
+where the tile covers its whole facade. Reproduce it — it is intermittent, so
+find which zoom and which class — then fix the scale rule.
+
+**D2b — finish the tile switch, which is still inert.** PR #71 baked the tower
+buckets as `fb` and proved parity 114/114; PR #73 stopped it colliding with `wp`.
+**Nothing renders differently yet.** Expose `registerOuterTowerBuckets` in
+`js/facades.js`, call it from `js/outer.js` before `addSource`, re-tile
+`outer.pmtiles`. **One PR or it stays inert.** Write it so a SECOND caller can
+register a second set of buckets — the campus bake (C1) needs exactly that.
+
+**D2c — real downtown data.** Overture has heights and classes; OSM has the
+parks, plazas and transit — Republic Square, Waterloo Park, the Central Library,
+the Moody Theater. Distinct tower crowns, setbacks, podium bases that differ from
+their shafts, ground-floor retail on the main streets. **The recognisable ones
+first** — Frost Bank, the Independent, the Austonian, the Capitol view corridor —
+because a skyline reads by its landmarks.
+
+## D3. The far ring is a flat tan band at dusk
+
+From the day/dusk/night sweep the outer ring reads as a **solid tan wall with a
+hard horizon line** — the most unfinished-looking thing in all three.
+`shots/tour/dusk-tower-south-mall.png`. Two parts: the ring's colour does not
+recede with distance the way the near city does, and the sky join is hard rather
+than hazed. `js/sky.js` and `js/outer.js`.
+
+## D4. Distant Horizons — a taste call, so SHOW him
+
+`scripts/tile.sh` pins `--simplification=1`. Turn it up: 4, 8, 12; rebuild;
+shoot `tour.mjs` at each. Also try `--drop-densest-as-needed` for trees and props
+— a live oak at z13 is four pixels and there is no reason to send all 41,964.
+**Put the before/after shots in the PR and let Simeon pick** (CLAUDE.md rule 9).
+
+## D5. The remaining night pale pixels
+
+`night-pale.mjs` is at **872**, from 6,206. The last 12.4% is `stadium-detail`.
+
+## D6. Kill the sleeps
+
+**880 seconds of hardcoded `waitForTimeout` across 87 scripts** — ~15 minutes of
+every full run doing nothing. Worst: `drift-check` 48 s, `lookup-check` 36 s,
+`srcprobe` 26 s, `arts-shots` 22 s. Per-script judgement, not a sweep: a wait
+masking a race becomes an intermittent failure, which costs more than a slow
+suite. Run each three times after changing it.
 
 ---
 

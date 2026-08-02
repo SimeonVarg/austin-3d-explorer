@@ -8,9 +8,14 @@ memory and is never written here, in any tracked file, or in a commit message.
 
 ## Lanes
 
-1. **Two machines, one lane each.** The Acer works on `acer/*` branches, the Mac
-   on `mac/*`, cloud sessions on `cloud/*`. **One session per machine** — no more
-   five-worktree fan-outs. Quality was mid and the machine choked.
+1. **ONE LANE, ALL FILES. Changed 2026-08-02** at Simeon's instruction: *"stop
+   just do everything yourself il lhave the mac do something else just do
+   eveyrthing yourself you have total control"*. The Mac is off this repo. There
+   is no file-ownership split any more, no `mac/*` branches, and nothing to
+   coordinate — the Acer session owns every file and decides everything except
+   taste. The old two-lane rule and `MAC_QUEUE.md` are history; do not reinstate
+   either without him saying so.
+
 2. **Merge your own PRs. Do not wait for Simeon.** (Changed 2026-08-01, at his
    instruction: *"im a manager who gives feedback not micromanages"*. The old
    rule was "nobody merges their own PRs".) A lane merges its own work once it
