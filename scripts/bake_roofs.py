@@ -82,6 +82,8 @@ SNAP = os.path.join(ROOT, "data", "snapshots", "2026-07-30", "buildings.detailed
 TILES = os.path.join(ROOT, "data", "imagery_cache")
 OUT = os.path.join(ROOT, "data", "roofs.geojson")
 MEAS = os.path.join(ROOT, "data", "roof_runs.json")   # what the photograph said
+# Read, never written: bake_roofscape.py owns it. See the ROOF_CAPS block below.
+ROOFSCAPE = os.path.join(ROOT, "data", "roofscape.geojson")
 Z = 19
 M_LAT = 111320.0
 
@@ -99,6 +101,43 @@ STEPS_MAX     = 6
 EAVE_OUT_M    = 0.5     # roofs overhang their walls; so does this one
 SIMPLIFY_M    = 1.1     # wall jogs smaller than this are not roof features
 MAX_HEIGHT_M  = 34.0    # towers are flat-topped; the Tower's roof is its own thing
+
+# ── the parapet cap over a membrane deck ──────────────────────────────
+#
+# THE DEFECT. Every flat roof on campus was ringed in a hard burnt orange.
+# Measured with the magenta-mask trick at tour.mjs's `day-tower-close`
+# (scripts/verify/roof-ring.mjs): `buildings-roof` — the parapet cap app.js
+# draws over every building's top face, painted from the building's own
+# terracotta `rd` — owns 9,543 px at rgb(173,88,51), sitting round the outside
+# of `roofscape-deck`'s 81,414 px at rgb(151,138,114). bake_roofscape.py insets
+# its deck 1.1 m so the cap "reads as a rim around it", and on a building whose
+# roof is grey membrane that rim is a burnt-orange outline. It reads as a
+# selection highlight, not as architecture. Calhoun Hall, the Peter Flawn
+# Academic Center, the O'Donnell Building and McCombs all measure run = 0.0
+# here — none of them has a tiled roof at all, and all four were outlined in
+# roof tile.
+#
+# THE RULE, and it is a rule rather than a per-building patch: A BUILDING WHOSE
+# ROOF IS A MEMBRANE DECK DOES NOT HAVE A TERRACOTTA PARAPET CAP. Its cap takes
+# the deck's own measured colour. A building whose roof is tile keeps the tile
+# colour, because on those the cap is under the eave of a real tiled hip.
+#
+# WHY THE COLOUR IS READ OUT OF `roofscape.geojson` RATHER THAN MEASURED AGAIN
+# HERE. This file has its own imagery and its own `deck_colour()`, and using it
+# would give the cap a colour close to the deck's but not equal to it — which is
+# a fainter ring, not no ring. The whole point is that the two surfaces stop
+# disagreeing, so the cap is given the DECK'S OWN VALUE, byte for byte. That
+# makes the dependency explicit: if bake_roofscape.py re-measures, re-run this.
+#
+# WHY A TABLE RATHER THAN GEOMETRY. The other way to cover a terracotta rim is
+# to draw a coping polygon over it. Measured on the real footprints, one
+# full-footprint coping per decked building is +783 KB on a 1,044 KB file that
+# is not tiled — every visitor downloads it — for a colour correction. The table
+# is +115 KB in the same file, and adds no polygons to a scene that is already
+# fill-rate bound.
+ROOF_CAPS      = True    # False = leave every parapet cap terracotta
+CAP_DECK_TINT  = 1.0     # 1.0 = exactly the membrane. >1 lightens the coping.
+CAP_BASE_TOL_M = 0.75    # a deck must sit on the cap it is claimed to belong to
 
 
 def tile_xy_f(lon, lat, z):
@@ -771,6 +810,125 @@ def deck_colour(cols, parent):
     return "#" + "".join("%02x" % int(round(max(0, min(255, c)))) for c in med)
 
 
+def _outer_rings(geom):
+    if not geom:
+        return []
+    if geom["type"] == "Polygon":
+        return [geom["coordinates"][0]]
+    if geom["type"] == "MultiPolygon":
+        return [part[0] for part in geom["coordinates"]]
+    return []
+
+
+def _pip(x, y, ring):
+    """Ray cast. Rings here come straight out of the two bakes and are closed."""
+    inside = False
+    for i in range(len(ring) - 1):
+        x1, y1 = ring[i][0], ring[i][1]
+        x2, y2 = ring[i + 1][0], ring[i + 1][1]
+        if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+            inside = not inside
+    return inside
+
+
+def deck_caps(feats, pitched, path):
+    """Which buildings' parapet caps should stop being terracotta, and what colour.
+
+    Joins every `k=deck` polygon in `data/roofscape.geojson` to the building it
+    sits on, and hands back {building id: [rd, rg, rn]} — the deck's own colours.
+
+    TWO INDEPENDENT CHECKS, because a wrong join is a wrong-coloured building and
+    nothing on screen would say so. The first is geometric: the deck's
+    representative point has to be inside the footprint (the deck is that
+    footprint inset 1.1 m, so it always is — but a concave plan puts the CENTROID
+    outside, which is why vertices are tried after it). The second is the deck's
+    own height: bake_roofscape.py stands it on CAP_GEOM, so `b` must equal
+    `final_height + max(1.0, 0.015 * final_height)`. A match that fails the
+    height check is thrown away rather than trusted, and counted.
+
+    Pitched buildings are excluded. Their cap is under the eave of a real tiled
+    hip and terracotta is right there — and it is the reason this cannot be a
+    blanket "make every cap grey".
+    """
+    if not os.path.exists(path):
+        return {}, {"roofscape_missing": 1}
+    decks = [f for f in json.load(open(path, encoding="utf-8"))["features"]
+             if f.get("properties", {}).get("k") == "deck"]
+
+    cell = 0.002                       # ~190 m; a footprint spans a few cells
+    grid, info = {}, []
+    for idx, f in enumerate(feats):
+        rings = _outer_rings(f.get("geometry"))
+        if not rings:
+            continue
+        xs = [q[0] for r in rings for q in r]
+        ys = [q[1] for r in rings for q in r]
+        bb = (min(xs), min(ys), max(xs), max(ys))
+        info.append((rings, bb, f["properties"]))
+        i = len(info) - 1
+        for gx in range(int(bb[0] // cell), int(bb[2] // cell) + 1):
+            for gy in range(int(bb[1] // cell), int(bb[3] // cell) + 1):
+                grid.setdefault((gx, gy), []).append(i)
+
+    def hits(x, y):
+        out = []
+        for i in grid.get((int(x // cell), int(y // cell)), []):
+            rings, bb, _ = info[i]
+            if not (bb[0] <= x <= bb[2] and bb[1] <= y <= bb[3]):
+                continue
+            if any(_pip(x, y, r) for r in rings):
+                out.append(i)
+        # Smallest footprint wins, so a deck inside a courtyard building's wing
+        # is not claimed by the block it happens to sit within.
+        out.sort(key=lambda i: (info[i][1][2] - info[i][1][0]) * (info[i][1][3] - info[i][1][1]))
+        return out
+
+    caps, st = {}, Counter()
+    for d in decks:
+        rings = _outer_rings(d["geometry"])
+        if not rings:
+            continue
+        pts = [q for r in rings for q in r]
+        cx = sum(q[0] for q in pts) / len(pts)
+        cy = sum(q[1] for q in pts) / len(pts)
+        found = hits(cx, cy)
+        if not found:
+            # Concave plan — a cross, an L, a courtyard. Walk the deck's own
+            # vertices, each nudged a little toward the centroid so a shared
+            # edge cannot land the test on the wrong side.
+            for q in pts[::max(1, len(pts) // 12)]:
+                found = hits(q[0] + (cx - q[0]) * 0.08, q[1] + (cy - q[1]) * 0.08)
+                if found:
+                    st["matched_by_vertex"] += 1
+                    break
+        if not found:
+            st["deck_matched_no_building"] += 1
+            continue
+        p = info[found[0]][2]
+        h = p.get("final_height") or 0.0
+        cap_top = h + max(1.0, 0.015 * h)
+        if abs((d["properties"].get("b") or 0.0) - cap_top) > CAP_BASE_TOL_M:
+            st["deck_not_on_its_cap"] += 1
+            continue
+        bid = p.get("id")
+        if not bid:
+            st["building_has_no_id"] += 1
+            continue
+        if bid in pitched:
+            st["skipped_pitched_roof"] += 1
+            continue
+        if bid in caps:
+            st["building_with_two_decks"] += 1
+            continue
+        dp = d["properties"]
+        caps[bid] = [tint(dp.get("rd"), CAP_DECK_TINT),
+                     tint(dp.get("rg"), CAP_DECK_TINT),
+                     dp.get("rn")]
+        st["cap_recoloured"] += 1
+    st["decks_read"] = len(decks)
+    return caps, st
+
+
 def like(hexcol, src, dst, lo=0.05, hi=1.8):
     """Move a colour the same way the building's own roof colour moves.
 
@@ -892,6 +1050,7 @@ def main():
     stats["roofs_with_a_hole"] = 0
     rows = []
     audit = []
+    pitched = set()          # buildings this bake gives a real tiled roof to
     for f in feats:
         p = f["properties"]
         h = p.get("final_height") or 0
@@ -1097,6 +1256,7 @@ def main():
                 del out[before:]
                 continue
             stats["tiled"] += 1
+            pitched.add(p.get("id"))
             stats["steps"] += made
             cen = [round(sum(q[0] for q in ring[:-1]) / (len(ring) - 1), 5),
                    round(sum(q[1] for q in ring[:-1]) / (len(ring) - 1), 5)]
@@ -1146,7 +1306,18 @@ def main():
         pr["rgd"] = tint(base_g, SHADE_LO / SHADE_HI)
     stats["colour_from_imagery"] = moved
 
-    fc = {"type": "FeatureCollection", "features": out}
+    # ── The parapet caps over membrane decks ─────────────────────────────
+    #
+    # A FOREIGN MEMBER ON THE FEATURECOLLECTION, deliberately. GeoJSON allows it
+    # and MapLibre reads only `type` and `features`, so `austin-roofs` is
+    # unchanged by this; `js/app.js` picks the table off the same parsed object
+    # it hands to `addSource`, which is why this costs no extra request. It is
+    # NOT a feature, because a cap colour is not a shape — inventing geometry to
+    # carry a colour is what makes a 1,044 KB file into a 1,827 KB one.
+    caps, cap_stats = ({}, Counter())
+    if ROOF_CAPS:
+        caps, cap_stats = deck_caps(feats, pitched, ROOFSCAPE)
+    fc = {"type": "FeatureCollection", "features": out, "caps": caps}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
     with open(MEAS, "w", encoding="utf-8") as fh:
@@ -1155,6 +1326,8 @@ def main():
         "roof_steps": len(out),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
+        "parapet_caps": dict(sorted(cap_stats.items())),
+        "caps_kb": round(len(json.dumps(caps, separators=(",", ":"))) / 1024, 1),
         "rule": "tile still reads on an offset ring %.2f m in; slope runs to where it stops"
                 % EAVE_D,
         "provenance": {"which buildings": "factual - terracotta tile read off the photograph",

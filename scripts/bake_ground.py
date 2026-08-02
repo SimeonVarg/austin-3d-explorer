@@ -709,6 +709,21 @@ CHANNEL = {
     "scrub_min_m": 2.0, "scrub_max_m": 6.0,
     "under_min_m": 4.0, "under_max_m": 12.0,
     "canopy_min_m": 7.0, "canopy_max_m": 24.0,
+    # THE WATER SHEEN. The channel had a water PRISM from the start and it was
+    # still read as "a green stripe", and the reason is measurable rather than
+    # aesthetic: `BANK_MAT.water` was #41604a (luma 88) against `bankshade`
+    # #425c33 (luma 82) two metres away, both green-dominant. Six luma and no
+    # hue difference is not a surface, it is the same surface. So the water gets
+    # a cool colour in js/ground.js AND a rippled top face here.
+    #
+    # The sheen is its OWN 0.10 m slab standing on the water rather than a
+    # pattern on the water prism itself, for two reasons. A `fill-extrusion`
+    # takes a colour or a pattern and not both, so painting the ripple on the
+    # water prism would cost the water its time-of-day colour; and two prisms
+    # with tops at exactly the same z is the A2 defect this bake exists to
+    # remove. 0.10 m is under a fifth of a pixel from any altitude this app
+    # flies and it makes the depth order defined.
+    "sheen_m": 0.10,
     # Drop the slivers a difference leaves behind.
     "min_m2": 3.0,
     # A 3.9 km creek buffered seven times with round joins is 1 MB of vertices
@@ -719,6 +734,259 @@ CHANNEL = {
     "simplify_m": 0.5,
     "quad_segs": 3,
 }
+
+
+# ------------------------------------------------------- the creek canopy --
+#
+# "Waller Creek is still a green stripe ... there is NO WATER SURFACE and no
+# canopy from flying altitude -- the src:'creek_canopy' hook added in an earlier
+# pass was never consumed."
+#
+# The hook is real: 33 features carry `src:'creek_canopy'` and 34 carry
+# `creek_under`, and they were written for `shape_trees.py` to read and densify
+# `data/trees.geojson` over. Nothing has read them, so the corridor is still a
+# FLAT green ribbon: three tones of paint at exactly the height of the lawn
+# beside it. From 200 m a flat tone is a flat tone whatever colour it is, which
+# is why every previous colour change to this corridor failed to fix it.
+#
+# WHAT ACTUALLY MAKES A CANOPY READ FROM THE AIR is not the colour, it is that
+# the top of it is TEN METRES ABOVE THE GROUND. A raised, lumpy, self-shadowing
+# mass reads as trees from any altitude; a green polygon on the ground never
+# will. So the canopy is geometry, baked here, and it does not wait on the trees
+# file.
+#
+# WHY NOT JUST EXTRUDE THE ZONE POLYGON. A single flat-topped slab over the
+# whole 125,383 m2 canopy band is a 12 m green wall following the creek -- the
+# giant-hedge failure this repo has already shipped once. A canopy has to have a
+# broken silhouette and a varying top, so it is built from overlapping crowns.
+#
+# AND NOT AS TIERED DISCS. HANDOFF §35 item 7 is that every tree in the scene is
+# "a stack of flat octagonal discs ... wedding cakes". Stacking is what produces
+# that, so a crown here is ONE prism and the variety comes from three species
+# with different radius, height and colour, plus a per-crown wobble on the ring.
+# Overlapping single prisms merge into a mass; stacked ones read as furniture.
+CANOPY = {
+    "on": True,
+    # Grid spacing in metres, staggered every other row (a hexagonal lattice, so
+    # the density is 1 / (spacing^2 * sin60)). This is the ONE knob that trades
+    # canopy density against file size, and the file is not tiled, so it is the
+    # expensive knob. Measured on this data: 20 m gives ~0.82 crown coverage at
+    # about 150 KB, 14 m gives full closure at about 300 KB on a 1.3 MB file.
+    "spacing_m": 20.0,
+    # How far a crown centre may wander off its lattice point, as a fraction of
+    # the spacing. A lattice you can SEE is worse than no canopy at all -- and
+    # this is jittered off the point's own coordinates, not off a running RNG,
+    # so adding one reach cannot move every crown in the file.
+    "jitter": 0.40,
+    # Which planted zones get crowns. The scrub band next to the water does NOT:
+    # it is the one place the channel is visible from above, and roofing it over
+    # would hide the water this same pass just gave the creek. Real corridors are
+    # open at the water's edge for the same reason -- that is where the light is.
+    "zones": ("under", "canopy"),
+    # Per species: (radius m, crown top m, share). The top is where the foliage
+    # ENDS; the base is `base_frac` of it, so a crown is a thick mass rather than
+    # a floating plate, and neighbours close the gaps between them. Waller Creek
+    # through campus is bald cypress at the water, pecan and cedar elm above it,
+    # live oak on the terrace -- three is enough to stop it reading as one green.
+    "species": {
+        "cypress": (6.5, 19.0, 0.28),   # tall, narrow, blue-green
+        "pecan":   (10.5, 16.0, 0.40),  # broad, light, yellow-green
+        "liveoak": (9.5, 11.5, 0.32),   # wide and low, dark
+    },
+    # Each crown's own radius and height are drawn from +/- this fraction of its
+    # species' figures, so no two are identical and the top surface is lumpy.
+    # SIZE VARIANCE IS THE ANTI-BLOCK KNOB and it is worth more than vertices.
+    # At 0.30 a species renders as one repeated slab: 261 pecans within +/-30%
+    # of each other, tops within a metre, and a cluster of them is a plateau.
+    # At 0.45 the same 261 span 5.8 to 15.2 m of radius and the canopy line is
+    # broken by neighbours that are half the height of each other. Costs zero
+    # bytes, which is the whole reason it is the first thing to reach for.
+    "size_var": 0.45,
+    # A LONE PRISM IS A BLOCK; A CLUSTER OF THEM IS A CANOPY. This is the fix
+    # for the thing the first render got wrong and it is worth stating plainly:
+    # eight sides, a wobbled ring and 45% size variance do NOT stop a single
+    # isolated crown from reading as a flat-topped green box
+    # (shots/creek/crop-corridor.png, the dark one standing alone over San
+    # Jacinto). What stops it is a NEIGHBOUR — two crowns that overlap merge
+    # into one silhouette with a stepped top, and three merge into foliage.
+    #
+    # So a crown must have at least `min_neighbours` others whose centres are
+    # within `touch` x (r_i + r_j), or it is not emitted. It costs nothing; it
+    # SAVES bytes, because the crowns it deletes are the ones stranded in the
+    # narrow reaches where the planted band is a few metres wide.
+    #
+    # AND `touch` IS 1.3, NOT THE 0.85 THAT WOULD MEAN "ACTUALLY OVERLAPPING",
+    # because 0.85 measured at 27 crowns out of 604. That is arithmetic, not a
+    # tuning accident: at spacing 20 m and mean radius 8.8 m, two lattice
+    # neighbours are ~20 m apart and 0.85 x (r_i + r_j) is 15 m, so almost
+    # nothing qualifies. Requiring literal overlap requires spacing under the
+    # crown DIAMETER, which is 1,206 crowns and 374 KB on an untiled file, and
+    # that is not a trade worth making for a defect only visible at 3x
+    # magnification of a z17.4 frame -- at the altitudes this camera flies
+    # (shots/creek/air.png, z16.2) the corridor already reads as a mass. 1.3
+    # keeps a crown that has company within ~24 m and drops the ones stranded
+    # alone in a narrow reach, which is where the block read actually happens.
+    #
+    # AND `min_neighbours` IS 1, WHICH IS THE HONEST ANSWER TO A MEASUREMENT.
+    # Requiring two neighbours kept 132 of 604, because the planted band is a
+    # 10-30 m ribbon and a 20 m lattice puts roughly ONE crown across it: there
+    # is no cluster to belong to. The band's own geometry, not the rule, is why
+    # this corridor is a line of trees rather than a wood, and the only way to
+    # change that is to halve the spacing -- 1,206 crowns, 374 KB, on a file
+    # that is not tiled. `spacing_m` is that knob and this is the number to
+    # quote when turning it.
+    "min_neighbours": 1,
+    "touch": 1.5,
+    "base_frac": 0.34,          # underside of the foliage, as a fraction of top
+    # SIDES 8, AND IT WAS 6, AND THE PICTURE IS THE ARGUMENT. Six sides at this
+    # radius renders a flat-topped block -- shots/creek-after/recctr.png at
+    # spacing 19 has crowns that read as green CUBES beside the existing trees,
+    # not as foliage. Two more vertices is ~50 bytes a crown, paid for by taking
+    # the spacing from 19 m back to 20 m. Below about 8 the silhouette is the
+    # polygon; above it, it is the wobble.
+    "sides": 8,                 # ring vertices; every extra one is ~25 bytes x N
+    "wobble": 0.34,             # per-vertex radius variation, kills the polygon
+    # Crowns are POSITIONS, not surfaces: 5 decimal places is 1.1 m here, which
+    # is a fiftieth of a crown and a fifth of a pixel from flying altitude. 6 dp
+    # everywhere else in this file costs 12 bytes per crown for nothing.
+    "coord_dp": 5,
+    "min_h_m": 5.0,             # never emit a crown shorter than this
+}
+
+
+def _h01(*ints):
+    """Deterministic hash of integers -> [0,1). Positional, never sequential.
+
+    A running RNG would be reproducible too, but only for an unchanged input:
+    add one creek reach and every crown downstream of it moves. Hashing the
+    lattice cell means a crown depends on WHERE it is and nothing else, so a
+    re-bake after an OSM refresh moves only the trees near what changed.
+    """
+    s = 0x9E3779B9
+    for v in ints:
+        s = (s ^ (int(v) & 0xFFFFFFFF)) * 0x85EBCA6B & 0xFFFFFFFF
+        s ^= s >> 13
+    s = (s * 0xC2B2AE35) & 0xFFFFFFFF
+    return ((s ^ (s >> 16)) & 0xFFFFFF) / 0x1000000
+
+
+def plant_creek_canopy(feats, stats, warnings):
+    """Overlapping crown prisms over the creek's understorey and canopy zones."""
+    if not CANOPY["on"]:
+        return feats
+    try:
+        from shapely.ops import unary_union
+        from shapely.geometry import Point
+    except ImportError:
+        warnings.append("shapely not installed: the creek gets no canopy")
+        return feats
+
+    want = {"creek_" + z for z in CANOPY["zones"]}
+    band = [f for f in feats if f["properties"].get("src") in want
+            and f["geometry"]["type"] == "Polygon"]
+    if not band:
+        warnings.append("no creek_%s zones to plant: did cut_creek_channels run?"
+                        % "/".join(CANOPY["zones"]))
+        return feats
+
+    polys = [g for g in (_poly_m(f["geometry"]) for f in band) if g and not g.is_empty]
+    area = unary_union(polys)
+    stats["canopy_band_m2"] = int(area.area)
+
+    # Cumulative species shares, so one hash draw picks the species.
+    names = sorted(CANOPY["species"])
+    acc, cuts = 0.0, []
+    for n in names:
+        acc += CANOPY["species"][n][2]
+        cuts.append((acc, n))
+    if abs(acc - 1.0) > 1e-6:
+        warnings.append("CANOPY.species shares sum to %.3f, not 1.0" % acc)
+
+    S = CANOPY["spacing_m"]
+    row_h = S * math.sin(math.radians(60))
+    x0, y0, x1, y1 = area.bounds
+    dp, sides, var = CANOPY["coord_dp"], CANOPY["sides"], CANOPY["size_var"]
+    made = 0
+
+    # ---- candidates on a staggered lattice ------------------------------
+    cand = []
+    j = 0
+    y = y0
+    while y <= y1 + row_h:
+        # Stagger every other row: a square lattice is visible as rows and
+        # columns the moment the crowns are regular in size, and they are.
+        x = x0 + (S / 2.0 if j % 2 else 0.0)
+        i = 0
+        while x <= x1 + S:
+            cx = x + (_h01(i, j, 1) - 0.5) * 2 * CANOPY["jitter"] * S
+            cy = y + (_h01(i, j, 2) - 0.5) * 2 * CANOPY["jitter"] * row_h
+            if area.contains(Point(cx, cy)):
+                t = _h01(i, j, 3)
+                sp = next(n for c, n in cuts if t <= c)
+                r0, h0, _ = CANOPY["species"][sp]
+                r = r0 * (1.0 + (_h01(i, j, 4) - 0.5) * 2 * var)
+                h = h0 * (1.0 + (_h01(i, j, 5) - 0.5) * 2 * var)
+                if h >= CANOPY["min_h_m"]:
+                    cand.append((cx, cy, r, h, sp, i, j))
+            x += S
+            i += 1
+        y += row_h
+        j += 1
+    stats["canopy_candidates"] = len(cand)
+
+    # ---- drop the loners ------------------------------------------------
+    # O(n^2) over ~700 points is nothing, and an index here would be one more
+    # thing that can be wrong about a number nobody re-derives.
+    touch, need = CANOPY["touch"], CANOPY["min_neighbours"]
+    keep = []
+    for a in cand:
+        n = 0
+        for b in cand:
+            if b is a:
+                continue
+            if math.hypot(a[0] - b[0], a[1] - b[1]) <= touch * (a[2] + b[2]):
+                n += 1
+                if n >= need:
+                    break
+        if n >= need:
+            keep.append(a)
+    stats["canopy_dropped_isolated"] = len(cand) - len(keep)
+
+    # ---- emit -----------------------------------------------------------
+    covered = 0.0
+    for cx, cy, r, h, sp, i, j in keep:
+        a0 = _h01(i, j, 6) * math.tau
+        ring = []
+        for k in range(sides):
+            a = a0 + math.tau * k / sides
+            rk = r * (1.0 + (_h01(i, j, 10 + k) - 0.5) * 2 * CANOPY["wobble"])
+            ring.append([round((cx + rk * math.cos(a)) / _KX, dp),
+                         round((cy + rk * math.sin(a)) / M_LAT, dp)])
+        ring.append(ring[0])
+        feats.append({
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": [ring]},
+            # `b` is NOT baked: js/ground.js derives it as base_frac * h, which
+            # is 12 bytes x N saved on a file that ships whole.
+            #
+            # TWO decimal places on `h`, not one, and it is not fussiness:
+            # crowns OVERLAP by design, and two overlapping prisms with tops at
+            # exactly the same z is the A2 z-fight. At 0.1 m a species has ~80
+            # distinct heights across 261 crowns and ties are common; at 0.01 m
+            # they are ~1 in 800 and would have to overlap as well. 3 bytes a
+            # crown, 1.8 KB in the file.
+            "properties": {"k": "cnp", "m": sp, "h": round(h, 2)},
+        })
+        stats["canopy_" + sp] += 1
+        covered += math.pi * r * r
+        made += 1
+
+    stats["canopy_crowns"] = made
+    # Crown area over band area. It is an UPPER bound -- crowns overlap, which
+    # is the point -- so read it as "how much foliage per square metre of band",
+    # not as closure. Under about 0.8 the corridor has holes you can see through.
+    stats["canopy_cover_ratio"] = round(covered / max(1.0, area.area), 2)
+    return feats
 
 
 def _mean_width(poly):
@@ -816,6 +1084,18 @@ def cut_creek_channels(feats, stats, warnings):
         _emit(feats, water, {"k": "bank", "u": "channel", "m": "water",
                              "b": round(bed, 2), "h": round(-depth, 2)},
               stats, "creek_water_prism", 1.0)
+        # The rippled top face. Same footprint, standing CHANNEL.sheen_m on the
+        # water, so `ground-creek-sheen` can carry the water pattern while the
+        # prism under it keeps its time-of-day colour. See CHANNEL.sheen_m.
+        # Simplified four times harder than the bank lines and pulled 0.4 m
+        # inside the water's edge: it is a lid whose only job is to modulate the
+        # colour under it, so an edge good to a couple of metres is good enough,
+        # and it must never poke out over the chalk toe. 24 KB of duplicated
+        # 343-vertex creek outline down to 7.
+        _emit(feats, water.buffer(-0.4), {"k": "bank", "u": "channel", "m": "sheen",
+                             "b": round(-depth, 2),
+                             "h": round(-depth + CHANNEL["sheen_m"], 2)},
+              stats, "creek_water_sheen", 1.0, simplify_m=2.0)
 
         # ---- the bank courses, outermost first ---------------------------
         # Outermost course tops out AT grade, innermost at the water line, so
@@ -839,8 +1119,13 @@ def cut_creek_channels(feats, stats, warnings):
 
         # ---- the planting, three zones out from the top of bank ----------
         top_of_bank = water.buffer(bank, join_style=1, quad_segs=CHANNEL['quad_segs'])
+        # `scrub` is its OWN surface now, not `grass`. It was sharing the lawn's
+        # colour AND the lawn's texture tile, so the outermost, widest and
+        # nearest-the-camera zone of the corridor was literally mown grass --
+        # three "zones" of which one was indistinguishable from the field beside
+        # it. That is most of what "still a green stripe" is describing.
         zones = [
-            ("scrub", "scrub", "grass",
+            ("scrub", "scrub", "scrub",
              clamp(CHANNEL["scrub_per_width"] * w, CHANNEL["scrub_min_m"], CHANNEL["scrub_max_m"])),
             ("under", "wood", "understorey",
              clamp(CHANNEL["under_per_width"] * w, CHANNEL["under_min_m"], CHANNEL["under_max_m"])),
@@ -1327,6 +1612,23 @@ def _band(p):
     """
     if p.get("k") == "area" and p.get("s") == "creek":
         return None
+    # A crown is not ground. It stands 4-17 m in the air, so it neither takes a
+    # square metre from the lawn under it nor gives one up -- and letting it into
+    # the ladder would be actively wrong: `k:'cnp'` is unranked, so every lawn
+    # and path in the corridor would cut a tree-shaped hole out of itself and
+    # RANK_DEFAULT would then delete the crown that caused it.
+    if p.get("k") == "cnp":
+        return None
+    # THE WATER SHEEN IS NOT GROUND EITHER, and the first cut of it proved that
+    # the hard way: it is the SAME footprint as the water prism at the SAME rank
+    # in the SAME band, so the resolver handed the ground to whichever sorted
+    # first and trimmed the other to nothing. All seven were emitted, all seven
+    # were deleted, and the bake's own report still said `creek_water_sheen: 7`
+    # because that count is taken at emit time. A stat that counts intent rather
+    # than outcome is worse than no stat. It is a lid standing 0.10 m on the
+    # water two metres below grade; it competes with nothing.
+    if p.get("k") == "bank" and p.get("m") == "sheen":
+        return None
     return "path" if p.get("k") == "patharea" else "flat"
 
 
@@ -1783,6 +2085,14 @@ def main():
     feats = resolve_ground_conflicts(feats, roads_m, stats, warnings)
     after = count_conflicts(feats, roads_m)
 
+    # AFTER the resolver, deliberately. The planted zones are still the raw
+    # buffered rings until it runs, and they overlap the carriageways and walks
+    # that cross the corridor -- plant first and a crown ends up centred over
+    # the middle of San Jacinto with no trunk under it. §32's rule is that the
+    # TRUNK is the test, and a crown baked here has no trunk to test, so the
+    # honest equivalent is to plant only in ground the corridor actually kept.
+    feats = plant_creek_canopy(feats, stats, warnings)
+
     # Draw order: big areas first, then small areas on top of them, then paths
     # over everything. Without the size term a 30,000 m2 lawn painted over the
     # field it contains.
@@ -1798,9 +2108,21 @@ def main():
         json.dump(fc, f, separators=(",", ":"))
 
     size_kb = os.path.getsize(OUT) / 1024
+    # COUNTED OFF THE FILE THAT WAS JUST WRITTEN, not off the emit counters.
+    # `creek_water_sheen: 7` was printed by a run in which all seven had been
+    # deleted by the resolver forty lines later. Everything derived here is
+    # measured on the output, so the report cannot describe a file that does
+    # not exist -- the same argument bake_art.py's re-measure makes.
+    shipped = Counter()
+    for f in feats:
+        p = f["properties"]
+        shipped["shipped_" + str(p.get("k")) + "_" +
+                str(p.get("m") or p.get("s") or p.get("u"))] += 1
     report = {
         "features": len(feats),
         "file_kb": round(size_kb, 1),
+        "shipped": {k: v for k, v in sorted(shipped.items())
+                    if k.startswith(("shipped_bank", "shipped_cnp"))},
         "counts": dict(sorted(stats.items(), key=lambda kv: kv[0])),
         "paths_with_TAGGED_width": paths_tagged_w,
         "paths_with_DEFAULT_width": paths_default_w,

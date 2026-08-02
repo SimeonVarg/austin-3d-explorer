@@ -70,8 +70,21 @@
     return s;
   }
 
+  // Taste, so the whole thing is one line to overrule: `false` puts every
+  // parapet cap back on the building's terracotta roof colour. The colour
+  // itself is not here on purpose — it is measured per building off nadir
+  // imagery by bake_roofscape.py and carried through bake_roofs.py's `caps`
+  // table, so there is no constant to tune. CAP_DECK_TINT in bake_roofs.py is
+  // the knob if the coping should read lighter than the membrane it caps.
+  // `?roofcaps=0` turns it off for one load, which is how the before/after in
+  // scripts/verify/roof-ring.mjs is measured on ONE build rather than by
+  // checking out an older one — three sessions share this working tree and
+  // HANDOFF §32 records what a mid-pass `git checkout` costs.
+  const ROOF_CAP = { on: !/[?&]roofcaps=0\b/.test(location.search) };
+  window.ROOF_CAP = ROOF_CAP;
+
   async function loadScene(date) {
-    const [buildings, parts, signs, extraNames] = await Promise.all([
+    const [buildings, parts, signs, extraNames, roofs] = await Promise.all([
       getJSON(snapshotUrlFor(date), { type:'FeatureCollection', features: [] }),
       getJSON(`data/snapshots/${date}/parts.detailed.geojson`, { type:'FeatureCollection', features: [] }),
       getJSON('data/signs.json', { type:'FeatureCollection', features: [] }),
@@ -79,6 +92,14 @@
       // buildings the snapshot has none for. A side file, not a snapshot edit:
       // a re-bake would silently wipe the latter.
       getJSON('data/building_names.json', {}),
+      // The pitched roofs, fetched HERE rather than left to `addRoofLayers`'s
+      // source URL, for one reason: it carries `caps`, and a cap colour has to
+      // be on the building feature BEFORE `austin-buildings` is added or it
+      // costs a full re-tile to change afterwards. It is the same single
+      // request either way — addRoofLayers is handed this parsed object. It
+      // runs inside the existing Promise.all, so it is not serialised in front
+      // of anything; the snapshot beside it is larger and lands later.
+      getJSON('data/roofs.geojson', { type:'FeatureCollection', features: [] }),
     ]);
 
     // The Capitol Complex, south of the snapshot's own bbox, is spliced in
@@ -138,10 +159,43 @@
       }
     }
 
+    // ── A membrane roof does not get a terracotta parapet ──────────────
+    //
+    // `buildings-roof` is the parapet cap over every building's top face and it
+    // is painted from the building's own `rd` — a terracotta roof colour. On a
+    // building whose roof is grey membrane, bake_roofscape.py's deck sits 1.1 m
+    // inside that cap, so the cap showed as a hard burnt-orange OUTLINE round a
+    // pale grey deck, on hundreds of buildings, in every daytime frame. Proved
+    // with the magenta-mask trick rather than by eye: at `day-tower-close`
+    // `buildings-roof` owns 9,543 px at rgb(173,88,51) around
+    // `roofscape-deck`'s 81,414 px at rgb(151,138,114)
+    // (scripts/verify/roof-ring.mjs).
+    //
+    // scripts/bake_roofs.py joins each deck to its building offline and writes
+    // {id: [rd, rg, rn]} — the DECK'S OWN VALUES, not a re-measurement, so the
+    // two surfaces cannot disagree by a little instead of a lot. Applying it to
+    // the feature rather than to the layer's paint is what makes it stick:
+    // `js/timeofday.js` re-paints `buildings-roof` from `rd`/`rg`/`rn` at every
+    // hour, so a paint expression set here would be overwritten on the first
+    // move of the time slider, while the DATA is read by whatever it sets.
+    // Buildings with a real tiled roof are excluded by the bake — their cap sits
+    // under the eave of a hip and terracotta is right there.
+    if (ROOF_CAP.on && roofs && roofs.caps) {
+      let capped = 0;
+      for (const f of buildings.features) {
+        const c = roofs.caps[f.properties.id];
+        if (!c) continue;
+        f.properties.rd = c[0]; f.properties.rg = c[1]; f.properties.rn = c[2];
+        capped++;
+      }
+      console.log('[roof caps]', capped, 'parapets took their deck colour of',
+                  Object.keys(roofs.caps).length, 'in the table');
+    }
+
     console.log('[scene]', buildings.features.length, 'buildings,',
                 stats ? `${stats.buckets} colour buckets / ${stats.patterns} facade patterns,` : '',
                 labelled, 'OSM labels kept of', (signs.features || []).length, 'signs');
-    return { buildings, parts, signs };
+    return { buildings, parts, signs, roofs };
   }
 
   // ── Init ──────────────────────────────────────────────────────────
@@ -451,7 +505,14 @@
   // renders as a flat plane with stripes on it. See roofFacetColor().
   window.addRoofLayers = function addRoofLayers() {
     if (map.getSource('austin-roofs')) return;
-    map.addSource('austin-roofs', { type:'geojson', data:'data/roofs.geojson' });
+    // loadScene already fetched and parsed this file for its `caps` table (see
+    // there). Handing MapLibre the object it already has costs one request
+    // instead of two; the URL stays as the fallback for the case where that
+    // fetch failed, so a missing roofs.geojson degrades to "no pitched roofs"
+    // rather than to a boot error.
+    const data = (scene && scene.roofs && scene.roofs.features && scene.roofs.features.length)
+      ? scene.roofs : 'data/roofs.geojson';
+    map.addSource('austin-roofs', { type:'geojson', data });
     if (!map.getLayer('roofs-pitched')) {
       map.addLayer({
         id:'roofs-pitched', type:'fill-extrusion', source:'austin-roofs', minzoom:14,
