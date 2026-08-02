@@ -183,6 +183,14 @@ def signed_area(pts):
     return a * 0.5
 
 
+# How far off the line between its neighbours a vertex may sit and still be
+# called noise. A quarter-metre is under one pixel at every altitude this app
+# flies and well under the 0.35 m eave thickness, so nothing that survives here
+# could have been drawn anyway. Raise it and gentle real curves get flattened
+# into straight walls; lower it and survey noise starts folding insets again.
+COLLINEAR_SAGITTA_M = 0.25
+
+
 def clean(pts):
     """Drop repeated and near-collinear vertices.
 
@@ -191,6 +199,22 @@ def clean(pts):
     in the source footprints: a zero-length edge has no normal, and two almost
     parallel edges intersect somewhere out near infinity. Cleaning first is what
     turns those back into roofs instead of silently dropping them.
+
+    THE ANGLE TEST ALONE IS SCALE-BLIND, and that is what put a diagonal roof on
+    the Edgar A. Smith Building. Its footprint is a clean quadrilateral with one
+    spurious vertex 2.1 m from its neighbour, and the two edges either side of it
+    run at az 186.45 and 186.58 — 0.13 degrees apart. sin(0.13 deg) is 0.0023,
+    which clears the 0.002 cross-product threshold by a hair, so the vertex
+    survived. Then the 2.1 m edge is shorter than twice the first 4.48 m inset,
+    so the offset crossed itself, valid_step correctly called it a fold, and the
+    facet it dropped was the WHOLE 36.1 m north slope. Three sides of the hip got
+    built and the fourth did not, which is the diagonal.
+
+    The angle a vertex turns through is the wrong question. What matters is how
+    far it actually sits off the line between its neighbours: 0.13 deg over a
+    2 m edge is 5 mm of survey noise, and over a 200 m edge it is 45 cm of real
+    building. So measure the sagitta in metres and drop anything under a
+    quarter-metre, which is below what any roof detail at this scale can express.
     """
     p = pts[:-1] if pts and pts[0] == pts[-1] else pts[:]
     out = []
@@ -211,8 +235,15 @@ def clean(pts):
         if l1 < 1e-6 or l2 < 1e-6:
             continue
         cross = (v1[0] * v2[1] - v1[1] * v2[0]) / (l1 * l2)
-        if abs(cross) > 0.002:           # a real corner
-            keep.append((bx, by))
+        if abs(cross) <= 0.002:          # dead straight
+            continue
+        # How far b actually sits off the chord a->c. |cross| is sin of the turn,
+        # so the perpendicular distance is that times the SHORTER arm: a 2 m stub
+        # kinking 0.13 deg moves the corner 5 mm and is noise, while the same
+        # angle on a 200 m wall moves it 45 cm and is a building.
+        if abs(cross) * min(l1, l2) < COLLINEAR_SAGITTA_M:
+            continue
+        keep.append((bx, by))
     return keep if len(keep) >= 3 else out
 
 
