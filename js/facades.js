@@ -27,8 +27,82 @@
 (function () {
   'use strict';
 
-  const TILE = 64;              // px per pattern repeat (~20 m of wall)
+  const TILE = 64;              // DRAWING units per pattern repeat
   const TARGET_BUCKETS = 14;    // colour buckets kept after merging
+
+  // ── The pattern is SCREEN-locked, and that is the whole of two defects ──
+  //
+  // MEASURED, and it is definitional rather than empirical: one repeat covers
+  // `image.width / image.pixelRatio` CSS PIXELS of screen, at every zoom. With
+  // a 64 px image at pixelRatio 1 that is 64 CSS px, always. Convert it to
+  // metres at this latitude (res = 67551 / 2^zoom m per CSS px) and the world
+  // size of one repeat is:
+  //
+  //     zoom      14      15      16      17      18
+  //     m/repeat  264     132      66      33      16
+  //
+  // A downtown tower is 30-60 m wide. So at the zooms this app actually flies —
+  // and the tour's own downtown pose is z15.2 — the repeat is TWO TO FOUR TIMES
+  // WIDER THAN THE BUILDING, and each tower shows an arbitrary FRAGMENT of one
+  // repeat: whichever slice of the 64 px tile its footprint happens to land on.
+  // A tower that lands on the tile's pier band gets no windows at all; one that
+  // lands on a single column of openings gets exactly one window column. That is
+  // the reported "sometimes like one window column renders per downtown
+  // building", and it is not intermittent — it is a phase, fixed by where the
+  // building sits, and it changes as you fly.
+  //
+  // The same fact is half of "windows are super blurred": at z15-16 one texel is
+  // 1-2 m of wall, so a window is one or two texels wide before anything is
+  // drawn.
+  //
+  // THE FIX IS A MIP CHAIN, hand-rolled, because MapLibre samples the pattern
+  // atlas LINEAR with no mipmaps (atlases cannot be mipmapped without bleeding
+  // between images). Three tiers of the SAME drawing at three screen sizes,
+  // selected by a `step` on zoom, which keeps the repeat inside 16-33 m of wall
+  // across the entire flying range instead of 16-264 m:
+  //
+  //     tier   css px   z14   z15   z16   z17   z18
+  //     far      16      66    33    16     -     -
+  //     mid      32       -     -    33    16     -
+  //     near     64       -     -     -    33    16
+  //
+  // `pixelRatio` is what buys the smaller screen size: a 64-texel image declared
+  // at pixelRatio 4 occupies 16 CSS px. It is minified 4x on the way, so each
+  // tier carries the box prefilter that minification needs — which is exactly
+  // what a mip level is, and it is why the NEAR tier can now be drawn sharp.
+  // Before this, one tile had to serve 1:1 and 4:1 at once, so it wore a
+  // radius-2/amount-0.9 low-pass at every zoom: a 5x5 box over a 5x4 window.
+  // That is the other half of "super blurred", and it was authored, not a bug.
+  //
+  // TASTE KNOB: `css` is the world scale of the windows (bigger = fewer, larger
+  // windows); `minZoom` is where each tier takes over. Stops are INTEGERS on
+  // purpose — MapLibre evaluates a *-pattern property at floor(zoom) and
+  // floor(zoom)+1 and cross-fades between them, so a fractional stop would not
+  // land where it was written, and an integer one gives a free LOD dissolve.
+  const TIERS = [
+    // `soften` is the box-blur radius in 64-unit drawing space, and it is a
+    // MATCHED prefilter, not a taste value: a tier minified Nx needs a box N
+    // texels wide, i.e. radius (N-1)/2. Far is 4x -> 1.5, mid is 2x -> 0.75,
+    // near is 1:1 -> none. Radius 3 was tried on the far tier first and it is
+    // measurably too much: a 7-texel box is wider than the 8-texel row pitch,
+    // so it erased every floor line while leaving the full-height piers and
+    // weathering streaks untouched, and the tower read as corduroy.
+    { id: 'x', css: 16, minZoom: 0,  soften: 1.5 },   // far
+    { id: 'f', css: 32, minZoom: 16, soften: 0.75 },  // mid
+    { id: '',  css: 64, minZoom: 17, soften: 0.0 },   // near — sharp
+  ];
+  window.FACADE_TIERS = TIERS;
+
+  // Texels per repeat in the NEAR tier. A screen shows `css * devicePixelRatio`
+  // device pixels per repeat, so drawing more texels than that is minification
+  // and drawing fewer is magnification — a 1x tile composited at 2x is soft by
+  // construction, which is the third candidate on the list and the only one that
+  // costs anything to fix. Quantised, and capped at 2: nothing on a phone is
+  // reading a window at 3x.
+  const SCALE = Math.max(1, Math.min(2, Math.round(window.devicePixelRatio || 1)));
+  const RES = TILE * SCALE;     // real canvas texels per repeat
+  // The pixelRatio each tier is registered with. RES texels over `css` CSS px.
+  const tierPixelRatio = t => RES / t.css;
 
   // Facade families — window geometry, chosen by height/class.
   //   lo  low-rise houses + sheds: sparse, large openings
@@ -727,13 +801,9 @@
       p.wf = fam;
       if (combos.indexOf(p.wp) === -1) combos.push(p.wp);
       // initFacades has already run by now, so a new combo has no image yet and
-      // MapLibre would paint the wall transparent.
-      try {
-        if (!(map.hasImage && map.hasImage(p.wp))) {
-          map.addImage(p.wp, tileData(fam, idx, window.__todCurrentP != null ? window.__todCurrentP : 0.5));
-          added++;
-        }
-      } catch (e) { /* already added */ }
+      // MapLibre would paint the wall transparent. Every tier, not just the one
+      // on screen — see ensureImages.
+      added += ensureImages(map, p.wp, window.__todCurrentP != null ? window.__todCurrentP : 0.5);
     }
     return added;
   };
@@ -1130,36 +1200,56 @@
   }
 
   let _canvas = null, _ctx = null;
-  function tileData(fam, bucketIdx, p) {
+  // One draw serves all three tiers — they are the SAME picture at three screen
+  // sizes, and only the prefilter differs. Drawing once and blurring three ways
+  // is what keeps a three-tier atlas from costing three times the repaint.
+  let _rawKey = null, _raw = null;
+
+  /** Draw (fam, bucket, p) once into a RES x RES buffer, mottle applied. */
+  function rawTile(fam, bucketIdx, p) {
+    const key = fam + '|' + bucketIdx + '|' + p;
+    if (_rawKey === key) return _raw;
     if (!_canvas) {
       _canvas = document.createElement('canvas');
-      _canvas.width = _canvas.height = TILE;
+      _canvas.width = _canvas.height = RES;
       _ctx = _canvas.getContext('2d', { willReadFrequently: true });
     }
     _mottle = null;
+    // Everything below draws in 64-unit space; the transform puts it on RES
+    // texels. Every rect in this file is on integer 64-space coordinates, so at
+    // an integer SCALE they stay pixel-aligned and nothing gains an AA fringe.
+    _ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
     drawTile(_ctx, fam, bucketIdx, p);
-    const img = _ctx.getImageData(0, 0, TILE, TILE);
-    const d = img.data;
+    _ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const d = _ctx.getImageData(0, 0, RES, RES).data;
     if (_mottle) {
-      // Block-to-block value scatter, one 4 px cell = ~2 m of wall. Applied over
-      // the finished tile so the openings pick it up too, which is right: the
-      // glass in a weathered wall is not uniformly clean either.
+      // Block-to-block value scatter, one 4-unit cell = ~2 m of wall. Applied
+      // over the finished tile so the openings pick it up too, which is right:
+      // the glass in a weathered wall is not uniformly clean either.
       const { cells, amp } = _mottle;
-      const N = TILE / WALL.CELL;
-      for (let y = 0; y < TILE; y++) {
-        const row = ((y / WALL.CELL) | 0) * N;
-        for (let x = 0; x < TILE; x++) {
-          const t = cells[row + ((x / WALL.CELL) | 0)];
+      const N = TILE / WALL.CELL, C = WALL.CELL * SCALE;
+      for (let y = 0; y < RES; y++) {
+        const row = ((y / C) | 0) * N;
+        for (let x = 0; x < RES; x++) {
+          const t = cells[row + ((x / C) | 0)];
           if (!t) continue;
-          const k = amp * Math.abs(t), tgt = t < 0 ? 0 : 255, i = (y * TILE + x) * 4;
+          const k = amp * Math.abs(t), tgt = t < 0 ? 0 : 255, i = (y * RES + x) * 4;
           d[i]     += (tgt - d[i])     * k;
           d[i + 1] += (tgt - d[i + 1]) * k;
           d[i + 2] += (tgt - d[i + 2]) * k;
         }
       }
     }
-    softenTile(d, fam);
-    return { width: TILE, height: TILE, data: new Uint8Array(d.buffer.slice(0)) };
+    _rawKey = key; _raw = d;
+    return d;
+  }
+
+  /** The image for one tier: the shared drawing, prefiltered for its minification. */
+  function tileData(fam, bucketIdx, p, tier) {
+    const raw = rawTile(fam, bucketIdx, p);
+    const d = new Uint8ClampedArray(raw);
+    softenTile(d, fam, tier);
+    return { width: RES, height: RES, data: new Uint8Array(d.buffer.slice(0)) };
   }
 
   // ── The windows crawl while the camera moves ──────────────────────
@@ -1233,9 +1323,30 @@
   // The blur is in TEXEL space, which at least biases it the right way: a texel
   // is 0.26 m of wall at z17 and 0.52 m at z16, so it softens hardest at the
   // distances where the crawl is worst and least where you can read a window.
+  //
+  // WHAT CHANGED, and it is the whole of "windows are super blurred". The
+  // numbers above were one setting for every zoom, because there was one tile
+  // for every zoom: radius 2 at amount 0.9 is a 5x5 box over a 5x4 window, run
+  // on the tile you are looking at from fifty metres as well as the one two
+  // kilometres away. The tier chain above splits that. Each tier now carries
+  // only the prefilter its OWN minification needs — a box the width of the
+  // minification factor, which is what a mip level is — and the near tier,
+  // which is 1:1 with the screen and cannot alias from minification at all,
+  // carries none. Sharp near, quiet far, from one drawing.
   const SOFTEN = {
-    RADIUS: { lo: 0, mr: 2, mh: 2, tr: 2, tg: 3, dk: 2, st: 2 },
-    AMOUNT: { lo: 0, mr: 0.90, mh: 0.90, tr: 0.90, tg: 1.00, dk: 0.80, st: 0.70 },
+    // Multiplier on the tier's radius, per family. `lo` has big sparse openings
+    // that never approach the pixel floor; `tg` is the one curtain-wall family
+    // and lands nearest it (1.40 units of spandrel, 3.14 of pier).
+    // TASTE KNOB: set a family to 0 for the old razor-sharp, strobing tile.
+    FAMILY: { lo: 0.5, mr: 1.0, mh: 1.0, tr: 1.0, tg: 1.2, dk: 1.0, st: 0.8 },
+    AMOUNT_BASE: 1.0,
+    // Per-family OVERRIDES, null meaning "use the tier's own prefilter". They
+    // exist as objects keyed by family because scripts/verify/shimmer.mjs
+    // sweeps them by name, and that script is how the low-pass was calibrated
+    // in the first place — breaking its sweep would take the instrument away
+    // from the next person who has to argue about this trade.
+    RADIUS: { lo: null, mr: null, mh: null, tr: null, tg: null, dk: null, st: null },
+    AMOUNT: { lo: null, mr: null, mh: null, tr: null, tg: null, dk: null, st: null },
   };
   // Exposed so scripts/verify/shimmer.mjs can sweep it, and so an aesthetic call
   // here can be overruled from the console without an edit.
@@ -1249,33 +1360,35 @@
    * wall in the city — which is the same class of bug as the fascia band that
    * appeared three times up DKR's elevation.
    */
-  function softenTile(d, fam) {
-    const r = SOFTEN.RADIUS[fam] | 0;
-    const a = SOFTEN.AMOUNT[fam] || 0;
+  function softenTile(d, fam, tier) {
+    const mult = SOFTEN.FAMILY[fam] != null ? SOFTEN.FAMILY[fam] : 1;
+    const rOv = SOFTEN.RADIUS[fam], aOv = SOFTEN.AMOUNT[fam];
+    const r = Math.round((rOv != null ? rOv : (tier ? tier.soften : 0) * mult) * SCALE);
+    const a = aOv != null ? aOv : SOFTEN.AMOUNT_BASE;
     if (!r || a <= 0) return;
-    const N = TILE * TILE, win = r * 2 + 1;
+    const N = RES * RES, win = r * 2 + 1;
     const tmp = new Float32Array(N * 3);
     // horizontal
-    for (let y = 0; y < TILE; y++) {
-      for (let x = 0; x < TILE; x++) {
+    for (let y = 0; y < RES; y++) {
+      for (let x = 0; x < RES; x++) {
         let s0 = 0, s1 = 0, s2 = 0;
         for (let k = -r; k <= r; k++) {
-          const i = (y * TILE + ((x + k + TILE) % TILE)) * 4;
+          const i = (y * RES + ((x + k + RES) % RES)) * 4;
           s0 += d[i]; s1 += d[i + 1]; s2 += d[i + 2];
         }
-        const o = (y * TILE + x) * 3;
+        const o = (y * RES + x) * 3;
         tmp[o] = s0 / win; tmp[o + 1] = s1 / win; tmp[o + 2] = s2 / win;
       }
     }
     // vertical, and blend straight back into the pixel buffer
-    for (let x = 0; x < TILE; x++) {
-      for (let y = 0; y < TILE; y++) {
+    for (let x = 0; x < RES; x++) {
+      for (let y = 0; y < RES; y++) {
         let s0 = 0, s1 = 0, s2 = 0;
         for (let k = -r; k <= r; k++) {
-          const o = (((y + k + TILE) % TILE) * TILE + x) * 3;
+          const o = (((y + k + RES) % RES) * RES + x) * 3;
           s0 += tmp[o]; s1 += tmp[o + 1]; s2 += tmp[o + 2];
         }
-        const i = (y * TILE + x) * 4;
+        const i = (y * RES + x) * 4;
         d[i]     += (s0 / win - d[i])     * a;
         d[i + 1] += (s1 / win - d[i + 1]) * a;
         d[i + 2] += (s2 / win - d[i + 2]) * a;
@@ -1284,6 +1397,97 @@
   }
 
   function parseId(id) { return { fam: id.slice(0, 2), idx: parseInt(id.slice(2), 10) }; }
+
+  // ── the tier chain: selection, registration, repaint ────────────────
+
+  /** The tier a given camera zoom reads from. */
+  function tierForZoom(z) {
+    let t = TIERS[0];
+    for (const c of TIERS) if (z >= c.minZoom) t = c;
+    return t;
+  }
+
+  /**
+   * The tiers a camera at this zoom can actually SAMPLE — which is two of them
+   * whenever floor(zoom) and floor(zoom)+1 fall in different tiers, because
+   * MapLibre evaluates a *-pattern property at both and cross-fades. Getting
+   * this wrong shows up as a tower going flat for the width of one zoom level,
+   * which is exactly the class of defect this whole change is about.
+   */
+  function activeTiers(map) {
+    const z = (map && map.getZoom) ? map.getZoom() : 17;
+    const a = tierForZoom(Math.floor(z)), b = tierForZoom(Math.floor(z) + 1);
+    return a === b ? [a] : [a, b];
+  }
+
+  const suffixed = (base, id) => (id ? ['concat', base, id] : base);
+
+  /**
+   * Wrap a base pattern-id expression in the zoom `step` that picks a tier.
+   *
+   * Exposed rather than inlined because more than one layer names its bucket its
+   * own way — the outer ring reads an `fb` ordinal off a vector tile it cannot
+   * mutate — and every one of them needs the same stops. Restating the stops per
+   * layer is how a tier boundary drifts between two layers and nobody notices.
+   */
+  window.facadeTierExpr = function facadeTierExpr(baseId) {
+    const expr = ['step', ['zoom'], suffixed(baseId, TIERS[0].id)];
+    for (let i = 1; i < TIERS.length; i++) {
+      expr.push(TIERS[i].minZoom, suffixed(baseId, TIERS[i].id));
+    }
+    return expr;
+  };
+
+  /** Every tier's image for one combo, registered if missing. */
+  function ensureImages(map, id, p) {
+    const { fam, idx } = parseId(id);
+    let added = false;
+    for (const t of TIERS) {
+      const key = id + t.id;
+      try {
+        if (map.hasImage && map.hasImage(key)) continue;
+        map.addImage(key, tileData(fam, idx, p, t), { pixelRatio: tierPixelRatio(t) });
+        added = true;
+      } catch (e) { /* already added */ }
+    }
+    return added ? 1 : 0;
+  }
+
+  // The time of day the atlas currently holds, and the tiers that are older
+  // than it. A tier is only repainted when the camera can see it: repainting all
+  // three on every time-of-day step would triple a measured 55 ms, and the
+  // slider quantises to 1/128. In practice the hour does not change mid-flight,
+  // so the lazy repaint is free; when it does, the first zoom that crosses into
+  // a stale tier pays one repaint.
+  let _atlasP = 0.5;
+  const _stale = new Set();
+
+  // Combos OUTSIDE, tiers INSIDE, so rawTile's one-deep cache actually hits:
+  // repainting two tiers costs one draw plus two blurs, not two draws.
+  function paintTiers(map, tiers, p) {
+    for (const id of combos) {
+      const { fam, idx } = parseId(id);
+      for (const tier of tiers) {
+        const key = id + tier.id;
+        try {
+          if (map.hasImage && map.hasImage(key)) map.updateImage(key, tileData(fam, idx, p, tier));
+          else map.addImage(key, tileData(fam, idx, p, tier), { pixelRatio: tierPixelRatio(tier) });
+        } catch (e) { /* image not registered yet */ }
+      }
+    }
+  }
+
+  function watchTierZoom(map) {
+    if (map.__facadeTierWatch) return;
+    map.__facadeTierWatch = true;
+    map.on('zoom', () => {
+      if (!_stale.size) return;
+      const want = activeTiers(map).filter(t => _stale.has(t.id));
+      if (!want.length) return;
+      for (const t of want) _stale.delete(t.id);
+      paintTiers(map, want, _atlasP);
+    });
+  }
 
   window.initFacades = function initFacades(map, p) {
     if (!palette.length) return 0;
@@ -1294,23 +1498,25 @@
     // running it at init costs nothing and warns in the console if a future edit
     // pushes a family out of spec.
     try { window.facadeGridAudit(); } catch (e) { /* audit must never break init */ }
-    for (const id of combos) {
-      const { fam, idx } = parseId(id);
-      if (map.hasImage && map.hasImage(id)) continue;
-      try { map.addImage(id, tileData(fam, idx, p)); } catch (e) { /* already added */ }
-    }
+    _atlasP = p;
+    _stale.clear();
+    // ALL tiers at boot, not just the visible one: the `step` can select a tier
+    // the moment the camera moves, and MapLibre paints an unregistered pattern
+    // id transparent — a building-shaped hole, which is the failure mode
+    // HANDOFF §30 already paid for once.
+    for (const id of combos) ensureImages(map, id, p);
+    watchTierZoom(map);
     return combos.length;
   };
 
   window.updateFacades = function updateFacades(map, p) {
     if (!palette.length) return;
-    for (const id of combos) {
-      const { fam, idx } = parseId(id);
-      try {
-        if (map.hasImage && map.hasImage(id)) map.updateImage(id, tileData(fam, idx, p));
-        else map.addImage(id, tileData(fam, idx, p));
-      } catch (e) { /* image not registered yet */ }
-    }
+    _atlasP = p;
+    const active = activeTiers(map);
+    for (const t of TIERS) if (active.indexOf(t) === -1) _stale.add(t.id);
+    for (const t of active) _stale.delete(t.id);
+    paintTiers(map, active, p);
+    watchTierZoom(map);
   };
 
   /**
@@ -1431,9 +1637,7 @@
         if (combos.indexOf(id) === -1) combos.push(id);
         // initFacades has already run, so a new combo has no image yet and
         // MapLibre would paint the wall transparent.
-        try {
-          if (!(map.hasImage && map.hasImage(id))) map.addImage(id, tileData('tg', idx, p));
-        } catch (e) { /* already added */ }
+        ensureImages(map, id, p);
         towersDone++;
       }
     }
@@ -1475,7 +1679,8 @@
     return n + towersDone;
   };
 
-  // Fall back to a plain fill where a feature somehow has no pattern.
-  window.FACADE_PATTERN_EXPR = ['coalesce', ['get', 'wp'], 'mh00'];
+  // Fall back to a plain fill where a feature somehow has no pattern, then wrap
+  // the whole thing in the zoom step that picks a mip tier.
+  window.FACADE_PATTERN_EXPR = window.facadeTierExpr(['coalesce', ['get', 'wp'], 'mh00']);
   window.facadePalette = () => palette;
 })();
