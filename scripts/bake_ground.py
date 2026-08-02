@@ -569,6 +569,113 @@ def _walk(g, i, dist_m):
     return None
 
 
+# ---------------------------------------------------------- water shape --
+#
+# WHY THIS EXISTS AT ALL: js/ground.js has carried a `creek` and a `pond` colour
+# in all three palettes, plus a whole `ground-creek-bank` layer with its own
+# taste knobs and a paragraph explaining why a wooded channel must not be
+# painted the same pale blue as Lady Bird Lake -- and NOTHING HAS EVER SET
+# `s` TO EITHER. Every water area in the file is `s: "water"`, so the bank layer
+# has never drawn a pixel and both palette entries have never been read. The
+# rule the code was written against was simply missing.
+#
+# THE RULE. A watercourse is long and thin; a pond is compact. The isoperimetric
+# quotient Q = 4*pi*A / P^2 is 1.0 for a circle and tends to 0 for a ribbon, so
+# it says exactly that and needs no threshold on size. Measured over the twelve
+# water areas in this file:
+#
+#     Q  0.008 0.011 0.012 0.016 0.017 0.031 0.036  | 0.183 0.199 0.310 0.767 0.991
+#            seven creeks, up to 40,745 m2          |     five ponds, from 19 m2
+#
+# The gap between 0.036 and 0.183 is five-fold, so the cut is not delicate. 0.15
+# sits in the middle of it.
+WATER_Q_CREEK = 0.15
+
+
+def _shape_q(ring_m):
+    """4*pi*A/P^2 — 1.0 for a circle, near 0 for a long thin ribbon."""
+    a = abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(ring_m, ring_m[1:]))) / 2.0
+    per = sum(math.hypot(x1 - x0, y1 - y0) for (x0, y0), (x1, y1) in zip(ring_m, ring_m[1:]))
+    return (4 * math.pi * a / (per * per)) if per > 0 else 0.0
+
+
+def classify_water(feats, stats):
+    """u:'water' areas become s:'creek' or s:'pond' by their own shape."""
+    for f in feats:
+        p = f["properties"]
+        if p.get("u") != "water" or f["geometry"]["type"] != "Polygon":
+            continue
+        ring = f["geometry"]["coordinates"][0]
+        if len(ring) < 4:
+            continue
+        lat0 = sum(q[1] for q in ring) / len(ring)
+        kx = math.cos(math.radians(lat0)) * M_LAT
+        q = _shape_q([(x * kx, y * M_LAT) for x, y in ring])
+        p["s"] = "creek" if q < WATER_Q_CREEK else "pond"
+        p["q"] = round(q, 4)
+        stats["water_" + p["s"]] += 1
+    return feats
+
+
+# ---------------------------------------------------------- creek planting --
+#
+# "i tried doing a creek pass behind the alumni center it just made the water
+# murky. Please add the depth and greenery around it."
+#
+# The depth is the `ground-creek-bank` layer, which now finally has data to draw
+# (see classify_water). The greenery is this: a band of woodland either side of
+# every creek, because a Central Texas creek is a wooded corridor and Waller
+# Creek in particular runs under a continuous canopy for its whole length
+# through campus. Without it the channel reads as a ditch cut through a lawn.
+#
+# Emitted as an ordinary `u:'wood'` ground area, so it picks up the wood colour,
+# the wood texture and the night ramp for free, and it costs no new layer. The
+# creek itself is subtracted so the band never paints over the water.
+CREEK_WOOD_M = 9.0      # how far the canopy reaches from the bank, each side
+CREEK_WOOD_MIN_M2 = 40  # drop slivers the difference leaves behind
+
+
+def plant_creek_banks(feats, stats, warnings):
+    try:
+        from shapely.geometry import Polygon
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: creek banks left unplanted")
+        return feats
+
+    creeks = [f for f in feats
+              if f["properties"].get("s") == "creek"
+              and f["geometry"]["type"] == "Polygon"]
+    if not creeks:
+        return feats
+    lat0 = 30.285
+    kx = math.cos(math.radians(lat0)) * M_LAT
+    to_m = lambda r: [(x * kx, y * M_LAT) for x, y in r]
+    to_ll = lambda r: [[round(x / kx, 7), round(y / M_LAT, 7)] for x, y in r]
+
+    for f in creeks:
+        poly = Polygon(to_m(f["geometry"]["coordinates"][0]))
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        band = poly.buffer(CREEK_WOOD_M, join_style=1).difference(poly)
+        if band.is_empty:
+            continue
+        parts = band.geoms if band.geom_type == "MultiPolygon" else [band]
+        for gm in parts:
+            if gm.area < CREEK_WOOD_MIN_M2:
+                continue
+            rings = [to_ll(list(gm.exterior.coords))]
+            rings += [to_ll(list(r.coords)) for r in gm.interiors]
+            feats.append({
+                "type": "Feature",
+                "geometry": {"type": "Polygon", "coordinates": rings},
+                "properties": {"k": "area", "u": "wood", "s": "wood",
+                               "src": "creekbank"},
+            })
+            stats["creek_wood_band"] += 1
+    return feats
+
+
 # ------------------------------------------------------------ path widening --
 #
 # WHY PATHS ARE POLYGONS AND NOT LINES.
@@ -877,6 +984,8 @@ def main():
     paths_default_w = sum(1 for f in feats if f["properties"]["k"] == "path"
                           and f["properties"].get("wt") == 0)
 
+    feats = classify_water(feats, stats)
+    feats = plant_creek_banks(feats, stats, warnings)
     feats = widen_paths(feats, stats, warnings)
 
     # Draw order: big areas first, then small areas on top of them, then paths
