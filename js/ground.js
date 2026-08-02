@@ -35,6 +35,11 @@
     pathFadeZoom: [14.2, 15.4],   // paths fade in across this zoom range
     widthScale: 1.0,        // multiply every path width (form, not fact)
     kerbLight: 0.10,        // how much the path edge lightens (fake bevel)
+    // The kerb is a STROKE on the path polygon's boundary, in screen pixels on
+    // purpose: a bevel is a highlight along an edge, so it should stay the same
+    // apparent thickness whether the path is under the camera or by the horizon.
+    // Metres were the right unit for the path itself and the wrong one for this.
+    kerbPx: 2.2,
 
     // ── Roads ─────────────────────────────────────────────────────────
     // Roads now come from data/roads.geojson — real OSM, with a real lane
@@ -121,8 +126,13 @@
     // 400 m. That is the smallest thing that can read at all, and it is what
     // makes Speedway read as laid units rather than as another grey ribbon.
     speedway: true,
-    speedwayTile: 128,      // px; line-pattern stretches this ACROSS the line
-    speedwayCells: 2,       // herringbone cells across the corridor
+    // The corridor is a POLYGON now, so this is a fill-pattern and the tile is
+    // its own size on screen rather than being stretched across a line width.
+    // 128 px stretched across a 9.1 m corridor put ~2 cells across it; as a
+    // free-tiling fill the cell count follows the tile size instead, so this is
+    // the knob that sets how big a brick reads. Smaller number = finer weave.
+    speedwayTile: 48,       // px of screen, per herringbone tile
+    speedwayCells: 2,       // herringbone cells per tile
     speedwayAngle: 45,      // degrees to the corridor axis
     speedwayOpacity: 0.72,
     speedwayNightFade: 0.45,
@@ -819,52 +829,99 @@
 
     if (GROUND.roads) addRoadLayers(map, pal, p, under);
 
-    // A slightly wider, lighter line under each path reads as the kerb/edge
-    // catching light — the cheapest thing that stops a path looking like a
-    // sticker laid on the grass.
+    /**
+     * PATHS ARE FILLS, NOT LINES, and that is the fix for the Speedway fan.
+     *
+     * A `line-width` is a number of screen pixels and it is the SAME number for
+     * the whole line. Under perspective the ground is not: 9.1 m of Speedway
+     * near the camera is many pixels, 9.1 m of it up by Dean Keeton is a few.
+     * One constant width therefore cannot be right along the length, and the
+     * error is large. scripts/verify/road-fan.mjs, camera on the south end of
+     * the promenade looking north:
+     *
+     *     pitch 20   1.10x at the only sample still on screen
+     *     pitch 60   1.26x near  ->  3.33x far
+     *     pitch 86   1.30x near  ->  3.69x far
+     *
+     * 3.69x on a 9.1 m mall renders a 34 m motorway. And it looks like it gets
+     * worse as you lie the camera down not because the ratio moves much past 60
+     * — it barely does — but because pitching over drags the far, wrong end of
+     * the road INTO frame. At pitch 20 everything past 30.2845 was off screen.
+     *
+     * The old `widthExpr` was not sloppy: it is exactly right at the map centre,
+     * which is where it was derived from. MapLibre has no per-vertex line width,
+     * so NO expression can fix this. The width has to live in the geometry.
+     *
+     * bake_ground.py now buffers each centreline by half its real width and
+     * unions per (use, surface), so `k:'patharea'` polygons arrive width-correct
+     * and a fill gets the true perspective for free at any pitch. 2,512
+     * LineStrings became 1,006 polygons and ground.geojson got SMALLER (856 ->
+     * 784 KB): the union dissolved more than the buffer added.
+     *
+     * `widthExpr` stays. The road layers still use it — the same defect is there
+     * and it is the next PR — and the lane markings genuinely want screen pixels.
+     */
+    if (!map.getLayer(PATH)) {
+      map.addLayer({
+        id: PATH, type: 'fill', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['==', ['get', 'k'], 'patharea'],
+        paint: {
+          'fill-color': jitterExpr(pal, GROUND.pathJitter),
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'],
+            GROUND.pathFadeZoom[0], 0, GROUND.pathFadeZoom[1], GROUND.pathOpacity],
+        },
+      }, under);
+    }
+
+    /**
+     * THE KERB IS A STROKE ON THE POLYGON BOUNDARY, and staying in pixels here
+     * is deliberate rather than a leftover.
+     *
+     * It used to be a second, 1.34x wider line drawn underneath. As geometry
+     * that would mean a second buffered polygon set, 0.55 MB, to draw a bevel.
+     * A bevel is a screen-space effect — a highlight a couple of pixels wide
+     * along an edge — so a constant pixel width is the RIGHT unit for it and
+     * it looks correct at every pitch and distance for free.
+     *
+     * A `line` layer over a Polygon source strokes its rings, so this rides the
+     * same features as the fill and cannot drift out of register with it.
+     */
     if (!map.getLayer(PATH_CASE)) {
       map.addLayer({
         id: PATH_CASE, type: 'line', source: SRC, minzoom: GROUND.minZoom,
-        filter: ['==', ['get', 'k'], 'path'],
+        filter: ['==', ['get', 'k'], 'patharea'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
           'line-color': jitterExpr(pal, GROUND.pathJitter, c => lighten(c, GROUND.kerbLight)),
-          'line-width': widthExpr(GROUND.widthScale * 1.34),
+          'line-width': GROUND.kerbPx,
           'line-opacity': ['interpolate', ['linear'], ['zoom'],
             GROUND.pathFadeZoom[0], 0, GROUND.pathFadeZoom[1], GROUND.pathOpacity * 0.8],
         },
       }, under);
     }
 
-    if (!map.getLayer(PATH)) {
-      map.addLayer({
-        id: PATH, type: 'line', source: SRC, minzoom: GROUND.minZoom,
-        filter: ['==', ['get', 'k'], 'path'],
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: {
-          'line-color': jitterExpr(pal, GROUND.pathJitter),
-          'line-width': widthExpr(GROUND.widthScale),
-          'line-opacity': ['interpolate', ['linear'], ['zoom'],
-            GROUND.pathFadeZoom[0], 0, GROUND.pathFadeZoom[1], GROUND.pathOpacity],
-        },
-      }, under);
-    }
-
-    // The herringbone rides ON TOP of the Speedway path's own brick colour, so
-    // the image can stay colourless and time of day stays one setPaintProperty.
-    // `line-pattern` is the only pattern property that suits a corridor: it is
-    // stretched ACROSS the line and repeated ALONG it, so unlike fill-pattern it
-    // does not reset at every integer zoom. Measured in roads-pattern.mjs.
+    /**
+     * The herringbone rides ON TOP of the Speedway path's own brick colour, so
+     * the image stays colourless and time of day is one setPaintProperty.
+     *
+     * It was a `line-pattern` because that is stretched across a line and
+     * repeated along it, which suited a corridor and — unlike `fill-pattern` —
+     * did not reset at every integer zoom (measured in roads-pattern.mjs). With
+     * the corridor now a polygon that choice is gone, and `fill-pattern` is what
+     * is left. That is the same property the 555 ground areas already use and
+     * have shipped with, so the zoom reset is a behaviour this scene already
+     * has rather than a new one; and a weave seen from 100-900 m is a texture
+     * hint, where being the right WIDTH matters and being phase-locked does not.
+     */
     if (GROUND.texture && GROUND.speedway && !map.getLayer(SPEEDWAY)) {
       map.addLayer({
-        id: SPEEDWAY, type: 'line', source: SRC, minzoom: GROUND.minZoom,
-        filter: ['all', ['==', ['get', 'k'], 'path'],
+        id: SPEEDWAY, type: 'fill', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['all', ['==', ['get', 'k'], 'patharea'],
                         ['==', ['get', 's'], 'brickpave']],
-        layout: { 'line-join': 'round', 'line-cap': 'butt' },
         paint: {
-          'line-pattern': HERRING_IMG,
-          'line-width': widthExpr(GROUND.widthScale),
-          'line-opacity': speedwayTexOpacity(p),
+          'fill-pattern': HERRING_IMG,
+          'fill-opacity': speedwayTexOpacity(p),
+          'fill-antialias': false,   // the path fill under it already drew the edge
         },
       }, under);
     }
@@ -1009,13 +1066,13 @@
     const pal = paletteAt(p);
     const set = (id, prop, val) => { try { map.setPaintProperty(id, prop, val); } catch (e) {} };
     set(AREA, 'fill-color', jitterExpr(pal, GROUND.jitter));
-    set(PATH, 'line-color', jitterExpr(pal, GROUND.pathJitter));
+    set(PATH, 'fill-color', jitterExpr(pal, GROUND.pathJitter));
     set(PATH_CASE, 'line-color', jitterExpr(pal, GROUND.pathJitter, c => lighten(c, GROUND.kerbLight)));
     // The texture images carry no colour, so time of day only moves opacity —
     // no getImageData readback, no atlas upload, nothing per tick.
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
-    set(SPEEDWAY, 'line-opacity', speedwayTexOpacity(p));
+    set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
     set(ROAD, 'line-color', roadColorExpr(pal));
     set(ROAD_CASE, 'line-color', darken(pal.asphalt, GROUND.roadCasingDark));
     set(LANE, 'line-color', laneColorExpr(p));
@@ -1034,8 +1091,12 @@
   window.applyGroundSettings = function applyGroundSettings(map) {
     if (!map.getLayer(PATH)) return;
     const set = (id, prop, val) => { try { map.setPaintProperty(id, prop, val); } catch (e) {} };
-    set(PATH, 'line-width', widthExpr(GROUND.widthScale));
-    set(PATH_CASE, 'line-width', widthExpr(GROUND.widthScale * 1.34));
+    // PATH and SPEEDWAY carry their width in the GEOMETRY now (bake_ground.py
+    // buffers the centreline), so there is no width to retune here. Changing
+    // GROUND.widthScale means re-running the bake. The kerb is still paint.
+    set(PATH_CASE, 'line-width', GROUND.kerbPx);
+    set(PATH, 'fill-opacity', ['interpolate', ['linear'], ['zoom'],
+      GROUND.pathFadeZoom[0], 0, GROUND.pathFadeZoom[1], GROUND.pathOpacity]);
     set(AREA, 'fill-opacity', GROUND.areaOpacity);
     set(ROAD, 'line-width', roadWidthExpr(GROUND.roadWidthScale));
     set(ROAD_CASE, 'line-width', roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale));
@@ -1048,11 +1109,10 @@
     set(BIKE_R, 'line-offset', bikeOffsetExpr(1));
     for (const id of [BIKE_L, BIKE_R]) set(id, 'line-opacity', GROUND.bikeOpacity);
     set(STOPBAR, 'line-width', stopBarWidthExpr());
-    set(SPEEDWAY, 'line-width', widthExpr(GROUND.widthScale));
     const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
-    set(SPEEDWAY, 'line-opacity', speedwayTexOpacity(p));
+    set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
 
     const show = (id, on) => {
       try { map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch (e) {}
