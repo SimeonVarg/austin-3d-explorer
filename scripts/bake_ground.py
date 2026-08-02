@@ -676,6 +676,114 @@ def plant_creek_banks(feats, stats, warnings):
     return feats
 
 
+# ---------------------------------------------------------- precinct lawns --
+#
+# "austin building by ellsworth has chromatic circle of glass can you add that
+# with the colors. also that whole area is supposed to be green can you make it
+# look nicer (not just add green lol)"
+#
+# The colour went on in PR #58. The green is this. Photographed, Ellsworth
+# Kelly's chapel sits on a 38 x 54 m lawn in the middle of an enormous expanse
+# of bare tan base ground -- OSM maps the lawn immediately under the building
+# and nothing at all for the block around it, so the base colour shows through
+# and reads as dirt.
+#
+# NOT ONE BIG GREEN POLYGON, which is what he asked it not to be. The lawn is
+# grown outward from the lawn that IS mapped until it meets the things that
+# really bound it: the walks, and the buildings. Both are already in the data,
+# so the resulting panel is derived from the site rather than drawn freehand --
+# the space between a chapel and the paths around it is lawn, and that is a
+# fact about the place, not a guess.
+#
+# Keyed by a point rather than a name because the lawn polygons here are
+# unnamed; the entry says which precinct it is and where to start.
+PRECINCTS = [
+    # (label, lon, lat, how far to grow in metres)
+    ("Ellsworth Kelly / Austin", -97.737838, 30.281665, 26.0),
+]
+PRECINCT_KEEP_M2 = 60.0     # drop slivers the subtraction leaves behind
+
+
+def grow_precinct_lawns(feats, stats, warnings):
+    try:
+        from shapely.geometry import Polygon, Point
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: precinct lawns not grown")
+        return feats
+
+    lat0 = 30.283
+    kx = math.cos(math.radians(lat0)) * M_LAT
+    to_m = lambda r: [(x * kx, y * M_LAT) for x, y in r]
+    to_ll = lambda r: [[round(x / kx, 7), round(y / M_LAT, 7)] for x, y in r]
+
+    # What a lawn may NOT grow over: every walk, every plaza, every other
+    # surface, and every building footprint.
+    blockers = []
+    for f in feats:
+        p = f["properties"]
+        if f["geometry"]["type"] != "Polygon":
+            continue
+        if p.get("k") == "path" or (p.get("k") == "area" and p.get("u") != "lawn"):
+            try:
+                q = Polygon(to_m(f["geometry"]["coordinates"][0]))
+                blockers.append(q if q.is_valid else q.buffer(0))
+            except Exception:
+                pass
+
+    for label, lon, lat, grow in PRECINCTS:
+        seed_pt = Point(lon * kx, lat * M_LAT)
+        best, bestd = None, 1e18
+        for f in feats:
+            p = f["properties"]
+            if p.get("k") != "area" or p.get("u") != "lawn":
+                continue
+            if f["geometry"]["type"] != "Polygon":
+                continue
+            q = Polygon(to_m(f["geometry"]["coordinates"][0]))
+            if not q.is_valid:
+                q = q.buffer(0)
+            d = q.distance(seed_pt)
+            if d < bestd:
+                best, bestd = q, d
+        if best is None or bestd > 40:
+            stats["precinct_no_seed_lawn"] += 1
+            continue
+        grown = best.buffer(grow, join_style=1)
+        # PATHS ARE NOT BLOCKERS YET at this point in the bake -- they are still
+        # LineStrings and become polygons in widen_paths, which runs after this.
+        # So buffer the path lines by their own width here rather than skipping
+        # them, or the lawn would swallow every walk on the block.
+        for f in feats:
+            p = f["properties"]
+            if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+                continue
+            from shapely.geometry import LineString
+            w = float(p.get("w") or 2.0)
+            try:
+                blockers.append(LineString(to_m(f["geometry"]["coordinates"]))
+                                .buffer(w / 2 + 0.6, cap_style=2, join_style=2))
+            except Exception:
+                pass
+        cut = grown.difference(unary_union(blockers)) if blockers else grown
+        parts = cut.geoms if cut.geom_type == "MultiPolygon" else [cut]
+        made = 0
+        for gm in parts:
+            if gm.is_empty or gm.area < PRECINCT_KEEP_M2:
+                continue
+            rings = [to_ll(list(gm.exterior.coords))]
+            rings += [to_ll(list(r.coords)) for r in gm.interiors]
+            feats.append({
+                "type": "Feature",
+                "geometry": {"type": "Polygon", "coordinates": rings},
+                "properties": {"k": "area", "u": "lawn", "s": "grass",
+                               "src": "precinct"},
+            })
+            made += 1
+        stats["precinct_lawn_" + label.split("/")[0].strip().replace(" ", "_")] += made
+    return feats
+
+
 # ------------------------------------------------------------ path widening --
 #
 # WHY PATHS ARE POLYGONS AND NOT LINES.
@@ -986,6 +1094,7 @@ def main():
 
     feats = classify_water(feats, stats)
     feats = plant_creek_banks(feats, stats, warnings)
+    feats = grow_precinct_lawns(feats, stats, warnings)
     feats = widen_paths(feats, stats, warnings)
 
     # Draw order: big areas first, then small areas on top of them, then paths
