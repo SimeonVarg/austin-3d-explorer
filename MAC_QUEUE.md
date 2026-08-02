@@ -1,19 +1,20 @@
 # MAC LANE
 
-Rewritten 2026-08-01, late, from Simeon's own list, for an unattended overnight
-run. Everything above this in git history is superseded.
-
-**Goal: the site is fast and detailed enough to show AWS.** Work top to bottom,
-one PR per item, on `mac/*` branches.
+Rewritten 2026-08-02 morning, from Simeon's second list. Everything above this in
+git history is superseded. M1 (DKR) and the LOD roof-cap bug are closed — the
+roof-cap fix was exactly right.
 
 **You merge your own verified work and resolve your own conflicts.** Never wait
 for Simeon. **Never merge red** — if an item cannot be made to pass, close the PR
-or leave it open with the reason written down, and move to the next item rather
-than stopping.
+or leave it open with the reason written down, and move to the next item.
 
-**The Acer owns `js/props.js`, `js/tower.js`, `js/controls.js`, `js/ground.js`,
-`scripts/shape_trees.py` and the art/scene passes tonight** (QUEUE.md Parts A and
-B). Stay out of those.
+**The Acer owns `js/props.js`, `js/ground.js`, `js/tower.js`, `js/controls.js`,
+`scripts/bake_art.py`, `scripts/bake_ground.py`, `scripts/bake_depth.py`,
+`scripts/bake_roofs.py` and `scripts/shape_trees.py`** and is working all of them
+right now. Stay out of those.
+
+**You own `js/facades.js` this round.** The Acer has a campus facade bake parked
+unmerged and is waiting on you — see M2 and M4.
 
 ---
 
@@ -21,266 +22,140 @@ B). Stay out of those.
 
 1. **`python -m http.server` cannot test this site.** It ignores `Range:`, which
    PMTiles needs, and every feature in a tiled layer silently vanishes with **no
-   console error**. A treeless campus was photographed and briefly believed. Use
-   `python scripts/serve.py 8123`.
+   console error**. Use `python scripts/serve.py 8123`.
 2. **A missing layer makes every metric look BETTER** — payload down, frame time
-   down, everything reads as a win. **Verify with a picture** (`node
-   scripts/verify/tour.mjs day` and `night`) before believing any number.
-3. **Assert the effect, never the intention.** The Drag rendered white at night
-   for weeks while `window.__dragTodHooked` reported `true`, because the flag was
-   set two lines under the assignment that was missing.
+   down, everything reads as a win. **Verify with a picture.**
+3. **Assert the effect, never the intention.**
 
-**Minimum of interleaved reps, never one reading.** Load time here has measured
-anywhere from 11 s to 65 s for an identical page on a quiet machine.
+`tour.mjs` needs `VERIFY_MAX_MS=900000` — twelve poses exceed the 300 s default
+watchdog and it dies at pose 8 with no warning. `pose.mjs` (new) photographs any
+pose named on the command line.
 
 ---
 
-## Where things stand
+## M1. Windows are blurred, everywhere
 
-| | start of tonight | now |
-|---|---|---|
-| visitor download | 28.41 MB | **12.08 MB** |
-| time to city | 7.1 s | **5.6 s** |
+*"i dont like how windows in general are super blurred"*
 
-Tiled: trees, roads, roof detail, props. MapLibre was running **one** tile worker
-on 16 cores — now scaled. The Drag was rendering white at night — fixed, one
-missing line (`QUEUE.md` item 9 history).
+**Top item. It is the single most-seen surface in the scene** — every building in
+every frame — and he raised it unprompted.
 
----
+`js/facades.js` draws each pattern into a 64 px canvas tile and hands it to
+MapLibre as a `fill-extrusion-pattern`. Candidates, roughly by how likely each is
+to be the whole answer:
 
-## M1. DKR — make it look like a stadium. Fiftieth time of asking.
+1. **Tile resolution.** 64 px stretched over 30–60 m of wall is a couple of
+   pixels per window. Try 128 and 256; measure the look AND the atlas cost.
+2. **`devicePixelRatio`.** A tile authored at 1x and composited at 2x is soft by
+   construction.
+3. **Mipmap / minification filter.** If MapLibre samples a downscaled mip at
+   flying distance, that explains "blurred at every zoom" rather than "blurred
+   close up".
+4. **The tile's own drawing.** Anti-aliased 1 px strokes on a 64 px grid are mush
+   before anything else touches them.
 
-> **DONE, 2026-08-02, three PRs.** Leaving the brief below because the
-> reasoning in it is still how to think about the next stadium pass.
->
-> - **M1a — PR #61, `mac/dkr-field-depth`.** The field is fill-extrusion
->   geometry now, so the grandstand occludes it. The premise that had made
->   this recur — "a raster on the ground plane is ordinary ground" — is
->   measurably false: a raster does not share the 3D pass's depth buffer, and
->   being below the wall in the layer stack buys nothing. Camera gate deleted.
->   `scripts/verify/field-bleed.mjs`, 18/18 day and night.
-> - **M1b — PR #64, `mac/dkr-arcade`.** A real ground floor: 108 piers, 8 gate
->   pylons, 4 gates with canopies, 4 glazed shopfront bands, 4 lintels, with
->   the plinth set back behind them. The midfield Longhorn is back as geometry.
->   The depth of the reveal is what makes it read at distance, not the width of
->   the pier — measured, 0 pier pixels on two sides at 2.2 m and legible on all
->   four at 3.4 m.
-> - **M1c — PR #65, `mac/dkr-night`. NOTHING WAS WRONG WITH THE NIGHT COLOUR.**
->   All three claims that put it on this list were artefacts:
->   `night-pale.mjs` was counting the sky instead of the ground (readPixels is
->   bottom-up); its largest "contributor" was `stadium-detail`, of which every
->   pale pixel is the floodlight masts, which are deliberately lit; and the
->   "499 of 511 features with no night colour" count missed that the seat bands
->   take theirs from a `match` expression. There is also no `js/stadium.js` —
->   the retint is `window.applyStadiumColors`, installed at `timeofday.js:400`.
->   The instrument is repaired and now breaks the guilty layer down by `kind`.
->
-> **Still open, deliberately:** the TEXAS / LONGHORNS end-zone wordmarks. From
-> the nadir the end zone is ~30 px wide, so a rect-font stroke lands at 0.7 px
-> and reads as noise. They need a different idea, not a font.
+**Measure before choosing.** Photograph one wall at three distances, crop to the
+same wall in pixels, and put the candidates side by side.
 
-**Top item. Simeon has asked for this repeatedly and it is still wrong.**
+## M2. Downtown is bland, and one window column renders per tower
 
-*"please make DKR look like a stadium for the 50th time - bug where field is
-visible through north wall still there. But yeah want the entrance, and the
-shops, accurate pillars and whatnot."*
+*"alot of downtown is super bland - make it look nice like the campus ... get
+data on all the buildings and stuff, parks and cool things in downtown and add
+them. also sometimes like one window column renders per downtown bulidng and its
+really bad"*
 
-**M1a — the field showing through the north wall. Fix this first and separately.**
-It has been "fixed" before and is back, so the previous fix treated a symptom.
-The field is a flat fill and MapLibre does **not** depth-test fills against
-fill-extrusion — a fill composites over whatever is behind it regardless of 3D
-position. A previous pass added a camera-angle gate (`NEAR_M`, pitch and centre
-based) rather than solving that. Understand why the gate fails from the north
-before adjusting its numbers again. **Screenshot from outside the north wall at
-several pitches, day and night, and put the frames in the PR.**
+**M2a — one window column per tower.** A pattern-scale failure, not a data
+failure. `fill-extrusion-pattern` is TILE-anchored and its world size halves at
+every integer zoom; `window.PATTERN_TILING` pins the GeoJSON sources to z16 and
+`--maximum-zoom=16` pins the archives. A tower getting one column is being drawn
+where the tile covers its whole facade. **Reproduce it first** — it is
+intermittent, so find which zoom and which building class — then fix the scale
+rule.
 
-**M1b — build the stadium.** Entrance, retail frontage, structural pillars, the
-concourse. It is currently a bowl with a facade; it should read as a building you
-could walk into. Use the reference the earlier passes used, and use the same
-banded-feature approach `js/drag.js` uses for shopfronts — separate features with
-their own base and height, never a pattern that tries to place something "at the
-top".
+**M2b — finish the tile switch, which is still inert.** PR #71 baked the tower
+buckets as `fb` and proved parity 114/114; PR #73 stopped it colliding with `wp`.
+**Nothing renders differently yet.** Your own three steps still stand: expose
+`registerOuterTowerBuckets` in `js/facades.js`, call it from `js/outer.js` before
+`addSource`, re-tile `outer.pmtiles`. **One PR, or it stays inert.**
 
-**M1c — the night colour.** `data/stadium.geojson` has **499 of 511 features with
-no night colour at all**, and `scripts/verify/night-pale.mjs` puts `stadium-*` at
-16% of the wrongly-bright pixels after dark. Note DKR is *deliberately* floodlit
-and reads correctly in `shots/tour/night-dkr-stadium.png`, so establish which part
-of that 16% is actually wrong before changing data.
+**M2c — real downtown data.** He is right that it should be easier than campus.
+Overture has heights and classes for everything; OSM has the parks, plazas and
+transit — Republic Square, Waterloo Park, the Central Library, the Moody Theater.
+Distinct tower crowns, setbacks, podium bases that differ from their shafts,
+ground-floor retail on the main streets. **The recognisable ones first** — Frost
+Bank, the Independent, the Austonian, the Capitol view corridor — because a
+skyline reads by its landmarks.
 
-**Already checked, do not redo it:** every pass that builds a time-of-day wrapper
-installs it — arts, drag, moody, outer, places, tower, westcampus all
-`builds=1 installs=1`. **`js/stadium.js` never builds one at all.** That is the
-thread to pull for M1c.
+## M3. The far ring is a flat tan band at dusk
 
-Three PRs, not one.
+From the day/dusk/night sweep: the outer ring reads as a **solid tan wall with a
+hard horizon line**, and it is the most unfinished-looking thing in all three.
+`shots/tour/dusk-tower-south-mall.png`.
 
-## M2. Downtown, in detail — the vector-tile proving ground
+Two parts: the ring's colour does not recede with distance the way the near city
+does, and the line where it meets the sky is hard rather than hazed. `js/sky.js`
+and `js/outer.js` are both yours.
 
-> **Step 1 is half done, 2026-08-02, PR #71 `mac/outer-facade-bake`.**
->
-> The partition is ported and **proved**: `scripts/bake_outer_facades.py`
-> computes each tower's facade bucket offline, and
-> `scripts/verify/outer-facade-parity.mjs` + `outer_facade_parity.py` check it
-> against a live run of `window.quantiseOuterFacades` — a bijection both ways
-> plus centroids, 114/114. Buckets are named `tb00..tb09`, an ordinal that
-> belongs to the tower data rather than to the campus palette's length.
-> `outer_ring.geojson` grew 2,508 bytes (+0.09%). `outer_ring.geojson` is
-> stamped and `data/outer_tower_palette.json` is written.
->
-> **NOTHING RENDERS DIFFERENTLY YET.** Next, and these must land together in
-> one PR or the change is inert:
->
-> 1. `js/facades.js`: expose something like
->    `registerOuterTowerBuckets(buckets, map)` — push each bucket into
->    `palette`, add its id to `combos` (so the time-of-day atlas re-render
->    picks it up), and `map.addImage(id, tileData('tg', idx, p))`. That is the
->    tower loop of `quantiseOuterFacades` minus the clustering.
-> 2. `js/outer.js` tile path: fetch `data/outer_tower_palette.json`, call the
->    above BEFORE `addSource`, and stop calling `quantiseOuterFacades`.
-> 3. Re-tile `outer.pmtiles` so the archive carries `wp`. Flags are
->    `TIPPE_COMMON` in `scripts/tile.sh`; tippecanoe 2.79 is in the `utx` env,
->    so a local build takes seconds if the Build PMTiles workflow is slow.
-> 4. **Verify with a picture of downtown, not a byte count** — the whole
->    symptom is that the towers are one colour, and every metric looks fine
->    while they are.
->
-> **Still blocked:** the other 7,511 low-rise ring features snap to the CAMPUS
-> palette, derived in the browser from the campus snapshot. Baking their `wp`
-> means porting that derivation too. They fall back to `mh00` on the tile path
-> and did before this work as well.
+## M4. The 7,511 low-rise ring features still fall back to `mh00`
 
-*"since were changing to vectors i want downtown to be more detailed now ...
-before we transform main campus lets try it with all downtown."*
+Named in your own `bake_outer_facades.py` header as what is not ported: they snap
+to the CAMPUS palette, derived in the browser.
 
-**This is the pilot for tiled detail and it is deliberately ambitious.** Downtown
-is outside the modelled campus, so it is currently the low-detail outer ring —
-flat masses with a curtain-wall pattern. Simeon wants it to be the *demonstration*
-that tiles let detail grow without cost.
+**The Acer has ported that derivation** — `scripts/bake_facades.py`, parked
+unmerged on `acer/facade-bake`, transcribing `quantiseFacades` plus the whole
+assembly it runs after (capitol overrides, the 604 appended features,
+FACADE_PROTECTED, Union-24's colour rewrite). Parity harness written, not yet
+run. When both halves are proved, the low-rise ring and the campus buildings move
+onto tiles together. **Coordinate rather than duplicating it.**
 
-1. **Finish the outer-ring port first** (it was PR #43, held back correctly). The
-   blocker: the 114 downtown towers get `wp` stamped in the browser by
-   `quantiseOuterFacades`, clustering against a campus palette that does not exist
-   until the snapshot loads. Port it into the Python bake so `wp` is on the
-   feature before `tile.sh` runs. **Prove parity on all 7,625 features with the
-   JS pass still in place, in its own PR**, then re-tile, switch the source and
-   delete the JS. If parity cannot be reached, report the counts and stop there —
-   **do not merge a version where towers lose their curtain wall.**
-2. **Then add real downtown detail**: distinct tower crowns, setbacks, podium
-   bases that differ from the shafts, real heights where Overture has them,
-   ground-floor retail on the main streets. The Frost Bank tower, the
-   Independent, the Austonian and the Capitol view corridor are the recognisable
-   ones — get those right first and the rest reads as a skyline.
-3. **Measure payload and load time at each step and put both in the PR.** The
-   entire claim being tested is that detail is now free. If it is not free, that
-   is the most important finding of the night and it changes the plan.
+## M5. Write `registerOuterTowerBuckets` so a second caller can use it
 
-## M3. Fix the fifteen dead verification scripts
+Once M2b lands, `js/facades.js` will have the shape the campus buildings need
+too. Write it so a second set of buckets can be registered without copy-paste,
+and say so in the PR — the Acer is blocked on exactly that.
 
-They throw before doing any work — `page is not defined`, `r is not defined`.
-`night-silhouette.mjs` is one of them, **which is why nothing caught the Drag
-rendering white at night for weeks.** This is not housekeeping.
+## M6. DKR night, and the last 872 pale pixels
 
-- **First:** `cd scripts/verify && npm ci`. `node_modules` was empty on the Acer
-  and made all 187 scripts look broken; re-triage after, the list may be shorter.
-- Find the **shared** cause — almost certainly one hoisted page-setup block.
-  Fixing fifteen files individually is the failure mode.
-- **Add the wrapper lint while you are in there:** for every `js/*.js`, count
-  `const wrapped = function` against `window.applyTimeOfDay = wrapped` and fail on
-  a mismatch. That five-second check would have caught the Drag bug.
+`night-pale.mjs` is down to **872** from 6,206. The only remaining contributor is
+`stadium-*` at **12.4%**, all of it `stadium-detail`. **Confirm your DKR night
+pass cleared it rather than assuming** — re-run the script.
 
-## M4. Distant Horizons — far things cheaper, near things sharp
+## M7. Distant Horizons — the taste call is still open
 
-*"id love it if far away things can be scaled down thats kinda what i had in mind
-with the distant horizons mod."*
+`scripts/tile.sh` pins `--simplification=1`. Turn it up deliberately: 4, then 8,
+then 12; rebuild via the workflow; shoot `tour.mjs` at each. Also try
+`--drop-densest-as-needed` for trees and props — a live oak at z13 is four pixels
+and there is no reason to send all 41,964 of them.
 
-Tiles already carry simplified geometry at low zoom — that is what tiling is.
-`scripts/tile.sh` pins `--simplification=1` (the minimum) to protect distant
-buildings from being rounded off, which is the opposite of what he wants.
+**Put the before/after shots in the PR and let Simeon pick the level**
+(CLAUDE.md rule 9). Do not merge a level on your own judgement.
 
-Turn it up deliberately: try 4, then 8, then 12; rebuild via the **Build PMTiles**
-workflow; shoot `tour.mjs` at each. Also try `--drop-densest-as-needed` for trees
-and props — a live oak at z13 is four pixels and there is no reason to send all
-25,341 of them.
+## M8. The verify suite on GitHub Actions
 
-**This is a taste call. Put the before/after shots in the PR and let Simeon pick
-the level** (CLAUDE.md rule 9). Do not merge a level on your own judgement.
+Still blocked on the dead scripts. **Each shard on its own runner** —
+concurrency on one machine is only 1.5x and it manufactures false failures
+(`retint.mjs` asserts a 2500 ms deadline, passes alone, fails three-at-a-time).
+`run.mjs` carries a `SERIAL_ONLY` list; reuse it. `workflow_dispatch` so it is a
+button in the GitHub mobile UI. `ubuntu-latest`, **GitHub-hosted only** — public
+repo.
 
-**Also in `js/lod.js`, and this one is a bug, not taste:** *"when i go up on low
-detail mode the roofs of houses become windows this is pretty bad."* A wall
-pattern is landing on a roof face when LOD drops or swaps a layer — most likely
-`buildings-roof` being hidden so the wall's `wp` shows on the top face.
+## M9. Kill the sleeps
 
-**The Acer diagnosed this on 2026-08-02 and that guess was right. You do not
-need to hunt for it: the cause is four entries in `lod.js` and the only open
-question is which layers belong in a tier.**
+**880 seconds of hardcoded `waitForTimeout` across 87 scripts** — about 15
+minutes of every full run doing nothing. Worst: `drift-check` 48 s,
+`lookup-check` 36 s, `srcprobe` 26 s, `arts-shots` 22 s.
 
-`TIERS.mid` lists `buildings-roof`, `parts-roof` and `outer-tower-roof` next to
-the genuine detail layers. Those three are not detail — they are the CAP that
-covers the top face of every building extrusion. The walls are drawn with
-`fill-extrusion-pattern` carrying the window tone `wp`, and MapLibre applies a
-fill-extrusion pattern to the TOP face as well as the sides. So the moment the
-mid tier fires, every building's roof becomes the window grid off its own walls.
-That is the whole bug, and it fires exactly when he said it does: climbing, on a
-preset with a low render distance.
+**Per-script judgement, not a sweep.** A wait that could be a wait-for-ready is
+free to delete; one masking a race becomes an intermittent failure, which is far
+more expensive than a slow suite. Run each three times after changing it.
 
-Three ways to fix it, in the order I would try them:
-
-1. **Take the three cap layers out of `mid`.** Simplest, obviously correct,
-   costs one fill-extrusion pass at altitude. `lod-perf.mjs` already A/Bs tiers,
-   so measure what that pass actually costs before assuming it matters. The
-   other seven layers in `mid` (`trees-canopy`, `roofscape-*`, `roofs-pitched`,
-   `moody-roof`, `arts-cap`) are real detail and should stay.
-2. If that pass is expensive, keep hiding the caps but switch the wall layer
-   from `fill-extrusion-pattern` to a flat `fill-extrusion-color` at the same
-   time, so the top face reads as plain roof rather than as windows.
-3. Give the cap layers a third tier that drops later than `mid`.
-
-**Whatever you pick, prove it with a picture from altitude on the `performance`
-preset**, not with a frame-time number — the number gets BETTER when a layer
-goes missing, which is how this shipped in the first place.
-
-**Fix this before the taste call above** — it is visible and it is wrong.
-
-And: Simeon says the graphics menu is confusing and he does not think LOD works
-at all. **Check whether it actually does anything** — set a preset, fly up,
-confirm layers really disappear. If it is wired to nothing, say so plainly.
-
-## M5. Verify suite on GitHub Actions
-
-Blocked on M3. Do not wire broken scripts into CI.
-
-**Each shard on its own runner.** Concurrency on one machine is only 1.5× — the
-suite renders on the CPU, so runs queue for the same cores — and it *manufactures
-false failures*: `retint.mjs` asserts a 2500 ms deadline, passes alone, fails
-three-at-a-time with nothing broken. `scripts/verify/run.mjs` carries a
-`SERIAL_ONLY` list for this; reuse it.
-
-`workflow_dispatch` so it is a button in the GitHub mobile UI. `ubuntu-latest`,
-**GitHub-hosted only** — public repo. `CHROME_PATH=/usr/bin/google-chrome`, serve
-on 8123, upload `scripts/verify/shots/`, pass/fail table in the job summary so it
-reads on a phone.
-
-## M6. Kill the sleeps
-
-**880 seconds of hardcoded `waitForTimeout` across 87 scripts**, counted from
-source with loops not multiplied — ~15 minutes of every full run spent
-deliberately doing nothing. Worst: `drift-check` 48 s, `lookup-check` 36 s,
-`srcprobe` 26 s, `arts-shots` 22 s, `light-probe` 19 s, `orbit-check` 19 s,
-`movement` 19 s.
-
-**Per-script judgement, not a sweep.** A wait that could be a
-wait-for-actually-ready is free to delete; one masking a race becomes an
-intermittent failure, which is far more expensive than a slow suite. Do the big
-ones, **run each three times after changing it**, put before/after in the PR.
-
-## M7. Name the remaining 2,069 buildings
+## M10. Name the remaining buildings
 
 Lowest priority, safe to run last. Scrape
 `utdirect.utexas.edu/apps/campus/buildings` and the Wikipedia list, match to
 footprints by address or coordinate, write to `data/building_names.json` (**not**
 the snapshot — a re-bake wipes it). Report a confidence per match and only write
-what you would defend; a wrong name on a landmark is worse than no name. Labels
-gate at `final_height >= 12`, so say how many clear that.
+what you would defend; a wrong name on a landmark is worse than no name.
 
 ---
 
