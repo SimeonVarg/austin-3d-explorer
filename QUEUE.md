@@ -45,9 +45,12 @@ else here is yours.
 | B3 Turtle Pond | **DONE** #63 #65 #66 — a 12,569 m² "garden" slab was covering it; twelve turtles in. |
 | B6 / A7 Waller Creek | **DONE** #65 — the creek-bank layer had never drawn a pixel; nothing set `s` to `creek`. Classified, banked and planted. |
 | B7 circular site behind Drama | **DONE** #67 — it is the Hal C. Weaver chilled-water plant. The circles are cooling-tower fan decks. |
+| B2 Ellsworth Kelly lawn | **DONE** #69 — the lawn is grown out to the walks that bound it, not painted on. |
+| B8 sidewalks | **DONE** #70 — footways are a 0.22 m kerb you step onto, and they depth-test now. |
+| C1 buildings on tiles | **NOT STARTED** — sized in Part C. A whole-session job for 14 ms and 1.41 MB. |
 | B9 roof colour variety | **DONE** #60 — measured off the imagery, relative to the campus median, amplified 3.5x and declared. |
 
-**Still open: B2 (Kelly lawn), B8 (sidewalks), C1 (buildings on tiles).** They are unchanged below.
+**Everything in Parts A and B is closed. C1 is the only item left and it is sized in place below — it is a whole-session job with a strict parity bar, for 14 ms and 1.41 MB.** They are unchanged below.
 
 Three things worth carrying into the next pass:
 
@@ -324,9 +327,39 @@ turn it down in one edit.
 
 ## C1. Buildings on vector tiles
 
-**Not done — Simeon assumed correctly.** Blocked on the same thing as the outer
-ring: `quantiseFacades` elects the 14 most populous window tones across the
-*whole* city and stamps `wp` per feature in the browser, which tiles cannot carry.
+**Still not done, and deliberately not started 2026-08-02.** Sized honestly
+below so the next session can decide rather than rediscover.
+
+Blocked on the same thing as the outer ring: `quantiseFacades` elects the 14
+most populous window tones across the *whole* city and stamps `wp` per feature
+in the browser, which tiles cannot carry.
+
+**THE 114-LINE FUNCTION IS THE EASY HALF.** It is deterministic and portable:
+coarse HSL key per building → group → mean colour → sort by population →
+protected colours survive → keep 14 → fold the tail into its nearest survivor by
+RGB distance. That is a straight transcription.
+
+**The pipeline ORDER around it is the hard half.** `js/app.js` runs it after two
+things that change what it sees:
+
+  - `mergeCapitolScene()` appends **604 buildings and 13 parts** to the
+    collection AND registers `window.FACADE_PROTECTED`, which is what stops the
+    Capitol's Sunset Red granite being averaged into its neighbours' tan
+  - `applyUnion24()` rewrites a footprint
+
+So the Python port has to reproduce that whole assembly, and then prove parity
+**feature-for-feature across 7,625+ features** before the JS pass can be
+deleted. Get it wrong and every window in the city shifts tone at once.
+
+**AND THE PRIZE IS SMALL.** Measured: `quantiseFacades` costs **14 ms**, and
+buildings are **1.41 MB of a 9.74 MB payload**. There is no user-visible win
+here — it is a correctness/architecture job that unlocks *future* detail, which
+is exactly why `scripts/tile.sh`'s own header calls it "the last thing worth
+doing, not the first".
+
+**Recommendation: do it first in a session, not last, and budget a whole one for
+the parity proof.** Starting it at the tail of a long night is how a subtle
+city-wide colour shift ships.
 
 Measured at **14 ms**, so this is a *correctness* blocker, not a performance one.
 
