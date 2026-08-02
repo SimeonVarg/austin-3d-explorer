@@ -58,13 +58,15 @@ Whatever the slope encloses is always filled at the TOP of the slope. Leaving it
 on the wall cap was a real bug: the band climbed 3 m while the middle stayed
 down, so the steps floated over a flat plane exactly as the render showed.
 
-Usage:  python scripts/bake_roofs.py [--report] [--remeasure]
+Usage:  python scripts/bake_roofs.py [--report] [--remeasure] [--audit]
 
   --remeasure   re-read the imagery instead of reusing data/roof_runs.json.
                 Required after changing the imagery cache or the tile rule; the
                 cache exists because probing 2,400 footprints takes minutes and
                 the geometry takes seconds, and the geometry is what needs
                 iterating against renders.
+
+  --audit       do not hunt diagonal roofs by eye. Name them. See AUDIT below.
 """
 import json
 import math
@@ -73,7 +75,7 @@ import sys
 from collections import Counter
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SNAP = os.path.join(ROOT, "data", "snapshots", "2026-07-30", "buildings.detailed.geojson")
@@ -294,7 +296,121 @@ def inset(pts, d):
     for (x, y), (x0, y0) in zip(out, p):
         if math.hypot(x - x0, y - y0) > abs(d) * 6 + 3:
             return None
+    # NEITHER OF THOSE TWO GUARDS CATCHES AN INSIDE-OUT RING, and that is worth
+    # a sentence because it stayed hidden for a long time behind them. On a
+    # 23 x 22 m building `inset(pm, 40)` returns a 3,746 m^2 ring whose seven
+    # vertices are ALL outside the footprint: the area came back positive because
+    # the whole polygon turned over, and no vertex travelled the 243 m the second
+    # guard was watching for. So `half_span` — a binary search on "did inset
+    # succeed" — reported a half-span of 40 m, the deck cap `hs * 0.95` stopped
+    # capping anything, and that building got no deck at all.
+    #
+    # An inward offset by d has one definition and it is worth testing directly:
+    # every vertex lies inside the footprint. Anything else is not an offset.
+    if d > 0:
+        for q in out:
+            if not inside(q, p):
+                return None
     return ring
+
+
+# How much nearer than its own offset a vertex may sit before it has stopped
+# being an inward offset at all. Metres, and small: this is a numerical slack on
+# an exact geometric condition, not a taste value and not a tolerance to tune.
+OFFSET_SLACK_M = 0.05
+
+
+def mitre_rays(poly):
+    """Per-vertex direction the mitred inward offset travels, per metre of offset.
+
+    Both offset lines translate linearly with d, so their intersection does too:
+    vertex j sits at `poly[j] + d * u[j]` for EVERY d. Solving the ray once is
+    what makes a per-vertex cap cheap — capping one vertex is then clamping a
+    scalar along a fixed line, with no re-solve and no loss of the index
+    correspondence the facet builder depends on.
+    """
+    n = len(poly)
+    lines = []
+    for i in range(n):
+        x0, y0 = poly[i]
+        x1, y1 = poly[(i + 1) % n]
+        dx, dy = x1 - x0, y1 - y0
+        L = math.hypot(dx, dy)
+        if L < 1e-9:
+            return None
+        nx, ny = dy / L, -dx / L
+        lines.append((x0 - nx, y0 - ny, dx, dy))      # the offset lines at d = 1
+    u = []
+    for i in range(n):
+        ax, ay, adx, ady = lines[i - 1]
+        bx, by, bdx, bdy = lines[i]
+        den = adx * bdy - ady * bdx
+        if abs(den) < 1e-9:
+            return None
+        t = ((bx - ax) * bdy - (by - ay) * bdx) / den
+        u.append((ax + adx * t - poly[i][0], ay + ady * t - poly[i][1]))
+    return u
+
+
+def vertex_caps(poly, u, dmax=60.0):
+    """The furthest each vertex can be offset inward and still BE an offset.
+
+    A correctly offset vertex is inside the footprint and no nearer to any wall
+    than the offset itself. Both stop being true at the same moment — when the
+    vertex reaches the medial axis, i.e. when the slope it belongs to has run
+    into the slope coming the other way. That moment is this roof's RIDGE, and
+    past it the mitre keeps going and starts lying.
+
+    The condition is monotone in d (`clearance` along the ray grows at most as
+    fast as d, so once it falls behind it never catches up), which is what makes
+    a bisection sound here.
+    """
+    caps = []
+    for j, (ux, uy) in enumerate(u):
+        px, py = poly[j]
+        lo, hi = 0.0, dmax
+        for _ in range(18):
+            mid = (lo + hi) * 0.5
+            q = (px + ux * mid, py + uy * mid)
+            if inside(q, poly) and clearance(q, poly) >= mid - OFFSET_SLACK_M:
+                lo = mid
+            else:
+                hi = mid
+        caps.append(lo)
+    return caps
+
+
+def inset_capped(poly, u, caps, d):
+    """The inward offset by d, with every vertex stopped at its own cap.
+
+    THIS IS THE FIX FOR THE DIAGONAL ROOFS, and the whole of it is: a vertex
+    that cannot travel d does not get deleted, it stops.
+
+    The old code offset every vertex the full d and then threw away any FACET
+    whose corners had over-travelled (`valid_step`, at 0.9 of d). Throwing the
+    facet away leaves a HOLE in the roof — the eave sits at the bottom of the
+    rise, the deck sits at the top, and between them on that wall there is
+    nothing. Seen from the air the boundary between the slopes that were built
+    and the flat that was not runs diagonally across the corner. That is the
+    diagonal, on every one of the four buildings it has been traced on: it was
+    never a diagonal that got drawn, it was a slope that did not.
+
+    Capping instead gives the wing a slope that stops climbing at its own
+    half-width — a narrow wing topping out below the main block, which is what a
+    narrow wing at a fixed pitch actually does, and which is what the old comment
+    said it wanted — with no hole, because the facet is still there, just
+    shorter. Where two capped vertices meet, the quad has no area and the sliver
+    test drops it; that is a ridge line, and a ridge is not a hole.
+
+    0.9 is gone with it. It was a scale-blind fudge standing in for an exact
+    condition, in the same way the pre-PR-#57 angle threshold stood in for the
+    sagitta.
+    """
+    out = []
+    for j, (ux, uy) in enumerate(u):
+        dj = min(d, caps[j])
+        out.append((poly[j][0] + ux * dj, poly[j][1] + uy * dj))
+    return out + [out[0]]
 
 
 def simplify(pts, tol):
@@ -350,74 +466,140 @@ def inside(p, poly):
     return point_in_ring(p[0], p[1], poly + [poly[0]])
 
 
-def ring_ok(ring, d, poly):
-    """Has this offset ring folded ENOUGH to be worth abandoning?
+# `ring_ok` and `fold_free_run` USED TO LIVE HERE and both are deleted, because
+# what they did is now impossible rather than tolerated.
+#
+# The pair implemented one idea: an offset ring may fold in up to a tenth of its
+# vertices, and the run gets cut back globally to the last depth where that held.
+# It was a compromise between two bad options — a strict rule dropped 34
+# buildings for one light-well notch, and a loose one let the Union's wings
+# through — and it is the compromise that produced the diagonals, because the
+# facets it tolerated were then deleted one at a time by `valid_step`.
+#
+# A per-vertex cap has no compromise to make. The notch stops, the 40 m of hall
+# beside it does not, and one building's worst corner no longer shortens the
+# slope on every other wall it has. `fold_capped` fired on 45 buildings; there is
+# nothing left for it to fire on.
 
-    A correctly offset vertex sits at exactly `d` from the two walls that made
-    it and no closer to any other. Anything nearer has been pushed there by a
-    wall on the far side of a narrow wing.
 
-    The tolerance matters. A first cut demanded every vertex be clean and
-    dropped 34 buildings — including Batts, Parlin and Rainey, whose one small
-    light-well notch folds a couple of metres in while the other 40 m of hall is
-    perfectly fine. One folded corner is a local defect that `valid_step`
-    removes facet by facet; a tenth of the ring folding means the offset itself
-    has stopped being meaningful, and that is when the slope has to stop.
+def valid_step(quad, travels, poly):
+    """Is every corner of this facet still a real offset of the wall below it?
+
+    `travels` is how far each corner ACTUALLY moved, which after `inset_capped`
+    is not the nominal step depth — a vertex at its cap has stopped short on
+    purpose. Testing against the nominal depth is what the old 0.9 factor was
+    papering over, and it is why this used to delete whole slopes.
+
+    So it is now an exact statement with a numerical slack rather than a
+    threshold: a corner that has travelled t must be inside the footprint and no
+    nearer than t to it. By construction of the caps nothing should ever fail
+    here; it is kept as a guard and its firings are counted, so if some future
+    change makes a ring lie again the bake says so instead of quietly leaving a
+    hole in a roof.
     """
-    n = len(ring) - 1
-    bad = sum(1 for pt in ring[:n]
-              if not inside(pt, poly) or clearance(pt, poly) < d * 0.9)
-    return bad <= max(1, int(0.10 * n))
-
-
-def fold_free_run(pm, poly, run):
-    """The deepest slope this footprint can carry before the offset folds.
-
-    The Union is a cross with two thin wings. At the 9.8 m the imagery measured,
-    the offset rings collapsed inside those wings and rendered as steps floating
-    over a flat plane — a defect you could see from the default camera. Capping
-    the run at the last fold-free offset gives every edge a slope that is a real
-    offset of the wall below it; the wide middle simply keeps its flat deck,
-    which is what the photograph shows there anyway.
-    """
-    ok = 0.0
-    for k in range(1, 25):
-        d = run * k / 24.0
-        r = inset(pm, d)
-        if r is None or not ring_ok(r, d, poly):
-            break
-        ok = d
-    return ok
-
-
-def valid_step(quad, d_outer, d_inner, poly):
-    """Has either edge of this facet folded through the far wall?
-
-    A correctly offset vertex sits at exactly `d` from the two walls that made
-    it, and no closer to any other. So anything nearer than ~0.9 d has been
-    pushed there by a wall on the far side of a narrow wing — a fold. The first
-    cut at this used 0.55 and let the Union's wings through: a fold only has to
-    overshoot a little to still clear a loose threshold.
-    """
-    for pt, d in ((quad[0], d_outer), (quad[1], d_outer),
-                  (quad[2], d_inner), (quad[3], d_inner)):
-        if d <= 0.05:                       # the eave ring sits outside the wall
+    for pt, t in zip(quad[:4], travels):
+        if t <= 0.05:                       # the eave ring sits outside the wall
             continue
-        if not inside(pt, poly) or clearance(pt, poly) < d * 0.9:
+        if not inside(pt, poly) or clearance(pt, poly) < t - OFFSET_SLACK_M:
             return False
     return True
 
 
-def half_span(pts):
-    """Rough inradius: the largest inset that still survives."""
-    lo, hi = 0.0, 40.0
-    for _ in range(14):
-        mid = (lo + hi) / 2
-        if inset(pts, mid) is not None:
-            lo = mid
-        else:
-            hi = mid
-    return lo
+# ── AUDIT: find the diagonal roofs mechanically ───────────────────────
+#
+# "there are at least 3 diagonal roofs that shouldnt be there."
+#
+# A diagonal roof is never a diagonal somebody drew. It is a slope that was NOT
+# drawn: the eave lip covers the whole footprint at the BOTTOM of the rise, the
+# deck covers the middle at the TOP of it, and where the facets between them are
+# missing on one wall you are looking straight down at the eave. The boundary
+# between the slopes that got built and the flat that did not runs diagonally
+# across the corner, and that wedge is what he keeps pointing at. Edgar A. Smith
+# had three of its four slopes; the fourth was the 36.1 m north wall.
+#
+# THE FIRST VERSION OF THIS AUDIT COUNTED FACETS PER EDGE and it was the wrong
+# question — it found the three, then reported nine after the fix, all of them
+# false. A facet that collapses because its two corners have met is a RIDGE, and
+# a ridge is a roof feature, not a hole. Counting cannot tell those apart.
+#
+# So measure the thing itself: rasterise the roof in plan at 0.25 m and ask what
+# fraction of the footprint no facet and no deck covers. A ridge has no area and
+# scores zero. A missing slope is a band metres wide and scores immediately. It
+# also cannot be fooled by a fix that trades one hole for another somewhere else,
+# which counting per edge very much can.
+AUDIT_PX_M       = 0.25    # raster resolution, metres per pixel
+AUDIT_HOLE_FR    = 0.04    # uncovered share of the footprint worth reporting
+AUDIT_HOLE_M2    = 12.0    # ...and it has to be this big in absolute terms too
+
+
+def audit_coverage(eave_ring, covers, poly, name, key, centre=None):
+    """Uncovered area of this roof, in plan, in square metres.
+
+    `covers` is every polygon the bake emitted for this building above the eave
+    lip — each facet quad and the deck. Everything is in local metres.
+
+    Drawn WITH an outline as well as a fill, because two polygons that share an
+    edge exactly still leave a one-pixel seam between them under a scanline fill,
+    and 105 buildings' worth of seams would drown the signal this is looking for.
+    """
+    xs = [q[0] for q in eave_ring]; ys = [q[1] for q in eave_ring]
+    x0, y0 = min(xs), min(ys)
+    W = max(2, int((max(xs) - x0) / AUDIT_PX_M) + 3)
+    H = max(2, int((max(ys) - y0) / AUDIT_PX_M) + 3)
+    if W * H > 4_000_000:
+        return None
+    T = lambda q: (1 + (q[0] - x0) / AUDIT_PX_M, 1 + (q[1] - y0) / AUDIT_PX_M)
+    foot = Image.new("1", (W, H), 0)
+    ImageDraw.Draw(foot).polygon([T(q) for q in eave_ring], fill=1)
+    cov = Image.new("1", (W, H), 0)
+    dc = ImageDraw.Draw(cov)
+    for c in covers:
+        if len(c) >= 3:
+            dc.polygon([T(q) for q in c], fill=1, outline=1)
+    fa = np.asarray(foot, dtype=bool)
+    ca = np.asarray(cov, dtype=bool)
+    hole = fa & ~ca
+    px = AUDIT_PX_M * AUDIT_PX_M
+    hole_m2 = float(hole.sum()) * px
+    foot_m2 = float(fa.sum()) * px
+    if foot_m2 <= 0:
+        return None
+    fr = hole_m2 / foot_m2
+    if hole_m2 < AUDIT_HOLE_M2 or fr < AUDIT_HOLE_FR:
+        return None
+    # Which wall the hole is on: the footprint edge nearest the uncovered
+    # centroid. That is the name of the missing slope, and its azimuth is the
+    # gap in this roof's set of slope directions.
+    ij = np.argwhere(hole)
+    cy = float(ij[:, 0].mean()) * AUDIT_PX_M + y0
+    cx = float(ij[:, 1].mean()) * AUDIT_PX_M + x0
+    n = len(poly)
+    best, bd = 0, 1e18
+    for i in range(n):
+        d = seg_dist((cx, cy), poly[i], poly[(i + 1) % n])
+        if d < bd:
+            best, bd = i, d
+    az = facet_az(poly[best], poly[(best + 1) % n])
+    return {"name": name or "(unnamed)", "id": key, "at": centre,
+            "hole_m2": round(hole_m2, 1), "roof_m2": round(foot_m2, 1),
+            "hole_fr": round(fr, 3), "wall": best,
+            "wall_az": None if az is None else round(az),
+            "wall_len_m": round(math.hypot(poly[(best + 1) % n][0] - poly[best][0],
+                                           poly[(best + 1) % n][1] - poly[best][1]), 1)}
+
+
+# `half_span` USED TO LIVE HERE and is deleted with the other two. It bisected on
+# "did `inset` return something", which is unsound twice over: `inset` is not
+# monotone in d (None at 8 m and a ring at 12 m on the SAME footprint), so a
+# bisection had no right to converge at all; and it accepted inside-out rings, so
+# it converged on its own search bound — 40.0 m for a building 23 m across. The
+# half-span is now `max(vertex_caps(...))`, which is the same quantity asked for
+# directly, correct by construction, and free because the caps are needed anyway.
+#
+# It reported 40 for 26 more buildings than it should have, which is why
+# `too_narrow` moved 14 -> 40 and `flat` 2,130 -> 2,104: those 26 were being
+# measured against a half-span that was not theirs. None of them was drawing a
+# roof either way.
 
 
 # ── shading ───────────────────────────────────────────────────────────
@@ -705,7 +887,11 @@ def main():
     feats = json.load(open(SNAP, encoding="utf-8"))["features"]
     out = []
     stats = Counter()
+    # Pinned so it prints even at zero. A count that only appears when it is
+    # non-zero is a count nobody notices coming back.
+    stats["roofs_with_a_hole"] = 0
     rows = []
+    audit = []
     for f in feats:
         p = f["properties"]
         h = p.get("final_height") or 0
@@ -721,7 +907,16 @@ def main():
             if len(pm) < 3:
                 stats["degenerate_footprint"] += 1
                 continue
-            hs = half_span(pm)
+            poly = ccw(pm)
+            mrays = mitre_rays(poly)
+            if mrays is None:
+                stats["degenerate_footprint"] += 1
+                continue
+            # One bisection per vertex, reused by the half-span, every step ring
+            # and the deck. `max(caps)` IS the half-span — see the note where
+            # `half_span()` used to be.
+            caps = vertex_caps(poly, mrays)
+            hs = max(caps)
             if hs < 1.2:
                 stats["too_narrow"] += 1
                 continue
@@ -740,11 +935,11 @@ def main():
             if run < MIN_RUN_M:
                 stats["flat" if eave < RING_MIN else "tile_edge_only"] += 1
                 continue
-            poly = ccw(pm)
-            capped = fold_free_run(pm, poly, run)
-            if capped < run - 0.05:
-                stats["fold_capped"] += 1
-            run = capped
+            # `fold_free_run` used to cut the run back to the last offset that
+            # did not fold anywhere — 45 buildings lost slope depth to one notch
+            # somewhere else on the footprint. Nothing folds now: a vertex that
+            # cannot travel stops at its cap and its neighbours carry on. So the
+            # measured run stands, and the cap that used to be global is local.
             if run < MIN_RUN_M:
                 stats["too_narrow_to_slope"] += 1
                 continue
@@ -776,12 +971,19 @@ def main():
                                    "rdd": p.get("rd"), "rgd": p.get("rg")},
                 })
             start = eave_ring if eave_ring is not None else (ccw(pm) + [ccw(pm)[0]])
-            rings = [(start, -EAVE_OUT_M, 0.0)]
+            # Every step ring is the SAME mitre rays clamped at the SAME per-vertex
+            # caps, so the rings nest, the indices stay paired, and a vertex that
+            # has reached its ridge simply stops instead of taking its facet with
+            # it. Solved once per building; a ring is then a multiply-add.
+            rings = [(start, [-EAVE_OUT_M] * len(poly), 0.0)]
             for s in range(1, steps + 1):
                 d = run * s / (steps + 0.35)
-                rings.append((inset(pm, d), d, rise * s / steps))
+                rings.append((inset_capped(poly, mrays, caps, d),
+                              [min(d, c) for c in caps], rise * s / steps))
             made = 0
-            for (r0, d0, t0), (r1, d1, t1) in zip(rings, rings[1:]):
+            edge_steps = Counter()
+            covers = []            # every polygon this roof puts above the eave
+            for (r0, dd0, t0), (r1, dd1, t1) in zip(rings, rings[1:]):
                 if r0 is None or r1 is None:
                     break
                 b = round(base + 0.35 + t0, 2)
@@ -794,16 +996,12 @@ def main():
                     quad = [r0[i], r0[i + 1], r1[i + 1], r1[i], r0[i]]
                     if abs(signed_area(quad)) < 0.35:      # a sliver, not a facet
                         continue
-                    # A mitred offset FOLDS where the building is narrower than
-                    # twice the offset — the Union's two thin wings turned into
-                    # spikes that rendered as steps floating over a flat plane.
-                    # A folded corner has crossed to the wrong side of the wall
-                    # it came from, so it is either outside the footprint or too
-                    # close to it. Dropping those facets leaves a narrow wing
-                    # topping out lower than the main block, which is what a
-                    # narrow wing at the same pitch actually does.
-                    if not valid_step(quad, d0, d1, poly):
+                    j = (i + 1) % len(poly)
+                    if not valid_step(quad, (dd0[i], dd0[j], dd1[j], dd1[i]), poly):
+                        stats["facet_guard_fired"] += 1
                         continue
+                    edge_steps[i] += 1
+                    covers.append(quad[:4])
                     out.append({
                         "type": "Feature",
                         "geometry": {"type": "Polygon", "coordinates": [to_ll(quad, lat0)]},
@@ -833,16 +1031,40 @@ def main():
             # Its COLOUR is the photograph's call. A membrane deck gets its own
             # measured grey; a middle that still reads as tile is the ridge of a
             # full hip and keeps the building's tile colour.
-            deck = inset(pm, min(run + 1.6, hs * 0.95))
+            # THE DECK IS THE RING THE SLOPE ACTUALLY STOPS AT — it was not, and
+            # that cost every roof on campus a hole. It used to be offset
+            # `run + 1.6`, while the innermost slope facet stops at
+            # `run * steps/(steps+0.35)`, about 0.9 run. The 2 m annulus between
+            # them was covered by nothing: 1,008 m^2 on Welch Hall, 10.4% of its
+            # roof, on 75 of 99 pitched roofs, and it is why the audit's first
+            # numbers were so large. Reusing `rings[-1]` makes the file's own
+            # sentence — "whatever the slope encloses is filled at the top of the
+            # slope" — true rather than nearly true, and it cannot drift again
+            # because there is no second expression to keep in step.
+            #
+            # It also fixes the second half of the diagonals. `inset` accepted a
+            # deck ring that had folded inside a wing (positive area, no vertex
+            # travelling far), so the church at 22nd got a cross-shaped plate at
+            # the top of its rise with two arms running 25 m down a wing only
+            # 13 m wide. A capped ring cannot leave the building.
+            deck = rings[-1][0]
+            if deck is None or abs(signed_area(deck)) < 1.0:
+                deck = None
             if made >= 1 and deck is not None:
                 cols, hits = [], 0
                 dll = to_ll(deck, lat0)
-                lons = [q[0] for q in dll]; lats = [q[1] for q in dll]
+                # SAMPLE deeper than we DRAW. The colour question is "is the
+                # middle of this roof membrane or is it more tile", and the ring
+                # the slope stops at still has the slope's own tile in it. So the
+                # probe keeps the old, deeper ring and only the geometry moved.
+                sample = inset_capped(poly, mrays, caps, min(run + 1.6, hs * 0.95))
+                sll = to_ll(sample, lat0) if abs(signed_area(sample)) >= 1.0 else dll
+                lons = [q[0] for q in sll]; lats = [q[1] for q in sll]
                 for i in range(16):
                     for j in range(16):
                         lon = min(lons) + (max(lons) - min(lons)) * (i + 0.5) / 16
                         lat = min(lats) + (max(lats) - min(lats)) * (j + 0.5) / 16
-                        if not point_in_ring(lon, lat, dll):
+                        if not point_in_ring(lon, lat, sll):
                             continue
                         c = px_at(lon, lat)
                         if c is None:
@@ -867,6 +1089,7 @@ def main():
                     "geometry": {"type": "Polygon", "coordinates": [dll]},
                     "properties": props,
                 })
+                covers.append(deck[:-1])
                 stats["decks" if membrane else "ridge_tops"] += 1
 
             if made < 1:
@@ -875,6 +1098,14 @@ def main():
                 continue
             stats["tiled"] += 1
             stats["steps"] += made
+            cen = [round(sum(q[0] for q in ring[:-1]) / (len(ring) - 1), 5),
+                   round(sum(q[1] for q in ring[:-1]) / (len(ring) - 1), 5)]
+            # Always measured, printed only with --audit: the number belongs in
+            # every bake's output so a regression cannot land quietly.
+            bad = audit_coverage(start[:-1], covers, poly, p.get("name"), key, cen)
+            if bad is not None:
+                audit.append(bad)
+                stats["roofs_with_a_hole"] += 1
             if report:
                 area_fr, _ = tile_frac_area(ring)
                 rows.append((run, hs, eave, area_fr, rise, p.get("name") or "(unnamed)"))
@@ -937,6 +1168,14 @@ def main():
         for run, hs, eave, area, rise, nm in rows:
             print("  %5.1f %5.1f  %.2f    %.2f  %4.1f  %s"
                   % (run, hs, eave, area, rise, nm[:44]))
+    if "--audit" in sys.argv:
+        audit.sort(key=lambda a: -a["hole_m2"])
+        print("\n  ROOFS WITH AN UNCOVERED HOLE - %d of %d pitched roofs" % (len(audit), stats["tiled"]))
+        print("   hole_m2   of_roof  wall_az  wall_m  building")
+        for a in audit:
+            print("   %7.1f    %5.1f%%   %5s   %5.1f  %s   %s  at %s"
+                  % (a["hole_m2"], a["hole_fr"] * 100, a["wall_az"], a["wall_len_m"],
+                     (a["name"] or "")[:38], a["id"], a["at"]))
 
 
 if __name__ == "__main__":
