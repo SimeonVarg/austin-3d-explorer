@@ -15,16 +15,38 @@ circle of glass can you add that with the colors."
 THE SHAPE OF THE ANSWER. Not 34 bespoke models -- a small vocabulary of forms
 (plinth, post, beam, disc, dome, figure) plus a RULE keyed on `at`, plus a
 per-piece override where the piece is famous enough that its silhouette is the
-point. Nine overrides carry the pieces anyone would recognise; the other 25 get
+point. Ten overrides carry the pieces anyone would recognise; the other 24 get
 a plinth and a form that at least says "statue" or "sculpture" rather than
 "box". Every one of them is legible at 60 m, which is the distance that matters.
 
-NONE OF THIS IS A CLAIM TO ACCURACY. The positions, names, artists and heights
-are factual and come from OSM and the City of Austin's public-art inventory. The
-FORMS are generative: they are read off photographs of the real works and
-reduced to what fill-extrusion can express, which is stacked horizontal slabs.
-A leaning I-beam becomes a short stack of offset slabs; a sphere becomes stacked
-chords. Stated here rather than implied.
+2026-08-02, AND THIS IS THE IMPORTANT PART OF THE FILE NOW. "make monochrome for
+austin look better not like a silver tree. clock not looks like a fireplace and
+not big enough. I don't even want to check out the other landmarks PLEASE make
+them accurate to size and architecture."
+
+Size before architecture, and he had the order right, because the size was the
+thing no recipe could have fixed. Read the source and it is plain: EVERY
+`at=statue` in props.geojson is 4.2 m on a 1.83 m footprint, EVERY `at=sculpture`
+is 5.5 m on 3.17 m, EVERY `at=installation` is 7.0 m on 4.81 m. They are class
+defaults on a buffered OSM node -- the same three numbers for the armadillo and
+for the largest sculpture on campus. So `DIMS` below is the fix, and the recipes
+are downstream of it. Monochrome for Austin was at 46% of its real height and
+Clock Knot at 43%.
+
+WHAT IS FACTUAL AND WHAT IS NOT. Positions, names and artists come from OSM and
+the City of Austin's public-art inventory. SIZES now come from the published
+dimension of the real work wherever one could be found, with the source written
+next to it in DIMS; where none was found the entry says `est` and says what it
+was reasoned from. The FORMS are still generative: they are read off published
+descriptions and photographs and reduced to what fill-extrusion can express,
+which is stacked horizontal slabs. A leaning I-beam becomes a short stack of
+offset slabs; a sphere becomes stacked chords. Stated here rather than implied.
+
+AND THE BAKE CHECKS ITSELF. main() re-measures the file it just wrote against
+DIMS and exits non-zero on a disagreement, because a recipe that emits nothing,
+or emits everything 2 cm tall, still runs to completion and still prints a happy
+summary. art_lonestar did exactly that: three of a five-pointed star's five
+points were never in the file, and nothing said so.
 
 WHY A BAKE AND NOT A DRAW. Same reason as bake_tower.py: fill-extrusion has no
 vertical anchor and no rotation, so anything that is not a prism has to arrive as
@@ -167,199 +189,504 @@ class Build:
         return h
 
 
+# ── THE SIZE TABLE ────────────────────────────────────────────────────
+#
+# THIS IS THE ROOT-CAUSE FIX AND IT IS WORTH READING BEFORE THE RECIPES.
+#
+# Simeon, 2026-08-02: "make monochrome for austin look better not like a silver
+# tree. clock not looks like a fireplace and not big enough. I don't even want to
+# check out the other landmarks PLEASE make them accurate to size and
+# architecture." Size first, and he is right that it is first.
+#
+# Every recipe below used to scale off `hw`, `hd` and `H` handed in from
+# props.geojson. Those three numbers carry NO information about the artwork.
+# Print the source and it is obvious: every `at=statue` is 4.2 m on a 1.83 m
+# footprint, every `at=sculpture` is 5.5 m on 3.17 m, every `at=installation` is
+# 7.0 m on 4.81 m. They are CLASS DEFAULTS applied to a buffered OSM node -- the
+# same shape for the armadillo and for the largest sculpture on campus. So no
+# amount of care in a recipe could have produced a correct size, and ten
+# hand-tuned multipliers would have been ten guesses at the same missing fact.
+#
+# Hence one table, consulted before any recipe runs, of published dimensions with
+# their source. metres: (height, width, depth, provenance). `est` in the
+# provenance means the figure is REASONED, not published, and says from what.
+#
+# The two he named are the two that were furthest out:
+#   Monochrome for Austin   baked  7.0 m   real 15.24 m   —  46%
+#   Clock Knot              baked  5.5 m   real 12.65 m   —  43%
+DIMS = {
+    "Monochrome for Austin": (15.24, 15.85, 12.50,
+        "50 x 52 x 41 ft — Landmarks UT / CultureMap, the largest in the collection"),
+    "Clock Knot":            (12.65,  6.60, 10.67,
+        "498 x 260 x 420 in — Landmarks UT / Wikipedia"),
+    "The West":              ( 1.52,  3.87,  1.52,
+        "two 5 ft spheres, 12 ft 8 3/8 in overall — Metropolitan Museum"),
+    "Circle with Towers":    ( 4.27,  7.82,  7.82,
+        "14 ft towers, 25 ft 8 in ring — Landmarks UT / news.utexas.edu"),
+    "Austin":                ( 8.03, 18.29, 22.25,
+        "60 x 73 x 26 ft 4 in, 2,715 sq ft — Wikipedia / Blanton"),
+    "Mustangs":              ( 4.30, 11.00,  4.40,
+        "est — seven LIFE-SIZE horses; 9 tons of bronze cast hollow is ~100 m2 "
+        "of surface and one life-size horse is ~10, so the count and the weight "
+        "agree on life size. Plinth is estimated."),
+    "The Torchbearers":      ( 4.60,  3.90,  2.40,
+        "est — 'larger than life' is the only published scale note; two figures "
+        "with a torch passed between them cannot fit a 1.83 m buffered node"),
+    "Diana the Huntress":    ( 4.40,  1.90,  1.90,
+        "est — Huntington's 'Diana of the Chase', a LIFE-SIZE figure balanced on "
+        "a globe with a hound; pedestal estimated from courtyard photographs"),
+    "Sea Turtle":            ( 1.00,  1.80,  1.60,
+        "est — a bronze animal is animal-sized. It was baked at the props file's "
+        "4.2 m statue default, which is a turtle the size of a minibus."),
+    "Lone Star":             ( 3.50,  2.70,  0.60,
+        "est — no published dimension found; a standing star marker, sized so a "
+        "person reads as two thirds of it"),
+}
+
+
 # ── per-piece recipes ─────────────────────────────────────────────────
 #
-# Each takes the builder, the footprint half-size in metres and the feature's own
-# height, and is free to ignore both. Keyed on the exact `name` in props.geojson.
+# Each takes the builder, the footprint half-size in metres and the piece's
+# height. When DIMS has an entry those three are the REAL work's, not the
+# buffered node's. Keyed on the exact `name` in props.geojson.
 
 def art_monochrome(b, hw, hd, H):
-    """Nancy Rubins, "Monochrome for Austin" — a burst of welded aluminium canoes.
+    """Nancy Rubins, "Monochrome for Austin", 2015 — 70 aluminium canoes and
+    small boats bolted to a steel armature, at 24th and Speedway.
 
-    Fourteen long thin slabs radiating from one point above a short mast. The
-    real thing is a chaotic sphere of boats; what survives reduction is the
-    radiating silhouette, so that is what this draws.
+    TWO THINGS WERE WRONG AND ONLY ONE OF THEM WAS SIZE.
+
+    Size: 50 x 52 x 41 ft is 15.24 m tall and 15.85 m wide, and it is the
+    largest sculpture in the Landmarks collection. It was baked 7 m tall on a
+    4.8 m footprint — under half — so in `shots/art/monochrome-close.png` it
+    stands shorter than the live oaks either side of it. That alone is most of
+    why it did not read as the thing you are meant to be looking at.
+
+    Shape: the old recipe put fourteen slabs on ONE ORIGIN at even angles with
+    alternating lengths. A single origin plus even angles is a daisy, and a
+    daisy on a post is a tree — which is exactly the word he used. The real work
+    is a LOPSIDED mass CANTILEVERED off its mast: the hulls cluster to one side
+    and above, they share no common origin, and the armature leans back against
+    the load. So the cloud here has a centre that is not the mast, thirty hulls
+    each with their own position and heading, and a back-stay that exists only
+    on the light side. Nothing about it is symmetrical, which is the point.
+
+    A hull is 3.4–5.3 m long and 0.82 m in the beam — canoe and small-boat
+    dimensions rather than a chosen slab size.
     """
-    b.disc(0, 0, 0.55, 0.0, H * 0.34, "steel")
-    origin_z = H * 0.34
-    n = 14
-    for i in range(n):
-        ang = 2 * math.pi * i / n + 0.21
-        # Alternate lengths and rise so the burst is not a flat daisy.
-        L = hw * (1.55 if i % 3 else 1.15)
-        rise = H * (0.62 if i % 2 else 0.40)
-        b.beam(0, 0, origin_z,
-               L * math.cos(ang), L * math.sin(ang), origin_z + rise,
-               0.34, "alum", steps=4)
+    W, D = hw * 2, hd * 2
+    b.disc(0, 0, 1.30, 0.0, 0.55, "granite", seg=10)
+    mast_top = H * 0.46
+    b.box(0, 0, 0.85, 0.85, 0.0, mast_top, "steel")
+    b.beam(0, 0, mast_top * 0.55, -W * 0.20, -D * 0.17, mast_top * 1.05,
+           0.40, "steel", steps=4)                       # the back-stay
+    b.beam(0, 0, mast_top, W * 0.13, D * 0.04, H * 0.74,
+           0.46, "steel", steps=4)                       # the cantilever arm
+
+    # The cloud. Centre is offset from the mast in +x, which is what makes the
+    # mass lopsided rather than merely irregular.
+    cx, cy, cz = W * 0.24, D * 0.02, H * 0.60
+    ex, ey, ez = W * 0.34, D * 0.44, H * 0.36
+    for i in range(32):
+        u, v, w = hash01("rubins", 3 * i + 1), hash01("rubins", 3 * i + 2), hash01("rubins", 3 * i + 3)
+        rr = 0.42 + 0.58 * u                 # biased outward: a shell of hulls
+        th, ph = 2 * math.pi * v, math.acos(1 - 2 * w)
+        px = cx + ex * rr * math.sin(ph) * math.cos(th)
+        py = cy + ey * rr * math.sin(ph) * math.sin(th)
+        pz = cz + ez * rr * math.cos(ph)
+
+        a = 2 * math.pi * hash01("hull", 2 * i + 1)
+        el = (hash01("hull", 2 * i + 2) - 0.45) * 1.6
+        L = 3.4 + 1.9 * hash01("hulllen", i)
+        dx = L * 0.5 * math.cos(el) * math.cos(a)
+        dy = L * 0.5 * math.cos(el) * math.sin(a)
+        dz = L * 0.5 * math.sin(el)
+        if dz < 0:                                       # beam() needs z0 < z1
+            dx, dy, dz = -dx, -dy, -dz
+        # A LEVEL HULL HAS NO HEIGHT and add() drops a zero-height slab without
+        # a word — the same trap that reported 0 features for the plant pipe run
+        # (HANDOFF §51). A hull is 0.55 m deep, so that is the floor.
+        z0, z1 = pz - dz, pz + dz
+        if z1 - z0 < 0.55:
+            z0, z1 = pz - 0.28, pz + 0.28
+        if z0 < 0.7:
+            z1 += 0.7 - z0
+            z0 = 0.7
+        b.beam(px - dx, py - dy, z0, px + dx, py + dy, z1,
+               0.82, "mirror" if i % 4 == 0 else "alum", steps=3)
+
+    # Five OUTRIGGERS, placed rather than sampled. A cloud of 32 random hulls
+    # almost never reaches its own envelope — measured, it came back 12.8 m wide
+    # against the published 15.85 — and the real work is spiky: individual hulls
+    # jut clear of the mass, which is what makes the silhouette read as boats
+    # rather than as a lump. These are the ones that set the outline.
+    for x0, y0, z0, x1, y1, z1 in (
+            (cx + 1.4, cy - 1.0, cz - 1.4, W * 0.52, -D * 0.20, cz + 2.2),
+            (cx - 1.0, cy + 0.8, cz - 0.6, -W * 0.24, D * 0.40, cz + 3.1),
+            (cx + 0.4, cy - 0.6, cz + 1.0, cx + 2.6, -D * 0.46, cz + 4.3),
+            (cx - 0.2, cy + 0.5, cz + 1.6, cx + 1.1, D * 0.44, H - 0.25),
+            (cx + 1.8, cy + 0.2, cz - 2.6, cx + 3.4, cy - 1.6, cz + 0.4)):
+        b.beam(x0, y0, z0, x1, y1, z1, 0.82, "alum", steps=4)
 
 
 def art_clockknot(b, hw, hd, H):
-    """Mark di Suvero, "Clock Knot" — three leaning minium-red I-beams."""
-    z = 0.0
-    b.box(0, 0, hw * 0.9, hd * 0.9, 0.0, 0.35, "granite")
-    legs = [(0.0, 1.0), (2.6, 1.0), (4.2, 1.0)]
-    for i, (ang_off, _) in enumerate(legs):
-        a = ang_off
-        b.beam(hw * 0.85 * math.cos(a), hd * 0.85 * math.sin(a), 0.3,
-               hw * 0.12 * math.cos(a + 2.0), hd * 0.12 * math.sin(a + 2.0), H,
-               0.34, "steelred", steps=6)
-    # The knot itself: a short horizontal member across the top.
-    b.beam(-hw * 0.5, -hd * 0.2, H * 0.78, hw * 0.5, hd * 0.35, H * 0.9,
-           0.36, "steelred", steps=3)
+    """Mark di Suvero, "Clock Knot", 2007 — painted steel, on Dean Keeton.
+
+    498 x 260 x 420 in = 12.65 m tall. It was baked at 5.5 m, so "not big
+    enough" was an understatement: it stood at 43% of height.
+
+    THE ARCHITECTURE, from Landmarks' own description rather than from a glance
+    at a photograph: crossed I-beams and a circular knotted centre reading as a
+    clock face, with beams running 11:00–5:00, 12:00–6:00 and 1:00–7:00 and a
+    horizontal clock hand extending to the left — and, crucially, "as one moves
+    round the work what had been read as a vertical beam from 12:00 to 6:00
+    shows itself to be one leg of an INVERTED V". That last clause is the whole
+    silhouette: an acute apex high up, legs splaying wide to the ground.
+
+    The old recipe was three legs at even angles meeting low, with a horizontal
+    member across the top, standing on a slab the width of the footprint. That
+    is a mantel over a hearth on a hearthstone, and "fireplace" is a fair
+    description of it. Three things change: the apex goes to 10.4 m and gets
+    acute, the hearthstone becomes three small pads under three feet, and the
+    top member stops being horizontal-across and becomes the ring plus the hand.
+    """
+    ax, ay, az = 0.30, 0.10, H * 0.82        # the apex
+    # 0.68 m members, not 0.52. A 12.65 m di Suvero I-beam is 0.6-0.75 m deep,
+    # and at 0.52 the contact sheet read it as a spindly tripod rather than as
+    # steel. Measured on the sheet before changing it.
+    feet = [(-hw * 0.97, -0.60, 0.68),       # the inverted V, splayed in x
+            ( hw * 0.95,  0.75, 0.68),
+            ( 0.10, -hd * 0.79, 0.60)]       # the third leg, raking back in y
+    for fx, fy, wide in feet:
+        b.box(fx, fy, 1.05, 1.05, 0.0, 0.28, "granite")
+        b.beam(fx, fy, 0.20, ax, ay, az, wide, "steelred", steps=7)
+    # The beam that carries on THROUGH the knot to full height — this is what
+    # makes the apex acute instead of a tripod's blunt top.
+    b.beam(ax, ay, az, ax - 1.15, ay + 0.70, H, 0.58, "steelred", steps=3)
+    # The knot: three short members crossing at the apex, plus the disc that
+    # reads as the clock face from the air.
+    for i in range(3):
+        t = math.pi * i / 3
+        b.beam(ax - 1.5 * math.cos(t), ay - 1.5 * math.sin(t), az - 0.9,
+               ax + 1.5 * math.cos(t), ay + 1.5 * math.sin(t), az + 0.9,
+               0.48, "steelred", steps=3)
+    b.disc(ax, ay, 1.60, az - 0.30, az + 0.30, "steelred", seg=12)
+    # The hand: a long near-level member reaching out at high level. Written
+    # low-end-first so beam() gets z0 < z1.
+    b.beam(ax - 0.10, hd * 0.98, az - 2.55, ax + 0.15, ay + 0.55, az - 1.45,
+           0.58, "steelred", steps=6)
 
 
 def art_thewest(b, hw, hd, H):
-    """Donald Lipski, "The West" — a polished sphere held in a ring.
+    """Donald Lipski, "The West" — TWO spherical buoys skinned in corroded
+    copper pennies, lent by the Metropolitan Museum, east of the COM building.
 
-    The first cut made a 6-tier octagonal ball barely wider than its own post
-    and it rendered as a mushroom. A sphere needs enough tiers that the
-    silhouette curves and enough radius that it is obviously the subject: 9
-    tiers, 12 sides, and it takes the whole footprint.
+    Each sphere is 5 ft across and the pair measures 12 ft 8 3/8 in overall, so
+    the work stands 1.52 m and SITS ON THE GRASS. The bake had it as one
+    mirror-polished 4.5 m ball on a stem inside a steel ring: three times too
+    tall, the wrong count, the wrong material, and a ring the work does not
+    have. Simeon's own note — "pretty sure thats supposed to be balls of texas"
+    — was a better reading of it than this file's was.
+
+    Pennies corrode brown and green, so `corten` rather than `mirror`. Twelve
+    sides and eight tiers because at 1.5 m a coarse ball is visibly a barrel.
     """
-    b.disc(0, 0, hw * 0.5, 0.0, 0.45, "granite", seg=12)
-    r = min(hw, hd) * 0.95
-    zc = 0.7 + r
-    b.disc(0, 0, 0.22, 0.45, zc - r * 0.55, "steel")            # the stem
-    b.ball(0, 0, r, zc, "mirror", tiers=9, seg=12)
-    # The ring, standing PROUD of the sphere so it reads as holding it rather
-    # than as a stripe painted on it: three thin discs a little wider than the
-    # ball, around its equator.
-    for dz, rr in ((-0.16, 1.10), (0.0, 1.16), (0.16, 1.10)):
-        b.disc(0, 0, r * rr, zc + dz * r - 0.07, zc + dz * r + 0.07, "steel", seg=14)
+    r = 1.524 / 2
+    sep = 3.871 / 2 - r          # the offset that reproduces the published span
+    for s in (-1, 1):
+        b.ball(s * sep, 0.0, r, r, "corten", tiers=8, seg=12)
 
 
 def art_diana(b, hw, hd, H):
-    """Anna Hyatt Huntington, "Diana the Huntress" — a bronze figure with a bow."""
-    ph = b.plinth(hw * 1.1, hd * 1.1, "limest", 1.15)
-    b.figure(0, 0, ph, H - ph, "bronze", wide=0.6)
-    # The drawn bow: a tall thin arc beside her, and the raised arm to it.
-    b.beam(-hw * 0.55, 0.0, ph + (H - ph) * 0.28,
-           -hw * 0.55, 0.0, ph + (H - ph) * 0.95, 0.16, "bronze", steps=3)
-    b.beam(0.0, 0.0, ph + (H - ph) * 0.72,
-           -hw * 0.5, 0.0, ph + (H - ph) * 0.78, 0.22, "bronze", steps=3)
+    """Anna Hyatt Huntington, "Diana of the Chase" (1922), in a UT courtyard.
+
+    The published description is specific and the old recipe matched none of it:
+    a life-size figure BALANCED ON AN EARTHLY GLOBE, bow held ALOFT in the left
+    hand, right arm bent as though the arrow has just gone, and a HOUND SPRINGING
+    UP beside her with its forelegs in the air. What was baked was a figure on a
+    slab with a vertical bar beside it at shoulder height — the bow at the wrong
+    height, in the wrong hand's place, and no globe and no hound at all.
+
+    4.4 m overall is estimated: 1.5 m pedestal + 0.85 m globe + a 1.72 m figure
+    + the bow above her head. Only the pedestal is a guess.
+    """
+    ped = 1.50
+    b.box(0, 0, 1.30, 1.30, 0.0, ped, "granite")
+    b.box(0, 0, 1.55, 1.55, 0.0, 0.22, "granite")            # base course
+    gr = 0.42
+    b.ball(0, 0, gr, ped + gr, "bronze", tiers=6, seg=12)    # the earthly globe
+    fz = ped + gr * 2
+    b.figure(0, 0, fz, 1.72, "bronze", wide=0.52)
+    # The bow, held ALOFT: an arc above and left of her head, drawn as a stack
+    # rather than a bar so it curves.
+    for i in range(5):
+        t = -0.9 + 0.45 * i
+        b.box(-0.34 - 0.16 * math.cos(t), 0.0, 0.16, 0.14,
+              fz + 0.95 + 0.22 * i, fz + 0.95 + 0.22 * (i + 1), "bronze")
+    b.beam(0.0, 0.0, fz + 1.22, -0.36, 0.0, fz + 1.38, 0.17, "bronze", steps=2)
+    # The hound, forelegs in the air beside her.
+    b.beam(0.62, -0.30, ped * 0.30, 0.30, 0.10, ped * 0.30 + 0.95,
+           0.30, "bronze", steps=4)
+    b.box(0.72, -0.42, 0.30, 0.26, 0.0, ped * 0.32, "bronze")
 
 
 def art_austin(b, hw, hd, H):
-    """Ellsworth Kelly, "Austin" — the white stone chapel with coloured glass.
+    """Ellsworth Kelly, "Austin", 2018 — the Blanton's stone chapel.
 
-    "austin building by ellsworth has chromatic circle of glass can you add that
-    with the colors."
+    "check if the glass u added to the ellsworth building matches it irl". It
+    did not, and neither did the building under it.
 
-    THE FOOTPRINT IS IGNORED HERE, deliberately. OSM carries this as a 6 x 6 m
-    square because it is a buffered NODE, and the building is 2,715 sq ft --
-    18.3 x 8.2 m, with a 8.0 m ridge. Drawing Kelly's chapel at 6 x 6 would be
-    drawing a different building, and this is the one piece on campus somebody
-    would notice, so the real dimensions win over the footprint. Every other
-    recipe in this file respects its footprint.
+    THE MASSING IS A CROSS, and that is a DERIVATION, not a guess. The published
+    figures are 60 x 73 x 26 ft 4 in with 2,715 sq ft of floor. Those three
+    numbers only agree with each other if the plan is cruciform: 18.29 x 22.25 m
+    as a rectangle is 407 m2 = 4,380 sq ft, half again too much, while a cross
+    of the same overall size with 7.72 m arms is 254 m2 = 2,733 sq ft — the
+    published figure to within 0.7%. So the arm width is not chosen, it is
+    solved for. And a cross plan is what produces the DOUBLE barrel vault the
+    building is known for: one vault per arm, crossing over the middle. The old
+    bake drew a single 18.3 x 8.2 m box under a single vault, having read the
+    8.03 m HEIGHT as a depth.
 
-    THE COLOUR IS THE POINT, and it goes on ALL THREE glazed walls -- the colour
-    grid on the south, the spectrum on the east, the chromatic circle on the
-    west -- because from a flying camera you cannot choose which face you get,
-    and a chapel whose colour is on the one wall you happen not to see is the
-    grey box again. fill-extrusion cannot glaze a wall, so each panel is its own
-    prism standing proud of the stone, the same trick as the Tower's window
-    slots.
+    THE THREE WINDOWS, AND TWO OF THEM WERE ON THE WRONG WALL. Kelly's motifs
+    are the "colour grid" (a three-by-three lattice of squares), "tumbling
+    squares" (the same squares rotated around a circle) and the "starburst"
+    (the tumbling squares elongated into narrow streaks), and they are on the
+    SOUTH, EAST and WEST walls in that order. The bake had six tall spectrum
+    lights on the east — a window this building does not have — and the ring of
+    squares on the west, where the streaks belong.
+
+    THE CHECK THAT THIS READING IS RIGHT RATHER THAN MERELY PLAUSIBLE:
+    3x3 + 12 + 12 = 33, and 33 is the published count of mouth-blown Franz Mayer
+    windows. A reading that lands on the total by accident is unlikely; one that
+    does not land on it is wrong. This one lands on it.
+
+    fill-extrusion cannot glaze a wall and cannot tilt a face, so every panel is
+    its own prism standing proud of the stone, and anything diagonal inside a
+    wall plane — a starburst ray, a tumbled square — is a short stack that steps
+    across and up together.
     """
-    W, D = 18.3, 8.2                    # sourced: 2,715 sq ft, long axis N-S
-    hw, hd = W / 2, D / 2
-    H = 8.0
-    wall_h = 5.6
-    t = 0.6
-    # Four stone walls rather than one solid mass, so the vault reads as a roof
-    # sitting ON something instead of as a lid on a block.
-    b.box(0,  hd - t / 2, W, t, 0.0, wall_h, "white")
-    b.box(0, -hd + t / 2, W, t, 0.0, wall_h, "white")
-    b.box( hw - t / 2, 0, t, D - t * 2, 0.0, wall_h, "white")
-    b.box(-hw + t / 2, 0, t, D - t * 2, 0.0, wall_h, "white")
-    # ONE barrel vault, running the LONG axis. The first cut stacked chords that
-    # shrank in x while staying full depth in y, which crossed the walls and
-    # rendered as a plus sign from the air.
-    tiers = 6
+    W, Dp = 18.29, 22.25                 # E–W overall, N–S overall
+    ARM = 7.72                           # solved from the 2,715 sq ft floor area
+    H = 8.03
+    wall_h = 5.35
+    hx, hy = W / 2, Dp / 2
+
+    # The cross, as two solid stone volumes. They interpenetrate; both are the
+    # same material, so the shared interior faces cannot show a seam.
+    b.box(0, 0, ARM, Dp, 0.0, wall_h, "white")
+    b.box(0, 0, W, ARM, 0.0, wall_h, "white")
+    # TWO barrel vaults, one along each arm, crossing over the middle. Chords of
+    # a circle: each tier keeps its arm's LENGTH and loses width, which is what
+    # makes it a barrel rather than a dome.
+    rise, tiers = H - wall_h, 7
     for i in range(tiers):
         f0, f1 = i / tiers, (i + 1) / tiers
-        dd = D * math.sqrt(max(0.0, 1.0 - ((f0 + f1) / 2) ** 2))
-        b.box(0, 0, W, dd, wall_h + (H - wall_h) * f0, wall_h + (H - wall_h) * f1, "white")
+        k = math.sqrt(max(0.0, 1.0 - ((f0 + f1) / 2) ** 2))
+        b.box(0, 0, ARM * k, Dp, wall_h + rise * f0, wall_h + rise * f1, "white")
+        b.box(0, 0, W, ARM * k, wall_h + rise * f0, wall_h + rise * f1, "white")
 
-    prd = 0.34                          # how far a panel stands proud of the stone
-    # SOUTH: the colour grid, 3 rows of 4.
+    prd = 0.34                           # how far a panel stands proud of stone
+
+    # SOUTH — THE COLOUR GRID. Three by three, upright squares, evenly spaced.
+    sq, gap, z0 = 1.25, 1.72, 1.15
     for r in range(3):
-        for c in range(4):
-            mat = GLASS_SPECTRUM[(r * 4 + c) % len(GLASS_SPECTRUM)]
-            x = -W * 0.34 + (W * 0.68) * c / 3
-            z = 1.0 + 3.6 * r / 3
-            b.box(x, -hd - prd / 2, W * 0.13, prd, z, z + 1.05, mat)
-    # EAST: the spectrum, six tall thin lights.
-    for i, mat in enumerate(GLASS_SPECTRUM):
-        y = -D * 0.32 + (D * 0.64) * i / (len(GLASS_SPECTRUM) - 1)
-        b.box(hw + prd / 2, y, prd, D * 0.075, 1.1, wall_h - 0.9, mat)
-    # WEST: the chromatic circle, twelve blocks round a ring.
-    rc, n = 1.9, 12
-    for i in range(n):
-        a = 2 * math.pi * i / n
-        b.box(-hw - prd / 2, rc * math.sin(a), prd, 0.72,
-              wall_h * 0.55 + rc * math.cos(a) - 0.36,
-              wall_h * 0.55 + rc * math.cos(a) + 0.36,
-              GLASS_SPECTRUM[i % len(GLASS_SPECTRUM)])
+        for c in range(3):
+            b.box((c - 1) * gap, -hy - prd / 2, sq, prd,
+                  z0 + r * (sq + 0.20), z0 + r * (sq + 0.20) + sq,
+                  GLASS_SPECTRUM[(r * 3 + c) % len(GLASS_SPECTRUM)])
+
+    # EAST — TUMBLING SQUARES. The same squares, rotated around a circle. A
+    # square rotated by t in a VERTICAL plane cannot be rotated by
+    # fill-extrusion, so each one is three stacked bars following the exact
+    # width profile of a rotated square: full width across the middle band,
+    # tapering to the vertex above and below. At t=0 that is a square; at 45
+    # degrees it is a diamond; the ring runs through every angle between.
+    # Sized so the whole motif stays on the STONE: the ring's outer reach is
+    # ring_r + the rotated square's half-diagonal, and that has to clear 0 below
+    # and wall_h above or squares float in the vault and sink into the plaza.
+    ring_r, s2, zc = 1.72, 0.90, 2.85
+    for i in range(12):
+        a = 2 * math.pi * i / 12
+        y = ring_r * math.sin(a)
+        z = zc + ring_r * math.cos(a)
+        c_, d_ = abs(math.cos(a)), abs(math.sin(a))
+        hh = (s2 / 2) * (c_ + d_)                    # half-height AND half-width
+        flat = (s2 / 2) * abs(c_ - d_)               # the full-width band
+        mat = GLASS_SPECTRUM[i % len(GLASS_SPECTRUM)]
+        for t in (-hh * 0.66, 0.0, hh * 0.66):
+            w = hh if abs(t) <= flat else max(0.12, hh - (abs(t) - flat))
+            b.box(hx + prd / 2, y, prd, w * 2, z + t - hh / 3, z + t + hh / 3, mat)
+
+    # WEST — THE STARBURST. Twelve narrow streaks radiating from a centre. Each
+    # ray steps outward in y and z together, which is the only way a diagonal
+    # exists on a wall made of prisms.
+    r0, r1, wide, zc2 = 0.45, 2.30, 0.30, 2.85
+    for i in range(12):
+        a = 2 * math.pi * i / 12 + math.pi / 12
+        mat = GLASS_SPECTRUM[i % len(GLASS_SPECTRUM)]
+        for s in range(3):
+            t0 = r0 + (r1 - r0) * s / 3
+            t1 = r0 + (r1 - r0) * (s + 1) / 3
+            y0, z0r = t0 * math.sin(a), t0 * math.cos(a)
+            y1, z1r = t1 * math.sin(a), t1 * math.cos(a)
+            ym, zm = (y0 + y1) / 2, (z0r + z1r) / 2
+            dy = max(abs(y1 - y0) + wide * 0.5, wide)
+            dz = max(abs(z1r - z0r) + wide * 0.5, wide)
+            b.box(-hx - prd / 2, ym, prd, dy, zc2 + zm - dz / 2, zc2 + zm + dz / 2, mat)
 
 
 def art_turtle(b, hw, hd, H):
-    """Dylan Connor, "Sea Turtle" — a bronze turtle on a low base."""
-    ph = b.plinth(hw * 1.2, hd * 1.2, "limest", 0.7)
-    r = min(hw, hd) * 0.85
-    b.dome(0, 0, r, ph, r * 0.8, "bronze", tiers=3, seg=10)      # the shell
-    b.box(0, r * 0.95, ph + r * 0.1, ph + r * 0.42, 0, 0, "bronze") if False else None
-    b.disc(0, r * 0.9, r * 0.3, ph + r * 0.05, ph + r * 0.4, "bronze")   # head
-    for sx, sy in ((0.8, 0.55), (-0.8, 0.55), (0.75, -0.6), (-0.75, -0.6)):
-        b.box(r * sx, r * sy, r * 0.55, r * 0.3, ph, ph + r * 0.18, "bronze",
-              rot=math.atan2(sy, sx))
+    """"Sea Turtle" — a bronze animal, and an animal is animal-sized.
+
+    Baked at 4.2 m, which is the props file's class default for `at=statue` and
+    is a turtle the size of a minibus standing on a 2 m plinth. No published
+    dimension was found, so 1.6 m of carapace on a 0.4 m limestone base is
+    ESTIMATED — from the animal, which is the one measurement nobody has to
+    look up. Flippers rather than four boxes at the corners: a turtle's are
+    long, forward-swept and are most of its plan silhouette.
+    """
+    ph = 0.40
+    b.box(0, 0, 1.50, 1.30, 0.0, ph, "limest")
+    b.box(0, 0, 1.70, 1.50, 0.0, 0.12, "limest")
+    r = 0.66
+    b.dome(0, 0, r, ph, 0.60, "bronze", tiers=3, seg=12)          # the carapace
+    b.disc(0, r * 0.95, r * 0.30, ph + 0.06, ph + 0.34, "bronze", seg=8)   # head
+    for sx, sy, ang in ((1, 0.55, 0.75), (-1, 0.55, -0.75), (1, -0.62, -0.7), (-1, -0.62, 0.7)):
+        b.box(sx * r * 0.82, sy * r, 0.72, 0.26, ph + 0.02, ph + 0.18, "bronze",
+              rot=ang * sx)
 
 
 def art_mustangs(b, hw, hd, H):
-    """A. P. Proctor, "Mustangs" — a herd of bronze horses on a long plinth."""
-    ph = b.plinth(hw * 1.6, hd * 1.1, "limest", 0.85)
-    for i, (dx, dy, s) in enumerate(((-0.62, 0.1, 1.0), (0.0, -0.15, 1.1), (0.66, 0.12, 0.95))):
-        x, y = hw * dx, hd * dy
-        bodyz = ph + (H - ph) * 0.36
-        b.box(x, y, hw * 0.62 * s, hd * 0.26 * s, bodyz, ph + (H - ph) * 0.78, "bronze",
-              rot=0.12 * i)
-        for lx in (-0.24, 0.24):
-            b.box(x + hw * lx * s, y, hw * 0.1, hd * 0.1, ph, bodyz, "bronze")
-        b.box(x + hw * 0.3 * s, y, hw * 0.2, hd * 0.18, ph + (H - ph) * 0.7, H, "bronze")
+    """A. Phimister Proctor, "The Seven Mustangs", 1948 — nine tons of bronze in
+    front of the Texas Memorial Museum.
+
+    SEVEN horses, not the three the bake drew, and LIFE-SIZE. The overall
+    dimensions are not published, but the weight settles the scale: nine tons of
+    bronze cast hollow at a normal wall thickness is on the order of a hundred
+    square metres of surface, and one life-size horse is about ten. Seven of
+    them is the answer, and the count is in the title. The plinth (11.0 x 4.4 x
+    1.05) is estimated.
+
+    A horse is legs, a barrel, a raking neck and a head — nine parts. The old
+    recipe gave each of three horses a body box, two legs and a lump, which from
+    any angle was three tables.
+    """
+    ph = 1.05
+    b.box(0, 0, 11.0, 4.40, 0.0, ph, "granite")
+    b.box(0, 0, 11.4, 4.75, 0.0, 0.22, "granite")
+
+    def horse(x, y, rot, s):
+        c, sn = math.cos(rot), math.sin(rot)
+        def P(u, v):
+            return (x + u * s * c - v * s * sn, y + u * s * sn + v * s * c)
+        leg = 1.30 * s
+        for u, v in ((0.80, 0.30), (0.80, -0.30), (-0.74, 0.30), (-0.74, -0.30)):
+            px, py = P(u, v)
+            b.box(px, py, 0.26 * s, 0.26 * s, ph, ph + leg, "bronze", rot=rot)
+        bx, by = P(0, 0)
+        b.box(bx, by, 2.15 * s, 0.74 * s, ph + leg, ph + leg + 0.95 * s, "bronze", rot=rot)
+        nx, ny = P(1.08, 0)
+        b.beam(bx + (nx - bx) * 0.25, by + (ny - by) * 0.25, ph + leg + 0.68 * s,
+               nx, ny, ph + leg + 1.52 * s, 0.44 * s, "bronze", steps=2)
+        hx, hy = P(1.36, 0)
+        b.box(hx, hy, 0.64 * s, 0.32 * s,
+              ph + leg + 1.40 * s, ph + leg + 1.78 * s, "bronze", rot=rot)
+        tx, ty = P(-1.22, 0)
+        b.box(tx, ty, 0.32 * s, 0.24 * s,
+              ph + leg + 0.28 * s, ph + leg + 0.95 * s, "bronze", rot=rot)
+
+    # A herd, not a rank: the headings fan and the colt is small.
+    for x, y, rot, s in ((-4.30, -0.55, 0.16, 1.00), (-2.65, 0.62, -0.10, 1.05),
+                         (-0.95, -0.45, 0.24, 0.98), (0.55, 0.70, -0.06, 1.06),
+                         (2.05, -0.60, 0.18, 1.00), (3.55, 0.45, -0.14, 0.96),
+                         (4.75, -0.75, 0.30, 0.72)):
+        horse(x, y, rot, s)
 
 
 def art_circletowers(b, hw, hd, H):
-    """Sol LeWitt, "Circle with Towers" — a concrete-block ring with towers."""
-    r = min(hw, hd) * 0.92
-    n = 16
-    for i in range(n):
-        a = 2 * math.pi * i / n
-        b.box(r * math.cos(a), r * math.sin(a), 0.5, 0.5, 0.0, H * 0.42, "limest", rot=a)
+    """Sol LeWitt, "Circle with Towers", 2012 — concrete block, at the Gates
+    Computer Science complex.
+
+    A low circular WALL 25 ft 8 in across (7.82 m) punctuated by EIGHT towers
+    14 ft high (4.27 m). The bake had a 3 m ring — under half the diameter —
+    with sixteen extra posts between the towers, and sixteen posts turn a wall
+    into a colonnade, which is the opposite of what LeWitt built. The ring is
+    now 32 short tangential segments that overlap into a continuous wall.
+
+    The wall height is the one figure not published: 1.35 m is read off the
+    photographs against the 4.27 m towers, and is generative.
+
+    `granite` and not `limest`, because concrete masonry is grey and the pale
+    cream read as a limestone folly.
+    """
+    R, seg = 7.82 / 2, 32
+    wall_h, wall_t = 1.35, 0.40
+    for i in range(seg):
+        a = 2 * math.pi * (i + 0.5) / seg
+        b.box(R * math.cos(a), R * math.sin(a),
+              (2 * math.pi * R / seg) * 1.30, wall_t, 0.0, wall_h, "granite",
+              rot=a + math.pi / 2)
     for i in range(8):
-        a = 2 * math.pi * i / 8 + math.pi / 8
-        b.box(r * math.cos(a), r * math.sin(a), 0.62, 0.62, 0.0, H, "limest", rot=a)
+        a = 2 * math.pi * i / 8
+        b.box(R * math.cos(a), R * math.sin(a), 0.84, 0.84, 0.0, 4.27, "granite", rot=a)
 
 
 def art_torchbearers(b, hw, hd, H):
-    """Charles Umlauf, "The Torchbearers" — two bronze figures passing a torch."""
-    ph = b.plinth(hw * 1.25, hd * 1.25, "granite", 1.0)
-    b.figure(-hw * 0.32, 0.0, ph, (H - ph) * 0.98, "bronze", wide=0.5)
-    b.figure(hw * 0.34, hd * 0.1, ph, (H - ph) * 0.9, "bronze", wide=0.5)
-    b.beam(-hw * 0.32, 0.0, ph + (H - ph) * 0.85,
-           hw * 0.34, hd * 0.1, ph + (H - ph) * 0.9, 0.14, "bronze", steps=3)
+    """Charles Umlauf, "The Torchbearers", 1962 — two larger-than-life bronze
+    runners passing a torch, outside the Flawn Academic Center.
+
+    "Larger than life" is the only published scale note, so 4.6 m over a 1.35 m
+    base with the figures 2.7 m apart is ESTIMATED — but two figures with a
+    torch handed between them cannot occupy the 1.83 m buffered node the props
+    file carries, whatever the exact figure is. The torch gets a flame, which is
+    the one detail that makes the gesture legible from above.
+    """
+    ph = 1.35
+    b.box(0, 0, 3.90, 2.40, 0.0, ph, "granite")
+    b.box(0, 0, 4.25, 2.75, 0.0, 0.24, "granite")
+    b.figure(-1.35, -0.15, ph, 2.90, "bronze", wide=0.60)
+    b.figure(1.35, 0.20, ph, 2.75, "bronze", wide=0.58)
+    # The arms, reaching toward each other, and the torch between them.
+    b.beam(-1.35, -0.15, ph + 2.20, -0.30, 0.0, ph + 2.62, 0.20, "bronze", steps=3)
+    b.beam(1.35, 0.20, ph + 2.10, 0.28, 0.05, ph + 2.55, 0.20, "bronze", steps=3)
+    b.box(0.0, 0.02, 0.22, 0.22, ph + 2.55, ph + 3.05, "bronze")
+    b.disc(0.0, 0.02, 0.30, ph + 3.05, ph + 3.25, "bronze", seg=8)
 
 
 def art_lonestar(b, hw, hd, H):
-    """A five-pointed Texas star, standing on edge."""
-    b.box(0, 0, hw * 0.5, hd * 0.5, 0.0, H * 0.3, "granite")
-    R, r = min(hw, hd) * 1.0, min(hw, hd) * 0.42
-    cz = H * 0.3 + R
+    """A five-pointed Texas star, standing on edge.
+
+    THE OLD RECIPE DREW ALMOST NOTHING AND SAID SO TO NOBODY. Of its fifteen
+    calls, five were `beam(0,0,cz -> 0,0,cz)` — no length and no height — five
+    were boxes from `cz` to `cz`, and of the five arms only the two with a
+    positive vertical component survived, because `beam()` spreads z0..z1 across
+    its steps and `add()` silently drops anything under 2 cm tall. Three of the
+    five points of a five-pointed star were never in the file. Same failure as
+    the plant pipe run in HANDOFF §51, and it is invisible in a screenshot
+    because what is left still looks like a shape.
+
+    Drawn properly: each arm is a stack stepping outward and up or DOWN, with
+    the width tapering to the tip, and the core is a disc. 3.5 m overall is
+    estimated — no dimension was found for this piece.
+    """
+    base = 0.95
+    b.box(0, 0, 1.35, 1.10, 0.0, base, "granite")
+    R, cz, wide = 1.30, base + 1.30, 0.62
+    b.disc(0, 0, 0.52, cz - 0.52, cz + 0.52, "bronze", seg=10)
     for i in range(5):
-        a = math.pi / 2 + 2 * math.pi * i / 5
-        b.beam(0, 0, cz, 0.0, 0.0, cz, 0.3, "bronze", steps=1)
-        b.box(0, 0, 0.34, r * 2, cz + R * math.sin(a) * 0.0, cz, "bronze")
-    # the star arms, as slabs radiating in the vertical plane
-    for i in range(5):
-        a = math.pi / 2 + 2 * math.pi * i / 5
-        b.beam(0, 0, cz, 0.0, R * math.cos(a), cz + R * math.sin(a), 0.34, "bronze", steps=3)
+        a = math.pi / 2 + 2 * math.pi * i / 5      # a point straight up
+        for s in range(3):
+            t0, t1 = R * s / 3, R * (s + 1) / 3
+            # The star plane runs EAST-WEST. It ran north-south, which is
+            # edge-on from the direction this app is usually flown, and a star
+            # seen edge-on is a post -- which is what the contact sheet showed.
+            x0, z0 = t0 * math.cos(a), t0 * math.sin(a)
+            x1, z1 = t1 * math.cos(a), t1 * math.sin(a)
+            xm, zm = (x0 + x1) / 2, (z0 + z1) / 2
+            w = wide * (1.0 - 0.75 * (s + 0.5) / 3)
+            dx = max(abs(x1 - x0) + w * 0.5, w)
+            dz = max(abs(z1 - z0) + w * 0.5, w)
+            b.box(xm, 0.0, dx, 0.34, cz + zm - dz / 2, cz + zm + dz / 2, "bronze")
 
 
 RECIPES = {
@@ -553,6 +880,19 @@ def main():
         hw = max(0.7, (max(xs) - min(xs)) / 2)
         hd = max(0.7, (max(ys) - min(ys)) / 2)
         H = float(p.get("h") or 4.2)
+        # THE SIZE TABLE WINS OVER THE FOOTPRINT. props.geojson's `h` and its
+        # ring are class defaults on a buffered node — 4.2 m for every statue,
+        # 5.5 for every sculpture, 7.0 for every installation — so where a real
+        # dimension is known it replaces both, and the recipe is handed the real
+        # work's half-extents. See DIMS for the sources.
+        if name in DIMS:
+            dh, dw, dd, _prov = DIMS[name]
+            stats["sized_from_DIMS"] += 1
+            if abs(dh - H) > 0.3:
+                stats["resized_h"] += 1
+                print("  resize %-24s h %.1f -> %.2f  w %.1f -> %.2f"
+                      % (name, H, dh, hw * 2, dw))
+            hw, hd, H = dw / 2, dd / 2, dh
 
         b = Build(name, lon0, lat0)
         if name in RECIPES:
@@ -583,17 +923,49 @@ def main():
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
 
+    # ASSERT THE EFFECT, NOT THE INTENTION. A recipe that emits nothing at all,
+    # or emits everything 2 cm tall, still runs to completion and still prints a
+    # happy summary — art_lonestar did exactly that for five of its five arms.
+    # So measure the file that was written and check every sized piece against
+    # the table it was sized from.
+    measured, bad = {}, []
+    for f in feats:
+        nm = f["properties"]["name"]
+        e = measured.setdefault(nm, [0.0, 180.0, -180.0, 90.0, -90.0, 0])
+        e[0] = max(e[0], f["properties"]["h"])
+        for x, y in f["geometry"]["coordinates"][0]:
+            e[1], e[2] = min(e[1], x), max(e[2], x)
+            e[3], e[4] = min(e[3], y), max(e[4], y)
+        e[5] += 1
+    for nm, (dh, dw, dd, _p) in DIMS.items():
+        e = measured.get(nm)
+        if not e:
+            bad.append(nm + ": NOTHING WAS EMITTED")
+            continue
+        lat = (e[3] + e[4]) / 2
+        w = max((e[2] - e[1]) * M_LAT * math.cos(math.radians(lat)), (e[4] - e[3]) * M_LAT)
+        if not (dh * 0.85 <= e[0] <= dh * 1.12):
+            bad.append("%s: height %.2f, table says %.2f" % (nm, e[0], dh))
+        if not (max(dw, dd) * 0.72 <= w <= max(dw, dd) * 1.25):
+            bad.append("%s: span %.2f, table says %.2f" % (nm, w, max(dw, dd)))
+
     print(json.dumps({
         "pieces": len(authored),
         "parts": len(feats),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
+        "measured_vs_DIMS": "PASS" if not bad else bad,
         "provenance": {
-            "position, name, artist, height": "factual - OSM and the City of Austin inventory",
-            "form": "GENERATIVE - read off photographs and reduced to stacked "
-                    "horizontal slabs, which is all fill-extrusion can express",
+            "position, name, artist": "factual - OSM and the City of Austin inventory",
+            "size": "PUBLISHED where DIMS carries a source; the props file's own "
+                    "height is a class default and is overridden there",
+            "form": "GENERATIVE - read off published descriptions and photographs "
+                    "and reduced to stacked horizontal slabs, which is all "
+                    "fill-extrusion can express",
         },
     }, indent=2))
+    if bad:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
