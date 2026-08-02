@@ -76,6 +76,32 @@ await page.addInitScript(names => {
     });
   }
 
+  /**
+   * PER-SOURCE LOAD TIME, which is the number that decides what to tile next.
+   *
+   * A source's cost is fetch + parse + worker tiling, and only the first of
+   * those is visible in a network waterfall. `sourcedata` fires repeatedly while
+   * a source works and carries `isSourceLoaded`, so the first event where that
+   * flips true is when the source became usable. Recording the FIRST such event
+   * per id — later ones are the map re-tiling for a new viewport, not load.
+   */
+  window.__srcTimes = {};
+  const hookMap = m => {
+    m.on('sourcedata', e => {
+      if (!e.sourceId || !e.isSourceLoaded) return;
+      if (window.__srcTimes[e.sourceId] == null) {
+        window.__srcTimes[e.sourceId] = performance.now() - T0;
+      }
+    });
+  };
+  // __map is assigned once app.js builds it; wait for it the same way.
+  let _m;
+  Object.defineProperty(window, '__map', {
+    configurable: true,
+    get() { return _m; },
+    set(v) { _m = v; try { if (v && v.on) hookMap(v); } catch (e) {} },
+  });
+
   const realFetch = window.fetch;
   window.fetch = function (input) {
     const url = String((input && input.url) || input);
@@ -168,6 +194,20 @@ const ms = n => n.toFixed(0).padStart(6) + ' ms';
 console.log('\n=== wall clock ===');
 console.log('  style loaded          ' + ms(styleMs));
 console.log('  map idle (city up)    ' + ms(idleMs));
+
+const srcT = await page.evaluate(() => window.__srcTimes || {});
+const ours = Object.entries(srcT).filter(([id]) => /^austin-/.test(id))
+  .sort((a, b) => b[1] - a[1]);
+console.log('\n=== when each of OUR sources became usable (fetch + parse + worker tiling) ===');
+for (const [id, t] of ours) {
+  console.log('  ' + (t / 1000).toFixed(2).padStart(7) + ' s   ' + id);
+}
+const others = Object.entries(srcT).filter(([id]) => !/^austin-/.test(id))
+  .sort((a, b) => b[1] - a[1]).slice(0, 3);
+if (others.length) {
+  console.log('  -- not ours --');
+  for (const [id, t] of others) console.log('  ' + (t / 1000).toFixed(2).padStart(7) + ' s   ' + id);
+}
 
 console.log('\n=== main-thread passes, slowest first ===');
 const calls = b.calls.sort((a, c) => c.ms - a.ms);

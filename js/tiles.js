@@ -29,6 +29,54 @@
 (function () {
   'use strict';
 
+  /**
+   * MAPLIBRE USES ONE WORKER, ON A SIXTEEN-CORE MACHINE.
+   *
+   * This is here rather than in a file of its own because `setWorkerCount` has
+   * the same hard constraint as `addProtocol`: it must run before any Map is
+   * constructed, and this file is already the thing that runs there.
+   *
+   * HOW IT WAS FOUND. boot.mjs now records when each source becomes usable.
+   * Every one of our 22 sources finished between 3.8 s and 6.7 s — tiny ones
+   * and huge ones alike, `austin-buildings` sitting unremarkably in the middle.
+   * Sources of wildly different sizes finishing together is not a size problem,
+   * it is a QUEUE, and `maplibregl.getWorkerCount()` returned **1**.
+   *
+   * MEASURED, five interleaved reps, hardware GL, localhost:
+   *
+   *     workers=1   6747 6574 6539 6543 6358    min 6358 ms
+   *     workers=4   5825 5507 6414 5736 6083    min 5507 ms
+   *     workers=8   5871 6855                   worse than 4
+   *
+   * Four won all five reps. ~0.85 s at the minimum, ~0.7 s at the median. Eight
+   * is worse than four — past the point where more threads help, the scheduling
+   * costs more than it saves.
+   *
+   * SCALED, NOT FIXED AT FOUR. A phone with two cores handed four tile workers
+   * spends its time context-switching, and the whole point of the load work is
+   * the person on a phone. Half the cores, capped at four because four is where
+   * the measurement stopped improving.
+   */
+  const MAP_WORKERS = {
+    on: true,
+    max: 4,                                   // measured ceiling; 8 was worse
+    perCores: 2,                              // one worker per this many cores
+  };
+  window.MAP_WORKERS = MAP_WORKERS;
+
+  if (MAP_WORKERS.on && typeof maplibregl !== 'undefined'
+      && typeof maplibregl.setWorkerCount === 'function') {
+    const cores = navigator.hardwareConcurrency || 2;
+    const n = Math.max(1, Math.min(MAP_WORKERS.max,
+                                   Math.floor(cores / MAP_WORKERS.perCores)));
+    try {
+      maplibregl.setWorkerCount(n);
+      console.log('[tiles] tile workers: ' + n + ' (' + cores + ' cores)');
+    } catch (e) {
+      console.warn('[tiles] setWorkerCount failed:', e.message);
+    }
+  }
+
   // Taste/behaviour block — one edit to turn the whole thing off.
   const TILES = {
     // Master switch. `?tiles=0` forces it off for an A/B without editing code.
