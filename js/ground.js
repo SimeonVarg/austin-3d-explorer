@@ -747,6 +747,7 @@
     stone:   ['#cfc9bb', '#d8c8a6', '#23242e'],   // Texas limestone, lit tread
     stonedk: ['#9a9184', '#a28a6f', '#171821'],   // the riser, in its own shade
     water:   ['#5f86a0', '#6d87a0', '#141a26'],
+    shell:   ['#4a4a34', '#56502f', '#12131a'],   // a turtle, wet, in Austin sun
   };
   /**
    * Blend a day/golden/night trio at hour p, the same shape paletteAt() uses.

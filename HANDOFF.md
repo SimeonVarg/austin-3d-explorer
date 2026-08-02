@@ -2116,3 +2116,48 @@ something other than what the report said.
     order and palette are innocent, one unfollowed lead". Following that lead
     took twenty minutes and found a 1.25-hectare bug. **When a probe says "it is
     not any of the things I checked", that is a result, not a dead end.**
+
+46. **`acer/creek` (PR #65) — B6/A7, and the pass had shipped dead code.**
+    `js/ground.js` carried a `creek` and a `pond` colour in all three palettes
+    plus a whole `ground-creek-bank` layer with a paragraph justifying it — and
+    **nothing had ever set `s` to either**. Every water area was `s:"water"`, so
+    the bank layer matched nothing and had never drawn a pixel. Classified now
+    by the isoperimetric quotient Q=4πA/P²: seven creeks at Q ≤ 0.036, five
+    ponds at Q ≥ 0.183, a five-fold gap. Plus a 9 m wooded band either side.
+
+47. **`acer/turtles` (PR #66) — B3, and a theory that died in the measurement.**
+    I read the pond as rendering warm grey against an authored `#7fa8bb`, wrote
+    it up as the colour grade crushing blues, and changed the palette. Both
+    readings sampled the wrong pixels: an oblique crop of a thin ribbon, then
+    two shots at DIFFERENT ZOOMS compared pixel-for-pixel. Masking properly —
+    paint it magenta, keep those 69,967 indices, read the same set back — gave
+    `#7fa8bb → rgb(126,163,175)`, near-faithful. Reverted.
+
+48. **The magenta-mask trick is the tool to reach for.** Paint the thing under
+    test an impossible colour, record which pixels changed, then read that exact
+    set back under each candidate. It found the buried fountain water, it named
+    the 12,569 m² hedge, and it killed the pond-colour theory. Sampling a
+    hand-picked box has now been wrong three times in one night.
+
+49. **`acer/power-plant` (PR #67) — B7, and it was never construction.** North
+    of the Drama Building the snapshot already had `Hal C. Weaver Power Plant`,
+    its Annex, `Cooling Tower 1` and `UTM Cooling Tower 2`. It is UT's
+    chilled-water plant, rendered as four boxes on a bare yard — and the
+    "circular area with stuff" is the FAN DECKS on the tower roofs. Work out
+    what a place is from the data before deciding what to draw there.
+
+50. **A BOUNDING BOX IS NOT A SHAPE.** Both cooling towers are long thin
+    rectangles rotated ~20 degrees. Sizing from an axis-aligned bbox drew a
+    handrail visibly larger than the building it sat on and threw the fan decks
+    clean off the roof into the yard. Measure along the footprint's own longest
+    edge. This is the second time tonight a footprint's real geometry mattered
+    and its bbox lied — see also the sagitta fix in bake_roofs.
+
+51. **A LEVEL RUN HAS NO HEIGHT.** `beam()` spreads z0..z1 across its steps, so
+    a pipe from 4.6 to 4.6 is a stack of zero-height slabs and `add()` drops
+    every one. It reported `plant_pipes: 0` rather than failing.
+
+52. **The magenta-pixel threshold has to allow for lighting.** Counting
+    `r>150 && g<100 && b>150` under-reports badly, because MapLibre lights a
+    fill-extrusion and the warm day light pulls magenta's blue channel under
+    150. Use a mask captured once, not a per-frame threshold, or widen it.
