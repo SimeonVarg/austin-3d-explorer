@@ -196,8 +196,134 @@
     return SUN_COL[SUN_COL.length - 1].c.slice();
   }
 
+  // ── Aerial perspective on the ground ──────────────────────────────
+  //
+  // THE DEFECT. The outer ring is a flat tan carpet by day and dead black by
+  // night, meeting the sky at a hard line. Measured in the sweep: green pixels
+  // by screen row in `day-dkr-stadium` run 11.4% in the near field, 0.2%, then
+  // 0.0% at the horizon; at night the same band is luma 13-19 for its whole
+  // depth. Nothing recedes. A real city three kilometres away is most of the
+  // way to the sky's own colour, and that IS the depth cue — not detail.
+  //
+  // WHY IT CANNOT BE MapLibre'S FOG. `js/timeofday.js` already records the
+  // measurement: `fog-color`, `horizon-fog-blend` and `fog-ground-blend` are
+  // TERRAIN-only, and sweeping `fog-ground-blend` 0 -> 1 left every pixel
+  // bit-identical. This scene has no terrain, so the engine's aerial
+  // perspective does not exist here and cannot be turned on.
+  //
+  // WHY A SCREEN-SPACE GRADIENT IS NOT A CHEAT. Under a pitched camera, screen
+  // row and ground distance are the same variable. A row `a` degrees below the
+  // horizon is ground at `h / tan(a)` for a camera `h` above the plane, so a
+  // gradient in Y is exactly a gradient in distance — and the stops below are
+  // computed from that formula plus Beer-Lambert, not eyeballed. Both terms
+  // come from the live camera: `h` from the zoom, pitch and field of view,
+  // `a` from the pixel offset and the focal length.
+  //
+  // The known cost, stated rather than hidden: a NEAR building tall enough to
+  // reach the horizon line picks up haze it has not earned. At the poses this
+  // app flies, that is a tower top within a few hundred metres, and it gets a
+  // few percent of alpha at its very top. A matte painter would do the same
+  // thing for the same reason.
+  //
+  // Screen blend, like everything else in this file, so it can only ADD light:
+  // by day that is the pale sky washing into the far city, and at night it is
+  // the blue skyglow that stops the far ring being a black void. It can never
+  // darken a building, so it cannot silhouette anything incorrectly.
+  //
+  // TASTE KNOBS, all of them:
+  const HAZE = {
+    on: new URLSearchParams(window.location.search).get('haze') !== '0',
+    // Haze scale distance in metres — the distance at which the ground is
+    // 1 - 1/e of the way to the sky colour. Smaller = thicker air.
+    DIST: { day: 5200, golden: 4200, night: 3400 },
+    // Alpha at infinity, i.e. at the horizon line itself.
+    MAX: { day: 0.62, golden: 0.58, night: 0.46 },
+    // How far below the horizon to bother drawing, as a fraction of frame
+    // height. Past this the ground is near enough that the haze is under 2%.
+    DEPTH: 0.34,
+    STOPS: 14,           // gradient stops; the curve is steep near the horizon
+    // Pull the haze colour toward the sky's own zenith by this much, so the
+    // join is to the sky ABOVE the horizon rather than to the horizon band —
+    // a horizon band that matches the ground exactly reads as one flat wall,
+    // which is the thing being fixed.
+    SKY_MIX: 0.22,
+  };
+
+  /** Camera altitude above the ground plane, in metres, from the live camera. */
+  function cameraHeightM(map) {
+    const H = map.getCanvas().clientHeight;
+    const fov = map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58;
+    // MapLibre's own camera-to-centre distance, in pixels.
+    const distPx = 0.5 * H / Math.tan(rad(fov) / 2);
+    const lat = map.getCenter().lat;
+    const mPerPx = 40075016.686 * Math.cos(rad(lat)) / (512 * Math.pow(2, map.getZoom()));
+    return Math.max(1, distPx * Math.cos(rad(map.getPitch())) * mPerPx);
+  }
+
+  function parseCol(s, fallback) {
+    if (typeof s !== 'string') return fallback;
+    let m = /^#([0-9a-f]{6})$/i.exec(s.trim());
+    if (m) return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)];
+    m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(s);
+    if (m) return [+m[1], +m[2], +m[3]];
+    return fallback;
+  }
+
+  /** Interpolate a per-time-of-day number written as {day, golden, night}. */
+  function todNum(tab, p) {
+    return p <= 0.5 ? tab.day + (tab.golden - tab.day) * (p / 0.5)
+                    : tab.golden + (tab.night - tab.golden) * ((p - 0.5) / 0.5);
+  }
+
+  /**
+   * Rebuild the ground-haze gradient for this frame.
+   *
+   * `hz` is the horizon row in CSS px; it can be off the top or bottom of the
+   * frame at extreme pitches, and both cases are handled by simply positioning
+   * the element there and letting #sky's overflow clip it.
+   */
+  function updateGroundHaze(map, p, hz, W, H) {
+    if (!elHaze) return;
+    if (!HAZE.on) { elHaze.style.opacity = '0'; return; }
+    const depthPx = HAZE.DEPTH * H;
+    if (hz > H || depthPx < 2) { elHaze.style.opacity = '0'; return; }
+
+    const fov = map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58;
+    const focalPx = 0.5 * H / Math.tan(rad(fov) / 2);
+    const h = cameraHeightM(map);
+    const D = todNum(HAZE.DIST, p);
+    const A = todNum(HAZE.MAX, p);
+
+    // Whatever timeofday.js last wrote, so the haze can never drift from the
+    // sky it is joining to. Read rather than duplicated — the ROUTES table in
+    // timeofday.js stays the one place these colours are authored.
+    let sky = null;
+    try { sky = map.getSky ? map.getSky() : null; } catch (e) {}
+    const horiz = parseCol(sky && sky['horizon-color'], [200, 224, 240]);
+    const zenith = parseCol(sky && sky['sky-color'], horiz);
+    const col = mix(horiz, zenith, HAZE.SKY_MIX);
+    const c = `${Math.round(col[0])},${Math.round(col[1])},${Math.round(col[2])}`;
+
+    const stops = [];
+    for (let i = 0; i < HAZE.STOPS; i++) {
+      // Bias the samples toward the horizon: that is where the curve moves.
+      const t = Math.pow(i / (HAZE.STOPS - 1), 2);
+      const dy = Math.max(0.35, t * depthPx);          // never exactly 0 -> tan(0)
+      const ang = Math.atan(dy / focalPx);             // depression angle
+      const dist = h / Math.tan(ang);                  // ground distance, metres
+      const a = A * (1 - Math.exp(-dist / D));
+      stops.push(`rgba(${c},${a.toFixed(4)}) ${(t * 100).toFixed(2)}%`);
+    }
+    elHaze.style.opacity = '1';
+    elHaze.style.width = W + 'px';
+    elHaze.style.height = depthPx + 'px';
+    elHaze.style.transform = `translate(0px, ${hz.toFixed(1)}px)`;
+    elHaze.style.background = `linear-gradient(to bottom, ${stops.join(',')})`;
+  }
+
   // ── Overlay elements ──────────────────────────────────────────────
-  let host = null, elGlow = null, elBloom = null, elCore = null, canvas = null, ctx = null;
+  let host = null, elGlow = null, elBloom = null, elCore = null, elHaze = null,
+      canvas = null, ctx = null;
   let stars = null, clouds = null, haloSprite = null;
   let _map = null, _p = 0.12;
 
@@ -293,6 +419,15 @@
 
     // Order matters for screen blending: each of these adds light over
     // everything painted below it.
+    // The ground haze is the one overlay that lives BELOW the horizon, so it
+    // is not on the sky canvas (which is clipped to the sky) and it goes first:
+    // screen blending is commutative, but keeping it under the sun means a
+    // rendering-order change can never put haze over the disc.
+    elHaze = document.createElement('div'); elHaze.id = 'sky-ground-haze';
+    elHaze.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;' +
+                           'mix-blend-mode:screen;will-change:transform,background';
+    host.appendChild(elHaze);
+
     elGlow = document.createElement('div');  elGlow.id = 'sky-glow';   host.appendChild(elGlow);
     elBloom = document.createElement('div'); elBloom.id = 'sky-bloom'; host.appendChild(elBloom);
     elCore = document.createElement('div');  elCore.id = 'sky-core';   host.appendChild(elCore);
@@ -403,6 +538,12 @@
 
     const S = Math.max(W, H);
     const hzPx = hzPxEarly;
+
+    // Aerial perspective on the GROUND, below the horizon. Same pass as the
+    // sky for the same reason graphics.js is called from here: two listeners on
+    // `move` can land either side of each other and the haze would lag the
+    // horizon by a frame while tilting.
+    updateGroundHaze(map, p, hzPx, W, H);
 
     // CLIP EVERYTHING IN THE SKY PASS TO THE SKY. The horizon washes are
     // ellipses centred on the horizon line, so without this half of each one
