@@ -1,5 +1,59 @@
 # Austin 3D Explorer — Full Handoff
 
+## 27. Aug 2 2026 — DKR's night colour was not the defect. The ruler was. (mac lane)
+
+**Branch:** `mac/dkr-night` — MAC_QUEUE M1c. **No stadium data or colour was
+changed, and that is the finding.** Three claims put this item on the list and
+all three are wrong; each took one measurement to overturn.
+
+**1. "`night-pale.mjs` puts `stadium-*` at 16% of the wrongly-bright pixels."**
+That script counted the wrong two-thirds of the frame. `gl.readPixels` returns
+rows **bottom-up** — row 0 of the buffer is the BOTTOM of the screen — and the
+loop skipped the first third of the buffer under a comment reading *"Skip the
+top third: that is sky and horizon glow"*. It was skipping the **foreground**
+and counting all of the sky. Proof is `shots/readpixels-unflipped.png`: the
+buffer written straight out as PNG rows puts the sky at the bottom. Corrected,
+the whole night frame has **957 pale pixels, not 1,381**, and `stadium-*` is
+**10.7%, not 44.5%**.
+
+**2. "The largest contributor is `stadium-detail`."** True and misleading. A
+layer id is not a material: that one pass carries the aisles, the video board,
+the ramp towers, the new arcade and the floodlight masts. Hiding one `kind` at a
+time:
+
+```
+  hide mast     pale removed   154
+  hide board    pale removed     0
+  hide logo/ramp/aisle/pier/lintel/gate/canopy   0
+```
+
+**Every pale pixel is the lamp arrays**, which the bake sets deliberately:
+*"an unlit floodlight over a stadium is a thing nobody has ever seen."* Stopping
+at the layer name would have had somebody darkening a stadium that was right.
+The by-kind pass is now part of `night-pale.mjs` so the next person gets the
+cause and not just a name.
+
+**3. "`data/stadium.geojson` has 499 of 511 features with no night colour at
+all."** Counted today: of 643 features, **every one carries a night colour**
+except the 44 seat bands, and those do not need a property — `seatColourAt()`
+builds a `match` on `['get','s']` whose `SEAT_COL` trios are explicitly burnt
+orange after dark, which is the 2023-24 LED upgrade the file documents.
+
+**And the thread the queue said to pull:** *"`js/stadium.js` never builds a
+time-of-day wrapper at all."* **There is no `js/stadium.js`.** The stadium is in
+`js/app.js`, its retint is `window.applyStadiumColors`, and it is installed —
+called directly from `js/timeofday.js:400`. The wrapper audit that generated
+that line only looked for the `const wrapped = …` shape, so a pass wired the
+other legitimate way reads as missing.
+
+**Unrelated finding, not fixed here:** `_harness.html` is missing
+`js/tiles.js`. `window.tileSource` is therefore undefined in the harness and
+trees, roads, roof detail, props and the outer ring all silently fall back to
+their GeoJSON. Every pixel test renders a scene the site does not serve. Same
+class as the `js/outer.js` gap in §24, and it needs its own pass because adding
+it moves baselines. It does **not** affect anything above: `stadium.geojson` is
+fetched directly and is not tiled.
+
 ## 26. Aug 2 2026 — DKR got a ground floor (mac lane)
 
 **Branch:** `mac/dkr-arcade` — MAC_QUEUE M1b. *"want the entrance, and the shops,

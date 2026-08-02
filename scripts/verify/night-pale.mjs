@@ -50,17 +50,46 @@ await page.goto(BASE + '/_harness.html?intro=0&drift=0', { waitUntil: 'networkid
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 
-await page.evaluate(p => {
-  const el = document.getElementById('tod-slider');
-  if (el) {
-    el.value = String(p);
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  } else if (typeof window.applyTimeOfDay === 'function') {
-    window.applyTimeOfDay(window.__map, p, true);
+/**
+ * Make it night, and DO NOT BELIEVE IT UNTIL THE SCENE IS DARK.
+ *
+ * What was here dispatched an `input` event at `#tod-slider` and, only if that
+ * element was missing, fell back to `applyTimeOfDay`. So the else-branch never
+ * ran in the harness — the element is always there — and when the slider's
+ * handler was not yet attached the event went nowhere. This script then
+ * measured a DUSK frame and reported 250,502 pale pixels at mean luma 111
+ * against the 957 at 35 it gets at night, with no complaint at all. Two runs of
+ * the same command, ten minutes apart, disagreeing by 260x.
+ *
+ * That is the "assert the effect, never the intention" rule exactly: an element
+ * existing is not a handler running, and a handler running is not a dark scene.
+ * So both paths fire every time, and the result is checked against the map's
+ * own state and then against the pixels.
+ */
+async function goNight(p) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await page.evaluate(v => {
+      const el = document.getElementById('tod-slider');
+      if (el) {
+        el.value = String(v);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      // Always, not as a fallback. window.applyTimeOfDay IS the wrapped one —
+      // every pass that retints replaces it — so calling it picks up every
+      // wrapper, which is the reason tour.mjs says to drive the slider.
+      if (typeof window.applyTimeOfDay === 'function') {
+        window.applyTimeOfDay(window.__map, v, true);
+      }
+    }, p);
+    await page.waitForTimeout(3500);
+    const got = await page.evaluate(() => window.__todCurrentP);
+    if (typeof got === 'number' && Math.abs(got - p) < 0.02) return;
+    console.log(`  time-of-day did not take (got ${got}); retry ${attempt}`);
   }
-}, P_NIGHT);
-await page.waitForTimeout(3500);
+  throw new Error('could not set time of day to ' + p);
+}
+await goNight(P_NIGHT);
 
 await page.evaluate(q => window.__map.jumpTo(q), POSE);
 await page.evaluate(() => new Promise(r => {
@@ -70,6 +99,27 @@ await page.evaluate(() => new Promise(r => {
 }));
 await page.waitForTimeout(1500);
 
+/**
+ * Count pale pixels below the horizon.
+ *
+ * READPIXELS IS BOTTOM-UP. Row 0 of the buffer is the BOTTOM row of the screen;
+ * that is the GL spec, and it is visible in shots/readpixels-unflipped.png,
+ * where writing the buffer straight out as PNG rows puts the sky at the bottom.
+ * The first version of this skipped `h*4*w/3` bytes from the START and its
+ * comment said it was skipping the top third — it was skipping the FOREGROUND
+ * and counting all of the sky and horizon glow. Every percentage this script
+ * has ever printed was a share of the wrong denominator, including the "16% of
+ * the wrongly-bright pixels is stadium-*" that put MAC_QUEUE M1c on the list.
+ *
+ * So: count buffer rows 0 .. 2h/3, which is the bottom two-thirds of the SCREEN.
+ *
+ * NOTE THE OTHER HALF OF THE INSTRUMENT, which is not a bug but is a limit.
+ * This reads the GL canvas, so it sees the scene BEFORE js/graphics.js's CSS
+ * grade composites over it. A surface can be acceptable here and too pale on
+ * screen, or the reverse. It is the right buffer for "which layer paints this
+ * pixel" and the wrong one for "how bright does it look" — for the second, look
+ * at the frame it writes.
+ */
 const countPale = () => page.evaluate(thr => {
   const m = window.__map;
   m.triggerRepaint();
@@ -78,14 +128,17 @@ const countPale = () => page.evaluate(thr => {
   const w = c.width, h = c.height;
   const px = new Uint8Array(w * h * 4);
   gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const luma = i => 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+  const to = Math.floor(h * 2 / 3) * w * 4;
   let n = 0;
-  // Skip the top third: that is sky and horizon glow, legitimately bright.
-  const from = Math.floor(h * 4 * w / 3);
-  for (let i = from; i < px.length; i += 4) {
-    const L = 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
-    if (L > thr) n++;
-  }
-  return n;
+  for (let i = 0; i < to; i += 4) if (luma(i) > thr) n++;
+  // Reported once, as the guard against this inverting again: the region we
+  // skip is the sky, so it must be the BRIGHTER of the two at every hour.
+  let sIn = 0, sOut = 0;
+  for (let i = 0; i < to; i += 4) sIn += luma(i);
+  for (let i = to; i < px.length; i += 4) sOut += luma(i);
+  return { n, meanCounted: +(sIn / (to / 4)).toFixed(1),
+           meanSkipped: +(sOut / ((px.length - to) / 4)).toFixed(1) };
 }, PALE);
 
 const layers = await page.evaluate(() => window.__map.getStyle().layers
@@ -94,9 +147,26 @@ const layers = await page.evaluate(() => window.__map.getStyle().layers
   .map(l => l.id));
 
 await page.screenshot({ path: 'shots/night-pale-before.png' });
-const base = await countPale();
+const first = await countPale();
+const base = first.n;
 console.log('\npale pixels below the horizon, all layers on: ' + base);
-console.log('(' + layers.length + ' visible fill-extrusion layers)\n');
+console.log('(' + layers.length + ' visible fill-extrusion layers)');
+console.log('mean luma  counted ' + first.meanCounted + '   skipped (sky) '
+            + first.meanSkipped
+            + (first.meanSkipped > first.meanCounted ? '' : '   <- REGION LOOKS INVERTED'));
+console.log('');
+
+// The last gate, and the one that would have caught the 260x disagreement on
+// its own: a night frame's ground is dark. 70 is comfortably above the 35 this
+// scene measures at p=0.95 and far below the 111 a dusk frame gives.
+if (first.meanCounted > 70) {
+  console.log('*FAIL — mean luma ' + first.meanCounted + ' is not a night frame.');
+  console.log('        Every count below would be a share of the wrong scene.');
+  console.log('        Look at shots/night-pale-before.png.');
+  process.exitCode = 1;
+  await browser.__done();
+  process.exit(1);
+}
 
 /**
  * GROUPS FIRST, THEN THE WINNING GROUP'S MEMBERS.
@@ -122,7 +192,7 @@ const setVis = (ids, v) => page.evaluate(([a, vis]) => {
 const probe = async ids => {
   await setVis(ids, 'none');
   await page.waitForTimeout(420);
-  const n = await countPale();
+  const { n } = await countPale();
   await setVis(ids, 'visible');
   await page.waitForTimeout(180);
   return base - n;
@@ -159,7 +229,55 @@ for (const r of rows.slice(0, 12)) {
 }
 const top = rows[0];
 console.log('\nlargest single contributor: ' + top.id + '  (' + top.drop + ' px)');
-console.log('Hiding a layer also reveals what is behind it — read the two frames');
+
+/**
+ * ...AND THEN BY `kind`, WHICH IS THE STEP THAT ACTUALLY ANSWERS THE QUESTION.
+ *
+ * A layer id is not a material. `stadium-detail` carries the aisles, the video
+ * board, the ramp towers, the arcade AND the floodlight masts on one
+ * fill-extrusion pass, so "stadium-detail is the largest contributor" reads as
+ * an indictment of the stadium and is not one: every single pale pixel it
+ * scored turned out to be the lamp arrays, which are supposed to be the
+ * brightest thing in a night frame. Stopping at the layer would have had
+ * somebody darkening a stadium that was already right.
+ *
+ * So if the guilty layer's features carry a `kind`, hide one kind at a time.
+ * Cheap — the pass is already loaded — and it is the difference between a name
+ * and a cause.
+ */
+if (top && top.drop > 0) {
+  const kinds = await page.evaluate(id => {
+    const src = (window.__map.getLayer(id) || {}).source;
+    if (!src) return [];
+    const seen = new Set();
+    for (const f of window.__map.querySourceFeatures(src)) {
+      if (f.properties && f.properties.kind) seen.add(f.properties.kind);
+    }
+    return [...seen];
+  }, top.id);
+  if (kinds.length > 1) {
+    const base0 = await page.evaluate(id => window.__map.getFilter(id), top.id);
+    console.log('\ninside ' + top.id + ', by kind:');
+    const kRows = [];
+    for (const k of kinds) {
+      await page.evaluate(([id, f, kk]) => window.__map.setFilter(
+        id, f ? ['all', f, ['!=', ['get', 'kind'], kk]] : ['!=', ['get', 'kind'], kk]),
+        [top.id, base0, k]);
+      await page.waitForTimeout(400);
+      const { n } = await countPale();
+      await page.evaluate(([id, f]) => window.__map.setFilter(id, f), [top.id, base0]);
+      await page.waitForTimeout(160);
+      kRows.push({ k, drop: base - n });
+    }
+    kRows.sort((a, b) => b.drop - a.drop);
+    for (const r of kRows) {
+      if (r.drop > 0) console.log('  ' + r.k.padEnd(32) + String(r.drop).padStart(8));
+    }
+    if (!kRows.some(r => r.drop > 0)) console.log('  (none — the layer is innocent)');
+  }
+}
+
+console.log('\nHiding a layer also reveals what is behind it — read the two frames');
 console.log('before blaming it. shots/night-pale-before.png');
 
 await browser.__done();

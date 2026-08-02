@@ -203,18 +203,39 @@ async function shoot() {
 const TIMES = { day: 0.30, night: 0.95 };
 const rows = [];
 
+/**
+ * Set the hour, and check the map agrees before measuring anything.
+ *
+ * The pattern this replaces dispatched at `#tod-slider` and only fell back to
+ * `applyTimeOfDay` if that element was MISSING — so when the element existed
+ * but its handler was not yet attached, the event went nowhere and the fallback
+ * never ran. night-pale.mjs had the identical code and silently measured a dusk
+ * frame, reporting 250,502 pale pixels where night gives 957. An element
+ * existing is not a handler running.
+ */
+async function setTimeOfDay(p) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await page.evaluate(v => {
+      const el = document.getElementById('tod-slider');
+      if (el) {
+        el.value = String(v);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (typeof window.applyTimeOfDay === 'function') {
+        window.applyTimeOfDay(window.__map, v, true);
+      }
+    }, p);
+    await page.waitForTimeout(3200);
+    const got = await page.evaluate(() => window.__todCurrentP);
+    if (typeof got === 'number' && Math.abs(got - p) < 0.02) return;
+    console.log(`  time-of-day did not take (got ${got}); retry ${attempt}`);
+  }
+  throw new Error('could not set time of day to ' + p);
+}
+
 for (const [tname, tp] of Object.entries(TIMES)) {
-  await page.evaluate(v => {
-    const el = document.getElementById('tod-slider');
-    if (el) {
-      el.value = String(v);
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    } else if (typeof window.applyTimeOfDay === 'function') {
-      window.applyTimeOfDay(window.__map, v, true);
-    }
-  }, tp);
-  await page.waitForTimeout(3200);
+  await setTimeOfDay(tp);
 
   for (const [name, zoom, pitch, bearing, expect] of POSES) {
     await page.evaluate(q => window.__map.jumpTo(q),

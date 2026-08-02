@@ -50,6 +50,35 @@ missing line (`QUEUE.md` item 9 history).
 
 ## M1. DKR — make it look like a stadium. Fiftieth time of asking.
 
+> **DONE, 2026-08-02, three PRs.** Leaving the brief below because the
+> reasoning in it is still how to think about the next stadium pass.
+>
+> - **M1a — PR #61, `mac/dkr-field-depth`.** The field is fill-extrusion
+>   geometry now, so the grandstand occludes it. The premise that had made
+>   this recur — "a raster on the ground plane is ordinary ground" — is
+>   measurably false: a raster does not share the 3D pass's depth buffer, and
+>   being below the wall in the layer stack buys nothing. Camera gate deleted.
+>   `scripts/verify/field-bleed.mjs`, 18/18 day and night.
+> - **M1b — PR #64, `mac/dkr-arcade`.** A real ground floor: 108 piers, 8 gate
+>   pylons, 4 gates with canopies, 4 glazed shopfront bands, 4 lintels, with
+>   the plinth set back behind them. The midfield Longhorn is back as geometry.
+>   The depth of the reveal is what makes it read at distance, not the width of
+>   the pier — measured, 0 pier pixels on two sides at 2.2 m and legible on all
+>   four at 3.4 m.
+> - **M1c — PR #65, `mac/dkr-night`. NOTHING WAS WRONG WITH THE NIGHT COLOUR.**
+>   All three claims that put it on this list were artefacts:
+>   `night-pale.mjs` was counting the sky instead of the ground (readPixels is
+>   bottom-up); its largest "contributor" was `stadium-detail`, of which every
+>   pale pixel is the floodlight masts, which are deliberately lit; and the
+>   "499 of 511 features with no night colour" count missed that the seat bands
+>   take theirs from a `match` expression. There is also no `js/stadium.js` —
+>   the retint is `window.applyStadiumColors`, installed at `timeofday.js:400`.
+>   The instrument is repaired and now breaks the guilty layer down by `kind`.
+>
+> **Still open, deliberately:** the TEXAS / LONGHORNS end-zone wordmarks. From
+> the nadir the end zone is ~30 px wide, so a rect-font stroke lands at 0.7 px
+> and reads as noise. They need a different idea, not a font.
+
 **Top item. Simeon has asked for this repeatedly and it is still wrong.**
 
 *"please make DKR look like a stadium for the 50th time - bug where field is
