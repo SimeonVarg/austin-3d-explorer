@@ -47,6 +47,7 @@ const PITCH = parseFloat(opt('--pitch', '55'));
 const BEARING = parseFloat(opt('--bearing', '0'));
 const ONLY = (opt('--only', '') || '').split(',').map(s => s.trim()).filter(Boolean);
 const COLS = parseInt(opt('--cols', '5'), 10);
+const RESUME = argv.includes('--resume');
 
 // Tile geometry. TILE metres of ground across a TILE_PX box, so every tile in
 // the sheet is the same ruler.
@@ -133,6 +134,12 @@ await page.waitForTimeout(2500);
 
 const clip = { x: (VIEW_W - TILE_PX) / 2, y: VIEW_H / 2 - ABOVE, width: TILE_PX, height: TILE_PX };
 for (const e of list) {
+  e.png = path.join(tmp, e.name.replace(/[^\w]+/g, '_') + '.png');
+  // --resume: keep a crop that is already on disk. A run of this length gets
+  // killed — by the watchdog, or by any OTHER session's reap.mjs, which filters
+  // on a marker arg every harness browser is required to carry. Without resume
+  // that meant starting the 34 poses again from zero.
+  if (RESUME && fs.existsSync(e.png)) { console.log('  keep ' + path.basename(e.png)); continue; }
   await page.evaluate(v => window.__map.jumpTo(v), { center: e.center, zoom: ZOOM, pitch: PITCH, bearing: BEARING });
   // 6 s, not 40. The authored artwork is a plain GeoJSON source that is loaded
   // in full before the first tile, so it is never the thing being waited for —
@@ -143,7 +150,6 @@ for (const e of list) {
     return ['austin-art', 'austin-props'].every(s => !m.getSource(s) || m.isSourceLoaded(s));
   }, null, { timeout: 2500 }).catch(() => {});
   await page.waitForTimeout(900);
-  e.png = path.join(tmp, e.name.replace(/[^\w]+/g, '_') + '.png');
   await page.screenshot({ path: e.png, clip });      // discard: often half-drawn
   await page.waitForTimeout(600);
   await page.screenshot({ path: e.png, clip });

@@ -1,5 +1,129 @@
 # Austin 3D Explorer — Full Handoff
 
+## 33. Aug 2 2026 — the landmarks were the wrong SIZE, and no recipe could have fixed it
+
+**Branch:** `acer/art-accurate-size`. QUEUE A8 and A9 — the item he was most
+annoyed about: *"make monochrome for austin look better not like a silver tree.
+clock not looks like a fireplace and not big enough. I don't even want to check
+out the other landmarks PLEASE make them accurate to size and architecture."*
+
+**He put size first and the reason is one line of data.** Every recipe in
+`bake_art.py` scaled off `hw`, `hd` and `H` handed in from `props.geojson`, and
+those three numbers carry no information about the artwork. Print them and it is
+obvious: **every `at=statue` is 4.2 m on a 1.83 m footprint, every
+`at=sculpture` is 5.5 m on 3.17 m, every `at=installation` is 7.0 m on 4.81 m.**
+Class defaults on a buffered OSM node — the same three numbers for the armadillo
+and for the largest sculpture on campus. So no amount of care inside a recipe
+could have produced a correct size, and ten hand-tuned multipliers would have
+been ten guesses at the same missing fact. The fix is one `DIMS` table consulted
+before any recipe runs, with the source written next to each entry.
+
+```
+Monochrome for Austin   7.0 m -> 15.24 m   46% of height   50x52x41 ft, Landmarks UT
+Clock Knot              5.5 m -> 12.65 m   43% of height   498x260x420 in
+Circle with Towers      3.2 m ring -> 7.82 m, towers 5.5 -> 4.27 m
+The West                4.5 m -> 1.52 m    two 5 ft spheres, Met Museum
+Austin (Kelly)          18.3 x 8.2 -> 18.29 x 22.25 cruciform
+Mustangs                3.2 -> 11.0 m long, three horses -> seven
+Sea Turtle              4.2 m -> 1.00 m    a bronze animal is animal-sized
+```
+
+**Size was only half of Monochrome.** The old recipe put fourteen slabs on ONE
+origin at even angles, and a single origin plus even angles is a daisy on a
+post, which is a tree — his word, and the right one. It is now 32 hulls sampled
+through a cloud whose centre is **not** the mast, five placed outriggers, and a
+back-stay that exists only on the light side. Before and after at identical
+framing: `shots/art/before/Monochrome_for_Austin.png` against
+`shots/art/sheet-after-crops/Monochrome_for_Austin.png`.
+
+**Clock Knot's shape came out of the published description, not a glance at a
+photo.** Landmarks describes crossed I-beams, a circular knotted centre, and a
+beam that reads as vertical until you move and it turns out to be *one leg of an
+inverted V*. That clause is the whole silhouette. Three even legs under a
+horizontal top member on a slab the width of the footprint is a mantel over a
+hearth on a hearthstone, which is what he saw.
+
+**A9, and the answer is that two of the three windows were on the wrong wall.**
+Kelly's motifs are the colour grid (a 3×3 lattice of squares), tumbling squares
+(the same squares rotated around a circle) and the starburst (those squares
+elongated into narrow streaks), on the **south, east and west** in that order.
+The bake had six tall spectrum lights on the east — a window this building does
+not have — and the ring of squares on the west, where the streaks belong.
+**3×3 + 12 + 12 = 33, and 33 is the published count of mouth-blown Franz Mayer
+windows.** A reading that lands on the total is the check; one that does not is
+wrong.
+
+**And the massing is a CROSS, which is derived rather than guessed.** 60 × 73 ft
+as a rectangle is 4,380 sq ft against a published 2,715. The same overall size
+with 7.72 m arms is 2,733 sq ft — within 0.7%. So the arm width is solved for,
+not chosen, and a cross plan is exactly what produces the **double** barrel
+vault the building is known for. The old bake drew one vault over one box,
+having read the 26 ft 4 in **height** as a depth.
+
+### The bug this turned up, which is the reusable part
+
+`art_lonestar` made fifteen calls and most of them emitted nothing: five beams
+from a point to itself, five boxes from `z` to the same `z`, and of five star
+arms only the two with a positive vertical component survived — `beam()` spreads
+`z0..z1` across its steps and `add()` drops anything under 2 cm tall. **Three of
+a five-pointed star's five points were never in the file, and nothing said so.**
+Invisible in a screenshot, because what is left still looks like a shape.
+
+So `main()` now **re-measures the file it just wrote** against `DIMS` and exits
+non-zero on a disagreement. It caught two while this was being written — Diana
+at 5.36 m against a 4.40 m table, Sea Turtle spanning 2.19 m against 1.60.
+
+### `scripts/verify/art-sheet.mjs` — the instrument, built first
+
+Every authored piece photographed at ONE ground scale, laid out in a grid with
+its measured size beside the published one, red-bordered where they disagree.
+The point is that a 15 m Rubins and a 1 m turtle have to *look* 15 m and 1 m in
+the same grid or the sheet is decoration.
+
+**Three things that did not work, and they cost most of the session:**
+
+- **A 40 s per-pose wait for every `austin-*` source to report loaded.** At zoom
+  20 they never all do, so 34 poses × 40 s hit the watchdog with **no output at
+  all** — twice. Only the artwork's own source is worth waiting for, and it is
+  plain GeoJSON loaded in full before the first tile.
+- **Crops in a temp dir, and no resume.** A full pass is 34 camera moves at
+  ~37 s each on a loaded machine, and when the watchdog fired it took twelve
+  perfectly good frames with it. They are written next to the sheet now, and
+  `--resume` keeps whatever is already there.
+- **Sampling never reaches its own envelope.** 32 hulls drawn from an ellipsoid
+  measured 12.85 m across against a published 15.85. Monochrome's five
+  outriggers are placed rather than sampled for exactly that reason.
+
+### And the thing that nearly lost the whole pass
+
+**Two sessions were running in the same working directory.** Mid-pass the other
+one ran `git checkout`, which reverted `bake_art.py` and `data/art.geojson`
+under me, moved `HEAD` to its own branch, force-moved `acer/art-accurate-size`
+off my commit, and deleted `scripts/verify/node_modules` — after which every
+harness script failed with `Cannot find package 'playwright-core'`. The commit
+survived only because it was already made and someone had left it on
+`acer/art-accurate-size-recovered`.
+
+**Two lessons, and the second is the durable one.** `git worktree add` is the
+answer, not care — this pass finished from
+`C:/Users/simip/Projects/austin-3d-acer-art`, which nothing else can check out
+from under it. And note that **`node_modules` lives at `scripts/verify/`, not at
+the repo root**, which is why a fresh worktree resolves nothing until it is
+linked. It is gitignored, so a new worktree never has it.
+
+Also worth knowing: **any other session's `reap.mjs` will kill your browser.**
+It filters on `--enable-unsafe-swiftshader`, which `chrome.mjs` requires every
+harness browser to carry, so it cannot tell yours from theirs. That killed one
+run at the compose step. `--resume` exists because of it.
+
+`data/art.geojson` 383 → 623 parts, 115.6 → 179.3 KB. The Hal C. Weaver plant
+parts (PR #67) are untouched.
+
+**Note for the next reader:** `QUEUE.md` points at "HANDOFF items 31–57" for
+last night's lessons. **Those entries are not in this file** — it runs 30, 29,
+28 … 23, then 13. The numbered references inside QUEUE (§44, §48, §50, §51)
+therefore resolve to nothing. This entry took 31 when it was written and 33 by the time it landed, because the trees pass claimed 31 and 32 while it was in flight.
+
 ## 32. Aug 2 2026 — trees stood in roads because only buildings were ever checked (acer lane)
 
 **Branch:** `acer/trees-off-surfaces`, PR #76. QUEUE **A3** and **A4** — one
