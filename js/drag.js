@@ -716,12 +716,33 @@
         return r;
       };
       wrapped.__drag = true;
+      // THE LINE THAT WAS MISSING, AND IT COST THE WHOLE PASS.
+      //
+      // Everything above builds `wrapped` correctly and nothing installed it.
+      // tower.js, arts.js, moody.js and westcampus.js all end their hook with
+      // this exact assignment; drag.js was the only one of the five without it,
+      // so the Drag's tiles were never re-uploaded on a time-of-day change and
+      // the Guadalupe streetwall rendered near-WHITE against a black city after
+      // dark. scripts/verify/night-pale.mjs measured drag-* at 55.8% of every
+      // wrongly-bright pixel in the frame.
+      //
+      // It hid for so long because the flag below says the opposite. The pass
+      // reported `__dragTodHooked === true`, `applyDragColors` existed, and
+      // calling it by hand fixed the render — three signals that all say
+      // "hooked" while the retint chain had never heard of it. Instrumenting
+      // `map.updateImage` across a real slider drag is what settled it: 120
+      // calls, tower and arts and moody among them, and not one from the Drag.
+      window.applyTimeOfDay = wrapped;
       // ALSO a global, and not only a property on the wrapper: six passes are
       // wrapping this same function and whichever one boots last owns the
       // outermost closure, so `window.applyTimeOfDay.__drag` is false for every
       // pass except that one even though all of them are being called. A check
       // written against the property read as "the drag pass never hooked
       // time-of-day" while the drag pass was demonstrably going dark at night.
+      //
+      // Note this flag was ALSO true for the entire period the hook was not
+      // installed at all. A flag set next to the thing it claims to describe,
+      // rather than derived from it, is worth nothing.
       window.__dragTodHooked = true;
     };
 
