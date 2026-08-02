@@ -1,5 +1,39 @@
 # Austin 3D Explorer — Full Handoff
 
+## 30. Aug 2 2026 — the baked bucket had to stop being called `wp` (mac lane)
+
+**Branch:** `mac/outer-bucket-inert`. A correction to §28, found within the hour
+and worth the entry because of HOW it surfaced.
+
+§28 stamped each downtown tower's facade bucket as `wp = "tb03"`. **`wp` is read
+by the renderer.** `FACADE_PATTERN_EXPR` is `['coalesce', ['get','wp'], 'mh00']`,
+so a baked `wp` resolves to an atlas image named `tb03` — which nothing
+registers — and **MapLibre paints an unknown pattern transparent.** Every
+downtown tower would have become a hole the moment a tile build ran.
+
+And it did run. `austin-data-bot` rebuilt `outer.pmtiles` from the stamped
+GeoJSON within the hour of the merge (`5a723ca`, 1,632,761 → 1,635,313 bytes) —
+which is how this was noticed at all, while tidying merged branches. **The
+archive on `main` was still the old one, so nothing shipped**, but the next
+scheduled build would have.
+
+Second problem in the same naming: `parseId` splits an id as
+`fam=slice(0,2), idx=parseInt(slice(2))`, so `"tb03"` would have retinted
+through family `"tb"` at palette index 3 — a campus colour and a family with no
+tile generator — every time the hour changed.
+
+**The fix is the ordinal under its own inert property:** `fb: 5`, an integer
+nothing reads. The browser side, when it lands, maps that ordinal to whatever
+palette index it allocates at boot. Keeping the two separate is the actual
+design: **the ordinal belongs to the data, the id belongs to the session.**
+`outer_ring.geojson` is 1,710 bytes *smaller* than the `wp` version. Parity
+still PASSes.
+
+**The lesson, which is the reusable part:** a baked property that shares a name
+with a rendered one is not inert, however carefully the PR says "nothing renders
+differently yet". I wrote that sentence in §28 and it was wrong. Check what
+reads the name before you write it.
+
 ## 29. Aug 2 2026 — roofs stopped turning into windows at altitude (mac lane)
 
 **Branch:** `mac/lod-roof-caps` — MAC_QUEUE M4's bug half. *"when i go up on

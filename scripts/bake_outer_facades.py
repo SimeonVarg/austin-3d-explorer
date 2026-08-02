@@ -17,9 +17,24 @@ the towers' buckets are appended after the campus palette and the id is
 'tg' + that index. So the partition can be computed here, offline and exactly,
 and the browser only has to register an image per bucket.
 
-Hence ids of the form `tb00`..`tb09` rather than `tg<n>`: a bucket ordinal that
-is a property of the tower data alone and cannot drift when the campus palette
-changes size. js/outer.js registers one image per ordinal at boot.
+Hence a bucket ORDINAL under its own property `fb`, rather than a `wp` string.
+Two reasons, and the second one is a live hazard:
+
+  `wp` IS READ BY THE RENDERER. FACADE_PATTERN_EXPR is
+  ['coalesce', ['get','wp'], 'mh00'], so a baked wp of "tb03" resolves to an
+  atlas image named tb03 — which nothing registers — and MapLibre paints an
+  unknown pattern TRANSPARENT. The first version of this stamped `wp`, a
+  scheduled data build re-tiled outer.pmtiles from it within the hour, and that
+  archive would have turned every downtown tower into a hole. Nothing reads
+  `fb`, so the stamp is inert until the browser side deliberately picks it up.
+
+  And `parseId` splits an id as fam=slice(0,2), idx=parseInt(slice(2)), so
+  "tb03" would retint through family "tb" at palette index 3 — a campus colour
+  and a family with no tile generator — every time the hour changed.
+
+The browser side, when it lands, reads `fb` and maps it to whatever palette
+index it allocated. Keeping the ordinal and the id separate is the point: the
+ordinal belongs to the data, the id belongs to the session.
 
 WHAT IS NOT PORTED, and why it is not a smaller job than it looks. The other
 7,511 low-rise ring features are snapped to the CAMPUS palette, which
@@ -123,7 +138,7 @@ def main():
     # The golden and night derivations are the browser's, so a baked tower rides
     # the same day->golden->night ramp as one stamped at runtime did.
     palette = [{
-        "id": "tb%02d" % i,
+        "fb": i,
         "wd": to_hex(c),
         "wg": to_hex([v * (0.92 if j == 2 else 1.06) for j, v in enumerate(c)]),
         "wn": to_hex([v * 0.34 + n * 0.30
@@ -136,11 +151,14 @@ def main():
         p = f["properties"]
         b = bucket_of(p["wd"], cent)
         counts[b] += 1
-        wp, wf = "tb%02d" % b, "tg"
-        if p.get("wp") != wp or p.get("wf") != wf:
+        if p.get("fb") != b:
             changed += 1
         if not check_only:
-            p["wp"], p["wf"] = wp, wf
+            p["fb"] = b
+            # Undo the first version of this script, which stamped a `wp` the
+            # renderer reads. Left behind it would paint towers transparent.
+            p.pop("wp", None)
+            p.pop("wf", None)
 
     report = {
         "towers": len(towers),
@@ -148,7 +166,7 @@ def main():
         "buckets": TOWER_BUCKETS,
         "per_bucket": counts,
         "changed": changed,
-        "palette": [{"id": p["id"], "wd": p["wd"]} for p in palette],
+        "palette": [{"fb": p["fb"], "wd": p["wd"]} for p in palette],
     }
     if check_only:
         print(json.dumps(report, indent=2))
@@ -160,9 +178,12 @@ def main():
         json.dump({
             "note": ("Facade buckets for the downtown towers, computed by "
                      "scripts/bake_outer_facades.py from the towers' own baked "
-                     "wall colours. js/outer.js registers one atlas tile per id "
-                     "at boot so a tower on a vector tile keeps its curtain "
-                     "wall. Regenerate whenever outer_ring.geojson is re-baked."),
+                     "wall colours. Each tower carries its bucket ORDINAL as "
+                     "`fb`; the browser maps that ordinal to a palette index it "
+                     "allocates at boot and registers one atlas tile per bucket. "
+                     "Do not stamp `wp` directly — the renderer reads it, and an "
+                     "unregistered pattern id paints the wall transparent. "
+                     "Regenerate whenever outer_ring.geojson is re-baked."),
             "buckets": palette,
         }, fh, indent=2)
     print(json.dumps(report, indent=2))
