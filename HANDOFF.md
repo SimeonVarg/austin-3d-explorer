@@ -1,5 +1,111 @@
 # Austin 3D Explorer — Full Handoff
 
+## 37. Aug 2 2026 — a membrane roof does not get a terracotta parapet (acer lane)
+
+**Branch:** `acer/roof-orange-ring`, PR #88. §35 item **2** — the
+highest-COUNT visible defect on campus: every flat roof ringed in a hard burnt
+orange, on hundreds of buildings, in every daytime frame.
+
+### The measurement came before the change, and it moved the diagnosis
+
+`scripts/verify/roof-ring.mjs` is the magenta-mask trick (§48) applied to three
+layers at once: repaint `buildings-roof` / `roofscape-deck` / `roofs-pitched` in
+flat primaries, read the framebuffer back, and report the ORIGINAL colour of
+every pixel each layer owns. At `tour.mjs`'s `day-tower-close`, tod 0.30:
+
+```
+BEFORE (?roofcaps=0)                            AFTER
+buildings-roof   9,537 px  rgb(173,88,51)       9,537 px  rgb(157,139,114)
+                 93.3% of it burnt orange                 8.2% burnt orange
+roofscape-deck  84,061 px  rgb(151,138,114)    84,061 px  rgb(151,138,114)
+roofs-pitched  181,051 px  rgb(141,72,41)     181,051 px  rgb(141,72,41)
+burnt orange, whole frame       214,997               197,184
+cap pixels within 2 px of a deck pixel   5,185 / 9,497 — it is a rim
+```
+
+**Both columns come out of one build.** `?roofcaps=0` puts every cap back on the
+building's terracotta, so BEFORE and AFTER are one session rather than a
+checkout — which matters in a tree three sessions share (§32, §33). The
+per-layer counts are identical to the digit because no geometry moved.
+
+**And it corrected the target.** §35 named Calhoun Hall, and Calhoun measures
+`run = 0.0` in `roof_runs.json` — it has NO tiled roof at all, so its ring could
+not be the eave of a hip. Same for the Peter Flawn Academic Center, the
+O'Donnell Building and McCombs. Meanwhile `roofs-pitched` is 82.4% burnt orange
+and that is **correct** — those are the real tile roofs, and a fix that made
+every roof grey would have destroyed them. The layer that owns the defect owns
+0.60% of the frame; the layer that must not be touched owns 8.52%.
+
+### The rule
+
+**A building whose roof is a membrane deck has its parapet cap painted from THE
+DECK'S OWN colour.** A building with a real tiled roof keeps the tile colour —
+its cap sits under the eave of a hip, and terracotta is right there.
+
+`scripts/bake_roofs.py` joins each deck in `data/roofscape.geojson` to its
+building offline and writes `{id: [rd,rg,rn]}` as a `caps` member on
+`data/roofs.geojson`; `js/app.js` stamps it onto the building feature in
+`loadScene`, before `austin-buildings` is added.
+
+```
+1,810 caps recoloured of 1,821 decks read
+   85 matched by a vertex walk (concave plans — crosses, courtyards)
+    8 rejected because the deck was not standing on that building's cap
+    3 skipped for having a real tiled roof
+data/roofs.geojson 1,019.5 -> 1,145.0 KB — its FEATURES are byte-identical
+```
+
+Two independent checks on every join, because a wrong join is a wrong-coloured
+building and nothing on screen would say so: the deck's representative point
+inside the footprint, AND the deck's `b` equal to that building's
+`final_height + capLift`. Eight failed the second and were dropped.
+
+### FOUR THINGS THAT DID NOT WORK
+
+1. **Covering the rim with a coping polygon.** The obvious fix, and the numbers
+   killed it: measured on the real footprints, one full-footprint coping per
+   decked building is **+783 KB** on a file that is not tiled — every visitor
+   downloads it — to carry a colour. The table is +125 KB in the same file and
+   adds no polygons to a fill-rate-bound scene. **A colour is not a shape; do
+   not invent geometry to carry one.**
+2. **Setting the colour as a paint expression on `buildings-roof`.**
+   `js/timeofday.js:395` re-paints that layer from `rd`/`rg`/`rn` at every hour,
+   so a paint fix survives exactly until the first move of the time slider.
+   Changing the DATA is read by whatever timeofday sets, and needs no wrapper.
+3. **Re-measuring the membrane colour in `bake_roofs.py`.** It has its own
+   imagery and its own `deck_colour()`, and using them gives a cap close to the
+   deck but not equal to it — **a fainter ring, not no ring.** The cap takes
+   `roofscape.geojson`'s value byte for byte, which makes the dependency real
+   and is written next to the constant.
+4. **Masking one layer at a time, and any fixed wait after `setPaintProperty`.**
+   A paint change on a layer this size re-uploads a vertex attribute for every
+   loaded tile, LAZILY. Six layers one at a time hit the 900 s watchdog twice;
+   and with a 1.2 s wait the same pose measured `roofs-pitched` at 181,051 px
+   and then at 11,224, while `buildings-roof` came back as **zero** on a frame
+   that visibly had the orange ring in it. That is the §34 trap in a new
+   costume: an under-settled read is not a null result, it is a wrong one. The
+   probe waits for the map's own idle and re-reads until two consecutive reads
+   agree within 2%, and FAILS loudly if a layer it can see owns nothing.
+
+### Verified
+
+`harness-drift.mjs` PASS before every pixel measurement. Day, dusk 0.62 and
+night 0.95 at the same pose — night is clean, no pale patch, no inverted
+silhouette. `west-campus` and `aerial-wide` for regressions. And **re-verified
+on the merged result**: `main` moved 9 commits in flight (`js/facades.js`,
+`js/outer.js`, `js/sky.js`, trees — no overlap), merged in a separate worktree
+and re-measured at `rgb(158,139,114)`, 8.4% orange, same counts.
+`shots/roofring/cmp-calhoun.png` is before over after.
+
+### Known remainder, deliberately not in this PR
+
+`js/westcampus.js`, `js/drag.js`, `js/tower.js`, `js/moody.js` and `js/arts.js`
+each hide `buildings-roof` for the buildings they take over and draw their own
+cap from their own source's `rd`. **Those caps are still terracotta.** It does
+not read as a ring in any pose shot here, because those passes do not lay a
+membrane deck over their own buildings — but that is exactly where this defect
+comes back, and each of those files would need the same `caps` lookup.
+
 ## 36. Aug 2 2026 — the creek's water was green, and the dark lines are fences (acer lane)
 
 **Branch:** `acer/creek-water-canopy`. HANDOFF §35 items **9** and **10**, which
