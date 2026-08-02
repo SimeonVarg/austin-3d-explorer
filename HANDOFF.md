@@ -1,5 +1,196 @@
 # Austin 3D Explorer — Full Handoff
 
+## 32. Aug 2 2026 — trees stood in roads because only buildings were ever checked (acer lane)
+
+**Branch:** `acer/trees-off-surfaces`, PR #76. QUEUE **A3** and **A4** — one
+mechanism, because they are one claim: *a trunk cannot be in a surface that has
+no room for a trunk.* `shape_trees.py` tested a building footprint and nothing
+else. It reads `data/ground.geojson` and `data/roads.geojson` now, through one
+`SURFACES` table that gives every ground class a verdict and a margin.
+
+**The trunk is the test, not the crown.** A live oak hanging half way over
+Guadalupe is right and this campus is full of them.
+
+```
+road carriageway  737 DROPPED     patharea/footway   745 kept
+area/pitch         15 DROPPED     area/park         1162 kept
+area/water         10 DROPPED     area/lawn          593 kept
+area/track         10 DROPPED     area/wood          454 kept
+open lawn           6 DROPPED     area/parking       243 kept
+area/endzone        4 DROPPED     area/plaza         115 kept
+782 trees, 2,390 features.  41,964 -> 39,580.  trees.pmtiles -24,810 bytes.
+```
+
+**Footway, plaza and parking are KEPT, against the brief, and the measurement
+is the argument.** The city inventory's 869 trunks here are SURVEYED positions,
+so the fraction of them inside a surface measures that surface's positional
+authority: **2.1% land inside a road carriageway — the error floor — but 28.3%
+land inside a `footway` polygon.** A quarter of Austin's surveyed street trees
+are not standing in the middle of the sidewalk; a 2 m walk widened from a
+centreline has less authority than the survey, and a tree well in a pavement, a
+planting island in a car park and a specimen tree in a plaza are real. Dropping
+those three would have deleted **1,103 more trees** and stripped the Drag of the
+street trees that make it read as a street. Every class is in the table either
+way with its count printed, so flipping one is a one-line edit.
+
+The road test insets **0.8 m**: `bake_ground.py` builds `w` as `lanes*3.4 + 1.6`
+and the 1.6 is the kerb allowance for both sides, so the test lands on the
+travelled way. Without it the count is 1,038 and the extra 301 sit on the kerb.
+
+**A4 is three SEED POINTS, not three polygons** (`OPEN_LAWNS`). The lawn
+containing each is the one cleared, so a ground re-bake cannot silently move the
+rule off the South Mall, and a seed matching nothing is reported loudly.
+
+**AND THE FILE WAS NEVER IDEMPOTENT, which its own docstring has claimed since
+it was written.** Two consecutive no-op runs measured **41,964 -> 41,487 ->
+41,158** features with nothing dropped. Three leaks, all in the merge:
+
+- *"the widest ring is the crown's true extent"* is false for every species
+  whose profile peaks below 1.0. A cedar's widest **tier** is 0.881 of its
+  source ring, so every cedar and cypress on campus lost **12% per run** until
+  it fell under a `TIERS_BY_RADIUS` threshold and shed a tier. The source radius
+  is carried as `r0` now and restored exactly; 5,373 crowns were rescaled by
+  more than 2%, recovering the one committed run's worth of shrink (`b719fb9`
+  is the only profile-tiering run in the history, which is how much to undo).
+- a tier carries `TIER_TWIST_DEG * i` of rotation and the merge never undid it,
+  so a crown rotated a little further every run and **never reached a fixed
+  point** — which is why one tree per run kept wandering across a kerb line.
+- grouping on a centroid rounded to 1e-6 splits a crown in two when it sits near
+  a cell boundary, and each half grew its own head. The key is claimed over its
+  3x3 neighbourhood: ±0.11 m, far under the gap between two real trees.
+
+Runs 4-7 are now exact no-ops: 39,580 features, 0 dropped, every time.
+
+**Three things that did not work, and they generalise**
+
+1. **Reporting per FEATURE rather than per tree.** A five-tier crown plus its
+   trunk charges its surface six times. The first draft reported 1,320 trees in
+   a carriageway when 737 was the truth — a 79% overcount that would have been
+   written into a commit message as fact.
+2. **Reprojecting a polygon by its exterior ring only.** A `footway` union is a
+   loop AROUND a block; drop its holes and an 80 m city block becomes solid
+   pavement. That probe reported 2,446 hits against the real 745.
+3. **Buffering in degrees.** 1e-6 deg is 0.096 m east-west and 0.111 m
+   north-south here, and every margin in this pass is smaller than that
+   difference. The whole test runs in metres.
+
+**A working-tree hazard worth writing down:** two sessions shared this checkout,
+and one of them ran `git checkout main` + `reset --hard` mid-pass. For several
+minutes `git status` reported a clean tree and `grep` found none of this work.
+**Commit as soon as an edit is coherent, not when the pass is finished** — an
+uncommitted edit in a shared checkout is one other session's reset away from
+gone, and nothing warns you.
+
+**Pictures, taken after the archive rebuild with tiles ON, not `?tiles=0`:**
+`shots/treesurf/southmall-before-after.png` (the South Mall panel is open grass
+again and the George Washington statue is no longer behind a tree) and
+`shots/treesurf/road-before-after.png`.
+
+## 31. Aug 2 2026 — the landmarks were the wrong SIZE, and no recipe could have fixed it (acer lane)
+
+**Branch:** `acer/art-accurate-size`. QUEUE A8 and A9, the item he was most
+annoyed about: *"make monochrome for austin look better not like a silver tree.
+clock not looks like a fireplace and not big enough. I don't even want to check
+out the other landmarks PLEASE make them accurate to size and architecture."*
+
+**He put size first and the reason is one line of data.** Every recipe in
+`bake_art.py` scaled off `hw`, `hd` and `H` handed in from `props.geojson`, and
+those three numbers carry no information about the artwork. Print them and it is
+obvious: **every `at=statue` is 4.2 m on a 1.83 m footprint, every
+`at=sculpture` is 5.5 m on 3.17 m, every `at=installation` is 7.0 m on 4.81 m.**
+Class defaults on a buffered OSM node — the same three numbers for the armadillo
+and for the largest sculpture on campus. So no amount of care inside a recipe
+could have produced a correct size, and ten hand-tuned multipliers would have
+been ten guesses at the same missing fact. The fix is one `DIMS` table consulted
+before any recipe runs, with the source written next to each entry.
+
+```
+Monochrome for Austin   7.0 m -> 15.24 m   46% of height   50x52x41 ft, Landmarks UT
+Clock Knot              5.5 m -> 12.65 m   43% of height   498x260x420 in
+Circle with Towers      3.2 m ring -> 7.82 m, towers 5.5 -> 4.27 m
+The West                4.5 m -> 1.52 m    two 5 ft spheres, Met Museum
+Austin (Kelly)          18.3 x 8.2 -> 18.29 x 22.25 cruciform
+Mustangs                3.2 -> 11.0 m long, three horses -> seven
+Sea Turtle              4.2 m -> 1.00 m    a bronze animal is animal-sized
+```
+
+**Size was only half of Monochrome.** The old recipe put fourteen slabs on ONE
+origin at even angles, and a single origin plus even angles is a daisy on a
+post, which is a tree — his word, and the right one. It is now 32 hulls sampled
+through a cloud whose centre is **not** the mast, five placed outriggers, and a
+back-stay that exists only on the light side. Before and after at identical
+framing: `shots/art/before/Monochrome_for_Austin.png` against
+`shots/art/sheet-after-crops/Monochrome_for_Austin.png`.
+
+**Clock Knot's shape came out of the published description, not a glance at a
+photo.** Landmarks describes crossed I-beams, a circular knotted centre, and a
+beam that reads as vertical until you move and it turns out to be *one leg of an
+inverted V*. That clause is the whole silhouette. Three even legs under a
+horizontal top member on a slab the width of the footprint is a mantel over a
+hearth on a hearthstone, which is what he saw.
+
+**A9, and the answer is that two of the three windows were on the wrong wall.**
+Kelly's motifs are the colour grid (a 3×3 lattice of squares), tumbling squares
+(the same squares rotated around a circle) and the starburst (those squares
+elongated into narrow streaks), on the **south, east and west** in that order.
+The bake had six tall spectrum lights on the east — a window this building does
+not have — and the ring of squares on the west, where the streaks belong.
+**3×3 + 12 + 12 = 33, and 33 is the published count of mouth-blown Franz Mayer
+windows.** A reading that lands on the total is the check; one that does not is
+wrong.
+
+**And the massing is a CROSS, which is derived rather than guessed.** 60 × 73 ft
+as a rectangle is 4,380 sq ft against a published 2,715. The same overall size
+with 7.72 m arms is 2,733 sq ft — within 0.7%. So the arm width is solved for,
+not chosen, and a cross plan is exactly what produces the **double** barrel
+vault the building is known for. The old bake drew one vault over one box,
+having read the 26 ft 4 in **height** as a depth.
+
+### The bug this turned up, which is the reusable part
+
+`art_lonestar` made fifteen calls and most of them emitted nothing: five beams
+from a point to itself, five boxes from `z` to the same `z`, and of five star
+arms only the two with a positive vertical component survived — `beam()` spreads
+`z0..z1` across its steps and `add()` drops anything under 2 cm tall. **Three of
+a five-pointed star's five points were never in the file, and nothing said so.**
+Same trap as the plant pipe run in §51, and invisible in a screenshot because
+what is left still looks like a shape.
+
+So `main()` now **re-measures the file it just wrote** against `DIMS` and exits
+non-zero on a disagreement. It caught two while this was being written — Diana
+at 5.36 m against a 4.40 m table, Sea Turtle spanning 2.19 m against 1.60.
+
+### `scripts/verify/art-sheet.mjs` — the instrument, built first
+
+Every authored piece photographed at ONE ground scale, laid out in a grid with
+its measured size beside the published one, red-bordered where they disagree.
+The point is that a 15 m Rubins and a 1 m turtle have to *look* 15 m and 1 m in
+the same grid or the sheet is decoration.
+
+**Two things that did not work and cost the time:**
+
+- **A 40 s per-pose wait for every `austin-*` source to report loaded.** At zoom
+  20 they never all do, so 34 poses × 40 s hit the watchdog with **no output at
+  all** — twice. Only the artwork's own source is worth waiting for, and it is
+  plain GeoJSON loaded in full before the first tile.
+- **Crops in a temp dir.** A full pass is 34 camera moves and on a machine with
+  three other agents' browsers on it those ran ~37 s each; when the watchdog
+  fired it took twelve perfectly good before-frames with it. They are written
+  next to the sheet now, so a killed run still leaves evidence.
+
+Also worth knowing: **sampling 32 hulls from an ellipsoid never reaches the
+ellipsoid's own envelope** — measured 12.85 m across against a published 15.85 —
+which is why Monochrome's five outriggers are placed rather than sampled.
+
+`data/art.geojson` 383 → 623 parts, 115.6 → 179.3 KB. The Hal C. Weaver plant
+parts (PR #67) are untouched.
+
+**Note for the next reader:** `QUEUE.md` points at "HANDOFF items 31–57" for
+last night's lessons. **Those entries are not in this file** — it runs 30, 29,
+28 … 23, then 13. Either they were never written or they were lost; the numbered
+references inside QUEUE (§44, §48, §50, §51) therefore resolve to nothing. This
+entry takes 31 because 31 was free.
+
 ## 30. Aug 2 2026 — the baked bucket had to stop being called `wp` (mac lane)
 
 **Branch:** `mac/outer-bucket-inert`. A correction to §28, found within the hour
