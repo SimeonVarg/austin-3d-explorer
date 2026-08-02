@@ -569,6 +569,107 @@ def _walk(g, i, dist_m):
     return None
 
 
+# ------------------------------------------------------------ path widening --
+#
+# WHY PATHS ARE POLYGONS AND NOT LINES.
+#
+# "i look closer to horizontal (low) and speedway gets super wide and right
+# after monochrome is a seperate layer thats a bit narrower that also grows
+# wider as i approach 90 degrees."
+#
+# A MapLibre `line-width` is a number of SCREEN PIXELS, and it is the same
+# number for the whole line. The ground is not: under perspective, 9.1 m of
+# Speedway near the camera is a lot of pixels and 9.1 m of it up by Dean Keeton
+# is a few. So one constant pixel width cannot be right everywhere, and the
+# error is not small. Measured with scripts/verify/road-fan.mjs, camera on the
+# south end of the promenade looking north:
+#
+#     pitch 20   1.10x at the only point still on screen
+#     pitch 60   1.26x near  ->  3.33x at the far end
+#     pitch 86   1.30x near  ->  3.69x at the far end
+#
+# 3.69x on a 9.1 m mall is a 34 m motorway, which is exactly what he saw. And it
+# gets worse as the camera lies down not because the ratio changes much past 60
+# -- it barely does -- but because pitching over drags the far, wrong end of the
+# road INTO the frame. At pitch 20 everything past 30.2845 is off screen.
+#
+# The old expression was not sloppy; it is exactly right at the map centre,
+# which is where it was derived. There is no per-vertex line width in MapLibre,
+# so no expression can fix this. The width has to live in the geometry.
+#
+# So: buffer each centreline by half its real width and emit a polygon. A fill
+# is ground geometry and gets the true perspective for free, at every pitch,
+# everywhere in the frame.
+#
+# UNIONED PER (use, surface) GROUP, which is not an optimisation. Fills draw at
+# `pathOpacity` 0.92, and two overlapping translucent polygons in one layer
+# composite twice -- every junction where two footways meet would show as a
+# darker patch. Union dissolves the overlap. It also drops the interior
+# boundaries, so 2,512 lines become ~1,000 polygons.
+#
+# The kerb is NOT a second buffered ring. It is a bevel, and a bevel is a
+# screen-space effect: ground.js strokes the polygon boundary at a constant few
+# pixels, which is what a highlight along an edge should do at any pitch, and it
+# saves the 0.55 MB a second polygon set would have cost.
+LAT0 = 30.285                       # metric anchor for the buffer, mid-campus
+PATH_SIMPLIFY_M = 0.15              # post-union tolerance; well under a pixel
+PATH_MIN_AREA_M2 = 1.0              # drop slivers the union leaves behind
+
+
+def widen_paths(feats, stats, warnings):
+    """k:'path' LineStrings -> unioned k:'patharea' Polygons, width in metres."""
+    try:
+        from shapely.geometry import LineString
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: paths left as LineStrings, which "
+                        "means they fan out with pitch (see road-fan.mjs)")
+        return feats
+
+    mlat = 111195.08
+    mlon = mlat * math.cos(math.radians(LAT0))
+    to_m = lambda c: [((x + 97.74) * mlon, (y - LAT0) * mlat) for x, y in c]
+    to_ll = lambda c: [[round(x / mlon - 97.74, 6), round(y / mlat + LAT0, 6)] for x, y in c]
+
+    kept, groups = [], {}
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+            kept.append(f)
+            continue
+        coords = f["geometry"]["coordinates"]
+        if len(coords) < 2:
+            continue
+        w = float(p.get("w") or 2.0)
+        # Mitre joins and flat caps: a round join on a 2 m footpath adds a dozen
+        # vertices per corner to draw a curve nobody can see at 200 m.
+        poly = LineString(to_m(coords)).buffer(
+            w / 2.0, cap_style=2, join_style=2, mitre_limit=2.0)
+        if poly.is_empty:
+            continue
+        groups.setdefault((p.get("u"), p.get("s")), []).append(poly)
+        stats["path_widened"] += 1
+
+    for (use, surf), polys in sorted(groups.items(), key=lambda kv: str(kv[0])):
+        merged = unary_union(polys)
+        if PATH_SIMPLIFY_M:
+            merged = merged.simplify(PATH_SIMPLIFY_M)
+        parts = merged.geoms if merged.geom_type == "MultiPolygon" else [merged]
+        for gm in parts:
+            if gm.is_empty or gm.area < PATH_MIN_AREA_M2:
+                stats["path_sliver_dropped"] += 1
+                continue
+            rings = [to_ll(list(gm.exterior.coords))]
+            rings += [to_ll(list(r.coords)) for r in gm.interiors]
+            kept.append({
+                "type": "Feature",
+                "geometry": {"type": "Polygon", "coordinates": rings},
+                "properties": {"k": "patharea", "u": use, "s": surf},
+            })
+            stats["patharea_" + str(use)] += 1
+    return kept
+
+
 def main():
     feats = []
     stats = Counter()
@@ -770,6 +871,14 @@ def main():
         deduped.append(f)
     feats = deduped
 
+    # Counted BEFORE widening, because after it there are no k:'path' features
+    # left to count and the report would silently read zero.
+    paths_tagged_w = sum(1 for f in feats if f["properties"].get("wt") == 1)
+    paths_default_w = sum(1 for f in feats if f["properties"]["k"] == "path"
+                          and f["properties"].get("wt") == 0)
+
+    feats = widen_paths(feats, stats, warnings)
+
     # Draw order: big areas first, then small areas on top of them, then paths
     # over everything. Without the size term a 30,000 m2 lawn painted over the
     # field it contains.
@@ -791,9 +900,8 @@ def main():
         "features": len(feats),
         "file_kb": round(size_kb, 1),
         "counts": dict(sorted(stats.items(), key=lambda kv: kv[0])),
-        "paths_with_TAGGED_width": sum(1 for f in feats if f["properties"].get("wt") == 1),
-        "paths_with_DEFAULT_width": sum(1 for f in feats
-                                        if f["properties"]["k"] == "path" and f["properties"].get("wt") == 0),
+        "paths_with_TAGGED_width": paths_tagged_w,
+        "paths_with_DEFAULT_width": paths_default_w,
         "unmapped_surface_values": dict(unmapped_surface),
         "warnings": warnings,
     }
