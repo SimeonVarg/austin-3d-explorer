@@ -33,6 +33,44 @@ await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphi
 await page.waitForFunction(() => window.__map.getSource('austin-buildings'), null, { timeout: 180000 });
 await page.waitForTimeout(7000);
 
+
+/**
+ * Wait until the camera has actually STOPPED, instead of sleeping 8.5 s.
+ *
+ * The flight controller owns the camera for a while after the last input — the
+ * hover bob has to wind down — and an external jumpTo issued during that window
+ * is overwritten on the next frame. The fixed 8500 ms here was picked to
+ * outlast it, which is correct and costs 8.5 s every time even when the camera
+ * settled in one.
+ *
+ * `driving` alone is not the signal: it goes false while the bob is still
+ * writing. So poll the eye itself and require it to be unchanged for a few
+ * consecutive samples, with the old fixed wait as the hard ceiling — a
+ * wait-for-ready that can never be SLOWER than the sleep it replaces, only
+ * faster, and never returns early on a camera that is still moving.
+ */
+async function settled(page, { quietMs = 450, timeoutMs = 8500 } = {}) {
+  const t0 = Date.now();
+  let last = null, quietSince = null;
+  while (Date.now() - t0 < timeoutMs) {
+    const e = await page.evaluate(() => {
+      try { const x = window.__fly.eye(); return { lng: x.lng, lat: x.lat, alt: x.alt, pitch: x.pitch, driving: x.driving }; }
+      catch (err) { return null; }
+    });
+    if (e && last && !e.driving &&
+        Math.abs(e.lng - last.lng) < 1e-9 && Math.abs(e.lat - last.lat) < 1e-9 &&
+        Math.abs(e.alt - last.alt) < 0.01 && Math.abs(e.pitch - last.pitch) < 0.01) {
+      if (quietSince == null) quietSince = Date.now();
+      if (Date.now() - quietSince >= quietMs) return Date.now() - t0;
+    } else {
+      quietSince = null;
+    }
+    last = e;
+    await page.waitForTimeout(60);
+  }
+  return Date.now() - t0;
+}
+
 const results = [];
 const check = (n, p, d) => results.push({ n, p, d });
 
@@ -52,7 +90,7 @@ async function lookUpFrom(altM) {
   // to wind down), and it overwrites an external jumpTo on the next frame while
   // it does. The first cut re-seeded straight after a drag and every case
   // silently ran at the FIRST case's altitude — all three reported 120 m.
-  await page.waitForTimeout(8500);
+  await settled(page);
   await page.evaluate(async alt => {
     const m = window.__map;
     // The controller owns the camera while flying; a seeded pose must wait for
@@ -146,7 +184,7 @@ fs.existsSync(path.join(outDir, '_t.png')) && fs.unlinkSync(path.join(outDir, '_
 // Looking back down un-clamps it and it snaps home, which is exactly the
 // "teleport, then return" described.
 async function eyeDriftFromLookingUp(altM) {
-  await page.waitForTimeout(8500);          // the controller keeps the camera ~8 s
+  await settled(page);   // was a flat 8500 ms; see settled() above
   await page.evaluate(async alt => {
     const m = window.__map;
     for (let i = 0; i < 40 && window.__fly.eye().driving; i++)
