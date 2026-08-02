@@ -1679,6 +1679,61 @@
     return n + towersDone;
   };
 
+  /**
+   * Register a SET OF COLOUR BUCKETS that did not come from the campus
+   * snapshot, and hand back the pattern id for each one.
+   *
+   * WHY THIS EXISTS AT ALL. `quantiseFacades` derives the fourteen campus
+   * buckets in the BROWSER, from the buildings snapshot, so the palette index a
+   * bucket lands on is a property of the session and not of the data. A vector
+   * tile cannot be mutated, so a tiled layer cannot carry `wp`. What it CAN
+   * carry is an inert ORDINAL — `fb` — baked offline, and this is the other
+   * half of that split: the ordinal belongs to the data, the id belongs to the
+   * session, and this function is the join. (HANDOFF §30 is the entry about
+   * what happens when the two are confused: a baked `wp` names an atlas image
+   * nothing registers, and MapLibre paints that wall TRANSPARENT.)
+   *
+   * WRITTEN FOR MORE THAN ONE CALLER, deliberately. The downtown towers are the
+   * first set; the campus bake parked on `acer/facade-bake` is the second, and
+   * the ONLY thing it needs from this file is a second call with a different
+   * `key`. Keys namespace the result so two callers cannot claim each other's
+   * indices, and a repeat call with the same key is idempotent — which matters
+   * because a source can be re-added.
+   *
+   * @param {Map}    map      so the images can be registered on the spot
+   * @param {Array}  buckets  [{ wd, wg, wn }] in ordinal order
+   * @param {Object} opts     { key, family }  family defaults to 'tg'
+   * @returns {Array<string>} pattern ids, indexed the same as `buckets`
+   */
+  const _registeredSets = new Map();
+  window.registerFacadeBuckets = function registerFacadeBuckets(map, buckets, opts) {
+    opts = opts || {};
+    const key = opts.key || 'anon';
+    const fam = opts.family || 'tg';
+    if (_registeredSets.has(key)) return _registeredSets.get(key);
+    // The campus palette has to exist first: these buckets are APPENDED to it,
+    // and appending to an empty palette would hand out index 0, which is the
+    // campus default every unclassified wall falls back to.
+    if (!palette.length || !Array.isArray(buckets) || !buckets.length) return null;
+    const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
+    const ids = buckets.map(b => {
+      const idx = palette.length;
+      palette.push({ wd: b.wd, wg: b.wg || b.wd, wn: b.wn || b.wd });
+      const id = fam + String(idx).padStart(2, '0');
+      if (combos.indexOf(id) === -1) combos.push(id);
+      // Every tier, or the first zoom that crosses a stop paints a hole.
+      ensureImages(map, id, p);
+      return id;
+    });
+    _registeredSets.set(key, ids);
+    return ids;
+  };
+
+  /** The downtown towers' ten baked buckets. See scripts/bake_outer_facades.py. */
+  window.registerOuterTowerBuckets = function registerOuterTowerBuckets(map, buckets) {
+    return window.registerFacadeBuckets(map, buckets, { key: 'outer-tower', family: 'tg' });
+  };
+
   // Fall back to a plain fill where a feature somehow has no pattern, then wrap
   // the whole thing in the zoom step that picks a mip tier.
   window.FACADE_PATTERN_EXPR = window.facadeTierExpr(['coalesce', ['get', 'wp'], 'mh00']);

@@ -97,6 +97,7 @@
   const L_TOWER = 'outer-tower';
   const L_TOWER_ROOF = 'outer-tower-roof';
   const DATA = 'data/outer_ring.geojson';
+  const TOWER_PALETTE = 'data/outer_tower_palette.json';
 
   const IS_TOWER = ['==', ['get', 't'], 1];
   const NOT_TOWER = ['!=', ['get', 't'], 1];
@@ -195,6 +196,46 @@
     outerLP = outerTiles ? outerTiles.layerProps : {};
 
     let gj = null, patterned = 0, towers = [];
+    // How L_TOWER finds its pattern. On the GeoJSON path each tower is stamped
+    // with `wp` in the browser and the shared expression reads it. On the TILE
+    // path it cannot be — see below — and this is replaced by a match on `fb`.
+    let towerPattern = window.FACADE_PATTERN_EXPR;
+
+    if (outerTiles) {
+      // ── the tile path's own facade join ────────────────────────────
+      //
+      // A vector tile cannot be mutated, so `wp` — which does not exist until
+      // the campus palette has been derived in this browser — cannot be on it,
+      // and every one of the 114 downtown towers fell through
+      // ['coalesce', ['get','wp'], 'mh00'] to the campus-hall pattern. That is
+      // why downtown is forty identical brick-red boxes: not a data problem,
+      // one missing join. The towers' real colours are blue-grey glass and they
+      // have been baked and parity-proved (PR #71, #73) since; nothing rendered
+      // them.
+      //
+      // The join is an inert integer. `scripts/bake_outer_facades.py` clusters
+      // the towers on their OWN wall colours offline and stamps each with its
+      // bucket ORDINAL `fb`, plus the bucket colours in
+      // data/outer_tower_palette.json. At boot the browser registers those ten
+      // buckets in the shared atlas, gets back whatever palette indices it
+      // allocated, and builds the ordinal -> id map here. The ordinal belongs
+      // to the data; the id belongs to the session; neither can drift into the
+      // other.
+      try {
+        const pal = await getJSON(TOWER_PALETTE);
+        const ids = window.registerOuterTowerBuckets &&
+                    window.registerOuterTowerBuckets(map, pal.buckets);
+        if (ids && ids.length) {
+          const match = ['match', ['get', 'fb']];
+          pal.buckets.forEach((b, i) => { match.push(b.fb, ids[i]); });
+          match.push('mh00');          // an unstamped tower keeps the old look
+          towerPattern = window.facadeTierExpr ? window.facadeTierExpr(match) : match;
+          patterned = pal.buckets.length;
+        }
+      } catch (e) {
+        console.warn('[outer] tower palette not applied:', e.message);
+      }
+    }
     if (!outerTiles) {
       try {
         gj = await getJSON(DATA);
@@ -286,7 +327,7 @@
       minzoom: OUTER.minZoom,
       filter: IS_TOWER,
       paint: {
-        'fill-extrusion-pattern': window.FACADE_PATTERN_EXPR,
+        'fill-extrusion-pattern': towerPattern,
         'fill-extrusion-height': ['get', 'h'],
         'fill-extrusion-base': 0,
         'fill-extrusion-opacity': OUTER.opacity,
@@ -322,7 +363,8 @@
     watchPitch(map);
 
     if (outerTiles) {
-      console.log('[outer] ring streaming as tiles; tower facades fall back to the default pattern');
+      console.log('[outer] ring streaming as tiles;', patterned,
+                  'tower facade buckets registered from the baked ordinals');
     } else {
       console.log('[outer]', gj.features.length, 'ring buildings (',
                   towers.length, 'towers,', patterned, 'patterned on their own',
