@@ -156,12 +156,30 @@
     texTile: 64,            // px => ~66 m at z16, ~33 m at z17, ~16 m at z18
     texOpacity: 0.62,       // master; multiplies every per-class strength
     texStrength: {          // per surface family, 0..1
-      grass: 1.0, asphalt: 0.9, water: 0.95, paving: 0.5,
+      grass: 1.0, asphalt: 0.9, water: 0.95, paving: 0.5, canopy: 1.0,
     },
-    // The creek's implied depth. Set creekBank false for a flat creek.
+    // ── Waller Creek ──────────────────────────────────────────────────
+    //
+    // "the creek behind patton and alumni is a very vibrant in depth creek …
+    // Hope you will add more detail there and not the bare minimum"
+    //
+    // The channel is CUT now — real geometry, `k:'bank'` prisms from
+    // scripts/bake_ground.py's CHANNEL block, stepping from grade down to a
+    // water surface 1.4–3.2 m below it. `channel:false` hands the creek back to
+    // being a flat blue-green ribbon with a shadow along its edge.
+    //
+    // WHY THIS IS ALLOWED TO GO BELOW ZERO, when PR #62 says it cannot: a fill
+    // does not depth-test against a fill-extrusion, so a flat lawn drawn over a
+    // trench paints into it. The A2 resolver removes the lawn from the trench's
+    // footprint entirely — `RANK[('bank','channel')]` is the top of the ladder —
+    // so there is no fill over the hole and the extrusion is free to sink.
+    channel: true,
+    // The blurred line along the water's edge. It used to be the ONLY thing
+    // implying depth and carried 0.55; with a real cut section under it that
+    // much reads as a smear, so it is turned down to a contact shadow.
     creekBank: true,
     creekBankColor: '#22301f',
-    creekBankOpacity: 0.55,
+    creekBankOpacity: 0.30,
     texNightFade: 0.55,     // texture recedes after dark, never vanishes
     texWaterNightKeep: 0.8, // water keeps more of it — still reads as water
     // The catch-all ground under everything OSM does not classify measured 54%
@@ -189,7 +207,7 @@
   const CYCLE = 'ground-cycleway', STOPBAR = 'ground-stopbar';
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
   const SPEEDWAY = 'ground-speedway-brick';
-  const DEPTH = 'ground-depth';
+  const DEPTH = 'ground-depth', CHANNEL = 'ground-channel';
 
   // `source-layer` for the road layers, or {} on the GeoJSON fallback. MODULE
   // SCOPE on purpose: the source is added in one function and the six layers
@@ -200,7 +218,8 @@
   // looked like a city, which is exactly why that trap is worth a comment.
   let roadLP = {};
   const TEX_IMG = { grass: 'gnd-tex-grass', asphalt: 'gnd-tex-asphalt',
-                    water: 'gnd-tex-water', paving: 'gnd-tex-paving' };
+                    water: 'gnd-tex-water', paving: 'gnd-tex-paving',
+                    canopy: 'gnd-tex-canopy' };
   const HERRING_IMG = 'gnd-tex-herringbone';
 
   // ── Surface palettes, per hour ──────────────────────────────────────
@@ -247,6 +266,12 @@
       // wooded creek and 600 m of Lady Bird Lake the same pale blue.
       // A pond keeps still-water blue but loses the lake's brightness.
       creek:'#4f6b52', pond:'#7fa8bb',
+      // The riparian corridor is THREE zones, not one green. Understorey sits
+      // between the lawn and the closed canopy: lighter and yellower than the
+      // wood because it is scrub and young growth catching the light, darker
+      // than the mown grass because it is never cut. If these three ever read
+      // as one colour the whole creek pass is back to being a band of paint.
+      understorey:'#6e8a4d',
       track:'#a8503c', endzone:'#bf5700',
       roadconcrete:'#7c7d78', brickpave:'#e9cca4',
       bikelane:'#6d7075', biketrack:'#7a7d80', bikegreen:'#737b6e',
@@ -255,7 +280,7 @@
       limestone:'#f4e0b8', concrete:'#e3cba6', paving:'#ecd6ac', brick:'#8f5439',
       asphalt:'#655d5a', gravel:'#cdb28d', dirt:'#a37f5b', sand:'#e7cb9c',
       grass:'#8a9457', turf:'#4a6b36', wood:'#5a6a3c', water:'#c9a184',
-      creek:'#5c6b4c', pond:'#b0947f',
+      creek:'#5c6b4c', pond:'#b0947f', understorey:'#6b7f42',
       track:'#a5482f', endzone:'#b04e00',
       roadconcrete:'#857c72', brickpave:'#eec69b',
       bikelane:'#75706c', biketrack:'#827c76', bikegreen:'#7a7a66',
@@ -265,6 +290,7 @@
       brick:'#1d1720', asphalt:'#0d1017', gravel:'#1b1a22', dirt:'#191620',
       sand:'#201d26', grass:'#111a14', turf:'#0d1710', wood:'#0c130f',
       water:'#070f1e', creek:'#080f0c', pond:'#060d18',
+      understorey:'#0e1510',
       track:'#1d1418', endzone:'#2a1608',
       roadconcrete:'#14161c', brickpave:'#241d1f',
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
@@ -276,8 +302,16 @@
   // shares the aggregate speckle; anything unmapped falls through to it too.
   // An endzone is painted TURF, not pavement — it belongs with the grass, and
   // wearing the asphalt speckle was visibly wrong on the practice fields.
+  //
+  // `wood` and `understorey` get their OWN tile rather than the lawn's. A mown
+  // lawn and a closed riparian canopy are not the same texture at any distance:
+  // the lawn is fine even speckle, a canopy is crown-sized lumps with shadow
+  // between them. Sharing the grass tile is what made the creek corridor read
+  // as "green paint" from the air — the colour was different and the grain was
+  // not, so the eye merged them.
   const TEX_FAMILY = {
-    grass: 'grass', turf: 'grass', wood: 'grass', endzone: 'grass',
+    grass: 'grass', turf: 'grass', endzone: 'grass',
+    wood: 'canopy', understorey: 'canopy',
     asphalt: 'asphalt', track: 'asphalt',
     roadconcrete: 'asphalt', bikelane: 'asphalt', biketrack: 'asphalt',
     bikegreen: 'asphalt', brickpave: 'paving',
@@ -534,9 +568,33 @@
     cv.width = cv.height = T;
     const ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.clearRect(0, 0, T, T);
-    const rand = rng({ grass: 12345, asphalt: 777, water: 4242, paving: 90210 }[family]);
+    const rand = rng({ grass: 12345, asphalt: 777, water: 4242, paving: 90210,
+                       canopy: 5150 }[family]);
 
-    if (family === 'grass') {
+    if (family === 'canopy') {
+      // A CLOSED CANOPY, not a lawn. Same wrap-nine-times rule as everything
+      // here; what differs is the statistics. Crowns are big (a live oak is
+      // 8-14 m, which at z16's ~66 m tile is 8-14 px), they OVERLAP, and the
+      // gap between them is deep shadow rather than a lighter green. So: few
+      // large dark blobs for the shadow between crowns, then bright caps set
+      // slightly up-sun of each, which is what makes a canopy read as a lumpy
+      // volume instead of a flat tint.
+      //
+      // Deliberately still shapeless at the small end. fill-pattern resets at
+      // every integer zoom (GROUND.texture's note), so anything with a
+      // countable period pops on the way in; crowns at three sizes with random
+      // centres have no period to count.
+      for (let i = 0; i < 26; i++) {
+        const r = 7 + rand() * 9;
+        blob(ctx, T, rand()*T, rand()*T, r, '10,18,6', 0.16 + rand()*0.12);
+      }
+      for (let i = 0; i < 34; i++) {
+        const x = rand()*T, y = rand()*T, r = 3.5 + rand()*5;
+        blob(ctx, T, x, y, r, '196,220,150', 0.10 + rand()*0.10);
+        blob(ctx, T, x + r*0.7, y + r*0.7, r*0.8, '8,14,5', 0.10 + rand()*0.08);
+      }
+      speckle(ctx, T, rand, 700, 0.13, 1);
+    } else if (family === 'grass') {
       // Clumps at a range of sizes — mown stripes and beds would be a motif and
       // would pop at every integer zoom, so this is deliberately shapeless.
       // Many small clumps, not few large ones: at z16 the tile spans ~66 m, so
@@ -774,6 +832,36 @@
     return e;
   }
 
+  /**
+   * THE CUT CHANNEL. Waller Creek's bed and bank courses, `k:'bank'` from
+   * scripts/bake_ground.py.
+   *
+   * These are the only extrusions in the scene that go BELOW z=0, and the whole
+   * reason they can is that the A2 resolver takes the flat ground away from
+   * their footprint first — a `fill` does not depth-test against a
+   * `fill-extrusion`, so a lawn drawn over a trench paints into it.
+   *
+   * The bank is limestone and pale clay, which is what the channel through
+   * campus actually is: the ledges below the 23rd Street bridge are exposed
+   * Austin Chalk. It is deliberately NOT the mall's limestone from DEPTH_MAT —
+   * that stone is a dressed, swept tread and this is a raw cut face, so it is
+   * browner, dirtier and lower in value. The two courses differ by more than a
+   * real bank would: what carries a 2 m cut section from 300 m is the light
+   * tread against the dark riser, not the height between them.
+   */
+  const BANK_MAT = {
+    water:     ['#41604a', '#4c5f43', '#070d0a'],  // channel water, under canopy
+    bankveg:   ['#5c7742', '#59683a', '#0a110c'],  // top of bank, planted
+    bankshade: ['#425c33', '#3f5230', '#080d09'],  // the same bank, in its own shade
+    bank:      ['#9a8f70', '#a08a63', '#131319'],  // Austin Chalk at the toe
+  };
+  function bankColour(p) {
+    const e = ['match', ['get', 'm']];
+    for (const k of Object.keys(BANK_MAT)) e.push(k, trioAt(BANK_MAT[k], p));
+    e.push(trioAt(BANK_MAT.bank, p));
+    return e;
+  }
+
   window.initGround = function initGround(map) {
     if (!GROUND.on || map.getSource(SRC)) return;
     // generateId is what makes the per-feature jitter possible: without it
@@ -823,10 +911,17 @@
       }, under);
     }
 
+    // `s:'creek'` is EXCLUDED and that is the change that let the channel sink.
+    // The creek polygon is still in the file — shape_trees.py and bake_props.py
+    // read it to keep a trunk or a bench out of the water — but painting it
+    // here would put a flat fill straight over the trench, which is exactly the
+    // failure PR #62 documented. The extruded bed carries the water now.
+    const NOT_CHANNEL = GROUND.channel
+      ? ['!=', ['get', 's'], 'creek'] : ['literal', true];
     if (!map.getLayer(AREA)) {
       map.addLayer({
         id: AREA, type: 'fill', source: SRC, minzoom: GROUND.minZoom,
-        filter: ['==', ['get', 'k'], 'area'],
+        filter: ['all', ['==', ['get', 'k'], 'area'], NOT_CHANNEL],
         paint: {
           'fill-color': jitterExpr(pal, GROUND.jitter),
           'fill-opacity': GROUND.areaOpacity,
@@ -871,7 +966,7 @@
     if (GROUND.texture && !map.getLayer(TEX)) {
       map.addLayer({
         id: TEX, type: 'fill', source: SRC, minzoom: GROUND.minZoom,
-        filter: ['==', ['get', 'k'], 'area'],
+        filter: ['all', ['==', ['get', 'k'], 'area'], NOT_CHANNEL],
         paint: {
           'fill-pattern': texPatternExpr(),
           'fill-opacity': texOpacityExpr(p),
@@ -1000,6 +1095,30 @@
      * sort as the buildings, or a step half a metre proud of the paving gets
      * painted over by the flat fill it stands on.
      */
+    /**
+     * The cut channel. NOT anchored under `under`, for the same reason the
+     * steps are not: these are extrusions and they have to sit in the same
+     * depth sort as the buildings and the bridges over them.
+     */
+    if (GROUND.channel && !map.getLayer(CHANNEL)) {
+      map.addLayer({
+        id: CHANNEL, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['==', ['get', 'k'], 'bank'],
+        paint: {
+          'fill-extrusion-color': bankColour(p),
+          'fill-extrusion-base': ['get', 'b'],
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-opacity': 1,
+          // ON, unlike everywhere else in this file. Every other extrusion here
+          // is 0.14-0.62 m tall and the gradient would black out its whole
+          // face; a bank course is 2-4 m of vertical cut and the gradient is
+          // exactly the shading that makes it read as a cut rather than as a
+          // stripe of a different colour.
+          'fill-extrusion-vertical-gradient': true,
+        },
+      });
+    }
+
     if (GROUND.depth && !map.getSource(DSRC)) {
       map.addSource(DSRC, { type: 'geojson', data: 'data/depth.geojson' });
       map.addLayer({
@@ -1165,6 +1284,7 @@
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
     set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
     set(DEPTH, 'fill-extrusion-color', depthColour(p));
+    set(CHANNEL, 'fill-extrusion-color', bankColour(p));
     set(ROAD, 'line-color', roadColorExpr(pal));
     set(ROAD_CASE, 'line-color', darken(pal.asphalt, GROUND.roadCasingDark));
     set(LANE, 'line-color', laneColorExpr(p));
@@ -1210,6 +1330,7 @@
       try { map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch (e) {}
     };
     for (const id of [AREA, PATH, PATH_CASE]) show(id, GROUND.on);
+    show(CHANNEL, GROUND.on && GROUND.channel);
     show(TEX, GROUND.on && GROUND.texture);
     show(BASE_TEX, GROUND.on && GROUND.texture && GROUND.texGround);
     show(SPEEDWAY, GROUND.on && GROUND.texture && GROUND.speedway);

@@ -617,62 +617,232 @@ def classify_water(feats, stats):
     return feats
 
 
-# ---------------------------------------------------------- creek planting --
+# ------------------------------------------------------------ Waller Creek --
 #
-# "i tried doing a creek pass behind the alumni center it just made the water
-# murky. Please add the depth and greenery around it."
+# "you added a bit of green around the creeky water when i asked for more than
+# just that ... the creek behind patton and alumni is a very vibrant in depth
+# creek, samd with the area behind san jacinto and the rec center and the track
+# that area also very lush. Hope you will add more detail there and not the bare
+# minimum"
 #
-# The depth is the `ground-creek-bank` layer, which now finally has data to draw
-# (see classify_water). The greenery is this: a band of woodland either side of
-# every creek, because a Central Texas creek is a wooded corridor and Waller
-# Creek in particular runs under a continuous canopy for its whole length
-# through campus. Without it the channel reads as a ditch cut through a lawn.
+# What was here was a 9 m ring of `u:'wood'` around each creek and nothing else:
+# a flat green ribbon at the same height as the lawn beside it, with a blurred
+# dark line along its edge standing in for a bank. He is right that it is the
+# bare minimum, and the picture is `shots/creek2/before/patton.png`.
 #
-# Emitted as an ordinary `u:'wood'` ground area, so it picks up the wood colour,
-# the wood texture and the night ramp for free, and it costs no new layer. The
-# creek itself is subtracted so the band never paints over the water.
-CREEK_WOOD_M = 9.0      # how far the canopy reaches from the bank, each side
-CREEK_WOOD_MIN_M2 = 40  # drop slivers the difference leaves behind
+# THE CHANNEL IS CUT NOW, and the thing that unblocked it is one measurement.
+# PR #62's docstring says a basin must build UP from z=0 because "a `fill` does
+# not depth-test against a `fill-extrusion`, so a basin sunk below z=0 is painted
+# straight over by the flat ground fill above it." That is true of a fill drawn
+# over the same ground -- and the answer is therefore not to build upward, it is
+# to STOP DRAWING THE FLAT FILL THERE. The resolver added for A2 already does
+# exactly that for a living: give the channel the top rank and every lawn, wood
+# and park polygon gives up its footprint. With no flat fill over the hole,
+# `fill-extrusion-base` may go negative, and the creek can be a trench.
+#
+# So the profile is real geometry:
+#
+#   grade 0.0 ---\                                            /--- 0.0
+#                 \___ terrace   -0.6                  -0.6 __/
+#                     \___ bench -1.3                -1.3 __/
+#                         \__ toe -2.0            -2.0 __/
+#                            [====== water -2.4 ======]
+#                             bed -3.0
+#
+# Every number is a taste knob (CHANNEL below) and every one of them is drawn
+# from the same place: Waller Creek through campus runs 2-4 m below the walks
+# either side, which is why it needs bridges at 21st, 23rd and 24th rather than
+# a kerb. The depth is scaled by the reach's OWN width so the 4.7 m reach north
+# of Dean Keeton is not given the same trench as the 10.3 m reach downstream.
+#
+# THE PLANTING IS THREE ZONES, NOT ONE COLOUR. A Central Texas riparian corridor
+# is legible from the air precisely because it is layered: bare or gravelly bank
+# at the water, scrub and understorey above the toe, then closed canopy that is
+# noticeably darker than any lawn. One `u:'wood'` band cannot say that. Widths
+# scale with the reach, so the wide reaches behind the Alumni Center and behind
+# the Rec Center get the deep corridor he is describing and a 4.7 m headwater
+# ditch does not pretend to be one.
+CHANNEL = {
+    # Depth of the water surface below grade, as a MULTIPLE of the reach's own
+    # mean width, then clamped. 0.30 x a 7 m channel is 2.1 m, which is what the
+    # bridge soffits on campus imply.
+    "depth_per_width": 0.30,
+    "depth_min_m": 1.4,
+    "depth_max_m": 3.2,
+    # The bed sits this far below the water surface. It is only ever seen
+    # through the water colour, so it is shallow on purpose.
+    "bed_below_water_m": 0.6,
+    # Bank courses between grade and the water, and how far back the top of bank
+    # is from the water's edge, as a multiple of the reach's mean width.
+    "courses": 3,
+    "bank_per_width": 0.75,
+    "bank_min_m": 2.5,
+    "bank_max_m": 9.0,
+    # A bank is not a staircase of equal treads, and the horizontal run and the
+    # vertical drop are NOT the same distribution -- that is the difference
+    # between a cut section and a ramp. Both are fractions, outermost course
+    # first, and both must sum to 1.0; it is asserted below rather than trusted.
+    #
+    # First cut used one list for both and gave the outermost course half the
+    # run at zero drop. That is a 2.6 m flat shelf at grade wearing the chalk
+    # colour, and from the air it read as a dirt TRACK running beside the water
+    # rather than as the top of a bank (shots/creek2/after/patton-n.png, first
+    # version). Steeper at the top, flatter at the toe, is the real section.
+    "course_run":  [0.34, 0.34, 0.32],
+    "course_drop": [0.42, 0.33, 0.25],
+    # And the bank is GREEN except at the water. Waller Creek through campus is
+    # a vegetated cut with Austin Chalk showing at the toe and under the
+    # bridges, not an earthwork -- the pale ledge belongs at the water line and
+    # nowhere else. Outermost course first.
+    "course_mat": ["bankveg", "bankshade", "bank"],
+    # Planting, as multiples of the reach's mean width, measured OUT from the
+    # top of bank. scrub -> understorey -> canopy.
+    "scrub_per_width": 0.45,
+    "under_per_width": 0.90,
+    "canopy_per_width": 1.60,
+    "scrub_min_m": 2.0, "scrub_max_m": 6.0,
+    "under_min_m": 4.0, "under_max_m": 12.0,
+    "canopy_min_m": 7.0, "canopy_max_m": 24.0,
+    # Drop the slivers a difference leaves behind.
+    "min_m2": 3.0,
+    # A 3.9 km creek buffered seven times with round joins is 1 MB of vertices
+    # on its own -- the first cut DOUBLED data/ground.geojson, from 1,067 to
+    # 2,081 KB, and this file is not tiled. 0.5 m is about one pixel at the
+    # altitude the camera flies at, and 3 segments per quarter-turn is plenty
+    # for a bank line that is never straight in the first place.
+    "simplify_m": 0.5,
+    "quad_segs": 3,
+}
 
 
-def plant_creek_banks(feats, stats, warnings):
+def _mean_width(poly):
+    """Area / (half the perimeter) -- the width of the equivalent ribbon.
+
+    For a long thin polygon the perimeter is very nearly twice the length, so
+    this is the honest mean width and it needs no centreline. Measured against
+    the seven reaches in this file it gives 4.7 to 10.3 m, which is what Waller
+    Creek is.
+    """
+    per = poly.length
+    return (poly.area / (per / 2.0)) if per > 1e-6 else 0.0
+
+
+def _emit(feats, gm, props, stats, key, min_m2):
+    if CHANNEL["simplify_m"]:
+        gm = gm.simplify(CHANNEL["simplify_m"])
+    parts = list(gm.geoms) if gm.geom_type == "MultiPolygon" else [gm]
+    n = 0
+    for g in parts:
+        if g.geom_type != "Polygon" or g.is_empty or g.area < min_m2:
+            continue
+        rings = [[[round(x / _KX, 6), round(y / M_LAT, 6)] for x, y in g.exterior.coords]]
+        rings += [[[round(x / _KX, 6), round(y / M_LAT, 6)] for x, y in r.coords]
+                  for r in g.interiors]
+        feats.append({"type": "Feature",
+                      "geometry": {"type": "Polygon", "coordinates": rings},
+                      "properties": dict(props)})
+        n += 1
+    stats[key] += n
+    return n
+
+
+def cut_creek_channels(feats, stats, warnings):
+    """Waller Creek as a cut channel with a layered riparian corridor."""
     try:
         from shapely.geometry import Polygon
-        from shapely.ops import unary_union
     except ImportError:
-        warnings.append("shapely not installed: creek banks left unplanted")
+        warnings.append("shapely not installed: the creek stays a flat ribbon")
+        return feats
+
+    run, drop = CHANNEL["course_run"], CHANNEL["course_drop"]
+    mats = CHANNEL["course_mat"]
+    for name, lst in (("course_run", run), ("course_drop", drop)):
+        if len(lst) != CHANNEL["courses"] or abs(sum(lst) - 1.0) > 1e-6:
+            warnings.append("CHANNEL.%s must have `courses` entries summing to "
+                            "1.0; got %s -- channel NOT cut" % (name, lst))
+            return feats
+    if len(mats) != CHANNEL["courses"]:
+        warnings.append("CHANNEL.course_mat must have `courses` entries -- "
+                        "channel NOT cut")
         return feats
 
     creeks = [f for f in feats
               if f["properties"].get("s") == "creek"
               and f["geometry"]["type"] == "Polygon"]
     if not creeks:
+        warnings.append("no s:'creek' features: classify_water ran before this?")
         return feats
-    lat0 = 30.285
-    kx = math.cos(math.radians(lat0)) * M_LAT
-    to_m = lambda r: [(x * kx, y * M_LAT) for x, y in r]
-    to_ll = lambda r: [[round(x / kx, 7), round(y / M_LAT, 7)] for x, y in r]
 
+    clamp = lambda v, lo, hi: max(lo, min(hi, v))
     for f in creeks:
-        poly = Polygon(to_m(f["geometry"]["coordinates"][0]))
-        if not poly.is_valid:
-            poly = poly.buffer(0)
-        band = poly.buffer(CREEK_WOOD_M, join_style=1).difference(poly)
-        if band.is_empty:
+        water = _poly_m(f["geometry"])
+        if water is None or water.is_empty:
             continue
-        parts = band.geoms if band.geom_type == "MultiPolygon" else [band]
-        for gm in parts:
-            if gm.area < CREEK_WOOD_MIN_M2:
+        w = _mean_width(water)
+        if w <= 0.5:
+            continue
+        depth = clamp(CHANNEL["depth_per_width"] * w,
+                      CHANNEL["depth_min_m"], CHANNEL["depth_max_m"])
+        bank = clamp(CHANNEL["bank_per_width"] * w,
+                     CHANNEL["bank_min_m"], CHANNEL["bank_max_m"])
+        f["properties"]["dep"] = round(depth, 2)     # so the report can be read
+        f["properties"]["bw"] = round(w, 1)
+
+        # ---- the bed and the water surface -------------------------------
+        #
+        # EVERY PRISM STANDS ON THE SAME BED and only its TOP differs. That is
+        # not a shortcut: courses that each started at the tread below them
+        # would put a downward-facing wall at the OUTER edge of the outermost
+        # course, i.e. a wall visible from outside the channel with nothing
+        # behind it. Standing them all on the bed leaves exactly one visible
+        # vertical face per course -- the riser looking INTO the trench, which
+        # is the whole read -- and the rings do not overlap in plan, so nothing
+        # here can re-introduce the A2 defect.
+        bed = -(depth + CHANNEL["bed_below_water_m"])
+        _emit(feats, water, {"k": "bank", "u": "channel", "m": "water",
+                             "b": round(bed, 2), "h": round(-depth, 2)},
+              stats, "creek_water_prism", 1.0)
+
+        # ---- the bank courses, outermost first ---------------------------
+        # Outermost course tops out AT grade, innermost at the water line, so
+        # the profile closes at both ends without a step that has to be tuned.
+        acc_r = acc_d = 0.0
+        for i in range(CHANNEL["courses"]):
+            r_out = bank * (1.0 - acc_r)
+            top = -depth * acc_d
+            acc_r += run[i]
+            acc_d += drop[i]
+            r_in = bank * (1.0 - acc_r)
+            outer = water.buffer(r_out, join_style=1, quad_segs=CHANNEL['quad_segs']) if r_out > 0.01 else water
+            innerp = water.buffer(r_in, join_style=1, quad_segs=CHANNEL['quad_segs']) if r_in > 0.01 else water
+            ring = outer.difference(innerp)
+            if ring.is_empty:
                 continue
-            rings = [to_ll(list(gm.exterior.coords))]
-            rings += [to_ll(list(r.coords)) for r in gm.interiors]
-            feats.append({
-                "type": "Feature",
-                "geometry": {"type": "Polygon", "coordinates": rings},
-                "properties": {"k": "area", "u": "wood", "s": "wood",
-                               "src": "creekbank"},
-            })
-            stats["creek_wood_band"] += 1
+            _emit(feats, ring,
+                  {"k": "bank", "u": "channel", "m": mats[i],
+                   "b": round(bed, 2), "h": round(top, 2)},
+                  stats, "creek_bank_course", CHANNEL["min_m2"])
+
+        # ---- the planting, three zones out from the top of bank ----------
+        top_of_bank = water.buffer(bank, join_style=1, quad_segs=CHANNEL['quad_segs'])
+        zones = [
+            ("scrub", "scrub", "grass",
+             clamp(CHANNEL["scrub_per_width"] * w, CHANNEL["scrub_min_m"], CHANNEL["scrub_max_m"])),
+            ("under", "wood", "understorey",
+             clamp(CHANNEL["under_per_width"] * w, CHANNEL["under_min_m"], CHANNEL["under_max_m"])),
+            ("canopy", "wood", "wood",
+             clamp(CHANNEL["canopy_per_width"] * w, CHANNEL["canopy_min_m"], CHANNEL["canopy_max_m"])),
+        ]
+        prev = top_of_bank
+        for label, use, surf, reach in zones:
+            outer = top_of_bank.buffer(reach, join_style=1, quad_segs=CHANNEL['quad_segs'])
+            ring = outer.difference(prev)
+            prev = outer
+            if ring.is_empty:
+                continue
+            _emit(feats, ring,
+                  {"k": "area", "u": use, "s": surf, "src": "creek_" + label},
+                  stats, "creek_zone_" + label, CHANNEL["min_m2"])
     return feats
 
 
@@ -930,13 +1100,22 @@ RANK = {
     ("patharea", "path"):       56,
     ("patharea", "footway"):    52,
     # --- the flat band: k='area', one fill layer --------------------------
+    #
+    # The cut channel outranks everything flat. That is not a preference, it is
+    # the mechanism: a `fill` drawn over the trench would paint straight into
+    # it (PR #62's finding), so the trench only exists BECAUSE every lawn, wood
+    # and park polygon gives up its footprint here. See cut_creek_channels.
+    ("bank", "channel"):        90,
     ("area", "fountain"):       46,
     ("area", "water"):          44,
     ("area", "endzone"):        40,   # derived; must stay on top of its pitch
+    # Small and specific beats large and generic, which is why the sand sits
+    # ABOVE the pitch: the five sand areas here are long-jump pits INSIDE a
+    # pitch polygon, and the first cut of this ladder deleted all five.
+    ("area", "sand"):           38,
+    ("area", "playground"):     37,
     ("area", "pitch"):          36,
     ("area", "track"):          35,
-    ("area", "playground"):     34,
-    ("area", "sand"):           33,
     ("area", "plaza"):          30,
     ("area", "parking"):        28,
     ("area", "construction"):   26,
@@ -975,7 +1154,18 @@ def _rank(p):
 
 
 def _band(p):
-    """Which render band a feature is drawn in. Only same-band pairs can tie."""
+    """Which render band a feature is drawn in. Only same-band pairs can tie.
+
+    `None` means the feature is not drawn as a surface at all, so it neither
+    takes ground nor gives any up. Exactly one thing is in that state and it is
+    deliberate: since the creek became a cut channel the `s:'creek'` polygon is
+    no longer painted by `ground-areas` (js/ground.js filters it out) -- the
+    extruded bed carries the water now. It stays in the file because it is the
+    only record that this ground IS water, and shape_trees.py and bake_props.py
+    both read it to keep a trunk or a bench out of the creek.
+    """
+    if p.get("k") == "area" and p.get("s") == "creek":
+        return None
     return "path" if p.get("k") == "patharea" else "flat"
 
 
@@ -1040,7 +1230,8 @@ def count_conflicts(feats, road_polys):
                 if bi <= i:
                     continue
                 p2, q2 = items[bi]
-                if _band(p) != _band(p2):
+                b1 = _band(p)
+                if b1 is None or b1 != _band(p2):
                     continue
                 inter = q.intersection(q2)
                 if inter.area >= RESOLVE_MIN_M2:
@@ -1106,12 +1297,17 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
         if f["geometry"]["type"] != "Polygon":
             kept.append(f)
             continue
+        band = _band(f["properties"])
+        if band is None:
+            kept.append(f)
+            stats["resolve_not_a_surface"] += 1
+            continue
         q = _poly_m(f["geometry"])
         if q is None or q.is_empty:
             stats["resolve_dropped_degenerate"] += 1
             continue
         work.append({"f": f, "q": q, "a0": q.area, "i": i,
-                     "rank": _rank(f["properties"]), "band": _band(f["properties"])})
+                     "rank": _rank(f["properties"]), "band": band})
 
     # Highest rank first, then largest, then original order. Every term is
     # deterministic, so two runs of this bake hand the same ground to the same
@@ -1405,7 +1601,7 @@ def main():
                           and f["properties"].get("wt") == 0)
 
     feats = classify_water(feats, stats)
-    feats = plant_creek_banks(feats, stats, warnings)
+    feats = cut_creek_channels(feats, stats, warnings)
     feats = grow_precinct_lawns(feats, stats, warnings)
     feats = widen_paths(feats, stats, warnings)
 
