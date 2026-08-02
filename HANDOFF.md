@@ -1681,3 +1681,68 @@ a file-ownership table, so both lanes can run at once.
     `capitol-merge.mjs` (guards a silent failure — if the Capitol append breaks
     you cannot tell from campus), `gl-check.mjs` (asserts each launch shape gets
     the backend it asked for, because that bug has now shipped twice).
+
+---
+
+### Acer, 2026-08-01 night — performance. PRs #41, #44 merged.
+
+Two lanes running at once for the first time, both self-merging (CLAUDE.md rule 2
+changed at Simeon's instruction). Acer: `acer/tiles-pipeline` (#41),
+`acer/basemap-cull` (#44). Mac: roads and outer ring, in parallel.
+
+**Where the load actually goes.** 7.1 s on localhost, hardware GL — not the 15 s
+that had been repeated all day:
+
+    0.0 - 1.6 s   page + style
+    2.1 - 3.7 s   six init passes, CONCURRENT (1.6 s wall, not the 8.5 s they sum to)
+    3.7 - 7.1 s   worker tiling + first render   <- the biggest slice
+
+Trees + roads tiled: **28.41 MB -> 16.14 MB, 7.1 s -> 6.0 s.**
+
+**Rules 18-23.**
+
+18. **`quantiseFacades` is 14 ms.** It had been described all day, by me, as the
+    expensive pass blocking tiled buildings. It is a **correctness** blocker —
+    the 14 colour buckets are elected across the whole city and cannot be elected
+    per tile — and not a performance one. Measure before repeating a claim about
+    cost, including your own.
+
+19. **Concurrent or stacked is the whole question, and 0.1 s precision hides it.**
+    Six init passes cost 1.28-1.60 s each and sum to 8.5 s. Printed to 0.1 s they
+    all read "+2.1 s". Printed to the millisecond they start within 7 ms of each
+    other and end within 320 ms — 1.6 s of wall clock. The difference is seven
+    seconds of imaginary optimisation.
+
+20. **Four readiness metrics, three of them wrong, each changing the answer.**
+    `once('idle')` reports 37 s because the sky canvas repaints every frame and
+    the map is never idle. `areTilesLoaded()` is not comparable across builds —
+    with GeoJSON the tree source has not begun fetching when first asked, so it
+    answers "loaded" and the un-tiled build scores artificially fast, which
+    produced a 3x difference that was entirely metric. `loaded()` never fires on
+    a throttled connection. `isSourceLoaded` per source over our own sources is
+    comparable by construction.
+
+21. **The basemap cannot be culled and the cullable part is free.** Hide it all
+    and the ground turns black — it *is* the surface beyond the modelled area.
+    Culling the seven genuinely-invisible layers saves 0.1 ms, because occluded
+    fills were already being discarded. Also `perf.mjs`'s "minus basemap" is
+    inflated: its prefix test misses `wc-` and `night-`, so it hides five of our
+    own layers and charges them to the basemap.
+
+22. **`python -m http.server` cannot test this site any more.** It ignores
+    `Range:`, which PMTiles needs, so every feature in a tiled layer silently
+    vanishes with no console error. A treeless campus was photographed and
+    briefly believed. Use `python scripts/serve.py 8123` — ranges, GitHub Pages'
+    cache headers, and `NET=4g`/`NET=3g` throttling in `boot.mjs`, because on
+    localhost there is no bandwidth limit and tiling looks worthless.
+
+23. **HTTP/1.1 on a single-threaded `HTTPServer` deadlocks it.** Keep-alive means
+    the first connection holds the socket and everything else queues forever;
+    every script then times out at its watchdog, looking exactly like the app
+    being broken. `ThreadingHTTPServer`. Self-inflicted, ten minutes.
+
+**A vector source cannot be appended to.** `updateData`/`setData` are
+GeoJSONSource methods, so the Capitol's 612 trees had nowhere to go once
+`austin-trees` was tiled — silently. They now get their own source and a **clone**
+of every layer drawing the base one, taken from `getStyle()` at runtime so the
+two cannot drift.
