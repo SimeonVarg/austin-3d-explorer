@@ -1,5 +1,60 @@
 # Austin 3D Explorer — Full Handoff
 
+## 24. Aug 1 2026 — the verification suite was dead and said nothing (mac lane)
+
+**Branch:** `mac/verify-suite-repair`
+
+Fourteen scripts in `scripts/verify/` threw before doing any work. Commit
+`90ad9d7` routed all ~110 scripts through `chrome.mjs`'s new `launch()` helper
+and, in fourteen of them, deleted the surrounding statements along with the old
+launch lines. `page is not defined` was only the first name each file happened to
+reach; `bright`, `probe`, `caps`, `info`, `wiring`, `window.__settle` and
+`window.__reset` were gone too.
+
+**The count is 14 of 111, not 15 of 187**, and `node_modules` was NOT empty on
+the Mac — `playwright-core` was installed, so the Acer's `npm ci` finding
+explains none of these failures.
+
+**Four repair attempts, each wrong in a way worth keeping:**
+
+1. Greedy line copy — duplicated declarations; 11 of 14 stopped parsing.
+2. Narrow line rules — restored `page` only. The files then failed on `bright`,
+   `probe`, `caps`, and on helpers installed inside `page.evaluate` BLOCKS. **A
+   line rule cannot see a block.**
+3. Statement restore in the old file's order — parsed, passed the new lint, and
+   exited **0** while every script died at `browser.newPage: browser has been
+   closed`. Statements the current file had GAINED (`launch()`, `__done()`) were
+   placed after the imports, closing the browser before the page opened. **A
+   green exit code is not evidence a test ran.**
+4. LCS alignment (kept) — current order wins, only genuinely deleted statements
+   are re-inserted, and the statements `90ad9d7` deliberately replaced are never
+   restored. One ordering bug remained: `const browser` landed below its first
+   use, a temporal-dead-zone error `node --check` cannot see.
+
+**`scripts/verify/suite-lint.mjs` is the guard, and it is the durable part.** No
+browser, under a second, four blocking rules: uses `page` without creating one;
+bypasses `launch()` (losing the watchdog and the reaper); never closes its
+browser; uses a binding before declaring it. Rules 3 and 4 exist because the
+repair itself tripped them — rule 4 catches statically what cost twelve minutes
+of browser runs to discover.
+
+**After the repair, running the real thing:** collision 8/8, motion-feel 19/19,
+light-tone 12/12, graphics 26/27, arts-check 27/28, movement 12/14, plus
+live-check, motion-caps, night-dusk-truth, roofz and westcampus-isolate
+reporting normally. Nothing orphaned — `reap.mjs` clean after every run.
+
+**Two findings the repair surfaced, neither fixed here:**
+
+- **`js/outer.js` is in `index.html` and missing from `_harness.html`.** Every
+  pixel test renders a city without the outer ring while the site serves one with
+  it. Adding it moves every visual baseline, so it needs its own pass.
+- **`movement.mjs` fails "Q and E move altitude in opposite directions" on
+  `main`** — `Q: 161->161m`, ascend does nothing. Suspected to be the `#30`
+  `PITCH_REACH` regression that `#31` reverts; being tested against that branch.
+  Its other failure, `diagonal/cardinal = NaN`, is the script's own
+  too-few-ticks guard firing under load, not a product defect.
+
+
 > **Purpose:** This document brings a new AI collaborator (Fable 5) fully up to
 > speed on the Austin 3D Explorer project — the vision, what was promised, the
 > full journey (including the messy parts), the user's feedback and how it was

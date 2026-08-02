@@ -1,25 +1,92 @@
 /**
+
  * verify-movement.mjs — assertion harness for the flythrough camera.
+
  *
+
  * Runs the REAL app and asserts measurable properties of the movement system.
+
  * Timing-independent: headless swiftshader runs ~20 fps, so every speed is
+
  * reported per second-of-effective-dt (the same min(delta,64) accumulation the
  * control loop uses) rather than per wall-clock second.
+
  *
+
  * Usage: node verify-movement.mjs            (assert; exit 1 on failure)
+
  *        node verify-movement.mjs --report   (print the table, never fail)
+
  */
+
 import { chromium } from 'playwright-core';
+
 // BASE honours VERIFY_URL so parallel worktrees can each test their own serve
+
 // (chrome.mjs has exported it for this purpose all along). No assertion change.
+
 import { chromePath, BASE, launch } from './chrome.mjs';
+
 const EXE = chromePath();
+
 const REPORT_ONLY = process.argv.includes('--report');
 
 const browser = await launch(chromium);
 
+const page = await browser.newPage({ viewport: { width: 800, height: 560 } });
+
+const pageErrors = [];
+
+page.on('pageerror', e => pageErrors.push(e.message));
+
+await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+
+await page.waitForTimeout(5000);
+
+await page.evaluate(() => {
+  const m = window.__map;
+  // README trap: a seeded jumpTo is OVERWRITTEN on the next frame while the
+  // controller still owns the camera — and since the camera-feel pass the
+  // ownership tail after keyup is ~8 s (bob/settle wind-down), not ~3 s.
+  // Measured failure mode of the old sync reset: every leg's pose reset was
+  // silently ignored, positions accumulated ~230 m per leg, and the diagonal
+  // legs ran into the soft data fence, which crushed vel.n — a stable-looking
+  // diagonal/cardinal of 0.73 that was really the fence, not the input math.
+  // Returning a promise makes every page.evaluate(__reset) call wait it out.
+  window.__reset = (b, z, p) => new Promise(res => {
+    const tryIt = () => {
+      if (!window.__fly.eye().driving) {
+        m.jumpTo({ center: [-97.7434, 30.2857], zoom: z ?? 16.5, pitch: p ?? 64, bearing: b ?? 90 });
+        res();
+      } else setTimeout(tryIt, 120);
+    };
+    tryIt();
+  });
+  window.__idle = () => !window.__fly.eye().driving;
+  window.__cam = () => {
+    const c = m.getCenter();
+    return { lng: c.lng, lat: c.lat, zoom: m.getZoom(), pitch: m.getPitch(), bearing: m.getBearing(),
+             alt: m.transform.getCameraAltitude() };
+  };
+  window.__metres = (a, b) => Math.hypot((b.lat - a.lat) * 111320,
+                                          (b.lng - a.lng) * 111320 * Math.cos(a.lat * Math.PI / 180));
+  window.__startClock = () => {
+    window.__dt = 0; window.__frames = 0; window.__clockOn = true;
+    let last = null;
+    const step = ts => { if (!window.__clockOn) return;
+      if (last !== null) { window.__dt += Math.min(ts - last, 64); window.__frames++; }
+      last = ts; requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  };
+  window.__stopClock = () => { window.__clockOn = false; return { dt: window.__dt, frames: window.__frames }; };
+});
+
 const median = a => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+
 const results = [];
+
 function check(name, pass, detail) { results.push({ name, pass, detail }); }
 
 async function speedOnce(keys, bearing, ms = 2500) {
@@ -47,23 +114,31 @@ async function speedOnce(keys, bearing, ms = 2500) {
   const dtSim = after.t - before.t;
   return dtSim < 0.3 ? NaN : m / dtSim;      // too few ticks to be meaningful
 }
+
 const speed = async (keys, bearing, n = 3) => {
   const rs = []; for (let i = 0; i < n; i++) rs.push(await speedOnce(keys, bearing));
   return median(rs);
 };
 
 // ── 1. Directional symmetry ────────────────────────────────────────
+
 const north = await speed(['w'], 0);
+
 const east  = await speed(['w'], 90);
+
 const diag  = await speed(['w', 'd'], 0);
+
 check('east/west speed matches north/south (cos-latitude corrected)',
   Math.abs(east / north - 1) <= 0.04, `east/north = ${(east / north).toFixed(3)} (want 1.00 ±0.04)`);
+
 check('diagonal speed matches cardinal (input normalised)',
   Math.abs(diag / north - 1) <= 0.05, `diagonal/cardinal = ${(diag / north).toFixed(3)} (want 1.00 ±0.05)`);
+
 check('forward ground speed is in a sane flythrough range',
   north > 8 && north < 80, `${north.toFixed(1)} m/s at zoom 16.5`);
 
 // ── 2. Vertical control ────────────────────────────────────────────
+
 {
   await page.evaluate(() => window.__reset(90));
   await page.waitForTimeout(400);
@@ -88,6 +163,7 @@ check('forward ground speed is in a sane flythrough range',
 }
 
 // ── 3. Looking around must not change how high you are ─────────────
+
 {
   await page.evaluate(() => window.__reset(90, 16.5, 55));
   await page.waitForFunction(() => window.__idle(), null, { timeout: 5000 }).catch(() => {});
@@ -111,6 +187,7 @@ check('forward ground speed is in a sane flythrough range',
 }
 
 // ── 4. Keyboard must not fire while a form control has focus ───────
+
 {
   await page.evaluate(() => window.__reset(0));
   await page.waitForTimeout(300);
@@ -125,6 +202,7 @@ check('forward ground speed is in a sane flythrough range',
 }
 
 // ── 5. Losing window focus must not leave a key stuck down ─────────
+
 {
   await page.evaluate(() => window.__reset(0));
   await page.waitForTimeout(300);
@@ -141,6 +219,7 @@ check('forward ground speed is in a sane flythrough range',
 }
 
 // ── 6. Momentum: ramp up, and glide to a stop ──────────────────────
+
 {
   await page.evaluate(() => window.__reset(0));
   await page.waitForFunction(() => window.__idle(), null, { timeout: 5000 }).catch(() => {});
@@ -180,6 +259,7 @@ check('forward ground speed is in a sane flythrough range',
 }
 
 // ── 7. Altitude floor: never end up inside a building ──────────────
+
 {
   await page.evaluate(() => window.__reset(90));
   await page.waitForTimeout(300);
@@ -198,11 +278,17 @@ check('forward ground speed is in a sane flythrough range',
 }
 
 // ── 8. No runtime errors ───────────────────────────────────────────
+
 check('no uncaught page errors', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | ') || 'none');
 
 const pass = results.filter(r => r.pass).length;
+
 console.log('');
+
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
+
 console.log(`\n${pass}/${results.length} passed`);
+
 await browser.__done();
+
 if (!REPORT_ONLY && pass !== results.length) process.exit(1);

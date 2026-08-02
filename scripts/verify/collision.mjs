@@ -1,22 +1,79 @@
 /**
+
  * verify-collision.mjs — the guarantees that matter for the actual use case:
+
  * never end up inside a building, and still be able to fly down a West Campus
+
  * street at sign-reading height without being lifted over the rooftops.
+
  * Also covers the headline mobile fix: joystick and look at the same time.
+
  */
+
 import { chromium } from 'playwright-core';
+
 // BASE honours VERIFY_URL so parallel worktrees can each test their own serve
+
 // (chrome.mjs has exported it for this purpose all along). No assertion change.
+
 import { chromePath, BASE, launch } from './chrome.mjs';
+
 const EXE = chromePath();
+
 const browser = await launch(chromium);
 
+const page = await browser.newPage({ viewport: { width: 800, height: 560 }, hasTouch: true });
+
+const errs = [];
+
+page.on('pageerror', e => errs.push(e.message));
+
+await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+
+await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+
+await page.waitForFunction(() => window.__fly && window.__fly.indexed(), null, { timeout: 30000 });
+
+await page.waitForTimeout(3000);
+
+const results = [];
+
+const check = (name, pass, detail) => results.push({ name, pass, detail });
+
+await page.evaluate(() => {
+  window.__settle = async () => {
+    for (let i = 0; i < 240; i++) {
+      if (!window.__fly.eye().driving) return true;
+      await new Promise(r => requestAnimationFrame(r));
+    }
+    return false;
+  };
+  window.__place = async (lng, lat, alt, bearing, pitch) => {
+    const m = window.__map;
+    const C = 40030228.884, M_LAT = C / 360;
+    const camPx = 0.5 * m.getCanvas().clientHeight / Math.tan(58 * Math.PI / 360);
+    await window.__settle();
+    const D = alt / Math.cos(pitch * Math.PI / 180);
+    const lead = alt * Math.tan(pitch * Math.PI / 180);
+    const cLat = lat + lead * Math.cos(bearing * Math.PI / 180) / M_LAT;
+    const cLng = lng + lead * Math.sin(bearing * Math.PI / 180) / (M_LAT * Math.cos(lat * Math.PI / 180));
+    const z = Math.log2(C * Math.cos(cLat * Math.PI / 180) * camPx / (512 * D));
+    m.jumpTo({ center: [cLng, cLat], zoom: z, bearing, pitch });
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => requestAnimationFrame(r));
+    return window.__fly.eye();
+  };
+});
+
 console.log('grid bytes:', await page.evaluate(() => window.__fly.gridBytes()));
+
 console.log('roofAt spawn r=400:', await page.evaluate(() => window.__fly.roofAt(-97.7434, 30.2857, 400).toFixed(1)),
             '(snapshot max is 97.5)');
 
 // ── 1. NEVER INSIDE. Fly many randomised low-altitude segments and sample the
+
 //      clearance on every single frame.
+
 {
   const worst = await page.evaluate(async () => {
     const m = window.__map, F = window.__fly;
@@ -60,7 +117,9 @@ console.log('roofAt spawn r=400:', await page.evaluate(() => window.__fly.roofAt
 }
 
 // ── 2. STREETS STAY FLYABLE. The whole point of the small 6 m probe: flying a
+
 //      street at sign height must not lift you over the flanking rooftops.
+
 {
   const r = await page.evaluate(async () => {
     const m = window.__map, F = window.__fly;
@@ -110,7 +169,9 @@ console.log('roofAt spawn r=400:', await page.evaluate(() => window.__fly.roofAt
 }
 
 // ── 3. STANDOFF. Fly at the tallest tower; stop close enough to read a sign,
+
 //      never inside, and without an elevator climb over the top.
+
 {
   const r = await page.evaluate(async () => {
     const m = window.__map, F = window.__fly;
@@ -144,6 +205,7 @@ console.log('roofAt spawn r=400:', await page.evaluate(() => window.__fly.roofAt
 }
 
 // ── 4. THE HEADLINE MOBILE FIX: joystick and look at the same time.
+
 {
   const r = await page.evaluate(async () => {
     const m = window.__map, F = window.__fly;
@@ -188,6 +250,9 @@ console.log('roofAt spawn r=400:', await page.evaluate(() => window.__fly.roofAt
 check('no uncaught page errors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
 
 console.log('');
+
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
+
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
+
 await browser.__done();
