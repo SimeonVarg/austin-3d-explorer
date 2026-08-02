@@ -178,7 +178,16 @@
   // ── layers ───────────────────────────────────────────────────────────
   window.initProps = function initProps(map) {
     if (!PROPS.on || map.getSource(SRC)) return;
-    map.addSource(SRC, { type: 'geojson', data: 'data/props.geojson' });
+    // Props stream as tiles when data/tiles/props.pmtiles is present, and fall
+    // back to the whole 2.19 MB GeoJSON when it is not. Source and all EIGHT
+    // layers are built inside initProps, so this can be a local — the roads
+    // pass had them in different functions and a local threw out of scope,
+    // taking the entire ground stage with it.
+    const propTiles = window.tileSource && window.tileSource('props');
+    const propLP = propTiles ? propTiles.layerProps : {};
+    map.addSource(SRC, propTiles
+      ? propTiles.source
+      : { type: 'geojson', data: 'data/props.geojson' });
     const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
 
     // The light pools go UNDER the building extrusions, so a tower occludes the
@@ -191,7 +200,7 @@
 
     if (!map.getLayer(LIT)) {
       map.addLayer({
-        id: LIT, type: 'circle', source: SRC, minzoom: PROPS.litMinZoom,
+        id: LIT, type: 'circle', source: SRC, ...propLP, minzoom: PROPS.litMinZoom,
         filter: kFilter('lit'),
         paint: {
           'circle-pitch-alignment': 'map',
@@ -204,7 +213,7 @@
     }
     if (!map.getLayer(LIT_CORE)) {
       map.addLayer({
-        id: LIT_CORE, type: 'circle', source: SRC, minzoom: PROPS.litMinZoom + 1.2,
+        id: LIT_CORE, type: 'circle', source: SRC, ...propLP, minzoom: PROPS.litMinZoom + 1.2,
         filter: kFilter('lit'),
         paint: {
           'circle-pitch-alignment': 'map',
@@ -218,7 +227,7 @@
 
     if (!map.getLayer(CONS)) {
       map.addLayer({
-        id: CONS, type: 'fill-extrusion', source: SRC, minzoom: PROPS.consMinZoom,
+        id: CONS, type: 'fill-extrusion', source: SRC, ...propLP, minzoom: PROPS.consMinZoom,
         filter: ['==', ['get', 'k'], 'cons'],
         paint: { 'fill-extrusion-color': pick(COL.cons, p),
                  'fill-extrusion-height': ['get', 'h'],
@@ -229,7 +238,7 @@
     // density filter — there are 142 of them and each one is a real edge.
     if (!map.getLayer(LINE)) {
       map.addLayer({
-        id: LINE, type: 'fill-extrusion', source: SRC, minzoom: PROPS.lineMinZoom,
+        id: LINE, type: 'fill-extrusion', source: SRC, ...propLP, minzoom: PROPS.lineMinZoom,
         filter: ['==', ['get', 'k'], 'line'],
         paint: { 'fill-extrusion-color': classMatch(p),
                  'fill-extrusion-height': ['get', 'h'],
@@ -239,7 +248,7 @@
     }
     if (!map.getLayer(FURN)) {
       map.addLayer({
-        id: FURN, type: 'fill-extrusion', source: SRC, minzoom: PROPS.furnMinZoom,
+        id: FURN, type: 'fill-extrusion', source: SRC, ...propLP, minzoom: PROPS.furnMinZoom,
         filter: kFilter('furn'),
         paint: { 'fill-extrusion-color': classMatch(p),
                  'fill-extrusion-height': ['get', 'h'],
@@ -249,7 +258,7 @@
     }
     if (!map.getLayer(LAMP)) {
       map.addLayer({
-        id: LAMP, type: 'fill-extrusion', source: SRC, minzoom: PROPS.lampMinZoom,
+        id: LAMP, type: 'fill-extrusion', source: SRC, ...propLP, minzoom: PROPS.lampMinZoom,
         filter: kFilter('lamp'),
         paint: { 'fill-extrusion-color': classMatch(p),
                  'fill-extrusion-height': ['get', 'h'],
@@ -259,7 +268,7 @@
     }
     if (!map.getLayer(ART)) {
       map.addLayer({
-        id: ART, type: 'fill-extrusion', source: SRC, minzoom: PROPS.artMinZoom,
+        id: ART, type: 'fill-extrusion', source: SRC, ...propLP, minzoom: PROPS.artMinZoom,
         filter: ['==', ['get', 'k'], 'art'],
         paint: { 'fill-extrusion-color': pick(COL.art, p),
                  'fill-extrusion-height': ['get', 'h'],
@@ -269,7 +278,7 @@
     }
     if (!map.getLayer(ART_LBL)) {
       map.addLayer({
-        id: ART_LBL, type: 'symbol', source: SRC, minzoom: PROPS.artLabelZoom,
+        id: ART_LBL, type: 'symbol', source: SRC, ...propLP, minzoom: PROPS.artLabelZoom,
         filter: ['==', ['get', 'k'], 'art'],
         layout: {
           'text-field': ['get', 'name'],
