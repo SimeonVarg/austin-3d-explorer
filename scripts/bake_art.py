@@ -99,6 +99,32 @@ PLINTH_INSET = 0.72     # plinth as a fraction of the footprint
 SEG = 8                 # sides on anything round; 8 is where an octagon stops
                         # reading as an octagon at 60 m and costs half of 16
 
+# HOW FINELY A LEANING MEMBER IS SLICED, in metres of member per slab.
+#
+# `beam()` used to take its step count from the CALLER, and every caller guessed:
+# 2 to 7 steps for members ranging from 0.4 m to 5.2 m long. On the contact sheet
+# that is unmistakable — Monochrome for Austin's back-stay is 5.17 m over 4 steps,
+# so each slab is 1.29 m, and it renders as a literal six-tread STAIRCASE running
+# down the left side of the sculpture to the plinth. `beam()`'s own docstring
+# already says six steps is where a staircase starts reading as a line; it just
+# had no way to make that true of a member three times as long. So the count is
+# derived from the member's own 3-D length now and the argument is a FLOOR.
+# Measured over the whole file: 0.55 m -> 1,015 parts / 287 KB, 0.70 -> 929 /
+# 264, 0.85 -> 875 / 249, against 716 / 202 before. 0.70 is the pick: it takes
+# Monochrome's 5.17 m back-stay from 4 slabs to 8, which is what kills the
+# staircase, and costs 62 KB rather than 85.
+BEAM_STEP_M = 0.70      # one slab per this much member
+BEAM_STEP_MAX = 16      # past this the extra features buy nothing at 60 m
+BEAM_MIN_SLAB = 0.03    # and never slice a shallow member below add()'s 2 cm
+                        # floor — that is HANDOFF 51 with more steps, and it
+                        # deletes the member instead of smoothing it.
+
+# A GENERIC STATUE'S FIGURE, in metres — life size to heroic. The pedestal is
+# whatever the piece's height leaves over. See generic() for why this is the
+# right way round.
+STATUE_FIGURE_M = (1.85, 2.35)
+STATUE_PLINTH_MIN = 0.60
+
 
 def to_m(lon, lat, lon0, lat0):
     return ((lon - lon0) * M_LAT * math.cos(math.radians(lat0)), (lat - lat0) * M_LAT)
@@ -161,7 +187,19 @@ class Build:
         fill-extrusion cannot tilt a face, so a diagonal is a staircase. Six
         steps is where the staircase stops reading as steps from the air and
         starts reading as a line, which is the whole job of a di Suvero beam.
+
+        `steps` IS A FLOOR, NOT THE COUNT. Six slabs is a line over 1.5 m and a
+        flight of stairs over 5 m, and every caller here was guessing — see the
+        note on BEAM_STEP_M. The count is taken from the member's own length,
+        then clamped so a shallow member is never sliced thinner than the 2 cm
+        `add()` throws away.
         """
+        L = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2 + (z1 - z0) ** 2)
+        steps = min(BEAM_STEP_MAX, max(steps, int(math.ceil(L / BEAM_STEP_M))))
+        rise = abs(z1 - z0)
+        if rise > 0:
+            steps = min(steps, max(1, int(rise / BEAM_MIN_SLAB)))
+        steps = max(2, steps)
         for i in range(steps):
             t0, t1 = i / steps, (i + 1) / steps
             xm = x0 + (x1 - x0) * (t0 + t1) / 2
@@ -241,6 +279,39 @@ DIMS = {
     "Lone Star":             ( 3.50,  2.70,  0.60,
         "est — no published dimension found; a standing star marker, sized so a "
         "person reads as two thirds of it"),
+    # THE NATURE'S NEIGHBORHOOD BRONZES, and this is HANDOFF 33's own finding
+    # left half-done. Six small cast-bronze Texas natives by Lars Stanley and
+    # Dylan Connor sit along Waller Creek; all six arrive as `at=statue` with the
+    # props file's 4.2 m class default, and `generic()` draws a `statue` as a
+    # STANDING HUMAN FIGURE. So the campus has an armadillo, a bat, a horned
+    # lizard, a prickly pear and a bluebonnet each rendered as a 4.2 m person on
+    # a plinth. §33 spotted exactly this, sized the Sea Turtle — "a bronze animal
+    # is animal-sized" — and stopped there; the other five were never touched and
+    # the contact sheet shows all five as the same 4.2 h x 1.2 w silhouette.
+    #
+    # Sizes are `est` and reasoned from the SUBJECT, which is the one measurement
+    # nobody has to look up, with the usual public-art allowance of somewhat over
+    # life size so the thing survives being outdoors.
+    "Armadillo":             ( 0.80,  0.95,  0.55,
+        "est — a nine-banded armadillo is ~0.75 m nose to tail and knee-high; "
+        "same argument as Sea Turtle. Low block base included."),
+    "Horned Lizard":         ( 0.58,  0.66,  0.46,
+        "est — a Texas horned lizard is ~0.13 m; a bronze of one is a hand-sized "
+        "animal on a low block, not a 4.2 m person"),
+    "Bat":                   ( 1.40,  0.90,  0.42,
+        "est — a Mexican free-tailed bat has a 0.30 m span; the piece reads as a "
+        "bat mounted at eye height, so most of the height is its post"),
+    "Prickly Pear":          ( 1.45,  1.15,  0.90,
+        "est — a mature Opuntia pad cluster is about this tall and wide"),
+    "Bluebonnet":            ( 0.90,  0.60,  0.60,
+        "est — Lupinus texensis stands ~0.4 m; a bronze marker of one is a "
+        "knee-high clump, and it is a PLANT, not a standing figure"),
+    "Littlefield Fountain":  ( 6.90,  7.00,  9.40,
+        "est, but DERIVED — see LITTLEFIELD below. The width is solved from the "
+        "upper channel the group stands in (125.2 m2 over a 13.6 m run = 9.2 m "
+        "clear, less the 0.6 m weir walls and a coping's clearance either side); "
+        "the height is a heroic-scale figure (~1.5x life) on a prow deck 1.9 m "
+        "over the water, with the torch above her head."),
 }
 
 
@@ -689,6 +760,57 @@ def art_lonestar(b, hw, hd, H):
             b.box(xm, 0.0, dx, 0.34, cz + zm - dz / 2, cz + zm + dz / 2, "bronze")
 
 
+def _creature(kind):
+    """The Nature's Neighborhood bronzes: an animal or a plant, animal-sized.
+
+    Three forms rather than five recipes, because at 0.6-1.5 m nobody is reading
+    a species off the silhouette — what has to be true is that the thing is
+    SMALL, LOW and NOT A PERSON, which is the entire defect. `hw`, `hd` and `H`
+    arrive from DIMS, so the size is the table's and this only spends it.
+    """
+    def draw(b, hw, hd, H):
+        L, W = hw * 2, hd * 2
+        if kind == "plant":
+            bh = min(0.22, H * 0.20)
+            b.disc(0, 0, max(L, W) * 0.46, 0.0, bh, "limest", seg=8)
+            # A clump: three or four rounded masses at mixed heights, leaning
+            # out. One cylinder is a bollard; three at different heights is a
+            # plant, and that is as far as an extrusion can take it.
+            for i in range(4):
+                a = 2 * math.pi * (i + 0.2) / 4
+                d = max(L, W) * (0.10 + 0.16 * hash01(kind, 10 + i))
+                top = bh + (H - bh) * (0.55 + 0.45 * hash01(kind, 20 + i))
+                b.disc(d * math.cos(a), d * math.sin(a),
+                       max(L, W) * (0.13 + 0.07 * hash01(kind, 30 + i)),
+                       bh, top, "bronze", seg=6)
+            b.dome(0, 0, max(L, W) * 0.20, H * 0.72, H * 0.28, "bronze", tiers=2, seg=6)
+            return
+        if kind == "bat":
+            post = H * 0.62
+            b.disc(0, 0, 0.26, 0.0, 0.16, "limest", seg=8)
+            b.disc(0, 0, 0.10, 0.0, post, "steel", seg=6)
+            b.box(0, 0, 0.22, 0.30, post, H * 0.92, "bronze")            # the body
+            b.disc(0, 0.13, 0.09, H * 0.86, H, "bronze", seg=6)          # the head
+            for s in (1, -1):                                            # the wings
+                b.beam(0.06 * s, 0.0, post + 0.04, (L / 2) * s, -0.10, H * 0.90,
+                       0.16, "bronze", steps=3)
+            return
+        # a quadruped: a low body, a head forward, four short legs, a tail.
+        bh = min(0.26, H * 0.34)
+        b.box(0, 0, L * 1.05, W * 1.15, 0.0, bh, "limest")
+        body_t = bh + (H - bh) * 0.80
+        b.dome(0, 0, L * 0.34, bh, body_t - bh, "bronze", tiers=3, seg=10)
+        b.disc(0, W * 0.42, L * 0.15, bh + (body_t - bh) * 0.25, body_t, "bronze", seg=8)
+        b.disc(0, W * 0.56, L * 0.10, body_t * 0.86, H, "bronze", seg=6)   # the head
+        for sx in (1, -1):
+            for sy in (0.62, -0.62):
+                b.box(sx * L * 0.24, sy * W * 0.30, L * 0.10, L * 0.10,
+                      bh, bh + (body_t - bh) * 0.45, "bronze")
+        b.beam(0.0, -W * 0.34, bh + 0.03, 0.0, -W * 0.78, bh + (body_t - bh) * 0.55,
+               L * 0.09, "bronze", steps=3)
+    return draw
+
+
 RECIPES = {
     "Monochrome for Austin": art_monochrome,
     "Clock Knot": art_clockknot,
@@ -700,6 +822,11 @@ RECIPES = {
     "Circle with Towers": art_circletowers,
     "The Torchbearers": art_torchbearers,
     "Lone Star": art_lonestar,
+    "Armadillo": _creature("quadruped"),
+    "Horned Lizard": _creature("quadruped"),
+    "Bat": _creature("bat"),
+    "Prickly Pear": _creature("plant"),
+    "Bluebonnet": _creature("plant"),
 }
 
 
@@ -723,8 +850,21 @@ def generic(b, name, at, hw, hd, H):
         b.box(0, 0, hw * 1.9, 0.35, 0.0, H, "limest")
         return "mural"
     if at == "statue":
-        ph = b.plinth(hw * 1.15, hd * 1.15, "granite", 0.85 + 0.3 * r1)
-        b.figure(0, 0, ph, H - ph, "bronze", wide=0.46 + 0.16 * r2)
+        # A PORTRAIT BRONZE IS A FIGURE ON A PEDESTAL, AND THE PEDESTAL TAKES
+        # WHATEVER THE FIGURE DOES NOT NEED.
+        #
+        # The old rule was the other way round: a plinth of 0.85-1.15 m and then
+        # the WHOLE REMAINDER of the props file's 4.2 m class default handed to
+        # the figure — so all nine generic statues on this campus were drawn as
+        # people 3.05 to 3.35 m tall. That is half again over heroic scale, and
+        # on the contact sheet every one of them reads as a bare brown stick with
+        # nothing under it (George Washington and the Barbara Jordan statue are
+        # the two anyone would look at). A bronze is life size to heroic, 1.85 to
+        # 2.35 m; the pedestal is the rest, and a pale block half the height is
+        # also what makes the piece legible at 60 m in the first place.
+        fig = STATUE_FIGURE_M[0] + (STATUE_FIGURE_M[1] - STATUE_FIGURE_M[0]) * r2
+        ph = b.plinth(hw * 1.15, hd * 1.15, "granite", max(STATUE_PLINTH_MIN, H - fig))
+        b.figure(0, 0, ph, max(1.20, H - ph), "bronze", wide=0.48 + 0.16 * r2)
         return "statue"
     if at == "installation":
         # A cluster of masts at mixed heights — the generic "an installation
@@ -747,6 +887,220 @@ def generic(b, name, at, hw, hd, H):
     b.disc(lean * 1.4, hd * 0.2, min(hw, hd) * (0.22 + 0.16 * r3),
            ph + (H - ph) * 0.9, H, mat)
     return "sculpture"
+
+
+# ── The Littlefield Fountain memorial ─────────────────────────────────
+#
+# "the Littlefield Fountain has no memorial at all — two flat puddles and one
+# six-step nub"
+#
+# He is right and it is the worst omission in the scene, because after the Tower
+# this is the most photographed object on campus. bake_depth.py built the POOL
+# correctly — three curved tiers off a measured nadir, PR #75 gave the flights a
+# riser — and then the pass never came back for the thing the pool exists to
+# hold. Pompeo Coppini's bronze group, dedicated 29 April 1933, is the memorial;
+# without it the fountain is a puddle with a kerb.
+#
+# WHAT IS THERE, from the published description of the work rather than from a
+# glance at a photograph. The Goddess of Liberty — Columbia — stands on the prow
+# of the Ship of State bearing a torch; the ship is drawn by THREE hippocampi
+# (sea horses, forequarters of a horse and a fish's tail) breaking out of the
+# cascade ahead of her; TWO male figures, the Army and the Navy, flank the hull
+# in the water. The whole group stands on a masonry pedestal in the upper basin.
+# Five figures, three horses, one hull. That inventory is the accuracy test: a
+# recipe that emits a statue on a block has not drawn this.
+#
+# SIZE FIRST, and it is DERIVED rather than guessed — the same move as Kelly's
+# cruciform plan. No published dimension for the bronze could be found, so:
+#
+#   WIDTH is solved from the basin. bake_depth.py measures the top channel at
+#   125.2 m2 over a 13.60 m run = 9.2 m clear. Photographs show the group filling
+#   that channel with the flanking figures just inside the copings, so 7.0 m
+#   overall — 9.2 less the two 0.6 m weir walls, less a hand's clearance.
+#   HEIGHT is a heroic-scale figure, which is how Coppini worked: ~1.5x life is
+#   2.75 m. She stands on a deck 1.9 m above the water (itself 1.48 m over the
+#   plaza, from FOUNTAIN_TIERS) and holds the torch above her head. 6.9 m.
+#   LENGTH follows from the parts: stern to the lead horse's nose is 9.4 m.
+#
+# Two of those three are measurements off geometry this repo already has, which
+# is why they are in DIMS with the derivation written out rather than an `est`
+# and a shrug. main() re-measures the emitted file against them.
+#
+# WHERE IT GOES is not a constant either. bake_depth.py already derives the
+# fountain's own axis from its footprint — the South Mall runs about 6 degrees
+# east of north and assuming north puts the group a metre out — so this imports
+# `mall_frame` and the tier geometry from that file instead of restating them.
+# One source of truth for the axis; if the footprint changes, both move together.
+LITTLEFIELD = "Littlefield Fountain"
+# ── taste block, all of it overridable in one line ──
+LF_ALONG_OF_MOUTH = 1.6   # group centre, metres UP-mall of the channel mouth
+LF_PLINTH_Z       = 2.05  # top of the masonry pedestal, above the plaza
+LF_PLINTH_L       = 5.20  # pedestal, along-mall x across-mall
+LF_PLINTH_W       = 3.30
+LF_HULL_Z         = 0.95  # depth of the hull's own side, above the pedestal
+LF_DECK_Z         = 3.55  # the prow deck Columbia stands on
+LF_COLUMBIA_H     = 2.75  # heroic scale: about 1.5x life
+LF_TORCH_TOP      = 6.90  # the flame, and the top of the whole group
+LF_FLANK_H        = 2.45  # the Army and the Navy, half-submerged, so shorter
+LF_FLANK_ACROSS   = 3.20  # how far off the axis they stand
+LF_HORSE_Z        = 0.95  # where a sea horse breaks the water
+LF_HORSE_HEAD_Z   = 3.10  # and how high its head rears — BELOW the deck, so the
+                          # team reads as a team and not as three columns
+LF_HORSE_ACROSS   = 2.55  # the flankers' offset. See the note in the recipe.
+LF_PLINTH_MAT     = "limest"   # matches bake_depth's `stone` coping, not granite
+LF_BRONZE         = "bronze"
+
+
+def _mall_frame_from_ground():
+    """(head, down-mall unit vector, mouth offset) in bake_depth's metre frame.
+
+    Imported rather than restated. bake_depth.mall_frame() finds the footprint's
+    northernmost EDGE and takes its perpendicular toward the centroid, which is
+    the only definition that survives the mall not running due north.
+    """
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import bake_depth as bd
+    from shapely.geometry import Polygon
+    gpath = os.path.join(ROOT, "data", "ground.geojson")
+    ring = None
+    for f in json.load(open(gpath, encoding="utf-8"))["features"]:
+        if f["properties"].get("name") == bd.FOUNTAIN_NAME:
+            ring = f["geometry"]["coordinates"][0]
+            break
+    if ring is None:
+        return None
+    ring_m = [bd.to_m(x, y) for x, y in ring]
+    foot = Polygon(ring_m)
+    if not foot.is_valid:
+        foot = foot.buffer(0)
+    head, axis = bd.mall_frame(ring_m, foot)
+    return bd, head, axis
+
+
+def bake_littlefield(stats):
+    """Coppini's group: hull, Columbia, three hippocampi, two flanking figures.
+
+    THE FRAME. `a` is metres DOWN-mall (south, toward MLK — the way the group
+    faces, and the way the water falls); `s` is metres across it, starboard
+    positive. Every number below is in that frame, so the whole group rotates
+    with the mall for free and no part carries a compass bearing of its own.
+
+    WHAT IS GENERATIVE. The inventory and the arrangement are from the published
+    description. The individual forms are this file's usual reduction — a figure
+    is five stacked masses, a leaning member is a short stack of offset slabs —
+    because fill-extrusion has no vertical anchor and no rotation. Nobody will
+    recognise Columbia's face at 60 m; they will recognise a standing figure on a
+    prow with three horses in front of it, and that is the whole job.
+    """
+    fr = _mall_frame_from_ground()
+    if fr is None:
+        stats["littlefield_SKIPPED"] += 1
+        return []
+    bd, head, (ux, uy) = fr
+    # Origin: on the axis, just up-mall of the channel mouth, so the hull sits in
+    # the top basin and the horses lead out over the weir into the crescent.
+    u0 = bd.FOUNTAIN_MOUTH_U - LF_ALONG_OF_MOUTH
+    lon0, lat0 = bd.to_ll(head[0] + ux * u0, head[1] + uy * u0)
+    b = Build(LITTLEFIELD, lon0, lat0)
+    nx, ny = -uy, ux
+    rot = math.atan2(uy, ux)
+
+    def P(a, s=0.0):
+        return (ux * a + nx * s, uy * a + ny * s)
+
+    # 1. THE PEDESTAL. Limestone, not granite: it has to read as one thing with
+    #    the pool's own coping, and `granite` here is the dark plinth grey used
+    #    under the free-standing bronzes.
+    b.box(*P(-0.4), LF_PLINTH_L, LF_PLINTH_W, 0.0, LF_PLINTH_Z, LF_PLINTH_MAT, rot=rot)
+    b.box(*P(-0.4), LF_PLINTH_L + 0.85, LF_PLINTH_W + 0.75, 0.0, 0.42, LF_PLINTH_MAT, rot=rot)
+
+    # 2. THE HULL, and its prow. THREE strakes, each shorter and narrower than
+    #    the one under it, so the mass tapers instead of standing as one slab —
+    #    the first cut was two equal boxes and read as a shed. Then the stem,
+    #    rising clear of the deck ahead of the figure: that is what makes it a
+    #    boat rather than a bench, and it has to be visible ABOVE the horses.
+    b.box(*P(-0.20), 6.30, 2.55, LF_PLINTH_Z, LF_PLINTH_Z + 0.55, LF_BRONZE, rot=rot)
+    b.box(*P(0.05), 5.60, 2.05, LF_PLINTH_Z + 0.55, LF_PLINTH_Z + LF_HULL_Z, LF_BRONZE, rot=rot)
+    b.box(*P(0.45), 4.60, 1.55, LF_PLINTH_Z + LF_HULL_Z, LF_DECK_Z, LF_BRONZE, rot=rot)
+    b.beam(*P(2.55), LF_PLINTH_Z + 0.80, *P(4.10), 4.05, 0.90, LF_BRONZE, steps=5)
+    # The STERNPOST, rising aft. The first cut put a 1.15 x 1.60 box up to
+    # DECK+0.55 back there and it read as a shipping container on the transom —
+    # a deckhouse this work does not have. A post curving up out of the stern is
+    # both the classical silhouette and half of what makes the thing read as a
+    # ship at 300 m: prow up, waist low, stern up.
+    b.beam(*P(-2.30), LF_PLINTH_Z + 0.70, *P(-3.35), 4.30, 0.66, LF_BRONZE, steps=5)
+
+    # 3. COLUMBIA, standing on the prow — FORWARD on the deck, not amidships,
+    #    which is both what the description says and what stops her merging into
+    #    the stern. The raised arm is written low-end-first: beam() needs z0 < z1.
+    fz, fa = LF_DECK_Z + 0.22, 2.05
+    b.box(*P(fa), 1.60, 1.30, LF_DECK_Z, fz, LF_BRONZE, rot=rot)     # the prow deck
+    b.figure(*P(fa), fz, LF_COLUMBIA_H, LF_BRONZE, wide=0.80)
+    sh = fz + LF_COLUMBIA_H * 0.80                     # shoulder
+    b.beam(*P(fa, 0.10), sh, *P(fa - 0.35, 0.60), fz + LF_COLUMBIA_H + 0.30,
+           0.28, LF_BRONZE, steps=3)                   # the arm, up and out
+    b.box(*P(fa - 0.35, 0.60), 0.28, 0.28,
+          fz + LF_COLUMBIA_H + 0.30, LF_TORCH_TOP - 0.44, LF_BRONZE, rot=rot)
+    b.dome(*P(fa - 0.35, 0.60), 0.44, LF_TORCH_TOP - 0.44, 0.44, LF_BRONZE, tiers=3, seg=8)
+    # The other arm, held low and out — it is what stops her reading as a post.
+    b.beam(*P(fa, -0.10), fz + LF_COLUMBIA_H * 0.58,
+           *P(fa + 0.60, -0.66), fz + LF_COLUMBIA_H * 0.74, 0.24, LF_BRONZE, steps=3)
+
+    # 4. THREE HIPPOCAMPI, drawing the ship. Forequarters out of the water, neck
+    #    raking forward, forelegs pawing, a fish tail curling back under.
+    #
+    #    THE FIRST CUT READ AS THREE LEGS UNDER THE SHIP and the picture said so
+    #    plainly: the chests were 1.55 x 1.05 boxes standing 1.15 m tall directly
+    #    beneath the hull, and three vertical blocks under a mass is a table. Two
+    #    things fix it and both are about SEPARATION, not detail. The team is
+    #    pushed forward past the weir so it stands in the lower crescent with
+    #    water between it and the hull, and its heads rear to 3.10 m — BELOW the
+    #    3.55 m deck — so the silhouette is a low team drawing a high ship
+    #    instead of one lump. Chests are slimmer for the same reason.
+    for a0, s0, side in ((4.75, 0.0, 0.0),
+                         (4.00, LF_HORSE_ACROSS, 1.0),
+                         (4.00, -LF_HORSE_ACROSS, -1.0)):
+        b.box(*P(a0, s0), 1.35, 0.90, LF_HORSE_Z, LF_HORSE_Z + 0.95, LF_BRONZE, rot=rot)
+        # THE TEAM FANS. Heads splayed 0.55 m outboard rather than 0.16, and the
+        # head box turned with them: parallel heads are three identical blocks
+        # from dead ahead — which is the view from MLK, the one everybody has —
+        # and a fanned team shows a profile from every direction. Same argument
+        # as the Mustangs' headings.
+        b.beam(*P(a0 + 0.20, s0), LF_HORSE_Z + 0.75,
+               *P(a0 + 0.95, s0 + 0.35 * side), LF_HORSE_HEAD_Z - 0.34,
+               0.52, LF_BRONZE, steps=4)                              # the neck
+        b.box(*P(a0 + 1.24, s0 + 0.55 * side), 0.95, 0.44,
+              LF_HORSE_HEAD_Z - 0.44, LF_HORSE_HEAD_Z, LF_BRONZE,
+              rot=rot + 0.42 * side)                                  # head
+        b.disc(*P(a0 + 0.72, s0 + 0.22 * side), 0.30,
+               LF_HORSE_HEAD_Z - 0.58, LF_HORSE_HEAD_Z - 0.12, LF_BRONZE, seg=6)  # mane
+        # A foreleg pawing the air. Written low-end-first; a hippocampus with no
+        # legs is a fish, and the legs are half of what says "horse" in plan.
+        b.beam(*P(a0 + 1.35, s0 - 0.30 * side), LF_HORSE_Z + 0.10,
+               *P(a0 + 0.75, s0 - 0.14 * side), LF_HORSE_Z + 0.90,
+               0.26, LF_BRONZE, steps=3)
+        b.beam(*P(a0 - 0.75, s0), LF_HORSE_Z + 0.05,
+               *P(a0 - 1.90, s0 - 0.42 * side), LF_HORSE_Z + 1.20,
+               0.48, LF_BRONZE, steps=4)                              # the tail
+        b.box(*P(a0 - 2.20, s0 - 0.56 * side), 0.85, 0.28,
+              LF_HORSE_Z + 1.00, LF_HORSE_Z + 1.38, LF_BRONZE,
+              rot=rot + 0.7 * side)                                   # the fluke
+
+    # 5. THE ARMY AND THE NAVY, one each side of the hull, half out of the water.
+    #    A LOW wave mass under each, not a plinth: the first cut used a 0.95 m
+    #    disc standing 1.62 m and the pair read as two capped bollards. The wave
+    #    only has to say "the water does not stop here", so it is under a metre
+    #    and the figure's own torso does the rest.
+    for side in (1.0, -1.0):
+        b.disc(*P(-0.10, LF_FLANK_ACROSS * side), 0.78, 0.0, 1.28, LF_BRONZE, seg=8)
+        b.figure(*P(-0.10, LF_FLANK_ACROSS * side), 1.28, LF_FLANK_H, LF_BRONZE, wide=0.70)
+        b.beam(*P(-0.10, LF_FLANK_ACROSS * side), 1.28 + LF_FLANK_H * 0.62,
+               *P(0.65, (LF_FLANK_ACROSS - 1.05) * side), 1.28 + LF_FLANK_H * 0.88,
+               0.26, LF_BRONZE, steps=3)                              # arm to the hull
+
+    stats["littlefield_parts"] += len(b.parts)
+    return b.parts
 
 
 # ── The power plant yard behind the Drama Building ────────────────────
@@ -906,6 +1260,13 @@ def main():
         authored.append(name)
         feats.extend(b.parts)
         stats["parts"] += len(b.parts)
+
+    # The Littlefield Fountain's memorial rides here too. It is not a `k:'art'`
+    # feature in props.geojson — OSM maps the fountain as a water AREA, so there
+    # is no node for the bronze to hang off — but it is authored artwork drawn by
+    # the same layer with the same materials, and the alternative is a fifth
+    # material palette in a file that already has one.
+    feats.extend(bake_littlefield(stats))
 
     # The chilled-water plant rides in the same file: it is authored scene
     # geometry drawn by the same layer, and it needs no source of its own.
