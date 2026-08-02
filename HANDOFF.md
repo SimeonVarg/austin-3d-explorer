@@ -1,5 +1,40 @@
 # Austin 3D Explorer — Full Handoff
 
+## 29. Aug 2 2026 — roofs stopped turning into windows at altitude (mac lane)
+
+**Branch:** `mac/lod-roof-caps` — MAC_QUEUE M4's bug half. *"when i go up on
+low detail mode the roofs of houses become windows this is pretty bad."*
+
+The Acer diagnosed this and handed it over; the diagnosis was right and this
+pass confirmed it **with a picture before changing anything**.
+`TIERS.mid` in `js/lod.js` listed `buildings-roof`, `parts-roof` and
+`outer-tower-roof` next to genuine detail layers. Those three are not detail —
+they are the CAP over the top face of every building extrusion, and the walls
+beneath carry `fill-extrusion-pattern`, which MapLibre paints on the TOP face as
+well as the sides. Hide the cap and every roof in the city becomes the window
+grid off its own walls. Photographed at detail 350 from 1,127 m:
+`shots/lod/roof-caps.png`.
+
+**The cost question, which the Acer flagged rather than assumed.** `lod-perf.mjs`
+reads `window.LOD_TIERS` at runtime, so re-running it after the change measures
+the NEW tier. Three interleaved, counterbalanced reps, dropped frames not means:
+
+```
+baseline           dropped 136   fps 30.8
+tier1-off          dropped 134   fps 30.7   NO RESULT — spreads overlap
+tier1+2-off        dropped  99   fps 40.1   +9.3 fps, separated
+renderScale-0.75   dropped 138   fps 30.7   NO RESULT — spreads overlap
+```
+
+**The mid tier still delivers its entire win without the three cap layers.**
+That does not prove the caps are free — it is not the same-run A/B that would —
+but it does settle the question that mattered: there is no performance case for
+keeping a visible bug. Note again that renderScale 0.75, which HANDOFF §20.1
+calls the master lever, cannot be separated from baseline here.
+
+Also worth keeping: dropping roofs was the wrong choice on its own terms. From
+altitude, roofs are most of what you are looking at.
+
 ## 28. Aug 2 2026 — downtown's curtain wall, ported into the bake and proved (mac lane)
 
 **Branch:** `mac/outer-facade-bake` — MAC_QUEUE M2 step 1, the parity half.
