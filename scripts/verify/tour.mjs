@@ -46,7 +46,14 @@ const POSES = [
   ['west-campus',       { center: [-97.7455, 30.2880], zoom: 16.0, pitch: 66, bearing: 120 }],
   ['the-drag',          { center: [-97.7418, 30.2865], zoom: 17.2, pitch: 70, bearing: 0 }],
   ['moody-arena',       { center: [-97.7325, 30.2795], zoom: 16.6, pitch: 60, bearing: 45 }],
-  ['waller-creek',      { center: [-97.7330, 30.2870], zoom: 17.0, pitch: 64, bearing: 180 }],
+  // THE OLD POSE DID NOT CONTAIN THE CREEK. It sat at -97.7330 looking south
+  // with the channel 130 m off to the west, so the one tour frame named after
+  // the corridor photographed San Jacinto instead — and HANDOFF §35 records
+  // the cost: a pass whose result no tour frame contains is a pass nobody will
+  // notice regressing. This centres ON the water at the Alumni Center reach and
+  // looks north up the channel, so Patton Hall, the Etter-Harbin Alumni Center
+  // and the two named stretches are all in one frame.
+  ['waller-creek',      { center: [-97.7344, 30.2845], zoom: 17.2, pitch: 62, bearing: 8 }],
   ['blanton-arts',      { center: [-97.7375, 30.2805], zoom: 16.8, pitch: 66, bearing: 340 }],
   ['aerial-wide',       { center: [-97.7390, 30.2840], zoom: 14.4, pitch: 55, bearing: 20 }],
 ];

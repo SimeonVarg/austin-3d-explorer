@@ -180,6 +180,39 @@
     creekBank: true,
     creekBankColor: '#22301f',
     creekBankOpacity: 0.30,
+    // THE WATER SURFACE. There has been a water prism in the channel since the
+    // cut landed and it still read as "a green stripe", because the colour it
+    // was given -- #41604a, luma 88 -- sat SIX LUMA from the `bankshade` two
+    // metres away and had the same green hue. Two surfaces that measure the
+    // same are one surface. The water is cool now (see BANK_MAT.water) and it
+    // carries the ripple tile on its own thin slab, `m:'sheen'` from the bake.
+    //
+    // false hands the creek back to a flat-coloured water prism with no ripple;
+    // the water KEEPS its colour either way, this knob is only the sheen.
+    creekSheen: true,
+    creekSheenOpacity: 1.0,   // the tile's own alpha peaks at 11%; this scales it
+    creekSheenNightKeep: 0.7,
+
+    // ── The creek canopy ──────────────────────────────────────────────
+    //
+    // "no canopy from flying altitude -- the src:'creek_canopy' hook added in
+    // an earlier pass was never consumed."
+    //
+    // It is consumed here, but NOT the way it was meant to be: the hook was
+    // written for shape_trees.py to densify data/trees.geojson over, and this
+    // draws crown prisms that scripts/bake_ground.py's CANOPY block bakes into
+    // data/ground.geojson instead. The reason is the one thing that makes a
+    // canopy legible from 200 m -- it is TEN METRES OFF THE GROUND. Any flat
+    // green polygon, at any colour, is a green stripe.
+    //
+    // Three species, one prism each and NEVER a stack: HANDOFF §35 item 7 is
+    // that every tree in this scene is "a stack of flat octagonal discs", and
+    // stacking is what makes that. Overlapping single prisms of varied radius
+    // and height merge into a mass instead.
+    canopy: true,
+    canopyBaseFrac: 0.34,   // underside of the foliage, as a fraction of its top
+    canopyJitter: 0.10,     // per-crown lightness, as a fraction of its own luma
+    canopyOpacity: 1,
     texNightFade: 0.55,     // texture recedes after dark, never vanishes
     texWaterNightKeep: 0.8, // water keeps more of it — still reads as water
     // The catch-all ground under everything OSM does not classify measured 54%
@@ -208,6 +241,7 @@
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
   const SPEEDWAY = 'ground-speedway-brick';
   const DEPTH = 'ground-depth', CHANNEL = 'ground-channel';
+  const SHEEN = 'ground-creek-sheen', CANOPY = 'ground-creek-canopy';
 
   // `source-layer` for the road layers, or {} on the GeoJSON fallback. MODULE
   // SCOPE on purpose: the source is added in one function and the six layers
@@ -272,6 +306,14 @@
       // than the mown grass because it is never cut. If these three ever read
       // as one colour the whole creek pass is back to being a band of paint.
       understorey:'#6e8a4d',
+      // SCRUB, and it used to be `grass`. The creek's three planting zones were
+      // scrub / understorey / canopy, and the widest of them -- the one right
+      // beside the water, the one you look at -- was painted with the mown lawn
+      // colour AND given the mown lawn's texture tile. Two of the three "zones"
+      // were therefore one zone. Creekside scrub in Austin is dry, mixed and
+      // never cut, so it is yellower, greyer and 19 luma below the lawn (133
+      // against 152), and it wears the canopy grain, not the lawn's speckle.
+      scrub:'#8d9455',
       // A PLANTING BED, which is the one thing a garden has that a lawn does
       // not. Read off what a bed actually is from the air: dark hardwood mulch
       // with foliage over it, so it is browner and lower in value than any
@@ -288,7 +330,8 @@
       limestone:'#f4e0b8', concrete:'#e3cba6', paving:'#ecd6ac', brick:'#8f5439',
       asphalt:'#655d5a', gravel:'#cdb28d', dirt:'#a37f5b', sand:'#e7cb9c',
       grass:'#8a9457', turf:'#4a6b36', wood:'#5a6a3c', water:'#c9a184',
-      creek:'#5c6b4c', pond:'#b0947f', understorey:'#6b7f42', bed:'#75603a', gardenlawn:'#788b4c',
+      creek:'#5c6b4c', pond:'#b0947f', understorey:'#6b7f42', scrub:'#8a8b4e',
+      bed:'#75603a', gardenlawn:'#788b4c',
       track:'#a5482f', endzone:'#b04e00',
       roadconcrete:'#857c72', brickpave:'#eec69b',
       bikelane:'#75706c', biketrack:'#827c76', bikegreen:'#7a7a66',
@@ -298,7 +341,7 @@
       brick:'#1d1720', asphalt:'#0d1017', gravel:'#1b1a22', dirt:'#191620',
       sand:'#201d26', grass:'#111a14', turf:'#0d1710', wood:'#0c130f',
       water:'#070f1e', creek:'#080f0c', pond:'#060d18',
-      understorey:'#0e1510', bed:'#12100e', gardenlawn:'#0f1712',
+      understorey:'#0e1510', scrub:'#131610', bed:'#12100e', gardenlawn:'#0f1712',
       track:'#1d1418', endzone:'#2a1608',
       roadconcrete:'#14161c', brickpave:'#241d1f',
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
@@ -319,7 +362,11 @@
   // not, so the eye merged them.
   const TEX_FAMILY = {
     grass: 'grass', turf: 'grass', endzone: 'grass', gardenlawn: 'grass',
-    wood: 'canopy', understorey: 'canopy', bed: 'canopy',
+    // `scrub` takes the CANOPY grain rather than the lawn's, and that is the
+    // half of its separation that survives distance. §34's own lesson: the
+    // colour was already different from grass and the grain was not, so at
+    // altitude the eye merged them and the corridor read as paint.
+    wood: 'canopy', understorey: 'canopy', scrub: 'canopy', bed: 'canopy',
     asphalt: 'asphalt', track: 'asphalt',
     roadconcrete: 'asphalt', bikelane: 'asphalt', biketrack: 'asphalt',
     bikegreen: 'asphalt', brickpave: 'paving',
@@ -789,6 +836,12 @@
     return +(GROUND.texOpacity * GROUND.texStrength.paving * GROUND.texGroundOpacity *
              (1 - n * (1 - GROUND.texNightFade))).toFixed(3);
   }
+  /** The ripple survives the night better than the ground grain: still water. */
+  function sheenOpacity(p) {
+    const n = nightAmt(p);
+    return +(GROUND.creekSheenOpacity *
+             (1 - n * (1 - GROUND.creekSheenNightKeep))).toFixed(3);
+  }
   /** The brick weave keeps more of itself after dark than the ground grain. */
   function speedwayTexOpacity(p) {
     const n = nightAmt(p);
@@ -858,7 +911,25 @@
    * tread against the dark riser, not the height between them.
    */
   const BANK_MAT = {
-    water:     ['#41604a', '#4c5f43', '#070d0a'],  // channel water, under canopy
+    // WATER, AND THE OLD VALUE IS THE WHOLE STORY. It was #41604a — "channel
+    // water, under canopy" — which is a defensible thing to write down and a
+    // measurably wrong thing to render:
+    //
+    //     water     #41604a  rgb( 65, 96, 74)  luma 88   b-r = +9
+    //     bankshade #425c33  rgb( 66, 92, 51)  luma 82   b-r = -15
+    //
+    // Six luma and 24 units of blue apart, two metres apart on screen, both
+    // green-dominant. From 200 m that is not a water surface next to a bank, it
+    // is one green ribbon — which is exactly what has been reported about this
+    // creek in every pass since it was cut.
+    //
+    // Water reads from the air because it REFLECTS THE SKY, and that is true
+    // under a canopy too: what little sky reaches the surface is all of the
+    // light there is, so the channel is the one COOL thing in a warm-green
+    // corridor. So this is cool and mid-value: luma 118, sitting between the
+    // chalk toe (142) and the bank shade (82), with b-r = +63 against the
+    // bank's -15. That 78-unit hue swing is the read.
+    water:     ['#4d7f8c', '#5a7a80', '#0b1a24'],  // channel water, sky in shade
     bankveg:   ['#5c7742', '#59683a', '#0a110c'],  // top of bank, planted
     bankshade: ['#425c33', '#3f5230', '#080d09'],  // the same bank, in its own shade
     bank:      ['#9a8f70', '#a08a63', '#131319'],  // Austin Chalk at the toe
@@ -872,6 +943,37 @@
     for (const k of Object.keys(BANK_MAT)) e.push(k, trioAt(BANK_MAT[k], p));
     e.push(trioAt(BANK_MAT.bank, p));
     return e;
+  }
+
+  /**
+   * THE CREEK CANOPY, three species, one prism each.
+   *
+   * The species are not decoration: Waller Creek through campus is bald cypress
+   * at the water, pecan and cedar elm above it and live oak on the terrace, and
+   * they are three genuinely different greens. One green over 647 crowns is a
+   * hedge — the same failure the ground zones had before this pass, one level up.
+   *
+   * Every trio is day / golden / night, the shape every other palette here uses.
+   * `cypress` is the blue-green one and `pecan` the light yellow-green one, and
+   * they are 40 luma apart on purpose: from 400 m the only thing left of a
+   * species is its tone.
+   */
+  const CROWN_MAT = {
+    cypress: ['#4c6b53', '#4f6949', '#0a120e'],
+    pecan:   ['#7d9a4e', '#87954a', '#0e150c'],
+    liveoak: ['#4f6a3c', '#546239', '#0a0f09'],
+  };
+  /** matchExpr on `m`, with each crown somewhere in its own ±amp luma band. */
+  function crownColour(p) {
+    const one = shift => {
+      const e = ['match', ['get', 'm']];
+      for (const k of Object.keys(CROWN_MAT)) e.push(k, shiftLuma(trioAt(CROWN_MAT[k], p), shift));
+      e.push(shiftLuma(trioAt(CROWN_MAT.liveoak, p), shift));
+      return e;
+    };
+    const a = GROUND.canopyJitter;
+    if (!a) return one(0);
+    return ['interpolate', ['linear'], hash01(), 0, one(-a), 1, one(+a)];
   }
 
   window.initGround = function initGround(map) {
@@ -1115,7 +1217,13 @@
     if (GROUND.channel && !map.getLayer(CHANNEL)) {
       map.addLayer({
         id: CHANNEL, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
-        filter: ['==', ['get', 'k'], 'bank'],
+        // `m:'sheen'` is excluded: it is the SAME footprint as the water prism,
+        // standing 0.10 m on it, and it is drawn by its own pattern layer
+        // below. Leaving it in here would paint a solid `bank`-coloured lid
+        // over the water — the fallback of bankColour's match — which is a tan
+        // ribbon down the middle of the channel and would have been read as
+        // "the creek is a dirt track" for the third time in this file's history.
+        filter: ['all', ['==', ['get', 'k'], 'bank'], ['!=', ['get', 'm'], 'sheen']],
         paint: {
           'fill-extrusion-color': bankColour(p),
           'fill-extrusion-base': ['get', 'b'],
@@ -1126,6 +1234,69 @@
           // face; a bank course is 2-4 m of vertical cut and the gradient is
           // exactly the shading that makes it read as a cut rather than as a
           // stripe of a different colour.
+          'fill-extrusion-vertical-gradient': true,
+        },
+      });
+    }
+
+    /**
+     * THE RIPPLE ON THE WATER. A 0.10 m slab standing on the water prism,
+     * wearing the same scale-free water tile the lake and the ponds wear.
+     *
+     * WHY A SECOND SLAB AND NOT A PATTERN ON THE WATER ITSELF: a
+     * fill-extrusion takes `fill-extrusion-color` OR `fill-extrusion-pattern`
+     * and not both, so putting the ripple on the water prism costs the water
+     * its time-of-day colour — and the whole point of this pass is the colour.
+     * Two prisms with tops at exactly the same z is the A2 z-fight, so the bake
+     * stands this one 0.10 m proud (CHANNEL.sheen_m). That is a fifth of a
+     * pixel at any altitude this camera flies and it makes the depth order
+     * defined rather than undefined.
+     *
+     * The tile carries NO colour — it is alpha modulation, peaking at 11% —
+     * so this darkens and lightens the water under it and nothing else, and
+     * time of day is one setPaintProperty on the opacity.
+     */
+    if (GROUND.channel && GROUND.creekSheen && GROUND.texture && !map.getLayer(SHEEN)) {
+      map.addLayer({
+        id: SHEEN, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['all', ['==', ['get', 'k'], 'bank'], ['==', ['get', 'm'], 'sheen']],
+        paint: {
+          'fill-extrusion-pattern': TEX_IMG.water,
+          'fill-extrusion-base': ['get', 'b'],
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-opacity': sheenOpacity(p),
+          // OFF. The slab is 0.10 m tall; a vertical gradient over 0.10 m
+          // blacks out the only face anyone sees.
+          'fill-extrusion-vertical-gradient': false,
+        },
+      });
+    }
+
+    /**
+     * THE CANOPY. `k:'cnp'` crowns from scripts/bake_ground.py's CANOPY block.
+     *
+     * NOT anchored under `under`, same as the channel and the steps: these are
+     * 5-18 m extrusions and they have to sort against the buildings, the
+     * bridges and the trees, not sit beneath the whole city.
+     *
+     * `fill-extrusion-base` is DERIVED, not baked — 647 crowns x 12 bytes of
+     * `"b":4.62,` on a file that is not tiled and ships whole. The underside of
+     * a crown carries no information the top does not.
+     */
+    if (GROUND.canopy && !map.getLayer(CANOPY)) {
+      map.addLayer({
+        id: CANOPY, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['==', ['get', 'k'], 'cnp'],
+        paint: {
+          'fill-extrusion-color': crownColour(p),
+          'fill-extrusion-base': ['*', ['get', 'h'], GROUND.canopyBaseFrac],
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-opacity': GROUND.canopyOpacity,
+          // ON. A crown is 3-12 m of vertical face and the gradient is what
+          // turns a stack of prisms into a mass with shadow under it. This is
+          // the same argument the bank courses make and the opposite of the
+          // 0.22 m paths, which is the whole rule: gradient where the extrusion
+          // is tall enough to have a side.
           'fill-extrusion-vertical-gradient': true,
         },
       });
@@ -1297,6 +1468,8 @@
     set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
     set(DEPTH, 'fill-extrusion-color', depthColour(p));
     set(CHANNEL, 'fill-extrusion-color', bankColour(p));
+    set(SHEEN, 'fill-extrusion-opacity', sheenOpacity(p));
+    set(CANOPY, 'fill-extrusion-color', crownColour(p));
     set(ROAD, 'line-color', roadColorExpr(pal));
     set(ROAD_CASE, 'line-color', darken(pal.asphalt, GROUND.roadCasingDark));
     set(LANE, 'line-color', laneColorExpr(p));
@@ -1337,12 +1510,18 @@
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
     set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
+    set(SHEEN, 'fill-extrusion-opacity', sheenOpacity(p));
+    set(CANOPY, 'fill-extrusion-base', ['*', ['get', 'h'], GROUND.canopyBaseFrac]);
+    set(CANOPY, 'fill-extrusion-opacity', GROUND.canopyOpacity);
+    set(CANOPY, 'fill-extrusion-color', crownColour(p));
 
     const show = (id, on) => {
       try { map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); } catch (e) {}
     };
     for (const id of [AREA, PATH, PATH_CASE]) show(id, GROUND.on);
     show(CHANNEL, GROUND.on && GROUND.channel);
+    show(SHEEN, GROUND.on && GROUND.channel && GROUND.creekSheen && GROUND.texture);
+    show(CANOPY, GROUND.on && GROUND.canopy);
     show(TEX, GROUND.on && GROUND.texture);
     show(BASE_TEX, GROUND.on && GROUND.texture && GROUND.texGround);
     show(SPEEDWAY, GROUND.on && GROUND.texture && GROUND.speedway);
