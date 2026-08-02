@@ -1782,3 +1782,44 @@ than padding it.
     shrinks with each layer the Mac lands. There is no separate trick left to
     find: 0–1.4 s is the third-party style, 1.4–2.1 s scene load and quantise,
     2.1–3.7 s six concurrent init passes, 3.7–5.5 s the worker.
+
+---
+
+### Acer, 2026-08-01 night — the Drag was white after dark. PR #53.
+
+**One missing line.** `js/drag.js` built its time-of-day wrapper and never
+assigned it: `window.applyTimeOfDay = wrapped` is present in arts, moody, outer,
+places, tower and westcampus, and was absent in drag. So `applyDragColors` was
+never called by the retint, the Drag's tiles were never re-uploaded, and the
+Guadalupe streetwall rendered near-white against a black city.
+
+    Drag tile uploads during a slider retint   0 -> 10
+    pale pixels below the horizon           6206 -> 1906
+
+27. **A flag set NEXT TO the thing it claims to describe is worth nothing.**
+    `window.__dragTodHooked` was `true` for the entire period the hook did not
+    exist — it is set two lines under the missing assignment. Three separate
+    signals said "hooked" (the flag, the function existing, a manual call
+    working) while the retint chain had never heard of the pass. **Assert the
+    effect, never the intention.**
+
+28. **I spent an hour on four wrong fixes before checking whether the function
+    was called at all.** A second tile-push on rAF, on `idle`, on timers, and
+    with a `setPaintProperty` write to force an atlas rebuild — all four reverted,
+    all four retrying a function that was never invoked. When a fix does not move
+    the number, stop tuning it and check the layer below.
+
+29. **`scripts/verify/night-pale.mjs` is how it was found.** Counting bright
+    pixels says there is a problem; it does not say where. Hiding one pass at a
+    time and re-counting does. `drag-*` was 55.8% of every wrongly-bright pixel.
+    `night-silhouette.mjs` exists for this class of bug and **could not run** —
+    it is one of the fifteen dead scripts, which is the real reason this shipped.
+
+30. **`grep -c 'window.applyTimeOfDay = wrapped' js/*.js` against
+    `grep -c 'const wrapped = function'`** is a five-second lint that would have
+    caught this. Filed as QUEUE item 10's opener and on both lanes' lists.
+
+**Tonight, end to end:** 28.41 MB → 12.08 MB, 7.1 s → 5.6 s, trees + roads +
+roof detail + props tiled, MapLibre's single tile worker scaled to four, and the
+Drag dark at night. Outer ring and buildings both remain, both blocked on the
+same thing: a browser-side pass stamps facade properties that tiles cannot carry.
