@@ -198,6 +198,42 @@ carries for that block before adding anything new.
 
 ## B3. Turtle Pond, with turtles
 
+> **ATTEMPTED 2026-08-02 AND ABANDONED WITHOUT MERGING. Read this before
+> starting; the premise in the paragraph below is wrong.**
+>
+> The item says "the pond exists and is presumably flat blue". It is not blue.
+> It does not render as water at all. Photographed at zoom 19.8 the pond's
+> footprint is plain lawn green, and a dozen turtles placed inside it sit on
+> grass — which is worse than no turtles.
+>
+> What was checked, so it does not have to be checked again:
+> - `Turtle Pond` IS in `ground.geojson`, `k:area u:water s:water`, 77 vertices.
+> - It is at file index 412, AFTER `Memorial Garden` (grass) at 105, and the
+>   bake sorts areas biggest-first, so the pond is drawn ON TOP of the lawn.
+>   Draw order is not the problem.
+> - `paletteAt(p).water` is `#8fbccd`, a pale blue. The colour is not the
+>   problem either.
+> - One lead, not yet followed: `js/capitol.js` appends 1,802 ground features
+>   into `austin-ground` and the console carries
+>   `GeoJSONSource "austin-ground": GeoJSON data is not compatible with
+>   updateData`. If that append is replacing rather than merging, features late
+>   in the file — the pond is at 412 of 1,561 — are a plausible casualty.
+>   **Start there.**
+>
+> Also learned, and it is a rule not a detail: **`terrace()` from
+> `scripts/bake_depth.py` is a BASIN tool and Turtle Pond is not a basin.** It is
+> a 60 m winding ribbon under 4 m across for most of its length. A 1.6 m rim
+> buffered in from both banks left almost no water; narrowing the courses to
+> 0.16–0.55 m over 1.1 m offsets made them near-coplanar with the ground fill
+> and the render came back as a stripe of z-fighting slivers across the lawn.
+> Measure the shape before choosing an offset.
+>
+> The turtle generator itself works and is worth keeping when this is retried:
+> a `dome()` of stacked chords plus a head, twelve of them, placed
+> deterministically (no `Math.random` in a bake that has to produce the same
+> file twice), half hauled out on the rim and half floating.
+
+
 `data/ground.geojson` **already has** `Turtle Pond` as `u: water, s: pond`, and
 `props.geojson` has a `Sea Turtle` statue. So the pond exists and is presumably
 flat blue.
