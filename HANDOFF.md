@@ -1746,3 +1746,39 @@ GeoJSONSource methods, so the Capitol's 612 trees had nowhere to go once
 `austin-trees` was tiled — silently. They now get their own source and a **clone**
 of every layer drawing the base one, taken from `getStyle()` at runtime so the
 two cannot drift.
+
+---
+
+### Acer, 2026-08-01 late — the worker queue. PR #47 merged.
+
+**MapLibre was using ONE worker on a sixteen-core machine.** `boot.mjs` now
+records when each source becomes usable — fetch *plus parse plus worker tiling*,
+and only the first of those shows in a waterfall. Every one of our 22 sources
+finished between 3.8 s and 6.7 s, tiny ones and huge ones alike, with
+`austin-buildings` unremarkable in the middle. Sources of wildly different sizes
+finishing together is a **queue**, not a size problem.
+
+    workers=1   6747 6574 6539 6543 6358    min 6358 ms
+    workers=4   5825 5507 6414 5736 6083    min 5507 ms
+    workers=8   5871 6855                   worse than 4
+
+Four won all five reps. Eight is worse — past that the scheduling costs more than
+it saves. Scaled to half the cores, capped at four, so a two-core phone does not
+get four workers and spend its time context-switching.
+
+**Tonight, end to end:** 28.41 MB → 14.16 MB, 7.1 s → 5.5 s to data ready. The
+loading screen lifts at 6.1–7.1 s, so it is roughly honest about the wait rather
+than padding it.
+
+24. **Sources of different sizes finishing together means a queue.** It is the
+    single most useful shape to recognise in a load profile, and it is invisible
+    unless you time each source rather than the whole boot.
+
+25. **`quantiseFacades` is 14 ms** (repeated from rule 18 because I got this
+    wrong all day). Tiling the buildings is blocked on **correctness** — the 14
+    colour buckets are elected across the whole city — not on cost.
+
+26. **The remaining slice is worker tiling of whatever is still GeoJSON**, and it
+    shrinks with each layer the Mac lands. There is no separate trick left to
+    find: 0–1.4 s is the third-party style, 1.4–2.1 s scene load and quantise,
+    2.1–3.7 s six concurrent init passes, 3.7–5.5 s the worker.
