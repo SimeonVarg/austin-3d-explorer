@@ -1,187 +1,190 @@
 # MAC LANE
 
-Rewritten 2026-08-01, late. Everything above this is superseded — the old list
-was written before we knew where the time actually goes.
+Rewritten 2026-08-01, late evening, for an unattended overnight run. Everything
+above this line in git history is superseded.
 
-**One goal: make the site fast enough to show AWS.** Everything here serves that.
+**Goal: the site is fast and clean enough to show AWS.** Work top to bottom.
+Take the next unblocked item, one PR each, on `mac/*` branches.
 
-Take from the top, one item per PR, on `mac/*` branches. **You merge your own
-work now** (CLAUDE.md rule 2 changed) — verify it, merge it, resolve your own
-conflicts, delete the branch. Do not wait for Simeon.
-
----
-
-## Read this first, it will save you the round it cost the Acer
-
-**`python -m http.server` CANNOT TEST THIS SITE ANY MORE.** It ignores `Range:`
-requests, and PMTiles is read by asking for a few hundred bytes out of a
-multi-megabyte archive. That server returns the whole file, the library gives up,
-and **every feature in the layer silently disappears** — no console error. The
-Acer photographed a treeless campus and briefly believed vector tiles were
-broken.
-
-```bash
-python scripts/serve.py 8123
-```
-
-That serves ranges *and* GitHub Pages' own `Cache-Control: max-age=600`, so a
-payload measurement means something.
-
-**Verify with `scripts/verify/payload.mjs`** (bytes) and
-**`scripts/verify/tour.mjs`** (pictures). Read `payload.mjs`'s header before
-quoting any number from it — it records two ways the same measurement was wrong.
+**You merge your own work** (CLAUDE.md rule 2) — verify it, merge it, resolve
+your own conflicts, delete the branch. Do not wait for Simeon. **Merging red is
+the one thing that rule does not permit.** If an item cannot be made to pass,
+close the PR or leave it open with the reason written down, and move to the next
+item rather than stopping.
 
 ---
 
-## Where the payload stands
+## Read this first — three traps that have each cost hours
 
-| | |
-|---|---|
-| was | 28.41 MB |
-| now, trees tiled | **19.69 MB** |
-| after M1 below | **~9 MB** |
+1. **`python -m http.server` cannot test this site.** It ignores `Range:`
+   requests, which PMTiles needs, and every feature in a tiled layer then
+   silently vanishes with **no console error**. A treeless campus was
+   photographed and briefly believed. Use `python scripts/serve.py 8123`.
+2. **A missing layer makes the numbers look BETTER.** Payload drops, frame time
+   drops, everything reads as a win. **Verify with a picture** — `node
+   scripts/verify/tour.mjs day` — before believing any measurement.
+3. **A flag that reports success is not success.** Item 9 in `QUEUE.md`: the Drag
+   rendered white at night for weeks while `window.__dragTodHooked` said `true`,
+   because the flag was set two lines under the assignment that was missing.
+   Assert the effect, never the intention.
 
-`scripts/tile.sh` already builds **all five** archives and CI has committed them
-to `data/tiles/`. Nothing to build — just wire them up.
-
-| archive | replaces | GeoJSON | archive |
-|---|---|---|---|
-| `trees.pmtiles` | `trees.geojson` | 9.13 MB | 2.56 MB — **done, merged** |
-| `roads.pmtiles` | `roads.geojson` | 3.70 MB | 1.93 MB |
-| `outer.pmtiles` | `outer_ring.geojson` | 2.59 MB | 1.56 MB |
-| `roofdetail.pmtiles` | `roofscape.detail.geojson` | 2.27 MB | 0.92 MB |
-| `props.pmtiles` | `props.geojson` | 2.19 MB | 0.43 MB |
-
----
-
-## M1. Wire the remaining four layers to their tile archives ← START HERE
-
-**This is the whole job and it is four repeats of one thing.** The Acer did trees
-in `js/app.js`; copy that shape exactly.
-
-| layer | file | source id | `--layer` name |
-|---|---|---|---|
-| roads | `js/ground.js` ~line 717 | `RSRC` | `roads` |
-| outer ring | `js/outer.js` ~line 99 | see `DATA` | `outer` |
-| roof detail | `js/roofs.js` ~line 190 | `SRC_D` | `roofdetail` |
-| props | `js/props.js` ~line 181 | `SRC` | `props` |
-
-The pattern, from `js/app.js`:
-
-```js
-const t = window.tileSource && window.tileSource('roads');
-map.addSource(SRC, t ? t.source : { type:'geojson', data:'data/roads.geojson' });
-const lp = t ? t.layerProps : {};
-// ...then spread ...lp into EVERY layer that uses that source
-map.addLayer({ id:'…', source:SRC, ...lp, /* rest unchanged */ });
-```
-
-**Four things that will bite you, in the order they will:**
-
-1. **`source-layer` is not optional.** A vector source without it draws
-   absolutely nothing and reports no error. Spread `layerProps` into *every*
-   layer on that source, not just the first. This is the single most likely way
-   to "lose" a layer.
-2. **`setData` and `updateData` do not exist on a vector source.** If any code
-   appends to that source at runtime, it will fail silently. `js/capitol.js`
-   solves this for trees and ground by adding a sibling GeoJSON source and
-   **cloning** the layers off `getStyle()` — reuse `cloneLayersOnto`, do not
-   hand-write a second layer, or the two definitions drift.
-3. **Property types.** Tippecanoe preserves properties but a filter comparing a
-   string to a number will now behave differently. Check any `filter:` on the
-   layer against a real feature via `querySourceFeatures(id, {sourceLayer})`.
-4. **One PR per layer.** Four small merges beat one big one, and if a layer
-   vanishes you know which change did it.
-
-**Prove each one with a picture, not a byte count.** `node scripts/verify/tour.mjs
-day` and look at the shots — a layer can be 100% absent and the payload will look
-*better*.
+And the standing rule: **minimum of interleaved reps, never one reading.** Load
+time here has been measured from 11 s to 65 s for an identical page on a quiet
+machine.
 
 ---
 
-## M2. Distant Horizons: make far-away things cheap and near things sharp
+## Where things stand
 
-**Simeon asked for this by name and it is now half-built by accident.** Vector
-tiles already carry lower-detail versions at lower zoom levels — that is what
-tiling *is*. What is missing is using it deliberately.
+| | start of tonight | now |
+|---|---|---|
+| visitor download | 28.41 MB | **12.08 MB** |
+| time to city on screen | 7.1 s | **5.6 s** |
 
-Right now `scripts/tile.sh` sets `--simplification=1` (tippecanoe's minimum)
-because the Acer was protecting against distant buildings getting rounded off.
-**Simeon wants the opposite:** *"your one real downside is a win for me id love it
-if far away things can be scaled down thats kinda what i had in mind with the
-distant horizons mod."*
-
-So: turn it up, deliberately, and find where it starts to show.
-
-- Raise `--simplification` in `scripts/tile.sh` (try 4, then 8, then 12),
-  rebuild via the **Build PMTiles** workflow, and shoot `tour.mjs` at each.
-- Compare the `aerial-wide` and `downtown-skyline` poses. The question is not
-  "is it different" — it will be. It is **"can you see it from the camera
-  distance where that geometry actually appears?"**
-- Also try `--drop-densest-as-needed` and per-zoom feature dropping for trees and
-  props specifically. A live oak at z13 is four pixels; there is no reason to
-  send all 25,341 of them.
-- Report the payload at each setting alongside the picture. **This is a taste
-  call — escalate it. Put the before/after shots in the PR and let Simeon pick
-  the level.** (CLAUDE.md rule 9: taste is his, execution is yours.)
-
-There is also a real LOD system in `js/lod.js` that drops whole layers at
-altitude. Simeon says the graphics menu is confusing and he does not think it
-works. **Check whether it actually does anything** — set the preset, fly up,
-and confirm layers really disappear. If it is wired to nothing, say so.
+Tiled and merged: trees, roads, roof detail, props. Plus MapLibre was running
+**one** tile worker on a 16-core machine — now scaled, ~0.85 s.
 
 ---
 
-## M3. Kill the sleeps
+## M1. The outer ring — finish your own PR #43
+
+**You held this back correctly** and flagged it as a taste call. Simeon has not
+answered, and it should not sit blocking the lane all night. So:
+
+**Do the bake-side half now, which needs no taste call.** The blocker is that the
+114 downtown towers get `wp` stamped onto their features **in the browser** by
+`quantiseOuterFacades`, which clusters against a campus palette that does not
+exist until the snapshot loads. Tiles cannot carry a property the browser has not
+computed yet.
+
+Move that computation into Python, at bake time, so `wp` is already on the
+feature before `tile.sh` runs:
+
+1. Port `quantiseOuterFacades` into the bake (a new `scripts/bake_outer_wp.py`,
+   or extend the existing outer-ring bake).
+2. **Prove parity before deleting anything.** Run both, compare `wp` per feature,
+   and require an exact match on all 7,625 features. Do that in its own PR with
+   the JS pass still in place.
+3. Only then re-tile, switch the source, and delete the JS pass.
+
+If parity cannot be reached, say so in the PR with the counts and move on. **Do
+not merge a version where some towers lose their curtain wall** — that is a
+visible regression and it is what you were right to hold back.
+
+---
+
+## M2. The stadium is 16% of the wrongly-bright night pixels
+
+`QUEUE.md` item 10, and it is now the biggest known visual defect.
+
+`scripts/verify/night-pale.mjs` hides one pass at a time and counts pale pixels
+below the horizon. After the Drag was fixed, `stadium-*` is the largest thing
+left. `data/stadium.geojson` has **499 of 511 features with no night colour**.
+
+**Start from what is already checked, do not redo it.** Every pass that builds a
+time-of-day wrapper installs it (arts, drag, moody, outer, places, tower,
+westcampus all `builds=1 installs=1`). **`js/stadium.js` never builds one at
+all** — so it retints by some other route, or not at all. That is the thread.
+
+DKR is *deliberately* floodlit and reads correctly in
+`shots/tour/night-dkr-stadium.png`, so some of that 16% is meant to be there.
+Establish which part is wrong before changing anything.
+
+---
+
+## M3. Fix the dead verification scripts
+
+Fifteen scripts throw before doing any work — `page is not defined`,
+`r is not defined`. `night-silhouette.mjs` is one of them, which is **why nothing
+caught the Drag bug**.
+
+- **First:** `cd scripts/verify && npm ci`. `node_modules` was empty on the Acer
+  and made all 187 scripts look broken; re-triage after that, the list may be
+  shorter than fifteen.
+- Then find the **shared** cause. Fixing fifteen files individually is the
+  failure mode here — it is almost certainly one hoisted page-setup block.
+- Add the wrapper lint from `QUEUE.md` item 10 while you are in there: a pass
+  that builds a time-of-day wrapper and does not install it should fail a check.
+
+---
+
+## M4. Verify suite on GitHub Actions
+
+Blocked on M3. Do not wire broken scripts into CI.
+
+**Each shard on its own runner.** Concurrency on one machine is only 1.5× — the
+suite renders on the CPU, so runs queue for the same cores — and it *manufactures
+false failures*: `retint.mjs` asserts a 2500 ms deadline, passes alone, and fails
+three-at-a-time with nothing broken. `scripts/verify/run.mjs` carries a
+`SERIAL_ONLY` list for exactly this; reuse it rather than rediscovering it.
+
+`workflow_dispatch` so it is a button in the GitHub mobile UI. `ubuntu-latest`,
+**GitHub-hosted only** — this repo is public and a self-hosted runner would let a
+stranger's pull request run code on the machine. `CHROME_PATH=/usr/bin/google-chrome`,
+serve on 8123, upload `scripts/verify/shots/`, pass/fail table in the job summary
+so it is readable on a phone.
+
+---
+
+## M5. Kill the sleeps
 
 **880 seconds of hardcoded `waitForTimeout` across 87 scripts**, counted from
-source, loops not multiplied. ~15 minutes of every full run is the harness
+source with loops not multiplied. ~15 minutes of every full run is the harness
 deliberately doing nothing.
 
 Worst: `drift-check` 48 s, `lookup-check` 36 s, `srcprobe` 26 s, `arts-shots`
 22 s, `light-probe` 19 s, `orbit-check` 19 s, `movement` 19 s.
 
 **Per-script judgement, not a sweep.** A `waitForTimeout(6000)` that could be a
-wait-for-actually-ready is free to delete; one that is masking a race becomes an
+wait-for-actually-ready is free to delete; one masking a race becomes an
 intermittent failure, which is far more expensive than a slow suite. Do the big
 ones, **run each three times after changing it** to prove it did not get flaky,
 and put before/after times in the PR.
 
 ---
 
-## M4. Fix the "page is not defined" regression
+## M6. Distant Horizons — far things cheaper, near things sharp
 
-Fifteen scripts crash instantly. **Check `scripts/verify/node_modules` is not
-empty first** (`cd scripts/verify && npm ci`) — it was empty on the Acer and made
-all 187 scripts look broken. Then find the *shared* cause; fixing fifteen files
-individually is the failure mode.
+Simeon asked for this by name: *"id love it if far away things can be scaled down
+thats kinda what i had in mind with the distant horizons mod."*
+
+Tiles already carry simplified geometry at low zoom — that is what tiling is.
+`scripts/tile.sh` currently pins `--simplification=1` (the minimum) to protect
+distant buildings from being rounded off, which is the opposite of what he wants.
+
+Turn it up deliberately and find where it starts to show: try 4, then 8, then 12;
+rebuild via the **Build PMTiles** workflow; shoot `tour.mjs` at each. Also try
+`--drop-densest-as-needed` for trees and props — a live oak at z13 is four pixels
+and there is no reason to send all 25,341.
+
+**This is a taste call. Put the before/after shots in the PR and let Simeon pick
+the level** (CLAUDE.md rule 9). Do not merge a level on your own judgement.
+
+Also: `js/lod.js` drops whole layers at altitude, and Simeon says the graphics
+menu is confusing and he does not think it works. **Check whether it actually
+does anything** — set a preset, fly up, confirm layers really disappear. If it is
+wired to nothing, say so plainly.
 
 ---
 
-## M5. Verify suite on GitHub Actions
+## M7. Name the remaining 2,069 buildings
 
-Blocked on M4. **Each shard on its own runner** — concurrency on one machine is
-only 1.5× (the suite renders on the CPU, so runs queue for the same cores) and it
-manufactures false failures. `scripts/verify/run.mjs` has a `SERIAL_ONLY` list
-for scripts with millisecond budgets; reuse it.
+Lowest priority — polish, not speed, and safe to run last.
 
----
-
-## M6. Name the remaining 2,069 buildings
-
-Lower priority than everything above — it is polish, not speed. Scrape
-`utdirect.utexas.edu/apps/campus/buildings`, match to footprints by address or
-coordinate, write to `data/building_names.json` (**not** the snapshot, a re-bake
-wipes it). Report a confidence per match; a wrong name on a landmark is worse
-than no name.
+Scrape `utdirect.utexas.edu/apps/campus/buildings` and the Wikipedia list. Match
+to footprints by address or coordinate. Write to `data/building_names.json`
+(**not** the snapshot — a re-bake wipes it). Report a confidence per match and
+only write the ones you would defend: a wrong name on a landmark is worse than no
+name. Labels are gated at `final_height >= 12`, so say how many of your matches
+clear that.
 
 ---
 
 ## Not negotiable
 
-1. **Never register a self-hosted GitHub runner.** Public repo — a stranger's PR
-   would run code on the machine.
+1. **Never register a self-hosted GitHub runner.** Public repo.
 2. **Never remove the watchdog or reaper in `scripts/verify/chrome.mjs`.** 38
    orphaned Chromes once took the laptop to 100% CPU mid-deadline.
 3. **Never leave a browser or a server running.** `node scripts/verify/reap.mjs`
-   before you finish.
+   before you finish every pass, and kill your server.
+4. **Record each pass in `HANDOFF.md`** with the branch name.
