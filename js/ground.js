@@ -40,6 +40,9 @@
     // apparent thickness whether the path is under the camera or by the horizon.
     // Metres were the right unit for the path itself and the wrong one for this.
     kerbPx: 2.2,
+    // Steps, terraces and basins from data/depth.geojson. false hands the
+    // ground back to being perfectly flat.
+    depth: true,
 
     // ── Roads ─────────────────────────────────────────────────────────
     // Roads now come from data/roads.geojson — real OSM, with a real lane
@@ -174,7 +177,7 @@
   };
   window.GROUND = GROUND;
 
-  const SRC = 'austin-ground', RSRC = 'austin-roads';
+  const SRC = 'austin-ground', RSRC = 'austin-roads', DSRC = 'austin-depth';
   const AREA = 'ground-areas', TEX = 'ground-texture', BASE_TEX = 'ground-base-texture';
   const BANK = 'ground-creek-bank';
   const ROAD_CASE = 'ground-road-casing', ROAD = 'ground-road', LANE = 'ground-road-lane';
@@ -182,6 +185,7 @@
   const CYCLE = 'ground-cycleway', STOPBAR = 'ground-stopbar';
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
   const SPEEDWAY = 'ground-speedway-brick';
+  const DEPTH = 'ground-depth';
 
   // `source-layer` for the road layers, or {} on the GeoJSON fallback. MODULE
   // SCOPE on purpose: the source is added in one function and the six layers
@@ -721,6 +725,50 @@
     return +(GROUND.speedwayOpacity * (1 - n * (1 - GROUND.speedwayNightFade))).toFixed(3);
   }
 
+  /**
+   * GROUND THAT IS NOT FLAT. "fountain in front of tower has stairs on both
+   * sides is that possible depth throughout or did we already rule that out."
+   *
+   * It is possible and it was never ruled out: a fill-extrusion takes a base
+   * and a height, so a step is a thin extrusion at a raised base -- the same
+   * trick the roofs and the tree crowns already use. scripts/bake_depth.py
+   * generates the courses; this draws them.
+   *
+   * Day / golden / night trios, the shape every other pass uses.
+   */
+  const DEPTH_MAT = {
+    // The two are further apart than a real stone would be. Four courses of the
+    // SAME limestone at heights 140 mm apart rendered as one flat tan blob from
+    // flying altitude: what carries a flight at that distance is the light/dark
+    // banding of tread against riser, not the height. Declared, and narrow this
+    // gap if it ever reads as stripes rather than as steps.
+    // Cooler and greyer than the mall paving they sit on. Matched to the
+    // paving they were invisible: a tan step on a tan plaza is a tan plaza.
+    stone:   ['#cfc9bb', '#d8c8a6', '#23242e'],   // Texas limestone, lit tread
+    stonedk: ['#9a9184', '#a28a6f', '#171821'],   // the riser, in its own shade
+    water:   ['#5f86a0', '#6d87a0', '#141a26'],
+  };
+  /**
+   * Blend a day/golden/night trio at hour p, the same shape paletteAt() uses.
+   *
+   * Written here rather than reaching for props.js's `pick`, which is what the
+   * first cut did: `pick` does not exist in this file, initGround threw on the
+   * very first call, and the WHOLE ground stage -- paths, roads, areas, the lot
+   * -- silently failed to build. The screenshot showed a washed-out campus with
+   * no ground at all and it took a console read to see why. A missing layer
+   * makes everything look fine at a glance.
+   */
+  function trioAt(t, p) {
+    const q = clamp01(p);
+    return q <= 0.5 ? lerpHex(t[0], t[1], q / 0.5) : lerpHex(t[1], t[2], (q - 0.5) / 0.5);
+  }
+  function depthColour(p) {
+    const e = ['match', ['get', 'm']];
+    for (const k of Object.keys(DEPTH_MAT)) e.push(k, trioAt(DEPTH_MAT[k], p));
+    e.push(trioAt(DEPTH_MAT.stone, p));
+    return e;
+  }
+
   window.initGround = function initGround(map) {
     if (!GROUND.on || map.getSource(SRC)) return;
     // generateId is what makes the per-feature jitter possible: without it
@@ -925,6 +973,29 @@
         },
       }, under);
     }
+
+    /**
+     * The steps and terraces. NOT anchored under `under` like the flat ground
+     * layers are: these are extrusions and they have to sit in the same depth
+     * sort as the buildings, or a step half a metre proud of the paving gets
+     * painted over by the flat fill it stands on.
+     */
+    if (GROUND.depth && !map.getSource(DSRC)) {
+      map.addSource(DSRC, { type: 'geojson', data: 'data/depth.geojson' });
+      map.addLayer({
+        id: DEPTH, type: 'fill-extrusion', source: DSRC, minzoom: GROUND.minZoom,
+        paint: {
+          'fill-extrusion-color': depthColour(p),
+          'fill-extrusion-base': ['get', 'b'],
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-opacity': 1,
+          // OFF. A course is 0.14-0.62 m tall and the gradient darkens the
+          // bottom of every extrusion, so every tread would carry a black band
+          // as deep as the step itself. Same reason the tower bands turn it off.
+          'fill-extrusion-vertical-gradient': false,
+        },
+      });
+    }
   };
 
   function addRoadLayers(map, pal, p, under) {
@@ -1073,6 +1144,7 @@
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
     set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
+    set(DEPTH, 'fill-extrusion-color', depthColour(p));
     set(ROAD, 'line-color', roadColorExpr(pal));
     set(ROAD_CASE, 'line-color', darken(pal.asphalt, GROUND.roadCasingDark));
     set(LANE, 'line-color', laneColorExpr(p));
