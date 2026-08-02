@@ -579,7 +579,14 @@
   const detailColourAt = p => (p <= 0.5
     ? ['interpolate', ['linear'], p / 0.5, 0, ['get', 'cd'], 1, ['get', 'cg']]
     : ['interpolate', ['linear'], (p - 0.5) / 0.5, 0, ['get', 'cg'], 1, ['get', 'cn']]);
-  const DETAIL_KINDS = ['board', 'logo', 'ramp', 'mast', 'aisle'];
+  // `pier`, `lintel`, `shop`, `gate` and `canopy` are the arcade around the
+  // concourse — see the ARCADE block in scripts/bake_stadium.py. They ride this
+  // layer rather than the wall layer because they are materials, not facades:
+  // each one carries its own day/golden/night trio and none of them wants a
+  // window pattern. A pier wearing the wall's tile would have windows on a
+  // column.
+  const DETAIL_KINDS = ['board', 'logo', 'ramp', 'mast', 'aisle',
+                        'pier', 'lintel', 'shop', 'gate', 'canopy'];
 
   /**
    * The midfield Longhorn, drawn once into a canvas and registered as an image.
@@ -677,6 +684,7 @@
     mow:  '#477143',   // turf + 4.5% white — the five-yard mow band
     end:  '#bf5700',   // end zones and the sideline border, burnt orange
     line: '#dcd7cb',   // yard lines, goal lines — see FIELD_LINE_W
+    logo: '#bf5700',   // the midfield Longhorn, UT burnt orange
   };
   // A yard line is 4 inches (0.10 m) in life, and was 0.20 m on the canvas this
   // replaces. Neither width survives as geometry. From the nadir the field
@@ -697,12 +705,52 @@
   // buffer's resolution there, so nothing z-fights.
   const FIELD_Z = {
     turf: [0, 0.20], mow: [0.20, 0.26], end: [0.26, 0.32],
-    border: [0.32, 0.38], line: [0.38, 0.44],
+    border: [0.32, 0.38], line: [0.38, 0.44], logo: [0.44, 0.50],
   };
   // Which paint each slab uses. `border` is the same orange as the end zones;
   // it is a separate slab only so the yard lines can sit above it, exactly as
   // the canvas drew the lines last.
-  const FIELD_PAINT = { turf: 'turf', mow: 'mow', end: 'end', border: 'end', line: 'line' };
+  const FIELD_PAINT = { turf: 'turf', mow: 'mow', end: 'end', border: 'end',
+                        line: 'line', logo: 'logo' };
+
+  /**
+   * The midfield Longhorn, as a polygon flattened from Simeon's own SVG path.
+   *
+   * This is the one piece of the canvas field worth getting back as geometry.
+   * The end-zone wordmarks are not: from the nadir the end zone is ~30 px wide,
+   * so a letter stroke lands at 0.7 px and a rect font reads as noise rather
+   * than as TEXAS. The mark is 15 m across — about 25 px from the same camera —
+   * and a silhouette at 25 px still reads as a longhorn.
+   *
+   * Flattened by the BROWSER, not by a bezier routine written here.
+   * `SVGPathElement.getPointAtLength` is exact, it is a dozen lines, and it
+   * cannot disagree with the path the way a hand-rolled cubic subdivider can.
+   * The path is one closed contour of `c` segments — checked, not assumed — so
+   * one sampling run gives one simple ring with no subpath joins to bridge.
+   */
+  const LONGHORN_M = 15.0;    // taste: the real mark is about 15 m across
+  const LONGHORN_PTS = 240;   // samples round the contour, ~6 cm apart at 15 m
+  function longhornRing() {
+    try {
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden');
+      const el = document.createElementNS(NS, 'path');
+      el.setAttribute('d', LONGHORN_PATH);
+      svg.appendChild(el);
+      document.body.appendChild(svg);
+      const L = el.getTotalLength();
+      const ring = [];
+      if (L > 0) {
+        for (let i = 0; i < LONGHORN_PTS; i++) {
+          const p = el.getPointAtLength(L * i / LONGHORN_PTS);
+          ring.push([p.x, p.y]);
+        }
+      }
+      svg.remove();
+      return ring.length > 8 ? ring : null;
+    } catch (e) { return null; }
+  }
 
   function fieldFeatures(corners) {
     const [NW, NE, SE, SW] = corners;
@@ -741,6 +789,26 @@
       const w = (i === 0 || i === 20) ? FIELD_GOAL_W : FIELD_LINE_W;
       const c = ENDZONE + i * 4.572;
       rect('line', 0, c - w / 2, FIELD_W, c + w / 2);
+    }
+
+    // The midfield Longhorn. The transform chain is the canvas's own, composed
+    // by hand and read the way canvas applies it — the LAST transform set is
+    // the FIRST one a point goes through — with the canvas's pixels replaced by
+    // metres so it lands in field space directly.
+    const ring = longhornRing();
+    if (ring) {
+      const lw = LONGHORN_M, lh = lw * LONGHORN_VB[1] / LONGHORN_VB[0];
+      const place = ([x, y]) => {
+        const x1 = x + 574.03, y1 = y + 241.88;
+        const x2 = 1.25 * x1 - 390.11, y2 = -1.25 * y1 + 305.09;
+        return at((FIELD_W - lw) / 2 + x2 * lw / LONGHORN_VB[0],
+                  (FIELD_L - lh) / 2 + y2 * lh / LONGHORN_VB[1]);
+      };
+      const coords = ring.map(place);
+      coords.push(coords[0]);
+      const [b, h] = FIELD_Z.logo;
+      out.push({ type: 'Feature', properties: { t: 'logo', b, h },
+                 geometry: { type: 'Polygon', coordinates: [coords] } });
     }
     return out;
   }
