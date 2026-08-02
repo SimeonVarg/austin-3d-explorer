@@ -172,6 +172,15 @@
   const CYCLE = 'ground-cycleway', STOPBAR = 'ground-stopbar';
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
   const SPEEDWAY = 'ground-speedway-brick';
+
+  // `source-layer` for the road layers, or {} on the GeoJSON fallback. MODULE
+  // SCOPE on purpose: the source is added in one function and the six layers
+  // that read it are built in another (addRoadLayers, plus one inside a loop).
+  // Declaring this next to addSource put it out of scope at the layer calls,
+  // which threw `roadLP is not defined` and took the ENTIRE ground stage with
+  // it — paths and the speedway brick vanished too. The aerial shot still
+  // looked like a city, which is exactly why that trap is worth a comment.
+  let roadLP = {};
   const TEX_IMG = { grass: 'gnd-tex-grass', asphalt: 'gnd-tex-asphalt',
                     water: 'gnd-tex-water', paving: 'gnd-tex-paving' };
   const HERRING_IMG = 'gnd-tex-herringbone';
@@ -713,8 +722,15 @@
     // than the ground fill, and keeping them separate means GROUND.roads=false
     // costs nothing at all rather than filtering 11,000 features out of a
     // source the fill layers also read.
+    // Roads stream as tiles when data/tiles/roads.pmtiles is present, and fall
+    // back to the whole 3.70 MB GeoJSON when it is not (a fresh clone, or a
+    // branch where CI has not built them). See js/tiles.js.
+    const roadTiles = window.tileSource && window.tileSource('roads');
+    roadLP = roadTiles ? roadTiles.layerProps : {};
     if (GROUND.roads && !map.getSource(RSRC)) {
-      map.addSource(RSRC, { type: 'geojson', data: 'data/roads.geojson' });
+      map.addSource(RSRC, roadTiles
+        ? roadTiles.source
+        : { type: 'geojson', data: 'data/roads.geojson' });
     }
 
     // Under everything of ours: the buildings' contact shadows and extrusions
@@ -866,7 +882,7 @@
     const L = (id, opts) => { if (!map.getLayer(id)) map.addLayer(opts, under); };
 
     L(ROAD_CASE, {
-      id: ROAD_CASE, type: 'line', source: RSRC,
+      id: ROAD_CASE, type: 'line', source: RSRC, ...roadLP,
       minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
       layout: { 'line-join': 'round', 'line-cap': 'butt' },
       paint: {
@@ -876,7 +892,7 @@
       },
     });
     L(ROAD, {
-      id: ROAD, type: 'line', source: RSRC,
+      id: ROAD, type: 'line', source: RSRC, ...roadLP,
       minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
       layout: { 'line-join': 'round', 'line-cap': 'butt' },
       paint: {
@@ -892,7 +908,7 @@
     if (GROUND.bike) {
       for (const [id, sideKey, sign] of [[BIKE_L, 'bl', -1], [BIKE_R, 'br', 1]]) {
         L(id, {
-          id, type: 'line', source: RSRC,
+          id, type: 'line', source: RSRC, ...roadLP,
           minzoom: GROUND.bikeMinZoom, filter: bikeFilter(sideKey),
           layout: { 'line-join': 'round', 'line-cap': 'butt' },
           paint: {
@@ -907,7 +923,7 @@
       // trails, the Dell Med paths, the campus shared-use routes. They are not
       // a marking on a road, they are their own piece of ground.
       L(CYCLE, {
-        id: CYCLE, type: 'line', source: RSRC,
+        id: CYCLE, type: 'line', source: RSRC, ...roadLP,
         minzoom: GROUND.bikeMinZoom, filter: CYCLE_FILTER,
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
@@ -925,7 +941,7 @@
 
     if (GROUND.lanes) {
       L(LANE, {
-        id: LANE, type: 'line', source: RSRC,
+        id: LANE, type: 'line', source: RSRC, ...roadLP,
         minzoom: GROUND.laneMinZoom, filter: LANE_FILTER(),
         layout: { 'line-join': 'round', 'line-cap': 'butt' },
         paint: {
@@ -938,7 +954,7 @@
     }
     if (GROUND.stopBars) {
       L(STOPBAR, {
-        id: STOPBAR, type: 'line', source: RSRC,
+        id: STOPBAR, type: 'line', source: RSRC, ...roadLP,
         minzoom: GROUND.stopBarMinZoom, filter: STOPBAR_FILTER,
         layout: { 'line-cap': 'butt' },
         paint: {
