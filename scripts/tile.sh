@@ -69,14 +69,54 @@ TIPPE_COMMON=(
   --buffer=16
 )
 
+# DISTANT HORIZONS — and the two levers that turned out to be no-ops.
+#
+# Simeon asked for far-away things to be scaled down: "thats kinda what i had in
+# mind with the distant horizons mod". Two obvious knobs were tried and MEASURED
+# before this one, and both did exactly nothing:
+#
+#   --simplification=4/8/12   Built all three in CI. Byte-identical archives,
+#                             "no tile changes" three times. It removes VERTICES
+#                             and this geometry has none spare: trees and props
+#                             are polygons of 8 points, the outer ring's bake
+#                             already removed 85% of its vertices, and the
+#                             far-field roads were simplified 5x harder at fetch.
+#
+#   --drop-rate / -B /        Changed the archive by TWELVE BYTES — the rate
+#   --drop-densest-as-needed  recorded in the header. These drop POINTS, or drop
+#                             only when a tile busts a limit, and this script
+#                             sets --no-feature-limit --no-tile-size-limit on
+#                             purpose. Nothing ever triggers them.
+#
+# What works is a zoom-conditional FEATURE FILTER on `d`, the keep-order the
+# bake already writes on every tree and prop — biased so the big live oaks sort
+# first. Everything is kept at z16 and closer; below that only the top KEEP
+# fraction is even put in the tile.
+#
+#   trees   2.55 MB -> 1.71 MB      props   0.42 MB -> 0.26 MB     at KEEP=0.35
+#
+# Measured visually at z14.2 and at street level: 0.01% of pixels differ by more
+# than 12/255 high up, and street level is untouched by construction. Part of why
+# it is invisible is that js/lod.js has ALREADY dropped the canopy tier at that
+# altitude — the two mechanisms agree, which is the point.
+#
+# Only trees and props. Roads, the outer ring and the roofscape are structure;
+# dropping every third road is a hole in the city, not a level of detail.
+SCATTER_KEEP="${SCATTER_KEEP:-0.35}"
+scatter_filter () {   # $1 = layer name
+  printf '{"%s":["any",[">=","$zoom",16],["<=","d",%s]]}' "$1" "${SCATTER_KEEP}"
+}
+
 tile_layer () {
-  local src="$1" out="$2" layer="$3"
+  local src="$1" out="$2" layer="$3" extra=("${@:4}")
   if [ ! -f "${src}" ]; then
     echo "skip ${src} (not present)"
     return 0
   fi
   echo "Building ${out} from ${src}"
-  tippecanoe -o "${out}" --layer="${layer}" "${TIPPE_COMMON[@]}" "${src}"
+  # ${extra[@]+...} because set -u treats an empty array reference as unbound:
+  # the layers that pass no extra flags aborted the whole script on line 1.
+  tippecanoe -o "${out}" --layer="${layer}" "${TIPPE_COMMON[@]}" ${extra[@]+"${extra[@]}"} "${src}"
   ls -lh "${out}" | awk '{print "  ->", $5, $9}'
 }
 
@@ -89,11 +129,11 @@ tile_layer "${BUILDINGS_ENRICHED}" "${BUILDINGS_PMTILES}" "buildings"
 echo
 echo "== scene layers =="
 mkdir -p "${DATA_DIR}/tiles"
-tile_layer "${DATA_DIR}/trees.geojson"            "${DATA_DIR}/tiles/trees.pmtiles"      "trees"
+tile_layer "${DATA_DIR}/trees.geojson"            "${DATA_DIR}/tiles/trees.pmtiles"      "trees" -j "$(scatter_filter trees)"
 tile_layer "${DATA_DIR}/roads.geojson"            "${DATA_DIR}/tiles/roads.pmtiles"      "roads"
 tile_layer "${DATA_DIR}/outer_ring.geojson"       "${DATA_DIR}/tiles/outer.pmtiles"      "outer"
 tile_layer "${DATA_DIR}/roofscape.detail.geojson" "${DATA_DIR}/tiles/roofdetail.pmtiles" "roofdetail"
-tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtiles"      "props"
+tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtiles"      "props" -j "$(scatter_filter props)"
 
 echo
 echo "Done. Totals:"
