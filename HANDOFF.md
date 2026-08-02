@@ -1887,3 +1887,88 @@ Guadalupe streetwall rendered near-white against a black city.
 roof detail + props tiled, MapLibre's single tile worker scaled to four, and the
 Drag dark at night. Outer ring and buildings both remain, both blocked on the
 same thing: a browser-side pass stamps facade properties that tiles cannot carry.
+
+---
+
+# 2026-08-02, Acer lane — Part A of QUEUE.md, and the first of Part B
+
+Six PRs, all merged. Branches deleted. Every one was found by looking at the
+thing rather than by reasoning about it, and three of them turned out to be
+something other than what the report said.
+
+31. **`acer/focus-kills-movement` (PR #54) — A1, and it was never hardware.**
+    "on acer when i change daylight i can't move anymore." `controls.js`
+    swallowed every keystroke for any `INPUT|SELECT|TEXTAREA|BUTTON`, and this
+    app's only form controls are a checkbox, the daylight slider and the play
+    button — none of them a text field, none of them does anything with W. Touch
+    the slider, it keeps focus, WASD is dead until you click the canvas.
+    **macOS does not focus a button or a slider on click; Windows always does.**
+    Same build, dead on one machine, fine on the other. `movement.mjs` had the
+    defect written down as a PASSING assertion, which is why it survived.
+    New `scripts/verify/focus-move.mjs` sets focus explicitly rather than
+    clicking, because a click-based test would pass on the Mac with the bug live.
+
+32. **`acer/speedway-fan` (PR #55) — A3.** A `line-width` is screen pixels and
+    the same number for the whole line; 9.1 m of Speedway near the camera is many
+    pixels and 9.1 m of it by Dean Keeton is a few. Measured with the new
+    `road-fan.mjs`: **1.26x near → 3.33x far at pitch 60, 3.69x at pitch 86.**
+    It *looks* worse as you lie the camera down not because the ratio moves —
+    it barely does past 60 — but because pitching over drags the far, wrong end
+    of the road into frame. Paths are buffered into polygons in the bake now;
+    `ground.geojson` got SMALLER, 856 → 784 KB. **Roads still carry the identical
+    defect: `node scripts/verify/road-fan.mjs ground-road`.**
+
+33. **The first cut of `road-fan.mjs` sampled the map CENTRE and reported a flat
+    1.00x at every pitch.** True, and useless — `widthExpr` is derived from the
+    centre-scale relation, so it agrees there by construction. A probe that
+    cannot see the defect is worse than no probe.
+
+34. **`acer/tower-clock-night` (PR #56) — A4, half fixed and half impossible.**
+    The bezel is not a ring: its five slabs are chords, so it is a solid 5.6 m
+    DISC, and a previous pass took it near-white at the same time as the dial —
+    two near-white surfaces one behind the other is one blob. Dark bronze bezel
+    fixes the READ. It cannot be made to GLOW: MapLibre 5.24 rejects
+    `fill-extrusion-emissive-strength`; `#f2ecc8`, `#ffffff` and `#ffd27a` all
+    render the identical `rgb(189,180,163)`; and the bloom threshold keeps only
+    inputs above luma 199 while the night light caps a lit vertical face near
+    115. **The bake's stated plan — go near-white and bloom picks it up — could
+    never have fired.** Also `bloom` is 0 on the `performance` preset.
+
+35. **I built the dial as stacked slabs on a theory that horizontal top faces
+    take more light, and it measured WORSE (97 vs 103).** Reverted. The bezel
+    was brighter for the dull reason: its colour was. Test the theory, then keep
+    the change only if the number moves the right way.
+
+36. **`acer/diagonal-roofs` (PR #57) — A5, and it is Edgar A. Smith, not
+    Blanton.** One spurious footprint vertex 2.1 m from its neighbour, edges
+    0.13° apart. `clean()` tests `sin(turn) > 0.002` and sin(0.13°) is 0.0023 —
+    it cleared by a hair. Then the 2.1 m edge is shorter than twice the 4.48 m
+    inset, the offset crossed itself, and `valid_step` dropped **the whole 36.1 m
+    north slope**. An angle threshold is scale-blind: 0.13° over 2 m is 5 mm of
+    noise, over 200 m it is 45 cm of building. Now measured as a **sagitta in
+    metres**. **1,050 of 2,455 footprints** carried such a vertex.
+
+37. **A6 needed no change.** Battle Hall's roof is terracotta and always was.
+    The grey roof is the **West Mall Office Building** next door, which really
+    does have a flat grey membrane roof — the two labels sit side by side over
+    the gap between them.
+
+38. **`acer/art-not-boxes` (PR #58) — B1.** All 34 Landmarks pieces were one
+    extrusion in one flat colour. `scripts/bake_art.py` emits 350 parts: ten
+    per-piece recipes plus a rule keyed on `artwork_type`. Kelly's *Austin*
+    ignores its footprint on purpose — OSM has it as a buffered node at 6 x 6 m
+    and the building is 18.3 x 8.2. **The chromatic circle is on all three
+    glazed walls**, because from a flying camera you do not choose your face.
+
+39. **A2 was diagnosed and handed to the Mac rather than fixed here.**
+    `TIERS.mid` in `js/lod.js` hides `buildings-roof`, `parts-roof` and
+    `outer-tower-roof` — those are not detail, they are the CAP over every
+    extrusion's top face, and the walls carry `fill-extrusion-pattern`, which
+    MapLibre paints on the top face too. Hide the cap and the roof becomes the
+    window grid. Three candidate fixes written into MAC_QUEUE M4.
+
+40. **`scripts/verify/pose.mjs` is new and worth knowing about.** Photograph any
+    pose named on the command line, one browser and one load for the whole list.
+    Looking at one thing from somewhere specific no longer means editing
+    `tour.mjs` and then editing it back. Note `tour.mjs` itself needs
+    `VERIFY_MAX_MS=900000` — twelve poses exceed the 300 s default watchdog.

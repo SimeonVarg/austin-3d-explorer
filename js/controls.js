@@ -561,22 +561,82 @@ function initControls(map, scene) {
   // stops a key pressed on the canvas and released over a widget from sticking.
   const MOVE_CODES = ['KeyW','KeyS','KeyA','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
                       'KeyQ','KeyE','PageUp','PageDown'];
-  function typingTarget(t) {
-    return !!t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable);
+
+  /**
+   * THE FOCUS GUARD, AND THE BUG IT CAUSED FOR MONTHS ON WINDOWS ONLY.
+   *
+   * This used to be one regex — INPUT|SELECT|TEXTAREA|BUTTON — and every key
+   * was swallowed for any of them. index.html contains exactly three form
+   * controls: a checkbox, the time-of-day range slider, and the play button.
+   * NONE of them is a text field, and not one of them does anything with W.
+   *
+   * So: click the daylight slider, and WASD is dead until you click the canvas
+   * again. Click the play button, same. That is the whole of "when i change
+   * daylight i can't move anymore", and of "sometimes even when i dont".
+   *
+   * IT LOOKED LIKE A HARDWARE BUG BECAUSE OF A PLATFORM DEFAULT. macOS does not
+   * give keyboard focus to a button or a slider when you click it (Full Keyboard
+   * Access is off by default); Windows always does. Same code, same build, dead
+   * on one machine and fine on the other — which is exactly the shape that sent
+   * the first look at this hunting a GPU driver.
+   *
+   * WHAT THE GUARD IS ACTUALLY FOR. Two different things, so two predicates:
+   *
+   *   textTarget   real text entry. Every keystroke belongs to the field, and
+   *                the camera must not move while someone types. Nothing in the
+   *                app matches this today; it is here so adding a search box
+   *                later does not reintroduce the flying-while-typing bug.
+   *
+   *   stepTarget   a widget the ARROW and PAGE keys drive natively — a range
+   *                slider steps with them, a select changes option. Those keys
+   *                are the widget's; the letters are not, so W/A/S/D/Q/E fly the
+   *                camera even while the slider has focus. That is the fix.
+   *
+   * A BUTTON or a CHECKBOX appears in neither: Space and Enter are theirs and
+   * neither is a movement key, so there is nothing to guard.
+   */
+  const TEXT_INPUT_TYPES = /^(|text|search|url|tel|email|password|number|date|time|datetime-local|month|week)$/;
+  const STEP_CODES = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End'];
+
+  function textTarget(t) {
+    if (!t) return false;
+    if (t.isContentEditable) return true;
+    if (t.tagName === 'TEXTAREA') return true;
+    // A `select` type-aheads on letter keys, so it owns those too.
+    if (t.tagName === 'SELECT') return true;
+    if (t.tagName !== 'INPUT') return false;
+    return TEXT_INPUT_TYPES.test((t.type || '').toLowerCase());
   }
+  function stepTarget(t) {
+    if (!t) return false;
+    if (t.tagName === 'SELECT') return true;
+    return t.tagName === 'INPUT' && (t.type || '').toLowerCase() === 'range';
+  }
+
   function onKeyDown(e) {
     sprintHeld = e.shiftKey;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (typingTarget(e.target)) return;      // let the ToD slider and date picker work
+    if (textTarget(e.target)) return;                 // typing beats flying
+    if (stepTarget(e.target) && STEP_CODES.indexOf(e.code) !== -1) return;  // the slider's own keys
     if (e.code === 'KeyR') { goHome(); e.preventDefault(); return; }
     if (MOVE_CODES.indexOf(e.code) === -1) return;
     keys[e.code] = true;
     e.preventDefault();
     markFlying();
   }
+
+  /**
+   * KEYUP RELEASES UNCONDITIONALLY, whatever has focus.
+   *
+   * The old version mirrored the keydown guard here, which is the wrong
+   * symmetry: releasing a key you were not holding is a no-op, but FAILING to
+   * release one you were holding latches it down and the camera flies off by
+   * itself until something calls clearInputs(). Press W over the canvas, click
+   * the slider mid-hold, let go — that was a permanent stuck key. Always
+   * release.
+   */
   function onKeyUp(e) {
     sprintHeld = e.shiftKey;
-    if (typingTarget(e.target)) { keys[e.code] = false; return; }
     keys[e.code] = false;
   }
 
