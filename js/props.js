@@ -88,7 +88,9 @@
   window.PROPS = PROPS;
 
   const SRC = 'austin-props';
+  const ART_SRC = 'austin-art';
   const ART = 'props-art', FURN = 'props-furn', CONS = 'props-cons';
+  const ARTPART = 'props-artpart';
   const LAMP = 'props-lamp', LINE = 'props-line';
   const LIT = 'props-lit', LIT_CORE = 'props-lit-core';
   const ART_LBL = 'props-art-label';
@@ -114,6 +116,48 @@
   };
   const CLASSES = ['wood', 'steel', 'dark', 'stone', 'green', 'glass', 'sign', 'blue'];
 
+  /**
+   * MATERIALS FOR THE AUTHORED ARTWORKS, keyed on `m` in data/art.geojson.
+   *
+   * Simeon: "an earlier pass was supposed to add monochrome for austin but it
+   * added a gray box same for the clock knot ... diana the huntress is a gray
+   * box ... austin building by ellsworth has chromatic circle of glass can you
+   * add that with the colors."
+   *
+   * All 34 pieces were one extrusion of the footprint in one flat colour, so a
+   * 7 m burst of welded aluminium canoes and a 4.2 m bronze armadillo were the
+   * same block. scripts/bake_art.py now emits real parts; this is what colours
+   * them. Kept in sync with MAT there — the bake is the authority on which names
+   * exist, and a material missing here falls back to the old art grey rather
+   * than painting the layer transparent.
+   *
+   * The six `g*` glass tones are the only saturated colours in this file, and
+   * they exist for exactly one building: Ellsworth Kelly's "Austin". Everything
+   * else stays under the roofs in saturation, which is the rule the rest of this
+   * palette already follows.
+   */
+  const ARTMAT = {
+    bronze:   ['#6d4a2c', '#7d5530', '#1b1518'],
+    bronzed:  ['#4a3722', '#57401f', '#161217'],
+    alum:     ['#b9bec6', '#c6b9a6', '#232630'],
+    mirror:   ['#cdd8e0', '#dcc9b0', '#2a3038'],
+    steelred: ['#a8351d', '#bb4423', '#241318'],
+    corten:   ['#7a4326', '#8a4c26', '#1e1416'],
+    limest:   ['#ded7c6', '#e6d2ad', '#242530'],
+    white:    ['#eeeae1', '#f2e2c4', '#272833'],
+    granite:  ['#8e8b86', '#95877a', '#1e1f28'],
+    steel:    ['#8d9198', '#8a7a68', '#1b1e26'],
+    wood:     ['#7a6046', '#7c583a', '#191b22'],
+    gred:     ['#c8342c', '#d4452f', '#3a1418'],
+    gorange:  ['#dd7a1e', '#e88c22', '#3c2210'],
+    gyellow:  ['#e8c72a', '#f0d33a', '#3a3212'],
+    ggreen:   ['#2f9a58', '#3aa862', '#12301f'],
+    gblue:    ['#2b6fb5', '#3579bd', '#122238'],
+    gviolet:  ['#7b4ba8', '#8657b2', '#1f1430'],
+  };
+  /** Names the bake has authored geometry for; the grey-box layer skips these. */
+  let _authored = [];
+
   const hex2rgb = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
   const rgb2hex = (r,g,b) => '#' + [r,g,b].map(v =>
     Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
@@ -129,6 +173,13 @@
     const e = ['match', ['get', 'c']];
     for (const k of CLASSES) e.push(k, pick(COL[k], p));
     e.push(pick(COL.steel, p));
+    return e;
+  }
+  /** ['match', ['get','m'], 'bronze', '#..', …, fallback] */
+  function matMatch(p) {
+    const e = ['match', ['get', 'm']];
+    for (const k of Object.keys(ARTMAT)) e.push(k, pick(ARTMAT[k], p));
+    e.push(pick(COL.art, p));
     return e;
   }
   const clamp01 = v => Math.max(0, Math.min(1, v));
@@ -269,6 +320,12 @@
     if (!map.getLayer(ART)) {
       map.addLayer({
         id: ART, type: 'fill-extrusion', source: SRC, ...propLP, minzoom: PROPS.artMinZoom,
+        // The grey box is now the FALLBACK, not the treatment. Anything
+        // data/art.geojson has authored geometry for is excluded here so the two
+        // do not stack; the filter is replaced by loadArt() once that file
+        // arrives, and until then this draws all 34 exactly as it always did.
+        // A piece the bake fails on therefore degrades to a box rather than
+        // vanishing, which is the failure mode worth having.
         filter: ['==', ['get', 'k'], 'art'],
         paint: { 'fill-extrusion-color': pick(COL.art, p),
                  'fill-extrusion-height': ['get', 'h'],
@@ -276,6 +333,42 @@
                  'fill-extrusion-vertical-gradient': true },
       });
     }
+
+    /**
+     * THE AUTHORED ARTWORKS. Their own source, because their geometry has no
+     * relationship to the prop footprints: one piece becomes anywhere from 6 to
+     * 60 parts, each with its own base, height and material.
+     *
+     * Loaded with fetch rather than handed to MapLibre as a URL because the
+     * `authored` list at the top of the file is what tells the grey-box layer
+     * which pieces to stand down on, and a GeoJSON source does not hand its
+     * body back. It is 94 KB.
+     */
+    fetch('data/art.geojson').then(r => r.json()).then(gj => {
+      _authored = Array.isArray(gj.authored) ? gj.authored : [];
+      if (map.getSource(ART_SRC)) return;
+      map.addSource(ART_SRC, { type: 'geojson', data: gj });
+      map.addLayer({
+        id: ARTPART, type: 'fill-extrusion', source: ART_SRC, minzoom: PROPS.artMinZoom,
+        paint: {
+          'fill-extrusion-color': matMatch(window.__todCurrentP != null ? window.__todCurrentP : p),
+          'fill-extrusion-base': ['get', 'b'],
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-opacity': 1,
+          // OFF. These are 0.3-1.5 m parts and the gradient darkens the bottom
+          // of every extrusion, so a stacked dome would come out as a stack of
+          // black rings — the same reason bake_tower.py's bands turn it off.
+          'fill-extrusion-vertical-gradient': false,
+        },
+      }, map.getLayer(ART_LBL) ? ART_LBL : undefined);
+      // Now the box layer can stand down for the pieces we drew properly.
+      try {
+        map.setFilter(ART, ['all', ['==', ['get', 'k'], 'art'],
+          ['!', ['in', ['get', 'name'], ['literal', _authored]]]]);
+      } catch (e) {}
+      console.log('[props] art:', _authored.length, 'pieces authored,',
+                  gj.features.length, 'parts');
+    }).catch(e => console.warn('[props] art.geojson not loaded:', e.message));
     if (!map.getLayer(ART_LBL)) {
       map.addLayer({
         id: ART_LBL, type: 'symbol', source: SRC, ...propLP, minzoom: PROPS.artLabelZoom,
@@ -308,6 +401,7 @@
     const set = (id, prop, v) => { try { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); } catch (e) {} };
     const cm = classMatch(p);
     set(ART, 'fill-extrusion-color', pick(COL.art, p));
+    set(ARTPART, 'fill-extrusion-color', matMatch(p));
     set(CONS, 'fill-extrusion-color', pick(COL.cons, p));
     set(FURN, 'fill-extrusion-color', cm);
     set(LAMP, 'fill-extrusion-color', cm);
