@@ -186,7 +186,21 @@ check('forward ground speed is in a sane flythrough range',
     Math.abs(a.pitch - b.pitch) > 5, `pitch delta ${(a.pitch - b.pitch).toFixed(1)}°`);
 }
 
-// ── 4. Keyboard must not fire while a form control has focus ───────
+// ── 4. A focused widget owns its OWN keys, and nothing else ────────
+//
+// This assertion used to read "camera stays put while a UI control has focus"
+// and it was wrong — it encoded the defect. `controls.js` swallowed every key
+// for any INPUT/SELECT/TEXTAREA/BUTTON, and the only form controls this app has
+// are a checkbox, the time-of-day slider and the play button, none of which does
+// anything with W. So clicking the daylight slider killed WASD until you clicked
+// the canvas again, this test asserted that it should, and it passed for months.
+//
+// It only ever bit on Windows: macOS does not focus a button or a slider on
+// click. That is why it was reported as an Acer-only hardware fault.
+//
+// The real contract: the slider owns the ARROW keys, the camera owns the
+// letters. scripts/verify/focus-move.mjs covers every case; this keeps the
+// headline one where the movement suite will see it.
 
 {
   await page.evaluate(() => window.__reset(0));
@@ -197,7 +211,7 @@ check('forward ground speed is in a sane flythrough range',
   await page.waitForTimeout(500);
   const a = await page.evaluate(() => window.__cam());
   const m = await page.evaluate(([x, y]) => window.__metres(x, y), [b, a]);
-  check('camera stays put while a UI control has focus', m < 1.0, `moved ${m.toFixed(1)} m (want <1)`);
+  check('camera still flies while the daylight slider has focus', m > 3, `moved ${m.toFixed(1)} m (want >3)`);
   await page.evaluate(() => document.activeElement && document.activeElement.blur());
 }
 
