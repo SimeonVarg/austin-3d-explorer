@@ -1,5 +1,115 @@
 # Austin 3D Explorer — Full Handoff
 
+## 59. Aug 3 2026 — EER's "own colour" was one of the fourteen, off by three counts (acer lane)
+
+**Branch:** `acer/eer-gdc-facades`, **PR #120**, merged. **QUEUE PART G.**
+File: `js/heroes.js` only, plus three shots in `docs/shots/`.
+
+> *"they are NOWHERE CLOSE to the level they should be — looks like u made
+> overall shape a bit more accurate but its like youre trying to draw the mona
+> lisa and you made the canvas the right size"*
+
+### The number that proves the last pass was massing, not facade
+
+PR #118 fixed EER, GDC and NHB's heights. It also shipped tiles, so it *looked*
+like facade work had happened. It had not, and one measurement says so: EER
+rendered at **#b9956b, luma 155, R-B 78**, against **#c29d72 / 163 / 80** for
+T.S. Painter and **#ac8c60 / 145 / 76** for Physics-Math-Astronomy **in the same
+frame**. A pale limestone building was rendering as one of the city's tans.
+
+Literally so. `data/facade_palette.json` bucket 5 is **#e3dac8**. PR #118 gave
+EER **#e2dacb**. Three counts on one channel. **Check every "protected" hex
+against the fourteen before you ship it** — an own colour that is inside the
+palette is not an own colour, and nothing downstream will tell you.
+
+### What was established, and from which frame
+
+Sources: Ennead's project page (`1012_Jeff-Goldberg-3` / `-17`,
+`1012_AW-Final-19`, `1012-Drawing-Plan02`), the Cockrell School aerial, and two
+Wikimedia Commons frames — `University of Texas at Austin August 2019 17` and
+`Gates-Dell Complex - UT Austin (54984937843)`. They are not in the repo; the PR
+embeds them by URL beside the render.
+
+- **EER's facade is CLUSTERED SLOTS, not a scatter.** Runs of two to four
+  adjacent narrow vertical slots, then three to six blank bays, widths varying
+  inside a run. PR #118 used an independent 34% coin per bay, and a Poisson
+  scatter **cannot produce a six-bay blank** — the longest empty run at p=0.34
+  over 24 bays is about three. The blanks are half of what makes this wall
+  legible, so the generator now walks runs and gaps as a RULE rather than
+  sampling a density.
+- **There is no dark ribbon at the floor line.** PR #118 drew one at 20% dark on
+  every floor and called it "the photograph's most legible fact". It is in no
+  photograph of this building. What reads as a line at distance is the slot heads
+  lining up. Now a 5% joint.
+- A **blank stone band one full floor (4.65 m)** under a pale, faintly COOL metal
+  coping; a **dark glazed ground-floor recess** so the stone starts at 4.6 m
+  behind a real 0.55 m reveal; **full-height full-length canyon curtain wall**
+  (was 56 m stopping at 28.8 m); a **glass ribbon turning each bar's canyon-side
+  corner** onto the end elevation; a **mechanical penthouse** per roof.
+- **GDC** is a pale cast-stone spandrel at every floor line, a terracotta
+  perforated sunscreen over each bay head, dark blue-grey glass and buff brick
+  piers running through all of it. k-means over a 450x440 patch of the sunlit
+  south elevation gave 25.4% #f8e2c8, 27.2% #7c6051, 18.6% #4c2e1f, 15.0%
+  #487fc0, 13.8% #c4a48c — and **the 15% blue is sky in the glass**, the trap
+  docs/PASS_ARTS.md already records. PR #118 believed it (#4f86b4).
+
+### What I could not establish, and did not invent
+
+- **Which end the space frame closes.** Two photographs left me arguing with
+  myself about compass directions for twenty minutes. `scripts/bake_heroes.py`
+  measured it off the nadir tile at u 38.0–47.5 with the top rail at image row
+  588. **A measurement of the site beats an inference about a photograph**, so
+  the east end stands and the flip was not made.
+- **NHB** was not re-researched. Left exactly as PR #118 shipped it.
+
+### The ceiling this pass hit, so nobody re-discovers it
+
+**EER cannot be made the brightest building on its block, and it is not this
+lane's fault.** The renderer's daylight is a warm multiply, so for any neutral
+surface R-B lands at roughly **0.34 x rendered luma** regardless of the base hex
+— which is why a #efeadd stone and a tan neighbour both come back at R-B ~78.
+And the city's own tans already bake out at luma **213–219** (buckets 5 and 13),
+so there is almost no headroom above them. EER's stone went 154 → 163 and that
+is most of what exists. **The separation that actually works is composition and
+contrast** — plinth, crown, ribbons, cage, cluster rhythm. Making the fourteen
+less pale is a `js/facades.js` job.
+
+### Corrections this pass made to itself
+
+- The corner ribbons shipped first at #5f7080 and rendered at **luma 82 against
+  stone at 163 — a ratio of 0.50, where the photograph has 0.94**. They read as
+  two black bookends clamping each tower. A **third** curtain-wall image was
+  added: a dark recess and a bright outward-facing ribbon are the same material
+  at opposite ends of its range and one image cannot be both.
+- GDC's brick went in at R-B 88, which the warm daylight pushed to R-B 130 —
+  the building came out the colour of a traffic cone. **A hex that already
+  carries the sun gets it applied twice.** Pulled to R-B 72.
+
+### Mechanism, and the lane note
+
+`scripts/bake_heroes.py` and `data/heroes.geojson` are another lane's files this
+round, so the composition is applied to the **fetched FeatureCollection at load**,
+`authorEER()` / `authorGDC()` — the `js/union24.js` precedent. 20 → 28 band
+features. `window.__heroes.composed` reports what happened.
+
+**Three agents shared this worktree and it bit.** Another lane checked out
+`acer/westcampus-tier4` mid-session, so my commit landed on their branch; it was
+pushed to `acer/eer-gdc-facades` by sha (`git push origin <sha>:refs/heads/...`)
+rather than resetting a branch someone else had uncommitted work on. If
+`acer/westcampus-tier4` looks like it contains an EER commit, that is why, and
+it is an ancestor of `main` now so it is harmless.
+
+### Verified
+
+- `harness-drift.mjs` **PASS**, 27 scripts both sides. No new script tag — the
+  third curtain wall is a layer added in JS.
+- Before and after are the **same camera pose**, hardware GL, 1500x950,
+  autodetect cancelled, screenshot-twice-keep-the-second.
+- Night at tod 0.90: EER wall median luma **25** against **26** for the building
+  beside it, p90 **59** vs **36** — the slots light up, the mass does not.
+- `docs/shots/eer-before-after.jpg`, `gdc-after.jpg`, `eer-night.jpg`.
+
+
 ## 58. Aug 3 2026 — a wall pattern has no HORIZONTAL anchor either, so West Campus got colour bays and its balconies got rails (acer lane)
 
 **Branch:** `acer/westcampus-character`. **QUEUE C5, the CHARACTER half.** Files:
