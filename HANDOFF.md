@@ -1,5 +1,206 @@
 # Austin 3D Explorer — Full Handoff
 
+## 48. Aug 3 2026 — a tiled roof was painted the colour of its own wall (acer lane)
+
+**Branch:** `acer/jester-greg-littlefield`. QUEUE **C1**, **C2**, **C3**.
+
+### C3 first, because it turned out not to be about Littlefield
+
+*"littlefeild dorm should have a red roof"*. It does not; Carothers and Blanton
+either side of it do, which is what makes it read as a mistake rather than as
+variety.
+
+**The survey was never wrong.** Littlefield Dormitory measures `run 7.1 m,
+eave 0.766` in `roof_runs.json`, and its offset rings run **0.77 / 0.99 / 1.00 /
+0.99** out to its own half-span — the most unambiguous full hip on this campus,
+a stronger reading than Carothers' 0.88. It gets the right geometry. **The
+colour never asks the photograph at all.**
+
+Every facet takes `rd` off the parent building, and `bake_detail.py` sets `rd`
+from the OSM `roof:colour` tag when there is one and otherwise from **the
+building's own WALL, 12% darker** — a rule with nothing to do with what is on
+the roof. Littlefield's wall is limestone, so its terracotta hip renders
+`#928776`, a pale tan. `shift_to_measured` cannot rescue that: it moves the
+red/blue RATIO by at most 30% and holds luma, which is a nudge inside a colour
+family, not a change of family.
+
+**How many share it — the number he asked for. Of the 105 footprints the survey
+gives a real tiled slope to, 65 are painted from an `rd` whose red/blue is under
+1.55**: greys, olives and blue-greys, median 1.47 against 2.80 for the ones that
+came out right.
+
+### The rule, and the second reading that makes it safe
+
+A roof the photograph is SURE is tile is painted a tile colour. "Sure" is two
+independent readings, the discipline §37 used for the parapet-cap join: the eave
+ring reads tile (`>= 0.55`) AND the whole footprint reads tile (`>= 0.45`).
+Cross-checked before it was written, the two agree strongly — at `eave >= 0.55`
+the median whole-footprint tile fraction is **0.80** — and the second test earns
+its place on exactly one candidate, a roof at eave 0.72 whose footprint is only
+0.31 tile, which is rejected and counted.
+
+The colour is not invented: it is the **median `rd` of the pitched roofs that
+already have a tile colour**, re-derived from the campus on every bake
+(`#964b32`, from 40 buildings), with the constant only standing in when there is
+nothing to derive it from. A retinted roof therefore lands on the median of its
+own peers, the authored burnt orange does not move, and `shift_to_measured` then
+spreads it again by its own measured red/blue. `--no-tile-colour` is the control.
+
+```
+33 roofs given a tile colour   (30 by the rule, 3 by override)
+ 1 rejected by the whole-footprint check
+33 parapet caps took the same colour
+```
+
+**The caps had to move with them.** `buildings-roof` is painted from the
+BUILDING's `rd` — the colour this pass has just decided was not a roof colour —
+so leaving it would ring every corrected roof in the tan it was corrected out
+of. That is §37's defect with the colours swapped. `deck_caps` never touches a
+pitched building, so the `caps` table simply carries them too.
+
+### C1 — Jester, and it was three separate failures
+
+*"make jester look alot nicer if freshman r gonna see this then their dorm
+shouldnt look like a prison ... Some of jesters roofs should have the red brick
+pattern, some of should have a light gray flat concrete with roof details, the
+color is not accurate. add the tennis / volleyball court between the buildings"*
+
+**He is describing the photograph exactly.** Sampled off the z19 nadir tiles in
+`data/imagery_cache`, inside the three footprints:
+
+```
+                        is_tile   neutral & bright (median)
+Beauford H. Jester Ctr   46.5%    33.1%  (176,172,159)
+Jester West Hall         28.1%    40.4%  (185,181,170)
+Jester East Hall         30.9%    58.5%  (196,197,188)
+```
+
+A terracotta tile hip over the low wings, a light grey concrete deck in the
+middle. That is the shape `bake_roofs.py` already builds. Three things stopped
+it:
+
+1. **The height gate.** West is 51.6 m and East 40.4 m, over `MAX_HEIGHT_M` 34,
+   because a tower is flat-topped — true, except that these footprints are one
+   polygon covering a tower AND two-storey tile-roofed wings.
+2. **The ring survey.** All three read 0.27–0.51 at the eave, under `RING_MIN`,
+   because the perimeter runs under canopy and along concrete walkway roofs.
+3. **The colours.** The tile came from `rd` (`#948d7c`, a grey-tan) and the deck
+   from `roofscape.geojson`'s own dark measurement (`#706a67`, `#7b7673`).
+
+### The override mechanism, and why it is not an edit to the snapshot
+
+A survey rule right 105 times out of 105 does not exist, and the wrong answer is
+to hand-edit `buildings.detailed.geojson`, which the next bake silently wipes.
+**`data/building_overrides.json`** is a small tracked file read by
+`bake_roofs.py`: `roof_run_m`, `roof_over_max_height`, `roof_colour`,
+`deck_colour`, `loggia`. Every entry carries the observation it answers in its
+own `why` field, in his words, with the measurement beside it.
+
+**The deck colour was entered COOL and DARK on purpose**, and the first cut was
+wrong in a way only a pixel read caught. `#b0aca2` — a fair reading of the
+measured (185,181,170) — came back on screen at **rgb(218,199,148), luma 199**,
+a warm cream and the brightest thing in the frame, next to a campus whose other
+roofs sit at 137–150. An extrusion's top face picks up the sun tint, the same
+trap §27 records for the DKR deck. `#8f9294` lands at rgb(174,168,132), luma
+167: the lightest large roof there, which is what the photograph says, without
+glowing. At tod 0.95 it measures luma 16–18 against walls at 14 and sky at 21 —
+no pale patch, no inverted silhouette.
+
+### C1's courts — they were already there, which was the problem
+
+`ground.geojson` carries four `k:'area', sport:'basketball'` polygons here
+tagged `s:'grass'`, so the app drew a plain green rectangle. What makes a court
+read is not its surface: it is the white lines, the fence and the hoops, and
+none of those is a surface, so none of them was in the ground file. OSM way
+1488977196 names the compound **Caven-Clark Courts**, 36.7 x 54.4 m, four courts
+of 14.2 x 22.1 m. `bake_art.py` now draws boundary lines, a centre line and
+circle, the keys, backboards and rims, net posts, and a post-and-rail fence —
+**not a mesh panel**, because a solid 3.6 m slab round four courts reads as a
+windowless building and `fill-extrusion` cannot be see-through. Lines are 0.35 m,
+7x over-scale, declared for the same reason the lane markings are.
+
+It rides in `bake_art.py` for **file ownership**, the same reason the
+chilled-water plant does. When the ground lane can take it, `s:'pitch_hard'`
+plus these markings belong there.
+
+### C2 — Gregory Gym's entrance
+
+*"greg gym is split into two sections (one building) one should replicate the
+famous entrance with the three hall things and the roof."*
+
+**Which wall was settled before any geometry was written**, because the wrong
+face is worse than nothing. Three independent readings agree on the west side:
+OSM node **1427259422** is `entrance=main` at 30.2840096,-97.7368337; the postal
+address is 2101 Speedway, and Speedway runs down the west side; and the nadir
+tile shows no comparable approach on any other face. **What I could NOT
+establish is which of the two blocks is the 1930 auditorium** — RecSports says
+the 1962 addition "extended down to 21st Street", which is the south block, yet
+the south block is the one with the tile hip and the north block carries the
+modern clerestory. So the porch sits on the wall the entrance node is on, and it
+is one line in the override to move it.
+
+The wall itself is found FROM THE FOOTPRINT — the polygon edge nearest the given
+point — and the outward normal is tested, not assumed (offset a metre, ask
+whether you are still inside). So the porch cannot float off the building.
+
+**The arch is not a stack of squares** (QUEUE D3's fair complaint about the
+sculptures). `fill-extrusion` cannot tilt a face, so a round arch has to be a row
+of prisms — but the row is cut ACROSS the opening and each prism's BASE is the
+arch's own curve, `spring + sqrt(r^2 - x^2)`, sampled at 11 points. The steps end
+up in the top edge of the spandrel, where nothing looks at them.
+
+### THINGS THAT DID NOT WORK
+
+1. **The stair was built at negative v — inside the building.** Five slabs, and
+   the render showed a portico with no steps rather than an error, because a
+   slab inside a solid prism is simply invisible. Caught by a mechanical check,
+   not by eye: every part of an outward porch must have its centroid OUTSIDE the
+   footprint, and the stair had 3 of 4 corners inside. **That check is now in
+   `loggia_parts`, and it drops and shouts.**
+2. **Reading Jester's roof off the nadir tile without drawing the footprints on
+   it first.** Twenty minutes went into "that courtyard building cannot be
+   Jester" before an overlay of the actual polygons settled it. Overlay first,
+   argue second — §50's "a bounding box is not a shape", one step earlier.
+3. **The aerial "monumental stair" west of Gregory Gym.** A striped grey
+   rectangle with terracotta trim that looked exactly like a flight of steps.
+   Measured against the footprint it is 11 x 33 m and sits clear of the
+   building: it is a canopy on the Speedway mall, not a stair. The OSM entrance
+   node is what the placement actually rests on.
+4. **Importing `bake_detail.py` to borrow `make_roof_colors`.** That module runs
+   its whole bake at import — reads the snapshot, writes two files — so
+   importing it to reuse nine lines would re-run it as a side effect. The three
+   functions are copied, with the drift risk written next to them.
+5. **Letting the deck's membrane-vs-tile vote decide Jester.** The probe's own
+   sample ring there is half tile and half concrete, so `membrane` is a coin
+   flip on a roof whose middle is plainly concrete. The override names the
+   answer as well as the colour; naming only the colour left it unused half the
+   time.
+6. **`#b0aca2` for the concrete deck** — see above. A colour that is right on
+   the photograph is not right on the screen; read the pixels of your own render.
+
+### Verified
+
+`harness-drift.mjs` PASS before every measurement. Day 0.30, dusk 0.62 and night
+0.95 at Jester, Littlefield, Gregory Gym and the courts; wide campus before and
+after at the same pose from the same session, with the baseline `roofs.geojson`
+swapped in and out rather than a checkout. Bake audits unchanged and clean:
+`roofs_with_a_hole` 0, `roofs_drawn_twice_or_over_air` 0, `folded_rings` 0,
+`walls_with_no_slope` 0. `data/roofs.geojson` 1,240.8 -> 1,349.0 KB;
+`data/art.geojson` 269.3 -> 315.0 KB for 166 court parts. Pictures in
+`shots/cbefore/` against `shots/cafter/`, `shots/cwide-before/` against
+`shots/cwide/`, plus `shots/cdusk/` and `shots/cnight/`.
+
+### Known remainder, deliberately not in this PR
+
+**Jester's massing is still wrong, and it is not this lane's file.** Each hall is
+ONE prism at the tower's height, so the two-storey wings around the courtyards
+are extruded to 51.6 m and 40.4 m. The roof is now right for what is modelled
+and reads correctly from the air, which is how this app is used; fixing the
+wings needs `building:part` splitting in the buildings bake. Same for the WALL
+colour he flagged: `caps` can only reach `rd/rg/rn`, so `wd/wg/wn` on Jester
+(`#c2b6a0`) is untouched here.
+
+
 ## 47. Aug 3 2026 — a road's width was a number of pixels, and the fence was drawn round the campus (acer lane)
 
 **Branch:** `acer/road-width-fence`, PR #105, merged `a420d07`. QUEUE **A2** and

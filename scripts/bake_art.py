@@ -1217,6 +1217,155 @@ def bake_plant(b_for, snap_feats, stats):
     return out
 
 
+# ── The Caven-Clark Courts, between Jester and the garage ─────────────
+#
+# "add the tennis / volleyball court between the buildings"
+#
+# THEY ARE ALREADY THERE AND THAT IS THE PROBLEM. `data/ground.geojson` carries
+# four `k:'area', u:'pitch', sport:'basketball'` polygons here, tagged
+# `s:'grass'` — so the app draws a plain green rectangle and nothing says it is
+# a court. What makes a court read is not its surface, it is the WHITE LINES on
+# it, the fence round it and the hoops at the ends, and none of those are a
+# surface, so none of them are in the ground file.
+#
+# WHAT IS ACTUALLY THERE, off the z19 nadir tile and OSM way 1488977196: a
+# fenced compound named **Caven-Clark Courts**, 36.7 x 54.4 m, holding four
+# courts of 14.2 x 22.1 m in a 2x2 grid, each marked for basketball with a net
+# post on the centre line — which is exactly the "tennis / volleyball" reading:
+# they are multi-use, and the net across the middle is what you see from the
+# air. The four court rings below are OSM ways 137469387, 1234456851/2/3,
+# copied rather than fetched because a bake must not need the network.
+#
+# THE LINES ARE DRAWN 7x OVER-SCALE, and that is declared, not hidden. A real
+# court line is 50 mm; at 50 mm it is far under a pixel from any altitude this
+# app flies and the court would go back to being a green rectangle. 0.35 m is
+# the same argument the road lane markings and the fountain risers already
+# make in this repo.
+#
+# WHY IT LIVES IN bake_art.py: file ownership, and it is the same reason the
+# chilled-water plant above does. This is authored scene geometry drawn by
+# `props-artpart` out of the same material palette; it is not a sculpture, and
+# when the ground lane can take it, `s:'pitch_hard'` plus these markings belong
+# there. Written down so the next pass does not have to guess.
+COURT_MARK_M   = 0.35    # over-scale line width, in metres
+COURT_MARK_Z   = (0.06, 0.16)   # clear of the ground fill, low enough to read flat
+COURT_FENCE_H  = 3.6
+COURT_POST_EV  = 4.0     # metres between fence posts
+COURT_NET_H    = 2.45    # volleyball net posts
+COURT_RIM_H    = 3.05    # a basketball rim is 10 ft, and that is not negotiable
+COURTS = [
+    [(-97.735707, 30.281209), (-97.735560, 30.281198), (-97.735540, 30.281396), (-97.735686, 30.281407)],
+    [(-97.735518, 30.281195), (-97.735371, 30.281184), (-97.735351, 30.281382), (-97.735498, 30.281393)],
+    [(-97.735542, 30.280956), (-97.735395, 30.280945), (-97.735375, 30.281143), (-97.735522, 30.281154)],
+    [(-97.735729, 30.280970), (-97.735582, 30.280959), (-97.735562, 30.281156), (-97.735709, 30.281168)],
+]
+COURT_FENCE = [(-97.735710, 30.281430), (-97.735330, 30.281401),
+               (-97.735378, 30.280914), (-97.735761, 30.280945)]
+
+
+def _axes(pm):
+    """Centre, long-axis unit vector, and the two half-extents of a quad."""
+    cx = sum(x for x, _ in pm) / len(pm)
+    cy = sum(y for _, y in pm) / len(pm)
+    best, ax, ay = 0.0, 1.0, 0.0
+    for i in range(len(pm)):
+        x0, y0 = pm[i]
+        x1, y1 = pm[(i + 1) % len(pm)]
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L > best:
+            best, ax, ay = L, (x1 - x0) / L, (y1 - y0) / L
+    along = [(x - cx) * ax + (y - cy) * ay for x, y in pm]
+    across = [-(x - cx) * ay + (y - cy) * ax for x, y in pm]
+    return cx, cy, ax, ay, (max(along) - min(along)) / 2, (max(across) - min(across)) / 2
+
+
+def bake_courts(stats):
+    """White lines, hoops, net posts and a perimeter fence."""
+    out = []
+    z0, z1 = COURT_MARK_Z
+    lon0, lat0 = COURTS[0][0]
+    for ci, ring in enumerate(COURTS):
+        b = Build("Caven-Clark Courts", lon0, lat0)
+        pm = [to_m(x, y, lon0, lat0) for x, y in ring]
+        cx, cy, ax, ay, hl, hw = _axes(pm)
+        rot = math.atan2(ay, ax)
+        # `hl` is along the court's long axis; the markings are all built in
+        # that frame so a court that is not axis-aligned — none of these are —
+        # gets its lines square to itself rather than square to the compass.
+        def at(u, v):
+            return cx + u * ax - v * ay, cy + u * ay + v * ax
+        inset = 0.45
+        L, Wd = hl - inset, hw - inset
+        # the boundary
+        for s in (1, -1):
+            x, y = at(0, s * Wd)
+            b.box(x, y, L * 2, COURT_MARK_M, z0, z1, "white", rot=rot)
+            x, y = at(s * L, 0)
+            b.box(x, y, COURT_MARK_M, Wd * 2, z0, z1, "white", rot=rot)
+        # the centre line — the half-court line AND the line the net stands on
+        x, y = at(0, 0)
+        b.box(x, y, COURT_MARK_M, Wd * 2, z0, z1, "white", rot=rot)
+        # the centre circle, as eight tangential segments rather than a filled
+        # disc: a disc here would be a white plate, not a circle
+        R = min(1.9, Wd * 0.35)
+        SEGN = 8
+        for i in range(SEGN):
+            a = 2 * math.pi * (i + 0.5) / SEGN
+            x, y = at(R * math.cos(a), R * math.sin(a))
+            b.box(x, y, 2 * math.pi * R / SEGN * 1.15, COURT_MARK_M, z0, z1,
+                  "white", rot=rot + a + math.pi / 2)
+        # the key at each end: two side lines and the free-throw line
+        keyw, keyd = min(2.45, Wd * 0.45), min(5.8, L * 0.5)
+        for s in (1, -1):
+            for t in (1, -1):
+                x, y = at(s * (L - keyd / 2), t * keyw)
+                b.box(x, y, keyd, COURT_MARK_M, z0, z1, "white", rot=rot)
+            x, y = at(s * (L - keyd), 0)
+            b.box(x, y, COURT_MARK_M, keyw * 2, z0, z1, "white", rot=rot)
+        # the hoops. The pole stands OUTSIDE the baseline and the backboard
+        # overhangs in, which is what makes a goal read as a goal from above.
+        for s in (1, -1):
+            px, py = at(s * (hl + 0.9), 0)
+            b.box(px, py, 0.30, 0.30, 0.0, COURT_RIM_H + 1.0, "steel", rot=rot)
+            bx, by = at(s * (hl - 0.35), 0)
+            b.box(bx, by, 0.16, 1.80, COURT_RIM_H - 0.15, COURT_RIM_H + 0.95,
+                  "white", rot=rot)
+            rx, ry = at(s * (hl - 0.85), 0)
+            b.disc(rx, ry, 0.42, COURT_RIM_H, COURT_RIM_H + 0.12, "gorange", seg=8)
+        # the net across the middle
+        for s in (1, -1):
+            x, y = at(0, s * (hw + 0.25))
+            b.box(x, y, 0.22, 0.22, 0.0, COURT_NET_H, "steel", rot=rot)
+        x, y = at(0, 0)
+        b.box(x, y, 0.10, hw * 2 + 0.5, COURT_NET_H - 1.05, COURT_NET_H,
+              "steel", rot=rot)
+        out.extend(b.parts)
+        stats["court_%d" % ci] += len(b.parts)
+
+    # the compound fence: posts and a top rail. NOT a mesh panel — a solid
+    # 3.6 m slab round four courts would read as a windowless building, and
+    # `fill-extrusion` has no way to be see-through.
+    b = Build("Caven-Clark Courts", lon0, lat0)
+    fm = [to_m(x, y, lon0, lat0) for x, y in COURT_FENCE]
+    for i in range(len(fm)):
+        x0, y0 = fm[i]
+        x1, y1 = fm[(i + 1) % len(fm)]
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 0.5:
+            continue
+        ang = math.atan2(y1 - y0, x1 - x0)
+        n = max(2, int(round(L / COURT_POST_EV)))
+        for k in range(n + 1):
+            t = k / float(n)
+            b.box(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 0.18, 0.18,
+                  0.0, COURT_FENCE_H, "steel", rot=ang)
+        b.box((x0 + x1) / 2, (y0 + y1) / 2, L, 0.10,
+              COURT_FENCE_H - 0.22, COURT_FENCE_H, "steel", rot=ang)
+    out.extend(b.parts)
+    stats["court_fence"] += len(b.parts)
+    return out
+
+
 def main():
     src = json.load(open(SRC, encoding="utf-8"))
     feats, stats, authored = [], Counter(), []
@@ -1278,6 +1427,9 @@ def main():
         feats.extend(bake_plant(None, snap, stats))
     except (IndexError, FileNotFoundError) as e:
         stats["plant_SKIPPED"] += 1
+
+    # ...and so do the Caven-Clark Courts, for the same reason.
+    feats.extend(bake_courts(stats))
 
     fc = {"type": "FeatureCollection", "authored": sorted(set(authored)),
           "features": feats}
