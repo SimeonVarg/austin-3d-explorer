@@ -159,7 +159,18 @@ at 00:28 UTC on the 3rd against a newest snapshot of `2026-08-02`.
 
 **I did not fix it — `scripts/tile.sh` is not this lane's file.** The fix is one
 line (drop the buildings archive from that `du`, or `|| true`). Until then, a
-re-tile that "fails" may have built everything fine. I built
+re-tile that "fails" may have built everything fine.
+
+**AND THE UNBLOCK IS ALREADY SITTING ON A BRANCH.** The data bot pushes its
+snapshot to whichever branch triggered the run, so
+**`data/snapshots/2026-08-03/` exists only on `mac/creek-trees`** (commit
+`26cc588`) — `main`'s newest is `2026-08-02`. That directory is precisely the
+one whose absence fails the `du`. Landing that commit on `main` makes the tile
+workflow pass again today without touching `tile.sh` at all. It is
+`data/snapshots/`, which is not this lane's, so **I have left the branch
+undeleted rather than merging it** — one cherry-pick by whoever owns the bake
+and CI is green. The same is true of `mac/outer-bucket-inert`, which strands
+`2026-08-02` the same way. I built
 `data/tiles/trees.pmtiles` locally with tippecanoe 2.79 and CI's exact
 `TIPPE_COMMON` flags instead, which is in-lane — that archive is this lane's.
 
