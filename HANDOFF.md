@@ -1,5 +1,98 @@
 # Austin 3D Explorer — Full Handoff
 
+## 42. Aug 3 2026 — DKR rebuild, PART ONE. Not merged, and the reason is the point. (mac lane)
+
+**Branch:** `mac/dkr-rebuild`, PR open and **deliberately not merged**. The brief's
+own acceptance test is *"put your render and a reference photograph side by side
+from the same angle; if you would not recognise it as this stadium, it is not
+done."* I would not. So it stays open.
+
+What follows is worth more than the geometry, because two of the nine faults he
+listed **cannot be fixed from this lane at all**, and that was not knowable
+before this pass.
+
+### The two blockers, both in `js/app.js`, which this lane must not write
+
+**1. The "cutouts from a big pyramid" is `'fill-extrusion-base': 0`.**
+`js/app.js:1191` hardcodes it on `stadium-seating`. A `seat` feature therefore
+ALWAYS extrudes from the ground, whatever the bake writes. Forty-four nested
+rings of rising height are not an approximation of a bowl — they are a solid
+stepped cone, which is exactly the phrase he used. No base means no upper deck
+over a void, and no void means no bowl.
+
+**2. The glowing seats are `SEAT_COL`'s night column,** `js/app.js:758-771`:
+`#d87c34 / #e08438 / #e88c3e / #f09a48`. Every seat in the stadium is amber
+after dark and nothing else is. That is *"the seats become bright yellow and
+everything else is dull - what?"*, it has now been rejected twice, and **no
+value written into `data/stadium.geojson` can change it.**
+
+**REQUEST TO THE OTHER LANE — one line, and it closes a twice-rejected fault:**
+darken `SEAT_COL`'s third column so the bowl is unlit at night (something near
+`#3a3d47` for `lower`, falling to `#2b2e36` for `upper`), and if a base is ever
+wanted on `stadium-seating`, change the literal `0` at `js/app.js:1191` to
+`['coalesce', ['get','base'], 0]`. Both are inside `addStadiumLayers`.
+
+### What I tried that did not work
+
+**Moving the whole bowl onto `stadium-detail`.** It solves both blockers at a
+stroke: that layer honours `['coalesce', ['get','base'], 0]` and takes an
+arbitrary per-feature day/golden/night trio, so I could author a real floodlight
+falloff. I built it, rendered it, and **the stadium was an empty walled pit** —
+`stadium-detail` is in `js/lod.js`'s `fine` tier and is dropped above
+renderDistance x 0.45, which is 315 m on the default preset. Every view worth
+looking at is above that. Reverted to `kind: "seat"`, which survives at altitude
+and is stuck with the palette. **You cannot have correct night colour and a
+visible bowl at the same time from inside this lane.**
+
+### What the pass did land
+
+- **Height, which he named first.** It was never measured: `h` is the surveyed
+  footprint's `final_height`, **63.0 m on all four sides**, and the west took
+  72.5 m from Bellmont Hall's own footprint — a figure that is 7.25 m per storey
+  over its stated 10 floors, so it is an Overture attribute, not a survey. Wall
+  tops are now per side and derived from each side's own MEASURED ring depth:
+  **W 41.0, N 34.0, E 33.0, S 17.0 m**, seating topping at 38.5 m instead of
+  58.6 m everywhere.
+- **Four sides instead of a solid of revolution.** `deck_height(t, h)` took only
+  a radius, so every bearing got the same profile — the definition of a drum.
+  There is now a per-side deck table blended by bearing (`side_weights`,
+  `profile_for`), so the west carries two decks plus a press crown, north and
+  east a smaller wrapped upper deck, and the south a single shallow stand. The
+  measured ring depths that force this: **W 87.7, E 71.3, N 70.7, S 32.6 m** —
+  the south is 2.7x shallower than the west and was being built the same.
+- **The rim is light fixtures, not wall** (`RIM_LIGHT`, 79 of them), and they
+  are the only thing that stays bright after dark.
+- **The 88 m light masts are deleted.** They were generative, they were taller
+  than the stadium, and the aerial does not support them: there are no mast
+  shadows on the plaza, and the four white discs around the rim sit exactly on
+  the surveyed 14 m RAMP TOWER positions.
+- **Burnt-orange seating is now in sections, not scattered** — measured by
+  classifying `data/dkr_aerial_geo.png`: a continuous band across the NORTH
+  upper deck and a block in the EAST lower bowl, with diffuse rust elsewhere
+  that is weathering rather than chairbacks.
+
+### Also found
+
+- `data/dkr_aerial.png` and `dkr_aerial_geo.png` are **gitignored and were not
+  on disk** — MAC_QUEUE says the reference imagery is "already here" and it was
+  not. `python scripts/fetch_dkr_reference.py` rebuilds it (15.3 MB, 2915x2882
+  at 0.129 m/px) and that is now the first step of any DKR pass.
+- **`js/stadium.js` does not exist and nothing references it.** MAC_QUEUE grants
+  this lane a file that is not wired to anything; creating it would render
+  nothing without a script tag in `index.html`, which is not this lane's. All
+  stadium rendering is `js/app.js:1063-1216`.
+- Only **twelve `kind` strings render**. A feature with any other kind is
+  fetched, tiled, and painted nowhere, with no warning.
+
+### What is still wrong, honestly
+
+The bowl still reads as smooth concentric bands rather than two distinct decks
+with a shadow gap between them, because with `base` forced to 0 every band is a
+solid ring from the ground and the void can only be a colour, not a hole. The
+southwest and northwest entrance structures are still plain discs. The south end
+is still the pre-2021 arrangement. **`shots/dkr2/reference-vs-render.png` is the
+side-by-side and it does not pass.**
+
 ## 45. Aug 3 2026 — downtown was forty boxes, and the crown was stacked on top of the height instead of carved out of it (acer lane)
 
 **Branch:** `acer/downtown-detail`, PR #99. QUEUE **D2c** — the CONTENT half of
