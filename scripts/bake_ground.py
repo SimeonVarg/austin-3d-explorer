@@ -1303,11 +1303,117 @@ def plant_gardens(feats, stats, warnings):
 #
 # Keyed by a point rather than a name because the lawn polygons here are
 # unnamed; the entry says which precinct it is and where to start.
+#
+# ---------------------------------------------------------------------------
+# AND THE SENTENCE ABOVE WAS HALF FALSE UNTIL THIS PASS. "the walks, and the
+# buildings. Both are already in the data" -- the walks were; the buildings
+# were not. `feats` at this point in the bake contains ground only, so the
+# blocker list could never have held a footprint, and the grown lawn ran
+# straight under the buildings it was supposed to stop at. Measured on the one
+# precinct that existed: 745 m2 of 6,025 m2, 12.4% of it, was under a building.
+# Invisible (the extrusion covers it) and wrong, and on a file that is not
+# tiled it is 12% of the bytes spent on ground nobody can see.
+#
+# The footprints come from the SAME file shape_trees.py uses for the same
+# question, `data/snapshots/<latest>/buildings.detailed.geojson`, rather than
+# from a second query -- two copies of "where are the buildings" drift.
+#
+# ---------------------------------------------------------------------------
+# WHERE THE PRECINCTS COME FROM, since a table of nine points is exactly the
+# kind of thing that gets guessed. The campus core was rasterised at 6 m and
+# every cell not covered by a ground polygon, a buffered carriageway or a
+# building footprint counted as base ground showing through:
+#
+#     51.8% of the UT campus core is bare, 821,016 m2
+#     biggest connected bare blobs: 22,932 / 15,048 / 14,220 / 12,564 /
+#                                   12,276 / 10,944 / 10,188 / 9,936 m2
+#
+# Each entry below is the mapped lawn NEAREST one of those blobs, with `grow`
+# set to reach across it. The blob is the evidence that the block is bare; the
+# seed lawn is the evidence that the block is landscaped. Neither on its own
+# would justify painting a block green.
+#
+# WEST CAMPUS IS NOT IN THIS TABLE AND CANNOT BE. The mechanism needs a mapped
+# lawn to grow from and West Campus has none -- the nearest mapped green to
+# -97.7470, 30.2890 is 409 m away and is a 1 m2 sliver. Growing a lawn there
+# would be drawing one freehand, which is the thing this whole pass is written
+# not to do. It needs its own source, not a bigger `grow`.
 PRECINCTS = [
     # (label, lon, lat, how far to grow in metres)
-    ("Ellsworth Kelly / Austin", -97.737838, 30.281665, 26.0),
+    ("Ellsworth Kelly / Austin",   -97.737838, 30.281665, 26.0),
+    # The Blanton block. 9,756 m2 bare between the museum, the art building and
+    # Speedway; the mapped green is the strip on the museum's south side.
+    ("Blanton block",              -97.738244, 30.280400, 34.0),
+    # The East Mall. 10,944 + 10,188 + 9,936 m2 of bare ground in three blobs
+    # either side of the axis; one 131 m2 lawn is mapped near San Jacinto.
+    ("East Mall",                  -97.735013, 30.285364, 44.0),
+    # The Drama / art precinct behind Winship. 12,564 m2 bare, and there is a
+    # 1,681 m2 lawn 87 m away -- the biggest seed on this side of campus.
+    ("Drama and art precinct",     -97.732150, 30.286172, 36.0),
+    # The power-plant yard. 12,276 m2, seed 603 m2.
+    ("Power plant yard",           -97.730377, 30.286638, 38.0),
+    # Speedway north of Dean Keeton, 1,001 m2 seed.
+    #
+    # THIS ENTRY REPLACED A "Dean Keeton north" ONE AND THE REASON IS WORTH
+    # KEEPING. The first table was written from polygon CENTROIDS, and the
+    # centroid of a concave lawn -- an L round a building, a ring round a
+    # court -- is not in the lawn. That entry's point measured 106 m from its
+    # own seed at bake time and was dropped with a warning. Every point here is
+    # a shapely `representative_point()`, which is guaranteed inside.
+    ("Speedway north",             -97.737383, 30.290330, 36.0),
+    # Whitis. 5,796 m2 bare and the seed lawn TOUCHES it (0 m).
+    ("Whitis",                     -97.739739, 30.288738, 32.0),
+    # LBJ and east campus. 14,220 m2, seed is the 2,760 m2 park by the library.
+    ("LBJ east campus",            -97.731331, 30.281432, 40.0),
+    # San Jacinto south, between the Erwin Center site and the mall.
+    ("San Jacinto south",          -97.735545, 30.281172, 34.0),
 ]
 PRECINCT_KEEP_M2 = 60.0     # drop slivers the subtraction leaves behind
+PRECINCT_SEED_MAX_M = 40.0  # a point further than this from a lawn is a typo
+# A grown panel much bigger than this is not a courtyard any more, it is a
+# freehand green field -- reported loudly rather than silently shipped.
+PRECINCT_WARN_M2 = 26000.0
+# Snapshot to read footprints from. `None` = the newest on disk, which is what
+# shape_trees.py does; pin it if a bake has to be reproducible against an old
+# snapshot.
+PRECINCT_SNAPSHOT = None
+# How far short of a wall a lawn stops. Every building on this campus has a mow
+# strip, a drip line or a paved apron; a lawn butted against the wall face reads
+# as the building growing out of the grass.
+BUILDING_STANDOFF_M = 0.3
+
+
+def _building_blockers(to_m, warnings):
+    """Footprints, from the snapshot shape_trees.py uses for the same question."""
+    from shapely.geometry import Polygon
+    root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        "data", "snapshots")
+    try:
+        snap = PRECINCT_SNAPSHOT or sorted(
+            d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d)))[-1]
+        gj = json.load(open(os.path.join(root, snap, "buildings.detailed.geojson"),
+                            encoding="utf-8"))
+    except Exception as e:
+        # LOUD. Without this the lawn runs under every building on the block and
+        # nothing on screen says so, which is exactly how it shipped before.
+        warnings.append("precinct lawns: NO BUILDING FOOTPRINTS (%s) -- "
+                        "lawns will run under buildings" % e)
+        return [], "none"
+    out = []
+    for f in gj["features"]:
+        g = f["geometry"]
+        rings = ([g["coordinates"]] if g["type"] == "Polygon"
+                 else g["coordinates"] if g["type"] == "MultiPolygon" else [])
+        for rr in rings:
+            try:
+                q = Polygon(to_m(rr[0]))
+                if not q.is_valid:
+                    q = q.buffer(0)
+                if q.is_valid and not q.is_empty:
+                    out.append(q)
+            except Exception:
+                pass
+    return out, snap
 
 
 def grow_precinct_lawns(feats, stats, warnings):
@@ -1323,8 +1429,14 @@ def grow_precinct_lawns(feats, stats, warnings):
     to_m = lambda r: [(x * kx, y * M_LAT) for x, y in r]
     to_ll = lambda r: [[round(x / kx, 7), round(y / M_LAT, 7)] for x, y in r]
 
+    from shapely.geometry import LineString
+
     # What a lawn may NOT grow over: every walk, every plaza, every other
     # surface, and every building footprint.
+    #
+    # BUILT ONCE, not once per precinct. The single-entry version appended the
+    # path blockers INSIDE the precinct loop and re-unioned the whole list every
+    # time round, which is invisible at one precinct and quadratic at nine.
     blockers = []
     for f in feats:
         p = f["properties"]
@@ -1336,44 +1448,74 @@ def grow_precinct_lawns(feats, stats, warnings):
                 blockers.append(q if q.is_valid else q.buffer(0))
             except Exception:
                 pass
+    # PATHS ARE NOT BLOCKERS YET at this point in the bake -- they are still
+    # LineStrings and become polygons in widen_paths, which runs after this.
+    # So buffer the path lines by their own width here rather than skipping
+    # them, or the lawn would swallow every walk on the block.
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+            continue
+        w = float(p.get("w") or 2.0)
+        try:
+            blockers.append(LineString(to_m(f["geometry"]["coordinates"]))
+                            .buffer(w / 2 + 0.6, cap_style=2, join_style=2))
+        except Exception:
+            pass
+    builds, snap = _building_blockers(to_m, warnings)
+    stats["precinct_building_blockers"] = len(builds)
 
-    for label, lon, lat, grow in PRECINCTS:
-        seed_pt = Point(lon * kx, lat * M_LAT)
-        best, bestd = None, 1e18
-        for f in feats:
-            p = f["properties"]
-            if p.get("k") != "area" or p.get("u") != "lawn":
-                continue
-            if f["geometry"]["type"] != "Polygon":
-                continue
+    cutter = unary_union(blockers) if blockers else None
+    # THE BUILDINGS ARE SUBTRACTED SEPARATELY, and that is not tidiness.
+    # Unioned into the same ~12,000-polygon cutter they under-removed: the
+    # emitted lawn still had 1,354 m2 inside a footprint, and 55% of it was
+    # more than 2 m from the nearest wall -- too deep to be edge residue, so
+    # the big union was losing them, not nicking them. Two smaller differences,
+    # the second applied to an already-clipped polygon, drive it to zero.
+    #
+    # WITH A 0.3 m OUTWARD BUFFER, because a lawn does not run to the wall
+    # face; there is a mow strip or a drip line at every building on campus.
+    bldu = unary_union(builds).buffer(BUILDING_STANDOFF_M) if builds else None
+
+    # Seed candidates, built ONCE. A park is as good a seed as a lawn -- both
+    # are mown grass in this palette -- but a garden is not: it has its own
+    # surface and its own structure (see plant_gardens) and growing it would
+    # spread planting beds across a block.
+    seeds = []
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "area" or p.get("u") not in ("lawn", "park"):
+            continue
+        if f["geometry"]["type"] != "Polygon":
+            continue
+        try:
             q = Polygon(to_m(f["geometry"]["coordinates"][0]))
             if not q.is_valid:
                 q = q.buffer(0)
+            if q.is_valid and not q.is_empty:
+                seeds.append(q)
+        except Exception:
+            pass
+
+    total_made, total_m2 = 0, 0.0
+    for label, lon, lat, grow in PRECINCTS:
+        seed_pt = Point(lon * kx, lat * M_LAT)
+        best, bestd = None, 1e18
+        for q in seeds:
             d = q.distance(seed_pt)
             if d < bestd:
                 best, bestd = q, d
-        if best is None or bestd > 40:
+        if best is None or bestd > PRECINCT_SEED_MAX_M:
             stats["precinct_no_seed_lawn"] += 1
+            warnings.append("precinct %r: no seed lawn within %.0f m (nearest %.0f m)"
+                            % (label, PRECINCT_SEED_MAX_M, bestd))
             continue
         grown = best.buffer(grow, join_style=1)
-        # PATHS ARE NOT BLOCKERS YET at this point in the bake -- they are still
-        # LineStrings and become polygons in widen_paths, which runs after this.
-        # So buffer the path lines by their own width here rather than skipping
-        # them, or the lawn would swallow every walk on the block.
-        for f in feats:
-            p = f["properties"]
-            if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
-                continue
-            from shapely.geometry import LineString
-            w = float(p.get("w") or 2.0)
-            try:
-                blockers.append(LineString(to_m(f["geometry"]["coordinates"]))
-                                .buffer(w / 2 + 0.6, cap_style=2, join_style=2))
-            except Exception:
-                pass
-        cut = grown.difference(unary_union(blockers)) if blockers else grown
+        cut = grown.difference(cutter) if cutter is not None else grown
+        if bldu is not None:
+            cut = cut.difference(bldu)
         parts = cut.geoms if cut.geom_type == "MultiPolygon" else [cut]
-        made = 0
+        made, m2 = 0, 0.0
         for gm in parts:
             if gm.is_empty or gm.area < PRECINCT_KEEP_M2:
                 continue
@@ -1386,7 +1528,40 @@ def grow_precinct_lawns(feats, stats, warnings):
                                "src": "precinct"},
             })
             made += 1
+            m2 += gm.area
+        # MEASURED, not intended. §36's lesson: a counter incremented at emit
+        # time reported seven sheens shipped on a run where all seven had been
+        # deleted. This is the area of the polygons actually appended.
+        print("  precinct %-24s seed %6.0f m2 at %3.0f m -> %2d parts, %7.0f m2"
+              % (label, best.area, bestd, made, m2))
+        if m2 > PRECINCT_WARN_M2:
+            warnings.append("precinct %r grew %.0f m2, over the %.0f m2 sanity "
+                            "limit -- that is a green field, not a courtyard"
+                            % (label, m2, PRECINCT_WARN_M2))
+        total_made += made
+        total_m2 += m2
         stats["precinct_lawn_" + label.split("/")[0].strip().replace(" ", "_")] += made
+    # RE-MEASURE THE RESULT, which is the check the docstring's old claim needed
+    # and did not have: how much of what was just emitted is under a building?
+    # It was 12.4% before the footprints went in and it has to be ~0 now.
+    # WITH THE INTERIOR RINGS, and that is the whole point of the check.
+    # The first version of this re-measure read `coordinates[0]` only -- the
+    # exterior -- so every building-shaped HOLE the subtraction had just cut was
+    # counted back in as lawn, and it reported 2.0% under a building on a file
+    # that measures 0.0%. The instrument had the same bug as the thing it was
+    # instrumenting, which is the §35 lesson about a script that cannot see the
+    # defect it was written for.
+    if builds:
+        made_u = unary_union([Polygon(to_m(f["geometry"]["coordinates"][0]),
+                                      [to_m(h) for h in f["geometry"]["coordinates"][1:]])
+                              for f in feats
+                              if f["properties"].get("src") == "precinct"
+                              and f["geometry"]["type"] == "Polygon"])
+        under = made_u.intersection(unary_union(builds)).area if not made_u.is_empty else 0.0
+        print("  precinct lawns: %d parts, %.0f m2 total, %.0f m2 under a building "
+              "(%.1f%%)  [footprints from snapshot %s]"
+              % (total_made, total_m2, under, 100.0 * under / max(1.0, total_m2), snap))
+        stats["precinct_m2_under_building"] = int(under)
     return feats
 
 
