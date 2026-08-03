@@ -404,7 +404,7 @@ There is asphalt drawn in a courtyard that has none. Find out where that surface
 comes from — it is probably an OSM `highway` way crossing the court, or a
 service-road polygon — and stop drawing it there. Then make the court a court.
 
-## C5. West Campus apartments — **DONE (the blocks), one thing owed**
+## C5. West Campus apartments — **DONE. Blocks (#113), then CHARACTER (#119)**
 
 > **PR #113, merged `0c9bd1a`.** The pass already did the ten TOWERS; West Campus
 > is made of six-to-ten storey BLOCKS, and every building he named that was still
@@ -433,6 +433,28 @@ service-road polygon — and stop drawing it there. Then make the court a court.
 > unlocks his building's pool deck**, which was measured off the z20 nadir, built,
 > and then deleted — all three routes to drawing it are blocked by the stale
 > height. The measured rectangles are kept in `bake_westcampus.py`.
+
+> **TIER THREE, branch `acer/westcampus-character`.** #113 gave fourteen blocks
+> their measured colour; this gives them the things he actually named. A
+> `fill-extrusion-pattern` has no HORIZONTAL anchor either, so the tower band is
+> now cut into vertical **colour bays** — The Standard's cream / warm / pale
+> panel field with its slate corner volume carrying the name, Block on 25th
+> East's burnt-orange mass, 2400 Nueces' honey Texas limestone. **Every bay hex
+> came off a named architect's photograph in `research/`** (crop, look at the
+> crop, cluster it, re-centre on the colour #113 verified so the bays average
+> back to it). Plus **504 balcony RAILS** at 1.05 m — the slabs were shelves —
+> **segmented balconies**, one per unit, and **setback crowns** on fourteen.
+>
+> **Moontower was built and removed:** its two-tone split is sourced, its colours
+> are not, and there is no photograph of it in `research/`. It stays a flat slab.
+> **Block on 25th East turns out to have a hip roof** (nadir), which this tier
+> cannot say — walls only, and the note in the bake that said otherwise is fixed.
+> Measured: 401 -> 1,144 features, 26.0 KB gzipped, atlas 37 -> 46, nothing above
+> `final_height`, tod tick +14% and frame time +4.5% (MIN of interleaved reps).
+> HANDOFF §58; `docs/shots/westcampus-tier3-*.jpg`.
+>
+> **STILL OWED, and it is the same one number:** The Standard is 17 storeys and
+> the snapshot has it at 20.5 m.
 
 *"so many apartments in austin wampus have such cool designs but are currently
 regular building blocks. Can you implement these designs?"*
