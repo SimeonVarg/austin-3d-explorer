@@ -1,5 +1,145 @@
 # Austin 3D Explorer — Full Handoff
 
+## 54. Aug 3 2026 — West Campus was fourteen more buildings than the pass knew about, and the renderer was throwing their colour away (acer lane)
+
+**Branch:** `acer/westcampus-heroes`. QUEUE **C5** — the last item on his list and
+the one he said he cares most about personally.
+
+> *"so many apartments in austin wampus have such cool designs but are currently
+> regular building blocks ... personally as someone staying in standard next
+> year i love how it looks and if this tool wasn't mine and i saw standard look
+> nice i would feel really cool, like 5x better about the project (not saying
+> just cherrypick standard but you get what im saying)"*
+
+`scripts/bake_westcampus.py` already did ten TOWERS (55–82 m). West Campus is not
+made of towers. It is made of six-to-ten storey blocks, and every one of Simeon's
+named buildings that was still a plain prism — **The Standard, Rambler, The
+Quarters, 2400 Nueces, The Nine** — is one of those. Tier two adds fourteen of
+them. `data/westcampus.geojson` 145 → 401 features, 24 buildings, 37 atlas images.
+
+### The colour was already in the data and the renderer was throwing it away
+
+`bake_detail.py` measures a wall colour per building. `quantiseFacades()` then
+elects the FOURTEEN most populous tones city-wide and folds everything else into
+its nearest survivor. Measured over the 284 West Campus buildings ≥12 m, that
+fold moves a wall by a **median of 13.9 RGB and by up to 97.5** — Ion Austin's
+#54555b charcoal is painted terracotta. Rambler's measured #966753 brick came out
+#af785d, the same tan as the churches.
+
+A feature in `data/westcampus.geojson` skips the election (`quantiseStadiumFacades`
+gives every (family, colour) its own atlas entry), so **bringing a block into
+this file is what lets it keep the colour the imagery measured off it.** Read off
+the live atlas, **14 of 24 body bands are now closer to their authored colour
+than to the nearest of the fourteen city buckets** (Rambler 8.2 vs 24.7).
+
+**The Standard was being painted brick red.** Its snapshot `wd` is #aa8267, which
+elects to the terracotta bucket. Humphreys & Partners' own exterior photographs
+show a light three-tone panel field — cream, warm grey, charcoal, terracotta
+accents, laid up in a broken "pixel" pattern over a two-storey glazed base with a
+charcoal corner bay. The body hex is the area-weighted read of that field.
+
+### Balconies are clipped to the footprint, and that is what makes them possible
+
+A balcony slab is a rectangle across a whole elevation in the obb frame. On a
+U-plan — Grayson has a light-well notch 18 m into its south elevation, Twenty Two
+15 one into its north — that rectangle **bridges the notch and hangs in mid air,
+once per floor**. `_clip_to(rect, footprint.buffer(BALC_PROJ))` removes the whole
+class of error and still lets a real balcony project. 268 slabs over 14 buildings.
+
+### What tier two deliberately does NOT do — each avoided a defect
+
+- **It never changes a height.** The Standard is 17 storeys (Humphreys: 17
+  floors, 287 units, 989 beds, 640 spaces, 1.34 acres, VIP deck on 17). The
+  snapshot has it at **20.5 m**, which is the pre-2019 building's LiDAR: OSM way
+  380916747 is a 2015 City-of-Austin import whose 19 nodes have never been
+  redrawn, and a 2023 edit only added the name. Correcting it belongs in
+  `scripts/hero_overrides.json` + `enrich.py`, because `js/controls.js` builds
+  its **collision field** from `final_height`, `js/shadows.js` reads it and the
+  labels sit on it. Raising it here would draw a tower you can fly through.
+- **It never puts anything on a roof `bake_roofscape.py` already furnished.**
+  Measured: The Standard carries a generic deck at b=21.50 h=21.75 covering
+  **91.9%** of its footprint, plus 16 detail condensers; 2400 Nueces, Sterling,
+  Grayson, Twenty Two 15, Block on 25th and The Nine the same. Those ids are not
+  in `authoredRoofIds` and adding them needs `data/roofscape.geojson` re-baked,
+  which is not this lane's file. **`authoredRoofIds` is now a SUBSET** (10, not
+  24) — claiming all 24 would be a delayed-action bug that strips fourteen roofs
+  the day someone re-runs that bake.
+- **It never cuts a courtyard the data lacks.** 2400 Nueces really has two and
+  its 8-node polygon has neither, but the generic roof deck spans the footprint,
+  so a hole under it is invisible. Amenity goes only in courtyards that are
+  ALREADY holes, placed from **that ring's own obb** as fractions of it, so
+  nothing is eyeballed: Rambler, The Block, Pointe on Rio, Crest at Pearl, The
+  Nine at Rio.
+- **It never touches a pitched roof.** Checked `data/roofs.geojson`: none of the
+  fourteen has a facet. Villas on Guadalupe, Block on 25th West and Greenwood
+  Towers are left OUT — the first two have hip roofs the nadir shows plainly and
+  this tier has no vocabulary for one; Greenwood's footprint sits 10 m off the
+  building it names.
+
+### The one thing that cost real work and was then deleted
+
+**The Standard's pool deck.** The z20 nadir post-dates the building and shows the
+lap pool, the spa at its north end and the tower shadow across the deck; the
+architect's photographs show the jumbotron, the turf strip and the pergola. All
+of it was built, measured in the bake's own (u,v) frame and checked by drawing
+the rectangles back onto the nadir — and then removed, because every route to
+drawing it fails on the same wall:
+
+| route | why it fails |
+|---|---|
+| on top of the generic deck (21.75 m) | breaks "nothing stands above final_height"; H is 20.5 |
+| on a lower stepped wing (the true massing) | the generic deck spans 91.9% of the roof and would hover over the wing |
+| at the parapet | `roof_z` is H + cap_lift, still above H |
+
+All three are downstream of ONE stale number. The measured numbers are kept in
+the bake so the next lane can restore it in a line. **Fix the height first.**
+
+### What I tried that did not work
+
+- **`ondeck`** — an absolute z for roof amenity, standing on the measured top of
+  the generic roofscape deck. Written, working, and reverted: it puts geometry
+  above `final_height` by construction, which is exactly what the probe forbids.
+- **Pre-compensating the cool greys.** The atlas mean of an `mh` tile is warmer
+  and darker than the authored hex (2400 Nueces #9ea8af → #a09890, R/B 0.90 →
+  1.11), so a blue-grey block still reads warm. Pushing the authored hex bluer to
+  land on target would then be wrong at every other time of day, because much of
+  that shift is the scene-wide golden ramp and not the tile. Left alone.
+- **Reading `wp` off `map.getSource(...)._data`** — reports every band unstamped.
+  MapLibre serialises the GeoJSON to its worker on `addSource` and the stamps live
+  on the worker's copy. Use `querySourceFeatures`. Cost 20 minutes and a false
+  "the pattern is missing" alarm.
+- **A two-page-load before/after.** `?westcampus=0` is a load-time flag, so the
+  pair also differs by a camera settle and a tile race — the first attempt came
+  back with 40 px of horizon between the frames. `applyWestcampusSettings()`
+  swaps both halves in one frame; that is what it is for.
+
+### Owed
+
+- **`scripts/verify/westcampus-probe.mjs` is truncated at HEAD** (66 lines — the
+  whole `newPage` / `page.evaluate` block is gone) and dies on "d is not defined"
+  before asserting anything. It is one of **17** scripts in `scripts/verify` with
+  no `newPage` call left in them; the Mac lane owns that regression. The same 16
+  assertions were run from the scratchpad instead and pass 16/16 on 24 buildings.
+- The height correction above, which also unlocks the pool deck.
+
+### Measured
+
+- `data/westcampus.geojson` 145 → 401 features (36 → 78 wall bands, 268 balcony
+  slabs), 50.1 → 171.7 KB, atlas 19 → 37 images.
+- **Nothing stands above `final_height`**: max h − final_height is +0.00 for all
+  24 buildings.
+- `westcampus-perf.mjs`: delta −100 dropped frames against a within-config spread
+  of 49/142, i.e. **no result** — the honest read is no measurable change.
+- Two forced time-of-day ticks: 348 ms with the pass on vs 301 ms off (MIN of 7
+  interleaved reps, spread 301–750 ms). Inside the noise, and the images stay
+  registered when the pass is hidden, so this is a floor on the cost either way.
+- Night re-checked at tod 0.95: bands read dark with lit windows, no pale wall
+  after dark.
+
+`docs/shots/westcampus-{standard,grayson,rambler,crest,wide}.jpg` are exact
+before/after pairs — one browser, one camera, the pass toggled between the two
+frames.
+
 ## 53. Aug 3 2026 — every pixel this project has measured was of a city with no vector tiles, again (acer lane)
 
 **Branch:** `acer/downtown-depth`, PR #112. QUEUE **E1**.
