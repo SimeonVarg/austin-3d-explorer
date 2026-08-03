@@ -1,4 +1,49 @@
 {
+  "downtown_detail": {
+    "downtown": {
+      "podium": 113,
+      "podium_measured": 10,
+      "setback_skipped_slim": 1,
+      "crown": 106,
+      "mast": 36,
+      "retail": 219,
+      "curated": 10,
+      "jenga": 1,
+      "taper": 8,
+      "gable": 1,
+      "curated_unmatched": [],
+      "height_checked": 114,
+      "height_mismatch": 0,
+      "height_worst": [],
+      "parts_per_tower_max": 8
+    },
+    "green": {
+      "read": 839,
+      "kept": 309,
+      "small": 489,
+      "in_core": 36,
+      "unclosed": 5,
+      "by_tone": {
+        "lawn": 295,
+        "plaza": 12,
+        "wood": 2
+      }
+    }
+  },
+  "shipped": {
+    "features": 8428,
+    "bodies": 7625,
+    "detail": 803,
+    "by_kind": {
+      "tower": 243,
+      "flat": 7511,
+      "c": 146,
+      "r": 219,
+      "g": 309
+    },
+    "with_base": 275,
+    "max_top_m": 315.0
+  },
   "date": "2026-07-30",
   "outer_bbox": {
     "minlon": -97.788,
@@ -115,7 +160,7 @@
     "2": 459,
     "3": 40
   },
-  "file_kb": 2655,
+  "file_kb": 2982,
   "rules": {
     "keep_any_height_m": 24.0,
     "area_floor_m2": 115.0,
