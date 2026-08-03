@@ -64,8 +64,50 @@ PALETTE = os.path.join(ROOT, "data", "outer_tower_palette.json")
 
 # js/facades.js: const TOWER_BUCKETS = 10;
 TOWER_BUCKETS = 10
+# The downtown streetwall (`t=2`, scripts/bake_outer.py:MIDRISE_H) gets its own
+# set for the same reason the towers got one: its materials are brick, stucco
+# and painted concrete, and snapping them onto ten GLASS centroids would put a
+# curtain wall on a two-storey shopfront. Fewer buckets than the towers because
+# the range is narrower and every bucket costs an atlas repaint per hour step.
+MIDRISE_BUCKETS = 6
 # js/facades.js: for (let iter = 0; iter < 12; iter++)
 LLOYD_ITERS = 12
+
+# ── how a wall grades from day to golden hour, per material ───────────
+#
+# THE MASONRY RULE WAS BEING APPLIED TO GLASS, and downtown is 51% glass.
+#
+# js/facades.js derives a bucket's golden tone as `v * (1.06, 1.06, 0.92)` —
+# redder, greener, LESS BLUE. That is right for brick and limestone, which
+# genuinely warm in low sun. A curtain wall does not warm: it MIRRORS THE SKY,
+# and while there is sky in it the reflection stays cool.
+#
+# Measured, because this is the whole of QUEUE E1's colour question. Two
+# reference photographs of this skyline (Wikimedia Commons, "Austin Texas
+# skyline, December 2023 - Day" and "Austin Skyline from Loop 360 Overlook
+# 2026") put the tower cluster at B-R +1 on a hazy day and +90 on a clear one.
+# Never negative. The app rendered it at -15.
+#
+# Every one of the ten tower buckets LEFT the palette blue (B-R +26 to +37) and
+# arrived at the atlas neutral-to-warm (-1 to -7), measured directly off the
+# registered images by scripts/verify/tower-atlas-tone.mjs. `drawTile` lerps
+# wd->wg by `p`, and the app's default day is p=0.30 — which is 60% of the way
+# to golden, so a "golden hour" tint is at 60% strength at noon.
+#
+# This fixes the half that lives in the data. The other half is
+# js/facades.js:drawTile's `mix(glass, [255,176,96], golden * 0.45)`, which is
+# a 27% orange wash on the glass at that same p=0.30 and is NOT this lane's
+# file — see HANDOFF for the request and the numbers.
+GOLDEN = {
+    # Towers: glass. Brighter at golden hour like everything else, but the blue
+    # does not come out of it.
+    "tower": (1.06, 1.06, 1.00),
+    # Mid-rise: brick, stucco, painted concrete. The masonry rule is correct
+    # here and is transcribed from js/facades.js unchanged.
+    "midrise": (1.06, 1.06, 0.92),
+}
+# js/facades.js: wn = v * 0.34 + [17,22,42][j] * 0.30. Shared by both sets.
+NIGHT_MIX = (0.34, 0.30, (17, 22, 42))
 
 
 def hex_to_rgb(h):
@@ -123,31 +165,39 @@ def bucket_of(feature_wd, cent):
     return nearest(hex_to_rgb(feature_wd), cent)
 
 
-def main():
-    check_only = "--check" in sys.argv
-    gj = json.load(open(RING, encoding="utf-8"))
-    feats = gj["features"]
-    towers = [f for f in feats
-              if f["properties"].get("t") == 1 and f["properties"].get("wd")]
-    if not towers:
-        print("no towers in %s — nothing to do" % RING)
-        return
-
-    cent = cluster_colours([f["properties"]["wd"] for f in towers], TOWER_BUCKETS)
-
-    # The golden and night derivations are the browser's, so a baked tower rides
-    # the same day->golden->night ramp as one stamped at runtime did.
-    palette = [{
+def derive(cent, kind):
+    """A bucket's (wd, wg, wn) triple, golden derived per MATERIAL."""
+    lift = GOLDEN[kind]
+    mul, add, anchor = NIGHT_MIX
+    return [{
         "fb": i,
         "wd": to_hex(c),
-        "wg": to_hex([v * (0.92 if j == 2 else 1.06) for j, v in enumerate(c)]),
-        "wn": to_hex([v * 0.34 + n * 0.30
-                      for v, n in zip(c, (17, 22, 42))]),
+        "wg": to_hex([v * lift[j] for j, v in enumerate(c)]),
+        "wn": to_hex([v * mul + n * add for v, n in zip(c, anchor)]),
     } for i, c in enumerate(cent)]
 
-    counts = [0] * TOWER_BUCKETS
+
+def stamp(feats, k, buckets, check_only):
+    """Cluster one CLASS of feature on its own colours and stamp the ordinal.
+
+    Returns (palette, per_bucket_counts, changed). `t` selects the class, so
+    the towers and the mid-rise never see each other's centroids — which is
+    the entire point, and the same argument quantiseStadiumFacades makes about
+    not snapping a brick end zone onto the city's tan.
+
+    `fb` is reused as the property name across both classes on purpose: they
+    are drawn by different layers with different filters (`t==1` vs `t==2`) and
+    different match expressions, so an ordinal cannot be read by the wrong one.
+    """
+    mine = [f for f in feats
+            if f["properties"].get("t") == k and f["properties"].get("wd")]
+    if not mine:
+        return [], [], 0, 0
+    cent = cluster_colours([f["properties"]["wd"] for f in mine], buckets)
+    palette = derive(cent, "tower" if k == 1 else "midrise")
+    counts = [0] * len(cent)
     changed = 0
-    for f in towers:
+    for f in mine:
         p = f["properties"]
         b = bucket_of(p["wd"], cent)
         counts[b] += 1
@@ -159,14 +209,28 @@ def main():
             # renderer reads. Left behind it would paint towers transparent.
             p.pop("wp", None)
             p.pop("wf", None)
+    return palette, counts, changed, len(mine)
+
+
+def main():
+    check_only = "--check" in sys.argv
+    gj = json.load(open(RING, encoding="utf-8"))
+    feats = gj["features"]
+
+    tpal, tcnt, tchg, tn = stamp(feats, 1, TOWER_BUCKETS, check_only)
+    mpal, mcnt, mchg, mn = stamp(feats, 2, MIDRISE_BUCKETS, check_only)
+    if not tn:
+        print("no towers in %s — nothing to do" % RING)
+        return
 
     report = {
-        "towers": len(towers),
+        "towers": tn, "midrise": mn,
         "features": len(feats),
-        "buckets": TOWER_BUCKETS,
-        "per_bucket": counts,
-        "changed": changed,
-        "palette": [{"fb": p["fb"], "wd": p["wd"]} for p in palette],
+        "tower_buckets": len(tpal), "midrise_buckets": len(mpal),
+        "tower_per_bucket": tcnt, "midrise_per_bucket": mcnt,
+        "changed": tchg + mchg,
+        "tower_palette": [{"fb": p["fb"], "wd": p["wd"], "wg": p["wg"]} for p in tpal],
+        "midrise_palette": [{"fb": p["fb"], "wd": p["wd"]} for p in mpal],
     }
     if check_only:
         print(json.dumps(report, indent=2))
@@ -176,15 +240,18 @@ def main():
         json.dump(gj, fh, separators=(",", ":"))
     with open(PALETTE, "w", encoding="utf-8") as fh:
         json.dump({
-            "note": ("Facade buckets for the downtown towers, computed by "
-                     "scripts/bake_outer_facades.py from the towers' own baked "
-                     "wall colours. Each tower carries its bucket ORDINAL as "
-                     "`fb`; the browser maps that ordinal to a palette index it "
-                     "allocates at boot and registers one atlas tile per bucket. "
+            "note": ("Facade buckets for downtown, computed by "
+                     "scripts/bake_outer_facades.py from the buildings' own "
+                     "baked wall colours. `buckets` is the TOWERS (t=1, glass); "
+                     "`midrise` is the streetwall (t=2, masonry). Each building "
+                     "carries its bucket ORDINAL as `fb`, scoped by its `t`; the "
+                     "browser maps that ordinal to a palette index it allocates "
+                     "at boot and registers one atlas tile per bucket. "
                      "Do not stamp `wp` directly — the renderer reads it, and an "
                      "unregistered pattern id paints the wall transparent. "
                      "Regenerate whenever outer_ring.geojson is re-baked."),
-            "buckets": palette,
+            "buckets": tpal,
+            "midrise": mpal,
         }, fh, indent=2)
     print(json.dumps(report, indent=2))
     print("wrote %s and %s" % (os.path.relpath(RING, ROOT),

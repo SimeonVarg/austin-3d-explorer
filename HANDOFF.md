@@ -1,5 +1,177 @@
 # Austin 3D Explorer — Full Handoff
 
+## 53. Aug 3 2026 — every pixel this project has measured was of a city with no vector tiles, again (acer lane)
+
+**Branch:** `acer/downtown-depth`, PR #112. QUEUE **E1**.
+
+### READ THIS FIRST — it invalidates numbers, not just this pass's
+
+`_harness.html` loads maplibre from unpkg and **never loaded pmtiles**.
+`js/tiles.js` reads that global at parse time and degrades SILENTLY —
+`[tiles] pmtiles or maplibre not loaded - falling back to GeoJSON` — so
+`TILES.on` went false and **every tiled layer served its GeoJSON fallback in
+every pixel measurement any lane has ever taken through that page**: trees,
+roads, props, roofdetail and the outer ring.
+
+`e4883d1` is titled *"Every pixel we have measured was of a city with no vector
+tiles"*. It added `js/tiles.js` to the harness and stopped one line short of the
+library `js/tiles.js` needs. The same bug, in the fix for the same bug.
+
+**`harness-drift.mjs` could not see it.** Its regex was
+`/<script\s+src="(js\/[^"]+)"/` — local modules only, so a CDN `<script>` was
+invisible. It compares EVERY `<script src>` now and additionally asserts the
+pmtiles library precedes `js/tiles.js`, because "present in the list" is not
+the invariant; "parsed before the file that reads its global" is. Negative
+control run: removing the tag turns both assertions red.
+
+Consequences worth knowing:
+
+- **`--extra "&tiles=0"` and no flag were the same thing.** Every "verified on
+  the tiled path" claim in this file predates the harness being able to load
+  one. §45's `shots/dt-tiles/` is labelled "tiled, what the site serves"; it was
+  not.
+- **`outer-check.mjs` was 14/20 on `main`** once the harness could load a tile,
+  and had been for passes. Five failures were the check describing a city from
+  two passes ago; one was its own instrument. All six fixed, 21/21 now — see
+  the commit, and note `querySourceFeatures` on a VECTOR source returns `[]`
+  without `{sourceLayer}`, which is why "the ring tiled and is drawing" read 0
+  while the ring was plainly on screen.
+
+### E1's colour question, answered with a measurement and a photograph
+
+The brief asked whether downtown reading as a dark grey mass is a REGRESSION
+from #84/#94. **It is not, and it is not a luma problem at all:**
+
+```
+outer-tower  vs  buildings-3d      luma 119.5 vs 102.1   downtown is 1.17x BRIGHTER
+tile path    vs  GeoJSON path      119.5 vs 119.6        the two paths agree
+```
+
+**It is the HUE.** Two reference photographs (Wikimedia Commons, *Austin Texas
+skyline, December 2023 - Day* and *Austin Skyline from Loop 360 Overlook 2026*)
+put the tower cluster at **B−R +1 hazy, +90 clear**. Never negative. The app
+rendered it at **−15**.
+
+`tower-atlas-tone.mjs` (new) reads the registered atlas images directly, because
+measuring the baked hex and the screen pixel leaves the middle step a guess:
+
+```
+palette #8ca0b1 (B-R +37)  ->  atlas tile B-R  -1.3      before
+                           ->  atlas tile B-R  +3.8      after
+```
+
+Two warming terms, and **only one of them is in this lane**:
+
+1. **`wg` was derived with the masonry rule.** `js/facades.js` uses
+   `v * (1.06, 1.06, 0.92)` — redder, greener, LESS BLUE — which is right for
+   brick and limestone and wrong for a curtain wall, and downtown's `tg` family
+   is **51% glass**. Glass does not warm at golden hour; it mirrors the sky.
+   `GOLDEN["tower"]` in `bake_outer_facades.py` keeps the blue. Worth +5.
+2. **`drawTile`'s `mix(glass, [255,176,96], golden * 0.45)`.** `golden` is
+   `1 - |p-0.5|/0.5`, so at the app's **DEFAULT day `p = 0.30`** it is **0.60**
+   and the glass takes a **27% orange wash at what everyone calls noon**. This
+   is `js/facades.js` — **NOT this lane's file. This is the request, per
+   CLAUDE.md's rule about writing it here rather than making it.** Narrowing
+   the golden window, or exempting `tg` from the amber, is worth roughly three
+   times what item 1 was.
+
+### The content: 645 downtown buildings stopped being blank prisms
+
+PR #99 gave the 114 towers podiums, setbacks and crowns. Everything under 40 m
+kept the ring's flat untextured colour, because the ring's design is "one flat
+colour, it is backdrop". **Downtown is not backdrop.** A building at or above
+`MIDRISE_H` inside the downtown box is now `t=2` and gets:
+
+- a real window pattern — family **`mh`** (punched, ~20% glazing), NOT the
+  towers' `tg`. Its own six-bucket set, clustered on its own masonry colours,
+  because snapping a two-storey shopfront onto ten glass centroids is the same
+  category error #84 fixed for the towers.
+- a **parapet**, on the shared `window.CAP_GEOM` rule, at **zero extra
+  features** — `t=2` carries `rd/rg/rn` exactly as `t=1` does.
+- **roof plant**: 189 mechanical boxes.
+- a **ground floor**. `retail_min_building_h_m` was **18 m — six storeys** — so
+  the entire 8–18 m streetwall, 604 buildings and most of what you see at
+  street level, had none. **219 bands become 751**, and the band is now capped
+  by share of the building so one rule works from 8 m to 300 m.
+
+```
+local detail (mean |neighbour delta|) over the mid-rise field   3.35 -> 4.38  +31%
+```
+
+Measured on a **controlled A/B — one build, one session, only the data file
+swapped**. The first, uncontrolled pair showed a large whole-frame warm shift
+that was pure run-to-run drift (§43's exposure step, exactly as documented), so
+the controlled pair is the only evidence quoted.
+
+### The tiling claim, measured again on a harness that can actually test it
+
+```
+outer.pmtiles          1,819,279 -> 1,982,385 bytes   +163 KB
+visitor wire bytes         14.11 -> 14.14 MB          +30 KB   (both reps identical)
+load to map.loaded()   main 39.0/24.0 s   branch 19.1/25.8 s
+```
+
+**Load time is inside the noise floor and no claim is made about it** — the
+spread on one quiet machine is 19–39 s for the same page, which is CLAUDE.md
+rule 10's whole point. The BYTES claim survives: the archive grew 163 KB and a
+visitor at the spawn pose pays 30 KB of it.
+
+### Geometry: what I got wrong, and the trap I walked into with it documented
+
+Chasing a cube that **looked** like it floated over the street. **It did not.**
+`queryRenderedFeatures` says that stack is contiguous — shaft 18.4–105.9, crown
+→111.4, mast →121.7 — and what reads as plaza is a 106 m tower's blank roof.
+Two crops and a confident read said otherwise; only asking the renderer settled
+it. **§37 generalised: an eye is an under-settled instrument too.**
+
+The detector written to check it found real ones. Every raised `k='c'` piece
+must have a solid under it whose top reaches its base — **6 did not**:
+
+- the **mast** sat on `ring_centroid(cap)`, and the centroid of a non-convex
+  crown is outside it. `roof_seat()` returns a `representative_point`, which
+  is not.
+- **Frost Bank's spire started 6.5 m above the box holding it up** — at the
+  FINS' top while standing on the centre box, which is deliberately lower.
+  It starts at `cap_top` and still ends at the same height, so §33's
+  re-measure is untouched.
+- **one owl fin was off its own crown**: `centroid ± plan_width/2` uses `4A/P`,
+  twice the INRADIUS, so on an oblong plan the fins land short.
+
+**6 → 2.** 114 towers re-measured, 0 height mismatches, top still exactly
+315.0 m. The detector is now a bake-time assertion (`floating_pieces`).
+
+**AND ITS FIRST VERSION REPORTED 39, WRONG** — it accepted only a WALL as
+support, and a mast stands on a crown. A detector that flags its own blind spot
+has the exact shape of a real result (§45).
+
+**THE BOUNDING-BOX FIX WAS WORSE AND IS THE PARAGRAPH WORTH KEEPING.** Replacing
+the centroid rule with the crown's bbox corners dropped **two** fins instead of
+one: Frost Bank's plan is **rotated** relative to north, so its bbox corners lie
+outside the polygon. QUEUE already says *"a bounding box is not a shape"* (§50)
+and I walked into it anyway. A corner of a rotated rectangle is a **VERTEX of
+the ring** — inset by half the fin, then take the furthest vertex from the
+centre in each quadrant. All four land, at any rotation.
+
+### Also true, and deliberately not changed
+
+- **`TOWER_MIX` is still 42/24/18/16** and its own comment says it was
+  *"eyeballed against the real skyline"*. Re-rolling it from a reference is a
+  TASTE call and CLAUDE.md rule 9 says that one is Simeon's, so it is measured
+  and reported rather than changed.
+- **One election instead of two.** The GeoJSON path used to discard the baked
+  buckets and re-cluster the towers in the browser, so `&tiles=0` rendered
+  downtown from different arithmetic than the site serves — and the fallback is
+  the path you reach for when debugging the real one. Both read `fb` now.
+- `downtown-tone.mjs` re-applies the hour AFTER the camera move and asserts it
+  took. Its first night run returned luma identical to the day run to one
+  decimal (116.4 against 116.5) — it had measured a daylit frame and called it
+  night.
+- Night re-checked: mid-rise parapet **34.4** luma against the tower parapet's
+  **33.4**. §35 item 1 is not reintroduced.
+
+Pictures: `shots/e1-ab-before/` against `shots/e1-ab-after/` (the controlled
+pair), `shots/e1-final/` (tiled, what the site serves), `shots/e1-night/`.
+
 ## 52. Aug 3 2026 — Speedway was drawn all along, the walks had no surface, and the creek had never heard of a bridge (acer lane)
 
 **Branch:** `acer/ground-speedway-creek`, PR #110, merged `e003b50`.
