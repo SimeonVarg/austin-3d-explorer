@@ -68,7 +68,21 @@ await page.evaluate(() => new Promise(r => {
   if (m.loaded() && m.areTilesLoaded()) return r();
   m.once('idle', r); setTimeout(r, 30000);
 }));
-await page.waitForTimeout(2000);
+// RE-APPLY THE HOUR AFTER THE MOVE, AND CHECK IT TOOK.
+//
+// Setting it once before jumpTo is not enough and the failure is silent: a
+// --tod 0.95 run came back with luma byte-identical to the 0.30 run at the
+// same pose — 116.4 against 116.5, 136.8 against 136.8 — i.e. it had measured
+// a daylit frame and called it night. Two numbers that agree to a decimal
+// across a day/night change are not a result, they are the same frame twice.
+await page.evaluate(v => {
+  if (typeof window.applyTimeOfDay === 'function') window.applyTimeOfDay(window.__map, v, true);
+}, TOD);
+await page.waitForTimeout(2500);
+const gotP = await page.evaluate(() => window.__todCurrentP);
+if (gotP == null || Math.abs(gotP - TOD) > 0.02) {
+  console.log(`  *** tod did not take: asked ${TOD}, page says ${gotP} — the numbers below are not about ${TOD} ***`);
+}
 
 await page.evaluate(() => {
   window.__dt = {
