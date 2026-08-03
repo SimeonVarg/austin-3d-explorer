@@ -56,6 +56,55 @@ memory of what the thing probably looks like.
 
 ---
 
+# PART G — THE CEILING, AND HOW TO BREAK IT
+
+*"they are NOWHERE CLOSE to the level they should be - looks like u made overall
+shape a bit more accurate but its like youre trying to draw the mona lisa and you
+made the canvas the right size - we need accurate detail and color"*
+
+**He is right, and it is structural rather than any pass being lazy. Read this
+before touching another building.**
+
+## Why every pass reports massing and never detail
+
+| | how it is produced | result |
+|---|---|---|
+| **roofs** | MEASURED from aerial imagery — `roof_survey.json` has 2,312 buildings with sampled colours and detected blobs, 2,334 cached tiles in `data/imagery_cache/` | specific, per-building |
+| **walls** | `quantiseFacades` elects **FOURTEEN** tones for the entire city and stamps one per building, plus a repeating window tile | every building in Austin wears one of fourteen tans |
+
+That is the whole vocabulary a normal building has. So "make EER look like EER"
+inside that system can only ever return a slightly different box in one of
+fourteen colours — which is precisely "you made the canvas the right size".
+
+## What actually breaks through
+
+A building needs its OWN facade, and both halves of that are already possible:
+
+1. **Its own colours, outside the fourteen.** `window.FACADE_PROTECTED` exists
+   for exactly this — it is why the Capitol keeps its Sunset Red granite instead
+   of folding into the nearest tan. `quantiseStadiumFacades` shows per-feature
+   palette entries being appended at runtime. Use it.
+2. **Its own composition.** `js/union24.js` is the worked example and currently
+   the ONLY building in the city with one: it finds a feature by name, replaces
+   the geometry, and documents every measured dimension with the working written
+   out. That is roughly 200 lines per building.
+
+## The rule for this part
+
+**TEN BUILDINGS THAT GENUINELY LOOK LIKE THEMSELVES BEATS FIFTY NUDGED.** Do not
+spread. For each one:
+
+- find real photographs and WRITE DOWN what the building is made of — bay rhythm,
+  where the material changes, balcony bands, glazing lines, the crown, the base
+- register its own colours rather than accepting a bucket
+- author the composition as separate banded features with their own base and
+  height, the way `js/drag.js` does shopfronts — never a pattern that tries to
+  place something "at the top"
+- put a render and a photograph side by side in the PR. **If you would not
+  recognise the render, it is not done.** That test is the item.
+
+---
+
 # PART F — 2026-08-03, after he looked at it
 
 ## F1. The fade is INVERTED now, not fixed — round three — **DONE**
