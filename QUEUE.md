@@ -404,21 +404,49 @@ Fix the orientation and check nothing else shares the bug.
 window has been drawn twice and is still wrong. Get a photograph of the west
 window and match it — radiating coloured panels in a circle, in a specific order.
 
-## D6. Speedway got deleted
+## D6. Speedway got deleted — **DONE**
+
+> **FIXED, PR #110, merged `e003b50`.** It was never deleted: 6,132 m2 of
+> `s:'brickpave'`, unchanged across 8 commits, drawn every frame. Two causes.
+> **(1)** The golden-hour palette did not go to dusk while everything round it
+> did, so the brick rose to meet the concrete — `sum|dRGB|` 62 by day but **27
+> at sunset, and 0.9 luma apart**. tod 0.62 is the default and the default is
+> where he looks. **(2)** The herringbone was a flat `fill` at z=0 under the
+> 0.22 m `ground-paths` extrusion, so 92% of the weave was painted over by the
+> deck it decorates — the same shape of defect as §49's park pad over the
+> Capitol walks. Both grain layers are prisms standing ON the deck now.
+> HANDOFF §52; `docs/shots/d6-speedway-sunset-before-after.jpg`.
 
 *"looks like speedway got slimed out somewhere in between add it back"*. Speedway
 is the main pedestrian spine of campus. Find which pass removed it — the ground
 resolver in PR #78 is the prime suspect since it clips overlapping surfaces — and
 restore it.
 
-## D7. Sidewalks look like duct tape
+## D7. Sidewalks look like duct tape — **DONE**
+
+> **FIXED, PR #110.** They had **no texture at all** — `ground-texture` filters
+> `k:'area'`, so every lawn and plaza wore a grain and every walk was a flat fill
+> with a hard bright stroke round it. It was never the colour, it was the absence
+> of a surface. New scored-concrete tile (slab grid + joints + aggregate, pure
+> alpha), `kerbLight` 0.10 → 0.06 and a new `kerbOpacity`.
+> HANDOFF §52; `docs/shots/d7-sidewalks-before-after.jpg`.
 
 *"sidewalks in campus look like ducttape can we fix that? wont take much maybe a
 few shading or texture things"*. They are flat pale strips with a hard edge.
 Texture, a softer kerb, and joint lines would do it. He explicitly says this is a
 small job.
 
-## D8. The creek cuts straight through roads and buildings
+## D8. The creek cuts straight through roads and buildings — **DONE**
+
+> **FIXED, PR #110. It is 30 road crossings and 23 walk crossings** — 11 of the
+> roads carry an OSM `bridge` tag and 19 do not, so the tag cannot be the test.
+> **Zero buildings overlap the water**; DKR's footprint does not touch it. Cause
+> is PR #62's own rule never applied here: a `fill` does not depth-test against a
+> `fill-extrusion`, so `ground-channel` painted over `ground-road` while the
+> walks (extrusions) won and crossed on nothing. `RANK[('bank','deck')]` = 95
+> takes the ground off the channel, and `ground-deck` sits BEFORE the roads so
+> the carriageway paints over its own bridge. 47 decks, 14,055 m2.
+> HANDOFF §52; `docs/shots/d8-creek-crossing-before-after.jpg`.
 
 *"the creek near DKR completely slices through 21st and DKR, but sidewalks still
 go over them (added to the ducktape analogy) same thing happened with this creek
@@ -429,7 +457,15 @@ creek meets a road or a building, there is a **culvert or a bridge** — the roa
 continues over the water. Find every creek/road and creek/building intersection
 and deck them over.
 
-## D9. Concrete in front of the Tower is blown out at sunset
+## D9. Concrete in front of the Tower is blown out at sunset — **DONE**
+
+> **FIXED, PR #110, and it is the same four numbers as D6.** The pale-paving
+> band stayed within 4 luma of midday while the rest of the scene went to dusk,
+> so the forecourt was the brightest object in the frame. Median rendered luma
+> of the plaza paving, masked so trees and buildings cannot enter the sample:
+> **213.3 → 194.5** (day), **159.4 → 141.2** (sunset), **47.1 → 45.2** (night).
+> Checked at all three hours. HANDOFF §52;
+> `docs/shots/d9-tower-forecourt-sunset-before-after.jpg`.
 
 *"concrete area right in front of tower renders too bright on default sunset"*.
 The golden-hour paving value is too high. Taste knob, one line, but check it

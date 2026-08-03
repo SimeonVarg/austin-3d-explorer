@@ -1,5 +1,147 @@
 # Austin 3D Explorer — Full Handoff
 
+## 52. Aug 3 2026 — Speedway was drawn all along, the walks had no surface, and the creek had never heard of a bridge (acer lane)
+
+**Branch:** `acer/ground-speedway-creek`, PR #110, merged `e003b50`.
+QUEUE **D6**, **D7**, **D8**, **D9**. (52 because §50 and §51 are already cited
+by QUEUE.md for passes that were still in flight when this landed.)
+
+### D6 — "speedway got slimed out". IT WAS NEVER DELETED, and there were two causes
+
+Three separate hunts for a missing polygon came back empty, and each is worth
+recording because each looked like the answer:
+
+```
+git history of s:'brickpave'   6,132 m2, unchanged across 8 commits
+width profile over all 680 m   9.1 m throughout; no gap, no pinch
+the resolver's own clip report 87 m2 removed, 1.4%
+```
+
+The corridor was fine. **The GOLDEN-HOUR palette was not.** Everything else in
+the scene darkens at sunset; the pale-paving band stayed within 4 luma of
+midday, so the brick rose to meet the concrete it runs through:
+
+```
+                   brickpave vs concrete
+day     #e9cca4 vs #dfd9cb   sum|dRGB| 62   dLuma  -9.1
+golden  #eec69b vs #e3cba6   sum|dRGB| 27   dLuma  -0.9   <- gone
+now     #dda070 vs #cfb692   sum|dRGB| 70   dLuma -12.5
+```
+
+0.9 luma is the same brightness with a hint of hue. **tod 0.62 is the default,
+and the default is where he looks** — photographed at one identical pose the
+corridor is a confident ribbon at 0.30 and a smear at 0.62. Night had the same
+collapse (brick sat 4.2 luma ABOVE concrete), less obviously.
+
+**Second, independent cause: the herringbone was buried under its own deck.**
+`ground-speedway-brick` was a flat `fill` at z=0; `ground-paths` is a
+`fill-extrusion` at `pathRaise` 0.22 m drawn after it. A fill does not win a
+depth test against an extrusion above it, so 92% of the weave was painted over
+by the surface it decorates — only what `pathOpacity` 0.92 let through survived.
+Proved by hiding `ground-paths`: the tile was there all along, complete and
+crisp. **Same shape of defect as §49's park pad over the Capitol walks, one
+layer down and inside this file's own stack.** Both grain layers are prisms from
+`pathRaise` to `pathRaise + pathTexLift` (20 mm) now — the trick
+`CHANNEL.sheen_m` already uses over the water.
+
+### D7 — the walks had NO texture, and that is the whole of "ducttape"
+
+`ground-texture` filters `k:'area'`. Every lawn, plaza and car park wore a
+grain; every single walk was a flat fill with a hard bright stroke round it. It
+was never the colour, it was the absence of a surface. New scored-concrete tile
+(pure alpha: slab grid, per-slab jitter hashed on the WRAPPED position, joint +
+shoulder highlight, aggregate), `kerbLight` 0.10 → 0.06, new `kerbOpacity`.
+
+A square grid and not transverse bars, on purpose: `fill-pattern` is anchored in
+TILE space, not to the feature's axis, so parallel scoring would run across the
+walk on one street and along it on the next. A grid is the one scoring pattern
+that reads the same at every orientation.
+
+### D8 — 30 road crossings and 23 walk crossings, none of them decked
+
+**Counted before building anything:** 30 road centrelines cross the creek's own
+water polygons (11 carry an OSM `bridge` tag, 19 do not — the tag is not the
+test; a culvert is not tagged and is still a crossing), plus 23 walks. **Zero
+buildings overlap the water**, and DKR's footprint does not touch it, so
+"slices through DKR" is the reach beside it, not an intersection.
+
+The mechanism is PR #62's own rule, never applied to the creek: **a `fill` does
+not depth-test against a `fill-extrusion`.** `ground-road` is a flat fill at z=0
+and `ground-channel` is an extrusion drawn after it, so the trench painted
+straight over the carriageway — that IS the creek "slicing through" 21st. The
+walks, being extrusions at 0.22 m, won, and crossed the water on nothing.
+
+Two problems, so two mechanisms:
+- `RANK[('bank','deck')] = 95`, the top of the ladder, so the trench, both banks
+  and all three planting zones give the footprint back in the BAKE (QUEUE A4).
+- `ground-deck` is anchored `under` — BEFORE the roads and walks — so the
+  carriageway and the pavement paint over their own bridge and what shows is the
+  parapet and the soffit.
+
+47 decks, 14,055 m2. The deck is derived from **what is drawn on it** (the band
+`widen_roads` will really draw, plus the walk polygons, plus a 0.7 m parapet,
+morphologically closed at 3 m so there is no slot of open trench between a road
+and its sidewalk), not from a re-buffered centreline.
+
+### D9 — the forecourt was the brightest object in a dusk frame
+
+Same palette fault as D6 from the other side. Median rendered luma of the plaza
+paving in front of the Tower, masked so trees and buildings cannot enter it:
+
+```
+            tod 0.30   tod 0.62   tod 0.95
+before        213.3      159.4       47.1
+after         194.5      141.2       45.2
+```
+
+Checked at all three hours as the brief asked.
+
+### Whole-file effect
+
+```
+same-height pairs   1,354 / 390,562 m2  ->  22 / 20 m2
+data/ground.geojson 3,763 KB -> 3,770 KB  (+6 KB for 47 decks)
+```
+
+`data/ground.geojson` re-bakes byte-identical, so the pass is reproducible.
+
+### FIVE THINGS THAT DID NOT WORK
+
+1. **A magenta mask on `ground-paths` returns ZERO. Every time.** Twice, with
+   settling and re-reads until two agreed — and the layer demonstrably draws
+   (hiding it changes the frame completely). It nearly produced the headline
+   "Speedway is not rendered at all", which would have been false and would have
+   sent the whole pass into the wrong file. The path surfaces are sampled by HUE
+   instead (foliage is green-dominant, paving never is). **Masks are trusted all
+   over this suite; this one is worth someone's attention.**
+2. **The settle loop that made #1 worse.** `if (n === prev) break` with `prev`
+   starting at -1 exits on two consecutive zeros, so an unsettled read and a true
+   null are the same answer. §37 warns about exactly this and it happened anyway.
+   Take the MAX of N reads, never "the first two that agree".
+3. **Sizing the deck off the centreline.** Half-width + 3.5 m shoulder on a
+   9.5 m street is a 16.5 m slab with 7 m of nothing drawn on it, and it
+   photographed as a pale slab lying where the road should be. **Halving the
+   shoulder barely moved it** — the number was never the problem; a deck derived
+   from a centreline cannot know where the kerb is.
+4. **Putting the decks in `ground-channel`.** It is an extrusion drawn after the
+   roads, so the deck painted over the carriageway: the fix reproduced the exact
+   bug it existed to remove, and only the layer's POSITION fixed it.
+5. **Reading "slimed out" as deletion.** Three passes into the data (above)
+   before looking at the thing at the hour he actually looks at it. The brief
+   said "add it back"; the answer was that it had never gone.
+
+### Owed
+
+The corridor still has no mall AROUND it — the real Speedway is a brick spine
+inside a 30 m promenade with a double tree allée and seat walls, and we draw the
+9.1 m of brick and nothing else. That is `bake_props.py` / `shape_trees.py`
+work, not this lane's.
+
+**Pictures:** `docs/shots/d6-speedway-sunset-before-after.jpg`,
+`d7-sidewalks-before-after.jpg`, `d8-creek-crossing-before-after.jpg`,
+`d9-tower-forecourt-sunset-before-after.jpg`.
+
+
 ## 49. Aug 3 2026 — the Capitol's walkways were under a park pad, the dome was standing on an invented pyramid, and its merge had been failing in silence (acer lane)
 
 **Branch:** `acer/capitol-walkways-dome`. QUEUE **D1**, all three parts.
