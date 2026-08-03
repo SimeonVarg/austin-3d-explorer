@@ -58,7 +58,15 @@ memory of what the thing probably looks like.
 
 # PART A — GLITCHES. These come first and they are demo-killers.
 
-## A1. Windows flip to NIGHT MODE by quadrant, in broad daylight
+## A1. Windows flip to NIGHT MODE by quadrant, in broad daylight — **DONE**
+
+> **FIXED, PR #103, merged `715fa49`.** Cause: past 60 degrees of pitch MapLibre
+> picks a tile zoom PER TILE by distance, so one pitched frame samples all three
+> facade mip tiers at once — and `updateFacades` repainted only the tiers the
+> CAMERA's zoom named, leaving the far tier stuck at whatever hour it was last
+> dragged to. Read HANDOFF §46 before touching `js/facades.js` again: **every mip
+> tier must hold the same hour, always.** Pictures in `shots/a1-before/` against
+> `shots/a1-after/`.
 
 *"huge new window bug - wow this is horrible ... half the buildings past a
 certain point switch their windows to night mode (complete daylight) ... whatever
@@ -132,6 +140,14 @@ all three were the same defect.
 the daytime wall windows. i did up and down for like 20 seconds then it fixed
 itself for good."* Almost certainly the same root as A1. Fix A1, then re-test
 this and say whether it went with it.
+
+> **IT WENT WITH IT. DONE, PR #103.** Same root, same tier, opposite sign: A4 is
+> the far tier holding the DAY drawing while the near field is at night, A1 is
+> the far tier holding NIGHT in daylight. Which one you get depends only on the
+> hour the far tier was last painted at. Re-tested explicitly and measured — at
+> tod 0.95 all three tiers now read 63.5 mean luma where the far one read 153.6.
+> "I did up and down for like 20 seconds then it fixed itself" was the old zoom
+> drain finally firing; there is no drain to wait for now.
 
 ## A5. Intricate roofs flicker while moving
 
