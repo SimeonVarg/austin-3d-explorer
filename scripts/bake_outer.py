@@ -98,6 +98,21 @@ AREA_FLOOR = 115.0              # m^2 at an anchor's edge (a small house is ~150
 AREA_PER_KM = 170.0             # m^2 of extra threshold per km of distance
 AREA_HARD_MIN = 40.0            # nothing smaller than this, ever (sheds, carports)
 TOWER_H = 40.0                  # at/above: the exception that gets the atlas
+# ── the downtown streetwall ───────────────────────────────────────────
+# The second exception, and the reason for it is a photograph. PR #99 gave the
+# 114 towers podiums, setbacks and crowns; everything under 40 m stayed a flat
+# untextured prism, because the ring's whole design is "one flat colour, it is
+# backdrop". Downtown is not backdrop — it is the second subject of the app,
+# and 1,534 of these sit inside the downtown box with 604 in the 8-18 m band
+# that forms the actual street frontage. Blank cream boxes between detailed
+# towers is exactly the "smaller ones are just skeletons" report.
+#
+# So a downtown building at or above MIDRISE_H is tagged `t=2`: it earns a
+# window pattern (js/outer.js:outer-midrise), a parapet cap and roof plant.
+# The gate is deliberately HEIGHT AND AREA, not height alone — a tall narrow
+# stair core is not a streetwall.
+MIDRISE_H = 8.0
+MIDRISE_AREA = 150.0
 # DISTANCE IS MEASURED FROM THE NEAREST OF **TWO** ANCHORS, not from the core
 # alone. The first version ramped the threshold outward from the core rectangle
 # only, which put the SOUTH BANK OF LADY BIRD LAKE 2.6 km "away" and culled
@@ -271,8 +286,40 @@ DT = {
     # HANDOFF §34's whole A2 finding.
     "retail_h_m": 5.2,
     "retail_out_m": 0.40,
-    "retail_min_building_h_m": 18.0,   # below this it is a shop, not a plinth
-    "retail_min_area_m2": 240.0,
+    # WAS 18.0, which is 6 storeys — so the entire 8-18 m streetwall, 604
+    # buildings and the majority of what you actually see at street level
+    # downtown, had no ground floor at all. A two-storey building on Congress
+    # is ALL storefront. The band is shorter on a short building so a 9 m
+    # box does not become 58% plinth (see retail_max_frac).
+    "retail_min_building_h_m": 8.0,
+    "retail_min_area_m2": 150.0,
+    "retail_max_frac": 0.34,           # never more than this share of the wall
+    "retail_min_h_m": 3.4,             # one commercial storey
+
+    # ── the mid-rise roof ─────────────────────────────────────────────
+    # A flat cut is what makes a mid-rise read as a massing study. Two cheap
+    # pieces fix it and both are visible from the campus-facing viewpoints the
+    # tour uses: a PARAPET (the wall continues ~1 m past the roof deck, which
+    # every flat-roofed commercial building has and which puts a shadow line on
+    # the top edge) and ROOF PLANT (the mechanical box, lift overrun and stair
+    # bulkhead that clutter every real flat roof).
+    #
+    # Plant is placed on the roof CENTROID rather than inset from the outline,
+    # because offset_ring on a small L-shaped plan collapses; the centroid box
+    # is always well formed. It is one box, not a cluster — at downtown viewing
+    # distance a cluster is the same silhouette for four times the features.
+    #
+    # The PARAPET is not here because it costs zero features: `t=2` carries
+    # rd/rg/rn like a tower does, and js/outer.js caps it with the same shared
+    # window.CAP_GEOM rule the towers use. A second extrusion on an existing
+    # feature beats 725 new thin-band polygons, and it cannot drift from the
+    # core's parapet because it is literally the core's rule.
+    "plant_min_h_m": 12.0,
+    "plant_min_area_m2": 420.0,
+    "plant_h_m": 2.8,
+    "plant_plan_frac": 0.34,        # of plan width, as a square on the centroid
+    "plant_max_side_m": 16.0,
+    "plant_min_side_m": 4.5,
 
     # ── parks, plazas and water ───────────────────────────────────────
     # Read from OSM (data/outer/downtown_green_raw.json). The outer ring draws
@@ -693,7 +740,7 @@ def downtown_detail(out, rep):
 
     parts = []
     n = {"podium": 0, "podium_measured": 0, "setback_skipped_slim": 0,
-         "crown": 0, "mast": 0, "retail": 0, "curated": 0,
+         "crown": 0, "mast": 0, "retail": 0, "plant": 0, "curated": 0,
          "jenga": 0, "taper": 0, "gable": 0, "curated_unmatched": []}
     seen_names = set()
 
@@ -893,10 +940,41 @@ def downtown_detail(out, rep):
         band = offset_ring(f["_m"], DT["retail_out_m"])
         if band is None:
             continue
-        add.append(piece(band, 0.0, DT["retail_h_m"],
+        # A fixed 5.2 m plinth is a lobby on a 60 m tower and two thirds of the
+        # wall on a 9 m shopfront. Cap it by share of the building, floor it at
+        # one commercial storey, so the same rule works across the 8-300 m range
+        # this pass now covers.
+        rh = min(DT["retail_h_m"], f["_h"] * DT["retail_max_frac"])
+        rh = max(DT["retail_min_h_m"], rh)
+        if rh >= f["_h"] - 0.5:          # nothing left of the wall above it
+            continue
+        add.append(piece(band, 0.0, rh,
                          lerp_hex(adjust_light(f["_base"], -0.18), STOREFRONT, 0.45),
                          f["_fade"], kind="r"))
         n["retail"] += 1
+
+    # ── 7. roof plant on the mid-rise ─────────────────────────────────
+    # The towers got a mechanical penthouse in PR #99 and it is most of why
+    # they stopped reading as a bar chart. The mid-rise got nothing, so 725
+    # downtown buildings still end in a flat cut. One box on the roof centroid,
+    # squared to the plan, is the whole fix.
+    for f in out:
+        if not f.get("_midrise"):
+            continue
+        if f["_h"] < DT["plant_min_h_m"] or f["_area"] < DT["plant_min_area_m2"]:
+            continue
+        cx, cy = ring_centroid(f["_m"])
+        side = plan_width(f["_m"], f["_area"]) * DT["plant_plan_frac"]
+        side = max(DT["plant_min_side_m"], min(DT["plant_max_side_m"], side))
+        # Nudged off centre by a stable roll so a street of them does not read
+        # as a row of identical studs — the same trick the wall mottle uses.
+        key = "%.5f,%.5f" % (cx, cy)
+        cx += (stable01(key + ":px") - 0.5) * side * 0.5
+        cy += (stable01(key + ":py") - 0.5) * side * 0.5
+        box = square_ring(cx, cy, side)
+        add.append(piece(box, f["_h"], f["_h"] + DT["plant_h_m"],
+                         adjust_light(f["_base"], -0.22), f["_fade"], kind="c"))
+        n["plant"] = n.get("plant", 0) + 1
 
     for a in add:
         a["properties"]["d"] = 0
@@ -1021,6 +1099,7 @@ def main():
     kept, out = 0, []
     n_dedup = n_small = 0
     n_tower = 0
+    n_midrise = 0
     n_over_h = {"overture": 0, "osm_height": 0, "osm_levels": 0,
                 "overture_floors": 0, "class_default": 0,
                 "curated": 0, "podium_rule": 0}
@@ -1219,7 +1298,24 @@ def main():
         wg = lerp_hex(lerp_hex(base, GOLDEN_TINT, 0.16), HAZE_GOLD, fade)
         wn = lerp_hex(night_wall(base), HAZE_NIGHT, fade * 0.75)
 
+        is_dt = in_rect(lon, lat, DOWNTOWN)
+        # The downtown streetwall: not a tower, but not backdrop either. Same
+        # shape of exception as `t=1` and for the same reason — this is the
+        # half of downtown you look AT rather than past.
+        is_midrise = (DT["on"] and is_dt and not is_tower
+                      and h >= MIDRISE_H and best_area >= MIDRISE_AREA)
+
         props = {"h": round(h, 1), "wd": wd, "wg": wg, "wn": wn}
+        if is_midrise:
+            props["t"] = 2
+            n_midrise += 1
+            # Same two reasons the towers get these. The fade is NOT reduced
+            # the way a tower's is: a tower is the silhouette on the horizon
+            # and has to keep its material, a mid-rise at the edge of the box
+            # should still wash out with everything around it.
+            roof = adjust_light(base, -0.16)
+            rd, rg, rn = make_roof_colors(roof)
+            props["rd"], props["rg"], props["rn"] = rd, rg, rn
         if is_tower:
             props["t"] = 1
             n_tower += 1
@@ -1245,7 +1341,8 @@ def main():
                     "_m": ring_m, "_base": base, "_name": c.get("name"),
                     "_h": h, "_ovh": c.get("ovh_raw"), "_src": src,
                     "_fade": fade, "_area": best_area, "_tower": is_tower,
-                    "_dt": in_rect(lon, lat, DOWNTOWN),
+                    "_midrise": is_midrise,
+                    "_dt": is_dt,
                     # not emitted; used below to rank importance
                     # Towers sort first, unconditionally. A plain formula put
                     # them LAST: every other rank is negative, so the tower's
@@ -1315,7 +1412,7 @@ def main():
         "date": DATE,
         "outer_bbox": OUTER, "core_bbox": CORE, "downtown_bbox": DOWNTOWN,
         "raw_candidates": len(feats),
-        "kept": kept, "towers": n_tower,
+        "kept": kept, "towers": n_tower, "midrise": n_midrise,
         "dropped_too_small": n_small, "dropped_duplicate": n_dedup,
         "height_source": n_over_h,
         "podium_rule_examples": podium_examples,
@@ -1356,6 +1453,7 @@ def main():
             "built_against_snapshot": DATE,
             "buildings": kept,
             "towers": n_tower,
+            "midrise": n_midrise,
         }
         with open(man_path, "w", encoding="utf-8") as f:
             json.dump(man, f, indent=2)

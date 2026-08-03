@@ -1,65 +1,103 @@
 {
-  "note": "Facade buckets for the downtown towers, computed by scripts/bake_outer_facades.py from the towers' own baked wall colours. Each tower carries its bucket ORDINAL as `fb`; the browser maps that ordinal to a palette index it allocates at boot and registers one atlas tile per bucket. Do not stamp `wp` directly \u2014 the renderer reads it, and an unregistered pattern id paints the wall transparent. Regenerate whenever outer_ring.geojson is re-baked.",
+  "note": "Facade buckets for downtown, computed by scripts/bake_outer_facades.py from the buildings' own baked wall colours. `buckets` is the TOWERS (t=1, glass); `midrise` is the streetwall (t=2, masonry). Each building carries its bucket ORDINAL as `fb`, scoped by its `t`; the browser maps that ordinal to a palette index it allocates at boot and registers one atlas tile per bucket. Do not stamp `wp` directly \u2014 the renderer reads it, and an unregistered pattern id paints the wall transparent. Regenerate whenever outer_ring.geojson is re-baked.",
   "buckets": [
     {
       "fb": 0,
       "wd": "#6a7784",
-      "wg": "#717e79",
+      "wg": "#717e84",
       "wn": "#292f39"
     },
     {
       "fb": 1,
       "wd": "#737f8c",
-      "wg": "#7a8780",
+      "wg": "#7a878c",
       "wn": "#2c323c"
     },
     {
       "fb": 2,
       "wd": "#889aab",
-      "wg": "#90a49d",
+      "wg": "#90a4ab",
       "wn": "#333b47"
     },
     {
       "fb": 3,
       "wd": "#a8927c",
-      "wg": "#b29b72",
+      "wg": "#b29b7c",
       "wn": "#3e3837"
     },
     {
       "fb": 4,
       "wd": "#8a9dad",
-      "wg": "#92a7a0",
+      "wg": "#92a7ad",
       "wn": "#343c48"
     },
     {
       "fb": 5,
       "wd": "#8ca0b1",
-      "wg": "#95aaa3",
+      "wg": "#95aab1",
       "wn": "#353d49"
     },
     {
       "fb": 6,
       "wd": "#92a5b6",
-      "wg": "#9aafa7",
+      "wg": "#9aafb6",
       "wn": "#373f4a"
     },
     {
       "fb": 7,
       "wd": "#b3afa7",
-      "wg": "#bdb99a",
+      "wg": "#bdb9a7",
       "wn": "#424245"
     },
     {
       "fb": 8,
       "wd": "#c1c4c4",
-      "wg": "#ccd0b5",
+      "wg": "#ccd0c4",
       "wn": "#47494f"
     },
     {
       "fb": 9,
       "wd": "#cacece",
-      "wg": "#d7dbbe",
+      "wg": "#d7dbce",
       "wn": "#4a4d53"
+    }
+  ],
+  "midrise": [
+    {
+      "fb": 0,
+      "wd": "#a7765e",
+      "wg": "#b17d56",
+      "wn": "#3e2f2c"
+    },
+    {
+      "fb": 1,
+      "wd": "#c8b191",
+      "wg": "#d4bc86",
+      "wn": "#49433e"
+    },
+    {
+      "fb": 2,
+      "wd": "#98a4ad",
+      "wg": "#a1ae9f",
+      "wn": "#393e47"
+    },
+    {
+      "fb": 3,
+      "wd": "#b9b5a7",
+      "wg": "#c4bf9a",
+      "wn": "#444446"
+    },
+    {
+      "fb": 4,
+      "wd": "#c8c2b1",
+      "wg": "#d4cda3",
+      "wn": "#494849"
+    },
+    {
+      "fb": 5,
+      "wd": "#d5cdbb",
+      "wg": "#e2daac",
+      "wn": "#4e4c4c"
     }
   ]
 }
