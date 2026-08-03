@@ -1,5 +1,195 @@
 # Austin 3D Explorer — Full Handoff
 
+## 42. Aug 3 2026 — the campus is 51.8% bare, and the lawn was running under the buildings (acer lane)
+
+**Branch:** `acer/ground-precincts`, PR #93. The ground brief's four items. Two
+of them turned out to belong to other lanes and one was already done, so the
+useful half of this entry is the measurements, not the diff.
+
+### The one that was mine: PRECINCTS
+
+*"BARE TAN GROUND EVERYWHERE OUTSIDE THE FEW BLOCKS ALREADY FILLED."*
+
+**Measured before writing anything.** Rasterise the UT campus core at 6 m and
+count every cell not covered by a ground polygon, a **buffered** carriageway or
+a building footprint:
+
+```
+BARE  22,806 of 44,064 cells = 51.8% of the campus core = 821,016 m2
+biggest connected bare blobs (m2)
+  22,932  15,048  14,220  12,564  12,276  10,944  10,188  9,936  9,756
+```
+
+**The first cut of that raster read 74.1%, and it was wrong for a one-line
+reason: `data/roads.geojson` holds LINES, not polygons.** The loader returned
+`roads 0` and the whole street network went silently into the "bare" set. A
+loader that returns zero features and does not say so is the same failure as a
+counter that counts intent.
+
+`PRECINCTS` had **one** entry. It has nine, each seeded on the mapped lawn
+NEAREST one of those blobs with `grow` set to reach across it:
+
+```
+Ellsworth Kelly / Austin   seed  1,012 m2 ->  7 parts   5,003 m2
+Blanton block                   25,472    -> 22        13,964
+East Mall                          131    ->  7         3,074
+Drama and art precinct           1,681    ->  8         8,011
+Power plant yard                   603    ->  9         5,251
+Speedway north                   1,001    ->  2         5,174
+Whitis                           5,632    ->  4         4,943
+LBJ east campus                  2,760    ->  6         6,709
+San Jacinto south                2,000    ->  4         5,778
+                                            71        55,974
+```
+
+**The blob is the evidence the block is bare; the seed lawn is the evidence it
+is landscaped. Neither on its own would justify painting a block green.**
+
+### The docstring's claim about buildings was HALF FALSE, and had been since #69
+
+> *"grown outward ... until it meets the things that really bound it: the walks,
+> and the buildings. Both are already in the data"*
+
+The walks were. **The feature list at that point in the bake holds ground only**,
+so the blocker list could never have contained a footprint, and the grown lawn
+ran straight under the buildings it was written to stop at.
+
+```
+precinct lawn under a building   16.35%  ->  0.00%    11 holes cut
+data/ground.geojson  2,825 -> 2,896 features, 1,519.1 -> 1,570.9 KB
+by k: area 799 -> 870.  by u: lawn 145 -> 216.  EVERYTHING ELSE IDENTICAL.
+```
+
+Footprints come from `data/snapshots/<latest>/buildings.detailed.geojson`, the
+file `shape_trees.py` already uses for the same question, with a 0.3 m standoff
+for the mow strip. **Note `<latest>` moved to `2026-08-03` in the merge**, so a
+re-bake will not reproduce this file byte for byte; pin `PRECINCT_SNAPSHOT` if
+that matters.
+
+### FOUR THINGS THAT DID NOT WORK, and the first is the reusable one
+
+1. **THE RE-MEASURE THAT CHECKED THE FIX HAD THE SAME BUG AS THE FIX.** It built
+   its polygon from `coordinates[0]` — the exterior ring only — so every
+   building-shaped **HOLE** the subtraction had just cut was counted back in as
+   lawn. It reported **2.0% under a building on a file that measures 0.00%**.
+   Two full bakes and one complete rewrite of the subtraction were spent chasing
+   a defect that did not exist. §35 already says an instrument that cannot see
+   its own defect is worse than none; this is that, in the instrument written
+   *for* the fix, in the same pass.
+2. **Subtracting the buildings inside the one big cutter, then not.** The
+   rewrite was built on the theory that a ~12,000-polygon union was
+   under-removing. It was not — see (1). Kept because it is cheaper and clearer,
+   but it fixed nothing, and the offline test that would have said so in thirty
+   seconds (subtracting the buildings from the emitted lawn removes 1,273 m2,
+   i.e. the operation works fine) was run *after* the rewrite instead of before.
+3. **Seeding the table from polygon CENTROIDS.** The centroid of a concave lawn
+   — an L round a building, a ring round a court — is not in the lawn. One entry
+   measured **106 m** from its own seed at bake time and was dropped with a
+   warning. Every point is a `representative_point()` now.
+4. **West Campus cannot be done this way at all, and should not be faked.** The
+   mechanism needs a mapped lawn and West Campus has none: the nearest mapped
+   green to `-97.7470, 30.2890` is **409 m away and is a 1 m2 sliver**. A bigger
+   `grow` is drawing a lawn freehand.
+
+**Honest scale: 55,974 m2 against 821,016 m2 measured bare is 6.8%.** The tan
+blocks in `shots/gnd/after/lbj.png` are still tan.
+
+### The other three items, all answered, none of them ours to fix
+
+**1. The sharp dark lines are `props-line` fences — §36 was right, confirmed
+independently.** `queryRenderedFeatures` at the exact pixel of the bar across
+Clark Field, tod 0.30, `dkr-field` pose:
+
+```
+(1287,750)  props-line | austin-props | {"k":"line","u":"fence","h":1.9,"c":"dark"}  x4
+(1210,600)  props-line | austin-props | {"k":"line","u":"fence","h":1.9,"c":"dark"}  x2
+column through the bar:
+  y=744..747  (145,163,92)  the infield
+  y=748       ( 86, 68,53)  one transition pixel
+  y=749..752  ( 62, 49,37)  THE BAR — four pixels, hard edge
+  y=753..756  (138,154,86)  the infield again
+```
+
+**Nobody needs to find this again.** The cause is that a chain-link fence is
+modelled as a 1.90 m opaque wall — `bake_props.py` gives `fence` a 0.10 m width
+and a 1.90 m height in the shared `dark` colour, neither of which this lane may
+write. The 0.10 m width is invisible from altitude; the 3-4 px is the **vertical
+face** at 45-60 degrees of pitch.
+
+**2. The teal pools are `roofscape-major`, `k:'pool'` — NOT `js/westcampus.js`,
+which is what I assumed for an hour off a grep.** `js/westcampus.js` really does
+declare a `pool` material and it really is about the right colour, and it is not
+what is on screen. The query at three pool pixels:
+
+```
+roofscape-major | austin-roofscape | {"k":"pool","rd":"#4f8ea8","rg":"#66a3ab","rn":"#0f121d"}
+day #4f8ea8 = (79,142,168) lands as (98,143,131) — the teal, measured,
+12 clusters / 889 px in one west-campus frame
+```
+
+The colour is **per feature in `data/roofscape.geojson`**, so the fix is in
+`bake_roofscape.py`, not in a paint expression. Only 5 ponds and 1 fountain
+exist in `ground.geojson` and all are on campus — there is no pool in it.
+
+**AND THE NIGHT HALF OF §35's CLAIM DOES NOT REPRODUCE. Retracted.** At tod
+0.95, same pose:
+
+```
+night frame median luma below the horizon   18.0
+pool (837,875)  median 14.0        pool (859,504)  median 16.1
+```
+
+**The pools are DARKER than the city, not glowing.** The `rn` value is doing its
+job. "Pools glow blue at night" has been on the defect list since §35 and is not
+a defect.
+
+**3. TURTLE_N was already 6, fixed in `aa8597a`, and the brief's "12" is
+stale.** Verified from the emitted file rather than from the constant:
+`data/depth.geojson` holds **24 `m:'shell'` parts = 6 turtles**, radii spanning
+0.16-0.45 m under `TURTLE_BIAS = 1.7`. Nothing to do.
+
+### The magenta mask FAILED FOUR TIMES here, and the reasons are worth knowing
+
+The brief says use the mask for "which layer draws this", and it never returned
+an answer for the pools. Four runs, four different causes:
+
+1. **Another session's `reap.mjs` killed the browser**, twice — §33's note, and
+   with seven agents on the box it is now the *likely* outcome of any run over a
+   few minutes, not a hazard.
+2. **The time of day silently did not take.** The frame came back at sunset and
+   the teal predicate found **4 pixels instead of 889**. Setting `tod-slider`
+   once before the camera move is not enough in `_harness.html`. The probe sets
+   it three times *after* the move and now ASSERTS `window.__todCurrentP`.
+3. **The predicate selected the SKY.** "blue beats red by 30 and green beats red
+   by 20" is true of a blue sky, so it matched **65,894** pixels instead of 294
+   and every layer owned 0% of a set that was 98% sky. A predicate that matches
+   the thing you are not looking for is a hand-picked box with extra steps.
+4. **The watchdog at 900 s with only two layers masked.** The settle step waits
+   on `map.once('idle')`, and `pose.mjs`'s own comment says the sky canvas
+   repaints every frame so `idle` is a coin flip — every wait pays the full
+   fallback.
+
+**`queryRenderedFeatures` answered both questions in about 90 seconds each.**
+§38's warning that it answers a fill-extrusion by FOOTPRINT is real and it is
+not a reason to reach for the mask first: reach for the query first, and use the
+mask when the query's answer is suspicious. Both probes are on disk as
+`scripts/verify/_owns.mjs` and `scripts/verify/_atpixel.mjs`, uncommitted
+because this lane may not write that directory.
+
+### Housekeeping
+
+Worked from `git worktree add C:/Users/simip/Projects/austin-3d-gnd` per §33 —
+with seven concurrent agents this is not advice. `scripts/verify/node_modules`
+must be junctioned in (`mklink /J`); it is gitignored, so a fresh worktree has
+none, and `pose.mjs` then fails with `ERR_MODULE_NOT_FOUND` and nothing else.
+**Also: a background log written to this session's own scratchpad came back
+containing another probe's streetlight output** — do not assume a temp path is
+private on this box.
+
+Pictures: `shots/gnd/before/` against `shots/gnd/after/`, same cameras, tod
+0.30. `drama.png` is the clearest — green panels round the Art Building, cut by
+the real walks that bound them. `shots/gnd/night/` is the tod 0.95 check.
+
 ## 41. Aug 3 2026 — why the canopy stops at the campus edge, measured (mac lane)
 
 **Branch:** `mac/canopy-coverage` — MAC_QUEUE T2. **All three candidates in the
