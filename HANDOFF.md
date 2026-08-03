@@ -1,5 +1,69 @@
 # Austin 3D Explorer — Full Handoff
 
+## 41. Aug 3 2026 — why the canopy stops at the campus edge, measured (mac lane)
+
+**Branch:** `mac/canopy-coverage` — MAC_QUEUE T2. **All three candidates in the
+queue are wrong as stated, and the real answer changes what the fix costs.**
+
+The queue offered: (1) the fetch bbox is tight around campus, (2) the city
+inventory does not cover those blocks, (3) something downstream filters them
+out. Measured against the cached inventory:
+
+```
+cached city rows        20,723
+  in CORE box            1,322   ->   230 trees/km2
+  OUTSIDE core box      18,556   ->   224 trees/km2
+```
+
+**The survey covers the wide box at the same density as campus.** Not the box,
+not the coverage.
+
+What makes campus lush is a third source: `data/canopy_detected.json` holds
+**17,483 imagery-detected crowns inside one 5.85 km² block** (lon
+-97.7523..-97.7257, lat 30.2757..30.2963) at **2,988 crowns/km² — thirteen
+times the survey.** *The edge of the green is the edge of the aerial-detection
+grid.* Everywhere else has only the public street-and-park inventory, which
+never surveyed a private yard tree in its life.
+
+### What was actually available to take, and it is small
+
+`OUTER_MIN_DBH_IN = 5.0` was discarding **4,359 of the 18,556** surveyed trees
+outside the core — 23% of them. Lowered to 3.0 (not the core's 2.0; true
+saplings model to a 3 m crown that is a couple of pixels from any pose the tour
+flies). That is the only honest lift available without inventing anything:
+
+| | before | after |
+|---|---|---|
+| city trees used | 12,063 | **17,117** |
+| `trees.geojson` | 63,128 / 25.93 MB | 64,003 / **26.29 MB** |
+| `trees.pmtiles` | 5.48 MB | **5.59 MB** (+111 KB) |
+
+Only +875 features for +5,054 trees, because most of the newly-admitted small
+trees dedupe against imagery crowns already standing within 4 m, and outer
+crowns are tier-capped at 2.
+
+**And it does not fix the complaint.** `shots/canopy/after-wide.png` is the
+honest picture: 5,054 more trees spread over 63 km² is +80/km² against a campus
+at 3,200/km², and from altitude the city is still bare tan with one green
+island. Reported rather than dressed up.
+
+### What the real fix costs, so the decision can be made on numbers
+
+Two routes, and both are Simeon's call, not mine:
+
+- **Run the canopy detector over more imagery.** It is the only route that adds
+  REAL trees. Cost is imagery tiles and detector time over ~63 km² against the
+  5.85 km² already done.
+- **Generate street trees along the road network** — sanctioned by the queue for
+  this case provided it is labelled GENERATIVE. **Measured: 2,423 km of road
+  outside the core box.** Both sides at 35 m spacing is **138,472 trees**, more
+  than double everything in the app today; at 25 m it is 193,861. That is not a
+  tuning decision, it is a different app, and it is why I did not quietly pick a
+  number.
+
+A bounded middle — filling only a ring of a few km² around campus, or only the
+major roads — is affordable and is the thing I would try next.
+
 ## 40. Aug 3 2026 — crowns stopped being stacks of discs, for zero bytes (mac lane)
 
 **Branch:** `mac/tree-shading` — MAC_QUEUE T1. **No data changed and the payload

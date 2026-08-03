@@ -78,8 +78,22 @@ M_LAT = 111320.0
 #                     that read as a street, drop the rest.
 # shape_trees.py reads CORE_BBOX from this file and caps the tier count out
 # there for the same reason (OUTER_MAX_TIERS).
+#
+# 5.0 -> 3.0 on 2026-08-03, and the reason is a measurement, not a preference.
+# The complaint was that the canopy stops dead at the campus edge. It is not the
+# box and it is not the survey: the city inventory covers the wide box at 230
+# trees/km2 inside CORE_BBOX and 224 outside — the SAME density. What makes
+# campus lush is 17,483 imagery-detected crowns sitting on top of it in one
+# 5.85 km2 block at 2,988/km2, THIRTEEN TIMES the survey. The edge of the green
+# is the edge of the aerial-detection grid.
+#
+# So the only real trees available out there are the surveyed ones, and this
+# threshold was discarding 4,359 of the 18,556 outside the core — 23% of them.
+# Recovering those is the one honest lift available without inventing anything.
+# 3.0 rather than the core's 2.0 keeps the true saplings out; they model to a
+# ~3 m crown that is a couple of pixels from any pose the tour flies.
 OUTER_TRUNKS = False
-OUTER_MIN_DBH_IN = 5.0
+OUTER_MIN_DBH_IN = 3.0
 
 # ── Allometry. GENERATIVE, from the FACTUAL measured diameter. ─────────
 # Trunk diameter is recorded in inches (DBH). Crown spread and height are
