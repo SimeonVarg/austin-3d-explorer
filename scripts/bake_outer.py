@@ -54,7 +54,7 @@ import hashlib
 import os
 import sys
 
-from shapely.geometry import shape
+from shapely.geometry import shape, Polygon
 from shapely.strtree import STRtree
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,6 +65,7 @@ CORE_SNAP = os.path.join(ROOT, "data", "snapshots", DATE, "buildings.detailed.ge
 CAPITOL = os.path.join(ROOT, "data", "capitol.geojson")
 OVERRIDES = os.path.join(ROOT, "scripts", "outer_heights.json")
 OSM_TAGS = os.path.join(ROOT, "data", "osm_cache", "outer_tags.json")
+GREEN_RAW = os.path.join(ROOT, "data", "outer", "downtown_green_raw.json")
 OUT = os.path.join(ROOT, "data", "outer_ring.geojson")
 REPORT = os.path.join(ROOT, "data", "outer", "outer_report.json")
 
@@ -182,6 +183,171 @@ TOWER_MIX = [("glass", 0.42), ("tower_pale", 0.24),
              ("glass_warm", 0.18), ("glass_dark", 0.16)]
 
 GOLDEN_TINT = "#ffb26a"
+# A mast is painted steel, not the building's own material — it is the one part
+# of a tower that is a different substance from the rest of it, and giving it
+# the wall colour makes it read as an extension of the shaft rather than a mast.
+MAST_COL = "#5a6068"
+# A ground floor is glass and shadow, not stucco. The band is mixed toward this
+# rather than set to it, so a warm limestone tower still keeps a warm plinth.
+STOREFRONT = "#586270"
+
+# ══ DOWNTOWN DETAIL ════════════════════════════════════════════════════
+# A skyline reads by its TOPS and by the line where a building meets the
+# street; the middle of a shaft is the part nobody looks at. Until this block
+# existed every one of the 114 downtown towers was one prism from the pavement
+# to a flat cut, so downtown was forty boxes of slightly different heights.
+#
+# Everything here is a taste dial (CLAUDE.md rule 11) and every one of them has
+# a measured count printed in data/outer/outer_report.json under `downtown`.
+# `?dtdetail=0` is not a thing — this is DATA, so the switch is DT["on"] and a
+# re-bake.
+DT = {
+    "on": True,
+
+    # ── the podium ────────────────────────────────────────────────────
+    # The footprint Overture gives a downtown tower is its GROUND plan, and
+    # downtown Austin's ground plan is a parking-and-retail podium that the
+    # shaft stands back from. So the emitted feature stops being one prism and
+    # becomes two: the podium keeps the original footprint from z=0, and the
+    # SHAFT is inset and starts on top of it.
+    #
+    # THE HEIGHT IS MEASURED WHERE THE DATA MEASURED IT. PODIUM_RULE above
+    # already found six towers whose Overture LiDAR height is far too short for
+    # their floor count — Sixth and Guadalupe at 18.7 m over 63 floors,
+    # Northshore 19.9 over 38, Fairmont 20.6 over 37, One American Center 24.1
+    # over 32. That short height is not noise: it is the roof of the podium,
+    # returned because the podium is what the LiDAR sweep saw. Those towers get
+    # their real, surveyed podium height for free and the rest are derived.
+    "podium_floor_m": 4.6,          # a garage/retail floor is deeper than an office one
+    # floors of podium by tower height — taller tower, deeper base
+    "podium_floors": ((70.0, 2), (120.0, 3), (175.0, 4), (1e9, 5)),
+    "podium_min_m": 8.0,
+    "podium_max_frac": 0.26,        # never more than this share of the tower
+    # A measured podium (from the LiDAR short-height cases) is trusted between
+    # these bounds and derived outside them — 60 m of "podium" is a bad reading,
+    # not a base.
+    "podium_measured_min_m": 8.0,
+    "podium_measured_max_m": 42.0,
+    "podium_measured_max_frac": 0.55,   # a reading this far below the roof is a base
+
+    # ── the setback ───────────────────────────────────────────────────
+    # How far the shaft stands back from the podium's edge, as a share of the
+    # plan's own width (2 * area / perimeter * 2, i.e. twice the inradius). A
+    # fraction, not a constant, because a 20 m lot and a 70 m block cannot take
+    # the same ledge.
+    "setback_frac": 0.15,
+    "setback_min_m": 1.5,
+    "setback_max_m": 6.5,
+    # Below this the plan is already a slim tower and an inset would whittle it
+    # into a stick. Measured: 260 m2 is about a 16 x 16 m floorplate.
+    "shaft_min_area_m2": 260.0,
+
+    # ── the crown ─────────────────────────────────────────────────────
+    # Every tower gets a mechanical penthouse: a smaller box on the roof. This
+    # is the single cheapest thing that stops a skyline reading as a bar chart,
+    # because it puts a second silhouette line on every top.
+    "crown_frac": 0.045,            # of tower height
+    "crown_min_m": 3.5,
+    "crown_max_m": 12.0,
+    "crown_inset_m": 2.8,
+    "crown_min_area_m2": 90.0,
+    # …and above this, a mast. Austin's tall towers all carry one and it is what
+    # makes the Waterline / Sixth and Guadalupe / Independent group read as tall
+    # rather than merely big.
+    "mast_min_h_m": 115.0,
+    "mast_frac": 0.085,             # of tower height
+    "mast_plan_frac": 0.20,         # of the crown's width
+    "mast_min_m": 6.0,
+    # A tower never gives more than this share of its shaft to crown + mast.
+    # Without it a short mid-rise that just clears mast_min_h_m ends up as
+    # mostly hat.
+    "top_max_frac": 0.22,
+
+    # ── ground-floor retail ───────────────────────────────────────────
+    # js/drag.js's shape, applied by rule: a SEPARATE banded feature with its
+    # own base and its own height, never a pattern that tries to place a band
+    # "at the top" of a wall. Outset slightly so its face is not coplanar with
+    # the wall above it — two coplanar faces have no defined winner and that is
+    # HANDOFF §34's whole A2 finding.
+    "retail_h_m": 5.2,
+    "retail_out_m": 0.40,
+    "retail_min_building_h_m": 18.0,   # below this it is a shop, not a plinth
+    "retail_min_area_m2": 240.0,
+
+    # ── parks, plazas and water ───────────────────────────────────────
+    # Read from OSM (data/outer/downtown_green_raw.json). The outer ring draws
+    # NO ground of its own — the basemap's pale wash is all there is out there,
+    # which is HANDOFF §35 item 4 ("a tan carpet") and item 8 ("the canopy stops
+    # at the campus edge"). A 0.45 m green pad is one polygon, no texture and no
+    # trees, and it puts Republic Square, Waterloo Park, Brush Square, Palm Park
+    # and Auditorium Shores on the map.
+    "green_h_m": 0.45,
+    "green_min_area_m2": 350.0,
+    # Outside the two anchors a small park is below a pixel; the floor grows
+    # with distance exactly like the building cull's does.
+    "green_area_per_km_m2": 900.0,
+    "green_simplify_m": 2.0,
+    # The core box draws its own ground (js/ground.js) — anything inside it,
+    # plus this margin, is somebody else's surface.
+    "green_core_margin_m": 40.0,
+}
+
+# Ground colours are COPIED from js/ground.js's SURF table rather than chosen,
+# so a park in the ring is the same green as a lawn on campus. If they are
+# authored twice they drift, and a seam between two greens along the core box
+# edge is worse than no park at all.
+GREEN_TONES = {
+    "lawn":  ("#8fa869", "#8a9457", "#111a14"),   # SURF grass
+    "wood":  ("#5d7a48", "#5a6a3c", "#0c130f"),   # SURF wood
+    "plaza": ("#e6ddc9", "#ecd6ac", "#1a1d26"),   # SURF paving
+}
+# OSM tag -> tone. `pitch` and `playground` are lawn: at this distance a ball
+# field is a green rectangle and giving it its own tone buys nothing.
+GREEN_USE = {
+    "park": "lawn", "garden": "lawn", "pitch": "lawn", "playground": "lawn",
+    "dog_park": "lawn", "grass": "lawn", "recreation_ground": "lawn",
+    "cemetery": "wood", "square": "plaza", "pedestrian": "plaza",
+}
+
+# ── curated crowns, and the confidence is written next to each one ────
+# HANDOFF §33's lesson: a landmark that is the wrong SHAPE cannot be fixed by
+# care inside a generic recipe, and ten hand-tuned multipliers are ten guesses.
+# So this table is SHORT and every entry is a published, checkable massing fact
+# — not "it looks like". Anything not in it gets the generative crown above,
+# which is right for the eighty anonymous boxes it applies to.
+#
+# Matched on Overture's own `name`, which is present and correct for every
+# downtown tower (verified: 112 named buildings over 10 floors in the box).
+CROWNS = {
+    # Four stacked cubes, each cantilevered out over the one below in a
+    # different direction. Universally described as the Jenga Tower; the massing
+    # IS the building and a plain prism is unrecognisable.
+    "The Independent":      {"r": "jenga", "blocks": 4, "off": 0.17},
+    # Stepped, tapering crowns. Each of these narrows toward the top in
+    # published elevations; the step count and fractions are the taste dial.
+    "The Austonian":        {"r": "taper", "mast": 1.35},
+    "The Republic":         {"r": "taper"},
+    "ATX Tower":            {"r": "taper"},
+    "Sixth and Guadalupe":  {"r": "taper", "mast": 1.30},
+    "Waterline":            {"r": "taper", "mast": 1.45},
+    "One American Center":  {"r": "taper", "steps": 3},
+    # THE OWL. Frost Bank Tower's crown is four glass gables rising off the
+    # shaft's corners around a stepped centre — the most recognisable roofline
+    # in the city and the reason this table exists at all.
+    "Frost Bank Tower":     {"r": "gable"},
+    "Indeed Tower":         {"r": "taper", "steps": 1},
+    "100 Congress":         {"r": "taper", "steps": 1},
+}
+# Shared shape dials for the recipes above.
+CROWN_R = {
+    "taper_steps": 2,
+    "taper_top_frac": 0.86,     # the first step starts this far up the shaft
+    "taper_inset_frac": 0.12,   # of plan width, per step
+    "gable_h_frac": 0.085,      # gable height as a share of the tower
+    "gable_fin_frac": 0.26,     # corner fin plan, as a share of the crown plan
+    "gable_fin_rise": 1.55,     # fins stand this much above the gable box
+    "jenga_gap_m": 0.0,         # blocks are flush in elevation, offset in plan
+}
 
 
 # ── colour maths, lifted from scripts/bake_detail.py so the two tiers ──
@@ -310,6 +476,75 @@ def in_rect(lon, lat, r):
     return (r["minlon"] <= lon <= r["maxlon"]) and (r["minlat"] <= lat <= r["maxlat"])
 
 
+# ── metric-ring geometry, for the downtown detail ─────────────────────
+def ring_perimeter(ring_m):
+    p = 0.0
+    for i in range(len(ring_m) - 1):
+        p += math.hypot(ring_m[i + 1][0] - ring_m[i][0],
+                        ring_m[i + 1][1] - ring_m[i][1])
+    return p
+
+
+def plan_width(ring_m, area=None):
+    """A single number for "how wide is this plan", in metres.
+
+    Twice the inradius, approximated as 4A/P. For a square of side s that is
+    exactly s, and for a long thin slab it returns the SHORT dimension — which
+    is the one that decides whether an inset survives. Using sqrt(area) instead
+    would call a 12 x 90 m slab 33 m wide and inset it into nothing.
+    """
+    per = ring_perimeter(ring_m)
+    if per <= 0:
+        return 0.0
+    a = ring_area(ring_m) if area is None else area
+    return 4.0 * a / per
+
+
+def offset_ring(ring_m, delta):
+    """Inset (delta < 0) or outset (delta > 0) a closed metric ring.
+
+    Mitred, because a building's corners are square and a rounded join turns a
+    tower plan into a lozenge. Returns None rather than a degenerate ring — an
+    inset that eats the whole plan must SKIP the setback, not emit a sliver
+    (HANDOFF §51's `add()` trap in a new place: a shape too small to see is
+    still a shape you are paying to draw).
+    """
+    try:
+        poly = Polygon(ring_m)
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        if poly.is_empty:
+            return None
+        g = poly.buffer(delta, join_style=2, mitre_limit=3.0)
+        if g.is_empty:
+            return None
+        if g.geom_type == "MultiPolygon":
+            g = max(g.geoms, key=lambda q: q.area)
+        r = [(x, y) for x, y in g.exterior.coords]
+        return r if len(r) >= 4 else None
+    except Exception:  # noqa: BLE001 -- a bad ring skips its detail, nothing more
+        return None
+
+
+def ring_centroid(ring_m):
+    try:
+        c = Polygon(ring_m).centroid
+        return (c.x, c.y)
+    except Exception:  # noqa: BLE001
+        n = len(ring_m) - 1
+        return (sum(p[0] for p in ring_m[:n]) / n, sum(p[1] for p in ring_m[:n]) / n)
+
+
+def move_ring(ring_m, dx, dy):
+    return [(x + dx, y + dy) for x, y in ring_m]
+
+
+def square_ring(cx, cy, side):
+    h = side * 0.5
+    return [(cx - h, cy - h), (cx + h, cy - h), (cx + h, cy + h),
+            (cx - h, cy + h), (cx - h, cy - h)]
+
+
 def load(path, default=None):
     if not os.path.exists(path):
         print(f"  [skip] {path} not found")
@@ -387,6 +622,371 @@ def material_for(cls, h, area, lon, lat, key):
     # Unclassed and small. In this box that is overwhelmingly a bungalow, and
     # two tones keep a neighbourhood from reading as one flat slab from the air.
     return "res_warm" if stable01(key + ":r") < 0.62 else "res_cool"
+
+
+def tri(base_hex, fade, fade_scale=1.0):
+    """The (wd, wg, wn) triple for a wall colour at a given horizon fade.
+
+    One function so a podium, a crown and the shaft between them cannot grade
+    apart through the day — three copies of this arithmetic is three chances for
+    downtown to fall out of step with itself at dusk.
+    """
+    # Only `wd` takes the tower's reduced fade, because that is what PASS C
+    # does — and a podium whose day colour matched its shaft but whose NIGHT
+    # colour did not would come apart after dark on exactly the towers this
+    # pass exists to build. Transcribed, not re-derived.
+    return (lerp_hex(base_hex, HAZE_DAY, fade * fade_scale),
+            lerp_hex(lerp_hex(base_hex, GOLDEN_TINT, 0.16), HAZE_GOLD, fade),
+            lerp_hex(night_wall(base_hex), HAZE_NIGHT, fade * 0.75))
+
+
+def piece(ring_m, b, h, base_hex, fade, kind=None, tower=False, roof_hex=None,
+          fb=None):
+    """One emitted sub-feature of a downtown building.
+
+    `k` is what js/outer.js's detail layer filters on; a piece WITHOUT `k` is a
+    wall and keeps the tower pattern and the parapet cap, a piece WITH `k` is a
+    flat-coloured solid (crown, mast, retail band, park pad). `b` is omitted
+    when it is zero so 7,600 low-rise features do not each carry `"b":0`.
+    """
+    wd, wg, wn = tri(base_hex, fade, 0.35 if tower else 1.0)
+    props = {"h": round(h, 1), "wd": wd, "wg": wg, "wn": wn}
+    if b > 0.05:
+        props["b"] = round(b, 1)
+    if kind:
+        props["k"] = kind
+    if tower:
+        props["t"] = 1
+        rd, rg, rn = make_roof_colors(adjust_light(roof_hex or base_hex, -0.16))
+        props["rd"], props["rg"], props["rn"] = rd, rg, rn
+        if fb is not None:
+            props["fb"] = fb
+    return {"type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": [to_degrees(ring_m)]},
+            "properties": props}
+
+
+def downtown_detail(out, rep):
+    """PASS D — turn each downtown tower from one prism into a building, and
+    put the parks back on the ground beside it.
+
+    Runs AFTER the density rank, on the features already emitted, so it cannot
+    change which buildings survive the cull; it only changes what a survivor is
+    made of. Everything it appends carries `d` = 0, because nothing here is
+    worth thinning before the box it belongs to is thinned.
+    """
+    add = []
+
+    def emit(bucket, feat):
+        """Every sub-feature goes to the file AND to its own tower's bucket.
+
+        The re-measure below groups a tower's pieces by WHO MADE THEM, not by
+        where they landed. The first version matched on a padded bounding box
+        and reported four height errors that were all the same artefact — the
+        Four Seasons at 40.3 m "measuring" 111.4 m because the tower on the next
+        lot dropped a mast inside its box. Guessing at the grouping made the
+        instrument wrong in exactly the way the instrument exists to catch.
+        """
+        add.append(feat)
+        bucket.append(feat)
+        return feat
+
+    parts = []
+    n = {"podium": 0, "podium_measured": 0, "setback_skipped_slim": 0,
+         "crown": 0, "mast": 0, "retail": 0, "curated": 0,
+         "jenga": 0, "taper": 0, "gable": 0, "curated_unmatched": []}
+    seen_names = set()
+
+    for f in out:
+        if not f.get("_tower"):
+            continue
+        ring, h, area = f["_m"], f["_h"], f["_area"]
+        base, fade, name = f["_base"], f["_fade"], f["_name"]
+        width = plan_width(ring, area)
+        recipe = CROWNS.get(name or "")
+        if recipe:
+            seen_names.add(name)
+        mine = []
+        parts.append((f, mine))
+
+        # ── 1. the podium height ──────────────────────────────────────
+        # THE TEST IS ON THE NUMBER, NOT ON WHICH RULE SET IT. The first
+        # version asked whether `src == "podium_rule"`, and got 1 measured
+        # podium out of 114 — because PASS B's curated heights overwrite `src`
+        # for exactly the named towers whose LiDAR reading is short. Sixth and
+        # Guadalupe, Northshore, Fairmont and One American Center all carry a
+        # surveyed podium roof in `ovh_raw` and all four were being derived.
+        # A short LiDAR return under a tall building IS the podium, whatever
+        # later replaced the height.
+        ovh = f["_ovh"]
+        if (ovh and ovh < h * DT["podium_measured_max_frac"]
+                and DT["podium_measured_min_m"] <= ovh <= DT["podium_measured_max_m"]):
+            pod, pod_src = float(ovh), "measured"
+        else:
+            floors = next(nf for lim, nf in DT["podium_floors"] if h < lim)
+            pod, pod_src = max(DT["podium_min_m"],
+                               floors * DT["podium_floor_m"]), "derived"
+        pod = min(pod, h * DT["podium_max_frac"])
+
+        # ── 2. the setback ────────────────────────────────────────────
+        sb = max(DT["setback_min_m"], min(DT["setback_max_m"],
+                                          DT["setback_frac"] * width))
+        shaft = offset_ring(ring, -sb) if area >= DT["shaft_min_area_m2"] else None
+        if shaft is not None and ring_area(shaft) < 0.34 * area:
+            shaft = None            # the inset ate the plan; leave it alone
+        if shaft is None or h - pod < 15.0:
+            # Already a slim tower, or too short to hold a base. It keeps the
+            # generative crown below but stays one prism from the pavement.
+            n["setback_skipped_slim"] += 1
+            shaft, pod = ring, 0.0
+        else:
+            f["geometry"]["coordinates"] = [to_degrees(shaft)]
+            f["properties"]["b"] = round(pod, 1)
+            emit(mine, piece(ring, 0.0, pod, base, fade, tower=True,
+                             fb=f["properties"].get("fb")))
+            n["podium"] += 1
+            if pod_src == "measured":
+                n["podium_measured"] += 1
+
+        # ── 2b. THE HEIGHT BUDGET, and it is the whole correctness of this ──
+        #
+        # `h` is the tower's ARCHITECTURAL height: outer_heights.json's 90
+        # entries are published roof-or-spire figures and Overture's are LiDAR
+        # returns off the highest thing on the roof. Either way the crown and
+        # the mast are ALREADY INSIDE that number. The first cut stacked them on
+        # top of it and took Waterline from a correct 315 m to 365.8 m — a 16%
+        # error on the tallest building in Texas, introduced by a pass whose
+        # entire subject is the skyline. So the pieces are carved DOWNWARD out
+        # of h, and the top of the tallest piece is exactly h.
+        crown_h = max(DT["crown_min_m"], min(DT["crown_max_m"],
+                                             DT["crown_frac"] * h))
+        mast_mul = (recipe or {}).get("mast", 1.0)
+        mast_h = (max(DT["mast_min_m"], DT["mast_frac"] * h) * mast_mul
+                  if h >= DT["mast_min_h_m"] else 0.0)
+        if recipe and recipe["r"] == "gable":
+            crown_h = CROWN_R["gable_h_frac"] * h * CROWN_R["gable_fin_rise"]
+        # The shaft never gives up more than this much of itself to its own hat.
+        budget = min(crown_h + mast_h, (h - pod) * DT["top_max_frac"])
+        if crown_h + mast_h > budget and (crown_h + mast_h) > 0:
+            k = budget / (crown_h + mast_h)
+            crown_h, mast_h = crown_h * k, mast_h * k
+        shaft_top = h - crown_h - mast_h
+
+        top = shaft_top    # running z: where the next piece starts
+        cap = shaft        # the plan the next piece sits on
+        last_wall = f      # the piece that currently owns the top of the wall
+        f["properties"]["h"] = round(shaft_top, 1)
+
+        # ── 3. the curated massing recipes ────────────────────────────
+        if recipe and recipe["r"] == "jenga":
+            # Four stacked cubes, each cantilevered in a different direction.
+            # The ORIGINAL feature becomes block 0; blocks 1..n-1 are appended.
+            nb = recipe.get("blocks", 4)
+            step = (shaft_top - pod) / nb
+            off = recipe.get("off", 0.17) * width
+            f["properties"]["h"] = round(pod + step, 1)
+            dirs = [(0, 0), (off, 0), (0, off), (-off, 0), (0, -off)]
+            for i in range(1, nb):
+                dx, dy = dirs[i % len(dirs)]
+                blk = move_ring(shaft, dx, dy)
+                last_wall = emit(mine, piece(
+                    blk, pod + i * step, pod + (i + 1) * step, base, fade,
+                    tower=True, fb=f["properties"].get("fb")))
+                cap = blk
+            n["jenga"] += 1
+            n["curated"] += 1
+        elif recipe and recipe["r"] == "taper":
+            steps = recipe.get("steps", CROWN_R["taper_steps"])
+            z0 = pod + (shaft_top - pod) * CROWN_R["taper_top_frac"]
+            f["properties"]["h"] = round(z0, 1)
+            dz = (shaft_top - z0) / max(1, steps)
+            cur = shaft
+            for i in range(steps):
+                nxt = offset_ring(cur, -CROWN_R["taper_inset_frac"] * width)
+                if nxt is None or ring_area(nxt) < DT["crown_min_area_m2"]:
+                    break
+                last_wall = emit(mine, piece(
+                    nxt, z0 + i * dz, z0 + (i + 1) * dz, base, fade,
+                    tower=True, fb=f["properties"].get("fb")))
+                cur = nxt
+            cap = cur
+            n["taper"] += 1
+            n["curated"] += 1
+
+        # ── 4. the crown ──────────────────────────────────────────────
+        crown = offset_ring(cap, -DT["crown_inset_m"])
+        if crown is not None and ring_area(crown) < DT["crown_min_area_m2"]:
+            crown = None
+        if crown is None:
+            # No room for a hat. Give the height back to the wall rather than
+            # shipping a tower that is quietly crown_h + mast_h too short —
+            # a silent height error is exactly what §33's re-measure exists for.
+            last_wall["properties"]["h"] = round(h, 1)
+            continue
+        if recipe and recipe["r"] == "gable":
+            # THE OWL. A stepped centre box with four corner fins standing
+            # proud of it — the silhouette, not the glazing.
+            gb = crown_h / CROWN_R["gable_fin_rise"]
+            emit(mine, piece(crown, top, top + gb, adjust_light(base, -0.10),
+                             fade, kind="c"))
+            cw = plan_width(crown)
+            cx, cy = ring_centroid(crown)
+            fin = max(2.2, CROWN_R["gable_fin_frac"] * cw)
+            q = cw * 0.5 - fin * 0.5
+            for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+                emit(mine, piece(square_ring(cx + sx * q, cy + sy * q, fin),
+                                 top, top + crown_h,
+                                 adjust_light(base, 0.06), fade, kind="c"))
+            n["gable"] += 1
+            n["curated"] += 1
+        else:
+            emit(mine, piece(crown, top, top + crown_h,
+                             adjust_light(base, -0.10), fade, kind="c"))
+        top += crown_h
+        cap = crown
+        n["crown"] += 1
+
+        # ── 5. the mast ───────────────────────────────────────────────
+        if mast_h > 0.5:
+            side = max(2.4, DT["mast_plan_frac"] * plan_width(cap))
+            cx, cy = ring_centroid(cap)
+            emit(mine, piece(square_ring(cx, cy, side), top, top + mast_h,
+                             MAST_COL, fade, kind="c"))
+            n["mast"] += 1
+
+    for nm in CROWNS:
+        if nm not in seen_names:
+            n["curated_unmatched"].append(nm)
+
+    # ── the re-measure, before anything else is appended ──────────────
+    # §33's rule. A tower is now up to nine features and the ONLY number a
+    # viewer can check is where its highest piece stops. Walk the emitted
+    # pieces, group them back onto the tower they came from by plan overlap of
+    # their bounding boxes, and assert the tallest one lands on the tower's own
+    # architectural height. A silhouette that is silently 16% too tall is what
+    # this catches, and it caught it.
+    worst, checked = [], 0
+    for f, mine in parts:
+        tops = [f["properties"]["h"]] + [
+            a["properties"]["h"] for a in mine
+            if a["properties"].get("k") != "r"]
+        checked += 1
+        err = max(tops) - f["_h"]
+        if abs(err) > 0.75:
+            worst.append({"name": f["_name"], "want": round(f["_h"], 1),
+                          "got": round(max(tops), 1), "err": round(err, 1),
+                          "parts": len(mine) + 1})
+    worst.sort(key=lambda w: -abs(w["err"]))
+    n["height_checked"] = checked
+    n["height_mismatch"] = len(worst)
+    n["height_worst"] = worst[:8]
+    n["parts_per_tower_max"] = max((len(m) + 1 for _, m in parts), default=0)
+
+    # ── 6. the ground-floor band ──────────────────────────────────────
+    # Every downtown building tall enough to have a lobby gets one. This is the
+    # line where a building meets the street, and downtown Austin's is glass.
+    for f in out:
+        if not f.get("_dt"):
+            continue
+        if f["_h"] < DT["retail_min_building_h_m"] or f["_area"] < DT["retail_min_area_m2"]:
+            continue
+        band = offset_ring(f["_m"], DT["retail_out_m"])
+        if band is None:
+            continue
+        add.append(piece(band, 0.0, DT["retail_h_m"],
+                         lerp_hex(adjust_light(f["_base"], -0.18), STOREFRONT, 0.45),
+                         f["_fade"], kind="r"))
+        n["retail"] += 1
+
+    for a in add:
+        a["properties"]["d"] = 0
+    rep["downtown"] = n
+    return add
+
+
+def green_pads(rep):
+    """PASS E — parks, plazas and squares, from OSM, as 0.45 m pads.
+
+    The outer ring has never drawn any ground of its own, so outside the core
+    box the only green is whatever the basemap washes in — which is HANDOFF §35
+    item 4 and item 8 in one sentence. This is not a ground pass: no texture, no
+    trees, no edging. One polygon per park, in the SAME green js/ground.js uses
+    on campus, at a height a fill-extrusion can win against the basemap.
+    """
+    raw = load(GREEN_RAW)
+    n = {"read": 0, "kept": 0, "small": 0, "in_core": 0, "unclosed": 0,
+         "by_tone": {}}
+    if not raw:
+        rep["green"] = n
+        return []
+    out = []
+
+    def use_of(t):
+        for key in ("leisure", "landuse", "place"):
+            if t.get(key) in GREEN_USE:
+                return GREEN_USE[t[key]]
+        if t.get("highway") == "pedestrian" and t.get("area") == "yes":
+            return GREEN_USE["pedestrian"]
+        return None
+
+    def rings_of(e):
+        if e.get("type") == "way" and e.get("geometry"):
+            return [[(p["lon"], p["lat"]) for p in e["geometry"]]]
+        rs = []
+        for m in (e.get("members") or []):
+            if m.get("role") != "outer" or not m.get("geometry"):
+                continue
+            rs.append([(p["lon"], p["lat"]) for p in m["geometry"]])
+        return rs
+
+    for e in raw.get("elements", []):
+        tone = use_of(e.get("tags") or {})
+        if not tone:
+            continue
+        for deg in rings_of(e):
+            n["read"] += 1
+            if len(deg) < 4 or deg[0] != deg[-1]:
+                n["unclosed"] += 1
+                continue
+            rm = to_metres(deg)
+            a = ring_area(rm)
+            cx = sum(x for x, _ in rm) / len(rm)
+            cy = sum(y for _, y in rm) / len(rm)
+            lon = OUTER["minlon"] + cx / M_LON
+            lat = OUTER["minlat"] + cy / M_LAT
+            if not in_rect(lon, lat, OUTER):
+                continue
+            # The core draws its own ground; the margin keeps a park that
+            # straddles the seam from being drawn twice along the join.
+            if in_rect(lon, lat, CORE) and \
+                    dist_inside_edge(lon, lat, CORE) > DT["green_core_margin_m"]:
+                n["in_core"] += 1
+                continue
+            d = min(dist_outside_rect(lon, lat, CORE),
+                    dist_outside_rect(lon, lat, DOWNTOWN))
+            need = DT["green_min_area_m2"] + DT["green_area_per_km_m2"] * d / 1000.0
+            if a < need:
+                n["small"] += 1
+                continue
+            rm = simplify_ring(rm, DT["green_simplify_m"])
+            if len(rm) < 4:
+                n["small"] += 1
+                continue
+            edge = dist_inside_edge(lon, lat, OUTER)
+            fade = FADE_MAX * max(0.0, min(1.0, 1.0 - edge / FADE_M))
+            wd, wg, wn = GREEN_TONES[tone]
+            out.append({
+                "type": "Feature",
+                "geometry": {"type": "Polygon", "coordinates": [to_degrees(rm)]},
+                "properties": {"h": DT["green_h_m"], "k": "g", "d": 0,
+                               "wd": lerp_hex(wd, HAZE_DAY, fade),
+                               "wg": lerp_hex(wg, HAZE_GOLD, fade),
+                               "wn": lerp_hex(wn, HAZE_NIGHT, fade * 0.75)},
+            })
+            n["kept"] += 1
+            n["by_tone"][tone] = n["by_tone"].get(tone, 0) + 1
+    rep["green"] = n
+    return out
 
 
 def main():
@@ -486,7 +1086,14 @@ def main():
 
         cands.append({"ring": best_ring_m, "area": best_area, "lon": lon,
                       "lat": lat, "h": float(h), "src": src, "cls": cls,
-                      "id": p.get("id"), "name": p.get("name")})
+                      "id": p.get("id"), "name": p.get("name"),
+                      # The LiDAR height BEFORE the podium rule overrode it.
+                      # Where the rule fired, this number is the roof of the
+                      # PODIUM — a surveyed measurement of exactly the thing
+                      # PASS D wants — so it is carried rather than discarded.
+                      "ovh_raw": (float(p["overture_height"])
+                                  if p.get("overture_height") else None),
+                      "floors": floors})
 
     # ── PASS B: curated heights, ONE footprint each ──────────────────
     # Assigned override -> footprint, not footprint -> nearest override. The
@@ -632,6 +1239,13 @@ def main():
         out.append({"type": "Feature",
                     "geometry": {"type": "Polygon", "coordinates": [to_degrees(ring_m)]},
                     "properties": props,
+                    # PASS D's working set. Every underscore key is popped
+                    # before the file is written; `assert` at the end of main()
+                    # is what stops one leaking into 7,600 features.
+                    "_m": ring_m, "_base": base, "_name": c.get("name"),
+                    "_h": h, "_ovh": c.get("ovh_raw"), "_src": src,
+                    "_fade": fade, "_area": best_area, "_tower": is_tower,
+                    "_dt": in_rect(lon, lat, DOWNTOWN),
                     # not emitted; used below to rank importance
                     # Towers sort first, unconditionally. A plain formula put
                     # them LAST: every other rank is negative, so the tower's
@@ -655,12 +1269,49 @@ def main():
     for i, o in enumerate(out):
         o["properties"]["d"] = round(i / n, 3)
 
+    # ── PASS D and E: the downtown detail, and the parks ──────────────
+    # AFTER the rank, deliberately. These passes change what a building is MADE
+    # OF, never which buildings survive, so a re-tune of the crown dials cannot
+    # silently move the density thinning under the graphics menu.
+    extra = []
+    detail_rep = {}
+    n_body = len(out)
+    if DT["on"]:
+        extra += downtown_detail(out, detail_rep)
+        extra += green_pads(detail_rep)
+    # Strip PASS D's working set. This is not tidiness: `_m` is a full metric
+    # ring, so one leaked underscore key would roughly DOUBLE the file.
+    for o in out:
+        for k in [k for k in o if k.startswith("_")]:
+            del o[k]
+    out += extra
+
     fc = {"type": "FeatureCollection", "features": out}
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(fc, f, separators=(",", ":"))
 
+    # ── re-measure the file that was just written ─────────────────────
+    # bake_art.py's rule, for the same reason: a counter incremented at emit
+    # time counts INTENT. HANDOFF §36 records seven creek-sheen features that
+    # were reported as shipped and were not in the file. These numbers are read
+    # back off the emitted list.
+    shipped = {"features": len(out), "bodies": n_body, "detail": len(extra)}
+    kinds = {}
+    for o in out:
+        pr = o["properties"]
+        kinds[pr.get("k") or ("tower" if pr.get("t") == 1 else "flat")] = \
+            kinds.get(pr.get("k") or ("tower" if pr.get("t") == 1 else "flat"), 0) + 1
+    shipped["by_kind"] = kinds
+    shipped["with_base"] = sum(1 for o in out if "b" in o["properties"])
+    shipped["max_top_m"] = round(max(o["properties"]["h"] for o in out), 1)
+    leaked = sum(1 for o in out if any(k.startswith("_") for k in o))
+    if leaked:
+        sys.exit("PASS D leaked a working key onto %d features" % leaked)
+
     size_kb = os.path.getsize(OUT) // 1024
     report = {
+        "downtown_detail": detail_rep,
+        "shipped": shipped,
         "date": DATE,
         "outer_bbox": OUTER, "core_bbox": CORE, "downtown_bbox": DOWNTOWN,
         "raw_candidates": len(feats),
@@ -718,6 +1369,11 @@ def main():
     print(f"  heights: {n_over_h}")
     print(f"  vertices {verts_in} -> {verts_out} ({report['vertices_saved_pct']}% fewer)")
     print(f"  kept per km-band from the core edge: {report['kept_by_km_from_core']}")
+    if DT["on"]:
+        print(f"  downtown detail: {detail_rep.get('downtown')}")
+        print(f"  parks/plazas:    {detail_rep.get('green')}")
+        print(f"  shipped by kind: {shipped['by_kind']}  "
+              f"({shipped['with_base']} with a base, top {shipped['max_top_m']} m)")
     print(f"  wrote {OUT} ({size_kb} KB)")
 
 

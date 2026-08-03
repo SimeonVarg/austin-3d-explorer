@@ -96,11 +96,34 @@
   const L_FLAT = 'outer-3d';
   const L_TOWER = 'outer-tower';
   const L_TOWER_ROOF = 'outer-tower-roof';
+  const L_DETAIL = 'outer-detail';
   const DATA = 'data/outer_ring.geojson';
   const TOWER_PALETTE = 'data/outer_tower_palette.json';
 
-  const IS_TOWER = ['==', ['get', 't'], 1];
-  const NOT_TOWER = ['!=', ['get', 't'], 1];
+  // ── the four kinds of feature in outer_ring.geojson ─────────────────
+  //
+  // `k` is the downtown-detail discriminator (scripts/bake_outer.py, PASS D).
+  // A feature WITHOUT it is a wall — a low-rise prism, a tower shaft, a podium,
+  // a Jenga block, a taper step — and keeps the pattern and the parapet cap. A
+  // feature WITH it is a flat-coloured solid that is not a wall:
+  //
+  //   k='c'  crown, gable, corner fin, mast   sits on the shaft
+  //   k='r'  ground-floor band                sits on the pavement, outset 0.4 m
+  //   k='g'  park / plaza pad                 0.45 m off the ground
+  //
+  // All three want the same paint — one baked colour, own base, own height —
+  // so they share ONE layer. Three layers would be three more draw calls over
+  // the whole ring to express a difference only the bake cares about.
+  const IS_DETAIL = ['has', 'k'];
+  const IS_WALL = ['!', IS_DETAIL];
+  const IS_TOWER = ['all', ['==', ['get', 't'], 1], IS_WALL];
+  const NOT_TOWER = ['all', ['!=', ['get', 't'], 1], IS_WALL];
+
+  // Every wall now MAY start above the ground: a tower shaft stands on its
+  // podium, a Jenga block on the block below it. `b` is absent on the 7,511
+  // low-rise prisms that still start at zero, so this coalesce is what keeps
+  // the file from carrying "b":0 seven thousand times.
+  const BASE = ['coalesce', ['get', 'b'], 0];
 
   /**
    * The density filter, shaped exactly like js/app.js:treeFilter.
@@ -312,7 +335,7 @@
       paint: {
         'fill-extrusion-color': bakedColor(p),
         'fill-extrusion-height': ['get', 'h'],
-        'fill-extrusion-base': 0,
+        'fill-extrusion-base': BASE,
         'fill-extrusion-opacity': OUTER.opacity,
         // Kept ON. It is a shader constant, not a draw, and it is most of what
         // stops 6,800 flat prisms reading as a carpet: the darkened base gives
@@ -329,7 +352,27 @@
       paint: {
         'fill-extrusion-pattern': towerPattern,
         'fill-extrusion-height': ['get', 'h'],
-        'fill-extrusion-base': 0,
+        // A shaft starts on its podium. Before this the podium and the shaft
+        // were the same prism and downtown was forty flat-sided boxes.
+        'fill-extrusion-base': BASE,
+        'fill-extrusion-opacity': OUTER.opacity,
+        'fill-extrusion-vertical-gradient': true,
+      },
+    }, before);
+
+    // 2b. The downtown detail: crowns, gables, masts, ground-floor bands and
+    //     park pads. One flat-coloured fill-extrusion for all of them, filtered
+    //     on `k`. NOT density-filtered: a crown is 4% of its tower's height and
+    //     the whole point of it, so thinning it before the tower under it is
+    //     backwards, and there are 674 of these against 7,754 walls.
+    map.addLayer({
+      id: L_DETAIL, type: 'fill-extrusion', source: SRC, ...outerLP,
+      minzoom: OUTER.minZoom,
+      filter: IS_DETAIL,
+      paint: {
+        'fill-extrusion-color': bakedColor(p),
+        'fill-extrusion-height': ['get', 'h'],
+        'fill-extrusion-base': BASE,
         'fill-extrusion-opacity': OUTER.opacity,
         'fill-extrusion-vertical-gradient': true,
       },
@@ -379,6 +422,14 @@
         map.setPaintProperty(L_FLAT, 'fill-extrusion-color', bakedColor(p));
     } catch (e) {}
     try {
+      // The crowns and the park pads carry their own baked trio, so they follow
+      // the hour by the same expression the ring does. Miss this and every
+      // tower keeps a daylit hat after dark — the §35 item 1 failure, on 146
+      // features instead of one stadium.
+      if (map.getLayer(L_DETAIL))
+        map.setPaintProperty(L_DETAIL, 'fill-extrusion-color', bakedColor(p));
+    } catch (e) {}
+    try {
       if (map.getLayer(L_TOWER_ROOF))
         map.setPaintProperty(L_TOWER_ROOF, 'fill-extrusion-color', roofColor(p));
     } catch (e) {}
@@ -403,7 +454,12 @@
   window.applyOuterSettings = function applyOuterSettings(map) {
     if (!map || !map.getLayer) return;
     const flatOp = flatOpacityFor(map);
-    for (const id of [L_FLAT, L_TOWER, L_TOWER_ROOF]) {
+    // L_DETAIL is deliberately NOT in the pitch fade. The fade exists because
+    // 7,511 low-rise prisms mass edge-on into one brown plane above 80 degrees;
+    // 146 crowns and 309 flat park pads cannot mass into anything, and a
+    // skyline that loses its crowns when the camera tilts is the defect this
+    // whole pass is fixing.
+    for (const id of [L_FLAT, L_TOWER, L_TOWER_ROOF, L_DETAIL]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', OUTER.on ? 'visible' : 'none');

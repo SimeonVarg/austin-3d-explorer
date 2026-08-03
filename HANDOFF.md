@@ -1,5 +1,167 @@
 # Austin 3D Explorer — Full Handoff
 
+## 45. Aug 3 2026 — downtown was forty boxes, and the crown was stacked on top of the height instead of carved out of it (acer lane)
+
+**Branch:** `acer/downtown-detail`, PR #99. QUEUE **D2c** — the CONTENT half of
+D2. PR #84 fixed the BUG (the baked facade buckets finally rendered, so downtown
+stopped being one flat brick-red); every one of the 114 towers was still a single
+prism from the pavement to a flat cut.
+
+`scripts/bake_outer.py` PASS D decomposes a tower into **podium / shaft / crown /
+mast**, PASS E puts the **parks** on the ground. `js/outer.js` gains ONE layer
+(`outer-detail`, flat colour, filtered on a new `k` property) and a
+`fill-extrusion-base` that coalesces a new `b` property to 0 on the two wall
+layers.
+
+```
+podium 113 of 114      crown 106      mast 36      ground band 219
+curated massings 10, unmatched 0      park/plaza pads 309
+by kind: tower 243  flat 7,511  crown 146  band 219  green 309
+```
+
+### THE ERROR THAT ONLY THE RE-MEASURE COULD SEE
+
+**The crown and the mast were stacked ON TOP of `h`.** `h` is the ARCHITECTURAL
+height — `outer_heights.json`'s 90 entries are published roof-or-spire figures
+and Overture's are LiDAR returns off the highest thing on the roof — so the
+crown is **already inside that number**. The first cut took **Waterline from a
+correct 315 m to 365.8 m**: a 16% error on the tallest building in Texas,
+introduced by a pass whose entire subject is the skyline. Nothing on screen said
+so. A 366 m tower standing next to a 315 m one still looks like a skyline.
+
+§33's rule is what caught it, and it had to be *re-derived for this shape*: a
+tower is now up to eight features, so `main()` walks the emitted pieces, groups
+them **by which tower emitted them**, and asserts the tallest lands on that
+tower's own height. **114 checked, 0 mismatches, top of file exactly 315.0 m.**
+
+**And the FIRST version of that check was itself wrong.** It grouped pieces by a
+padded bounding box and reported four errors — all the same artefact, the Four
+Seasons at 40.3 m "measuring" 111.4 m because the tower on the next lot dropped a
+mast inside its box. Guessing at the grouping made the instrument wrong in
+exactly the way the instrument exists to catch. Every piece is now handed to its
+producer's own bucket at emit time.
+
+### A SHORT LIDAR RETURN UNDER A TALL BUILDING IS A MEASUREMENT, NOT AN ERROR
+
+`PODIUM_RULE` has known since it was written that Overture sometimes returns
+18.7 m for a 63-storey tower. It treated that as noise to be replaced. **It is
+the roof of the podium** — a surveyed number for exactly the thing PASS D needs.
+
+The first test asked whether `src == "podium_rule"` and got **1 measured podium
+out of 114**, because PASS B's curated heights overwrite `src` for precisely the
+named towers whose reading is short — Sixth and Guadalupe, Northshore, Fairmont
+and One American Center were all being derived. **Test the NUMBER, not which rule
+set it: 1 becomes 10.**
+
+### THE PROBE SAID THE LAYER OWNED ZERO PIXELS, AND IT WAS THE PROBE
+
+`scripts/verify/outer-detail-mask.mjs` is §48's magenta mask. Its first answer
+was **`outer-detail` owns 0 px** — on a frame full of crowns. The cause is §36
+point 4 in a new costume: it asked for the authored `#ff00ff` within 40 per
+channel, and **this scene is lit and graded, so #ff00ff lands at about
+(236,42,154)** — B is 154, not 255. It classifies by colour DIRECTION (cosine on
+the normalised pixel) now.
+
+**It was caught in one run because the next thing done was a PICTURE**
+(`shots/dt-mask/magenta.png`), which shows every crown, mast, ground band and
+park pad in magenta. **A wrong instrument reading zero has the exact shape of a
+real null result** — §37's rule generalised: an under-settled read is a wrong
+answer, and so is a mis-calibrated one.
+
+Related, and NOT a defect: **`outer-tower` measures 0 px forever**, because it is
+painted with `fill-extrusion-pattern` and ignores `fill-extrusion-color`. The
+probe says so rather than warning.
+
+### THE TILING CLAIM, MEASURED — BYTES YES, DRAW NO
+
+```
+outer.pmtiles       1,634,165 -> 1,819,279 bytes   +180.8 KB  +11.3%
+outer_ring.geojson    505.7 -> 565.8 KB gzipped    (the fallback path)
+
+load to first idle, 4 interleaved reps per side, MINIMUM taken
+  main         25,446 ms   26631 25867 25628 25446   17,548 KB  outer 222 KB
+  this branch  26,319 ms   26434 26319 26338 26497   17,576 KB  outer 250 KB
+               +873 ms (+3.4%)                          +28 KB      +28 KB
+```
+
+**The archive grew 181 KB and a visitor at the spawn pose downloads 28 KB of
+it** — that is what "detail is free once it is tiled" was supposed to mean, and
+for BYTES it is true. First-idle is ~0.9 s slower and 7 of the 8 readings
+separate cleanly, so it is probably real: **674 extra fill-extrusion features
+are not free to tessellate and upload even when their bytes nearly are.** Quote
+both halves; the bytes number alone is the flattering one.
+
+Caveats, per CLAUDE.md rule 10: no CPU throttle (`perf.mjs` defaults to 4x), and
+the byte counts are `content-length` on a PAGE-SCOPED response listener, which
+under-reports anything MapLibre fetches from a worker.
+
+### Night — the §35 item 1 test, passed with numbers
+
+Merged result, tiled path, tod 0.95, same pose:
+
+```
+frame median luma below the horizon      31.7
+outer-detail   177,363 px  11.09%   mean luma 29.7   320 px over luma 45
+outer-3d       237,675 px  14.86%   mean luma 34.9   131 px over luma 45
+```
+
+The crowns are **0.94x the frame's own median** — darker than the city around
+them — against DKR's bowl at 3.5x. The same 177k pixel set at day and at night,
+so it is the same surfaces being measured both times. **The threshold is a
+multiple of the frame's median, never a constant** (§35's instrument finding,
+applied).
+
+### Smaller things that are worth knowing
+
+- **The parks are `js/ground.js`'s greens, copied byte for byte from its `SURF`
+  table.** Authoring a second green would put a seam along the core box edge
+  where the ring's parks meet campus's lawns. Copy, do not re-derive.
+- **`plan_width` is `4A/P`, not `sqrt(area)`.** For a square of side s both give
+  s; for a 12 x 90 m slab `sqrt` says 33 m and the setback whittles it to
+  nothing. Twice the inradius returns the SHORT dimension, which is the one that
+  decides whether an inset survives.
+- **The ground band is outset 0.40 m.** A band coplanar with the wall above it is
+  §34's A2 finding at building scale — two coplanar faces have no defined winner.
+- **`data/outer/downtown_green_raw.json` is committed** (935 KB, trimmed from a
+  2.6 MB Overpass response to the tags the bake reads), so PASS E is reproducible
+  and the parks cannot move under a re-bake.
+
+### AND THE THING THAT WAS BLOCKING EVERY LANE, IN `scripts/tile.sh`
+
+**A completely successful tile build failed on its own last line, and threw the
+archives away.** The last line totals the built archives with `du`, including
+`$BUILDINGS_PMTILES`. `config.sh` dates the snapshot from `date -u`, so between
+00:00 UTC and the day's first `build-data.yml` that path does not exist. `du`
+exits non-zero, `2>/dev/null` hides why, and `set -euo pipefail` fails the job
+**after every archive has been built correctly** — so the Commit step never runs.
+
+```
+acer/downtown-detail  01:11Z  failure   (outer.pmtiles built, 1.8M, discarded)
+mac/creek-trees       00:28Z  failure
+acer/tree-canopy      18:01Z  success   same UTC day as its snapshot
+```
+
+It fires **every night after 7 pm Austin time** until that day's snapshot exists.
+Two lanes lost a build to it before anyone read past "Done. Totals:". `tile.sh`
+was not on this lane's file list and it was fixed anyway, because the
+verification the brief demanded could not be run without it.
+
+### Known, and deliberately not in this PR
+
+- **The mottled/streaky pattern on a few tall towers is D2a and predates this** —
+  it is in `shots/dt-before/congress.png` on the same building.
+- **Two flat tan wedges lie on the plaza south of 4th and Congress.** Also in the
+  before frame. Identifying the owning layer needs its own magenta mask; §38
+  spent 90 minutes proving that guessing does not work, and the shortcut taken
+  here was to check the BEFORE frame — which answers "is it mine" without
+  answering "whose is it".
+- The ground band is one flat tone. It reads as a plinth line at the street,
+  which is what was missing; it is not glazing.
+
+Pictures: `shots/dt-before/` against `shots/dt-after/` (GeoJSON path),
+`shots/dt-tiles/` (tiled, what the site serves), `shots/dt-merged/` (re-verified
+on merged `main`), `shots/dt-night/`, `shots/dt-mask/magenta.png`.
+
 ## 44. Aug 3 2026 — the night lamps were blue because a taste call outvoted the city (acer lane)
 
 **Branch:** `acer/night-lamp-colour`. §35 item **6** — *"night streetlights are a
