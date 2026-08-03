@@ -56,6 +56,64 @@ memory of what the thing probably looks like.
 
 ---
 
+# PART F — 2026-08-03, after he looked at it
+
+## F1. The fade is INVERTED now, not fixed — round three
+
+*"the horizontal line thing is inverted - i prefer this version over the last but
+as you can see its still a bit harsh with the gradient on the uppser side. far
+away buildings dont have it anymore which is nice"*
+
+His screenshot: a single tower, **normal colour at the base, washing out to pale
+toward the top.** Before PR #107 it was the opposite — faded base, hard normal
+top. **Both are the same defect with the sign flipped: the fade is still keyed to
+HEIGHT WITHIN THE BUILDING.**
+
+The hard part is genuinely done — the far city recedes and the hard screen-row
+line is gone, and he says so. What is left is that a single near building still
+has a gradient up its own face.
+
+**A building should take ONE fade value, chosen by its distance from the camera,
+applied uniformly from base to crown.** If that is not expressible in a
+fill-extrusion paint expression, say so plainly and explain what was tried —
+`fill-extrusion-vertical-gradient` is a candidate culprit, as is any expression
+keyed on `['get','h']` or on the extrusion's own base/height.
+
+## F2. Dusk is over-dark
+
+At tod 0.62 the West Campus blocks read as brown lumps with the detail lost —
+`shots/tour/dusk-west-campus.png`. New since F1's predecessor. The fade is
+probably too strong at close range; check that near buildings get essentially no
+fade at all.
+
+## F3. Downtown is STILL a dark grey mass
+
+Flagged before PR #112 and still true in `shots/tour/day-downtown-skyline.png`.
+#112 fixed 645 blank streetwall prisms, which was real work on a different
+problem. **Measure downtown's rendered wall values against campus's** and find
+out whether this is a regression from the facade tile switch (PRs #84/#94) or an
+authored choice. It is the most visible thing in any wide day frame.
+
+## F4. UT campus buildings that are blocks and should not be
+
+*"also add some UT buildings too - some of them look really cool like EER but rn
+theyre a block. DO those"*
+
+**EER** — the Engineering Education and Research Center — is the one he named: a
+striking modern building with a folded, angular facade and a big glazed atrium,
+currently an extruded box. It is not alone. Find the campus buildings with real
+architectural character and give them their form, the way `js/union24.js` already
+does for Union on 24th.
+
+Candidates worth checking against photographs: EER, the Blanton, the Harry Ransom
+Center, Bass Concert Hall, the LBJ Library, the Moody Center, the AT&T Center,
+Rowling Hall, the Norman Hackerman Building, Welch Hall.
+
+`data/hero_designs.json` already exists and `js/union24.js` is the worked example
+of a per-building hero override. Read both before inventing a mechanism.
+
+---
+
 # PART A — GLITCHES. These come first and they are demo-killers.
 
 ## A1. Windows flip to NIGHT MODE by quadrant, in broad daylight — **DONE**
