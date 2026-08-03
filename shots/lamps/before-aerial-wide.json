@@ -1,0 +1,86 @@
+{
+  "tag": "before",
+  "pose": "aerial-wide",
+  "tod": 0.95,
+  "census": {
+    "belowHorizon": 1152000,
+    "meanLuma": 32.6,
+    "hot": 7604,
+    "warm": 1509,
+    "cool": 5089,
+    "neutral": 1006
+  },
+  "blobs": {
+    "count": 949,
+    "p10": 9,
+    "median": 22.5,
+    "p90": 98.4,
+    "max": 361.7
+  },
+  "overRoof": {
+    "roofPx": 553291,
+    "per": [
+      {
+        "id": "night-streetlight-pool",
+        "px": 124719,
+        "onRoof": 4701
+      },
+      {
+        "id": "night-streetlight-core",
+        "px": 5554,
+        "onRoof": 216
+      },
+      {
+        "id": "props-lit",
+        "px": 0,
+        "onRoof": 0
+      },
+      {
+        "id": "props-lit-core",
+        "px": 0,
+        "onRoof": 0
+      }
+    ]
+  },
+  "own": {
+    "layers": [
+      {
+        "id": "night-streetlight-pool",
+        "px": 124719,
+        "mean": [
+          71,
+          76,
+          90
+        ]
+      },
+      {
+        "id": "night-streetlight-core",
+        "px": 5554,
+        "mean": [
+          202,
+          210,
+          224
+        ]
+      },
+      {
+        "id": "props-lit",
+        "px": 0,
+        "mean": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "id": "props-lit-core",
+        "px": 0,
+        "mean": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "total": 1600000
+  }
+}

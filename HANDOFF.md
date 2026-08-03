@@ -1,5 +1,145 @@
 # Austin 3D Explorer — Full Handoff
 
+## 44. Aug 3 2026 — the night lamps were blue because a taste call outvoted the city (acer lane)
+
+**Branch:** `acer/night-lamp-colour`. §35 item **6** — *"night streetlights are a
+carpet of cold blue-white bokeh"*. One symptom, and the brief was right that it
+is four defects. Separating them before touching anything is the whole pass:
+**three of the four are real and the third one is not what it looks like.**
+
+### The instrument first — `scripts/verify/night-lamps.mjs`
+
+`night-pale.mjs` has been reporting on this defect for three sessions and cannot
+see it: it counts pixels over luma 120 and says nothing about their COLOUR,
+their SIZE, or what they are standing on. So this asks the four questions
+separately, in one page load, off the magenta mask (`roof-ring.mjs`): BASE for
+the census, MARK for ownership and blob sizes, ROOF for the placement mask. At
+`aerial-wide` (tour.mjs's own pose), tod 0.95:
+
+```
+                                    BEFORE              AFTER
+hot pixels (luma>120) below horizon   7,604  0.66%      2,246  0.19%
+   of those    WARM                          19.8%             96.2%
+                BLUE-WHITE                   66.9%              2.5%
+pool ground width   p90 / max          98.4 m / 361.7 m   62.7 m / 151.9 m
+night-streetlight-pool owns            124,719 px 7.79%   25,563 px 1.60%
+   of its pixels, drawn over a roof            3.77%             3.93%
+props-lit / props-lit-core owns                    0 px              0 px
+frame mean luma                                  32.6              30.4
+```
+
+**Two thirds of every lit pixel in the city was blue**, and the pool layer alone
+covered **7.8% of the whole frame**.
+
+### 1. COLOUR — it was authored blue, on purpose, and the note said so
+
+`js/night.js` carried a second palette for the edge of the city — `#9db4e6`,
+`#b8c8ee`, `#ccd8f2`, `#dde7f7` — on the theory that outer streets have been
+retrofitted to ~4000K while the core keeps its sodium. Its own comment says
+*"GENERATIVE, not sourced"*. Austin Energy's conversion is to **3000K**, chosen
+for dark-sky reasons; there is no blue-white street fixture in this city.
+
+The edge colour is now DERIVED from its own core colour by `cooler()`: mix
+toward the grey **of that colour's own luma**. Luma is linear in R,G,B, so this
+preserves brightness exactly (the four hand-tuned luma-matched hexes the old
+comment defends are no longer needed) and it can only ever move a channel toward
+the others — **a warm lamp gets whiter and cannot get bluer.** One knob,
+`EDGE_DESAT: 0.45`.
+
+```
+#ffa63f b-r -192  ->  #dcab73 b-r -105     both luma 177
+#ffbc6c b-r -147  ->  #e5c094 b-r  -81     both luma 197
+#ffcf90 b-r -111  ->  #ecd2af b-r  -61     both luma 213
+#ffe6b4 b-r  -75  ->  #f5e7cb b-r  -42     both luma 232
+```
+
+`window.__nightLights.worstBlueMinusRed` is the assertion, and it is checked in
+the generator: the bluest colour anywhere in the 3,349-lamp file is **-45**. The
+2.5% of hot pixels still reading cool are lit windows and the sky's own bleed,
+not lamps.
+
+### 2. SIZE — the curve was authored in PIXELS, which hid what it was asking for
+
+`POOL_RADIUS: [13, 2.8, 15, 7.5, 17, 19, 19.5, 44]` px. Converted at this
+latitude that is a lamp pool of **46 m radius at z13, 31 m at z15, 20 m at z17
+and 8 m at z19.5** — the street-level end was right all along and the flying end
+was six times too big. Which is exactly what the two poses show, and why nobody
+caught it: `the-drag` at z17.2 has always looked like a row of lamps.
+
+So the curve is authored in **ground metres** now (`POOL_GROUND_M`) and
+converted to px per stop, and the conversion constant is in the file. A real
+pool is 6-8 m; the low-zoom end is deliberately allowed to run to 18 m, because
+a physically-correct 7 m pool at z14 is **one pixel** and the city goes dark
+again — which is the defect this module was written to fix. That single trade is
+now one legible knob instead of four opaque pixel values.
+
+### 3. PLACEMENT — *"many sit over rooftops"* IS NOT TRUE, and the number says so
+
+Only **3.77%** of pool pixels were drawn over a roof, on a frame where the
+roof+building mask covers 34.6% of the screen. The layer goes in before
+`buildings-shadow`/`buildings-3d` and is occluded correctly; if it were painting
+over roofs the figure would be near 35%. **What looks like a lamp on a roof is a
+98 m glow SURROUNDING the building it passes**, so the building reads as
+standing in the light rather than beside it. Fixing SIZE fixes the appearance —
+and note the ratio is unchanged after (3.93%), which is the check that the size
+fix did not accidentally reposition anything.
+
+**No data change was needed.** `data/props.geojson`'s 3,245 lamp and 2,949 lit
+features are not involved at all: `props-lit` has `minzoom 14.6` and
+`aerial-wide` sits at z14.4, so it owns **0 px** of the frame the complaint is
+about. The entire carpet is `js/night.js`, generated off basemap road geometry.
+
+### 4. THE SEAM — a ramp that saturates inside the frame puts a boundary in the frame
+
+`WARM_FULL_M 430` / `WARM_FADE_M 1250` against a lamp fence **3.3 x 3.1 km**
+across: nearly every lamp in the scene sat at the fully-cool end of a ramp that
+had run out 1.25 km from the Tower, so the gradient did not read as a gradient,
+it read as a line where campus met West Campus. The ramp is now **900 m to
+2600 m — wider than the fence itself**, so it never saturates and cannot draw an
+edge. Mean warmth over the generated file went to **0.853**: the city is one
+sodium family with a slight whitening at the far corners, which is the honest
+version of the original intent. This is independent of the colour fix and both
+were needed.
+
+### What did NOT work, and one instrument caveat worth keeping
+
+- **A px floor written as `['max', ['interpolate', ['zoom'], …], 1.3]` is
+  invalid.** A zoom expression may only be the input to a TOP-LEVEL step or
+  interpolate, and a rejected paint property takes the whole layer down with it
+  — this file already records that trap costing a session with the pool layer
+  silently not existing. The floor and the per-tier scaling are both resolved in
+  JS now and the emitted expression is a plain interpolate over constants.
+- **The blob-size MEDIAN went the wrong way and it is the instrument, not the
+  city:** 22.5 m → 34.0 m. The connected-component detector ignores components
+  under 12 px, so shrinking the pools pushed the small glows below its own floor
+  and left only the near-field survivors in the census. The size numbers to
+  quote are total coverage (7.79% → 1.60% of frame) and the tail (p90 98.4 →
+  62.7 m, max 361.7 → 151.9 m). **A statistic with a detection floor measures
+  the floor as soon as you move the thing it is detecting.**
+- **Do not trust one probe run in this tree.** Two runs died to a page error
+  (`LABEL_RANK is not defined`) from another lane's in-flight edit to a file I
+  do not own, and two more had the browser killed under them mid-read — §33's
+  note that any other session's `reap.mjs` kills your browser, again. Every
+  number above was re-read until two consecutive reads agreed.
+
+### Verified
+
+`harness-drift.mjs` PASS before every measurement (24 scripts both sides).
+Pictures, all read rather than exit-coded: `shots/lamps/before/aerial-wide.png`
+against `shots/lamps/after/aerial-wide.png`, `before/the-drag.png` against
+`after/the-drag.png` — street level got BETTER, not worse: discrete warm pools
+with a bright head each, receding properly, instead of uniform speckle.
+`shots/lamps/after-wc/west-campus.png` is the seam's old location, uniformly
+warm from the foreground to the Capitol. `shots/lamps/after-dusk/aerial-wide.png`
+is the tod 0.62 regression check — lamps just coming on, no blobs, no cast.
+
+### Still open in night, deliberately not in this PR
+
+§35 item **1** (DKR's seating bowl reading as daylit) is a TASTE call and is
+still Simeon's. It is more visible now that the lamps have stopped shouting.
+And `night-pale.mjs` is still measuring almost nothing — its fixed `PALE = 120`
+against a frame median of 13.8 was already written up in §35 and is untouched
+here; `night-lamps.mjs` does not replace it, it answers a different question.
 ## 43. Aug 3 2026 — the facade election left the browser, and the harness convicted the bake that had been sitting there (acer lane)
 
 **Branches:** `acer/facade-bake` (PR #94) and `acer/facade-bake-0803` (PR #95).
