@@ -595,19 +595,34 @@ def shaped(kind, lon, lat, ang, length, width, s, col, props):
     return out
 
 
-def make(kind, lon, lat, ang, src, rule=None, extra=None):
+def make(kind, lon, lat, ang, src, rule=None, extra=None, size=None):
+    """`size` is (length_m, width_m) and overrides FORM's default footprint for
+    the objects whose real extent is in the data — a surveyed rack, a station
+    sized by its dock count.
+
+    IT IS AN ARGUMENT AND NOT A POST-HOC PATCH, and that matters now. Both call
+    sites used to rewrite `fs[0]["geometry"]` after the fact, which was fine
+    while an object was one feature and is a silent corruption the moment it is
+    several: `fs[0]` became the FIRST HOOP, so a 15.8 m bike-share station would
+    have come out as a 3.3 m default with one dock post stretched to 15.8 m
+    across it. The reshape path never saw this — it reads a footprint that was
+    already the right length — so only the re-bake would have carried it.
+    """
     length, width, h, col, layer, lit = FORM[kind]
     # A deterministic wobble on size and heading. Real furniture is not stamped:
     # benches sit a few degrees off, bins are not all the same bin.
     s = 0.90 + det01(lon, lat, kind) * 0.20
     jitter = (det01(lon, lat, "ang") - 0.5) * 0.20
+    fp = (length * s, width * s)
+    if size:
+        fp = size          # a surveyed extent is not wobbled — it is measured
     p = {"k": "lamp" if layer == "pole" else "furn",
          "u": kind, "h": round(h * s, 2), "c": col, "src": src}
     if rule:
         p["rule"] = rule
     if extra:
         p.update(extra)
-    parts = shaped(kind, lon, lat, ang + jitter, length * s, width * s, s, col, p)
+    parts = shaped(kind, lon, lat, ang + jitter, fp[0], fp[1], s, col, p)
     if len(parts) == 1:
         feats = [{"type": "Feature",
                   "geometry": {"type": "Polygon", "coordinates": parts[0][0]},
@@ -758,10 +773,9 @@ def main():
         n_assets = a.get("NUMBER_OF_ASSETS") or 1
         length = RACK_LEN.get(a.get("TYPE"), 1.4) * (1.0 + 0.55 * (min(int(n_assets or 1), 8) - 1))
         ang = det01(lon, lat, "a") * math.pi
+        # Drawn at the surveyed size, keeping its real centre.
         fs = make("bicycle_parking", lon, lat, ang, "city",
-                  extra={"cap": a.get("CAPACITY") or 0})
-        # Stretch the drawn rack to the surveyed size, keeping its real centre.
-        fs[0]["geometry"]["coordinates"] = rect(lon, lat, length, 0.62, ang)
+                  extra={"cap": a.get("CAPACITY") or 0}, size=(length, 0.62))
         feats.extend(fs)
         stats["city_bike_rack"] += 1
 
@@ -773,11 +787,11 @@ def main():
         lon, lat = r["lon"], r["lat"]
         docks = int(a.get("NUMBER_OF_DOCKS") or 11)
         ang = det01(lon, lat, "a") * math.pi
-        fs = make("bicycle_rental", lon, lat, ang, "city",
-                  extra={"name": a.get("KIOSK_NAME") or "", "docks": docks})
         # ~0.72 m of dock run per bike — a 15-dock station is 11 m of hardware
         # and reads as the substantial object it is.
-        fs[0]["geometry"]["coordinates"] = rect(lon, lat, max(3.0, docks * 0.72), 1.05, ang)
+        fs = make("bicycle_rental", lon, lat, ang, "city",
+                  extra={"name": a.get("KIOSK_NAME") or "", "docks": docks},
+                  size=(max(3.0, docks * 0.72), 1.05))
         feats.extend(fs)
         space("bicycle_rental").add(lon, lat)
         stats["city_bikeshare"] += 1
