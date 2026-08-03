@@ -405,8 +405,18 @@
     if (typeof window.applyPropColors === 'function') window.applyPropColors(map, p);
     if (typeof window.applyCapitolColors === 'function') window.applyCapitolColors(map, p);
 
+    // The crown gradient lives in js/app.js (window.TREE_SHADE and
+    // treeCanopyColour) because that is the tree lane's file; this is the one
+    // line that has to change here, and it is a call rather than an expression
+    // so the two paint sites cannot drift apart. The expression it replaces
+    // ramped on the tier's own TOP HEIGHT, which clamped 34% of tiers flat and
+    // ran the wrong way — the lit top of a canopy came out darker than its
+    // shaded underside. Falls back to the old expression if app.js has not
+    // loaded, so a partial page still gets green trees.
     safePaint(map, 'trees-canopy', 'fill-extrusion-color',
-      ['interpolate', ['linear'], ['get', 'h'], 6, s.canopyLo, 15, s.canopyHi]);
+      typeof window.treeCanopyColour === 'function'
+        ? window.treeCanopyColour(s)
+        : ['interpolate', ['linear'], ['get', 'h'], 6, s.canopyLo, 15, s.canopyHi]);
     safePaint(map, 'trees-trunk',  'fill-extrusion-color', s.trunk);
     safePaint(map, 'landscape-pitch',    'fill-color', s.pitch);
     safePaint(map, 'landscape-fountain', 'fill-color', s.fountain);
