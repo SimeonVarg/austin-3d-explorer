@@ -1,5 +1,205 @@
 # Austin 3D Explorer — Full Handoff
 
+## 56. Aug 3 2026 — downtown was never dark. It was UNDIFFERENTIATED, and the atlas was eating the difference. (acer lane)
+
+**Branch:** `acer/downtown-colour`. **QUEUE F3 / E1's colour question.** Files:
+`scripts/bake_outer_facades.py`, `data/outer_tower_palette.json` (its output),
+and a new instrument `scripts/verify/downtown-colour.mjs`.
+**`data/outer_ring.geojson` is byte-identical — NO RE-TILE IS NEEDED.** `fb`
+did not move on a single feature; the palette is a runtime `fetch`, not tile
+content.
+
+### The three candidates, each answered by running it rather than reading it
+
+`downtown-colour.mjs` builds the §48 visibility mask ONCE and then re-reads that
+same index set under one switched term at a time — one build, one session, and
+a `restore` row that came back **0.0** on every run. Tour pose
+`downtown-skyline`, tod 0.30, tiled path.
+
+**1. A REGRESSION FROM THE FACADE TILE SWITCH (#84/#94)? NO — and reverting it
+would be worse.** The pre-#84 frame is reproducible exactly: set `outer-tower`'s
+pattern back to the literal `'mh00'` every tower used to fall through to.
+
+```
+                       luma    sd    B-R
+today (baked buckets) 119.7   9.0  -13.6
+pre-#84 ('mh00')      125.5   7.4  -39.8
+```
+
+The switch cost **5.9 luma** and **bought 1.6 of spread**. 5.9 luma is not a
+smudge of charcoal, and the old state put all 243 towers on one brick-red
+pattern.
+
+**2. THE ATMOSPHERIC FADE OVER-DARKENING? THE EXACT OPPOSITE.** `HAZE_TUNE.on
+= false` and the towers **fall to 78.3 luma**. The haze is worth **+41.4 luma**
+to downtown — it is the only reason downtown is visible at that range at all.
+And `fill-extrusion-vertical-gradient`, which QUEUE F1 names as a suspect, is
+worth **-0.3 luma on the towers** (6.8 on the flat ring, where it is doing its
+job). **For the fade lane: the ring's vertical gradient is not F1's culprit.**
+
+**3. THE DATA? THE DATA IS RIGHT. THE ATLAS THROWS IT AWAY.** This is the
+answer. Population-weighted over the 243 towers:
+
+```
+                    luma     sd     B-R
+the baked palette  159.2   27.0   +14.6
+the ATLAS TILE     131.4   16.3    -9.4     <- 60% of the spread survives
+the SCREEN pixel   119.7    9.0   -13.6     <- half of what is left survives
+```
+
+### The photograph, and the number nobody had taken
+
+Two references, both CC-licensed, both looked at before anything was changed:
+Wikimedia Commons **"Aerial view of Downtown Austin"** (CC BY-SA 4.0, clear
+midday) and **"Austin Texas skyline, December 2023 - Day"** (CC BY-SA 2.0).
+
+Twelve individual tower facades sampled off the aerial — and **the swatch sheet
+was rendered and looked at before the numbers were used, which is how two of the
+fourteen patches were caught sitting on a ROOF and thrown out.**
+
+```
+real Austin facades   luma 104.9   sd 28.5   B-R +20.1   (range +1..+45, all positive)
+the skyline photo, resampled so the cluster subtends the pixels it does in our
+frame                 towers luma 116.5 sd 35.6 | low-rise 127.9 sd 43.7
+```
+
+**Our MEAN was already right — 119.7 against 116.5.** So was the bake's own
+spread — 27.0 against the photograph's 28.5. **The defect is that only a third
+of that spread reaches the screen.** A mass is not a dark thing, it is an
+undifferentiated thing, and that is the word he used. Every tower in the
+photograph is a different colour from its neighbour; ours were inside a 22-luma
+band.
+
+### Where it goes, and why the fix is in the bake
+
+`js/facades.js:drawTile` paints the glazed 51% of a `tg` tile as
+`mix(wall, [46,58,74], 0.62)` — so only 38% of a bucket's difference from its
+neighbours survives in half the tile — then washes it with
+`mix(glass, [255,176,96], golden*0.45)`. **§53 already wrote that request into
+this file and nothing came of it**, and repainting `drawTile` moves every
+building in Austin, not the 243 that are wrong.
+
+So the compression is **inverted in the file that owns the atlas generator's
+input**. That is not a workaround dressed up: `outer_tower_palette.json` is not
+a list of wall colours anybody sees. Nothing renders it — checked, including
+that the tower FEATURES' own `wd` is dead at render time too, since `js/outer.js`
+sends `t=1` to a pattern layer and a roof layer that reads `rd/rg/rn`. Its only
+job is to be the number that makes the TILE come out right.
+
+**The map from `wd` to the tile is AFFINE and was FITTED, not assumed** — ten
+buckets read straight off the registered atlas images by `tower-atlas-tone.mjs`,
+one line per channel, residuals under one level. Two terms:
+
+1. **Spread.** Expand each centroid about the **population-weighted** mean by
+   exactly `1/slope`, per channel. Weighted by building count, not by bucket —
+   the towers run 6..34 to a bucket and an unweighted mean would shift the whole
+   skyline instead of stretching it. Expanding about the mean is the point: the
+   mean was already right.
+2. **Hue, and the one place it can be put.** `drawTile`'s amber is scaled by
+   `golden = 1 - |p-0.5|/0.5`. A bucket's `wg` is weighted by `p/0.5` below noon
+   and `1-(p-0.5)/0.5` above it — **the same ramp, both halves of the day**. So
+   a fixed cool offset carried on `wg` ALONE cancels a constant fraction of the
+   amber at every hour and leaves p=0 and p=1, where there is no amber, exactly
+   alone. Put it on `wd` and midnight goes blue. It cancels **half** —
+   `AMBER_CANCEL`, a taste knob — because a curtain wall genuinely does pick up
+   the sky at sunset and the two references disagree about how much (+20 clear
+   midday, -0.3 hazy low sun). And it is **renormalised back to its own luma**,
+   so it rotates the hue without dimming anything.
+
+Predicted, then verified against the real atlas — **within one level on every
+channel of every bucket**:
+
+```
+tg25  predicted 115.7,132.3,143.7   measured 116,132,144
+tg20  predicted  80.4, 91.1, 99.5   measured  81, 92, 99
+tg23  predicted 146.0,117.3, 87.1   measured 146,117, 86
+```
+
+### Result, measured at two ranges
+
+```
+                        before   after   reference
+atlas tile     sd        16.3    27.0    (the bake's own 27.0)
+               B-R       -9.4    +5.0
+screen, 2.7 km luma     119.7   116.9    116.5
+               sd         9.0    13.1     35.6
+               B-R      -13.6    -5.6     -0.3
+screen, close  sd          --    30.2     28.5     <- p10..p90 85..169 vs 65..167
+sunset  0.62   luma      61.1    59.9
+               sd         7.4     8.1
+night   0.95   crop sd   12.41   12.40    (unchanged by design)
+```
+
+### Four things that went wrong on the way, all of them instructive
+
+1. **THE FIRST PREDICTOR REPORTED THE HUE AS UNCHANGED, AND THE NUMBER LOOKED
+   FINE.** `TILE_FIT` was fitted against `wd` while `wg` was still a fixed
+   multiple of it, so the fit had silently absorbed `drawTile`'s own wd→wg lerp.
+   The moment the amber cancel moved `wg` independently, a wd-only predictor was
+   blind to it and printed B-R -9.1, i.e. "no change", next to a spread that had
+   genuinely doubled. **A fit absorbs every variable you held constant while
+   fitting it.**
+2. **A NIGHT REGRESSION THAT WAS A HALF-DRAWN FRAME.** Deriving `wn` from the
+   expanded centroid looked like it had cost the night skyline a quarter of its
+   contrast (crop sd 12.00 → 8.59, mean unmoved). Interleaved reps — after,
+   before, after, after — read **12.43 / 12.41 / 12.40** and the single low
+   reading never came back. `pose.mjs` already shoots twice; **after a jump to
+   tod 0.95 even twice is not always enough for the facade atlas to land.**
+   `wn` is nonetheless left on the ORIGINAL centroid, and for a real reason:
+   `TILE_FIT` was fitted at p=0.30, at night `drawTile` does
+   `mix(glass,[12,15,28],dark*0.9)` and throws away 90% of the bucket, and
+   applying a correction outside the range it was measured in is how you get
+   a defect you cannot see coming.
+3. **THE SUNSET PICTURE PAIR IS NOT EVIDENCE AND IS NOT QUOTED AS ANY.** The two
+   `pose.mjs` runs differ on 98.7% of the frame with the SKY — which has no
+   facades in it — moving 61.93 → 69.48. §43's exposure step, and quite possibly
+   another lane's live edit (below). The sunset claim above comes from the mask
+   probe, whose `outer-midrise` / `outer-3d` / `buildings-3d` rows were
+   **identical to one decimal** across the pair, which is what proves one build.
+4. **A HAND-PICKED PATCH WAS WRONG AGAIN, for the fourth time in this repo.**
+   Five facade patches picked by eye off the close frame; four of them landed on
+   pixels that had not changed at all. The mask is not a nicety.
+
+### TWO LANES WERE LIVE IN THE SAME WORKING DIRECTORY, AND THIS IS THE WARNING
+
+Mid-pass, `C:/Users/simip/Projects/austin-3d-explorer` was found checked out on
+**`acer/dof-horizon-line`** with `f491f77` committed on it — another lane
+editing `js/graphics.js` in the tree I was measuring in. CLAUDE.md's split is by
+FILE and that held; nothing collided. **The working DIRECTORY is not covered by
+it and that is a real gap.** Every shot here predates `f491f77` by timestamp,
+and every A/B pair's unchanged-layer controls were identical, so the numbers
+survive — but that was luck, not method. The rest of this pass was done from
+`git worktree add`, which is the answer: **if two lanes may run at once, the
+second one takes a worktree.** `reap.mjs` is the other hazard — it kills every
+headless verification browser on the machine, including the other lane's live
+one. It was run `--dry` here and reported nothing to reap, so nothing was
+killed.
+
+### What is still owed, with the number, for whoever takes it next
+
+- **The remaining compression is the haze, and it is not this lane's file.**
+  Same towers, same build, same tod, two ranges: **close, sd 30.2 and 10.1 luma
+  below their own surround; at 2.7 km, sd 13.1 and 24.6 below.** The reference
+  photograph puts the gap at **11.4**. So the haze halves the spread and doubles
+  the contrast deficit over that distance. It is doing real work (+41.4 luma)
+  and this is not a claim that it is wrong — it is the measurement the fade lane
+  needs to decide.
+- **The ring low-rise is relatively too bright.** Reference towers:low-rise is
+  116.5 : 127.9 (0.911). Ours is 116.9 : 150.1 (0.779) — the backdrop is ~17%
+  hot relative to downtown. That is `PALETTE` in `scripts/bake_outer.py`, it is
+  this lane's file, and it is left alone deliberately: re-grading the whole
+  backdrop is "should the city look like this", which CLAUDE.md rule 9 says is
+  Simeon's call, not mine.
+- **E1's second half is smaller than it reads.** Inside the downtown box there
+  are **889** flat prisms left, median height **6.3 m** and only **80 at or
+  above 8 m** — #112 already gave the 645 real streetwall buildings their
+  pattern, parapet and ground floor. What is left is one- and two-storey
+  outbuildings, and a punched window grid is the wrong thing to put on them.
+- `TOWER_MIX` is still 42/24/18/16 and still untouched, for the same reason §53
+  gave.
+
+Pictures: `docs/shots/f3-downtown-skyline-before-after.jpg` and
+`docs/shots/f3-downtown-close-before-after.jpg`; raw frames in `shots/f3-*`.
 ## 55. Aug 3 2026 — the horizon line was never the haze. It was a CSS blur pinned to a screen row. (acer lane)
 
 **Branch:** `acer/dof-horizon-line`, PR #116. **QUEUE F1 and F2, and they were
