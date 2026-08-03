@@ -70,61 +70,101 @@
                               // (was 32)
     FENCE_PAD_M: 150,         // beyond the buildings bbox, streets stay dark
 
-    // ── Warm core, cool edges ──────────────────────────────────────
-    // The scene was one amber everywhere. Real cities are not: the dense core
-    // keeps older high-pressure sodium and carries far more warm sign and
-    // interior spill, while the outer residential streets have been retrofitted
-    // to ~4000K LED, which is visibly blue-white next to it. That split is the
-    // single cheapest way to give a night city a centre.
+    // ── Warm everywhere; the "cooler" end is WHITER, never bluer ──────
     //
-    // GENERATIVE, not sourced. Austin has no published per-fixture colour-
-    // temperature map and this is not derived from one. It is a taste call
-    // about how a city reads from 400 m up, anchored on the campus core.
+    // WHAT THIS USED TO BE, AND WHY IT WAS WRONG. The edge of the city was
+    // painted with honest cool-LED hexes — `#9db4e6`, `#b8c8ee`, `#ccd8f2`,
+    // `#dde7f7` — on the theory that outer residential streets have been
+    // retrofitted to ~4000K while the core keeps its sodium. Measured at
+    // `aerial-wide`, tod 0.95, by `scripts/verify/night-lamps.mjs`:
+    //
+    //     hot pixels (luma > 120) below the horizon   7,604   0.66% of frame
+    //     of those:   WARM 19.8%   BLUE-WHITE 66.9%   neutral 13.2%
+    //
+    // Two thirds of every lit pixel in the city was blue. The frame's colour
+    // was being decided by a generative taste call rather than by the city, and
+    // because `WARM_FADE_M` was 1,250 m against a 3.3 x 3.1 km lamp fence,
+    // almost every lamp in the scene sat at the FULLY COOL end — so the split
+    // did not read as a gradient with a warm centre, it read as a hard seam
+    // where campus met West Campus.
+    //
+    // Austin Energy's own conversion is to 3000K, chosen for dark-sky reasons.
+    // A street lamp here is sodium-to-warm-LED and there is no blue-white
+    // fixture anywhere in it. So the gradient survives and its blue end does
+    // not: an EDGE colour is now its own CORE colour pushed toward the
+    // achromatic point AT THE SAME LUMA, which cannot go blue by construction
+    // (see `cooler()`), and which is luma-matched by construction too rather
+    // than by four hand-tuned hexes. The core still gets the emphasis, via
+    // CORE_OPACITY_BOOST, which is the one thing that should differ in
+    // brightness.
     //
     // Costs nothing at render time: `w` (1 core … 0 edge) is computed once per
-    // lamp at generation and the final colour is BAKED into the feature, so
-    // the paint property is a plain ['get','color'] — the same shape
-    // signs-ground-glow already uses. No per-frame expression work.
+    // lamp at generation and the final colour is BAKED into the feature, so the
+    // paint property is a plain ['get','color']. No per-frame expression work.
     WARM_ANCHOR: [-97.7394, 30.2862],   // the Main Building / UT Tower
-    WARM_FULL_M: 430,          // inside this radius, full sodium
-    WARM_FADE_M: 1250,         // beyond this, full cool LED
+    // The ramp is now WIDER THAN THE FENCE ITSELF (the lamp bbox is ~3.3 km
+    // across, so its far corner is ~2.3 km from the anchor). A ramp that
+    // saturates inside the frame puts a boundary in the frame; one that never
+    // saturates cannot. This is the seam fix, and it is independent of the
+    // colour fix — both were needed.
+    WARM_FULL_M: 900,          // inside this radius, full sodium
+    WARM_FADE_M: 2600,         // and it never quite reaches the far end
+    EDGE_DESAT: 0.45,          // how far the edge lamp moves toward white
     CORE_OPACITY_BOOST: 0.22,  // core lamps also read a touch stronger
 
     // Pool: the soft ground glow. Core: the small bright lamp head inside it.
-    // Each tier carries a core (warm) and an edge (cool) end; a lamp's own
-    // colour is mixed between them by `w`.
-    //
-    // The two ends are LUMA-MATCHED, and that is not cosmetic. The first cut
-    // used honest cool-LED hexes (#d8e2ff and friends) and they are far lighter
-    // than the sodium they replace — #ffa63f is luma 177, #d8e2ff is luma 226 —
-    // so the "cooler edge" came out as the BRIGHTEST thing in the frame, a belt
-    // of white blobs across the West Campus foreground out-punching the core it
-    // was supposed to defer to. Measured at the same time: the west pose's frame
-    // p50 rose 10% while its p99/p50 contrast stayed flat, which is that exact
-    // failure written as a number. Each EDGE colour below now sits within ~3
-    // luma of its CORE partner, so the gradient is a change of HUE only and the
-    // core keeps the emphasis (via CORE_OPACITY_BOOST, which is the one thing
-    // that should differ in brightness).
-    COLOR_MAJOR_CORE: '#ffa63f', COLOR_MAJOR_EDGE: '#9db4e6',   // luma 177 / 179
-    COLOR_MINOR_CORE: '#ffbc6c', COLOR_MINOR_EDGE: '#b8c8ee',   // luma 197 / 199
-    COLOR_WALK_CORE:  '#ffcf90', COLOR_WALK_EDGE:  '#ccd8f2',   // luma 213 / 215
-    HEAD_COLOR_CORE:  '#ffe6b4', HEAD_COLOR_EDGE:  '#dde7f7',   // luma 232 / 230
-    POOL_OPACITY_MAJOR: 0.66,   // was 0.52
-    POOL_OPACITY_MINOR: 0.50,   // was 0.36
+    // One warm colour per tier; the edge end is derived from it by `cooler()`.
+    COLOR_MAJOR_CORE: '#ffa63f',   // luma 177
+    COLOR_MINOR_CORE: '#ffbc6c',   // luma 197
+    COLOR_WALK_CORE:  '#ffcf90',   // luma 213
+    HEAD_COLOR_CORE:  '#ffe6b4',   // luma 232
+    POOL_OPACITY_MAJOR: 0.66,
+    POOL_OPACITY_MINOR: 0.50,
     POOL_OPACITY_WALK:  0.28,
     CORE_OPACITY: 0.9,
     POOL_BLUR: 0.85,
     CORE_BLUR: 0.4,
-    // circle-radius zoom curve for the pool (px); the other tiers and the lamp
-    // head are scaled off it so one curve rules the sizes. Widened only in the
-    // 15-17 band, which is where the flying camera lives and where the mid
-    // ground was going dark; the z19.5 end is untouched because the near-field
-    // pools were already the largest thing in the frame and fill rate at that
-    // radius is the one part of this that could cost frames.
-    POOL_RADIUS: [13, 2.8, 15, 7.5, 17, 19, 19.5, 44],
+
+    // ── SIZE IS AUTHORED IN METRES ON THE GROUND, not in pixels ───────
+    //
+    // The old curve was `[13, 2.8, 15, 7.5, 17, 19, 19.5, 44]` px, and a px
+    // curve hides what it is asking for. Converted at this latitude it reads:
+    //
+    //     z13   2.8 px x 16.49 m/px  =  46 m radius   (a 92 m pool)
+    //     z15   7.5 px x  4.12 m/px  =  31 m
+    //     z17  19   px x  1.03 m/px  =  20 m
+    //     z19.5 44  px x  0.18 m/px  =   8 m
+    //
+    // The street-level end was right all along and the flying end was six times
+    // too big — which is exactly what the two poses show: `the-drag` at z17.2
+    // is a row of small warm lamps, `aerial-wide` at z14.4 is a carpet of
+    // blobs. Measured across 949 separate glows in that frame, ground width was
+    // p10 9 m / median 22.5 m / p90 98 m / max 362 m. A 98 m glow is wider than
+    // the building beside it, which is the whole of "the glows are bigger than
+    // the buildings" AND most of "they sit over rooftops": only 3.8% of pool
+    // pixels are genuinely drawn over a roof (the layer goes under the building
+    // extrusions and is occluded correctly) — but a 98 m disc SURROUNDS the
+    // building it passes, so the building reads as standing in the light.
+    //
+    // `circle-pitch-scale` is left at its default 'map', so a pool is a real
+    // disc lying on the ground and perspective grows it in the near field.
+    // That is correct behaviour and it is why the size has to be authored in
+    // METRES: the near-field inflation is only defensible on top of an honest
+    // physical radius.
+    //
+    // [zoom, ground RADIUS in metres]. A real lamp pool is 6-8 m; the low-zoom
+    // end is deliberately allowed to run larger, because from 500 m up a
+    // physically-correct 7 m pool is one pixel and the city goes dark again —
+    // which is the defect this module was written to fix. This is the one
+    // knob that trades "bokeh carpet" against "dark city".
+    POOL_GROUND_M: [13, 18, 15, 14, 17, 10, 19.5, 8],
     MINOR_RADIUS_SCALE: 0.74,
     WALK_RADIUS_SCALE: 0.46,
     CORE_RADIUS_SCALE: 0.22,
+    // From altitude the LAMP HEAD is what reads as a lit city — a crisp point,
+    // not a wash. Below this many pixels a head is not a dim lamp, it is no
+    // lamp, so the head keeps a floor the pool does not get.
+    CORE_MIN_PX: 1.3,
 
     // Lamps come on through dusk, slightly before full night.
     NIGHT_START: 0.58,
@@ -144,6 +184,13 @@
   const M_LAT = 110540;
   const mLon = lat => 111320 * Math.cos(lat * Math.PI / 180);
 
+  // Ground metres per screen pixel at this scene's latitude. This is the
+  // constant that turns an authored ground size into MapLibre's px radius, and
+  // it is only valid because `circle-pitch-scale` is left at 'map' — see
+  // POOL_GROUND_M.
+  const SCENE_LAT = 30.285;
+  const mPerPx = z => 156543.03392 * Math.cos(SCENE_LAT * Math.PI / 180) / Math.pow(2, z);
+
   let _points = null;      // generated once
   let _tries = 0;
   let _lastP = 0;
@@ -152,23 +199,63 @@
     return ['match', ['get', 'tier'], 'major', major, 'minor', minor, walk];
   }
 
+  /**
+   * `circle-radius` stops, derived from POOL_GROUND_M at each stop's own zoom.
+   *
+   * POOL_GROUND_M alternates [zoom, metres, zoom, metres…]. The zoom
+   * interpolate MUST be the top-level expression — nesting it inside a
+   * ['match'] (or inside a ['max'], which is how a px floor would want to be
+   * written) is rejected by the style validator, and a rejected paint property
+   * takes the WHOLE LAYER down with it: measured once, the pool layer silently
+   * never existed while the core layer rendered. So per-tier scaling and the
+   * px floor are both resolved HERE, in JS, and the emitted expression is a
+   * plain top-level interpolate over constants. Same rule is why the
+   * warm/cool gradient is a baked per-feature colour rather than an
+   * interpolate on ['get','w'] wrapped in a tier match.
+   *
+   * `k` scales the whole curve (1 for the pool, CORE_RADIUS_SCALE for the
+   * head); `minPx` is a visibility floor applied after the metres→px
+   * conversion.
+   */
+  function radiusExpr(k, minPx) {
+    const stops = [];
+    for (let i = 0; i < LIGHTS.POOL_GROUND_M.length; i += 2) {
+      const z = LIGHTS.POOL_GROUND_M[i], groundM = LIGHTS.POOL_GROUND_M[i + 1];
+      const px = s => Math.max(minPx || 0, +(groundM * k * s / mPerPx(z)).toFixed(2));
+      stops.push(z, tierMatch(px(1), px(LIGHTS.MINOR_RADIUS_SCALE), px(LIGHTS.WALK_RADIUS_SCALE)));
+    }
+    return ['interpolate', ['exponential', 1.7], ['zoom'], ...stops];
+  }
+
+  // ── Colour. Warm core → whiter edge, at constant luma ─────────────────
+  function hexToRgb(hex) {
+    const h = hex.replace('#', '');
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const toHex = c => `#${c.map(n => Math.max(0, Math.min(255, Math.round(n)))
+    .toString(16).padStart(2, '0')).join('')}`;
+  const luma = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  /**
+   * The same colour with `amount` of its saturation removed, at IDENTICAL luma.
+   *
+   * Mixing toward the grey of the colour's own luma preserves luma exactly
+   * (luma is linear in R,G,B) and can only ever move a channel TOWARD the
+   * others — so a warm lamp gets whiter and never gets bluer. That is the
+   * guarantee the old hand-authored `#9db4e6` edge did not have, and it is why
+   * this is a function rather than four more constants.
+   */
+  function cooler(hex, amount) {
+    const c = hexToRgb(hex), L = luma(c);
+    return toHex(c.map(v => v * (1 - amount) + L * amount));
+  }
+
   function addLayers(map) {
     if (!map.getSource(SRC)) {
       map.addSource(SRC, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     }
     const beforeId = map.getLayer('buildings-shadow') ? 'buildings-shadow'
                    : map.getLayer('buildings-3d') ? 'buildings-3d' : undefined;
-    // POOL_RADIUS alternates [zoom, px, zoom, px…]. The zoom interpolate MUST
-    // be the top-level expression — nesting it inside a ['match'] is rejected
-    // by the style validator, and a rejected paint property takes the whole
-    // layer down with it (measured: the pool layer silently never existed
-    // while the core layer rendered). Per-tier scaling goes INSIDE each output.
-    // Same rule is why the warm/cool gradient is a BAKED per-feature colour
-    // rather than an interpolate on ['get','w'] wrapped in a tier match.
-    const radiusExpr = (k) => ['interpolate', ['exponential', 1.7], ['zoom'],
-      ...LIGHTS.POOL_RADIUS.map((v, i) => i % 2
-        ? tierMatch(v * k, v * k * LIGHTS.MINOR_RADIUS_SCALE, v * k * LIGHTS.WALK_RADIUS_SCALE)
-        : v)];
+    if (!beforeId) console.warn('[night] no building layer to sit under — lamps will draw over roofs');
     if (!map.getLayer(POOL)) {
       map.addLayer({
         id: POOL, type: 'circle', source: SRC, minzoom: 13,
@@ -176,7 +263,7 @@
           'circle-pitch-alignment': 'map',
           'circle-color': ['get', 'color'],
           'circle-blur': LIGHTS.POOL_BLUR,
-          'circle-radius': radiusExpr(1),
+          'circle-radius': radiusExpr(1, 0),
           'circle-opacity': 0,   // driven by applyNightLayer
         },
       }, beforeId);
@@ -188,18 +275,13 @@
           'circle-pitch-alignment': 'map',
           'circle-color': ['get', 'head'],
           'circle-blur': LIGHTS.CORE_BLUR,
-          'circle-radius': radiusExpr(LIGHTS.CORE_RADIUS_SCALE),
+          'circle-radius': radiusExpr(LIGHTS.CORE_RADIUS_SCALE, LIGHTS.CORE_MIN_PX),
           'circle-opacity': 0,
         },
       }, beforeId);
     }
   }
 
-  // ── Warm core → cool edge ─────────────────────────────────────────
-  function hexToRgb(hex) {
-    const h = hex.replace('#', '');
-    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-  }
   function mixHex(a, b, t) {
     const A = hexToRgb(a), B = hexToRgb(b);
     const c = n => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
@@ -284,6 +366,7 @@
     }
 
     const bbox = buildingsBbox(map);
+    const headEdge = cooler(LIGHTS.HEAD_COLOR_CORE, LIGHTS.EDGE_DESAT);
     const seen = new Set();
     const features = [];
     let trimmed = false;
@@ -306,7 +389,7 @@
           tier: pass.tier,
           w: +w.toFixed(3),
           color: mixHex(pass.edge, pass.core, w),
-          head:  mixHex(LIGHTS.HEAD_COLOR_EDGE, LIGHTS.HEAD_COLOR_CORE, w),
+          head:  mixHex(headEdge, LIGHTS.HEAD_COLOR_CORE, w),
           ob:    +(1 + LIGHTS.CORE_OPACITY_BOOST * w).toFixed(3),
         },
         geometry: { type: 'Point', coordinates: [lng, lat] },
@@ -315,13 +398,15 @@
 
     // Majors first so the dedupe grid lets the brighter tier win crossings, and
     // walks last so a campus path running beside a street does not double up.
+    // Each tier's EDGE is derived from its own CORE — one warm family, no
+    // second palette to keep luma-matched by hand.
     for (const pass of [
       { classes: LIGHTS.MAJOR_CLASSES, spacing: LIGHTS.SPACING_MAJOR_M, tier: 'major',
-        core: LIGHTS.COLOR_MAJOR_CORE, edge: LIGHTS.COLOR_MAJOR_EDGE },
+        core: LIGHTS.COLOR_MAJOR_CORE, edge: cooler(LIGHTS.COLOR_MAJOR_CORE, LIGHTS.EDGE_DESAT) },
       { classes: LIGHTS.MINOR_CLASSES, spacing: LIGHTS.SPACING_MINOR_M, tier: 'minor',
-        core: LIGHTS.COLOR_MINOR_CORE, edge: LIGHTS.COLOR_MINOR_EDGE },
+        core: LIGHTS.COLOR_MINOR_CORE, edge: cooler(LIGHTS.COLOR_MINOR_CORE, LIGHTS.EDGE_DESAT) },
       { classes: LIGHTS.WALK_CLASSES,  spacing: LIGHTS.SPACING_WALK_M,  tier: 'walk',
-        core: LIGHTS.COLOR_WALK_CORE,  edge: LIGHTS.COLOR_WALK_EDGE },
+        core: LIGHTS.COLOR_WALK_CORE,  edge: cooler(LIGHTS.COLOR_WALK_CORE, LIGHTS.EDGE_DESAT) },
     ]) {
       const emit = emitFor(pass);
       for (const f of feats) {
@@ -345,9 +430,26 @@
                 `mean warmth ${(warmSum / Math.max(1, features.length)).toFixed(2)}`,
                 bbox ? `fenced ${bbox.w.toFixed(3)}..${bbox.e.toFixed(3)} / ${bbox.s.toFixed(3)}..${bbox.n.toFixed(3)}` : 'UNFENCED',
                 trimmed ? 'TRIMMED at cap' : '');
+    // Report the DERIVED values, not the authored ones: the whole point of
+    // `cooler()` and of metres-on-the-ground radii is that the constants above
+    // are no longer what lands, and a taste value you cannot read back is a
+    // taste value nobody will check. `bmr` is blue-minus-red — negative is
+    // warm, and the fix's claim is that no lamp in the file is ever positive.
+    const bmr = h => hexToRgb(h)[2] - hexToRgb(h)[0];
+    const worstBmr = features.reduce((m, f) => Math.max(m, bmr(f.properties.color), bmr(f.properties.head)), -999);
     window.__nightLights = { count: features.length, major: majors, minor: minors, walk: walks,
                              meanWarmth: +(warmSum / Math.max(1, features.length)).toFixed(3),
-                             trimmed, fenced: !!bbox };
+                             trimmed, fenced: !!bbox,
+                             worstBlueMinusRed: worstBmr,
+                             edges: {
+                               major: cooler(LIGHTS.COLOR_MAJOR_CORE, LIGHTS.EDGE_DESAT),
+                               minor: cooler(LIGHTS.COLOR_MINOR_CORE, LIGHTS.EDGE_DESAT),
+                               walk:  cooler(LIGHTS.COLOR_WALK_CORE, LIGHTS.EDGE_DESAT),
+                               head:  cooler(LIGHTS.HEAD_COLOR_CORE, LIGHTS.EDGE_DESAT),
+                             },
+                             poolPx: LIGHTS.POOL_GROUND_M.map((v, i) => i % 2
+                               ? +(v / mPerPx(LIGHTS.POOL_GROUND_M[i - 1])).toFixed(2) : v) };
+    if (worstBmr >= 0) console.error('[night] a lamp colour came out BLUE (b-r ' + worstBmr + ') — cooler() is broken');
     // The lamps may be born mid-evening — fade them to the current hour.
     window.applyNightLayer(map, _lastP);
   }
