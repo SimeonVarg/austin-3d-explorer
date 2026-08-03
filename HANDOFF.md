@@ -1,5 +1,141 @@
 # Austin 3D Explorer — Full Handoff
 
+## 43. Aug 3 2026 — the facade election left the browser, and the harness convicted the bake that had been sitting there (acer lane)
+
+**Branches:** `acer/facade-bake` (PR #94) and `acer/facade-bake-0803` (PR #95).
+QUEUE **C1**. `scripts/bake_facades.py` had been parked unmerged since the last
+pass with a comparator that did not exist and a harness that had **never been
+run**. Writing the comparator was the whole job, and it found things.
+
+### Why C1 exists at all, in one line that was already in the repo
+
+`scripts/tile.sh`: *"a tile of West Campus and a tile of downtown would each
+elect their own 14 tones against one shared atlas."* `quantiseFacades` is a
+function of the WHOLE feature list. A tiled source never hands you the whole
+feature list. So the election has to happen offline, and until it does,
+buildings cannot move onto vector tiles.
+
+### What the harness caught, and it would not have been caught by re-reading
+
+`familyFor` had been **paraphrased** into two tuples of substrings instead of
+copied from the regexes. Missing: `condo`, `kindergarten`, `chapel`,
+`cathedral`, `synagogue`, `mosque`, `temple`, `clinic`, `public`,
+`train_station`, `transportation`, `industrial`, `manufacture`, `warehouse`,
+`utility`, `service`. Invented: `house`, `religious`. **Four buildings were in
+the wrong facade family.**
+
+It also lower-cased `building_class`, which `js/facades.js` does not. That one
+is **latent** — all 28 class values in this snapshot are already lower case —
+so it is transcribed faithfully and written down rather than "fixed".
+**Faithful beats correct in a port.** If the case-sensitivity is wrong it is
+wrong in `js/facades.js`, and fixing it there is a separate, visible change.
+
+### The proof is TWO claims, not one, and they are easy to conflate
+
+1. **The port.** `scripts/verify/facade_parity.py` compares the bake against a
+   live capture of the real `mergeCapitolScene` / `applyUnion24` /
+   `quantiseFacades`. The outer-ring port could only compare the PARTITION,
+   because its `tg<n>` counts from the end of the campus palette. Here the
+   campus palette IS the whole palette, so this demands the same ordinal, the
+   same family and the same hex.
+
+```
+features 3057 / 3057      assembly 12 patched / 604 appended / 1 U24
+palette  14 / 14 identical    combos 64 / 64    wp exact 3057 / 3057
+```
+
+2. **The switch.** `js/facades.js` now adopts `data/facade_palette.json`, so
+   `facade-parity.mjs` loads the page a SECOND time with the bake armed and
+   diffs the two runs: 3057/3057 `wp`, 3057/3057 `wf`, 14/14 palette.
+
+**THE JOIN IS POSITIONAL AND THAT IS NOT A SHORTCUT.** 604 of the 3,057
+features are the authored Capitol and carry **no `id` at all**. An id-keyed
+join would have checked 80% of the city and printed a pass.
+
+**And the capture nearly became circular.** The moment `js/facades.js` started
+adopting the baked file, `facade-parity.mjs` would have had the browser read
+back the file `bake_facades.py` wrote and the comparator would have compared
+the bake against itself — printing a triumphant 3057/3057 while proving
+nothing. Pass A forces `?bakedfacades=0` and **asserts `FACADE_BAKED_ON` is
+actually false**; pass B asserts `facadePaletteSource()` really says `baked`
+before its diff is believed. Both guards in facades.js fall back to electing,
+and a fallback makes that diff come out perfect — so without the assertion,
+pass B passes loudest exactly when the bake was never used.
+
+### NEGATIVE CONTROLS — a harness that passes first time has proved nothing
+
+Broken on purpose, one axis at a time. All six fail:
+
+```
+the old paraphrased families      wf differs on 4 features
+TARGET_BUCKETS 13                 palette length 13 vs 14
+applyUnion24 skipped              final_height 97.5 vs 94.4 on #1212
+FACADE_PROTECTED dropped          palette[0].wd #cebc9e vs #bd8477
+capitol.geojson not appended      2453 vs 3057 features
+python round() for Math.round     exactly 2 of 42 hex channels
+```
+
+That last one is why `_js_round` exists, and **two channels out of forty-two is
+below what any amount of re-reading would find.**
+
+**The first version of this control script reported three PASSes it had not
+earned.** `facade_parity.py` does `from bake_facades import load_scene`, so the
+name it calls is its OWN module global and rebinding `bake_facades.load_scene`
+was a silent no-op. Patching the importer, not the importee, turned three
+false passes into three real failures. Worth remembering for any Python
+verification in this repo.
+
+### The picture measurement was wrong on the first reading, by a lot
+
+`docs/shots/facade-baked-vs-elected-tower.jpg` and `-westcampus.jpg`, top
+baked / bottom elected, indistinguishable — which is the point. But the first
+before/after pair said **62% of the frame changed**, and it was garbage:
+
+```
+tower       baked1 vs baked2   (THE SAME CONFIG)   52.7% of pixels differ by >8
+            baked2 vs elected1                      0.02%,  max channel 11
+            baked2 vs elected2                      0.00%,  max channel  8
+```
+
+**A whole-frame ~7-level exposure shift lands randomly per `pose.mjs` run — and
+it is in the SKY, which has no facades in it.** That is what unmasked it: a
+difference that shows up above the horizon cannot be a wall texture. Any pass
+that has compared two `pose.mjs` frames from separate runs and quoted a
+percentage has been exposed to this. CLAUDE.md rule 10 already says take the
+minimum of interleaved reps; this is what one reading costs.
+
+### The guard fired for real within the hour, which is the useful ending
+
+The snapshot rolled to `2026-08-03` in the same merge window as #94. The baked
+file said `2026-08-02`, guard 1 refused it, and the browser elected. Nothing
+broke — and **the switch was silently inert on `main`**, which is the failure
+mode to be loud about: a bake whose output nothing reads looks exactly like a
+bake that works. #95 re-bakes it.
+
+Measured across the roll: **0 palette entries moved, 0 bucket assignments
+moved** — the only difference between the two files was the date string. So
+the guard refuses on a date rather than on a difference, deliberately, because
+the alternative is fourteen buckets that do not mean the same thing twice.
+
+**`data/facade_palette.json` MUST BE RE-BAKED WHENEVER THE SNAPSHOT ROLLS**, or
+C1 goes quietly back to being a browser election. `austin-data-bot` rolls it on
+a schedule. That is the single maintenance obligation this pass adds, and the
+emitted file's own `note` now says so.
+
+### What is still NOT done
+
+The tiles themselves. `scripts/tile.sh` builds `austin.pmtiles` and nothing
+loads it; making a tiled buildings source carry the ordinal and wiring
+`js/app.js` to it is the remaining half, and `js/app.js` was outside this
+lane. What is now true that was not before: **the fourteen buckets are a
+property of the data instead of a property of the session**, and `stampAll()`
+is split out of the election so the only step a tiled feature needs is the one
+that runs per feature.
+
+Also: the coarse key had been written out **three times** inside
+`quantiseFacades` and had to agree in all three or a building is counted into
+one group and stamped out of another. One function now.
+
 ## 42. Aug 3 2026 — the campus is 51.8% bare, and the lawn was running under the buildings (acer lane)
 
 **Branch:** `acer/ground-precincts`, PR #93. The ground brief's four items. Two
