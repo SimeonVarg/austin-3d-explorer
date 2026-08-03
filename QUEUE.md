@@ -316,7 +316,35 @@ There is asphalt drawn in a courtyard that has none. Find out where that surface
 comes from — it is probably an OSM `highway` way crossing the court, or a
 service-road polygon — and stop drawing it there. Then make the court a court.
 
-## C5. West Campus apartments — LAST, but he cares most about it
+## C5. West Campus apartments — **DONE (the blocks), one thing owed**
+
+> **PR #113, merged `0c9bd1a`.** The pass already did the ten TOWERS; West Campus
+> is made of six-to-ten storey BLOCKS, and every building he named that was still
+> a plain prism was one of those. Fourteen join the bake — The Standard, Rambler,
+> The Quarters (both houses), 2400 Nueces, The Nine, Twenty Two 15, The Block,
+> Block on 25th East, Pointe on Rio, Crest at Pearl, The Venue, The G, The Nine
+> at Rio — with a ground-floor band, a crown that stops the window grid, 268
+> projecting balcony slabs clipped to their own footprints, and amenity in the
+> courtyards the footprints already have.
+>
+> **The colour was in the data and the renderer was electing it away.**
+> `quantiseFacades()` keeps the fourteen most populous tones city-wide; over the
+> 284 West Campus buildings ≥12 m that fold moves a wall by a median 13.9 RGB and
+> up to 97.5. **The Standard was being painted brick red**; its architect's
+> photographs show a light three-tone panel building. A feature in
+> `data/westcampus.geojson` skips the election. HANDOFF §54;
+> `docs/shots/westcampus-*.jpg`.
+>
+> **OWED, and it is the one thing he would notice.** The Standard is **17
+> storeys** (Humphreys & Partners: 17 floors, 287 units, 989 beds, 640 spaces).
+> The snapshot has it at **20.5 m** — the pre-2019 building's LiDAR, on a 2015
+> City-of-Austin footprint that has never been redrawn. It cannot be fixed in
+> this pass: `js/controls.js` builds its collision field from `final_height`, so
+> raising it there would draw a tower you can fly through. It belongs in
+> `scripts/hero_overrides.json` + a re-run of `enrich.py`. **That one number also
+> unlocks his building's pool deck**, which was measured off the z20 nadir, built,
+> and then deleted — all three routes to drawing it are blocked by the stale
+> height. The measured rectangles are kept in `bake_westcampus.py`.
 
 *"so many apartments in austin wampus have such cool designs but are currently
 regular building blocks. Can you implement these designs?"*
