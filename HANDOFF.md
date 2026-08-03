@@ -1,5 +1,143 @@
 # Austin 3D Explorer — Full Handoff
 
+## 58. Aug 3 2026 — a wall pattern has no HORIZONTAL anchor either, so West Campus got colour bays and its balconies got rails (acer lane)
+
+**Branch:** `acer/westcampus-character`. **QUEUE C5, the CHARACTER half.** Files:
+`scripts/bake_westcampus.py`, `data/westcampus.geojson`, `js/westcampus.js`.
+
+> *"so many apartments in austin wampus have such cool designs but are currently
+> regular building blocks ... personally as someone staying in standard next year
+> i love how it looks and if this tool wasn't mine and i saw standard look nice i
+> would feel really cool"*
+
+PR #113 was MASS — fourteen more blocks, each keeping the wall colour the imagery
+measured. This is CHARACTER, and it is three ideas.
+
+### 1. The bake stacked bands vertically for two tiers and never went sideways
+
+`fill-extrusion-pattern` has no vertical anchor, which is why this bake emits
+base / podium / tower / crown as separate prisms. **It has no HORIZONTAL anchor
+either, and nobody had used that.** A facade that is a field of cream, warm-grey
+and slate panels — which is most of what West Campus built after 2015 — can be N
+prisms side by side, each carrying its own colour into the atlas, instead of one
+prism carrying their average. `bays` is a list of `(u_from, u_to, colour, fam)`
+fractions of the building's own obb, cut through shapely rather than through the
+half-plane clipper `step` uses, because that clipper takes ONE ring and would
+fill a courtyard in.
+
+### 2. A balcony slab with nothing on it is a LEDGE
+
+268 balcony slabs shipped in #113 at 0.34 m thick with nothing standing on them.
+Every one of these buildings has a 1.05 m balustrade (IBC's residential minimum,
+and the real number). **504 rails is the single most visible change in the pass
+and the cheapest**, and it is what makes an elevation read as somewhere people
+live rather than as a stack of sunshades. `balcseg` also cuts the slab into one
+balcony PER UNIT where the reference shows separate boxes; Cambridge Tower keeps
+a continuous slab, because its continuous balcony is sourced.
+
+**The rail is cut out of the slab that survived the footprint clip**, not off a
+line at `v1 +/- BALC_PROJ`. The first cut did the latter and drew **142 rails for
+498 slabs**: `v1` is the obb EXTREME, so on any plan whose wall is not exactly at
+the extreme — most of them — a 0.11 m strip out there lands entirely outside the
+balcony mask and vanishes, while the 1.55 m slab still catches the part near the
+wall. `slab.difference(footprint.buffer(PROJ - RAIL_T))` leaves exactly the outer
+lip of whatever slab is there, round every notch. 504 rails for 498 slabs.
+
+### 3. Every bay hex came off a named photograph, and the method matters
+
+`research/union24th-area/imagery/web/` holds the architects' own exteriors and
+nobody had opened them. Crop the material -> LOOK at the crop on a contact sheet
+-> k-means it -> take the cluster centre with its share of the crop. **Three of
+the first nine crops turned out to be sky, foliage or a lit window**, and their
+"measurements" were worthless; the contact sheet is what caught them.
+
+Then the re-centring, and the distinction is not cosmetic. `bay_mix` is additive
+about the crop mean and re-centres on the body colour #113 verified, so a
+building's bays AVERAGE BACK to it by construction — tier three can decompose a
+wall but cannot repaint it. A ratio would be cleaner except that against a
+BLUE-HOUR exposure it clips every light material to white (the cream panel came
+out `#fff8da` on the first attempt). But additive also COMPRESSES anything far
+from the mean, and The Standard's slate corner is far from it: `bay_mix` put it
+at `#989c9f`, 27 luma from the pale panel beside it, where the photograph has it
+at 0.57 of the cream's luminance. So `bay_ratio` for a material that is a
+DIFFERENT material, `bay_mix` for one that belongs to the field.
+
+- **The Standard** (Humphreys' `StandardAustin_Ext_14`): warm / cream / pale
+  panel bays and the slate corner volume carrying the name, which **oversails
+  the parapet** — cut OUT of `final_height` the way `mech` is, never added.
+- **Block on 25th East** (ACC's `671_01_exterior`): a burnt-orange stucco mass at
+  one end of a 91 m cream bar. **WHICH end took two independent readings that
+  agree**: in the photograph the long face is sunlit and the end return is in
+  shade, and in the nadir every shadow runs north-west. Both put the sun in the
+  south-east, so the camera is south of an east-west bar and the shaded end is
+  the WEST one.
+- **2400 Nueces** (Architect Magazine's own): a honey Texas-limestone volume full
+  height at the 24th Street end, umber accent panels, a silver metal field.
+
+### What I tried that did NOT work
+
+- **Moontower.** Its two-tone rainscreen is in this bake's own sourced
+  description, and it was built, rendered and then removed. `wd` is `#7d8a8e`,
+  luma 135, and ANY two-tone split of a body that dark puts a lot of dark on the
+  wall: at the sourced 40% near-white the other 60% comes out `#3b4e52`, which
+  made Moontower the darkest building in West Campus. **There is no photograph of
+  Moontower in `research/`** to say whether the split or the measured body is
+  wrong. It renders as a flat slab, and that is the right answer until someone
+  fetches one. `two_tone()` and the numbers are kept for it.
+- **Six camera poses that could not see the building.** The Standard is 20.5 m
+  among 26-32 m neighbours, and the first four "before/after" pairs were of a
+  DIFFERENT building whose facade happened to sit under the label. The magenta
+  mask (QUEUE trap 5) settled it in one frame: the pass was drawing a thin strip
+  BEHIND the block I was reading. **`queryRenderedFeatures` on a fill-extrusion
+  with a layer list but no geometry is not to be trusted** — it reported 6
+  features for a viewport holding a dozen of them; a small box query at a
+  projected point is truthful. And a bare `queryRenderedFeatures()` with no layer
+  filter throws inside MapLibre 5.24's symbol decoder on this style.
+- **`git stash` as the before/after mechanism.** It stashes the WORKING tree, not
+  the branch, so a "before" run taken that way is your own committed change minus
+  your last edit. `git checkout origin/main -- <files>` is the one that means
+  what it says.
+
+### Measured
+
+- `data/westcampus.geojson` 401 -> 1,144 features (90 wall bands including **11
+  colour bays**, 498 balcony slabs, **504 rails**), 171.7 -> 400.4 KB raw /
+  **26.0 KB gzipped**, atlas 37 -> 46 images.
+- **Nothing stands above `final_height`**: max `h - final_height` is +0.000 for
+  all 24 buildings, the raised corner bay included.
+- The four Standard bays hold four DIFFERENT atlas images, read back off the live
+  atlas: `#a1917c` / `#c9bba4` / `#a9a193` / `#858586` — a **56 luma** spread
+  across one elevation. On the flat-colour diagnostic (pattern off) the same
+  elevation runs `#888274` to `#e7c38d`, **67 luma**.
+- **Cost, MIN of 2 interleaved reps each, hardware GL, 1280x800, zoom 16.6 over
+  West Campus**: a forced time-of-day tick 91.0 -> 103.7 ms (+14%); median frame
+  time over a 200-frame orbit 74.0 -> 77.3 ms (+4.5%). Both configurations were
+  separate page loads, which is a weaker A/B than `applyWestcampusSettings()`
+  gives — but that toggle hides layers and cannot unregister atlas images, and
+  the atlas is where the tick cost is.
+- Night re-checked at tod 0.95: p50 luma 12.5-15.1 over three poses, walls dark,
+  windows lit, no pale surface after dark. The new `raill` (pale precast) rail
+  goes to `#1e2029`.
+- New bake-time assertion: every building's bays must tile 0..1 with no gap and
+  no overlap. Proved it fires by breaking one.
+
+`docs/shots/westcampus-tier3-*.jpg` are before/after pairs, one camera each.
+
+### Owed
+
+- A photograph of Moontower, and its bays are four lines.
+- **Block on 25th East has a HIP ROOF.** `block-on-25th-east_nadir_z20.jpg` shows
+  grey shingled hips round the whole perimeter of a white flat deck — the note in
+  the bake that called them "pitched neighbours that are NOT part of it" was
+  wrong, and it is corrected there. This tier has no vocabulary for a hip roof
+  (it is why Block on 25th WEST is excluded), so the walls got tier three and the
+  roof did not, and `crowninset=0.0` on that row keeps a setback from becoming a
+  second error under it.
+- The Standard's HEIGHT, still. Unchanged from #113: 17 storeys at 20.5 m,
+  `scripts/hero_overrides.json` + `enrich.py`, and it unlocks the pool deck.
+- `scripts/verify/westcampus-probe.mjs` is still 66 lines with no `newPage` —
+  the Mac lane's regression, untouched here.
+
 ## 56. Aug 3 2026 — downtown was never dark. It was UNDIFFERENTIATED, and the atlas was eating the difference. (acer lane)
 
 **Branch:** `acer/downtown-colour`. **QUEUE F3 / E1's colour question.** Files:
