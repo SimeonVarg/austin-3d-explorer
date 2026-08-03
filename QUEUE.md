@@ -251,7 +251,19 @@ he has now rejected that read twice.**
 
 # PART C — WHERE STUDENTS ACTUALLY LIVE. This is what UT viewers will check.
 
-## C1. Jester should not look like a prison
+## C1. Jester should not look like a prison — **DONE (roofs + courts)**
+
+> **PR #106.** All three Jester footprints now carry the roof the nadir
+> photograph shows — a terracotta tile hip band around a light grey concrete
+> deck (measured: 28-47% of each roof passes the tile test, 33-59% is neutral
+> and bright). Three things had stopped it: the 34 m height gate, a ring survey
+> diluted by canopy and walkway roofs, and a deck colour taken from
+> `roofscape.geojson`'s dark measurement. `data/building_overrides.json` is the
+> new per-building correction file. The Caven-Clark Courts got white markings,
+> hoops, net posts and a fence in `bake_art.py`. **Still open: Jester's MASSING**
+> — each hall is one prism at the tower's height, so the two-storey wings are
+> extruded to 51.6 m, and the WALL colour, which only the buildings bake can
+> reach. HANDOFF §48; `shots/cbefore/` against `shots/cafter/`.
 
 *"make jester look alot nicer if freshman r gonna see this then their dorm
 shouldnt look like a prison"*
@@ -265,7 +277,14 @@ shouldnt look like a prison"*
 
 Jester East and West are one complex at roughly `-97.7305, 30.2830`.
 
-## C2. Gregory Gym's famous entrance
+## C2. Gregory Gym's famous entrance — **DONE**
+
+> **PR #106.** A three-arch loggia on a monumental stair under a tiled gable,
+> on the WEST face, placed from OSM node 1427259422 (`entrance=main`) and the
+> 2101 Speedway address rather than from memory. The arch heads are prisms cut
+> across the opening whose BASE is the arch's own curve, not axis-aligned
+> blocks. Parameterised in `data/building_overrides.json` — if it is on the
+> wrong block, it is a one-line move. HANDOFF §48.
 
 *"greg gym is split into two sections (one building) one should replicate the
 famous entrance with the three hall things and the roof"*
@@ -274,7 +293,15 @@ The 1930 Gregory Gymnasium facade has a **three-arch entrance loggia** under a
 tiled gable. It is one of the most recognisable faces on campus and it is
 currently a flat wall.
 
-## C3. Littlefield Dorm has the wrong roof
+## C3. Littlefield Dorm has the wrong roof — **DONE, and it was 65 buildings**
+
+> **PR #106.** The survey was never wrong — Littlefield reads run 7.1 m, eave
+> 0.766, rings 0.77/0.99/1.00/0.99 to its own half-span, the most certain hip on
+> campus. **The COLOUR never asks the photograph.** Facets take `rd` off the
+> building, and `bake_detail.py` sets `rd` from the wall 12% darker when there is
+> no OSM `roof:colour` tag. **65 of the 105 pitched roofs are painted from an
+> `rd` that is not a tile colour at all.** 30 now take the campus tile median,
+> gated on two independent readings. HANDOFF §48.
 
 *"littlefeild dorm should have a red roof"*. One-line data fix — but check
 whether the roof survey has it and why it was missed, because that rule probably

@@ -68,6 +68,7 @@ Usage:  python scripts/bake_roofs.py [--report] [--remeasure] [--audit]
 
   --audit       do not hunt diagonal roofs by eye. Name them. See AUDIT below.
 """
+import colorsys
 import json
 import math
 import os
@@ -1345,6 +1346,341 @@ def shift_to_measured(hexcol, rb, median_rb):
 SHADE_TILT = 38.0
 
 
+# ── A TILED ROOF IS PAINTED A TILE COLOUR ─────────────────────────────
+#
+# Simeon: *"littlefeild dorm should have a red roof"*. It does not. Its
+# neighbours Carothers and Blanton do, and they are the same kind of building
+# with the same kind of roof, which is what makes it look like a mistake rather
+# than variety.
+#
+# THE DEFECT IS NOT IN THE SURVEY. Littlefield Dormitory reads
+# `run 7.1 m, eave 0.766` in `roof_runs.json`, and its offset rings run
+# 0.77 / 0.99 / 1.00 / 0.99 straight out to its own half-span — the most
+# unambiguous full hip on this campus, more certain than Carothers' 0.88. The
+# geometry it gets is right. **The COLOUR never asks the photograph at all.**
+#
+# Every facet takes `rd` off the parent building, and `rd` is set in
+# `bake_detail.py` from the OSM `roof:colour` tag when there is one and
+# otherwise from THE BUILDING'S OWN WALL, 12% darker — a rule that has nothing
+# to do with what is on the roof. Littlefield's wall is limestone, so its
+# terracotta hip renders `#928776`, a pale tan. `shift_to_measured` below cannot
+# rescue it: that moves the red/blue RATIO by at most ±30% and holds luma, which
+# is a nudge within a colour family, not a change of family.
+#
+# MEASURED ACROSS THE CAMPUS, and this is why it is a rule and not a one-line
+# data fix: of the 105 footprints the survey gives a real tiled slope to,
+# **65 are painted from an `rd` whose red/blue is under 1.55** — greys, olives
+# and blue-greys, median 1.47 against 2.80 for the ones that came out right.
+#
+# THE RULE. A roof the photograph is SURE is tile is painted a tile colour.
+# "Sure" is deliberately two independent readings, the same discipline the
+# parapet-cap join uses (HANDOFF §37): the eave ring has to read tile, AND the
+# whole footprint has to read tile. Cross-checked, they agree strongly — at
+# `eave >= 0.55` the median whole-footprint tile fraction is 0.80 — and the
+# second test exists for the one candidate where they do not, a roof at eave
+# 0.72 whose footprint is only 0.31 tile.
+#
+# WHAT COLOUR. Not an invented one: the MEDIAN `rd` of the pitched roofs that
+# already have a tile colour, re-derived from the campus on every bake and only
+# falling back to the constant when there is nothing to derive it from. The
+# authored burnt orange therefore stays exactly where it is — a retinted roof
+# lands on the median of its own peers — and `shift_to_measured` then spreads it
+# again by its own measured red/blue, so the roofs that photograph redder still
+# render redder. `--no-tile-colour` is the negative control.
+TILE_COLOUR_RULE = "--no-tile-colour" not in sys.argv
+TILE_RB_MIN      = 1.55   # an `rd` below this red/blue is not a tile colour
+TILE_EAVE_MIN    = 0.55   # ...and the eave ring has to be sure
+TILE_AREA_MIN    = 0.45   # ...and so does the whole footprint, independently
+# Fallback only. `campus_tile_base()` re-derives this from the buildings that
+# already have a tile-coloured roof; if that ever drifts far from this number,
+# something upstream changed the palette and the `--report` line will say so.
+TILE_BASE        = "#944a32"
+
+
+def rb_of(hexcol):
+    """A colour's red/blue ratio, the one number that says 'this is tile'."""
+    if not hexcol or len(hexcol) != 7:
+        return None
+    r = int(hexcol[1:3], 16)
+    b = int(hexcol[5:7], 16)
+    return r / max(b, 1)
+
+
+# THESE THREE ARE COPIED FROM `bake_detail.py`, NOT IMPORTED, and the reason is
+# worth one line: that module does its whole bake at import time — it reads the
+# snapshot and writes two files — so importing it here to borrow a nine-line
+# colour function would re-run it as a side effect of baking roofs. The copy is
+# the lesser evil; the risk it carries is drift, so if `make_roof_colors` ever
+# changes there, this has to change with it. GOLDEN_TINT and both magic numbers
+# are reproduced exactly.
+GOLDEN_TINT = "#ffb26a"
+
+
+def _hex2rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _rgb2hex(r, g, b):
+    return "#%02x%02x%02x" % (max(0, min(255, round(r))),
+                              max(0, min(255, round(g))),
+                              max(0, min(255, round(b))))
+
+
+def _lerp_hex(a, b, t):
+    A, B = _hex2rgb(a), _hex2rgb(b)
+    return _rgb2hex(*(A[i] + (B[i] - A[i]) * t for i in range(3)))
+
+
+def _adjust_light(h, dl):
+    r, g, b = (v / 255.0 for v in _hex2rgb(h))
+    hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
+    ll = max(0.05, min(0.95, ll + dl))
+    r, g, b = colorsys.hls_to_rgb(hh, ll, ss)
+    return _rgb2hex(r * 255, g * 255, b * 255)
+
+
+def make_roof_colors(roof_hex):
+    """day / golden / night from one roof colour — bake_detail.py's own rule."""
+    rg = _lerp_hex(roof_hex, GOLDEN_TINT, 0.22)
+    rn = _lerp_hex(_adjust_light(roof_hex, -0.38), "#10152a", 0.6)
+    return roof_hex, rg, rn
+
+
+def campus_tile_base(feats, cache):
+    """The median `rd` of the pitched roofs that already have a tile colour.
+
+    Read off the cached survey rather than re-measured, so it costs nothing and
+    is the same number on a cached bake and a `--remeasure` one (as long as the
+    cache exists; with no cache at all the constant stands in and says so).
+    """
+    reds = []
+    for f in feats:
+        p = f["properties"]
+        h = p.get("final_height") or 0
+        if h < 4:
+            continue
+        v = cache.get("%s/0" % p.get("id"))
+        if not v or v[0] < MIN_RUN_M:
+            continue
+        rd = p.get("rd")
+        r = rb_of(rd)
+        if r is not None and r >= TILE_RB_MIN:
+            reds.append(_hex2rgb(rd))
+    if len(reds) < 12:
+        return TILE_BASE, 0
+    med = [sorted(c[i] for c in reds)[len(reds) // 2] for i in range(3)]
+    return _rgb2hex(*med), len(reds)
+
+
+# ── PER-BUILDING CORRECTIONS ──────────────────────────────────────────
+#
+# `data/building_overrides.json`. A survey rule that is right 105 times out of
+# 105 does not exist, and the wrong answer to that is to edit the generated
+# snapshot — which the next bake silently wipes. So corrections live in their
+# own small tracked file, are applied HERE, and every one of them carries the
+# observation it answers in its own `why`.
+#
+# It holds four kinds of thing, and only the first two are corrections to a
+# measurement; the rest are geometry the imagery cannot supply:
+#   roof_run_m            the ring survey under-read a roof the photo shows
+#   roof_over_max_height  the height gate excluded a building it should not
+#   roof_colour/deck_colour   the two colours the roof is built out of
+#   loggia                an authored entrance porch (see LOGGIA below)
+OVERRIDES = os.path.join(ROOT, "data", "building_overrides.json")
+
+
+def load_overrides():
+    if not os.path.exists(OVERRIDES):
+        return {}
+    try:
+        return json.load(open(OVERRIDES, encoding="utf-8")).get("buildings") or {}
+    except Exception as e:                                   # noqa: BLE001
+        print("  building_overrides.json unreadable, ignoring:", e)
+        return {}
+
+
+# ── LOGGIA: the one thing on a facade a prism cannot say ──────────────
+#
+# Simeon: *"greg gym is split into two sections (one building) one should
+# replicate the famous entrance with the three hall things and the roof."*
+#
+# The 1930 auditorium-gymnasium's front is a monumental stone stair up to three
+# round-headed arches under a tiled gable — the most recognisable face on this
+# part of campus — and the model has it as a flat brick wall, because a
+# `fill-extrusion` of a footprint has no way to say "there is a porch here".
+#
+# WHICH WALL, ESTABLISHED BEFORE ANY GEOMETRY WAS WRITTEN, because putting it on
+# the wrong face is worse than not drawing it. Three independent readings agree
+# on the west side: OSM node 1427259422 carries `entrance=main` at
+# 30.2840096,-97.7368337; the postal address is 2101 Speedway, and Speedway runs
+# down the west side; and the z19 nadir tile shows a broad flight of steps
+# against that wall and nothing like it against any other.
+#
+# AND THE WALL IS FOUND FROM THE FOOTPRINT, not typed in. The override gives a
+# POINT; this code finds the polygon edge nearest it and builds everything in
+# that edge's own frame — along it, and out along its own outward normal, which
+# is tested rather than assumed (offset a metre and ask whether you are still
+# inside the building). So the porch cannot end up floating off the wall or
+# buried in it if the footprint is ever re-surveyed.
+#
+# THE ARCH IS NOT A STACK OF SQUARES, which is the fair complaint in QUEUE D3
+# about the sculptures. `fill-extrusion` cannot tilt a face, so a round arch has
+# to be a row of prisms — but the row is cut ACROSS the opening and each prism's
+# BASE is the arch's own curve, `spring + sqrt(r^2 - x^2)`. That is the real
+# soffit sampled at 11 points, not a shape approximated by axis-aligned boxes:
+# what you see is the arched opening, and the steps are in the top edge of the
+# spandrel where nothing looks at them.
+#
+# Everything below is in the override so any of it is a one-line change.
+LOGGIA_VOUSSOIRS   = 11    # prisms across each arch head
+LOGGIA_GABLE_STEPS = 7     # courses in the tiled gable above
+LOGGIA_STAIR_STEPS = 5     # flights in the stone stair below
+LOGGIA_STAIR_TREAD = 0.85  # metres of run per flight
+LOGGIA_RECESS_M    = 0.06  # how far off the wall the dark back of the porch sits
+
+
+def _seg_nearest(pm, q):
+    """Index of the polygon edge nearest q, and the foot of the perpendicular."""
+    best = None
+    for i in range(len(pm)):
+        a, b = pm[i], pm[(i + 1) % len(pm)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        L2 = dx * dx + dy * dy
+        if L2 < 1e-9:
+            continue
+        t = max(0.0, min(1.0, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / L2))
+        fx, fy = a[0] + dx * t, a[1] + dy * t
+        d = math.hypot(q[0] - fx, q[1] - fy)
+        if best is None or d < best[0]:
+            best = (d, i, (fx, fy), math.sqrt(L2))
+    return best
+
+
+def loggia_parts(ring, spec, roof_rd, roof_rg, roof_rn):
+    """Every prism of one entrance porch, as ready-to-append GeoJSON features."""
+    lat0 = sum(q[1] for q in ring) / len(ring)
+    pm = ccw(clean(to_m(ring, lat0)))
+    if len(pm) < 3:
+        return []
+    k = math.cos(math.radians(lat0))
+    at = spec.get("at")
+    q = (at[0] * M_LAT * k, at[1] * M_LAT)
+    got = _seg_nearest(pm, q)
+    if got is None:
+        return []
+    _d, i, foot, wall_len = got
+    a, b = pm[i], pm[(i + 1) % len(pm)]
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    tx, ty = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    nx, ny = -ty, tx
+    # WHICH WAY IS OUT. Ask, do not assume a winding: step a metre along the
+    # candidate normal and see whether you are still inside the footprint.
+    if inside((foot[0] + nx, foot[1] + ny), pm):
+        nx, ny = -nx, -ny
+
+    W = float(spec.get("width_m", 18.0))
+    D = float(spec.get("depth_m", 3.2))
+    P = float(spec.get("pier_m", 1.7))
+    base = float(spec.get("base_m", 1.5))
+    spring = float(spec.get("spring_m", 5.0))
+    crown = float(spec.get("crown_m", 8.2))
+    gable = float(spec.get("gable_m", 11.6))
+    n_ar = int(spec.get("arches", 3))
+    # Never wider than the wall it stands on.
+    W = min(W, wall_len - 1.0)
+    opening = (W - (n_ar + 1) * P) / n_ar
+    if opening <= 0.6 or D <= 0.5:
+        return []
+    r = opening * 0.5
+
+    def rect(u0, u1, v0, v1):
+        pts = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+        return [[foot[0] + tx * u + nx * v, foot[1] + ty * u + ny * v] for u, v in pts]
+
+    parts = []          # (ring_m, b, h, day_hex)
+
+    # THE STONE STAIR RUNS OUT IN FRONT OF THE PORCH, and this is worth a note
+    # because the first version had it at NEGATIVE v — behind the wall plane,
+    # buried inside the building. Nothing on screen said so: a slab inside a
+    # solid prism is simply invisible, and the render looked like a portico with
+    # no steps rather than like a bug. The check that caught it is mechanical and
+    # is the one to keep: every part of an outward porch must have its centroid
+    # OUTSIDE the footprint, and the stair slabs had 3 of 4 corners inside.
+    #
+    # Stacked with the top step innermost and shortest, so each tread's nose is
+    # the only thing that shows and the flight reads from above.
+    if spec.get("stair"):
+        S = LOGGIA_STAIR_STEPS
+        for s in range(S):
+            parts.append((rect(-W / 2 - 0.8, W / 2 + 0.8,
+                               D, D + (s + 1) * LOGGIA_STAIR_TREAD),
+                          0.0, base * (S - s) / S, spec.get("pier_colour")))
+    # the porch floor
+    parts.append((rect(-W / 2, W / 2, 0.0, D), 0.0, base, spec.get("pier_colour")))
+    # the dark back of the porch, seen THROUGH the arches — without it the
+    # openings read as solid panels the colour of the wall behind them
+    for j in range(n_ar):
+        u0 = -W / 2 + P + j * (P + opening)
+        parts.append((rect(u0, u0 + opening, LOGGIA_RECESS_M, LOGGIA_RECESS_M + 0.30),
+                      base, spring + r, spec.get("shadow_colour")))
+    # the piers
+    for kx in range(n_ar + 1):
+        u0 = -W / 2 + kx * (P + opening)
+        parts.append((rect(u0, u0 + P, 0.0, D), base, spring, spec.get("pier_colour")))
+    # the arch heads: one prism per column across the opening, each starting at
+    # the arch's own curve
+    for j in range(n_ar):
+        u0 = -W / 2 + P + j * (P + opening)
+        for c in range(LOGGIA_VOUSSOIRS):
+            ua = u0 + opening * c / LOGGIA_VOUSSOIRS
+            ub = u0 + opening * (c + 1) / LOGGIA_VOUSSOIRS
+            xm = (ua + ub) * 0.5 - (u0 + r)          # from the opening's centre
+            soffit = spring + math.sqrt(max(0.0, r * r - xm * xm))
+            parts.append((rect(ua, ub, 0.0, D), soffit, crown, spec.get("arch_colour")))
+    # the entablature the gable sits on
+    parts.append((rect(-W / 2 - 0.35, W / 2 + 0.35, 0.0, D + 0.3),
+                  crown, crown + 0.9, spec.get("pier_colour")))
+    # ...and the tiled gable, in the building's own roof colour
+    G = LOGGIA_GABLE_STEPS
+    hw0 = W / 2 + 0.35
+    for s in range(G):
+        hw = hw0 * (1.0 - s / float(G)) + 0.45 * (s / float(G))
+        parts.append((rect(-hw, hw, 0.0, D + 0.3),
+                      crown + 0.9 + (gable - crown - 0.9) * s / G,
+                      crown + 0.9 + (gable - crown - 0.9) * (s + 1) / G,
+                      None))
+
+    out, buried = [], 0
+    for ring_m, b0, h0, day in parts:
+        if h0 - b0 < 0.02:
+            continue
+        if day:
+            rd, rg, rn = make_roof_colors(day)
+        else:
+            rd, rg, rn = roof_rd, roof_rg, roof_rn
+        # A PORCH STANDS IN FRONT OF ITS WALL. Anything whose centre is inside
+        # the footprint is inside a solid prism and will never be seen — which is
+        # exactly how the stair shipped backwards once and looked like nothing at
+        # all rather than like an error.
+        cx = sum(x for x, _ in ring_m) / len(ring_m)
+        cy = sum(y for _, y in ring_m) / len(ring_m)
+        if inside((cx, cy), pm):
+            buried += 1
+            continue
+        ll = to_ll([(x, y) for x, y in ring_m], lat0)
+        out.append({
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": [close_ring(ll)]},
+            "properties": {"b": round(b0, 2), "h": round(h0, 2), "az": 0,
+                           "rd": rd, "rdd": rd, "rg": rg, "rgd": rg, "rn": rn},
+        })
+    if buried:
+        print("  LOGGIA: %d parts were inside the building and were dropped — "
+              "check the wall this porch is anchored to" % buried)
+    return out
+
+
 # ── the flat deck inside the tiled band ───────────────────────────────
 # Once the slopes were right, the thing still reading as "flat generated box"
 # was the DECK: Gregory Gym, the Blanton, Hogg Auditorium and the Union are a
@@ -1625,6 +1961,9 @@ def main():
     remeasure = "--remeasure" in sys.argv or not os.path.exists(MEAS)
     cache = {} if remeasure else json.load(open(MEAS, encoding="utf-8"))
     feats = json.load(open(SNAP, encoding="utf-8"))["features"]
+    overrides = load_overrides()
+    tile_base, tile_base_n = campus_tile_base(feats, cache)
+    retinted = {}            # building id -> the tile triple its cap must take
     out = []
     stats = Counter()
     # Pinned so it prints even at zero. A count that only appears when it is
@@ -1646,7 +1985,14 @@ def main():
     for f in feats:
         p = f["properties"]
         h = p.get("final_height") or 0
-        if h < 4 or h > MAX_HEIGHT_M:
+        ov = overrides.get(p.get("id")) or {}
+        # THE HEIGHT GATE IS ABOUT SHAPE, NOT SIZE. It is here because a tower
+        # is flat-topped, and it is right almost everywhere — but Jester West is
+        # one footprint 51.6 m tall whose PERIMETER is two-storey tile-roofed
+        # wings, and excluding it is what leaves the loudest dorm on campus as a
+        # bare brown lid. An override is allowed past it, one building at a time,
+        # with the photograph quoted in the file.
+        if h < 4 or (h > MAX_HEIGHT_M and not ov.get("roof_over_max_height")):
             continue
         g = f["geometry"]
         rings = [g["coordinates"][0]] if g["type"] == "Polygon" else [poly[0] for poly in g["coordinates"]]
@@ -1673,7 +2019,7 @@ def main():
                 continue
             key = "%s/%d" % (p.get("id"), ri)
             if key in cache and len(cache[key]) >= 3:
-                run, eave, meas = cache[key]
+                run, eave, meas = cache[key][:3]
             elif key in cache:
                 # A cache written before roofs carried a measured colour. Keep
                 # its run/eave — those cost the minutes — and simply go without
@@ -1683,6 +2029,23 @@ def main():
             else:
                 run, eave, meas = tile_run(pm, lat0, hs)
                 cache[key] = [round(run, 2), round(eave, 3), meas]
+            # THE WHOLE-FOOTPRINT TILE FRACTION, cached beside the run because
+            # it is the second, independent reading the colour rule needs and
+            # re-reading it costs a 20x20 probe per candidate. Old three-element
+            # entries simply grow a fourth the first time they are asked.
+            if len(cache.get(key, ())) >= 4:
+                area_fr = cache[key][3]
+            else:
+                area_fr, _n = tile_frac_area(ring)
+                area_fr = round(area_fr, 3)
+                cache.setdefault(key, [round(run, 2), round(eave, 3), meas])
+                cache[key] = list(cache[key][:3]) + [area_fr]
+            if ri == 0 and ov.get("roof_run_m"):
+                # An override does not get to invent a roof — it corrects a run
+                # the ring probe under-read. `eave` keeps the measured value so
+                # the report still shows what the imagery actually said.
+                run = float(ov["roof_run_m"])
+                stats["run_from_override"] += 1
             if run < MIN_RUN_M:
                 stats["flat" if eave < RING_MIN else "tile_edge_only"] += 1
                 continue
@@ -1699,7 +2062,28 @@ def main():
             # campus median and the campus is not measured until the loop ends.
             # Stash the ratio on each facet and settle it in one pass below.
             rb_here = measured_rb(meas)
-            rd_real, rg_real = p.get("rd"), p.get("rg")
+            rd_real, rg_real, rn_real = p.get("rd"), p.get("rg"), p.get("rn")
+
+            # ── the roof's own colour, if the building's is not one ──────
+            # An explicit override first (it is the same thing an OSM
+            # `roof:colour` tag would be), then the campus rule. Both go through
+            # bake_detail.py's own make_roof_colors so the day/golden/night
+            # triple can never be a different shape from every other roof's.
+            tile_col = ov.get("roof_colour")
+            if not tile_col and TILE_COLOUR_RULE:
+                own = rb_of(rd_real)
+                if (own is not None and own < TILE_RB_MIN
+                        and eave >= TILE_EAVE_MIN and area_fr >= TILE_AREA_MIN):
+                    tile_col = tile_base
+                elif own is not None and own < TILE_RB_MIN and eave >= TILE_EAVE_MIN:
+                    # The eave said tile and the footprint disagreed. That is
+                    # the case the second reading exists for; count it, do not
+                    # act on it.
+                    stats["tile_colour_rejected_by_area"] += 1
+            if tile_col:
+                rd_real, rg_real, rn_real = make_roof_colors(tile_col)
+                retinted[p.get("id")] = [rd_real, rg_real, rn_real]
+                stats["roofs_given_a_tile_colour"] += 1
 
             steps = max(STEPS_MIN, min(STEPS_MAX, int(round(run / STEP_TARGET_M))))
             # The wall's cap already sits at h + lift (CAP_GEOM in app.js); start
@@ -1732,8 +2116,8 @@ def main():
                 # building's own baked colour and the sun term cannot move it.
                 emitted.append((eave_ring[:-1], round(base + 0.35, 2),
                                 {"b": round(base, 2), "h": round(base + 0.35, 2), "az": 0,
-                                 "rd": p.get("rd"), "rg": p.get("rg"), "rn": p.get("rn"),
-                                 "rdd": p.get("rd"), "rgd": p.get("rg")}))
+                                 "rd": rd_real, "rg": rg_real, "rn": rn_real,
+                                 "rdd": rd_real, "rgd": rg_real}))
             start = eave_ring if eave_ring is not None else profile_ring(
                 ppts, prays, pcaps, 0.0)
             # Every step ring is the SAME rays clamped at the SAME per-point
@@ -1790,7 +2174,7 @@ def main():
                         "rdd": tint(rd_real, SHADE_LO),
                         "rg": tint(rg_real, SHADE_HI),
                         "rgd": tint(rg_real, SHADE_LO),
-                        "rn": p.get("rn"),      # no sun at night, no tilt tint
+                        "rn": rn_real,          # no sun at night, no tilt tint
                         "_rb": rb_here,
                     }))
                 made += 1
@@ -1846,16 +2230,26 @@ def main():
                         cols.append([int(c[0]), int(c[1]), int(c[2])])
                         hits += is_tile(c)
                 membrane = len(cols) >= DECK_MIN_PX and hits / len(cols) <= DECK_TILE_MAX
+                # AN OVERRIDDEN DECK COLOUR SKIPS THE VOTE, not just the value.
+                # On Jester the probe's own sample ring is half tile and half
+                # concrete, so `membrane` is a coin flip on a roof whose middle
+                # is plainly a concrete deck in the photograph. The override
+                # names the answer AND the colour, because naming only the
+                # colour would leave it unused half the time.
+                if ov.get("deck_colour"):
+                    membrane = True
+                    dc = ov["deck_colour"]
+                elif membrane:
+                    dc = deck_colour(cols, rd_real)
                 if membrane:
-                    dc = deck_colour(cols, p.get("rd"))
                     props = {"rd": dc, "rdd": dc,
-                             "rg": like(dc, p.get("rd"), p.get("rg")),
-                             "rgd": like(dc, p.get("rd"), p.get("rg")),
-                             "rn": like(dc, p.get("rd"), p.get("rn"))}
+                             "rg": like(dc, rd_real, rg_real),
+                             "rgd": like(dc, rd_real, rg_real),
+                             "rn": like(dc, rd_real, rn_real)}
                 else:
-                    props = {"rd": p.get("rd"), "rdd": p.get("rd"),
-                             "rg": p.get("rg"), "rgd": p.get("rg"),
-                             "rn": p.get("rn")}
+                    props = {"rd": rd_real, "rdd": rd_real,
+                             "rg": rg_real, "rgd": rg_real,
+                             "rn": rn_real}
                 top = round(base + 0.35 + rise, 2)
                 # THE DECK'S SKIRT IS 2 cm, NOT 30, and that is half of A5. It
                 # used to be `top - 0.3`, and the deck's outer wall is the
@@ -1945,6 +2339,30 @@ def main():
         stats["cross_roof_dropped"] = dr
         stats["cross_roof_removed_m2"] = int(round(ls))
 
+    # ── the authored entrance porches ────────────────────────────────────
+    #
+    # APPENDED AFTER BOTH RESOLVERS, DELIBERATELY. "One square metre, one
+    # surface" is the right law for a roof — a roof is a single skin and two
+    # pieces of it at the same place is a defect. A portico is the opposite: a
+    # pier, the arch over it, the entablature over that and the gable over that
+    # all share the same square metre of ground by design, at four different
+    # heights. Running it through `resolve_surfaces` would keep the tallest and
+    # delete the porch.
+    tile_rd, tile_rg, tile_rn = make_roof_colors(tile_base)
+    for f in feats:
+        ov = overrides.get(f["properties"].get("id")) or {}
+        spec = ov.get("loggia")
+        if not spec:
+            continue
+        rings = _outer_rings(f["geometry"])
+        if not rings:
+            continue
+        made = loggia_parts(rings[0], spec, tile_rd, tile_rg, tile_rn)
+        out.extend(made)
+        stats["loggia_parts"] += len(made)
+        if made:
+            stats["loggias"] += 1
+
     # ── Settle the roof colours, now that the whole campus has been measured ──
     #
     # Each roof is moved by how its own measured red/blue compares with the
@@ -1992,6 +2410,17 @@ def main():
     caps, cap_stats = ({}, Counter())
     if ROOF_CAPS:
         caps, cap_stats = deck_caps(feats, pitched, ROOFSCAPE)
+    # ...AND THE SAME TABLE CARRIES THE RETINTED ROOFS. `buildings-roof` — the
+    # parapet cap app.js draws over every top face — is painted from the
+    # BUILDING's `rd`, which is the colour this pass has just decided was not a
+    # roof colour. Leaving it alone would ring every corrected roof in the tan
+    # it was corrected out of, which is HANDOFF §37's defect with the colours
+    # swapped. `deck_caps` never touches a pitched building (it counts them as
+    # `skipped_pitched_roof`), so there is nothing to overwrite.
+    for bid, triple in retinted.items():
+        if bid:
+            caps[bid] = triple
+            cap_stats["cap_took_the_tile_colour"] += 1
     fc = {"type": "FeatureCollection", "features": out, "caps": caps}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
@@ -2003,6 +2432,14 @@ def main():
         "counts": dict(sorted(stats.items())),
         "parapet_caps": dict(sorted(cap_stats.items())),
         "caps_kb": round(len(json.dumps(caps, separators=(",", ":"))) / 1024, 1),
+        "tile_colour": {
+            "campus base": tile_base,
+            "derived from": tile_base_n or "nothing — the constant %s stood in" % TILE_BASE,
+            "rule": "eave >= %.2f AND whole footprint >= %.2f AND the building's "
+                    "own rd is below %.2f red/blue" % (TILE_EAVE_MIN, TILE_AREA_MIN,
+                                                       TILE_RB_MIN),
+            "overrides applied": len(overrides),
+        },
         "rule": "tile still reads on an offset ring %.2f m in; slope runs to where it stops"
                 % EAVE_D,
         "provenance": {"which buildings": "factual - terracotta tile read off the photograph",
