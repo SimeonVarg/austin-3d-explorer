@@ -58,7 +58,31 @@ memory of what the thing probably looks like.
 
 # PART F — 2026-08-03, after he looked at it
 
-## F1. The fade is INVERTED now, not fixed — round three
+## F1. The fade is INVERTED now, not fixed — round three — **DONE**
+
+> **FIXED, PR #116, merged `5414425`. F1 and F2 were the same knob and neither
+> was the haze.** PR #107 is fine — peeled off a live frame the depth haze moves
+> the ten 100-row bands by 3.01 / 3.86 / 2.70 / 2.08 / 1.62 / 1.24 / 0.85 / 0.74
+> mean |dLuma|: smooth, monotone, no edge, and **0.74 in the nearest band**,
+> which is F2's "do near buildings get essentially zero fade" answered yes.
+>
+> What was left is **`#fx-dof`, the "distance blur"** in `js/graphics.js`: a
+> viewport-wide DOM rectangle pinned to the horizon ROW, 0.24H tall, running
+> `backdrop-filter: blur()`. It cannot know what is in front of what, so a NEAR
+> building crossing it has its upper half blurred and its lower half sharp — a
+> gradient up its own face, on the upper side — while a FAR building sits wholly
+> inside the band and shows no gradient of its own. Blur also pulls the pale sky
+> into whatever it covers, so it reads as washed out. **Detail destroyed,
+> measured on one frame with one toggle: rows 200–300 2.43 → 4.60, rows 300–400
+> 4.71 → 10.72, rows 400–500 7.98 → 9.03, every other band identical.**
+>
+> Off in all four presets, with a `SETTINGS_REV` migration so a saved `0.30`
+> cannot put it back in a browser that has already loaded the app. **NOT the
+> cause, and measured so:** `fill-extrusion-vertical-gradient` (byte-identical
+> with it off on all 60 layers), the sky canvas, and the fog ladder's own
+> base-to-crown difference. HANDOFF §55;
+> `docs/shots/f1-horizon-crop-before-after.jpg`.
+
 
 *"the horizontal line thing is inverted - i prefer this version over the last but
 as you can see its still a bit harsh with the gradient on the uppser side. far
@@ -79,7 +103,13 @@ fill-extrusion paint expression, say so plainly and explain what was tried —
 `fill-extrusion-vertical-gradient` is a candidate culprit, as is any expression
 keyed on `['get','h']` or on the extrusion's own base/height.
 
-## F2. Dusk is over-dark
+## F2. Dusk is over-dark — **DONE, same fix as F1**
+
+> **FIXED, PR #116.** It was not the fade at all. From the West Campus pose the
+> blocks sit in exactly the rows `#fx-dof` blurs, so the "brown lumps with the
+> detail lost" was the blur band, not the haze. The haze at that hour reaches
+> only 4.3% alpha at 200 m and moves the nearest 100-row band by 0.74 luma.
+> `docs/shots/f2-westcampus-dusk-before-after.jpg`.
 
 At tod 0.62 the West Campus blocks read as brown lumps with the detail lost —
 `shots/tour/dusk-west-campus.png`. New since F1's predecessor. The fade is
