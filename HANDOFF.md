@@ -1,5 +1,77 @@
 # Austin 3D Explorer — Full Handoff
 
+## 39. Aug 3 2026 — Waller Creek got planted, and the tile workflow is a dated landmine (mac lane)
+
+**Branch:** `mac/creek-trees` — MAC_QUEUE T3.
+
+`data/ground.geojson` has carried 33 `creek_canopy`, 34 `creek_under` and 49
+`creek_scrub` areas — **33.5 ha** — since the channel was cut, and nothing had
+ever grown in them, because no survey covers a creek bed.
+`fetch_city_trees.py` now scatters trees through them on a jittered grid (a
+plain grid reads as an orchard from the air; pure noise clumps and leaves
+holes). Deterministic, so a re-run plants the same forest.
+
+```
+creek_canopy  33 areas -> 1,138 trees at 12 m
+creek_under   34 areas -> 1,306 trees at  8 m
+creek_scrub   49 areas -> 2,215 trees at  6 m
+                          57 rejected on buildings, 0 on water
+```
+
+Emitted **last**, so the 4 m dedupe always resolves in favour of a surveyed or
+photographed tree already standing there. Marked `src:'creek'` and named
+GENERATIVE in the provenance block — it is the only invented position source in
+that file.
+
+| | before | after |
+|---|---|---|
+| `trees.geojson` | 57,548 feats / 23.64 MB | 63,128 / **25.93 MB** (+9.7%) |
+| `trees.pmtiles` **(what ships)** | 4.95 MB | **5.48 MB** (+524 KB, +10.6%) |
+
+### THE TILE WORKFLOW BREAKS AT MIDNIGHT UTC, EVERY DAY
+
+**This cost the first attempt and it will hit the other lane next.**
+`gh workflow run build-tiles.yml` built all five archives correctly, printed
+`Done. Totals: 10M total`, and then **exited 1** — so the commit step never ran
+and nothing came back.
+
+`scripts/config.sh` sets `SNAPSHOT_DATE` to *today* and
+`BUILDINGS_PMTILES="data/snapshots/$SNAPSHOT_DATE/austin.pmtiles"`. The last
+line of `scripts/tile.sh` is
+
+```sh
+du -ch "${DATA_DIR}/tiles"/*.pmtiles "${BUILDINGS_PMTILES}" 2>/dev/null | tail -1
+```
+
+and the script runs under `set -euo pipefail`. On any day whose snapshot has
+not been baked yet, that path does not exist, `du` exits non-zero, `2>/dev/null`
+hides the message but **not** the status, `pipefail` promotes it, and the whole
+run fails *after* doing all its work. Every run before mine succeeded; mine was
+at 00:28 UTC on the 3rd against a newest snapshot of `2026-08-02`.
+
+**I did not fix it — `scripts/tile.sh` is not this lane's file.** The fix is one
+line (drop the buildings archive from that `du`, or `|| true`). Until then, a
+re-tile that "fails" may have built everything fine. I built
+`data/tiles/trees.pmtiles` locally with tippecanoe 2.79 and CI's exact
+`TIPPE_COMMON` flags instead, which is in-lane — that archive is this lane's.
+
+### Also worth keeping
+
+- **The pipeline is fetch → shape, and it reproduces exactly.** Before changing
+  anything I ran both and got the shipped file back: 57,548 features, 23.64 MB,
+  identical geometry. Only **255 of 57,548** differed, in `j` (the jitter salt)
+  alone, because the City inventory returns rows in a slightly different order
+  run to run.
+- **The wide-box city cache was missing and is now committed** (5.4 MB).
+  `BBOX` in `fetch_city_trees.py` has been the wide central-Austin box for some
+  time but only the `CORE_BBOX` cache was on disk, so every rebuild needed the
+  network. That is what `data/osm_cache` is for.
+- **My first framing of both stretches was wrong**, and the check that caught it
+  was arithmetic, not a screenshot: I averaged the Rec Center and the track and
+  got a point with **zero** planting zones within 160 m, and briefly believed
+  the Acer had not covered the stretch Simeon named. The creek runs ~175 m west
+  of there. Measure the distance to the nearest zone before reporting a gap.
+
 ## 38. Aug 2 2026 — the fountain had no memorial, and three rules that drew the rest of them wrong (acer lane)
 
 **Branch:** `acer/littlefield-memorial`, PR #89. §35's two loose ends plus the
