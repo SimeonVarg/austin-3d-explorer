@@ -70,6 +70,71 @@
     return s;
   }
 
+  // ── Which buildings get named, and how loudly ─────────────────────
+  // TASTE, all of it. Every boundary here is a one-line edit, and none of it is
+  // buried inside a draw call.
+  //
+  // The old rule was `final_height >= 12`, one flat gate, then three tiers split
+  // on height alone. Measured on the 2026-08-02 snapshot that is 218 names, and
+  // height ranked them badly: "State Parking Garage R" outranked the Harry
+  // Ransom Center, and a chiller plant sat in the same tier as the PCL. BUILT
+  // VOLUME (footprint x height) is the signal that ranks this campus the way a
+  // person would — DKR, Bellmont, Union on 24th, Moody Center, Jester West at
+  // the top; Chevron, Möge Tee, Chabad House at the bottom.
+  const LABEL_RANK = {
+    minHeight:   12,        // m — under this a building is never named at all
+    landmarkVol: 130000,    // m³ of built volume …
+    landmarkH:   55,        // … or this tall. Either one qualifies as a landmark.
+    majorVol:    42000,
+    majorH:      30,
+    minorVol:    13000,     // below this: no label, at any zoom
+    longName:    34,        // chars — a longer name costs one tier of distance
+    // Plant, not place. Demoted TWO tiers, not one: at one tier a 196,000 m³
+    // parking garage was still a landmark.
+    utility: /\b(garage|parking|cooling tower|chilling|chiller|power plant|substation|annex|utility plant|storage|maintenance)\b/i,
+  };
+
+  /** Planar footprint area in m², good to a fraction of a percent at this latitude. */
+  function footprintArea(g) {
+    if (!g) return 0;
+    const rings = g.type === 'Polygon' ? [g.coordinates[0]]
+                : g.type === 'MultiPolygon' ? g.coordinates.map(p => p[0]) : [];
+    let a = 0;
+    for (const r of rings) {
+      if (!r || r.length < 4) continue;
+      let s = 0;
+      for (let i = 0; i < r.length - 1; i++) s += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1];
+      a += Math.abs(s) / 2;
+    }
+    const k = 111320 * Math.cos(30.285 * Math.PI / 180);
+    return a * k * 111320;
+  }
+
+  /**
+   * The name that gets DRAWN. `text-max-width` cannot rescue a 69-character
+   * name: at 7 ems "O'Donnell Building for Applied Computational Engineering
+   * and Sciences" became a five-line block that was the largest object in the
+   * street frame and the least readable thing in it.
+   *
+   * Three rules, in order, each checked against every name in the snapshot
+   * before any of this was drawn:
+   *   1. drop a "Permanently CLOSED:" prefix and any parenthetical
+   *   2. cut at " for " — but ONLY on names already over the length budget, so
+   *      "Belo Center for New Media" (25 chars) survives whole and
+   *      "O'Donnell Building for Applied…" (69) becomes "O'Donnell Building"
+   *   3. drop a trailing "Building"/"Complex"/"Facility" when three words are
+   *      left without it, so "Graduate School of Business Building" loses it
+   *      and "KXAN Building" keeps it
+   * It changes 36 of 218 names and leaves the rest alone.
+   */
+  function shortenLabel(n) {
+    let s = String(n || '').replace(/^permanently closed:\s*/i, '').replace(/\s*\([^)]*\)/g, '').trim();
+    if (s.length > 30) s = s.replace(/^(.+?\s+\S+)\s+for\s+.+$/i, '$1');
+    const w = s.split(/\s+/);
+    if (w.length >= 4 && /^(building|complex|facility)$/i.test(w[w.length - 1])) s = w.slice(0, -1).join(' ');
+    return s;
+  }
+
   // Taste, so the whole thing is one line to overrule: `false` puts every
   // parapet cap back on the building's terracotta roof colour. The colour
   // itself is not here on purpose — it is measured per building off nadir
@@ -138,25 +203,47 @@
       return false;
     };
     let labelled = 0;
+    const tierCount = [0, 0, 0, 0];
     for (const f of buildings.features) {
       const p = f.properties;
       if (!p.name && extraNames && extraNames[p.id]) p.name = extraNames[p.id];
       const name = p && p.name;
-      // Only name buildings that are big enough to carry a label and aren't
-      // already announced by a curated sign. This is what took the scene from
-      // ~70 labels a frame down to something you can actually read.
-      if (name && !isDuplicate(name) && (p.final_height || 0) >= 12) {
-        p.lbl = 1; labelled++;
-        // IMPORTANCE, so a corner shop does not announce itself from the sky.
-        // "make the distance u need to be near them really small if theyre
-        // insignificant." A layer's minzoom is a single number, so importance
-        // has to be stamped per feature and split across tiers below.
-        // Height is the only signal every building carries, and on this campus
-        // it tracks significance well enough: the Tower, Dobie and the downtown
-        // towers are the things you should be able to name from far away.
-        const h = p.final_height || 0;
-        p.lt = h >= 45 ? 0 : h >= 22 ? 1 : 2;
-      }
+      if (!name || isDuplicate(name)) continue;
+      const h = p.final_height || 0;
+      if (h < LABEL_RANK.minHeight) continue;
+
+      // The name that gets DRAWN, which is not always the name in the data.
+      // `text-max-width` cannot rescue "O'Donnell Building for Applied
+      // Computational Engineering and Sciences" — at 7 ems it became a five-line
+      // block that was simultaneously the largest object on screen and the least
+      // readable thing in the frame. Shortened here, once, so the rule is
+      // inspectable rather than buried in a wrap setting.
+      p.name = shortenLabel(name);
+
+      // IMPORTANCE. Height alone was the old signal and it is not enough: it put
+      // "Chilling Station No. 6" and the Perry-Castañeda Library in the same
+      // tier, which is the "a parking garage and the UT Tower are the same size"
+      // complaint. BUILT VOLUME (footprint x height) ranks this campus properly —
+      // measured over the 2026-08-02 snapshot it puts DKR, Bellmont, Union on
+      // 24th, Moody Center and Jester West at the top and Chevron, Möge Tee and
+      // Chabad House at the bottom, which is the order a person would give.
+      const a = footprintArea(f.geometry);
+      const v = a * h;
+      p.lv = Math.round(v);
+      let t = (v >= LABEL_RANK.landmarkVol || h >= LABEL_RANK.landmarkH) ? 0
+            : (v >= LABEL_RANK.majorVol   || h >= LABEL_RANK.majorH)    ? 1
+            : (v >= LABEL_RANK.minorVol)                                 ? 2
+            : 3;
+      // A chiller plant is not a landmark however big it is. Two tiers, not one,
+      // because at one tier "State Parking Garage R" (196,000 m³) still outranked
+      // the Harry Ransom Center.
+      if (LABEL_RANK.utility.test(p.name)) t = Math.min(3, t + 2);
+      // A long name needs more screen, so it has to earn more zoom.
+      if (p.name.length > LABEL_RANK.longName) t = Math.min(3, t + 1);
+      tierCount[t]++;
+      if (t > 2) continue;               // tier 3 is never drawn, at any zoom
+
+      p.lbl = 1; p.lt = t; labelled++;
     }
 
     // ── A membrane roof does not get a terracotta parapet ──────────────
@@ -195,6 +282,8 @@
     console.log('[scene]', buildings.features.length, 'buildings,',
                 stats ? `${stats.buckets} colour buckets / ${stats.patterns} facade patterns,` : '',
                 labelled, 'OSM labels kept of', (signs.features || []).length, 'signs');
+    console.log('[labels] tiers  major', tierCount[0], '| mid', tierCount[1],
+                '| minor', tierCount[2], '| dropped', tierCount[3]);
     return { buildings, parts, signs, roofs };
   }
 
@@ -1228,28 +1317,84 @@
   window.addDetailLayers = addDetailLayers;
 
   // ── Labels ────────────────────────────────────────────────────────
-  // Secondary tier: real OSM building names, held back until you're low
-  // enough that they're context rather than clutter. Taller buildings win
-  // placement so the skyline reads first.
-  // THREE TIERS, not one layer. A symbol layer's minzoom is a single number, and
-  // MapLibre will not take ['zoom'] inside a data filter, so "label big things
-  // from far away and small things only up close" has to be three layers over one
-  // source, split on the `lt` tier stamped at load. They share every other
-  // property, so the look is identical — only the distance at which a name is
-  // allowed to appear changes.
+  // Real OSM building names. THREE TIERS, not one layer: a symbol layer's
+  // minzoom is a single number and MapLibre will not take ['zoom'] inside a data
+  // filter, so "name the landmarks from far away and the small stuff only up
+  // close" has to be three layers over one source, split on the `lt` tier
+  // stamped at load by the ranking pass above.
   //
-  //   tier 0  >= 45 m   the Tower, Dobie, the downtown towers   from z15.8
-  //   tier 1  22-45 m   most of campus                          from z16.7
-  //   tier 2  12-22 m   halls, annexes, small blocks            from z17.8
+  //   major  volume >= 130,000 m³ or >= 55 m   ~29 buildings   from z15.3
+  //   mid    volume >=  42,000 m³ or >= 30 m   ~67 buildings   from z16.6
+  //   minor  volume >=  13,000 m³              ~79 buildings   from z17.9
+  //   (everything below that is never labelled — 43 names dropped outright)
+  //
+  // ─────────────────────────────────────────────────────────────────────────
+  // THE ID ORDER LOOKS WRONG AND IS NOT. `buildings-labels` is the SMALLEST
+  // tier. Do not "tidy" these ids back into order.
+  //
+  // js/timeofday.js hardcodes that one id and, at every hour, overwrites its
+  // text-opacity outright:
+  //     ['interpolate',['zoom'], 16.8, 0, 17.5, 0.82 * (1 - 0.45 * night)]
+  // Two consequences, and this lane owns neither that file nor that constant:
+  //
+  //   1. whichever tier holds the id is INVISIBLE below z16.8. It was holding
+  //      the LANDMARK tier, whose own minzoom is 15.8 — so the one tier that
+  //      exists to read from a distance was pinned at zero opacity everywhere
+  //      below z16.8, at every hour, and nothing in app.js could change it
+  //      because tod runs last. Measured at the day/street pose before the fix:
+  //      `buildings-labels` placed ONE label and owned 389 px of the frame,
+  //      against 13,277 px for the mid tier.
+  //   2. whichever tier holds it is dimmed 45% after dark. That is a deliberate
+  //      earlier call — "the curated signage is the night story" — and it is
+  //      right for the quietest tier and wrong for the tier carrying most of
+  //      campus at street level, which is what made the night frames a field of
+  //      grey smudges.
+  //
+  // So the id goes to the MINOR tier, where both behaviours are what you'd have
+  // chosen anyway, and the two tiers that have to stay readable get new ids and
+  // full control. Renaming `buildings-labels` outright is not an option: six
+  // files and five verify scripts reference the string, places.js anchors its
+  // shop names before it for collision priority, and places-check.mjs asserts
+  // exactly that ordering — which still holds, since places-label still sits
+  // ahead of it.
+  //
+  // The cost, written down so it is a choice and not a surprise: the minor tier
+  // POPS IN at z17.9 with no fade, because tod's ramp is already flat by 17.5
+  // and app.js's own text-opacity on that layer is overwritten on the first
+  // move of the time slider. The alternative was starting the minor tier at
+  // z17.2 to get the fade, which puts 79 more small names on screen at street
+  // level — the exact clutter this pass exists to remove.
+  // ─────────────────────────────────────────────────────────────────────────
+  //
+  // LOOK: one set of values, all three tiers, all three hours. Small cream type
+  // at 82% alpha on a 1.3 px halo measured 1.14 contrast at the 10th percentile
+  // and 3.22 at the glyph core against a tan-and-terracotta city — under every
+  // legibility threshold there is, and dimmer still at night, where tod knocks
+  // another 45% off. Near-white glyph on a nearly opaque near-black halo reads
+  // on ANY background, which is the whole reason map labels are drawn this way:
+  // the halo IS the local backdrop, so the scene behind it stops mattering.
+  // Halo width is a fixed FRACTION of text size, so a 19 px landmark and a 10 px
+  // annexe get the same relative weight instead of the same absolute 1.3 px.
+  const LABEL_LOOK = {
+    ink:       '#fffaf0',   // warm near-white
+    halo:      'rgba(10,7,2,0.97)',
+    haloRatio: 0.17,        // halo width ÷ text size
+    haloBlur:  0.35,
+    maxWidth:  9,           // ems — wider than 7 because the names are shorter now
+    opacity:   1.0,
+  };
   const LABEL_TIERS = [
-    { id: 'buildings-labels',       lt: 0, minzoom: 15.8, fade: [15.9, 17.0] },
-    { id: 'buildings-labels-mid',   lt: 1, minzoom: 16.7, fade: [16.8, 17.5] },
-    { id: 'buildings-labels-minor', lt: 2, minzoom: 17.8, fade: [17.9, 18.4] },
+    // id                          lt  minzoom  size at minzoom → size 2.7 zooms later   pad
+    { id: 'buildings-labels-major', lt: 0, minzoom: 15.3, size: [13.5, 19.5], pad: 17 },
+    { id: 'buildings-labels-mid',   lt: 1, minzoom: 16.6, size: [11,   14.5], pad: 13 },
+    { id: 'buildings-labels',       lt: 2, minzoom: 17.9, size: [9.5,  12  ], pad: 10 },
   ];
 
   function addLabelLayers() {
     if (map.getLayer('buildings-labels')) return;
     for (const t of LABEL_TIERS) {
+      const size = ['interpolate', ['linear'], ['zoom'],
+        t.minzoom, t.size[0], t.minzoom + 2.7, t.size[1]];
       map.addLayer({
         id: t.id, type:'symbol',
         source:'austin-buildings',
@@ -1260,21 +1405,77 @@
           // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
           // server — a missing fontstack 404s and MapLibre discards the whole
           // tile it was needed for.
-          'text-font':['Noto Sans Regular'],
-          'text-size':['interpolate',['linear'],['zoom'],
-                       t.minzoom, 10, t.minzoom + 1.3, 12, t.minzoom + 2.8, 14],
+          //
+          // Bold for the landmark tier only. This is the cheapest hierarchy
+          // signal there is and it costs no extra screen: weight separates a
+          // landmark from a hall even when both are small in the frame.
+          'text-font': t.lt === 0 ? ['Noto Sans Bold'] : ['Noto Sans Regular'],
+          'text-size': size,
           'text-anchor':'center', 'text-offset':[0,-0.6],
-          'text-max-width':7, 'text-padding':9,
+          'text-max-width': LABEL_LOOK.maxWidth, 'text-padding': t.pad,
           'text-allow-overlap':false,
-          'symbol-sort-key':['-', 0, ['get','final_height']],
+          // Within a tier, the bigger building wins the box. `final_height` was
+          // the old key and it is the wrong one for the same reason it was the
+          // wrong tier signal: it hands the box to whatever is tallest, which on
+          // this campus is regularly a parking garage.
+          'symbol-sort-key':['-', 0, ['get','lv']],
         },
         paint:{
-          'text-color':'#f3e6cd','text-halo-color':'rgba(24,14,5,0.9)','text-halo-width':1.3,
-          'text-opacity':['interpolate',['linear'],['zoom'], t.fade[0], 0, t.fade[1], 0.82],
+          'text-color': LABEL_LOOK.ink,
+          'text-halo-color': LABEL_LOOK.halo,
+          'text-halo-width': ['interpolate', ['linear'], ['zoom'],
+            t.minzoom,       +(t.size[0] * LABEL_LOOK.haloRatio).toFixed(2),
+            t.minzoom + 2.7, +(t.size[1] * LABEL_LOOK.haloRatio).toFixed(2)],
+          'text-halo-blur': LABEL_LOOK.haloBlur,
+          // A SHORT fade, 0.3 of a zoom level, not the old 1.1. The long ramp
+          // was why a label spent most of its useful zoom range translucent:
+          // at the z16.4 aerial the mid tier was at 37% of its already-low 82%.
+          'text-opacity':['interpolate',['linear'],['zoom'],
+            t.minzoom, 0, t.minzoom + 0.3, LABEL_LOOK.opacity],
         },
       });
     }
+    orderLabelLayers();
   }
+
+  /**
+   * COLLISION PRIORITY, which in MapLibre is layer order and nothing else:
+   * whatever is earlier in the style is placed first and everything later is
+   * dropped where it would overlap.
+   *
+   * `initSigns()` runs at step 'signs', AFTER step 'labels', with no beforeId —
+   * so the curated hero names (UT Tower, Gregory Gym, Dobie) were appended to
+   * the very END of the style and had the LOWEST priority in the whole map.
+   * The top of the hierarchy was losing its box to OSM building names and to
+   * shop fascias.
+   *
+   * Only this lane's own layers are moved. `places-label` is left exactly where
+   * places.js put it — scripts/verify/places-check.mjs asserts it sits before
+   * `buildings-labels`, and it still does.
+   */
+  function orderLabelLayers() {
+    const order = ['signs-label', 'buildings-labels-major', 'places-label',
+                   'buildings-labels-mid', 'buildings-labels'];
+    // Walk from the back, moving each layer before the one that should follow
+    // it. Anything not present yet is skipped; initSigns calls this again once
+    // `signs-label` exists, so a late arrival still lands in the right place.
+    //
+    // The LAST layer in the list is deliberately never moved. `moveLayer(id)`
+    // with no beforeId sends a layer to the very end of the style, i.e. above
+    // every prop and every 3D layer added after the label step, which is a
+    // draw-order change nobody asked for. Everything else is positioned
+    // relative to it instead.
+    let after = null;
+    for (let i = order.length - 1; i >= 0; i--) {
+      const id = order[i];
+      if (!map.getLayer(id)) continue;
+      if (after && id !== 'places-label') {                  // places-label is not ours to move
+        try { map.moveLayer(id, after); } catch (e) {}
+      }
+      after = id;
+    }
+  }
+  window.orderLabelLayers = orderLabelLayers;
 
   // ── Cinematic intro ───────────────────────────────────────────────
   // A real journey now, not a dolly around a fixed centre: the flight starts

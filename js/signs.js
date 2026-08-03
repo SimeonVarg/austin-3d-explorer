@@ -21,12 +21,38 @@
   const SRC = 'austin-signs', LABEL = 'signs-label', POOL = 'signs-ground-glow';
 
   // Heroes (priority 1) are larger and win placement. Sizes ramp with zoom.
+  //
+  // These sit at the TOP of the whole label hierarchy: signs > landmark
+  // buildings > shops > building names > small building names. A hero is
+  // therefore always at least as large as `buildings-labels-major` in app.js
+  // (13.5 → 19.5 px over the same span) — if you raise one, raise both, or the
+  // pyramid inverts and the Tower reads smaller than the hall behind it.
   const TEXT_SIZE = [
     'interpolate', ['linear'], ['zoom'],
-    13, ['match', ['get', 'priority'], 1, 11, 9],
-    16, ['match', ['get', 'priority'], 1, 15, 11],
-    19, ['match', ['get', 'priority'], 1, 20, 14],
+    13, ['match', ['get', 'priority'], 1, 12, 10],
+    16, ['match', ['get', 'priority'], 1, 16, 12],
+    19, ['match', ['get', 'priority'], 1, 21, 15],
   ];
+
+  // Halo width as a FRACTION of text size, not a fixed 1.5 px. A 1.5 px halo is
+  // generous round a 21 px hero and far too thin round a 10 px priority-2 name,
+  // which is exactly the size at which a label has to fight a busy roof. Same
+  // ratio app.js uses for the building-name tiers, for the same reason.
+  //
+  // Built by a FUNCTION rather than multiplied at use time: wrapping the zoom
+  // curve in ['*', curve, k] is rejected — a zoom expression may not be nested
+  // inside another expression — and a rejected paint property takes the whole
+  // layer down with it, which is the same trap the TEXT_OPACITY note below
+  // records. The multiplier is folded into the output stops instead.
+  const HALO_RATIO = 0.17;
+  const haloWidth = (mult) => {
+    const w = (px) => +(px * HALO_RATIO * mult).toFixed(2);
+    return ['interpolate', ['linear'], ['zoom'],
+      13, ['match', ['get', 'priority'], 1, w(12), w(10)],
+      16, ['match', ['get', 'priority'], 1, w(16), w(12)],
+      19, ['match', ['get', 'priority'], 1, w(21), w(15)],
+    ];
+  };
 
   // Heroes carry from far out; everything else waits until you're in the
   // neighbourhood. This one expression is most of the declutter.
@@ -40,8 +66,14 @@
     'interpolate', ['linear'], ['zoom'],
     13.5, hero(0, 0),
     14.6, hero(1, 0),
-    15.9, hero(1, 0),
-    16.7, hero(1, 1),
+    // Priority-2 names used to start fading in at 15.9 and reach full at 16.7,
+    // which put them at 62% at the z16.4 aerial — half a dozen half-strength
+    // 12 px words ("The Co-op", "Pointe on Rio", "Raising Cane's") scattered
+    // over the campus frame, and they read as exactly the grey mush the
+    // building-name tiers were just cleaned up to stop being. They hold at zero
+    // until you are properly in the neighbourhood now.
+    16.4, hero(1, 0),
+    16.9, hero(1, 1),
   ];
 
   window.initSigns = function initSigns(map, data) {
@@ -89,20 +121,30 @@
           'text-size': TEXT_SIZE,
           'text-anchor': 'center',
           'text-max-width': 8,
-          'text-padding': 14,
+          'text-padding': 16,
           'text-allow-overlap': false,
           // Lower sort-key places first → priority-1 heroes beat priority-2.
           'symbol-sort-key': ['get', 'priority'],
         },
         paint: {
-          'text-color': '#fff6e4',
-          'text-halo-color': 'rgba(22,13,4,0.9)',
-          'text-halo-width': 1.5,
-          'text-halo-blur': 0.3,
+          'text-color': '#fffaf0',
+          'text-halo-color': 'rgba(10,7,2,0.97)',
+          'text-halo-width': haloWidth(1),
+          'text-halo-blur': 0.35,
           'text-opacity': TEXT_OPACITY,
         },
       });
     }
+
+    // COLLISION PRIORITY IS LAYER ORDER, and this layer was added last.
+    //
+    // initSigns runs at step 'signs', after step 'labels', with no beforeId, so
+    // the curated hero names ended up at the very END of the style — the LOWEST
+    // priority in the entire map. The top of the hierarchy was losing its box to
+    // OSM building names and to shop fascias, which is the opposite of what a
+    // hero sign is for. app.js owns the ordering; it is re-run here because this
+    // layer did not exist when it ran the first time.
+    if (typeof window.orderLabelLayers === 'function') window.orderLabelLayers();
   };
 
   // signGlow: 0 = day (no glow), 1 = night (full neon). Called from timeofday.
@@ -113,13 +155,17 @@
         // Cream by day → the building's own brand colour once it's dark.
         map.setPaintProperty(LABEL, 'text-color', [
           'interpolate', ['linear'], (p == null ? g : p),
-          0,    '#fff6e4',
-          0.55, '#fff6e4',
+          0,    '#fffaf0',
+          0.55, '#fffaf0',
           1,    ['to-color', ['get', 'color'], '#ffffff'],
         ]);
-        map.setPaintProperty(LABEL, 'text-halo-color', `rgba(6,5,14,${0.9 + g * 0.08})`);
-        map.setPaintProperty(LABEL, 'text-halo-width', 1.5 + g * 1.1);
-        map.setPaintProperty(LABEL, 'text-halo-blur', 0.3 + g * 1.4);
+        map.setPaintProperty(LABEL, 'text-halo-color', `rgba(6,5,14,${0.92 + g * 0.06})`);
+        // The night halo grows, it does not get REPLACED by a flat number. The
+        // old `1.5 + g*1.1` threw the size-proportional width away the moment
+        // the clock moved off noon, so a 10 px priority-2 name and a 21 px hero
+        // got the same 2.6 px halo after dark.
+        map.setPaintProperty(LABEL, 'text-halo-width', haloWidth(1 + g * 0.45));
+        map.setPaintProperty(LABEL, 'text-halo-blur', 0.35 + g * 1.3);
       } catch (e) {}
     }
     if (map.getLayer && map.getLayer(POOL)) {
