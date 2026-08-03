@@ -137,4 +137,22 @@ tile_layer "${DATA_DIR}/props.geojson"            "${DATA_DIR}/tiles/props.pmtil
 
 echo
 echo "Done. Totals:"
-du -ch "${DATA_DIR}/tiles"/*.pmtiles "${BUILDINGS_PMTILES}" 2>/dev/null | tail -1
+# `du` exits NON-ZERO on a missing path, and ${BUILDINGS_PMTILES} is missing on
+# every run between 00:00 UTC and that day's first build-data.yml — config.sh
+# dates the snapshot from `date -u`, so at 01:12 UTC it points at a directory
+# that only `mkdir -p` has ever touched. With `set -euo pipefail` (line 50) and
+# `2>/dev/null` hiding the reason, the LAST LINE of a completely successful
+# tiling run failed the job, the Commit step never ran, and the archives that
+# had just been built were thrown away. Two lanes lost a tile build to this on
+# the night of 2026-08-02 before anyone read past "Done. Totals:".
+#
+# So: total only the files that are actually there, and let du's exit code
+# mean something again.
+shopt -s nullglob
+_totals=("${DATA_DIR}/tiles"/*.pmtiles)
+[ -f "${BUILDINGS_PMTILES}" ] && _totals+=("${BUILDINGS_PMTILES}")
+if [ ${#_totals[@]} -gt 0 ]; then
+  du -ch "${_totals[@]}" | tail -1
+else
+  echo "  (no archives built)"
+fi
