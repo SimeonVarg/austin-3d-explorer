@@ -104,6 +104,45 @@ function initControls(map, scene) {
 
   const FENCE_PAD = 250, FENCE_SOFT = 250;
 
+  // ── How far you may fly ───────────────────────────────────────────
+  // "i wish i could explore more of downtown im currently locked almost
+  //  halfway"
+  //
+  // He was right and the number is embarrassing. The fence used to be the
+  // bounding box of `scene.buildings` alone -- the campus snapshot plus the
+  // Capitol precinct -- padded by FENCE_PAD. That is 3.1 x 3.3 km, and its
+  // SOUTH edge lands at lat 30.2685, which runs straight through the middle of
+  // downtown: the downtown bake covers 30.2560 to 30.2770, so the fence let him
+  // reach 59% of the way down it and stopped. "Almost halfway", exactly.
+  //
+  // Downtown is not in `scene.buildings` and never was. It is 8,428 outer-ring
+  // buildings drawn by js/outer.js off its own source, plus 64,003 trees, and
+  // both are baked over the box below -- `OUTER` in scripts/bake_outer.py, which
+  // is the single definition of how much city this app contains. The fence is
+  // that box now, so it encloses everything that actually renders.
+  //
+  //     old   1.7 km W / 1.4 km E / 1.8 km S / 1.5 km N of campus centre
+  //     new   5.1 km W / 3.7 km E / 5.2 km S / 3.6 km N
+  //     area  10.1 km2  ->  77.4 km2   (7.6x)
+  //
+  // MEASURED against the ring's own density, so this is "the edge of the data"
+  // and not a guess: buildings per 500 m band peak at 1,956 between 2.0 and
+  // 2.5 km, are still 485 at 4.0-4.5 km, and fall to 8 past 6.5 km. Every
+  // building over 40 m -- every downtown tower -- is inside 3.5 km. The far
+  // corner of this fence is thin, but it is modelled and planted, not blank.
+  //
+  // Mirrored from the bake rather than read from the data because the outer ring
+  // is TILED: the browser only ever holds the tiles it has drawn, so there is no
+  // moment at which the full extent could be measured client-side. If
+  // bake_outer.py's OUTER box ever changes, change this with it.
+  //
+  // It is already the project's own name for "the city": scripts/
+  // fetch_city_trees.py writes the identical box in its own header as
+  // "modelled city ... (data/outer_ring.geojson, the buildings you can see)"
+  // and plants the whole canopy to it. Two bakes agreeing on the extent is why
+  // this is a mirror of a definition rather than a number somebody picked.
+  const MODELLED = { w: -97.7880, s: 30.2400, e: -97.7020, n: 30.3150 };
+
   const JOY_RADIUS = 34, JOY_DEAD = 0.12, JOY_EXPO = 1.6;
 
   // ── TUNE — the camera FEEL, all in one place ──────────────────────
@@ -271,21 +310,208 @@ function initControls(map, scene) {
     }
 
     const padLng = FENCE_PAD / mx, padLat = FENCE_PAD / my;
-    fence = { w: minLng - padLng, s: minLat - padLat, e: maxLng + padLng, n: maxLat + padLat };
+    // The UNION of the two, never just the wider one: the modelled box is where
+    // the city is, the buildings box is where the collision grid is, and a
+    // fence that did not contain the grid would let a snapshot that grew past
+    // the ring's edge put buildings outside the flyable area.
+    fence = {
+      w: Math.min(minLng, MODELLED.w) - padLng,
+      s: Math.min(minLat, MODELLED.s) - padLat,
+      e: Math.max(maxLng, MODELLED.e) + padLng,
+      n: Math.max(maxLat, MODELLED.n) + padLat,
+    };
     gridBuilt = true;
     return true;
   }
 
-  /** Max indexed roof height within r metres of a ground position. */
-  function maxHeightIn(lng, lat, r) {
-    if (!gridBuilt) return 0;
+  // ── The outer collision field ─────────────────────────────────────
+  //
+  // The grid above is rasterised from `scene.buildings`, which is 10 km2 of a
+  // city the fence now lets you fly 77 km2 of. Everything the widening opened
+  // up -- all of downtown, every tower in it, up to 315 m of Sixth &
+  // Guadalupe -- is drawn by js/outer.js off a TILED source, and a tiled source
+  // has no complete feature list to rasterise at load. The browser only holds
+  // the tiles it has drawn.
+  //
+  // Widening the fence without this would let the camera fly straight through
+  // the Independent, which is a worse defect than the one being fixed. So it is
+  // built the only way a tiled source allows: incrementally, from whatever the
+  // source is currently holding, every time the map settles. Flying at a tower
+  // means looking at it, which means its tile is loaded, which means it is in
+  // here before you arrive.
+  //
+  // BOUNDING BOXES, NOT RASTERISED FOOTPRINTS, and here that is right rather
+  // than lazy. HANDOFF §50 is about SIZING something from a bbox, where
+  // over-covering a rotated footprint by ~13 m puts a handrail off the roof.
+  // For a collision net over-covering stops you slightly EARLY, which is the
+  // safe direction. The core grid scanline-fills because there you want to fly
+  // up to a facade and read it; out here you want to not go through it.
+  //
+  // Sparse, so its memory is the built-up fraction rather than the box: a dense
+  // Float32Array over the new fence at CELL would be 8.8 MB for a field that is
+  // mostly empty.
+  const OUTER_SRC = 'austin-outer';
+  const OUTER_CELL = 10;          // m. Coarser than CELL: a bbox is coarse anyway
+  // Nothing under this can be hit. ALT_MIN is 18 m and blockedAt fires at
+  // height + SKIN > alt, so a 12 m building never blocks, and skipping them
+  // keeps two-storey West Campus houses from stamping a solid slab over every
+  // block for no benefit. It also cuts the work by roughly an order of
+  // magnitude -- of 8,428 ring buildings only 192 are over 60 m.
+  const OUTER_MIN_H = 12;
+  const OUTER_RESCAN_M = 200;     // rescan once the camera has moved this far
+  const OUTER_RESCAN_MS = 1500;   // ...or this long, whichever comes first
+  // A HARD BUDGET, IN MILLISECONDS, and it is the difference between this
+  // costing nothing and it dropping a frame. Measured before it existed:
+  // 8.9 ms average per scan and a 35.1 ms WORST, which at 60 fps is two frames
+  // gone — the kind of thing that gets reported as "it stutters sometimes" and
+  // is never found. The scan resumes where it left off, so a budget delays the
+  // field rather than truncating it, and the throttle above means the next
+  // instalment is at most 1.5 s away.
+  const OUTER_BUDGET_MS = 4;
+  let outerCells = new Map(), outerScanAt = 0, outerScanLng = 0, outerScanLat = 0;
+  let outerSeen = new Set(), outerPending = null, outerPendingAt = 0;
+  let outerIdleBackoff = false, outerAddedThisPass = 0;
+  let outerFeatures = 0, outerScans = 0, outerScanMs = 0, outerScanMsMax = 0;
+
+  const outerKey = (i, j) => i * 1048576 + j;
+
+  function outerStamp() {
+    const my = M_LAT;
+    const t0 = performance.now();
+
+    // Resume an unfinished list before asking for a new one. Without this a
+    // budget would just re-do the first few hundred features forever.
+    if (!outerPending || outerPendingAt >= outerPending.length) {
+      if (!map.getSource || !map.getSource(OUTER_SRC)) return;
+      // The source is a vector tile source when data/tiles/ is present and a
+      // geojson source when it is not (window.TILES falls back silently), and
+      // the two want different arguments. Ask for both rather than duplicating
+      // tiles.js's fallback rule here, where it would go stale.
+      //
+      // The FILTER is not a nicety: it makes MapLibre drop the low-rise before
+      // it builds the feature objects, and the low-rise is most of the ring.
+      const layer = (window.TILES && window.TILES.layers && window.TILES.layers.outer
+                     && window.TILES.layers.outer.layer) || 'outer';
+      const filter = ['>', ['get', 'h'], OUTER_MIN_H];
+      let feats = [];
+      try { feats = map.querySourceFeatures(OUTER_SRC, { sourceLayer: layer, filter }); } catch (e) {}
+      if (!feats.length) {
+        try { feats = map.querySourceFeatures(OUTER_SRC, { filter }); } catch (e) {}
+      }
+      if (!feats.length) return;
+      outerPending = feats; outerPendingAt = 0;
+      outerAddedThisPass = 0;
+    }
+
+    while (outerPendingAt < outerPending.length) {
+      // Check the clock every 64 features rather than every one: at ~2 us of
+      // work per feature, performance.now() itself would be most of the cost.
+      if ((outerPendingAt & 63) === 0 && performance.now() - t0 > OUTER_BUDGET_MS) return;
+      const f = outerPending[outerPendingAt++];
+      const h = f.properties && f.properties.h;
+      if (!(h > OUTER_MIN_H) || !f.geometry) continue;
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates]
+                  : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
+      for (const poly of polys) {
+        const r = poly[0];
+        if (!r || r.length < 4) continue;
+        let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+        for (const p of r) {
+          if (p[0] < w) w = p[0]; if (p[0] > e) e = p[0];
+          if (p[1] < s) s = p[1]; if (p[1] > n) n = p[1];
+        }
+        // The SAME building arrives again in every later scan, and in every
+        // neighbouring tile that overlaps it. Position plus height is a stable
+        // identity across all of those; the feature `id` is not, because the
+        // GeoJSON fallback path has none.
+        const key = ((w * 1e5) | 0) + ':' + ((s * 1e5) | 0) + ':' + (h | 0);
+        if (outerSeen.has(key)) continue;
+        outerSeen.add(key);
+        const mx = mLon((s + n) / 2);
+        const i0 = Math.floor(w * mx / OUTER_CELL), i1 = Math.floor(e * mx / OUTER_CELL);
+        const j0 = Math.floor(s * my / OUTER_CELL), j1 = Math.floor(n * my / OUTER_CELL);
+        // A guard, not a limit: a corrupt coordinate could otherwise ask for a
+        // million cells and freeze the frame it happens on.
+        if ((i1 - i0) > 400 || (j1 - j0) > 400) continue;
+        for (let i = i0; i <= i1; i++) {
+          for (let j = j0; j <= j1; j++) {
+            const k = outerKey(i, j);
+            if (!(outerCells.get(k) >= h)) outerCells.set(k, h);
+          }
+        }
+        outerFeatures++; outerAddedThisPass++;
+      }
+    }
+    // The list ran out: this pass saw every feature the source is holding.
+    outerIdleBackoff = outerAddedThisPass === 0;
+  }
+
+  /** Max ring-building height within r metres, from the incremental field. */
+  function outerHeightIn(lng, lat, r) {
+    if (!outerCells.size) return 0;
     const mx = mLon(lat), my = M_LAT;
+    const i0 = Math.floor((lng - r / mx) * mx / OUTER_CELL);
+    const i1 = Math.floor((lng + r / mx) * mx / OUTER_CELL);
+    const j0 = Math.floor((lat - r / my) * my / OUTER_CELL);
+    const j1 = Math.floor((lat + r / my) * my / OUTER_CELL);
+    let best = 0;
+    for (let i = i0; i <= i1; i++) {
+      for (let j = j0; j <= j1; j++) {
+        const v = outerCells.get(outerKey(i, j));
+        if (v > best) best = v;
+      }
+    }
+    return best;
+  }
+
+  function outerMaybeScan() {
+    const now = simTime;
+    // An unfinished list resumes on the NEXT frame, not on the next throttle
+    // window. Otherwise a big instalment queue would trickle in at 4 ms every
+    // 1.5 s and the camera could reach a tower before the tower reached the
+    // field — which is the one failure this whole mechanism exists to prevent.
+    const resuming = outerPending && outerPendingAt < outerPending.length;
+    const moved = Math.hypot((eye.lng - outerScanLng) * mLon(eye.lat),
+                             (eye.lat - outerScanLat) * M_LAT);
+    // BACK OFF WHEN THERE IS NOTHING NEW. querySourceFeatures is the one part
+    // of this that cannot be budgeted — it builds the whole feature list before
+    // it returns, measured at up to 12.5 ms — so the cheapest saving available
+    // is not making the call. Sitting still over a district already stamped
+    // asks every 6 s instead of every 1.5; moving 200 m still forces it, so
+    // arriving somewhere new is never delayed.
+    const wait = outerIdleBackoff ? OUTER_RESCAN_MS * 4 : OUTER_RESCAN_MS;
+    if (!resuming && outerScanAt && moved < OUTER_RESCAN_M
+        && (now - outerScanAt) * 1000 < wait) return;
+    outerScanAt = now || 1e-6;
+    outerScanLng = eye.lng; outerScanLat = eye.lat;
+    // TIMED, because this is the one thing in the tick that is not O(1) and a
+    // scan that hitches one frame in ninety is exactly the kind of thing that
+    // gets described as "it stutters sometimes" and never found.
+    const t = performance.now();
+    outerStamp();
+    const ms = performance.now() - t;
+    outerScans++; outerScanMs += ms;
+    if (ms > outerScanMsMax) outerScanMsMax = ms;
+  }
+
+  /** Max indexed roof height within r metres of a ground position.
+   *
+   * THE ONE CHOKE POINT. Block-and-slide, the rooftop floor, the speed brake,
+   * the wall deflection and writeToMap's hard net all read the world through
+   * this function and nothing else, so teaching it about the outer ring gives
+   * every one of them downtown collision for free. That is why the ring goes in
+   * here rather than into a parallel check at each call site.
+   */
+  function maxHeightIn(lng, lat, r) {
     r = r == null ? R_CAM : r;
+    const ring = outerHeightIn(lng, lat, r);
+    if (!gridBuilt) return ring;
+    const mx = mLon(lat), my = M_LAT;
     const i0 = Math.floor((lng - r / mx - gx0) * mx / CELL);
     const i1 = Math.floor((lng + r / mx - gx0) * mx / CELL);
     const j0 = Math.floor((lat - r / my - gy0) * my / CELL);
     const j1 = Math.floor((lat + r / my - gy0) * my / CELL);
-    let best = 0;
+    let best = ring;
     for (let j = Math.max(0, j0); j <= Math.min(gny - 1, j1); j++) {
       const row = j * gnx;
       for (let i = Math.max(0, i0); i <= Math.min(gnx - 1, i1); i++) {
@@ -707,6 +933,10 @@ function initControls(map, scene) {
     const dt = Math.min(dtRaw, DT_MAX);
     const t0 = performance.now();
     simTime += dt;
+    // Outside the `driving` gate on purpose: the intro cinematic and the R
+    // reset both move the camera without this controller owning it, and the
+    // collision field wants filling in during exactly those, not after.
+    outerMaybeScan();
 
     const sprint = sprintHeld ? SPRINT : 1;
     let fwd = 0, strafe = 0;
@@ -1057,6 +1287,15 @@ function initControls(map, scene) {
     roofAt: (lng, lat, r) => maxHeightIn(lng, lat, r == null ? R_CAM : r),
     indexed: () => gridBuilt,
     gridBytes: () => (grid ? grid.byteLength : 0),
+    // The fence, in degrees, and how much of the outer ring the incremental
+    // collision field has seen. Both exist so a verification can assert on them
+    // instead of inferring them from where the camera stopped.
+    fence: () => (fence ? { w: fence.w, s: fence.s, e: fence.e, n: fence.n } : null),
+    outerField: () => ({ cells: outerCells.size, features: outerFeatures,
+                         scans: outerScans,
+                         avgMs: outerScans ? +(outerScanMs / outerScans).toFixed(2) : 0,
+                         maxMs: +outerScanMsMax.toFixed(2) }),
+    outerScan: () => { outerScanAt = 0; outerStamp(); return outerCells.size; },
     consts: { ALT_REF, ALT_MIN, ALT_MAX, ZOOM_MIN, ZOOM_MAX, R_CAM, HARD_CLEAR,
               SPEED_REF, SPEED_EXP, TAU_ACCEL, TAU_DECEL, VERT_GAIN, SPRINT },
     simTime: () => simTime,

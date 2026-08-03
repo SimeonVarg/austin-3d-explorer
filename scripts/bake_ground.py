@@ -1666,6 +1666,128 @@ def widen_paths(feats, stats, warnings):
     return kept
 
 
+# --------------------------------------------------------- road  polygons --
+#
+# "when im all the way down vertically and look at an angle towards the roads
+#  and start facing upright, the roads get bigger. some roads dont do this."
+#
+# "some roads dont" was the whole clue and it is not about roads at all: the
+# ones that DON'T swell are the sidewalks, because PR #70 moved their width out
+# of `line-width` and into the geometry. The carriageways were left behind, so
+# they still fan. Measured on merged main by scripts/verify/road-fan.mjs
+# (camera on Speedway's south end, `ground-road`):
+#
+#     pitch 20   1.10x at the only sample still on screen
+#     pitch 60   1.26x near  ->  3.33x far
+#     pitch 86   1.30x near  ->  3.69x far   (over 900 m of road; it keeps going)
+#
+# A `line-width` is a number of SCREEN PIXELS and it is the same number for the
+# whole line, while 12 m of ground under the camera is many pixels and 12 m of
+# it by the horizon is a fraction of one. MapLibre has no per-vertex line width
+# and no metres unit on `line-width`, so no expression can fix this -- which is
+# why the fix is the same one the paths got: buffer the centreline by half its
+# real width at bake time and draw a POLYGON, which gets the true perspective
+# for free at every pitch and every distance.
+#
+# WHAT IT COSTS, MEASURED, and it is the reason the far-field armature is
+# excluded below. These polygons ship in data/ground.geojson, which is NOT
+# tiled -- it downloads whole. The near network (everything inside the flyable
+# area) is +1.7 MB raw / +373 KB gzipped on a 1.58 MB / 293 KB file. The
+# far-field arterials are another +727 KB raw for roads five to thirty km out
+# that no camera in this app can approach, and drawn at their true width they
+# would be a third of a pixel across and effectively erased -- which would undo
+# the establishing-shot armature they exist for. So `far` stays a line, and
+# js/ground.js keeps one line layer for it and one only.
+ROADAREA = {
+    "on": True,
+    "include_far": False,       # see the note above; `far:1` stays a line
+    "simplify_m": 0.15,         # same tolerance as the paths: under a pixel
+    "min_area_m2": 2.0,         # drop slivers the union leaves behind
+    # SIX decimal places, deliberately, even though five would save 81 KB
+    # gzipped. Five is 1.1 m here, and a kerb quantised to 1.1 m is a visibly
+    # ragged edge from street level -- the altitude this whole pass is about.
+    "coord_dp": 6,
+}
+
+
+def widen_roads(road_feats, stats, warnings):
+    """k:'road'/'cycle' LineStrings -> k:'roadarea'/'cyclearea' Polygons.
+
+    Returns NEW features to append to data/ground.geojson. The LineStrings stay
+    in data/roads.geojson exactly as they were: the lane markings, the stop bars
+    and the bike lanes are drawn off the centreline and still need it, and
+    keeping that file byte-identical means the PMTiles archive does not have to
+    be rebuilt for this pass.
+    """
+    if not ROADAREA["on"]:
+        return []
+    try:
+        from shapely.geometry import LineString
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: roads left as LineStrings, which "
+                        "means they fan out with pitch (see road-fan.mjs)")
+        return []
+
+    dp = ROADAREA["coord_dp"]
+    groups = {}
+    for f in road_feats:
+        p = f["properties"]
+        kind = p.get("k")
+        if kind not in ("road", "cycle"):
+            continue
+        if kind == "road" and p.get("far") and not ROADAREA["include_far"]:
+            stats["roadarea_far_left_as_line"] += 1
+            continue
+        coords = f["geometry"]["coordinates"]
+        if len(coords) < 2:
+            continue
+        w = float(p.get("w") or (9.0 if kind == "road" else 2.5))
+        if w <= 0.2:
+            continue
+        # Mitre joins and flat caps, same as widen_paths: a round join spends a
+        # dozen vertices per corner drawing a curve nobody can see at 200 m.
+        try:
+            poly = LineString(_line_m(coords)).buffer(
+                w / 2.0, cap_style=2, join_style=2, mitre_limit=2.0)
+        except Exception:
+            stats["roadarea_buffer_failed"] += 1
+            continue
+        if poly.is_empty:
+            continue
+        # Grouped by everything that changes how it is DRAWN and nothing else.
+        # `c` survives because js/ground.js fades service roads in by zoom and
+        # `s` because the carriageway's colour is its surface. Name, lanes,
+        # oneway and the bike tags are all centreline business and are dropped.
+        key = ("roadarea", p.get("c") if kind == "road" else None, p.get("s"))
+        groups.setdefault(key if kind == "road" else ("cyclearea", None, p.get("s")),
+                          []).append(poly)
+        stats["roadarea_widened_" + kind] += 1
+
+    out = []
+    for (k, cls, surf), polys in sorted(groups.items(), key=lambda kv: str(kv[0])):
+        merged = unary_union(polys)
+        if ROADAREA["simplify_m"]:
+            merged = merged.simplify(ROADAREA["simplify_m"])
+        parts = merged.geoms if merged.geom_type == "MultiPolygon" else [merged]
+        for gm in parts:
+            if gm.is_empty or gm.area < ROADAREA["min_area_m2"]:
+                stats["roadarea_sliver_dropped"] += 1
+                continue
+            rings = [[[round(x / _KX, dp), round(y / M_LAT, dp)]
+                      for x, y in gm.exterior.coords]]
+            rings += [[[round(x / _KX, dp), round(y / M_LAT, dp)] for x, y in r.coords]
+                      for r in gm.interiors]
+            props = {"k": k, "s": surf}
+            if cls:
+                props["c"] = cls
+            out.append({"type": "Feature",
+                        "geometry": {"type": "Polygon", "coordinates": rings},
+                        "properties": props})
+            stats["roadarea_out_" + k + "_" + str(cls or surf)] += 1
+    return out
+
+
 # ----------------------------------------------------- coincident surfaces --
 #
 # "speedway and 24th keep glitching on motion and combine on still, find out
@@ -1793,6 +1915,14 @@ def _band(p):
     # and path in the corridor would cut a tree-shaped hole out of itself and
     # RANK_DEFAULT would then delete the crown that caused it.
     if p.get("k") == "cnp":
+        return None
+    # A carriageway polygon is not IN the ladder, it IS the ladder's top rung.
+    # The resolver already cuts every path and lawn against the buffered
+    # centrelines (carriageway_polys, below), so the drawn pavement is the one
+    # surface that takes ground without ever giving any up. Letting it in would
+    # have it cut against itself: RANK has no entry for `roadarea`, so
+    # RANK_DEFAULT would hand every square metre to whatever else was there.
+    if p.get("k") in ("roadarea", "cyclearea"):
         return None
     # THE WATER SHEEN IS NOT GROUND EITHER, and the first cut of it proved that
     # the hard way: it is the SAME footprint as the water prism at the SAME rank
@@ -2268,6 +2398,14 @@ def main():
     # honest equivalent is to plant only in ground the corridor actually kept.
     feats = plant_creek_canopy(feats, stats, warnings)
 
+    # AFTER the resolver, and that is the whole point: the carriageway is the
+    # top rung of the ladder, so it must not be a candidate for being cut. It
+    # goes in as drawn geometry only, at its full tagged width -- the same width
+    # the `line` layer used to paint -- while the resolver's own copy of it is
+    # inset by half a kerb (CARRIAGEWAY_INSET_M) so the gutter stays with the
+    # pavement it belongs to. Two uses, two widths, on purpose.
+    feats += widen_roads(road_feats, stats, warnings)
+
     # Draw order: big areas first, then small areas on top of them, then paths
     # over everything. Without the size term a 30,000 m2 lawn painted over the
     # field it contains.
@@ -2297,7 +2435,8 @@ def main():
         "features": len(feats),
         "file_kb": round(size_kb, 1),
         "shipped": {k: v for k, v in sorted(shipped.items())
-                    if k.startswith(("shipped_bank", "shipped_cnp"))},
+                    if k.startswith(("shipped_bank", "shipped_cnp",
+                                     "shipped_roadarea", "shipped_cyclearea"))},
         "counts": dict(sorted(stats.items(), key=lambda kv: kv[0])),
         "paths_with_TAGGED_width": paths_tagged_w,
         "paths_with_DEFAULT_width": paths_default_w,
