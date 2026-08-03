@@ -56,6 +56,7 @@ Usage:  python scripts/bake_facades.py [--check]
 import json
 import math
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -72,10 +73,33 @@ CHECK = "--check" in sys.argv
 U24_MATCH = "Union on 24th"
 U24 = {"wd": "#6f7172", "wg": "#7c7a74", "wn": "#23262e", "final_height": 94.4}
 
-# js/facades.js familyFor()
-RESIDENTIAL = ("dormitory", "residential", "apartments", "house", "hotel")
-PUNCHED = ("university", "school", "college", "civic", "government", "hospital",
-           "church", "religious", "museum", "library")
+# js/facades.js familyFor() -- COPIED FROM THE REGEXES, character for character.
+#
+# The first cut of this file paraphrased them into two tuples of substrings and
+# lower-cased the class before testing, and the parity harness convicted every
+# one of those liberties:
+#   * `apartments` does not match a class of `apartment`, which is the string
+#     that is actually in the data -- the JS pattern is `apartment`, matching
+#     both.  `house` and `religious` are in no JS list at all; `condo`,
+#     `kindergarten`, `chapel`, `cathedral`, `synagogue`, `mosque`, `temple`,
+#     `clinic`, `public`, `train_station`, `transportation`, `industrial`,
+#     `manufacture`, `warehouse`, `utility` and `service` were all missing.
+#   * AND THE LOWER-CASING WAS A DIVERGENCE OF ITS OWN.  `familyFor` tests the
+#     RAW `building_class`, so a capitalised class does not match in the
+#     browser -- and a port that helpfully lower-cases it would classify a
+#     building the renderer classifies differently.  Faithful beats correct
+#     here: if the case-sensitivity is wrong it is wrong in js/facades.js, and
+#     fixing it there is a separate, visible change.
+GARAGE = re.compile(r"parking|garage|carport")
+STADIUM = re.compile(r"stadium|arena|sports_centre|grandstand")
+RESIDENTIAL = re.compile(r"apartment|dormitory|residential|hotel|condo")
+PUNCHED = re.compile("|".join([
+    "university", "college", "school", "kindergarten",
+    "church", "chapel", "cathedral", "synagogue", "mosque", "temple",
+    "hospital", "clinic", "civic", "public", "government",
+    "library", "museum", "train_station", "transportation",
+    "industrial", "manufacture", "warehouse", "utility", "service",
+]))
 
 
 def hex_to_rgb(h):
@@ -131,10 +155,9 @@ def coarse_key(rgb):
 
 def family_for(p):
     cls = p.get("building_class") or ""
-    low = cls.lower()
-    if any(k in low for k in ("parking", "garage", "carport")):
+    if GARAGE.search(cls):
         return "dk"
-    if any(k in low for k in ("stadium", "arena", "sports_centre", "grandstand")):
+    if STADIUM.search(cls):
         return "st"
     h = p.get("final_height") or 0
     if h < 5:
@@ -143,19 +166,42 @@ def family_for(p):
         return "mr"
     if h < 26:
         return "mh"
-    if any(k in low for k in RESIDENTIAL):
+    # ORDER MATTERS: a university dormitory matches both lists and is a
+    # dormitory first. Same as the JS.
+    if RESIDENTIAL.search(cls):
         return "tr"
-    if any(k in low for k in PUNCHED):
+    if PUNCHED.search(cls):
         return "mh" if h < 45 else "tr"
     return "tg"
 
 
 # ---------------------------------------------------------------- assembly --
-def load_scene():
-    """Rebuild exactly the feature list quantiseFacades is handed in the browser."""
+def snapshot_date():
+    """`manifest.latest`, which is what js/app.js:209 loads.
+
+    Reading the directory and taking the last name sorted is NOT the same
+    question and only happens to agree today. `data/snapshots/` keeps seven
+    dated directories and the manifest is what decides which of them is the
+    city; a snapshot dropped in out of order, or a `latest` deliberately
+    pinned behind the newest build, and the bake would elect a palette for a
+    city nobody is looking at. The directory listing stays as the fallback for
+    a checkout with no manifest.
+    """
+    mf = os.path.join(DATA, "manifest.json")
+    if os.path.exists(mf):
+        m = json.load(open(mf, encoding="utf-8"))
+        if m.get("latest"):
+            return m["latest"]
+        if m.get("snapshots"):
+            return m["snapshots"][-1]
     snaps = sorted(d for d in os.listdir(os.path.join(DATA, "snapshots"))
                    if os.path.isdir(os.path.join(DATA, "snapshots", d)))
-    date = snaps[-1]
+    return snaps[-1]
+
+
+def load_scene():
+    """Rebuild exactly the feature list quantiseFacades is handed in the browser."""
+    date = snapshot_date()
     path = os.path.join(DATA, "snapshots", date, "buildings.detailed.geojson")
     buildings = json.load(open(path, encoding="utf-8"))["features"]
 
@@ -256,27 +302,31 @@ def quantise(features, protected):
     palette = [{"wd": rgb_to_hex(*k["wd"]), "wg": rgb_to_hex(*k["wg"]),
                 "wn": rgb_to_hex(*k["wn"])} for k in kept]
 
-    # 4. stamp
-    stamps = {}
+    # 4. stamp. `rows` is ALIGNED WITH `features`, one entry each, None where the
+    #    browser also stamps nothing (no `wd`). Position is the join key the
+    #    parity harness uses for the 604 authored Capitol features, which carry
+    #    no `id` at all, so a dict keyed on id could not check them — and it
+    #    would silently drop one of any duplicate-id pair rather than report it.
+    rows = []
     combos = []
     for f in features:
         p = f.get("properties") or {}
         if not p.get("wd"):
+            rows.append(None)
             continue
         b = index.get(coarse_key(hex_to_rgb(p["wd"])), 0)
         fam = family_for(p)
         wp = fam + str(b).zfill(2)
-        fid = p.get("id")
-        if fid is not None:
-            stamps[fid] = {"fb": b, "wf": fam, "wp": wp}
+        rows.append({"fb": b, "wf": fam, "wp": wp})
         if wp not in combos:
             combos.append(wp)
-    return palette, index, stamps, combos
+    return palette, index, rows, combos
 
 
 def main():
     date, feats, protected, asm = load_scene()
-    palette, index, stamps, combos = quantise(feats, protected)
+    palette, index, rows, combos = quantise(feats, protected)
+    stamped = sum(1 for r in rows if r)
 
     out = {
         "snapshot": date,
@@ -284,7 +334,7 @@ def main():
         "protected": protected,
         "palette": palette,
         "assembly": asm,
-        "features_stamped": len(stamps),
+        "features_stamped": stamped,
         "combos": sorted(combos),
     }
     if CHECK:
@@ -301,10 +351,12 @@ def main():
         "assembly": asm,
         "groups": len(index),
         "palette_buckets": len(palette),
-        "features_stamped": len(stamps),
+        "features_stamped": stamped,
         "combos": len(combos),
         "palette_kb": round(os.path.getsize(OUT_PALETTE) / 1024, 1),
-        "note": "nothing is written onto the buildings yet - see facade-parity.mjs",
+        "note": "js/facades.js adopts this when its snapshot matches manifest.latest; "
+                "?bakedfacades=0 forces the browser election. Prove them equal with "
+                "scripts/verify/facade-parity.mjs + facade_parity.py, then facade-switch.mjs.",
     }, indent=2))
 
 
