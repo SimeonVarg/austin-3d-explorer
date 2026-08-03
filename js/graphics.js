@@ -10,9 +10,13 @@
  *   downscale + threshold + blur + add -> bloom      (canvas, from the GL canvas)
  *   additive wedges from the sun       -> god rays   (canvas)
  *   ghosts + anamorphic streak         -> lens flare (canvas)
- *   masked blur at the horizon         -> aerial DOF (CSS backdrop-filter)
+ *   masked blur at the horizon         -> aerial DOF (CSS backdrop-filter) [OFF]
  *   tonemap/exposure/saturation        -> grade      (CSS filter on #map)
  *   overlay noise                      -> film grain (tiled canvas)
+ *
+ * THE DISTANCE BLUR IS OFF EVERYWHERE AND THAT IS THE POINT — see the note on
+ * `dof` in PRESETS. It was the last thing in the app still keyed to a SCREEN
+ * ROW rather than to a distance, and it was the horizon line he kept reporting.
  *
  * BLOOM: CSS CANNOT DO THIS, and the way it fails is worth writing down. The
  * obvious trick is one full-screen div with
@@ -67,7 +71,8 @@
     { key: 'bloom',       label: 'Bloom',          min: 0, max: 1, step: 0.02, group: 'lens' },
     { key: 'godRays',     label: 'God rays',       min: 0, max: 1, step: 0.02, group: 'lens' },
     { key: 'flare',       label: 'Lens flare',     min: 0, max: 1, step: 0.02, group: 'lens' },
-    { key: 'dof',         label: 'Distance blur',  min: 0, max: 1, step: 0.02, group: 'lens' },
+    { key: 'dof',         label: 'Distance blur',  min: 0, max: 1, step: 0.02, group: 'lens',
+      hint: 'OFF by default, and the reason is in the code: this is a CSS blur over a band of SCREEN ROWS below the horizon, so it softens whatever happens to be at that height — including the upper half of the building you are standing next to — while leaving its base sharp. The distance cue it was there for now comes from the depth-tested haze, which fades by real distance. Raise it if you want the look; it will bring the horizon line back with it.' },
     { key: 'exposure',    label: 'Exposure',       min: 0.7, max: 1.4, step: 0.01, group: 'grade' },
     { key: 'autoExposure', label: 'Auto exposure', type: 'bool', group: 'grade',
       hint: 'Nudges exposure toward the hour’s typical brightness, metered from the rendered frame. Needs the preserved buffer bloom uses (reload with bloom > 0).' },
@@ -151,6 +156,59 @@
   // or the contact shadows (3.6) — because it is a full-screen `overlay` blend
   // running every frame. So it earns its keep at cinematic and stays out of the
   // default that has to feel smooth.
+  // ── `dof: 0` in every preset, and this is a correctness decision ────
+  //
+  // THIS WAS THE HORIZON LINE. He has reported it four times now, most recently
+  // as *"the horizontal line thing is inverted ... its still a bit harsh with
+  // the gradient on the uppser side. far away buildings dont have it anymore
+  // which is nice"*, with a screenshot of ONE tower that is normal at the base
+  // and washes out toward its top.
+  //
+  // PR #107 moved the aerial haze onto the depth buffer, so the haze now fades
+  // every pixel by its real distance and a tower takes one tone from base to
+  // crown. What it could not fix — because it lives in a different file — is
+  // `#fx-dof`: a viewport-wide DOM rectangle pinned to the horizon ROW, running
+  // 0.24H down the frame, with `backdrop-filter: blur()` under a mask that
+  // ramps in and out. A DOM rectangle cannot know what is in front of what. So:
+  //
+  //   * a NEAR building whose top crosses that band has its upper half blurred
+  //     and its lower half sharp — a gradient up its own face, on the upper
+  //     side, exactly as described;
+  //   * a FAR building sits entirely inside the band, blurs uniformly, and
+  //     shows no gradient of its own — "far away buildings dont have it";
+  //   * and the blur pulls the pale sky and the pale distant city INTO the
+  //     building it covers, so "blurred" reads as "washed out".
+  //
+  // MEASURED at the default hour (tod 0.62), 1600x1000, one downtown tower
+  // filling the frame from 163 m up, as mean |dI/dy|+|dI/dx| per 100-row band —
+  // detail, in other words — with the band on against the same frame with it
+  // hidden:
+  //
+  //   rows 200-300   2.43 -> 4.60   (47% of the detail was gone)
+  //   rows 300-400   4.71 -> 10.72  (56% of the detail was gone)
+  //   rows 400-500   7.98 ->  9.03
+  //   every other band: identical to the last bit.
+  //
+  // Mean |dLuma| from removing it: 1.68 / 4.03 / 0.83 in those three bands and
+  // 0.00 in all seven others. That is the shape of the complaint — a change
+  // that starts and stops at a screen row and has nothing to do with distance.
+  // For comparison the depth haze, peeled the same way, moves 3.01 / 3.86 /
+  // 2.70 / 2.08 / 1.62 / 1.24 / 0.85 / 0.74 down the frame: smooth, monotone,
+  // no edge, and only 0.74 in the nearest band.
+  //
+  // WHY NOT FIX IT INSTEAD OF TURNING IT OFF. A real depth-of-field needs the
+  // colour buffer AND the depth buffer as textures. MapLibre owns its
+  // framebuffer and hands a custom layer neither; the colour could be recovered
+  // with a full-frame `copyTexImage2D` every frame, but the depth could not
+  // (WebGL cannot sample the default depth attachment), so the blur radius
+  // would still have to be guessed from screen position — the same bug with a
+  // shader in front of it, at the cost of a full-frame copy. The blur's own
+  // stated job, "the only depth cue available without a depth buffer", stopped
+  // being true when the haze got a depth buffer. Two cues, one right and one
+  // wrong, is worse than one right one.
+  //
+  // The slider stays (taste is his, not mine — CLAUDE.md 11). Raising it brings
+  // the look back, and the line with it, and the hint says so.
   const PRESETS = {
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
@@ -158,32 +216,57 @@
       ao: false, shadows: true, clouds: 0.4, stars: 0.5, fov: 58, treeDensity: 0.52, outerDensity: 0.45,
     },
     balanced: {
-      renderScale: 1.0, msaa: false, bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0.30,
+      renderScale: 1.0, msaa: false, bloom: 0.40, godRays: 0.5, flare: 0.3, dof: 0,
       ...GRADE, autoExposure: true, grain: 0, renderDistance: 700,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 58, treeDensity: 0.675, outerDensity: 1,
     },
     cinematic: {
-      renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0.45,
+      renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0,
       ...GRADE, autoExposure: true, grain: 0.22, renderDistance: 1100,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
     ultra: {
-      renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0.50,
+      renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0,
       ...GRADE, autoExposure: true, grain: 0.18, renderDistance: 1500,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
   };
   window.GFX_GRADE = GRADE;   // read by scripts/verify/preset-colour.mjs
 
-  const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', autoDetected: false });
+  // Bumped when a DEFAULT changes in a way a stale saved value would undo.
+  //
+  // Changing the presets is not enough on its own: every browser that has
+  // already opened this app has the old value sitting in localStorage, and the
+  // restore loop below puts it straight back. His browser is one of them — he
+  // would have loaded the "fix", seen the same blurred band, and been right to
+  // say nothing had changed. So each revision names the keys it must take back,
+  // and takes back ONLY those: the preset, the auto-detect result and every
+  // other slider survive, which matters because wiping `autoDetected` would
+  // re-run the probe and can drop a good machine to `performance`.
+  //
+  //   rev 2 — `dof` off everywhere (the horizon line; see the note on PRESETS).
+  const SETTINGS_REV = 2;
+  const REV_RESET = { 2: ['dof'] };
+
+  const GFX = Object.assign({}, PRESETS.balanced, { preset: 'balanced', autoDetected: false, rev: SETTINGS_REV });
   window.GFX = GFX;
 
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  let migrated = false;
   if (saved && typeof saved === 'object') {
     for (const s of SCHEMA) if (saved[s.key] !== undefined) GFX[s.key] = saved[s.key];
     if (saved.preset) GFX.preset = saved.preset;
     GFX.autoDetected = !!saved.autoDetected;
+    const was = +saved.rev || 1;
+    for (let r = was + 1; r <= SETTINGS_REV; r++) {
+      for (const k of (REV_RESET[r] || [])) {
+        const p = PRESETS[GFX.preset] || PRESETS.balanced;
+        if (p[k] !== undefined) GFX[k] = p[k];
+        migrated = true;
+      }
+    }
+    GFX.rev = SETTINGS_REV;
   }
   // Read before the map exists — app.js needs both at construction time, and
   // neither `antialias` nor `preserveDrawingBuffer` can be changed on a live
@@ -196,6 +279,10 @@
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(GFX)); } catch (e) {}
   }
+  // Stamp the new revision straight away. Without this the migration re-runs on
+  // every load and would keep overwriting the value if he ever turned the blur
+  // back on deliberately. (`save` is a hoisted declaration.)
+  if (migrated) save();
 
   // ── DOM ───────────────────────────────────────────────────────────
   let _map = null, fxCanvas = null, fx = null, mapCanvas = null;
@@ -603,9 +690,15 @@
 
     aeMeter(F);
 
-    // Distance blur: strongest at the horizon, gone by mid-frame. This is the
-    // only depth cue available without a depth buffer, and it happens to match
-    // what aerial haze does anyway, so it reads as distance rather than as blur.
+    // Distance blur: strongest just under the horizon, gone by mid-frame.
+    //
+    // OFF IN EVERY PRESET SINCE 2026-08-03 — the note on PRESETS has the
+    // measurement and the reason. It used to be defended here as "the only depth
+    // cue available without a depth buffer"; PR #107 gave the haze a depth
+    // buffer, so that sentence is no longer true and this band was left doing
+    // nothing but drawing a line across the city by screen row. The code stays
+    // because the slider stays. Do not re-enable it by default without a way for
+    // it to know how far away a pixel is.
     if (elDof && GFX.dof > 0.01) {
       const hz = F.horizonPx;
       // Was `hz < -40`. js/sky.js collapses its own canvas clip once the horizon

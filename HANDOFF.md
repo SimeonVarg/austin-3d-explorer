@@ -1,5 +1,121 @@
 # Austin 3D Explorer — Full Handoff
 
+## 55. Aug 3 2026 — the horizon line was never the haze. It was a CSS blur pinned to a screen row. (acer lane)
+
+**Branch:** `acer/dof-horizon-line`, PR #116. **QUEUE F1 and F2, and they were
+one knob.** One file changed: `js/graphics.js`.
+
+### What he said, and what it turned out to be
+
+*"the horizontal line thing is inverted - i prefer this version over the last
+but as you can see its still a bit harsh with the gradient on the uppser side.
+far away buildings dont have it anymore which is nice"*, with a screenshot of one
+tower that is normal at the base and washes out pale toward its top.
+
+PR #107 was right and it is not the suspect. The haze is on the depth buffer now
+and it fades by real distance; peeled off on a live frame it moves the ten
+100-row bands by **3.01 / 3.86 / 2.70 / 2.08 / 1.62 / 1.24 / 0.85 / 0.74** mean
+|dLuma| down the frame — smooth, monotone, no edge, and only 0.74 in the nearest
+band. That is a distance fade behaving like one.
+
+**The remaining artefact is `#fx-dof`**, the "distance blur" in `js/graphics.js`:
+a viewport-wide DOM rectangle pinned to the horizon ROW, `0.24H` tall, running
+`backdrop-filter: blur()` under a mask that ramps in and out. It has no idea what
+is in front of what — and the CSS comment on it in `style.css` says exactly that,
+and says the real fix is to make it depth-aware. So:
+
+* a **near** building whose top crosses that band gets its upper half blurred and
+  its lower half sharp — a gradient up its own face, on the upper side;
+* a **far** building sits entirely inside the band, blurs uniformly, and shows no
+  gradient of its own — *"far away buildings dont have it anymore"*;
+* and a blur pulls the pale sky and the pale distant city **into** whatever it
+  covers, so "blurred" reads as "washed out".
+
+It also **is F2**. *"at tod 0.62 the West Campus blocks read as brown lumps with
+the detail lost"* is the same band across the same rows of the same frame.
+
+### Measured
+
+Same page, same tiles, same exposure, one toggle — mean `|dI/dy| + |dI/dx|` per
+100-row band, i.e. **detail**, at tod 0.62, 1600x1000, one downtown tower filling
+the frame from 163 m up:
+
+| rows | band on | band hidden |
+|---|---|---|
+| 200–300 | 2.43 | **4.60** |
+| 300–400 | 4.71 | **10.72** |
+| 400–500 | 7.98 | **9.03** |
+| all seven other bands | identical to the last bit | |
+
+**56% of the detail in rows 300–400 was being thrown away.** Mean |dLuma| from
+removing it: 1.68 / 4.03 / 0.83 in those three bands and **0.00** in all seven
+others — a change that starts and stops at a screen row and has nothing to do
+with distance. A fresh profile on this branch reproduces the right-hand column
+and hiding `#fx-dof` then changes nothing at all (dLuma 0.00 in every band),
+which is the assertion that the default really is off.
+
+`graphics.mjs` **27/27** (including "distance blur (DOF) turns on" — the slider
+still works), `sky.mjs` **12/12**. Pictures:
+`docs/shots/f1-horizon-crop-before-after.jpg` is the clearest,
+`f1-horizon-tower-{day,dusk}-before-after.jpg` and
+`f2-westcampus-dusk-before-after.jpg` are the frames.
+
+### Why it is OFF rather than fixed
+
+A real depth-of-field needs the colour buffer **and** the depth buffer as
+textures. MapLibre owns its framebuffer and hands a custom layer neither. The
+colour could be recovered with a full-frame `copyTexImage2D` every frame; the
+depth could not — WebGL cannot sample the default depth attachment — so the blur
+radius would still have to be guessed from screen position. That is the same bug
+with a shader in front of it, at the cost of a full-frame copy per frame, on a
+scene that is already GPU-bound. The blur's own defence in the code was *"the
+only depth cue available without a depth buffer"*; PR #107 gave the haze a depth
+buffer, so that sentence stopped being true and this band was a second, wrong
+copy of a cue that is already right.
+
+The slider stays and its hint says what raising it brings back (CLAUDE.md 11 —
+taste is his). `dof: 0` in all four presets.
+
+### The trap that would have shipped this as a no-op
+
+**Changing a preset default does not change anything for anyone who has already
+opened the app.** `austin3d.gfx.v1` in localStorage holds their old `dof: 0.30`
+and the restore loop puts it straight back. His browser is one of those. So
+`js/graphics.js` now carries `SETTINGS_REV` / `REV_RESET`: each revision names
+the keys it takes back and takes back **only** those. Do not "fix" this by
+bumping `KEY` — that also wipes `preset` and `autoDetected`, and re-running the
+auto-detect probe can drop a good machine to `performance`, which is a worse
+regression than the one being fixed.
+
+### What I tried that did NOT work
+
+* **`fill-extrusion-vertical-gradient`.** The obvious suspect, named in the
+  QUEUE, and it is **not** it. `map.getLight().intensity` is **0.2376**, and
+  MapLibre's term is
+  `clamp((t+base)*pow(height/150,0.5), mix(0.7,0.98,1-intensity), 1.0)` — the
+  floor evaluates to **0.9135**, so the gradient can only span 8.6%, and it
+  cannot fire at all below `150 * 0.9135² = 125 m` of building. Toggled off on
+  all 60 fill-extrusion layers at once on a live frame: the screenshot came back
+  **byte-identical**. Leave it alone.
+* **The sky canvas washing the tops of towers that cross the horizon.** Plausible
+  — it is `mix-blend-mode: screen` and clipped to a screen row — but measured it
+  contributes 3.01 / 0.78 / 0.48 mean |dLuma| in the top three bands and **0.00**
+  everywhere else, and on a masked tower it moves the top two deciles by ~1 luma.
+  Real, tiny, and not what he is seeing.
+* **The fog ladder having a base-to-crown gradient of its own.** It does, and it
+  is negligible and the *wrong sign*: a shell is a plane of constant view-space
+  depth, so a crown is `h·cos(pitch)` metres NEARER than its own base (73.6 m on
+  a 267 m tower at pitch 74) and takes slightly LESS haze, not more.
+* **Sampling a tower by masking it and taking the median luma per decile.** The
+  magenta-mask trick works, but on a glass tower the median tracks the dark
+  window glass and the wash never shows. Two poses were measured this way before
+  I noticed, and both said "flat" while the picture plainly was not. Peel a
+  suspect off and diff the whole frame instead; the per-band diff found it in one
+  run.
+* **Measuring on a tower whose top is BELOW the horizon.** Every toggle came back
+  byte-identical four times over and I nearly concluded the overlays did nothing.
+  They were all above the rows I was sampling.
+
 ## 42. Aug 3 2026 — DKR rebuild, PART ONE. Not merged, and the reason is the point. (mac lane)
 
 **Branch:** `mac/dkr-rebuild`, PR open and **deliberately not merged**. The brief's
