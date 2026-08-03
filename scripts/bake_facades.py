@@ -354,9 +354,11 @@ def main():
         "features_stamped": stamped,
         "combos": len(combos),
         "palette_kb": round(os.path.getsize(OUT_PALETTE) / 1024, 1),
-        "note": "js/facades.js adopts this when its snapshot matches manifest.latest; "
-                "?bakedfacades=0 forces the browser election. Prove them equal with "
-                "scripts/verify/facade-parity.mjs + facade_parity.py, then facade-switch.mjs.",
+        "note": "js/facades.js adopts this when its snapshot matches manifest.latest, "
+                "and elects in the browser when it does not - so THIS FILE MUST BE "
+                "RE-BAKED WHENEVER THE SNAPSHOT ROLLS or the switch goes quietly "
+                "inert. Prove it with scripts/verify/facade-parity.mjs then "
+                "scripts/verify/facade_parity.py.",
     }, indent=2))
 
 
