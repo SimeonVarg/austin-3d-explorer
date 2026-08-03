@@ -1,5 +1,6 @@
 /**
- * westcampus.js — the ten West Campus student high-rises, as stacked bands.
+ * westcampus.js — West Campus, as stacked bands: ten student high-rises and
+ * fourteen mid-rise blocks.
  *
  * WHY THIS FILE EXISTS. Ten towers between 55 and 82 m stand in the four blocks
  * the camera flies through most, and every one of them arrived from Overture as
@@ -7,6 +8,13 @@
  * has no vertical anchor (docs/PASS_COMMON.md section 3), so the two things that
  * actually distinguish these buildings — a parking podium at the bottom and a
  * crown at the top — could not be said at all.
+ *
+ * The same was true of the fourteen MID-RISE blocks added in the second tier,
+ * and worse: they are what you actually fly past, they are where students
+ * actually live, and the fourteen-bucket facade election was also repainting
+ * their measured wall colour (Rambler's brick #966753 came out #af785d). The
+ * bake's MIDRISE header has the whole argument and the list of what that tier
+ * deliberately does not touch.
  *
  * scripts/bake_westcampus.py emits each tower as a vertical STACK instead:
  * base / podium / tower / crown, each its own feature with its own base, height,
@@ -83,6 +91,13 @@
     // this pass that gets BRIGHTER after dark.
     sign:  ['#8a4a22', '#b4622c', '#ff8a3c'],
   };
+  // There is no `screen` entry, and the omission is deliberate. The Standard's
+  // outdoor jumbotron was built, measured off the z20 nadir and then removed
+  // with the rest of its pool deck — the bake's MIDRISE header has the three
+  // routes that were tried and the one stale number that closes all three. When
+  // that number is fixed the trio it wants is ['#22252b','#2b2c31','#7f97b8']:
+  // near-black matt by day, and the one surface in West Campus that is a genuine
+  // light source at night, cool 6500 K rather than the sign's warm orange.
 
   const hx3 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   /** The day->golden->night ramp every other colour in the scene uses. */

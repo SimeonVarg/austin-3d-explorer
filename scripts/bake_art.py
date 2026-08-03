@@ -38,9 +38,28 @@ the City of Austin's public-art inventory. SIZES now come from the published
 dimension of the real work wherever one could be found, with the source written
 next to it in DIMS; where none was found the entry says `est` and says what it
 was reasoned from. The FORMS are still generative: they are read off published
-descriptions and photographs and reduced to what fill-extrusion can express,
-which is stacked horizontal slabs. A leaning I-beam becomes a short stack of
-offset slabs; a sphere becomes stacked chords. Stated here rather than implied.
+descriptions and photographs and reduced to what fill-extrusion can express.
+
+WHAT FILL-EXTRUSION CAN EXPRESS, and this paragraph is the whole of 2026-08-03.
+Simeon: "i thought vectors could be like angled and stuff you could make the
+actual thing? not like a paint tool with the biggest pixel brush setting?" The
+honest answer is in two halves and this file used to get the first half wrong.
+An extrusion is ALWAYS VERTICAL — MapLibre takes a polygon and pushes it
+straight up — so a diagonal member does have to be approximated by a series of
+prisms along its length, and a shape lying in a wall does have to be built out
+of horizontal spans. That half is a real limit and there is no way round it.
+But the polygon is ARBITRARY. A rotated rectangle is four points, and `box()`
+has taken a `rot` for a long time, so every one of those prisms can be turned to
+its member's own heading — and once each slab carries the member's real
+cross-section they OVERLAP instead of abutting, and the staircase becomes a
+member with a soft edge. See BEAM_OVERLAP and `Build.wall()`. The pieces he
+named are all in the first category: Clock Knot, Monochrome for Austin, and
+Kelly's glass.
+
+THE OTHER THING THAT WAS ARBITRARY WAS THE HEADING. Every art footprint in
+props.geojson is an axis-aligned square around an OSM node, so nothing here ever
+carried a bearing and every recipe came out pointing east by default. See
+HEADINGS.
 
 AND THE BAKE CHECKS ITSELF. main() re-measures the file it just wrote against
 DIMS and exits non-zero on a disagreement, because a recipe that emits nothing,
@@ -99,25 +118,73 @@ PLINTH_INSET = 0.72     # plinth as a fraction of the footprint
 SEG = 8                 # sides on anything round; 8 is where an octagon stops
                         # reading as an octagon at 60 m and costs half of 16
 
-# HOW FINELY A LEANING MEMBER IS SLICED, in metres of member per slab.
+# HOW A LEANING MEMBER IS SLICED — and the previous answer measured the wrong
+# thing, which is why two passes of tuning did not fix it.
 #
-# `beam()` used to take its step count from the CALLER, and every caller guessed:
-# 2 to 7 steps for members ranging from 0.4 m to 5.2 m long. On the contact sheet
-# that is unmistakable — Monochrome for Austin's back-stay is 5.17 m over 4 steps,
-# so each slab is 1.29 m, and it renders as a literal six-tread STAIRCASE running
-# down the left side of the sculpture to the plinth. `beam()`'s own docstring
-# already says six steps is where a staircase starts reading as a line; it just
-# had no way to make that true of a member three times as long. So the count is
-# derived from the member's own 3-D length now and the argument is a FLOOR.
-# Measured over the whole file: 0.55 m -> 1,015 parts / 287 KB, 0.70 -> 929 /
-# 264, 0.85 -> 875 / 249, against 716 / 202 before. 0.70 is the pick: it takes
-# Monochrome's 5.17 m back-stay from 4 slabs to 8, which is what kills the
-# staircase, and costs 62 KB rather than 85.
-BEAM_STEP_M = 0.70      # one slab per this much member
-BEAM_STEP_MAX = 16      # past this the extra features buy nothing at 60 m
-BEAM_MIN_SLAB = 0.03    # and never slice a shallow member below add()'s 2 cm
-                        # floor — that is HANDOFF 51 with more steps, and it
-                        # deletes the member instead of smoothing it.
+# Simeon, 2026-08-03: "alot o the art u did liek the glass, monochrome for
+# austin, clock knot are like mini legos - i thought vectors could be like
+# angled and stuff you could make the actual thing? not like a paint tool with
+# the biggest pixel brush setting?"
+#
+# HE IS RIGHT, AND HERE IS THE HONEST ANSWER. A `fill-extrusion` is always
+# VERTICAL: MapLibre takes a polygon and pushes it straight up. So the one thing
+# it cannot do is tilt a face, and a diagonal member has to be approximated by a
+# series of prisms along its length. What it CAN do — and what this file was not
+# using — is extrude an ARBITRARY polygon, so each of those prisms can be a
+# RECTANGLE ROTATED TO THE MEMBER'S OWN HEADING rather than an axis-aligned box.
+# That is the difference between a leaning beam and a flight of stairs.
+#
+# §38 already derived the step count from the member's LENGTH (0.70 m of member
+# per slab) and reported Monochrome "improved, not cured". Length is the wrong
+# control variable, and that is the whole lesson: what you SEE is the vertical
+# notch between one slab and the next, and that notch is set by the member's
+# RISE over the step count, not by its length. A 12 m leg at 0.70 m per slab is
+# 16 slabs with a 0.64 m notch — on a 0.68 m member, a literal staircase. So:
+#
+#   1. a VERTICAL member is exact — one prism, z0 to z1, no stepping at all;
+#   2. a LEVEL member is exact — ONE rotated prism of the member's own depth.
+#      It used to be sliced into a ramp of paper-thin ribbons, because beam()
+#      spread z0..z1 along the axis and a level member has z1 = z0;
+#   3. a LEANING member gets slabs that carry the member's FULL DEPTH and
+#      therefore OVERLAP each other in z. Abutting slabs show every notch;
+#      slabs that overlap by half their depth show a ripple on the edge and a
+#      continuous member everywhere else.
+#
+# And the depth of the slab is the member's depth measured PERPENDICULAR to its
+# own axis, divided by cos(inclination) — a vertical slab cutting a steep member
+# has to be taller than the member is thick to cover it. That correction is what
+# keeps the count down: Clock Knot's legs go from 16 slabs to 18, not to 34.
+# AND THE NUMBER MEANS SOMETHING, which is what makes it tunable rather than
+# fiddled with. Slabs step by BEAM_OVERLAP of their own vertical depth; that
+# depth is the member's thickness over cos(inclination); so the ripple left on
+# the member's edge, measured PERPENDICULAR to the member, is exactly
+# thickness x BEAM_OVERLAP whatever the angle. 0.45 is a 45% ripple and looked
+# like it. Measured over the whole file, everything else held: 0.45 -> 1,582
+# parts / 442 KB, 0.30 -> 1,811 / 505, 0.20 -> 2,157 / 599, 0.14 -> 2,575 / 713.
+# 0.20 taken. A fifth of the member's own depth is a soft edge at any distance
+# this app is ever flown at, and the file is 56 KB gzipped against 33 before —
+# which is what the wire actually carries, and is not a cost worth a staircase.
+BEAM_OVERLAP = 0.20     # consecutive slabs step by this fraction of the slab's
+                        # own vertical depth, so they overlap by the rest of it.
+                        # Lower is smoother and costs features linearly.
+BEAM_MAX_STEPS = 40     # a hard ceiling; nothing in the file reaches it
+BEAM_MIN_SLAB = 0.03    # never slice below add()'s 2 cm floor — that is
+                        # HANDOFF §51 with more steps, and it deletes the member
+                        # instead of smoothing it
+BEAM_THICK_MAX = 4.0    # cap on the 1/cos(incline) depth correction
+
+# HOW FINELY A SHAPE THAT LIVES IN A WALL IS SLICED, in metres of height.
+#
+# The same limitation, one dimension down, and it is what "the glass" in his
+# note is about. A motif on a vertical wall — a starburst ray, a tumbled square
+# — is a polygon in the wall's own plane, and a prism standing proud of that
+# wall always shows as an AXIS-ALIGNED RECTANGLE there, whatever its plan shape
+# is. Kelly's twelve rays were three fat blocks each, which is exactly "the
+# biggest pixel brush". `Build.wall()` rasterises the real polygon into thin
+# horizontal spans instead, and merges spans that agree so a vertical bar still
+# costs one feature.
+WALL_SLICE_M = 0.055
+WALL_MERGE_M = 0.02     # spans within this much are one prism, not two
 
 # A GENERIC STATUE'S FIGURE, in metres — life size to heroic. The pedestal is
 # whatever the piece's height leaves over. See generic() for why this is the
@@ -136,15 +203,35 @@ def to_ll(x, y, lon0, lat0):
 
 
 class Build:
-    """Collects extrusion parts in local metres about a piece's own centre."""
+    """Collects extrusion parts in local metres about a piece's own centre.
 
-    def __init__(self, name, lon0, lat0):
+    THE FRAME HAS A HEADING NOW, and that is the fix for a whole class of
+    defect rather than for one piece. Every `k:'art'` feature in props.geojson
+    is an AXIS-ALIGNED SQUARE — a buffered OSM node — so the source carries no
+    bearing at all, and every recipe below was therefore drawn in the north/east
+    frame by default. Nothing chose east; east is just what you get when nobody
+    chooses. Simeon, 2026-08-03: "balls of texas are rotated the wrong way LOL
+    was funny but super embarrasing". The two buoys of Lipski's "The West" were
+    laid out along local +x, which is due east, and they are not.
+
+    So `head` is the compass bearing (degrees clockwise from north) that the
+    recipe's own +x axis points along, taken from HEADINGS, and every ring is
+    rotated by it on the way out. A recipe never has to know about it.
+    """
+
+    def __init__(self, name, lon0, lat0, head=None):
         self.name, self.lon0, self.lat0 = name, lon0, lat0
         self.parts = []
+        # +x is east when nobody says otherwise, which is what every piece in
+        # this file used to be.
+        self.rot = 0.0 if head is None else math.radians(90.0 - head)
 
     def add(self, ring_m, z0, z1, mat):
         if z1 - z0 < 0.02 or len(ring_m) < 3:
             return
+        if self.rot:
+            c, s = math.cos(self.rot), math.sin(self.rot)
+            ring_m = [(x * c - y * s, x * s + y * c) for x, y in ring_m]
         ring = [to_ll(x, y, self.lon0, self.lat0) for x, y in ring_m]
         if ring[0] != ring[-1]:
             ring.append(ring[0])
@@ -181,33 +268,126 @@ class Build:
             rr = r * math.sqrt(max(0.0, 1.0 - ((t0 + t1) / 2) ** 2))
             self.disc(cx, cy, rr, zc + t0 * r, zc + t1 * r, mat, seg)
 
-    def beam(self, x0, y0, z0, x1, y1, z1, wide, mat, steps=6):
-        """A LEANING member, as a short stack of offset slabs.
+    def beam(self, x0, y0, z0, x1, y1, z1, wide, mat, steps=2, deep=None, taper=0.0):
+        """A member of given heading and inclination, as ROTATED PRISMS.
 
-        fill-extrusion cannot tilt a face, so a diagonal is a staircase. Six
-        steps is where the staircase stops reading as steps from the air and
-        starts reading as a line, which is the whole job of a di Suvero beam.
+        `wide` is the member's width across its axis; `deep` its depth, which
+        defaults to square section. Both are the member's REAL cross-section —
+        the slab is sized from them, not from the slicing.
 
-        `steps` IS A FLOOR, NOT THE COUNT. Six slabs is a line over 1.5 m and a
-        flight of stairs over 5 m, and every caller here was guessing — see the
-        note on BEAM_STEP_M. The count is taken from the member's own length,
-        then clamped so a shallow member is never sliced thinner than the 2 cm
-        `add()` throws away.
+        Read the note on BEAM_OVERLAP for why this is shaped the way it is. In
+        one line: a vertical member and a level member are drawn EXACTLY, with
+        one prism each, and only a genuinely leaning member is sliced — into
+        slabs that carry the member's own depth and therefore overlap, instead
+        of abutting slabs that show every notch. `steps` survives as a FLOOR
+        because a handful of callers want a minimum; nothing depends on it.
         """
-        L = math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2 + (z1 - z0) ** 2)
-        steps = min(BEAM_STEP_MAX, max(steps, int(math.ceil(L / BEAM_STEP_M))))
-        rise = abs(z1 - z0)
-        if rise > 0:
-            steps = min(steps, max(1, int(rise / BEAM_MIN_SLAB)))
-        steps = max(2, steps)
-        for i in range(steps):
-            t0, t1 = i / steps, (i + 1) / steps
-            xm = x0 + (x1 - x0) * (t0 + t1) / 2
-            ym = y0 + (y1 - y0) * (t0 + t1) / 2
-            ang = math.atan2(y1 - y0, x1 - x0)
-            seglen = math.hypot(x1 - x0, y1 - y0) / steps
-            self.box(xm, ym, max(seglen * 1.35, wide), wide,
-                     z0 + (z1 - z0) * t0, z0 + (z1 - z0) * t1, mat, rot=ang)
+        deep = wide if deep is None else deep
+        dx, dy, dz = x1 - x0, y1 - y0, z1 - z0
+        run, rise = math.hypot(dx, dy), abs(dz)
+        L3 = math.hypot(run, rise)
+        if L3 < 1e-6:
+            return
+        ang = math.atan2(dy, dx)
+        cxm, cym = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+
+        # 1. VERTICAL. Exactly what a fill-extrusion is; one prism, no stepping.
+        if run <= max(0.04, 0.10 * rise):
+            self.box(cxm, cym, wide, wide, min(z0, z1), max(z0, z1), mat, rot=ang)
+            return
+
+        # The slab's vertical depth. A vertical cut through a member inclined at
+        # `phi` has to be deep/cos(phi) tall to cover a member `deep` thick, and
+        # not making that correction was half of why steep members looked thin
+        # AND needed twice the slabs.
+        vdeep = min(deep * BEAM_THICK_MAX, deep / max(0.25, run / L3))
+
+        # 2. LEVEL. Also exact: ONE rotated prism with the member's own depth.
+        #    It used to be sliced into a ramp of ribbons a few centimetres thick,
+        #    because beam() spread z0..z1 along the axis and a level member has
+        #    nothing to spread — every canoe hull in Monochrome hit this.
+        if rise <= vdeep * 0.30:
+            zc = (z0 + z1) / 2.0
+            if taper <= 0:
+                self.box(cxm, cym, run + wide, wide, zc - vdeep / 2,
+                         zc + vdeep / 2, mat, rot=ang)
+                return
+            # A TAPERED level member — a boat hull, which is what most of
+            # Monochrome is. The nadir aerial shows each hull as a long POINTED
+            # leaf, and one prism is a plank; five with the width falling off
+            # toward the ends is a hull, for four more features.
+            for i in range(5):
+                t = (i + 0.5) / 5
+                self.box(x0 + dx * t, y0 + dy * t, run / 5 + wide * 0.6,
+                         wide * (1.0 - taper * abs(2 * t - 1)),
+                         zc - vdeep / 2, zc + vdeep / 2, mat, rot=ang)
+            return
+
+        # 3. LEANING. Slabs of the member's own depth, stepping by a fraction of
+        #    it, so consecutive slabs overlap and the silhouette is a member
+        #    with a rippled edge rather than a staircase.
+        n = int(math.ceil(rise / max(BEAM_MIN_SLAB, vdeep * BEAM_OVERLAP)))
+        n = max(2, steps, min(BEAM_MAX_STEPS, n))
+        seglen = run / n
+        for i in range(n):
+            t = (i + 0.5) / n
+            zc = z0 + dz * t
+            self.box(x0 + dx * t, y0 + dy * t, seglen + wide * 0.9,
+                     wide * (1.0 - taper * abs(2 * t - 1)),
+                     zc - vdeep / 2, zc + vdeep / 2, mat, rot=ang)
+
+    def wall(self, axis, pos, prd, poly, mat, slice_m=WALL_SLICE_M, out=1):
+        """A polygon that lives IN A VERTICAL WALL, rasterised into thin spans.
+
+        `axis` is the wall's normal, 'x' or 'y'; `pos` where that wall stands;
+        `prd` how far the glass stands proud of the stone; `poly` a list of
+        (u, v) in the wall's own plane, u across (y for an 'x' wall, x for a
+        'y' wall) and v up. `out` is which side of the wall it sits on.
+
+        WHY THIS EXISTS. A prism standing on a wall reads there as an
+        axis-aligned rectangle, whatever else it is — so a diagonal streak or a
+        square on the tilt has to be built out of horizontal spans. Kelly's
+        twelve rays were three fat blocks each and looked like it. Here the ray
+        is authored as the rotated rectangle it actually is and only the LAST
+        step turns it into prisms, at 5.5 cm, with equal spans merged so an
+        upright bar is still one feature.
+        """
+        vs = [v for _, v in poly]
+        v0, v1 = min(vs), max(vs)
+        if v1 - v0 < 0.02:
+            return
+        n = max(1, int(math.ceil((v1 - v0) / slice_m)))
+        rows = []
+        for i in range(n):
+            va, vb = v0 + (v1 - v0) * i / n, v0 + (v1 - v0) * (i + 1) / n
+            vm = (va + vb) / 2.0
+            xs = []
+            for k in range(len(poly)):
+                (ua, pa), (ub, pb) = poly[k], poly[(k + 1) % len(poly)]
+                if (pa <= vm < pb) or (pb <= vm < pa):
+                    xs.append(ua + (ub - ua) * (vm - pa) / (pb - pa))
+            xs.sort()
+            spans = [(xs[j], xs[j + 1]) for j in range(0, len(xs) - 1, 2)]
+            rows.append((va, vb, spans))
+        # Merge vertically adjacent rows whose spans agree, so a rectangle
+        # standing upright costs one prism and not forty.
+        merged = []
+        for va, vb, spans in rows:
+            if merged and len(merged[-1][2]) == len(spans) and all(
+                    abs(a0 - b0) < WALL_MERGE_M and abs(a1 - b1) < WALL_MERGE_M
+                    for (a0, a1), (b0, b1) in zip(merged[-1][2], spans)):
+                merged[-1][1] = vb
+            else:
+                merged.append([va, vb, spans])
+        for va, vb, spans in merged:
+            for u0, u1 in spans:
+                if u1 - u0 < 0.03:
+                    continue
+                uc, uw = (u0 + u1) / 2.0, u1 - u0
+                if axis == 'x':
+                    self.box(pos + out * prd / 2.0, uc, prd, uw, va, vb, mat)
+                else:
+                    self.box(uc, pos + out * prd / 2.0, uw, prd, va, vb, mat)
 
     def figure(self, cx, cy, z0, h, mat, wide=0.55):
         """A standing human figure, reduced to five stacked masses.
@@ -257,8 +437,14 @@ DIMS = {
         "50 x 52 x 41 ft — Landmarks UT / CultureMap, the largest in the collection"),
     "Clock Knot":            (12.65,  6.60, 10.67,
         "498 x 260 x 420 in — Landmarks UT / Wikipedia"),
-    "The West":              ( 1.52,  3.87,  1.52,
-        "two 5 ft spheres, 12 ft 8 3/8 in overall — Metropolitan Museum"),
+    "The West":              ( 2.06,  5.00,  3.30,
+        "the SPHERES are published — 'each sphere 60 inches in diameter', "
+        "Landmarks UT; 12 ft 8 3/8 in overall for the pair, Metropolitan "
+        "Museum. The rest is the SITE WORK, read off Landmarks' own photograph "
+        "(photo Ben Aqua): a 0.34 m concrete slab on a base course, and steel "
+        "cradle plates holding each buoy 0.20 m clear of it. 0.34 + 0.20 + "
+        "1.524 = 2.06 m to the crown. The slab is scaled off the spheres in "
+        "the same frame, at about 1.3 x the pair's span."),
     "Circle with Towers":    ( 4.27,  7.82,  7.82,
         "14 ft towers, 25 ft 8 in ring — Landmarks UT / news.utexas.edu"),
     "Austin":                ( 8.03, 18.29, 22.25,
@@ -312,6 +498,47 @@ DIMS = {
         "clear, less the 0.6 m weir walls and a coping's clearance either side); "
         "the height is a heroic-scale figure (~1.5x life) on a prow deck 1.9 m "
         "over the water, with the torch above her head."),
+}
+
+
+# ── WHICH WAY EACH PIECE FACES ────────────────────────────────────────
+#
+# "balls of texas are rotated the wrong way LOL was funny but super embarrasing"
+# (2026-08-03), and the brief's guess that "a wrong rotation is rarely alone"
+# was right — but not because two recipes each got a number wrong. Print the
+# source and the mechanism is plain: EVERY `k:'art'` feature in props.geojson is
+# an axis-aligned SQUARE in lon/lat, a buffered OSM node, so nothing anywhere in
+# this pipeline carries a bearing. Every recipe was drawn in the north/east
+# frame because that is what you get when nobody chooses. The West's two buoys
+# came out due east; Clock Knot's long axis came out due north.
+#
+# So the fix is a bearing per piece, sourced, with the source written down —
+# `Build` rotates the whole recipe and no recipe has to know. Degrees clockwise
+# from north, naming where the recipe's own +x axis points.
+#
+# ONLY PIECES WHOSE ORIENTATION IS BOTH VISIBLE AND SOURCED ARE IN HERE. A
+# guessed bearing is worth no more than the accidental one it replaces, and an
+# 8-fold ring (Circle with Towers) or a near-isotropic cloud (Monochrome) does
+# not have a legible one to get wrong.
+HEADINGS = {
+    "The West": (27.0,
+        "TWO PHOTOGRAPHS AGREE. Landmarks' own hero shot (photo Ben Aqua) is "
+        "square-on to a symmetrical wall-and-twin-stair backdrop, so the pair's "
+        "axis is perpendicular to that camera; the Flickr view that frames the "
+        "work against the UT Tower puts the camera on the bearing from the "
+        "sculpture to the Tower, which is 299 deg, and the pair again lies "
+        "across it. 299 - 90 = 209, i.e. 29 deg, and the two readings land "
+        "within a few degrees of each other. It was drawn at 90 (due east)."),
+    "Clock Knot": (193.0,
+        "MEASURED OFF A NADIR AERIAL, and the piece is unmistakable from above "
+        "— painted minium red on a green berm (Esri World Imagery z20, "
+        "0.0258 m/px, centred on Landmarks' published 30.289671,-97.736162). "
+        "The long plan axis runs 103/283 deg, near east-west, over 12.1 m, with "
+        "the short axis 6.2 m across — against the published plan of 10.67 x "
+        "6.60 m. This file put the 10.67 m axis due NORTH, so the piece stood "
+        "90 deg out. Setting +x to 193 puts the long axis on 103; two separate "
+        "members then reproduce: the leg raking back lands on 282 against a "
+        "measured 283, and one foot of the inverted V on 194.5 against 193."),
 }
 
 
@@ -383,8 +610,14 @@ def art_monochrome(b, hw, hd, H):
         if z0 < 0.7:
             z1 += 0.7 - z0
             z0 = 0.7
+        # A HULL IS NOT A PLANK. The nadir aerial (Esri z20, 0.0258 m/px, over
+        # Landmarks' 30.28746,-97.73713) shows a cluster 14.4 x 13.2 m across —
+        # the published 15.85 x 12.50 — of long POINTED leaf shapes, each about
+        # 0.8 m in the beam and half that deep. So: `deep` under `wide`, and a
+        # taper, rather than the square section a beam gets by default.
         b.beam(px - dx, py - dy, z0, px + dx, py + dy, z1,
-               0.82, "mirror" if i % 4 == 0 else "alum", steps=3)
+               0.80, "mirror" if i % 4 == 0 else "alum",
+               deep=0.50, taper=0.55)
 
     # Five OUTRIGGERS, placed rather than sampled. A cloud of 32 random hulls
     # almost never reaches its own envelope — measured, it came back 12.8 m wide
@@ -397,7 +630,7 @@ def art_monochrome(b, hw, hd, H):
             (cx + 0.4, cy - 0.6, cz + 1.0, cx + 2.6, -D * 0.46, cz + 4.3),
             (cx - 0.2, cy + 0.5, cz + 1.6, cx + 1.1, D * 0.44, H - 0.25),
             (cx + 1.8, cy + 0.2, cz - 2.6, cx + 3.4, cy - 1.6, cz + 0.4)):
-        b.beam(x0, y0, z0, x1, y1, z1, 0.82, "alum", steps=4)
+        b.beam(x0, y0, z0, x1, y1, z1, 0.80, "alum", deep=0.50, taper=0.55)
 
 
 def art_clockknot(b, hw, hd, H):
@@ -441,7 +674,18 @@ def art_clockknot(b, hw, hd, H):
         b.beam(ax - 1.5 * math.cos(t), ay - 1.5 * math.sin(t), az - 0.9,
                ax + 1.5 * math.cos(t), ay + 1.5 * math.sin(t), az + 0.9,
                0.48, "steelred", steps=3)
-    b.disc(ax, ay, 1.60, az - 0.30, az + 0.30, "steelred", seg=12)
+    # The clock face is a RING, not a pancake. Landmarks' own detail photograph
+    # (taken from underneath) shows a broad rolled steel BAND with the beams
+    # passing through the hole in it; a solid 3.2 m disc reads as a plate, and
+    # on the contact sheet it was the blob at the top of the tripod. Sixteen
+    # tangential prisms, each rotated to the ring, which is what `box(rot=)`
+    # was always able to do.
+    knot_r, knot_t = 1.75, 0.34
+    for i in range(16):
+        t = 2 * math.pi * (i + 0.5) / 16
+        b.box(ax + knot_r * math.cos(t), ay + knot_r * math.sin(t),
+              (2 * math.pi * knot_r / 16) * 1.30, knot_t,
+              az - 0.62, az + 0.62, "steelred", rot=t + math.pi / 2)
     # The hand: a long near-level member reaching out at high level. Written
     # low-end-first so beam() gets z0 < z1.
     b.beam(ax - 0.10, hd * 0.98, az - 2.55, ax + 0.15, ay + 0.55, az - 1.45,
@@ -449,23 +693,50 @@ def art_clockknot(b, hw, hd, H):
 
 
 def art_thewest(b, hw, hd, H):
-    """Donald Lipski, "The West" — TWO spherical buoys skinned in corroded
-    copper pennies, lent by the Metropolitan Museum, east of the COM building.
+    """Donald Lipski, "The West", 1987 — two spherical steel buoys skinned in
+    corroded copper pennies, lent by the Metropolitan Museum.
 
-    Each sphere is 5 ft across and the pair measures 12 ft 8 3/8 in overall, so
-    the work stands 1.52 m and SITS ON THE GRASS. The bake had it as one
-    mirror-polished 4.5 m ball on a stem inside a steel ring: three times too
-    tall, the wrong count, the wrong material, and a ring the work does not
-    have. Simeon's own note — "pretty sure thats supposed to be balls of texas"
-    — was a better reading of it than this file's was.
+    "balls of texas are rotated the wrong way LOL was funny but super
+    embarrasing" (2026-08-03). He is right, and looking at the two photographs
+    rather than at the dimension line fixed four things, not one.
 
-    Pennies corrode brown and green, so `corten` rather than `mirror`. Twelve
-    sides and eight tiers because at 1.5 m a coarse ball is visibly a barrel.
+    1. THE ORIENTATION. See HEADINGS — the source has no bearing at all, so the
+       pair came out due east. It runs about 27 deg.
+    2. IT STANDS ON A CONCRETE SLAB, not on the grass. Landmarks' own
+       photograph shows a broad low plinth with a base course under it, and the
+       piece reads as a museum object placed on a pad rather than as two balls
+       dropped on a lawn — which is most of why the render was funny.
+    3. EACH BUOY IS CRADLED ON STEEL PLATES, clear of the slab. That gap is why
+       a buoy on land looks like a buoy on land.
+    4. THE COLOUR IS NOT BROWN. Both photographs show pale weathered grey-white
+       steel with rust runs down it and the pennies as dark speckle; `corten` is
+       chocolate. `alum` is the pale grey in this palette. (The palette itself
+       lives in js/props.js, which this lane may not write — the names here have
+       to be ones that file already knows, or the layer falls back to grey.)
+
+    Each sphere is 5 ft (1.524 m); the pair measures 12 ft 8 3/8 in overall, and
+    the shackle between them is what makes up the difference.
     """
     r = 1.524 / 2
     sep = 3.871 / 2 - r          # the offset that reproduces the published span
+    slab = 0.34                  # top of the concrete pad
+    cradle = 0.20                # steel plates the buoys sit on, clear of it
+    b.box(0, 0, 5.00, 3.30, 0.0, slab, "granite")
+    b.box(0, 0, 5.45, 3.70, 0.0, slab * 0.42, "granite")       # base course
     for s in (-1, 1):
-        b.ball(s * sep, 0.0, r, r, "corten", tiers=8, seg=12)
+        # The cradle: two flat plates under each sphere, and they are visible.
+        for t in (-0.42, 0.42):
+            b.box(s * sep + t, 0.0, 0.10, 0.90, slab, slab + cradle, "steel")
+        # 12 tiers of 16, not 9 of 14: at 1.52 m across, a coarse ball is a
+        # barrel with a flat cap, and the flat cap is what you see first.
+        b.ball(s * sep, 0.0, r, slab + cradle + r, "alum", tiers=12, seg=16)
+        # The lifting eye each buoy still carries on its outboard side.
+        b.box(s * (sep + r + 0.16), 0.0, 0.34, 0.12,
+              slab + cradle + r - 0.17, slab + cradle + r + 0.17, "corten")
+    # "the two buoys are shackled uselessly to each other" — the shackle is the
+    # subject of the work, and it was not in the file.
+    b.box(0, 0, 2 * (sep - r) + 0.30, 0.16,
+          slab + cradle + r - 0.13, slab + cradle + r + 0.13, "corten")
 
 
 def art_diana(b, hw, hd, H):
@@ -531,79 +802,132 @@ def art_austin(b, hw, hd, H):
     windows. A reading that lands on the total by accident is unlikely; one that
     does not land on it is wrong. This one lands on it.
 
-    fill-extrusion cannot glaze a wall and cannot tilt a face, so every panel is
-    its own prism standing proud of the stone, and anything diagonal inside a
-    wall plane — a starburst ray, a tumbled square — is a short stack that steps
-    across and up together.
+    2026-08-03 — "austin building with the circle class still looks horrible",
+    and the starburst had by then been drawn twice. This pass finally went and
+    MEASURED it. `File:Austin Building West Elevation 2018.jpg` and
+    `...East Elevation 2018.jpg` (Wikimedia Commons, CC BY 4.0) are both near
+    fronto-parallel to the wall that carries the motif, so a scanline over the
+    dark glass gives the rule instead of a guess. Four things came out of it and
+    three of them were wrong in the file:
+
+    WEST, THE STARBURST — 13,926 dark pixels, twelve angular runs of ~1,100 px
+    each, centres 30.0 deg apart on average, and the four cardinal ones land on
+    90.5, 185.1, 269.1 and 353.9. So there is a ray STRAIGHT UP, one straight
+    down and two dead level: the rays are at k*30 deg. This file had them at
+    k*30 + 15, i.e. the whole motif rotated half a step, with no ray upright.
+    Radii 36.6 -> 148 px, ray width a flat 10 px measured across the two
+    vertical rays. As fractions of the outer radius: inner 0.247, width 0.068.
+    The ring spans 0.73 of the gable, and the gable is ARM wide, so the outer
+    radius is 2.85 m. It was 2.30 with a 0.30 ray — a third too fat and a fifth
+    too small.
+
+    EAST, THE TUMBLING SQUARES — twelve blobs of 1,870 px each, side 43.2 px,
+    at 30 deg spacing. Their bounding boxes give |cos t| + |sin t| for each
+    square's own rotation, and the sequence around the ring is HIGH, low, low,
+    HIGH, low, low — period THREE, values 1.40 and 1.21. t = i*30 gives
+    1.0/1.37/1.37, which is the wrong phase; t = 45 + i*30 gives
+    1.414/1.225/1.225, which is what was measured. So each square is rotated 45
+    deg PLUS its own position angle: the top square is a diamond, and that is
+    exactly what the photograph shows. Side 0.315 of the ring radius.
+
+    THE PLAN IS NOT A SYMMETRIC CROSS. The nadir (Esri z20, 0.0322 m/px) shows
+    the two vaults meeting in a clean 45-deg groin — so they are the same
+    height, which is the one thing this file had right — but the crossing sits
+    0.366 of the way down from the north end, not halfway. The transept is
+    ~3.0 m NORTH of the plan centre, which means both glass walls were 3 m from
+    where they belong.
+
+    AND THE SOUTH FACE HAS A DOOR, a big recessed timber double door under the
+    colour grid, which is the second most recognisable thing about the building
+    after the glass and was not in the file at all.
+
+    fill-extrusion cannot glaze a wall and cannot tilt a face — a prism on a
+    wall always reads there as an upright rectangle. So the motifs are authored
+    as the polygons they really are and `Build.wall()` does the rasterising, at
+    5.5 cm, merging spans that agree. That is what takes a ray from three fat
+    blocks to a clean rotated bar.
     """
     W, Dp = 18.29, 22.25                 # E–W overall, N–S overall
     ARM = 7.72                           # solved from the 2,715 sq ft floor area
     H = 8.03
-    wall_h = 5.35
+    wall_h = 5.35                        # springing of the vault — taste knob
+    TY = 3.00                            # transept centre, metres north of the
+                                         # plan centre; measured off the nadir
     hx, hy = W / 2, Dp / 2
 
     # The cross, as two solid stone volumes. They interpenetrate; both are the
     # same material, so the shared interior faces cannot show a seam.
     b.box(0, 0, ARM, Dp, 0.0, wall_h, "white")
-    b.box(0, 0, W, ARM, 0.0, wall_h, "white")
-    # TWO barrel vaults, one along each arm, crossing over the middle. Chords of
-    # a circle: each tier keeps its arm's LENGTH and loses width, which is what
-    # makes it a barrel rather than a dome.
-    rise, tiers = H - wall_h, 7
+    b.box(0, TY, W, ARM, 0.0, wall_h, "white")
+    # TWO barrel vaults, one along each arm, crossing over the transept. Chords
+    # of a circle: each tier keeps its arm's LENGTH and loses width, which is
+    # what makes it a barrel rather than a dome. 16 tiers, not 7 — at 7 the
+    # crown is a visible flight of steps in every oblique frame, and a tier
+    # costs one prism.
+    rise, tiers = H - wall_h, 22
     for i in range(tiers):
         f0, f1 = i / tiers, (i + 1) / tiers
         k = math.sqrt(max(0.0, 1.0 - ((f0 + f1) / 2) ** 2))
         b.box(0, 0, ARM * k, Dp, wall_h + rise * f0, wall_h + rise * f1, "white")
-        b.box(0, 0, W, ARM * k, wall_h + rise * f0, wall_h + rise * f1, "white")
+        b.box(0, TY, W, ARM * k, wall_h + rise * f0, wall_h + rise * f1, "white")
 
-    prd = 0.34                           # how far a panel stands proud of stone
+    prd = 0.30                           # how far a panel stands proud of stone
 
-    # SOUTH — THE COLOUR GRID. Three by three, upright squares, evenly spaced.
-    sq, gap, z0 = 1.25, 1.72, 1.15
+    # ── the measured motif constants, all one-line overridable ──
+    GRID_SQ, GRID_PITCH, GRID_Z = 0.80, 1.45, 4.85
+    RING_R, RING_SQ = 2.60, 0.82
+    STAR_ROUT, STAR_RIN, STAR_W = 2.85, 0.70, 0.20
+    # Both round windows are centred on their OWN gable, and that gable belongs
+    # to the transept — so their across-wall centre is TY, not 0. Getting this
+    # wrong puts a 5.7 m window 3 m off the middle of a 7.7 m wall.
+    GLASS_U = TY
+    GLASS_Z = 4.67                       # 0.58 of the gable height, measured
+                                         # off the west elevation photograph
+    DOOR_W, DOOR_H = 2.70, 2.60
+
+    def sq_poly(uc, vc, s, t):
+        """A square of side `s` centred at (uc, vc) and rotated by `t`."""
+        c, sn = math.cos(t), math.sin(t)
+        return [(uc + (du * c - dv * sn), vc + (du * sn + dv * c))
+                for du, dv in ((-s / 2, -s / 2), (s / 2, -s / 2),
+                               (s / 2, s / 2), (-s / 2, s / 2))]
+
+    # SOUTH — THE COLOUR GRID. Three by three upright squares. Upright means
+    # wall() merges each one back into a single prism, so this costs 9 features.
     for r in range(3):
         for c in range(3):
-            b.box((c - 1) * gap, -hy - prd / 2, sq, prd,
-                  z0 + r * (sq + 0.20), z0 + r * (sq + 0.20) + sq,
-                  GLASS_SPECTRUM[(r * 3 + c) % len(GLASS_SPECTRUM)])
+            b.wall('y', -hy, prd,
+                   sq_poly((c - 1) * GRID_PITCH,
+                           GRID_Z + (r - 1) * GRID_PITCH, GRID_SQ, 0.0),
+                   GLASS_SPECTRUM[(r * 3 + c) % len(GLASS_SPECTRUM)], out=-1)
 
-    # EAST — TUMBLING SQUARES. The same squares, rotated around a circle. A
-    # square rotated by t in a VERTICAL plane cannot be rotated by
-    # fill-extrusion, so each one is three stacked bars following the exact
-    # width profile of a rotated square: full width across the middle band,
-    # tapering to the vertex above and below. At t=0 that is a square; at 45
-    # degrees it is a diamond; the ring runs through every angle between.
-    # Sized so the whole motif stays on the STONE: the ring's outer reach is
-    # ring_r + the rotated square's half-diagonal, and that has to clear 0 below
-    # and wall_h above or squares float in the vault and sink into the plaza.
-    ring_r, s2, zc = 1.72, 0.90, 2.85
-    for i in range(12):
-        a = 2 * math.pi * i / 12
-        y = ring_r * math.sin(a)
-        z = zc + ring_r * math.cos(a)
-        c_, d_ = abs(math.cos(a)), abs(math.sin(a))
-        hh = (s2 / 2) * (c_ + d_)                    # half-height AND half-width
-        flat = (s2 / 2) * abs(c_ - d_)               # the full-width band
-        mat = GLASS_SPECTRUM[i % len(GLASS_SPECTRUM)]
-        for t in (-hh * 0.66, 0.0, hh * 0.66):
-            w = hh if abs(t) <= flat else max(0.12, hh - (abs(t) - flat))
-            b.box(hx + prd / 2, y, prd, w * 2, z + t - hh / 3, z + t + hh / 3, mat)
+    # SOUTH — THE DOOR. A deep reveal in the stone with the timber leaves set
+    # back in it, which is what makes it read as an opening and not a decal.
+    b.box(0, -hy - 0.05, DOOR_W + 0.34, 0.34, 0.0, DOOR_H + 0.30, "granite")
+    b.box(0, -hy - 0.16, DOOR_W, 0.16, 0.0, DOOR_H, "wood")
 
-    # WEST — THE STARBURST. Twelve narrow streaks radiating from a centre. Each
-    # ray steps outward in y and z together, which is the only way a diagonal
-    # exists on a wall made of prisms.
-    r0, r1, wide, zc2 = 0.45, 2.30, 0.30, 2.85
+    # EAST — TUMBLING SQUARES, at 30 deg round the ring, each rotated 45 deg
+    # plus its own position angle. See the measurement above.
     for i in range(12):
-        a = 2 * math.pi * i / 12 + math.pi / 12
-        mat = GLASS_SPECTRUM[i % len(GLASS_SPECTRUM)]
-        for s in range(3):
-            t0 = r0 + (r1 - r0) * s / 3
-            t1 = r0 + (r1 - r0) * (s + 1) / 3
-            y0, z0r = t0 * math.sin(a), t0 * math.cos(a)
-            y1, z1r = t1 * math.sin(a), t1 * math.cos(a)
-            ym, zm = (y0 + y1) / 2, (z0r + z1r) / 2
-            dy = max(abs(y1 - y0) + wide * 0.5, wide)
-            dz = max(abs(z1r - z0r) + wide * 0.5, wide)
-            b.box(-hx - prd / 2, ym, prd, dy, zc2 + zm - dz / 2, zc2 + zm + dz / 2, mat)
+        a = math.pi / 2 + 2 * math.pi * i / 12
+        b.wall('x', hx, prd,
+               sq_poly(GLASS_U + RING_R * math.cos(a), GLASS_Z + RING_R * math.sin(a),
+                       RING_SQ, math.radians(45.0) + 2 * math.pi * i / 12),
+               GLASS_SPECTRUM[i % len(GLASS_SPECTRUM)], out=1)
+
+    # WEST — THE STARBURST. Twelve narrow bars of constant width radiating from
+    # a stone boss, one of them straight up. Each is authored as the rotated
+    # rectangle it is; wall() turns it into spans.
+    for i in range(12):
+        a = 2 * math.pi * i / 12                     # 0 = straight up
+        ux, uy = math.sin(a), math.cos(a)            # along the ray, in (u, v)
+        px, py = uy, -ux                             # across it
+        ray = []
+        for sr, sw in ((STAR_RIN, -1), (STAR_ROUT, -1), (STAR_ROUT, 1), (STAR_RIN, 1)):
+            ray.append((GLASS_U + ux * sr + px * sw * STAR_W / 2,
+                        GLASS_Z + uy * sr + py * sw * STAR_W / 2))
+        b.wall('x', -hx, prd, ray,
+               GLASS_SPECTRUM[i % len(GLASS_SPECTRUM)], out=-1)
 
 
 def art_turtle(b, hw, hd, H):
@@ -1217,6 +1541,155 @@ def bake_plant(b_for, snap_feats, stats):
     return out
 
 
+# ── The Caven-Clark Courts, between Jester and the garage ─────────────
+#
+# "add the tennis / volleyball court between the buildings"
+#
+# THEY ARE ALREADY THERE AND THAT IS THE PROBLEM. `data/ground.geojson` carries
+# four `k:'area', u:'pitch', sport:'basketball'` polygons here, tagged
+# `s:'grass'` — so the app draws a plain green rectangle and nothing says it is
+# a court. What makes a court read is not its surface, it is the WHITE LINES on
+# it, the fence round it and the hoops at the ends, and none of those are a
+# surface, so none of them are in the ground file.
+#
+# WHAT IS ACTUALLY THERE, off the z19 nadir tile and OSM way 1488977196: a
+# fenced compound named **Caven-Clark Courts**, 36.7 x 54.4 m, holding four
+# courts of 14.2 x 22.1 m in a 2x2 grid, each marked for basketball with a net
+# post on the centre line — which is exactly the "tennis / volleyball" reading:
+# they are multi-use, and the net across the middle is what you see from the
+# air. The four court rings below are OSM ways 137469387, 1234456851/2/3,
+# copied rather than fetched because a bake must not need the network.
+#
+# THE LINES ARE DRAWN 7x OVER-SCALE, and that is declared, not hidden. A real
+# court line is 50 mm; at 50 mm it is far under a pixel from any altitude this
+# app flies and the court would go back to being a green rectangle. 0.35 m is
+# the same argument the road lane markings and the fountain risers already
+# make in this repo.
+#
+# WHY IT LIVES IN bake_art.py: file ownership, and it is the same reason the
+# chilled-water plant above does. This is authored scene geometry drawn by
+# `props-artpart` out of the same material palette; it is not a sculpture, and
+# when the ground lane can take it, `s:'pitch_hard'` plus these markings belong
+# there. Written down so the next pass does not have to guess.
+COURT_MARK_M   = 0.35    # over-scale line width, in metres
+COURT_MARK_Z   = (0.06, 0.16)   # clear of the ground fill, low enough to read flat
+COURT_FENCE_H  = 3.6
+COURT_POST_EV  = 4.0     # metres between fence posts
+COURT_NET_H    = 2.45    # volleyball net posts
+COURT_RIM_H    = 3.05    # a basketball rim is 10 ft, and that is not negotiable
+COURTS = [
+    [(-97.735707, 30.281209), (-97.735560, 30.281198), (-97.735540, 30.281396), (-97.735686, 30.281407)],
+    [(-97.735518, 30.281195), (-97.735371, 30.281184), (-97.735351, 30.281382), (-97.735498, 30.281393)],
+    [(-97.735542, 30.280956), (-97.735395, 30.280945), (-97.735375, 30.281143), (-97.735522, 30.281154)],
+    [(-97.735729, 30.280970), (-97.735582, 30.280959), (-97.735562, 30.281156), (-97.735709, 30.281168)],
+]
+COURT_FENCE = [(-97.735710, 30.281430), (-97.735330, 30.281401),
+               (-97.735378, 30.280914), (-97.735761, 30.280945)]
+
+
+def _axes(pm):
+    """Centre, long-axis unit vector, and the two half-extents of a quad."""
+    cx = sum(x for x, _ in pm) / len(pm)
+    cy = sum(y for _, y in pm) / len(pm)
+    best, ax, ay = 0.0, 1.0, 0.0
+    for i in range(len(pm)):
+        x0, y0 = pm[i]
+        x1, y1 = pm[(i + 1) % len(pm)]
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L > best:
+            best, ax, ay = L, (x1 - x0) / L, (y1 - y0) / L
+    along = [(x - cx) * ax + (y - cy) * ay for x, y in pm]
+    across = [-(x - cx) * ay + (y - cy) * ax for x, y in pm]
+    return cx, cy, ax, ay, (max(along) - min(along)) / 2, (max(across) - min(across)) / 2
+
+
+def bake_courts(stats):
+    """White lines, hoops, net posts and a perimeter fence."""
+    out = []
+    z0, z1 = COURT_MARK_Z
+    lon0, lat0 = COURTS[0][0]
+    for ci, ring in enumerate(COURTS):
+        b = Build("Caven-Clark Courts", lon0, lat0)
+        pm = [to_m(x, y, lon0, lat0) for x, y in ring]
+        cx, cy, ax, ay, hl, hw = _axes(pm)
+        rot = math.atan2(ay, ax)
+        # `hl` is along the court's long axis; the markings are all built in
+        # that frame so a court that is not axis-aligned — none of these are —
+        # gets its lines square to itself rather than square to the compass.
+        def at(u, v):
+            return cx + u * ax - v * ay, cy + u * ay + v * ax
+        inset = 0.45
+        L, Wd = hl - inset, hw - inset
+        # the boundary
+        for s in (1, -1):
+            x, y = at(0, s * Wd)
+            b.box(x, y, L * 2, COURT_MARK_M, z0, z1, "white", rot=rot)
+            x, y = at(s * L, 0)
+            b.box(x, y, COURT_MARK_M, Wd * 2, z0, z1, "white", rot=rot)
+        # the centre line — the half-court line AND the line the net stands on
+        x, y = at(0, 0)
+        b.box(x, y, COURT_MARK_M, Wd * 2, z0, z1, "white", rot=rot)
+        # the centre circle, as eight tangential segments rather than a filled
+        # disc: a disc here would be a white plate, not a circle
+        R = min(1.9, Wd * 0.35)
+        SEGN = 8
+        for i in range(SEGN):
+            a = 2 * math.pi * (i + 0.5) / SEGN
+            x, y = at(R * math.cos(a), R * math.sin(a))
+            b.box(x, y, 2 * math.pi * R / SEGN * 1.15, COURT_MARK_M, z0, z1,
+                  "white", rot=rot + a + math.pi / 2)
+        # the key at each end: two side lines and the free-throw line
+        keyw, keyd = min(2.45, Wd * 0.45), min(5.8, L * 0.5)
+        for s in (1, -1):
+            for t in (1, -1):
+                x, y = at(s * (L - keyd / 2), t * keyw)
+                b.box(x, y, keyd, COURT_MARK_M, z0, z1, "white", rot=rot)
+            x, y = at(s * (L - keyd), 0)
+            b.box(x, y, COURT_MARK_M, keyw * 2, z0, z1, "white", rot=rot)
+        # the hoops. The pole stands OUTSIDE the baseline and the backboard
+        # overhangs in, which is what makes a goal read as a goal from above.
+        for s in (1, -1):
+            px, py = at(s * (hl + 0.9), 0)
+            b.box(px, py, 0.30, 0.30, 0.0, COURT_RIM_H + 1.0, "steel", rot=rot)
+            bx, by = at(s * (hl - 0.35), 0)
+            b.box(bx, by, 0.16, 1.80, COURT_RIM_H - 0.15, COURT_RIM_H + 0.95,
+                  "white", rot=rot)
+            rx, ry = at(s * (hl - 0.85), 0)
+            b.disc(rx, ry, 0.42, COURT_RIM_H, COURT_RIM_H + 0.12, "gorange", seg=8)
+        # the net across the middle
+        for s in (1, -1):
+            x, y = at(0, s * (hw + 0.25))
+            b.box(x, y, 0.22, 0.22, 0.0, COURT_NET_H, "steel", rot=rot)
+        x, y = at(0, 0)
+        b.box(x, y, 0.10, hw * 2 + 0.5, COURT_NET_H - 1.05, COURT_NET_H,
+              "steel", rot=rot)
+        out.extend(b.parts)
+        stats["court_%d" % ci] += len(b.parts)
+
+    # the compound fence: posts and a top rail. NOT a mesh panel — a solid
+    # 3.6 m slab round four courts would read as a windowless building, and
+    # `fill-extrusion` has no way to be see-through.
+    b = Build("Caven-Clark Courts", lon0, lat0)
+    fm = [to_m(x, y, lon0, lat0) for x, y in COURT_FENCE]
+    for i in range(len(fm)):
+        x0, y0 = fm[i]
+        x1, y1 = fm[(i + 1) % len(fm)]
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 0.5:
+            continue
+        ang = math.atan2(y1 - y0, x1 - x0)
+        n = max(2, int(round(L / COURT_POST_EV)))
+        for k in range(n + 1):
+            t = k / float(n)
+            b.box(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 0.18, 0.18,
+                  0.0, COURT_FENCE_H, "steel", rot=ang)
+        b.box((x0 + x1) / 2, (y0 + y1) / 2, L, 0.10,
+              COURT_FENCE_H - 0.22, COURT_FENCE_H, "steel", rot=ang)
+    out.extend(b.parts)
+    stats["court_fence"] += len(b.parts)
+    return out
+
+
 def main():
     src = json.load(open(SRC, encoding="utf-8"))
     feats, stats, authored = [], Counter(), []
@@ -1248,7 +1721,10 @@ def main():
                       % (name, H, dh, hw * 2, dw))
             hw, hd, H = dw / 2, dd / 2, dh
 
-        b = Build(name, lon0, lat0)
+        head = HEADINGS.get(name)
+        if head:
+            stats["headed"] += 1
+        b = Build(name, lon0, lat0, head=head[0] if head else None)
         if name in RECIPES:
             RECIPES[name](b, hw, hd, H)
             stats["recipe_" + name.replace(" ", "_")] += 1
@@ -1279,6 +1755,9 @@ def main():
     except (IndexError, FileNotFoundError) as e:
         stats["plant_SKIPPED"] += 1
 
+    # ...and so do the Caven-Clark Courts, for the same reason.
+    feats.extend(bake_courts(stats))
+
     fc = {"type": "FeatureCollection", "authored": sorted(set(authored)),
           "features": feats}
     with open(OUT, "w", encoding="utf-8") as fh:
@@ -1305,10 +1784,19 @@ def main():
             continue
         lat = (e[3] + e[4]) / 2
         w = max((e[2] - e[1]) * M_LAT * math.cos(math.radians(lat)), (e[4] - e[3]) * M_LAT)
+        # The measurement is an axis-aligned bbox and the piece may be turned,
+        # so compare against the bbox the TABLE's rectangle would have at that
+        # heading. Without this a correctly-rotated piece fails for being
+        # rotated — The West at 27 deg reads 7.28 against a 5.60 m slab.
+        want = max(dw, dd)
+        head = HEADINGS.get(nm)
+        if head:
+            c, s = abs(math.cos(math.radians(head[0]))), abs(math.sin(math.radians(head[0])))
+            want = max(dw * s + dd * c, dw * c + dd * s)
         if not (dh * 0.85 <= e[0] <= dh * 1.12):
             bad.append("%s: height %.2f, table says %.2f" % (nm, e[0], dh))
-        if not (max(dw, dd) * 0.72 <= w <= max(dw, dd) * 1.25):
-            bad.append("%s: span %.2f, table says %.2f" % (nm, w, max(dw, dd)))
+        if not (want * 0.72 <= w <= want * 1.25):
+            bad.append("%s: span %.2f, table+heading say %.2f" % (nm, w, want))
 
     print(json.dumps({
         "pieces": len(authored),
@@ -1320,9 +1808,14 @@ def main():
             "position, name, artist": "factual - OSM and the City of Austin inventory",
             "size": "PUBLISHED where DIMS carries a source; the props file's own "
                     "height is a class default and is overridden there",
-            "form": "GENERATIVE - read off published descriptions and photographs "
-                    "and reduced to stacked horizontal slabs, which is all "
-                    "fill-extrusion can express",
+            "form": "GENERATIVE - read off published descriptions and "
+                    "photographs, and reduced to what a fill-extrusion can "
+                    "express: prisms of ARBITRARY plan rotated to their own "
+                    "member's heading, sliced only along the one axis the "
+                    "extrusion forces (vertical for a beam, horizontal for a "
+                    "shape lying in a wall)",
+            "heading": "SOURCED where HEADINGS has an entry; the OSM footprint "
+                       "is an axis-aligned buffered node and carries none",
         },
     }, indent=2))
     if bad:

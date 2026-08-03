@@ -98,6 +98,21 @@ AREA_FLOOR = 115.0              # m^2 at an anchor's edge (a small house is ~150
 AREA_PER_KM = 170.0             # m^2 of extra threshold per km of distance
 AREA_HARD_MIN = 40.0            # nothing smaller than this, ever (sheds, carports)
 TOWER_H = 40.0                  # at/above: the exception that gets the atlas
+# ── the downtown streetwall ───────────────────────────────────────────
+# The second exception, and the reason for it is a photograph. PR #99 gave the
+# 114 towers podiums, setbacks and crowns; everything under 40 m stayed a flat
+# untextured prism, because the ring's whole design is "one flat colour, it is
+# backdrop". Downtown is not backdrop — it is the second subject of the app,
+# and 1,534 of these sit inside the downtown box with 604 in the 8-18 m band
+# that forms the actual street frontage. Blank cream boxes between detailed
+# towers is exactly the "smaller ones are just skeletons" report.
+#
+# So a downtown building at or above MIDRISE_H is tagged `t=2`: it earns a
+# window pattern (js/outer.js:outer-midrise), a parapet cap and roof plant.
+# The gate is deliberately HEIGHT AND AREA, not height alone — a tall narrow
+# stair core is not a streetwall.
+MIDRISE_H = 8.0
+MIDRISE_AREA = 150.0
 # DISTANCE IS MEASURED FROM THE NEAREST OF **TWO** ANCHORS, not from the core
 # alone. The first version ramped the threshold outward from the core rectangle
 # only, which put the SOUTH BANK OF LADY BIRD LAKE 2.6 km "away" and culled
@@ -271,8 +286,40 @@ DT = {
     # HANDOFF §34's whole A2 finding.
     "retail_h_m": 5.2,
     "retail_out_m": 0.40,
-    "retail_min_building_h_m": 18.0,   # below this it is a shop, not a plinth
-    "retail_min_area_m2": 240.0,
+    # WAS 18.0, which is 6 storeys — so the entire 8-18 m streetwall, 604
+    # buildings and the majority of what you actually see at street level
+    # downtown, had no ground floor at all. A two-storey building on Congress
+    # is ALL storefront. The band is shorter on a short building so a 9 m
+    # box does not become 58% plinth (see retail_max_frac).
+    "retail_min_building_h_m": 8.0,
+    "retail_min_area_m2": 150.0,
+    "retail_max_frac": 0.34,           # never more than this share of the wall
+    "retail_min_h_m": 3.4,             # one commercial storey
+
+    # ── the mid-rise roof ─────────────────────────────────────────────
+    # A flat cut is what makes a mid-rise read as a massing study. Two cheap
+    # pieces fix it and both are visible from the campus-facing viewpoints the
+    # tour uses: a PARAPET (the wall continues ~1 m past the roof deck, which
+    # every flat-roofed commercial building has and which puts a shadow line on
+    # the top edge) and ROOF PLANT (the mechanical box, lift overrun and stair
+    # bulkhead that clutter every real flat roof).
+    #
+    # Plant is placed on the roof CENTROID rather than inset from the outline,
+    # because offset_ring on a small L-shaped plan collapses; the centroid box
+    # is always well formed. It is one box, not a cluster — at downtown viewing
+    # distance a cluster is the same silhouette for four times the features.
+    #
+    # The PARAPET is not here because it costs zero features: `t=2` carries
+    # rd/rg/rn like a tower does, and js/outer.js caps it with the same shared
+    # window.CAP_GEOM rule the towers use. A second extrusion on an existing
+    # feature beats 725 new thin-band polygons, and it cannot drift from the
+    # core's parapet because it is literally the core's rule.
+    "plant_min_h_m": 12.0,
+    "plant_min_area_m2": 420.0,
+    "plant_h_m": 2.8,
+    "plant_plan_frac": 0.34,        # of plan width, as a square on the centroid
+    "plant_max_side_m": 16.0,
+    "plant_min_side_m": 4.5,
 
     # ── parks, plazas and water ───────────────────────────────────────
     # Read from OSM (data/outer/downtown_green_raw.json). The outer ring draws
@@ -526,6 +573,49 @@ def offset_ring(ring_m, delta):
         return None
 
 
+def roof_seat(ring_m, half, must_fit=True):
+    """A point this roof can seat a `2*half` square on, or None.
+
+    `must_fit=False` relaxes it to "a point INSIDE the ring" when the caller
+    cannot skip — a mast is the tallest piece of its tower and dropping it
+    would silently change the tower's height, which §33's re-measure would then
+    (correctly) fail. A mast overhanging its crown by a metre is a detail; a
+    mast forty metres away over the street is the defect.
+
+    THE CENTROID IS NOT SUCH A POINT. A downtown block is routinely L-shaped, U
+    -shaped or a doughnut around a light well, and the centroid of a non-convex
+    ring lies outside it — so the first cut of the roof plant put boxes in mid
+    air BESIDE their building (shots/e1-tiles/congress.png before this, the two
+    dark cubes over the plaza at 6th and Brazos). A stable random nudge off the
+    centroid, added for variety, made it worse by pushing borderline ones out.
+
+    So: inset by the half-width plus a margin, and take shapely's
+    representative_point of what survives — which is guaranteed INSIDE the
+    polygon, unlike a centroid. If nothing survives the inset, the roof cannot
+    seat the box and the answer is no box, not a smaller one in the wrong place.
+    """
+    inner = offset_ring(ring_m, -(half + 0.8))
+    try:
+        if inner is not None:
+            poly = Polygon(inner)
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+            if not poly.is_empty and poly.area >= 1.0:
+                p = poly.representative_point()
+                return (p.x, p.y)
+        if must_fit:
+            return None
+        outer = Polygon(ring_m)
+        if not outer.is_valid:
+            outer = outer.buffer(0)
+        if outer.is_empty:
+            return None
+        p = outer.representative_point()
+        return (p.x, p.y)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def ring_centroid(ring_m):
     try:
         c = Polygon(ring_m).centroid
@@ -693,7 +783,7 @@ def downtown_detail(out, rep):
 
     parts = []
     n = {"podium": 0, "podium_measured": 0, "setback_skipped_slim": 0,
-         "crown": 0, "mast": 0, "retail": 0, "curated": 0,
+         "crown": 0, "mast": 0, "retail": 0, "plant": 0, "curated": 0,
          "jenga": 0, "taper": 0, "gable": 0, "curated_unmatched": []}
     seen_names = set()
 
@@ -827,21 +917,60 @@ def downtown_detail(out, rep):
             # THE OWL. A stepped centre box with four corner fins standing
             # proud of it — the silhouette, not the glazing.
             gb = crown_h / CROWN_R["gable_fin_rise"]
+            # The centre is DELIBERATELY lower than the fins — that is the owl.
+            # So the solid under the mast stops here, not at top + crown_h, and
+            # `cap_top` has to say so or the mast starts 6.5 m above the last
+            # thing holding it up. That was Frost Bank's floating cube.
             emit(mine, piece(crown, top, top + gb, adjust_light(base, -0.10),
                              fade, kind="c"))
+            cap_top = top + gb
             cw = plan_width(crown)
-            cx, cy = ring_centroid(crown)
             fin = max(2.2, CROWN_R["gable_fin_frac"] * cw)
-            q = cw * 0.5 - fin * 0.5
-            for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
-                emit(mine, piece(square_ring(cx + sx * q, cy + sy * q, fin),
-                                 top, top + crown_h,
+            seat = roof_seat(crown, 0.0, must_fit=False)
+            cx, cy = seat if seat else ring_centroid(crown)
+            # THE RING'S OWN VERTICES, one per quadrant.
+            #
+            # Two wrong rules were tried first and both are worth naming.
+            # `centroid +- plan_width/2` uses 4A/P — twice the INRADIUS, the
+            # SHORT dimension — so on an oblong plan it lands the fins between
+            # the centre and the corners. Replacing it with the bounding box's
+            # corners was worse and it is a trap this repo has already written
+            # down (QUEUE: "a bounding box is not a shape", §50): Frost Bank's
+            # plan is ROTATED relative to north, so its bbox corners sit
+            # outside the polygon and MORE fins fell off, not fewer.
+            #
+            # A corner of a rotated rectangle is a VERTEX of the ring. Inset
+            # the ring by half the fin first, so any vertex of what survives
+            # can seat the whole square, then take the furthest vertex from the
+            # centre in each quadrant. Correct for any rotation and any shape.
+            seed = offset_ring(crown, -fin * 0.5) or crown
+            quad = {}
+            for vx, vy in seed:
+                key = (vx >= cx, vy >= cy)
+                d2 = (vx - cx) ** 2 + (vy - cy) ** 2
+                if key not in quad or d2 > quad[key][0]:
+                    quad[key] = (d2, vx, vy)
+            cpoly = Polygon(crown).buffer(0)
+            for _, fx, fy in quad.values():
+                fr = square_ring(fx, fy, fin)
+                # The four corners assume a roughly square plan. Frost Bank's
+                # is, so all four land — but a fin that does not touch its own
+                # crown is a block hanging off the side of the tower, and the
+                # owl is worth less than that costs.
+                try:
+                    if not cpoly.intersects(Polygon(fr).buffer(0)):
+                        n["gable_fin_dropped"] = n.get("gable_fin_dropped", 0) + 1
+                        continue
+                except Exception:  # noqa: BLE001
+                    continue
+                emit(mine, piece(fr, top, top + crown_h,
                                  adjust_light(base, 0.06), fade, kind="c"))
             n["gable"] += 1
             n["curated"] += 1
         else:
             emit(mine, piece(crown, top, top + crown_h,
                              adjust_light(base, -0.10), fade, kind="c"))
+            cap_top = top + crown_h
         top += crown_h
         cap = crown
         n["crown"] += 1
@@ -849,8 +978,19 @@ def downtown_detail(out, rep):
         # ── 5. the mast ───────────────────────────────────────────────
         if mast_h > 0.5:
             side = max(2.4, DT["mast_plan_frac"] * plan_width(cap))
-            cx, cy = ring_centroid(cap)
-            emit(mine, piece(square_ring(cx, cy, side), top, top + mast_h,
+            # roof_seat, NOT ring_centroid. The centroid of a non-convex crown
+            # lies outside it, and that is where downtown's floating cubes came
+            # from: a mast standing in mid air over the street beside its own
+            # tower. Visible in shots/e1-before/congress.png and present since
+            # PR #99 — the same root cause as the roof plant below, found the
+            # same way, by cropping the picture and then writing the detector.
+            seat = roof_seat(cap, side * 0.5, must_fit=False)
+            cx, cy = seat if seat else ring_centroid(cap)
+            # Stand it on what is actually under it (`cap_top`), and keep the
+            # TOP where it was — the tower's architectural height is the one
+            # number a viewer can check and §33's re-measure holds it. So a
+            # spire through the gables gets longer, it does not get lowered.
+            emit(mine, piece(square_ring(cx, cy, side), cap_top, top + mast_h,
                              MAST_COL, fade, kind="c"))
             n["mast"] += 1
 
@@ -893,10 +1033,104 @@ def downtown_detail(out, rep):
         band = offset_ring(f["_m"], DT["retail_out_m"])
         if band is None:
             continue
-        add.append(piece(band, 0.0, DT["retail_h_m"],
+        # A fixed 5.2 m plinth is a lobby on a 60 m tower and two thirds of the
+        # wall on a 9 m shopfront. Cap it by share of the building, floor it at
+        # one commercial storey, so the same rule works across the 8-300 m range
+        # this pass now covers.
+        rh = min(DT["retail_h_m"], f["_h"] * DT["retail_max_frac"])
+        rh = max(DT["retail_min_h_m"], rh)
+        if rh >= f["_h"] - 0.5:          # nothing left of the wall above it
+            continue
+        add.append(piece(band, 0.0, rh,
                          lerp_hex(adjust_light(f["_base"], -0.18), STOREFRONT, 0.45),
                          f["_fade"], kind="r"))
         n["retail"] += 1
+
+    # ── 7. roof plant on the mid-rise ─────────────────────────────────
+    # The towers got a mechanical penthouse in PR #99 and it is most of why
+    # they stopped reading as a bar chart. The mid-rise got nothing, so 725
+    # downtown buildings still end in a flat cut. One box on the roof centroid,
+    # squared to the plan, is the whole fix.
+    for f in out:
+        if not f.get("_midrise"):
+            continue
+        if f["_h"] < DT["plant_min_h_m"] or f["_area"] < DT["plant_min_area_m2"]:
+            continue
+        side = plan_width(f["_m"], f["_area"]) * DT["plant_plan_frac"]
+        side = max(DT["plant_min_side_m"], min(DT["plant_max_side_m"], side))
+        # Seat it on a point the roof actually contains. A plan that cannot
+        # take the box at this size is tried once at the minimum and then left
+        # alone — an L-shaped block with a 6 m wing has nowhere to put plant.
+        seat = roof_seat(f["_m"], side * 0.5)
+        if seat is None and side > DT["plant_min_side_m"]:
+            side = DT["plant_min_side_m"]
+            seat = roof_seat(f["_m"], side * 0.5)
+        if seat is None:
+            n["plant_no_seat"] = n.get("plant_no_seat", 0) + 1
+            continue
+        cx, cy = seat
+        box = square_ring(cx, cy, side)
+        # The inset guarantees containment. Assert it anyway: the version
+        # WITHOUT this assert shipped boxes hanging in mid air next to their
+        # building, and the only reason it was caught was that the next thing
+        # done was to look at a picture (§45's rule, earned again).
+        try:
+            if not Polygon(f["_m"]).buffer(0).contains(Polygon(box)):
+                n["plant_offroof"] = n.get("plant_offroof", 0) + 1
+                continue
+        except Exception:  # noqa: BLE001
+            n["plant_offroof"] = n.get("plant_offroof", 0) + 1
+            continue
+        add.append(piece(box, f["_h"], f["_h"] + DT["plant_h_m"],
+                         adjust_light(f["_base"], -0.22), f["_fade"], kind="c"))
+        n["plant"] = n.get("plant", 0) + 1
+
+    # ── 8. NOTHING MAY FLOAT ──────────────────────────────────────────
+    # §33's re-measure asserts a tower's HEIGHT. It cannot see a piece at the
+    # right height in the wrong PLACE, and downtown shipped two of those for
+    # four passes because no instrument asked. Every raised piece must have
+    # something under it whose top reaches its base and which sits beneath most
+    # of its plan.
+    #
+    # The first version of this detector reported 39 and was WRONG: it only
+    # accepted a WALL as support, and a mast stands on a crown. A detector that
+    # flags its own blind spot has the shape of a real result — §45's rule, and
+    # the reason this one is written to accept any solid piece.
+    solids, spoly = [], []
+    for f in out + add:
+        p = f["properties"]
+        if p.get("k") in ("r", "g"):      # a ground band / park pad holds nothing
+            continue
+        try:
+            q = Polygon(f["geometry"]["coordinates"][0]).buffer(0)
+        except Exception:  # noqa: BLE001
+            continue
+        if q.is_empty:
+            continue
+        solids.append((p, f))
+        spoly.append(q)
+    tree = STRtree(spoly)
+    floating = 0
+    for f in add:
+        p = f["properties"]
+        b = p.get("b", 0)
+        if p.get("k") != "c" or b <= 0.05:
+            continue
+        try:
+            q = Polygon(f["geometry"]["coordinates"][0]).buffer(0)
+        except Exception:  # noqa: BLE001
+            continue
+        held = False
+        for i in tree.query(q):
+            if solids[i][1] is f:
+                continue
+            if solids[i][0]["h"] >= b - 0.6 and \
+                    spoly[i].intersection(q).area > q.area * 0.5:
+                held = True
+                break
+        if not held:
+            floating += 1
+    n["floating_pieces"] = floating
 
     for a in add:
         a["properties"]["d"] = 0
@@ -1021,6 +1255,7 @@ def main():
     kept, out = 0, []
     n_dedup = n_small = 0
     n_tower = 0
+    n_midrise = 0
     n_over_h = {"overture": 0, "osm_height": 0, "osm_levels": 0,
                 "overture_floors": 0, "class_default": 0,
                 "curated": 0, "podium_rule": 0}
@@ -1219,7 +1454,24 @@ def main():
         wg = lerp_hex(lerp_hex(base, GOLDEN_TINT, 0.16), HAZE_GOLD, fade)
         wn = lerp_hex(night_wall(base), HAZE_NIGHT, fade * 0.75)
 
+        is_dt = in_rect(lon, lat, DOWNTOWN)
+        # The downtown streetwall: not a tower, but not backdrop either. Same
+        # shape of exception as `t=1` and for the same reason — this is the
+        # half of downtown you look AT rather than past.
+        is_midrise = (DT["on"] and is_dt and not is_tower
+                      and h >= MIDRISE_H and best_area >= MIDRISE_AREA)
+
         props = {"h": round(h, 1), "wd": wd, "wg": wg, "wn": wn}
+        if is_midrise:
+            props["t"] = 2
+            n_midrise += 1
+            # Same two reasons the towers get these. The fade is NOT reduced
+            # the way a tower's is: a tower is the silhouette on the horizon
+            # and has to keep its material, a mid-rise at the edge of the box
+            # should still wash out with everything around it.
+            roof = adjust_light(base, -0.16)
+            rd, rg, rn = make_roof_colors(roof)
+            props["rd"], props["rg"], props["rn"] = rd, rg, rn
         if is_tower:
             props["t"] = 1
             n_tower += 1
@@ -1245,7 +1497,8 @@ def main():
                     "_m": ring_m, "_base": base, "_name": c.get("name"),
                     "_h": h, "_ovh": c.get("ovh_raw"), "_src": src,
                     "_fade": fade, "_area": best_area, "_tower": is_tower,
-                    "_dt": in_rect(lon, lat, DOWNTOWN),
+                    "_midrise": is_midrise,
+                    "_dt": is_dt,
                     # not emitted; used below to rank importance
                     # Towers sort first, unconditionally. A plain formula put
                     # them LAST: every other rank is negative, so the tower's
@@ -1315,7 +1568,7 @@ def main():
         "date": DATE,
         "outer_bbox": OUTER, "core_bbox": CORE, "downtown_bbox": DOWNTOWN,
         "raw_candidates": len(feats),
-        "kept": kept, "towers": n_tower,
+        "kept": kept, "towers": n_tower, "midrise": n_midrise,
         "dropped_too_small": n_small, "dropped_duplicate": n_dedup,
         "height_source": n_over_h,
         "podium_rule_examples": podium_examples,
@@ -1356,6 +1609,7 @@ def main():
             "built_against_snapshot": DATE,
             "buildings": kept,
             "towers": n_tower,
+            "midrise": n_midrise,
         }
         with open(man_path, "w", encoding="utf-8") as f:
             json.dump(man, f, indent=2)

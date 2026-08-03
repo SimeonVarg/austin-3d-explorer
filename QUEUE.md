@@ -58,7 +58,15 @@ memory of what the thing probably looks like.
 
 # PART A — GLITCHES. These come first and they are demo-killers.
 
-## A1. Windows flip to NIGHT MODE by quadrant, in broad daylight
+## A1. Windows flip to NIGHT MODE by quadrant, in broad daylight — **DONE**
+
+> **FIXED, PR #103, merged `715fa49`.** Cause: past 60 degrees of pitch MapLibre
+> picks a tile zoom PER TILE by distance, so one pitched frame samples all three
+> facade mip tiers at once — and `updateFacades` repainted only the tiers the
+> CAMERA's zoom named, leaving the far tier stuck at whatever hour it was last
+> dragged to. Read HANDOFF §46 before touching `js/facades.js` again: **every mip
+> tier must hold the same hour, always.** Pictures in `shots/a1-before/` against
+> `shots/a1-after/`.
 
 *"huge new window bug - wow this is horrible ... half the buildings past a
 certain point switch their windows to night mode (complete daylight) ... whatever
@@ -90,7 +98,19 @@ and never installed it.**
 Reproduce it in a script first: load, set tod day, set tod night, set tod day
 again, orbit, and sample facade pixels by quadrant. Assert the effect.
 
-## A2. Roads swell as you tilt up from low altitude
+## A2. Roads swell as you tilt up from low altitude — **DONE**
+
+> **FIXED, PR #105, merged `a420d07`.** "some roads dont" was the answer: the
+> ones that don't are the SIDEWALKS, whose width PR #70 already moved into the
+> geometry. `bake_ground.py`'s new `widen_roads()` does the same for every near
+> carriageway and cycleway — 3,015 `k:'roadarea'` polygons, `ground-road` is a
+> fill. Measured on Guadalupe mid-block: a road that was drawn between HALF and
+> TWICE its real width depending on pitch and distance is now x0.9–1.1 at every
+> pitch. The far-field armature is the one road layer still a line, under a 3 px
+> ceiling, because everything in it is over 3.4 km away. **It cost 293 → 738 KB
+> gzipped on an untiled file — moving those polygons into `roads.pmtiles` is the
+> follow-up.** HANDOFF §47; `shots/a2-before/` against `shots/a2-after/`.
+
 
 *"when im all the way down vertically and look at an angle towards the roads and
 start facing upright, the roads get bigger. some roads dont do this."*
@@ -133,6 +153,14 @@ the daytime wall windows. i did up and down for like 20 seconds then it fixed
 itself for good."* Almost certainly the same root as A1. Fix A1, then re-test
 this and say whether it went with it.
 
+> **IT WENT WITH IT. DONE, PR #103.** Same root, same tier, opposite sign: A4 is
+> the far tier holding the DAY drawing while the near field is at night, A1 is
+> the far tier holding NIGHT in daylight. Which one you get depends only on the
+> hour the far tier was last painted at. Re-tested explicitly and measured — at
+> tod 0.95 all three tiers now read 63.5 mean luma where the far one read 153.6.
+> "I did up and down for like 20 seconds then it fixed itself" was the old zoom
+> drain finally firing; there is no drain to wait for now.
+
 ## A5. Intricate roofs flicker while moving
 
 *"some buildings with intricate roofs like united methodist church have a bit of
@@ -155,7 +183,17 @@ mechanical azimuth-gap finder from #98 and report why it did not catch this
 building — a detector that misses a known case is worth more attention than the
 case itself.
 
-## A7. You cannot fly into downtown
+## A7. You cannot fly into downtown — **DONE**
+
+> **FIXED, PR #105, merged `a420d07`.** The fence was the bbox of
+> `scene.buildings` — campus plus the Capitol — so its south edge sat at lat
+> 30.2685 while the downtown bake runs 30.2560–30.2770. Exactly 59% of the way
+> down downtown, exactly "almost halfway". It is the modelled-city box now:
+> **10.1 km² → 77.4 km²**, and he eases to a stop 89 m short of the far edge
+> with a full city still around him. Widening it also needed a second, coarse
+> collision field built incrementally off the tiled outer ring, or he would fly
+> through the 315 m tower at Sixth & Guadalupe. HANDOFF §47; `shots/a7-fence/`.
+
 
 *"i wish i could explore more of downtown im currently locked almost halfway"*
 
@@ -213,7 +251,19 @@ he has now rejected that read twice.**
 
 # PART C — WHERE STUDENTS ACTUALLY LIVE. This is what UT viewers will check.
 
-## C1. Jester should not look like a prison
+## C1. Jester should not look like a prison — **DONE (roofs + courts)**
+
+> **PR #106.** All three Jester footprints now carry the roof the nadir
+> photograph shows — a terracotta tile hip band around a light grey concrete
+> deck (measured: 28-47% of each roof passes the tile test, 33-59% is neutral
+> and bright). Three things had stopped it: the 34 m height gate, a ring survey
+> diluted by canopy and walkway roofs, and a deck colour taken from
+> `roofscape.geojson`'s dark measurement. `data/building_overrides.json` is the
+> new per-building correction file. The Caven-Clark Courts got white markings,
+> hoops, net posts and a fence in `bake_art.py`. **Still open: Jester's MASSING**
+> — each hall is one prism at the tower's height, so the two-storey wings are
+> extruded to 51.6 m, and the WALL colour, which only the buildings bake can
+> reach. HANDOFF §48; `shots/cbefore/` against `shots/cafter/`.
 
 *"make jester look alot nicer if freshman r gonna see this then their dorm
 shouldnt look like a prison"*
@@ -227,7 +277,14 @@ shouldnt look like a prison"*
 
 Jester East and West are one complex at roughly `-97.7305, 30.2830`.
 
-## C2. Gregory Gym's famous entrance
+## C2. Gregory Gym's famous entrance — **DONE**
+
+> **PR #106.** A three-arch loggia on a monumental stair under a tiled gable,
+> on the WEST face, placed from OSM node 1427259422 (`entrance=main`) and the
+> 2101 Speedway address rather than from memory. The arch heads are prisms cut
+> across the opening whose BASE is the arch's own curve, not axis-aligned
+> blocks. Parameterised in `data/building_overrides.json` — if it is on the
+> wrong block, it is a one-line move. HANDOFF §48.
 
 *"greg gym is split into two sections (one building) one should replicate the
 famous entrance with the three hall things and the roof"*
@@ -236,7 +293,15 @@ The 1930 Gregory Gymnasium facade has a **three-arch entrance loggia** under a
 tiled gable. It is one of the most recognisable faces on campus and it is
 currently a flat wall.
 
-## C3. Littlefield Dorm has the wrong roof
+## C3. Littlefield Dorm has the wrong roof — **DONE, and it was 65 buildings**
+
+> **PR #106.** The survey was never wrong — Littlefield reads run 7.1 m, eave
+> 0.766, rings 0.77/0.99/1.00/0.99 to its own half-span, the most certain hip on
+> campus. **The COLOUR never asks the photograph.** Facets take `rd` off the
+> building, and `bake_detail.py` sets `rd` from the wall 12% darker when there is
+> no OSM `roof:colour` tag. **65 of the 105 pitched roofs are painted from an
+> `rd` that is not a tile colour at all.** 30 now take the campus tile median,
+> gated on two independent readings. HANDOFF §48.
 
 *"littlefeild dorm should have a red roof"*. One-line data fix — but check
 whether the roof survey has it and why it was missed, because that rule probably
@@ -251,7 +316,35 @@ There is asphalt drawn in a courtyard that has none. Find out where that surface
 comes from — it is probably an OSM `highway` way crossing the court, or a
 service-road polygon — and stop drawing it there. Then make the court a court.
 
-## C5. West Campus apartments — LAST, but he cares most about it
+## C5. West Campus apartments — **DONE (the blocks), one thing owed**
+
+> **PR #113, merged `0c9bd1a`.** The pass already did the ten TOWERS; West Campus
+> is made of six-to-ten storey BLOCKS, and every building he named that was still
+> a plain prism was one of those. Fourteen join the bake — The Standard, Rambler,
+> The Quarters (both houses), 2400 Nueces, The Nine, Twenty Two 15, The Block,
+> Block on 25th East, Pointe on Rio, Crest at Pearl, The Venue, The G, The Nine
+> at Rio — with a ground-floor band, a crown that stops the window grid, 268
+> projecting balcony slabs clipped to their own footprints, and amenity in the
+> courtyards the footprints already have.
+>
+> **The colour was in the data and the renderer was electing it away.**
+> `quantiseFacades()` keeps the fourteen most populous tones city-wide; over the
+> 284 West Campus buildings ≥12 m that fold moves a wall by a median 13.9 RGB and
+> up to 97.5. **The Standard was being painted brick red**; its architect's
+> photographs show a light three-tone panel building. A feature in
+> `data/westcampus.geojson` skips the election. HANDOFF §54;
+> `docs/shots/westcampus-*.jpg`.
+>
+> **OWED, and it is the one thing he would notice.** The Standard is **17
+> storeys** (Humphreys & Partners: 17 floors, 287 units, 989 beds, 640 spaces).
+> The snapshot has it at **20.5 m** — the pre-2019 building's LiDAR, on a 2015
+> City-of-Austin footprint that has never been redrawn. It cannot be fixed in
+> this pass: `js/controls.js` builds its collision field from `final_height`, so
+> raising it there would draw a tower you can fly through. It belongs in
+> `scripts/hero_overrides.json` + a re-run of `enrich.py`. **That one number also
+> unlocks his building's pool deck**, which was measured off the z20 nadir, built,
+> and then deleted — all three routes to drawing it are blocked by the stale
+> height. The measured rectangles are kept in `bake_westcampus.py`.
 
 *"so many apartments in austin wampus have such cool designs but are currently
 regular building blocks. Can you implement these designs?"*
@@ -265,7 +358,26 @@ do the recognisable West Campus towers properly and Standard will be among them.
 
 # PART D — LANDMARKS AND DETAIL
 
-## D1. The Capitol
+## D1. The Capitol — **DONE**
+
+> **FIXED, PR #108.** All three, and none of them was what the brief guessed.
+> **(1)** Neither #78 nor #93 touched it. Two causes stacked: `bake_capitol.py`
+> still emitted `k:'path'` LINES after the whole city moved to `k:'patharea'`
+> polygons, and even as polygons they sat under `outer-detail`'s **0.45 m park
+> pad**, which covers 98.6% of the south lawn. The green everyone was looking at
+> was the outer ring's pad, not the Capitol's lawn — and `js/capitol.js`'s
+> `updateData` merge had been rejected in the worker every load since Aug 1, so
+> none of the 1,161 ground features had reached the map at all.
+> **(2)** The dome was never leaning — 0.0 px axis drift over 57 m, measured
+> isolated. It stood on an INVENTED 7 m stepped pyramid that no photograph has.
+> **(3)** `FACADE_PROTECTED` is honoured; the dome and the walls carry the same
+> `#bd8477` and rendered 1.40/1.52/1.56 apart because only the walls go through
+> the window atlas. Now 1.28/1.30/1.29 against a photograph's 1.20/1.21/1.30.
+> HANDOFF §49; `shots/cap-before-day/` vs `shots/cap-after-day/`.
+>
+> **Owed:** `scripts/verify/capitol-merge.mjs` is red by design — it asserts a
+> console string for the deleted `updateData` path, and it was green for two
+> days while the merge was failing. Rewrite it against `window.__capitolMerge`.
 
 *"same thing with capitol building and lawn - looks like u got rid of the
 walkways around it those had a cool pattern add them back. also the thing on the
@@ -320,21 +432,49 @@ Fix the orientation and check nothing else shares the bug.
 window has been drawn twice and is still wrong. Get a photograph of the west
 window and match it — radiating coloured panels in a circle, in a specific order.
 
-## D6. Speedway got deleted
+## D6. Speedway got deleted — **DONE**
+
+> **FIXED, PR #110, merged `e003b50`.** It was never deleted: 6,132 m2 of
+> `s:'brickpave'`, unchanged across 8 commits, drawn every frame. Two causes.
+> **(1)** The golden-hour palette did not go to dusk while everything round it
+> did, so the brick rose to meet the concrete — `sum|dRGB|` 62 by day but **27
+> at sunset, and 0.9 luma apart**. tod 0.62 is the default and the default is
+> where he looks. **(2)** The herringbone was a flat `fill` at z=0 under the
+> 0.22 m `ground-paths` extrusion, so 92% of the weave was painted over by the
+> deck it decorates — the same shape of defect as §49's park pad over the
+> Capitol walks. Both grain layers are prisms standing ON the deck now.
+> HANDOFF §52; `docs/shots/d6-speedway-sunset-before-after.jpg`.
 
 *"looks like speedway got slimed out somewhere in between add it back"*. Speedway
 is the main pedestrian spine of campus. Find which pass removed it — the ground
 resolver in PR #78 is the prime suspect since it clips overlapping surfaces — and
 restore it.
 
-## D7. Sidewalks look like duct tape
+## D7. Sidewalks look like duct tape — **DONE**
+
+> **FIXED, PR #110.** They had **no texture at all** — `ground-texture` filters
+> `k:'area'`, so every lawn and plaza wore a grain and every walk was a flat fill
+> with a hard bright stroke round it. It was never the colour, it was the absence
+> of a surface. New scored-concrete tile (slab grid + joints + aggregate, pure
+> alpha), `kerbLight` 0.10 → 0.06 and a new `kerbOpacity`.
+> HANDOFF §52; `docs/shots/d7-sidewalks-before-after.jpg`.
 
 *"sidewalks in campus look like ducttape can we fix that? wont take much maybe a
 few shading or texture things"*. They are flat pale strips with a hard edge.
 Texture, a softer kerb, and joint lines would do it. He explicitly says this is a
 small job.
 
-## D8. The creek cuts straight through roads and buildings
+## D8. The creek cuts straight through roads and buildings — **DONE**
+
+> **FIXED, PR #110. It is 30 road crossings and 23 walk crossings** — 11 of the
+> roads carry an OSM `bridge` tag and 19 do not, so the tag cannot be the test.
+> **Zero buildings overlap the water**; DKR's footprint does not touch it. Cause
+> is PR #62's own rule never applied here: a `fill` does not depth-test against a
+> `fill-extrusion`, so `ground-channel` painted over `ground-road` while the
+> walks (extrusions) won and crossed on nothing. `RANK[('bank','deck')]` = 95
+> takes the ground off the channel, and `ground-deck` sits BEFORE the roads so
+> the carriageway paints over its own bridge. 47 decks, 14,055 m2.
+> HANDOFF §52; `docs/shots/d8-creek-crossing-before-after.jpg`.
 
 *"the creek near DKR completely slices through 21st and DKR, but sidewalks still
 go over them (added to the ducktape analogy) same thing happened with this creek
@@ -345,7 +485,15 @@ creek meets a road or a building, there is a **culvert or a bridge** — the roa
 continues over the water. Find every creek/road and creek/building intersection
 and deck them over.
 
-## D9. Concrete in front of the Tower is blown out at sunset
+## D9. Concrete in front of the Tower is blown out at sunset — **DONE**
+
+> **FIXED, PR #110, and it is the same four numbers as D6.** The pale-paving
+> band stayed within 4 luma of midday while the rest of the scene went to dusk,
+> so the forecourt was the brightest object in the frame. Median rendered luma
+> of the plaza paving, masked so trees and buildings cannot enter the sample:
+> **213.3 → 194.5** (day), **159.4 → 141.2** (sunset), **47.1 → 45.2** (night).
+> Checked at all three hours. HANDOFF §52;
+> `docs/shots/d9-tower-forecourt-sunset-before-after.jpg`.
 
 *"concrete area right in front of tower renders too bright on default sunset"*.
 The golden-hour paving value is too high. Taste knob, one line, but check it
@@ -375,6 +523,24 @@ materials, ground-floor retail, plant on the roofs.
 towers read as a dark grey mass next to a warm campus. That may be a real
 regression from the tile switch (PRs #84/#94) rather than a design choice —
 measure it against the campus buildings before adding anything.
+
+## D11. The outer ring pads over ground the city models properly
+
+**Found by D1, and it is not a Capitol problem.** `outer-detail` carries the
+outer ring's 309 flat park pads as a `fill-extrusion` at **h 0.45 m**, opacity 1.
+The Capitol grounds get one, and it buries `ground-areas` (a flat fill at z=0)
+and `ground-paths` (0.22 m) under it — both lose the DEPTH test, so no layer
+reorder can help. Measured with the magenta mask asked of every layer in turn:
+`outer-detail` covers **98.6%** of the Capitol's south lawn and nothing else
+covers any of it.
+
+The Capitol works around it by standing its own ground at 0.46 m
+(`CAPITOL.groundLift`), which is a patch, not a fix. **Every other modelled
+block inside a ring park pad has the same defect and no workaround.** The fence
+only just grew to 77.4 km² (#105), so the modelled area and the ring's
+assumptions about it have drifted apart. `scripts/bake_outer.py` should not emit
+a pad where the city has real ground, or `js/outer.js` should not draw one there.
+Check the whole modelled box for other pads before deciding which.
 
 ---
 

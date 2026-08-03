@@ -32,10 +32,20 @@
  */
 import fs from 'node:fs';
 
+// EVERY <script src>, not just the local `js/` ones.
+//
+// The old pattern was /<script\s+src="(js\/[^"]+)"/ and that blind spot cost
+// exactly what this file exists to prevent, a second time. index.html loads
+// pmtiles from unpkg before js/tiles.js; _harness.html never did. js/tiles.js
+// degrades QUIETLY when the global is missing, so TILES.on went false and every
+// tiled layer served its GeoJSON fallback — in every pixel measurement any lane
+// has taken through the harness, including the ones that reported on "the tiled
+// path". A checker that only compares the halves of the list it happens to
+// match will keep passing while the two pages diverge in the half it does not.
 const scriptsIn = (file) => {
   const html = fs.readFileSync(file, 'utf8');
   const out = [];
-  const re = /<script\s+src="(js\/[^"]+)"/g;
+  const re = /<script\s+src="([^"]+)"/g;
   let m;
   while ((m = re.exec(html))) out.push(m[1]);
   return out;
@@ -50,12 +60,21 @@ const missing = site.filter(s => !harnessSet.has(s));
 const extra = harness.filter(s => !siteSet.has(s));
 const dupes = harness.filter((v, i) => harness.indexOf(v) !== i);
 
-// ORDER MATTERS FOR ONE OF THEM AND ONLY ONE, so it is checked by name rather
-// than by comparing the whole sequence: js/tiles.js registers the pmtiles://
-// protocol and calls setWorkerCount, and both have to happen before any Map is
+// ORDER MATTERS FOR TWO OF THEM, so they are checked by name rather than by
+// comparing the whole sequence: js/tiles.js registers the pmtiles:// protocol
+// and calls setWorkerCount, and both have to happen before any Map is
 // constructed. Everything else is a window assignment that the app awaits.
+//
+// And js/tiles.js reads the `pmtiles` global at parse time — if the library has
+// not run yet it takes the silent GeoJSON fallback and never retries. So the
+// library must come BEFORE it, and "present somewhere in the list" is not
+// enough. That is the ordering the old check could not express, because the
+// library was not in the list it looked at.
 const tilesIdx = harness.indexOf('js/tiles.js');
-const orderBad = tilesIdx > 0;
+const pmIdx = harness.findIndex(s => /\bpmtiles[@.]/.test(s));
+const firstModule = harness.findIndex(s => s.startsWith('js/'));
+const orderBad = tilesIdx !== firstModule;
+const pmOrderBad = pmIdx < 0 || pmIdx > tilesIdx;
 
 console.log(`index.html:    ${site.length} scripts`);
 console.log(`_harness.html: ${harness.length} scripts`);
@@ -80,8 +99,15 @@ if (dupes.length) {
 }
 if (orderBad) {
   bad = true;
-  console.log(`\n*FAIL — js/tiles.js is at position ${tilesIdx}, must be first:`);
+  console.log(`\n*FAIL — js/tiles.js is at position ${tilesIdx}, must be the first js/ module (${firstModule}):`);
   console.log('  it registers the pmtiles:// protocol and must run before any Map.');
+}
+if (pmOrderBad) {
+  bad = true;
+  console.log(`\n*FAIL — the pmtiles library is at position ${pmIdx}, js/tiles.js at ${tilesIdx}:`);
+  console.log('  js/tiles.js reads the `pmtiles` global at parse time. Without it,');
+  console.log('  TILES.on goes false and every tiled layer silently serves GeoJSON —');
+  console.log('  the harness renders a city the site does not, and says nothing.');
 }
 if (!bad) console.log('\n PASS  the harness loads the same city the site does');
 

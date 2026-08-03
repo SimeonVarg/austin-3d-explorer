@@ -149,3 +149,24 @@ Useful: `scripts/verify/dkrdiag.mjs` and `fieldprobe.mjs` already exist.
    and kill your server before finishing every pass.
 4. **Record every pass in `HANDOFF.md`** with the branch name, including what you
    tried that did NOT work.
+
+---
+
+## UNBLOCKED 2026-08-03 — both faults PR #102 could not reach are fixed
+
+**PR #114, merged.** `js/app.js` now has:
+
+- `'fill-extrusion-base': ['coalesce', ['get','base'], 0]` on **both**
+  `stadium-seating` and `stadium-detail`. **Bake seat deck bases now** — an upper
+  deck over a void is expressible, and the stepped cone can stop being a cone.
+  Note it also fixed 30 detail features (12 wall, 8 mast, 4 canopy, 4 lintel,
+  2 board) that were growing out of the ground, the videoboard and floodlight
+  masts among them.
+- `SEAT_COL`'s night column is dark upholstery catching spill, brightest low and
+  falling off upward. The seats are no longer the light source. **The field is
+  now the brightest thing at night** — photographed in `shots/dkr/dkr-night.png`.
+
+**So part two is: bake the real bowl.** Deck bases into the void, the west's two
+big decks over a concourse, the north/east wrapped second layer, the south
+videoboard end, and the Longhorn feature. Everything in M1–M5 that was blocked on
+those two lines is now open.

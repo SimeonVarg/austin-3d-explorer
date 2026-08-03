@@ -124,6 +124,1174 @@ solid ring from the ground and the void can only be a colour, not a hole. The
 southwest and northwest entrance structures are still plain discs. The south end
 is still the pre-2021 arrangement. **`shots/dkr2/reference-vs-render.png` is the
 side-by-side and it does not pass.**
+## 54. Aug 3 2026 — West Campus was fourteen more buildings than the pass knew about, and the renderer was throwing their colour away (acer lane)
+
+**Branch:** `acer/westcampus-heroes`. QUEUE **C5** — the last item on his list and
+the one he said he cares most about personally.
+
+> *"so many apartments in austin wampus have such cool designs but are currently
+> regular building blocks ... personally as someone staying in standard next
+> year i love how it looks and if this tool wasn't mine and i saw standard look
+> nice i would feel really cool, like 5x better about the project (not saying
+> just cherrypick standard but you get what im saying)"*
+
+`scripts/bake_westcampus.py` already did ten TOWERS (55–82 m). West Campus is not
+made of towers. It is made of six-to-ten storey blocks, and every one of Simeon's
+named buildings that was still a plain prism — **The Standard, Rambler, The
+Quarters, 2400 Nueces, The Nine** — is one of those. Tier two adds fourteen of
+them. `data/westcampus.geojson` 145 → 401 features, 24 buildings, 37 atlas images.
+
+### The colour was already in the data and the renderer was throwing it away
+
+`bake_detail.py` measures a wall colour per building. `quantiseFacades()` then
+elects the FOURTEEN most populous tones city-wide and folds everything else into
+its nearest survivor. Measured over the 284 West Campus buildings ≥12 m, that
+fold moves a wall by a **median of 13.9 RGB and by up to 97.5** — Ion Austin's
+#54555b charcoal is painted terracotta. Rambler's measured #966753 brick came out
+#af785d, the same tan as the churches.
+
+A feature in `data/westcampus.geojson` skips the election (`quantiseStadiumFacades`
+gives every (family, colour) its own atlas entry), so **bringing a block into
+this file is what lets it keep the colour the imagery measured off it.** Read off
+the live atlas, **14 of 24 body bands are now closer to their authored colour
+than to the nearest of the fourteen city buckets** (Rambler 8.2 vs 24.7).
+
+**The Standard was being painted brick red.** Its snapshot `wd` is #aa8267, which
+elects to the terracotta bucket. Humphreys & Partners' own exterior photographs
+show a light three-tone panel field — cream, warm grey, charcoal, terracotta
+accents, laid up in a broken "pixel" pattern over a two-storey glazed base with a
+charcoal corner bay. The body hex is the area-weighted read of that field.
+
+### Balconies are clipped to the footprint, and that is what makes them possible
+
+A balcony slab is a rectangle across a whole elevation in the obb frame. On a
+U-plan — Grayson has a light-well notch 18 m into its south elevation, Twenty Two
+15 one into its north — that rectangle **bridges the notch and hangs in mid air,
+once per floor**. `_clip_to(rect, footprint.buffer(BALC_PROJ))` removes the whole
+class of error and still lets a real balcony project. 268 slabs over 14 buildings.
+
+### What tier two deliberately does NOT do — each avoided a defect
+
+- **It never changes a height.** The Standard is 17 storeys (Humphreys: 17
+  floors, 287 units, 989 beds, 640 spaces, 1.34 acres, VIP deck on 17). The
+  snapshot has it at **20.5 m**, which is the pre-2019 building's LiDAR: OSM way
+  380916747 is a 2015 City-of-Austin import whose 19 nodes have never been
+  redrawn, and a 2023 edit only added the name. Correcting it belongs in
+  `scripts/hero_overrides.json` + `enrich.py`, because `js/controls.js` builds
+  its **collision field** from `final_height`, `js/shadows.js` reads it and the
+  labels sit on it. Raising it here would draw a tower you can fly through.
+- **It never puts anything on a roof `bake_roofscape.py` already furnished.**
+  Measured: The Standard carries a generic deck at b=21.50 h=21.75 covering
+  **91.9%** of its footprint, plus 16 detail condensers; 2400 Nueces, Sterling,
+  Grayson, Twenty Two 15, Block on 25th and The Nine the same. Those ids are not
+  in `authoredRoofIds` and adding them needs `data/roofscape.geojson` re-baked,
+  which is not this lane's file. **`authoredRoofIds` is now a SUBSET** (10, not
+  24) — claiming all 24 would be a delayed-action bug that strips fourteen roofs
+  the day someone re-runs that bake.
+- **It never cuts a courtyard the data lacks.** 2400 Nueces really has two and
+  its 8-node polygon has neither, but the generic roof deck spans the footprint,
+  so a hole under it is invisible. Amenity goes only in courtyards that are
+  ALREADY holes, placed from **that ring's own obb** as fractions of it, so
+  nothing is eyeballed: Rambler, The Block, Pointe on Rio, Crest at Pearl, The
+  Nine at Rio.
+- **It never touches a pitched roof.** Checked `data/roofs.geojson`: none of the
+  fourteen has a facet. Villas on Guadalupe, Block on 25th West and Greenwood
+  Towers are left OUT — the first two have hip roofs the nadir shows plainly and
+  this tier has no vocabulary for one; Greenwood's footprint sits 10 m off the
+  building it names.
+
+### The one thing that cost real work and was then deleted
+
+**The Standard's pool deck.** The z20 nadir post-dates the building and shows the
+lap pool, the spa at its north end and the tower shadow across the deck; the
+architect's photographs show the jumbotron, the turf strip and the pergola. All
+of it was built, measured in the bake's own (u,v) frame and checked by drawing
+the rectangles back onto the nadir — and then removed, because every route to
+drawing it fails on the same wall:
+
+| route | why it fails |
+|---|---|
+| on top of the generic deck (21.75 m) | breaks "nothing stands above final_height"; H is 20.5 |
+| on a lower stepped wing (the true massing) | the generic deck spans 91.9% of the roof and would hover over the wing |
+| at the parapet | `roof_z` is H + cap_lift, still above H |
+
+All three are downstream of ONE stale number. The measured numbers are kept in
+the bake so the next lane can restore it in a line. **Fix the height first.**
+
+### What I tried that did not work
+
+- **`ondeck`** — an absolute z for roof amenity, standing on the measured top of
+  the generic roofscape deck. Written, working, and reverted: it puts geometry
+  above `final_height` by construction, which is exactly what the probe forbids.
+- **Pre-compensating the cool greys.** The atlas mean of an `mh` tile is warmer
+  and darker than the authored hex (2400 Nueces #9ea8af → #a09890, R/B 0.90 →
+  1.11), so a blue-grey block still reads warm. Pushing the authored hex bluer to
+  land on target would then be wrong at every other time of day, because much of
+  that shift is the scene-wide golden ramp and not the tile. Left alone.
+- **Reading `wp` off `map.getSource(...)._data`** — reports every band unstamped.
+  MapLibre serialises the GeoJSON to its worker on `addSource` and the stamps live
+  on the worker's copy. Use `querySourceFeatures`. Cost 20 minutes and a false
+  "the pattern is missing" alarm.
+- **A two-page-load before/after.** `?westcampus=0` is a load-time flag, so the
+  pair also differs by a camera settle and a tile race — the first attempt came
+  back with 40 px of horizon between the frames. `applyWestcampusSettings()`
+  swaps both halves in one frame; that is what it is for.
+
+### Owed
+
+- **`scripts/verify/westcampus-probe.mjs` is truncated at HEAD** (66 lines — the
+  whole `newPage` / `page.evaluate` block is gone) and dies on "d is not defined"
+  before asserting anything. It is one of **17** scripts in `scripts/verify` with
+  no `newPage` call left in them; the Mac lane owns that regression. The same 16
+  assertions were run from the scratchpad instead and pass 16/16 on 24 buildings.
+- The height correction above, which also unlocks the pool deck.
+
+### Measured
+
+- `data/westcampus.geojson` 145 → 401 features (36 → 78 wall bands, 268 balcony
+  slabs), 50.1 → 171.7 KB, atlas 19 → 37 images.
+- **Nothing stands above `final_height`**: max h − final_height is +0.00 for all
+  24 buildings.
+- `westcampus-perf.mjs`: delta −100 dropped frames against a within-config spread
+  of 49/142, i.e. **no result** — the honest read is no measurable change.
+- Two forced time-of-day ticks: 348 ms with the pass on vs 301 ms off (MIN of 7
+  interleaved reps, spread 301–750 ms). Inside the noise, and the images stay
+  registered when the pass is hidden, so this is a floor on the cost either way.
+- Night re-checked at tod 0.95: bands read dark with lit windows, no pale wall
+  after dark.
+
+`docs/shots/westcampus-{standard,grayson,rambler,crest,wide}.jpg` are exact
+before/after pairs — one browser, one camera, the pass toggled between the two
+frames.
+
+## 53. Aug 3 2026 — every pixel this project has measured was of a city with no vector tiles, again (acer lane)
+
+**Branch:** `acer/downtown-depth`, PR #112. QUEUE **E1**.
+
+### READ THIS FIRST — it invalidates numbers, not just this pass's
+
+`_harness.html` loads maplibre from unpkg and **never loaded pmtiles**.
+`js/tiles.js` reads that global at parse time and degrades SILENTLY —
+`[tiles] pmtiles or maplibre not loaded - falling back to GeoJSON` — so
+`TILES.on` went false and **every tiled layer served its GeoJSON fallback in
+every pixel measurement any lane has ever taken through that page**: trees,
+roads, props, roofdetail and the outer ring.
+
+`e4883d1` is titled *"Every pixel we have measured was of a city with no vector
+tiles"*. It added `js/tiles.js` to the harness and stopped one line short of the
+library `js/tiles.js` needs. The same bug, in the fix for the same bug.
+
+**`harness-drift.mjs` could not see it.** Its regex was
+`/<script\s+src="(js\/[^"]+)"/` — local modules only, so a CDN `<script>` was
+invisible. It compares EVERY `<script src>` now and additionally asserts the
+pmtiles library precedes `js/tiles.js`, because "present in the list" is not
+the invariant; "parsed before the file that reads its global" is. Negative
+control run: removing the tag turns both assertions red.
+
+Consequences worth knowing:
+
+- **`--extra "&tiles=0"` and no flag were the same thing.** Every "verified on
+  the tiled path" claim in this file predates the harness being able to load
+  one. §45's `shots/dt-tiles/` is labelled "tiled, what the site serves"; it was
+  not.
+- **`outer-check.mjs` was 14/20 on `main`** once the harness could load a tile,
+  and had been for passes. Five failures were the check describing a city from
+  two passes ago; one was its own instrument. All six fixed, 21/21 now — see
+  the commit, and note `querySourceFeatures` on a VECTOR source returns `[]`
+  without `{sourceLayer}`, which is why "the ring tiled and is drawing" read 0
+  while the ring was plainly on screen.
+
+### E1's colour question, answered with a measurement and a photograph
+
+The brief asked whether downtown reading as a dark grey mass is a REGRESSION
+from #84/#94. **It is not, and it is not a luma problem at all:**
+
+```
+outer-tower  vs  buildings-3d      luma 119.5 vs 102.1   downtown is 1.17x BRIGHTER
+tile path    vs  GeoJSON path      119.5 vs 119.6        the two paths agree
+```
+
+**It is the HUE.** Two reference photographs (Wikimedia Commons, *Austin Texas
+skyline, December 2023 - Day* and *Austin Skyline from Loop 360 Overlook 2026*)
+put the tower cluster at **B−R +1 hazy, +90 clear**. Never negative. The app
+rendered it at **−15**.
+
+`tower-atlas-tone.mjs` (new) reads the registered atlas images directly, because
+measuring the baked hex and the screen pixel leaves the middle step a guess:
+
+```
+palette #8ca0b1 (B-R +37)  ->  atlas tile B-R  -1.3      before
+                           ->  atlas tile B-R  +3.8      after
+```
+
+Two warming terms, and **only one of them is in this lane**:
+
+1. **`wg` was derived with the masonry rule.** `js/facades.js` uses
+   `v * (1.06, 1.06, 0.92)` — redder, greener, LESS BLUE — which is right for
+   brick and limestone and wrong for a curtain wall, and downtown's `tg` family
+   is **51% glass**. Glass does not warm at golden hour; it mirrors the sky.
+   `GOLDEN["tower"]` in `bake_outer_facades.py` keeps the blue. Worth +5.
+2. **`drawTile`'s `mix(glass, [255,176,96], golden * 0.45)`.** `golden` is
+   `1 - |p-0.5|/0.5`, so at the app's **DEFAULT day `p = 0.30`** it is **0.60**
+   and the glass takes a **27% orange wash at what everyone calls noon**. This
+   is `js/facades.js` — **NOT this lane's file. This is the request, per
+   CLAUDE.md's rule about writing it here rather than making it.** Narrowing
+   the golden window, or exempting `tg` from the amber, is worth roughly three
+   times what item 1 was.
+
+### The content: 645 downtown buildings stopped being blank prisms
+
+PR #99 gave the 114 towers podiums, setbacks and crowns. Everything under 40 m
+kept the ring's flat untextured colour, because the ring's design is "one flat
+colour, it is backdrop". **Downtown is not backdrop.** A building at or above
+`MIDRISE_H` inside the downtown box is now `t=2` and gets:
+
+- a real window pattern — family **`mh`** (punched, ~20% glazing), NOT the
+  towers' `tg`. Its own six-bucket set, clustered on its own masonry colours,
+  because snapping a two-storey shopfront onto ten glass centroids is the same
+  category error #84 fixed for the towers.
+- a **parapet**, on the shared `window.CAP_GEOM` rule, at **zero extra
+  features** — `t=2` carries `rd/rg/rn` exactly as `t=1` does.
+- **roof plant**: 189 mechanical boxes.
+- a **ground floor**. `retail_min_building_h_m` was **18 m — six storeys** — so
+  the entire 8–18 m streetwall, 604 buildings and most of what you see at
+  street level, had none. **219 bands become 751**, and the band is now capped
+  by share of the building so one rule works from 8 m to 300 m.
+
+```
+local detail (mean |neighbour delta|) over the mid-rise field   3.35 -> 4.38  +31%
+```
+
+Measured on a **controlled A/B — one build, one session, only the data file
+swapped**. The first, uncontrolled pair showed a large whole-frame warm shift
+that was pure run-to-run drift (§43's exposure step, exactly as documented), so
+the controlled pair is the only evidence quoted.
+
+### The tiling claim, measured again on a harness that can actually test it
+
+```
+outer.pmtiles          1,819,279 -> 1,982,385 bytes   +163 KB
+visitor wire bytes         14.11 -> 14.14 MB          +30 KB   (both reps identical)
+load to map.loaded()   main 39.0/24.0 s   branch 19.1/25.8 s
+```
+
+**Load time is inside the noise floor and no claim is made about it** — the
+spread on one quiet machine is 19–39 s for the same page, which is CLAUDE.md
+rule 10's whole point. The BYTES claim survives: the archive grew 163 KB and a
+visitor at the spawn pose pays 30 KB of it.
+
+### Geometry: what I got wrong, and the trap I walked into with it documented
+
+Chasing a cube that **looked** like it floated over the street. **It did not.**
+`queryRenderedFeatures` says that stack is contiguous — shaft 18.4–105.9, crown
+→111.4, mast →121.7 — and what reads as plaza is a 106 m tower's blank roof.
+Two crops and a confident read said otherwise; only asking the renderer settled
+it. **§37 generalised: an eye is an under-settled instrument too.**
+
+The detector written to check it found real ones. Every raised `k='c'` piece
+must have a solid under it whose top reaches its base — **6 did not**:
+
+- the **mast** sat on `ring_centroid(cap)`, and the centroid of a non-convex
+  crown is outside it. `roof_seat()` returns a `representative_point`, which
+  is not.
+- **Frost Bank's spire started 6.5 m above the box holding it up** — at the
+  FINS' top while standing on the centre box, which is deliberately lower.
+  It starts at `cap_top` and still ends at the same height, so §33's
+  re-measure is untouched.
+- **one owl fin was off its own crown**: `centroid ± plan_width/2` uses `4A/P`,
+  twice the INRADIUS, so on an oblong plan the fins land short.
+
+**6 → 2.** 114 towers re-measured, 0 height mismatches, top still exactly
+315.0 m. The detector is now a bake-time assertion (`floating_pieces`).
+
+**AND ITS FIRST VERSION REPORTED 39, WRONG** — it accepted only a WALL as
+support, and a mast stands on a crown. A detector that flags its own blind spot
+has the exact shape of a real result (§45).
+
+**THE BOUNDING-BOX FIX WAS WORSE AND IS THE PARAGRAPH WORTH KEEPING.** Replacing
+the centroid rule with the crown's bbox corners dropped **two** fins instead of
+one: Frost Bank's plan is **rotated** relative to north, so its bbox corners lie
+outside the polygon. QUEUE already says *"a bounding box is not a shape"* (§50)
+and I walked into it anyway. A corner of a rotated rectangle is a **VERTEX of
+the ring** — inset by half the fin, then take the furthest vertex from the
+centre in each quadrant. All four land, at any rotation.
+
+### Also true, and deliberately not changed
+
+- **`TOWER_MIX` is still 42/24/18/16** and its own comment says it was
+  *"eyeballed against the real skyline"*. Re-rolling it from a reference is a
+  TASTE call and CLAUDE.md rule 9 says that one is Simeon's, so it is measured
+  and reported rather than changed.
+- **One election instead of two.** The GeoJSON path used to discard the baked
+  buckets and re-cluster the towers in the browser, so `&tiles=0` rendered
+  downtown from different arithmetic than the site serves — and the fallback is
+  the path you reach for when debugging the real one. Both read `fb` now.
+- `downtown-tone.mjs` re-applies the hour AFTER the camera move and asserts it
+  took. Its first night run returned luma identical to the day run to one
+  decimal (116.4 against 116.5) — it had measured a daylit frame and called it
+  night.
+- Night re-checked: mid-rise parapet **34.4** luma against the tower parapet's
+  **33.4**. §35 item 1 is not reintroduced.
+
+Pictures: `shots/e1-ab-before/` against `shots/e1-ab-after/` (the controlled
+pair), `shots/e1-final/` (tiled, what the site serves), `shots/e1-night/`.
+
+## 52. Aug 3 2026 — Speedway was drawn all along, the walks had no surface, and the creek had never heard of a bridge (acer lane)
+
+**Branch:** `acer/ground-speedway-creek`, PR #110, merged `e003b50`.
+QUEUE **D6**, **D7**, **D8**, **D9**. (52 because §50 and §51 are already cited
+by QUEUE.md for passes that were still in flight when this landed.)
+
+### D6 — "speedway got slimed out". IT WAS NEVER DELETED, and there were two causes
+
+Three separate hunts for a missing polygon came back empty, and each is worth
+recording because each looked like the answer:
+
+```
+git history of s:'brickpave'   6,132 m2, unchanged across 8 commits
+width profile over all 680 m   9.1 m throughout; no gap, no pinch
+the resolver's own clip report 87 m2 removed, 1.4%
+```
+
+The corridor was fine. **The GOLDEN-HOUR palette was not.** Everything else in
+the scene darkens at sunset; the pale-paving band stayed within 4 luma of
+midday, so the brick rose to meet the concrete it runs through:
+
+```
+                   brickpave vs concrete
+day     #e9cca4 vs #dfd9cb   sum|dRGB| 62   dLuma  -9.1
+golden  #eec69b vs #e3cba6   sum|dRGB| 27   dLuma  -0.9   <- gone
+now     #dda070 vs #cfb692   sum|dRGB| 70   dLuma -12.5
+```
+
+0.9 luma is the same brightness with a hint of hue. **tod 0.62 is the default,
+and the default is where he looks** — photographed at one identical pose the
+corridor is a confident ribbon at 0.30 and a smear at 0.62. Night had the same
+collapse (brick sat 4.2 luma ABOVE concrete), less obviously.
+
+**Second, independent cause: the herringbone was buried under its own deck.**
+`ground-speedway-brick` was a flat `fill` at z=0; `ground-paths` is a
+`fill-extrusion` at `pathRaise` 0.22 m drawn after it. A fill does not win a
+depth test against an extrusion above it, so 92% of the weave was painted over
+by the surface it decorates — only what `pathOpacity` 0.92 let through survived.
+Proved by hiding `ground-paths`: the tile was there all along, complete and
+crisp. **Same shape of defect as §49's park pad over the Capitol walks, one
+layer down and inside this file's own stack.** Both grain layers are prisms from
+`pathRaise` to `pathRaise + pathTexLift` (20 mm) now — the trick
+`CHANNEL.sheen_m` already uses over the water.
+
+### D7 — the walks had NO texture, and that is the whole of "ducttape"
+
+`ground-texture` filters `k:'area'`. Every lawn, plaza and car park wore a
+grain; every single walk was a flat fill with a hard bright stroke round it. It
+was never the colour, it was the absence of a surface. New scored-concrete tile
+(pure alpha: slab grid, per-slab jitter hashed on the WRAPPED position, joint +
+shoulder highlight, aggregate), `kerbLight` 0.10 → 0.06, new `kerbOpacity`.
+
+A square grid and not transverse bars, on purpose: `fill-pattern` is anchored in
+TILE space, not to the feature's axis, so parallel scoring would run across the
+walk on one street and along it on the next. A grid is the one scoring pattern
+that reads the same at every orientation.
+
+### D8 — 30 road crossings and 23 walk crossings, none of them decked
+
+**Counted before building anything:** 30 road centrelines cross the creek's own
+water polygons (11 carry an OSM `bridge` tag, 19 do not — the tag is not the
+test; a culvert is not tagged and is still a crossing), plus 23 walks. **Zero
+buildings overlap the water**, and DKR's footprint does not touch it, so
+"slices through DKR" is the reach beside it, not an intersection.
+
+The mechanism is PR #62's own rule, never applied to the creek: **a `fill` does
+not depth-test against a `fill-extrusion`.** `ground-road` is a flat fill at z=0
+and `ground-channel` is an extrusion drawn after it, so the trench painted
+straight over the carriageway — that IS the creek "slicing through" 21st. The
+walks, being extrusions at 0.22 m, won, and crossed the water on nothing.
+
+Two problems, so two mechanisms:
+- `RANK[('bank','deck')] = 95`, the top of the ladder, so the trench, both banks
+  and all three planting zones give the footprint back in the BAKE (QUEUE A4).
+- `ground-deck` is anchored `under` — BEFORE the roads and walks — so the
+  carriageway and the pavement paint over their own bridge and what shows is the
+  parapet and the soffit.
+
+47 decks, 14,055 m2. The deck is derived from **what is drawn on it** (the band
+`widen_roads` will really draw, plus the walk polygons, plus a 0.7 m parapet,
+morphologically closed at 3 m so there is no slot of open trench between a road
+and its sidewalk), not from a re-buffered centreline.
+
+### D9 — the forecourt was the brightest object in a dusk frame
+
+Same palette fault as D6 from the other side. Median rendered luma of the plaza
+paving in front of the Tower, masked so trees and buildings cannot enter it:
+
+```
+            tod 0.30   tod 0.62   tod 0.95
+before        213.3      159.4       47.1
+after         194.5      141.2       45.2
+```
+
+Checked at all three hours as the brief asked.
+
+### Whole-file effect
+
+```
+same-height pairs   1,354 / 390,562 m2  ->  22 / 20 m2
+data/ground.geojson 3,763 KB -> 3,770 KB  (+6 KB for 47 decks)
+```
+
+`data/ground.geojson` re-bakes byte-identical, so the pass is reproducible.
+
+### FIVE THINGS THAT DID NOT WORK
+
+1. **A magenta mask on `ground-paths` returns ZERO. Every time.** Twice, with
+   settling and re-reads until two agreed — and the layer demonstrably draws
+   (hiding it changes the frame completely). It nearly produced the headline
+   "Speedway is not rendered at all", which would have been false and would have
+   sent the whole pass into the wrong file. The path surfaces are sampled by HUE
+   instead (foliage is green-dominant, paving never is). **Masks are trusted all
+   over this suite; this one is worth someone's attention.**
+2. **The settle loop that made #1 worse.** `if (n === prev) break` with `prev`
+   starting at -1 exits on two consecutive zeros, so an unsettled read and a true
+   null are the same answer. §37 warns about exactly this and it happened anyway.
+   Take the MAX of N reads, never "the first two that agree".
+3. **Sizing the deck off the centreline.** Half-width + 3.5 m shoulder on a
+   9.5 m street is a 16.5 m slab with 7 m of nothing drawn on it, and it
+   photographed as a pale slab lying where the road should be. **Halving the
+   shoulder barely moved it** — the number was never the problem; a deck derived
+   from a centreline cannot know where the kerb is.
+4. **Putting the decks in `ground-channel`.** It is an extrusion drawn after the
+   roads, so the deck painted over the carriageway: the fix reproduced the exact
+   bug it existed to remove, and only the layer's POSITION fixed it.
+5. **Reading "slimed out" as deletion.** Three passes into the data (above)
+   before looking at the thing at the hour he actually looks at it. The brief
+   said "add it back"; the answer was that it had never gone.
+
+### Owed
+
+The corridor still has no mall AROUND it — the real Speedway is a brick spine
+inside a 30 m promenade with a double tree allée and seat walls, and we draw the
+9.1 m of brick and nothing else. That is `bake_props.py` / `shape_trees.py`
+work, not this lane's.
+
+**Pictures:** `docs/shots/d6-speedway-sunset-before-after.jpg`,
+`d7-sidewalks-before-after.jpg`, `d8-creek-crossing-before-after.jpg`,
+`d9-tower-forecourt-sunset-before-after.jpg`.
+
+
+## 49. Aug 3 2026 — the Capitol's walkways were under a park pad, the dome was standing on an invented pyramid, and its merge had been failing in silence (acer lane)
+
+**Branch:** `acer/capitol-walkways-dome`. QUEUE **D1**, all three parts.
+
+*"same thing with capitol building and lawn - looks like u got rid of the
+walkways around it those had a cool pattern add them back. also the thing on the
+top of capitol buildings looks like its angled. Also its not the right color."*
+
+### D1.1 — the walkways. NEITHER SUSPECT DID IT, and the real cause is worse
+
+The brief named the rank ladder (#78) and the precinct lawns (#93). Neither ever
+reads `data/capitol_ground.geojson`. There were **two** causes stacked, and the
+first one hides the second:
+
+1. **`bake_capitol.py` was left behind by the line-width pass.** On 2026-08-02
+   *"Speedway fanned out because a line-width is pixels and the ground is not"*
+   moved every walk in the city from `k:'path'` LineStrings to buffered
+   `k:'patharea'` polygons, and `js/ground.js` dropped every `k == 'path'`
+   filter in the same commit. This bake was not changed with it. Measured on
+   merged main: `data/ground.geojson` holds **0** features with `k:'path'`,
+   `data/capitol_ground.geojson` holds **1,480**, and js/ground.js has **0**
+   layers that would draw one. Nothing failed, because a source feature that no
+   filter matches is not an error.
+
+2. **Even as polygons they were invisible.** `outer-detail` — one
+   `fill-extrusion` carrying the outer ring's 309 flat park pads — covers the
+   whole Capitol grounds with a slab at `h` **0.45 m**, opacity 1, `#8fa869`.
+   `ground-areas` is a flat fill at z=0 and `ground-paths` stands at 0.22 m, so
+   **both lose the depth test to it**. Layer order cannot help: `ground-paths`
+   is already drawn after it (style index 138 against 129) and still loses.
+
+**How #2 was found, and it is the reusable part.** §48's magenta mask, asked of
+*every layer in the style in turn*, counting magenta only inside a box on the
+south lawn. Exactly one layer covers it:
+
+```
+layers covering >1% of the Capitol's south lawn
+   outer-detail   [fill-extrusion]   98.6%
+```
+
+**The green everybody has been looking at is the outer ring's pad, not this
+bake's lawn.** That is why the grass looked fine and every walk was gone, and it
+is why "restore the walkways" was not a one-line change.
+
+### D1.1b — AND THE MERGE HAD NOT BEEN RUNNING AT ALL
+
+`js/capitol.js` appended the grounds with `updateData({ add })`. MapLibre builds
+an **id-keyed index of the source's current features** before it will apply a
+diff, and gives up if any feature has no id. `data/ground.geojson` and
+`data/trees.geojson` carry no ids, so the diff can never apply to either — and
+the refusal arrives **in the worker, on the map's `error` event, after
+`src.updateData()` has already returned normally**:
+
+```
+GeoJSONSource "austin-ground": GeoJSON data is not compatible with updateData
+```
+
+The old code logged `1,161 ground features appended` on the line after the call.
+Magenta mask over the grounds, before and after the fix:
+
+```
+                      before      after
+ground-paths          14,683      73,072   px
+ground-areas          36,072      60,115   px
+ground-paths-casing   10,604      39,746   px
+```
+
+Before, **every one of those 14,683 pixels was in the surrounding blocks and
+none was inside the grounds.**
+
+**`scripts/verify/capitol-merge.mjs` PASSED THROUGHOUT, and could not have
+failed.** It asserts (a) that the console said `appended to`, which the old code
+printed unconditionally before the worker rejected the diff, and (b) that
+`querySourceFeatures` returns ≥100 trees and ≥200 ground features inside a
+**3 km-wide** box — which the surrounding city meets on its own (9,499 and
+1,401 measured, with the Capitol contributing zero). A guard that reads a log
+line for an outcome is a guard on intent. **It is red now, and red by design:**
+it asserts a code path this PR deletes. See "still owed".
+
+**The fix, and why it breaks this file's own design rule.** The Capitol's ground
+and trees get their own sources and their own layers, standing at
+`CAPITOL.groundLift` 0.46 m — above the pad — with **every paint property
+mirrored off the shared layers on every time-of-day change**. "Add nothing new
+where something exists" is a rule about not creating a second *definition*; a
+mirror reads the shared layer's value back out of the style, so it cannot drift.
+It also drops a **26.3 MB** refetch: appending to `austin-trees` means
+re-fetching and re-tiling the whole file.
+
+**THE ROOT CAUSE IS NOT IN THIS LANE.** The outer ring should not pad an area
+the city models properly, and the modelled box only just grew to include this
+one (#105 took the fence from 10.1 km² to 77.4 km²). `scripts/bake_outer.py` /
+`js/outer.js` — QUEUE **D11**.
+
+### D1.2 — "angled". IT IS NOT LEANING, AND THAT MATTERED
+
+Measured before changing anything, twice, because a lean and a slope look the
+same in a screenshot. Every disc in `data/capitol_dome.geojson` is coaxial to
+**0.27 m**, and the isolated layer, painted magenta, at frame centre, reads an
+axis drift of **0.0 px over the whole 57 m stack** at bearing 0 and 90. So no
+rotation and no offset — the angle is a **surface that should not be there**.
+
+`SKIRT_STEPS`/`SKIRT_HALF` built a nine-step mansard from a square melting into
+a circle: **7 m tall, 44 m across at the base**, wrapped round the drum. From
+anywhere south of the building it is the largest object on the roof.
+**Nothing in either elevation photograph has that shape.** What is actually
+there is a LOW hipped roof over the crossing of the four arms, and then a
+**square granite attic with vertical walls** carrying the six seals and the
+south pediment, with the drum rising straight out of it.
+
+The aerial is not in conflict: the four pale hips radiating from the dome base
+in `data/capitol_aerial.png` are a real pitched roof, but they sit at roof level
+and they are shallow. That is `COLLAR_STEPS`, 2.6 m of it.
+
+Two more proportions, measured on the building's own 167.7 m footprint width in
+a south-oblique photograph rather than recalled:
+
+```
+                      reference   was     now
+colonnade across        26.5 m    29.7    25.9
+dome springing across   24.6 m    30.1    25.1
+cornice across          ~28 m     32.2    28.0   (was WIDER than the attic)
+```
+
+A dome wider than the drum holding it up is what makes a stack of discs read as
+top-heavy. `DOME_SPRING` 0.82 and `DRUM_SCALE` 0.87. After: 31 coaxial pieces,
+worst axis offset **5 mm over 57 m = 0.005°**.
+
+### D1.3 — the colour. FACADE_PROTECTED IS HONOURED, AND THAT IS NOT THE QUESTION
+
+```
+Capitol feature   wd #bd8477  wf mh  wp mh00
+facade palette    palette[0] = #bd8477, source "baked 2026-08-03"
+```
+
+The protected tone survives the bake, the election and the switch. **The dome
+and the walls carry the identical hex and render as two different materials**,
+because `buildings-3d` multiplies the wall by the window atlas and
+`capitol-dome` paints `wd` flat. Masked in one frame, one light, at tod 0.30:
+
+```
+                    dome      wall     ratio            photograph
+before          #b5846a   #815744   1.40 1.52 1.56     1.20 1.21 1.30
+after           #a57158   #815744   1.28 1.30 1.29
+```
+
+`#d2b0a3` came off a **nadir** tile, which sees the dome's sky-facing paint and
+cannot see a wall at all — it could only ever answer half the question, and the
+half it could not see is the half the complaint is about. The dome family is now
+`lerp(GRANITE, white, DOME_LIFT)` carried through `DOME_MATCH`, one measured
+triple that compensates for the atlas the dome layer never gets. The cupola
+stopped being grey-green sheet metal; only the WINGS' roofs are that.
+
+### FIVE THINGS THAT DID NOT WORK
+
+1. **A sample box placed by eye.** The first wall reading, `#8d6e4f`, was taken
+   from a screen rectangle chosen off a screenshot — and it landed on KTBC
+   Studios and the Dewitt Greer building in the foreground, not on the Capitol.
+   A number with a plausible magnitude and the wrong subject is the worst kind.
+   Every colour here is now masked by repainting the feature and reading the
+   clean frame under the mask.
+2. **Masking with a brightness threshold.** `r>180 && b>180` misses every shaded
+   facet, and *which* facets are shaded depends on the bearing — so the dome
+   measured 254 rows tall from the south and 140 from the east, and a lean was
+   nearly reported off that. Hue tests only.
+3. **`['get','id']` and `['get','name']` as the mask key.** Both match nothing on
+   the rendered Capitol; `['get','wd']` works. Two runs were spent on a mask that
+   painted the whole city `#101010` and found no green.
+4. **Believing the data file over the framebuffer.** `data/trees.geojson` has
+   grown to 64,003 features and contains 481 canopies inside the grounds, which
+   reads as "this bake's trees are redundant now". Magenta over the south lawn:
+   **0 px of 43,594**. The file has them and the map draws none of them.
+5. **Mirroring the clones in the same tick.** `js/timeofday.js` calls
+   `applyCapitolColors` at line 406 and repaints `trees-canopy` at line 416, so
+   the mirror copied the previous hour and the Capitol's grove stayed daylit at
+   night — photographed before it was fixed. It is deferred a task now, so it
+   does not depend on where in that function the call sits.
+6. **A kerb line on the twinned walks, and this is the one the merge rule
+   caught.** js/ground.js strokes its walks with a `line` layer, so the twin got
+   one too. A `line` does not depth-test against extrusions, and these layers
+   have to sit ABOVE the buildings to clear the park pad — so from the standard
+   approach pose the Capitol's kerbs drew as a **white grid floating across
+   every downtown tower in front of them**. It is only visible when the branch
+   is photographed AGAINST merged main at a pose neither change is about:
+   origin/main is clean there, the branch was not. Dropped; the walks read
+   without it.
+
+**Still owed here:** `scripts/verify/capitol-merge.mjs` asserts a console string
+for a code path that no longer exists, and must be rewritten to read
+`window.__capitolMerge` and to count inside the Capitol's own sources
+(`austin-capitol-ground`, `austin-trees-capitol`) over a box that is actually the
+grounds. It was outside this lane's writable set. The Capitol's south portico and
+steps, and the south-lawn monuments, are still owed from §23.
+
+**Pictures:** `shots/cap-before-day/` against `shots/cap-after-day/`,
+`shots/cap-before-sunset/` against `shots/cap-after-sunset/`,
+`shots/cap-after-night/`, and the masks in `shots/paths-mask/` (before) against
+`shots/paths-mask-after/`.
+
+## 48. Aug 3 2026 — a tiled roof was painted the colour of its own wall (acer lane)
+
+**Branch:** `acer/jester-greg-littlefield`. QUEUE **C1**, **C2**, **C3**.
+
+### C3 first, because it turned out not to be about Littlefield
+
+*"littlefeild dorm should have a red roof"*. It does not; Carothers and Blanton
+either side of it do, which is what makes it read as a mistake rather than as
+variety.
+
+**The survey was never wrong.** Littlefield Dormitory measures `run 7.1 m,
+eave 0.766` in `roof_runs.json`, and its offset rings run **0.77 / 0.99 / 1.00 /
+0.99** out to its own half-span — the most unambiguous full hip on this campus,
+a stronger reading than Carothers' 0.88. It gets the right geometry. **The
+colour never asks the photograph at all.**
+
+Every facet takes `rd` off the parent building, and `bake_detail.py` sets `rd`
+from the OSM `roof:colour` tag when there is one and otherwise from **the
+building's own WALL, 12% darker** — a rule with nothing to do with what is on
+the roof. Littlefield's wall is limestone, so its terracotta hip renders
+`#928776`, a pale tan. `shift_to_measured` cannot rescue that: it moves the
+red/blue RATIO by at most 30% and holds luma, which is a nudge inside a colour
+family, not a change of family.
+
+**How many share it — the number he asked for. Of the 105 footprints the survey
+gives a real tiled slope to, 65 are painted from an `rd` whose red/blue is under
+1.55**: greys, olives and blue-greys, median 1.47 against 2.80 for the ones that
+came out right.
+
+### The rule, and the second reading that makes it safe
+
+A roof the photograph is SURE is tile is painted a tile colour. "Sure" is two
+independent readings, the discipline §37 used for the parapet-cap join: the eave
+ring reads tile (`>= 0.55`) AND the whole footprint reads tile (`>= 0.45`).
+Cross-checked before it was written, the two agree strongly — at `eave >= 0.55`
+the median whole-footprint tile fraction is **0.80** — and the second test earns
+its place on exactly one candidate, a roof at eave 0.72 whose footprint is only
+0.31 tile, which is rejected and counted.
+
+The colour is not invented: it is the **median `rd` of the pitched roofs that
+already have a tile colour**, re-derived from the campus on every bake
+(`#964b32`, from 40 buildings), with the constant only standing in when there is
+nothing to derive it from. A retinted roof therefore lands on the median of its
+own peers, the authored burnt orange does not move, and `shift_to_measured` then
+spreads it again by its own measured red/blue. `--no-tile-colour` is the control.
+
+```
+33 roofs given a tile colour   (30 by the rule, 3 by override)
+ 1 rejected by the whole-footprint check
+33 parapet caps took the same colour
+```
+
+**The caps had to move with them.** `buildings-roof` is painted from the
+BUILDING's `rd` — the colour this pass has just decided was not a roof colour —
+so leaving it would ring every corrected roof in the tan it was corrected out
+of. That is §37's defect with the colours swapped. `deck_caps` never touches a
+pitched building, so the `caps` table simply carries them too.
+
+### C1 — Jester, and it was three separate failures
+
+*"make jester look alot nicer if freshman r gonna see this then their dorm
+shouldnt look like a prison ... Some of jesters roofs should have the red brick
+pattern, some of should have a light gray flat concrete with roof details, the
+color is not accurate. add the tennis / volleyball court between the buildings"*
+
+**He is describing the photograph exactly.** Sampled off the z19 nadir tiles in
+`data/imagery_cache`, inside the three footprints:
+
+```
+                        is_tile   neutral & bright (median)
+Beauford H. Jester Ctr   46.5%    33.1%  (176,172,159)
+Jester West Hall         28.1%    40.4%  (185,181,170)
+Jester East Hall         30.9%    58.5%  (196,197,188)
+```
+
+A terracotta tile hip over the low wings, a light grey concrete deck in the
+middle. That is the shape `bake_roofs.py` already builds. Three things stopped
+it:
+
+1. **The height gate.** West is 51.6 m and East 40.4 m, over `MAX_HEIGHT_M` 34,
+   because a tower is flat-topped — true, except that these footprints are one
+   polygon covering a tower AND two-storey tile-roofed wings.
+2. **The ring survey.** All three read 0.27–0.51 at the eave, under `RING_MIN`,
+   because the perimeter runs under canopy and along concrete walkway roofs.
+3. **The colours.** The tile came from `rd` (`#948d7c`, a grey-tan) and the deck
+   from `roofscape.geojson`'s own dark measurement (`#706a67`, `#7b7673`).
+
+### The override mechanism, and why it is not an edit to the snapshot
+
+A survey rule right 105 times out of 105 does not exist, and the wrong answer is
+to hand-edit `buildings.detailed.geojson`, which the next bake silently wipes.
+**`data/building_overrides.json`** is a small tracked file read by
+`bake_roofs.py`: `roof_run_m`, `roof_over_max_height`, `roof_colour`,
+`deck_colour`, `loggia`. Every entry carries the observation it answers in its
+own `why` field, in his words, with the measurement beside it.
+
+**The deck colour was entered COOL and DARK on purpose**, and the first cut was
+wrong in a way only a pixel read caught. `#b0aca2` — a fair reading of the
+measured (185,181,170) — came back on screen at **rgb(218,199,148), luma 199**,
+a warm cream and the brightest thing in the frame, next to a campus whose other
+roofs sit at 137–150. An extrusion's top face picks up the sun tint, the same
+trap §27 records for the DKR deck. `#8f9294` lands at rgb(174,168,132), luma
+167: the lightest large roof there, which is what the photograph says, without
+glowing. At tod 0.95 it measures luma 16–18 against walls at 14 and sky at 21 —
+no pale patch, no inverted silhouette.
+
+### C1's courts — they were already there, which was the problem
+
+`ground.geojson` carries four `k:'area', sport:'basketball'` polygons here
+tagged `s:'grass'`, so the app drew a plain green rectangle. What makes a court
+read is not its surface: it is the white lines, the fence and the hoops, and
+none of those is a surface, so none of them was in the ground file. OSM way
+1488977196 names the compound **Caven-Clark Courts**, 36.7 x 54.4 m, four courts
+of 14.2 x 22.1 m. `bake_art.py` now draws boundary lines, a centre line and
+circle, the keys, backboards and rims, net posts, and a post-and-rail fence —
+**not a mesh panel**, because a solid 3.6 m slab round four courts reads as a
+windowless building and `fill-extrusion` cannot be see-through. Lines are 0.35 m,
+7x over-scale, declared for the same reason the lane markings are.
+
+It rides in `bake_art.py` for **file ownership**, the same reason the
+chilled-water plant does. When the ground lane can take it, `s:'pitch_hard'`
+plus these markings belong there.
+
+### C2 — Gregory Gym's entrance
+
+*"greg gym is split into two sections (one building) one should replicate the
+famous entrance with the three hall things and the roof."*
+
+**Which wall was settled before any geometry was written**, because the wrong
+face is worse than nothing. Three independent readings agree on the west side:
+OSM node **1427259422** is `entrance=main` at 30.2840096,-97.7368337; the postal
+address is 2101 Speedway, and Speedway runs down the west side; and the nadir
+tile shows no comparable approach on any other face. **What I could NOT
+establish is which of the two blocks is the 1930 auditorium** — RecSports says
+the 1962 addition "extended down to 21st Street", which is the south block, yet
+the south block is the one with the tile hip and the north block carries the
+modern clerestory. So the porch sits on the wall the entrance node is on, and it
+is one line in the override to move it.
+
+The wall itself is found FROM THE FOOTPRINT — the polygon edge nearest the given
+point — and the outward normal is tested, not assumed (offset a metre, ask
+whether you are still inside). So the porch cannot float off the building.
+
+**The arch is not a stack of squares** (QUEUE D3's fair complaint about the
+sculptures). `fill-extrusion` cannot tilt a face, so a round arch has to be a row
+of prisms — but the row is cut ACROSS the opening and each prism's BASE is the
+arch's own curve, `spring + sqrt(r^2 - x^2)`, sampled at 11 points. The steps end
+up in the top edge of the spandrel, where nothing looks at them.
+
+### THINGS THAT DID NOT WORK
+
+1. **The stair was built at negative v — inside the building.** Five slabs, and
+   the render showed a portico with no steps rather than an error, because a
+   slab inside a solid prism is simply invisible. Caught by a mechanical check,
+   not by eye: every part of an outward porch must have its centroid OUTSIDE the
+   footprint, and the stair had 3 of 4 corners inside. **That check is now in
+   `loggia_parts`, and it drops and shouts.**
+2. **Reading Jester's roof off the nadir tile without drawing the footprints on
+   it first.** Twenty minutes went into "that courtyard building cannot be
+   Jester" before an overlay of the actual polygons settled it. Overlay first,
+   argue second — §50's "a bounding box is not a shape", one step earlier.
+3. **The aerial "monumental stair" west of Gregory Gym.** A striped grey
+   rectangle with terracotta trim that looked exactly like a flight of steps.
+   Measured against the footprint it is 11 x 33 m and sits clear of the
+   building: it is a canopy on the Speedway mall, not a stair. The OSM entrance
+   node is what the placement actually rests on.
+4. **Importing `bake_detail.py` to borrow `make_roof_colors`.** That module runs
+   its whole bake at import — reads the snapshot, writes two files — so
+   importing it to reuse nine lines would re-run it as a side effect. The three
+   functions are copied, with the drift risk written next to them.
+5. **Letting the deck's membrane-vs-tile vote decide Jester.** The probe's own
+   sample ring there is half tile and half concrete, so `membrane` is a coin
+   flip on a roof whose middle is plainly concrete. The override names the
+   answer as well as the colour; naming only the colour left it unused half the
+   time.
+6. **`#b0aca2` for the concrete deck** — see above. A colour that is right on
+   the photograph is not right on the screen; read the pixels of your own render.
+
+### Verified
+
+`harness-drift.mjs` PASS before every measurement. Day 0.30, dusk 0.62 and night
+0.95 at Jester, Littlefield, Gregory Gym and the courts; wide campus before and
+after at the same pose from the same session, with the baseline `roofs.geojson`
+swapped in and out rather than a checkout. Bake audits unchanged and clean:
+`roofs_with_a_hole` 0, `roofs_drawn_twice_or_over_air` 0, `folded_rings` 0,
+`walls_with_no_slope` 0. `data/roofs.geojson` 1,240.8 -> 1,349.0 KB;
+`data/art.geojson` 269.3 -> 315.0 KB for 166 court parts. Pictures in
+`shots/cbefore/` against `shots/cafter/`, `shots/cwide-before/` against
+`shots/cwide/`, plus `shots/cdusk/` and `shots/cnight/`.
+
+### Known remainder, deliberately not in this PR
+
+**Jester's massing is still wrong, and it is not this lane's file.** Each hall is
+ONE prism at the tower's height, so the two-storey wings around the courtyards
+are extruded to 51.6 m and 40.4 m. The roof is now right for what is modelled
+and reads correctly from the air, which is how this app is used; fixing the
+wings needs `building:part` splitting in the buildings bake. Same for the WALL
+colour he flagged: `caps` can only reach `rd/rg/rn`, so `wd/wg/wn` on Jester
+(`#c2b6a0`) is untouched here.
+
+
+## 47. Aug 3 2026 — a road's width was a number of pixels, and the fence was drawn round the campus (acer lane)
+
+**Branch:** `acer/road-width-fence`, PR #105, merged `a420d07`. QUEUE **A2** and
+**A7**.
+
+### A2 — "some roads dont do this" was the answer, not the puzzle
+
+*"when im all the way down vertically and look at an angle towards the roads and
+start facing upright, the roads get bigger. some roads dont do this."*
+
+The roads that DON'T are the **sidewalks**. PR #70 moved their width out of
+`line-width` and into the geometry and the carriageways were left behind — two
+representations in one frame, which is exactly what "some do and some don't"
+looks like. Nothing about the report was mysterious once that landed.
+
+**Why pitch is what he noticed.** A `line-width` is one constant number of
+SCREEN PIXELS for the whole line, so it can be right at exactly one distance —
+and `w · 2^zoom / 67546` is derived from the map-centre scale, so that distance
+is the map centre. `js/controls.js` holds altitude and derives zoom, so pitching
+over drags the centre away from you (at 90 m, pitch 30 puts it 52 m ahead and
+pitch 86 puts it 1,287 m ahead). Everything nearer than the centre is drawn too
+NARROW and everything beyond it too WIDE, and pitching moves the whole frame
+across that boundary.
+
+**Measured in rendered pixels**, mid-block on Guadalupe (17.0–20.4 m in the
+data), eye at 21st, 90 m up, bearing north:
+
+    321 m out   before  x1.5 at pitch 50, x2.0 at 60, x1.0 at 82
+                after   x1.0 at 50, 60, 75, 82 and 86
+    657 m out   before  x0.5 at pitch 60, x1.0 at 82, x0.9 at 86
+                after   x0.9–1.1 at every pitch
+
+Half to twice its real width, depending on where you looked. `widen_roads()` in
+`scripts/bake_ground.py` buffers every near carriageway and separate cycleway by
+half its tagged width and unions per (class, surface): **3,015 `k:'roadarea'` /
+`k:'cyclearea'` polygons**. `ground-road` is a fill; the kerb is a 2.6 px stroke
+on the polygon boundary, in pixels on purpose (a kerb is a screen-space
+highlight — the same argument `GROUND.kerbPx` already makes).
+
+**The far-field armature stays a line, under a 3 px ceiling.** Everything in it
+is at least 3.4 km away, measured off `roads.geojson` against the campus centre,
+where a real 14 m carriageway is 3.0 px or less. A width that no longer depends
+on the road's metres cannot fan. Polygonising it measured +185 KB gzipped to
+draw roads nobody can reach.
+
+**THE COST, AND IT IS THE ONE THING TO REVISIT.** `data/ground.geojson` went
+1.58 → 3.59 MB raw, **293 → 738 KB gzipped**. Time-to-city was unchanged (min of
+two interleaved reps on localhost, 6.97 s after vs 6.98 s before), so this is
+transfer, not parse — but `ground.geojson` is NOT tiled and downloads whole.
+**These polygons belong in `roads.pmtiles`.** That needs a `data/roads.geojson`
+rewrite plus `gh workflow run build-tiles.yml`, and merging code before the
+archive lands would leave the two disagreeing, which is the "a missing layer
+makes every metric look better" trap. It is a follow-up with its own PR.
+
+### A7 — "locked almost halfway" was literally true
+
+The fence was the bbox of `scene.buildings` (campus + Capitol) padded 250 m, so
+its south edge was **lat 30.2685**, and the downtown bake runs
+**30.2560–30.2770**. 59% of the way down downtown. Downtown is not in
+`scene.buildings` and never was — it is 8,428 outer-ring buildings on their own
+tiled source.
+
+The fence is the **modelled-city box** now, mirrored from `bake_outer.py`'s
+`OUTER`. `fetch_city_trees.py` already writes the identical box in its own
+header as *"modelled city … the buildings you can see"* and plants the canopy to
+it, so this is a mirror of a definition two bakes already share, not a number
+somebody picked.
+
+    old   1.7 km W / 1.4 E / 1.8 S / 1.5 N of campus centre    10.1 km²
+    new   5.1 km W / 3.7 E / 5.2 S / 3.6 N                     77.4 km²   (7.6x)
+
+Driven through the REAL controller (keydown on `window`; a `jumpTo` teleports
+past a fence that lives in the tick): south from campus he crosses all of
+downtown and eases to a stop **89 m short of the fence at 5.4 m/s**. The ring's
+own density says that edge is city and not blank: 1,956 buildings per 500 m band
+at 2.0–2.5 km, still 485 at 4.0–4.5 km, 8 past 6.5 km, and every building over
+40 m is inside 3.5 km.
+
+### Widening the fence alone would have been a WORSE bug than the one it fixed
+
+The collision grid is rasterised from `scene.buildings`. Past the campus there
+was nothing to hit, and the new fence reaches 315 m towers. `maxHeightIn` is the
+single choke point every collision path reads through — block-and-slide, the
+rooftop floor, the speed brake, wall deflection, `writeToMap`'s hard net — so
+teaching THAT about the ring gives all five of them downtown collision for free.
+
+The ring is tiled, so there is no moment at which its full extent exists in the
+browser. The second field is therefore built **incrementally, from whatever the
+source is currently holding, every time the map settles**. Flying at a tower
+means looking at it, which means its tile is loaded. **Bounding boxes, not
+rasterised footprints** — and unlike §50 that is right here rather than lazy:
+§50 is about SIZING something from a bbox, where over-covering throws a fan deck
+off a roof; for a collision net over-covering stops you EARLY, which is the safe
+direction. Flown at the 315 m tower at Sixth & Guadalupe at 80 m: deflected and
+held at the facade, 31 m from the centroid.
+
+**Budget it or it drops frames.** First measurement, unbudgeted: **8.9 ms
+average and a 35.1 ms worst** — two frames gone, the kind of thing that gets
+reported as "it stutters sometimes" and is never found. Now a 4 ms budget with
+resume-next-frame, a de-dup set keyed on position+height (the same building
+arrives in every later scan and in every overlapping tile), a
+`['>', ['get','h'], 12]` filter pushed INTO `querySourceFeatures` so MapLibre
+drops the low-rise before it builds the objects, and a backoff to 6 s when a
+completed pass added nothing: **3.65 ms average over 106 scans in a 100 s
+flight**, worst 13.9 ms. `querySourceFeatures` itself is the part that cannot be
+budgeted — it builds the whole list before returning — so the cheapest saving
+available is not making the call.
+
+### What did NOT work, and two of these cost real time
+
+1. **`road-fan.mjs` cannot verify this fix.** It reads the layer's own
+   `line-width` expression, so on a fill it prints `GEOMETRY` and exits 0. True,
+   and a tautology — §33's trap in a new costume. The A2 numbers above come from
+   a framebuffer probe instead: magenta mask, horizontal cut, run length divided
+   by what `map.project()` says 10 m of that same ground is.
+2. **A pitch sweep that samples near the map centre reports 1.00x before AND
+   after.** Correct by construction and useless. The samples have to be fixed
+   ground points well beyond the centre.
+3. **Sample points picked by eye put two of four in junctions**, where the bake's
+   union genuinely does merge Guadalupe with the cross street into one wide slab
+   — so the probe read x3.5 on a build that was correct. They are now the centres
+   of the four longest gaps between crossing streets, found from the data.
+4. **"The kerb is what darkened the far field."** Very plausible: the casing went
+   from 1.16x the road's own drawn width to a constant 2.6 px, which at 4 km is
+   wider than the road it edges, and it is 38% darker than asphalt. Measured with
+   the layer toggled: **0.89 luma** in the far band. Wrong. The far band is 2.17
+   luma darker because roads NEARER than the map centre used to be drawn too
+   narrow and are now correct — the fix working, not a regression.
+5. **A per-tile `distance-from-center` width correction** instead of geometry,
+   abandoned before coding: roads tile at z≤16 and overzoom, so the width would
+   step every ~527 m along a street. A road that changes width mid-block is a
+   seam, which is a glitch, which is the thing being fixed.
+6. **Two columns of the new probe are still not trustworthy** and are said so
+   rather than hidden: at 1190 m and 1453 m under pitch 82–86 a horizontal
+   scanline near the horizon stops cutting one road and starts crossing a whole
+   block of contiguous pavement. Both builds report nonsense there.
+7. **The A/B screenshots were taken twice.** The first set was on a working copy
+   four commits behind (PR #103/#104 had landed), so they were re-shot after
+   `git pull --rebase` confirmed `0 0`. The rule in CLAUDE.md is there because
+   this is easy to do.
+
+### Two things the next lane should know
+
+- **`scripts/verify/node_modules` vanished mid-session** and every verify script
+  died with `ERR_MODULE_NOT_FOUND` on `playwright-core`. Almost certainly another
+  lane running `npm ci`, which wipes the directory before it repopulates it.
+  `cd scripts/verify && npm ci` puts it back in 7 s. Do not conclude the harness
+  is broken.
+- **`ground-luma.mjs` and `roads-luma.mjs` now under-report the roads.** They
+  call `setPaintProperty(id, 'line-color', …)` on anything matching
+  `^ground-road`, which is a no-op on a fill (their `set` helper swallows it).
+  The same thing already happened to `ground-paths` at PR #70 and nobody noticed.
+  They need `fill-color` for `ground-road` and `ground-cycleway`; not this lane's
+  files.
+
+**Shots:** `shots/a2-before/` and `shots/a2-after/` (same three poses),
+`shots/a7-fence/` (downtown from inside the new fence, and the south fence edge
+looking back into the city).
+
+## 46. Aug 3 2026 — a pitched frame is not at one zoom, so the far half of the city was stuck at one hour (acer lane)
+
+**Branch:** `acer/facade-atlas-tier`, PR #103, merged `715fa49`. QUEUE **A1** and
+**A4** — "the worst bug in the app". They are one defect seen from two sides,
+and **the report named the mechanism**: *"it happens every quarter... fly over
+each chunk to fix that chunk... they go back to being dark after a while"* is
+TILES, and the quadrant boundaries are tile boundaries.
+
+### THE FACT THAT MAKES THE WHOLE THING WORK, AND IT IS IN NONE OF OUR NOTES
+
+**Past about 60 degrees of pitch, MapLibre picks a tile zoom PER TILE, by
+distance from the camera.** `MercatorCoveringTilesDetailsProvider.allowVariableZoom`
+returns true when `pitch > clamp(78.5 - zfov/2, 0, 60)`, which at this fov is
+exactly 60.0. **This app spawns at pitch 74 and orbits at 73.** Measured at the
+spawn pose, `getVisibleCoordinates()` on `austin-buildings`:
+
+```
+camera z16.50 pitch 74
+in-view building tiles:  z13 x3   z14 x4   z15 x2   z16 x1   z17 x2   z18 x2
+```
+
+Six tile zooms in one frame. The facade pattern id is chosen by
+`['step', ['zoom'], ...]`, and **MapLibre evaluates a zoom expression at the
+TILE's zoom, not the camera's** — so a single pitched frame samples all three
+mip tiers at once, the near field from one and the far field from another.
+
+`updateFacades` repainted only the tiers `activeTiers(map)` named, which come
+from the CAMERA's zoom, and left the rest in a `_stale` set drained on a `zoom`
+event. At z16.5 that set is mid+near. **Tier `x` covers every tile at z below 16
+— 9 of the 14 tiles on screen — and could not be reached at all** without flying
+below z16 entirely. Its own comment defended the scheme as free because "in
+practice the hour does not change mid-flight". Both halves were false.
+
+### MEASURED, because "half the buildings" is not a number
+
+Mean luma over the 100 registered images of each tier, spawn pose, one page load:
+
+```
+                            near     mid     far
+BEFORE  after DAY           148.7   148.7   153.6
+        DAY -> NIGHT         63.5    63.5   153.6   <- A4: daylit walls at night
+        night, out to z14,
+        back, then DAY      148.7   148.7    63.5   <- A1: night walls in daylight
+
+AFTER   every step          identical across all three tiers
+```
+
+Worst per-bucket spread between tiers during a **40-step continuous drag at
+40 Hz** (ten times the app's own quantised cadence): 24.5, against about 85 for a
+tier a whole hour behind. **400 ms after it stops: 0.21.**
+
+The pictures are the honest half: `shots/a1-before/a1-day-bearing-160.png`
+against `shots/a1-after/a1-day-bearing-160.png` — same camera, tod 0.30, blue
+sky, and in the BEFORE frame everything past the creek is charcoal-black with
+night windows behind a hard vertical seam down the middle of the screen.
+`shots/a1-crop/before-dt.png` vs `after-dt.png` is the A4 side: the downtown
+skyline was a row of solid daylight slabs in the middle of a night frame.
+`shots/a1-merged/a1-day-bearing-160.png` is the same frame re-verified on merged
+`main` at `715fa49`, with `harness-drift.mjs` PASS before it.
+
+### THE RULE NOW
+
+**Every mip tier holds the same hour, always.** The lazy scheme survives only as
+a LATENCY path — the camera-active tiers are painted in the calling frame so a
+slider drag stays responsive — but the flush of the rest is on a TIMER that
+always fires (`window.FACADE_ATLAS.FLUSH_MS`, 90 ms, a FLOOR and not a debounce)
+rather than an event that may never come. `_tierP` records the hour each tier
+actually holds, so "stale" is derived from the pixels rather than remembered in
+a set that can be cleared without them changing.
+
+Also: new combos registered after `initFacades` (`quantiseOuterFacades`,
+`registerFacadeBuckets`) now draw at the ATLAS's hour, not at
+`window.__todCurrentP`. And the silent `catch` around `map.updateImage` warns
+once — `ImageManager.updateImage` THROWS on a size mismatch while MapLibre's own
+wrapper only fires an error event, so swallowing it freezes the atlas at one
+hour and looks exactly like this bug.
+
+### THE COST, AND TWO THIRDS OF IT PAID BACK
+
+`updateFacades` 57.7 -> 100.1 ms (min of 6 interleaved reps, hardware GL, no CPU
+throttle, both configurations in ONE page load). One extra tier per repaint, and
+it is the expensive tier: the far one carries the widest blur, the near one
+carries none.
+
+- **`softenTile` is a sliding-window box blur now** — O(n) instead of O(n\*r).
+  `tmp` holds the window SUM rather than the mean, so every intermediate is a
+  small integer and the result carries NO rounding (the old code rounded `s/win`
+  into Float32 halfway through). Checked against the old implementation over 20
+  cases at the radii actually used, RES 64 and 128: **worst channel difference
+  0**, with a negative control (window skewed one texel) reading 23 and caught.
+- **`tileData` hands MapLibre a view, not `d.buffer.slice(0)`.** Both `addImage`
+  (`new Uint8Array(data)`) and `updateImage` (`RGBAImage.replace(data, copy=true)`
+  for a plain object) copy on their side — read in the 5.24.0 source rather than
+  assumed. That was 300 x 64 KB of memcpy and garbage per time-of-day step.
+- The blur scratch buffer is reused instead of allocated per image.
+
+### WHAT DID NOT WORK
+
+- **The first cost measurement said the fix was free (56.6 vs 57.3 ms) and it
+  was wrong.** `scheduleFlush` returned early whenever a timer was pending, so
+  setting `FLUSH_MS = 0` to force the synchronous path was silently inert and
+  both configurations measured the same code. **A knob that does nothing reads
+  exactly like a change that costs nothing.** Fixed in the same PR: `FLUSH_MS = 0`
+  clears a pending timer and flushes in the call.
+- **The first combo audit reported 50 missing images and it was the audit.**
+  `wp` is OVERLOADED across three independent pattern systems: `js/drag.js`
+  writes `dg-*` and `js/moody.js` writes `health-body-grey`, and both paint it
+  with a plain `['get','wp']`, untiered, one image per id repainted every
+  time-of-day step. **They are immune to this defect by construction.** Only the
+  facade families (`^[a-z]{2}\d\d$`) go through `facadeTierExpr`. Worth knowing
+  before anyone greps for `wp` and assumes one owner.
+- **The brief's third suspect is not the cause.** *"a combo added after
+  initFacades has no image and MapLibre paints it transparent"* — audited after a
+  day/night/day round trip: **33 pattern ids asked for by loaded features, 0
+  missing at any tier.** MapLibre's `addImage` sets `_changedImages` and
+  `_updateTilesForChangedImages` reloads the tiles that depend on it;
+  `updateImage` deliberately does NOT, which is the other half of why this bug
+  existed at all.
+
+### THE NEXT WIN IN THIS FILE, WITH THE NUMBER ATTACHED
+
+**The far tier is 128x128 texels to fill 16 CSS px** — about 32 device pixels, so
+it carries 16x more texels than it can ever show, plus a prefilter blur to cope.
+A real mip chain halves the resolution per level. Doing that would make the far
+tier roughly 16x cheaper AND remove the blur it exists to carry (downsampling IS
+the prefilter), which is where the remaining ~40 ms lives. Not done here because
+it resamples every far-field wall and A1 should not wait on a taste review.
+
+### TWO THINGS FOR OTHER LANES
+
+1. **QUEUE E1's note that "downtown towers read as a dark grey mass next to a
+   warm campus" is at least partly THIS BUG**, not a design choice — compare
+   `shots/a1-crop/before-day-skyline.png` with `after-day-skyline.png`. Re-read
+   E1 against the fixed build before adding anything to downtown.
+2. **The A1 assertion is not committed**, because `scripts/verify/` was not this
+   lane's to write. It is fifteen lines and it should be adopted — it is the only
+   thing that will catch this coming back:
+
+```js
+// after driving tod day -> night -> day, in the page:
+const im = window.__map.style.imageManager.images;
+const per = {};                       // tier suffix -> mean luma per image
+for (const k of Object.keys(im)) {
+  if (!/^[a-z]{2}\d\d/.test(k)) continue;      // facade families only
+  const d = im[k].data.data; let s = 0;
+  for (let i = 0; i < d.length; i += 4) s += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+  (per[k.slice(4)] = per[k.slice(4)] || []).push(s / (d.length / 4));
+}
+// ASSERT: for each bucket index, the spread across tiers is small.
+// A tier a whole hour behind reads ~85 luma apart; settled, it is 0.2.
+```
+
+The camera must be PITCHED past 60 for the defect to exist at all, so the probe
+has to use the spawn pose (pitch 74). At pitch 45 every tile is at one zoom and
+the bug is invisible — which is very likely why it survived this long.
+
 
 ## 45. Aug 3 2026 — downtown was forty boxes, and the crown was stacked on top of the height instead of carved out of it (acer lane)
 

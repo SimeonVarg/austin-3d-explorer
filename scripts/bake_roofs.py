@@ -68,6 +68,7 @@ Usage:  python scripts/bake_roofs.py [--report] [--remeasure] [--audit]
 
   --audit       do not hunt diagonal roofs by eye. Name them. See AUDIT below.
 """
+import colorsys
 import json
 import math
 import os
@@ -741,6 +742,345 @@ DIAG_MIN_M2   = 25.0    # missing slope worth reporting, in square metres
 DIAG_MIN_FR   = 0.20    # ...and this share of what the wall could have had
 
 
+# ── AUDIT 3: ONE SQUARE METRE, ONE SURFACE ────────────────────────────
+#
+# BOTH AUDITS ABOVE ASK ONLY WHETHER A ROOF IS MISSING SOMETHING. Neither ever
+# asks whether it has drawn something EXTRA, and that is the hole the Anna Hiss
+# Gymnasium fell through — a building named in four separate reports, on a bake
+# whose own audits printed `0 of 105` both times.
+#
+# What is wrong there: the deck ring SELF-INTERSECTS. Anna Hiss is a U round a
+# courtyard whose west wing is about 15 m wide, so at a step depth of 7.36 m the
+# inward offset of that wing has pinched off — the two opposing walls' offsets
+# have passed through each other — and the mitred ring, which has one vertex per
+# footprint vertex and no way to express "this arm is gone", comes back as a
+# BOWTIE. `signed_area` is positive (475 m^2) so the emitted-file checks pass;
+# every vertex is inside the footprint so `valid_step` passes; every square metre
+# of the footprint is covered so `audit_coverage` passes; every wall got its full
+# slope so `audit_slope_depth` passes. And what the GPU draws for a non-simple
+# ring is not defined at all: earcut fills a big triangle straight across the
+# open courtyard. That triangle IS the diagonal he has been pointing at.
+#
+# So the third question, and it is the one that catches both A5 and A6:
+#
+#   1. IS EVERY RING SIMPLE? A ring that crosses itself has no area — asking what
+#      it covers is already the wrong question, so this is tested directly rather
+#      than through a raster. THIS is the check that names Anna Hiss.
+#   2. IS ANYTHING DRAWN OUTSIDE THE ROOF'S OWN OUTLINE? The eave ring is the
+#      roof's outline by construction, so anything beyond it is roof over open
+#      air. (A raster, so it also catches spills a simplicity test cannot see.)
+#   3. ARE TWO SURFACES AT THE SAME HEIGHT OVER THE SAME GROUND? That is
+#      z-fighting by definition — two coplanar faces have no defined winner, the
+#      winner changes with the camera, and what the eye sees is a flicker along
+#      the boundary. It is the same statement PR #78 made about the ground
+#      ("one square metre, one surface"), asked of roof surfaces.
+#
+# QUESTIONS 2 AND 3 ARE A RASTER, DELIBERATELY, EVEN THOUGH THE RESOLVER BELOW
+# USES SHAPELY. The resolver's answer and the audit's answer have to be able to
+# disagree: if both were `Polygon.difference` then a bug in the library, or in
+# how this file drives it, would produce a clean report on a broken file. So the
+# fix is polygon arithmetic and the check is a 0.25 m raster of the same
+# polygons, which is also what `audit_coverage` already does.
+SURF_TOP_EPS   = 0.03   # tops within this are the same height, in metres
+SURF_OVER_M2   = 2.0    # overlapping same-height area worth reporting
+SURF_OUT_M2    = 2.0    # ...and area drawn outside the roof's own outline
+
+
+def close_ring(r):
+    return r if r and r[0] == r[-1] else (r + [r[0]] if r else r)
+
+
+def ring_crossings(ring, tol=1e-7):
+    """Every pair of non-adjacent edges of a closed ring that cross.
+
+    O(n^2) over rings of at most a few dozen points, on 105 roofs. Adjacent
+    edges are skipped because they share an endpoint by construction; anything
+    else that touches is a fold.
+    """
+    p = ring[:-1] if ring and ring[0] == ring[-1] else ring[:]
+    n = len(p)
+    out = []
+    if n < 4:
+        return out
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    for i in range(n):
+        a, b = p[i], p[(i + 1) % n]
+        for j in range(i + 1, n):
+            if j == i or (j + 1) % n == i or (i + 1) % n == j:
+                continue
+            c, d = p[j], p[(j + 1) % n]
+            d1, d2 = cross(c, d, a), cross(c, d, b)
+            d3, d4 = cross(a, b, c), cross(a, b, d)
+            if abs(d1) < tol and abs(d2) < tol:
+                continue                       # collinear overlap: not a fold
+            if ((d1 > 0) != (d2 > 0)) and ((d3 > 0) != (d4 > 0)):
+                out.append((i, j))
+    return out
+
+
+def ring_is_simple(ring, tol=1e-7):
+    return not ring_crossings(ring, tol)
+
+
+def audit_surfaces(eave_ring, pieces, name, key, centre=None):
+    """Non-simple rings, roof drawn past the eave, and two surfaces at one height.
+
+    `pieces` is every polygon this roof emitted, as `(ring, top_height)` in local
+    metres. `eave_ring` is the roof's own outline.
+    """
+    bad_rings = sum(0 if ring_is_simple(r) else 1 for r, _ in pieces)
+    xs = [q[0] for q in eave_ring]; ys = [q[1] for q in eave_ring]
+    x0, y0 = min(xs), min(ys)
+    W = max(2, int((max(xs) - x0) / AUDIT_PX_M) + 3)
+    H = max(2, int((max(ys) - y0) / AUDIT_PX_M) + 3)
+    over_m2 = out_m2 = 0.0
+    if W * H <= 4_000_000:
+        T = lambda q: (1 + (q[0] - x0) / AUDIT_PX_M, 1 + (q[1] - y0) / AUDIT_PX_M)
+
+        def raster(ring, grow=0):
+            """`grow` -1 shaves the boundary off, +1 draws it on.
+
+            THE FIRST VERSION OF THIS TOOK THE DEFAULT AND MEASURED SEAMS. Two
+            facets that share an edge both claim the pixels ALONG that edge under
+            a scanline fill, so a roof whose facets tile it perfectly came back
+            reporting 99.1 m^2 drawn twice — one 0.25 m pixel wide, times every
+            metre of shared boundary on the roof. Every roof in the file 'failed'
+            and not one of them had anything wrong with it. Shaving the boundary
+            off both sides is what makes the answer AREA rather than PERIMETER;
+            the cost is that an overlap thinner than about 0.4 m is not seen,
+            which is well under the 2 m^2 this reports at.
+            """
+            pts = [T(q) for q in ring]
+            im = Image.new("1", (W, H), 0)
+            d = ImageDraw.Draw(im)
+            d.polygon(pts, fill=1, outline=1 if grow >= 0 else None)
+            if grow < 0:
+                d.line(pts + [pts[0]], fill=0, width=3)
+            return np.asarray(im, dtype=bool)
+
+        px = AUDIT_PX_M * AUDIT_PX_M
+        # 2. anything beyond the eave. The eave is grown by its own boundary so a
+        #    piece that merely shares that edge does not read as a spill.
+        inside_eave = raster(eave_ring, grow=1)
+        any_piece = np.zeros((H, W), dtype=bool)
+        for r, _ in pieces:
+            any_piece |= raster(r, grow=-1)
+        out_m2 = float((any_piece & ~inside_eave).sum()) * px
+        # 3. two surfaces at one height. Group by top, count double cover.
+        groups = {}
+        for r, t in pieces:
+            groups.setdefault(round(t / SURF_TOP_EPS), []).append(r)
+        for g in groups.values():
+            if len(g) < 2:
+                continue
+            acc = np.zeros((H, W), dtype=np.uint8)
+            for r in g:
+                acc += raster(r, grow=-1).astype(np.uint8)
+            over_m2 += float((acc >= 2).sum()) * px
+    if bad_rings == 0 and over_m2 < SURF_OVER_M2 and out_m2 < SURF_OUT_M2:
+        return None
+    return {"name": name or "(unnamed)", "id": key, "at": centre,
+            "folded_rings": bad_rings, "over_m2": round(over_m2, 1),
+            "outside_m2": round(out_m2, 1)}
+
+
+# ── ...AND THE FIX THE THIRD AUDIT ASKS FOR ───────────────────────────
+#
+# `cap_along` caps each VERTEX at the moment its own ray reaches the medial
+# axis, and that is exactly right for a vertex — but two vertices that are each
+# a legal inward offset can still have swapped places along the RING, because a
+# mitre travels sideways as well as inward. When an arm is narrower than twice
+# the step depth, the offsets of its two opposing walls pass through each other,
+# and the mitred construction — one vertex per footprint vertex, with no way to
+# lose one — has no way to say "this arm is gone". It turns over instead.
+#
+# THE FIX IS PR #78's RANK LADDER, APPLIED TO ROOF SURFACES. That is what QUEUE
+# A5 asked for in as many words, and it is right for a reason worth stating: the
+# mitred ring is a good approximation of a straight skeleton right up until an
+# arm pinches off, and there is no way to keep the approximation AND express the
+# pinch. So stop trying to. Emit the same rings, and then RESOLVE them: repair
+# each polygon, clip it to the roof's own outline, and subtract everything a
+# higher-ranked surface at the same height has already claimed. One square
+# metre, one surface, by construction rather than by argument.
+#
+# TWO EARLIER FIXES WERE MEASURED AND THROWN AWAY, and both are worth recording
+# because both looked right:
+#
+#   1. WALK THE WHOLE ROOF'S STEP DEPTH BACK until nothing folds. Folded rings
+#      154 -> 1 — and it cost the Biomedical Engineering Building 9.50 m of an
+#      11.81 m step depth and the Moncrief-Neuhaus 7.70 m of 12.66, because ONE
+#      narrow wing dragged a whole building's slope down with it. That is
+#      exactly `fold_free_run`'s mistake, which this file deleted in PR #74 and
+#      documents two hundred lines above. It also made `audit_slope_depth` look
+#      perfect, because that audit was being handed the REDUCED depth as its
+#      target and so could only ever report success.
+#   2. PULL BACK THE INDIVIDUAL POINTS involved in each crossing. Folded 154 ->
+#      0, and it took 42% of the slope off four of Gregory Gym's walls — 86 m,
+#      62 m, 51 m and 50 m long — to resolve a fold at a notch tens of metres
+#      away. Preferring to pull back the SHARPEST corner rather than the deepest
+#      point made it worse (108 walls short, against 89), because it could no
+#      longer resolve most roofs at all and they fell through to (1).
+#
+# Both were trades of a visible fold for a visible missing slope. The resolver
+# is not a trade: no point moves, no wall loses depth, and the only geometry
+# that disappears is geometry that was drawn twice or drawn over open air.
+RESOLVE_SURFACES = "--fold-ok" not in sys.argv
+RESOLVE_MIN_M2   = 0.25   # a leftover part smaller than this is not a surface
+CROSS_TRIM_M2    = 0.05   # ...and the smallest cross-roof overlap worth cutting
+
+
+def _shp():
+    """shapely, or a clear failure. It is already a build dependency
+    (.github/workflows/build-data.yml installs it), and a resolver that silently
+    does not run would leave the exact defect it exists to remove."""
+    from shapely.geometry import Polygon
+    return Polygon
+
+
+def resolve_surfaces(emitted, eave_ring):
+    """Repair, clip and de-overlap every polygon one roof emits.
+
+    `emitted` is `[(ring_in_local_m, top, props)]` in draw order. Returns the
+    same list with rings replaced by `[exterior, *holes]` lists, one entry per
+    resulting part, plus a count of what was removed.
+
+    RANK, and it is the one taste call here: within a height group the LARGEST
+    surface is drawn first and keeps everything it covers. A fold always leaves
+    one big correct facet and one small inverted one, so ranking by area gives
+    the square metre to the surface that was right about it. Ties break on the
+    original emit order, so the output does not depend on set iteration.
+    """
+    Polygon = _shp()
+    limit = Polygon(eave_ring).buffer(0)
+    if limit.is_empty:
+        return emitted, 0, 0.0
+    groups = {}
+    for n, (ring, top, props) in enumerate(emitted):
+        groups.setdefault(round(top / SURF_TOP_EPS), []).append(n)
+    keep = {}
+    dropped, lost_m2 = 0, 0.0
+    for members in groups.values():
+        order = sorted(members, key=lambda n: (-Polygon(emitted[n][0]).buffer(0).area, n))
+        claimed = None
+        for n in order:
+            g = Polygon(emitted[n][0]).buffer(0)
+            if not g.is_empty:
+                g = g.intersection(limit)
+            if claimed is not None and not g.is_empty:
+                g = g.difference(claimed)
+            parts = []
+            if not g.is_empty:
+                gs = [g] if g.geom_type == "Polygon" else list(getattr(g, "geoms", []))
+                for q in gs:
+                    if q.geom_type != "Polygon" or q.area < RESOLVE_MIN_M2:
+                        continue
+                    parts.append([list(q.exterior.coords)] +
+                                 [list(r.coords) for r in q.interiors])
+            was = Polygon(emitted[n][0]).buffer(0).area
+            now = sum(Polygon(p[0], p[1:]).area for p in parts)
+            if now < was - 1e-6:
+                lost_m2 += was - now
+            if not parts:
+                dropped += 1
+            keep[n] = parts
+            claimed = g if claimed is None else claimed.union(g)
+    out = []
+    for n, (_, top, props) in enumerate(emitted):
+        for rings in keep.get(n, []):
+            out.append((rings, top, props))
+    return out, dropped, lost_m2
+
+
+def resolve_across_roofs(feats, lat0):
+    """The same rule again, between roofs instead of inside one.
+
+    `resolve_surfaces` runs per footprint ring, so it cannot see two DIFFERENT
+    buildings whose roofs are at the same height and whose 0.5 m eaves overhang
+    into each other. Batts Hall and Mezes Hall are both 20.5 m and share the
+    South Mall arcade between them; `scripts/verify/coplanar.mjs` — an
+    instrument outside this file, which is the point — measured 79 m^2 of their
+    two roofs at exactly 22.60 m, 45% of the smaller. That is a flicker between
+    two of the most-looked-at buildings on campus, and no per-building pass can
+    reach it.
+
+    Only pairs whose bounding boxes actually meet are compared, and a feature
+    that loses nothing keeps its coordinates byte for byte, so this cannot
+    perturb the 99% of the file it has no business touching.
+    """
+    Polygon = _shp()
+    k = math.cos(math.radians(lat0)) * M_LAT
+    fwd = lambda q: (q[0] * k, q[1] * M_LAT)
+    inv = lambda q: [round(q[0] / k, 6), round(q[1] / M_LAT, 6)]
+    groups = {}
+    for n, f in enumerate(feats):
+        groups.setdefault(round(f["properties"]["h"] / SURF_TOP_EPS), []).append(n)
+    changed, dropped, lost = 0, 0, 0.0
+    for members in groups.values():
+        if len(members) < 2:
+            continue
+        geo, box = {}, {}
+        for n in members:
+            g = Polygon([fwd(q) for q in feats[n]["geometry"]["coordinates"][0]],
+                        [[fwd(q) for q in r]
+                         for r in feats[n]["geometry"]["coordinates"][1:]]).buffer(0)
+            geo[n] = g
+            box[n] = g.bounds if not g.is_empty else None
+        order = sorted(members, key=lambda n: (-geo[n].area, n))
+        done = []
+        for n in order:
+            g = geo[n]
+            if g.is_empty:
+                continue
+            b = box[n]
+            hit = [m for m in done
+                   if box[m] and not (b[2] < box[m][0] or box[m][2] < b[0]
+                                      or b[3] < box[m][1] or box[m][3] < b[1])]
+            if hit:
+                was = g.area
+                for m in hit:
+                    g = g.difference(geo[m])
+                    if g.is_empty:
+                        break
+                # Only a loss worth having is written back. Two roofs that
+                # merely touch differ by a numerical hair, and rewriting 242
+                # features' coordinates through a projection round-trip to
+                # remove 0.001 m^2 is drift for nothing.
+                if g.area < was - CROSS_TRIM_M2:
+                    lost += was - g.area
+                    parts = ([g] if g.geom_type == "Polygon"
+                             else [q for q in getattr(g, "geoms", [])
+                                   if q.geom_type == "Polygon"])
+                    parts = [q for q in parts if q.area >= RESOLVE_MIN_M2]
+                    if not parts:
+                        feats[n]["properties"]["_drop"] = 1
+                        dropped += 1
+                        geo[n] = Polygon()
+                        continue
+                    big = max(parts, key=lambda q: q.area)
+                    feats[n]["geometry"]["coordinates"] = (
+                        [[inv(q) for q in big.exterior.coords]] +
+                        [[inv(q) for q in r.coords] for r in big.interiors])
+                    # Extra parts are dropped rather than emitted: a subtraction
+                    # that splits one facet into several is a sliver event, and
+                    # the sliver is what was being drawn twice in the first place.
+                    geo[n] = big
+                    changed += 1
+            done.append(n)
+    return changed, dropped, lost
+
+
+# CHECK WHAT IS EMITTED, NOT WHAT IT IS BUILT FROM. A facet is not a ring: it is
+# one wall's slice of two rings, `[outer points] + [inner points reversed]`, and
+# that strip can cross itself while both rings it came from are perfectly
+# simple — 91 of the folds in this file are of that kind, and an earlier version
+# of the audit that tested only the rings reported them all as clean. This file
+# already records 78 self-crossing facets from the densifier for the same
+# reason. So `audit_surfaces` is handed the polygons that go to disk.
+
+
 def audit_slope_depth(poly, facet_by_edge, d_final, name, key, centre=None):
     """Square metres of slope each wall of this roof should have had and has not.
 
@@ -1006,6 +1346,341 @@ def shift_to_measured(hexcol, rb, median_rb):
 SHADE_TILT = 38.0
 
 
+# ── A TILED ROOF IS PAINTED A TILE COLOUR ─────────────────────────────
+#
+# Simeon: *"littlefeild dorm should have a red roof"*. It does not. Its
+# neighbours Carothers and Blanton do, and they are the same kind of building
+# with the same kind of roof, which is what makes it look like a mistake rather
+# than variety.
+#
+# THE DEFECT IS NOT IN THE SURVEY. Littlefield Dormitory reads
+# `run 7.1 m, eave 0.766` in `roof_runs.json`, and its offset rings run
+# 0.77 / 0.99 / 1.00 / 0.99 straight out to its own half-span — the most
+# unambiguous full hip on this campus, more certain than Carothers' 0.88. The
+# geometry it gets is right. **The COLOUR never asks the photograph at all.**
+#
+# Every facet takes `rd` off the parent building, and `rd` is set in
+# `bake_detail.py` from the OSM `roof:colour` tag when there is one and
+# otherwise from THE BUILDING'S OWN WALL, 12% darker — a rule that has nothing
+# to do with what is on the roof. Littlefield's wall is limestone, so its
+# terracotta hip renders `#928776`, a pale tan. `shift_to_measured` below cannot
+# rescue it: that moves the red/blue RATIO by at most ±30% and holds luma, which
+# is a nudge within a colour family, not a change of family.
+#
+# MEASURED ACROSS THE CAMPUS, and this is why it is a rule and not a one-line
+# data fix: of the 105 footprints the survey gives a real tiled slope to,
+# **65 are painted from an `rd` whose red/blue is under 1.55** — greys, olives
+# and blue-greys, median 1.47 against 2.80 for the ones that came out right.
+#
+# THE RULE. A roof the photograph is SURE is tile is painted a tile colour.
+# "Sure" is deliberately two independent readings, the same discipline the
+# parapet-cap join uses (HANDOFF §37): the eave ring has to read tile, AND the
+# whole footprint has to read tile. Cross-checked, they agree strongly — at
+# `eave >= 0.55` the median whole-footprint tile fraction is 0.80 — and the
+# second test exists for the one candidate where they do not, a roof at eave
+# 0.72 whose footprint is only 0.31 tile.
+#
+# WHAT COLOUR. Not an invented one: the MEDIAN `rd` of the pitched roofs that
+# already have a tile colour, re-derived from the campus on every bake and only
+# falling back to the constant when there is nothing to derive it from. The
+# authored burnt orange therefore stays exactly where it is — a retinted roof
+# lands on the median of its own peers — and `shift_to_measured` then spreads it
+# again by its own measured red/blue, so the roofs that photograph redder still
+# render redder. `--no-tile-colour` is the negative control.
+TILE_COLOUR_RULE = "--no-tile-colour" not in sys.argv
+TILE_RB_MIN      = 1.55   # an `rd` below this red/blue is not a tile colour
+TILE_EAVE_MIN    = 0.55   # ...and the eave ring has to be sure
+TILE_AREA_MIN    = 0.45   # ...and so does the whole footprint, independently
+# Fallback only. `campus_tile_base()` re-derives this from the buildings that
+# already have a tile-coloured roof; if that ever drifts far from this number,
+# something upstream changed the palette and the `--report` line will say so.
+TILE_BASE        = "#944a32"
+
+
+def rb_of(hexcol):
+    """A colour's red/blue ratio, the one number that says 'this is tile'."""
+    if not hexcol or len(hexcol) != 7:
+        return None
+    r = int(hexcol[1:3], 16)
+    b = int(hexcol[5:7], 16)
+    return r / max(b, 1)
+
+
+# THESE THREE ARE COPIED FROM `bake_detail.py`, NOT IMPORTED, and the reason is
+# worth one line: that module does its whole bake at import time — it reads the
+# snapshot and writes two files — so importing it here to borrow a nine-line
+# colour function would re-run it as a side effect of baking roofs. The copy is
+# the lesser evil; the risk it carries is drift, so if `make_roof_colors` ever
+# changes there, this has to change with it. GOLDEN_TINT and both magic numbers
+# are reproduced exactly.
+GOLDEN_TINT = "#ffb26a"
+
+
+def _hex2rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _rgb2hex(r, g, b):
+    return "#%02x%02x%02x" % (max(0, min(255, round(r))),
+                              max(0, min(255, round(g))),
+                              max(0, min(255, round(b))))
+
+
+def _lerp_hex(a, b, t):
+    A, B = _hex2rgb(a), _hex2rgb(b)
+    return _rgb2hex(*(A[i] + (B[i] - A[i]) * t for i in range(3)))
+
+
+def _adjust_light(h, dl):
+    r, g, b = (v / 255.0 for v in _hex2rgb(h))
+    hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
+    ll = max(0.05, min(0.95, ll + dl))
+    r, g, b = colorsys.hls_to_rgb(hh, ll, ss)
+    return _rgb2hex(r * 255, g * 255, b * 255)
+
+
+def make_roof_colors(roof_hex):
+    """day / golden / night from one roof colour — bake_detail.py's own rule."""
+    rg = _lerp_hex(roof_hex, GOLDEN_TINT, 0.22)
+    rn = _lerp_hex(_adjust_light(roof_hex, -0.38), "#10152a", 0.6)
+    return roof_hex, rg, rn
+
+
+def campus_tile_base(feats, cache):
+    """The median `rd` of the pitched roofs that already have a tile colour.
+
+    Read off the cached survey rather than re-measured, so it costs nothing and
+    is the same number on a cached bake and a `--remeasure` one (as long as the
+    cache exists; with no cache at all the constant stands in and says so).
+    """
+    reds = []
+    for f in feats:
+        p = f["properties"]
+        h = p.get("final_height") or 0
+        if h < 4:
+            continue
+        v = cache.get("%s/0" % p.get("id"))
+        if not v or v[0] < MIN_RUN_M:
+            continue
+        rd = p.get("rd")
+        r = rb_of(rd)
+        if r is not None and r >= TILE_RB_MIN:
+            reds.append(_hex2rgb(rd))
+    if len(reds) < 12:
+        return TILE_BASE, 0
+    med = [sorted(c[i] for c in reds)[len(reds) // 2] for i in range(3)]
+    return _rgb2hex(*med), len(reds)
+
+
+# ── PER-BUILDING CORRECTIONS ──────────────────────────────────────────
+#
+# `data/building_overrides.json`. A survey rule that is right 105 times out of
+# 105 does not exist, and the wrong answer to that is to edit the generated
+# snapshot — which the next bake silently wipes. So corrections live in their
+# own small tracked file, are applied HERE, and every one of them carries the
+# observation it answers in its own `why`.
+#
+# It holds four kinds of thing, and only the first two are corrections to a
+# measurement; the rest are geometry the imagery cannot supply:
+#   roof_run_m            the ring survey under-read a roof the photo shows
+#   roof_over_max_height  the height gate excluded a building it should not
+#   roof_colour/deck_colour   the two colours the roof is built out of
+#   loggia                an authored entrance porch (see LOGGIA below)
+OVERRIDES = os.path.join(ROOT, "data", "building_overrides.json")
+
+
+def load_overrides():
+    if not os.path.exists(OVERRIDES):
+        return {}
+    try:
+        return json.load(open(OVERRIDES, encoding="utf-8")).get("buildings") or {}
+    except Exception as e:                                   # noqa: BLE001
+        print("  building_overrides.json unreadable, ignoring:", e)
+        return {}
+
+
+# ── LOGGIA: the one thing on a facade a prism cannot say ──────────────
+#
+# Simeon: *"greg gym is split into two sections (one building) one should
+# replicate the famous entrance with the three hall things and the roof."*
+#
+# The 1930 auditorium-gymnasium's front is a monumental stone stair up to three
+# round-headed arches under a tiled gable — the most recognisable face on this
+# part of campus — and the model has it as a flat brick wall, because a
+# `fill-extrusion` of a footprint has no way to say "there is a porch here".
+#
+# WHICH WALL, ESTABLISHED BEFORE ANY GEOMETRY WAS WRITTEN, because putting it on
+# the wrong face is worse than not drawing it. Three independent readings agree
+# on the west side: OSM node 1427259422 carries `entrance=main` at
+# 30.2840096,-97.7368337; the postal address is 2101 Speedway, and Speedway runs
+# down the west side; and the z19 nadir tile shows a broad flight of steps
+# against that wall and nothing like it against any other.
+#
+# AND THE WALL IS FOUND FROM THE FOOTPRINT, not typed in. The override gives a
+# POINT; this code finds the polygon edge nearest it and builds everything in
+# that edge's own frame — along it, and out along its own outward normal, which
+# is tested rather than assumed (offset a metre and ask whether you are still
+# inside the building). So the porch cannot end up floating off the wall or
+# buried in it if the footprint is ever re-surveyed.
+#
+# THE ARCH IS NOT A STACK OF SQUARES, which is the fair complaint in QUEUE D3
+# about the sculptures. `fill-extrusion` cannot tilt a face, so a round arch has
+# to be a row of prisms — but the row is cut ACROSS the opening and each prism's
+# BASE is the arch's own curve, `spring + sqrt(r^2 - x^2)`. That is the real
+# soffit sampled at 11 points, not a shape approximated by axis-aligned boxes:
+# what you see is the arched opening, and the steps are in the top edge of the
+# spandrel where nothing looks at them.
+#
+# Everything below is in the override so any of it is a one-line change.
+LOGGIA_VOUSSOIRS   = 11    # prisms across each arch head
+LOGGIA_GABLE_STEPS = 7     # courses in the tiled gable above
+LOGGIA_STAIR_STEPS = 5     # flights in the stone stair below
+LOGGIA_STAIR_TREAD = 0.85  # metres of run per flight
+LOGGIA_RECESS_M    = 0.06  # how far off the wall the dark back of the porch sits
+
+
+def _seg_nearest(pm, q):
+    """Index of the polygon edge nearest q, and the foot of the perpendicular."""
+    best = None
+    for i in range(len(pm)):
+        a, b = pm[i], pm[(i + 1) % len(pm)]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        L2 = dx * dx + dy * dy
+        if L2 < 1e-9:
+            continue
+        t = max(0.0, min(1.0, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / L2))
+        fx, fy = a[0] + dx * t, a[1] + dy * t
+        d = math.hypot(q[0] - fx, q[1] - fy)
+        if best is None or d < best[0]:
+            best = (d, i, (fx, fy), math.sqrt(L2))
+    return best
+
+
+def loggia_parts(ring, spec, roof_rd, roof_rg, roof_rn):
+    """Every prism of one entrance porch, as ready-to-append GeoJSON features."""
+    lat0 = sum(q[1] for q in ring) / len(ring)
+    pm = ccw(clean(to_m(ring, lat0)))
+    if len(pm) < 3:
+        return []
+    k = math.cos(math.radians(lat0))
+    at = spec.get("at")
+    q = (at[0] * M_LAT * k, at[1] * M_LAT)
+    got = _seg_nearest(pm, q)
+    if got is None:
+        return []
+    _d, i, foot, wall_len = got
+    a, b = pm[i], pm[(i + 1) % len(pm)]
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    tx, ty = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    nx, ny = -ty, tx
+    # WHICH WAY IS OUT. Ask, do not assume a winding: step a metre along the
+    # candidate normal and see whether you are still inside the footprint.
+    if inside((foot[0] + nx, foot[1] + ny), pm):
+        nx, ny = -nx, -ny
+
+    W = float(spec.get("width_m", 18.0))
+    D = float(spec.get("depth_m", 3.2))
+    P = float(spec.get("pier_m", 1.7))
+    base = float(spec.get("base_m", 1.5))
+    spring = float(spec.get("spring_m", 5.0))
+    crown = float(spec.get("crown_m", 8.2))
+    gable = float(spec.get("gable_m", 11.6))
+    n_ar = int(spec.get("arches", 3))
+    # Never wider than the wall it stands on.
+    W = min(W, wall_len - 1.0)
+    opening = (W - (n_ar + 1) * P) / n_ar
+    if opening <= 0.6 or D <= 0.5:
+        return []
+    r = opening * 0.5
+
+    def rect(u0, u1, v0, v1):
+        pts = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
+        return [[foot[0] + tx * u + nx * v, foot[1] + ty * u + ny * v] for u, v in pts]
+
+    parts = []          # (ring_m, b, h, day_hex)
+
+    # THE STONE STAIR RUNS OUT IN FRONT OF THE PORCH, and this is worth a note
+    # because the first version had it at NEGATIVE v — behind the wall plane,
+    # buried inside the building. Nothing on screen said so: a slab inside a
+    # solid prism is simply invisible, and the render looked like a portico with
+    # no steps rather than like a bug. The check that caught it is mechanical and
+    # is the one to keep: every part of an outward porch must have its centroid
+    # OUTSIDE the footprint, and the stair slabs had 3 of 4 corners inside.
+    #
+    # Stacked with the top step innermost and shortest, so each tread's nose is
+    # the only thing that shows and the flight reads from above.
+    if spec.get("stair"):
+        S = LOGGIA_STAIR_STEPS
+        for s in range(S):
+            parts.append((rect(-W / 2 - 0.8, W / 2 + 0.8,
+                               D, D + (s + 1) * LOGGIA_STAIR_TREAD),
+                          0.0, base * (S - s) / S, spec.get("pier_colour")))
+    # the porch floor
+    parts.append((rect(-W / 2, W / 2, 0.0, D), 0.0, base, spec.get("pier_colour")))
+    # the dark back of the porch, seen THROUGH the arches — without it the
+    # openings read as solid panels the colour of the wall behind them
+    for j in range(n_ar):
+        u0 = -W / 2 + P + j * (P + opening)
+        parts.append((rect(u0, u0 + opening, LOGGIA_RECESS_M, LOGGIA_RECESS_M + 0.30),
+                      base, spring + r, spec.get("shadow_colour")))
+    # the piers
+    for kx in range(n_ar + 1):
+        u0 = -W / 2 + kx * (P + opening)
+        parts.append((rect(u0, u0 + P, 0.0, D), base, spring, spec.get("pier_colour")))
+    # the arch heads: one prism per column across the opening, each starting at
+    # the arch's own curve
+    for j in range(n_ar):
+        u0 = -W / 2 + P + j * (P + opening)
+        for c in range(LOGGIA_VOUSSOIRS):
+            ua = u0 + opening * c / LOGGIA_VOUSSOIRS
+            ub = u0 + opening * (c + 1) / LOGGIA_VOUSSOIRS
+            xm = (ua + ub) * 0.5 - (u0 + r)          # from the opening's centre
+            soffit = spring + math.sqrt(max(0.0, r * r - xm * xm))
+            parts.append((rect(ua, ub, 0.0, D), soffit, crown, spec.get("arch_colour")))
+    # the entablature the gable sits on
+    parts.append((rect(-W / 2 - 0.35, W / 2 + 0.35, 0.0, D + 0.3),
+                  crown, crown + 0.9, spec.get("pier_colour")))
+    # ...and the tiled gable, in the building's own roof colour
+    G = LOGGIA_GABLE_STEPS
+    hw0 = W / 2 + 0.35
+    for s in range(G):
+        hw = hw0 * (1.0 - s / float(G)) + 0.45 * (s / float(G))
+        parts.append((rect(-hw, hw, 0.0, D + 0.3),
+                      crown + 0.9 + (gable - crown - 0.9) * s / G,
+                      crown + 0.9 + (gable - crown - 0.9) * (s + 1) / G,
+                      None))
+
+    out, buried = [], 0
+    for ring_m, b0, h0, day in parts:
+        if h0 - b0 < 0.02:
+            continue
+        if day:
+            rd, rg, rn = make_roof_colors(day)
+        else:
+            rd, rg, rn = roof_rd, roof_rg, roof_rn
+        # A PORCH STANDS IN FRONT OF ITS WALL. Anything whose centre is inside
+        # the footprint is inside a solid prism and will never be seen — which is
+        # exactly how the stair shipped backwards once and looked like nothing at
+        # all rather than like an error.
+        cx = sum(x for x, _ in ring_m) / len(ring_m)
+        cy = sum(y for _, y in ring_m) / len(ring_m)
+        if inside((cx, cy), pm):
+            buried += 1
+            continue
+        ll = to_ll([(x, y) for x, y in ring_m], lat0)
+        out.append({
+            "type": "Feature",
+            "geometry": {"type": "Polygon", "coordinates": [close_ring(ll)]},
+            "properties": {"b": round(b0, 2), "h": round(h0, 2), "az": 0,
+                           "rd": rd, "rdd": rd, "rg": rg, "rgd": rg, "rn": rn},
+        })
+    if buried:
+        print("  LOGGIA: %d parts were inside the building and were dropped — "
+              "check the wall this porch is anchored to" % buried)
+    return out
+
+
 # ── the flat deck inside the tiled band ───────────────────────────────
 # Once the slopes were right, the thing still reading as "flat generated box"
 # was the DECK: Gregory Gym, the Blanton, Hogg Auditorium and the Union are a
@@ -1023,6 +1698,11 @@ DECK_TILE_MAX = 0.35    # above this the "deck" is just more roof tile
 DECK_MIN_PX   = 25      # too few samples to trust a median
 DECK_MAX_CH   = 150     # a nadir photo is brighter than this scene; pull it down
 DECK_DESAT    = 0.30    # and a touch of the photo's colour cast comes out with it
+# How far the deck's own wall drops below its top. See the emit site: at 0.30 it
+# is exactly coincident with the innermost facet's inner wall and flickers.
+# `--fold-ok` restores it with the rest of the pre-fix behaviour, so the
+# negative control is the whole old bake and not half of it.
+DECK_SKIRT_M  = 0.30 if not RESOLVE_SURFACES else 0.02
 DECK_TOWARD   = 0.18    # ...and a little of the building's own roof, so the deck
                         # reads as part of the roof rather than a pasted patch
 
@@ -1281,6 +1961,9 @@ def main():
     remeasure = "--remeasure" in sys.argv or not os.path.exists(MEAS)
     cache = {} if remeasure else json.load(open(MEAS, encoding="utf-8"))
     feats = json.load(open(SNAP, encoding="utf-8"))["features"]
+    overrides = load_overrides()
+    tile_base, tile_base_n = campus_tile_base(feats, cache)
+    retinted = {}            # building id -> the tile triple its cap must take
     out = []
     stats = Counter()
     # Pinned so it prints even at zero. A count that only appears when it is
@@ -1288,14 +1971,28 @@ def main():
     stats["roofs_with_a_hole"] = 0
     stats["roofs_with_a_missing_slope"] = 0
     stats["walls_with_no_slope"] = 0
+    stats["roofs_drawn_twice_or_over_air"] = 0
+    stats["folded_rings"] = 0
+    stats["surfaces_dropped_by_resolver"] = 0
+    stats["resolver_removed_m2"] = 0
+    stats["parts_added_by_resolver"] = 0
+    stats["resolver_parts_with_a_hole"] = 0
     rows = []
     audit = []
     diag = []
+    surfaces = []
     pitched = set()          # buildings this bake gives a real tiled roof to
     for f in feats:
         p = f["properties"]
         h = p.get("final_height") or 0
-        if h < 4 or h > MAX_HEIGHT_M:
+        ov = overrides.get(p.get("id")) or {}
+        # THE HEIGHT GATE IS ABOUT SHAPE, NOT SIZE. It is here because a tower
+        # is flat-topped, and it is right almost everywhere — but Jester West is
+        # one footprint 51.6 m tall whose PERIMETER is two-storey tile-roofed
+        # wings, and excluding it is what leaves the loudest dorm on campus as a
+        # bare brown lid. An override is allowed past it, one building at a time,
+        # with the photograph quoted in the file.
+        if h < 4 or (h > MAX_HEIGHT_M and not ov.get("roof_over_max_height")):
             continue
         g = f["geometry"]
         rings = [g["coordinates"][0]] if g["type"] == "Polygon" else [poly[0] for poly in g["coordinates"]]
@@ -1322,7 +2019,7 @@ def main():
                 continue
             key = "%s/%d" % (p.get("id"), ri)
             if key in cache and len(cache[key]) >= 3:
-                run, eave, meas = cache[key]
+                run, eave, meas = cache[key][:3]
             elif key in cache:
                 # A cache written before roofs carried a measured colour. Keep
                 # its run/eave — those cost the minutes — and simply go without
@@ -1332,6 +2029,23 @@ def main():
             else:
                 run, eave, meas = tile_run(pm, lat0, hs)
                 cache[key] = [round(run, 2), round(eave, 3), meas]
+            # THE WHOLE-FOOTPRINT TILE FRACTION, cached beside the run because
+            # it is the second, independent reading the colour rule needs and
+            # re-reading it costs a 20x20 probe per candidate. Old three-element
+            # entries simply grow a fourth the first time they are asked.
+            if len(cache.get(key, ())) >= 4:
+                area_fr = cache[key][3]
+            else:
+                area_fr, _n = tile_frac_area(ring)
+                area_fr = round(area_fr, 3)
+                cache.setdefault(key, [round(run, 2), round(eave, 3), meas])
+                cache[key] = list(cache[key][:3]) + [area_fr]
+            if ri == 0 and ov.get("roof_run_m"):
+                # An override does not get to invent a roof — it corrects a run
+                # the ring probe under-read. `eave` keeps the measured value so
+                # the report still shows what the imagery actually said.
+                run = float(ov["roof_run_m"])
+                stats["run_from_override"] += 1
             if run < MIN_RUN_M:
                 stats["flat" if eave < RING_MIN else "tile_edge_only"] += 1
                 continue
@@ -1348,38 +2062,62 @@ def main():
             # campus median and the campus is not measured until the loop ends.
             # Stash the ratio on each facet and settle it in one pass below.
             rb_here = measured_rb(meas)
-            rd_real, rg_real = p.get("rd"), p.get("rg")
+            rd_real, rg_real, rn_real = p.get("rd"), p.get("rg"), p.get("rn")
 
-            rise = min(RISE_MAX, PITCH * run)
+            # ── the roof's own colour, if the building's is not one ──────
+            # An explicit override first (it is the same thing an OSM
+            # `roof:colour` tag would be), then the campus rule. Both go through
+            # bake_detail.py's own make_roof_colors so the day/golden/night
+            # triple can never be a different shape from every other roof's.
+            tile_col = ov.get("roof_colour")
+            if not tile_col and TILE_COLOUR_RULE:
+                own = rb_of(rd_real)
+                if (own is not None and own < TILE_RB_MIN
+                        and eave >= TILE_EAVE_MIN and area_fr >= TILE_AREA_MIN):
+                    tile_col = tile_base
+                elif own is not None and own < TILE_RB_MIN and eave >= TILE_EAVE_MIN:
+                    # The eave said tile and the footprint disagreed. That is
+                    # the case the second reading exists for; count it, do not
+                    # act on it.
+                    stats["tile_colour_rejected_by_area"] += 1
+            if tile_col:
+                rd_real, rg_real, rn_real = make_roof_colors(tile_col)
+                retinted[p.get("id")] = [rd_real, rg_real, rn_real]
+                stats["roofs_given_a_tile_colour"] += 1
+
             steps = max(STEPS_MIN, min(STEPS_MAX, int(round(run / STEP_TARGET_M))))
             # The wall's cap already sits at h + lift (CAP_GEOM in app.js); start
             # the roof from there so nothing z-fights the parapet.
             base = h + max(1.0, 0.015 * h)
-            before = len(out)
             # Ring 0 is the eave: outside the wall, and flat, so the roof reads
             # as sitting ON the building with an overhang instead of growing out
             # of it. It carries no rise, so it needs no per-facet tint.
             # The profile is solved once per building and every ring below is a
             # multiply-add on it. Walls whose middle can outrun their corners
             # gain sample points here and nowhere else.
-            ppts, prays, pcaps, spans = wall_profile(
-                poly, mrays, caps, run * steps / (steps + 0.35))
+            d_use = run * steps / (steps + 0.35)
+            d_want = d_use
+            npoly = len(poly)
+            ppts, prays, pcaps, spans = wall_profile(poly, mrays, caps, d_use)
             if len(ppts) > len(poly):
                 stats["walls_densified"] += len(ppts) - len(poly)
                 stats["roofs_densified"] += 1
+            rise = min(RISE_MAX, PITCH * run)
+            # Every polygon this building emits, in draw order, in LOCAL METRES,
+            # so `resolve_surfaces` can do arithmetic on it before any of it is
+            # converted back to degrees. Nothing is appended to `out` until the
+            # whole roof has been resolved.
+            emitted = []
             eave_ring = profile_ring(ppts, prays, pcaps, -EAVE_OUT_M)
             if abs(signed_area(eave_ring)) < 1.0:
                 eave_ring = None
             if eave_ring is not None:
                 # The eave lip is flat, so both ends of its shade range are the
                 # building's own baked colour and the sun term cannot move it.
-                out.append({
-                    "type": "Feature",
-                    "geometry": {"type": "Polygon", "coordinates": [to_ll(eave_ring, lat0)]},
-                    "properties": {"b": round(base, 2), "h": round(base + 0.35, 2), "az": 0,
-                                   "rd": p.get("rd"), "rg": p.get("rg"), "rn": p.get("rn"),
-                                   "rdd": p.get("rd"), "rgd": p.get("rg")},
-                })
+                emitted.append((eave_ring[:-1], round(base + 0.35, 2),
+                                {"b": round(base, 2), "h": round(base + 0.35, 2), "az": 0,
+                                 "rd": rd_real, "rg": rg_real, "rn": rn_real,
+                                 "rdd": rd_real, "rgd": rg_real}))
             start = eave_ring if eave_ring is not None else profile_ring(
                 ppts, prays, pcaps, 0.0)
             # Every step ring is the SAME rays clamped at the SAME per-point
@@ -1388,12 +2126,13 @@ def main():
             # it.
             rings = [(start, [-EAVE_OUT_M] * len(ppts), 0.0)]
             for s in range(1, steps + 1):
-                d = run * s / (steps + 0.35)
+                d = d_use * s / steps
                 rings.append((profile_ring(ppts, prays, pcaps, d),
                               [min(d, c) for c in pcaps], rise * s / steps))
             made = 0
             edge_steps = Counter()
             covers = []            # every polygon this roof puts above the eave
+            pieces = []            # ...with its top height, for audit_surfaces
             # ...and the same quads filed under the footprint edge each one is
             # the slope of, which is what audit_slope_depth needs.
             facet_by_edge = {}
@@ -1423,26 +2162,21 @@ def main():
                         stats["facet_guard_fired"] += 1
                         continue
                     edge_steps[i] += 1
-                    covers.append(face)
                     facet_by_edge.setdefault(i, []).append(face)
-                    out.append({
-                        "type": "Feature",
-                        "geometry": {"type": "Polygon", "coordinates": [to_ll(quad, lat0)]},
-                        "properties": {
-                            "b": b, "h": ht,
-                            "az": round(az),        # which way this slope faces
-                            # The two ends of this facet's shade range, from the
-                            # parent's own baked roof colours so a facet can
-                            # never drift from the cap it sits on. Which end it
-                            # lands on is the live sun's call, in timeofday.js.
-                            "rd": tint(rd_real, SHADE_HI),
-                            "rdd": tint(rd_real, SHADE_LO),
-                            "rg": tint(rg_real, SHADE_HI),
-                            "rgd": tint(rg_real, SHADE_LO),
-                            "rn": p.get("rn"),      # no sun at night, no tilt tint
-                            "_rb": rb_here,
-                        },
-                    })
+                    emitted.append((face, ht, {
+                        "b": b, "h": ht,
+                        "az": round(az),        # which way this slope faces
+                        # The two ends of this facet's shade range, from the
+                        # parent's own baked roof colours so a facet can
+                        # never drift from the cap it sits on. Which end it
+                        # lands on is the live sun's call, in timeofday.js.
+                        "rd": tint(rd_real, SHADE_HI),
+                        "rdd": tint(rd_real, SHADE_LO),
+                        "rg": tint(rg_real, SHADE_HI),
+                        "rgd": tint(rg_real, SHADE_LO),
+                        "rn": rn_real,          # no sun at night, no tilt tint
+                        "_rb": rb_here,
+                    }))
                 made += 1
 
             # THE TOP. Whatever the slope encloses has to be filled AT THE TOP OF
@@ -1496,30 +2230,70 @@ def main():
                         cols.append([int(c[0]), int(c[1]), int(c[2])])
                         hits += is_tile(c)
                 membrane = len(cols) >= DECK_MIN_PX and hits / len(cols) <= DECK_TILE_MAX
+                # AN OVERRIDDEN DECK COLOUR SKIPS THE VOTE, not just the value.
+                # On Jester the probe's own sample ring is half tile and half
+                # concrete, so `membrane` is a coin flip on a roof whose middle
+                # is plainly a concrete deck in the photograph. The override
+                # names the answer AND the colour, because naming only the
+                # colour would leave it unused half the time.
+                if ov.get("deck_colour"):
+                    membrane = True
+                    dc = ov["deck_colour"]
+                elif membrane:
+                    dc = deck_colour(cols, rd_real)
                 if membrane:
-                    dc = deck_colour(cols, p.get("rd"))
                     props = {"rd": dc, "rdd": dc,
-                             "rg": like(dc, p.get("rd"), p.get("rg")),
-                             "rgd": like(dc, p.get("rd"), p.get("rg")),
-                             "rn": like(dc, p.get("rd"), p.get("rn"))}
+                             "rg": like(dc, rd_real, rg_real),
+                             "rgd": like(dc, rd_real, rg_real),
+                             "rn": like(dc, rd_real, rn_real)}
                 else:
-                    props = {"rd": p.get("rd"), "rdd": p.get("rd"),
-                             "rg": p.get("rg"), "rgd": p.get("rg"),
-                             "rn": p.get("rn")}
+                    props = {"rd": rd_real, "rdd": rd_real,
+                             "rg": rg_real, "rgd": rg_real,
+                             "rn": rn_real}
                 top = round(base + 0.35 + rise, 2)
-                props.update({"b": round(top - 0.3, 2), "h": top, "az": 0})
-                out.append({
-                    "type": "Feature",
-                    "geometry": {"type": "Polygon", "coordinates": [dll]},
-                    "properties": props,
-                })
-                covers.append(deck[:-1])
+                # THE DECK'S SKIRT IS 2 cm, NOT 30, and that is half of A5. It
+                # used to be `top - 0.3`, and the deck's outer wall is the
+                # innermost facet's inner wall — the same vertical plane, in the
+                # same place, over the same 30 cm. Two coincident faces have no
+                # defined winner and the winner changes as the camera moves,
+                # which is a flicker in exactly the place he described it: "a bit
+                # of movement glitching between the slightly grayer roof and the
+                # brown slope". The skirt was never visible — it is buried in the
+                # joint between two surfaces that already meet — so the whole of
+                # it can go. 2 cm is kept rather than 0 so a zero-height
+                # extrusion never has to be reasoned about.
+                props.update({"b": round(top - DECK_SKIRT_M, 2), "h": top, "az": 0})
+                emitted.append((deck[:-1], top, props))
                 stats["decks" if membrane else "ridge_tops"] += 1
 
             if made < 1:
                 stats["tiled_but_degenerate"] += 1
-                del out[before:]
                 continue
+            # ── ONE SQUARE METRE, ONE SURFACE ────────────────────────────
+            resolved, dropped, lost_m2 = (
+                resolve_surfaces(emitted, start[:-1]) if RESOLVE_SURFACES
+                else ([( [r], t, pr) for r, t, pr in emitted], 0, 0.0))
+            stats["surfaces_dropped_by_resolver"] += dropped
+            stats["resolver_removed_m2"] += int(round(lost_m2))
+            stats["parts_added_by_resolver"] += max(0, len(resolved) - len(emitted))
+            stats["resolver_parts_with_a_hole"] += sum(1 for r, _, _ in resolved
+                                                       if len(r) > 1)
+            covers = [rings[0] for rings, t, _ in resolved
+                      if t > round(base + 0.35, 2) + 1e-6]
+            pieces = [(rings[0], t) for rings, t, _ in resolved]
+            for rings, _t, props in resolved:
+                # CLOSE THE RING HERE, once, rather than trusting each producer
+                # to. `face`, `deck[:-1]` and shapely's `exterior.coords` do not
+                # agree about it, and an unclosed GeoJSON ring is invalid — the
+                # `--fold-ok` control emitted 3,403 of them before this line and
+                # so could not be compared against the file it is a control for.
+                out.append({
+                    "type": "Feature",
+                    "geometry": {"type": "Polygon",
+                                 "coordinates": [close_ring(to_ll(r, lat0))
+                                                 for r in rings]},
+                    "properties": dict(props),
+                })
             stats["tiled"] += 1
             pitched.add(p.get("id"))
             stats["steps"] += made
@@ -1527,20 +2301,67 @@ def main():
                    round(sum(q[1] for q in ring[:-1]) / (len(ring) - 1), 5)]
             # Always measured, printed only with --audit: the number belongs in
             # every bake's output so a regression cannot land quietly.
+            #
+            # RUN ON THE RESOLVED GEOMETRY, not on what the bake intended, so a
+            # square metre the resolver takes away shows up here as a hole.
             bad = audit_coverage(start[:-1], covers, poly, p.get("name"), key, cen)
             if bad is not None:
                 audit.append(bad)
                 stats["roofs_with_a_hole"] += 1
-            walls = audit_slope_depth(poly, facet_by_edge,
-                                      run * steps / (steps + 0.35),
+            # MEASURED AGAINST WHAT THE ROOF WANTED, NOT AGAINST WHAT IT SETTLED
+            # FOR. Passing `d_use` here makes the test self-fulfilling — a fix
+            # that cuts the whole roof's depth back then reports every wall as
+            # reaching its target, which is how the first version of the
+            # simplicity fix looked clean while taking 9.5 m of 11.8 off the
+            # Biomedical Engineering Building.
+            walls = audit_slope_depth(poly, facet_by_edge, d_want,
                                       p.get("name"), key, cen)
             if walls:
                 diag.extend(walls)
                 stats["roofs_with_a_missing_slope"] += 1
                 stats["walls_with_no_slope"] += len(walls)
+            # The eave lip is this roof's own outline, so it is the reference
+            # rather than one of the pieces being judged.
+            surf = audit_surfaces(start[:-1], pieces, p.get("name"), key, cen)
+            if surf is not None:
+                surfaces.append(surf)
+                stats["roofs_drawn_twice_or_over_air"] += 1
+                stats["folded_rings"] += surf["folded_rings"]
             if report:
                 area_fr, _ = tile_frac_area(ring)
                 rows.append((run, hs, eave, area_fr, rise, p.get("name") or "(unnamed)"))
+
+    # ── ...and the same rule between roofs ───────────────────────────────
+    if RESOLVE_SURFACES:
+        ch, dr, ls = resolve_across_roofs(out, 30.285)
+        out = [f for f in out if not f["properties"].pop("_drop", None)]
+        stats["cross_roof_trimmed"] = ch
+        stats["cross_roof_dropped"] = dr
+        stats["cross_roof_removed_m2"] = int(round(ls))
+
+    # ── the authored entrance porches ────────────────────────────────────
+    #
+    # APPENDED AFTER BOTH RESOLVERS, DELIBERATELY. "One square metre, one
+    # surface" is the right law for a roof — a roof is a single skin and two
+    # pieces of it at the same place is a defect. A portico is the opposite: a
+    # pier, the arch over it, the entablature over that and the gable over that
+    # all share the same square metre of ground by design, at four different
+    # heights. Running it through `resolve_surfaces` would keep the tallest and
+    # delete the porch.
+    tile_rd, tile_rg, tile_rn = make_roof_colors(tile_base)
+    for f in feats:
+        ov = overrides.get(f["properties"].get("id")) or {}
+        spec = ov.get("loggia")
+        if not spec:
+            continue
+        rings = _outer_rings(f["geometry"])
+        if not rings:
+            continue
+        made = loggia_parts(rings[0], spec, tile_rd, tile_rg, tile_rn)
+        out.extend(made)
+        stats["loggia_parts"] += len(made)
+        if made:
+            stats["loggias"] += 1
 
     # ── Settle the roof colours, now that the whole campus has been measured ──
     #
@@ -1589,6 +2410,17 @@ def main():
     caps, cap_stats = ({}, Counter())
     if ROOF_CAPS:
         caps, cap_stats = deck_caps(feats, pitched, ROOFSCAPE)
+    # ...AND THE SAME TABLE CARRIES THE RETINTED ROOFS. `buildings-roof` — the
+    # parapet cap app.js draws over every top face — is painted from the
+    # BUILDING's `rd`, which is the colour this pass has just decided was not a
+    # roof colour. Leaving it alone would ring every corrected roof in the tan
+    # it was corrected out of, which is HANDOFF §37's defect with the colours
+    # swapped. `deck_caps` never touches a pitched building (it counts them as
+    # `skipped_pitched_roof`), so there is nothing to overwrite.
+    for bid, triple in retinted.items():
+        if bid:
+            caps[bid] = triple
+            cap_stats["cap_took_the_tile_colour"] += 1
     fc = {"type": "FeatureCollection", "features": out, "caps": caps}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
@@ -1600,6 +2432,14 @@ def main():
         "counts": dict(sorted(stats.items())),
         "parapet_caps": dict(sorted(cap_stats.items())),
         "caps_kb": round(len(json.dumps(caps, separators=(",", ":"))) / 1024, 1),
+        "tile_colour": {
+            "campus base": tile_base,
+            "derived from": tile_base_n or "nothing — the constant %s stood in" % TILE_BASE,
+            "rule": "eave >= %.2f AND whole footprint >= %.2f AND the building's "
+                    "own rd is below %.2f red/blue" % (TILE_EAVE_MIN, TILE_AREA_MIN,
+                                                       TILE_RB_MIN),
+            "overrides applied": len(overrides),
+        },
         "rule": "tile still reads on an offset ring %.2f m in; slope runs to where it stops"
                 % EAVE_D,
         "provenance": {"which buildings": "factual - terracotta tile read off the photograph",
@@ -1632,6 +2472,15 @@ def main():
             print("   %7.1f   %8.1f    %5.1f%%   %5s   %5.1f  %s   %s  at %s"
                   % (a["bare_m2"], a["could_m2"], a["short_fr"] * 100, a["wall_az"],
                      a["wall_len_m"], (a["name"] or "")[:38], a["id"], a["at"]))
+        surfaces.sort(key=lambda a: -(a["folded_rings"] * 1e6 + a["outside_m2"] * 1e3
+                                      + a["over_m2"]))
+        print("\n  ROOFS THAT DRAW A SQUARE METRE TWICE, OR DRAW OVER OPEN AIR - "
+              "%d of %d pitched roofs" % (len(surfaces), stats["tiled"]))
+        print("   folded  outside_m2  twice_m2  building")
+        for a in surfaces:
+            print("   %6d   %9.1f  %8.1f  %s   %s  at %s"
+                  % (a["folded_rings"], a["outside_m2"], a["over_m2"],
+                     (a["name"] or "")[:38], a["id"], a["at"]))
 
 
 if __name__ == "__main__":

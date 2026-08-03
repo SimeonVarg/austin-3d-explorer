@@ -10,6 +10,17 @@
   <script>/* HARNESS SHIM: preview tab is hidden, Chrome suspends rAF; drive frames with setTimeout so MapLibre renders */ window.requestAnimationFrame = function(cb){ return setTimeout(function(){ cb(performance.now()); }, 16); }; window.cancelAnimationFrame = clearTimeout; Object.defineProperty(document, "hidden", { get: function(){ return false; } }); Object.defineProperty(document, "visibilityState", { get: function(){ return "visible"; } });</script>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <!-- Teaches MapLibre the pmtiles:// scheme. index.html has carried this since
+       tiles landed; the harness did not, and js/tiles.js degrades QUIETLY when
+       the global is absent ("pmtiles or maplibre not loaded - falling back to
+       GeoJSON"), so TILES.on went false and EVERY tiled layer — trees, roads,
+       props, roofdetail and the outer ring — served its GeoJSON fallback in
+       every measurement any lane has ever taken through this page.
+       e4883d1 ("Every pixel we have measured was of a city with no vector
+       tiles") added js/tiles.js here and stopped one line short of the library
+       it needs. harness-drift.mjs could not see the gap because its regex
+       matched `js/...` sources only; it compares CDN scripts too now. -->
+  <script src="https://unpkg.com/pmtiles@3.0.6/dist/pmtiles.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>

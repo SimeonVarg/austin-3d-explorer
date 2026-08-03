@@ -96,6 +96,8 @@
   const L_FLAT = 'outer-3d';
   const L_TOWER = 'outer-tower';
   const L_TOWER_ROOF = 'outer-tower-roof';
+  const L_MID = 'outer-midrise';
+  const L_MID_ROOF = 'outer-midrise-roof';
   const L_DETAIL = 'outer-detail';
   const DATA = 'data/outer_ring.geojson';
   const TOWER_PALETTE = 'data/outer_tower_palette.json';
@@ -117,7 +119,17 @@
   const IS_DETAIL = ['has', 'k'];
   const IS_WALL = ['!', IS_DETAIL];
   const IS_TOWER = ['all', ['==', ['get', 't'], 1], IS_WALL];
-  const NOT_TOWER = ['all', ['!=', ['get', 't'], 1], IS_WALL];
+  // `t=2` is the downtown STREETWALL (scripts/bake_outer.py:MIDRISE_H). It is
+  // the second exception to "the ring is flat colour", and it exists because a
+  // detailed tower standing between blank cream boxes is what "the smaller ones
+  // are just skeletons" describes. 725 features, not 7,511 — the argument for
+  // keeping the ring flat is a count argument, and this count is a thirtieth of
+  // it.
+  const IS_MID = ['all', ['==', ['get', 't'], 2], IS_WALL];
+  // Everything that is neither, i.e. what stays flat. This USED to be
+  // `!= 1`, which would now hand the mid-rise to both layers at once and
+  // z-fight the whole of downtown against itself.
+  const NOT_TOWER = ['all', ['!=', ['get', 't'], 1], ['!=', ['get', 't'], 2], IS_WALL];
 
   // Every wall now MAY start above the ground: a tower shaft stands on its
   // podium, a Jenga block on the block below it. `b` is absent on the 7,511
@@ -219,12 +231,39 @@
     outerLP = outerTiles ? outerTiles.layerProps : {};
 
     let gj = null, patterned = 0, towers = [];
-    // How L_TOWER finds its pattern. On the GeoJSON path each tower is stamped
-    // with `wp` in the browser and the shared expression reads it. On the TILE
-    // path it cannot be — see below — and this is replaced by a match on `fb`.
+    // How L_TOWER and L_MID find their pattern: a match on the BAKED ordinal
+    // `fb`, on BOTH data paths.
+    //
+    // THIS USED TO BE TWO DIFFERENT ELECTIONS and that was a latent divergence.
+    // The tile path joined the baked buckets by `fb`; the GeoJSON path threw
+    // them away and re-clustered the same towers in the browser
+    // (quantiseOuterFacades), so `&tiles=0` rendered a downtown built by
+    // different arithmetic from the one the site serves — and the fallback is
+    // exactly the path you reach for when you are debugging the real one. The
+    // ordinal is in outer_ring.geojson either way, so there is no reason for
+    // the browser to elect anything: one election, in the bake, for both.
+    //
+    // The low-rise ring is still snapped in the browser, because its buckets
+    // are the CAMPUS palette and porting that election is C1's other half.
     let towerPattern = window.FACADE_PATTERN_EXPR;
+    let midPattern = null;
 
-    if (outerTiles) {
+    // Both classes register the same way; only the family differs. Towers are
+    // `tg` (51% glazing, curtain wall) and the streetwall is `mh` (20%, the
+    // punched campus-hall grid) — putting a curtain wall on a two-storey
+    // shopfront is the same category error as putting campus tan on a tower.
+    const joinBuckets = (buckets, key, family) => {
+      if (!buckets || !buckets.length) return null;
+      const ids = window.registerFacadeBuckets &&
+                  window.registerFacadeBuckets(map, buckets, { key, family });
+      if (!ids || !ids.length) return null;
+      const match = ['match', ['get', 'fb']];
+      buckets.forEach((b, i) => { match.push(b.fb, ids[i]); });
+      match.push('mh00');            // an unstamped building keeps the old look
+      return window.facadeTierExpr ? window.facadeTierExpr(match) : match;
+    };
+
+    {
       // ── the tile path's own facade join ────────────────────────────
       //
       // A vector tile cannot be mutated, so `wp` — which does not exist until
@@ -246,17 +285,12 @@
       // other.
       try {
         const pal = await getJSON(TOWER_PALETTE);
-        const ids = window.registerOuterTowerBuckets &&
-                    window.registerOuterTowerBuckets(map, pal.buckets);
-        if (ids && ids.length) {
-          const match = ['match', ['get', 'fb']];
-          pal.buckets.forEach((b, i) => { match.push(b.fb, ids[i]); });
-          match.push('mh00');          // an unstamped tower keeps the old look
-          towerPattern = window.facadeTierExpr ? window.facadeTierExpr(match) : match;
-          patterned = pal.buckets.length;
-        }
+        const t = joinBuckets(pal.buckets, 'outer-tower', 'tg');
+        if (t) { towerPattern = t; patterned += pal.buckets.length; }
+        midPattern = joinBuckets(pal.midrise, 'outer-midrise', 'mh');
+        if (midPattern) patterned += pal.midrise.length;
       } catch (e) {
-        console.warn('[outer] tower palette not applied:', e.message);
+        console.warn('[outer] downtown palette not applied:', e.message);
       }
     }
     if (!outerTiles) {
@@ -267,14 +301,17 @@
         return;
       }
 
-      // The towers are stamped with a pattern id BEFORE addSource. MapLibre
-      // serialises a GeoJSON source to its worker on addSource, so mutating the
-      // same objects afterwards changes nothing on screen — the same trap
-      // js/app.js documents for the stadium.
+      // NOTHING IS STAMPED HERE ANY MORE. `fb` is already on every tower and
+      // every mid-rise in the file, put there by
+      // scripts/bake_outer_facades.py, and the match built above reads it — so
+      // this path and the tile path now render downtown from the same
+      // arithmetic instead of two elections that merely agreed in practice.
+      //
+      // The old code called quantiseOuterFacades(towers) here, which clustered
+      // the same 243 towers a second time in the browser and wrote `wp`. That
+      // is what the removal is; `quantiseOuterFacades` itself is untouched and
+      // still owns the campus/low-rise snap it was written for.
       towers = gj.features.filter(f => f.properties && f.properties.t === 1);
-      if (typeof window.quantiseOuterFacades === 'function') {
-        patterned = window.quantiseOuterFacades(towers, map);
-      }
       _gj = gj;
       _palSig = paletteSignature();
     }
@@ -360,6 +397,26 @@
       },
     }, before);
 
+    // 2a. The downtown STREETWALL. Same treatment as a tower — a real window
+    //     pattern and a parapet — on the 8-40 m buildings between them. Falls
+    //     back to the flat layer if the palette did not register, rather than
+    //     drawing an unpatterned hole: MapLibre paints an unknown pattern id
+    //     TRANSPARENT, so "no pattern" must mean "no layer", not "empty layer".
+    if (midPattern) {
+      map.addLayer({
+        id: L_MID, type: 'fill-extrusion', source: SRC, ...outerLP,
+        minzoom: OUTER.minZoom,
+        filter: IS_MID,
+        paint: {
+          'fill-extrusion-pattern': midPattern,
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-base': BASE,
+          'fill-extrusion-opacity': OUTER.opacity,
+          'fill-extrusion-vertical-gradient': true,
+        },
+      }, before);
+    }
+
     // 2b. The downtown detail: crowns, gables, masts, ground-floor bands and
     //     park pads. One flat-coloured fill-extrusion for all of them, filtered
     //     on `k`. NOT density-filtered: a crown is 4% of its tower's height and
@@ -401,18 +458,33 @@
           'fill-extrusion-opacity': 1.0,
         },
       }, before);
+
+      // 3b. …and the same parapet on the streetwall, which is where a flat cut
+      //     is most obvious: you look DOWN on a 12 m roof from anywhere on
+      //     campus. This costs no new features — `t=2` carries rd/rg/rn for
+      //     exactly this, the same way `t=1` does — and it is the shared
+      //     CAP_GEOM rule, so the ring's parapet cannot drift from the core's.
+      if (midPattern) {
+        map.addLayer({
+          id: L_MID_ROOF, type: 'fill-extrusion', source: SRC, ...outerLP,
+          minzoom: OUTER.minZoom,
+          filter: IS_MID,
+          paint: {
+            'fill-extrusion-color': roofColor(p),
+            'fill-extrusion-height': G.height(['get', 'h']),
+            'fill-extrusion-base': G.base(['get', 'h']),
+            'fill-extrusion-opacity': 1.0,
+          },
+        }, before);
+      }
     }
 
     watchPitch(map);
 
-    if (outerTiles) {
-      console.log('[outer] ring streaming as tiles;', patterned,
-                  'tower facade buckets registered from the baked ordinals');
-    } else {
-      console.log('[outer]', gj.features.length, 'ring buildings (',
-                  towers.length, 'towers,', patterned, 'patterned on their own',
-                  'clustered colours )');
-    }
+    console.log('[outer]', outerTiles ? 'ring streaming as tiles;'
+                                      : gj.features.length + ' ring buildings;',
+                patterned, 'downtown facade buckets registered from the baked',
+                'ordinals (towers + streetwall)', midPattern ? '' : '- NO STREETWALL');
   };
 
   window.applyOuterColors = function applyOuterColors(map, p) {
@@ -430,11 +502,17 @@
         map.setPaintProperty(L_DETAIL, 'fill-extrusion-color', bakedColor(p));
     } catch (e) {}
     try {
-      if (map.getLayer(L_TOWER_ROOF))
-        map.setPaintProperty(L_TOWER_ROOF, 'fill-extrusion-color', roofColor(p));
+      // BOTH parapets, or the mid-rise keeps a daylit roof after dark — the
+      // §35 item 1 failure, on 725 more features. A layer added in this pass
+      // that is missing from this function is the single easiest way to
+      // reintroduce it, which is why the list is walked rather than written out.
+      for (const id of [L_TOWER_ROOF, L_MID_ROOF]) {
+        if (map.getLayer(id))
+          map.setPaintProperty(id, 'fill-extrusion-color', roofColor(p));
+      }
     } catch (e) {}
-    // L_TOWER carries its colour inside the shared facade atlas, which
-    // updateFacades() has already repainted by the time we get here.
+    // L_TOWER and L_MID carry their colour inside the shared facade atlas,
+    // which updateFacades() has already repainted by the time we get here.
   };
 
   /**
@@ -459,12 +537,15 @@
     // 146 crowns and 309 flat park pads cannot mass into anything, and a
     // skyline that loses its crowns when the camera tilts is the defect this
     // whole pass is fixing.
-    for (const id of [L_FLAT, L_TOWER, L_TOWER_ROOF, L_DETAIL]) {
+    // L_MID is not in the pitch fade either, for the same reason as L_DETAIL:
+    // it is downtown, it is 725 features, and it cannot mass into a plane.
+    const ROOFS = [L_TOWER_ROOF, L_MID_ROOF];
+    for (const id of [L_FLAT, L_TOWER, L_MID, L_TOWER_ROOF, L_MID_ROOF, L_DETAIL]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', OUTER.on ? 'visible' : 'none');
         map.setPaintProperty(id, 'fill-extrusion-opacity',
-                             id === L_TOWER_ROOF ? 1.0
+                             ROOFS.indexOf(id) >= 0 ? 1.0
                              : id === L_FLAT ? flatOp : OUTER.opacity);
       } catch (e) {}
     }

@@ -6,7 +6,8 @@
       "setback_skipped_slim": 1,
       "crown": 106,
       "mast": 36,
-      "retail": 219,
+      "retail": 751,
+      "plant": 189,
       "curated": 10,
       "jenga": 1,
       "taper": 8,
@@ -15,7 +16,9 @@
       "height_checked": 114,
       "height_mismatch": 0,
       "height_worst": [],
-      "parts_per_tower_max": 8
+      "parts_per_tower_max": 8,
+      "plant_offroof": 1,
+      "floating_pieces": 2
     },
     "green": {
       "read": 839,
@@ -31,17 +34,17 @@
     }
   },
   "shipped": {
-    "features": 8428,
+    "features": 9149,
     "bodies": 7625,
-    "detail": 803,
+    "detail": 1524,
     "by_kind": {
       "tower": 243,
       "flat": 7511,
-      "c": 146,
-      "r": 219,
+      "c": 335,
+      "r": 751,
       "g": 309
     },
-    "with_base": 275,
+    "with_base": 464,
     "max_top_m": 315.0
   },
   "date": "2026-07-30",
@@ -66,6 +69,7 @@
   "raw_candidates": 47238,
   "kept": 7625,
   "towers": 114,
+  "midrise": 645,
   "dropped_too_small": 39179,
   "dropped_duplicate": 434,
   "height_source": {
@@ -160,7 +164,7 @@
     "2": 459,
     "3": 40
   },
-  "file_kb": 2982,
+  "file_kb": 3254,
   "rules": {
     "keep_any_height_m": 24.0,
     "area_floor_m2": 115.0,

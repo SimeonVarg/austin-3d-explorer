@@ -66,6 +66,7 @@
     "overture_release": "2026-07-22.0",
     "built_against_snapshot": "2026-07-30",
     "buildings": 7625,
-    "towers": 114
+    "towers": 114,
+    "midrise": 645
   }
 }

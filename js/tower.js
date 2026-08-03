@@ -40,6 +40,10 @@
  * cells in the left column near the top. That is what a photograph of the real
  * thing shows, and three window columns is exactly enough to write a 1.
  *
+ * The STRUCTURE of that light — which parts glow, how much, and why it is not
+ * one orange repaint — is the NIGHT block below. Read it before touching any
+ * night hex here or in scripts/bake_tower.py.
+ *
  * Reference table, sources and the honest sourced/generative split:
  * docs/PASS_TOWER.md.
  *
@@ -212,6 +216,227 @@
   };
   window.TOWER_CROWN = CROWN;
 
+  /**
+   * ══ THE FLOODLIGHTING ══════════════════════════════════════════════
+   *
+   * WHAT WAS WRONG. The Tower's night state was three flat hexes — shaft
+   * `#b03a15`, cornice `#c9501c`, crown `#dd6420` — one per band, with the
+   * CROWN brightest. Measured on screen at tod 0.95 (a vertical scan of the
+   * blank stone either side of the window slots, `00-plain.png`):
+   *
+   *     top of shaft  R 72.2   middle R 74.8   bottom of shaft R 67.1
+   *
+   * — 51 m of tower varying by 1.12x, and very slightly brighter at the TOP.
+   * That is the "flat orange slab" in the sweep. Every photograph says the
+   * opposite, and says it by a factor of five.
+   *
+   * WHERE THE LAMPS ACTUALLY ARE. Sourced (jimnicar.com, "Tower Light, Tower
+   * Bright"), and it is the whole answer: **292 floodlights, half orange and
+   * half white, on the four recesses or "setbacks" of the Tower** —
+   *
+   *     96 x 1000 W  at the Tower BASE            -> washes the shaft, upward
+   *     64 x  250 W  on the OBSERVATION DECK      -> washes the clock stage
+   *     48 x  500 W  projectors at the BELFRY     -> the colonnade
+   *     84 x  100 W  around the PARAPET at the top-> the cap
+   *
+   * with "two circuits at each setback: one for all-orange lights, the other
+   * for all-white", switchable per level. The modern rig is 244 lamps on a
+   * control box in the clock room for "the lights on the Tower's crown, the
+   * lights above the Tower's clock and the lights on the Tower's observation
+   * deck" (tower.utexas.edu).
+   *
+   * So the Tower is not one lit object. It is FOUR lit objects stacked, each
+   * washed from its own floor, each independently orange or white — which is
+   * exactly why "White Tower with Orange Top" is one of the seven named
+   * configurations and not a special effect. CONFIGS below is that switchboard.
+   *
+   * WHAT THE PHOTOGRAPHS MEASURE. Three, sampled pixel by pixel rather than
+   * remembered (Wikimedia Commons: `UT-Tower-BurntOrange.jpg` 1126x1710 close
+   * on the crown, `UT_tower_lit_entirely_in_orange.jpg` a wider worm's-eye, and
+   * `UT_Tower_lit_white_with_orange_top.jpg` for the unclipped white shaft):
+   *
+   *   1. THE SHAFT FALLS OFF UPWARD, HARD. Red channel bottom -> top of the
+   *      visible shaft: 254 -> 47 (5.4x, and the bottom is clipped so the true
+   *      ratio is larger); the second photograph reads 243 -> 30 on its south
+   *      face (8x); the white-lit one reads 122 -> 15 in luma (8x) and is not
+   *      clipped anywhere, so this is not a clipping artefact.
+   *      Fitted over the unclipped part of the first: R(z) = 1109*exp(-z/20.3),
+   *      which reproduces every sample within 4% (117 measured / 118 fitted at
+   *      z 45.4, 68 / 71 at 55.7, 47 / 47 at 64.2). Hence L below.
+   *   2. THE CORNICE IS THE DARKEST BAND, not the second brightest. It reads
+   *      (16,5,3) in the close photograph: it overhangs, so it is above the
+   *      base floods' throw and below the deck's, and the deck fixtures stand
+   *      ON it pointing up and away. It is the single strongest cue that the
+   *      shaft and the crown are different light sources.
+   *   3. THE CLOCK STAGE IS THE BRIGHTEST AND THE YELLOWEST BAND — (242,118,4)
+   *      at its foot against (97,27,4) near its top, a 2.5x falloff over 4.7 m,
+   *      because 64 lamps sit on the deck immediately below it.
+   *   4. THE BELFRY IS DEEP RED WITH BLACK OPENINGS. The projectors light the
+   *      columns; the bell chamber behind them is unlit and reads black.
+   *   5. THE CLOCK DIALS ARE LIT FROM WITHIN and are the brightest thing in
+   *      every frame — (231,229,199), (224,217,192), and clipped white in the
+   *      third. Near-neutral cream, not gold: the gilt RIM and the hands read
+   *      DARK against them.
+   *   6. THE MAIN BUILDING IS NOT LIT. Measured (7,19,7) — black. Unchanged.
+   *
+   * WHAT THE RENDERER CAN ACTUALLY DO, measured rather than assumed, because
+   * PR #56 concluded from the last attempt that it can do nothing. Pushing a
+   * ladder of known texel values through `map.updateImage` and reading the
+   * screenshot back (the tone curve is a CSS filter and the bloom a second
+   * canvas, so only a screenshot sees what Simeon sees) at tod 0.95:
+   *
+   *     texel  64 -> screen  21.4      texel 192 -> screen  74.8
+   *     texel 128 -> screen  49.4      texel 255 -> screen 102.7
+   *
+   * — linear, gain 0.40, monotonic over the whole range. There is ample room
+   * for a 5x gradient. TWO REAL CEILINGS, though:
+   *   - A lit face cannot exceed ~103/255. `setLight` at night is
+   *     `{color:'#9aa6da', intensity:0.066}` and that is the cap.
+   *   - THERE IS NO BLOOM TO HELP. graphics.js thresholds with `contrast(4)`,
+   *     which passes only inputs above 0.375, and 103/255 = 0.40 sits on the
+   *     line. Measured: the halo ring around the detail layer moves by 0.2 of
+   *     one level across the entire ladder from `#040404` to `#ffffff`. PR #56
+   *     was RIGHT that a fill-extrusion cannot be made to glow here and WRONG
+   *     that the colours are indistinguishable — `#ffffff` lands (94,82,101),
+   *     `#f2ecc8` lands (91,76,80) and `#ffd27a` lands (93,68,51), which are
+   *     three different colours, not one. Structure is available; glow is not.
+   *     So this pass buys the read with CONTRAST, never with brightness.
+   *
+   * Everything below is a one-line override (CLAUDE.md rule 11).
+   * `?towerlight=white-orange-top` switches configuration without an edit, and
+   * `?towernight=0` takes the whole relight off for an A/B in one build.
+   */
+  const NIGHT = {
+    on: q.get('towernight') !== '0',
+
+    // Which of the seven sourced configurations to fly. 'orange-no1' is the
+    // national-championship state and the only one that writes the numeral;
+    // it is the default because it is the one the bake's window data builds.
+    config: q.get('towerlight') || 'orange-no1',
+
+    // The switchboard, one row per named configuration, one column per
+    // setback. 'o' = the orange circuit, 'w' = the white circuit, '-' = off.
+    // This IS the 1937 wiring: two circuits per setback, chosen per level.
+    CONFIGS: {
+      'white':            { shaft: 'w', deck: 'w', belfry: 'w', cap: 'w', numeral: 0 },
+      'white-orange-top': { shaft: 'w', deck: 'o', belfry: 'o', cap: 'o', numeral: 0 },
+      'orange':           { shaft: 'o', deck: 'o', belfry: 'o', cap: 'o', numeral: 0 },
+      'orange-no1':       { shaft: 'o', deck: 'o', belfry: 'o', cap: 'o', numeral: 1 },
+      'dark-white-cap':   { shaft: '-', deck: 'w', belfry: '-', cap: 'w', numeral: 0 },
+      'dark':             { shaft: '-', deck: '-', belfry: '-', cap: '-', numeral: 0 },
+    },
+
+    /**
+     * One entry per setback.
+     *   z0     the floor the fixtures stand on, metres (the setback itself)
+     *   L      e-folding length of the wash in metres. 20.3 on the shaft is
+     *          FITTED to the close photograph; the upper levels are shorter
+     *          because a 250 W lamp at 2 m does not throw like a 1 kW at 40.
+     *   gain   how far OVER the circuit colour the lamp datum sits. The fit
+     *          puts the shaft at R 410 where it emerges from the Main Building
+     *          roof — 1.6x the top of the texel range — and that is not a
+     *          mistake to correct, it is the reason every photograph of an
+     *          orange Tower is blown out for the first 15 m of shaft. The
+     *          first cut of this pass set the datum to a legal 252 and the
+     *          whole shaft came out a third too dark, because the part of it
+     *          you can actually SEE starts at z 29 (the Main Building hides
+     *          the rest) by which point the wash has already dropped to 0.65.
+     *   floor  the wash never goes below this. Ambient, spill off the stone
+     *          and the city's own skyglow are all real — the west face of the
+     *          second photograph only falls 3.5x, against 8x on the south —
+     *          and it is also what stops the top of the shaft dropping out of
+     *          the frame entirely against a black sky, which would read as a
+     *          missing chunk of building rather than as distance.
+     *   bands  how many sub-bands the wash is quantised into. The edges are
+     *          spaced by equal WASH RATIO rather than equal height, so the
+     *          visible step is the same all the way up instead of being
+     *          coarsest at the bottom where the gradient is steepest. (For the
+     *          exponential part that works out to equal heights anyway — the
+     *          two only differ where the floor binds — but the construction is
+     *          what guarantees it, not the arithmetic coincidence.)
+     *
+     *          COUNT IS A MEASURED NUMBER, not a guess. 20 bands over a 5x
+     *          range is an 8% step, and on the WHITE configuration — the worst
+     *          case, because the same relative step lands at three times the
+     *          luma — that measured as visible Mach banding: 4-row plateaus
+     *          with 10-luma jumps between them (50 51 51 54 | 57 57 58 58 |
+     *          63 64 64 64 | ... | 107 108 108 109). The night atlas cannot
+     *          dither it away either: the ashlar mottle is scaled by
+     *          (1 - dark*0.6), so after sunset its amplitude is 2% and it is at
+     *          its weakest exactly where it is needed. 40 halves the step.
+     *   o / w  the circuit colour at the lamp datum, in TEXEL space (this is
+     *          multiplied by the wash and then by the 0.40 render gain). The
+     *          orange ratio 1 : 0.20 : 0.11 is the mean of the unclipped
+     *          samples across all three photographs (south face 1:0.11:0.06,
+     *          west face 1:0.19:0.09, belfry 1:0.23:0.13, cap 1:0.19:0.13).
+     *          The deck runs yellower because the photograph says it does.
+     */
+    // Predicted screen R for the shaft from these numbers, against the close
+    // photograph's own (measured through the 0.40 render gain):
+    //     z 29  102 / 102clip    z 35  79 / 79     z 45  47 / 47
+    //     z 55   29 / 27         z 66  19 / 19
+    LEVELS: {
+      shaft:  { z0: 20.2, L: 20.3, gain: 1.63, floor: 0.115, bands: 40, o: [252, 62, 32],  w: [216, 210, 198] },
+      deck:   { z0: 70.1, L: 6.4,  gain: 1.00, floor: 0.34,  bands: 10, o: [250, 112, 42], w: [238, 232, 216] },
+      belfry: { z0: 79.2, L: 14.0, gain: 1.25, floor: 0.62,  bands: 4,  o: [216, 54, 30],  w: [216, 210, 198] },
+      cap:    { z0: 90.7, L: 5.0,  gain: 1.00, floor: 0.68,  bands: 2,  o: [238, 64, 34],  w: [226, 218, 204] },
+    },
+
+    // The bracketed cornice, 66.3-70.1. Its own level in everything but name:
+    // it takes the SHAFT's circuit (so "white with orange top" keeps it white,
+    // which is what that photograph shows) at the shaft's top-of-throw value,
+    // knocked down again because it overhangs its own light.
+    // 0.34 reproduced the close photograph's (16,5,3) exactly and rendered as a
+    // black GAP between the shaft and the crown at flying distance, which reads
+    // as missing geometry rather than as an unlit band. 0.45 is still darker
+    // than anything else on the tower and still clearly a separate light.
+    corniceShade: 0.45,
+
+    // The bronze window channel is in the wash but recessed 0.30 m, so it sits
+    // in its own shadow; the bell chamber behind the colonnade is not lit at
+    // all; the copper roof is above every fixture on the building.
+    slotShade: 0.42,
+    voidHex: '#0d0c10',
+    capRoofHex: '#191412',    // was #1a2028 — blue-black under a blue night
+                              // light reads as a teal chip on an orange tower.
+    // The obstruction light on the finial. Sourced: the "Dark Tower" state is
+    // "completely darkened except for its clock face and AIRCRAFT WARNING
+    // LIGHTS", so this is the one thing on the building that is never off. Red,
+    // pre-divided for the blue night light like the dial. Invisible against a
+    // lit cap; the point of it is the two dark configurations.
+    beaconHex: '#9d190c',
+
+    // The balustrade stands IN the fixtures, so it is brighter than the band it
+    // rises from. This is how the visible lamp flare in the photographs gets
+    // into the render without adding 100 sub-pixel light-fitting prisms.
+    deckLamp: 1.30,
+
+    // Lit from within and unaffected by which circuit is on — the dial glows in
+    // 'dark' too, which is why "completely darkened except for its clock face"
+    // is a configuration at all. Cream, NOT gold: the gilt rim and the hands
+    // are the dark shapes on it.
+    //
+    // WHY THESE TWO HEXES ARE PRE-DIVIDED BY THE NIGHT LIGHT. MapLibre's
+    // fill-extrusion shader multiplies the feature colour by the light colour
+    // CHANNEL BY CHANNEL, and at night this scene's light is `#9aa6da` — blue.
+    // Blue therefore gets 0.855/0.604 = 1.42x the gain red does, and a warm
+    // cream authored honestly comes out cold: `#ffeec4` measured, isolated by
+    // filtering the detail layer to the dial alone, lands (111, 113, 126). The
+    // dial that a photograph shows as the warmest thing on the building was
+    // rendering as the bluest. So the authored value is the wanted screen
+    // colour DIVIDED by the light: `#ffd67e` lands about (110, 82, 60), which
+    // is the cream the photographs measure. This is the same trap PR #56 hit
+    // and read as "the colours are indistinguishable".
+    dialHex: '#ffd67e',
+    handHex: '#241c10',
+    rimHex: '#3a2f14',
+    // The numeral. Office fluorescent behind glass — the photographs measure it
+    // near-NEUTRAL (233,230,208), not warm, so this one is only half corrected.
+    numeralHex: '#ffeaba',
+    darkWinHex: '#14161c',
+  };
+  window.TOWER_NIGHT = NIGHT;
+
   const SRC = 'austin-tower';
   const L_WALL = 'tower-wall';     // banded walls, on our own pattern atlas
   const L_SOLID = 'tower-solid';   // roof facets and everything flat-coloured
@@ -370,13 +595,32 @@
   // was invisible and at night left the top 28 m of the Tower unlit.
   let _pats = null;
 
+  // A sub-band's pattern id is `parent~i`. It is a DIFFERENT image — it has to
+  // be, because it holds a different night colour — but it must be the SAME
+  // STONE, so the texture seed is allocated per PARENT id. Seeding off the full
+  // id gave each of the shaft's twenty sub-bands its own mottle and its own
+  // weathering streaks, and by day, where every sub-band is the identical
+  // limestone, that drew twenty visible horizontal seams up a blank wall.
+  const patBase = id => { const i = id.indexOf('~'); return i < 0 ? id : id.slice(0, i); };
+
   function collectPatterns(gj) {
-    const pats = {};
+    const pats = {}, seeds = {};
     let seed = 11;
     for (const f of gj.features) {
       const p = f.properties;
       if (!p || !p.pat || pats[p.pat]) continue;
-      pats[p.pat] = { fam: p.fam || p.pat, trio: [p.wd, p.wg, p.wn], seed: seed += 7 };
+      const base = patBase(p.pat);
+      if (seeds[base] == null) seeds[base] = (seed += 7);
+      pats[p.pat] = { fam: p.fam || base, trio: [p.wd, p.wg, p.wn], seed: seeds[base] };
+      // Register the PARENT id too, even though the relight leaves no feature
+      // asking for it. scripts/verify/tower-check.mjs reads the pattern list
+      // out of data/tower.geojson and asserts every id in it exists, and it is
+      // right to: a fill-extrusion whose image MapLibre does not have is
+      // painted transparent rather than defaulted, so a missing id is an
+      // invisible band, not an error. One 64 px tile is a cheap invariant.
+      if (base !== p.pat && !pats[base]) {
+        pats[base] = { fam: p.fam || base, trio: [p.wd, p.wg, p.wn], seed: seeds[base] };
+      }
     }
     return pats;
   }
@@ -760,6 +1004,133 @@
     return out.length;
   }
 
+  // ══ the floodlighting ══════════════════════════════════════════════
+  //
+  // Runs LAST, over whatever the bake and buildDetail between them produced,
+  // and touches nothing but `wn` and — for the two tall banded walls — where
+  // one feature is cut into several. Day and golden hour come out bit for bit
+  // identical: every sub-band inherits its parent's `wd` and `wg`, and the
+  // texture seed follows the parent id (see patBase).
+
+  const clamp255 = v => Math.max(0, Math.min(255, Math.round(v)));
+  const hexOf = rgb => '#' + rgb.map(v => clamp255(v).toString(16).padStart(2, '0')).join('');
+  /** A circuit colour dimmed to `k` of its value at the lamp. */
+  const dim = (rgb, k) => hexOf([rgb[0] * k, rgb[1] * k, rgb[2] * k]);
+
+  /**
+   * The wash: how much of a setback's light reaches height z. Exponential
+   * above the lamp, flat below it (you cannot be closer to a floodlight than
+   * standing on it), never below the level's floor.
+   */
+  function washAt(lv, z) {
+    return Math.max(lv.floor, Math.exp(-Math.max(0, z - lv.z0) / lv.L));
+  }
+
+  /**
+   * Cut [b, t] into `n` sub-bands whose WASH ratios are equal, not whose
+   * heights are. Equal heights put the whole visible step at the bottom of the
+   * shaft, where the curve is steepest — the top half would be twenty bands of
+   * an identical dark and the bottom two would jump 40%.
+   */
+  function washEdges(lv, b, t, n) {
+    const w0 = washAt(lv, b), w1 = washAt(lv, t);
+    const out = [b];
+    if (n > 1 && w1 < w0 - 1e-6) {
+      for (let i = 1; i < n; i++) {
+        const z = lv.z0 - lv.L * Math.log(w0 * Math.pow(w1 / w0, i / n));
+        const zz = Math.max(b, Math.min(t, z));
+        if (zz > out[out.length - 1] + 0.15 && t - zz > 0.15) out.push(zz);
+      }
+    }
+    out.push(t);
+    return out;
+  }
+
+  function relightNight(gj) {
+    if (!NIGHT.on) return 0;
+    const cfg = NIGHT.CONFIGS[NIGHT.config] || NIGHT.CONFIGS['orange-no1'];
+    const feats = gj.features;
+    const baseOf = part => {
+      const f = feats.find(x => x.properties && x.properties.part === part);
+      return f ? f.properties.base : null;
+    };
+    // The four setback floors, read back out of the bake rather than restated,
+    // so a height change in scripts/bake_tower.py moves the lights with it.
+    const B = {
+      cornice: baseOf('cornice') ?? 66.3,
+      stage: baseOf('clockstage') ?? 70.1,
+      belfry: baseOf('belfry-foot') ?? 78.2,
+      cap: baseOf('cap') ?? 90.7,
+    };
+    const L = NIGHT.LEVELS;
+    L.shaft.z0 = 20.2;            // the Main Building roof the base floods sit on
+    L.deck.z0 = B.stage;
+    L.belfry.z0 = B.belfry;
+    L.cap.z0 = B.cap;
+
+    const levelAt = z => (z < B.cornice ? 'shaft' : z < B.stage ? 'cornice'
+                        : z < B.belfry ? 'deck' : z < B.cap ? 'belfry' : 'cap');
+
+    /** The lit colour of a surface at height z, on whichever circuit is up. */
+    function lit(name, z, extra) {
+      const key = name === 'cornice' ? 'shaft' : name;
+      const lv = L[key], c = cfg[key];
+      if (c === '-') return NIGHT.capRoofHex;       // that setback is switched off
+      const k = washAt(lv, z) * lv.gain
+              * (name === 'cornice' ? NIGHT.corniceShade : extra == null ? 1 : extra);
+      return dim(c === 'w' ? lv.w : lv.o, k);
+    }
+
+    // ── the two tall banded walls become stacks of sub-bands ──────────
+    // Anything else keeps one feature and takes the wash at its own middle.
+    const SPLIT = { shaft: 'shaft', clockstage: 'deck' };
+    const out = [];
+    let split = 0;
+    for (const f of feats) {
+      const p = f.properties, part = p && p.part;
+      if (!part || !SPLIT[part] || !p.pat) { out.push(f); continue; }
+      const lv = L[SPLIT[part]];
+      const edges = washEdges(lv, p.base, p.h, lv.bands);
+      for (let i = 0; i < edges.length - 1; i++) {
+        const b = edges[i], t = edges[i + 1];
+        const props = Object.assign({}, p, {
+          base: +b.toFixed(2), h: +t.toFixed(2),
+          pat: p.pat + '~' + i, fam: p.fam || patBase(p.pat),
+          wn: lit(SPLIT[part], (b + t) / 2),
+        });
+        out.push({ type: 'Feature', properties: props, geometry: f.geometry });
+        split++;
+      }
+    }
+
+    // ── everything else: one value each, by part, then by height ──────
+    for (const f of out) {
+      const p = f.properties, part = p.part;
+      if (!part || SPLIT[part]) continue;             // sub-bands are done
+      if (part.indexOf('mb-') === 0) continue;        // the Main Building is not floodlit
+      const mid = (p.base + p.h) / 2;
+
+      if (part === 'belfry-void') { p.wn = NIGHT.voidHex; continue; }
+      if (part === 'cap-roof') { p.wn = NIGHT.capRoofHex; continue; }
+      // Only the top half of the finial — the neck below it stays copper, so
+      // the beacon reads as a light ON the summit rather than as a red spike.
+      if (part === 'finial') { p.wn = p.h >= 93.99 ? NIGHT.beaconHex : NIGHT.capRoofHex; continue; }
+      if (part === 'clock-dial') { p.wn = NIGHT.dialHex; continue; }
+      if (part === 'clock-hand') { p.wn = NIGHT.handHex; continue; }
+      if (part === 'clock-rim' || part === 'clock-tick' || part === 'clock-bezel') { p.wn = NIGHT.rimHex; continue; }
+      if (part === 'win-lit') { p.wn = cfg.numeral ? NIGHT.numeralHex : NIGHT.darkWinHex; continue; }
+      if (part === 'win') { p.wn = NIGHT.darkWinHex; continue; }
+      if (part === 'slot') { p.wn = lit('shaft', mid, NIGHT.slotShade); continue; }
+      // The balustrades stand in the fixtures, so they read as the light source.
+      if (part.indexOf('deck-') === 0) { p.wn = lit(levelAt(p.base), p.base, NIGHT.deckLamp); continue; }
+      p.wn = lit(levelAt(mid), mid);
+    }
+
+    gj.features = out;
+    window.__towerNight = { config: NIGHT.config, split, features: out.length, floors: B };
+    return split;
+  }
+
   let _added = false;
 
   window.initTower = async function initTower(map) {
@@ -776,6 +1147,8 @@
 
     const nBake = gj.features.length;
     if (CROWN.on) { try { buildDetail(gj); } catch (e) { console.warn('[tower] detail:', e.message); } }
+    let nSplit = 0;
+    try { nSplit = relightNight(gj); } catch (e) { console.warn('[tower] night:', e.message); }
 
     const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
     _pats = collectPatterns(gj);
@@ -849,11 +1222,34 @@
     window.__towerFeatures = gj.features.length;
     console.log('[tower]', nBake, 'baked ->', gj.features.length, 'features,', nImg, 'pattern images,',
                 'replacing', (gj.replacedBuildingIds || []).length, 'building +',
-                '2 OSM parts');
+                '2 OSM parts; night "' + NIGHT.config + '",', nSplit, 'wash bands');
   };
 
-  window.applyTowerColors = function applyTowerColors(map, p) {
+  /**
+   * QUANTISED, and this is a real fix rather than a micro-optimisation.
+   *
+   * js/timeofday.js splits applyTimeOfDay into a cheap half that runs every
+   * frame (the sky overlay, which tracks the camera) and a heavy half — the
+   * facade atlas, the interpolate expressions, the basemap sweep — which it
+   * quantises to 1/128 of the ramp, "1,920 heavy passes per sweep to 128 with
+   * no visible stepping". This module hooks applyTimeOfDay from OUTSIDE that
+   * split, so it never saw the quantisation: the Tower's atlas was rebuilt on
+   * all 1,920 frames of a 32 s auto cycle. That was already the case with the
+   * bake's 8 pattern images; the floodlight bands take it to 58, measured at
+   * 10-16 ms per rebuild, which is a whole frame budget spent every frame.
+   *
+   * Same PQ as timeofday.js on purpose. A different divisor would step the
+   * Tower's hour at moments the rest of the city does not, which is worse than
+   * either quantisation on its own.
+   */
+  let _lastPq = null;
+  const PQ = 128;
+
+  window.applyTowerColors = function applyTowerColors(map, p, force) {
     if (!map || !map.getLayer) return;
+    const pq = Math.round(Math.max(0, Math.min(1, p)) * PQ) / PQ;
+    if (force !== true && _lastPq !== null && pq === _lastPq) return;
+    _lastPq = pq;
     const col = bakedColor(p);
     for (const id of [L_SOLID, L_DETAIL]) {
       try { if (map.getLayer(id)) map.setPaintProperty(id, 'fill-extrusion-color', col); } catch (e) {}
@@ -887,7 +1283,10 @@
       const prev = window.applyTimeOfDay;
       const wrapped = function (m, p, force) {
         const r = prev.apply(this, arguments);
-        try { window.applyTowerColors(m, p); } catch (e) {}
+        // `force` has to travel: a jump straight to an hour (the verify suite,
+        // the snapshot switcher) must repaint even if p quantises to where it
+        // already was, or the Tower keeps the previous hour's atlas.
+        try { window.applyTowerColors(m, p, force); } catch (e) {}
         return r;
       };
       wrapped.__tower = true;

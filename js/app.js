@@ -755,17 +755,34 @@
   // floodlit stadium genuinely is one of the brightest objects in a night city,
   // and the void bands stay dark on purpose so the bowl still reads as a bowl
   // rather than as one orange blob.
+  //
+  // THE NIGHT COLUMN WAS BACKWARDS AND SIMEON HAS REJECTED IT TWICE.
+  //
+  //   "now the seats become bright yellow and everything else is dull - what?
+  //    the lights are supposed to illuminate everything"
+  //
+  // He is right, and the old note above defending this as a floodlit stadium had
+  // the physics inverted. Floodlights sit on the RIM pointing INWARD and DOWN.
+  // The field is the brightest surface in the frame; the lower bowl is lit and
+  // falls off with height; the seats are what the light LANDS on, not what emits
+  // it. Making the seat bands the brightest thing in a black city is a stadium
+  // lit from inside its own chairs.
+  //
+  // So the night column is now dark upholstery catching a little spill —
+  // brightest at the bottom of the bowl where the fixtures actually reach,
+  // falling off upward. The burnt-orange club chairs keep a touch more because
+  // they are a lighter material, not because they glow.
   const SEAT_COL = {
-    lower:     ['#9aacc3', '#b0aea9', '#d87c34'],   // day / golden / night
-    lowerB:    ['#8395ab', '#9c9a96', '#c26e2c'],
-    mid:       ['#a1b2c8', '#b6b4af', '#e08438'],
-    midB:      ['#899ab0', '#a2a09b', '#ca7530'],
-    upper:     ['#a7bbd4', '#bcbab5', '#e88c3e'],
-    upperB:    ['#8fa3ba', '#a8a6a1', '#d27a34'],
-    stain:     ['#8b8d8d', '#9a9083', '#c07038'],   // measured: luma 122.9, R/B 1.32
-    stainB:    ['#808282', '#8d8478', '#ac6430'],
-    orange:    ['#91706b', '#a3785f', '#f09a48'],   // club chairbacks, most lit
-    orangeB:   ['#82645f', '#946b55', '#d8883e'],
+    lower:     ['#9aacc3', '#b0aea9', '#3a3d47'],   // day / golden / night
+    lowerB:    ['#8395ab', '#9c9a96', '#34373f'],
+    mid:       ['#a1b2c8', '#b6b4af', '#33363f'],
+    midB:      ['#899ab0', '#a2a09b', '#2e3138'],
+    upper:     ['#a7bbd4', '#bcbab5', '#2b2e36'],
+    upperB:    ['#8fa3ba', '#a8a6a1', '#272931'],
+    stain:     ['#8b8d8d', '#9a9083', '#31333a'],   // measured: luma 122.9, R/B 1.32
+    stainB:    ['#808282', '#8d8478', '#2c2e34'],
+    orange:    ['#91706b', '#a3785f', '#4a3a33'],   // club chairbacks, a lighter
+    orangeB:   ['#82645f', '#946b55', '#41332d'],   // material, not a light source
     void:      ['#41454f', '#3f3c36', '#2a1810'],   // the slot STAYS dark: it is
     concourse: ['#849aa7', '#9f9e9a', '#8a5228'],   // what gives the bowl shape
   };
@@ -1188,7 +1205,14 @@
           paint:{
             'fill-extrusion-color': seatColourAt(window.__todCurrentP != null ? window.__todCurrentP : 0.5),
             'fill-extrusion-height':['get','h'],
-            'fill-extrusion-base':0,
+            // A SEAT DECK IS NOT A SOLID CONE. This was the literal `0`, so every
+            // seat feature extruded from the ground however the bake shaped it —
+            // 44 nested rings of rising height are then not an approximation of a
+            // bowl, they ARE a solid stepped pyramid. That is exactly Simeon's
+            // "your current seats look like cutouts from a big pyramid", and it
+            // was a description of the geometry rather than of the styling.
+            // An upper deck needs a void under it; a void needs a base.
+            'fill-extrusion-base':['coalesce', ['get','base'], 0],
             'fill-extrusion-opacity':1.0,
             'fill-extrusion-vertical-gradient':true,
           },

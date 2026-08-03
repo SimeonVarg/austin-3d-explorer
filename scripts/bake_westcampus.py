@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""The ten West Campus student high-rises, as STACKED GEOMETRY BANDS.
+"""West Campus: ten student high-rises and fourteen mid-rise blocks, as
+STACKED GEOMETRY BANDS.
 
 THE PROBLEM, measured. Ten towers between 55 and 82 m sit in the four blocks the
 camera flies through most, and every one of them arrives from Overture as a
@@ -47,6 +48,12 @@ So `podium` is present on two of the ten, not nine, and the amenity deck is on
 the ROOF for six of them. Sources are in docs/PASS_WESTCAMPUS.md, per building,
 each marked sourced or generative.
 
+TIER TWO — the mid-rise blocks — was added afterwards and has its own header
+above `MIDRISE` below, including the list of things it deliberately does not do
+and why. Read that before adding a building to either table. In short: West
+Campus is not made of towers, it is made of six-to-ten storey blocks, and those
+were still single prisms wearing one tile.
+
 Usage:  python scripts/bake_westcampus.py
 """
 import json
@@ -80,6 +87,8 @@ FURN_H = 0.75          # m of cabana / furniture cluster
 # the tallest thing on a real roof anyway. See docs/PASS_GLITCH.md.
 ROOF_CLEAR = 0.35
 SIGN_T = 0.5           # m thick crown sign plate
+COURT_Z = 0.45         # m: the floor of a ground-level courtyard, clear of the
+                       # ground pass's own 0.22 m paths and 0.45 m ring pads
 
 # `s` classes below are coloured by js/westcampus.js, NOT by the facade atlas.
 # Anything drawn as a flat colour goes through there; anything with a texture is
@@ -120,6 +129,15 @@ CROWN_GREY = "#6f7679"      # Moontower
 CROWN_TEAL = "#4f6268"      # Dobie's dark spandrel, carried into the notched cap
 PANEL_WARM = "#b8b1a5"      # warm off-white fibre-cement: 21 Rio, Inspire
 
+# Tier two's shared materials. Same discipline: the BODY colour is per building —
+# it is the whole point of the tier, see the MIDRISE header — and everything else
+# is shared, so ten buildings cost ten atlas images and not forty.
+BASE_BRICK = "#7d5747"      # dark brick / stained-timber ground floor
+BASE_STONE = "#a09582"      # cast stone / painted masonry ground floor
+BASE_STD = "#3f4348"        # The Standard's charcoal panel corner bay
+CROWN_PALE = "#c4bfb3"      # warm pale parapet coping band
+CROWN_STEEL = "#adb3b7"     # cool pale parapet coping band
+
 # ── The parameter table. Every building is the SAME system; only these
 #    values differ. Provenance for each row is docs/PASS_WESTCAMPUS.md.
 #
@@ -157,6 +175,34 @@ def _shp(geom):
         g = g.buffer(0)
     kx = 111320.0 * math.cos(math.radians(30.288))
     return transform(lambda x, y, z=None: (x * kx, y * 111320.0), g)
+
+
+def _balcony_mask(outer_m):
+    """The footprint grown by the balcony projection, as a shapely polygon.
+
+    Metres, in the building's own local frame — the same frame `rect_uv` works
+    in — so no projection is involved and the clip is exact.
+    """
+    from shapely.geometry import Polygon
+    g = Polygon(outer_m)
+    if not g.is_valid:
+        g = g.buffer(0)
+    return g.buffer(BALC_PROJ + 0.05, join_style=2)
+
+
+def _clip_to(rect_m, mask):
+    """rect ∩ mask, as a list of rings in metres. Drops slivers."""
+    from shapely.geometry import Polygon
+    g = Polygon(rect_m).intersection(mask)
+    if g.is_empty:
+        return []
+    parts = list(getattr(g, "geoms", [g]))
+    out = []
+    for q in parts:
+        if q.geom_type != "Polygon" or q.area < 1.0:
+            continue
+        out.append(ccw([(x, y) for x, y in list(q.exterior.coords)[:-1]]))
+    return out
 
 
 def _half_from_diagonal(d):
@@ -327,9 +373,260 @@ BUILDINGS = {
     ),
 }
 
+# ══ TIER TWO — the West Campus MID-RISE BLOCKS ════════════════════════
+#
+# WHY THERE IS A SECOND TIER. Tier one is the ten things that read as TOWERS.
+# But West Campus is not made of towers; it is made of six-to-ten storey blocks,
+# and they are what you fly past. Simeon's note is about those:
+#
+#   "so many apartments in austin wampus have such cool designs but are
+#    currently regular building blocks"
+#
+# He is right, and the reason turned out to be measurable rather than aesthetic.
+#
+# **The colour was already in the data and the renderer was throwing it away.**
+# `bake_detail.py` measures a wall colour per building — Rambler #966753 brick
+# red, 2400 Nueces #9ea8af cool grey, Pointe on Rio #99a4aa blue-grey — and then
+# `quantiseFacades()` elects the FOURTEEN most populous tones city-wide and folds
+# everything else into its nearest survivor. Rambler's brick comes out #af785d.
+# Measured over the 284 West Campus buildings ≥12 m, that fold moves a wall by a
+# median of 13.9 RGB and by up to 97.5 (Ion Austin's #54555b charcoal is painted
+# terracotta). A feature in THIS file skips the election — `quantiseStadiumFacades`
+# gives every (family, colour) its own atlas entry — so bringing a block in here
+# is what lets it keep the colour the imagery measured off it.
+#
+# WHAT THIS TIER DELIBERATELY DOES NOT DO, and each is a defect avoided:
+#   - **It never changes a building's HEIGHT.** The Standard is a 17-storey tower
+#     (Humphreys & Partners: 17 floors, 287 units, 989 beds, 640 parking spaces,
+#     1.34 acres) and the snapshot has it at 20.5 m, which is the old building's
+#     LiDAR. Correcting that belongs in `scripts/hero_overrides.json` + a re-run
+#     of `enrich.py`, because `js/controls.js` builds its collision field from
+#     `final_height`, `js/shadows.js` reads it, and the labels sit on it. Raising
+#     it HERE would draw a tower you can fly straight through. See HANDOFF.
+#   - **It never puts anything on a roof that `bake_roofscape.py` already
+#     furnished.** Measured: The Standard carries a generic roof deck at
+#     b=21.50 h=21.75 and 16 detail-tier condensers; 2400 Nueces a deck at
+#     22.20; Sterling, Twenty Two 15, Grayson, Block on 25th and The Nine the
+#     same. Those ids are NOT in `authoredRoofIds`, and adding them there would
+#     need `data/roofscape.geojson` re-baked, which this lane does not own. So
+#     the roofs are left exactly as they are, and TIER TWO PUTS NOTHING ON A
+#     ROOF AT ALL.
+#
+#     That last sentence cost The Standard its pool deck, and the reason is worth
+#     writing down because it is not aesthetic. Its lap pool, spa, turf strip and
+#     jumbotron are measurable — the z20 nadir post-dates the building and shows
+#     all of them at the NW corner — and they were built here, placed off that
+#     nadir in this bake's own (u,v) frame, and then removed. Every route to
+#     drawing them fails on the SAME wall:
+#       * on top of the generic deck (21.75 m) — breaks `westcampus-probe.mjs`'s
+#         "nothing stands above final_height", which is 20.5 m for this building;
+#       * on a lower stepped wing, which is what the real massing is — the
+#         generic deck spans the whole footprint at 21.5 m and would then hover
+#         over the wing with clear sky under it, the exact defect
+#         docs/PASS_GLITCH.md exists for;
+#       * at the parapet — `roof_z` is H + cap_lift, so still above H.
+#     All three are downstream of ONE stale number: 20.5 m for a 17-storey
+#     building. Fix the height in `scripts/hero_overrides.json` and the pool deck
+#     lands 35 m clear of the stale roofscape and every route opens at once. Do
+#     not re-add it before then.
+#   - **It never cuts a courtyard the data does not have.** 2400 Nueces really
+#     has two, and they are absent from its 8-node polygon — but the generic
+#     roofscape deck spans the whole footprint, so a hole underneath it would be
+#     invisible and the effort would buy nothing. Amenity goes only in courtyards
+#     that are ALREADY holes (`court`), where it is visible from above.
+#   - **It never touches a pitched roof.** Checked: none of the ten has a facet
+#     in `data/roofs.geojson`. The Villas on Guadalupe is left out for exactly
+#     this reason — the nadir shows grey hip roofs over a garden-apartment block
+#     and a garage deck, and this tier has no vocabulary for either.
+#
+# `courtyard` index into the footprint's holes. The amenity deck, pool and shade
+#           are placed from THAT RING'S OWN obb, so nothing is eyeballed: a
+#           courtyard pool is a fraction of the courtyard, wherever it is.
+MIDRISE = {
+    # ── The Standard at Austin, 715 W 23rd, Humphreys & Partners, 2021.
+    # Read off the architect's own exterior photographs, not from memory:
+    # a two-storey glazed retail base under a CHARCOAL panel corner bay carrying
+    # the name; above it a light field of cream / warm grey / charcoal panels
+    # laid up in a broken "pixel" pattern with terracotta accents; projecting
+    # balconies with black rails on every residential floor; a flat parapet.
+    # The body hex is the AREA-WEIGHTED read of that pixel field (five clusters
+    # over a 600x800 crop, glass excluded, lifted out of blue hour) — the same
+    # call union24.js makes and for the same reason: this renderer gets one wall
+    # colour per band and the honest value is the distant read.
+    # No roof amenity — see the tier header. When the height is corrected, the
+    # measured deck is: pool (51.8, -15.0, 4.4, 9.5), turf (46.0, -18.0, 5.0,
+    # 8.0), jumbotron (46.0, -11.5, 11.0, 1.0) 4.2 m tall, pergola
+    # (36.0, -19.0, 7.0, 6.0) — all in this bake's (u,v) frame, all read off the
+    # z20 nadir and checked by drawing them back onto it.
+    "The Standard": dict(
+        base=(7.0, "sg", BASE_STD),
+        podium=None,
+        tower=("mh", "#b3b0a2"),
+        crown=(2.6, "sf", CROWN_STEEL),
+        mech=0.0, deck=None, balc=("long", 1, 4), step=None, tplan=None,
+    ),
+    # ── Rambler, 2513 Seton Ave. The nadir shows a cream perimeter block around
+    # ONE courtyard — already a hole in the footprint — with a long lap pool and
+    # cabana rows down it. Body colour is the imagery's own #966753: this is one
+    # of the two brick buildings in West Campus and the fourteen-bucket election
+    # was painting it #af785d, a 31.8 RGB move onto the same terracotta as the
+    # churches.
+    "Rambler": dict(
+        base=(4.6, "sn", BASE_BRICK),
+        podium=None,
+        tower=("mh", "#966753"),
+        crown=(2.2, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 3), step=None, tplan=None,
+        courtyard=0, courtpool=(0.34, 0.62), courtshade=(0.30, 0.16, 0.30, 0.72),
+    ),
+    # ── 2400 Nueces. A 99.6 x 56.1 m perimeter block, six storeys, in the cool
+    # grey the imagery measures (#9ea8af). The nadir shows two internal
+    # courtyards and two big roof fans; the courtyards are not in the polygon and
+    # are left alone (see the header). OSM's building:levels=16 disagrees with a
+    # 21.2 m building by a factor of three and is not used.
+    "2400 Nueces": dict(
+        base=(5.0, "sp", BASE_STONE),
+        podium=None,
+        tower=("mh", "#9ea8af"),
+        crown=(2.4, "sf", CROWN_STEEL),
+        mech=0.0, deck=None, balc=("long", 1, 4), step=None, tplan=None,
+    ),
+    # ── The Quarters Grayson House, 714 W 22nd. The nadir shows a clean U — a
+    # deep light-well notch cut into the SOUTH elevation, already in the 20-node
+    # footprint — a pale cream parapet band, and a warm brick storey below it.
+    # The balcony slabs are clipped to the footprint here, which is what lets a
+    # U-plan have them at all: an unclipped slab on the notched elevation bridges
+    # the notch and hangs in mid air.
+    "The Quarters Grayson House": dict(
+        base=(5.0, "sn", BASE_BRICK),
+        podium=None,
+        tower=("mh", "#d5c6aa"),
+        crown=(2.6, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 6), step=None, tplan=None,
+    ),
+    # ── The Quarters Sterling House, 709 W 22nd. Same complex, same materials,
+    # one storey shorter. Its courtyard carries a green sport court and a pergola
+    # in the nadir — but the footprint has no hole there, so it stays a wall.
+    "The Quarters Sterling House": dict(
+        base=(5.0, "sn", BASE_BRICK),
+        podium=None,
+        tower=("mh", "#d5c6aa"),
+        crown=(2.4, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 5), step=None, tplan=None,
+    ),
+    # ── The Nine at West Campus, 2518 Leon St, five levels (OSM, and 14.4 m
+    # agrees). White render over a glazed base; the nadir shows a central light
+    # well with a spa and a pergola down inside it, and rows of condensers.
+    "The Nine at West Campus": dict(
+        base=(4.6, "sg", BASE_GLASS),
+        podium=None,
+        tower=("mh", "#afaba2"),
+        crown=(2.2, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 3), step=None, tplan=None,
+    ),
+    # ── Twenty Two 15, 2215 Rio Grande, eight levels and 156 flats (OSM).
+    # Grey concrete roof, a light-well notch on the north side already in the
+    # footprint, cast-stone base.
+    "Twenty Two 15": dict(
+        base=(5.2, "sp", BASE_STONE),
+        podium=None,
+        tower=("mh", "#cdba98"),
+        crown=(2.6, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 6), step=None, tplan=None,
+    ),
+    # ── The Block, 2504 Nueces. The tallest of the tier at 32.7 m, and a true
+    # perimeter block: the nadir shows a large central courtyard, which IS a hole
+    # in the footprint, and the roofscape put no deck on it — so this is one of
+    # the three courtyards in this tier you can actually see into.
+    "The Block": dict(
+        base=(5.4, "sg", BASE_GLASS),
+        podium=None,
+        tower=("mh", "#a9a499"),
+        crown=(2.8, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 7), step=None, tplan=None,
+        courtyard=0, courtshade=(0.0, 0.0, 0.34, 0.34),
+    ),
+    # ── Block on 25th East. A 91 m bar, cream, with a white roof and pitched
+    # neighbours at both ends that are NOT part of it.
+    "Block on 25th East": dict(
+        base=(5.0, "sp", BASE_STONE),
+        podium=None,
+        tower=("mh", "#ded2bc"),
+        crown=(2.6, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 6), step=None, tplan=None,
+    ),
+    # ── Pointe on Rio, 2101 Rio Grande. A narrow 90 x 37 m block in blue-grey
+    # (#99a4aa measured) around a courtyard that the nadir shows holding a pool.
+    # Two holes in the footprint; the pool is in the first.
+    "Pointe on Rio": dict(
+        base=(5.0, "sg", BASE_GLASS),
+        podium=None,
+        tower=("mh", "#99a4aa"),
+        crown=(2.4, "sf", CROWN_STEEL),
+        mech=0.0, deck=None, balc=("long", 1, 5), step=None, tplan=None,
+        courtyard=0, courtpool=(0.40, 0.52),
+    ),
+    # ── The Venue on Guadalupe, six levels (OSM). Two parallel bars with a
+    # terrace and a round pool between them — the pool is already in
+    # data/roofscape.geojson (3 `pool` features inside this footprint) and is
+    # deliberately not repeated here. Blue-grey #8d9ea9 measured.
+    "The Venue on Guadalupe": dict(
+        base=(5.0, "sg", BASE_GLASS),
+        podium=None,
+        tower=("mh", "#8d9ea9"),
+        crown=(2.4, "sf", CROWN_STEEL),
+        mech=0.0, deck=None, balc=("long", 1, 6), step=None, tplan=None,
+    ),
+    # ── The G, 2400 San Gabriel, eight levels (OSM). Clean pale flat roof with
+    # one light-well slot from the north, which the 26-node footprint has.
+    "The G": dict(
+        base=(5.2, "sp", BASE_STONE),
+        podium=None,
+        tower=("mh", "#e5dbc2"),
+        crown=(2.6, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 6), step=None, tplan=None,
+    ),
+    # ── Crest at Pearl, seven levels (OSM). The nadir shows a long pool down the
+    # middle of its courtyard, and the courtyard IS a hole in the footprint, and
+    # bake_roofscape.py left this roof to plant only — so this is the clearest
+    # courtyard in the tier: you look down a light well onto water.
+    "Crest at Pearl": dict(
+        base=(4.6, "sg", BASE_GLASS),
+        podium=None,
+        tower=("mh", "#b8b69f"),
+        crown=(2.0, "sf", CROWN_PALE),
+        mech=0.0, deck=None, balc=("long", 1, 3), step=None, tplan=None,
+        courtyard=0, courtpool=(0.30, 0.66),
+    ),
+    # ── The Nine at Rio, 2222 Rio Grande. Low (12.2 m) and square, around a
+    # central court that is a hole in the footprint. No roofscape at all here.
+    "The Nine at Rio": dict(
+        base=(4.4, "sg", BASE_GLASS),
+        podium=None,
+        tower=("mh", "#a7b4bc"),
+        crown=(1.8, "sf", CROWN_STEEL),
+        mech=0.0, deck=None, balc=("long", 1, 2), step=None, tplan=None,
+        courtyard=0, courtshade=(0.0, 0.0, 0.36, 0.36),
+    ),
+    # NOT INCLUDED, and each for a reason a later pass should not have to
+    # rediscover:
+    #   Greenwood Towers   — the snapshot footprint does not sit on the building
+    #                        in the z20 nadir; it outlines two roof areas 10 m
+    #                        off. Banding a polygon that is in the wrong place
+    #                        just makes the error legible.
+    #   Block on 25th West — grey hipped roofs around its court. This tier has
+    #                        no vocabulary for a pitched roof and claiming the
+    #                        prism would say "flat" louder than it is said now.
+    #   The Villas on Guadalupe — the same, plus an open parking deck at its
+    #                        north end; 181 m of it, so getting it wrong is
+    #                        expensive.
+}
+BUILDINGS.update(MIDRISE)
+
 # Flat-coloured pieces. js/westcampus.js carries the day/golden/night trio for
 # each of these `s` classes; nothing here enters the facade atlas.
-SOLID_CLASSES = ("deck", "pool", "turf", "court", "shade", "furn", "mech", "balc", "sign")
+SOLID_CLASSES = ("deck", "pool", "turf", "court", "shade", "furn", "mech", "balc",
+                 "sign")
 
 
 # ── geometry helpers (the same ones bake_stadium.py uses) ─────────────
@@ -596,11 +893,21 @@ def build(feature, spec, stats):
             stats["band_step"] += 2
 
     # ── balconies: one slab per floor, on the two long elevations -----
+    #
+    # CLIPPED TO THE FOOTPRINT, and that clip is what lets a non-rectangular plan
+    # have balconies at all. The slab is a rectangle across the whole elevation in
+    # the obb frame; on a U-plan — The Quarters Grayson House has a light-well
+    # notch cut 18 m into its south elevation, Twenty Two 15 one into its north —
+    # that rectangle bridges the notch and leaves a 1.4 m slab hanging in mid air
+    # over the gap, once per floor. Intersecting with the footprint grown by the
+    # projection keeps the slab exactly where there is a wall behind it, and the
+    # buffer is what lets a genuine balcony still project past the face.
     balc = spec.get("balc")
     if balc:
         faces, first, count = balc
         span = tower_top - podium_top
         f2f = span / max(1, count)
+        keep = _balcony_mask(outer)
         for i in range(count):
             zb = podium_top + (i + first * 0) * f2f + f2f * 0.62
             if zb + BALC_THICK > tower_top:
@@ -610,8 +917,10 @@ def build(feature, spec, stats):
                 a = vf - BALC_BITE if sgn > 0 else vf + BALC_BITE
                 b = vf + BALC_PROJ if sgn > 0 else vf - BALC_PROJ
                 r = rect_uv(ang, u0 + BALC_MARGIN, min(a, b), u1 - BALC_MARGIN, max(a, b))
-                out.append(solid_feature(r, zb, zb + BALC_THICK, "balc", name, lon0, lat0))
-                stats["balcony"] += 1
+                for piece in _clip_to(r, keep):
+                    out.append(solid_feature(piece, zb, zb + BALC_THICK, "balc",
+                                             name, lon0, lat0))
+                    stats["balcony"] += 1
 
     # ── amenity deck --------------------------------------------------
     where = spec.get("deck")
@@ -674,6 +983,42 @@ def build(feature, spec, stats):
                                  "sign", name, lon0, lat0))
         stats["sign"] += 1
 
+    # ── tier two: amenity in a COURTYARD the footprint already has -----
+    #
+    # Placed from the HOLE'S OWN obb, as fractions of it, so nothing about a
+    # courtyard pool is eyeballed off an aerial: it is a fraction of whatever
+    # courtyard is there, wherever it is, at whatever angle. `courtz` is ground
+    # level — these are garden courts, not podium decks — so the pool sits at the
+    # bottom of the light well and is seen down into from above, which is exactly
+    # how the nadir shows Rambler's lap pool and Pointe on Rio's.
+    ci = spec.get("courtyard")
+    if ci is not None and ci < len(holes):
+        hole = holes[ci]
+        hang, hu0, hu1, hv0, hv1 = obb(hole)
+        hcu, hcv = (hu0 + hu1) / 2.0, (hv0 + hv1) / 2.0
+        hw, hl = hu1 - hu0, hv1 - hv0
+        z = COURT_Z
+        slab = offset(hole + [hole[0]], -0.6) or (hole + [hole[0]])
+        out.append(solid_feature(ccw(slab), 0.0, z, "deck", name, lon0, lat0))
+        stats["courtyard"] += 1
+        if spec.get("courtpool"):
+            fw, fl = spec["courtpool"]
+            r = rect_uv(hang, hcu - hw * fw / 2, hcv - hl * fl / 2,
+                        hcu + hw * fw / 2, hcv + hl * fl / 2)
+            out.append(solid_feature(r, z, z + DECK_ITEM, "pool", name, lon0, lat0))
+            stats["pool"] += 1
+        if spec.get("courtshade"):
+            ou, ov, fw, fl = spec["courtshade"]
+            cu, cv = hcu + hw * ou, hcv + hl * ov
+            r = rect_uv(hang, cu - hw * fw / 2, cv - hl * fl / 2,
+                        cu + hw * fw / 2, cv + hl * fl / 2)
+            out.append(solid_feature(r, z + SHADE_H, z + SHADE_H + SHADE_T,
+                                     "shade", name, lon0, lat0))
+            r2 = rect_uv(hang, cu - hw * fw / 4, cv - hl * fl / 4,
+                         cu + hw * fw / 4, cv + hl * fl / 4)
+            out.append(solid_feature(r2, z, z + FURN_H, "furn", name, lon0, lat0))
+            stats["shade"] += 2
+
     return out
 
 
@@ -685,7 +1030,7 @@ def main():
         if n in BUILDINGS:
             by_name[n] = f
 
-    out, replaced = [], []
+    out, replaced, authored = [], [], []
     stats = Counter()
     rows = []
     made_by_building = []
@@ -699,6 +1044,8 @@ def main():
         out.extend(made)
         made_by_building.append((name, f["geometry"], made))
         replaced.append(f["properties"]["id"])
+        if name not in MIDRISE:
+            authored.append(f["properties"]["id"])
         rows.append((name, f["properties"]["final_height"], len(made)))
         stats["buildings"] += 1
 
@@ -749,17 +1096,24 @@ def main():
     # 1.0-1.1 m above the penthouse with clear sky under it. See
     # docs/PASS_GLITCH.md.
     #
-    # This is the whole list, not a subset: there is no West Campus tower in
-    # this bake whose roof is left to the generic bakes.
+    # IT IS A SUBSET NOW, and the subset is the point. Tier one authors its own
+    # roof and must claim it. TIER TWO DELIBERATELY DOES NOT: those ten blocks
+    # keep the deck, plant and condenser field `bake_roofscape.py` already gave
+    # them, because that roofscape is good, because re-baking it is another
+    # lane's file, and because tier two puts nothing on a roof at all — see the
+    # MIDRISE header for what that cost. Claiming them here
+    # would be a delayed-action bug: nothing changes until someone re-runs
+    # bake_roofscape.py, and then ten roofs go bare in a pass that never touched
+    # them. So the list is exactly the buildings whose roof this file draws.
     fc = {"type": "FeatureCollection", "features": out,
-          "replacedBuildingIds": replaced, "authoredRoofIds": replaced}
+          "replacedBuildingIds": replaced, "authoredRoofIds": authored}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
     print(json.dumps({
         "features": len(out),
         "buildings": stats["buildings"],
         "replaced_building_ids": replaced,
-        "authored_roof_ids": len(replaced),
+        "authored_roof_ids": len(authored),
         "new_atlas_images": len(combos),
         "atlas_combos": ["%s %s" % c for c in combos],
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),

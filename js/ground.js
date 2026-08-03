@@ -34,12 +34,19 @@
     minZoom: 13.5,          // below this the ground is too far to earn the fill
     pathFadeZoom: [14.2, 15.4],   // paths fade in across this zoom range
     widthScale: 1.0,        // multiply every path width (form, not fact)
-    kerbLight: 0.10,        // how much the path edge lightens (fake bevel)
+    // How much the path edge lightens (fake bevel). 0.10 drew a hard white
+    // outline round every walk — at flying altitude the stroke is a larger
+    // fraction of a 2.4 m sidewalk than of anything else on the ground, so the
+    // walks read as pale tape laid on the city rather than as concrete with an
+    // edge. Softened, and given its own opacity so the bevel can be quiet
+    // without making the kerb thinner (thinner just makes it flicker).
+    kerbLight: 0.06,        // how much the path edge lightens (fake bevel)
     // The kerb is a STROKE on the path polygon's boundary, in screen pixels on
     // purpose: a bevel is a highlight along an edge, so it should stay the same
     // apparent thickness whether the path is under the camera or by the horizon.
     // Metres were the right unit for the path itself and the wrong one for this.
-    kerbPx: 2.2,
+    kerbPx: 2.0,
+    kerbOpacity: 0.55,      // multiplies the kerb stroke's own opacity
     // How far a footway stands proud of the road it runs beside. A real kerb is
     // 150 mm; drawn at that it is a third of a pixel from flying altitude and
     // does not exist. Set to 0 for a flat painted path.
@@ -53,9 +60,29 @@
     // count where OSM has one. See the roads section further down for why the
     // basemap's vector tiles could not carry this pass.
     roads: true,            // false = hand the roads back to the basemap
-    roadWidthScale: 1.0,
-    roadCasingScale: 1.16,  // kerb + gutter, as a multiple of the pavement
+    // THE CARRIAGEWAY'S WIDTH LIVES IN THE GEOMETRY NOW, like the paths' does.
+    // scripts/bake_ground.py buffers each centreline by half its tagged width
+    // and ships `k:'roadarea'` polygons, so there is no width knob here any
+    // more -- changing how wide a road is drawn means re-running the bake. See
+    // the note above addRoadLayers for the measurement that forced it.
     roadCasingDark: 0.38,   // how much darker than the asphalt the kerb reads
+    // The kerb is a STROKE on the carriageway polygon's boundary, in screen
+    // pixels, for exactly the reason GROUND.kerbPx is: a kerb line is a
+    // highlight along an edge, so it should stay the same apparent thickness
+    // near the camera and by the horizon. It used to be a second full-width
+    // line 1.16x wider drawn underneath, which as geometry would mean a second
+    // buffered polygon set for a two-pixel effect.
+    roadKerbPx: 2.6,
+    // The far-field arterial armature is the one road layer still drawn as a
+    // LINE, and this is the ceiling on how wide it may be. Everything in it is
+    // at least 3.4 km away (measured off data/roads.geojson against the campus
+    // centre) and most of it is 7-15 km, where a real 14 m carriageway is
+    // between 3.0 and 0.7 screen pixels. So 3 px is the widest it can honestly
+    // be, and pinning it there is what stops it fanning: the width no longer
+    // depends on the road's metres, so it cannot grow as the camera pitches
+    // over. Polygonising these instead was measured at +185 KB gzipped on a
+    // file that is not tiled, to draw roads nobody can reach.
+    roadFarMaxPx: 3.0,
     roadMinZoom: 12.6,
     roadServiceFade: [15.2, 16.3],  // alleys arrive only once you are low enough
 
@@ -144,6 +171,35 @@
     speedwayOpacity: 0.72,
     speedwayNightFade: 0.45,
 
+    // ── The walking surfaces' grain (D6/D7) ───────────────────────────
+    //
+    // BOTH of these ride ON TOP OF the path deck, and that is the whole point.
+    // The herringbone used to be a flat `fill` at z=0 while `ground-paths` is a
+    // fill-extrusion standing at `pathRaise`; a fill does not win a depth test
+    // against an extrusion above it, so 92% of the weave was painted straight
+    // over by the very deck it was meant to decorate (`pathOpacity` 0.92 is the
+    // only reason any of it showed at all). Measured by hiding `ground-paths`:
+    // the tile was drawing perfectly, all along, underneath. It is the same
+    // mechanism §49 found burying the Capitol's walks under a 0.45 m park pad,
+    // one layer down and inside this file's own stack.
+    //
+    // So a pattern that belongs to the deck has to STAND ON the deck. Both
+    // layers are fill-extrusions from `pathRaise` to `pathRaise + pathTexLift`,
+    // exactly the trick CHANNEL.sheen_m already uses over the water: two tops
+    // at the same z is the A2 tie, so lift one and the order is defined instead
+    // of undefined.
+    pathTexLift: 0.02,      // m the grain stands proud of the deck it sits on
+    // Sidewalks had NO texture at all — `ground-texture` filters `k:'area'`, so
+    // every lawn and plaza got grain and every walk got a flat fill with a hard
+    // bright stroke round it. That is the whole of "sidewalks look like
+    // ducttape": not the colour, the absence of any surface at all.
+    pathTexture: true,
+    pathTexTile: 44,        // px of screen per slab-and-joint tile
+    pathTexSlabs: 3,        // slabs across the tile; more = finer joint spacing
+    pathTexOpacity: 0.46,
+    pathTexNightFade: 0.5,
+    pathJointDark: 0.30,    // how dark a scored joint reads, 0..1
+
     // ── Texture ───────────────────────────────────────────────────────
     // MEASURED (scripts/verify/pattern-scale.mjs): fill-pattern is anchored in
     // TILE space at the image's native pixel size and resets at every integer
@@ -174,6 +230,9 @@
     // footprint entirely — `RANK[('bank','channel')]` is the top of the ladder —
     // so there is no fill over the hole and the extrusion is free to sink.
     channel: true,
+    // Culverts and bridges where a street or a walk crosses the creek. `false`
+    // hands the crossings back to being cut straight through by the trench.
+    decks: true,
     // The blurred line along the water's edge. It used to be the ONLY thing
     // implying depth and carried 0.55; with a real cut section under it that
     // much reads as a smear, so it is turned down to a contact shadow.
@@ -236,11 +295,14 @@
   const AREA = 'ground-areas', TEX = 'ground-texture', BASE_TEX = 'ground-base-texture';
   const BANK = 'ground-creek-bank';
   const ROAD_CASE = 'ground-road-casing', ROAD = 'ground-road', LANE = 'ground-road-lane';
+  const ROAD_FAR = 'ground-road-far';
   const BIKE_L = 'ground-bike-left', BIKE_R = 'ground-bike-right';
   const CYCLE = 'ground-cycleway', STOPBAR = 'ground-stopbar';
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
   const SPEEDWAY = 'ground-speedway-brick';
+  const PATH_TEX = 'ground-paths-texture';
   const DEPTH = 'ground-depth', CHANNEL = 'ground-channel';
+  const DECKL = 'ground-deck';
   const SHEEN = 'ground-creek-sheen', CANOPY = 'ground-creek-canopy';
 
   // `source-layer` for the road layers, or {} on the GeoJSON fallback. MODULE
@@ -255,6 +317,7 @@
                     water: 'gnd-tex-water', paving: 'gnd-tex-paving',
                     canopy: 'gnd-tex-canopy' };
   const HERRING_IMG = 'gnd-tex-herringbone';
+  const WALK_IMG = 'gnd-tex-walk';
 
   // ── Surface palettes, per hour ──────────────────────────────────────
   // Chosen against the protected palette: terracotta roofs over tan/olive
@@ -326,14 +389,38 @@
       roadconcrete:'#7c7d78', brickpave:'#e9cca4',
       bikelane:'#6d7075', biketrack:'#7a7d80', bikegreen:'#737b6e',
     },
+    // GOLDEN HOUR, RETUNED — and it was carrying two reported defects at once.
+    //
+    // "concrete area right in front of tower renders too bright on default
+    // sunset" and "looks like speedway got slimed out somewhere in between" are
+    // the SAME four numbers. The old golden band did not go to dusk: it sat
+    // within 4 luma of the midday band while every other surface in the scene
+    // darkened, so the paved forecourt became the brightest object in a dusk
+    // frame — brighter than the sunlit roofs. And it converged:
+    //
+    //                       brickpave vs concrete
+    //     day       #e9cca4 vs #dfd9cb   sum|dRGB| 62   dLuma  -9.1
+    //     golden    #eec69b vs #e3cba6   sum|dRGB| 27   dLuma  -0.9   <- gone
+    //     now       #dda070 vs #cfb692   sum|dRGB| 70   dLuma -12.5
+    //
+    // 0.9 luma is not a colour difference, it is the same brightness with a
+    // hint of hue, and at 400 m through haze it is nothing. Speedway was never
+    // deleted — it was drawn, at 6,132 m2, in a tone the concrete it runs
+    // through had risen to meet. Photographed at the identical pose it is a
+    // confident ribbon at tod 0.30 and a smear at 0.62.
+    //
+    // So: the whole pale-paving band comes DOWN (a low sun is warm and it is
+    // also LESS light), and the brick keeps its own separation by going warmer
+    // rather than by staying bright. Sunset is where he leaves the slider, so
+    // this band is the one that has to be right.
     golden: {
-      limestone:'#f4e0b8', concrete:'#e3cba6', paving:'#ecd6ac', brick:'#8f5439',
-      asphalt:'#655d5a', gravel:'#cdb28d', dirt:'#a37f5b', sand:'#e7cb9c',
+      limestone:'#e6cfa4', concrete:'#cfb692', paving:'#d4b992', brick:'#8f5439',
+      asphalt:'#655d5a', gravel:'#c0a37e', dirt:'#a37f5b', sand:'#d9ba8a',
       grass:'#8a9457', turf:'#4a6b36', wood:'#5a6a3c', water:'#c9a184',
       creek:'#5c6b4c', pond:'#b0947f', understorey:'#6b7f42', scrub:'#8a8b4e',
       bed:'#75603a', gardenlawn:'#788b4c',
       track:'#a5482f', endzone:'#b04e00',
-      roadconcrete:'#857c72', brickpave:'#eec69b',
+      roadconcrete:'#7e766d', brickpave:'#dda070',
       bikelane:'#75706c', biketrack:'#827c76', bikegreen:'#7a7a66',
     },
     night: {
@@ -343,7 +430,12 @@
       water:'#070f1e', creek:'#080f0c', pond:'#060d18',
       understorey:'#0e1510', scrub:'#131610', bed:'#12100e', gardenlawn:'#0f1712',
       track:'#1d1418', endzone:'#2a1608',
-      roadconcrete:'#14161c', brickpave:'#241d1f',
+      // Night collapses every ground tone toward the same blue-grey, which is
+      // true to life, but the brick was landing 4.2 luma ABOVE the concrete and
+      // 19 sum|dRGB| from it — i.e. Speedway disappeared after dark as well as
+      // at sunset, just less obviously. Warmed so the corridor stays findable
+      // at 34 luma against concrete's 27 without becoming a lit surface.
+      roadconcrete:'#14161c', brickpave:'#2a2019',
       bikelane:'#12151d', biketrack:'#171a23', bikegreen:'#131a15',
     },
   };
@@ -445,16 +537,23 @@
       1, matchExpr(pal, c => shiftLuma(base(c), +amp))];
   }
 
-  // Path width: OSM metres → screen px. MapLibre uses 512 px tiles, so one
-  // pixel is 78271.517·cos(lat)/2^zoom metres; at Austin's latitude that is
-  // 67546/2^zoom. Width in px is therefore w·2^zoom/67546, which is exactly a
-  // base-2 exponential in zoom — so two stops describe it perfectly.
+  // Metres of ground → screen px. MapLibre uses 512 px tiles, so one pixel is
+  // 78271.517·cos(lat)/2^zoom metres; at Austin's latitude that is 67546/2^zoom.
+  // Width in px is therefore w·2^zoom/67546, which is exactly a base-2
+  // exponential in zoom — so two stops describe it perfectly.
+  //
+  // AND IT IS ONLY EVER RIGHT AT THE MAP CENTRE, which is the whole of A2: it
+  // is derived from the centre-scale relation, and under perspective the rest
+  // of the frame is at a different scale. Everything still using it below is
+  // something that is deliberately NOT metre-true — a marking held at a
+  // pixel floor, or the far armature under a pixel ceiling. The surfaces
+  // (paths, carriageways, cycleways) carry their width in the geometry.
+  //
+  // The generic `widthExpr(scale)` that used to live here went with the last
+  // line layer that wanted it. It was dead code for one commit and dead code
+  // is how js/ground.js ended up shipping a whole creek-bank layer that had
+  // never drawn a pixel (HANDOFF §46).
   const PX_AT = z => Math.pow(2, z) / 67546;
-  function widthExpr(scale) {
-    return ['interpolate', ['exponential', 2], ['zoom'],
-      14, ['*', ['get', 'w'], PX_AT(14) * scale],
-      21, ['*', ['get', 'w'], PX_AT(21) * scale]];
-  }
 
   // ── Roads ───────────────────────────────────────────────────────────
   //
@@ -485,12 +584,24 @@
   const ROAD_FILTER = ['==', ['get', 'k'], 'road'];
   const CYCLE_FILTER = ['==', ['get', 'k'], 'cycle'];
   const STOPBAR_FILTER = ['==', ['get', 'k'], 'stopbar'];
+  // The two surfaces that used to be `line` layers and are polygons now. They
+  // come off data/ground.geojson (SRC), not data/roads.geojson (RSRC), because
+  // the bake writes them there -- see widen_roads in scripts/bake_ground.py.
+  const ROADAREA_FILTER = ['==', ['get', 'k'], 'roadarea'];
+  const CYCLEAREA_FILTER = ['==', ['get', 'k'], 'cyclearea'];
+  // What is left on the line: the far-field armature only.
+  const ROAD_FAR_FILTER = ['all', ROAD_FILTER, ['==', ['get', 'far'], 1]];
 
-  /** Metres of pavement, straight off the feature. */
-  function roadWidthExpr(scale) {
-    return ['interpolate', ['exponential', 2], ['zoom'],
-      13, ['*', ['get', 'w'], PX_AT(13) * scale],
-      21, ['*', ['get', 'w'], PX_AT(21) * scale]];
+  /**
+   * The far armature's width, capped in PIXELS. See GROUND.roadFarMaxPx.
+   *
+   * The metres term is kept below the cap rather than thrown away so that a
+   * wide establishing shot at z13 still draws a motorway wider than a
+   * secondary, which is the only place the class distinction is visible at all.
+   */
+  function roadFarWidthExpr() {
+    const px = z => ['min', GROUND.roadFarMaxPx, ['*', ['get', 'w'], PX_AT(z)]];
+    return ['interpolate', ['exponential', 2], ['zoom'], 12, px(12), 21, px(21)];
   }
   /**
    * Alleys, driveways and parking aisles are real and they are what breaks a
@@ -574,6 +685,13 @@
       pal.bikelane];
   }
   const bikeFilter = sideKey => ['all', ROAD_FILTER, ['>', ['get', sideKey], 0]];
+
+  /** A separate cycleway's own surface. Shared by the layer and the retint. */
+  function cycleColorExpr(pal) {
+    return ['match', ['get', 's'],
+      'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
+      pal.biketrack];
+  }
 
   /** Stop-bar depth, over-scale, with a floor. See GROUND.stopBarDepth. */
   function stopBarWidthExpr() {
@@ -796,6 +914,68 @@
     return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
   }
 
+  /**
+   * SCORED CONCRETE, as pure ALPHA — the sidewalk's own grain.
+   *
+   * "sidewalks in campus look like ducttape ... maybe a few shading or texture
+   * things". They looked like tape because they had NO texture: `ground-texture`
+   * filters `k:'area'`, so every lawn, plaza and parking lot wore a grain and
+   * every single walk was a flat fill with a bright stroke round its edge. The
+   * missing thing was not a better colour, it was a surface.
+   *
+   * WHY A GRID AND NOT TRANSVERSE BARS. A real walk is scored ACROSS its width
+   * every 1.2-1.8 m, so the honest tile is a set of parallel lines — but a
+   * fill-pattern is anchored in tile space, not to the feature's own axis, so
+   * parallel lines would run across the walk in one street and along it in the
+   * next. A square grid is the one scoring pattern that reads the same at every
+   * orientation, which is exactly the property this projection needs. Seen from
+   * 100-900 m it is a joint hint, and being the right SPACING matters where
+   * being correctly aligned cannot be had at all.
+   *
+   * Per-slab lightness is hashed on the WRAPPED position, not the slab index —
+   * the same rule drawHerringbone learned, and for the same reason: hash the
+   * index and the slab clipped by the right edge disagrees with the one that
+   * continues at the left, so the tile seams draw a grid over the whole city.
+   */
+  function drawWalkSlabs(T, slabs, jointDark) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = T;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.clearRect(0, 0, T, T);
+    const S = T / slabs;                       // slab pitch, px
+    const JOINT = Math.max(1, S * 0.055);      // the scored line
+    const h01 = (x, y) => {
+      const xi = ((x % slabs) + slabs) % slabs, yi = ((y % slabs) + slabs) % slabs;
+      let s = (xi * 73856093) ^ (yi * 19349663);
+      s = (s ^ (s >>> 13)) >>> 0;
+      return ((s * 1274126177) >>> 0) / 4294967296;
+    };
+    // Slab faces first: a quiet ±3% so the field is not one flat sheet.
+    for (let j = 0; j < slabs; j++) for (let i = 0; i < slabs; i++) {
+      const v = (h01(i, j) - 0.5) * 0.06;
+      ctx.fillStyle = v < 0 ? `rgba(0,0,0,${(-v).toFixed(3)})`
+                            : `rgba(255,255,255,${v.toFixed(3)})`;
+      ctx.fillRect(i * S, j * S, S, S);
+    }
+    // The joints. Drawn at both edges of the tile as well as inside it, so the
+    // scoring is continuous across the wrap rather than doubling at the seam.
+    ctx.fillStyle = `rgba(0,0,0,${jointDark.toFixed(3)})`;
+    for (let i = 0; i < slabs; i++) {
+      ctx.fillRect(Math.round(i * S), 0, JOINT, T);
+      ctx.fillRect(0, Math.round(i * S), T, JOINT);
+    }
+    // A faint highlight on the far side of each joint: a scored line has a
+    // shallow trowelled shoulder, and without it the grid reads as drawn-on.
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let i = 0; i < slabs; i++) {
+      ctx.fillRect(Math.round(i * S) + JOINT, 0, Math.max(1, JOINT * 0.8), T);
+      ctx.fillRect(0, Math.round(i * S) + JOINT, T, Math.max(1, JOINT * 0.8));
+    }
+    speckle(ctx, T, rng(5150), 900, 0.07, 1);
+    const d = ctx.getImageData(0, 0, T, T);
+    return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
+  }
+
   function initTextures(map) {
     const T = GROUND.texTile;
     for (const [family, id] of Object.entries(TEX_IMG)) {
@@ -806,6 +986,12 @@
       try {
         map.addImage(HERRING_IMG, drawHerringbone(
           GROUND.speedwayTile, GROUND.speedwayCells, GROUND.speedwayAngle));
+      } catch (e) {}
+    }
+    if (GROUND.pathTexture && !(map.hasImage && map.hasImage(WALK_IMG))) {
+      try {
+        map.addImage(WALK_IMG, drawWalkSlabs(
+          GROUND.pathTexTile, GROUND.pathTexSlabs, GROUND.pathJointDark));
       } catch (e) {}
     }
   }
@@ -846,6 +1032,11 @@
   function speedwayTexOpacity(p) {
     const n = nightAmt(p);
     return +(GROUND.speedwayOpacity * (1 - n * (1 - GROUND.speedwayNightFade))).toFixed(3);
+  }
+  /** The walk's scoring, on the same night curve as everything else's grain. */
+  function pathTexOpacity(p) {
+    const n = nightAmt(p);
+    return +(GROUND.pathTexOpacity * (1 - n * (1 - GROUND.pathTexNightFade))).toFixed(3);
   }
 
   /**
@@ -937,6 +1128,19 @@
     // the creek's raw cut face -- a built edge and a broken bank should not
     // be the same colour.
     coping:    ['#c6bda4', '#cdb894', '#1b1c24'],
+    // A CULVERT / BRIDGE DECK where a street crosses the creek. "the creek near
+    // DKR completely slices through 21st and DKR, but sidewalks still go over
+    // them" -- the channel was cut with no idea that anything crosses it, so the
+    // trench ran straight through the carriageway while the walks floated over
+    // the water on nothing.
+    //
+    // What is visible of a deck is its EDGE: the road surface on top is drawn by
+    // `ground-road` and the walks by `ground-paths`, both of which stand on it.
+    // So this is the colour of a concrete soffit and headwall seen from an
+    // oblique angle -- grey, cool, and deliberately NOT the chalk of the bank it
+    // interrupts, because a structure and a cut bank reading as one material is
+    // how the crossing stayed invisible in the first place.
+    deck:      ['#8d8b85', '#8a8078', '#15171d'],
   };
   function bankColour(p) {
     const e = ['match', ['get', 'm']];
@@ -1089,6 +1293,44 @@
       }, under);
     }
 
+    /**
+     * THE CULVERT / BRIDGE DECKS, and WHERE THIS LAYER SITS IS THE FIX.
+     *
+     * "the creek near DKR completely slices through 21st and DKR, but sidewalks
+     * still go over them". The mechanism, once photographed, is the one PR #62
+     * wrote down and nothing since has applied to the creek: **a `fill` does not
+     * depth-test against a `fill-extrusion`.** `ground-road` is a flat fill at
+     * z=0 and `ground-channel` is an extrusion drawn after it, so the trench
+     * painted straight over the carriageway no matter how deep it was cut —
+     * that is the creek "slicing through" 21st. The walks are extrusions at
+     * 0.22 m, so THEY won, and crossed the water on nothing.
+     *
+     * So the deck does two separate jobs and needs two separate mechanisms.
+     * `RANK[('bank','deck')]` = 95 takes the ground off the channel in the BAKE,
+     * which is what stops the trench being drawn across the road at all. And
+     * this layer is anchored `under` — BEFORE the roads and the walks — so the
+     * carriageway and the pavement paint over their own deck and what is left
+     * showing is the parapet and the soffit. Sharing `ground-channel` instead
+     * put the deck back on the wrong side of exactly the rule it exists to fix,
+     * and photographed as a pale slab lying where the road should be.
+     */
+    if (GROUND.channel && GROUND.decks && !map.getLayer(DECKL)) {
+      map.addLayer({
+        id: DECKL, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
+        filter: ['all', ['==', ['get', 'k'], 'bank'], ['==', ['get', 'u'], 'deck']],
+        paint: {
+          'fill-extrusion-color': bankColour(p),
+          'fill-extrusion-base': ['get', 'b'],
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-opacity': 1,
+          // ON: like a bank course and unlike everything else here, a deck has
+          // a meaningful vertical face — the soffit is the only part of it that
+          // is ever seen from below the parapet.
+          'fill-extrusion-vertical-gradient': true,
+        },
+      }, under);
+    }
+
     if (GROUND.roads) addRoadLayers(map, pal, p, under);
 
     /**
@@ -1120,8 +1362,9 @@
      * LineStrings became 1,006 polygons and ground.geojson got SMALLER (856 ->
      * 784 KB): the union dissolved more than the buffer added.
      *
-     * `widthExpr` stays. The road layers still use it — the same defect is there
-     * and it is the next PR — and the lane markings genuinely want screen pixels.
+     * The carriageways have had the same treatment since (`k:'roadarea'`, see
+     * addRoadLayers), which is what closed A2: "some roads dont do this" was
+     * these paths, already fixed, sitting next to roads that were not.
      */
     if (!map.getLayer(PATH)) {
       map.addLayer({
@@ -1172,13 +1415,17 @@
           'line-color': jitterExpr(pal, GROUND.pathJitter, c => lighten(c, GROUND.kerbLight)),
           'line-width': GROUND.kerbPx,
           'line-opacity': ['interpolate', ['linear'], ['zoom'],
-            GROUND.pathFadeZoom[0], 0, GROUND.pathFadeZoom[1], GROUND.pathOpacity * 0.8],
+            GROUND.pathFadeZoom[0], 0,
+            GROUND.pathFadeZoom[1], +(GROUND.pathOpacity * 0.8 * GROUND.kerbOpacity).toFixed(3)],
         },
       }, under);
     }
 
     /**
-     * The herringbone rides ON TOP of the Speedway path's own brick colour, so
+     * THE GRAIN ON THE WALKING SURFACES — the herringbone on Speedway, and
+     * scored concrete on every other walk. Both stand ON the path deck.
+     *
+     * The herringbone rides on top of the Speedway path's own brick colour, so
      * the image stays colourless and time of day is one setPaintProperty.
      *
      * It was a `line-pattern` because that is stretched across a line and
@@ -1189,18 +1436,59 @@
      * have shipped with, so the zoom reset is a behaviour this scene already
      * has rather than a new one; and a weave seen from 100-900 m is a texture
      * hint, where being the right WIDTH matters and being phase-locked does not.
+     *
+     * WHY THEY ARE EXTRUSIONS AND NOT FILLS, which is the actual bug fix here.
+     * Both of these used to be flat `fill` layers at z=0, sitting UNDER a
+     * `ground-paths` fill-extrusion standing at `pathRaise` 0.22 m. A fill does
+     * not win a depth test against an extrusion above it, so the deck painted
+     * over its own decoration and only the 8% that `pathOpacity` 0.92 let
+     * through survived. Proved by hiding `ground-paths`: the weave was there
+     * the whole time, crisp and complete, buried. Same shape of defect as §49's
+     * park pad over the Capitol walks — a flat surface under a raised one.
+     *
+     * So they are prisms from `pathRaise` to `pathRaise + pathTexLift`. The lift
+     * is 20 mm and its only job is to make the depth order DEFINED: two tops at
+     * exactly the same z is the A2 tie and the winner is whatever the driver
+     * feels like. CHANNEL.sheen_m stands the water's ripple 0.10 m proud for
+     * precisely this reason and this is the same trick, ten times smaller
+     * because a walk is not two metres below grade.
+     *
+     * `fill-extrusion-vertical-gradient` is OFF on both: the prism is 20 mm
+     * tall, so a gradient over its height would black out the only face anyone
+     * ever sees.
      */
+    if (GROUND.texture && GROUND.pathTexture && !map.getLayer(PATH_TEX)) {
+      map.addLayer({
+        id: PATH_TEX, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
+        // Everything walkable EXCEPT the brick mall, which has its own bond
+        // below. Steps are excluded too: they carry their own risers from
+        // data/depth.geojson and a slab grid laid over a flight reads as a
+        // fault in the stair rather than as scoring.
+        filter: ['all', ['==', ['get', 'k'], 'patharea'],
+                        ['!=', ['get', 's'], 'brickpave'],
+                        ['!=', ['get', 'u'], 'steps']],
+        paint: {
+          'fill-extrusion-pattern': WALK_IMG,
+          'fill-extrusion-base': GROUND.pathRaise,
+          'fill-extrusion-height': GROUND.pathRaise + GROUND.pathTexLift,
+          'fill-extrusion-opacity': pathTexOpacity(p),
+          'fill-extrusion-vertical-gradient': false,
+        },
+      });
+    }
     if (GROUND.texture && GROUND.speedway && !map.getLayer(SPEEDWAY)) {
       map.addLayer({
-        id: SPEEDWAY, type: 'fill', source: SRC, minzoom: GROUND.minZoom,
+        id: SPEEDWAY, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
         filter: ['all', ['==', ['get', 'k'], 'patharea'],
                         ['==', ['get', 's'], 'brickpave']],
         paint: {
-          'fill-pattern': HERRING_IMG,
-          'fill-opacity': speedwayTexOpacity(p),
-          'fill-antialias': false,   // the path fill under it already drew the edge
+          'fill-extrusion-pattern': HERRING_IMG,
+          'fill-extrusion-base': GROUND.pathRaise,
+          'fill-extrusion-height': GROUND.pathRaise + GROUND.pathTexLift,
+          'fill-extrusion-opacity': speedwayTexOpacity(p),
+          'fill-extrusion-vertical-gradient': false,
         },
-      }, under);
+      });
     }
 
     /**
@@ -1223,7 +1511,13 @@
         // over the water — the fallback of bankColour's match — which is a tan
         // ribbon down the middle of the channel and would have been read as
         // "the creek is a dirt track" for the third time in this file's history.
-        filter: ['all', ['==', ['get', 'k'], 'bank'], ['!=', ['get', 'm'], 'sheen']],
+        // `u:'deck'` is excluded for the same class of reason `m:'sheen'` is:
+        // it is drawn by its own layer, and that layer has to sit BEFORE the
+        // roads so the carriageway paints over its own bridge. Leaving it in
+        // here would draw every deck twice, once on each side of the roads.
+        filter: ['all', ['==', ['get', 'k'], 'bank'],
+                        ['!=', ['get', 'm'], 'sheen'],
+                        ['!=', ['get', 'u'], 'deck']],
         paint: {
           'fill-extrusion-color': bankColour(p),
           'fill-extrusion-base': ['get', 'b'],
@@ -1320,35 +1614,89 @@
     }
   };
 
+  /**
+   * THE CARRIAGEWAY IS A POLYGON NOW, and it is the same fix, for the same
+   * reason, as the one PR #70 made to the paths.
+   *
+   * "when im all the way down vertically and look at an angle towards the roads
+   *  and start facing upright, the roads get bigger. some roads dont do this."
+   *
+   * The ones that DIDN'T were the sidewalks, because their width had already
+   * been moved into the geometry. A `line-width` is a number of screen pixels
+   * and it is the SAME number for the whole line, while 12 m of ground under
+   * the camera is many pixels and 12 m of it by the horizon is a fraction of
+   * one. Measured on merged main with scripts/verify/road-fan.mjs, camera on
+   * the south end of Speedway looking north, layer `ground-road`:
+   *
+   *     pitch 20   1.10x at the only sample still on screen
+   *     pitch 40   1.19x near  ->  1.77x far
+   *     pitch 60   1.26x near  ->  3.33x far
+   *     pitch 86   1.30x near  ->  3.69x far
+   *
+   * and that is over 900 m of road; the error keeps growing with distance, so
+   * an arterial 4 km out was drawn about twenty times too wide. Pitching over
+   * is what drags the far, wrong end of every road into frame -- which is
+   * exactly "start facing upright and the roads get bigger".
+   *
+   * MapLibre has no per-vertex line width and no metres unit on `line-width`,
+   * so NO expression can fix this. bake_ground.py's widen_roads() buffers each
+   * centreline by half its tagged width and unions per (class, surface), and
+   * `k:'roadarea'` polygons arrive width-correct: a fill gets the true
+   * perspective for free at any pitch and any distance.
+   *
+   * WHAT STAYS ON THE CENTRELINE, and why each one is not the same defect:
+   *   - lane markings   pinned at GROUND.laneMinPx (1.1 px) at every zoom the
+   *                     camera flies, so they are already a constant hairline
+   *   - stop bars       1.6 m of over-scale by declaration, 165 of them
+   *   - bike lanes      drawn ON the carriageway from its centreline; these DO
+   *                     still carry the defect and it is written down in
+   *                     HANDOFF rather than half-fixed here
+   *   - the far-field arterials, see GROUND.roadFarMaxPx
+   */
   function addRoadLayers(map, pal, p, under) {
-    if (!map.getSource(RSRC)) {
-      console.warn('[ground] no roads source; roads left on the basemap');
-      return;
-    }
-    // Hide the basemap's own road lines FIRST. Leaving them on paints a pale
-    // cream ribbon under every road we draw, which shows at every kerb.
+    const L = (id, opts) => { if (!map.getLayer(id)) map.addLayer(opts, under); };
+    // FIRST, and unconditionally: leaving the basemap's own road lines on
+    // paints a pale cream ribbon under every road we draw, and it shows at
+    // every kerb. This used to sit behind the RSRC guard, so a missing roads
+    // source gave you the basemap's roads AND ours.
     hideBasemapRoads(map);
 
-    const L = (id, opts) => { if (!map.getLayer(id)) map.addLayer(opts, under); };
-
+    // The casing goes in FIRST so it sits under the pavement and only its outer
+    // half shows -- a kerb line, not an outline. Same construction as the
+    // paths' casing, and the same reason it is in pixels.
     L(ROAD_CASE, {
-      id: ROAD_CASE, type: 'line', source: RSRC, ...roadLP,
-      minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
-      layout: { 'line-join': 'round', 'line-cap': 'butt' },
+      id: ROAD_CASE, type: 'line', source: SRC,
+      minzoom: GROUND.roadMinZoom, filter: ROADAREA_FILTER,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
         'line-color': darken(pal.asphalt, GROUND.roadCasingDark),
-        'line-width': roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale),
+        'line-width': GROUND.roadKerbPx,
         'line-opacity': roadOpacityExpr(0.9),
       },
     });
     L(ROAD, {
-      id: ROAD, type: 'line', source: RSRC, ...roadLP,
-      minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
+      id: ROAD, type: 'fill', source: SRC,
+      minzoom: GROUND.roadMinZoom, filter: ROADAREA_FILTER,
+      paint: {
+        'fill-color': roadColorExpr(pal),
+        'fill-opacity': roadOpacityExpr(1),
+        'fill-antialias': true,
+      },
+    });
+
+    if (!map.getSource(RSRC)) {
+      console.warn('[ground] no roads source; markings and the far armature are absent');
+      return;
+    }
+
+    L(ROAD_FAR, {
+      id: ROAD_FAR, type: 'line', source: RSRC, ...roadLP,
+      minzoom: GROUND.roadMinZoom, filter: ROAD_FAR_FILTER,
       layout: { 'line-join': 'round', 'line-cap': 'butt' },
       paint: {
         'line-color': roadColorExpr(pal),
-        'line-width': roadWidthExpr(GROUND.roadWidthScale),
-        'line-opacity': roadOpacityExpr(1),
+        'line-width': roadFarWidthExpr(),
+        'line-opacity': 0.9,
       },
     });
 
@@ -1371,20 +1719,16 @@
       }
       // Separate `highway=cycleway` ways: the Shoal Creek and Waller Creek
       // trails, the Dell Med paths, the campus shared-use routes. They are not
-      // a marking on a road, they are their own piece of ground.
+      // a marking on a road, they are their own piece of ground -- which is
+      // also why they are polygons now and the markings are not.
       L(CYCLE, {
-        id: CYCLE, type: 'line', source: RSRC, ...roadLP,
-        minzoom: GROUND.bikeMinZoom, filter: CYCLE_FILTER,
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        id: CYCLE, type: 'fill', source: SRC,
+        minzoom: GROUND.bikeMinZoom, filter: CYCLEAREA_FILTER,
         paint: {
-          'line-color': ['match', ['get', 's'],
-            'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
-            pal.biketrack],
-          'line-width': ['interpolate', ['exponential', 2], ['zoom'],
-            14, ['*', ['get', 'w'], PX_AT(14)],
-            21, ['*', ['get', 'w'], PX_AT(21)]],
-          'line-opacity': ['interpolate', ['linear'], ['zoom'],
+          'fill-color': cycleColorExpr(pal),
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'],
             GROUND.bikeMinZoom, 0, GROUND.bikeMinZoom + 1.0, GROUND.bikeOpacity],
+          'fill-antialias': true,
         },
       });
     }
@@ -1435,7 +1779,7 @@
     // pose with roads on, 3.2% with them off, and 3.2% again after turning
     // them back on. They now sit on a geojson source and cannot match, but the
     // guard stays: it is one line, and the failure it prevents was invisible.
-    const ours = new Set([ROAD, ROAD_CASE, LANE, BIKE_L, BIKE_R, CYCLE, STOPBAR]);
+    const ours = new Set([ROAD, ROAD_CASE, ROAD_FAR, LANE, BIKE_L, BIKE_R, CYCLE, STOPBAR]);
     for (const l of map.getStyle().layers) {
       if (ours.has(l.id)) continue;
       if ((l['source-layer'] || '') !== 'transportation') continue;
@@ -1465,19 +1809,29 @@
     // no getImageData readback, no atlas upload, nothing per tick.
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
-    set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
+    // `fill-extrusion-opacity`, not `fill-opacity`: both grain layers became
+    // prisms so they would stop losing the depth test to the deck they sit on.
+    // A retint is exactly where a layer-type change goes wrong in silence —
+    // setPaintProperty on a property the layer does not have throws, the throw
+    // is swallowed by `set`, and the layer simply stops following the clock.
+    set(SPEEDWAY, 'fill-extrusion-opacity', speedwayTexOpacity(p));
+    set(PATH_TEX, 'fill-extrusion-opacity', pathTexOpacity(p));
     set(DEPTH, 'fill-extrusion-color', depthColour(p));
     set(CHANNEL, 'fill-extrusion-color', bankColour(p));
+    set(DECKL, 'fill-extrusion-color', bankColour(p));
     set(SHEEN, 'fill-extrusion-opacity', sheenOpacity(p));
     set(CANOPY, 'fill-extrusion-color', crownColour(p));
-    set(ROAD, 'line-color', roadColorExpr(pal));
+    // `fill-color` on the carriageway and the cycleways: they are polygons now.
+    // The retint is where a layer-type change goes wrong silently, because
+    // setPaintProperty on the wrong property throws into the `set` catch and
+    // the road simply keeps its load-time colour through every hour of the day.
+    set(ROAD, 'fill-color', roadColorExpr(pal));
+    set(ROAD_FAR, 'line-color', roadColorExpr(pal));
     set(ROAD_CASE, 'line-color', darken(pal.asphalt, GROUND.roadCasingDark));
     set(LANE, 'line-color', laneColorExpr(p));
     set(BIKE_L, 'line-color', bikeColorExpr(pal, 'bl'));
     set(BIKE_R, 'line-color', bikeColorExpr(pal, 'br'));
-    set(CYCLE, 'line-color', ['match', ['get', 's'],
-      'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
-      pal.biketrack]);
+    set(CYCLE, 'fill-color', cycleColorExpr(pal));
     // The stop bar is paint, and paint at night is whatever the headlights and
     // the signal give it. Same ramp as the lane markings.
     set(STOPBAR, 'line-color',
@@ -1495,8 +1849,11 @@
     set(PATH, 'fill-extrusion-height', GROUND.pathRaise);
     set(PATH, 'fill-extrusion-opacity', GROUND.pathOpacity);
     set(AREA, 'fill-opacity', GROUND.areaOpacity);
-    set(ROAD, 'line-width', roadWidthExpr(GROUND.roadWidthScale));
-    set(ROAD_CASE, 'line-width', roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale));
+    // ROAD carries its width in the GEOMETRY now, exactly as PATH does, so
+    // there is no width to retune here -- re-run scripts/bake_ground.py. The
+    // kerb and the far armature are still paint.
+    set(ROAD_CASE, 'line-width', GROUND.roadKerbPx);
+    set(ROAD_FAR, 'line-width', roadFarWidthExpr());
     set(LANE, 'line-width', laneWidthExpr());
     set(LANE, 'line-dasharray', GROUND.laneDash.slice());
     set(LANE, 'line-opacity', GROUND.laneOpacity);
@@ -1509,7 +1866,12 @@
     const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
     set(TEX, 'fill-opacity', texOpacityExpr(p));
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
-    set(SPEEDWAY, 'fill-opacity', speedwayTexOpacity(p));
+    set(SPEEDWAY, 'fill-extrusion-opacity', speedwayTexOpacity(p));
+    set(SPEEDWAY, 'fill-extrusion-base', GROUND.pathRaise);
+    set(SPEEDWAY, 'fill-extrusion-height', GROUND.pathRaise + GROUND.pathTexLift);
+    set(PATH_TEX, 'fill-extrusion-opacity', pathTexOpacity(p));
+    set(PATH_TEX, 'fill-extrusion-base', GROUND.pathRaise);
+    set(PATH_TEX, 'fill-extrusion-height', GROUND.pathRaise + GROUND.pathTexLift);
     set(SHEEN, 'fill-extrusion-opacity', sheenOpacity(p));
     set(CANOPY, 'fill-extrusion-base', ['*', ['get', 'h'], GROUND.canopyBaseFrac]);
     set(CANOPY, 'fill-extrusion-opacity', GROUND.canopyOpacity);
@@ -1520,12 +1882,14 @@
     };
     for (const id of [AREA, PATH, PATH_CASE]) show(id, GROUND.on);
     show(CHANNEL, GROUND.on && GROUND.channel);
+    show(DECKL, GROUND.on && GROUND.channel && GROUND.decks);
     show(SHEEN, GROUND.on && GROUND.channel && GROUND.creekSheen && GROUND.texture);
     show(CANOPY, GROUND.on && GROUND.canopy);
     show(TEX, GROUND.on && GROUND.texture);
     show(BASE_TEX, GROUND.on && GROUND.texture && GROUND.texGround);
     show(SPEEDWAY, GROUND.on && GROUND.texture && GROUND.speedway);
-    for (const id of [ROAD, ROAD_CASE]) show(id, GROUND.on && GROUND.roads);
+    show(PATH_TEX, GROUND.on && GROUND.texture && GROUND.pathTexture);
+    for (const id of [ROAD, ROAD_CASE, ROAD_FAR]) show(id, GROUND.on && GROUND.roads);
     show(LANE, GROUND.on && GROUND.roads && GROUND.lanes);
     for (const id of [BIKE_L, BIKE_R, CYCLE]) show(id, GROUND.on && GROUND.roads && GROUND.bike);
     show(STOPBAR, GROUND.on && GROUND.roads && GROUND.stopBars);
