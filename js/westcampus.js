@@ -87,6 +87,20 @@
     furn:  ['#8d867e', '#988b7a', '#171921'],  // cabana + furniture cluster
     mech:  ['#9ca1a6', '#a8a191', '#1a1d26'],  // mechanical penthouse screen
     balc:  ['#b8b3a9', '#c2b5a1', '#1c1e26'],  // balcony slab edge
+    // ── the balustrade standing on that slab ─────────────────────────
+    // The one thing that turns a balcony from a ledge into somewhere a person
+    // stands, and the bake drew the slab and stopped until tier three. Two
+    // classes because two materials: black powder-coated steel on everything
+    // built since 2010, and a pale precast/white-metal parapet on Cambridge
+    // Tower (Stanley's pierced "Solar Unit" breeze block) and 2400 Nueces.
+    //
+    // These are NOT entered cool the way the deck and the penthouse are. That
+    // correction exists because a fill-extrusion's TOP face takes the sun tint
+    // and those pieces are read almost entirely as top faces from a 60-75 deg
+    // camera. A rail is 1.05 m tall and 0.11 m thick: its top face is a hairline
+    // and what you see is the SIDE. So it is entered as the material reads.
+    rail:  ['#2e3136', '#3a3733', '#131519'],  // black steel balustrade
+    raill: ['#c6c3bb', '#cdc2ae', '#1e2029'],  // precast / white metal parapet
     // Moontower's roof sign. Dark bronze letters by day, and the only thing in
     // this pass that gets BRIGHTER after dark.
     sign:  ['#8a4a22', '#b4622c', '#ff8a3c'],
