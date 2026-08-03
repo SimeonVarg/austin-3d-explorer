@@ -92,7 +92,15 @@ West Campus, East Austin and everything south of the Capitol are bare tan. Austi
 reads as a dust bowl with one green island in it, and it is the first thing you
 notice from any altitude.
 
-**Find out WHY before fixing it.** Three candidates and they need different work:
+**Look in `data/osm_cache/` FIRST.** There is already a `city_trees.json` and a
+`trees.json` in there, and a previous session left a much wider fetch cached
+under a bbox-named file (roughly 30.24–30.315 N, -97.788 to -97.702 W — most of
+central Austin, far beyond campus). If the coverage is already on disk this item
+is a filter fix, not a fetch, and that changes it from hours to minutes. Check
+before you reach for the network.
+
+**Then find out WHY before fixing it.** Three candidates, each needing different
+work:
 
 1. the fetch bbox in `fetch_city_trees.py` is drawn tight around campus
 2. the City of Austin tree inventory genuinely does not cover those blocks
