@@ -103,6 +103,29 @@ and found a bug I had introduced:
 Final per-side wall tops: **W 53.0, E 36.5, N 34.0, S 26.0 m** (were 72.5 / 63 /
 63 / 63).
 
+### Part two — unblocked by PR #114, same night
+
+The Acer shipped both blockers while this branch was open: `fill-extrusion-base`
+is now `['coalesce', ['get','base'], 0]` on `stadium-seating`, and `SEAT_COL`'s
+night column is dark. That turned two "impossible from this lane" items into one
+commit:
+
+- **The upper deck now stands over the concourse instead of growing out of the
+  ground.** Lower-bowl rows keep `base 0`; upper-deck rows start at their own
+  underside (`DECK_SLAB_M`), and the void is a thin soffit hanging under the
+  deck (`VOID_SOFFIT_M`) with daylight beneath it rather than a solid ring.
+  **367 of 649 seat bands now start above ground, the highest at 38.0 m.** That
+  is the end of "cutouts from a big pyramid" — it was a literal description of
+  `base: 0`, and the base is real now.
+- **Night reads correctly for the first time.** The field is the brightest
+  surface, the bowl is dark, the rim fixtures are the only pale thing, and the
+  outside is dark. `shots/dkr2/night.png`.
+
+**The lesson worth keeping:** two of the nine faults were unreachable from this
+lane, and the correct move was to write the request down precisely — file, line,
+and the exact expression — rather than to work around it. The other lane shipped
+it in one PR within the hour. A precise request beats a clever workaround.
+
 ### Also found
 
 - `data/dkr_aerial.png` and `dkr_aerial_geo.png` are **gitignored and were not

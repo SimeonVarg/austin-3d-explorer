@@ -196,6 +196,11 @@ SIDES = {
 # per band and carries the height blended for ITS bearing, which is what lets
 # the west be 38 m while the south is 12 m and the corners run smoothly between
 # them. 32 is the coarsest that does not show a visible facet at the corners.
+# How thick the structural slab under a deck row reads, and how deep the soffit
+# over the concourse hangs. Both only became expressible when PR #114 replaced
+# `'fill-extrusion-base': 0` with a real base on stadium-seating.
+DECK_SLAB_M = 2.4
+VOID_SOFFIT_M = 1.8
 BOWL_SEGMENTS = 32
 # Blend half-width, in degrees, over which one side's profile crosses into the
 # next. The real bowl turns the corner continuously; a hard switch at the sector
@@ -1144,22 +1149,34 @@ def build(feature, stats):
         prof = profile_for(ang, axis)
         for nm, t0, t1, z0, z1, rows in prof:
             if nm == "void":
-                # The gap under the upper deck. `void` is the one SEAT_COL key
-                # that is dark in all three columns (#41454f / #3f3c36 /
-                # #2a1810), so it is the slot AND it is the only part of the
-                # bowl that behaves after dark.
+                # THE CONCOURSE SLOT, and it is a real gap now. It used to be a
+                # solid `void` ring standing on the ground because a seat
+                # feature could not have a base; it is now a thin dark soffit
+                # hanging at the underside of the upper deck with daylight under
+                # it, which is the shadow line that makes two decks read as two.
                 out.append(feat(ring_arc(t1, i0, i1) + ring_arc(t0, i0, i1)[::-1],
                                 lat0, {"kind": "seat", "s": "void",
-                                       "h": round(z0, 2), "name": name}))
+                                       "base": round(z1 - VOID_SOFFIT_M, 2),
+                                       "h": round(z1, 2), "name": name}))
                 stats["bowl_void"] += 1
                 continue
             for r in range(rows):
                 a = t0 + (t1 - t0) * r / rows
                 b = t0 + (t1 - t0) * (r + 1) / rows
+                za = z0 + (z1 - z0) * (r / rows) ** RAKE_GAMMA
                 zb = z0 + (z1 - z0) * ((r + 1) / rows) ** RAKE_GAMMA
+                # THE LINE PR #114 MADE POSSIBLE.
+                # A lower-bowl row sits on fill and starts at the ground. An
+                # UPPER-deck row is carried on structure over the concourse, so
+                # it starts at its own underside — which is what stops the bowl
+                # being one solid stepped cone. Before this, `base` on a seat
+                # feature was discarded and every row grew from y=0: "cutouts
+                # from a big pyramid" was a literal description of that.
+                base = 0.0 if nm == "lower" else max(0.0, za - DECK_SLAB_M)
                 out.append(feat(ring_arc(b, i0, i1) + ring_arc(a, i0, i1)[::-1],
                                 lat0, {"kind": "seat",
                                        "s": seat_class(nm, r, rows, ang, axis),
+                                       "base": round(base, 2),
                                        "h": round(zb, 2), "name": name}))
                 stats["bowl_bands"] += 1
 
