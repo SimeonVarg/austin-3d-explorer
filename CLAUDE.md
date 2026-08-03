@@ -8,13 +8,28 @@ memory and is never written here, in any tracked file, or in a commit message.
 
 ## Lanes
 
-1. **ONE LANE, ALL FILES. Changed 2026-08-02** at Simeon's instruction: *"stop
-   just do everything yourself il lhave the mac do something else just do
-   eveyrthing yourself you have total control"*. The Mac is off this repo. There
-   is no file-ownership split any more, no `mac/*` branches, and nothing to
-   coordinate — the Acer session owns every file and decides everything except
-   taste. The old two-lane rule and `MAC_QUEUE.md` are history; do not reinstate
-   either without him saying so.
+1. **TWO LANES, SPLIT BY BAKE.** Each bake script owns exactly one output file
+   and nothing else writes it — that is the only boundary that has ever held.
+   `MAC_QUEUE.md` says which scripts and which data file the Mac lane owns this
+   round; everything else is the Acer's.
+
+   **Why it is drawn that way.** The first split was an ad-hoc list of files and
+   it cut straight through a subsystem: the Mac owned `js/facades.js` while the
+   Acer needed it for the buildings-on-tiles port, so finished work sat parked
+   and the same discovery was written into `HANDOFF.md` twice from two machines.
+   A boundary that runs through the middle of one job is worse than no boundary.
+   A bake and its output file cannot collide by construction.
+
+   **A lane may READ any file. It may only WRITE its own.** If you need a schema
+   change in someone else's file, write the request into `HANDOFF.md` rather
+   than making it.
+
+   (History: this was briefly "one lane, all files" on 2026-08-02 after Simeon
+   said *"just do everything yourself"* — but that was him not having time to set
+   the Mac up, not a judgement that splitting was wrong. He runs two machines
+   deliberately, for a deadline: *"i mainly got it bc i have a deadline for this
+   project and wanted 2x progress"*. Two minutes of his setup for hours of
+   parallel work is a good trade. Draw the boundary properly and it stays one.)
 
 2. **Merge your own PRs. Do not wait for Simeon.** (Changed 2026-08-01, at his
    instruction: *"im a manager who gives feedback not micromanages"*. The old
