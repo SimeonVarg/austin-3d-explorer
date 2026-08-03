@@ -1,5 +1,28 @@
 # MAC LANE — the trees, and only the trees
 
+## STATUS 2026-08-03: all three items done. Three PRs, all merged.
+
+| | | |
+|---|---|---|
+| **T3** creek | PR #90 `mac/creek-trees` | 4,659 trees into the 33/34/49 corridors. Both stretches he named photographed. **+524 KB on the tile archive.** |
+| **T1** flat discs | PR #91 `mac/tree-shading` | Crown gradient on the baked `tf`, per-tree hue on `j`. **Zero bytes** — both were already in the data, unread. |
+| **T2** bare city | PR #92 `mac/canopy-coverage` | Diagnosed, and the diagnosis overturns all three candidates. Took the one real lift (+5,054 surveyed trees, +111 KB). **Does not fix the look, and says so.** |
+
+### The two things the next session needs
+
+1. **`build-tiles.yml` fails every day after midnight UTC** until that day's
+   buildings snapshot is baked — `tile.sh`'s final `du` names an archive under
+   `data/snapshots/$(date -u)`, `set -o pipefail` promotes its status, and the
+   run dies *after* building everything correctly. One line to fix, in a file
+   this lane does not own. Until then a "failed" re-tile may have worked; build
+   `trees.pmtiles` locally with the `TIPPE_COMMON` flags instead. HANDOFF §39.
+2. **T2's real fix is a payload decision only Simeon can make.** A road-network
+   fill is 2,423 km of road outside the core = **138,472 trees at 35 m spacing**
+   against ~25,000 crowns in the whole app today. The affordable middle is a
+   bounded ring around campus or major roads only. HANDOFF §41.
+
+---
+
 Written 2026-08-02 afternoon. This lane exists again after a day off it, and the
 scope is deliberately narrow: **one script, one data file, one archive.**
 
