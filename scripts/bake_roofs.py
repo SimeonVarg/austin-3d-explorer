@@ -391,38 +391,160 @@ def mitre_rays(poly):
     return u
 
 
-def vertex_caps(poly, u, dmax=60.0):
-    """The furthest each vertex can be offset inward and still BE an offset.
+def cap_along(p, u, poly, dmax=60.0):
+    """The furthest p can travel along ray u and still BE an inward offset.
 
-    A correctly offset vertex is inside the footprint and no nearer to any wall
+    A correctly offset point is inside the footprint and no nearer to any wall
     than the offset itself. Both stop being true at the same moment — when the
-    vertex reaches the medial axis, i.e. when the slope it belongs to has run
+    point reaches the medial axis, i.e. when the slope it belongs to has run
     into the slope coming the other way. That moment is this roof's RIDGE, and
-    past it the mitre keeps going and starts lying.
+    past it the offset keeps going and starts lying.
 
     The condition is monotone in d (`clearance` along the ray grows at most as
     fast as d, so once it falls behind it never catches up), which is what makes
     a bisection sound here.
     """
-    caps = []
-    for j, (ux, uy) in enumerate(u):
-        px, py = poly[j]
-        lo, hi = 0.0, dmax
-        for _ in range(18):
-            mid = (lo + hi) * 0.5
-            q = (px + ux * mid, py + uy * mid)
-            if inside(q, poly) and clearance(q, poly) >= mid - OFFSET_SLACK_M:
-                lo = mid
-            else:
-                hi = mid
-        caps.append(lo)
-    return caps
+    px, py = p
+    ux, uy = u
+    lo, hi = 0.0, dmax
+    for _ in range(18):
+        mid = (lo + hi) * 0.5
+        q = (px + ux * mid, py + uy * mid)
+        if inside(q, poly) and clearance(q, poly) >= mid - OFFSET_SLACK_M:
+            lo = mid
+        else:
+            hi = mid
+    return lo
 
 
-def inset_capped(poly, u, caps, d):
-    """The inward offset by d, with every vertex stopped at its own cap.
+def vertex_caps(poly, u, dmax=60.0):
+    """`cap_along` at every footprint vertex, along its mitre ray."""
+    return [cap_along(poly[j], u[j], poly, dmax) for j in range(len(poly))]
 
-    THIS IS THE FIX FOR THE DIAGONAL ROOFS, and the whole of it is: a vertex
+
+# ── a wall is not its two corners ─────────────────────────────────────
+#
+# THE SECOND CAUSE OF THE DIAGONAL ROOFS, and it is the same mistake as the two
+# before it, one scale further in.
+#
+# PR #57 replaced a scale-blind ANGLE with a sagitta in metres. PR #74 replaced a
+# GLOBAL run cut-back (`fold_free_run`, which let one notch shorten every slope on
+# the building) with a PER-VERTEX cap. Both were right. Both stopped one step
+# short of the actual unit of the problem, because a cap is still shared by the
+# two facets that meet at the vertex — so a wall's slope is clamped to whatever
+# its WORST CORNER can reach, however far away that corner is.
+#
+# Measured, on the roof this was traced on: the Moncrief-Neuhaus Athletic Center
+# has a 55.4 m north wall between two reflex corners, both pinched by the recess
+# behind them and both capped at 5.06 m. The roof's step depth is 12.66 m. So the
+# slope stopped 5.1 m in along the WHOLE 55.4 m wall, the deck — which sits at the
+# top of the entire rise — spread over the remaining 7.5 m, and what you see from
+# the air is a flat plate at full height running out to within 5 m of that eave
+# while the walls either side of it slope properly. The line between them runs
+# diagonally across both corners. `audit_coverage` scores it zero because every
+# square metre IS covered; it is covered by the wrong thing.
+#
+# THE RULE. A mitre at a corner is a hip line and is correct — corners are where
+# a hip roof genuinely does converge early. What is not correct is applying a
+# corner's limit to the 50 m of wall between two corners. So a wall whose MIDDLE
+# can outrun its own corners gets sample points of its own along it, each offset
+# along the wall's normal and each capped on its own merits. The facet stops
+# being a quad and becomes a strip with a straight eave and an inner edge that
+# dips only where the roof actually pinches.
+#
+# ONLY WHERE IT IS NEEDED, and that is not thrift, it is the same argument as
+# HANDOFF §37: this file is downloaded whole by every visitor. Densifying every
+# wall would add a point per metre to 377 facets for no visible gain. The test is
+# exact — offset the wall's midpoint and ask whether it beats its corners — so
+# the walls that get the extra points are the walls that were being lied about.
+DENSIFY_GAIN_M = 0.75   # the middle must beat its corners by this to be worth it
+DENSIFY_MAX_PTS = 8     # most sample points one wall's slope may gain
+DENSIFY_MARGIN_M = 0.25 # clear of each corner's own mitre face, in metres
+
+
+def wall_profile(poly, mrays, caps, d_final):
+    """Every point this roof offsets inward, in ring order, with its own cap.
+
+    Returns `(pts, rays, pcaps, spans)`. Entry `spans[i] = (a, b)` says that
+    profile entries a..b inclusive are the outer boundary of edge i's slope,
+    running from the mitre at `poly[i]` to the mitre at `poly[i + 1]`. Offsetting
+    is then `pts[k] + rays[k] * min(d, pcaps[k])` for every ring, so the rings
+    still nest and still pair index for index — which is what the facet builder
+    and the deck both depend on.
+    """
+    n = len(poly)
+    pts, rays, pcaps, spans = [], [], [], []
+    for i in range(n):
+        a = len(pts)
+        pts.append(poly[i]); rays.append(mrays[i]); pcaps.append(caps[i])
+        x0, y0 = poly[i]
+        x1, y1 = poly[(i + 1) % n]
+        dx, dy = x1 - x0, y1 - y0
+        L = math.hypot(dx, dy)
+        if L > 1e-9:
+            u = (-dy / L, dx / L)          # inward normal, matching inset()
+            mid = (x0 + dx * 0.5, y0 + dy * 0.5)
+            # WHAT THE QUAD ACTUALLY REACHES, not what its better corner does.
+            # A mitre ray is built so that `poly[j] + u[j] * t` is exactly t from
+            # both of its own walls, so a corner capped at c contributes depth c
+            # to this wall and the straight inner edge between them reaches their
+            # MEAN at the midpoint. Comparing against the max was the first
+            # version of this test and it let Gregory Gym through: one corner sat
+            # at 12.41 m, past the 9.16 m step depth, so the test said the corners
+            # were not limiting — while the other corner, at 5.05 m, was dragging
+            # the whole 8.4 m wall back with it.
+            got = 0.5 * (min(d_final, caps[i]) + min(d_final, caps[(i + 1) % n]))
+            gain = min(d_final, cap_along(mid, u, poly)) - got
+            if gain > DENSIFY_GAIN_M:
+                # SAMPLES GO BETWEEN THE TWO CORNER FACES, NOT ACROSS THEM, and
+                # this is not tidiness — without it the facet is a polygon that
+                # crosses itself. A mitre at a convex corner travels ALONG the
+                # wall as well as into it: at a right angle it moves 1 m sideways
+                # per metre of depth, so at a 9 m step the corner's inner point
+                # sits 9 m down an 8.4 m wall. The samples sit on the SAME corner
+                # bisector nearer the corner, so the inner boundary ran out to
+                # the mitre and then marched back over itself — 78 self-crossing
+                # facets, which earcut turns into folded slivers.
+                #
+                # The corner's own mitre triangle already covers that end of the
+                # wall. So a sample is only placed where the mitres have not
+                # reached, which makes the inner chain monotone along the wall by
+                # construction and the strip simple. `roofs_with_a_hole` is the
+                # check that this leaves nothing bare, and it stays at 0.
+                jn = (i + 1) % n
+                di = min(d_final, caps[i])
+                dj = min(d_final, caps[jn])
+                tx, ty = dx / L, dy / L
+                s_lo = mrays[i][0] * di * tx + mrays[i][1] * di * ty
+                s_hi = L + mrays[jn][0] * dj * tx + mrays[jn][1] * dj * ty
+                s_lo = max(0.0, s_lo) + DENSIFY_MARGIN_M
+                s_hi = min(L, s_hi) - DENSIFY_MARGIN_M
+                span = s_hi - s_lo
+                if span > DENSIFY_MARGIN_M:
+                    k = max(1, min(DENSIFY_MAX_PTS, int(span / 2.0)))
+                    for s in range(1, k + 1):
+                        t = (s_lo + span * s / (k + 1.0)) / L
+                        q = (x0 + dx * t, y0 + dy * t)
+                        pts.append(q); rays.append(u)
+                        pcaps.append(cap_along(q, u, poly))
+        spans.append((a, len(pts)))        # b is the NEXT mitre, taken modulo
+    return pts, rays, pcaps, spans
+
+
+def profile_ring(pts, rays, pcaps, d):
+    """The inward offset by d of a whole profile, closed."""
+    out = [(p[0] + u[0] * min(d, c), p[1] + u[1] * min(d, c))
+           for p, u, c in zip(pts, rays, pcaps)]
+    return out + [out[0]]
+
+
+def _inset_capped_history():
+    """`inset_capped` USED TO LIVE HERE. `profile_ring` does its job and more —
+    it offsets the same way and reaches the same numbers on every wall whose
+    corners were not lying about it — so it is gone rather than kept beside its
+    replacement. Its reasoning is not, because it is still the reasoning:
+
+    THE FIX FOR THE DIAGONAL ROOFS, and the whole of it is: a vertex
     that cannot travel d does not get deleted, it stops.
 
     The old code offset every vertex the full d and then threw away any FACET
@@ -444,12 +566,11 @@ def inset_capped(poly, u, caps, d):
     0.9 is gone with it. It was a scale-blind fudge standing in for an exact
     condition, in the same way the pre-PR-#57 angle threshold stood in for the
     sagitta.
+
+    AND IT STOPPED ONE STEP SHORT, which is what `wall_profile` above is for: a
+    vertex that stops takes the whole of both its walls down with it, because a
+    quad has only its two corners to be built from.
     """
-    out = []
-    for j, (ux, uy) in enumerate(u):
-        dj = min(d, caps[j])
-        out.append((poly[j][0] + ux * dj, poly[j][1] + uy * dj))
-    return out + [out[0]]
 
 
 def simplify(pts, tol):
@@ -536,7 +657,7 @@ def valid_step(quad, travels, poly):
     change makes a ring lie again the bake says so instead of quietly leaving a
     hole in a roof.
     """
-    for pt, t in zip(quad[:4], travels):
+    for pt, t in zip(quad, travels):
         if t <= 0.05:                       # the eave ring sits outside the wall
             continue
         if not inside(pt, poly) or clearance(pt, poly) < t - OFFSET_SLACK_M:
@@ -569,6 +690,123 @@ def valid_step(quad, travels, poly):
 AUDIT_PX_M       = 0.25    # raster resolution, metres per pixel
 AUDIT_HOLE_FR    = 0.04    # uncovered share of the footprint worth reporting
 AUDIT_HOLE_M2    = 12.0    # ...and it has to be this big in absolute terms too
+
+# ── AUDIT 2: a slope can also be MISSING WITHOUT LEAVING A HOLE ────────
+#
+# The coverage audit above closed one cause and reports 0 of 105 today. It is
+# still not the whole question, and the reason is that it asks only "is this
+# square metre covered by SOMETHING". A wall whose slope facets pinch to nothing
+# is not left bare — the DECK, which sits at the top of the whole rise, spreads
+# over that wall instead. Every pixel is covered, the audit scores zero, and what
+# you see from the air is a flat plate at full height running out to the eave on
+# one wall while the walls either side of it slope. The edge between the plate
+# and the slopes that DID get built is a straight line across the corner. That is
+# the diagonal, and coverage is blind to it by construction.
+#
+# So this asks the second question, the one QUEUE A1 named: DOES EVERY FOOTPRINT
+# EDGE GET ITS OWN SLOPE AS DEEP AS THE ROOF ALLOWS? Per edge, walk along the
+# wall and at each sample compare TWO numbers:
+#
+#   possible(t) = cap_along(t) clamped to the step depth. This is the exact
+#                 geometric limit — the furthest that point of the wall can be
+#                 offset inward and still be an inward offset — and it is not
+#                 computed from the profile, the caps or anything the fix
+#                 touches. Near a convex corner it falls away to nothing, which
+#                 IS the hip line; past a ridge it stops, which IS the ridge.
+#   achieved(t) = the perpendicular depth of the INNERMOST FACET THIS BAKE
+#                 ACTUALLY EMITTED for that wall, read back off the polygon.
+#
+# The shortfall integrated along the wall is square metres of slope this roof
+# should have had and does not. A ridge scores zero because `possible` stops at
+# the ridge too. A hip line scores zero for the same reason.
+#
+# TWO RASTER VERSIONS OF THIS WERE WRITTEN FIRST AND BOTH WERE WRONG, which is
+# worth the paragraph because both looked convincing:
+#
+#   Assigning each pixel to its nearest footprint SEGMENT reported Gregory Gym
+#   as a missing slope on a roof with nothing wrong with it. Around a reflex
+#   corner both walls that meet there are exactly equidistant from every point
+#   in the fan beyond it — the nearest point is the shared corner for both — so
+#   `argmin` gave one wall a 9 m quarter-disc it has no business covering.
+#
+#   Assigning by nearest edge LINE instead fixed that corner and broke
+#   everything else: an edge's line runs on past the end of the edge, and on a
+#   concave plan a wall 40 m away is often the nearest LINE to a pixel it has no
+#   relationship with. That version reported 212 walls on 51 of 105 roofs.
+#
+# There is no cell here at all, which is why neither failure can come back.
+DIAG_SAMPLE_M = 2.0     # walk the wall at about this spacing
+DIAG_MIN_LEN  = 6.0     # a 3 m return is a corner detail, not a roof plane
+DIAG_MIN_M2   = 25.0    # missing slope worth reporting, in square metres
+DIAG_MIN_FR   = 0.20    # ...and this share of what the wall could have had
+
+
+def audit_slope_depth(poly, facet_by_edge, d_final, name, key, centre=None):
+    """Square metres of slope each wall of this roof should have had and has not.
+
+    `facet_by_edge` maps a footprint edge index to the quads emitted for it, in
+    step order, so `[-1]` is the innermost. Everything is in local metres.
+    """
+    if d_final <= 0.2:
+        return []
+    n = len(poly)
+    bad = []
+    for i in range(n):
+        x0, y0 = poly[i]
+        x1, y1 = poly[(i + 1) % n]
+        dx, dy = x1 - x0, y1 - y0
+        L = math.hypot(dx, dy)
+        if L < DIAG_MIN_LEN:
+            continue
+        tx, ty = dx / L, dy / L
+        u = (-dy / L, dx / L)
+        # The inner edge of the deepest facet, as (distance along wall, depth).
+        # A face is [outer points in wall order] + [inner points reversed], so
+        # the second half reversed is the inner boundary in wall order.
+        inner = []
+        faces = facet_by_edge.get(i) or []
+        if faces:
+            f = faces[-1]
+            for q in reversed(f[len(f) // 2:]):
+                inner.append(((q[0] - x0) * tx + (q[1] - y0) * ty,
+                              (q[0] - x0) * u[0] + (q[1] - y0) * u[1]))
+            inner.sort()
+
+        def achieved(s):
+            if not inner:
+                return 0.0
+            if s <= inner[0][0]:
+                return inner[0][1]
+            if s >= inner[-1][0]:
+                return inner[-1][1]
+            for (sa, da), (sb, db) in zip(inner, inner[1:]):
+                if sa <= s <= sb:
+                    if sb - sa < 1e-9:
+                        return max(da, db)
+                    return da + (db - da) * (s - sa) / (sb - sa)
+            return inner[-1][1]
+
+        K = max(3, min(24, int(L / DIAG_SAMPLE_M)))
+        w = L / K
+        short = could = 0.0
+        for k in range(K):
+            s = (k + 0.5) * w
+            t = s / L
+            poss = min(d_final, cap_along((x0 + dx * t, y0 + dy * t), u, poly))
+            could += poss * w
+            short += max(0.0, poss - achieved(s)) * w
+        if could <= 0.5:
+            continue
+        fr = short / could
+        if short < DIAG_MIN_M2 or fr < DIAG_MIN_FR:
+            continue
+        az = facet_az(poly[i], poly[(i + 1) % n])
+        bad.append({"name": name or "(unnamed)", "id": key, "at": centre,
+                    "wall": i, "wall_len_m": round(L, 1),
+                    "wall_az": None if az is None else round(az),
+                    "could_m2": round(could, 1), "short_fr": round(fr, 3),
+                    "bare_m2": round(short, 1)})
+    return bad
 
 
 def audit_coverage(eave_ring, covers, poly, name, key, centre=None):
@@ -1048,8 +1286,11 @@ def main():
     # Pinned so it prints even at zero. A count that only appears when it is
     # non-zero is a count nobody notices coming back.
     stats["roofs_with_a_hole"] = 0
+    stats["roofs_with_a_missing_slope"] = 0
+    stats["walls_with_no_slope"] = 0
     rows = []
     audit = []
+    diag = []
     pitched = set()          # buildings this bake gives a real tiled roof to
     for f in feats:
         p = f["properties"]
@@ -1118,7 +1359,17 @@ def main():
             # Ring 0 is the eave: outside the wall, and flat, so the roof reads
             # as sitting ON the building with an overhang instead of growing out
             # of it. It carries no rise, so it needs no per-facet tint.
-            eave_ring = inset(pm, -EAVE_OUT_M)
+            # The profile is solved once per building and every ring below is a
+            # multiply-add on it. Walls whose middle can outrun their corners
+            # gain sample points here and nowhere else.
+            ppts, prays, pcaps, spans = wall_profile(
+                poly, mrays, caps, run * steps / (steps + 0.35))
+            if len(ppts) > len(poly):
+                stats["walls_densified"] += len(ppts) - len(poly)
+                stats["roofs_densified"] += 1
+            eave_ring = profile_ring(ppts, prays, pcaps, -EAVE_OUT_M)
+            if abs(signed_area(eave_ring)) < 1.0:
+                eave_ring = None
             if eave_ring is not None:
                 # The eave lip is flat, so both ends of its shade range are the
                 # building's own baked colour and the sun term cannot move it.
@@ -1129,38 +1380,51 @@ def main():
                                    "rd": p.get("rd"), "rg": p.get("rg"), "rn": p.get("rn"),
                                    "rdd": p.get("rd"), "rgd": p.get("rg")},
                 })
-            start = eave_ring if eave_ring is not None else (ccw(pm) + [ccw(pm)[0]])
-            # Every step ring is the SAME mitre rays clamped at the SAME per-vertex
-            # caps, so the rings nest, the indices stay paired, and a vertex that
+            start = eave_ring if eave_ring is not None else profile_ring(
+                ppts, prays, pcaps, 0.0)
+            # Every step ring is the SAME rays clamped at the SAME per-point
+            # caps, so the rings nest, the indices stay paired, and a point that
             # has reached its ridge simply stops instead of taking its facet with
-            # it. Solved once per building; a ring is then a multiply-add.
-            rings = [(start, [-EAVE_OUT_M] * len(poly), 0.0)]
+            # it.
+            rings = [(start, [-EAVE_OUT_M] * len(ppts), 0.0)]
             for s in range(1, steps + 1):
                 d = run * s / (steps + 0.35)
-                rings.append((inset_capped(poly, mrays, caps, d),
-                              [min(d, c) for c in caps], rise * s / steps))
+                rings.append((profile_ring(ppts, prays, pcaps, d),
+                              [min(d, c) for c in pcaps], rise * s / steps))
             made = 0
             edge_steps = Counter()
             covers = []            # every polygon this roof puts above the eave
+            # ...and the same quads filed under the footprint edge each one is
+            # the slope of, which is what audit_slope_depth needs.
+            facet_by_edge = {}
+            M = len(ppts)
+            npoly = len(poly)
+            # One facet per FOOTPRINT EDGE per step, not one per profile segment:
+            # a wall's slope is a single plane whichever way its inner edge dips,
+            # and splitting it would put a shading seam down the middle of it.
+            edge_idx = [[k % M for k in range(a, b + 1)] for (a, b) in spans]
             for (r0, dd0, t0), (r1, dd1, t1) in zip(rings, rings[1:]):
                 if r0 is None or r1 is None:
                     break
                 b = round(base + 0.35 + t0, 2)
                 ht = round(base + 0.35 + max(t1, t0 + 0.15), 2)
-                n = min(len(r0), len(r1)) - 1
-                for i in range(n):
-                    az = facet_az(r0[i], r0[i + 1])
+                for i in range(npoly):
+                    az = facet_az(poly[i], poly[(i + 1) % npoly])
                     if az is None:
                         continue
-                    quad = [r0[i], r0[i + 1], r1[i + 1], r1[i], r0[i]]
+                    idx = edge_idx[i]
+                    face = [r0[k] for k in idx] + [r1[k] for k in reversed(idx)]
+                    quad = face + [face[0]]
                     if abs(signed_area(quad)) < 0.35:      # a sliver, not a facet
                         continue
-                    j = (i + 1) % len(poly)
-                    if not valid_step(quad, (dd0[i], dd0[j], dd1[j], dd1[i]), poly):
+                    travels = ([dd0[k] for k in idx]
+                               + [dd1[k] for k in reversed(idx)])
+                    if not valid_step(quad, travels, poly):
                         stats["facet_guard_fired"] += 1
                         continue
                     edge_steps[i] += 1
-                    covers.append(quad[:4])
+                    covers.append(face)
+                    facet_by_edge.setdefault(i, []).append(face)
                     out.append({
                         "type": "Feature",
                         "geometry": {"type": "Polygon", "coordinates": [to_ll(quad, lat0)]},
@@ -1216,7 +1480,8 @@ def main():
                 # middle of this roof membrane or is it more tile", and the ring
                 # the slope stops at still has the slope's own tile in it. So the
                 # probe keeps the old, deeper ring and only the geometry moved.
-                sample = inset_capped(poly, mrays, caps, min(run + 1.6, hs * 0.95))
+                sample = profile_ring(ppts, prays, pcaps,
+                                      min(run + 1.6, hs * 0.95))
                 sll = to_ll(sample, lat0) if abs(signed_area(sample)) >= 1.0 else dll
                 lons = [q[0] for q in sll]; lats = [q[1] for q in sll]
                 for i in range(16):
@@ -1266,6 +1531,13 @@ def main():
             if bad is not None:
                 audit.append(bad)
                 stats["roofs_with_a_hole"] += 1
+            walls = audit_slope_depth(poly, facet_by_edge,
+                                      run * steps / (steps + 0.35),
+                                      p.get("name"), key, cen)
+            if walls:
+                diag.extend(walls)
+                stats["roofs_with_a_missing_slope"] += 1
+                stats["walls_with_no_slope"] += len(walls)
             if report:
                 area_fr, _ = tile_frac_area(ring)
                 rows.append((run, hs, eave, area_fr, rise, p.get("name") or "(unnamed)"))
@@ -1349,6 +1621,17 @@ def main():
             print("   %7.1f    %5.1f%%   %5s   %5.1f  %s   %s  at %s"
                   % (a["hole_m2"], a["hole_fr"] * 100, a["wall_az"], a["wall_len_m"],
                      (a["name"] or "")[:38], a["id"], a["at"]))
+        diag.sort(key=lambda a: -a["bare_m2"])
+        seen = {}
+        for a in diag:
+            seen.setdefault(a["id"], a)
+        print("\n  WALLS THAT GOT NO SLOPE OF THEIR OWN - %d walls on %d of %d pitched roofs"
+              % (len(diag), len(seen), stats["tiled"]))
+        print("   bare_m2   could_m2   missing  wall_az  wall_m  building")
+        for a in diag:
+            print("   %7.1f   %8.1f    %5.1f%%   %5s   %5.1f  %s   %s  at %s"
+                  % (a["bare_m2"], a["could_m2"], a["short_fr"] * 100, a["wall_az"],
+                     a["wall_len_m"], (a["name"] or "")[:38], a["id"], a["at"]))
 
 
 if __name__ == "__main__":
