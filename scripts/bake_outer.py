@@ -573,6 +573,49 @@ def offset_ring(ring_m, delta):
         return None
 
 
+def roof_seat(ring_m, half, must_fit=True):
+    """A point this roof can seat a `2*half` square on, or None.
+
+    `must_fit=False` relaxes it to "a point INSIDE the ring" when the caller
+    cannot skip — a mast is the tallest piece of its tower and dropping it
+    would silently change the tower's height, which §33's re-measure would then
+    (correctly) fail. A mast overhanging its crown by a metre is a detail; a
+    mast forty metres away over the street is the defect.
+
+    THE CENTROID IS NOT SUCH A POINT. A downtown block is routinely L-shaped, U
+    -shaped or a doughnut around a light well, and the centroid of a non-convex
+    ring lies outside it — so the first cut of the roof plant put boxes in mid
+    air BESIDE their building (shots/e1-tiles/congress.png before this, the two
+    dark cubes over the plaza at 6th and Brazos). A stable random nudge off the
+    centroid, added for variety, made it worse by pushing borderline ones out.
+
+    So: inset by the half-width plus a margin, and take shapely's
+    representative_point of what survives — which is guaranteed INSIDE the
+    polygon, unlike a centroid. If nothing survives the inset, the roof cannot
+    seat the box and the answer is no box, not a smaller one in the wrong place.
+    """
+    inner = offset_ring(ring_m, -(half + 0.8))
+    try:
+        if inner is not None:
+            poly = Polygon(inner)
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+            if not poly.is_empty and poly.area >= 1.0:
+                p = poly.representative_point()
+                return (p.x, p.y)
+        if must_fit:
+            return None
+        outer = Polygon(ring_m)
+        if not outer.is_valid:
+            outer = outer.buffer(0)
+        if outer.is_empty:
+            return None
+        p = outer.representative_point()
+        return (p.x, p.y)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def ring_centroid(ring_m):
     try:
         c = Polygon(ring_m).centroid
@@ -874,21 +917,60 @@ def downtown_detail(out, rep):
             # THE OWL. A stepped centre box with four corner fins standing
             # proud of it — the silhouette, not the glazing.
             gb = crown_h / CROWN_R["gable_fin_rise"]
+            # The centre is DELIBERATELY lower than the fins — that is the owl.
+            # So the solid under the mast stops here, not at top + crown_h, and
+            # `cap_top` has to say so or the mast starts 6.5 m above the last
+            # thing holding it up. That was Frost Bank's floating cube.
             emit(mine, piece(crown, top, top + gb, adjust_light(base, -0.10),
                              fade, kind="c"))
+            cap_top = top + gb
             cw = plan_width(crown)
-            cx, cy = ring_centroid(crown)
             fin = max(2.2, CROWN_R["gable_fin_frac"] * cw)
-            q = cw * 0.5 - fin * 0.5
-            for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
-                emit(mine, piece(square_ring(cx + sx * q, cy + sy * q, fin),
-                                 top, top + crown_h,
+            seat = roof_seat(crown, 0.0, must_fit=False)
+            cx, cy = seat if seat else ring_centroid(crown)
+            # THE RING'S OWN VERTICES, one per quadrant.
+            #
+            # Two wrong rules were tried first and both are worth naming.
+            # `centroid +- plan_width/2` uses 4A/P — twice the INRADIUS, the
+            # SHORT dimension — so on an oblong plan it lands the fins between
+            # the centre and the corners. Replacing it with the bounding box's
+            # corners was worse and it is a trap this repo has already written
+            # down (QUEUE: "a bounding box is not a shape", §50): Frost Bank's
+            # plan is ROTATED relative to north, so its bbox corners sit
+            # outside the polygon and MORE fins fell off, not fewer.
+            #
+            # A corner of a rotated rectangle is a VERTEX of the ring. Inset
+            # the ring by half the fin first, so any vertex of what survives
+            # can seat the whole square, then take the furthest vertex from the
+            # centre in each quadrant. Correct for any rotation and any shape.
+            seed = offset_ring(crown, -fin * 0.5) or crown
+            quad = {}
+            for vx, vy in seed:
+                key = (vx >= cx, vy >= cy)
+                d2 = (vx - cx) ** 2 + (vy - cy) ** 2
+                if key not in quad or d2 > quad[key][0]:
+                    quad[key] = (d2, vx, vy)
+            cpoly = Polygon(crown).buffer(0)
+            for _, fx, fy in quad.values():
+                fr = square_ring(fx, fy, fin)
+                # The four corners assume a roughly square plan. Frost Bank's
+                # is, so all four land — but a fin that does not touch its own
+                # crown is a block hanging off the side of the tower, and the
+                # owl is worth less than that costs.
+                try:
+                    if not cpoly.intersects(Polygon(fr).buffer(0)):
+                        n["gable_fin_dropped"] = n.get("gable_fin_dropped", 0) + 1
+                        continue
+                except Exception:  # noqa: BLE001
+                    continue
+                emit(mine, piece(fr, top, top + crown_h,
                                  adjust_light(base, 0.06), fade, kind="c"))
             n["gable"] += 1
             n["curated"] += 1
         else:
             emit(mine, piece(crown, top, top + crown_h,
                              adjust_light(base, -0.10), fade, kind="c"))
+            cap_top = top + crown_h
         top += crown_h
         cap = crown
         n["crown"] += 1
@@ -896,8 +978,19 @@ def downtown_detail(out, rep):
         # ── 5. the mast ───────────────────────────────────────────────
         if mast_h > 0.5:
             side = max(2.4, DT["mast_plan_frac"] * plan_width(cap))
-            cx, cy = ring_centroid(cap)
-            emit(mine, piece(square_ring(cx, cy, side), top, top + mast_h,
+            # roof_seat, NOT ring_centroid. The centroid of a non-convex crown
+            # lies outside it, and that is where downtown's floating cubes came
+            # from: a mast standing in mid air over the street beside its own
+            # tower. Visible in shots/e1-before/congress.png and present since
+            # PR #99 — the same root cause as the roof plant below, found the
+            # same way, by cropping the picture and then writing the detector.
+            seat = roof_seat(cap, side * 0.5, must_fit=False)
+            cx, cy = seat if seat else ring_centroid(cap)
+            # Stand it on what is actually under it (`cap_top`), and keep the
+            # TOP where it was — the tower's architectural height is the one
+            # number a viewer can check and §33's re-measure holds it. So a
+            # spire through the gables gets longer, it does not get lowered.
+            emit(mine, piece(square_ring(cx, cy, side), cap_top, top + mast_h,
                              MAST_COL, fade, kind="c"))
             n["mast"] += 1
 
@@ -963,18 +1056,81 @@ def downtown_detail(out, rep):
             continue
         if f["_h"] < DT["plant_min_h_m"] or f["_area"] < DT["plant_min_area_m2"]:
             continue
-        cx, cy = ring_centroid(f["_m"])
         side = plan_width(f["_m"], f["_area"]) * DT["plant_plan_frac"]
         side = max(DT["plant_min_side_m"], min(DT["plant_max_side_m"], side))
-        # Nudged off centre by a stable roll so a street of them does not read
-        # as a row of identical studs — the same trick the wall mottle uses.
-        key = "%.5f,%.5f" % (cx, cy)
-        cx += (stable01(key + ":px") - 0.5) * side * 0.5
-        cy += (stable01(key + ":py") - 0.5) * side * 0.5
+        # Seat it on a point the roof actually contains. A plan that cannot
+        # take the box at this size is tried once at the minimum and then left
+        # alone — an L-shaped block with a 6 m wing has nowhere to put plant.
+        seat = roof_seat(f["_m"], side * 0.5)
+        if seat is None and side > DT["plant_min_side_m"]:
+            side = DT["plant_min_side_m"]
+            seat = roof_seat(f["_m"], side * 0.5)
+        if seat is None:
+            n["plant_no_seat"] = n.get("plant_no_seat", 0) + 1
+            continue
+        cx, cy = seat
         box = square_ring(cx, cy, side)
+        # The inset guarantees containment. Assert it anyway: the version
+        # WITHOUT this assert shipped boxes hanging in mid air next to their
+        # building, and the only reason it was caught was that the next thing
+        # done was to look at a picture (§45's rule, earned again).
+        try:
+            if not Polygon(f["_m"]).buffer(0).contains(Polygon(box)):
+                n["plant_offroof"] = n.get("plant_offroof", 0) + 1
+                continue
+        except Exception:  # noqa: BLE001
+            n["plant_offroof"] = n.get("plant_offroof", 0) + 1
+            continue
         add.append(piece(box, f["_h"], f["_h"] + DT["plant_h_m"],
                          adjust_light(f["_base"], -0.22), f["_fade"], kind="c"))
         n["plant"] = n.get("plant", 0) + 1
+
+    # ── 8. NOTHING MAY FLOAT ──────────────────────────────────────────
+    # §33's re-measure asserts a tower's HEIGHT. It cannot see a piece at the
+    # right height in the wrong PLACE, and downtown shipped two of those for
+    # four passes because no instrument asked. Every raised piece must have
+    # something under it whose top reaches its base and which sits beneath most
+    # of its plan.
+    #
+    # The first version of this detector reported 39 and was WRONG: it only
+    # accepted a WALL as support, and a mast stands on a crown. A detector that
+    # flags its own blind spot has the shape of a real result — §45's rule, and
+    # the reason this one is written to accept any solid piece.
+    solids, spoly = [], []
+    for f in out + add:
+        p = f["properties"]
+        if p.get("k") in ("r", "g"):      # a ground band / park pad holds nothing
+            continue
+        try:
+            q = Polygon(f["geometry"]["coordinates"][0]).buffer(0)
+        except Exception:  # noqa: BLE001
+            continue
+        if q.is_empty:
+            continue
+        solids.append((p, f))
+        spoly.append(q)
+    tree = STRtree(spoly)
+    floating = 0
+    for f in add:
+        p = f["properties"]
+        b = p.get("b", 0)
+        if p.get("k") != "c" or b <= 0.05:
+            continue
+        try:
+            q = Polygon(f["geometry"]["coordinates"][0]).buffer(0)
+        except Exception:  # noqa: BLE001
+            continue
+        held = False
+        for i in tree.query(q):
+            if solids[i][1] is f:
+                continue
+            if solids[i][0]["h"] >= b - 0.6 and \
+                    spoly[i].intersection(q).area > q.area * 0.5:
+                held = True
+                break
+        if not held:
+            floating += 1
+    n["floating_pieces"] = floating
 
     for a in add:
         a["properties"]["d"] = 0

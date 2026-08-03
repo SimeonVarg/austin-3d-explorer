@@ -7,7 +7,7 @@
       "crown": 106,
       "mast": 36,
       "retail": 751,
-      "plant": 190,
+      "plant": 189,
       "curated": 10,
       "jenga": 1,
       "taper": 8,
@@ -16,7 +16,9 @@
       "height_checked": 114,
       "height_mismatch": 0,
       "height_worst": [],
-      "parts_per_tower_max": 8
+      "parts_per_tower_max": 8,
+      "plant_offroof": 1,
+      "floating_pieces": 2
     },
     "green": {
       "read": 839,
@@ -32,17 +34,17 @@
     }
   },
   "shipped": {
-    "features": 9150,
+    "features": 9149,
     "bodies": 7625,
-    "detail": 1525,
+    "detail": 1524,
     "by_kind": {
       "tower": 243,
       "flat": 7511,
-      "c": 336,
+      "c": 335,
       "r": 751,
       "g": 309
     },
-    "with_base": 465,
+    "with_base": 464,
     "max_top_m": 315.0
   },
   "date": "2026-07-30",
