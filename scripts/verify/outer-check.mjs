@@ -60,8 +60,24 @@ const s = await page.evaluate(() => {
     layerTypes: outerLayers.map(id => layer(id).type),
     flatHasPattern: !!(layer('outer-3d') || {}).paint?.['fill-extrusion-pattern'],
     towerHasPattern: !!(layer('outer-tower') || {}).paint?.['fill-extrusion-pattern'],
+    midHasPattern: !!(layer('outer-midrise') || {}).paint?.['fill-extrusion-pattern'],
     sourceMaxzoom: src && src.maxzoom,
-    ringTiled: (() => { try { return m.querySourceFeatures('austin-outer').length; } catch (e) { return 0; } })(),
+    // The maxzoom the ring is SUPPOSED to have, read from the shared block
+    // rather than written here as a literal. The literal said 15 and the
+    // shared block has said 16 since the pattern-tiling fix, so the assert has
+    // been red for a reason that was never a defect.
+    wantMaxzoom: (window.PATTERN_TILING || {}).maxzoom,
+    // A VECTOR source needs its source-layer or this returns [] — which is why
+    // this read 0 and "the ring tiled and is drawing" failed on `main` too.
+    // It only started failing honestly when _harness.html was given the pmtiles
+    // library; before that TILES.on was false and the ring was never tiled at
+    // all, so the assert was measuring the GeoJSON fallback and passing.
+    ringTiled: (() => {
+      try {
+        const sl = (layer('outer-3d') || {})['source-layer'];
+        return m.querySourceFeatures('austin-outer', sl ? { sourceLayer: sl } : undefined).length;
+      } catch (e) { return 0; }
+    })(),
     coreTiled: (() => { try { return m.querySourceFeatures('austin-buildings').length; } catch (e) { return 0; } })(),
     // The ring must not GROW the palette. An absolute count is the wrong test:
     // it reads 20, not 14, because quantiseStadiumFacades legitimately appends
@@ -88,8 +104,23 @@ const towers = props.filter(p => p.t === 1);
 const checks = [];
 const ok = (name, cond, detail) => checks.push({ name, pass: !!cond, detail });
 
-ok('the ring is on the map', s.outerLayers.length === 3, s.outerLayers.join(', '));
-ok('exactly THREE outer layers, no more', s.outerLayers.length === 3,
+// A NAMED SET, not a count. "Exactly three" was written when the ring was
+// three layers, and it has been red ever since outer-tower-roof was added — so
+// a check that exists to notice a new draw call has been unable to say WHICH
+// one appeared. The cost the count was defending is still defended: this list
+// is the budget, and adding to it is a deliberate edit here.
+const WANT_LAYERS = [
+  'outer-3d',            // the 7,511 flat low-rise prisms
+  'outer-tower',         // downtown towers, patterned
+  'outer-midrise',       // the downtown streetwall, patterned
+  'outer-detail',        // crowns, masts, bands, park pads, roof plant
+  'outer-tower-roof',    // parapet on the towers
+  'outer-midrise-roof',  // parapet on the streetwall
+];
+ok('the ring is on the map', s.outerLayers.length > 0, s.outerLayers.join(', '));
+ok('the ring draws exactly its budgeted layers, no more',
+   s.outerLayers.length === WANT_LAYERS.length &&
+   WANT_LAYERS.every(id => s.outerLayers.includes(id)),
    `${s.outerLayers.length}: ${s.outerLayers.join(', ')}`);
 ok('no AO / contact-shadow layer for the ring',
    !s.outerLayers.some(id => /ao|shadow/.test(id)));
@@ -97,7 +128,9 @@ ok('no label layer for the ring',
    !s.outerLayers.some(id => /label/.test(id)));
 ok('the bulk of the ring is FLAT — no facade pattern', !s.flatHasPattern);
 ok('the towers DO get the facade pattern', s.towerHasPattern);
-ok('the source is capped at z15 (permanent LOD)', s.sourceMaxzoom === 15, String(s.sourceMaxzoom));
+ok('the downtown STREETWALL gets the facade pattern too', s.midHasPattern);
+ok('the source maxzoom matches the shared PATTERN_TILING block',
+   s.sourceMaxzoom === s.wantMaxzoom, `${s.sourceMaxzoom} vs ${s.wantMaxzoom}`);
 ok('the ring tiled and is drawing', s.ringTiled > 100, `${s.ringTiled} source features`);
 ok('the core still tiles', s.coreTiled > 100, `${s.coreTiled} source features`);
 
@@ -105,11 +138,19 @@ ok('the ring cannot grow the facade palette',
    s.bucketsAfterResnap === s.bucketsBefore,
    `${s.bucketsBefore} -> ${s.bucketsAfterResnap}`);
 const patternLog = logs.find(l => l.startsWith('[scene]')) || '';
-ok('the core still reports 14 buckets / 44 patterns',
-   /14 colour buckets \/ 44 facade patterns/.test(patternLog), patternLog);
+// The PATTERN count moves whenever a family x bucket combination is added and
+// is not the invariant; the BUCKET count is. It said 44 and the core has
+// reported 64 since the tower buckets landed, so this was red for a change it
+// was never about.
+ok('the core still elects 14 colour buckets',
+   /14 colour buckets/.test(patternLog), patternLog);
 const outerLog = logs.find(l => l.startsWith('[outer]')) || '';
-ok('the towers added ZERO new pattern images',
-   /0 new images/.test(outerLog), outerLog);
+// WAS 'the towers added ZERO new pattern images'. That was true when the ring
+// snapped onto the campus palette, and PR #84 deliberately ended it: the towers
+// now register their OWN buckets because campus tan on a glass tower was the
+// defect. Asserting the old behaviour made the check red for the fix.
+ok('downtown registers its buckets from the BAKED ordinals',
+   /baked ordinals/.test(outerLog) && !/NO STREETWALL/.test(outerLog), outerLog);
 
 ok('no ring feature carries a name or a label flag',
    props.every(p => !p.name && !p.lbl));
@@ -119,8 +160,13 @@ ok('every ring feature carries a density rank',
    props.every(p => typeof p.d === 'number'));
 ok('towers rank in the top 2% and survive any density above 0.02',
    towers.every(p => p.d <= 0.02), `worst tower d = ${Math.max(...towers.map(p => p.d))}`);
-ok('roof colours are baked for the towers ONLY',
-   towers.every(p => p.rd) && props.filter(p => p.t !== 1).every(p => !p.rd));
+// Towers AND the downtown streetwall carry rd/rg/rn, because both are capped
+// with a parapet (js/outer.js, shared CAP_GEOM). Nothing else may: three more
+// hex strings on 6,866 backdrop prisms is most of the file for a roof plane
+// nobody sees, which is the original point of this assert and still holds.
+ok('roof colours are baked for the capped classes ONLY',
+   props.filter(p => p.t === 1 || p.t === 2).every(p => p.rd) &&
+   props.filter(p => p.t !== 1 && p.t !== 2).every(p => !p.rd));
 ok('the performance preset thins the ring',
    s.outerDensityInPerformance != null && s.outerDensityInPerformance < 1,
    String(s.outerDensityInPerformance));
