@@ -736,6 +736,74 @@ CHANNEL = {
 }
 
 
+# ------------------------------------------------- crossings over the creek --
+#
+# "the creek near DKR completely slices through 21st and DKR, but sidewalks
+# still go over them (added to the ducktape analogy) same thing happened with
+# this creek and other roads too"
+#
+# He is describing both halves of one omission. cut_creek_channels digs a
+# trench along the whole reach and was never told that anything crosses it, so:
+# the carriageway is interrupted by a 2 m gorge, and the footway -- which IS
+# drawn across, because a patharea is a flat slab that knows nothing about what
+# is under it -- appears to hang over the water on nothing.
+#
+# Where a street meets a creek there is a culvert or a bridge, and the ground
+# over it belongs to the STRUCTURE, not to the channel. That is exactly what the
+# A2 rank ladder is for: `RANK[('bank','deck')]` sits above the channel, so the
+# trench, the banks and the planting all give the crossing back its footprint
+# and the road runs over the top. One square metre, one surface -- QUEUE A4.
+#
+# Measured on merged main before any of this: 30 road centrelines cross the
+# creek's own water polygons, of which 11 carry an OSM `bridge` tag and 19 do
+# not. The tag is not the test and must not be: a culverted crossing is not
+# tagged as a bridge and is still a crossing. Geometry is the test.
+DECK = {
+    "enable": True,
+    # A crossing is decked where the way meets the WATER, not where it meets the
+    # planted corridor. The corridor runs 30-60 m wide at its zones and a street
+    # running parallel 20 m away is not a bridge -- testing against the corridor
+    # decked half of San Jacinto Boulevard on the first run.
+    # THE DECK IS DERIVED FROM WHAT IS DRAWN ON IT, plus a parapet. It is not a
+    # re-buffered centreline, and the difference is the whole look of the thing.
+    #
+    # First cut buffered the centreline by half-width + 3.5 m of shoulder. On a
+    # 9.5 m street that is a 16.5 m deck, of which 7 m has nothing drawn over it
+    # -- photographed at Aug 3, it read as a large pale slab dropped beside the
+    # road rather than as the road crossing the water. Halving the shoulder
+    # barely moved it, because the number was never the problem: a deck derived
+    # from the centreline cannot know where the carriageway's edge actually is.
+    #
+    # `widen_roads` draws the carriageway at exactly w/2 with flat caps, so the
+    # deck takes THAT band and the walk polygons as they will really be drawn,
+    # and adds only a parapet. What shows from above is then a rim, which is
+    # what a bridge looks like from above.
+    "parapet_m": 0.7,
+    # A road and its sidewalk are separate polygons a couple of metres apart, and
+    # a deck that is only their union has a slot of open trench running between
+    # them. A morphological closing at this radius seals any gap up to twice it
+    # without growing the outline -- a real deck is continuous under both.
+    "close_gap_m": 3.0,
+    # How far past the cut the deck reaches onto solid ground at each end.
+    # Without an abutment the deck stops exactly on the trench edge and leaves a
+    # sliver of bank standing proud of the carriageway it was meant to carry.
+    "abutment_m": 2.5,
+    # The slab's thickness. Only its EDGE is ever seen -- the road on top is
+    # drawn by ground-road and the walks by ground-paths -- so this is the depth
+    # of the soffit that reads from a low oblique, not a structural number.
+    "soffit_m": 1.1,
+    # The top sits just BELOW grade. `ground-road` is a flat fill at z=0, so a
+    # deck topping out at exactly 0.0 is two coplanar surfaces with no defined
+    # winner, which is the A2 defect this bake exists to remove. 40 mm is under
+    # a tenth of a pixel from any altitude here and it makes the order defined.
+    "top_below_grade_m": 0.04,
+    # Slivers where a way clips the very corner of the corridor are not
+    # crossings; they are noise, and each one would be a floating grey chip.
+    "min_m2": 6.0,
+    "simplify_m": 0.4,
+}
+
+
 # ------------------------------------------------------- the creek canopy --
 #
 # "Waller Creek is still a green stripe ... there is NO WATER SURFACE and no
@@ -1142,6 +1210,112 @@ def cut_creek_channels(feats, stats, warnings):
             _emit(feats, ring,
                   {"k": "area", "u": use, "s": surf, "src": "creek_" + label},
                   stats, "creek_zone_" + label, CHANNEL["min_m2"])
+    return feats
+
+
+def deck_creek_crossings(feats, road_feats, stats, warnings):
+    """Every road and walk that crosses the creek gets a deck to cross it ON.
+
+    Runs AFTER cut_creek_channels (it needs the trench) and BEFORE
+    resolve_ground_conflicts (the ladder is what actually takes the ground back
+    off the channel). It emits ONE unioned set of decks rather than one per way:
+    two decks overlapping at the same height would be the very A2 tie this file
+    exists to remove, and at a junction beside a creek several ways overlap.
+    """
+    if not DECK["enable"]:
+        return feats
+    try:
+        from shapely.geometry import LineString
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: creek crossings NOT decked -- "
+                        "the channel will cut straight through every street")
+        return feats
+
+    water = [q for q in (_poly_m(f["geometry"]) for f in feats
+                         if f["properties"].get("s") == "creek"
+                         and f["geometry"]["type"] == "Polygon")
+             if q is not None and not q.is_empty]
+    cut = [q for q in (_poly_m(f["geometry"]) for f in feats
+                       if f["properties"].get("k") == "bank"
+                       and f["properties"].get("u") == "channel"
+                       and f["geometry"]["type"] == "Polygon")
+           if q is not None and not q.is_empty]
+    if not water or not cut:
+        warnings.append("no creek water or no cut channel: crossings NOT decked")
+        return feats
+    water_u = unary_union(water)
+    # The span to bridge is the TRENCH, not the water: a deck that only covered
+    # the water would leave the two bank courses either side of it standing as a
+    # pair of gorges with a road hanging between them.
+    span = unary_union(cut).buffer(DECK["abutment_m"])
+
+    carried, n_road, n_walk = [], 0, 0
+    for f in road_feats:
+        p = f["properties"]
+        if p.get("k") != "road":
+            continue
+        gm = f["geometry"]
+        lines = ([gm["coordinates"]] if gm["type"] == "LineString"
+                 else gm["coordinates"] if gm["type"] == "MultiLineString" else [])
+        for cs in lines:
+            try:
+                L = LineString(_line_m(cs))
+            except Exception:
+                continue
+            if not L.intersects(water_u):
+                continue
+            # EXACTLY the band widen_roads will draw -- same half width, same
+            # flat caps, same mitre. A deck sized off anything else is a deck
+            # whose edge does not agree with the kerb standing on it.
+            half = float(p.get("w") or 9.0) / 2.0
+            carried.append(L.buffer(half, cap_style=2, join_style=2, mitre_limit=2.0))
+            n_road += 1
+
+    # The walks are carried too, and they are the half of the report that says
+    # "sidewalks still go over them". A footbridge over Waller Creek is a real
+    # thing on this campus; what was wrong was that the walk was drawn across
+    # with NOTHING under it.
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "patharea" or f["geometry"]["type"] != "Polygon":
+            continue
+        q = _poly_m(f["geometry"])
+        if q is None or q.is_empty or not q.intersects(water_u):
+            continue
+        carried.append(q)
+        n_walk += 1
+
+    if not carried:
+        stats["creek_deck"] = 0
+        return feats
+
+    # parapet, then close the slots between a road and the walk beside it, then
+    # keep only what is over the cut. Closing BEFORE the intersection matters:
+    # do it after and the closing radius reaches across the abutment edge and
+    # squares off the deck's ends against the bank.
+    core = unary_union(carried).buffer(DECK["parapet_m"], join_style=2, mitre_limit=2.0)
+    g = DECK["close_gap_m"]
+    core = core.buffer(g, join_style=2, mitre_limit=2.0).buffer(-g, join_style=2, mitre_limit=2.0)
+    decks = core.intersection(span)
+    if decks.is_empty:
+        stats["creek_deck"] = 0
+        return feats
+
+    top = -DECK["top_below_grade_m"]
+    merged = decks
+    parts = list(merged.geoms) if merged.geom_type == "MultiPolygon" else [merged]
+    kept = 0
+    for gm in parts:
+        kept += _emit(feats, gm,
+                      {"k": "bank", "u": "deck", "m": "deck",
+                       "b": round(top - DECK["soffit_m"], 2), "h": round(top, 2)},
+                      stats, "creek_deck", DECK["min_m2"],
+                      simplify_m=DECK["simplify_m"])
+    stats["creek_deck_road_ways"] = n_road
+    stats["creek_deck_walk_ways"] = n_walk
+    print("  creek crossings: %d road ways + %d walk ways -> %d decks"
+          % (n_road, n_walk, kept))
     return feats
 
 
@@ -1834,10 +2008,18 @@ RANK = {
     ("patharea", "footway"):    52,
     # --- the flat band: k='area', one fill layer --------------------------
     #
-    # The cut channel outranks everything flat. That is not a preference, it is
-    # the mechanism: a `fill` drawn over the trench would paint straight into
-    # it (PR #62's finding), so the trench only exists BECAUSE every lawn, wood
-    # and park polygon gives up its footprint here. See cut_creek_channels.
+    # A CROSSING OUTRANKS THE CHANNEL IT CROSSES, and this is the top of the
+    # ladder. Where a street meets the creek there is a culvert or a bridge, and
+    # the square metre belongs to the structure -- so the trench, both banks and
+    # all three planting zones give their footprint back and the road runs over
+    # the top. Without this the channel is cut straight through the carriageway
+    # and the walk beside it floats over the water on nothing, which is exactly
+    # what was reported. See deck_creek_crossings.
+    ("bank", "deck"):           95,
+    # The cut channel outranks everything else flat. That is not a preference,
+    # it is the mechanism: a `fill` drawn over the trench would paint straight
+    # into it (PR #62's finding), so the trench only exists BECAUSE every lawn,
+    # wood and park polygon gives up its footprint here. See cut_creek_channels.
     ("bank", "channel"):        90,
     # Same argument for the pond coping: it is a built rim standing 0.38 m
     # proud, so the lawn under it has to give way or the fill paints over the
@@ -2385,6 +2567,12 @@ def main():
     road_feats = bake_roads(stats, warnings)
     roads_m = carriageway_polys(road_feats)
     stats["carriageways_as_cutters"] = len(roads_m)
+
+    # AFTER the roads are baked, because a crossing is defined by the way that
+    # crosses; BEFORE the resolver, because the resolver is what actually takes
+    # the ground back off the channel. Both halves matter -- run this after the
+    # resolver and the decks are emitted into ground the trench still owns.
+    feats = deck_creek_crossings(feats, road_feats, stats, warnings)
 
     before = count_conflicts(feats, roads_m)
     feats = resolve_ground_conflicts(feats, roads_m, stats, warnings)
