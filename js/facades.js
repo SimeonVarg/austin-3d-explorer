@@ -18,6 +18,11 @@
  * time-of-day changes, so glass goes cool-dark by day, amber-reflective at
  * golden hour, and a scatter of windows lights up warm at night.
  *
+ * THE ONE INVARIANT THIS FILE MUST NOT BREAK: every mip tier holds the SAME
+ * hour, at all times. One pitched frame reads several tiers at once, so a tier
+ * left behind is a hard seam across the middle of the city with night windows
+ * on one side of it and daylight on the other. See the ATLAS block.
+ *
  * Public (window) API:
  *   quantiseFacades(features)  — assign wp/wf per feature, build the palette
  *   initFacades(map)           — register every needed pattern image
@@ -1378,9 +1383,15 @@
   /** The image for one tier: the shared drawing, prefiltered for its minification. */
   function tileData(fam, bucketIdx, p, tier) {
     const raw = rawTile(fam, bucketIdx, p);
-    const d = new Uint8ClampedArray(raw);
+    const d = new Uint8ClampedArray(raw);        // ours, and softenTile mutates it
     softenTile(d, fam, tier);
-    return { width: RES, height: RES, data: new Uint8Array(d.buffer.slice(0)) };
+    // A VIEW, not `d.buffer.slice(0)`. The buffer was allocated on the line
+    // above and nothing else holds it, so the second copy was 300 x 64 KB of
+    // memcpy and garbage per time-of-day step for nothing — and MapLibre copies
+    // again on its side either way (`addImage` does `new Uint8Array(data)`,
+    // `updateImage` does `RGBAImage.replace(data, copy=true)` for a plain
+    // object; checked in the 5.24.0 source rather than assumed).
+    return { width: RES, height: RES, data: new Uint8Array(d.buffer) };
   }
 
   // ── The windows crawl while the camera moves ──────────────────────
@@ -1490,39 +1501,75 @@
    * the four edges and put a visible grid seam every ~40 m up and across every
    * wall in the city — which is the same class of bug as the fascia band that
    * appeared three times up DKR's elevation.
+   *
+   * ── WHY IT IS A SLIDING WINDOW NOW, AND WHY THAT IS EXACT ──
+   *
+   * A1's fix repaints three mip tiers per time-of-day step instead of the one or
+   * two the camera happens to be reading, and MEASURED that took `updateFacades`
+   * from 57.7 ms to 119.7 ms. Part of that is here: the far tier carries the
+   * widest box (radius 3, a 7-wide window) and the near tier carries none, so
+   * the tier the fix adds is the expensive one. This change bought back about
+   * 19 ms of the 62 — NOT all of it, and the rest is written up in HANDOFF as
+   * the next thing worth doing.
+   *
+   * The old loop re-summed the whole window at every pixel — O(RES^2 * r) per
+   * axis. A box blur does not need to: step the window by one and the new sum is
+   * the old sum plus the entering sample minus the leaving one, O(RES^2)
+   * regardless of radius. Same box, same wrap, same result.
+   *
+   * "Same result" is a claim, so it is made exact rather than approximately:
+   * `tmp` holds the horizontal window SUM, not the mean. A sum of at most
+   * (2r+1) bytes is a small integer, exactly representable in Float32, so the
+   * vertical running total is a sum of integers in double and carries NO
+   * rounding at all — where the old code rounded s/win into Float32 halfway
+   * through. Verified against the old implementation over the real atlas:
+   * max channel difference 0 on every image (see the PR).
    */
+  // Reused across calls. One repaint is 300 images and the buffer is the same
+  // size every time; allocating it per image was 300 x 196 KB of garbage per
+  // time-of-day step for nothing.
+  let _blurTmp = null;
+
   function softenTile(d, fam, tier) {
     const mult = SOFTEN.FAMILY[fam] != null ? SOFTEN.FAMILY[fam] : 1;
     const rOv = SOFTEN.RADIUS[fam], aOv = SOFTEN.AMOUNT[fam];
     const r = Math.round((rOv != null ? rOv : (tier ? tier.soften : 0) * mult) * SCALE);
     const a = aOv != null ? aOv : SOFTEN.AMOUNT_BASE;
     if (!r || a <= 0) return;
-    const N = RES * RES, win = r * 2 + 1;
-    const tmp = new Float32Array(N * 3);
-    // horizontal
+    const N = RES * RES, win = r * 2 + 1, area = win * win;
+    if (!_blurTmp || _blurTmp.length !== N * 3) _blurTmp = new Float32Array(N * 3);
+    const tmp = _blurTmp;
+    const wrap = i => ((i % RES) + RES) % RES;      // r may exceed RES/2 via the
+                                                    // per-family RADIUS override
+    // horizontal — tmp keeps the window SUM
     for (let y = 0; y < RES; y++) {
+      const row = y * RES;
+      let s0 = 0, s1 = 0, s2 = 0;
+      for (let k = -r; k <= r; k++) {
+        const i = (row + wrap(k)) * 4;
+        s0 += d[i]; s1 += d[i + 1]; s2 += d[i + 2];
+      }
       for (let x = 0; x < RES; x++) {
-        let s0 = 0, s1 = 0, s2 = 0;
-        for (let k = -r; k <= r; k++) {
-          const i = (y * RES + ((x + k + RES) % RES)) * 4;
-          s0 += d[i]; s1 += d[i + 1]; s2 += d[i + 2];
-        }
-        const o = (y * RES + x) * 3;
-        tmp[o] = s0 / win; tmp[o + 1] = s1 / win; tmp[o + 2] = s2 / win;
+        const o = (row + x) * 3;
+        tmp[o] = s0; tmp[o + 1] = s1; tmp[o + 2] = s2;
+        const ia = (row + wrap(x + r + 1)) * 4, is = (row + wrap(x - r)) * 4;
+        s0 += d[ia] - d[is]; s1 += d[ia + 1] - d[is + 1]; s2 += d[ia + 2] - d[is + 2];
       }
     }
     // vertical, and blend straight back into the pixel buffer
     for (let x = 0; x < RES; x++) {
+      let s0 = 0, s1 = 0, s2 = 0;
+      for (let k = -r; k <= r; k++) {
+        const o = (wrap(k) * RES + x) * 3;
+        s0 += tmp[o]; s1 += tmp[o + 1]; s2 += tmp[o + 2];
+      }
       for (let y = 0; y < RES; y++) {
-        let s0 = 0, s1 = 0, s2 = 0;
-        for (let k = -r; k <= r; k++) {
-          const o = (((y + k + RES) % RES) * RES + x) * 3;
-          s0 += tmp[o]; s1 += tmp[o + 1]; s2 += tmp[o + 2];
-        }
         const i = (y * RES + x) * 4;
-        d[i]     += (s0 / win - d[i])     * a;
-        d[i + 1] += (s1 / win - d[i + 1]) * a;
-        d[i + 2] += (s2 / win - d[i + 2]) * a;
+        d[i]     += (s0 / area - d[i])     * a;
+        d[i + 1] += (s1 / area - d[i + 1]) * a;
+        d[i + 2] += (s2 / area - d[i + 2]) * a;
+        const oa = (wrap(y + r + 1) * RES + x) * 3, os = (wrap(y - r) * RES + x) * 3;
+        s0 += tmp[oa] - tmp[os]; s1 += tmp[oa + 1] - tmp[os + 1]; s2 += tmp[oa + 2] - tmp[os + 2];
       }
     }
   }
@@ -1584,18 +1631,73 @@
     return added ? 1 : 0;
   }
 
-  // The time of day the atlas currently holds, and the tiers that are older
-  // than it. A tier is only repainted when the camera can see it: repainting all
-  // three on every time-of-day step would triple a measured 55 ms, and the
-  // slider quantises to 1/128. In practice the hour does not change mid-flight,
-  // so the lazy repaint is free; when it does, the first zoom that crosses into
-  // a stale tier pays one repaint.
+  /**
+   * ── QUEUE A1/A4: THE ATLAS MUST NOT HOLD TWO DIFFERENT HOURS AT ONCE ──
+   *
+   * This is where "half the buildings past a certain point switch their windows
+   * to night mode, in complete daylight" came from, and the mechanism is exactly
+   * as reported: it is TILES, and the quadrant boundaries are tile boundaries.
+   *
+   * The version of this block that shipped repainted only the tiers
+   * `activeTiers(map)` named — the tiers implied by the CAMERA's zoom — and put
+   * the rest in a `_stale` set drained on the next `zoom` event. Its own comment
+   * defended that as free, "in practice the hour does not change mid-flight".
+   *
+   * BOTH HALVES OF THAT ARE FALSE, and the second one is why nobody caught it:
+   *
+   * 1. **A pitched frame is not at one zoom.** Past ~60 degrees of pitch
+   *    (`MercatorCoveringTilesDetailsProvider.allowVariableZoom`, and this app
+   *    spawns at pitch 74) MapLibre chooses a tile zoom PER TILE by distance
+   *    from the camera. Measured at the spawn pose, `getVisibleCoordinates()`
+   *    for `austin-buildings` returns tiles at z13, 14, 15, 16, 17 and 18 in one
+   *    frame. The pattern id is picked by `['step', ['zoom'], ...]`, which
+   *    MapLibre evaluates at the TILE's zoom, so a single frame samples every
+   *    tier at once — the near field from one tier, the far field from another.
+   * 2. **The camera-zoom set can never contain the far tier.** At z16.5,
+   *    `activeTiers` returns mid+near. Tier `x` covers every tile at z<16, which
+   *    at that camera is 9 of the 14 tiles on screen — and it was NEVER
+   *    repainted, at any hour, because the drain only fires when a stale tier
+   *    becomes camera-active, i.e. when you fly below z16 entirely.
+   *
+   * Measured on `main`, spawn pose, mean luma over the 100 registered images of
+   * each tier (scratchpad probe, printed in the PR):
+   *
+   *     after DAY                  near 148.7   mid 148.7   far 153.6
+   *     after DAY -> NIGHT         near  63.5   mid  63.5   far 153.6   <- A4
+   *     night, out to z14, back,
+   *     then DAY                   near 148.7   mid 148.7   far  63.5   <- A1
+   *
+   * The far tier holds whatever hour it was last dragged to and nothing brings
+   * it back. "Fly over a chunk to fix that chunk" is the near tiles arriving;
+   * "they go back to being dark after a while" is flying away again.
+   *
+   * THE RULE NOW: every tier holds the same hour, always. The lazy scheme is
+   * kept only as a LATENCY optimisation — the camera-active tiers are painted in
+   * the calling frame so a slider drag stays responsive — but the flush of the
+   * rest is on a TIMER that always fires, never on an event that may not come.
+   */
+  const ATLAS = {
+    // Milliseconds after a time-of-day change by which every remaining mip tier
+    // is brought current. 0 repaints every tier synchronously in the caller.
+    // It is a floor, not a debounce: a continuous drag still gets a flush this
+    // often, so no amount of dragging can starve the far field.
+    FLUSH_MS: 90,
+  };
+  window.FACADE_ATLAS = ATLAS;
+
+  // `_atlasP` is the hour the atlas has been ASKED for. `_tierP` is the hour
+  // each tier's images actually HOLD. A tier whose entry differs is stale, and
+  // "stale" is now derived from those two rather than remembered in a set that
+  // could be cleared without the pixels changing.
   let _atlasP = 0.5;
-  const _stale = new Set();
+  const _tierP = new Map();
+  let _flushTimer = 0;
+  let _warnedUpdate = false;
 
   // Combos OUTSIDE, tiers INSIDE, so rawTile's one-deep cache actually hits:
   // repainting two tiers costs one draw plus two blurs, not two draws.
   function paintTiers(map, tiers, p) {
+    if (!tiers.length) return;
     for (const id of combos) {
       const { fam, idx } = parseId(id);
       for (const tier of tiers) {
@@ -1603,20 +1705,58 @@
         try {
           if (map.hasImage && map.hasImage(key)) map.updateImage(key, tileData(fam, idx, p, tier));
           else map.addImage(key, tileData(fam, idx, p, tier), { pixelRatio: tierPixelRatio(tier) });
-        } catch (e) { /* image not registered yet */ }
+        } catch (e) {
+          // `ImageManager.updateImage` THROWS on a size mismatch and MapLibre's
+          // own wrapper only fires an error event, so a silent catch here would
+          // freeze the atlas at one hour and look exactly like the bug above.
+          // Say it once rather than never.
+          if (!_warnedUpdate) {
+            _warnedUpdate = true;
+            console.warn('[facades] atlas repaint failed on ' + key + ': ' + e.message);
+          }
+        }
       }
     }
+    for (const t of tiers) _tierP.set(t.id, p);
   }
 
+  /** Tiers whose pixels are not at `_atlasP`. */
+  function staleTiers() {
+    return TIERS.filter(t => _tierP.get(t.id) !== _atlasP);
+  }
+
+  function flushStaleTiers(map) {
+    _flushTimer = 0;
+    paintTiers(map, staleTiers(), _atlasP);
+  }
+
+  function scheduleFlush(map) {
+    if (!staleTiers().length) return;
+    // FLUSH_MS 0 means "in this call", and it has to mean that even when a
+    // timer from an earlier step is still pending — an early return on
+    // `_flushTimer` made the knob silently inert, which cost a wrong perf
+    // reading before it cost a wrong frame.
+    if (!(ATLAS.FLUSH_MS > 0)) {
+      if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = 0; }
+      flushStaleTiers(map);
+      return;
+    }
+    // A pending timer already flushes to the LATEST `_atlasP`, so leave it be
+    // rather than restarting it — that is what makes FLUSH_MS a floor under a
+    // continuous drag instead of a debounce that a drag can hold off forever.
+    if (_flushTimer) return;
+    _flushTimer = setTimeout(() => flushStaleTiers(map), ATLAS.FLUSH_MS);
+  }
+
+  // Still worth keeping, but it is now a latency path and not the correctness
+  // path: if a stale tier becomes camera-active before the timer fires, pay for
+  // it in that frame instead of showing one frame of the wrong hour.
   function watchTierZoom(map) {
     if (map.__facadeTierWatch) return;
     map.__facadeTierWatch = true;
     map.on('zoom', () => {
-      if (!_stale.size) return;
-      const want = activeTiers(map).filter(t => _stale.has(t.id));
-      if (!want.length) return;
-      for (const t of want) _stale.delete(t.id);
-      paintTiers(map, want, _atlasP);
+      const want = activeTiers(map).filter(t => _tierP.get(t.id) !== _atlasP);
+      if (want.length) paintTiers(map, want, _atlasP);
     });
   }
 
@@ -1630,12 +1770,13 @@
     // pushes a family out of spec.
     try { window.facadeGridAudit(); } catch (e) { /* audit must never break init */ }
     _atlasP = p;
-    _stale.clear();
+    _tierP.clear();
     // ALL tiers at boot, not just the visible one: the `step` can select a tier
     // the moment the camera moves, and MapLibre paints an unregistered pattern
     // id transparent — a building-shaped hole, which is the failure mode
     // HANDOFF §30 already paid for once.
     for (const id of combos) ensureImages(map, id, p);
+    for (const t of TIERS) _tierP.set(t.id, p);
     watchTierZoom(map);
     return combos.length;
   };
@@ -1643,12 +1784,22 @@
   window.updateFacades = function updateFacades(map, p) {
     if (!palette.length) return;
     _atlasP = p;
-    const active = activeTiers(map);
-    for (const t of TIERS) if (active.indexOf(t) === -1) _stale.add(t.id);
-    for (const t of active) _stale.delete(t.id);
-    paintTiers(map, active, p);
+    // The camera-active tiers in this frame so a slider drag responds at once;
+    // EVERY remaining tier on a timer that always fires. See the ATLAS block:
+    // the far half of a pitched frame is never camera-active, so anything
+    // conditional on the camera leaves it at the wrong hour indefinitely.
+    paintTiers(map, activeTiers(map), p);
+    scheduleFlush(map);
     watchTierZoom(map);
   };
+
+  /**
+   * The hour the atlas is holding. Anything registering a NEW combo after
+   * `initFacades` must draw it at this hour and not at its own idea of the
+   * time, or the atlas ends up holding two hours at once — which is the whole
+   * subject of the ATLAS block above.
+   */
+  window.facadeAtlasHour = () => _atlasP;
 
   /**
    * Snap the OUTER RING's towers onto patterns that already exist — and only
@@ -1753,7 +1904,11 @@
         });
         return i;
       });
-      const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
+      // The hour the ATLAS holds, not the hour the clock says: a new combo drawn
+      // at a different hour from its neighbours is A1 again, one bucket at a
+      // time. (These agree in practice — updateFacades sets _atlasP on every
+      // time-of-day step — but only one of them is the thing being matched.)
+      const p = _atlasP;
       for (const f of towers) {
         const rgb = hexToRgb(f.properties.wd);
         let best = 0, bd = Infinity;
@@ -1846,7 +2001,7 @@
     // and appending to an empty palette would hand out index 0, which is the
     // campus default every unclassified wall falls back to.
     if (!palette.length || !Array.isArray(buckets) || !buckets.length) return null;
-    const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
+    const p = _atlasP;                    // the hour the atlas holds — see above
     const ids = buckets.map(b => {
       const idx = palette.length;
       palette.push({ wd: b.wd, wg: b.wg || b.wd, wn: b.wn || b.wd });
