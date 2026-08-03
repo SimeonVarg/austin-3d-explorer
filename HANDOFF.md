@@ -1,5 +1,187 @@
 # Austin 3D Explorer — Full Handoff
 
+## 61. Aug 3 2026 — the wall was never the building's, so Jester and Gregory Gym got authored elevations (acer lane)
+
+**Branch:** `acer/jester-greg-facades`. **QUEUE PART G**, applied to **C1** and
+**C2**. Files: `scripts/bake_roofs.py`, `data/roofs.geojson`,
+`data/building_overrides.json`.
+
+> *"they are NOWHERE CLOSE to the level they should be ... its like youre trying
+> to draw the mona lisa and you made the canvas the right size - we need accurate
+> detail and color"*
+
+PR #106 gave both of these buildings a correct ROOF and he did not say either was
+fixed. Part G says why: a roof here is measured off aerial imagery, and a WALL is
+one of fourteen elected tones plus a repeating window tile. So this pass does not
+touch massing at all. It authors two elevations into `roofs.geojson`, which is
+the one file in this lane that carries per-feature `b`, `h` and colour.
+
+### The mechanism, and its one hard constraint
+
+`js/westcampus.js` can suppress `buildings-3d` for the buildings it replaces.
+**This lane owns no JS, so nothing here can suppress anything** — every authored
+piece below the building's own height must stand PROUD of the wall or it is
+invisible. That is not a workaround: an archivolt, a spandrel course and a
+raking cornice all really do project. Above `final_height` the prism has ended
+and the test is switched off, which is how the pediment can sit on the roof.
+
+`loggia_parts` is gone and `gable_front_parts` replaces it. `_wall_frame` is
+kept verbatim — the override gives a POINT, the code finds the wall and tests
+which way is out — because that part was right.
+
+### C2 — Gregory Gym, and PR #106 read the photograph wrong
+
+It built a **projecting porch**: 21 m wide, 12.6 m to the top of its own little
+gable, in front of a 135 m building. Four photographs say the building is
+nothing like that. The west end is **one triangular brick pediment the full
+52.9 m width of the elevation**; the three arches are enormous openings cut into
+it, not a porch stuck on it; and a second, smaller pediment projects in front
+carrying a run of blind corbel arches up its rake.
+
+**WHICH WALL WAS SETTLED FROM THE PHOTOGRAPH'S OWN EXIF GPS.** Commons
+*"Gregory Gymnasium, May 2013.jpg"* carries 30.284266, -97.737473. In the
+footprint's own metre frame that is **(-46.7, 82.9)** — 47 m due west, dead level
+with the mid-point of the 24.9 m west-facing edge that runs y 68.6 to 93.4. It is
+a square-on shot of that edge. #106's anchor point was on the same edge, so the
+wall was already right and only everything else was wrong. (The OSM
+`entrance=main` node 1427259422 lands on a 3.5 m stub 27 m south and is not what
+the photograph looks at.)
+
+**Everything else is a pixel ratio against ONE assumption — that the modelled
+20.0 m is the eave.**
+
+```
+pitch    apex (960,69)->(1600,330) = 261/640 = 0.408
+         apex (960,69)->( 400,287) = 218/560 = 0.389      -> 0.40
+scale    west elevation is 52.9 m; at 0.40 the apex is 10.6 m over the eave
+         so (30.6-20.0)/(327-69 px) = 0.0411 m/px
+CHECK    52.9 m at 0.0411 puts the eave corners at x=317 and x=1603.
+         The traced silhouette reaches (1600,330); the rake predicts 327.
+arches   openings 97 px = 4.0 m, pitch 162 px = 6.66 m, three, symmetric
+heights  h = 20.0 - (y-327)*0.0411 -> stair head 3.9, door head 6.7,
+         lintel 9.2, springing 12.7, opening crown 14.7, archivolt 15.7
+```
+
+**The inner pediment is the footprint's own projection.** That 24.9 m edge stands
+2.9 and 4.5 m proud of the walls either side of it, which is the second pediment.
+
+### Three things that did not work, in order
+
+1. **A 52 m pediment on one plane either floats or hides.** Built on the bay it
+   overhangs 4.5 m of air for a third of its length; built deep enough to clear
+   the worst flank it sits 4.9 m back and reads as a different building behind
+   the roof. `_parallel_edges` fixed it: the pediment is emitted PER west-facing
+   edge, at that edge's own plane, so it follows the building's jogs the way a
+   real parapet gable does.
+2. **A stone cornice on the full width of every course is a tiled roof.** Twenty
+   two pale horizontal lines stacked up the gable and from anywhere above the
+   eave it read as a striped pyramid. On the building the stone runs up the two
+   sloping edges and nowhere else. A 1.5 m block at each end of each course is
+   that line, and it is the single correction that turned the render back into a
+   pediment.
+3. **Both pediments anchored at v=0 and the inner one vanished** — a bigger
+   triangle drawn on the same plane swallows a smaller one, corbel arcade and
+   all. The outer one steps back 0.9 m on the bay.
+
+Nine courses read as a ziggurat (1.2 m per step over 10.6 m of rise);
+`GABLE_COURSES` is 22, which puts the step under half a metre.
+
+### The colour, and the trap in it
+
+`wd` on Gregory Gym is `#a05b45` and the walls render at **red/blue 3.18**. The
+photographs put the brick at **1.58** (overcast) and **1.60** (2013 midday) —
+rgb(155,125,98). It is a warm sand, not the red-brown it is painted, and `wd`
+belongs to the buildings bake. So the west elevation is **re-clad**: a 0.16 m
+brick skin in the measured colour, stepping around the three openings. It stops
+at the building's own corners, where a material change reads as normal, and it
+leaves every other elevation its window pattern and its lit night.
+
+**A NEUTRAL RENDERS FAR WARMER THAN SOMETHING ALREADY WARM.** Measured on this
+build with the magenta-mask trick (§48): brick entered at red/blue 1.59 came back
+at 1.79, but stone entered at 1.20 came back at **1.94 — indistinguishable from
+the brick.** So the trim cannot earn its read on hue in this light; it is entered
+cool AND light and earns it on luma. Same trap HANDOFF §48 records for the Jester
+deck, arrived at from the other side.
+
+### C1 — Jester, and the wall is painted the colour of its own trim
+
+Sampled off commons *"University of Texas at Austin August 2019 27"*, flat
+overcast, green-dominant pixels rejected so foliage cannot vote:
+
+```
+brick field   rgb(166,145,120)  #a69178   R/B 1.38
+precast band  rgb(188,176,156)  #bcb09c   R/B 1.21
+baked wall wd rgb(194,182,160)  #c2b6a0   R/B 1.21   <- the TRIM colour
+```
+
+That is *"the color is not accurate"* exactly: the whole complex wears its own
+spandrel colour. This bake cannot reach `wd`, so it does the other half and puts
+the real precast in front of the wall, where the contrast is what the eye reads.
+
+**The rhythm is measured, off commons *"Jester Dormitory ... (19 03 2003)"*:**
+the courses repeat every 116 px and are 28 px deep, so a band is **0.24 of a
+floor** — 0.73 m of precast over 2.32 m of brick at a 3.05 m floor.
+
+**And the two parts of the complex are not the same building.** The low wings
+carry a continuous course at every floor line. The towers carry NONE — they are
+plain brick with small punched windows, articulated by blank vertical piers
+between bays. The first cut ran both over the whole elevation and the render came
+back a plaid: piers crossing courses crossing the facade tile's own vertical
+grain. **Courses stop at 19.0 m and piers start there**, and 19.0 is not
+invented — Beauford H. Jester Center IS the low wing block and the survey models
+it at 19.0 m.
+
+Bands stop 0.12 m short of each corner so two elevations mitre instead of
+leaving a tooth. `az` on every authored part is now **the wall's own outward
+normal**, not 0; with az=0 all four sides of a building took one tone and the
+courses did not change colour round a corner.
+
+### Verified
+
+`harness-drift.mjs` PASS before every measurement. Bake audits unchanged and
+clean: `roofs_with_a_hole` 0, `roofs_drawn_twice_or_over_air` 0, `folded_rings`
+0, `walls_with_no_slope` 0. **Night, which is the one that has bitten this repo:**
+at tod 0.95 the authored pixels read luma **14.1 against a scene at 13.5**
+(Gregory) and **20.0 against 16.9** (Jester) — no pale patch, no inverted
+silhouette. Day 0.45, dusk 0.62 and night 0.95 at both. Every colour number above
+is a magenta-mask read of this build, not of the photograph.
+
+`data/roofs.geojson` 1,349 -> 1,626 KB raw, **70.9 -> 162.4 KB gzipped**, 3,877
+-> 4,886 features (223 gable, 768 band). That is the honest cost of the pass.
+
+`geomlint.mjs` goes from 1 issue on this file to 81, **and all 81 are the same
+`SLIVER` class** — checked independently: span, degenerate, unclosed, non-finite
+and `h <= b` are all zero. A spandrel course is a 118 m ring 0.24 m wide in plan,
+so it trips `span > 40 && area/span < 0.6` by construction; on screen its face is
+0.73 x 118 m and it is not a sliver at all. `westcampus.geojson` already produces
+78 of the same on `main` and the linter exits 1 there today. **Request for
+whoever owns `scripts/verify/`: teach the sliver test about wall bands** — a ring
+whose extrusion is taller than its plan width is a band, not a stray vertex.
+
+`night-silhouette.mjs` could not be run: it dies at line 30 with
+`ReferenceError: r is not defined`, which is the page-setup regression the Mac
+lane owns. The night numbers above are pixel reads, taken by hand for that
+reason.
+
+### What is NOT fixed, and it is not this lane's file
+
+1. **Jester's massing.** Each hall is still ONE prism at the tower's height, so
+   the low tile-roofed wings that fill the foreground of every photograph of the
+   place are extruded to 51.6 m and 40.4 m. The facade is now right for what is
+   modelled; the model is still wrong. Needs `building:part` splitting in the
+   buildings bake.
+2. **`wd` on both buildings.** Gregory Gym's `#a05b45` renders at red/blue 3.18
+   against a photographed 1.58, and Jester's `#c2b6a0` is its trim colour, not
+   its brick. **Request to the buildings lane: `#9b7d62` for Gregory Gym
+   (1bb698db), `#a69178` for the three Jester ids** — both measured, both in
+   `data/building_overrides.json` with the source frame named.
+3. **Gregory Gym's flanks** keep the old red-brown, because re-cladding them
+   would take their windows and their lit night with it. The seam is at the
+   building's own corner.
+
+Pictures: `docs/shots/greg-photo-vs-render.jpg`,
+`docs/shots/greg-before-after.jpg`, `docs/shots/jester-photo-vs-render.jpg`,
+`docs/shots/jester-before-after.jpg`, `docs/shots/jester-greg-night.jpg`.
 ## 60. Aug 3 2026 — the bake cannot change a height, so The Standard was six storeys. Tier four is authored at LOAD instead. (acer lane)
 
 **Branch:** `acer/westcampus-tier4`, **PR #121**, merged `1e6bdbb`. **QUEUE PART G.**
@@ -213,7 +395,6 @@ it is an ancestor of `main` now so it is harmless.
 - Night at tod 0.90: EER wall median luma **25** against **26** for the building
   beside it, p90 **59** vs **36** — the slots light up, the mass does not.
 - `docs/shots/eer-before-after.jpg`, `gdc-after.jpg`, `eer-night.jpg`.
-
 
 ## 58. Aug 3 2026 — a wall pattern has no HORIZONTAL anchor either, so West Campus got colour bays and its balconies got rails (acer lane)
 
