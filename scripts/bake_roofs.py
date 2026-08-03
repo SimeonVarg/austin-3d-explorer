@@ -72,6 +72,7 @@ import colorsys
 import json
 import math
 import os
+import re
 import sys
 from collections import Counter
 
@@ -1486,7 +1487,8 @@ def campus_tile_base(feats, cache):
 #   roof_run_m            the ring survey under-read a roof the photo shows
 #   roof_over_max_height  the height gate excluded a building it should not
 #   roof_colour/deck_colour   the two colours the roof is built out of
-#   loggia                an authored entrance porch (see LOGGIA below)
+#   gable_front           an authored gable elevation (see GABLE FRONT below)
+#   facade_bands          precast courses, a base and piers (see FACADE BANDS)
 OVERRIDES = os.path.join(ROOT, "data", "building_overrides.json")
 
 
@@ -1494,50 +1496,113 @@ def load_overrides():
     if not os.path.exists(OVERRIDES):
         return {}
     try:
-        return json.load(open(OVERRIDES, encoding="utf-8")).get("buildings") or {}
+        b = json.load(open(OVERRIDES, encoding="utf-8")).get("buildings") or {}
     except Exception as e:                                   # noqa: BLE001
         print("  building_overrides.json unreadable, ignoring:", e)
         return {}
+    # EVERY `*_colour` MUST BE A REAL HEX, and the bake dies if one is not.
+    # `make_roof_colors` on a typo returns the typo, and MapLibre draws an
+    # unparseable colour as nothing at all — so a slipped keystroke in a hand
+    # written data file deletes a wall silently. This is four lines and it is
+    # the only reason a whole authored elevation cannot vanish unnoticed.
+    bad = []
+    def _walk(node, path):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k.endswith("colour") or k.endswith("color"):
+                    if not (isinstance(v, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", v)):
+                        bad.append("%s.%s = %r" % (path, k, v))
+                else:
+                    _walk(v, path + "." + k)
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                _walk(v, "%s[%d]" % (path, i))
+    for bid, ov in b.items():
+        _walk(ov, ov.get("name") or bid)
+    if bad:
+        raise SystemExit("bake_roofs: building_overrides.json has colours that "
+                         "are not #rrggbb:\n  " + "\n  ".join(bad))
+    return b
 
 
-# ── LOGGIA: the one thing on a facade a prism cannot say ──────────────
+# ── GABLE FRONT: the one thing on a facade a prism cannot say ─────────
 #
 # Simeon: *"greg gym is split into two sections (one building) one should
 # replicate the famous entrance with the three hall things and the roof."*
+# Then, after PR #106 shipped a loggia: *"we need accurate detail and color"*.
 #
-# The 1930 auditorium-gymnasium's front is a monumental stone stair up to three
-# round-headed arches under a tiled gable — the most recognisable face on this
-# part of campus — and the model has it as a flat brick wall, because a
-# `fill-extrusion` of a footprint has no way to say "there is a porch here".
+# THIS SUPERSEDES `loggia_parts`, AND IT IS WORTH SAYING WHY, because the
+# previous version was not lazy — it was a wrong reading of the building.
+# It built a PROJECTING PORCH: 21 m wide, 12.6 m to the top of its own little
+# gable, standing in front of a 135 m building. Four photographs say the real
+# thing is nothing like that:
 #
-# WHICH WALL, ESTABLISHED BEFORE ANY GEOMETRY WAS WRITTEN, because putting it on
-# the wrong face is worse than not drawing it. Three independent readings agree
-# on the west side: OSM node 1427259422 carries `entrance=main` at
-# 30.2840096,-97.7368337; the postal address is 2101 Speedway, and Speedway runs
-# down the west side; and the z19 nadir tile shows a broad flight of steps
-# against that wall and nothing like it against any other.
+#   commons: "Gregory Gymnasium, May 2013.jpg", "University of Texas at Austin
+#   August 2019 24", "Gregory Gym.jpg", "Gregory Gym - UT Austin (54984752541)"
 #
-# AND THE WALL IS FOUND FROM THE FOOTPRINT, not typed in. The override gives a
-# POINT; this code finds the polygon edge nearest it and builds everything in
-# that edge's own frame — along it, and out along its own outward normal, which
-# is tested rather than assumed (offset a metre and ask whether you are still
-# inside the building). So the porch cannot end up floating off the wall or
-# buried in it if the footprint is ever re-surveyed.
+# What they show is a GABLE-FRONTED HALL. The whole west end is one triangular
+# brick pediment the full width of the elevation; the three arches are enormous
+# recessed openings cut into it, not a porch stuck on it; and a second, smaller
+# gable projects in front of the first, its raking edge carrying a run of small
+# blind corbel arches — the ornament that makes the face unmistakably Gregory.
+# A 21 m porch on a 53 m gable wall is "the canvas the right size".
+#
+# WHICH WALL — SETTLED FROM THE PHOTOGRAPH'S OWN GPS, not from memory and not
+# from the aerial. "Gregory Gymnasium, May 2013.jpg" carries EXIF GPS
+# 30.284266, -97.737473. Put in the footprint's own metre frame (origin at the
+# SW of its bbox) the camera stands at (-46.7, 82.9) — 47 m due west of the
+# building, dead level with the mid-point of the 24.9 m west-facing edge that
+# runs y 68.6 -> 93.4. It is a square-on shot of that edge. PR #106's `at`
+# point was on the same edge, so the wall was already right; everything else
+# about the composition was not. (The OSM `entrance=main` node 1427259422 lands
+# on a 3.5 m stub 27 m further south and is NOT what the photograph looks at.)
+#
+# EVERY DIMENSION BELOW IS MEASURED OFF THAT PHOTOGRAPH, and the working is
+# written out because a number nobody can re-derive is a number nobody can
+# correct. The scale comes from ONE assumption — that the modelled 20.0 m is the
+# eave — and then everything else is a pixel ratio against it:
+#
+#   pitch:  apex (960,69) to (1600,330) => 261/640 = 0.408 rise/run
+#           apex (960,69) to ( 400,287) => 218/560 = 0.389   -> use 0.40
+#   width:  the footprint's west elevation runs y 50.8..103.7 = 52.9 m.
+#           At 0.40 pitch that puts the apex 10.6 m over the eave, so
+#           (30.6-20.0)/(327-69 px) = 0.0411 m/px.
+#           CHECK: 52.9 m at 0.0411 => 1287 px, apex at x=960, so the eave
+#           corners land at x = 317 and 1603. The traced silhouette reaches
+#           (1600, 330) and the raking line predicts y=327 there. 3 px.
+#   arches: openings 97 px = 4.0 m, pitch 162 px = 6.66 m, three of them,
+#           symmetric about the same x=960 the gable apex is on.
+#   heights (h = 20.0 - (y-327)*0.0411): stair head 714 -> 3.9 m,
+#           door head 650 -> 6.7 m, lintel band top 590 -> 9.2 m,
+#           springing 503 -> 12.7 m, opening crown 455 -> 14.7 m,
+#           archivolt crown 430 -> 15.7 m.
+#
+# THE INNER GABLE IS THE FOOTPRINT'S OWN PROJECTION. That 24.9 m edge stands
+# 2.9-4.5 m proud of the wall either side of it — which is exactly the second
+# pediment in the photograph. So the inner gable is built on that edge at v=0
+# and the outer gable is built BEHIND it, deep enough to stand on solid
+# building for its whole 52.9 m (the deepest flank is 4.5 m back, so 4.9 m).
 #
 # THE ARCH IS NOT A STACK OF SQUARES, which is the fair complaint in QUEUE D3
 # about the sculptures. `fill-extrusion` cannot tilt a face, so a round arch has
 # to be a row of prisms — but the row is cut ACROSS the opening and each prism's
 # BASE is the arch's own curve, `spring + sqrt(r^2 - x^2)`. That is the real
-# soffit sampled at 11 points, not a shape approximated by axis-aligned boxes:
-# what you see is the arched opening, and the steps are in the top edge of the
-# spandrel where nothing looks at them.
+# soffit sampled at 13 points, not a shape approximated by axis-aligned boxes.
+#
+# AND NOTHING HERE CUTS A HOLE, because nothing can: this bake does not own the
+# building extrusion, so an "opening" is a dark panel with a brick archivolt
+# ring standing proud of it. That is why the arch reads — the ring casts the
+# recess, the way it does on the building.
 #
 # Everything below is in the override so any of it is a one-line change.
-LOGGIA_VOUSSOIRS   = 11    # prisms across each arch head
-LOGGIA_GABLE_STEPS = 7     # courses in the tiled gable above
-LOGGIA_STAIR_STEPS = 5     # flights in the stone stair below
-LOGGIA_STAIR_TREAD = 0.85  # metres of run per flight
-LOGGIA_RECESS_M    = 0.06  # how far off the wall the dark back of the porch sits
+GABLE_VOUSSOIRS   = 13    # prisms across each arch head
+GABLE_COURSES     = 22    # steps in each raking gable. Nine read as a
+                          # ziggurat: over 10.6 m of rise that is a 1.2 m step,
+                          # which at 200 m is four pixels of staircase where the
+                          # photograph has a straight line. Twenty-two puts the
+                          # step under half a metre and the rake reads as a rake.
+GABLE_STAIR_STEPS = 7     # flights in the stone stair below
+GABLE_RECESS_M    = 0.05  # how far off the wall the dark back of an opening sits
 
 
 def _seg_nearest(pm, q):
@@ -1557,127 +1622,454 @@ def _seg_nearest(pm, q):
     return best
 
 
-def loggia_parts(ring, spec, roof_rd, roof_rg, roof_rn):
-    """Every prism of one entrance porch, as ready-to-append GeoJSON features."""
-    lat0 = sum(q[1] for q in ring) / len(ring)
-    pm = ccw(clean(to_m(ring, lat0)))
-    if len(pm) < 3:
-        return []
+def _wall_frame(pm, at, lat0):
+    """The (origin, along, outward) frame of the footprint edge nearest `at`.
+
+    Kept from the loggia version unchanged, because it is the part that was
+    right: the override gives a POINT and the code finds the wall, so the
+    composition cannot float off the building or bury itself in it if the
+    footprint is ever re-surveyed. The outward normal is TESTED, not assumed
+    from a winding — step a metre along the candidate and ask whether you are
+    still inside.
+    """
     k = math.cos(math.radians(lat0))
-    at = spec.get("at")
     q = (at[0] * M_LAT * k, at[1] * M_LAT)
     got = _seg_nearest(pm, q)
     if got is None:
-        return []
+        return None
     _d, i, foot, wall_len = got
     a, b = pm[i], pm[(i + 1) % len(pm)]
     L = math.hypot(b[0] - a[0], b[1] - a[1])
     tx, ty = (b[0] - a[0]) / L, (b[1] - a[1]) / L
     nx, ny = -ty, tx
-    # WHICH WAY IS OUT. Ask, do not assume a winding: step a metre along the
-    # candidate normal and see whether you are still inside the footprint.
     if inside((foot[0] + nx, foot[1] + ny), pm):
         nx, ny = -nx, -ny
+    return foot, (tx, ty), (nx, ny), wall_len
 
-    W = float(spec.get("width_m", 18.0))
-    D = float(spec.get("depth_m", 3.2))
-    P = float(spec.get("pier_m", 1.7))
-    base = float(spec.get("base_m", 1.5))
-    spring = float(spec.get("spring_m", 5.0))
-    crown = float(spec.get("crown_m", 8.2))
-    gable = float(spec.get("gable_m", 11.6))
-    n_ar = int(spec.get("arches", 3))
-    # Never wider than the wall it stands on.
-    W = min(W, wall_len - 1.0)
-    opening = (W - (n_ar + 1) * P) / n_ar
-    if opening <= 0.6 or D <= 0.5:
+
+def _parallel_edges(pm, foot, tvec, nvec, half_span, tol_deg=34.0):
+    """Every footprint edge that faces the same way as the anchor wall.
+
+    Returned in the anchor's own frame as `(u0, u1, v)`: where the edge starts
+    and stops along the wall, and how far it sits in front of (v > 0) or behind
+    (v < 0) the anchor plane.
+
+    THIS IS WHAT STOPS THE PEDIMENT FLOATING. Gregory Gym's west elevation is
+    not one plane — it is a 24.9 m bay standing 2.9 and 4.5 m proud of the
+    walls either side of it. A 52 m gable built on the bay's plane hangs over
+    4.5 m of air for a third of its length; built deep enough to clear the
+    worst of them it sits 4.9 m back and reads as a different building behind
+    the roof, which is what the first cut of this did. Built PER EDGE it
+    follows the building's own jogs, which is what a real parapet gable does.
+    """
+    tx, ty = tvec
+    nx, ny = nvec
+    cos_tol = math.cos(math.radians(tol_deg))
+    out = []
+    for i in range(len(pm)):
+        a, b = pm[i], pm[(i + 1) % len(pm)]
+        L = math.hypot(b[0] - a[0], b[1] - a[1])
+        if L < 0.8:
+            continue
+        ex, ey = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        mx, my = -ey, ex
+        mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+        if inside((mid[0] + mx * 0.5, mid[1] + my * 0.5), pm):
+            mx, my = -mx, -my
+        if mx * nx + my * ny < cos_tol:
+            continue
+        ua = (a[0] - foot[0]) * tx + (a[1] - foot[1]) * ty
+        ub = (b[0] - foot[0]) * tx + (b[1] - foot[1]) * ty
+        v = (mid[0] - foot[0]) * nx + (mid[1] - foot[1]) * ny
+        u0, u1 = (ua, ub) if ua <= ub else (ub, ua)
+        u0, u1 = max(u0, -half_span), min(u1, half_span)
+        if u1 - u0 > 0.6:
+            out.append((u0, u1, v))
+    return sorted(out)
+
+
+def gable_front_parts(ring, spec, height_m):
+    """Every prism of one gable-fronted elevation, ready to append.
+
+    Returns GeoJSON features. `height_m` is the building's own extrusion
+    height: everything at or above it is FREE — there is no prism up there to
+    bury it — and everything below it has to stand proud of the wall, because
+    this bake cannot cut a hole in a fill-extrusion.
+    """
+    lat0 = sum(q[1] for q in ring) / len(ring)
+    pm = ccw(clean(to_m(ring, lat0)))
+    if len(pm) < 3:
         return []
-    r = opening * 0.5
+    fr = _wall_frame(pm, spec.get("at"), lat0)
+    if fr is None:
+        return []
+    foot, (tx, ty), (nx, ny), wall_len = fr
+    az = (math.degrees(math.atan2(nx, ny)) + 360.0) % 360.0
 
     def rect(u0, u1, v0, v1):
         pts = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
         return [[foot[0] + tx * u + nx * v, foot[1] + ty * u + ny * v] for u, v in pts]
 
-    parts = []          # (ring_m, b, h, day_hex)
+    # ── the numbers, all from the override ───────────────────────────────
+    eave    = float(spec.get("eave_m", height_m))
+    W_out   = float(spec.get("outer_w_m", 52.0))     # the whole west elevation
+    W_in    = min(float(spec.get("inner_w_m", 24.0)), wall_len - 0.6)
+    pitch   = float(spec.get("pitch", 0.40))         # rise per run, measured
+    n_ar    = int(spec.get("arches", 3))
+    op      = float(spec.get("arch_opening_m", 4.0))
+    ar_p    = float(spec.get("arch_pitch_m", 6.66))
+    spring  = float(spec.get("spring_m", 12.7))
+    ring_m  = float(spec.get("archivolt_m", 1.0))    # thickness of the brick ring
+    podium  = float(spec.get("podium_m", 3.9))
+    door_h  = float(spec.get("door_head_m", 6.7))
+    lint_h  = float(spec.get("lintel_head_m", 9.2))
+    ven     = float(spec.get("veneer_proud_m", 0.16))
+    proud_a = ven + float(spec.get("archivolt_proud_m", 0.34))
+    proud_g = ven + float(spec.get("gable_proud_m", 0.30))
+    gable_d = float(spec.get("gable_depth_m", 2.2))  # how far it reaches back
+                                                     # over the roof behind it
+    stair_w = float(spec.get("stair_w_m", 17.0))
+    stair_run = float(spec.get("stair_run_m", 9.0))
+    brick   = spec.get("brick_colour")
+    stone   = spec.get("stone_colour")
+    dark    = spec.get("shadow_colour")
+    conc    = spec.get("stair_colour") or stone
 
-    # THE STONE STAIR RUNS OUT IN FRONT OF THE PORCH, and this is worth a note
-    # because the first version had it at NEGATIVE v — behind the wall plane,
-    # buried inside the building. Nothing on screen said so: a slab inside a
-    # solid prism is simply invisible, and the render looked like a portico with
-    # no steps rather than like a bug. The check that caught it is mechanical and
-    # is the one to keep: every part of an outward porch must have its centroid
-    # OUTSIDE the footprint, and the stair slabs had 3 of 4 corners inside.
+    r = op * 0.5
+    apex_out = eave + W_out * 0.5 * pitch
+    apex_in  = eave + W_in * 0.5 * pitch
+    west = _parallel_edges(pm, foot, (tx, ty), (nx, ny), W_out * 0.5)
+    if not west:
+        return []
+
+    parts = []          # (ring, base, top, day_hex, may_be_inside)
+
+    # ── 1. THE BRICK VENEER on this elevation ────────────────────────────
+    # `wd` on this building is #a05b45 and the walls render at red/blue 3.18.
+    # Four photographs put the brick at 1.58 (overcast) to 2.05 (low sun) — it
+    # is a warm sand, not the red-brown it is painted, and the difference is
+    # the whole of "we need accurate detail and color" on this building.
+    # `wd` belongs to the buildings bake, which this lane does not own, so the
+    # face is re-clad instead: a 0.16 m skin in the measured colour, on the
+    # west elevation only. It stops at the building's own corners, which is
+    # where a material change reads as normal rather than as a seam, and it
+    # leaves every other elevation its window pattern and its lit night.
+    arch_zones = [((j - (n_ar - 1) / 2.0) * ar_p - r - ring_m,
+                   (j - (n_ar - 1) / 2.0) * ar_p + r + ring_m) for j in range(n_ar)]
+    for (u0, u1, v) in west:
+        # on the anchored bay the veneer steps around the three openings, so
+        # the arch is a hole in the brick rather than a panel on top of it
+        cuts = arch_zones if abs(v) < 0.4 else []
+        spans, cur = [], u0
+        for (c0, c1) in cuts:
+            if c1 <= cur or c0 >= u1:
+                continue
+            if c0 > cur:
+                spans.append((cur, c0))
+            cur = max(cur, c1)
+        if cur < u1:
+            spans.append((cur, u1))
+        for (s0, s1) in spans:
+            if s1 - s0 < 0.25:
+                continue
+            parts.append((rect(s0, s1, v + 0.02, v + ven), 0.0, eave, brick, False))
+        # ...and the head of brick above the arches, which the cuts removed
+        for (c0, c1) in cuts:
+            c0, c1 = max(c0, u0), min(c1, u1)
+            if c1 - c0 > 0.25:
+                parts.append((rect(c0, c1, v + 0.02, v + ven),
+                              spring + r + ring_m, eave, brick, False))
+
+    # ── 2. THE OUTER PEDIMENT, following the elevation's own jogs ────────
     #
-    # Stacked with the top step innermost and shortest, so each tread's nose is
-    # the only thing that shows and the flight reads from above.
-    if spec.get("stair"):
-        S = LOGGIA_STAIR_STEPS
-        for s in range(S):
-            parts.append((rect(-W / 2 - 0.8, W / 2 + 0.8,
-                               D, D + (s + 1) * LOGGIA_STAIR_TREAD),
-                          0.0, base * (S - s) / S, spec.get("pier_colour")))
-    # the porch floor
-    parts.append((rect(-W / 2, W / 2, 0.0, D), 0.0, base, spec.get("pier_colour")))
-    # the dark back of the porch, seen THROUGH the arches — without it the
-    # openings read as solid panels the colour of the wall behind them
-    for j in range(n_ar):
-        u0 = -W / 2 + P + j * (P + opening)
-        parts.append((rect(u0, u0 + opening, LOGGIA_RECESS_M, LOGGIA_RECESS_M + 0.30),
-                      base, spring + r, spec.get("shadow_colour")))
-    # the piers
-    for kx in range(n_ar + 1):
-        u0 = -W / 2 + kx * (P + opening)
-        parts.append((rect(u0, u0 + P, 0.0, D), base, spring, spec.get("pier_colour")))
-    # the arch heads: one prism per column across the opening, each starting at
-    # the arch's own curve
-    for j in range(n_ar):
-        u0 = -W / 2 + P + j * (P + opening)
-        for c in range(LOGGIA_VOUSSOIRS):
-            ua = u0 + opening * c / LOGGIA_VOUSSOIRS
-            ub = u0 + opening * (c + 1) / LOGGIA_VOUSSOIRS
-            xm = (ua + ub) * 0.5 - (u0 + r)          # from the opening's centre
-            soffit = spring + math.sqrt(max(0.0, r * r - xm * xm))
-            parts.append((rect(ua, ub, 0.0, D), soffit, crown, spec.get("arch_colour")))
-    # the entablature the gable sits on
-    parts.append((rect(-W / 2 - 0.35, W / 2 + 0.35, 0.0, D + 0.3),
-                  crown, crown + 0.9, spec.get("pier_colour")))
-    # ...and the tiled gable, in the building's own roof colour
-    G = LOGGIA_GABLE_STEPS
-    hw0 = W / 2 + 0.35
+    # THE CORNICE IS ONLY ON THE RAKE, and this is the correction that turned
+    # the first render from a striped pyramid back into a pediment. Emitting a
+    # stone step the FULL width of every course stacks 22 pale horizontal lines
+    # up the face of the gable, so from anywhere above the eave it reads as a
+    # tiled roof rather than as a brick wall with a stone edge. On the real
+    # building the stone is a moulding that runs up the two sloping edges and
+    # nowhere else. A 1.5 m block at each end of each course is that line.
+    G = GABLE_COURSES
     for s in range(G):
-        hw = hw0 * (1.0 - s / float(G)) + 0.45 * (s / float(G))
-        parts.append((rect(-hw, hw, 0.0, D + 0.3),
-                      crown + 0.9 + (gable - crown - 0.9) * s / G,
-                      crown + 0.9 + (gable - crown - 0.9) * (s + 1) / G,
-                      None))
+        f0, f1 = s / float(G), (s + 1) / float(G)
+        hw = (W_out * 0.5) * (1.0 - f0) + 0.7 * f0
+        h0 = eave + (apex_out - eave) * f0
+        h1 = eave + (apex_out - eave) * f1
+        for (u0, u1, v) in west:
+            # On the anchored bay the outer pediment steps BACK, so the inner
+            # one in front of it is not swallowed by a bigger triangle drawn on
+            # the same plane — which is exactly what happened when both were
+            # anchored at v=0 and the corbel arcade simply vanished.
+            vu = v - 0.9 if abs(v) < 0.4 else v
+            a0, a1 = max(u0, -hw), min(u1, hw)
+            if a1 - a0 < 0.4:
+                continue
+            parts.append((rect(a0, a1, vu - gable_d, vu + proud_g), h0, h1, brick, True))
+            for (e0, e1) in ((a0, min(a1, a0 + 1.5)), (max(a0, a1 - 1.5), a1)):
+                if abs(abs(e0) - hw) > 1.6 and abs(abs(e1) - hw) > 1.6:
+                    continue          # an interior join, not the rake
+                if e1 - e0 < 0.3:
+                    continue
+                parts.append((rect(e0, e1, vu - gable_d, vu + proud_g + 0.26),
+                              h0 - 0.36, h0 + 0.06, stone, True))
+
+    # ── 3. THE INNER PEDIMENT, on the bay's own plane ────────────────────
+    # The footprint's 24.9 m projection IS the second pediment in the
+    # photograph, and its rake carries the corbel arcade — the ornament that
+    # makes this face Gregory rather than any brick gable in Texas.
+    for s in range(G):
+        f0, f1 = s / float(G), (s + 1) / float(G)
+        hw = (W_in * 0.5) * (1.0 - f0) + 0.6 * f0
+        parts.append((rect(-hw, hw, -1.2, proud_g),
+                      eave + (apex_in - eave) * f0,
+                      eave + (apex_in - eave) * f1, brick, True))
+    n_c = int(spec.get("corbels", 13))
+    for side in (-1, 1):
+        for c in range(n_c):
+            f = (c + 0.5) / n_c                       # 0 at apex, 1 at eave
+            u = side * (W_in * 0.5) * f
+            h0 = eave + (apex_in - eave) * (1.0 - f)
+            parts.append((rect(u - 0.44, u + 0.44, -0.9, proud_g + 0.26),
+                          h0 - 0.64, h0 - 0.05, stone, True))
+
+    # ── 4. THE THREE ARCHES ──────────────────────────────────────────────
+    # Below the eave, so every piece has to stand PROUD of the wall: the ring
+    # of the archivolt is what makes the opening read, exactly as it does on
+    # the building, and the dark panel inside it is the recess.
+    for j in range(n_ar):
+        u_c = (j - (n_ar - 1) / 2.0) * ar_p
+        parts.append((rect(u_c - r, u_c + r, GABLE_RECESS_M, ven - 0.02),
+                      podium, spring + r, dark, False))
+        parts.append((rect(u_c - r, u_c + r, GABLE_RECESS_M, proud_a - 0.14),
+                      door_h, lint_h, stone, False))
+        parts.append((rect(u_c - r + 0.2, u_c + r - 0.2, GABLE_RECESS_M, ven + 0.06),
+                      podium, door_h, dark, False))
+        for c in range(GABLE_VOUSSOIRS):
+            ua = u_c - r - ring_m + (op + 2 * ring_m) * c / GABLE_VOUSSOIRS
+            ub = u_c - r - ring_m + (op + 2 * ring_m) * (c + 1) / GABLE_VOUSSOIRS
+            xm = (ua + ub) * 0.5 - u_c
+            R = r + ring_m
+            inner = spring + math.sqrt(max(0.0, r * r - xm * xm)) if abs(xm) < r else spring
+            outer = spring + math.sqrt(max(0.0, R * R - xm * xm)) if abs(xm) < R else spring
+            if outer - inner < 0.05:
+                continue
+            parts.append((rect(ua, ub, 0.0, proud_a), inner, outer, brick, False))
+        for sx in (-1, 1):
+            parts.append((rect(u_c + sx * r, u_c + sx * (r + ring_m), 0.0, proud_a),
+                          podium, spring, brick, False))
+
+    # ── 5. THE STONE PLAQUE over the middle arch ─────────────────────────
+    parts.append((rect(-3.1, 3.1, 0.0, proud_g + 0.2),
+                  float(spec.get("plaque_m", 17.2)),
+                  float(spec.get("plaque_m", 17.2)) + 1.15, stone, False))
+
+    # ── 6. THE MONUMENTAL STAIR ──────────────────────────────────────────
+    # Stacked with the top flight innermost and shortest, so each nose is the
+    # only thing that shows. The check below is what caught this built at
+    # NEGATIVE v once — buried inside the prism, and invisible rather than
+    # obviously wrong.
+    if spec.get("stair"):
+        S = GABLE_STAIR_STEPS
+        for s in range(S):
+            parts.append((rect(-stair_w / 2, stair_w / 2,
+                               ven, ven + stair_run * (s + 1) / S),
+                          0.0, podium * (S - s) / S, conc, False))
+        for sx in (-1, 1):
+            parts.append((rect(sx * stair_w / 2, sx * (stair_w / 2 + 1.6),
+                               ven, ven + stair_run),
+                          0.0, podium * 0.55, conc, False))
 
     out, buried = [], 0
-    for ring_m, b0, h0, day in parts:
-        if h0 - b0 < 0.02:
+    for rg_m, b0, h0, day, free in parts:
+        if h0 - b0 < 0.02 or not day:
             continue
-        if day:
-            rd, rg, rn = make_roof_colors(day)
-        else:
-            rd, rg, rn = roof_rd, roof_rg, roof_rn
-        # A PORCH STANDS IN FRONT OF ITS WALL. Anything whose centre is inside
-        # the footprint is inside a solid prism and will never be seen — which is
-        # exactly how the stair shipped backwards once and looked like nothing at
-        # all rather than like an error.
-        cx = sum(x for x, _ in ring_m) / len(ring_m)
-        cy = sum(y for _, y in ring_m) / len(ring_m)
-        if inside((cx, cy), pm):
-            buried += 1
-            continue
-        ll = to_ll([(x, y) for x, y in ring_m], lat0)
-        out.append({
-            "type": "Feature",
-            "geometry": {"type": "Polygon", "coordinates": [close_ring(ll)]},
-            "properties": {"b": round(b0, 2), "h": round(h0, 2), "az": 0,
-                           "rd": rd, "rdd": rd, "rg": rg, "rgd": rg, "rn": rn},
-        })
+        # ANYTHING BELOW THE BUILDING'S OWN HEIGHT MUST STAND OUTSIDE IT.
+        # A slab inside a solid prism is not an error on screen, it is simply
+        # nothing — which is how the stair once shipped backwards and looked
+        # like a portico with no steps. Above `height_m` the test is switched
+        # off, because up there the prism has ended and the gable is supposed
+        # to sit on the roof.
+        if not free:
+            cx = sum(x for x, _ in rg_m) / len(rg_m)
+            cy = sum(y for _, y in rg_m) / len(rg_m)
+            if inside((cx, cy), pm):
+                buried += 1
+                continue
+        out.append(_band_feature(rg_m, lat0, b0, h0, day, az))
     if buried:
-        print("  LOGGIA: %d parts were inside the building and were dropped — "
-              "check the wall this porch is anchored to" % buried)
+        print("  GABLE FRONT: %d parts below the eave were inside the building "
+              "and were dropped — check the wall this front is anchored to" % buried)
+    return out
+
+
+# ── FACADE BANDS: what a 1960s dorm is actually made of ───────────────
+#
+# Simeon: *"make jester look alot nicer if freshman r gonna see this then their
+# dorm shouldnt look like a prison ... the color is not accurate"*, and then
+# *"we need accurate detail and color"*.
+#
+# WHY THIS IS NOT A HEIGHT PROBLEM. Jester renders as a 118 m unbroken tan slab
+# with a uniform grid of identical windows on it, because `quantiseFacades`
+# elects fourteen tones for the whole city and stamps one per building plus a
+# repeating window tile. That is the entire vocabulary the building has, so no
+# amount of massing can make it read as Jester. What it is missing is a
+# HORIZONTAL rhythm and a base, and both are geometry.
+#
+# WHAT THE PHOTOGRAPHS SAY, and they say two different things about two parts:
+#
+#   commons: "Jester Dormitory ... (19 03 2003).jpg" (a golden-hour shot of the
+#   whole complex from the south-west) and "University of Texas at Austin
+#   August 2019 27 (Beauford H. Jester Center).jpg" (the north entrance, flat
+#   overcast light — which is the one worth sampling colour off).
+#
+#   THE LOW WINGS carry a continuous light precast spandrel course at every
+#   floor line, running the full width of the elevation and interrupted by
+#   nothing. Measured off the 2003 frame: the courses repeat every 116 px and
+#   are 28 px deep, so the band is 0.24 of a floor. At a 3.05 m floor that is
+#   0.73 m of precast over 2.32 m of brick.
+#
+#   THE TOWERS have NO banding at all. They are plain brick with small punched
+#   windows, articulated instead by BLANK VERTICAL PIERS running the full
+#   height between bays of four window columns, and their parapets step.
+#
+# So the treatment is two zones and they do not overlap: courses BELOW the low
+# wings' own height, piers only ABOVE it. The first cut ran both over the whole
+# elevation and the render came back as a plaid — vertical piers crossing
+# horizontal courses crossing the facade tile's own vertical grain. The
+# photograph never does both on the same piece of wall, and neither does this.
+#
+# The split height is not invented either: Beauford H. Jester Center IS the low
+# wing block and the survey models it at 19.0 m.
+#
+# THE COLOUR, MEASURED RATHER THAN REMEMBERED. Sampled off the 2019 frame with
+# green-dominant pixels rejected so foliage cannot vote:
+#
+#   brick field   rgb(166,145,120)  #a69178   R/B 1.38
+#   precast band  rgb(188,176,156)  #bcb09c   R/B 1.21
+#
+# The building's own baked wall is #c2b6a0 — which is (194,182,160), i.e. the
+# TRIM colour, not the brick. That is "the color is not accurate" exactly: the
+# whole complex is currently painted the colour of its own spandrels. This bake
+# cannot reach `wd`, so it does the other half — it puts the real precast in
+# front of the wall, where the contrast between the two is what the eye reads.
+#
+# AND EVERY BAND STANDS PROUD, because it has to. A precast spandrel really
+# does project past the brick; more to the point, this bake does not own the
+# building extrusion, so a band flush with the wall would be a coplanar surface
+# and would z-fight down the whole elevation. The inner face sits BAND_GAP_M
+# clear of the wall so there is no shared plane anywhere.
+BAND_GAP_M   = 0.06    # clear air between a band's back and the wall
+BAND_MIN_EDGE_M = 4.5  # skip footprint jogs shorter than this — a 3 m stub
+                       # gets a band that reads as a lump, not as a course
+BAND_PIER_MIN_M = 14.0 # an elevation shorter than this gets no pier; two piers
+                       # 4 m apart is a colonnade, not an articulated slab
+BAND_SHADE     = 0.82  # how dark a band's own shaded end is. Roof facets use
+                       # SHADE_LO/SHADE_HI (0.55); a wall band is nearly
+                       # vertical and 0.55 turns the shaded side of a building
+                       # into a black stripe.
+
+
+def _band_feature(ring_m, lat0, b0, h0, day, az):
+    """One authored elevation prism, with its own shade range and azimuth.
+
+    `az` IS THE WALL'S OWN OUTWARD NORMAL, not 0. Every authored part in the
+    first cut of this carried az=0, so `roofFacetColor` gave all four sides of
+    a building the identical tone and the courses stayed the same colour right
+    round a corner — which is the "flat plane with stripes on it" failure the
+    az field was added to fix in the first place, arrived at from the other
+    direction.
+    """
+    rd, rg, rn = make_roof_colors(day)
+    return {
+        "type": "Feature",
+        "geometry": {"type": "Polygon",
+                     "coordinates": [close_ring(to_ll([(x, y) for x, y in ring_m], lat0))]},
+        "properties": {"b": round(b0, 2), "h": round(h0, 2), "az": round(az, 1),
+                       "rd": rd, "rdd": tint(rd, BAND_SHADE),
+                       "rg": rg, "rgd": tint(rg, BAND_SHADE), "rn": rn},
+    }
+
+
+def facade_band_parts(rings, spec, height_m):
+    """Precast spandrel courses, a base, and blank piers, for one building."""
+    flat = [q for r in rings for q in r]
+    lat0 = sum(q[1] for q in flat) / len(flat)
+    floor  = float(spec.get("floor_m", 3.05))
+    band   = float(spec.get("band_m", 0.73))
+    proud  = float(spec.get("band_proud_m", 0.24))
+    base_h = float(spec.get("base_m", 1.35))
+    base_p = float(spec.get("base_proud_m", 0.34))
+    band_to = min(float(spec.get("band_top_m", 19.0)), height_m - 0.8)
+    pier_w = float(spec.get("pier_w_m", 1.35))
+    pier_p = float(spec.get("pier_proud_m", 0.40))
+    pier_at = float(spec.get("pier_spacing_m", 9.5))
+    band_c = spec.get("band_colour")
+    base_c = spec.get("base_colour") or band_c
+    pier_c = spec.get("pier_colour")
+    top_c  = spec.get("cornice_colour") or band_c
+
+    parts = []          # (ring, base, top, day_hex, az)
+    for ring in rings:
+        pm = ccw(clean(to_m(ring, lat0)))
+        if len(pm) < 3:
+            continue
+        for i in range(len(pm)):
+            a, b = pm[i], pm[(i + 1) % len(pm)]
+            L = math.hypot(b[0] - a[0], b[1] - a[1])
+            if L < BAND_MIN_EDGE_M:
+                continue
+            tx, ty = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+            nx, ny = -ty, tx
+            mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+            if inside((mid[0] + nx, mid[1] + ny), pm):
+                nx, ny = -nx, -ny
+            az = (math.degrees(math.atan2(nx, ny)) + 360.0) % 360.0
+
+            def rect(u0, u1, v0, v1, a=a, tx=tx, ty=ty, nx=nx, ny=ny):
+                return [[a[0] + tx * u + nx * v, a[1] + ty * u + ny * v]
+                        for u, v in ((u0, v0), (u1, v0), (u1, v1), (u0, v1))]
+
+            # THE BANDS STOP SHORT OF EACH CORNER by a hand's width, so two
+            # adjacent elevations' courses meet at a mitre instead of each
+            # running past the other and leaving a 0.24 m tooth sticking out
+            # of the corner. It is 12 cm; it is also the difference between a
+            # cornice and a row of pegs.
+            u0, u1 = 0.12, L - 0.12
+            parts.append((rect(u0, u1, BAND_GAP_M, BAND_GAP_M + base_p),
+                          0.0, base_h, base_c, az))
+            n = 1
+            while True:
+                h0 = base_h + n * floor - band
+                if h0 + band > band_to:
+                    break
+                parts.append((rect(u0, u1, BAND_GAP_M, BAND_GAP_M + proud),
+                              h0, h0 + band, band_c, az))
+                n += 1
+            # the frieze that closes the banded zone off — the low wings' own
+            # eave, and on the towers the line the banding stops at
+            if band_to > base_h + floor:
+                parts.append((rect(u0, u1, BAND_GAP_M, BAND_GAP_M + base_p),
+                              band_to - 0.95, band_to, top_c, az))
+            # the parapet frieze, just under the building's own cap. Below
+            # `height_m` on purpose: the buildings bake already puts a roof
+            # cap AT that height and two lips at one level is a seam.
+            parts.append((rect(u0, u1, BAND_GAP_M, BAND_GAP_M + base_p),
+                          height_m - 1.05, height_m - 0.08, top_c, az))
+            # the blank piers — the TOWER's articulation, and only the tower's.
+            # They start where the courses stop, so no wall carries both.
+            if L >= BAND_PIER_MIN_M and pier_w > 0.1 and height_m > band_to + 3.0:
+                n_p = max(1, int(round(L / pier_at)) - 1)
+                for j in range(n_p):
+                    uc = L * (j + 1) / (n_p + 1)
+                    parts.append((rect(uc - pier_w / 2, uc + pier_w / 2,
+                                       BAND_GAP_M, BAND_GAP_M + pier_p),
+                                  band_to, height_m - 0.08, pier_c, az))
+
+    out = []
+    for rg_m, b0, h0, day, az in parts:
+        if h0 - b0 < 0.05 or not day:
+            continue
+        out.append(_band_feature(rg_m, lat0, b0, h0, day, az))
     return out
 
 
@@ -1977,6 +2369,10 @@ def main():
     stats["resolver_removed_m2"] = 0
     stats["parts_added_by_resolver"] = 0
     stats["resolver_parts_with_a_hole"] = 0
+    stats["gable_fronts"] = 0
+    stats["gable_front_parts"] = 0
+    stats["facade_band_buildings"] = 0
+    stats["facade_band_parts"] = 0
     rows = []
     audit = []
     diag = []
@@ -2339,29 +2735,48 @@ def main():
         stats["cross_roof_dropped"] = dr
         stats["cross_roof_removed_m2"] = int(round(ls))
 
-    # ── the authored entrance porches ────────────────────────────────────
+    # ── the authored elevations ──────────────────────────────────────────
     #
     # APPENDED AFTER BOTH RESOLVERS, DELIBERATELY. "One square metre, one
     # surface" is the right law for a roof — a roof is a single skin and two
-    # pieces of it at the same place is a defect. A portico is the opposite: a
-    # pier, the arch over it, the entablature over that and the gable over that
-    # all share the same square metre of ground by design, at four different
-    # heights. Running it through `resolve_surfaces` would keep the tallest and
-    # delete the porch.
-    tile_rd, tile_rg, tile_rn = make_roof_colors(tile_base)
+    # pieces of it at the same place is a defect. An elevation is the opposite:
+    # a jamb, the archivolt over it, the pediment over that and the corbel on
+    # its rake all share the same square metre of ground by design, at four
+    # different heights. Running any of this through `resolve_surfaces` would
+    # keep the tallest and delete the building's face.
+    #
+    # NO HEIGHT GATE HERE EITHER. The loop above skips anything over
+    # MAX_HEIGHT_M unless the override lets it past, because that gate is about
+    # ROOF SHAPE. A facade has nothing to do with roof shape, and Jester West is
+    # 51.6 m: gating its bands on a roof rule is how the last pass ended up
+    # reporting massing again.
     for f in feats:
-        ov = overrides.get(f["properties"].get("id")) or {}
-        spec = ov.get("loggia")
-        if not spec:
-            continue
+        p = f["properties"]
+        ov = overrides.get(p.get("id")) or {}
         rings = _outer_rings(f["geometry"])
         if not rings:
             continue
-        made = loggia_parts(rings[0], spec, tile_rd, tile_rg, tile_rn)
-        out.extend(made)
-        stats["loggia_parts"] += len(made)
-        if made:
-            stats["loggias"] += 1
+        h = float(p.get("final_height") or 0)
+        spec = ov.get("gable_front")
+        if spec and h > 4:
+            made = gable_front_parts(rings[0], spec, h)
+            out.extend(made)
+            stats["gable_front_parts"] += len(made)
+            if made:
+                stats["gable_fronts"] += 1
+        spec = ov.get("facade_bands")
+        if spec and h > 6:
+            # EVERY ring, not just the outer one: Jester West's courtyard is a
+            # real elevation students look at, and banding the street front
+            # while leaving the court blank is the seam you notice.
+            g = f["geometry"]
+            allr = ([g["coordinates"]] if g["type"] == "Polygon"
+                    else g["coordinates"])
+            made = facade_band_parts([r for poly in allr for r in poly], spec, h)
+            out.extend(made)
+            stats["facade_band_parts"] += len(made)
+            if made:
+                stats["facade_band_buildings"] += 1
 
     # ── Settle the roof colours, now that the whole campus has been measured ──
     #
