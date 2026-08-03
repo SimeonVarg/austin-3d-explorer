@@ -1,5 +1,110 @@
 # Austin 3D Explorer — Full Handoff
 
+## 60. Aug 3 2026 — the bake cannot change a height, so The Standard was six storeys. Tier four is authored at LOAD instead. (acer lane)
+
+**Branch:** `acer/westcampus-tier4`, **PR #121**, merged `1e6bdbb`. **QUEUE PART G.**
+File: `js/westcampus.js` only, plus three sheets in `docs/shots/`.
+
+### The half of the ceiling tier three did not break
+
+Part G names one half — fourteen wall tones for the city — and tier three broke
+it. The other half is written in `scripts/bake_westcampus.py`'s own MIDRISE
+header and it had never been touched:
+
+> *"It never changes a building's HEIGHT ... Raising it HERE would draw a tower
+> you can fly straight through."*
+
+That is correct and it is why the bake was right not to. It is also why **The
+Standard at Austin — 17 storeys, and where Simeon lives next year — has been
+standing at 20.5 m, which is six.** No bay colour fixes that, and three passes
+in a row reported massing because massing was the only lever the bake had.
+
+**The seam is `js/westcampus.js`'s own fetch.** Author at LOAD, on the fetched
+GeoJSON, before `quantiseStadiumFacades()` — exactly where `js/union24.js`
+replaces Union on 24th's footprint before `quantiseFacades()` sees it — and hand
+the corrected heights to `__flyRebuildCollision`, which `js/heroes.js` already
+uses for EER. Nothing is baked, so the tier cannot collide with the bake, and
+`?wc4=0` removes it at load so the A/B is one build.
+
+**It restretches PR #119 rather than replacing it.** Those bay polygons and
+their four hexes were measured off the architect's photographs and are right;
+they were simply stopped at the wrong height. `restack()` is the whole
+mechanism.
+
+### What was established, and from which frame
+
+**The Standard** (Humphreys & Partners, 2021) — Humphreys' own
+`StandardAustin_Ext_01`, `_Ext_14`, `_Ext_41`; Landmark/NAHB for 17 storeys /
+287 units / 989 beds / 337,847 sf; an **Esri z20 nadir rectified into the bake's
+own obb frame**, so plan positions are arithmetic. The obb port is verified, not
+trusted: it returns **L = 94.9 m at bearing 175.3 deg**, the two numbers the
+bake's MIDRISE table writes down for this building.
+
+- seven-storey liner round the whole block, parapet **21.5 m**. Corroborated
+  independently: `data/roofscape.geojson` already carries a deck at 21.50-21.75
+  and a penthouse at 21.75-24.55 over this footprint.
+- two tower slabs, off the nadir: east `u 23.5-41.0`, west `u 57.2-74.3`, both
+  `v 17.0-31.4`. Narrow, which is why each shows a blank end wall — and those
+  are where Ext_01 puts the vertical THE STANDARD signs.
+- 17 = 7 + 10, to a 53.4 m parapet.
+- the terracotta accent PR #119 had no vocabulary for: `#b5753b` measured off
+  the Ext_14 pier, exposure-corrected against that photograph's own cream
+  cluster to `#c27c42`, distant read **`#a56938`**.
+- the level-7 pool deck the bake measured and then deleted, saying so: *"All
+  three are downstream of ONE stale number."*
+
+**Rambler** (LV Collective, 2023) — the Kristian Alveo photographs. **The model
+had this building almost entirely wrong.** It is not brick: it is a
+**checkerboard of pale panels** with brick only at the base and in piers. Its
+crown is not a pale coping: it is a **dark blue-teal standing-seam band that
+swoops up over the 26th x Seton corner**, and that corner is the only *built*
+street corner on the site — 26th x Nueces is notched out of the footprint, which
+is why the first render put the curve on a back elevation. Eight levels, not
+14.4 m. Brick `#cb9b80`, white `#f0ebe7`, warm `#dac9b9`, teal `#2e5a70`.
+
+**21 Rio is NOT done and is left as baked.** Eleven sources, no exterior
+photograph — every gallery that claims one is interiors. Its balcony rails are
+burnt orange, visible through a window in an interior shot, and that is all that
+was established. Two done properly beats three nudged.
+
+### Four things the renders taught, all now written into the file
+
+1. **A hash is not a proportion.** Picking bay tones with a multiply-shift hash
+   drew terracotta on **three of six** consecutive bays and the west slab came
+   out as orange candy stripes. A stride of 3, coprime with every list length
+   used, makes the proportions exact — which is what makes "the bays average
+   back to the measured body" true rather than hopeful.
+2. **A rail is not the size of its slab.** Giving a tower rail the balcony's own
+   4 x 1.4 m footprint at 1.05 m tall is forty black bricks per tower. 0.12 m on
+   the outer edge, the same as the bake.
+3. **`CAP_GEOM`'s coping IS the roof plane** on a full-footprint crown band — it
+   spans the feature's whole polygon. Two renders were spent putting the pool,
+   the turf and the jumbotron *under* a 94.9 x 46.4 m plate, where they drew as
+   nothing at all. The deck height is now computed from `CAP_GEOM.liftFor`. The
+   same rule put a teal lid over the whole of Rambler's roof until `restack()`
+   learned to take a roof colour separately from the wall colour.
+4. **Four measured tones inside a 30-RGB band arrive on screen as one tone,**
+   because the atlas draws a window grid over every bay and that costs about 13%
+   of mean luma. `spread(hexes, k)` pushes them apart **about their own mean**,
+   so PR #113's imagery body and PR #119's `bay_mix` guarantee are untouched and
+   only the surviving contrast changes. `k` is parameterised.
+
+### Left for whoever is next
+
+- **`scripts/verify/westcampus-probe.mjs` is still broken and now also stale.**
+  It references `d` and `errors` before they are defined (the fifteen-script
+  harness page-setup regression the mac lane owns) and its "10 buildings
+  emitted" assertion has been wrong since tier two took the count to 24. Not
+  edited — not this lane's file.
+- **Labels sit at the snapshot's `final_height`,** so The Standard's floats at
+  20.5 m rather than on its parapet. Fixing it means the buildings source or
+  `js/app.js`.
+- **21 Rio, and the rest of West Campus.** The mechanism is now general: give
+  `authorX(gj)` a footprint and it will take obb rectangles, perimeter runs and
+  pixel bays. What it needs is a photograph.
+- Pictures: `docs/shots/t4-standard-sbs.jpg`, `docs/shots/t4-rambler-sbs.jpg`,
+  `docs/shots/t4-night.jpg`.
+
 ## 59. Aug 3 2026 — EER's "own colour" was one of the fourteen, off by three counts (acer lane)
 
 **Branch:** `acer/eer-gdc-facades`, **PR #120**, merged. **QUEUE PART G.**
