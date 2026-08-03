@@ -30,6 +30,34 @@
     on: true,
     minZoom: 13.5,
     domeOpacity: 1.0,
+    // THE GROUNDS ARE A FOREST AND THE CITY TREE FILE DOES NOT DRAW THEM.
+    //
+    // data/trees.geojson has grown to 64,003 features and 26.3 MB and it does
+    // now contain 481 canopies inside the grounds (-97.7428..-97.7382,
+    // 30.2723..30.2778), so on the face of it this bake's 306 trees are
+    // redundant. They are not. Magenta-masking `trees-canopy` and
+    // `trees-trunk` together over a box on the SOUTH LAWN reads 0 pixels out
+    // of 43,594: whatever the file contains, nothing of it reaches the screen
+    // there. A file that has the features and a map that draws none of them
+    // look identical from the data side, which is why this is measured in the
+    // framebuffer and not in the JSON.
+    //
+    // So the Capitol keeps its own trees — but NOT by appending to
+    // austin-trees, which would mean refetching and re-tiling 26.3 MB and
+    // 64,615 features to add 612 (see mergeIntoSource). Their own source and
+    // a clone of the two tree layers costs 198 KB and no re-tile.
+    ownTrees: true,
+    // How high the Capitol's own ground has to stand to clear the outer ring's
+    // park pad. MEASURED, not chosen: the pad is one `outer-detail` feature,
+    // `k:'g'`, `h` 0.45, base 0, opacity 1, colour #8fa869. See addGround().
+    groundLift: 0.46,
+    // 0.22 is js/ground.js's own GROUND.pathRaise — a kerb, deliberately
+    // over-scale, and the Capitol's walks step up by exactly the same amount
+    // as the campus's so the two read as one city.
+    pathRaise: 0.22,
+    // The lawn's grain. A constant because fill-extrusion-opacity cannot take
+    // the per-feature expression `ground-texture` uses; see mirrorGround().
+    grainOpacity: 0.5,
   };
   window.CAPITOL = CAPITOL;
 
@@ -170,22 +198,78 @@
     return (i >= 0 && style.layers[i + 1]) ? style.layers[i + 1].id : undefined;
   }
 
+  /**
+   * `updateData` FAILS IN THE WORKER, A TICK LATER, AND RETURNS NOTHING.
+   *
+   * MapLibre builds an id-keyed "updateable" index of the source's CURRENT
+   * features before it will apply a diff, and it gives up if any feature has
+   * no id or if two share one. `data/ground.geojson` and `data/trees.geojson`
+   * carry no ids at all, so the diff can never be applied to either — and the
+   * refusal arrives as `GeoJSONSource "austin-ground": GeoJSON data is not
+   * compatible with updateData` on the map's `error` event, AFTER
+   * `src.updateData()` has already returned normally.
+   *
+   * So the old code called it, logged "1,161 ground features appended", and
+   * appended nothing. Measured with the §48 magenta mask at the Capitol,
+   * nadir, zoom 16.4: `ground-paths` and `ground-areas` painted 14,683 and
+   * 36,072 magenta pixels in the surrounding blocks and EXACTLY ZERO inside
+   * the Capitol grounds. The green there is the basemap's park polygon. Every
+   * one of the 322 lawns, 839 walks and 612 trees this bake produces has been
+   * absent since the updateData change landed, and nothing said so, because a
+   * counter taken at call time counts intent rather than outcome.
+   *
+   * This resolves BEFORE the fallback runs, so the fallback is only paid when
+   * the fast path really was refused.
+   */
+  function updateDataRefused(map, srcId, ms) {
+    return new Promise(resolve => {
+      let settled = false;
+      const stop = v => {
+        if (settled) return;
+        settled = true;
+        map.off('error', onErr);
+        clearTimeout(timer);
+        resolve(v);
+      };
+      const onErr = e => {
+        const msg = (e && e.error && e.error.message) || '';
+        if (msg.indexOf('updateData') >= 0 && msg.indexOf(srcId) >= 0) stop(true);
+      };
+      map.on('error', onErr);
+      const timer = setTimeout(() => stop(false), ms);
+    });
+  }
+
+  /** What actually happened, per source. Verification reads this, not a log. */
+  window.__capitolMerge = {};
+
   async function mergeIntoSource(map, srcId, baseUrl, extraUrl, label) {
     const src = map.getSource(srcId);
     if (!src) { console.warn('[capitol] no source', srcId); return 0; }
     const extra = await getJSON(extraUrl, EMPTY);
     const add = extra.features || [];
     if (!add.length) return 0;
+    const note = how => { window.__capitolMerge[srcId] = { n: add.length, how: how }; };
 
     if (typeof src.updateData === 'function') {
+      const refused = updateDataRefused(map, srcId, 1500);
       src.updateData({ add });
-      console.log('[capitol]', add.length, label, 'appended to', srcId);
-    } else if (typeof src.setData === 'function') {
+      if (!await refused) {
+        note('updateData');
+        console.log('[capitol]', add.length, label, 'appended to', srcId);
+        return add.length;
+      }
+      console.warn('[capitol]', srcId, 'refused the diff (its features have no'
+                 + ' ids) - refetching', baseUrl, 'to merge', label);
+    }
+    if (typeof src.setData === 'function') {
       const base = await getJSON(baseUrl, EMPTY);
       src.setData({ type: 'FeatureCollection',
                     features: (base.features || []).concat(add) });
-      console.warn('[capitol] no updateData on', srcId,
-                   '- refetched', baseUrl, 'to merge', label);
+      note('setData');
+      console.log('[capitol]', add.length, label, 'merged into', srcId,
+                  'by setData (' + ((base.features || []).length + add.length)
+                  + ' features total)');
     } else {
       // Tiled. Own source, cloned layers.
       //
@@ -199,10 +283,175 @@
         map.addSource(sideId, { type: 'geojson', data: extra });
       }
       const n = cloneLayersOnto(map, srcId, sideId);
+      note('clone:' + n);
       console.log('[capitol]', add.length, label, '->', sideId,
                   '(' + n + ' layers cloned; ' + srcId + ' is tiled)');
     }
     return add.length;
+  }
+
+  // ───────────────────────────── the grounds ──────────────────────────────
+  /**
+   * THE OUTER RING PAINTS A 0.45 m PARK PAD OVER THE WHOLE CAPITOL GROUNDS,
+   * AND THAT IS WHERE THE WALKWAYS WENT.
+   *
+   * "looks like u got rid of the walkways around it those had a cool pattern"
+   *
+   * Two separate faults, both of which had to be found before either mattered:
+   *
+   *   1. bake_capitol.py still emitted `k:'path'` LineStrings after the whole
+   *      city moved to `k:'patharea'` polygons (see widen_paths in that file).
+   *   2. Even as polygons they are invisible, because `outer-detail` — one
+   *      `fill-extrusion` of 309 flat park pads from the tiled outer ring —
+   *      covers the grounds with a slab at `h` 0.45 m, opacity 1, #8fa869.
+   *      `ground-areas` is a flat fill at z=0 and `ground-paths` stands at
+   *      0.22 m, so BOTH lose the depth test to it. Layer order cannot save
+   *      them: `ground-paths` is already drawn after (style index 138 against
+   *      129) and still loses, because a fill-extrusion writes depth.
+   *
+   * Measured with §48's magenta mask asked of every layer in turn, over a box
+   * on the south lawn: exactly one layer covers it, `outer-detail`, at 98.6 %.
+   * The green everyone has been looking at is the outer ring's pad, not this
+   * bake's lawn — which is why the grass looked fine and every walk was gone.
+   *
+   * THE ROOT CAUSE IS NOT IN THIS LANE. The outer ring should not be padding
+   * an area the city models properly, and the modelled box has only just grown
+   * to include this one (PR #105 took the fence from 10.1 km2 to 77.4 km2).
+   * That is `scripts/bake_outer.py` / `js/outer.js`, and it is written up in
+   * HANDOFF for whoever owns them.
+   *
+   * WHAT THIS DOES INSTEAD, and why it breaks this file's own design rule.
+   * "Add nothing new where something exists" is the rule at the top of this
+   * file and it is the right one — but it is a rule about not creating a
+   * SECOND definition of a thing, and here the shared layers physically cannot
+   * draw these features. So the Capitol's ground gets its own source and its
+   * own three layers, standing on top of the pad rather than under it, and
+   * every paint property is MIRRORED off the shared layers on every
+   * time-of-day change. A mirror cannot drift: change the lawn colour in
+   * js/ground.js and this changes with it, because it is literally reading
+   * that layer's value back out of the style.
+   */
+  const GSRC = 'austin-capitol-ground';
+  const GL_AREA = 'capitol-ground-areas';
+  const GL_TEX = 'capitol-ground-texture';
+  const GL_PATH = 'capitol-ground-paths';
+
+  /** Copy one paint property from the shared layer to its Capitol twin. */
+  function mirror(map, from, fromProp, to, toProp) {
+    if (!map.getLayer(from) || !map.getLayer(to)) return;
+    try {
+      const v = map.getPaintProperty(from, fromProp);
+      if (v !== undefined) map.setPaintProperty(to, toProp, v);
+    } catch (e) { /* a property this layer does not have is not an error */ }
+  }
+
+  function mirrorGround(map) {
+    mirror(map, 'ground-areas', 'fill-color', GL_AREA, 'fill-extrusion-color');
+    mirror(map, 'ground-areas', 'fill-opacity', GL_AREA, 'fill-extrusion-opacity');
+    mirror(map, 'ground-texture', 'fill-pattern', GL_TEX, 'fill-extrusion-pattern');
+    // NOT the texture's opacity. `ground-texture` varies it per feature and
+    // `fill-extrusion-opacity` refuses a data expression outright —
+    // "layers.capitol-ground-texture.paint.fill-extrusion-opacity: data
+    // expressions not supported", which invalidates the whole layer. A fill can
+    // do it and an extrusion cannot, and the grain has to be an extrusion here
+    // to clear the pad. So the grain gets one constant, declared as taste.
+    if (map.getLayer(GL_TEX)) {
+      try { map.setPaintProperty(GL_TEX, 'fill-extrusion-opacity', CAPITOL.grainOpacity); }
+      catch (e) { /* */ }
+    }
+    mirror(map, 'ground-paths', 'fill-extrusion-color', GL_PATH, 'fill-extrusion-color');
+    mirror(map, 'ground-paths', 'fill-extrusion-opacity', GL_PATH, 'fill-extrusion-opacity');
+  }
+
+  async function addGround(map) {
+    if (map.getSource(GSRC)) return;
+    const gj = await getJSON('data/capitol_ground.geojson', EMPTY);
+    if (!(gj.features || []).length) return;
+    map.addSource(GSRC, { type: 'geojson', data: gj });
+
+    // Stacked by 20 mm so no two top faces are coplanar — the same tie PR #78
+    // removed from the campus ground, avoided here by construction rather than
+    // by a rank ladder, because there are only three surfaces to order.
+    const z = CAPITOL.groundLift;
+    const minzoom = map.getLayer('ground-areas')
+      ? (map.getLayer('ground-areas').minzoom || CAPITOL.minZoom) : CAPITOL.minZoom;
+    // Above `outer-detail`, and in the same neighbourhood of the style as the
+    // ground layers it twins, by anchoring to one of them.
+    const before = map.getLayer('ground-paths') ? 'ground-paths' : undefined;
+    const flat = { 'fill-extrusion-vertical-gradient': false };
+    map.addLayer({
+      id: GL_AREA, type: 'fill-extrusion', source: GSRC, minzoom: minzoom,
+      filter: ['==', ['get', 'k'], 'area'],
+      paint: Object.assign({ 'fill-extrusion-base': z,
+                             'fill-extrusion-height': z + 0.02 }, flat),
+    }, before);
+    map.addLayer({
+      id: GL_TEX, type: 'fill-extrusion', source: GSRC, minzoom: minzoom,
+      filter: ['==', ['get', 'k'], 'area'],
+      paint: Object.assign({ 'fill-extrusion-base': z + 0.02,
+                             'fill-extrusion-height': z + 0.04 }, flat),
+    }, before);
+    map.addLayer({
+      id: GL_PATH, type: 'fill-extrusion', source: GSRC, minzoom: minzoom,
+      filter: ['==', ['get', 'k'], 'patharea'],
+      paint: Object.assign({ 'fill-extrusion-base': z + 0.04,
+                             'fill-extrusion-height': z + 0.04 + CAPITOL.pathRaise },
+                           flat),
+    }, before);
+    // NO KERB LINE, AND THIS ONE WAS PHOTOGRAPHED BEFORE IT SHIPPED.
+    //
+    // js/ground.js strokes its walks' boundaries with a `line` layer and that is
+    // the right call there: a bevel is a screen-space effect, so pixels are the
+    // right unit. The same layer here is a glitch, because a `line` does not
+    // depth-test against extrusions and these layers have to sit ABOVE the
+    // buildings to clear the park pad. From the standard approach pose — camera
+    // south of downtown, looking north at the Capitol — the Capitol's kerbs
+    // drew as a white grid floating across every downtown tower in front of
+    // them. `ground-paths-casing` never does this because it is anchored below
+    // the buildings, which is exactly the position this layer cannot use.
+    //
+    // Caught by re-running the verification ON THE MERGED TREE rather than on
+    // the branch: origin/main is clean at that pose, the merge was not.
+    mirrorGround(map);
+    const n = k => (gj.features || []).filter(f => f.properties.k === k).length;
+    window.__capitolMerge[GSRC] = { how: 'own layers over outer-detail',
+                                    area: n('area'), patharea: n('patharea') };
+    console.log('[capitol]', n('area'), 'lawns and', n('patharea'),
+                'walks on their own layers at', z, 'm, clear of the outer '
+                + 'ring\'s 0.45 m park pad');
+  }
+
+  // ────────────────────────────── the trees ───────────────────────────────
+  const TSRC = 'austin-trees-capitol';
+
+  async function addTrees(map) {
+    if (map.getSource(TSRC)) return;
+    const gj = await getJSON('data/capitol_trees.geojson', EMPTY);
+    if (!(gj.features || []).length) return;
+    map.addSource(TSRC, { type: 'geojson', data: gj });
+    const n = cloneLayersOnto(map, 'austin-trees', TSRC);
+    mirrorTrees(map);
+    window.__capitolMerge[TSRC] = { how: 'own source, ' + n + ' cloned layers',
+                                    features: gj.features.length };
+    console.log('[capitol]', gj.features.length, 'grounds trees on', n,
+                'cloned layers (austin-trees draws none here: 0 magenta px'
+                + ' over the south lawn)');
+  }
+
+  /**
+   * A CLONE TAKEN AT INIT IS A SNAPSHOT, and the two things that move under it
+   * are the hour and the density knob. Both are mirrored off the layer this
+   * was cloned from, so neither can drift: the tree colour ramp lives in
+   * js/app.js and this reads it back out of the style rather than restating it.
+   */
+  function mirrorTrees(map) {
+    for (const base of ['trees-canopy', 'trees-trunk']) {
+      const twin = base + '-capitol';
+      if (!map.getLayer(base) || !map.getLayer(twin)) continue;
+      mirror(map, base, 'fill-extrusion-color', twin, 'fill-extrusion-color');
+      mirror(map, base, 'fill-extrusion-opacity', twin, 'fill-extrusion-opacity');
+      try { map.setFilter(twin, map.getFilter(base)); } catch (e) { /* */ }
+    }
   }
 
   /** ['interpolate', p, wd, wg, wn] — the same shape timeofday.js bakes with. */
@@ -248,14 +497,28 @@
 
     // Fire and forget: both merges are independent of each other and of the
     // dome, and neither is worth blocking the first frame on.
-    mergeIntoSource(map, 'austin-ground', 'data/ground.geojson',
-                    'data/capitol_ground.geojson', 'ground features');
-    mergeIntoSource(map, 'austin-trees', 'data/trees.geojson',
-                    'data/capitol_trees.geojson', 'trees');
+    addGround(map);
+    if (CAPITOL.ownTrees) addTrees(map);
   };
 
   window.applyCapitolColors = function applyCapitolColors(map, p) {
-    if (!map || !map.getLayer || !map.getLayer(DOME_LAYER)) return;
+    if (!map || !map.getLayer) return;
+    // The ground twins are mirrored on EVERY time-of-day change, not just at
+    // init. This is the whole reason a clone is allowed to exist here: get it
+    // wrong and the Capitol keeps a daylit lawn after dark, which is §35 item
+    // 1's failure mode on 1,161 features instead of one stadium.
+    //
+    // TWICE, AND THE SECOND ONE IS THE ONE THAT WORKS. js/timeofday.js calls
+    // this at line 406 and repaints `trees-canopy` at line 416, so a mirror
+    // taken here reads the PREVIOUS hour's tree colour and the Capitol's grove
+    // stayed daylit at night — photographed, sage-green against a dark city,
+    // in shots/cap-after-night before this line existed. Deferring to the next
+    // task makes it independent of where in that function the call sits, which
+    // is not a detail this file should have to know.
+    mirrorGround(map);
+    mirrorTrees(map);
+    setTimeout(() => { mirrorGround(map); mirrorTrees(map); }, 0);
+    if (!map.getLayer(DOME_LAYER)) return;
     try {
       map.setPaintProperty(DOME_LAYER, 'fill-extrusion-color',
                            bakedColor(p, 'wd', 'wg', 'wn'));

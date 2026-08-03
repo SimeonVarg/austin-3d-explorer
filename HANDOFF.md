@@ -1,5 +1,203 @@
 # Austin 3D Explorer — Full Handoff
 
+## 49. Aug 3 2026 — the Capitol's walkways were under a park pad, the dome was standing on an invented pyramid, and its merge had been failing in silence (acer lane)
+
+**Branch:** `acer/capitol-walkways-dome`. QUEUE **D1**, all three parts.
+
+*"same thing with capitol building and lawn - looks like u got rid of the
+walkways around it those had a cool pattern add them back. also the thing on the
+top of capitol buildings looks like its angled. Also its not the right color."*
+
+### D1.1 — the walkways. NEITHER SUSPECT DID IT, and the real cause is worse
+
+The brief named the rank ladder (#78) and the precinct lawns (#93). Neither ever
+reads `data/capitol_ground.geojson`. There were **two** causes stacked, and the
+first one hides the second:
+
+1. **`bake_capitol.py` was left behind by the line-width pass.** On 2026-08-02
+   *"Speedway fanned out because a line-width is pixels and the ground is not"*
+   moved every walk in the city from `k:'path'` LineStrings to buffered
+   `k:'patharea'` polygons, and `js/ground.js` dropped every `k == 'path'`
+   filter in the same commit. This bake was not changed with it. Measured on
+   merged main: `data/ground.geojson` holds **0** features with `k:'path'`,
+   `data/capitol_ground.geojson` holds **1,480**, and js/ground.js has **0**
+   layers that would draw one. Nothing failed, because a source feature that no
+   filter matches is not an error.
+
+2. **Even as polygons they were invisible.** `outer-detail` — one
+   `fill-extrusion` carrying the outer ring's 309 flat park pads — covers the
+   whole Capitol grounds with a slab at `h` **0.45 m**, opacity 1, `#8fa869`.
+   `ground-areas` is a flat fill at z=0 and `ground-paths` stands at 0.22 m, so
+   **both lose the depth test to it**. Layer order cannot help: `ground-paths`
+   is already drawn after it (style index 138 against 129) and still loses.
+
+**How #2 was found, and it is the reusable part.** §48's magenta mask, asked of
+*every layer in the style in turn*, counting magenta only inside a box on the
+south lawn. Exactly one layer covers it:
+
+```
+layers covering >1% of the Capitol's south lawn
+   outer-detail   [fill-extrusion]   98.6%
+```
+
+**The green everybody has been looking at is the outer ring's pad, not this
+bake's lawn.** That is why the grass looked fine and every walk was gone, and it
+is why "restore the walkways" was not a one-line change.
+
+### D1.1b — AND THE MERGE HAD NOT BEEN RUNNING AT ALL
+
+`js/capitol.js` appended the grounds with `updateData({ add })`. MapLibre builds
+an **id-keyed index of the source's current features** before it will apply a
+diff, and gives up if any feature has no id. `data/ground.geojson` and
+`data/trees.geojson` carry no ids, so the diff can never apply to either — and
+the refusal arrives **in the worker, on the map's `error` event, after
+`src.updateData()` has already returned normally**:
+
+```
+GeoJSONSource "austin-ground": GeoJSON data is not compatible with updateData
+```
+
+The old code logged `1,161 ground features appended` on the line after the call.
+Magenta mask over the grounds, before and after the fix:
+
+```
+                      before      after
+ground-paths          14,683      73,072   px
+ground-areas          36,072      60,115   px
+ground-paths-casing   10,604      39,746   px
+```
+
+Before, **every one of those 14,683 pixels was in the surrounding blocks and
+none was inside the grounds.**
+
+**`scripts/verify/capitol-merge.mjs` PASSED THROUGHOUT, and could not have
+failed.** It asserts (a) that the console said `appended to`, which the old code
+printed unconditionally before the worker rejected the diff, and (b) that
+`querySourceFeatures` returns ≥100 trees and ≥200 ground features inside a
+**3 km-wide** box — which the surrounding city meets on its own (9,499 and
+1,401 measured, with the Capitol contributing zero). A guard that reads a log
+line for an outcome is a guard on intent. **It is red now, and red by design:**
+it asserts a code path this PR deletes. See "still owed".
+
+**The fix, and why it breaks this file's own design rule.** The Capitol's ground
+and trees get their own sources and their own layers, standing at
+`CAPITOL.groundLift` 0.46 m — above the pad — with **every paint property
+mirrored off the shared layers on every time-of-day change**. "Add nothing new
+where something exists" is a rule about not creating a second *definition*; a
+mirror reads the shared layer's value back out of the style, so it cannot drift.
+It also drops a **26.3 MB** refetch: appending to `austin-trees` means
+re-fetching and re-tiling the whole file.
+
+**THE ROOT CAUSE IS NOT IN THIS LANE.** The outer ring should not pad an area
+the city models properly, and the modelled box only just grew to include this
+one (#105 took the fence from 10.1 km² to 77.4 km²). `scripts/bake_outer.py` /
+`js/outer.js` — QUEUE **D11**.
+
+### D1.2 — "angled". IT IS NOT LEANING, AND THAT MATTERED
+
+Measured before changing anything, twice, because a lean and a slope look the
+same in a screenshot. Every disc in `data/capitol_dome.geojson` is coaxial to
+**0.27 m**, and the isolated layer, painted magenta, at frame centre, reads an
+axis drift of **0.0 px over the whole 57 m stack** at bearing 0 and 90. So no
+rotation and no offset — the angle is a **surface that should not be there**.
+
+`SKIRT_STEPS`/`SKIRT_HALF` built a nine-step mansard from a square melting into
+a circle: **7 m tall, 44 m across at the base**, wrapped round the drum. From
+anywhere south of the building it is the largest object on the roof.
+**Nothing in either elevation photograph has that shape.** What is actually
+there is a LOW hipped roof over the crossing of the four arms, and then a
+**square granite attic with vertical walls** carrying the six seals and the
+south pediment, with the drum rising straight out of it.
+
+The aerial is not in conflict: the four pale hips radiating from the dome base
+in `data/capitol_aerial.png` are a real pitched roof, but they sit at roof level
+and they are shallow. That is `COLLAR_STEPS`, 2.6 m of it.
+
+Two more proportions, measured on the building's own 167.7 m footprint width in
+a south-oblique photograph rather than recalled:
+
+```
+                      reference   was     now
+colonnade across        26.5 m    29.7    25.9
+dome springing across   24.6 m    30.1    25.1
+cornice across          ~28 m     32.2    28.0   (was WIDER than the attic)
+```
+
+A dome wider than the drum holding it up is what makes a stack of discs read as
+top-heavy. `DOME_SPRING` 0.82 and `DRUM_SCALE` 0.87. After: 31 coaxial pieces,
+worst axis offset **5 mm over 57 m = 0.005°**.
+
+### D1.3 — the colour. FACADE_PROTECTED IS HONOURED, AND THAT IS NOT THE QUESTION
+
+```
+Capitol feature   wd #bd8477  wf mh  wp mh00
+facade palette    palette[0] = #bd8477, source "baked 2026-08-03"
+```
+
+The protected tone survives the bake, the election and the switch. **The dome
+and the walls carry the identical hex and render as two different materials**,
+because `buildings-3d` multiplies the wall by the window atlas and
+`capitol-dome` paints `wd` flat. Masked in one frame, one light, at tod 0.30:
+
+```
+                    dome      wall     ratio            photograph
+before          #b5846a   #815744   1.40 1.52 1.56     1.20 1.21 1.30
+after           #a57158   #815744   1.28 1.30 1.29
+```
+
+`#d2b0a3` came off a **nadir** tile, which sees the dome's sky-facing paint and
+cannot see a wall at all — it could only ever answer half the question, and the
+half it could not see is the half the complaint is about. The dome family is now
+`lerp(GRANITE, white, DOME_LIFT)` carried through `DOME_MATCH`, one measured
+triple that compensates for the atlas the dome layer never gets. The cupola
+stopped being grey-green sheet metal; only the WINGS' roofs are that.
+
+### FIVE THINGS THAT DID NOT WORK
+
+1. **A sample box placed by eye.** The first wall reading, `#8d6e4f`, was taken
+   from a screen rectangle chosen off a screenshot — and it landed on KTBC
+   Studios and the Dewitt Greer building in the foreground, not on the Capitol.
+   A number with a plausible magnitude and the wrong subject is the worst kind.
+   Every colour here is now masked by repainting the feature and reading the
+   clean frame under the mask.
+2. **Masking with a brightness threshold.** `r>180 && b>180` misses every shaded
+   facet, and *which* facets are shaded depends on the bearing — so the dome
+   measured 254 rows tall from the south and 140 from the east, and a lean was
+   nearly reported off that. Hue tests only.
+3. **`['get','id']` and `['get','name']` as the mask key.** Both match nothing on
+   the rendered Capitol; `['get','wd']` works. Two runs were spent on a mask that
+   painted the whole city `#101010` and found no green.
+4. **Believing the data file over the framebuffer.** `data/trees.geojson` has
+   grown to 64,003 features and contains 481 canopies inside the grounds, which
+   reads as "this bake's trees are redundant now". Magenta over the south lawn:
+   **0 px of 43,594**. The file has them and the map draws none of them.
+5. **Mirroring the clones in the same tick.** `js/timeofday.js` calls
+   `applyCapitolColors` at line 406 and repaints `trees-canopy` at line 416, so
+   the mirror copied the previous hour and the Capitol's grove stayed daylit at
+   night — photographed before it was fixed. It is deferred a task now, so it
+   does not depend on where in that function the call sits.
+6. **A kerb line on the twinned walks, and this is the one the merge rule
+   caught.** js/ground.js strokes its walks with a `line` layer, so the twin got
+   one too. A `line` does not depth-test against extrusions, and these layers
+   have to sit ABOVE the buildings to clear the park pad — so from the standard
+   approach pose the Capitol's kerbs drew as a **white grid floating across
+   every downtown tower in front of them**. It is only visible when the branch
+   is photographed AGAINST merged main at a pose neither change is about:
+   origin/main is clean there, the branch was not. Dropped; the walks read
+   without it.
+
+**Still owed here:** `scripts/verify/capitol-merge.mjs` asserts a console string
+for a code path that no longer exists, and must be rewritten to read
+`window.__capitolMerge` and to count inside the Capitol's own sources
+(`austin-capitol-ground`, `austin-trees-capitol`) over a box that is actually the
+grounds. It was outside this lane's writable set. The Capitol's south portico and
+steps, and the south-lawn monuments, are still owed from §23.
+
+**Pictures:** `shots/cap-before-day/` against `shots/cap-after-day/`,
+`shots/cap-before-sunset/` against `shots/cap-after-sunset/`,
+`shots/cap-after-night/`, and the masks in `shots/paths-mask/` (before) against
+`shots/paths-mask-after/`.
+
 ## 48. Aug 3 2026 — a tiled roof was painted the colour of its own wall (acer lane)
 
 **Branch:** `acer/jester-greg-littlefield`. QUEUE **C1**, **C2**, **C3**.
