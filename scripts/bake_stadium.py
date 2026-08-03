@@ -251,6 +251,17 @@ FIELD_H = 0.14           # stand the turf above the ground fill. The paint
 
 # Pedestrian ramp towers. MEASURED positions, to the pixel, off the aerial.
 # Height is estimated from the shadow each one throws across the plaza.
+# ── Taste block: the ramp towers, which he calls the entrances ────────
+RAMP_TOWER = {
+    "wall_m": 1.1,        # thickness of the drum wall
+    "deck_m": 3.6,        # width of the ramp deck inside it
+    "slab_m": 0.9,        # how thick one flight reads
+    "turns": 3,           # times round from grade to the concourse
+    "segments": 8,        # flights per turn
+    "parapet_m": 1.2,
+    "parapet_col": "#a9a294",
+    "deck_col": "#b9b3a7",
+}
 RAMPS = [
     (-97.7332074, 30.2849343, 14.0, 25.0),   # NW
     (-97.7316252, 30.2848301, 14.0, 25.0),   # NE
@@ -792,6 +803,69 @@ def disc(cx, cy, r, n=20):
              cy + r * math.sin(2 * math.pi * i / n)) for i in range(n)]
 
 
+def annulus(cx, cy, r_out, r_in, n=24):
+    """A ring with a hole, for a drum you can see into."""
+    outer = disc(cx, cy, r_out, n)
+    inner = disc(cx, cy, r_in, n)
+    return outer, inner
+
+
+def arc_wedge(cx, cy, r_out, r_in, a0, a1, n=5):
+    """One segment of a ring between two bearings, in metres."""
+    pts = []
+    for i in range(n + 1):
+        a = a0 + (a1 - a0) * i / n
+        pts.append((cx + r_out * math.cos(a), cy + r_out * math.sin(a)))
+    for i in range(n, -1, -1):
+        a = a0 + (a1 - a0) * i / n
+        pts.append((cx + r_in * math.cos(a), cy + r_in * math.sin(a)))
+    return pts
+
+
+def ramp_tower(cx, cy, dia, ht, lat0, name, out, stats):
+    """A pedestrian ramp tower, built as the thing it actually is.
+
+    *"there are cool entrances on the southwest and northwest sides."* They were
+    a single flat cylinder each — `disc()` extruded to 22-25 m, five of them.
+
+    What the aerial actually shows at 0.129 m/px is an OPEN DRUM with a helical
+    ramp winding up inside it: a perimeter wall of radiused block (the 2008
+    contractor's note calls it "radiused block walls on the pedestrian ramps ...
+    creates the angular expression seen from the exterior"), a spiral you can
+    see down into from above, and a bridge at the top returning to the
+    concourse. A solid disc is none of that — from the air it reads as a silo.
+
+    So: a wall annulus you can see into, a helix of RAMP_TURNS x RAMP_SEGS
+    wedges climbing inside it, a parapet cap, and the bridge.
+    """
+    r = dia / 2.0
+    wall = RAMP_TOWER["wall_m"]
+    # 1. the drum wall — an annulus, so the tower is hollow
+    o, i = annulus(cx, cy, r, r - wall)
+    out.append(feat(o, lat0, {"kind": "ramp", "h": round(ht, 2), "base": 0.0,
+                              "col": COL["ramp"], "name": name}, hole_m=i))
+    # 2. the parapet, standing proud of the wall so the rim reads as a lip
+    o2, i2 = annulus(cx, cy, r + 0.35, r - wall)
+    out.append(feat(o2, lat0, {"kind": "ramp", "base": round(ht, 2),
+                               "h": round(ht + RAMP_TOWER["parapet_m"], 2),
+                               "col": RAMP_TOWER["parapet_col"], "name": name},
+                    hole_m=i2))
+    # 3. the helix. Each wedge is one flight, climbing as it goes round.
+    segs = RAMP_TOWER["segments"]
+    total = RAMP_TOWER["turns"] * segs
+    r_in = max(1.5, r - wall - RAMP_TOWER["deck_m"])
+    for k in range(total):
+        a0 = 2 * math.pi * k / segs
+        a1 = 2 * math.pi * (k + 1) / segs
+        z = ht * (k + 1) / total
+        out.append(feat(arc_wedge(cx, cy, r - wall, r_in, a0, a1), lat0,
+                        {"kind": "ramp", "h": round(z, 2),
+                         "base": round(max(0.0, z - RAMP_TOWER["slab_m"]), 2),
+                         "col": RAMP_TOWER["deck_col"], "name": name}))
+    stats["ramp_helix"] += total
+    stats["ramps"] += 1
+
+
 def feat(ring_m, lat0, props, hole_m=None):
     """One polygon. If it carries a `col`, expand it into a day/golden/night trio.
 
@@ -1268,7 +1342,11 @@ def build(feature, stats):
     # 5. the video board -------------------------------------------------
     # 17.0 x 41.0 m, south end, facing the field. Published, not measured — the
     # aerial predates it. At this size it is visible from anywhere in the scene.
-    bz = BOARD_BASE_FRAC * h
+    # THE BOARD WAS FLOATING. Its base was BOARD_BASE_FRAC x the footprint's
+    # raw 63 m = 37.8 m, against a south wall that is now 26 m — so the screen
+    # hung 11.8 m clear of the building holding it up. It is carried on the
+    # south structure, so it starts from the SOUTH side's own wall height.
+    bz = SIDES["S"]["wall_m"] * BOARD_BASE_FRAC
     sgn = -1.0                                    # south is -axis
     by = sgn * (FIELD_L_M / 2 + 26.0)
     bc = (fx - by * sa, fy + by * ca)
@@ -1334,9 +1412,7 @@ def build(feature, stats):
     # 7. ramp towers and light masts --------------------------------------
     for lon, lat, dia, ht in RAMPS:
         cx, cy = ll_to_m(lon, lat, lat0)
-        out.append(feat(disc(cx, cy, dia / 2), lat0,
-                        {"kind": "ramp", "h": ht, "col": COL["ramp"], "name": name}))
-        stats["ramps"] += 1
+        ramp_tower(cx, cy, dia, ht, lat0, name, out, stats)
     # Masts ride the wall ring on the two long sides. Generative positions: the
     # aerial cannot resolve a 2 m pole, but the 2016 interior panorama shows tall
     # slim masts standing well above both upper decks, and their silhouette is
