@@ -71,6 +71,38 @@ visible bowl at the same time from inside this lane.**
   upper deck and a block in the EAST lower bowl, with diffuse rust elsewhere
   that is weathering rather than chairbacks.
 
+### Part one, corrected the same night
+
+A five-agent research pass landed after the first commit and moved three numbers
+and found a bug I had introduced:
+
+- **The west should go UP, not down.** Published seat counts reconstruct the
+  measured ring depth almost exactly: lower bowl 66 rows [P] x 0.74 m tread [M]
+  = 48.8 m, plus ~8 m of concourse, plus a 43-row upper deck = **88.6 m against
+  a measured 87.74 m [M]** — within 1%. So the west seating tops near **50 m**,
+  the press/suite band near **57 m**. The drum came from all four sides
+  MATCHING, not from the west being tall.
+- **A hard ceiling that settles the masts for good.** Highest LiDAR return over
+  the whole site is **68.1 m above field [M]** (City of Austin 2013 footprints,
+  validated against the UT Tower at 329 ft returned vs 307 ft published, so it
+  includes flagpoles). The deleted masts were modelled at **90.2 m — 22 m above
+  the highest return on the site, appurtenances included.** Impossible, and now
+  documented as such.
+- **The one published height datum in the building:** the Veterans Plaza entry
+  towers are **115 ft = 35.05 m [P]**, described as matching the east
+  grandstand's. North rim ~32 m sits just under it, which is the corroboration.
+- **BUG I SHIPPED IN THE FIRST COMMIT.** The aisle stairs and the midfield logo
+  still called `deck_height(t, h)` — the vestigial global table times the raw
+  63 m — while the bowl had moved to the per-side profile. Measured: **aisles
+  topped at 58.9 m against a bowl topping at 35.7 m, a 23.2 m overshoot**,
+  worst over the south end where the bowl is 12 m. Stair rails floating 23 m
+  above the seating. Fixed with `bowl_height_at(t, ang, axis)`; aisles now track
+  the bowl. **A per-side rewrite has to sweep everything that rides the bowl,
+  not just the bowl.**
+
+Final per-side wall tops: **W 53.0, E 36.5, N 34.0, S 26.0 m** (were 72.5 / 63 /
+63 / 63).
+
 ### Also found
 
 - `data/dkr_aerial.png` and `dkr_aerial_geo.png` are **gitignored and were not

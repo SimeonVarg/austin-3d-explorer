@@ -150,12 +150,12 @@ SIDES = {
     # standing above and behind the upper one. Tallest side by a long way.
     "W": {
         "decks": [
-            ("lower", 0.00, 0.34,  1.2, 14.0, 7),
-            ("void",  0.34, 0.42, 14.0, 14.0, 1),
-            ("upper", 0.42, 0.96, 21.0, 38.5, 11),
+            ("lower", 0.00, 0.34,  1.2, 26.0, 9),
+            ("void",  0.34, 0.42, 26.0, 30.5, 1),
+            ("upper", 0.42, 0.96, 30.5, 50.0, 12),
         ],
-        "wall_m": 41.0,      # the perimeter wall behind the upper deck
-        "crown_m": 54.0,     # press box / suite tower on top of it
+        "wall_m": 53.0,      # the perimeter wall behind the upper deck
+        "crown_m": 57.0,     # press box / suite tower on top of it
         "crown_t": (0.72, 1.00),
     },
     # NORTH — the 2008 Red McCombs Red Zone. A second layer that wraps the
@@ -173,11 +173,11 @@ SIDES = {
     # EAST — the same wrapped second layer, connected to the north.
     "E": {
         "decks": [
-            ("lower", 0.00, 0.36,  1.2, 12.5, 6),
-            ("void",  0.36, 0.44, 12.5, 12.5, 1),
-            ("upper", 0.44, 0.96, 18.5, 31.0, 10),
+            ("lower", 0.00, 0.36,  1.2, 22.0, 8),
+            ("void",  0.36, 0.44, 22.0, 27.0, 1),
+            ("upper", 0.44, 0.96, 27.0, 34.5, 9),
         ],
-        "wall_m": 33.0,
+        "wall_m": 36.5,
         "crown_m": None,
         "crown_t": None,
     },
@@ -185,9 +185,9 @@ SIDES = {
     # structure; only 32.6 m of ring to work with, so there is no upper deck.
     "S": {
         "decks": [
-            ("lower", 0.00, 0.94,  1.2, 12.0, 9),
+            ("lower", 0.00, 0.94,  1.2, 13.0, 9),
         ],
-        "wall_m": 17.0,
+        "wall_m": 26.0,
         "crown_m": None,
         "crown_t": None,
     },
@@ -695,6 +695,29 @@ def profile_for(ang, axis):
     return out
 
 
+def bowl_height_at(t, ang, axis):
+    """Seating height in metres at radial fraction `t` on this bearing.
+
+    The per-side replacement for `deck_height(t, h)`, which walked one global
+    DECKS table times the footprint's raw 63 m. Anything riding the bowl - the
+    aisle stairs, the midfield logo - has to use THIS or it floats: measured on
+    the first build, the stairs topped out at 58.9 m against a bowl topping at
+    35.7 m, a 23.2 m overshoot, worst over the south end where the bowl is 12 m.
+    """
+    prof = profile_for(ang, axis)
+    z = 0.0
+    for nm, t0, t1, z0, z1, _rows in prof:
+        if t <= t0:
+            break
+        if t >= t1:
+            z = z1
+            continue
+        f = ((t - t0) / max(1e-9, t1 - t0)) ** RAKE_GAMMA
+        z = z0 + (z1 - z0) * f
+        break
+    return z
+
+
 def wall_height_at(ang, axis):
     """Blended perimeter wall height, in metres."""
     w = side_weights(ang, axis)
@@ -1188,7 +1211,8 @@ def build(feature, stats):
                     (a1[0] - px, a1[1] - py), (a0[0] - px, a0[1] - py)]
             out.append(feat(quad, lat0, {
                 "kind": "aisle", "col": COL["aisle"],
-                "h": round(deck_height(t1, h) + AISLE_LIFT_M, 2), "name": name}))
+                "h": round(bowl_height_at(t1, a, axis) + AISLE_LIFT_M, 2),
+                "name": name}))
             stats["aisles"] += 1
 
     # 4. the field ------------------------------------------------------
@@ -1285,7 +1309,8 @@ def build(feature, stats):
         if len(outer_a) < 3:
             continue
         out.append(feat(outer_a + inner_a[::-1], lat0,
-                        {"kind": "logo", "h": round(deck_height(t1, h) + 0.12, 2),
+                        {"kind": "logo",
+                         "h": round(bowl_height_at(t1, south, axis) + 0.12, 2),
                          "col": BURNT_ORANGE, "night": "#e07a30", "name": name}))
         stats["logo"] += 1
 
