@@ -594,6 +594,27 @@
   }
 
   /**
+   * The COARSE KEY — which of the ~20 tone groups a wall colour belongs to.
+   *
+   * This arithmetic used to be written out three times inside quantiseFacades
+   * (the group pass, the protected pass and the stamp pass) and it has to give
+   * the same answer in all three or a building is counted into one group and
+   * stamped out of another. It is now written once, for that reason and for a
+   * second one: scripts/bake_facades.py has to reproduce these exact floor()
+   * boundaries offline, and a rule with one definition is a rule a port can be
+   * held to. scripts/verify/facade_parity.py is what holds it.
+   *
+   * `s < 0.10` is the grey escape — a near-neutral wall has no meaningful hue,
+   * so binning it by hue would scatter limestone across twelve groups.
+   */
+  function coarseKey(rgb) {
+    const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+    return s < 0.10
+      ? `n${Math.floor(l * 5)}`
+      : `${Math.floor(h * 12)}-${Math.floor(l * 5)}-${s < 0.22 ? 0 : 1}`;
+  }
+
+  /**
    * Night walls come from the baked `wn`, which is now correct.
    *
    * History worth keeping, so nobody re-adds it: the bake used to mix 30% of a
@@ -652,23 +673,123 @@
     return 'tg';
   }
 
+  // ── the baked palette ─────────────────────────────────────────────
+  //
+  // WHY THE ELECTION HAS TO LEAVE THE BROWSER. `scripts/tile.sh` says it in one
+  // line: "a tile of West Campus and a tile of downtown would each elect their
+  // own 14 tones against one shared atlas." The election below is a function of
+  // the WHOLE feature list, and a tiled source never hands you the whole feature
+  // list. So the fourteen buckets are elected offline by
+  // `scripts/bake_facades.py` into `data/facade_palette.json`, and this file
+  // adopts them.
+  //
+  // THE ADOPTION IS PROVED, NOT ASSUMED, and in two places.
+  // `scripts/verify/facade_parity.py` compares the bake against a live capture
+  // of the real `mergeCapitolScene`/`applyUnion24`/`quantiseFacades`, feature by
+  // feature — 3,057 of 3,057, same fourteen hex triples, same (family, bucket)
+  // on every building. The same harness then loads the page a SECOND time with
+  // the baked path armed and diffs the two runs against each other, so the
+  // switch is proved inside the browser too and not only offline.
+  //
+  // TWO GUARDS, BOTH ALL-OR-NOTHING. A palette that is half baked and half
+  // elected is fourteen buckets that do not mean the same thing twice.
+  //   1. The bake records the snapshot it was computed from, and it is only
+  //      adopted for THAT snapshot. `austin-data-bot` rebuilds the snapshot on
+  //      a schedule; if it does so without re-running the bake, the date stops
+  //      matching and the browser elects, exactly as it did before this change.
+  //   2. Every group key present in the scene must be present in the baked
+  //      index. `capitol.geojson` and `capitol_overrides.json` are NOT dated by
+  //      the snapshot, so a new material could appear under an unchanged date.
+  //      One missing key and the whole baked palette is refused.
+  //
+  // Falling back is safe rather than merely tolerable: the two paths are
+  // measured to produce identical output on this snapshot, so a fallback is the
+  // same answer computed twice, not a degradation.
+  //
+  // `?bakedfacades=0` forces the election, so a before/after comes out of ONE
+  // build rather than out of a checkout (HANDOFF §37).
+  const BAKED_URL = 'data/facade_palette.json';
+  let baked = null;             // { snapshot, palette, buckets } once fetched
+  window.FACADE_BAKED_ON = !/[?&]bakedfacades=0(?:&|$)/.test(location.search);
+  // What actually happened, for the console line and for verification. Never
+  // left as a placeholder: "pending" printed in a report is a state nobody can
+  // act on, and the honest answer when the flag is off is that nothing was
+  // tried.
+  let bakedSource = window.FACADE_BAKED_ON ? 'the baked file had not landed'
+                                           : 'forced off by ?bakedfacades=0';
+
+  // Kicked off at parse time, not at first use: `quantiseFacades` is
+  // synchronous, so the only way it can see this file is for the request to
+  // have been in flight while app.js was fetching the 5 MB snapshot in front of
+  // it. It is ~1 KB against that, so it lands first with room to spare — and if
+  // it somehow does not, guard 1 has nothing to compare and the browser elects.
+  const bakedReady = !window.FACADE_BAKED_ON ? Promise.resolve(null) :
+    Promise.all([
+      fetch(BAKED_URL).then(r => r.ok ? r.json() : null).catch(() => null),
+      // The date the app will actually load — js/app.js:209 uses manifest.latest
+      // and does not publish it, so this asks the same question rather than
+      // trusting a guess. It is a cache hit; app.js has already requested it.
+      fetch('data/manifest.json').then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([b, m]) => {
+      if (!b || !b.palette || !b.buckets) { bakedSource = 'no baked file'; return null; }
+      const want = m && m.latest;
+      if (want && b.snapshot !== want) {
+        bakedSource = `baked for ${b.snapshot}, scene is ${want}`;
+        return null;
+      }
+      baked = { snapshot: b.snapshot, palette: b.palette,
+                buckets: new Map(Object.entries(b.buckets)) };
+      return baked;
+    });
+  window.facadeBakedReady = () => bakedReady;
+  // WHICH PATH ACTUALLY RAN, not which one was asked for. The two guards fail
+  // silently and identically by design — the scene looks the same either way —
+  // so without this a verification can only ever confirm what it already
+  // assumed. It reads `baked <date>` when the bake was adopted and says why
+  // when it was not.
+  window.facadePaletteSource = () => bakedSource;
+
+  /** Adopt the baked palette for `features`, or return null and leave state alone. */
+  function adoptBaked(features) {
+    if (!baked) return null;
+    for (const f of features) {
+      const p = f.properties;
+      if (!p || !p.wd) continue;
+      if (!baked.buckets.has(coarseKey(hexToRgb(p.wd)))) {
+        bakedSource = 'a wall colour the bake has never seen — re-run '
+                    + 'scripts/bake_facades.py';
+        return null;
+      }
+    }
+    palette = baked.palette.map(k => ({ wd: k.wd, wg: k.wg || k.wd, wn: k.wn || k.wd }));
+    bakedSource = 'baked ' + baked.snapshot;
+    return stampAll(features, baked.buckets);
+  }
+
   // ── quantisation ──────────────────────────────────────────────────
   /**
    * Assign `wp` (pattern image id) and `wf` (family) to every feature, and
    * derive the shared colour palette from the data itself so the scene keeps
    * its real character instead of snapping to a guessed set of tones.
+   *
+   * Takes the baked palette when it is current; elects one otherwise. The
+   * election below is the definition either way — the bake is a transcription
+   * of it, and scripts/verify/facade_parity.py is what keeps that true.
    */
   window.quantiseFacades = function quantiseFacades(features) {
+    const fromBake = adoptBaked(features);
+    if (fromBake) {
+      console.log('[facades] palette %s — %d buckets, %d patterns, %d buildings',
+                  bakedSource, fromBake.buckets, fromBake.patterns, features.length);
+      return fromBake;
+    }
     // 1. coarse keys → groups
     const groups = new Map();
     for (const f of features) {
       const p = f.properties;
       if (!p || !p.wd) continue;
       const rgb = hexToRgb(p.wd);
-      const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
-      const key = s < 0.10
-        ? `n${Math.floor(l * 5)}`
-        : `${Math.floor(h * 12)}-${Math.floor(l * 5)}-${s < 0.22 ? 0 : 1}`;
+      const key = coarseKey(rgb);
       let g = groups.get(key);
       if (!g) { g = { n: 0, wd: [0,0,0], wg: [0,0,0], wn: [0,0,0] }; groups.set(key, g); }
       g.n++;
@@ -702,10 +823,7 @@
     for (const spec of protectedIn) {
       if (!spec || !spec.wd) continue;
       const rgb = hexToRgb(spec.wd);
-      const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
-      const key = s < 0.10
-        ? `n${Math.floor(l * 5)}`
-        : `${Math.floor(h * 12)}-${Math.floor(l * 5)}-${s < 0.22 ? 0 : 1}`;
+      const key = coarseKey(rgb);
       if (protectedKeys.has(key)) continue;
       protectedKeys.set(key, protectedBuckets.length);
       protectedBuckets.push({
@@ -733,16 +851,29 @@
     }));
 
     // 4. stamp every feature, collecting the (family, bucket) combos in use
+    const stats = stampAll(features, index);
+    console.log('[facades] palette elected in the browser (%s) — %d buckets, '
+                + '%d patterns, %d buildings',
+                bakedSource, stats.buckets, stats.patterns, features.length);
+    return stats;
+  };
+
+  /**
+   * Stamp `wp`/`wf` on every feature from a group-key → bucket index.
+   *
+   * SPLIT OUT OF THE ELECTION ON PURPOSE, and this split is the whole of C1.
+   * Steps 1-3 above need to see EVERY building at once — you cannot elect the
+   * fourteen most populous tones from one tile of West Campus. Step 4 needs to
+   * see one feature. Once the index arrives from the bake instead of from the
+   * election, this is the only step a tiled source has to run, and it runs per
+   * feature with no global view. See scripts/bake_facades.py.
+   */
+  function stampAll(features, index) {
     const used = new Set();
     for (const f of features) {
       const p = f.properties;
       if (!p || !p.wd) continue;
-      const rgb = hexToRgb(p.wd);
-      const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
-      const key = s < 0.10
-        ? `n${Math.floor(l * 5)}`
-        : `${Math.floor(h * 12)}-${Math.floor(l * 5)}-${s < 0.22 ? 0 : 1}`;
-      const b = index.get(key) || 0;
+      const b = index.get(coarseKey(hexToRgb(p.wd))) || 0;
       const fam = familyFor(p);
       const id = fam + String(b).padStart(2, '0');
       p.wp = id;
@@ -751,7 +882,7 @@
     }
     combos = [...used];
     return { buckets: palette.length, patterns: combos.length };
-  };
+  }
 
   // Parts inherit their parent's look; they carry baked colours but no class,
   // so classify them by their own volume.
