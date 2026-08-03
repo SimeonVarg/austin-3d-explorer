@@ -115,6 +115,148 @@ FORM = {
 }
 COLOUR_KEYS = ("wood", "steel", "dark", "stone", "green", "glass", "sign", "blue")
 
+# ── FURNITURE FORM ─────────────────────────────────────────────────────
+# Every entry in FORM above is ONE CUBOID, and 2,635 of them are one cuboid
+# each: a bench, a bin, a bike rack and a planter differ only in their colour
+# and their proportions. The whole point of a bench is that you can tell it is a
+# bench, so the common kinds are built out of parts below.
+#
+# TWO HARD LIMITS SHAPE THIS VOCABULARY, and both are properties of the
+# pipeline rather than of taste. Neither is negotiable from inside this file.
+#
+#   1. NOTHING CAN FLOAT. js/props.js draws `props-furn` with
+#      `fill-extrusion-base: 0`, a constant, so every part rises from the
+#      ground. A hoop's top bar, a bin lid's overhang and a bus shelter's roof
+#      are simply not drawable. Form is carried by the PLAN OUTLINE and the
+#      HEIGHTS: a bench is a low seat mass with a taller blade behind it, a bin
+#      is a round body under a narrower cap, a rack is a row of uprights. If
+#      that layer ever reads `['coalesce', ['get','b'], 0]`, half of these
+#      recipes get better in one line — the request is in this pass's PR.
+#
+#   2. NOTHING SURVIVES BELOW ~0.13 m. data/props.geojson is tiled by
+#      scripts/tile.sh at --maximum-zoom=16 and tippecanoe's default detail of
+#      12, so a z16 tile is 4096 units across ~528 m: ONE UNIT IS 0.129 m, and
+#      the archive is over-zoomed all the way to z20+. A truthful 5 cm rack tube
+#      is under half a unit and is a lottery, not a thin line. MIN_PART_M is the
+#      floor, and it is why a bench here has no cast-iron ends and a bollard
+#      stays a box rather than becoming a 0.24 m octagon.
+MIN_PART_M   = 0.30   # thinnest member the z16 tile grid can hold (2.3 units)
+MIN_PART_H   = 0.12   # shorter than this and it is not worth a feature
+DISC_SEG     = 8      # an octagon reads round at every size furniture is drawn
+RACK_HOOP_M  = 0.85   # target spacing of the uprights in a bike rack
+COORD_DP     = 7      # 1e-7 deg = 1.1 cm. SIX would quantise a 0.30 m member.
+
+
+class Parts(object):
+    """Parts of ONE furniture object, in local metres about its own centre,
+    with +x along the object's length axis and +y across it.
+
+    `h` is always measured from the ground, because the layer's base is 0.
+    """
+
+    def __init__(self):
+        self.out = []       # (ring_in_local_metres, height_m, colour_key)
+
+    def box(self, cx, cy, w, d, h, col, rot=0.0):
+        w, d = max(w, MIN_PART_M), max(d, MIN_PART_M)
+        if h < MIN_PART_H:
+            return
+        c, s = math.cos(rot), math.sin(rot)
+        pts = ((-w / 2, -d / 2), (w / 2, -d / 2), (w / 2, d / 2), (-w / 2, d / 2))
+        self.out.append(([(cx + x * c - y * s, cy + x * s + y * c) for x, y in pts],
+                         h, col))
+
+    def disc(self, cx, cy, r, h, col, seg=DISC_SEG):
+        r = max(r, MIN_PART_M)
+        if h < MIN_PART_H:
+            return
+        self.out.append(([(cx + r * math.cos(2 * math.pi * i / seg),
+                           cy + r * math.sin(2 * math.pi * i / seg))
+                          for i in range(seg)], h, col))
+
+
+# Each recipe gets the object's own envelope — length, width (already carrying
+# the per-object size wobble) and `s`, the height scale — and draws into `P`.
+def _bench(P, L, W, s, col):
+    """Seat and back. The back is what tells you which way it faces and is the
+    entire reason a bench stops reading as a kerbstone; at MIN_PART_M the two
+    members fill the 0.60 m depth exactly, so there is no room for the
+    cast-iron ends a real one has."""
+    P.box(0.0, -W * 0.25, L, W * 0.50, 0.45 * s, col)
+    P.box(0.0,  W * 0.25, L, W * 0.50, 0.87 * s, col)
+
+
+def _picnic_table(P, L, W, s, col):
+    P.box(0.0, 0.0, L, W * 0.52, 0.74 * s, col)                    # the top
+    for sy in (-1.0, 1.0):
+        P.box(0.0, sy * W * 0.42, L * 0.94, W * 0.21, 0.46 * s, col)
+
+
+def _waste_basket(P, L, W, s, col):
+    """A bin is round, and that alone separates it from every box on the path."""
+    r = min(L, W) * 0.46
+    P.disc(0.0, 0.0, r, 0.84 * s, col)
+    P.disc(0.0, 0.0, r * 0.76, 0.99 * s, "steel")   # the hood, narrower: see (1)
+
+
+def _bicycle_parking(P, L, W, s, col):
+    """A row of hoops. Drawn as uprights across the rack line — the top bar is
+    the part that cannot exist (1) — and each upright is MIN_PART_M thick
+    rather than a truthful 5 cm, because 5 cm is under half a tile unit (2)."""
+    n = max(2, int(round(L / RACK_HOOP_M)))
+    span = L - MIN_PART_M
+    for i in range(n):
+        x = -span / 2.0 + span * i / (n - 1.0)
+        P.box(x, 0.0, MIN_PART_M, W * 0.86, 0.86 * s, col)
+
+
+def _bicycle_rental(P, L, W, s, col):
+    n = max(2, int(round((L - 0.6) / 0.75)))
+    span = L - 1.0
+    for i in range(n):
+        x = -span / 2.0 + span * i / (n - 1.0)
+        P.box(x, 0.0, MIN_PART_M, W * 0.52, 0.95 * s, col)
+    P.box(L / 2.0 - 0.24, 0.0, 0.48, W * 0.62, 1.55 * s, "sign")   # the kiosk
+
+
+def _planter(P, L, W, s, col):
+    """A box with something in it. The something is the point: 408 planters put
+    green back on a plaza that is otherwise stone."""
+    r = min(L, W) * 0.5
+    P.box(0.0, 0.0, L, W, 0.52 * s, col)
+    P.disc(0.0, 0.0, r * 0.72, 1.02 * s, "green")
+    P.disc(0.0, 0.0, r * 0.44, 1.24 * s, "green")
+
+
+def _scooter(P, L, W, s, col):
+    P.box(-L * 0.06, 0.0, L * 0.86, W * 0.72, 0.24 * s, col)       # the deck
+    P.box(L * 0.40, 0.0, MIN_PART_M, W, 1.05 * s, "dark")          # stem + bar
+
+
+def _shelter(P, L, W, s, col):
+    """Back, two ends and a front eave; the roof between them is (1)."""
+    P.box(0.0, -W * 0.42, L, W * 0.16, 2.35 * s, col)
+    for sx in (-1.0, 1.0):
+        P.box(sx * (L / 2.0 - 0.15), 0.0, MIN_PART_M, W * 0.92, 2.45 * s, col)
+    P.box(0.0, W * 0.42, L, W * 0.16, 2.60 * s, "dark")
+
+
+# Kinds NOT in here are drawn as the single cuboid they always were, and that is
+# a decision per kind, not an oversight: an ATM, a post box, a vending machine
+# and a street cabinet ARE boxes, and a bollard is 0.24 m across — under two
+# tile units (2), where an octagon comes out worse than the square.
+FURN_SHAPE = {
+    "bench": _bench,
+    "picnic_table": _picnic_table,
+    "outdoor_seating": _bench,
+    "waste_basket": _waste_basket,
+    "bicycle_parking": _bicycle_parking,
+    "bicycle_rental": _bicycle_rental,
+    "planter": _planter,
+    "scooter": _scooter,
+    "shelter": _shelter,
+}
+
 # Line barriers drawn as thin ribbons along their real geometry.
 #   tag value: (width_m, height_m, colour_key)
 LINE_BARRIER = {
@@ -422,6 +564,37 @@ def load_buildings():
 
 
 # ── emit helpers ───────────────────────────────────────────────────────
+def gid_of(kind, lon, lat):
+    """One id per OBJECT, shared by all of its parts. The density quantile is
+    assigned per gid, never per feature — otherwise `d <= 0.7` draws a bench's
+    seat and throws its back away, and the thing stops being a bench at exactly
+    the moment the quality preset moves."""
+    return "%s%s" % (kind[:2], hashlib.md5(("%.6f:%.6f:%s" % (lon, lat, kind))
+                                           .encode()).hexdigest()[:8])
+
+
+def shaped(kind, lon, lat, ang, length, width, s, col, props):
+    """The polygons for one furniture object: its recipe if it has one, and
+    the single cuboid it always was if it does not."""
+    fn = FURN_SHAPE.get(kind)
+    if fn is None:
+        return [(rect(lon, lat, length, width, ang), props["h"], col)]
+    P = Parts()
+    fn(P, length, width, s, col)
+    if not P.out:
+        return [(rect(lon, lat, length, width, ang), props["h"], col)]
+    ca, sa = math.cos(ang), math.sin(ang)
+    mx = mlon(lat)
+    out = []
+    for ring_m, h, c in P.out:
+        ring = [[round(lon + (x * ca - y * sa) / mx, COORD_DP),
+                 round(lat + (x * sa + y * ca) / M_LAT, COORD_DP)]
+                for x, y in ring_m]
+        ring.append(list(ring[0]))
+        out.append(([ring], round(h, 2), c))
+    return out
+
+
 def make(kind, lon, lat, ang, src, rule=None, extra=None):
     length, width, h, col, layer, lit = FORM[kind]
     # A deterministic wobble on size and heading. Real furniture is not stamped:
@@ -434,10 +607,20 @@ def make(kind, lon, lat, ang, src, rule=None, extra=None):
         p["rule"] = rule
     if extra:
         p.update(extra)
-    feats = [{"type": "Feature",
-              "geometry": {"type": "Polygon",
-                           "coordinates": rect(lon, lat, length * s, width * s, ang + jitter)},
-              "properties": p}]
+    parts = shaped(kind, lon, lat, ang + jitter, length * s, width * s, s, col, p)
+    if len(parts) == 1:
+        feats = [{"type": "Feature",
+                  "geometry": {"type": "Polygon", "coordinates": parts[0][0]},
+                  "properties": p}]
+    else:
+        g = gid_of(kind, lon, lat)
+        feats = []
+        for coords, ph, pc in parts:
+            pp = dict(p)
+            pp["h"], pp["c"], pp["g"] = ph, pc, g
+            feats.append({"type": "Feature",
+                          "geometry": {"type": "Polygon", "coordinates": coords},
+                          "properties": pp})
     if lit == "lit":
         # A Point at the lamp head. js/props.js draws these as the warm pool the
         # lamp throws, so anything we add participates in night instead of going
@@ -912,18 +1095,28 @@ def main():
               "bench": 0.66, "planter": 0.58, "picnic_table": 0.56, "toilets": 0.56,
               "information": 0.50, "bollard": 0.44, "waste_basket": 0.36,
               "scooter": 0.30}
+    #
+    # RANKED PER OBJECT, NOT PER FEATURE. A shaped bench is two features and a
+    # bike rack is three, and if each part took its own quantile then every
+    # setting of the knob below 1.0 would draw some benches with no back and
+    # some racks with a hoop missing. Parts share the `g` written by make().
     ranked = [f for f in feats if f["properties"]["k"] in ("furn", "lamp", "lit")]
-    order = []
+    order, seen = [], {}
     for i, f in enumerate(ranked):
         p = f["properties"]
         w = WEIGHT.get(p.get("u"), 0.5)
         c = f["geometry"]["coordinates"]
         pt = c if f["geometry"]["type"] == "Point" else c[0][0]
-        order.append((-(0.78 * w + 0.22 * det01(pt[0], pt[1], "pd")), i))
+        key = p.get("g") or ("_%d" % i)
+        if key not in seen:
+            seen[key] = len(order)
+            order.append([-(0.78 * w + 0.22 * det01(pt[0], pt[1], "pd")), key])
     order.sort()
-    n = max(1, len(ranked) - 1)
-    for pos, (_, i) in enumerate(order):
-        ranked[i]["properties"]["d"] = round(pos / n, 4)
+    n = max(1, len(order) - 1)
+    quant = {key: round(pos / n, 4) for pos, (_, key) in enumerate(order)}
+    for i, f in enumerate(ranked):
+        p = f["properties"]
+        p["d"] = quant[p.get("g") or ("_%d" % i)]
 
     # ── 7. emit + report ───────────────────────────────────────────────
     fc = {"type": "FeatureCollection", "features": feats}
@@ -968,5 +1161,108 @@ def main():
     }, indent=2))
 
 
+def reshape():
+    """Apply FURN_SHAPE to the SHIPPED data/props.geojson, in place.
+
+    WHY THIS EXISTS AND WHY IT IS NOT A RE-BAKE. HANDOFF §44: a full
+    `bake_props.py` run on the Acer emits 2,244 features against the shipped
+    9,019, because the city inventory feeds behind `load_city()` are not in the
+    local cache — lamps collapse 3,245 -> 532 and lit 2,949 -> 236. Committing
+    that would delete two thirds of the street furniture in exchange for a
+    prettier bench. So the rule goes into the bake for whoever next runs it with
+    the data, and is applied SURGICALLY here, exactly as PR #63 did.
+
+    It reads back what it wrote, IN THE OBJECT'S OWN FRAME: every part vertex
+    has to sit inside the cuboid it replaced, plus RESHAPE_MARGIN_M. The first
+    version of this check compared centroids and failed at 0.37 m, which was
+    not a bug — a scooter's stem is deliberately at one end and a dock's kiosk
+    at the other, so the mean of the vertices is not the object's centre. A
+    containment test says the thing that actually matters: nothing has moved off
+    its own footprint and nothing has grown.
+
+    Idempotent — a feature that already carries `g` is a part and is left alone.
+    """
+    RESHAPE_MARGIN_M = 0.25
+    with open(OUT, encoding="utf-8") as f:
+        gj = json.load(f)
+    before = list(gj["features"])
+    out, stats = [], Counter()
+    worst, worst_u = 0.0, None
+    tall = {}
+    for feat in before:
+        p = feat["properties"]
+        u = p.get("u")
+        if (p.get("k") != "furn" or "g" in p or u not in FURN_SHAPE
+                or feat["geometry"]["type"] != "Polygon"):
+            out.append(feat)
+            stats["kept"] += 1
+            continue
+        ring = feat["geometry"]["coordinates"][0]
+        if len(ring) < 5:
+            out.append(feat)
+            stats["kept"] += 1
+            continue
+        # Recover the object's own frame from the cuboid rect() drew: the ring
+        # is (-hl,-hw) (hl,-hw) (hl,hw) (-hl,hw) rotated, so edge 0->1 is the
+        # length axis and 1->2 is the width.
+        lat0 = sum(c[1] for c in ring[:4]) / 4.0
+        mx = mlon(lat0)
+        xy = [(c[0] * mx, c[1] * M_LAT) for c in ring[:4]]
+        cx = sum(q[0] for q in xy) / 4.0
+        cy = sum(q[1] for q in xy) / 4.0
+        L = math.hypot(xy[1][0] - xy[0][0], xy[1][1] - xy[0][1])
+        W = math.hypot(xy[2][0] - xy[1][0], xy[2][1] - xy[1][1])
+        ang = math.atan2(xy[1][1] - xy[0][1], xy[1][0] - xy[0][0])
+        lon0, lat0 = cx / mx, cy / M_LAT
+        s = p["h"] / FORM[u][2]
+        parts = shaped(u, lon0, lat0, ang, L, W, s, p["c"], p)
+        g = gid_of(u, lon0, lat0)
+        for coords, ph, pc in parts:
+            pp = dict(p)
+            pp["h"], pp["c"], pp["g"] = ph, pc, g
+            out.append({"type": "Feature",
+                        "geometry": {"type": "Polygon", "coordinates": coords},
+                        "properties": pp})
+        stats["objects_" + u] += 1
+        stats["parts"] += len(parts)
+        tall[u] = max(tall.get(u, 0.0), max(ph for _, ph, _ in parts))
+        # Read it back, in the object's own frame: every vertex inside the
+        # cuboid it replaced, plus the margin.
+        ca, sa = math.cos(-ang), math.sin(-ang)
+        for coords, _, _ in parts:
+            for lo, la in coords[0][:-1]:
+                dx, dy = lo * mx - cx, la * M_LAT - cy
+                lx, ly = dx * ca - dy * sa, dx * sa + dy * ca
+                over = max(abs(lx) - L / 2.0, abs(ly) - W / 2.0)
+                if over > worst:
+                    worst, worst_u = over, u
+    if worst > RESHAPE_MARGIN_M:
+        raise SystemExit("reshape put a %s part %.3f m outside its own footprint"
+                         % (worst_u, worst))
+
+    n_other = sum(1 for f in before if f["properties"].get("k") != "furn")
+    n_other_after = sum(1 for f in out if f["properties"].get("k") != "furn")
+    if n_other != n_other_after:
+        raise SystemExit("reshape touched a non-furniture feature")
+
+    gj["features"] = out
+    with open(OUT, "w", encoding="utf-8") as f:
+        json.dump(gj, f, separators=(",", ":"))
+    print(json.dumps({
+        "mode": "reshape (surgical — see HANDOFF §44)",
+        "features_before": len(before), "features_after": len(out),
+        "furn_before": sum(1 for f in before if f["properties"].get("k") == "furn"),
+        "furn_after": sum(1 for f in out if f["properties"].get("k") == "furn"),
+        "non_furn_unchanged": n_other == n_other_after,
+        "worst_overhang_m": round(worst, 3), "worst_overhang_kind": worst_u,
+        "tallest_part_m": {k: round(v, 2) for k, v in sorted(tall.items())},
+        "file_kb": round(os.path.getsize(OUT) / 1024, 1),
+        "counts": dict(sorted(stats.items())),
+    }, indent=2))
+
+
 if __name__ == "__main__":
-    main()
+    if "--reshape" in sys.argv:
+        reshape()
+    else:
+        main()
