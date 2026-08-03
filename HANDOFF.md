@@ -1,5 +1,49 @@
 # Austin 3D Explorer — Full Handoff
 
+## 40. Aug 3 2026 — crowns stopped being stacks of discs, for zero bytes (mac lane)
+
+**Branch:** `mac/tree-shading` — MAC_QUEUE T1. **No data changed and the payload
+is identical**: `tf` and `j` were baked by an earlier pass and left unread, with
+a comment saying so. This is the one-liner they were baked for.
+
+The paint being replaced was
+`interpolate ['get','h'] 6 -> canopyLo, 15 -> canopyHi`, and
+`shape_trees.py`'s own notes had already measured why it could not work:
+
+1. it ramps on the tier's **top height**, a SIZE — so two tiers of one small
+   crown differ by a fraction of the ramp while two tiers of a big one differ by
+   most of it. The gradient was a function of the tree, not of where you are in
+   its crown;
+2. **34% of all tiers** (8,489 below, 2,464 above, of 32,651) fall outside the
+   6..15 m window and clamp to one flat endpoint;
+3. it was **inverted** — `canopyHi` is the darker colour, so the top of the
+   canopy, the part in the sun, was drawn darker than the shaded underside.
+
+`tf` (the tier's centre as a fraction of its crown, 0 at the base and 1 at the
+top) fixes all three: the ramp is over crown POSITION and behaves identically on
+a one-tier sapling and a five-tier live oak. `j` gives a per-tree hue bucket,
+constant down a crown. Two nested interpolates — `tf` down the crown, `j` across
+the forest — with the four endpoints computed once per retint rather than per
+fragment.
+
+**`fill-extrusion-vertical-gradient` is now OFF for the canopy.** It darkens the
+bottom of every extrusion, and with a real crown gradient it was darkening the
+bottom of every TIER — five shadows up one tree, which is the banding the tier
+twist exists to hide.
+
+**Knobs:** `window.TREE_SHADE = { depth: 0.85, jitter: 0.07 }` in `js/app.js`.
+`depth: 0` is a flat canopy, `jitter: 0` is one green — either is a one-line
+flatten.
+
+**A boundary call, stated plainly.** The authoritative tree paint is
+`js/timeofday.js:408`, not `js/app.js` — anything set in app.js is replaced on
+the next retint. That file is not this lane's. I changed **one line** of it, and
+made it a CALL into `window.treeCanopyColour` in app.js rather than an
+expression, so the two paint sites cannot drift and the whole gradient still
+lives in the tree lane's file. It falls back to the old expression if app.js has
+not loaded. If the other lane wants that line back, the function is the only
+thing that has to move.
+
 ## 39. Aug 3 2026 — Waller Creek got planted, and the tile workflow is a dated landmine (mac lane)
 
 **Branch:** `mac/creek-trees` — MAC_QUEUE T3.

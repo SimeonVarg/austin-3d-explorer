@@ -491,6 +491,75 @@
     }
   };
 
+  // ── Taste block: how a crown is shaded ────────────────────────────
+  //
+  // Reported as *"every tree is a stack of flat discs"*, and it was. The paint
+  // this replaces was
+  // `interpolate ['get','h'] 6 -> canopyLo, 15 -> canopyHi`, which is wrong
+  // three separate ways, all measured in scripts/shape_trees.py's own notes:
+  //
+  //   1. it ramps on the tier's TOP HEIGHT, a SIZE, so the two tiers of one
+  //      small crown differ by a fraction of the ramp while two tiers of a big
+  //      one differ by most of it — the gradient is a function of the tree, not
+  //      of where you are in its crown;
+  //   2. 34% of all tiers (8,489 below and 2,464 above, of 32,651) fall outside
+  //      the 6..15 m window and clamp to one flat endpoint;
+  //   3. it is INVERTED. `canopyHi` is the darker colour, so a taller tier — the
+  //      top of the canopy, the part in the sun — is drawn DARKER than the
+  //      shaded underside.
+  //
+  // `tf` fixes all three at once: it is the tier's own centre as a fraction of
+  // its crown, 0 at the base and 1 at the top, baked per feature, so the ramp is
+  // over crown POSITION and works identically on a one-tier sapling and a
+  // five-tier live oak. `j` is a per-tree hue bucket, constant down a crown, so
+  // 57,548 trees stop being one green.
+  //
+  // Both were baked and left unread; this is the one-liner they were baked for.
+  //
+  // DEPTH and JITTER are the two knobs. `depth: 0` is exactly the old flat look
+  // (every tier the palette's mid green) and `jitter: 0` makes every tree the
+  // same green — either is a one-line flatten.
+  window.TREE_SHADE = {
+    depth: 0.85,    // 0 = flat, 1 = the palette's full canopyHi..canopyLo spread
+    jitter: 0.07,   // per-tree hue spread. SMALL: this is a stylised city and a
+                    // rainbow forest is worse than a flat one.
+  };
+  const _hx = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16),
+                    parseInt(h.slice(5, 7), 16)];
+  const _hex = c => '#' + c.map(v =>
+    Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  const _mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+
+  /**
+   * The canopy colour expression for one hour's palette.
+   *
+   * Two nested interpolates: `tf` down the crown, `j` across the forest. The
+   * four endpoints are computed here rather than in the expression because they
+   * change once per retint and would otherwise be four colour mixes per
+   * fragment.
+   */
+  window.treeCanopyColour = function treeCanopyColour(s) {
+    const k = window.TREE_SHADE;
+    const lit = _hx(s.canopyLo), shade = _hx(s.canopyHi);
+    // The neutral both ends collapse to at depth 0 — the palette's own `canopy`
+    // where it exists, otherwise the midpoint of the pair.
+    const mid = s.canopy ? _hx(s.canopy) : _mix(lit, shade, 0.5);
+    const dark = _mix(mid, shade, k.depth);
+    const light = _mix(mid, lit, k.depth);
+    // Warm and cool poles for the jitter. Deliberately a HUE nudge and not a
+    // value one: varying brightness per tree would fight the crown gradient
+    // that is the whole point of this change.
+    const warm = [232, 196, 96], cool = [96, 158, 132];
+    const pole = (c, p) => _hex(_mix(c, p, k.jitter));
+    const byJ = c => (k.jitter <= 0 ? _hex(c)
+      : ['interpolate', ['linear'], ['coalesce', ['get', 'j'], 0.5],
+         0, pole(c, warm), 1, pole(c, cool)]);
+    // `coalesce` so a tile baked before `tf` existed lands mid-crown rather
+    // than painting the whole canopy at the shaded end.
+    return ['interpolate', ['linear'], ['coalesce', ['get', 'tf'], 0.5],
+            0, byJ(dark), 1, byJ(light)];
+  };
+
   // ── Pitched roofs across campus ───────────────────────────────────
   // fill-extrusion has exactly one roof shape — flat — and a campus of flat
   // prisms is the loudest tell that a scene is generated. data/roofs.geojson
@@ -1133,11 +1202,18 @@
         id:'trees-canopy', type:'fill-extrusion', source:'austin-trees', ...treeLP,
         minzoom:14, filter:window.treeFilter('canopy'),
         paint:{
-          'fill-extrusion-color':['interpolate',['linear'],['get','h'],6,'#93ad70',15,'#5f7d4a'],
+          // First paint only; applyTimeOfDay replaces this on the next tick
+          // through the same function, so the two cannot drift apart.
+          'fill-extrusion-color': window.treeCanopyColour(
+            { canopy:'#7d9a62', canopyLo:'#93ad70', canopyHi:'#5f7d4a' }),
           'fill-extrusion-height':['get','h'],
           'fill-extrusion-base':['get','base'],
           'fill-extrusion-opacity':1.0,
-          'fill-extrusion-vertical-gradient':true,
+          // OFF now. This darkens the bottom of every extrusion, and with a
+          // real crown gradient it was darkening the bottom of every TIER —
+          // five shadows up one tree, which is the banding the tiers were
+          // rotated to hide.
+          'fill-extrusion-vertical-gradient':false,
         },
       });
     }
