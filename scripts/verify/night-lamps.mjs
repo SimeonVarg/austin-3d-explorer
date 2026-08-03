@@ -88,6 +88,19 @@ await page.evaluate(v => {
 }, TOD);
 await page.waitForTimeout(2500);
 
+// ASSERT THE EFFECT, NEVER THE INTENTION. Both tod paths returning without
+// throwing is not the same as the scene being at that hour: measured once on
+// this repo, a run that set 0.95 and never checked came back with a frame mean
+// luma of 127 — full daylight — and reported 99.9% of its hot pixels WARM,
+// which is a perfect score on a frame with no lamps in it at all. A night
+// probe that silently measures noon is worse than no probe.
+const gotP = await page.evaluate(() => window.__todCurrentP);
+if (gotP == null || Math.abs(gotP - TOD) > 0.02) {
+  console.error(`FAIL: asked for tod ${TOD}, scene is at ${gotP} — not measuring this frame`);
+  await browser.close();
+  process.exit(1);
+}
+
 await page.evaluate(q => window.__map.jumpTo(q), POSE);
 await page.evaluate(() => new Promise(r => {
   const m = window.__map;

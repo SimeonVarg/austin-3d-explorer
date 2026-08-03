@@ -122,7 +122,43 @@ were needed.
   note that any other session's `reap.mjs` kills your browser, again. Every
   number above was re-read until two consecutive reads agreed.
 
+### TWO NEW WAYS TO MEASURE THE WRONG THING, both hit while re-verifying
+
+Both produced a *plausible* number rather than an error, which is what makes
+them worth writing down.
+
+1. **TWO SERVERS CAN BIND THE SAME PORT AND THE OTHER ONE ANSWERS.** The merged
+   re-measurement came back **identical to BEFORE** — 66.89% blue-white, pool at
+   7.87% of frame — on a build that demonstrably contains the fix. `netstat`
+   showed **two** processes LISTENING on 8155: another lane had that port and
+   mine bound second, so every request was served from THEIR checkout at an
+   older commit. Nothing failed, nothing warned. **Check the port is free before
+   serving, and prove the served build is yours** —
+   `curl -s http://127.0.0.1:PORT/js/night.js | grep -c A_STRING_YOU_JUST_ADDED`
+   is one line and it is now the first thing this lane does after starting a
+   server. (Note `serve.py` resolves its root from `__file__`, not from cwd, so
+   a worktree server does serve the worktree — that part was fine.)
+2. **The time-of-day never took, and the probe scored the resulting DAYLIT frame
+   as a triumph.** On merged `main` the tod handshake silently did nothing:
+   frame mean luma **127.4**, 62% of the frame over the pale threshold, and the
+   census reported **99.94% WARM / 0.00% BLUE-WHITE** — a perfect result, on a
+   frame with no lamps in it at all. Setting a value and getting no exception is
+   not the same as the scene being at that hour. `night-lamps.mjs` now reads
+   `window.__todCurrentP` back and exits non-zero if it is not the hour asked
+   for. Same shape as §37's rule and worth generalising: **a night probe that
+   can measure noon will eventually measure noon.**
+
 ### Verified
+
+**Re-verified on the merged result, not on the branch in isolation** (`main`
+moved 20 commits in flight — facades, tower crown, ground precincts, trees; no
+overlap with `js/night.js`). Merged in the worktree
+`C:/Users/simip/Projects/austin-3d-night`, served on a port checked free first:
+
+```
+merged, aerial-wide, tod 0.95   WARM 97.7%   BLUE-WHITE 1.6%
+pool owns 1.84% of frame   p90 57.7 m   max 151.9 m   on a roof 3.56%
+```
 
 `harness-drift.mjs` PASS before every measurement (24 scripts both sides).
 Pictures, all read rather than exit-coded: `shots/lamps/before/aerial-wide.png`
