@@ -330,7 +330,26 @@ do the recognisable West Campus towers properly and Standard will be among them.
 
 # PART D — LANDMARKS AND DETAIL
 
-## D1. The Capitol
+## D1. The Capitol — **DONE**
+
+> **FIXED, PR #108.** All three, and none of them was what the brief guessed.
+> **(1)** Neither #78 nor #93 touched it. Two causes stacked: `bake_capitol.py`
+> still emitted `k:'path'` LINES after the whole city moved to `k:'patharea'`
+> polygons, and even as polygons they sat under `outer-detail`'s **0.45 m park
+> pad**, which covers 98.6% of the south lawn. The green everyone was looking at
+> was the outer ring's pad, not the Capitol's lawn — and `js/capitol.js`'s
+> `updateData` merge had been rejected in the worker every load since Aug 1, so
+> none of the 1,161 ground features had reached the map at all.
+> **(2)** The dome was never leaning — 0.0 px axis drift over 57 m, measured
+> isolated. It stood on an INVENTED 7 m stepped pyramid that no photograph has.
+> **(3)** `FACADE_PROTECTED` is honoured; the dome and the walls carry the same
+> `#bd8477` and rendered 1.40/1.52/1.56 apart because only the walls go through
+> the window atlas. Now 1.28/1.30/1.29 against a photograph's 1.20/1.21/1.30.
+> HANDOFF §49; `shots/cap-before-day/` vs `shots/cap-after-day/`.
+>
+> **Owed:** `scripts/verify/capitol-merge.mjs` is red by design — it asserts a
+> console string for the deleted `updateData` path, and it was green for two
+> days while the merge was failing. Rewrite it against `window.__capitolMerge`.
 
 *"same thing with capitol building and lawn - looks like u got rid of the
 walkways around it those had a cool pattern add them back. also the thing on the
@@ -440,6 +459,24 @@ materials, ground-floor retail, plant on the roofs.
 towers read as a dark grey mass next to a warm campus. That may be a real
 regression from the tile switch (PRs #84/#94) rather than a design choice —
 measure it against the campus buildings before adding anything.
+
+## D11. The outer ring pads over ground the city models properly
+
+**Found by D1, and it is not a Capitol problem.** `outer-detail` carries the
+outer ring's 309 flat park pads as a `fill-extrusion` at **h 0.45 m**, opacity 1.
+The Capitol grounds get one, and it buries `ground-areas` (a flat fill at z=0)
+and `ground-paths` (0.22 m) under it — both lose the DEPTH test, so no layer
+reorder can help. Measured with the magenta mask asked of every layer in turn:
+`outer-detail` covers **98.6%** of the Capitol's south lawn and nothing else
+covers any of it.
+
+The Capitol works around it by standing its own ground at 0.46 m
+(`CAPITOL.groundLift`), which is a patch, not a fix. **Every other modelled
+block inside a ring park pad has the same defect and no workaround.** The fence
+only just grew to 77.4 km² (#105), so the modelled area and the ring's
+assumptions about it have drifted apart. `scripts/bake_outer.py` should not emit
+a pad where the city has real ground, or `js/outer.js` should not draw one there.
+Check the whole modelled box for other pads before deciding which.
 
 ---
 

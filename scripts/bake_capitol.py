@@ -85,13 +85,35 @@ BULLOCK_ROOF = "#98948a"    # the rotunda's copper, weathered, from above
 
 # ── Materials. GENERATIVE where noted. ────────────────────────────────
 GRANITE = "#bd8477"         # Sunset Red granite, Granite Mountain. Generative.
-# The dome is sheet metal PAINTED to match the granite, and paint on a curved
-# surface facing the sky reads lighter than a quarried wall: the z18 and z20
-# nadir tiles put the drum and dome at #c9bba9 / #ccb7a0 / #c0af9f against
-# walls that never sample above the mid tones. So the dome is its own colour,
-# lighter than GRANITE — not a mistake to be "corrected" back to matching.
-GRANITE_DOME = "#d2b0a3"
-GRANITE_DARK = "#a4746a"    # the mansard skirt at the dome's base
+# THE DOME IS THE SAME STONE AS THE WALLS AND IT HAS TO READ THAT WAY.
+# "the thing on the top of capitol buildings ... its not the right color."
+#
+# The previous value (#d2b0a3) was sampled off a z18/z20 NADIR tile, which sees
+# the dome's sky-facing paint and cannot see a wall at all, so it could only
+# ever answer half the question — and the half it could not see is the half the
+# complaint is about. Two elevation photographs answer both halves, and the
+# flat-overcast one is the honest instrument because the dome and the wall are
+# lit the same in it:
+#
+#   ref_south.jpg (overcast)  dome #b89f8e #a28c7a   wall #857361 #987f66 #947f6a
+#                             dome / wall = 1.20  1.21  1.30
+#   ref_oblique.jpg (sunny)   the dome clips at 251+, so it is useless for a
+#                             ratio — but it settles the HUE: one warm pink
+#                             granite from the plinth to the lantern, no cream
+#                             cap anywhere on the building.
+#
+# So: ~20 % lighter than the wall, same hue. A white lerp is the right operator
+# because the measured ratio is largest in BLUE — it is a slight desaturation,
+# not a hue shift.
+DOME_LIFT = 0.22            # taste. 0 = literally the same stone as the wall.
+GRANITE_DOME = "#cb9f95"    # lerp(GRANITE, #ffffff, DOME_LIFT); ratio 1.08/1.21/1.25
+GRANITE_ATTIC = "#b57f71"   # the square attic block under the drum, a shade down
+# The Goddess of Liberty is painted WHITE and she is the one bright point at
+# the top of the whole silhouette. She goes through DOME_MATCH like everything
+# else in this layer — a statue has no windows either — so her base value is
+# lifted to land pale rather than putty after it.
+GODDESS = "#f4efe2"
+STAR = "#f8f0d8"
 LIMESTONE = "#ddd2b8"       # Texas limestone: the mid-century state buildings
 LIMESTONE_C = "#cfc4a8"     # a cooler cut, for variety between neighbours
 MODERN_STONE = "#d8d4c6"    # Bush / Jordan, 2022: pale stone and glass
@@ -212,6 +234,47 @@ AREA_USE = {
 }
 NOT_GROUND = {"stadium", "sports_centre", "grandstand", "pavilion", "building"}
 
+# ── The walks. WIDTH LIVES IN THE GEOMETRY, and this bake was left behind ──
+#
+# THIS IS WHERE THE CAPITOL'S WALKWAYS WENT, and it was not the rank ladder
+# (PR #78) and not the precinct lawns (PR #93). Both were suspected; neither
+# ever reads this file.
+#
+# On 2026-08-02, `Speedway fanned out because a line-width is pixels and the
+# ground is not` changed the contract for every walk in the city. A MapLibre
+# `line-width` is a number of SCREEN PIXELS and it is the same number for the
+# whole line, so a path drawn as a line fans out under perspective —
+# scripts/verify/road-fan.mjs measured 3.69x at pitch 86. bake_ground.py was
+# changed to buffer each centreline by half its real width and emit
+# `k:'patharea'` POLYGONS, and js/ground.js dropped every `k == 'path'` filter
+# in the same pass.
+#
+# bake_capitol.py was not changed with it, and nothing failed loudly, because
+# a source feature that no layer's filter matches is not an error. Measured on
+# merged main: `data/ground.geojson` holds 0 features with `k:'path'`;
+# `data/capitol_ground.geojson` holds 1,480, and js/ground.js has 0 layers that
+# would draw one. The lawns survived only because they are `k:'area'`, which
+# still has a layer — which is exactly the shape of the complaint: the grass is
+# there and the walks are gone.
+#
+# The buffer below is copied from bake_ground.widen_paths rather than imported,
+# for the reason given at the head of the ground vocabulary above.
+PATH_SIMPLIFY_M = 0.15      # post-union tolerance; well under a pixel
+PATH_MIN_AREA_M2 = 1.0      # drop slivers the union leaves behind
+# One square metre of ground belongs to exactly one drawn surface (PR #78's
+# rule, applied here to this file's own features, which that pass never sees).
+# Copied from bake_ground.RANK and extended by ONE entry: `service`. On this
+# campus bake_ground never meets a service way as a path — it is a road there —
+# but on the Capitol grounds the service ways ARE the carriage drives, 5 m of
+# asphalt looping the building, and they are the most legible thing in the
+# aerial after the Great Walk. They sit above the footways for the same reason
+# bake_ground puts the carriageway on top ("a sidewalk does not lie on a road")
+# and below the pedestrian plazas, so the Great Walk keeps the ground where it
+# crosses the drive at the south steps.
+PATH_RANK = {"steps": 64, "pedestrian": 60, "service": 58, "path": 56,
+             "footway": 52}
+PATH_RANK_DEFAULT = 1
+
 # ── The Capitol, by OSM id ────────────────────────────────────────────
 CAPITOL_WAY = 25758443
 # Its dome, from the same OSM relation. The drum carries roof:shape=dome and
@@ -228,16 +291,59 @@ LANTERN_PART = 1364720761
 # drum is the tallest single element of the real thing, and the dome above it
 # rises about one radius.
 Z_MAIN_ROOF = 35.0       # the central block's cornice; OSM part height
-Z_SKIRT_TOP = 42.0       # top of the mansard skirt around the dome's base
+Z_COLLAR_TOP = 37.6      # top of the LOW hipped roof where the four arms cross
+Z_ATTIC_TOP = 42.0       # top of the square granite attic the drum stands on
 Z_DRUM_TOP = 60.0        # springing of the dome; top of the colonnade
 Z_DOME_TOP = 75.0        # OSM height on the drum part
 Z_LANTERN_TOP = 83.0
 Z_CUPOLA_TOP = 88.0
 Z_STATUE_TOP = 92.24     # 302.64 ft
 DOME_STEPS = 18
-SKIRT_STEPS = 9          # 5 read as a stacked-square ziggurat under the drum
-SKIRT_HALF = 22.0        # half-width of the mansard's base square, metres
 COLUMNS = 24
+
+# THE DOME WAS STANDING ON A SEVEN-METRE STEPPED PYRAMID AND THE REAL ONE IS
+# NOT. "the thing on the top of capitol buildings looks like its angled."
+#
+# Measured first: the dome's axis is NOT leaning. Every disc in
+# data/capitol_dome.geojson is coaxial to within 0.27 m — under a quarter of a
+# pixel at any zoom this app flies — and the isolated layer, magenta, at frame
+# centre, reads an axis drift of 0.0 px over the whole 57 m stack at bearing 0
+# and 90. So "angled" is not a rotation and not an offset: it is a SLOPE that
+# should not be there.
+#
+# What is actually between the roof and the drum, from ref_oblique.jpg and
+# ref_south.jpg: a LOW hipped roof over the crossing of the four arms, and then
+# a SQUARE GRANITE ATTIC WITH VERTICAL WALLS carrying the six seals and the
+# south pediment, and the drum rises straight out of that. The old
+# `SKIRT_STEPS`/`SKIRT_HALF` mansard — 9 steps, 44 m across at the base,
+# resolving a square into a circle as it climbed — is a 7 m tall cone wrapped
+# round the drum, and from anywhere south of the building it is the single
+# biggest thing on the roof. Nothing in either photograph has that shape.
+#
+# The aerial is not in conflict with this: the four pale hips radiating from
+# the dome base in data/capitol_aerial.png ARE a pitched roof, but they sit at
+# roof level and they are shallow. That is COLLAR_STEPS, 2.6 m of it.
+COLLAR_STEPS = 3
+COLLAR_HALF = 22.0       # the crossing's roof mass, off the aerial
+ATTIC_HALF = 15.4        # 30.7 m across in ref_oblique.jpg, scaled on the
+                         # building's own 167.7 m footprint width
+
+# THE DOME MUST NOT OVERHANG ITS OWN DRUM. It sprang at 0.98 of the drum
+# radius, which is 30.0 m across against a colonnade 29.7 m across — a dome
+# fractionally WIDER than the thing holding it up, which is what makes a stack
+# of discs read as top-heavy. In ref_oblique.jpg the springing is 24.6 m across
+# against a 26.5 m colonnade: it is set back inside, with the attic ring
+# visible between them.
+DOME_SPRING = 0.82
+
+# AND THE DRUM ITSELF IS TOO WIDE, which is what made the dome look like a cone
+# sitting inside a hat. `dR` is the mean vertex radius of OSM's drum PART, and
+# that part is the whole rotunda footprint, not the colonnade. Scaled on the
+# building's own 167.7 m footprint width, ref_oblique.jpg puts the colonnade at
+# 26.5 m across and the springing at 24.6 m — a dome 0.93 of the colonnade.
+# Unscaled this bake draws 29.7 m and 25.1 m, i.e. 0.84, and the cornice at
+# dR*1.05 came out 32.2 m, WIDER than the 30.7 m attic block underneath it.
+DRUM_SCALE = 0.87
 # The dome's profile, as a fraction of the drum radius:
 #   r(t) = R · (DOME_SHOULDER + (1 − DOME_SHOULDER) · cos(t·π/2)^DOME_POWER)
 # DOME_SHOULDER is the reason this is not a spike. The first cut tapered to
@@ -305,6 +411,37 @@ def colours(wall, roof):
     wd, wg, wn = wall_tod(wall)
     rd, rg, rn = roof_tod(roof)
     return dict(wd=wd, wg=wg, wn=wn, rd=rd, rg=rg, rn=rn)
+
+
+# THE DOME LAYER SKIPS THE WINDOW ATLAS AND THE WALLS DO NOT. That one fact is
+# why the Capitol reads as a pale pink cap on a dark brown building while BOTH
+# carry the identical protected hex #bd8477 in the data — so "is FACADE_PROTECTED
+# still honoured" (it is; palette[0] is #bd8477 and the Capitol is stamped to it)
+# and "is the Capitol the right colour" are different questions, and answering
+# the first one yes is what hid the second for a week.
+#
+# `buildings-3d` multiplies the wall by the facade atlas; `capitol-dome` paints
+# `wd` flat. Measured in ONE frame, one light, at tod 0.30, with each surface
+# masked by repainting it green and reading the clean frame underneath:
+#
+#     Capitol walls   #815744        dome  #b5846a
+#     dome / wall      1.403  1.517  1.559
+#     ref_south.jpg    1.20   1.21   1.30       <- what it should be
+#
+# So every colour in the dome layer has to carry the atlas's mean darkening
+# itself: 1.20 / (1.403, 1.517, 1.559). This is not a fudge — the atlas stands
+# in for punched openings and shadow lines, the dome genuinely has far fewer of
+# them, and the photograph is what says how much fewer.
+#
+# It is ONE triple on purpose. If the atlas ever changes, this is the single
+# number to re-measure, and scripts/verify/... re-measures it on demand.
+DOME_MATCH = (0.855, 0.791, 0.770)
+
+
+def atlas_match(h):
+    """A dome-layer colour, brought down to where the atlas puts a wall."""
+    r, g, b = hex_to_rgb(h)
+    return rgb_to_hex(r * DOME_MATCH[0], g * DOME_MATCH[1], b * DOME_MATCH[2])
 
 
 def norm_name(s):
@@ -422,6 +559,89 @@ def ring_centre_radius(ring_ll):
     cy = sum(p[1] for p in m) / len(m)
     r = sum(math.hypot(x - cx, y - cy) for x, y in m) / len(m)
     return cx, cy, r, lat0
+
+
+# ─────────────────────────────────────────────────────── walks → polygons ──
+GROUNDS_LAT0 = 30.2747        # the Capitol's own latitude; the metric anchor
+
+
+def widen_paths(feats, stats, warnings):
+    """`k:'path'` LineStrings -> unioned, disjoint `k:'patharea'` Polygons.
+
+    ONE metric frame for the whole function. HANDOFF §32 records the trap:
+    1e-6 deg is 0.096 m east-west and 0.111 m north-south here, so nothing may
+    be buffered, unioned or area-tested in degrees.
+
+    Union per (use, surface) is NOT an optimisation. `ground-paths` draws at
+    `pathOpacity` 0.92 and two overlapping translucent polygons in one layer
+    composite twice, so every junction where two walks meet would show as a
+    darker patch. Union dissolves it inside a group; PATH_RANK dissolves it
+    between groups.
+    """
+    try:
+        from shapely.geometry import LineString
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: the Capitol's walks stay "
+                        "LineStrings, which NO layer in js/ground.js draws")
+        return feats
+
+    mlat = M_LAT
+    mlon = mlat * math.cos(math.radians(GROUNDS_LAT0))
+    fwd = lambda cs: [((x + 97.74) * mlon, (y - GROUNDS_LAT0) * mlat) for x, y in cs]
+    inv = lambda cs: [[round(x / mlon - 97.74, 7), round(y / mlat + GROUNDS_LAT0, 7)]
+                      for x, y in cs]
+
+    kept, groups = [], {}
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+            kept.append(f)
+            continue
+        cs = f["geometry"]["coordinates"]
+        if len(cs) < 2:
+            continue
+        w = float(p.get("w") or 2.0)
+        # Mitre joins and flat caps: a round join on a 2 m footpath adds a dozen
+        # vertices per corner to draw a curve nobody can see at 200 m.
+        poly = LineString(fwd(cs)).buffer(w / 2.0, cap_style=2, join_style=2,
+                                          mitre_limit=2.0)
+        if poly.is_empty:
+            continue
+        groups.setdefault((p.get("u"), p.get("s")), []).append(poly)
+        stats["path_widened"] += 1
+
+    # Highest rank first, and each group gives up whatever a higher one already
+    # took. Ties inside a rank fall back to the sorted key, so the result cannot
+    # depend on dict order.
+    order = sorted(groups.items(),
+                   key=lambda kv: (-PATH_RANK.get(kv[0][0], PATH_RANK_DEFAULT),
+                                   str(kv[0])))
+    taken = None
+    for (use, surf), polys in order:
+        merged = unary_union(polys)
+        if taken is not None:
+            before = merged.area
+            merged = merged.difference(taken)
+            stats["patharea_m2_yielded"] += int(round(before - merged.area))
+        if merged.is_empty:
+            stats["patharea_group_emptied"] += 1
+            continue
+        taken = merged if taken is None else unary_union([taken, merged])
+        if PATH_SIMPLIFY_M:
+            merged = merged.simplify(PATH_SIMPLIFY_M)
+        parts = merged.geoms if merged.geom_type == "MultiPolygon" else [merged]
+        for gm in parts:
+            if gm.is_empty or gm.geom_type != "Polygon" or gm.area < PATH_MIN_AREA_M2:
+                stats["path_sliver_dropped"] += 1
+                continue
+            rings = [inv(list(gm.exterior.coords))]
+            rings += [inv(list(r.coords)) for r in gm.interiors]
+            kept.append({"type": "Feature",
+                         "geometry": {"type": "Polygon", "coordinates": rings},
+                         "properties": {"k": "patharea", "u": use, "s": surf}})
+            stats["patharea_" + str(use)] += 1
+    return kept
 
 
 # ═════════════════════════════════════════════════════════════════ inputs ══
@@ -602,7 +822,10 @@ def main():
     dome = []
 
     def emit(ring_ll, base, top, wall, roof, tag):
-        c = colours(wall, roof)
+        # atlas_match, not the raw tone: every feature in this list ends up in
+        # `capitol-dome`, the one extrusion layer in the scene with no facade
+        # pattern over it. See DOME_MATCH.
+        c = colours(atlas_match(wall), atlas_match(roof))
         # The Capitol is floodlit every night of the year, and a dome that goes
         # dark with the rest of the city is the one thing that would read as
         # wrong to anyone who has driven past it. night_wall() is right for a
@@ -618,43 +841,37 @@ def main():
     drum = by_id.get(("way", DRUM_PART))
     dcx, dcy, dR, lat0 = ring_centre_radius(closed(ring_of(drum)))
 
-    # -- the mansard skirt: a rotated square melting into the drum's circle --
-    # In the aerial this reads as four big pyramidal faces radiating from the
-    # dome's base, in a darker granite than the walls.
-    for i in range(SKIRT_STEPS):
-        t0, t1 = i / SKIRT_STEPS, (i + 1) / SKIRT_STEPS
-        z0 = Z_MAIN_ROOF + (Z_SKIRT_TOP - Z_MAIN_ROOF) * t0
-        z1 = Z_MAIN_ROOF + (Z_SKIRT_TOP - Z_MAIN_ROOF) * t1
-        half = SKIRT_HALF + (dR - SKIRT_HALF) * t0
-        blend = t0 ** 0.85       # resolve into the circle early, not at the top
-        sq = square(dcx, dcy, half, lat0)
-        ci = circle(dcx, dcy, half, lat0, 40)
-        # Walk the square toward the circle so the skirt resolves into the drum.
-        n = 40
-        mixed = []
-        sq_m = to_m(sq[:-1], lat0)
-        ci_m = to_m(ci[:-1], lat0)
-        for k in range(n):
-            a = sq_m[int(k * len(sq_m) / n)]
-            b = ci_m[k]
-            mixed.append((a[0] + (b[0] - a[0]) * blend,
-                          a[1] + (b[1] - a[1]) * blend))
-        ring = to_ll(mixed + [mixed[0]], lat0)
-        emit(ring, z0, z1, GRANITE_DARK, GRANITE_DARK, "skirt")
+    # -- the roof collar: a LOW hipped mass where the four arms cross -------
+    # Roof metal, not granite: in the aerial these planes are the same
+    # standing-seam sheet as the wings' roofs, and they are continuous with
+    # them. The square's CORNERS point NE/NW/SE/SW into the four re-entrant
+    # angles of the cross plan, which is what puts the hips on the diagonals.
+    for i in range(COLLAR_STEPS):
+        t0, t1 = i / COLLAR_STEPS, (i + 1) / COLLAR_STEPS
+        z0 = Z_MAIN_ROOF + (Z_COLLAR_TOP - Z_MAIN_ROOF) * t0
+        z1 = Z_MAIN_ROOF + (Z_COLLAR_TOP - Z_MAIN_ROOF) * t1
+        half = COLLAR_HALF + (ATTIC_HALF - COLLAR_HALF) * t0
+        emit(square(dcx, dcy, half, lat0), z0, z1, CAP_ROOF, CAP_ROOF, "collar")
+
+    # -- the attic: a square granite block with VERTICAL walls --------------
+    # This is the band with the six seals and the south pediment. One prism,
+    # one height, no taper — the whole point of it is that it does not slope.
+    emit(square(dcx, dcy, ATTIC_HALF, lat0), Z_COLLAR_TOP, Z_ATTIC_TOP,
+         GRANITE_ATTIC, GRANITE_ATTIC, "attic")
 
     # -- drum: a cylinder, ringed by its colonnade ------------------------
     # The colonnade is the detail that makes this the Texas Capitol rather than
     # a generic dome, so the columns stand proud of the wall behind them and
     # are wide enough to survive being 500 m from the camera.
-    emit(circle(dcx, dcy, dR * 0.86, lat0), Z_SKIRT_TOP, Z_DRUM_TOP,
+    emit(circle(dcx, dcy, dR * DRUM_SCALE * 0.86, lat0), Z_ATTIC_TOP, Z_DRUM_TOP,
          GRANITE, CAP_ROOF, "drum")
     for i in range(COLUMNS):
         a = 2 * math.pi * i / COLUMNS
-        px = dcx + dR * 0.97 * math.cos(a)
-        py = dcy + dR * 0.97 * math.sin(a)
-        emit(square(px, py, 0.85, lat0, rot=a), Z_SKIRT_TOP + 1.5,
+        px = dcx + dR * DRUM_SCALE * 0.97 * math.cos(a)
+        py = dcy + dR * DRUM_SCALE * 0.97 * math.sin(a)
+        emit(square(px, py, 0.85, lat0, rot=a), Z_ATTIC_TOP + 1.5,
              Z_DRUM_TOP - 1.6, GRANITE_DOME, GRANITE_DOME, "column")
-    emit(circle(dcx, dcy, dR * 1.05, lat0), Z_DRUM_TOP - 1.6, Z_DRUM_TOP,
+    emit(circle(dcx, dcy, dR * DRUM_SCALE * 1.05, lat0), Z_DRUM_TOP - 1.6, Z_DRUM_TOP,
          GRANITE_DOME, CAP_ROOF, "cornice")
 
     # -- the dome itself: stacked discs on a raised profile ----------------
@@ -666,8 +883,8 @@ def main():
         t1 = (i + 1) / DOME_STEPS
         z0 = Z_DRUM_TOP + (Z_DOME_TOP - Z_DRUM_TOP) * t0
         z1 = Z_DRUM_TOP + (Z_DOME_TOP - Z_DRUM_TOP) * t1
-        r = dR * 0.98 * (DOME_SHOULDER + (1 - DOME_SHOULDER)
-                         * math.cos(t0 * math.pi / 2) ** DOME_POWER)
+        r = dR * DOME_SPRING * (DOME_SHOULDER + (1 - DOME_SHOULDER)
+                                * math.cos(t0 * math.pi / 2) ** DOME_POWER)
         emit(circle(dcx, dcy, r, lat0, 36), z0, z1, GRANITE_DOME, CAP_ROOF, "dome")
 
     # -- lantern, cupola, and the Goddess of Liberty -----------------------
@@ -678,17 +895,20 @@ def main():
         emit(square(dcx + 3.3 * math.cos(a), dcy + 3.3 * math.sin(a), 0.34,
                     lat0, rot=a), Z_DOME_TOP + 0.8, Z_LANTERN_TOP - 0.6,
              GRANITE_DOME, GRANITE_DOME, "lantern-column")
+    # The cupola was CAP_ROOF — grey-green sheet metal, on the one part of the
+    # building where every photograph shows granite-coloured paint. Only the
+    # WINGS' roofs are that metal.
     for i in range(4):
         t0, t1 = i / 4, (i + 1) / 4
         emit(circle(dcx, dcy, 3.1 * (1 - 0.72 * t0), lat0, 20),
              Z_LANTERN_TOP + (Z_CUPOLA_TOP - Z_LANTERN_TOP) * t0,
              Z_LANTERN_TOP + (Z_CUPOLA_TOP - Z_LANTERN_TOP) * t1,
-             CAP_ROOF, CAP_ROOF, "cupola")
+             GRANITE_DOME, GRANITE_DOME, "cupola")
     # 302.64 ft to the tip of her star.
     emit(circle(dcx, dcy, 0.75, lat0, 12), Z_CUPOLA_TOP, Z_STATUE_TOP - 1.2,
-         "#e8e2d2", "#e8e2d2", "goddess")
+         GODDESS, GODDESS, "goddess")
     emit(circle(dcx, dcy, 1.15, lat0, 10), Z_STATUE_TOP - 1.2, Z_STATUE_TOP,
-         "#f0e6c8", "#f0e6c8", "star")
+         STAR, STAR, "star")
     stats["dome_rings"] = len([d for d in dome])
 
     # -- stepped hip caps on the four corner pavilions ---------------------
@@ -765,6 +985,15 @@ def main():
                                         "coordinates": [[[round(p[0], 7), round(p[1], 7)] for p in closed(r)]]},
                            "properties": pr})
             stats["ground_areas"] += 1
+
+    # The walks have to arrive as polygons or nothing draws them at all. This
+    # runs LAST so the count above still reports what OSM had, and the count
+    # below reports what the app will actually receive.
+    ground = widen_paths(ground, stats, warn)
+    stats["ground_path_lines_left"] = sum(
+        1 for f in ground if f["properties"].get("k") == "path")
+    stats["ground_patharea_total"] = sum(
+        1 for f in ground if f["properties"].get("k") == "patharea")
 
     # ══════════════════════════════════════════════════════ 5. the trees ══
     # The Capitol grounds are a forest — 22 acres of live oak and pecan, and
@@ -927,9 +1156,17 @@ def main():
             "position": "factual - OSM ways/nodes",
             "height": "factual where OSM records it; %.1f m/level civic, %.1f m "
                       "otherwise, is GENERATIVE" % (M_PER_LEVEL_CIVIC, M_PER_LEVEL),
-            "dome form": "GENERATIVE - stacked rings; the 92.24 m top is factual",
+            "dome form": "GENERATIVE - stacked rings; the 92.24 m top is "
+                         "factual, and the roof collar / vertical attic / dome "
+                         "springing are read off two elevation photographs",
             "capitol roof colour": "measured off a z20 nadir tile",
             "granite colour": "GENERATIVE - nadir imagery cannot show a wall",
+            "dome vs wall": "MEASURED - 1.20/1.21/1.30 off ref_south.jpg, and "
+                            "DOME_MATCH carries the facade atlas's darkening "
+                            "so the flat dome layer lands where a wall does",
+            "walk width": "factual where OSM records it, DEFAULT_WIDTH "
+                          "otherwise; buffered into the geometry because a "
+                          "line-width is screen pixels (see widen_paths)",
         },
     }, indent=2))
 
