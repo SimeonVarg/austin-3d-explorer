@@ -1,5 +1,162 @@
 # Austin 3D Explorer — Full Handoff
 
+## 46. Aug 3 2026 — a pitched frame is not at one zoom, so the far half of the city was stuck at one hour (acer lane)
+
+**Branch:** `acer/facade-atlas-tier`, PR #103, merged `715fa49`. QUEUE **A1** and
+**A4** — "the worst bug in the app". They are one defect seen from two sides,
+and **the report named the mechanism**: *"it happens every quarter... fly over
+each chunk to fix that chunk... they go back to being dark after a while"* is
+TILES, and the quadrant boundaries are tile boundaries.
+
+### THE FACT THAT MAKES THE WHOLE THING WORK, AND IT IS IN NONE OF OUR NOTES
+
+**Past about 60 degrees of pitch, MapLibre picks a tile zoom PER TILE, by
+distance from the camera.** `MercatorCoveringTilesDetailsProvider.allowVariableZoom`
+returns true when `pitch > clamp(78.5 - zfov/2, 0, 60)`, which at this fov is
+exactly 60.0. **This app spawns at pitch 74 and orbits at 73.** Measured at the
+spawn pose, `getVisibleCoordinates()` on `austin-buildings`:
+
+```
+camera z16.50 pitch 74
+in-view building tiles:  z13 x3   z14 x4   z15 x2   z16 x1   z17 x2   z18 x2
+```
+
+Six tile zooms in one frame. The facade pattern id is chosen by
+`['step', ['zoom'], ...]`, and **MapLibre evaluates a zoom expression at the
+TILE's zoom, not the camera's** — so a single pitched frame samples all three
+mip tiers at once, the near field from one and the far field from another.
+
+`updateFacades` repainted only the tiers `activeTiers(map)` named, which come
+from the CAMERA's zoom, and left the rest in a `_stale` set drained on a `zoom`
+event. At z16.5 that set is mid+near. **Tier `x` covers every tile at z below 16
+— 9 of the 14 tiles on screen — and could not be reached at all** without flying
+below z16 entirely. Its own comment defended the scheme as free because "in
+practice the hour does not change mid-flight". Both halves were false.
+
+### MEASURED, because "half the buildings" is not a number
+
+Mean luma over the 100 registered images of each tier, spawn pose, one page load:
+
+```
+                            near     mid     far
+BEFORE  after DAY           148.7   148.7   153.6
+        DAY -> NIGHT         63.5    63.5   153.6   <- A4: daylit walls at night
+        night, out to z14,
+        back, then DAY      148.7   148.7    63.5   <- A1: night walls in daylight
+
+AFTER   every step          identical across all three tiers
+```
+
+Worst per-bucket spread between tiers during a **40-step continuous drag at
+40 Hz** (ten times the app's own quantised cadence): 24.5, against about 85 for a
+tier a whole hour behind. **400 ms after it stops: 0.21.**
+
+The pictures are the honest half: `shots/a1-before/a1-day-bearing-160.png`
+against `shots/a1-after/a1-day-bearing-160.png` — same camera, tod 0.30, blue
+sky, and in the BEFORE frame everything past the creek is charcoal-black with
+night windows behind a hard vertical seam down the middle of the screen.
+`shots/a1-crop/before-dt.png` vs `after-dt.png` is the A4 side: the downtown
+skyline was a row of solid daylight slabs in the middle of a night frame.
+`shots/a1-merged/a1-day-bearing-160.png` is the same frame re-verified on merged
+`main` at `715fa49`, with `harness-drift.mjs` PASS before it.
+
+### THE RULE NOW
+
+**Every mip tier holds the same hour, always.** The lazy scheme survives only as
+a LATENCY path — the camera-active tiers are painted in the calling frame so a
+slider drag stays responsive — but the flush of the rest is on a TIMER that
+always fires (`window.FACADE_ATLAS.FLUSH_MS`, 90 ms, a FLOOR and not a debounce)
+rather than an event that may never come. `_tierP` records the hour each tier
+actually holds, so "stale" is derived from the pixels rather than remembered in
+a set that can be cleared without them changing.
+
+Also: new combos registered after `initFacades` (`quantiseOuterFacades`,
+`registerFacadeBuckets`) now draw at the ATLAS's hour, not at
+`window.__todCurrentP`. And the silent `catch` around `map.updateImage` warns
+once — `ImageManager.updateImage` THROWS on a size mismatch while MapLibre's own
+wrapper only fires an error event, so swallowing it freezes the atlas at one
+hour and looks exactly like this bug.
+
+### THE COST, AND TWO THIRDS OF IT PAID BACK
+
+`updateFacades` 57.7 -> 100.1 ms (min of 6 interleaved reps, hardware GL, no CPU
+throttle, both configurations in ONE page load). One extra tier per repaint, and
+it is the expensive tier: the far one carries the widest blur, the near one
+carries none.
+
+- **`softenTile` is a sliding-window box blur now** — O(n) instead of O(n\*r).
+  `tmp` holds the window SUM rather than the mean, so every intermediate is a
+  small integer and the result carries NO rounding (the old code rounded `s/win`
+  into Float32 halfway through). Checked against the old implementation over 20
+  cases at the radii actually used, RES 64 and 128: **worst channel difference
+  0**, with a negative control (window skewed one texel) reading 23 and caught.
+- **`tileData` hands MapLibre a view, not `d.buffer.slice(0)`.** Both `addImage`
+  (`new Uint8Array(data)`) and `updateImage` (`RGBAImage.replace(data, copy=true)`
+  for a plain object) copy on their side — read in the 5.24.0 source rather than
+  assumed. That was 300 x 64 KB of memcpy and garbage per time-of-day step.
+- The blur scratch buffer is reused instead of allocated per image.
+
+### WHAT DID NOT WORK
+
+- **The first cost measurement said the fix was free (56.6 vs 57.3 ms) and it
+  was wrong.** `scheduleFlush` returned early whenever a timer was pending, so
+  setting `FLUSH_MS = 0` to force the synchronous path was silently inert and
+  both configurations measured the same code. **A knob that does nothing reads
+  exactly like a change that costs nothing.** Fixed in the same PR: `FLUSH_MS = 0`
+  clears a pending timer and flushes in the call.
+- **The first combo audit reported 50 missing images and it was the audit.**
+  `wp` is OVERLOADED across three independent pattern systems: `js/drag.js`
+  writes `dg-*` and `js/moody.js` writes `health-body-grey`, and both paint it
+  with a plain `['get','wp']`, untiered, one image per id repainted every
+  time-of-day step. **They are immune to this defect by construction.** Only the
+  facade families (`^[a-z]{2}\d\d$`) go through `facadeTierExpr`. Worth knowing
+  before anyone greps for `wp` and assumes one owner.
+- **The brief's third suspect is not the cause.** *"a combo added after
+  initFacades has no image and MapLibre paints it transparent"* — audited after a
+  day/night/day round trip: **33 pattern ids asked for by loaded features, 0
+  missing at any tier.** MapLibre's `addImage` sets `_changedImages` and
+  `_updateTilesForChangedImages` reloads the tiles that depend on it;
+  `updateImage` deliberately does NOT, which is the other half of why this bug
+  existed at all.
+
+### THE NEXT WIN IN THIS FILE, WITH THE NUMBER ATTACHED
+
+**The far tier is 128x128 texels to fill 16 CSS px** — about 32 device pixels, so
+it carries 16x more texels than it can ever show, plus a prefilter blur to cope.
+A real mip chain halves the resolution per level. Doing that would make the far
+tier roughly 16x cheaper AND remove the blur it exists to carry (downsampling IS
+the prefilter), which is where the remaining ~40 ms lives. Not done here because
+it resamples every far-field wall and A1 should not wait on a taste review.
+
+### TWO THINGS FOR OTHER LANES
+
+1. **QUEUE E1's note that "downtown towers read as a dark grey mass next to a
+   warm campus" is at least partly THIS BUG**, not a design choice — compare
+   `shots/a1-crop/before-day-skyline.png` with `after-day-skyline.png`. Re-read
+   E1 against the fixed build before adding anything to downtown.
+2. **The A1 assertion is not committed**, because `scripts/verify/` was not this
+   lane's to write. It is fifteen lines and it should be adopted — it is the only
+   thing that will catch this coming back:
+
+```js
+// after driving tod day -> night -> day, in the page:
+const im = window.__map.style.imageManager.images;
+const per = {};                       // tier suffix -> mean luma per image
+for (const k of Object.keys(im)) {
+  if (!/^[a-z]{2}\d\d/.test(k)) continue;      // facade families only
+  const d = im[k].data.data; let s = 0;
+  for (let i = 0; i < d.length; i += 4) s += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+  (per[k.slice(4)] = per[k.slice(4)] || []).push(s / (d.length / 4));
+}
+// ASSERT: for each bucket index, the spread across tiers is small.
+// A tier a whole hour behind reads ~85 luma apart; settled, it is 0.2.
+```
+
+The camera must be PITCHED past 60 for the defect to exist at all, so the probe
+has to use the spawn pose (pitch 74). At pitch 45 every tile is at one zoom and
+the bug is invisible — which is very likely why it survived this long.
+
+
 ## 45. Aug 3 2026 — downtown was forty boxes, and the crown was stacked on top of the height instead of carved out of it (acer lane)
 
 **Branch:** `acer/downtown-detail`, PR #99. QUEUE **D2c** — the CONTENT half of
