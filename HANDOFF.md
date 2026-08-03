@@ -1,5 +1,164 @@
 # Austin 3D Explorer — Full Handoff
 
+## 47. Aug 3 2026 — a road's width was a number of pixels, and the fence was drawn round the campus (acer lane)
+
+**Branch:** `acer/road-width-fence`, PR #105, merged `a420d07`. QUEUE **A2** and
+**A7**.
+
+### A2 — "some roads dont do this" was the answer, not the puzzle
+
+*"when im all the way down vertically and look at an angle towards the roads and
+start facing upright, the roads get bigger. some roads dont do this."*
+
+The roads that DON'T are the **sidewalks**. PR #70 moved their width out of
+`line-width` and into the geometry and the carriageways were left behind — two
+representations in one frame, which is exactly what "some do and some don't"
+looks like. Nothing about the report was mysterious once that landed.
+
+**Why pitch is what he noticed.** A `line-width` is one constant number of
+SCREEN PIXELS for the whole line, so it can be right at exactly one distance —
+and `w · 2^zoom / 67546` is derived from the map-centre scale, so that distance
+is the map centre. `js/controls.js` holds altitude and derives zoom, so pitching
+over drags the centre away from you (at 90 m, pitch 30 puts it 52 m ahead and
+pitch 86 puts it 1,287 m ahead). Everything nearer than the centre is drawn too
+NARROW and everything beyond it too WIDE, and pitching moves the whole frame
+across that boundary.
+
+**Measured in rendered pixels**, mid-block on Guadalupe (17.0–20.4 m in the
+data), eye at 21st, 90 m up, bearing north:
+
+    321 m out   before  x1.5 at pitch 50, x2.0 at 60, x1.0 at 82
+                after   x1.0 at 50, 60, 75, 82 and 86
+    657 m out   before  x0.5 at pitch 60, x1.0 at 82, x0.9 at 86
+                after   x0.9–1.1 at every pitch
+
+Half to twice its real width, depending on where you looked. `widen_roads()` in
+`scripts/bake_ground.py` buffers every near carriageway and separate cycleway by
+half its tagged width and unions per (class, surface): **3,015 `k:'roadarea'` /
+`k:'cyclearea'` polygons**. `ground-road` is a fill; the kerb is a 2.6 px stroke
+on the polygon boundary, in pixels on purpose (a kerb is a screen-space
+highlight — the same argument `GROUND.kerbPx` already makes).
+
+**The far-field armature stays a line, under a 3 px ceiling.** Everything in it
+is at least 3.4 km away, measured off `roads.geojson` against the campus centre,
+where a real 14 m carriageway is 3.0 px or less. A width that no longer depends
+on the road's metres cannot fan. Polygonising it measured +185 KB gzipped to
+draw roads nobody can reach.
+
+**THE COST, AND IT IS THE ONE THING TO REVISIT.** `data/ground.geojson` went
+1.58 → 3.59 MB raw, **293 → 738 KB gzipped**. Time-to-city was unchanged (min of
+two interleaved reps on localhost, 6.97 s after vs 6.98 s before), so this is
+transfer, not parse — but `ground.geojson` is NOT tiled and downloads whole.
+**These polygons belong in `roads.pmtiles`.** That needs a `data/roads.geojson`
+rewrite plus `gh workflow run build-tiles.yml`, and merging code before the
+archive lands would leave the two disagreeing, which is the "a missing layer
+makes every metric look better" trap. It is a follow-up with its own PR.
+
+### A7 — "locked almost halfway" was literally true
+
+The fence was the bbox of `scene.buildings` (campus + Capitol) padded 250 m, so
+its south edge was **lat 30.2685**, and the downtown bake runs
+**30.2560–30.2770**. 59% of the way down downtown. Downtown is not in
+`scene.buildings` and never was — it is 8,428 outer-ring buildings on their own
+tiled source.
+
+The fence is the **modelled-city box** now, mirrored from `bake_outer.py`'s
+`OUTER`. `fetch_city_trees.py` already writes the identical box in its own
+header as *"modelled city … the buildings you can see"* and plants the canopy to
+it, so this is a mirror of a definition two bakes already share, not a number
+somebody picked.
+
+    old   1.7 km W / 1.4 E / 1.8 S / 1.5 N of campus centre    10.1 km²
+    new   5.1 km W / 3.7 E / 5.2 S / 3.6 N                     77.4 km²   (7.6x)
+
+Driven through the REAL controller (keydown on `window`; a `jumpTo` teleports
+past a fence that lives in the tick): south from campus he crosses all of
+downtown and eases to a stop **89 m short of the fence at 5.4 m/s**. The ring's
+own density says that edge is city and not blank: 1,956 buildings per 500 m band
+at 2.0–2.5 km, still 485 at 4.0–4.5 km, 8 past 6.5 km, and every building over
+40 m is inside 3.5 km.
+
+### Widening the fence alone would have been a WORSE bug than the one it fixed
+
+The collision grid is rasterised from `scene.buildings`. Past the campus there
+was nothing to hit, and the new fence reaches 315 m towers. `maxHeightIn` is the
+single choke point every collision path reads through — block-and-slide, the
+rooftop floor, the speed brake, wall deflection, `writeToMap`'s hard net — so
+teaching THAT about the ring gives all five of them downtown collision for free.
+
+The ring is tiled, so there is no moment at which its full extent exists in the
+browser. The second field is therefore built **incrementally, from whatever the
+source is currently holding, every time the map settles**. Flying at a tower
+means looking at it, which means its tile is loaded. **Bounding boxes, not
+rasterised footprints** — and unlike §50 that is right here rather than lazy:
+§50 is about SIZING something from a bbox, where over-covering throws a fan deck
+off a roof; for a collision net over-covering stops you EARLY, which is the safe
+direction. Flown at the 315 m tower at Sixth & Guadalupe at 80 m: deflected and
+held at the facade, 31 m from the centroid.
+
+**Budget it or it drops frames.** First measurement, unbudgeted: **8.9 ms
+average and a 35.1 ms worst** — two frames gone, the kind of thing that gets
+reported as "it stutters sometimes" and is never found. Now a 4 ms budget with
+resume-next-frame, a de-dup set keyed on position+height (the same building
+arrives in every later scan and in every overlapping tile), a
+`['>', ['get','h'], 12]` filter pushed INTO `querySourceFeatures` so MapLibre
+drops the low-rise before it builds the objects, and a backoff to 6 s when a
+completed pass added nothing: **3.65 ms average over 106 scans in a 100 s
+flight**, worst 13.9 ms. `querySourceFeatures` itself is the part that cannot be
+budgeted — it builds the whole list before returning — so the cheapest saving
+available is not making the call.
+
+### What did NOT work, and two of these cost real time
+
+1. **`road-fan.mjs` cannot verify this fix.** It reads the layer's own
+   `line-width` expression, so on a fill it prints `GEOMETRY` and exits 0. True,
+   and a tautology — §33's trap in a new costume. The A2 numbers above come from
+   a framebuffer probe instead: magenta mask, horizontal cut, run length divided
+   by what `map.project()` says 10 m of that same ground is.
+2. **A pitch sweep that samples near the map centre reports 1.00x before AND
+   after.** Correct by construction and useless. The samples have to be fixed
+   ground points well beyond the centre.
+3. **Sample points picked by eye put two of four in junctions**, where the bake's
+   union genuinely does merge Guadalupe with the cross street into one wide slab
+   — so the probe read x3.5 on a build that was correct. They are now the centres
+   of the four longest gaps between crossing streets, found from the data.
+4. **"The kerb is what darkened the far field."** Very plausible: the casing went
+   from 1.16x the road's own drawn width to a constant 2.6 px, which at 4 km is
+   wider than the road it edges, and it is 38% darker than asphalt. Measured with
+   the layer toggled: **0.89 luma** in the far band. Wrong. The far band is 2.17
+   luma darker because roads NEARER than the map centre used to be drawn too
+   narrow and are now correct — the fix working, not a regression.
+5. **A per-tile `distance-from-center` width correction** instead of geometry,
+   abandoned before coding: roads tile at z≤16 and overzoom, so the width would
+   step every ~527 m along a street. A road that changes width mid-block is a
+   seam, which is a glitch, which is the thing being fixed.
+6. **Two columns of the new probe are still not trustworthy** and are said so
+   rather than hidden: at 1190 m and 1453 m under pitch 82–86 a horizontal
+   scanline near the horizon stops cutting one road and starts crossing a whole
+   block of contiguous pavement. Both builds report nonsense there.
+7. **The A/B screenshots were taken twice.** The first set was on a working copy
+   four commits behind (PR #103/#104 had landed), so they were re-shot after
+   `git pull --rebase` confirmed `0 0`. The rule in CLAUDE.md is there because
+   this is easy to do.
+
+### Two things the next lane should know
+
+- **`scripts/verify/node_modules` vanished mid-session** and every verify script
+  died with `ERR_MODULE_NOT_FOUND` on `playwright-core`. Almost certainly another
+  lane running `npm ci`, which wipes the directory before it repopulates it.
+  `cd scripts/verify && npm ci` puts it back in 7 s. Do not conclude the harness
+  is broken.
+- **`ground-luma.mjs` and `roads-luma.mjs` now under-report the roads.** They
+  call `setPaintProperty(id, 'line-color', …)` on anything matching
+  `^ground-road`, which is a no-op on a fill (their `set` helper swallows it).
+  The same thing already happened to `ground-paths` at PR #70 and nobody noticed.
+  They need `fill-color` for `ground-road` and `ground-cycleway`; not this lane's
+  files.
+
+**Shots:** `shots/a2-before/` and `shots/a2-after/` (same three poses),
+`shots/a7-fence/` (downtown from inside the new fence, and the south fence edge
+looking back into the city).
+
 ## 46. Aug 3 2026 — a pitched frame is not at one zoom, so the far half of the city was stuck at one hour (acer lane)
 
 **Branch:** `acer/facade-atlas-tier`, PR #103, merged `715fa49`. QUEUE **A1** and

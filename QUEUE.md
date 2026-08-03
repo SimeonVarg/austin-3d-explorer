@@ -98,7 +98,19 @@ and never installed it.**
 Reproduce it in a script first: load, set tod day, set tod night, set tod day
 again, orbit, and sample facade pixels by quadrant. Assert the effect.
 
-## A2. Roads swell as you tilt up from low altitude
+## A2. Roads swell as you tilt up from low altitude — **DONE**
+
+> **FIXED, PR #105, merged `a420d07`.** "some roads dont" was the answer: the
+> ones that don't are the SIDEWALKS, whose width PR #70 already moved into the
+> geometry. `bake_ground.py`'s new `widen_roads()` does the same for every near
+> carriageway and cycleway — 3,015 `k:'roadarea'` polygons, `ground-road` is a
+> fill. Measured on Guadalupe mid-block: a road that was drawn between HALF and
+> TWICE its real width depending on pitch and distance is now x0.9–1.1 at every
+> pitch. The far-field armature is the one road layer still a line, under a 3 px
+> ceiling, because everything in it is over 3.4 km away. **It cost 293 → 738 KB
+> gzipped on an untiled file — moving those polygons into `roads.pmtiles` is the
+> follow-up.** HANDOFF §47; `shots/a2-before/` against `shots/a2-after/`.
+
 
 *"when im all the way down vertically and look at an angle towards the roads and
 start facing upright, the roads get bigger. some roads dont do this."*
@@ -171,7 +183,17 @@ mechanical azimuth-gap finder from #98 and report why it did not catch this
 building — a detector that misses a known case is worth more attention than the
 case itself.
 
-## A7. You cannot fly into downtown
+## A7. You cannot fly into downtown — **DONE**
+
+> **FIXED, PR #105, merged `a420d07`.** The fence was the bbox of
+> `scene.buildings` — campus plus the Capitol — so its south edge sat at lat
+> 30.2685 while the downtown bake runs 30.2560–30.2770. Exactly 59% of the way
+> down downtown, exactly "almost halfway". It is the modelled-city box now:
+> **10.1 km² → 77.4 km²**, and he eases to a stop 89 m short of the far edge
+> with a full city still around him. Widening it also needed a second, coarse
+> collision field built incrementally off the tiled outer ring, or he would fly
+> through the 315 m tower at Sixth & Guadalupe. HANDOFF §47; `shots/a7-fence/`.
+
 
 *"i wish i could explore more of downtown im currently locked almost halfway"*
 
