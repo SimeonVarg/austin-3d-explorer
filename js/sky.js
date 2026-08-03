@@ -89,6 +89,33 @@
       RX: 0.62, RY_ROSE: 0.085, RY_BLUE: 0.05, // ellipse radii, fractions of max(W,H)
       STOPS: [[0, 1], [0.45, 0.5], [1, 0]],
     },
+    // How far BELOW the horizon the sky's additive wash fades out, as a
+    // fraction of frame height.
+    //
+    // THIS WAS THE SECOND LINE. The sky pass is clipped so its glow cannot
+    // paint the city, and the clip used to be a hard `rect` at hzPx + 0.018*H
+    // with the comment "a small margin keeps the boundary soft". A hard edge is
+    // not soft: the margin put the cut 18 px INSIDE the city, so every tower
+    // crossing that row got the full horizon wash on the part above it and none
+    // below. MEASURED at midday on the tower at Sixth & Guadalupe, before this
+    // change: luma 117.0 at row 358 and 80.4 at row 359 — a 36.6 luma step in
+    // one pixel row, at exactly hzPx + 0.018*H.
+    //
+    // It hid behind the ground haze until that was fixed, and it is the same
+    // complaint with the opposite sign: above the line the building is lighter,
+    // below it is "COMPLETELY NORMAL". So the wash is now ERASED back out with a
+    // gradient CENTRED ON THE HORIZON, which turns the cliff into a ramp: 36.6
+    // luma over 36 rows instead of over one, about 1 luma per row, which is
+    // under what an eye finds on a textured wall. Re-measured after: 2.8.
+    //
+    // Centred, and this width, for a reason that is not taste. The sky canvas is
+    // sized to the sky band and `graphics.mjs` asserts it stays under half the
+    // viewport — it was already at 48%, so there is no room to grow it
+    // downward. A ramp centred on the horizon needs exactly HALF of this below
+    // it, so 0.036 costs the same 0.018*H of canvas the hard clip already used
+    // and the assertion is untouched. Growing it instead took the canvas to 60%
+    // and turned that check red.
+    HORIZON_FADE: 0.036,
     // Star twinkle for the bright ~quarter of the field. Driven by the clock
     // inside the existing redraw path — NO new rAF loop, so a parked camera
     // at a fixed hour costs nothing (and its stars simply hold still).
@@ -196,63 +223,110 @@
     return SUN_COL[SUN_COL.length - 1].c.slice();
   }
 
-  // ── Aerial perspective on the ground ──────────────────────────────
+  // ── Aerial perspective: fade by DISTANCE, not by screen row ───────
   //
-  // THE DEFECT. The outer ring is a flat tan carpet by day and dead black by
-  // night, meeting the sky at a hard line. Measured in the sweep: green pixels
-  // by screen row in `day-dkr-stadium` run 11.4% in the near field, 0.2%, then
-  // 0.0% at the horizon; at night the same band is luma 13-19 for its whole
-  // depth. Nothing recedes. A real city three kilometres away is most of the
-  // way to the sky's own colour, and that IS the depth cue — not detail.
+  // THE DEFECT THIS REPLACES, in his words, after describing it three times:
   //
-  // WHY IT CANNOT BE MapLibre'S FOG. `js/timeofday.js` already records the
-  // measurement: `fog-color`, `horizon-fog-blend` and `fog-ground-blend` are
-  // TERRAIN-only, and sweeping `fog-ground-blend` 0 -> 1 left every pixel
-  // bit-identical. This scene has no terrain, so the engine's aerial
-  // perspective does not exist here and cannot be turned on.
+  //   "ever since start theres been a horizon that shades things under it into
+  //   the sky. this line follows me when i go up or down ... under the line has
+  //   this nice gradient but above the line is COMPLETELY NORMAL building. so
+  //   like on default sunset im looking at downtown from a medium height, the
+  //   bottom half shades fine, but the top half is completely darker and the
+  //   same tone."
   //
-  // WHY A SCREEN-SPACE GRADIENT IS NOT A CHEAT. Under a pitched camera, screen
-  // row and ground distance are the same variable. A row `a` degrees below the
-  // horizon is ground at `h / tan(a)` for a camera `h` above the plane, so a
-  // gradient in Y is exactly a gradient in distance — and the stops below are
-  // computed from that formula plus Beer-Lambert, not eyeballed. Both terms
-  // come from the live camera: `h` from the zoom, pitch and field of view,
-  // `a` from the pixel offset and the focal length.
+  // He was describing a screen-space gradient element, and he was right. The
+  // haze used to be a full-width DIV pinned to the horizon row and faded down
+  // the frame, defended by this argument: "under a pitched camera, screen row
+  // and ground distance are the same variable". That is TRUE FOR THE GROUND and
+  // FALSE FOR ANYTHING WITH HEIGHT. A tower's base and its crown are the same
+  // distance from the camera; the base sat below the line and took most of the
+  // haze, the crown sat above it and took none. MEASURED before this change, on
+  // the tower at Sixth & Guadalupe from 98 m up: a **50.3 luma step across ONE
+  // pixel row**, and up to 67 luma between crown and base. The old note even
+  // owned the failure — "a NEAR building tall enough to reach the horizon picks
+  // up haze it has not earned" — and estimated it at "a few percent". It is not
+  // a few percent, and it is not only near buildings.
   //
-  // The known cost, stated rather than hidden: a NEAR building tall enough to
-  // reach the horizon line picks up haze it has not earned. At the poses this
-  // app flies, that is a tower top within a few hundred metres, and it gets a
-  // few percent of alpha at its very top. A matte painter would do the same
-  // thing for the same reason.
+  // THE FIX IS THE DEPTH BUFFER. Every fill-extrusion in the scene has already
+  // written its true distance there. A `custom` layer with renderingMode '3d'
+  // shares that buffer (probed: a magenta quad depth-tested at NDC 0.9 masks
+  // itself exactly to the buildings, silhouettes above the horizon included, and
+  // leaves ground and sky untouched). So the fog is drawn as a LADDER of
+  // depth-tested full-frame quads: shell i sits at eye distance t_i and paints
+  // only where the scene is FURTHER than t_i. A pixel at distance d passes every
+  // shell inside d, so its accumulated alpha is a staircase following
+  // Beer-Lambert in d — per pixel, from real geometry. A tower's base and crown
+  // are within ~2% of the same eye distance, so they now take the same fade.
   //
-  // Screen blend, like everything else in this file, so it can only ADD light:
-  // by day that is the pale sky washing into the far city, and at night it is
-  // the blue skyglow that stops the far ring being a black void. It can never
-  // darken a building, so it cannot silhouette anything incorrectly.
+  // WHY THE GROUND IS STILL DONE IN SCREEN SPACE, and why that is not the old
+  // bug: MapLibre's 2D fill layers do NOT write geometric depth. They write a
+  // per-layer constant in a reserved band above everything 3D (probed: the 3D
+  // depth range ends at 0.958984, the fills sit above it, cleared sky is 1.0).
+  // So the ground cannot be fogged from the depth buffer at all — but for the
+  // ground the screen-row argument IS sound, because the ground has no height.
+  // The two are computed from the SAME Beer-Lambert on the SAME eye-space
+  // distance, so they agree at every building's base by construction and there
+  // is no seam to tune. The stencil buffer keeps them apart: one pass marks
+  // every 3D pixel, the shells run where the mark is, the ground gradient runs
+  // where it is not.
   //
-  // TASTE KNOBS, all of them:
+  // WHY NOT MapLibre'S OWN FOG. Re-probed on 5.24.0 rather than trusted:
+  // setting `fog-color` to magenta with `fog-ground-blend: 0` changed not one
+  // pixel. `fog-*` is terrain-only and this scene has no terrain.
+  //
+  // The blend is now a real `over` (lerp toward the fog colour), not the old
+  // `screen`. Screen could only add light, which is why the old haze could not
+  // undo the excess it painted on a tower's lower half; a lerp is what aerial
+  // perspective actually is, and at night it pulls the far city UP to the
+  // skyglow instead of leaving it a black void.
+  //
+  // TASTE KNOBS, all of them (window.HAZE_TUNE):
   const HAZE = {
     on: new URLSearchParams(window.location.search).get('haze') !== '0',
-    // Haze scale distance in metres — the distance at which the ground is
+    // 'depth'  — the ladder above (default)
+    // 'screen' — the old DOM gradient, kept as a fallback and for A/B shots
+    MODE: (new URLSearchParams(window.location.search).get('fog') === 'screen')
+      ? 'screen' : 'depth',
+    // Haze scale distance in metres — the distance at which a surface is
     // 1 - 1/e of the way to the sky colour. Smaller = thicker air.
-    DIST: { day: 5200, golden: 4200, night: 3400 },
-    // Alpha at infinity, i.e. at the horizon line itself.
+    //
+    // CALIBRATED, not re-guessed. The one thing he liked about the old haze was
+    // the high view, "so if i go high enough so where the line is above the
+    // towers in downtown it looks really nice like their distant and shaded
+    // with the sky a bit". So the new curve is set to reproduce THAT AMOUNT at
+    // THAT POSE: from 934 m up, the downtown towers sat at screen rows the old
+    // gradient fed 4356 m of ground distance, giving alpha 0.365, while their
+    // true camera distance was 2.67 km. Solving A(1-e^-2670/D) = 0.365 gives
+    // D = 2507 m, i.e. 0.62x the old values — which is exactly what you would
+    // expect, because the old screen-row curve was reading every building as
+    // 1.6x further away than it was. Swept 1.0 / 0.6 / 0.42 / 0.3 on top of that
+    // and 0.6 is also where the near field keeps its contrast.
+    DIST: { day: 3200, golden: 2600, night: 2100 },
+    // Alpha at infinity, i.e. at the horizon.
     MAX: { day: 0.62, golden: 0.58, night: 0.46 },
-    // How far below the horizon the element runs, as a multiple of frame
-    // height. It has to reach the BOTTOM OF THE FRAME and this is only a
-    // safety cap, because the curve does NOT reach zero on its own: measured
-    // at the z15.5 downtown pose, ending the gradient a third of the way down
-    // left it at alpha 0.126 and that termination was a hard horizontal seam
-    // straight across the towers (shots/final/seam.png). Ending off the bottom
-    // edge of the frame is the only place a non-zero alpha can end invisibly.
-    MAX_DEPTH: 4.0,
-    STOPS: 14,           // gradient stops; the curve is steep near the horizon
-    // Pull the haze colour toward the sky's own zenith by this much, so the
-    // join is to the sky ABOVE the horizon rather than to the horizon band —
-    // a horizon band that matches the ground exactly reads as one flat wall,
-    // which is the thing being fixed.
+    // Rungs in the ladder. This is the ONLY source of banding in the depth
+    // path: the staircase steps by MAX/(SHELLS+1) of alpha, which shows up as
+    // faint contours on surfaces that span depth — roofs, never facades, since
+    // a facade is at one distance. At 28 rungs the step is 0.02 alpha, about
+    // 2.6 luma against a dark building under a bright sky, which is at the
+    // threshold. Raising it costs one more full-frame depth+stencil test per
+    // rung (most fragments are rejected before the shader runs).
+    SHELLS: 28,
+    // Each rung only needs to cover the frame ABOVE the ground row for its own
+    // distance — nothing further away can appear below that row. This is the
+    // whole reason the ladder is affordable: the far rungs shrink to a band at
+    // the horizon. The pad extends the rung downward so that geometry cut BELOW
+    // grade (the creek channel, PR #79) is still covered.
+    SHELL_PAD: 0.09,
+    // Pull the fog colour toward the sky's own zenith by this much, so the join
+    // is to the sky ABOVE the horizon rather than to the horizon band — a
+    // horizon band that matches the ground exactly reads as one flat wall.
     SKY_MIX: 0.22,
+    // ── screen-mode fallback only ──
+    MAX_DEPTH: 4.0,
+    STOPS: 14,
   };
+  window.HAZE_TUNE = HAZE;
 
   /** Camera altitude above the ground plane, in metres, from the live camera. */
   function cameraHeightM(map) {
@@ -299,23 +373,19 @@
     const D = todNum(HAZE.DIST, p);
     const A = todNum(HAZE.MAX, p);
 
-    // Whatever timeofday.js last wrote, so the haze can never drift from the
-    // sky it is joining to. Read rather than duplicated — the ROUTES table in
-    // timeofday.js stays the one place these colours are authored.
-    let sky = null;
-    try { sky = map.getSky ? map.getSky() : null; } catch (e) {}
-    const horiz = parseCol(sky && sky['horizon-color'], [200, 224, 240]);
-    const zenith = parseCol(sky && sky['sky-color'], horiz);
-    const col = mix(horiz, zenith, HAZE.SKY_MIX);
+    const col = fogColour(map);
     const c = `${Math.round(col[0])},${Math.round(col[1])},${Math.round(col[2])}`;
 
     const stops = [];
     for (let i = 0; i < HAZE.STOPS; i++) {
       // Bias the samples toward the horizon: that is where the curve moves.
       const t = Math.pow(i / (HAZE.STOPS - 1), 2);
-      const dy = Math.max(0.35, t * depthPx);          // never exactly 0 -> tan(0)
+      const dy = Math.max(0.35, t * depthPx);          // never exactly 0 -> sin(0)
       const ang = Math.atan(dy / focalPx);             // depression angle
-      const dist = h / Math.tan(ang);                  // ground distance, metres
+      // h/sin, not h/tan: the depth path fades on distance FROM THE CAMERA, and
+      // a fallback that fades on distance along the ground would disagree with
+      // it by a factor of cos(depression) in the near field.
+      const dist = h / Math.sin(ang);
       const a = A * (1 - Math.exp(-dist / D));
       stops.push(`rgba(${c},${a.toFixed(4)}) ${(t * 100).toFixed(2)}%`);
     }
@@ -324,6 +394,310 @@
     elHaze.style.height = depthPx + 'px';
     elHaze.style.transform = `translate(0px, ${hz.toFixed(1)}px)`;
     elHaze.style.background = `linear-gradient(to bottom, ${stops.join(',')})`;
+  }
+
+  /** The fog colour for this hour: whatever timeofday.js last wrote to the sky,
+   *  pulled SKY_MIX of the way toward the zenith. Read rather than duplicated —
+   *  the ROUTES table in timeofday.js stays the one place these are authored. */
+  function fogColour(map) {
+    let sky = null;
+    try { sky = map.getSky ? map.getSky() : null; } catch (e) {}
+    const horiz = parseCol(sky && sky['horizon-color'], [200, 224, 240]);
+    const zenith = parseCol(sky && sky['sky-color'], horiz);
+    return mix(horiz, zenith, HAZE.SKY_MIX);
+  }
+
+  // ── The depth-tested fog ladder ───────────────────────────────────
+  //
+  // One `custom` layer, two programs, three kinds of pass per frame:
+  //
+  //   1. MASK   one quad at the far plane, depthFunc GREATER, colour writes off.
+  //             It passes only where something 3D was drawn (everything 2D sits
+  //             in a reserved depth band ABOVE the 3D range), and stamps 1 into
+  //             the stencil there.
+  //   2. SHELLS SHELLS quads at rising eye distances, depthFunc LESS, stencil
+  //             EQUAL 1. Each paints where the scene is further than it is.
+  //   3. GROUND one quad, stencil EQUAL 0, no depth test, alpha from the row's
+  //             own eye distance. The ground has no height, so a row IS a
+  //             distance for it.
+  //
+  // The whole thing is wrapped so that any failure — no stencil, a shader that
+  // will not compile, a driver that refuses — falls back to the old DOM
+  // gradient rather than showing nothing.
+  const FOG_LAYER_ID = 'aerial-fog';
+  const FOG_BIT = 0x80;              // the one stencil bit this file owns
+  let fogGL = null, fogFailed = false, fogPlacing = false, _fogDrawnP = null;
+
+  const VS_FLAT = `
+    attribute vec2 a_unit;
+    uniform float u_y0, u_z;
+    varying vec2 v_ndc;
+    void main() {
+      vec2 n = vec2(a_unit.x * 2.0 - 1.0, mix(u_y0, 1.0, a_unit.y));
+      v_ndc = n;
+      gl_Position = vec4(n, u_z, 1.0);
+    }`;
+  const FS_FLAT = `
+    precision mediump float;
+    uniform vec4 u_col;                 // premultiplied
+    void main() { gl_FragColor = u_col; }`;
+  // The ground's eye-space distance for a row, derived rather than tuned. With
+  // the world-up expressed in eye space as (0, cos p, sin p) for a view axis p
+  // degrees below horizontal, a ray through NDC y hits the ground plane at
+  //   t = h / (sin p - y * tan(fov/2) * cos p)
+  // and t -> infinity exactly at the horizon, where the denominator vanishes.
+  const FS_GROUND = `
+    precision highp float;
+    varying vec2 v_ndc;
+    uniform float u_h, u_sinP, u_cosP, u_tanV, u_D, u_A;
+    uniform vec3 u_fog;
+    void main() {
+      float den = u_sinP - v_ndc.y * u_tanV * u_cosP;
+      if (den <= 0.0002) discard;       // at or above the horizon: sky, not ground
+      float t = u_h / den;
+      float a = u_A * (1.0 - exp(-t / u_D));
+      gl_FragColor = vec4(u_fog * a, a);
+    }`;
+
+  function compile(gl, src, type) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+      throw new Error('fog shader: ' + gl.getShaderInfoLog(s));
+    return s;
+  }
+  function program(gl, vs, fs, uniforms) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl, vs, gl.VERTEX_SHADER));
+    gl.attachShader(p, compile(gl, fs, gl.FRAGMENT_SHADER));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+      throw new Error('fog link: ' + gl.getProgramInfoLog(p));
+    const u = {};
+    for (const n of uniforms) u[n] = gl.getUniformLocation(p, n);
+    return { p, u, a: gl.getAttribLocation(p, 'a_unit') };
+  }
+
+  const fogLayer = {
+    id: FOG_LAYER_ID,
+    type: 'custom',
+    renderingMode: '3d',
+
+    onAdd(map, gl) {
+      fogGL = {
+        flat: program(gl, VS_FLAT, FS_FLAT, ['u_y0', 'u_z', 'u_col']),
+        ground: program(gl, VS_FLAT, FS_GROUND,
+          ['u_y0', 'u_z', 'u_h', 'u_sinP', 'u_cosP', 'u_tanV', 'u_D', 'u_A', 'u_fog']),
+        buf: gl.createBuffer(),
+      };
+      gl.bindBuffer(gl.ARRAY_BUFFER, fogGL.buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+    },
+
+    onRemove(map, gl) {
+      if (!fogGL) return;
+      try {
+        gl.deleteBuffer(fogGL.buf);
+        gl.deleteProgram(fogGL.flat.p);
+        gl.deleteProgram(fogGL.ground.p);
+      } catch (e) {}
+      fogGL = null;
+    },
+
+    render(gl, args) {
+      if (!fogGL || !HAZE.on || HAZE.MODE !== 'depth' || !_map) return;
+      try { drawFog(gl, args); } catch (e) {
+        // One failure is enough: fall back for the rest of the session rather
+        // than throwing sixty times a second.
+        fogFailed = true;
+        HAZE.MODE = 'screen';
+        console.warn('[sky] depth fog failed, falling back to the screen gradient:', e);
+      }
+    },
+  };
+
+  function drawFog(gl, args) {
+    const map = _map;
+    const P = args.projectionMatrix;
+    // Eye distance (in projection units) -> NDC z, straight off the matrix the
+    // engine handed us rather than re-derived from nearZ/farZ. Verified in the
+    // probe: t = nearZ gives -1.0000000 and t = farZ gives +0.9999999, and the
+    // map centre at ground level lands at exactly this value for
+    // t = cameraToCentreDistance.
+    const ndcZ = t => (-P[10] * t + P[14]) / (-P[11] * t + P[15]);
+    // One projection unit is one "camera pixel", so metres convert with the
+    // same scale cameraHeightM uses. (Probed: clip.w for the centre point came
+    // back as 676.51791 against a computed cameraToCentre of 676.518.)
+    const lat = map.getCenter().lat;
+    const mPerPx = 40075016.686 * Math.cos(rad(lat)) / (512 * Math.pow(2, map.getZoom()));
+    const tanV = P[5] !== 0 ? 1 / P[5] : Math.tan(rad(58) / 2);
+
+    const pitch = map.getPitch();
+    const sinP = Math.cos(rad(pitch));            // p = 90 - pitch, below horizontal
+    const cosP = Math.sin(rad(pitch));
+    const h = cameraHeightM(map);
+    const D = todNum(HAZE.DIST, _p);
+    const A = todNum(HAZE.MAX, _p);
+    const col = fogColour(map);
+    const fr = col[0] / 255, fg = col[1] / 255, fb = col[2] / 255;
+
+    const K = Math.max(1, Math.round(HAZE.SHELLS));
+    const farNdc = ndcZ(args.farZ);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, fogGL.buf);
+    gl.disable(gl.CULL_FACE);
+    // A scissor left on by the layer before this one would clip every quad here
+    // to somebody else's tile. `setCustomLayerDefaults` does not reset it.
+    gl.disable(gl.SCISSOR_TEST);
+    gl.enable(gl.STENCIL_TEST);
+
+    // ── 1. mark every 3D pixel ──
+    // The quad sits at the far plane. depthFunc GREATER therefore passes
+    // wherever the stored depth is nearer than the far plane, which is exactly
+    // the 3D geometry: MapLibre gives fill-extrusion the depth range [0,
+    // 0.958984] and parks every 2D fill above it, with cleared sky at 1.0.
+    const F = fogGL.flat;
+    gl.useProgram(F.p);
+    gl.enableVertexAttribArray(F.a);
+    gl.vertexAttribPointer(F.a, 2, gl.FLOAT, false, 0, 0);
+    gl.colorMask(false, false, false, false);
+    gl.disable(gl.BLEND);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.depthFunc(gl.GREATER);
+    // ONE BIT, not the whole byte. MapLibre keeps per-tile clipping ids in this
+    // same buffer and tests them with a full-byte EQUAL, and it remembers within
+    // a frame that it has already written them — so a plain clear here would
+    // silently unclip any fill or line layer that a future pass puts after the
+    // labels, with nothing to point at. gl.clear honours the stencil write mask,
+    // so masking to 0x80 lets this borrow the top bit and hand the low seven
+    // back untouched. Tile ids never reach 128 in this style.
+    gl.stencilMask(FOG_BIT);
+    gl.clearStencil(0);
+    gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilFunc(gl.ALWAYS, FOG_BIT, FOG_BIT);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+    gl.uniform1f(F.u.u_y0, -1);
+    gl.uniform1f(F.u.u_z, 0.999999);
+    gl.uniform4f(F.u.u_col, 0, 0, 0, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // ── 2. the ladder ──
+    gl.colorMask(true, true, true, true);
+    gl.enable(gl.BLEND);
+    gl.blendEquation(gl.FUNC_ADD);                  // premultiplied `over`
+    gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthFunc(gl.LESS);
+    gl.stencilMask(0x00);
+    gl.stencilFunc(gl.EQUAL, FOG_BIT, FOG_BIT);
+    for (let i = 1; i <= K; i++) {
+      // Rungs at equal steps of alpha, so the staircase is uniform: the ith
+      // rung is where Beer-Lambert has reached A*i/(K+1).
+      const frac = i / (K + 1);
+      const tM = -D * Math.log(1 - frac);
+      const tPx = tM / mPerPx;
+      if (!(tPx > 0) || tPx >= args.farZ) break;    // past the far plane: nothing there
+      const z = ndcZ(tPx);
+      if (!(z < farNdc)) break;
+      // The per-rung alpha that makes the ACCUMULATION exact rather than the
+      // rung: `over` composites multiplicatively, so alpha_i is chosen so that
+      // 1 - prod(1 - alpha_j) lands on A*i/(K+1) after i rungs.
+      const aStep = (A / (K + 1)) / (1 - A * (i - 1) / (K + 1));
+      // Nothing further than tM can appear below the ground row for tM.
+      const y0 = cosP > 1e-3
+        ? Math.max(-1, (sinP - h / tM) / (tanV * cosP) - HAZE.SHELL_PAD)
+        : -1;
+      if (y0 >= 1) continue;
+      gl.uniform1f(F.u.u_y0, y0);
+      gl.uniform1f(F.u.u_z, z);
+      gl.uniform4f(F.u.u_col, fr * aStep, fg * aStep, fb * aStep, aStep);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+
+    // ── 3. the ground, where nothing 3D was drawn ──
+    const G = fogGL.ground;
+    gl.useProgram(G.p);
+    gl.enableVertexAttribArray(G.a);
+    gl.vertexAttribPointer(G.a, 2, gl.FLOAT, false, 0, 0);
+    gl.disable(gl.DEPTH_TEST);
+    gl.stencilFunc(gl.EQUAL, 0, FOG_BIT);
+    gl.uniform1f(G.u.u_y0, -1);
+    gl.uniform1f(G.u.u_z, 0);
+    gl.uniform1f(G.u.u_h, h);
+    gl.uniform1f(G.u.u_sinP, sinP);
+    gl.uniform1f(G.u.u_cosP, cosP);
+    gl.uniform1f(G.u.u_tanV, tanV);
+    gl.uniform1f(G.u.u_D, D);
+    gl.uniform1f(G.u.u_A, A);
+    gl.uniform3f(G.u.u_fog, fr, fg, fb);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // ── restore ──
+    // MapLibre calls context.setDirty() after a custom layer, so it re-applies
+    // its own state; the stencil CONTENTS are the one thing it would not clear
+    // until the next frame, and the layers after this one are all symbol layers
+    // that do not use tile clipping. Wiped anyway, on the principle that a
+    // buffer nobody owns is a bug waiting for a new layer type.
+    gl.stencilMask(FOG_BIT);
+    gl.clearStencil(0);
+    gl.clear(gl.STENCIL_BUFFER_BIT);
+    gl.stencilMask(0xFF);
+    gl.disable(gl.STENCIL_TEST);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.depthMask(true);
+    _fogDrawnP = _p;
+  }
+
+  /**
+   * Where the fog belongs in the stack: after everything that writes depth,
+   * before the labels (fogging a label makes it unreadable, and a label is not
+   * at a distance anyway). Re-checked on `styledata` because layers are still
+   * being added long after boot — the tiled outer ring and the LOD tiers both
+   * append — and a fill-extrusion added ABOVE the fog would draw unfogged.
+   */
+  function fogBeforeId(map) {
+    let layers = [];
+    try { layers = map.getStyle().layers || []; } catch (e) { return undefined; }
+    for (let i = layers.length - 1; i >= 0; i--) {
+      if (layers[i].type !== 'symbol') return layers[i + 1] ? layers[i + 1].id : undefined;
+    }
+    return layers.length ? layers[0].id : undefined;
+  }
+
+  let fogAnchor = null;
+  function placeFogLayer(map) {
+    if (fogFailed || HAZE.MODE !== 'depth' || !HAZE.on || fogPlacing) return;
+    fogPlacing = true;
+    try {
+      const before = fogBeforeId(map) || null;
+      if (!map.getLayer(FOG_LAYER_ID)) {
+        map.addLayer(fogLayer, before || undefined);
+        fogAnchor = before;
+      } else {
+        // `getStyle()` omits custom layers entirely (probed: 189 layers before
+        // and after adding one), so the real position has to come from the
+        // style's own order. If that private field ever disappears, fall back
+        // to re-anchoring only when the anchor itself changed — weaker, but it
+        // still catches a layer appended past the labels.
+        const order = map.style && map.style._order;
+        let wrong;
+        if (Array.isArray(order)) {
+          const at = order.indexOf(FOG_LAYER_ID);
+          const want = before ? order.indexOf(before) : order.length;
+          wrong = at >= 0 && want >= 0 && at !== want - 1;
+        } else {
+          wrong = before !== fogAnchor;
+        }
+        if (wrong) { map.moveLayer(FOG_LAYER_ID, before || undefined); fogAnchor = before; }
+      }
+    } catch (e) {
+      fogFailed = true;
+      HAZE.MODE = 'screen';
+      console.warn('[sky] could not install the depth fog layer:', e);
+    }
+    fogPlacing = false;
   }
 
   // ── Overlay elements ──────────────────────────────────────────────
@@ -441,6 +815,9 @@
     clouds = buildClouds();
     haloSprite = buildHaloSprite();
 
+    placeFogLayer(map);
+    map.on('styledata', () => placeFogLayer(map));
+
     const redraw = () => updateSky(map, _p);
     map.on('move', redraw);
     map.on('resize', redraw);
@@ -493,7 +870,7 @@
     const W = cv.clientWidth, H = cv.clientHeight;
     // Horizon first: it decides how tall the canvas has to be this frame.
     const hzPxEarly = horizonPx(map);
-    const dpr = resize(Math.max(0, hzPxEarly) + 0.018 * H) || 1;
+    const dpr = resize(Math.max(0, hzPxEarly) + 0.5 * SKY_TUNE.HORIZON_FADE * H) || 1;
 
     // Which body is lighting the sky, and in what colour.
     const useMoon = !B.sunUp && B.moon.elev > -2;
@@ -544,21 +921,42 @@
     const S = Math.max(W, H);
     const hzPx = hzPxEarly;
 
-    // Aerial perspective on the GROUND, below the horizon. Same pass as the
-    // sky for the same reason graphics.js is called from here: two listeners on
-    // `move` can land either side of each other and the haze would lag the
-    // horizon by a frame while tilting.
-    updateGroundHaze(map, p, hzPx, W, H);
+    // Aerial perspective. In `depth` mode the whole thing lives in the custom
+    // layer and reads the live camera itself, so there is nothing to push at it
+    // from here and the DOM element must be off — leaving it up would fog every
+    // building a SECOND time, by screen row, which is the defect. In `screen`
+    // mode the old DOM gradient runs, in this pass rather than its own listener:
+    // two listeners on `move` can land either side of each other and the haze
+    // would lag the horizon by a frame while tilting.
+    if (HAZE.MODE === 'depth') {
+      if (elHaze) elHaze.style.opacity = '0';
+      // The layer reads the hour itself at draw time, so the only thing that can
+      // go stale is a tod change with no other reason to repaint. Ask for one
+      // frame, once — comparing against what was actually DRAWN, not against a
+      // request, so this can never become a self-feeding render loop.
+      // ...and only while there is a layer to draw it. With `?haze=0` nothing
+      // ever sets _fogDrawnP, so an unguarded compare asks for a repaint on
+      // every single updateSky forever.
+      if (HAZE.on && !fogFailed && _fogDrawnP !== p) map.triggerRepaint();
+    } else {
+      updateGroundHaze(map, p, hzPx, W, H);
+    }
 
     // CLIP EVERYTHING IN THE SKY PASS TO THE SKY. The horizon washes are
     // ellipses centred on the horizon line, so without this half of each one
     // lands on the city: at dusk an 825x561 px lobe of deep red at 0.31 alpha
     // screen-blended the entire frame magenta, ground included. Light on the
     // buildings is setLight's job and the baked golden palette's job; the sky's
-    // job stops at the horizon. A small margin keeps the boundary soft.
+    // job stops at the horizon.
+    //
+    // The clip runs HALF of HORIZON_FADE below the horizon and that overhang is
+    // erased again after the pass — see the note on HORIZON_FADE. Clipping is
+    // still what stops the wash reaching the whole frame; the erase is only what
+    // stops the clip's own edge being a line across the towers.
+    const fadePx = SKY_TUNE.HORIZON_FADE * H;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 0, W, Math.max(0, hzPx + 0.018 * H));
+    ctx.rect(0, 0, W, Math.max(0, hzPx + 0.5 * fadePx));
     ctx.clip();
 
     /** One elliptical glow lobe, additively composited. */
@@ -736,6 +1134,27 @@
       }
     }
     ctx.restore();                       // end sky clip
+
+    // Feather the bottom edge back out. `destination-out` with a 0 -> 1 alpha
+    // ramp removes that fraction of everything already drawn, so the wash runs
+    // out smoothly across the horizon instead of ending on a row. Done once over
+    // the band rather than per lobe, so stars, clouds, the belt and both body
+    // washes all land on the same falloff.
+    if (fadePx > 1 && hzPx + 0.5 * fadePx > 0) {
+      const y0 = Math.max(0, hzPx - 0.5 * fadePx);
+      const y1 = hzPx + 0.5 * fadePx;
+      ctx.globalCompositeOperation = 'destination-out';
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      // Ease rather than ramp linearly: a straight ramp still leaves a visible
+      // corner where it starts, because the eye finds the DISCONTINUITY IN
+      // SLOPE, not just in value.
+      g.addColorStop(0.35, 'rgba(0,0,0,0.18)');
+      g.addColorStop(0.70, 'rgba(0,0,0,0.72)');
+      g.addColorStop(1, 'rgba(0,0,0,1)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y0, W, y1 - y0);
+    }
     ctx.globalCompositeOperation = 'source-over';
 
     // ── Hand the frame to the post-process pass ──
