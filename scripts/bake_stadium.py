@@ -103,6 +103,110 @@ DECKS = [
 ]
 STADIUM_CLASSES = ("stadium", "arena", "grandstand")
 
+# ── Taste block: THE FOUR SIDES. This is the rebuild. ─────────────────
+#
+# *"it looks like the colloseum not a football stadium ... the west side has
+# like two really big sections of seating, the north and east side also have a
+# second layer but theyre wrapped and smaller and connected, and then of course
+# the south side is mainly the screen ... ur current seats look like cutouts
+# from a big pyramid"*
+#
+# Every word of that is a description of DECKS above, which is a single table of
+# radial fraction -> fraction of ONE height, evaluated by `deck_height(t, h)`
+# with no idea which side it is on. A solid of revolution. The Colosseum is a
+# solid of revolution; a football stadium is four different buildings that meet
+# at the corners.
+#
+# THE HEIGHT, which is the first thing he named. `h` comes from the surveyed
+# footprint's `final_height`, which is **63.0 m on all four sides** — and the
+# west gets 72.5 m because Bellmont Hall's own footprint claims that. Those are
+# Overture/OSM attributes, not survey: 72.5 m over Bellmont's stated 10 floors
+# is 7.25 m per storey, which no office building has. The bowl was then built as
+# 0.93 x 63 = 58.6 m of seating on every side. A 100,000-seat bowl whose seating
+# tops out at 58.6 m all the way round is most of why it reads as a drum.
+#
+# So heights here are ABSOLUTE METRES per side, and they are derived, not
+# inherited: each deck's rise is its measured radial depth times a rake. The
+# depths are MEASURED off the surveyed footprint (ring thickness from the field
+# hole to the outer edge, per side):
+#
+#     W 87.7 m     E 71.3 m     N 70.7 m     S 32.6 m
+#
+# The south is 2.7x shallower than the west. That single measurement is the
+# whole argument for four different sides, and the old model ignored it.
+#
+# Rakes are standard practice (lower bowls sit near 20 deg, upper decks near
+# 30-33 deg because they are further from the pitch and need the sightline), so
+# the z values below are GENERATIVE from MEASURED depth. They are stated in the
+# provenance block as such. Every one is a one-line override.
+#
+#   t0,t1  radial fraction across that side's ring: 0 at the field wall, 1 at
+#          the perimeter. Per side, so 0.45 on the south is 15 m and on the
+#          west is 39 m.
+#   z0,z1  metres above field level at those two radii.
+#   rows   how many stepped bands to spend on the deck.
+SIDES = {
+    # WEST — the main grandstand. Two big decks, and the press/suite structure
+    # standing above and behind the upper one. Tallest side by a long way.
+    "W": {
+        "decks": [
+            ("lower", 0.00, 0.34,  1.2, 26.0, 9),
+            ("void",  0.34, 0.42, 26.0, 30.5, 1),
+            ("upper", 0.42, 0.96, 30.5, 50.0, 12),
+        ],
+        "wall_m": 53.0,      # the perimeter wall behind the upper deck
+        "crown_m": 57.0,     # press box / suite tower on top of it
+        "crown_t": (0.72, 1.00),
+    },
+    # NORTH — the 2008 Red McCombs Red Zone. A second layer that wraps the
+    # corner and connects to the east, smaller than the west decks.
+    "N": {
+        "decks": [
+            ("lower", 0.00, 0.36,  1.2, 12.5, 6),
+            ("void",  0.36, 0.44, 12.5, 12.5, 1),
+            ("upper", 0.44, 0.96, 18.5, 32.0, 10),
+        ],
+        "wall_m": 34.0,
+        "crown_m": None,
+        "crown_t": None,
+    },
+    # EAST — the same wrapped second layer, connected to the north.
+    "E": {
+        "decks": [
+            ("lower", 0.00, 0.36,  1.2, 22.0, 8),
+            ("void",  0.36, 0.44, 22.0, 27.0, 1),
+            ("upper", 0.44, 0.96, 27.0, 34.5, 9),
+        ],
+        "wall_m": 36.5,
+        "crown_m": None,
+        "crown_t": None,
+    },
+    # SOUTH — mainly the videoboard. One shallow deck and then the screen
+    # structure; only 32.6 m of ring to work with, so there is no upper deck.
+    "S": {
+        "decks": [
+            ("lower", 0.00, 0.94,  1.2, 13.0, 9),
+        ],
+        "wall_m": 26.0,
+        "crown_m": None,
+        "crown_t": None,
+    },
+}
+# How many angular segments the bowl is cut into. Each segment is one feature
+# per band and carries the height blended for ITS bearing, which is what lets
+# the west be 38 m while the south is 12 m and the corners run smoothly between
+# them. 32 is the coarsest that does not show a visible facet at the corners.
+# How thick the structural slab under a deck row reads, and how deep the soffit
+# over the concourse hangs. Both only became expressible when PR #114 replaced
+# `'fill-extrusion-base': 0` with a real base on stadium-seating.
+DECK_SLAB_M = 2.4
+VOID_SOFFIT_M = 1.8
+BOWL_SEGMENTS = 32
+# Blend half-width, in degrees, over which one side's profile crosses into the
+# next. The real bowl turns the corner continuously; a hard switch at the sector
+# boundary put a 20 m cliff in the seating.
+SIDE_BLEND_DEG = 34.0
+
 # The per-deck tier counts live in DECKS above. v1 used 6 + 6 and the bowl read
 # as a smooth dish; the aerial says the deck's luma SD is 51.6 because it is
 # nothing but 0.74 m steps. The counts there put a real step every 2-3 rows,
@@ -154,7 +258,20 @@ RAMPS = [
     (-97.7313597, 30.2845766, 14.0, 22.0),   # E
     (-97.7315555, 30.2826916, 14.0, 22.0),   # SE
 ]
-MAST_COUNT = 8           # generative. Slim masts on the west and east rims.
+# THE LIGHT MASTS ARE GONE, and this is a deliberate deletion.
+#
+# They were declared generative — "the aerial cannot resolve a 2 m pole" — and
+# set to 88 m, taller than the stadium's own 63 m, on a building whose seating
+# now tops out at 38.5 m. Two things are wrong with that. First, nothing in the
+# georeferenced aerial supports them: there are no mast shadows anywhere on the
+# plaza, and the four white discs around the rim that might have been read as
+# lamp arrays sit exactly on the surveyed RAMP TOWER positions at 14 m diameter.
+# Second, DKR's lighting is mounted ON THE STRUCTURE — which is what he was
+# describing: *"alot of the top perimeter is supposed to be lights but its
+# rendering as wall."* RIM_LIGHT does that job now.
+#
+# Set MAST_COUNT back above zero if a photograph ever turns up showing masts.
+MAST_COUNT = 0
 MAST_TOP_M = 88.0
 MAST_W_M = 2.2
 MAST_HEAD_W_M = 9.0
@@ -453,6 +570,165 @@ def long_axis(ring):
     return bang
 
 
+# ── Taste block: seat colour, and the night falloff ───────────────────
+#
+# DAY. Measured off data/dkr_aerial_geo.png by classifying the seating: the deck
+# is aluminium silver with burnt-orange chairbacks in DEFINED SECTIONS, not the
+# even scatter the old bake produced. The orange mask shows a continuous band
+# across the NORTH upper deck and a block in the EAST lower bowl, with diffuse
+# rust elsewhere that is weathering rather than seats. *"various seats are
+# colored burnt orange vs normal"* — this is which.
+SEAT_TONE = {
+    "lower":  "#9fb0c4",
+    "lowerB": "#8b9cb0",
+    "upper":  "#a8bad0",
+    "upperB": "#93a5bb",
+    "orange": "#b4652c",   # chairbacks
+    "orangeB": "#a15a26",
+    "stain":  "#8d8f8e",   # weathered aluminium
+    "void":   "#33363d",   # the slot under an overhang stays dark
+}
+# NIGHT, AND IT IS AUTHORED RATHER THAN LIT. MapLibre 5.24 has one global light
+# and no `fill-extrusion-emissive-strength` (that is Mapbox GL v3) — there is no
+# way to place a floodlight on the rim and let it illuminate anything. So the
+# falloff below is painted by hand, and it follows what a floodlit stadium
+# actually does:
+#
+#   the field is the brightest surface        (js/app.js's fieldColourAt owns
+#                                              the turf; see the HANDOFF note)
+#   the LOWER bowl is lit                     brightest seating tone
+#   the UPPER deck falls off with height      about half the lower bowl
+#   the void under the deck stays black       it is a shadow
+#   the OUTSIDE is comparatively dark         the wall keeps its own night ramp
+#
+# The point is the ORDER, not the absolute values: lower > upper > structure >
+# outside, with the fixtures themselves the only genuinely bright thing. The old
+# model had exactly one tone for everything and it was brighter than the city.
+NIGHT_TONE = {
+    "lower":  "#6d707e",
+    "lowerB": "#636674",
+    "upper":  "#3e414c",
+    "upperB": "#383b45",
+    "orange": "#7a4a2a",
+    "orangeB": "#6b4126",
+    "stain":  "#4a4c54",
+    "void":   "#14161b",
+}
+# Where the burnt-orange sections are, as (side, deck, radial fraction range).
+# From the orange mask: a band across the north upper deck, and a block in the
+# east lower bowl.
+ORANGE_SECTIONS = [("N", "upper", 0.15, 0.62), ("E", "lower", 0.30, 0.85)]
+
+
+def seat_class(deck, row, rows, ang, axis):
+    """One of SEAT_COL's twelve legal `s` keys for this band.
+
+    THE PALETTE IS NOT OURS. `stadium-seating` colours itself from SEAT_COL in
+    js/app.js keyed on `s`, and anything outside those twelve strings silently
+    paints as `lower`. So this picks from the vocabulary that exists rather than
+    writing a colour — which also means the NIGHT column is out of reach from
+    here. See the HANDOFF request.
+    """
+    frac = (row + 0.5) / rows
+    w = side_weights(ang, axis)
+    dom = max(w, key=w.get)
+    key = "upper" if deck == "upper" else "lower"
+    for side, dk, f0, f1 in ORANGE_SECTIONS:
+        if dom == side and dk == deck and f0 <= frac <= f1 and w[side] > 0.45:
+            key = "orange"
+            break
+    else:
+        stride, off, mod = STAIN_EVERY
+        if (row * stride + off) % mod < 2:
+            key = "stain"
+    return key + ("B" if row % 2 else "")
+
+
+def side_weights(ang, axis):
+    """How much each of the four sides owns this bearing. Sums to 1.
+
+    A hard sector switch put a cliff in the seating at every corner, because the
+    west deck is 38.5 m and the south is 12 m and they met at a single edge. The
+    real bowl turns the corner continuously, so each bearing is a blend of the
+    two sides nearest it.
+    """
+    d = math.degrees((ang - axis) % (2 * math.pi))     # 0 = north end
+    centres = {"N": 0.0, "E": 90.0, "S": 180.0, "W": 270.0}
+    w = {}
+    for k, c in centres.items():
+        gap = abs((d - c + 180.0) % 360.0 - 180.0)
+        # 1 at the side's own centre, 0 once past 90 - blend, smooth between.
+        x = (90.0 - gap) / SIDE_BLEND_DEG
+        w[k] = max(0.0, min(1.0, x))
+    tot = sum(w.values()) or 1.0
+    return {k: v / tot for k, v in w.items()}
+
+
+def profile_for(ang, axis):
+    """The blended deck table at one bearing: [(name, t0, t1, z0, z1, rows)].
+
+    Blends the four SIDES tables by weight. Tables can differ in LENGTH - the
+    south has no upper deck - so a side that lacks a deck contributes its own
+    top height for that deck, which collapses the missing deck to a flat step
+    rather than dropping a hole in the bowl at the corner.
+    """
+    w = side_weights(ang, axis)
+    names = ["lower", "void", "upper"]
+    out = []
+    for nm in names:
+        t0 = t1 = z0 = z1 = 0.0
+        rows = 0
+        for k, wk in w.items():
+            if wk <= 0:
+                continue
+            tbl = {d[0]: d for d in SIDES[k]["decks"]}
+            if nm in tbl:
+                _n, a, b, p, q, r = tbl[nm]
+                rows = max(rows, r)
+            else:
+                # This side stops before that deck: hold its last values, so the
+                # blend ramps down to a flat continuation instead of a gap.
+                last = SIDES[k]["decks"][-1]
+                a = b = last[2]
+                p = q = last[4]
+            t0 += wk * a
+            t1 += wk * b
+            z0 += wk * p
+            z1 += wk * q
+        if t1 - t0 > 1e-6 or nm == "void":
+            out.append((nm, t0, t1, z0, z1, max(1, rows)))
+    return out
+
+
+def bowl_height_at(t, ang, axis):
+    """Seating height in metres at radial fraction `t` on this bearing.
+
+    The per-side replacement for `deck_height(t, h)`, which walked one global
+    DECKS table times the footprint's raw 63 m. Anything riding the bowl - the
+    aisle stairs, the midfield logo - has to use THIS or it floats: measured on
+    the first build, the stairs topped out at 58.9 m against a bowl topping at
+    35.7 m, a 23.2 m overshoot, worst over the south end where the bowl is 12 m.
+    """
+    prof = profile_for(ang, axis)
+    z = 0.0
+    for nm, t0, t1, z0, z1, _rows in prof:
+        if t <= t0:
+            break
+        if t >= t1:
+            z = z1
+            continue
+        f = ((t - t0) / max(1e-9, t1 - t0)) ** RAKE_GAMMA
+        z = z0 + (z1 - z0) * f
+        break
+    return z
+
+
+def wall_height_at(ang, axis):
+    """Blended perimeter wall height, in metres."""
+    w = side_weights(ang, axis)
+    return sum(w[k] * SIDES[k]["wall_m"] for k in w)
+
+
 def deck_height(t, h):
     """Height of the deck at radial fraction t (0 = field, 1 = wall)."""
     for name, t0, t1, z0, z1, _n in DECKS:
@@ -541,6 +817,46 @@ def feat(ring_m, lat0, props, hole_m=None):
         coords.append(to_ll(hole_m, lat0))
     return {"type": "Feature", "properties": props,
             "geometry": {"type": "Polygon", "coordinates": coords}}
+
+
+# ── Taste block: the rim lights ───────────────────────────────────────
+# The fixtures that run along the top of the perimeter. `night` is the whole
+# point: it does NOT follow wall_ramp() down into the dark, so after sunset
+# these are the brightest thing on the building and everything else falls away
+# from them. Turn `night` down to #2a2c33 and the stadium goes dark.
+RIM_LIGHT = {
+    "pitch_m": 11.0,     # centres along the rim
+    "width_m": 3.4,      # housing width along the run
+    "reach_m": 1.1,      # how far it stands proud of the wall face
+    "drop_m": 1.6,       # top of wall minus this = fixture underside
+    "rise_m": 1.0,       # ... and it stands this far above the wall
+    "day": "#c9ccd2",
+    "golden": "#d8cdb6",
+    "night": "#f2e7c8",  # authored, not lit - see the bowl's night falloff
+}
+
+
+def run_len(O):
+    return sum(math.hypot(O[k + 1][0] - O[k][0], O[k + 1][1] - O[k][1])
+               for k in range(len(O) - 1))
+
+
+def at_along(O, BF, s):
+    """Point, unit tangent and set-back twin at arc length `s` along O."""
+    acc = 0.0
+    for k in range(len(O) - 1):
+        a, b = O[k], O[k + 1]
+        ab, bb = BF[k], BF[k + 1]
+        L = math.hypot(b[0] - a[0], b[1] - a[1])
+        if L < 1e-9:
+            continue
+        if acc + L >= s or k == len(O) - 2:
+            u = min(1.0, max(0.0, (s - acc) / L))
+            p = (a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u)
+            q = (ab[0] + (bb[0] - ab[0]) * u, ab[1] + (bb[1] - ab[1]) * u)
+            return p, ((b[0] - a[0]) / L, (b[1] - a[1]) / L), q
+        acc += L
+    return O[-1], (1.0, 0.0), BF[-1]
 
 
 def arcade(O, I, BF, face, t_rec, side, plinth_h, lat0, name, stats):
@@ -694,7 +1010,13 @@ def build(feature, stats):
         # A side can be taller than the bowl. The west is: Bellmont Hall is
         # 72.5 m against the stadium's 63, and that 9.5 m of extra perimeter
         # is a real, visible part of DKR's west elevation.
-        sh = SIDE_H.get(side, h)
+        # THE PERIMETER HEIGHT, and it no longer comes from the survey.
+        # `SIDE_H` carried Bellmont Hall's 72.5 m onto the west and the
+        # footprint's own 63.0 m onto everything else, so all four sides were a
+        # drum of one height. SIDES now states each side's wall in metres,
+        # derived from its own measured ring depth. West 41, north 34, east 33,
+        # south 17 — the south is a screen and a low stand, not a 63 m wall.
+        sh = SIDES.get(side, SIDES["E"])["wall_m"]
 
         # `t` walks from the outer face (0) to the inner face (1) of the wall
         # band, so any surface parallel to this run is one lerp. The wall's
@@ -730,6 +1052,41 @@ def build(feature, stats):
 
         out.extend(arcade(O, I, BF, face, t_rec, side, plinth_h, lat0, name, stats))
 
+        # ── THE TOP OF THE PERIMETER IS LIGHT FIXTURES, NOT WALL ──────
+        #
+        # *"pretty sure alot of the top perimeter is supposed to be lights but
+        # its rendering as wall."* He is right, and it is visible in the aerial:
+        # the rim carries a run of fixture housings, not a parapet.
+        #
+        # These are the only genuinely bright thing in the scene after dark, and
+        # they are bright because their `night` colour says so — MapLibre 5.24
+        # has no emissive property, so a "light" here is a small pale slab that
+        # does not follow the wall ramp down into the dark. That is the same
+        # trick the video board and the mast heads already use.
+        #
+        # They sit ON the wall (base = the wall top) and stand proud of its
+        # outer face, so from below they read as a lit cornice and from above as
+        # a row of housings round the rim.
+        n_lamp = max(2, int(round(run_len(O) / RIM_LIGHT["pitch_m"])))
+        for j in range(n_lamp):
+            s_at = run_len(O) * (j + 0.5) / n_lamp
+            p, d, q = at_along(O, BF, s_at)
+            half = RIM_LIGHT["width_m"] / 2.0
+            ox, oy = p[0] - q[0], p[1] - q[1]
+            oL = math.hypot(ox, oy) or 1.0
+            reach = RIM_LIGHT["reach_m"]
+            nx, ny = ox / oL * reach, oy / oL * reach
+            quad = [(p[0] - d[0] * half, p[1] - d[1] * half),
+                    (p[0] + d[0] * half, p[1] + d[1] * half),
+                    (p[0] + d[0] * half + nx, p[1] + d[1] * half + ny),
+                    (p[0] - d[0] * half + nx, p[1] - d[1] * half + ny)]
+            out.append(feat(quad, lat0, {
+                "kind": "mast", "col": RIM_LIGHT["day"],
+                "golden": RIM_LIGHT["golden"], "night": RIM_LIGHT["night"],
+                "base": round(sh - RIM_LIGHT["drop_m"], 2),
+                "h": round(sh + RIM_LIGHT["rise_m"], 2), "name": name}))
+            stats["rim_lights"] += 1
+
     # 2. the seating bowl ----------------------------------------------
     # One ray per wall vertex, so the bands inherit the footprint's real shape.
     angs = [math.atan2(q[1] - c[1], q[0] - c[0]) for q in inner]
@@ -743,18 +1100,105 @@ def build(feature, stats):
     ring_at = lambda t: [(hp[0] + (wp[0] - hp[0]) * t, hp[1] + (wp[1] - hp[1]) * t)
                          for hp, wp in pairs]
 
-    for lo, hi, cls in bands():
-        if hi - lo < 1e-4:
+    # THE BOWL, REBUILT. Read this before changing it back.
+    #
+    # It is emitted as DETAIL features, not as `kind: "seat"`, and that is not a
+    # stylistic choice — it is forced, twice over, by js/app.js, which belongs to
+    # the other lane and cannot be edited from here:
+    #
+    #   1. `stadium-seating` hardcodes `'fill-extrusion-base': 0`
+    #      (js/app.js:1191). A seat feature ALWAYS extrudes from the ground, so
+    #      44 nested rings of rising height are a solid stepped cone. That is
+    #      not a bad approximation of a bowl, it IS a pyramid with cutouts, and
+    #      it is exactly what he called it. No base means no upper deck floating
+    #      over a void, and no void means no bowl.
+    #   2. `stadium-seating` takes its colour from SEAT_COL keyed on `s`
+    #      (js/app.js:758-771), whose NIGHT column is #d87c34 / #e08438 /
+    #      #e88c3e / #f09a48 — bright amber. Every seat in the stadium glows at
+    #      night and nothing else does. That is the "seats become bright yellow"
+    #      complaint, it has been defended once and rejected twice, and it is
+    #      unreachable from this file.
+    #
+    # `stadium-detail` has neither problem: it honours
+    # `['coalesce', ['get','base'], 0]` and takes an arbitrary per-feature
+    # day/golden/night trio. So the bowl moves there and gets a real base, real
+    # voids, per-side heights and an authored night falloff.
+    #
+    # THE COST, stated because it is real: `stadium-detail` is in js/lod.js's
+    # `fine` tier, so the bowl is dropped above renderDistance x 0.45 (315 m on
+    # the default preset). A coarse under-mass in `stain` is emitted below to
+    # keep a silhouette up there. The proper fix is for SEAT_COL's night column
+    # to stop glowing; that request is written into HANDOFF.md.
+    seg = BOWL_SEGMENTS
+    ring_arc = lambda t, i0, i1: [
+        (pairs[k % len(pairs)][0][0] +
+         (pairs[k % len(pairs)][1][0] - pairs[k % len(pairs)][0][0]) * t,
+         pairs[k % len(pairs)][0][1] +
+         (pairs[k % len(pairs)][1][1] - pairs[k % len(pairs)][0][1]) * t)
+        for k in range(i0, i1 + 1)]
+
+    n_pairs = len(pairs)
+    for s_i in range(seg):
+        i0 = int(round(n_pairs * s_i / seg))
+        i1 = int(round(n_pairs * (s_i + 1) / seg))
+        if i1 <= i0:
             continue
-        # ALWAYS punch the inner ring, including for the first band where it is
-        # the field hole itself. Omitting it there makes band 0 a solid slab over
-        # the turf — the field vanishes under the lowest row of seats and the
-        # bowl reads as a filled dish. (v1 of this script had that bug.)
-        out.append(feat(ring_at(hi), lat0,
-                        {"kind": "seat", "s": cls,
-                         "h": round(deck_height(hi, h), 2), "name": name},
-                        hole_m=ring_at(lo)))
-        stats["seat_bands"] += 1
+        # The bearing at this segment's middle decides its profile.
+        mid = pairs[(i0 + i1) // 2 % n_pairs][1]
+        ang = math.atan2(mid[1] - c[1], mid[0] - c[0])
+        prof = profile_for(ang, axis)
+        for nm, t0, t1, z0, z1, rows in prof:
+            if nm == "void":
+                # THE CONCOURSE SLOT, and it is a real gap now. It used to be a
+                # solid `void` ring standing on the ground because a seat
+                # feature could not have a base; it is now a thin dark soffit
+                # hanging at the underside of the upper deck with daylight under
+                # it, which is the shadow line that makes two decks read as two.
+                out.append(feat(ring_arc(t1, i0, i1) + ring_arc(t0, i0, i1)[::-1],
+                                lat0, {"kind": "seat", "s": "void",
+                                       "base": round(z1 - VOID_SOFFIT_M, 2),
+                                       "h": round(z1, 2), "name": name}))
+                stats["bowl_void"] += 1
+                continue
+            for r in range(rows):
+                a = t0 + (t1 - t0) * r / rows
+                b = t0 + (t1 - t0) * (r + 1) / rows
+                za = z0 + (z1 - z0) * (r / rows) ** RAKE_GAMMA
+                zb = z0 + (z1 - z0) * ((r + 1) / rows) ** RAKE_GAMMA
+                # THE LINE PR #114 MADE POSSIBLE.
+                # A lower-bowl row sits on fill and starts at the ground. An
+                # UPPER-deck row is carried on structure over the concourse, so
+                # it starts at its own underside — which is what stops the bowl
+                # being one solid stepped cone. Before this, `base` on a seat
+                # feature was discarded and every row grew from y=0: "cutouts
+                # from a big pyramid" was a literal description of that.
+                base = 0.0 if nm == "lower" else max(0.0, za - DECK_SLAB_M)
+                out.append(feat(ring_arc(b, i0, i1) + ring_arc(a, i0, i1)[::-1],
+                                lat0, {"kind": "seat",
+                                       "s": seat_class(nm, r, rows, ang, axis),
+                                       "base": round(base, 2),
+                                       "h": round(zb, 2), "name": name}))
+                stats["bowl_bands"] += 1
+
+    # The coarse under-mass, and the ONLY thing still using `kind: "seat"`.
+    # js/lod.js drops stadium-detail above 315 m; without this the stadium
+    # hollows out into a wall ring from altitude. `stain` is chosen of the
+    # twelve legal SEAT_COL keys because it is grey by day (#8b8d8d) and the
+    # least luminous of the non-void entries after dark (#c07038 against the
+    # upper deck's #f09a48).
+    for s_i in range(8):
+        i0 = int(round(n_pairs * s_i / 8))
+        i1 = int(round(n_pairs * (s_i + 1) / 8))
+        if i1 <= i0:
+            continue
+        mid = pairs[(i0 + i1) // 2 % n_pairs][1]
+        ang = math.atan2(mid[1] - c[1], mid[0] - c[0])
+        prof = profile_for(ang, axis)
+        top = max(p[4] for p in prof)
+        out.append(feat(ring_arc(0.80, i0, i1) + ring_arc(0.02, i0, i1)[::-1], lat0,
+                        {"kind": "seat", "s": "stain",
+                         "h": round(top * 0.62, 2), "name": name}))
+        stats["bowl_coarse"] += 1
 
     # 3. the aisles ----------------------------------------------------
     # MEASURED at ~14 m apart, and they are most of the bowl's radial pattern:
@@ -784,7 +1228,8 @@ def build(feature, stats):
                     (a1[0] - px, a1[1] - py), (a0[0] - px, a0[1] - py)]
             out.append(feat(quad, lat0, {
                 "kind": "aisle", "col": COL["aisle"],
-                "h": round(deck_height(t1, h) + AISLE_LIFT_M, 2), "name": name}))
+                "h": round(bowl_height_at(t1, a, axis) + AISLE_LIFT_M, 2),
+                "name": name}))
             stats["aisles"] += 1
 
     # 4. the field ------------------------------------------------------
@@ -881,7 +1326,8 @@ def build(feature, stats):
         if len(outer_a) < 3:
             continue
         out.append(feat(outer_a + inner_a[::-1], lat0,
-                        {"kind": "logo", "h": round(deck_height(t1, h) + 0.12, 2),
+                        {"kind": "logo",
+                         "h": round(bowl_height_at(t1, south, axis) + 0.12, 2),
                          "col": BURNT_ORANGE, "night": "#e07a30", "name": name}))
         stats["logo"] += 1
 
