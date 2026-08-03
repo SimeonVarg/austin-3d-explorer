@@ -1,29 +1,39 @@
 # QUEUE — Acer lane
 
-Rewritten 2026-08-02 morning, from Simeon's second list. Everything above this in
-git history is superseded. The night's first list is closed — see `HANDOFF.md`
-items 31–57 for what landed and, more usefully, for the four or five reports that
-turned out not to be what they said.
+Rewritten 2026-08-03 evening from Simeon's third list, which is the longest and
+most specific feedback this project has had. Everything above this in git history
+is superseded.
 
-Work top to bottom. One PR per item. Merge your own verified work, resolve your
-own conflicts, **never merge red**. If an item cannot be finished, write down why
-in the item and move to the next — do not stop.
+## Read this before the list
 
-**ONE LANE, ALL FILES, as of 2026-08-02** — *"stop just do everything yourself
-il lhave the mac do something else just do eveyrthing yourself you have total
-control"*. There is no ownership split any more. `MAC_QUEUE.md` is dead; its live
-items are folded in as Part D below.
+**This is probably the last long unattended run before the app is shown
+publicly.** He said so. Two audiences, and they do not want the same thing:
+
+- **Amazon / general viewers** — everything is impressive to them *except
+  glitches*. A flickering window kills the demo; a slightly wrong podium does not.
+- **UT students** — glitches matter less than **the accuracy of the place they
+  personally live**. A freshman looking at Jester, or a sophomore looking at their
+  West Campus apartment. In his words, about his own building: *"if this tool
+  wasn't mine and i saw standard look nice i would feel really cool, like 5x
+  better about the project"*.
+
+**So the order is: kill the glitches, then make the places people live accurate,
+then everything else.** He put "extreme accurate downtown towers and West Campus
+apartments" LAST on purpose. Do not start there.
+
+**Quality over speed.** Verbatim: *"idc how long it takes its fine if your still
+running in the morning. focus on quality, not speed (production speed - render
+speed + fps is still important lol)"*. One thing genuinely right beats five
+schematic. He has now said this three separate ways across three lists.
+
+**And the standing rebuke, worth reading once:** *"embarrased it took so many
+millions of tokens wasted building it for me to look at it online for 1 minute
+and tell you these things"*. He is right. **Look at a photograph of the thing
+before you model it.** Every single item below that says "accurate" means: find a
+reference, read it properly, and check your output against it — not against your
+memory of what the thing probably looks like.
 
 ---
-
-## Read the tone before reading the list
-
-> "not the bare minimum" · "I don't even want to check out the other landmarks"
-> · "this is not a fix trees in roads pass its a more general pas"
-
-Three separate times he is saying the same thing: **the last pass stopped at the
-first thing that worked.** Depth beats breadth here. One landmark that is
-genuinely right is worth more than ten that are schematic.
 
 ## The traps that keep costing hours
 
@@ -31,333 +41,340 @@ genuinely right is worth more than ten that are schematic.
    every feature in a tiled layer vanishes with no console error. Use
    `python scripts/serve.py 8123`.
 2. **A missing layer makes every metric look BETTER.** Verify with a picture.
-3. **Assert the effect, never the intention.**
-4. **A bounding box is not a shape** (HANDOFF §50). **A level run has no height**
-   (§51). **Sample the pixels you mean** — the magenta-mask trick, §48, which
-   caught four things last night that eyeballing missed.
-5. `tour.mjs` needs `VERIFY_MAX_MS=900000`. `pose.mjs --extra "&tiles=0"` forces
-   the GeoJSON fallback when you have changed a tiled layer.
-6. Tiles rebuild with `gh workflow run build-tiles.yml --ref BRANCH` — about
-   20 seconds, and it commits the archives back to that branch.
+3. **Run `node scripts/verify/harness-drift.mjs` before ANY pixel measurement.**
+4. **`git pull` before you screenshot.** A working copy 38 commits behind
+   produced a "finished result" tour of the old city on 2026-08-03. Check
+   `git rev-list --left-right --count HEAD...origin/main` reads `0 0`.
+5. **A bounding box is not a shape** (§50). **A level run has no height** (§51).
+   **Sample the pixels you mean** — the magenta-mask trick (§48).
+6. **CAP CONCURRENCY AT THREE.** Eight parallel agents each opening a browser
+   pinned this laptop at 95% CPU for three hours on 2026-08-03 and froze it. The
+   speed was never in the browsers.
+7. `tour.mjs` needs `VERIFY_MAX_MS=900000`. `pose.mjs --extra "&tiles=0"` forces
+   the GeoJSON fallback. Tiles rebuild with
+   `gh workflow run build-tiles.yml --ref BRANCH`.
 
 ---
 
-# PART A — THINGS THAT ARE WRONG ON SCREEN
+# PART A — GLITCHES. These come first and they are demo-killers.
 
-## A1. At least THREE diagonal roofs remain
+## A1. Windows flip to NIGHT MODE by quadrant, in broad daylight
 
-PR #57 fixed the sagitta rule and cleared the Edgar A. Smith Building. He says
-there are **at least three** more. The rule fix was right and incomplete.
+*"huge new window bug - wow this is horrible ... half the buildings past a
+certain point switch their windows to night mode (complete daylight) ... whatever
+point im rotating around, everything past that in my line of sight is night black
+windows and everything towards me renders fine ... it happens every quarter, so
+like NE and SE, then SE and SW, then SW and NW ... The buidings on the line that
+seperate these quarters keep bugging between day and night windows, or between
+different window densities ... exited rotate mode flew toward dark buildings and
+they fixed themselves but i have to fly over each chunk to fix that chunk ... nvm
+they go back to being dark after a while. Keep in mind i was switching between
+day and night before this happened"*
 
-**Do not hunt by eye.** Write `scripts/verify/roof-diagonal.mjs` that finds them
-mechanically: for every building with pitched facets, check the facet azimuths
-cover all of the footprint's edges. A roof missing a slope has a gap in its
-azimuth set — exactly what Smith had, three of four. Report every failure, then
-fix the *rule* that produced them.
+**THE WORST BUG IN THE APP. Fix this first.**
 
-Causes not yet ruled out: `valid_step`'s 0.9 clearance factor, `fold_free_run`
-capping, and footprints whose longest edge is not their principal axis.
+Read the report carefully — it names the mechanism. "Every quarter", "chunks",
+"fly over a chunk to fix that chunk", "goes back after a while" is **TILES**. The
+facade pattern is a `fill-extrusion-pattern` whose image is re-rendered per
+time-of-day into the atlas; a tile built while the atlas held the night image
+keeps it until that tile is re-built. Flying near forces a rebuild; eviction
+brings the stale one back. The quadrant boundaries are tile boundaries.
 
-## A2. Speedway and 24th glitch on motion, combine when still — **DONE** (PR #78)
+Likely: the time-of-day retint calls `map.updateImage(id, ...)` for each combo,
+but tiles already uploaded do not re-sample; or `bakedfacades` /
+`registerOuterTowerBuckets` (PRs #84, #94) register images at the CURRENT hour and
+never re-register on a tod change. **Check that every registration path is hooked
+to the tod wrapper — HANDOFF has a whole entry about a pass that built a wrapper
+and never installed it.**
 
-> Closed 2026-08-02. 642 same-height pairs / 271,820 m2 and 1,027 carriageway x
-> path overlaps became 16 / 26 m2 and 77 / 102 m2 under one rank ladder in
-> `bake_ground.py`. The flip is photographed in `docs/shots/ground-speedway-24th.jpg`.
-> See HANDOFF §34 — including the instrument, which is reusable: hold a point at
-> the SCREEN CENTRE and move only the camera.
+Reproduce it in a script first: load, set tod day, set tod night, set tod day
+again, orbit, and sample facade pixels by quadrant. Assert the effect.
 
-*"speedway and 24th keep glitching on motion and combine on still, find out
-other areas like this and fix"*
+## A2. Roads swell as you tilt up from low altitude
 
-Two symptoms of one cause: **coincident surfaces z-fighting.** Speedway is a
-`patharea` polygon lifted to 0.22 m (PR #70); 24th is a road still at 0. Where
-they cross, the depth test flips per frame — that is the motion glitch — and when
-still it resolves to whichever won, which is the "combine".
+*"when im all the way down vertically and look at an angle towards the roads and
+start facing upright, the roads get bigger. some roads dont do this."*
 
-**Find the general class, not the two streets.** Walk every pair of ground
-polygons and report overlaps within a few centimetres of the same height. Then
-pick one rule: a deliberate height ordering (roads < paths < plazas), or clip the
-overlap out in the bake. Roads are the half that has not moved.
+The `some roads dont` is the clue: two different road representations. PR #78
+gave ground polygons a rank ladder and PR #70 lifted paths to 0.22 m, but any
+road still drawn as a **`line` with a pixel width** covers more ground metres as
+pitch increases — that is exactly "gets bigger when I look up". Find every ground
+or road layer still using `line-width` in pixels rather than a
+metres-on-the-ground width and convert it.
 
-## A3. Trees standing in roads — the general pass
+## A3. The horizon line that follows the camera — READ THIS SLOWLY
 
-*"this is not a fix trees in roads pass its a more general pas"*
+He has described this three times and it has not been understood. Verbatim, most
+complete version:
 
-`shape_trees.py` drops trees whose centre falls inside a **building**. It checks
-nothing else. Extend it to every surface a trunk cannot be in — road, path,
-plaza, parking, water — report the count per class, and keep the check in the
-bake so it cannot regress.
+*"ever since start theres been a horizon that shades things under it into the
+sky. this line follows me when i go up or down. so if i go high enough so where
+the line is above the towers in downtown it looks really nice like their distant
+and shaded with the sky a bit - THE WHOLE THING - but when i go down then under
+the line has this nice gradient but above the line is COMPLETELY NORMAL building.
+so like on default sunset im looking at downdown from a medium height, the bottom
+half shades fine, but the top half is completely darker and the same tone"*
 
-A crown OVERHANGING a road is correct and common. Only the trunk position is the
-test. Do not over-delete.
+**What this means:** the atmospheric fade is applied as a function of SCREEN
+HEIGHT, not of distance. HANDOFF §85's own note says "screen row IS distance
+under a pitch" — that is true for the GROUND and false for anything with height.
+A tower's base is far and its top is equally far, but the top is above the line,
+so it gets no fade and reads as a flat dark slab sitting on a faded base.
 
-## A4. Big trees in the lawn in front of the Tower
+**The fix is to fade by DISTANCE, not by screen row.** Every building needs the
+same fade over its whole height, chosen by how far away it is. Until that is
+true, no amount of tuning the line helps — he has been shown three tunings and
+all three were the same defect.
 
-*"get rid of big trees in the lawn in front of tower"*
+## A4. Night windows appear briefly while moving vertically
 
-The South Mall lawn panels are open grass; the canopy belongs on the flanking
-walks. Drop the trees inside the Main Mall / South Mall lawn polygons. Same
-mechanism as A3 — a surface a tree does not belong in — so generalise once and
-apply twice.
+*"in the night ... theres a bug i go up and down sometimes the buildings render
+the daytime wall windows. i did up and down for like 20 seconds then it fixed
+itself for good."* Almost certainly the same root as A1. Fix A1, then re-test
+this and say whether it went with it.
 
-## A5. The fountain steps look like a yoga mat
+## A5. Intricate roofs flicker while moving
 
-*"stairs next to foundtain looks like a yoga mat. If this needs a broader depth
-fix do that - but make them accurate"*
+*"some buildings with intricate roofs like united methodist church have a bit of
+movement glitching between the slightly grayer roof and the brown slope. same
+with the childhood center behind it that also has a diagonal roof."*
 
-He is right, and the reason is written in PR #62: the courses are wide flat bands
-of alternating colour. That is a stripe, not a stair. What a real flight reads as
-is a **riser face in shadow** under each tread.
+Z-fighting between a roof deck and a roof slope at the same height — the same
+class as A2's ground fight, which PR #78 solved with a rank ladder. Apply the
+same idea to roof surfaces. **And note both named buildings ALSO have a diagonal
+roof, so check A6 has not left them behind.**
 
-**Fix the generator, not the fountain.** `terrace()` emits one slab per course;
-it should emit a **tread and a riser** — the riser a thin darker band at the
-step's outer edge standing the full step height — so the profile has an edge to
-catch light. Then re-measure the Littlefield Fountain against a photograph:
-tread depth, riser height, how many, and whether the flights are straight or
-**curved. They are curved.**
+## A6. The diagonal roof that has been reported four times
 
-## A6. Turtle Pond: fewer turtles, and that garden is bland — **GARDEN HALF DONE** (PR #80)
+*"found out the name of the other building with teh diagonal roof that you never
+fixed despite mentioning 10 times - it houses the anna hiss gymnasium"*
 
-> Closed 2026-08-02 for the garden. Beds derived from the real walk network,
-> a specimen at each lawn panel's pole of inaccessibility, a built coping on
-> Turtle Pond, and `u:'garden'` finally has its own surface instead of falling
-> through to `grass` — which was the entire cause. **The turtle count is still
-> open** and belongs to `bake_depth.py`; benches belong to `bake_props.py`.
-> HANDOFF §34.
+PR #98 claimed the last three. It missed this one. **Anna Hiss Gymnasium** is at
+roughly `-97.73775, 30.28855`, `final_height` 9.7. Fix it, then re-run the
+mechanical azimuth-gap finder from #98 and report why it did not catch this
+building — a detector that misses a known case is worth more attention than the
+case itself.
 
-*"turtle pond too many turtiles, fix this lawn in general its really bland"*
+## A7. You cannot fly into downtown
 
-Twelve is too many for 218 m² of water — five or six, with more size spread.
-Then the harder half: the Memorial Garden block is a flat green rectangle. It is
-a *garden* — beds, a path loop, benches, specimen planting, a built pond edge.
-PR #63 only removed the slab that was hiding it; nothing has been drawn there.
+*"i wish i could explore more of downtown im currently locked almost halfway"*
 
-## A7. Waller Creek is not a bit of green — **DONE** (PR #79)
-
-> Closed 2026-08-02. The channel is CUT — real geometry below z=0, which became
-> possible only because A2's resolver takes the flat fill off the footprint
-> first. Depth 1.40-3.10 m scaled off each reach's own width; planting is three
-> zones (scrub / understorey / canopy) with its own texture tile. Both named
-> stretches photographed. **STILL MISSING: the trees.** They live in
-> `data/trees.geojson` and the hook is `src:'creek_canopy'` / `creek_under` /
-> `creek_scrub` on the new corridor areas. HANDOFF §34.
-
-*"you added a bit of green around the creeky water when i asked for more than
-just that ... the creek behind patton and alumni is a very vibrant in depth
-creek, samd with the area behind san jacinto and the rec center and the track
-that area also very lush ... not the bare minimum"*
-
-PR #65 gave every creek a 9 m band of `u:'wood'`. That is the bare minimum and
-he has said so.
-
-What it needs:
-- **Depth.** The channel should read as cut below grade. PR #62 records that
-  sinking ground needs a HOLE in the ground polygon first — do that here: punch
-  the creek out of the surrounding areas, then run `terrace()` inward and down.
-- **Real planting, not a colour.** Trees along both banks at real density,
-  understorey, bank scrub.
-- **The stretches he named, each with its own picture:** behind Patton Hall and
-  the Etter-Harbin Alumni Center; behind San Jacinto, the Rec Center and the
-  track.
-- Look at what is mapped before inventing — OSM has the creek path, the bridges
-  and some planting.
-
-## A8. The landmarks are not accurate — the biggest item here
-
-*"make monochrome for austin look better not like a silver tree. clock not looks
-like a fireplace and not big enough. I don't even want to check out the other
-landmarks PLEASE make them accurate to size and architecture."*
-
-`bake_art.py` has ten recipes and 24 generic forms, and the recipes are schematic
-where they need to be specific. **Every one needs a reference photograph read
-properly before it is redrawn** — the `VISUAL_REFERENCE_PLAYBOOK` rules apply in
-full: derive the rule, sample real dimensions, never guess.
-
-**Get SIZE right first — he said size before architecture.**
-
-- **Monochrome for Austin** (Nancy Rubins): a cascade of aluminium canoes and
-  small boats bolted into a lopsided mass cantilevered off a mast — wider than
-  tall, asymmetric. The bake draws a symmetrical radial burst, which is exactly
-  why it reads as "a silver tree". About 9 m across.
-- **Clock Knot** (Mark di Suvero): 26 ft of orange-red steel I-beams; a tangle
-  meeting at an acute angle high up with legs splaying wide. The bake is squat
-  and symmetrical = "a fireplace". **Check the height against the real 7.9 m** —
-  he says it is not big enough and the data carries 5.5.
-- Then the other eight, each against a photograph: The West, Diana the Huntress,
-  Austin, Sea Turtle, Mustangs, Circle with Towers, The Torchbearers, Lone Star.
-
-## A9. Does the Kelly glass match the real building?
-
-*"check if the glass u added to the ellsworth building matches it irl"*
-
-**Probably not, and here is the specific doubt.** Kelly's *Austin* has three
-coloured-glass windows:
-
-| wall | the real window | what PR #58 drew |
-|---|---|---|
-| south | **colour grid** — a grid of squares | roughly right |
-| west | **starburst** — radiating coloured panels | close |
-| east | **tumbling squares** — a diagonal cascade | six tall spectrum lights — **a different window entirely** |
-
-Get a reference image, confirm all three, fix the east wall. Also check the
-massing: it is a stone volume with a **double** barrel vault and the bake draws
-one.
+`js/controls.js` has a soft `fence` that eases the camera to a stop at the edge
+of the data. Downtown is inside the modelled area now, so the fence is drawn too
+tight. Widen it to cover everything that renders, and check the far edge still
+stops him before he flies into empty basemap.
 
 ---
 
-# PART B — GO WIDER, AND KEEP IT HONEST
+# PART B — DKR. He has asked a hundred times. Do it properly this once.
 
-## B1. Build the landmark contact sheet FIRST
+## B1. Rebuild DKR from a reference, not from its footprint
 
-Before redrawing ten sculptures by hand twice: a `pose.mjs`-driven contact sheet
-that photographs every authored artwork at a fixed distance and lays them out in
-a grid beside their recorded height. One command, one image, and the wrong ones
-are obvious. Same argument as the render→sample→assert harness in the playbook —
-build it as step one, not last.
+*"can we please redo DKR? make it look like the actual thing. this is now my
+100th time asking ... right now the seating is 0/10 similarity to how it actually
+is ... it looks like the colloseum not a football stadium ... your current
+'seats' look like cutouts from a big pyramid"*
 
-## B2. The South Mall terraces
+**Do not start in the code. Start with a photograph and a plan view.** Darrell K
+Royal–Texas Memorial Stadium, capacity ~100,000. Everything below is his own
+description and it is a specification:
 
-The mall rises ~6 m from the fountain to the Main Building and is currently flat.
-`terrace()` and `flight()` exist. The PR #62 constraint still holds — building
-bases are at z=0 — so this is steps and retaining walls at the level changes, not
-a raised mall.
+- **It is far too tall.** Check the modelled height against the real thing before
+  anything else. A stadium is wide, not tall.
+- **The top of the perimeter is LIGHTS and is rendering as wall.**
+- **West side: two really big decks of seating.** (The west side is the tall
+  main-grandstand side with the press/suite tower.)
+- **North and east: a second layer, wrapped, smaller, and connected to each
+  other.**
+- **South: mainly the screen** — the giant videoboard.
+- **A Longhorn-shaped thing at the south end, low down.**
+- **Entrances on the southwest and northwest sides**, and they are distinctive.
+- **Some seat sections are burnt orange and some are not** — the seating bowl is
+  not one colour.
 
-## B3. Ground that is not bare
+## B2. Stadium lighting that behaves like stadium lighting
 
-The commonest defect in every wide shot is large expanses of base tan where
-nothing is mapped. PR #69 grows a lawn out to the walks that bound it and is
-written as a `PRECINCTS` table keyed by a point. **Add the other obvious ones:**
-the Blanton block, the East Mall, the Drama/art precinct, the power-plant yard,
-West Campus interiors.
+*"make the lights accurate and make them work at night - now the seats become
+bright yellow and everything else is dull - what? the lights are supposed to
+illuminate everything - if you cant find out by just data alone then do research
+on football stadium mechanics and combine that with real data"*
 
-## B4. Street furniture that is not a box
+He is exactly right and it is the reason the night frames look wrong: the seat
+bands were authored as *emissive* — they glow — while nothing they should be
+lighting responds. Real floodlights are on the rim pointing INWARD and DOWN: the
+field is the brightest thing, the lower bowl is lit, the structure is edge-lit,
+and the outside of the stadium is comparatively dark.
 
-2,635 furniture features are drawn as small boxes. Give the common ones a real
-form — a bench is a seat, two ends and a back — and check the density reads as a
-campus rather than as scatter.
-
-## B5. Night: the last 872 pale pixels
-
-`night-pale.mjs` is at 872, from 6,206. The remaining 12.4% is `stadium-detail`,
-the Mac's. Re-run after their DKR night pass lands and **confirm** rather than
-assume.
-
-## B6. A regression net for the ground bakes
-
-Four bakes now write `data/ground.geojson` and each has silently changed
-another's output at least once. Feature counts per `k` and per `u`, plus file
-size, asserted against a recorded baseline. That would have caught the props
-re-bake producing 2,244 features against a shipped 9,022 (HANDOFF §44).
-
----
-
-# PART D — WAS THE MAC'S, NOW MINE
-
-## D1. Windows are blurred, everywhere
-
-*"i dont like how windows in general are super blurred"*
-
-**The single most-seen surface in the scene** — every building in every frame.
-
-`js/facades.js` draws each pattern into a **64 px** canvas tile and hands it to
-MapLibre as a `fill-extrusion-pattern`. Candidates, by how likely each is to be
-the whole answer:
-
-1. **Tile resolution.** 64 px over 30–60 m of wall is a couple of pixels per
-   window. Try 128 and 256; measure the look AND the atlas cost.
-2. **`devicePixelRatio`** — a tile authored at 1x and composited at 2x is soft by
-   construction.
-3. **Mipmap / minification filter** — if MapLibre samples a downscaled mip at
-   flying distance, that explains "blurred at every zoom" rather than "blurred
-   close up".
-4. **The tile's own drawing** — anti-aliased 1 px strokes on a 64 px grid are
-   mush before anything else touches them.
-
-Measure before choosing: one wall, three distances, candidates side by side.
-
-## D2. Downtown is bland, and one window column renders per tower
-
-*"alot of downtown is super bland - make it look nice like the campus ... get
-data on all the buildings and stuff, parks and cool things in downtown and add
-them. also sometimes like one window column renders per downtown bulidng and its
-really bad"*
-
-**D2a — the one-column bug first.** It is a pattern-scale failure, not a data
-failure. `fill-extrusion-pattern` is TILE-anchored and its world size halves at
-every integer zoom; `window.PATTERN_TILING` pins the GeoJSON sources to z16 and
-`--maximum-zoom=16` pins the archives. A tower getting one column is being drawn
-where the tile covers its whole facade. Reproduce it — it is intermittent, so
-find which zoom and which class — then fix the scale rule.
-
-**D2b — finish the tile switch, which is still inert.** PR #71 baked the tower
-buckets as `fb` and proved parity 114/114; PR #73 stopped it colliding with `wp`.
-**Nothing renders differently yet.** Expose `registerOuterTowerBuckets` in
-`js/facades.js`, call it from `js/outer.js` before `addSource`, re-tile
-`outer.pmtiles`. **One PR or it stays inert.** Write it so a SECOND caller can
-register a second set of buckets — the campus bake (C1) needs exactly that.
-
-**D2c — real downtown data.** Overture has heights and classes; OSM has the
-parks, plazas and transit — Republic Square, Waterloo Park, the Central Library,
-the Moody Theater. Distinct tower crowns, setbacks, podium bases that differ from
-their shafts, ground-floor retail on the main streets. **The recognisable ones
-first** — Frost Bank, the Independent, the Austonian, the Capitol view corridor —
-because a skyline reads by its landmarks.
-
-## D3. The far ring is a flat tan band at dusk
-
-From the day/dusk/night sweep the outer ring reads as a **solid tan wall with a
-hard horizon line** — the most unfinished-looking thing in all three.
-`shots/tour/dusk-tower-south-mall.png`. Two parts: the ring's colour does not
-recede with distance the way the near city does, and the sky join is hard rather
-than hazed. `js/sky.js` and `js/outer.js`.
-
-## D4. Distant Horizons — a taste call, so SHOW him
-
-`scripts/tile.sh` pins `--simplification=1`. Turn it up: 4, 8, 12; rebuild;
-shoot `tour.mjs` at each. Also try `--drop-densest-as-needed` for trees and props
-— a live oak at z13 is four pixels and there is no reason to send all 41,964.
-**Put the before/after shots in the PR and let Simeon pick** (CLAUDE.md rule 9).
-
-## D5. The remaining night pale pixels
-
-`night-pale.mjs` is at **872**, from 6,206. The last 12.4% is `stadium-detail`.
-
-## D6. Kill the sleeps
-
-**880 seconds of hardcoded `waitForTimeout` across 87 scripts** — ~15 minutes of
-every full run doing nothing. Worst: `drift-check` 48 s, `lookup-check` 36 s,
-`srcprobe` 26 s, `arts-shots` 22 s. Per-script judgement, not a sweep: a wait
-masking a race becomes an intermittent failure, which costs more than a slow
-suite. Run each three times after changing it.
+Invert it. The field and the bowl take the light; the seats stop being the light
+source. **Note this supersedes the earlier "LED upgrade" defence in HANDOFF §27 —
+he has now rejected that read twice.**
 
 ---
 
-# PART C — the tiling work
+# PART C — WHERE STUDENTS ACTUALLY LIVE. This is what UT viewers will check.
 
-## C1. Buildings on vector tiles
+## C1. Jester should not look like a prison
 
-**Started, parked UNMERGED on `acer/facade-bake`. Do not merge until the harness
-passes.**
+*"make jester look alot nicer if freshman r gonna see this then their dorm
+shouldnt look like a prison"*
 
-`scripts/bake_facades.py` transcribes `quantiseFacades` and reproduces the whole
-assembly it runs after — `capitol_overrides.json` patching 12 buildings,
-`capitol.geojson` appending 604, `FACADE_PROTECTED`, and `applyUnion24` rewriting
-one building's height AND its `wd`/`wg`/`wn`. It agrees with the browser's own
-console line on the assembly (12 / 604 / 1) and elects 14 buckets over 20 groups
-across 3,057 features.
+- **Some Jester roofs should carry the red brick pattern; some should be light
+  grey flat concrete with roof detail.** Right now they are neither.
+- **The colour is not accurate.** Check it against a photograph.
+- **Add the tennis / volleyball court between the buildings.**
+- **The ground around it is bare with duct-tape sidewalks** — fill the block in
+  properly (see C4 and D7).
 
-`scripts/verify/facade-parity.mjs` is written and **has never been run.** That is
-the next command. It runs the REAL `mergeCapitolScene`, `applyUnion24` and
-`quantiseFacades` on their own fetched copy and dumps every feature's bucket.
-`scripts/verify/facade_parity.py` — the comparator — **is not written yet.**
+Jester East and West are one complex at roughly `-97.7305, 30.2830`.
 
-It stamps an inert ordinal, never `wp`: `wp` is read by the renderer through
-`['coalesce', ['get','wp'], 'mh00']`, so a baked `wp` naming an unregistered
-atlas image paints that building **transparent**.
+## C2. Gregory Gym's famous entrance
 
-**Sequencing.** The render switch needs `js/facades.js`, which the Mac is editing
-for `registerOuterTowerBuckets` (MAC_QUEUE M2). Land theirs first, then copy its
-shape. Do not both edit that file.
+*"greg gym is split into two sections (one building) one should replicate the
+famous entrance with the three hall things and the roof"*
+
+The 1930 Gregory Gymnasium facade has a **three-arch entrance loggia** under a
+tiled gable. It is one of the most recognisable faces on campus and it is
+currently a flat wall.
+
+## C3. Littlefield Dorm has the wrong roof
+
+*"littlefeild dorm should have a red roof"*. One-line data fix — but check
+whether the roof survey has it and why it was missed, because that rule probably
+misses others.
+
+## C4. The Honors Quad court
+
+*"Can the yard in the honors quad court be better? theres no asphalt roads in
+that court so idk why its there"*
+
+There is asphalt drawn in a courtyard that has none. Find out where that surface
+comes from — it is probably an OSM `highway` way crossing the court, or a
+service-road polygon — and stop drawing it there. Then make the court a court.
+
+## C5. West Campus apartments — LAST, but he cares most about it
+
+*"so many apartments in austin wampus have such cool designs but are currently
+regular building blocks. Can you implement these designs?"*
+
+He lives in **Standard** next year and said seeing his own building look good
+would make him feel 5x better about the project. Do NOT cherry-pick Standard —
+do the recognisable West Campus towers properly and Standard will be among them.
+**This is explicitly last on his list. Do not start it until Parts A–D are done.**
+
+---
+
+# PART D — LANDMARKS AND DETAIL
+
+## D1. The Capitol
+
+*"same thing with capitol building and lawn - looks like u got rid of the
+walkways around it those had a cool pattern add them back. also the thing on the
+top of capitol buildings looks like its angled. Also its not the right color."*
+
+Three separate defects:
+1. **The walkways around the Capitol lawn are gone** and they had a pattern worth
+   having. Find out which pass removed them — a ground-resolver rank ladder
+   (PR #78) or a precinct lawn (PR #93) is the likely culprit — and restore them.
+2. **The dome/goddess reads as angled.** It should stand vertical.
+3. **The colour is wrong.** Texas Capitol granite is a distinctive pink —
+   "Sunset Red" — and there is already a `FACADE_PROTECTED` entry for exactly
+   that (`#bd8477`). Check whether it is still being honoured.
+
+## D2. Make the UT Tower actually glow at night
+
+*"see how the UT tower is supposed to glow at night, analyze what types of orange
+glow and how to replicate it"*
+
+This is a research task before it is a code task. The Tower is **floodlit burnt
+orange** for wins and special occasions — a warm wash up the limestone from below
+with the top lantern lit, not a uniform orange repaint. Look at photographs of a
+lit Tower, work out what is actually glowing (the shaft washed from below, the
+observation deck, the clock faces, the lantern), and reproduce that structure
+rather than tinting the whole thing.
+
+## D3. The art is made of big square pixels
+
+*"alot o the art u did liek the glass, monochrome for austin, clock knot are like
+mini legos - i thought vectors could be like angled and stuff you could make the
+actual thing? not like a paint tool with the biggest pixel brush setting?"*
+
+**A fair and important question, and it deserves a real answer in the PR.**
+`bake_art.py` builds everything from axis-aligned boxes and discs, so a leaning
+steel beam becomes a staircase of blocks. MapLibre CAN draw an arbitrary polygon
+prism at any angle — a rotated rectangle is just four points — so a beam should
+be ONE rotated prism, not a stack. The limitation is that a `fill-extrusion` is
+always vertical, so a diagonal member has to be approximated by a thin rotated
+prism per segment; but that is very different from an axis-aligned staircase.
+
+Fix `beam()` to emit rotated prisms aligned to the member's own axis. That one
+change fixes Clock Knot, Monochrome for Austin and most of the rest at once.
+
+## D4. Balls of Texas are rotated the wrong way
+
+*"balls of texas are rotated the wrong way LOL was funny but super embarrasing"*.
+Fix the orientation and check nothing else shares the bug.
+
+## D5. Kelly's Austin still looks bad
+
+*"austin building with the circle class still looks horrible"*. The starburst
+window has been drawn twice and is still wrong. Get a photograph of the west
+window and match it — radiating coloured panels in a circle, in a specific order.
+
+## D6. Speedway got deleted
+
+*"looks like speedway got slimed out somewhere in between add it back"*. Speedway
+is the main pedestrian spine of campus. Find which pass removed it — the ground
+resolver in PR #78 is the prime suspect since it clips overlapping surfaces — and
+restore it.
+
+## D7. Sidewalks look like duct tape
+
+*"sidewalks in campus look like ducttape can we fix that? wont take much maybe a
+few shading or texture things"*. They are flat pale strips with a hard edge.
+Texture, a softer kerb, and joint lines would do it. He explicitly says this is a
+small job.
+
+## D8. The creek cuts straight through roads and buildings
+
+*"the creek near DKR completely slices through 21st and DKR, but sidewalks still
+go over them (added to the ducktape analogy) same thing happened with this creek
+and other roads too"*
+
+PR #79 cut the channel below grade and nothing taught it about crossings. Where a
+creek meets a road or a building, there is a **culvert or a bridge** — the road
+continues over the water. Find every creek/road and creek/building intersection
+and deck them over.
+
+## D9. Concrete in front of the Tower is blown out at sunset
+
+*"concrete area right in front of tower renders too bright on default sunset"*.
+The golden-hour paving value is too high. Taste knob, one line, but check it
+across all three times of day.
+
+## D10. Simone Leigh's *Sentinel IV*
+
+Missing. It stands in the yard of the Anna Hiss Gymnasium building (A6) — a tall
+slender bronze. Add it while you are in there.
+
+---
+
+# PART E — DOWNTOWN DEPTH. Explicitly last.
+
+## E1. The small downtown buildings are skeletons
+
+*"downtown big buildings are a bit more detailed which is nice, but smaller ones
+are just skeletons - when i say make downtown vibrant i mean a UT campus level
+transformation. alot of downtown towers have unique shapes and designs im sure
+the data isnt an issue."*
+
+PR #99 gave the tall ones podiums, setbacks and crowns. The mid-rise and low-rise
+did not get it. **UT-campus level** is the bar he named: real roofs, real
+materials, ground-floor retail, plant on the roofs.
+
+**AND CHECK THE COLOUR.** In `shots/tour/day-downtown-skyline.png` the downtown
+towers read as a dark grey mass next to a warm campus. That may be a real
+regression from the tile switch (PRs #84/#94) rather than a design choice —
+measure it against the campus buildings before adding anything.
 
 ---
 
@@ -366,5 +383,6 @@ shape. Do not both edit that file.
 1. **Never register a self-hosted GitHub runner.** Public repo.
 2. **Never remove the watchdog or reaper in `scripts/verify/chrome.mjs`.**
 3. **Never leave a browser or a server running.** `reap.mjs` and kill your server
-   before finishing every pass.
-4. **Record every pass in `HANDOFF.md`** with the branch name.
+   before finishing every pass. **Three browsers at once, maximum.**
+4. **Record every pass in `HANDOFF.md`** with the branch name, including what you
+   tried that did NOT work.

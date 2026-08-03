@@ -1,179 +1,151 @@
-# MAC LANE — the trees, and only the trees
+# MAC LANE — DKR, and only DKR
 
-## STATUS 2026-08-03: all three items done. Three PRs, all merged.
+Rewritten 2026-08-03 evening. The trees lane is closed (PRs #90–92, all merged).
+This lane now has **one job**, and it is the one Simeon has asked for more times
+than anything else in this project.
 
-| | | |
-|---|---|---|
-| **T3** creek | PR #90 `mac/creek-trees` | 4,659 trees into the 33/34/49 corridors. Both stretches he named photographed. **+524 KB on the tile archive.** |
-| **T1** flat discs | PR #91 `mac/tree-shading` | Crown gradient on the baked `tf`, per-tree hue on `j`. **Zero bytes** — both were already in the data, unread. |
-| **T2** bare city | PR #92 `mac/canopy-coverage` | Diagnosed, and the diagnosis overturns all three candidates. Took the one real lift (+5,054 surveyed trees, +111 KB). **Does not fix the look, and says so.** |
+## Scope — narrow on purpose
 
-### The two things the next session needs
-
-1. **`build-tiles.yml` fails every day after midnight UTC** until that day's
-   buildings snapshot is baked — `tile.sh`'s final `du` names an archive under
-   `data/snapshots/$(date -u)`, `set -o pipefail` promotes its status, and the
-   run dies *after* building everything correctly. One line to fix, in a file
-   this lane does not own. Until then a "failed" re-tile may have worked; build
-   `trees.pmtiles` locally with the `TIPPE_COMMON` flags instead. HANDOFF §39.
-2. **T2's real fix is a payload decision only Simeon can make.** A road-network
-   fill is 2,423 km of road outside the core = **138,472 trees at 35 m spacing**
-   against ~25,000 crowns in the whole app today. The affordable middle is a
-   bounded ring around campus or major roads only. HANDOFF §41.
-
----
-
-Written 2026-08-02 afternoon. This lane exists again after a day off it, and the
-scope is deliberately narrow: **one script, one data file, one archive.**
-
-## Why the boundary is drawn here and not somewhere else
-
-The last two-lane split was cut by an ad-hoc list of files and it ran straight
-through the middle of a subsystem — the Acer needed `js/facades.js` for the
-buildings-on-tiles port while this lane owned it, so finished work sat parked and
-the same discovery got written into `HANDOFF.md` twice from two machines.
-
-**The split that works is by BAKE.** Every bake script owns exactly one output
-file and nothing else writes it. Five parallel workers have been running on that
-boundary all night with clean merges every time. So:
-
-| you own, completely | the Acer will not touch it |
+| you own, completely | nothing else writes these |
 |---|---|
-| `scripts/shape_trees.py` | |
-| `scripts/fetch_city_trees.py` | |
-| `data/trees.geojson` | |
-| the `trees` layers in `js/app.js` | *only* the tree paint expressions |
-| `data/tiles/trees.pmtiles` | |
+| `scripts/bake_stadium.py` | |
+| `js/stadium.js` | |
+| `data/stadium.geojson` | |
+| `data/dkr_aerial.png`, `dkr_aerial_geo.json` | reference imagery, already here |
 
-**You READ `data/ground.geojson` and must not write it.** The Acer is editing it
-continuously. The three corridor tags you need — `src:'creek_canopy'` (33
-areas), `src:'creek_under'` (34) and `src:'creek_scrub'` (49) — are already in
-the shipped file and their schema is frozen for you. If you need a fourth, say
-so in `HANDOFF.md` and the Acer will add it.
+**You may READ anything. You may WRITE only the above.** The Acer lane is working
+`js/facades.js`, `js/ground.js`, `js/outer.js`, `js/controls.js`, `js/tower.js`,
+`bake_ground.py`, `bake_art.py`, `bake_depth.py`, `bake_roofs.py` and
+`bake_props.py` simultaneously. Touching those loses work.
+
+If the fix needs something outside your files — a change to the facade atlas, a
+new ground surface — **write the request into `HANDOFF.md` and work around it**,
+do not reach across.
 
 **You merge your own PRs.** Branch `mac/*`, verify, `gh pr merge --merge
---delete-branch`. **Never merge red.** Never wait for Simeon.
+--delete-branch`. **Never merge red.**
 
 ---
 
-## The three traps that keep costing hours
+## The brief, in his words
 
-1. **`python -m http.server` cannot test this site.** It ignores `Range:`, which
-   PMTiles needs, so every feature in a tiled layer silently vanishes with **no
-   console error** — and trees are tiled, so this trap is aimed directly at you.
-   A treeless campus was once photographed and briefly believed.
-   Use `python scripts/serve.py 8123`.
-2. **A missing layer makes every metric look BETTER.** Payload down, frame time
-   down, everything reads as a win. **Verify with a picture.**
-3. **Run `node scripts/verify/harness-drift.mjs` before trusting any pixel
-   measurement.** `_harness.html` is a hand-maintained copy of index.html's
-   script list and it was missing `js/tiles.js` until today — every night-pale
-   run and luma probe for an unknown number of passes measured a city with no
-   vector tiles. It is fixed and now guarded. Keep it passing.
+> *"can we please redo DKR? make it look like the actual thing. this is now my
+> 100th time asking. ill name a few of thousands of problems with it - its wayy
+> to tall pretty sure alot of the top perimeter is supposed to be lights but its
+> rendering as wall. DO NOT JUST FIX THESE CUZ IM TELLING YOU THEM. right now the
+> seating is 0/10 similarity to how it actually is. there are cool entrances on
+> the southwest and northwest sides. right now it looks like the colloseum not a
+> football stadium. make the lights accurate and make them work at night - now
+> the seats become bright yellow and everything else is dull - what? the lights
+> are supposed to illuminate everything - if you cant find out by just data alone
+> then do research on football stadium mechanics and combine that with real data.
+> but anyway the west side has like two really big sections of seating, the north
+> and east side also have a second layer but theyre wrapped and smaller and
+> connected, and then of course the south side is mainly the screen. theres also
+> the longhorn shaped thing at the south side bottom, various seats are colored
+> burnt orange vs normal. Like ur current "seats" look like cutouts from a big
+> pyramid. anyway embarrased it took so many millions of tokens wasted building
+> it for me to look at it online for 1 minute and tell you these things"*
 
-**Tools:** `scripts/verify/pose.mjs` photographs any pose from the command line —
-`--out shots/x --tod 0.30 name:lng,lat,zoom,pitch,bearing`, and
-`--extra "&tiles=0"` forces the GeoJSON fallback so you can see a data change
-before paying for a re-tile. `tour.mjs` needs `VERIFY_MAX_MS=900000`.
+**Read "DO NOT JUST FIX THESE CUZ IM TELLING YOU THEM" as the actual
+instruction.** He is saying: he listed a handful of the problems he happened to
+notice in one minute, and he expects the pass to find the rest. A pass that
+closes exactly these nine bullets and stops has missed the point.
 
-**Re-tiling:** `gh workflow run build-tiles.yml --ref <your-branch>`, then
-`gh run watch <id>`, then `git pull --rebase`. About 20 seconds; it commits the
-archives back to your branch.
-
-**`shape_trees.py` is IDEMPOTENT** — it merges crown tiers back before
-re-tiering, so running it twice changes nothing. Keep it that way.
-
----
-
-## T1. Every tree is a stack of flat discs
-
-**The biggest remaining eyesore in the scene.** 57,548 trees, and past about
-z16.5 every one of them reads as a wedding cake: 3–5 octagonal tiers, all the
-same flat olive.
-
-PR #59 gave the species their SILHOUETTES — live oak wide and low, cedar elm
-taller and narrower, a conifer, a small ornamental — and that part is right. What
-is missing is SHADING. A real crown is dark underneath and catches light on top,
-and nothing in this scene expresses that, so the tiers read as separate objects
-stacked up rather than as one mass of foliage.
-
-- Give the tiers a value gradient: lower tiers darker, upper tiers lit.
-- Consider a small per-tree hue jitter so 57,548 trees are not one green. Keep it
-  SMALL — this is a stylised city and a rainbow forest is worse than a flat one.
-- If the paint expression needs a tier index to key off, bake it in
-  `shape_trees.py` rather than deriving it in the browser.
-- **Measure the cost.** `trees.geojson` is 23 MB and the largest file in the app.
-  Report features and KB before and after; if a gradient costs a fifth tier
-  everywhere, that is a real payload decision and it belongs in the PR.
-
-**Parameterise the ramp** (CLAUDE.md rule 11) so Simeon can flatten or deepen it
-in one line.
-
-## T2. The canopy stops dead at the campus edge
-
-West Campus, East Austin and everything south of the Capitol are bare tan. Austin
-reads as a dust bowl with one green island in it, and it is the first thing you
-notice from any altitude.
-
-**Look in `data/osm_cache/` FIRST.** There is already a `city_trees.json` and a
-`trees.json` in there, and a previous session left a much wider fetch cached
-under a bbox-named file (roughly 30.24–30.315 N, -97.788 to -97.702 W — most of
-central Austin, far beyond campus). If the coverage is already on disk this item
-is a filter fix, not a fetch, and that changes it from hours to minutes. Check
-before you reach for the network.
-
-**Then find out WHY before fixing it.** Three candidates, each needing different
-work:
-
-1. the fetch bbox in `fetch_city_trees.py` is drawn tight around campus
-2. the City of Austin tree inventory genuinely does not cover those blocks
-3. something downstream filters them out
-
-Report which it is. If it is (1) this is a data fetch — check the network is
-actually reachable and **say so plainly if it is not** rather than synthesising
-coverage and calling it done. If it is (2), then scattering plausible street
-trees along the road network is a legitimate answer, but it must be labelled
-GENERATIVE in the bake's provenance output, the way the other bakes label theirs.
-
-Watch the payload. Doubling the tree count doubles the biggest file in the app.
-Tiles make that survivable but not free — measure it.
-
-## T3. Waller Creek has no trees in it
-
-The Acer cut the channel (PR #79) and authored the three planting zones, and then
-never grew anything in them. **The hook is sitting in the shipped data unused:**
-33 areas tagged `src:'creek_canopy'`, 34 `src:'creek_under'`, 49
-`src:'creek_scrub'` in `data/ground.geojson`.
-
-Consume them. Canopy gets full-height trees at real spacing, understorey gets
-smaller crowns, scrub gets low mass. Simeon on this stretch:
-
-> "the creek behind patton and alumni is a very vibrant in depth creek, samd
-> with the area behind san jacinto and the rec center and the track that area
-> also very lush. Hope you will add more detail there and not the bare minimum"
-
-**Photograph both of the stretches he named** — behind Patton Hall and the
-Etter-Harbin Alumni Center, and behind San Jacinto / the Rec Center / the track —
-and put both in the PR. Note that `tour.mjs`'s `waller-creek` pose does not
-actually contain the creek; the Acer owns that file, so report it rather than
-editing it.
+**And read the last sentence as the method.** He found these by looking at
+photographs of the stadium for one minute. **Do that first, before touching any
+code.** `data/dkr_aerial.png` and `dkr_aerial_geo.json` are already in the repo —
+a georeferenced aerial. Start there, get ground-level photographs too, and build
+a written spec of the real building before you model anything. The
+`VISUAL_REFERENCE_PLAYBOOK` rules apply in full.
 
 ---
 
-## Order
+## M1. The spec, written down, before any geometry
 
-T3 first — it is the smallest and it proves your re-tile loop works end to end.
-Then T1, which is the biggest visible win. Then T2, which is the one most likely
-to turn into a data-availability problem you cannot solve, and you should not let
-it block the other two.
+Produce a short written description of the real Darrell K Royal–Texas Memorial
+Stadium and put it in the PR: overall dimensions, the height of each deck, what
+is on each of the four sides, where the entrances are, where the lights are.
+Check every number against the aerial you already have.
+
+**Start with height.** He says it is *way* too tall and that is the easiest thing
+to be objectively wrong about. A stadium is a wide, low object; the current model
+reads as a tall drum, which is most of why it looks like the Colosseum.
+
+## M2. The bowl, side by side
+
+From his description, confirmed against reference:
+
+- **West** — the main grandstand. **Two really big decks**, and the tall
+  press/suite structure above them. This is the tallest side by a lot.
+- **North and east** — a **second layer that wraps and connects**, smaller than
+  the west decks.
+- **South** — **mainly the videoboard**, one of the largest in college football,
+  plus the **Longhorn-shaped feature low down at the south end**.
+- **Seat colour is not uniform** — some sections are burnt orange and some are
+  not. Find out which.
+
+The current geometry is concentric rings at rising heights, which is why it reads
+as "cutouts from a big pyramid". **A real bowl is four different sides.** Model
+them as four different sides.
+
+## M3. The entrances
+
+**Southwest and northwest**, and he calls them "cool" — they are distinctive
+structures, not doorways. Get them.
+
+## M4. Lighting that works like stadium lighting
+
+The current model makes the SEATS emissive — they glow bright yellow at night —
+while everything they should illuminate stays dull. That is backwards, and
+HANDOFF §27's defence of it as "the LED upgrade" has now been rejected twice.
+
+Real floodlights sit on the **rim, pointing inward and down**:
+
+- the **field** is the brightest surface in the frame
+- the **lower bowl** is lit, falling off with height
+- the **structure** is edge-lit where the fixtures are
+- the **outside** of the stadium is comparatively dark
+
+So: the top of the perimeter becomes **light fixtures** (he specifically says it
+is currently rendering as wall), the field takes the light, and the seats stop
+being the light source. If the renderer cannot express real illumination —
+MapLibre has one global light — then fake it with authored colour values that
+follow that falloff, and **say plainly in the PR that it is authored rather than
+lit**.
+
+Photograph it at night from outside AND from above, and put both in the PR.
+
+## M5. Check your own work against the picture
+
+Before opening the PR, put a render and a reference photograph side by side from
+the same angle. If you would not recognise your render as this stadium, it is not
+done. That test is the whole of this item.
+
+---
+
+## The traps
+
+1. **`python -m http.server` cannot test this site.** Use
+   `python scripts/serve.py 8124` (8124, not 8123 — the Acer is on 8123).
+2. **A missing layer makes every metric look BETTER.** Verify with a picture.
+3. **`node scripts/verify/harness-drift.mjs` before any pixel measurement.**
+4. **`git pull` before you screenshot** — a stale working copy produced a
+   "finished result" tour of the old city on 2026-08-03. Check
+   `git rev-list --left-right --count HEAD...origin/main` reads `0 0`.
+5. **`build-tiles.yml` fails after 00:00 UTC** until that day's snapshot is
+   baked — see HANDOFF §39. Stadium is not tiled, so this should not touch you.
+6. **ONE browser at a time.** Eight parallel agents froze this laptop for three
+   hours on 2026-08-03.
+
+Useful: `scripts/verify/dkrdiag.mjs` and `fieldprobe.mjs` already exist.
+`scripts/verify/pose.mjs` photographs any pose from the command line.
 
 ## Not negotiable
 
 1. **Never register a self-hosted GitHub runner.** Public repo.
-2. **Never remove the watchdog or reaper in `scripts/verify/chrome.mjs`.** 38
-   orphaned Chromes once took a laptop to 100% CPU mid-deadline.
+2. **Never remove the watchdog or reaper in `scripts/verify/chrome.mjs`.**
 3. **Never leave a browser or a server running.** `node scripts/verify/reap.mjs`
    and kill your server before finishing every pass.
-4. **Record every pass in `HANDOFF.md`** with the branch name — including what
-   you tried that did NOT work. That is the most valuable part of this repo's
-   history; see §31–38.
+4. **Record every pass in `HANDOFF.md`** with the branch name, including what you
+   tried that did NOT work.
