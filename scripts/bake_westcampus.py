@@ -272,15 +272,10 @@ def two_tone(body, pale, w_pale):
                          for i in range(3))
 
 
-# ── Moontower, Gensler. The bake has described this building as a "two-tone
-#    rainscreen: near-white fibre-cement panel against a charcoal panel in broad
-#    vertical strips" since the pass was written, and then drawn it as one flat
-#    tone, because there was no way to say a vertical strip. There is now.
-#    NO PHOTOGRAPH OF MOONTOWER IS IN research/ — the split is the sourced
-#    description, the near-white is typed, and the charcoal is whatever makes
-#    the pair average to the measured #7d8a8e. Marked GENERATIVE in provenance.
+# `two_tone` has no caller today. It is kept, with its one worked example, for
+# the building it was written for: see the NO BAYS note on Moontower below.
 MT_PALE = "#e0e4e8"
-MT_CHAR = two_tone("#7d8a8e", MT_PALE, 0.40)
+MT_CHAR = two_tone("#7d8a8e", MT_PALE, 0.40)      # = #3b4e52, and see below
 
 # ── The parameter table. Every building is the SAME system; only these
 #    values differ. Provenance for each row is docs/PASS_WESTCAMPUS.md.
@@ -529,11 +524,19 @@ BUILDINGS = {
         mech=3.4, deck="roof", balc=None, step=None, tplan=None,
         pool=(-8.0, 0.0, 5.0, 10.0), shade=(7.0, 0.0, 8.0, 9.0),
         sign=(0.0, 1.0, 13.0, 2.6),
-        # The broad vertical strips its own description has always claimed. The
-        # plan is only 45.6 m on its long axis, so three strips is the most that
-        # resolves; 40% of the elevation is the pale panel (see two_tone above).
-        bays=[(0.00, 0.22, MT_PALE), (0.22, 0.60, MT_CHAR),
-              (0.60, 0.78, MT_PALE), (0.78, 1.00, MT_CHAR)],
+        # ── NO BAYS, AND THIS IS THE INTERESTING FAILURE IN THE PASS.
+        # The broad vertical strips are in this bake's own sourced description
+        # and they were built, rendered and then taken out again. Reason:
+        # `wd` here is #7d8a8e, luma 135, and ANY two-tone split of a body that
+        # dark puts a lot of dark on the wall — with the near-white panel at 40%
+        # the other 60% comes out #3b4e52, which made Moontower the darkest
+        # building in West Campus. It did not look like a glitch; it looked like
+        # a different building, and THERE IS NO PHOTOGRAPH OF MOONTOWER IN
+        # research/ to say which is right. Either the split is not 40/60 or the
+        # measured body is a shaded read, and this pass cannot tell.
+        # A colour bay comes off a photograph or it does not get drawn. Fetch
+        # one (Gensler's project page) and this is four lines, with the split
+        # read off the elevation instead of assumed. `two_tone` stays for it.
     ),
     # ── Inspire on 22nd, 2019, 18 storeys, 439 beds, four levels of underground
     # parking. Rooftop pool and an 18th-floor entertainment room. The smallest
@@ -1474,6 +1477,28 @@ def main():
         raise SystemExit("bake_westcampus: refusing to write overhanging geometry:\n  "
                          + "\n  ".join(bad_overhang))
 
+    # Colour bays are typed as fractions and a typo in one of them is silent:
+    # overlapping bays z-fight down a whole elevation, a gap leaves a slot of
+    # sky through the middle of a building, and neither shows up in a render
+    # you are not already suspicious of. Arithmetic, so it runs every bake.
+    bad_bays = []
+    for name, spec in BUILDINGS.items():
+        bays = spec.get("bays")
+        if not bays:
+            continue
+        edges = sorted((float(b[0]), float(b[1])) for b in bays)
+        if abs(edges[0][0]) > 1e-6 or abs(edges[-1][1] - 1.0) > 1e-6:
+            bad_bays.append("%s: bays run %.3f..%.3f, not 0..1" %
+                            (name, edges[0][0], edges[-1][1]))
+        for (a0, a1), (b0, b1) in zip(edges, edges[1:]):
+            if a1 > b0 + 1e-6:
+                bad_bays.append("%s: bays %.2f-%.2f and %.2f-%.2f overlap" % (name, a0, a1, b0, b1))
+            elif b0 > a1 + 1e-6:
+                bad_bays.append("%s: gap between bays at %.2f-%.2f" % (name, a1, b0))
+    if bad_bays:
+        raise SystemExit("bake_westcampus: colour bays do not tile the elevation:\n  "
+                         + "\n  ".join(bad_bays))
+
     # How many NEW facade atlas images this costs. The atlas is repainted on
     # every time-of-day tick and the cost is per IMAGE, so this number is the
     # one that decides whether the pass is affordable — see the note above
@@ -1533,6 +1558,21 @@ def main():
             "balconies": "sourced for Cambridge Tower (every floor, both long "
                          "elevations) and 21 Rio (private balconies documented); "
                          "projection depth is generative",
+            "colour_bays": "measured off ONE NAMED PHOTOGRAPH per building and "
+                           "nothing else - Humphreys' StandardAustin_Ext_14 for "
+                           "The Standard, American Campus's 671_01_exterior for "
+                           "Block on 25th East, Architect Magazine's own "
+                           "photograph for 2400 Nueces. Cluster centres are in "
+                           "the BAY palette comments with their crop boxes. "
+                           "WHICH END a bay sits at is derived, per building, "
+                           "and the derivation is in that building's row. "
+                           "Moontower has a sourced two-tone split and NO "
+                           "photograph, so it has no bays - see its row.",
+            "balcony_rails": "GENERATIVE height (1.05 m, the residential "
+                             "guard-rail minimum); the MATERIAL is sourced - "
+                             "black steel on the 2010s blocks, precast breeze "
+                             "block on Cambridge Tower (Stanley's Solar Unit), "
+                             "white metal on 2400 Nueces from its photograph",
         },
     }, indent=2))
 

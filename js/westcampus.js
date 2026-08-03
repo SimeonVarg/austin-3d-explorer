@@ -9,6 +9,14 @@
  * actually distinguish these buildings — a parking podium at the bottom and a
  * crown at the top — could not be said at all.
  *
+ * TIER THREE went sideways with the same idea. A wall pattern has no HORIZONTAL
+ * anchor either, so the bake now also cuts the tower band into vertical COLOUR
+ * BAYS — The Standard's cream / warm-grey / slate panel field, Block on 25th
+ * East's burnt-orange corner mass, 2400 Nueces' honey limestone volume — each
+ * bay its own feature with its own atlas entry. Plus the thing that was missing
+ * from every balcony in the pass: a 1.05 m RAIL standing on the slab. A slab on
+ * its own is a ledge.
+ *
  * The same was true of the fourteen MID-RISE blocks added in the second tier,
  * and worse: they are what you actually fly past, they are where students
  * actually live, and the fourteen-bucket facade election was also repainting
