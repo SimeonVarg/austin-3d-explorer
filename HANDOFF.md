@@ -126,6 +126,30 @@ lane, and the correct move was to write the request down precisely — file, lin
 and the exact expression — rather than to work around it. The other lane shipped
 it in one PR within the hour. A precise request beats a clever workaround.
 
+### Part three — the entrances, branch `mac/dkr-entrances`
+
+*"there are cool entrances on the southwest and northwest sides."* They were
+**one flat disc each** — `disc()` extruded to 22-25 m, five of them, which from
+the air reads as a grain silo.
+
+What the aerial shows at 0.129 m/px is an OPEN DRUM with a helical ramp winding
+up inside it, which matches the 2008 contractor's note about *"radiused block
+walls on the pedestrian ramps ... creates the angular expression seen from the
+exterior"*. So each tower is now a wall annulus you can see into, a helix of
+3 turns x 8 flights climbing inside it, and a parapet lip — **120 helix flights
+across the five towers**, all in `RAMP_TOWER` as one-line knobs.
+
+**And the videoboard was floating.** Its base was `BOARD_BASE_FRAC x h` where `h`
+is the footprint's raw 63 m = 37.8 m — against a south wall that part one had
+brought down to 26 m. The screen hung **11.8 m clear of the building holding it
+up**. It now sits on the south side's own wall height. That is the second time
+this pass that something derived from the old global `h` was left behind by the
+per-side rewrite; the first was the aisles. **Anything that multiplies `h` is
+suspect until it is checked against the side it stands on.**
+
+Still not built: the south end is the pre-2021 arrangement, and its two
+seven-storey entry towers are not modelled.
+
 ### Also found
 
 - `data/dkr_aerial.png` and `dkr_aerial_geo.png` are **gitignored and were not
