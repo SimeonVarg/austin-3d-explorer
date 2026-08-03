@@ -144,6 +144,49 @@ RADIUS_MIX = [
 WATER_SPECIES = "cypress"
 WATER_NEAR_M = 26.0     # inside this of mapped water, a big crown is a cypress
 
+# ── Taste block: planting Waller Creek. GENERATIVE, and labelled as such. ──
+#
+# *"the creek behind patton and alumni is a very vibrant in depth creek, samd
+# with the area behind san jacinto and the rec center and the track that area
+# also very lush. Hope you will add more detail there and not the bare minimum"*
+#
+# The Acer cut the channel and authored the planting zones and then never grew
+# anything in them: `data/ground.geojson` carries 33 areas tagged
+# `src:'creek_canopy'`, 34 `creek_under` and 49 `creek_scrub` — 33.5 ha in total
+# — and the surveys do not cover a creek bed, so nothing has ever stood in them.
+#
+# THIS IS THE ONLY GENERATIVE POSITION SOURCE IN THIS FILE. City rows and OSM
+# nodes are surveyed and the imagery crowns are measured off a photograph; these
+# are invented, and they are emitted LAST so the dedupe below always resolves in
+# favour of a real tree that is already there. `src:'creek'` marks them in the
+# data and the provenance block names them.
+#
+# Spacing is centre-to-centre on a jittered grid, and it is the number to turn.
+# A riparian canopy at 12 m reads as a closed gallery from the air without
+# becoming a solid mat; understorey and scrub are progressively tighter and
+# smaller, which is what makes the three zones read as three things rather than
+# as one green stripe. Radii are the crown radius range each zone draws from.
+CREEK_ZONES = {
+    "creek_canopy": {
+        "spacing_m": 12.0, "jitter": 0.40, "radius_m": (5.4, 9.2),
+        # Waller Creek's gallery: pecan and hackberry over the channel, bald
+        # cypress at the water, live oak where the bank climbs out of it.
+        "species": (("pecan", 0.32), ("elm", 0.24), ("liveoak", 0.22),
+                    ("cypress", 0.14), ("oak", 0.08)),
+    },
+    "creek_under": {
+        "spacing_m": 8.0, "jitter": 0.45, "radius_m": (2.4, 4.2),
+        "species": (("crape", 0.38), ("elm", 0.24), ("magnolia", 0.20),
+                    ("other", 0.18)),
+    },
+    "creek_scrub": {
+        "spacing_m": 6.0, "jitter": 0.50, "radius_m": (1.3, 2.3),
+        "species": (("crape", 0.52), ("other", 0.30), ("cedar", 0.18)),
+    },
+}
+# Set False to plant nothing and get the old file back in one line.
+CREEK_PLANTING = True
+
 # A crown detected on top of a building footprint is a green roof, a courtyard
 # tree read one wall too far, or a shadow — never a tree standing on a roof.
 REJECT_ON_BUILDINGS = True
@@ -296,6 +339,103 @@ def water_index():
             if (feat.get("properties") or {}).get("s") == "water":
                 idx.add(feat.get("geometry"))
     return idx
+
+
+def creek_zones():
+    """The Acer's three planting corridors, one polygon index per zone tag.
+
+    Read-only use of data/ground.geojson — that file belongs to the other lane
+    and the three `src` tags are a frozen contract (MAC_QUEUE). A tag that stops
+    matching prints a zero below rather than silently planting nothing, because
+    "the creek is empty again" is exactly the failure this consumes.
+    """
+    idx = {k: PolyIndex() for k in CREEK_ZONES}
+    if not os.path.exists(GROUND):
+        return idx
+    with open(GROUND, encoding="utf-8") as f:
+        for feat in json.load(f).get("features", []):
+            src = (feat.get("properties") or {}).get("src")
+            if src in idx:
+                idx[src].add(feat.get("geometry"))
+    return idx
+
+
+def plant_creek(zones, bld, wat):
+    """Scatter trees through the creek corridors on a jittered grid.
+
+    A plain grid reads as an orchard from the air, and pure noise clumps and
+    leaves holes. A grid cell with a deterministic offset inside it gives an
+    even density with no visible rows — the same trick `d` uses to thin trees
+    without banding. Deterministic in position, so re-running plants the same
+    forest; `det01` is the file's own hash.
+
+    Emits (lon, lat, r_m, h_m, leaf, key, src, dbh) tuples like every other
+    source here, with height modelled from radius through HABIT exactly the way
+    the imagery crowns are — so a creek pecan and a photographed pecan of the
+    same spread are the same tree.
+    """
+    out, stats = [], {}
+    for tag, cfg in CREEK_ZONES.items():
+        idx = zones.get(tag)
+        placed = on_water = on_building = 0
+        if idx is None or not idx.n:
+            stats[tag] = {"areas": 0, "planted": 0}
+            continue
+        # Walk the grid over each zone's own bounding box rather than the whole
+        # city: 33.5 ha of corridor inside a 9 km box is 99.9% empty cells.
+        boxes = []
+        for cells in idx.cells.values():
+            for box, _ring in cells:
+                boxes.append(box)
+        if not boxes:
+            stats[tag] = {"areas": 0, "planted": 0}
+            continue
+        w = min(b[0] for b in boxes); s = min(b[1] for b in boxes)
+        e = max(b[2] for b in boxes); n = max(b[3] for b in boxes)
+        dlon, dlat = m_to_deg(cfg["spacing_m"], (s + n) / 2.0)
+        r_lo, r_hi = cfg["radius_m"]
+        ny = int((n - s) / dlat) + 1
+        nx = int((e - w) / dlon) + 1
+        for iy in range(ny):
+            for ix in range(nx):
+                lon = w + (ix + 0.5) * dlon
+                lat = s + (iy + 0.5) * dlat
+                # Jitter inside the cell, up to `jitter` of a full spacing.
+                lon += (det01(lon, lat, tag + "x") - 0.5) * 2 * cfg["jitter"] * dlon
+                lat += (det01(lon, lat, tag + "y") - 0.5) * 2 * cfg["jitter"] * dlat
+                if not idx.contains(lon, lat):
+                    continue
+                if wat is not None and wat.contains(lon, lat):
+                    on_water += 1
+                    continue
+                if bld is not None and bld.contains(lon, lat):
+                    on_building += 1
+                    continue
+                u = det01(lon, lat, tag + "r")
+                r_m = r_lo + (r_hi - r_lo) * u
+                # Species by weight, from the same deterministic draw family.
+                v, key = det01(lon, lat, tag + "s"), cfg["species"][-1][0]
+                acc = 0.0
+                for name, share in cfg["species"]:
+                    acc += share
+                    if v <= acc:
+                        key = name
+                        break
+                # `oak` and `other` are legal species keys downstream
+                # (shape_trees PROFILES knows both) but HABIT does not carry a
+                # height habit for them, so they borrow the nearest one that
+                # shares their crown shape. Falling through to a default would
+                # have made every unlabelled creek tree the same height.
+                leaf, Ah, H0, mH = HABIT.get(
+                    {"oak": "liveoak", "other": "elm"}.get(key, key),
+                    HABIT["elm"])[:4]
+                h_m = max(3.0, min(mH, Ah * r_m + H0))
+                out.append((lon, lat, r_m, h_m, leaf, key, "creek", None))
+                placed += 1
+        stats[tag] = {"areas": idx.n, "planted": placed,
+                      "rejected_water": on_water, "rejected_building": on_building,
+                      "spacing_m": cfg["spacing_m"]}
+    return out, stats
 
 
 def species_for(lon, lat, r_m, near_water):
@@ -476,6 +616,27 @@ def main():
                 trees.append((lon, lat, r_m, h_m, leaf, key, "imagery", None))
                 stats["imagery_used"] += 1
 
+    # ---- Waller Creek, planted into the Acer's three corridors ----------
+    # Last, so the dedupe below always resolves in favour of a surveyed or
+    # photographed tree that is already standing there.
+    stats["creek_used"] = 0
+    creek_report = {}
+    if CREEK_PLANTING:
+        zones = creek_zones()
+        grown, creek_report = plant_creek(
+            zones,
+            latest_buildings() if REJECT_ON_BUILDINGS else None,
+            water_index())
+        trees.extend(grown)
+        stats["creek_used"] = len(grown)
+        for tag, r in sorted(creek_report.items()):
+            sys.stderr.write("  %-14s %3d areas -> %5d trees at %s m\n"
+                             % (tag, r.get("areas", 0), r.get("planted", 0),
+                                r.get("spacing_m", "-")))
+            if not r.get("areas"):
+                sys.stderr.write("  [warn] %s matched NO areas in ground.geojson — "
+                                 "has the tag been renamed?\n" % tag)
+
     # ---- dedupe: same tree in more than one source ----------------------
     kept = []
     cell = {}
@@ -612,10 +773,16 @@ def main():
         # POSITION provenance — the number that matters for truth.
         "by_source": {s: sum(1 for f in canopies if f["properties"]["src"] == s)
                       for s in ("city", "osm", "imagery")},
+        "creek": creek_report,
         "provenance": {
-            "position": "city survey / OSM node / measured off nadir aerial imagery",
+            "position": "city survey / OSM node / measured off nadir aerial "
+                        "imagery / GENERATIVE inside the creek corridors "
+                        "(src:'creek' — nothing surveys a creek bed, so these "
+                        "are invented on a jittered grid inside zones authored "
+                        "in data/ground.geojson)",
             "radius": "city+osm: modelled from measured trunk diameter; "
-                      "imagery: measured from the detected crown",
+                      "imagery: measured from the detected crown; "
+                      "creek: GENERATIVE, drawn from the zone's radius range",
             "height": "MODELLED in every case - no source here records tree height",
             "form": "generative octagon prism (unchanged)",
         },
