@@ -53,9 +53,29 @@
     // count where OSM has one. See the roads section further down for why the
     // basemap's vector tiles could not carry this pass.
     roads: true,            // false = hand the roads back to the basemap
-    roadWidthScale: 1.0,
-    roadCasingScale: 1.16,  // kerb + gutter, as a multiple of the pavement
+    // THE CARRIAGEWAY'S WIDTH LIVES IN THE GEOMETRY NOW, like the paths' does.
+    // scripts/bake_ground.py buffers each centreline by half its tagged width
+    // and ships `k:'roadarea'` polygons, so there is no width knob here any
+    // more -- changing how wide a road is drawn means re-running the bake. See
+    // the note above addRoadLayers for the measurement that forced it.
     roadCasingDark: 0.38,   // how much darker than the asphalt the kerb reads
+    // The kerb is a STROKE on the carriageway polygon's boundary, in screen
+    // pixels, for exactly the reason GROUND.kerbPx is: a kerb line is a
+    // highlight along an edge, so it should stay the same apparent thickness
+    // near the camera and by the horizon. It used to be a second full-width
+    // line 1.16x wider drawn underneath, which as geometry would mean a second
+    // buffered polygon set for a two-pixel effect.
+    roadKerbPx: 2.6,
+    // The far-field arterial armature is the one road layer still drawn as a
+    // LINE, and this is the ceiling on how wide it may be. Everything in it is
+    // at least 3.4 km away (measured off data/roads.geojson against the campus
+    // centre) and most of it is 7-15 km, where a real 14 m carriageway is
+    // between 3.0 and 0.7 screen pixels. So 3 px is the widest it can honestly
+    // be, and pinning it there is what stops it fanning: the width no longer
+    // depends on the road's metres, so it cannot grow as the camera pitches
+    // over. Polygonising these instead was measured at +185 KB gzipped on a
+    // file that is not tiled, to draw roads nobody can reach.
+    roadFarMaxPx: 3.0,
     roadMinZoom: 12.6,
     roadServiceFade: [15.2, 16.3],  // alleys arrive only once you are low enough
 
@@ -236,6 +256,7 @@
   const AREA = 'ground-areas', TEX = 'ground-texture', BASE_TEX = 'ground-base-texture';
   const BANK = 'ground-creek-bank';
   const ROAD_CASE = 'ground-road-casing', ROAD = 'ground-road', LANE = 'ground-road-lane';
+  const ROAD_FAR = 'ground-road-far';
   const BIKE_L = 'ground-bike-left', BIKE_R = 'ground-bike-right';
   const CYCLE = 'ground-cycleway', STOPBAR = 'ground-stopbar';
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
@@ -445,16 +466,23 @@
       1, matchExpr(pal, c => shiftLuma(base(c), +amp))];
   }
 
-  // Path width: OSM metres → screen px. MapLibre uses 512 px tiles, so one
-  // pixel is 78271.517·cos(lat)/2^zoom metres; at Austin's latitude that is
-  // 67546/2^zoom. Width in px is therefore w·2^zoom/67546, which is exactly a
-  // base-2 exponential in zoom — so two stops describe it perfectly.
+  // Metres of ground → screen px. MapLibre uses 512 px tiles, so one pixel is
+  // 78271.517·cos(lat)/2^zoom metres; at Austin's latitude that is 67546/2^zoom.
+  // Width in px is therefore w·2^zoom/67546, which is exactly a base-2
+  // exponential in zoom — so two stops describe it perfectly.
+  //
+  // AND IT IS ONLY EVER RIGHT AT THE MAP CENTRE, which is the whole of A2: it
+  // is derived from the centre-scale relation, and under perspective the rest
+  // of the frame is at a different scale. Everything still using it below is
+  // something that is deliberately NOT metre-true — a marking held at a
+  // pixel floor, or the far armature under a pixel ceiling. The surfaces
+  // (paths, carriageways, cycleways) carry their width in the geometry.
+  //
+  // The generic `widthExpr(scale)` that used to live here went with the last
+  // line layer that wanted it. It was dead code for one commit and dead code
+  // is how js/ground.js ended up shipping a whole creek-bank layer that had
+  // never drawn a pixel (HANDOFF §46).
   const PX_AT = z => Math.pow(2, z) / 67546;
-  function widthExpr(scale) {
-    return ['interpolate', ['exponential', 2], ['zoom'],
-      14, ['*', ['get', 'w'], PX_AT(14) * scale],
-      21, ['*', ['get', 'w'], PX_AT(21) * scale]];
-  }
 
   // ── Roads ───────────────────────────────────────────────────────────
   //
@@ -485,12 +513,24 @@
   const ROAD_FILTER = ['==', ['get', 'k'], 'road'];
   const CYCLE_FILTER = ['==', ['get', 'k'], 'cycle'];
   const STOPBAR_FILTER = ['==', ['get', 'k'], 'stopbar'];
+  // The two surfaces that used to be `line` layers and are polygons now. They
+  // come off data/ground.geojson (SRC), not data/roads.geojson (RSRC), because
+  // the bake writes them there -- see widen_roads in scripts/bake_ground.py.
+  const ROADAREA_FILTER = ['==', ['get', 'k'], 'roadarea'];
+  const CYCLEAREA_FILTER = ['==', ['get', 'k'], 'cyclearea'];
+  // What is left on the line: the far-field armature only.
+  const ROAD_FAR_FILTER = ['all', ROAD_FILTER, ['==', ['get', 'far'], 1]];
 
-  /** Metres of pavement, straight off the feature. */
-  function roadWidthExpr(scale) {
-    return ['interpolate', ['exponential', 2], ['zoom'],
-      13, ['*', ['get', 'w'], PX_AT(13) * scale],
-      21, ['*', ['get', 'w'], PX_AT(21) * scale]];
+  /**
+   * The far armature's width, capped in PIXELS. See GROUND.roadFarMaxPx.
+   *
+   * The metres term is kept below the cap rather than thrown away so that a
+   * wide establishing shot at z13 still draws a motorway wider than a
+   * secondary, which is the only place the class distinction is visible at all.
+   */
+  function roadFarWidthExpr() {
+    const px = z => ['min', GROUND.roadFarMaxPx, ['*', ['get', 'w'], PX_AT(z)]];
+    return ['interpolate', ['exponential', 2], ['zoom'], 12, px(12), 21, px(21)];
   }
   /**
    * Alleys, driveways and parking aisles are real and they are what breaks a
@@ -574,6 +614,13 @@
       pal.bikelane];
   }
   const bikeFilter = sideKey => ['all', ROAD_FILTER, ['>', ['get', sideKey], 0]];
+
+  /** A separate cycleway's own surface. Shared by the layer and the retint. */
+  function cycleColorExpr(pal) {
+    return ['match', ['get', 's'],
+      'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
+      pal.biketrack];
+  }
 
   /** Stop-bar depth, over-scale, with a floor. See GROUND.stopBarDepth. */
   function stopBarWidthExpr() {
@@ -1120,8 +1167,9 @@
      * LineStrings became 1,006 polygons and ground.geojson got SMALLER (856 ->
      * 784 KB): the union dissolved more than the buffer added.
      *
-     * `widthExpr` stays. The road layers still use it — the same defect is there
-     * and it is the next PR — and the lane markings genuinely want screen pixels.
+     * The carriageways have had the same treatment since (`k:'roadarea'`, see
+     * addRoadLayers), which is what closed A2: "some roads dont do this" was
+     * these paths, already fixed, sitting next to roads that were not.
      */
     if (!map.getLayer(PATH)) {
       map.addLayer({
@@ -1320,35 +1368,89 @@
     }
   };
 
+  /**
+   * THE CARRIAGEWAY IS A POLYGON NOW, and it is the same fix, for the same
+   * reason, as the one PR #70 made to the paths.
+   *
+   * "when im all the way down vertically and look at an angle towards the roads
+   *  and start facing upright, the roads get bigger. some roads dont do this."
+   *
+   * The ones that DIDN'T were the sidewalks, because their width had already
+   * been moved into the geometry. A `line-width` is a number of screen pixels
+   * and it is the SAME number for the whole line, while 12 m of ground under
+   * the camera is many pixels and 12 m of it by the horizon is a fraction of
+   * one. Measured on merged main with scripts/verify/road-fan.mjs, camera on
+   * the south end of Speedway looking north, layer `ground-road`:
+   *
+   *     pitch 20   1.10x at the only sample still on screen
+   *     pitch 40   1.19x near  ->  1.77x far
+   *     pitch 60   1.26x near  ->  3.33x far
+   *     pitch 86   1.30x near  ->  3.69x far
+   *
+   * and that is over 900 m of road; the error keeps growing with distance, so
+   * an arterial 4 km out was drawn about twenty times too wide. Pitching over
+   * is what drags the far, wrong end of every road into frame -- which is
+   * exactly "start facing upright and the roads get bigger".
+   *
+   * MapLibre has no per-vertex line width and no metres unit on `line-width`,
+   * so NO expression can fix this. bake_ground.py's widen_roads() buffers each
+   * centreline by half its tagged width and unions per (class, surface), and
+   * `k:'roadarea'` polygons arrive width-correct: a fill gets the true
+   * perspective for free at any pitch and any distance.
+   *
+   * WHAT STAYS ON THE CENTRELINE, and why each one is not the same defect:
+   *   - lane markings   pinned at GROUND.laneMinPx (1.1 px) at every zoom the
+   *                     camera flies, so they are already a constant hairline
+   *   - stop bars       1.6 m of over-scale by declaration, 165 of them
+   *   - bike lanes      drawn ON the carriageway from its centreline; these DO
+   *                     still carry the defect and it is written down in
+   *                     HANDOFF rather than half-fixed here
+   *   - the far-field arterials, see GROUND.roadFarMaxPx
+   */
   function addRoadLayers(map, pal, p, under) {
-    if (!map.getSource(RSRC)) {
-      console.warn('[ground] no roads source; roads left on the basemap');
-      return;
-    }
-    // Hide the basemap's own road lines FIRST. Leaving them on paints a pale
-    // cream ribbon under every road we draw, which shows at every kerb.
+    const L = (id, opts) => { if (!map.getLayer(id)) map.addLayer(opts, under); };
+    // FIRST, and unconditionally: leaving the basemap's own road lines on
+    // paints a pale cream ribbon under every road we draw, and it shows at
+    // every kerb. This used to sit behind the RSRC guard, so a missing roads
+    // source gave you the basemap's roads AND ours.
     hideBasemapRoads(map);
 
-    const L = (id, opts) => { if (!map.getLayer(id)) map.addLayer(opts, under); };
-
+    // The casing goes in FIRST so it sits under the pavement and only its outer
+    // half shows -- a kerb line, not an outline. Same construction as the
+    // paths' casing, and the same reason it is in pixels.
     L(ROAD_CASE, {
-      id: ROAD_CASE, type: 'line', source: RSRC, ...roadLP,
-      minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
-      layout: { 'line-join': 'round', 'line-cap': 'butt' },
+      id: ROAD_CASE, type: 'line', source: SRC,
+      minzoom: GROUND.roadMinZoom, filter: ROADAREA_FILTER,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
       paint: {
         'line-color': darken(pal.asphalt, GROUND.roadCasingDark),
-        'line-width': roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale),
+        'line-width': GROUND.roadKerbPx,
         'line-opacity': roadOpacityExpr(0.9),
       },
     });
     L(ROAD, {
-      id: ROAD, type: 'line', source: RSRC, ...roadLP,
-      minzoom: GROUND.roadMinZoom, filter: ROAD_FILTER,
+      id: ROAD, type: 'fill', source: SRC,
+      minzoom: GROUND.roadMinZoom, filter: ROADAREA_FILTER,
+      paint: {
+        'fill-color': roadColorExpr(pal),
+        'fill-opacity': roadOpacityExpr(1),
+        'fill-antialias': true,
+      },
+    });
+
+    if (!map.getSource(RSRC)) {
+      console.warn('[ground] no roads source; markings and the far armature are absent');
+      return;
+    }
+
+    L(ROAD_FAR, {
+      id: ROAD_FAR, type: 'line', source: RSRC, ...roadLP,
+      minzoom: GROUND.roadMinZoom, filter: ROAD_FAR_FILTER,
       layout: { 'line-join': 'round', 'line-cap': 'butt' },
       paint: {
         'line-color': roadColorExpr(pal),
-        'line-width': roadWidthExpr(GROUND.roadWidthScale),
-        'line-opacity': roadOpacityExpr(1),
+        'line-width': roadFarWidthExpr(),
+        'line-opacity': 0.9,
       },
     });
 
@@ -1371,20 +1473,16 @@
       }
       // Separate `highway=cycleway` ways: the Shoal Creek and Waller Creek
       // trails, the Dell Med paths, the campus shared-use routes. They are not
-      // a marking on a road, they are their own piece of ground.
+      // a marking on a road, they are their own piece of ground -- which is
+      // also why they are polygons now and the markings are not.
       L(CYCLE, {
-        id: CYCLE, type: 'line', source: RSRC, ...roadLP,
-        minzoom: GROUND.bikeMinZoom, filter: CYCLE_FILTER,
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        id: CYCLE, type: 'fill', source: SRC,
+        minzoom: GROUND.bikeMinZoom, filter: CYCLEAREA_FILTER,
         paint: {
-          'line-color': ['match', ['get', 's'],
-            'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
-            pal.biketrack],
-          'line-width': ['interpolate', ['exponential', 2], ['zoom'],
-            14, ['*', ['get', 'w'], PX_AT(14)],
-            21, ['*', ['get', 'w'], PX_AT(21)]],
-          'line-opacity': ['interpolate', ['linear'], ['zoom'],
+          'fill-color': cycleColorExpr(pal),
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'],
             GROUND.bikeMinZoom, 0, GROUND.bikeMinZoom + 1.0, GROUND.bikeOpacity],
+          'fill-antialias': true,
         },
       });
     }
@@ -1435,7 +1533,7 @@
     // pose with roads on, 3.2% with them off, and 3.2% again after turning
     // them back on. They now sit on a geojson source and cannot match, but the
     // guard stays: it is one line, and the failure it prevents was invisible.
-    const ours = new Set([ROAD, ROAD_CASE, LANE, BIKE_L, BIKE_R, CYCLE, STOPBAR]);
+    const ours = new Set([ROAD, ROAD_CASE, ROAD_FAR, LANE, BIKE_L, BIKE_R, CYCLE, STOPBAR]);
     for (const l of map.getStyle().layers) {
       if (ours.has(l.id)) continue;
       if ((l['source-layer'] || '') !== 'transportation') continue;
@@ -1470,14 +1568,17 @@
     set(CHANNEL, 'fill-extrusion-color', bankColour(p));
     set(SHEEN, 'fill-extrusion-opacity', sheenOpacity(p));
     set(CANOPY, 'fill-extrusion-color', crownColour(p));
-    set(ROAD, 'line-color', roadColorExpr(pal));
+    // `fill-color` on the carriageway and the cycleways: they are polygons now.
+    // The retint is where a layer-type change goes wrong silently, because
+    // setPaintProperty on the wrong property throws into the `set` catch and
+    // the road simply keeps its load-time colour through every hour of the day.
+    set(ROAD, 'fill-color', roadColorExpr(pal));
+    set(ROAD_FAR, 'line-color', roadColorExpr(pal));
     set(ROAD_CASE, 'line-color', darken(pal.asphalt, GROUND.roadCasingDark));
     set(LANE, 'line-color', laneColorExpr(p));
     set(BIKE_L, 'line-color', bikeColorExpr(pal, 'bl'));
     set(BIKE_R, 'line-color', bikeColorExpr(pal, 'br'));
-    set(CYCLE, 'line-color', ['match', ['get', 's'],
-      'roadconcrete', pal.concrete, 'gravel', pal.gravel, 'dirt', pal.dirt,
-      pal.biketrack]);
+    set(CYCLE, 'fill-color', cycleColorExpr(pal));
     // The stop bar is paint, and paint at night is whatever the headlights and
     // the signal give it. Same ramp as the lane markings.
     set(STOPBAR, 'line-color',
@@ -1495,8 +1596,11 @@
     set(PATH, 'fill-extrusion-height', GROUND.pathRaise);
     set(PATH, 'fill-extrusion-opacity', GROUND.pathOpacity);
     set(AREA, 'fill-opacity', GROUND.areaOpacity);
-    set(ROAD, 'line-width', roadWidthExpr(GROUND.roadWidthScale));
-    set(ROAD_CASE, 'line-width', roadWidthExpr(GROUND.roadWidthScale * GROUND.roadCasingScale));
+    // ROAD carries its width in the GEOMETRY now, exactly as PATH does, so
+    // there is no width to retune here -- re-run scripts/bake_ground.py. The
+    // kerb and the far armature are still paint.
+    set(ROAD_CASE, 'line-width', GROUND.roadKerbPx);
+    set(ROAD_FAR, 'line-width', roadFarWidthExpr());
     set(LANE, 'line-width', laneWidthExpr());
     set(LANE, 'line-dasharray', GROUND.laneDash.slice());
     set(LANE, 'line-opacity', GROUND.laneOpacity);
@@ -1525,7 +1629,7 @@
     show(TEX, GROUND.on && GROUND.texture);
     show(BASE_TEX, GROUND.on && GROUND.texture && GROUND.texGround);
     show(SPEEDWAY, GROUND.on && GROUND.texture && GROUND.speedway);
-    for (const id of [ROAD, ROAD_CASE]) show(id, GROUND.on && GROUND.roads);
+    for (const id of [ROAD, ROAD_CASE, ROAD_FAR]) show(id, GROUND.on && GROUND.roads);
     show(LANE, GROUND.on && GROUND.roads && GROUND.lanes);
     for (const id of [BIKE_L, BIKE_R, CYCLE]) show(id, GROUND.on && GROUND.roads && GROUND.bike);
     show(STOPBAR, GROUND.on && GROUND.roads && GROUND.stopBars);
