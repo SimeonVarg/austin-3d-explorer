@@ -1,5 +1,129 @@
 # Austin 3D Explorer — Full Handoff
 
+## 64. Aug 4 2026 — the mip tiers were three different window densities, not three resolutions (acer lane)
+
+**Branch:** `acer/facade-mip-density`, **PR #126**, merged `af0687a`. **QUEUE
+H2**, the most-reported bug in the project and one that had already been
+declared fixed once. File: `js/facades.js`. Shots: `shots/h2-before/`,
+`shots/h2-after/`, `shots/h2-after-night/`, `shots/h2-close-before|after/`,
+`shots/h2-merged/`.
+
+### PR #103 FIXED THE HOUR. THIS WAS THE SCALE, IN THE SAME THREE LINES
+
+*"it rapidly alternates between the less and more dense window pattern on
+movement ... they all happen from a distance."* Two facts that had never been
+put next to each other:
+
+1. **The pattern's WORLD SCALE is set by the CAMERA.** MapLibre's pattern
+   uniforms go through `pixelsToTileUnits(tile, 1, transform.tileZoom)`, and
+   the tile's own `overscaledZ` cancels out of that expression **exactly**. One
+   repeat is `displaySize * 67551 / 2^floor(cameraZoom)` metres of wall — the
+   same number for every tile on screen, near field and far field alike.
+2. **The pattern's IMAGE is chosen by the TILE.** `facadeTierExpr` is a
+   `['step', ['zoom'], …]` and MapLibre evaluates it at the TILE's zoom (§46).
+   Past 60 degrees of pitch it picks a tile zoom per tile; measured at the spawn
+   pose, `austin-buildings` renders z13/14/15/16 in one frame and the counts
+   change frame to frame (`{"13":1,"14":2,"15":2,"16":4}` becoming
+   `{"13":3,"15":4,"16":6}` over a 24-step dolly).
+
+The tiers were 16 / 32 / 64 css px per repeat. Put those together and at the
+spawn pose the **near-field walls carried a 66 m repeat and the far-field walls
+16.5 m** — 4x apart in ONE frame, and a 2x or 4x jump on any wall whose tile
+changed zoom. `shots/h2-before/u24-far-tierx.png` against `-tiernear.png` is the
+same camera with the tier forced, and they are not the same city.
+
+**THE RULE, and it is stronger than §46's: a tier may change RESOLUTION, a tier
+may NOT change SCALE.** Both tiers now cover `TIER_CSS = 32` css px and differ
+only in texel count, the coarse one a 2x box decimation of the same drawing (a
+box the width of the decimation IS the prefilter minification wants, so it
+carries no blur of its own). The `step` becomes a pure per-tile LOD, which is
+safe precisely because a tier change is now a sharpness change and not a rhythm
+change.
+
+### THE THING THAT COST A REBUILD: `pixelRatio` MUST BE A WHOLE NUMBER >= 1
+
+The first cut was three tiers at 16/32/64 texels, pixelRatio 4/2/**0.5**. The
+far field came back a **transparent ghost** —
+`shots/h2-before/u24-far-tierx-pr05.png`. MapLibre carries the pattern's pixel
+ratio as a **`Uint16` vertex attribute**
+(`{ name: 'a_pixel_ratio_from', components: 1, type: 'Uint16' }`) and the
+pattern vertex shader divides by it, so 0.5 arrives in the shader as zero.
+Nothing about the symptom says "your pixelRatio is fractional" — it looks like a
+fog bug. With a 64-texel drawing and a 32 css-px repeat, pixelRatio 2 and 1 are
+the only levels a 1x screen has, so there are **two** tiers now, not three. A
+console error fires at load if a future edit breaks it.
+
+### MEASURED
+
+Window density per tier, tier forced, same camera — zero crossings of the
+high-passed luma per 1000 textured px:
+
+```
+                 BEFORE  x / f / near         AFTER  x / near
+  jester-far      273.1 / 186.5 / 142.4        185.8 / 186.5
+  u24-far         252.7 / 168.5 / 135.3        168.8 / 168.5
+  kinsolving-far  294.9 / 177.5 / 132.7        177.8 / 177.5
+  spawn           263.8 / 169.1 / 133.6        169.5 / 169.1
+```
+
+Mean |luma difference| between a tier and the near tier: **2.48-3.26 -> 0.15-0.20.**
+
+The symptom itself, real app, nothing forced — worst step-to-step change in
+window density inside a fixed screen band across a 30-step dolly, two
+interleaved reps each, re-run on merged `main`:
+
+```
+  spawn,  far band    43.2 (11.9%)  ->  12.4 (4.8%)
+  jester, near band  144.6 (113.6%) ->   6.5 (2.2%)
+  u24,    mid band    53.7 (23.0%)  ->   5.3 (1.0%)
+```
+
+A 113.6% step-to-step jump is a wall doubling its window count between frames.
+
+**It is also faster.** `updateFacades` with every tier painted, min of 5
+interleaved reps, hardware GL, one page load each: **135.8 -> 80.4 ms**. Atlas
+texture **6816 -> 2840 KB**, images **426 -> 284**. So `updateFacades` now paints
+**every** tier in the calling frame instead of deferring one to a 90 ms timer —
+all of them together are cheaper than the two the camera-derived set used to
+paint, which makes §46's invariant unconditional: worst per-bucket luma spread
+across tiers is **0.17-0.27 at every step INCLUDING mid-drag**, where §46
+measured 24.5.
+
+`shimmer.mjs` crawling %: 6 of 8 poses improved (flawn-n 10.26 -> 8.37, bme-far
+4.02 -> 2.79, waggener-s 6.84 -> 5.89), 2 within noise, zoom-step pose +2.3 pp.
+
+### WHAT DID NOT WORK, BESIDES THE pixelRatio
+
+- **The first metric said every tier had a 3 px window period and was
+  degenerate.** An autocorrelation of a high-passed row, maximised from lag 3
+  up, always picks lag 3: residual smoothness beats the real periodic peak. The
+  measurement that works is a **zero-crossing rate with a deadband**, which also
+  ignores flat sky and flat ground for free. The pictures found the bug long
+  before the number did.
+- **A camera-driven tier (setPaintProperty on zoom crossings) was considered and
+  dropped.** It preserves the old world-scale-per-zoom design exactly, but it
+  needs to reach into layers this file does not own — `buildings-3d` (js/app.js),
+  the outer ring, West Campus — at runtime, with hysteresis, and it re-uploads
+  every pattern paint array on a boundary crossing. Equal scale across tiers gets
+  the same result with none of that.
+- **`style.sourceCaches` does not exist in MapLibre 5.24.** It is
+  **`map.style.tileManagers`**. §46's `getVisibleCoordinates()` note is right,
+  the accessor in it is not. Worth an entry on its own: two probes returned an
+  empty object and looked like "no tiles on screen" rather than like a wrong
+  property name.
+
+### FOR THE NEXT LANE
+
+`facade-parity.mjs` PASSES but prints *"baked for 2026-08-03, scene is
+2026-08-04"* — guard 1 refuses the stale bake and the browser elects instead.
+Same answer either way (that is what the parity harness proves) but somebody
+should re-run `scripts/bake_facades.py` so the fast path comes back.
+
+**TASTE, and it is one constant.** `TIER_CSS = 32` puts one repeat at 33 m of
+wall at the zoom the app spawns at, which is 4.1 m floor-to-floor through `mh`'s
+8 rows. 16 gives a 2.1 m storey and 64 gives 8.3 m. One line to overrule.
+
+
 ## 63. Aug 4 2026 — the horizon follows the bank, and a mall is not a road (acer lane)
 
 **Branch:** `acer/horizon-roll-speedway`, **PR #125**, merged. **QUEUE H3 and
