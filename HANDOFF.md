@@ -1,5 +1,77 @@
 # Austin 3D Explorer — Full Handoff
 
+## 65. Aug 4 2026 — the intro rises out of downtown and lands on the Tower (acer lane)
+
+**Branch:** `acer/intro-downtown-rise`, **PR #127**, merged `0831a73`. **QUEUE
+I2.** File: `js/app.js`, intro section only. Shots: `shots/i2ab/veil-00ms.png`
+(first frame a visitor sees), `shots/i2new-0006s-landscape.png` (the crest),
+`shots/i2-end/t1.png` and `shots/i2port-16.5s-portrait.png` (the ending frame),
+`shots/i2-cand/` and `shots/i2-end/` (the poses that were rejected).
+
+**What changed.** The intro was two legs starting low over campus, running west
+down the 24th Street canyon and settling on SPAWN — it ended facing West Campus
+apartment blocks. It is now three poses and two legs, ~12.6 s:
+
+    start  -97.7420, 30.2680  z16.2   p78  b5   Congress Ave, among the towers
+    crest  -97.7404, 30.2748  z15.45  p71  b3   climbing over the Capitol
+    end    -97.7394, 30.2836  z16.9   p72  b2   UT Tower over the South Mall
+
+Simeon's own suggestion (rise from downtown into a wide campus view) was the
+right one and is what shipped. Leg 1 is cosine-eased both ends so the crest
+reads as a held beat; leg 2 is ease-in-out cubic, leaving the crest with no jerk
+and settling long. **Cancel now jumps to `INTRO.end`, not `SPAWN`** — aborting
+used to teleport you 2 km from where the flight was visibly heading.
+
+**The cost, because the ticket asked for it.** Real intro, fresh load, headed
+Chrome on the real GPU, 1440x900, probe cancelled, no CPU throttle:
+
+    FLIGHT whole  n=398  med 35.9  p90 54.0  p99 125.1  max 162.0 ms
+
+The one expensive stretch is the crest — the 67–83% window of the flight is
+**72 ms median**, about 14 fps for two seconds, because it is the widest view of
+the run. `INTRO.crest.zoom` is the one-line dial: +0.3 cuts the drawn area by
+roughly a third if a weak device ever needs it.
+
+**Downtown is not more expensive than staying over campus.** Both routes flown
+as the first flight after a fresh load, alternating, minimum of interleaved
+reps: OLD 24th-St canyon **med 36.0 / p90 54.1**, NEW downtown rise **med 35.9 /
+p90 54.0**. The typical frame costs the same; only the crest window differs. The
+climb actually *helps* the tile budget — pulling back on leg 1 puts campus on
+screen at a coarse tile level a whole leg before leg 2 needs it sharp, so the
+destination streams in during the flight instead of popping in on arrival.
+
+**What did NOT work, and cost time:**
+
+1. **The first ending was too wide.** z15.9 from the south of campus put the
+    Tower far enough away that the frame read as generic brown sprawl with
+    labels on it. A "large campus view" is not the same as a high one — pulled
+    in to z16.9, where the Tower is unmistakable and Gregory, Jester, the PCL
+    and Blanton all read.
+2. **A single mid-flight screenshot on the software rasteriser showed downtown
+    with no buildings at all**, and it looked exactly like a missing-layer bug.
+    It is the half-drawn-frame artifact `scripts/verify/README.md` warns about.
+    On the real GPU the first frame after the veil lifts is fully built
+    (`shots/i2ab/veil-00ms.png`). **Do not diagnose geometry from one
+    swiftshader capture taken during a camera move.**
+3. **The A/B was worthless until each route was allowed to reach idle first.**
+    Flying immediately after a `jumpTo` measures the arrival tile-storm, not the
+    flight; both routes read ~108 ms median that way. Wait for `idle` at the
+    start pose, then fly.
+4. **Absolute frame times on this machine were unusable for a stretch** —
+    identical work measured 36 ms and 216 ms an hour apart, because Simeon's own
+    15-hour Chrome session and a concurrent lane were both live. Minimum of
+    interleaved reps is the only estimator that survived this; the README rule
+    is right and it is not optional.
+
+**Two contracts checked rather than assumed.** `?intro=0` still leaves the
+camera at SPAWN and never eases (note MapLibre reports bearing 250 as **-110** —
+the same angle; an assertion comparing them raw will report a false failure). A
+real key press mid-flight cancels and lands exactly on `INTRO.end`.
+
+**Note for whoever reads the shots:** this was a shared checkout with another
+lane's uncommitted chrome work in the tree (the mobile BOOST button, an extra
+HUD icon). Only `js/app.js` is in PR #127.
+
 ## 64. Aug 4 2026 — the mip tiers were three different window densities, not three resolutions (acer lane)
 
 **Branch:** `acer/facade-mip-density`, **PR #126**, merged `af0687a`. **QUEUE
