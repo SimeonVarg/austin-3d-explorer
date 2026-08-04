@@ -56,6 +56,143 @@ memory of what the thing probably looks like.
 
 ---
 
+# PART G — THE CEILING, AND HOW TO BREAK IT
+
+*"they are NOWHERE CLOSE to the level they should be - looks like u made overall
+shape a bit more accurate but its like youre trying to draw the mona lisa and you
+made the canvas the right size - we need accurate detail and color"*
+
+**He is right, and it is structural rather than any pass being lazy. Read this
+before touching another building.**
+
+## Why every pass reports massing and never detail
+
+| | how it is produced | result |
+|---|---|---|
+| **roofs** | MEASURED from aerial imagery — `roof_survey.json` has 2,312 buildings with sampled colours and detected blobs, 2,334 cached tiles in `data/imagery_cache/` | specific, per-building |
+| **walls** | `quantiseFacades` elects **FOURTEEN** tones for the entire city and stamps one per building, plus a repeating window tile | every building in Austin wears one of fourteen tans |
+
+That is the whole vocabulary a normal building has. So "make EER look like EER"
+inside that system can only ever return a slightly different box in one of
+fourteen colours — which is precisely "you made the canvas the right size".
+
+## What actually breaks through
+
+A building needs its OWN facade, and both halves of that are already possible:
+
+1. **Its own colours, outside the fourteen.** `window.FACADE_PROTECTED` exists
+   for exactly this — it is why the Capitol keeps its Sunset Red granite instead
+   of folding into the nearest tan. `quantiseStadiumFacades` shows per-feature
+   palette entries being appended at runtime. Use it.
+2. **Its own composition.** `js/union24.js` is the worked example and currently
+   the ONLY building in the city with one: it finds a feature by name, replaces
+   the geometry, and documents every measured dimension with the working written
+   out. That is roughly 200 lines per building.
+
+## The rule for this part
+
+**TEN BUILDINGS THAT GENUINELY LOOK LIKE THEMSELVES BEATS FIFTY NUDGED.** Do not
+spread. For each one:
+
+- find real photographs and WRITE DOWN what the building is made of — bay rhythm,
+  where the material changes, balcony bands, glazing lines, the crown, the base
+- register its own colours rather than accepting a bucket
+- author the composition as separate banded features with their own base and
+  height, the way `js/drag.js` does shopfronts — never a pattern that tries to
+  place something "at the top"
+- put a render and a photograph side by side in the PR. **If you would not
+  recognise the render, it is not done.** That test is the item.
+
+---
+
+# PART F — 2026-08-03, after he looked at it
+
+## F1. The fade is INVERTED now, not fixed — round three — **DONE**
+
+> **FIXED, PR #116, merged `5414425`. F1 and F2 were the same knob and neither
+> was the haze.** PR #107 is fine — peeled off a live frame the depth haze moves
+> the ten 100-row bands by 3.01 / 3.86 / 2.70 / 2.08 / 1.62 / 1.24 / 0.85 / 0.74
+> mean |dLuma|: smooth, monotone, no edge, and **0.74 in the nearest band**,
+> which is F2's "do near buildings get essentially zero fade" answered yes.
+>
+> What was left is **`#fx-dof`, the "distance blur"** in `js/graphics.js`: a
+> viewport-wide DOM rectangle pinned to the horizon ROW, 0.24H tall, running
+> `backdrop-filter: blur()`. It cannot know what is in front of what, so a NEAR
+> building crossing it has its upper half blurred and its lower half sharp — a
+> gradient up its own face, on the upper side — while a FAR building sits wholly
+> inside the band and shows no gradient of its own. Blur also pulls the pale sky
+> into whatever it covers, so it reads as washed out. **Detail destroyed,
+> measured on one frame with one toggle: rows 200–300 2.43 → 4.60, rows 300–400
+> 4.71 → 10.72, rows 400–500 7.98 → 9.03, every other band identical.**
+>
+> Off in all four presets, with a `SETTINGS_REV` migration so a saved `0.30`
+> cannot put it back in a browser that has already loaded the app. **NOT the
+> cause, and measured so:** `fill-extrusion-vertical-gradient` (byte-identical
+> with it off on all 60 layers), the sky canvas, and the fog ladder's own
+> base-to-crown difference. HANDOFF §55;
+> `docs/shots/f1-horizon-crop-before-after.jpg`.
+
+
+*"the horizontal line thing is inverted - i prefer this version over the last but
+as you can see its still a bit harsh with the gradient on the uppser side. far
+away buildings dont have it anymore which is nice"*
+
+His screenshot: a single tower, **normal colour at the base, washing out to pale
+toward the top.** Before PR #107 it was the opposite — faded base, hard normal
+top. **Both are the same defect with the sign flipped: the fade is still keyed to
+HEIGHT WITHIN THE BUILDING.**
+
+The hard part is genuinely done — the far city recedes and the hard screen-row
+line is gone, and he says so. What is left is that a single near building still
+has a gradient up its own face.
+
+**A building should take ONE fade value, chosen by its distance from the camera,
+applied uniformly from base to crown.** If that is not expressible in a
+fill-extrusion paint expression, say so plainly and explain what was tried —
+`fill-extrusion-vertical-gradient` is a candidate culprit, as is any expression
+keyed on `['get','h']` or on the extrusion's own base/height.
+
+## F2. Dusk is over-dark — **DONE, same fix as F1**
+
+> **FIXED, PR #116.** It was not the fade at all. From the West Campus pose the
+> blocks sit in exactly the rows `#fx-dof` blurs, so the "brown lumps with the
+> detail lost" was the blur band, not the haze. The haze at that hour reaches
+> only 4.3% alpha at 200 m and moves the nearest 100-row band by 0.74 luma.
+> `docs/shots/f2-westcampus-dusk-before-after.jpg`.
+
+At tod 0.62 the West Campus blocks read as brown lumps with the detail lost —
+`shots/tour/dusk-west-campus.png`. New since F1's predecessor. The fade is
+probably too strong at close range; check that near buildings get essentially no
+fade at all.
+
+## F3. Downtown is STILL a dark grey mass
+
+Flagged before PR #112 and still true in `shots/tour/day-downtown-skyline.png`.
+#112 fixed 645 blank streetwall prisms, which was real work on a different
+problem. **Measure downtown's rendered wall values against campus's** and find
+out whether this is a regression from the facade tile switch (PRs #84/#94) or an
+authored choice. It is the most visible thing in any wide day frame.
+
+## F4. UT campus buildings that are blocks and should not be
+
+*"also add some UT buildings too - some of them look really cool like EER but rn
+theyre a block. DO those"*
+
+**EER** — the Engineering Education and Research Center — is the one he named: a
+striking modern building with a folded, angular facade and a big glazed atrium,
+currently an extruded box. It is not alone. Find the campus buildings with real
+architectural character and give them their form, the way `js/union24.js` already
+does for Union on 24th.
+
+Candidates worth checking against photographs: EER, the Blanton, the Harry Ransom
+Center, Bass Concert Hall, the LBJ Library, the Moody Center, the AT&T Center,
+Rowling Hall, the Norman Hackerman Building, Welch Hall.
+
+`data/hero_designs.json` already exists and `js/union24.js` is the worked example
+of a per-building hero override. Read both before inventing a mechanism.
+
+---
+
 # PART A — GLITCHES. These come first and they are demo-killers.
 
 ## A1. Windows flip to NIGHT MODE by quadrant, in broad daylight — **DONE**
@@ -316,7 +453,7 @@ There is asphalt drawn in a courtyard that has none. Find out where that surface
 comes from — it is probably an OSM `highway` way crossing the court, or a
 service-road polygon — and stop drawing it there. Then make the court a court.
 
-## C5. West Campus apartments — **DONE (the blocks), one thing owed**
+## C5. West Campus apartments — **DONE. Blocks (#113), then CHARACTER (#119)**
 
 > **PR #113, merged `0c9bd1a`.** The pass already did the ten TOWERS; West Campus
 > is made of six-to-ten storey BLOCKS, and every building he named that was still
@@ -345,6 +482,28 @@ service-road polygon — and stop drawing it there. Then make the court a court.
 > unlocks his building's pool deck**, which was measured off the z20 nadir, built,
 > and then deleted — all three routes to drawing it are blocked by the stale
 > height. The measured rectangles are kept in `bake_westcampus.py`.
+
+> **TIER THREE, branch `acer/westcampus-character`.** #113 gave fourteen blocks
+> their measured colour; this gives them the things he actually named. A
+> `fill-extrusion-pattern` has no HORIZONTAL anchor either, so the tower band is
+> now cut into vertical **colour bays** — The Standard's cream / warm / pale
+> panel field with its slate corner volume carrying the name, Block on 25th
+> East's burnt-orange mass, 2400 Nueces' honey Texas limestone. **Every bay hex
+> came off a named architect's photograph in `research/`** (crop, look at the
+> crop, cluster it, re-centre on the colour #113 verified so the bays average
+> back to it). Plus **504 balcony RAILS** at 1.05 m — the slabs were shelves —
+> **segmented balconies**, one per unit, and **setback crowns** on fourteen.
+>
+> **Moontower was built and removed:** its two-tone split is sourced, its colours
+> are not, and there is no photograph of it in `research/`. It stays a flat slab.
+> **Block on 25th East turns out to have a hip roof** (nadir), which this tier
+> cannot say — walls only, and the note in the bake that said otherwise is fixed.
+> Measured: 401 -> 1,144 features, 26.0 KB gzipped, atlas 37 -> 46, nothing above
+> `final_height`, tod tick +14% and frame time +4.5% (MIN of interleaved reps).
+> HANDOFF §58; `docs/shots/westcampus-tier3-*.jpg`.
+>
+> **STILL OWED, and it is the same one number:** The Standard is 17 storeys and
+> the snapshot has it at 20.5 m.
 
 *"so many apartments in austin wampus have such cool designs but are currently
 regular building blocks. Can you implement these designs?"*

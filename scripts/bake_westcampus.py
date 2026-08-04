@@ -90,6 +90,23 @@ SIGN_T = 0.5           # m thick crown sign plate
 COURT_Z = 0.45         # m: the floor of a ground-level courtyard, clear of the
                        # ground pass's own 0.22 m paths and 0.45 m ring pads
 
+# ── TIER THREE's taste block: the four things a student apartment has that a
+#    prism does not. Simeon named all four ("banded balconies, setback crowns,
+#    coloured spandrel panels, podium parking in a different material"), and the
+#    first three had no vocabulary in this bake at all.
+RAIL_H = 1.05          # m of balustrade above a balcony slab. This is the real
+                       # number — IBC 1015.3 wants 42 in on a residential
+                       # balcony — and it is why the balconies did not read
+                       # before: a 0.34 m slab with nothing on it is a SHELF.
+                       # At 1.05 m the slab-and-rail pair is 1.39 m of relief,
+                       # four times what the slab alone gave.
+RAIL_T = 0.11          # m thick. Thinner stops resolving at cruise altitude.
+BAY_MIN = 2.5          # m: a colour bay narrower than this is dropped rather
+                       # than drawn, because a 1 m stripe is a seam, not a bay.
+BAY_PAD = 60.0         # m the clipping strip overhangs the plan on both sides.
+                       # Only has to exceed the half-diagonal of any footprint
+                       # here (the largest is 2400 Nueces at 57 m).
+
 # `s` classes below are coloured by js/westcampus.js, NOT by the facade atlas.
 # Anything drawn as a flat colour goes through there; anything with a texture is
 # a `kind:"wall"` band and goes through quantiseStadiumFacades().
@@ -137,6 +154,128 @@ BASE_STONE = "#a09582"      # cast stone / painted masonry ground floor
 BASE_STD = "#3f4348"        # The Standard's charcoal panel corner bay
 CROWN_PALE = "#c4bfb3"      # warm pale parapet coping band
 CROWN_STEEL = "#adb3b7"     # cool pale parapet coping band
+
+# ══ TIER THREE — the COLOUR BAY palette ═══════════════════════════════
+#
+# Every hex below was READ OFF A NAMED PHOTOGRAPH, not remembered. The method is
+# the same for all of them and it is spelled out because guessing one of these
+# is exactly the failure this tier exists to stop:
+#
+#   1. crop a region of the photograph that is the material and NOTHING else,
+#      then LOOK at the crop on a contact sheet before trusting any number —
+#      three of the first nine crops turned out to be sky, foliage or a lit
+#      window and their "measurements" were worthless;
+#   2. k-means the crop into 4-6 clusters and take a cluster centre WITH its
+#      share of the crop, so glass and shadow are separated out rather than
+#      averaged in;
+#   3. where the photograph's own exposure cannot be trusted as an absolute —
+#      the Standard's is BLUE HOUR — express the cluster as its offset from that
+#      crop's area-weighted mean and re-centre it on the body colour PR #113
+#      already measured off imagery, at k = BAY_K.
+#
+# Step 3 is what makes this safe. A building's bays AVERAGE BACK to the colour
+# the imagery measured, by construction, so tier three cannot silently repaint a
+# building tier two got right — it can only decompose it.
+BAY_K = 0.75
+#
+# ── Block on 25th East. American Campus Communities' own 671_01_exterior.jpg.
+#    A five-storey burnt-orange stucco mass at one END of a 91 m cream bar.
+#    Sunlit face, crop (300,240)-(356,292): 69.3% #d09452. Shaded return, crop
+#    (120,185)-(152,330): 75.2% #bb7f51. Midday photograph, so no re-centring is
+#    needed; the two faces area-weighted give the distant read:
+BURNT_ORANGE = "#c68a52"
+#    and its pale stair-tower stucco, crop (382,130)-(428,250): 67.8%
+PALE_STUCCO = "#a9b8bd"
+#
+# ── 2400 Nueces. Architect Magazine's own photograph of the building at Nueces
+#    and 24th. A honey Texas-limestone corner volume runs full height at one end
+#    of a 99.6 m cool-grey panel block, with dark umber accent panels scattered
+#    through the field. Limestone, crop (1250,180)-(1420,700): 37.7% #af925e,
+#    27.2% #957740, 24.1% #c6ab7e, area-weighted:
+TX_LIMESTONE = "#a58957"
+#    umber accent panel, from the panel-field crop (1650,380)-(1980,660): 30.3%
+UMBER_PANEL = "#6b5b4c"
+#    the white/silver metal panel, crop (1000,80)-(1200,200): 54.8%
+SILVER_PANEL = "#dbd9e2"
+
+
+def bay_mix(cluster, crop_mean, body, k=None):
+    """Step 3 above, as one function so no bay can skip it.
+
+    Returns the hex a bay should be painted so that a building's bays average
+    back to `body` — the colour the imagery measured — while carrying the
+    CONTRAST the photograph measured between that cluster and its crop's mean.
+    Additive about the mean, not multiplicative: a ratio against a blue-hour
+    exposure clips every light material to white (the cream panel came out
+    #fff8da on the first attempt, which is not a colour any building is).
+    """
+    k = BAY_K if k is None else k
+    hx = lambda h: [int(h[i:i + 2], 16) for i in (1, 3, 5)]
+    c, m, b = hx(cluster), hx(crop_mean), hx(body)
+    return "#" + "".join("%02x" % max(0, min(255, int(round(b[i] + k * (c[i] - m[i])))))
+                         for i in range(3))
+
+
+def bay_ratio(cluster, crop_mean, body):
+    """The same re-centring for a material that is NOT part of the field.
+
+    `bay_mix` is additive about the crop mean, and it has to be: a ratio against
+    a blue-hour exposure clips every light material to white (the cream panel
+    came out #fff8da on the first attempt, which is not a colour any building
+    is). But additive also COMPRESSES anything far from the mean, and The
+    Standard's slate corner is far from it — bay_mix put it at #989c9f, 27 luma
+    off the pale panel next to it, where the photograph has it at 0.57 of the
+    cream's luminance. A dark corner bay that is not dark is not the feature.
+    So: a material that belongs to the field averages back into it (bay_mix); a
+    material that is a DIFFERENT material keeps its relative luminance (here).
+    Multiplicative cannot clip in this direction, because these are all darker
+    than the field they sit in.
+    """
+    hx = lambda h: [int(h[i:i + 2], 16) for i in (1, 3, 5)]
+    c, m, b = hx(cluster), hx(crop_mean), hx(body)
+    return "#" + "".join("%02x" % max(0, min(255, int(round(b[i] * c[i] / max(1, m[i])))))
+                         for i in range(3))
+
+
+# ── The Standard at Austin. Humphreys & Partners' own StandardAustin_Ext_14,
+#    research/union24th-area/imagery/web/the-standard-at-austin/humphreys_00.jpg.
+#    Tower panel field, crop (1450,60)-(1900,640), area-weighted mean #94978d:
+#      27.7% #9ea39f    20.5% #d9d5be    19.6% #8e8674    20.6% #4c504a (glass)
+#    Those three panel tones ARE the broken "pixel" field the elevation is known
+#    for, and three vertical bays is how this renderer can say it. `STD_BODY` is
+#    the value PR #113 measured and verified; the mix re-centres on it.
+STD_BODY = "#b3b0a2"
+STD_FIELD_MEAN = "#94978d"
+STD_CREAM = bay_mix("#d9d5be", STD_FIELD_MEAN, STD_BODY)
+STD_WARM = bay_mix("#8e8674", STD_FIELD_MEAN, STD_BODY)
+STD_PALE = bay_mix("#9ea39f", STD_FIELD_MEAN, STD_BODY)
+#    The corner bay is a different material — a dark slate ACM volume carrying
+#    THE STANDARD in white letters, and the most recognisable thing about the
+#    building. Crop (1090,700)-(1330,900): 62.0% #707d89 against that same field
+#    mean. It is a DIFFERENT material from the panel field, so it re-centres by
+#    ratio and not by offset — see bay_ratio for why that distinction is not
+#    cosmetic.
+STD_SLATE = bay_ratio("#707d89", STD_FIELD_MEAN, STD_BODY)
+
+
+def two_tone(body, pale, w_pale):
+    """The dark half of a two-tone rainscreen, given the pale half and its share.
+
+    Solves `w*pale + (1-w)*dark = body` so a two-tone building keeps the wall
+    colour the imagery measured. Used where the MATERIAL SPLIT is sourced but no
+    photograph of it is in research/ — the split is real, the two hexes are a
+    derivation, and the average is not a guess at all.
+    """
+    hx = lambda h: [int(h[i:i + 2], 16) for i in (1, 3, 5)]
+    b, p = hx(body), hx(pale)
+    return "#" + "".join("%02x" % max(0, min(255, int(round((b[i] - w_pale * p[i]) / (1 - w_pale)))))
+                         for i in range(3))
+
+
+# `two_tone` has no caller today. It is kept, with its one worked example, for
+# the building it was written for: see the NO BAYS note on Moontower below.
+MT_PALE = "#e0e4e8"
+MT_CHAR = two_tone("#7d8a8e", MT_PALE, 0.40)      # = #3b4e52, and see below
 
 # ── The parameter table. Every building is the SAME system; only these
 #    values differ. Provenance for each row is docs/PASS_WESTCAMPUS.md.
@@ -190,6 +329,16 @@ def _balcony_mask(outer_m):
     return g.buffer(BALC_PROJ + 0.05, join_style=2)
 
 
+def _clip_to_g(rect_m, mask):
+    """rect ∩ mask, as shapely polygons. Kept as geometry rather than as rings
+    because the balcony RAIL is derived from the slab that survived this clip —
+    see the note at its call site."""
+    from shapely.geometry import Polygon
+    g = Polygon(rect_m).intersection(mask)
+    return [q for q in getattr(g, "geoms", [g])
+            if q.geom_type == "Polygon" and q.area >= 1.0]
+
+
 def _clip_to(rect_m, mask):
     """rect ∩ mask, as a list of rings in metres. Drops slivers."""
     from shapely.geometry import Polygon
@@ -202,6 +351,37 @@ def _clip_to(rect_m, mask):
         if q.geom_type != "Polygon" or q.area < 1.0:
             continue
         out.append(ccw([(x, y) for x, y in list(q.exterior.coords)[:-1]]))
+    return out
+
+
+def _poly(rings_m):
+    """A shapely polygon from [outer, hole, hole, ...] in metres."""
+    from shapely.geometry import Polygon
+    g = Polygon(rings_m[0], rings_m[1:]) if len(rings_m) > 1 else Polygon(rings_m[0])
+    if not g.is_valid:
+        g = g.buffer(0)
+    return g
+
+
+def _rings_of(g, min_area):
+    """A shapely result back to [[outer, hole, ...], ...], dropping slivers.
+
+    A colour bay is a strip cut across a plan that may have light wells in it —
+    Skyloft has two, The G one, Rambler a courtyard — so the cut has to carry
+    interiors through. Clipping ring-by-ring with the half-plane clipper the
+    step uses cannot: it takes ONE ring and knows nothing about holes, so a bay
+    over a courtyard building would fill the courtyard in.
+    """
+    out = []
+    for q in getattr(g, "geoms", [g]):
+        if q.geom_type != "Polygon" or q.area < min_area:
+            continue
+        rings = [ccw([(x, y) for x, y in list(q.exterior.coords)[:-1]])]
+        for r in q.interiors:
+            if abs(signed_area(list(r.coords))) < 1.0:
+                continue
+            rings.append(ccw([(x, y) for x, y in list(r.coords)[:-1]]))
+        out.append(rings)
     return out
 
 
@@ -262,6 +442,7 @@ BUILDINGS = {
         crown=(4.0, "sf", CROWN_WARM),
         mech=4.0, deck="roof", balc=("long", 2, 19), step=None, tplan=None,
         pool=(0.0, -9.0, 5.0, 11.0),
+        rail="rail", crowninset=0.9,
     ),
     # ── Signature 1909, 2018, 17 storeys. Stepped: a lower north wing carries
     # the pool deck and the shade trellis (both visible in the z20 nadir), the
@@ -343,6 +524,19 @@ BUILDINGS = {
         mech=3.4, deck="roof", balc=None, step=None, tplan=None,
         pool=(-8.0, 0.0, 5.0, 10.0), shade=(7.0, 0.0, 8.0, 9.0),
         sign=(0.0, 1.0, 13.0, 2.6),
+        # ── NO BAYS, AND THIS IS THE INTERESTING FAILURE IN THE PASS.
+        # The broad vertical strips are in this bake's own sourced description
+        # and they were built, rendered and then taken out again. Reason:
+        # `wd` here is #7d8a8e, luma 135, and ANY two-tone split of a body that
+        # dark puts a lot of dark on the wall — with the near-white panel at 40%
+        # the other 60% comes out #3b4e52, which made Moontower the darkest
+        # building in West Campus. It did not look like a glitch; it looked like
+        # a different building, and THERE IS NO PHOTOGRAPH OF MOONTOWER IN
+        # research/ to say which is right. Either the split is not 40/60 or the
+        # measured body is a shaded read, and this pass cannot tell.
+        # A colour bay comes off a photograph or it does not get drawn. Fetch
+        # one (Gensler's project page) and this is four lines, with the split
+        # read off the elevation instead of assumed. `two_tone` stays for it.
     ),
     # ── Inspire on 22nd, 2019, 18 storeys, 439 beds, four levels of underground
     # parking. Rooftop pool and an 18th-floor entertainment room. The smallest
@@ -370,6 +564,12 @@ BUILDINGS = {
         crown=(4.6, "sp", MASONRY),
         mech=2.6, deck="roof", balc=("long", 1, 15), step=None, tplan=None,
         shade=(0.0, -26.0, 9.0, 10.0),
+        # Stanley's pierced "Solar Unit" breeze block IS the balcony parapet on
+        # this building, and until now the balconies were bare 0.34 m shelves
+        # with nothing standing on them. Pale, because the breeze block is
+        # precast concrete, not the black steel every 2010s block uses. Not
+        # segmented: the balcony runs the whole elevation, which is sourced.
+        rail="raill",
     ),
 }
 
@@ -461,9 +661,28 @@ MIDRISE = {
     "The Standard": dict(
         base=(7.0, "sg", BASE_STD),
         podium=None,
-        tower=("mh", "#b3b0a2"),
+        tower=("mh", STD_BODY),
         crown=(2.6, "sf", CROWN_STEEL),
         mech=0.0, deck=None, balc=("long", 1, 4), step=None, tplan=None,
+        # ── TIER THREE. Everything below is read off humphreys_00.jpg.
+        # The plan's long axis is 94.9 m and +u runs WEST (obb bearing 175.3
+        # deg): u=0 is the Rio Grande end, u=1 is the corner of 23rd and PEARL,
+        # which is the corner the photograph is taken of — the street sign in
+        # frame reads 23rd / Pearl. So the slate corner bay goes at u=1. If it
+        # is ever shown to be at the other end that is ONE number, which is why
+        # bays are fractions of the obb and not coordinates.
+        bays=[(0.00, 0.30, STD_WARM), (0.30, 0.58, STD_CREAM),
+              (0.58, 0.86, STD_PALE), (0.86, 1.00, STD_SLATE, None, True)],
+        # The slate volume oversails the parapet and carries THE STANDARD in
+        # white. Cut OUT of final_height, never added to it: the parapet drops
+        # by this much so the sign panel tops out at exactly H, the same call
+        # `mech` makes. 13.3 m of 94.9 m, which is the width in the photograph.
+        bayrise=2.2,
+        # Individual projecting balconies with black steel rails, one per unit,
+        # not the continuous shelf the bake drew. Measured off the photograph
+        # against the panel module: the balconies sit about every second bay.
+        balcseg=(3.4, 6.8), rail="rail",
+        crowninset=0.9,
     ),
     # ── Rambler, 2513 Seton Ave. The nadir shows a cream perimeter block around
     # ONE courtyard — already a hole in the footprint — with a long lap pool and
@@ -478,6 +697,7 @@ MIDRISE = {
         crown=(2.2, "sf", CROWN_PALE),
         mech=0.0, deck=None, balc=("long", 1, 3), step=None, tplan=None,
         courtyard=0, courtpool=(0.34, 0.62), courtshade=(0.30, 0.16, 0.30, 0.72),
+        rail="rail", balcseg=(3.6, 7.2), crowninset=0.8,
     ),
     # ── 2400 Nueces. A 99.6 x 56.1 m perimeter block, six storeys, in the cool
     # grey the imagery measures (#9ea8af). The nadir shows two internal
@@ -490,6 +710,21 @@ MIDRISE = {
         tower=("mh", "#9ea8af"),
         crown=(2.4, "sf", CROWN_STEEL),
         mech=0.0, deck=None, balc=("long", 1, 4), step=None, tplan=None,
+        # ── TIER THREE, off Architect Magazine's own photograph. #9ea8af is a
+        # true reading of the panel field and a false reading of the BUILDING:
+        # a honey Texas-limestone volume runs the full height at one end, and
+        # there are dark umber accent panels through the field. The 99.6 m long
+        # axis runs SOUTH (+u), so u=1 is the 24th Street end — the end the
+        # "NUECES ST 2400" sign in the photograph is posted at, because Austin's
+        # hundred-blocks are numbered from the south. Limestone goes there.
+        # `sp` on the limestone bay: piers with deep openings, which is what a
+        # coursed-stone volume with punched windows is; `mh` would put the
+        # panel grid on it.
+        bays=[(0.00, 0.30, "#9ea8af"), (0.30, 0.42, UMBER_PANEL),
+              (0.42, 0.82, SILVER_PANEL), (0.82, 1.00, TX_LIMESTONE, "sp")],
+        # White metal balustrades, not black — they are plainly white in the
+        # photograph and it is what dates the building to 2011 rather than 2019.
+        rail="raill", crowninset=0.7,
     ),
     # ── The Quarters Grayson House, 714 W 22nd. The nadir shows a clean U — a
     # deep light-well notch cut into the SOUTH elevation, already in the 20-node
@@ -546,14 +781,32 @@ MIDRISE = {
         mech=0.0, deck=None, balc=("long", 1, 7), step=None, tplan=None,
         courtyard=0, courtshade=(0.0, 0.0, 0.34, 0.34),
     ),
-    # ── Block on 25th East. A 91 m bar, cream, with a white roof and pitched
-    # neighbours at both ends that are NOT part of it.
+    # ── Block on 25th East. A 91 m bar, cream, with a white roof.
+    # CORRECTION to the note that used to sit here: the pitched roofs at the
+    # ends are NOT neighbours. block-on-25th-east_nadir_z20.jpg shows grey
+    # shingled hips running the whole PERIMETER of this footprint around a white
+    # flat deck. This tier has no vocabulary for a hip roof (it is the reason
+    # Block on 25th WEST is excluded), so the walls get tier three and the roof
+    # stays as it is — recorded rather than quietly drawn flat. No `crowninset`
+    # for the same reason: a setback under a hip roof would be a second error.
     "Block on 25th East": dict(
         base=(5.0, "sp", BASE_STONE),
         podium=None,
         tower=("mh", "#ded2bc"),
         crown=(2.6, "sf", CROWN_PALE),
         mech=0.0, deck=None, balc=("long", 1, 6), step=None, tplan=None,
+        # A five-storey BURNT-ORANGE stucco mass at one end of a cream bar, over
+        # a rough-cut Texas limestone ground floor — American Campus's own
+        # 671_01_exterior.jpg, and the most UT-coloured building in West Campus.
+        # WHICH end took two independent readings that agree: in the photograph
+        # the long face is sunlit and the end return is in shade, and in the
+        # nadir every shadow runs to the north-west. Both put the sun in the
+        # south-east, so the camera is south of a bar that runs east-west and
+        # the shaded end is the WEST one. +u runs west (obb 175.8 deg), so the
+        # orange mass is at u=1.
+        bays=[(0.00, 0.16, PALE_STUCCO), (0.16, 0.74, "#ded2bc"),
+              (0.74, 1.00, BURNT_ORANGE)],
+        rail="rail", balcseg=(3.2, 8.0), crowninset=0.0,
     ),
     # ── Pointe on Rio, 2101 Rio Grande. A narrow 90 x 37 m block in blue-grey
     # (#99a4aa measured) around a courtyard that the nadir shows holding a pool.
@@ -621,12 +874,31 @@ MIDRISE = {
     #                        north end; 181 m of it, so getting it wrong is
     #                        expensive.
 }
+
+# ── Two tier-three values that are true of the WHOLE tier, so they are defaults
+#    rather than fourteen copies of the same line. A row that names either one
+#    wins, and two do: Block on 25th East sets `crowninset=0.0` because it has a
+#    hip roof, and Cambridge Tower and 2400 Nueces set `rail="raill"` because
+#    theirs are precast concrete and white metal rather than black steel.
+#
+#    THE RAIL IS THE BIGGEST SINGLE CHANGE IN THIS PASS and it is the cheapest.
+#    Every one of these blocks has projecting balconies with a 1.05 m
+#    balustrade, and the bake was drawing the 0.34 m slab and stopping. A shelf
+#    reads as a ledge or a sunshade; a shelf with a rail on it reads as somebody
+#    lives there, which is the entire point of the item.
+MIDRISE_RAIL = "rail"          # black steel: every 2010s block in the tier
+MIDRISE_CROWN_INSET = 0.8      # m the crown band steps in behind the wall face
+for _spec in MIDRISE.values():
+    if _spec.get("balc"):
+        _spec.setdefault("rail", MIDRISE_RAIL)
+    _spec.setdefault("crowninset", MIDRISE_CROWN_INSET)
+
 BUILDINGS.update(MIDRISE)
 
 # Flat-coloured pieces. js/westcampus.js carries the day/golden/night trio for
 # each of these `s` classes; nothing here enters the facade atlas.
 SOLID_CLASSES = ("deck", "pool", "turf", "court", "shade", "furn", "mech", "balc",
-                 "sign")
+                 "rail", "raill", "sign")
 
 
 # ── geometry helpers (the same ones bake_stadium.py uses) ─────────────
@@ -829,7 +1101,15 @@ def build(feature, spec, stats):
         z = top
     crown_h, cfam, ccol = spec["crown"]
     mech_h = spec.get("mech") or 0.0
-    parapet = H - mech_h
+    # `bayrise` is a colour bay that OVERSAILS the parapet — The Standard's slate
+    # corner volume carrying its name, which is the thing you recognise the
+    # building by from the street. Cut out of final_height exactly the way `mech`
+    # is, never added to it: the parapet drops by this much so the raised bay
+    # tops out at H and `westcampus-probe.mjs`'s "nothing stands above
+    # final_height" still holds. Adding it on top instead was the first cut and
+    # it put the sign panel 2.2 m into airspace the LiDAR says is empty.
+    rise = spec.get("bayrise") or 0.0
+    parapet = H - mech_h - rise
     tower_top = parapet - crown_h
     if tower_top <= z + 2.0:
         stats["stack_too_short"] += 1
@@ -873,6 +1153,25 @@ def build(feature, spec, stats):
             stats["step_clip_failed"] += 1
             step = None
 
+    # ── TIER THREE: vertical COLOUR BAYS on the tower band ------------
+    #
+    # THE ARGUMENT. A `fill-extrusion-pattern` has no vertical anchor, which is
+    # why this bake stacks HORIZONTAL bands. It has no HORIZONTAL anchor either,
+    # and that is the half nobody had used: the same trick works sideways. A
+    # building whose elevation is a field of cream, warm-grey and charcoal panels
+    # — which is most of what got built in West Campus after 2015 — can be said
+    # as N prisms side by side, each carrying its own colour into the atlas,
+    # instead of one prism carrying their average.
+    #
+    # The strip is cut in the building's OWN (u, v) frame, so "the west quarter
+    # of the long elevation" means the same thing on a block that does not sit
+    # square to north — the same reason `step` and the balconies work in that
+    # frame. And the cut goes through shapely rather than through the half-plane
+    # clipper `step` uses, because that clipper takes ONE ring: on a courtyard
+    # building it would fill the courtyard in.
+    bays = spec.get("bays")
+    crown_inset = spec.get("crowninset") or 0.0
+    W = u1 - u0
     for band, b, t, fam, col in stack:
         if t - b < 0.4:
             continue
@@ -880,6 +1179,50 @@ def build(feature, spec, stats):
             rr = [outer] + holes
         else:
             rr = tower_rings
+        if band == "crown" and crown_inset > 0.02:
+            # A setback crown: the top band steps in behind the wall face, so
+            # the tower band's own roof shows as a ledge all the way round. Only
+            # the outer ring moves — growing a light well by the same amount is
+            # not what a setback is, and on The G's 26-node slot it self-
+            # intersects. `offset` returns a CLOSED ring; wall_feature does not
+            # care, but keep the shape consistent with everything else here.
+            ins = offset(rr[0] + [rr[0][0]], -crown_inset)
+            if ins:
+                rr = [ccw(ins)] + rr[1:]
+                stats["crown_setback"] += 1
+            else:
+                stats["crown_setback_failed"] += 1
+        if band == "tower" and bays:
+            plan = _poly(rr)
+            drawn = 0
+            for spec_bay in bays:
+                f0, f1 = spec_bay[0], spec_bay[1]
+                bcol2 = spec_bay[2]
+                bfam2 = (spec_bay[3] if len(spec_bay) > 3 and spec_bay[3] else fam)
+                if (f1 - f0) * W < BAY_MIN:
+                    stats["bay_too_narrow"] += 1
+                    continue
+                strip = _poly([rect_uv(ang, u0 + f0 * W, v0 - BAY_PAD,
+                                       u0 + f1 * W, v1 + BAY_PAD)])
+                for piece in _rings_of(plan.intersection(strip), 3.0):
+                    out.append(wall_feature(piece, b, t, bfam2, bcol2, band, name,
+                                            False, lon0, lat0, "bay"))
+                    stats["bay"] += 1
+                    drawn += 1
+                # The oversailing bay: same plan, carried on up past the crown
+                # to the parapet the `rise` was cut out of. cap=0, because the
+                # cap layer would then extrude it another cap_lift ABOVE H.
+                if len(spec_bay) > 4 and spec_bay[4] and rise > 0.05:
+                    up_b = parapet + cap_lift(parapet)
+                    if H - up_b > 0.3:
+                        for piece in _rings_of(plan.intersection(strip), 3.0):
+                            out.append(wall_feature(piece, up_b, H, cfam, bcol2,
+                                                    "crown", name, False,
+                                                    lon0, lat0, "bayrise"))
+                            stats["bay_rise"] += 1
+            if drawn:
+                continue          # the bays ARE the band; do not also draw it flat
+            stats["bay_all_dropped"] += 1
         out.append(wall_feature(rr, b, t, fam, col, band, name,
                                 band == "crown", lon0, lat0))
         stats["band_" + band] += 1
@@ -902,12 +1245,40 @@ def build(feature, spec, stats):
     # over the gap, once per floor. Intersecting with the footprint grown by the
     # projection keeps the slab exactly where there is a wall behind it, and the
     # buffer is what lets a genuine balcony still project past the face.
+    #
+    # TIER THREE adds the two things that make a balcony read as a balcony
+    # rather than as a ledge, and Simeon named the first of them ("banded
+    # balconies"):
+    #   `balcseg`  the slab is cut into ONE BALCONY PER UNIT — a width every
+    #              pitch metres — instead of running the whole elevation. A
+    #              continuous shelf is right for Cambridge Tower, whose balcony
+    #              genuinely is continuous and is sourced as such, and wrong for
+    #              every 2010s block, where it is a row of separate boxes.
+    #   `rail`     a 1.05 m balustrade standing on the slab's OUTER edge. This
+    #              is the whole reason the balconies did not read: 0.34 m of
+    #              slab is 0.34 m of relief, and nothing about it says a person
+    #              can stand there. It is the cheapest change in the pass and
+    #              the most visible one.
     balc = spec.get("balc")
     if balc:
         faces, first, count = balc
         span = tower_top - podium_top
         f2f = span / max(1, count)
         keep = _balcony_mask(outer)
+        rail_inner = _poly([outer]).buffer(BALC_PROJ - RAIL_T, join_style=2)
+        seg = spec.get("balcseg")
+        rail_cls = spec.get("rail")
+        # The run of segment start positions, CENTRED on the elevation so a
+        # partial unit is split between the two ends rather than dumped on one.
+        if seg:
+            sw, pitch = seg
+            usable = (u1 - BALC_MARGIN) - (u0 + BALC_MARGIN)
+            n_seg = max(1, int((usable + pitch - sw) // pitch))
+            run = n_seg * pitch - (pitch - sw)
+            s0 = u0 + BALC_MARGIN + (usable - run) / 2.0
+            spans = [(s0 + k * pitch, s0 + k * pitch + sw) for k in range(n_seg)]
+        else:
+            spans = [(u0 + BALC_MARGIN, u1 - BALC_MARGIN)]
         for i in range(count):
             zb = podium_top + (i + first * 0) * f2f + f2f * 0.62
             if zb + BALC_THICK > tower_top:
@@ -916,11 +1287,37 @@ def build(feature, spec, stats):
                 vf = v1 if sgn > 0 else v0
                 a = vf - BALC_BITE if sgn > 0 else vf + BALC_BITE
                 b = vf + BALC_PROJ if sgn > 0 else vf - BALC_PROJ
-                r = rect_uv(ang, u0 + BALC_MARGIN, min(a, b), u1 - BALC_MARGIN, max(a, b))
-                for piece in _clip_to(r, keep):
-                    out.append(solid_feature(piece, zb, zb + BALC_THICK, "balc",
-                                             name, lon0, lat0))
-                    stats["balcony"] += 1
+                for su, eu in spans:
+                    r = rect_uv(ang, su, min(a, b), eu, max(a, b))
+                    slabs = _clip_to_g(r, keep)
+                    for g in slabs:
+                        for piece in _rings_of(g, 0.5):
+                            out.append(solid_feature(piece[0], zb, zb + BALC_THICK,
+                                                     "balc", name, lon0, lat0))
+                            stats["balcony"] += 1
+                    if not rail_cls:
+                        continue
+                    rtop = min(zb + BALC_THICK + RAIL_H, H - 0.05)
+                    if rtop - (zb + BALC_THICK) < 0.3:
+                        continue
+                    # THE RAIL IS CUT OUT OF THE SLAB THAT SURVIVED, not off a
+                    # line at v1 ± BALC_PROJ. That was the first cut and it drew
+                    # 142 rails for 498 slabs: v1 is the obb EXTREME, so on any
+                    # plan whose wall is not exactly at the extreme — which is
+                    # most of them — a 0.11 m strip out there lands entirely
+                    # outside the balcony mask and vanishes, while the 1.55 m
+                    # slab still catches the part near the wall. Differencing
+                    # the slab against the footprint grown by (PROJ − RAIL_T)
+                    # leaves exactly the outer lip of whatever slab is there,
+                    # following the plan round every notch.
+                    for g in slabs:
+                        lip = g.difference(rail_inner)
+                        if lip.is_empty:
+                            continue
+                        for piece in _rings_of(lip, 0.10):
+                            out.append(solid_feature(piece[0], zb + BALC_THICK, rtop,
+                                                     rail_cls, name, lon0, lat0))
+                            stats["rail"] += 1
 
     # ── amenity deck --------------------------------------------------
     where = spec.get("deck")
@@ -1080,6 +1477,28 @@ def main():
         raise SystemExit("bake_westcampus: refusing to write overhanging geometry:\n  "
                          + "\n  ".join(bad_overhang))
 
+    # Colour bays are typed as fractions and a typo in one of them is silent:
+    # overlapping bays z-fight down a whole elevation, a gap leaves a slot of
+    # sky through the middle of a building, and neither shows up in a render
+    # you are not already suspicious of. Arithmetic, so it runs every bake.
+    bad_bays = []
+    for name, spec in BUILDINGS.items():
+        bays = spec.get("bays")
+        if not bays:
+            continue
+        edges = sorted((float(b[0]), float(b[1])) for b in bays)
+        if abs(edges[0][0]) > 1e-6 or abs(edges[-1][1] - 1.0) > 1e-6:
+            bad_bays.append("%s: bays run %.3f..%.3f, not 0..1" %
+                            (name, edges[0][0], edges[-1][1]))
+        for (a0, a1), (b0, b1) in zip(edges, edges[1:]):
+            if a1 > b0 + 1e-6:
+                bad_bays.append("%s: bays %.2f-%.2f and %.2f-%.2f overlap" % (name, a0, a1, b0, b1))
+            elif b0 > a1 + 1e-6:
+                bad_bays.append("%s: gap between bays at %.2f-%.2f" % (name, a1, b0))
+    if bad_bays:
+        raise SystemExit("bake_westcampus: colour bays do not tile the elevation:\n  "
+                         + "\n  ".join(bad_bays))
+
     # How many NEW facade atlas images this costs. The atlas is repainted on
     # every time-of-day tick and the cost is per IMAGE, so this number is the
     # one that decides whether the pass is affordable — see the note above
@@ -1139,6 +1558,21 @@ def main():
             "balconies": "sourced for Cambridge Tower (every floor, both long "
                          "elevations) and 21 Rio (private balconies documented); "
                          "projection depth is generative",
+            "colour_bays": "measured off ONE NAMED PHOTOGRAPH per building and "
+                           "nothing else - Humphreys' StandardAustin_Ext_14 for "
+                           "The Standard, American Campus's 671_01_exterior for "
+                           "Block on 25th East, Architect Magazine's own "
+                           "photograph for 2400 Nueces. Cluster centres are in "
+                           "the BAY palette comments with their crop boxes. "
+                           "WHICH END a bay sits at is derived, per building, "
+                           "and the derivation is in that building's row. "
+                           "Moontower has a sourced two-tone split and NO "
+                           "photograph, so it has no bays - see its row.",
+            "balcony_rails": "GENERATIVE height (1.05 m, the residential "
+                             "guard-rail minimum); the MATERIAL is sourced - "
+                             "black steel on the 2010s blocks, precast breeze "
+                             "block on Cambridge Tower (Stanley's Solar Unit), "
+                             "white metal on 2400 Nueces from its photograph",
         },
     }, indent=2))
 

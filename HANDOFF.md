@@ -1,5 +1,855 @@
 # Austin 3D Explorer — Full Handoff
 
+## 61. Aug 3 2026 — the wall was never the building's, so Jester and Gregory Gym got authored elevations (acer lane)
+
+**Branch:** `acer/jester-greg-facades`. **QUEUE PART G**, applied to **C1** and
+**C2**. Files: `scripts/bake_roofs.py`, `data/roofs.geojson`,
+`data/building_overrides.json`.
+
+> *"they are NOWHERE CLOSE to the level they should be ... its like youre trying
+> to draw the mona lisa and you made the canvas the right size - we need accurate
+> detail and color"*
+
+PR #106 gave both of these buildings a correct ROOF and he did not say either was
+fixed. Part G says why: a roof here is measured off aerial imagery, and a WALL is
+one of fourteen elected tones plus a repeating window tile. So this pass does not
+touch massing at all. It authors two elevations into `roofs.geojson`, which is
+the one file in this lane that carries per-feature `b`, `h` and colour.
+
+### The mechanism, and its one hard constraint
+
+`js/westcampus.js` can suppress `buildings-3d` for the buildings it replaces.
+**This lane owns no JS, so nothing here can suppress anything** — every authored
+piece below the building's own height must stand PROUD of the wall or it is
+invisible. That is not a workaround: an archivolt, a spandrel course and a
+raking cornice all really do project. Above `final_height` the prism has ended
+and the test is switched off, which is how the pediment can sit on the roof.
+
+`loggia_parts` is gone and `gable_front_parts` replaces it. `_wall_frame` is
+kept verbatim — the override gives a POINT, the code finds the wall and tests
+which way is out — because that part was right.
+
+### C2 — Gregory Gym, and PR #106 read the photograph wrong
+
+It built a **projecting porch**: 21 m wide, 12.6 m to the top of its own little
+gable, in front of a 135 m building. Four photographs say the building is
+nothing like that. The west end is **one triangular brick pediment the full
+52.9 m width of the elevation**; the three arches are enormous openings cut into
+it, not a porch stuck on it; and a second, smaller pediment projects in front
+carrying a run of blind corbel arches up its rake.
+
+**WHICH WALL WAS SETTLED FROM THE PHOTOGRAPH'S OWN EXIF GPS.** Commons
+*"Gregory Gymnasium, May 2013.jpg"* carries 30.284266, -97.737473. In the
+footprint's own metre frame that is **(-46.7, 82.9)** — 47 m due west, dead level
+with the mid-point of the 24.9 m west-facing edge that runs y 68.6 to 93.4. It is
+a square-on shot of that edge. #106's anchor point was on the same edge, so the
+wall was already right and only everything else was wrong. (The OSM
+`entrance=main` node 1427259422 lands on a 3.5 m stub 27 m south and is not what
+the photograph looks at.)
+
+**Everything else is a pixel ratio against ONE assumption — that the modelled
+20.0 m is the eave.**
+
+```
+pitch    apex (960,69)->(1600,330) = 261/640 = 0.408
+         apex (960,69)->( 400,287) = 218/560 = 0.389      -> 0.40
+scale    west elevation is 52.9 m; at 0.40 the apex is 10.6 m over the eave
+         so (30.6-20.0)/(327-69 px) = 0.0411 m/px
+CHECK    52.9 m at 0.0411 puts the eave corners at x=317 and x=1603.
+         The traced silhouette reaches (1600,330); the rake predicts 327.
+arches   openings 97 px = 4.0 m, pitch 162 px = 6.66 m, three, symmetric
+heights  h = 20.0 - (y-327)*0.0411 -> stair head 3.9, door head 6.7,
+         lintel 9.2, springing 12.7, opening crown 14.7, archivolt 15.7
+```
+
+**The inner pediment is the footprint's own projection.** That 24.9 m edge stands
+2.9 and 4.5 m proud of the walls either side of it, which is the second pediment.
+
+### Three things that did not work, in order
+
+1. **A 52 m pediment on one plane either floats or hides.** Built on the bay it
+   overhangs 4.5 m of air for a third of its length; built deep enough to clear
+   the worst flank it sits 4.9 m back and reads as a different building behind
+   the roof. `_parallel_edges` fixed it: the pediment is emitted PER west-facing
+   edge, at that edge's own plane, so it follows the building's jogs the way a
+   real parapet gable does.
+2. **A stone cornice on the full width of every course is a tiled roof.** Twenty
+   two pale horizontal lines stacked up the gable and from anywhere above the
+   eave it read as a striped pyramid. On the building the stone runs up the two
+   sloping edges and nowhere else. A 1.5 m block at each end of each course is
+   that line, and it is the single correction that turned the render back into a
+   pediment.
+3. **Both pediments anchored at v=0 and the inner one vanished** — a bigger
+   triangle drawn on the same plane swallows a smaller one, corbel arcade and
+   all. The outer one steps back 0.9 m on the bay.
+
+Nine courses read as a ziggurat (1.2 m per step over 10.6 m of rise);
+`GABLE_COURSES` is 22, which puts the step under half a metre.
+
+### The colour, and the trap in it
+
+`wd` on Gregory Gym is `#a05b45` and the walls render at **red/blue 3.18**. The
+photographs put the brick at **1.58** (overcast) and **1.60** (2013 midday) —
+rgb(155,125,98). It is a warm sand, not the red-brown it is painted, and `wd`
+belongs to the buildings bake. So the west elevation is **re-clad**: a 0.16 m
+brick skin in the measured colour, stepping around the three openings. It stops
+at the building's own corners, where a material change reads as normal, and it
+leaves every other elevation its window pattern and its lit night.
+
+**A NEUTRAL RENDERS FAR WARMER THAN SOMETHING ALREADY WARM.** Measured on this
+build with the magenta-mask trick (§48): brick entered at red/blue 1.59 came back
+at 1.79, but stone entered at 1.20 came back at **1.94 — indistinguishable from
+the brick.** So the trim cannot earn its read on hue in this light; it is entered
+cool AND light and earns it on luma. Same trap HANDOFF §48 records for the Jester
+deck, arrived at from the other side.
+
+### C1 — Jester, and the wall is painted the colour of its own trim
+
+Sampled off commons *"University of Texas at Austin August 2019 27"*, flat
+overcast, green-dominant pixels rejected so foliage cannot vote:
+
+```
+brick field   rgb(166,145,120)  #a69178   R/B 1.38
+precast band  rgb(188,176,156)  #bcb09c   R/B 1.21
+baked wall wd rgb(194,182,160)  #c2b6a0   R/B 1.21   <- the TRIM colour
+```
+
+That is *"the color is not accurate"* exactly: the whole complex wears its own
+spandrel colour. This bake cannot reach `wd`, so it does the other half and puts
+the real precast in front of the wall, where the contrast is what the eye reads.
+
+**The rhythm is measured, off commons *"Jester Dormitory ... (19 03 2003)"*:**
+the courses repeat every 116 px and are 28 px deep, so a band is **0.24 of a
+floor** — 0.73 m of precast over 2.32 m of brick at a 3.05 m floor.
+
+**And the two parts of the complex are not the same building.** The low wings
+carry a continuous course at every floor line. The towers carry NONE — they are
+plain brick with small punched windows, articulated by blank vertical piers
+between bays. The first cut ran both over the whole elevation and the render came
+back a plaid: piers crossing courses crossing the facade tile's own vertical
+grain. **Courses stop at 19.0 m and piers start there**, and 19.0 is not
+invented — Beauford H. Jester Center IS the low wing block and the survey models
+it at 19.0 m.
+
+Bands stop 0.12 m short of each corner so two elevations mitre instead of
+leaving a tooth. `az` on every authored part is now **the wall's own outward
+normal**, not 0; with az=0 all four sides of a building took one tone and the
+courses did not change colour round a corner.
+
+### Verified
+
+`harness-drift.mjs` PASS before every measurement. Bake audits unchanged and
+clean: `roofs_with_a_hole` 0, `roofs_drawn_twice_or_over_air` 0, `folded_rings`
+0, `walls_with_no_slope` 0. **Night, which is the one that has bitten this repo:**
+at tod 0.95 the authored pixels read luma **14.1 against a scene at 13.5**
+(Gregory) and **20.0 against 16.9** (Jester) — no pale patch, no inverted
+silhouette. Day 0.45, dusk 0.62 and night 0.95 at both. Every colour number above
+is a magenta-mask read of this build, not of the photograph.
+
+`data/roofs.geojson` 1,349 -> 1,626 KB raw, **70.9 -> 162.4 KB gzipped**, 3,877
+-> 4,886 features (223 gable, 768 band). That is the honest cost of the pass.
+
+`geomlint.mjs` goes from 1 issue on this file to 81, **and all 81 are the same
+`SLIVER` class** — checked independently: span, degenerate, unclosed, non-finite
+and `h <= b` are all zero. A spandrel course is a 118 m ring 0.24 m wide in plan,
+so it trips `span > 40 && area/span < 0.6` by construction; on screen its face is
+0.73 x 118 m and it is not a sliver at all. `westcampus.geojson` already produces
+78 of the same on `main` and the linter exits 1 there today. **Request for
+whoever owns `scripts/verify/`: teach the sliver test about wall bands** — a ring
+whose extrusion is taller than its plan width is a band, not a stray vertex.
+
+`night-silhouette.mjs` could not be run: it dies at line 30 with
+`ReferenceError: r is not defined`, which is the page-setup regression the Mac
+lane owns. The night numbers above are pixel reads, taken by hand for that
+reason.
+
+### What is NOT fixed, and it is not this lane's file
+
+1. **Jester's massing.** Each hall is still ONE prism at the tower's height, so
+   the low tile-roofed wings that fill the foreground of every photograph of the
+   place are extruded to 51.6 m and 40.4 m. The facade is now right for what is
+   modelled; the model is still wrong. Needs `building:part` splitting in the
+   buildings bake.
+2. **`wd` on both buildings.** Gregory Gym's `#a05b45` renders at red/blue 3.18
+   against a photographed 1.58, and Jester's `#c2b6a0` is its trim colour, not
+   its brick. **Request to the buildings lane: `#9b7d62` for Gregory Gym
+   (1bb698db), `#a69178` for the three Jester ids** — both measured, both in
+   `data/building_overrides.json` with the source frame named.
+3. **Gregory Gym's flanks** keep the old red-brown, because re-cladding them
+   would take their windows and their lit night with it. The seam is at the
+   building's own corner.
+
+Pictures: `docs/shots/greg-photo-vs-render.jpg`,
+`docs/shots/greg-before-after.jpg`, `docs/shots/jester-photo-vs-render.jpg`,
+`docs/shots/jester-before-after.jpg`, `docs/shots/jester-greg-night.jpg`.
+## 60. Aug 3 2026 — the bake cannot change a height, so The Standard was six storeys. Tier four is authored at LOAD instead. (acer lane)
+
+**Branch:** `acer/westcampus-tier4`, **PR #121**, merged `1e6bdbb`. **QUEUE PART G.**
+File: `js/westcampus.js` only, plus three sheets in `docs/shots/`.
+
+### The half of the ceiling tier three did not break
+
+Part G names one half — fourteen wall tones for the city — and tier three broke
+it. The other half is written in `scripts/bake_westcampus.py`'s own MIDRISE
+header and it had never been touched:
+
+> *"It never changes a building's HEIGHT ... Raising it HERE would draw a tower
+> you can fly straight through."*
+
+That is correct and it is why the bake was right not to. It is also why **The
+Standard at Austin — 17 storeys, and where Simeon lives next year — has been
+standing at 20.5 m, which is six.** No bay colour fixes that, and three passes
+in a row reported massing because massing was the only lever the bake had.
+
+**The seam is `js/westcampus.js`'s own fetch.** Author at LOAD, on the fetched
+GeoJSON, before `quantiseStadiumFacades()` — exactly where `js/union24.js`
+replaces Union on 24th's footprint before `quantiseFacades()` sees it — and hand
+the corrected heights to `__flyRebuildCollision`, which `js/heroes.js` already
+uses for EER. Nothing is baked, so the tier cannot collide with the bake, and
+`?wc4=0` removes it at load so the A/B is one build.
+
+**It restretches PR #119 rather than replacing it.** Those bay polygons and
+their four hexes were measured off the architect's photographs and are right;
+they were simply stopped at the wrong height. `restack()` is the whole
+mechanism.
+
+### What was established, and from which frame
+
+**The Standard** (Humphreys & Partners, 2021) — Humphreys' own
+`StandardAustin_Ext_01`, `_Ext_14`, `_Ext_41`; Landmark/NAHB for 17 storeys /
+287 units / 989 beds / 337,847 sf; an **Esri z20 nadir rectified into the bake's
+own obb frame**, so plan positions are arithmetic. The obb port is verified, not
+trusted: it returns **L = 94.9 m at bearing 175.3 deg**, the two numbers the
+bake's MIDRISE table writes down for this building.
+
+- seven-storey liner round the whole block, parapet **21.5 m**. Corroborated
+  independently: `data/roofscape.geojson` already carries a deck at 21.50-21.75
+  and a penthouse at 21.75-24.55 over this footprint.
+- two tower slabs, off the nadir: east `u 23.5-41.0`, west `u 57.2-74.3`, both
+  `v 17.0-31.4`. Narrow, which is why each shows a blank end wall — and those
+  are where Ext_01 puts the vertical THE STANDARD signs.
+- 17 = 7 + 10, to a 53.4 m parapet.
+- the terracotta accent PR #119 had no vocabulary for: `#b5753b` measured off
+  the Ext_14 pier, exposure-corrected against that photograph's own cream
+  cluster to `#c27c42`, distant read **`#a56938`**.
+- the level-7 pool deck the bake measured and then deleted, saying so: *"All
+  three are downstream of ONE stale number."*
+
+**Rambler** (LV Collective, 2023) — the Kristian Alveo photographs. **The model
+had this building almost entirely wrong.** It is not brick: it is a
+**checkerboard of pale panels** with brick only at the base and in piers. Its
+crown is not a pale coping: it is a **dark blue-teal standing-seam band that
+swoops up over the 26th x Seton corner**, and that corner is the only *built*
+street corner on the site — 26th x Nueces is notched out of the footprint, which
+is why the first render put the curve on a back elevation. Eight levels, not
+14.4 m. Brick `#cb9b80`, white `#f0ebe7`, warm `#dac9b9`, teal `#2e5a70`.
+
+**21 Rio is NOT done and is left as baked.** Eleven sources, no exterior
+photograph — every gallery that claims one is interiors. Its balcony rails are
+burnt orange, visible through a window in an interior shot, and that is all that
+was established. Two done properly beats three nudged.
+
+### Four things the renders taught, all now written into the file
+
+1. **A hash is not a proportion.** Picking bay tones with a multiply-shift hash
+   drew terracotta on **three of six** consecutive bays and the west slab came
+   out as orange candy stripes. A stride of 3, coprime with every list length
+   used, makes the proportions exact — which is what makes "the bays average
+   back to the measured body" true rather than hopeful.
+2. **A rail is not the size of its slab.** Giving a tower rail the balcony's own
+   4 x 1.4 m footprint at 1.05 m tall is forty black bricks per tower. 0.12 m on
+   the outer edge, the same as the bake.
+3. **`CAP_GEOM`'s coping IS the roof plane** on a full-footprint crown band — it
+   spans the feature's whole polygon. Two renders were spent putting the pool,
+   the turf and the jumbotron *under* a 94.9 x 46.4 m plate, where they drew as
+   nothing at all. The deck height is now computed from `CAP_GEOM.liftFor`. The
+   same rule put a teal lid over the whole of Rambler's roof until `restack()`
+   learned to take a roof colour separately from the wall colour.
+4. **Four measured tones inside a 30-RGB band arrive on screen as one tone,**
+   because the atlas draws a window grid over every bay and that costs about 13%
+   of mean luma. `spread(hexes, k)` pushes them apart **about their own mean**,
+   so PR #113's imagery body and PR #119's `bay_mix` guarantee are untouched and
+   only the surviving contrast changes. `k` is parameterised.
+
+### Left for whoever is next
+
+- **`scripts/verify/westcampus-probe.mjs` is still broken and now also stale.**
+  It references `d` and `errors` before they are defined (the fifteen-script
+  harness page-setup regression the mac lane owns) and its "10 buildings
+  emitted" assertion has been wrong since tier two took the count to 24. Not
+  edited — not this lane's file.
+- **Labels sit at the snapshot's `final_height`,** so The Standard's floats at
+  20.5 m rather than on its parapet. Fixing it means the buildings source or
+  `js/app.js`.
+- **21 Rio, and the rest of West Campus.** The mechanism is now general: give
+  `authorX(gj)` a footprint and it will take obb rectangles, perimeter runs and
+  pixel bays. What it needs is a photograph.
+- Pictures: `docs/shots/t4-standard-sbs.jpg`, `docs/shots/t4-rambler-sbs.jpg`,
+  `docs/shots/t4-night.jpg`.
+
+## 59. Aug 3 2026 — EER's "own colour" was one of the fourteen, off by three counts (acer lane)
+
+**Branch:** `acer/eer-gdc-facades`, **PR #120**, merged. **QUEUE PART G.**
+File: `js/heroes.js` only, plus three shots in `docs/shots/`.
+
+> *"they are NOWHERE CLOSE to the level they should be — looks like u made
+> overall shape a bit more accurate but its like youre trying to draw the mona
+> lisa and you made the canvas the right size"*
+
+### The number that proves the last pass was massing, not facade
+
+PR #118 fixed EER, GDC and NHB's heights. It also shipped tiles, so it *looked*
+like facade work had happened. It had not, and one measurement says so: EER
+rendered at **#b9956b, luma 155, R-B 78**, against **#c29d72 / 163 / 80** for
+T.S. Painter and **#ac8c60 / 145 / 76** for Physics-Math-Astronomy **in the same
+frame**. A pale limestone building was rendering as one of the city's tans.
+
+Literally so. `data/facade_palette.json` bucket 5 is **#e3dac8**. PR #118 gave
+EER **#e2dacb**. Three counts on one channel. **Check every "protected" hex
+against the fourteen before you ship it** — an own colour that is inside the
+palette is not an own colour, and nothing downstream will tell you.
+
+### What was established, and from which frame
+
+Sources: Ennead's project page (`1012_Jeff-Goldberg-3` / `-17`,
+`1012_AW-Final-19`, `1012-Drawing-Plan02`), the Cockrell School aerial, and two
+Wikimedia Commons frames — `University of Texas at Austin August 2019 17` and
+`Gates-Dell Complex - UT Austin (54984937843)`. They are not in the repo; the PR
+embeds them by URL beside the render.
+
+- **EER's facade is CLUSTERED SLOTS, not a scatter.** Runs of two to four
+  adjacent narrow vertical slots, then three to six blank bays, widths varying
+  inside a run. PR #118 used an independent 34% coin per bay, and a Poisson
+  scatter **cannot produce a six-bay blank** — the longest empty run at p=0.34
+  over 24 bays is about three. The blanks are half of what makes this wall
+  legible, so the generator now walks runs and gaps as a RULE rather than
+  sampling a density.
+- **There is no dark ribbon at the floor line.** PR #118 drew one at 20% dark on
+  every floor and called it "the photograph's most legible fact". It is in no
+  photograph of this building. What reads as a line at distance is the slot heads
+  lining up. Now a 5% joint.
+- A **blank stone band one full floor (4.65 m)** under a pale, faintly COOL metal
+  coping; a **dark glazed ground-floor recess** so the stone starts at 4.6 m
+  behind a real 0.55 m reveal; **full-height full-length canyon curtain wall**
+  (was 56 m stopping at 28.8 m); a **glass ribbon turning each bar's canyon-side
+  corner** onto the end elevation; a **mechanical penthouse** per roof.
+- **GDC** is a pale cast-stone spandrel at every floor line, a terracotta
+  perforated sunscreen over each bay head, dark blue-grey glass and buff brick
+  piers running through all of it. k-means over a 450x440 patch of the sunlit
+  south elevation gave 25.4% #f8e2c8, 27.2% #7c6051, 18.6% #4c2e1f, 15.0%
+  #487fc0, 13.8% #c4a48c — and **the 15% blue is sky in the glass**, the trap
+  docs/PASS_ARTS.md already records. PR #118 believed it (#4f86b4).
+
+### What I could not establish, and did not invent
+
+- **Which end the space frame closes.** Two photographs left me arguing with
+  myself about compass directions for twenty minutes. `scripts/bake_heroes.py`
+  measured it off the nadir tile at u 38.0–47.5 with the top rail at image row
+  588. **A measurement of the site beats an inference about a photograph**, so
+  the east end stands and the flip was not made.
+- **NHB** was not re-researched. Left exactly as PR #118 shipped it.
+
+### The ceiling this pass hit, so nobody re-discovers it
+
+**EER cannot be made the brightest building on its block, and it is not this
+lane's fault.** The renderer's daylight is a warm multiply, so for any neutral
+surface R-B lands at roughly **0.34 x rendered luma** regardless of the base hex
+— which is why a #efeadd stone and a tan neighbour both come back at R-B ~78.
+And the city's own tans already bake out at luma **213–219** (buckets 5 and 13),
+so there is almost no headroom above them. EER's stone went 154 → 163 and that
+is most of what exists. **The separation that actually works is composition and
+contrast** — plinth, crown, ribbons, cage, cluster rhythm. Making the fourteen
+less pale is a `js/facades.js` job.
+
+### Corrections this pass made to itself
+
+- The corner ribbons shipped first at #5f7080 and rendered at **luma 82 against
+  stone at 163 — a ratio of 0.50, where the photograph has 0.94**. They read as
+  two black bookends clamping each tower. A **third** curtain-wall image was
+  added: a dark recess and a bright outward-facing ribbon are the same material
+  at opposite ends of its range and one image cannot be both.
+- GDC's brick went in at R-B 88, which the warm daylight pushed to R-B 130 —
+  the building came out the colour of a traffic cone. **A hex that already
+  carries the sun gets it applied twice.** Pulled to R-B 72.
+
+### Mechanism, and the lane note
+
+`scripts/bake_heroes.py` and `data/heroes.geojson` are another lane's files this
+round, so the composition is applied to the **fetched FeatureCollection at load**,
+`authorEER()` / `authorGDC()` — the `js/union24.js` precedent. 20 → 28 band
+features. `window.__heroes.composed` reports what happened.
+
+**Three agents shared this worktree and it bit.** Another lane checked out
+`acer/westcampus-tier4` mid-session, so my commit landed on their branch; it was
+pushed to `acer/eer-gdc-facades` by sha (`git push origin <sha>:refs/heads/...`)
+rather than resetting a branch someone else had uncommitted work on. If
+`acer/westcampus-tier4` looks like it contains an EER commit, that is why, and
+it is an ancestor of `main` now so it is harmless.
+
+### Verified
+
+- `harness-drift.mjs` **PASS**, 27 scripts both sides. No new script tag — the
+  third curtain wall is a layer added in JS.
+- Before and after are the **same camera pose**, hardware GL, 1500x950,
+  autodetect cancelled, screenshot-twice-keep-the-second.
+- Night at tod 0.90: EER wall median luma **25** against **26** for the building
+  beside it, p90 **59** vs **36** — the slots light up, the mass does not.
+- `docs/shots/eer-before-after.jpg`, `gdc-after.jpg`, `eer-night.jpg`.
+
+## 58. Aug 3 2026 — a wall pattern has no HORIZONTAL anchor either, so West Campus got colour bays and its balconies got rails (acer lane)
+
+**Branch:** `acer/westcampus-character`. **QUEUE C5, the CHARACTER half.** Files:
+`scripts/bake_westcampus.py`, `data/westcampus.geojson`, `js/westcampus.js`.
+
+> *"so many apartments in austin wampus have such cool designs but are currently
+> regular building blocks ... personally as someone staying in standard next year
+> i love how it looks and if this tool wasn't mine and i saw standard look nice i
+> would feel really cool"*
+
+PR #113 was MASS — fourteen more blocks, each keeping the wall colour the imagery
+measured. This is CHARACTER, and it is three ideas.
+
+### 1. The bake stacked bands vertically for two tiers and never went sideways
+
+`fill-extrusion-pattern` has no vertical anchor, which is why this bake emits
+base / podium / tower / crown as separate prisms. **It has no HORIZONTAL anchor
+either, and nobody had used that.** A facade that is a field of cream, warm-grey
+and slate panels — which is most of what West Campus built after 2015 — can be N
+prisms side by side, each carrying its own colour into the atlas, instead of one
+prism carrying their average. `bays` is a list of `(u_from, u_to, colour, fam)`
+fractions of the building's own obb, cut through shapely rather than through the
+half-plane clipper `step` uses, because that clipper takes ONE ring and would
+fill a courtyard in.
+
+### 2. A balcony slab with nothing on it is a LEDGE
+
+268 balcony slabs shipped in #113 at 0.34 m thick with nothing standing on them.
+Every one of these buildings has a 1.05 m balustrade (IBC's residential minimum,
+and the real number). **504 rails is the single most visible change in the pass
+and the cheapest**, and it is what makes an elevation read as somewhere people
+live rather than as a stack of sunshades. `balcseg` also cuts the slab into one
+balcony PER UNIT where the reference shows separate boxes; Cambridge Tower keeps
+a continuous slab, because its continuous balcony is sourced.
+
+**The rail is cut out of the slab that survived the footprint clip**, not off a
+line at `v1 +/- BALC_PROJ`. The first cut did the latter and drew **142 rails for
+498 slabs**: `v1` is the obb EXTREME, so on any plan whose wall is not exactly at
+the extreme — most of them — a 0.11 m strip out there lands entirely outside the
+balcony mask and vanishes, while the 1.55 m slab still catches the part near the
+wall. `slab.difference(footprint.buffer(PROJ - RAIL_T))` leaves exactly the outer
+lip of whatever slab is there, round every notch. 504 rails for 498 slabs.
+
+### 3. Every bay hex came off a named photograph, and the method matters
+
+`research/union24th-area/imagery/web/` holds the architects' own exteriors and
+nobody had opened them. Crop the material -> LOOK at the crop on a contact sheet
+-> k-means it -> take the cluster centre with its share of the crop. **Three of
+the first nine crops turned out to be sky, foliage or a lit window**, and their
+"measurements" were worthless; the contact sheet is what caught them.
+
+Then the re-centring, and the distinction is not cosmetic. `bay_mix` is additive
+about the crop mean and re-centres on the body colour #113 verified, so a
+building's bays AVERAGE BACK to it by construction — tier three can decompose a
+wall but cannot repaint it. A ratio would be cleaner except that against a
+BLUE-HOUR exposure it clips every light material to white (the cream panel came
+out `#fff8da` on the first attempt). But additive also COMPRESSES anything far
+from the mean, and The Standard's slate corner is far from it: `bay_mix` put it
+at `#989c9f`, 27 luma from the pale panel beside it, where the photograph has it
+at 0.57 of the cream's luminance. So `bay_ratio` for a material that is a
+DIFFERENT material, `bay_mix` for one that belongs to the field.
+
+- **The Standard** (Humphreys' `StandardAustin_Ext_14`): warm / cream / pale
+  panel bays and the slate corner volume carrying the name, which **oversails
+  the parapet** — cut OUT of `final_height` the way `mech` is, never added.
+- **Block on 25th East** (ACC's `671_01_exterior`): a burnt-orange stucco mass at
+  one end of a 91 m cream bar. **WHICH end took two independent readings that
+  agree**: in the photograph the long face is sunlit and the end return is in
+  shade, and in the nadir every shadow runs north-west. Both put the sun in the
+  south-east, so the camera is south of an east-west bar and the shaded end is
+  the WEST one.
+- **2400 Nueces** (Architect Magazine's own): a honey Texas-limestone volume full
+  height at the 24th Street end, umber accent panels, a silver metal field.
+
+### What I tried that did NOT work
+
+- **Moontower.** Its two-tone rainscreen is in this bake's own sourced
+  description, and it was built, rendered and then removed. `wd` is `#7d8a8e`,
+  luma 135, and ANY two-tone split of a body that dark puts a lot of dark on the
+  wall: at the sourced 40% near-white the other 60% comes out `#3b4e52`, which
+  made Moontower the darkest building in West Campus. **There is no photograph of
+  Moontower in `research/`** to say whether the split or the measured body is
+  wrong. It renders as a flat slab, and that is the right answer until someone
+  fetches one. `two_tone()` and the numbers are kept for it.
+- **Six camera poses that could not see the building.** The Standard is 20.5 m
+  among 26-32 m neighbours, and the first four "before/after" pairs were of a
+  DIFFERENT building whose facade happened to sit under the label. The magenta
+  mask (QUEUE trap 5) settled it in one frame: the pass was drawing a thin strip
+  BEHIND the block I was reading. **`queryRenderedFeatures` on a fill-extrusion
+  with a layer list but no geometry is not to be trusted** — it reported 6
+  features for a viewport holding a dozen of them; a small box query at a
+  projected point is truthful. And a bare `queryRenderedFeatures()` with no layer
+  filter throws inside MapLibre 5.24's symbol decoder on this style.
+- **`git stash` as the before/after mechanism.** It stashes the WORKING tree, not
+  the branch, so a "before" run taken that way is your own committed change minus
+  your last edit. `git checkout origin/main -- <files>` is the one that means
+  what it says.
+
+### Measured
+
+- `data/westcampus.geojson` 401 -> 1,144 features (90 wall bands including **11
+  colour bays**, 498 balcony slabs, **504 rails**), 171.7 -> 400.4 KB raw /
+  **26.0 KB gzipped**, atlas 37 -> 46 images.
+- **Nothing stands above `final_height`**: max `h - final_height` is +0.000 for
+  all 24 buildings, the raised corner bay included.
+- The four Standard bays hold four DIFFERENT atlas images, read back off the live
+  atlas: `#a1917c` / `#c9bba4` / `#a9a193` / `#858586` — a **56 luma** spread
+  across one elevation. On the flat-colour diagnostic (pattern off) the same
+  elevation runs `#888274` to `#e7c38d`, **67 luma**.
+- **Cost, MIN of 2 interleaved reps each, hardware GL, 1280x800, zoom 16.6 over
+  West Campus**: a forced time-of-day tick 91.0 -> 103.7 ms (+14%); median frame
+  time over a 200-frame orbit 74.0 -> 77.3 ms (+4.5%). Both configurations were
+  separate page loads, which is a weaker A/B than `applyWestcampusSettings()`
+  gives — but that toggle hides layers and cannot unregister atlas images, and
+  the atlas is where the tick cost is.
+- Night re-checked at tod 0.95: p50 luma 12.5-15.1 over three poses, walls dark,
+  windows lit, no pale surface after dark. The new `raill` (pale precast) rail
+  goes to `#1e2029`.
+- New bake-time assertion: every building's bays must tile 0..1 with no gap and
+  no overlap. Proved it fires by breaking one.
+
+`docs/shots/westcampus-tier3-*.jpg` are before/after pairs, one camera each.
+
+### Owed
+
+- A photograph of Moontower, and its bays are four lines.
+- **Block on 25th East has a HIP ROOF.** `block-on-25th-east_nadir_z20.jpg` shows
+  grey shingled hips round the whole perimeter of a white flat deck — the note in
+  the bake that called them "pitched neighbours that are NOT part of it" was
+  wrong, and it is corrected there. This tier has no vocabulary for a hip roof
+  (it is why Block on 25th WEST is excluded), so the walls got tier three and the
+  roof did not, and `crowninset=0.0` on that row keeps a setback from becoming a
+  second error under it.
+- The Standard's HEIGHT, still. Unchanged from #113: 17 storeys at 20.5 m,
+  `scripts/hero_overrides.json` + `enrich.py`, and it unlocks the pool deck.
+- `scripts/verify/westcampus-probe.mjs` is still 66 lines with no `newPage` —
+  the Mac lane's regression, untouched here.
+
+## 56. Aug 3 2026 — downtown was never dark. It was UNDIFFERENTIATED, and the atlas was eating the difference. (acer lane)
+
+**Branch:** `acer/downtown-colour`. **QUEUE F3 / E1's colour question.** Files:
+`scripts/bake_outer_facades.py`, `data/outer_tower_palette.json` (its output),
+and a new instrument `scripts/verify/downtown-colour.mjs`.
+**`data/outer_ring.geojson` is byte-identical — NO RE-TILE IS NEEDED.** `fb`
+did not move on a single feature; the palette is a runtime `fetch`, not tile
+content.
+
+### The three candidates, each answered by running it rather than reading it
+
+`downtown-colour.mjs` builds the §48 visibility mask ONCE and then re-reads that
+same index set under one switched term at a time — one build, one session, and
+a `restore` row that came back **0.0** on every run. Tour pose
+`downtown-skyline`, tod 0.30, tiled path.
+
+**1. A REGRESSION FROM THE FACADE TILE SWITCH (#84/#94)? NO — and reverting it
+would be worse.** The pre-#84 frame is reproducible exactly: set `outer-tower`'s
+pattern back to the literal `'mh00'` every tower used to fall through to.
+
+```
+                       luma    sd    B-R
+today (baked buckets) 119.7   9.0  -13.6
+pre-#84 ('mh00')      125.5   7.4  -39.8
+```
+
+The switch cost **5.9 luma** and **bought 1.6 of spread**. 5.9 luma is not a
+smudge of charcoal, and the old state put all 243 towers on one brick-red
+pattern.
+
+**2. THE ATMOSPHERIC FADE OVER-DARKENING? THE EXACT OPPOSITE.** `HAZE_TUNE.on
+= false` and the towers **fall to 78.3 luma**. The haze is worth **+41.4 luma**
+to downtown — it is the only reason downtown is visible at that range at all.
+And `fill-extrusion-vertical-gradient`, which QUEUE F1 names as a suspect, is
+worth **-0.3 luma on the towers** (6.8 on the flat ring, where it is doing its
+job). **For the fade lane: the ring's vertical gradient is not F1's culprit.**
+
+**3. THE DATA? THE DATA IS RIGHT. THE ATLAS THROWS IT AWAY.** This is the
+answer. Population-weighted over the 243 towers:
+
+```
+                    luma     sd     B-R
+the baked palette  159.2   27.0   +14.6
+the ATLAS TILE     131.4   16.3    -9.4     <- 60% of the spread survives
+the SCREEN pixel   119.7    9.0   -13.6     <- half of what is left survives
+```
+
+### The photograph, and the number nobody had taken
+
+Two references, both CC-licensed, both looked at before anything was changed:
+Wikimedia Commons **"Aerial view of Downtown Austin"** (CC BY-SA 4.0, clear
+midday) and **"Austin Texas skyline, December 2023 - Day"** (CC BY-SA 2.0).
+
+Twelve individual tower facades sampled off the aerial — and **the swatch sheet
+was rendered and looked at before the numbers were used, which is how two of the
+fourteen patches were caught sitting on a ROOF and thrown out.**
+
+```
+real Austin facades   luma 104.9   sd 28.5   B-R +20.1   (range +1..+45, all positive)
+the skyline photo, resampled so the cluster subtends the pixels it does in our
+frame                 towers luma 116.5 sd 35.6 | low-rise 127.9 sd 43.7
+```
+
+**Our MEAN was already right — 119.7 against 116.5.** So was the bake's own
+spread — 27.0 against the photograph's 28.5. **The defect is that only a third
+of that spread reaches the screen.** A mass is not a dark thing, it is an
+undifferentiated thing, and that is the word he used. Every tower in the
+photograph is a different colour from its neighbour; ours were inside a 22-luma
+band.
+
+### Where it goes, and why the fix is in the bake
+
+`js/facades.js:drawTile` paints the glazed 51% of a `tg` tile as
+`mix(wall, [46,58,74], 0.62)` — so only 38% of a bucket's difference from its
+neighbours survives in half the tile — then washes it with
+`mix(glass, [255,176,96], golden*0.45)`. **§53 already wrote that request into
+this file and nothing came of it**, and repainting `drawTile` moves every
+building in Austin, not the 243 that are wrong.
+
+So the compression is **inverted in the file that owns the atlas generator's
+input**. That is not a workaround dressed up: `outer_tower_palette.json` is not
+a list of wall colours anybody sees. Nothing renders it — checked, including
+that the tower FEATURES' own `wd` is dead at render time too, since `js/outer.js`
+sends `t=1` to a pattern layer and a roof layer that reads `rd/rg/rn`. Its only
+job is to be the number that makes the TILE come out right.
+
+**The map from `wd` to the tile is AFFINE and was FITTED, not assumed** — ten
+buckets read straight off the registered atlas images by `tower-atlas-tone.mjs`,
+one line per channel, residuals under one level. Two terms:
+
+1. **Spread.** Expand each centroid about the **population-weighted** mean by
+   exactly `1/slope`, per channel. Weighted by building count, not by bucket —
+   the towers run 6..34 to a bucket and an unweighted mean would shift the whole
+   skyline instead of stretching it. Expanding about the mean is the point: the
+   mean was already right.
+2. **Hue, and the one place it can be put.** `drawTile`'s amber is scaled by
+   `golden = 1 - |p-0.5|/0.5`. A bucket's `wg` is weighted by `p/0.5` below noon
+   and `1-(p-0.5)/0.5` above it — **the same ramp, both halves of the day**. So
+   a fixed cool offset carried on `wg` ALONE cancels a constant fraction of the
+   amber at every hour and leaves p=0 and p=1, where there is no amber, exactly
+   alone. Put it on `wd` and midnight goes blue. It cancels **half** —
+   `AMBER_CANCEL`, a taste knob — because a curtain wall genuinely does pick up
+   the sky at sunset and the two references disagree about how much (+20 clear
+   midday, -0.3 hazy low sun). And it is **renormalised back to its own luma**,
+   so it rotates the hue without dimming anything.
+
+Predicted, then verified against the real atlas — **within one level on every
+channel of every bucket**:
+
+```
+tg25  predicted 115.7,132.3,143.7   measured 116,132,144
+tg20  predicted  80.4, 91.1, 99.5   measured  81, 92, 99
+tg23  predicted 146.0,117.3, 87.1   measured 146,117, 86
+```
+
+### Result, measured at two ranges
+
+```
+                        before   after   reference
+atlas tile     sd        16.3    27.0    (the bake's own 27.0)
+               B-R       -9.4    +5.0
+screen, 2.7 km luma     119.7   116.9    116.5
+               sd         9.0    13.1     35.6
+               B-R      -13.6    -5.6     -0.3
+screen, close  sd          --    30.2     28.5     <- p10..p90 85..169 vs 65..167
+sunset  0.62   luma      61.1    59.9
+               sd         7.4     8.1
+night   0.95   crop sd   12.41   12.40    (unchanged by design)
+```
+
+### Four things that went wrong on the way, all of them instructive
+
+1. **THE FIRST PREDICTOR REPORTED THE HUE AS UNCHANGED, AND THE NUMBER LOOKED
+   FINE.** `TILE_FIT` was fitted against `wd` while `wg` was still a fixed
+   multiple of it, so the fit had silently absorbed `drawTile`'s own wd→wg lerp.
+   The moment the amber cancel moved `wg` independently, a wd-only predictor was
+   blind to it and printed B-R -9.1, i.e. "no change", next to a spread that had
+   genuinely doubled. **A fit absorbs every variable you held constant while
+   fitting it.**
+2. **A NIGHT REGRESSION THAT WAS A HALF-DRAWN FRAME.** Deriving `wn` from the
+   expanded centroid looked like it had cost the night skyline a quarter of its
+   contrast (crop sd 12.00 → 8.59, mean unmoved). Interleaved reps — after,
+   before, after, after — read **12.43 / 12.41 / 12.40** and the single low
+   reading never came back. `pose.mjs` already shoots twice; **after a jump to
+   tod 0.95 even twice is not always enough for the facade atlas to land.**
+   `wn` is nonetheless left on the ORIGINAL centroid, and for a real reason:
+   `TILE_FIT` was fitted at p=0.30, at night `drawTile` does
+   `mix(glass,[12,15,28],dark*0.9)` and throws away 90% of the bucket, and
+   applying a correction outside the range it was measured in is how you get
+   a defect you cannot see coming.
+3. **THE SUNSET PICTURE PAIR IS NOT EVIDENCE AND IS NOT QUOTED AS ANY.** The two
+   `pose.mjs` runs differ on 98.7% of the frame with the SKY — which has no
+   facades in it — moving 61.93 → 69.48. §43's exposure step, and quite possibly
+   another lane's live edit (below). The sunset claim above comes from the mask
+   probe, whose `outer-midrise` / `outer-3d` / `buildings-3d` rows were
+   **identical to one decimal** across the pair, which is what proves one build.
+4. **A HAND-PICKED PATCH WAS WRONG AGAIN, for the fourth time in this repo.**
+   Five facade patches picked by eye off the close frame; four of them landed on
+   pixels that had not changed at all. The mask is not a nicety.
+
+### TWO LANES WERE LIVE IN THE SAME WORKING DIRECTORY, AND THIS IS THE WARNING
+
+Mid-pass, `C:/Users/simip/Projects/austin-3d-explorer` was found checked out on
+**`acer/dof-horizon-line`** with `f491f77` committed on it — another lane
+editing `js/graphics.js` in the tree I was measuring in. CLAUDE.md's split is by
+FILE and that held; nothing collided. **The working DIRECTORY is not covered by
+it and that is a real gap.** Every shot here predates `f491f77` by timestamp,
+and every A/B pair's unchanged-layer controls were identical, so the numbers
+survive — but that was luck, not method. The rest of this pass was done from
+`git worktree add`, which is the answer: **if two lanes may run at once, the
+second one takes a worktree.** `reap.mjs` is the other hazard — it kills every
+headless verification browser on the machine, including the other lane's live
+one. It was run `--dry` here and reported nothing to reap, so nothing was
+killed.
+
+### What is still owed, with the number, for whoever takes it next
+
+- **The remaining compression is the haze, and it is not this lane's file.**
+  Same towers, same build, same tod, two ranges: **close, sd 30.2 and 10.1 luma
+  below their own surround; at 2.7 km, sd 13.1 and 24.6 below.** The reference
+  photograph puts the gap at **11.4**. So the haze halves the spread and doubles
+  the contrast deficit over that distance. It is doing real work (+41.4 luma)
+  and this is not a claim that it is wrong — it is the measurement the fade lane
+  needs to decide.
+- **The ring low-rise is relatively too bright.** Reference towers:low-rise is
+  116.5 : 127.9 (0.911). Ours is 116.9 : 150.1 (0.779) — the backdrop is ~17%
+  hot relative to downtown. That is `PALETTE` in `scripts/bake_outer.py`, it is
+  this lane's file, and it is left alone deliberately: re-grading the whole
+  backdrop is "should the city look like this", which CLAUDE.md rule 9 says is
+  Simeon's call, not mine.
+- **E1's second half is smaller than it reads.** Inside the downtown box there
+  are **889** flat prisms left, median height **6.3 m** and only **80 at or
+  above 8 m** — #112 already gave the 645 real streetwall buildings their
+  pattern, parapet and ground floor. What is left is one- and two-storey
+  outbuildings, and a punched window grid is the wrong thing to put on them.
+- `TOWER_MIX` is still 42/24/18/16 and still untouched, for the same reason §53
+  gave.
+
+Pictures: `docs/shots/f3-downtown-skyline-before-after.jpg` and
+`docs/shots/f3-downtown-close-before-after.jpg`; raw frames in `shots/f3-*`.
+## 55. Aug 3 2026 — the horizon line was never the haze. It was a CSS blur pinned to a screen row. (acer lane)
+
+**Branch:** `acer/dof-horizon-line`, PR #116. **QUEUE F1 and F2, and they were
+one knob.** One file changed: `js/graphics.js`.
+
+### What he said, and what it turned out to be
+
+*"the horizontal line thing is inverted - i prefer this version over the last
+but as you can see its still a bit harsh with the gradient on the uppser side.
+far away buildings dont have it anymore which is nice"*, with a screenshot of one
+tower that is normal at the base and washes out pale toward its top.
+
+PR #107 was right and it is not the suspect. The haze is on the depth buffer now
+and it fades by real distance; peeled off on a live frame it moves the ten
+100-row bands by **3.01 / 3.86 / 2.70 / 2.08 / 1.62 / 1.24 / 0.85 / 0.74** mean
+|dLuma| down the frame — smooth, monotone, no edge, and only 0.74 in the nearest
+band. That is a distance fade behaving like one.
+
+**The remaining artefact is `#fx-dof`**, the "distance blur" in `js/graphics.js`:
+a viewport-wide DOM rectangle pinned to the horizon ROW, `0.24H` tall, running
+`backdrop-filter: blur()` under a mask that ramps in and out. It has no idea what
+is in front of what — and the CSS comment on it in `style.css` says exactly that,
+and says the real fix is to make it depth-aware. So:
+
+* a **near** building whose top crosses that band gets its upper half blurred and
+  its lower half sharp — a gradient up its own face, on the upper side;
+* a **far** building sits entirely inside the band, blurs uniformly, and shows no
+  gradient of its own — *"far away buildings dont have it anymore"*;
+* and a blur pulls the pale sky and the pale distant city **into** whatever it
+  covers, so "blurred" reads as "washed out".
+
+It also **is F2**. *"at tod 0.62 the West Campus blocks read as brown lumps with
+the detail lost"* is the same band across the same rows of the same frame.
+
+### Measured
+
+Same page, same tiles, same exposure, one toggle — mean `|dI/dy| + |dI/dx|` per
+100-row band, i.e. **detail**, at tod 0.62, 1600x1000, one downtown tower filling
+the frame from 163 m up:
+
+| rows | band on | band hidden |
+|---|---|---|
+| 200–300 | 2.43 | **4.60** |
+| 300–400 | 4.71 | **10.72** |
+| 400–500 | 7.98 | **9.03** |
+| all seven other bands | identical to the last bit | |
+
+**56% of the detail in rows 300–400 was being thrown away.** Mean |dLuma| from
+removing it: 1.68 / 4.03 / 0.83 in those three bands and **0.00** in all seven
+others — a change that starts and stops at a screen row and has nothing to do
+with distance. A fresh profile on this branch reproduces the right-hand column
+and hiding `#fx-dof` then changes nothing at all (dLuma 0.00 in every band),
+which is the assertion that the default really is off.
+
+`graphics.mjs` **27/27** (including "distance blur (DOF) turns on" — the slider
+still works), `sky.mjs` **12/12**. Pictures:
+`docs/shots/f1-horizon-crop-before-after.jpg` is the clearest,
+`f1-horizon-tower-{day,dusk}-before-after.jpg` and
+`f2-westcampus-dusk-before-after.jpg` are the frames.
+
+### Why it is OFF rather than fixed
+
+A real depth-of-field needs the colour buffer **and** the depth buffer as
+textures. MapLibre owns its framebuffer and hands a custom layer neither. The
+colour could be recovered with a full-frame `copyTexImage2D` every frame; the
+depth could not — WebGL cannot sample the default depth attachment — so the blur
+radius would still have to be guessed from screen position. That is the same bug
+with a shader in front of it, at the cost of a full-frame copy per frame, on a
+scene that is already GPU-bound. The blur's own defence in the code was *"the
+only depth cue available without a depth buffer"*; PR #107 gave the haze a depth
+buffer, so that sentence stopped being true and this band was a second, wrong
+copy of a cue that is already right.
+
+The slider stays and its hint says what raising it brings back (CLAUDE.md 11 —
+taste is his). `dof: 0` in all four presets.
+
+### The trap that would have shipped this as a no-op
+
+**Changing a preset default does not change anything for anyone who has already
+opened the app.** `austin3d.gfx.v1` in localStorage holds their old `dof: 0.30`
+and the restore loop puts it straight back. His browser is one of those. So
+`js/graphics.js` now carries `SETTINGS_REV` / `REV_RESET`: each revision names
+the keys it takes back and takes back **only** those. Do not "fix" this by
+bumping `KEY` — that also wipes `preset` and `autoDetected`, and re-running the
+auto-detect probe can drop a good machine to `performance`, which is a worse
+regression than the one being fixed.
+
+### What I tried that did NOT work
+
+* **`fill-extrusion-vertical-gradient`.** The obvious suspect, named in the
+  QUEUE, and it is **not** it. `map.getLight().intensity` is **0.2376**, and
+  MapLibre's term is
+  `clamp((t+base)*pow(height/150,0.5), mix(0.7,0.98,1-intensity), 1.0)` — the
+  floor evaluates to **0.9135**, so the gradient can only span 8.6%, and it
+  cannot fire at all below `150 * 0.9135² = 125 m` of building. Toggled off on
+  all 60 fill-extrusion layers at once on a live frame: the screenshot came back
+  **byte-identical**. Leave it alone.
+* **The sky canvas washing the tops of towers that cross the horizon.** Plausible
+  — it is `mix-blend-mode: screen` and clipped to a screen row — but measured it
+  contributes 3.01 / 0.78 / 0.48 mean |dLuma| in the top three bands and **0.00**
+  everywhere else, and on a masked tower it moves the top two deciles by ~1 luma.
+  Real, tiny, and not what he is seeing.
+* **The fog ladder having a base-to-crown gradient of its own.** It does, and it
+  is negligible and the *wrong sign*: a shell is a plane of constant view-space
+  depth, so a crown is `h·cos(pitch)` metres NEARER than its own base (73.6 m on
+  a 267 m tower at pitch 74) and takes slightly LESS haze, not more.
+* **Sampling a tower by masking it and taking the median luma per decile.** The
+  magenta-mask trick works, but on a glass tower the median tracks the dark
+  window glass and the wash never shows. Two poses were measured this way before
+  I noticed, and both said "flat" while the picture plainly was not. Peel a
+  suspect off and diff the whole frame instead; the per-band diff found it in one
+  run.
+* **Measuring on a tower whose top is BELOW the horizon.** Every toggle came back
+  byte-identical four times over and I nearly concluded the overlays did nothing.
+  They were all above the rows I was sampling.
+
 ## 42. Aug 3 2026 — DKR rebuild, PART ONE. Not merged, and the reason is the point. (mac lane)
 
 **Branch:** `mac/dkr-rebuild`, PR open and **deliberately not merged**. The brief's

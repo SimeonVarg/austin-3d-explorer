@@ -8,8 +8,10 @@
     "roof_over_max_height": "let a building taller than MAX_HEIGHT_M grow a roof. The height gate exists because a tower is flat-topped; a mid-rise whose footprint includes low tile-roofed wings is the exception.",
     "roof_colour": "the roof's own day colour, exactly as an OSM roof:colour tag would be. rd/rg/rn are derived from it with bake_detail.py's make_roof_colors so the palette cannot drift.",
     "deck_colour": "the flat deck inside the tile band. Skips the membrane/tile imagery test and uses this value.",
-    "loggia": "an authored entrance porch on one wall. See LOGGIA in scripts/bake_roofs.py."
+    "gable_front": "an authored gable-fronted elevation on one wall. See GABLE FRONT in scripts/bake_roofs.py. Supersedes the `loggia` field, which built a projecting porch — the wrong reading of the photograph.",
+    "facade_bands": "precast spandrel courses, a base course and blank piers, standing proud of every long wall. See FACADE BANDS in scripts/bake_roofs.py."
   },
+  "_colours_are_measured": "Every hex in this file was sampled off a photograph with green-dominant pixels rejected so foliage cannot vote, and the source frame is named in the `why` beside it. A guessed colour has cost this project a correction round every single time.",
 
   "buildings": {
     "165236c4-c518-419b-a55a-87d5aedd45ce": {
@@ -18,7 +20,23 @@
       "roof_run_m": 8.0,
       "roof_over_max_height": true,
       "roof_colour": "#944a32",
-      "deck_colour": "#8f9294"
+      "deck_colour": "#8f9294",
+      "facade_bands": {
+        "why": "The roof was fixed in PR #106 and he did not say the building was. From the ground it is still a 118 m x 51.6 m tan slab with one repeating window tile on it, which is the prison. Two photographs, two different treatments — commons \"Jester Dormitory ... (19 03 2003).jpg\" for the rhythm, commons \"University of Texas at Austin August 2019 27\" (flat overcast) for the colour. Floor pitch and band depth are pixel-measured off the 2003 frame: the courses repeat every 116 px and are 28 px deep, so the band is 0.24 of a floor.",
+        "floor_m": 3.05,
+        "band_m": 0.73,
+        "band_proud_m": 0.24,
+        "band_top_m": 19.0,
+        "base_m": 1.35,
+        "base_proud_m": 0.34,
+        "pier_w_m": 1.35,
+        "pier_proud_m": 0.40,
+        "pier_spacing_m": 9.5,
+        "band_colour": "#c0b49f",
+        "base_colour": "#b3a894",
+        "cornice_colour": "#c0b49f",
+        "pier_colour": "#a89178"
+      }
     },
     "1161f877-68fe-4754-8c2b-3a52e2ecf2ed": {
       "name": "Jester East Hall",
@@ -26,32 +44,79 @@
       "roof_run_m": 5.5,
       "roof_over_max_height": true,
       "roof_colour": "#944a32",
-      "deck_colour": "#8f9294"
+      "deck_colour": "#8f9294",
+      "facade_bands": {
+        "why": "Same building, same photographs, same rhythm. Modelled at 40.4 m, so the banded zone is the same 19.0 m of low wing and the piers run the whole 40.4.",
+        "floor_m": 3.05,
+        "band_m": 0.73,
+        "band_proud_m": 0.24,
+        "band_top_m": 19.0,
+        "base_m": 1.35,
+        "base_proud_m": 0.34,
+        "pier_w_m": 1.35,
+        "pier_proud_m": 0.40,
+        "pier_spacing_m": 9.5,
+        "band_colour": "#c0b49f",
+        "base_colour": "#b3a894",
+        "cornice_colour": "#c0b49f",
+        "pier_colour": "#a89178"
+      }
     },
     "9e2404d3-4b0a-4a49-af45-cf00706890ac": {
       "name": "Beauford H. Jester Center",
       "why": "Same complex, and the most tiled of the three: 46.5% tile, 33.1% neutral. In the nadir photograph it is a wide terracotta hip band around a grey deck with an inner hipped cap — the shape bake_roofs.py already builds. It measured run 0.0 only because the eave ring runs under a canopy and along a concrete walkway roof.",
       "roof_run_m": 11.0,
       "roof_colour": "#944a32",
-      "deck_colour": "#8f9294"
+      "deck_colour": "#8f9294",
+      "facade_bands": {
+        "why": "This is the LOW WING block of the complex — modelled at 19.0 m, which is what sets band_top_m for the other two. It is banded top to bottom in the photograph, so here the courses run the whole elevation and the piers barely matter.",
+        "floor_m": 3.05,
+        "band_m": 0.73,
+        "band_proud_m": 0.24,
+        "band_top_m": 19.0,
+        "base_m": 1.35,
+        "base_proud_m": 0.34,
+        "pier_w_m": 1.1,
+        "pier_proud_m": 0.32,
+        "pier_spacing_m": 11.0,
+        "band_colour": "#c0b49f",
+        "base_colour": "#b3a894",
+        "cornice_colour": "#c0b49f",
+        "pier_colour": "#a89178"
+      }
     },
     "1bb698db-9765-47b4-8f32-a428eefce38a": {
       "name": "Gregory Gym",
-      "why": "\"greg gym is split into two sections (one building) one should replicate the famous entrance with the three hall things and the roof.\" The 1930 auditorium-gymnasium's front is a monumental stone stair up to three round-headed arches under a tiled gable, and it is a flat brick wall here. Placed from evidence, not memory: OSM node 1427259422 is entrance=main at 30.2840096,-97.7368337, the postal address is 2101 Speedway (the west side), and the nadir tile shows the stair against this same west wall. The wall it sits on is found in the bake from the footprint itself, so the porch cannot float off the building.",
-      "loggia": {
+      "why": "\"greg gym is split into two sections (one building) one should replicate the famous entrance with the three hall things and the roof.\" PR #106 answered that with a 21 m projecting PORCH, and the photographs say the building is nothing like that: the west end is one triangular brick pediment the full 52.9 m width of the elevation, the three arches are enormous openings cut into it, and a second smaller pediment projects in front carrying a run of blind corbel arches on its rake. A 21 m porch on a 53 m gable is 'the canvas the right size'.",
+      "gable_front": {
+        "why": "WHICH WALL is settled from the photograph's own EXIF GPS rather than from memory: commons \"Gregory Gymnasium, May 2013.jpg\" was taken at 30.284266,-97.737473, which in the footprint's own metre frame is 47 m due west and dead level with the mid-point of the 24.9 m west-facing edge. It is a square-on shot of that edge. Every dimension below is a pixel ratio off that frame against ONE assumption — that the modelled 20.0 m is the eave — and the working is in scripts/bake_roofs.py. The check that makes it trustworthy: 52.9 m of elevation at the measured 0.40 pitch predicts the gable's eave corners at x=317 and x=1603 in the photograph, and the traced silhouette reaches (1600, 330) against a predicted 327.",
         "at": [-97.736862, 30.284249],
+        "eave_m": 20.0,
+        "outer_w_m": 52.0,
+        "inner_w_m": 24.0,
+        "pitch": 0.40,
         "arches": 3,
-        "width_m": 21.0,
-        "depth_m": 3.4,
-        "pier_m": 1.55,
-        "base_m": 1.3,
-        "spring_m": 6.0,
-        "crown_m": 9.4,
-        "gable_m": 12.6,
+        "arch_opening_m": 4.0,
+        "arch_pitch_m": 6.66,
+        "archivolt_m": 1.0,
+        "veneer_proud_m": 0.16,
+        "archivolt_proud_m": 0.34,
+        "gable_proud_m": 0.30,
+        "gable_depth_m": 1.25,
+        "spring_m": 12.7,
+        "podium_m": 3.9,
+        "door_head_m": 6.7,
+        "lintel_head_m": 9.2,
+        "plaque_m": 17.2,
+        "corbels": 13,
         "stair": true,
-        "pier_colour": "#cdc3ab",
-        "arch_colour": "#c6bba3",
-        "shadow_colour": "#4a3b30"
+        "stair_w_m": 17.0,
+        "stair_run_m": 9.0,
+        "brick_colour": "#947f69",
+        "stone_colour": "#e2e0d8",
+        "stair_colour": "#c8c6bf",
+        "shadow_colour": "#382d28",
+        "_colour_note": "Measured on the photograph and then corrected against a render of THIS build, which is the only test that counts. Overcast brick reads rgb(155,125,98) = red/blue 1.58; entered at 1.59 it came back at 1.79, so the hue is honest and only the value needed pulling down — the first cut at #a9866a rendered luma 151 against a building at 109 and the gable looked stuck on. The STONE is the one that had to move a long way: a near-neutral #cdc3ab came back at red/blue 1.94, indistinguishable from the brick, because this scene's light warms a neutral far harder than it warms something already warm. So the trim is entered cool AND light and earns its read on luma rather than on hue, which is what HANDOFF section 48 records for the Jester deck."
       }
     }
   }
