@@ -1502,19 +1502,37 @@
   window.orderLabelLayers = orderLabelLayers;
 
   // ── Cinematic intro ───────────────────────────────────────────────
-  // A real journey now, not a dolly around a fixed centre: the flight starts
-  // low over campus ~430 m east of the spawn, runs west down the 24th Street
-  // canyon with the towers rising past the frame edges, then sweeps into the
-  // spawn pose facing the sunset. Any input cancels it immediately.
-  // Every value here is a one-line taste edit.
+  // The opening shot RISES OUT OF DOWNTOWN AND LANDS ON CAMPUS. Three poses,
+  // two eased legs, ~12.6 s:
+  //
+  //   start  low on Congress Avenue among the downtown towers, looking north
+  //          up the avenue with the sunset sky behind them
+  //   crest  climbing over the Capitol — the city opens out and the Forty
+  //          Acres appears in the distance
+  //   end    the UT Tower centred, the South Mall below it, campus filling
+  //          the frame. It ends on the thing the app is *of*.
+  //
+  // The old flight started low over campus and ran west down 24th into West
+  // Campus, i.e. it ended on apartment blocks; this one ends on the Tower.
+  //
+  // WHY THE CLIMB IS ALSO THE CHEAP OPTION, not just the pretty one. A flight
+  // from downtown to campus has to pay for two neighbourhoods of tiles either
+  // way. Pulling back to `crest.zoom` on leg 1 puts campus on screen at a
+  // COARSE tile level a whole leg before leg 2 needs it sharp, so the
+  // destination streams in while the camera is still over downtown instead of
+  // popping in on arrival. The cost that buys it is one wide frame at the
+  // crest — `crest.zoom` is the dial for that, and raising it by 0.3 cuts the
+  // drawn area by about a third if a weaker device ever needs it.
+  //
+  // Every value here is a one-line taste edit. Any input cancels the flight and
+  // skips to `end`, which is what pressing a key during a title sequence means.
   const INTRO = {
-    startEastM: 430,                     // where the flight begins, m east of spawn
-    midEastM: 80,                        // leg-1 endpoint, m east of spawn
-    startZoom: 17.25, midZoom: 16.85,    // low over the street → rising
-    startPitch: 70,   midPitch: 72,      // street-focused → lifting the eyes
-    startBearing: 274, midBearing: 266,  // near-west the whole run…
-    leg1Ms: 6200, leg2Ms: 5200,          // …then the arrival settle onto SPAWN
-    maxVeilMs: 7000,                     // a stalled tile must never hold a black screen
+    start: { center: [-97.7420, 30.2680], zoom: 16.2,  pitch: 78, bearing: 5 },
+    crest: { center: [-97.7404, 30.2748], zoom: 15.45, pitch: 71, bearing: 3 },
+    end:   { center: [-97.7394, 30.2836], zoom: 16.9,  pitch: 72, bearing: 2 },
+    leg1Ms: 6000,      // the rise out of downtown, decelerating into the crest
+    leg2Ms: 6600,      // the run north into campus and the long settle
+    maxVeilMs: 7000,   // a stalled tile must never hold a black screen
   };
 
   // The veil (see index.html/#veil) holds an authored dark frame over the
@@ -1554,33 +1572,33 @@
       cancelled = true;
       clearTimeout(leg2Timer);
       map.stop();
-      // Land on the full spawn pose. Stopping mid-ease used to strand the
-      // camera at whatever partial zoom/pitch the tween had reached.
-      map.jumpTo({ center: SPAWN.center, zoom: SPAWN.zoom, pitch: SPAWN.pitch, bearing: SPAWN.bearing });
+      // Skip to the END pose, not to SPAWN. Stopping mid-ease strands the
+      // camera at whatever partial zoom/pitch the tween had reached, and on
+      // this path that is somewhere over the Capitol — nowhere anyone asked to
+      // be. Cancelling a title sequence should give you its last frame.
+      map.jumpTo(INTRO.end);
       off();
     };
     const evts = ['mousedown','wheel','keydown','touchstart'];
     const off = () => evts.forEach(e => window.removeEventListener(e, cancel, true));
     evts.forEach(e => window.addEventListener(e, cancel, true));
 
-    const eastOf = m => [
-      SPAWN.center[0] + m / (111195.08 * Math.cos(SPAWN.center[1] * Math.PI / 180)),
-      SPAWN.center[1],
-    ];
-    map.jumpTo({ center: eastOf(INTRO.startEastM), zoom: INTRO.startZoom,
-                 pitch: INTRO.startPitch, bearing: INTRO.startBearing });
+    map.jumpTo(INTRO.start);
 
     const fly = () => {
       if (cancelled) return;
-      map.easeTo({ center: eastOf(INTRO.midEastM), zoom: INTRO.midZoom,
-                   pitch: INTRO.midPitch, bearing: INTRO.midBearing,
-                   duration: INTRO.leg1Ms,
-                   easing: t => 0.5 - 0.5 * Math.cos(Math.PI * t) });  // gentle both ends
+      // Leg 1: gentle at both ends. The deceleration into the crest is what
+      // makes the top of the arc read as a held beat rather than a waypoint.
+      map.easeTo({ ...INTRO.crest, duration: INTRO.leg1Ms,
+                   easing: t => 0.5 - 0.5 * Math.cos(Math.PI * t) });
       leg2Timer = setTimeout(() => {
         if (cancelled) return;
-        map.easeTo({ center: SPAWN.center, zoom: SPAWN.zoom, pitch: SPAWN.pitch, bearing: SPAWN.bearing,
-                     duration: INTRO.leg2Ms,
-                     easing: t => 1 - Math.pow(1 - t, 3) });           // long settle
+        // Leg 2: ease-in-out cubic. Starts from the crest's zero velocity with
+        // no jerk, carries more speed through the middle than a cosine would,
+        // and has the longer tail that the arrival on the Tower wants.
+        map.easeTo({ ...INTRO.end, duration: INTRO.leg2Ms,
+                     easing: t => t < 0.5 ? 4 * t * t * t
+                                          : 1 - Math.pow(-2 * t + 2, 3) / 2 });
         setTimeout(off, INTRO.leg2Ms + 600);
       }, INTRO.leg1Ms + 30);
     };
