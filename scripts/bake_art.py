@@ -1587,6 +1587,93 @@ COURT_FENCE = [(-97.735710, 30.281430), (-97.735330, 30.281401),
                (-97.735378, 30.280914), (-97.735761, 30.280945)]
 
 
+# ── THE TWO FOOD TRUCKS, and why only two. ─────────────────────────────
+#
+# Simeon, 2026-08-04, three claims in one breath and he flagged his own
+# uncertainty on the first two: "theres what looks like (not sure) a parking
+# garage diagonall across in that same block. pretty sure there are food trucks
+# in front of that parking garage almost on 21st ... add the food truck that is
+# always in front of jester, and always in the PCL area".
+#
+# CHECKED, and the check is why this table has two rows and not three:
+#
+#   * The garage is REAL — Dobie Twenty21 Parking Garage, 2005 Whitis Ave,
+#     the unnamed 12.4 m footprint at (-97.7412, 30.2828), diagonally
+#     south-west of the Catholic Center. It is also permanently closed, and
+#     NOTHING — not OSM, not UT's own food-truck list — puts a truck in front
+#     of it. So no truck goes there. He asked to be checked; this is the check.
+#   * "in front of jester" is LA FONDA, and it is already in OpenStreetMap:
+#     node 2100 Speedway, `operator=University Housing and Dining`,
+#     `opening_hours=Mo-Th 07:00-15:00`. Its POSITION IS FACTUAL.
+#   * "the PCL area" is GUATEMALA LOVE, which UT's University Unions lists at
+#     21st and Speedway in front of the PCL. There is no node for it, so its
+#     position is generative — placed on the paving of the Speedway mall by the
+#     corner named in that listing, checked against data/ground.geojson for
+#     surface and against the baked footprints for clearance.
+#
+# The FORM is generative in both cases: a concession trailer, not a portrait of
+# either truck. What identifies them is where they stand and the awning colour.
+#
+# `head` is the compass bearing the truck's LENGTH points along, so the serving
+# side (local +y) faces the walkway: La Fonda serves west into the Speedway
+# mall with Jester behind it, Guatemala Love serves east into the same mall
+# with the PCL behind it.
+TRUCK_L      = 6.20     # a 20 ft concession trailer, body only
+TRUCK_W      = 2.35
+TRUCK_WHEEL  = 0.62     # chassis clearance / wheel diameter
+TRUCK_BODY   = 3.05     # roof line
+TRUCK_VENT   = 0.42     # the air-conditioner on the roof, above that
+TRUCK_WIN    = (1.55, 2.35, 3.30)   # sill, head, width of the serving hatch
+TRUCK_AWN    = (2.60, 0.13, 1.05)   # underside, thickness, projection
+TRUCK_BAND   = (0.70, 1.18)         # the livery stripe along the body sides
+TRUCKS = [
+    # name, lon, lat, head, awning material, provenance
+    ("La Fonda", -97.737228, 30.2833029, 0.0, "gred",
+     "osm node 2100 Speedway, University Housing and Dining"),
+    # Pulled 18 m south of the 21st Street corner and hard against the library
+    # side of the mall: the first placing put it mid-plaza, 39 m off any wall,
+    # and a truck standing in open paving reads as abandoned. This spot is
+    # 20 m off the PCL, on `s:'paving'` in data/ground.geojson.
+    ("Guatemala Love", -97.737800, 30.283160, 180.0, "ggreen",
+     "UT University Unions: 21st and Speedway in front of the PCL"),
+]
+
+
+def bake_food_trucks(stats):
+    """Two campus food trucks, as concession trailers on the Speedway mall."""
+    out = []
+    for name, lon, lat, head, awn, _prov in TRUCKS:
+        b = Build(name, lon, lat, head=head)
+        hw, hd = TRUCK_L / 2, TRUCK_W / 2
+        # chassis and wheels — the body has to sit ON something or it reads as
+        # a shipping container lying on the paving
+        b.box(0, 0, TRUCK_L - 1.1, TRUCK_W - 0.75, 0.14, TRUCK_WHEEL, "granite")
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                b.box(sx * 1.75, sy * (hd - 0.16), 0.66, 0.26, 0.0, TRUCK_WHEEL, "granite")
+        b.box(-hw - 0.55, 0, 1.10, 0.18, 0.30, 0.42, "steel")        # the hitch
+        # the body
+        b.box(0, 0, TRUCK_L, TRUCK_W, TRUCK_WHEEL, TRUCK_BODY, "white")
+        b.box(0, 0, TRUCK_L + 0.14, TRUCK_W + 0.14, TRUCK_BODY, TRUCK_BODY + 0.13, "alum")
+        b.box(0.9, 0, 0.85, 0.85, TRUCK_BODY + 0.13, TRUCK_BODY + 0.13 + TRUCK_VENT, "alum")
+        # the livery stripe, both long sides, standing proud so it is not
+        # z-fighting the body it is painted on
+        z0, z1 = TRUCK_BAND
+        for sy in (-1, 1):
+            b.box(0, sy * (hd + 0.03), TRUCK_L - 0.10, 0.10, z0, z1, awn)
+        # the serving hatch, its counter and its awning — all on +y
+        sill, head_z, win_w = TRUCK_WIN
+        b.box(0.35, hd + 0.04, win_w, 0.12, sill, head_z, "mirror")
+        b.box(0.35, hd + 0.26, win_w + 0.30, 0.36, sill - 0.14, sill, "alum")
+        a0, at, ap = TRUCK_AWN
+        b.box(0.35, hd + ap / 2, win_w + 0.55, ap, a0, a0 + at, awn)
+        for sx in (-1, 1):
+            b.box(0.35 + sx * (win_w / 2 + 0.2), hd + ap - 0.06, 0.08, 0.08, sill, a0, "steel")
+        out.extend(b.parts)
+        stats["truck_" + name.replace(" ", "_")] += len(b.parts)
+    return out
+
+
 def _axes(pm):
     """Centre, long-axis unit vector, and the two half-extents of a quad."""
     cx = sum(x for x, _ in pm) / len(pm)
@@ -1757,6 +1844,10 @@ def main():
 
     # ...and so do the Caven-Clark Courts, for the same reason.
     feats.extend(bake_courts(stats))
+
+    # ...and the two campus food trucks. Read the note on TRUCKS for which
+    # claims were checked and which one did not survive the check.
+    feats.extend(bake_food_trucks(stats))
 
     fc = {"type": "FeatureCollection", "authored": sorted(set(authored)),
           "features": feats}

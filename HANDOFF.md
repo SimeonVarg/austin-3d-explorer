@@ -1,5 +1,96 @@
 # Austin 3D Explorer — Full Handoff
 
+## 68. Aug 4 2026 — a construction site was one 2 m toothpick, seventeen times over (acer lane)
+
+**Branch:** `acer/j2-j4-churches-trucks`. **QUEUE J2, J3, J4.** Files:
+`scripts/bake_props.py`, `data/props.geojson`, `scripts/bake_art.py`,
+`data/art.geojson`. Shots: `shots/j234-before/`, `shots/j234-before2/`,
+`shots/j3-before-t0/`, `shots/j3-after-t0/`, `shots/j4-trucks/`,
+`shots/j4-form/`, `shots/j234-final/`.
+
+### J3 — HE ASKED WHY IT WAS A STUB, AND THE ANSWER IS WORTH MORE THAN THE BUILDING
+
+*"I think an earlier pass didn't have data on it and put construction around
+it."* Half right, and the wrong half is the interesting one.
+
+Nothing was invented. The site is **OSM way 1315431488**, `landuse=construction`,
+`name=Miriam and James J. Mulva Hall`, `opening_date=2028`,
+`check_date=2024-09-13`, bounded by 21st, University Ave and Whitis. The
+University Catholic Center's footprint sits **entirely inside it**, and
+`bake_ground.py` correctly paints the polygon `s:'dirt'`.
+
+What was wrong is what `bake_props.py` did with it, and **it did the same thing
+to all seventeen construction sites in the city**:
+
+```python
+"coordinates": rect(c[0], c[1], 2.0, 2.0, 0.0),   # c = the site's CENTROID
+"properties": {"k": "cons", ..., "h": 12.0}
+```
+
+A whole city block became **one 2 m x 2 m yellow post, 12 m tall, standing in a
+dirt field**. That is the "construction around it" he saw, and it is the class
+of defect worth reporting: one decision, repeated seventeen times, never looked
+at. `shots/j3-before-t0/ucc.png` is the toothpick; `shots/j3-after-t0/ucc.png`
+is the same frame after.
+
+A site is now drawn as **hoarding along its real perimeter** — 2.45 m panels,
+one per 7 m of boundary, each oriented to its own edge (`rect` per panel, not
+one `ribbon`: a mitred ribbon round a real 20-vertex site ring folds through
+itself at every reflex corner). 17 sites → 377 panels + 6 centroid fallbacks
+where the element carries no ring.
+
+**And the hoarding stops at whatever is still standing.** `SiteBuildings` grids
+the baked footprints; any panel within `CONS_CLEAR_M` (5 m) of one is dropped.
+Measured on the finished file: the nearest Mulva panel to the Catholic Center's
+wall is **5.6 m**, so the fence opens along its two street frontages instead of
+burying it. Without that rule the fix would have been a second wrong answer with
+a nicer texture.
+
+**Not done: the Catholic Center is still 7.4 m.** That height is Overture's, on
+a 42 x 45 m footprint, and it lives in the snapshot — outside this lane's files.
+One `data/building_overrides.json` entry fixes it.
+
+### J2 — DIAGNOSED, NOT FIXED, AND THE REASON IS FILE OWNERSHIP
+
+*"University Christian church looks like an office building."* It is one:
+`final_height: 37.0` from Overture applied to the **whole** 42 x 43 m footprint,
+flat roof, uniform window grid — `shots/j234-before2/uchr-close.png`. 37 m is
+plausibly the real tower, spread across the nave. Nothing about the outline is a
+render bug; it is one number in the snapshot. **This lane could only write
+props/art**, and authoring a nave and tower in `art.geojson` on top of a 37 m
+slab makes it worse, not better. Left for whoever owns `building_overrides.json`:
+the tower is the SW corner of the ring, the nave the rest, and the nave wants
+about 16 m.
+
+### J4 — HE FLAGGED HIS OWN UNCERTAINTY TWICE, SO IT WAS CHECKED
+
+- **The garage is real.** Dobie Twenty21 Parking Garage, 2005 Whitis Ave — the
+  unnamed 12.4 m footprint at (-97.7412, 30.2828), diagonally south-west of the
+  Catholic Center. It is also permanently closed.
+- **The trucks in front of it are not.** No OSM node, nothing in UT's own
+  food-truck listing. Nothing was built there. He asked to be checked.
+- **"in front of jester" is LA FONDA and it was already in OpenStreetMap** —
+  node at 2100 Speedway, `operator=University Housing and Dining`. Position
+  factual, `src=osm`.
+- **"the PCL area" is GUATEMALA LOVE**, which UT's University Unions lists at
+  21st and Speedway in front of the PCL. No node, so the position is generative
+  and the provenance is written next to it in `TRUCKS`.
+
+Both are 16-part concession trailers out of `bake_art.py`'s existing vocabulary
+— chassis, four wheels, hitch, body, roof cap, AC unit, livery stripe, serving
+hatch, counter, awning — with the awning colour carrying the identity.
+
+**What did not work:** the first Guatemala Love placing was mid-plaza, 39 m off
+any wall, and a truck standing in open paving reads as abandoned
+(`shots/j4-trucks/gualove.png`). Moved 18 m south to 20 m off the PCL. Also:
+street-level shots of either truck are useless — the canopy is 12 m and the
+truck is 3.5 m, so `shots/j4-form/` was taken with `trees-canopy` hidden purely
+to judge the form.
+
+**Tiles:** `data/props.pmtiles` is the live source for props and this lane
+cannot run tippecanoe. Every construction frame here was shot with `&tiles=0`;
+**Build PMTiles must run before the hoarding appears on the site.**
+
 ## 67. Aug 4 2026 — the sidewalk joints belong to the path, not to the city (acer lane)
 
 **Branch:** `acer/sidewalk-scoring`, **PR #129**, merged `7c0ac8a`. **QUEUE I1**,

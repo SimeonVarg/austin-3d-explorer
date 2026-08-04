@@ -296,6 +296,43 @@ SIT_SURFACES        = ("grass", "paving", "concrete", "brick", "limestone", "san
 WALK_SURFACES       = ("concrete", "paving", "brick", "limestone")
 NO_LAMP_ON          = ("steps",)
 
+# ── A CONSTRUCTION SITE IS A FENCE, NOT A POST. ────────────────────────
+#
+# Simeon, 2026-08-04, on the University Catholic Center: "Its a very important
+# building idk why it was just a stub before. I think an earlier pass didn't
+# have data on it and put construction around it."
+#
+# Half of that read is right and the half that is wrong matters more. Nothing
+# was invented for want of data: the site is OSM way 1315431488, `landuse=
+# construction`, `name=Miriam and James J. Mulva Hall`, `opening_date=2028`,
+# `check_date=2024-09-13`, and the Catholic Center's footprint really does sit
+# inside it. bake_ground.py paints that polygon as bare dirt, which is correct.
+#
+# What was wrong is what THIS file did with it. Until now every construction
+# site in the city — all 17 of them — was emitted as a 2 m x 2 m rectangle at
+# the site's CENTROID, 12 m tall. A whole city block became one yellow
+# toothpick standing in a dirt field, and the real building next to it read as
+# an abandoned stub. That is one decision repeated 17 times, so it is worth
+# fixing once here rather than seventeen times by hand.
+#
+# So a site is now drawn the way a site actually reads from the air: HOARDING
+# along its real perimeter. Panels rather than one long ribbon, because `rect`
+# gives each panel its own heading and a mitred ribbon round a 20-vertex ring
+# self-intersects at every reflex corner.
+#
+# AND THE HOARDING STOPS AT A STANDING BUILDING. A fence drawn straight through
+# the Catholic Center's street frontage would be a second wrong answer with a
+# nicer texture; real hoarding goes round what is still standing. Any panel
+# whose midpoint is inside — or within CONS_CLEAR_M of — a baked building
+# footprint is dropped, which opens the fence exactly along the frontages of
+# whatever the site polygon happens to swallow.
+CONS_HOARD_H        = 2.45   # site hoarding is chest-and-a-half; 12 m was a mast
+CONS_HOARD_W        = 0.36   # plywood panel plus its posts, drawn thick to read
+CONS_PANEL_M        = 7.0    # one drawn panel per this much of perimeter
+CONS_CLEAR_M        = 5.0    # no hoarding this close to a standing building
+CONS_MIN_SIDE_M     = 1.2    # skip a ring edge shorter than this
+CONS_MARKER_H       = 12.0   # fallback mast where a site has no ring at all
+
 
 # ── geometry helpers ───────────────────────────────────────────────────
 def mlon(lat):
@@ -560,6 +597,87 @@ def load_buildings():
         for r in rings:
             if len(r) >= 4:
                 out.append(r)
+    return out
+
+
+class SiteBuildings:
+    """Is this point standing on, or right beside, a real building?
+
+    A grid over the baked footprints, so a hoarding run round a city block asks
+    about a handful of rings rather than about 2,453. `near` answers inside-OR-
+    within, because a fence that stops exactly at the wall still cuts the
+    pavement in front of the door.
+    """
+
+    CELL = 0.0007   # ~68 m, the same cell the surface index uses
+
+    def __init__(self, rings):
+        self.grid = {}
+        for r in rings:
+            xs = [c[0] for c in r]
+            ys = [c[1] for c in r]
+            box = (min(xs), min(ys), max(xs), max(ys))
+            for i in range(int(box[0] / self.CELL), int(box[2] / self.CELL) + 1):
+                for j in range(int(box[1] / self.CELL), int(box[3] / self.CELL) + 1):
+                    self.grid.setdefault((i, j), []).append((r, box))
+
+    def near(self, lon, lat, clear_m):
+        pad_x = clear_m / mlon(lat)
+        pad_y = clear_m / M_LAT
+        for r, box in self.grid.get((int(lon / self.CELL), int(lat / self.CELL)), ()):
+            if lon < box[0] - pad_x or lon > box[2] + pad_x:
+                continue
+            if lat < box[1] - pad_y or lat > box[3] + pad_y:
+                continue
+            inside = False
+            n = len(r)
+            j = n - 1
+            for i in range(n):
+                xi, yi = r[i][0], r[i][1]
+                xj, yj = r[j][0], r[j][1]
+                if (yi > lat) != (yj > lat) and \
+                        lon < (xj - xi) * (lat - yi) / ((yj - yi) or 1e-12) + xi:
+                    inside = not inside
+                j = i
+            if inside:
+                return True
+            mx = mlon(lat)
+            for i in range(n - 1):
+                x0, y0 = r[i][0] * mx, r[i][1] * M_LAT
+                x1, y1 = r[i + 1][0] * mx, r[i + 1][1] * M_LAT
+                dx, dy = x1 - x0, y1 - y0
+                L2 = dx * dx + dy * dy or 1e-9
+                t = max(0.0, min(1.0, ((lon * mx - x0) * dx + (lat * M_LAT - y0) * dy) / L2))
+                if math.hypot(lon * mx - x0 - t * dx, lat * M_LAT - y0 - t * dy) <= clear_m:
+                    return True
+        return False
+
+
+def hoarding_panels(ring, index):
+    """Walk a site's perimeter and return (lon, lat, length_m, heading) panels.
+
+    Panels, not one ribbon: `rect` orients each panel to its own edge, and a
+    mitred ribbon round a real 20-vertex site ring folds through itself at every
+    reflex corner. Any panel standing on a building is dropped — see the note on
+    CONS_HOARD_H.
+    """
+    out = []
+    for i in range(len(ring) - 1):
+        (x0, y0), (x1, y1) = ring[i], ring[i + 1]
+        mx = mlon(y0)
+        dx, dy = (x1 - x0) * mx, (y1 - y0) * M_LAT
+        L = math.hypot(dx, dy)
+        if L < CONS_MIN_SIDE_M:
+            continue
+        ang = math.atan2(dy, dx)
+        n = max(1, int(round(L / CONS_PANEL_M)))
+        step = L / n
+        for k in range(n):
+            t = (k + 0.5) / n
+            lon, lat = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+            if index.near(lon, lat, CONS_CLEAR_M):
+                continue
+            out.append((lon, lat, step, ang))
     return out
 
 
@@ -864,25 +982,52 @@ def main():
                                              "src": "osm"}})
                 stats["osm_area_" + plant] += 1
 
-    # ── 4. current construction (unchanged) ────────────────────────────
+    # ── 4. current construction — hoarding round the real site ─────────
+    # Read the note on CONS_HOARD_H for why this is a fence now. `buildings` is
+    # loaded here rather than in section 5 because the hoarding has to know what
+    # is still standing inside the site.
+    buildings = load_buildings()
+    cons_index = SiteBuildings(buildings)
     for el in load("construction"):
         t = el.get("tags", {}) or {}
         if not (t.get("landuse") == "construction" or t.get("building") == "construction"):
             continue
+        ring = [[p["lon"], p["lat"]] for p in (el.get("geometry") or [])]
+        if len(ring) >= 4:
+            if ring[0] != ring[-1]:
+                ring.append(list(ring[0]))
+            ring = simplify_ring(ring, 1.6)
+        panels = hoarding_panels(ring, cons_index) if len(ring) >= 4 else []
+        if panels:
+            for lon, lat, length, ang in panels:
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "Polygon",
+                                 "coordinates": rect(lon, lat, length, CONS_HOARD_W, ang)},
+                    "properties": {"k": "cons", "name": t.get("name", ""),
+                                   "h": CONS_HOARD_H, "src": "osm"},
+                })
+            stats["cons_hoarding_panels"] += len(panels)
+            stats["construction"] += 1
+            continue
+        # No usable ring (a construction node, or a site entirely occupied by a
+        # standing building). Keep the old mast so the site does not silently
+        # vanish — a missing layer makes every metric look better.
         c = centre(el)
         if not c:
             continue
         feats.append({
             "type": "Feature",
             "geometry": {"type": "Polygon", "coordinates": rect(c[0], c[1], 2.0, 2.0, 0.0)},
-            "properties": {"k": "cons", "name": t.get("name", ""), "h": 12.0, "src": "osm"},
+            "properties": {"k": "cons", "name": t.get("name", ""),
+                           "h": CONS_MARKER_H, "src": "osm"},
         })
+        stats["cons_marker_fallback"] += 1
         stats["construction"] += 1
 
     # ── 5. procedural fill, driven by the real ground ──────────────────
     paths, areas = load_ground()
     road = RoadTest(paths)
-    buildings = load_buildings()
     sys.stderr.write("ground: %d paths, %d areas; %d building rings\n"
                      % (len(paths), len(areas), len(buildings)))
 
