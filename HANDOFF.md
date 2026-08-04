@@ -1,5 +1,146 @@
 # Austin 3D Explorer — Full Handoff
 
+## 82. Aug 4 2026 — dusk disagreed with itself because three ramps rode the slider instead of the sun (acer lane)
+
+**Branch:** `acer/dusk-schedule`. **Sweep defect #4** (§78). Files: `js/sky.js`,
+`js/night.js`. Shots: `shots/dusk-before/` and `shots/dusk-after/`, 12 frames
+each — three poses (`west-campus`, `downtown-skyline`, `the-drag`) at
+**p = 0.55 / 0.62 / 0.70 / 0.80**, so the transition is read as a SEQUENCE and
+not at one point. Server: `scripts/serve.py 8221`. `harness-drift.mjs` passed
+first (27 scripts in `index.html`, 27 in `_harness.html`).
+
+Curated pairs: `docs/shots/dusk-{drag,wc,dt}-062-{before,after}.jpg`, and the
+after-sequence `docs/shots/dusk-seq-drag-{055,070,080}.jpg`.
+
+### What the sequence showed, which one frame could not
+
+§78 measured the midpoint and named the numbers. Shooting four hours in a row
+showed the shape of the thing, and the shape is the bug:
+
+- **p=0.55** golden dusk, sun 1° up. City warm and sunlit, sky pink-orange. Fine.
+- **p=0.62** sun 5.8° down. **The sky is finished** — deep magenta-violet with
+  stars in it — and **the city has not started**: a fully daylight-lit tan
+  carpet, one findable warm smudge on the whole of Guadalupe, West Campus and
+  downtown entirely dark.
+- **p=0.70** sun 13° down. The city is *completely* night: dark walls, lit
+  windows, a full run of lamps. Yet the sky is barely different from p=0.62.
+- **p=0.80** deep night.
+
+**So the sky front-loads its entire transition into p 0.50→0.62 and the city
+back-loads its into p 0.62→0.75.** They are about forty minutes apart and the
+whole disagreement lands in the frame a first-time visitor is most likely to
+see. It is not that either curve is wrong on its own; it is that there were
+FOUR of them, every one a hand-written ramp in `p`:
+
+```
+sky `night`   (p-0.55)/0.35          p=0.62 -> 0.200
+lamps         (p-0.58)/(0.85-0.58)   p=0.62 -> 0.148
+windows       (p-0.55)/0.45          p=0.62 -> 0.156
+sky COLOUR    timeofday.js ROUTES    p=0.62 -> #351a47, already its night key
+```
+
+### The fix: one clock, and it is the sun's elevation
+
+`p` is a slider position. `SUN_KEYS` in `js/sky.js` already carries the one
+physical number in the scene, so every schedule is now derived from it and they
+cannot drift apart again. `SKY_TUNE.DUSK` is the whole authored surface:
+
+```
+LAMP_ON    +2   the sun's last minutes: the first lamps strike
+LAMP_FULL  -6   end of CIVIL twilight: the city is fully lit
+NIGHT_ON   +1   the sky begins to darken
+STAR_ON    -7   the first stars, after the lamps are already up
+STAR_FULL -18   end of ASTRONOMICAL twilight: the whole field
+NIGHT_FULL -31  deep night
+```
+
+`skyBodies(p)` now returns `lamps` and `stars` alongside `night`, and the
+ordering is the point: **artificial light LEADS the sky and the stars LAG it**,
+which is what actually happens — a photocell trips while the west is still
+orange, and the stars arrive long after. Both new curves are smoothstepped so
+neither end is a moment you can watch happen.
+
+| p | sun | night (was → is) | lamps (was → is) | stars (was → is) |
+|---|---|---|---|---|
+| 0.55 | +1.0 | 0.000 → 0.000 | 0.000 → 0.043 | 0.000 → 0.000 |
+| 0.58 | −2.0 | 0.086 → 0.094 | 0.000 → 0.500 | 0.086 → 0.000 |
+| **0.62** | **−5.8** | **0.200 → 0.213** | **0.148 → 0.998** | **0.200 → 0.000** |
+| 0.70 | −13.0 | 0.429 → 0.437 | 0.444 → 1.000 | 0.429 → 0.568 |
+| 0.80 | −22.0 | 0.714 → 0.719 | 0.815 → 1.000 | 0.714 → 1.000 |
+| 0.90 | −31.0 | 1.000 → 1.000 | 1.000 → 1.000 | 1.000 → 1.000 |
+
+**`night` was deliberately NOT retuned.** It feeds graphics.js's auto-exposure
+target and timeofday.js's label dimming, and re-expressing it on the sun clock
+reproduces the old ramp to within 0.013 everywhere (the sun arc is near enough
+linear through dusk). One change at a time: this pass moved the lamps and the
+stars, and left the exposure alone so a regression there would have an obvious
+owner.
+
+Everything at **p ≤ 0.50 is bit-identical** — probed live, the lamp layer's
+resolved `circle-opacity` is a literal `0` at p = 0, 0.25 and 0.50, exactly as
+before, and `stars`/`night` are 0 while the sun is up. Day cannot have moved.
+
+### Measured
+
+On a fixed 120 x 520 px strip of the Guadalupe roadway in the `the-drag` pose,
+pixels over luma 150 (i.e. the lamp pools and cores, nothing else in that strip
+is that bright):
+
+```
+p=0.55   412 ->  412     unchanged — golden hour must not sprout orange blobs
+p=0.62    69 ->  633     9.2x
+p=0.70    47 ->  414
+p=0.80     2 ->   84
+```
+
+Live probe (`window.skyBodies` + `getPaintProperty` on
+`night-streetlight-pool`): 3,377 lamps generated, **no page errors**, and the
+pool expression reaches its full value at p=0.62 instead of p=0.85.
+
+### WHAT DID NOT WORK, AND WHAT IS STILL OWED
+
+1. **`scripts/verify/dusk.mjs` is broken and could not be used.** It dies at
+   `dusk.mjs:10` with `ReferenceError: r is not defined` — the same page-setup
+   regression that has taken out ~15 scripts in this suite. It is the one check
+   that would have guarded glow continuity across this change, so that guard was
+   not run. (Neither glow was touched.)
+2. **Two pixel instruments I built and threw away**, recorded because the
+   failure is instructive. A "count warm pixels below the horizon" metric read
+   436,640 warm pixels at p=0.55 — it was counting the sunlit tan city, not
+   lamps. A "local excess over a Gaussian background" metric read ~100,000
+   'lamp-like' pixels in every frame — it was counting ordinary building and
+   tree texture. **A threshold on a fixed strip that contains one kind of bright
+   thing beat both**, and it is three lines.
+3. **THE WINDOWS ARE STILL NOT LIT AT DUSK, AND THAT IS NOT IN THIS LANE.**
+   This pass fixed the sky and the streetlights. The window curve is
+   `const night = Math.max(0, (p - 0.55) / 0.45)` **written out four times** —
+   `js/facades.js:1275`, `js/drag.js:446`, `js/places.js:165`,
+   `js/moody.js:404`, plus a variant at `js/tower.js:616` — and none of those
+   files is writable from here. At p=0.62 it gives 0.156, which is why the
+   sweep found not one legible lit window.
+
+   **`skyBodies(p).lamps` now exists precisely so this is a one-line change in
+   each file**, and it needs no new constant:
+
+   ```js
+   const night = (typeof window.skyBodies === 'function')
+     ? window.skyBodies(p).lamps
+     : Math.max(0, (p - 0.55) / 0.45);
+   ```
+
+   Whoever owns those files next should take it. Note the atlases are baked per
+   hour, so the four sites must move TOGETHER or downtown and the Drag will
+   light up on different schedules.
+4. **The sky's own COLOUR is still on the slider, not the sun.**
+   `timeofday.js` `ROUTES.sky` reaches `#3a1c48` at p=0.60, when the sun is only
+   4° down — a nautical-twilight colour at the start of civil twilight. That is
+   the remaining half of "the sky is night at the midpoint" and it lives in a
+   file this lane does not own. Killing the stars removed the loudest wrong
+   signal; the violet is still early.
+
+Browsers reaped (2), server on 8221 killed and confirmed down.
+
+
 ## 81. Aug 4 2026 — DKR's videoboard was an OFF panel by day and an ON one at night (acer lane)
 
 **Branch:** `acer/dkr-board-inverted`, **PR #141**, merged `68d4e6b`, branch

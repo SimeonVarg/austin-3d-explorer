@@ -116,6 +116,61 @@
     // and the assertion is untouched. Growing it instead took the canvas to 60%
     // and turned that check red.
     HORIZON_FADE: 0.036,
+    // ── THE DUSK CLOCK. One schedule, and it is the SUN'S ELEVATION ───
+    //
+    // THE DEFECT THIS REPLACES. The Aug 4 sweep read all 36 tour frames and
+    // ranked this fourth: at the slider's midpoint (p=0.62) `dusk-capitol`,
+    // `dusk-west-campus`, `dusk-the-drag` and `dusk-downtown-skyline` show a
+    // saturated magenta sky WITH STARS IN IT over a city that is still lit like
+    // the afternoon — not one lamp pool you can find, an entire West Campus of
+    // student housing dark, the whole downtown core dark. It is the slider's
+    // default neighbourhood and it may well be the first thing a visitor sees.
+    //
+    // The cause was that every consumer invented its own ramp in `p`, and `p`
+    // is a slider position, not a time. Measured on the frames above:
+    //
+    //     the sky's `night`   (p-0.55)/0.35            p=0.62 -> 0.20
+    //     the lamps           (p-0.58)/(0.85-0.58)     p=0.62 -> 0.148
+    //     the palette         linear golden->night     p=0.62 -> 0.24
+    //     the sky COLOUR      timeofday.js ROUTES      p=0.62 -> #351a47, i.e.
+    //                                                  already at its night key
+    //
+    // The sky route front-loads its whole transition into p 0.50-0.62 and the
+    // city back-loads its into p 0.62-0.75, so the two halves of the same
+    // moment are about forty minutes apart and dusk is exactly where they
+    // disagree. Photographed as a sequence at 0.55 / 0.62 / 0.70 / 0.80, the
+    // city goes from full daylight to full night between the second and third
+    // frame while the sky barely changes across the same gap.
+    //
+    // SO EVERYTHING BELOW IS DERIVED FROM ONE PHYSICAL NUMBER: the sun's
+    // elevation, which SUN_KEYS already owns. Slider position is a control, not
+    // a clock; elevation is what a photograph actually responds to, and the
+    // three schedules can no longer drift apart because there is only one.
+    //
+    // AND THE ORDER IS DELIBERATE — artificial light LEADS the sky, because
+    // that is what really happens. A streetlight's photocell trips while the
+    // west is still orange; the stars are the last thing to arrive, long after
+    // the lamps. Written as elevations, that ordering is legible at a glance:
+    //
+    //     LAMP_ON    +2   the sun's last minutes: the first lamps strike
+    //     LAMP_FULL  -6   end of CIVIL twilight: the city is fully lit
+    //     NIGHT_ON   +1   the sky begins to darken (sunset)
+    //     STAR_ON    -7   the first stars, after the lamps are already up
+    //     STAR_FULL -18   end of ASTRONOMICAL twilight: the whole field
+    //     NIGHT_FULL -31  deep night
+    //
+    // NIGHT_ON/NIGHT_FULL are NOT a new curve. They are the old
+    // `(p-0.55)/0.35` re-expressed on this clock, and the sun arc is near
+    // enough linear through dusk that they reproduce it: p=0.62 gives 0.2125
+    // against 0.200, p=0.70 gives 0.4375 against 0.4286, p=0.80 gives 0.719
+    // against 0.714. `night` feeds graphics.js's auto-exposure target and
+    // timeofday.js's label dimming, so it was deliberately NOT retuned in the
+    // same pass that moved the lamps — one change at a time.
+    DUSK: {
+      LAMP_ON: 2, LAMP_FULL: -6,
+      STAR_ON: -7, STAR_FULL: -18,
+      NIGHT_ON: 1, NIGHT_FULL: -31,
+    },
     // Star twinkle for the bright ~quarter of the field. Driven by the clock
     // inside the existing redraw path — NO new rAF loop, so a parked camera
     // at a fixed hour costs nothing (and its stars simply hold still).
@@ -141,13 +196,38 @@
     return { az: last.az, elev: last.elev };
   }
 
+  /**
+   * 0 while the sun is above `hi` degrees, 1 once it is below `lo`.
+   *
+   * `ease` smoothsteps it. The two NEW curves take the ease because their ends
+   * are moments a viewer watches for — a linear ramp starting at a corner reads
+   * as "the lamps switched on just then", and the eye finds the break in SLOPE,
+   * not the break in value (same lesson as the horizon feather below). `night`
+   * stays linear so it reproduces the ramp it replaces exactly.
+   */
+  function sunRamp(elev, hi, lo, ease) {
+    const u = clamp01((hi - elev) / (hi - lo));
+    return ease ? u * u * (3 - 2 * u) : u;
+  }
+
   window.skyBodies = function skyBodies(p) {
     const sun = track(SUN_KEYS, p);
     const moon = track(MOON_KEYS, p);
+    const D = SKY_TUNE.DUSK;
     return {
       sun, moon,
       sunUp: sun.elev > 0,
-      night: clamp01((p - 0.55) / 0.35),        // 0 before dusk, 1 by full night
+      // 0 before dusk, 1 by full night. Drives the sky's own darkness, the
+      // auto-exposure target and the label dimming.
+      night: sunRamp(sun.elev, D.NIGHT_ON, D.NIGHT_FULL, false),
+      // ARTIFICIAL LIGHT, and it LEADS `night` on purpose — see SKY_TUNE.DUSK.
+      // js/night.js reads this for the streetlamp pools; it is the one place
+      // the city's switch-on hour is authored.
+      lamps: sunRamp(sun.elev, D.LAMP_ON, D.LAMP_FULL, true),
+      // ...and the stars LAG it. A star at civil twilight is the loudest
+      // possible "this is the middle of the night" signal and there is not one
+      // in the real sky at that hour.
+      stars: sunRamp(sun.elev, D.STAR_ON, D.STAR_FULL, true),
       golden: clamp01(1 - Math.abs(p - 0.5) / 0.22),
     };
   };
@@ -1117,14 +1197,19 @@
     const nStars = Math.round(stars.length * (G.stars == null ? 1 : G.stars));
     const nClouds = Math.round(clouds.length * (G.clouds == null ? 1 : G.clouds));
 
-    if (B.night > 0.02 && nStars > 0) {
+    // Stars ride `B.stars`, NOT `B.night` — see SKY_TUNE.DUSK. On the old gate
+    // the field was already at 20% alpha at p=0.62, when the sun is 5.8° down
+    // and a real sky holds Venus and nothing else; the sweep read them as
+    // "stars visible" in five separate dusk frames and they were most of why
+    // the midpoint looked like midnight.
+    if (B.stars > 0.02 && nStars > 0) {
       const TW = SKY_TUNE.TWINKLE;
       const now = performance.now();
       for (let si = 0; si < nStars; si++) {
         const s = stars[si];
         const q = project(s.az, s.elev);
         if (!q.front || q.x < -8 || q.x > W + 8 || q.y < -8 || q.y > H) continue;
-        let a = B.night * s.mag;
+        let a = B.stars * s.mag;
         // Twinkle rides the existing redraw (camera moves, the auto cycle) —
         // deliberately NO dedicated loop, so a parked sky stays free and
         // simply holds still. Phase from the star's azimuth, rate from its
@@ -1243,7 +1328,7 @@
       W, H, dpr, horizonPx: hzPx,
       sun: { x: pos.x, y: pos.y, front: !useMoon && pos.front, fade: pos.fade, elev: B.sun.elev, az: B.sun.az },
       moonUp: useMoon, colour: coreCol, haloColour: haloCol,
-      golden: B.golden, night: B.night, p,
+      golden: B.golden, night: B.night, lamps: B.lamps, stars: B.stars, p,
     };
     if (typeof window.renderFX === 'function') window.renderFX(map, window.skyFrame);
   };
