@@ -259,8 +259,16 @@ FURN_SHAPE = {
 
 # Line barriers drawn as thin ribbons along their real geometry.
 #   tag value: (width_m, height_m, colour_key)
+#
+# THE FENCE IS `steel`, NOT `dark`. `dark` is #4e5058 by day — luma 82 against a
+# day frame that averages 132 — so a 1.9 m fence beside a running track was a
+# near-black bar on pale paving and read as a wall. A chain-link fence is
+# galvanised wire you can see through; `steel` (#8d9198, luma 146) is the
+# palette's own name for that and needs no new colour. The height is unchanged
+# because 1.9 m is what the real fence is. Every value here is a taste knob:
+# one edit changes all 44 of them.
 LINE_BARRIER = {
-    "fence": (0.10, 1.90, "dark"),
+    "fence": (0.10, 1.90, "steel"),
     "wall":  (0.32, 1.05, "stone"),
     "hedge": (0.85, 1.10, "green"),
 }
@@ -395,9 +403,22 @@ def ribbon(coords, width_m):
     return [[[round(x / mx, 6), round(y / M_LAT, 6)] for x, y in ring]]
 
 
-def simplify_ring(ring, tol_m=0.6):
+def simplify_ring(ring, tol_m=0.6, close=True):
     """Douglas-Peucker, so a 300-vertex OSM flowerbed does not ship 300
-    vertices for a 0.35 m-high strip of planting."""
+    vertices for a 0.35 m-high strip of planting.
+
+    `close=False` IS THE WHOLE FIX FOR THE FENCES ACROSS MYERS STADIUM. This
+    function force-closed whatever it was given, which is right for a planting
+    AREA and catastrophic for a barrier LINE: an OSM `barrier=fence` way is an
+    open polyline, so appending its first vertex to its end and handing that to
+    ribbon() drew a fence straight from the far end back to the start. Forty of
+    the forty-four fences got one. The worst was 234 m; a 203 m one ran corner
+    to corner across the track and infield of Mike A. Myers Stadium and three
+    more lay across the plaza south of DKR.
+
+    A closed OSM way (the cemetery, the substation) is unaffected either way —
+    its first and last vertex are already the same point.
+    """
     if len(ring) < 4:
         return ring
     mx = mlon(ring[0][1])
@@ -424,9 +445,9 @@ def simplify_ring(ring, tol_m=0.6):
     sys.setrecursionlimit(10000)
     dp(0, len(pts) - 1, keep)
     out = [ring[i] for i in sorted(keep)]
-    if out[0] != out[-1]:
+    if close and out[0] != out[-1]:
         out.append(list(out[0]))
-    return out if len(out) >= 4 else ring
+    return out if len(out) >= (4 if close else 2) else ring
 
 
 class Spacing(object):
@@ -936,8 +957,20 @@ def main():
         stats["city_art"] += 1
 
     # ── 3. real line barriers and planting areas, drawn where they are ──
+    # ONE ELEMENT, ONE FEATURE. These three caches are three Overpass queries
+    # over the same ground and they overlap: every one of the 44 `barrier=fence`
+    # ways is in BOTH furn_barrier.json and construction.json, so the shipped
+    # file carried 88 fences — 44 pairs of coincident 0.1 m ribbons, which is a
+    # z-fight as well as double the bytes. The de-dup is on the OSM id, so the
+    # first cache that has an element wins and the rest is untouched.
+    seen_ids = set()
     for key in ("furn_barrier", "furn_planting", "construction"):
         for el in load(key):
+            if el.get("id") is not None:
+                if el["id"] in seen_ids:
+                    stats["dup_element_skipped"] += 1
+                    continue
+                seen_ids.add(el["id"])
             t = el.get("tags", {}) or {}
             g = el.get("geometry") or []
             if len(g) < 2:
@@ -946,7 +979,8 @@ def main():
             bar = t.get("barrier")
             if bar in LINE_BARRIER:
                 w, h, col = LINE_BARRIER[bar]
-                poly = ribbon(simplify_ring(coords, 1.2), w)
+                # close=False: a barrier is a LINE. See simplify_ring.
+                poly = ribbon(simplify_ring(coords, 1.2, close=False), w)
                 if not poly:
                     continue
                 feats.append({"type": "Feature",
@@ -1420,8 +1454,137 @@ def reshape():
     }, indent=2))
 
 
+def relines():
+    """SURGICAL. Redraw only the OSM line barriers in the shipped props file.
+
+    Same reason as reshape(), and HANDOFF §44 is the reason: a full bake on this
+    machine emits a fraction of the shipped features because it wants city
+    inventory data that is not in the local cache, so re-running main() to fix a
+    fence would delete most of the street furniture. This rebuilds exactly the
+    features whose `u` is in LINE_BARRIER — fences, walls, hedges — from the
+    same cache and the same functions the bake uses, drops the duplicates, and
+    does not touch one byte of anything else.
+
+    It reads back what it wrote and refuses to commit if:
+      * any feature that is not a line barrier changed at all;
+      * a rebuilt barrier moved more than RELINE_MARGIN_M from the OSM way it
+        came from (the ribbon is 0.1-0.9 m wide, so this is tight on purpose);
+      * any rebuilt ring still contains an edge longer than the longest edge in
+        its own source way — which is precisely the defect being removed.
+    """
+    RELINE_MARGIN_M = 2.0
+    with open(OUT, encoding="utf-8") as f:
+        gj = json.load(f)
+    before = list(gj["features"])
+
+    # Rebuild from the cache, in the same cache order and with the same de-dup
+    # the bake now uses, so this and a real bake agree.
+    fresh, seen_ids, src_span = [], set(), {}
+    for key in ("furn_barrier", "furn_planting", "construction"):
+        for el in load(key):
+            if el.get("id") is not None:
+                if el["id"] in seen_ids:
+                    continue
+                seen_ids.add(el["id"])
+            t = el.get("tags", {}) or {}
+            g = el.get("geometry") or []
+            bar = t.get("barrier")
+            if len(g) < 2 or bar not in LINE_BARRIER:
+                continue
+            coords = [[p["lon"], p["lat"]] for p in g]
+            w, h, col = LINE_BARRIER[bar]
+            simp = simplify_ring(coords, 1.2, close=False)
+            poly = ribbon(simp, w)
+            if not poly:
+                continue
+            mx = mlon(coords[0][1])
+            # The bound is the SIMPLIFIED line's longest edge, not the raw way's:
+            # Douglas-Peucker legitimately merges several collinear 30 m
+            # segments into one 116 m one, and that is not the defect. The
+            # defect is an edge the line does not contain at all.
+            longest = max(math.hypot((simp[i + 1][0] - simp[i][0]) * mx,
+                                     (simp[i + 1][1] - simp[i][1]) * M_LAT)
+                          for i in range(len(simp) - 1))
+            src_span[len(fresh)] = (coords, longest)
+            fresh.append({"type": "Feature",
+                          "geometry": {"type": "Polygon", "coordinates": poly},
+                          "properties": {"k": "line", "u": bar, "h": h, "c": col,
+                                         "src": "osm"}})
+
+    def is_barrier(f):
+        p = f["properties"]
+        return p.get("k") == "line" and p.get("u") in LINE_BARRIER
+
+    # Splice: the new barriers go where the first old one was, so the feature
+    # order of everything else is unchanged and the diff stays readable.
+    out, placed = [], False
+    for feat in before:
+        if is_barrier(feat):
+            if not placed:
+                out.extend(fresh)
+                placed = True
+            continue
+        out.append(feat)
+    if not placed:
+        out.extend(fresh)
+
+    # ── read back ──────────────────────────────────────────────────────
+    keep_before = [f for f in before if not is_barrier(f)]
+    keep_after = [f for f in out if not is_barrier(f)]
+    if json.dumps(keep_before, sort_keys=True) != json.dumps(keep_after, sort_keys=True):
+        raise SystemExit("relines changed a feature that is not a line barrier")
+
+    worst_off, worst_edge, worst_edge_u = 0.0, 0.0, None
+    for i, feat in enumerate(fresh):
+        coords, longest = src_span[i]
+        mx = mlon(coords[0][1])
+        pts = [(c[0] * mx, c[1] * M_LAT) for c in coords]
+        ring = feat["geometry"]["coordinates"][0]
+        for lo, la in ring:
+            x, y = lo * mx, la * M_LAT
+            d = min(_seg_dist(x, y, pts[j], pts[j + 1]) for j in range(len(pts) - 1))
+            worst_off = max(worst_off, d)
+        for j in range(len(ring) - 1):
+            e = math.hypot((ring[j + 1][0] - ring[j][0]) * mx,
+                           (ring[j + 1][1] - ring[j][1]) * M_LAT)
+            if e > longest + 0.5 and e > worst_edge:
+                worst_edge, worst_edge_u = e, feat["properties"]["u"]
+    if worst_off > RELINE_MARGIN_M:
+        raise SystemExit("relines put a vertex %.2f m off its own OSM way" % worst_off)
+    if worst_edge_u:
+        raise SystemExit("relines left a %.1f m %s edge longer than its source way"
+                         % (worst_edge, worst_edge_u))
+
+    gj["features"] = out
+    with open(OUT, "w", encoding="utf-8") as f:
+        json.dump(gj, f, separators=(",", ":"))
+    kinds = Counter(f["properties"]["u"] for f in fresh)
+    print(json.dumps({
+        "mode": "relines (surgical — see HANDOFF §44)",
+        "features_before": len(before), "features_after": len(out),
+        "barriers_before": sum(1 for f in before if is_barrier(f)),
+        "barriers_after": len(fresh),
+        "by_kind": dict(sorted(kinds.items())),
+        "everything_else_unchanged": True,
+        "worst_vertex_off_source_m": round(worst_off, 3),
+        "file_kb": round(os.path.getsize(OUT) / 1024, 1),
+    }, indent=2))
+
+
+def _seg_dist(px, py, a, b):
+    """Point-to-segment distance in metric space."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    L2 = dx * dx + dy * dy
+    if L2 <= 0:
+        return math.hypot(px - a[0], py - a[1])
+    t = max(0.0, min(1.0, ((px - a[0]) * dx + (py - a[1]) * dy) / L2))
+    return math.hypot(px - (a[0] + t * dx), py - (a[1] + t * dy))
+
+
 if __name__ == "__main__":
     if "--reshape" in sys.argv:
         reshape()
+    elif "--relines" in sys.argv:
+        relines()
     else:
         main()
