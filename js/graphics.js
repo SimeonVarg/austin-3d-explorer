@@ -68,45 +68,56 @@
 
   // ── Settings ──────────────────────────────────────────────────────
   //
-  // EVERY NAME IN THIS TABLE SAYS WHAT THE CONTROL DOES, NOT WHAT IT IS, and
-  // that is the whole point of the rewrite. Reported, verbatim:
+  // PLAIN NAMES, ALMOST NO PROSE. Two reports landed on this table, and the
+  // second one undid half of what the first produced:
   //
   //   "make the graphics menu more intuitive. the light and lens sliders i dont
   //    understand execpt for distance blur. The preset modes also dont make
   //    sense all i understand is performance and ultra."
+  //   "add making the graphics menu less yap"
   //
-  // Two people can read "Bloom", "God rays", "Filmic curve" and "Contact
-  // shadows" and only one of them has rendered anything. A menu of terms of art
-  // is not a menu, it is a quiz — so the labels below are the plain-English
-  // effect ("Glow around bright things", "Shadows where buildings meet the
-  // ground") and every row carries a `desc` that is RENDERED IN THE PANEL, not
-  // hidden in a `title` tooltip. A tooltip is not an answer on a touchscreen,
-  // which is where half of this app is used, and hovering to find out what a
-  // control is is exactly the friction being complained about.
+  // THE NAMING WAS RIGHT AND STAYS. Two people can read "Bloom", "God rays" and
+  // "Contact shadows" and only one of them has rendered anything, so every label
+  // below is still the plain-English effect ("Glow", "Sun shafts", "Shadows at
+  // the base") and never the term of art. What was wrong was ANSWERING IT WITH A
+  // PARAGRAPH. Measured on the version this replaces: 2,063 characters of help
+  // text under 20 rows, 1,718 px of content — five controls visible before you
+  // had to scroll on a 1440x900 desktop, four on a 390x844 phone, and the rest
+  // of the panel was reading. A settings menu you have to READ is not a menu.
   //
-  // `desc` is one sentence, present tense, describing what you will SEE. `cost`
-  // is the honest performance note where there is one; it prints in the same
-  // small type after the description rather than being a separate hint nobody
-  // reads.
+  // So `hint` is OPTIONAL and at most a few words. The bar for keeping one: could
+  // a reader work it out by moving the control and looking? If yes, no hint. Four
+  // of nineteen rows keep one, and each says something you could NOT discover by
+  // trying it — that a tick box needs a reload before it does anything, which of
+  // five speed sliders to pull first, that the city does not vanish, that stars
+  // are a night thing.
   //
-  // DROPPED FROM THE MENU: `filmic` (was "Filmic curve"). It is a tone curve
-  // blend — a look-authoring value, not a preference — and there is no sentence
-  // that makes "0.65 of a filmic curve" a thing a person wants to set. It stays
-  // in GRADE at its authored value, so nothing about the render changes; it
-  // simply stops occupying a row that a reader has to decode. It is one line to
-  // put back.
+  // AND THE PERFORMANCE NUMBERS ARE GONE. "+6.0 fps measured, which beat halving
+  // the resolution" was three lines under a slider restating a number that is
+  // ALREADY ON SCREEN and live: the fps readout in the panel header updates while
+  // you drag. Point at the counter, not at a paragraph. The measurements live in
+  // HANDOFF.md, which is where a measurement belongs.
+  //
+  // DROPPED FROM THE MENU. The GFX key and the code stay in both cases — only the
+  // row goes, so a console override and the verify suite still reach them:
+  //   `filmic` — a tone-curve blend. A look-authoring value, not a preference;
+  //              there is no sentence that makes "0.65 of a filmic curve" a thing
+  //              a person wants to set.
+  //   `dof`    — was "Distance blur". PR #116 set it to 0 in EVERY preset because
+  //              its band is keyed to a screen ROW rather than to distance, and
+  //              it was the horizon line reported four times. So the row was a
+  //              slider that did nothing until you moved it and then put a known
+  //              defect back, and its help text had to spend forty words warning
+  //              you off it — which is the tell. A control whose honest label is
+  //              "don't" is not a control.
   const SCHEMA = [
     { key: 'renderScale', label: 'Resolution', min: 0.5, max: 2, step: 0.05, group: 'speed',
-      fmt: v => v.toFixed(2) + '×',
-      desc: 'How sharp the whole picture is drawn.',
-      cost: 'The single biggest speed lever — cost rises with the square of this.' },
+      fmt: v => v.toFixed(2) + '×', hint: 'Biggest speed win.' },
     { key: 'msaa', label: 'Smooth edges', type: 'bool', group: 'speed', reload: true,
-      desc: 'Takes the jagged staircase off building edges and rooflines.',
-      cost: 'The most expensive option here: off cut dropped frames from 128 to 53 in a 4 s flight at 2560×1400. Needs a reload.' },
+      hint: 'Needs a reload.' },
     { key: 'renderDistance', label: 'Detail distance', min: 150, max: 1500, step: 25, group: 'speed',
       fmt: v => v >= 1500 ? 'unlimited' : v.toFixed(0) + ' m',
-      desc: 'How far away benches, tree trunks and roof clutter are still drawn. The buildings and the city never disappear.',
-      cost: 'Lower this first on a weak machine: +6.0 fps measured, which beat halving the resolution.' },
+      hint: 'Clutter only — buildings stay.' },
     // RANGE SET BY WHAT THE CAMERA CAN REACH, not by what sounds generous.
     // The first version ran 400..4000 m and did nothing on any preset except
     // `performance`, because ALT_MIN/ALT_MAX in js/controls.js cap the camera at
@@ -115,58 +126,43 @@
     // control was real, wired and asserted, and still could not fire. Reported
     // as "the graphics menu is confusing and I don't think it works".
     { key: 'treeDensity', label: 'Trees', min: 0.2, max: 1, step: 0.025, group: 'speed',
-      fmt: v => Math.round(v * 100) + '%',
-      desc: 'How many trees are planted. Thins the small ones first and keeps the big live oaks.',
-      cost: 'The full canopy costs about 6–7 fps at 1440×900.' },
+      fmt: v => Math.round(v * 100) + '%' },
     { key: 'outerDensity', label: 'City beyond campus', min: 0.2, max: 1, step: 0.025, group: 'speed',
-      fmt: v => Math.round(v * 100) + '%',
-      desc: 'The rest of Austin — downtown, the lake, the neighbourhoods. The downtown towers are never dropped.',
-      cost: 'Turning this down is the cheapest way to buy frames back on a weak GPU.' },
+      fmt: v => Math.round(v * 100) + '%' },
 
-    { key: 'shadows', label: 'Building shadows', type: 'bool', group: 'light',
-      desc: 'Shadows the buildings cast on the ground as the sun moves.' },
-    { key: 'ao', label: 'Shadows at the base', type: 'bool', group: 'light',
-      desc: 'The soft dark where a building meets the ground. Without it everything looks like it is floating.' },
-    { key: 'bloom', label: 'Glow', min: 0, max: 1, step: 0.02, group: 'light',
-      desc: 'Bright things — lit windows, sunlit glass — bleed light into the air around them.',
-      cost: 'Turning this on from zero needs a reload.' },
-    { key: 'godRays', label: 'Sun shafts', min: 0, max: 1, step: 0.02, group: 'light',
-      desc: 'Beams fanning out from a low sun. Strongest near sunrise and sunset.' },
-    { key: 'flare', label: 'Lens flare', min: 0, max: 1, step: 0.02, group: 'light',
-      desc: 'The streak and the coloured circles a camera lens makes when the sun is in shot.' },
+    { key: 'shadows', label: 'Building shadows', type: 'bool', group: 'light' },
+    { key: 'ao', label: 'Shadows at the base', type: 'bool', group: 'light' },
+    // No hint about the reload, deliberately: raising this from zero calls
+    // markReload(), and the "Reload to apply" button appears in the footer at
+    // exactly the moment it applies. A line of standing text saying so is worse
+    // — it is on screen the whole time including when bloom is already on, where
+    // it is simply wrong.
+    { key: 'bloom', label: 'Glow', min: 0, max: 1, step: 0.02, group: 'light' },
+    { key: 'godRays', label: 'Sun shafts', min: 0, max: 1, step: 0.02, group: 'light' },
+    { key: 'flare', label: 'Lens flare', min: 0, max: 1, step: 0.02, group: 'light' },
 
-    { key: 'exposure', label: 'Brightness', min: 0.7, max: 1.4, step: 0.01, group: 'picture',
-      desc: 'Lightens or darkens the whole picture.' },
-    { key: 'autoExposure', label: 'Auto brightness', type: 'bool', group: 'picture',
-      desc: 'Pulls back when you stare into bright sky and lifts when you drop into a dark street.' },
-    { key: 'contrast', label: 'Contrast', min: 0.8, max: 1.5, step: 0.01, group: 'picture',
-      desc: 'How far apart the darks and the lights are.' },
-    { key: 'saturation', label: 'Colour strength', min: 0.6, max: 1.6, step: 0.01, group: 'picture',
-      desc: 'How strong the colours are. 1.00 is the look as it was painted.' },
-    { key: 'vignette', label: 'Darkened corners', min: 0, max: 1.6, step: 0.02, group: 'picture',
-      desc: 'Shades the corners of the frame so the eye goes to the middle.' },
-    { key: 'grain', label: 'Film grain', min: 0, max: 1, step: 0.02, group: 'picture',
-      desc: 'A fine speckle over the picture, the way real film looks.',
-      cost: 'Costs about 4.8 fps — the most of anything in the picture group.' },
-    { key: 'dof', label: 'Distance blur', min: 0, max: 1, step: 0.02, group: 'picture',
-      desc: 'Softens the far distance, like a camera focused on what is close.',
-      cost: 'Off by default: it blurs by height on screen rather than by real distance, so it draws a soft line across the horizon and can blur the top of a building you are standing next to.' },
+    { key: 'exposure', label: 'Brightness', min: 0.7, max: 1.4, step: 0.01, group: 'picture' },
+    { key: 'autoExposure', label: 'Auto brightness', type: 'bool', group: 'picture' },
+    { key: 'contrast', label: 'Contrast', min: 0.8, max: 1.5, step: 0.01, group: 'picture' },
+    { key: 'saturation', label: 'Colour strength', min: 0.6, max: 1.6, step: 0.01, group: 'picture' },
+    { key: 'vignette', label: 'Darkened corners', min: 0, max: 1.6, step: 0.02, group: 'picture' },
+    { key: 'grain', label: 'Film grain', min: 0, max: 1, step: 0.02, group: 'picture' },
 
-    { key: 'fov', label: 'View width', min: 42, max: 82, step: 1, group: 'scene', fmt: v => v.toFixed(0) + '°',
-      desc: 'How much of the city fits on screen at once. Wider shows more and makes flying feel faster.' },
-    { key: 'clouds', label: 'Clouds', min: 0, max: 1, step: 0.05, group: 'scene',
-      desc: 'How much cloud is drawn across the sky.' },
+    { key: 'fov', label: 'View width', min: 42, max: 82, step: 1, group: 'scene', fmt: v => v.toFixed(0) + '°' },
+    { key: 'clouds', label: 'Clouds', min: 0, max: 1, step: 0.05, group: 'scene' },
     { key: 'stars', label: 'Stars', min: 0, max: 1, step: 0.05, group: 'scene',
-      desc: 'Stars after dark. Nothing to see with the slider set to daytime.' },
+      hint: 'Night only.' },
   ];
-  // Group headings say who each section is FOR, in the second line, because
-  // "Performance / Light & lens / Colour & film / World" told a reader nothing
-  // about which section to open for the problem they actually have.
+  // A group heading gets at most four words, for the same reason the rows do.
+  // The job of the second line is only to say which section to open for the
+  // problem you have — "Performance / Light & lens / Colour & film / World" did
+  // not, and "How the image is graded, like a camera" said it at twice the
+  // length.
   const GROUPS = [
-    ['speed',   'Speed',   'Turn these down if it stutters'],
-    ['light',   'Light',   'Sun, shadows and glare'],
-    ['picture', 'Picture', 'How the image is graded, like a camera'],
-    ['scene',   'Scene',   'What is in the world and how much you see'],
+    ['speed',   'Speed',   'Turn down if it stutters'],
+    ['light',   'Light',   'Sun, shadows, glare'],
+    ['picture', 'Picture', 'Colour and film look'],
+    ['scene',   'Scene',   'Sky and view'],
   ];
 
   // ── The grade is NOT a quality setting ──────────────────────────────
@@ -265,8 +261,14 @@
   // being true when the haze got a depth buffer. Two cues, one right and one
   // wrong, is worse than one right one.
   //
-  // The slider stays (taste is his, not mine — CLAUDE.md 11). Raising it brings
-  // the look back, and the line with it, and the hint says so.
+  // THE SLIDER IS GONE AS OF 2026-08-04, and only the slider. Leaving a control
+  // whose entire behaviour is "put the horizon line back" in a menu that is
+  // supposed to be scannable was the worst of both: it needed a forty-word
+  // warning to be safe, and the warning was the yap. `GFX.dof` still exists,
+  // renderFX still honours it, and `window.GFX.dof = 0.5; applyGraphics()` from
+  // the console still draws it — so this is a menu decision, not a capability
+  // one, and re-adding the row is one line in SCHEMA if the effect is ever
+  // keyed to real distance.
   const PRESETS = {
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
@@ -1165,8 +1167,7 @@
     const head = document.createElement('div');
     head.id = 'gfx-head';
     head.innerHTML = '<span id="gfx-title">Graphics</span>' +
-      '<span id="gfx-fps" title="Frames per second right now, and how long one frame takes. ' +
-      'Above ~50 fps is smooth. Change a setting and watch this move.">—</span>' +
+      '<span id="gfx-fps" title="Frames per second, live">—</span>' +
       '<button id="gfx-close" title="Close">✕</button>';
     panel.appendChild(head);
 
@@ -1212,7 +1213,8 @@
     const foot = document.createElement('div');
     foot.id = 'gfx-foot';
     foot.innerHTML =
-      '<button id="gfx-reload" title="Anti-aliasing changes need a new WebGL context">Reload to apply AA</button>' +
+      // "AA" is a term of art in a menu that has stopped using them.
+      '<button id="gfx-reload" title="Some settings need a fresh page">Reload to apply</button>' +
       '<button id="gfx-reset">Reset</button>';
     panel.appendChild(foot);
 
@@ -1234,19 +1236,19 @@
   }
 
   /**
-   * One control. The layout is deliberately THREE lines, not one:
+   * One control. TWO lines, and a third only for the five rows that carry a
+   * hint:
    *
    *     Detail distance                        700 m
    *     ───────────●─────────────────────────────────
-   *     How far away benches, tree trunks and roof clutter are still drawn.
+   *     Clutter only — buildings stay.
    *
-   * The old row was `[88 px name] [slider] [value]` on a single line with the
-   * explanation in a `title` tooltip. That forces every name to fit 88 px —
-   * which is how you end up with "Bloom", "God rays" and "Contact shadows",
-   * terms chosen because they are short rather than because they are clear —
-   * and it puts the only explanation behind a hover, which does not exist on a
-   * phone. Giving the name and the slider a line each buys the room for a name
-   * that is a sentence fragment, and the description is simply on screen.
+   * The name still gets its own line rather than an 88 px column — that column
+   * is how a menu ends up saying "Bloom" and "Contact shadows", names picked for
+   * fitting rather than for being understood, and the plain names are the part
+   * of the last pass that was right. What changed is that the third line is now
+   * the exception. It used to be on all twenty rows, and it made the panel
+   * something to read rather than something to scan.
    */
   function makeRow(s) {
     const row = document.createElement('label');
@@ -1260,15 +1262,14 @@
     head.appendChild(name);
     row.appendChild(head);
 
-    const say = document.createElement('span');
-    say.className = 'gfx-desc';
-    say.textContent = s.desc || '';
-    if (s.cost) {
-      const c = document.createElement('i');
-      c.className = 'gfx-cost';
-      c.textContent = s.cost;
-      say.appendChild(document.createTextNode(' '));
-      say.appendChild(c);
+    // No hint means no element at all, not an empty one — an empty span still
+    // takes its line-height and its flex gap, which is how a "cut the text" pass
+    // ends up looking like it did nothing.
+    let say = null;
+    if (s.hint) {
+      say = document.createElement('span');
+      say.className = 'gfx-hint';
+      say.textContent = s.hint;
     }
 
     if (s.type === 'bool') {
@@ -1284,7 +1285,7 @@
         if (s.reload) markReload();
       });
       head.appendChild(cb);
-      row.appendChild(say);
+      if (say) row.appendChild(say);
       rows[s.key] = { input: cb };
       return row;
     }
@@ -1305,7 +1306,7 @@
       syncPresetButtons();
     });
     row.appendChild(rng);
-    row.appendChild(say);
+    if (say) row.appendChild(say);
     rows[s.key] = { input: rng, val, fmt };
     return row;
   }

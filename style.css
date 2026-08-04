@@ -459,18 +459,22 @@ html.has-touch #joystick-zone{display:block}
 #gfx-body{overflow-y:auto;padding:2px 13px 4px;flex:1;overscroll-behavior:contain}
 #gfx-body::-webkit-scrollbar{width:7px}
 #gfx-body::-webkit-scrollbar-thumb{background:rgba(245,166,35,.3);border-radius:4px}
-.gfx-group{display:flex;flex-direction:column;gap:2px;
-  margin:14px 0 7px;padding-bottom:4px;border-bottom:1px solid rgba(255,190,90,.09)}
+.gfx-group{display:flex;flex-direction:column;gap:1px;
+  margin:11px 0 5px;padding-bottom:4px;border-bottom:1px solid rgba(255,190,90,.09)}
 .gfx-group-name{font-size:9.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
   color:rgba(245,166,35,.72)}
 .gfx-group-note{font-size:9.5px;letter-spacing:.01em;color:rgba(245,223,160,.42);line-height:1.3}
 
-/* THREE LINES PER CONTROL: name + value, then the slider, then what it does.
-   The old single-line row forced every label into an 88 px column, which is
-   how a menu ends up saying "Bloom" and "Contact shadows" — names picked for
-   fitting rather than for being understood — and it left the explanation in a
-   `title` tooltip, which a phone cannot show at all. */
-.gfx-row{display:flex;flex-direction:column;gap:2px;padding:7px 0 8px;cursor:pointer;
+/* TWO LINES PER CONTROL — name + value, then the slider — and a third only on
+   the handful of rows that carry a hint (js/graphics.js SCHEMA).
+
+   It was three lines on all twenty, and the third was a paragraph. Reported as
+   "add making the graphics menu less yap": 2,063 characters of help text and
+   1,718 px of content meant five controls fit on a 1440x900 screen before you
+   had to scroll. The name still gets its own line rather than the old 88 px
+   column, because that column is what forces a label to be "Bloom" instead of
+   "Glow" — short names picked for fitting, not for being understood. */
+.gfx-row{display:flex;flex-direction:column;gap:2px;padding:6px 0 7px;cursor:pointer;
   border-bottom:1px solid rgba(255,190,90,.045)}
 .gfx-row:last-child{border-bottom:none}
 .gfx-rowhead{display:flex;align-items:center;gap:9px}
@@ -478,8 +482,9 @@ html.has-touch #joystick-zone{display:block}
 .gfx-row input[type=range]{width:100%;min-width:0;height:16px;margin:1px 0 0;accent-color:#f5a623;cursor:pointer}
 .gfx-val{flex:none;text-align:right;font-size:10.5px;opacity:.62;font-variant-numeric:tabular-nums}
 .gfx-check{flex:none;width:15px;height:15px;accent-color:#f5a623;cursor:pointer}
-.gfx-desc{font-size:10px;line-height:1.35;color:rgba(245,223,160,.5)}
-.gfx-cost{font-style:normal;color:rgba(240,197,106,.62)}
+/* Dim and small on purpose: a hint is there when you go looking for it and out
+   of the way when you are scanning names. */
+.gfx-hint{font-size:9.5px;line-height:1.3;color:rgba(245,223,160,.42)}
 
 #gfx-foot{display:flex;gap:6px;padding:9px 13px 11px;border-top:1px solid rgba(255,190,90,.13)}
 #gfx-foot button{flex:1;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.26);
