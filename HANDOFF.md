@@ -1,5 +1,147 @@
 # Austin 3D Explorer — Full Handoff
 
+## 83. Aug 4 2026 — the black block on the horizon is a church, and the parity check had been passing by luck (acer lane)
+
+**Branch:** `acer/outer-far-clamp` (named before the diagnosis; nothing was
+clamped). **PR #144.** Sweep defect #5. Shots: `shots/outer-before/`,
+`shots/outer-after/` — `the-drag`, `tower-south-mall`, `downtown-skyline`, all
+six on `scripts/serve.py 8222`, tod 0.30, `&tiles=0` so both states come off
+the GeoJSON path and not off a tile archive baked from the old file.
+`harness-drift.mjs` PASS first: 27 scripts in `index.html`, 27 in `_harness.html`.
+
+### THE SWEEP'S 188 ARE REAL AND THEY ARE NOT WHAT YOU CAN SEE
+
+`data/outer_ring.geojson` does have 190 features under 110 day wall luma. Every
+single one of them carries a `k` — **111 shopfront bands, 77 crowns, 2 park
+pads.** They are downtown DETAIL pieces, not buildings: a shopfront band is
+mixed toward `STOREFRONT #586270` on purpose because a ground floor is glass and
+shadow, and it is one storey tall in the middle of a dense downtown.
+**Zero WALLS in the file are under 110 luma, before this pass or after it.**
+
+The block you can actually see was never in that 190. Attributed with
+`queryRenderedFeatures` over a 2 px grid across the far band of both frames —
+1,172 distinct ring features in `the-drag`, 1,268 in `tower-south-mall` — the
+pixel the sweep named at (1220,225) is **one** feature on `outer-tower`:
+h 44.6 m, `wd #687481` (luma 113.9, i.e. *above* the sweep's cutoff), with a
+crown at `#515b65` (89.1) and a roof cap at `#444b54` (74.2) stacked on it. It
+is the same feature in both frames. Area-weighted mean `wd` luma of everything
+else on that band: **186.7.** Two features in the whole frame are under 120.
+
+### IT IS HYDE PARK BAPTIST CHURCH
+
+−97.73194, 30.30216 — 39th and Speedway, 2 km north of the campus camera.
+48.1 m, so `material_for` fell into `if h >= TOWER_H` **before it tested class
+or location** and drew from `TOWER_MIX`, whose own comment says it was
+"eyeballed against the real skyline from the south shore". It is a downtown
+palette. 229 of the 243 `t=1` features are inside the downtown rect.
+
+**Overture gives that footprint no class at all** — `num_floors: None` and
+nothing else — so no class rule could ever have reached it. The one signal in
+the data that separates a skyline from a lone tall building is COMPANY, and it
+separates them cleanly: of 119 bodies at or above 40 m, **117 have at least
+seven other tall buildings within 700 m and the two that read as holes have
+none.** So `TOWER_COMPANY_R = 700.0` / `TOWER_COMPANY_N = 1`, and a tower
+without company falls through to the same decision every other ring building
+gets — here `stone`. The index is built from `cands` after the curated heights
+and **before the cull and the dedup**, so a neighbour counts whether or not this
+file draws it; a tower deduped against the core is still standing there on
+screen.
+
+One building changes. **PR #137 ruled that the downtown palette is the half
+that matches its photograph, and this does not touch it** — measured below.
+
+### WHAT THE FRAMES SAY
+
+Masking the pixels that were under 130 luma in the BEFORE frame and reading the
+same pixel positions in the AFTER:
+
+| pose | px | before | after | far-band mean |
+|---|---|---|---|---|
+| `the-drag` | 952 | **106.6** (min 88.5) | **146.7** (min 116.1) | 156.4 |
+| `tower-south-mall` | 494 | **113.0** (min 101.0) | **162.9** (min 130.0) | 162.5 |
+
+From 32% below its surround to 6% below; from 30% below to level. In the wide
+crop the eye now goes to the Tower instead of to a hole on the skyline.
+
+### THE THING THIS PASS ACTUALLY FOUND — outer-facade-parity had been passing by luck
+
+Changing one tower's colour made `outer-facade-parity` **FAIL with 38 findings**:
+the browser put 47 towers in the bucket the bake put 27 in. Same seeds — checked,
+byte-identical seed indices and seed colours in both languages. The cause is
+that **`scripts/bake_outer_facades.py:dist2` was plain Euclidean and
+`js/facades.js:dist2` is weighted `2·dr² + 4·dg² + 3·db²`.** `clusterColours`
+has no distance of its own; it calls the module-level one.
+
+On the 243 **shipped** colours the two metrics happen to agree exactly — run
+both offline and they produce the identical partition `[29,20,15,32,27,24,34,6,25,31]`,
+which is why the check that exists to catch this reported PASS through eighteen
+merges. Moving one colour was enough to make Lloyd converge somewhere else.
+Corrected, Python reproduces the browser's partition on the new colours to the
+member: `[47,8,15,27,24,34,6,24,27,31]` on both sides, and
+`outer_facade_parity.py` says PASS.
+
+Blast radius of the metric fix alone, held against the shipped ring: **no tower
+changes bucket at all**; 37 of 725 `t=2` midrise features move one bucket. The
+midrise half has no browser counterpart to check against — `outer-facade-parity`
+only ever looks at towers, which is worth knowing.
+
+### DOWNTOWN DID NOT MOVE
+
+The re-clustering shifts bucket ordinals and moves the ten tower centroids by
+one to two levels, so downtown had to be photographed, not reasoned about.
+`day-downtown-skyline`, before against after, whole frame:
+
+```
+pixels differing by more than 8 luma   2,165 of 1,600,000   (0.135%)
+mean |d luma|                          0.116        max 42.9
+frame mean luma                        139.66  ->  139.64
+frame B-R  (the §74 metric)            -16.97  ->  -16.97
+```
+
+Identical to two decimals on the number PR #137's verdict rests on.
+
+### WHAT DID NOT WORK, AND WHAT WAS DELIBERATELY NOT DONE
+
+1. **A far-field luma clamp was the brief's suggested route and it is the wrong
+   one here.** The bake's only distance axis is `dist_inside_edge(lon, lat,
+   OUTER)` — metres to the edge of the BOX, over a 750 m band — so `fade` is 0
+   for this church and a fade-keyed clamp would never have touched it. A clamp
+   keyed on luma alone would have lifted downtown's dark glass and its 111
+   shopfront bands, which is exactly the intervention §74 measured and rejected.
+   Nothing in the far field is near-black once you look at what is there: two
+   features under 120 in the whole band.
+2. **The lone tower keeps `t=1`.** Considered making the company rule govern the
+   flag rather than only the colour, which would drop the curtain-wall pattern
+   from a church. It also drops the roof cap, changes the simplify tolerance,
+   changes the PASS D podium/crown, and removes the `-1e9` density rank that
+   keeps towers from being thinned — four behaviour changes for one aesthetic
+   one, on a submitted project. At 1600 px the building is 35 x 28 px and the
+   pattern only reads at 7x zoom. Colour only.
+3. **`pose.mjs` lost the browser twice** at `page.waitForTimeout: Target page,
+   context or browser has been closed`, once on a 2-pose run and once after
+   writing the first of two frames. Same failure §78 recorded for `tour.mjs`.
+   One pose per process got through every time.
+4. **`data/outer/outer_raw.geojson` is gitignored and was not in the worktree**,
+   so the bake could not run at all until it was copied across from the other
+   checkout. Before changing anything, a no-op rebake of both stages was
+   confirmed to reproduce the shipped `data/outer_ring.geojson`
+   **byte-for-byte** — that control is what made the later diffs readable.
+5. **This lane took `git worktree add` at `C:/Users/simip/Projects/austin-3d-outer`**
+   because the root checkout had another session's uncommitted `js/capitol.js`
+   in it and `git checkout` refused. §74's fifth finding, again, and it cost
+   nothing this time because it was done first. `scripts/verify/node_modules`
+   was junctioned in rather than reinstalled.
+
+### FILES
+
+`scripts/bake_outer.py` (the company rule, a printed count, and
+`towers_without_company` in the report), `scripts/bake_outer_facades.py` (the
+metric), and the three files those two own: `data/outer_ring.geojson`,
+`data/outer_tower_palette.json`, `data/outer/outer_report.json`. **The last two
+were not in this round's named write scope but are outputs of a script that
+was**, per CLAUDE.md rule 1 — a bake owns its output file. `js/outer.js` needed
+nothing. Tiles rebuilt from `data/outer_ring.geojson` after merge.
+
 ## 82. Aug 4 2026 — dusk disagreed with itself because three ramps rode the slider instead of the sun (acer lane)
 
 **Branch:** `acer/dusk-schedule`. **Sweep defect #4** (§78). Files: `js/sky.js`,
