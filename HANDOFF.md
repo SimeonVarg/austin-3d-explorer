@@ -1,5 +1,199 @@
 # Austin 3D Explorer — Full Handoff
 
+## 84. Aug 4 2026 — every door on the Forty Acres, and the generator that places them (acer lane)
+
+**Branch:** `acer/entrances`. **No PR yet** — the renderer lands on this same
+branch next. New files: `scripts/bake_entrances.py` (owns exactly one output),
+`data/entrances.geojson`. Nothing else was touched: no js, no html, no other
+data file. `replacedBuildingIds` is `[]` and stays that way.
+
+Implements the three specs in `docs/entrances/` — `placement.md` (where),
+`eras.md` (what it looks like), `celebrated.md` (the ones people look at). Those
+docs are read-only to this lane and none of their numbers were changed.
+
+### WHAT SHIPPED
+
+```
+584 entrances on 258 buildings, 10,051 pieces, 4.48 MB
+  by src    derived 519   osm 63   authored 2
+  by role   main 252   secondary 321   service 7   emergency 2   exit 2
+  by era    utility 413   modern 64   cret 54   midcentury 49   gilbert 4
+  by door   hinged-pair 668  hinged-quad 196  single 171  arched-pair 38
+            overhead 16  sliding 8
+  per building   min 1   median 2   mean 2.26   p90 4   max 10
+  18 in-scope buildings get NO door, and that list is the test passing
+```
+
+276 buildings in scope (campus rect, ≥250 m², ≥4 m, not a `roof` class, minus 18
+Drag frontages that `bake_places.py` already owns).
+
+**OSM recovery, printed on every run.** Stage 1's own nodes are excluded from
+the answer set or the number would be 100% and would measure nothing:
+
+```
+72 in-campus nodes, 66 of them on an in-scope building
+  <=  3 m   46/72 = 64%      of in-scope hosts  46/66 = 70%
+  <=  5 m   48/72 = 67%                         48/66 = 73%
+  <=  8 m   48/72 = 67%                         48/66 = 73%
+  <= 12 m   50/72 = 69%                         50/66 = 76%
+median position error 0.00 m   p75 15.64 m
+by role: main 9/13   yes 32/45   staircase 4/6   exit 2/2   emergency 1/6
+```
+
+The median of 0.00 m is the signature of the method working: when it hits, it
+hits the exact node, because the footway vertex OSM's mapper hung the entrance
+on is the vertex the derivation lands on. `placement.md` measured 78% on its own
+scope; 67/73% here, and the gap is honest — my stage 2 only runs on in-scope
+buildings, and 6 of the 72 nodes sit on something this pass deliberately skips.
+
+**Precision is NOT reported.** Against a source whose median building carries
+one mapped entrance while Gregory Gym manifestly has more than one door, it
+measures OSM, not us.
+
+### THREE BUGS THAT COST REAL RECALL, AND HOW EACH WAS CAUGHT
+
+1. **The approach gate was rejecting the best candidates it had.** A dead-end
+   footway that dies exactly ON the wall has `|out − door| ≈ 0`; `_norm` returns
+   `(0,0)`, the dot product is 0, and `n·v̂ ≥ NORMAL_MIN` throws it away. It was
+   discarding 296 of 490 raw candidates — 60% — and recall read **26%**. Falling
+   back to the way's own last segment for the direction took it to **67%** and
+   the rejection rate to the 40% `placement.md` measured. A near-perfect
+   candidate degenerating into a zero vector is not a gate doing its job.
+2. **Recall was first measured against the SHIPPED file and read 0%.** Clustering
+   deletes a derived candidate that landed on top of an OSM node — which is
+   precisely a *hit* — so every success scored as a miss. It now measures
+   `DERIVED_ALL`, the candidate set before the merge. Same family of mistake as
+   §4's `or 1e9` bug in `placement.md`, and it is now written into the docstring
+   so the next person does not re-learn it.
+3. **`ref=PAI` landed on a 20 m² greenhouse.** The centroid-in-polygon join took
+   the *first* containing footprint, and Overture nests rooftop structures inside
+   their host. Painter Hall's code went to the greenhouse, the greenhouse failed
+   the 250 m² scope test, and a tier-2 celebrated building silently vanished from
+   the pass. Caught by the per-run celebrated report, not by any total. Fixed by
+   preferring an exact name match, then the largest footprint, in both the
+   containment branch and the nearest-centroid fallback.
+
+**Waggener Hall had no main door.** All five of its OSM nodes are tagged
+`entrance=yes`, and `yes` does not mean "not the main entrance", it means the
+mapper did not say. The best-placed secondary is promoted; `src` still records
+that the position came from OSM.
+
+### THE CELEBRATED SET IS CHECKED BY NAME, EVERY RUN
+
+All 20 refs in the override table resolve to a footprint and every one has a
+`main`. This block prints on every bake, because "some of these are celebrated
+entrances" is the bar and a celebrated building that quietly got zero doors is a
+failure a total would average away:
+
+```
+T1 MAI UT Tower            10 {osm 3, derived 7}    inscription band, 2 pilasters
+T1 BTL Battle Hall          2 {authored 1, derived 1}  east portal, 2 lanterns
+T1 SUT Sutton Hall          2 {authored 1, derived 1}  NORTH portal (1982)
+T1 GRE Gregory Gym          5 {osm 1, derived 4}    arched, brick + cast stone
+T1 GAR Garrison Hall        2 {derived 2}           terracotta accent band
+T1 HRC Harry Ransom Center  3 {osm 1, derived 2}    wn #e8d9ae, the beacon
+T1 TMM Texas Memorial Mus.  2 {derived 2}           the bronze reference
+T1 BMA / LBJ                3 / 2                   arched loggia / no canopy
+T2 GDC 7 (osm 6) · WAG 5 (osm 5) · PCL 4 · UNB 4 · PAC 4 · GOL 2 · PAI 3
+       · HMA 1 · LFH 1
+T3 WEL 7 · JES 4
+```
+
+Only entries whose source gives an actual **coordinate** get an authored
+position — MAI (3 nodes), BTL, SUT, GRE, HRC. Five of those seven land on an
+OSM node and lose to it, keeping `src: osm`, which is the more honest
+provenance. Where `celebrated.md` gives a compass direction but no coordinate
+(the Union, TMM, Garrison, Hogg, Goldsmith) **nothing is authored** — a
+`facade` hint adds `FACADE_BONUS` to the publicness score on that side instead.
+Fabricating a coordinate to fill a hole in a source is the lie this pass exists
+not to tell.
+
+**Nothing uncited is carved.** `INSCRIPTIONS` holds the Main Building's twelve
+words and Garrison's six founders, both `[C]`, and nothing else. The Main
+Building's comma is unresolved between the Alcalde and Nicar; it is carved
+without one and flagged in the table. The Union carries no text at all, because
+none could be sourced.
+
+### THINGS THAT ARE TRUE ABOUT THE FILE THAT THE RENDERER MUST KNOW
+
+- **`h` IS A THICKNESS, NOT A TOP.** `data/places.geojson` stores `h` as the
+  absolute top of a band; the schema Simeon fixed for this file says "height of
+  this piece in metres", so here `fill-extrusion-height = base + h`. It
+  disagrees with places.geojson on purpose and it is the single most likely
+  thing for the renderer to get wrong.
+- **Glazing stands PROUD of its leaf** (`GLASS_PROUD` 0.02), it is not recessed.
+  There is no CSG here; a light recessed inside a solid leaf is a light nobody
+  can see. `placement.md`'s `GLASS_INSET` was reinterpreted as `FRAME_W`, the
+  u/z frame margin, and the reason is written at the constant.
+- **A reveal is not a hole.** Dark slab 0.02 m proud whose *colour* is the
+  shadow, plus two jamb returns that are the only real 3D depth. Depth is read
+  from value, exactly as `bake_arts.py` does for the Blanton arcade.
+- 0.48% of piece centroids (48 of 10,051) fall inside their host, all at concave
+  corners; 3 are deeper than 0.6 m and all three are one ramp beside Gregory's
+  west flight. Comparable to the 2.24% normal-test failure `placement.md`
+  measured, and left alone.
+- `base` 0.00–6.51 m, `h` 0.06–6.59 m. No NaN, no negative, no 60 m door. Every
+  piece has `wd`, `wg` and `wn`. `nm` is null on 17% of pieces (Overture has no
+  name and no OSM way joined).
+- **4.48 MB.** That is large but in family with `ground.geojson` (5.2 MB) and
+  well under `trees.geojson`. **It is a finding, not a problem to solve now:** if
+  the renderer's first frame budget suffers, this wants tiling.
+
+### WHAT I DID NOT MANAGE, AND WHAT I DELIBERATELY DID NOT DO
+
+1. **Nothing is rendered and nothing was measured in pixels.** There is no
+   `js/entrances.js`, so `harness-drift.mjs` and the pixel harness were not run —
+   there is no layer to sample. The playbook says build the
+   render→sample→assert harness as coding step one; on this branch that step
+   belongs to the renderer pass and it should come before the second portal is
+   tuned, not after the thirteenth.
+2. **The OSM tables are frozen INSIDE the bake, not cached to
+   `data/osm_cache/`.** This lane owns one output file and writing a second
+   would break lane rule 1. `load_osm()` prefers `data/osm_cache/entrances.json`
+   and `campus_buildings.json` automatically if a later pass ever writes them,
+   and `--refresh` re-queries `overpass.kumi.systems` and prints replacements.
+   The mirror is not a preference: `overpass-api.de` rate-limits after two
+   queries, and one of my three fetches timed out at 504 on the mirror too.
+3. **`era` and `mat` are authored and cannot be otherwise.** Zero
+   `building:material` and five `start_date` across 2,442 OSM building ways in
+   the bbox. Verified this run, not taken on faith.
+4. **The Main Building is at 10 doors, the highest count in the file, and I left
+   it.** `placement.md` flagged the same number. All ten are path- or OSM-derived
+   and the South Mall front, the Tower base and the four wings really do have
+   that many — but ten is where a budget stops meaning anything, and if `NMAX`
+   should bite it should bite here. That is a taste call, so it is Simeon's.
+5. **The recessed centre bay of the Main Building's south front is not modelled
+   as a recess.** `celebrated.md` traces the jog out of the OSM ring and it is
+   real; the portal is placed correctly *inside* it (the OSM `entrance=main`
+   node is within a metre of the run's midpoint) but the surrounding wings are
+   `bake_tower.py`'s geometry and this pass will not restate them.
+6. **Battle Hall's seven-arched loggia is still not drawn**, per `eras.md` §7.1 —
+   the sources contradict each other on whether it is Battle Hall or the Main
+   Building, and on whether it is the entrance at all. The two lanterns, which
+   *are* citable from Gilbert's own specification, are drawn.
+7. **The Blanton's petals are not drawn.** No petal count was ever established
+   and a wrong number is instantly visible from the air.
+8. **Sutton's vaulted arcade side is unresolved**, so only the north portal is
+   drawn. Putting a vaulted arcade on the wrong elevation is worse than omitting
+   it.
+9. **Ramps fire on 41 of 584 entrances.** At `RAMP_MIN_RISERS = 3` it was 228 —
+   a 6 m concrete ramp beside every three-riser stoop on campus, which is visual
+   noise, not accessibility. Raised to 4. One-line override if that reads wrong.
+10. **`steps` evidence disagrees with the doc and both numbers are printed.**
+    62 of 584 entrances have an OSM steps way within 12 m (11%); 124 of 378
+    steps-way ends land within 12 m of a placed door (33%). `placement.md`
+    measured 46% on the second statistic against its own candidate set. Not
+    chased — everything without steps evidence takes the `FLOOR_RISE` stoop
+    anyway, which is the doc's own fallback.
+11. **Precision, per §4 of the spec, was not computed at all.** Deliberate.
+
+Every taste value is a named module-level constant in the marked block at the
+top of `bake_entrances.py`, per CLAUDE.md rule 11 — riser height, rail diameter
+(over-scaled to 0.10 m on purpose, do not "fix" it to 0.038), glazing proudness,
+canopy projection per family, every material hex, and the five publicness
+weights. Nothing aesthetic is buried in a function body.
+
+
 ## 83. Aug 4 2026 — the black block on the horizon is a church, and the parity check had been passing by luck (acer lane)
 
 **Branch:** `acer/outer-far-clamp` (named before the diagnosis; nothing was
