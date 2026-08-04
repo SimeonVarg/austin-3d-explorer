@@ -101,6 +101,13 @@
   <script src="js/heroes.js"></script>
   <!-- Storefronts pass (docs/FOUR_MORE_PASSES.md), tag committed ahead of the code. -->
   <script src="js/places.js"></script>
+  <!-- Entrances (docs/entrances/*.md, scripts/bake_entrances.py). Self-booting
+       off window.__map like places.js; app.js never calls it. Loaded after the
+       building passes because it waits on `buildings-3d` before it adds its
+       layers — a door standing proud of a wall that does not exist yet is
+       invisible from every angle except straight down. KEEP IN SYNC WITH
+       _harness.html. -->
+  <script src="js/entrances.js"></script>
   <script src="js/shadows.js"></script>
   <script src="js/timeofday.js"></script>
   <script src="js/signs.js"></script>

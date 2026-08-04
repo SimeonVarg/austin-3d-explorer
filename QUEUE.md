@@ -316,6 +316,59 @@ the count, keep the rule.
 
 ---
 
+# PART L — the entrances are MERGED, and two buildings still need work
+
+PR #145 is merged. §86's five defects are all closed and re-measured in pixels
+in §89 of `HANDOFF.md` — PCL is at grade, the inscription is off by default and
+does not leak, the poles and the plank are gone, the four eras render four
+different glazings, and the night glass measures 2.4x to 3.4x its own frame's
+median luma with a channel spread of 46–81 (§86 measured spread 16). The
+before/after set a human should look at is `shots/entrances/final/`.
+
+Two buildings are left. Both are one building each, both were already flagged
+**[U]** in `docs/entrances/celebrated.md`, and neither was in §86's five.
+
+**L1. Gates-Dell's main entrance is buried inside a hero block.** The door point
+`-97.736684, 30.286256` is a **measured OSM `entrance=main` node** — the
+best-documented entrance on the celebrated list — and it falls INSIDE a
+`data/heroes.geojson` piece 28.7 m tall. So `scripts/bake_entrances.py` places
+it correctly against `buildings.geojson`, where it is outside every footprint,
+and then the hero pass draws a wall over the top of it. Measured: **0 entrance
+pixels from all 16 camera bearings tried**, and a camera 46 m west at 39 m up is
+inside the mass. Audited across the whole file, this is **1 of 584**. Fix in the
+bake: read `data/heroes.geojson` the way §87 taught the plaza check to read
+`ground.geojson`, and push a door that lands inside hero geometry out to the
+hero's own wall (or drop it and say so in the run's print). Picture:
+`shots/entrances/final/still-wrong-01-gates-dell-entrance-buried-inside-a-hero-block.jpg`.
+
+**L2. The Texas Union's "main" portal opens into a courtyard.** The door at
+`-97.740963, 30.286162` sits at the bottom of a deep notch in the Union's own
+footprint facing **north**, away from the West Mall. The placement is not
+broken — the notch is real and the door is properly on its wall — but that is
+not the mall front, and the Union is one of the two buildings Simeon named for
+carved inscriptions. `celebrated.md` §5.4 already says in bold *"Do not author
+this portal until someone looks"*. Someone has now looked and it is wrong.
+**This one needs a photograph before any code**: which elevation is the Union's
+main door on, and is there lettering on it. Picture:
+`shots/entrances/final/still-wrong-02-texas-union-main-door-is-in-a-courtyard-notch.jpg`.
+
+**L3. The Main Building's south portal is not in its recess.** Not one of §86's
+five, so it was never scoped, but `celebrated.md` §5.1 says in bold that the
+portal sits in a **recessed centre bay flanked by two projecting wings** and
+traces the OSM ring to prove it — "model the recess". The wall is flat. This is
+the most-photographed portal on campus and it is the one thing in the frame a
+person who has stood on the South Mall would notice.
+
+**Do not re-derive the poses.** §89 solved them: door position from
+`entrances.geojson` cross-checked against `celebrated.md`'s cited OSM nodes,
+`zoom = log2(91_190_745 / D)` for a wanted standoff D at 1440x900, and a
+magenta-mask pose search that asks the renderer whether the entrance is actually
+on screen. Note the trap it found: **an edge-normal sign test flips on these
+concave footprints** and will tell you ten entrances face backwards when a
+point-in-polygon probe says zero do.
+
+---
+
 ## Not negotiable
 
 1. **Never register a self-hosted GitHub runner.** Public repo.
