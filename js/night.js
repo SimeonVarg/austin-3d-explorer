@@ -219,9 +219,27 @@
     // now a gradient rather than a disc carries about half the light it did.
     CORE_MIN_PX: 1.6,
 
-    // Lamps come on through dusk, slightly before full night.
-    NIGHT_START: 0.58,
-    NIGHT_FULL: 0.85,
+    // ── WHEN THE LAMPS COME ON — now `js/sky.js`'s SKY_TUNE.DUSK ─────
+    //
+    // These two are the FALLBACK ONLY, for a page where sky.js failed to load.
+    // The schedule that actually runs is `skyBodies(p).lamps`, keyed to the
+    // sun's elevation, because a slider position is not a time of day and three
+    // different ramps in `p` is how dusk ended up disagreeing with itself.
+    //
+    // WHAT WAS WRONG. 0.58/0.85 put the slider's own midpoint at **14.8% lamp
+    // strength** — measured, and photographed: at p=0.62 `dusk-the-drag` has a
+    // single findable warm smudge on Guadalupe and West Campus has none, under
+    // a sky that is already showing stars. Worse, NIGHT_FULL 0.85 is the sun at
+    // **26.5° below the horizon**, which is well past the end of astronomical
+    // twilight — the city was still finishing switching on an hour after
+    // genuine night. The lamps were the last thing in the scene to arrive when
+    // they should be the first.
+    //
+    // These p-values are the sun-elevation curve's own crossings (+2° and -6°),
+    // so the fallback follows the same schedule rather than being a second
+    // opinion about it.
+    NIGHT_START: 0.54,
+    NIGHT_FULL: 0.622,
 
     MAX_POINTS: 12000,        // hard cap; generation warns if it ever trims
     IDLE_RETRIES: 5,          // querySourceFeatures can race tile loading
@@ -631,7 +649,11 @@
   window.applyNightLayer = function applyNightLayer(map, p) {
     if (!map || !map.getLayer) return;
     _lastP = p == null ? _lastP : p;
-    const t = Math.max(0, Math.min(1,
+    // One schedule for every artificial light in the scene — see LIGHTS above
+    // and SKY_TUNE.DUSK in js/sky.js. The p-ramp is only reached if sky.js is
+    // missing, in which case there is no sun arc to key off.
+    const B = (typeof window.skyBodies === 'function') ? window.skyBodies(_lastP) : null;
+    const t = (B && typeof B.lamps === 'number') ? B.lamps : Math.max(0, Math.min(1,
       (_lastP - LIGHTS.NIGHT_START) / (LIGHTS.NIGHT_FULL - LIGHTS.NIGHT_START)));
     try {
       if (map.getLayer(POOL)) {
