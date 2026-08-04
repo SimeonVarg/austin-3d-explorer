@@ -1,5 +1,206 @@
 # Austin 3D Explorer — Full Handoff
 
+## 89. Aug 4 2026 — I photographed the entrances properly and MERGED PR #145 (acer lane)
+
+**Branch:** `acer/entrances`, **PR #145 MERGED**, branch deleted. **Files
+written:** `shots/entrances/final/`, this entry and `QUEUE.md`. No code, no
+data — §87 fixed the bake and §88 fixed the renderer; this pass only had to
+look, and then decide.
+
+`git rev-list --left-right --count origin/main...acer/entrances` = **0 6**, so
+`main` had nothing the branch did not, the merge was a fast-forward, and the
+tree I measured IS the merged tree. Setup: `harness-drift.mjs` **PASS, 28
+scripts in each file**, run before any pixel. `python scripts/serve.py 8243`,
+`_harness.html?intro=0&drift=0`, 1440x900, swiftshader,
+`cancelGraphicsAutoDetect()` at the top of every run, **one browser at a time**,
+reaped and the server killed at the end. **Zero console errors across four
+browser runs.**
+
+### THE POSES WERE THE FIRST HALF OF THE JOB
+
+§86's frames are largely unusable — the camera is inside a wall or jammed on a
+facade — so the whole set was re-posed before anything was judged.
+
+**The coordinates were looked up, not guessed.** Every door position comes out
+of `data/entrances.geojson` itself and was then checked against the OSM nodes
+`docs/entrances/celebrated.md` cites: MAI `-97.739416, 30.285758`, GRE
+`-97.736835, 30.284008` and GDC `-97.736684, 30.286256` match the published
+`entrance=main` nodes to 1e-6 deg, and BTL/SUT match that file's derived
+centre-of-wall to about 2 m.
+
+**Framing is arithmetic, not taste.** MapLibre's camera-to-centre distance is
+`(viewportH/2)/tan(fov/2)` = **1350 px** at 900 px tall and the default 36.87°
+fov, and metres per pixel is `78271.517·cos(lat)/2^zoom` — the **512-px tile**
+constant, not the 256-px one every tutorial quotes (`js/controls.js` records
+that trap; it is exactly 2x). So a wanted standoff D fixes the zoom:
+`zoom = log2(91_190_745 / D)`. A portal 4.4 m tall then lands at
+`4.4·sin(pitch)/mPerPx` pixels — **sin, not cos**, same as §88's lift.
+
+**Guessing the standoff put three cameras inside buildings.** 48 m back at 15 m
+up is inside something on this campus more often than not: Sutton Hall's north
+portal faces a **13 m** slot between Sutton and Battle, so the camera stood
+inside Battle Hall. I replaced the guess with a solver — camera outdoors, sight
+line to the door clear of every footprint, portal 85–230 px — which fixed five
+of eight and **was still wrong on three**, because it reads `overture_height`
+out of `buildings.geojson` and the app does not draw all of its buildings from
+that file.
+
+**So the last word is the renderer's.** `posesearch.mjs` paints
+`entrances-glass` and `entrances-door` magenta, reads the canvas back, and
+counts the pixels near the centre of frame. A pose with no magenta is a pose
+with no visible entrance, whatever the geometry says. That is what finally
+placed Welch (1,936 px dead centre) and what proved Gates-Dell is not visible
+from Speedway at **any** of 16 bearings.
+
+### THE FIVE DEFECTS, ONE AT A TIME
+
+**1. PCL is not a table, and nothing floats.** `after-10` and `after-11`: a
+canopy over a glazed storefront **at grade**, with the concrete stack above it.
+§87's bake prints `4 plaza requests, 0 kept, 4 dropped to ground` every run and
+`floating sills 0 of 584`. Independently re-checked here across all 584: no
+step run of any length ends up inside its host.
+
+**2. The inscription is off by default and it does not leak.** `entrancesStats()
+.inscriptionsDrawn` is **false**; the words are still carried in full and are
+right. `after-01`/`after-02` are the Main Building's own south front with no
+text on it, and `after-16`, `after-17`, `after-18` are the two frames that used
+to catch it — the Flawn Academic Center / Battle Hall pose that produced
+`shots/entb-BTL-night.png`, and Jester, both clean day and night. What is left
+in its place is the carved band, darkened toward its own shadow.
+
+**3. The poles are gone and so is the plank.** `after-05` at 6x: an arch with
+terracotta spandrels and a keystone, cheek walls, a bank of leaves under a
+glazed transom, nothing standing in front of the doors and nothing hanging off
+the top. **The two dark objects either side of Battle's portal are not poles** —
+they are the wrought-iron lanterns `celebrated.md` cites from Gilbert's own
+specification and says in those words to model. They read as lozenges rather
+than lanterns, which §87 left alone deliberately because shape is taste.
+
+**4. The four eras do look different.** Measured on screen, not read off a
+table: Gilbert leaded at Battle **rgb(61,67,72)**, Cret at the Main Building
+**rgb(73,82,88)**, mid-century plate green at Welch and PCL, modern at
+Gates-Dell. 20 distinct glazing values in the file, top share 14.6%, against
+§86's 1,103-of-1,139 single cornflower.
+
+**5. The night glass is lit, and here are the numbers.** Magenta-masked so the
+pixel set is the layer's own and not a hand-picked box, at `tod 0.92`:
+
+    Main Building  rgb(133, 98,60)  luma 102.9  frame median 46.0   R/B 2.21  spread 73
+    Battle Hall    rgb(136,112,90)  luma 115.6  frame median 41.6   R/B 1.51  spread 46
+    Sutton Hall    rgb(141,104,62)  luma 109.1  frame median 37.8   R/B 2.28  spread 79
+    Gregory Gym    rgb(143,107,71)  luma 112.2  frame median 33.3   R/B 2.01  spread 72
+    PCL            rgb(143,109,62)  luma 112.8  frame median 33.6   R/B 2.31  spread 81
+    Welch Hall     rgb(131, 97,55)  luma 101.2  frame median 34.8   R/B 2.38  spread 76
+
+§86 measured **rgb(134,121,118), R/B 1.14, channel spread 16**. The glass is now
+**2.4x to 3.4x its own frame's median luma** with a channel spread of 46–81.
+**Brightness was never the defect — §86's reading was BRIGHTER than four of
+these.** Warmth was, and warmth is what moved. The same Battle glazing by day is
+`rgb(61,67,72)`, R/B 0.84: blue by day, warm by night, off one `wd`/`wn` pair.
+The warm ground pool is untouched and is still the best thing in the night
+frame — `after-13` is the clearest.
+
+**On `night-pale.mjs`: I did not run it and would not quote it if I had.** Its
+threshold is **PALE = 120** and its pose is fixed at the stadium at z16.2, where
+a door is two pixels. Against a night frame whose median luma is in the 30s a
+clean run there says nothing about this layer, which is exactly the trap §86
+wrote down. The masked numbers above are the evidence.
+
+### WOULD SOMEONE WHO HAS WALKED PAST IT RECOGNISE IT?
+
+The bar Simeon set with "celebrated". Judged against
+`docs/entrances/celebrated.md`, which was written from photographs.
+
+- **Battle Hall east portal — YES.** Arch, cheek walls, oak leaves, fanlight,
+  terracotta at the surround, a lantern each side. Everything the source names
+  for the portal is there.
+- **The Main Building south portal — YES for the door, NO for the bay.** Four
+  bronze leaves, transom, monumental full-width flight, the inscription course
+  above it. But `celebrated.md` says in bold that it sits in a **recessed centre
+  bay flanked by two projecting wings** — "model the recess" — and the wall is
+  flat. That is the one thing a person standing on the South Mall would miss.
+- **Gregory Gym — YES, and not because of this pass.** `after-08` is the famous
+  west end: one full-width brick pediment with three enormous arches cut into
+  it. That is `data/building_overrides.json` and `bake_roofs.py`, not the
+  entrance file, and the entrance file's own portal is *behind* those arches and
+  barely reads. Right answer, wrong author.
+- **Sutton Hall north portal — PARTLY.** The 1982 north door is on the right
+  face, arched, with lanterns. The **double vaulted arcade with polychrome
+  mosaics** — the reason the building is on the list — is not modelled, and
+  `celebrated.md` says not to model it until someone resolves which elevation it
+  is on. Fair, and still missing.
+- **Welch Hall (the ordinary one) — YES.** `after-12`/`after-13`: a thin flat
+  canopy over a glazed band with the walkway running into it, and at night a
+  lit band with a pool on the path. This is the best drawing in the pass.
+
+**The buildings themselves are the weak half, and that is not this PR.** Battle
+Hall renders as a six-storey grid of identical punched windows with no arcade of
+five great arched windows and no bracketed eaves. The portal is right and the
+building around it is generic. Nothing on this branch causes that.
+
+### TWO THINGS THIS PASS FOUND THAT §86 DID NOT
+
+**A. Gates-Dell's main entrance is buried inside a hero block.** `still-wrong-01`
+is Speedway looking east at Gates-Dell: dark glass, trees, no door. The masked
+count is **0 entrance pixels from all 16 bearings tried**, and a camera 46 m
+west at 39 m up is *inside* the mass. Cause, measured: the door point
+`-97.736684, 30.286256` — a **measured OSM `entrance=main` node**, the
+best-documented entrance on the celebrated list — falls inside a
+`data/heroes.geojson` piece **28.7 m tall**. The entrance bake places against
+`buildings.geojson`, where the point is correctly outside every footprint, and
+the hero pass then draws a wall over it. **Audited across the whole file: 1 of
+584.** Contained, and worth fixing.
+
+**B. The Texas Union's "main" portal opens into a courtyard.** `still-wrong-02`:
+the door at `-97.740963, 30.286162` sits at the bottom of a deep notch in the
+Union's own footprint, facing **north**, away from the West Mall. It is not a
+bug in the placement — the notch is real and the door is properly on its wall —
+but it is not the mall front either. `celebrated.md` already says, in bold,
+*"Do not author this portal until someone looks"* and flags it as the document's
+biggest hole. Someone has now looked: it is wrong, and it needs a photograph.
+
+### A FALSE ALARM WORTH WRITING DOWN
+
+I first tested "does this entrance face out of its wall?" with an edge-normal
+sign test — pick the normal pointing away from the ring centroid. **On a concave
+footprint that flips**, and it reported **10 backwards entrances including the
+Union's and two of the Main Building's**. Re-asked as a point-in-polygon probe
+1.5 m along the step run, the answer is **0 of 47** entrances with a real flight.
+Every one of the ten was the sign test failing, or a step centroid offset by
+0.3 m where the direction is noise. **Do not use a centroid-side normal test on
+this campus's footprints.**
+
+### WHY I MERGED
+
+Every defect that held the branch out is closed and measured in pixels rather
+than in an expression. The placement §86 praised is intact, the cost is still
+0.27 MB gzipped and inside the frame-time noise floor, and 258 buildings gain a
+door. The two findings above are one building each, both already flagged **[U]**
+in the spec as unverified, and neither puts a wrong thing on screen — one is
+invisible, one is in the wrong courtyard. Holding 584 doors out for that would
+cost more than it saves. They are in `QUEUE.md` as **PART L**, which is now a
+two-item list instead of a five-item one.
+
+### WHAT I DID NOT FIX
+
+1. **Gates-Dell and the Union are not fixed**, only diagnosed. Both need the
+   bake, which this pass may not write. PART L.
+2. **The Main Building's recessed centre bay is still flat**, and it is the
+   most-photographed portal on campus. Not in §86's five, so it was never
+   scoped; it is the first thing I would do next.
+3. **No `entrances-*` verify script exists.** Third pass in a row to say so.
+   Everything above lives in throwaway scripts; `entrancesStats()` and
+   `entrancesGateState()` are the hooks, and the pose solver and the magenta
+   pose search are the two pieces worth keeping.
+4. **I did not re-measure frame cost.** §86's measurement stands: +12 dropped
+   frames against a within-config spread of 24, i.e. no result.
+5. **The West Mall wide shot is poor** — the camera ends up over the Union's
+   roof. `after-16` is the West Mall frame that works, and it was originally
+   shot as an inscription-leak check.
+6. **`mPerPx()` in `js/entrances.js` and `js/night.js` is still 2x wrong** for
+   the light pools, exactly as §88 left it. Every ground pool in this repo is
+   half its nominal metres. That is a taste call for whoever owns `js/night.js`.
+
 ## 88. Aug 4 2026 — the inscription stopped being a map label, and the night glass was checked in pixels rather than in the expression (acer lane)
 
 **Branch:** `acer/entrances`, still PR #145. **One file written:** `js/entrances.js`,

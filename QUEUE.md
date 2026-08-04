@@ -316,54 +316,56 @@ the count, keep the rule.
 
 ---
 
-# PART L — the entrances are built but NOT merged (PR #145 open)
+# PART L — the entrances are MERGED, and two buildings still need work
 
-`acer/entrances` puts a door on 258 campus buildings and the placement is
-genuinely good — every door 0.14 m proud of its wall, normals on the campus
-grid, 0.40% of pieces inside their host. It costs nothing: **0.27 MB gzipped**
-and no frame-time delta above the noise floor. It is held out for five visible
-defects, all measured in §86 of `HANDOFF.md`, none of which the reviewing lane
-could write. Ordered by how much they hurt a screenshot.
+PR #145 is merged. §86's five defects are all closed and re-measured in pixels
+in §89 of `HANDOFF.md` — PCL is at grade, the inscription is off by default and
+does not leak, the poles and the plank are gone, the four eras render four
+different glazings, and the night glass measures 2.4x to 3.4x its own frame's
+median luma with a channel spread of 46–81 (§86 measured spread 16). The
+before/after set a human should look at is `shots/entrances/final/`.
 
-**L1. PCL's four doors hang 3.68 m in the air with nothing under them.**
-`scripts/bake_entrances.py:600` — `risers=0, plaza_z=3.46`. The note is right
-(PCL's entrance really is on the second floor off a plaza) but the ground pass
-never builds that plaza, so it renders as a table. Either draw the plaza deck
-here (a slab at 3.46 m from the wall out to the plaza edge, with its own steps)
-or drop the doors to grade until the ground pass provides it. Picture:
-`shots/entrances/day2/z-pcl-floating-doors.png`.
+Two buildings are left. Both are one building each, both were already flagged
+**[U]** in `docs/entrances/celebrated.md`, and neither was in §86's five.
 
-**L2. The Main Building's inscription label sits across its own doors.**
-`js/entrances.js`, the `entrances-inscription` symbol layer. The text is right
-and *being a label rather than carving is the right call* — it is anchored at
-door height instead of on the frieze above. Give the label a vertical offset (or
-anchor it to the `sign` band's top, base 5.16 + h 1.10) and it stops reading as
-debug UI. `shots/entrances/day2/z-mai-label-over-doors.png`.
+**L1. Gates-Dell's main entrance is buried inside a hero block.** The door point
+`-97.736684, 30.286256` is a **measured OSM `entrance=main` node** — the
+best-documented entrance on the celebrated list — and it falls INSIDE a
+`data/heroes.geojson` piece 28.7 m tall. So `scripts/bake_entrances.py` places
+it correctly against `buildings.geojson`, where it is outside every footprint,
+and then the hero pass draws a wall over the top of it. Measured: **0 entrance
+pixels from all 16 camera bearings tried**, and a camera 46 m west at 39 m up is
+inside the mass. Audited across the whole file, this is **1 of 584**. Fix in the
+bake: read `data/heroes.geojson` the way §87 taught the plaza check to read
+`ground.geojson`, and push a door that lands inside hero geometry out to the
+hero's own wall (or drop it and say so in the run's print). Picture:
+`shots/entrances/final/still-wrong-01-gates-dell-entrance-buried-inside-a-hero-block.jpg`.
 
-**L3. Two brown poles stand in front of every arched portal.** The reveal's jamb
-returns draw outboard of the steps at Battle Hall and Sutton Hall. Same crop:
-the terracotta top course (`#ad5833`) floats over the arch as a plank, and the
-two Gilbert lanterns are unattached lozenges out on the blank wall.
-`shots/entrances/day2/z-battle-portal.png`.
+**L2. The Texas Union's "main" portal opens into a courtyard.** The door at
+`-97.740963, 30.286162` sits at the bottom of a deep notch in the Union's own
+footprint facing **north**, away from the West Mall. The placement is not
+broken — the notch is real and the door is properly on its wall — but that is
+not the mall front, and the Union is one of the two buildings Simeon named for
+carved inscriptions. `celebrated.md` §5.4 already says in bold *"Do not author
+this portal until someone looks"*. Someone has now looked and it is wrong.
+**This one needs a photograph before any code**: which elevation is the Union's
+main door on, and is there lettering on it. Picture:
+`shots/entrances/final/still-wrong-02-texas-union-main-door-is-in-a-courtyard-notch.jpg`.
 
-**L4. 97% of the glazing on campus is one blue.** 1,103 of 1,139 `glass` pieces
-and 247 of 259 `transom` pieces are `#4f86b4`; 892 of 1,097 door leaves are
-aluminium grey. One saturated cornflower on Gilbert limestone, Cret, midcentury
-and modern alike. It is a per-era colour table in the bake, so it is a small
-edit with a large payoff — this is the difference between "a door" and "that
-door".
+**L3. The Main Building's south portal is not in its recess.** Not one of §86's
+five, so it was never scoped, but `celebrated.md` §5.1 says in bold that the
+portal sits in a **recessed centre bay flanked by two projecting wings** and
+traces the OSM ring to prove it — "model the recess". The wall is flat. This is
+the most-photographed portal on campus and it is the one thing in the frame a
+person who has stood on the South Mall would notice.
 
-**L5. At night the glass is not actually lit — only the ground pool is.** The
-paint expression is correct (verified by reading it back off the running style);
-the pixels are not. Main Building south portal at `tod 0.92`: **rgb 134,121,118,
-luma 124 against a frame median of 45** — a pale neutral panel, not a warm
-vestibule. Suspect the night light on the fill-extrusion layer. The pool is
-warm, works, and is the best thing in the pass — do not change it.
-
-**Do not re-derive any of this.** The A/B pairs are already shot at twelve
-looked-up poses, day and night, in `shots/entrances/day2/` and
-`shots/entrances/night2/` — every `-OFF.png` is the same pose on the same page
-load with the five layers hidden.
+**Do not re-derive the poses.** §89 solved them: door position from
+`entrances.geojson` cross-checked against `celebrated.md`'s cited OSM nodes,
+`zoom = log2(91_190_745 / D)` for a wanted standoff D at 1440x900, and a
+magenta-mask pose search that asks the renderer whether the entrance is actually
+on screen. Note the trap it found: **an edge-normal sign test flips on these
+concave footprints** and will tell you ten entrances face backwards when a
+point-in-polygon probe says zero do.
 
 ---
 
