@@ -70,6 +70,7 @@
   "kept": 7625,
   "towers": 114,
   "midrise": 645,
+  "towers_without_company": 1,
   "dropped_too_small": 39179,
   "dropped_duplicate": 434,
   "height_source": {

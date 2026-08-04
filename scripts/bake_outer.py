@@ -98,6 +98,31 @@ AREA_FLOOR = 115.0              # m^2 at an anchor's edge (a small house is ~150
 AREA_PER_KM = 170.0             # m^2 of extra threshold per km of distance
 AREA_HARD_MIN = 40.0            # nothing smaller than this, ever (sheds, carports)
 TOWER_H = 40.0                  # at/above: the exception that gets the atlas
+
+# ── A TOWER NEEDS COMPANY ─────────────────────────────────────────────
+# TOWER_MIX below is a DOWNTOWN palette and its own comment says so: "eyeballed
+# against the real skyline from the south shore". `material_for` applied it on
+# HEIGHT ALONE, so anything over TOWER_H anywhere in the 9 x 8 km box drew
+# curtain wall — including a Baptist church in Hyde Park.
+#
+# That church IS the black block on the horizon in day-the-drag and
+# day-tower-south-mall. 48 m at 39th and Speedway, 2 km north of the campus
+# camera, it drew `glass_dark` and rendered at wall luma 113.9 with a crown at
+# 89.1 and a roof cap at 74.2, alone in a low-rise carpet whose area-weighted
+# day mean is 186.7. A tower palette makes a skyline read; one tower wearing it
+# in a field of bungalows reads as a hole punched in the field.
+#
+# Overture gives that footprint NO class at all (`num_floors: None`, nothing
+# else), so no class rule can reach it. The one signal in the data that tells a
+# skyline from a lone tall building is COMPANY, and it separates them cleanly:
+# of 119 bodies at or above TOWER_H, 117 have at least seven other tall
+# buildings within 700 m and the two that read as holes have NONE.
+#
+# This is deliberately the narrowest rule that covers the class. PR #137 proved
+# the downtown palette is the half that matches its photograph, so nothing
+# inside a cluster moves — no downtown tower changes by one level.
+TOWER_COMPANY_R = 700.0         # m — how far away another tower still counts
+TOWER_COMPANY_N = 1             # this many neighbours, or it is not a skyline
 # ── the downtown streetwall ───────────────────────────────────────────
 # The second exception, and the reason for it is a photograph. PR #99 gave the
 # 114 towers podiums, setbacks and crowns; everything under 40 m stayed a flat
@@ -684,14 +709,20 @@ CIVIC_CLASSES = {"commercial", "retail", "industrial", "office", "civic",
                  "college", "church", "chapel", "hotel", "museum", "supermarket"}
 
 
-def material_for(cls, h, area, lon, lat, key):
+def material_for(cls, h, area, lon, lat, key, company):
     """Six tones, chosen by class where OSM gives one and by size where it does
     not. 95% of the Overture rows in this box carry `class = NULL`, so the
-    fallbacks matter far more here than they do in the core."""
+    fallbacks matter far more here than they do in the core.
+
+    `company` is how many OTHER buildings at or above TOWER_H stand within
+    TOWER_COMPANY_R — see the note there. It is a required argument rather than
+    a defaulted one on purpose: a caller that forgets it should fail loudly,
+    not silently repaint the whole skyline.
+    """
     cls = (cls or "").lower()
     if "parking" in cls or "garage" in cls or "carport" in cls:
         return "deck"
-    if h >= TOWER_H:
+    if h >= TOWER_H and company >= TOWER_COMPANY_N:
         roll = stable01(key + ":t")
         acc = 0.0
         for name, w in TOWER_MIX:
@@ -1384,7 +1415,34 @@ def main():
     print(f"  curated heights applied to {n_curated} footprints "
           f"({n_curated_missed} found no footprint)")
 
+    # ── the company index, for the curtain-wall rule ─────────────────
+    # Built from `cands` AFTER the curated heights land, so it uses the same
+    # heights the emit does, and BEFORE the cull and the dedup, so a neighbour
+    # counts whether or not THIS file ends up drawing it: a tower deduped
+    # against the core is still standing on screen next to this one, drawn by
+    # js/buildings.js. Company is about what the eye sees, not about which
+    # geojson owns it.
+    tall_pts = [((c["lon"] - OUTER["minlon"]) * M_LON,
+                 (c["lat"] - OUTER["minlat"]) * M_LAT)
+                for c in cands if c["h"] >= TOWER_H]
+
+    def tower_company(lon, lat):
+        """How many OTHER buildings >= TOWER_H stand within TOWER_COMPANY_R."""
+        x = (lon - OUTER["minlon"]) * M_LON
+        y = (lat - OUTER["minlat"]) * M_LAT
+        r2 = TOWER_COMPANY_R ** 2
+        n = 0
+        for px, py in tall_pts:
+            dx, dy = px - x, py - y
+            d2 = dx * dx + dy * dy
+            if d2 <= 1.0:
+                continue                 # itself
+            if d2 <= r2:
+                n += 1
+        return n
+
     # ── PASS C: cull, dedup, simplify, colour, emit ──────────────────
+    n_lone_tower = 0
     for c in cands:
         best_ring_m, best_area = c["ring"], c["area"]
         lon, lat, h, src, cls = c["lon"], c["lat"], c["h"], c["src"], c["cls"]
@@ -1440,7 +1498,10 @@ def main():
 
         # ── colour ───────────────────────────────────────────────────
         key = p.get("id") or f"{lon:.5f},{lat:.5f}"
-        mat = material_for(cls, h, best_area, lon, lat, key)
+        company = tower_company(lon, lat) if is_tower else 0
+        if is_tower and company < TOWER_COMPANY_N:
+            n_lone_tower += 1
+        mat = material_for(cls, h, best_area, lon, lat, key, company)
         base = PALETTE[mat]
         # +-6% lightness so a block of identical class is not one flat slab.
         j = (stable01(key + ":j") - 0.5) * 0.12
@@ -1569,6 +1630,7 @@ def main():
         "outer_bbox": OUTER, "core_bbox": CORE, "downtown_bbox": DOWNTOWN,
         "raw_candidates": len(feats),
         "kept": kept, "towers": n_tower, "midrise": n_midrise,
+        "towers_without_company": n_lone_tower,
         "dropped_too_small": n_small, "dropped_duplicate": n_dedup,
         "height_source": n_over_h,
         "podium_rule_examples": podium_examples,
@@ -1618,7 +1680,9 @@ def main():
     except Exception as exc:  # noqa: BLE001 -- provenance, not a build step
         print(f"  [warn] could not update manifest.json: {exc}")
 
-    print(f"  kept {kept} of {len(feats)}  ({n_tower} towers >= {TOWER_H} m)")
+    print(f"  kept {kept} of {len(feats)}  ({n_tower} towers >= {TOWER_H} m, "
+          f"{n_lone_tower} of them with no company inside "
+          f"{TOWER_COMPANY_R:.0f} m and so NOT curtain wall)")
     print(f"  dropped: {n_small} below the area threshold, {n_dedup} duplicates")
     print(f"  heights: {n_over_h}")
     print(f"  vertices {verts_in} -> {verts_out} ({report['vertices_saved_pct']}% fewer)")

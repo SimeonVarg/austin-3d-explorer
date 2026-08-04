@@ -229,7 +229,25 @@ def to_hex(c):
 
 
 def dist2(a, b):
-    return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+    """js/facades.js:dist2 — WEIGHTED, 2/4/3 on R/G/B, not plain Euclidean.
+
+    THIS WAS PLAIN EUCLIDEAN AND THE PARITY CHECK PASSED ANYWAY, which is worth
+    writing down: two different metrics agreed on the partition of the 243
+    shipped colours by luck, and the check that exists to catch exactly this
+    reported PASS every time it was run. It only fell over when ONE tower's
+    colour moved — Lloyd then converged somewhere else, the browser put 47
+    towers in the bucket the bake put 27 in, and `outer-facade-parity` failed
+    with 38 findings on a change that had nothing to do with clustering.
+
+    A transcription is only correct against the function it transcribes, and
+    `clusterColours` does not have its own distance — it calls the module-level
+    `dist2`, which is weighted because green carries the luminance. Both places
+    the browser measures a colour distance (the Lloyd assignment inside
+    `clusterColours`, and the bucket pick in `quantiseOuterFacades`) call this
+    one function, so one definition here covers both.
+    """
+    dr, dg, db = a[0] - b[0], a[1] - b[1], a[2] - b[2]
+    return 2 * dr * dr + 4 * dg * dg + 3 * db * db
 
 
 def nearest(p, cents):
