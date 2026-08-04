@@ -174,12 +174,65 @@
     IDLE_RETRIES: 5,          // querySourceFeatures can race tile loading
   };
 
+  /**
+   * ── THE TOWER'S OWN LIGHT ON THE GROUND ──────────────────────────────
+   *
+   * *"Is there a way that this can actually be light instead of a colored
+   *   surface? the base around it is too dark."*
+   *
+   * The honest answer to the first half is no, and it is worth writing down
+   * so nobody spends another session looking for the switch. MapLibre has ONE
+   * global directional light (`map.setLight`), no point lights, and no
+   * emissive term in the fill-extrusion shader — a face's colour is its own
+   * colour multiplied by that one light, so a surface cannot be brighter than
+   * the scene's exposure no matter what hex it carries. Measured at night in
+   * js/tower.js: a lit face tops out near 103/255, and the bloom in
+   * js/graphics.js thresholds with `contrast(4)` at 0.375, so 103/255 = 0.40
+   * sits on the line and the halo moves by 0.2 of one level across the entire
+   * range from #040404 to #ffffff. There is no glow to buy.
+   *
+   * What IS available, and what each costs:
+   *
+   *   1. A glow SPRITE behind the tower — a symbol layer with a radial
+   *      gradient icon. Rejected. A symbol is screen-space: it does not take
+   *      the tower's occlusion, so it draws over the buildings in front of it
+   *      or vanishes behind them depending on layer order, and its size is in
+   *      pixels, so it swims against the building as you fly. It reads as a
+   *      decal on the lens, not as light in the city.
+   *   2. A LIT GROUND POOL beneath it. Taken. It is the same primitive the
+   *      1,039 streetlights in this file already use, it lies on the ground
+   *      with `circle-pitch-alignment: map` so perspective is correct, and it
+   *      goes UNDER the building extrusions so the Main Building occludes the
+   *      middle of it and only the spill onto the malls and lawns shows. That
+   *      is what 96 kW of uplighting actually does to the ground it stands on.
+   *   3. Brighter neighbouring SURFACES to imply spill. Also taken, but in
+   *      js/tower.js where the surfaces are (NIGHT.BASE — the Main Building's
+   *      attic, roofs and entablature now take the base floods' backspill).
+   *
+   * 2 and 3 together are what a real floodlit building gives an observer: you
+   * do not see the light, you see everything near it lit. Every value here is
+   * a one-line override.
+   */
+  const TOWER_POOL = {
+    on: true,
+    // The shaft's own centre, from data/tower.geojson's shaft ring.
+    AT: [-97.73932, 30.28625],
+    RADIUS_M: 115,            // ground radius; the Main Building is ~80 m wide,
+                              // so this spills 40-75 m onto the malls
+    COLOR: '#ff9c42',         // the shaft's own circuit, warmer for the grass
+    OPACITY: 0.30,
+    BLUR: 1.0,                // fully soft — a pool with an edge is a disc
+    MIN_ZOOM: 13,
+  };
+
   // Backstop for a map that never goes idle — see initNight.
   const IDLE_FALLBACK_MS = 6000;
 
   const SRC = 'night-streetlights';
   const POOL = 'night-streetlight-pool';
   const CORE = 'night-streetlight-core';
+  const TSRC = 'night-tower-pool';
+  const TPOOL = 'night-tower-pool-fill';
 
   const M_LAT = 110540;
   const mLon = lat => 111320 * Math.cos(lat * Math.PI / 180);
@@ -280,6 +333,41 @@
         },
       }, beforeId);
     }
+    // The Tower's pool. Its own source, so it can never be caught by the
+    // streetlight tier match, and one point — there is one UT Tower.
+    if (TOWER_POOL.on && !map.getSource(TSRC)) {
+      map.addSource(TSRC, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [{
+          type: 'Feature', properties: {},
+          geometry: { type: 'Point', coordinates: TOWER_POOL.AT },
+        }] },
+      });
+    }
+    if (TOWER_POOL.on && !map.getLayer(TPOOL)) {
+      map.addLayer({
+        id: TPOOL, type: 'circle', source: TSRC, minzoom: TOWER_POOL.MIN_ZOOM,
+        paint: {
+          'circle-pitch-alignment': 'map',
+          'circle-color': TOWER_POOL.COLOR,
+          'circle-blur': TOWER_POOL.BLUR,
+          // Authored in ground metres for the same reason POOL_GROUND_M is,
+          // and a plain top-level zoom interpolate for the same reason too —
+          // a rejected paint expression takes the whole layer down silently.
+          'circle-radius': towerRadiusExpr(),
+          'circle-opacity': 0,   // driven by applyNightLayer
+        },
+      }, beforeId);
+    }
+  }
+
+  /** TOWER_POOL.RADIUS_M in ground metres, converted at each zoom stop. */
+  function towerRadiusExpr() {
+    const stops = [];
+    for (const z of [13, 15, 17, 19.5]) {
+      stops.push(z, +(TOWER_POOL.RADIUS_M / mPerPx(z)).toFixed(2));
+    }
+    return ['interpolate', ['exponential', 1.7], ['zoom'], ...stops];
   }
 
   function mixHex(a, b, t) {
@@ -490,6 +578,9 @@
       if (map.getLayer(CORE)) {
         map.setPaintProperty(CORE, 'circle-opacity',
           ['*', LIGHTS.CORE_OPACITY * t, ['number', ['get', 'ob'], 1]]);
+      }
+      if (map.getLayer(TPOOL)) {
+        map.setPaintProperty(TPOOL, 'circle-opacity', TOWER_POOL.OPACITY * t);
       }
     } catch (err) { /* layers not ready yet */ }
   };
