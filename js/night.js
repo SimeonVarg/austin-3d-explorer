@@ -112,18 +112,61 @@
     EDGE_DESAT: 0.45,          // how far the edge lamp moves toward white
     CORE_OPACITY_BOOST: 0.22,  // core lamps also read a touch stronger
 
+    // ── THE TWO KNOBS FOR "the lights look like mini suns" ────────────
+    //
+    // *"the lights on big roads look like mini suns, the light should be a bit
+    //   dimmer and more spread out. not just on big roads any road with that
+    //   big light."*
+    //
+    // Two numbers because it is two faults, and neither one substitutes for the
+    // other. Turning the brightness down on a hard-edged disc gives a DIM hard
+    // disc; widening a disc that still has a hard rim and a white-hot middle
+    // gives a BIGGER sun. What makes something read as a sun rather than as a
+    // lamp is the EDGE — a bright area that stops, instead of fading.
+    //
+    // Measured on the before frame at `the-drag`, tod 0.95, by
+    // `scripts/verify/night-lamps.mjs`:
+    //
+    //     night-streetlight-pool  5645 px   mean rgb(107, 79, 49)
+    //     night-streetlight-core   296 px   mean rgb(239,229,180)   <- the sun
+    //
+    // 296 px over 29 visible glows is a ~3.5 px near-WHITE disc per lamp at
+    // alpha 0.9 with `circle-blur` 0.4 — and MapLibre's circle blur holds FULL
+    // opacity out to (1 - blur) of the radius before it ramps, so 0.4 means the
+    // inner 60% of that head is flat, hard and white. That is the photosphere.
+    // The pool underneath it was flat across its inner 15% and then ramped to
+    // nothing at the rim, which is a disc with a soft border, not a fade.
+    //
+    // So: `LAMP_DIM` is the brightness knob, `LAMP_SPREAD` is the falloff knob,
+    // and the blur values below go to a full radial gradient (blur 1.0 = peak
+    // at the centre point only, zero at the radius — no flat top, no rim).
+    // Both apply to EVERY tier, because the fault is the fixture, not the road:
+    // "not just on big roads any road with that big light".
+    //
+    // One line each to overrule. 1.0 / 1.0 restores the PR #97 look exactly.
+    LAMP_DIM: 0.62,      // multiplies every lamp opacity below
+    LAMP_SPREAD: 1.5,    // multiplies every lamp's ground radius
+
     // Pool: the soft ground glow. Core: the small bright lamp head inside it.
     // One warm colour per tier; the edge end is derived from it by `cooler()`.
     COLOR_MAJOR_CORE: '#ffa63f',   // luma 177
     COLOR_MINOR_CORE: '#ffbc6c',   // luma 197
     COLOR_WALK_CORE:  '#ffcf90',   // luma 213
-    HEAD_COLOR_CORE:  '#ffe6b4',   // luma 232
+    // The head was `#ffe6b4` (luma 232) — close enough to white that the middle
+    // of every fixture went achromatic, and an achromatic hot centre inside a
+    // warm ring is the exact signature of a sun. A sodium/3000K head is amber
+    // all the way through, so the head now sits just above the walk tier's own
+    // colour instead of on top of white.
+    HEAD_COLOR_CORE:  '#ffd79c',   // luma 218
+    // These are the PEAK alphas at a lamp's centre, before LAMP_DIM. With the
+    // blur at 1.0 they are reached only at the centre POINT, so the mean alpha
+    // across a pool is far below the number here — which is the fade.
     POOL_OPACITY_MAJOR: 0.66,
     POOL_OPACITY_MINOR: 0.50,
     POOL_OPACITY_WALK:  0.28,
     CORE_OPACITY: 0.9,
-    POOL_BLUR: 0.85,
-    CORE_BLUR: 0.4,
+    POOL_BLUR: 1.0,
+    CORE_BLUR: 0.95,
 
     // ── SIZE IS AUTHORED IN METRES ON THE GROUND, not in pixels ───────
     //
@@ -157,14 +200,24 @@
     // physically-correct 7 m pool is one pixel and the city goes dark again —
     // which is the defect this module was written to fix. This is the one
     // knob that trades "bokeh carpet" against "dark city".
+    //
+    // These metres are now the radius at which the gradient reaches ZERO, not
+    // the radius of a flat disc — see LAMP_SPREAD above. They are left at their
+    // measured values and the spread multiplier rides on top, so the authored
+    // physical sizes stay readable and one number undoes the change.
     POOL_GROUND_M: [13, 18, 15, 14, 17, 10, 19.5, 8],
     MINOR_RADIUS_SCALE: 0.74,
     WALK_RADIUS_SCALE: 0.46,
-    CORE_RADIUS_SCALE: 0.22,
-    // From altitude the LAMP HEAD is what reads as a lit city — a crisp point,
-    // not a wash. Below this many pixels a head is not a dim lamp, it is no
-    // lamp, so the head keeps a floor the pool does not get.
-    CORE_MIN_PX: 1.3,
+    // The head was 0.22 of the pool with a hard edge. A head with a hard edge
+    // is the sun; a head that is a soft ball has to be wider than the hard one
+    // it replaces or it disappears into the pool, so this goes UP while its
+    // opacity goes down. Bigger and dimmer is the whole trade.
+    CORE_RADIUS_SCALE: 0.30,
+    // From altitude the LAMP HEAD is what reads as a lit city. Below this many
+    // pixels a head is not a dim lamp, it is no lamp, so the head keeps a floor
+    // the pool does not get. Nudged up with the blur: a 1.3 px circle that is
+    // now a gradient rather than a disc carries about half the light it did.
+    CORE_MIN_PX: 1.6,
 
     // Lamps come on through dusk, slightly before full night.
     NIGHT_START: 0.58,
@@ -273,7 +326,11 @@
   function radiusExpr(k, minPx) {
     const stops = [];
     for (let i = 0; i < LIGHTS.POOL_GROUND_M.length; i += 2) {
-      const z = LIGHTS.POOL_GROUND_M[i], groundM = LIGHTS.POOL_GROUND_M[i + 1];
+      const z = LIGHTS.POOL_GROUND_M[i];
+      // LAMP_SPREAD widens the falloff for every tier and both layers at once —
+      // the fixture gets bigger, not just its pool, so the head keeps sitting
+      // in proportion inside the glow instead of shrinking into a point.
+      const groundM = LIGHTS.POOL_GROUND_M[i + 1] * LIGHTS.LAMP_SPREAD;
       const px = s => Math.max(minPx || 0, +(groundM * k * s / mPerPx(z)).toFixed(2));
       stops.push(z, tierMatch(px(1), px(LIGHTS.MINOR_RADIUS_SCALE), px(LIGHTS.WALK_RADIUS_SCALE)));
     }
@@ -535,8 +592,20 @@
                                walk:  cooler(LIGHTS.COLOR_WALK_CORE, LIGHTS.EDGE_DESAT),
                                head:  cooler(LIGHTS.HEAD_COLOR_CORE, LIGHTS.EDGE_DESAT),
                              },
+                             // Report what LANDS, not what is authored: the
+                             // spread multiplier rides on POOL_GROUND_M and the
+                             // dim multiplier rides on every opacity, so the
+                             // authored constants are no longer the answer.
+                             dim: LIGHTS.LAMP_DIM, spread: LIGHTS.LAMP_SPREAD,
+                             peakAlpha: {
+                               poolMajor: +(LIGHTS.POOL_OPACITY_MAJOR * LIGHTS.LAMP_DIM).toFixed(3),
+                               poolMinor: +(LIGHTS.POOL_OPACITY_MINOR * LIGHTS.LAMP_DIM).toFixed(3),
+                               poolWalk:  +(LIGHTS.POOL_OPACITY_WALK  * LIGHTS.LAMP_DIM).toFixed(3),
+                               head:      +(LIGHTS.CORE_OPACITY * LIGHTS.LAMP_DIM).toFixed(3),
+                             },
+                             blur: { pool: LIGHTS.POOL_BLUR, head: LIGHTS.CORE_BLUR },
                              poolPx: LIGHTS.POOL_GROUND_M.map((v, i) => i % 2
-                               ? +(v / mPerPx(LIGHTS.POOL_GROUND_M[i - 1])).toFixed(2) : v) };
+                               ? +(v * LIGHTS.LAMP_SPREAD / mPerPx(LIGHTS.POOL_GROUND_M[i - 1])).toFixed(2) : v) };
     if (worstBmr >= 0) console.error('[night] a lamp colour came out BLUE (b-r ' + worstBmr + ') — cooler() is broken');
     // The lamps may be born mid-evening — fade them to the current hour.
     window.applyNightLayer(map, _lastP);
@@ -569,15 +638,16 @@
         // `ob` is the baked core-vs-edge boost. No zoom term here, so wrapping
         // the tier match in a `*` is legal — the top-level-interpolate rule
         // that shapes `radiusExpr` only applies to zoom expressions.
+        const d = LIGHTS.LAMP_DIM * t;
         map.setPaintProperty(POOL, 'circle-opacity',
-          ['*', tierMatch(LIGHTS.POOL_OPACITY_MAJOR * t,
-                          LIGHTS.POOL_OPACITY_MINOR * t,
-                          LIGHTS.POOL_OPACITY_WALK  * t),
+          ['*', tierMatch(LIGHTS.POOL_OPACITY_MAJOR * d,
+                          LIGHTS.POOL_OPACITY_MINOR * d,
+                          LIGHTS.POOL_OPACITY_WALK  * d),
                 ['number', ['get', 'ob'], 1]]);
       }
       if (map.getLayer(CORE)) {
         map.setPaintProperty(CORE, 'circle-opacity',
-          ['*', LIGHTS.CORE_OPACITY * t, ['number', ['get', 'ob'], 1]]);
+          ['*', LIGHTS.CORE_OPACITY * LIGHTS.LAMP_DIM * t, ['number', ['get', 'ob'], 1]]);
       }
       if (map.getLayer(TPOOL)) {
         map.setPaintProperty(TPOOL, 'circle-opacity', TOWER_POOL.OPACITY * t);
