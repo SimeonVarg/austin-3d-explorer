@@ -376,7 +376,54 @@
     //     z 29  102 / 102clip    z 35  79 / 79     z 45  47 / 47
     //     z 55   29 / 27         z 66  19 / 19
     LEVELS: {
-      shaft:  { z0: 20.2, L: 20.3, gain: 1.63, floor: 0.115, bands: 40, o: [252, 62, 32],  w: [216, 210, 198] },
+      // ── the shaft, RE-AIMED 2026-08-04 on Simeon's report ────────────
+      //
+      // *"the main prism gradient is too severe it goes into basically black.
+      //   and its a bit too red should be burnt orange."*
+      //
+      // Sampled off the render rather than argued about, a vertical scan up
+      // the north face at tod 0.95 (shots/h1-before/base.png, x=786):
+      //
+      //     bottom of visible shaft  (114, 48, 35)   hue  10 deg
+      //     middle                   ( 68, 17, 15)   hue   2 deg
+      //     top of shaft             ( 10,  6,  6)   BLACK
+      //
+      // Both complaints are in those three rows. UT's burnt orange #BF5700 is
+      // hue 27 deg, so the shaft was running 17-25 deg too red; and a top of
+      // (10,6,6) against a night sky at (14,14,22) is not a dim tower, it is
+      // no tower.
+      //
+      // THREE CHANGES, and the first two are one change:
+      //
+      // `gain` 1.63 -> 1.00. The over-drive was there because "the part of it
+      // you can actually SEE starts at z 29 (the Main Building hides the
+      // rest)". That is not true of this face — the Main Building's north
+      // projection tops out at the entablature, z 20.2, which is the lamp
+      // datum itself, so the shaft is visible from the datum up and the
+      // over-drive only ever bought a 9.7 m CLIPPED plateau at the bottom.
+      // Clipped, the bottom measured screen R 112-114; unclipped at gain 1.00
+      // it measures the same 113, because 252 x 0.45 render gain IS 113. The
+      // over-drive was buying nothing and costing the hue (see `dim`).
+      //
+      // `floor` 0.115 -> 0.30 AND `soft: true`. 0.115 x 1.63 = 0.187 of the
+      // datum, which is texel R 47 and screen R 11 — the measured (10,6,6).
+      // `soft` is what makes 0.30 a floor rather than a clamp; see washAt. The
+      // shaft now runs 2.7x bottom to top, continuously, instead of 8.7x with
+      // the top eighth indistinguishable from the sky. The photographs say
+      // 5-8x and the photographs are right about a camera; they are not right
+      // about a 94 m building drawn 200 px tall on a screen whose black point
+      // is the sky.
+      //
+      // `o` [252,62,32] -> [252,134,22]. Screen = texel x (0.45, 0.47, 0.72)
+      // — three per-channel gains measured off the two scans above, and they
+      // are per-channel because the night light `#9aa6da` is blue, so blue
+      // gets 1.42x the gain red does (the same trap the dial hex documents).
+      // Inverting the target through them: 1 : 0.455 : 0.09 on screen (the
+      // hue of #BF5700) wants about 1 : 0.47 : 0.07 in texel space. Red datum
+      // left at 252 so the ladder above does not move. Measured back off the
+      // render, the shaft's screen hue goes 0-9 deg (which is RED) to 25-28
+      // deg; #BF5700 is 27.3.
+      shaft:  { z0: 20.2, L: 20.3, gain: 1.00, floor: 0.30, soft: true, bands: 40, o: [252, 134, 22], w: [216, 210, 198] },
       deck:   { z0: 70.1, L: 6.4,  gain: 1.00, floor: 0.34,  bands: 10, o: [250, 112, 42], w: [238, 232, 216] },
       belfry: { z0: 79.2, L: 14.0, gain: 1.25, floor: 0.62,  bands: 4,  o: [216, 54, 30],  w: [216, 210, 198] },
       cap:    { z0: 90.7, L: 5.0,  gain: 1.00, floor: 0.68,  bands: 2,  o: [238, 64, 34],  w: [226, 218, 204] },
@@ -391,6 +438,43 @@
     // as missing geometry rather than as an unlit band. 0.45 is still darker
     // than anything else on the tower and still clearly a separate light.
     corniceShade: 0.45,
+
+    /**
+     * ── THE MAIN BUILDING, which used to be one flat near-black hex ──────
+     *
+     * *"the base around it is too dark."*
+     *
+     * Measured before this change: every `mb-*` part was `#12101c` and landed
+     * on screen at (8,8,14) to (11,10,13) — luma 9, against a night sky at 15
+     * and the grass beside it at 20. The Tower was standing on nothing.
+     *
+     * The floodlighting note above says "THE MAIN BUILDING IS NOT LIT.
+     * Measured (7,19,7) — black", and that is true of the STREET wall in a
+     * photograph. It is not true of the roofline: 96 x 1000 W stand on that
+     * roof at z 20.2 pointing up, and the attic storey, the tile roofs and
+     * the entablature they stand among take their backspill. So the fix is
+     * not "paint the Main Building orange", it is a wash centred ON the lamp
+     * line and dying out in both directions — which puts the light exactly
+     * where the fixtures are and leaves the ground storey dark.
+     *
+     *   z0     the lamp line, shared with LEVELS.shaft
+     *   L      e-folding in metres, EITHER WAY from z0
+     *   gain   how much of the shaft's own datum lands on the limestone
+     *   amb    the unlit floor, in TEXEL space. Warm-neutral, not the old
+     *          blue-black: `#12101c` is B 28 against R 18 and the night light
+     *          then gives blue another 1.42x, so the building the photographs
+     *          call black was rendering COLD black. Same correction the dial
+     *          hex documents, one storey down.
+     *
+     * Resulting spill by part: entab 0.82, attic 0.75, tile roofs 0.42,
+     * piano nobile 0.34, ground storey 0.11. A lit plinth, not a lit box.
+     */
+    BASE: {
+      z0: 20.2,
+      L: 7.5,
+      gain: 0.22,
+      amb: [49, 43, 31],
+    },
 
     // The bronze window channel is in the wash but recessed 0.30 m, so it sits
     // in its own shadow; the bell chamber behind the colonnade is not lit at
@@ -1014,16 +1098,158 @@
 
   const clamp255 = v => Math.max(0, Math.min(255, Math.round(v)));
   const hexOf = rgb => '#' + rgb.map(v => clamp255(v).toString(16).padStart(2, '0')).join('');
-  /** A circuit colour dimmed to `k` of its value at the lamp. */
-  const dim = (rgb, k) => hexOf([rgb[0] * k, rgb[1] * k, rgb[2] * k]);
+  /**
+   * A circuit colour dimmed to `k` of its value at the lamp.
+   *
+   * THE CLAMP IS ON THE TRIPLE, NOT ON EACH CHANNEL, and that is the whole
+   * reason "a bit too red" was ALSO "a bit too yellow at the bottom". A
+   * per-channel clamp crushes only the brightest channel, so an over-driven
+   * orange loses red and keeps all of its green — it rotates the hue toward
+   * yellow exactly where the wash is strongest. Measured up the north face
+   * before this change: R sat flat at 112, 112, 114 over the bottom 24 rows
+   * while G climbed 34 -> 40 -> 48. That flat R is the per-channel clip, and
+   * the climbing G is the hue rotating out from under it.
+   */
+  const dim = (rgb, k) => {
+    const c = [rgb[0] * k, rgb[1] * k, rgb[2] * k];
+    const m = Math.max(c[0], c[1], c[2]);
+    return hexOf(m > 255 ? c.map(v => v * 255 / m) : c);
+  };
+  /** ambient + spill. Used by the Main Building, which has a floor and a wash. */
+  const lift = (amb, rgb, k) => hexOf([amb[0] + rgb[0] * k, amb[1] + rgb[1] * k, amb[2] + rgb[2] * k]);
+
+  /**
+   * ══ THE Z-FIGHT AT THE FOOT OF THE SHAFT ═══════════════════════════
+   *
+   * *"the bottom part of the illuminated prism glitches with the nonlit part
+   *   they overlap and movement triggers a glitch"*
+   *
+   * He read it exactly right, and it is a geometry bug, not a colour one.
+   *
+   * THE REPRODUCTION IS ARITHMETIC, because a z-fight is invisible in a still
+   * frame (see scripts/verify/coplanar.mjs for why). The shaft's ring and the
+   * Main Building's ring — `mb-base`, `mb-piano` and `mb-entab` all carry the
+   * same footprint — share three corners:
+   *
+   *     shaft                      mb-entab                    apart
+   *     -97.7394917 30.2861886     -97.7394917 30.2861886       0    m
+   *     -97.7392579 30.2861713     -97.7392579 30.2861707       0.067
+   *     -97.7392393 30.2863578     -97.7392393 30.2863577       0.011
+   *     -97.7394731 30.2863751     -97.7394732 30.2863751       0.010
+   *
+   * The shaft is not a separate prism standing on the Main Building. It is
+   * the Main Building's own north projection, and its east, north and west
+   * walls ARE three of the Main Building's walls, to within 7 CENTIMETRES.
+   * That is worse than exactly coincident, not better: at the 200-600 m this
+   * scene is flown from, 7 cm is far inside the depth buffer's resolution, so
+   * the two faces tie — but the wedge between them is not parallel, so WHICH
+   * one wins changes with the view angle. That is the whole of "movement
+   * triggers a glitch". And the bake ships the tie 5.2 m deep:
+   *
+   *     shaft     base 15.0   ->  66.3
+   *     mb-piano  base  6.8   ->  17.2      2.2 m of overlap
+   *     mb-entab  base 17.2   ->  20.2      3.0 m of overlap
+   *
+   * One of them is the brightest surface on the building and the other is
+   * near-black, which is why this particular tie is the one a human notices.
+   * The comb it leaves along the boundary is visible even in a still frame at
+   * shots/h1-before/base-junction.png — a dashed row of lit pixels below an
+   * otherwise hard edge.
+   *
+   * The 7 cm is also why the corner test below is METRIC and not an equality
+   * on the coordinates. The first cut of this compared `toFixed(7)` strings,
+   * found zero sharers, silently did nothing, and would have shipped as a
+   * fix.
+   *
+   * THE FIX IS TO DELETE THE OVERLAP, not to nudge a colour. Nothing is lost:
+   * every square metre of shaft below 20.2 is coincident with a Main Building
+   * wall that draws the same footprint at the same place, so lifting the
+   * shaft's base to the top of those courses removes only surfaces that were
+   * never independently visible. 20.2 is also exactly `LEVELS.shaft.z0`, the
+   * roof the base floods stand on — the geometry and the lighting agree.
+   *
+   * It is done HERE rather than in `data/tower.geojson` on purpose: this lane
+   * does not own `scripts/bake_tower.py`, and a value edited into the baked
+   * file is undone by the next bake. This is idempotent — once the bake emits
+   * base 20.2 it finds nothing to do and says so.
+   */
+  function unstackShaft(gj) {
+    const feats = gj.features;
+    const shaft = feats.find(f => f.properties && f.properties.part === 'shaft');
+    if (!shaft) return null;
+    // Match on VERTICES, not on a hard-coded height: the question is "which
+    // Main Building courses draw this same wall", and the answer is in the
+    // rings. Three shared corners is a shared wall; two could be a coincidence
+    // of a neighbouring footprint.
+    const ring = shaft.geometry.coordinates[0];
+    const mx = 111320 * Math.cos(ring[0][1] * Math.PI / 180), my = 111320;
+    // A corner counts as shared if it is within TOL metres. 0.5 m is two
+    // orders of magnitude above the 7 cm the bake actually differs by and two
+    // orders below the 20+ m between any two DIFFERENT corners of this
+    // building, so there is no value in that gap to get wrong.
+    const TOL = 0.5;
+    const near = c => ring.some(r =>
+      Math.hypot((r[0] - c[0]) * mx, (r[1] - c[1]) * my) < TOL);
+    const was = shaft.properties.base, ceil = shaft.properties.h;
+    let top = was;
+    const sharers = [];
+    for (const f of feats) {
+      const p = f.properties;
+      if (!p || p.part === 'shaft' || !f.geometry || f.geometry.type !== 'Polygon') continue;
+      // Same column, and it ends inside the shaft rather than above it: a
+      // course that reached past the shaft's own top would mean the bake had
+      // changed shape underneath this, and silently deleting the whole shaft
+      // is the worst possible response to that.
+      if (!(p.base < ceil) || !(p.h > was) || !(p.h < ceil)) continue;
+      let n = 0;
+      for (const c of f.geometry.coordinates[0]) if (near(c)) n++;
+      if (n < 3) continue;
+      if (p.h > top) top = p.h;
+      sharers.push(p.part + ' ' + p.base + '..' + p.h);
+    }
+    if (top > was) shaft.properties.base = +top.toFixed(2);
+    const info = { was, now: shaft.properties.base, overlap: +(top - was).toFixed(2), sharers };
+    window.__towerShaftBase = info;
+    if (info.overlap > 0) {
+      console.log('[tower] shaft base lifted', was, '->', info.now,
+                  '— removed', info.overlap, 'm of faces coincident with', sharers.join(', '));
+    }
+    return info;
+  }
 
   /**
    * The wash: how much of a setback's light reaches height z. Exponential
    * above the lamp, flat below it (you cannot be closer to a floodlight than
    * standing on it), never below the level's floor.
+   *
+   * `soft` changes what "floor" MEANS, and only the shaft asks for it.
+   *
+   * A clamped floor is FLAT wherever it binds. On the shaft, floor 0.38 with
+   * L 20.3 binds at z 39.8 — 19.6 m up a 46 m band — so 58% of the Tower was
+   * one single value, which is a different way of being wrong about the same
+   * gradient. Measured on the first cut of this pass, up the north face: luma
+   * 22.5, 22.5, 22.7, 21.8, 23.0 over five samples spanning 26 m, and then a
+   * gradient only in the bottom quarter.
+   *
+   * A soft floor ADDS instead of clamping, and that is the more honest model
+   * anyway. The floor is ambient, spill off the stone and the city's own
+   * skyglow (the comment on `floor` says exactly this); none of those switch
+   * on at a height. They are there the whole way up and they add to whatever
+   * the floods deliver. So the curve stays monotonic to the top and never
+   * plateaus, and the fitted e-folding length L is untouched.
+   *
+   * It is per-level because the deck, belfry and cap are FINE — Simeon said
+   * so — and softening their floors would brighten the crown by 1.3-1.6x.
    */
   function washAt(lv, z) {
-    return Math.max(lv.floor, Math.exp(-Math.max(0, z - lv.z0) / lv.L));
+    const e = Math.exp(-Math.max(0, z - lv.z0) / lv.L);
+    return lv.soft ? lv.floor + (1 - lv.floor) * e : Math.max(lv.floor, e);
+  }
+
+  /** washAt inverted, so the band edges below land where they are asked to. */
+  function invWashAt(lv, w) {
+    const t = lv.soft ? (w - lv.floor) / (1 - lv.floor) : w;
+    return t > 0 ? lv.z0 - lv.L * Math.log(t) : Infinity;
   }
 
   /**
@@ -1037,7 +1263,7 @@
     const out = [b];
     if (n > 1 && w1 < w0 - 1e-6) {
       for (let i = 1; i < n; i++) {
-        const z = lv.z0 - lv.L * Math.log(w0 * Math.pow(w1 / w0, i / n));
+        const z = invWashAt(lv, w0 * Math.pow(w1 / w0, i / n));
         const zz = Math.max(b, Math.min(t, z));
         if (zz > out[out.length - 1] + 0.15 && t - zz > 0.15) out.push(zz);
       }
@@ -1081,6 +1307,18 @@
       return dim(c === 'w' ? lv.w : lv.o, k);
     }
 
+    /**
+     * The Main Building: ambient floor plus the base floods' backspill, which
+     * falls off EITHER WAY from the lamp line because the fixtures stand in
+     * the middle of it. See NIGHT.BASE.
+     */
+    function mbLit(z) {
+      const S = NIGHT.BASE, lv = L.shaft, c = cfg.shaft;
+      if (c === '-') return hexOf(S.amb);            // the shaft circuit is off
+      const k = Math.exp(-Math.abs(z - S.z0) / S.L) * S.gain * lv.gain;
+      return lift(S.amb, c === 'w' ? lv.w : lv.o, k);
+    }
+
     // ── the two tall banded walls become stacks of sub-bands ──────────
     // Anything else keeps one feature and takes the wash at its own middle.
     const SPLIT = { shaft: 'shaft', clockstage: 'deck' };
@@ -1107,8 +1345,19 @@
     for (const f of out) {
       const p = f.properties, part = p.part;
       if (!part || SPLIT[part]) continue;             // sub-bands are done
-      if (part.indexOf('mb-') === 0) continue;        // the Main Building is not floodlit
       const mid = (p.base + p.h) / 2;
+      if (part.indexOf('mb-') === 0) {
+        p.wn = mbLit(mid);
+        // Three Main Building parts at three different heights shared the one
+        // `twplain` image, which was harmless while they shared one flat hex
+        // and is not now: collectPatterns keeps the FIRST trio it sees for an
+        // id, so the 1.6 m pavilion walls would have been painted with the
+        // entablature's spill. Same `parent~tag` trick the shaft sub-bands
+        // use — a different IMAGE, the same STONE, because patBase() seeds the
+        // texture off the parent.
+        if (p.pat) { p.fam = p.fam || patBase(p.pat); p.pat = patBase(p.pat) + '~' + part; }
+        continue;
+      }
 
       if (part === 'belfry-void') { p.wn = NIGHT.voidHex; continue; }
       if (part === 'cap-roof') { p.wn = NIGHT.capRoofHex; continue; }
@@ -1146,9 +1395,27 @@
     }
 
     const nBake = gj.features.length;
+    // Before anything reads the shaft's band: it must not be inside the Main
+    // Building. buildDetail measures the shaft's TOP and its ring, neither of
+    // which this moves, so the order here is a courtesy rather than a
+    // constraint — but the relight cuts the shaft into forty sub-bands off its
+    // base, and doing that to an overlapping prism makes forty of them.
+    try { unstackShaft(gj); } catch (e) { console.warn('[tower] shaft base:', e.message); }
     if (CROWN.on) { try { buildDetail(gj); } catch (e) { console.warn('[tower] detail:', e.message); } }
     let nSplit = 0;
-    try { nSplit = relightNight(gj); } catch (e) { console.warn('[tower] night:', e.message); }
+    // LOUD, and it records the failure where a test can see it. When this threw
+    // (a TDZ on `mid`, one line long) the scene did not break — every feature
+    // simply kept the BAKE's flat night hexes, which look like a plausible lit
+    // tower, and a whole round of before/after screenshots was taken of code
+    // that had never run. `console.warn` in a 3,000-line boot log is not a
+    // failure signal.
+    try {
+      nSplit = relightNight(gj);
+    } catch (e) {
+      console.error('[tower] NIGHT RELIGHT FAILED — the tower is showing the bake\'s'
+                    + ' flat hexes, not the floodlighting:', e && e.stack || e);
+      window.__towerNight = { failed: String(e && e.message || e) };
+    }
 
     const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
     _pats = collectPatterns(gj);
