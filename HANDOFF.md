@@ -1,5 +1,133 @@
 # Austin 3D Explorer — Full Handoff
 
+## 69. Aug 4 2026 - a footprint is not always one roof (acer lane)
+
+**Branch:** `acer/j1-h5-roofs`, **PR #130**, merged `2db5bae`. **QUEUE J1 and
+H5.** Files: `scripts/bake_roofs.py`, `data/roofs.geojson`. Shots:
+`shots/j1h5/`.
+
+### J1 - THE RING PROBE IS ONE AVERAGE OVER THE WHOLE PERIMETER
+
+> *"for calhoun u were right to not red roof the middle part - however the
+> horizontal prism in the middle should be roofed. So there should be 3
+> horizontal roofed prisms."*
+
+He is right and the photograph says so before he does. `shots/j1h5/photo-calhoun.png`
+is the z19 nadir tile with the footprint drawn on it: a terracotta hipped
+**cross bar** with dormers, between two pale grey standing-seam **stems**, with
+Parlin Hall above and Homer Rainey Hall below - the "top and bottom" already
+roofed.
+
+**The mistake was this file's own, one level further in.** Its docstring records
+v1 asking *"what fraction of the WHOLE FOOTPRINT is terracotta?"* and throwing
+away every hall with a membrane deck in the middle, and v2 fixing it by asking
+an offset RING instead. But the ring is still ONE AVERAGE OVER THE WHOLE
+PERIMETER, so a footprint that is part tile and part membrane averages the two
+and is thrown away exactly as before. **Calhoun reads 0.38 at the eave against
+a `RING_MIN` of 0.45, because its two grey stems own more perimeter than its
+tiled cross bar does.** The v1 lesson had been learnt for the deck and never
+for the wings.
+
+**The rule: ask the photograph which PART of the roof is tile, and roof that
+part.** Classify on a 1.2 m grid, take the largest connected patch, and - this
+is the whole of the safety - **require it to fill 72% of its own minimum
+rotated rectangle.** A wing is a block; a speckle of warm gravel on a membrane
+deck is not, and neither is a ring of tile round a courtyard. Then put the
+ORDINARY ring probe to that block: same rule, same thresholds, smaller ring.
+
+**Reached only after the whole-footprint probe has already returned 0, so it
+can add a roof and can never change one.** Measured against a control bake:
+**0 features removed, 101 added.** Four of 59 candidates qualify and every one
+is a tiled hip in the photograph (`shots/j1h5/wing-*.png` is the aerial with
+the selection drawn on it): Calhoun 1016 m2 eave 0.76, Jackson Geological
+Sciences 852 m2 eave 0.81, Mary E. Gearing 679 m2 eave 0.65, Gordon-White
+517 m2 eave 0.89. The Moffett Molecular Biology Building is REFUSED by the eave
+probe, which is the rule working.
+
+**A wing does not claim the whole building's parapet cap.** `pitched` tells the
+cap rule to leave a building terracotta because it has a real tiled hip;
+Calhoun's cross bar does and its two stems are membrane, which is the exact
+case that rule exists to stop outlining in burnt orange. A sub-roof is left out
+of `pitched` on purpose.
+
+### H5 - TWO PRIOR THEORIES WERE MEASURED AND BOTH WERE WRONG
+
+> *"Jester roofs have some weird extrusions with the diagonals ... other
+> buildings with alot of corners next to each other."*
+
+**183 facets on 36 of 108 pitched roofs are self-crossing polygons**
+(`shots/j1h5/jester-crossed-facets.png` is Jester Center's 22, in red). A ring
+that crosses itself has no interior; earcut fills it as two lobes of opposite
+winding. `valid_step` cannot see it because it tests the four CORNERS, and all
+four corners of a bow tie are legal offset points at their proper clearance.
+
+1. **Section 64's "321 facet pairs overlap in plan and height, 2,635 m2" DOES
+   NOT HOLD.** Reproduced exactly (335 pairs / 2,657 m2 with my thresholds) -
+   and **329 of those pairs are the authored elevations**, which share ground
+   BY DESIGN and which this same file says so in as many words. The heaviest
+   site, -97.7369,30.2842 with 112 pairs, is Gregory Gym's seven-flight stone
+   stair. Exclude them and the whole campus has **6 pairs / 96.5 m2**, none of
+   them at Jester. **Anything that measures `data/roofs.geojson` in bulk must
+   drop the last 991 features first** - `gable_front_parts` +
+   `facade_band_parts`, appended after both resolvers and exempt from "one
+   square metre, one surface" on purpose.
+2. **"A facet running past the end of its wall" is CORRECT GEOMETRY.** At a
+   reflex corner the mitre travels `cot(theta/2)` along the wall per metre of
+   depth - one metre per metre at a right-angled notch - outward. That is the
+   VALLEY. 66 of 108 roofs "fail" that test and most of them look right. A
+   whole audit was written on it and thrown away.
+
+**The fix:** a facet is the slope of one wall, so the part not attached to that
+wall is not a slope. Split where it crosses, keep the lobes touching the wall.
+**2505 m2 in, 2505 m2 out** - so this cannot trade a fold for a missing slope,
+which is what PR #74 and PR #78 both did and documented.
+
+Two more in the same area:
+- **A wall exists only until its two mitres meet.** Closed form (the gap between
+  the two capped mitres is piecewise linear in depth); cuts crossings GENERATED
+  from 183 to 143. `--no-edge-events` is the control.
+- **16 rings shipped INVALID purely because `to_ll` rounds to six places** -
+  0.096 m of longitude, 0.111 m of latitude - and they were thinner than that.
+  Simple in metres, destroyed by the write. **`data/roofs.geojson` now ships 0
+  invalid polygons.**
+
+### WHAT DID NOT WORK, AND WHAT IS STILL BROKEN
+
+1. **THE JESTER FAN IS STILL THERE.** Photographed after: **270 of 1,600,000
+   pixels changed** at the J2 nadir. `resolve_surfaces` already ran `buffer(0)`
+   on those rings, so the OUTPUT was mostly repaired while the intermediate
+   geometry, `facet_by_edge` and all three audits were reading a bow tie. What
+   is left is VALID mitred geometry: **Jester Center's override runs the tile
+   11.0 m into a footprint with 6 m wings**, and a hip 11 m deep on a wing 6 m
+   wide can only be a fan. **REQUEST TO WHOEVER OWNS
+   `data/building_overrides.json`: `roof_run_m` for the Beauford H. Jester
+   Center should be about 4, not 11** - its narrowest wings cap at 2.36 m of
+   half-span. Or the run wants to be per-wing, which is the same shape of rule
+   as J1's and would live in `bake_roofs.py`.
+2. **`ring_crossings` is not a validity test.** It counts strict crossings and
+   deliberately ignores collinear touches, so it passed four rings that rounding
+   had folded into a figure of eight TOUCHING at a point rather than crossing
+   through it. Shapely's `is_valid` is the authority because it is the test the
+   consumer applies. One extra round.
+3. **`walls_with_no_slope` went 0 -> 3** (Goldsmith, Almetris Duren, University
+   Presbyterian, about 22% short each) and it was left that way deliberately.
+   Those walls previously reached their depth ONLY through the self-crossing
+   lobe, and `audit_slope_depth` reads the innermost facet's depth back off the
+   polygon. The number got worse because the geometry got honest. Coverage is
+   still 0 holes. **Do not fix this by relaxing the audit.**
+4. **`bake_roofs.py` DOES reproduce byte for byte**, like `bake_ground.py` and
+   unlike `bake_props.py`, so it can be edited and re-run rather than patched.
+   `data/roof_runs.json` stays byte-identical because the wing detection is
+   deliberately NOT cached.
+5. **Three agents were in the main working tree at once** and it had already
+   been moved to another lane's branch before this session started. This pass
+   ran in its own `git worktree` at `C:/Users/simip/Projects/austin-3d-roofs`
+   with `data/imagery_cache` and `scripts/verify/node_modules` copied in (both
+   gitignored, 55 MB and 14 MB). Two minutes of setup and no branch collisions.
+   `gh pr merge --delete-branch` fails in a worktree because another worktree
+   holds `main`, but the merge itself succeeds.
+
+
 ## 68. Aug 4 2026 — a construction site was one 2 m toothpick, seventeen times over (acer lane)
 
 **Branch:** `acer/j2-j4-churches-trucks`. **QUEUE J2, J3, J4.** Files:
