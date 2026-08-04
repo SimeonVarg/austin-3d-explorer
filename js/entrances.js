@@ -40,21 +40,40 @@
  *     the one place this module deliberately disagrees with its neighbours, and
  *     ENT.tiling is a one-line override if the cost ever matters.
  *
- *  3. AT NIGHT THE GLASS IS LIT AND THE STONE IS DARK. An entrance is one of
- *     the few things on a building that is genuinely lit after hours — a
- *     vestibule light burns all night while the offices above it are black. The
- *     bake writes glass `wn` at #4f493e, a dim warm grey, which is what glass
- *     REFLECTS at night, not what a lit lobby EMITS. So the glass layer's night
- *     stop is re-pointed at ENT.glassLit here rather than at the feature's own
- *     `wn` — except where the bake authored a bright `wn` on purpose (the Harry
- *     Ransom Center's #e8d9ae beacon, and Battle and Sutton's lanterns), which
- *     pass through untouched. See nightGlass(): the dim tones are listed by
- *     hex, so an authored bright one can never be overwritten by accident.
+ *  3. AT NIGHT THE GLASS IS LIT, AND THE BAKE IS THE ONE THAT SAYS SO.
+ *     An entrance is one of the few things on a building that is genuinely lit
+ *     after hours — a vestibule light burns all night while the offices above
+ *     it are black. This file USED to force that, because the bake was writing
+ *     an unlit `wn` of #4f493e. It no longer is: every glazing piece now
+ *     carries an authored, PRE-COMPENSATED warm `wn` (#ffaa3c / #ffc06a /
+ *     #f09a35 / #ffd07a, four values over 1,398 pieces) — pre-compensated
+ *     because MapLibre multiplies a fill-extrusion by `setLight`, which at
+ *     night is the blue #9aa6da, so anything warm you enter comes back about a
+ *     third less warm. So the renderer's job here is to GET OUT OF THE WAY and
+ *     pass `wn` through. The old override list survived the bake fix as dead
+ *     code that read as if it were doing the work; it is gone. ENT.glassNightTint
+ *     is the escape hatch, empty by default, and entrancesStats().nightGlass
+ *     audits the file so a neutral can never creep back in unnoticed.
+ *
+ *     MEASURED, not asserted from the expression (2026-08-04, tod 0.92, z19.2
+ *     to 19.8, magenta-masked so the pixel set is the layer's own and not a
+ *     hand-picked box). mean rgb / luma / frame-median luma / R:B:
+ *       Battle          (133,103,74)  107   41   1.79
+ *       Main Building   (133,101, 66) 105   45   2.02
+ *       PCL             (143,109, 62) 113   37   2.31
+ *       Gregory         (143,107, 69) 112   35   2.09
+ *       Welch           (129, 95, 58) 100   31   2.21
+ *     Compare §86's reading of the same layer before the bake fix:
+ *     rgb(134,121,118), luma 124, channels within 16 — a pale neutral that was
+ *     BRIGHTER than these and still read dead, because brightness was never the
+ *     problem. Warmth was. And the day side of the same Battle glazing is
+ *     (59,76,91), R:B 0.65 — blue by day, warm by night, off one `wn`/`wd` pair.
+ *
  *     Plus ENT.pool — a soft ground pool at every door, on night.js's own lamp
  *     schedule, because 1.2 m of lit glass is under a pixel from 300 m up and
  *     the pool is what actually says "that building is open" from the air.
  *
- *  4. THE INSCRIPTIONS ARE LABELS, NOT CARVING, AND THAT IS A MEASURED CALL.
+ *  4. THE INSCRIPTIONS ARE OFF BY DEFAULT, AND THAT IS A MEASURED CALL.
  *     See INSCRIPTIONS below. Read that comment before "fixing" it.
  *
  * ── LOD ──────────────────────────────────────────────────────────────────────
@@ -104,8 +123,10 @@
     // how you tell "the entrances are missing" apart from "the entrances are
     // buried under their own stairs" without rebuilding anything.
     detail: q.get('entdetail') !== '0',
-    // ?entlabels=0 drops the two carved inscriptions' text.
-    labels: q.get('entlabels') !== '0',
+    // THE INSCRIPTION TEXT IS OFF BY DEFAULT. `?entlabels=1` brings it back,
+    // and so does `ENT.labels = true; applyEntranceSettings(__map)` from the
+    // console. See INSCRIPTIONS for the arithmetic behind the default.
+    labels: q.get('entlabels') === '1',
 
     // A portal is ~3 m wide. Below 15.2 it is two pixels and the pass is only
     // costing frames. buildings-labels-major starts at 15.3, so this arrives
@@ -114,9 +135,6 @@
     // Stairs, rails and reveals are 0.06-0.35 m features. They earn their place
     // one zoom step later than the door does.
     detailMinZoom: 16.0,
-    // The inscription text. Late on purpose — see INSCRIPTIONS.
-    labelMinZoom: 17.4,
-    labelSize: [17.4, 8.5, 19, 12.5, 20.5, 15],   // zoom, px, ...
 
     opacity: 1.0,
 
@@ -128,18 +146,25 @@
     verticalGradient: false,
 
     // ── night ─────────────────────────────────────────────────────────
-    // A lit vestibule seen from outside. Warmer and paler than the Drag's shop
-    // glow (places.js T.NIGHT_TONE #ffce94) because a lobby is fluorescent-ish
-    // and a shopfront is incandescent-ish, and because these sit in the middle
-    // of dark stone rather than in a continuous lit run.
-    glassLit: '#ffd9a4',
-    // Three tones so 584 entrances are not one flat value. Keyed on `eid`, so a
-    // whole entrance lights as one unit and it never flickers between repaints.
-    glassLitVary: ['#ffd9a4', '#ffe6c0', '#f6c98c'],
-    // The `wn` values the bake writes for UNLIT glass. Anything NOT in this list
-    // is an authored night colour and passes through — that is the whole reason
-    // this is a list of hexes rather than a blanket override.
-    glassDim: ['#4f493e', '#4f483d', '#514a3e', '#4d463b'],
+    // THE RENDERER DOES NOT CHOOSE THE NIGHT GLASS ANY MORE. The bake authors a
+    // pre-compensated warm `wn` on every glazing piece and this file passes it
+    // through — see point 3 in the header, and the measurements there.
+    //
+    // Taste override, empty by default: {"#ffaa3c": "#ffd0a0", ...}. Any hex
+    // listed here is swapped for its replacement at the night stop and nothing
+    // else is touched, so retinting one family cannot silently flatten the rest
+    // the way the old blanket list did.
+    glassNightTint: {},
+    // Used ONLY when a glazing piece has no `wn` at all, which the current file
+    // never hits (0 of 1,398). It is a visible warm, deliberately: if this ever
+    // starts showing up it should look like a bug, not like stone.
+    glassNightFallback: '#ffb45c',
+    // The audit that replaces the old override. A night colour is "suspect" if
+    // its channels are within `neutralSpread` while its luma is at or above
+    // `neutralLuma` — that is the Capitol pale-band signature, a value nobody
+    // chose. Reported by entrancesStats().nightGlass; 0 in the current file.
+    neutralSpread: 14,
+    neutralLuma: 40,
 
     // The ground pool at a door. Ground metres, converted to px per zoom the
     // way js/night.js does it, so it scales with the world and not with the
@@ -165,12 +190,44 @@
     // whole stone family is already at #21 and there is nothing to darken.
     signCarveDark: 0.13,
 
-    // The inscription label's own colour: carved limestone with a deep shadow
-    // halo, so it reads as lettering rather than as a map annotation.
-    labelColor: '#f2ead6',
-    labelHalo: '#2b241a',
-    labelHaloWidth: 1.6,
-    labelLetterSpacing: 0.22,   // em; an inscription is spaced, a caption is not
+    // The inscription text, when ENT.labels is turned on. Every value here is
+    // about keeping it ON ITS OWN BUILDING — see INSCRIPTIONS.
+    label: {
+      // z19.2 is roughly 0.29 m of ground per pixel: you are standing at the
+      // portal, not flying over it. At the z16-19 the camera actually flies,
+      // the text is simply absent.
+      minZoom: 19.2,
+      // Metres from the band, on the ground. Beyond this the words are further
+      // from their wall than they are wide, which is when they start reading as
+      // an annotation floating over whatever happens to be in front.
+      maxDistM: 110,
+      // Degrees off the band's own outward normal. Past this you are looking
+      // along the wall or at the back of the building, and a symbol layer has
+      // no depth test — this is the check that stands in for one.
+      arcDeg: 62,
+      // Degrees off the direction the camera is POINTING. Distance and facing
+      // together still admit a band that is 87° out to the side — measured, at
+      // the Battle Hall night pose, where the camera stands 45 m in front of
+      // the Main Building's inscription while looking west at Battle. MapLibre
+      // culls it, but then the guarantee is MapLibre's frustum and not this
+      // gate's, and the whole point of this gate is not to depend on the
+      // renderer for that. Roughly the half-width of the frame: at 1440x900
+      // and MapLibre's default fov the horizontal half-angle is ~28°.
+      viewArcDeg: 40,
+      // Screen-pixel type size. Deliberately small: this is lettering on a
+      // 1.10 m course, not a place name.
+      size: [19.2, 9, 20, 12, 21, 15],   // zoom, px, ...
+      // Limestone with its own shadow, not a map annotation's white-on-halo.
+      color: '#efe4cc',
+      halo: '#3a3025',
+      haloWidth: 0.9,
+      letterSpacing: 0.22,   // em; an inscription is spaced, a caption is not
+      // The band's mid-height, in metres, is converted to a screen offset each
+      // time the camera moves so the words sit ON the course instead of across
+      // the doors below it. Capped so a near-nadir view cannot fling them off
+      // the top of the screen.
+      risePxCap: 220,
+    },
 
     // ── LOD ───────────────────────────────────────────────────────────
     // The LOD knob, read off GFX.treeDensity when the graphics menu has no
@@ -212,15 +269,16 @@
   const GLASS_KINDS = ['glass', 'transom'];
 
   /**
-   * THE CARVED TEXT, AND WHY IT IS A LABEL.
+   * THE CARVED TEXT, AND WHY IT IS OFF BY DEFAULT.
    *
    * Simeon asked for accurate text and these are the only two buildings on the
    * Forty Acres whose lettering could be sourced (docs/entrances/celebrated.md
    * §MAI and §GAR; the bake carries the same two entries in its INSCRIPTIONS
-   * table and nothing else, because nothing else could be cited). Everything
-   * below is copied from that document, not paraphrased.
+   * table and nothing else, because nothing else could be cited). The WORDS
+   * below are right and are copied from that document, not paraphrased. What
+   * was wrong was the drawing, and the fix is that by default there isn't one.
    *
-   * I DID NOT CARVE THEM AS GEOMETRY, AND HERE IS THE ARITHMETIC.
+   * ── WHY IT CANNOT BE CARVED AS GEOMETRY ─────────────────────────────
    * The Main Building's inscription band, as baked, is 8.29 m long and 1.10 m
    * tall. Nicar's own constraint is 108 letters and spaces for the twelve
    * words; split either side of the seal that is 23 characters on the left. Fit
@@ -230,15 +288,40 @@
    * pinned to MapLibre's z22 ceiling a pixel is 0.032 m. A 0.023 m stroke is
    * therefore under one pixel at EVERY zoom the app can reach. Carving it would
    * put ~1,700 sub-pixel boxes on two buildings and render them as a shimmering
-   * speckle that aliases differently every frame — the definition of unreadable
-   * noise. Garrison Hall is worse: six names across a 4.66 m band is a 0.117 m
-   * cap height.
+   * speckle that aliases differently every frame. Garrison Hall is worse: six
+   * names across a 4.66 m band is a 0.117 m cap height.
    *
-   * So the band is drawn as a band, darkened so it reads as incised (see
-   * ENT.signCarveDark), and the WORDS are delivered as a symbol label that
-   * arrives at z17.4 when you are close enough to care. It is honestly a label
-   * and not a carving, and it is the only way the text is actually accurate on
-   * screen rather than accurate in a data file.
+   * ── AND WHY A LABEL WAS NOT THE ANSWER EITHER ───────────────────────
+   * The same arithmetic run the other way is what killed it. Type you can
+   * actually read starts at about 9 px; 108 characters at 9 px is ~500 px wide.
+   * At z18.6 the band it annotates is 24 px. So a readable label is TWENTY
+   * TIMES the width of the thing it is labelling, which on the ground is 85 m
+   * of text either side of an 8 m course. MapLibre symbol layers do not depth
+   * test against fill-extrusions, so those 500 px land on whatever is in front:
+   * shots/entb-MAI-day.png has this sentence lying across the Biological
+   * Laboratories 200 m short of the Main Building, and shots/entb-BTL-night.png
+   * has it across the Flawn Academic Center in a frame aimed at Battle Hall.
+   * There is no zoom where the text is both legible AND at the scale of its own
+   * band, so there is no setting of this layer that is honest by default.
+   *
+   * This is the call scripts/bake_places.py already made for shopfronts: "from
+   * the 200-900 m the camera actually flies at ... a logo is three or four
+   * pixels and unreadable, while the SIGN COLOUR is a 12 m x 1 m band that
+   * reads clearly". It shipped sign colour and no artwork. The equivalent here
+   * is the BAND — drawn, and darkened toward its own shadow (ENT.signCarveDark)
+   * so a course with letters cut into it reads incised rather than lit. That is
+   * what a 0.023 m stroke honestly looks like from the air.
+   *
+   * ── THE WORDS ARE STILL HERE ────────────────────────────────────────
+   * `?entlabels=1` turns the text on, and entrancesStats().inscriptions carries
+   * the full sourced strings whether it is on or not, so the accuracy Simeon
+   * asked for lives in the app rather than only in a data file. When it IS on
+   * it is bound to the geometry rather than floating: gated to ENT.label.minZoom,
+   * to ENT.label.maxDistM of its own band, and to ENT.label.arcDeg of that
+   * band's outward normal — the facing test standing in for the depth test
+   * MapLibre will not do — and lifted to the course's own height each time the
+   * camera moves. Those three gates are what make the flag safe to flip; they
+   * are not what makes it a good default.
    *
    * If a future pass ever gives the Main Building its real ~30 m frieze instead
    * of an 8.3 m band, carving becomes worth re-testing: at 30 m the same 23
@@ -287,20 +370,51 @@
   }
 
   /**
-   * Night colour for glazing. ENT.glassDim lists the tones the bake writes for
-   * UNLIT glass; those become a lit vestibule, varied per ENTRANCE (not per
-   * piece, or the two leaves of one door would be different colours) off `eid`.
-   * Everything else — the Ransom Center's authored beacon, the Battle and
-   * Sutton lanterns — keeps its own `wn`.
+   * Night colour for glazing: THE FEATURE'S OWN `wn`, and nothing else unless
+   * ENT.glassNightTint has been given entries by hand.
+   *
+   * This function used to force a lit tone over a list of four "dim" hexes the
+   * bake was writing. The bake stopped writing them — every glazing piece is
+   * authored warm and pre-compensated now — so the list matched nothing and the
+   * expression fell through to `wn` anyway. It was dead code that read like
+   * live code, which is a worse failure than a wrong colour: the next reader
+   * would have believed the renderer was doing the lighting and gone looking
+   * for the bug here. Deleted rather than repointed. Do NOT restore it — the
+   * tones it forced are the ones that measured neutral in §86.
    */
   function nightGlass() {
-    const v = ENT.glassLitVary.length ? ENT.glassLitVary : [ENT.glassLit];
-    const vary = ['match', ['%', ['to-number', ['get', 'eid'], 0], v.length]];
-    for (let i = 0; i < v.length - 1; i++) vary.push(i, v[i]);
-    vary.push(v[v.length - 1]);
-    return ['match', ['to-string', ['get', 'wn']],
-      ENT.glassDim, vary,
-      ['to-color', ['get', 'wn'], ENT.glassLit]];
+    const own = ['to-color', ['get', 'wn'], ENT.glassNightFallback];
+    const keys = Object.keys(ENT.glassNightTint || {});
+    if (!keys.length) return own;
+    const m = ['match', ['to-string', ['get', 'wn']]];
+    for (const k of keys) m.push(k, ENT.glassNightTint[k]);
+    m.push(own);
+    return m;
+  }
+
+  /**
+   * The audit that replaces the override: over every glazing piece in the file,
+   * how many night colours are a neutral nobody chose. Reported by
+   * entrancesStats().nightGlass so a verification script can watch it without a
+   * screenshot, and logged loudly at init if it is ever non-zero.
+   */
+  function auditNightGlass(features) {
+    let suspect = 0, dark = 0, missing = 0, n = 0;
+    const seen = {};
+    for (const f of features) {
+      const pr = f.properties;
+      if (GLASS_KINDS.indexOf(pr.k) < 0) continue;
+      n++;
+      if (!pr.wn) { missing++; continue; }
+      seen[pr.wn] = (seen[pr.wn] || 0) + 1;
+      const [r, g, b] = hexToRgb(pr.wn);
+      const spread = Math.max(r, g, b) - Math.min(r, g, b);
+      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      if (spread <= ENT.neutralSpread && luma >= ENT.neutralLuma) suspect++;
+      else if (luma < ENT.neutralLuma) dark++;
+    }
+    return { glass: n, tones: Object.keys(seen).length, neutralSuspect: suspect,
+             dark, missingWn: missing };
   }
 
   /**
@@ -361,6 +475,196 @@
     return ['match', ['get', 'k'], keep, true, false];
   }
 
+  // ── the inscription gate ────────────────────────────────────────────
+  // Everything below exists for one reason: a MapLibre symbol layer has no
+  // depth test against fill-extrusions, so "is this text on the right
+  // building" has to be answered in JS or not at all. §86 is what "not at all"
+  // looks like.
+  let _labelFeatures = [];
+  let _gateWired = false, _gateLast = '', _gateState = null;
+
+  /** Metres per degree at this latitude, so the tests are in metres. */
+  const M_LON = 111320 * Math.cos(SCENE_LAT * Math.PI / 180);
+  const M_LAT = 110540;
+
+  /**
+   * Outward normal of the wall an entrance sits in, as a unit vector in metre
+   * space. Derived from the entrance's own pieces: steps, ramps and rails are
+   * outside the wall, doors are in it, so door -> step points out. Falls back to
+   * the door -> whole-entrance offset, and finally to due north, which is a
+   * value that will fail the facing test rather than pass it wrongly.
+   */
+  function outwardNormal(features, eid, at) {
+    let dx = 0, dy = 0, nOut = 0, cx = 0, cy = 0, nIn = 0;
+    for (const f of features) {
+      const pr = f.properties;
+      if (pr.eid !== eid) continue;
+      const out = pr.k === 'step' || pr.k === 'ramp' || pr.k === 'rail';
+      const inn = pr.k === 'door' || pr.k === 'glass' || pr.k === 'reveal';
+      if (!out && !inn) continue;
+      const ring = f.geometry.coordinates[0];
+      let x = 0, y = 0, n = 0;
+      for (const pt of ring) { x += pt[0]; y += pt[1]; n++; }
+      if (!n) continue;
+      if (out) { dx += x / n; dy += y / n; nOut++; }
+      else { cx += x / n; cy += y / n; nIn++; }
+    }
+    if (!nOut || !nIn) return [0, 1];
+    const vx = (dx / nOut - cx / nIn) * M_LON;
+    const vy = (dy / nOut - cy / nIn) * M_LAT;
+    const len = Math.hypot(vx, vy);
+    if (!(len > 0.05)) return [0, 1];
+    return [+(vx / len).toFixed(4), +(vy / len).toFixed(4)];
+  }
+
+  /**
+   * WHERE THE EYE ACTUALLY IS. It is NOT map.getCenter(): at pitch 62 the
+   * centre is the point the camera is aimed at, ~90 m in front of the eye, and
+   * a distance-from-the-band test run on the centre passes happily with the
+   * building behind you. That is not a hypothetical — this gate was written
+   * against `map.getFreeCameraOptions()`, WHICH DOES NOT EXIST IN MAPLIBRE.
+   * It is Mapbox GL JS's API; MapLibre 5.24.0 has `transform.getCameraLngLat()`
+   * instead. The first version caught the throw, fell back to getCenter(), and
+   * therefore reported every pose as "camera at the door, distance 0, facing
+   * test skipped" — a gate that passed everything while looking like it was
+   * working. Probed, not assumed: `typeof map.getFreeCameraOptions` is
+   * "undefined" on 5.24.0.
+   *
+   * So: the transform's own value first, and if a future MapLibre renames it,
+   * an ANALYTIC fallback rather than a wrong-but-quiet one. The camera sits
+   * `cameraToCenterDistance * sin(pitch)` pixels behind the centre along the
+   * bearing, and cameraToCenterDistance is 0.5 * viewport height / tan(fov/2).
+   */
+  function cameraLngLat(map) {
+    const t = map.transform;
+    if (t && typeof t.getCameraLngLat === 'function') {
+      const c = t.getCameraLngLat();
+      if (c && isFinite(c.lng) && isFinite(c.lat)) return c;
+    }
+    const centre = map.getCenter();
+    const h = (map.getCanvas && map.getCanvas().clientHeight) || 900;
+    const fov = (t && (t.fov || t._fov)) || 36.87;
+    const c2c = (t && t.cameraToCenterDistance) || 0.5 * h / Math.tan(fov * Math.PI / 360);
+    // mPerPx()/2 — the true 512-px-tile ground scale. See labelRisePx.
+    const backM = c2c * Math.sin(map.getPitch() * Math.PI / 180) * mPerPx(map.getZoom()) / 2;
+    const th = (map.getBearing() + 180) * Math.PI / 180;
+    return {
+      lng: centre.lng + (backM * Math.sin(th)) / M_LON,
+      lat: centre.lat + (backM * Math.cos(th)) / M_LAT,
+    };
+  }
+
+  /**
+   * Which inscriptions may be drawn from where the camera is standing right
+   * now. Three tests, all in world units:
+   *   zoom     — ENT.label.minZoom, the "you are at the portal" gate
+   *   distance — ENT.label.maxDistM from the band
+   *   facing   — within ENT.label.arcDeg of the band's outward normal
+   */
+  function visibleInscriptions(map) {
+    if (!ENT.on || !ENT.labels || !_labelFeatures.length) return [];
+    const L = ENT.label;
+    if (map.getZoom() < L.minZoom) return [];
+    const eye = cameraLngLat(map);
+    const cosArc = Math.cos(L.arcDeg * Math.PI / 180);
+    const cosView = Math.cos(L.viewArcDeg * Math.PI / 180);
+    const br = map.getBearing() * Math.PI / 180;
+    const look = [Math.sin(br), Math.cos(br)];
+    const out = [];
+    for (const f of _labelFeatures) {
+      const c = f.geometry.coordinates, pr = f.properties;
+      const vx = (eye.lng - c[0]) * M_LON;
+      const vy = (eye.lat - c[1]) * M_LAT;
+      const d = Math.hypot(vx, vy);
+      if (d > L.maxDistM || d < 0.5) continue;
+      // camera stands in front of the wall the band is cut into
+      if ((vx * pr.nx + vy * pr.ny) / d < cosArc) continue;
+      // ...and is pointing at it, not merely near it
+      if ((-vx * look[0] + -vy * look[1]) / d < cosView) continue;
+      out.push(f);
+    }
+    return out;
+  }
+
+  /**
+   * Lift the words to the course they are cut into. A symbol's anchor is at
+   * ground level, which is why §86's inscription landed across its own doors.
+   *
+   * TWO THINGS HERE WERE WRONG THE FIRST TIME AND ONLY THE PIXELS SAID SO.
+   * The first version was `h / mPerPx(zoom) * cos(pitch)` and it put the words
+   * a full band-and-a-half low. Both factors were wrong:
+   *
+   *   cos -> sin. A world-vertical offset produces NO screen displacement
+   *   looking straight down and a 1:1 one at the horizon, so it scales with
+   *   sin(pitch), not cos.
+   *
+   *   mPerPx() IS TWO TIMES THE TRUE GROUND SCALE. js/controls.js already
+   *   carries this finding: "MapLibre uses 512-px tiles. The 156543.03392
+   *   constant found in most tutorials is the 256-px convention and yields
+   *   exactly 2x". mPerPx() in this file is that constant, and js/night.js's is
+   *   too. NOT changed here — the two files agree with each other and every
+   *   light pool in the city is sized off them, so correcting it silently would
+   *   double the radius of every pool in the scene. It is written down instead,
+   *   and this one function uses the true scale locally.
+   *
+   * Plus the perspective term: raising a point moves it toward the camera, so
+   * it also gets bigger. Measured against the painted band, magenta-masked,
+   * four poses (predicted -> measured px of rise for a 5.71 m course):
+   *   z19.6 pitch62  61.7 -> 62.0      z19.6 pitch45  50.4 -> 50.5
+   *   z19.6 pitch75  65.7 -> 66.7      z20.4 pitch62 110.7 -> 111.0
+   * Within 1.5% at the worst of the four, which is well inside a letter.
+   */
+  function labelRisePx(map, midH) {
+    const t = map.transform;
+    const mppTrue = mPerPx(map.getZoom()) / 2;      // see above: 512-px tiles
+    const hPx = midH / mppTrue;
+    const phi = map.getPitch() * Math.PI / 180;
+    const c2c = (t && t.cameraToCenterDistance)
+      || 0.5 * ((map.getCanvas && map.getCanvas().clientHeight) || 900)
+             / Math.tan(((t && (t.fov || t._fov)) || 36.87) * Math.PI / 360);
+    const persp = c2c / Math.max(1, c2c - hPx * Math.cos(phi));
+    return -Math.min(ENT.label.risePxCap, hPx * Math.sin(phi) * persp);
+  }
+
+  function updateInscriptionGate(map) {
+    const src = map.getSource && map.getSource(SRC + '-text');
+    if (!src) return;
+    const vis = visibleInscriptions(map);
+    // Published so a verification script can read the gate's OWN decision.
+    // querySourceFeatures() is a tile query and lags a setData by a frame or
+    // two, which read as an inverted result the first time this was tested.
+    _gateState = {
+      zoom: +map.getZoom().toFixed(2),
+      eye: (e => [+e.lng.toFixed(6), +e.lat.toFixed(6)])(cameraLngLat(map)),
+      visible: vis.map(f => f.properties.ref),
+      labelsOn: !!ENT.labels,
+    };
+    const key = vis.map(f => f.properties.ref).join(',');
+    if (key !== _gateLast) {
+      _gateLast = key;
+      try { src.setData({ type: 'FeatureCollection', features: vis }); } catch (e) {}
+    }
+    if (!vis.length || !map.getLayer(L_LABEL)) return;
+    // One translate for the layer, so it is the shortest band's rise when two
+    // are on screen at once. There are two inscriptions in the whole file and
+    // they are 70 m apart, so "two at once" is a nicety, not a case.
+    const midH = Math.min(...vis.map(f => f.properties.midH));
+    try { map.setPaintProperty(L_LABEL, 'text-translate', [0, labelRisePx(map, midH)]); } catch (e) {}
+  }
+  window.updateInscriptionGate = updateInscriptionGate;
+  /** What the gate decided last time the camera moved. Read-only. */
+  window.entrancesGateState = () => _gateState;
+
+  function wireGate(map) {
+    if (_gateWired) return;
+    _gateWired = true;
+    const run = () => { try { updateInscriptionGate(map); } catch (e) {} };
+    map.on('move', run);
+    map.on('moveend', run);
+    map.on('zoom', run);
+    run();
+  }
+
   // ── layers ──────────────────────────────────────────────────────────
   function poolRadiusExpr() {
     const stops = [];
@@ -407,6 +711,14 @@
     // The inscription source: one point per carved band, so the label is a
     // point feature and not a polygon MapLibre has to find a centroid for on
     // every placement pass. Built here because this lane owns no bake.
+    //
+    // Each point ALSO carries its band's outward normal and its mid-height,
+    // which is what lets the gate keep the words on their own building. The
+    // normal is taken from the entrance's own step and ramp pieces: those sit
+    // OUTSIDE the wall by construction, so door-centroid -> step-centroid points
+    // out of the building. Same derivation the pose script uses to put a camera
+    // in front of a door, and it lands on the campus grid, which is the check
+    // that it is real and not a guess.
     const labelFeatures = [];
     for (const f of gj.features) {
       const pr = f.properties;
@@ -416,16 +728,26 @@
       const ring = f.geometry.coordinates[0];
       let x = 0, y = 0;
       for (let i = 0; i < 4; i++) { x += ring[i][0]; y += ring[i][1]; }
+      const c = [x / 4, y / 4];
+      const nrm = outwardNormal(gj.features, pr.eid, c);
       labelFeatures.push({
         type: 'Feature',
-        geometry: { type: 'Point', coordinates: [x / 4, y / 4] },
-        properties: { ref: pr.ref, nm: pr.nm, text },
+        geometry: { type: 'Point', coordinates: c },
+        properties: {
+          ref: pr.ref, nm: pr.nm, text,
+          nx: nrm[0], ny: nrm[1],
+          // mid-height of the course, in metres — what the words are lifted to
+          midH: +((pr.base || 0) + (pr.h || 0) / 2).toFixed(2),
+        },
       });
     }
+    _labelFeatures = labelFeatures;
     if (labelFeatures.length && !map.getSource(SRC + '-text')) {
       map.addSource(SRC + '-text', {
         type: 'geojson',
-        data: { type: 'FeatureCollection', features: labelFeatures },
+        // EMPTY at add time, always. The gate fills it, and the gate is the
+        // only thing that ever puts a feature in front of the camera.
+        data: { type: 'FeatureCollection', features: [] },
       });
     }
 
@@ -520,7 +842,7 @@
     if (labelFeatures.length && !map.getLayer(L_LABEL)) {
       map.addLayer({
         id: L_LABEL, type: 'symbol', source: SRC + '-text',
-        minzoom: ENT.labelMinZoom,
+        minzoom: ENT.label.minZoom,
         layout: {
           'text-field': ['get', 'text'],
           // ONE font, not a fallback list. MapLibre requests a fontstack as a
@@ -528,21 +850,24 @@
           // Italic; a 404 glyph makes MapLibre discard the ENTIRE tile that
           // needed it (HANDOFF 7.12, and js/places.js carries the same note).
           'text-font': ['Noto Sans Bold'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], ...ENT.labelSize],
-          'text-letter-spacing': ENT.labelLetterSpacing,
+          'text-size': ['interpolate', ['linear'], ['zoom'], ...ENT.label.size],
+          'text-letter-spacing': ENT.label.letterSpacing,
           'text-max-width': 30,     // the clause split is the line break, not the wrap
           'text-padding': 4,
           'text-allow-overlap': false,
-          'text-anchor': 'bottom',
-          'text-offset': [0, -0.4],
+          'text-anchor': 'center',
           'visibility': ENT.labels ? 'visible' : 'none',
         },
         paint: {
-          'text-color': ENT.labelColor,
-          'text-halo-color': ENT.labelHalo,
-          'text-halo-width': ENT.labelHaloWidth,
+          'text-color': ENT.label.color,
+          'text-halo-color': ENT.label.halo,
+          'text-halo-width': ENT.label.haloWidth,
           'text-halo-blur': 0.3,
           'text-opacity': 0.96,
+          // Set live by updateInscriptionGate — the words are lifted to the
+          // course rather than sitting on the ground under their own doors.
+          'text-translate': [0, 0],
+          'text-translate-anchor': 'viewport',
         },
         // Before buildings-labels: this is a two-of-them layer carrying sourced
         // carved text, and it should not lose its box to a building name.
@@ -568,7 +893,17 @@
                                    && GLASS_KINDS.indexOf(f.properties.k) < 0).length,
       glass: gj.features.filter(f => GLASS_KINDS.indexOf(f.properties.k) >= 0).length,
       detail: gj.features.filter(f => DETAIL_KINDS.indexOf(f.properties.k) >= 0).length,
-      inscriptions: labelFeatures.map(f => f.properties.ref),
+      // The sourced words themselves, on by default or not, so "is the text
+      // accurate" is answerable from the console without turning on a layer.
+      inscriptions: labelFeatures.map(f => ({
+        ref: f.properties.ref, nm: f.properties.nm, text: f.properties.text,
+        normal: [f.properties.nx, f.properties.ny], midH: f.properties.midH,
+      })),
+      inscriptionsDrawn: ENT.labels,
+      // Watch this instead of the expression. `neutralSuspect` is the §86
+      // defect counted directly in the file: a night colour whose channels are
+      // within ENT.neutralSpread while its luma is ENT.neutralLuma or over.
+      nightGlass: auditNightGlass(gj.features),
       detailLevel: +detailLevel().toFixed(2),
       tiled: !!tiled,
       // Measured, not asserted from the schema: 6.81 m read as a thickness and
@@ -581,9 +916,18 @@
     console.log('[entrances]', _stats.entrances, 'entrances on', _stats.buildings,
                 'buildings,', _stats.features, 'pieces (', _stats.portal, 'portal /',
                 _stats.glass, 'glass /', _stats.detail, 'detail ), detail level',
-                _stats.detailLevel, ', inscriptions:', _stats.inscriptions.join(',') || 'none');
+                _stats.detailLevel, ', inscriptions:',
+                _stats.inscriptions.map(i => i.ref).join(',') || 'none',
+                _stats.inscriptionsDrawn ? '(drawn, ?entlabels=1)' : '(text off by default)');
+    if (_stats.nightGlass.neutralSuspect || _stats.nightGlass.missingWn) {
+      console.warn('[entrances] NIGHT GLASS IS GOING NEUTRAL —',
+                   _stats.nightGlass.neutralSuspect, 'of', _stats.nightGlass.glass,
+                   'glazing pieces carry a colourless `wn`, and', _stats.nightGlass.missingWn,
+                   'carry none at all. This is the §86 defect; fix it in the bake, not here.');
+    }
 
     wireDensity(map);
+    wireGate(map);
     window.applyEntranceColors(map, p);
   };
 
@@ -631,7 +975,17 @@
       try {
         map.setLayoutProperty(L_LABEL, 'visibility',
                               (ENT.on && ENT.labels) ? 'visible' : 'none');
+        map.setLayoutProperty(L_LABEL, 'text-size',
+                              ['interpolate', ['linear'], ['zoom'], ...ENT.label.size]);
+        map.setPaintProperty(L_LABEL, 'text-color', ENT.label.color);
+        map.setPaintProperty(L_LABEL, 'text-halo-color', ENT.label.halo);
+        map.setPaintProperty(L_LABEL, 'text-halo-width', ENT.label.haloWidth);
       } catch (e) {}
+      // Re-run the gate: flipping ENT.labels on must not put stale features in
+      // the source, and flipping it off must empty it rather than leave the
+      // last frame's words parked in a hidden layer.
+      _gateLast = null;
+      try { updateInscriptionGate(map); } catch (e) {}
     }
     if (map.getLayer(L_POOL)) {
       try { map.setLayoutProperty(L_POOL, 'visibility', ENT.on ? 'visible' : 'none'); } catch (e) {}

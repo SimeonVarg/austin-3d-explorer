@@ -1,5 +1,144 @@
 # Austin 3D Explorer — Full Handoff
 
+## 88. Aug 4 2026 — the inscription stopped being a map label, and the night glass was checked in pixels rather than in the expression (acer lane)
+
+**Branch:** `acer/entrances`, still PR #145. **One file written:** `js/entrances.js`,
+plus this entry. No bake, no data, no `js/app.js`. §86's defect 2 and the render
+half of its defect 5 are the whole scope; defects 1, 3 and 4 were the bake's and
+§87 closed them.
+
+Setup so the numbers reproduce: `harness-drift.mjs` **PASS, 28 scripts in each
+file**, run before any pixel. `python scripts/serve.py 8242`, 1440x900,
+swiftshader, `cancelGraphicsAutoDetect()` at the top of every run, one browser at
+a time, reaped and the server killed at the end. Poses computed from
+`data/entrances.geojson` itself — door centroid, direction from the entrance's own
+STEP pieces, camera on the outward normal — and every one came out on the campus
+grid (5/95/185/275 degrees), which is the check that the pose is real.
+
+### 1. THE INSCRIPTION IS OFF BY DEFAULT, AND THE ARITHMETIC IS WHY
+
+`shots/entb-MAI-day.png` is the defect: "YE SHALL KNOW THE TRUTH ..." lying
+across the Biological Laboratories, 200 m short of the building it belongs to.
+`shots/entb-BTL-night.png` is the same sentence across the Flawn Academic Center
+in a frame aimed at Battle Hall. Not a placement bug — a scale one.
+
+**Type you can read starts at about 9 px. 108 characters at 9 px is ~500 px. At
+z18.6 the band it annotates is 24 px.** So a readable label is twenty times the
+width of the thing it labels, i.e. 85 m of text either side of an 8.3 m course,
+and MapLibre symbol layers do not depth-test against fill-extrusions, so those
+500 px land on whatever is in front. Run the arithmetic the other way and carving
+is worse: a 0.023 m stroke is under one pixel at every zoom this app can reach,
+even at MapLibre's z22 ceiling.
+
+**There is no zoom where the text is both legible and at the scale of its own
+band**, so there is no setting of that layer that is honest as a default. This
+is the call `scripts/bake_places.py` already made for shopfronts — it shipped
+SIGN COLOUR and no artwork because "a logo is three or four pixels and
+unreadable" from the altitude this camera flies. The equivalent here is the
+BAND, which is drawn and darkened toward its own shadow so it reads incised.
+That is what sub-pixel lettering honestly looks like from the air.
+
+**The words are not lost.** `entrancesStats().inscriptions` now carries the full
+sourced strings, both of them, whether the layer is on or not — so "is the text
+accurate" is answerable from the console. `?entlabels=1` draws it, and when it
+is on it is bound to the geometry instead of floating: gated to z19.2, to 110 m
+of its own band, to 62 degrees of that band's outward normal, and to 40 degrees
+of where the camera is actually pointing. `shots/lblon2-MAI-portal-facing.png`
+is the flag on at the portal; `shots/lblon2-old-entb-BTL-pose.png` is the exact
+pose that produced the FAC defect, with the flag still on, and there is no text
+in it. Nine gate cases, all pass.
+
+**Two things were wrong in that gate and only running it said so.**
+
+`map.getFreeCameraOptions()` **DOES NOT EXIST IN MAPLIBRE.** It is Mapbox GL
+JS's API; MapLibre 5.24.0 has `transform.getCameraLngLat()`. The first version
+called it, caught the throw, fell back to `map.getCenter()` — and the centre at
+pitch 62 is ~90 m in FRONT of the eye, so every pose reported "distance 0,
+facing test skipped". A gate that passed everything while looking like it
+worked. Probed, not assumed: `typeof map.getFreeCameraOptions` is `"undefined"`.
+
+And the lift onto the frieze was `h / mPerPx(zoom) * cos(pitch)`, which put the
+words a band and a half low. Both factors wrong. **cos should be sin** — a
+vertical offset moves nothing on screen looking straight down and 1:1 at the
+horizon. And **`mPerPx()` in this file is two times the true ground scale**:
+`js/controls.js` already carries the finding ("MapLibre uses 512-px tiles. The
+156543.03392 constant found in most tutorials is the 256-px convention and
+yields exactly 2x"), and `js/entrances.js` and `js/night.js` both use that
+constant. Calibrated against the painted band, magenta-masked, four poses —
+predicted -> measured px of rise for a 5.71 m course: 61.7 -> 62.0, 50.4 -> 50.5,
+65.7 -> 66.7, 110.7 -> 111.0. Worst case 1.5%.
+
+**I did NOT change `mPerPx()`.** It is shared with `poolRadiusExpr()` here and
+with every light pool in `js/night.js`, and correcting it would silently double
+the radius of every pool in the city — a taste change smuggled in under a bug
+fix. The local projection uses the true scale; the finding is written down for
+whoever owns `js/night.js` next. **Every ground pool in this repo is currently
+half its nominal metres.**
+
+### 2. THE NIGHT GLASS WAS ALREADY LIT, AND SAYING SO WAS THE JOB
+
+Measured before touching anything, at tod 0.92, with the layer painted `#ff00ff`
+and the changed pixels read back off the canvas — so the pixel set is the
+layer's own and not a hand-picked box, which has been wrong three times here:
+
+    Battle          rgb(133,103,74)  luma 107   frame median 41   R:B 1.79
+    Main Building   rgb(133,101, 66) luma 105   frame median 45   R:B 2.02
+    PCL             rgb(143,109, 62) luma 113   frame median 37   R:B 2.31
+    Gregory         rgb(143,107, 69) luma 112   frame median 35   R:B 2.09
+    Welch           rgb(129, 95, 58) luma 100   frame median 31   R:B 2.21
+
+§86 measured (134,121,118), luma 124, channels within 16. Note it was BRIGHTER
+than any of these and still read dead — **brightness was never the defect,
+warmth was.** §87's bake fix is what moved it, and this pass confirms it in
+pixels rather than in the paint expression, which is the mistake that produced
+the defect in the first place. The same Battle glazing by day is (59,76,91),
+R:B 0.65 — blue by day, warm by night, off one `wd`/`wn` pair.
+
+**So the render-side change is a deletion, and the before/after pixels are
+identical to the digit at Battle.** `ENT.glassDim` listed four hexes the bake
+had stopped writing and re-pointed them at `ENT.glassLitVary`; nothing matched,
+so the expression fell through to the feature's own `wn` and produced the
+numbers above. Dead code that read as live code — which is worse than a wrong
+colour, because the next reader goes looking for the lighting in the renderer
+and it is not there. Deleted, not repointed: the tones it forced are the ones
+that measured neutral. `ENT.glassNightTint` is the escape hatch and is empty.
+
+Replaced with an audit rather than an override, so a neutral cannot creep back
+silently: `entrancesStats().nightGlass` counts glazing whose `wn` has channels
+within 14 while its luma is 40 or over — the Capitol pale-band signature — and
+`initEntrances` warns loudly if it is ever non-zero. Current file: **1,398
+glazing pieces, 4 tones, 0 suspect, 0 missing `wn`.**
+
+The warm ground pool is untouched. `shots/enta2-BTL-night.png` beside
+`shots/entb2-BTL-night.png` is the pair: identical scene, identical pools.
+
+### WHAT I DID NOT FIX
+
+1. **The label is still four times too wide even at its best.** With
+   `?entlabels=1` at the portal it is ~320 px of text over a ~90 px band. It is
+   on the right building at the right height now, which is what makes the flag
+   safe, but it is not what makes it a good default. Do not turn it on by
+   default without the ~30 m frieze the note in the file describes.
+2. **The gate is distance-and-angle, not occlusion.** A band 100 m away with
+   another building squarely between it and the camera would still draw. Real
+   occlusion needs a depth read the style cannot do. Not hit in any of the nine
+   cases, and only reachable with the flag on.
+3. **`mPerPx()` is left 2x wrong** for the pools, deliberately — see above.
+   Somebody who owns `js/night.js` should decide whether the pools want to be
+   twice the size, because that is a taste question and not a bug fix.
+4. **No `entrances-*` verify script exists** — this lane's writable set was
+   `js/entrances.js`, the two html files and this entry, so the checks live in
+   `entrancesStats()` and `entrancesGateState()` instead. They are shaped to be
+   asserted without a screenshot; somebody with `scripts/verify/` should write
+   the ten-line wrapper.
+5. **No frame-cost re-measure.** The gate runs on `move` and early-returns on
+   `!ENT.labels`, so the default build pays two comparisons per frame; the
+   symbol layer's source is empty rather than filtered. I did not run
+   `perf.mjs`. §86's cost finding stands.
+6. **Welch's first night pose returned zero glass pixels** and I moved the
+   camera rather than working out why the entrance was not in frame. The
+   reading above is from the second pose.
+
 ## 87. Aug 4 2026 — the four generator defects behind §86, fixed in the bake (acer lane)
 
 **Branch:** `acer/entrances`, still PR #145. **Two files written:**
