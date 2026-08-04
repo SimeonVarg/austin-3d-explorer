@@ -207,7 +207,11 @@
   // blocks that would freeze anything driven from JS. It never reaches 100%:
   // only loaderDone(), on the real first frame, does that.
   const STAGE_SHARE = 0.30;
-  const CREEP_TO = 0.97, CREEP_MS = 7600;   // ~= INTRO.maxVeilMs in app.js
+  // CREEP_MS tracks INTRO.minVeilMs in app.js — the FLOOR the veil never lifts
+  // before. The gate above that floor is covered by loaderWaiting()'s second
+  // glide, not by stretching this one: stretching it would make the rail lag on
+  // a fast machine, where the floor is all there is for the first seconds.
+  const CREEP_TO = 0.97, CREEP_MS = 7600;   // ~= INTRO.minVeilMs in app.js
 
   // ── The tail, which used to be a lie ────────────────────────────────
   //
@@ -360,10 +364,43 @@
   // non-information the old bar carried.
   function updateTailStatus() {
     if (!status || idx < STAGES.length) return;
+    if (holdText) { status.textContent = holdText; return; }   // the gate owns it
     const n = srcDone.size, d = Math.max(SOURCES_EXPECTED, srcSeen.size);
     status.textContent = n >= d ? 'Drawing the first frame'
                                 : 'Tiling the city — ' + n + ' of ' + d + ' layers ready';
   }
+
+  /**
+   * THE EXTRA WAIT, AND WHY THE BAR HAS TO KNOW ABOUT IT.
+   *
+   * app.js's INTRO gate holds the veil past its floor when the sources the
+   * opening frame needs are not drawable yet (the "flies over empty land"
+   * report). That wait is real and it is the honest thing to do, but a load
+   * screen that has already run its rail to the end and then sits there reads
+   * as a hang — which is the same defect the tail creep was written to fix, one
+   * stage further along.
+   *
+   * So the gate calls in, and two things happen: the status line stops
+   * reporting layer COUNTS and starts reporting the thing actually being waited
+   * for, and the floor gets a second glide sized to the gate's own remaining
+   * budget so the compositor keeps the rail moving through it. `srcDone` is the
+   * rail's signal and it is deliberately monotonic; the gate's signal is
+   * viewport-scoped and can go backwards, so it drives WORDS, never the rail.
+   *
+   * n, d — sources ready / sources needed for the opening frame.
+   * budgetMs — how long the gate may still hold, i.e. its ceiling minus floor.
+   */
+  let holdText = null, holdFloored = false;
+  window.loaderWaiting = function loaderWaiting(n, d, budgetMs) {
+    if (finished) return;
+    holdText = (n >= d) ? 'Drawing the first frame'
+                        : 'Loading downtown — ' + n + ' of ' + d + ' layers ready';
+    if (status) status.textContent = holdText;
+    if (!holdFloored) {
+      holdFloored = true;
+      floorTo(CREEP_TO, Math.max(1000, budgetMs || 8000));
+    }
+  };
 
   // The bar used to sit at 7% for the ~1.7 s of fetch and parse before
   // buildScene() runs, because `boot` is the only stage that has fired by then.
