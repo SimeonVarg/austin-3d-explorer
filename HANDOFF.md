@@ -1,5 +1,126 @@
 # Austin 3D Explorer — Full Handoff
 
+## 75. Aug 4 2026 — the graphics menu explained itself at three lines a control (acer lane)
+
+**Branch:** `acer/gfx-menu-less-yap`, **PR #136**, merged `a19d704`. Files:
+`js/graphics.js` and `style.css` only.
+Shots: `shots/k6-before/`, `shots/k6-after/` (desktop 1440x900 and phone
+390x844, each as `-view` = what you see on opening and `-full` = the whole panel
+with max-height released).
+
+> *"add making the graphics menu less yap"*
+
+**This was a correction to the BRIEF that produced PR #128, not to that work.**
+The brief said "rename every control in plain language and say what it DOES",
+and the second half of it turned a settings panel into something you read.
+
+### THE SIZE OF THE PROBLEM, measured rather than asserted
+
+```
+                                        before      after
+  help text under the controls        2,063 ch      74 ch
+  panel content height                1,718 px   1,084 px
+  controls visible before scrolling
+      1440x900 desktop                  5 of 20   10 of 19
+      390x844 phone                     4 of 20    6 of 19
+```
+
+Every one of twenty rows carried a full sentence and seven of them carried a
+second one with an fps figure in it. On the phone the bottom sheet showed four
+controls and three-quarters of it was prose.
+
+### THE NAMING STAYS — that half of PR #128 was right
+
+"Glow", "Sun shafts", "Shadows at the base" are still the labels. Nothing went
+back to "Bloom" or "Contact shadows"; he has never complained about the names,
+only about being answered with a paragraph.
+
+### THE BAR FOR KEEPING A HINT
+
+*Could a reader work this out by moving the control and looking?* If yes, no
+hint. Four rows of nineteen keep one and the longest is five words — each says
+something you cannot discover by trying it:
+
+* **Smooth edges** — "Needs a reload." (a tick box that does nothing until you)
+* **Resolution** — "Biggest speed win." (which of five speed sliders to pull)
+* **Detail distance** — "Clutter only — buildings stay." (the city does not go)
+* **Stars** — "Night only." (a slider that looks broken at noon)
+
+**And the performance numbers came out entirely.** *"+6.0 fps measured, which
+beat halving the resolution"* was three lines under a slider restating a number
+that is ALREADY ON SCREEN AND LIVE — the fps readout in the panel header moves
+while you drag. Point at the counter, not at a paragraph. Measurements belong in
+this file.
+
+One hint was cut after the first pass and the reason generalises: **Glow** had
+"Reload to turn on from zero", which is true only when bloom is at zero, and
+`applyGraphics()` already calls `markReload()` and pops the "Reload to apply"
+button in the footer at exactly the moment it applies. A standing line of text
+duplicating a contextual control is on screen the whole time including when it
+is wrong.
+
+### REMOVED: "Distance blur" (`dof`) — the only control cut
+
+PR #116 set it to `0` in every preset because its band is keyed to a screen ROW
+rather than to a distance, and it was the horizon line reported four times. So
+the row was a slider that did nothing until you moved it and then put a known
+defect back — and its own help text had to spend forty words warning you off it,
+which is the tell. **A control whose honest label is "don't" is not a control.**
+
+**Only the ROW goes.** `GFX.dof` still exists, `renderFX` still honours it, and
+`window.GFX.dof = 0.5; applyGraphics()` still draws it — so this is a menu
+decision and not a capability one, and `graphics.mjs`'s "distance blur (DOF)
+turns on" assertion passes untouched. `filmic` was already handled this way.
+Re-adding the row is one line in `SCHEMA` if the effect is ever keyed to real
+distance.
+
+Everything else stayed. Nothing else in the panel failed the four-word test:
+`Resolution`, `Smooth edges`, `Detail distance`, `Trees`, `City beyond campus`,
+`Building shadows`, `Shadows at the base`, `Glow`, `Sun shafts`, `Lens flare`,
+`Brightness`, `Auto brightness`, `Contrast`, `Colour strength`, `Darkened
+corners`, `Film grain`, `View width`, `Clouds`, `Stars`.
+
+Smaller cuts: "Reload to apply AA" -> "Reload to apply" (AA is a term of art in
+a menu that has stopped using them); group notes to four words each; the fps
+tooltip from three sentences to four.
+
+### WHAT DID NOT WORK
+
+**1. I DESTROYED ANOTHER LANE'S UNCOMMITTED WORK. Read this one.** Near the end
+I ran `git reset --hard origin/main` to put the checkout on the merged commit.
+The shared Acer tree had a *modified* `scripts/verify/boot.mjs` (+26 lines) from
+another agent, unstaged, and `--hard` threw it away. It is **not recoverable** —
+`git fsck --lost-found` has no blob for it because the edit was never staged, so
+there is nothing in the object database to recover. Whoever owns that edit has
+to redo it, and I am sorry.
+**The rule this earns: in this checkout, never `reset --hard`, and never
+`checkout .`.** To land on the merged commit use `git merge --ff-only origin/main`
+(it refuses rather than clobbering) or simply do nothing — a branch that merged
+cleanly is already byte-identical to `main`, which is exactly what
+`git diff --stat origin/main -- <your files>` will tell you for free. This sits
+next to §73's note about the shared tree; that one was about branch pointers,
+this one is about the working tree itself, and this one actually lost data.
+
+**2. `preset-colour.mjs` cannot complete on this machine, and it is not new.**
+It hit the 300 s watchdog, then hit `VERIFY_MAX_MS=560000` too, dying inside
+`sample()` at `page.screenshot()`. **I reverted both my files to `HEAD` and ran
+it again on a pristine tree: same failure.** Pre-existing, and it is exactly the
+trap §73 wrote down — `page.screenshot()` runs on the page's main thread, which
+is saturated. It needs a CDP screencast like the intro gate got, or a smaller
+pose set. Do not let it block a merge; do check it the same way before assuming
+your change caused it. (Reverting the files and re-running is the cheap decisive
+test and it took ten minutes. The reasoning alternative — "my diff changes no
+preset value" — was true but is not evidence.)
+
+**3. A menu screenshot needs its own script and it is not in the suite.**
+`pose.mjs` photographs camera poses and never opens the panel; nothing in
+`scripts/verify/` opens the graphics menu and measures it. The one used here
+lives in the session scratchpad: it loads `index.html?intro=0&drift=0`, cancels
+the auto-detect probe, clicks `#gfx-button`, screenshots twice keeping the
+second, counts `.gfx-row` heights and help-text characters, and then releases
+`max-height` for a whole-panel frame. If a fourth pass ever lands on this menu,
+that script is worth promoting into the suite rather than rewriting.
+
 ## 74. Aug 4 2026 — downtown IS cooler than campus, it is the palette, and the palette is the half that is right (acer lane)
 
 **Branch:** `acer/k5-two-suns`. **QUEUE K5.** **NO RENDERING CODE CHANGED — this
