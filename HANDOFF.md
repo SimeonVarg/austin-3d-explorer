@@ -1,5 +1,131 @@
 # Austin 3D Explorer — Full Handoff
 
+## 73. Aug 4 2026 — the intro flew over empty land because nothing ever waited for downtown (acer lane)
+
+**Branch:** `acer/intro-opening-gate`, **PR #135**, merged `518c14e`. Files:
+`js/app.js` (intro section) and `js/loader.js` only.
+Shots: `shots/intro-gate/`.
+
+> *"the intro starts nicely on my phone but on my laptop (running claude and
+> quite a few chrome tabs) the downtown buildings arent loaded even when loading
+> screen completes, so its a bunch of empty land … is there a check for which
+> buildings are rendered?"*
+
+**The flight path is untouched.** This was a race, not a design problem.
+
+### THE CHECK EXISTS AND THE LOADER WAS ALREADY USING IT — WRONGLY
+
+`map.isSourceLoaded(id)` per source and `map.areTilesLoaded()` overall. **Both
+answer for the CURRENT VIEWPORT**, which is the whole subtlety. `js/loader.js`
+polls the first one in `loaderWatch`, and it did not catch this for two reasons,
+both of which are right for a progress bar and wrong for a gate:
+
+1. **It accumulates into a monotonic `srcDone` Set.** A source that reported
+   loaded *for the spawn view* — campus, where the map is built — stays counted
+   after the camera jumps 2 km south to the intro's start pose. Loaded at campus
+   says nothing about loaded downtown.
+2. **Nothing in it has ever decided when the veil lifts.** It drives the rail
+   only. The veil lifted on `map.once('idle')` or a flat 7 s timeout.
+
+**AND `idle` DOES NOT ARRIVE.** Measured under CPU throttle, the idle events land
+at ~2.4 s — before `buildScene()` even finishes, so the listener registered after
+it never sees them — and then not again for 25 s. The sky canvas repaints every
+frame, so the map is never idle in that sense; `scripts/verify/boot.mjs` has the
+same trap written down, where it cost 20 s of a 37 s reading. **So the timeout
+always won and the flight always departed at exactly 7 s, ready or not.**
+
+PR #127 did not cause this, it exposed it: the opening frame used to be campus,
+the first thing loaded, and is now downtown, which the outer ring tiles last.
+
+### THE FIX, AND THE BOUND
+
+`INTRO.needs` = `austin-outer`, `austin-buildings`, `austin-ground`,
+`austin-roads` — the sources whose absence IS the empty land at `start`. The
+flight departs once each reports loaded **twice in a row** (a GeoJSON source that
+has not begun fetching answers "all loaded" the first time it is asked — boot.mjs
+hit exactly that and it produced a 3x error). A source not in the style is
+skipped, never waited on.
+
+```
+INTRO.minVeilMs   7000    the old maxVeilMs, now a FLOOR — the gate can only
+                          ever make the wait LONGER, so the phone is untouched
+INTRO.maxVeilMs  18000    the new hard ceiling
+```
+
+18 s covers up to about a 2x-slowed machine (the gate was satisfied at 10.8 s and
+16.0 s on two CPU-2x runs). **At CPU 4x nothing reasonable covers it** — downtown
+was still not tiled 40 s in — so past the ceiling you get the old behaviour rather
+than an indefinite hang. Say so rather than pretending 4x is fixed.
+
+`?intro=0` and `?tour=1` keep the old timing exactly; the whole verify suite loads
+with `?intro=0` and a gate that added ten seconds to ninety scripts is a change
+nobody asked for.
+
+`js/loader.js` gains `loaderWaiting(n, d, budgetMs)`: during the hold the status
+line reads "Loading downtown — 1 of 4 layers ready" and the compositor floor gets
+a **second** glide sized to the gate's remaining budget. `CREEP_MS` was left at
+7600 on purpose — stretching it would make the rail lag on a fast machine, where
+the floor is all there is for the first seconds.
+
+### BEFORE / AFTER, interleaved reps at CPU 2x, minimum taken
+
+```
+                   frames rendered before downtown arrives     after the lift
+  BEFORE  rep 2                  24                               8742 ms
+  BEFORE  rep 3                  14                               2796 ms
+  AFTER   rep 2                   0                                247 ms
+  AFTER   rep 3                   0                                110 ms
+  AFTER   unthrottled             -                                 64 ms
+```
+
+At CPU 4x, before: 59 frames, every one of them, downtown still absent 20 s later.
+`loader-check.mjs` 7/7 and `outer-check.mjs` 21/21 on the merged tree.
+
+### THREE THINGS THAT DID NOT WORK — the transferable part
+
+**1. `page.screenshot()` CANNOT PHOTOGRAPH THIS, and it lies silently.** It runs
+on the page's main thread, which is precisely what is saturated during the intro.
+A shot requested at "+0.2 s after the veil lift" came back with the camera already
+at the END pose, seconds of flight later — the instrument was photographing its
+own latency, and the frames looked plausible enough to believe. **Use a CDP
+screencast**: it is pushed from the compositor, costs the page nothing, and
+timestamps every frame. Sketch:
+
+```js
+const cdp = await page.context().newCDPSession(page);
+await cdp.send('Emulation.setCPUThrottlingRate', { rate: 2 });
+const frames = [];
+cdp.on('Page.screencastFrame', async ev => {
+  frames.push({ at: Date.now(), data: ev.data });
+  await cdp.send('Page.screencastFrameAck', { sessionId: ev.sessionId });
+});
+await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 85, everyNthFrame: 1 });
+// mark the moment from the page with console.log('VEIL_LIFT') and read it off
+// page.on('console') — that arrives over CDP too, not through the blocked thread.
+```
+
+**2. The first probe timed the WRONG `idle`.** It hooked `map` at construction and
+took `once('idle')` there, which fires ~2.4 s in, before `buildScene()` — nowhere
+near the listener the reveal actually registers. It reported "reveal came from
+IDLE" when the reveal was the timeout every time. If you instrument a listener,
+register it where the code registers it.
+
+**3. One reading was worth nothing.** An AFTER run at CPU 2x hit the ceiling with
+downtown still missing and looked like a total failure; two stray verification
+browsers were alive at the time. `reap.mjs`, then the same run gave 0 frames
+twice. Reap before you measure, and interleave.
+
+### ONE MORE THING, and it is about the shared working tree
+
+The Acer's checkout is used by more than one agent at once. Mid-session another
+lane switched the branch out from under this work and committed on top of it;
+`acer/intro-tile-gate` was left pointing at a commit BEFORE its own change and the
+work survived only because the commit was still reachable from their branch. If a
+push or a PR looks like it is missing your diff, check `git log --oneline -4` and
+`git branch -v` before assuming anything was lost — and prefer branching fresh
+from `origin/main` and cherry-picking your own commit over trying to fix the
+branch pointer in place.
+
 ## 72. Aug 4 2026 — the streetlights were suns because the head was white and the pool had a rim (acer lane)
 
 **Branch:** `acer/night-lamp-falloff-v2`, **PR #134**. File: `js/night.js`
