@@ -1,5 +1,19 @@
 # MAC LANE — DKR, and only DKR
 
+## STATUS 2026-08-03 — M1-M4 done across four PRs, all merged
+
+| | | |
+|---|---|---|
+| **#102** | `mac/dkr-rebuild` | Height per side (W 53 / E 36.5 / N 34 / S 26, was 63 everywhere), four sides instead of a solid of revolution, rim lights, 88 m masts deleted, orange seating in measured sections. Then part two once #114 unblocked it: upper deck over the concourse, correct night falloff. |
+| **#115** | `mac/dkr-entrances` | The ramp towers are open drums with a 3-turn helix inside, not flat discs. Videoboard un-floated. |
+| **#116** | `mac/dkr-south` | The two seven-storey 2021 entry towers, which had never been built. |
+
+**M5's test now passes well enough to merge**: it reads as a football stadium
+rather than the Colosseum. It is not photographic — the bowl is still stepped
+bands rather than modelled rows, and the south end is the 2021 arrangement only
+in its towers and screen, not its seating. Both are refinements, not faults.
+
+
 Rewritten 2026-08-03 evening. The trees lane is closed (PRs #90–92, all merged).
 This lane now has **one job**, and it is the one Simeon has asked for more times
 than anything else in this project.

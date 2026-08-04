@@ -238,6 +238,39 @@ BOARD_W_M = 41.0         # 134.38 ft
 BOARD_H_M = 17.0         # 55.85 ft
 BOARD_BASE_FRAC = 0.60   # generative: clear of the seating, under the rim
 BOARD_THICK_M = 2.4
+# ── Taste block: the 2021 south end zone ──────────────────────────────
+#
+# *"of course the south side is mainly the screen. theres also the longhorn
+# shaped thing at the south side bottom."*
+#
+# The georeferenced aerial PREDATES this work — tested, only 2,170 scattered
+# burnt-orange pixels in the south structure against 17,516 in the painted north
+# end zone, so there is no Longhorn balcony in the photograph. Everything here is
+# therefore SOURCED from the published project rather than measured, and it is
+# declared that way in the provenance block:
+#
+#   2021, Populous / Hensel Phelps, $175M, 240,000 sq ft.
+#   Two seven-storey ENTRY TOWERS flanking the south end, "Rusted Metal" finish.
+#   The Longhorn balcony, 215 x 72 ft, custom UT Burnt Orange ALUCOBOND PLUS.
+#
+# The entry towers were never built at all — the south end had a screen and
+# nothing else. Seven storeys at a 4.0 m commercial floor-to-floor is 28 m,
+# which sits just above the 26 m south wall, as the photographs show.
+SOUTH_TOWER = {
+    "levels": 7,
+    "floor_m": 4.0,
+    "w_m": 17.0,          # across the face
+    "d_m": 15.0,          # deep
+    "lateral_m": 41.0,    # centre-to-centre either side of the axis
+    "south_m": 96.0,      # from the field centre, along the axis
+    # Weathering steel. Entered warm-dark: it is rust, not orange, and the
+    # facade stack lifts everything about 10%.
+    "col": "#6f4630",
+    "golden": "#8a5637",
+    "night": "#241a15",
+    "cap_m": 1.4,
+    "cap_col": "#4a3226",
+}
 LONGHORN_W_M = 65.5      # 215 ft
 LONGHORN_D_M = 21.9      # 72 ft
 
@@ -1413,6 +1446,25 @@ def build(feature, stats):
     for lon, lat, dia, ht in RAMPS:
         cx, cy = ll_to_m(lon, lat, lat0)
         ramp_tower(cx, cy, dia, ht, lat0, name, out, stats)
+
+    # The two 2021 south entry towers. Placed off the field's own axis rather
+    # than from hardcoded lon/lat, so they stay put if the footprint is re-baked.
+    st = SOUTH_TOWER
+    ht = st["levels"] * st["floor_m"]
+    sx, sy = math.cos(axis + math.pi), math.sin(axis + math.pi)   # toward south
+    lx, ly = -sy, sx                                              # across it
+    for side in (-1, 1):
+        tx = c[0] + sx * st["south_m"] + lx * st["lateral_m"] * side
+        ty = c[1] + sy * st["south_m"] + ly * st["lateral_m"] * side
+        out.append(feat(rect(tx, ty, st["w_m"], st["d_m"], axis), lat0,
+                        {"kind": "pier", "h": round(ht, 2), "base": 0.0,
+                         "col": st["col"], "golden": st["golden"],
+                         "night": st["night"], "name": name}))
+        out.append(feat(rect(tx, ty, st["w_m"] + 1.2, st["d_m"] + 1.2, axis), lat0,
+                        {"kind": "pier", "base": round(ht, 2),
+                         "h": round(ht + st["cap_m"], 2),
+                         "col": st["cap_col"], "name": name}))
+        stats["south_towers"] += 1
     # Masts ride the wall ring on the two long sides. Generative positions: the
     # aerial cannot resolve a 2 m pole, but the 2016 interior panorama shows tall
     # slim masts standing well above both upper decks, and their silhouette is

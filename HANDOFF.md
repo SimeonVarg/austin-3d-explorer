@@ -150,6 +150,25 @@ suspect until it is checked against the side it stands on.**
 Still not built: the south end is the pre-2021 arrangement, and its two
 seven-storey entry towers are not modelled.
 
+### Part four — the 2021 south end, branch `mac/dkr-south`
+
+The two **seven-storey entry towers** of the 2021 south end zone project were
+never built at all — the south end had a videoboard and nothing else. They are
+SOURCED, not measured: the aerial predates the work (only 2,170 scattered
+burnt-orange pixels in the south structure against 17,516 in the painted north
+end zone, so there is no Longhorn balcony in the photograph), so everything in
+`SOUTH_TOWER` is from the published project and is declared that way.
+
+Seven storeys at a 4.0 m commercial floor-to-floor is 28 m, which sits just
+above the 26 m south wall as the photographs show. Weathering steel, entered
+warm-dark because it is rust rather than orange and the facade stack lifts
+everything about 10%. Placed off the FIELD'S OWN AXIS rather than from hardcoded
+lon/lat, so they stay put if the footprint is ever re-baked.
+
+**DKR is now four PRs deep and reads as a football stadium** — wide, low, two
+decks with a concourse gap, a tall west side, the videoboard end, and the ramp
+towers as real drums. `shots/dkr4/south-hi.png`.
+
 ### Also found
 
 - `data/dkr_aerial.png` and `dkr_aerial_geo.png` are **gitignored and were not
