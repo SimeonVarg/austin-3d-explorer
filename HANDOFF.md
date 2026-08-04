@@ -1,5 +1,144 @@
 # Austin 3D Explorer — Full Handoff
 
+## 63. Aug 4 2026 — the horizon follows the bank, and a mall is not a road (acer lane)
+
+**Branch:** `acer/horizon-roll-speedway`, **PR #125**, merged. **QUEUE H3 and
+H4**, plus a diagnosis-only pass on **H5**. Files: `js/sky.js`,
+`scripts/bake_ground.py`, `data/ground.geojson`. Shots: `shots/roll/`,
+`shots/speedway/`, `shots/malls/`, `shots/jester/`.
+
+### H3 — the tilting horizon is the FOG, not the sky
+
+> *"the horizontal horizon line tilts in the opposite direction as the map
+> horizon when i move sideways"*
+
+`?haze=0` removed the line in one shot, which named the layer before a single
+character was changed. It is `js/sky.js`'s depth-fog **ground** shader
+(`FS_GROUND`), not the sky canvas, not `#fx-dof` — PR #116 had already turned
+that off.
+
+`FS_GROUND` worked out where the horizon was from the screen **row** alone,
+which is only right for a level camera. The flight controller banks into turns
+and MapLibre rotates the whole world about the view axis, so under a bank the
+fog's horizon stayed dead level while the city's rolled. **Photographed at roll
+15: a hard horizontal edge straight across a tilted skyline.** A level line
+against a tilting world is what he was describing as "the opposite direction".
+
+The fix asks for the ray's rise against the **world's** up rather than the
+screen's, i.e. the same derivation with the roll in it. What it solves for is
+exactly the level horizon rotated about the frame centre — slope
+`aspect*tan(roll)`, intercept `c/cos(roll)`. The shell bound and the DOM
+fallback take the same angle.
+
+**Two things that had to be measured and are now written down in the file:**
+
+1. **`args.projectionMatrix` in a custom layer carries NO view rotation.**
+   `P[0]`, `P[1]`, `P[4]`, `P[5]` are bit-identical at roll 0, +15 and -15,
+   `P[1]` and `P[4]` are exactly 0, and `1/P[0] == tanV*(W/H)` to seven
+   figures. It is the projection alone. So the roll has to be applied by hand,
+   and `tanH = 1/P[0]` is safe to read off it.
+2. **Roll > 0 lifts the RIGHT end** — measured, horizon y=540 left to y=205
+   right at roll +15, matching what `js/controls.js` already records. The
+   world-up derivation needs `sin(-roll)`; `cameraRollSin()` is the one place
+   that sign lives.
+
+**Costs nothing when level:** roll 0 before vs after is bit-identical, 0
+differing pixels of 1,260,000.
+
+**Trap for the next person who probes roll:** `jumpTo({roll})` does not stick.
+`controls.js:980` self-heals roll to 0 on every idle frame. Shadow `setRoll` on
+the map instance and swallow the reset, or you will photograph a level camera
+and conclude the bug is not there.
+
+### H4 — the ladder never saw the carriageways
+
+> *"some asphalt roads bleed into speedway"*
+
+Photographed nadir over Speedway at 26th BEFORE touching anything
+(`shots/speedway/swB_zoom.png`). E 26th is severed by the mall, so OSM carries
+it as two stubs whose centrelines run past the kerb and end on the brick;
+buffered with a flat cap each becomes a grey rectangle lying on the herringbone
+with a square blunt end, and the two do not even meet. Two more sit at 23rd.
+The brick had a notch cut out of it underneath as well.
+
+**Both suspects in the QUEUE were half right.** `roadarea` really is outside the
+ladder — `_band` returns `None` for it on purpose, because the carriageway is
+the ladder's top rung — and the one cross-band cut runs the other way: the
+carriageway cuts the walk, "because a sidewalk does not lie on a road". That is
+right for a sidewalk and **wrong for a mall.** `highway=pedestrian` is OSM for
+a street CLOSED TO TRAFFIC.
+
+**The rule, one sentence, applied in both directions: a pedestrian mall
+outranks a carriageway. It is not cut by one, and one is cut by it.** Both
+halves are needed — without the first, removing the asphalt only uncovers the
+notch the resolver had already taken out of the brick.
+
+| | before | after |
+|---|---|---|
+| pedestrian malls | 8 | 8 |
+| mall area | 10,031 m2 | 10,286 m2 |
+| carriageway polygons lying on a mall | 8 | **0** |
+| asphalt on mall | 54 m2 | **0 m2** |
+| asphalt handed back | — | 307 m2 |
+
+`data/ground.geojson` keeps its 6,261 features and `data/roads.geojson` is
+untouched.
+
+**`bake_ground.py` DOES reproduce byte for byte on the Acer** — checked by
+running it unchanged first and confirming `git status data/` came back clean.
+That is the opposite of `bake_props.py` (§44), so the ground bake can be edited
+and re-run rather than patched surgically. Worth knowing before anyone spends
+an hour writing a surgical script for it again.
+
+### H5 — the roof stabbing is `bake_roofs.py`, and here is the class
+
+`scripts/bake_roofs.py` belongs to another lane this round, so this is a
+diagnosis, not a fix. Everything below is measured.
+
+**Attributed by hiding, not by reasoning.** Hiding every `roofs-*` layer at the
+J2 nadir makes the whole diagonal mess disappear and leaves a clean flat plate
+(`shots/jester/j2_zoom.png` vs `j2_zoom_noroof.png`). It is
+`data/roofs.geojson` / `roofs-pitched`, not the parts, the roofscape decks or
+the building extrusion.
+
+**The class, in the data:**
+
+- **16 facet polygons in `data/roofs.geojson` are SELF-INTERSECTING** — bow
+  ties. Three of them sit directly over J2 (indices 867, 987, 1004, at
+  -97.73622,30.28311 / -97.73694,30.28296 / -97.73685,30.28320). The file's own
+  history note at `wall_profile` says what this looks like on screen: *"78
+  self-crossing facets, which earcut turns into folded slivers."* The densify
+  pass took it from 78 to 16. **It did not take it to 0, and 16 is still
+  enough to be the reported defect.**
+- **321 facet pairs, over 31 sites, overlap in PLAN and in HEIGHT at once** —
+  two sloped panels occupying the same space, which is the stabbing. 2,635 m2
+  of plan overlap. The heaviest site by far is -97.7369,30.2842 (112 pairs).
+- Facets at the same step do NOT overlap each other (1 pair citywide), so the
+  mitre between adjacent edges is innocent. The fault is between STEPS and
+  inside single facets.
+
+**The cheap guard for whoever owns the file:** `valid_step` tests travel
+distances. It does not test that the emitted quad is a SIMPLE polygon. A
+`shapely` `is_valid` check on `quad` before `emitted.append` would have caught
+all 16 at bake time for the price of one call per facet, and a bake that
+refuses to emit a bow tie cannot ship one.
+
+### What did not work
+
+- **`tour.mjs` died mid-run** after 5 clean frames — it launches on software GL
+  and the full scene appears to be too much for it in this tree. Not
+  investigated; every frame in this pass was shot on hardware GL via
+  `pose.mjs`, which was fine throughout.
+- **A first roll probe photographed nothing** because `jumpTo({roll: 15})` read
+  back 0 — see the self-heal trap above. Two wasted browser loads.
+- **`--suffix` before/after pairs of a whole frame are not diffable** across
+  browser sessions: two runs of the same pose with the same tod differed by a
+  mean of 6 luma over the WHOLE frame, corners included, from something in the
+  boot that is not the geometry. Crop to the feature and compare structure, or
+  diff two poses taken in the SAME session (which is how the roll-0
+  bit-identical result was got).
+
+
 ## 62. Aug 4 2026 — the UT Tower's night glow: the shaft was inside the Main Building (acer lane)
 
 **Branch:** `acer/tower-night-glow`, **PR #124**, merged. **QUEUE H1**, all five
