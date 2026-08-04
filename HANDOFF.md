@@ -1,5 +1,100 @@
 # Austin 3D Explorer — Full Handoff
 
+## 67. Aug 4 2026 — the sidewalk joints belong to the path, not to the city (acer lane)
+
+**Branch:** `acer/sidewalk-scoring`, **PR #129**, merged `7c0ac8a`. **QUEUE I1**,
+third attempt at the same complaint. Files: `js/ground.js`,
+`scripts/bake_ground.py`, `data/ground.geojson`. Shots: `shots/i1-before/`,
+`shots/i1-after/`, `shots/i1-merged/`, `shots/i1-night/`.
+
+### HE DIAGNOSED THE MECHANISM AND HE WAS RIGHT
+
+*"sidewalks look like bathroom tiles. looks like its all one huge tile floor and
+the sidewalks just reveal a portion of that one floor."* The scoring was a
+`fill-pattern`, and MapLibre anchors those in TILE space — one square lattice
+laid over the entire city that every walk cut a window into. Two walks that
+never touch shared joint lines, a walk running north-east wore joints running
+north and east, and a square cell is what a tiled floor IS. All three of those
+are visible in one frame: `shots/i1-before/diag35-crop.png` is a junction where
+a single grid runs straight through both walks.
+
+The previous pass's reasoning for the grid was *sound and still wrong*: a
+fill-pattern is not aligned to the feature's axis, so a square grid is the one
+pattern that looks the same at every orientation. Being orientation-agnostic
+was the defect, not the workaround for it.
+
+### THE ORIENTATION HAD TO MOVE INTO THE DATA
+
+`fill-extrusion-pattern` is data-driven, so `['match', ['get','o'], …]` picks a
+pre-rotated BAR tile per feature. `scripts/bake_ground.py` now cuts the walk
+area into `k:'pathslab'` regions of constant direction for it to match on
+(`walk_direction_runs` + `score_walks`). Joints run across each walk and turn
+with it on a curve — `shots/i1-after/curveB-crop.png` against the before.
+
+**Per-slab geometry was priced FIRST and rejected**, and the number is why this
+is a texture at all: 136 km of walk centreline (measured off the bake) at a
+true 1.5 m pitch is **90,600 quads, about 19 MB** of GeoJSON on a 3.9 MB file.
+
+**THE ANGLES ARE INTEGER VECTORS AND THAT IS A CONSTRAINT, NOT A TASTE VALUE.**
+`phase = frac((a·x + b·y)·k/T)` is exactly periodic on a T×T tile for ANY
+integers a, b, k — step x by T and the phase advances by a·k, a whole number.
+Any other angle leaves a phase jump at every tile edge, and that seam draws its
+own grid across the city: the bug, rebuilt. Eight vectors, worst bucket error
+13.3°, which is invisible on a joint one to three pixels wide.
+
+**The deck is untouched.** `k:'patharea'` stays one union per (use, surface)
+because the kerb is a `line` stroke on its boundary — cut the deck into
+direction regions and every internal cut draws a bright kerb line across the
+middle of a walk. The scoring rides on its own polygons, which nothing strokes.
+
+### THREE THINGS THAT DID NOT WORK
+
+1. **`g.geoms if g.geom_type.startswith("Multi") else [g]`.** Correct for a
+   MultiPolygon and silently catastrophic for a **GeometryCollection**, which
+   `intersection` returns the moment two polygons touch along an edge — on a
+   network of walks, constantly. The whole collection failed the
+   `!= "Polygon"` test and was dropped as ONE sliver. The bake reported
+   97,158 m² of scoring where the walks cover 292,000, and the only symptom was
+   that two thirds of the city's walks came out bare. `_polys()` exists for this
+   and is named after it.
+2. **Overlays in the equator-origin frame.** `_poly_m` measures from 0°N 0°E, so
+   a campus footpath sits at (-9.38e6, 3.37e6) and every overlay spends its
+   double precision on the first eight digits. `score_walks` took **twelve
+   minutes**. Shifting the origin to mid-campus and clipping each region against
+   only the walk polygons an STRtree says it touches took the whole bake to
+   5m30 (from 2m20 on main).
+3. **Three phase variants per angle (24 tiles).** Measured **+2.6 ms** of frame
+   time against main. Cut to two.
+
+### MEASURED
+
+Every distinct pattern in a data-driven `fill-extrusion-pattern` costs its own
+draw call per tile. In ONE page at the campus pose, so warmup cannot explain it:
+
+    layer hidden        28.3 ms median frame
+    one constant tile   28.7          (so the extra geometry is 0.4 ms)
+    twenty-four tiles   34.9          (so the pattern switching is 6.2)
+
+Against `main`, minimum of six interleaved reps in both orders, hardware GL,
+`cancelGraphicsAutoDetect()`, z17.4 pitch 62 with a scripted bearing sweep:
+
+    frame median   33.5 -> 34.4 ms   (+0.9)
+    load           7633 -> 7806 ms   (+173; scripts/serve.py does not gzip, so
+                                      this pays 1.3 MB where production pays 190 KB)
+    ground.geojson 3.86 -> 5.17 MB raw, 0.77 -> 0.96 MB gzipped
+    bake           2m20 -> 5m30
+
+`harness-drift` PASS. The new geometry checked directly rather than through
+geomlint (which does not lint `ground.geojson`, and reports 81k pre-existing
+out-of-bbox vertices on main): 4,647 regions, 0 unclosed rings, 0 degenerate,
+0 zero-area, 0 outside the campus box, all 16 `o` values present.
+
+### FOR THE NEXT LANE
+
+The **Capitol grounds** draw their walks from `data/capitol_ground.geojson`
+(`scripts/bake_capitol.py`) and still wear the old square grid. Same fix, and
+the two functions in `bake_ground.py` port across as they are.
+
 ## 66. Aug 4 2026 — the chrome: a menu you can read, a sprint you can feel (acer lane)
 
 **Branch:** `acer/chrome-i3-i4`, **PR #128**, merged `dec3751`. **QUEUE I3 and
