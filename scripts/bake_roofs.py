@@ -424,6 +424,112 @@ def vertex_caps(poly, u, dmax=60.0):
     return [cap_along(poly[j], u[j], poly, dmax) for j in range(len(poly))]
 
 
+# ── A MITRE SLIDES ALONG THE WALL AS FAST AS IT GOES INTO IT ──────────
+#
+# QUEUE H5: *"Jester roofs have some weird extrusions with the diagonals.
+# specifically above where it says J2. other buildings with alot of corners next
+# to each other with cornered roofs have this weird intersecting as well."*
+#
+# THE MEASUREMENT THAT NAMES IT. On the Beauford H. Jester Center, whose
+# override runs the tile 11.0 m in from a footprint of 24 walls, several of them
+# under 7 m long:
+#
+#     step 6, edge  1:  wall  6.1 m,  facet runs 10.72 m PAST the end of it
+#     step 6, edge  8:  wall  6.7 m,  facet runs 10.38 m past, ring not simple
+#     step 6, edge 20:  wall  5.7 m,  facet runs 10.29 m past, ring not simple
+#     74 of its 129 facets run more than 2 m past their own wall; 48 over 5 m.
+#
+# WHY, and it is one sentence: `cap_along` caps how DEEP a mitre goes and there
+# was never anything capping how far SIDEWAYS it goes. At a right-angled corner
+# the bisector moves one metre along the wall for every metre it moves into it,
+# so at an 11 m step depth a 6 m wall's two corners have each slid 11 m along a
+# wall 6 m long — they have swapped ends. The facet between them is then a long
+# diagonal wedge lying across its neighbours' slopes, and where they swap it is
+# a bow tie. That IS the "weird extrusion with the diagonals", and "buildings
+# with a lot of corners next to each other" is the exact condition: closely
+# spaced corners mean short walls, and a short wall is one the step depth
+# outruns.
+#
+# NONE OF THE EXISTING GUARDS CAN SEE IT, which is why it survived four passes:
+#   * `valid_step` asks whether each corner is inside the footprint and no
+#     nearer to it than it has travelled. Both corners pass — they are legally
+#     offset points. It never asks whether they are still in ORDER.
+#   * `cap_along` measures clearance, which is perpendicular. A point sliding
+#     along the middle of a wide building keeps its clearance the whole way.
+#   * `resolve_surfaces` de-overlaps within one height group, and these facets
+#     are at six different steps, so it never compares them. Measured: with the
+#     authored elevations excluded, the whole campus has 6 same-height facet
+#     overlaps totalling 96.5 m2. The stabbing is not an overlap at all.
+#
+# THE RULE, and it is the straight skeleton's own answer rather than a
+# heuristic: A WALL EXISTS ONLY UNTIL ITS TWO MITRES MEET. That moment is an
+# EDGE EVENT — past it the wall has zero length, so every square metre of facet
+# drawn past it was drawn over a wall that is not there. Both corners are capped
+# at it. Nothing is traded away, because there was nothing there to trade.
+#
+# It is closed form. Vertex i's offset slides along the wall's own direction by
+# `min(d, cap_i) * (u_i . t)` and vertex j's sits at `L + min(d, cap_j) *
+# (u_j . t)`; the gap between them is piecewise linear in d with breakpoints at
+# the two existing caps, so the first depth at which it closes is read straight
+# off the pieces. No bisection, no tolerance, no iteration.
+#
+# AND IT COSTS NOTHING ON A NORMAL ROOF. On a rectangle the two mitres of the
+# short wall meet at exactly half its length, which is the half-span — the same
+# number `cap_along` already returns, because the ridge of a hip roof IS an edge
+# event. The cap only bites where a wall is shorter than the roof is deep, which
+# is the defect and nowhere else.
+EDGE_EVENTS = "--no-edge-events" not in sys.argv
+
+
+def _first_gap_close(L, ai, aj, ci, cj, dmax):
+    """Smallest d > 0 at which the two capped mitres of one wall meet.
+
+    `ai`/`aj` are the along-wall components of the two mitre rays, `ci`/`cj`
+    their existing caps. Returns `dmax` if they never meet inside it.
+    """
+    def gap(d):
+        return L + min(d, cj) * aj - min(d, ci) * ai
+
+    lo = 0.0
+    for hi in sorted({min(ci, cj), max(ci, cj), dmax}):
+        if hi <= lo:
+            continue
+        g0, g1 = gap(lo), gap(hi)
+        if g1 > 1e-9:
+            lo = hi
+            continue
+        if g0 <= 1e-9:                      # already closed at the piece start
+            return lo
+        return lo + (hi - lo) * g0 / (g0 - g1)
+    return dmax
+
+
+def edge_event_caps(poly, u, caps, dmax=60.0):
+    """`caps`, further limited so no wall's two mitres can cross each other."""
+    if not EDGE_EVENTS:
+        return list(caps), 0
+    n = len(poly)
+    out = list(caps)
+    bit = 0
+    for i in range(n):
+        j = (i + 1) % n
+        x0, y0 = poly[i]
+        x1, y1 = poly[j]
+        dx, dy = x1 - x0, y1 - y0
+        L = math.hypot(dx, dy)
+        if L < 1e-9:
+            continue
+        tx, ty = dx / L, dy / L
+        d_ev = _first_gap_close(L, u[i][0] * tx + u[i][1] * ty,
+                                u[j][0] * tx + u[j][1] * ty,
+                                caps[i], caps[j], dmax)
+        if d_ev < min(caps[i], caps[j]) - 1e-6:
+            bit += 1
+        out[i] = min(out[i], d_ev)
+        out[j] = min(out[j], d_ev)
+    return out, bit
+
+
 # ── a wall is not its two corners ─────────────────────────────────────
 #
 # THE SECOND CAUSE OF THE DIAGONAL ROOFS, and it is the same mistake as the two
@@ -826,6 +932,38 @@ def ring_is_simple(ring, tol=1e-7):
     return not ring_crossings(ring, tol)
 
 
+# ── THE OUTPUT GRID IS 0.1 m AND SOME FACETS ARE THINNER THAN THAT ────
+#
+# `to_ll` rounds to six decimal places, which at this latitude is 0.096 m of
+# longitude and 0.111 m of latitude. A facet only a decimetre or two thick is
+# therefore not a shape this file can write down: rounding moves its two long
+# sides onto the same grid line, they swap over, and what lands in the GeoJSON
+# is a bow tie. Sixteen rings in the shipped file are invalid for exactly this
+# reason and no other — every one of them under 5 m2, every one produced by
+# geometry that was simple in metres and destroyed by the write.
+#
+# It is worth being precise about the blame, because the obvious reading is
+# wrong: the resolver is not leaking folds. Everything it emits comes back out
+# of shapely valid. The invalidity is created AFTER all the arithmetic, by the
+# rounding, which is why `audit_surfaces` reports `folded_rings: 0` on a file
+# that has sixteen of them.
+#
+# So the check belongs where the damage happens — on the rounded coordinates,
+# not on the metres. A ring that does not survive the write is dropped rather
+# than shipped, and `audit_coverage` is the guard that says whether dropping it
+# left a hole. (It does not: these are slivers in the joint between two facets
+# that already meet.) Raising the precision to seven places would also work and
+# costs about 6% of the file, which every visitor downloads, for geometry
+# thinner than a roof tile.
+def ring_survives_rounding(ll_ring):
+    """Is a ring still a simple polygon after `to_ll` has rounded it?"""
+    r = close_ring([tuple(q) for q in ll_ring])
+    p = [q for k, q in enumerate(r[:-1]) if k == 0 or q != r[k - 1]]
+    if len(p) < 3:
+        return False
+    return ring_is_simple(p + [p[0]], tol=1e-12)
+
+
 def audit_surfaces(eave_ring, pieces, name, key, centre=None):
     """Non-simple rings, roof drawn past the eave, and two surfaces at one height.
 
@@ -886,6 +1024,90 @@ def audit_surfaces(eave_ring, pieces, name, key, centre=None):
     return {"name": name or "(unnamed)", "id": key, "at": centre,
             "folded_rings": bad_rings, "over_m2": round(over_m2, 1),
             "outside_m2": round(out_m2, 1)}
+
+
+# ── A FACET THAT CROSSES ITSELF IS THE DIAGONAL ───────────────────────
+#
+# QUEUE H5: *"Jester roofs have some weird extrusions with the diagonals.
+# specifically above where it says J2. other buildings with alot of corners next
+# to each other with cornered roofs have this weird intersecting as well."*
+#
+# MEASURED, campus-wide, on the geometry this bake emits: **183 facets on 36 of
+# 108 pitched roofs are self-crossing polygons.** Jester Center alone has 22.
+# Rendered in plan they are unmistakable — long thin shards fanning out of every
+# narrow wing and crossing each other, which is the picture he is describing.
+#
+# TWO THINGS THAT LOOKED LIKE THE CAUSE AND WERE NOT, both measured, because
+# each would have sent the fix somewhere useless:
+#
+#   1. NOT OVERLAPPING SURFACES. The obvious reading of "stab through each
+#      other" is two facets in the same place. With the authored elevations
+#      excluded — and they must be, because a stone stair and its archivolts
+#      share ground BY DESIGN and account for 329 of the 335 pairs a naive
+#      count returns — the entire campus has **6** pairs of roof facets that
+#      overlap in plan and in height, totalling 96.5 m2. It is not an overlap.
+#   2. NOT A FACET RUNNING PAST THE END OF ITS WALL EITHER. That was the second
+#      theory and it flags correct geometry: at a REFLEX corner the mitre
+#      travels `cot(theta/2)` along the wall per metre of depth, which for a
+#      right-angled notch is one metre per metre, outward. Every inside corner
+#      on every building does it, and it is the valley — the straight
+#      skeleton's own answer. 66 of 108 roofs "fail" that test and most of them
+#      look right.
+#
+# WHAT IS ACTUALLY WRONG is narrower and is not a matter of degree: a ring that
+# crosses itself HAS NO INTERIOR. earcut fills it as two lobes of opposite
+# winding, one of which is a spike hanging in space, and `fill-extrusion` gives
+# that spike the facet's full height. `valid_step` cannot see it because it
+# tests the four CORNERS — and all four corners of a bow tie are legal offset
+# points, inside the footprint, at their proper clearance. The polygon they
+# describe is not.
+#
+# THE RULE: A FACET IS THE SLOPE OF ONE WALL, SO THE PART OF IT THAT IS NOT
+# ATTACHED TO THAT WALL IS NOT A SLOPE. Where the ring crosses itself it is
+# split, and the lobes that touch the wall are kept. That is exact rather than a
+# threshold: the eave-side chain of the quad IS the wall, and a lobe sharing no
+# boundary with it is hanging off the far end of a mitre. Nothing that was ever
+# drawn on the building is removed, so this cannot trade a fold for a missing
+# slope — the failure mode PR #74 and PR #78 both hit and documented.
+FACET_LOBE_TOUCH_M = 0.10   # boundary a lobe must share with its own wall
+
+
+def untangle_facet(face, n_outer):
+    """One facet as a list of SIMPLE rings — the lobes that touch the wall.
+
+    `face[:n_outer]` is the eave-side chain, which is the wall itself. Returns
+    the ring unchanged when it is already simple, so the common path costs one
+    `ring_is_simple` and no shapely at all.
+    """
+    if ring_is_simple(face + [face[0]]):
+        return [face]
+    from shapely.geometry import LineString, Polygon
+    g = Polygon(face).buffer(0)
+    if g.is_empty:
+        return []
+    parts = [g] if g.geom_type == "Polygon" else [q for q in getattr(g, "geoms", [])
+                                                  if q.geom_type == "Polygon"]
+    wall = LineString(face[:n_outer]) if n_outer >= 2 else None
+    out = []
+    for q in parts:
+        if q.area < RESOLVE_MIN_M2:
+            continue
+        if wall is not None:
+            shared = q.exterior.intersection(wall.buffer(0.01)).length
+            if shared < FACET_LOBE_TOUCH_M:
+                continue
+        out.append([(x, y) for x, y in list(q.exterior.coords)[:-1]])
+    return out
+
+
+def audit_facet_rings(facet_by_edge, name, key, centre=None):
+    """Facets that are not simple polygons. Zero is the only acceptable value."""
+    bad = sum(0 if ring_is_simple(f + [f[0]]) else 1
+              for faces in facet_by_edge.values() for f in faces)
+    if not bad:
+        return None
+    return {"name": name or "(unnamed)", "id": key, "at": centre,
+            "facets_that_cross_themselves": bad}
 
 
 # ── ...AND THE FIX THE THIRD AUDIT ASKS FOR ───────────────────────────
@@ -2344,6 +2566,166 @@ def tile_run(pm, lat0, hs):
     return run, eave, (eave_col if eave_n >= COLOUR_MIN_SAMPLES else None)
 
 
+# ── A FOOTPRINT IS NOT ALWAYS ONE ROOF ────────────────────────────────
+#
+# QUEUE J1: *"for calhoun u were right to not red roof the middle part - however
+# the horizontal prism in the middle should be roofed. So there should be 3
+# horizontal roofed prisms, rn the top and bottom r roofed, the middle should be
+# roofed, and the areas between should stay as they are (not roofed)."*
+#
+# HE IS RIGHT, AND THE PHOTOGRAPH SAYS SO BEFORE HE DOES. Calhoun Hall is a
+# cross: two north-south stems and one east-west cross bar. On the z19 nadir
+# tile the cross bar is unmistakable terracotta tile with dormers in it — the
+# same roof Parlin Hall has above it and Homer Rainey Hall below it, which are
+# the "top and bottom" already roofed — and both stems are pale grey
+# standing-seam deck. Three horizontal tiled prisms in a row, and the bake was
+# drawing the middle one flat.
+#
+# THE MISTAKE IS THE FILE'S OWN, ONE LEVEL FURTHER IN. The docstring at the top
+# records that v1 asked "what fraction of the WHOLE FOOTPRINT is terracotta?"
+# and threw away every hall with a membrane deck in the middle, and that v2
+# fixed it by asking the question of an offset RING instead. The ring is still
+# a single average over the whole perimeter — so a footprint whose perimeter is
+# part tile and part membrane averages the two and is thrown away exactly as
+# before. Calhoun reads 0.38 at the eave against a RING_MIN of 0.45, because its
+# two grey stems own more perimeter than its tiled cross bar does.
+#
+# THE RULE: ASK THE PHOTOGRAPH WHICH PART OF THE ROOF IS TILE, AND ROOF THAT
+# PART. Classify the roof on a 1.2 m grid, take the largest connected patch of
+# tile, and — this is the whole of the safety — REQUIRE IT TO BE A RECTANGULAR
+# BLOCK, by testing that it fills at least `TILED_PART_FILL` of its own minimum
+# rotated rectangle. A wing of a building is a block. A speckle of warm gravel
+# across a membrane deck is not, and neither is a ring of tile round a courtyard
+# or a stray sunlit patch. Then the ordinary ring probe is run on that block: if
+# the eave of the block does not read tile by the SAME rule every other roof on
+# this campus is measured by, it gets no roof. Nothing here invents a roof; it
+# only moves where the existing question is asked.
+#
+# IT CAN ONLY ADD, NEVER CHANGE. It is reached only when the whole-footprint
+# probe has already returned run 0, so no roof that exists today can be altered
+# by it, and the 108 that exist are bit-identical with it on and off.
+TILED_PART        = "--no-tiled-part" not in sys.argv
+TILED_PART_CELL   = 1.2     # classification grid, metres
+TILED_PART_MIN_M2 = 220.0   # a wing worth roofing; below this it is a chimney
+TILED_PART_AREA   = 0.25    # whole-footprint tile fraction before we even look
+TILED_PART_FILL   = 0.72    # of its own minimum rotated rectangle it must fill
+TILED_PART_MIN_H  = 6.0     # a two-storey wing at least
+
+
+def _largest_tile_patch(poly, lat0):
+    """The largest connected run of tile inside a footprint, as a cell mask."""
+    xs = [q[0] for q in poly]; ys = [q[1] for q in poly]
+    x0, y0 = min(xs), min(ys)
+    W = int((max(xs) - x0) / TILED_PART_CELL) + 1
+    H = int((max(ys) - y0) / TILED_PART_CELL) + 1
+    if W < 3 or H < 3 or W * H > 200_000:
+        return None, None, None
+    ring = poly + [poly[0]]
+    m = np.zeros((H, W), dtype=bool)
+    inside_n = 0
+    for j in range(H):
+        for i in range(W):
+            x = x0 + (i + 0.5) * TILED_PART_CELL
+            y = y0 + (j + 0.5) * TILED_PART_CELL
+            if not point_in_ring(x, y, ring):
+                continue
+            inside_n += 1
+            lon, lat = to_ll([(x, y)], lat0)[0]
+            c = px_at(lon, lat)
+            if c is not None and is_tile(c):
+                m[j, i] = True
+    if inside_n < 12 or not m.any():
+        return None, None, None
+
+    # Open then close, one cell. A dormer ridge and a tree shadow both punch
+    # single-cell holes in a real tiled wing, and a single warm cell on a
+    # membrane deck is not a wing. Both are noise at this grid and both are
+    # removed by the same pair of operations.
+    def _dilate(a):
+        r = np.zeros_like(a)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                r |= np.roll(np.roll(a, dy, 0), dx, 1)
+        return r
+    def _erode(a):
+        return ~_dilate(~a)
+    m = _dilate(_erode(m))          # open: kill speckle
+    m = _erode(_dilate(m))          # close: fill pinholes
+    if not m.any():
+        return None, None, None
+    # Largest 4-connected component, iterative so a long wing cannot blow the
+    # recursion limit.
+    lab = np.zeros((H, W), dtype=np.int32)
+    best, best_n = 0, 0
+    tag = 0
+    for j in range(H):
+        for i in range(W):
+            if not m[j, i] or lab[j, i]:
+                continue
+            tag += 1
+            stack = [(j, i)]
+            lab[j, i] = tag
+            n = 0
+            while stack:
+                cj, ci = stack.pop()
+                n += 1
+                for dj, di in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    nj, ni = cj + dj, ci + di
+                    if 0 <= nj < H and 0 <= ni < W and m[nj, ni] and not lab[nj, ni]:
+                        lab[nj, ni] = tag
+                        stack.append((nj, ni))
+            if n > best_n:
+                best, best_n = tag, n
+    return (lab == best), (x0, y0), best_n
+
+
+def tiled_part(poly, lat0):
+    """The sub-footprint of a mixed roof that the photograph says is tile.
+
+    Returns a cleaned CCW ring in metres, or None. `poly` is the whole
+    footprint, already cleaned and CCW.
+    """
+    if not TILED_PART:
+        return None
+    from shapely.geometry import Polygon, box
+    from shapely.ops import unary_union
+    mask, org, n = _largest_tile_patch(poly, lat0)
+    if mask is None:
+        return None
+    cell = TILED_PART_CELL
+    patch_m2 = n * cell * cell
+    if patch_m2 < TILED_PART_MIN_M2:
+        return None
+    x0, y0 = org
+    js, iss = np.nonzero(mask)
+    cells = unary_union([box(x0 + i * cell, y0 + j * cell,
+                             x0 + (i + 1) * cell, y0 + (j + 1) * cell)
+                         for j, i in zip(js, iss)])
+    if cells.is_empty:
+        return None
+    # THE BLOCK TEST, and it is the only thing standing between this rule and a
+    # campus full of invented roofs. A wing fills its own bounding rectangle; a
+    # scatter of warm pixels does not.
+    rect = cells.minimum_rotated_rectangle
+    if rect.is_empty or rect.area <= 0 or cells.area / rect.area < TILED_PART_FILL:
+        return None
+    g = rect.intersection(Polygon(poly).buffer(0))
+    if g.is_empty:
+        return None
+    if g.geom_type != "Polygon":
+        gs = [q for q in getattr(g, "geoms", []) if q.geom_type == "Polygon"]
+        if not gs:
+            return None
+        g = max(gs, key=lambda q: q.area)
+    if g.area < TILED_PART_MIN_M2:
+        return None
+    sub = ccw(clean(simplify(clean([(x, y) for x, y in list(g.exterior.coords)[:-1]]),
+                             SIMPLIFY_M)))
+    if len(sub) < 3 or abs(signed_area(sub + [sub[0]])) < TILED_PART_MIN_M2:
+        return None
+    return sub
+
+
 def main():
     report = "--report" in sys.argv
     # Probing 2,400 footprints against the imagery takes minutes; the geometry
@@ -2365,6 +2747,14 @@ def main():
     stats["walls_with_no_slope"] = 0
     stats["roofs_drawn_twice_or_over_air"] = 0
     stats["folded_rings"] = 0
+    stats["roofs_with_a_crossed_facet"] = 0
+    stats["facets_that_cross_themselves"] = 0
+    stats["facets_untangled"] = 0
+    stats["facet_lobes_dropped"] = 0
+    stats["roofs_from_a_tiled_wing"] = 0
+    stats["tiled_wing_eave_said_no"] = 0
+    stats["walls_capped_at_an_edge_event"] = 0
+    stats["rings_lost_to_rounding"] = 0
     stats["surfaces_dropped_by_resolver"] = 0
     stats["resolver_removed_m2"] = 0
     stats["parts_added_by_resolver"] = 0
@@ -2377,6 +2767,7 @@ def main():
     audit = []
     diag = []
     surfaces = []
+    spills = []
     pitched = set()          # buildings this bake gives a real tiled roof to
     for f in feats:
         p = f["properties"]
@@ -2409,7 +2800,16 @@ def main():
             # and the deck. `max(caps)` IS the half-span — see the note where
             # `half_span()` used to be.
             caps = vertex_caps(poly, mrays)
+            # THE HALF-SPAN IS READ BEFORE THE EDGE-EVENT CAP, deliberately.
+            # `hs` is how wide the BUILDING is, and it feeds the imagery probe
+            # (`tile_run` walks in until d >= hs) and the deck's colour sample.
+            # An edge event is a statement about one wall's length, not about
+            # the building's width, and letting it shorten `hs` would make the
+            # photograph be read over a smaller ring on exactly the jagged
+            # footprints this fix exists for.
             hs = max(caps)
+            caps, capped_walls = edge_event_caps(poly, mrays, caps)
+            stats["walls_capped_at_an_edge_event"] += capped_walls
             if hs < 1.2:
                 stats["too_narrow"] += 1
                 continue
@@ -2442,6 +2842,33 @@ def main():
                 # the report still shows what the imagery actually said.
                 run = float(ov["roof_run_m"])
                 stats["run_from_override"] += 1
+            sub_of = None
+            if run < MIN_RUN_M and TILED_PART and h >= TILED_PART_MIN_H \
+                    and area_fr >= TILED_PART_AREA and not ov.get("roof_run_m"):
+                # J1. The whole footprint says flat. Ask the photograph whether
+                # a rectangular WING of it is tile, and if so put the same
+                # question to that wing — same probe, same thresholds, smaller
+                # ring. Anything this cannot justify falls straight through to
+                # the flat path below, which is where it is today.
+                sub = tiled_part(poly, lat0)
+                if sub is not None:
+                    s_mrays = mitre_rays(sub)
+                    if s_mrays is not None:
+                        s_caps = vertex_caps(sub, s_mrays)
+                        s_hs = max(s_caps)
+                        if s_hs >= 1.2:
+                            s_run, s_eave, s_meas = tile_run(sub, lat0, s_hs)
+                            if s_run >= MIN_RUN_M:
+                                sub_of = poly
+                                poly = sub
+                                mrays = s_mrays
+                                caps, capped = edge_event_caps(sub, s_mrays, s_caps)
+                                stats["walls_capped_at_an_edge_event"] += capped
+                                hs = s_hs
+                                run, eave, meas = s_run, s_eave, s_meas
+                                stats["roofs_from_a_tiled_wing"] += 1
+                            else:
+                                stats["tiled_wing_eave_said_no"] += 1
             if run < MIN_RUN_M:
                 stats["flat" if eave < RING_MIN else "tile_edge_only"] += 1
                 continue
@@ -2557,22 +2984,31 @@ def main():
                     if not valid_step(quad, travels, poly):
                         stats["facet_guard_fired"] += 1
                         continue
+                    # H5. A crossed quad is not a shape; keep the lobes that are
+                    # attached to this facet's own wall and drop the spike.
+                    lobes = untangle_facet(face, len(idx))
+                    if len(lobes) != 1 or lobes[0] is not face:
+                        stats["facets_untangled"] += 1
+                        stats["facet_lobes_dropped"] += max(0, 1 - len(lobes))
+                    if not lobes:
+                        continue
                     edge_steps[i] += 1
-                    facet_by_edge.setdefault(i, []).append(face)
-                    emitted.append((face, ht, {
-                        "b": b, "h": ht,
-                        "az": round(az),        # which way this slope faces
-                        # The two ends of this facet's shade range, from the
-                        # parent's own baked roof colours so a facet can
-                        # never drift from the cap it sits on. Which end it
-                        # lands on is the live sun's call, in timeofday.js.
-                        "rd": tint(rd_real, SHADE_HI),
-                        "rdd": tint(rd_real, SHADE_LO),
-                        "rg": tint(rg_real, SHADE_HI),
-                        "rgd": tint(rg_real, SHADE_LO),
-                        "rn": rn_real,          # no sun at night, no tilt tint
-                        "_rb": rb_here,
-                    }))
+                    for face in lobes:
+                        facet_by_edge.setdefault(i, []).append(face)
+                        emitted.append((face, ht, {
+                            "b": b, "h": ht,
+                                "az": round(az),
+                            # The two ends of this facet's shade range, from the
+                            # parent's own baked roof colours so a facet can
+                            # never drift from the cap it sits on. Which end it
+                            # lands on is the live sun's call, in timeofday.js.
+                            "rd": tint(rd_real, SHADE_HI),
+                            "rdd": tint(rd_real, SHADE_LO),
+                            "rg": tint(rg_real, SHADE_HI),
+                            "rgd": tint(rg_real, SHADE_LO),
+                            "rn": rn_real,      # no sun at night, no tilt tint
+                            "_rb": rb_here,
+                        }))
                 made += 1
 
             # THE TOP. Whatever the slope encloses has to be filled AT THE TOP OF
@@ -2683,15 +3119,28 @@ def main():
                 # agree about it, and an unclosed GeoJSON ring is invalid — the
                 # `--fold-ok` control emitted 3,403 of them before this line and
                 # so could not be compared against the file it is a control for.
+                ll = [close_ring(to_ll(r, lat0)) for r in rings]
+                # ...AND CHECK THE ROUNDED RING, not the one in metres. See
+                # `ring_survives_rounding`: the write is where the folds are
+                # made, so it is the only place they can be caught.
+                if not all(ring_survives_rounding(r) for r in ll):
+                    stats["rings_lost_to_rounding"] += 1
+                    continue
                 out.append({
                     "type": "Feature",
-                    "geometry": {"type": "Polygon",
-                                 "coordinates": [close_ring(to_ll(r, lat0))
-                                                 for r in rings]},
+                    "geometry": {"type": "Polygon", "coordinates": ll},
                     "properties": dict(props),
                 })
             stats["tiled"] += 1
-            pitched.add(p.get("id"))
+            # A WING IS NOT THE BUILDING. `pitched` tells the parapet-cap rule
+            # below to leave a building's cap terracotta because it has a real
+            # tiled hip. Calhoun's cross bar does — and the two stems either
+            # side of it are membrane deck, which is exactly the case that rule
+            # exists to stop outlining in burnt orange. So a sub-roof does not
+            # claim the whole building's cap.
+            if sub_of is None:
+                pitched.add(p.get("id"))
+            cen_poly = sub_of if sub_of is not None else poly
             stats["steps"] += made
             cen = [round(sum(q[0] for q in ring[:-1]) / (len(ring) - 1), 5),
                    round(sum(q[1] for q in ring[:-1]) / (len(ring) - 1), 5)]
@@ -2723,6 +3172,13 @@ def main():
                 surfaces.append(surf)
                 stats["roofs_drawn_twice_or_over_air"] += 1
                 stats["folded_rings"] += surf["folded_rings"]
+            # H5. Measured on the facets as they go out, so this reports the
+            # repaired geometry rather than the intention.
+            cross = audit_facet_rings(facet_by_edge, p.get("name"), key, cen)
+            if cross is not None:
+                spills.append(cross)
+                stats["roofs_with_a_crossed_facet"] += 1
+                stats["facets_that_cross_themselves"] += cross["facets_that_cross_themselves"]
             if report:
                 area_fr, _ = tile_frac_area(ring)
                 rows.append((run, hs, eave, area_fr, rise, p.get("name") or "(unnamed)"))
@@ -2895,6 +3351,14 @@ def main():
         for a in surfaces:
             print("   %6d   %9.1f  %8.1f  %s   %s  at %s"
                   % (a["folded_rings"], a["outside_m2"], a["over_m2"],
+                     (a["name"] or "")[:38], a["id"], a["at"]))
+        spills.sort(key=lambda a: -a["worst_m"])
+        print("\n  ROOFS WITH A FACET PAST THE END OF ITS OWN WALL - "
+              "%d of %d pitched roofs" % (len(spills), stats["tiled"]))
+        print("   facets  worst_m  building")
+        for a in spills:
+            print("   %6d   %6.2f  %s   %s  at %s"
+                  % (a["facets_past_their_wall"], a["worst_m"],
                      (a["name"] or "")[:38], a["id"], a["at"]))
 
 
