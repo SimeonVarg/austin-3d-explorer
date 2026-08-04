@@ -18,10 +18,19 @@
  * time-of-day changes, so glass goes cool-dark by day, amber-reflective at
  * golden hour, and a scatter of windows lights up warm at night.
  *
- * THE ONE INVARIANT THIS FILE MUST NOT BREAK: every mip tier holds the SAME
- * hour, at all times. One pitched frame reads several tiers at once, so a tier
- * left behind is a hard seam across the middle of the city with night windows
- * on one side of it and daylight on the other. See the ATLAS block.
+ * THE TWO INVARIANTS THIS FILE MUST NOT BREAK, both for the same reason — ONE
+ * PITCHED FRAME READS EVERY MIP TIER AT ONCE, because past 60 degrees of pitch
+ * MapLibre picks a tile zoom per tile and the tier is chosen at the tile's zoom:
+ *
+ *   1. Every mip tier holds the SAME HOUR. A tier left behind is a hard seam
+ *      across the city with night windows on one side and daylight on the
+ *      other. See the ATLAS block.
+ *   2. Every mip tier is the SAME PATTERN AT THE SAME WORLD SCALE, differing
+ *      only in RESOLUTION. A tier with a different `displaySize` puts a
+ *      different number of windows on the same metre of wall, so a wall whose
+ *      tile changes zoom visibly switches rhythm — the reported "rapidly
+ *      alternates between the less and more dense window pattern on movement".
+ *      See the TIERS block.
  *
  * Public (window) API:
  *   quantiseFacades(features)  — assign wp/wf per feature, build the palette
@@ -62,41 +71,93 @@
   //
   // THE FIX IS A MIP CHAIN, hand-rolled, because MapLibre samples the pattern
   // atlas LINEAR with no mipmaps (atlases cannot be mipmapped without bleeding
-  // between images). Three tiers of the SAME drawing at three screen sizes,
-  // selected by a `step` on zoom, which keeps the repeat inside 16-33 m of wall
-  // across the entire flying range instead of 16-264 m:
+  // between images). Three tiers of the SAME drawing, selected by a `step` on
+  // zoom.
   //
-  //     tier   css px   z14   z15   z16   z17   z18
-  //     far      16      66    33    16     -     -
-  //     mid      32       -     -    33    16     -
-  //     near     64       -     -     -    33    16
+  // ── WHAT A TIER IS ALLOWED TO CHANGE, AND IT IS ONLY ONE THING ──────
   //
-  // `pixelRatio` is what buys the smaller screen size: a 64-texel image declared
-  // at pixelRatio 4 occupies 16 CSS px. It is minified 4x on the way, so each
-  // tier carries the box prefilter that minification needs — which is exactly
-  // what a mip level is, and it is why the NEAR tier can now be drawn sharp.
-  // Before this, one tile had to serve 1:1 and 4:1 at once, so it wore a
-  // radius-2/amount-0.9 low-pass at every zoom: a 5x5 box over a 5x4 window.
-  // That is the other half of "super blurred", and it was authored, not a bug.
+  // A TIER MAY CHANGE RESOLUTION. A TIER MAY NOT CHANGE SCALE. Every tier below
+  // covers exactly `TIER_CSS` css pixels of screen per repeat, so every tier
+  // puts the same windows in the same places on the same wall; the coarser ones
+  // simply hold fewer texels to say it with. Break that and the app flickers,
+  // for a reason that is worth writing out in full because it survived one
+  // "fixed" PR already:
   //
-  // TASTE KNOB: `css` is the world scale of the windows (bigger = fewer, larger
-  // windows); `minZoom` is where each tier takes over. Stops are INTEGERS on
-  // purpose — MapLibre evaluates a *-pattern property at floor(zoom) and
-  // floor(zoom)+1 and cross-fades between them, so a fractional stop would not
-  // land where it was written, and an integer one gives a free LOD dissolve.
+  //   1. The pattern's WORLD SCALE is set by the CAMERA. MapLibre's pattern
+  //      uniforms go through `pixelsToTileUnits(tile, 1, transform.tileZoom)`,
+  //      and the tile's own overscaledZ cancels out of that expression exactly.
+  //      One repeat is `displaySize * 67551 / 2^floor(cameraZoom)` metres of
+  //      wall, the SAME number for every tile on screen.
+  //   2. The pattern's IMAGE is chosen by the TILE. `['step',['zoom'],...]` is
+  //      evaluated when a tile's buckets are built, at that TILE's zoom.
+  //   3. Past ~60 degrees of pitch MapLibre picks a tile zoom PER TILE by
+  //      distance (`allowVariableZoom`), and this app spawns at pitch 74.
+  //      Measured at the spawn pose: `austin-buildings` renders tiles at z13,
+  //      14, 15 and 16 in ONE frame, and the counts change frame to frame as
+  //      the camera moves.
+  //
+  // Put those together and a tier whose `displaySize` differs from its
+  // neighbour's paints a DIFFERENT NUMBER OF WINDOWS PER METRE on a tile that
+  // happens to have landed one zoom away. The tiers used to be 16 / 32 / 64 css
+  // px, so at the spawn pose the near-field walls carried a 66 m repeat and the
+  // far-field walls a 16.5 m repeat — a 4x density difference across one frame,
+  // and a 2x or 4x jump on any wall whose tile changed zoom. That is exactly
+  // the report: *"it rapidly alternates between the less and more dense window
+  // pattern on movement ... they all happen from a distance"*.
+  // `shots/h2-before/u24-far-tierx.png` against `-tiernear.png` is the same
+  // camera with the tier forced, and the two frames are not the same city.
+  //
+  // So the tiers are a REAL mip chain now: one scale, three resolutions.
+  // `div` is how much the shared drawing is box-downsampled for that tier, and
+  // a box the width of the decimation IS the prefilter that minification needs
+  // — the same rule the old `soften` column was reaching for, done by the
+  // resampling itself rather than by a blur on top of a full-size image. It is
+  // also what HANDOFF §46 named as the next win in this file: the far tier was
+  // carrying 16x more texels than it could ever show.
+  //
+  //     tier   texels(dpr1)   displaySize   m of wall per repeat at camera z
+  //                                          z14   z15   z16   z17   z18
+  //     far        32            32 css      132    66    33    16     8
+  //     near       64            32 css      132    66    33    16     8
+  //
+  // ── WHY THERE ARE TWO LEVELS AND NOT THREE. `pixelRatio` MUST BE AN
+  // INTEGER ≥ 1, and this cost a whole rebuild of the change to find out.
+  // MapLibre carries it into the shader as a VERTEX ATTRIBUTE declared
+  // `{ name: 'a_pixel_ratio_from', components: 1, type: 'Uint16' }`, and the
+  // pattern vertex shader divides by it to recover the display size. A tier
+  // registered at pixelRatio 0.5 therefore arrives in the shader as ZERO, the
+  // division blows up, and the whole far field renders as a transparent ghost
+  // of itself — `shots/h2-before/u24-far-tierx-pr05.png` is what that looks
+  // like, and it is nothing like a "missing image", so it would not have been
+  // recognised from the symptom. displaySize is texels / pixelRatio, so with a
+  // 64-texel drawing and a 32 css-px repeat the only levels available on a 1x
+  // screen are pixelRatio 2 (64 texels) and 1 (32 texels). Two.
+  //
+  // TASTE KNOB. `TIER_CSS` is the world scale of the windows — bigger means
+  // fewer, larger windows on every building at every distance. 32 is chosen so
+  // the repeat is 33 m of wall at the zoom this app spawns at: that is 4.1 m
+  // floor-to-floor through `mh`'s 8 rows, which is a real storey, and it is the
+  // scale the OLD mid tier already produced there. 16 would put a storey at
+  // 2.1 m and 64 at 8.3 m. `minZoom` is where the sharp level takes over; the
+  // stop is an INTEGER on purpose, because MapLibre evaluates a *-pattern
+  // property at floor(zoom) and floor(zoom)+1 and cross-fades between them, so
+  // a fractional stop would not land where it was written.
+  const TIER_CSS = 32;
   const TIERS = [
-    // `soften` is the box-blur radius in 64-unit drawing space, and it is a
-    // MATCHED prefilter, not a taste value: a tier minified Nx needs a box N
-    // texels wide, i.e. radius (N-1)/2. Far is 4x -> 1.5, mid is 2x -> 0.75,
-    // near is 1:1 -> none. Radius 3 was tried on the far tier first and it is
-    // measurably too much: a 7-texel box is wider than the 8-texel row pitch,
-    // so it erased every floor line while leaving the full-height piers and
-    // weathering streaks untouched, and the tower read as corduroy.
-    { id: 'x', css: 16, minZoom: 0,  soften: 1.5 },   // far
-    { id: 'f', css: 32, minZoom: 16, soften: 0.75 },  // mid
-    { id: '',  css: 64, minZoom: 17, soften: 0.0 },   // near — sharp
+    // `soften` is an EXTRA box-blur radius in 64-unit drawing space, on top of
+    // the decimation. Only the near tier needs one: it keeps every texel of the
+    // drawing and is then shown over TIER_CSS css px, i.e. minified 2:1 on a
+    // 1x screen (and 1:1 on a 2x one, which is why the texels are kept). 0.75
+    // is the value the old MID tier carried for exactly that 2:1 case, so it is
+    // calibrated rather than guessed. The far tier is a 2x box DECIMATION of
+    // the same drawing — a box the width of the decimation is precisely the
+    // prefilter minification wants — and is then drawn at 1:1 or magnified, so
+    // it cannot alias from minification at all and gets nothing extra.
+    { id: 'x', div: 2, minZoom: 0,  soften: 0.0 },   // far — half res
+    { id: '',  div: 1, minZoom: 17, soften: 0.75 },  // near — full res
   ];
   window.FACADE_TIERS = TIERS;
+  window.FACADE_TIER_CSS = TIER_CSS;
 
   // Texels per repeat in the NEAR tier. A screen shows `css * devicePixelRatio`
   // device pixels per repeat, so drawing more texels than that is minification
@@ -105,9 +166,25 @@
   // costs anything to fix. Quantised, and capped at 2: nothing on a phone is
   // reading a window at 3x.
   const SCALE = Math.max(1, Math.min(2, Math.round(window.devicePixelRatio || 1)));
-  const RES = TILE * SCALE;     // real canvas texels per repeat
-  // The pixelRatio each tier is registered with. RES texels over `css` CSS px.
-  const tierPixelRatio = t => RES / t.css;
+  const RES = TILE * SCALE;     // real canvas texels per repeat, NEAR tier
+  /** Texels per repeat in one tier — the shared drawing, decimated by `div`. */
+  const tierRes = t => RES / t.div;
+  // The pixelRatio each tier is registered with, and the whole invariant is in
+  // this one line: `displaySize` is `texels / pixelRatio`, so putting `TIER_CSS`
+  // in the denominator makes displaySize TIER_CSS for every tier by
+  // construction. A tier cannot drift in scale without someone editing this.
+  // It must come out a positive INTEGER — see the TIERS block; the assert below
+  // is there because the failure is a silent, plausible-looking ghost city.
+  const tierPixelRatio = t => tierRes(t) / TIER_CSS;
+  for (const t of TIERS) {
+    const pr = tierPixelRatio(t);
+    if (!(pr >= 1) || pr !== Math.round(pr)) {
+      console.error('[facades] tier "%s" needs pixelRatio %s — MapLibre stores '
+        + 'it in a Uint16 attribute, so it must be a whole number >= 1. The far '
+        + 'field will render transparent. Fix TIER_CSS or the tier\'s div.',
+        t.id || 'near', pr);
+    }
+  }
 
   // Facade families — window geometry, chosen by height/class.
   //   lo  low-rise houses + sheds: sparse, large openings
@@ -1380,18 +1457,50 @@
     return d;
   }
 
-  /** The image for one tier: the shared drawing, prefiltered for its minification. */
+  /**
+   * Box-decimate a RES x RES RGBA buffer by an integer factor.
+   *
+   * This is the mip level, and a box the width of the decimation is EXACTLY the
+   * prefilter that minification wants — which is why the decimated tiers carry
+   * no blur of their own. It is also wrap-safe for free: the blocks tile the
+   * image exactly, so no sample ever needs a neighbour across the seam, which
+   * is the trap `softenTile` has to wrap around.
+   */
+  function decimate(src, res, div) {
+    const out = res / div;
+    const d = new Uint8ClampedArray(out * out * 4);
+    const area = div * div;
+    for (let y = 0; y < out; y++) {
+      for (let x = 0; x < out; x++) {
+        let r = 0, g = 0, b = 0, a = 0;
+        for (let j = 0; j < div; j++) {
+          const row = (y * div + j) * res;
+          for (let i = 0; i < div; i++) {
+            const o = (row + x * div + i) * 4;
+            r += src[o]; g += src[o + 1]; b += src[o + 2]; a += src[o + 3];
+          }
+        }
+        const o = (y * out + x) * 4;
+        d[o] = r / area; d[o + 1] = g / area; d[o + 2] = b / area; d[o + 3] = a / area;
+      }
+    }
+    return d;
+  }
+
+  /** The image for one tier: the shared drawing at that tier's resolution. */
   function tileData(fam, bucketIdx, p, tier) {
     const raw = rawTile(fam, bucketIdx, p);
-    const d = new Uint8ClampedArray(raw);        // ours, and softenTile mutates it
-    softenTile(d, fam, tier);
+    const res = tierRes(tier);
+    // ours, and softenTile mutates it
+    const d = tier.div > 1 ? decimate(raw, RES, tier.div) : new Uint8ClampedArray(raw);
+    softenTile(d, fam, tier, res);
     // A VIEW, not `d.buffer.slice(0)`. The buffer was allocated on the line
     // above and nothing else holds it, so the second copy was 300 x 64 KB of
     // memcpy and garbage per time-of-day step for nothing — and MapLibre copies
     // again on its side either way (`addImage` does `new Uint8Array(data)`,
     // `updateImage` does `RGBAImage.replace(data, copy=true)` for a plain
     // object; checked in the 5.24.0 source rather than assumed).
-    return { width: RES, height: RES, data: new Uint8Array(d.buffer) };
+    return { width: res, height: res, data: new Uint8Array(d.buffer) };
   }
 
   // ── The windows crawl while the camera moves ──────────────────────
@@ -1530,26 +1639,35 @@
   // time-of-day step for nothing.
   let _blurTmp = null;
 
-  function softenTile(d, fam, tier) {
+  // `res` is the tier's own resolution, NOT RES: a decimated tier is a smaller
+  // image and blurring it as if it were RES wide would read straight off the
+  // end of the buffer. The scratch buffer is sized for the LARGEST tier once
+  // and indexed within, because paintTiers walks the tiers back to back and a
+  // length-exact test would reallocate on every one of them.
+  function softenTile(d, fam, tier, res) {
     const mult = SOFTEN.FAMILY[fam] != null ? SOFTEN.FAMILY[fam] : 1;
     const rOv = SOFTEN.RADIUS[fam], aOv = SOFTEN.AMOUNT[fam];
-    const r = Math.round((rOv != null ? rOv : (tier ? tier.soften : 0) * mult) * SCALE);
+    // The radius is in DRAWING units, so it scales with the tier's own texel
+    // density — a 2-texel box on the near tier is a half-texel box on the far
+    // one, which is no box at all, and correctly so: that tier is magnified.
+    const r = Math.round((rOv != null ? rOv : (tier ? tier.soften : 0) * mult)
+                         * SCALE / (tier ? tier.div : 1));
     const a = aOv != null ? aOv : SOFTEN.AMOUNT_BASE;
     if (!r || a <= 0) return;
-    const N = RES * RES, win = r * 2 + 1, area = win * win;
-    if (!_blurTmp || _blurTmp.length !== N * 3) _blurTmp = new Float32Array(N * 3);
+    const N = res * res, win = r * 2 + 1, area = win * win;
+    if (!_blurTmp || _blurTmp.length < N * 3) _blurTmp = new Float32Array(N * 3);
     const tmp = _blurTmp;
-    const wrap = i => ((i % RES) + RES) % RES;      // r may exceed RES/2 via the
+    const wrap = i => ((i % res) + res) % res;      // r may exceed res/2 via the
                                                     // per-family RADIUS override
     // horizontal — tmp keeps the window SUM
-    for (let y = 0; y < RES; y++) {
-      const row = y * RES;
+    for (let y = 0; y < res; y++) {
+      const row = y * res;
       let s0 = 0, s1 = 0, s2 = 0;
       for (let k = -r; k <= r; k++) {
         const i = (row + wrap(k)) * 4;
         s0 += d[i]; s1 += d[i + 1]; s2 += d[i + 2];
       }
-      for (let x = 0; x < RES; x++) {
+      for (let x = 0; x < res; x++) {
         const o = (row + x) * 3;
         tmp[o] = s0; tmp[o + 1] = s1; tmp[o + 2] = s2;
         const ia = (row + wrap(x + r + 1)) * 4, is = (row + wrap(x - r)) * 4;
@@ -1557,18 +1675,18 @@
       }
     }
     // vertical, and blend straight back into the pixel buffer
-    for (let x = 0; x < RES; x++) {
+    for (let x = 0; x < res; x++) {
       let s0 = 0, s1 = 0, s2 = 0;
       for (let k = -r; k <= r; k++) {
-        const o = (wrap(k) * RES + x) * 3;
+        const o = (wrap(k) * res + x) * 3;
         s0 += tmp[o]; s1 += tmp[o + 1]; s2 += tmp[o + 2];
       }
-      for (let y = 0; y < RES; y++) {
-        const i = (y * RES + x) * 4;
+      for (let y = 0; y < res; y++) {
+        const i = (y * res + x) * 4;
         d[i]     += (s0 / area - d[i])     * a;
         d[i + 1] += (s1 / area - d[i + 1]) * a;
         d[i + 2] += (s2 / area - d[i + 2]) * a;
-        const oa = (wrap(y + r + 1) * RES + x) * 3, os = (wrap(y - r) * RES + x) * 3;
+        const oa = (wrap(y + r + 1) * res + x) * 3, os = (wrap(y - r) * res + x) * 3;
         s0 += tmp[oa] - tmp[os]; s1 += tmp[oa + 1] - tmp[os + 1]; s2 += tmp[oa + 2] - tmp[os + 2];
       }
     }
@@ -1578,24 +1696,23 @@
 
   // ── the tier chain: selection, registration, repaint ────────────────
 
-  /** The tier a given camera zoom reads from. */
-  function tierForZoom(z) {
-    let t = TIERS[0];
-    for (const c of TIERS) if (z >= c.minZoom) t = c;
-    return t;
-  }
-
   /**
-   * The tiers a camera at this zoom can actually SAMPLE — which is two of them
-   * whenever floor(zoom) and floor(zoom)+1 fall in different tiers, because
-   * MapLibre evaluates a *-pattern property at both and cross-fades. Getting
-   * this wrong shows up as a tower going flat for the width of one zoom level,
-   * which is exactly the class of defect this whole change is about.
+   * The tiers a frame can actually SAMPLE — which is ALL of them, and pretending
+   * otherwise is what HANDOFF §46 had to unpick.
+   *
+   * The camera's zoom does not decide this. Past 60 degrees of pitch MapLibre
+   * picks a tile zoom per tile, and the pattern id is evaluated at the TILE's
+   * zoom, so one pitched frame reads every tier at once — measured at the spawn
+   * pose, `austin-buildings` renders z13 through z16 together. §46 kept a
+   * camera-derived subset as a LATENCY path and put the rest on a timer; that
+   * is no longer worth the machinery, because the decimated tiers now cost
+   * 1/4 and 1/16 of the near one instead of a full-resolution blur each. All
+   * three in the calling frame is CHEAPER than the two this used to return, and
+   * it makes "every tier holds the same hour" true by construction rather than
+   * true within 90 ms.
    */
-  function activeTiers(map) {
-    const z = (map && map.getZoom) ? map.getZoom() : 17;
-    const a = tierForZoom(Math.floor(z)), b = tierForZoom(Math.floor(z) + 1);
-    return a === b ? [a] : [a, b];
+  function activeTiers() {
+    return TIERS;
   }
 
   const suffixed = (base, id) => (id ? ['concat', base, id] : base);
@@ -1607,6 +1724,11 @@
    * own way — the outer ring reads an `fb` ordinal off a vector tile it cannot
    * mutate — and every one of them needs the same stops. Restating the stops per
    * layer is how a tier boundary drifts between two layers and nobody notices.
+   *
+   * The step is a RESOLUTION choice now and nothing else — every tier draws the
+   * same windows at the same world scale — so a tile picking a tier one zoom
+   * away from its neighbour changes sharpness and not rhythm. That is what makes
+   * per-tile evaluation safe here, and it is the whole of QUEUE H2.
    */
   window.facadeTierExpr = function facadeTierExpr(baseId) {
     const expr = ['step', ['zoom'], suffixed(baseId, TIERS[0].id)];
@@ -1671,10 +1793,13 @@
    * it back. "Fly over a chunk to fix that chunk" is the near tiles arriving;
    * "they go back to being dark after a while" is flying away again.
    *
-   * THE RULE NOW: every tier holds the same hour, always. The lazy scheme is
-   * kept only as a LATENCY optimisation — the camera-active tiers are painted in
-   * the calling frame so a slider drag stays responsive — but the flush of the
-   * rest is on a TIMER that always fires, never on an event that may not come.
+   * THE RULE NOW: every tier holds the same hour, always — and since the H2 mip
+   * change every tier is repainted in the CALLING frame, so there is no window
+   * in which it can be false. §46 could not afford that (three full-resolution
+   * blurs); a decimated tier costs a quarter and a sixteenth of the near one, so
+   * all three together are cheaper than the two the camera-derived set used to
+   * paint. The timer below survives as a belt-and-braces path for combos
+   * registered after a repaint; `staleTiers()` normally finds nothing.
    */
   const ATLAS = {
     // Milliseconds after a time-of-day change by which every remaining mip tier
@@ -1695,7 +1820,7 @@
   let _warnedUpdate = false;
 
   // Combos OUTSIDE, tiers INSIDE, so rawTile's one-deep cache actually hits:
-  // repainting two tiers costs one draw plus two blurs, not two draws.
+  // repainting three tiers costs ONE draw plus three resamples, not three draws.
   function paintTiers(map, tiers, p) {
     if (!tiers.length) return;
     for (const id of combos) {
@@ -1748,14 +1873,14 @@
     _flushTimer = setTimeout(() => flushStaleTiers(map), ATLAS.FLUSH_MS);
   }
 
-  // Still worth keeping, but it is now a latency path and not the correctness
-  // path: if a stale tier becomes camera-active before the timer fires, pay for
-  // it in that frame instead of showing one frame of the wrong hour.
+  // A safety net, not a path anything relies on: updateFacades already paints
+  // every tier in its own frame, so this only ever finds work if a combo was
+  // registered between two repaints.
   function watchTierZoom(map) {
     if (map.__facadeTierWatch) return;
     map.__facadeTierWatch = true;
     map.on('zoom', () => {
-      const want = activeTiers(map).filter(t => _tierP.get(t.id) !== _atlasP);
+      const want = activeTiers().filter(t => _tierP.get(t.id) !== _atlasP);
       if (want.length) paintTiers(map, want, _atlasP);
     });
   }
@@ -1784,11 +1909,10 @@
   window.updateFacades = function updateFacades(map, p) {
     if (!palette.length) return;
     _atlasP = p;
-    // The camera-active tiers in this frame so a slider drag responds at once;
-    // EVERY remaining tier on a timer that always fires. See the ATLAS block:
-    // the far half of a pitched frame is never camera-active, so anything
-    // conditional on the camera leaves it at the wrong hour indefinitely.
-    paintTiers(map, activeTiers(map), p);
+    // EVERY tier, in this frame. See the ATLAS block: nothing derived from the
+    // camera can name the tiers a pitched frame reads, and the decimated tiers
+    // are cheap enough now that there is no reason to try.
+    paintTiers(map, activeTiers(), p);
     scheduleFlush(map);
     watchTierZoom(map);
   };
