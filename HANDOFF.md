@@ -1,5 +1,92 @@
 # Austin 3D Explorer — Full Handoff
 
+## 77. Aug 4 2026 — K2: the boost button was 2.5px inside the joystick ring (acer lane)
+
+**Branch:** `acer/boost-button-visual`, **PR #139**, merged `26d9454`. **QUEUE
+K2.** File: `style.css` only — `js/controls.js` did not need to change. Shots:
+`shots/k2-before/`, `shots/k2-after/`, `shots/k2-night/`, `shots/k2-land/`.
+
+*"only thing is the boost button is a bit off visually but its great."* The
+first report from a real phone. Photographed at 390x844 with touch emulated, it
+was off in two ways at once, and neither was a matter of opinion.
+
+### 1. IT CLIPPED THE JOYSTICK — MEASURED, NOT GUESSED
+
+The ring is a circle of r=50 about (82,724). The button's bottom-left corner sat
+at **(128,712), 47.5px from that centre — 2.5px INSIDE the ring** — while its top
+edge overshot the ring's crown by 2px. So it neither cleared the stick nor lined
+up with it, which is the whole of "a bit off" in one sentence.
+
+**The cause was two sets of magic numbers with nothing tying them together.** The
+stick's diameter was hard-coded `100px`; the button was placed at `left:96px;
+bottom:62px`. Nothing in the file said those numbers were about the same object.
+The placement is now DERIVED from `--joy-size` — bottom-left corner on the ring's
+45 degree shoulder, pushed out along that diagonal by `--boost-gap`, with the
+corner radius taken into account so the clearance is measured from the corner
+ARC. Measured after: **7.98px of real air.** It cannot silently drift again.
+
+### 2. EVERY TOKEN WAS A NEAR-MISS OF THE HOUSE STYLE
+
+And a near-miss is precisely what reads as "a bit off". `#hud`, `#gfx-button` and
+`#tod-panel` all share a 1px `rgba(255,190,90,.16-.18)` hairline, `blur(10px)
+saturate(1.1)`, a `0 4px 16px rgba(0,0,0,.3)` shadow and `#f5dfa0` text. This
+button used a **1.5px border at double that opacity**, `blur(8px)` with no
+saturate, a heavier shadow and a dimmed off-palette gold. The result: the
+secondary control (a latch you tap occasionally) outshouted the primary one (the
+stick you hold constantly, which is a hairline ring). Quieter box, brighter
+label — the shadow, blur and text colour came down to the house values while the
+text went UP to full `#f5dfa0`.
+
+Also: the label was **8.5px**, the smallest type anywhere in the app (the HUD
+sub-line is 10px), and the box was **40px tall**, under the 44px minimum for a
+thumb. Now 10px and 44px.
+
+### WHAT DID NOT WORK
+
+**Copying the house border verbatim, which was the obvious move and was wrong.**
+`#hud` and `#gfx-button` get away with a `.18` hairline because they sit at the
+TOP of the frame over flat pale sky. This button sits over the ground —
+buildings, roads, grass, labels — and photographed there a `.18` hairline
+vanished outright, leaving a soft dark smudge with no edge. **Visibly worse than
+what it replaced.** The border now keeps the house hue and the house 1px width at
+the alpha the context actually needs (`--boost-edge`). The generalisable form:
+**a token table is a claim about a context, not a constant** — check where the
+element lives before inheriting it.
+
+**A first pass also moved the button 34px further out.** That cleared the ring
+but left it marooned in the frame, further from the only *visible* anchor (the
+orange knob) than the broken version had been. The gap came back down to 8px.
+Both wrong turns were caught by reading the screenshot, not by reasoning.
+
+### WHAT THE NIGHT SHOT SETTLED
+
+In daylight the ring at `rgba(255,180,60,.3)` is nearly invisible, which is why
+the button looks orphaned in a wide day frame. `shots/k2-night/` shows the ring
+reading clearly after dark with the pair composed correctly — so **the daytime
+faintness is the RING's contrast, not the button's placement.** Left alone
+deliberately: he complained about the button, and the brief said not to redesign
+the mobile controls. Worth a taste question if anyone wants to raise it.
+
+### VERIFICATION
+
+390x844 portrait, 844x390 landscape, day and night, with real pointer events at a
+touch-enabled context: nothing covers any part of the button (all four corner
+insets and the centre hit-test to `#joy-boost`), it clears the ring by 7.98px,
+the target is 44px, it is fully on screen, a tap latches boost ON and a second
+tap latches it OFF, and dragging the joystick still moves the camera. **10/10.**
+`harness-drift.mjs` PASS — no new script tags, so `index.html` and
+`_harness.html` did not need touching.
+
+**`collision.mjs` is red and it is NOT this change.** It produces zero check
+results on this machine — it dies inside the randomised flight loop at line 78,
+long before its joystick section at line 207 (watchdog at 300 s; still dead at
+540 s). Confirmed identical on `origin/main` with this branch's CSS swapped out.
+Whoever picks up the verify-harness regression should add it to the list.
+
+**Every taste value is a custom property on `#joystick-zone`** — `--joy-size`,
+`--boost-w/h/r`, `--boost-gap`, `--boost-edge` (CLAUDE.md rule 11). Any of it is
+a one-line overrule.
+
 ## 76. Aug 4 2026 — K1: the performance budget, and the four ways the instruments were lying (acer lane)
 
 **Branch:** `acer/k1-perf-budget`, **PR #138**. Files: `scripts/verify/perf.mjs`,
