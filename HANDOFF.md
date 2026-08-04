@@ -1,5 +1,159 @@
 # Austin 3D Explorer — Full Handoff
 
+## 85. Aug 4 2026 — the doors are on the buildings, and the lit ones are the point (acer lane)
+
+**Branch:** `acer/entrances`, on top of §84. **New file: `js/entrances.js`.** Also
+one `<script>` tag in `index.html` and the matching one in `_harness.html`, and
+this entry. **Nothing else was touched** — no data file, no bake, no `js/app.js`,
+no other module. `harness-drift.mjs` PASS: **28 scripts in each file**, run
+before any pixel was looked at.
+
+Shots: `shots/entrances/day/` and `shots/entrances/night/`, all on
+`python scripts/serve.py 8232`, `tod 0.30` and `tod 0.92`, `index.html`,
+1600x1000, graphics auto-detect cancelled at the top of every run. Crops beside
+each frame because a 3 m portal in a 1600 px campus frame is not answerable by
+eye at 1:1.
+
+### WHAT IT DRAWS
+
+Six layers on two sources, self-registered off `window.__map` on the
+`js/places.js` pattern — `js/app.js` calls none of it:
+
+```
+entrances-pool       circle,  under buildings-3d, night only  1,097 doors
+entrances-detail     extrusion, z>=16.0   step reveal rail ramp   6,604
+entrances-portal     extrusion, z>=15.2   door surround canopy column sign  2,049
+entrances-glass      extrusion, z>=15.2   glass transom           1,398
+entrances-inscription symbol,  z>=17.4    MAI + GAR                   2
+```
+
+### THE THREE THINGS THAT WERE NOT OBVIOUS
+
+1. **`h` is a THICKNESS.** `fill-extrusion-height = base + h`, per §84 and the
+   bake's own docstring. `entrancesStats().hContract` reports it both ways —
+   **6.81 m as a thickness, 6.59 m as a top** — so a script can watch it without
+   a screenshot. The two are close at the TOP of the range, which is the trap;
+   the damage is at the bottom, where the Main Building's sign band (base 5.16,
+   h 1.10) would be drawn from 5.16 down to 1.10, inverted and buried.
+2. **The source must not be simplified.** `window.PATTERN_TILING` is
+   `maxzoom 16, tolerance 0.5`, tuned for 40 m wall panels. At z16 one tile
+   pixel is ~2.4 m of ground and the median piece here is a 0.35 m stair nosing,
+   so geojson-vt is entitled to delete it — and everything above z16 then reuses
+   that gutted tile. This pass tiles at `maxzoom 18, tolerance 0` instead. It is
+   the one place the module disagrees with its neighbours and `ENT.tiling` is a
+   one-line override.
+3. **At night the glass is LIT and the stone is dark.** The bake writes glass
+   `wn` at `#4f493e` — what glass REFLECTS at night, not what a lit lobby EMITS.
+   The renderer re-points the glass layer's night stop at `ENT.glassLitVary`
+   (three warm tones, keyed on `eid` so a whole entrance lights as one unit),
+   **listing the four dim hexes by value** so the bake's deliberately-bright
+   ones survive untouched — the Ransom Center's `#e8d9ae` beacon and Battle's
+   and Sutton's lanterns. Verified from the running style, not by eye: at
+   tod 0.92 `getPaintProperty('entrances-glass','fill-extrusion-color')` ends in
+   the lit match, and `entrances-pool` reads `0` opacity by day and
+   `0.30 main / 0.16 other` at night.
+
+### THE LOD KNOB WAS WRONG ON THE DEFAULT PRESET, AND THE MEASUREMENT CAUGHT IT
+
+The first cut was `detail = 0.35 + 0.65 * GFX.treeDensity`, copied in spirit
+from `js/props.js`. `entrancesStats()` came back **`detailLevel: 0.79`** on a
+default load — the *balanced* preset, which is what almost everyone sees — one
+step below the top, which silently deleted all **1,752 reveals**. A reveal is
+the shadow that makes a doorway read as a hole in a wall rather than a panel
+stuck on it, so the default build was shipping the least convincing version of
+the pass. Replaced with an explicit table, `ENT.detailByTrees`: thinning starts
+BELOW the default, never at it. balanced/cinematic/ultra get everything,
+`performance` drops reveals and treads, the ~30 fps auto-detect can go lower.
+
+### THE INSCRIPTIONS ARE LABELS, NOT CARVING, AND THAT IS ARITHMETIC
+
+Simeon asked for accurate text. The Main Building's baked inscription band is
+**8.29 m long and 1.10 m tall**. Nicar's constraint is 108 letters and spaces
+for the twelve words; split either side of the seal that is 23 characters in the
+~3.2 m a clause gets, i.e. a **0.14 m letter on a 0.023 m stroke**. This camera
+flies at z16-19 where one pixel is 2.0 m to 0.25 m of ground, and even pinned to
+MapLibre's z22 ceiling a pixel is 0.032 m. **A 0.023 m stroke is under one pixel
+at every zoom the app can reach.** Carving it would put ~1,700 sub-pixel boxes
+on two buildings and render them as speckle that aliases differently every
+frame. Garrison is worse — six names on a 4.66 m band is a 0.117 m cap height.
+
+So: the band is drawn as a band, darkened 13% toward its own shadow so it reads
+as incised rather than as a course with a light on it, and the WORDS arrive as a
+symbol label at z17.4. It is honestly a label. Both strings are copied from
+`docs/entrances/celebrated.md`, the Main Building's **without the comma** and
+flagged, exactly as the bake carves it. If a later pass ever gives the Main
+Building its real ~30 m frieze instead of an 8.3 m band, carving is worth
+re-testing: at 30 m the same 23 characters are 0.22 m letters on a 0.036 m
+stroke, which resolves at z20.
+
+### WHAT THE PICTURES ACTUALLY SHOW
+
+- **Main Building south portal** — limestone surround, two pilasters, a glazed
+  transom band, four leaves, a flight with clean tread banding, and the
+  accessible ramp with its rail sweeping down to the right. At night the
+  transom and all four leaves are lit inside dark stone with a warm pool on the
+  pavement. This is the frame to show him.
+- **Battle Hall east portal** — arched surround, arched fanlight, two dark
+  leaves, steps with cheek walls, **and the two lanterns**, which
+  `celebrated.md` calls the single most recognisable thing about the entrance.
+- **Gregory Gym** — five arched entrances along the west arcade, the arched
+  fanlights lit at night above dark leaves.
+- **PCL** — the midcentury one: a full-width cantilevered canopy on two slender
+  columns over a four-pane sliding bank, with the reveal shadow under it. The
+  night frame is the best pool in the set.
+- **Gates-Dell / E. P. Schoch** — canopies, wide flights, cheek walls, rails.
+
+### WHAT I DID NOT MANAGE
+
+1. **The Texas Union is not well photographed.** Its main portal faces south
+   into the West Mall, and from every unobstructed camera I tried the tree
+   canopy owns those pixels; from lower the Flawn Academic Center is in the way.
+   The geometry is there (four entrances, `eid` 316-319) — I just do not have a
+   frame that proves it. Someone with a clean pose should take one.
+2. **No frame-cost number.** `places-perf.mjs`'s shape is the right one and an
+   `entrances-perf.mjs` should exist, but this lane may only write
+   `js/entrances.js`, the two HTML files and this entry, so I could not add a
+   verify script. What I *can* say, measured: `austin-entrances` is **not** a
+   harness bottleneck — timing `isSourceLoaded` per source after a jump, it
+   reported at **0 ms** at the Main Building and inside the 2,253 ms every other
+   `austin-*` source took at z16.6. It is not in the slowest six either time.
+   The pass is 4.5 MB of GeoJSON and §84 already flags that as wanting tiling;
+   `ENT` reads `TILES.layers.entrances` and will stream the moment an archive
+   exists, with no edit here.
+3. **A pre-existing console error is NOT fixed, and it is not this pass.**
+   "Expected value to be of type number, but found null instead" fires ~4-10
+   times on every time-of-day change. Attributed rather than argued about: the
+   same page loaded twice, once with `?entrances=0`, three tod changes each —
+   **40 errors with the entrances layers present, 40 with them absent.** It
+   predates this branch and belongs to somebody else's expression. (For
+   completeness `data/entrances.geojson` has zero null or non-numeric
+   `base`/`h`/`eid` across all 10,051 features, checked in Python.) Worth
+   somebody's hour: a paint property that type-errors can take a whole layer
+   down silently, which this repo has already been bitten by twice.
+4. **Nothing is asserted in pixels.** Same reason as (2) — the assertions belong
+   in a verify script this lane cannot add. `entrancesStats()` is the hook they
+   should use: it returns feature counts by kind and role, the detail level, the
+   inscription refs, the sign tones read off the file, and the `h` contract.
+5. **At flying altitude by DAY the pass contributes nothing you can see** —
+   `campus-wide` at z16.6 is indistinguishable with entrances on. That is not a
+   defect, it is `eras.md` §2.1's own arithmetic (a door leaf is two pixels at
+   400 m), and it is exactly why the night pool exists.
+
+Every taste value is a named field on `ENT` at the top of the file per CLAUDE.md
+rule 11 — the four zoom gates, the lit tones, the dim-hex list, the pool's
+radius/colour/opacity, the carve darkening, the label's colour and letter
+spacing, the LOD table, and the tiling. Nothing aesthetic is in a function body.
+
+**One loose end that is not mine to close.** `docs/entrances/celebrated.md` and
+`docs/entrances/eras.md` are still UNTRACKED on this branch —
+`docs/entrances/placement.md` was committed in §84 and those two were not. They
+are the sources for every authored decision in `bake_entrances.py` and for the
+two inscriptions in `js/entrances.js`, and on a public repo an untracked file is
+one `git clean` from gone. This lane's writable set is `js/entrances.js`, the
+two HTML files and this entry, so I did not add them. **Whoever merges this
+should commit both.**
+
+
 ## 84. Aug 4 2026 — every door on the Forty Acres, and the generator that places them (acer lane)
 
 **Branch:** `acer/entrances`. **No PR yet** — the renderer lands on this same
