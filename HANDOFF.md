@@ -1,5 +1,175 @@
 # Austin 3D Explorer — Full Handoff
 
+## 74. Aug 4 2026 — downtown IS cooler than campus, it is the palette, and the palette is the half that is right (acer lane)
+
+**Branch:** `acer/k5-two-suns`. **QUEUE K5.** **NO RENDERING CODE CHANGED — this
+is a measurement and a verdict.** Frames: `shots/k5/`, `shots/k5-scout/`.
+
+The brief named three candidates and asked which. Measured at two poses, the
+answer is *the first and the third at once*: the split is genuinely in the
+palette, and the downtown side of it matches the photograph it was fitted to.
+The half that is off against the reference is the low city, and the one fix that
+implies is measurable and **invisible**.
+
+### Method
+
+`shots/k5` numbers come from a magenta-mask probe (§48) built as a variant of
+`scripts/verify/downtown-colour.mjs`: read the base frame, paint one layer
+`#ff00ff`, read again, and every pixel that MOVED is a pixel that layer is the
+frontmost thing in. **Magenta rather than §48's hide-and-diff on purpose** —
+hiding a building reveals whatever is behind it, which downtown is often another
+building of nearly the same grey, and those pixels fall under the 70-level noise
+floor and silently leave the mask. Magenta is far from tan, grey and blue-grey
+alike. Index sets derived once; every configuration re-reads exactly those
+indices, so campus and downtown always come off the SAME frame. `restore` came
+back **0.0 on every row of every run**.
+
+**THE CONTROL THAT SETTLES IT** is `ring@downtown`: the flat outer-ring low-rise
+restricted to the screen rows the downtown towers occupy (mean row 636 against
+the towers' 637). Same camera distance, same air, different palette.
+
+Hardware GL, 1600x1000, `_harness.html`, `harness-drift.mjs` PASS first,
+`cancelGraphicsAutoDetect()` at the top, tod 0.30.
+
+### What the frame says. Wide day pose `-97.7400,30.2825 z14.9 p74 b196`
+
+```
+                        mean rgb       luma     sd     B-R   sat%     px
+campus walls          128,110, 93    113.2   14.4   -35.0   27.3   155k
+downtown towers       131,130,127    129.8   12.3    -3.8    7.4    12k
+downtown streetwall   145,136,122    137.5    9.9   -22.9   15.7
+ring low-rise (all)   173,154,136    157.6   19.1   -37.0   21.2
+ring @ TOWER ROWS     174,159,143    161.9   16.9   -31.2   17.6    13k
+```
+
+He is right, and he is right about the two words he used. Downtown is **31.2
+B-R points cooler and 19.9 saturation points greyer** than campus. It is not
+darker — it is 16.6 luma **brighter**. "Greyer" is desaturation, which is the
+same finding PR #117 reached from the other side.
+
+### 1. IT IS NOT THE FADE. The fade contributes 2% of the split.
+
+`HAZE_TUNE.on = false`, same masks, same frame:
+
+```
+                        base          haze off        the gap towers-campus
+towers        B-R        -3.8            -16.3         base  31.2   haze off  31.6
+campus        B-R       -35.0            -47.9         sat   -19.9        -19.9
+```
+
+The haze moves **both halves by the same 12 points** and leaves the difference
+between them alone: 31.2 → 31.6 B-R, and the saturation gap does not move at
+all. Reproduced at the `downtown-skyline` pose: 29.3 → 30.0 and −19.5 → −19.2.
+
+It is doing real work — **+50.5 luma to the towers against +21.9 to campus** —
+so the fade is why downtown reads *pale*, and none of why it reads *cool*. And
+the same-distance control kills the distance argument outright: at the towers'
+own screen rows the flat ring reads **−31.2 B-R** while the towers read **−3.8**.
+
+### 2. IT IS THE PALETTE — by construction, in the source data
+
+Population-weighted over what is actually in the files:
+
+```
+                            pop    mean rgb        luma      B-R    sat%
+downtown towers   wd        243  152,161,167     158.8    +14.7    23.6
+downtown streetwall wd      645  199,186,165     187.8    -34.3    17.9
+outer-ring low-rise wd    6,866  199,184,161     185.9    -37.7    19.0
+campus facade palette wd  14 bk  179,168,156     169.9    -22.8    18.5
+```
+
+**The 243 downtown towers are the only blue-dominant thing in the city.**
+Everything else, including downtown's own 645-building streetwall, is warm.
+
+### 3. AND THAT IS CORRECT — the towers are already WARMER than the photograph
+
+PR #117 fitted those centroids to two CC-licensed photographs (§56). Twelve
+facade patches off the Wikimedia aerial read **B-R +20.1, range +1..+45, every
+one positive**. Ours is +14.7 — under, not over. Scale-matched on screen the
+skyline photograph puts the tower cluster at **−0.3**; at the same pose ours
+reads **−6.9**. Our downtown is ~7 points warmer than the real one already.
+
+Continuity checked before the reference was used: §56 recorded 116.9 luma /
+sd 13.1 / B-R −5.6 after #117, and the same pose reads **120.6 / 14.4 / −6.9**
+today. Nothing has drifted in eighteen merges.
+
+**The half that IS off against that photograph is the low city**, and §56 had
+already written it down as owed: reference low-rise **127.9 luma / −23.0 B-R**
+against ours **157.4 / −38.0** — 30 luma too bright and 15 too warm. That is
+`PALETTE` in `scripts/bake_outer.py`.
+
+### The two knobs that literally say "downtown is not lit like campus" — worth a fifth, and invisible
+
+`scripts/bake_outer_facades.py` carries two divergences applied to the 243
+towers and to nothing else: `GOLDEN['tower'] = (1.06,1.06,1.00)` where masonry
+is `(1.06,1.06,0.92)`, and `AMBER_CANCEL = 0.5`, which removes half of
+`drawTile`'s orange wash from glass. Both documented, both photograph-sized.
+
+Tested by **rewriting the response to `data/outer_tower_palette.json` at the
+network layer** — `wg` recomputed from `wd`, no file on disk touched, nothing to
+leave behind:
+
+```
+             towers B-R   sat%    gap vs campus B-R   sat
+shipped            -3.8    7.4                31.2  -19.9
+same-sun          -10.3    8.2                24.8  -19.1
+```
+
+Grading downtown by exactly the rule every other building in the city gets
+closes **6.4 of 31.2 B-R points and 0.8 of 19.9 saturation points** — and
+`sun-shipped.png` and `sun-same-sun.png` are indistinguishable. Campus came back
+identical to the decimal in both runs, which is the control that proves the
+intervention was downtown-only.
+
+### Verdict: no change, and the reason is a number
+
+The split is real, it is the palette, and the downtown side of the palette is
+the side that matches its reference. Warming it moves it away from the
+photograph. **Roughly 78% of the remaining gap is neither knob and neither
+lane's file:** the towers leave the bake at sat 23.6 and arrive on screen at
+7.4, and `js/facades.js:drawTile`'s `mix(wall,[46,58,74],0.62)` over 51% glazing
+is where it goes. §53 and §56 have both already asked; this is the third time
+with the number attached.
+
+### What did NOT work
+
+1. **Dimming the backdrop to the reference ratio is invisible.** `outer-3d`
+   scaled x0.82 at runtime (a `to-rgba` / `rgb` expression, which does work on
+   MapLibre 5.24): `shots/k5/base.png` and `shots/k5/ring-dim-0.82.png` cannot
+   be told apart. The flat ring at the towers' own screen rows is 13,090 px —
+   **0.8% of the frame.** The 0.80-vs-0.911 luma-ratio argument is true and does
+   not reach the eye at this pose. Do not spend a PR on it.
+2. **Three page loads plus six mask derivations do not fit in one browser.**
+   `chrome.mjs`'s watchdog killed it at 300 s with the third variant (`amber0`,
+   the half-way setting) never run. Budget two loads per browser for this shape
+   of probe.
+3. **`wg` recomputed from `wd` in JS reproduced the shipped hex on 1 bucket of
+   10.** The other nine differ by ONE level on ONE channel — Python vs JS
+   rounding, not a wrong model. Recorded because the line looks alarming.
+4. **A hand-picked screen box was never used**, for the fifth time in this repo's
+   history of them being wrong.
+5. **THREE LANES WERE LIVE IN ONE WORKING DIRECTORY AND ONE OF THEM DELETED THIS
+   COMMIT.** §56 warned that CLAUDE.md's split is by FILE and does not cover the
+   working DIRECTORY. It happened. `C:/Users/simip/Projects/austin-3d-explorer`
+   carried K1 (`acer/k1-perf-budget`), K6 (`acer/gfx-menu-less-yap`) and this
+   pass in the same tree; `scripts/verify/boot.mjs` and `perf.mjs` sat modified
+   under K1 the whole time, which blocked `git pull --rebase` — and then
+   somebody ran `git reset --hard origin/main` **while `acer/k5-two-suns` was
+   checked out**, which took this entry with it. It survived only because it had
+   already been pushed. Recovered by `git worktree add` and cherry-pick; the
+   dead branch `acer/k5-two-suns` is left on the remote as the evidence.
+   **The rule §56 asked for should now be in CLAUDE.md: if two lanes may run at
+   once, every lane after the first takes a worktree.** And never
+   `git reset --hard` a tree you did not check out.
+
+### Not committed, and why
+
+The probe lives in the scratchpad, not `scripts/verify/`: this round's acer
+write scope was `js/outer.js`, `scripts/bake_outer_facades.py` and
+`data/outer_ring.geojson`. It is `downtown-colour.mjs` plus a `buildings-3d`
+mask, a magenta paint instead of a hide, and the same-rows control — perhaps
+thirty lines of difference. If K5 is ever reopened, rebuild it there.
+
 ## 73. Aug 4 2026 — the intro flew over empty land because nothing ever waited for downtown (acer lane)
 
 **Branch:** `acer/intro-opening-gate`, **PR #135**, merged `518c14e`. Files:
