@@ -189,6 +189,27 @@
     };
   }
 
+  /**
+   * The camera's bank, in degrees, SIGNED THE WAY THIS FILE NEEDS IT.
+   *
+   * MEASURED, not assumed (shots/roll/): with the controller's self-heal
+   * shadowed out and roll forced to +15, the rendered horizon runs from y=540
+   * on the left edge to y=205 on the right — right end UP, which is the same
+   * convention controls.js records for banking into a right turn. A screen
+   * rotation that lifts the right end has NDC slope +aspect*tan(roll), and the
+   * world-up derivation above produces that slope for sin(-roll). Hence the
+   * minus, and hence it is written down once here rather than three times.
+   *
+   * `getRoll` only exists on MapLibre builds that support it (controls.js gates
+   * the whole bank effect on the same capability), so a build without it is
+   * permanently level and this returns 0.
+   */
+  function cameraRollSin(map) {
+    if (!map.getRoll) return 0;
+    const r = map.getRoll() || 0;
+    return r === 0 ? 0 : Math.sin(rad(-r));
+  }
+
   /** Screen y of the true horizon, in CSS pixels. Same formula as atmosphere.js. */
   function horizonPx(map) {
     const H = map.getCanvas().clientHeight;
@@ -389,10 +410,25 @@
       const a = A * (1 - Math.exp(-dist / D));
       stops.push(`rgba(${c},${a.toFixed(4)}) ${(t * 100).toFixed(2)}%`);
     }
+    // THE SAME ROLL FIX AS THE SHADER, in the fallback path. A strip pinned to a
+    // screen ROW is level by construction, so under a bank it disagrees with the
+    // city exactly the way the depth path did. MapLibre rolls the world about
+    // the view axis, i.e. about the frame centre, so rotating this element about
+    // the frame centre by the same angle puts its edge back on the horizon.
+    // `rotate` is CLOCKWISE for a positive angle and a positive roll lifts the
+    // RIGHT end, so the angle is negated — the same sign, and the same measured
+    // reason, as cameraRollSin.
+    const rollDeg = map.getRoll ? (map.getRoll() || 0) : 0;
+    // A rotated rectangle no longer covers the frame's corners. Grow it by the
+    // swing the rotation costs, on both sides, rather than letting the fog stop
+    // short in a wedge.
+    const pad = rollDeg ? Math.abs(Math.tan(rad(rollDeg))) * H + 2 : 0;
     elHaze.style.opacity = '1';
-    elHaze.style.width = W + 'px';
-    elHaze.style.height = depthPx + 'px';
-    elHaze.style.transform = `translate(0px, ${hz.toFixed(1)}px)`;
+    elHaze.style.width = (W + 2 * pad) + 'px';
+    elHaze.style.height = (depthPx + pad) + 'px';
+    elHaze.style.transformOrigin = `${(W / 2).toFixed(1)}px ${(H / 2).toFixed(1)}px`;
+    elHaze.style.transform = `rotate(${(-rollDeg).toFixed(3)}deg) ` +
+                             `translate(${(-pad).toFixed(1)}px, ${hz.toFixed(1)}px)`;
     elHaze.style.background = `linear-gradient(to bottom, ${stops.join(',')})`;
   }
 
@@ -446,13 +482,35 @@
   // degrees below horizontal, a ray through NDC y hits the ground plane at
   //   t = h / (sin p - y * tan(fov/2) * cos p)
   // and t -> infinity exactly at the horizon, where the denominator vanishes.
+  //
+  // ...AND THAT IS ONLY TRUE WHEN THE CAMERA IS LEVEL. "the horizontal horizon
+  // line tilts in the opposite direction as the map horizon when i move
+  // sideways": the flight controller BANKS into a turn (controls.js, up to
+  // TUNE.BANK_MAX degrees of roll), MapLibre rotates the whole rendered world
+  // about the view axis, and this shader kept computing the horizon from the
+  // screen ROW alone. So the fog's horizon stayed dead level while the city's
+  // rolled — photographed at roll 15 deg as a hard horizontal edge straight
+  // across a tilted skyline, which against a tilting world reads as a line
+  // leaning the other way. `?haze=0` removed it, which is what named the layer.
+  //
+  // The fix is to ask for the ray's vertical component IN THE WORLD rather than
+  // on the screen. Under a roll r the camera's own up is rotated about the view
+  // axis, so the world-up in eye space becomes (-sin r cos p, cos r cos p,
+  // sin p) and the y term picks up an x term. Written out, the horizon this
+  // solves for is exactly the level horizon rotated by r about the frame
+  // centre: slope aspect*tan(r) in NDC, intercept c/cos(r). No new taste value
+  // and no fudge factor — it is the same derivation with one more angle in it.
   const FS_GROUND = `
     precision highp float;
     varying vec2 v_ndc;
-    uniform float u_h, u_sinP, u_cosP, u_tanV, u_D, u_A;
+    uniform float u_h, u_sinP, u_cosP, u_tanV, u_tanH, u_sinR, u_cosR, u_D, u_A;
     uniform vec3 u_fog;
     void main() {
-      float den = u_sinP - v_ndc.y * u_tanV * u_cosP;
+      // The ray's rise per unit of forward travel, measured against the WORLD's
+      // up rather than the screen's. u_sinR is 0 whenever the camera is level,
+      // so this is the old expression exactly.
+      float rise = v_ndc.y * u_tanV * u_cosR + v_ndc.x * u_tanH * u_sinR;
+      float den = u_sinP - rise * u_cosP;
       if (den <= 0.0002) discard;       // at or above the horizon: sky, not ground
       float t = u_h / den;
       float a = u_A * (1.0 - exp(-t / u_D));
@@ -488,7 +546,8 @@
       fogGL = {
         flat: program(gl, VS_FLAT, FS_FLAT, ['u_y0', 'u_z', 'u_col']),
         ground: program(gl, VS_FLAT, FS_GROUND,
-          ['u_y0', 'u_z', 'u_h', 'u_sinP', 'u_cosP', 'u_tanV', 'u_D', 'u_A', 'u_fog']),
+          ['u_y0', 'u_z', 'u_h', 'u_sinP', 'u_cosP', 'u_tanV', 'u_tanH',
+           'u_sinR', 'u_cosR', 'u_D', 'u_A', 'u_fog']),
         buf: gl.createBuffer(),
       };
       gl.bindBuffer(gl.ARRAY_BUFFER, fogGL.buf);
@@ -532,6 +591,16 @@
     const lat = map.getCenter().lat;
     const mPerPx = 40075016.686 * Math.cos(rad(lat)) / (512 * Math.pow(2, map.getZoom()));
     const tanV = P[5] !== 0 ? 1 / P[5] : Math.tan(rad(58) / 2);
+    // The HORIZONTAL half-angle, off the same matrix. Probed on this build at
+    // roll 0, +15 and -15: P[0], P[1], P[4] and P[5] are bit-identical in all
+    // three, P[1] and P[4] are exactly 0, and 1/P[0] equals tanV*(W/H) to seven
+    // figures — so `args.projectionMatrix` is the PROJECTION alone, with no view
+    // rotation in it. That is why the roll has to be applied by hand below, and
+    // why reading tanH off P[0] is safe while doing it.
+    const tanH = P[0] !== 0 ? 1 / P[0] : tanV * (map.getCanvas().clientWidth /
+                                                 Math.max(1, map.getCanvas().clientHeight));
+    const sinR = cameraRollSin(map);
+    const cosR = Math.sqrt(Math.max(0, 1 - sinR * sinR));
 
     const pitch = map.getPitch();
     const sinP = Math.cos(rad(pitch));            // p = 90 - pitch, below horizontal
@@ -604,9 +673,13 @@
       // rung: `over` composites multiplicatively, so alpha_i is chosen so that
       // 1 - prod(1 - alpha_j) lands on A*i/(K+1) after i rungs.
       const aStep = (A / (K + 1)) / (1 - A * (i - 1) / (K + 1));
-      // Nothing further than tM can appear below the ground row for tM.
+      // Nothing further than tM can appear below the ground row for tM. Under a
+      // roll that row is a TILTED line, so the rung has to start at the lowest
+      // point of it — subtract the full swing the roll can add at |x| = 1, then
+      // the existing pad. At roll 0 both terms vanish and this is unchanged.
       const y0 = cosP > 1e-3
-        ? Math.max(-1, (sinP - h / tM) / (tanV * cosP) - HAZE.SHELL_PAD)
+        ? Math.max(-1, ((sinP - h / tM) / cosP - Math.abs(tanH * sinR)) /
+                       (tanV * cosR) - HAZE.SHELL_PAD)
         : -1;
       if (y0 >= 1) continue;
       gl.uniform1f(F.u.u_y0, y0);
@@ -628,6 +701,9 @@
     gl.uniform1f(G.u.u_sinP, sinP);
     gl.uniform1f(G.u.u_cosP, cosP);
     gl.uniform1f(G.u.u_tanV, tanV);
+    gl.uniform1f(G.u.u_tanH, tanH);
+    gl.uniform1f(G.u.u_sinR, sinR);
+    gl.uniform1f(G.u.u_cosR, cosR);
     gl.uniform1f(G.u.u_D, D);
     gl.uniform1f(G.u.u_A, A);
     gl.uniform3f(G.u.u_fog, fr, fg, fb);

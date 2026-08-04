@@ -1884,7 +1884,61 @@ ROADAREA = {
 }
 
 
-def widen_roads(road_feats, stats, warnings):
+# ------------------------------------------------ a mall is not a road ------
+#
+# "some asphalt roads bleed into speedway"
+#
+# PHOTOGRAPHED before it was changed (shots/speedway/swB_zoom.png, nadir over
+# Speedway at 26th): E 26th is severed by the mall, so OSM carries it as two
+# stubs whose centrelines run PAST the kerb and end on the brick. Buffered with
+# a flat cap, each stub becomes a grey rectangle lying on the herringbone with a
+# square blunt end -- one from the east, one from the west, at slightly
+# different latitudes so they do not even meet. Two more sit at 23rd. Measured
+# on the shipped file: 3 carriageway polygons overlapping the mall, 23 m2.
+#
+# WHY THE LADDER MISSED IT. `_band` deliberately keeps `roadarea` out of the
+# resolver -- the carriageway is the ladder's top rung, "because a sidewalk does
+# not lie on a road" -- and the ONE cross-band cut runs the other way: the
+# carriageway cuts the walk. That rule is right for a sidewalk and wrong for a
+# mall. `highway=pedestrian` is OSM for a street CLOSED TO TRAFFIC. A car does
+# not drive on Speedway, so the square metre is the mall's, and a road that
+# merely ends on it has no claim at all.
+#
+# So the rule is one sentence, applied in both directions:
+#   A PEDESTRIAN MALL OUTRANKS A CARRIAGEWAY. It is not cut by one, and one is
+#   cut by it.
+# Both halves are needed. Without the first the mall keeps the notch the
+# resolver already took out of it and removing the asphalt just uncovers a hole;
+# without the second the asphalt stays on top of the brick.
+#
+# EIGHT features carry `u:'pedestrian'` in the whole city and Speedway is one of
+# them, so the blast radius is small and countable -- the stats below print it.
+def is_pedestrian_mall(p):
+    return p.get("k") == "patharea" and p.get("u") == "pedestrian"
+
+
+def pedestrian_mall_union(feats, stats):
+    """Every pedestrian mall in the scene, as ONE metric geometry, or None."""
+    try:
+        from shapely.ops import unary_union
+    except ImportError:
+        return None
+    polys = []
+    for f in feats:
+        if f["geometry"]["type"] != "Polygon" or not is_pedestrian_mall(f["properties"]):
+            continue
+        q = _poly_m(f["geometry"])
+        if q is not None and not q.is_empty:
+            polys.append(q)
+    stats["pedestrian_malls"] = len(polys)
+    if not polys:
+        return None
+    m = unary_union(polys)
+    stats["pedestrian_mall_m2"] = round(m.area)
+    return m
+
+
+def widen_roads(road_feats, stats, warnings, keep_out=None):
     """k:'road'/'cycle' LineStrings -> k:'roadarea'/'cyclearea' Polygons.
 
     Returns NEW features to append to data/ground.geojson. The LineStrings stay
@@ -1941,6 +1995,20 @@ def widen_roads(road_feats, stats, warnings):
     out = []
     for (k, cls, surf), polys in sorted(groups.items(), key=lambda kv: str(kv[0])):
         merged = unary_union(polys)
+        # The mall takes its ground back. Done on the MERGED carriageway rather
+        # than per-centreline so the subtraction runs once per drawn class, and
+        # BEFORE simplify so the new edge is simplified with the same tolerance
+        # as every other edge in the polygon -- a cut made afterwards would be
+        # the one part of the road held to a different accuracy.
+        if keep_out is not None and merged.intersects(keep_out):
+            a0 = merged.area
+            try:
+                merged = merged.difference(keep_out)
+            except Exception:
+                warnings.append("mall difference failed on %s/%s; left uncut"
+                                % (k, surf))
+            else:
+                stats["roadarea_mall_m2_returned"] += round(a0 - merged.area)
         if ROADAREA["simplify_m"]:
             merged = merged.simplify(ROADAREA["simplify_m"])
         parts = merged.geoms if merged.geom_type == "MultiPolygon" else [merged]
@@ -2189,7 +2257,11 @@ def count_conflicts(feats, road_polys):
                     a += inter.area
                     by_class["/".join(sorted([str(p.get("u")), str(p2.get("u"))]))] += 1
     rn, ra = 0, 0.0
-    paths = [q for p, q in items if p.get("k") == "patharea"]
+    # Pedestrian malls are excluded: they are exempt from the carriageway cut on
+    # purpose now (see widen_roads), so counting them here would report a defect
+    # the bake deliberately does not have.
+    paths = [q for p, q in items
+             if p.get("k") == "patharea" and not is_pedestrian_mall(p)]
     if road_polys and paths:
         ptree = STRtree(paths)
         for rq in road_polys:
@@ -2284,8 +2356,13 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
         for j, g in pending:
             if s_band[j] == w["band"] and g.intersects(w["q"]):
                 cutters.append(g)
-        # The ONE cross-band cut, and only this one.
-        if w["band"] == "path" and road_tree is not None:
+        # The ONE cross-band cut, and only this one -- and a pedestrian mall is
+        # exempt from it, because a mall is not a sidewalk lying on a road. See
+        # the note above widen_roads: this is the half of that rule that stops
+        # the resolver notching the brick, and widen_roads' `keep_out` is the
+        # half that stops the asphalt being painted over the notch.
+        if w["band"] == "path" and road_tree is not None \
+                and not is_pedestrian_mall(w["f"]["properties"]):
             for bi in road_tree.query(w["q"]):
                 cutters.append(road_polys[int(bi)])
         g = w["q"]
@@ -2592,7 +2669,11 @@ def main():
     # the `line` layer used to paint -- while the resolver's own copy of it is
     # inset by half a kerb (CARRIAGEWAY_INSET_M) so the gutter stays with the
     # pavement it belongs to. Two uses, two widths, on purpose.
-    feats += widen_roads(road_feats, stats, warnings)
+    # ...and the malls take theirs back off the carriageway on the way in. The
+    # union is taken from the RESOLVED features, so it is the ground the malls
+    # actually kept rather than the raw buffered corridor.
+    feats += widen_roads(road_feats, stats, warnings,
+                         keep_out=pedestrian_mall_union(feats, stats))
 
     # Draw order: big areas first, then small areas on top of them, then paths
     # over everything. Without the size term a 30,000 m2 lawn painted over the
