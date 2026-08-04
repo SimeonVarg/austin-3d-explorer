@@ -1,5 +1,93 @@
 # Austin 3D Explorer — Full Handoff
 
+## 71. Aug 4 2026 — the day/night track opens on daylight blue (acer lane)
+
+**Branch:** `acer/tod-slider-daylight-blue`, **PR #133**, merged `ea8f65d`.
+File: `style.css` only. Shots: `shots/tod-before/`, `shots/tod-after/`,
+`shots/tod-merged/panel.png` (the last one taken on merged `main`, not on the
+branch in isolation).
+
+> *"i like the daylight color sliders better where the top is light blue"*
+
+### THE REPORT WAS ACCURATE, AND IT WAS NOT ONLY TASTE
+
+Checked before rebuilding around it, per the standing instruction. The track's
+`0%` stop was `#ffdd93`, a pale gold, and `0%` is the **top** of the panel
+because the input is `rotate(90deg)`. So he is describing the control exactly.
+
+The part worth keeping: **the gold noon stop disagreed with the scene the
+control drives.** `js/timeofday.js` grades noon to a `sky: '#5d94cf'` zenith
+over a `horizon: '#c8e0f0'` — the one hour of the day the city is emphatically
+not gold. The two new day stops are those two literals lifted out of the route
+rather than guessed, and the stop *positions* now land on keyframes that
+already exist in the code instead of on round numbers: `VIG_HOURS`' 0.35 warm,
+0.50 golden, 0.68 dusk (`js/graphics.js`). Dusk violet and both navies are the
+colours they always were, and nothing else about the control moved — the
+inline-SVG sun and moon that replaced the emoji in #128, the thumb, the play
+button and the panel are untouched.
+
+The gradient also stopped being written twice. It was duplicated verbatim
+across `::-webkit-slider-runnable-track` and `::-moz-range-track` — two copies
+that have to be edited in lockstep forever — and is now one `--tod-track`
+custom property on `:root`, which is the one-line taste knob CLAUDE.md §11
+asks for.
+
+**WHAT WAS NOT VERIFIED:** Firefox. The `-moz` rule now depends on a custom
+property inheriting into that pseudo-element. That is standard behaviour and
+it is verified in Chromium, which is what the harness runs, but no Firefox
+binary exists here and it was not worth installing one for a colour stop. If
+the track ever renders invisible in Firefox, that is the first place to look.
+
+### THE THING THAT COST THE TIME: TWO AGENTS, ONE WORKING TREE
+
+CLAUDE.md's lane rule splits work by **file**, and that held perfectly — the
+CSS change collided with nobody. What is not covered anywhere is that the
+lanes can share **one checkout**, and a branch is not a file.
+
+Sequence, straight out of the reflog:
+
+```
+HEAD@{3}  checkout -b acer/tod-slider-daylight-blue   (me, at 01d96d7)
+HEAD@{2}  checkout -b acer/night-lamp-falloff         (another agent, same tree)
+HEAD@{1}  commit d9243e4  QUEUE Part K                (them)
+HEAD@{0}  commit a04701b  the CSS change             (ME, onto THEIR branch)
+```
+
+`git checkout -b` moved HEAD out from under a pass that was already running,
+so my commit landed on their branch, and my own `git push -u` published
+`acer/tod-slider-daylight-blue` still sitting at old `main` — **an empty
+branch, and the push reported success.** The tell was one line of output that
+did not match the branch I thought I was on:
+
+```
+$ git pull --rebase origin main
+Current branch acer/night-lamp-falloff is up to date.     <- not my branch
+```
+
+Separated cleanly because their QUEUE commit had already been pushed to `main`,
+which made my commit's parent exactly `origin/main`: `git branch -f` my branch
+to `a04701b`, `checkout` it (identical tree, so **zero working-tree churn** for
+the other agent), then `git branch -f acer/night-lamp-falloff d9243e4` to put
+their branch back. Verified `acer/night-lamp-falloff...origin/main` = `0 0`
+and that their branch no longer contains `--tod-track`.
+
+**FOR THE NEXT LANE, three things:**
+
+1. **Read the branch name in git's own output, not the one in your head.**
+   `git pull --rebase` and `git push` both print it. That one line was the only
+   warning, and it appeared *after* the damage.
+2. **`git push -u` succeeding proves nothing about your work being pushed.**
+   It pushes the named ref, and the named ref may have been left behind. Check
+   `git rev-parse <branch>` against `git rev-parse HEAD` before believing it.
+3. **`gh pr merge --delete-branch` fails in this repo** with
+   `fatal: 'main' is already used by worktree at .../austin-3d-facades` — it
+   tries to check `main` out locally. **The merge itself still lands on the
+   remote**; only the local cleanup dies. Confirm with
+   `gh pr view N --json state,mergeCommit` before assuming it failed and
+   retrying. Same reason `git checkout main` does not work here: use
+   `git checkout --detach origin/main` and
+   `git push origin HEAD:refs/heads/main`.
+
 ## 70. Aug 4 2026 — the malls were blank because nothing was standing on them (acer lane)
 
 **Branch:** `acer/j5-j8-ground-planting`, **PR #132**, merged `a718c8a`.
