@@ -1,5 +1,131 @@
 # Austin 3D Explorer — Full Handoff
 
+## 66. Aug 4 2026 — the chrome: a menu you can read, a sprint you can feel (acer lane)
+
+**Branch:** `acer/chrome-i3-i4`, **PR #128**, merged `dec3751`. **QUEUE I3 and
+I4.** Files: `js/graphics.js`, `js/loader.js`, `js/controls.js`, `index.html`,
+`_harness.html`, `style.css`. Shots: `shots/i3i4/` (the `before-*.png` are the
+shipped build).
+
+### THE SPRINT FOV HAD BEEN FIRING ALL ALONG — IT RODE THE WRONG QUANTITY
+
+*"sprinting should increase my FOV a bit."* `TUNE.FOV_KICK` existed, was wired,
+and was working. It was proportional to **absolute** speed, so cruising had
+already spent most of it before Shift was touched. Probed on the shipped build
+at the spawn pose, base FOV 58:
+
+| | FOV | kick | speed |
+|---|---|---|---|
+| idle | 58.00 | 0.00 | 0 m/s |
+| W | 59.59 | 1.59 | 40 m/s |
+| W + Shift | 62.00 | 4.00 | 100 m/s |
+
+**Shift bought 2.41 degrees of a 4 degree effect.** A 4% wider frame, at the
+moment the world starts moving 2.5x faster — it could not read as anything.
+
+The lesson generalises past this control: **an effect keyed to an absolute
+quantity spends itself on the ordinary case.** The kick now measures how far
+ABOVE cruise the camera is — `(sp/spdBase - FOV_KICK_FROM) / (SPRINT -
+FOV_KICK_FROM)` — so cruising sits at exactly the authored FOV and the whole
+7 degrees belongs to sprinting. 58.00 to 65.00, measured.
+
+### BOOST: A LATCH, NOT A HOLD, AND A SEPARATE FLAG
+
+*"there should be an option to sprint on mobile."* `sprintHeld` is assigned from
+`KeyboardEvent.shiftKey` on EVERY keydown and keyup, so the 2.5x multiplier was
+unreachable on touch and **a latch could not be stored in that variable** — the
+next key pressed would wipe it. `boostOn` is separate and `sprint` reads
+`sprintHeld || boostOn`.
+
+It latches because both thumbs are already busy: one on the stick, one looking.
+Hold-to-sprint needs a third. It lights up while on, and `clearInputs()` drops
+it so an alt-tab cannot strand it.
+
+### THE GRAPHICS MENU: THE LAYOUT WAS PART OF WHY THE NAMES WERE BAD
+
+*"all i understand is performance and ultra."* The old row was
+`[88 px name] [slider] [value]` on one line, with the explanation in a `title`
+tooltip. Two consequences, and both are structural rather than editorial:
+
+1. **An 88 px column selects for short names, not clear ones.** That is how a
+   menu ends up saying "Bloom", "God rays", "Contact shadows", "Filmic curve" —
+   every one chosen because it fits.
+2. **A `title` tooltip does not exist on a touchscreen.** Half this app's use is
+   on a phone, where the menu had no explanations at all.
+
+So name and slider get a line each, and the description is rendered in the
+panel. Groups became Speed / Light / Picture / Scene with a line saying who each
+is for. The four presets kept their names — two already landed, and renaming
+those would have removed the only footing he had — and gained a second line
+each: *fastest, plainest* / *the default* / *film look* / *everything on*. They
+were not badly named, they were unexplained.
+
+**Dropped one control: "Filmic curve".** A tone-curve blend is a look-authoring
+value, not a preference; no sentence makes "0.65 of a filmic curve" something a
+person wants to set. It stays in `GRADE` at its authored value, so the render is
+unchanged. **"Distance blur" was KEPT** even though it is off everywhere and is
+the horizon line's source — it is the one control he said he understood, and
+taking that away would be perverse. Renamed with an honest note.
+
+### THE RECOMMENDATIONS BOX, AND WHY IT SAYS IT IS OFF
+
+A static site cannot send mail. `mailto:` sends nothing and publishes the
+address to harvesters; SMTP credentials in JS on a public repo let anyone send
+as him. So the form POSTs to a form service, read from ONE constant,
+`FEEDBACK_ENDPOINT` in `js/graphics.js` (plus `FEEDBACK_ACCESS_KEY` for
+Web3Forms). **No account was created for him** and no address appears anywhere
+in the page source.
+
+**Until an endpoint is set the panel says so and Send is disabled.** A form that
+swallows what you typed and shows a thank-you is worse than no form: he would
+believe he had a feedback channel and never hear from anyone through it.
+
+### WHAT DID NOT WORK, OR COST TIME
+
+1. **The play button nearly lost its state.** The first cut replaced `▶` with an
+   inline SVG. `js/timeofday.js` — another lane's file — swaps that button's
+   `textContent` between `▶` and `❚❚`, so the SVG would have been wiped on the
+   first press and the auto-cycle would have had no visible state. **Grep for
+   who writes to an element before putting markup inside it.** The comment is in
+   both HTML files now.
+
+2. **`movement.mjs` "glides to a stop" fails on a real GPU and it is the
+   instrument.** The assertion waits **60 requestAnimationFrames**, which is
+   ~12 s on swiftshader and **1.33 s on hardware**; `TAU_DECEL` is 0.45 s, so
+   54 m/s needs 0.45·ln(540) ≈ 2.8 s. Re-sampled against the camera's own
+   `simTime` the decay tracks `exp(-t/TAU_DECEL)` to three significant figures
+   (21.967 vs 21.952 at 0.27 s; 0.085 vs 0.085 at 2.77 s) and hits exactly zero
+   at 3.27 s. **A frame-count wait is a frame-rate assertion in disguise.**
+
+3. **`collision.mjs` "a street stays flyable at sign height" is pre-existing.**
+   Proved by checking out `origin/main`'s `js/controls.js` into this tree and
+   re-running: identical failure, *start 56 m, peak 56 m*. Start equals peak, so
+   nothing lifted — the assertion is failing on the SEEDED altitude, not on a
+   lift over roofs. Worth someone's time; it is not a movement bug.
+
+4. **A worktree of `origin/main` is not a fair A/B here.** The first attempt at
+   that comparison crashed at a different assertion; `data/` in a fresh worktree
+   is missing nine untracked files. Checking out the single file under test into
+   the live tree was both faster and honest.
+
+5. **ANOTHER AGENT CHECKED OUT A DIFFERENT BRANCH IN THIS WORKING TREE
+   MID-SESSION.** The first commit of this pass landed on
+   `acer/intro-downtown-rise` because that is what was checked out by the time
+   `git commit` ran. It was moved with `git branch -f` and that branch was put
+   back to `44a1de2`; the commit contained only the six intended files. **If you
+   are one of several agents in one tree: check `git branch --show-current`
+   immediately before every commit, and push your branch as soon as it has a
+   commit on it.** `git branch -f` on a branch another worktree has checked out
+   is refused, so check out your own branch first.
+
+### VERIFIED
+
+`harness-drift.mjs` PASS (27 scripts each side) · `graphics.mjs` **27/27** ·
+`loader-check.mjs` **7/7** · `focus-move.mjs` **7/7** · a purpose-built
+boost/FOV probe **11/11** · `collision.mjs` 7/8 and `movement.mjs` 13/14, both
+remaining failures reproduced on unmodified `main` or explained as the
+instrument (above).
+
 ## 65. Aug 4 2026 — the intro rises out of downtown and lands on the Tower (acer lane)
 
 **Branch:** `acer/intro-downtown-rise`, **PR #127**, merged `0831a73`. **QUEUE
