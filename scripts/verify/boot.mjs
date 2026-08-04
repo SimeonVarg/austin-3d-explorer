@@ -179,13 +179,34 @@ await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphi
  * data. It is also the thing a visitor is waiting for — our city, not the
  * basemap's fonts.
  */
+/**
+ * THE READY WAIT MUST NOT OUTLIVE THE WATCHDOG. Measured 2026-08-04: this wait
+ * was 180 s and chrome.mjs's hard watchdog is 300 s, so a goto plus a style wait
+ * plus a timed-out ready wait exceeded 300 s, the browser was killed, and the
+ * very next line — `page.evaluate(() => window.__boot)` — threw "Target page has
+ * been closed". The script then printed NOTHING: not the per-source table, not
+ * the fetches, not the main-thread passes. A profiler that discards every
+ * measurement it took because one wait expired is worse than no profiler.
+ * Default it to 60 s (src-ready.mjs measures every source ready at ~10 s on this
+ * machine) and, when it does expire, NAME the sources still outstanding.
+ */
+const READY_MS = Number(process.env.READY_MS || 60000);
 await page.waitForFunction(() => {
   const m = window.__map;
   const ids = Object.keys(m.getStyle().sources).filter(id => /^austin-/.test(id));
   if (!ids.length) return false;
   return ids.every(id => { try { return m.isSourceLoaded(id); } catch (e) { return false; } });
-}, null, { timeout: 180000 })
-  .catch(() => console.log('  WARN: some austin-* source never loaded; lower bound'));
+}, null, { timeout: READY_MS })
+  .catch(async () => {
+    const out = await page.evaluate(() => {
+      const m = window.__map;
+      return Object.keys(m.getStyle().sources)
+        .filter(id => /^austin-/.test(id))
+        .filter(id => { try { return !m.isSourceLoaded(id); } catch (e) { return true; } });
+    }).catch(() => ['<page gone>']);
+    console.log('  WARN: not loaded after ' + (READY_MS / 1000) + ' s, so every number below'
+                + ' is a LOWER BOUND: ' + out.join(', '));
+  });
 const idleMs = Date.now() - t0;
 
 const b = await page.evaluate(() => window.__boot);

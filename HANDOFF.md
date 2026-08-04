@@ -1,5 +1,168 @@
 # Austin 3D Explorer — Full Handoff
 
+## 76. Aug 4 2026 — K1: the performance budget, and the four ways the instruments were lying (acer lane)
+
+**Branch:** `acer/k1-perf-budget`, **PR #138**. Files: `scripts/verify/perf.mjs`,
+`scripts/verify/boot.mjs`, and two new scripts, `scripts/verify/warmup.mjs` and
+`scripts/verify/src-ready.mjs`. **No app code changed.** The numbers did not
+convict a subsystem, and guessing at an optimisation is the one thing K1
+explicitly forbade.
+
+Nobody had measured this in ~35 merges. **The budget below is the deliverable** —
+it is what makes the next regression visible.
+
+### THE BUDGET
+
+**Bytes.** `payload.mjs`, cache cold.
+
+| | wire bytes | note |
+|---|---|---|
+| Live site, GitHub Pages | **5.16 MB** / 137 requests | 3.77 MB ours, 1.10 MB OpenFreeMap tiles, 0.28 MB maplibre-gl from unpkg |
+| `scripts/serve.py` | 16.39 MB | same build — **serve.py does not gzip and Pages does** |
+
+That 3.2x gap is compression alone, confirmed at the source: `data/ground.geojson`
+is 5,192,772 bytes on disk and GitHub Pages sends it as **979,194 bytes with
+`Content-Encoding: gzip`**, a 5.3x saving. The ten biggest GeoJSON files total
+12.10 MB raw and 1.94 MB gzipped (6.2x). **Any byte or load figure taken against
+`serve.py` overstates a visitor's cost by roughly 5x. Say which server it came
+from or the number is meaningless.**
+
+Biggest assets, raw / gzipped: `ground.geojson` 4.95 / 0.93 MB,
+`roofs.geojson` 1.61 / 0.16, `buildings.detailed.geojson` 1.41 / 0.30,
+`roofscape.geojson` 1.34 / 0.23.
+
+**Time to a drawn city.** `boot.mjs`, readiness = every `austin-*` source reports
+`isSourceLoaded`. **Minimum of 3 interleaved reps**, never one reading.
+
+| setting | to a drawn city |
+|---|---|
+| localhost, no net limit, no CPU throttle | **7.9 s** (7.9 / 9.9 / one run wedged) |
+| localhost + `NET=4g` (9 Mbps, 85 ms RTT) | 18.9 s (18.92 / 18.93 / 19.03) |
+| localhost + `NET=3g` (1.6 Mbps, 300 ms) | 76.6 s |
+| **live site + `NET=4g` — the visitor figure** | **~10 s** |
+| live site + `NET=3g` | 34.5 s |
+
+The 4G localhost figure is tight to ±0.1 s because it is purely bandwidth-bound
+on uncompressed bytes. **The real 4G number is ~10 s and two independent routes
+agree on it:** the live site measured a minimum of 9.9 s over 3 reps, and 18.9 s
+minus 11.2 MB of compression saving at 1.125 MB/s predicts ~9 s.
+
+**7.9 s is the floor** — CPU plus worker tiling with the bytes free. So on 4G the
+load is roughly half bandwidth and half CPU, and shrinking files alone cannot
+take it below ~8 s.
+
+**The critical path on a throttled link is `austin-ground`**: usable at 18.78 s
+of an 18.93 s load. On 4G, `ground.geojson` *is* the load time. The six `init*`
+passes (`initPlaces`, `initMoody`, `initArts`, `initDrag`, `initTower`,
+`initOuter`) all start at +2.54 s and all end by +4.88 s — they are **concurrent,
+not stacked**, so `boot.mjs`'s "TOTAL of 21 instrumented passes = 12,867 ms"
+double-counts and its "NOT accounted for" line goes negative. Read the start/end
+columns, not the total.
+
+**Frame time.** `perf.mjs` and `warmup.mjs`, headed on the real GPU —
+**ANGLE / NVIDIA RTX 3050 Ti Laptop / D3D11**, 1440x900, which the scripts now
+print next to every number.
+
+| | median frame | fps |
+|---|---|---|
+| Parked, no CPU throttle | **18.0 ms** | 56 — flat across 60 s, worst frame 36 ms |
+| Parked, **CPU throttled 4x** | 108 ms | 9 |
+| Flying, no CPU throttle | 54.0 ms | 19 |
+| Flying, **CPU throttled 4x** | 90–180 ms | 6–11 |
+
+18.0 ms is the display's vsync cap, so the true parked cost is *at or under*
+18 ms and this scene does not trouble a real GPU. **`perf.mjs` throttles the CPU
+4x unless told otherwise (`CPU_THROTTLE=1` disables it), and 4x is a harsh
+emulation — quote the setting with the number.**
+
+**The frame is main-thread bound, not GPU bound.** Throttling only the CPU by 4x,
+with the same GPU drawing the same pixels, takes a vsync-capped 18 ms frame to
+108 ms. That is the most useful line here for whoever optimises next: work on
+per-frame JavaScript, not on fill rate or layer count.
+
+### NO SUBSYSTEM WAS CONVICTED, AND THAT IS THE RESULT
+
+`perf.mjs` prints a "delta vs baseline" for the sky canvas, the vignette, roofs,
+labels, trees, shadows, all our extrusions and the whole basemap. **Every one of
+them, at both throttle settings, is smaller than or equal to the drift the run
+measures in itself.** The new closing re-measurement of the baseline is what
+proves it: unthrottled the baseline moved 36.0 ms → 18.0 ms across the run, and
+at 4x throttle 180.0 ms → 90.0 ms. Exactly half, both times, while the "deltas"
+were 18.0 ms and 36–144 ms respectively.
+
+So those deltas are the machine settling, not the subsystems. **Nothing in this
+app has been shown to be worth cutting.** Before any subsystem can be convicted,
+`perf.mjs` needs counterbalanced ordering — reverse the sequence on alternate
+reps, the way `ground-tex-perf.mjs` already does. Each config is measured once,
+in a fixed order, which the README warns hands the first slot a free win.
+
+### FOUR THINGS THE INSTRUMENTS WERE DOING WRONG
+
+1. **`perf.mjs` was measuring SwiftShader.** Its own header opens "1. RUN ON A
+   REAL GPU … launches HEADED" and its first line of code was `launch(chromium)`
+   bare — which takes `headless: true` and SwiftShader. `chrome.mjs` already
+   carried the autopsy ("17 of the 21 `*-perf` scripts were in exactly that
+   state, including perf.mjs") and it had never been acted on. **Every frame time
+   this script ever printed was CPU fill rate.** It now asks for hardware and
+   prints `UNMASKED_RENDERER_WEBGL`, so the claim is checkable from the output.
+2. **`perf.mjs` was measuring a loading city.** It settled 6 s after
+   `isStyleLoaded`; the last source lands at ~8 s. The first hardware run
+   reported med 468 ms with a **max of 19,903 ms** — a 20-second frame is a load,
+   not a frame rate. It now waits on the readiness condition `boot.mjs` uses.
+3. **`perf.mjs` held `W` for the whole run and never put the camera back.** Ten
+   configurations, ~10 s of flight each: the basemap A/B was measured kilometres
+   from the baseline, over different geometry. It showed removing the vignette,
+   roofs and labels each reading as *160 ms faster than leaving them on*. Fixed
+   by capturing a home pose and restoring it before every capture. README already
+   said "hold nothing down".
+4. **A quiet script trips the app's own idle attract loop.** `js/app.js` starts
+   flying the camera after `idleMs: 25000` of input silence. `warmup.mjs`
+   deliberately touches nothing, so it tripped it and reported a rock-steady
+   18.0 ms for four windows stepping permanently to 54.0 ms at 20–25 s — which
+   reads exactly like **a 3x performance regression that never recovers**. It was
+   the app flying away. With `?drift=0` the identical run is flat 18.0 ms for
+   60 s with the camera 0 m from where it started. `drift=0` is now on `perf.mjs`
+   too, and `warmup.mjs` prints camera displacement and **voids its own series**
+   if the camera moved.
+
+Also: **`boot.mjs`'s ready wait outlived the watchdog.** The wait was 180 s and
+`chrome.mjs` kills at 300 s, so a timed-out run lost its browser and then threw
+on the next line, printing *nothing at all* — no source table, no fetches, no
+passes. Now 60 s by default (`READY_MS`), and it **names** the outstanding
+sources instead of saying "some".
+
+### WHAT DID NOT WORK
+
+- **Measuring the live site to dodge the gzip problem.** Load time there spread
+  **9.9 s to 59.1 s at an identical setting**, and 4G's minimum came out *faster*
+  than the unthrottled link's — physically impossible, so CDN and machine noise
+  dominate. The localhost numbers are the reproducible ones; the live site is
+  only good for bytes.
+- **`boot.mjs` wedged once in six localhost runs** (page gone during the ready
+  wait). Not chased. If it recurs, that is the thread to pull.
+- **`src-ready.mjs` found nothing wrong.** Written to identify the source
+  `boot.mjs` accused of never loading; every source was ready at ~10 s, which is
+  how the fault was traced to the instrument instead. Kept — it is the right
+  probe the next time a source is accused.
+- **This session had its working tree pulled out from under it.** Another agent
+  sharing the `austin-3d-explorer` checkout ran a `git reset`, discarding
+  uncommitted work, and switched branches mid-measurement. Everything here was
+  re-done in a dedicated `git worktree` and committed immediately. **If two lanes
+  are live on one machine, do not share a checkout** — timing runs against a tree
+  that changes under them are worthless. (Also, as §42 noted: the session
+  scratchpad is not private either. A file written there this session already
+  contained another session's handoff text.)
+
+### THE ONE FIX THE NUMBERS ASK FOR AND THIS LANE COULD NOT MAKE
+
+**`scripts/serve.py` does not gzip.** That is why the local 4G figure is 18.9 s
+against a visitor's ~10 s, and why `NET=3g` locally takes 76.6 s against the live
+site's 34.5 s. Every `NET=` measurement this harness has ever produced is
+pessimistic by roughly the compression ratio. Adding `Content-Encoding: gzip` to
+`serve.py` would make the throttled profiles mean what they claim. It is outside
+this round's write scope (`scripts/verify/*` only), so it is written down rather
+than done.
+
 ## 75. Aug 4 2026 — the graphics menu explained itself at three lines a control (acer lane)
 
 **Branch:** `acer/gfx-menu-less-yap`, **PR #136**, merged `a19d704`. Files:
