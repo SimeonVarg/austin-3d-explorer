@@ -1,5 +1,120 @@
 # Austin 3D Explorer — Full Handoff
 
+## 79. Aug 4 2026 — a fence is a line, and simplify_ring was closing it (acer lane)
+
+**Branch:** `acer/fence-chord`, **PR #140**, merged `24caea6`. Sweep defect **#3**
+(§78). Files: `scripts/bake_props.py`, `data/props.geojson`, and
+`data/tiles/props.pmtiles` rebuilt by Build PMTiles on the branch (`fcbd14c`).
+Shots are in the session scratchpad, not committed — the pairs are named below.
+
+### THE FENCES WERE IN THE RIGHT PLACE. THE DRAWING INVENTED A CHORD.
+
+All 44 OSM `barrier=fence` ways are properly tagged and properly positioned,
+including the Myers perimeter and the Harris Substation. Nothing wanted deleting.
+
+`bake_props.py` draws each one with `ribbon(simplify_ring(coords, 1.2), w)`, and
+`simplify_ring` ended with `if out[0] != out[-1]: out.append(list(out[0]))`. It
+force-closed whatever it was handed. Right for the planting AREAS it was written
+for; catastrophic for a barrier, because an OSM fence way is an OPEN polyline —
+append its first vertex to its end and `ribbon()` draws a 1.9 m fence straight
+from the far end back to the start.
+
+**Forty of the forty-four had one.** Longest spurious edges on the shipped file:
+234 m, 207 m, **203 m**, 160 m, 130 m. The 203 m one is way `1419042794`, the
+Myers perimeter fence, whose two ends sit on opposite sides of the stadium — so
+its closing chord crossed the whole track and infield. The 130 m one is way
+`1419042801`, on the plaza south of DKR. `close=` is a parameter now and the
+line barriers pass `False`; a genuinely closed way is unaffected either way.
+
+### TWO MORE THINGS THE MEASUREMENT TURNED UP
+
+- **Every fence was baked TWICE.** `furn_barrier.json` and `construction.json`
+  are two Overpass queries over the same ground and both hold all 44 fence ways
+  — ids identical. The shipped file carried **88**: 44 pairs of coincident 0.1 m
+  ribbons, a z-fight as well as double the bytes. Section 3 de-dups on OSM id.
+- **`dark` is not what a fence is.** `#4e5058`, luma 82 against a day frame
+  averaging 132 — a near-black bar on pale paving, which is why a 1.9 m fence
+  read as a wall. Now `steel` (`#8d9198`, luma 146), the palette's own name for
+  galvanised wire; no new colour. Height stays 1.9 m because that is the real
+  height. Both live in `LINE_BARRIER` — one line, one-word overrule.
+
+### SURGICAL, NOT RE-BAKED — §44 IS STILL TRUE
+
+A full bake here still emits a fraction of the shipped features for want of city
+inventory data. New `--relines` mode, same shape as `--reshape`: rebuild only
+the features whose `u` is in `LINE_BARRIER`, from the same cache and the same
+functions, and **refuse to write** if any other feature changed, if a vertex
+landed >2 m off its own OSM way, or if a rebuilt ring still holds an edge its
+source line does not contain.
+
+    4,913 -> 4,869 features   (-44, exactly the duplicates)
+    109 barriers -> 65        (44 fences + 21 walls)
+    worst vertex 0.218 m off its source; everything else byte-identical
+    k:line rings with an edge over 40 m: 162 -> 38, all 38 real straight runs
+
+### THE NUMBER, AND THE THRESHOLD IT IS NOT
+
+Exposure-invariant: a pixel is a "dark line" if it is >=25 luma below the median
+of its own 15 px neighbourhood. Counted inside the projected OSM infield quad
+(43,058 px), `dkr-field` pose, tod 0.30:
+
+| frame | line px in the infield |
+|---|---|
+| `shots/tour/day-dkr-field.png` (the sweep's own) | 781 |
+| before, GeoJSON path | **891** |
+| after, GeoJSON path | **0** |
+| after, **tiled** path (what ships) | **0** |
+
+**A fixed absolute threshold is worthless here and is deliberately not quoted.**
+The after frame had more canopy loaded and sat 8 luma darker overall, so a
+`<95` count went UP (902 -> 1,157) while the bar was visibly gone. Exactly
+night-pale's PALE=120 trap in a new costume: an absolute cut against frames of
+different exposure measures the exposure.
+
+The real fence is still drawn and is now light: darkest pixel within 4 px of six
+projected vertices of way `1419042794`, mean **64.1 -> 92.6** luma.
+
+`data/tiles/props.pmtiles` 157,494 -> 156,639 B. **That is the archive**, which
+is already compressed internally — not a `serve.py` figure, which per §76 would
+overstate a visitor cost about 5x.
+
+### WHAT DID NOT WORK — FOUR, AND TWO COST REAL TIME
+
+1. **`queryRenderedFeatures` cannot find these fences at all.** The ribbon is
+   0.10 m wide and the bake rounds to 1e-6 deg (~0.1 m), so the polygon is a
+   zero-area sliver with no interior to hit-test. A 300x330 px sample grid over
+   the bar returned only the *other* fence, on the road behind it, and I
+   attributed the bar to the wrong way for twenty minutes. What worked:
+   `setLayoutProperty('props-line','visibility','none')` and re-shoot — the bar
+   vanished — then repaint the layer magenta at 12 m to see its whole extent.
+2. **`map.project()` run in a different pass from the screenshot is not a
+   georeference.** Projected geometry from one browser run disagreed with a
+   frame from another by 300 px. Both have to come out of the same `evaluate`.
+   Once they did, the projected OSM infield quad landed exactly on the rendered
+   green rectangle and the attribution was unarguable. **This is the technique
+   worth stealing: project the OSM feature you suspect into the very frame you
+   are reading, and look at the two together.**
+3. **"It must be tippecanoe."** A 0.1 m sliver simplified into a chord at low
+   zoom was a good theory and it was wrong — `&tiles=0` draws the identical
+   chord. It was in `props.geojson` the whole time.
+4. `--relines` first rejected its own correct output: it bounded ring edges by
+   the longest edge of the RAW way, and Douglas-Peucker legitimately merges four
+   collinear 30 m segments into one 116 m one. The bound is the SIMPLIFIED
+   line's longest edge.
+
+### FOR THE NEXT LANE
+
+- **`git checkout main` fails in this repo** — `main` is checked out in the
+  `austin-3d-facades` worktree. Work from a branch and use
+  `git fetch origin main && git merge --ff-only origin/main`; `gh pr merge
+  --delete-branch` fails for the same reason, so delete the remote branch with
+  `git push origin --delete`.
+- **Build PMTiles worked first try today** (`workflow_dispatch` on the branch,
+  50 s) because `data/snapshots/2026-08-04/` exists. §39's midnight-UTC `du`
+  landmine in `scripts/tile.sh` is still unfixed and still not this lane's file.
+- The before/after pair shows different tree canopy. Nothing here touches trees;
+  it is load-order variance in `pose.mjs`. Do not read it as a regression.
+
 ## 78. Aug 4 2026 — K4: the whole sweep, thirty-six frames, every one read (acer lane)
 
 **No branch, no PR — this is a report and nothing was fixed.** QUEUE K4.
