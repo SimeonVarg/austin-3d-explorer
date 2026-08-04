@@ -1,5 +1,163 @@
 # Austin 3D Explorer — Full Handoff
 
+## 70. Aug 4 2026 — the malls were blank because nothing was standing on them (acer lane)
+
+**Branch:** `acer/j5-j8-ground-planting`, **PR #132**, merged `a718c8a`.
+**QUEUE J5, J6, J7, J8.** Files: `scripts/bake_ground.py`,
+`scripts/shape_trees.py`, `data/ground.geojson`, `data/trees.geojson`.
+Shots: `shots/j58/before-after.png`, `shots/j-before/`, `shots/j-before2/`,
+`shots/j-final/`.
+
+### J5 — THE SATURATION KNOB HE ASKED FOR DOES NOT EXIST ON THE DATA SIDE
+
+> *"Make south mall more vibrant and saturated. Lawns like that throughout the
+> project should be more saturated."*
+
+Ground colour lives **entirely** in the `SURF` palette in `js/ground.js`, keyed
+on the feature's `s` value (`matchExpr` is `['match', ['get','s'], 'grass',
+'#8fa869', …]`). There is no data-driven colour channel — no `sat` property, no
+multiplier, nothing a bake can write. So with `js/ground.js` out of lane the
+only lever is **which existing palette entry a polygon points at**, and by HSL
+saturation the palette offers exactly three greens:
+
+```
+grass       #8fa869   S 0.266   luma 153      <- what every lawn was
+gardenlawn  #7d9c5c   S 0.258   luma 140
+turf        #4f7a3c   S 0.341   luma 102      <- the most saturated it has
+```
+
+`LAWN_TONE` in `bake_ground.py` moves **213 mown panels to `turf`** and 67
+parks to `gardenlawn`, one table, one line to step down or revert. Photographed
+it reads as a real change — the South Mall goes from washed-out olive to a deep
+irrigated green — but it is a step function, not a dial.
+
+**REQUEST TO WHOEVER OWNS `js/ground.js`:** add a saturation multiplier over the
+green band in `SURF` (`grass`, `gardenlawn`, `turf`, `understorey`, `scrub`,
+`wood`) as one `GROUND.*` constant, and `LAWN_TONE` can go back to being a
+classification instead of a colour hack. That is the control he actually
+described and it belongs there, not here.
+
+### J6 — THE ROAD SOUTH OF THE FOUNTAIN IS UNIVERSITY AVENUE, NOT 21st
+
+The brief that reached this lane said "the median on 21st below the Littlefield
+Fountain" and that is wrong, which is the whole reason for the check-before-you-
+build instruction. The fountain is at `-97.73961, 30.28390`. **21st runs
+east-west past it; the road running south out of it is University Avenue**,
+carried in OSM as two `oneway=yes` carriageways 12 m apart (ways 25908905 /
+124953129 / 124953703 / 842374750 / 842374751) with eight `landuse=grass`
+panels strung between them, 80–500 m² each. Those were already in
+`ground.geojson` as eight blank green rectangles.
+
+Nine `limestone` medallions with an inlaid `brick` five-point star, spaced along
+each panel's own minimum-rotated-rectangle long axis, disc radius scaled off the
+panel half-width. Ranked `star 16 > medallion 14 > lawn 12`, emitted **before**
+the resolver so the ladder cuts the grass out from under the stone: coincident
+ground surfaces after the resolver are unchanged at 24 pairs / 22 m².
+
+**THE SELECTION RULE THAT DID NOT WORK, and it is the transferable part.** The
+first cut took the **convex hull of every way of that name**. University Avenue
+exists in TWO disconnected dual-carriageway stretches a mile apart — south of
+the fountain (30.2811–30.2836) and north of Dean Keeton (30.2875–30.2953) — so
+their joint hull spanned everything between and laid medallions **down the
+middle of the South Mall and the Main Mall**. A hull over a disconnected
+corridor is not the corridor. The rule now is *a panel with a carriageway on
+both sides of it*: nearest point on each of the two closest centrelines must lie
+on opposite sides of the panel centroid (negative dot product). Orientation-free,
+and it correctly rejects a single street running past a lawn and two colinear
+halves of one street.
+
+### J7 — BOTH "MISSING" PAVED AREAS WERE ALREADY THERE
+
+> *"theres a walkway - pavement area between guad and tower … add that. also the
+> area in front of UT tower looks bland - see whats here and add it."*
+
+Looked before drawing, and neither is missing. The **West Mall** (OSM relation
+1750236, 5,077 m²) and the **Main Mall** (way 31961471, 3,723 m²) are both in
+`ground.geojson` and have been. `shots/j-before2/westmall-nadir.png` is the
+whole diagnosis: they read as absences because they are **large flat sheets of
+paving with nothing whatever standing on them.**
+
+What IS there and was missing: the **two flagpoles** (OSM nodes 3600938144 US
+and 3600938143 Texas, one in each Main Mall panel). The props lane already draws
+the poles — they were standing on bare grass. Twelve `man_made=flagpole` nodes
+now get a limestone plinth wherever they stand in a mapped soft surface; eleven
+survive the resolver. The rest of the answer to "bland" is J8, and it is most of
+it.
+
+### J8 — 833 PLANTED, 1,169 REJECTED, SAME TEST AS A SURVEYED TREE
+
+The "not on buildings or roads" half was already built — it is PR #76's
+`SURFACES` table — so every candidate goes through the **same `S.hits()`**.
+Two mechanisms:
+
+```
+mall allee   184   a ring of live oaks 3.6 m in from every plaza > 1,200 m2 (15)
+area/lawn    246   jittered grid
+area/park    234   jittered grid
+area/wood    169   jittered grid
+
+rejected: 1,092 too close to a standing tree, 1,854 outside CORE_BBOX,
+          139 road carriageway, 93 too close to another planted tree,
+          77 campus footprint, 69 outer footprint, 15 open lawn
+```
+
+The **allée is what fixed the West Mall** — a grid over a mall is an orchard in
+a courtyard; a ring offset from the mall's own boundary follows whatever shape
+it really is. `src:'plant'` goes on the canopies **and the trunks** (a trunk
+carries no `src` when `fetch_city_trees` writes it, so there would otherwise be
+no way to tell a planted one from a surveyed one), stripped and regenerated
+every run: **runs 1→2→3 are byte-identical**, sha1 `561f2caf…`. `d`, the density
+rank the graphics presets thin on, is each planted tree's **percentile among the
+trees already standing in the core box**, so no existing `d` moves and no preset
+is silently re-tuned. `trees.pmtiles` 5.48 → 5.82 MB; the workflow passed
+cleanly this time (§39's midnight trap did not fire).
+
+### TWO THINGS FOUND ON THE WAY, both worth knowing
+
+**1. Both `OPEN_LAWNS` seeds sit within a metre of a Main Mall flagpole.**
+Whoever placed them picked the visually obvious centre of each panel and that is
+where the flagpole is. The moment the plinth pass started cutting a hole under
+each pole, the seed fell in the HOLE and both panels stopped being open lawns —
+which would have let the new planting grid put live oaks straight across the
+mall in front of the Tower, i.e. re-introduce the exact defect PR #76 was
+written to fix. The seed test runs against the **filled** panel now: a seed
+names a PANEL, and a panel with a plinth in it is still that panel. Generalise
+it — any seed-point rule in this repo breaks the day something punches a hole
+under the seed.
+
+**2. `shape_trees.py` had never been run against the widened tree box, and
+running it deletes 6,080 backdrop trees.** They stand inside `outer_ring.geojson`
+footprints. Measured by where the position came from:
+
+```
+src:'city'     10,018 / 22,242   45.0%   (43.0% more than 2 m inside)
+src:'osm'          96 /  1,461    6.6%
+src:'creek'        33 /  5,136    0.6%
+src:'imagery'     137 / 28,165    0.5%   <- already filtered at fetch time,
+                                            so it says nothing
+```
+
+`city` and `osm` are **both surveyed**, and one lands inside a building seven
+times as often as the other. A municipal inventory does not record 45% of its
+trees on rooftops — that is a **geocoding-to-parcel or datum question about
+`data/osm_cache/city_trees*.json`**, and the answer to it is not "delete nine
+thousand surveyed trees inside a PR about the South Mall". Held behind
+`OUTER_BUILDING_DROP = False` with the table written next to it, **printed
+loudly on every run**, and the group still judges everything the pass plants (69
+candidates were rejected by it and by nothing else, because the detailed campus
+footprints do not cover all of West Campus). **Someone should answer the 45%
+and then flip it.**
+
+**A working-tree hazard, again, and worse than §32's.** Three sessions share
+this checkout. Mid-pass, between a `git commit` and a `git pull --rebase`,
+another session moved HEAD onto its own branch — so the rebase reported
+`Successfully rebased and updated refs/heads/acer/j2-j4-churches-trucks`, a
+branch that was not mine and was already merged, carrying my commit. Nothing
+was lost, but only because the commit already existed. **Check
+`git branch --show-current` immediately before and after every rebase in this
+checkout**, and re-read the branch name out of git rather than assuming the one
+you created is still checked out.
+
 ## 69. Aug 4 2026 - a footprint is not always one roof (acer lane)
 
 **Branch:** `acer/j1-h5-roofs`, **PR #130**, merged `2db5bae`. **QUEUE J1 and
