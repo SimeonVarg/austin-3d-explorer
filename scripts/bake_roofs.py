@@ -955,13 +955,27 @@ def ring_is_simple(ring, tol=1e-7):
 # that already meet.) Raising the precision to seven places would also work and
 # costs about 6% of the file, which every visitor downloads, for geometry
 # thinner than a roof tile.
-def ring_survives_rounding(ll_ring):
-    """Is a ring still a simple polygon after `to_ll` has rounded it?"""
-    r = close_ring([tuple(q) for q in ll_ring])
-    p = [q for k, q in enumerate(r[:-1]) if k == 0 or q != r[k - 1]]
-    if len(p) < 3:
+def survives_rounding(ll_rings):
+    """Is this polygon still valid after `to_ll` has rounded its coordinates?
+
+    SHAPELY IS THE AUTHORITY HERE AND `ring_crossings` IS NOT, which cost a
+    round: `ring_crossings` counts strict crossings only and deliberately
+    ignores collinear touches, so it passed four rings that rounding had folded
+    into a figure of eight touching at a point rather than crossing through it.
+    The test that matters is the one the consumer applies, and `is_valid` is it.
+    """
+    rings = []
+    for r in ll_rings:
+        p = [tuple(q) for q in close_ring([list(q) for q in r])][:-1]
+        p = [q for k, q in enumerate(p) if k == 0 or q != p[k - 1]]
+        if len(p) < 3:
+            return False
+        rings.append(p)
+    from shapely.geometry import Polygon
+    try:
+        return Polygon(rings[0], rings[1:]).is_valid
+    except Exception:                                        # noqa: BLE001
         return False
-    return ring_is_simple(p + [p[0]], tol=1e-12)
 
 
 def audit_surfaces(eave_ring, pieces, name, key, centre=None):
@@ -3123,7 +3137,7 @@ def main():
                 # ...AND CHECK THE ROUNDED RING, not the one in metres. See
                 # `ring_survives_rounding`: the write is where the folds are
                 # made, so it is the only place they can be caught.
-                if not all(ring_survives_rounding(r) for r in ll):
+                if not survives_rounding(ll):
                     stats["rings_lost_to_rounding"] += 1
                     continue
                 out.append({
