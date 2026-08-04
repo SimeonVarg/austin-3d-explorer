@@ -449,15 +449,78 @@ COL = {
     "turf_lit": "#5e9a52",   # ... and under the floodlights
     "endzone":  BURNT_ORANGE,
     "paint":    "#e8e6e0",   # yard lines and lettering
-    "board":    "#14161c",   # the video board, dark and matte in daylight
-    "board_lit": "#6d7f96",  # ... and lit after dark, which it always is
-    "boardrim": "#2b2f36",
     "orangeseat": "#a85426",  # chairbacks: burnt orange, weathered and dusty
     "ramp":     "#b6b0a4",   # pale concrete ramp towers
     "mast":     "#8e9299",
     "mast_lit": "#cfe0f2",   # the lamp array, on
     "aisle":    "#c6c1b6",   # pale concrete stair, brighter than the benches
 }
+
+# ── The video board's own day/golden/night trio ───────────────────────
+# THIS WAS INVERTED, AND IT WAS THE WORST DEFECT IN THE AUG-4 SWEEP.
+#
+# The board did not ride the day ramp at all. It was authored as an OFF panel by
+# day (#14161c, luma 21) and an ON panel after dark (#6d7f96, luma 125), so the
+# 41 x 17 m screen was the ONE near-black object on a pale concrete building at
+# noon and 2.7x the frame mean at midnight. In the sweep's words: "a black wedge
+# across the south end" by day, "a slate-blue plane" by night. Literally brighter
+# at night than in the day.
+#
+# WHERE EVERY SURFACE ON THE BUILDING SITS, measured on the `waller-creek` tour
+# pose (serve.py, hardware GL, 1600x1000, the tour's own p=0.30 / p=0.95), masked
+# by queryRenderedFeatures rather than by a hand-picked box:
+#
+#   kind        day luma  x frame(129.7)   night luma  x frame(19.7)   day/night
+#   wall-roof      172.6      1.33            15.4       0.78           11.2
+#   aisle          142.8      1.10            19.2       0.98            7.4
+#   wall           139.4      1.07            20.5       1.04            6.8
+#   pier            91.5      0.71            13.6       0.69            6.7
+#   seat           123.9      0.95            22.6       1.15            5.5
+#   field          105.3      0.81            28.0       1.42            3.8  floodlit
+#   mast           164.5      1.27           103.9       5.27            1.6  a lamp
+#
+# Unlit structure falls 5.5-11.2x from day to night. The floodlit field falls
+# 3.8x. A lamp head barely falls at all, 1.6x. The board fell 0.73x — it went UP.
+#
+# HOW THESE WERE SOLVED, because the obvious method does not work here. The first
+# attempt fitted a linear gain from the shipped colour and missed by 30%: the day
+# grade has a big shadow lift, gain 1.10 at input luma 20 falling to 0.86 by 100,
+# so extrapolating a mid-tone from a near-black sample is guaranteed to undershoot.
+# And a before/after screenshot pair cannot be compared at all — the identical
+# script run twice gave day frame means of 129.7 and 138.5, 6.8% apart.
+#
+# So the response was measured INSIDE ONE FRAME instead: paint the board a ramp
+# of grey inputs, read the same 4,117 masked screen pixels back from each.
+#
+#   input luma     20    40    60    80   100   120   140   160
+#   day  rendered  21.9  38.9  54.9  69.7  86.5 103.0 120.3 136.9   (frame 132.9)
+#   night rendered 12.8  14.4  21.1  31.3  42.3  53.8  64.5  73.8   (frame  20.0)
+#
+# Read the old and new values off that table, on the screen's own pixels:
+#
+#                    day input  ->  x frame     night input  ->  x frame   d/n
+#   before              39.2        0.29x         117.5        2.67x       0.73  <-- inverted
+#   after               95.5        0.62x          86.1        1.74x       2.35
+#
+# 2.35x sits between the floodlit field (3.8x) and the lamp head (1.6x), which is
+# where a lit LED wall belongs: it is ON at every hour, it is the darkest large
+# surface on the stadium in daylight because it is a screen and not concrete, and
+# after dark it holds its own value while the structure around it falls away.
+# It is no longer a hole at noon and no longer the second-palest thing in the
+# bowl at midnight.
+#
+# TASTE, ONE LINE EACH (CLAUDE.md rule 11). Want the board blacker by day? Drop
+# BOARD_DAY and BOARD_GOLDEN together — they are deliberately the same luma, warm
+# and cool, because a screen does not change with the sun. Want a brighter screen
+# after dark? Raise BOARD_NIGHT. Nothing else in the bake reads these.
+BOARD_DAY = "#58616f"     # LED wall in sunlight: dark blue-grey, not black
+BOARD_GOLDEN = "#675e51"  # the same luma, warm
+BOARD_NIGHT = "#4a5573"   # lit -- but no longer brighter than it is by day
+# The bezel has to stay DARKER than the screen or the board loses its edge. The
+# old #2b2f36 was BRIGHTER than the old screen, which is part of why the wedge
+# read as one flat plane; this leaves the frame at 0.47x day and 0.81x night
+# against a screen at 0.62x and 1.74x, so it reads as a frame at both hours.
+BOARD_RIM = "#26282e"
 
 
 def wall_ramp(hex_col):
@@ -1385,13 +1448,13 @@ def build(feature, stats):
     bc = (fx - by * sa, fy + by * ca)
     out.append(feat(rect(bc[0], bc[1], BOARD_W_M, BOARD_THICK_M, axis - math.pi / 2),
                     lat0, {"kind": "board", "h": round(bz + BOARD_H_M, 2),
-                           "base": round(bz, 2), "col": COL["board"],
-                           "golden": "#3a3129", "night": COL["board_lit"],
+                           "base": round(bz, 2), "col": BOARD_DAY,
+                           "golden": BOARD_GOLDEN, "night": BOARD_NIGHT,
                            "name": name}))
     out.append(feat(rect(bc[0], bc[1], BOARD_W_M + 3.0, BOARD_THICK_M + 1.2,
                          axis - math.pi / 2), lat0,
                     {"kind": "board", "h": round(bz + BOARD_H_M + 1.6, 2),
-                     "base": round(bz + BOARD_H_M, 2), "col": COL["boardrim"],
+                     "base": round(bz + BOARD_H_M, 2), "col": BOARD_RIM,
                      "name": name}))
     stats["board"] += 2
 
