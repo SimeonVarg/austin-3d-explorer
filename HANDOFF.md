@@ -1,5 +1,247 @@
 # Austin 3D Explorer — Full Handoff
 
+## 78. Aug 4 2026 — K4: the whole sweep, thirty-six frames, every one read (acer lane)
+
+**No branch, no PR — this is a report and nothing was fixed.** QUEUE K4.
+Only `HANDOFF.md` changed. Shots: `shots/tour/` (36 frames, day + dusk + night,
+all rewritten this pass).
+
+Everything was shot against **`d82229d`** on `scripts/serve.py 8212`.
+**PR #139 (the boost button) merged while this was running, so no frame here
+contains it.** `harness-drift.mjs` passed first: 27 scripts in `index.html`,
+27 in `_harness.html`.
+
+### WHAT THE SWEEP COST, AND WHAT DID NOT WORK
+
+- **`tour.mjs day` was killed by the watchdog at `VERIFY_MAX_MS=900000` with 11
+  of 12 frames written.** Ten frames took ~60 s each; `blanton-arts` alone took
+  **five minutes**. `day-aerial-wide` was shot afterwards with `pose.mjs`.
+- **`tour.mjs dusk` crashed the browser at 6 of 12** — `page.evaluate: Target
+  page, context or browser has been closed`, not the watchdog, at
+  `tour.mjs:112`. The remaining six poses were shot with `pose.mjs --tod 0.62`.
+- **`tour.mjs night` completed all 12 in one run** at `VERIFY_MAX_MS=2400000`.
+  So the failure is not the poses; it is that a 12-pose session on this machine
+  needs 20–25 minutes and sometimes loses the renderer. **Raise the watchdog or
+  split the tour; 900 s is not enough for 12 poses here.**
+- `night-pale.mjs` printed every count in ~4 minutes and then sat in the
+  by-kind loop for ~13 more before finishing. It does finish; budget 20 min.
+- **Three claims I made from the thumbnails and then withdrew after measuring**,
+  recorded because the withdrawal is the useful part:
+  - "the rooftop pools in West Campus are un-retinted" — measured, pool
+    144.8 → 60.2 luma against roof 201.1 → 92.2, i.e. **0.42 vs 0.46. Normal.**
+    They only *look* wrong because a cyan chip on beige is a hue contrast.
+  - "the South Mall lawn glows at night" — measured, **the night lawn is
+    15.4 luma against a 19.0 frame mean. Darker than average.** The dusk
+    reading (below) is the one that survived.
+  - "the cyan quad beside DKR is un-retinted" — 153.8 → 79.0, also normal. It
+    is in the wrong *place*, not the wrong colour.
+
+### WHAT THE RECENT PASSES LANDED — CONFIRMED IN THE FRAMES
+
+| PR | claim | what the frames show |
+|---|---|---|
+| #124 H1 | Tower night glow | **Landed and it is the best thing in the app.** `night-tower-close`, `night-the-drag`: burnt-orange shaft, lit belfry, no z-fight, base reads lit. |
+| #129 I1 | sidewalk joints follow the path | **Landed.** `day-the-drag` at 4x: cross-joints run perpendicular to the walking direction along each kerb. It reads as a sidewalk, not as one tiled floor. |
+| #130 J1 | Calhoun's middle prism roofed | **Landed.** `day-tower-close` at 3x: three red-tiled prisms, flat grey decks between them, exactly as asked. |
+| #131 J3/J4 | construction is a fence, not a toothpick | **Landed.** The Mulva Hall site carries a thin yellow hoarding round its whole perimeter in `day-tower-south-mall`. |
+| #132 J6 | star medallions south of the fountain | **Landed.** Red stars on white discs down the green median, clearly legible at z16.6. |
+| #133 | slider track opens on daylight blue | **Landed.** Visible in all 36 frames — blue → gold → violet down the track. |
+| #134 | streetlamps are pools, not suns | **Landed.** `night-the-drag`: soft warm pools with no hard rim and no white core. This is a real improvement. |
+| #136 K6 | graphics menu less wordy | **Not verifiable here** — the menu is closed in every tour frame. |
+| #126 H2 | mip-tier window density | **Not verifiable from stills.** A flicker needs motion; no still can show it. |
+| #125 H3 | horizon roll sign | **Not verifiable from stills** — needs a sideways move. |
+| #137 K5 / #138 K1 | downtown colour, perf budget | Reports, no rendering change. Nothing to see. |
+
+Two items are **documented as not done in §68 and are still not done**, and the
+blocker named there is still real: `data/building_overrides.json` is read only
+by `scripts/bake_roofs.py` and carries roof knobs, so **there is still no way to
+override a building HEIGHT**. J2 (University Christian Church, a 37 m flat slab)
+and J3 (University Catholic Center, 7.4 m) both wait on that.
+
+### night-pale.mjs — THE NUMBER, THE THRESHOLD, AND THE VERDICT
+
+```
+pale pixels below the horizon, all layers on: 3141
+(67 visible fill-extrusion layers)
+mean luma  counted 35.4   skipped (sky) 40
+  stadium-*  (5)   453   14.4%
+  capitol-*  (4)    16    0.5%
+  stadium-detail   461   14.7%      by kind:  mast 462, everything else 0
+```
+
+**The threshold is `PALE = 120` and the recalibration did not touch it.** What
+`e119778` changed was the *region* — `readPixels` is bottom-up and the loop had
+been skipping the foreground and counting the sky — plus a new `meanCounted > 70`
+gate that fails loudly on a frame that is not dark. Both of those were right and
+both were necessary.
+
+**But it did not make the instrument meaningful, and the reason is the 120.**
+This frame's mean luma is 35. The surfaces that a person actually reads as
+wrongly pale in these night frames all sit *between* the mean and 120:
+
+| surface | night luma | frame mean | ratio |
+|---|---|---|---|
+| Texas State History Museum dome | 69.8 | 23.0 | 3.0x |
+| DKR south deck | 51.7 | 22.4 | 2.3x |
+| Texas State Capitol | 37.4 | 19.2 | 1.9x |
+
+**Every one of them is invisible to a 120 threshold.** At 120 the script can only
+ever find the stadium floodlight masts, which the bake lights on purpose — which
+is exactly the answer it gave on Aug 2 and gave again today, unchanged. On the
+same pose, counting the bottom two-thirds of `night-dkr-stadium.png`: **2,520 px
+over 120, 5,337 over 70, 11,330 over 40.** A threshold expressed as a multiple of
+the frame's own mean (say 2.5x) would give it 4.5x the signal and would catch all
+three rows above.
+
+Two more limits worth writing down: **85% of the pale pixels it counts belong to
+no fill-extrusion layer at all** (3,141 counted, 469 attributable), so it cannot
+name the culprit for most of what it finds; and **its pose is hardcoded to DKR**,
+so the Capitol — the worst instance in the whole night sweep — is not in the
+frame it measures.
+
+### RANKED: WHAT IS STILL VISIBLY WRONG, WORST FIRST
+
+**1. DKR's south-end deck is inverted at both ends of the clock.** It is
+near-black in daylight and one of the palest surfaces in the stadium at night.
+Measured over the same 105x24 px patch: **day rgb(55,42,30) luma 43.5 against a
+132.3 frame mean; night rgb(41,52,81) luma 51.7 against a 22.4 frame mean.**
+It is literally *brighter at night than in the day*. Frames:
+`day-waller-creek` (a black wedge across the south end),
+`day-dkr-field`, `night-waller-creek` (a slate-blue plane with a row of pale
+grey blocks under it). This is on the most-asked-for landmark in the project.
+
+**2. The Texas State Capitol is a pale grey model at night.** `night-capitol`,
+`night-aerial-wide`, `night-downtown-skyline`. From altitude it is the single
+most conspicuous object in the frame — brighter than any lit street. `capitol.js`
+says the Capitol is meant not to follow the others after dark, and that is right;
+the real building is floodlit. **But the dome and `capitol_parts` get warm night
+colours (`#db9b6b`, `#d38e5e`) and the 604 features in `capitol.geojson` get
+`#23242b`.** So the dome is warm, the walls are near-black, and the thing that
+reads pale is a flat neutral-grey band across the cornice that belongs to
+neither. Whatever paints that band is not floodlighting, it is un-darkened grey.
+
+**3. A dark fence runs straight across the infield of Mike A. Myers Stadium**,
+and three more lie across the plaza south of DKR. `data/props.geojson` has **88
+`u:fence` features, every one `c:'dark'`, h 1.9 m, the longest 341 m**, and
+`dark` is `#4e5058` by day — a near-black bar on pale paving. Frames:
+`day-dkr-field` (crosses the whole track and infield), `day-dkr-stadium`,
+`day-waller-creek`, `dusk-dkr-field`. A fence across the middle of a track
+infield is not a taste question.
+
+**4. At the slider's midpoint the sky is night and the city has not switched on.**
+`dusk-capitol`, `dusk-blanton-arts`, `dusk-west-campus`, `dusk-the-drag`,
+`dusk-downtown-skyline`: a saturated magenta sky with stars visible, and **not
+one lit window anywhere in the frame** — including a whole West Campus of
+student housing and the entire downtown core. The lamps are barely on because
+`LIGHTS.NIGHT_START 0.58` / `NIGHT_FULL 0.85` puts p=0.62 at **14.8% lamp
+strength**, while `sky.js` has the sky 20% night and the palette 24% of the way
+from golden to night. The sky curve and the lighting curve are on different
+schedules and dusk is where they disagree.
+
+**5. 188 outer-ring buildings are black holes on the horizon.**
+`data/outer_ring.geojson`: day wall luma **median 183, min 67; 188 features
+under 110, 37 under 90.** In `day-the-drag` one of them sits alone at (1220,225)
+at rgb(117,106,95) among neighbours at rgb(195,163,127) and reads as a burnt-out
+block on the skyline. Same class visible in `day-tower-south-mall` and
+`dusk-blanton-arts`. The far field is otherwise a uniform pale carpet, so a
+single dark building in it is the only thing the eye goes to.
+
+**6. Moody Center is an untextured blob at every hour, and it is a labelled
+landmark on the tour.** Day: roof luma **218.2 against a 135.7 frame mean
+(+61%)** — the whitest object in `day-moody-arena` and in `day-aerial-wide`.
+Dusk: **109.9 against 78.7 (+40%)**, still glowing while the city is dark.
+Night: a black hole with zero lit windows. No roof articulation, no entry, no
+ribs — a smooth cream ellipse at 1600px.
+
+**7. The Texas State History Museum dome is a pale grey lump at night** —
+**69.8 luma against a 23.0 frame mean, 3x**, and the brightest thing in that
+quadrant of `night-blanton-arts` and `night-dkr-stadium`. Under night-pale's
+120 threshold, so nothing catches it.
+
+**8. Label colours are a rainbow after dark.** In `night-the-drag` alone:
+"Union on 24th" red, "Skyloft" cyan, "Moontower" lavender, "Rise" orange,
+"Inspire on 22nd" teal, "Ion" blue, "GrandMarc" green, "Calhoun Hall" white —
+at least seven colours with no logic a viewer can see. The mechanism is
+deliberate (`js/places.js`: `text-color '#ffffff'` on a halo of the brand's own
+sign colour) but at night the halo is most of the glyph and the halo wins. Some
+are also barely legible: "LBJ Library" is dark red on near-black in
+`night-dkr-stadium`.
+
+**9. "United States Postal Service" renders in solid blue in the middle of the
+UT campus** — `day-tower-close`, `dusk-tower-close`, `night-tower-close`, all
+three. It is the only blue thing in the frame and it sits directly below the
+Tower. Whatever layer draws it is not the one that draws "Calhoun Hall" beside
+it.
+
+**10. A hard-edged ground shadow cuts Myers' infield in half in one 2-px step.**
+`day-dkr-field`: a dead-vertical screen-space seam at **x=1385, column mean
+112.1 → 89.4**, running from y≈700 to the bottom of the frame, with the red
+track and green infield both stepping 20% darker across it. It is gone at dusk,
+so it is `js/shadows.js` — and that file says outright that its convex hulls
+"slightly over-fill concave footprints". A horseshoe grandstand is the worst
+case for a convex hull, and it shows.
+
+**11. The Mulva Hall construction site is a 98 x 126 m flat dirt rectangle with
+nothing in it** but a perimeter fence — no excavation, no plant, no crane — in
+the near foreground of `day-tower-south-mall`. §68 correctly says the site is
+real OSM data; the site being real does not stop an empty tan pad the size of a
+city block reading as missing geometry. And the University Catholic Center is
+still the 7.4 m stub inside it.
+
+**12. DKR's yard lines alias into a green polka-dot rug at mid distance.**
+`day-moody-arena` and `dusk-moody-arena` at 8x: the white yard lines fall under
+a pixel and break into a dot grid. Only visible from the middle distance, which
+is exactly where the tour's arena pose sits.
+
+**13. A cyan water quad sits on a flat grey roof immediately south of DKR** —
+`day-dkr-field` at 6x shows it clearly on top of a roof whose facade is visible
+below it. Correctly retinted (153.8 → 79.0), wrong place.
+
+**14. A four-block flat green rectangle east of I-35** with no trees, no paths
+and no relief, crossed by the road grid rather than interrupting it —
+`day-aerial-wide` at (1345–1560, 285–355) and the same slab in
+`dusk-aerial-wide`. I could not attribute it to any polygon in
+`data/ground.geojson`; it may be the basemap.
+
+**15. The tour pose named `blanton-arts` contains no Blanton Museum.** It
+photographs the Capitol Complex state office towers. §35's rule applies: a pass
+whose result no tour frame contains is a pass nobody will notice regressing.
+The Blanton is labelled in `day-tower-south-mall`, so it exists — it is the
+pose that is wrong.
+
+### TASTE — HIS CALL, NOT DEFECTS
+
+- **The day palette is beige-dominant to the point of monochrome.** Whole
+  quadrants are bare tan ground: the entire right half of `day-moody-arena`,
+  most of `day-west-campus`, the blocks around the Capitol in `day-capitol`.
+  It is coherent and it is deliberate; it is also the first thing about the day
+  scene that reads as unfinished. K5 already ruled that the low city is the half
+  that is off. Nothing has changed since.
+- **Lawns at dusk.** The South Mall reads **124.5 luma against a 122.7 frame
+  mean in day (+1.5%)** and **83.6 against 71.8 at dusk (+16%)** — they do not
+  ride the dusk curve down with everything else, and they keep full green while
+  the city goes red-brown. Whether that is wrong or is "the grass catching the
+  last light" is his call. The DKR field does the same, 5% below the frame mean
+  in day and 9% above it at dusk.
+- **The dusk sky is a strong magenta** and the clouds read as flat grey
+  lozenges in it (`dusk-tower-close`, `dusk-the-drag`). Dramatic, and possibly
+  exactly what he wants.
+- **Downtown at dusk has no lit windows at all**, so the skyline in
+  `dusk-downtown-skyline` reads as a burnt forest. Related to #4 above but the
+  hour at which a city switches its lights on is a taste value.
+- **Far vs near at dusk.** They measure the same — `dusk-dkr-stadium` far band
+  86.9 luma against 84.5 near — but the far band is **+8 R−B warmer** while the
+  near city is **−6 cooler than it is in day**, so the two halves read as
+  different weather. In day the far band is 22% brighter than the near, which is
+  the normal aerial-perspective cue. At dusk that cue is gone.
+
+### WHAT THIS PASS DELIBERATELY DID NOT DO
+
+No code changed, no PR was opened, nothing was fixed. Every number above came
+from reading the 36 frames and from `PIL` on the written PNGs — no new script
+was added to the suite. Browsers reaped, server on 8212 killed and confirmed
+down.
+
 ## 77. Aug 4 2026 — K2: the boost button was 2.5px inside the joystick ring (acer lane)
 
 **Branch:** `acer/boost-button-visual`, **PR #139**, merged `26d9454`. **QUEUE
