@@ -57,7 +57,12 @@ const browser = await launch(chromium, HEADED ? {
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
 
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+// `drift=0` because js/app.js starts an idle attract loop after 25 s of input
+// silence and flies the camera itself. This script presses W often enough to
+// keep re-arming that timer, so it has probably never tripped it — but "probably
+// never" is not a property a measurement should depend on, and warmup.mjs was
+// destroyed by exactly this (a fake 3x regression that was the app flying away).
+await page.goto(`${BASE}/index.html?intro=0&drift=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 if (HEADED) await page.bringToFront();
 
