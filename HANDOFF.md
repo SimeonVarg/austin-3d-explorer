@@ -1,5 +1,123 @@
 # Austin 3D Explorer — Full Handoff
 
+## 81. Aug 4 2026 — DKR's videoboard was an OFF panel by day and an ON one at night (acer lane)
+
+**Branch:** `acer/dkr-board-inverted`, **PR #141**, merged `68d4e6b`, branch
+deleted. Sweep defect **#1**, the worst one. Files: `scripts/bake_stadium.py`
+and the re-baked `data/stadium.geojson`. Shots: `shots/dkr-board-before/`,
+`shots/dkr-board-after/` (waller-creek and dkr-field, day and night, all read).
+
+### IT IS NOT THE DECK, IT IS THE SCREEN
+
+§78 called it "the south-end deck". `queryRenderedFeatures` over the black wedge
+in `day-waller-creek` returns `stadium-detail / kind=board` — the 41 x 17 m
+videoboard, `cd=#14161c cn=#6d7f96`. Near-black by day (luma 21), a lit slate
+blue after dark (luma 125). It never rode the day ramp; it ran backwards up it.
+
+**Neither PR #114 nor PR #123 introduced it.** `git log -S` puts both hexes in
+`c5cc39e`, the original "build it from the photograph" pass. The bake's own
+comment said the quiet part out loud — *"dark and matte in daylight ... and lit
+after dark, which it always is"* — which describes an LED panel switched OFF in
+the day, and DKR's is not.
+
+### WHERE EVERY SURFACE ON THE BUILDING SITS
+
+`waller-creek`, `scripts/serve.py 8221`, hardware GL, 1600x1000, at the tour's
+own p=0.30 / p=0.95, masked by `queryRenderedFeatures` rather than by a box:
+
+| kind | day | x frame (129.7) | night | x frame (19.7) | day/night |
+|---|---|---|---|---|---|
+| wall-roof | 172.6 | 1.33x | 15.4 | 0.78x | 11.2 |
+| aisle | 142.8 | 1.10x | 19.2 | 0.98x | 7.4 |
+| wall | 139.4 | 1.07x | 20.5 | 1.04x | 6.8 |
+| pier | 91.5 | 0.71x | 13.6 | 0.69x | 6.7 |
+| seat | 123.9 | 0.95x | 22.6 | 1.15x | 5.5 |
+| field | 105.3 | 0.81x | 28.0 | 1.42x | 3.8 *floodlit* |
+| mast | 164.5 | 1.27x | 103.9 | 5.27x | 1.6 *a lamp* |
+
+Unlit structure falls 5.5–11.2x from day to night, the floodlit field 3.8x, a
+lamp head 1.6x. **The board fell 0.73x — it went up.** On the screen's own
+pixels: **before day 0.29x / night 2.67x, day/night 0.73; after day 0.62x /
+night 1.75x, day/night 2.35** — between the floodlit field and the lamp head,
+which is where a lit LED wall belongs.
+
+### WHAT DID NOT WORK, WHICH IS THE USEFUL HALF
+
+58. **A FITTED LINEAR GAIN MISSED BY 30%, AND THE FIRST FIX SHIPPED SHORT.**
+    I read the gain off the shipped colour (input luma 39 -> 49 rendered, so
+    1.25x), solved the trio against it, re-baked, and landed at 0.49x instead of
+    the 0.68x I was aiming for. **The day grade has a hard shadow lift** — gain
+    **1.10 at input luma 20 falling to 0.86 by 100** — so extrapolating a
+    mid-tone from a near-black sample is guaranteed to undershoot. If the thing
+    you are fixing is at one end of the range, do not fit the curve from it.
+
+59. **A BEFORE/AFTER SCREENSHOT PAIR CANNOT BE COMPARED IN THIS SCENE.** Two
+    runs of the identical script gave day frame means of **129.7 and 138.5,
+    6.8% apart**, with every surface moving together. The night frame was
+    reproducible to 0.1 luma across the same two runs; **only day drifts.** Any
+    day claim from one before-shot and one after-shot is worth nothing — this is
+    CLAUDE.md rule 10 with a number on it.
+
+60. **SO MEASURE THE RESPONSE INSIDE ONE FRAME.** Paint the surface a ramp of
+    grey inputs and read the same masked pixels back from each, all in one
+    lighting state. Eight probes, two hours:
+
+        input luma      20    40    60    80   100   120   140   160
+        day  rendered  21.9  38.9  54.9  69.7  86.5 103.0 120.3 136.9  (frame 132.9)
+        night rendered 12.8  14.4  21.1  31.3  42.3  53.8  64.5  73.8  (frame  20.0)
+
+    Both targets then land first try: predicted 0.62x / 1.75x, measured **0.62x
+    / 1.75x**. This is the instrument to reach for whenever a colour has to hit
+    a number rather than just move.
+
+61. **THE FIRST MASK WAS WRONG AND THE NUMBERS LOOKED FINE.**
+    `['>', ['get','base'], 32]` selects on base alone, so it caught every
+    `stadium-detail` feature — the south entry towers, the aisles, the masts —
+    and reported a **40,529 px "board"**. Keying on `kind` first gives **4,117**.
+    The gain curve it produced was smooth, monotonic and plausible. **Looking at
+    the mask image is what caught it**, not the numbers. Render the mask and
+    look at it before you trust anything measured through it.
+
+62. **`applyStadiumColors(window.__todCurrentP)` is not a way to restore paint**
+    — it painted the whole detail layer tan. Re-driving the tod slider is.
+
+### THE BAKE IS REPRODUCIBLE, WHICH MADE THIS SURGICAL
+
+`python scripts/bake_stadium.py` regenerates `data/stadium.geojson`
+**byte-for-byte** on the Acer — unlike `bake_props.py` (§44). So the fix went in
+at the source: **1,448 features in, 1,448 out, exactly 2 changed**, the screen
+and its bezel. The bezel came down with it; it was *brighter* than the old
+screen, which is part of why the wedge read as one flat plane. Four taste
+values, one line each: `BOARD_DAY`, `BOARD_GOLDEN`, `BOARD_NIGHT`, `BOARD_RIM`.
+
+Whole-frame diff, before against after: **the night change is confined to
+x 1139–1553, y 648–801 — the board.** Day adds 23 px in a 6x5 patch at (357,663),
+a label glyph reshuffling.
+
+### TWO PROCESS HAZARDS THIS PASS HIT, BOTH WORTH KNOWING
+
+63. **THREE LANES SHARED ONE WORKING TREE AND IT SILENTLY MOVED MY COMMIT.**
+    Another agent ran `git checkout` mid-session, so `git commit` put my work on
+    **their** branch, and `git push -u origin acer/dkr-board-inverted` then
+    pushed the *stale* ref — the remote branch went up at `3999a85`, not at my
+    commit, and `gh pr create` answered "No commits between main and
+    acer/dkr-board-inverted". Recovered with an explicit
+    `git push origin HEAD:refs/heads/<branch>`. **Check `git rev-parse
+    --abbrev-ref HEAD` immediately before commit and before push**; do not
+    assume the branch you created is still the branch you are on. The docs
+    commit for this entry was done in a throwaway `git worktree` for the same
+    reason — `main` is also checked out in a second worktree at
+    `Projects/austin-3d-facades`, so `git checkout main` fails outright here.
+
+64. **MERGED WITH VERCEL RED, DELIBERATELY, AND SAID SO IN THE PR.** `build`
+    passed in 8m40s. Vercel reported `Deployment rate limited — retry in 24
+    hours` with an `upgradeToPro=build-rate-limit` link — the account's daily
+    deploy quota, hit by the other lanes today, which fires *before* any code is
+    built. PRs #139 and #140 were green on the same configuration hours earlier,
+    `mergeStateStatus` was `UNSTABLE` and not `BLOCKED` so it is not a required
+    check, and production is GitHub Pages with Vercel as a preview mirror. The
+    reasoning is written into a PR comment rather than left implicit.
+
 ## 80. Aug 4 2026 — the Capitol's floodlight was on the one surface that has none (acer lane)
 
 **Branch:** `acer/capitol-floodlit`, **PR #142, merged.** Sweep defect **#2**.
