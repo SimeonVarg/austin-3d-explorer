@@ -1532,23 +1532,99 @@
     end:   { center: [-97.7394, 30.2836], zoom: 16.9,  pitch: 72, bearing: 2 },
     leg1Ms: 6000,      // the rise out of downtown, decelerating into the crest
     leg2Ms: 6600,      // the run north into campus and the long settle
-    maxVeilMs: 7000,   // a stalled tile must never hold a black screen
+
+    // ── THE OPENING-FRAME GATE ────────────────────────────────────────
+    // Reported: "the intro starts nicely on my phone but on my laptop (running
+    // claude and quite a few chrome tabs) the downtown buildings arent loaded
+    // even when loading screen completes, so its a bunch of empty land."
+    //
+    // These are the sources whose absence IS that empty land at `start`. See
+    // the long note under introGate() for why the loader's own wait did not
+    // cover them. A source not present in the style (a disabled module,
+    // ?outer=0) is skipped, never waited on.
+    needs: ['austin-outer', 'austin-buildings', 'austin-ground', 'austin-roads'],
+    minVeilMs: 7000,   // unchanged from the old `maxVeilMs`: the phone path
+    maxVeilMs: 18000,  // HARD CEILING — a stalled tile must never hold the screen
+    gatePollMs: 200,   // how often the gate is re-asked
+    gateHolds: 2,      // consecutive passes required before departure
   };
+
+  /**
+   * DOES THE CITY UNDER THE OPENING FRAME EXIST YET?
+   *
+   * "is there a check for which buildings are rendered?" — yes, two, and they
+   * are MapLibre's own: `map.isSourceLoaded(id)` per source and
+   * `map.areTilesLoaded()` over all of them. Both answer for the CURRENT
+   * VIEWPORT, which is the entire subtlety here.
+   *
+   * WHY THE LOADER'S EXISTING WAIT DID NOT CATCH THIS. js/loader.js already
+   * polls isSourceLoaded over every `austin*` source — but it does two things
+   * that are right for a progress bar and wrong for a gate. It accumulates into
+   * a monotonic `srcDone` Set, so a source that reported loaded FOR THE SPAWN
+   * VIEW (campus, where the map is built) stays counted after the camera jumps
+   * two kilometres south to `start`; and it drives the rail only — nothing in
+   * it has ever decided when the veil lifts. The veil lifted on `map.once
+   * ('idle')` or a flat 7 s timeout, and measured on a CPU-throttled machine
+   * the idle event does not arrive at all (the sky canvas repaints every frame,
+   * so the map is never idle in that sense — the same trap scripts/verify/
+   * boot.mjs documents). So the timeout always won and the flight always
+   * departed at exactly 7 s, ready or not.
+   *
+   * PR #127 made that much worse rather than causing it: the opening frame used
+   * to be campus, which is where the map is built and therefore the first thing
+   * loaded. It is now downtown, which is the LAST thing the outer ring tiles.
+   *
+   * `gateHolds` consecutive passes, not one: a GeoJSON source that has not yet
+   * begun fetching answers "all loaded" the first time it is asked (boot.mjs
+   * hit exactly this and it produced a 3x error), so one poll is not evidence.
+   */
+  function introGate() {
+    const style = (map.getStyle && map.getStyle()) || null;
+    const have = (style && style.sources) || {};
+    const missing = [];
+    let known = 0;
+    for (const id of INTRO.needs) {
+      if (!have[id]) continue;             // a module that is off is not a wait
+      known++;
+      let ok = false;
+      // A source that throws is not a source we can wait on. Treat it as ready
+      // rather than hanging the opening on it.
+      try { ok = map.isSourceLoaded(id); } catch (e) { ok = true; }
+      if (!ok) missing.push(id);
+    }
+    let all = false;
+    try { all = !!map.areTilesLoaded(); } catch (e) {}
+    return { known: known, missing: missing, all: all };
+  }
 
   // The veil (see index.html/#veil) holds an authored dark frame over the
   // basemap's pale first paint. The intro start pose is primed UNDER the veil,
-  // so the tiles it needs are loading before anything is visible; on the first
-  // idle frame (or the timeout) the veil lifts and the flight departs — the
-  // first thing a visitor ever sees is the city already golden and in motion.
+  // so the tiles it needs are loading before anything is visible; when the
+  // opening frame can actually be drawn (or the ceiling is hit) the veil lifts
+  // and the flight departs — the first thing a visitor ever sees is the city
+  // already golden and in motion.
   function revealAndIntro() {
     const q = new URLSearchParams(window.location.search);
     const doTour = q.get('tour') === '1';           // ?tour=1 replaces the intro
     const doIntro = !doTour && q.get('intro') !== '0';
-    const flight = doIntro ? primeIntro() : null;
-    let revealed = false;
-    const reveal = () => {
+    const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
+    const t0 = performance.now();
+    let revealed = false, poll = null, holds = 0;
+
+    // Debug/test hook, same shape as window.__ae / window.__fly / __railWrites.
+    const dbg = window.__intro = {
+      needs: INTRO.needs.slice(), gate: introGate,
+      waitedMs: null, reason: null, missingAtLift: null, gateOkAt: null,
+    };
+
+    const reveal = (reason) => {
       if (revealed) return;
       revealed = true;
+      if (poll) clearInterval(poll);
+      const g = introGate();
+      dbg.waitedMs = Math.round(performance.now() - t0);
+      dbg.reason = reason;
+      dbg.missingAtLift = g.missing;
       // Fill the skyline before the veil goes, so the last thing seen is the
       // city fully lit rather than a bar stranded at 80%.
       try { if (window.loaderDone) window.loaderDone(); } catch (e) {}
@@ -1561,8 +1637,39 @@
       if (flight) flight.fly();
       else if (doTour) startTour();
     };
-    map.once('idle', reveal);
-    setTimeout(reveal, INTRO.maxVeilMs);
+
+    // `idle` implies areTilesLoaded(), so it implies the gate. Kept exactly as
+    // it was: when it does fire, it is the fastest honest signal there is.
+    map.once('idle', () => reveal('idle'));
+
+    // WITHOUT AN INTRO THERE IS NO OPENING FRAME TO PROTECT, and the whole
+    // verify suite loads with ?intro=0. Those pages keep the old timing to the
+    // millisecond — a gate that adds ten seconds to ninety scripts would be a
+    // change nobody asked for.
+    if (!doIntro) { setTimeout(() => reveal('timeout'), INTRO.minVeilMs); return; }
+
+    const tick = () => {
+      const ms = performance.now() - t0;
+      const g = introGate();
+      holds = g.missing.length ? 0 : holds + 1;
+      if (holds >= INTRO.gateHolds && dbg.gateOkAt == null) dbg.gateOkAt = Math.round(ms);
+      // The FLOOR is the old behaviour and the phone's: never lift earlier than
+      // 7 s. The gate can only ever make the wait LONGER, never shorter, so the
+      // intro he likes on the phone is untouched.
+      if (ms >= INTRO.minVeilMs && holds >= INTRO.gateHolds) { reveal('gate'); return; }
+      if (ms >= INTRO.maxVeilMs) { reveal('ceiling'); return; }
+      // Past the floor and still waiting: say so on the load screen rather than
+      // holding a finished-looking bar over a stalled city.
+      if (ms >= INTRO.minVeilMs && g.known) {
+        try {
+          if (window.loaderWaiting)
+            window.loaderWaiting(g.known - g.missing.length, g.known,
+                                 INTRO.maxVeilMs - INTRO.minVeilMs);
+        } catch (e) {}
+      }
+    };
+    poll = setInterval(tick, INTRO.gatePollMs);
+    tick();
   }
 
   function primeIntro() {
