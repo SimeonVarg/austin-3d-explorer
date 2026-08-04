@@ -316,6 +316,57 @@ the count, keep the rule.
 
 ---
 
+# PART L — the entrances are built but NOT merged (PR #145 open)
+
+`acer/entrances` puts a door on 258 campus buildings and the placement is
+genuinely good — every door 0.14 m proud of its wall, normals on the campus
+grid, 0.40% of pieces inside their host. It costs nothing: **0.27 MB gzipped**
+and no frame-time delta above the noise floor. It is held out for five visible
+defects, all measured in §86 of `HANDOFF.md`, none of which the reviewing lane
+could write. Ordered by how much they hurt a screenshot.
+
+**L1. PCL's four doors hang 3.68 m in the air with nothing under them.**
+`scripts/bake_entrances.py:600` — `risers=0, plaza_z=3.46`. The note is right
+(PCL's entrance really is on the second floor off a plaza) but the ground pass
+never builds that plaza, so it renders as a table. Either draw the plaza deck
+here (a slab at 3.46 m from the wall out to the plaza edge, with its own steps)
+or drop the doors to grade until the ground pass provides it. Picture:
+`shots/entrances/day2/z-pcl-floating-doors.png`.
+
+**L2. The Main Building's inscription label sits across its own doors.**
+`js/entrances.js`, the `entrances-inscription` symbol layer. The text is right
+and *being a label rather than carving is the right call* — it is anchored at
+door height instead of on the frieze above. Give the label a vertical offset (or
+anchor it to the `sign` band's top, base 5.16 + h 1.10) and it stops reading as
+debug UI. `shots/entrances/day2/z-mai-label-over-doors.png`.
+
+**L3. Two brown poles stand in front of every arched portal.** The reveal's jamb
+returns draw outboard of the steps at Battle Hall and Sutton Hall. Same crop:
+the terracotta top course (`#ad5833`) floats over the arch as a plank, and the
+two Gilbert lanterns are unattached lozenges out on the blank wall.
+`shots/entrances/day2/z-battle-portal.png`.
+
+**L4. 97% of the glazing on campus is one blue.** 1,103 of 1,139 `glass` pieces
+and 247 of 259 `transom` pieces are `#4f86b4`; 892 of 1,097 door leaves are
+aluminium grey. One saturated cornflower on Gilbert limestone, Cret, midcentury
+and modern alike. It is a per-era colour table in the bake, so it is a small
+edit with a large payoff — this is the difference between "a door" and "that
+door".
+
+**L5. At night the glass is not actually lit — only the ground pool is.** The
+paint expression is correct (verified by reading it back off the running style);
+the pixels are not. Main Building south portal at `tod 0.92`: **rgb 134,121,118,
+luma 124 against a frame median of 45** — a pale neutral panel, not a warm
+vestibule. Suspect the night light on the fill-extrusion layer. The pool is
+warm, works, and is the best thing in the pass — do not change it.
+
+**Do not re-derive any of this.** The A/B pairs are already shot at twelve
+looked-up poses, day and night, in `shots/entrances/day2/` and
+`shots/entrances/night2/` — every `-OFF.png` is the same pose on the same page
+load with the five layers hidden.
+
+---
+
 ## Not negotiable
 
 1. **Never register a self-hosted GitHub runner.** Public repo.

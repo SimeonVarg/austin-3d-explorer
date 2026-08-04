@@ -1,5 +1,143 @@
 # Austin 3D Explorer — Full Handoff
 
+## 86. Aug 4 2026 — I reviewed the entrances and I am NOT merging them (acer lane)
+
+**Branch:** `acer/entrances`, **PR #145, LEFT OPEN ON PURPOSE.** Nothing was
+merged, nothing was reverted. This entry, `QUEUE.md` and `shots/entrances/` are
+the whole of my diff — the five defects below all live in
+`scripts/bake_entrances.py`, `data/entrances.geojson` and `js/entrances.js`,
+none of which this lane may write, so I could fix none of them.
+
+**Setup, so the numbers are reproducible.** `harness-drift.mjs` **PASS, 28
+scripts in each file**, run before any pixel. `git rev-list --left-right --count
+HEAD...origin/main` = **2 0**, so the branch is main plus §84 and §85 and
+nothing is stale. Server `python scripts/serve.py 8233`. All frames
+`_harness.html?intro=0&drift=0`, 1600x1000, `cancelGraphicsAutoDetect()` at the
+top of every run, screenshot twice and the second kept. **Zero console errors
+across four separate browser runs.**
+
+**Poses were looked up, not guessed.** I took the door pieces' centroid per
+`eid`, found the nearest footprint edge, and took the wall's outward normal —
+camera bearing = normal − 180. That matters: the first set of poses used the
+direction from the *building centroid*, and it was wrong by 90°+ on six of the
+twelve (the Union by 150°, Welch by 42°, Jester by 70°), because these
+footprints are L-shaped. **Every door in the file sits exactly 0.14 m proud of
+its wall and the normals come out on the campus grid (5/95/185/275°)** — the
+placement really is as good as §84 claims, and that is the best thing here.
+
+### THE FIVE THINGS THAT KEEP IT OUT
+
+1. **PCL's four entrances are doors hanging 3.68 m in the air over a blank
+   wall.** `shots/entrances/day2/z-pcl-floating-doors.png`. It renders as a
+   *table*: a tan slab on four legs with a blue glass panel above it and
+   nothing at ground level. The cause is authored and the reasoning behind it
+   is right — `bake_entrances.py:600` sets `risers=0, plaza_z=3.46` with the
+   note *"the rise is taken by the plaza, which is ground-pass geometry. Any
+   generator that puts a 4 m flight on PCL's ground-floor wall has drawn a door
+   that does not exist."* True. But **the ground pass does not build that
+   plaza**, so the assumption is unmet, and a door nobody can reach is a worse
+   drawing than a flight that is slightly wrong. Measured: the only 4 of 584
+   entrances with a door base over 1.6 m and no `step` and no `ramp`, all PCL,
+   all at base 3.68 m (3.46 plaza + 0.22).
+2. **The Main Building's inscription lands as a map label across its own
+   doors.** `shots/entrances/day2/z-mai-label-over-doors.png`, and again at
+   night. Cap height ~20 px, cream on a dark halo, sitting at door height in
+   front of the central portal and obscuring the four leaves it belongs to.
+   §85's arithmetic for *why it is a label and not carving* is sound; where it
+   is *placed* was never checked in a picture. It reads as debug UI on the most
+   photographed building on campus.
+3. **Two brown poles stand in front of every arched portal.** `day2/z-battle-
+   portal.png` at 6×. The reveal's jamb returns (base 0.22, h 3.98) draw
+   outboard of the steps and the cheek walls, so Battle Hall and Sutton Hall
+   each get two full-height bars planted in front of the doors. Same crop: the
+   top course of the arched surround is a **terracotta plank** (`#ad5833`,
+   base 4.20 h 0.30) floating over the arch with a gap under one end, and the
+   two Gilbert "lanterns" are unattached dark lozenges a door-width out on the
+   blank wall.
+4. **97% of the glazing on the Forty Acres is one saturated cornflower blue.**
+   Counted in the file, not judged by eye: **1,103 of 1,139 `glass` pieces and
+   247 of 259 `transom` pieces are `#4f86b4`**, and **892 of 1,097 door leaves
+   are aluminium `#9aa0a4`/`#8e969c`**. Gilbert, Cret, midcentury and modern all
+   get the same blue. That is the generic-glass-rectangle failure the brief
+   rules out, and it is one line in the bake's colour table per era.
+5. **At night the glass is not lit; only the pool is.** §85 says *"the transom
+   and all four leaves are lit inside dark stone"* — that was verified from the
+   style expression, not from pixels. The expression IS correct (I read it back:
+   the four dim hexes match through to `#ffd9a4`/`#ffe6c0`/`#f6c98c`). The
+   *pixels* are not: at the Main Building's south portal at `tod 0.92` the
+   glazing reads **rgb 134,121,118 — luma 124 against a frame median of 45** —
+   a near-neutral pale panel with black door-holes punched in it, not a warm
+   vestibule. Battle Hall reads cold grey-lavender in the same frame. Something
+   downstream of the paint property (the night light on the extrusion layer) is
+   eating the warmth. **The ground pool, by contrast, is genuinely warm and is
+   the best thing in the whole pass** — `night2/z-battle-night-portal.png`.
+
+### WHAT IS GENUINELY GOOD, AND WHY THE BRANCH SHOULD NOT BE THROWN AWAY
+
+- **The A/B settles it.** `day2/battle-east-OFF.png` is a completely blank brick
+  wall; `battle-east.png` has a door. 258 buildings gain an entrance they did
+  not have. Every frame in `shots/entrances/day2/` and `night2/` is an A/B pair
+  taken **at one pose on one page load** with the five layers toggled, so the
+  only difference between them is this pass.
+- **Geometry hygiene is real.** Independently recomputed: **40 of 10,051 piece
+  centroids fall inside their host (0.40%)**, 31 rails, 5 ramps, 2 glass, 2
+  reveals; deepest 1.38 m (three rails at the Art Building), only 3 over 0.6 m.
+  Nothing floats except the PCL four. Steps, risers, tread banding and cheek
+  walls are the best-made objects in the file.
+- **Doors on hosts that should not have them: nine, and they are defensible** —
+  four on the Power Plant, four on East Campus Garage, three on San Jacinto
+  Garage and so on. Garages and plants do have people-doors. I found no door on
+  a loading dock or a ramp.
+
+### COST — AND THE INSTRUMENT SETTINGS, BECAUSE THEY ARE THE ANSWER
+
+- **Frame cost: none I can prove.** `places-perf.mjs`'s shape, HEADED on the real
+  GPU (never swiftshader), `index.html` (never `_harness.html`, whose rAF shim
+  pins 60 Hz), 4 interleaved counterbalanced reps of a 4200 ms bearing sweep,
+  South Mall z17.6 pitch 74, MINIMUM of reps, dropped frames not median frame
+  time. `off` 123 · `portal` 130 · `on` 135 → **whole pass +12 dropped frames**.
+  **The within-config spread on `off` was 24.** By the script's own printed rule
+  — *"if a delta is smaller than the spread there is no result"* — **there is no
+  result.** Best fps 36.6 off vs 34.6 on.
+- **Byte cost: 0.27 MB, not 4.48 MB.** `data/entrances.geojson` is 4.48 MB raw
+  and **0.27 MB gzipped**. GitHub Pages gzips and `scripts/serve.py` does not,
+  so any figure taken off the dev server overstates the real visitor cost here
+  by **16.6×** — not the usual ~5×, because this file is unusually compressible.
+  For scale: `ground.geojson` is 0.92 MB gzipped and `trees.geojson` 3.91 MB.
+  Plus 35.5 KB of JS. **§84's "4.48 MB wants tiling" is not urgent.**
+- **`night-pale.mjs` proves nothing about this pass and I will not quote it as
+  if it did.** Its threshold is **PALE = 120** and its pose is fixed at the
+  stadium, `center -97.7325,30.2835 z16.2`. It reported **3,306 pale pixels,
+  mean counted luma 35.5**, and attributed **0 of them to any `entrances-*`
+  layer** (441 to `stadium-*`). At z16.2 a door is two pixels, so a clean run
+  there is not evidence. The number that matters is the close one above: luma
+  124 against a frame median of 45, which *would* trip PALE=120 at a zoom that
+  script never visits.
+
+### WHAT I DID NOT MANAGE
+
+1. **I fixed nothing.** All five defects are in files this lane may not write.
+   They are in `QUEUE.md` under **PART L** with the file and line for each.
+2. **I did not touch PR #145** — no comment, no merge, no close. It is open with
+   the reason recorded here; whoever picks it up should paste this section in.
+3. **The Texas Union is still unphotographed**, same as §85 — but for a new
+   reason. §85 blamed tree canopy; the real cause is that the pose was computed
+   from the building centroid and pointed at the *wrong side of the building*.
+   The wall-normal method gives az 4.9° (north). I did not re-shoot it.
+4. **The Ransom Center's beacon is untested.** Its 10 authored `#e8d9ae` glass
+   pieces are the only ones that bypass the night override, and a live oak owns
+   every pixel of the portal from the correct outward pose. Needs a pose from
+   the north-east, or the tree layer off.
+5. **I could not name the layer that owns a pixel with `queryRenderedFeatures`**
+   — for a fill-extrusion it queries the 2D footprint, so it returned
+   `trees-canopy` and `buildings-shadow` for points sitting on a wall 4 m up.
+   The layer-toggle A/B is the only thing that works here, which is what
+   `scripts/verify/README.md` already says. Worth two lines in that README.
+6. **No verify script was added**, same constraint as §85. `entrancesStats()`
+   is still the hook one should use; it reported `detailLevel 1` on the default
+   preset and `hContract asThickness 6.81 / asTop 6.59` on every run, so §85's
+   two headline claims about the LOD table and the `h` contract both hold.
+
 ## 85. Aug 4 2026 — the doors are on the buildings, and the lit ones are the point (acer lane)
 
 **Branch:** `acer/entrances`, on top of §84. **New file: `js/entrances.js`.** Also
