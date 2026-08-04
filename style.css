@@ -355,11 +355,33 @@ html.has-touch #joystick-zone{display:block}
 
    THE TRACK IS THE INFORMATION. It used to be the browser's default grey bar
    with an `accent-color` fill, which said nothing about what the control did.
-   The gradient below IS the day: noon gold at the top, golden hour, dusk
+   The gradient below IS the day: daylight blue at the top, golden hour, dusk
    violet, night navy at the bottom — the same progression js/timeofday.js
    grades the city through, and the same one the vignette tint follows
    (VIG_HOURS in js/graphics.js). The input is rotated 90deg, so its local
-   0% is the TOP of the panel, which is where the sun mark sits. */
+   0% is the TOP of the panel, which is where the sun mark sits.
+
+   THE TOP IS LIGHT BLUE, NOT GOLD. Reported: "i like the daylight color
+   sliders better where the top is light blue." He is right and it is not only
+   taste — the first cut ran gold all the way to 0%, which is the one hour of
+   the day the city is NOT gold. `js/timeofday.js` grades noon to a
+   `sky: '#5d94cf'` zenith over a `horizon: '#c8e0f0'`, so a gold noon stop
+   made the control disagree with the scene it drives. The two day stops are
+   those two literals, taken from the route rather than guessed, and every
+   stop position now sits on a keyframe that already exists in the code:
+   VIG_HOURS' 0.35 warm / 0.50 golden / 0.68 dusk. Dusk and night are the
+   colours they always were. One line, one variable — overrule it here. */
+:root{
+  --tod-track:linear-gradient(90deg,
+    #c8e0f0 0%,      /* noon — timeofday.js day `horizon`   */
+    #5d94cf 18%,     /* afternoon — timeofday.js day `sky`  */
+    #e9c58a 35%,     /* haze, VIG_HOURS p .35 goes warm     */
+    #f5a623 50%,     /* golden hour, VIG_HOURS p .50        */
+    #d4662c 60%,     /* the burn just after sundown         */
+    #7a4a86 68%,     /* dusk violet, VIG_HOURS p .68        */
+    #33407d 85%,
+    #141c3d 100%);   /* night                               */
+}
 #tod-sun,#tod-moon{line-height:0;user-select:none;display:flex;align-items:center;justify-content:center}
 #tod-sun{color:#f8ca6d;filter:drop-shadow(0 0 5px rgba(248,202,109,.45))}
 #tod-moon{color:#c6d3f2;filter:drop-shadow(0 0 5px rgba(198,211,242,.35))}
@@ -370,10 +392,10 @@ html.has-touch #joystick-zone{display:block}
    an unrecognised pseudo-element invalidates the WHOLE rule in both engines,
    so a shared `::-webkit-…,::-moz-…` block styles neither browser. */
 #tod-slider::-webkit-slider-runnable-track{height:8px;border-radius:999px;
-  background:linear-gradient(90deg,#ffdd93 0%,#f5a623 24%,#d4662c 44%,#7a4a86 64%,#33407d 82%,#141c3d 100%);
+  background:var(--tod-track);
   box-shadow:inset 0 0 0 1px rgba(255,190,90,.24),inset 0 1px 3px rgba(0,0,0,.5)}
 #tod-slider::-moz-range-track{height:8px;border-radius:999px;
-  background:linear-gradient(90deg,#ffdd93 0%,#f5a623 24%,#d4662c 44%,#7a4a86 64%,#33407d 82%,#141c3d 100%);
+  background:var(--tod-track);
   box-shadow:inset 0 0 0 1px rgba(255,190,90,.24),inset 0 1px 3px rgba(0,0,0,.5)}
 #tod-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
   width:16px;height:16px;margin-top:-4px;border-radius:50%;border:1.5px solid rgba(255,238,196,.92);
