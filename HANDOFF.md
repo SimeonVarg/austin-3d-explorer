@@ -1,5 +1,95 @@
 # Austin 3D Explorer — Full Handoff
 
+## 71. Aug 4 2026 — the streetlights were suns because the head was white and the pool had a rim (acer lane)
+
+**Branch:** `acer/night-lamp-falloff`, **PR #133**. File: `js/night.js` only.
+Shots: `shots/lamp-before/`, `shots/lamp-after/`, `shots/lamp-crop/`.
+
+> *"the lights on big roads look like mini suns, the light should be a bit
+> dimmer and more spread out. not just on big roads any road with that big
+> light."*
+
+### WHAT ACTUALLY MADE IT A SUN — two things, and neither was the size
+
+PR #97 fixed the colour and moved the radii into metres. What was left is a
+SHAPE problem, and `night-lamps.mjs --pose the-drag --tod 0.95` names it in one
+line: the head layer's as-shipped mean was **`rgb(239,229,180)`** over 296 px
+across 29 visible glows. That is a ~3.5 px **near-white** disc per lamp at alpha
+0.9. An achromatic hot centre inside a warm ring is the signature of a sun, and
+`shots/lamp-crop/before-mlk.png` is that photosphere at 3×.
+
+The second half is MapLibre's `circle-blur`, which does **not** mean "how soft".
+It holds FULL opacity out to `(1 − blur)` of the radius and only then ramps to
+zero at the rim:
+
+```
+opacity = smoothstep(0, −blur, d − 1)     d = dist / radius
+```
+
+So `CORE_BLUR 0.4` made the inner **60%** of every head flat and hard, and
+`POOL_BLUR 0.85` gave the pool a flat top and a definite border. A bright area
+that *stops* reads as an object; a bright area that *fades* reads as light. That
+is the whole defect, and it is why turning the brightness down alone would only
+have produced a dim hard disc.
+
+### THE FIX — two knobs, `LIGHTS.LAMP_DIM` and `LIGHTS.LAMP_SPREAD`
+
+Both at the top of `LIGHTS` in `js/night.js`, both applying to **every tier and
+both layers** — the fault is the fixture, not the road ("not just on big roads
+any road with that big light"). `1.0 / 1.0` restores the PR #97 look exactly.
+
+```
+LAMP_DIM    0.62   multiplies every lamp opacity
+LAMP_SPREAD 1.5    multiplies every lamp's ground radius
+POOL_BLUR   0.85 -> 1.0     no flat top, no rim: peak at the centre point only
+CORE_BLUR   0.4  -> 0.95
+CORE_RADIUS_SCALE 0.22 -> 0.30   a soft head must be wider than the hard one
+HEAD_COLOR_CORE  #ffe6b4 -> #ffd79c   luma 232 -> 218, amber all the way through
+```
+
+Because blur 1.0 kills the flat top, the authored metres in `POOL_GROUND_M` now
+mean "radius at which the gradient reaches zero", not "radius of a disc" — which
+is why the spread multiplier does not simply make the glows bigger. Measured at
+mid-pool the alpha is unchanged; what changed is that there is now a tail.
+
+### MEASURED, same pose, same tod, before → after
+
+```
+night-streetlight-pool   5645 px -> 9003 px    mean rgb(107,79,49) -> rgb(74,58,43)
+night-streetlight-core    296 px ->  234 px    mean rgb(239,229,180) -> rgb(194,158,112)
+hot pixels (luma>120)     5212   ->  5117      mean luma below horizon 35.5 -> 35.6
+```
+
+The head lost 63 luma — the white centre is gone. The pool is 60% wider and 31%
+darker per pixel. **Frame luma is unchanged**, so this is not the "dark city"
+regression the module exists to prevent: the light moved out of a hard core into
+a soft pool rather than being removed.
+
+### WHAT DID NOT WORK / WHAT I DID NOT DO
+
+- **Dimming alone was never going to be enough** and I did not ship it that way.
+  Tested by reading the shader's own falloff before touching a value: at
+  `CORE_BLUR 0.4` the head is flat across its inner 60% at ANY opacity, so a
+  brightness-only change gives a dim hard disc. Both knobs were needed.
+- **A third, wide, faint halo layer was considered and rejected** — it is +3,370
+  circles of overdraw for something a `blur: 1.0` pool already provides for free.
+- **`props.js`'s walkway lamps were NOT touched** (out of lane, and they own only
+  26 px in this frame). **But they came out `rgb(149,162,180)`, b−r +31 — the
+  props lamp head is BLUE-WHITE**, which is the exact defect `cooler()` in
+  `night.js` was written to make impossible. Whoever owns `props.js` should apply
+  the same constant-luma desaturation; it is 20 lines above the fix here.
+- **`night-lights.mjs` asserts `core opacity > 0.5 at night`.** With
+  `LAMP_DIM 0.62` the head lands at 0.558. It is a liveness check, not a taste
+  check — if Simeon dials `LAMP_DIM` below ~0.56 that assertion will go red for
+  no real reason and the assertion, not the taste value, is what should move.
+
+### PERF
+
+`night-perf.mjs`, headed, interleaved, counterbalanced, judged on the MINIMUM:
+`off` 175 dropped / `new full` 176 dropped at 3,370 lamps with the 1.5× radii.
+The spreads overlap completely — the wider pools cost nothing measurable. All 12
+`night-lights.mjs` assertions pass.
+
 ## 70. Aug 4 2026 — the malls were blank because nothing was standing on them (acer lane)
 
 **Branch:** `acer/j5-j8-ground-planting`, **PR #132**, merged `a718c8a`.
