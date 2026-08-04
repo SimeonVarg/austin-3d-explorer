@@ -58,6 +58,67 @@
     // The lawn's grain. A constant because fill-extrusion-opacity cannot take
     // the per-feature expression `ground-texture` uses; see mirrorGround().
     grainOpacity: 0.5,
+
+    // ── AFTER DARK: THREE SURFACES, THREE LEVELS, AND THE ORDER IS THE EFFECT ──
+    //
+    // The Capitol is the one building in this city lit from OUTSIDE, so it is
+    // the one building whose night colours cannot come from the same rule as
+    // everybody else's. Uplight on granite means: dome brightest, walls lit,
+    // roof dark — a roof plane sees no floodlight at all. Measured on the
+    // `night-capitol` pose (readPixels, pre-grade, frame median luma 32.4) the
+    // shipped scene had that order exactly inverted:
+    //
+    //     dome    99.2  (3.1x the frame)   right
+    //     ROOF    96.0  (3.0x)             WRONG - as bright as the dome
+    //     walls   32.1  (1.0x)             WRONG - as dark as any office block
+    //
+    // which is why it read as a pale grey model with a warm cap rather than as
+    // a floodlit building: the only surface carrying light was the one surface
+    // that has none, and it is a big flat plane, so from altitude it was the
+    // brightest object in the frame.
+    //
+    // Both values are applied over the bake in mergeCapitolScene rather than
+    // written into the geojson, for the same reason capitol_overrides.json
+    // exists: a re-run of bake_capitol.py cannot silently undo a patch that
+    // re-applies on every load. Set either to null to take the bake's value.
+    //
+    // roofNight: the day roof is a grey-green (#a8ab9d), so this stays in that
+    // family and only goes dark, with enough warmth left to belong to the lit
+    // mass below it.
+    //
+    // Read the value against `p`, not on its own: `parts-roof` interpolates
+    // rg→rn over p 0.5→1, so at the tour's night (p=0.95) a tenth of the GOLDEN
+    // roof is still in the mix and the surface renders about 12 luma hotter
+    // than this hex. Every figure quoted here is at p=0.95, the hour the
+    // frames were shot at, not at p=1.
+    roofNight: '#372d21',
+    // The dome's own parts are floodlit and stay warm — except the `collar`,
+    // the three stacked discs from 35.0 to 37.6 m that form the terrace at the
+    // dome's foot. It is baked `#c5a674` like the rest of the stonework, but it
+    // is the one piece of the dome that is mostly a HORIZONTAL face, and a
+    // horizontal face is the one thing a floodlight does not reach. Measured
+    // with the mask: `capitol-dome` owns 52–70 % of that band, and it rendered
+    // at 3.07x the frame median — after the wing roofs were fixed it was the
+    // brightest plane left on the building.
+    //
+    // Keyed by `part` so the day and golden stonework are untouched; only the
+    // night stop moves. Add a part here to take it off the floodlight too.
+    domeNight: { collar: '#5d4430' },
+    // floodWall: the floodlit granite. This overrides the `wn` of the wall tone
+    // js/facades.js protects from the 14-bucket quantiser, which is the ONLY
+    // thing that decides what the Capitol's walls are after dark - the parts'
+    // own per-feature `wn` never reaches the atlas.
+    //
+    // THE BAKE CHOSE THE DARK VALUE ON PURPOSE and said why: the protected
+    // bucket is keyed on the DAY colour, so any neighbour landing in the same
+    // hue cell would be floodlit too. That reasoning is sound; it is the count
+    // that decides it, and the count is one. Of 3,093 features with a `wd`,
+    // four land in cell `0-3-1`: the Capitol itself (`has_parts`, so its own
+    // facade is never drawn), two 7.5 m outbuildings inside the Capitol grounds
+    // that SHOULD be lit with it, and a single unnamed 12.5 m building. One
+    // building warmer than it should be is a good price for the Capitol being
+    // the only lit thing in Austin that actually looks lit.
+    floodWall: '#d38e5e',
   };
   window.CAPITOL = CAPITOL;
 
@@ -104,6 +165,23 @@
       for (const k in o) if (k !== 'was_height') f.properties[k] = o[k];
       patched++;
     }
+    // The floodlight, applied over the bake. See CAPITOL.roofNight / floodWall.
+    //
+    // `rn` is the ONLY thing that paints the Capitol's roof planes: `parts-roof`
+    // is `bakedColor(p,'rd','rg','rn')` (js/timeofday.js) and those planes are
+    // the pale band. Confirmed with §48's magenta mask on the `night-capitol`
+    // pose rather than guessed from the screenshot - `parts-roof` owned 74.9 %
+    // of the west wing's roof box and 64.0 % of the east, and no other layer
+    // was over 22 %. Nothing else in the app reads `rn` off austin-parts, so
+    // this cannot move a colour it was not aimed at.
+    let lit = 0;
+    for (const f of (addParts.features || [])) {
+      if (CAPITOL.roofNight) { f.properties.rn = CAPITOL.roofNight; lit++; }
+    }
+    if (CAPITOL.floodWall && Array.isArray(addParts.facade_protect)) {
+      for (const spec of addParts.facade_protect) spec.wn = CAPITOL.floodWall;
+    }
+
     buildings.features.push(...(add.features || []));
     if (parts) parts.features.push(...(addParts.features || []));
 
@@ -118,7 +196,8 @@
 
     console.log('[capitol]', (add.features || []).length, 'buildings +',
                 (addParts.features || []).length, 'parts added,',
-                patched, 'existing patched (', raised, 'raised )');
+                patched, 'existing patched (', raised, 'raised ),',
+                lit, 'roof planes taken off the floodlight');
     return { added: (add.features || []).length, patched: patched, raised: raised };
   };
 
@@ -454,13 +533,33 @@
     }
   }
 
+  /**
+   * The night stop, with CAPITOL.domeNight applied per `part`.
+   *
+   * Every branch is wrapped in `to-color` on purpose: `match` requires all of
+   * its outputs to share one type, and a bare hex string beside a
+   * `['to-color', ['get','wn']]` fallback makes the whole expression a string /
+   * colour mix that MapLibre rejects — which invalidates the layer, which is a
+   * dome that silently does not draw rather than one that draws wrong.
+   */
+  function nightStop() {
+    const base = ['to-color', ['get', 'wn'], '#333344'];
+    const over = CAPITOL.domeNight || {};
+    const keys = Object.keys(over);
+    if (!keys.length) return base;
+    const m = ['match', ['get', 'part']];
+    for (const k of keys) m.push(k, ['to-color', over[k]]);
+    m.push(base);
+    return m;
+  }
+
   /** ['interpolate', p, wd, wg, wn] — the same shape timeofday.js bakes with. */
   function bakedColor(p, d, g, n) {
     p = Math.max(0, Math.min(1, p));
     return ['interpolate', ['linear'], p,
       0, ['to-color', ['get', d], '#888888'],
       0.5, ['to-color', ['get', g], '#888888'],
-      1, ['to-color', ['get', n], '#333344'],
+      1, (n === 'wn') ? nightStop() : ['to-color', ['get', n], '#333344'],
     ];
   }
 
