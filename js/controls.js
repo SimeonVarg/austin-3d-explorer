@@ -3,8 +3,8 @@
  *
  * Desktop: WASD / arrows to move, drag to look, Q/E or the wheel for altitude,
  *          Shift to boost, R to return to the spawn view.
- * Mobile:  left joystick to move, swipe anywhere to look, two fingers or
- *          double-tap-and-drag for altitude.
+ * Mobile:  left joystick to move, BOOST to sprint, swipe anywhere to look,
+ *          two fingers or double-tap-and-drag for altitude.
  *
  * Exposes initControls(map, scene) and returns a cleanup function.
  *
@@ -162,7 +162,26 @@ function initControls(map, scene) {
     YAW_RATE_CLAMP: 240,   // deg/s cap on spikes from coalesced drag events on slow frames
     ROLL_EPS: 0.02,        // below this, with a level target, roll snaps to exactly 0
 
-    FOV_KICK: 4,           // extra vertical FOV at full sprint speed (scales with |vel|/sprint max)
+    // ── The sprint FOV kick, and why it was invisible ────────────────
+    // Reported: "sprinting should increase my FOV a bit". The mechanism was
+    // already here and already firing — the problem was that it rode ABSOLUTE
+    // speed, so ordinary cruising had spent most of it before Shift was
+    // touched. Measured on the live build at the spawn pose (fovkick probe,
+    // base FOV 58):
+    //
+    //     idle        58.00        kick 0.00
+    //     W           59.59        kick 1.59   (40 m/s — 1/2.5 of sprint)
+    //     W + Shift   62.00        kick 4.00   (100 m/s)
+    //
+    // So pressing Shift bought 2.41 deg of a 4 deg effect: 4% wider frame, at
+    // the same moment the whole world starts moving 2.5x faster. Of course it
+    // read as "nothing happens".
+    //
+    // The kick now starts at FOV_KICK_FROM x cruise speed and reaches FOV_KICK
+    // at the sprint ceiling, so the WHOLE effect belongs to sprinting and
+    // normal flight is at the authored FOV. Same two numbers to overrule.
+    FOV_KICK: 7,           // extra vertical FOV at the sprint ceiling
+    FOV_KICK_FROM: 1.0,    // speed (as a multiple of cruise) where the kick starts
     TAU_FOV: 0.45,         // FOV ease, both directions
     FOV_EPS: 0.02,         // snap-back-to-base threshold
 
@@ -653,6 +672,52 @@ function initControls(map, scene) {
   let joyPointerId = null, joyFwd = 0, joyStrafe = 0, joyOx = 0, joyOy = 0;
   const joyActive = () => joyPointerId !== null;
 
+  // ── Boost, for a device with no Shift key ─────────────────────────
+  //
+  // Reported: "there should be an option to sprint on mobile". Desktop reads
+  // `sprintHeld` off every key event's `shiftKey`, which a phone can never
+  // produce, so the 2.5x speed multiplier was simply unreachable on touch.
+  //
+  // IT LATCHES RATHER THAN BEING HELD, and that is the whole design decision:
+  // one thumb is on the stick and the other is looking, so a hold-to-sprint
+  // button would need a third. Tap on, tap off, and it lights up while it is
+  // on so it can never be a mystery why the city is moving fast. It is a
+  // SEPARATE flag from `sprintHeld` because every keydown and keyup overwrites
+  // that one from the event — a latch stored there would be wiped by the next
+  // key the user pressed.
+  //
+  // Built from JS, not markup, for the same reason the graphics menu is: two
+  // hand-maintained copies of the same DOM (index.html and _harness.html) have
+  // drifted before and cost a debugging session.
+  let boostOn = false;
+  const boostBtn = document.createElement('button');
+  boostBtn.id = 'joy-boost';
+  boostBtn.type = 'button';
+  boostBtn.setAttribute('aria-label', 'Boost speed');
+  boostBtn.setAttribute('aria-pressed', 'false');
+  boostBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" ' +
+    'stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M5 13l7-7 7 7"/><path d="M5 19l7-7 7 7"/></svg><b>BOOST</b>';
+  const zone = document.getElementById('joystick-zone');
+  if (zone) zone.appendChild(boostBtn);
+
+  function setBoost(on) {
+    boostOn = !!on;
+    boostBtn.classList.toggle('on', boostOn);
+    boostBtn.setAttribute('aria-pressed', boostOn ? 'true' : 'false');
+  }
+  // pointerdown, not click: a click on touch waits out the ~300 ms tap
+  // resolution, and a speed control that answers a third of a second late feels
+  // broken. preventDefault stops the synthetic mouse events and the double-tap
+  // zoom that would otherwise follow.
+  boostBtn.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    setBoost(!boostOn);
+    markFlying();
+  });
+  boostBtn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+
   function joySet(nx, ny) {
     const r = Math.hypot(nx, ny);
     if (r <= JOY_DEAD) { joyFwd = 0; joyStrafe = 0; return; }
@@ -880,6 +945,7 @@ function initControls(map, scene) {
   function clearInputs() {
     for (const k in keys) keys[k] = false;
     sprintHeld = false;
+    setBoost(false);                 // a latch must not survive an alt-tab
     joyFwd = 0; joyStrafe = 0; joyPointerId = null;
     if (joystickKnob) joystickKnob.style.transform = '';
     canvasPointers.clear();
@@ -938,7 +1004,7 @@ function initControls(map, scene) {
     // collision field wants filling in during exactly those, not after.
     outerMaybeScan();
 
-    const sprint = sprintHeld ? SPRINT : 1;
+    const sprint = (sprintHeld || boostOn) ? SPRINT : 1;
     let fwd = 0, strafe = 0;
     if (keyDown('KeyW') || keyDown('ArrowUp'))    fwd += 1;
     if (keyDown('KeyS') || keyDown('ArrowDown'))  fwd -= 1;
@@ -1136,11 +1202,15 @@ function initControls(map, scene) {
         if (Math.abs(bankT) < 1e-3 && Math.abs(rollNow) < TUNE.ROLL_EPS) rollNow = 0;
       }
 
-      // FOV kick: fraction of the sprint-speed maximum at this altitude, so it
-      // responds to what the camera is DOING, not to key state. Kicks relative
-      // to the graphics menu's live base FOV and snaps back exactly to it.
+      // FOV kick: how far ABOVE cruise speed the camera actually is, so it
+      // responds to what the camera is DOING, not to key state, and so the
+      // whole effect belongs to sprinting rather than being half-spent by
+      // ordinary flight (see TUNE.FOV_KICK). Kicks relative to the graphics
+      // menu's live base FOV and snaps back exactly to it.
       if (FOV_OK) {
-        const fovT = TUNE.FOV_KICK * clamp(sp / (spdBase * SPRINT), 0, 1);
+        const over = (sp / Math.max(1e-3, spdBase) - TUNE.FOV_KICK_FROM) /
+                     Math.max(1e-3, SPRINT - TUNE.FOV_KICK_FROM);
+        const fovT = TUNE.FOV_KICK * clamp(over, 0, 1);
         fovKickNow += (fovT - fovKickNow) * (1 - Math.exp(-dt / TUNE.TAU_FOV));
         if (fovT < TUNE.FOV_EPS && fovKickNow < TUNE.FOV_EPS) fovKickNow = 0;
         const want = baseFov() + fovKickNow;
@@ -1304,7 +1374,10 @@ function initControls(map, scene) {
     tune: TUNE,
     fx: () => ({ roll: rollNow, fovKick: fovKickNow, altOff: fxAltOff,
                  pitchOff: fxPitchOff, yawRate, live: fxLive,
-                 rollOk: ROLL_OK, fovOk: FOV_OK }),
+                 rollOk: ROLL_OK, fovOk: FOV_OK, boost: boostOn }),
+    // The touch boost latch, so a test can drive it without synthesising a
+    // pointer sequence against a button that only exists on narrow layouts.
+    setBoost: on => setBoost(on),
     ticks: 0, tickMsAvg: 0,
   };
 
@@ -1332,6 +1405,7 @@ function initControls(map, scene) {
       joystickBase.removeEventListener('pointercancel', onJoyUp);
       joystickBase.removeEventListener('lostpointercapture', onJoyUp);
     }
+    if (boostBtn && boostBtn.parentNode) boostBtn.parentNode.removeChild(boostBtn);
     for (const h of HANDLERS) {
       if (prevHandlers[h] && map[h] && typeof map[h].enable === 'function') map[h].enable();
     }

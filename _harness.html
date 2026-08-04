@@ -39,7 +39,7 @@
   </div>
   <div id="controls-hint">
     <span class="desktop-hint">WASD move &nbsp;|&nbsp; drag to look &nbsp;|&nbsp; Q/E or wheel for altitude &nbsp;|&nbsp; Shift boost &nbsp;|&nbsp; R reset &nbsp;|&nbsp; P photo &nbsp;|&nbsp; T tour</span>
-    <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; swipe to look &nbsp;|&nbsp; two fingers for altitude</span>
+    <span class="mobile-hint">Joystick to move &nbsp;|&nbsp; BOOST to sprint &nbsp;|&nbsp; swipe to look &nbsp;|&nbsp; two fingers for altitude</span>
   </div>
 
   <div id="debug-panel" class="hidden">
@@ -56,13 +56,18 @@
   <div id="joystick-zone">
     <div id="joystick-base"><div id="joystick-knob"></div></div>
   </div>
+  <!-- KEEP IN SYNC WITH index.html. The sun and moon were emoji; these are
+       drawn marks that take their colour from the stylesheet, and the slider
+       is a custom track whose gradient IS the day-to-night ramp. -->
   <div id="tod-panel">
-    <span id="tod-sun" aria-hidden="true">☀️</span>
+    <span id="tod-sun" class="tod-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.2v2.7M12 19.1v2.7M2.2 12h2.7M19.1 12h2.7M5.05 5.05l1.9 1.9M17.05 17.05l1.9 1.9M18.95 5.05l-1.9 1.9M6.95 17.05l-1.9 1.9"/></svg></span>
     <div id="tod-slider-wrap">
       <input id="tod-slider" type="range" min="0" max="1" step="0.01" value="0.5" aria-label="Time of day" />
     </div>
-    <span id="tod-moon" aria-hidden="true">🌙</span>
-    <button id="tod-play" title="Auto day/night cycle">▶</button>
+    <span id="tod-moon" class="tod-mark" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M20.8 14.1A8.6 8.6 0 0 1 9.9 3.2a8.9 8.9 0 1 0 10.9 10.9z"/></svg></span>
+    <!-- Text glyph, deliberately: js/timeofday.js swaps this button's
+         textContent between ▶ and ❚❚. -->
+    <button id="tod-play" title="Play the day/night cycle" aria-label="Play the day/night cycle">▶</button>
   </div>
   <!-- BEFORE the Map hook, exactly as index.html has it at line 15: tiles.js
        registers the pmtiles:// protocol and scales the tile workers, and both

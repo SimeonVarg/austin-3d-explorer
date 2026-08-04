@@ -39,10 +39,17 @@
   'use strict';
 
   // ── Taste block ─────────────────────────────────────────────────────
+  // Every word on this screen is here, so any of it can be changed in one line.
   const L = {
     BARS: 15,                 // one per weighted stage, plus the boot bar
     LIT_ROWS: 7,              // window rows in the tallest bar
     GLOW: 'rgba(245,166,35,.30)',
+    TITLE: 'Austin 3D Explorer',
+    SUBTITLE: 'The University of Texas at Austin, modelled and flyable',
+    // Asked for by name: "Put my credentials Simeon Varghese on the loading
+    // screen." Exactly that name, as its own line, at the foot of the frame.
+    CREDIT_ROLE: 'Built by',
+    CREDIT: 'Simeon Varghese',
   };
 
   // ── The skyline's landmarks ─────────────────────────────────────────
@@ -124,16 +131,33 @@
 
     el = document.createElement('div');
     el.id = 'veil-load';
+    // The stack, top to bottom: glow, skyline, ground line, then the title
+    // block, then the credit pinned to the foot of the frame. The whole
+    // assembly is CENTRED now rather than parked at the bottom — the old
+    // layout left the top 55% of a 1600x1000 frame as empty brown, which is
+    // the single biggest reason the screen read as unfinished.
     el.innerHTML =
       '<div id="vl-glow"></div>' +
-      '<div id="vl-city"></div>' +
-      '<div id="vl-ground"></div>' +
-      '<div id="vl-foot">' +
-        '<div id="vl-title">Austin 3D Explorer</div>' +
-        '<div id="vl-rail"><i id="vl-fill"></i></div>' +
-        '<div id="vl-row"><span id="vl-status">Reading the city</span><span id="vl-pct">0%</span></div>' +
-      '</div>';
+      '<div id="vl-frame"></div>' +
+      '<div id="vl-stack">' +
+        '<div id="vl-city"></div>' +
+        '<div id="vl-ground"></div>' +
+        '<div id="vl-foot">' +
+          '<div id="vl-titlerow"><i class="vl-rule"></i>' +
+            '<div id="vl-title"></div><i class="vl-rule"></i></div>' +
+          '<div id="vl-sub"></div>' +
+          '<div id="vl-rail"><i id="vl-fill"></i></div>' +
+          '<div id="vl-row"><span id="vl-status">Reading the city</span><span id="vl-pct">0%</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div id="vl-credit"><span id="vl-credit-role"></span><span id="vl-credit-name"></span></div>';
     veil.appendChild(el);
+    // textContent, not innerHTML, for every authored string: these are taste
+    // values a future edit will change without thinking about escaping.
+    el.querySelector('#vl-title').textContent = L.TITLE;
+    el.querySelector('#vl-sub').textContent = L.SUBTITLE;
+    el.querySelector('#vl-credit-role').textContent = L.CREDIT_ROLE;
+    el.querySelector('#vl-credit-name').textContent = L.CREDIT;
 
     const city = el.querySelector('#vl-city');
     for (let i = 0; i < STAGES.length; i++) {

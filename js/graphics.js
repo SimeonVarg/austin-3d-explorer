@@ -47,6 +47,11 @@
  * first run auto-detects, and the menu shows live fps — turning an effect on and
  * watching what it costs is the whole point.
  *
+ * This file also owns the RECOMMENDATIONS BOX (see the block near the bottom).
+ * That is not a graphics concern; it is here because this file is where the
+ * chrome that is BUILT FROM JS lives, and building it from JS is the only way
+ * index.html and _harness.html cannot drift apart over it.
+ *
  * Public (window) API:
  *   GFX                      — the live settings object (read by sky.js, app.js)
  *   initGraphics(map)        — build the DOM, restore settings, wire the menu
@@ -62,37 +67,46 @@
   const clamp01 = v => Math.max(0, Math.min(1, v));
 
   // ── Settings ──────────────────────────────────────────────────────
-  // `renderScale` multiplies devicePixelRatio: 0.75 on a 2x display still draws
-  // 1.5x native. It is the master lever — cost scales with its square.
+  //
+  // EVERY NAME IN THIS TABLE SAYS WHAT THE CONTROL DOES, NOT WHAT IT IS, and
+  // that is the whole point of the rewrite. Reported, verbatim:
+  //
+  //   "make the graphics menu more intuitive. the light and lens sliders i dont
+  //    understand execpt for distance blur. The preset modes also dont make
+  //    sense all i understand is performance and ultra."
+  //
+  // Two people can read "Bloom", "God rays", "Filmic curve" and "Contact
+  // shadows" and only one of them has rendered anything. A menu of terms of art
+  // is not a menu, it is a quiz — so the labels below are the plain-English
+  // effect ("Glow around bright things", "Shadows where buildings meet the
+  // ground") and every row carries a `desc` that is RENDERED IN THE PANEL, not
+  // hidden in a `title` tooltip. A tooltip is not an answer on a touchscreen,
+  // which is where half of this app is used, and hovering to find out what a
+  // control is is exactly the friction being complained about.
+  //
+  // `desc` is one sentence, present tense, describing what you will SEE. `cost`
+  // is the honest performance note where there is one; it prints in the same
+  // small type after the description rather than being a separate hint nobody
+  // reads.
+  //
+  // DROPPED FROM THE MENU: `filmic` (was "Filmic curve"). It is a tone curve
+  // blend — a look-authoring value, not a preference — and there is no sentence
+  // that makes "0.65 of a filmic curve" a thing a person wants to set. It stays
+  // in GRADE at its authored value, so nothing about the render changes; it
+  // simply stops occupying a row that a reader has to decode. It is one line to
+  // put back.
   const SCHEMA = [
-    { key: 'renderScale', label: 'Render scale',   min: 0.5,  max: 2,   step: 0.05, group: 'perf', fmt: v => v.toFixed(2) + '×' },
-    { key: 'msaa',        label: 'Anti-aliasing',  type: 'bool', group: 'perf', reload: true,
-      hint: 'MSAA. The most expensive single option: turning it off cut dropped frames from 128 to 53 in a 4 s flight at 2560×1400.' },
-    { key: 'bloom',       label: 'Bloom',          min: 0, max: 1, step: 0.02, group: 'lens' },
-    { key: 'godRays',     label: 'God rays',       min: 0, max: 1, step: 0.02, group: 'lens' },
-    { key: 'flare',       label: 'Lens flare',     min: 0, max: 1, step: 0.02, group: 'lens' },
-    { key: 'dof',         label: 'Distance blur',  min: 0, max: 1, step: 0.02, group: 'lens',
-      hint: 'OFF by default, and the reason is in the code: this is a CSS blur over a band of SCREEN ROWS below the horizon, so it softens whatever happens to be at that height — including the upper half of the building you are standing next to — while leaving its base sharp. The distance cue it was there for now comes from the depth-tested haze, which fades by real distance. Raise it if you want the look; it will bring the horizon line back with it.' },
-    { key: 'exposure',    label: 'Exposure',       min: 0.7, max: 1.4, step: 0.01, group: 'grade' },
-    { key: 'autoExposure', label: 'Auto exposure', type: 'bool', group: 'grade',
-      hint: 'Nudges exposure toward the hour’s typical brightness, metered from the rendered frame. Needs the preserved buffer bloom uses (reload with bloom > 0).' },
-    { key: 'contrast',    label: 'Contrast',       min: 0.8, max: 1.5, step: 0.01, group: 'grade' },
-    { key: 'saturation',  label: 'Saturation',     min: 0.6, max: 1.6, step: 0.01, group: 'grade' },
-    { key: 'filmic',      label: 'Filmic curve',   min: 0, max: 1, step: 0.02, group: 'grade',
-      hint: 'Tone curve with a toe and a shoulder: highlights roll off instead of clipping to flat white, shadows keep detail instead of crushing to black.' },
-    { key: 'vignette',    label: 'Vignette',       min: 0, max: 1.6, step: 0.02, group: 'grade' },
-    { key: 'grain',       label: 'Film grain',     min: 0, max: 1, step: 0.02, group: 'grade' },
-    { key: 'ao',          label: 'Contact shadows', type: 'bool', group: 'world' },
-    { key: 'shadows',     label: 'Sun shadows',    type: 'bool', group: 'world' },
-    { key: 'treeDensity', label: 'Tree density',   min: 0.2, max: 1, step: 0.025, group: 'world',
-      fmt: v => Math.round(v * 100) + '%',
-      hint: 'Thins the small trees first and keeps the big live oaks. The full 2,572 trees cost about 6–7 fps at 1440×900; this is the knob for that, rather than dropping a region.' },
-    { key: 'outerDensity', label: 'Outer city',    min: 0.2, max: 1, step: 0.025, group: 'world',
-      fmt: v => Math.round(v * 100) + '%',
-      hint: 'The rest of Austin outside the modelled core — downtown, the lake, the neighbourhoods. Thins the small and the far first; the downtown towers rank in the top 2% and are never dropped. Turning it to 20% is the cheapest way to buy frames back on a weak GPU.' },
-    { key: 'clouds',      label: 'Clouds',         min: 0, max: 1, step: 0.05, group: 'world' },
-    { key: 'stars',       label: 'Stars',          min: 0, max: 1, step: 0.05, group: 'world' },
-    { key: 'fov',         label: 'Field of view',  min: 42, max: 82, step: 1, group: 'world', fmt: v => v.toFixed(0) + '°' },
+    { key: 'renderScale', label: 'Resolution', min: 0.5, max: 2, step: 0.05, group: 'speed',
+      fmt: v => v.toFixed(2) + '×',
+      desc: 'How sharp the whole picture is drawn.',
+      cost: 'The single biggest speed lever — cost rises with the square of this.' },
+    { key: 'msaa', label: 'Smooth edges', type: 'bool', group: 'speed', reload: true,
+      desc: 'Takes the jagged staircase off building edges and rooflines.',
+      cost: 'The most expensive option here: off cut dropped frames from 128 to 53 in a 4 s flight at 2560×1400. Needs a reload.' },
+    { key: 'renderDistance', label: 'Detail distance', min: 150, max: 1500, step: 25, group: 'speed',
+      fmt: v => v >= 1500 ? 'unlimited' : v.toFixed(0) + ' m',
+      desc: 'How far away benches, tree trunks and roof clutter are still drawn. The buildings and the city never disappear.',
+      cost: 'Lower this first on a weak machine: +6.0 fps measured, which beat halving the resolution.' },
     // RANGE SET BY WHAT THE CAMERA CAN REACH, not by what sounds generous.
     // The first version ran 400..4000 m and did nothing on any preset except
     // `performance`, because ALT_MIN/ALT_MAX in js/controls.js cap the camera at
@@ -100,15 +114,59 @@
     // exact ceiling — and the mid tier's at 2000 m, which is unreachable. The
     // control was real, wired and asserted, and still could not fire. Reported
     // as "the graphics menu is confusing and I don't think it works".
-    { key: 'renderDistance', label: 'Detail distance', min: 150, max: 1500, step: 25, group: 'perf',
-      fmt: v => v >= 1500 ? 'unlimited' : v.toFixed(0) + ' m',
-      hint: 'Stops drawing small details — benches, tree trunks, roof clutter — once the camera is further away than this. The buildings and the city never disappear. Lower it first on a weak machine: measured +6.0 fps with both detail tiers off, which beat halving the render scale.' },
+    { key: 'treeDensity', label: 'Trees', min: 0.2, max: 1, step: 0.025, group: 'speed',
+      fmt: v => Math.round(v * 100) + '%',
+      desc: 'How many trees are planted. Thins the small ones first and keeps the big live oaks.',
+      cost: 'The full canopy costs about 6–7 fps at 1440×900.' },
+    { key: 'outerDensity', label: 'City beyond campus', min: 0.2, max: 1, step: 0.025, group: 'speed',
+      fmt: v => Math.round(v * 100) + '%',
+      desc: 'The rest of Austin — downtown, the lake, the neighbourhoods. The downtown towers are never dropped.',
+      cost: 'Turning this down is the cheapest way to buy frames back on a weak GPU.' },
+
+    { key: 'shadows', label: 'Building shadows', type: 'bool', group: 'light',
+      desc: 'Shadows the buildings cast on the ground as the sun moves.' },
+    { key: 'ao', label: 'Shadows at the base', type: 'bool', group: 'light',
+      desc: 'The soft dark where a building meets the ground. Without it everything looks like it is floating.' },
+    { key: 'bloom', label: 'Glow', min: 0, max: 1, step: 0.02, group: 'light',
+      desc: 'Bright things — lit windows, sunlit glass — bleed light into the air around them.',
+      cost: 'Turning this on from zero needs a reload.' },
+    { key: 'godRays', label: 'Sun shafts', min: 0, max: 1, step: 0.02, group: 'light',
+      desc: 'Beams fanning out from a low sun. Strongest near sunrise and sunset.' },
+    { key: 'flare', label: 'Lens flare', min: 0, max: 1, step: 0.02, group: 'light',
+      desc: 'The streak and the coloured circles a camera lens makes when the sun is in shot.' },
+
+    { key: 'exposure', label: 'Brightness', min: 0.7, max: 1.4, step: 0.01, group: 'picture',
+      desc: 'Lightens or darkens the whole picture.' },
+    { key: 'autoExposure', label: 'Auto brightness', type: 'bool', group: 'picture',
+      desc: 'Pulls back when you stare into bright sky and lifts when you drop into a dark street.' },
+    { key: 'contrast', label: 'Contrast', min: 0.8, max: 1.5, step: 0.01, group: 'picture',
+      desc: 'How far apart the darks and the lights are.' },
+    { key: 'saturation', label: 'Colour strength', min: 0.6, max: 1.6, step: 0.01, group: 'picture',
+      desc: 'How strong the colours are. 1.00 is the look as it was painted.' },
+    { key: 'vignette', label: 'Darkened corners', min: 0, max: 1.6, step: 0.02, group: 'picture',
+      desc: 'Shades the corners of the frame so the eye goes to the middle.' },
+    { key: 'grain', label: 'Film grain', min: 0, max: 1, step: 0.02, group: 'picture',
+      desc: 'A fine speckle over the picture, the way real film looks.',
+      cost: 'Costs about 4.8 fps — the most of anything in the picture group.' },
+    { key: 'dof', label: 'Distance blur', min: 0, max: 1, step: 0.02, group: 'picture',
+      desc: 'Softens the far distance, like a camera focused on what is close.',
+      cost: 'Off by default: it blurs by height on screen rather than by real distance, so it draws a soft line across the horizon and can blur the top of a building you are standing next to.' },
+
+    { key: 'fov', label: 'View width', min: 42, max: 82, step: 1, group: 'scene', fmt: v => v.toFixed(0) + '°',
+      desc: 'How much of the city fits on screen at once. Wider shows more and makes flying feel faster.' },
+    { key: 'clouds', label: 'Clouds', min: 0, max: 1, step: 0.05, group: 'scene',
+      desc: 'How much cloud is drawn across the sky.' },
+    { key: 'stars', label: 'Stars', min: 0, max: 1, step: 0.05, group: 'scene',
+      desc: 'Stars after dark. Nothing to see with the slider set to daytime.' },
   ];
+  // Group headings say who each section is FOR, in the second line, because
+  // "Performance / Light & lens / Colour & film / World" told a reader nothing
+  // about which section to open for the problem they actually have.
   const GROUPS = [
-    ['perf',  'Performance'],
-    ['lens',  'Light & lens'],
-    ['grade', 'Colour & film'],
-    ['world', 'World'],
+    ['speed',   'Speed',   'Turn these down if it stutters'],
+    ['light',   'Light',   'Sun, shadows and glare'],
+    ['picture', 'Picture', 'How the image is graded, like a camera'],
+    ['scene',   'Scene',   'What is in the world and how much you see'],
   ];
 
   // ── The grade is NOT a quality setting ──────────────────────────────
@@ -233,6 +291,19 @@
   };
   window.GFX_GRADE = GRADE;   // read by scripts/verify/preset-colour.mjs
 
+  // ── What the four presets MEAN ──────────────────────────────────────
+  // "The preset modes also dont make sense all i understand is performance and
+  // ultra." The names stay — two of the four already land, and renaming those
+  // two would take away the only footing he had — but each button now carries
+  // a second line saying what you get. Four words each, which is all it took:
+  // the buttons were not badly named so much as unexplained.
+  const PRESET_SAYS = {
+    performance: 'fastest, plainest',
+    balanced:    'the default',
+    cinematic:   'film look',
+    ultra:       'everything on',
+  };
+
   // Bumped when a DEFAULT changes in a way a stale saved value would undo.
   //
   // Changing the presets is not enough on its own: every browser that has
@@ -354,6 +425,7 @@
     if (!bloomOK) console.log('[graphics] bloom unavailable: this context has no preserveDrawingBuffer (reload with bloom > 0)');
 
     buildMenu();
+    buildFeedback();
     applyGraphics();
     if (!GFX.autoDetected) scheduleAutoDetect();
   };
@@ -1093,7 +1165,8 @@
     const head = document.createElement('div');
     head.id = 'gfx-head';
     head.innerHTML = '<span id="gfx-title">Graphics</span>' +
-      '<span id="gfx-fps">—</span>' +
+      '<span id="gfx-fps" title="Frames per second right now, and how long one frame takes. ' +
+      'Above ~50 fps is smooth. Change a setting and watch this move.">—</span>' +
       '<button id="gfx-close" title="Close">✕</button>';
     panel.appendChild(head);
 
@@ -1103,7 +1176,13 @@
       const b = document.createElement('button');
       b.className = 'gfx-preset';
       b.dataset.preset = name;
-      b.textContent = name[0].toUpperCase() + name.slice(1);
+      const t = document.createElement('span');
+      t.className = 'gfx-preset-name';
+      t.textContent = name[0].toUpperCase() + name.slice(1);
+      const s = document.createElement('span');
+      s.className = 'gfx-preset-say';
+      s.textContent = PRESET_SAYS[name] || '';
+      b.appendChild(t); b.appendChild(s);
       b.addEventListener('click', () => usePreset(name));
       presetRow.appendChild(b);
     }
@@ -1113,10 +1192,19 @@
     body.id = 'gfx-body';
     panel.appendChild(body);
 
-    for (const [gid, gLabel] of GROUPS) {
+    for (const [gid, gLabel, gNote] of GROUPS) {
       const h = document.createElement('div');
       h.className = 'gfx-group';
-      h.textContent = gLabel;
+      const gt = document.createElement('span');
+      gt.className = 'gfx-group-name';
+      gt.textContent = gLabel;
+      h.appendChild(gt);
+      if (gNote) {
+        const gn = document.createElement('span');
+        gn.className = 'gfx-group-note';
+        gn.textContent = gNote;
+        h.appendChild(gn);
+      }
       body.appendChild(h);
       for (const s of SCHEMA.filter(x => x.group === gid)) body.appendChild(makeRow(s));
     }
@@ -1145,14 +1233,43 @@
     syncMenu();
   }
 
+  /**
+   * One control. The layout is deliberately THREE lines, not one:
+   *
+   *     Detail distance                        700 m
+   *     ───────────●─────────────────────────────────
+   *     How far away benches, tree trunks and roof clutter are still drawn.
+   *
+   * The old row was `[88 px name] [slider] [value]` on a single line with the
+   * explanation in a `title` tooltip. That forces every name to fit 88 px —
+   * which is how you end up with "Bloom", "God rays" and "Contact shadows",
+   * terms chosen because they are short rather than because they are clear —
+   * and it puts the only explanation behind a hover, which does not exist on a
+   * phone. Giving the name and the slider a line each buys the room for a name
+   * that is a sentence fragment, and the description is simply on screen.
+   */
   function makeRow(s) {
     const row = document.createElement('label');
     row.className = 'gfx-row';
-    if (s.hint) row.title = s.hint;
+
+    const head = document.createElement('span');
+    head.className = 'gfx-rowhead';
     const name = document.createElement('span');
     name.className = 'gfx-name';
     name.textContent = s.label;
-    row.appendChild(name);
+    head.appendChild(name);
+    row.appendChild(head);
+
+    const say = document.createElement('span');
+    say.className = 'gfx-desc';
+    say.textContent = s.desc || '';
+    if (s.cost) {
+      const c = document.createElement('i');
+      c.className = 'gfx-cost';
+      c.textContent = s.cost;
+      say.appendChild(document.createTextNode(' '));
+      say.appendChild(c);
+    }
 
     if (s.type === 'bool') {
       const cb = document.createElement('input');
@@ -1166,13 +1283,15 @@
         syncPresetButtons();
         if (s.reload) markReload();
       });
-      row.appendChild(cb);
+      head.appendChild(cb);
+      row.appendChild(say);
       rows[s.key] = { input: cb };
       return row;
     }
 
     const val = document.createElement('span');
     val.className = 'gfx-val';
+    head.appendChild(val);
     const rng = document.createElement('input');
     rng.type = 'range';
     rng.min = s.min; rng.max = s.max; rng.step = s.step;
@@ -1186,7 +1305,7 @@
       syncPresetButtons();
     });
     row.appendChild(rng);
-    row.appendChild(val);
+    row.appendChild(say);
     rows[s.key] = { input: rng, val, fmt };
     return row;
   }
@@ -1216,6 +1335,8 @@
     document.body.classList.toggle('gfx-open', on);
     const btn = document.getElementById('gfx-button');
     if (btn) btn.classList.toggle('active', on);
+    // Same corner, so they take turns (see fbToggle for the other half).
+    if (on && fbPanel && !fbPanel.classList.contains('hidden')) fbToggle(false);
     if (on) { syncMenu(); startFps(); } else stopFps();
   }
 
@@ -1240,6 +1361,198 @@
     fpsRaf = requestAnimationFrame(step);
   }
   function stopFps() { if (fpsRaf) cancelAnimationFrame(fpsRaf); fpsRaf = null; }
+
+  // ════════════════════════════════════════════════════════════════════
+  // THE RECOMMENDATIONS BOX
+  // ════════════════════════════════════════════════════════════════════
+  //
+  // Asked for as: "add a recommendations box, have the message send to
+  // <an address>. or tell me how to do this if thats a bad idea idk how to do
+  // that." So, the honest answer first:
+  //
+  // A STATIC SITE CANNOT SEND EMAIL. There is no server here — this is HTML,
+  // CSS and JS on GitHub Pages — and a browser has no way to hand a message to
+  // a mail server. The two things that look like solutions are both worse than
+  // they sound:
+  //
+  //   * `mailto:` does not send anything. It opens whatever mail client the
+  //     visitor has configured, with the text pre-filled, and waits for them to
+  //     press send themselves. Most people on a phone have nothing configured
+  //     and the link does nothing at all. It also PRINTS THE DESTINATION
+  //     ADDRESS IN THE PAGE SOURCE, where address harvesters read it.
+  //   * Putting SMTP credentials in the JS would put them in the page source
+  //     too, on a public repo, for anyone to send mail as him.
+  //
+  // The right answer is a FORM SERVICE: a free third-party endpoint that
+  // accepts a POST from the browser and emails it on. The destination address
+  // lives in that service's dashboard and never appears here, which is why this
+  // file contains no address of any kind — deliberately, and it should stay
+  // that way.
+  //
+  // ── TO SWITCH THIS ON (one line, and it is HIS to do, not mine) ──────
+  //
+  //   1. Make a free account at https://formspree.io or https://web3forms.com.
+  //      The service asks which address to forward to; that is where it stays.
+  //   2. It gives back an endpoint URL. Paste it into FEEDBACK_ENDPOINT below.
+  //        Formspree:  https://formspree.io/f/xxxxxxxx
+  //        Web3Forms:  https://api.web3forms.com/submit  — and paste the access
+  //                    key it gives you into FEEDBACK_ACCESS_KEY as well.
+  //   3. Send one test message and check it arrives.
+  //
+  // NO ACCOUNT HAS BEEN CREATED FOR HIM. Signing him up would mean creating an
+  // account in his name on a service whose terms he has not read, tied to an
+  // address he has not chosen to expose.
+  //
+  // UNTIL AN ENDPOINT IS SET THE FORM SAYS SO, PLAINLY, and the send button is
+  // disabled. A form that silently swallows what you typed and shows a thank-you
+  // is worse than no form: he would believe he had a feedback channel and would
+  // never hear from anyone through it.
+  const FEEDBACK_ENDPOINT = '';      // ← paste the form-service URL here
+  const FEEDBACK_ACCESS_KEY = '';    // ← Web3Forms only; Formspree needs no key
+
+  const FB = {
+    TITLE: 'Recommendations',
+    LEAD: 'Spotted something wrong, or want something in the city that isn\'t there? Say so here.',
+    PLACEHOLDER: 'What did you see, and where?',
+    NAME_PH: 'Your name (optional)',
+    EMAIL_PH: 'Your email (optional, only if you want a reply)',
+    VIEW_LABEL: 'Include where I\'m looking',
+    SEND: 'Send',
+    SENDING: 'Sending…',
+    SENT: 'Sent — thank you. That goes straight to Simeon.',
+    OFF: 'Sending is not switched on yet.',
+    OFF_WHY: 'This page has no form endpoint configured, so nothing would be delivered and it is not going to pretend otherwise. Setting one is a single line in js/graphics.js.',
+    FAIL: 'That did not go through. Your text is still here — try again in a moment.',
+    EMPTY: 'Write something first.',
+    MAX: 4000,
+  };
+
+  let fbPanel = null, fbText = null, fbSend = null, fbStatus = null, fbBusy = false;
+
+  const fbOn = () => /^https?:\/\//i.test(FEEDBACK_ENDPOINT);
+
+  /** Where the camera is, in words, so a report is actionable. No personal data. */
+  function fbView() {
+    try {
+      const m = _map;
+      if (!m) return '';
+      const c = m.getCenter();
+      const p = window.__todCurrentP;
+      return `${c.lng.toFixed(5)}, ${c.lat.toFixed(5)} · zoom ${m.getZoom().toFixed(2)}` +
+             ` · pitch ${m.getPitch().toFixed(0)}° · bearing ${m.getBearing().toFixed(0)}°` +
+             (p != null ? ` · time of day ${(+p).toFixed(2)}` : '') +
+             ` · ${window.innerWidth}×${window.innerHeight} · preset ${GFX.preset}`;
+    } catch (e) { return ''; }
+  }
+
+  function fbSetStatus(text, kind) {
+    if (!fbStatus) return;
+    fbStatus.textContent = text || '';
+    fbStatus.className = 'fb-status' + (kind ? ' ' + kind : '');
+  }
+
+  function buildFeedback() {
+    const btn = document.createElement('button');
+    btn.id = 'fb-button';
+    btn.title = 'Send a recommendation';
+    btn.setAttribute('aria-label', 'Send a recommendation');
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M20.5 11.3a7.7 7.7 0 0 1-8.3 7.6 8.6 8.6 0 0 1-2.6-.45L4.2 20l1.3-4.2A7.4 7.4 0 0 1 4 11.3' +
+      'a7.7 7.7 0 0 1 8.25-7.6 7.7 7.7 0 0 1 8.25 7.6z"/></svg>';
+    document.body.appendChild(btn);
+
+    fbPanel = el('fb-panel');
+    fbPanel.classList.add('hidden');
+    fbPanel.innerHTML =
+      '<div id="fb-head"><span id="fb-title"></span><button id="fb-close" title="Close">✕</button></div>' +
+      '<div id="fb-body">' +
+        '<p id="fb-lead"></p>' +
+        '<textarea id="fb-text" rows="5" maxlength="4000"></textarea>' +
+        '<input id="fb-name" type="text" autocomplete="name" />' +
+        '<input id="fb-email" type="email" autocomplete="email" />' +
+        '<label id="fb-viewrow"><input id="fb-view" type="checkbox" checked />' +
+          '<span id="fb-viewlabel"></span></label>' +
+        '<div class="fb-status"></div>' +
+      '</div>' +
+      '<div id="fb-foot"><button id="fb-send"></button></div>';
+
+    fbPanel.querySelector('#fb-title').textContent = FB.TITLE;
+    fbPanel.querySelector('#fb-lead').textContent = FB.LEAD;
+    fbPanel.querySelector('#fb-viewlabel').textContent = FB.VIEW_LABEL;
+    fbText = fbPanel.querySelector('#fb-text');
+    fbText.placeholder = FB.PLACEHOLDER;
+    fbText.maxLength = FB.MAX;
+    fbPanel.querySelector('#fb-name').placeholder = FB.NAME_PH;
+    fbPanel.querySelector('#fb-email').placeholder = FB.EMAIL_PH;
+    fbSend = fbPanel.querySelector('#fb-send');
+    fbSend.textContent = FB.SEND;
+    fbStatus = fbPanel.querySelector('.fb-status');
+
+    if (!fbOn()) {
+      // Say it in the panel, not in a console nobody opens, and make the button
+      // unpressable so there is no way to believe a message went anywhere.
+      fbSend.disabled = true;
+      fbSend.title = FB.OFF;
+      fbSetStatus(FB.OFF + ' ' + FB.OFF_WHY, 'off');
+    }
+
+    btn.addEventListener('click', () => fbToggle(fbPanel.classList.contains('hidden')));
+    fbPanel.querySelector('#fb-close').addEventListener('click', () => fbToggle(false));
+    fbSend.addEventListener('click', fbSubmit);
+    fbPanel.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { fbToggle(false); return; }
+      // Ctrl/Cmd+Enter sends, the way every message box does.
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) fbSubmit();
+    });
+  }
+
+  function fbToggle(on) {
+    if (!fbPanel) return;
+    fbPanel.classList.toggle('hidden', !on);
+    document.body.classList.toggle('fb-open', on);
+    const b = document.getElementById('fb-button');
+    if (b) b.classList.toggle('active', on);
+    // The two panels occupy the same corner, so they take turns.
+    if (on && panel && !panel.classList.contains('hidden')) toggle(false);
+    if (on && fbText) fbText.focus();
+  }
+
+  async function fbSubmit() {
+    if (fbBusy || !fbOn() || !fbText) return;
+    const msg = fbText.value.trim();
+    if (!msg) { fbSetStatus(FB.EMPTY, 'bad'); fbText.focus(); return; }
+    fbBusy = true;
+    fbSend.disabled = true;
+    fbSetStatus(FB.SENDING, '');
+    try {
+      const fd = new FormData();
+      fd.append('message', msg);
+      fd.append('subject', 'Austin 3D Explorer — a recommendation');
+      const nm = fbPanel.querySelector('#fb-name').value.trim();
+      const em = fbPanel.querySelector('#fb-email').value.trim();
+      if (nm) fd.append('name', nm);
+      if (em) fd.append('email', em);
+      if (fbPanel.querySelector('#fb-view').checked) fd.append('view', fbView());
+      if (FEEDBACK_ACCESS_KEY) fd.append('access_key', FEEDBACK_ACCESS_KEY);
+      const r = await fetch(FEEDBACK_ENDPOINT, {
+        method: 'POST', body: fd, headers: { Accept: 'application/json' },
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      fbSetStatus(FB.SENT, 'good');
+      fbText.value = '';
+    } catch (e) {
+      // Never clear the box on a failure: retyping a paragraph because the
+      // network blipped is the fastest way to lose a report for good.
+      fbSetStatus(FB.FAIL + ' (' + (e && e.message ? e.message : 'failed') + ')', 'bad');
+    } finally {
+      fbBusy = false;
+      fbSend.disabled = !fbOn();
+    }
+  }
+
+  window.__feedback = { on: fbOn, open: () => fbToggle(true), close: () => fbToggle(false) };
 
   window.GFX_PRESETS = PRESETS;
   window.cancelGraphicsAutoDetect = cancelAutoDetect;
