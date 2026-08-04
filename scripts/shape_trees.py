@@ -107,7 +107,8 @@ from shapely.strtree import STRtree
 # CORE_BBOX is defined once, in the file that fetches against it. Duplicating
 # the numbers here is how the two halves of the tree pipeline would end up
 # disagreeing about where the campus ends.
-from fetch_city_trees import CORE_BBOX, in_box
+from fetch_city_trees import (CORE_BBOX, HABIT, TRUNK_MIN_BASE_M, det01,
+                              in_box, m_to_deg, octagon, square)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
@@ -162,6 +163,13 @@ SURFACES = {
     ("area", "wood"):                 (False, 0.0),
     ("area", "scrub"):                (False, 0.0),
     ("area", "sand"):                 (False, 0.0),
+    # Paving inlay, added by bake_ground.py's median pass and its flagpole
+    # pass. A medallion is 3 m of stone laid in a 12 m median and a plinth is
+    # the base of a flagpole; a trunk cannot be in either, and without these
+    # rows the planting below would put a live oak on top of the Texas star.
+    ("area", "medallion"):            (True,  0.0),
+    ("area", "star"):                 (True,  0.0),
+    ("area", "plinth"):               (True,  0.0),
 }
 
 # Roads and cycleways are LineStrings with a pavement width `w`, so they get
@@ -177,6 +185,39 @@ ROAD_INSET_M = 0.8
 # footprint is the wall.
 BUILDING_DROP = True
 
+# ── The outer ring, and a 6,080-tree landmine this pass declined to step on ──
+#
+# `data/outer_ring.geojson` (9,149 real OSM footprints across greater Austin)
+# was added to the drop set when this file was written, and the file has not
+# been run since the tree fetch widened its box — so the rule has NEVER been
+# applied to the 22,000 backdrop trees that arrived afterwards. Running it now
+# deletes 6,080 trees, 22% of the file, none of them on campus and none of them
+# anything to do with the planting brief this pass exists to serve.
+#
+# AND THE NUMBER SAYS IT IS NOT A TREE PROBLEM. Measured, crowns whose centroid
+# falls inside an outer footprint, by where the position came from:
+#
+#     src:'city'     10,018 / 22,242   45.0%   (43.0% more than 2 m inside)
+#     src:'osm'          96 /  1,461    6.6%
+#     src:'creek'        33 /  5,136    0.6%
+#     src:'imagery'     137 / 28,165    0.5%
+#
+# The imagery crowns are 0.5% because fetch_city_trees already rejected them
+# against the same snapshot at fetch time, so they say nothing. The row that
+# matters is `city` against `osm`: both are SURVEYED positions, and one of them
+# lands inside a building seven times as often as the other. A municipal
+# inventory does not record 45% of its trees on rooftops — that is a
+# geocoding-to-parcel or datum question about `data/osm_cache/city_trees*.json`,
+# and the answer to it is not "delete nine thousand surveyed trees".
+#
+# So: the group stays indexed and every tree this pass PLANTS is still tested
+# against it (69 candidates were rejected by it and by nothing else, because
+# the detailed campus footprints do not cover all of West Campus). What it does
+# NOT do is silently delete a fifth of the existing backdrop inside a PR about
+# the South Mall. Flip this to True in the pass that answers the 45%.
+OUTER_BUILDING_DROP = False
+SOFT_DROP_LABELS = () if OUTER_BUILDING_DROP else ("outer building",)
+
 # ── The open lawns (the Tower ask) ────────────────────────────────────
 #
 # A lawn is not a surface a tree cannot be in — most of campus is trees on
@@ -191,6 +232,87 @@ OPEN_LAWNS = [
     (-97.73909, 30.28532, "Main Mall, east of the Main Building"),
     (-97.73986, 30.28538, "Main Mall, west of the Main Building"),
 ]
+
+# ── Taste block: PLANTING ─────────────────────────────────────────────
+#
+# "theres not enough trees on campus. Make sure new trees are not collided with
+# buildings or on roads."
+#
+# THE SECOND HALF OF THAT SENTENCE IS ALREADY BUILT — it is the SURFACES table
+# above, and every candidate below goes through the SAME `S.hits()` the surveyed
+# trees do. Nothing here gets a weaker test than the city inventory gets; a
+# planted trunk is rejected by a building, a carriageway, open water, a playing
+# surface, a medallion or one of the OPEN_LAWNS exactly as a surveyed one is,
+# and the per-surface rejection counts are printed.
+#
+# GENERATIVE POSITIONS, and they are the second such source in the tree
+# pipeline after the creek corridor (fetch_city_trees.CREEK_ZONES). Marked
+# `src:'plant'` in the data so they can be told apart from a survey, and stripped
+# and regenerated on every run, which is what makes this file still idempotent.
+#
+# TWO MECHANISMS, because campus has two kinds of planting and a single rule
+# gets one of them wrong:
+#
+#   GRID — a jittered grid through the mapped greens. A plain grid reads as an
+#   orchard from the air and pure noise clumps; a grid cell with a deterministic
+#   offset inside it gives even density with no visible rows. Same trick, same
+#   `det01`, as the creek pass.
+#
+#   ALLEE — a ring of big oaks set in from the edge of every large plaza. The
+#   West Mall, the Main Mall and the East Mall are 3,700-5,300 m2 of paving with
+#   NOTHING standing on them, which is most of why the mall in front of the
+#   Tower reads as a blank sheet, and in life every one of them is lined with
+#   live oaks. A grid over a plaza would be an orchard in a courtyard; a ring
+#   offset from its own boundary follows whatever shape the mall actually is.
+#
+# Set PLANTING = False and this file does exactly what it did before.
+PLANTING = True
+
+PLANT = {
+    # Centre-to-centre to a tree that is already standing. 7 m is a live oak's
+    # own crown radius here — closer than that and the new crown is inside the
+    # old one, which reads as one lumpy tree rather than two.
+    "min_gap_m": 7.0,
+    # ...and to another tree planted by this pass. Wider, because these are the
+    # ones whose spacing we control and an even stand looks planted, not weedy.
+    "self_gap_m": 9.0,
+    # A jittered grid through each mapped green. Spacing is the knob: a smaller
+    # number is more trees and more features, and features are the cost model
+    # for this file (see TIERS_BY_RADIUS).
+    "grid": {
+        # A park is the roomiest and the most obviously under-planted.
+        ("area", "park"): {
+            "spacing_m": 15.0, "jitter": 0.42, "radius_m": (4.4, 7.6),
+            "species": (("liveoak", 0.46), ("elm", 0.22),
+                        ("pecan", 0.16), ("magnolia", 0.16)),
+        },
+        # A mown lawn carries specimen trees, not a canopy, so it is sparser.
+        # The OPEN_LAWNS panels are cleared before this ever runs.
+        ("area", "lawn"): {
+            "spacing_m": 18.0, "jitter": 0.38, "radius_m": (4.0, 7.0),
+            "species": (("liveoak", 0.54), ("elm", 0.18),
+                        ("magnolia", 0.16), ("crape", 0.12)),
+        },
+        # Mapped woodland: closed canopy, so tightest of the three.
+        ("area", "wood"): {
+            "spacing_m": 12.5, "jitter": 0.45, "radius_m": (4.6, 8.0),
+            "species": (("elm", 0.30), ("liveoak", 0.28),
+                        ("pecan", 0.24), ("cedar", 0.18)),
+        },
+    },
+    # The mall allees.
+    "allee": {
+        # Below this a "plaza" is a landing or a stair head, not a mall.
+        "min_m2": 1200.0,
+        # How far in from the paving edge the trunks stand.
+        "verge_m": 3.6,
+        # Along the ring. 13 m is a mall oak's spread; closer and the crowns
+        # merge into a hedge.
+        "spacing_m": 13.0,
+        "radius_m": (5.8, 8.6),
+        "species": (("liveoak", 0.76), ("pecan", 0.13), ("elm", 0.11)),
+    },
+}
 
 # ── Taste block: crown shape ──────────────────────────────────────────
 #
@@ -374,8 +496,19 @@ def build_surfaces(buildings):
         if g is None:
             continue
         if key == ("area", "lawn"):
+            # AGAINST THE FILLED PANEL, not the polygon as drawn. Both Main
+            # Mall seeds sit within a metre of a flagpole, because whoever
+            # placed them picked the visually obvious centre of each panel and
+            # that is where the flagpole is -- so the moment bake_ground.py
+            # started cutting a plinth out from under each pole, the seed fell
+            # in the HOLE and both panels stopped being open lawns. A seed
+            # names a PANEL; a panel with a plinth in it is still that panel.
+            filled = g
+            if g.geom_type == "Polygon" and g.interiors:
+                from shapely.geometry import Polygon as _Poly
+                filled = _Poly(g.exterior)
             for i, (pt, _name) in enumerate(seeds):
-                if g.contains(pt):
+                if filled.contains(pt):
                     found[i] = True
                     open_lawn.append(g)
                     break
@@ -490,6 +623,161 @@ def jitter(lon, lat):
                  / (HUE_JITTER_STEPS - 1.0), 3)
 
 
+class NearestGrid(object):
+    """Cheap 'is anything within r metres of this point' over lon/lat.
+
+    A bucket grid rather than an STRtree because the query is a distance, not a
+    containment, and this runs it ~3,000 times against ~14,000 trees. Cell size
+    is the query radius, so only the 3x3 neighbourhood is ever scanned.
+    """
+
+    def __init__(self, radius_m):
+        self.r = radius_m
+        self.dlon, self.dlat = m_to_deg(radius_m, LAT0)
+        self.cells = defaultdict(list)
+
+    def _key(self, lon, lat):
+        return (int(lon / self.dlon), int(lat / self.dlat))
+
+    def add(self, lon, lat):
+        self.cells[self._key(lon, lat)].append((lon, lat))
+
+    def near(self, lon, lat):
+        cx, cy = self._key(lon, lat)
+        x0, y0 = to_m(lon, lat)
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for olon, olat in self.cells.get((cx + dx, cy + dy), ()):
+                    x1, y1 = to_m(olon, olat)
+                    if math.hypot(x1 - x0, y1 - y0) < self.r:
+                        return True
+        return False
+
+
+def _species_pick(lon, lat, salt, weights):
+    u, pick = det01(lon, lat, salt), weights[-1][0]
+    acc = 0.0
+    for name, share in weights:
+        acc += share
+        if u <= acc:
+            return name
+    return pick
+
+
+def _tree_from(lon, lat, cfg, salt):
+    """(lon, lat, r_m, h_m, leaf, sp) for a planted tree. Height from radius
+    through the SAME `HABIT` allometry the creek pass and the imagery crowns
+    use, so a planted live oak and a photographed one of the same spread are
+    the same tree."""
+    r_lo, r_hi = cfg["radius_m"]
+    r_m = r_lo + (r_hi - r_lo) * det01(lon, lat, salt + "r")
+    sp = _species_pick(lon, lat, salt + "s", cfg["species"])
+    # `oak` and `other` are legal PROFILES keys but carry no height habit;
+    # borrow the nearest one that shares their crown shape, exactly as
+    # fetch_city_trees.plant_creek does.
+    leaf, Ah, H0, mH = HABIT.get({"oak": "liveoak", "other": "elm"}.get(sp, sp),
+                                 HABIT["elm"])[:4]
+    h_m = max(3.0, min(mH, Ah * r_m + H0))
+    return lon, lat, r_m, h_m, leaf, sp
+
+
+def plant_campus(S, standing):
+    """Plant the campus greens and the mall allees. Returns (trees, report).
+
+    `standing` is every tree already kept, as (lon, lat) in degrees. Every
+    candidate is tested by the SAME `S.hits()` that judges a surveyed tree, so
+    the rejection table below is directly comparable with the one printed above
+    it.
+    """
+    from shapely.geometry import shape as _shape
+
+    ground = json.load(open(os.path.join(DATA, "ground.geojson"),
+                            encoding="utf-8"))["features"]
+    near_old = NearestGrid(PLANT["min_gap_m"])
+    for lon, lat in standing:
+        near_old.add(lon, lat)
+    near_new = NearestGrid(PLANT["self_gap_m"])
+
+    rejected = Counter()
+    planted = Counter()
+    out = []
+
+    def offer(lon, lat, cfg, salt, tag):
+        if not in_box(lon, lat, CORE_BBOX):
+            rejected["outside the campus box"] += 1
+            return
+        for label, drop in S.hits(lon, lat):
+            if drop:
+                rejected[label] += 1
+                return
+        if near_old.near(lon, lat):
+            rejected["too close to a tree already standing"] += 1
+            return
+        if near_new.near(lon, lat):
+            rejected["too close to another planted tree"] += 1
+            return
+        near_new.add(lon, lat)
+        out.append(_tree_from(lon, lat, cfg, salt))
+        planted[tag] += 1
+
+    # ---- the mall allees, FIRST -------------------------------------------
+    # Before the grid on purpose: an allee is the formal planting and it should
+    # win the self-gap test against a grid point that happens to land beside it.
+    acfg = PLANT["allee"]
+    malls = 0
+    for f in ground:
+        p = f["properties"]
+        if p.get("k") != "area" or p.get("u") != "plaza":
+            continue
+        q = poly_m(f["geometry"])
+        if q is None or q.is_empty or q.area < acfg["min_m2"]:
+            continue
+        ring = q.buffer(-acfg["verge_m"])
+        if ring.is_empty:
+            continue
+        malls += 1
+        lines = ([ring.exterior] if ring.geom_type == "Polygon"
+                 else [g.exterior for g in ring.geoms])
+        for ln in lines:
+            n = int(ln.length // acfg["spacing_m"])
+            for i in range(n):
+                pt = ln.interpolate((i + 0.5) * ln.length / max(n, 1))
+                lon = LON0 + pt.x / M_LON
+                lat = LAT0 + pt.y / M_LAT
+                offer(round(lon, 6), round(lat, 6), acfg, "allee", "mall allee")
+    stats_malls = malls
+
+    # ---- the jittered grid through the mapped greens -----------------------
+    for f in ground:
+        p = f["properties"]
+        cfg = PLANT["grid"].get((p.get("k"), p.get("u")))
+        if cfg is None:
+            continue
+        g = _shape(f["geometry"])
+        if g.is_empty:
+            continue
+        w, s, e, n = g.bounds
+        dlon, dlat = m_to_deg(cfg["spacing_m"], (s + n) / 2.0)
+        ny = int((n - s) / dlat) + 1
+        nx = int((e - w) / dlon) + 1
+        if nx * ny > 40000:            # a stray continent-sized polygon
+            rejected["host polygon too large to grid"] += 1
+            continue
+        tag = "%s/%s" % (p.get("k"), p.get("u"))
+        for iy in range(ny):
+            for ix in range(nx):
+                lon = w + (ix + 0.5) * dlon
+                lat = s + (iy + 0.5) * dlat
+                lon += (det01(lon, lat, tag + "x") - 0.5) * 2 * cfg["jitter"] * dlon
+                lat += (det01(lon, lat, tag + "y") - 0.5) * 2 * cfg["jitter"] * dlat
+                lon, lat = round(lon, 6), round(lat, 6)
+                if not g.contains(Point(lon, lat)):
+                    continue
+                offer(lon, lat, cfg, tag, tag)
+
+    return out, {"planted": planted, "rejected": rejected, "malls": stats_malls}
+
+
 def main():
     snap = os.path.join(DATA, "snapshots")
     latest = sorted(d for d in os.listdir(snap) if os.path.isdir(os.path.join(snap, d)))[-1]
@@ -500,6 +788,20 @@ def main():
     gj = json.load(open(path, encoding="utf-8"))
     feats = gj["features"]
     print("trees.geojson: %d features" % len(feats))
+
+    # 0. STRIP WHAT A PREVIOUS RUN PLANTED. This is what keeps the file
+    #    idempotent now that it adds features as well as reshaping them: the
+    #    planting is deterministic given (ground.geojson, the surveyed trees),
+    #    so removing it and regenerating it lands on the same forest, while
+    #    leaving it in would have run N+1 plant against run N's own trees and
+    #    the stand would thin itself a little every time. Trunks carry
+    #    `src:'plant'` too, for exactly this reason -- they carry no `src` at
+    #    all when fetch_city_trees writes them, so there would otherwise be no
+    #    way to tell a planted trunk from a surveyed one.
+    was = len(feats)
+    feats = [f for f in feats if f["properties"].get("src") != "plant"]
+    if was != len(feats):
+        print("  removed %d features planted by a previous run" % (was - len(feats)))
 
     # 1. Drop anything whose TRUNK stands in a surface that cannot hold one.
     #    Verdicts are cached per position, because a five-tier crown asks the
@@ -513,6 +815,7 @@ def main():
     # feature per position at the same 6 dp the merge below groups on.
     per_class = defaultdict(set)
     charged = {}
+    spared = {}
     for f in feats:
         rs = rings(f["geometry"])
         if not rs:
@@ -529,9 +832,13 @@ def main():
                 per_class[label].add(tree)
             for label, drop in hits:
                 if drop:
-                    charged.setdefault(tree, label)
-                    break
-        if any(drop for _label, drop in hits):
+                    (spared if label in SOFT_DROP_LABELS else charged
+                     ).setdefault(tree, label)
+                    if label not in SOFT_DROP_LABELS:
+                        break
+        # SOFT_DROP_LABELS is a verdict that applies to a tree this pass plants
+        # but not to one already in the file -- see OUTER_BUILDING_DROP.
+        if any(drop for label, drop in hits if label not in SOFT_DROP_LABELS):
             dropped += 1
             continue
         keep.append(f)
@@ -549,6 +856,81 @@ def main():
     print("  dropped %d trees (%s) = %d features"
           % (sum(dropped_by.values()),
              ", ".join("%s %d" % kv for kv in dropped_by.most_common()), dropped))
+    if spared:
+        # Printed every run, loudly, because a rule that is switched off and
+        # silent is a rule nobody remembers to switch back on.
+        for label, n in Counter(spared.values()).most_common():
+            print("  !! %d trees are in a `%s` and were KEPT — see "
+                  "OUTER_BUILDING_DROP" % (n, label))
+
+    # 1c. PLANT. After the drop pass so the candidates are tested against the
+    #     same `S`, and before the merge so every planted crown is tiered by the
+    #     same species profiles as everything else.
+    if PLANTING:
+        standing = {}
+        scores = []
+        for f in keep:
+            if f["properties"].get("kind") != "canopy":
+                continue
+            c = centroid(rings(f["geometry"])[0])
+            key = (round(c[0], 6), round(c[1], 6))
+            if key in standing:
+                continue
+            standing[key] = True
+            if in_box(c[0], c[1], CORE_BBOX):
+                r = float(f["properties"].get("r0") or 0) or radius_m(
+                    rings(f["geometry"])[0], c[1])
+                size = max(0.0, min(1.0, (r - 1.8) / 9.0))
+                scores.append(0.68 * size + 0.32 * det01(c[0], c[1], "dens"))
+        scores.sort()
+
+        grown, rep = plant_campus(S, list(standing.keys()))
+        print("  --- planting: %d new trees ---" % len(grown))
+        for tag, n in rep["planted"].most_common():
+            print("      %-22s %5d  planted" % (tag, n))
+        for label, n in rep["rejected"].most_common():
+            print("      %-22s %5d  REJECTED" % (label, n))
+        print("      %d plazas took an allee" % rep["malls"])
+
+        # `d` IS THE DENSITY RANK THE GRAPHICS PRESETS THIN ON, and a feature
+        # without one is a feature the slider cannot reach. It has to be the
+        # same quantity fetch_city_trees computes, so each planted tree is
+        # scored the same way (0.68 * size + 0.32 * a deterministic draw) and
+        # placed at its PERCENTILE among the trees already standing in the core
+        # box. That leaves every existing `d` untouched -- re-ranking the whole
+        # file here would have silently re-tuned every preset.
+        import bisect
+        n_sc = max(1, len(scores) - 1)
+        made_trunks = 0
+        for lon, lat, r_m, h_m, leaf, sp in grown:
+            size = max(0.0, min(1.0, (r_m - 1.8) / 9.0))
+            sc = 0.68 * size + 0.32 * det01(lon, lat, "dens")
+            d = round((len(scores) - bisect.bisect_right(scores, sc)) / n_sc, 4)
+            slo, shi = HABIT.get(sp, (None, 0, 0, 0, 0.82, 1.12))[4:6]
+            squash = slo + det01(lon, lat, "sq") * (shi - slo)
+            rot = det01(lon, lat, "rot") * 45.0
+            lift = (0.16 if sp in ("crape", "magnolia")
+                    else (0.34 if sp in ("pecan", "cypress") else 0.28))
+            base = round(h_m * (lift + det01(lon, lat, "b") * 0.08), 2)
+            if base >= TRUNK_MIN_BASE_M:
+                keep.append({
+                    "type": "Feature",
+                    "properties": {"kind": "trunk", "h": round(base + 0.4, 2),
+                                   "base": 0, "d": d, "src": "plant"},
+                    "geometry": {"type": "Polygon",
+                                 "coordinates": [square(lon, lat,
+                                                        max(0.25, r_m * 0.075))]},
+                })
+                made_trunks += 1
+            keep.append({
+                "type": "Feature",
+                "properties": {"kind": "canopy", "h": round(h_m, 2), "base": base,
+                               "d": d, "leaf": leaf, "sp": sp, "src": "plant",
+                               "r0": round(r_m, 2)},
+                "geometry": {"type": "Polygon",
+                             "coordinates": [octagon(lon, lat, r_m, squash, rot)]},
+            })
+        print("      %d of them tall enough to draw a trunk" % made_trunks)
 
     # 2. MERGE existing tiers back into one crown each. Without this the pass is
     #    not idempotent: the previous version's two-tier crowns would each be

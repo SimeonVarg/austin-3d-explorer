@@ -76,6 +76,45 @@ DEFAULT_SURFACE = {
     "garden": "gardenlawn",
 }
 
+# ------------------------------------------------------------- lawn tone --
+#
+# "Make south mall more vibrant and saturated. Lawns like that throughout the
+# project should be more saturated."
+#
+# ONE TABLE, and it is the whole knob: which palette entry each kind of green
+# is painted from. Set a row back to "grass" and that class is exactly what it
+# was before this pass; empty the table and the pass is a no-op.
+#
+# WHY IT IS A RECLASSIFICATION AND NOT A SATURATION MULTIPLIER, which is what
+# he actually asked for and is worth being straight about. Ground colour lives
+# entirely in the `SURF` palette in js/ground.js, keyed on this `s` value —
+# `matchExpr` is `['match', ['get','s'], 'grass', '#8fa869', ...]` and there is
+# no data-driven colour channel at all. js/ground.js is not this lane's file
+# this round, so the only lever the data side owns is WHICH existing entry a
+# polygon points at. Measured off the palette, sorted by HSL saturation:
+#
+#     grass       #8fa869   S 0.266   luma 153    <- what every lawn was
+#     gardenlawn  #7d9c5c   S 0.258   luma 140
+#     turf        #4f7a3c   S 0.341   luma 102    <- the most saturated green
+#
+# So `turf` is the answer to "more saturated" and it is also darker, which on a
+# mown ceremonial lawn is right — a watered, edged, shaded mall panel IS deeper
+# than rough grass, and it is the tone the practice fields already read as in
+# the frame. The real fix, a saturation multiplier over the whole green band,
+# is one line in js/ground.js and is written up in HANDOFF for that lane.
+LAWN_TONE = {
+    # A mown panel: the malls, the quads, the medians. The thing he named.
+    "lawn": "turf",
+    # A park is bigger, rougher and further from a mower. One step, not two, so
+    # the malls still read as the most tended green in the frame.
+    "park": "gardenlawn",
+    # Deliberately NOT here: `pitch` (the stadium and the practice fields are
+    # the mac lane's picture), `scrub` and `wood` (the creek corridor's three
+    # planting zones are separated BY their colours -- see js/ground.js SURF --
+    # and pushing one of them moves it onto another), `garden` (already on its
+    # own entry) and `endzone` (burnt orange, not green).
+}
+
 # Drawn width in metres for paths OSM does not measure. GENERATIVE.
 DEFAULT_WIDTH = {
     "footway": 2.4, "steps": 3.0, "cycleway": 2.2, "path": 1.5, "pedestrian": 6.0,
@@ -1456,6 +1495,265 @@ def plant_gardens(feats, stats, warnings):
     return feats
 
 
+# -------------------------------------------------- the boulevard medallions --
+#
+# "the grass median on the road south of the fountain has cool designs add them
+# (the circles have stars on them)"
+#
+# THE ROAD SOUTH OF THE FOUNTAIN IS UNIVERSITY AVENUE, NOT 21st. Worth writing
+# down because the brief that reached this lane said 21st and it is wrong, and
+# rebuilding the wrong median would have been silent. Littlefield Fountain sits
+# at -97.73961, 30.28390. 21st runs east-west PAST the fountain; the road that
+# runs SOUTH out of it is University Avenue, and OSM has it as two `oneway=yes`
+# carriageways 12 m apart (ways 25908905 / 124953129 / 124953703 / 842374750 /
+# 842374751) with eight `landuse=grass` panels strung between them, 80 to 500 m2
+# each, from 30.2816 up to 30.2839. Those eight panels ARE the median, they are
+# already in this file, and they are eight blank green rectangles.
+#
+# WHAT IS GENERATIVE HERE, stated plainly because the truth rule at the top of
+# this file demands it: the medallions' POSITIONS are derived from OSM (the
+# median panel's own minimum rotated rectangle, spaced along its long axis) but
+# they are not surveyed — OSM does not map paving inlay. Their FORM is ours.
+# This is the second generative-position source in the ground bake after the
+# precinct lawns, and like those it is derived from mapped geometry rather than
+# drawn freehand: move the median in OSM and the medallions move with it.
+#
+# The corridor is found from the road NAME, not from a bounding box, so a
+# re-bake that shifts the median by a metre still finds it.
+MEDALLION = {
+    # Which boulevards get laid out. A name, because the median panels are
+    # unnamed and a bbox would be a guess that silently rots.
+    "roads": ("University Avenue",),
+    # How far a carriageway may be and still count as flanking a panel. The two
+    # University Avenue centrelines are 12 m apart, so each is ~6 m off the
+    # median's spine; 16 m leaves room for a wide panel without reaching the
+    # next street over.
+    "between_max_m": 16.0,
+    # Centre-to-centre along the panel's long axis. 22 m gives the two 34 m and
+    # 50 m panels two medallions each and the short ones one apiece.
+    "spacing_m": 22.0,
+    # Disc radius as a fraction of the panel's HALF-WIDTH, so a narrow strip
+    # never gets a medallion wider than the grass it sits in.
+    "disc_frac": 0.62,
+    "disc_min_r": 1.5,          # under this it is a smudge; skip the panel
+    "disc_max_r": 4.0,
+    "edge_clear_m": 0.6,        # a disc must sit this far inside the grass
+    # The star inside the disc. `waist` is the inner/outer radius ratio of a
+    # regular five-pointed star (1/phi^2 = 0.382); anything larger reads as a
+    # pentagon and anything smaller as a splat.
+    "star_frac": 0.72,
+    "star_waist": 0.382,
+    # TASTE, both of them, and one edit each. The disc is pale stone against
+    # grass; the star is the inlay. `brick` reads as inlaid stone and lands 121
+    # luma below the disc, which is unmissable from the air. Swap the star to
+    # `endzone` for burnt orange if he wants it louder.
+    "disc_surface": "limestone",
+    "star_surface": "brick",
+    # A 3 m disc simplified at the creek's 0.5 m comes out a triangle. Same
+    # lesson as GARDEN["simplify_m"].
+    "simplify_m": 0.08,
+}
+
+
+def _star_ring(cx, cy, r, waist, points=5):
+    """A regular star centred on (cx, cy) in metres, one point due NORTH."""
+    ring = []
+    for i in range(points * 2):
+        rad = r if i % 2 == 0 else r * waist
+        # +90 deg puts vertex 0 on +y, which is north in the metric frame.
+        a = math.radians(90.0 + i * (180.0 / points))
+        ring.append((cx + rad * math.cos(a), cy + rad * math.sin(a)))
+    return ring
+
+
+def lay_median_medallions(feats, stats, warnings):
+    """Star medallions down the grass median of the named boulevards."""
+    try:
+        from shapely.geometry import LineString, Polygon
+        from shapely.ops import unary_union
+    except ImportError:
+        warnings.append("shapely not installed: median medallions NOT laid")
+        return feats
+
+    lines = []
+    for el in load("roads"):
+        t = el.get("tags", {}) or {}
+        if (t.get("name") or "") not in MEDALLION["roads"]:
+            continue
+        g = el.get("geometry") or []
+        if len(g) < 2:
+            continue
+        lines.append(LineString([(p["lon"] * _KX, p["lat"] * M_LAT) for p in g]))
+    if not lines:
+        warnings.append("MEDALLION: no roads named %s in the cache -- NO medians laid"
+                        % (MEDALLION["roads"],))
+        return feats
+
+    # A PANEL IS A MEDIAN IF IT HAS A CARRIAGEWAY ON BOTH SIDES OF IT, and this
+    # is the whole selection rule. The first cut took the convex hull of every
+    # way of that name instead, and it was wrong in a way worth recording: OSM
+    # carries University Avenue in TWO separate dual-carriageway stretches, one
+    # south of the fountain (30.2811-30.2836) and one north of Dean Keeton
+    # (30.2875-30.2953), so their joint hull spanned the mile between them and
+    # laid medallions down the middle of the SOUTH MALL and the MAIN MALL. A
+    # hull over a disconnected corridor is not the corridor.
+    #
+    # The test is orientation-free: take the nearest point on each of the two
+    # closest centrelines, and require them to lie on OPPOSITE sides of the
+    # panel's centroid (their offsets have a negative dot product). Two
+    # carriageways flanking a median pass; a single street running past a lawn
+    # fails, and so do two colinear halves of one street, because both of their
+    # nearest points are in the same direction.
+    panels = []
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "area" or p.get("u") not in ("lawn", "park"):
+            continue
+        if f["geometry"]["type"] != "Polygon":
+            continue
+        q = _poly_m(f["geometry"])
+        if q is None or q.is_empty:
+            continue
+        c = q.centroid
+        near = sorted(((ln.distance(c), i) for i, ln in enumerate(lines)))[:2]
+        if len(near) < 2 or near[1][0] > MEDALLION["between_max_m"]:
+            continue
+        va, vb = (lines[i].interpolate(lines[i].project(c)) for _, i in near)
+        if ((va.x - c.x) * (vb.x - c.x) + (va.y - c.y) * (vb.y - c.y)) >= 0:
+            continue
+        panels.append(q)
+    if not panels:
+        warnings.append("MEDALLION: roads found but no lawn panel sits between "
+                        "two of their carriageways -- NO medallions laid")
+        return feats
+    stats["median_panels"] = len(panels)
+
+    for q in panels:
+        rect = q.minimum_rotated_rectangle
+        rc = list(rect.exterior.coords)[:4]
+        e0 = math.hypot(rc[1][0] - rc[0][0], rc[1][1] - rc[0][1])
+        e1 = math.hypot(rc[2][0] - rc[1][0], rc[2][1] - rc[1][1])
+        if e0 >= e1:
+            L, W = e0, e1
+            ux, uy = (rc[1][0] - rc[0][0]) / e0, (rc[1][1] - rc[0][1]) / e0
+        else:
+            L, W = e1, e0
+            ux, uy = (rc[2][0] - rc[1][0]) / e1, (rc[2][1] - rc[1][1]) / e1
+        r = min(MEDALLION["disc_max_r"], (W / 2.0) * MEDALLION["disc_frac"])
+        if r < MEDALLION["disc_min_r"]:
+            stats["medallion_panel_too_narrow"] += 1
+            continue
+        n = max(1, int(round(L / MEDALLION["spacing_m"])))
+        cx0, cy0 = rect.centroid.x, rect.centroid.y
+        room = q.buffer(-(r + MEDALLION["edge_clear_m"]))
+        for i in range(n):
+            t = ((i + 0.5) / n - 0.5) * L
+            cx, cy = cx0 + ux * t, cy0 + uy * t
+            from shapely.geometry import Point
+            if room.is_empty or not room.contains(Point(cx, cy)):
+                stats["medallion_no_room"] += 1
+                continue
+            disc = Point(cx, cy).buffer(r, quad_segs=16)
+            star = Polygon(_star_ring(cx, cy, r * MEDALLION["star_frac"],
+                                      MEDALLION["star_waist"]))
+            _emit(feats, disc,
+                  {"k": "area", "u": "medallion", "s": MEDALLION["disc_surface"],
+                   "src": "median"},
+                  stats, "median_medallion", 1.0,
+                  simplify_m=MEDALLION["simplify_m"])
+            _emit(feats, star,
+                  {"k": "area", "u": "star", "s": MEDALLION["star_surface"],
+                   "src": "median"},
+                  stats, "median_star", 0.3,
+                  simplify_m=0.0)      # a star is all corners; do not simplify
+    return feats
+
+
+def tone_lawns(feats, stats):
+    """Repaint every green class named in LAWN_TONE. See the table for why.
+
+    Runs LAST, after every pass that keys off `s`: classify_water reads it, the
+    creek corridor reads it, and plant_gardens reads `u:'garden'`. Doing this
+    early would have the medallion pass hunting for `s:'grass'` panels that no
+    longer say grass.
+    """
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "area":
+            continue
+        want = LAWN_TONE.get(p.get("u"))
+        # Only ever repaints a polygon that is currently plain `grass`. A pitch
+        # that came in tagged `artificial_turf`, or a lawn the creek pass has
+        # already moved to `scrub`, keeps what it was given.
+        if not want or p.get("s") != "grass" or want == "grass":
+            continue
+        p["s"] = want
+        stats["toned_" + p["u"] + "_to_" + want] += 1
+    return feats
+
+
+# ------------------------------------------------------- flagpole plinths --
+#
+# "the area in front of UT tower looks bland - see whats here and add it."
+#
+# WHAT IS ACTUALLY THERE, checked before drawing: the two flagpoles. OSM has
+# them as nodes 3600938144 (United States, -97.73985, 30.28539) and 3600938143
+# (Texas, -97.73908, 30.28532), one standing in each of the Main Mall's two
+# grass panels, and they are the tallest things on the mall after the Tower.
+# Twelve `man_made=flagpole` nodes exist in the cache; this plinths every one
+# that stands in a mapped soft surface, which is a rule rather than a hand-pick.
+#
+# THE POLE ITSELF IS NOT THIS LANE'S — it belongs in data/props.geojson. What
+# ground can carry is the stone base every one of them stands on, which is real,
+# is ground, and is what makes a blank lawn panel read as designed. Written down
+# here so whoever owns props knows the plinths are waiting for their poles.
+PLINTH = {
+    "r_m": 2.2,                 # radius of the stone base
+    "surface": "limestone",
+    "hosts": ("lawn", "park", "garden", "plaza"),
+    "simplify_m": 0.08,
+}
+
+
+def lay_flagpole_plinths(feats, stats, warnings):
+    """A stone base under every flagpole that stands in a mapped surface."""
+    try:
+        from shapely.geometry import Point
+    except ImportError:
+        warnings.append("shapely not installed: flagpole plinths NOT laid")
+        return feats
+
+    poles = [(el["lon"], el["lat"]) for el in load("furn_vertical")
+             if (el.get("tags", {}) or {}).get("man_made") == "flagpole"
+             and el.get("lon") is not None]
+    if not poles:
+        warnings.append("PLINTH: no man_made=flagpole nodes in the cache")
+        return feats
+    stats["flagpoles_in_cache"] = len(poles)
+
+    hosts = []
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "area" or p.get("u") not in PLINTH["hosts"]:
+            continue
+        if f["geometry"]["type"] != "Polygon":
+            continue
+        q = _poly_m(f["geometry"])
+        if q is not None and not q.is_empty:
+            hosts.append(q)
+
+    for lon, lat in poles:
+        pt = Point(lon * _KX, lat * M_LAT)
+        if not any(h.contains(pt) for h in hosts):
+            stats["flagpole_not_in_a_surface"] += 1
+            continue
+        _emit(feats, pt.buffer(PLINTH["r_m"], quad_segs=12),
+              {"k": "area", "u": "plinth", "s": PLINTH["surface"],
+               "src": "flagpole"},
+              stats, "flagpole_plinth", 1.0, simplify_m=PLINTH["simplify_m"])
+    return feats
+
+
 # ---------------------------------------------------------- precinct lawns --
 #
 # "austin building by ellsworth has chromatic circle of glass can you add that
@@ -2371,6 +2669,17 @@ RANK = {
     ("area", "garden"):         24,
     ("area", "wood"):           20,
     ("area", "scrub"):          18,
+    # A medallion is cut out of the median it sits in, and the star is cut out
+    # of the medallion. Same argument as the planting bed above -- small and
+    # specific beats large and generic -- and they sit low in the ladder on
+    # purpose: both are DERIVED from the lawn, so anything that outranks the
+    # lawn (a walk, a carriageway, a bed) must also take them, or a medallion
+    # would end up floating across a crossing.
+    ("area", "star"):           16,
+    ("area", "medallion"):      14,
+    # The stone base a flagpole stands on. Above the lawn for the same reason;
+    # below the medallion only because nothing ever asks them to compete.
+    ("area", "plinth"):         13,
     ("area", "lawn"):           12,
     ("area", "park"):           10,   # the biggest, most generic container
 }
@@ -2904,6 +3213,14 @@ def main():
     # note about buffering the path lines by hand).
     feats = plant_gardens(feats, stats, warnings)
 
+    # BOTH BEFORE THE RESOLVER, which is the point of them: a medallion is a
+    # disc laid IN a median panel and a star is laid in the medallion, so the
+    # rank ladder is what cuts the grass out from under the stone. Emit these
+    # after the resolver and you get three coincident surfaces z-fighting in
+    # the middle of a boulevard, which is the defect PR #78 exists to prevent.
+    feats = lay_median_medallions(feats, stats, warnings)
+    feats = lay_flagpole_plinths(feats, stats, warnings)
+
     # The roads are baked BEFORE the ground is resolved now, because the
     # carriageway is one of the surfaces competing for the ground and the
     # resolver needs its geometry. bake_roads() itself is unchanged and still
@@ -2945,6 +3262,10 @@ def main():
     # actually kept rather than the raw buffered corridor.
     feats += widen_roads(road_feats, stats, warnings,
                          keep_out=pedestrian_mall_union(feats, stats))
+
+    # LAST, and only a colour: see tone_lawns' docstring for why it cannot run
+    # earlier. Nothing downstream of here reads `s`.
+    feats = tone_lawns(feats, stats)
 
     # Draw order: big areas first, then small areas on top of them, then paths
     # over everything. Without the size term a 30,000 m2 lawn painted over the
