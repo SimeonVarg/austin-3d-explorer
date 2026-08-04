@@ -1,5 +1,160 @@
 # Austin 3D Explorer — Full Handoff
 
+## 62. Aug 4 2026 — the UT Tower's night glow: the shaft was inside the Main Building (acer lane)
+
+**Branch:** `acer/tower-night-glow`, **PR #124**, merged. **QUEUE H1**, all five
+faults. Files: `js/tower.js`, `js/night.js`,
+`scripts/verify/shots-towerglow.json`, `shots/h1-tower-night/`.
+
+> *"at night, UT tower finally glows but its weird - the bottom part of the
+> illuminated prism glitches with the nonlit part they overlap and movement
+> triggers a glitch ... the main prism gradient is too severe it goes into
+> basically black ... a bit too red should be burnt orange. The top is fine. Is
+> there a way that this can actually be light instead of a colored surface? the
+> base around it is too dark."*
+
+### The bug: the shaft IS the Main Building's north projection
+
+Not a prism standing on it — **the same walls.** The shaft ring and the
+`mb-base`/`mb-piano`/`mb-entab` ring share three corners:
+
+```
+shaft                       mb-entab                    apart
+-97.7394917 30.2861886      -97.7394917 30.2861886      0     m
+-97.7392579 30.2861713      -97.7392579 30.2861707      0.067
+-97.7392393 30.2863578      -97.7392393 30.2863577      0.011
+-97.7394731 30.2863751      -97.7394732 30.2863751      0.010
+```
+
+**7 cm apart is worse than exactly coincident.** At 200-600 m it is far inside
+depth resolution so the faces tie, but the wedge is not parallel, so which one
+wins changes with the view ANGLE — which is the whole of "movement triggers
+it". The bake ships the tie 5.2 m deep (shaft base 15.0 vs `mb-piano` 6.8-17.2
+and `mb-entab` 17.2-20.2), and one of the two surfaces is the brightest thing
+on the building while the other is near-black.
+
+Fixed in geometry: `unstackShaft()` in `js/tower.js` lifts the shaft's base at
+load to the top of the courses it shares a footprint with, which is 20.2 —
+exactly `LEVELS.shaft.z0`, the roof the base floods stand on. Nothing is lost;
+every square metre removed was coincident with a wall drawn in the same place.
+**In JS, not in `data/tower.geojson`**, because this lane does not own
+`scripts/bake_tower.py` and a value edited into a baked file dies at the next
+bake. Idempotent, logs what it removed, reports on `window.__towerShaftBase`.
+
+**REQUEST TO WHOEVER OWNS `scripts/bake_tower.py`:** emit the shaft with
+`base: 20.2` and make the three shared corners bit-identical to the Main
+Building's. The load-time lift then finds nothing to do.
+
+### The gradient and the colour, sampled before changed
+
+Vertical scan up the north face at tod 0.95, `x=786`:
+
+```
+              before                        after
+top      (10,  6,  6) hue  0 luma 11.6   (42, 23, 10) hue 24.4 luma 26.1
+middle   (68, 17, 15) hue  2 luma 27.7   (63, 34, 13) hue 25.2 luma 38.6
+bottom   (112,40, 28) hue  9 luma 54.4   (97, 57, 18) hue 29.6 luma 62.7
+```
+
+`#BF5700` is hue 27.3. Three changes and they interlock:
+
+- **`gain` 1.63 -> 1.00.** The over-drive existed on the belief that "the part
+  you can SEE starts at z 29 (the Main Building hides the rest)". **That is
+  false for this face** — the north projection tops out at the entablature,
+  20.2, which is the lamp datum, so the shaft is visible from the datum up and
+  the over-drive only bought a 9.7 m clipped plateau. Clipped it measured
+  screen R 112-114; unclipped at gain 1.00 it measures 113, because 252 x the
+  0.45 render gain IS 113. It was buying nothing.
+- **`dim` clamps the TRIPLE, not each channel.** A per-channel clamp crushes
+  only the brightest channel, so an over-driven orange keeps all its green and
+  rotates toward yellow exactly where the wash is strongest. Visible in the
+  before scan: R flat at 112, 112, 114 while G climbed 34 -> 40 -> 48.
+- **`floor` 0.115 -> 0.30 plus `soft: true`.** A CLAMPED floor is flat wherever
+  it binds, and on the shaft it bound at z 39.8 — 19.6 m up a 46 m band, so 58%
+  of the Tower was one value. A soft floor ADDS: `floor + (1-floor)*exp(...)`.
+  That is also the more honest model, because ambient and skyglow do not switch
+  on at a height. `washEdges` now inverts through `invWashAt` so the band edges
+  still land at equal wash ratios.
+- **`o` [252,62,32] -> [252,134,22].** Screen = texel x **(0.45, 0.47, 0.72)**,
+  three per-channel gains measured off the two scans. Per-channel because the
+  night light `#9aa6da` is blue and blue gets 1.42x red's gain — the same trap
+  the dial hex documents. **Write those three numbers down; they invert any
+  wanted screen colour on this building in one step.**
+
+`soft` is PER LEVEL and only the shaft sets it, because "the top is fine" —
+softening the deck/belfry/cap floors would brighten the crown 1.3-1.6x.
+
+### The base, and the answer to "can this actually be light"
+
+**No.** MapLibre has one global directional light, no point lights and **no
+emissive term** in the fill-extrusion shader; a lit face tops out near 103/255
+here and `js/graphics.js` thresholds its bloom with `contrast(4)` at 0.375, so
+103/255 = 0.40 sits ON the line and the halo moves 0.2 of one level across the
+whole range from `#040404` to `#ffffff`. Three substitutes exist:
+
+1. **Glow sprite behind the tower — REJECTED.** A symbol is screen-space: no
+   occlusion, so it draws over or under everything depending on layer order,
+   and it is sized in pixels so it swims against the building as you fly. A
+   decal on the lens, not light in the city.
+2. **Lit ground pool — TAKEN.** `TOWER_POOL` in `js/night.js`: one point, one
+   circle layer, 115 m ground radius, `circle-pitch-alignment: map`, inserted
+   under the building extrusions so the Main Building occludes its middle.
+3. **Brighter neighbours — TAKEN,** as `NIGHT.BASE` in `js/tower.js`. 96 x
+   1000 W stand on the Main Building's roof pointing up, so the attic, tile
+   roofs and entablature take the backspill: a wash centred ON the lamp line
+   (20.2) dying out BOTH ways with L 7.5 — entab 0.82, attic 0.75, roofs 0.42,
+   piano nobile 0.34, ground storey 0.11. A lit plinth, not a lit box. The old
+   `#12101c` was blue-black which the blue night light made bluer still; the
+   new ambient is warm-neutral `[49,43,31]`. **Main Building mean luma 10.3 ->
+   21.6.**
+
+Three `mb-` parts shared the `twplain` image and now hold three different
+values, so they take `parent~part` ids the way the shaft sub-bands do —
+`collectPatterns` keeps the FIRST trio it sees for an id, so without this the
+1.6 m pavilion walls would have been painted with the entablature's spill.
+58 -> 66 pattern images.
+
+### Two things that did not work, and both looked like success
+
+- **The corner test compared `toFixed(7)` coordinate strings.** The rings are
+  7 cm apart, so it matched nothing, `unstackShaft` silently did nothing, and
+  the after-shots looked plausible. The test is metric now (0.5 m tolerance —
+  two orders above the 7 cm and two below the 20 m to any other corner).
+- **A TDZ on `mid` made `relightNight` THROW.** The scene did not break: every
+  feature simply kept the bake's flat night hexes, which look like a plausible
+  lit tower, and a whole round of before/after screenshots was taken of code
+  that had never run. The old `console.warn` was in the log the whole time.
+  **The catch now logs at `console.error` and records
+  `window.__towerNight = { failed }`.** If a night pass ever looks like it did
+  nothing, read that first.
+
+### Verification, and one instrument that did NOT catch this
+
+- **`zfight.mjs` found nothing, before or after.** The overlapping band is
+  ~10 px tall at the poses that frame the tower, and swiftshader resolves the
+  tie the same way every frame, so the A-B-A discriminator never fires. **The
+  reproduction that works here is arithmetic** — read the rings. `coplanar.mjs`
+  cannot see it either: it only compares TOP faces.
+- `tower-check.mjs` 16 pass, **2 FAIL that are identical on `main`** with a
+  byte-identical width profile: `belfry/shaft` 0.251 and `cap/shaft` 0.160. The
+  isolated silhouette render measures the MAIN BUILDING as "the shaft" (187 px
+  against the shaft's real 57), so those two ratios have never measured what
+  they claim. **Pre-existing, not mine, still open.**
+- `tower-perf.mjs`: +0 dropped frames, detail on/off.
+- Day was LOOKED at: junction comb gone, nothing missing.
+- **A whole-frame pixel diff of the day A/B is worthless in this repo right
+  now** — three agents share one working tree, and `js/facades.js` changed
+  between my two runs, which put 33% of the frame in the diff. Crop and look.
+- **The shared working tree also moved my branch under me.** Another lane ran
+  `git checkout -b` while I was verifying, so `git push -u origin <branch>`
+  pushed the wrong ref. `git push origin <sha>:refs/heads/<branch>` is the way
+  out; check `git branch --show-current` before every push.
+
+Pictures: `shots/h1-tower-night/` (close, base, mall, southmall, plus the
+junction crops that show the comb by night and by day).
+
+---
+
 ## 61. Aug 3 2026 — the wall was never the building's, so Jester and Gregory Gym got authored elevations (acer lane)
 
 **Branch:** `acer/jester-greg-facades`. **QUEUE PART G**, applied to **C1** and
