@@ -194,11 +194,76 @@
     // bright stroke round it. That is the whole of "sidewalks look like
     // ducttape": not the colour, the absence of any surface at all.
     pathTexture: true,
-    pathTexTile: 44,        // px of screen per slab-and-joint tile
-    pathTexSlabs: 3,        // slabs across the tile; more = finer joint spacing
+    // ── Scored concrete, ONE TILE PER DIRECTION (I1) ──────────────────
+    //
+    // "sidewalks look like bathroom tiles. looks like its all one huge tile
+    //  floor and the sidewalks just reveal a portion of that one floor."
+    //
+    // The old tile was a SQUARE GRID and a fill-pattern is anchored in tile
+    // space, so it was one lattice laid over the whole city that every walk
+    // cut a window into: two walks that never touch shared joint lines, a
+    // walk running north-east wore joints running north and east, and a
+    // square cell is what a tiled floor IS. Both halves of that were true and
+    // both are gone.
+    //
+    // What replaced it: bars, not a grid, running ACROSS the direction of
+    // travel the way real scored concrete does -- and `fill-extrusion-pattern`
+    // picking a pre-rotated tile PER FEATURE off `o`, which
+    // scripts/bake_ground.py bakes by cutting the walk area into regions of
+    // constant direction. The joints now belong to the path.
+    //
+    // The angles are integer vectors (a,b) and that is a hard constraint, not
+    // a taste value: phase = frac((a*x + b*y) * k / T) is exactly periodic on
+    // the tile for ANY integers a,b,k, so the bars close on the tile edge with
+    // no seam. Any other angle leaves a phase jump at every tile boundary,
+    // which draws its own grid over the city -- the bug being fixed. Must
+    // match WALK_ANG in scripts/bake_ground.py, in the same order.
+    pathSlabAngles: [[1, 0], [2, 1], [1, 1], [1, 2],
+                     [0, 1], [-1, 2], [-1, 1], [-2, 1]],
+    // Two parallel walks either side of a street land in the same angle bucket.
+    // With one tile per angle their joints would line up across the road, which
+    // is the reported defect in miniature, so each walk also draws a variant:
+    // the same bars at a different phase and a slightly different pitch.
+    // Lengths must match WALK_VARIANTS in scripts/bake_ground.py.
+    //
+    // TWO, NOT THREE, AND THE REASON IS MEASURED. Every distinct pattern in a
+    // data-driven `fill-extrusion-pattern` costs its own draw call per tile.
+    // At the campus pose, median frame time went 28.3 ms with this layer hidden
+    // -> 28.7 ms with one constant tile -> 34.9 ms with twenty-four. The
+    // geometry is 0.4 ms of that and the pattern switching is six. Sixteen
+    // tiles put the layer back level with the square grid it replaced (32.4 ms
+    // on main) while still breaking the phase between neighbouring walks.
+    // A third variant is a one-line edit here plus a re-bake, and it costs
+    // about two milliseconds a frame.
+    pathSlabPhase: [0.0, 0.45],
+    pathSlabPitchVar: [0, 1],   // added to the band count; +1 = finer
+    pathSlabTile: 64,       // texels (and css px) per tile
+    // OVER-SCALE, DECLARED, like the Speedway brick and the lane markings. A
+    // real slab is 1.5 m. A fill-pattern is measured in SCREEN pixels, so at
+    // the altitude this app flies a 1.5 m slab is under a pixel and the joints
+    // alias into a grey smear. 8 px is about 4 m of ground at z17 -- 2.7x
+    // over-scale, against the old grid's 5x, and small enough that a 2.4 m walk
+    // shows a joint about every one and a half of its own widths, which is what
+    // a walk looks like.
+    pathSlabPx: 8,          // screen px between joints, nominal
+    pathSlabJoint: 0.11,    // fraction of a slab that is the scored groove
+    // The trowelled lip on the far side of the groove. KEEP IT QUIET. A dark
+    // line with a bright edge beside it is what a plank looks like, and a field
+    // of planks is the next analogy in the series. A scored groove in concrete
+    // is a groove: mostly the dark, barely any lip.
+    pathSlabShoulder: 0.07,
+    pathSlabShoulderLight: 0.035,
+    // PANEL TO PANEL VARIATION IS MOST OF WHAT SELLS IT. A poured slab is a
+    // separate pour from its neighbour and never quite matches it; a field of
+    // identical panels reads as a printed sheet however good the joint is.
+    pathSlabPanelVar: 0.075,
     pathTexOpacity: 0.46,
     pathTexNightFade: 0.5,
-    pathJointDark: 0.30,    // how dark a scored joint reads, 0..1
+    // How dark a scored joint reads, 0..1. Lower than the old grid's 0.30 on
+    // purpose: bars carry twice the ink of a grid over the same walk, because
+    // every joint now crosses the full width instead of half of them running
+    // along it, so the same number reads twice as loud.
+    pathJointDark: 0.22,
 
     // ── Texture ───────────────────────────────────────────────────────
     // MEASURED (scripts/verify/pattern-scale.mjs): fill-pattern is anchored in
@@ -317,7 +382,12 @@
                     water: 'gnd-tex-water', paving: 'gnd-tex-paving',
                     canopy: 'gnd-tex-canopy' };
   const HERRING_IMG = 'gnd-tex-herringbone';
-  const WALK_IMG = 'gnd-tex-walk';
+  // One image per (angle, variant). `o` on a k:'pathslab' feature indexes this
+  // list directly: o = angle * pathSlabPhase.length + variant, which is the
+  // same arithmetic scripts/bake_ground.py does when it emits the feature.
+  const WALK_IMG = o => 'gnd-tex-walk-' + o;
+  const walkImgCount = () =>
+    GROUND.pathSlabAngles.length * GROUND.pathSlabPhase.length;
 
   // ── Surface palettes, per hour ──────────────────────────────────────
   // Chosen against the protected palette: terracotta roofs over tan/olive
@@ -915,63 +985,98 @@
   }
 
   /**
-   * SCORED CONCRETE, as pure ALPHA — the sidewalk's own grain.
+   * SCORED CONCRETE — BARS ACROSS THE WALK, one pre-rotated tile per direction.
    *
-   * "sidewalks in campus look like ducttape ... maybe a few shading or texture
-   * things". They looked like tape because they had NO texture: `ground-texture`
-   * filters `k:'area'`, so every lawn, plaza and parking lot wore a grain and
-   * every single walk was a flat fill with a bright stroke round its edge. The
-   * missing thing was not a better colour, it was a surface.
+   * "sidewalks look like bathroom tiles. looks like its all one huge tile floor
+   * and the sidewalks just reveal a portion of that one floor. At first it
+   * looked like tape now it looks like bathroom tiles."
    *
-   * WHY A GRID AND NOT TRANSVERSE BARS. A real walk is scored ACROSS its width
-   * every 1.2-1.8 m, so the honest tile is a set of parallel lines — but a
-   * fill-pattern is anchored in tile space, not to the feature's own axis, so
-   * parallel lines would run across the walk in one street and along it in the
-   * next. A square grid is the one scoring pattern that reads the same at every
-   * orientation, which is exactly the property this projection needs. Seen from
-   * 100-900 m it is a joint hint, and being the right SPACING matters where
-   * being correctly aligned cannot be had at all.
+   * WHAT THE OLD TILE WAS AND WHY IT READ THAT WAY. It was a SQUARE GRID, and
+   * it was chosen on purpose: a fill-pattern is anchored in tile space rather
+   * than to the feature's own axis, and a square grid is the one scoring
+   * pattern that looks the same at every orientation. That reasoning is sound
+   * and the conclusion was still wrong, because it optimised the wrong thing.
+   * A square cell IS a tile; and one lattice over the whole city means two
+   * walks that never touch share joint lines, which is exactly "one huge tile
+   * floor that the sidewalks reveal a portion of". Being orientation-agnostic
+   * was the defect, not the fix for it.
    *
-   * Per-slab lightness is hashed on the WRAPPED position, not the slab index —
-   * the same rule drawHerringbone learned, and for the same reason: hash the
-   * index and the slab clipped by the right edge disagrees with the one that
-   * continues at the left, so the tile seams draw a grid over the whole city.
+   * SO THE ORIENTATION MOVED INTO THE DATA. `fill-extrusion-pattern` is
+   * data-driven, so `['match', ['get','o'], …]` picks a different pre-rotated
+   * tile per feature, and scripts/bake_ground.py cuts the walk area into
+   * `k:'pathslab'` regions of constant direction for it to match on. The bars
+   * run across the walk; on a curve the region changes and the bars turn with
+   * it, which is what a poured radius actually looks like.
+   *
+   * PER-SLAB GEOMETRY WAS PRICED AND REJECTED, so this comment is here instead
+   * of that: 136 km of centreline at a true 1.5 m pitch is 90,600 quads and
+   * about 19 MB of GeoJSON on a 3.9 MB file.
+   *
+   * WHY THE ANGLES ARE INTEGER VECTORS. phase = frac((a·x + b·y)·k / T) is
+   * periodic on the T×T tile for ANY integers a, b, k — step x by T and the
+   * phase advances by a·k, a whole number, so the bars close on the seam
+   * exactly. At a non-integer angle they do not, and the phase jump at every
+   * tile edge draws a grid across the city: the bug, rebuilt.
+   *
+   * The canvas y axis runs SOUTH and the bake's y runs NORTH, so b is negated
+   * here and nowhere else. Get that sign wrong and 0° and 90° still look
+   * right — only the diagonals mirror — which is why the check is a photograph
+   * of a diagonal walk and not a reading of this line.
    */
-  function drawWalkSlabs(T, slabs, jointDark) {
+  function drawScoredBars(T, angIdx, variant) {
+    const ang = GROUND.pathSlabAngles[angIdx];
+    const A = ang[0], B = -ang[1];
+    const norm = Math.hypot(ang[0], ang[1]);
+    // Bands per tile edge. Integer, or the lattice does not close on the tile.
+    const k = Math.max(2, Math.round(T / (GROUND.pathSlabPx * norm))
+                          + GROUND.pathSlabPitchVar[variant]);
+    const phase = GROUND.pathSlabPhase[variant];
+    const jw = GROUND.pathSlabJoint, sh = GROUND.pathSlabShoulder;
+    const dark = GROUND.pathJointDark, pv = GROUND.pathSlabPanelVar;
+    // Panel lightness must repeat every k bands and only every k bands: stepping
+    // x by T moves the band index by a·k and y by T moves it by b·k, so any
+    // period that divides k tiles and nothing longer does.
+    const tone = new Float32Array(k);
+    for (let i = 0; i < k; i++) {
+      let s = ((i * 2654435761) ^ (angIdx * 40503) ^ (variant * 1000003)) >>> 0;
+      s = (s ^ (s >>> 13)) >>> 0;
+      tone[i] = ((((s * 1274126177) >>> 0) / 4294967296) - 0.5) * 2 * pv;
+    }
     const cv = document.createElement('canvas');
     cv.width = cv.height = T;
     const ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.clearRect(0, 0, T, T);
-    const S = T / slabs;                       // slab pitch, px
-    const JOINT = Math.max(1, S * 0.055);      // the scored line
-    const h01 = (x, y) => {
-      const xi = ((x % slabs) + slabs) % slabs, yi = ((y % slabs) + slabs) % slabs;
-      let s = (xi * 73856093) ^ (yi * 19349663);
-      s = (s ^ (s >>> 13)) >>> 0;
-      return ((s * 1274126177) >>> 0) / 4294967296;
-    };
-    // Slab faces first: a quiet ±3% so the field is not one flat sheet.
-    for (let j = 0; j < slabs; j++) for (let i = 0; i < slabs; i++) {
-      const v = (h01(i, j) - 0.5) * 0.06;
-      ctx.fillStyle = v < 0 ? `rgba(0,0,0,${(-v).toFixed(3)})`
-                            : `rgba(255,255,255,${v.toFixed(3)})`;
-      ctx.fillRect(i * S, j * S, S, S);
+    const img = ctx.createImageData(T, T);
+    const px = img.data;
+    // 3x3 supersampling. A joint is about one texel wide, and one texel wide
+    // and hard-edged is what makes a repeating line pattern crawl and alias
+    // once it is minified across a city.
+    const SS = 3, INV = 1 / (SS * SS);
+    for (let y = 0; y < T; y++) {
+      for (let x = 0; x < T; x++) {
+        let acc = 0;
+        for (let sy = 0; sy < SS; sy++) {
+          for (let sx = 0; sx < SS; sx++) {
+            const fx = x + (sx + 0.5) / SS, fy = y + (sy + 0.5) / SS;
+            const t = ((A * fx + B * fy) / T) * k + phase;
+            const band = Math.floor(t);
+            const f = t - band;
+            if (f < jw) acc += -dark;
+            else if (f < jw + sh) acc += GROUND.pathSlabShoulderLight;
+            else acc += tone[((band % k) + k) % k];
+          }
+        }
+        const v = acc * INV;
+        const i = (y * T + x) * 4;
+        const a = Math.min(1, Math.abs(v));
+        const c = v < 0 ? 0 : 255;
+        px[i] = c; px[i + 1] = c; px[i + 2] = c; px[i + 3] = Math.round(a * 255);
+      }
     }
-    // The joints. Drawn at both edges of the tile as well as inside it, so the
-    // scoring is continuous across the wrap rather than doubling at the seam.
-    ctx.fillStyle = `rgba(0,0,0,${jointDark.toFixed(3)})`;
-    for (let i = 0; i < slabs; i++) {
-      ctx.fillRect(Math.round(i * S), 0, JOINT, T);
-      ctx.fillRect(0, Math.round(i * S), T, JOINT);
-    }
-    // A faint highlight on the far side of each joint: a scored line has a
-    // shallow trowelled shoulder, and without it the grid reads as drawn-on.
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    for (let i = 0; i < slabs; i++) {
-      ctx.fillRect(Math.round(i * S) + JOINT, 0, Math.max(1, JOINT * 0.8), T);
-      ctx.fillRect(0, Math.round(i * S) + JOINT, T, Math.max(1, JOINT * 0.8));
-    }
-    speckle(ctx, T, rng(5150), 900, 0.07, 1);
+    ctx.putImageData(img, 0, 0);
+    // Aggregate. Concrete is not a flat sheet between its joints, and this is
+    // the difference between a drawn line and a poured surface.
+    speckle(ctx, T, rng(5150 + angIdx * 17 + variant), Math.round(T * T * 0.22), 0.07, 1);
     const d = ctx.getImageData(0, 0, T, T);
     return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
   }
@@ -988,12 +1093,37 @@
           GROUND.speedwayTile, GROUND.speedwayCells, GROUND.speedwayAngle));
       } catch (e) {}
     }
-    if (GROUND.pathTexture && !(map.hasImage && map.hasImage(WALK_IMG))) {
-      try {
-        map.addImage(WALK_IMG, drawWalkSlabs(
-          GROUND.pathTexTile, GROUND.pathTexSlabs, GROUND.pathJointDark));
-      } catch (e) {}
+    if (GROUND.pathTexture) {
+      const NV = GROUND.pathSlabPhase.length;
+      // A silent skew between these two lists and the bake's WALK_ANG /
+      // WALK_VARIANTS is a walk wearing another walk's joint angle, which looks
+      // like nothing in particular and so never gets reported. Say it out loud.
+      if (NV !== GROUND.pathSlabPitchVar.length) {
+        console.error('[ground] pathSlabPhase and pathSlabPitchVar must be the ' +
+                      'same length; walk scoring will be wrong');
+      }
+      for (let o = 0; o < walkImgCount(); o++) {
+        if (map.hasImage && map.hasImage(WALK_IMG(o))) continue;
+        try {
+          map.addImage(WALK_IMG(o),
+            drawScoredBars(GROUND.pathSlabTile, Math.floor(o / NV), o % NV));
+        } catch (e) {}
+      }
     }
+  }
+  /**
+   * ['match', ['get','o'], 0, img0, …, img0] — one tile per direction.
+   *
+   * The fallback is tile 0 rather than "no pattern": a `k:'pathslab'` feature
+   * whose `o` is out of range is a bake/render version skew, and an unscored
+   * walk beside a scored one is a much louder defect than a walk whose joints
+   * point the wrong way.
+   */
+  function walkPatternExpr() {
+    const e = ['match', ['get', 'o']];
+    for (let o = 0; o < walkImgCount(); o++) e.push(o, WALK_IMG(o));
+    e.push(WALK_IMG(0));
+    return e;
   }
   /** ['match', ['get','s'], …, imageName] — one tile per surface family. */
   function texPatternExpr() {
@@ -1460,15 +1590,14 @@
     if (GROUND.texture && GROUND.pathTexture && !map.getLayer(PATH_TEX)) {
       map.addLayer({
         id: PATH_TEX, type: 'fill-extrusion', source: SRC, minzoom: GROUND.minZoom,
-        // Everything walkable EXCEPT the brick mall, which has its own bond
-        // below. Steps are excluded too: they carry their own risers from
-        // data/depth.geojson and a slab grid laid over a flight reads as a
-        // fault in the stair rather than as scoring.
-        filter: ['all', ['==', ['get', 'k'], 'patharea'],
-                        ['!=', ['get', 's'], 'brickpave'],
-                        ['!=', ['get', 'u'], 'steps']],
+        // `k:'pathslab'`, not `k:'patharea'` — the direction regions, which the
+        // bake already emits only for walks that get scoring. The brick mall
+        // and the steps are excluded there rather than here now, so the filter
+        // that used to name them is gone and cannot drift out of step with the
+        // geometry it was describing.
+        filter: ['==', ['get', 'k'], 'pathslab'],
         paint: {
-          'fill-extrusion-pattern': WALK_IMG,
+          'fill-extrusion-pattern': walkPatternExpr(),
           'fill-extrusion-base': GROUND.pathRaise,
           'fill-extrusion-height': GROUND.pathRaise + GROUND.pathTexLift,
           'fill-extrusion-opacity': pathTexOpacity(p),

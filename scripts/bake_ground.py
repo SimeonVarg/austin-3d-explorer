@@ -1840,6 +1840,262 @@ def widen_paths(feats, stats, warnings):
     return kept
 
 
+# ------------------------------------------------------- scored concrete --
+#
+# "sidewalks look like bathroom tiles. looks like its all one huge tile floor
+#  and the sidewalks just reveal a portion of that one floor."
+#
+# HE DIAGNOSED IT EXACTLY, and the diagnosis is the whole design of this block.
+# The scoring was a `fill-pattern`, and a fill-pattern is anchored in TILE
+# space: one square lattice, laid over the entire city, that every walk cuts a
+# window into. Two separate walks that never touch share joint lines, and a
+# walk running north-east wears joints running north and east. That is not a
+# sidewalk, that is a floor seen through walk-shaped holes.
+#
+# A different tile image cannot fix it. THE JOINTS HAVE TO RUN ALONG EACH PATH,
+# which means the pattern's ORIENTATION has to be a property of the feature.
+# MapLibre will do that -- `fill-extrusion-pattern` is data-driven, so one
+# `['match', ['get','o'], ...]` picks a different pre-rotated image per feature
+# -- but only if the geometry is cut so that one polygon carries one direction.
+#
+# WHY NOT PER-SLAB GEOMETRY, which is the obvious honest answer. Measured:
+# 136 km of walk centreline at a real 1.5 m slab pitch is 90,600 quads, about
+# 19 MB of GeoJSON on a 3.9 MB file. It is not affordable and it was not close.
+#
+# So: cut the walk area into regions of constant DIRECTION and give each region
+# a pre-rotated bar tile. The regions are a partition -- disjoint by
+# construction -- because two overlapping translucent grain polygons composite
+# twice and every junction would wear a darker patch (the same reason
+# widen_paths unions in the first place).
+#
+# THE DECK IS NOT TOUCHED. `k:'patharea'` stays exactly one polygon set,
+# unioned per (use, surface), because the kerb is a stroke on its boundary --
+# cut the deck into direction regions and every cut draws a bright kerb line
+# straight across the middle of a walk. The scoring rides on `k:'pathslab'`,
+# which nothing strokes.
+#
+# THE ANGLES ARE INTEGER VECTORS AND THAT IS NOT ARBITRARY. A bar tile is
+# seamless on a T x T torus only if the phase is periodic in both axes, and
+# phase = frac((a*x + b*y) * k / T) is periodic for ANY integers a, b, k --
+# exactly, at every angle atan2(b, a), with no seam to hide. Pick a
+# non-integer angle and the lattice does not close on the tile and the seam
+# draws its own grid over the city, which is the bug being fixed.
+WALK_ANG = [(1, 0), (2, 1), (1, 1), (1, 2), (0, 1), (-1, 2), (-1, 1), (-2, 1)]
+# Worst-case error between a walk's true bearing and its bucket, over this set,
+# is 13.3 degrees. A joint 13 degrees off square, one to three pixels wide from
+# any altitude this app flies, is not a thing anyone can see; a joint running
+# ALONG the walk instead of across it is the first thing everyone sees.
+WALK_VARIANTS = 2        # phase/pitch variants per angle; see js/ground.js
+WALK_RUN_OVERLAP_M = 1.5  # runs overlap this far so a direction change leaves no gap
+WALK_SIMPLIFY_M = 0.20    # the region only carries a texture; its edge is under a kerb
+WALK_MIN_AREA_M2 = 1.5
+
+
+def _walk_bucket(dx, dy):
+    """Index into WALK_ANG whose direction is closest to (dx, dy), mod 180."""
+    n = math.hypot(dx, dy)
+    if n == 0.0:
+        return None
+    ux, uy = dx / n, dy / n
+    best, bi = -2.0, 0
+    for i, (a, b) in enumerate(WALK_ANG):
+        d = abs((a * ux + b * uy) / math.hypot(a, b))
+        if d > best:
+            best, bi = d, i
+    return bi
+
+
+def _walk_variant(coord):
+    """A stable 0..WALK_VARIANTS-1 for one path.
+
+    Two parallel walks on opposite sides of a street land in the SAME angle
+    bucket, and with one tile per bucket their joints would line up across the
+    road -- which is the reported defect in miniature. The variants are the same
+    bars at a different phase and a slightly different pitch, so neighbours
+    disagree. `zlib.crc32`, not `hash()`: Python salts `hash()` per process and
+    the bake has to be byte-reproducible.
+    """
+    import zlib
+    key = ("%.5f,%.5f" % (coord[0], coord[1])).encode("ascii")
+    return zlib.crc32(key) % WALK_VARIANTS
+
+
+def walk_direction_runs(feats, stats):
+    """k:'path' LineStrings -> [(o, metric polygon)], one direction each.
+
+    Run BEFORE widen_paths consumes the centrelines, and consumed AFTER the
+    resolver has finished cutting the walks -- see score_walks for why.
+    """
+    try:
+        from shapely.geometry import LineString
+    except ImportError:
+        return []
+    out = []
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+            continue
+        # Steps carry their own risers from data/depth.geojson, and a slab
+        # lattice laid over a flight reads as a fault in the stair. The brick
+        # mall has its own herringbone bond.
+        if p.get("u") == "steps" or p.get("s") == "brickpave":
+            continue
+        c = f["geometry"]["coordinates"]
+        if len(c) < 2:
+            continue
+        pts = _line_m(c)
+        var = _walk_variant(c[0])
+        half = float(p.get("w") or 2.0) / 2.0
+
+        # Vertex index ranges of constant bucket.
+        runs, i0, cur = [], 0, None
+        for i in range(1, len(pts)):
+            b = _walk_bucket(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])
+            if b is None:
+                continue
+            if cur is None:
+                cur = b
+            elif b != cur:
+                runs.append((i0, i - 1, cur))
+                i0, cur = i - 1, b
+        if cur is None:
+            continue
+        runs.append((i0, len(pts) - 1, cur))
+
+        for (a, b, bucket) in runs:
+            if b <= a:
+                continue
+            # Extend each run back and forward ALONG the polyline, so the two
+            # flat caps at a direction change overlap instead of leaving a wedge
+            # of unscored walk on the outside of every curve. The added points
+            # lie on the line itself, so the run's buffer can never reach
+            # outside the buffer of the whole line.
+            seq = pts[a:b + 1]
+            for src, dst, end in ((a, a - 1, "head"), (b, b + 1, "tail")):
+                if dst < 0 or dst >= len(pts):
+                    continue
+                x0, y0 = pts[src]
+                x1, y1 = pts[dst]
+                d = math.hypot(x1 - x0, y1 - y0)
+                if d <= 1e-9:
+                    continue
+                t = min(WALK_RUN_OVERLAP_M, d) / d
+                q = (x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)
+                if end == "head":
+                    seq = [q] + seq
+                else:
+                    seq = seq + [q]
+            poly = LineString(seq).buffer(half, cap_style=2, join_style=2,
+                                          mitre_limit=2.0)
+            if not poly.is_empty:
+                out.append((bucket * WALK_VARIANTS + var, poly))
+                stats["walk_run"] += 1
+    return out
+
+
+def _polys(g):
+    """Every Polygon inside any geometry, flattened.
+
+    THIS FUNCTION IS A BUG FIX WITH A NAME. The first cut of score_walks did
+    `g.geoms if g.geom_type.startswith("Multi") else [g]`, which is correct for
+    a MultiPolygon and silently catastrophic for a GeometryCollection -- and
+    `intersection` returns one of those the moment two polygons touch along an
+    edge, which on a network of walks is constantly. The whole collection then
+    failed the `!= "Polygon"` test and was dropped as a single sliver: the bake
+    reported 97,158 m2 of scoring where the walks cover about 320,000, and the
+    only visible symptom was that two thirds of the city's walks were bare.
+    """
+    if g is None or g.is_empty:
+        return []
+    if g.geom_type == "Polygon":
+        return [g]
+    if hasattr(g, "geoms"):
+        out = []
+        for p in g.geoms:
+            out.extend(_polys(p))
+        return out
+    return []
+
+
+def score_walks(feats, runs, stats, warnings):
+    """Emit k:'pathslab' -- the resolved walk area, cut by direction.
+
+    AFTER resolve_ground_conflicts, and that is load-bearing: the resolver cuts
+    every walk against the carriageways, so a region derived from the raw
+    buffered centrelines would hang the scoring out over the asphalt at every
+    junction. Intersecting with the walks the resolver actually KEPT is the
+    only way the grain cannot outlive the deck it stands on.
+
+    WORKED IN A LOCAL FRAME. `_poly_m` measures from the equator and the prime
+    meridian, so a campus footpath sits at (-9.38e6, 3.37e6) and every overlay
+    here spends its double precision on the first eight digits. Shifting the
+    origin to the middle of campus is free and it took this block from twelve
+    minutes to under two.
+    """
+    if not runs:
+        return feats
+    try:
+        from shapely.ops import unary_union
+        from shapely.strtree import STRtree
+        from shapely.affinity import translate
+    except ImportError:
+        warnings.append("shapely not installed: walks left with no scoring")
+        return feats
+
+    X0, Y0 = -97.7371 * _KX, 30.2849 * M_LAT     # mid-campus, metres
+    deck = []
+    for f in feats:
+        p = f["properties"]
+        if (p.get("k") != "patharea" or f["geometry"]["type"] != "Polygon"
+                or p.get("u") == "steps" or p.get("s") == "brickpave"):
+            continue
+        q = _poly_m(f["geometry"])
+        if q is not None and not q.is_empty:
+            deck.append(translate(q, -X0, -Y0))
+    if not deck:
+        return feats
+    # NOT a single union of the whole network: clipping each region against
+    # only the walk polygons its own envelope touches is the difference between
+    # one overlay of 22,000 vertices and a few hundred small ones.
+    tree = STRtree(deck)
+
+    groups = {}
+    for o, poly in runs:
+        groups.setdefault(o, []).append(translate(poly, -X0, -Y0))
+
+    acc, made, area = None, 0, 0.0
+    for o in sorted(groups):
+        g = unary_union(groups[o])
+        if acc is not None:
+            g = g.difference(acc)
+        parts = _polys(g)
+        if not parts:
+            continue
+        acc = unary_union(parts if acc is None else [acc] + parts)
+        for part in parts:
+            near = tree.query(part)
+            if len(near) == 0:
+                continue
+            clip = part.intersection(unary_union([deck[int(i)] for i in near]))
+            if WALK_SIMPLIFY_M:
+                clip = clip.simplify(WALK_SIMPLIFY_M)
+            for gm in _polys(clip):
+                if gm.area < WALK_MIN_AREA_M2:
+                    stats["pathslab_sliver_dropped"] += 1
+                    continue
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "Polygon",
+                                 "coordinates": _rings_ll(translate(gm, X0, Y0))},
+                    "properties": {"k": "pathslab", "o": o},
+                })
+                made += 1
+                area += gm.area
+    stats["pathslab"] = made
+    stats["pathslab_m2"] = round(area)
+    return feats
+
+
 # --------------------------------------------------------- road  polygons --
 #
 # "when im all the way down vertically and look at an angle towards the roads
@@ -2165,6 +2421,13 @@ def _band(p):
     # and path in the corridor would cut a tree-shaped hole out of itself and
     # RANK_DEFAULT would then delete the crown that caused it.
     if p.get("k") == "cnp":
+        return None
+    # A slab region is not ground either. It is the scoring drawn ON a walk that
+    # is already in the ladder, 20 mm above it, cut FROM the resolved walk (see
+    # score_walks) -- so it can only ever cover ground the walk already won. Let
+    # it into the band and every lawn would cut a walk-shaped hole out of itself
+    # twice, and RANK_DEFAULT would then delete the scoring that caused it.
+    if p.get("k") == "pathslab":
         return None
     # A carriageway polygon is not IN the ladder, it IS the ladder's top rung.
     # The resolver already cuts every path and lawn against the buffered
@@ -2630,6 +2893,10 @@ def main():
     feats = classify_water(feats, stats)
     feats = cut_creek_channels(feats, stats, warnings)
     feats = grow_precinct_lawns(feats, stats, warnings)
+    # BEFORE widen_paths, because widen_paths is what consumes the centrelines
+    # and a direction is a property of a LINE, not of the union of a thousand of
+    # them. Held until after the resolver; see score_walks.
+    walk_runs = walk_direction_runs(feats, stats)
     feats = widen_paths(feats, stats, warnings)
     # AFTER widen_paths on purpose: a garden's beds are derived from the
     # walks around them and paths are still LineStrings until then. The
@@ -2662,6 +2929,10 @@ def main():
     # TRUNK is the test, and a crown baked here has no trunk to test, so the
     # honest equivalent is to plant only in ground the corridor actually kept.
     feats = plant_creek_canopy(feats, stats, warnings)
+
+    # AFTER the resolver too, and for the same shape of reason: the scoring is
+    # cut from the walks the resolver KEPT, not from the raw buffered ones.
+    feats = score_walks(feats, walk_runs, stats, warnings)
 
     # AFTER the resolver, and that is the whole point: the carriageway is the
     # top rung of the ladder, so it must not be a candidate for being cut. It
