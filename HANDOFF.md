@@ -1,5 +1,159 @@
 # Austin 3D Explorer — Full Handoff
 
+## 87. Aug 4 2026 — the four generator defects behind §86, fixed in the bake (acer lane)
+
+**Branch:** `acer/entrances`, still PR #145. **Two files written:**
+`scripts/bake_entrances.py` and `data/entrances.geojson`, plus this entry. **No
+js, no html** — §86's defect 2 (the inscription drawn as a screen-space map
+label) is a renderer defect and is still open; it belongs to whoever owns
+`js/entrances.js` next. Everything §86 called good is untouched: placement,
+the OSM recovery, the celebrated table, the step vocabulary, the night pool.
+
+Setup so the numbers reproduce: `harness-drift.mjs` **PASS, 28 scripts in each
+file**, run before any pixel. `python scripts/serve.py 8241`, `shot.mjs` on
+`_harness.html?intro=0&drift=0`, 1440x900, one browser at a time, reaped and
+the server killed at the end. Poses computed from the file itself: door
+centroid, direction taken from the entrance's own STEP pieces, camera on the
+outward normal. **All ten came out on the campus grid (5/95/185/275°)**, which
+is the check that the pose is real and not a guess.
+
+### 1. PCL WAS A TABLE BECAUSE A RAISED SILL WAS AUTHORED WITHOUT EVIDENCE
+
+`before shots/entrances/day2/z-pcl-floating-doors.png` — a tan slab on two
+legs, four doors 3.68 m up a blank wall. `after shots/ent-after/z-PCL.png` — a
+canopy over a storefront at grade. **The "legs" were not legs.** They were the
+reveal's jamb returns, i.e. defect 3 seen from the front; the two defects had
+one drawing between them.
+
+Fixed generally, not for PCL. `plaza_z` is now a REQUEST, granted only if the
+repo actually draws a deck of about that height within 30 m of the door
+(`PLAZA_EVIDENCE_R`, `PLAZA_EVIDENCE_FRAC 0.60`). Evidence is read from
+`data/depth.geojson` and `data/ground.geojson` at bake time, so if a later
+ground pass ever builds PCL's plaza the exception grants itself with no edit
+here. **Printed every run: 4 requested, 0 kept, 4 dropped to ground.**
+
+**The evidence scan was wrong on its first run and the print caught it.** It
+reported "tallest deck in Austin 27.44 m" — that is `cnp`, a **live oak**.
+Reading every `h` in `ground.geojson` reads the tree canopy. Restricted to
+`bank`, and no building file is consulted at all, because a wall beside a door
+would "support" any sill you like. The tallest real deck in this repo is
+**1.65 m**. There is no 3.46 m plaza in this city, which is the whole finding.
+
+Then the general audit the brief asked for, on every entrance, in the local
+frame: **floating sills 0 of 584.** A sill that ended up lifted by a rounding
+remainder with no riser under it is now forced to 0 as well.
+
+### 2. A REVEAL IS A SIDE WALL, NOT A POST
+
+The jamb return was projected by the family's full notional `reveal_d` — 1.20 m
+on Gilbert, 1.50 m on mid-century — so it stood a metre and a half **in front
+of** the doors. `shots/entrances/day2/z-battle-portal.png` is two brown poles
+across Battle Hall's portal. A reveal lives BETWEEN the wall face and the door
+plane, so the projection is now bounded by the door plane
+(`JAMB_PROJ_MAX 0.34`) and the return sits flush INSIDE the opening instead of
+straddling its edge. The notional depth still does its work, as VALUE: the
+reveal slab is mixed toward the arcade shadow `bake_arts.py` already sampled,
+in proportion to `reveal_d`. Depth in this renderer is a colour.
+
+**The floating terracotta plank was the arch's accent band, and the bug is that
+an arch has no top to put a band on.** `top` at that point is the CROWN — one
+point — so a full-width plank was supported only where the arch happened to
+reach, hence the gap under one end. What is actually cited is *"terracotta
+concentrated at door and window surrounds"* [S] — the **spandrels**, the two
+corners between the arch and the square it sits in. Those are filled instead,
+plus a keystone. They stand on the springing and cannot float. Square-headed
+families keep the flat band, which has a real full-width top under it.
+
+### 3. THE AUDIT THAT SHOULD HAVE EXISTED IN §84, AND THE 264 IT FOUND
+
+A support test that only asks "is something directly underneath" is wrong here
+— a canopy is cantilevered and a door light is glued to its leaf. So the bake
+now floods connectivity from every piece that touches the wall or the ground
+and reports what the flood cannot reach. First run: **264 detached pieces, all
+of them `rail`** — every tube handrail in the file was hanging in mid air over
+its own flight. Posts added, +2.6% of pieces. **Detached is now 0 of 10,717**,
+and that is also how I know the plank and the two unattached lanterns are
+genuinely gone rather than merely looking better.
+
+### 4. THE MONOTONE, AND THE ONE FAMILY THAT HAD TO BE MEASURED TWICE
+
+eras.md publishes four sampled blues and then repeats the default in every
+family table; taken literally that is what produced 1,103 of 1,139 pieces in
+one cornflower. Each family now gets its own glazing, all four sampled blues
+kept as the only primaries and every family value derived from one of them by
+a stated channel operation, plus a deterministic per-BUILDING tint (never per
+piece, or one door's two leaves disagree). **20 distinct values, top share
+14.6%**, printed as a histogram every run so this cannot come back silently.
+
+**Family B was derived wrong first and only the pixels said so.** Mixing 30% of
+bronze into the default blue is the reasonable-sounding move and it landed
+`#577791`, which on the Main Building's sunlit south front renders
+**rgb(103,102,96) — dead neutral grey, spread 7**. That is the same defect as
+the night one, in daylight, on the most photographed portal on campus. What
+warms a Cret light is the bronze FRAME, which is already the leaf colour; the
+glass has to stay glass. Re-derived from the saturated blue with a much smaller
+bronze and re-measured: **rgb(79,81,89)**. Measured on screen, not read off the
+table: mid-century plate **(67,90,64) green**, Gilbert leaded **(53,61,68)**.
+
+### 5. NIGHT — AND THE ARITHMETIC BEHIND WHY WARM KEPT ARRIVING GREY
+
+The bake was writing glass `wn` at `#4f493e`: luma 74, channels within 17. That
+is not a colour anybody chose, it is what falls out of ramping a blue to night
+and nudging it toward a lamp — the Capitol pale-band signature exactly.
+
+**The reason a warm value still arrived neutral is `setLight`.** At night it is
+`{color:'#9aa6da', intensity:0.066}` and MapLibre multiplies a fill-extrusion's
+colour by that light — a BLUE light. §86's own measurement is the transfer:
+input `#ffd9a4` came back (134,121,118), i.e. about **R 0.53 / G 0.56 /
+B 0.72**. Anything warm you enter comes back a third less warm. So lit glazing
+is now entered PRE-COMPENSATED — R railed, G and B pulled down — for the same
+reason the day palette enters glass bluer than photographed. Three tones keyed
+on `eid`. The Ransom Center's beacon was cream `#e8d9ae`, and cream times a
+blue light is grey: it renders (123,122,125). Re-entered warm too.
+
+Measured at Battle, the Main Building and PCL at tod 0.92:
+**rgb(117,81,44), luma 86 against a frame median of 30**, R/B 2.66 — where §86
+measured (134,121,118), R/B 1.14. Warm, and brighter than its surround.
+`shots/ent-after/zn-BTL.png` beside `shots/entrances/night2/z-battle-night-portal.png`
+is the pair to look at: cold grey-lavender with two poles becomes a lit
+vestibule with lit lanterns, and the warm ground pool is untouched.
+
+Asserted in the bake, so it fails the run rather than the review: **no piece may
+carry a `wn` whose channels are within 14 and whose luma is 40 or over** (0),
+and **glazing must be lit (luma ≥ 150 entered) or genuinely dark (≤ 30), never
+the grey in between** (0).
+
+### WHAT DID NOT GET FIXED
+
+1. **Defect 2 is untouched.** The Main Building's inscription is still a
+   screen-space symbol label, still lands across its own doors, and still
+   appears on unrelated walls hundreds of metres away — it is visible in
+   `shots/ent-after/z-MAI.png` and again on Welch in `t-WEL.png`. It lives in
+   `js/entrances.js` and this pass may not write js. The WORDS are right; only
+   the drawing is wrong.
+2. **`js/entrances.js` now has a dead override and somebody must clear it.**
+   `ENT.glassDim` lists the four old dim hexes and re-points them at
+   `ENT.glassLitVary`. None of those hexes exists in the file any more, so the
+   expression falls through to the feature's own `wn` — which is correct and is
+   what produced the measurements above — but the list is now dead code that
+   reads as if it were doing the work. Delete it, or re-point it at
+   `GLASS_NIGHT_LIT`. Do not "restore" it: the renderer's lit tones were the
+   ones measuring neutral.
+3. **The two Gilbert lanterns still read as lozenges.** They are bracketed to
+   the wall now and they light warm at night, but they are still a rectangle,
+   not a lantern. Left alone deliberately — shape is taste and it is Simeon's.
+4. **The file grew 4.48 → 4.78 MB raw, 0.27 → 0.28 MB gzipped.** The rail posts
+   are most of it. §86's finding stands: gzipped this is a quarter of
+   `ground.geojson` and it is not urgent.
+5. **No frame-cost re-measure.** The piece count moved 10,051 → 10,717 (+6.6%)
+   and §86's measured delta was already inside its own spread, so I did not
+   re-run `places-perf.mjs`'s shape. If anybody wants the number it should be
+   4 interleaved counterbalanced reps on `index.html`, HEADED, minimum taken.
+6. **No verify script was added**, same constraint as §85 and §86: this lane's
+   writable set was the bake, its output and this entry. The assertions live
+   inside the bake instead, which is where the brief asked for them, but a
+   pixel-level `entrances-*` check still does not exist.
+
 ## 86. Aug 4 2026 — I reviewed the entrances and I am NOT merging them (acer lane)
 
 **Branch:** `acer/entrances`, **PR #145, LEFT OPEN ON PURPOSE.** Nothing was

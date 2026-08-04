@@ -150,6 +150,24 @@ FLOOR_RISE = 0.55       # m; ground floor over the path. TASTE, and the loudest
 DEFAULT_RISERS = 5      # when an adjacent OSM steps way has no step_count  [M]
 STEPS_R = 12.0          # m; a steps way this close means a real flight  [M]
 MONUMENTAL_RISE_MAX = 1.60   # m; cap on an AUTHORED family A/B rise      [A]
+# ── A RAISED SILL NEEDS EVIDENCE, and the evidence has to be geometry this
+#    repo actually draws. The first cut authored PCL's threshold one storey up
+#    ("the entrance is on the second floor, off a plaza" [S], eras.md §C) and
+#    trusted the ground pass to build the plaza. It does not. The result was
+#    four doors hanging 3.68 m in the air over a blank wall — a table, not an
+#    entrance. So: an authored `plaza_z` is now a REQUEST, granted only if a
+#    raised deck of about that height really exists near the door in
+#    data/depth.geojson or data/ground.geojson. With no evidence the sill goes
+#    to ground and the flight goes with it. A door nobody can reach is a worse
+#    drawing than a flight that is slightly wrong.
+PLAZA_EVIDENCE_R = 30.0      # m; how far from the door a raised deck may sit
+PLAZA_EVIDENCE_FRAC = 0.60   # ... and how much of the wanted rise it must reach
+FLOAT_TOL = 0.12             # m; a sill this far over its own support floats
+WALL_TOUCH = 0.05            # m; a piece whose inner face is within this of the
+                             # wall is carried BY the wall and cannot float
+TOUCH = 0.035                # m; two pieces this close are touching, for the
+                             # connectivity audit. Bigger than GLASS_PROUD 0.02
+                             # so a light counts as glued to its own leaf.
 FLIGHT_RISE_MAX = 1.10       # m; cap on a DERIVED rise. bake_depth.py's guard,
                              # which already stopped one pass shipping a 3 m
                              # staircase. Two caps because family B's authored
@@ -185,7 +203,24 @@ GLASS_PROUD = 0.02      # m the light stands PROUD of its leaf. See the header:
                         # the same idea drawn the only way this renderer allows.
 REVEAL_PROUD = 0.02     # m the shadow slab stands off the wall (z-fight guard)
 REVEAL_T = 0.06         # m; its own thickness
-JAMB_T = 0.15           # m; thickness of a jamb return                 [A]
+JAMB_T = 0.15           # m; WIDTH of a jamb return along the wall       [A]
+# ── A REVEAL IS A SIDE WALL, NOT A POST. The first cut projected the jamb
+#    return by the family's full `reveal_d` — 1.20 m on Gilbert, 1.50 m on
+#    mid-century — which put two full-height bars a metre and a half OUT IN
+#    FRONT of the doors. On Battle Hall and Sutton Hall they read as two dark
+#    free-standing poles planted across the portal. A reveal is the recessed
+#    side of the opening: it lives BETWEEN the wall face and the door plane and
+#    it is bounded by the door plane. So the projection is capped there, and the
+#    return sits flush INSIDE the opening rather than straddling its edge.
+#    The notional depth still does its work — it is read from VALUE, exactly as
+#    the reveal slab itself is, and exactly as bake_arts.py reads the Blanton
+#    arcade. Depth in this renderer is a colour, not a distance.
+JAMB_PROJ_MIN = 0.02    # m; the jamb starts at the wall face
+JAMB_PROJ_MAX = 0.34    # m; and may never pass this, whatever `reveal_d` says
+JAMB_SHADE = 0.86       # the return is this much darker than the reveal slab
+REVEAL_DEPTH_MIX = 0.30 # how far a maximally deep reveal is mixed toward
+REVEAL_DEPTH_REF = 1.50 # ... ARCH_SHADOW; `reveal_d` at or over this is full
+KEYSTONE_W = 0.55       # m; the accent keystone at an arch crown          [A]
 PROUD_DOOR = 0.08       # m; the door bank's face offset from the wall
 SIDELIGHT_MIN = 0.60    # m; leftover narrower than this is absorbed    [A]
 COLLINEAR_COS = 0.985   # cos ~10 deg; two footprint edges this parallel are one
@@ -198,6 +233,10 @@ RAIL_D = 0.10           # m; DRAWN diameter. A true 38 mm tube is sub-pixel at
                         # cruise altitude. Deliberate, parameterised over-scale
                         # — do NOT "fix" this back to 0.038.            [D]
 RAIL_SEGS = 3           # slabs a sloping rail is approximated with
+RAIL_POST_D = 0.08      # m; a handrail needs something holding it up. The
+                        # connectivity audit found 264 rail slabs hanging in
+                        # mid air over their own flights — every tube rail in
+                        # the file. Cheap to fix, +2.6% of pieces.        [A]
 RAIL_MIN_RISERS = 2     # [A] IBC wants rails at 4+; 2 so the rail reads
 CHEEK_W = 0.42          # m; solid limestone cheek instead of a tube rail [A]
 CHEEK_H = 0.60          # m over the nosing                              [A]
@@ -232,6 +271,9 @@ STEEL = "#8e969c"        # [S] bake_heroes.py nhb_steel
 STEEL_DK = "#4b4f53"     # [S] bake_heroes.py eer_steel
 CONCRETE = "#a8a49c"     # [D] cast stone cooled — mid-century concrete
 GLASS = "#4f86b4"        # [S] bake_heroes.py gdc_glass — already entered bluer
+GLASS_COOL = "#4d81ad"   # [S] bake_heroes.py eer_glass
+GLASS_SAT = "#2f5c94"    # [S] bake_heroes.py nhb_glass
+GLASS_WARM = "#6b93b6"   # [S] bake_arts.py bass_glass
 REVEAL_WARM = "#9a9082"  # [D] limestone x 0.66, entered ALREADY LIT
 REVEAL_COOL = "#74756d"  # [S] bake_heroes.py eer_soffit
 ARCH_SHADOW = "#4d4535"  # [S] bake_arts.py blanton_arc
@@ -249,11 +291,85 @@ GLASS_BY_REF = {
 }
 
 STEP_DARK_MIX = 0.72     # the nosing course is the tread colour x this  [A]
-GLASS_NIGHT_LIFT = 0.34  # how far a lit lobby light is mixed toward
-GLASS_NIGHT_TONE = "#c8a86e"   # ... this warm lamp tone at night        [A]
-HRC_NIGHT_GLOW = "#e8d9ae"     # the HRC ground floor is called "a beacon for
+LAMP_NIGHT = "#ffc25a"   # a lit lamp fixture — Battle's and Sutton's iron
+                         # lanterns. Pre-compensated like the glazing below,
+                         # for the same blue night light.                [D]
+HRC_NIGHT_GLOW = "#ffd07a"     # the HRC ground floor is called "a beacon for
                                # the campus" [C]; it gets the brightest night
-                               # value of any facade in this pass.       [A]
+                               # value of any facade in this pass. The old
+                               # #e8d9ae was cream, and cream times a blue
+                               # light is grey: it measured (123,122,125) on
+                               # screen, a beacon that was not warm at all. [D]
+
+# ══════════════════════════════════════════════════════════════════════
+#  GLAZING BY FAMILY — the fix for "97% of the glass on the Forty Acres is
+#  one cornflower blue". eras.md §3.5 publishes exactly four glass hexes,
+#  all sampled off this renderer, and it repeats the default in every
+#  family table; taken literally that is what produced the monotone. The
+#  four sampled values stay the ONLY glass primaries in the file and every
+#  family value below is DERIVED from one of them by a stated channel
+#  operation, so nothing here is an invented colour.
+#
+#  A period read, in one line each:
+#    A  Gilbert  — small leaded lights in a wooden door: dark, iron-edged
+#    B  Cret     — a large light in a BRONZE frame: the frame warms the glass
+#    C  midcent. — 1960s-70s tinted plate reads GREEN because the tint eats
+#                  blue; B is pulled down and the blue-green survives
+#    D  modern   — big low-e lites: paler, flatter, far less saturated
+#    E2 dorms    — the warm-lobby blue
+#    E4 church   — the leaded dark
+#    E5 null     — the default, and it should be dull
+# ══════════════════════════════════════════════════════════════════════
+GLASS_LEADED = None      # filled below (mix/chan are defined after this block)
+GLASS_BRONZED = None
+GLASS_PLATE = None
+GLASS_LOWE = None
+GLASS_LEAD_MIX = 0.35    # A: how far the saturated blue goes toward IRON
+GLASS_BRONZE_MIX = 0.18  # B: ... the saturated blue toward BRONZE
+GLASS_PLATE_B = 0.72     # C: the blue channel a green tint leaves standing
+GLASS_LOWE_GAIN = (1.12, 1.14, 1.03)   # D: the cool blue opened up
+
+# THE ONE THAT HAD TO BE MEASURED. The first cut derived B from the DEFAULT
+# blue and mixed 30% of bronze into it, which is the reasonable-sounding thing
+# and is wrong: it landed #577791, and on the Main Building's sunlit south
+# front that renders rgb(103,102,96) — dead neutral grey, spread 7. That is the
+# same defect as the night one, in daylight, on the most photographed portal on
+# campus. What warms a Cret light is the BRONZE FRAME around it, which is
+# already the leaf colour; the glass itself has to stay glass. Re-derived from
+# the SATURATED blue with a much smaller bronze, and re-measured on screen.
+
+# Two entrances on two different buildings in the identical blue is the other
+# half of the monotone. A deterministic per-BUILDING tint (never per piece, or
+# one door's two leaves disagree) off the family value. Set GLASS_VARY = 1 to
+# turn the whole thing off in one line.
+GLASS_VARY = 3
+GLASS_VARY_STEP = 0.07   # +/- this much of the family value
+
+# ── NIGHT. THIS IS THE CAPITOL DEFECT'S SIGNATURE AND IT MUST NOT RECUR ──
+# The first cut wrote glass `wn` at #4f493e: luma 74, channels within 17 of
+# each other. That is not a colour anybody chose, it is what falls out of
+# ramping a blue to night and nudging it 34% toward a lamp — a near-neutral
+# mid grey, which is exactly the Capitol pale-band tell. Measured on screen it
+# came back rgb(134,121,118) against a frame median of 45: a pale panel, not a
+# lit vestibule.
+#
+# THE REASON IT LANDS NEUTRAL IS THE NIGHT LIGHT, and it is arithmetic. At
+# tod 0.92 `map.setLight` is `{color:'#9aa6da', intensity:0.066}` (js/tower.js
+# §6 documents the same cap), and MapLibre multiplies a fill-extrusion's colour
+# by that light — a BLUE light, which lifts B and holds R down. Measured
+# end-to-end by the review pass: input #ffd9a4 arrived as (134,121,118), i.e.
+# a per-channel transfer of about R 0.53 / G 0.56 / B 0.72. Anything warm you
+# enter comes back a third less warm.
+#
+# So lit glazing is entered PRE-COMPENSATED — R railed, G and B pulled down —
+# for the same reason the day palette enters glass bluer than photographed.
+# Three tones keyed on `eid` so 584 entrances are not one flat value, and a
+# whole entrance lights as one unit.
+GLASS_NIGHT_LIT = ["#ffaa3c", "#ffc06a", "#f09a35"]   # [D] from the transfer
+NIGHT_SPREAD_MAX = 14    # channels within this of each other = "never set"
+NIGHT_NEUTRAL_LUMA = 40  # ... and at or over this luma it is the pale band
+GLASS_LIT_LUMA_MIN = 150 # a lit pane must be entered at least this bright
+GLASS_DARK_LUMA_MAX = 30 # ... or genuinely dark. Nothing in between.
 
 
 def wall_ramp(hex_col):
@@ -279,6 +395,36 @@ def mix(hex_col, other, t):
 def scale(hex_col, f):
     c = [int(hex_col[i:i + 2], 16) for i in (1, 3, 5)]
     return "#" + "".join("%02x" % max(0, min(255, int(round(v * f)))) for v in c)
+
+
+def chan(hex_col, fr, fg, fb):
+    """Per-channel gain. A tint that eats one channel is a channel operation,
+    not a mix toward some other colour that happens to look right."""
+    c = [int(hex_col[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join("%02x" % max(0, min(255, int(round(v * f))))
+                         for v, f in zip(c, (fr, fg, fb)))
+
+
+def rgb_of(hex_col):
+    return [int(hex_col[i:i + 2], 16) for i in (1, 3, 5)]
+
+
+def luma_of(hex_col):
+    r, g, b = rgb_of(hex_col)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def spread_of(hex_col):
+    c = rgb_of(hex_col)
+    return max(c) - min(c)
+
+
+# The four sampled blues are the only glass primaries; these are the derivations
+# named in the GLAZING BY FAMILY block above.
+GLASS_LEADED = mix(GLASS_SAT, IRON, GLASS_LEAD_MIX)
+GLASS_BRONZED = mix(GLASS_SAT, BRONZE, GLASS_BRONZE_MIX)
+GLASS_PLATE = chan(GLASS_COOL, 1.0, 1.0, GLASS_PLATE_B)
+GLASS_LOWE = chan(GLASS_COOL, *GLASS_LOWE_GAIN)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -307,7 +453,7 @@ FAMILIES = {
         cheek=True, rail=False,
         canopy=None,                          # the arch IS the canopy   [S]
         leaf_mat="wood", leaf_col=WOOD, glaz_frac=0.40,
-        sur_mat="limestone", sur_col=LIMESTONE,
+        sur_mat="limestone", sur_col=LIMESTONE, glass_col=GLASS_LEADED,
         dt="arched-pair", accent=TERRACOTTA, accent_h=0.30,
     ),
     # ── B — Cret / Greene monumental portal, 1926-1942. The big one.
@@ -324,7 +470,7 @@ FAMILIES = {
         cheek=True, rail=False,
         canopy=None,
         leaf_mat="bronze", leaf_col=BRONZE, glaz_frac=0.60,
-        sur_mat="limestone", sur_col=LIMESTONE,
+        sur_mat="limestone", sur_col=LIMESTONE, glass_col=GLASS_BRONZED,
         dt="hinged-quad", accent=None, accent_h=0.0,
     ),
     # ── C — mid-century punched storefront, 1950-1989. The deepest reveal on
@@ -343,7 +489,7 @@ FAMILIES = {
         cheek=False, rail=True,
         canopy=dict(proj=2.40, t=0.25, top=3.60, mat="concrete", col=CONCRETE),
         leaf_mat="aluminium", leaf_col=ALUMINIUM, glaz_frac=0.86,
-        sur_mat="concrete", sur_col=CONCRETE,
+        sur_mat="concrete", sur_col=CONCRETE, glass_col=GLASS_PLATE,
         dt="hinged-quad", accent=None, accent_h=0.0,
         sidelight=1.20,
     ),
@@ -362,7 +508,7 @@ FAMILIES = {
         cheek=False, rail=True,
         canopy=dict(proj=3.20, t=0.18, top=4.20, mat="steel", col=STEEL),
         leaf_mat="glass", leaf_col=STEEL, glaz_frac=0.92,
-        sur_mat="steel", sur_col=STEEL,
+        sur_mat="steel", sur_col=STEEL, glass_col=GLASS_LOWE,
         dt="hinged-quad", accent=None, accent_h=0.0,
     ),
     # ── E2 — apartments / dormitories outside the Forty Acres.
@@ -379,7 +525,7 @@ FAMILIES = {
         cheek=False, rail=False,
         canopy=dict(proj=1.80, t=0.22, top=3.20, mat="concrete", col=CONCRETE),
         leaf_mat="aluminium", leaf_col=ALUMINIUM, glaz_frac=0.70,
-        sur_mat="concrete", sur_col=CONCRETE,
+        sur_mat="concrete", sur_col=CONCRETE, glass_col=GLASS_WARM,
         dt="hinged-pair", accent=None, accent_h=0.0,
     ),
     # ── E3 — parking. A ramp is a vehicle entrance, not a door.
@@ -396,7 +542,7 @@ FAMILIES = {
         cheek=False, rail=False,
         canopy=None,
         leaf_mat="steel", leaf_col=IRON, glaz_frac=0.0,
-        sur_mat="concrete", sur_col=CONCRETE,
+        sur_mat="concrete", sur_col=CONCRETE, glass_col=GLASS,
         dt="overhead", accent=None, accent_h=0.0,
     ),
     # ── E4 — church / mosque.
@@ -413,7 +559,7 @@ FAMILIES = {
         cheek=False, rail=True,
         canopy=None,
         leaf_mat="wood", leaf_col=WOOD, glaz_frac=0.25,
-        sur_mat="limestone", sur_col=LIMESTONE,
+        sur_mat="limestone", sur_col=LIMESTONE, glass_col=GLASS_LEADED,
         dt="arched-pair", accent=None, accent_h=0.0,
     ),
     # ── E5 — NULL. Everything else, and every unknown. Deliberately dull.
@@ -432,7 +578,7 @@ FAMILIES = {
         cheek=False, rail=False,
         canopy=None,
         leaf_mat="aluminium", leaf_col=ALUMINIUM, glaz_frac=0.75,
-        sur_mat="concrete", sur_col=CONCRETE,
+        sur_mat="concrete", sur_col=CONCRETE, glass_col=GLASS,
         dt="hinged-pair", accent=None, accent_h=0.0,
     ),
 }
@@ -1970,6 +2116,88 @@ def budget_for(b):
 #  Local frame: u across the wall (m from the entrance centre), v out from
 #  the wall face (positive = away from the building), z above grade.
 # ══════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
+#  RAISED-DECK EVIDENCE — the general rule behind the PCL fix.
+#
+#  A sill may only sit above local grade if something the repo ACTUALLY
+#  DRAWS holds it up there. The two files that carry raised ground are
+#  data/depth.geojson (the South Mall flights, the Littlefield basin) and
+#  data/ground.geojson (banks). Neither is written by this pass, both are
+#  read-only here, and if a later pass builds PCL's plaza the evidence
+#  appears and the exception grants itself with no edit in this file.
+#
+#  Measured on 2026-08-04: the tallest raised deck anywhere in the repo is
+#  1.27 m, on the South Mall. There is no 3.46 m plaza in this city.
+# ══════════════════════════════════════════════════════════════════════
+DECKS = None            # [(x, y, top_m)] sampled at polygon vertices
+
+
+def load_decks():
+    global DECKS
+    if DECKS is not None:
+        return DECKS
+    DECKS = []
+    # ONLY ground-plane deck geometry counts, and the filter is not cosmetic.
+    # The first cut read every `h` in ground.geojson and reported the tallest
+    # deck in Austin at 27.44 m — that is `cnp`, a LIVE OAK. A canopy is not a
+    # plaza, and a building wall is not one either, which is why no building
+    # file is listed here: a wall beside a door would "support" any sill you
+    # like. This is §36's wrong-layer trap in its ground-plane costume.
+    for name, top_of in (("depth.geojson",
+                          lambda p: (p.get("b") or 0.0) + (p.get("h") or 0.0)),
+                         ("ground.geojson",
+                          lambda p: (p.get("h") or 0.0)
+                          if p.get("k") == "bank" else 0.0)):
+        path = os.path.join(ROOT, "data", name)
+        if not os.path.exists(path):
+            continue
+        try:
+            doc = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            continue
+        for f in doc.get("features") or []:
+            p = f.get("properties") or {}
+            try:
+                top = float(top_of(p))
+            except (TypeError, ValueError):
+                continue
+            if top < 0.30:
+                continue
+            g = f.get("geometry") or {}
+            rings = []
+            if g.get("type") == "Polygon":
+                rings = g.get("coordinates") or []
+            elif g.get("type") == "MultiPolygon":
+                for poly in g.get("coordinates") or []:
+                    rings.extend(poly)
+            for ring in rings[:1]:
+                for lon, lat in ring:
+                    x, y = to_m(lon, lat)
+                    DECKS.append((x, y, top))
+    return DECKS
+
+
+def deck_support(x, y, want):
+    """The best raised top within PLAZA_EVIDENCE_R that reaches enough of
+    `want`, or None. Returns the DECK's own height, never the wanted one —
+    a 1.2 m terrace does not become a storey because somebody asked."""
+    need = want * PLAZA_EVIDENCE_FRAC
+    best = None
+    for dx, dy, top in load_decks():
+        if top < need:
+            continue
+        if (dx - x) ** 2 + (dy - y) ** 2 <= PLAZA_EVIDENCE_R ** 2:
+            if best is None or top > best:
+                best = top
+    return best
+
+
+# Local-frame copy of every emitted piece, for the support audits in main().
+# (eid, k, u0, u1, v0, v1, z0, z1) — the geojson itself is lon/lat by then and
+# a support test in lon/lat is a test nobody can read.
+LOCAL = []
+
+
 class Ent(object):
     """One entrance. Emits its own pieces, all of them proud of the wall."""
 
@@ -2003,6 +2231,8 @@ class Ent(object):
             ring.reverse()
         ring.append(ring[0])
         wg, wn_auto = wall_ramp(wd)
+        LOCAL.append((self.eid, k, min(u0, u1), max(u0, u1),
+                      min(v0, v1), max(v0, v1), z0, z1))
         self.feats.append({
             "type": "Feature",
             "geometry": {"type": "Polygon", "coordinates": [ring]},
@@ -2029,15 +2259,43 @@ def leaf_plan(bank_w, leaf_w, max_pairs):
     return 2 * pairs, max(0.0, leftover)
 
 
-def glass_for(ref, fam):
-    return GLASS_BY_REF.get(ref or "", GLASS)
+def glass_for(ref, fam, bid=None):
+    """Family first, then the per-building sample, then a per-building tint.
+
+    Order matters and it is the one thing in here that is not taste: where the
+    repo has already SAMPLED a building's glass that value wins outright and
+    takes no tint, because an entrance in a different blue from the curtain
+    wall three metres above it is a visible defect (eras.md §3.5). Everything
+    else gets its family's glazing, nudged by a deterministic per-building
+    step so that two neighbours are not the identical pane.
+    """
+    if (ref or "") in GLASS_BY_REF:
+        return GLASS_BY_REF[ref]
+    base = fam.get("glass_col") or GLASS
+    if GLASS_VARY <= 1 or bid is None:
+        return base
+    i = (hash_bid(bid) % GLASS_VARY) - (GLASS_VARY - 1) / 2.0
+    return scale(base, 1.0 + i * GLASS_VARY_STEP)
 
 
-def night_glass(day, override=None):
+def hash_bid(bid):
+    """A stable small integer for a building id. Python's own hash() is salted
+    per process, so a bake would produce a different file every run — which is
+    the sort of thing that turns a diff into an unreadable 4 MB churn."""
+    h = 2166136261
+    for ch in str(bid):
+        h = ((h ^ ord(ch)) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def night_glass(eid, override=None):
+    """Lit, warm and pre-compensated — see the NIGHT block at the top. This no
+    longer derives the night value from the day value: a blue ramped to night
+    and nudged toward a lamp is a near-neutral mid grey, which is precisely the
+    defect. A lit vestibule is not a dark pane with a hint of lamp in it."""
     if override:
         return override
-    _g, n = wall_ramp(day)
-    return mix(n, GLASS_NIGHT_TONE, GLASS_NIGHT_LIFT)
+    return GLASS_NIGHT_LIT[eid % len(GLASS_NIGHT_LIT)]
 
 
 def assemble(feats, b, c, eid, stats):
@@ -2098,6 +2356,7 @@ def assemble(feats, b, c, eid, stats):
 
     # ── the flight. Riser count is derived, never authored, and then the riser
     #    is re-sized so the flight lands EXACTLY on the threshold.
+    on_deck = False
     if cel and cel.get("risers") is not None:
         risers = int(cel["risers"])
         riser = fam["riser"]
@@ -2115,11 +2374,26 @@ def assemble(feats, b, c, eid, stats):
         risers = max(0, int(round(rise / fam["riser"])))
         riser = (rise / risers) if risers else 0.0
     if cel and cel.get("plaza_z"):
-        # PCL: the entrance is on the SECOND FLOOR off a plaza [S]. The rise is
-        # taken by the plaza, which is ground-pass geometry. A 4 m flight on
-        # PCL's ground-floor wall is a door that does not exist.
-        risers, rise = 0, cel["plaza_z"]
-        stats["plaza_exception"] += 1
+        # PCL: the entrance is on the SECOND FLOOR off a plaza [S], so the rise
+        # ought to be taken by the plaza rather than by a 4 m flight on the
+        # ground-floor wall. That reasoning is right and the assumption behind
+        # it was never checked: NO PASS BUILDS THE PLAZA. Shipping it anyway put
+        # four doors 3.68 m up a blank wall on a tan slab — a table. So the
+        # request is granted only against evidence, and refused loudly.
+        want = float(cel["plaza_z"])
+        stats["plaza_requested"] += 1
+        got = deck_support(c.x, c.y, want)
+        if got is None:
+            stats["plaza_refused"] += 1
+            stats["plaza_refused_" + (b.ref or "?")] += 1
+        else:
+            risers, rise = 0, min(want, got)
+            on_deck = True
+            stats["plaza_exception"] += 1
+    if risers <= 0 and not on_deck:
+        # No flight means no rise. A sill lifted by a rounding remainder with
+        # nothing under it is the same bug as PCL's, three centimetres tall.
+        rise, riser = 0.0, 0.0
     tread = fam["tread"]
     z0 = GROUND_Z + rise                     # the threshold
     head = z0 + leaf_h
@@ -2140,23 +2414,36 @@ def assemble(feats, b, c, eid, stats):
     #       two jamb returns that are the only real 3D depth in the assembly.
     #       Depth is read from value, not from geometry.
     e = Ent(feats, eid, b, c, fam, cel, role, n_leaf, dt, mat, src)
-    rev = fam["reveal_col"]
+    # DEPTH IS A COLOUR HERE. The deeper the family's notional reveal, the
+    # further the slab goes toward the arcade shadow the repo already sampled.
+    # This is the whole of the depth read now; the jamb below is a return, not
+    # a measuring stick.
+    depth_t = REVEAL_DEPTH_MIX * min(1.0, fam["reveal_d"] / REVEAL_DEPTH_REF)
+    rev = mix(fam["reveal_col"], ARCH_SHADOW, depth_t)
     rev_top = head + (fam["transom_h"] if fam["transom"] else 0.0)
     if fam["arched"]:
         rev_top = fam["spring_h"] + fam["arch_rise"]
     e.box("reveal", "concrete", rev, -half, half,
           REVEAL_PROUD, REVEAL_PROUD + REVEAL_T, GROUND_Z, rev_top)
-    jd = min(fam["reveal_d"], 3.60)
+    # The jamb return: the side of the opening, between the wall face and the
+    # door plane, sitting FLUSH INSIDE the opening. It stops at the door plane
+    # (plus a hair, so the leaf reads as sitting back inside it) and it can
+    # never become a post. See JAMB_PROJ_MAX at the top for the incident.
+    door_plane = PROUD_DOOR + LEAF_T
+    jproj = max(door_plane + 0.02, fam["surround_proj"])
+    jproj = min(jproj, JAMB_PROJ_MAX)
+    jw = min(JAMB_T, max(0.05, half * 0.35))
     for sgn in (-1, 1):
-        u = sgn * half
-        e.box("reveal", "concrete", scale(rev, 0.88),
-              u - JAMB_T / 2, u + JAMB_T / 2, REVEAL_PROUD, REVEAL_PROUD + jd,
+        u_out = sgn * half
+        u_in = sgn * (half - jw)
+        e.box("reveal", "concrete", scale(rev, JAMB_SHADE),
+              min(u_in, u_out), max(u_in, u_out), JAMB_PROJ_MIN, jproj,
               GROUND_Z, rev_top)
 
     # ── 2. LEAVES + their lights. The light stands GLASS_PROUD of the leaf: a
     #       light recessed inside a solid leaf is a light nobody can see.
-    gcol = glass_for(b.ref, fam)
-    gnight = night_glass(gcol, e.night)
+    gcol = glass_for(b.ref, fam, b.bid)
+    gnight = night_glass(eid, e.night)
     if fam_key == "E3" and role == "service":
         e.box("door", "steel", IRON, -half, half, PROUD_DOOR,
               PROUD_DOOR + LEAF_T, GROUND_Z, GROUND_Z + fam["spring_h"])
@@ -2233,9 +2520,35 @@ def assemble(feats, b, c, eid, stats):
                   half + sw + 0.25, 0.0, sp_ + 0.30, top, top + fam["cornice"])
             top += fam["cornice"]
     if fam["accent"] and fam["accent_h"] > 0.01:
-        e.box("surround", "terracotta", fam["accent"], -(half + sw), half + sw,
-              0.0, sp_ + 0.04, top, top + fam["accent_h"])
-        top += fam["accent_h"]
+        if fam["arched"]:
+            # ON AN ARCH THERE IS NOTHING TO PUT A BAND ON. `top` is the
+            # CROWN, a single point, and a full-width plank laid across it is
+            # supported only where the arch happens to reach — which is how
+            # Battle Hall ended up with a terracotta plank floating over its
+            # portal with a gap under one end. What is actually there is
+            # "terracotta concentrated at door and window surrounds" [S], i.e.
+            # the SPANDRELS: the two corners between the arch and the square
+            # the arch is set into. Fill those instead. They stand on the
+            # springing, they can never float, and they are the same citation.
+            spr, rr = fam["spring_h"], fam["arch_rise"]
+            for i in range(ARCH_TIERS):
+                t0, t1 = i / float(ARCH_TIERS), (i + 1) / float(ARCH_TIERS)
+                w = half * math.sqrt(max(0.0, 1.0 - ((t0 + t1) / 2) ** 2))
+                for sgn in (-1, 1):
+                    e.box("surround", "terracotta", fam["accent"],
+                          sgn * (w + sw), sgn * (half + sw), 0.0, sp_ + 0.04,
+                          spr + rr * t0, spr + rr * t1)
+            # ... and the keystone, which is the other half of the citation and
+            # is the one place on an arch where a block genuinely sits.
+            e.box("surround", "terracotta", fam["accent"],
+                  -KEYSTONE_W / 2, KEYSTONE_W / 2, 0.0, sp_ + 0.06,
+                  spr + rr - fam["accent_h"], spr + rr + fam["accent_h"] * 0.5)
+            stats["arch_spandrels"] += 1
+        else:
+            e.box("surround", "terracotta", fam["accent"],
+                  -(half + sw), half + sw,
+                  0.0, sp_ + 0.04, top, top + fam["accent_h"])
+            top += fam["accent_h"]
 
     # ── 5. SIGN. The schema carries no text, so this is the BAND; the words are
     #       in INSCRIPTIONS above, cited, and nothing uncited is carved.
@@ -2264,8 +2577,12 @@ def assemble(feats, b, c, eid, stats):
     if cel and cel.get("lanterns") and role == "main":
         for sgn in (-1, 1):
             u = sgn * (half + sw + 0.30)
+            # The lozenge is bracketed back to the wall, or it is a dark
+            # lump hanging in mid-air a door-width off the portal.
+            e.box("sign", "steel", IRON, u - 0.05, u + 0.05, 0.0, 0.18,
+                  2.86, 3.00)
             e.box("sign", "steel", IRON, u - 0.14, u + 0.14, 0.10, 0.42,
-                  2.20, 3.05, GLASS_NIGHT_TONE)
+                  2.20, 3.05, LAMP_NIGHT)
 
     # ── 8. FLIGHT. bake_depth.py's vocabulary, reused, not reinvented: one
     #       course = a dark slab with a light slab set back on top. From above
@@ -2310,6 +2627,11 @@ def assemble(feats, b, c, eid, stats):
                     e.box("rail", "steel", STEEL, u - RAIL_D / 2,
                           u + RAIL_D / 2, v0, v1, ztop + RAIL_H - RAIL_D,
                           ztop + RAIL_H)
+                    vm = (v0 + v1) / 2.0
+                    e.box("rail", "steel", STEEL,
+                          u - RAIL_POST_D / 2, u + RAIL_POST_D / 2,
+                          vm - RAIL_POST_D / 2, vm + RAIL_POST_D / 2,
+                          0.0, ztop + RAIL_H - RAIL_D)
 
     # ── 10. RAMP.
     if risers >= RAMP_MIN_RISERS and (role == "main" or c.wheel == "yes"):
@@ -2682,8 +3004,111 @@ def main():
     print("pieces             : %d   kinds %s"
           % (len(feats), dict(Counter(f["properties"]["k"] for f in feats))))
     print("  bad base/h/colour: %d %s" % (len(bad), bad[:5]))
-    print("  ramps %d   sign bands %d   plaza exceptions %d"
-          % (stats["ramps"], stats["sign_bands"], stats["plaza_exception"]))
+    print("  ramps %d   sign bands %d   arch spandrel sets %d"
+          % (stats["ramps"], stats["sign_bands"], stats["arch_spandrels"]))
+
+    # ── NOTHING FLOATS. Two audits over the LOCAL frame, because the whole
+    #    PCL defect is a support question and a support test in lon/lat is a
+    #    test nobody can read. The first is the sill; the second is every
+    #    other piece, which is what would have caught Battle's plank.
+    print("")
+    print("RAISED SILLS       : %d requested, %d kept on real deck evidence,"
+          " %d dropped to ground"
+          % (stats["plaza_requested"], stats["plaza_exception"],
+             stats["plaza_refused"]))
+    decks = load_decks()
+    print("                     deck evidence: %d sampled points, tallest"
+          " %.2f m, radius %.0f m, needs %.0f%% of the ask"
+          % (len(decks), max([d[2] for d in decks] or [0.0]),
+             PLAZA_EVIDENCE_R, 100 * PLAZA_EVIDENCE_FRAC))
+
+    byeid = {}
+    for row in LOCAL:
+        byeid.setdefault(row[0], []).append(row)
+    ref_of = {}
+    for f in feats:
+        ref_of.setdefault(f["properties"]["eid"],
+                          (f["properties"]["ref"], f["properties"]["nm"]))
+    float_sills, detached = [], []
+    for e_id, rows in byeid.items():
+        sills = [r[6] for r in rows if r[1] == "door"]
+        if not sills:
+            sills = [r[6] for r in rows if r[1] in ("glass", "transom")]
+        support = max([r[7] for r in rows if r[1] in ("step", "ramp")]
+                      + [GROUND_Z])
+        if sills and min(sills) - support > FLOAT_TOL:
+            float_sills.append((e_id, ref_of.get(e_id, ("-", ""))[0],
+                                min(sills) - support))
+        # Connectivity, not "is something directly underneath". A canopy is
+        # cantilevered off the wall and a door light is glued to its leaf;
+        # neither has anything below it and neither floats. So: seed with
+        # every piece that touches the wall or stands on the ground, then
+        # flood along touching faces. Whatever the flood cannot reach is
+        # hanging in the air — which is what Battle Hall's terracotta plank
+        # and the two unattached lanterns actually were.
+        seed = [i for i, r in enumerate(rows)
+                if r[4] <= WALL_TOUCH or r[6] <= GROUND_Z + FLOAT_TOL]
+        seen = set(seed)
+        stack = list(seed)
+        while stack:
+            i = stack.pop()
+            a = rows[i]
+            for j, q in enumerate(rows):
+                if j in seen:
+                    continue
+                if (min(a[3], q[3]) - max(a[2], q[2]) > -TOUCH and
+                        min(a[5], q[5]) - max(a[4], q[4]) > -TOUCH and
+                        min(a[7], q[7]) - max(a[6], q[6]) > -TOUCH):
+                    seen.add(j)
+                    stack.append(j)
+        for i, r in enumerate(rows):
+            if i not in seen:
+                detached.append((e_id, ref_of.get(e_id, ("-", ""))[0],
+                                 r[1], r[6]))
+    print("  floating sills   : %d of %d entrances  %s"
+          % (len(float_sills), len(byeid),
+             ["%s +%.2fm" % (r or "-", d) for _i, r, d in float_sills[:6]]))
+    print("  detached pieces  : %d of %d  %s"
+          % (len(detached), len(LOCAL),
+             ["%s %s @%.2f" % (r or "-", k, z) for _i, r, k, z in detached[:6]]))
+
+    # ── GLASS HISTOGRAM. Printed every run so the monotone can never come
+    #    back silently: it is the only defect of the five that a total hides.
+    ghist = Counter(f["properties"]["wd"] for f in feats
+                    if f["properties"]["k"] in ("glass", "transom"))
+    gtot = sum(ghist.values())
+    print("")
+    print("GLASS BY DAY VALUE : %d pieces, %d distinct, top share %.0f%%"
+          % (gtot, len(ghist), 100.0 * ghist.most_common(1)[0][1] / max(1, gtot)))
+    for hexv, n in ghist.most_common(12):
+        print("    %s  %5d  %4.1f%%" % (hexv, n, 100.0 * n / max(1, gtot)))
+    nhist = Counter(f["properties"]["wn"] for f in feats
+                    if f["properties"]["k"] in ("glass", "transom"))
+    print("  by night value   : %s" % dict(nhist.most_common(8)))
+
+    # ── THE CAPITOL PALE BAND, ASSERTED. A night colour whose channels are
+    #    within a few points of each other AND whose luma is mid-range is the
+    #    signature of a value nobody ever set. Glazing gets the stricter test:
+    #    lit or dark, never the grey in between.
+    pale, mid_glass = [], []
+    for f in feats:
+        p = f["properties"]
+        wn = p["wn"]
+        if spread_of(wn) <= NIGHT_SPREAD_MAX and luma_of(wn) >= NIGHT_NEUTRAL_LUMA:
+            pale.append((p["k"], wn, round(luma_of(wn))))
+        if p["k"] in ("glass", "transom"):
+            L = luma_of(wn)
+            if GLASS_DARK_LUMA_MAX < L < GLASS_LIT_LUMA_MIN:
+                mid_glass.append((p["ref"], wn, round(L)))
+    print("  pale-neutral wn  : %d  (spread <= %d and luma >= %d)  %s"
+          % (len(pale), NIGHT_SPREAD_MAX, NIGHT_NEUTRAL_LUMA,
+             list(dict.fromkeys(pale))[:4]))
+    print("  glazing neither lit nor dark : %d  (luma outside <=%d or >=%d) %s"
+          % (len(mid_glass), GLASS_DARK_LUMA_MAX, GLASS_LIT_LUMA_MIN,
+             list(dict.fromkeys(mid_glass))[:4]))
+    assert not pale, "pale-neutral night colour: %s" % pale[:5]
+    assert not mid_glass, "glazing neither lit nor dark: %s" % mid_glass[:5]
+    assert not float_sills, "floating sills: %s" % float_sills[:5]
 
     out = {"type": "FeatureCollection", "features": feats,
            # PROUD GEOMETRY ONLY. This pass claims no building ids, on purpose
