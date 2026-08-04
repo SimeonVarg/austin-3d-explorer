@@ -1,5 +1,107 @@
 # Austin 3D Explorer — Full Handoff
 
+## 80. Aug 4 2026 — the Capitol's floodlight was on the one surface that has none (acer lane)
+
+**Branch:** `acer/capitol-floodlit`, **PR #142, merged.** Sweep defect **#2**.
+Only `js/capitol.js` changed. Shots: `shots/capitol-night-before/`,
+`shots/capitol-night-after/` (both poses, plus dusk). Served with
+`scripts/serve.py 8222`; `harness-drift.mjs` passed first, 27 scripts in both.
+
+### §78 NAMED THE WRONG OWNER, AND THE MASK IS WHY THAT MATTERED
+
+§78 called it "a flat neutral-grey band across the cornice that belongs to
+neither — not floodlighting, un-darkened grey falling through to a default."
+Half right and the wrong half was load-bearing. §48's magenta mask on the
+`night-capitol` pose, over the two wing-roof boxes:
+
+```
+parts-roof              74.9 %  west     64.0 %  east
+capitol-ground-texture   9.6 %           21.7 %
+everything else          < 3 %            < 3 %
+```
+
+`parts-roof` is `bakedColor(p,'rd','rg','rn')`, so the band is the 13
+`capitol_parts` features' **own `rn`, `#bb9f6f`** — a daylight-bright tan that
+was SET, not defaulted. Had I patched a default I would have changed nothing.
+
+### THE ORDER WAS INVERTED, AND THAT IS THE WHOLE DEFECT
+
+Uplighting means dome brightest, walls lit, roof dark — a roof plane is the one
+surface a floodlight never reaches. Measured on that pose (readPixels, pre-grade,
+frame median luma 32.4):
+
+| surface | before | after |
+|---|---|---|
+| dome | 99.2 — **3.06x** | 99.2 — 3.06x *(untouched)* |
+| collar | 99.6 — **3.07x** | 52.2 — **1.61x** |
+| wing wall | 32.1 — **0.99x** | 44.0 — **1.36x** |
+| wing roof | 96.0 — **2.96x** | 40.1 — **1.24x** |
+
+**The walls are decided by ONE entry nobody would look at.** `facade_protect` —
+the wall tone `js/facades.js` keeps out of its 14-bucket quantiser — carries
+`wn: #1f1b23` while the 13 features it protects carry `#d38e5e`. That entry is
+the only thing that decides the Capitol's night walls; **the per-feature `wn`
+never reaches the atlas at all.** So the data said "floodlit" and the screen
+said "office block", and reading the data would have confirmed the wrong thing.
+
+`bake_capitol.py` chose the dark value **deliberately** and wrote why: the
+bucket is keyed on the DAY colour, so a neighbour in the same hue cell gets
+floodlit too. Sound reasoning — it is the COUNT that decides it, and the count
+is one. Of 3,093 features with a `wd`, four land in cell `0-3-1`: the Capitol
+itself (`has_parts`, so its facade is never drawn), two 7.5 m outbuildings
+inside the grounds that *should* be lit with it, and one unnamed 12.5 m
+building.
+
+The **collar** — the three discs from 35.0 to 37.6 m forming the terrace at the
+dome's foot — only surfaced once the other two were fixed, and then it was the
+brightest plane left. Baked `#c5a674` like the rest of the stonework, but it is
+the one piece of the dome that is mostly a HORIZONTAL face.
+
+All three live in `CAPITOL` as `roofNight`, `floodWall`, `domeNight`, applied
+over the bake the way `capitol_overrides.json` already is — a re-bake cannot
+silently undo them and each is a one-line edit. Day cannot move: the night stop
+only enters the interpolate above p=0.5. Dusk does, and was photographed.
+
+### READ THE VALUE AGAINST `p`, NOT ON ITS OWN
+
+`parts-roof` interpolates rg→rn over p 0.5→1, so at the tour's night
+(**p=0.95**) a tenth of the GOLDEN roof is still in the mix and the surface
+renders ~12 luma hotter than the hex. A first pass at `#413729` predicted 39 and
+measured 45.9 for exactly this reason. Every figure above is at p=0.95.
+
+### WHAT DID NOT WORK
+
+- **The probe twice reported a frame at median luma 101 and 115 and called it
+  night** (night is 32.4). Two full readings were thrown away, and the first one
+  had already been half-written up. It now refuses to report until two
+  consecutive reads agree AND the frame median is under 45 — §78's
+  `meanCounted > 70` gate, same idea, and it should be in the shared suite.
+- **A magenta-mask run reported `trees-trunk` with numbers IDENTICAL to
+  `parts-roof`** (74.9/64.0/0). That is a stale frame, not a result: the restore
+  had not landed before the next read. One-layer-at-a-time masking needs a
+  settle between layers or it will name an innocent one.
+- **`capitol-merge.mjs` FAILS** — "path taken NEITHER - merge never ran",
+  "trees in Capitol box 0 (need >= 100)". **It fails identically on unmodified
+  `origin/main`**, checked by restoring main's `js/capitol.js` and re-running.
+  It asserts on the old `austin-trees` merge path that `js/capitol.js`
+  deliberately replaced with a cloned `austin-trees-capitol` source. Stale
+  script, not a regression — **but it is a red assertion sitting in the suite
+  and whoever owns the verify scripts should retire or rewrite it.**
+- The default watchdog (`VERIFY_MAX_MS` 300000) killed two probe runs mid-sweep.
+  A settle-and-verify loop plus a colour sweep needs 900000.
+- `capitol-ground-texture` masks 9.6–21.7 % of boxes ON THE BUILDING, i.e. the
+  Capitol's lawn grain is drawing over its own walls from this angle. Not
+  chased, not fixed, written down.
+
+### A NOTE ON THE SHARED CHECKOUT
+
+Another lane committed to `C:/Users/simip/Projects/austin-3d-explorer` while
+this pass was running, so branching from `HEAD` would have carried their DKR
+videoboard commit into this PR. **This was built in a `git worktree` off
+`origin/main`** and served from there, which also meant the verification ran on
+main + this change alone rather than on someone else's uncommitted tree. With
+four lanes in one checkout that should probably be the default.
+
 ## 79. Aug 4 2026 — a fence is a line, and simplify_ring was closing it (acer lane)
 
 **Branch:** `acer/fence-chord`, **PR #140**, merged `24caea6`. Sweep defect **#3**
