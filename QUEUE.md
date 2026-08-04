@@ -42,6 +42,72 @@ change a colour. Match the rigour to the risk.
 
 ---
 
+# PART K — AFTER THE FOURTH LIST. Run these once Part H/I/J have landed.
+
+Ordered by what actually threatens the demo. **Mobile verification was #2 and is
+CLOSED** — he tested on his phone 2026-08-04: *"i tested on my phone performance
+is great and it looks amazing - only thing is the boost button is a bit off
+visually but its great."* That removes the single biggest unknown in the project.
+
+## K1. Measure performance and set a budget — THE TOP RISK
+
+**Nobody has measured frame rate or load time in about thirty-five merges**, and
+in that time the app has gained 3,015 road polygons (+445 KB on an untiled file),
+thousands of trees, authored buildings, food trucks, garden beds and a new intro.
+
+His laptop already showed the first symptom — the intro flying over ground whose
+buildings had not arrived. That is a loading-budget failure surfacing as a visual
+one, and it will not be the last.
+
+**Unmeasured is worse than bad.** Get the numbers first:
+- `scripts/verify/perf.mjs` — NOTE IT THROTTLES THE CPU 4x BY DEFAULT. Quote the
+  setting with the number or the figure is about a crippled machine (CLAUDE.md
+  rule 10).
+- `scripts/verify/boot.mjs` — per-source load timing, and `NET=4g` / `NET=3g`.
+- `scripts/verify/payload.mjs` — total bytes.
+- Minimum of interleaved reps, never one reading.
+
+Then decide what to cut, and only then cut it. **He has said three times that
+render speed and fps still matter** even while asking for quality over
+production speed.
+
+## K2. The mobile boost button is visually off
+
+*"only thing is the boost button is a bit off visually but its great."* Shipped
+in PR #128 and never seen on a real device until now. Small, pure presentation.
+
+## K3. Finish DKR
+
+Still the most-asked-for thing in the project. The Mac lane rebuilt the four
+sides, the real heights and the 2021 entry towers, and PR #114 unblocked the two
+faults it could not reach — but **the seating is still a stepped cone** until
+`bake_stadium.py` emits real deck bases into the void that fix opened.
+
+## K4. A clean full sweep, and READ every frame
+
+Day, dusk and night. The last attempt was killed by the watchdog at 7 of 12
+frames and roughly twenty PRs have landed since. `night-pale.mjs`'s threshold was
+recalibrated and the result has never been looked at.
+
+**Before a product manager finds something, I want to have found it.**
+
+## K5. Downtown still reads cooler and greyer than campus
+
+In any wide daytime frame the two halves of the city do not look like they are in
+the same light. PR #117 established it was "undifferentiated, not dark" and fixed
+the spread — that was real, and this is what is left after it.
+
+## K6. The graphics menu is too wordy
+
+*"add making the graphics menu less yap"* — 2026-08-04, correcting PR #128.
+
+**This is a correction to the instruction that produced it.** The brief was
+"rename every control in plain language and say what it DOES" and the result
+explains too much. A settings menu should be scannable: a short label, and help
+text only where a control genuinely needs it. Cut the prose.
+
+---
+
 # PART H — GLITCHES. A flickering frame kills a demo; these come first.
 
 ## H1. The Tower's night glow is wrong in five separate ways
