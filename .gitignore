@@ -43,3 +43,11 @@ data/dkr_aerial_geo.png
 # Captures written by scripts/verify/outer-facade-parity.mjs for its Python
 # comparator. Regenerated on every run; the assertion is the exit code.
 scripts/verify/out/
+
+# Secrets and web-tool scratch. The repo is PUBLIC — an API key committed here
+# is an API key published. Firecrawl's CLI keeps its own key in its user config;
+# nothing under here should ever carry one.
+.env
+.env.*
+!.env.example
+.firecrawl/
