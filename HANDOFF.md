@@ -12010,3 +12010,222 @@ bake request was filed, because neither is wanted.
   being. Written down as a choice, not a surprise.
 * **Did not chase the torn night frame in #3 above** past establishing that it is
   the harness and not the app.
+
+---
+
+## 101. Aug 5 2026 — the camera has a floor at 18 m, so nobody has ever photographed this city at eye height (QUEUE W10) (acer lane)
+
+Branch `acer/w10-lobbies`, cut from `origin/main` at `128da59`. **Files written:
+`shots/night/`, this entry, `QUEUE.md`. No code, no data, no
+`scripts/verify/`.** Setup: `python scripts/serve.py 8277`,
+`node scripts/verify/harness-drift.mjs` **PASS, 28 scripts in each file**, run
+before any pixel; `_harness.html?intro=0&drift=0`, 1440x900, dsf 1, SwiftShader,
+`cancelGraphicsAutoDetect()` at the top of every run, **one browser at a time**,
+reaped and the server killed at the end.
+
+### THE FINDING THAT MATTERS MORE THAN THE PHOTOGRAPHS
+
+**`js/controls.js` line 85: `ALT_MIN = 18`. The flight controller treats any
+camera altitude under 18 m as "the user is flying" and lifts the camera back to
+18 m within about two seconds** — with no input, on `_harness.html`, with
+`?intro=0&drift=0`, and with `driving:false` and `isEasing:false` read before the
+jump. Every scripted pose in this repo below 18 m of eye height is undone before
+the screenshot is taken.
+
+Measured, not read off the code. Same page, `jumpTo`, then the same read 5 s
+later:
+
+| pose | at the jump | 5 s later |
+|---|---|---|
+| the Castilian, z20.78 p80.5 | eye **5.0** m, 30.1 m back | eye **18.0** m, 107.7 m back |
+| Dobie, z20.78 p80.5 | eye **5.0** m, 30.1 m back | eye **18.0** m, 107.7 m back |
+| Crest at Pearl, z20.93 p70.9 | eye **9.0** m, 26 m back | eye **24.2** m, 70 m back |
+| Grayson House, z21.38 p63.4 | eye **9.0** m, 18 m back | eye **28.8** m, 57.6 m back |
+| Twenty Two 15, z21.38 p63.4 | eye **9.0** m, 18 m back | eye **40.6** m, 81.2 m back |
+| Cambridge Tower, z21.38 p63.4 | eye **9.0** m, 18 m back | eye **59.1** m, 118 m back |
+
+The mechanism is in the file and it is not a bug — the controller does exactly
+what it documents. `syncFromMap()` reads the pose we jumped to and sets
+`altUser = 5.0`; the next tick computes
+`resolvedAlt = clamp(max(altUser, altFloor), ALT_MIN, ...)` = 18; the drive test
+`Math.abs(alt - resolvedAlt) > 0.05` is therefore true with nobody touching a
+key, the controller takes ownership and flies the camera up, writing
+`map.jumpTo(pose, {fly:true})` every frame. The rows above 18 m are the second
+clamp: the **rooftop floor** lifts the eye to `roof + SKIN_V` (8 m) whenever a
+building is within `R_CAM` = 6 m of it, and every one of those numbers
+reproduces — Cambridge Tower 51 + 8 = 59.1, Twenty Two 15 32.6 + 8 = 40.6,
+Grayson 20.8 + 8 = 28.8, Crest at Pearl 16.2 + 8 = 24.2.
+
+**The eye's ground position is preserved; only its altitude changes**, and the
+map centre slides forward because the centre is derived from the eye. So the
+existing frames are not wrong about *where* they stand, only about *how high*.
+
+**Consequences, and they reach back:**
+
+* **§93's "z20.6 / pitch 79 = 7.5 m of eye height, 37 m of standoff" is the pose
+  at the instant of the jump, not the pose the shutter saw.** That measurement is
+  arithmetically right and I reproduced it exactly (`cameraToCenterDistance`
+  811.8 px at 1440x900, fov 58, `js/app.js:323`) — but every frame in
+  `shots/wampus/final/` was taken about 5 s later, i.e. from **18 m**. The
+  sentence "at 7.5 m of eye height on Guadalupe you are looking at a street"
+  describes an altitude the app never held. Same for §100's Guadalupe pose: I
+  re-ran it and read `window.__fly.eye().alt` at the shutter — **18.0**, day and
+  night.
+* **There is no pedestrian view of this city today.** 18 m is a fourth-floor
+  window. If a pedestrian pass is ever wanted it is a change in `js/controls.js`
+  (an `ALT_MIN` override, or a scripted-camera mode), not a change in a pose
+  list. **That is a taste/scope call and it is Simeon's, not mine** — the floor
+  is a deliberate anti-clipping guarantee, and lowering it lets a flying user
+  walk through walls.
+* **A pose list that asks for less than 18 m is silently answered at 18 m.** Any
+  future `scripts/verify/shots-*.json` should say so in its own comments.
+
+### W10 — ALL 24 WEST CAMPUS LOBBIES, DAY AND NIGHT
+
+QUEUE W10 says 24 lobbies, 18 unphotographed. **The 24 is the count of named West
+Campus buildings; only 18 of them carry a `src:"westcampus"` lobby** — 21 Rio,
+Skyloft, The Block, The Venue on Guadalupe, Sterling House and Pointe on Rio get
+a `derived` door instead. All 24 were shot anyway, so the set is uniform.
+
+Poses were derived and then **chosen by the renderer, not by the model**: door
+centroid and wall azimuth from the entrance group's own point cloud; the outward
+normal signed two independent ways (point-in-polygon against the host footprint,
+and which side the nearest road centreline is on — 23 of 24 agree, 1 one-sided);
+then a magenta-mask pose search over 104 candidates that paints
+`entrances-glass` `#ff00ff` and counts the pixels that changed near frame centre.
+A pose with no magenta is a pose with no visible lobby, whatever the geometry
+says.
+
+Pictures: **`shots/night/final/00-ALL-24-WEST-CAMPUS-LOBBIES-day.png`** and
+**`-night.png`** — one contact sheet each, all 24, at the app's real 18 m floor.
+
+**Verdict: 17 of 24 read as a real ground floor. Seven do not, and here they are
+as a numbered list.**
+
+1. **21 Rio — the front door cannot be seen from the street.** Two street-tree
+   canopies sit directly in front of it and hide the whole frontage, day and
+   night, at all four bearings tried (0 magenta pixels at every one).
+   `13-DEFECT-21-rio-front-door-hidden-by-two-street-trees.png`.
+2. **The Callaway House Austin — the tower is unlit at night.** A fresh instance
+   of QUEUE W4, one family further on. Measured on my own frame (frame median
+   luma 20.2): the tower is **0.04 % warm-lit pixels** and median luma **18.6 =
+   0.92x the frame median** — darker than the sky behind it — against **1.41 %**
+   and 29.7 for 21 Rio in the same frame, a factor of 35. Its own lobby directly
+   below is 20.6 % warm. Reproduced at two independent poses.
+   `12-DEFECT-callaway-house-tower-unlit-at-night.png`.
+   **The band is `fam:"sn"`, 55.2 m tall, `wn` `#191419`.**
+   `scripts/bake_westcampus.py` line 123 lists `sn` among the LIT families — "a
+   LIT family (mh/tr/tg/sg/sb/sn/sp) paints a bright window scatter ON TOP" — and
+   hands it a near-black `wn` on that belief. The renderer disagrees. §98's
+   `check_night_ramp()` assertion B cannot catch it, because it only tests the
+   families named in `NIGHT_UNLIT_FAMILIES`. **The general fix is to derive that
+   list from what the atlas actually draws rather than from a hand-written
+   tuple** — measure the warm-texel fraction per family the way §96 did, and
+   assert that every family over the height threshold clears a floor.
+3. **The Quarters Grayson House — you can see straight through the facade.** At
+   18 m the camera ends up inside the building and the frame is its bare interior
+   floor slabs and piers; MapLibre does not draw the back of a fill-extrusion, so
+   the near wall is simply absent.
+   `14-DEFECT-grayson-house-camera-sees-through-the-facade.png`. This one has the
+   widest blast radius: it is what any visitor sees if they fly into a block, and
+   the flycam's collision field did not stop it here.
+4. **Cambridge Tower — no open ground in front of its main door.** The marched
+   clear distance is **0 m**: a footprint 5.5 m or taller starts within 6 m of the
+   door along its own outward normal, so the rooftop floor lifts the camera to
+   59 m and there is no frame of this lobby from any of four bearings (0, 0, 4 and
+   174 magenta pixels). Either the door is on the wrong wall or the AT&T Center
+   block overlaps it.
+5. **The Nine at West Campus — one enormous tree canopy covers the frontage.**
+   Same class as 21 Rio; the lobby's magenta lands at x=248 of 1440, off to the
+   side, in every candidate.
+6. **The Nine at Rio and The Quarters Sterling House — never framed.** Both come
+   back as a blank untextured wall or a street canyon at every bearing tried.
+   Sterling House's door was one of the four **relocated by §99's
+   `clear_buried()`** (moved 3 m), so it is worth re-checking that the relocation
+   put it on a wall a camera can see — which is exactly §99's own lesson that "an
+   audit that validates a POINT is wrong whenever the consumer can move it
+   afterwards".
+7. **At the 18 m floor a low neighbour's roof fills most of the frame as a flat
+   untextured colour field** — brown by day, pure black by night. Rambler and
+   Block on 25th East are the clearest.
+   `15-DEFECT-rambler-low-roof-fills-the-frame-at-the-18m-floor.png`. Roof top
+   faces carry no texture, and at the lowest altitude the app allows they are a
+   large part of what a person sees.
+
+**The good news, and it is most of the set:** 2400 Nueces, Block on 25th East,
+Crest at Pearl, Dobie, Inspire on 22nd, Ion Austin, Moontower, Rambler,
+Signature 1909, Skyloft, The Block, Callaway House, The Castilian, The G, The
+Standard, The Venue on Guadalupe and Twenty Two 15 all read as a real ground
+floor — glazed lobby band, canopy, wordmark, a warm interior after dark and a
+lamp pool on the pavement.
+`16-callaway-house-lobby-day-the-best-of-the-24.png` is the best frame in the
+set.
+
+### THE FOUR FIXES, RE-VERIFIED ON THE MERGED TREE
+
+`origin/main` at `128da59`, not on a branch in isolation. All green.
+
+| check | result |
+|---|---|
+| `harness-drift.mjs` | **PASS**, 28 scripts in `index.html` and 28 in `_harness.html` |
+| the Castilian podium (W4) | **fixed.** before vs main: **14,361 px changed (1.11 %), mean luma of the changed set 20.5 -> 32.5**; §98 measured 14,119 / 1.09 % / 20.4 -> 32.5 on its branch. My frame against §98's own "after": **368 px, 0.03 %** — the same render. At an independent close pose the podium's median luma is **1.36x the frame median** (25.5 against 18.8), i.e. above it, so it no longer reads as a hole. `guadalupe-24th`: 5,202 px, 0.40 %, 19.9 -> 28.1. |
+| the Main Building south portal (W9) | **fixed, and the picture is decisive.** `04` / `06` (before) show **four** identical doors on the 38 m portal wall, each with its own surround and steps, and four warm rectangles at night; `05` / `07` (main) show **one**. The recess reads: both returning side walls of the centre bay are visible in the day frame, so §99's "the wall was never flat" holds. |
+| Guadalupe, one label per tenant (W5) | **fixed.** `window.labelDuplicates(map)` at the recorded pose, 1600x1000, hardware GL: **26 distinct names rendered, 0 duplicates**, day `p=0.14` and night `p=0.92` — matching §100's after (26 / 0). The lit shopfronts and the pavement pool are unchanged: `08` and `09`. |
+| `zfight.mjs` | **at baseline.** `wampus-zf`: drag-doors 0.005 %, drag-doors-hi 0.005 %, wc-lobby 0.000 %, drag-night 0.001 %, **no clusters** — identical to §93. `shots-places.json`'s `westcampus-day` still reports **242 px @ [642,827,869,895]**, the same count and the same box as before the pass (QUEUE W6, untouched by design). `shots-westcampus.json`: five poses, no clusters. |
+| `coplanar.mjs` | **at or below baseline.** `places.geojson` **1** (the pre-pass awning/awning pair). `entrances.geojson` **1729** (1744 before §99 — down). Default set: `roofs.geojson` **85**, unchanged and still unowned (W6). |
+| `places-check.mjs` | **PASS — 40 ok, 0 failed** (run from `scripts/verify/`, `VERIFY_URL` on 8277). |
+| altitude | **no regression.** `10-altitude-cruise-night-no-regression.png` (z16.67 p64) and `11-altitude-600m-day-no-regression.png` (z15.3). The ground floor is invisible from both, which is the z16.7 gate working, and the Drag still reads as a warm ribbon at night. |
+
+**Merged.** Nothing in this branch is code or data, and every assertion above was
+taken on `origin/main`'s tree.
+
+### WHAT DID NOT WORK, in the order it cost time
+
+1. **I derived the camera altitude, got it exactly right, and was still wrong**,
+   because I checked the arithmetic against the page at the instant of the jump
+   and not at the shutter. A probe agreed with my formula to 0.03 m
+   (z20.78/p80.5 -> 5.03 m eye) and the frames still came back looking down onto
+   roofs. What broke it open was reading the frames as evidence about the
+   *camera* rather than about the city: a roof plane 400 px tall under a camera
+   that is supposed to be 9 m up is arithmetically impossible, and that is what
+   sent me to `js/controls.js`. **Measure the pose at the moment the screenshot
+   is taken, not at the moment you set it.**
+2. **`data/roofs.geojson` is not a footprint file**, and using it as one made the
+   first line-of-sight pass return "30 m clear" for all 24 doors. Its rings are
+   roof *pieces* — 7 points — and a point-in-polygon test at the Castilian's own
+   centroid returns zero hits. `data/snapshots/<date>/buildings.geojson` plus
+   `data/westcampus.geojson` is the real footprint set; the West Campus towers
+   are not in the buildings source at all and have to be unioned in by hand, or
+   the camera cheerfully stands inside the block opposite.
+3. **The first 48 frames were shot at the wrong altitude and thrown away.** They
+   are what proved the finding, so they were not wasted, but the survey had to be
+   re-shot at 18 m to be worth looking at. Both raw sets are out of the repo; only
+   the contact sheets and the defect frames were kept, because 96 MB of PNG would
+   have tripled a 53 MB pack.
+4. **`zfight.mjs` and `places-check.mjs` both need `VERIFY_URL`**, and
+   `harness-drift.mjs` must be run **from the repo root** (it opens
+   `./index.html` relative to `cwd`). `zfight.mjs` takes a shots file as
+   `argv[2]` and crashes with `path must be of type string` without one. None of
+   this is new; all of it cost a minute each.
+
+### WHAT I DID NOT DO
+
+* **Did not fix anything.** This lane's writes were `shots/night/`,
+  `shots/wampus/`, `HANDOFF.md` and `QUEUE.md`. Every defect above is a QUEUE
+  entry, not a patch.
+* **Did not lower `ALT_MIN`, and would not have.** Whether this city should be
+  walkable at eye height is a taste call with a real cost attached — the floor is
+  what stops a flying user clipping through a wall. It goes to Simeon with a
+  picture, per CLAUDE.md rule 9.
+* **Did not measure the `sn` atlas tile the way §96 measured `dk`.** The
+  screen-side evidence for Callaway is strong and reproduced at two poses, but
+  nobody has read `sn`'s warm-texel fraction out of `imageManager`. That is the
+  measurement that turns "the renderer disagrees with the bake" into a named line
+  of code.
+* **Did not put the pose list in `scripts/verify/shots-*.json`** — still not this
+  lane's file, which is what QUEUE W10 complained about in the first place. The
+  24 poses are reproducible from the recipe above (door centroid, two-way normal,
+  eye 18 m, standoff `min(30, clear + 8)`), and the request stands.
+* **Did not re-check W8** (the Texas Union's courtyard door). It still needs a
+  photograph before any code, and I did not take one.
+* **Did not photograph anything at dusk.** Day `p=0.14` and night `p=0.92` only.
