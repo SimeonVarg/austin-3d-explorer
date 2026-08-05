@@ -11377,3 +11377,80 @@ something other than what the report said.
 57. **Still visibly wrong, from the dusk frames:** the far outer ring reads as a
     flat tan band with a hard horizon line. It is the one thing in the three
     sweeps that looks unfinished, and it is `js/outer.js` — the Mac's file.
+
+---
+
+## 96. Aug 5 2026 — the black West Campus blocks are ONE facade family, and it is 2 bands not 12 (acer lane)
+
+QUEUE **W4**, diagnosis only. Branch `acer/night-black-towers`. Wrote
+`docs/night/black-towers.md` and no code. Every number below is in that file
+with the instrument settings and a repro recipe; this is the summary.
+
+**The answer.** `js/facades.js` has a family `dk` (parking deck) that has no lit
+window by construction — `GRIDS.dk = null` and `OCCUPANCY.dk = [0.00, 0.00]`.
+Exactly **two** bands in the city use it, and one is **25.2 m tall and 44 % of
+The Castilian's 57.0 m elevation** (Dobie's podium is the other, 10.8 m). That
+is the slab. Not a missing `wn`, not an unstamped feature, not a quantise miss,
+not another layer — all four were tested and all four are written up with the
+measurement that kills them.
+
+**Measured, atlas-side** (p 0.88, `facadeAtlasHour()` confirmed, images read
+straight out of `imageManager` before `setLight`): `dk37` has **0.00 %**
+warm-hot texels and `maxL 86.3`, against `mh/tr/tg` at 8–16 % and `maxL
+205–218`. `dk` and `sf` (the 24 crowns, 0.9–5.0 m each) are the only two
+families with zero, and the only two whose tile mean is cool.
+
+**Measured, screen-side** (magenta mask, castilian-close, frame median 22.4):
+the Castilian's podium is **0.18 %** lit pixels against **4.11 %** for its own
+tower directly above it and **4.22 %** for the other 22 buildings' towers in the
+same frame. It is also **0.66× the frame median**, i.e. darker than the sky
+behind it — which is why it reads as a hole and not as a dark building.
+
+**Fix belongs to `js/facades.js`**, not `js/westcampus.js` (no colour, no night
+logic; its one night decision, `vertical-gradient: false`, is already right and
+already documented against this exact building) and not `js/night.js`. The
+modelling question — should levels 2–10 be a 25 m open deck — is
+`scripts/bake_westcampus.py`'s, and the bake's own source note says the garage
+is real, so the tile is what is wrong. The doc says what a faithful fix is: a
+cool interior glow in the slot, **not** window panes.
+
+### WHAT DID NOT WORK, in the order it cost time
+
+1. **`#ff00ff` is not `#ff00ff` at night.** `setLight` multiplies a
+   fill-extrusion colour, so the mask comes back at ≈ (124, 12, 159). The first
+   mask run reported **0 magenta pixels for every group** and read exactly like
+   "the layer draws nothing". Test hue, not value.
+2. **A hue-only purple test then over-counted by ~3×** — **47,811 pixels of the
+   untouched night frame** pass it, because a night city is full of dim purple.
+   The mask must be `purple(mag) AND |mag − base| > 18`. The first corrected
+   run printed IoUs of 0.42–0.89 between masks that should have been disjoint,
+   which is what caught it.
+3. **1.1 s is not enough settle on SwiftShader.** A 23-building sweep came back
+   with near-identical pixel counts for every building (13,889 twice, 25,583
+   three times) — a stale frame read 23 times. That whole table was discarded.
+   ≥ 2.5 s and assert the masks are actually different pixel sets.
+4. **`querySourceFeatures` at z15.2 under-counts.** It found 74 bands over 21
+   buildings and missed TIER 4's authored bands entirely. z14.1 pitch 0 gives
+   84 over 23. Anyone re-deriving this from a tiled source must check the count.
+5. **Four browser runs died** with "target closed" mid-script — a full-resolution
+   `getImageData` and a 73-layer sweep both took the renderer down. Half-res
+   grabs and ≤ 7 masks per run are stable. `reap.mjs` between runs.
+
+### WHAT I DID NOT DO
+
+- **Did not identify the second black block in `guadalupe-24th-night.png` at
+  that frame's own pose**, because the pose was never recorded (QUEUE W10's
+  complaint, now bitten). At an approximate pose the large dark mass is
+  **26.8 % `buildings-3d`** and only 9.6 % `wc-wall`, so there is a second,
+  separate population of dark night blocks in these frames and it is not W4's.
+  The two `dk` bands are the only ones West Campus can produce.
+- **Did not check any hour but p = 0.88.** The `dk` tile's only night term is
+  `night = (p − 0.55) / 0.45`, so it is monotone, but that is read off the code
+  rather than measured.
+- **Did not write a checker.** The cheap assertion is there for the taking:
+  R:B < 0.75 with warm-lit under 1 % is this defect's signature and separates it
+  from every lit band by a clear margin at both poses.
+- **Did not touch `scripts/verify/westcampus-probe.mjs`**, which is in the
+  page-setup regression — it throws `d is not defined` before its first
+  assertion, so its `podium band exists (Castilian + Dobie)` check has not run
+  in a while. Mac's fix.
