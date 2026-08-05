@@ -76,12 +76,27 @@
  *  4. THE INSCRIPTIONS ARE OFF BY DEFAULT, AND THAT IS A MEASURED CALL.
  *     See INSCRIPTIONS below. Read that comment before "fixing" it.
  *
+ *  5. THE WEST CAMPUS WORDMARKS ARE ON, AND GATED PER BUILDING.
+ *     The `highrise` family (HANDOFF §90) gives 22 of the 24 named West Campus
+ *     towers a lit name band on the canopy fascia, and until this pass there
+ *     were no letters on it. There are now, and the reason it ships where the
+ *     carved inscription did not is length, not size: "Moontower" is nine
+ *     characters on a 9 m band and fits it at z18.2, where the Main Building's
+ *     inscription is 108 characters on an 8.3 m band and would be twenty times
+ *     the width of the thing it names. The gate is computed PER FEATURE from
+ *     that building's own name against that building's own band — z18.19 to
+ *     z19.79 over the 22 — so at the z16-19 the camera actually cruises at
+ *     almost none of them are drawn. See ENT.wordmark for the arithmetic and
+ *     for the one-line lever that overrules it.
+ *
  * ── LOD ──────────────────────────────────────────────────────────────────────
  * 10,051 pieces across 374 buildings is a lot of very small boxes, so the pass
  * is split by how much of an entrance each kind is worth:
  *
- *   PORTAL  door glass transom surround canopy column sign   (3,447 pieces)
- *   DETAIL  step reveal rail ramp                            (6,604 pieces)
+ *   PORTAL   door glass transom surround canopy column sign
+ *   DETAIL   step reveal rail ramp
+ *   MULLION  the 369 `surround` pieces on the West Campus lobbies ONLY —
+ *            0.17 m wide, one pixel at 60 m of altitude. ENT.mullionMinZoom.
  *
  * PORTAL comes in at ENT.minZoom, DETAIL at ENT.detailMinZoom, and DETAIL is
  * additionally gated on a density knob that rides GFX.treeDensity exactly as
@@ -135,6 +150,17 @@
     // Stairs, rails and reveals are 0.06-0.35 m features. They earn their place
     // one zoom step later than the door does.
     detailMinZoom: 16.0,
+    // THE WEST CAMPUS MULLION GRID, on its own gate. `k: surround` means two
+    // different objects in this file: on the campus families it is the stone or
+    // metal frame around a door, 1-3 m across, and on the `highrise` family it
+    // is a single mullion in the lobby storefront — measured off the baked
+    // geometry, 0.17 m wide by 0.10 m deep by 3.95 m tall, 369 of them over the
+    // 24 lobbies. docs/entrances/shopfronts.md §9.1's projection at pitch 64 is
+    // 355.9 px per metre of wall WIDTH per metre of altitude, so 0.17 m reaches
+    // one pixel at 60 m — z18.6, the same number §9.2 lands its own DETAIL tier
+    // on. Below that a mullion is a fractionally-covered fragment that aliases
+    // differently every frame, so this is not only a cost gate.
+    mullionMinZoom: 18.6,
 
     opacity: 1.0,
 
@@ -229,6 +255,68 @@
       risePxCap: 220,
     },
 
+    // ── the West Campus wordmark ──────────────────────────────────────
+    // THE APARTMENT NAMES, AND THE ARITHMETIC THAT DECIDES WHERE THEY APPEAR.
+    //
+    // scripts/bake_entrances.py's `highrise` family gives 22 of the 24 named
+    // West Campus towers a name band on the canopy fascia (HANDOFF §90 — it is
+    // on the fascia and not the spandrel because the canopy projects 2.60 m and
+    // hides the wall behind it at this app's pitch). The band is DRAWN, in a
+    // colour, and until now that was all: a lit stripe with no name on it.
+    //
+    // The band is 7.10-10.94 m long and 0.20 m tall. Real channel letters on it
+    // would be ~0.14 m of cap height, which at the true 512-px ground scale is
+    // one pixel at z18.9 and nine pixels at z22.05 — above MapLibre's ceiling.
+    // So, exactly as with the carved inscriptions above, the letters cannot be
+    // drawn at their real size. What is DIFFERENT here, and it is the whole
+    // reason this ships where the inscription did not, is LENGTH: the Main
+    // Building's inscription is 108 characters on an 8.29 m band, so readable
+    // type is twenty times the width of its own band and lands on other
+    // buildings. "Moontower" is nine characters on an 8.99 m band. At z18.2 a
+    // 9.5 px label of it is 50 px wide and the band under it is 55 px. The
+    // label fits the object it names, which is what makes it signage rather
+    // than an annotation.
+    //
+    // So the gate is not one zoom for the layer. It is PER FEATURE, computed at
+    // init from that building's own name length against that building's own
+    // band length, and a name only appears at the zoom where it fits its band
+    // within `fitMax`. Measured over the 22: z18.19 (Moontower) to z19.79 (The
+    // Quarters Sterling House), median 18.9. The camera cruises at z16-19 with
+    // the spawn at 16.67, so AT CRUISE ALTITUDE ALMOST NONE OF THESE ARE
+    // DRAWN. That is the honest answer and it is the intended one — what
+    // carries a tower's identity from 230 m is the lit band, not its letters.
+    // Turn `fitMax` up if you would rather have oversized names sooner.
+    wordmark: {
+      on: q.get('wcnames') !== '0',
+      // Hard floor under the per-feature gate. Nothing may appear before this
+      // whatever its name length says, so a future one-word building cannot
+      // start shouting from the air.
+      minZoom: 18.0,
+      // How much wider than its own band a name may be. 1.00 is "never wider
+      // than the thing it names"; 1.25 allows a quarter over, which at the
+      // 0.20 m fascia still reads as signage that overhangs its plate.
+      fitMax: 1.25,
+      // Advance width per character as a fraction of the type size, for Noto
+      // Sans Bold. Used only to predict the label's width for the gate — it is
+      // an estimate, and `fitMax` is the slack that absorbs it.
+      charWidthEm: 0.58,
+      sizePx: 9.5,
+      // Same three world-space tests the inscription gate uses, at this
+      // family's own scale: these bands are 4 m up, not 15, and there are 22 of
+      // them within 400 m of each other rather than two 70 m apart.
+      maxDistM: 140,
+      arcDeg: 58,
+      viewArcDeg: 40,
+      // Channel letters. Dark metal on a pale plate by day; lit at night, in
+      // the band's own warm, and the halo goes the other way so the letters
+      // sit ON the fascia instead of glowing off the front of it.
+      dayColor: '#33333a', dayHalo: '#e8e4da',
+      nightColor: '#ffe2b4', nightHalo: '#241608',
+      haloWidth: 1.0,
+      letterSpacing: 0.06,
+      risePxCap: 220,
+    },
+
     // ── LOD ───────────────────────────────────────────────────────────
     // The LOD knob, read off GFX.treeDensity when the graphics menu has no
     // entDetail entry of its own. [treeDensity floor, detail level], first
@@ -258,8 +346,10 @@
   const L_PORTAL = 'entrances-portal';
   const L_GLASS = 'entrances-glass';
   const L_DETAIL = 'entrances-detail';
+  const L_MULLION = 'entrances-mullion';
   const L_POOL = 'entrances-pool';
   const L_LABEL = 'entrances-inscription';
+  const L_WORDMARK = 'entrances-wordmark';
   const DATA = 'data/entrances.geojson';
 
   // Which kinds are the portal and which are the detail. The bake's `k`
@@ -267,6 +357,10 @@
   // by default, which is the safe failure (drawn too early, not never).
   const DETAIL_KINDS = ['step', 'reveal', 'rail', 'ramp'];
   const GLASS_KINDS = ['glass', 'transom'];
+  // The one place a kind is not enough: see ENT.mullionMinZoom.
+  const MULLION_ERA = 'highrise';
+  const isMullion = ['all', ['==', ['get', 'k'], 'surround'],
+                            ['==', ['get', 'era'], MULLION_ERA]];
 
   /**
    * THE CARVED TEXT, AND WHY IT IS OFF BY DEFAULT.
@@ -451,6 +545,24 @@
   // bake actually wrote and not against a hex typed in from memory.
   const _signTones = { wd: [], wg: [] };
 
+  /**
+   * The wordmark's day/night ramp, on the SAME 0 / 0.5 / 1 stops the geometry
+   * uses, so the letters and the plate they are on change together.
+   *
+   * ONE IMPORTANT DIFFERENCE FROM EVERY OTHER COLOUR IN THIS FILE: a symbol
+   * layer is NOT multiplied by map.setLight. Every fill-extrusion here carries
+   * a `wn` pre-compensated for the blue #9aa6da night light (header point 3);
+   * these two hexes must NOT be, and pre-compensating them would ship letters a
+   * third too warm. Measured, not assumed — the check is the magenta mask on
+   * entrances-wordmark against entrances-portal in the same frame.
+   */
+  function wordmarkColor(p, which) {
+    const W = ENT.wordmark;
+    const day = which === 'halo' ? W.dayHalo : W.dayColor;
+    const night = which === 'halo' ? W.nightHalo : W.nightColor;
+    return ['interpolate', ['linear'], clamp01(p), 0, day, 0.5, day, 1, night];
+  }
+
   // ── LOD ─────────────────────────────────────────────────────────────
   function detailLevel() {
     const g = window.GFX;
@@ -481,7 +593,8 @@
   // building" has to be answered in JS or not at all. §86 is what "not at all"
   // looks like.
   let _labelFeatures = [];
-  let _gateWired = false, _gateLast = '', _gateState = null;
+  let _wmFeatures = [];
+  let _gateWired = false, _gateLast = '', _wmLast = '', _gateState = null;
 
   /** Metres per degree at this latitude, so the tests are in metres. */
   const M_LON = 111320 * Math.cos(SCENE_LAT * Math.PI / 180);
@@ -515,6 +628,80 @@
     const len = Math.hypot(vx, vy);
     if (!(len > 0.05)) return [0, 1];
     return [+(vx / len).toFixed(4), +(vy / len).toFixed(4)];
+  }
+
+  /**
+   * The outward normal of a name band, and its length, from the band's OWN
+   * polygon — NOT from outwardNormal() above.
+   *
+   * outwardNormal() derives the direction from an entrance's step, ramp and
+   * rail pieces, which sit outside the wall by construction. That is right on
+   * the Forty Acres, where every celebrated portal has a flight of steps. It is
+   * wrong here and quietly so: of the 24 West Campus lobbies only a handful
+   * have a `step` at all (18 step pieces over 24 buildings; the rest meet the
+   * pavement flush), so outwardNormal() would return its due-north fallback for
+   * most of them and the facing test would then reject the wordmark from every
+   * direction except one. A gate that is never satisfied looks exactly like a
+   * layer that was never added.
+   *
+   * A fascia has its own geometry to answer with: the perpendicular to its
+   * longest edge, with the sign flipped so it points AWAY from the lobby
+   * glazing. The canopy projects 2.60 m, so band-centroid minus glass-centroid
+   * is a 2.6 m vector pointing out of the building, which is plenty to
+   * disambiguate a perpendicular with.
+   */
+  function bandNormal(f, features, eid) {
+    const ring = f.geometry.coordinates[0];
+    let ex = 0, ey = 0, best = 0;
+    for (let i = 0; i < ring.length - 1; i++) {
+      const dx = (ring[i + 1][0] - ring[i][0]) * M_LON;
+      const dy = (ring[i + 1][1] - ring[i][1]) * M_LAT;
+      const d = Math.hypot(dx, dy);
+      if (d > best) { best = d; ex = dx / d; ey = dy / d; }
+    }
+    if (!(best > 0.5)) return { n: [0, 1], lenM: best, ok: false };
+    let nx = ey, ny = -ex;
+    let gx = 0, gy = 0, n = 0, cx = 0, cy = 0, m = 0;
+    for (const p of ring) { cx += p[0]; cy += p[1]; m++; }
+    for (const g of features) {
+      const pr = g.properties;
+      if (pr.eid !== eid || pr.k !== 'glass') continue;
+      const r = g.geometry.coordinates[0];
+      let x = 0, y = 0, k = 0;
+      for (const pt of r) { x += pt[0]; y += pt[1]; k++; }
+      if (k) { gx += x / k; gy += y / k; n++; }
+    }
+    if (n && m) {
+      const vx = (cx / m - gx / n) * M_LON, vy = (cy / m - gy / n) * M_LAT;
+      const proj = vx * nx + vy * ny;
+      // Under half a metre of projection means the band sits directly over the
+      // glass and the sign of the perpendicular is not determined. Say so
+      // rather than pick one: `ok:false` keeps the wordmark out of the layer.
+      if (Math.abs(proj) < 0.5) return { n: [nx, ny], lenM: best, ok: false };
+      if (proj < 0) { nx = -nx; ny = -ny; }
+      return { n: [+nx.toFixed(4), +ny.toFixed(4)], lenM: best, ok: true };
+    }
+    return { n: [+nx.toFixed(4), +ny.toFixed(4)], lenM: best, ok: false };
+  }
+
+  /** True metres per screen pixel at zoom 0. mPerPx() in this file is the
+   *  256-px-tile constant and is therefore exactly 2x the truth — see
+   *  labelRisePx for why it is not corrected in place. */
+  const M_PER_PX_Z0 = 156543.03392 * Math.cos(SCENE_LAT * Math.PI / 180) / 2;
+
+  /**
+   * The zoom at which this name fits this band. See ENT.wordmark for the
+   * argument; this is the two lines of arithmetic behind it.
+   *   label width px = characters x charWidthEm x sizePx
+   *   band width px  = band metres / (M_PER_PX_Z0 / 2^z)
+   *   require label <= fitMax x band
+   */
+  function wordmarkZmin(name, lenM) {
+    const W = ENT.wordmark;
+    const labelPx = String(name).length * W.charWidthEm * W.sizePx;
+    if (!(lenM > 0.5) || !labelPx) return 99;
+    const z = Math.log2(M_PER_PX_Z0 * labelPx / (W.fitMax * lenM));
+    return +Math.max(W.minZoom, z).toFixed(2);
   }
 
   /**
@@ -561,29 +748,42 @@
    *   distance — ENT.label.maxDistM from the band
    *   facing   — within ENT.label.arcDeg of the band's outward normal
    */
-  function visibleInscriptions(map) {
-    if (!ENT.on || !ENT.labels || !_labelFeatures.length) return [];
-    const L = ENT.label;
-    if (map.getZoom() < L.minZoom) return [];
+  function gateVisible(map, list, cfg) {
+    if (!ENT.on || !list.length) return [];
+    const z = map.getZoom();
+    if (z < cfg.minZoom) return [];
     const eye = cameraLngLat(map);
-    const cosArc = Math.cos(L.arcDeg * Math.PI / 180);
-    const cosView = Math.cos(L.viewArcDeg * Math.PI / 180);
+    const cosArc = Math.cos(cfg.arcDeg * Math.PI / 180);
+    const cosView = Math.cos(cfg.viewArcDeg * Math.PI / 180);
     const br = map.getBearing() * Math.PI / 180;
     const look = [Math.sin(br), Math.cos(br)];
     const out = [];
-    for (const f of _labelFeatures) {
+    for (const f of list) {
       const c = f.geometry.coordinates, pr = f.properties;
+      // A FOURTH TEST, and only the wordmarks carry it: the per-feature zoom at
+      // which this name fits this band. See ENT.wordmark. Absent on the
+      // inscriptions, where the layer's own minZoom is the whole gate.
+      if (pr.zmin != null && z < pr.zmin) continue;
       const vx = (eye.lng - c[0]) * M_LON;
       const vy = (eye.lat - c[1]) * M_LAT;
       const d = Math.hypot(vx, vy);
-      if (d > L.maxDistM || d < 0.5) continue;
-      // camera stands in front of the wall the band is cut into
+      if (d > cfg.maxDistM || d < 0.5) continue;
+      // camera stands in front of the wall the band is on
       if ((vx * pr.nx + vy * pr.ny) / d < cosArc) continue;
       // ...and is pointing at it, not merely near it
       if ((-vx * look[0] + -vy * look[1]) / d < cosView) continue;
       out.push(f);
     }
     return out;
+  }
+
+  function visibleInscriptions(map) {
+    if (!ENT.labels) return [];
+    return gateVisible(map, _labelFeatures, ENT.label);
+  }
+  function visibleWordmarks(map) {
+    if (!ENT.wordmark.on) return [];
+    return gateVisible(map, _wmFeatures, ENT.wordmark);
   }
 
   /**
@@ -614,7 +814,7 @@
    *   z19.6 pitch75  65.7 -> 66.7      z20.4 pitch62 110.7 -> 111.0
    * Within 1.5% at the worst of the four, which is well inside a letter.
    */
-  function labelRisePx(map, midH) {
+  function labelRisePx(map, midH, cap) {
     const t = map.transform;
     const mppTrue = mPerPx(map.getZoom()) / 2;      // see above: 512-px tiles
     const hPx = midH / mppTrue;
@@ -623,33 +823,55 @@
       || 0.5 * ((map.getCanvas && map.getCanvas().clientHeight) || 900)
              / Math.tan(((t && (t.fov || t._fov)) || 36.87) * Math.PI / 360);
     const persp = c2c / Math.max(1, c2c - hPx * Math.cos(phi));
-    return -Math.min(ENT.label.risePxCap, hPx * Math.sin(phi) * persp);
+    return -Math.min(cap == null ? ENT.label.risePxCap : cap,
+                     hPx * Math.sin(phi) * persp);
   }
 
   function updateInscriptionGate(map) {
-    const src = map.getSource && map.getSource(SRC + '-text');
-    if (!src) return;
+    const z = +map.getZoom().toFixed(2);
+    const eye = (e => [+e.lng.toFixed(6), +e.lat.toFixed(6)])(cameraLngLat(map));
+
+    // The words are lifted to the course they sit on with ONE text-translate
+    // per layer, so when several are on screen it is the LOWEST band's rise —
+    // any other choice puts the shortest one off its own building. On the
+    // inscriptions that is a nicety (two of them, 70 m apart); on the West
+    // Campus wordmarks it is a real case, because the bands run 3.12 to 4.17 m
+    // and two towers are often in frame together. The spread is 1.05 m, which
+    // at z19 is 8 px — visible, and the reason this is worth writing down.
+    const push = (src, layer, vis, cfg, keyOf, last) => {
+      const s = map.getSource && map.getSource(src);
+      if (!s) return last;
+      const key = vis.map(keyOf).join(',');
+      if (key !== last) {
+        last = key;
+        try { s.setData({ type: 'FeatureCollection', features: vis }); } catch (e) {}
+      }
+      if (vis.length && map.getLayer(layer)) {
+        const midH = Math.min(...vis.map(f => f.properties.midH));
+        try {
+          map.setPaintProperty(layer, 'text-translate',
+                               [0, labelRisePx(map, midH, cfg.risePxCap)]);
+        } catch (e) {}
+      }
+      return last;
+    };
+
     const vis = visibleInscriptions(map);
+    const wm = visibleWordmarks(map);
     // Published so a verification script can read the gate's OWN decision.
     // querySourceFeatures() is a tile query and lags a setData by a frame or
     // two, which read as an inverted result the first time this was tested.
     _gateState = {
-      zoom: +map.getZoom().toFixed(2),
-      eye: (e => [+e.lng.toFixed(6), +e.lat.toFixed(6)])(cameraLngLat(map)),
+      zoom: z, eye,
       visible: vis.map(f => f.properties.ref),
       labelsOn: !!ENT.labels,
+      wordmarks: wm.map(f => f.properties.nm),
+      wordmarksOn: !!ENT.wordmark.on,
     };
-    const key = vis.map(f => f.properties.ref).join(',');
-    if (key !== _gateLast) {
-      _gateLast = key;
-      try { src.setData({ type: 'FeatureCollection', features: vis }); } catch (e) {}
-    }
-    if (!vis.length || !map.getLayer(L_LABEL)) return;
-    // One translate for the layer, so it is the shortest band's rise when two
-    // are on screen at once. There are two inscriptions in the whole file and
-    // they are 70 m apart, so "two at once" is a nicety, not a case.
-    const midH = Math.min(...vis.map(f => f.properties.midH));
-    try { map.setPaintProperty(L_LABEL, 'text-translate', [0, labelRisePx(map, midH)]); } catch (e) {}
+    _gateLast = push(SRC + '-text', L_LABEL, vis, ENT.label,
+                     f => f.properties.ref, _gateLast);
+    _wmLast = push(SRC + '-wm', L_WORDMARK, wm, ENT.wordmark,
+                   f => f.properties.nm, _wmLast);
   }
   window.updateInscriptionGate = updateInscriptionGate;
   /** What the gate decided last time the camera moved. Read-only. */
@@ -742,6 +964,47 @@
       });
     }
     _labelFeatures = labelFeatures;
+
+    // The West Campus wordmarks: one point per `highrise` name band, carrying
+    // the band's own outward normal, its mid-height and — the thing that makes
+    // this layer honest — the zoom at which this building's name fits this
+    // building's band. See ENT.wordmark.
+    const wmFeatures = [];
+    const wmRejected = [];
+    for (const f of gj.features) {
+      const pr = f.properties;
+      if (pr.k !== 'sign' || pr.era !== MULLION_ERA || !pr.nm) continue;
+      const b = bandNormal(f, gj.features, pr.eid);
+      if (!b.ok) { wmRejected.push({ nm: pr.nm, why: 'no outward normal' }); continue; }
+      const ring = f.geometry.coordinates[0];
+      let x = 0, y = 0, n = 0;
+      for (const pt of ring) { x += pt[0]; y += pt[1]; n++; }
+      wmFeatures.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [x / n, y / n] },
+        properties: {
+          nm: pr.nm, ref: pr.ref, bid: pr.bid,
+          nx: b.n[0], ny: b.n[1],
+          bandM: +b.lenM.toFixed(2),
+          zmin: wordmarkZmin(pr.nm, b.lenM),
+          // Carried through so entrancesStats() can say which of these words
+          // are the signage and which are only the building's OSM name — 21 of
+          // the 22 are unverified (HANDOFF §90) and that should be readable
+          // from the console rather than only from a bake log.
+          nmv: pr.nmv === true,
+          midH: +((pr.base || 0) + (pr.h || 0) / 2).toFixed(2),
+        },
+      });
+    }
+    _wmFeatures = wmFeatures;
+    if (wmFeatures.length && !map.getSource(SRC + '-wm')) {
+      // EMPTY at add time, exactly like the inscription source. The gate is the
+      // only thing that ever puts a word in front of the camera.
+      map.addSource(SRC + '-wm', {
+        type: 'geojson', data: { type: 'FeatureCollection', features: [] },
+      });
+    }
+
     if (labelFeatures.length && !map.getSource(SRC + '-text')) {
       map.addSource(SRC + '-text', {
         type: 'geojson',
@@ -811,7 +1074,30 @@
       map.addLayer({
         id: L_PORTAL, type: 'fill-extrusion', source: SRC, ...lp,
         minzoom: ENT.minZoom,
-        filter: ['match', ['get', 'k'], DETAIL_KINDS.concat(GLASS_KINDS), false, true],
+        filter: ['all',
+          ['match', ['get', 'k'], DETAIL_KINDS.concat(GLASS_KINDS), false, true],
+          ['!', isMullion],
+        ],
+        paint: {
+          'fill-extrusion-color': portalColor(p),
+          'fill-extrusion-height': ['+', ['get', 'base'], ['get', 'h']],
+          'fill-extrusion-base': ['get', 'base'],
+          'fill-extrusion-opacity': ENT.opacity,
+          'fill-extrusion-vertical-gradient': ENT.verticalGradient,
+        },
+      }, anchor);
+    }
+
+    // The 369 West Campus lobby mullions, on their own gate. See
+    // ENT.mullionMinZoom — they are 0.17 m wide and do not reach one pixel
+    // until 60 m of altitude. Added between the portal and the glazing so a
+    // mullion draws over the storefront behind it and under a lit pane in
+    // front of it, which is the order the real assembly is in.
+    if (!map.getLayer(L_MULLION)) {
+      map.addLayer({
+        id: L_MULLION, type: 'fill-extrusion', source: SRC, ...lp,
+        minzoom: ENT.mullionMinZoom,
+        filter: isMullion,
         paint: {
           'fill-extrusion-color': portalColor(p),
           'fill-extrusion-height': ['+', ['get', 'base'], ['get', 'h']],
@@ -874,6 +1160,52 @@
       }, map.getLayer('buildings-labels-major') ? 'buildings-labels-major' : undefined);
     }
 
+    if (wmFeatures.length && !map.getLayer(L_WORDMARK)) {
+      map.addLayer({
+        id: L_WORDMARK, type: 'symbol', source: SRC + '-wm',
+        // The LAYER minzoom is the floor. The real gate is per feature and
+        // lives in gateVisible() — a name is only ever put in this source at a
+        // zoom where it fits its own band.
+        minzoom: ENT.wordmark.minZoom,
+        layout: {
+          'text-field': ['get', 'nm'],
+          // ONE font. See the note on the inscription layer above: a fontstack
+          // is requested as a single URL and a 404 glyph makes MapLibre discard
+          // the whole tile.
+          'text-font': ['Noto Sans Bold'],
+          'text-size': ENT.wordmark.sizePx,
+          'text-letter-spacing': ENT.wordmark.letterSpacing,
+          // ONE LINE, ALWAYS. A wordmark that wraps is not a wordmark — and the
+          // per-feature gate is computed against the single-line width, so a
+          // wrap would silently make the fit test a lie.
+          'text-max-width': 64,
+          'text-padding': 3,
+          'text-allow-overlap': false,
+          'text-anchor': 'center',
+          // The band is 0.20 m of fascia and the letters are the signage on it,
+          // so when two towers compete for the same box the one with SOURCED
+          // lettering should win. 21 of the 22 are unverified; Moontower is not.
+          'symbol-sort-key': ['case', ['==', ['get', 'nmv'], true], 0, 1],
+          'visibility': ENT.wordmark.on ? 'visible' : 'none',
+        },
+        paint: {
+          'text-color': wordmarkColor(p, 'color'),
+          'text-halo-color': wordmarkColor(p, 'halo'),
+          'text-halo-width': ENT.wordmark.haloWidth,
+          'text-halo-blur': 0.2,
+          'text-opacity': 0.97,
+          // Set live by updateInscriptionGate — lifted to the fascia rather
+          // than sitting on the pavement under its own doors.
+          'text-translate': [0, 0],
+          'text-translate-anchor': 'viewport',
+        },
+        // Before the building names, for the same reason js/places.js puts a
+        // shop name before them: this IS the building's name, on its own
+        // building, and it should not lose its box to a floating annotation of
+        // the same string.
+      }, map.getLayer('buildings-labels-major') ? 'buildings-labels-major' : undefined);
+    }
+
     // ── stats, including the `h` contract ──────────────────────────────
     let maxTop = 0, maxH = 0, entrances = new Set(), buildings = new Set();
     const byKind = {}, byRole = {};
@@ -889,8 +1221,13 @@
       features: gj.features.length,
       entrances: entrances.size, buildings: buildings.size,
       byKind, byRole,
+      // Mullions are subtracted out — they are their own layer on their own
+      // gate now, so counting them as portal would report 369 pieces as arriving
+      // at z15.2 when they arrive at 18.6.
       portal: gj.features.filter(f => DETAIL_KINDS.indexOf(f.properties.k) < 0
-                                   && GLASS_KINDS.indexOf(f.properties.k) < 0).length,
+                                   && GLASS_KINDS.indexOf(f.properties.k) < 0
+                                   && !(f.properties.k === 'surround'
+                                        && f.properties.era === MULLION_ERA)).length,
       glass: gj.features.filter(f => GLASS_KINDS.indexOf(f.properties.k) >= 0).length,
       detail: gj.features.filter(f => DETAIL_KINDS.indexOf(f.properties.k) >= 0).length,
       // The sourced words themselves, on by default or not, so "is the text
@@ -900,6 +1237,19 @@
         normal: [f.properties.nx, f.properties.ny], midH: f.properties.midH,
       })),
       inscriptionsDrawn: ENT.labels,
+      // The West Campus wordmarks and, for each one, the zoom the gate says it
+      // earns. This is the number to read when the answer to "why can I not see
+      // the name" is "you are 230 m up" — it is per BUILDING, not per layer.
+      // `nmv:false` means the WORDS are the building's OSM name and not sourced
+      // signage; 21 of 22 (HANDOFF §90).
+      wordmarks: wmFeatures.map(f => ({
+        nm: f.properties.nm, bandM: f.properties.bandM,
+        zmin: f.properties.zmin, nmv: f.properties.nmv,
+      })).sort((a, b) => a.zmin - b.zmin),
+      wordmarksRejected: wmRejected,
+      wordmarksDrawn: ENT.wordmark.on,
+      mullions: gj.features.filter(f => f.properties.k === 'surround'
+                                     && f.properties.era === MULLION_ERA).length,
       // Watch this instead of the expression. `neutralSuspect` is the §86
       // defect counted directly in the file: a night colour whose channels are
       // within ENT.neutralSpread while its luma is ENT.neutralLuma or over.
@@ -915,10 +1265,16 @@
     };
     console.log('[entrances]', _stats.entrances, 'entrances on', _stats.buildings,
                 'buildings,', _stats.features, 'pieces (', _stats.portal, 'portal /',
-                _stats.glass, 'glass /', _stats.detail, 'detail ), detail level',
-                _stats.detailLevel, ', inscriptions:',
+                _stats.glass, 'glass /', _stats.detail, 'detail /',
+                _stats.mullions, 'mullions z' + ENT.mullionMinZoom,
+                '), detail level', _stats.detailLevel, ', inscriptions:',
                 _stats.inscriptions.map(i => i.ref).join(',') || 'none',
-                _stats.inscriptionsDrawn ? '(drawn, ?entlabels=1)' : '(text off by default)');
+                _stats.inscriptionsDrawn ? '(drawn, ?entlabels=1)' : '(text off by default)',
+                ', wordmarks:', _stats.wordmarks.length,
+                _stats.wordmarks.length
+                  ? '(z' + _stats.wordmarks[0].zmin + '-'
+                    + _stats.wordmarks[_stats.wordmarks.length - 1].zmin + ', per building)'
+                  : '');
     if (_stats.nightGlass.neutralSuspect || _stats.nightGlass.missingWn) {
       console.warn('[entrances] NIGHT GLASS IS GOING NEUTRAL —',
                    _stats.nightGlass.neutralSuspect, 'of', _stats.nightGlass.glass,
@@ -937,8 +1293,13 @@
     if (!map || !map.getLayer) return;
     const set = (id, prop, v) => { try { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); } catch (e) {} };
     set(L_PORTAL, 'fill-extrusion-color', portalColor(p));
+    set(L_MULLION, 'fill-extrusion-color', portalColor(p));
     set(L_DETAIL, 'fill-extrusion-color', ramp(p, ['to-color', ['get', 'wn'], '#333344']));
     set(L_GLASS, 'fill-extrusion-color', ramp(p, nightGlass()));
+    // The letters go warm with their plate. NOT pre-compensated for setLight —
+    // a symbol layer never passes through it. See wordmarkColor().
+    set(L_WORDMARK, 'text-color', wordmarkColor(p, 'color'));
+    set(L_WORDMARK, 'text-halo-color', wordmarkColor(p, 'halo'));
 
     // The pool comes up on night.js's own lamp schedule, so the doorways light
     // at the same moment the streetlights do rather than in a second wave.
@@ -963,7 +1324,7 @@
   /** Re-read ENT after a live edit from the console. */
   window.applyEntranceSettings = function applyEntranceSettings(map) {
     if (!map || !map.getLayer) return;
-    for (const id of [L_PORTAL, L_GLASS, L_DETAIL]) {
+    for (const id of [L_PORTAL, L_MULLION, L_GLASS, L_DETAIL]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', ENT.on ? 'visible' : 'none');
@@ -985,6 +1346,24 @@
       // the source, and flipping it off must empty it rather than leave the
       // last frame's words parked in a hidden layer.
       _gateLast = null;
+      try { updateInscriptionGate(map); } catch (e) {}
+    }
+    if (map.getLayer(L_WORDMARK)) {
+      try {
+        map.setLayoutProperty(L_WORDMARK, 'visibility',
+                              (ENT.on && ENT.wordmark.on) ? 'visible' : 'none');
+        map.setLayoutProperty(L_WORDMARK, 'text-size', ENT.wordmark.sizePx);
+        map.setLayoutProperty(L_WORDMARK, 'text-letter-spacing', ENT.wordmark.letterSpacing);
+        map.setPaintProperty(L_WORDMARK, 'text-halo-width', ENT.wordmark.haloWidth);
+      } catch (e) {}
+      // Recompute the per-feature fit gate: sizePx and fitMax are both taste
+      // values, and changing either without re-deriving zmin would leave 22
+      // buildings gated on the OLD arithmetic while the layer draws at the new
+      // size. That is the exact shape of bug this file keeps recording.
+      for (const f of _wmFeatures) {
+        f.properties.zmin = wordmarkZmin(f.properties.nm, f.properties.bandM);
+      }
+      _wmLast = null;
       try { updateInscriptionGate(map); } catch (e) {}
     }
     if (map.getLayer(L_POOL)) {

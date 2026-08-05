@@ -1,5 +1,306 @@
 # Austin 3D Explorer — Full Handoff
 
+## 92. Aug 4 2026 — the West Campus lobbies get their names, and the shopfront doors get an altitude (acer lane)
+
+**Branch:** `acer/westcampus-ground`, the render half of §90 and §91. **Files
+written:** `js/entrances.js`, `js/places.js`, this entry. No bake, no data file,
+no `js/app.js`, no `scripts/verify/`. `index.html` and `_harness.html` needed no
+edit — both modules already register their own source and layers, and both still
+do. `node scripts/verify/harness-drift.mjs`:
+
+```
+index.html:    28 scripts
+_harness.html: 28 scripts
+
+ PASS  the harness loads the same city the site does
+```
+
+**What it is.** Two bakes landed geometry the renderers were drawing naively.
+§91 gave all 133 shopfronts a recessed entry — 755 pieces between 0.16 m and
+2.13 m — and emitted them into ONE layer at z15, where the smallest is a
+twentieth of a pixel. §90 gave 22 of the 24 named West Campus towers a lit name
+band, and there were no letters on it. This pass gives the doors an altitude and
+the towers their names, and warms the shopfront glazing to match the doorway
+three metres to its left.
+
+Screenshots: `shots/wampus/` — `moontower`, `castilian`, `guad` day and night,
+`wcstreet` and `cruise` night. **`wcstreet-day` and `cruise-day` are missing**
+and I did not fake them: `pose.mjs` hit the serialisation problem in "what did
+NOT work" #1 and had node at 2.1 GB before I killed it. Everything the day set
+was meant to show is in `moontower-day`, `castilian-day` and `guad-day`.
+
+### 1. The shopfront entry now arrives at the spawn altitude, not before
+
+`docs/entrances/shopfronts.md` §9.2 is a table of "at what altitude is this
+feature one pixel", derived from `js/controls.js`'s own ALT/ZOOM constants.
+`js/places.js` now applies it as three layers over one source:
+
+| tier | z | features | what |
+|---|---|---|---|
+| base | 15.0 | 1,582 | bulkhead, glazing, sign band, awning, **recess panel** |
+| pool | 15.5 | 63 | the pavement spill |
+| entry | 16.7 | 755 | door leaves, door glazing, jamb returns, lintel |
+| label | 17.3 | 133 | tenant names (unchanged) |
+
+**The recess panel stays in the base tier and that is the only interesting
+decision here.** §9.2 puts `plBack` at 1 px at 854 m, above `ALT_MAX` — it is the
+one entry piece that survives the whole envelope. It is also the piece that
+FILLS the bay: §91's bake splits the bulkhead and the glazing *around* the
+doorway, so a tier that took the panel with it would punch a 2.4 m hole through
+every shopfront to the host wall. Either reason alone is enough; both point the
+same way.
+
+**Measured, by hiding the tier and counting the pixels that move** (Guadalupe,
+tod 0.92, pitch 64, bearing 275, half-resolution frame = 324,000 px):
+
+| zoom | `places-entry` paints |
+|---|---|
+| 16.4 (below the 16.7 gate) | **0 px** |
+| 16.9 | 89 px |
+| 17.6 | 77 px |
+| 18.9 | 344 px |
+
+89 half-res pixels just above the gate is the honest scale of the thing: at the
+spawn altitude a door leaf is three pixels tall, exactly as §9.2 predicts. It is
+not a lot. It is also not nothing, and below 16.7 it is zero.
+
+### 2. The apartment names, gated PER BUILDING, and mostly invisible at cruise
+
+The 22 name bands are 7.10–10.94 m long and **0.20 m tall**. Real channel letters
+on that are ~0.14 m of cap height, which at the true 512-px ground scale is one
+pixel at z18.9 and nine pixels at **z22.05** — above MapLibre's ceiling. That is
+the same arithmetic that kept the carved inscriptions off by default.
+
+What is different is LENGTH, not size. The Main Building's inscription is 108
+characters on an 8.29 m band, so readable type is twenty times the width of the
+thing it names and lands on other buildings. **"Moontower" is nine characters on
+an 8.99 m band**, and at z18.2 a 9.5 px label of it is 50 px wide against a 55 px
+band. The label fits the object it names. That is what makes it signage rather
+than an annotation, and it is why this ships where the inscription did not.
+
+So the gate is not one zoom for the layer. It is **computed per feature at init
+from that building's own name length against that building's own band length**,
+and a name only enters the source at the zoom where it fits its band within
+`ENT.wordmark.fitMax` (1.25). Measured over the 22:
+
+```
+z18.00  Rambler · 21 Rio · The G          z19.06  Twenty Two 15
+z18.19  Moontower  (the only sourced one) z19.15  Skyloft Austin
+z18.34  Ion Austin                        z19.16  Dobie Twenty21
+z18.44  Pointe on Rio                     z19.26  Inspire on 22nd
+z18.53  The Block                         z19.65  The Callaway House Austin
+z18.59  The Standard                      z19.76  The Quarters Sterling House
+z18.72  The Castilian                     z19.81  The Venue on Guadalupe
+z18.82  Signature 1909 · Crest at Pearl   z19.88  The Nine at West Campus
+z18.90  Block on 25th East                z20.04  The Quarters Grayson House
+z18.92  The Nine at Rio
+```
+
+**SAYING IT PLAINLY: the camera cruises at z16–19 with the spawn at 16.67, so at
+cruise altitude almost none of these are drawn, and half of them need you below
+about 30 m.** That is deliberate and it is the honest answer — what carries a
+tower's identity from 230 m is the lit band, not its letters. `ENT.wordmark` is
+one edit if Simeon wants them sooner and oversized; `fitMax` is the dial.
+
+22 of 22 placed, **0 rejected**. Plus the three world-space gates the
+inscriptions already had — distance (140 m), facing (within 58° of the band's
+own outward normal), view arc (40°) — because a MapLibre symbol layer has no
+depth test and this is what stands in for one.
+
+**The normal could not be taken from the existing `outwardNormal()`.** That one
+derives direction from an entrance's step, ramp and rail pieces, which is right
+on the Forty Acres where every celebrated portal has a flight of steps. West
+Campus has **18 step pieces across 24 lobbies** — most meet the pavement flush —
+so it would have returned its due-north fallback for most of them and the facing
+test would then have rejected the wordmark from every direction but one. A gate
+that is never satisfied looks exactly like a layer that was never added. The
+band answers with its own geometry instead: the perpendicular to its longest
+edge, sign-flipped to point away from the lobby glazing 2.60 m behind it.
+
+### 3. Night, magenta-masked, measured — not read off a paint expression
+
+tod 0.92, 1440×900, hardware GL (RTX 3050 Ti / D3D11), graphics auto-detect
+cancelled, half-resolution grabs. The mask is the layer's own pixel set, not a
+hand-picked box.
+
+**Guadalupe z18.9 pitch 64 bearing 275 — frame median luma 33:**
+
+| family | px | rgb | luma | ×median | R:B |
+|---|---|---|---|---|---|
+| `plBack` OPEN — lit shop interior | 67 | (99, 81, 60) | 84.0 | **2.5×** | 1.65 |
+| `plBack` CLOSED — security light | 85 | (48, 39, 36) | 41.5 | 1.3× | 1.32 |
+| `plLite` OPEN — door glazing | 75 | (124, 101, 76) | 105.4 | **3.2×** | 1.64 |
+| `plPool` OPEN — pavement spill | 119 | (131, 101, 77) | 107.6 | **3.3×** | 1.70 |
+
+An open shop is **2.02×** the luma of a closed one on the same street.
+
+**Moontower lobby z19.0 pitch 52 bearing 275 — frame median luma 30:**
+
+| piece | px | rgb | luma | ×median | R:B |
+|---|---|---|---|---|---|
+| WC lobby glass | 647 | (116, 92, 68) | 96.3 | **3.2×** | 1.71 |
+| WC wordmark LETTERS | 88 | (131, 114, 92) | 117.0 | **3.9×** | 1.43 |
+| WC name band | 42 | (80, 64, 67) | 69.3 | 2.3× | 1.21 |
+| WC mullions (z19.0 > gate 18.6) | 292 | (60, 52, 49) | 54.0 | 1.8× | 1.22 |
+
+By day the same lobby glass reads (91, 106, 101), **R:B 0.91** against a frame
+median of 94 — blue by day, warm by night, off one `wd`/`wn` pair.
+
+**The wordmark measurement also proves a claim I would otherwise have had to
+assert.** `ENT.wordmark.nightColor` is `#ffe2b4`, authored R:B **1.42**. The
+glyph pixels measure R:B **1.43**. A symbol layer is NOT multiplied by
+`map.setLight`, so unlike every fill-extrusion in these two files its colour must
+NOT be pre-compensated for the blue night light — and the two numbers agreeing to
+the second decimal is the evidence, not the comment.
+
+The day wordmark reading, (141, 138, 136), is a MEASUREMENT ARTEFACT and not the
+colour: `dayColor` is `#33333a`, but at a half-resolution grab a 9.5 px glyph is
+4.75 px and averages with the pale `dayHalo` around it. The screenshots are the
+check on daytime legibility, not this number.
+
+### 4. The glazing was a pale neutral at night and now is not
+
+`T.NIGHT_TONE` went `[255,206,148]` → `[255,190,94]` and `T.MULL` went 5 → 3, on
+§91's own written recommendation. Both measured, same frame, same hour, by
+hiding `places-glass` and averaging the pixels that moved:
+
+| | px | rgb | luma | R:B |
+|---|---|---|---|---|
+| BEFORE `MULL 5`, tone `[255,206,148]` | 1,898 | (100, 88, 89) | 91.7 | **1.12** |
+| AFTER `MULL 3`, tone `[255,190,94]` | 2,129 | (88, 74, 63) | 77.3 | **1.40** |
+
+**R:B 1.12 with channels within 12 is the Capitol pale-band signature** — the
+exact thing `entrancesStats().nightGlass` audits for, sitting on the shopfront
+glazing where nobody was auditing. It is now 1.40, moving toward the 1.65 of the
+`plBack` interior it is a window onto. It does not reach it, and should not: a
+shopfront window is also a mirror and keeps some sky.
+
+The tile itself, with no map and no light in the way (`placesTileSample`):
+
+```
+BEFORE  day mean [116,116,119] luma 116.0   night mean [186,157,125] luma 162.3
+AFTER   day mean [111,111,115] luma 111.6   night mean [157,126,84]  luma 130.4
+```
+
+Night luma drops 20 % — part from the tone, part from `MULL 3` covering 33 % of
+the tile instead of 20 %. Rendered it is still 2.3× the frame median, so the band
+did not go dark; it went warm. **`MULL` was NOT taken to 2**: at 2 the 1 px line
+is 50 % of the tile and `MULL_DARK 0.26` would take a quarter of the band's mean
+luma out, which is the "black ribbed void, not glass, a hole" failure that file
+already records fixing once.
+
+### 5. The West Campus mullion grid got its own gate
+
+`k: 'surround'` means two different objects in `data/entrances.geojson`: on the
+campus families it is the frame around a door, 1–3 m across; on the `highrise`
+family it is one mullion in the lobby storefront. Measured off the baked
+geometry: **0.17 m wide × 0.10 m deep × 3.95 m tall, 369 of them over 24
+lobbies.** §9.1's projection at pitch 64 is 355.9 px per metre of wall width per
+metre of altitude, so 0.17 m is one pixel at 60 m — z18.6, the same number §9.2
+lands its own DETAIL tier on. Below that a mullion is a fractionally-covered
+fragment that aliases differently every frame, so this is a correctness gate as
+much as a cost one. New layer `entrances-mullion`, `ENT.mullionMinZoom 18.6`,
+subtracted out of the portal filter and out of `entrancesStats().portal`.
+
+### 6. THE GATES DO NOT BUY FRAME TIME, AND I AM NOT GOING TO PRETEND THEY DO
+
+A/B on one build in one browser, at the spawn pose over West Campus and the Drag
+(`-97.7430, 30.2855`, z16.67, pitch 64, bearing 275). **GATED** is as shipped;
+**OPEN** winds `places-entry`, `places-pool` and `entrances-mullion` all back to
+their base tier, i.e. exactly what the bakes shipped before this pass.
+
+Settings, quoted with the numbers per CLAUDE.md rule 10: **headed**, hardware GL
+(`ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Ti Laptop GPU, D3D11)` — printed, not
+assumed), **CPU throttled 4×** (`perf.mjs`'s own default), 1440×900,
+`intro=0&drift=0`, graphics auto-detect cancelled, 140 frames × **3 interleaved
+reps**, minimum of the per-rep medians.
+
+```
+  rep0 gated 214.8 ms   rep0 open 210.0 ms
+  rep1 gated 210.7 ms   rep1 open 212.4 ms
+  rep2 gated 211.0 ms   rep2 open 210.1 ms
+
+  MIN of per-rep medians:  gated 210.7 ms   open 210.0 ms   delta -0.70 ms
+```
+
+**−0.70 ms on a 210 ms frame is noise, and the sign is the wrong way round.**
+The gates buy nothing measurable here. Two caveats on the absolute number and
+neither rescues the delta: 210 ms is my `triggerRepaint`-every-frame loop under
+a 4× CPU throttle, not the app's real frame time; and the reps span 210.0–214.8,
+which is a 4.8 ms spread, so a real effect smaller than that could hide in it.
+
+So the honest statement of what §1 and §5 are for is **correctness, not speed**:
+a 0.17 m mullion and a 0.16 m lintel drawn at 230 m are fractionally-covered
+fragments that alias differently every frame, and 1,124 of them are being
+submitted for that. That is the reason to gate them. If someone later needs the
+frame time back, this is not where it is.
+
+### 7. Atlas: ZERO new pattern tiles
+
+`js/places.js` registers exactly one image (`pl-glass`) and `js/entrances.js`
+registers none; neither number changed. Everything this pass adds is a layer
+filter, a zoom, a colour or a symbol. Running total unchanged: `js/drag.js` 16
+`dg-` tiles, `js/westcampus.js` 46, `js/places.js` 1, `js/entrances.js` 0 —
+**63 total, +0.**
+
+### What did NOT work, in the order it cost time
+
+1. **`page.evaluate(v => window.__map.jumpTo(v), pose)` returns the MapLibre Map,
+   and Playwright serialises the return value.** The whole object graph — style,
+   sources, tiles, buffers — goes over CDP. A probe looked hung for twelve
+   minutes with node at 1.9 GB, and the "obvious" culprit I chased first was
+   `queryRenderedFeatures`. It was not. `setPaintProperty`, `setLayoutProperty`
+   and `setLayerZoomRange` all return the Map too, and so does
+   `map.once('idle', resolve)` — which resolves the promise WITH the MapLibre
+   event object, whose `target` is the map. **Every `page.evaluate` that calls a
+   Map mutator must have braces or `void`.** Fixed, and the same jump then took
+   3.2 s. `scripts/verify/pose.mjs` line 72 has the un-braced form and works, so
+   it is survivable — but it is paying for it.
+2. **`queryRenderedFeatures({layers:[id]})` returned 0 for layers plainly visible
+   in a screenshot** and took over a minute per call on these sources. A count
+   that disagrees with the picture is not a measurement. Replaced with
+   hide-the-layer / count-the-pixels-that-moved, which is what §1's table is.
+3. **The magenta mask does not survive `setLight`.** A `#ff00ff` fill-extrusion
+   at night renders near (154, 0, 218)·k, never (255, 0, 255). The first detector
+   tested `R ≥ 170 && B ≥ 170` and reported **NO PIXELS for every family** —
+   which looks exactly like "the pass draws nothing". The detector is now "R and
+   B both well above G, and R within half of B". Anyone reusing HANDOFF §48's
+   technique at night needs this.
+4. **Masking a `fill-extrusion-pattern` by swapping the atlas image does not
+   work.** `updateImage('pl-glass', magenta)` lands a repaint cycle late, so the
+   mask frame shows the OLD tile; two runs measured NO PIXELS on the first family
+   and a full reading on the second, which is the tell. §4's A/B is hide/show +
+   mean-of-changed-pixels instead. **Do not mask a pattern layer by its image.**
+5. **The first close-up camera poses were inside the buildings.** z19.4 at pitch
+   62 aimed at a lobby centroid puts the eye behind the tower's own podium.
+   z19.0 / pitch 52 works. The bearings themselves were fine because they were
+   computed off the baked band geometry rather than guessed — §91's lesson,
+   applied, and it saved the two hours that one cost.
+
+### What I did NOT do
+
+- **`scripts/verify/places-check.mjs` still has the one failing assertion §91
+  left open**, and it is still a catalogue and not a defect: assertion A lists
+  four families where there are now ten. `scripts/verify/` is not this lane's to
+  write and this pass did not touch it. The one-line fix is written out in §91.
+  **Read that before merging** — 39 of 40 assertions pass and the fortieth is a
+  stale list.
+- **No DETAIL tier below the entry tier.** §9.2's DETAIL list (transom line, door
+  rails, sill, water table) does not exist in the data at all — §91 dropped it
+  deliberately — so there was nothing for a second gate to gate.
+  `PLACES.entryFams` is where it would go.
+- **The wordmark abbreviations are a bake decision I did not make.** "The
+  Quarters Sterling House" needs z19.76 because it is 27 characters; the real
+  signage on that building almost certainly reads STERLING HOUSE. **Request for
+  the entrances bake: an `sgn` property carrying the short form of the wordmark
+  where it differs from `nm`.** That one field would pull six buildings from
+  z19.6–20.0 down to about z18.5, which is the difference between "visible when
+  you have landed on it" and "visible from the street".
+- **No photograph of any West Campus lobby was obtained**, so 21 of the 22
+  wordmarks are still the building's OSM name rather than sourced signage
+  (`nmv: false`, carried through to `entrancesStats().wordmarks`).
+
+
 ## 91. Aug 4 2026 — the shopfronts get a way in (acer lane)
 
 **Branch:** `acer/westcampus-ground`, continuing §90. **Files written:**
