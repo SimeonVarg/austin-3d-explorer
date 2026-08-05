@@ -492,18 +492,52 @@
     return [r];
   }
 
-  /** day -> golden, night. The same relationship the bake's wall_ramp() uses. */
-  function ramp(hex) {
+  // ── TASTE: TIER FOUR's night ramp. THE MIRROR OF THE BAKE'S, DELIBERATELY. ──
+  //
+  // scripts/bake_westcampus.py's `wall_ramp()` and its NIGHT_* block are the
+  // statement of this rule; these five constants are the same numbers in the
+  // other language, because tier four authors its bands at RUNTIME and the bake
+  // can never see them. That is a second copy and second copies rot, so it is
+  // written down here rather than left to be discovered: change one, change
+  // both, and the bake's `check_night_ramp()` only guards the baked file.
+  //
+  // What the unlit branch is for, in one line: js/facades.js draws no lit-window
+  // term for `dk` or `sf`, so a band in one of those families has to carry the
+  // night read in its own wall or it renders darker than the sky behind it.
+  // The long version, with the measurements, is in the bake's taste block and in
+  // docs/night/black-towers.md. Tier four does not currently author a tall band
+  // in either family — its `sf` use is 1-5 m crowns — so today this branch never
+  // fires. It is here so that the day one of these towers grows a garage podium,
+  // it does not ship black.
+  const T4_NIGHT_GAIN = 0.19;
+  const T4_NIGHT_TINT = [18, 22, 40];
+  const T4_NIGHT_TOWARD = 0.42;
+  const T4_NIGHT_UNLIT_FAMILIES = ['dk', 'sf'];
+  const T4_NIGHT_UNLIT_MIN_BAND_M = 8.0;
+  const T4_NIGHT_UNLIT_GAIN = 0.40;
+  const T4_NIGHT_UNLIT_TINT = [34, 46, 74];
+  const T4_NIGHT_UNLIT_TOWARD = 0.30;
+
+  /** day -> golden, night. The same relationship the bake's wall_ramp() uses,
+   *  including its family-aware night half — pass `fam` and the band's height. */
+  function ramp(hex, fam, bandM) {
     const c = hx3(hex);
     const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
     const hexify = v => '#' + v.map(x =>
       Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
-    return [hexify(mixc(c, [255, 190, 130], 0.16)),
-            hexify(mixc(c.map(v => v * 0.19), [18, 22, 40], 0.42))];
+    const unlit = T4_NIGHT_UNLIT_FAMILIES.indexOf(fam) !== -1
+                  && (bandM || 0) >= T4_NIGHT_UNLIT_MIN_BAND_M;
+    const night = unlit
+      ? mixc(c.map(v => v * T4_NIGHT_UNLIT_GAIN), T4_NIGHT_UNLIT_TINT, T4_NIGHT_UNLIT_TOWARD)
+      : mixc(c.map(v => v * T4_NIGHT_GAIN), T4_NIGHT_TINT, T4_NIGHT_TOWARD);
+    return [hexify(mixc(c, [255, 190, 130], 0.16)), hexify(night)];
   }
 
   function wallF(geom, base, h, fam, hex, name, extra) {
-    const r = ramp(hex);
+    // The coping ramps below call ramp() with no family on purpose: a parapet
+    // coping is a horizontal top face, not a facade, and never goes through the
+    // facade atlas at all. Same call the bake's wall_feature() makes.
+    const r = ramp(hex, fam, h - base);
     return { type: 'Feature', geometry: { type: 'Polygon', coordinates: geom },
              properties: Object.assign({ kind: 'wall', band: 'tower', fam: fam,
                wd: hex, wg: r[0], wn: r[1], base: base, h: h, name: name,

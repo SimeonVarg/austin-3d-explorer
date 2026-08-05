@@ -112,18 +112,99 @@ BAY_PAD = 60.0         # m the clipping strip overhangs the plan on both sides.
 # a `kind:"wall"` band and goes through quantiseStadiumFacades().
 
 
-def wall_ramp(hex_col):
+# ── TASTE: the night wall ramp, and the one family it was wrong for ──────
+#
+# THE DEFECT THIS BLOCK EXISTS TO CLOSE (QUEUE W4, diagnosed in
+# docs/night/black-towers.md). `wall_ramp` used to hand every band the same
+# night value regardless of family, on the reasonable-sounding theory that a
+# night wall is a night wall. js/facades.js does not agree, and the disagreement
+# is not cosmetic:
+#
+#   * a LIT family (mh/tr/tg/sg/sb/sn/sp) paints a bright window scatter ON TOP
+#     of the wall. The wall being nearly black is CORRECT there — the light in
+#     the band comes from the windows, so `wn` is a backdrop and wants to be
+#     dark or the windows stop reading;
+#   * an UNLIT family has no such term, and `dk` is worse than neutral: its tile
+#     paints wall x 0.30 across 7 px of every 13 px band (54 % of the tile) and
+#     puts back one bright pixel. So the SAME `wn` that makes a lit tower read
+#     correctly makes an unlit band render at a THIRD of it.
+#
+# Measured consequence, before this block existed: The Castilian's 25.2 m garage
+# podium — 44 % of a 57 m building — rendered at 0.66x the night frame's median
+# luma, i.e. DARKER THAN THE SKY BEHIND IT, against 1.08x for its own tower
+# directly above it and 4.11 % vs 0.18 % lit pixels. It read as a hole punched in
+# the skyline. Dobie Twenty21's 10.8 m podium is the same band and the same bug.
+#
+# THE RULE, so the next one cannot be missed: a band whose family draws no lit
+# window has to carry the night read IN THE WALL, because nothing else will.
+# It is applied here, at the single place night colours are assigned, and
+# asserted in `check_night_ramp()` at the bottom of this file — not pasted onto
+# The Castilian.
+NIGHT_GAIN = 0.19               # how much of the day colour survives to night
+NIGHT_TINT = [18, 22, 40]       # the cool cast every night wall is pulled toward
+NIGHT_TOWARD = 0.42             # how far toward it
+
+# Families js/facades.js draws with NO lit-window term. Cross-referenced against
+# that file rather than guessed: `GRIDS.dk === null` + `OCCUPANCY.dk = [0,0]`
+# (js/facades.js:246, :620), and `sf` routes to DKR_TILES.sf, board-formed
+# concrete, which has no glazing term at all. Both were then MEASURED off the
+# atlas images themselves at p=0.88: dk and sf are the only two families in West
+# Campus with 0.00 % warm-hot texels, every other family sits at 3-32 %.
+NIGHT_UNLIT_FAMILIES = ("dk", "sf")
+
+# ...but only above this height. The 24 `sf` crowns are 0.9-5.0 m parapets and a
+# parapet going quiet at the top of a tower is what a parapet DOES — lifting
+# those would put a bright lid on every tower in West Campus. The threshold sits
+# between the tallest unlit crown (5.0 m) and the shortest unlit podium (10.8 m),
+# so it catches masses you read from the street and leaves trim alone.
+NIGHT_UNLIT_MIN_BAND_M = 8.0
+
+# The lifted ramp. A real open parking deck at night is not black: every level is
+# lit, sodium or fluorescent, and you see the beams and soffits through the
+# openings, which is why a garage reads as a stack of glowing slots from across
+# the street. So: much more of the day colour survives, and the cool cast stays
+# cool — B > R keeps it fluorescent against the warm residential towers beside
+# it, which is the same call DK_EDGE_NIGHT_TINT already makes in js/facades.js.
+#
+# The GAIN was solved for, not guessed. js/facades.js's `dk` tile mean is
+# ~0.484 luma per unit of `wn` luma (7/13 of the tile at wall x 0.303, 5/13 at
+# full wall, 1/13 a bright edge, through the p=0.88 wd->wg->wn lerp). Target: the
+# tile lands just UNDER the lit towers' ~62 rather than at parity, because a
+# garage that out-shines the apartments next to it is the opposite defect.
+NIGHT_UNLIT_GAIN = 0.40
+NIGHT_UNLIT_TINT = [34, 46, 74]
+NIGHT_UNLIT_TOWARD = 0.30
+# The floor `check_night_ramp` asserts against, in perceptual luma. Anything
+# under this is the W4 signature: a wall band with no windows and nothing to
+# see. Derived from the constants above (#c8c2b7 lands at 68.4); the assertion
+# uses the floor so a future colour cannot quietly fall through it.
+NIGHT_UNLIT_MIN_WN_LUMA = 55.0
+
+
+def _luma(rgb):
+    return 0.30 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2]
+
+
+def wall_ramp(hex_col, fam=None, band_m=None):
     """day -> (golden, night), the same relationship scripts/bake_detail.py uses.
 
     Carried here rather than snapped to the city's fourteen shared buckets for
     the reason bake_stadium.py documents: nearest-RGB against a palette that is
     mostly tan turns Callaway's red brick and Dobie's teal glass back into tan,
     which erases the only two buildings in the group with a different material.
+
+    `fam` and `band_m` are what make the night half family-aware; see the taste
+    block above. Called without them (the coping ramp does) it is the old
+    behaviour exactly, because a coping is not a facade.
     """
     c = [int(hex_col[i:i + 2], 16) for i in (1, 3, 5)]
     mixc = lambda a, b, t: [a[i] + (b[i] - a[i]) * t for i in range(3)]
     golden = mixc(c, [255, 190, 130], 0.16)
-    night = mixc([v * 0.19 for v in c], [18, 22, 40], 0.42)
+    if fam in NIGHT_UNLIT_FAMILIES and (band_m or 0) >= NIGHT_UNLIT_MIN_BAND_M:
+        night = mixc([v * NIGHT_UNLIT_GAIN for v in c],
+                     NIGHT_UNLIT_TINT, NIGHT_UNLIT_TOWARD)
+    else:
+        night = mixc([v * NIGHT_GAIN for v in c], NIGHT_TINT, NIGHT_TOWARD)
     hexify = lambda v: "#" + "".join("%02x" % max(0, min(255, int(round(x)))) for x in v)
     return hexify(golden), hexify(night)
 
@@ -1047,7 +1128,11 @@ COPING_MIX = 0.34
 
 
 def wall_feature(rings_m, base, top, fam, col, band, name, cap, lon0, lat0, stack="main"):
-    wg, wn = wall_ramp(col)
+    # `fam` and the band's own height decide the NIGHT half of the ramp — see the
+    # taste block above wall_ramp. The coping below deliberately does not pass
+    # them: a parapet coping is a horizontal top face, not a facade, and it never
+    # goes through the facade atlas at all.
+    wg, wn = wall_ramp(col, fam, top - base)
     extra = {}
     if cap:
         c = [int(col[i:i + 2], 16) for i in (1, 3, 5)]
@@ -1074,6 +1159,100 @@ def solid_feature(ring_m, base, top, cls, name, lon0, lat0):
         "geometry": {"type": "Polygon", "coordinates": [to_ll(ring_m, lon0, lat0)]},
         "properties": {"kind": "solid", "s": cls,
                        "base": round(base, 2), "h": round(top, 2), "name": name},
+    }
+
+
+def check_night_ramp(feats):
+    """Every wall band has to be worth looking at after dark. Fails the bake.
+
+    WHY THIS IS ARITHMETIC AND NOT A SCREENSHOT. The Castilian shipped a 25.2 m
+    black slab for weeks and no automated thing objected, because nothing in the
+    repo ever asked the data a question about night. Three questions, all cheap,
+    all of which the shipped file would have failed:
+
+      A. does every band have a night value that differs from its day value?
+         The literal ask in the W4 brief was `band:"tower"` only — that is the
+         wrong filter and the diagnosis says so: the dead band is a PODIUM, and
+         anything keyed on "tower" walks straight past it. So: every band.
+
+      B. does every band that will render UNLIT carry the night read in its own
+         wall? See the NIGHT_UNLIT_* taste block. This is the assertion that
+         actually catches W4, and it catches the next one by family and height
+         rather than by building name.
+
+      C. can two bands sharing a day colour disagree about night? They cannot,
+         and this is a live trap rather than a hypothetical: quantiseStadiumFacades
+         in js/facades.js keys its palette on `p.wd` ALONE
+         (`own.get(p.wd)` / `palette.push({wd, wg, wn})`), so the FIRST band with
+         a given `wd` decides the night colour for every later band that shares
+         it — silently, with no warning and no visible day-time symptom. A lifted
+         `wn` on a `dk` podium that happened to share a `wd` with a lit band
+         would simply evaporate, and the render would look exactly like the bug
+         this pass is fixing. Today `#c8c2b7` is dk-only and the fix lands; the
+         assertion is here so it stays that way.
+
+    Returns the counts printed on every run — a number that silently regresses
+    is this repo's most-repeated failure mode, so the count is in the bake's own
+    stdout, not in a doc.
+    """
+    walls = [f["properties"] for f in feats if f["properties"].get("kind") == "wall"]
+    bad = []
+
+    # C — one day colour, one night colour.
+    by_wd = {}
+    for p in walls:
+        by_wd.setdefault(p["wd"], set()).add(p["wn"])
+    for wd, wns in sorted(by_wd.items()):
+        if len(wns) > 1:
+            bad.append("%s is baked with %d different night colours (%s); "
+                       "quantiseStadiumFacades keys on wd alone and only the "
+                       "first survives" % (wd, len(wns), ", ".join(sorted(wns))))
+
+    lit_bands = 0
+    unlit_lifted = 0
+    unlit_trim = 0
+    per_fam = {}
+    for p in walls:
+        fam, wd, wn = p["fam"], p["wd"], p["wn"]
+        m = round(p["h"] - p["base"], 2)
+        tag = "%s %s %s (%s, %.1f m)" % (p.get("name"), p.get("stack"), p.get("band"), fam, m)
+        # A — a night value that is actually a night value.
+        if wn == wd:
+            bad.append("%s: wn == wd (%s), so it does not darken at all" % (tag, wd))
+        d = per_fam.setdefault(fam, {"bands": 0, "m": 0.0, "unlit_m": 0.0})
+        d["bands"] += 1
+        d["m"] += m
+        if fam in NIGHT_UNLIT_FAMILIES:
+            d["unlit_m"] += m
+            if m >= NIGHT_UNLIT_MIN_BAND_M:
+                unlit_lifted += 1
+                # B — the one that catches W4.
+                if _luma([int(wn[i:i + 2], 16) for i in (1, 3, 5)]) < NIGHT_UNLIT_MIN_WN_LUMA:
+                    bad.append("%s: family draws no lit window and the band is "
+                               "over %.1f m, but its night wall is %s (luma %.1f "
+                               "< %.1f). It will render as a hole in the skyline "
+                               "— see docs/night/black-towers.md."
+                               % (tag, NIGHT_UNLIT_MIN_BAND_M, wn,
+                                  _luma([int(wn[i:i + 2], 16) for i in (1, 3, 5)]),
+                                  NIGHT_UNLIT_MIN_WN_LUMA))
+            else:
+                unlit_trim += 1
+        else:
+            lit_bands += 1
+
+    if bad:
+        raise SystemExit("bake_westcampus: night ramp check failed:\n  " + "\n  ".join(bad))
+
+    return {
+        "bands_with_lit_windows": lit_bands,
+        "unlit_bands_lifted": unlit_lifted,
+        "unlit_bands_left_as_trim": unlit_trim,
+        "unlit_metres_lifted": round(sum(
+            round(p["h"] - p["base"], 2) for p in walls
+            if p["fam"] in NIGHT_UNLIT_FAMILIES
+            and round(p["h"] - p["base"], 2) >= NIGHT_UNLIT_MIN_BAND_M), 1),
+        "by_family": {k: {"bands": v["bands"], "metres": round(v["m"], 1)}
+                      for k, v in sorted(per_fam.items())},
     }
 
 
@@ -1499,6 +1678,8 @@ def main():
         raise SystemExit("bake_westcampus: colour bays do not tile the elevation:\n  "
                          + "\n  ".join(bad_bays))
 
+    night = check_night_ramp(out)
+
     # How many NEW facade atlas images this costs. The atlas is repainted on
     # every time-of-day tick and the cost is per IMAGE, so this number is the
     # one that decides whether the pass is affordable — see the note above
@@ -1534,6 +1715,7 @@ def main():
         "replaced_building_ids": replaced,
         "authored_roof_ids": len(authored),
         "new_atlas_images": len(combos),
+        "night_ramp": night,
         "atlas_combos": ["%s %s" % c for c in combos],
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "counts": dict(sorted(stats.items())),
