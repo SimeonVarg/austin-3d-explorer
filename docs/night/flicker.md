@@ -1,7 +1,7 @@
 # QUEUE W6 — what actually flickers in `westcampus-day`
 
 Acer lane, 2026-08-05, branch `acer/flicker-diag`. **Diagnosis only. No code, no
-data, no bake.** Everything below was measured on `origin/main` at `bef5f37`
+data, no bake.** Everything below was measured on `origin/main` at `b84d1f9`
 with `python scripts/serve.py 8272`, Chrome + `--use-angle=swiftshader`,
 1440×900, `deviceScaleFactor 1`, graphics auto-detect cancelled.
 `node scripts/verify/harness-drift.mjs` **PASS** (28 scripts in `index.html`,
@@ -327,4 +327,4 @@ fix that does not.
   `docs/night/flicker.md` only. The record that belongs in `HANDOFF.md` is this
   file; it can be summarised into a section at the END of `HANDOFF.md` by
   whoever takes W6-a next, and it should be numbered against `main` at that
-  moment rather than against `bef5f37`.
+  moment rather than against the tree of the day.
