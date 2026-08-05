@@ -12441,3 +12441,157 @@ towers-together   eye [-97.747200, 30.282200]  alt 105  bearing  37  pitch 72
   confirmed every band's `wp` still resolves to a registered image (671 images
   before and after, none missing). `westcampus-probe.mjs` is still broken in the
   page-setup regression and is still Mac's.
+
+---
+
+## 103. Aug 5 2026 — nothing is transparent and no tree is in the wrong place; both were the 18 m floor wearing a disguise (QUEUE X3, X5) (acer lane)
+
+**Branch:** `acer/lobby-defects`, re-cut from `origin/main` at `978503d` (the
+previous branch of that name was merged as PR #154). **Files written:
+`shots/lobbies/`, this entry. No code, no data, no `scripts/verify/`.**
+`data/westcampus.geojson` is byte-identical to `main` — checked with `cmp`, not
+asserted. Setup: `harness-drift.mjs` **PASS, 28 scripts in each file**, run
+before any pixel; `python scripts/serve.py 8282`, `_harness.html?intro=0&drift=0`,
+1440x900, dsf 1, SwiftShader, `cancelGraphicsAutoDetect()` at the top of every
+run, day `p = 0.14`. One browser at a time; `reap.mjs` clean and the server
+killed at the end.
+
+### X3 — THE QUARTERS GRAYSON HOUSE IS NOT TRANSPARENT
+
+The brief offered four causes and the answer is none of them. Each was ruled
+out by measurement before any picture was taken:
+
+* **A missing wall feature?** No. Grayson emits `base` / `tower` / `crown`, all
+  three `kind:"wall"`, on a 21-node ring.
+* **A wall with zero height?** No. `0 -> 5.0`, `5.0 -> 25.8`, `25.8 -> 28.4`.
+* **A stack whose bands do not meet?** No — those three spans are contiguous to
+  the metre, no gap and no overlap.
+* **A ring wound the wrong way?** No, and this one is worth writing down because
+  it is the only hypothesis that could have been a *rule*: the signed area of
+  the first ring of **every wall band of all 24 buildings is positive** (CCW in
+  lng/lat, which is CW in tile space, which is what MapLibre wants). There is no
+  odd one out to find.
+
+**What it actually is: the camera was standing inside a different building.**
+MapLibre backface-culls `fill-extrusion`, so a camera inside any prism looks
+straight out through the near wall of that prism and sees the far walls and the
+balcony slabs from behind. §101's pose for Grayson —
+`center [-97.746342, 30.285419] zoom 20.802 pitch 53.2 bearing 4.3`, which is
+eye 18.0 m and 24.1 m south of the door — lands **inside The Quarters Sterling
+House**, the other half of the same complex, 24 m south across the gap. Sterling
+is 24.8 m tall, the eye is at 18 m, so the camera is genuinely in the middle of
+it.
+
+The pictures are decisive and they are in that order:
+
+| frame | what it shows |
+|---|---|
+| `20-X3-BEFORE-grayson-pose-the-camera-stands-inside-sterling-house.png` | §101's pose reproduced verbatim — the see-through, and the "odd diagonal members" |
+| `21-X3-the-magenta-is-sterling-house-and-it-is-all-around-the-camera.png` | the same pose with **only Sterling House's walls** drawn, in magenta. Thin magenta slivers run out of the frame corners in every direction — the inside of a box. **Those slivers ARE the "odd diagonal members"**: they are Sterling's own wall edges wearing the facade pattern. |
+| `22-X3-graysons-own-walls-from-the-same-pose-solid-not-holed.png` | the same pose with only Grayson drawn — a solid silhouette with a coping, no hole |
+| `23-X3-AFTER-grayson-from-a-pose-that-is-outside-every-footprint.png` | Grayson photographed from a pose chosen to be outside every footprint (bearing 0, 20 m standoff, eye 18 m, picked by a magenta pose search over 41 candidates). Brick base, glazed lobby band, canopy, wordmark, balcony slabs, pavement. It reads as a real ground floor. |
+
+**The count the brief asked for: 1 of 24, and it is a pose bug, not a rule.**
+Re-deriving all 24 camera positions from §101's own recorded poses and testing
+each against every West Campus footprint: exactly one camera stands inside a
+building whose roof is above the eye, and it is Grayson's. The mechanism is
+§101's standoff rule, `min(30, clear + 8)` — adding 8 m *past* a marched clear
+distance walks you into whatever stopped the march.
+
+**The correction §101 owes itself:** it recorded "Grayson 20.8 + 8 = 28.8" as a
+rooftop-floor lift. 20.8 m is Grayson's *tower band thickness*, not a roof. The
+28.8 is **Sterling House's** 24.8 m roof plus the controller's 4 m `HARD_CLEAR`.
+Reproduced: a camera dropped at Grayson's own centroid settles at **32.4 =
+28.4 + 4**.
+
+**And the part that generalises.** There is exactly ONE way a person *flying*
+this city can get into that state — a band drawn above the height the collision
+grid stops them at. `js/controls.js` rasterises that grid once at init from
+`scene.buildings`' `final_height` and never re-reads it. Measured in the browser
+with `window.__fly.roofAt()` at all 24 West Campus centroids: **0 of 24 are
+drawn taller than the collision knows**, and every `roofAt` equals the
+snapshot's `final_height` exactly (Grayson 28.4, 21 Rio 73.5, Dobie 82.0, The
+Castilian 60.0). The invariant also holds structurally —
+`bake_westcampus.py` computes `parapet = H - mech - rise`, so a band cannot
+climb above `H` by construction.
+
+**I wrote a bake-time guard for it and then deleted it, on purpose.**
+`scripts/verify/westcampus-probe.mjs:60` already asserts *"nothing stands above
+`final_height`"*, and lines 58-59 already assert *"no zero-height features"* and
+*"no vertical gaps between bands"* — three of the brief's four hypotheses were
+covered before I started. A second copy of the same number in
+`bake_westcampus.py` is a second thing to keep in step, which is the rule that
+file states about itself. **But that probe cannot currently run**: it dies at
+`westcampus-probe.mjs:30` with `ReferenceError: d is not defined`, the
+page-setup regression the Mac lane owns. So the assertion that guards the only
+flyable route to a see-through building is presently a dead letter. That is the
+single most useful sentence in this entry.
+
+### X5 — THE TREES ARE REAL AND CORRECTLY PLACED. CLOSING IT AS WORKING AS INTENDED.
+
+The queue's premise is that a canopy was dropped on a doorway. It was not.
+
+* **Position is factual.** Every canopy in front of 21 Rio, Pointe on Rio and
+  The Nine at West Campus is `src:"imagery"` — segmented from aerial imagery,
+  i.e. placed where a tree actually stands. None is procedural, none is spaced
+  by a rule near a door.
+* **Size is plausible.** Citywide the median crown is a **9-10.6 m spread**
+  (p50 radius 4.5-5.3 m by source), which is an ordinary street tree. 21 Rio's
+  big one is 11.6 m radius = **23 m spread**, in the top 1% — but a mature Texas
+  live oak genuinely reaches that, and 9.4 % of the city's 27,043 canopies are
+  already over an 18 m spread. It is not an outlier by kind.
+* **The door is not under it.** That canopy's underside is at **4.41 m**; 21
+  Rio's lobby glass tops out at 5.16 m and its door head at 2.44 m. **From any
+  eye height below 4.4 m you walk under this tree and see the door.**
+
+So the door is hidden for one reason only: **the camera cannot get below 18 m**,
+and from 18 m you are looking down over the crown at the pavement behind it.
+Named in pixels rather than argued — `trees-canopy` painted magenta at the two
+survey poses covers **22.3 %** of 21 Rio's frame and **37.5 %** of The Nine at
+West Campus's: `34-X5-...`, `35-X5-...`. **This is QUEUE X1 wearing a costume,
+and X1 is Simeon's call.** Deleting real trees to tidy a render we chose the
+altitude of would be the wrong trade, and he has already said there are enough
+trees. `31-X5-...` and `32-X5-...` / `33-X5-...` are the frames.
+
+**What I did find, and it is real, general, and NOT this lane's file.** The
+brief's second branch — "if the canopies are simply too large for their trunks"
+— is true and much bigger than these two doors. **Crown radius and trunk
+diameter are not linked to each other at all.** 21 Rio's tree carries an 11.6 m
+radius crown on a trunk **0.12 m across**: a 23 m canopy on a 12 cm stem, a
+ratio of 97. Census over all 7,414 canopy/trunk pairs in `data/trees.geojson`:
+
+| crown radius / trunk diameter | share |
+|---|---|
+| p25 / p50 / p75 | 10.3 / **20.8** / 53.2 |
+| p90 / p99 | 170.6 / 2042.4 |
+| over 40 (a real oak sits near 12-25) | **31.0 %** — 2,298 trees |
+| over 80 | **18.6 %** — 1,377 trees |
+
+The median is right, so the sizing rule is not uniformly wrong — the two numbers
+are simply drawn independently, so a big imagery blob can land on a sapling
+stem. Worst cases are 12 m crowns on 1 cm trunks. Separately, **73 % of canopy
+centres (19,628 of 27,043) have no trunk within 2 m at all** — 95 % of the
+`city` set and 86 % of `creek`.
+`36-X5-the-21-rio-street-tree-a-23m-crown-on-a-12cm-trunk.png`.
+**`data/trees.geojson` / `scripts/shape_trees.py` are not this lane's files**,
+so this is a request, not a patch: derive the trunk from the crown (or reject
+the pair) and it improves every street in the city rather than two lobbies.
+
+### WHAT I DID NOT DO
+
+* **Shipped no code and no data, and that is the finding, not a shortfall.**
+  Both queue items resolve to "the model is correct". Writing a patch to have
+  written one would have been the wrong answer to X3 and an actively bad one to
+  X5.
+* **Did not lower `ALT_MIN`, and did not build a workaround for it.** I tried
+  twice to photograph 21 Rio's door from under its canopy — a fast shutter at
+  2 m (the controller lifted to 77.5 m before the frame) and a 90 m standoff at
+  18 m with the sightline arithmetic done properly (`PITCH_MAX = 88` clamps the
+  pose and the ground plane eats the frame). Both frames were deleted. **The
+  geometry above is the honest form of that claim; there is no picture of it and
+  there cannot be one until X1 is decided.**
+* **Did not fix `westcampus-probe.mjs`.** Still Mac's, still crashing, and now
+  known to be the guard for X3's class.
+* **Did not re-check X4, X6 or X7**, and did not touch the `min(30, clear + 8)`
+  standoff rule that caused X3 — it lives in the pose generator, not here.
+* **Did not photograph anything at night or dusk.** Day `p = 0.14` only.
