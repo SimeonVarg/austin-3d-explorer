@@ -64,11 +64,62 @@ BANDS list in scripts/bake_stadium.py, applied per tenant. The one pattern this
 pass uses (the glazing's mullions) is stationary in y, exactly as js/drag.js's
 tiles are, for the same reason.
 
+GROUND-FLOOR DEPTH (second pass, 2026-08-04) — docs/entrances/shopfronts.md
+---------------------------------------------------------------------------
+The first cut of this file gave every tenant a flat proud slab: bulkhead, glass,
+fascia, awning. Four rectangles and no way in. This pass gives it an ENTRY —
+a recessed bay flanked by piers, a lintel, door leaves with their own lights,
+and the thing that actually changes the street after dark: a LIT INTERIOR PLANE
+at the back of the notch plus a warm pool of spill on the sidewalk in front of
+it, drawn only for the tenants that are still open at 22:00.
+
+Four decisions in this pass are worth knowing before reading the code.
+
+1. THE NOTCH IS REAL, AND IT IS ONLY 0.32 m DEEP, BECAUSE THAT IS ALL THERE IS.
+   docs/entrances/shopfronts.md §5.1 derives a 1.00-1.50 m recess from Austin
+   Building Code §3202.2 (a door may not swing over the right-of-way). We cannot
+   have it: this pass owns no building, so there is nothing behind the wall to
+   recess INTO — the host's own extrusion is at offset 0.00 and would swallow
+   anything pushed past it. So the depth we can actually spend is the 0.38 m the
+   free-plane ladder in docs/entrances/groundfloor-existing.md §5b allows minus
+   the 0.06 m the back plane sits at. The entry piers stand at 0.38 (in the free
+   0.32-0.41 band), the back plane at 0.06, and the step between them is a
+   genuine 0.32 m of geometry — the piers' inward faces ARE the jamb returns, so
+   one box does the pilaster and the return both. §9.3(b) of the spec says value
+   beats geometry ~8:1 at flying altitude anyway; this gets both.
+
+2. THE SIDE RETURNS ARE THE GLOW, NOT THE DOOR. A single leaf is 0.91 m and a
+   1.00 m opening is 0.91 m of door, so a lit plane directly behind it is a lit
+   plane nobody sees. The bay is therefore open_w + 2 x SF_RETURN_W wide and the
+   leaves are centred in it, which leaves two strips of lit interior standing
+   either side of the door — exactly what a recessed shopfront entry is.
+
+3. NO LOD GATE EXISTS AND THE GEOMETRY IS CHOSEN TO NOT NEED ONE. The spec asks
+   for SF_PORTAL_MIN_ZOOM / SF_DETAIL_MIN_ZOOM tiers. js/places.js puts every
+   non-glass feature into ONE layer at minzoom 15 and this lane may not edit it,
+   so a per-feature zoom gate is not available from the bake. The response is to
+   emit only what §9.2 says survives at or above the spawn altitude (230 m):
+   the bay panel (1 px to 854 m), the leaves (682 m tall / 325 m wide), the
+   piers, the lintel. Everything the spec puts in the DETAIL tier — the sill,
+   the water table, the transom line, the door's bottom rail as its own feature,
+   and the 13 mm threshold — is NOT EMITTED. A 0.051 m mullion never reaches one
+   pixel at any camera position this app allows (ALT_MIN is 18 m, the mullion
+   needs 18.2), which is why the mullion grid stays a pattern in the existing
+   pl-glass tile and this pass adds ZERO atlas images.
+
+4. OPEN OR CLOSED IS SOURCED, NOT INVENTED. data/osm_cache/places.json carries
+   `opening_hours` on half the corpus. One regex takes the latest closing hour
+   of the week out of every one of those strings; the rest fall back to the
+   category habit table OPEN_AT_22, labelled `G` in the output exactly as the
+   sign colours are. A closed shop gets security lighting, not a dark hole, and
+   gets no pool on the pavement — which is the whole point of drawing one.
+
 Usage:  python scripts/bake_places.py
 """
 import json
 import math
 import os
+import re
 from collections import Counter, defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -256,6 +307,138 @@ AWN_COOL = 0.86          # value multiplier on the awning vs the fascia
 AWN_BLUE = 0.10          # ... and how far it is pulled toward the cool end
 
 
+# ══ Taste block 2: the entry. docs/entrances/shopfronts.md §3, §5, §7, §9. ══
+# Every value below is a one-line override (CLAUDE.md rule 11). Tags follow the
+# spec's own confidence scheme: [C] code/standard, [D] derived, [A] assumption.
+
+SF_ENTRY_ON    = True    # the whole entry vocabulary, off in one edit
+SF_DOOR_HEAD   = 2.30    # [D] leaf 2.134 + 0.166 of frame head
+SF_LEAF_H      = 2.134   # [C] COMM_DOOR_H, 7 ft
+SF_HEAD_T      = 0.16    # [D] the lintel band that closes the top of the bay
+SF_PIER_W      = 0.28    # [A] entry pier along the wall. Its inward face is the
+                         #     jamb return, so this one box is both.
+SF_RETURN_W    = 0.55    # [A] lit side return between the pier and the leaf.
+                         #     This, not the door, is what glows at night.
+SF_EDGE_MIN    = 1.20    # [M] = GAP. Never put a door this near a slot edge.
+SF_BIAS_LEN    = 9.00    # [A] a slot longer than this puts its door off-centre
+SF_DOOR_BIAS   = 0.30    # [A] ... at this fraction along the slot
+SF_LEAF_T      = 0.06    # [C] leaf thickness
+SF_LEAF_GAP    = 0.02    # [A] meeting-stile gap between a pair
+SF_LEAF_STILE  = 0.09    # [C] narrow-stile aluminium: frame beside the light
+SF_LEAF_BOT    = 0.26    # [C] bottom rail — the light starts here
+SF_LEAF_TOPR   = 0.11    # [C] top rail
+SF_MIN_GLASS_TOP = 2.70  # [D] a host whose clamped glass head is under this
+                         #     cannot carry a 2.30 m door; it gets none.
+
+# The proud ladder. groundfloor-existing.md §4 measured every occupied plane in
+# West Campus; the two intervals with NO wall face in them are 0.32-0.41 and
+# 0.46-1.29. The entry frame lives in the first. Nothing here may exceed 0.41
+# without checking that file again.
+SF_PIER_PROUD  = 0.38    # [D] pier / lintel face — top of the free 0.32-0.41 band
+SF_FLUSH_PROUD = 0.26    # [D] a sliding door does not swing, so it sits at the
+                         #     glass line (§5.3) — 0.04 behind the slab face
+SF_LEAF_PROUD  = 0.14    # [D] a swinging leaf, back inside the notch
+SF_LITE_PROUD  = 0.03    # [D] the leaf's light stands this far proud of the leaf.
+                         #     bake_entrances.py's rule verbatim: a light recessed
+                         #     inside a solid leaf is a light nobody can see.
+SF_BACK_PROUD  = 0.06    # [D] the lit interior plane — the deepest surface, and
+                         #     0.06 clear of the host wall at 0.00
+SF_BACK_T      = 0.06    # [A] its thickness; it is a plane, not a room
+
+# Colours. Day values are neutral so the notch reads as shadow; night values are
+# the whole point of the pass. spec §7.4: assert channel SPREAD >= 24 on every
+# night value, NOT the luma bimodality js/entrances.js uses — the pale-neutral
+# defect is a spread failure, and a dim warm security light is legitimate.
+SF_PIER_COL    = "#5c554b"   # [D] BULK_COL lifted 40% toward daylight concrete
+SF_LEAF_COL    = "#8e8a83"   # [D] ALUMINIUM. A shop door is a mill-finish frame.
+SF_BACK_DAY    = "#332d26"   # [D] BULK_COL x 0.85 — the notch in daylight is the
+                             #     darkest thing on the elevation
+SF_LITE_DAY    = "#5f6a73"   # [D] GLASS_COL x 0.87; door glass is darker than
+                             #     shop glass because there is no sky in it
+SF_GLOW_OPEN   = "#ffbe5e"   # [D] spec §7.4. After the repo's measured night
+                             #     transfer (R .53 / G .56 / B .72) this lands at
+                             #     (135,106,68), R:B 1.99 — inside the 1.75-2.35
+                             #     band js/entrances.js measured on lit doorways.
+SF_GLOW_CLOSED = "#553f27"   # [D] spec §7.4. Security lighting only. Input luma
+                             #     66, spread 46 — dim but unmistakably warm.
+SF_NIGHT_HOUR  = 22.0        # [A] the hour "night" is evaluated at
+
+# The pool of spill on the pavement. js/entrances.js does this with a `circle`
+# layer on the lamp schedule; this lane cannot add a layer, so it is a 2 cm slab
+# lying on the sidewalk in the existing places-solid layer. Its day and golden
+# colours are js/ground.js's `paving` values EXACTLY, so by day it is pavement.
+SF_POOL_ON     = True
+SF_POOL_NEAR   = 0.30    # [A] m from the wall the apron starts
+SF_POOL_FAR    = 2.60    # [D] under the 3.66 m minimum sidewalk (UNO §25-2-760)
+SF_POOL_FLARE  = 1.30    # [A] how far past the entry frame the light reaches
+SF_POOL_Z0     = 0.25    # [M] js/ground.js pathRaise 0.22 + pathTexLift 0.02,
+SF_POOL_Z1     = 0.27    #     so this sits 0.01 above the paving texture
+# THE DAY VALUE IS MEASURED OFF THE SCREEN, NOT COPIED OFF ground.js, AND THAT
+# COST A ROUND. The first cut used js/ground.js's own SURF.paving day hex
+# #e6ddc9 on the reasoning that pavement is pavement. It rendered at (241,211,
+# 162) against a sidewalk rendering at (185,168,145) — the brightest object in
+# the daytime frame, a white slab at every open shop. The two do not match
+# because ground-paths is a fill under its own shading and this is a
+# fill-extrusion under map.setLight, and no amount of reading the two files
+# would have said so. Measured transfer at p=0.14 on shots/after-drag-close-day
+# .png: input (230,221,201) -> (241,211,162), i.e. R 1.048 / G 0.955 / B 0.806.
+# Inverting that for a target of 0.88 x the sidewalk gives the value below.
+SF_POOL_DAY    = "#9b9b9f"   # [M] renders at ~(163,148,128): a soft shade under
+                             #     the awning, which is what is really there
+SF_POOL_GOLD   = "#8f8472"   # [D] SF_POOL_DAY x js/ground.js's own paving
+                             #     day->golden ratio (0.92, 0.85, 0.72)
+SF_POOL_NIGHT  = "#ffc166"   # [M] started at #ffc27a (ENT.pool.colorMain #ffc98a
+                             #     pulled 8% warmer) and was measured on screen at
+                             #     R:B 1.53 while the lit doorway two metres away
+                             #     measured 2.06 — the pool is a HORIZONTAL face
+                             #     and takes more of the night sky, which no
+                             #     amount of copying the door's number fixes.
+                             #     js/entrances.js's own pool is a `circle` layer
+                             #     and never passes through map.setLight at all,
+                             #     so its hex is not comparable. Blue pulled back
+                             #     until the rendered ratio joins the 1.75-2.35
+                             #     band. Magenta-masked, HANDOFF section 48.
+
+# ── Door type by category. docs/entrances/shopfronts.md §5.3, which counted the
+# shares off the 789 shipped front slabs. (kind, leaves, opening m, recessed,
+# glazing fraction of the leaf).
+#
+# `recessed=False` is not a shortcut, it is the finding: an automatic slider does
+# not swing, so Building Code §3202.2 does not force it back off the property
+# line. That is why a 7-Eleven front is flat and a cafe front is not.
+DOOR_SINGLE = ("hinged", 1, 1.00, True, 0.88)
+DOOR_PAIR   = ("hinged", 2, 1.90, True, 0.88)
+DOOR_SLIDE  = ("slide", 2, 2.00, False, 0.92)
+DOOR_NULL   = ("hinged", 1, 0.95, False, 0.88)   # the deliberately dull default
+DOORS = {
+    "restaurant":       DOOR_PAIR,
+    "fast_food":        DOOR_PAIR,
+    "cafe":             DOOR_SINGLE,
+    "convenience":      DOOR_SLIDE,
+    "pub":              ("hinged", 2, 1.80, True, 0.45),
+    "clothes":          DOOR_PAIR,
+    "bar":              ("hinged", 1, 1.00, True, 0.10),
+    "hairdresser":      DOOR_NULL,
+    "bakery":           DOOR_SINGLE,
+    "second_hand":      DOOR_SINGLE,
+    "food_court":       ("hinged", 4, 3.60, True, 0.88),
+    "copyshop":         DOOR_NULL,
+    "supermarket":      ("slide", 2, 2.40, False, 0.92),
+    "department_store": ("slide", 2, 2.40, False, 0.92),
+    "ice_cream":        DOOR_SINGLE,
+}
+
+# ── Open at 22:00, for the half of the corpus OSM gives no hours for. Same
+# "class habit" honesty CAT_TONES uses, and checked against the sourced half in
+# docs/entrances/shopfronts.md §7.3: it agrees with the real opening_hours for
+# Twin Liquors, Rally House, Urban Outfitters, Dive, 7-Eleven, Domino's and
+# Dooby's, and is wrong for roughly one tenant in six.
+OPEN_AT_22 = {
+    "bar": 1, "pub": 1, "convenience": 1, "fast_food": 1, "restaurant": 1,
+    "cannabis": 1, "e-cigarette": 1, "ice_cream": 1, "supermarket": 1,
+}
+
+
 def hex_rgb(h):
     h = h.lstrip("#")
     return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
@@ -325,6 +508,53 @@ def awning_col(hex_col):
     c = [v * AWN_COOL for v in c]
     c = mixc(c, [90, 120, 160], AWN_BLUE)
     return rgb_hex(c)
+
+
+def spread(hex_col):
+    """max channel - min channel. The pale-neutral defect this repo has now
+    recorded three times (Capitol bands, entrance glass, DKR videoboard) is a
+    SPREAD failure, not a luma one: channels within ~14 of each other at any
+    real brightness is a colour nobody chose. Asserted on every night value."""
+    c = hex_rgb(hex_col)
+    return max(c) - min(c)
+
+
+HOURS_RE = re.compile(r"(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})")
+
+
+def latest_close(s):
+    """The latest hour this place shuts, any day of the week, or None.
+
+    NOT an opening_hours parser, deliberately — the syntax has month ranges,
+    comma lists, `off`, and `J2 Dining` in this very cache carries
+    `Jun-Jul: Mo-Fr 07:00-14:00, 16:30-20:00; ...`. Writing an interpreter for a
+    3D city is the wrong job. This extracts the one number the renderer needs
+    and reads every one of the 78 strings in the cache that carry hours.
+
+    A close that is <= its own open has wrapped past midnight, so `15:00-02:00`
+    is 26:00 and a dive bar is correctly open at 22:00.
+    """
+    if not s:
+        return None
+    if "24/7" in s:
+        return 24.0
+    best = None
+    for m in HOURS_RE.finditer(s):
+        o = int(m.group(1)) + int(m.group(2)) / 60.0
+        c = int(m.group(3)) + int(m.group(4)) / 60.0
+        if c <= o:
+            c += 24.0
+        best = c if best is None else max(best, c)
+    return best
+
+
+def open_state(pl):
+    """(is_open, provenance). `S` where OSM published the hours, `G` where the
+    category habit table had to answer."""
+    c = latest_close(pl.get("hours"))
+    if c is not None:
+        return (c > SF_NIGHT_HOUR), "S"
+    return bool(OPEN_AT_22.get(pl["cat"], 0)), "G"
 
 
 # ── geometry ──────────────────────────────────────────────────────────
@@ -465,6 +695,7 @@ def load_places():
         cat = t.get("shop") or t.get("amenity") or "yes"
         out.append({"name": name, "cat": cat, "brand": t.get("brand"),
                     "cuisine": t.get("cuisine"), "osm": "%s/%s" % (e["type"], e["id"]),
+                    "hours": t.get("opening_hours"),
                     "pt": to_m(lon, lat), "ll": (lon, lat)})
     return out
 
@@ -622,12 +853,159 @@ def band_props(kind, fam, day, base, top, extra, lit):
     return p
 
 
-def build_slot(segs, H, sign_hex, meta):
-    """One tenant's shopfront: bulkhead, glazing, awning, fascia.
+def glow_props(kind, fam, day, night, base, top, extra, golden=None):
+    """A surface whose night value is CHOSEN, not derived from its day value.
+
+    wall_ramp and sign_ramp both compute the night colour from the day colour,
+    which is right for a wall and for a fascia and wrong for the inside of a
+    shop: the interior is dark grey by day because it is unlit and behind glass,
+    and warm at 108 luma at night because someone turned the lights on. There is
+    no function of #332d26 that produces #ffbe5e, and pretending there is would
+    be the same class of error as running a sign through the wall ramp.
+    """
+    g = golden or rgb_hex(mixc(hex_rgb(day), [255, 190, 130], 0.14))
+    p = {"kind": kind, "fam": fam, "wd": day, "wg": g, "wn": night,
+         "base": round(base, 2), "h": round(top, 2)}
+    p.update(extra)
+    return p
+
+
+def frame(a, b, nrm):
+    """(origin, along-unit, normal, length) for one straight frontage run.
+
+    Everything the entry emits is a plan rectangle in (s, d): s metres along the
+    wall from a, d metres out from it. One helper instead of six bespoke quads,
+    which is the only reason the pier is allowed to be a box with real depth
+    rather than a zero-thickness face plus a separate return.
+    """
+    L = math.hypot(b[0] - a[0], b[1] - a[1])
+    u = ((b[0] - a[0]) / L, (b[1] - a[1]) / L) if L > 1e-9 else (1.0, 0.0)
+    return (a, u, nrm, L)
+
+
+def box(fr, s0, s1, d0, d1):
+    (a, u, n, _L) = fr
+
+    def P(s, d):
+        return to_ll(a[0] + u[0] * s + n[0] * d, a[1] + u[1] * s + n[1] * d)
+    return [P(s0, d0), P(s1, d0), P(s1, d1), P(s0, d1), P(s0, d0)]
+
+
+def door_layout(L, spec, name):
+    """Where the entry bay sits on a frontage run of length L, or None.
+
+    Placement follows docs/entrances/placement.md's discipline rather than
+    scatter: the door goes at the tenant's own frontage midpoint — the same arc
+    position the label already uses — nudged to one end on a long slot because
+    a real shopfront puts the door at one end and the display window at the
+    other. Which end is a stable hash of the name, so a street is varied and
+    does not reshuffle between bakes.
+
+    Three trials, widest first. A 5 m slot cannot carry a pair door with side
+    returns AND 1.2 m of plain wall at each end, so it drops the returns, then
+    the piers, then gives up and is counted.
+    """
+    dt, leaves, open_w, recessed, glaz = spec
+    trials = ([(SF_RETURN_W, SF_PIER_W), (0.0, SF_PIER_W), (0.0, 0.0)]
+              if recessed else [(0.0, 0.0)])
+    for ret, pier in trials:
+        bay = open_w + 2 * ret
+        half = bay * 0.5 + pier + SF_EDGE_MIN
+        if 2 * half > L:
+            continue
+        c = L * 0.5
+        if L > SF_BIAS_LEN:
+            c = L * (SF_DOOR_BIAS if (stable_hash(name) & 1) else 1.0 - SF_DOOR_BIAS)
+        c = max(half, min(L - half, c))
+        return {"dt": dt, "leaves": leaves, "open_w": open_w, "glaz": glaz,
+                "pier": pier, "b0": c - bay * 0.5, "b1": c + bay * 0.5}
+    return None
+
+
+def build_entry(fr, lay, glass_top, meta, is_open):
+    """The entry itself: lit back plane, piers, lintel, leaves, lights, pool.
+
+    Emitted deepest-first so the draw order is the physical order even where two
+    planes are 0.02 m apart.
+    """
+    out = []
+    pier = lay["pier"]
+    b0, b1 = lay["b0"], lay["b1"]
+    p0, p1 = b0 - pier, b1 + pier          # outer face of the entry frame
+    head_top = min(SF_DOOR_HEAD + SF_HEAD_T, glass_top)
+    lit = SF_GLOW_OPEN if is_open else SF_GLOW_CLOSED
+    d_face = SF_PIER_PROUD if pier > 0 else PROUD
+    d_leaf = SF_LEAF_PROUD if pier > 0 else SF_FLUSH_PROUD
+
+    # 1. THE LIT INTERIOR. The one surface in this pass that carries the night.
+    #    UNO §25-2-753(H)(5) puts at least 5.49 m of occupant space behind it by
+    #    ordinance, so a shopfront after dark is a lit ROOM seen through a pane,
+    #    not a lit pane — and the two do not look the same.
+    out.append(feat(box(fr, b0, b1, SF_BACK_PROUD, SF_BACK_PROUD + SF_BACK_T),
+                    glow_props("entry", "plBack", SF_BACK_DAY, lit,
+                               0.0, SF_DOOR_HEAD, meta)))
+
+    # 2. The piers. Plan depth 0.06 -> 0.38, so the box IS the jamb return.
+    if pier > 0:
+        for s0, s1 in ((p0, b0), (b1, p1)):
+            out.append(feat(box(fr, s0, s1, SF_BACK_PROUD, SF_PIER_PROUD),
+                            band_props("entry", "plPier", SF_PIER_COL,
+                                       0.0, head_top, meta, False)))
+
+    # 3. The lintel that closes the top of the bay.
+    if head_top > SF_DOOR_HEAD + 0.02:
+        out.append(feat(box(fr, p0, p1, SF_BACK_PROUD, d_face),
+                        band_props("entry", "plHead", SF_PIER_COL,
+                                   SF_DOOR_HEAD, head_top, meta, False)))
+
+    # 4. The leaves, and the light in each. glaz_frac shrinks the light from the
+    #    top rail down, so a bar's near-solid leaf keeps a vision panel and a
+    #    cafe's narrow-stile leaf is almost all glass.
+    n = max(1, lay["leaves"])
+    o0 = (b0 + b1) * 0.5 - lay["open_w"] * 0.5
+    lw = lay["open_w"] / n
+    for i in range(n):
+        s0 = o0 + i * lw + SF_LEAF_GAP * 0.5
+        s1 = o0 + (i + 1) * lw - SF_LEAF_GAP * 0.5
+        out.append(feat(box(fr, s0, s1, d_leaf, d_leaf + SF_LEAF_T),
+                        band_props("entry", "plLeaf", SF_LEAF_COL,
+                                   0.0, SF_LEAF_H, meta, False)))
+        g0, g1 = s0 + SF_LEAF_STILE, s1 - SF_LEAF_STILE
+        z1 = SF_LEAF_H - SF_LEAF_TOPR
+        z0 = z1 - (z1 - SF_LEAF_BOT) * min(1.0, lay["glaz"] / 0.88)
+        if g1 - g0 > 0.12 and z1 - z0 > 0.20:
+            out.append(feat(box(fr, g0, g1, d_leaf + SF_LEAF_T,
+                                d_leaf + SF_LEAF_T + SF_LITE_PROUD),
+                            glow_props("entry", "plLite", SF_LITE_DAY, lit,
+                                       z0, z1, meta)))
+
+    # 5. The pool of spill, open tenants only. A closed shop's non-pool is the
+    #    entire reason for working out which shops are closed.
+    if is_open and SF_POOL_ON:
+        out.append(feat(box(fr, p0 - SF_POOL_FLARE, p1 + SF_POOL_FLARE,
+                            SF_POOL_NEAR, SF_POOL_FAR),
+                        glow_props("pool", "plPool", SF_POOL_DAY, SF_POOL_NIGHT,
+                                   SF_POOL_Z0, SF_POOL_Z1, meta,
+                                   golden=SF_POOL_GOLD)))
+    return out, (p0, p1)
+
+
+def build_slot(segs, H, sign_hex, meta, spec=None, is_open=False, stats=None):
+    """One tenant's shopfront: bulkhead, glazing, awning, fascia — and, on the
+    longest of its straight runs, one entry.
 
     Emitted per straight sub-segment, because a corner shop's frontage turns and
-    a single quad cannot. Four features per sub-segment, and a tenant is one
-    sub-segment in the overwhelming majority of cases.
+    a single quad cannot. THE ENTRY GOES ON EXACTLY ONE RUN: a tenant with a
+    corner gets one door, not one per elevation. Subchapter E §3.x's 75 ft rule
+    would allow a second on a frontage over 22.9 m and MAX_W caps a tenant at
+    15 m, so a second door is unreachable here and is not implemented.
+
+    The bulkhead and the glazing are SPLIT around the bay rather than drawn
+    through it. That is what makes the notch a notch: the storefront plane is
+    genuinely absent for the width of the entry, and the surfaces inside it
+    stand 0.32 m further back than the piers that frame them. Drawing the glass
+    straight through and putting a dark rectangle in front of it would be the
+    "darker rectangle" this pass exists to stop being.
     """
     # Same clamp js/drag.js's retail_bands uses, so a fascia lands on a fascia.
     glass_top = min(SHOP_DATUM, SHOP_MAX_FRAC * H)
@@ -635,15 +1013,58 @@ def build_slot(segs, H, sign_hex, meta):
     bulk_top = min(BULKHEAD, glass_top * 0.30)
     awn_top = glass_top - AWN_DROP
     awn_base = awn_top - AWN_T
+
+    # Which run carries the door: the longest one. Short returns round a corner
+    # get plain glass, which is what they are.
+    door_i = -1
+    if SF_ENTRY_ON and spec is not None and glass_top >= SF_MIN_GLASS_TOP:
+        door_i = max(range(len(segs)),
+                     key=lambda i: math.hypot(segs[i][1][0] - segs[i][0][0],
+                                              segs[i][1][1] - segs[i][0][1]))
+    elif spec is not None and stats is not None:
+        stats["door_host_too_short"] += 1
+
     out = []
-    for (a, b, nrm) in segs:
-        wall = quad(a, b, nrm, PROUD, INSET)
-        out.append(feat(wall, band_props("front", "plBulk", BULK_COL,
-                                         0.0, bulk_top, meta, False)))
-        out.append(feat(wall, band_props("front", "plGlass", GLASS_COL,
-                                         bulk_top, glass_top, meta, False)))
-        out.append(feat(wall, band_props("front", "plSign", sign_hex,
-                                         glass_top, sign_top, meta, True)))
+    for i, (a, b, nrm) in enumerate(segs):
+        fr = frame(a, b, nrm)
+        L = fr[3]
+        lay = door_layout(L, spec, meta["nm"]) if i == door_i else None
+        if i == door_i and lay is None and stats is not None:
+            stats["door_run_too_narrow"] += 1
+
+        # Spans of the storefront plane that survive the bay.
+        if lay:
+            ent, (p0, p1) = build_entry(fr, lay, glass_top, meta, is_open)
+            out.extend(ent)
+            spans = [(0.0, p0), (p1, L)]
+            if stats is not None:
+                stats["doors"] += 1
+                stats["door_" + lay["dt"]] += 1
+                stats["door_recessed" if lay["pier"] > 0 else "door_flush"] += 1
+        else:
+            spans = [(0.0, L)]
+
+        for s0, s1 in spans:
+            if s1 - s0 < 0.30:
+                continue
+            wall = box(fr, s0, s1, -INSET, PROUD)
+            out.append(feat(wall, band_props("front", "plBulk", BULK_COL,
+                                             0.0, bulk_top, meta, False)))
+            out.append(feat(wall, band_props("front", "plGlass", GLASS_COL,
+                                             bulk_top, glass_top, meta, False)))
+        # Glass over the entry, so the glazing line runs unbroken across the
+        # elevation the way a real storefront's does. Same pattern, same layer,
+        # no new atlas image.
+        if lay:
+            head_top = min(SF_DOOR_HEAD + SF_HEAD_T, glass_top)
+            if glass_top - head_top > 0.15:
+                out.append(feat(box(fr, p0, p1, -INSET, PROUD),
+                                band_props("front", "plGlass", GLASS_COL,
+                                           head_top, glass_top, meta, False)))
+        # The fascia is NOT split: a shop sign runs over its own door.
+        out.append(feat(box(fr, 0.0, L, -INSET, PROUD),
+                        band_props("front", "plSign", sign_hex,
+                                   glass_top, sign_top, meta, True)))
         # The awning. Its own quad because it cantilevers past the slab, and its
         # own colour because its top face is the one surface here that the sun
         # tint hits square on.
@@ -661,6 +1082,17 @@ def main():
 
     stats = Counter()
     unmatched, no_front, too_deep, over_cap = [], [], [], []
+    hours_guessed = []
+
+    # The night values are the claim most likely to be wrong in this pass, so
+    # assert their shape before anything is drawn rather than after a screenshot
+    # looks plausible. docs/entrances/shopfronts.md §7.4: SPREAD, not luma.
+    for nm, hx in (("SF_GLOW_OPEN", SF_GLOW_OPEN),
+                   ("SF_GLOW_CLOSED", SF_GLOW_CLOSED),
+                   ("SF_POOL_NIGHT", SF_POOL_NIGHT)):
+        assert spread(hx) >= 24, "%s is a pale neutral (spread %d)" % (nm, spread(hx))
+    assert SF_PIER_PROUD <= 0.41 and SF_PIER_PROUD >= 0.32, "pier is out of the free plane band"
+    assert SF_BACK_PROUD > 0.0, "the back plane cannot go inside the host wall"
 
     # 1. host building per place -----------------------------------------
     by_host = defaultdict(list)
@@ -729,10 +1161,19 @@ def main():
             if not segs:
                 continue
             sign_hex, prov, note = sign_for(t)
-            meta = {"nm": t["name"], "cat": t["cat"], "src": prov, "bid": hid}
-            feats.extend(build_slot(segs, host["h"], sign_hex, meta))
+            is_open, hprov = open_state(t)
+            spec = DOORS.get(t["cat"], DOOR_NULL)
+            meta = {"nm": t["name"], "cat": t["cat"], "src": prov, "bid": hid,
+                    "open": 1 if is_open else 0, "hsrc": hprov}
+            feats.extend(build_slot(segs, host["h"], sign_hex, meta,
+                                    spec=spec, is_open=is_open, stats=stats))
             stats["slots"] += 1
             stats["prov_" + prov] += 1
+            stats["open" if is_open else "closed"] += 1
+            stats["hours_" + hprov] += 1
+            if hprov == "G":
+                hours_guessed.append("%s (%s -> %s)" % (t["name"], t["cat"],
+                                                        "open" if is_open else "closed"))
 
             # The label. Placed at the middle of the tenant's own frontage and
             # pushed clear of the building so it is not buried in the wall, and
@@ -775,6 +1216,8 @@ def main():
 
     sourced = [d for d in drawn if d[3] == "S"]
     gen = [d for d in drawn if d[3] == "G"]
+    by_fam = Counter(f["properties"].get("fam") for f in feats)
+    by_kind = Counter(f["properties"]["kind"] for f in feats)
     print(json.dumps({
         "places_named_in_osm": len(places),
         "hosted_to_a_building": stats["hosted"],
@@ -782,6 +1225,23 @@ def main():
         "features": len(feats),
         "extrusion_features": sum(1 for f in feats if f["properties"]["kind"] != "label"),
         "labels": sum(1 for f in feats if f["properties"]["kind"] == "label"),
+        "by_kind": dict(sorted(by_kind.items(), key=lambda kv: -kv[1])),
+        "by_fam": dict(sorted(by_fam.items(), key=lambda kv: -kv[1])),
+        "entries": {
+            "doors_drawn": stats["doors"],
+            "recessed": stats["door_recessed"],
+            "flush": stats["door_flush"],
+            "hinged": stats["door_hinged"],
+            "sliding": stats["door_slide"],
+            "no_door_host_too_short": stats["door_host_too_short"],
+            "no_door_run_too_narrow": stats["door_run_too_narrow"],
+            "open_at_2200": stats["open"],
+            "closed_at_2200": stats["closed"],
+            "hours_sourced_from_osm": stats["hours_S"],
+            "hours_from_category_habit": stats["hours_G"],
+            "pools_on_the_pavement": by_fam.get("plPool", 0),
+        },
+        "atlas_images_added": 0,
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
         "sign_colour_sourced": len(sourced),
         "sign_colour_generative": len(gen),
@@ -801,8 +1261,23 @@ def main():
             "sign_colours_generative": "GENERATIVE - %d storefronts; a per-category tone, no per-business hex was available" % len(gen),
             "awning_presence": "GENERATIVE - awnings are drawn on every shopfront; the real street is patchier",
             "logos": "DELIBERATELY ABSENT - no brand artwork is downloaded or embedded",
+            "door_type": "GENERATIVE - by category, docs/entrances/shopfronts.md 5.3. OSM says nothing about doors.",
+            "door_position": "DERIVED - the tenant's own frontage midpoint, the arc position the label already uses",
+            "open_at_2200_sourced": "SOURCED - %d tenants; the latest closing hour in OSM opening_hours" % stats["hours_S"],
+            "open_at_2200_generative": "GENERATIVE - %d tenants; the category habit table OPEN_AT_22, wrong about one in six" % stats["hours_G"],
+            "recess_depth": "DERIVED but CLAMPED - the spec derives 1.00-1.50 m from Building Code 3202.2; "
+                            "this pass owns no building so there is nothing to recess into, and the notch is "
+                            "the 0.32 m between the free plane band and the host wall.",
         },
     }, indent=2))
+    print("\n-- night values (spread must be >= 24; luma bimodality does NOT apply) --")
+    for nm, hx in (("SF_GLOW_OPEN", SF_GLOW_OPEN), ("SF_GLOW_CLOSED", SF_GLOW_CLOSED),
+                   ("SF_POOL_NIGHT", SF_POOL_NIGHT)):
+        c = hex_rgb(hx)
+        print("  %-16s %s  luma %3d  spread %3d  R:B %.2f"
+              % (nm, hx, luma(c), spread(hx), c[0] / max(1.0, float(c[2]))))
+    print("\n-- open/closed GUESSED from the category (no OSM hours): %d --" % len(hours_guessed))
+    print("  " + ", ".join(sorted(hours_guessed)))
     print("\n-- sourced sign colours --")
     seen = set()
     for nm, cat, hx, prov, note in sorted(drawn):

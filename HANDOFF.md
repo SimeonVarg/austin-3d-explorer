@@ -1,5 +1,165 @@
 # Austin 3D Explorer — Full Handoff
 
+## 91. Aug 4 2026 — the shopfronts get a way in (acer lane)
+
+**Branch:** `acer/westcampus-ground`, continuing §90. **Files written:**
+`scripts/bake_places.py`, `data/places.geojson`, this entry. Nothing else — no
+js, no html, no second data file. `docs/entrances/shopfronts.md` and
+`docs/entrances/groundfloor-existing.md` were READ and are the spec this
+implements.
+
+**What it is.** Every one of the 133 storefronts now has an ENTRY: a recessed
+bay flanked by piers with real plan depth, a lintel, door leaves with their own
+lights, a lit interior plane behind them, and — for the shops that are still
+open at 22:00 — a warm pool of spill on the pavement. Before this the shopfront
+was four stacked rectangles with no way in.
+
+Screenshots: `shots/wcg-groundfloor-night.png` and
+`shots/wcg-groundfloor-day.png` are before/after on the same frame (Rally
+House, Chipotle, Sweetgreen). `shots/wcg-groundfloor-westcampus.png` is
+Torchy's on Guadalupe at 24th.
+
+### The five things the brief asked for, and what actually happened
+
+| asked | shipped |
+|---|---|
+| a recessed entry, a real notch | **yes, 0.32 m deep.** Not the 1.00–1.50 m the spec derives — see below. |
+| a door by category, leaves + frame | **yes.** 3 types over 15 categories: 122 hinged (single / pair / quad), 11 sliding. |
+| the mullion grid on the glazing | **already there, and untouchable from this lane.** See below. |
+| the bulkhead below the glass | **already there** — `plBulk`, 0.55 m, shipped in the first pass. Unchanged. |
+| night interior glow, reading on the sidewalk too | **yes, and measured.** 63 lit interiors + 63 pavement pools. |
+
+### The numbers
+
+Feature count **1,185 → 2,533**, +1,348 (+114 %). By kind: `front` 789 → 1,186
+(the bulkhead and glazing now split around the bay, plus a glass panel over the
+door), `entry` 0 → 888, `pool` 0 → 63, `awning` 263 and `label` 133 both
+**unchanged**. `replacedBuildingIds` is still `[]` — the invariant holds.
+
+File size **440.1 KB → 995.9 KB** on `scripts/serve.py`, which does **not**
+gzip. **GitHub Pages does**, and gzipped the same two files are **32.0 KB →
+63.9 KB**, so the real cost over the wire is **+31.9 KB**. Quote the gzipped
+pair, not the raw pair.
+
+**Atlas images added: ZERO.** Running total unchanged: `js/drag.js` 16 `dg-`
+tiles, `js/westcampus.js` 46, `js/places.js` 1 (`pl-glass`), `js/entrances.js`
+0. Everything this pass adds is geometry with a flat colour.
+
+### The night values, magenta-masked (HANDOFF §48), tod 0.88, 1280×800
+
+Sampling "the brightest changed pixels near a door" reported the open and the
+closed shop as **the same colour**, because the brightest thing added at a
+doorway is the aluminium leaf, not the interior behind it. The mask is what
+made the measurement real:
+
+| family | px | rendered mean | R:B | luma |
+|---|---|---|---|---|
+| `plBack` open (lit interior) | 165 | (107, 79, 52) | **2.06** | 84 |
+| `plBack` closed (security light) | 259 | (37, 26, 22) | 1.68 | 29 |
+| `plLite` open (door glazing) | 241 | (112, 86, 62) | **1.81** | 91 |
+| `plPool` open (pavement spill) | 380 | (115, 89, 65) | **1.77** | 94 |
+
+`js/entrances.js` measured five lit doorways on the same night at R:B 1.79 /
+2.02 / 2.31 / 2.09 / 2.21. All three lit surfaces here land inside that band,
+and an open shop is 2.9× the luma of a closed one three metres away.
+
+### What did NOT work, in the order it cost time
+
+1. **The pavement pool shipped as a white slab and I only found it by looking.**
+   `SF_POOL_DAY` started as `js/ground.js`'s own `SURF.paving` day hex
+   `#e6ddc9`, on the reasoning that pavement is pavement. It rendered at
+   **(241,211,162) against a sidewalk rendering at (185,168,145)** — the
+   brightest object in the daytime frame, at every open shop. `ground-paths` is
+   a `fill` under its own shading; this is a `fill-extrusion` under
+   `map.setLight`. Reading both files would never have said so. Fixed by
+   inverting the measured transfer (R 1.048 / G 0.955 / B 0.806) for a target of
+   0.88× the sidewalk → `#9b9b9f`, then re-rendered and re-measured.
+2. **The pool was 1.53 R:B while the door beside it was 2.06.** A horizontal
+   face takes more of the night sky. Copying `ENT.pool.colorMain` was wrong
+   because that pool is a `circle` layer and never passes through
+   `map.setLight` at all. `SF_POOL_NIGHT` `#ffc27a` → `#ffc166`, re-measured
+   at 1.77.
+3. **Two hours went into the wrong camera.** I assumed the Drag shopfronts face
+   west onto Guadalupe. They face **east**; the bearing to see them is **275**,
+   not 95. Every early screenshot was the back of the building. Deriving the
+   outward normal from the baked geometry took four lines and should have been
+   step one. **The look-bearings are in the bake's own data — compute them, do
+   not guess them.**
+4. **`python scripts/bake_places.py > /dev/null` exits 1 on this machine.** The
+   last summary line contains a Vietnamese place name and cp1252 cannot encode
+   it when stdout is redirected. The GeoJSON is written long before that line,
+   so the failure is cosmetic — but it silently killed a chained `&&`. Run it
+   with `PYTHONIOENCODING=utf-8`.
+
+### What I could NOT do from this lane, with the one-line fix for each
+
+1. **`scripts/verify/places-check.mjs` now has ONE failing assertion, and it is
+   a catalogue, not a defect.** `A | the four families are exactly bulkhead /
+   glass / sign / awning`. There are ten families now. **39 ok, 1 failed**, and
+   every other assertion still passes — including "the sign band sits directly
+   on top of the glass" at the full 263 bands, so the split did not open a gap.
+   The fix is one line in that file:
+   `['plAwn','plBulk','plGlass','plSign']` →
+   `['plAwn','plBack','plBulk','plGlass','plHead','plLeaf','plLite','plPier','plPool','plSign']`.
+   That file is not this lane's to write. **The PR is left open with this
+   written down rather than merged red**, per CLAUDE.md rule 2.
+2. **No LOD gate exists and this pass has none.** The spec asks for
+   `SF_PORTAL_MIN_ZOOM 16.7` and `SF_DETAIL_MIN_ZOOM 18.6`. `js/places.js` puts
+   every non-glass feature in ONE layer at `minzoom 15` and a per-feature zoom
+   gate cannot be expressed from the bake. The response was to emit **only what
+   §9.2 of the spec says survives at or above the spawn altitude** and to drop
+   the whole DETAIL tier: no sill, no water table, no separate transom line, no
+   door bottom rail as its own feature, and no 13 mm threshold (which reaches
+   one pixel at 4.2 m altitude, below `ALT_MIN` 18 — it is not drawable in this
+   application at any camera position). If someone wants the DETAIL tier, add a
+   second layer keyed on `kind == 'entry'` with a `minzoom`; the data already
+   carries the tag.
+3. **The mullion rhythm is still at roughly double the real spacing, and the
+   fix is one line in `js/places.js`.** `T.MULL: 5` is ~3.2 m between mullions;
+   the Kawneer working bay is 1.35 m and the published ceiling is 1.83 m.
+   **Change `T.MULL` from 5 to 3, not to 2** — at 2 the 1 px dark line is 50 %
+   of the tile's area and `T.MULL_DARK 0.26` removes a quarter of the band's
+   mean luma, which is exactly the "black ribbed void, not glass, a hole"
+   failure that file already records fixing once. Promoting mullions to geometry
+   never pays: a 2 in mullion reaches 1 px at 18.2 m altitude and `ALT_MIN` is
+   18 m.
+4. **`T.NIGHT_TONE [255,206,148]` is still ~40 % cooler than the doorway three
+   metres to its left.** Same file, same lane problem. `→ [255,190,94]` lands it
+   at R:B 1.99 after the measured transfer. Not verified by me; the check is the
+   magenta mask on `places-glass`.
+
+### How to re-run the measurement
+
+The probe is not in the repo — `scripts/verify/` is not this lane's to write.
+It is 60 lines: jump to `{center:[-97.74192,30.28570], zoom:18.9, pitch:64,
+bearing:275}`, set tod, then for each family set `places-solid`'s
+`fill-extrusion-color` to
+`['case', ['all',['==',['get','fam'],FAM],['==',['get','open'],1]], '#ff00ff', '#000000']`,
+screenshot, keep those pixel indices, call `applyPlacesColors` to restore,
+screenshot again and average the real colours at that index set. **Decode both
+PNGs inside the page** — shipping a 1280×800×4 pixel array over CDP timed the
+first version out at the 300 s watchdog.
+
+### Sourced vs guessed, stated plainly
+
+- **Door type: GENERATIVE.** OSM says nothing about doors. The category mapping
+  is `docs/entrances/shopfronts.md` §5.3.
+- **Door position: DERIVED.** The tenant's own frontage midpoint — the same arc
+  position the label already uses — biased to one end on a slot over 9 m.
+- **Open at 22:00: 72 of 133 SOURCED** from OSM `opening_hours` (latest closing
+  hour of the week, one regex, `24/7` → 24, a close ≤ its own open wraps past
+  midnight). **61 GENERATIVE** from the `OPEN_AT_22` category habit table, which
+  the spec checked against the sourced half and expects to be **wrong for about
+  one tenant in six**. Every guessed tenant is named in the bake summary.
+- **The recess depth is DERIVED BUT CLAMPED, and this is the honest one.** The
+  spec derives 1.00–1.50 m from Austin Building Code §3202.2. This pass owns no
+  building, so there is nothing behind the wall to recess into — the host's own
+  extrusion sits at offset 0.00. What is actually spent is the 0.32 m between
+  the free plane band (`groundfloor-existing.md` §5b: 0.32–0.41 is empty) and
+  0.06. The piers stand at 0.38 and their inward faces ARE the jamb returns, so
+  one box is both the pilaster and the return.
+
+
 ## 90. Aug 4 2026 — West Campus gets its front doors (acer lane)
 
 **Branch:** `acer/westcampus-ground`. **Files written:**
