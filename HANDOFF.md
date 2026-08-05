@@ -12595,3 +12595,203 @@ the pair) and it improves every street in the city rather than two lobbies.
 * **Did not re-check X4, X6 or X7**, and did not touch the `min(30, clear + 8)`
   standoff rule that caused X3 — it lives in the pose generator, not here.
 * **Did not photograph anything at night or dusk.** Day `p = 0.14` only.
+
+---
+
+## 104. Aug 5 2026 — the guard fails when you break it, no tower is dark, and four of the seven "failures" are the 18 m camera floor (QUEUE X2–X7) (acer lane)
+
+**Branch:** `acer/lobby-defects`, fast-forwarded onto `origin/main` at `a8ae8ad`
+(the previous branch of that name was merged as PR #155, so the merge was a
+no-op and everything below was measured on `main`'s tree, not on a branch in
+isolation). **Files written: `shots/lobbies/final/`, `QUEUE.md`, this entry. No
+code, no data, no `scripts/verify/`.** Setup: `harness-drift.mjs` **PASS, 28
+scripts in each file**, run before any pixel; `python scripts/serve.py 8283`,
+`_harness.html?intro=0&drift=0`, 1440x900, dsf 1, SwiftShader,
+`cancelGraphicsAutoDetect()` at the top of every run, one browser at a time,
+`reap.mjs` clean and the server killed at the end.
+
+### 1. THE GUARD FAILS WHEN YOU BREAK IT — four breaks, four failures
+
+§102 shipped assertion D and a `js/facades.js` staleness digest and nobody had
+watched either of them go red. Both were re-run against `main` and then broken
+on purpose, one change at a time, restoring the file after each:
+
+| what was broken | result |
+|---|---|
+| **21 Rio**'s tower `tr` -> `sn` (a different building from the one that was fixed) | exit 1 — *"a 59.3 m tower band in family `sn`, whose night tile peaks at 105.0 luma (< 120)"* |
+| **Callaway** put back to `sn` (the original X2 defect) | exit 1 — the same sentence at 49.8 m |
+| **Dobie** `tg` -> `sf` | exit 1 **twice** — assertion D on the family, and assertion B on the near-black wall |
+| `js/facades.js` `SN_NIGHT` 0.30 -> 0.80 | exit 1 — digest `54b094739b670642` != `72e4a715b464661e`, with "re-measure, do not bump the digest" |
+
+Re-running the bake unchanged reproduces `data/westcampus.geojson` **byte for
+byte**, and `git status` was clean after the four experiments. **The guard is
+known to work now, not assumed to.**
+
+### 2. NO TOWER IS DARK — and the first way I measured it was wrong
+
+The roll-call was re-derived at run time from the atlas entry each band actually
+draws (`p = 0.92`): **55 distinct `wp` ids in use, 0 bands with no registered
+image, all 24 principal tower bands peak over 120 luma.** Per family:
+`tg` 227.6, `tr` 217.4, `mh` 216.4, `sb` 179.8, `sg` 157.6 — then the gap —
+`sn` 114.7, `dk` 107.9, `sp` 107.7, `sf` 61.0. Callaway is `tr45`, peak 216.5.
+
+**THE FIRST ATTEMPT REPORTED ALL 24 AS `mh00` WITH IDENTICAL NUMBERS AND I
+ALMOST BELIEVED IT.** `source._data` is not where the stamped features live —
+it returned undefined, my probe silently fell through to fetching
+`data/westcampus.geojson` off disk, and **`wp` does not exist in that file**
+because `quantiseStadiumFacades()` stamps it at run time. Twenty-four identical
+rows is what a fallback looks like. The stamped collection is at
+**`source._options.data`** (and `source.serialize().data`). The fixed probe
+refuses to report if it cannot find a collection with `wp` on it.
+
+**Two more traps, both of which cost a whole run each:**
+
+* **A `#ff00ff` fill is multiplied by the night light.** At `p = 0.92` a magenta
+  mask comes back around `#9911cc`, and every `r > 170 && b > 170` test in this
+  repo reads **zero**. The first night pose search returned 0 px for all eight
+  bearings and I nearly filed it as a missing layer. **Measure a silhouette in
+  DAY light; the silhouette is geometry and does not care what hour it is.**
+* **A full-city canvas readback at 1440x900 under SwiftShader is ~25 s a pose.**
+  A 192-pose magenta search is an hour, and it is not worth one: whether a tower
+  reads black after dark is a property of its tile, and the tile is readable
+  directly with no rendering at all.
+
+In pixels, in the four-tower night frame, silhouettes taken by day-light mask:
+**Callaway 7.41 % lit** against **21 Rio 8.65 %, Signature 1909 7.78 %, Ion
+Austin 6.92 %** — i.e. Callaway now sits inside the spread of its own
+neighbours. §101 measured it at **0.04 %** in its own frame.
+`01`/`02` and `03`/`04` in `shots/lobbies/final/` are the before/after pair.
+
+### 3. NO ALTITUDE REGRESSION, and §101's "+8" is the wrong constant for a
+### stationary camera
+
+`__fly.consts` on the merged tree: **`ALT_MIN` 18** (unchanged, untouched),
+`HARD_CLEAR` 4, `R_CAM` 6. Six buildings, camera dropped at 5 m and read 5.2 s
+later:
+
+| building | settles at | `roofAt(eye)` | `max(18, roof + 4)` |
+|---|---|---|---|
+| The Castilian | 64.0 | 60.0 | 64.0 |
+| Dobie Twenty21 | 86.0 | 82.0 | 86.0 |
+| Crest at Pearl | 20.7 | 16.7 | 20.7 |
+| The Quarters Grayson House | 28.8 | 24.8 | 28.8 |
+| Twenty Two 15 | 31.3 | 27.3 | 31.3 |
+| Cambridge Tower | 59.0 | 55.0 | 59.0 |
+
+**0 of 6 mismatches.** §101's table reads these lifts as `roof + SKIN_V` (8);
+they are `roof + HARD_CLEAR` (4). `SKIN_V` is the *moving* path
+(`js/controls.js` step-up); a camera that is standing still lands on the hard
+net. §103 had already measured 32.4 = 28.4 + 4 at Grayson's centroid and this
+confirms it as the rule rather than a one-off.
+
+### 4. The rest of the suite, on the merged tree
+
+| check | result |
+|---|---|
+| `harness-drift.mjs` | **PASS**, 28 scripts in each file, top and tail |
+| `coplanar.mjs` | **at baseline** — `places` 1, `entrances` 1729, `roofs` 85 |
+| `places-check.mjs` | **PASS, 40 ok, 0 failed** |
+| `zfight.mjs` | **at baseline** — `shots-westcampus` five poses no clusters; `westcampus-day` **242 px @ [642,827,869,895]**, the same count and the same box as §101; `wampus-zf` drag-doors 0.005 %, hi 0.006 %, wc-lobby 0.000 %, drag-night 0.001 %, no clusters |
+
+`zfight.mjs` on the full `shots-places.json` needs more than the 300 s watchdog —
+seven poses land, the eighth is killed. Run `westcampus-day` in its own file, or
+pass `VERIFY_MAX_MS`.
+
+### 5. THE SEVEN, RE-SHOT — one fixed, two never were defects, four are the
+### camera floor
+
+**FIXED (1).**
+
+* **X2 — The Callaway House Austin's tower is lit.** Guard proven, atlas
+  measured, and the picture is not ambiguous: `01` is a dark ribbed slab, `02`
+  is a 17-storey window grid over a lit lobby.
+
+**NOT A MODEL DEFECT — the model was always right (2).**
+
+* **X3 — The Quarters Grayson House is solid.** Photographed at **six**
+  bearings, 55 m out, eye 26 m: brick base, punched window grid, coping,
+  neighbours in front. `20-X3-GRAYSON-AFTER-bearing-*.png`. The magenta
+  silhouette, `21-...`, is one connected mass on the ground with nothing behind
+  it. §103's diagnosis holds: §101's camera was standing **inside The Quarters
+  Sterling House**, 24 m south, and MapLibre does not draw the back of a
+  fill-extrusion. `19-...` is that frame for the comparison.
+* **X5 — the trees in front of 21 Rio and The Nine at West Campus are real,
+  imagery-sourced and correctly placed** (§103, unchanged). Re-shot at a
+  different bearing (`60-X5-*`): from 26 degrees the 21 Rio frontage reads
+  fine — podium band, pavement, entry canopy — and the canopy sits to one side.
+  **Which elevation you stand on decides whether a tree is in the way**, and
+  §103's measurement stands: that canopy's underside is 4.41 m and the door head
+  is 2.44 m, so a person walks under it. Nobody can, because of X1.
+
+**AN ARTEFACT OF THE 18 m CAMERA FLOOR — WAITING ON SIMEON'S X1 DECISION,
+counted as neither fixed nor broken (4).**
+
+* **X7 — the low roof filling the frame, and this is the number to show him.**
+  Rambler is **14.4 m tall and the camera floor is 18 m**, so the app cannot put
+  you below its roofline. At the floor, **84.8 % of the frame is one exact
+  colour** (`#bfae98`, Rambler's untextured roof slab). Move the same camera to
+  55 m and it is **15.6 %**. Nothing about the model changed between those two
+  frames. `50-X7-rambler-*`.
+  **The queue's second example does not reproduce**: Block on 25th East is
+  28.1 m, above the floor, and measures **2.1 %** at the same pose — its problem
+  is the opposite one, a 24 m standoff that jams the camera into its wall.
+* **X6 — both buildings CAN be framed.** The Quarters Sterling House at bearing
+  180 reads as a real ground floor — balcony bands, brick base with piers,
+  pavement, glazed lobby and canopy at the right. The Nine at Rio is **12.2 m**,
+  i.e. 6 m below the camera floor, so every frame of it looks down onto its roof;
+  its facade is modelled and visible, you simply cannot stand in front of it.
+  `40-X6-*`.
+* **X4 — Cambridge Tower's door is blocked by CAMBRIDGE TOWER.** The queue
+  guessed "either the door is on the wrong wall or the AT&T Center block overlaps
+  it". Neither. Measured off the data: the main-door group's 40 points have a
+  centroid **0.2 m outside Cambridge Tower's own base ring**, and the next West
+  Campus footprint of any kind is **107 m away** — there is nothing else near it.
+  Marching outward from that centroid in 30-degree steps against Cambridge
+  Tower's **own** ring:
+
+  ```
+    0 deg clear 30 m     30 deg re-enters at 3.0 m    60 deg re-enters at 1.0 m
+   90 deg re-enters 1.0   120 deg re-enters at 1.0    150 deg re-enters at 1.0
+  180 deg re-enters 2.0   210/240/270/300/330 deg clear 30 m
+  ```
+
+  **Six of twelve directions walk straight back into the host building**, because
+  the door sits in a re-entrant notch of its own plan. A clear-distance march
+  that does not exclude the building the door belongs to will report ~0 m for
+  every door in a notch, and this is one. **The defect is in the audit's march,
+  not in the placement** — and it is `scripts/bake_entrances.py`, not this lane's
+  file, so it is written here as a request.
+  The photograph agrees with the data: `30-X4-CAMBRIDGE-TOWER-bearing-180.png`
+  shows the podium, a recessed opening at the corner, pavement and open street in
+  front of it at the 18 m floor. **What is still not settled is whether the
+  glazing itself is on that elevation** — see the failed instrument below.
+* **X5 again** — the *reason* the door is hidden is the floor, not the tree.
+
+### 6. WHAT I GOT WRONG OR COULD NOT SETTLE
+
+* **My "see-through" metric measures silhouette CONCAVITY, not transparency.**
+  It flood-fills the background in from the frame border and counts enclosed
+  non-magenta pixels — so a U-shaped block, a notch between two wings, or a
+  courtyard seen from above all score as "holes". Sterling House came back at
+  24.8 % holes from one bearing and it is not see-through; it is C-shaped and
+  the camera was above its roof. **Grayson scores 0 holes at two of three
+  bearings and the picture is unambiguous**, which is why the verdict above
+  rests on the photographs and not on that number. If anyone wants a real
+  transparency test, leave the ground layer visible and mask only the walls.
+* **The first "all 24" attempt was thrown away twice** — once for the night
+  magenta, once for the readback cost. Both are written up in §2 above so the
+  next lane pays neither.
+* **THE DOOR-VISIBILITY PROBE FAILED AND I AM REPORTING IT AS A FAILED
+  INSTRUMENT, NOT AS A FINDING.** Painting `entrances-glass` / `-portal` /
+  `-mullion` / `-detail` magenta once at load and then walking eight bearings
+  returned **0 magenta pixels for all 24 measurements** — including for **The
+  Nine at Rio** and **The Quarters Sterling House**, which were in the run
+  precisely as controls and which carry 12 and 11 `glass` features in
+  `data/entrances.geojson`. A probe whose controls read zero is measuring
+  nothing. The likely cause is that `js/entrances.js` re-applies
+  `fill-extrusion-color` to `entrances-glass` on its time-of-day path (line
+  1298), so the mask is repainted away after the first camera move — §103's
+  version of this worked because it re-set the mask immediately before each
+  reading. **So "Cambridge Tower's lobby glass is not visible from any bearing"
+  is NOT established by this pass.** Set the mask inside the per-pose loop, or
+  freeze the tod tick.
