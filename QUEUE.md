@@ -369,6 +369,64 @@ point-in-polygon probe says zero do.
 
 ---
 
+# PART W — WEST CAMPUS GROUND FLOOR. Written 2026-08-05 from the review in
+# HANDOFF §93. **W1 and W2 are what is keeping PR #147 open.** Do them together;
+# they are one short pass and the PR merges the moment they are green.
+
+**W1. `scripts/verify/places-check.mjs` assertion A is a stale catalogue and it
+is red.** 39 ok / 1 failed. The bake now emits ten families where the assertion
+lists four. One line:
+
+```
+['plAwn','plBulk','plGlass','plSign']
+  ->  ['plAwn','plBack','plBulk','plGlass','plHead','plLeaf','plLite','plPier','plPool','plSign']
+```
+
+**This file is the Acer lane's.** Two passes in a row left it red believing
+`scripts/verify/` belonged to the Mac; `MAC_QUEUE.md`'s scope table gives the
+Mac only `bake_stadium.py`, `js/stadium.js`, `data/stadium.geojson` and the DKR
+imagery, and no open Mac PR touches `scripts/verify/`. Make the edit, re-run
+`VERIFY_URL=http://127.0.0.1:PORT node scripts/verify/places-check.mjs`, expect
+40/40.
+
+**W2. The shopfront entry put 194 new coplanar pairs into
+`data/places.geojson`.** `node scripts/verify/coplanar.mjs data/places.geojson`
+reads **195**; the same file before the bake read **1**. 171 of them are
+`plHead` + `plPier`: the lintel (base 2.30, top 2.46) and the pier beside it
+(base 0.00, top 2.46) share a top face over 0.094 m², and two extrusions with
+equal top height and overlapping footprint have no defined draw order.
+`zfight.mjs` finds no flicker at four poses day and night, so nothing is visibly
+broken today — but `docs/PASS_GLITCH.md` records this repo fixing this exact
+class twice, and a detector that reads 195 is useless as a guard. Fix in
+`scripts/bake_places.py`: take the pier top to 2.45 **or** the head top to 2.47
+(one constant, in the marked taste block), re-bake with
+`PYTHONIOENCODING=utf-8`, confirm the feature count is still 2,533 and that
+`coplanar.mjs` is back to 1.
+
+**W3. `data/entrances.geojson` is 5.44 MB raw / 326.7 KB gzipped, 11,890
+features, loaded as a flat GeoJSON source.** Already on `main`; nothing this
+week measured its load cost. It is 4.4 % of the gzipped `data/` payload and
+10 % of the raw JSON the browser parses at boot, and K1's loading budget never
+saw it. Either tile it the way the note at `js/entrances.js:924` anticipates, or
+measure it and write down that it is affordable. Do not guess.
+
+**W4. Several West Campus towers have no lit windows after dark.** The Castilian
+is the clearest: `shots/wampus/final/lobby-castilian-night.png` is a fully lit
+lobby under a completely black 20-storey tower, with its neighbours dense with
+lit windows in the same frame. Two more blocks in `guadalupe-24th-night.png`.
+`js/westcampus.js` / `scripts/bake_westcampus.py`. Verify by picture, not by
+reading the night colour expression — a pass this week already claimed glass was
+lit because the expression said so and the pixels said flat grey.
+
+**W5. A tenant can be labelled twice in one frame.**
+`shots/wampus/final/guadalupe-street-day.png` shows "Chipotle" in white above
+the sign band and again in brand red at awning level. `data/places.geojson` has
+exactly one Chipotle label and `js/app.js` already strips the basemap's POIs, so
+the duplicate is one of our own label layers drawing the same name. Find which,
+then suppress it where `places-label` already names the tenant.
+
+---
+
 ## Not negotiable
 
 1. **Never register a self-hosted GitHub runner.** Public repo.

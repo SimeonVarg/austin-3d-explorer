@@ -1,6 +1,6 @@
 # Austin 3D Explorer — Full Handoff
 
-## 93. Aug 4 2026 — the two blockers on PR #147: a stale catalogue and 194 coplanar top faces (acer lane)
+## 94. Aug 4 2026 — the two blockers on PR #147: a stale catalogue and 194 coplanar top faces (acer lane)
 
 **Branch:** `acer/wampus-render`. **Files written:** `scripts/bake_places.py`,
 `data/places.geojson`, `scripts/verify/places-check.mjs`, this entry. No js, no
@@ -222,6 +222,212 @@ is the reading to trust.
   luma and R:B tables still stand; this pass moved 194 top faces down 30 mm and
   the pixel diff above shows it changed nothing they measured.
 
+## 93. Aug 5 2026 — I reviewed the West Campus ground floor. It looks right and I am not merging it (PR #147 stays open) (acer lane)
+
+**Reviewed:** `acer/wampus-render` (PR #147) = the shopfront bake (`960b007`)
+plus the render half (`48f91af`). `acer/westcampus-ground` is the same tree one
+commit back, so reviewing #147 covers both. Those two commits carry their own
+write-ups as HANDOFF §91 and §92 — **they are in the PR, not on `main`**, which
+is the point of this entry. **Files this session wrote: `shots/wampus/`, this
+entry, `QUEUE.md`. No code, no data, no `scripts/verify/`.**
+`node scripts/verify/harness-drift.mjs` — **PASS**, 28 scripts in `index.html`
+and 28 in `_harness.html`.
+
+Screenshots: **`shots/wampus/final/`** — Guadalupe, Rio Grande and Nueces at
+pedestrian height day and night, two lobbies, and two altitude frames.
+`shots/wampus/d2/` and `n2/` are the working set, including the frames that
+failed.
+
+### The verdict
+
+The city part of this pass is **good**. At 7.5 m of eye height on Guadalupe you
+are looking at a street: brand-coloured awnings over sign bands, a recessed
+doorway under each one, and after dark a warm pool of light on the pavement
+outside the shops that are still open. `lobby-castilian-night.png` is the best
+frame in the set. Every claim §90–§92 made about the geometry survived being
+re-measured by someone trying to break it.
+
+**I am still not merging, for two reasons, neither about taste and both a short
+pass to fix:**
+
+1. **`scripts/verify/places-check.mjs` is 39 ok / 1 FAILED** and has been since
+   the shopfront bake. Reproduced here verbatim: `A | the four families are
+   exactly bulkhead / glass / sign / awning` against the ten the bake now emits.
+   Both previous passes correctly declined to merge red, and both wrote that
+   `scripts/verify/` was not theirs to write. **That belief is wrong and it is
+   worth correcting**: `MAC_QUEUE.md`'s scope table gives the Mac
+   `bake_stadium.py`, `js/stadium.js`, `data/stadium.geojson` and the DKR
+   imagery, and says everything else is the Acer's. No open Mac PR touches
+   `scripts/verify/` — `mac/verify-suite-repair` exists but its diff is data
+   snapshots only. **The one-line fix is this lane's to make.** This session
+   could not make it: its own brief limited its writes to `shots/wampus/`,
+   `HANDOFF.md` and `QUEUE.md`. So the PR stays open. See QUEUE **W1**.
+
+2. **`coplanar.mjs` on `data/places.geojson` goes 1 → 195, and this branch is
+   what did it.** Baseline on the pre-bake file (`842a782`): `1052 features, 1
+   coplanar overlap`, a single awning/awning pair. Now: `2400 features, 195`, of
+   which **194 are new `entry`/`entry` pairs at top 2.46 m**. Counted again
+   independently by family: **171 are `plHead` + `plPier`** — the door lintel
+   (base 2.30 → top 2.46) and the pilaster beside it (base 0.00 → top 2.46)
+   share a top face over **0.094 m²**. Two extrusions with equal top height and
+   overlapping footprints have no defined draw order. `docs/PASS_GLITCH.md`
+   records this repo fixing exactly this class twice before. See QUEUE **W2**.
+
+**And the honest counterweight to #2, which is why it is a QUEUE item and not an
+emergency:** `zfight.mjs` — the renderer-based detector, the one that decides
+whether a person sees it — finds **nothing**. Four poses, day and night,
+including a pitch-62 one that looks down onto the lintel tops:
+
+```
+pose                    bldg/roof   moved   flicker   clusters
+drag-doors                3709/6404    5.8%   0.005%   (none)
+drag-doors-hi             3439/6066   10.3%   0.005%   (none)
+wc-lobby                  4090/4471    2.4%   0.000%   (none)
+drag-night                3709/6404    6.5%   0.001%   (none)
+```
+
+`moved` is well above `flicker` in every row, so the discriminator is live and
+returning a real null, not a broken one. 0.094 m² at 2.46 m is sub-pixel
+everywhere the entry tier is drawn — it is gated to z16.7. **It is a defect in
+the data that does not currently reach the screen.** Fix it in the bake — pier
+to 2.45 or head to 2.47 — rather than shipping a detector that reads 195.
+
+### The six tests, answered by looking
+
+1. **Street level.** Yes, day and night, and this is the part that is genuinely
+   good. `guadalupe-street-day/night`, `guadalupe-24th-day/night`,
+   `riogrande-street-day/night`, `nueces-2400-day/night`. The right pose is
+   **z20.6 / pitch 79 = 7.5 m of eye height, 37 m of standoff**, measured off
+   `t.cameraToCenterDistance` rather than derived (see "what I got wrong" #1).
+   z21.3 is too close — the West Campus window atlas magnifies into soft blobs
+   (`shots/wampus/n2/moontower.png`).
+2. **Front doors on the street they are actually on: 24 of 24.** Every named
+   West Campus building has a `role:"main"` door, and every one faces a road
+   centreline between **5.2 m and 15.9 m** away, within 70° of the door's own
+   outward normal. 21 Rio→Rio Grande, Dobie→Whitis, Moontower→San Antonio,
+   Castilian→San Antonio, Sterling House→W 22nd, Pointe on Rio→Rio Grande, and
+   so on. **No lobby is on a blank side elevation.**
+3. **Double-drawn / z-fighting: no.** The verdict above has the one static
+   finding. Everything `groundfloor-existing.md` predicted was checked
+   specifically and **none of it happened**: zero places-`awning` ×
+   West-Campus-`canopy` pairs at the shared 1.30 m plane; nothing landing in the
+   0.31–0.35 or 0.42–0.45 forbidden bands against a plan-overlapping neighbour;
+   `replacedBuildingIds` still `[]`; `dupids.mjs` clean at 73 of 73 claimed ids
+   with no collisions. **No shop has two awnings** — the 263 awning slabs over
+   126 tenants are separate bays along one frontage, and the awning/awning
+   coplanar count is 1, the same 1 that was there before this pass.
+4. **Night: yes, and measured on my own frame, not read off a paint
+   expression.** `guadalupe-street-night.png`, 1600×1000, tod 0.92, hardware GL
+   (RTX 3050 Ti / D3D11), graphics auto-detect cancelled. **Frame median luma
+   13.6** (mean 21.5, p95 85.0):
+
+   | box | rgb | luma | × frame median | R:B |
+   |---|---|---|---|---|
+   | Chipotle pavement pool | (102,78,60) | 81.7 | **6.0×** | 1.70 |
+   | Chipotle open interior | (77,61,44) | 63.1 | **4.6×** | 1.74 |
+   | Rally House door, closed | (26,21,20) | 21.9 | 1.6× | 1.28 |
+   | shopfront glazing, whole run | (71,59,54) | 61.4 | 4.5× | 1.32 |
+   | road foreground | (13,13,18) | 13.1 | 1.0× | 0.72 |
+
+   **An open shop is 2.88× the luma of the closed one three metres away.** The
+   bake said 2.9×, the render pass said 2.02× at a different pose, and this is a
+   third independent measurement inside the same band. The glazing at R:B 1.32
+   is nowhere near the 1.12 Capitol pale-band signature the render pass fixed.
+
+   **On `night-pale.mjs`: I did not run it, deliberately, and this is the
+   reasoning.** `PALE = 120` against a frame whose median is 13.6 is not a bug in
+   that script — its own line 38 says so: *"the night city sits well under 40;
+   streetlight cores and lit windows are legitimately above this."* Its pose is
+   also `[-97.7325, 30.2835] z16.2`, which is **downtown and cannot see West
+   Campus at all**. The brightest thing this pass puts on screen measures 81.7.
+   It cannot add a pale pixel to a probe that is not pointed at it, and running
+   it would have produced a number that looked like evidence and was not.
+5. **Cost: +32.1 KB over the wire, and no measurable frame time.**
+   `data/places.geojson` **1,185 → 2,533 features**, raw **429.9 → 995.9 KB**,
+   **gzipped 31.8 → 63.9 KB**. Quote the gzipped pair — `scripts/serve.py` does
+   not gzip and GitHub Pages does. Atlas: **zero new pattern tiles**, running
+   total 63.
+   `places-perf.mjs`, its own settings quoted: **headed**, `index.html` not
+   `_harness.html`, hardware GL, background throttling disabled and **no CPU
+   throttle** (unlike `perf.mjs`'s 4× default), scripted bearing sweep,
+   configurations interleaved and counterbalanced, **MIN of 4 reps**, dropped
+   frames over 4200 ms:
+
+   ```
+   shopfront geometry  +7      labels on top  -6      whole pass  +1
+   within-config spread: off 76, geom 25, on 21
+   ```
+
+   The script's own rule is "if a delta is smaller than the spread there is no
+   result", and +1 against a spread of 21–76 is no result. **The pass is free.**
+
+   **The number nobody has flagged, while we are counting:**
+   `data/entrances.geojson` is **5.44 MB raw / 326.7 KB gzipped, 11,890
+   features**. It is untouched by this branch and already on `main`, and it is by
+   a wide margin the most expensive single file this week added — 4.4 % of the
+   gzipped `data/` payload and 10 % of the raw parse. It is a flat GeoJSON
+   source, so the browser parses all 5.44 MB at load. Worth someone's attention
+   separately; QUEUE **W3**.
+6. **Altitude: no regression.** `altitude-cruise-day/night` (spawn, z16.67
+   pitch 64) and `altitude-600m-day` (z15.3). The ground floor is invisible from
+   both, which is the z16.7 gate doing its job. The night cruise frame is the
+   best argument for the pass from up there: the Drag reads as a warm ribbon
+   across the middle of West Campus that was not there before.
+
+### What I got wrong in this review, in the order it cost time
+
+1. **I derived the camera altitude from a formula and it was out by 2×.** The
+   first street set came back looking at rooftops and at the inside of
+   buildings. Two separate errors: the lng/lat you hand `pose.mjs` is the
+   **look-at target, not the eye**, and my reconstruction of `js/controls.js`'s
+   altitude/zoom relation did not reproduce the app. Fixed by asking the page:
+   `t.cameraToCenterDistance × metres-per-pixel` is D, and `D·cos(pitch)` /
+   `D·sin(pitch)` are eye height and standoff. Measured, at 1600×1000:
+   **z20.0/p70 = 19.9 m up, 54.6 m back; z20.5/p70 = 14.1 / 38.6; z20.6/p79 =
+   7.5 / 37; z21.0/p76 = 7.0 / 28.2; z21.0/p84 = 3.0 / 28.9.** Keep that table.
+2. **I read `h` as a height and it is the absolute top.** `js/places.js` binds it
+   to `fill-extrusion-height`, which MapLibre measures from the ground, with
+   `base` as the floor. My first coplanar reimplementation used `base + h` and
+   reported **0 overlaps against coplanar.mjs's 195** — a null result from a
+   broken test, which is the exact failure mode `scripts/verify/README.md` is
+   built around. The same error made my first places×entrances sweep invent a
+   `plAwn` / `canopy` clash at 21 Rio that **does not exist**.
+3. **My road probe measured the distance to road VERTICES, not road SEGMENTS.**
+   On a straight grid like West Campus a road can pass 10 m from a door with its
+   nearest shape point 90 m away, so the probe reported **2 of 24 lobbies facing
+   no street** — and I had a screenshot of a rooftop that appeared to confirm
+   one of them. Point-to-segment distance gives **24 of 24, all within
+   5.2–15.9 m**. The rooftop frame was my own 37 m standoff clearing the block,
+   not a bad door. **Claim retracted.** Three probes wrong in one session, every
+   one caught by disagreeing with either the picture or the repo's own tool.
+
+### Things that are wrong but are NOT this branch's doing
+
+- **Several West Campus towers have no lit windows at all after dark** while
+  their neighbours are dense with them — The Castilian most visibly
+  (`lobby-castilian-night.png` is a beautifully lit lobby under a completely
+  black 20-storey tower), plus two blocks in `guadalupe-24th-night.png`. That is
+  `js/westcampus.js` / `bake_westcampus.py`, untouched here. QUEUE **W4**.
+- **A tenant can be labelled twice in one frame** — `guadalupe-street-day.png`
+  has "Chipotle" in white above the sign band and again in brand red at awning
+  level. `data/places.geojson` holds exactly one Chipotle label and `js/app.js`
+  already strips the basemap's POIs, so the second is another of our own label
+  layers. Not diagnosed further. QUEUE **W5**.
+- **At z21 and above the facade atlas magnifies into soft blobs**
+  (`shots/wampus/n2/moontower.png`). `ALT_MIN` 18 m keeps a flying user above
+  it, but `jumpTo` reaches it.
+
+### What I did NOT do
+
+- **Did not fix either blocker**, because this session's brief limited its
+  writes to `shots/wampus/`, `HANDOFF.md` and `QUEUE.md`. Both are in `QUEUE.md`
+  with the exact edit.
+- **Did not A/B this branch against `main` on the same machine.**
+  `places-perf.mjs` hides the layers on one build, which its own header argues is
+  the clean equivalent for a pass that replaces no buildings — but it is not the
+  same measurement as two checkouts.
+- **Did not photograph 18 of the 24 lobbies.** Six were shot. The door placement
+  for the other 18 is asserted from the geometry, not from a picture.
 ## 92. Aug 4 2026 — the West Campus lobbies get their names, and the shopfront doors get an altitude (acer lane)
 
 **Branch:** `acer/westcampus-ground`, the render half of §90 and §91. **Files
