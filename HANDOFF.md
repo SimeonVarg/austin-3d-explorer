@@ -12229,3 +12229,215 @@ taken on `origin/main`'s tree.
 * **Did not re-check W8** (the Texas Union's courtyard door). It still needs a
   photograph before any code, and I did not take one.
 * **Did not photograph anything at dusk.** Day `p=0.14` and night `p=0.92` only.
+
+---
+
+## 102. Aug 5 2026 — the guard passed because it tested a property, and the property was fine (QUEUE X2) (acer lane)
+
+**Branch:** `acer/lobby-defects`, off `origin/main` at `ac44f8f`. **Files
+written:** `scripts/bake_westcampus.py`, `data/westcampus.geojson`,
+`js/westcampus.js`, `shots/lobbies/`, this entry. Setup: `harness-drift.mjs`
+**PASS, 28 scripts in each file**, run before any pixel and again at the end.
+`python scripts/serve.py 8281`, `_harness.html?intro=0&drift=0`, 1440x900,
+dsf 1, SwiftShader, `cancelGraphicsAutoDetect()` called, night `p = 0.92`,
+atlas reads at `p = 0.88`. One browser at a time; `reap.mjs` clean at the end.
+
+### The answer to "why did the guard pass", and it is none of the three guesses
+
+The brief offered three: a night value that differs but is still dark, a
+different band or system, or a missing lit variant in the atlas. **It was the
+third one, but not for the reason the brief expected, and the reason the check
+missed it is the first one.**
+
+* **Callaway's `wn` was fine.** `#191419` is near-black and that is CORRECT for
+  a family that scatters bright panes on top of it — every lit tower in West
+  Campus ships a `wn` in exactly that range (`#12171f` to `#212227`). Assertion
+  A asked "does `wn` differ from `wd`" and got a truthful yes. **The property
+  was never the defect**, which is why testing the property could not find it.
+* **`sn` has a lit-window term and it is not enough.** MEASURED off the atlas,
+  which §101 explicitly did not do: `sn`'s night tile is **3.13 %** warm-hot
+  texels and peaks at **105.0 luma**. It is not zero — §96's family table
+  already had that number, and it reads like a lit family. But the
+  punched-window families peak at **207-211**, and 105 does not survive
+  `setLight`. `sn`'s night terms lerp a dark wall 0.30 of the way toward a warm
+  constant, so **no wall colour could have fixed this**: at `wn` luma 200 the
+  tile still lands ~108. The wall was not the lever. The family was.
+* **Assertion B could not see it** because `NIGHT_UNLIT_FAMILIES` was a
+  hand-written `("dk", "sf")` — and the prose above it named `sn` as a LIT
+  family. That was a true statement about `js/facades.js` **when it was
+  written**. `DKR_TILES.sn` was later rewritten to the 2008 north end zone as
+  photographed — *"NOT a window wall ... MASSIVE CHAMFERED BRICK PIERS, and
+  between them the bays are simply OPEN"* — and the bake went on saying "brick
+  veneer, punched windows" in a comment, on a residential tower, for weeks.
+  **A stadium concourse elevation was carrying a 49.8 m apartment building.**
+
+### What shipped: three changes, in the order they matter
+
+**1. The classification is measured, not typed.** `NIGHT_TILE` in
+`scripts/bake_westcampus.py` is a table of what each family's night tile
+actually measures off `map.style.imageManager` — peak luma, warm-hot share and
+mean — over 87 bands and 40 distinct tiles, with the re-measure recipe beside
+it. `NIGHT_UNLIT_FAMILIES` and the new `NIGHT_LIT_FAMILIES` are **derived** from
+it. The derived unlit set comes out as `("dk", "sf")`, i.e. **identical to the
+tuple it replaced** — the old value was right, it just was not checkable.
+
+**Peak luma is the criterion, and that choice is measured rather than tasteful.**
+The window scatter is seeded by the band's PALETTE INDEX, and that index is
+handed out in walk order, so adding or moving one band re-seeds other buildings'
+tiles. Across the two runs of this pass a family's warm share moved by up to 7
+points and its mean by 12 luma; **its peak moved by less than 2.** A threshold on
+a number that shuffles when an unrelated building changes is a coin toss. The two
+populations are `mh/tr/tg` 207-211, `sb` 161-165, `sg` 143 — and then nothing at
+all until `dk` 111, `sn` 105, `sp` 99, `sf` 57. The floor sits at 120, in a
+32-luma gap with no family near it.
+
+**2. Assertion D, which could not pass while a tower reads dark.** Every
+`band:"tower"` at or over **15.0 m** must be in a family whose measured tile has
+panes. Run against `origin/main`'s data it fails on exactly one band, by name and
+by metre, and on nothing else:
+
+```
+The Callaway House Austin main tower (sn, 49.8 m): a 49.8 m tower band in
+family `sn`, whose night tile peaks at 105.0 luma (< 120) and is 3.13 % lit
+window. It will render as a black tower whatever `wn` says: the wall is not
+the lever, the family is. Lit families: mh, sb, sg, tg, tr.
+```
+
+The threshold is a real line and it is drawn where it is on purpose: the nearest
+band below it is 2400 Nueces's **13.8 m** Texas-limestone bay, which is `sp`
+(portal glow, no panes) **deliberately** — that bay is a coursed-stone volume
+with punched openings and its own spec argues it out. It stays. Callaway's band
+is 3.6x the threshold.
+
+**And the bake now PRINTS the roll-call every run**, all 24, because both black
+towers got past a green check whose working nobody could see:
+
+```
+"towers_dark_at_night": [],
+"tower_night_roll_call": {
+  "21 Rio": "tr 59.3 m LIT",             "2400 Nueces": "mh 13.8 m LIT",
+  "Block on 25th East": "mh 20.5 m LIT", "Cambridge Tower": "sb 42.8 m LIT",
+  "Crest at Pearl": "mh 10.1 m LIT",     "Dobie Twenty21": "tg 55.7 m LIT",
+  "Inspire on 22nd": "tr 43.2 m LIT",    "Ion Austin": "tr 44.8 m LIT",
+  "Moontower": "tr 42.7 m LIT",          "Pointe on Rio": "mh 16.9 m LIT",
+  "Rambler": "mh 7.6 m LIT",             "Signature 1909": "sb 52.0 m LIT",
+  "Skyloft Austin": "tr 43.9 m LIT",     "The Block": "mh 24.5 m LIT",
+  "The Callaway House Austin": "tr 49.8 m LIT",
+  "The Castilian": "mh 24.0 m LIT",      "The G": "mh 18.6 m LIT",
+  "The Nine at Rio": "mh 6.0 m LIT",     "The Nine at West Campus": "mh 7.6 m LIT",
+  "The Quarters Grayson House": "mh 20.8 m LIT",
+  "The Quarters Sterling House": "mh 17.4 m LIT",
+  "The Standard": "mh 8.7 m LIT",        "The Venue on Guadalupe": "mh 19.1 m LIT",
+  "Twenty Two 15": "mh 19.5 m LIT" }
+```
+
+**3. The staleness guard — this is the part that stops the CLASS.** A measured
+table is only true of the code it was measured against, and this defect *was* a
+true statement going quietly false. So the bake now reads `js/facades.js` and
+digests the parts `NIGHT_TILE` describes: `GRIDS`, `OCCUPANCY`, the `DKR`
+constant block, `DKR_GAIN`, `PANE_BRIGHT_MIN/MAX`, and the five DKR tile
+functions West Campus uses. Wrong digest, bake fails, with instructions to
+re-measure rather than to bump the digest. Tested three ways:
+
+| change to `js/facades.js` | fires? |
+|---|---|
+| reindent `SN_NIGHT` | **no** — whitespace-insensitive on purpose |
+| `SN_NIGHT: 0.30` -> `0.80` | **yes** |
+| the `sn` tile function edited (the X2 class) | **yes** |
+
+**The building fix itself is one word.** `tower=("sn", ...)` -> `tower=("tr", ...)`
+on The Callaway House Austin. `tr` is "residential towers" — a punched window
+grid, which is what a 17-storey student residence has, and what every other West
+Campus tower of this height already uses. **The brick `#a2614b` is untouched**:
+the material was always carried by the colour, never by the family. The whole
+data diff, checked feature by feature: **1,144 features, geometry byte-identical,
+property sets identical, one property changed on one feature** — `fam`, `sn` ->
+`tr`. Atlas image count **671 before and 671 after**: one id swapped, none added,
+so no new per-frame repaint cost.
+
+`js/westcampus.js` gets assertion D mirrored as `checkT4Night()` (a console
+warning at authoring time — tier four's bands never reach the bake), plus the
+derived lit list and a note that the bake's roll-call is the authority.
+
+### Verified by photograph, at poses that are written down this time
+
+`shots/lobbies/`. BEFORE and AFTER are two runs of the same script at the same
+poses with only `data/westcampus.geojson` swapped, so nothing else can account
+for the difference. **Attribution is the before/after pixel diff itself** — the
+only data change is Callaway's tower band, so the changed set IS that band.
+
+| frame | changed px | warm-lit % of the changed set, before -> after | frame-wide warm-lit % |
+|---|---|---|---|
+| `callaway-tower` (40 m, 150 m out) | 10,778 (0.83 %) | **0.04 -> 4.15** | 1.53 |
+| `callaway-door` (18 m, at its own door) | 414,553 (32 %) | **0.00 -> 0.82** | 1.20 |
+| `four-towers` (78 m, with 21 Rio / Ion / Signature) | 10,065 (0.78 %) | **0.02 -> 0.52** | 0.52 |
+| `towers-together` (105 m, the skyline) | 1,931 (0.15 %) | **0.00 -> 2.90** | 0.78 |
+
+§101 measured Callaway at **0.04 %** against **1.41 %** for 21 Rio in its own
+frame. At the closest independent pose here it goes 0.04 -> **4.15 %**, i.e. from
+38x BELOW its frame's own rate to 2.7x above it; in the four-tower frame it lands
+at **exactly the frame's rate**, which is the right answer — it should look like
+its neighbours, not brighter.
+
+**Be honest about what did NOT go up: mean luma.** In the changed set it drops
+1-2 luma (35.0 -> 33.5 at the tower pose). `tr`'s wall between panes is darker
+than `sn`'s dry brick piers. The fix is not "brighter"; it is **windows**, and
+the pictures are unambiguous: `01`/`02` and `03`/`04` in `shots/lobbies/`.
+
+Poses, recorded as WHERE THE CAMERA STANDS, because a `center` at a flying pitch
+is hundreds of metres from the thing you named (§98). All at `p = 0.92`:
+
+```
+callaway-door     eye [-97.743886, 30.285280]  alt  18  bearing 148  pitch 84
+callaway-tower    eye [-97.744560, 30.285980]  alt  40  bearing 150  pitch 76
+four-towers       eye [-97.745600, 30.286900]  alt  78  bearing 152  pitch 74
+towers-together   eye [-97.747200, 30.282200]  alt 105  bearing  37  pitch 72
+```
+
+### WHAT DID NOT WORK, in the order it cost time
+
+1. **There is no `getFreeCameraOptions` in this MapLibre.** The first shot run
+   died on it. What works is: `jumpTo`, read `window.__fly.eye()` (which reports
+   the real camera lng/lat/alt), correct, repeat.
+2. **And solving that loop against `eye().alt` diverges** — `alt` is AFTER the
+   collision floor lifts the camera over a roof, so the first attempt at the door
+   pose walked itself up onto Callaway's own roof at 66 m and photographed it.
+   Solve the zoom against **`altUser`** (the requested altitude, before the
+   floor), solve altitude and position in separate passes, and read the pose
+   again at the shutter. §101's lesson, bitten a second time from the other end.
+3. **Chasing "which single number predicts a black tower" nearly produced a
+   worse guard.** Tile MEAN says `dk` (59.8, fine after §98) and `sn` (56.6,
+   black) are the same building; warm SHARE says `sn` (3.13 %) beats `sp`
+   (0.00 %, and `sp` is fine); and both move when an unrelated band re-seeds the
+   hash. Only the peak is a property of the family. Two wrong thresholds were
+   written and thrown away before that was measured.
+4. **`sp` would have been swept up by a family-only rule** exactly as `sf` nearly
+   was in §98. Its tile has no panes (peak 99) and its mean is the BRIGHTEST in
+   West Campus (70.8) because its portals glow. A rule that lifted its wall on
+   top of that is the opposite defect. It is out of the unlit set by measurement
+   (a mean floor), and out of trouble on assertion D by height.
+
+### WHAT I DID NOT DO
+
+* **Did not touch `js/facades.js`, and the better fix is still in there.** `sn`'s
+  night terms are the actual weakness: a family whose lit read cannot clear 111
+  luma at any wall colour is a family that cannot be on a tower after dark. If
+  that tile ever wants to serve a residential building, `SN_NIGHT` and the
+  `litVoid`/glass mixes are the four constants. Not this lane's file.
+* **Did not re-measure at any hour but the two shot.** Atlas at `p = 0.88`,
+  frames at `p = 0.92`. `drawTile`'s night terms are monotone in `p`, but that is
+  read off the code, not measured — the same admission §98 made.
+* **Did not recover §101's original pose for `12-DEFECT-...png`.** It was never
+  written down. The four above are reconstructions from the same recipe (door
+  centroid, outward normal, 18 m); `03`/`04` is the closest match and shows the
+  same wall.
+* **Did not touch X3-X7.** X3 (see-through Grayson House), X4 (Cambridge Tower's
+  door), X5 (lobbies behind tree canopies), X6 (two never framed) and X7
+  (untextured low roofs) are all still open. X1 (ALT_MIN) was not touched and
+  must not be until Simeon calls it.
+* **Did not run the full verification suite.** The diff is one property value on
+  one feature with byte-identical geometry, so `zfight`/`coplanar`/`payload`
+  cannot move; `harness-drift` was run at both ends, and the atlas probe
+  confirmed every band's `wp` still resolves to a registered image (671 images
+  before and after, none missing). `westcampus-probe.mjs` is still broken in the
+  page-setup regression and is still Mac's.

@@ -509,6 +509,15 @@
   // in either family — its `sf` use is 1-5 m crowns — so today this branch never
   // fires. It is here so that the day one of these towers grows a garage podium,
   // it does not ship black.
+  //
+  // THE TWO LISTS BELOW ARE NO LONGER OPINIONS. The bake now derives them from
+  // NIGHT_TILE, a table of what each family's night tile actually MEASURES off
+  // the atlas, because the last time this classification was written by hand it
+  // went stale and The Callaway House Austin shipped a 49.8 m black tower in a
+  // family described in a comment as "punched windows" that had been rewritten
+  // into a stadium concourse with no windows at all. These are that derivation's
+  // output, copied. If the bake's roll-call ever disagrees with them, the bake
+  // is right.
   const T4_NIGHT_GAIN = 0.19;
   const T4_NIGHT_TINT = [18, 22, 40];
   const T4_NIGHT_TOWARD = 0.42;
@@ -517,6 +526,33 @@
   const T4_NIGHT_UNLIT_GAIN = 0.40;
   const T4_NIGHT_UNLIT_TINT = [34, 46, 74];
   const T4_NIGHT_UNLIT_TOWARD = 0.30;
+  // Families whose night tile has window panes bright enough to read after the
+  // light multiply (measured peak luma >= 120: mh/tr/tg peak at ~208, sb 161,
+  // sg 143, and everything else cannot pass 111 at ANY wall colour).
+  const T4_NIGHT_LIT_FAMILIES = ['mh', 'sb', 'sg', 'tg', 'tr'];
+  const T4_NIGHT_LIT_MIN_TOWER_M = 15.0;
+
+  /** The bake's assertion D, mirrored — tier four's bands never reach the bake.
+   *  A mass you read a building by has to be in a family that paints a window;
+   *  no wall colour substitutes for one. Warns rather than throws, because a
+   *  loud console line at authoring time is the cheapest place to catch it and
+   *  a thrown error here would take the whole neighbourhood down. */
+  function checkT4Night(out) {
+    const bad = out.filter(f => {
+      const p = f.properties;
+      return p.kind === 'wall' && p.band === 'tower'
+             && (p.h - p.base) >= T4_NIGHT_LIT_MIN_TOWER_M
+             && T4_NIGHT_LIT_FAMILIES.indexOf(p.fam) === -1;
+    });
+    if (bad.length) {
+      console.warn('[wc4] ' + bad.length + ' authored tower band(s) are in a '
+        + 'family that draws no lit window and will render black at night: '
+        + bad.map(f => f.properties.name + ' ' + f.properties.fam
+                       + ' ' + (f.properties.h - f.properties.base).toFixed(1) + ' m')
+             .join(', ') + '. Lit families: ' + T4_NIGHT_LIT_FAMILIES.join(', '));
+    }
+    return bad.length;
+  }
 
   /** day -> golden, night. The same relationship the bake's wall_ramp() uses,
    *  including its family-aware night half — pass `fam` and the band's height. */
@@ -923,6 +959,8 @@
       _t4 = {};
       try {
         t4 = authorStandard(gj) + authorRambler(gj);
+        checkT4Night(gj.features.filter(
+          f => f.properties && String(f.properties.stack || '').indexOf('t4') === 0));
       } catch (e) {
         console.warn('[wc4] authoring failed, buildings left as baked:', e && e.message);
       }
