@@ -1,0 +1,1195 @@
+{
+ "_source": "https://utdirect.utexas.edu/apps/campus/buildings/information/nlogon/maps/",
+ "_retrieved": "2026-08-05",
+ "_note": "UT Austin's own Main Campus building register: three-letter code, official name, building number and year first occupied. Facts, published by the university; used here for building labels and to date each building so the entrance vocabulary picks an architectural era from a MEASURED year rather than a hand-maintained list. Not affiliated with UT Austin.",
+ "buildings": [
+  {
+   "ref": "ACS",
+   "name": "AUTRY C. STEPHENS ENGR DISC BLDG",
+   "number": "0221",
+   "occupied": 2026
+  },
+  {
+   "ref": "ADH",
+   "name": "ALMETRIS DUREN RESIDENCE HALL",
+   "number": "0347",
+   "occupied": 2007
+  },
+  {
+   "ref": "AF1",
+   "name": "ATHLETIC FIELDS PAVILION (REHAB)",
+   "number": "0438",
+   "occupied": 2012
+  },
+  {
+   "ref": "AF2",
+   "name": "ATHLETIC FIELDS PAVILION (EASTSIDE)",
+   "number": "0439",
+   "occupied": 2012
+  },
+  {
+   "ref": "AFP",
+   "name": "ATHLETIC FIELDS PAVILION",
+   "number": "0423",
+   "occupied": 1995
+  },
+  {
+   "ref": "AHG",
+   "name": "ANNA HISS GYMNASIUM",
+   "number": "0657",
+   "occupied": 1930
+  },
+  {
+   "ref": "ANB",
+   "name": "ARNO NOWOTNY BUILDING",
+   "number": "0722",
+   "occupied": 1859
+  },
+  {
+   "ref": "AND",
+   "name": "ANDREWS RESIDENCE HALL",
+   "number": "0009",
+   "occupied": 1936
+  },
+  {
+   "ref": "ART",
+   "name": "ART BUILDING AND MUSEUM",
+   "number": "0049",
+   "occupied": 1962
+  },
+  {
+   "ref": "ASE",
+   "name": "AEROSPACE ENGINEERING BUILDING",
+   "number": "0983",
+   "occupied": 2002
+  },
+  {
+   "ref": "ATT",
+   "name": "AT&T EXECUTIVE EDUC & CONF CENTER",
+   "number": "0027",
+   "occupied": 2008
+  },
+  {
+   "ref": "BAT",
+   "name": "BATTS HALL",
+   "number": "0073",
+   "occupied": 1951
+  },
+  {
+   "ref": "BBR",
+   "name": "BASKETBALL & ROWING TRAINING FAC",
+   "number": "9717",
+   "occupied": 2023
+  },
+  {
+   "ref": "BEL",
+   "name": "L. THEO BELLMONT HALL",
+   "number": "0418",
+   "occupied": 1972
+  },
+  {
+   "ref": "BEN",
+   "name": "BENEDICT HALL",
+   "number": "0081",
+   "occupied": 1951
+  },
+  {
+   "ref": "BHD",
+   "name": "BRACKENRIDGE RESIDENCE HALL",
+   "number": "0105",
+   "occupied": 1933
+  },
+  {
+   "ref": "BIO",
+   "name": "BIOLOGICAL LABORATORIES",
+   "number": "0089",
+   "occupied": 1924
+  },
+  {
+   "ref": "BLD",
+   "name": "BLANTON RESIDENCE HALL",
+   "number": "0098",
+   "occupied": 1955
+  },
+  {
+   "ref": "BMA",
+   "name": "JACK S. BLANTON MUSEUM OF ART",
+   "number": "0114",
+   "occupied": 2006
+  },
+  {
+   "ref": "BME",
+   "name": "BIOMEDICAL ENGINEERING BUILDING",
+   "number": "0136",
+   "occupied": 2008
+  },
+  {
+   "ref": "BMK",
+   "name": "BLANTON MUSEUM ELLSWORTH KELLY",
+   "number": "0117",
+   "occupied": 2016
+  },
+  {
+   "ref": "BMS",
+   "name": "BLANTON MUSEUM SMITH BUILDING",
+   "number": "0115",
+   "occupied": 2008
+  },
+  {
+   "ref": "BOT",
+   "name": "BIOLOGICAL GREENHOUSE",
+   "number": "0097",
+   "occupied": 1926
+  },
+  {
+   "ref": "BRB",
+   "name": "BERNARD AND AUDRE RAPOPORT BUILDING",
+   "number": "0457",
+   "occupied": 1941
+  },
+  {
+   "ref": "BRG",
+   "name": "BRAZOS GARAGE",
+   "number": "0600",
+   "occupied": 1997
+  },
+  {
+   "ref": "BSB",
+   "name": "BASKETBALL SUPPORT BLDG (REC SPORT)",
+   "number": "0145",
+   "occupied": 2000
+  },
+  {
+   "ref": "BTL",
+   "name": "BATTLE HALL",
+   "number": "0065",
+   "occupied": 1911
+  },
+  {
+   "ref": "BUR",
+   "name": "BURDINE HALL",
+   "number": "0099",
+   "occupied": 1970
+  },
+  {
+   "ref": "BWY",
+   "name": "2616 WICHITA (BRIDGEWAY)",
+   "number": "0435",
+   "occupied": 1968
+  },
+  {
+   "ref": "CAL",
+   "name": "CALHOUN HALL",
+   "number": "0954",
+   "occupied": 1967
+  },
+  {
+   "ref": "CBA",
+   "name": "COLLEGE OF BUSINESS ADMINISTRATION",
+   "number": "0107",
+   "occupied": 1962
+  },
+  {
+   "ref": "CCG",
+   "name": "CONFERENCE CENTER GARAGE",
+   "number": "0028",
+   "occupied": 2008
+  },
+  {
+   "ref": "CCJ",
+   "name": "CONNALLY CENTER FOR JUSTICE",
+   "number": "0603",
+   "occupied": 2000
+  },
+  {
+   "ref": "CDA",
+   "name": "COMAL CHILD DEVELOPMENT CTR ANNEX",
+   "number": "0167",
+   "occupied": 1996
+  },
+  {
+   "ref": "CDL",
+   "name": "COLLECTIONS DEPOSIT LIBRARY",
+   "number": "0162",
+   "occupied": 1968
+  },
+  {
+   "ref": "CLK",
+   "name": "CAVEN CLARK FIELD SUPPORT BUILDING",
+   "number": "0452",
+   "occupied": 2011
+  },
+  {
+   "ref": "CMA",
+   "name": "JESSE H. JONES COMM. CTR. (BLDG. A)",
+   "number": "0180",
+   "occupied": 1973
+  },
+  {
+   "ref": "CMB",
+   "name": "JESSE H. JONES COMM. CTR. (BLDG. B)",
+   "number": "0182",
+   "occupied": 1973
+  },
+  {
+   "ref": "CML",
+   "name": "COMAL ST. CHILD DEVELOPMENT CENTER",
+   "number": "0168",
+   "occupied": 2005
+  },
+  {
+   "ref": "CPC",
+   "name": "CPC FIELD STAFF OFFICE",
+   "number": "9700",
+   "occupied": 2005
+  },
+  {
+   "ref": "CPE",
+   "name": "CHEMICAL AND PETROLEUM ENGINEERING",
+   "number": "0231",
+   "occupied": 1986
+  },
+  {
+   "ref": "CRD",
+   "name": "CAROTHERS RESIDENCE HALL",
+   "number": "0129",
+   "occupied": 1937
+  },
+  {
+   "ref": "CRH",
+   "name": "CREEKSIDE RESIDENCE HALL",
+   "number": "0562",
+   "occupied": 1955
+  },
+  {
+   "ref": "D21",
+   "name": "DOBIE TWENTY21",
+   "number": "0003",
+   "occupied": 2021
+  },
+  {
+   "ref": "DEV",
+   "name": "DEVELOPMENT OFFICE BUILDING",
+   "number": "9008",
+   "occupied": 1988
+  },
+  {
+   "ref": "DFA",
+   "name": "E. WILLIAM DOTY FINE ARTS BUILDING",
+   "number": "0130",
+   "occupied": 1979
+  },
+  {
+   "ref": "DFF",
+   "name": "UFCU DISCH-FALK FIELD",
+   "number": "9822",
+   "occupied": 1975
+  },
+  {
+   "ref": "DMC",
+   "name": "G. B. DEALEY CENTER FOR NEW MEDIA",
+   "number": "0185",
+   "occupied": 2009
+  },
+  {
+   "ref": "E11",
+   "name": "EQUIPMENT STOREHOUSE # 11",
+   "number": "0691",
+   "occupied": 1980
+  },
+  {
+   "ref": "E13",
+   "name": "EQUIPMENT STOREHOUSE # 13",
+   "number": "0693",
+   "occupied": 1980
+  },
+  {
+   "ref": "E15",
+   "name": "EQUIPMENT STOREHOUSE # 15",
+   "number": "0695",
+   "occupied": 1980
+  },
+  {
+   "ref": "E26",
+   "name": "EQUIPMENT STOREHOUSE #26",
+   "number": "0563",
+   "occupied": 1982
+  },
+  {
+   "ref": "E27",
+   "name": "EQUIPMENT STOREHOUSE #27",
+   "number": "0684",
+   "occupied": 2023
+  },
+  {
+   "ref": "ECG",
+   "name": "EAST CAMPUS GARAGE",
+   "number": "9820",
+   "occupied": 2017
+  },
+  {
+   "ref": "ECJ",
+   "name": "ERNEST COCKRELL JR. HALL",
+   "number": "0227",
+   "occupied": 1974
+  },
+  {
+   "ref": "EER",
+   "name": "ENGR EDUCATION AND RESEARCH CENTER",
+   "number": "0223",
+   "occupied": 2017
+  },
+  {
+   "ref": "EPS",
+   "name": "E.P. SCHOCH BUILDING",
+   "number": "0153",
+   "occupied": 1941
+  },
+  {
+   "ref": "ETC",
+   "name": "ENGINEERING TEACHING CENTER II",
+   "number": "0230",
+   "occupied": 1983
+  },
+  {
+   "ref": "FAC",
+   "name": "PETER T. FLAWN ACADEMIC CENTER",
+   "number": "0605",
+   "occupied": 1962
+  },
+  {
+   "ref": "FC1",
+   "name": "FACILITIES COMPLEX BLDG. 1",
+   "number": "0550",
+   "occupied": 1988
+  },
+  {
+   "ref": "FC2",
+   "name": "FACILITIES COMPLEX BLDG. 2",
+   "number": "0565",
+   "occupied": 1988
+  },
+  {
+   "ref": "FC3",
+   "name": "FACILITIES COMPLEX BLDG. 3",
+   "number": "0552",
+   "occupied": 1988
+  },
+  {
+   "ref": "FC4",
+   "name": "FACILITIES COMPLEX BLDG. 4",
+   "number": "0558",
+   "occupied": 1988
+  },
+  {
+   "ref": "FC5",
+   "name": "FACILITIES COMPLEX BLDG. 5",
+   "number": "0560",
+   "occupied": 1988
+  },
+  {
+   "ref": "FC6",
+   "name": "FACILITIES COMPLEX BLDG. 6",
+   "number": "0564",
+   "occupied": 1988
+  },
+  {
+   "ref": "FC7",
+   "name": "FACILITIES COMPLEX BLDG. 7",
+   "number": "0553",
+   "occupied": 1983
+  },
+  {
+   "ref": "FC8",
+   "name": "FACILITIES COMPLEX BLDG. 8",
+   "number": "0566",
+   "occupied": 1988
+  },
+  {
+   "ref": "FC9",
+   "name": "CUSTODIAL SERVICES TRAINING FAC",
+   "number": "0554",
+   "occupied": 2012
+  },
+  {
+   "ref": "FDG",
+   "name": "J. FRANK DOBIE GARAGE",
+   "number": "0610",
+   "occupied": 1995
+  },
+  {
+   "ref": "FDH",
+   "name": "J. FRANK DOBIE HOUSE",
+   "number": "0606",
+   "occupied": 1995
+  },
+  {
+   "ref": "FNT",
+   "name": "LARRY R. FAULKNER NANO SCI AND TECH",
+   "number": "0242",
+   "occupied": 2006
+  },
+  {
+   "ref": "FTC",
+   "name": "FOOTBALL TRAINING COMPLEX",
+   "number": "9718",
+   "occupied": 2026
+  },
+  {
+   "ref": "FTG",
+   "name": "FOOTBALL TRAINING COMPLEX GARAGE",
+   "number": "9719",
+   "occupied": 2026
+  },
+  {
+   "ref": "GAR",
+   "name": "GARRISON HALL",
+   "number": "0249",
+   "occupied": 1926
+  },
+  {
+   "ref": "GDC",
+   "name": "GATES DELL COMPLEX",
+   "number": "0152",
+   "occupied": 2010
+  },
+  {
+   "ref": "GEA",
+   "name": "MARY E. GEARING HALL",
+   "number": "0305",
+   "occupied": 1932
+  },
+  {
+   "ref": "GEB",
+   "name": "DOROTHY L. GEBAUER BUILDING",
+   "number": "0569",
+   "occupied": 1904
+  },
+  {
+   "ref": "GHA",
+   "name": "GRADUATE HOUSING, UNIT A",
+   "number": "0586",
+   "occupied": 2024
+  },
+  {
+   "ref": "GHB",
+   "name": "GRADUATE HOUSING, UNIT B",
+   "number": "0587",
+   "occupied": 2024
+  },
+  {
+   "ref": "GHC",
+   "name": "GRADUATE HOUSING, UNIT C",
+   "number": "0588",
+   "occupied": 2024
+  },
+  {
+   "ref": "GHD",
+   "name": "GRADUATE HOUSING, UNIT D",
+   "number": "0589",
+   "occupied": 2024
+  },
+  {
+   "ref": "GHE",
+   "name": "GRADUATE HOUSING, UNIT E",
+   "number": "0590",
+   "occupied": 2024
+  },
+  {
+   "ref": "GHF",
+   "name": "GRADUATE HOUSING, UNIT F",
+   "number": "0591",
+   "occupied": 2024
+  },
+  {
+   "ref": "GLT",
+   "name": "GARY L THOMAS ENERGY ENGR BLDG",
+   "number": "0222",
+   "occupied": 2021
+  },
+  {
+   "ref": "GOL",
+   "name": "GOLDSMITH HALL",
+   "number": "0017",
+   "occupied": 1932
+  },
+  {
+   "ref": "GRC",
+   "name": "GREGORY AQUATIC POOL CONTROL BLDG.",
+   "number": "0275",
+   "occupied": 2005
+  },
+  {
+   "ref": "GRE",
+   "name": "GREGORY GYMNASIUM",
+   "number": "0273",
+   "occupied": 1930
+  },
+  {
+   "ref": "GRF",
+   "name": "GREGORY AQUATIC FOOD SERVICE BLDG.",
+   "number": "0274",
+   "occupied": 2005
+  },
+  {
+   "ref": "GRP",
+   "name": "GREGORY AQUATIC POOL EQUIP. BLDG.",
+   "number": "0277",
+   "occupied": 2005
+  },
+  {
+   "ref": "GRS",
+   "name": "GREGORY AQUATIC POOL STORAGE BLDG.",
+   "number": "0276",
+   "occupied": 2005
+  },
+  {
+   "ref": "GSB",
+   "name": "GRADUATE SCHOOL OF BUSINESS BLDG.",
+   "number": "0106",
+   "occupied": 1975
+  },
+  {
+   "ref": "GSM",
+   "name": "GRADUATE HOUSING, MAINTENANCE BLDG",
+   "number": "0592",
+   "occupied": 2024
+  },
+  {
+   "ref": "GUG",
+   "name": "GUADALUPE GARAGE",
+   "number": "0031",
+   "occupied": 2006
+  },
+  {
+   "ref": "GWB",
+   "name": "GORDON-WHITE BUILDING",
+   "number": "0645",
+   "occupied": 1951
+  },
+  {
+   "ref": "HCG",
+   "name": "HEALTH CENTER GARAGE",
+   "number": "0703",
+   "occupied": 2016
+  },
+  {
+   "ref": "HDB",
+   "name": "HEALTH DISCOVERY BUILDING",
+   "number": "0700",
+   "occupied": 2016
+  },
+  {
+   "ref": "HLB",
+   "name": "HEALTH LEARNING BUILDING",
+   "number": "0702",
+   "occupied": 2016
+  },
+  {
+   "ref": "HMA",
+   "name": "HOGG MEMORIAL AUDITORIUM",
+   "number": "0297",
+   "occupied": 1933
+  },
+  {
+   "ref": "HRC",
+   "name": "HARRY RANSOM CENTER",
+   "number": "0310",
+   "occupied": 1972
+  },
+  {
+   "ref": "HRH",
+   "name": "RAINEY HALL",
+   "number": "0433",
+   "occupied": 1941
+  },
+  {
+   "ref": "HS4",
+   "name": "HSS SUPPORT BLDG NO. 4",
+   "number": "0512",
+   "occupied": 2005
+  },
+  {
+   "ref": "HSM",
+   "name": "WILLIAM RANDOLPH HEARST BLDG",
+   "number": "0183",
+   "occupied": 1973
+  },
+  {
+   "ref": "HTB",
+   "name": "HEALTH TRANSFORMATION BUILDING",
+   "number": "0701",
+   "occupied": 2016
+  },
+  {
+   "ref": "IC2",
+   "name": "2815 SAN GABRIEL (IC2 INSTITUTE)",
+   "number": "9021",
+   "occupied": 1983
+  },
+  {
+   "ref": "ICB",
+   "name": "INTRAMURAL CONTROL BLDG.",
+   "number": "0446",
+   "occupied": 1982
+  },
+  {
+   "ref": "IMA",
+   "name": "INTRAMURAL MAINT BLDG A",
+   "number": "0443",
+   "occupied": 1967
+  },
+  {
+   "ref": "IMB",
+   "name": "INTRAMURAL MAINT BLDG B",
+   "number": "0444",
+   "occupied": 1967
+  },
+  {
+   "ref": "IPF",
+   "name": "INDOOR PRACTICE FACILITY",
+   "number": "9714",
+   "occupied": 2002
+  },
+  {
+   "ref": "JCD",
+   "name": "JESTER RESIDENCE HALL",
+   "number": "0599",
+   "occupied": 1969
+  },
+  {
+   "ref": "JES",
+   "name": "BEAUFORD H. JESTER CENTER",
+   "number": "0598",
+   "occupied": 1969
+  },
+  {
+   "ref": "JGB",
+   "name": "JACKSON GEOLOGICAL SCIENCES BLDG.",
+   "number": "0950",
+   "occupied": 1967
+  },
+  {
+   "ref": "JHH",
+   "name": "JOHN W. HARGIS HALL",
+   "number": "0737",
+   "occupied": 1888
+  },
+  {
+   "ref": "JON",
+   "name": "JESSE H. JONES HALL",
+   "number": "0602",
+   "occupied": 1976
+  },
+  {
+   "ref": "KEY",
+   "name": "UNIVERSITY KEY BUILDING",
+   "number": "0986",
+   "occupied": 1967
+  },
+  {
+   "ref": "KIN",
+   "name": "KINSOLVING RESIDENCE HALL",
+   "number": "0346",
+   "occupied": 1958
+  },
+  {
+   "ref": "LAC",
+   "name": "LAKE AUSTIN CENTRE",
+   "number": "0738",
+   "occupied": 1993
+  },
+  {
+   "ref": "LBJ",
+   "name": "LYNDON B JOHNSON LIBRARY",
+   "number": "0113",
+   "occupied": 1971
+  },
+  {
+   "ref": "LCH",
+   "name": "LITTLEFIELD CARRIAGE HOUSE",
+   "number": "0521",
+   "occupied": 1894
+  },
+  {
+   "ref": "LDH",
+   "name": "LONGHORN DINING FACILITY",
+   "number": "0597",
+   "occupied": 1971
+  },
+  {
+   "ref": "LFH",
+   "name": "LITTLEFIELD HOME",
+   "number": "0377",
+   "occupied": 1894
+  },
+  {
+   "ref": "LNA",
+   "name": "LEONA ST. CHILD DEVELOPMENT CENTER",
+   "number": "0170",
+   "occupied": 2023
+  },
+  {
+   "ref": "LS1",
+   "name": "LANDSCAPE SERVICES STORAGE BLDG.",
+   "number": "0632",
+   "occupied": 1980
+  },
+  {
+   "ref": "LTD",
+   "name": "LITTLEFIELD RESIDENCE HALL",
+   "number": "0369",
+   "occupied": 1927
+  },
+  {
+   "ref": "LTH",
+   "name": "LABORATORY THEATER BLDG.",
+   "number": "0665",
+   "occupied": 1959
+  },
+  {
+   "ref": "MAG",
+   "name": "MANOR GARAGE",
+   "number": "0415",
+   "occupied": 1998
+  },
+  {
+   "ref": "MAI",
+   "name": "MAIN BUILDING",
+   "number": "0393",
+   "occupied": 1932
+  },
+  {
+   "ref": "MBB",
+   "name": "MOFFETT MOLECULAR BIOLOGY BLDG.",
+   "number": "0740",
+   "occupied": 1997
+  },
+  {
+   "ref": "MCA",
+   "name": "MOODY CENTER",
+   "number": "9713",
+   "occupied": 2022
+  },
+  {
+   "ref": "MEZ",
+   "name": "MEZES HALL",
+   "number": "0425",
+   "occupied": 1951
+  },
+  {
+   "ref": "MFH",
+   "name": "RICHARD MITHOFF TRK/SCR FIELDHOUSE",
+   "number": "0416",
+   "occupied": 1999
+  },
+  {
+   "ref": "MHD",
+   "name": "MOORE-HILL RESIDENCE HALL",
+   "number": "0427",
+   "occupied": 1956
+  },
+  {
+   "ref": "MMS",
+   "name": "MIKE A.MYERS TRACK & SOCCER STADIUM",
+   "number": "9712",
+   "occupied": 1999
+  },
+  {
+   "ref": "MNC",
+   "name": "MONCRIEF-NEUHAUS ATHLETIC CENTER",
+   "number": "0421",
+   "occupied": 1986
+  },
+  {
+   "ref": "MRH",
+   "name": "MUSIC BUILDING & RECITAL HALL",
+   "number": "0131",
+   "occupied": 1969
+  },
+  {
+   "ref": "MSB",
+   "name": "2207 COMAL (MAIL SERVICE BUILDING)",
+   "number": "0163",
+   "occupied": 1989
+  },
+  {
+   "ref": "N24",
+   "name": "2400 NUECES",
+   "number": "9001",
+   "occupied": 2013
+  },
+  {
+   "ref": "NEZ",
+   "name": "NORTH END ZONE BUILDING",
+   "number": "9716",
+   "occupied": 2008
+  },
+  {
+   "ref": "NHB",
+   "name": "NORMAN HACKERMAN BUILDING",
+   "number": "0470",
+   "occupied": 2008
+  },
+  {
+   "ref": "NMS",
+   "name": "NEURAL AND MOLECULAR SCIENCE BLDG.",
+   "number": "0741",
+   "occupied": 2005
+  },
+  {
+   "ref": "NUG",
+   "name": "NUECES GARAGE",
+   "number": "9091",
+   "occupied": 2019
+  },
+  {
+   "ref": "NUR",
+   "name": "NURSING SCHOOL",
+   "number": "8008",
+   "occupied": 1973
+  },
+  {
+   "ref": "PAC",
+   "name": "PERFORMING ARTS CENTER",
+   "number": "0132",
+   "occupied": 1980
+  },
+  {
+   "ref": "PAI",
+   "name": "T.S. PAINTER HALL",
+   "number": "0473",
+   "occupied": 1933
+  },
+  {
+   "ref": "PAR",
+   "name": "PARLIN HALL",
+   "number": "0233",
+   "occupied": 1955
+  },
+  {
+   "ref": "PAT",
+   "name": "J.T. PATTERSON LABS.BLDG.",
+   "number": "0952",
+   "occupied": 1967
+  },
+  {
+   "ref": "PCL",
+   "name": "PERRY-CASTANEDA LIBRARY",
+   "number": "0559",
+   "occupied": 1977
+  },
+  {
+   "ref": "PHD",
+   "name": "PRATHER RESIDENCE HALL",
+   "number": "0497",
+   "occupied": 1937
+  },
+  {
+   "ref": "PHR",
+   "name": "PHARMACY BUILDING",
+   "number": "0465",
+   "occupied": 1951
+  },
+  {
+   "ref": "PMA",
+   "name": "PHYSICS, MATH, & ASTRONOMY BUILDING",
+   "number": "0116",
+   "occupied": 1972
+  },
+  {
+   "ref": "POB",
+   "name": "PETER O'DONNELL JR. BUILDING",
+   "number": "0224",
+   "occupied": 2000
+  },
+  {
+   "ref": "PRH",
+   "name": "DOBIE PAISANO RANCH HOUSE",
+   "number": "0979",
+   "occupied": 1966
+  },
+  {
+   "ref": "RHD",
+   "name": "ROBERTS RESIDENCE HALL",
+   "number": "0537",
+   "occupied": 1936
+  },
+  {
+   "ref": "RHG",
+   "name": "ROWLING HALL GARAGE",
+   "number": "0111",
+   "occupied": 2017
+  },
+  {
+   "ref": "RLP",
+   "name": "PATTON HALL",
+   "number": "0540",
+   "occupied": 2012
+  },
+  {
+   "ref": "RRH",
+   "name": "ROBERT B. ROWLING HALL",
+   "number": "0108",
+   "occupied": 2017
+  },
+  {
+   "ref": "RSC",
+   "name": "RECREATIONAL SPORTS CENTER",
+   "number": "0422",
+   "occupied": 1990
+  },
+  {
+   "ref": "SAG",
+   "name": "SAN ANTONIO GARAGE",
+   "number": "0739",
+   "occupied": 1994
+  },
+  {
+   "ref": "SBS",
+   "name": "RED AND CHARLINE MCCOMBS FIELD",
+   "number": "9832",
+   "occupied": 1997
+  },
+  {
+   "ref": "SEA",
+   "name": "SARAH M. & CHARLES E. SEAY BUILDING",
+   "number": "0985",
+   "occupied": 2002
+  },
+  {
+   "ref": "SEZ",
+   "name": "SOUTH END ZONE",
+   "number": "9715",
+   "occupied": 2021
+  },
+  {
+   "ref": "SJG",
+   "name": "SAN JACINTO GARAGE",
+   "number": "0551",
+   "occupied": 1986
+  },
+  {
+   "ref": "SJH",
+   "name": "SAN JACINTO RESIDENCE HALL",
+   "number": "0502",
+   "occupied": 2000
+  },
+  {
+   "ref": "SMC",
+   "name": "DELL SETON MEDICAL CENTER AT UT",
+   "number": "0704",
+   "occupied": 2017
+  },
+  {
+   "ref": "SRH",
+   "name": "SID RICHARDSON HALL",
+   "number": "0118",
+   "occupied": 1970
+  },
+  {
+   "ref": "SSB",
+   "name": "STUDENT SERVICES BUILDING",
+   "number": "0980",
+   "occupied": 1997
+  },
+  {
+   "ref": "SSC",
+   "name": "SILVER SPURS CENTER",
+   "number": "9720",
+   "occupied": 2026
+  },
+  {
+   "ref": "STD",
+   "name": "DARRELL K ROYAL TX MEMORIAL STADIUM",
+   "number": "9710",
+   "occupied": 1988
+  },
+  {
+   "ref": "SUT",
+   "name": "SUTTON HALL",
+   "number": "0585",
+   "occupied": 1917
+  },
+  {
+   "ref": "SW7",
+   "name": "2617 SPEEDWAY (OFC.BLDG.)",
+   "number": "0988",
+   "occupied": 1966
+  },
+  {
+   "ref": "SWG",
+   "name": "SPEEDWAY GARAGE",
+   "number": "0982",
+   "occupied": 2000
+  },
+  {
+   "ref": "SZB",
+   "name": "GEORGE I. SANCHEZ BUILDING",
+   "number": "0025",
+   "occupied": 1975
+  },
+  {
+   "ref": "TCC",
+   "name": "JOE C THOMPSON CONFERENCE CENTER",
+   "number": "0119",
+   "occupied": 1970
+  },
+  {
+   "ref": "TCP",
+   "name": "TEXAS COWBOYS PAVILION",
+   "number": "0994",
+   "occupied": 2004
+  },
+  {
+   "ref": "TLB",
+   "name": "TEXAS LONGHORNS BOATHOUSE",
+   "number": "2230",
+   "occupied": 1999
+  },
+  {
+   "ref": "TMM",
+   "name": "TX SCIENCE & NATURAL HISTORY MUSEUM",
+   "number": "0593",
+   "occupied": 1937
+  },
+  {
+   "ref": "TNH",
+   "name": "TOWNES HALL",
+   "number": "0601",
+   "occupied": 1952
+  },
+  {
+   "ref": "TRG",
+   "name": "TRINITY GARAGE",
+   "number": "0424",
+   "occupied": 2002
+  },
+  {
+   "ref": "TSB",
+   "name": "TENNIS SUPPORT BUILDING",
+   "number": "0445",
+   "occupied": 1976
+  },
+  {
+   "ref": "TSC",
+   "name": "LEE & JOE JAMAIL TEXAS SWIMMING CTR",
+   "number": "0419",
+   "occupied": 1977
+  },
+  {
+   "ref": "TSG",
+   "name": "27TH STREET GARAGE",
+   "number": "0981",
+   "occupied": 1999
+  },
+  {
+   "ref": "TSP",
+   "name": "TEXAS SWIMMING CENTER PUMP HOUSE",
+   "number": "0414",
+   "occupied": 2020
+  },
+  {
+   "ref": "TTC",
+   "name": "TEXAS TENNIS CENTER",
+   "number": "9825",
+   "occupied": 2018
+  },
+  {
+   "ref": "UA9",
+   "name": "2609 UNIVERSITY AVENUE",
+   "number": "0984",
+   "occupied": 1968
+  },
+  {
+   "ref": "UIL",
+   "name": "UNIV. INTERSCHOLASTIC LEAGUE BLDG.",
+   "number": "0164",
+   "occupied": 1998
+  },
+  {
+   "ref": "UNB",
+   "name": "UNION BUILDING",
+   "number": "0609",
+   "occupied": 1933
+  },
+  {
+   "ref": "UTA",
+   "name": "UT ADMINISTRATION BUILDING",
+   "number": "0030",
+   "occupied": 2007
+  },
+  {
+   "ref": "UTC",
+   "name": "UNIVERSITY TEACHING CENTER",
+   "number": "0500",
+   "occupied": 1984
+  },
+  {
+   "ref": "UTX",
+   "name": "ETTER-HARBIN ALUMNI CENTER",
+   "number": "0990",
+   "occupied": 1964
+  },
+  {
+   "ref": "WAG",
+   "name": "WAGGENER HALL",
+   "number": "0649",
+   "occupied": 1931
+  },
+  {
+   "ref": "WAT",
+   "name": "ARTHUR P. WATSON HOUSE",
+   "number": "0165",
+   "occupied": 1993
+  },
+  {
+   "ref": "WCH",
+   "name": "WILL C. HOGG BLDG.",
+   "number": "0257",
+   "occupied": 1932
+  },
+  {
+   "ref": "WCP",
+   "name": "WILLIAM C. POWERS, JR. SAC",
+   "number": "0278",
+   "occupied": 2010
+  },
+  {
+   "ref": "WEL",
+   "name": "ROBERT A. WELCH HALL",
+   "number": "0161",
+   "occupied": 1930
+  },
+  {
+   "ref": "WGB",
+   "name": "WHITAKER GATEWAY BUILDING",
+   "number": "0447",
+   "occupied": 2017
+  },
+  {
+   "ref": "WIN",
+   "name": "F.L. WINSHIP DRAMA BLDG.",
+   "number": "0201",
+   "occupied": 1961
+  },
+  {
+   "ref": "WMB",
+   "name": "WEST MALL OFFICE BLDG.",
+   "number": "0652",
+   "occupied": 1962
+  },
+  {
+   "ref": "WWH",
+   "name": "WALTER WEBB HALL",
+   "number": "0040",
+   "occupied": 1973
+  },
+  {
+   "ref": "Z02",
+   "name": "2007 GUADALUPE",
+   "number": "9012",
+   "occupied": 2018
+  }
+ ]
+}
