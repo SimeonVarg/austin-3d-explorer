@@ -1,5 +1,128 @@
 # Austin 3D Explorer — Full Handoff
 
+## 95. Aug 5 2026 — PR #147 is MERGED, confirmed on the merged tree and not on the branch (acer lane)
+
+**Branch:** `acer/wampus-render`, merged to `main` and deleted. **Files written
+this session:** `shots/wampus/merged/`, `HANDOFF.md`, `QUEUE.md` — no js, no
+data, no `scripts/verify/`. The West Campus ground floor (§90–§94) is now on
+`main`.
+
+### The step people skip: I merged `main` in FIRST and re-measured on that
+
+`main` had moved twice under the branch — `9b99e08` (PR #146, the entrances
+bake) and `11b44ba` (the review that became §93). Everything below was run on
+`origin/main` merged into the branch (`aefe778`), not on the branch alone.
+CLAUDE.md rule 2, and it mattered: **the merge conflicted.** Both sides had
+written a `## 93`, because §94's session and the review session numbered against
+the same `main` at the same hour. Resolved by chronology (§93 review 22:20,
+§94 blockers 22:52) with §94 renumbered, not by taking a side. **If you write a
+HANDOFF section on a branch, expect to renumber it at merge time.**
+
+### Every gate, on the merged tree
+
+| | result |
+|---|---|
+| `harness-drift.mjs` | **PASS** — 28 scripts in `index.html`, 28 in `_harness.html` |
+| `places-check.mjs` | **PASS — 40 ok, 0 failed** (was 39/1) |
+| `coplanar.mjs data/places.geojson` | **1** — the awning/awning pair that pre-dates the pass (was 195) |
+| `zfight.mjs`, all 8 `shots-places.json` poses | 7 clean; `westcampus-day` 242 px @ [642,827,869,895], unchanged |
+| `suite-lint.mjs` | **PASS**, 0 blocking (10 pre-existing auto-detect warnings, none this branch's) |
+| data | 2,533 features · 194 `plPier` tops at 2.43 · 133 `plHead` at 2.46 |
+
+`coplanar.mjs` with no arguments does **not** read `places.geojson` or
+`entrances.geojson` — pass them by name or you will "confirm" a file you never
+opened. On the default set `roofs.geojson` reports 85 overlaps; that file is
+byte-identical to `main`, so it is not this branch's and it is now QUEUE **W6**.
+
+### BLOCKER 1 is genuinely derived, and I checked rather than took its word
+
+§94 says the catalogue is read out of the generator. It is. Run outside the
+checker, against the two real files: the regex over `band_props()`/`glow_props()`
+in `scripts/bake_places.py` finds **11 emission call sites → 10 unique families**,
+and the set is exactly equal to the 10 in `data/places.geojson`. **There is no
+second list to go stale.** The one thing to know about it: like the
+`places.geojson` read directly above it, the path is resolved against
+`process.cwd()`, so `places-check.mjs` must be run **from `scripts/verify/`**.
+That is the file's own pre-existing convention, not something this change
+introduced — but `harness-drift.mjs` must be run from the **repo root**, so the
+two do not share a working directory. Quote the cwd with the result.
+
+### BLOCKER 2's "the look did not change" claim, re-checked independently
+
+§94 reports the shopfront band unchanged. I differenced its four before/after
+frames myself, whole-frame rather than cropped:
+
+```
+guad       night   0 differing pixels                      (byte-identical)
+guad       day     max delta 2/255, 0 pixels above 8/255
+guadclose  night   703 differing, 355 above 8 — ALL in y 63–273
+guadclose  day     max delta 196,  195 above 8 — ALL in x 0–96
+```
+
+The two non-zero rows are **not** a hole in the claim and they are worth naming
+because they look like one: every pixel above 8/255 is in the top quarter of the
+frame (animated tower window lights) or in the leftmost 96 px (a map label
+winning its collision box in one render and not the other). **Zero of them are
+in the shopfront band**, which is where the 194 faces moved. A whole-frame diff
+on this app is uninterpretable on its own — auto-exposure re-grades everything
+by 1–2/255 — so localise the survivors before believing either verdict.
+
+### And I looked at the street myself, at 7.5 m of eye height
+
+`shots/wampus/merged/`, 1600×1000, hardware GL, auto-detect cancelled, z20.6
+pitch 79 bearing 278 on Guadalupe at the Chipotle (`guad-street-day/night`) plus
+a z19.4 pitch 72 run of the whole block (`guad-wide-day/night`).
+
+Day: three brand awnings, sign bands, a recessed door with mullions and a
+bulkhead under each, labels on the fascia. Night, **measured on my own frame**,
+frame median luma **13.8**:
+
+| box | rgb | luma | × median |
+|---|---|---|---|
+| Chipotle open interior | (84,67,49) | 69.1 | **5.0×** |
+| Chipotle pavement pool | (83,59,34) | 62.2 | **4.5×** |
+| shopfront glazing, whole run | (69,57,51) | 58.7 | 4.3× (R:B 1.35) |
+| Rally House door, closed | (33,23,23) | 25.4 | 1.8× |
+| road foreground | (13,12,16) | 12.6 | 0.9× |
+
+**An open shop is 2.7× the closed one beside it** — the review measured 2.88×,
+§92 measured 2.02× at a different pose, and this is a fourth independent reading
+from a fourth camera. The glazing at R:B 1.35 is nowhere near the 1.12 pale-band
+signature. The pools are still there and the street still reads.
+
+### What did NOT work
+
+1. **`coplanar.mjs` and `zfight.mjs` disagree about which directory to run
+   from, and `places-check.mjs` disagrees with `harness-drift.mjs`.** Three of
+   the four gates in this pass are cwd-sensitive in different directions.
+   `harness-drift.mjs` from `scripts/verify/` dies on `ENOENT index.html` — which
+   reads exactly like a missing file rather than a wrong cwd. Run each one the
+   way its header says and write the cwd down.
+2. **`zfight.mjs` on all 8 poses takes about 25 minutes** on swiftshader and
+   prints nothing until a pose finishes, so `tail`ing its log is the only way to
+   tell it apart from a hang. `westcampus-day` needs `VERIFY_MAX_MS` raised
+   (900000 here) or it hits the watchdog and looks like a failure.
+3. **The reviewer's exact camera poses are not in the repo** — `shots/wampus/`
+   has the frames but the pose list lived in a scratch file outside it. I
+   re-derived a Guadalupe pose from §93's altitude table (z20.6/p79 = 7.5 m up,
+   37 m back at 1600×1000) and it landed on nearly the same framing, but a
+   before/after pixel diff against the reviewer's set was not possible. **If a
+   pose is worth photographing twice it belongs in `scripts/verify/shots-*.json`.**
+
+### What I did NOT do
+
+- **The `westcampus-day` 242 px flicker cluster is still there.** I confirmed the
+  count and the box are identical to §94's reading; I did not re-run §94's A/B
+  against the old data, so "pre-existing" rests on §94's test and on the fact
+  that nothing in `places.geojson` stands above 5 m. QUEUE **W6**.
+- **Nothing about the 18 unphotographed lobbies changed.** Six of 24 have a
+  picture. The rest are asserted from geometry.
+- **No performance measurement of my own.** §92 and §93 both measured the pass
+  as free; I took that and did not re-run `places-perf.mjs`.
+- **`shots-places.json` still has no West Campus night pose** and no raised
+  watchdog — it is `scripts/verify/`'s to change and I confined this pass to
+  three files.
+
 ## 94. Aug 4 2026 — the two blockers on PR #147: a stale catalogue and 194 coplanar top faces (acer lane)
 
 **Branch:** `acer/wampus-render`. **Files written:** `scripts/bake_places.py`,

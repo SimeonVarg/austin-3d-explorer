@@ -370,38 +370,25 @@ point-in-polygon probe says zero do.
 ---
 
 # PART W — WEST CAMPUS GROUND FLOOR. Written 2026-08-05 from the review in
-# HANDOFF §93. **W1 and W2 are what is keeping PR #147 open.** Do them together;
-# they are one short pass and the PR merges the moment they are green.
+# HANDOFF §93. **W1 and W2 are DONE and PR #147 is MERGED** (HANDOFF §94, §95).
+# Everything from W3 down is still open, and none of it blocked the merge.
 
-**W1. `scripts/verify/places-check.mjs` assertion A is a stale catalogue and it
-is red.** 39 ok / 1 failed. The bake now emits ten families where the assertion
-lists four. One line:
+**~~W1.~~ DONE — `places-check.mjs` is 40 ok / 0 failed.** Not fixed the way
+this entry proposed. The one-line re-copy would have been correct on the day and
+stale on the next family, so assertion A now **derives** the catalogue from
+`scripts/bake_places.py`'s own `band_props()`/`glow_props()` call sites: 11 call
+sites → 10 families, set-equal to the data, no second list anywhere. Verified
+independently outside the checker on the merged tree. **Run it from
+`scripts/verify/`** — it resolves both the bake and `places.geojson` against
+`process.cwd()`.
 
-```
-['plAwn','plBulk','plGlass','plSign']
-  ->  ['plAwn','plBack','plBulk','plGlass','plHead','plLeaf','plLite','plPier','plPool','plSign']
-```
-
-**This file is the Acer lane's.** Two passes in a row left it red believing
-`scripts/verify/` belonged to the Mac; `MAC_QUEUE.md`'s scope table gives the
-Mac only `bake_stadium.py`, `js/stadium.js`, `data/stadium.geojson` and the DKR
-imagery, and no open Mac PR touches `scripts/verify/`. Make the edit, re-run
-`VERIFY_URL=http://127.0.0.1:PORT node scripts/verify/places-check.mjs`, expect
-40/40.
-
-**W2. The shopfront entry put 194 new coplanar pairs into
-`data/places.geojson`.** `node scripts/verify/coplanar.mjs data/places.geojson`
-reads **195**; the same file before the bake read **1**. 171 of them are
-`plHead` + `plPier`: the lintel (base 2.30, top 2.46) and the pier beside it
-(base 0.00, top 2.46) share a top face over 0.094 m², and two extrusions with
-equal top height and overlapping footprint have no defined draw order.
-`zfight.mjs` finds no flicker at four poses day and night, so nothing is visibly
-broken today — but `docs/PASS_GLITCH.md` records this repo fixing this exact
-class twice, and a detector that reads 195 is useless as a guard. Fix in
-`scripts/bake_places.py`: take the pier top to 2.45 **or** the head top to 2.47
-(one constant, in the marked taste block), re-bake with
-`PYTHONIOENCODING=utf-8`, confirm the feature count is still 2,533 and that
-`coplanar.mjs` is back to 1.
+**~~W2.~~ DONE — `coplanar.mjs data/places.geojson` is back to 1**, the
+awning/awning pair that pre-dates the pass. The pier's top face is now a bearing
+seat 30 mm under the lintel's (`SF_HEAD_BEARING = 0.03`, a named constant in the
+entry taste block): 194 `plPier` at 2.43, 133 `plHead` at 2.46. The lintel was
+the wrong surface to move — its top is clamped to the host's glass head and
+`places-check` asserts the sign band sits flush on it at 0.001 m. The look is
+unchanged and was measured, not argued: `shots/wampus/merged/`.
 
 **W3. `data/entrances.geojson` is 5.44 MB raw / 326.7 KB gzipped, 11,890
 features, loaded as a flat GeoJSON source.** Already on `main`; nothing this
@@ -424,6 +411,45 @@ the sign band and again in brand red at awning level. `data/places.geojson` has
 exactly one Chipotle label and `js/app.js` already strips the basemap's POIs, so
 the duplicate is one of our own label layers drawing the same name. Find which,
 then suppress it where `places-label` already names the tenant.
+
+**W6. `zfight.mjs`'s `westcampus-day` pose flickers over 242 px at
+[642,827,869,895] by day and nothing at night, and it is NOT the shopfronts.**
+Same count and same box before and after the pier fix (§94 A/B'd it against the
+old data file; §95 re-read it on the merged tree). Nothing in
+`data/places.geojson` stands above 5 m and the cluster is a roof plane on a
+podium at the bottom of frame. Mask:
+`shots/wampus/blockers/zf-after-westcampus-day-flicker.png`. Related and also
+untouched: `node scripts/verify/coplanar.mjs` on its DEFAULT file set reports
+**85 overlaps in `data/roofs.geojson`**, worst 42 m² at 100 % shared. That file
+is byte-identical on `main` and nobody owns the finding yet. Note the default
+set does not include `places.geojson` or `entrances.geojson` — name them.
+
+**W7. Gates-Dell's main door is still buried inside a `heroes.geojson` block.**
+This is PART L's **L1**, unchanged and unstarted: a measured OSM `entrance=main`
+node that lands inside a 28.7 m hero piece, so the door renders 0 pixels from
+all 16 bearings tried. 1 of 584. The fix is in `scripts/bake_entrances.py` —
+read `heroes.geojson` and push the door out to the hero's own wall, or drop it
+and print that it was dropped.
+
+**W8. The Texas Union's main door is in a courtyard notch** (PART L, **L2**).
+The placement is not broken — the notch is real and the door is on its wall —
+but it faces north into a courtyard, not the West Mall, and the Union is one of
+the two buildings named for carved inscriptions. **Needs a photograph before any
+code**: which elevation, and is there lettering on it.
+
+**W9. The Main Building's centre bay should be recessed and is flat** (PART L,
+**L3**). `docs/entrances/celebrated.md` §5.1 traces the OSM ring to prove the
+south portal sits in a recessed centre bay between two projecting wings, and
+says in bold "model the recess". This is the most-photographed portal on campus
+and the one thing a person who has stood on the South Mall would notice.
+
+**W10. 18 of the 24 West Campus lobbies have never been photographed.** Six
+were shot (`shots/wampus/final/`, plus `d2/` and `n2/`). The other eighteen are
+asserted from the geometry only — every one has a `role:"main"` door facing a
+road centreline 5.2–15.9 m away, which is a measurement, not a picture. A pose
+list that shoots all 24 belongs in `scripts/verify/shots-*.json` rather than in
+a session's scratch directory, which is where every West Campus pose so far has
+lived and died.
 
 ---
 
