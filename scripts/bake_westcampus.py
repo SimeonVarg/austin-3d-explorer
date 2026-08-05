@@ -144,13 +144,105 @@ NIGHT_GAIN = 0.19               # how much of the day colour survives to night
 NIGHT_TINT = [18, 22, 40]       # the cool cast every night wall is pulled toward
 NIGHT_TOWARD = 0.42             # how far toward it
 
-# Families js/facades.js draws with NO lit-window term. Cross-referenced against
-# that file rather than guessed: `GRIDS.dk === null` + `OCCUPANCY.dk = [0,0]`
-# (js/facades.js:246, :620), and `sf` routes to DKR_TILES.sf, board-formed
-# concrete, which has no glazing term at all. Both were then MEASURED off the
-# atlas images themselves at p=0.88: dk and sf are the only two families in West
-# Campus with 0.00 % warm-hot texels, every other family sits at 3-32 %.
-NIGHT_UNLIT_FAMILIES = ("dk", "sf")
+# ── THE MEASUREMENT THIS FILE IS NO LONGER ALLOWED TO GUESS AT ──────────
+#
+# WHY THIS TABLE REPLACED A HAND-WRITTEN TUPLE (QUEUE X2). The line that used to
+# sit here read `NIGHT_UNLIT_FAMILIES = ("dk", "sf")` and the prose above it
+# named `sn` as a LIT family. That was a BELIEF about js/facades.js, written
+# down once and never re-checked, and js/facades.js had stopped honouring it:
+# `DKR_TILES.sn` was rewritten to the 2008 north end zone as it actually is —
+# "NOT a window wall ... MASSIVE CHAMFERED BRICK PIERS, and between them the
+# bays are simply OPEN" — while this file went on describing it as "brick
+# veneer, punched windows". So The Callaway House Austin's 49.8 m tower shipped
+# in a family that draws no window, the check below tested only the two families
+# in the tuple, and it passed. Two black towers in two passes, same mechanism.
+#
+# So the classification is no longer written; it is MEASURED, and the numbers
+# are here where the rule is. Each row is that family's night ATLAS TILE, read
+# straight out of `map.style.imageManager.images[wp].data` (the real RGBA the GPU
+# samples, before `map.setLight` multiplies it), at p = 0.88, over every distinct
+# `wp` West Campus produces — 87 bands, 40 distinct tiles, 2026-08-05.
+#
+#   peak      the tile's brightest texel, in perceptual luma. This is the one
+#             that separates the two populations, and it separates them CLEANLY:
+#             a family that paints window panes peaks at 143-211 whatever wall
+#             colour it is handed, and a family that only lerps a dark wall
+#             toward a warm constant cannot get past 111. Nothing measured
+#             between 111.1 and 143.2.
+#   warm      share of texels that are both bright (L >= 100) and warm
+#             (R > B + 12) — the §96 measure, i.e. "is any of this a lit window".
+#   mean      the whole tile's mean luma, for scale.
+#
+# Where a family produced several tiles the row is the WEAKEST of them, so the
+# classification is the conservative one. Peak ranges observed over two full
+# runs (87 bands each, before and after this pass): mh 207.1-210.9,
+# tr 207.7-210.9, tg 209.9-219.4, sb 161.3-164.5, sg 143.2, dk 111.1,
+# sn 105.0-105.3, sp 99.1-106.0, sf 56.9-69.0.
+#
+# AND WHY THE PEAK IS THE CRITERION AND NOT THE WARM SHARE OR THE MEAN. The
+# window scatter is seeded by the band's PALETTE INDEX (`hash01` in
+# js/facades.js), and that index is handed out in the order the bands are walked
+# — so adding or moving one band re-seeds other buildings' tiles. Measured over
+# the two runs, the same family's warm share moved by up to 7 points and its
+# mean by 12 luma, while its peak moved by less than 2. A threshold on a number
+# that shuffles when an unrelated building changes is a coin toss; the peak is
+# the pane colour, and the pane colour is a property of the family.
+#
+# TO RE-MEASURE: serve the repo, open `_harness.html?intro=0&drift=0` at
+# 1440x900, `cancelGraphicsAutoDetect()`, `jumpTo` z14.1 pitch 0 over
+# [-97.7445, 30.2870] (z15.2 under-counts the bands — §96), settle, call
+# `applyTimeOfDay(map, 0.88, true)`, settle again, then walk
+# `querySourceFeatures('austin-westcampus')` for `kind:"wall"` and read the
+# image named by each band's `wp`. `_facades_fingerprint()` below fails the bake
+# the moment the code these numbers were taken against changes, so a stale table
+# cannot survive the way the tuple did.
+NIGHT_TILE = {
+    #        peak    warm    mean
+    "tg": (209.9, 14.48, 57.1),   # curtain wall
+    "tr": (207.7,  9.52, 53.3),   # residential tower, punched grid
+    "mh": (207.1,  5.83, 54.3),   # campus punched grid
+    "sb": (161.3,  6.93, 63.0),   # deep horizontal bands, slim fins
+    "sg": (143.2, 31.32, 82.5),   # club/suite glazing
+    "dk": (111.1,  0.00, 59.8),   # parking deck (wall lifted by W4/§98)
+    "sn": (105.0,  3.13, 54.3),   # brick piers, OPEN bays — a stadium concourse
+    "sp": ( 99.1,  0.00, 70.8),   # arcade piers, portal glow
+    "sf": ( 56.9,  0.00, 37.5),   # board-formed concrete, near solid
+}
+
+# A tile whose brightest texel clears this has window panes in it; one that does
+# not has, at most, a wall lerped toward a warm constant. 120 sits in the 32-luma
+# gap the measurement found (111.1 -> 143.2) with no family near it.
+NIGHT_LIT_PEAK_L = 120.0
+
+# Of the families that have no panes, these two draw NOTHING warm at all — zero
+# warm-hot texels — so a band in one of them has to carry the night read in its
+# own wall or it renders darker than the sky. Derived, not typed: it is exactly
+# the set below the peak floor whose warm share is zero AND whose tile does not
+# already light up as a whole (`sp`'s portals put its mean at 70.8, the brightest
+# tile in West Campus — lifting its wall on top of that would be the opposite
+# defect, so it is deliberately not in this set).
+NIGHT_UNLIT_MEAN_L = 65.0
+
+
+def _derived(pred):
+    return tuple(sorted(f for f, t in NIGHT_TILE.items() if pred(t)))
+
+
+# Families with no lit window at all: dk, sf. (Was a hand-written tuple.)
+NIGHT_UNLIT_FAMILIES = _derived(
+    lambda t: t[0] < NIGHT_LIT_PEAK_L and t[1] == 0.0 and t[2] < NIGHT_UNLIT_MEAN_L)
+
+# Families whose tile has window panes bright enough to survive the night light
+# multiply: mh, tr, tg, sb, sg. A residential MASS has to be one of these — see
+# `check_night_ramp()` assertion D.
+NIGHT_LIT_FAMILIES = _derived(lambda t: t[0] >= NIGHT_LIT_PEAK_L)
+
+# The height at which a band stops being trim and becomes the thing you read the
+# building by. Callaway's dead band was 49.8 m; the tallest `band:"tower"` in a
+# no-pane family that is deliberately fine is 2400 Nueces's 13.8 m Texas-
+# limestone bay (`sp`, whose own row above says why it is left alone), so the
+# line sits between them with 3.6x of slack on the side that matters.
+NIGHT_LIT_MIN_TOWER_M = 15.0
 
 # ...but only above this height. The 24 `sf` crowns are 0.9-5.0 m parapets and a
 # parapet going quiet at the top of a tower is what a parapet DOES — lifting
@@ -183,6 +275,78 @@ NIGHT_UNLIT_MIN_WN_LUMA = 55.0
 
 def _luma(rgb):
     return 0.30 * rgb[0] + 0.59 * rgb[1] + 0.11 * rgb[2]
+
+
+# ── The staleness guard. THIS is what was actually broken. ──────────────
+#
+# A measured table is only true of the code it was measured against, and the
+# defect this file just shipped was exactly a true statement about js/facades.js
+# going quietly false when js/facades.js changed underneath it. So the bake reads
+# the drawing code and fails if the parts NIGHT_TILE was taken against have
+# moved. It is not a style check and it does not care about the rest of the file:
+# only the tile functions for the families West Campus uses, the constants that
+# set how bright a lit pane or a lit portal gets, and the two tables that decide
+# whether a family has a window grid at all.
+#
+# When it fires, it is not telling you that you broke something. It is telling
+# you to re-measure NIGHT_TILE (recipe in the taste block) and paste the new
+# numbers and the new digest in. That is a five-minute job and it is the whole
+# difference between a guard and a decoration.
+FACADES_JS = os.path.join(ROOT, "js", "facades.js")
+FACADES_SLICES = (
+    ("block", "const GRIDS = {"),        # which families have a window grid
+    ("block", "const OCCUPANCY = {"),    # ...and how many of its panes light up
+    ("block", "const DKR = {"),          # every DKR_TILES magic number
+    ("line", "const DKR_GAIN ="),
+    ("line", "const PANE_BRIGHT_MIN ="),  # the lit pane's brightness: the peak
+    ("line", "const PANE_BRIGHT_MAX ="),  # every grid family measures at
+    ("fn", "sp"), ("fn", "sb"), ("fn", "sn"), ("fn", "sf"), ("fn", "sg"),
+)
+FACADES_DIGEST = "72e4a715b464661e"
+
+
+def _slice_block(src, opener):
+    """The text from `opener` to the line that closes its brace, inclusive."""
+    i = src.index(opener)
+    depth, j = 0, i
+    while True:
+        if src[j] == "{":
+            depth += 1
+        elif src[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return src[i:j + 1]
+        j += 1
+
+
+def _facades_fingerprint(strict=True):
+    """A short digest of the js/facades.js code NIGHT_TILE describes."""
+    import hashlib
+    with open(FACADES_JS, encoding="utf-8") as fh:
+        src = fh.read()
+    parts = []
+    for kind, key in FACADES_SLICES:
+        try:
+            if kind == "block":
+                parts.append(_slice_block(src, key))
+            elif kind == "line":
+                i = src.index(key)
+                parts.append(src[i:src.index("\n", i)])
+            else:
+                parts.append(_slice_block(
+                    src, "%s(ctx, wall, dark, night, golden, glass, seed) {" % key))
+        except ValueError:
+            if strict:
+                raise SystemExit(
+                    "bake_westcampus: cannot find `%s` in js/facades.js. The "
+                    "facade code has been restructured, so NIGHT_TILE describes "
+                    "a renderer that no longer exists — re-measure it (recipe in "
+                    "the NIGHT_TILE taste block) and update FACADES_SLICES."
+                    % key)
+            parts.append("")
+    # Whitespace-insensitive: a reindent is not a repaint.
+    blob = "\n".join(" ".join(p.split()) for p in parts)
+    return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:16]
 
 
 def wall_ramp(hex_col, fam=None, band_m=None):
@@ -541,13 +705,29 @@ BUILDINGS = {
     # ── The Callaway House Austin, 2014, American Campus Communities, 17
     # storeys. The one brick building in the group — the bake already carries
     # #a2614b for it, which is why protecting the colour from the city palette
-    # matters. Family `sn` (brick veneer, punched windows, pier towers).
-    # Footprint is a C around a courtyard; the courtyard deck is the amenity
-    # space and it sits at podium level.
+    # matters. Footprint is a C around a courtyard; the courtyard deck is the
+    # amenity space and it sits at podium level.
+    #
+    # THE FAMILY WAS `sn` AND THAT IS WHY THIS TOWER WAS BLACK AT NIGHT (X2).
+    # The line above used to read "Family `sn` (brick veneer, punched windows,
+    # pier towers)", which was true of `sn` when it was written and has not been
+    # true for a while: js/facades.js rewrote that tile to the 2008 north end
+    # zone as photographed — "NOT a window wall ... MASSIVE CHAMFERED BRICK
+    # PIERS, and between them the bays are simply OPEN" — a stadium concourse
+    # elevation with no window grid at all. Measured, its night tile peaks at
+    # 105 luma against 208 for the punched-window families, so nothing on it
+    # survives the night light multiply and a 49.8 m tower rendered at 0.04 %
+    # lit pixels, darker than the sky. See NIGHT_TILE and assertion D.
+    #
+    # `tr` is what the building actually is: a 17-storey residence with a
+    # punched window grid, which is that family's own definition ("residential
+    # towers", GRIDS.tr, and the one every other West Campus tower of this
+    # height uses). The BRICK is #a2614b and is untouched — the material was
+    # never carried by the family, only by the colour.
     "The Callaway House Austin": dict(
         base=(5.4, "sp", "#8f6552"),
         podium=None,
-        tower=("sn", "#a2614b"),
+        tower=("tr", "#a2614b"),
         crown=(3.8, "sf", CROWN_WARM),
         mech=3.5, deck="roof", balc=None, step=None, tplan=None,
         pool=(-6.0, -4.0, 5.0, 11.0),
@@ -1180,6 +1360,18 @@ def check_night_ramp(feats):
          actually catches W4, and it catches the next one by family and height
          rather than by building name.
 
+      D. is every band you read a BUILDING by drawn in a family that actually
+         paints a lit window? This is the one QUEUE X2 is about, and it is the
+         one the old check could not ask, because it tested a property (`wn`
+         differs from `wd`) instead of an outcome. Callaway's tower had a
+         perfectly good `wn` — it was near-black on purpose, which is CORRECT
+         for a family that scatters bright panes on top of it, and fatal for
+         `sn`, which scatters nothing. No colour could have fixed it: `sn`'s
+         night terms lerp a dark wall 0.30 of the way toward a warm constant, so
+         the tile cannot clear 111 luma at ANY wall colour, against 208 for the
+         punched-window families. The family was the defect, so the family is
+         what the assertion names.
+
       C. can two bands sharing a day colour disagree about night? They cannot,
          and this is a live trap rather than a hypothetical: quantiseStadiumFacades
          in js/facades.js keys its palette on `p.wd` ALONE
@@ -1197,6 +1389,19 @@ def check_night_ramp(feats):
     """
     walls = [f["properties"] for f in feats if f["properties"].get("kind") == "wall"]
     bad = []
+
+    # Before anything else: is NIGHT_TILE still true of the renderer? Every
+    # question below is asked THROUGH that table, so a stale table makes all of
+    # them decorative — which is precisely how a second black tower shipped.
+    digest = _facades_fingerprint()
+    if digest != FACADES_DIGEST:
+        raise SystemExit(
+            "bake_westcampus: js/facades.js has changed where it decides how "
+            "bright a facade gets at night (digest %s, expected %s). NIGHT_TILE "
+            "was measured off the OLD code and every night assertion in this "
+            "file now rests on it. Re-measure NIGHT_TILE: the recipe is in its "
+            "taste block, it is one browser run — then paste the numbers and "
+            "this digest in. Do not just update the digest." % (digest, FACADES_DIGEST))
 
     # C — one day colour, one night colour.
     by_wd = {}
@@ -1222,6 +1427,17 @@ def check_night_ramp(feats):
         d = per_fam.setdefault(fam, {"bands": 0, "m": 0.0, "unlit_m": 0.0})
         d["bands"] += 1
         d["m"] += m
+        # D — the mass has to have windows in it.
+        if p.get("band") == "tower" and m >= NIGHT_LIT_MIN_TOWER_M \
+                and fam not in NIGHT_LIT_FAMILIES:
+            t = NIGHT_TILE.get(fam)
+            bad.append("%s: a %.1f m tower band in family `%s`, whose night tile "
+                       "peaks at %s luma (< %.0f) and is %s %% lit window. It "
+                       "will render as a black tower whatever `wn` says: the "
+                       "wall is not the lever, the family is. Lit families: %s."
+                       % (tag, m, fam, ("%.1f" % t[0]) if t else "?",
+                          NIGHT_LIT_PEAK_L, ("%.2f" % t[1]) if t else "?",
+                          ", ".join(NIGHT_LIT_FAMILIES)))
         if fam in NIGHT_UNLIT_FAMILIES:
             d["unlit_m"] += m
             if m >= NIGHT_UNLIT_MIN_BAND_M:
@@ -1243,7 +1459,28 @@ def check_night_ramp(feats):
     if bad:
         raise SystemExit("bake_westcampus: night ramp check failed:\n  " + "\n  ".join(bad))
 
+    # The roll-call. Assertion D can only fail on the file in front of it, so the
+    # bake also PRINTS, every run, which building's principal mass has lit
+    # windows after dark and which does not. Two black towers shipped past a
+    # green check because nobody could see the list the check was working from.
+    tower_fam = {}
+    for p in walls:
+        if p.get("band") != "tower":
+            continue
+        m = round(p["h"] - p["base"], 2)
+        cur = tower_fam.get(p.get("name"))
+        if cur is None or m > cur[1]:
+            tower_fam[p.get("name")] = (p["fam"], m)
+    roll = {n: "%s %.1f m %s" % (f, m, "LIT" if f in NIGHT_LIT_FAMILIES else "DARK")
+            for n, (f, m) in sorted(tower_fam.items())}
+
     return {
+        "facades_js_digest": digest,
+        "families_lit": list(NIGHT_LIT_FAMILIES),
+        "families_no_lit_window": list(NIGHT_UNLIT_FAMILIES),
+        "towers_dark_at_night": sorted(
+            n for n, (f, _m) in tower_fam.items() if f not in NIGHT_LIT_FAMILIES),
+        "tower_night_roll_call": roll,
         "bands_with_lit_windows": lit_bands,
         "unlit_bands_lifted": unlit_lifted,
         "unlit_bands_left_as_trim": unlit_trim,
