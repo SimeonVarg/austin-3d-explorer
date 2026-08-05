@@ -1,5 +1,87 @@
 # Austin 3D Explorer — Full Handoff
 
+## 96. Aug 5 2026 — what `data/entrances.geojson` costs, measured (QUEUE W3) (acer lane)
+
+**Renumber this on merge conflict — do not assume 96 is yours.** Branch
+`acer/entrances-payload`, cut from `origin/main` (`bef5f37`) because this
+worktree cannot check out `main`. **Files written: `docs/night/entrances-payload.md`
+and this section. No js, no data, no `scripts/verify/`.** Diagnosis only, as W3
+asks. `harness-drift.mjs` PASS (28 scripts in `index.html`, 28 in
+`_harness.html`) before any measurement, from the repo root.
+
+**The answer is LEAVE IT ALONE**, and the full working is in
+`docs/night/entrances-payload.md`. The headline, with the instrument beside every
+number:
+
+- **348,345 bytes from GitHub Pages**, `Content-Encoding: gzip`, measured live
+  with `curl -I` on 2026-08-05. Not 326.7 KB — that was a local `gzip -9` and
+  Pages ships 4.1 % more. `scripts/serve.py` sends the full **5,568,333** and no
+  `Content-Encoding` even when asked, so every local byte figure for this file
+  overstates the wire by **16.0x**.
+- **The main-thread parse is 32.0 ms** (min of 7 interleaved reps, no CPU
+  throttle), **195.8 ms at 4x**. Nobody had taken this number and it is much
+  smaller than the file's size suggests.
+- **The bigger half is not the parse.** MapLibre 5.24's `GeoJSONSource`, handed a
+  parsed OBJECT (which `js/entrances.js:930` does), ships it to the worker
+  through `postMessage` — a **structured-clone serialisation on the main
+  thread**: **83.0 ms** unthrottled, **488.5 ms** at 4x. Handed a URL STRING it
+  takes the `params.request` branch and the worker does the fetch and the parse
+  instead. Corroborated in the live app by timing `Worker.prototype.postMessage`:
+  largest single call 53 ms with entrances on against 19 ms off.
+- **Boot A/B**, `?entrances=0` versus default on ONE build, hardware GL, cache
+  disabled, auto-detect cancelled, 4 interleaved reps, **minimum**:
+  all-sources-ready **12,736 vs 12,108 ms (+628)**, main-thread longtask total
+  **3,704 vs 3,010 ms (+694)**, `austin-buildings` **9,639 vs 9,459 ms (+180)**.
+- **It is not Simeon's missing downtown.** `INTRO.needs` (`js/app.js:1545`) is
+  `austin-outer`/`buildings`/`ground`/`roads`; **`austin-entrances` is not in it
+  and cannot hold or release the veil.** Its measured effect on the source he is
+  actually missing is 180 ms out of 9,459 — 1.9 %.
+
+**Why neither proposed fix is worth doing.** Tiling would **not collect the
+parse**: `initEntrances` fetches and parses the whole file *before* it chooses
+between `tileSource('entrances')` and the flat source, because the sign tones and
+the inscription/wordmark point sources are derived on the main thread from the
+full feature list. So it keeps the 348 KB and the 32 ms, adds tile fetches, and
+buys only the clone — for a per-layer maxzoom that `js/tiles.js` does not have
+(`TILES.maxzoom` is one global 16, and this module's own header refuses 16 for
+0.06–0.35 m pieces), an MVT extent that quantises to 3.7 cm/unit at z18, and a
+`build-tiles.yml` round trip that §39 records failing after 00:00 UTC. And a zoom
+gate **cannot fire**: `ENT.minZoom` is 15.2 and every boot pose is above it —
+`SPAWN` 16.5, `INTRO.start` 16.2, `crest` **15.45**, `end` 16.9.
+
+**If the budget ever bites, the cheap lever is none of the three:** move the
+label derivation into `scripts/bake_entrances.py` and hand the source the URL
+string, which takes the main-thread bill to zero with no archive and no CI. Sized
+in the doc; **not recommended now.**
+
+### What did NOT work
+
+1. **The 4x-throttled whole-app A/B is unusable on this machine and I threw it
+   out.** Under `Emulation.setCPUThrottlingRate: 4` the page reached
+   all-sources-ready at **419,777 ms** (ON) and **295,017 ms** (OFF), never
+   loaded every source in either arm, and the browser died on rep 2. Every 4x
+   number in the doc is from the isolated parse bench, which throttles cleanly
+   because it is 40 ms of arithmetic and not a 20-source map. **There is no
+   throttled whole-app reading anywhere in this pass.**
+2. **A full-viewport `queryRenderedFeatures` on every `render` event killed the
+   renderer twice**, with "Target page, context or browser has been closed" and
+   no crash event — which reads exactly like a flaky machine and is not.
+   Polling a 240 px centre box at 150 ms is stable. Suspect the probe first.
+3. **`serve.py` returns `.md` as `application/octet-stream`**, so navigating a
+   Playwright page to one throws "Download is starting". A directory listing
+   (`/docs/`) is `text/html` and same-origin — but relative `fetch()` then
+   resolves against `/docs/`, so use absolute paths or you will `JSON.parse` a
+   404 page.
+4. **I could not photograph a door to back the first-paint number.** z17.5 shows
+   nothing at door scale, and a z20 pose at a measured Welch Hall door
+   (`-97.737664, 30.285747`) put the camera inside the roof from both bearings
+   tried. So "entrance geometry first hit-tested at 12,674 ms" rests on
+   `queryRenderedFeatures`, not on pixels, and is labelled that way. §89's
+   `shots/entrances/final/` remains the pixel evidence that the layer draws.
+5. **The instrument spread is the reason for every minimum here.** Individual
+   all-sources-ready readings across the A/B ranged **12,108 ms to 236,684 ms**
+   on the same page with the same flags on this machine.
+
 ## 95. Aug 5 2026 — PR #147 is MERGED, confirmed on the merged tree and not on the branch (acer lane)
 
 **Branch:** `acer/wampus-render`, merged to `main` and deleted. **Files written
