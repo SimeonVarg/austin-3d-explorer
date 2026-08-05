@@ -464,8 +464,14 @@ bearings confirmed by a magenta pose search).
 > `shots/lobbies/final/`. Nothing below is closed by an execution decision that
 > was his to make.
 
-**X1. THE CAMERA CANNOT GO BELOW 18 m, AND THIS IS THE ONE TO SHOW SIMEON
-FIRST.** `js/controls.js:85` `ALT_MIN = 18`. Any scripted pose under 18 m of eye
+**~~X1.~~ DONE — the floor is 1.7 m and it holds (HANDOFF §105).** Simeon chose
+walking height. `ALT_MIN` is 1.7, eight more constants had to move with it, and
+three pre-existing bugs had to be fixed before it meant anything; the intro end
+pose is identical to every digit and the controller never drives during the intro
+or the tour. Pictures: `shots/eye/final/`. What it EXPOSED is Part Y below.
+The original entry follows.
+
+**X1 (original).** `js/controls.js:85` `ALT_MIN = 18`. Any scripted pose under 18 m of eye
 height is treated as "the user is flying" and lifted back to 18 m within ~2 s —
 so **there is no pedestrian view of this city, and there never has been.** The
 "7.5 m of eye height" in HANDOFF §93 and the poses in §100 are the altitude at
@@ -549,6 +555,109 @@ per-pose loop** (§103's version did, and worked). Related and already costly:
 **a `#ff00ff` fill is multiplied by the night light** and comes back around
 `#9911cc` at `p = 0.92`, so every `r > 170 && b > 170` test reads zero —
 **measure silhouettes in day light**; the silhouette is geometry.
+
+---
+
+# PART Y — WHAT WALKING HEIGHT EXPOSED. Written 2026-08-05 from HANDOFF §105.
+# **X1 IS DONE AND MERGED**: `ALT_MIN` is 1.7 m, the floor holds, the flyover is
+# byte-identical, and every gate in §105 is green. Everything below is a defect
+# that the 18 m floor had been HIDING, not one this pass introduced. They are in
+# the order I would fix them, and the order is by how badly each one reads from a
+# pavement rather than by how hard it is.
+
+**Y1. Stars, the moon and clouds draw ON TOP of solid geometry. Fix this first.**
+It is the only one of these that reads as a *bug* rather than as a style. In
+`shots/eye/final/02-THE-TOWER-...-night.png` stars sit on the tree canopies and on
+the brick wall at frame right; in `05-WEST-CAMPUS-lobby-at-eye-level-night.png`
+they are scattered across a wall 1.5 m from the camera. Invisible at 18 m looking
+down, unmissable at 1.7 m looking level. Almost certainly a draw-order/depth-test
+question in `js/sky.js` rather than new art. **Verify by standing at 1.7 m facing
+a wall at `p = 0.90` and asserting zero sky-coloured pixels inside the wall's
+silhouette** — measure the silhouette in DAY light, per QUEUE X8, because a night
+multiply moves every colour.
+
+**Y2. The night street is unlit — not moody, unlit.**
+`71-FAILURE-the-night-street-is-unlit.png`: the carriageway is ~45% of the frame
+and near-black. One warm pool per lamp with real falloff onto the kerb and the
+wall, a visible lamp head, and a night tint on the daylight-coloured shopfront
+apron polygons (which currently stay fully bright in a black street). **Half the
+reason to be at eye level at night is the street**, and there is not one. Data is
+already there: 532 lamps in `data/props.geojson`.
+
+**Y3. Trees: you walk through all 7,559 trunks, and 27.7% of crowns start below
+2 m so you walk through the leaves too.** MapLibre back-face-culls
+fill-extrusions, so entering a canopy makes it **vanish** rather than enclose you,
+which reads as a rendering fault. Fix is **trunk-only** collision — a small
+`R_TRUNK` (~0.6 m plus the trunk's own radius), stamped into the same field, and
+gated below `ALT_GROUND` so the flyover pays nothing. **Do NOT put canopies in the
+collision field**: a median crown is 4.27 m of radius against `R_CAM` 6 m and it
+would wall off every tree-lined path on campus. Separately and already asked for
+in §103: crown radius and trunk diameter in `data/trees.geojson` are drawn
+independently, and 73% of canopy centres have no trunk within 2 m — visible at
+eye level as canopies floating with nothing under them.
+
+**Y4. Raise `ZOOM_MAX` so you can look down at your own feet, and it is a
+`js/ground.js` job, not a `js/controls.js` one.** At 1.7 m the pose is only
+expressible at pitch >= 84.7 deg (`dMin` = 18.48 m at 1440x900 / fov 58), so the
+controller BLOCKS pitching down rather than letting the render silently pull the
+eye back. `72-LIMIT-...` and `73-LIMIT-...` are the same spot at 1.7 m and at
+12 m. **The library is not the obstacle** — measured on the vendored 5.24,
+`setMaxZoom(22.5/23/24/25/26)` are all accepted and a `jumpTo` to z24.2 genuinely
+arrives. The obstacle is `js/ground.js:349` `texGroundMaxZoom: 22`, a LAYER
+maxzoom: above z22 the textured ground stops drawing, and z only passes 22 when
+you pitch down at low altitude. So: give the ground a level that survives z25,
+then set `ZOOM_MAX = 25` and `map.setMaxZoom(25.5)` in `js/controls.js` and the
+pitch floor disappears on its own. Re-run `zfight` and `coplanar` afterwards —
+nothing in this repo has ever been drawn above z21.5.
+
+**Y5. Facade textures are authored for 200-900 m and do not survive close range.**
+The wall at frame right in `01-THE-TOWER-...-day.png` is a pegboard of brown dots;
+the upper storeys in `03-GUADALUPE-from-the-pavement-day.png` are vertical
+barcode stripes. The modelled ground floor (584 doors, 24 lobbies, recessed
+shopfronts) is excellent and it is a 3 m stripe under 40 m of that. Wants either a
+close-range atlas tier or a mip/detail level that fades the fine grid out under
+~15 m of camera distance and leaves base colour plus the real modelled openings.
+This is the biggest piece of work on the list and the one with the highest ceiling.
+
+**Y6. `motion-feel.mjs`'s FOV-kick assertion is stale, and it fails on `main`.**
+It expects a 2.5-4.5 deg sprint kick and measures 7.00, which is exactly
+`TUNE.FOV_KICK` — correct behaviour since `FOV_KICK_FROM` was introduced so that
+the whole effect belongs to sprinting. **Reproduced on `origin/main`'s
+`js/controls.js` under the same conditions, so it is not from the walking-height
+pass.** Either widen the assertion to `TUNE.FOV_KICK +/- tolerance` read live from
+`window.__fly.tune`, or decide the kick is too big and lower it — but a test that
+has been red on `main` is a test nobody can use as a gate.
+
+**Y7. The outer-ring scan's worst case is 37.9 ms and nothing budgets it.**
+`querySourceFeatures` builds its whole feature list before returning, so
+`OUTER_BUDGET_MS` cannot bound it. Crossing `ALT_GROUND` now forces a rescan at
+`OUTER_MIN_H_GROUND` and takes the field from 1,336 features / 29,381 cells to
+4,580 / 59,760; the AVERAGE did not move (6.13 -> 5.65 ms) but the worst case was
+already two dropped frames before this pass and I did not chase it. Measure it
+under sustained walking across a district boundary, and if it bites, spread the
+query itself across frames by tile rather than asking for everything.
+
+**Y8. The ground plane is now 40-55% of every frame and it is one flat colour**
+with a soft ~5 m noise and a visible ~30 m repeat ring. Wants pedestrian-scale
+paving joints, a gutter line, a smaller repeat, and thresholds/sills at the doors
+the entrances pass placed (doors currently meet the pavement at a hard colour
+seam with no step). **Kerbs are already correct** — right height, right profile,
+they read at 1.7 m — so this is finishing a thing that works, not starting one.
+
+**Y9. Labels are sized by zoom, not by distance in metres.** At eye level the
+nearest label is a billboard and everything else is dust, and because the horizon
+sits mid-frame every label in the city projects into one narrow band. Below some
+eye height, show only what is within ~60 m and size by metres.
+
+**Y10. Nobody has driven a touch device at walking height.** The joystick, the
+two-finger altitude gesture and the BOOST latch were only exercised at flying
+altitude by `collision.mjs`'s synthetic touch. `SPEED_MIN` is now 1.0, so the
+joystick's expo curve is operating over a completely different speed range than it
+was tuned for.
+
+**Y11. No dusk frames at eye level.** §105 shot day `p = 0.14` and night
+`p = 0.90` only. The dusk handover is the app's best-looking moment and it has
+never been seen from a pavement.
 
 ---
 

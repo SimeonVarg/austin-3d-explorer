@@ -57,7 +57,14 @@ function initControls(map, scene) {
   const ZOOM_MIN = 14.0;    // trees/shadows drop out below this
   const ZOOM_MAX = 21.5;    // under MapLibre's own maxZoom so our clamp binds first
 
-  const SPEED_REF = 40, SPEED_EXP = 0.75, SPEED_MIN = 6, SPEED_MAX = 120;
+  // SPEED_MIN was 6 m/s = 21.6 km/h, and because the curve below only reaches 6
+  // at 18.2 m it was the ONLY speed the camera had ever had at any altitude the
+  // old floor allowed. At walking height that is a car. Dropped to 1.0 so the
+  // EXISTING altitude curve does the whole job with no mode and no branch:
+  // 1.3 m/s at 1.7 m (walking is 1.4), 1.9 at 4 m, 3.2 at 8 m, 5.9 at 18 m, and
+  // not one digit different anywhere above 18.2 m — so the flyover's speed is
+  // untouched by arithmetic, not by hope. Shift still gives 2.5x, which is a jog.
+  const SPEED_REF = 40, SPEED_EXP = 0.75, SPEED_MIN = 1.0, SPEED_MAX = 120;
   const SPRINT = 2.5;
   const TAU_ACCEL = 0.20, TAU_DECEL = 0.45, V_EPS = 0.05;
 
@@ -82,7 +89,34 @@ function initControls(map, scene) {
   // exists in this renderer.
   const PITCH_MIN = 5, PITCH_MAX = 88;
 
-  const ALT_MIN = 18, ALT_MAX = 900, ALT_SLACK = 30;
+  // ── THE FLOOR, AND WHY IT IS 1.7 ─────────────────────────────────
+  //
+  // This was 18 m until 2026-08-05, which is a fourth-floor window, and it was
+  // enforced without the user asking: any scripted pose below it was lifted back
+  // within ~2 s. Every frame in this repo labelled "street level" was taken from
+  // 18 m (HANDOFF §101). Simeon chose walking height over the anti-clipping
+  // guarantee that floor bought, having been told what it costs.
+  //
+  // 1.7 rather than 2.0 because that is what the ground-floor pass was authored
+  // for: the entrances bake writes a 2.44 m door head and 0.35 m treads, and the
+  // West Campus storefront mullions are 3.95 m. At 2.0 the door head is 0.44 m
+  // over your eye and doorways read squat; at 1.7 (US adult eye height is
+  // 1.56-1.68) it sits properly overhead. ONE LINE TO OVERRULE.
+  //
+  // ALT_GROUND is the second dial and it is the more interesting one: it decides
+  // where this stops being a flyover. Above it every collision parameter is
+  // exactly what it was before this change; below it they blend continuously to
+  // their pedestrian values, so there is no step to fall through and no mode to
+  // be in the wrong one of. Nothing scripted in this app goes below 113.9 m
+  // (SPAWN is 162.9), so the intro, the tour and the default pose never enter
+  // the blend at all.
+  const ALT_MIN = 1.7, ALT_MAX = 900, ALT_SLACK = 30;
+  const ALT_GROUND = 12;
+  // Was a bare `Math.max(outAlt, 12)` in writeToMap() with no name and no
+  // comment — a SECOND floor, on the written pose rather than on the state, so
+  // it would have reported alt 1.7 while posing the map from 12 m. Named here
+  // per CLAUDE.md rule 11. It exists to keep the derived zoom finite.
+  const ALT_RENDER_MIN = 0.5;
   const VERT_GAIN = 0.25;          // per second, multiplicative
   const WHEEL_GAIN = 0.0018;       // per px
   const PAN2_GAIN = 0.0022;        // per px
@@ -97,6 +131,23 @@ function initControls(map, scene) {
   const DT_MAX = 0.10, DT_BAIL = 1.0;
 
   const CELL = 6, R_CAM = 6, SKIN = 2.5, SKIN_V = 8, STEP_UP = 12, HARD_CLEAR = 4;
+  // ── The same three guards, sized for somebody standing on a pavement ──
+  //
+  // R_CAM = 6 m is "is there a roof within 6 metres of me horizontally". Above
+  // the roofline that reads as "am I about to hit something". On a 3 m pavement
+  // it reads as "you are inside the tower you are standing next to", and it is
+  // the single measured reason walking did not work: one 0.7 s tap of W on the
+  // Nueces pavement threw the camera from 2.0 m to 66.5 m — exactly
+  // roofAt(6 m) + HARD_CLEAR. The same probe at R_CAM = 1.0 m moved it 0.8 m.
+  //
+  // STEP_UP = 12 m is "anything up to 12 m above your eye is a kerb you skim
+  // over". At 18 m that hops a parapet. At 1.7 m it makes every building under
+  // ~14.5 m — 54% of the campus snapshot — a ramp instead of a wall, so walking
+  // at a two-storey house put you on its roof. A pedestrian steps over a kerb.
+  //
+  // SKIN_V = 8 m is the clearance kept above a surface being ridden. Eight
+  // metres above a one-storey roof is a third floor.
+  const R_CAM_GROUND = 1.0, SKIN_V_GROUND = 0.8, STEP_UP_GROUND = 0.5;
   const LIFT = 45, FALL = 25, TAU_FLOOR_UP = 0.25, TAU_FLOOR_DOWN = 0.80;
   const FLOOR_LOOKAHEAD = 0.5;
   const BRAKE_PROBES = [[0.9, 0.55], [0.5, 0.30], [0.25, 0.12]];
@@ -186,6 +237,11 @@ function initControls(map, scene) {
     FOV_EPS: 0.02,         // snap-back-to-base threshold
 
     BOB_AMP_ALT: 0.45,     // hover-bob altitude amplitude (upward only — never dips below the floor)
+    // 0.45 m is invisible at 160 m and is 26% of eye height at 1.7 m — a
+    // pronounced bounce. Same for the 0.7 m landing dip, which would take a
+    // 1.7 m eye to 1.0 m. Both blend to a ground value on groundMix().
+    BOB_AMP_ALT_GROUND: 0.06,
+    SETTLE_AMP_GROUND: 0.10,
     BOB_AMP_PITCH: 0.12,   // hover-bob pitch amplitude
     BOB_PERIOD: 5.0,       // hover-bob breathing period
     BOB_MAX_SPEED: 1.5,    // m/s — bob only engages below this horizontal speed
@@ -208,6 +264,18 @@ function initControls(map, scene) {
     WALL_PROBE_AHEAD: 10,  // m ahead for the left/right freer-side probes
     WALL_PROBE_ANGLE: 40,  // deg either side of the motion heading for those probes
   };
+
+  // ── The ground blend ──────────────────────────────────────────────
+  // 0 while flying, 1 at the floor, continuous in between. Every pedestrian
+  // parameter is a lerp on this and nothing branches on an altitude, so there is
+  // no threshold to sit exactly on and no mode to be in the wrong one of.
+  // groundMix() is 0 for every altitude at or above ALT_GROUND, which is why the
+  // flyover is provably untouched: its lowest scripted pose is 113.9 m.
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const groundMix = a => clamp((ALT_GROUND - (a == null ? alt : a)) / (ALT_GROUND - ALT_MIN), 0, 1);
+  const rCam   = () => lerp(R_CAM,   R_CAM_GROUND,   groundMix());
+  const skinV  = () => lerp(SKIN_V,  SKIN_V_GROUND,  groundMix());
+  const stepUp = () => lerp(STEP_UP, STEP_UP_GROUND, groundMix());
 
   // ── State — the camera eye is the truth ───────────────────────────
   const eye = { lng: 0, lat: 0 };
@@ -377,6 +445,15 @@ function initControls(map, scene) {
   // block for no benefit. It also cuts the work by roughly an order of
   // magnitude -- of 8,428 ring buildings only 192 are over 60 m.
   const OUTER_MIN_H = 12;
+  // ...and that reasoning dies with the 18 m floor. At walking height a 12 m cut
+  // is a hole you can walk through: 7,652 of the ring's 9,149 buildings are 12 m
+  // or under, i.e. EVERYTHING off campus that is not a tower — a first-time
+  // visitor on a West Campus pavement walking through a house. So the cut is
+  // altitude-gated, and crossing ALT_GROUND forces a rescan (outerSeen only holds
+  // what was ADDED, so the low-rise skipped while flying is not deduped away).
+  // The campus snapshot itself is unaffected: all 2,453 of its buildings, down to
+  // 1.7 m, are already rasterised into the core grid.
+  const OUTER_MIN_H_GROUND = 2.5;
   const OUTER_RESCAN_M = 200;     // rescan once the camera has moved this far
   const OUTER_RESCAN_MS = 1500;   // ...or this long, whichever comes first
   // A HARD BUDGET, IN MILLISECONDS, and it is the difference between this
@@ -389,7 +466,8 @@ function initControls(map, scene) {
   const OUTER_BUDGET_MS = 4;
   let outerCells = new Map(), outerScanAt = 0, outerScanLng = 0, outerScanLat = 0;
   let outerSeen = new Set(), outerPending = null, outerPendingAt = 0;
-  let outerIdleBackoff = false, outerAddedThisPass = 0;
+  let outerIdleBackoff = false, outerAddedThisPass = 0, outerMinHUsed = OUTER_MIN_H;
+  const outerMinH = () => (alt < ALT_GROUND ? OUTER_MIN_H_GROUND : OUTER_MIN_H);
   let outerFeatures = 0, outerScans = 0, outerScanMs = 0, outerScanMsMax = 0;
 
   const outerKey = (i, j) => i * 1048576 + j;
@@ -411,7 +489,7 @@ function initControls(map, scene) {
       // it builds the feature objects, and the low-rise is most of the ring.
       const layer = (window.TILES && window.TILES.layers && window.TILES.layers.outer
                      && window.TILES.layers.outer.layer) || 'outer';
-      const filter = ['>', ['get', 'h'], OUTER_MIN_H];
+      const filter = ['>', ['get', 'h'], outerMinHUsed];
       let feats = [];
       try { feats = map.querySourceFeatures(OUTER_SRC, { sourceLayer: layer, filter }); } catch (e) {}
       if (!feats.length) {
@@ -428,7 +506,7 @@ function initControls(map, scene) {
       if ((outerPendingAt & 63) === 0 && performance.now() - t0 > OUTER_BUDGET_MS) return;
       const f = outerPending[outerPendingAt++];
       const h = f.properties && f.properties.h;
-      if (!(h > OUTER_MIN_H) || !f.geometry) continue;
+      if (!(h > outerMinHUsed) || !f.geometry) continue;
       const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates]
                   : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
       for (const poly of polys) {
@@ -489,6 +567,10 @@ function initControls(map, scene) {
     // window. Otherwise a big instalment queue would trickle in at 4 ms every
     // 1.5 s and the camera could reach a tower before the tower reached the
     // field — which is the one failure this whole mechanism exists to prevent.
+    if (outerMinH() !== outerMinHUsed) {
+      outerMinHUsed = outerMinH();
+      outerPending = null; outerScanAt = 0; outerIdleBackoff = false;
+    }
     const resuming = outerPending && outerPendingAt < outerPending.length;
     const moved = Math.hypot((eye.lng - outerScanLng) * mLon(eye.lat),
                              (eye.lat - outerScanLat) * M_LAT);
@@ -522,7 +604,7 @@ function initControls(map, scene) {
    * here rather than into a parallel check at each call site.
    */
   function maxHeightIn(lng, lat, r) {
-    r = r == null ? R_CAM : r;
+    r = r == null ? rCam() : r;
     const ring = outerHeightIn(lng, lat, r);
     if (!gridBuilt) return ring;
     const mx = mLon(lat), my = M_LAT;
@@ -570,6 +652,53 @@ function initControls(map, scene) {
   // so it is its own pass with its own verification.
   const pitchCap = () => Math.min(PITCH_MAX, deg(Math.acos(clamp(alt / dMax(), 0, 1))));
 
+  // ── THE SAME TRAP AT THE OTHER END OF THE ZOOM RANGE ──────────────
+  //
+  // ZOOM_MAX bounds the derived zoom from above exactly as ZOOM_MIN bounds it
+  // from below, so there is a SMALLEST camera-to-centre distance the pose can
+  // express — 18.47 m at 1440x900 / fov 58. Since alt = D*cos(pitch), a low
+  // camera that pitches down asks for a D under that, the clamp bites, and
+  // MapLibre places the camera 18.47 m from the centre instead of the 2 m it was
+  // asked for: THE EYE SLIDES BACKWARDS AND UPWARDS ALONG ITS OWN VIEW RAY while
+  // window.__fly.eye() keeps truthfully reporting 1.7 m, because the eye state
+  // really is 1.7 m. It is the render that lies. This is the identical failure to
+  // the look-up teleport documented at DO NOT WIDEN THIS above, mirrored — and it
+  // is live TODAY at the old 18 m floor in the pitch 5-13 deg band, where nobody
+  // ever flies.
+  //
+  // pitchFloorAt is that clamp solved for pitch, the exact mirror of pitchCap's
+  // acos(alt/dMax). It BLOCKS INPUT rather than moving the camera, which is the
+  // rule this whole section already runs on. Consequence, and it is a real
+  // restriction to be honest about: at 1.7 m the pose is only expressible at
+  // pitch >= 84.7 deg, so at walking height you may look level and up but NOT
+  // down at your own feet. It relaxes continuously as you climb and is exactly
+  // zero at and above 18.47 m, so no scripted pose in this app ever sees it.
+  //
+  // THE ALTERNATIVE WAS MEASURED, IT WORKS, AND IT IS STILL NOT TAKEN.
+  // Raising ZOOM_MAX past MapLibre's default maxZoom of 22 would remove this
+  // restriction entirely (1.7 m at nadir needs 24.9). Probed on the vendored
+  // 5.24 rather than assumed, because this file's own history is setMaxPitch(120)
+  // being accepted and silently still doing 90: setMaxZoom(22.5/23/24/25/26) are
+  // ALL accepted and all report back exactly what they were given, and a jumpTo
+  // to z24.2 really arrives — transform.pixelsPerMeter 285.45 against
+  // cameraToCenterDistance 811.82 px is a genuine 2.84 m camera.
+  //
+  // What stops it is not the library, it is a layer: `js/ground.js:349`
+  // `texGroundMaxZoom: 22` is a LAYER maxzoom, so the textured ground stops being
+  // drawn above z22 — and z only climbs past 22 when you pitch DOWN at low
+  // altitude, i.e. exactly when you are looking at the ground. Trading "you
+  // cannot look at your feet" for "your feet have no texture" is not a trade.
+  // Blocking the input costs one layer nothing and stays inside this file.
+  // Written up as a QUEUE item; it is a ground.js pass, not a controls.js one.
+  const dMin = () => camPx() * mpp(ZOOM_MAX, eye.lat);
+  const pitchFloorAt = a => deg(Math.acos(clamp(a / dMin(), 0, 1)));
+  const pitchFloor = () => Math.max(PITCH_MIN, pitchFloorAt(alt));
+  // The same constraint read as an altitude. Used by EVERY altitude clamp in the
+  // tick, including the one `driving` is tested against — if the drive test and
+  // the settle clamp disagreed by so much as a metre the controller would own the
+  // camera forever and stomp on the intro.
+  const altFloorMin = () => Math.max(ALT_MIN, dMin() * Math.cos(rad(pitch)));
+
   // ── Read/write the MapLibre pose ──────────────────────────────────
   function syncFromMap() {
     const c = map.getCenter();
@@ -591,14 +720,18 @@ function initControls(map, scene) {
     // applied HERE, as derived output offsets on top of the eye state. The eye,
     // alt, bearing and pitch state stay exactly what the movement and collision
     // systems computed, so every guarantee they make still holds.
-    const outPitch = clamp(pitch + fxPitchOff, PITCH_MIN,
-                           Math.max(pitch, Math.min(PITCH_MAX, pitchCap())));
     let outAlt = alt + fxAltOff;
     if (gridBuilt) {
-      const h = maxHeightIn(eye.lng, eye.lat, R_CAM);
+      const h = maxHeightIn(eye.lng, eye.lat, rCam());
       if (h > 0) outAlt = Math.max(outAlt, h + HARD_CLEAR);   // an offset may never dip below the hard net
     }
-    outAlt = Math.max(outAlt, 12);
+    outAlt = Math.max(outAlt, ALT_RENDER_MIN);
+    // Both bounds are widened to include `pitch` itself so the clamp can never
+    // be inverted by a feel offset; the effects may not push the written pitch
+    // outside what the written ALTITUDE can express, in either direction.
+    const outPitch = clamp(pitch + fxPitchOff,
+                           Math.min(pitch, Math.max(PITCH_MIN, pitchFloorAt(outAlt))),
+                           Math.max(pitch, Math.min(PITCH_MAX, pitchCap())));
     const lead = outAlt * Math.tan(rad(outPitch));
     const cLat = eye.lat + lead * Math.cos(rad(bearing)) / M_LAT;
     const cLng = eye.lng + lead * Math.sin(rad(bearing)) / mLon(eye.lat);
@@ -620,7 +753,17 @@ function initControls(map, scene) {
   }
 
   // ── Collision ─────────────────────────────────────────────────────
-  const blockedAt = (lng, lat) => maxHeightIn(lng, lat, R_CAM) + SKIN > alt;
+  //
+  // THE `h > 0` IS NOT DEFENSIVE, IT IS THE BUG. maxHeightIn returns 0 over open
+  // ground, and `0 + SKIN(2.5) > alt` is TRUE for every altitude under 2.5 m —
+  // so at a 1.7 m floor every cell in Austin, including the middle of the South
+  // Mall, reported "blocked", and the step-up branch then read that as a kerb and
+  // lifted the camera to SKIN_V. Press W on grass, rise to 8 m. Three sites had
+  // this unguarded comparison (here, speedBrake, wallDeflect's probes); the three
+  // that already guarded on `h > 0` are the hard net, the rooftop floor and
+  // writeToMap. This makes all six agree.
+  const blocks = (h, a) => h > 0 && h + SKIN > a;
+  const blockedAt = (lng, lat) => blocks(maxHeightIn(lng, lat, rCam()), alt);
 
   /**
    * Wall deflection (TUNE.WALL_*): called when a substep found the way blocked.
@@ -641,11 +784,12 @@ function initControls(map, scene) {
     const pa = rad(TUNE.WALL_PROBE_ANGLE);
     const probe = a => maxHeightIn(
       eye.lng + Math.sin(a) * TUNE.WALL_PROBE_AHEAD / mLon(eye.lat),
-      eye.lat + Math.cos(a) * TUNE.WALL_PROBE_AHEAD / M_LAT, R_CAM);
+      eye.lat + Math.cos(a) * TUNE.WALL_PROBE_AHEAD / M_LAT, rCam());
     const hL = probe(hd - pa), hR = probe(hd + pa);
+    const freeL = !blocks(hL, alt), freeR = !blocks(hR, alt);
     let rot = 0;                                   // + rotates the velocity clockwise (to the right)
-    if (hR + SKIN <= alt && hL + SKIN > alt)      rot =  rad(TUNE.WALL_STEER) * sdt;
-    else if (hL + SKIN <= alt && hR + SKIN > alt) rot = -rad(TUNE.WALL_STEER) * sdt;
+    if (freeR && !freeL)      rot =  rad(TUNE.WALL_STEER) * sdt;
+    else if (freeL && !freeR) rot = -rad(TUNE.WALL_STEER) * sdt;
     else if (hL !== hR) rot = (hR < hL ? 1 : -1) * rad(TUNE.WALL_STEER) * sdt;
     if (rot) {
       const cR = Math.cos(rot), sR = Math.sin(rot), ve = vel.e, vn = vel.n;
@@ -661,7 +805,7 @@ function initControls(map, scene) {
     for (const [t, cap] of BRAKE_PROBES) {
       const lng = eye.lng + (vel.e * t) / mLon(eye.lat);
       const lat = eye.lat + (vel.n * t) / M_LAT;
-      if (maxHeightIn(lng, lat, R_CAM) + SKIN > alt) return cap;
+      if (blocks(maxHeightIn(lng, lat, rCam()), alt)) return cap;
     }
     return 1;
   }
@@ -1028,7 +1172,7 @@ function initControls(map, scene) {
                         lookPointerId !== null || tapDragId !== null || pointerCount() >= 2 ||
                         pendingYaw !== 0 || pendingPitch !== 0 ||
                         wheelLogAcc !== 0 || touchLogAcc !== 0;
-    const resolvedAlt = clamp(Math.max(altUser, altFloor), ALT_MIN, altCeiling());
+    const resolvedAlt = clamp(Math.max(altUser, altFloor), altFloorMin(), altCeiling());
     // realDrive is the original driving test. fxLive extends ownership only
     // while a feel effect (bank return, FOV relax, bob, settle) still has a
     // non-negligible output offset to write; every effect decays to exactly
@@ -1065,7 +1209,7 @@ function initControls(map, scene) {
     // ── Look
     let appliedYaw = 0;                            // signed Δbearing this frame, deg
     if (pendingYaw)   { appliedYaw = -pendingYaw; bearing = wrap360(bearing - pendingYaw); pendingYaw = 0; }
-    if (pendingPitch) { pitch = clamp(pitch + pendingPitch, PITCH_MIN, pitchCap());
+    if (pendingPitch) { pitch = clamp(pitch + pendingPitch, pitchFloor(), Math.max(pitchFloor(), pitchCap()));
                         lastPitchInputT = simTime; pendingPitch = 0; }
 
     // ── Altitude intent (multiplicative: one key-second is always the same
@@ -1083,7 +1227,16 @@ function initControls(map, scene) {
     // drag, or a slow frame that coalesces a whole gesture) permanently eat the
     // altitude you had asked for, and pitching back would not give it back.
     // The pitch-dependent ceiling is applied to the RENDERED altitude instead.
-    altUser = clamp(altUser, ALT_MIN, ALT_MAX);
+    //
+    // The FLOOR, unlike the ceiling, does have to be pitch-dependent, and for the
+    // opposite reason: below dMin*cos(pitch) the pose is not expressible at all
+    // (see pitchFloorAt) and the render would silently pull the eye back instead
+    // of reporting a failure. Blocking the descent is the honest half of the same
+    // pair as blocking the pitch — together they mean the state can never enter a
+    // pose the renderer cannot draw. At pitch 88 this floor is 0.64 m, so ALT_MIN
+    // binds and walking height is fully reachable; it only bites if you try to
+    // descend to the pavement while looking down at it.
+    altUser = clamp(altUser, altFloorMin(), ALT_MAX);
 
     // ── Horizontal intent. CLAMP the magnitude rather than normalise, so a
     // half-deflected joystick still means half speed while W+D no longer
@@ -1137,9 +1290,9 @@ function initControls(map, scene) {
       if (!gridBuilt || !blockedAt(pLng, pLat)) {
         eye.lng = pLng; eye.lat = pLat;
       } else {
-        const hObs = maxHeightIn(pLng, pLat, R_CAM);
-        if (hObs + SKIN - alt <= STEP_UP) {          // low enough to skim over
-          stepFloor = Math.max(stepFloor, hObs + SKIN_V);
+        const hObs = maxHeightIn(pLng, pLat, rCam());
+        if (hObs + SKIN - alt <= stepUp()) {         // low enough to skim over
+          stepFloor = Math.max(stepFloor, hObs + skinV());
           eye.lng = pLng; eye.lat = pLat;
         } else if (!blockedAt(pLng, eye.lat)) {
           // Slide east-west; the blocked northward component deflects (damped
@@ -1162,9 +1315,9 @@ function initControls(map, scene) {
     if (gridBuilt) {
       const aLng = eye.lng + (vel.e * FLOOR_LOOKAHEAD) / mLon(eye.lat);
       const aLat = eye.lat + (vel.n * FLOOR_LOOKAHEAD) / M_LAT;
-      const roof = Math.max(maxHeightIn(eye.lng, eye.lat, R_CAM), maxHeightIn(aLng, aLat, R_CAM));
-      let want = roof > 0 ? roof + SKIN_V : 0;
-      if (want - altUser > STEP_UP) want = 0;      // too tall to lift over; the slide already stopped us
+      const roof = Math.max(maxHeightIn(eye.lng, eye.lat, rCam()), maxHeightIn(aLng, aLat, rCam()));
+      let want = roof > 0 ? roof + skinV() : 0;
+      if (want - altUser > stepUp()) want = 0;    // too tall to lift over; the slide already stopped us
       want = Math.max(want, stepFloor);
       const tf = want > altFloor ? TAU_FLOOR_UP : TAU_FLOOR_DOWN;
       const next = altFloor + (want - altFloor) * (1 - Math.exp(-dt / tf));
@@ -1173,11 +1326,11 @@ function initControls(map, scene) {
       altFloor = SAFE_ALT;                          // fail safe, never fail open
     }
 
-    alt = clamp(Math.max(altUser, altFloor), ALT_MIN, altCeiling());
+    alt = clamp(Math.max(altUser, altFloor), altFloorMin(), altCeiling());
 
     // ── Hard net: the guarantee rather than the feel. Fires essentially never.
     if (gridBuilt) {
-      const h = maxHeightIn(eye.lng, eye.lat, R_CAM);
+      const h = maxHeightIn(eye.lng, eye.lat, rCam());
       if (h > 0 && alt < h + HARD_CLEAR) { alt = altUser = h + HARD_CLEAR; }
     }
 
@@ -1230,7 +1383,8 @@ function initControls(map, scene) {
       prevSpeed = sp;
       let settleOff = 0;
       if (settleT < TUNE.SETTLE_DUR) {
-        settleOff = -TUNE.SETTLE_AMP * Math.sin(PI * (settleT / TUNE.SETTLE_DUR));
+        settleOff = -lerp(TUNE.SETTLE_AMP, TUNE.SETTLE_AMP_GROUND, groundMix()) *
+                    Math.sin(PI * (settleT / TUNE.SETTLE_DUR));
         settleT += dt;
       }
 
@@ -1243,7 +1397,8 @@ function initControls(map, scene) {
       if (bobT === 0 && bobGain < 0.01) bobGain = 0;
       const bobAmp = bobGain * clamp((TUNE.BOB_TIMEOUT - tSince) / TUNE.BOB_FADE, 0, 1);
       const ph = 2 * PI * simTime / TUNE.BOB_PERIOD;
-      const bobAlt = bobAmp * TUNE.BOB_AMP_ALT * (0.5 - 0.5 * Math.cos(ph));
+      const bobAlt = bobAmp * lerp(TUNE.BOB_AMP_ALT, TUNE.BOB_AMP_ALT_GROUND, groundMix()) *
+                     (0.5 - 0.5 * Math.cos(ph));
       const bobPitch = bobAmp * TUNE.BOB_AMP_PITCH * Math.sin(ph + 1.1);
 
       // Speed-adaptive pitch: ease toward the horizon at sustained speed, only
@@ -1366,8 +1521,21 @@ function initControls(map, scene) {
                          avgMs: outerScans ? +(outerScanMs / outerScans).toFixed(2) : 0,
                          maxMs: +outerScanMsMax.toFixed(2) }),
     outerScan: () => { outerScanAt = 0; outerStamp(); return outerCells.size; },
-    consts: { ALT_REF, ALT_MIN, ALT_MAX, ZOOM_MIN, ZOOM_MAX, R_CAM, HARD_CLEAR,
-              SPEED_REF, SPEED_EXP, TAU_ACCEL, TAU_DECEL, VERT_GAIN, SPRINT },
+    // A FUNCTION, not a snapshot. It used to be an object literal evaluated once
+    // at init, so anything derived (the live probe radius, the pitch floor, the
+    // altitude floor as pitch changes it) could not be read by a verification at
+    // all, and a runtime override would have been invisible. pitch-probe.mjs
+    // already calls it either way.
+    consts: () => ({ ALT_REF, ALT_MIN, ALT_MAX, ALT_GROUND, ALT_RENDER_MIN,
+                     ZOOM_MIN, ZOOM_MAX, R_CAM, R_CAM_GROUND, HARD_CLEAR,
+                     SKIN, SKIN_V, SKIN_V_GROUND, STEP_UP, STEP_UP_GROUND,
+                     OUTER_MIN_H, OUTER_MIN_H_GROUND, PITCH_MIN, PITCH_MAX,
+                     SPEED_REF, SPEED_EXP, SPEED_MIN, SPEED_MAX,
+                     TAU_ACCEL, TAU_DECEL, VERT_GAIN, SPRINT,
+                     // live, derived — the whole point of making this a function
+                     groundMix: groundMix(), rCam: rCam(), skinV: skinV(),
+                     stepUp: stepUp(), dMin: dMin(), pitchFloor: pitchFloor(),
+                     altFloorMin: altFloorMin(), outerMinH: outerMinH() }),
     simTime: () => simTime,
     // Feel-effect debug/override surface: `tune` is the live TUNE object (any
     // value can be overruled at runtime), `fx` is this frame's derived outputs.
