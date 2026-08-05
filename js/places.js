@@ -515,6 +515,15 @@
                  label: { z: PLACES.labelMinZoom, features: nLabel },
                },
                deferredBelowSpawn: nEntry };
+    // The tenant catalogue this layer is authoritative for. Derived here, once,
+    // from the file that was actually loaded — see placesTenantNames() above.
+    _names = [...new Set([...src, ...gen])].sort();
+    // js/app.js owns the cross-layer label hierarchy and does the suppression.
+    // It is called from BOTH ends because the two modules boot independently:
+    // signs.js calls orderLabelLayers() when `signs-label` appears, and this
+    // call covers the other order, where places.js finishes last.
+    try { if (window.dedupeTenantLabels) window.dedupeTenantLabels(); } catch (e) {}
+
     console.log('[places]', _stats.shopfronts, 'shopfronts,', _stats.features,
                 'features (', nBase + nGlass, 'base z' + PLACES.minZoom, '/',
                 nPool, 'pool z' + PLACES.poolMinZoom, '/',
@@ -524,6 +533,62 @@
   };
 
   window.placesStats = () => _stats;
+
+  // ── ONE LABEL PER TENANT ────────────────────────────────────────────
+  // QUEUE W5: "Chipotle" appeared twice in one frame — once from this layer,
+  // once from `signs-label`, whose curated `data/signs.json` carries TEN of the
+  // same businesses (Chipotle, Whataburger, P. Terry's, Raising Cane's,
+  // Chick-fil-A, Cain & Abel's, Dirty Martin's, Scholz Garten, Texas Chili
+  // Parlor, The Co-op). Neither file is wrong on its own; drawing both is.
+  //
+  // js/app.js owns the label hierarchy across layers and makes the suppression
+  // there. This is the list it suppresses against, and it is DERIVED FROM THE
+  // LOADED DATA, never a second hand-written catalogue — the same rule QUEUE W1
+  // landed for `places-check.mjs`, for the same reason: a copied list is correct
+  // on the day it is written and stale on the next bake.
+  let _names = [];
+  window.placesTenantNames = () => _names.slice();
+
+  /**
+   * THE GUARD. Every symbol layer in the style, queried once over the viewport,
+   * grouped by the string it drew. Anything that comes back naming two layers
+   * is a tenant labelled twice — which is the defect, stated as a number a
+   * script can assert on rather than as a screenshot somebody has to read.
+   *
+   * queryRenderedFeatures consults the collision index, so a name that lost its
+   * box is correctly absent: this counts what is ON SCREEN, not what is in the
+   * data. Call it ONCE at a settled pose — a full-viewport query on every
+   * `render` event takes the renderer down (docs/night/entrances-payload.md §7).
+   *
+   * Returns { names, rendered, duplicates: [{text, layers}] }.
+   */
+  window.labelDuplicates = function labelDuplicates(map) {
+    if (!map || !map.getStyle) return null;
+    const w = map.getCanvas().clientWidth, h = map.getCanvas().clientHeight;
+    const byText = new Map();
+    for (const l of map.getStyle().layers) {
+      if (l.type !== 'symbol') continue;
+      let hits = [];
+      try { hits = map.queryRenderedFeatures([[0, 0], [w, h]], { layers: [l.id] }); }
+      catch (e) { continue; }
+      for (const f of hits) {
+        const pr = f.properties || {};
+        // The four text fields our own label layers read. A layer that names
+        // things through some other key is invisible to this and would need
+        // adding here — which is a one-line edit, on purpose.
+        const t = pr.nm || pr.label || pr.text || pr.name;
+        if (!t) continue;
+        if (!byText.has(t)) byText.set(t, new Set());
+        byText.get(t).add(l.id);
+      }
+    }
+    const duplicates = [];
+    for (const [t, set] of byText) {
+      if (set.size > 1) duplicates.push({ text: t, layers: [...set].sort() });
+    }
+    duplicates.sort((a, b) => a.text.localeCompare(b.text));
+    return { names: _names.length, rendered: byText.size, duplicates };
+  };
 
   window.applyPlacesColors = function applyPlacesColors(map, p) {
     if (!map || !map.getLayer) return;
@@ -558,6 +623,9 @@
                               (PLACES.on && PLACES.labels) ? 'visible' : 'none');
       } catch (e) {}
     }
+    // If this layer just stopped drawing tenant names, the layers that yielded
+    // them have to get them back. app.js decides; it just has to be asked.
+    try { if (window.dedupeTenantLabels) window.dedupeTenantLabels(); } catch (e) {}
   };
 
   // ── bootstrap ───────────────────────────────────────────────────────
