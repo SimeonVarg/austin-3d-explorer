@@ -456,6 +456,14 @@ bearings confirmed by a magenta pose search).
 # PART X — WHAT THE 24 LOBBY PHOTOGRAPHS FOUND. Written 2026-08-05 from
 # HANDOFF §101. **Every one of these was found by looking, not by measuring.**
 
+> **STATUS after HANDOFF §102-§104 (re-shot on `main` at `a8ae8ad`).** Of the
+> seven: **one was a real defect and is fixed (X2)**; **two were never defects
+> (X3, X5)**; **four are the 18 m camera floor wearing different costumes (X4
+> in part, X5, X6, X7)** and are therefore blocked on **X1, which is Simeon's
+> call and is still open.** Pictures for all of it:
+> `shots/lobbies/final/`. Nothing below is closed by an execution decision that
+> was his to make.
+
 **X1. THE CAMERA CANNOT GO BELOW 18 m, AND THIS IS THE ONE TO SHOW SIMEON
 FIRST.** `js/controls.js:85` `ALT_MIN = 18`. Any scripted pose under 18 m of eye
 height is treated as "the user is flying" and lifted back to 18 m within ~2 s —
@@ -467,49 +475,80 @@ and scope decision, not an execution one:** lowering the floor is what lets a
 flying user clip through a wall, so it goes to Simeon with a picture rather than
 being decided in a lane.
 
-**X2. The Callaway House Austin's 55 m tower is unlit at night.** QUEUE W4, one
-family further on. **0.04 % warm-lit pixels and 0.92× the frame median — darker
-than the sky — against 1.41 % for 21 Rio in the same frame.** Its own lobby
-below is 20.6 % warm. `shots/night/final/12-DEFECT-...png`, two independent
-poses. The band is `fam:"sn"`, `wn` `#191419`;
-`scripts/bake_westcampus.py` line 123 lists `sn` as a LIT family and gives it a
-near-black `wn` on that belief, and §98's `check_night_ramp()` assertion B only
-tests families in the hand-written `NIGHT_UNLIT_FAMILIES` tuple. **Derive that
-list from the atlas** (warm-texel fraction per family, the §96 measurement)
-instead of hand-writing it, and this class stops recurring one building at a
-time.
+**~~X2.~~ DONE — The Callaway House Austin's tower is lit** (HANDOFF §102,
+re-verified §104). The family was `sn`, a stadium-concourse elevation with no
+window grid, on a 17-storey residence; it is `tr` now and the brick colour is
+untouched. In the four-tower night frame Callaway measures **7.41 % lit** against
+21 Rio 8.65 %, Signature 1909 7.78 %, Ion Austin 6.92 % — inside its neighbours'
+spread, from 0.04 % before. `shots/lobbies/final/01`–`06`.
+**The guard has now been watched failing**: breaking 21 Rio, Callaway or Dobie
+into an unlit family fails the bake by name and by metre, and editing
+`js/facades.js`'s night constants fails it on the digest. All 24 principal tower
+bands measure over 120 luma peak off the atlas; **no dark towers remain.**
 
-**X3. You can see straight through The Quarters Grayson House.** At 18 m the
-camera ends up inside the building and the frame is its bare interior floor
-slabs and piers — MapLibre does not draw the back of a fill-extrusion, so the
-near wall is absent. `shots/night/final/14-DEFECT-...png`. This is what any
-visitor sees if they fly into that block; the flycam's collision field did not
-stop it here. Widest blast radius of anything on this list.
+**~~X3.~~ CLOSED — Grayson House is not transparent** (HANDOFF §103, re-shot
+§104). §101's camera was standing **inside The Quarters Sterling House**, 24 m
+south, and MapLibre does not draw the back of a fill-extrusion. Photographed at
+**six** bearings on `main` it is a solid punched-window block with a brick base
+and a coping: `shots/lobbies/final/20-X3-GRAYSON-AFTER-bearing-*.png`, and the
+magenta silhouette `21-...` is one connected mass. `19-...` is the old frame for
+comparison. **Nothing to fix.** The guard for the class —
+`scripts/verify/westcampus-probe.mjs:60`, "nothing stands above `final_height`" —
+is still dead in the page-setup regression the Mac lane owns.
 
-**X4. Cambridge Tower's main door has no open ground in front of it.** The
-marched clear distance is **0 m** — a footprint ≥5.5 m tall starts within 6 m of
-the door along its own outward normal. No frame of that lobby exists from any of
-four bearings. Either the door is on the wrong wall or the AT&T Center block
-overlaps it. `scripts/bake_entrances.py`.
+**X4. Cambridge Tower's door is blocked by CAMBRIDGE TOWER, and the bug is in
+the march, not the placement.** Not the AT&T Center and not the wrong wall — both
+guesses are wrong. Measured (§104): the main-door group's 40 points sit **0.2 m
+outside Cambridge Tower's own base ring** and the nearest *other* West Campus
+footprint is **107 m** away. Marching outward in 30° steps against its own ring,
+**six of twelve directions re-enter the host building within 1–3 m** because the
+door sits in a re-entrant notch of its own plan; the other six are clear for
+30 m. **`scripts/bake_entrances.py`'s clear-distance march must exclude the
+footprint the door belongs to**, or every door in a notch reports 0 m. The
+photograph agrees there is open ground:
+`shots/lobbies/final/30-X4-CAMBRIDGE-TOWER-bearing-180.png`. Still unsettled:
+whether the glazing is on that elevation — the probe that would answer it failed
+(see X8).
 
-**X5. Two lobbies are completely hidden by street trees.** 21 Rio (two canopies,
-0 magenta pixels at all four bearings) and The Nine at West Campus (one canopy
-across the whole frontage). `shots/night/final/13-DEFECT-...png`. The tree
-canopies are large low-poly blobs and at the 18 m floor they are the frontage.
-Either the canopy radius or the lamp/tree spacing near a `role:"main"` door
-wants a rule.
+**~~X5.~~ CLOSED — the trees are real and correctly placed** (HANDOFF §103).
+Every canopy in front of 21 Rio and The Nine at West Campus is `src:"imagery"`,
+the big one is an ordinary mature live oak by size, and its underside is 4.41 m
+against a 2.44 m door head — **you walk under it**, if you could get under it.
+Re-shot from a different bearing in §104 the 21 Rio frontage reads fine:
+`shots/lobbies/final/60-X5-*`. **This is X1 in a costume.** The real finding
+underneath it is separate and general: **crown radius and trunk diameter in
+`data/trees.geojson` are drawn independently** — 31 % of 7,414 pairs have a
+ratio over 40 where a real oak sits near 12–25, and 73 % of canopy centres have
+no trunk within 2 m. `scripts/shape_trees.py` should derive one from the other.
 
-**X6. The Nine at Rio and The Quarters Sterling House could not be framed at
-all** — a blank untextured wall or a street canyon at every bearing. Sterling
-House's door is one of the four §99's `clear_buried()` relocated (3 m); re-check
-that the relocation landed on a wall a camera can see, per §99's own lesson that
-an audit validating a POINT is wrong when the consumer may move it afterwards.
+**~~X6.~~ CLOSED — both CAN be framed; the shorter one is X1** (§104).
+The Quarters Sterling House at bearing 180 reads as a real ground floor —
+balcony bands, brick base with piers, pavement, glazed lobby and canopy:
+`shots/lobbies/final/40-X6-sterling-house-bearing-180.png`. The Nine at Rio is
+**12.2 m tall against an 18 m camera floor**, so every frame looks down onto its
+roof; its facade is modelled and visible, you simply cannot stand in front of it.
+`40-X6-nine-at-rio-*`.
 
-**X7. At the 18 m floor a low neighbour's roof fills most of the frame as a flat
-untextured colour field** — brown by day, pure black at night. Rambler and Block
-on 25th East are the clearest. `shots/night/final/15-DEFECT-...png`. Roof top
-faces carry no texture and at the lowest altitude the app allows they are a
-large part of what a person sees.
+**X7. The flat untextured colour field is the camera floor, and here is the
+number.** Rambler is **14.4 m tall**; at the 18 m floor **84.8 % of the frame is
+one exact colour** (`#bfae98`, its own roof slab). Move the same camera to 55 m
+and the largest single-colour field is **15.6 %** — nothing in the model changed.
+`shots/lobbies/final/50-X7-rambler-*`. **The queue's second example does not
+reproduce**: Block on 25th East is 28.1 m, above the floor, and measures **2.1 %**
+at the same pose. So X7 is **blocked on X1** for the framing complaint. What
+survives it as a real, general note: **roof top faces carry no texture at all**,
+citywide, and any downward view shows it.
+
+**X8. A magenta mask on `entrances-glass` does not survive a camera move, and
+that broke a probe in §104.** Painting the four entrance layers magenta once at
+load and then walking eight bearings returned **0 pixels for all 24
+measurements, including two control buildings that carry 11 and 12 `glass`
+features**. `js/entrances.js:1298` re-applies `fill-extrusion-color` on the
+time-of-day path, so the mask is repainted away. **Set the mask inside the
+per-pose loop** (§103's version did, and worked). Related and already costly:
+**a `#ff00ff` fill is multiplied by the night light** and comes back around
+`#9911cc` at `p = 0.92`, so every `r > 170 && b > 170` test reads zero —
+**measure silhouettes in day light**; the silhouette is geometry.
 
 ---
 
