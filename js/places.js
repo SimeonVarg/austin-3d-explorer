@@ -56,6 +56,31 @@
  * mullions survive a moving slice, a transom bar would not, so there is no
  * transom bar.
  *
+ * ── LOD: THREE TIERS, FROM A TABLE, NOT FROM TASTE ───────────────────────────
+ * scripts/bake_places.py's second pass gave all 133 shopfronts an ENTRY — a
+ * recessed bay, piers, a lintel, door leaves with their own glazing, a lit
+ * interior plane and a pool of spill on the pavement — and emitted it with NO
+ * zoom gate, because a per-feature gate cannot be expressed from a bake. That
+ * put 755 features between 0.16 m and 2.13 m on screen from z15, where the
+ * smallest of them is a twentieth of a pixel.
+ *
+ * docs/entrances/shopfronts.md §9.2 already answers what survives what
+ * altitude, derived from js/controls.js's own ALT/ZOOM constants. This file
+ * applies it as three layers over one source:
+ *
+ *   base  z15.0  bulkhead, glazing, sign band, awning, RECESS PANEL   1,582
+ *   pool  z15.5  the pavement spill                                      63
+ *   entry z16.7  door leaves, door glazing, jamb returns, lintel        755
+ *   label z17.3  the tenant names                                       133
+ *
+ * (Counted off the file at init, not from this comment — placesStats().tiers.)
+ *
+ * The recess panel stays in the base tier for two separate reasons and either
+ * alone would be enough: §9.2 puts it at 1 px at 854 m, above ALT_MAX, so it is
+ * the one entry piece that survives the whole envelope — and the bake splits the
+ * bulkhead and glazing AROUND the bay, so a tier that took the panel with it
+ * would punch a hole through every shopfront to the host wall.
+ *
  * ── IT REPLACES NOTHING ──────────────────────────────────────────────────────
  * `replacedBuildingIds` is empty on purpose and this module writes no filter on
  * `buildings-3d`. The shopfronts are a thin slab standing 0.30 m PROUD of the
@@ -93,12 +118,44 @@
     // and louder than the building it is inside. A storefront is a street-level
     // detail; it should arrive when you are close enough to walk into it.
     labelMinZoom: 17.3,
+
+    // ── the three altitude tiers ──────────────────────────────────────
+    // docs/entrances/shopfronts.md §9.2 is a table of "at what altitude is this
+    // feature one pixel", derived from js/controls.js's own ALT/ZOOM constants
+    // and cross-checked against the figure that file records. These three
+    // numbers are that table applied. The bake (HANDOFF §91) emitted the entry
+    // geometry with no gate at all — 755 of the 2,533 features were being drawn
+    // from z15, where a 0.16 m lintel is a twentieth of a pixel.
+    //
+    // WHAT STAYS AT `minZoom` AND WHY IT IS NOT ALL OF IT. `plBack` — the
+    // recess panel, 2.40 x 2.60 m — is the one entry piece §9.2 says survives
+    // the whole envelope (1 px at 854 m, above ALT_MAX). It is also the piece
+    // that fills the bay: the bake splits the bulkhead and the glazing AROUND
+    // the doorway, so gating the whole `entry` kind punches a hole through the
+    // shopfront to the host wall at every door. So the panel is base tier and
+    // the four fine pieces are not.
+    //
+    //   base   plBulk plGlass plSign plAwn plBack   1,582 features   15.0
+    //   portal plLeaf plLite plPier plHead            755 features   16.7
+    //   pool   plPool                                  63 features   15.5
+    entryMinZoom: 16.7,   // SF_PORTAL_MIN_ZOOM: 225 m, the spawn altitude. A
+                          // door leaf is 3 px tall here — it arrives exactly
+                          // when you are close enough to be looking at the Drag.
+    poolMinZoom: 15.5,    // SF_POOL_MIN_ZOOM: below this the spill is a smear.
+    // Which families are the recess panel and which are the fine portal pieces.
+    // Anything the bake grows later lands in the BASE tier by default, which is
+    // the safe failure — drawn too early, never missing.
+    entryFams: ['plLeaf', 'plLite', 'plPier', 'plHead'],
+    poolFams: ['plPool'],
+
     opacity: 1.0,
   };
   window.PLACES = PLACES;
 
   const SRC = 'austin-places';
   const L_SOLID = 'places-solid';
+  const L_ENTRY = 'places-entry';
+  const L_POOL = 'places-pool';
   const L_GLASS = 'places-glass';
   const L_LABEL = 'places-label';
   const DATA = 'data/places.geojson';
@@ -111,7 +168,14 @@
   // passes' glazing sits on the same buildings and must not disagree about what
   // a shopfront window looks like.
   const T = {
-    MULL: 5, MULL_DARK: 0.26,      // mullions every ~3.2 m, 1 px wide
+    // 3, not 5. At 5 the spacing is ~3.2 m; the Kawneer working bay is 1.35 m
+    // and the published ceiling is 1.83 m, so the rhythm was at roughly double
+    // the real one. And NOT 2 — at 2 the 1 px dark line is 50% of the tile's
+    // area and MULL_DARK 0.26 takes a quarter of the band's mean luma out,
+    // which is the "black ribbed void, not glass, a hole" failure recorded
+    // below at GLASS_DARK. 3 is ~1.9 m, one step off the published ceiling,
+    // and costs 33% of the tile instead of 50%.
+    MULL: 3, MULL_DARK: 0.26,      // mullions every ~1.9 m, 1 px wide
     // 0.50 — drag.js's own value — is right when `k.glass` is derived from a
     // sunlit stucco wall, and wrong here, because this pass derives it from ONE
     // fixed base tone instead of per-building. The tile came back at luma 80
@@ -123,7 +187,13 @@
     GLASS_DARK: 0.40,              // how far the glass goes from its base tone by day
     SKY: [126, 148, 176], SKY_MIX: 0.26,
     NIGHT: 0.86,                   // ... and how hard it glows after dark
-    NIGHT_TONE: [255, 206, 148],
+    // [255,206,148] is R:B 1.72 as authored and lands ~40% cooler on screen
+    // than the doorway three metres to its left — the entry's own `plBack` `wn`
+    // is #ffbe5e (R:B 2.71 authored, 2.06 measured) and js/entrances.js's five
+    // lit campus doorways measured 1.79-2.31. A shopfront window and the door
+    // beside it are the same room. [255,190,94] is R:B 2.71 authored, which is
+    // the same value the bake writes for the interior it is a window onto.
+    NIGHT_TONE: [255, 190, 94],
     BAY_RATE: 0.34,                // share of bays that are a brighter interior
     GAIN: 1.42,                    // the pattern removes mean luma; this puts it back
   };
@@ -286,28 +356,71 @@
     const after = Math.max(0, stack.findIndex(l => l.id === 'buildings-3d'));
     const anchor = (stack.slice(after + 1).find(l => l.type === 'symbol') || {}).id;
 
-    // Bulkhead, fascia and awning in ONE layer. They are all flat colour off the
-    // feature's own ramp, so splitting them would buy nothing and cost a draw
-    // call per frame on 919 features. Depth testing sorts the awning in front of
-    // the wall for free.
+    // Bulkhead, fascia, awning and recess panel in ONE layer. They are all flat
+    // colour off the feature's own ramp, so splitting them would buy nothing and
+    // cost a draw call per frame. Depth testing sorts the awning in front of the
+    // wall for free.
+    //
+    // The three solid tiers share one paint block — they differ ONLY in filter
+    // and minzoom — so it is written once and the three layers are otherwise
+    // identical by construction. That matters: a tier that drifted in opacity or
+    // in the vertical-gradient flag would read as a seam at the gate zoom.
+    const solidPaint = () => ({
+      'fill-extrusion-color': bakedColor(p),
+      'fill-extrusion-height': ['get', 'h'],
+      'fill-extrusion-base': ['get', 'base'],
+      'fill-extrusion-opacity': PLACES.opacity,
+      // OFF. The gradient darkens the BOTTOM of every extrusion and these bands
+      // are 0.16 m to 1.05 m tall, so the whole band falls inside the gradient
+      // and a sourced brand colour renders as a dark smear. The band tones
+      // already carry the vertical hierarchy. (Same call as stadium-wall and
+      // drag-wall.)
+      'fill-extrusion-vertical-gradient': false,
+    });
+
     if (!map.getLayer(L_SOLID)) {
       map.addLayer({
         id: L_SOLID, type: 'fill-extrusion', source: SRC, minzoom: PLACES.minZoom,
-        filter: ['!=', ['get', 'fam'], 'plGlass'],
-        paint: {
-          'fill-extrusion-color': bakedColor(p),
-          'fill-extrusion-height': ['get', 'h'],
-          'fill-extrusion-base': ['get', 'base'],
-          'fill-extrusion-opacity': PLACES.opacity,
-          // OFF. The gradient darkens the BOTTOM of every extrusion and these
-          // bands are 0.36 m to 1.05 m tall, so the whole band falls inside the
-          // gradient and a sourced brand colour renders as a dark smear. The
-          // band tones already carry the vertical hierarchy. (Same call as
-          // stadium-wall and drag-wall.)
-          'fill-extrusion-vertical-gradient': false,
-        },
+        // Everything that is NOT glazing, NOT a fine portal piece, NOT the
+        // pavement pool and NOT a label point. `plBack` falls through to here
+        // on purpose — see PLACES.entryFams for why the recess panel is base
+        // tier and the four pieces in front of it are not.
+        filter: ['all',
+          ['!=', ['get', 'fam'], 'plGlass'],
+          ['!=', ['get', 'kind'], 'label'],
+          ['match', ['get', 'fam'], PLACES.entryFams.concat(PLACES.poolFams), false, true],
+        ],
+        paint: solidPaint(),
       }, anchor);
     }
+
+    // THE PAVEMENT SPILL, one zoom step earlier than the door it comes out of.
+    // It is a horizontal surface, and a horizontal surface is the one thing a
+    // 64-degree camera sees at nearly full size — 5.0 m of pool is 8 px of
+    // screen at 225 m where the 2.13 m door leaf it belongs to is 3. So it
+    // earns z15.5 while the leaves wait for 16.7. (§9.2's own finding, applied:
+    // "the surface that delivers it from altitude is the top face".)
+    if (!map.getLayer(L_POOL)) {
+      map.addLayer({
+        id: L_POOL, type: 'fill-extrusion', source: SRC, minzoom: PLACES.poolMinZoom,
+        filter: ['match', ['get', 'fam'], PLACES.poolFams, true, false],
+        paint: solidPaint(),
+      }, anchor);
+    }
+
+    // THE PORTAL TIER. Door leaves, their glazing, the jamb returns and the
+    // lintel: 755 features that are between 0.16 m and 2.13 m on their dominant
+    // axis, i.e. under three pixels above 225 m. Added AFTER the base layer so
+    // a leaf draws over the recess panel behind it where the two are within a
+    // few centimetres of each other at the threshold.
+    if (!map.getLayer(L_ENTRY)) {
+      map.addLayer({
+        id: L_ENTRY, type: 'fill-extrusion', source: SRC, minzoom: PLACES.entryMinZoom,
+        filter: ['match', ['get', 'fam'], PLACES.entryFams, true, false],
+        paint: solidPaint(),
+      }, anchor);
+    }
+
     if (!map.getLayer(L_GLASS)) {
       map.addLayer({
         id: L_GLASS, type: 'fill-extrusion', source: SRC, minzoom: PLACES.minZoom,
@@ -383,13 +496,31 @@
       if (f.properties.kind !== 'label') continue;
       (f.properties.src === 'S' ? src : gen).add(f.properties.nm);
     }
+    // The tier census, counted off the file rather than asserted from the
+    // filters, so a verification script can watch the split without a
+    // screenshot and a family the bake grows later shows up as a base-tier
+    // number that moved. `deferred` is what the gate is actually buying: the
+    // features NOT drawn at the spawn altitude.
+    const inFam = (f, list) => list.indexOf(f.properties.fam) >= 0;
+    const nEntry = gj.features.filter(f => inFam(f, PLACES.entryFams)).length;
+    const nPool = gj.features.filter(f => inFam(f, PLACES.poolFams)).length;
+    const nBase = nSolid - nEntry - nPool;
     _stats = { features: gj.features.length, solid: nSolid, glass: nGlass,
                labels: nLabel, shopfronts: nLabel,
-               sourcedColour: src.size, generativeColour: gen.size, images: 1 };
+               sourcedColour: src.size, generativeColour: gen.size, images: 1,
+               tiers: {
+                 base: { z: PLACES.minZoom, features: nBase + nGlass },
+                 pool: { z: PLACES.poolMinZoom, features: nPool },
+                 entry: { z: PLACES.entryMinZoom, features: nEntry },
+                 label: { z: PLACES.labelMinZoom, features: nLabel },
+               },
+               deferredBelowSpawn: nEntry };
     console.log('[places]', _stats.shopfronts, 'shopfronts,', _stats.features,
-                'features (', nSolid, 'solid /', nGlass, 'glass /', nLabel,
-                'labels ), 1 image,', src.size, 'brands with a sourced colour,',
-                gen.size, 'generative');
+                'features (', nBase + nGlass, 'base z' + PLACES.minZoom, '/',
+                nPool, 'pool z' + PLACES.poolMinZoom, '/',
+                nEntry, 'entry z' + PLACES.entryMinZoom, '/',
+                nLabel, 'labels z' + PLACES.labelMinZoom, '), 1 image,',
+                src.size, 'brands with a sourced colour,', gen.size, 'generative');
   };
 
   window.placesStats = () => _stats;
@@ -400,16 +531,21 @@
       if (map.hasImage && map.hasImage(GLASS_IMG)) map.updateImage(GLASS_IMG, glassTile(p));
       else map.addImage(GLASS_IMG, glassTile(p));
     } catch (e) { /* not registered yet */ }
-    try {
-      if (map.getLayer(L_SOLID))
-        map.setPaintProperty(L_SOLID, 'fill-extrusion-color', bakedColor(p));
-    } catch (e) {}
+    // All three solid tiers, not just the base one. The first cut of the split
+    // retinted L_SOLID alone and left the door leaves and the pavement pool
+    // frozen at whatever hour the page happened to load at — which by day is
+    // invisible and at 22:00 is 755 daylit aluminium doors in a dark street.
+    for (const id of [L_SOLID, L_POOL, L_ENTRY]) {
+      try {
+        if (map.getLayer(id)) map.setPaintProperty(id, 'fill-extrusion-color', bakedColor(p));
+      } catch (e) {}
+    }
   };
 
   /** Re-read PLACES after a live edit. */
   window.applyPlacesSettings = function applyPlacesSettings(map) {
     if (!map || !map.getLayer) return;
-    for (const id of [L_SOLID, L_GLASS]) {
+    for (const id of [L_SOLID, L_POOL, L_ENTRY, L_GLASS]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', PLACES.on ? 'visible' : 'none');

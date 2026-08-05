@@ -1,5 +1,350 @@
 # Austin 3D Explorer — Full Handoff
 
+## 95. Aug 5 2026 — PR #147 is MERGED, confirmed on the merged tree and not on the branch (acer lane)
+
+**Branch:** `acer/wampus-render`, merged to `main` and deleted. **Files written
+this session:** `shots/wampus/merged/`, `HANDOFF.md`, `QUEUE.md` — no js, no
+data, no `scripts/verify/`. The West Campus ground floor (§90–§94) is now on
+`main`.
+
+### The step people skip: I merged `main` in FIRST and re-measured on that
+
+`main` had moved twice under the branch — `9b99e08` (PR #146, the entrances
+bake) and `11b44ba` (the review that became §93). Everything below was run on
+`origin/main` merged into the branch (`aefe778`), not on the branch alone.
+CLAUDE.md rule 2, and it mattered: **the merge conflicted.** Both sides had
+written a `## 93`, because §94's session and the review session numbered against
+the same `main` at the same hour. Resolved by chronology (§93 review 22:20,
+§94 blockers 22:52) with §94 renumbered, not by taking a side. **If you write a
+HANDOFF section on a branch, expect to renumber it at merge time.**
+
+### Every gate, on the merged tree
+
+| | result |
+|---|---|
+| `harness-drift.mjs` | **PASS** — 28 scripts in `index.html`, 28 in `_harness.html` |
+| `places-check.mjs` | **PASS — 40 ok, 0 failed** (was 39/1) |
+| `coplanar.mjs data/places.geojson` | **1** — the awning/awning pair that pre-dates the pass (was 195) |
+| `zfight.mjs`, all 8 `shots-places.json` poses | 7 clean; `westcampus-day` 242 px @ [642,827,869,895], unchanged |
+| `suite-lint.mjs` | **PASS**, 0 blocking (10 pre-existing auto-detect warnings, none this branch's) |
+| data | 2,533 features · 194 `plPier` tops at 2.43 · 133 `plHead` at 2.46 |
+
+`coplanar.mjs` with no arguments does **not** read `places.geojson` or
+`entrances.geojson` — pass them by name or you will "confirm" a file you never
+opened. On the default set `roofs.geojson` reports 85 overlaps; that file is
+byte-identical to `main`, so it is not this branch's and it is now QUEUE **W6**.
+
+### BLOCKER 1 is genuinely derived, and I checked rather than took its word
+
+§94 says the catalogue is read out of the generator. It is. Run outside the
+checker, against the two real files: the regex over `band_props()`/`glow_props()`
+in `scripts/bake_places.py` finds **11 emission call sites → 10 unique families**,
+and the set is exactly equal to the 10 in `data/places.geojson`. **There is no
+second list to go stale.** The one thing to know about it: like the
+`places.geojson` read directly above it, the path is resolved against
+`process.cwd()`, so `places-check.mjs` must be run **from `scripts/verify/`**.
+That is the file's own pre-existing convention, not something this change
+introduced — but `harness-drift.mjs` must be run from the **repo root**, so the
+two do not share a working directory. Quote the cwd with the result.
+
+### BLOCKER 2's "the look did not change" claim, re-checked independently
+
+§94 reports the shopfront band unchanged. I differenced its four before/after
+frames myself, whole-frame rather than cropped:
+
+```
+guad       night   0 differing pixels                      (byte-identical)
+guad       day     max delta 2/255, 0 pixels above 8/255
+guadclose  night   703 differing, 355 above 8 — ALL in y 63–273
+guadclose  day     max delta 196,  195 above 8 — ALL in x 0–96
+```
+
+The two non-zero rows are **not** a hole in the claim and they are worth naming
+because they look like one: every pixel above 8/255 is in the top quarter of the
+frame (animated tower window lights) or in the leftmost 96 px (a map label
+winning its collision box in one render and not the other). **Zero of them are
+in the shopfront band**, which is where the 194 faces moved. A whole-frame diff
+on this app is uninterpretable on its own — auto-exposure re-grades everything
+by 1–2/255 — so localise the survivors before believing either verdict.
+
+### And I looked at the street myself, at 7.5 m of eye height
+
+`shots/wampus/merged/`, 1600×1000, hardware GL, auto-detect cancelled, z20.6
+pitch 79 bearing 278 on Guadalupe at the Chipotle (`guad-street-day/night`) plus
+a z19.4 pitch 72 run of the whole block (`guad-wide-day/night`).
+
+Day: three brand awnings, sign bands, a recessed door with mullions and a
+bulkhead under each, labels on the fascia. Night, **measured on my own frame**,
+frame median luma **13.8**:
+
+| box | rgb | luma | × median |
+|---|---|---|---|
+| Chipotle open interior | (84,67,49) | 69.1 | **5.0×** |
+| Chipotle pavement pool | (83,59,34) | 62.2 | **4.5×** |
+| shopfront glazing, whole run | (69,57,51) | 58.7 | 4.3× (R:B 1.35) |
+| Rally House door, closed | (33,23,23) | 25.4 | 1.8× |
+| road foreground | (13,12,16) | 12.6 | 0.9× |
+
+**An open shop is 2.7× the closed one beside it** — the review measured 2.88×,
+§92 measured 2.02× at a different pose, and this is a fourth independent reading
+from a fourth camera. The glazing at R:B 1.35 is nowhere near the 1.12 pale-band
+signature. The pools are still there and the street still reads.
+
+### What did NOT work
+
+1. **`coplanar.mjs` and `zfight.mjs` disagree about which directory to run
+   from, and `places-check.mjs` disagrees with `harness-drift.mjs`.** Three of
+   the four gates in this pass are cwd-sensitive in different directions.
+   `harness-drift.mjs` from `scripts/verify/` dies on `ENOENT index.html` — which
+   reads exactly like a missing file rather than a wrong cwd. Run each one the
+   way its header says and write the cwd down.
+2. **`zfight.mjs` on all 8 poses takes about 25 minutes** on swiftshader and
+   prints nothing until a pose finishes, so `tail`ing its log is the only way to
+   tell it apart from a hang. `westcampus-day` needs `VERIFY_MAX_MS` raised
+   (900000 here) or it hits the watchdog and looks like a failure.
+3. **The reviewer's exact camera poses are not in the repo** — `shots/wampus/`
+   has the frames but the pose list lived in a scratch file outside it. I
+   re-derived a Guadalupe pose from §93's altitude table (z20.6/p79 = 7.5 m up,
+   37 m back at 1600×1000) and it landed on nearly the same framing, but a
+   before/after pixel diff against the reviewer's set was not possible. **If a
+   pose is worth photographing twice it belongs in `scripts/verify/shots-*.json`.**
+
+### What I did NOT do
+
+- **The `westcampus-day` 242 px flicker cluster is still there.** I confirmed the
+  count and the box are identical to §94's reading; I did not re-run §94's A/B
+  against the old data, so "pre-existing" rests on §94's test and on the fact
+  that nothing in `places.geojson` stands above 5 m. QUEUE **W6**.
+- **Nothing about the 18 unphotographed lobbies changed.** Six of 24 have a
+  picture. The rest are asserted from geometry.
+- **No performance measurement of my own.** §92 and §93 both measured the pass
+  as free; I took that and did not re-run `places-perf.mjs`.
+- **`shots-places.json` still has no West Campus night pose** and no raised
+  watchdog — it is `scripts/verify/`'s to change and I confined this pass to
+  three files.
+
+## 94. Aug 4 2026 — the two blockers on PR #147: a stale catalogue and 194 coplanar top faces (acer lane)
+
+**Branch:** `acer/wampus-render`. **Files written:** `scripts/bake_places.py`,
+`data/places.geojson`, `scripts/verify/places-check.mjs`, this entry. No js, no
+html, no second data file. `node scripts/verify/harness-drift.mjs` PASS (28/28
+scripts) before any pixel work, as always.
+
+Neither of these is a redesign. §90–§92 shipped and the review of them stands;
+this clears the two things that were left red.
+
+### The numbers, all four asked for
+
+| | before | after |
+|---|---|---|
+| `coplanar.mjs data/places.geojson` | **195** pairs (194 `entry`/`entry` + 1 `awning`) | **1** — the awning pair, which is the pre-pass baseline |
+| `places-check.mjs` | 39 ok, 1 failed | **40 ok, 0 failed** |
+| `zfight.mjs` | clean | **clean** — see below |
+| features by kind | front 1186 · awning 263 · entry 888 · pool 63 · label 133 = 2533 | **identical, all five** |
+| by family | 10 families, plPier 194 | **identical, all ten** |
+| file size | 1,019,755 B raw · 65,218 B gzip −9 | 1,019,755 B raw · **65,216 B gzip** |
+
+**The size delta is −2 bytes gzipped and ZERO raw**, because the only change to
+the data is 194 occurrences of `2.46` becoming `2.43` — the same character
+count. The raw number is what `scripts/serve.py` sends, and **serve.py does not
+gzip while GitHub Pages does**, so the raw figure overstates what a visitor
+actually pays by about 15.6× on this file. Quote the gzipped number.
+
+### BLOCKER 2 — a lintel bears ON its piers, so the pier is what gives way
+
+The pier was emitted `0.0 → head_top` and the lintel `SF_DOOR_HEAD → head_top`.
+Both topped out at **2.46 m** over the same footprint, twice per entry: a
+0.28 × 0.32 m shared top face, 194 times. `coplanar.mjs` names the whole class —
+two top faces at the same height with overlapping footprints have no defined
+draw order, so which one wins is depth-buffer rounding and it changes as the
+camera moves.
+
+`zfight.mjs` found no flicker from it, and that is not a reason to leave it. A
+detector reading 195 is not a guard; the next pass to introduce a real z-fight
+would have had nothing watching. **The fix is to separate the faces, not to
+relax the detector** — `--eps` and `--frac` are untouched at their defaults 0.01
+and 0.30.
+
+New named constant, in the same taste block as the rest of the entry
+(`SF_HEAD_T` is directly above it):
+
+```
+SF_HEAD_BEARING = 0.03   # the pier's top face is a BEARING SEAT
+```
+
+30 mm, the same value and for the same stated reason as `STEP_LIFT` in
+`scripts/bake_depth.py` ("two coplanar top faces z-fight; 30 mm settles it and
+is far too small to read as a second step"). It is 3× `coplanar.mjs`'s own
+0.01 m epsilon.
+
+**Which surface moves was decided structurally, not by which was easier.** A
+lintel spans and bears ON the piers, so the lintel is the one on top and the
+pier's top face is the seat underneath it. Two things follow and both are
+load-bearing on the choice:
+
+1. **The lintel's top must not move.** `head_top` is `min(SF_DOOR_HEAD +
+   SF_HEAD_T, glass_top)` — already clamped to the host's glass head. Lifting it
+   would push the head line up through the sign band, and `places-check`
+   asserts at 0.001 m that the sign sits flush on the glass across all 263
+   bands. Raising the lintel would have traded a z-fight for a failed assertion.
+2. **Where the lintel exists the seat is inside it and is never drawn at all.**
+   Pier and lintel share the same plan depth (0.06 → 0.38) and the lintel spans
+   `p0 → p1`, which contains both piers. A pier top at 2.43 with a lintel
+   occupying 2.30 → 2.46 is a fully enclosed face. Nothing is added to the
+   silhouette; a face is removed from it.
+
+`max(SF_DOOR_HEAD, head_top - SF_HEAD_BEARING)` guards the one host geometry
+that could bite: a glass head clamped to within 30 mm of the lintel's underside
+would otherwise drop the seat BELOW the lintel and open a millimetric hole
+instead of closing one. In this bake nothing hits it — every one of the 194
+piers now tops at exactly 2.43 and every one of the 133 lintels at 2.46.
+
+### BLOCKER 1 — the catalogue is now READ out of the generator, not copied from it
+
+Assertion A was the literal list `['plAwn','plBulk','plGlass','plSign']`,
+written when there were four families. §91 added six more and the line went red
+against a bake that was entirely correct.
+
+**§91 wrote out the one-line fix — re-copy the list with ten names in it — and
+that fix was not taken.** It would have been correct today and stale again on
+the next family, which is the same class of bug as `_harness.html` drifting from
+`index.html`. This repo has been bitten by that twice and now guards it with
+`harness-drift.mjs`. So this does the equivalent instead: the expected set is
+**derived from `scripts/bake_places.py`'s own emission call sites** — the `fam`
+argument of every `band_props()` / `glow_props()` call — and compared to what is
+actually in the data. There is no second list anywhere. Add a family to the bake
+and the checker learns about it in the same commit.
+
+```
+ok  A | the families in the data are exactly the ones bake_places.py emits
+        [10 families, derived from 11 emission call sites:
+         plAwn plBack plBulk plGlass plHead plLeaf plLite plPier plPool plSign]
+```
+
+**It parses the CALL, it does not grep for the name.** `harness-drift.mjs`
+records paying for exactly that mistake — a bare filename regex matched module
+names inside COMMENTS as readily as inside script tags and "found" a module that
+was not loaded. `places-check.mjs`'s own prose says `plGlass` and `plSign` in
+several comments and the bake's docstring names families too, so the regex is
+anchored on the function and takes the second positional argument.
+
+**The assertion was strengthened, not relaxed.** It is set EQUALITY and it was
+tested in both directions before being believed:
+
+| case | result |
+|---|---|
+| the real files | **pass**, 10 = 10 |
+| bake gains a family the data lacks (the stale case, i.e. shipping without re-baking) | **fail** |
+| data carries a family the bake cannot emit (stale or foreign data) | **fail** |
+| the regex parses nothing at all (bake renamed or restructured) | **fail** |
+
+That last one matters: a zero-length parse would make one direction trivially
+satisfiable, so `declared.length > 0` is part of the test rather than an
+assumption.
+
+One consequence, stated plainly so nobody is surprised by it: flipping
+`SF_ENTRY_ON` to `False` and re-baking will now trip this. That is deliberate —
+"the checked-in data contains every family the bake can emit" is the guard that
+the shipped file was baked with the whole pass on.
+
+### The look, and it is genuinely unchanged
+
+Four frames on Guadalupe, `shots/wampus/blockers/`, 1600×1000, hardware GL,
+graphics auto-detect cancelled, before/after on identical poses:
+`guad-{before,after}-{day,night}` (z18.9 pitch 64 bearing 275) and
+`guadclose-{before,after}-{day,night}` (z19.4 pitch 72 bearing 278).
+
+Differenced pixel by pixel, and the shopfront band itself (x 100–1500,
+y 440–580, which is the whole run of storefronts in all four frames):
+
+```
+guad       day    max delta 2/255,  pixels above 8/255 = 0
+guad       night  max delta 0,      pixels above 8/255 = 0
+guadclose  day    max delta 2/255,  pixels above 8/255 = 0
+guadclose  night  max delta 0,      pixels above 8/255 = 0
+```
+
+**Whole-frame, `guad` night is byte-identical — 0 differing pixels.** The
+whole-frame day diff reads 35.8 % of pixels differing, and that number is a trap
+worth naming: **every one of them differs by 1 or 2 of 255.** The scene runs an
+auto-exposure stage, so changing anything re-grades every pixel — the same
+effect `places-check.mjs`'s own comment records, where a frame difference
+reported 289,963 changed pixels for hiding a layer of 1 m bands and was
+measuring the tone mapper. The only pixels anywhere above 8/255 are one map
+label at the extreme frame edge winning its collision box in one render and not
+the other, and the animated window lights in the towers on the skyline. Neither
+is geometry and neither is ours.
+
+### zfight.mjs, and the one cluster it found that is NOT this
+
+`shots-places.json`, all 8 poses. Seven ran clean:
+
+```
+fly-drag-day / -gold / -night   (none)
+fly-wide-day                    (none)
+street-drag-day / -night        (none)
+street-coop-day                 (none)
+```
+
+The eighth, `westcampus-day`, **hit the 300 s watchdog** on the first run — not
+a defect, an instrument timeout. Re-run on its own with `VERIFY_MAX_MS=560000`,
+plus a night version of the same pose, it reports **242 px at
+[642,827,869,895]** by day and nothing at night.
+
+**That cluster is pre-existing and is not from this change**, and it was A/B'd
+rather than argued: `git checkout HEAD -- data/places.geojson` back to the
+2.46 m piers, same pose, same everything —
+
+```
+piers at 2.46 (before)   westcampus-day   242@[642,827,869,895]   night (none)
+piers at 2.43 (after)    westcampus-day   242@[642,827,869,895]   night (none)
+```
+
+Identical count, identical box. It is a roof-plane edge on a podium at the
+bottom of frame, in West Campus, not a shopfront — nothing in `places.geojson`
+stands taller than 5 m. **It is left for whoever owns that geometry**; the mask
+is `shots/wampus/blockers/zf-after-westcampus-day-flicker.png`. Note the
+`bldg/roof` candidate counts vary run to run (1857 / 2976 / 3431 of 3754) with
+tile load; the flicker percentage and the cluster box did not move at all, which
+is the reading to trust.
+
+### What did NOT work, in the order it cost time
+
+1. **`zfight.mjs`'s output prefix is joined onto `path.resolve('shots')`, so it
+   is relative to `<cwd>/shots/` and not to the repo.** Run from
+   `scripts/verify` with `--out ../../shots/...` it wrote to `scripts/shots/`,
+   threw ENOENT after printing a perfectly good result line, and took the
+   browser down with an uncaughtException. An absolute path is worse, not
+   better: it gets concatenated too. **Run it from the repo root and pass a
+   prefix relative to `shots/`.** Cost two full pose runs.
+2. **The first `westcampus-day` result looked like a regression and was not.**
+   It appeared on the run immediately after the re-bake, which is exactly the
+   shape of a defect this pass introduced. Restoring the old data file and
+   re-running was four minutes and turned an assumption into a fact. Do not skip
+   that step because the timing looks damning.
+3. **A whole-frame pixel diff cannot answer "did this change the look".** 35.8 %
+   of the frame differs between two builds that are visually identical, because
+   of auto-exposure. The question only became answerable by cropping to the
+   band in question and reporting the MAXIMUM delta rather than a count.
+4. **`git stash -u` is not available in this repo** (it deletes
+   `scripts/verify/node_modules`). `git checkout HEAD -- <file>` is the way to
+   A/B a baked data file, and it is better anyway — it touches exactly one file.
+
+### What I did NOT do
+
+- **I did not merge.** PR #147 is left for the next agent to decide on, per the
+  brief.
+- **The `westcampus-day` flicker cluster is not fixed**, only proved to
+  pre-date this change and located. It is in someone else's geometry.
+- **`shots-places.json` was not edited** to add the West Campus night pose or to
+  raise the watchdog; it is not this task's file to write. The extra pose was
+  passed in from a scratch file outside the repo, so the run is reproducible
+  only by rebuilding that two-line JSON — the pose is
+  `{"p":0.86,"center":[-97.74495,30.28660],"zoom":17.90,"pitch":70,"bearing":205}`.
+- **Nothing was re-measured about the night look of the shopfronts.** §92's
+  luma and R:B tables still stand; this pass moved 194 top faces down 30 mm and
+  the pixel diff above shows it changed nothing they measured.
+
 ## 93. Aug 5 2026 — I reviewed the West Campus ground floor. It looks right and I am not merging it (PR #147 stays open) (acer lane)
 
 **Reviewed:** `acer/wampus-render` (PR #147) = the shopfront bake (`960b007`)
@@ -206,6 +551,466 @@ to 2.45 or head to 2.47 — rather than shipping a detector that reads 195.
   same measurement as two checkouts.
 - **Did not photograph 18 of the 24 lobbies.** Six were shot. The door placement
   for the other 18 is asserted from the geometry, not from a picture.
+## 92. Aug 4 2026 — the West Campus lobbies get their names, and the shopfront doors get an altitude (acer lane)
+
+**Branch:** `acer/westcampus-ground`, the render half of §90 and §91. **Files
+written:** `js/entrances.js`, `js/places.js`, this entry. No bake, no data file,
+no `js/app.js`, no `scripts/verify/`. `index.html` and `_harness.html` needed no
+edit — both modules already register their own source and layers, and both still
+do. `node scripts/verify/harness-drift.mjs`:
+
+```
+index.html:    28 scripts
+_harness.html: 28 scripts
+
+ PASS  the harness loads the same city the site does
+```
+
+**What it is.** Two bakes landed geometry the renderers were drawing naively.
+§91 gave all 133 shopfronts a recessed entry — 755 pieces between 0.16 m and
+2.13 m — and emitted them into ONE layer at z15, where the smallest is a
+twentieth of a pixel. §90 gave 22 of the 24 named West Campus towers a lit name
+band, and there were no letters on it. This pass gives the doors an altitude and
+the towers their names, and warms the shopfront glazing to match the doorway
+three metres to its left.
+
+Screenshots: `shots/wampus/` — `moontower`, `castilian`, `guad` day and night,
+`wcstreet` and `cruise` night. **`wcstreet-day` and `cruise-day` are missing**
+and I did not fake them: `pose.mjs` hit the serialisation problem in "what did
+NOT work" #1 and had node at 2.1 GB before I killed it. Everything the day set
+was meant to show is in `moontower-day`, `castilian-day` and `guad-day`.
+
+### 1. The shopfront entry now arrives at the spawn altitude, not before
+
+`docs/entrances/shopfronts.md` §9.2 is a table of "at what altitude is this
+feature one pixel", derived from `js/controls.js`'s own ALT/ZOOM constants.
+`js/places.js` now applies it as three layers over one source:
+
+| tier | z | features | what |
+|---|---|---|---|
+| base | 15.0 | 1,582 | bulkhead, glazing, sign band, awning, **recess panel** |
+| pool | 15.5 | 63 | the pavement spill |
+| entry | 16.7 | 755 | door leaves, door glazing, jamb returns, lintel |
+| label | 17.3 | 133 | tenant names (unchanged) |
+
+**The recess panel stays in the base tier and that is the only interesting
+decision here.** §9.2 puts `plBack` at 1 px at 854 m, above `ALT_MAX` — it is the
+one entry piece that survives the whole envelope. It is also the piece that
+FILLS the bay: §91's bake splits the bulkhead and the glazing *around* the
+doorway, so a tier that took the panel with it would punch a 2.4 m hole through
+every shopfront to the host wall. Either reason alone is enough; both point the
+same way.
+
+**Measured, by hiding the tier and counting the pixels that move** (Guadalupe,
+tod 0.92, pitch 64, bearing 275, half-resolution frame = 324,000 px):
+
+| zoom | `places-entry` paints |
+|---|---|
+| 16.4 (below the 16.7 gate) | **0 px** |
+| 16.9 | 89 px |
+| 17.6 | 77 px |
+| 18.9 | 344 px |
+
+89 half-res pixels just above the gate is the honest scale of the thing: at the
+spawn altitude a door leaf is three pixels tall, exactly as §9.2 predicts. It is
+not a lot. It is also not nothing, and below 16.7 it is zero.
+
+### 2. The apartment names, gated PER BUILDING, and mostly invisible at cruise
+
+The 22 name bands are 7.10–10.94 m long and **0.20 m tall**. Real channel letters
+on that are ~0.14 m of cap height, which at the true 512-px ground scale is one
+pixel at z18.9 and nine pixels at **z22.05** — above MapLibre's ceiling. That is
+the same arithmetic that kept the carved inscriptions off by default.
+
+What is different is LENGTH, not size. The Main Building's inscription is 108
+characters on an 8.29 m band, so readable type is twenty times the width of the
+thing it names and lands on other buildings. **"Moontower" is nine characters on
+an 8.99 m band**, and at z18.2 a 9.5 px label of it is 50 px wide against a 55 px
+band. The label fits the object it names. That is what makes it signage rather
+than an annotation, and it is why this ships where the inscription did not.
+
+So the gate is not one zoom for the layer. It is **computed per feature at init
+from that building's own name length against that building's own band length**,
+and a name only enters the source at the zoom where it fits its band within
+`ENT.wordmark.fitMax` (1.25). Measured over the 22:
+
+```
+z18.00  Rambler · 21 Rio · The G          z19.06  Twenty Two 15
+z18.19  Moontower  (the only sourced one) z19.15  Skyloft Austin
+z18.34  Ion Austin                        z19.16  Dobie Twenty21
+z18.44  Pointe on Rio                     z19.26  Inspire on 22nd
+z18.53  The Block                         z19.65  The Callaway House Austin
+z18.59  The Standard                      z19.76  The Quarters Sterling House
+z18.72  The Castilian                     z19.81  The Venue on Guadalupe
+z18.82  Signature 1909 · Crest at Pearl   z19.88  The Nine at West Campus
+z18.90  Block on 25th East                z20.04  The Quarters Grayson House
+z18.92  The Nine at Rio
+```
+
+**SAYING IT PLAINLY: the camera cruises at z16–19 with the spawn at 16.67, so at
+cruise altitude almost none of these are drawn, and half of them need you below
+about 30 m.** That is deliberate and it is the honest answer — what carries a
+tower's identity from 230 m is the lit band, not its letters. `ENT.wordmark` is
+one edit if Simeon wants them sooner and oversized; `fitMax` is the dial.
+
+22 of 22 placed, **0 rejected**. Plus the three world-space gates the
+inscriptions already had — distance (140 m), facing (within 58° of the band's
+own outward normal), view arc (40°) — because a MapLibre symbol layer has no
+depth test and this is what stands in for one.
+
+**The normal could not be taken from the existing `outwardNormal()`.** That one
+derives direction from an entrance's step, ramp and rail pieces, which is right
+on the Forty Acres where every celebrated portal has a flight of steps. West
+Campus has **18 step pieces across 24 lobbies** — most meet the pavement flush —
+so it would have returned its due-north fallback for most of them and the facing
+test would then have rejected the wordmark from every direction but one. A gate
+that is never satisfied looks exactly like a layer that was never added. The
+band answers with its own geometry instead: the perpendicular to its longest
+edge, sign-flipped to point away from the lobby glazing 2.60 m behind it.
+
+### 3. Night, magenta-masked, measured — not read off a paint expression
+
+tod 0.92, 1440×900, hardware GL (RTX 3050 Ti / D3D11), graphics auto-detect
+cancelled, half-resolution grabs. The mask is the layer's own pixel set, not a
+hand-picked box.
+
+**Guadalupe z18.9 pitch 64 bearing 275 — frame median luma 33:**
+
+| family | px | rgb | luma | ×median | R:B |
+|---|---|---|---|---|---|
+| `plBack` OPEN — lit shop interior | 67 | (99, 81, 60) | 84.0 | **2.5×** | 1.65 |
+| `plBack` CLOSED — security light | 85 | (48, 39, 36) | 41.5 | 1.3× | 1.32 |
+| `plLite` OPEN — door glazing | 75 | (124, 101, 76) | 105.4 | **3.2×** | 1.64 |
+| `plPool` OPEN — pavement spill | 119 | (131, 101, 77) | 107.6 | **3.3×** | 1.70 |
+
+An open shop is **2.02×** the luma of a closed one on the same street.
+
+**Moontower lobby z19.0 pitch 52 bearing 275 — frame median luma 30:**
+
+| piece | px | rgb | luma | ×median | R:B |
+|---|---|---|---|---|---|
+| WC lobby glass | 647 | (116, 92, 68) | 96.3 | **3.2×** | 1.71 |
+| WC wordmark LETTERS | 88 | (131, 114, 92) | 117.0 | **3.9×** | 1.43 |
+| WC name band | 42 | (80, 64, 67) | 69.3 | 2.3× | 1.21 |
+| WC mullions (z19.0 > gate 18.6) | 292 | (60, 52, 49) | 54.0 | 1.8× | 1.22 |
+
+By day the same lobby glass reads (91, 106, 101), **R:B 0.91** against a frame
+median of 94 — blue by day, warm by night, off one `wd`/`wn` pair.
+
+**The wordmark measurement also proves a claim I would otherwise have had to
+assert.** `ENT.wordmark.nightColor` is `#ffe2b4`, authored R:B **1.42**. The
+glyph pixels measure R:B **1.43**. A symbol layer is NOT multiplied by
+`map.setLight`, so unlike every fill-extrusion in these two files its colour must
+NOT be pre-compensated for the blue night light — and the two numbers agreeing to
+the second decimal is the evidence, not the comment.
+
+The day wordmark reading, (141, 138, 136), is a MEASUREMENT ARTEFACT and not the
+colour: `dayColor` is `#33333a`, but at a half-resolution grab a 9.5 px glyph is
+4.75 px and averages with the pale `dayHalo` around it. The screenshots are the
+check on daytime legibility, not this number.
+
+### 4. The glazing was a pale neutral at night and now is not
+
+`T.NIGHT_TONE` went `[255,206,148]` → `[255,190,94]` and `T.MULL` went 5 → 3, on
+§91's own written recommendation. Both measured, same frame, same hour, by
+hiding `places-glass` and averaging the pixels that moved:
+
+| | px | rgb | luma | R:B |
+|---|---|---|---|---|
+| BEFORE `MULL 5`, tone `[255,206,148]` | 1,898 | (100, 88, 89) | 91.7 | **1.12** |
+| AFTER `MULL 3`, tone `[255,190,94]` | 2,129 | (88, 74, 63) | 77.3 | **1.40** |
+
+**R:B 1.12 with channels within 12 is the Capitol pale-band signature** — the
+exact thing `entrancesStats().nightGlass` audits for, sitting on the shopfront
+glazing where nobody was auditing. It is now 1.40, moving toward the 1.65 of the
+`plBack` interior it is a window onto. It does not reach it, and should not: a
+shopfront window is also a mirror and keeps some sky.
+
+The tile itself, with no map and no light in the way (`placesTileSample`):
+
+```
+BEFORE  day mean [116,116,119] luma 116.0   night mean [186,157,125] luma 162.3
+AFTER   day mean [111,111,115] luma 111.6   night mean [157,126,84]  luma 130.4
+```
+
+Night luma drops 20 % — part from the tone, part from `MULL 3` covering 33 % of
+the tile instead of 20 %. Rendered it is still 2.3× the frame median, so the band
+did not go dark; it went warm. **`MULL` was NOT taken to 2**: at 2 the 1 px line
+is 50 % of the tile and `MULL_DARK 0.26` would take a quarter of the band's mean
+luma out, which is the "black ribbed void, not glass, a hole" failure that file
+already records fixing once.
+
+### 5. The West Campus mullion grid got its own gate
+
+`k: 'surround'` means two different objects in `data/entrances.geojson`: on the
+campus families it is the frame around a door, 1–3 m across; on the `highrise`
+family it is one mullion in the lobby storefront. Measured off the baked
+geometry: **0.17 m wide × 0.10 m deep × 3.95 m tall, 369 of them over 24
+lobbies.** §9.1's projection at pitch 64 is 355.9 px per metre of wall width per
+metre of altitude, so 0.17 m is one pixel at 60 m — z18.6, the same number §9.2
+lands its own DETAIL tier on. Below that a mullion is a fractionally-covered
+fragment that aliases differently every frame, so this is a correctness gate as
+much as a cost one. New layer `entrances-mullion`, `ENT.mullionMinZoom 18.6`,
+subtracted out of the portal filter and out of `entrancesStats().portal`.
+
+### 6. THE GATES DO NOT BUY FRAME TIME, AND I AM NOT GOING TO PRETEND THEY DO
+
+A/B on one build in one browser, at the spawn pose over West Campus and the Drag
+(`-97.7430, 30.2855`, z16.67, pitch 64, bearing 275). **GATED** is as shipped;
+**OPEN** winds `places-entry`, `places-pool` and `entrances-mullion` all back to
+their base tier, i.e. exactly what the bakes shipped before this pass.
+
+Settings, quoted with the numbers per CLAUDE.md rule 10: **headed**, hardware GL
+(`ANGLE (NVIDIA, NVIDIA GeForce RTX 3050 Ti Laptop GPU, D3D11)` — printed, not
+assumed), **CPU throttled 4×** (`perf.mjs`'s own default), 1440×900,
+`intro=0&drift=0`, graphics auto-detect cancelled, 140 frames × **3 interleaved
+reps**, minimum of the per-rep medians.
+
+```
+  rep0 gated 214.8 ms   rep0 open 210.0 ms
+  rep1 gated 210.7 ms   rep1 open 212.4 ms
+  rep2 gated 211.0 ms   rep2 open 210.1 ms
+
+  MIN of per-rep medians:  gated 210.7 ms   open 210.0 ms   delta -0.70 ms
+```
+
+**−0.70 ms on a 210 ms frame is noise, and the sign is the wrong way round.**
+The gates buy nothing measurable here. Two caveats on the absolute number and
+neither rescues the delta: 210 ms is my `triggerRepaint`-every-frame loop under
+a 4× CPU throttle, not the app's real frame time; and the reps span 210.0–214.8,
+which is a 4.8 ms spread, so a real effect smaller than that could hide in it.
+
+So the honest statement of what §1 and §5 are for is **correctness, not speed**:
+a 0.17 m mullion and a 0.16 m lintel drawn at 230 m are fractionally-covered
+fragments that alias differently every frame, and 1,124 of them are being
+submitted for that. That is the reason to gate them. If someone later needs the
+frame time back, this is not where it is.
+
+### 7. Atlas: ZERO new pattern tiles
+
+`js/places.js` registers exactly one image (`pl-glass`) and `js/entrances.js`
+registers none; neither number changed. Everything this pass adds is a layer
+filter, a zoom, a colour or a symbol. Running total unchanged: `js/drag.js` 16
+`dg-` tiles, `js/westcampus.js` 46, `js/places.js` 1, `js/entrances.js` 0 —
+**63 total, +0.**
+
+### What did NOT work, in the order it cost time
+
+1. **`page.evaluate(v => window.__map.jumpTo(v), pose)` returns the MapLibre Map,
+   and Playwright serialises the return value.** The whole object graph — style,
+   sources, tiles, buffers — goes over CDP. A probe looked hung for twelve
+   minutes with node at 1.9 GB, and the "obvious" culprit I chased first was
+   `queryRenderedFeatures`. It was not. `setPaintProperty`, `setLayoutProperty`
+   and `setLayerZoomRange` all return the Map too, and so does
+   `map.once('idle', resolve)` — which resolves the promise WITH the MapLibre
+   event object, whose `target` is the map. **Every `page.evaluate` that calls a
+   Map mutator must have braces or `void`.** Fixed, and the same jump then took
+   3.2 s. `scripts/verify/pose.mjs` line 72 has the un-braced form and works, so
+   it is survivable — but it is paying for it.
+2. **`queryRenderedFeatures({layers:[id]})` returned 0 for layers plainly visible
+   in a screenshot** and took over a minute per call on these sources. A count
+   that disagrees with the picture is not a measurement. Replaced with
+   hide-the-layer / count-the-pixels-that-moved, which is what §1's table is.
+3. **The magenta mask does not survive `setLight`.** A `#ff00ff` fill-extrusion
+   at night renders near (154, 0, 218)·k, never (255, 0, 255). The first detector
+   tested `R ≥ 170 && B ≥ 170` and reported **NO PIXELS for every family** —
+   which looks exactly like "the pass draws nothing". The detector is now "R and
+   B both well above G, and R within half of B". Anyone reusing HANDOFF §48's
+   technique at night needs this.
+4. **Masking a `fill-extrusion-pattern` by swapping the atlas image does not
+   work.** `updateImage('pl-glass', magenta)` lands a repaint cycle late, so the
+   mask frame shows the OLD tile; two runs measured NO PIXELS on the first family
+   and a full reading on the second, which is the tell. §4's A/B is hide/show +
+   mean-of-changed-pixels instead. **Do not mask a pattern layer by its image.**
+5. **The first close-up camera poses were inside the buildings.** z19.4 at pitch
+   62 aimed at a lobby centroid puts the eye behind the tower's own podium.
+   z19.0 / pitch 52 works. The bearings themselves were fine because they were
+   computed off the baked band geometry rather than guessed — §91's lesson,
+   applied, and it saved the two hours that one cost.
+
+### What I did NOT do
+
+- **`scripts/verify/places-check.mjs` still has the one failing assertion §91
+  left open**, and it is still a catalogue and not a defect: assertion A lists
+  four families where there are now ten. `scripts/verify/` is not this lane's to
+  write and this pass did not touch it. The one-line fix is written out in §91.
+  **Read that before merging** — 39 of 40 assertions pass and the fortieth is a
+  stale list.
+- **No DETAIL tier below the entry tier.** §9.2's DETAIL list (transom line, door
+  rails, sill, water table) does not exist in the data at all — §91 dropped it
+  deliberately — so there was nothing for a second gate to gate.
+  `PLACES.entryFams` is where it would go.
+- **The wordmark abbreviations are a bake decision I did not make.** "The
+  Quarters Sterling House" needs z19.76 because it is 27 characters; the real
+  signage on that building almost certainly reads STERLING HOUSE. **Request for
+  the entrances bake: an `sgn` property carrying the short form of the wordmark
+  where it differs from `nm`.** That one field would pull six buildings from
+  z19.6–20.0 down to about z18.5, which is the difference between "visible when
+  you have landed on it" and "visible from the street".
+- **No photograph of any West Campus lobby was obtained**, so 21 of the 22
+  wordmarks are still the building's OSM name rather than sourced signage
+  (`nmv: false`, carried through to `entrancesStats().wordmarks`).
+
+
+## 91. Aug 4 2026 — the shopfronts get a way in (acer lane)
+
+**Branch:** `acer/westcampus-ground`, continuing §90. **Files written:**
+`scripts/bake_places.py`, `data/places.geojson`, this entry. Nothing else — no
+js, no html, no second data file. `docs/entrances/shopfronts.md` and
+`docs/entrances/groundfloor-existing.md` were READ and are the spec this
+implements.
+
+**What it is.** Every one of the 133 storefronts now has an ENTRY: a recessed
+bay flanked by piers with real plan depth, a lintel, door leaves with their own
+lights, a lit interior plane behind them, and — for the shops that are still
+open at 22:00 — a warm pool of spill on the pavement. Before this the shopfront
+was four stacked rectangles with no way in.
+
+Screenshots: `shots/wcg-groundfloor-night.png` and
+`shots/wcg-groundfloor-day.png` are before/after on the same frame (Rally
+House, Chipotle, Sweetgreen). `shots/wcg-groundfloor-westcampus.png` is
+Torchy's on Guadalupe at 24th.
+
+### The five things the brief asked for, and what actually happened
+
+| asked | shipped |
+|---|---|
+| a recessed entry, a real notch | **yes, 0.32 m deep.** Not the 1.00–1.50 m the spec derives — see below. |
+| a door by category, leaves + frame | **yes.** 3 types over 15 categories: 122 hinged (single / pair / quad), 11 sliding. |
+| the mullion grid on the glazing | **already there, and untouchable from this lane.** See below. |
+| the bulkhead below the glass | **already there** — `plBulk`, 0.55 m, shipped in the first pass. Unchanged. |
+| night interior glow, reading on the sidewalk too | **yes, and measured.** 63 lit interiors + 63 pavement pools. |
+
+### The numbers
+
+Feature count **1,185 → 2,533**, +1,348 (+114 %). By kind: `front` 789 → 1,186
+(the bulkhead and glazing now split around the bay, plus a glass panel over the
+door), `entry` 0 → 888, `pool` 0 → 63, `awning` 263 and `label` 133 both
+**unchanged**. `replacedBuildingIds` is still `[]` — the invariant holds.
+
+File size **440.1 KB → 995.9 KB** on `scripts/serve.py`, which does **not**
+gzip. **GitHub Pages does**, and gzipped the same two files are **32.0 KB →
+63.9 KB**, so the real cost over the wire is **+31.9 KB**. Quote the gzipped
+pair, not the raw pair.
+
+**Atlas images added: ZERO.** Running total unchanged: `js/drag.js` 16 `dg-`
+tiles, `js/westcampus.js` 46, `js/places.js` 1 (`pl-glass`), `js/entrances.js`
+0. Everything this pass adds is geometry with a flat colour.
+
+### The night values, magenta-masked (HANDOFF §48), tod 0.88, 1280×800
+
+Sampling "the brightest changed pixels near a door" reported the open and the
+closed shop as **the same colour**, because the brightest thing added at a
+doorway is the aluminium leaf, not the interior behind it. The mask is what
+made the measurement real:
+
+| family | px | rendered mean | R:B | luma |
+|---|---|---|---|---|
+| `plBack` open (lit interior) | 165 | (107, 79, 52) | **2.06** | 84 |
+| `plBack` closed (security light) | 259 | (37, 26, 22) | 1.68 | 29 |
+| `plLite` open (door glazing) | 241 | (112, 86, 62) | **1.81** | 91 |
+| `plPool` open (pavement spill) | 380 | (115, 89, 65) | **1.77** | 94 |
+
+`js/entrances.js` measured five lit doorways on the same night at R:B 1.79 /
+2.02 / 2.31 / 2.09 / 2.21. All three lit surfaces here land inside that band,
+and an open shop is 2.9× the luma of a closed one three metres away.
+
+### What did NOT work, in the order it cost time
+
+1. **The pavement pool shipped as a white slab and I only found it by looking.**
+   `SF_POOL_DAY` started as `js/ground.js`'s own `SURF.paving` day hex
+   `#e6ddc9`, on the reasoning that pavement is pavement. It rendered at
+   **(241,211,162) against a sidewalk rendering at (185,168,145)** — the
+   brightest object in the daytime frame, at every open shop. `ground-paths` is
+   a `fill` under its own shading; this is a `fill-extrusion` under
+   `map.setLight`. Reading both files would never have said so. Fixed by
+   inverting the measured transfer (R 1.048 / G 0.955 / B 0.806) for a target of
+   0.88× the sidewalk → `#9b9b9f`, then re-rendered and re-measured.
+2. **The pool was 1.53 R:B while the door beside it was 2.06.** A horizontal
+   face takes more of the night sky. Copying `ENT.pool.colorMain` was wrong
+   because that pool is a `circle` layer and never passes through
+   `map.setLight` at all. `SF_POOL_NIGHT` `#ffc27a` → `#ffc166`, re-measured
+   at 1.77.
+3. **Two hours went into the wrong camera.** I assumed the Drag shopfronts face
+   west onto Guadalupe. They face **east**; the bearing to see them is **275**,
+   not 95. Every early screenshot was the back of the building. Deriving the
+   outward normal from the baked geometry took four lines and should have been
+   step one. **The look-bearings are in the bake's own data — compute them, do
+   not guess them.**
+4. **`python scripts/bake_places.py > /dev/null` exits 1 on this machine.** The
+   last summary line contains a Vietnamese place name and cp1252 cannot encode
+   it when stdout is redirected. The GeoJSON is written long before that line,
+   so the failure is cosmetic — but it silently killed a chained `&&`. Run it
+   with `PYTHONIOENCODING=utf-8`.
+
+### What I could NOT do from this lane, with the one-line fix for each
+
+1. **`scripts/verify/places-check.mjs` now has ONE failing assertion, and it is
+   a catalogue, not a defect.** `A | the four families are exactly bulkhead /
+   glass / sign / awning`. There are ten families now. **39 ok, 1 failed**, and
+   every other assertion still passes — including "the sign band sits directly
+   on top of the glass" at the full 263 bands, so the split did not open a gap.
+   The fix is one line in that file:
+   `['plAwn','plBulk','plGlass','plSign']` →
+   `['plAwn','plBack','plBulk','plGlass','plHead','plLeaf','plLite','plPier','plPool','plSign']`.
+   That file is not this lane's to write. **The PR is left open with this
+   written down rather than merged red**, per CLAUDE.md rule 2.
+2. **No LOD gate exists and this pass has none.** The spec asks for
+   `SF_PORTAL_MIN_ZOOM 16.7` and `SF_DETAIL_MIN_ZOOM 18.6`. `js/places.js` puts
+   every non-glass feature in ONE layer at `minzoom 15` and a per-feature zoom
+   gate cannot be expressed from the bake. The response was to emit **only what
+   §9.2 of the spec says survives at or above the spawn altitude** and to drop
+   the whole DETAIL tier: no sill, no water table, no separate transom line, no
+   door bottom rail as its own feature, and no 13 mm threshold (which reaches
+   one pixel at 4.2 m altitude, below `ALT_MIN` 18 — it is not drawable in this
+   application at any camera position). If someone wants the DETAIL tier, add a
+   second layer keyed on `kind == 'entry'` with a `minzoom`; the data already
+   carries the tag.
+3. **The mullion rhythm is still at roughly double the real spacing, and the
+   fix is one line in `js/places.js`.** `T.MULL: 5` is ~3.2 m between mullions;
+   the Kawneer working bay is 1.35 m and the published ceiling is 1.83 m.
+   **Change `T.MULL` from 5 to 3, not to 2** — at 2 the 1 px dark line is 50 %
+   of the tile's area and `T.MULL_DARK 0.26` removes a quarter of the band's
+   mean luma, which is exactly the "black ribbed void, not glass, a hole"
+   failure that file already records fixing once. Promoting mullions to geometry
+   never pays: a 2 in mullion reaches 1 px at 18.2 m altitude and `ALT_MIN` is
+   18 m.
+4. **`T.NIGHT_TONE [255,206,148]` is still ~40 % cooler than the doorway three
+   metres to its left.** Same file, same lane problem. `→ [255,190,94]` lands it
+   at R:B 1.99 after the measured transfer. Not verified by me; the check is the
+   magenta mask on `places-glass`.
+
+### How to re-run the measurement
+
+The probe is not in the repo — `scripts/verify/` is not this lane's to write.
+It is 60 lines: jump to `{center:[-97.74192,30.28570], zoom:18.9, pitch:64,
+bearing:275}`, set tod, then for each family set `places-solid`'s
+`fill-extrusion-color` to
+`['case', ['all',['==',['get','fam'],FAM],['==',['get','open'],1]], '#ff00ff', '#000000']`,
+screenshot, keep those pixel indices, call `applyPlacesColors` to restore,
+screenshot again and average the real colours at that index set. **Decode both
+PNGs inside the page** — shipping a 1280×800×4 pixel array over CDP timed the
+first version out at the 300 s watchdog.
+
+### Sourced vs guessed, stated plainly
+
+- **Door type: GENERATIVE.** OSM says nothing about doors. The category mapping
+  is `docs/entrances/shopfronts.md` §5.3.
+- **Door position: DERIVED.** The tenant's own frontage midpoint — the same arc
+  position the label already uses — biased to one end on a slot over 9 m.
+- **Open at 22:00: 72 of 133 SOURCED** from OSM `opening_hours` (latest closing
+  hour of the week, one regex, `24/7` → 24, a close ≤ its own open wraps past
+  midnight). **61 GENERATIVE** from the `OPEN_AT_22` category habit table, which
+  the spec checked against the sourced half and expects to be **wrong for about
+  one tenant in six**. Every guessed tenant is named in the bake summary.
+- **The recess depth is DERIVED BUT CLAMPED, and this is the honest one.** The
+  spec derives 1.00–1.50 m from Austin Building Code §3202.2. This pass owns no
+  building, so there is nothing behind the wall to recess into — the host's own
+  extrusion sits at offset 0.00. What is actually spent is the 0.32 m between
+  the free plane band (`groundfloor-existing.md` §5b: 0.32–0.41 is empty) and
+  0.06. The piers stand at 0.38 and their inward faces ARE the jamb returns, so
+  one box is both the pilaster and the return.
+
 
 ## 90. Aug 4 2026 — West Campus gets its front doors (acer lane)
 
