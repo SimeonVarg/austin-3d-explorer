@@ -12795,3 +12795,262 @@ counted as neither fixed nor broken (4).**
   reading. **So "Cambridge Tower's lobby glass is not visible from any bearing"
   is NOT established by this pass.** Set the mask inside the per-pose loop, or
   freeze the tod tick.
+
+---
+
+## 105. Aug 5 2026 — the floor is 1.7 m, it holds, and nothing in the flyover moved (QUEUE X1) (acer lane)
+
+**Branch** `acer/walking-height`, cut from `origin/main` at `f0e8943` (which had
+not moved by the end, so the tree measured IS the merged tree). **Files written:**
+`js/controls.js`, `shots/eye/`, `docs/camera/`, this entry, `QUEUE.md`.
+
+**Setup, quoted with the numbers.** `python scripts/serve.py 8293` (no gzip;
+Pages gzips ~5x). `node scripts/verify/harness-drift.mjs` **PASS, 28 scripts in
+each file**, run from the repo root before any pixel and again at the end.
+Behaviour on `index.html?intro=0&drift=0`, pixels on
+`_harness.html?intro=0&drift=0`, 1440x900, dsf 1, SwiftShader,
+`cancelGraphicsAutoDetect()` at the top of every run, **one browser at a time**,
+reaped and the server killed. Perf on the **real GPU, headed**.
+
+**The headless page runs at 4 fps and `simTime` advances at 0.12x wall clock**
+(`dt` is capped at `DT_MAX` 0.10 while `dtRaw` is 0.25). One second of camera time
+costs eight wall seconds, which is why the first three attempts at this pass blew
+the 300 s watchdog. Budget holds in SIM seconds, split runs into stages, and note
+that `TUNE.BOB_TIMEOUT` (8 SIM s = 66 wall s) holds camera ownership after every
+input burst — it is most of the wall clock of any multi-hold test, and it is
+live-overridable through `window.__fly.tune`.
+
+### WHAT WAS CHANGED, and it is one file
+
+`ALT_MIN` 18 -> **1.7**. That alone does nothing useful; the other eight are what
+make it mean something. Every one is a named constant in the tuning block.
+
+| constant | change | why |
+|---|---|---|
+| `ALT_MIN` | 18 -> **1.7** | **Simeon's dial.** 1.7 not 2.0: the entrances bake authors a 2.44 m door head and the West Campus mullions are 3.95 m, so at 2.0 doorways read squat |
+| `ALT_GROUND` | new, **12** | **Simeon's second dial** — where the city stops being a flyover. Above it every collision parameter is exactly what it was |
+| `ALT_RENDER_MIN` | new, 0.5 | was a bare, uncommented `Math.max(outAlt, 12)` in `writeToMap` — a SECOND floor, on the written pose, that would have reported 1.7 m while posing the map from 12 m |
+| `R_CAM_GROUND` | new, 1.0 m | `R_CAM` 6 m reads "standing on a pavement" as "inside the tower" |
+| `STEP_UP_GROUND` | new, 0.5 m | a pedestrian steps over a kerb, not over a 12 m building |
+| `SKIN_V_GROUND` | new, 0.8 m | 8 m above a one-storey roof is a third floor |
+| `OUTER_MIN_H_GROUND` | new, 2.5 m | at a 12 m cut you walk through 7,652 of the ring's 9,149 buildings |
+| `SPEED_MIN` | 6 -> **1.0** | **Simeon's third dial**, and see below |
+| `TUNE.BOB_AMP_ALT_GROUND` / `SETTLE_AMP_GROUND` | new, 0.06 / 0.10 | 0.45 m of hover bob is 26% of eye height at 1.7 m |
+
+The ground values are not a mode. `groundMix()` is a continuous 0..1 lerp that is
+**exactly 0 at and above `ALT_GROUND`**, so there is no threshold to sit on, and
+the flyover is untouched by arithmetic rather than by hope.
+
+### THE THREE BUGS THAT WERE ALREADY THERE
+
+1. **`blockedAt` never checked whether there is a building at all.**
+   `maxHeightIn` returns 0 over open ground and `0 + SKIN(2.5) > alt` is TRUE for
+   any altitude under 2.5 m — so at a 1.7 m floor **every cell in Austin reports
+   blocked, including the middle of the South Mall**, and the step-up branch then
+   reads that as a kerb and lifts you to `SKIN_V`. Press W on grass, rise to 8 m.
+   Three sites had the unguarded comparison (`blockedAt`, `speedBrake`, and
+   `wallDeflect`'s two probes); three others already guarded on `h > 0`. There is
+   one `blocks(h, a)` helper now and all six agree.
+2. **`SPEED_MIN = 6` was the only speed the camera had ever had below 18.2 m,**
+   because the altitude curve does not reach 6 m/s until then. 6 m/s is 21.6 km/h.
+   At 1.0 the EXISTING curve does the whole job: measured **1.27-1.28 m/s** at
+   1.7 m (walking is 1.4), and not one digit different above 18.2 m.
+3. **The derived zoom saturates at `ZOOM_MAX` and the render silently lies.**
+   `dMin` — the smallest camera-to-centre distance the pose can express — measured
+   **18.48 m** at 1440x900 / fov 58 on the running page. Below `dMin*cos(pitch)`
+   the clamp bites and MapLibre puts the camera 18.48 m from the centre instead of
+   the 2 m asked for: the eye slides backwards and upwards along its own view ray
+   while `window.__fly.eye()` keeps truthfully reporting 1.7 m. **This is live on
+   `main` today at the 18 m floor, in the pitch 5-13 deg band.** Fixed by
+   `pitchFloorAt()`, the exact mirror of the existing `pitchCap()`, plus
+   `altFloorMin()`; both BLOCK INPUT, which is the rule this section already ran
+   on. Cost, and it is a real restriction: **at 1.7 m you may only look level or
+   up (pitch >= 84.7 deg), not down at your own feet.** It relaxes continuously
+   with altitude and is exactly zero at and above 18.48 m.
+
+**The alternative to that restriction was measured and rejected on evidence.**
+MapLibre 5.24 accepts `setMaxZoom(22.5 / 23 / 24 / 25 / 26)` — all of them,
+reporting back exactly what they were given — and a `jumpTo` to z24.2 really
+arrives (`pixelsPerMeter` 285.45 against `cameraToCenterDistance` 811.82 px is a
+genuine 2.84 m camera). So `ZOOM_MAX = 25` would remove the restriction entirely.
+What stops it is a LAYER, not the library: `js/ground.js:349`
+`texGroundMaxZoom: 22`, so the textured ground stops being drawn above z22 — and
+z only passes 22 when you pitch down at low altitude, i.e. exactly when you are
+looking at the ground. Trading "you cannot look at your feet" for "your feet have
+no texture" is not a trade. QUEUE Y1.
+
+### THE MEASUREMENTS
+
+**Render truth — the instrument this suite did not have.** MapLibre's own
+`transform.getCameraAltitude()` against `window.__fly.eye().alt`, nine poses from
+1.7 m to 400 m: **error 0.000 m at every one.** §101 could not have caught its own
+finding without this; it is the test that sees every silent pull-back.
+
+**The floor holds.** 1.7 m at five sites (South Mall, Guadalupe, West Campus,
+East Mall, the Capitol), read 1.5 s after the jump: **1.70 m at all five, render
+1.70, `driving` false.** On `main` the same poses were at 18.0 m within 2 s.
+
+**One tap of W — the measurement that killed the first attempt.** The recon in
+`docs/camera/at-eye-level.md` measured the Nueces pavement going **2.0 -> 66.5 m**
+on a single 0.7 s tap. Now, two reps at each of five sites: **1.70 -> 1.70 at
+every one**, including Guadalupe (tallest roof within 6 m: 9.9 m), West Campus
+(27.3 m) and the Capitol (35 m). Top speed 1.27-1.28 m/s.
+
+**Walking deliberately into walls.** Three buildings (Main Building, a West
+Campus tower, a Guadalupe shopfront), four sides each, standing 10 m clear and
+SPRINTING straight in for 2.5 s: **12 of 12 runs, zero frames inside geometry,
+worst penetration 0.00 m.** Four of the twelve ended high (17-40 m) and the
+frame-by-frame trace says why: my site-finder had put the START inside a
+building, and `alt` was already `roofAt + HARD_CLEAR` on the first sampled frame
+— 13.2+4 = 17.2, 36.6+4 = 40.6 — i.e. the hard net ejecting correctly and
+immediately. It is not a ladder; `alt` never changed after frame one. **I nearly
+filed that as a defect from the summary table alone; the trace is what settled
+it.**
+
+**Controls.** WASD and all four arrows move 32-35 m in 1 s and are symmetric;
+Shift is 2.67x; **Q/PageUp climb and E/PageDown descend** (60 -> 36.4 m in 2 s,
+against `exp(-0.5)*60 = 36.4` exactly; 6 -> 3.55 m at walking height with the
+floor still reading 1.7). **R resets from 1.7 m straight back to SPAWN** (163 m,
+z16.5, p74). The two-guard keyboard fix holds: with the time-of-day slider
+focused, **W still flies the camera 23.4 m** and ArrowRight is **not**
+preventDefaulted, so the slider keeps its own keys.
+
+**PERFORMANCE AT GROUND LEVEL, which nobody had measured. It is not slower.**
+Headed, hardware GL (`ANGLE (NVIDIA GeForce RTX 3050 Ti Laptop GPU, D3D11)`),
+1440x900, camera held still (perf.mjs's own autopsy: holding W makes every rep
+cover different buildings), three interleaved reps, **minimum of the per-rep
+medians**:
+
+| pose | 4x CPU throttle | 8x CPU throttle |
+|---|---|---|
+| spawn 163 m | 18.0 ms (56 fps) | 18.0 ms |
+| cruise 40 m | 18.0 ms | 18.0 ms |
+| `ALT_GROUND` 12 m | 18.0 ms | 18.0 ms |
+| 6 m | 18.0 ms | 18.0 ms |
+| **walking height 1.7 m** | **18.0 ms** | **18.0 ms** |
+
+**18.0 ms is this display's vsync floor, not the app** — perf.mjs's own header
+warns about exactly this — and I could not get ground level off it at either
+throttle. The p95 tail is the only thing separating the poses and it goes the
+OTHER way: **216 ms at 1.7 m against 490 ms at 12 m and 508 ms at 40 m** (tile
+loading). The mechanism is obvious once seen: with the pitch floored near level
+at 1.7 m you can see **less**, not more — the frame is a wall and a road. **20x
+throttle produced 1,671 ms frames and blew the watchdog; that is where I
+stopped.** Caveat stated plainly: this is a discrete GPU, and a weak integrated
+GPU at ground level is **not** measured by this pass.
+
+### THE FLYOVER GATE — checked first, checked properly, four runs
+
+Loaded `index.html` with a visitor's URL, watched the whole intro, ran the tour,
+on `main`'s `js/controls.js` and on the branch.
+
+* **The flight controller NEVER takes ownership during the intro or the tour.**
+  `driving` was false on every one of 86 / 144 / 210 / 209 / 112 / 121 sampled
+  frames across six runs on both builds. Every line this pass changed sits behind
+  that gate, so the flyover is unchanged by construction as well as by pixel.
+* **The intro's settled end pose is identical to every digit** on both builds:
+  `-97.7394, 30.2836, z16.9, p72, b2`. Delta 0.000 on all five fields.
+  `shots/eye/final/80-FLYOVER-UNCHANGED-intro-settled-on-main.png` and
+  `81-...-on-branch.png`.
+* Every pose that appeared in both traces matched to all printed digits —
+  `INTRO.start` (z16.2 / p78), `INTRO.crest` (z15.45 / p71), `INTRO.end`
+  (z16.9 / p72) and three tour legs. **The differences between traces were which
+  poses each run happened to sample**, which is frame-rate phase: a 500 ms
+  wall-clock sampler on a 2 fps page compares two different moments of the same
+  animation. My first two attempts at this gate produced a "69% of pixels changed"
+  number that was entirely that, and it was nearly reported. **Sample an animation
+  by its own fixed points, never by the wall clock.**
+
+### THE REST OF THE GATES
+
+| check | result |
+|---|---|
+| `harness-drift.mjs` | **PASS**, 28 / 28, before and after |
+| `collision.mjs` | **8/8 PASS** — "never inside a building" worst clearance 18.55 m over 528 frames; flying into the 94 m tower still stops 2 m outside it |
+| `lookup-check.mjs` | **9/9 PASS** — the look-up teleport is still fixed; eye moved 0 m at 150 / 450 / 880 m |
+| `motion-feel.mjs` | **18/19 — at baseline.** The one failure (FOV kick 7.00 against an assertion expecting 2.5-4.5) **reproduces on `origin/main`'s `controls.js`**, measured, same run conditions. Pre-existing; the assertion is stale against the current `TUNE.FOV_KICK_FROM`. QUEUE Y5 |
+| `zfight.mjs shots-places.json` | **at baseline** — no clusters at seven poses; `westcampus-day` **242 px @ [642,827,869,895]**, the same count and the same box as §101 |
+| `coplanar.mjs` | **at baseline** — `roofs.geojson` **85**, unchanged and still unowned (QUEUE W6); every other file clean |
+| `places-check.mjs` | **PASS — 40 ok, 0 failed** |
+| `pitch-probe.mjs` | clean; `consts` is a live function now and that script already handled both shapes |
+| altitude regression | none. Render truth 0.000 m error at 40 / 163 / 400 m |
+
+### IS IT GOOD? THE HONEST ANSWER
+
+**Yes, and I would ship it — but the floor is about a third of the job, not all
+of it.** Pictures in `shots/eye/final/`.
+
+**What is genuinely good.**
+`01-THE-TOWER-from-the-south-mall-at-eye-level-day` is a person standing on the
+South Mall: the kerb reads, the paving reads, the live oaks are at human scale and
+the Tower rises behind them. Put it next to `14-LADDER-south-mall-at-18.0m-OLD`,
+which is the SAME SPOT at the old floor looking down onto the tops of those trees
+with the Tower cropped, and the argument makes itself.
+`03-GUADALUPE-from-the-pavement-day` is the ground-floor pass finally being seen
+from where it was authored: awnings, glazing bands, bollards, kerb, Potbelly and
+Wingstop legible. `02-...-night` and `05-WEST-CAMPUS-lobby-at-eye-level-night`
+are the best frames in the set — the Tower lit above dark canopies, and a West
+Campus street with lit windows receding down it.
+
+**What falls apart, and he should hear it from us.**
+
+1. **Stars are drawn on top of solid geometry, and at eye level it is
+   unmissable.** In `02` there are stars sitting on the tree canopies and on the
+   brick of the building at frame right; in `05` they are scattered across a wall
+   1.5 m away. From 18 m nobody could see this. It reads as a bug, not a style,
+   and it is the first thing I would fix.
+2. **The night street is unlit — not moody, unlit.**
+   `71-FAILURE-the-night-street-is-unlit`: the carriageway is 45% of the frame
+   and near-black, with no lamp pools and no light thrown on the buildings. Half
+   the reason to be at eye level at night is the street, and there isn't one.
+3. **Facade textures are authored for 200-900 m and do not survive close range.**
+   The wall at frame right in `01` is a pegboard of brown dots; the upper storeys
+   in `03` are vertical barcode stripes. The modelled ground floor is excellent,
+   and it is a 3 m stripe under 40 m of that.
+4. **The ground plane now carries the frame and it is one flat colour.** With the
+   horizon at mid-frame the lawn or road is 40-55% of every picture.
+5. **Trees are the second thing you notice.** Canopies are stacks of flat plates
+   with hard facets, trunks are square slabs, and canopies and trunks are visibly
+   not attached (§103 measured 73% of canopy centres with no trunk within 2 m).
+6. **You cannot look down at 1.7 m** — `72-LIMIT-...` and `73-LIMIT-...` are the
+   same spot at 1.7 m (pitch floored to 87) and at 12 m (pitch 60, looking down).
+   This is the honest cost of not raising `ZOOM_MAX`; QUEUE Y1 removes it.
+
+**Would I walk around in it? Yes — on campus and on the Drag, day and night.** It
+is not yet a place I would want to walk around West Campus in after dark, because
+the street has no light in it.
+
+### WHAT I DID NOT DO
+
+* **Did not fix any of the six defects above.** They are QUEUE Part Y. This pass
+  changed one file and it is the camera.
+* **Did not give trees or street furniture collision.** You walk through all
+  7,559 trunks and, for 27.7% of crowns, through the leaves — and because
+  MapLibre back-face-culls, entering a canopy makes it VANISH rather than enclose
+  you. Trunk-only collision is the fix (QUEUE Y3); canopy collision is not, since
+  a median crown is 4.27 m of radius against `R_CAM` 6 m and it would wall off
+  every path on campus.
+* **Did not measure ground-level perf on a weak integrated GPU**, and this
+  machine's RTX 3050 Ti could not be pushed off the vsync floor at 4x or 8x.
+* **Did not chase the outer-ring scan hitch.** Crossing `ALT_GROUND` takes the
+  field from 1,336 features / 29,381 cells to **4,580 / 59,760**, and the average
+  scan cost did not move (6.13 ms -> 5.65 ms) — but the **37.9 ms worst-case
+  scan** reported by `outerField()` is pre-existing, unbudgeted
+  (`querySourceFeatures` cannot be budgeted) and I did not chase it. QUEUE Y4.
+* **Did not photograph dusk.** Day `p=0.14` and night `p=0.90` only.
+* **Did not put the eye-level poses into `scripts/verify/shots-*.json`** — still
+  not this lane's file. They are reproducible from the recipe in
+  `docs/camera/at-eye-level.md`: stand where `roofAt(p, 3 m) == 0`, eye 1.7 m,
+  **pitch >= 85**. A scripted pose below 85 deg at 1.7 m is answered higher up,
+  and any future shots file should say so in its own comments.
+* **Kept 25 of the 66 frames this pass and the reconnaissance before it
+  produced.** `shots/eye/final/` (18 frames) is the deliverable;
+  `shots/eye/recon/` keeps the 7 defects that are NOT re-shot in `final/` (the
+  barcode wall, Battle Hall as a blank slab, the Capitol at 2 m, stars over
+  canopies, the single lamp pool, the moon painted on DKR, the old 18 m Drag).
+  The other 41 were 45 MB against a 53 MB pack, for frames `final/` supersedes —
+  the same call §101 made. `docs/camera/at-eye-level.md` cites some of the
+  dropped ones by name; the recipe in it reproduces every one.
+* **Did not test a touch device at walking height.** The joystick, the two-finger
+  altitude gesture and the BOOST latch were only exercised by `collision.mjs`'s
+  synthetic touch at flying altitude.
