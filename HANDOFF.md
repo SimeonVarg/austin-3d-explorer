@@ -11857,3 +11857,156 @@ wrong whenever the consumer is allowed to move the thing afterwards.**
   invent one.
 * **W8 (the Union's courtyard door) is untouched** — it needs a photograph
   before any code, and I did not have one.
+
+---
+
+## 100. Aug 5 2026 — one label per tenant (QUEUE W5), and the entrances payload stays exactly as it is (acer lane)
+
+Branch `acer/night-polish`, cut from `origin/main` at `7001ee0`. Writes limited
+to `js/app.js`, `js/places.js`, `HANDOFF.md`.
+
+### W5 — "Chipotle" twice in one frame
+
+**It was two of our own layers, and the QUEUE entry named only half of it.**
+
+Found by measurement, not by reading a style expression: at the Guadalupe street
+pose I ran `queryRenderedFeatures` over the viewport once per symbol layer (it
+consults the collision index, so a name that lost its box correctly does not come
+back), then painted each symbol layer's glyphs `#ff00ff` in turn and diffed the
+frame. Both words were on our layers; the basemap's symbols are all hidden by
+`cleanupBasemap` and stayed hidden.
+
+| layer | file | what it is | from |
+|---|---|---|---|
+| `places-label` | `data/places.geojson` | **126 distinct tenant names**, brand halo, point on the shop's own fascia | z17.3 |
+| `signs-label` | `data/signs.json` | 48 curated landmarks — the Tower, DKR, Moody Center, the apartment towers | z13.5 |
+
+The two files **share ten strings**: Chipotle, Whataburger, P. Terry's, Raising
+Cane's, Chick-fil-A, Cain & Abel's, Dirty Martin's, Scholz Garten, Texas Chili
+Parlor, The Co-op. `signs.json`'s Chipotle point is 30 m west of the shopfront's,
+which is why the duplicate sat a storey above the awning it belongs to.
+
+**And a second pair the QUEUE had not found:** `buildings-labels` also drew
+"Raku Sushi & Asian Bistro", because OSM names that whole small building after
+its restaurant. Same defect, same answer. `loadScene`'s `isDuplicate()` already
+drops an OSM name that clashes with `data/signs.json`; it could not know about
+`places.geojson`, which places.js fetches itself.
+
+**Decision: `places-label` owns tenant naming.** It is the layer that exists to
+name businesses, it has all 126 of them, and its points are on the shopfronts.
+`signs-label` and the three `buildings-labels` tiers yield the string.
+Implemented in `js/app.js` as `dedupeTenantLabels()`, called from
+`orderLabelLayers()` (which signs.js already calls when its layer appears) and
+from `js/places.js` at the end of `initPlaces` and `applyPlacesSettings`, so the
+two independent boot orders both land. The name list is **derived** from the data
+places.js actually loaded (`window.placesTenantNames()`) — never a second
+hand-written catalogue, the same rule W1 landed for `places-check.mjs`.
+
+Taste block `TENANT_LABELS` in `js/app.js`, on `window`:
+`owner: 'places' | 'off'`, plus the `yieldTo` list of layer+property pairs.
+`TENANT_LABELS.owner = 'off'; dedupeTenantLabels();` reproduces the defect inside
+one build, which is how the A/B below was taken.
+
+### THE GUARD, and the numbers it gives
+
+`window.labelDuplicates(map)` in `js/places.js`: one viewport query per symbol
+layer, grouped by the string drawn, returning every string owned by more than one
+layer. It counts what is **on screen**, not what is in the data. Call it once at a
+settled pose — a full-viewport query on every `render` event takes the renderer
+down (`docs/night/entrances-payload.md` §7.2).
+
+Pose `[-97.7419078, 30.2856778] z20.6 pitch 79 bearing 270`, 1600x1000, hardware
+GL (RTX 3050 Ti / D3D11), auto-detect cancelled, `?intro=0&drift=0`, one arm per
+page load:
+
+| | distinct names rendered | duplicates |
+|---|---|---|
+| before, day `p=0.14` | 24 | **2** — Chipotle `[places-label+signs-label]`, Raku Sushi `[buildings-labels+places-label]` |
+| **after, day** | **26** | **0** |
+| before, night `p=0.92` | 24 | **2** — same pair |
+| **after, night** | **26** | **0** |
+
+**The label count goes UP, not down.** The duplicates were eating collision
+boxes: with them gone, "TSAOCAA" and "Quarters Market" — two real tenants that
+had been losing their box — are named for the first time. Nothing that should be
+there was removed; the pictures are
+`shots/night/w5-{before,after}-guadalupe-street-{day,night}.png` and they are
+otherwise the same frame.
+
+`?placelabels=0` is handled: if the owner is not drawing, nothing is suppressed on
+its behalf, and both filters return to exactly their originals (asserted:
+`signs-label` back to no filter, the tier back to
+`["all",["==",["get","lbl"],1],["==",["get","lt"],1]]`).
+
+`node scripts/verify/places-check.mjs` — **40 ok, 0 failed**, on the merged tree.
+`node scripts/verify/label-legibility.mjs` runs clean and reports no change in
+contrast for any tier (it needs `VERIFY_MAX_MS=560000`; it exceeds the 300 s
+watchdog by default, and that is not new).
+
+**A REQUEST FOR WHOEVER OWNS `scripts/verify/`** (not this lane's file this
+round): a two-assertion `label-dupes.mjs` that loads the harness, poses, calls
+`window.labelDuplicates(map)` at day and night and fails on
+`duplicates.length > 0`. The hook is in the app already; the script is ~40 lines
+and would make this class of defect impossible to reintroduce silently.
+
+### W3 / the entrances payload — LEAVE IT ALONE, and that is the action
+
+`docs/night/entrances-payload.md` recommends doing nothing, so nothing was done.
+Its headline number was re-confirmed independently today, and it holds:
+
+| server | bytes | encoding |
+|---|---|---|
+| **GitHub Pages, live** (`curl -I -H "Accept-Encoding: gzip"`) | **345,437** | gzip — this is what a visitor pays |
+| `python scripts/serve.py 8276` | 5,516,674 | none — **15.97x the wire cost** |
+
+(The doc said 348,345 / 5,568,333; the file has been re-baked since, so it is
+0.8 % smaller. Same conclusion.) Against that: 115 ms of main thread unthrottled,
+of which the `structuredClone` handoff is 72 %; **+180 ms on `austin-buildings`
+out of a 9,459 ms minimum — 1.9 %**; and it is not in `INTRO.needs`, so it cannot
+hold or release the loading screen. Tiling it would keep the parse and **add**
+bytes; a zoom gate at `ENT.minZoom` 15.2 cannot fire, because the lowest point of
+the whole intro flight is z15.45. No `js/tiles.js` loading path was written and no
+bake request was filed, because neither is wanted.
+
+### WHAT DID NOT WORK, and one instrument trap worth keeping
+
+1. **I read the reference frame's colours off an upscaled crop and got them
+   backwards.** `shots/wampus/final/guadalupe-street-day.png`'s lower "Chipotle"
+   looks like red type with a white outline; it is **white type with a thick
+   `#ac2318` halo**, which is exactly what `js/places.js` paints. A pixel
+   histogram of the same box says so in one line (247,246,246 x 168 against
+   191,28,16 x 22) and I should have run it before theorising about which layer
+   inverts its paint. Half an hour, for want of `Counter(crop.getdata())`.
+2. **Memoising the name list made the fix a no-op the second time it ran.** The
+   first cut of `dedupeTenantLabels` remembered the tenant list and returned
+   early if it had not changed — so once the A/B had cleared the filter, the
+   "after" arm decided it had nothing to do and came back **byte-identical to the
+   "before" arm**. It reads exactly like the fix not working. It now compares
+   against the filter that is actually installed, which is self-healing and just
+   as cheap.
+3. **A pose list that flips time-of-day at z20.6 returns a torn frame, and
+   waiting for `idle` does not fix it.** Day frame clean, night frame at the same
+   pose with a park polygon drawn as a flat slab across the whole shopfront row
+   and the roof slabs detached — on BOTH arms, so not the change.
+   `shoot1600.mjs`'s `settle()` (idle + 3.2 s + 600 ms) did not clear it. **One
+   page load per time of day did**, first try, and the night frame is clean and
+   correct. If a close pose comes back looking broken at one hour and fine at
+   another in the same run, suspect the run before you suspect the city.
+4. **`label-legibility.mjs` needs `VERIFY_MAX_MS=560000`** or it dies on
+   `chrome.mjs`'s 300 s watchdog with no output at all. Pre-existing.
+
+### WHAT I DID NOT DO
+
+* **Did not add the verify script.** `scripts/verify/` was outside this pass's
+  writes; the request is above and the runtime hook it needs is merged.
+* **Did not touch `data/signs.json` or `js/signs.js`.** The ten restaurant rows
+  are still in the curated file and still light their ground glow pools at night
+  — only the word is suppressed, and only where `places-label` draws it. If the
+  right long-term answer is to cut them from the bake, that is a signs-lane call.
+* **Did not close the 0.4-zoom-step gap** between `signs-label`'s priority-2 fade
+  (z16.9) and `PLACES.labelMinZoom` (17.3), where those ten names are now
+  unlabelled. A filter cannot be zoom-dependent, and that band is 260-230 m up,
+  where `PLACES.labelMinZoom`'s own note says a storefront name has no business
+  being. Written down as a choice, not a surprise.
+* **Did not chase the torn night frame in #3 above** past establishing that it is
+  the harness and not the app.

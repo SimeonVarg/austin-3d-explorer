@@ -1423,7 +1423,7 @@
         id: t.id, type:'symbol',
         source:'austin-buildings',
         minzoom: t.minzoom,
-        filter:['all', ['==',['get','lbl'],1], ['==',['get','lt'], t.lt]],
+        filter: tierFilter(t),
         layout:{
           'text-field':['get','name'],
           // Only Noto Sans Regular/Bold/Italic exist on OpenFreeMap's glyph
@@ -1498,8 +1498,120 @@
       }
       after = id;
     }
+    dedupeTenantLabels();
   }
   window.orderLabelLayers = orderLabelLayers;
+
+  // ── ONE LABEL PER TENANT ──────────────────────────────────────────
+  // QUEUE W5. `shots/wampus/final/guadalupe-street-day.png` had "Chipotle"
+  // twice in one frame. Neither of the two draws was the basemap's — measured,
+  // not assumed: a per-layer queryRenderedFeatures at the pose, plus a magenta
+  // mask on each symbol layer in turn, put both words on our own layers.
+  //
+  //   places-label   data/places.geojson    126 distinct tenants   from z17.3
+  //   signs-label    data/signs.json         48 curated landmarks  from z13.5
+  //
+  // and the two files share TEN strings: Chipotle, Whataburger, P. Terry's,
+  // Raising Cane's, Chick-fil-A, Cain & Abel's, Dirty Martin's, Scholz Garten,
+  // Texas Chili Parlor, The Co-op.
+  //
+  // WHICH ONE OWNS A TENANT'S NAME: `places-label`. It is the layer that exists
+  // to name businesses — all 126 of them, in the brand's own sign colour, on a
+  // point the bake puts on that shop's own fascia. `signs-label` is the curated
+  // LANDMARK layer: the Tower, DKR, Moody Center, the apartment towers. Its
+  // restaurant rows are a leftover from before places.js existed, and its
+  // points are placed for a hero sign rather than for a shopfront — which is
+  // why the duplicate sat a whole storey above the awning it belongs to.
+  //
+  // THE COST, so it is a choice and not a surprise: `signs-label` fades a
+  // priority-2 name in at z16.9 and `places-label` starts at z17.3, so these
+  // ten names are unlabelled across 0.4 of a zoom step. That band is 260-230 m
+  // of altitude, where PLACES.labelMinZoom's own note says a storefront name
+  // has no business being anyway. The sign's ground glow pool is a separate
+  // layer with no filter, so nothing goes dark at night — only the word goes.
+  // AND IT IS NOT ONLY THE SIGNS. The audit found a second pair the QUEUE entry
+  // had not: "Raku Sushi & Asian Bistro" drawn by `buildings-labels` AND by
+  // `places-label`, because OSM names that whole small building after its
+  // restaurant. `loadScene`'s `isDuplicate()` already drops an OSM name that
+  // clashes with `data/signs.json` — this is the same rule against the third
+  // file, applied as a layer filter rather than in the scene pass because
+  // places.js fetches `data/places.geojson` itself and app.js must not fetch it
+  // a second time to find out.
+  const TENANT_LABELS = {
+    // 'places' — the shopfront label wins; the curated sign and the OSM
+    //            building name both drop the string.
+    // 'off'    — draw them all again, which is how you look at the defect.
+    owner: 'places',
+    // The layers a tenant name is taken OFF, with the property each one names
+    // things through. `places-label` is deliberately not in this list: it is
+    // the owner.
+    yieldTo: [
+      { layer: 'signs-label',           key: 'label' },
+      { layer: 'buildings-labels-major', key: 'name' },
+      { layer: 'buildings-labels-mid',   key: 'name' },
+      { layer: 'buildings-labels',       key: 'name' },
+    ],
+  };
+
+  // On window so the call can be overruled from the console with one line, and
+  // so an A/B can flip it inside ONE build instead of two checkouts:
+  //   TENANT_LABELS.owner = 'off'; dedupeTenantLabels();
+  window.TENANT_LABELS = TENANT_LABELS;
+
+  /** The tier's own filter, without the tenant exclusion. */
+  function tierFilter(t) {
+    return ['all', ['==', ['get', 'lbl'], 1], ['==', ['get', 'lt'], t.lt]];
+  }
+  function baseFilterFor(id) {
+    const t = LABEL_TIERS.find(x => x.id === id);
+    return t ? tierFilter(t) : null;         // signs-label carries no filter
+  }
+
+  function dedupeTenantLabels() {
+    if (!map || !map.getLayer) return;
+    // Derived from the data places.js actually loaded — never a second copy of
+    // the catalogue. Empty means places.js has not fetched yet; it calls back
+    // here when it has.
+    const names = (typeof window.placesTenantNames === 'function')
+      ? window.placesTenantNames() : [];
+    // `?placelabels=0` keeps the shopfronts and drops their names. If the owner
+    // is not drawing, nothing may be suppressed on its behalf — otherwise that
+    // debug lever silently deletes ten names from the map instead of moving
+    // them. places.js calls back here from applyPlacesSettings() when it flips.
+    const ownerDrawing = !window.PLACES || window.PLACES.labels !== false;
+    const dropping = TENANT_LABELS.owner === 'places' && ownerDrawing && names.length > 0;
+    const dropped = [];
+    for (const spec of TENANT_LABELS.yieldTo) {
+      if (!map.getLayer(spec.layer)) continue;
+      const base = baseFilterFor(spec.layer);
+      const excl = ['!', ['in', ['get', spec.key], ['literal', names]]];
+      const want = !dropping ? base : (base ? ['all', base, excl] : excl);
+      // COMPARED AGAINST WHAT IS INSTALLED, not against a remembered key. This
+      // runs from orderLabelLayers(), which runs from three places, and the
+      // first cut memoised the name list — so once anything else had touched
+      // the filter the function decided it had nothing to do and the duplicate
+      // came straight back. It did, in the A/B: the 'after' arm was identical
+      // to the 'before' arm and looked like the fix had failed.
+      let have = null;
+      try { have = map.getFilter(spec.layer); } catch (e) { continue; }
+      if (JSON.stringify(have) === JSON.stringify(want)) continue;
+      try { map.setFilter(spec.layer, want); } catch (e) {
+        console.warn('[labels] tenant de-duplication failed on', spec.layer, e && e.message);
+        continue;
+      }
+      dropped.push(spec.layer);
+    }
+    if (dropped.length) {
+      const signs = (scene && scene.signs && scene.signs.features) || [];
+      const hit = signs.map(f => f.properties && f.properties.label)
+                       .filter(l => names.indexOf(l) >= 0);
+      console.log('[labels] one label per tenant:', dropping ? 'on' : 'off', '—',
+                  names.length, 'tenant names owned by places-label,',
+                  hit.length, 'of them also in signs.json (' + hit.join(', ') + '); layers re-filtered:',
+                  dropped.join(', '));
+    }
+  }
+  window.dedupeTenantLabels = dedupeTenantLabels;
 
   // ── Cinematic intro ───────────────────────────────────────────────
   // The opening shot RISES OUT OF DOWNTOWN AND LANDS ON CAMPUS. Three poses,
