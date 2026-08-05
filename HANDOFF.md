@@ -1,5 +1,142 @@
 # Austin 3D Explorer — Full Handoff
 
+## 90. Aug 4 2026 — West Campus gets its front doors (acer lane)
+
+**Branch:** `acer/westcampus-ground`. **Files written:**
+`scripts/bake_entrances.py`, `data/entrances.geojson`, this entry. Nothing
+else — no js, no html, no second data file. `bake_westcampus.py` and
+`data/westcampus.geojson` were READ and not touched, as the lane rule requires.
+
+**What it is.** A fifth entrance family, `W` / era `"highrise"`, and the 24
+named West Campus buildings that get it: a two-storey glazed storefront run of
+6/8/10 bays, a mullion grid, a hinged pair or a vestibule quad, a leasing
+window in the same run, a projecting signboard canopy, a lit name band, and a
+garage roll gate on the three buildings that have one. It is an EXTENSION of
+`data/entrances.geojson`, not a second door system: same nine parts, same
+schema, same `k` vocabulary, same proud-of-the-wall contract.
+
+### The two measurements that decided the pass
+
+**1. The campus placement method does not carry West Campus, and it is not a
+tuning failure.** Run over the 24 footprints alone, stage 2 produced 28 gated
+candidates on 17 buildings — and only **7** landed on the elevation the street
+address is on. Ten buildings got a candidate on the wrong wall and seven got
+none. On the Forty Acres a footway runs UP TO a door; here the sidewalk runs
+ALONG the street past twenty of them, so the dead end that survives the
+approach gate is usually a service walk. The clean proof is already in the
+shipped file: the derivation put The G's main door on the W 18th (north) wall,
+and 1715 Guadalupe plus four tagged OSM `steps` ways say west.
+
+So: **the address picks the wall, the footpath picks the point on it.** A
+stage-2 candidate is promoted only when it agrees with the address elevation
+and sits within 25 m of the address point. Final split: **6 footpath, 18
+address point, 0 fallback, 0 unplaced — 24 of 24.**
+
+**2. `wall_run()` is the wrong ruler for these podia.** It walks NEARLY
+COLLINEAR edges, which is right for a Cret portal in a solid limestone wall and
+wrong here: these footprints are tessellated into pier and balcony returns every
+few metres, so the collinear walk stops at the first 0.5 m jog. Measured, it
+reported a **3.5 m** elevation on The Quarters Sterling House, whose north front
+is 71 m, and **4.3 m** on The Nine at West Campus against a 68 m front. Three
+buildings got no lobby at all because of it. So West Campus measures its wall in
+the wall's own PLANE (`wc_plane_run`, `WC_PLANE_TOL 1.6 m`): keep walking while
+the vertices stay within that depth. A return shallower than that is behind the
+glass and invisible at 200 m; a real corner runs away in depth at once. That one
+change took 21 lobbies to 24.
+
+### What did NOT work, and what I changed my mind about
+
+- **The name band on the spandrel, as `westcampus.md` §4.6 specifies, is
+  invisible.** The canopy projects 2.60 m and the app cruises at 60-75 deg of
+  pitch, so a point on the wall is hidden unless it clears the canopy top by
+  `2.60 * tan(24 deg) = 1.16 m` — and only the seven genuinely two-storey
+  lobbies have that much spandrel. It was drawn on The Castilian and no pixel of
+  it reached the frame. The band now goes on the canopy FASCIA, which is the
+  same citation read the other way: §1's whole point is that this canopy "is a
+  signboard with a soffit, not a blade". `WC_NAME_PLACE = "spandrel"` puts it
+  back in one line.
+- **`westcampus.md` §8's side-street garage rule fabricates gates.** Applied
+  literally it fired on 15 of the 24, and §9.3 of the same document warns
+  against exactly that. A gate is now drawn only where the GARAGE ITSELF is
+  sourced — 6 buildings — and where its street is not, §8's rule picks it and
+  the feature carries `gtv: false`. Result: **3 gates** (Dobie 2005 Whitis and
+  The Castilian's ramp mouth sourced; Cambridge Tower by the side-street rule).
+  Ion, Moontower and Inspire have sourced garages and no elevation with room, so
+  they get nothing rather than a guess.
+- **The spec's own bay-mix prediction does not reproduce.** `westcampus.md` §3.2
+  predicted 3 six-bay / 14 eight / 7 ten from typed elevation lengths; measured
+  off the plane runs the bake gets **10 / 9 / 5**. The typed lengths are whole
+  street frontages and the plane run is the straight piece the storefront can
+  actually stand on. The measurement wins.
+- **A second lobby on the same building would be a double-draw**, so the other
+  doors on a `W` building fall back to family E2 — a side door on a student
+  tower is a side door. 28 of them.
+
+### The numbers, all from the bake's own output
+
+- Lobbies **24 / 24**. Method: 6 footpath, 18 address point, 0 default.
+- Entrances per West Campus building: **min 2, median 2, max 3**.
+- Two-storey runs **7 of 24** — exactly the seven `westcampus.md` §3.1 derives.
+- Name bands 22 (Cambridge Tower and 2400 Nueces are excluded on purpose);
+  **21 carry `nmv: false`**, so every unverified wordmark is one query away.
+  Only Moontower's lettering is sourced, and it is the only warm band.
+- Shopfront runs: 18 slid clear of a `places.geojson` `front`, 3 narrowed, 0
+  blocked. Dobie Twenty21's Whitis elevation needed the wall AFTER the best one
+  — its first choice is fully claimed by the mall — which is why the seat search
+  walks every elevation on the address street rather than one.
+- Glass: 240 West Campus pieces in **4 distinct day values**; whole-file top
+  share **12%**, so the monotone did not come back.
+- Pieces 10,717 to **11,890**; file 5.31 MB. **Zero new atlas images, zero new
+  style layers, zero new `k` values** — `js/entrances.js` needed no edit.
+- All four bake assertions green: **0 pale-neutral `wn`, 0 glazing neither lit
+  nor dark, 0 floating sills, 0 detached pieces.**
+
+### Verified in pixels, not in the style expression
+
+`harness-drift.mjs` PASS (28 scripts each). `python scripts/serve.py 8251`,
+`_harness.html?intro=0&drift=0`, 1440x900, `cancelGraphicsAutoDetect()` at the
+top of every run, one browser at a time, reaped and the server killed.
+
+Sampled off `shots/wclobby-moontower-night.png` at tod 0.92, against a frame
+background of luma 11:
+
+| piece | rgb | luma | spread |
+|---|---|---|---|
+| lobby glass | 114, 84, 49 | 88 | 65 |
+| leasing window | 115, 94, 76 | 97 | 39 |
+| name band | 116, 65, 34 | 74 | 82 |
+| canopy | 13, 15, 25 | 15 | 12 |
+| host wall | 9, 11, 22 | 11 | 13 |
+
+The lobby glass is genuinely lit and genuinely warm, the leasing window is a
+different value from it, and nothing is the mid-luma neutral that shipped the
+Capitol pale band. By day the same points read 89,136,142 (glass) against
+105,127,136 (leasing) and 164,151,133 (canopy).
+
+Frames: `shots/wclobby-*.png`, `shots/wcl2-*.png`, `shots/wcl3-*.png`.
+
+### What I did NOT do
+
+- **No podium retail.** Simeon asked for "low level shop detail" as well and
+  this pass does not add a single shopfront — `bake_places.py` owns that file
+  and this lane may not write it. The lobby storefront, the leasing window, the
+  canopy and the name band are the ground-floor detail this pass could add
+  honestly. **Request for the places lane:** generic street-facing podium retail
+  on the 15 West Campus buildings with no named tenant, at rank 40 of
+  `docs/entrances/groundfloor-existing.md` §5a, keeping out of the runs this
+  pass now claims.
+- **No photograph of any West Campus lobby was obtained**, so every canopy
+  dimension, the 1.524 m mullion pitch, every door count and 21 of 24 wordmarks
+  are still `[A]`. One rectified photograph of any of these lobbies collapses
+  most of `westcampus.md` §3 to `[M]` and is the highest-value next step.
+- **Cambridge Tower's porte-cochere is pure `[A]`** — 6.50 m projection, 0.40 m
+  thick, top 4.60 — and it is carried only because the building is in the named
+  list. It is a 1964 condominium, not student housing.
+- **The close-up camera poses cost more time than the geometry did.** `look` +
+  `dist` at z20 puts the camera inside the tower as often as in front of it;
+  `shots/wcl3-riogrande-day.png` is the honest cruise truth, where a 4 m lobby
+  is a few pixels and what reads is the canopy top face and the sign band.
+
 ## 89. Aug 4 2026 — I photographed the entrances properly and MERGED PR #145 (acer lane)
 
 **Branch:** `acer/entrances`, **PR #145 MERGED**, branch deleted. **Files

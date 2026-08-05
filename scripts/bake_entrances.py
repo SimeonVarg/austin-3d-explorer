@@ -428,6 +428,133 @@ GLASS_LOWE = chan(GLASS_COOL, *GLASS_LOWE_GAIN)
 
 
 # ══════════════════════════════════════════════════════════════════════
+#  WEST CAMPUS LOBBIES — docs/entrances/westcampus.md, and the
+#  do-not-double-draw audit in docs/entrances/groundfloor-existing.md.
+#
+#  A student high-rise lobby is NOT family D and the four differences are
+#  checkable (westcampus.md §1): a thick signboard canopy instead of a
+#  steel blade, the NAME as the loudest element, a leasing window in the
+#  same storefront run, and a garage gate. So it is a fifth family, `W`,
+#  era "highrise", built from the same nine parts as everything else.
+#
+#  WHAT THIS COSTS THE ATLAS: nothing. Zero new fill-extrusion-pattern
+#  images, zero new style layers, zero new `k` values — the mullion grid
+#  is thin geometry (7-11 slabs) rather than a tile, because a tile has
+#  no vertical anchor and this one would have to line up with a door.
+#  js/entrances.js registers 0 atlas images today and still does.
+#
+#  Every offset below is either REUSED from the entrances alphabet (the
+#  0.18/0.20 door and glass planes) or lands in one of the two intervals
+#  groundfloor-existing.md §4 measured to be EMPTY across all four
+#  ground-floor systems: 0.32-0.41 m and 0.46-1.29 m. Nothing here
+#  shares a plane with a places `front` (0.30/0.31) or an entrances
+#  `surround`/`sign` (0.42/0.45).
+# ══════════════════════════════════════════════════════════════════════
+WC_PITCH = 1.524         # m; the 5'-0" storefront module (§3.2)         [A]
+WC_MULL_W = 0.10         # m DRAWN. The true face is 0.044 [S] and is sub-pixel
+                         # at cruise, exactly like RAIL_D. Do not "fix" it.
+WC_MIN_BAYS = 4          # under this the wall cannot carry a lobby       [A]
+WC_BAYS_LADDER = ((45.0, 6), (80.0, 8), (1e9, 10))   # §3.2 — elevation length
+                         # to bay count. A ladder, not a fraction: a 96 m block
+                         # and a 44 m tower have nearly the same front door.
+WC_QUAD_BAYS_MIN = 10    # at this many bays the doors become a vestibule quad
+WC_DOOR_BAYS = 2         # whole bays a hinged pair occupies              [D]
+WC_QUAD_BAYS = 3         # ... and a quad                                 [D]
+WC_DOOR_MARGIN = 0.10    # m of slack so leaf_plan() can seat the pairs   [D]
+WC_HEAD_DROP = 0.45      # m of spandrel over the storefront head (§3.1)  [A]
+WC_TWO_STOREY = 5.50     # m; at or over this the run gets a mezzanine rail [D]
+WC_MEZZ_FRAC = 0.52      # ... and that is where in the run it sits       [A]
+WC_RAIL_T = 0.14         # m; head and mezzanine rail thickness           [A]
+WC_BULK_H = 0.45         # m; the bulkhead under the glazing              [A]
+WC_GLASS_V0 = 0.18       # m — REUSED from PROUD_DOOR + LEAF_T. There is one
+WC_GLASS_V1 = 0.20       # m — door plane in this repo and this is it.    [M]
+WC_FRAME_PROUD = 0.36    # m; mullion face. Free band 0.32-0.41           [M]
+WC_SILL_PROUD = 0.40     # m; the bulkhead nib, top of the same band      [M]
+WC_SIGN_V0 = 0.36        # m; the name band hangs off the mullion plane   [D]
+WC_SIGN_PROUD = 0.40     # m                                              [D]
+WC_CAN_PROJ = 2.60       # m                                              [A]
+WC_CAN_T = 0.30          # m — thicker than family D's 0.18 ON PURPOSE. That
+                         #     difference IS the family read (§3.4).      [A]
+WC_CAN_TOP_MAX = 4.20    # m                                              [A]
+WC_CAN_HEAD_CLEAR = 0.80 # m below the storefront head (§3.4)             [D]
+WC_CAN_SIDE = 1.20       # m past the run each side                       [A]
+WC_CAN_CLEAR = 0.35      # m of daylight between door head and soffit     [A]
+WC_NAME_FRAC = 0.62      # share of the run the name band spans (§4.6)    [A]
+WC_NAME_CAP_MAX = 0.55   # m cap height                                   [A]
+WC_NAME_CAP_FRAC = 0.55  # ... of the spandrel it sits in                 [D]
+WC_NAME_MIN_SPAN = 0.30  # m; below this there is no spandrel, no band    [D]
+# WHERE THE NAME GOES, and this was decided by looking rather than by reading
+# the spec. westcampus.md §4.6 puts the band on the spandrel between the canopy
+# top and the storefront head. Rendered, that is INVISIBLE on seventeen of the
+# twenty-four: the canopy projects 2.60 m and the app cruises at 60-75 deg of
+# pitch, so a point on the wall is hidden unless it clears the canopy top by
+# 2.60 * tan(24 deg) = 1.16 m — and only the seven genuinely two-storey lobbies
+# have that much spandrel. Measured on shots/wclobby-castilian-day.png, whose
+# spandrel is 0.80 m: the band was drawn, and nothing of it reached the frame.
+# So the name goes on the canopy FASCIA, which is the same citation read the
+# other way — §1's whole point is that this canopy "is a signboard with a
+# soffit, not a blade". Set WC_NAME_PLACE = "spandrel" to put it back.
+WC_NAME_PLACE = "fascia"
+WC_NAME_INSET = 0.05     # m of fascia left above and below the band       [A]
+WC_NAME_T = 0.10         # m the band is recessed into the fascia          [A]
+WC_NAME_PROUD_F = 0.03   # m it stands off the fascia face                 [A]
+WC_REVEAL_D = 0.30       # m. C 1.50 > A 1.20 > B 0.65 > D 0.35 > W 0.30: `W`
+                         # is the flattest family in the city, on purpose (§3.5)
+WC_LEASE_BAYS = 2        # the leasing office window (§4.7)               [A]
+WC_GATE_W = 5.50         # m; two lanes of passenger car (§5)             [A]
+WC_GATE_H_MAX = 2.90     # m                                              [A]
+WC_GATE_HEAD = 0.60      # m of base band kept over the clear opening     [A]
+WC_GATE_HEAD_H = 0.35    # m; the head housing that makes it read as a gate [A]
+WC_GATE_SEP = 22.0       # m a gate must keep from the lobby              [A]
+WC_ROAD_R = 26.0         # m; a named road centreline this close to an elevation
+                         # midpoint means that elevation FRONTS it        [A]
+WC_PLANE_TOL = 1.6       # m. A STOREFRONT IS A PLANE, NOT A WALL-FOLLOWER, and
+                         # this is the whole reason West Campus needs its own
+                         # run measurement. wall_run() walks NEARLY COLLINEAR
+                         # edges, which is right for a Cret portal in a solid
+                         # limestone wall and wrong here: these podia are
+                         # tessellated into pier and balcony returns every few
+                         # metres, so the collinear walk stops at the first
+                         # 0.5 m jog. Measured, it reported a 3.5 m elevation on
+                         # The Quarters Sterling House, whose north front is
+                         # 71 m, and 4.3 m on The Nine at West Campus, whose
+                         # east front is 68 m. So the run is measured in the
+                         # wall's own PLANE instead: keep walking while the
+                         # vertices stay within this depth of it. A return
+                         # shallower than this is behind the glass and invisible
+                         # at 200 m; a real corner runs away in depth at once.
+WC_RUN_DIST_W = 1.0      # THE ADDRESS NAMES A STREET, NOT A JOG. Overture
+                         # tessellates these footprints into balcony returns and
+                         # step-backs, and the nearest edge to an address point
+                         # is often a 3.5 m stub: measured, SIX of the 24 snapped
+                         # onto one (The Nine at West Campus 4.3 m against a 68 m
+                         # elevation, Sterling House 3.5 m against 71 m) and a
+                         # ten-bay storefront cannot stand on it. So the
+                         # elevation is chosen by RUN LENGTH first and distance
+                         # second, and this is the exchange rate: one metre of
+                         # straight wall is worth one metre of proximity.  [A]
+WC_CLAIM_TRIES = 11      # how many WC_CLAIM_SHIFT steps along the wall
+WC_CLAIM_R = 1.0         # m — groundfloor-existing.md §5a measured the claimed
+                         # perimeter at exactly this radius, so the 142 m it
+                         # reports is directly the metres this pass must skip
+WC_CLAIM_SHIFT = 3.0     # m per attempt when sliding clear of a claim    [A]
+WC_SPEC_AGREE_R = 25.0   # m; a footpath candidate this close to the address
+                         # point AND on the address wall is better provenance
+WC_BUDGET = 2            # entrances per West Campus building             [A]
+
+# The two name-band trios. BOTH are [S], read off named photographs by an
+# earlier pass and already surviving this renderer's transfer at all three
+# times of day (js/westcampus.js). NO THIRD COLOUR IS ADDED, and no wordmark
+# is drawn: 21 of the 24 lettering treatments are unverified, so what is drawn
+# is a lit BAND and the feature carries `nmv: false` so a later pass can find
+# them (westcampus.md §8 rule 2).
+WC_SIGNW = ("#e6e5e0", "#efe6d6", "#cdd6e4")       # [S] brushed white, backlit
+WC_SIGN_WARM = ("#8a4a22", "#b4622c", "#ff8a3c")   # [S] Moontower, lit orange
+WC_MULL_DK = STEEL_DK    # where the base band is `sg` — dark anodised
+WC_MULL_LT = ALUMINIUM   # where it is `sp`/`sn` — mill finish (§4.5)
+
+
+# ══════════════════════════════════════════════════════════════════════
 #  THE ERA VOCABULARY (docs/entrances/eras.md §3, §4)
 #
 #  Uniform primitives are the null hypothesis. Every entrance in every
@@ -561,6 +688,31 @@ FAMILIES = {
         leaf_mat="wood", leaf_col=WOOD, glaz_frac=0.25,
         sur_mat="limestone", sur_col=LIMESTONE, glass_col=GLASS_LEADED,
         dt="arched-pair", accent=None, accent_h=0.0,
+    ),
+    # ── W — West Campus student high-rise lobby, 1965-2023. The one family
+    #        whose bay count, glazing height, canopy top and door count are ALL
+    #        derived per building and none of which is authored. Its own
+    #        assembler (assemble_w) draws the storefront run; everything here
+    #        that the generic assembler would also draw is switched off, so no
+    #        piece is emitted twice.
+    "W": dict(
+        era="highrise", arched=False,
+        open_w=None, open_w_sec=None,        # DERIVED per building — §3.2
+        leaf_w=LOBBY_DOOR_W, leaf_h=DOOR_H, max_pairs=2,
+        spring_h=None, arch_rise=0.0,        # DERIVED: the base band, §3.1
+        transom=False, transom_h=0.0,        # the storefront bay IS the transom
+        surround_w=0.0, surround_proj=0.0,   # no surround: the storefront IS
+        cornice=0.0, sign_band=True,         # the frame
+        reveal_d=WC_REVEAL_D, reveal_col=REVEAL_COOL,
+        rise=0.0, riser=FLIGHT_RISER, tread=UTILITY_TREAD,
+        cheek=False, rail=False,             # rail ONLY where rise > 0. A
+                                             # handrail on a flat threshold is a
+                                             # defect you can see (§3.6)
+        canopy=None,                         # drawn by assemble_w over the RUN,
+                                             # not over the door bank
+        leaf_mat="glass", leaf_col=STEEL_DK, glaz_frac=0.92,
+        sur_mat="aluminium", sur_col=ALUMINIUM, glass_col=GLASS_LOWE,
+        dt="hinged-pair", accent=None, accent_h=0.0,
     ),
     # ── E5 — NULL. Everything else, and every unknown. Deliberately dull.
     #        A dull correct door on an unknown building is honest; a Cret portal
@@ -844,6 +996,97 @@ NULL_REFS = set(("LFH", "LCH", "JHH", "ANB"))
 NULL_NAME_PARTS = ("chilling station", "cooling tower", "power plant",
                    "facilities complex", "sign shop", "field support",
                    "arno nowotny", "hargis hall", "carriage house")
+
+# ══════════════════════════════════════════════════════════════════════
+#  THE 24 WEST CAMPUS BUILDINGS — westcampus.md §6, keyed on the exact
+#  `name` string in the Overture snapshot (all 24 match, checked every
+#  bake by the assertion in main()).
+#
+#  Only THREE things here are typed per building and each is [S]:
+#    `side` — the compass of the elevation the STREET ADDRESS is on.
+#             22 of 24 are a looked-up address cross-checked against the
+#             repo's own road centrelines; the other two (The Block, The
+#             G) rest on the footprint-vs-address reconciliation argued
+#             in westcampus.md §0.
+#    `at`   — (lon, lat) on that elevation, snapped to an OSM footway
+#             dead-end where one exists within 6 m.
+#    `band` — the measured ground-floor band height, retyped from
+#             scripts/bake_westcampus.py's BUILDINGS[name]["base"][0],
+#             with its facade family. That file is another lane's and is
+#             read-only here; the numbers are asserted against the doc.
+#
+#  EVERYTHING ELSE IS DERIVED IN THE BAKE — bay count from the measured
+#  wall run, glazing height from `band`, leaf count from the bays, canopy
+#  top from the glazing height, mullion colour from the base family. If a
+#  building comes out with the wrong number of doors the wall run is
+#  wrong, not the count.
+#
+#  `steps` is [M] on all three: The G has four OSM `steps`/`footway` ends
+#  on its Guadalupe wall, Crest at Pearl five footway ends on MLK, and
+#  The Castilian sits above San Antonio. Nobody else gets a rise and
+#  nobody else gets a rail.
+#
+#  `gate` is the WEAKEST column in the document — 2 of 24 sourced. It is
+#  therefore not typed except where it is sourced: "auto" asks the bake
+#  to apply westcampus.md §8's rule (a gate only on a footprint that
+#  fronts more than one named road, on the shortest non-address
+#  elevation) and every such gate carries `gtv: false`. A generator that
+#  puts a confident garage door on all 24 has fabricated 22 of them.
+# ══════════════════════════════════════════════════════════════════════
+WC_LOBBIES = {
+    # ── the towers ────────────────────────────────────────────────────
+    "21 Rio": dict(side="W", at=(-97.74495, 30.28414), band=(6.20, "sg"),),  # 2101 Rio Grande St [S]
+    "Dobie Twenty21": dict(side="E", at=(-97.74090, 30.28364), band=(6.00, "sp"),
+                           gate="E"),                  # garage 2005 Whitis [S]
+    "The Castilian": dict(side="W", at=(-97.74264, 30.28762), band=(4.60, "sp"),
+                          steps=True, gate="W"),       # levels 2-10 are deck [S]
+    "The Callaway House Austin": dict(side="N", at=(-97.74385, 30.28506),
+                                      band=(5.40, "sp")),
+    "Ion Austin": dict(side="E", at=(-97.74305, 30.28405), band=(7.00, "sg"),
+                       gate="auto"),                   # 260-car garage [S]
+    "Skyloft Austin": dict(side="N", at=(-97.74372, 30.28650), band=(6.20, "sg"),),
+    "Moontower": dict(side="E", at=(-97.74295, 30.28567), band=(7.40, "sg"),
+                      sign="warm", gate="auto"),       # lit orange wordmark [S]
+    "Inspire on 22nd": dict(side="E", at=(-97.74399, 30.28530), band=(6.00, "sg"),
+                            gate="auto"),
+    "Signature 1909": dict(side="W", at=(-97.74498, 30.28390), band=(5.20, "sg"),),  # Cambridge Tower is the odd one out and is flagged rather than averaged
+    # away: a 1964-65 Thomas E. Stanley New Formalism condominium on the
+    # National Register with 24-hour concierge and an ATTENDED garage [S] —
+    # which means a porte-cochere, not a flat 2.60 m canopy. No leasing office
+    # and no lit name band. Every number in its entry is [A].
+    "Cambridge Tower": dict(side="W", at=(-97.74052, 30.28075), band=(5.00, "sg"),
+                            sign=None, lease=0, gate="auto",
+                            canopy=(6.50, 0.40, 4.60)),
+    # ── the mid-rise blocks ───────────────────────────────────────────
+    "The Standard": dict(side="N", at=(-97.74620, 30.28724), band=(7.00, "sg"),),
+    "Rambler": dict(side="E", at=(-97.74295, 30.29045), band=(4.60, "sn"),),  # Institutional, not retail: ~10,000 sf of academic space including the UT
+    # International Office [S]. A second storefront entrance, and NO name band.
+    "2400 Nueces": dict(side="E", at=(-97.74310, 30.28805), band=(5.00, "sp"),
+                        sign=None),
+    "The Quarters Grayson House": dict(side="S", at=(-97.74640, 30.28538),
+                                       band=(5.00, "sn")),
+    "The Quarters Sterling House": dict(side="N", at=(-97.74645, 30.28525),
+                                        band=(5.00, "sn")),
+    "The Nine at Rio": dict(side="E", at=(-97.74511, 30.28416), band=(4.40, "sg"),),  # shallowest band in the set: a
+                                            # two-storey lobby does NOT fit here
+    "The Nine at West Campus": dict(side="E", at=(-97.74905, 30.29089),
+                                    band=(4.60, "sg")),
+    "The Block": dict(side="E", at=(-97.74922, 30.29058), band=(5.40, "sg"),),  # 2510 Leon St, §0
+    "Block on 25th East": dict(side="S", at=(-97.74595, 30.28941),
+                               band=(5.00, "sp")),
+    "Crest at Pearl": dict(side="S", at=(-97.74607, 30.28300), band=(4.60, "sg"),
+                           steps=True),
+    "Pointe on Rio": dict(side="W", at=(-97.74509, 30.28274), band=(5.00, "sg"),),  # 1901 Rio Grande St, §0
+    "Twenty Two 15": dict(side="W", at=(-97.74476, 30.28630), band=(5.20, "sp"),),
+    "The Venue on Guadalupe": dict(side="W", at=(-97.74216, 30.29434),
+                                   band=(5.00, "sg")),
+    # The strongest placement evidence in the whole set: four `steps`/`footway`
+    # ends on the Guadalupe (west) wall [M]. The shipped file's main door for
+    # this building is on W 18th (north) and is WRONG — westcampus.md §2.2. The
+    # authored point wins clustering, so the swap happens by construction.
+    "The G": dict(side="W", at=(-97.74202, 30.28031), band=(5.20, "sp"),
+                  steps=True),
+}
 
 # Overture building_class -> family, when nothing better is known.
 CLASS_FAMILY = {
@@ -1484,7 +1727,7 @@ def refresh():
 class Bldg(object):
     __slots__ = ("bid", "name", "cls", "h", "wd", "rings", "poly", "area",
                  "perim", "ref", "osm_name", "fam", "budget", "ents",
-                 "cx", "cy")
+                 "cx", "cy", "wc")
 
 
 def load_buildings():
@@ -1521,6 +1764,7 @@ def load_buildings():
         b.cx, b.cy = poly.centroid.x, poly.centroid.y
         b.ref = None
         b.osm_name = None
+        b.wc = None            # the West Campus lobby spec, if this is one
         b.ents = []
         b.fam = "E5"
         b.budget = 0
@@ -1593,6 +1837,8 @@ def classify(b):
     temptation is to default unknown campus buildings to mid-century because
     mid-century is numerically dominant, and that is exactly how a wrong
     entrance gets onto eighty buildings at once. Families are OPT-IN."""
+    if b.wc:
+        return "W"          # the named list beats everything, here too
     nm = ((b.name or "") + " " + (b.osm_name or "")).lower()
     if b.ref in NULL_REFS:
         return "E5"
@@ -1793,7 +2039,7 @@ ROLE_FROM_TAG = {"main": "main", "yes": "secondary", "staircase": "secondary",
 class Cand(object):
     __slots__ = ("x", "y", "tx", "ty", "nx", "ny", "elen", "s", "role", "src",
                  "score", "wheel", "door", "prio", "risers", "handrail",
-                 "ri", "ei")
+                 "ri", "ei", "wcrole", "wcmeth")
 
     def __init__(self, x, y, tx, ty, nx, ny, elen, s, role, src, score, prio,
                  wheel=None, door=None, ri=0, ei=0):
@@ -1806,6 +2052,8 @@ class Cand(object):
         self.risers = None        # from an adjacent OSM steps way, if any
         self.handrail = False
         self.ri, self.ei = ri, ei
+        self.wcrole = None        # "lobby" | "gate" on a West Campus building
+        self.wcmeth = None        # which method placed it, for the audit
 
 
 def stage1_osm(blds, tree, stats):
@@ -2099,11 +2347,417 @@ def budget_for(b):
     at 1 and the garages). Fitting a curve to that data encodes the fatigue. So:
     a flat metres-of-facade-per-door rule, chosen to match the well-mapped
     middle of the range and then held constant."""
+    if b.wc:
+        # A West Campus tower has ONE front door and, at most, one more thing:
+        # the garage gate or the secondary these two already carry. The
+        # perimeter rule would give 2400 Nueces three and Rambler four, all of
+        # them invented, on the buildings where the evidence is thinnest.
+        return WC_BUDGET
     n = int(round(b.perim / P_PER_DOOR))
     n = max(1, min(NMAX, n))
     if is_parking(b):
         n = min(n, GARAGE_CAP)   # a garage ramp is a vehicle entrance, not a door
     return n
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  WEST CAMPUS — placement, and the measurement that chose the method
+#
+#  THE CAMPUS METHOD WAS TESTED HERE FIRST AND IT DOES NOT CARRY THIS
+#  NEIGHBOURHOOD. Run over the 24 footprints alone, stage 2 produces 28
+#  gated candidates on 17 of them — but only SEVEN land on the elevation
+#  the street address is on. Ten buildings get a candidate on the wrong
+#  wall and seven get none at all. That is not a tuning failure, it is
+#  what the geometry says: on the Forty Acres a footway runs UP TO a
+#  door, and in West Campus the sidewalk runs ALONG the street past
+#  twenty of them, so the dead-end that survives the approach gate is
+#  usually a service walk or a cut-through at the back.
+#
+#  The G is the clean example and it is already in the shipped file: the
+#  derivation put its main door on the W 18th (north) wall, and the
+#  address (1715 Guadalupe) plus four tagged OSM `steps` ways say west.
+#
+#  So the ADDRESS picks the wall and the FOOTPATH picks the point on it:
+#  a stage-2 candidate is promoted only when it agrees with the address
+#  wall and sits within WC_SPEC_AGREE_R of the address point. Everything
+#  else falls back to the authored point, and the per-building method is
+#  printed every bake.
+# ══════════════════════════════════════════════════════════════════════
+def side_of(nx, ny):
+    """Compass of an outward normal. Four boxes, no diagonals: every one of
+    the 24 addresses names one of N/S/E/W."""
+    if nx > abs(ny):
+        return "E"
+    if -nx > abs(ny):
+        return "W"
+    return "N" if ny > 0 else "S"
+
+
+def load_place_claims():
+    """The wall runs data/places.geojson has already claimed, as plan polygons.
+
+    bake_places.py stands every `front` slab 0.30 m PROUD of its host wall and
+    claims NO building ids, which is exactly why six passes can land on the same
+    building without colliding — and it only works if each pass refuses to
+    overlap the last one. Not "avoids the building": avoids the SEGMENT. All
+    four of Dobie / 21 Rio / Pointe on Rio / the Venue need both a lobby and
+    their existing shops."""
+    claims = []
+    if not os.path.exists(PLACES):
+        return claims
+    pj = json.load(open(PLACES, encoding="utf-8"))
+    for f in pj["features"]:
+        if f["properties"].get("kind") not in ("front", "awning"):
+            continue
+        g = f["geometry"]
+        rings = g["coordinates"] if g["type"] == "Polygon" else \
+            (g["coordinates"][0] if g["type"] == "MultiPolygon" else None)
+        if not rings:
+            continue
+        try:
+            p = Polygon([to_m(c[0], c[1]) for c in rings[0]])
+            if p.is_valid and not p.is_empty:
+                claims.append(p)
+        except Exception:
+            continue
+    return claims
+
+
+def run_rect(cx, cy, tx, ty, nx, ny, run_w, depth=1.6):
+    """The plan footprint of a storefront run, for the claim test."""
+    a = (cx - tx * run_w / 2.0, cy - ty * run_w / 2.0)
+    b = (cx + tx * run_w / 2.0, cy + ty * run_w / 2.0)
+    return Polygon([a, b,
+                    (b[0] + nx * depth, b[1] + ny * depth),
+                    (a[0] + nx * depth, a[1] + ny * depth)])
+
+
+def claim_free(tree, claims, cx, cy, tx, ty, nx, ny, run_w):
+    r = run_rect(cx, cy, tx, ty, nx, ny, run_w)
+    for i in tree.query(r.buffer(WC_CLAIM_R)):
+        if claims[int(i)].distance(r) < WC_CLAIM_R:
+            return False
+    return True
+
+
+def wc_plane_run(b, ri, ei, s):
+    """How much wall a storefront PLANE has, in the frame of edge `ei`.
+
+    Same contract as wall_run() — (metres available backwards, forwards) — and
+    the same use, but the walk continues past a jog instead of stopping at it.
+    See WC_PLANE_TOL for the measurement that made this necessary. The walk also
+    stops if the ring doubles back on itself, so a re-entrant courtyard cannot
+    be counted as frontage."""
+    ring = b.rings[ri]
+    m = len(ring) - 1
+    if m < 1 or ei >= m:
+        return 0.0, 0.0
+    a, bb = ring[ei], ring[ei + 1]
+    tx, ty = _norm(bb[0] - a[0], bb[1] - a[1])
+    nx, ny = edge_normal(a, bb, ri)
+    ox, oy = a[0], a[1]
+
+    def proj(p):
+        return ((p[0] - ox) * tx + (p[1] - oy) * ty,
+                (p[0] - ox) * nx + (p[1] - oy) * ny)
+
+    lo, hi = proj(a)[0], proj(bb)[0]
+    j = ei
+    for _ in range(m):
+        j = (j + 1) % m
+        tq, dq = proj(ring[j + 1])
+        if abs(dq) > WC_PLANE_TOL or tq <= hi - WC_PLANE_TOL:
+            break
+        hi = max(hi, tq)
+    j = ei
+    for _ in range(m):
+        j = (j - 1) % m
+        tp, dp = proj(ring[j])
+        if abs(dp) > WC_PLANE_TOL or tp >= lo + WC_PLANE_TOL:
+            break
+        lo = min(lo, tp)
+    here = s
+    return max(0.0, here - lo), max(0.0, hi - here)
+
+
+def wc_bays(run_len):
+    """Bay count from the measured wall run — a three-step ladder, never a
+    fraction of the elevation. A linear rule was tried in the spec first and it
+    clamped 16 of 24 buildings to the same value, which means the clamp was
+    doing all the work and the rule was fiction."""
+    for lim, n in WC_BAYS_LADDER:
+        if run_len < lim:
+            return n
+    return WC_BAYS_LADDER[-1][1]
+
+
+def wc_elevations(b):
+    """Every straight elevation of a footprint, as
+    (side, midx, midy, tx, ty, nx, ny, length, ri, ei, s). Collinear edges are
+    walked together by wall_run(), so a tessellated wall is one elevation."""
+    out, seen = [], set()
+    for ri, ring in enumerate(b.rings):
+        for ei in range(len(ring) - 1):
+            a, bb = ring[ei], ring[ei + 1]
+            elen = math.hypot(bb[0] - a[0], bb[1] - a[1])
+            if elen < 1.0:
+                continue
+            tx, ty = _norm(bb[0] - a[0], bb[1] - a[1])
+            nx, ny = edge_normal(a, bb, ri)
+            left, right = wc_plane_run(b, ri, ei, elen / 2.0)
+            mx = a[0] + tx * (elen / 2.0) + (right - left) / 2.0 * tx
+            my = a[1] + ty * (elen / 2.0) + (right - left) / 2.0 * ty
+            key = (round(mx, 1), round(my, 1))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((side_of(nx, ny), mx, my, tx, ty, nx, ny,
+                        left + right, ri, ei, elen / 2.0))
+    return out
+
+
+def wc_best_elevation(b, want, sx, sy):
+    """Every elevation facing the street the address names, best first — run
+    length minus distance to the address, see WC_RUN_DIST_W for the incident
+    this exists for. A LIST, not one answer: the best elevation can turn out to
+    be fully claimed by a shopfront (Dobie Twenty21's Whitis front is), and the
+    right response is the next wall on the same street, not no lobby."""
+    out = []
+    for e in wc_elevations(b):
+        if e[0] != want:
+            continue
+        out.append((e[7] - WC_RUN_DIST_W * math.hypot(e[1] - sx, e[2] - sy), e))
+    out.sort(key=lambda r: -r[0])
+    return [e for _s, e in out]
+
+
+def wc_cand_on(b, e, sx, sy, role, src):
+    """A candidate at the point of elevation `e` nearest the address point,
+    kept EDGE_MARGIN clear of both corners."""
+    along = (sx - e[1]) * e[3] + (sy - e[2]) * e[4]
+    lim = max(0.0, e[7] / 2.0 - EDGE_MARGIN)
+    along = max(-lim, min(lim, along))
+    px, py = e[1] + e[3] * along, e[2] + e[4] * along
+    sn = snap_to_edge(b, px, py)
+    if sn is None:
+        return None
+    d, qx, qy, tx, ty, nx, ny, elen, sa, ri, ei = sn
+    if side_of(nx, ny) != e[0] or not normal_test(b, qx, qy, nx, ny):
+        return None
+    return Cand(qx, qy, tx, ty, nx, ny, elen, sa, role, src, 8.0, 0,
+                None, None, ri, ei)
+
+
+def load_named_roads():
+    """Named road centrelines in metres — used ONLY to answer "does this
+    footprint front more than one street", which is westcampus.md §8's gate
+    condition. Not used to place anything."""
+    path = os.path.join(CACHE, "roads.json")
+    if not os.path.exists(path):
+        return []
+    j = json.load(open(path, encoding="utf-8"))
+    out = []
+    for e in j.get("elements", []):
+        nm = (e.get("tags") or {}).get("name")
+        geo = e.get("geometry")
+        if not nm or not geo or len(geo) < 2:
+            continue
+        try:
+            out.append((nm, LineString([to_m(p["lon"], p["lat"]) for p in geo])))
+        except Exception:
+            continue
+    return out
+
+
+def wc_fronting_roads(b, roads, rtree, ev):
+    """Which named road, if any, an elevation fronts: the nearest centreline to
+    a point WC_ROAD_R/2 out from its midpoint."""
+    px = ev[1] + ev[5] * (WC_ROAD_R / 2.0)
+    py = ev[2] + ev[6] * (WC_ROAD_R / 2.0)
+    pt = Point(px, py)
+    best, bd = None, WC_ROAD_R
+    for i in rtree.query(pt.buffer(WC_ROAD_R)):
+        nm, ln = roads[int(i)]
+        d = ln.distance(pt)
+        if d < bd:
+            best, bd = nm, d
+    return best
+
+
+def wc_place(scope, s2, claims, stats):
+    """One lobby per building, and a gate only where §8's rule fires.
+
+    Returns per-building audit rows. Runs BEFORE stage 3 and appends at
+    priority 0, so the lobby wins clustering against any derived candidate that
+    lands on top of it — which is how Cambridge Tower's existing E2 door gets
+    UPGRADED in place rather than duplicated, and how The G's wrong main
+    demotes itself to the secondary it always was."""
+    ctree = STRtree(claims) if claims else None
+    roads = load_named_roads()
+    rtree = STRtree([r[1] for r in roads]) if roads else None
+    rows = []
+    min_run = WC_MIN_BAYS * WC_PITCH + 2 * EDGE_MARGIN
+
+    def seat(pick, meth):
+        """Seat a storefront run at `pick`: measure the wall in its own plane,
+        slide the run clear of any places `front` it overlaps, narrow it if
+        sliding is not enough, and give up on THIS wall if a four-bay run has
+        nowhere to stand. Returns (bays, moved) or None."""
+        left, right = wc_plane_run(b, pick.ri, pick.ei, pick.s)
+        if left + right < min_run:
+            return None
+        bays = wc_bays(left + right)
+        if ctree is None:
+            return bays, 0
+        while bays >= WC_MIN_BAYS:
+            run_w = bays * WC_PITCH
+            for k in range(0, WC_CLAIM_TRIES):
+                off = (0.0 if k == 0 else
+                       ((k + 1) // 2) * WC_CLAIM_SHIFT * (1 if k % 2 else -1))
+                if not (-(left - EDGE_MARGIN - run_w / 2) <= off
+                        <= (right - EDGE_MARGIN - run_w / 2)):
+                    continue
+                qx, qy = pick.x + pick.tx * off, pick.y + pick.ty * off
+                if claim_free(ctree, claims, qx, qy, pick.tx, pick.ty,
+                              pick.nx, pick.ny, run_w):
+                    pick.x, pick.y, pick.s = qx, qy, pick.s + off
+                    return bays, k
+            bays -= 2
+            stats["wc_claim_narrowed"] += 1
+        return None
+
+    for b in sorted(scope, key=lambda b: b.name or ""):
+        if not b.wc:
+            continue
+        spec = b.wc
+        want = spec["side"]
+        sx, sy = to_m(spec["at"][0], spec["at"][1])
+        evs = wc_best_elevation(b, want, sx, sy)
+        if not evs:
+            stats["wc_unplaced"] += 1
+            rows.append((b.name, want, "NO WALL FACES THE ADDRESS STREET", 0))
+            continue
+
+        # ── 1. a footpath candidate, but ONLY on the address wall and only
+        #       near the address. Anything else the derivation offers here is a
+        #       sidewalk running past the building, which is the West Campus
+        #       failure mode measured at the top of this section.
+        got, pick, meth = None, None, None
+        for c in sorted(s2.get(b.bid) or [], key=lambda c: -c.score):
+            if side_of(c.nx, c.ny) != want:
+                continue
+            if math.hypot(c.x - sx, c.y - sy) > WC_SPEC_AGREE_R:
+                continue
+            got = seat(c, "path")
+            if got is None:
+                stats["wc_path_run_too_short"] += 1
+                continue
+            pick, meth = c, "path"
+            break
+        # ── 2. the address point, projected onto each wall on the address
+        #       street in turn, best first. Never a different street: the
+        #       street is the one thing in this table that is [S].
+        if pick is None:
+            for ev in evs:
+                cand = wc_cand_on(b, ev, sx, sy, "main", "westcampus")
+                if cand is None:
+                    continue
+                got = seat(cand, "spec")
+                if got is None:
+                    continue
+                pick, meth = cand, "spec"
+                break
+        # ── 3. the midpoint of the best wall on that street, if projecting the
+        #       address point onto it did not land anywhere legal.
+        if pick is None:
+            for ev in evs:
+                cand = wc_cand_on(b, ev, ev[1], ev[2], "main", "westcampus")
+                if cand is None:
+                    continue
+                got = seat(cand, "default")
+                if got is None:
+                    continue
+                pick, meth = cand, "default"
+                break
+        if pick is None:
+            stats["wc_unplaced"] += 1
+            rows.append((b.name, want, "NO WALL ON THAT STREET IS FREE", 0))
+            continue
+
+        bays, moved = got
+        if moved:
+            stats["wc_claim_moved"] += 1
+        pick.role = "main"
+        pick.wcrole = "lobby"
+        pick.wcmeth = meth
+        if pick not in b.ents:
+            b.ents.append(pick)
+        stats["wc_lobby_" + meth] += 1
+        rows.append((b.name, want, meth, bays))
+    return rows
+
+
+def wc_gates(scope, claims, stats):
+    """The garage gate, and it is the WEAKEST column in the document: 2 of the
+    24 garages are sourced with a street, 4 more are sourced as existing with an
+    unverified street, and eighteen buildings have no garage evidence at all.
+
+    So a gate is drawn only where the GARAGE ITSELF is sourced. Where its street
+    is not, westcampus.md §8's rule picks it — the shortest non-address
+    elevation on a footprint that fronts more than one named road — and the
+    feature carries `gtv: false` so all four are one query away. Eighteen
+    buildings get nothing, on purpose: "usually has one" is how a wrong door
+    gets onto twenty-two buildings at once.
+
+    Runs AFTER stage 3 so a gate never spends the pedestrian budget."""
+    ctree = STRtree(claims) if claims else None
+    roads = load_named_roads()
+    rtree = STRtree([r[1] for r in roads]) if roads else None
+    for b in sorted(scope, key=lambda b: b.name or ""):
+        if not b.wc or not b.wc.get("gate"):
+            continue
+        want = b.wc["side"]
+        lob = [c for c in b.ents if c.wcrole == "lobby"]
+        if not lob:
+            continue
+        evs = wc_elevations(b)
+        side, gtv = b.wc["gate"], True
+        if side == "auto":
+            gtv, side = False, None
+            fronted = {}
+            for e in evs:
+                nm = wc_fronting_roads(b, roads, rtree, e) if rtree else None
+                if nm:
+                    fronted.setdefault(nm, []).append(e)
+            if len(fronted) >= 2:
+                pool = [e for es in fronted.values() for e in es
+                        if e[0] != want and e[7] >= WC_GATE_W + 2 * EDGE_MARGIN]
+                if pool:
+                    side = min(pool, key=lambda e: e[7])[0]
+        if not side:
+            stats["wc_gate_no_side_street"] += 1
+            continue
+        for e in sorted([e for e in evs if e[0] == side], key=lambda e: -e[7]):
+            if e[7] < WC_GATE_W + 2 * EDGE_MARGIN:
+                continue
+            if math.hypot(e[1] - lob[0].x, e[2] - lob[0].y) < WC_GATE_SEP:
+                continue
+            if not normal_test(b, e[1], e[2], e[5], e[6]):
+                continue
+            if ctree is not None and not claim_free(
+                    ctree, claims, e[1], e[2], e[3], e[4], e[5], e[6],
+                    WC_GATE_W):
+                continue
+            g = wc_cand_on(b, e, e[1], e[2], "service", "westcampus")
+            if g is None:
+                continue
+            g.wcrole = "gate"
+            g.wcmeth = "sourced" if gtv else "sidestreet"
+            b.ents.append(g)
+            stats["wc_gate_" + g.wcmeth] += 1
+            break
+        else:
+            stats["wc_gate_no_room"] += 1
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -2196,6 +2850,9 @@ def deck_support(x, y, want):
 # (eid, k, u0, u1, v0, v1, z0, z1) — the geojson itself is lon/lat by then and
 # a support test in lon/lat is a test nobody can read.
 LOCAL = []
+# bid -> bay count actually drawn, so the West Campus audit can print the bay
+# mix without re-deriving it from the geometry.
+WC_AUDIT = {}
 
 
 class Ent(object):
@@ -2215,7 +2872,7 @@ class Ent(object):
         return to_ll(self.cx + u * self.tx + v * self.nx,
                      self.cy + u * self.ty + v * self.ny)
 
-    def box(self, k, mat, wd, u0, u1, v0, v1, z0, z1, wn=None):
+    def box(self, k, mat, wd, u0, u1, v0, v1, z0, z1, wn=None, extra=None):
         """ONE piece. `base` is the bottom, `h` is the THICKNESS — see the
         module header; this file disagrees with places.geojson on purpose."""
         if z1 - z0 < 0.015 or abs(u1 - u0) < 0.015 or abs(v1 - v0) < 0.004:
@@ -2233,16 +2890,21 @@ class Ent(object):
         wg, wn_auto = wall_ramp(wd)
         LOCAL.append((self.eid, k, min(u0, u1), max(u0, u1),
                       min(v0, v1), max(v0, v1), z0, z1))
+        props = {
+            "k": k, "eid": self.eid, "bid": self.bid, "ref": self.ref,
+            "nm": self.nm, "role": self.role, "era": self.era,
+            "n": self.n, "dt": self.dt, "mat": mat,
+            "base": round(z0, 3), "h": round(z1 - z0, 3),
+            "wd": wd, "wg": wg, "wn": wn or wn_auto, "src": self.src,
+        }
+        if extra:
+            # `nmv` / `gtv`: "how much of West Campus is guessed" has to be a
+            # query, not an archaeology project (westcampus.md §8 rule 3).
+            props.update(extra)
         self.feats.append({
             "type": "Feature",
             "geometry": {"type": "Polygon", "coordinates": [ring]},
-            "properties": {
-                "k": k, "eid": self.eid, "bid": self.bid, "ref": self.ref,
-                "nm": self.nm, "role": self.role, "era": self.era,
-                "n": self.n, "dt": self.dt, "mat": mat,
-                "base": round(z0, 3), "h": round(z1 - z0, 3),
-                "wd": wd, "wg": wg, "wn": wn or wn_auto, "src": self.src,
-            },
+            "properties": props,
         })
 
 
@@ -2298,8 +2960,266 @@ def night_glass(eid, override=None):
     return GLASS_NIGHT_LIT[eid % len(GLASS_NIGHT_LIT)]
 
 
+def assemble_w(feats, b, c, eid, stats):
+    """A West Campus lobby, or its garage gate.
+
+    Family `W` gets its own assembler for one reason: the storefront RUN and
+    the door BANK are two different widths, and the generic assembler has one.
+    The run is 6/8/10 bays of glass with a leasing office in it and a canopy
+    over all of it; the doors are two or three of those bays. Everything else —
+    Ent, box(), leaf_plan(), glass_for(), night_glass(), the stair profile and
+    every colour — is the same alphabet the other five families use, and the
+    piece kinds are the eleven that already exist, so js/entrances.js needs no
+    edit and the atlas grows by nothing.
+    """
+    fam = dict(FAMILIES["W"])
+    wc = b.wc
+    band_h, band_fam = wc["band"]
+    mull = WC_MULL_DK if band_fam == "sg" else WC_MULL_LT
+
+    # ── THE GATE, and it is a different thing from a door. eras.md E3's
+    #    6.00 x 4.30 vehicle opening is a PUBLIC DECK opening and on a 4.4 m
+    #    base band it does not physically fit. Slats are not drawn — a 60 mm
+    #    slat is a tenth of a pixel at cruise — so the head housing is what
+    #    makes it read as a gate rather than a hole in the wall.
+    if c.wcrole == "gate":
+        gtv = (c.wcmeth == "sourced")
+        e = Ent(feats, eid, b, c, fam, None, "service", 1, "roll", "steel",
+                c.src)
+        gh = min(WC_GATE_H_MAX, band_h - WC_GATE_HEAD)
+        half = WC_GATE_W / 2.0
+        ex = {"gtv": gtv}
+        e.box("reveal", "concrete", mix(REVEAL_COOL, ARCH_SHADOW, 0.30),
+              -half, half, REVEAL_PROUD, REVEAL_PROUD + REVEAL_T,
+              GROUND_Z, GROUND_Z + gh, None, ex)
+        e.box("door", "steel", IRON, -half, half, PROUD_DOOR,
+              PROUD_DOOR + LEAF_T, GROUND_Z, GROUND_Z + gh, None, ex)
+        e.box("surround", "aluminium", mull, -(half + 0.20), half + 0.20,
+              0.0, WC_FRAME_PROUD, GROUND_Z + gh,
+              GROUND_Z + gh + WC_GATE_HEAD_H, None, ex)
+        stats["wc_gates_drawn"] += 1
+        return e
+
+    # ── THE RUN. Bays come off the MEASURED wall, then are clamped to what
+    #    the wall between the corners can actually carry. A ten-bay lobby on a
+    #    wall that fits six is the same defect as a 7.2 m Cret portal on a 4 m
+    #    segment, and shrinking it is not.
+    left, right = wc_plane_run(b, c.ri, c.ei, c.s)
+    usable = max(WC_MIN_BAYS * WC_PITCH, left + right - 2 * EDGE_MARGIN)
+    bays = min(wc_bays(left + right), int(usable // WC_PITCH))
+    bays = max(WC_MIN_BAYS, bays)
+    run_w = bays * WC_PITCH
+    WC_AUDIT[b.bid] = bays
+    half = run_w / 2.0
+    lo = -(left - EDGE_MARGIN - half)
+    hi = right - EDGE_MARGIN - half
+    shift = 0.0 if lo <= 0.0 <= hi else (lo if lo > 0 else hi)
+    c.x += c.tx * shift
+    c.y += c.ty * shift
+    stats["wc_bays_%d" % bays] += 1
+
+    # ── the doors. Leaf count is DERIVED from the bays and never authored: a
+    #    ten-bay run gets a vestibule quad, everything else a hinged pair.
+    #    Nobody gets a slider and nobody gets a revolving door — not one of
+    #    the 24 was found described with either, and a revolving drum on a
+    #    158-unit student tower is exactly the confident fabrication this
+    #    family exists not to commit.
+    n_leaf = 4 if bays >= WC_QUAD_BAYS_MIN else 2
+    door_bays = WC_QUAD_BAYS if n_leaf == 4 else WC_DOOR_BAYS
+    door_bays = min(door_bays, bays - 1)
+    lease_bays = min(wc.get("lease", WC_LEASE_BAYS), bays - door_bays - 1)
+    # The leasing office goes on the quieter half — the end of the run further
+    # from the nearest corner, which is the end further INTO the elevation and
+    # away from the street corner. Derived from the wall run, not chosen.
+    lease_hi = right >= left
+    if lease_hi:
+        lease = set(range(bays - lease_bays, bays))
+        free0, free1 = 0, bays - lease_bays
+    else:
+        lease = set(range(lease_bays))
+        free0, free1 = lease_bays, bays
+    d0 = free0 + max(0, (free1 - free0 - door_bays) // 2)
+    doors = set(range(d0, d0 + door_bays))
+
+    door_w = n_leaf * fam["leaf_w"] + (n_leaf - 1) * MEET_STILE + WC_DOOR_MARGIN
+    n_leaf, leftover = leaf_plan(door_w, fam["leaf_w"], fam["max_pairs"])
+    dt = "hinged-quad" if n_leaf >= 4 else "hinged-pair"
+    u_door = -half + (d0 + door_bays / 2.0) * WC_PITCH
+
+    # ── the vertical dimensions, all four derived from the ONE measured
+    #    number this building brings: its own base band.
+    lobby_h = band_h - WC_HEAD_DROP
+    rise = FLOOR_RISE if wc.get("steps") else 0.0
+    risers = int(round(rise / FLIGHT_RISER)) if rise > 0 else 0
+    riser = (rise / risers) if risers else 0.0
+    if risers <= 0:
+        rise = 0.0
+    z_thr = GROUND_Z + rise
+    head = z_thr + fam["leaf_h"]
+    z_top = GROUND_Z + lobby_h
+    if z_top < head + WC_CAN_CLEAR + WC_RAIL_T:
+        # The Nine at Rio's 4.4 m band is the shallowest in the set and this is
+        # the guard that keeps a two-storey lobby off it rather than a comment
+        # hoping nobody tries.
+        z_top = head + WC_CAN_CLEAR + WC_RAIL_T
+        stats["wc_head_clamped"] += 1
+
+    e = Ent(feats, eid, b, c, fam, None, "main", n_leaf, dt, "glass", c.src)
+    gcol = glass_for(b.ref, fam, b.bid)
+    gnight = night_glass(eid)
+    lease_night = GLASS_NIGHT_LIT[1 % len(GLASS_NIGHT_LIT)]
+    nmv = wc.get("sign") is not None and wc.get("sign") == "warm"
+    ex = {"nmv": nmv}
+
+    # ── 1. REVEAL across the door bank. No CSG, so this is a dark slab whose
+    #       COLOUR is the shadow — the same trick as every other family, and
+    #       at reveal_d 0.30 it is the flattest one in the city.
+    dhalf = door_bays * WC_PITCH / 2.0
+    rev = mix(fam["reveal_col"], ARCH_SHADOW,
+              REVEAL_DEPTH_MIX * min(1.0, fam["reveal_d"] / REVEAL_DEPTH_REF))
+    e.box("reveal", "concrete", rev, u_door - dhalf, u_door + dhalf,
+          REVEAL_PROUD, REVEAL_PROUD + REVEAL_T, z_thr, head, None, ex)
+
+    # ── 2. THE STOREFRONT, bay by bay. Uniform primitives are the null
+    #       hypothesis: every bay is the same size and the same internal
+    #       composition, and what varies is only WHICH of the three it is.
+    mw = WC_MULL_W
+    for i in range(bays):
+        u0 = -half + i * WC_PITCH
+        u1 = u0 + WC_PITCH
+        a0, a1 = u0 + mw / 2.0, u1 - mw / 2.0
+        if i in doors:
+            # over the doors: the head glazing that in every other family is
+            # called a transom. Same thing, drawn as part of the run.
+            e.box("glass", "glass", gcol, a0, a1, WC_GLASS_V0, WC_GLASS_V1,
+                  head + TRANSOM_GAP, z_top - WC_RAIL_T, gnight, ex)
+            continue
+        lease_bay = i in lease
+        e.box("surround", "aluminium", mull, a0, a1,
+              WC_GLASS_V0, WC_SILL_PROUD, z_thr, z_thr + WC_BULK_H, None, ex)
+        e.box("glass", "glass", GLASS_WARM if lease_bay else gcol, a0, a1,
+              WC_GLASS_V0, WC_GLASS_V1, z_thr + WC_BULK_H, z_top - WC_RAIL_T,
+              lease_night if lease_bay else gnight,
+              {"nmv": nmv, "lease": True} if lease_bay else ex)
+
+    # ── 3. THE MULLION GRID. Geometry, not a tile: a tile has no vertical
+    #       anchor and this one has to line up with a door. bays+1 verticals
+    #       plus a head rail plus, on the seven runs that are genuinely two
+    #       storeys, one mezzanine rail.
+    for i in range(bays + 1):
+        u = -half + i * WC_PITCH
+        e.box("surround", "aluminium", mull, u - mw / 2.0, u + mw / 2.0,
+              WC_GLASS_V1, WC_FRAME_PROUD, z_thr, z_top, None, ex)
+    e.box("surround", "aluminium", mull, -half, half,
+          WC_GLASS_V1, WC_FRAME_PROUD, z_top - WC_RAIL_T, z_top, None, ex)
+    if lobby_h >= WC_TWO_STOREY:
+        zm = z_thr + (z_top - z_thr) * WC_MEZZ_FRAC
+        e.box("surround", "aluminium", mull, -half, half,
+              WC_GLASS_V1, WC_FRAME_PROUD, zm, zm + WC_RAIL_T, None, ex)
+        stats["wc_two_storey"] += 1
+
+    # ── 4. LEAVES and their lights.
+    span = n_leaf * fam["leaf_w"] + (n_leaf - 1) * MEET_STILE
+    u = u_door - span / 2.0
+    for i in range(n_leaf):
+        e.box("door", "glass", fam["leaf_col"], u, u + fam["leaf_w"],
+              PROUD_DOOR, PROUD_DOOR + LEAF_T, z_thr, head, None, ex)
+        gh = fam["leaf_h"] * fam["glaz_frac"]
+        e.box("glass", "glass", gcol, u + FRAME_W, u + fam["leaf_w"] - FRAME_W,
+              PROUD_DOOR + LEAF_T, PROUD_DOOR + LEAF_T + GLASS_PROUD,
+              head - gh + FRAME_W, head - FRAME_W, gnight, ex)
+        u += fam["leaf_w"] + MEET_STILE
+
+    # ── 5. FLIGHT and RAIL — three buildings, all [M]. bake_depth.py's
+    #       vocabulary and constants, not a second stair look: one course is a
+    #       dark slab with a light slab set back on top, and the slabs nest.
+    if risers > 0:
+        flight_w = door_bays * WC_PITCH + 2 * FLIGHT_SIDE
+        tread = fam["tread"]
+        run = risers * tread
+        step_light = mix(CONCRETE, LIMESTONE, 0.25)
+        step_dark = scale(step_light, STEP_DARK_MIX)
+        nos = min(STEP_NOSING, tread * STEP_NOSING_FRAC)
+        for j in range(1, risers + 1):
+            vlead = (risers - j + 1) * tread
+            ztop = GROUND_Z + j * riser
+            e.box("step", "limestone", step_dark, u_door - flight_w / 2,
+                  u_door + flight_w / 2, 0.0, vlead, 0.0, ztop, None, ex)
+            if nos > 0.02 and vlead - nos > 0.05:
+                e.box("step", "limestone", step_light, u_door - flight_w / 2,
+                      u_door + flight_w / 2, 0.0, vlead - nos, 0.0,
+                      ztop + STEP_LIFT, None, ex)
+        if risers >= RAIL_MIN_RISERS:
+            for si in range(RAIL_SEGS):
+                v0 = run * si / RAIL_SEGS
+                v1 = run * (si + 1) / RAIL_SEGS
+                j = max(1, min(risers,
+                               int(round((run - (v0 + v1) / 2) / tread)) + 1))
+                ztop = GROUND_Z + j * riser
+                for sgn in (-1, 1):
+                    uu = u_door + sgn * (flight_w / 2 - RAIL_D / 2)
+                    e.box("rail", "steel", STEEL, uu - RAIL_D / 2,
+                          uu + RAIL_D / 2, v0, v1, ztop + RAIL_H - RAIL_D,
+                          ztop + RAIL_H, None, ex)
+                    vm = (v0 + v1) / 2.0
+                    e.box("rail", "steel", STEEL, uu - RAIL_POST_D / 2,
+                          uu + RAIL_POST_D / 2, vm - RAIL_POST_D / 2,
+                          vm + RAIL_POST_D / 2, 0.0, ztop + RAIL_H - RAIL_D,
+                          None, ex)
+
+    # ── 6. THE CANOPY, over the whole run. It is a SIGNBOARD WITH A SOFFIT,
+    #       not family D's blade, and the 0.30 m against D's 0.18 is the read.
+    cp, ct_, ctop = wc.get("canopy") or (WC_CAN_PROJ, WC_CAN_T, None)
+    if ctop is None:
+        ctop = GROUND_Z + min(WC_CAN_TOP_MAX, lobby_h - WC_CAN_HEAD_CLEAR)
+    ctop = max(ctop, head + WC_CAN_CLEAR + ct_)
+    ctop = min(ctop, z_top - WC_RAIL_T)
+    e.box("canopy", "steel", STEEL, -(half + WC_CAN_SIDE), half + WC_CAN_SIDE,
+          0.0, cp, ctop - ct_, ctop, None, ex)
+    e.box("canopy", "steel", SOFFIT_DK, -(half + WC_CAN_SIDE),
+          half + WC_CAN_SIDE, 0.0, cp, ctop - ct_ - 0.06, ctop - ct_, None, ex)
+
+    # ── 7. THE NAME BAND — the field most likely to be fabricated, so it is
+    #       the most constrained thing in the family. 21 of 24 wordmarks are
+    #       unverified, and at 200-900 m a 0.55 m cap height is about one
+    #       pixel, so what is drawn is a LIT BAND and not a wordmark. The
+    #       feature carries `nmv` so all 21 are one query away.
+    tone = wc.get("sign", "white")
+    if tone is not None:
+        trio = WC_SIGN_WARM if tone == "warm" else WC_SIGNW
+        if WC_NAME_PLACE == "fascia":
+            nw = WC_NAME_FRAC * (half + WC_CAN_SIDE)
+            e.box("sign", "steel", trio[0], -nw, nw,
+                  cp - WC_NAME_T, cp + WC_NAME_PROUD_F,
+                  ctop - ct_ + WC_NAME_INSET, ctop - WC_NAME_INSET,
+                  trio[2], ex)
+            stats["wc_name_bands"] += 1
+        else:
+            gap = z_top - ctop
+            if gap >= WC_NAME_MIN_SPAN:
+                cap = min(WC_NAME_CAP_MAX, gap * WC_NAME_CAP_FRAC)
+                zb = ctop + (gap - cap) / 2.0
+                nw = WC_NAME_FRAC * run_w / 2.0
+                e.box("sign", "steel", trio[0], -nw, nw,
+                      WC_SIGN_V0, WC_SIGN_PROUD, zb, zb + cap, trio[2], ex)
+                stats["wc_name_bands"] += 1
+            else:
+                stats["wc_name_no_room"] += 1
+    return e
+
+
 def assemble(feats, b, c, eid, stats):
     fam_key = b.fam
+    if fam_key == "W" and b.wc:
+        if c.wcrole:
+            return assemble_w(feats, b, c, eid, stats)
+        # A West Campus building gets ONE leasing lobby. Its other doors are
+        # side and service doors, and the honest vocabulary for those is the
+        # one the apartment fallback already has — drawing a second two-storey
+        # glazed storefront on the back of the same tower would be exactly the
+        # double-draw this pass exists to avoid.
+        fam_key = "E2"
+        stats["wc_secondary_e2"] += 1
     fam = dict(FAMILIES[fam_key])
     cel = CELEBRATED.get(b.ref or "")
     if cel:
@@ -2830,15 +3750,39 @@ def main():
             if bid:
                 place_hosts.add(bid)
 
+    # ── WEST CAMPUS IS OUTSIDE THE CAMPUS RECT AND ALWAYS WAS. Measured:
+    #    only 3 of the 24 named footprints fall inside CAMPUS (Cambridge
+    #    Tower, Dobie Twenty21, The G) and the other 21 were never in scope,
+    #    which is why entrances skipped the neighbourhood. It is not a
+    #    placement failure, it is a bbox. The 24 join by exact `name`, the
+    #    same key bake_westcampus.py uses, and the join is asserted here so a
+    #    renamed footprint is a loud failure rather than a missing lobby.
+    wc_hit = 0
+    for b in blds:
+        if b.name in WC_LOBBIES:
+            b.wc = WC_LOBBIES[b.name]
+            wc_hit += 1
+    print("west campus        : %d of %d named footprints joined"
+          % (wc_hit, len(WC_LOBBIES)))
+    assert wc_hit == len(WC_LOBBIES), (
+        "West Campus names that did not join the snapshot: %s"
+        % sorted(set(WC_LOBBIES) - set(b.name for b in blds if b.wc)))
+
     scope = []
     for b in blds:
         lon, lat = to_ll(b.cx, b.cy)
         b.budget = -1
-        if not in_rect(lat, lon, CAMPUS):
+        if not b.wc and not in_rect(lat, lon, CAMPUS):
             continue
         if b.area < MIN_AREA or (b.h or 0) < MIN_H or b.cls in SKIP_CLASSES:
             continue
-        if b.bid in place_hosts and b.cls in PLACES_EXCLUDE_CLASSES:
+        # E1 keeps its veto everywhere EXCEPT the 24. Dobie Twenty21 is the
+        # case: its `building_class` is null and places.geojson genuinely owns
+        # 108 m of its Guadalupe frontage, so E1 fired correctly and it got
+        # zero doors — but its RESIDENTIAL lobby is on Whitis, 60 m away on the
+        # other elevation. The claim test in wc_place() is what keeps this pass
+        # off the Target, not the whole-building veto.
+        if b.bid in place_hosts and b.cls in PLACES_EXCLUDE_CLASSES and not b.wc:
             stats["e1_places_excluded"] += 1
             continue
         b.fam = classify(b)
@@ -2865,6 +3809,23 @@ def main():
           % (len(paths), len(segs)))
 
     s2 = stage2_paths(blds, tree, paths, stats)
+
+    # ── WEST CAMPUS, between stage 2 and the clustering, so a lobby wins
+    #    against any derived candidate that lands on top of it.
+    claims = load_place_claims()
+    wc_rows = wc_place(scope, s2, claims, stats)
+    print("west campus lobbies: %d placed  (footpath %d, address point %d,"
+          " elevation midpoint %d; unplaced %d)"
+          % (stats["wc_lobby_path"] + stats["wc_lobby_spec"]
+             + stats["wc_lobby_default"], stats["wc_lobby_path"],
+             stats["wc_lobby_spec"], stats["wc_lobby_default"],
+             stats["wc_unplaced"] + stats["wc_claim_blocked"]))
+    print("                     shopfront runs: %d slid clear, %d narrowed,"
+          " %d blocked outright; %d footpath candidates sat on a wall too"
+          " short to carry a storefront"
+          % (stats["wc_claim_moved"], stats["wc_claim_narrowed"],
+             stats["wc_claim_blocked"], stats["wc_path_run_too_short"]))
+
     n2 = 0
     for b in scope:
         got = s2.get(b.bid) or []
@@ -2882,6 +3843,15 @@ def main():
     stage3_public(scope, grid, stats)
     print("stage 3 publicness : %d placed  (normal test %d)"
           % (stats["stage3_placed"], stats["normal_fail_stage3"]))
+
+    # AFTER stage 3, so a garage gate never spends a building's pedestrian
+    # budget — the gate is extra evidence, not a door taken off the front.
+    wc_gates(scope, claims, stats)
+    print("west campus gates  : %d sourced street, %d side-street rule,"
+          " %d no side street, %d no wall with room  (18 of the 24 have no"
+          " garage evidence at all and get nothing)"
+          % (stats["wc_gate_sourced"], stats["wc_gate_sidestreet"],
+             stats["wc_gate_no_side_street"], stats["wc_gate_no_room"]))
 
     ev = steps_evidence()
     hit = attach_steps(scope, ev)
@@ -2969,6 +3939,62 @@ def main():
                  "*** NO MAIN ***"))
         if not b.ents or not has_main:
             stats["celebrated_defect"] += 1
+
+    # ── WEST CAMPUS, checked by name every run for the same reason the
+    #    celebrated set is: a building that quietly got no lobby has to be said
+    #    out loud rather than averaged into a total.
+    wcb = [b for b in scope if b.wc]
+    print("")
+    print("WEST CAMPUS LOBBIES  (building - address wall - method - bays -"
+          " gate - pieces)")
+    wcp = Counter()
+    for b in sorted(wcb, key=lambda b: b.name):
+        lob = [c for c in b.ents if c.wcrole == "lobby"]
+        gat = [c for c in b.ents if c.wcrole == "gate"]
+        npieces = sum(1 for f in feats if f["properties"]["bid"] == b.bid)
+        print("    %-28s %-2s  %-9s %-2s  %-10s %3d %s"
+              % (b.name[:28], b.wc["side"],
+                 (lob[0].wcmeth if lob else "-"),
+                 str(WC_AUDIT.get(b.bid, "-")),
+                 (gat[0].wcmeth if gat else "none"), npieces,
+                 "" if lob else "*** NO LOBBY ***"))
+        wcp[lob[0].wcmeth if lob else "none"] += 1
+        if not lob:
+            stats["wc_defect"] += 1
+    wl = [len(b.ents) for b in wcb]
+    print("    lobbies placed   : %d of %d expected   %s"
+          % (sum(1 for b in wcb for c in b.ents if c.wcrole == "lobby"),
+             len(WC_LOBBIES), dict(wcp)))
+    print("    gates            : %d sourced street, %d side-street rule,"
+          " %d buildings with no garage evidence"
+          % (stats["wc_gate_sourced"], stats["wc_gate_sidestreet"],
+             len(WC_LOBBIES) - sum(1 for s_ in WC_LOBBIES.values()
+                                   if s_.get("gate"))))
+    print("    bay mix          : %s   (the spec predicted 3 six / 14 eight /"
+          " 7 ten from its own elevation lengths)"
+          % {int(k[8:]): v0 for k, v0 in sorted(stats.items())
+             if k.startswith("wc_bays_")})
+    print("    two-storey runs  : %d of 24 (spec: 7)   head clamped %d"
+          % (stats["wc_two_storey"], stats["wc_head_clamped"]))
+    print("    name bands       : %d drawn, %d had no spandrel to sit in;"
+          " secondary doors on W buildings fell back to E2: %d"
+          % (stats["wc_name_bands"], stats["wc_name_no_room"],
+             stats["wc_secondary_e2"]))
+    print("    entrances/bldg   : min %d  median %.0f  max %d"
+          % (min(wl), median(wl), max(wl)))
+    wcg = Counter(f["properties"]["wd"] for f in feats
+                  if f["properties"]["k"] in ("glass", "transom")
+                  and f["properties"]["era"] == "highrise")
+    print("    glass values     : %d pieces, %d distinct  %s"
+          % (sum(wcg.values()), len(wcg), dict(wcg.most_common(8))))
+    wcn = Counter(f["properties"]["wn"] for f in feats
+                  if f["properties"]["k"] in ("glass", "transom")
+                  and f["properties"]["era"] == "highrise")
+    print("    night values     : %s" % dict(wcn.most_common(6)))
+    unver = sum(1 for f in feats if f["properties"].get("nmv") is False
+                and f["properties"]["k"] == "sign")
+    print("    name bands whose lettering is UNVERIFIED (nmv=false): %d"
+          % unver)
 
     v = validate_recall(scope)
     if v:
