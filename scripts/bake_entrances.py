@@ -81,6 +81,7 @@ from collections import Counter, defaultdict
 
 try:
     from shapely.geometry import Point, Polygon, LineString
+    from shapely.ops import unary_union
     from shapely.strtree import STRtree
 except ImportError:  # pragma: no cover
     sys.stderr.write("shapely is required: pip install shapely\n")
@@ -139,6 +140,57 @@ MIN_SCORE = 0.0         # a wall that scores at or below this gets no door
 FACADE_BONUS = 0.45     # score added to a sample on a celebrated building's
                         # documented facade side, so a [C] compass direction
                         # biases selection without fabricating a coordinate
+
+# ── BURIED DOORS (QUEUE W7 / PART L's L1) ─────────────────────────────
+# This pass places doors on the OVERTURE footprint. Seven other passes rebuild
+# whole buildings out of authored masses, and where an authored mass stands
+# outboard of the footprint it swallows the door: Gates-Dell's measured OSM
+# `entrance=main` node ends up 0.21 m INSIDE the atrium's glass slab, so the
+# door renders 0 pixels from every bearing tried. A door nobody can ever see is
+# worse than no door, because it is a silent lie in the feature count.
+#
+# So: the door's LEAF PLANE is tested against every opaque ground-level mass in
+# the repo, and a buried one is relocated to the nearest point on that mass's
+# own exterior that has real open space in front of it — or dropped, loudly,
+# with the reason printed. The count prints on every run, so the day a new pass
+# grows a mass over somebody's front door it is one line of bake output, not a
+# 16-bearing photo hunt.
+BURIED_MASS_FILES = ("heroes", "stadium", "moody", "arts", "drag",
+                     "capitol", "tower", "westcampus", "parts")   # [M]
+BURIED_BASE_MAX = 2.0   # m; a mass starting above this is a canopy, not a wall
+BURIED_TOP_MIN = 3.0    # m; below this it cannot hide a 2.4 m leaf
+BURIED_TEST_OUT = 0.25  # m along the normal — where the LEAF actually is, not
+                        # the wall point, which is on the boundary by design
+BURIED_CLEAR_M = 4.0    # m of free space a relocated door needs in front of it.
+                        # Gates-Dell's nearest free wall is 0.2 m away and faces
+                        # a 2 m slot; without this test the "fix" moves the door
+                        # 20 cm and it is still invisible.
+BURIED_STEP_M = 1.0     # m; how finely the mass exterior is sampled
+BURIED_MOVE_MAX = 35.0  # m; further than this and it is a different elevation
+BURIED_PROUD = 0.35     # m the relocated door stands off the mass it was in
+BURIED_SPAN_M = 3.2     # m of wall the test sweeps, centred on the door. A
+                        # POINT test is not enough: the Red Zone's door centre
+                        # is outside the stadium ramp and its LEAVES are inside.
+BURIED_RUN_MIN = 3.0    # m of continuously free wall a relocation must find.
+                        # Also not enough to test one point: assemble() slides
+                        # an opening ALONG its run to fit between the corners,
+                        # so the first attempt validated the spot the door
+                        # landed on and the door then slid 3 m back into the
+                        # Gates-Dell atrium it had just been lifted out of.
+
+# ── A CELEBRATED PORTAL KEEPS ITS OWN WALL (QUEUE W9) ─────────────────
+# The Main Building's south portal sits in the middle of a 38 m recessed bay
+# and the generic pipeline had put THREE more doors on that same wall, the
+# nearest 8.9 m away, each with its own limestone surround and its own flight.
+# The most-photographed portal on campus read as one of four identical doors.
+# celebrated.md §5.1 enumerates MAI's entrances from OSM exhaustively — one
+# main plus two `entrance=yes` at the north ends of the wings — so a derived
+# door on the portal's wall is not evidence, it is noise. General rule: where a
+# building carries an AUTHORED main portal coordinate, no DERIVED candidate may
+# share that portal's wall.
+PORTAL_CLEAR_R = 20.0   # m along the wall, either side of an authored portal
+PORTAL_WALL_T = 3.0     # m; perpendicular offset within which two candidates
+                        # are on the SAME wall rather than on a return
 
 # ── VERTICAL (placement.md §7) ────────────────────────────────────────
 GROUND_Z = 0.22         # NOT taste. = GROUND.pathRaise (js/ground.js:53)
@@ -2039,7 +2091,7 @@ ROLE_FROM_TAG = {"main": "main", "yes": "secondary", "staircase": "secondary",
 class Cand(object):
     __slots__ = ("x", "y", "tx", "ty", "nx", "ny", "elen", "s", "role", "src",
                  "score", "wheel", "door", "prio", "risers", "handrail",
-                 "ri", "ei", "wcrole", "wcmeth")
+                 "ri", "ei", "wcrole", "wcmeth", "run")
 
     def __init__(self, x, y, tx, ty, nx, ny, elen, s, role, src, score, prio,
                  wheel=None, door=None, ri=0, ei=0):
@@ -2054,6 +2106,11 @@ class Cand(object):
         self.ri, self.ei = ri, ei
         self.wcrole = None        # "lobby" | "gate" on a West Campus building
         self.wcmeth = None        # which method placed it, for the audit
+        # (left, right) metres of straight wall, when the wall the door ended
+        # up on is NOT an edge of the host footprint — i.e. after clear_buried()
+        # relocated it onto another pass's mass. wall_run() walks b.rings and
+        # would be answering a question about the wrong wall.
+        self.run = None
 
 
 def stage1_osm(blds, tree, stats):
@@ -3240,7 +3297,7 @@ def assemble(feats, b, c, eid, stats):
     want_w = (cel or {}).get("open_w") if cel and role == "main" else None
     if want_w is None:
         want_w = fam["open_w"] if role == "main" else fam["open_w_sec"]
-    left, right = wall_run(b, c.ri, c.ei, c.s)
+    left, right = c.run if c.run else wall_run(b, c.ri, c.ei, c.s)
     usable = max(1.0, left + right - 2 * EDGE_MARGIN)
     bank_w = min(want_w, usable)
     half = bank_w / 2.0
@@ -3633,6 +3690,217 @@ def attach_steps(blds, steps):
     return hit
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  TWO AUDITS THAT DELETE OR MOVE DOORS, run after all four placement
+#  stages and before roles are assigned.
+#
+#  Both exist because a door can be WRONG in a way no placement rule can
+#  see from the footprint alone: the footprint is not what gets rendered.
+#  Seven other passes rebuild whole buildings out of authored masses, and
+#  celebrated.md enumerates some buildings' doors exhaustively. Neither
+#  fact is visible to a scoring loop over an Overture ring.
+# ══════════════════════════════════════════════════════════════════════
+def load_masses():
+    """Every OPAQUE GROUND-LEVEL mass another pass draws, in the metric frame.
+
+    Only a mass that starts at grade and rises past a door head can hide a
+    door, so the filter happens once here rather than 600 times below. `h` is
+    an absolute top in every one of these files (heroes, stadium, moody, arts,
+    drag, tower, westcampus); capitol carries whole buildings with
+    `final_height` and no base; parts uses OSM's min_height_m/height_m.
+    """
+    out = []
+    for fn in BURIED_MASS_FILES:
+        path = os.path.join(ROOT, "data", fn + ".geojson")
+        if not os.path.exists(path):
+            continue
+        doc = json.load(open(path, encoding="utf-8"))
+        for f in doc.get("features") or []:
+            pr = f.get("properties") or {}
+            base = pr.get("base")
+            if base is None:
+                base = pr.get("min_height_m") or 0.0
+            top = pr.get("h")
+            if top is None:
+                top = pr.get("final_height") or pr.get("height_m") or 0.0
+            if base > BURIED_BASE_MAX or top < BURIED_TOP_MIN:
+                continue
+            g = f.get("geometry") or {}
+            if g.get("type") == "Polygon":
+                rings = [g["coordinates"]]
+            elif g.get("type") == "MultiPolygon":
+                rings = g["coordinates"]
+            else:
+                continue
+            for cr in rings:
+                if not cr or len(cr[0]) < 4:
+                    continue
+                try:
+                    p = Polygon([to_m(x, y) for x, y in cr[0]])
+                except Exception:
+                    continue
+                if p.is_valid and not p.is_empty and p.area > 1.0:
+                    out.append(p)
+    return out
+
+
+def _mass_free(union, x, y, nx, ny, reach):
+    """Outside every mass at (x,y), AND with `reach` metres of open space along
+    the outward normal. The reach test is the whole point: Gates-Dell's nearest
+    free wall is 0.21 m from the buried door and looks out into a 2 m slot, so a
+    rule that only asks "am I outside" moves the door 20 cm and it is still
+    invisible."""
+    if union.intersects(Point(x + nx * 0.05, y + ny * 0.05)):
+        return False
+    d = BURIED_PROUD
+    while d <= reach + 1e-6:
+        if union.intersects(Point(x + nx * d, y + ny * d)):
+            return False
+        d += 1.0
+    return True
+
+
+def _span_free(union, x, y, tx, ty, nx, ny, reach):
+    """_mass_free swept across BURIED_SPAN_M of wall, centred on (x,y)."""
+    h = BURIED_SPAN_M / 2.0
+    for u in (-h, 0.0, h):
+        if not _mass_free(union, x + tx * u, y + ty * u, nx, ny, reach):
+            return False
+    return True
+
+
+def _free_wall(union, host, px, py):
+    """Nearest point on `host`'s own exterior with a RUN of free wall around it.
+
+    Returns (dist, x, y, tx, ty, nx, ny, elen, left, right) or None. `left` and
+    `right` are the measured free run either side, which becomes the
+    candidate's `run` — assemble() slides an opening along its run, and a run
+    taken from the mass edge's full length would slide the door straight back
+    into the mass it was lifted out of."""
+    ring = list(host.exterior.coords)
+    best = None
+    for i in range(len(ring) - 1):
+        ax, ay = ring[i]
+        bx, by = ring[i + 1]
+        elen = math.hypot(bx - ax, by - ay)
+        if elen < BURIED_RUN_MIN:
+            continue
+        tx, ty = _norm(bx - ax, by - ay)
+        n = max(1, int(elen // BURIED_STEP_M))
+        for k in range(n + 1):
+            s = elen * k / float(n)
+            qx, qy = ax + tx * s, ay + ty * s
+            d = math.hypot(qx - px, qy - py)
+            if d > BURIED_MOVE_MAX or (best is not None and d >= best[0]):
+                continue
+            for sg in (1, -1):
+                nx, ny = sg * ty, -sg * tx
+                if not _span_free(union, qx, qy, tx, ty, nx, ny,
+                                  BURIED_CLEAR_M):
+                    continue
+                # how far the free run reaches either way, bounded by the edge
+                left = right = 0.0
+                while left + BURIED_STEP_M <= s and _span_free(
+                        union, qx - tx * (left + BURIED_STEP_M),
+                        qy - ty * (left + BURIED_STEP_M),
+                        tx, ty, nx, ny, BURIED_CLEAR_M):
+                    left += BURIED_STEP_M
+                while right + BURIED_STEP_M <= elen - s and _span_free(
+                        union, qx + tx * (right + BURIED_STEP_M),
+                        qy + ty * (right + BURIED_STEP_M),
+                        tx, ty, nx, ny, BURIED_CLEAR_M):
+                    right += BURIED_STEP_M
+                if left + right < BURIED_RUN_MIN:
+                    continue
+                best = (d, qx + nx * BURIED_PROUD, qy + ny * BURIED_PROUD,
+                        tx, ty, nx, ny, elen, left, right)
+                break
+    return best
+
+
+def clear_buried(scope, stats):
+    """QUEUE W7. Relocate or drop every door that another pass has walled in."""
+    masses = load_masses()
+    if not masses:
+        stats["buried_no_masses"] += 1
+        return
+    union = unary_union(masses)
+    parts = list(union.geoms) if union.geom_type == "MultiPolygon" else [union]
+    tree = STRtree(parts)
+    for b in scope:
+        keep = []
+        for c in b.ents:
+            # A POINT test misses the Red Zone, whose door centre is clear of
+            # the stadium ramp and whose leaves are not. Sweep the bank.
+            host = None
+            for u in (-BURIED_SPAN_M / 2.0, 0.0, BURIED_SPAN_M / 2.0):
+                pt = Point(c.x + c.tx * u + c.nx * BURIED_TEST_OUT,
+                           c.y + c.ty * u + c.ny * BURIED_TEST_OUT)
+                for i in tree.query(pt):
+                    if parts[int(i)].contains(pt):
+                        host = parts[int(i)]
+                        break
+                if host is not None:
+                    break
+            if host is None:
+                keep.append(c)
+                continue
+            stats["buried_found"] += 1
+            who = (b.ref or b.name or b.osm_name or str(b.bid))[:28]
+            got = _free_wall(union, host, c.x, c.y)
+            if got is None:
+                stats["buried_dropped"] += 1
+                stats["burieddrop|" + who] += 1
+                continue
+            d, qx, qy, tx, ty, nx, ny, elen, left, right = got
+            c.x, c.y = qx, qy
+            c.tx, c.ty, c.nx, c.ny = tx, ty, nx, ny
+            c.elen, c.s = elen, left
+            # wall_run() walks the HOST FOOTPRINT and the door is no longer on
+            # it, so the run is the MEASURED free run on the mass edge instead.
+            c.run = (left, right)
+            stats["buried_moved"] += 1
+            stats["buriedmove|%s %.0f m" % (who, d)] += 1
+            keep.append(c)
+        b.ents = keep
+
+
+def clear_portal_wall(scope, stats):
+    """QUEUE W9. Where celebrated.md gives an authored portal COORDINATE, the
+    doc has enumerated that building's entrances from OSM and a derived door on
+    the portal's own wall is noise, not evidence. Three of them were sharing the
+    Main Building's 38 m recessed south bay with the portal at the head of the
+    South Mall, the nearest 8.9 m away, each with its own limestone surround and
+    its own flight — so the most-photographed portal on campus read as one of
+    four identical doors. OSM and authored candidates are never touched."""
+    for b in scope:
+        cel = CELEBRATED.get(b.ref or "")
+        if not cel or not cel.get("at"):
+            continue
+        portals = [c for c in b.ents
+                   if c.role == "main" and c.src in ("osm", "authored")]
+        if not portals:
+            continue
+        keep = []
+        for c in b.ents:
+            if c.src in ("osm", "authored"):
+                keep.append(c)
+                continue
+            hit = False
+            for p in portals:
+                dx, dy = c.x - p.x, c.y - p.y
+                if (abs(dx * p.nx + dy * p.ny) <= PORTAL_WALL_T
+                        and abs(dx * p.tx + dy * p.ty) <= PORTAL_CLEAR_R):
+                    hit = True
+                    break
+            if hit:
+                stats["portal_wall_cleared"] += 1
+                stats["portalwall|" + (b.ref or "?")] += 1
+            else:
+                keep.append(c)
+        b.ents = keep
+
+
 def assign_roles(b):
     """OSM roles are kept verbatim. Otherwise the best-scoring entrance on a
     building that has no main yet becomes the main and everything else is
@@ -3873,6 +4141,36 @@ def main():
     print("                     %d of %d steps-way ends land within %.0f m of a"
           " placed door (%.0f%%)"
           % (near, len(ev), STEPS_R, 100.0 * near / max(1, len(ev))))
+
+    # ── THE TWO AUDITS. After every placement stage, before roles: a door
+    #    that is about to be deleted must not first have been promoted to main.
+    clear_buried(scope, stats)
+    print("buried doors       : %d walled in by another pass's mass"
+          " (%d relocated to a free wall, %d dropped)"
+          % (stats["buried_found"], stats["buried_moved"],
+             stats["buried_dropped"]))
+    for k in sorted(stats):
+        if k.startswith("buriedmove|"):
+            print("                     moved   %s" % k.split("|", 1)[1])
+        elif k.startswith("burieddrop|"):
+            print("                     DROPPED %d on %s  (no wall within"
+                  " %.0f m carrying %.0f m of free run with %.0f m of open"
+                  " space in front of it)"
+                  % (stats[k], k.split("|", 1)[1], BURIED_MOVE_MAX,
+                     BURIED_RUN_MIN, BURIED_CLEAR_M))
+
+    clear_portal_wall(scope, stats)
+    print("celebrated portals : %d derived doors cleared off an authored"
+          " portal's own wall (%.0f m either side, %.0f m off the plane)"
+          % (stats["portal_wall_cleared"], PORTAL_CLEAR_R, PORTAL_WALL_T))
+    for k in sorted(stats):
+        if k.startswith("portalwall|"):
+            print("                     %s: %d"
+                  % (k.split("|", 1)[1], stats[k]))
+
+    # Both audits delete candidates, so the headline count is re-derived here
+    # rather than reused from the steps block above it.
+    tot_ents = sum(len(b.ents) for b in scope)
 
     for b in scope:
         assign_roles(b)

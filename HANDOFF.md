@@ -11719,3 +11719,141 @@ guadalupe-24th   p 0.88  center [-97.74250, 30.28600]  zoom 16.40  pitch 68  bea
 * **`scripts/verify/westcampus-probe.mjs` is still broken** (page-setup
   regression, throws before its first assertion), so its
   `podium band exists (Castilian + Dobie)` check still has not run. Mac's.
+
+---
+
+## 99. Aug 5 2026 — W9 was already fixed by somebody else, and 7 doors were walled in rather than 1 (acer lane)
+
+**Branch:** `acer/main-recess`. **Files written:** `scripts/bake_entrances.py`,
+`data/entrances.geojson`, `shots/night/`, this entry. Setup:
+`harness-drift.mjs` **PASS, 28 scripts in each file**, run before any pixel.
+`python scripts/serve.py 8275`, `_harness.html?intro=0&drift=0`, 1440x900,
+`cancelGraphicsAutoDetect()` at the top of every run, **one browser at a
+time**, reaped and the server killed at the end.
+
+### W9 — THE MAIN BUILDING'S CENTRE BAY IS NOT FLAT. IT NEVER WAS.
+
+The queue entry says the south portal should sit in a recessed centre bay
+between two projecting wings and that "the wall is currently flat". **The wall
+is not flat.** `bake_tower.py` already models the whole thing and models it
+deliberately:
+
+* `mb-base` (0 → 6.8 m) carries the full OSM ring including both jogs — west
+  wing 14.3 m wide, a 38.3 m recessed bay, east wing 14.3 m wide, the recess
+  **13 m** deep. The `entrance=main` node is within 0.5 m of the midpoint of
+  that 38.3 m run, which is a better fit than `celebrated.md` §5.1 claims (the
+  doc stops the run at −97.739327 and misses the last vertex).
+* `mb-pw` / `mb-pe` (6.8 → 8.4 m) cap the two wings. They are named in
+  `bake_tower.py` as "the two low south terraces flanking the entrance", with
+  `H_PAVILION = 8.4` read off two photographs.
+* `mb-piano` (6.8 → 17.2 m) is clipped back to the bay line, so the main mass
+  stands 13 m behind the terraces.
+
+`shots/night/mai-before-oblique-day.png` shows the recess unmistakably. **So I
+did not build wings.** Building them from this pass would have put a
+14 × 13 × 8 m duplicate on top of `mb-pw`/`mb-pe` — a guaranteed z-fight, and
+exactly the double-draw the proud-slab contract exists to prevent. The
+proud-slab reasoning in the task brief is right; the premise it was applied to
+was wrong, and the way to find that out was to look at the frame first.
+
+**What IS wrong there, and it is this pass's fault.** The generic pipeline had
+put **three more doors on the portal's own 38 m wall**, the nearest 8.9 m away,
+each with its own limestone surround, its own transom and its own flight. The
+most-photographed portal on campus read as one of four identical doors — and at
+night as one of four identical lit ones. Compare
+`shots/night/mai-before-portal-night.png` with `mai-after-portal-night.png`:
+four warm rectangles in the court become one.
+
+`celebrated.md` §5.1 enumerates MAI's entrances from OSM exhaustively — one
+main plus two `entrance=yes` at the north ends of the wings — so a derived door
+on the portal's wall is not evidence, it is noise. New general rule
+`clear_portal_wall()`: where a building carries an **authored portal
+coordinate**, no **derived** candidate may share that portal's wall.
+`PORTAL_CLEAR_R = 20.0` m along the wall, `PORTAL_WALL_T = 3.0` m off the
+plane, both in the taste block. OSM and authored candidates are never touched.
+It prints on every run and fires on exactly one building today:
+
+    celebrated portals : 3 derived doors cleared off an authored portal's own wall
+                         MAI: 3
+
+OSM recall is **unchanged** — 46/72 at 3 m, 64%, byte-identical to the previous
+bake — so this removed noise and not evidence.
+
+### W7 — GATES-DELL, AND SIX MORE
+
+The measured claim first, because it is the one that matters: the door was
+**0.21 m inside** the atrium's glass slab (`heroes.geojson` `gdc/glass`, base 0,
+top 28.7). Magenta-masked to eid alone (paint that entrance `#ff00ff`,
+everything else black, count the pixels that really are magenta), from three
+poses west of the building:
+
+    before   gdc-w-far 0    gdc-nw 0     gdc-sw 0
+    after    gdc-w-far 1288 gdc-nw 3192  gdc-sw 1961
+
+`clear_buried()` reads the nine repo files that draw opaque ground-level mass
+(`heroes stadium moody arts drag capitol tower westcampus parts`), keeps the
+pieces with `base <= 2.0` and top `>= 3.0`, unions them, and tests every
+candidate against it. A buried door is relocated to the nearest point on that
+mass's own exterior which has a free run on it, or dropped with the reason
+printed. **7 found, 4 relocated, 3 dropped** — so the "1 of 584" in the queue
+was six short.
+
+    buried doors       : 7 walled in by another pass's mass (4 relocated, 3 dropped)
+                         DROPPED 2 on 568a1f55-…  (no wall within 35 m carrying 3 m
+                           of free run with 4 m of open space in front of it)
+                         DROPPED 1 on RMRZ;NEZ    (same)
+                         moved   GDC 22 m
+                         moved   MAI 2 m
+                         moved   The Nine at West Campus 1 m
+                         moved   The Quarters Sterling House 3 m
+
+GDC's main door now sits on the **west** face of the atrium, facing Speedway,
+which is where Gates-Dell's entrance actually is.
+
+### THREE THINGS THAT DID NOT WORK, IN THE ORDER THEY FAILED
+
+1. **A point test found 3 of the 7.** The Red Zone's door *centre* is clear of
+   the stadium ramp and its *leaves* are not. Fixed by sweeping
+   `BURIED_SPAN_M = 3.2` m of wall, three samples, instead of testing one point.
+2. **"Move it to the nearest free wall" moved Gates-Dell 20 cm and it was still
+   invisible.** The nearest exterior point is 0.21 m away and looks into a 2 m
+   slot. Fixed by `BURIED_CLEAR_M = 4.0` — a relocation has to have real open
+   space in front of it, not merely be outside.
+3. **The first working relocation put the door back where it came from.**
+   `assemble()` slides an opening ALONG its run to fit between the corners, and
+   the run was being taken as the mass edge's full length — so the door was
+   lifted onto the atrium's west-ish wall and then slid 3 m north, back inside
+   the atrium. Verified by re-testing the OUTPUT file, not the bake's own
+   `stillin=False` debug line, which was true and useless. Fixed by measuring
+   the free run either side of the found point (`BURIED_RUN_MIN = 3.0`) and
+   handing that to the candidate as `Cand.run`, which `assemble()` now prefers
+   over `wall_run()`.
+
+That third one is the reusable lesson: **an audit that validates a POINT is
+wrong whenever the consumer is allowed to move the thing afterwards.**
+
+### NUMBERS, WITH THE INSTRUMENT
+
+* 11,890 → **11,777 pieces**, 635 → **629 entrances**; 5.44 → **5.26 MB** raw
+  from `scripts/bake_entrances.py`'s own writer. `serve.py` does not gzip and
+  GitHub Pages does, so the visitor cost is roughly a fifth of that.
+* `node scripts/verify/coplanar.mjs data/entrances.geojson`: **1744 → 1729**
+  overlaps. Down, not up; all of them are the pre-existing reveal/reveal and
+  surround/surround pairs this pass neither created nor touched.
+* Bake self-checks all still clean: `bad base/h/colour 0`, `floating sills 0 of
+  629`, `detached pieces 0 of 11777`.
+* One door leaf on DKR is **5 cm** inside a stadium ramp face. That is inside
+  the proud-geometry tolerance — the surround stands 0.34 m proud of it — and
+  the audit correctly declines to move it. Recorded so nobody re-finds it.
+
+### WHAT I DID NOT DO
+
+* **No wings, and W9 should be closed as already-satisfied rather than
+  actioned.** If somebody disagrees, the argument is with `bake_tower.py`'s
+  `H_PAVILION = 8.4` and it belongs in that lane, not this one.
+* **The two dropped stadium doors are dropped, not relocated.** Both sit deep
+  inside DKR's ramp masses with no qualifying wall within 35 m. A stadium
+  concourse door probably wants stadium-specific handling; this pass will not
+  invent one.
+* **W8 (the Union's courtyard door) is untouched** — it needs a photograph
+  before any code, and I did not have one.
