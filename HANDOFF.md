@@ -11541,3 +11541,181 @@ cool interior glow in the slot, **not** window panes.
   page-setup regression — it throws `d is not defined` before its first
   assertion, so its `podium band exists (Castilian + Dobie)` check has not run
   in a while. Mac's fix.
+
+---
+
+## 98. Aug 5 2026 — the black podium was a night colour handed to a family that has no windows (QUEUE W4) (acer lane)
+
+Branch `acer/night-polish`, off `origin/main` at `169f763`. Fixes **W4**.
+**W6 was NOT touched and the reason is at the bottom of this section.**
+
+### What was wrong, in one sentence
+
+`scripts/bake_westcampus.py`'s `wall_ramp()` handed **every** band the same
+night colour regardless of facade family, and `js/facades.js` does not treat
+every family the same after dark: a lit family paints a bright window scatter
+**on top of** the wall (so a near-black wall is correct — it is a backdrop), and
+the `dk` parking-deck family has no such term and additionally paints
+`wall x 0.30` across **54 % of its tile**. The same `wn` therefore produced a
+correct lit tower and, 25.2 m directly below it, a slab rendering at a third of
+it. Section 96 / `docs/night/black-towers.md` did the diagnosis; this pass did
+the fix.
+
+### The fix is at the assignment site, not on the building
+
+`wall_ramp(hex, fam, band_m)` in `scripts/bake_westcampus.py` now has a
+family-aware night half, under a marked `NIGHT_*` taste block that states the
+rule in prose: **a band whose family draws no lit window has to carry the night
+read in its own wall, because nothing else will.** Every value is a named
+constant — `NIGHT_UNLIT_FAMILIES = ("dk", "sf")`, `NIGHT_UNLIT_MIN_BAND_M = 8.0`,
+`NIGHT_UNLIT_GAIN = 0.40`, `NIGHT_UNLIT_TINT = [34, 46, 74]`,
+`NIGHT_UNLIT_TOWARD = 0.30`, `NIGHT_UNLIT_MIN_WN_LUMA = 55.0`.
+
+Two things worth naming:
+
+* **The height threshold is the whole reason this is not a blunt instrument.**
+  `sf` is unlit too, but its 24 uses in West Campus are 0.9–5.0 m parapets, and a
+  parapet going quiet at the top of a tower is what a parapet *does*. 8.0 m sits
+  between the tallest unlit crown (5.0 m) and the shortest unlit podium (10.8 m).
+  Lifting the crowns would have put a bright lid on every tower in the group.
+* **The gain was solved for, not guessed.** `js/facades.js`'s `dk` tile moves
+  ~0.484 luma per unit of `wn` luma (7/13 of the tile at wall x 0.303, 5/13 at
+  full wall, 1/13 a bright cool edge, through the p=0.88 wd-wg-wn lerp).
+  Target was deliberately **just under** the lit towers' ~62 tile mean, not at
+  parity: a garage that out-shines the apartments next to it is the opposite
+  defect. Predicted `wn` luma 68.4, baked 68.0.
+
+### Asserted in the bake, and it fails on the shipped file
+
+`check_night_ramp()` runs every bake and raises `SystemExit`. Three questions:
+
+* **A.** every `kind:"wall"` band has `wn != wd`. *The brief asked for
+  `band:"tower"` only — that is the wrong filter and the diagnosis says so: the
+  dead band is a **podium**, and anything keyed on "tower" walks straight past
+  it.* So: every band.
+* **B.** every band in an unlit family over `NIGHT_UNLIT_MIN_BAND_M` has
+  `wn` luma at or above the floor. This is the one that catches W4, and it
+  catches the next one **by family and height rather than by building name**.
+* **C.** no `wd` maps to two different `wn`. This is a live trap and not a
+  hypothetical: `quantiseStadiumFacades` keys its palette on `p.wd` **alone**
+  (`own.get(p.wd)`, `palette.push({wd, wg, wn})`), so the FIRST band with a given
+  day colour decides the night colour for every later band sharing it —
+  silently, with no day-time symptom. A lifted `wn` on a `dk` podium that
+  happened to share a `wd` with a lit band would simply evaporate and the render
+  would look exactly like the bug. `#c8c2b7` is dk-only today; the assertion is
+  what keeps it that way.
+
+Run against `origin/main`'s data file it fails on exactly the two bands section
+96 named, by name and by metre. Counts print every run, in the bake's own stdout:
+
+```
+"night_ramp": { "bands_with_lit_windows": 59, "unlit_bands_lifted": 2,
+                "unlit_bands_left_as_trim": 26, "unlit_metres_lifted": 36.0,
+                "by_family": { dk 2/36.0 m, mh 22/329.8, sb 3/116.5, sf 26/77.2,
+                               sg 14/79.0, sn 4/64.4, sp 9/54.8, tg 1/55.7,
+                               tr 6/244.1 } }
+```
+
+`js/westcampus.js`'s TIER FOUR `ramp()` got the same branch, with the constants
+mirrored and **labelled as a mirror** — tier four authors its bands at runtime so
+the bake can never see them. It does not fire today (tier four's only `sf` uses
+are a 1.2 m coping and 2.6 m of crown swoop, both under the threshold); it is
+there so the day one of those towers grows a garage podium it does not ship
+black. The coping ramps still call `ramp()` with no family, deliberately: a
+coping is a horizontal top face, not a facade, and never reaches the atlas.
+
+### Verified by photograph, and the whole data diff is two characters of colour
+
+Server `python scripts/serve.py 8274`. `harness-drift.mjs` **PASS** (28/28)
+before any pixel. `_harness.html?intro=0&drift=0`, 1440x900, dsf 1, SwiftShader,
+`cancelGraphicsAutoDetect()` called, `p = 0.88`. BEFORE and AFTER are two runs of
+`westcampus-shot.mjs` at the same recorded poses with only
+`data/westcampus.geojson` swapped, so nothing else can account for the
+difference.
+
+Attribution is a **before/after pixel diff**, not a mask — it needs no
+`#ff00ff`-at-night correction and it cannot read a layer it did not change:
+
+| pose | changed px | before | after |
+|---|---|---|---|
+| `castilian-close` (section 96's own pose) | 14,119 (1.09 %) | luma 20.4, **0.90x** frame median, R:B 0.685 | luma 32.5, **1.43x**, R:B 0.717 |
+| `guadalupe-24th` | 4,246 (0.33 %) | luma 18.0, **0.76x**, R:B 0.619 | luma 28.6, **1.20x**, R:B 0.681 |
+
+Both bands are now **above** the night frame's median instead of below it — they
+stopped reading as holes — and R:B stayed under 1.0 at both poses, so the deck
+is still lit **cool** against the warm residential windows, which is the read
+`DK_EDGE_NIGHT_TINT` already committed to. Pictures:
+`shots/night/ab-castilian-podium.png` (the decisive one — a black slab becomes a
+legible stack of lit beams), `ab-castilian-close.png`, `ab-guadalupe-24th.png`,
+plus the four raw frames.
+
+**The entire data diff, machine-checked feature by feature:** 1,144 features,
+geometry byte-identical, property sets identical, and exactly one property
+changed on exactly two features — `wn`, `#1e1f25` to `#424449`. **Day is provably
+unchanged without a render**: `drawTile` weights `wn` by
+`max(0, dark - night)` and lerps wd-wg below p=0.5, both zero by day.
+
+Poses, written down here because section 96 and QUEUE W10 both bit on this
+(`shots/wampus/final/`'s poses were never recorded and are gone):
+
+```
+castilian-close  p 0.88  center [-97.74237, 30.28738]  zoom 17.90  pitch 72  bearing  25
+guadalupe-24th   p 0.88  center [-97.74250, 30.28600]  zoom 16.40  pitch 68  bearing 330
+```
+
+### WHAT DID NOT WORK, in the order it cost time
+
+1. **The obvious fix is in a file this lane may not write, and chasing it first
+   cost the most.** `docs/night/black-towers.md` section 5 is right: the
+   *faithful* fix is a cool interior glow in the `dk` slot in `js/facades.js`,
+   whose tile paints 54 % of the band at a quarter of an already-dark wall and
+   then brightens one pixel. Lifting `wn` reaches the slot only through that
+   x0.30, so to move the band it also over-brightens the 5/13 of the tile that is
+   open wall. **What shipped is the best fix available inside this lane, not the
+   best fix.** The better one is four constants: `DK_EDGE_NIGHT_*` plus a
+   slot-glow term at `js/facades.js:1304`. Whoever owns that file should take it,
+   and can then back `NIGHT_UNLIT_GAIN` down.
+2. **A third pose, `castilian-lobby`, was shot and thrown away.** It used
+   `westcampus-shot.mjs`'s `look`/`dist` form, which pushed the camera 285 m
+   north of the building — 119 pixels changed, none of them the podium. `look`
+   and `dist` are for framing a point at a distance, not for getting close to a
+   wall; at pitch 76 the push is enormous. Use `center` when you want to be near
+   something. Both files were deleted rather than shipped as evidence of nothing.
+3. **Reasoning about the lift instead of solving for it would have been wrong in
+   both directions.** The first instinct was "match the lit towers' tile mean",
+   which needs `wn` luma ~79 and renders the open-wall runs of the deck brighter
+   than the residential tower's wall beside it — a garage glowing harder than the
+   apartments. The second was "just nudge it", which does not clear the frame
+   median. The tile's actual luma-per-`wn` coefficient settles it, and it is
+   arithmetic anyone can redo from the `dk` branch.
+4. **`sf` nearly got lifted with `dk`.** It measures 0.00 % warm-hot exactly like
+   `dk` and a family-only rule would have caught all 26 of its bands. They are
+   parapets. The height threshold exists because of this, and it is the
+   difference between a fix and a regression on 24 towers.
+
+### WHAT I DID NOT DO
+
+* **W6 — NOT TOUCHED, and it is not this lane's.** `docs/night/flicker.md`
+  section 6 is explicit: the reported 242 px cluster is a **false positive in
+  `scripts/verify/zfight.mjs`** (W6-a), and the coplanar plane at 9.00 m is
+  `scripts/bake_roofscape.py` + `js/app.js`'s `CAP_GEOM` (W6-b). Neither file is
+  writable by this pass. The two pieces that *are* in `scripts/bake_roofs.py` —
+  **W6-c** (Gregory Gym #4026 vs #752, 42.4 m2 at 100 % shared) and **W6-d**
+  (stamp the 84 authored elevations `el: 1` so "85 overlaps" becomes "1 overlap
+  + 84 by design") — are the *coplanar* findings, not the flicker, and W6-d is
+  half-useless until `coplanar.mjs` counts the stamp, which is also not ours. So
+  none of it was started, on purpose, rather than half-started on a night branch.
+* **Only p = 0.88 was photographed.** The unlit branch is a static colour and
+  `drawTile`'s night terms are monotone in p, so dusk can only move one way — but
+  that is read off the code, not measured. Nobody has looked at the deck at
+  p = 0.65.
+* **No performance number.** Nothing is added, removed or re-tiled; the diff is
+  one hex value on two features and `new_atlas_images` is unchanged at 46.
+* **The original `shots/wampus/final/` poses are still lost.** The two above are
+  reconstructions that reproduce section 96's frame median (22.5 against its
+  22.4), not the frames in QUEUE W4. A pose list that shoots all 24 lobbies still
+  belongs in `scripts/verify/shots-*.json`, which this lane may not write —
+  QUEUE **W10**.
+* **`scripts/verify/westcampus-probe.mjs` is still broken** (page-setup
+  regression, throws before its first assertion), so its
+  `podium band exists (Castilian + Dobie)` check still has not run. Mac's.
