@@ -1,5 +1,227 @@
 # Austin 3D Explorer — Full Handoff
 
+## 93. Aug 4 2026 — the two blockers on PR #147: a stale catalogue and 194 coplanar top faces (acer lane)
+
+**Branch:** `acer/wampus-render`. **Files written:** `scripts/bake_places.py`,
+`data/places.geojson`, `scripts/verify/places-check.mjs`, this entry. No js, no
+html, no second data file. `node scripts/verify/harness-drift.mjs` PASS (28/28
+scripts) before any pixel work, as always.
+
+Neither of these is a redesign. §90–§92 shipped and the review of them stands;
+this clears the two things that were left red.
+
+### The numbers, all four asked for
+
+| | before | after |
+|---|---|---|
+| `coplanar.mjs data/places.geojson` | **195** pairs (194 `entry`/`entry` + 1 `awning`) | **1** — the awning pair, which is the pre-pass baseline |
+| `places-check.mjs` | 39 ok, 1 failed | **40 ok, 0 failed** |
+| `zfight.mjs` | clean | **clean** — see below |
+| features by kind | front 1186 · awning 263 · entry 888 · pool 63 · label 133 = 2533 | **identical, all five** |
+| by family | 10 families, plPier 194 | **identical, all ten** |
+| file size | 1,019,755 B raw · 65,218 B gzip −9 | 1,019,755 B raw · **65,216 B gzip** |
+
+**The size delta is −2 bytes gzipped and ZERO raw**, because the only change to
+the data is 194 occurrences of `2.46` becoming `2.43` — the same character
+count. The raw number is what `scripts/serve.py` sends, and **serve.py does not
+gzip while GitHub Pages does**, so the raw figure overstates what a visitor
+actually pays by about 15.6× on this file. Quote the gzipped number.
+
+### BLOCKER 2 — a lintel bears ON its piers, so the pier is what gives way
+
+The pier was emitted `0.0 → head_top` and the lintel `SF_DOOR_HEAD → head_top`.
+Both topped out at **2.46 m** over the same footprint, twice per entry: a
+0.28 × 0.32 m shared top face, 194 times. `coplanar.mjs` names the whole class —
+two top faces at the same height with overlapping footprints have no defined
+draw order, so which one wins is depth-buffer rounding and it changes as the
+camera moves.
+
+`zfight.mjs` found no flicker from it, and that is not a reason to leave it. A
+detector reading 195 is not a guard; the next pass to introduce a real z-fight
+would have had nothing watching. **The fix is to separate the faces, not to
+relax the detector** — `--eps` and `--frac` are untouched at their defaults 0.01
+and 0.30.
+
+New named constant, in the same taste block as the rest of the entry
+(`SF_HEAD_T` is directly above it):
+
+```
+SF_HEAD_BEARING = 0.03   # the pier's top face is a BEARING SEAT
+```
+
+30 mm, the same value and for the same stated reason as `STEP_LIFT` in
+`scripts/bake_depth.py` ("two coplanar top faces z-fight; 30 mm settles it and
+is far too small to read as a second step"). It is 3× `coplanar.mjs`'s own
+0.01 m epsilon.
+
+**Which surface moves was decided structurally, not by which was easier.** A
+lintel spans and bears ON the piers, so the lintel is the one on top and the
+pier's top face is the seat underneath it. Two things follow and both are
+load-bearing on the choice:
+
+1. **The lintel's top must not move.** `head_top` is `min(SF_DOOR_HEAD +
+   SF_HEAD_T, glass_top)` — already clamped to the host's glass head. Lifting it
+   would push the head line up through the sign band, and `places-check`
+   asserts at 0.001 m that the sign sits flush on the glass across all 263
+   bands. Raising the lintel would have traded a z-fight for a failed assertion.
+2. **Where the lintel exists the seat is inside it and is never drawn at all.**
+   Pier and lintel share the same plan depth (0.06 → 0.38) and the lintel spans
+   `p0 → p1`, which contains both piers. A pier top at 2.43 with a lintel
+   occupying 2.30 → 2.46 is a fully enclosed face. Nothing is added to the
+   silhouette; a face is removed from it.
+
+`max(SF_DOOR_HEAD, head_top - SF_HEAD_BEARING)` guards the one host geometry
+that could bite: a glass head clamped to within 30 mm of the lintel's underside
+would otherwise drop the seat BELOW the lintel and open a millimetric hole
+instead of closing one. In this bake nothing hits it — every one of the 194
+piers now tops at exactly 2.43 and every one of the 133 lintels at 2.46.
+
+### BLOCKER 1 — the catalogue is now READ out of the generator, not copied from it
+
+Assertion A was the literal list `['plAwn','plBulk','plGlass','plSign']`,
+written when there were four families. §91 added six more and the line went red
+against a bake that was entirely correct.
+
+**§91 wrote out the one-line fix — re-copy the list with ten names in it — and
+that fix was not taken.** It would have been correct today and stale again on
+the next family, which is the same class of bug as `_harness.html` drifting from
+`index.html`. This repo has been bitten by that twice and now guards it with
+`harness-drift.mjs`. So this does the equivalent instead: the expected set is
+**derived from `scripts/bake_places.py`'s own emission call sites** — the `fam`
+argument of every `band_props()` / `glow_props()` call — and compared to what is
+actually in the data. There is no second list anywhere. Add a family to the bake
+and the checker learns about it in the same commit.
+
+```
+ok  A | the families in the data are exactly the ones bake_places.py emits
+        [10 families, derived from 11 emission call sites:
+         plAwn plBack plBulk plGlass plHead plLeaf plLite plPier plPool plSign]
+```
+
+**It parses the CALL, it does not grep for the name.** `harness-drift.mjs`
+records paying for exactly that mistake — a bare filename regex matched module
+names inside COMMENTS as readily as inside script tags and "found" a module that
+was not loaded. `places-check.mjs`'s own prose says `plGlass` and `plSign` in
+several comments and the bake's docstring names families too, so the regex is
+anchored on the function and takes the second positional argument.
+
+**The assertion was strengthened, not relaxed.** It is set EQUALITY and it was
+tested in both directions before being believed:
+
+| case | result |
+|---|---|
+| the real files | **pass**, 10 = 10 |
+| bake gains a family the data lacks (the stale case, i.e. shipping without re-baking) | **fail** |
+| data carries a family the bake cannot emit (stale or foreign data) | **fail** |
+| the regex parses nothing at all (bake renamed or restructured) | **fail** |
+
+That last one matters: a zero-length parse would make one direction trivially
+satisfiable, so `declared.length > 0` is part of the test rather than an
+assumption.
+
+One consequence, stated plainly so nobody is surprised by it: flipping
+`SF_ENTRY_ON` to `False` and re-baking will now trip this. That is deliberate —
+"the checked-in data contains every family the bake can emit" is the guard that
+the shipped file was baked with the whole pass on.
+
+### The look, and it is genuinely unchanged
+
+Four frames on Guadalupe, `shots/wampus/blockers/`, 1600×1000, hardware GL,
+graphics auto-detect cancelled, before/after on identical poses:
+`guad-{before,after}-{day,night}` (z18.9 pitch 64 bearing 275) and
+`guadclose-{before,after}-{day,night}` (z19.4 pitch 72 bearing 278).
+
+Differenced pixel by pixel, and the shopfront band itself (x 100–1500,
+y 440–580, which is the whole run of storefronts in all four frames):
+
+```
+guad       day    max delta 2/255,  pixels above 8/255 = 0
+guad       night  max delta 0,      pixels above 8/255 = 0
+guadclose  day    max delta 2/255,  pixels above 8/255 = 0
+guadclose  night  max delta 0,      pixels above 8/255 = 0
+```
+
+**Whole-frame, `guad` night is byte-identical — 0 differing pixels.** The
+whole-frame day diff reads 35.8 % of pixels differing, and that number is a trap
+worth naming: **every one of them differs by 1 or 2 of 255.** The scene runs an
+auto-exposure stage, so changing anything re-grades every pixel — the same
+effect `places-check.mjs`'s own comment records, where a frame difference
+reported 289,963 changed pixels for hiding a layer of 1 m bands and was
+measuring the tone mapper. The only pixels anywhere above 8/255 are one map
+label at the extreme frame edge winning its collision box in one render and not
+the other, and the animated window lights in the towers on the skyline. Neither
+is geometry and neither is ours.
+
+### zfight.mjs, and the one cluster it found that is NOT this
+
+`shots-places.json`, all 8 poses. Seven ran clean:
+
+```
+fly-drag-day / -gold / -night   (none)
+fly-wide-day                    (none)
+street-drag-day / -night        (none)
+street-coop-day                 (none)
+```
+
+The eighth, `westcampus-day`, **hit the 300 s watchdog** on the first run — not
+a defect, an instrument timeout. Re-run on its own with `VERIFY_MAX_MS=560000`,
+plus a night version of the same pose, it reports **242 px at
+[642,827,869,895]** by day and nothing at night.
+
+**That cluster is pre-existing and is not from this change**, and it was A/B'd
+rather than argued: `git checkout HEAD -- data/places.geojson` back to the
+2.46 m piers, same pose, same everything —
+
+```
+piers at 2.46 (before)   westcampus-day   242@[642,827,869,895]   night (none)
+piers at 2.43 (after)    westcampus-day   242@[642,827,869,895]   night (none)
+```
+
+Identical count, identical box. It is a roof-plane edge on a podium at the
+bottom of frame, in West Campus, not a shopfront — nothing in `places.geojson`
+stands taller than 5 m. **It is left for whoever owns that geometry**; the mask
+is `shots/wampus/blockers/zf-after-westcampus-day-flicker.png`. Note the
+`bldg/roof` candidate counts vary run to run (1857 / 2976 / 3431 of 3754) with
+tile load; the flicker percentage and the cluster box did not move at all, which
+is the reading to trust.
+
+### What did NOT work, in the order it cost time
+
+1. **`zfight.mjs`'s output prefix is joined onto `path.resolve('shots')`, so it
+   is relative to `<cwd>/shots/` and not to the repo.** Run from
+   `scripts/verify` with `--out ../../shots/...` it wrote to `scripts/shots/`,
+   threw ENOENT after printing a perfectly good result line, and took the
+   browser down with an uncaughtException. An absolute path is worse, not
+   better: it gets concatenated too. **Run it from the repo root and pass a
+   prefix relative to `shots/`.** Cost two full pose runs.
+2. **The first `westcampus-day` result looked like a regression and was not.**
+   It appeared on the run immediately after the re-bake, which is exactly the
+   shape of a defect this pass introduced. Restoring the old data file and
+   re-running was four minutes and turned an assumption into a fact. Do not skip
+   that step because the timing looks damning.
+3. **A whole-frame pixel diff cannot answer "did this change the look".** 35.8 %
+   of the frame differs between two builds that are visually identical, because
+   of auto-exposure. The question only became answerable by cropping to the
+   band in question and reporting the MAXIMUM delta rather than a count.
+4. **`git stash -u` is not available in this repo** (it deletes
+   `scripts/verify/node_modules`). `git checkout HEAD -- <file>` is the way to
+   A/B a baked data file, and it is better anyway — it touches exactly one file.
+
+### What I did NOT do
+
+- **I did not merge.** PR #147 is left for the next agent to decide on, per the
+  brief.
+- **The `westcampus-day` flicker cluster is not fixed**, only proved to
+  pre-date this change and located. It is in someone else's geometry.
+- **`shots-places.json` was not edited** to add the West Campus night pose or to
+  raise the watchdog; it is not this task's file to write. The extra pose was
+  passed in from a scratch file outside the repo, so the run is reproducible
+  only by rebuilding that two-line JSON — the pose is
+  `{"p":0.86,"center":[-97.74495,30.28660],"zoom":17.90,"pitch":70,"bearing":205}`.
+- **Nothing was re-measured about the night look of the shopfronts.** §92's
+  luma and R:B tables still stand; this pass moved 194 top faces down 30 mm and
+  the pixel diff above shows it changed nothing they measured.
+
 ## 92. Aug 4 2026 — the West Campus lobbies get their names, and the shopfront doors get an altitude (acer lane)
 
 **Branch:** `acer/westcampus-ground`, the render half of §90 and §91. **Files

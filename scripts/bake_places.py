@@ -315,6 +315,22 @@ SF_ENTRY_ON    = True    # the whole entry vocabulary, off in one edit
 SF_DOOR_HEAD   = 2.30    # [D] leaf 2.134 + 0.166 of frame head
 SF_LEAF_H      = 2.134   # [C] COMM_DOOR_H, 7 ft
 SF_HEAD_T      = 0.16    # [D] the lintel band that closes the top of the bay
+SF_HEAD_BEARING = 0.03   # [D] the pier's top face is a BEARING SEAT: it stops
+                         #     this far below the lintel's top instead of
+                         #     sharing its plane. A lintel spans and bears ON
+                         #     the piers, so it is the surface that sits on top;
+                         #     the pier's is under it. Two coplanar top faces
+                         #     z-fight -- coplanar.mjs read 195 pairs on this
+                         #     file when both stopped at 2.46 m, 194 of them
+                         #     this one shape 0.094 m^2 at a time -- and 30 mm
+                         #     settles it, the same value and the same reason as
+                         #     STEP_LIFT in scripts/bake_depth.py. It is far too
+                         #     small to read as a reveal, and where the lintel
+                         #     exists the seat is INSIDE it and never drawn at
+                         #     all. The lintel is the surface that must not move:
+                         #     its top is clamped to glass_top, and lifting it
+                         #     would push the head line up through the sign band
+                         #     that places-check asserts sits flush on the glass.
 SF_PIER_W      = 0.28    # [A] entry pier along the wall. Its inward face is the
                          #     jamb return, so this one box is both.
 SF_RETURN_W    = 0.55    # [A] lit side return between the pier and the leaf.
@@ -946,14 +962,26 @@ def build_entry(fr, lay, glass_top, meta, is_open):
                                0.0, SF_DOOR_HEAD, meta)))
 
     # 2. The piers. Plan depth 0.06 -> 0.38, so the box IS the jamb return.
+    #
+    #    The pier stops at the lintel's BEARING SEAT, not at the lintel's top.
+    #    Both used to end at head_top, which put a 0.28 x 0.32 m top face at the
+    #    same height as the lintel's over the same footprint, twice per entry --
+    #    194 of the 195 pairs coplanar.mjs reported on this file. The lintel is
+    #    what spans and bears, so the pier is the surface that gives way. The
+    #    max() keeps the seat from ever dropping below the lintel's underside on
+    #    a host whose glass head is clamped to within SF_HEAD_BEARING of it,
+    #    which would open a millimetric hole between the two instead of closing
+    #    one. Where the lintel exists this face is inside it and is never drawn.
+    has_head = head_top > SF_DOOR_HEAD + 0.02
+    pier_top = max(SF_DOOR_HEAD, head_top - SF_HEAD_BEARING) if has_head else head_top
     if pier > 0:
         for s0, s1 in ((p0, b0), (b1, p1)):
             out.append(feat(box(fr, s0, s1, SF_BACK_PROUD, SF_PIER_PROUD),
                             band_props("entry", "plPier", SF_PIER_COL,
-                                       0.0, head_top, meta, False)))
+                                       0.0, pier_top, meta, False)))
 
     # 3. The lintel that closes the top of the bay.
-    if head_top > SF_DOOR_HEAD + 0.02:
+    if has_head:
         out.append(feat(box(fr, p0, p1, SF_BACK_PROUD, d_face),
                         band_props("entry", "plHead", SF_PIER_COL,
                                    SF_DOOR_HEAD, head_top, meta, False)))

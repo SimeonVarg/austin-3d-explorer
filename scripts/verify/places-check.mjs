@@ -73,10 +73,45 @@ ok('A', 'no band is taller than one storey (nothing is standing in for a wall)',
 ok('A', 'every shopfront stack starts at grade',
    ext.filter(f => f.properties.fam === 'plBulk').every(f => f.properties.base === 0),
    fams.plBulk + ' bulkheads');
-ok('A', 'the four families are exactly bulkhead / glass / sign / awning',
-   JSON.stringify(Object.keys(fams).sort()) ===
-   JSON.stringify(['plAwn', 'plBulk', 'plGlass', 'plSign']),
-   JSON.stringify(fams));
+// THE FAMILY CATALOGUE, READ OUT OF THE GENERATOR — NOT COPIED FROM IT.
+//
+// This assertion used to be the literal list ['plAwn','plBulk','plGlass',
+// 'plSign'], written when there were four families. The entry pass added six
+// more and this line went red against a bake that was completely correct: the
+// data had moved and the checker's copy of the catalogue had not. A hand-kept
+// list that must track a generator is exactly the failure harness-drift.mjs
+// exists to catch between _harness.html and index.html, and this repo has been
+// bitten by that twice. So it is not re-copied with ten names in it. It is
+// derived.
+//
+// The source of truth is scripts/bake_places.py's own emission call sites: the
+// `fam` argument of every band_props()/glow_props() call. Add a family to the
+// bake and this check learns about it in the same commit, with no second list
+// to update.
+//
+// PARSE THE CALL, DO NOT GREP FOR THE NAME. harness-drift.mjs records paying
+// for this: a bare /js\/[a-z]+\.js/ matched module names inside COMMENTS as
+// readily as inside script tags and "found" a module that was not loaded. This
+// file's prose says "plGlass" and "plSign" in several comments, and the taste
+// block names families in its own docstring, so the regex is anchored on the
+// function call and takes the second positional argument.
+const BAKE = fs.readFileSync(path.resolve(process.cwd(), '../bake_places.py'), 'utf8');
+const bakeFams = [...BAKE.matchAll(
+  /\b(?:band_props|glow_props)\s*\(\s*"[^"]*"\s*,\s*"([^"]+)"/g)].map(m => m[1]);
+const declared = [...new Set(bakeFams)].sort();
+const observed = Object.keys(fams).sort();
+// A zero-length parse would make the comparison below trivially satisfiable in
+// one direction, so the count is asserted as part of the same test rather than
+// assumed. If the bake ever builds a family name instead of writing it as a
+// literal, this goes red and points here, which is the correct outcome.
+const sameSet = declared.length > 0 &&
+                JSON.stringify(declared) === JSON.stringify(observed);
+ok('A', 'the families in the data are exactly the ones bake_places.py emits',
+   sameSet,
+   sameSet ? declared.length + ' families, derived from ' + bakeFams.length +
+             ' emission call sites: ' + declared.join(' ')
+           : 'bake declares [' + declared.join(' ') + '] but the data has [' +
+             observed.join(' ') + ']');
 ok('A', 'the sign band sits directly on top of the glass, with no gap',
    (() => {
      // Grouped by tenant AND by the wall segment, since a corner shop emits one
