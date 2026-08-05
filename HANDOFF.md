@@ -1,8 +1,13 @@
 # Austin 3D Explorer — Full Handoff
 
-## 96. Aug 5 2026 — what `data/entrances.geojson` costs, measured (QUEUE W3) (acer lane)
+## 97. Aug 5 2026 — what `data/entrances.geojson` costs, measured (QUEUE W3) (acer lane)
 
-**Renumber this on merge conflict — do not assume 96 is yours.** Branch
+**This was written as 96 and renumbered to 97 at merge time**, because PR #148's
+pass had already taken 96 at the far end of this file. It happened again, exactly
+as §95 warned: two lanes numbering against the same `main` in the same hour, and
+git auto-merged both without a conflict marker because they landed in different
+parts of the file. **Grep `^## 9` before you pick a number, and grep it again
+after you merge `main` in.** Branch
 `acer/entrances-payload`, cut from `origin/main` (`bef5f37`) because this
 worktree cannot check out `main`. **Files written: `docs/night/entrances-payload.md`
 and this section. No js, no data, no `scripts/verify/`.** Diagnosis only, as W3
