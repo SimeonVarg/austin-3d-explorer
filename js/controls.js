@@ -595,6 +595,239 @@ function initControls(map, scene) {
     if (ms > outerScanMsMax) outerScanMsMax = ms;
   }
 
+  // ── The trunk field ───────────────────────────────────────────────
+  //
+  // 7,559 tree trunks, and until now you walked through every single one. At the
+  // old 18 m floor that was invisible. At 1.7 m the campus and West Campus
+  // streets are full of trees and walking through a live oak is the quickest way
+  // there is to stop believing the city.
+  //
+  // TRUNKS ONLY, AND THAT IS THE WHOLE DESIGN, not a first instalment. Real
+  // people walk under trees all day; a canopy you cannot enter would read as a
+  // worse fault than one you can. The crowns are also enormous next to a person
+  // — a median crown is 4.27 m of radius against a 1.0 m probe — so putting them
+  // in a collision field would wall off every tree-lined path on campus,
+  // starting with the South Mall.
+  //
+  // IT IS ITS OWN FIELD RATHER THAN A FEW MORE CELLS IN maxHeightIn, and that is
+  // not a structural preference. It is the difference between working and not:
+  //
+  //   * maxHeightIn answers "how high is the ROOF here", and every one of its
+  //     six readers treats the answer as something you can stand ON. Feed it a
+  //     trunk and the step-up branch reads a 4.95 m oak as a kerb, the rooftop
+  //     floor lifts the camera onto it, and the hard net parks you at
+  //     trunk + HARD_CLEAR. You would ride the trees instead of walking round
+  //     them — which is exactly the failure §105 fixed for two-storey houses.
+  //   * its cell is 6 m. The median trunk is 0.48 m across the radius; stamped
+  //     into a 6 m cell it becomes a 6 m obstacle, and the South Mall's rows are
+  //     planted 6-8 m apart. The mall would close.
+  //
+  // So a trunk is a CIRCLE, tested exactly. The bucket grid below only narrows
+  // the candidate list; the blocking test is always the real measured radius.
+  //
+  // Cost. `blockedAt` runs up to three times per substep and this rides along
+  // with it, so it has to be genuinely O(1): one Map.get and a walk of a
+  // five-number record per candidate, and the candidates in a bucket are the two
+  // or three trees standing in an 8 m square. Above TRUNK_ALT it is a single
+  // compare and a return, so the flyover pays for a branch and nothing else.
+  const TRUNK_SRC = 'austin-trees';
+  // ── Taste and limits. Every one of these is a one-line overrule. ──
+  const TRUNK_ON = true;        // false restores walking through trees exactly
+  // ── TRUNK_PAD is 0.9 and the reason is the NEAR PLANE, not personal space ──
+  //
+  // MapLibre's near plane is `canvasHeight / 50` pixels, and dividing by
+  // transform.pixelsPerMeter (= camPx / D) turns that into metres:
+  //
+  //     nearZ = D * 2 * tan(fov/2) / 50 = 0.0222 * D        (fov 58)
+  //
+  // — viewport-independent, and MEASURED at 0.72 m for both 800x600 and
+  // 1280x800 at 1.7 m eye / pitch 87, where D = 32.5 m. Anything closer than
+  // that is clipped away, and because MapLibre back-face-culls fill-extrusions,
+  // clipping the near face of a trunk does not reveal its inside — IT REVEALS
+  // WHAT IS BEHIND IT. The tree stops existing.
+  //
+  // Photographed: stop the camera 0.6 m off the bark and the oak you just
+  // walked into is not in the frame. That is the collision working and looking
+  // like a bug, which is worse than the defect it fixes. At 0.9 m the bark
+  // stays outside the near plane for every pitch up to ~87.5 deg and the tree is
+  // there when you stop. It is also the same mechanism as the canopy
+  // disappearing when you enter it (HANDOFF §108) — one clip rule, two symptoms.
+  const TRUNK_PAD = 0.9;        // m of clearance kept outside the bark
+  const TRUNK_CLEAR = 0.5;      // m of headroom; above trunk top + this you pass
+  const TRUNK_R_MIN = 0.2, TRUNK_R_MAX = 1.2;   // clamp on the measured radius
+  const TRUNK_BUCKET = 8;       // m — candidate buckets, NOT the blocking radius
+  const TRUNK_BUDGET_MS = 3;    // same hard budget rule as the outer scan
+  const TRUNK_RESCAN_M = 60;    // trees are local; rescan sooner than the ring
+  const TRUNK_RESCAN_MS = 1500; // floor between two querySourceFeatures calls
+  // Above this, nothing is scanned and nothing is tested. The TALLEST trunk in
+  // data/trees.geojson is 10.63 m, so at ALT_GROUND (12) no trunk could block
+  // anyway: this gate removes work, it never removes a block, and there is
+  // therefore no altitude at which it can pop. Nothing scripted goes below
+  // 113.9 m, so the intro, the tour and the default pose never touch any of it.
+  const TRUNK_ALT = ALT_GROUND;
+
+  let trunkBuckets = new Map(), trunkSeen = new Set();
+  let trunkPending = null, trunkPendingAt = 0;
+  let trunkScanAt = 0, trunkScanLng = 0, trunkScanLat = 0;
+  let trunkDirty = true, trunkAddedThisPass = 0;
+  let trunkCount = 0, trunkScans = 0, trunkScanMs = 0, trunkScanMsMax = 0;
+  let trunkStuck = false;
+  const trunkKey = (i, j) => i * 1048576 + j;
+  const treeDensity = () => ((window.GFX && typeof window.GFX.treeDensity === 'number')
+                             ? window.GFX.treeDensity : 1);
+
+  // THE ONLY WAY A NEW TRUNK CAN APPEAR IS A NEW TILE, so that is the trigger.
+  // The first draft polled every 1.5 s forever, and measured on this laptop that
+  // is 12.3 ms of querySourceFeatures on average and a 123 ms WORST — seven
+  // dropped frames, repeating, for a field that had already finished. The call
+  // cannot be budgeted (it builds its whole feature list before returning; the
+  // outer ring has the same problem, written up as QUEUE Y7), so the only saving
+  // available is not making it. Now a scan happens when a tile lands, when the
+  // camera has moved TRUNK_RESCAN_M, or when there is an unfinished list — and
+  // standing still in a district that is already stamped costs nothing at all.
+  //
+  // ATTACHED LAZILY, the first time the camera drops below TRUNK_ALT, and never
+  // detached after that. `sourcedata` is one of MapLibre's noisiest events —
+  // every tile state change on every source fires it — and a flyover that never
+  // lands should not be dispatching into this file at all. With the lazy attach
+  // the intro, the tour and the default pose register nothing, call nothing and
+  // allocate nothing: the whole feature is one `alt >= TRUNK_ALT` compare.
+  let trunkListening = false;
+  const onTrunkSourceData = e => {
+    if (e && e.sourceId === TRUNK_SRC && e.tile) trunkDirty = true;
+  };
+
+  /** One instalment of the incremental trunk scan. Mirrors outerStamp(). */
+  function trunkStamp() {
+    const my = M_LAT;
+    const t0 = performance.now();
+
+    if (!trunkPending || trunkPendingAt >= trunkPending.length) {
+      if (!map.getSource || !map.getSource(TRUNK_SRC)) return;
+      const layer = (window.TILES && window.TILES.layers && window.TILES.layers.trees
+                     && window.TILES.layers.trees.layer) || 'trees';
+      // KIND ONLY — the tree-DENSITY half of the layer's filter is deliberately
+      // not applied here. It is applied per record at query time instead (`d`
+      // is stamped alongside the geometry), because density is a live setting:
+      // the graphics preset moves it at load and the auto-detect probe can move
+      // it again ~11 s later. Filtering at scan time means every change throws
+      // the field away and leaves a WINDOW WITH NO TREE COLLISION AT ALL while
+      // it rebuilds — measured, and it is several seconds long right at the
+      // moment a first-time visitor starts walking. Filtering at query time
+      // makes a density change free and exact in the same frame.
+      const filter = ['==', ['get', 'kind'], 'trunk'];
+      let feats = [];
+      try { feats = map.querySourceFeatures(TRUNK_SRC, { sourceLayer: layer, filter }); } catch (e) {}
+      if (!feats.length) {
+        try { feats = map.querySourceFeatures(TRUNK_SRC, { filter }); } catch (e) {}
+      }
+      if (!feats.length) return;
+      trunkPending = feats; trunkPendingAt = 0; trunkAddedThisPass = 0;
+    }
+
+    while (trunkPendingAt < trunkPending.length) {
+      if ((trunkPendingAt & 63) === 0 && performance.now() - t0 > TRUNK_BUDGET_MS) return;
+      const f = trunkPending[trunkPendingAt++];
+      const h = f.properties && f.properties.h;
+      if (!(h > 0) || !f.geometry) continue;
+      // `d` is the bake's keep-order in 0..1 (small trees first), the same
+      // number js/app.js:treeFilter thins on. Absent means always drawn.
+      const dOrd = (f.properties && typeof f.properties.d === 'number') ? f.properties.d : 0;
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates]
+                  : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
+      for (const poly of polys) {
+        const r = poly[0];
+        if (!r || r.length < 4) continue;
+        let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+        for (const p of r) {
+          if (p[0] < w) w = p[0]; if (p[0] > e) e = p[0];
+          if (p[1] < s) s = p[1]; if (p[1] > n) n = p[1];
+        }
+        const cLng = (w + e) / 2, cLat = (s + n) / 2;
+        // Position is the identity, as in the outer field: the same trunk comes
+        // back on every later scan and from every neighbouring tile.
+        const key = ((cLng * 1e6) | 0) + ':' + ((cLat * 1e6) | 0);
+        if (trunkSeen.has(key)) continue;
+        trunkSeen.add(key);
+        const mx = mLon(cLat);
+        // MEASURED off the polygon, never assumed. The bake draws every trunk at
+        // its own diameter — 0.24 to 0.91 m of radius, median 0.48 — so one
+        // fixed number would be wrong at both ends of the range.
+        const rawR = Math.max((e - w) * mx, (n - s) * my) / 2;
+        const rb = clamp(rawR, TRUNK_R_MIN, TRUNK_R_MAX) + TRUNK_PAD;
+        const i0 = Math.floor((cLng - rb / mx) * mx / TRUNK_BUCKET);
+        const i1 = Math.floor((cLng + rb / mx) * mx / TRUNK_BUCKET);
+        const j0 = Math.floor((cLat - rb / my) * my / TRUNK_BUCKET);
+        const j1 = Math.floor((cLat + rb / my) * my / TRUNK_BUCKET);
+        for (let i = i0; i <= i1; i++) {
+          for (let j = j0; j <= j1; j++) {
+            const k = trunkKey(i, j);
+            let a = trunkBuckets.get(k);
+            if (!a) { a = []; trunkBuckets.set(k, a); }
+            a.push(cLng, cLat, rb, h, dOrd);       // flat records of five
+          }
+        }
+        trunkCount++; trunkAddedThisPass++;
+      }
+    }
+    // The list ran out: this pass saw every trunk the source is holding.
+    trunkPending = null; trunkDirty = false;
+  }
+
+  function trunkMaybeScan() {
+    // TWO EARLY RETURNS AND THEY ARE THE PERFORMANCE STORY. Flying costs one
+    // compare per frame: no querySourceFeatures, no stamping, no allocation.
+    if (!TRUNK_ON || alt >= TRUNK_ALT) return;
+    if (!trunkListening) { map.on('sourcedata', onTrunkSourceData); trunkListening = true; }
+    const now = simTime;
+    const resuming = trunkPending && trunkPendingAt < trunkPending.length;
+    const moved = Math.hypot((eye.lng - trunkScanLng) * mLon(eye.lat),
+                             (eye.lat - trunkScanLat) * M_LAT);
+    if (!resuming && !trunkDirty && trunkScanAt && moved < TRUNK_RESCAN_M) return;
+    // An unfinished list resumes on the very next frame; everything else waits
+    // out the floor, so a burst of arriving tiles is one scan and not twelve.
+    if (!resuming && trunkScanAt && (now - trunkScanAt) * 1000 < TRUNK_RESCAN_MS) return;
+    trunkScanAt = now || 1e-6;
+    trunkScanLng = eye.lng; trunkScanLat = eye.lat;
+    const t = performance.now();
+    trunkStamp();
+    const ms = performance.now() - t;
+    trunkScans++; trunkScanMs += ms;
+    if (ms > trunkScanMsMax) trunkScanMsMax = ms;
+  }
+
+  /** Is (lng, lat) inside a trunk's blocking circle for an eye at `a` metres? */
+  function trunkAt(lng, lat, a) {
+    if (!TRUNK_ON || !trunkBuckets.size) return false;
+    a = a == null ? alt : a;
+    if (a >= TRUNK_ALT) return false;
+    const mx = mLon(lat), my = M_LAT;
+    const arr = trunkBuckets.get(trunkKey(Math.floor(lng * mx / TRUNK_BUCKET),
+                                          Math.floor(lat * my / TRUNK_BUCKET)));
+    if (!arr) return false;
+    const dens = treeDensity();
+    for (let k = 0; k < arr.length; k += 5) {
+      if (a >= arr[k + 3] + TRUNK_CLEAR) continue;    // the eye clears the top
+      if (arr[k + 4] > dens) continue;                // thinned away, not drawn
+      const de = (lng - arr[k]) * mx, dn = (lat - arr[k + 1]) * my;
+      if (de * de + dn * dn < arr[k + 2] * arr[k + 2]) return true;
+    }
+    return false;
+  }
+
+  /**
+   * The movement-time test, and the difference from trunkAt is the escape hatch.
+   *
+   * Block-and-slide has no way out of a solid it is already inside: every
+   * direction is blocked, so the camera would be welded to the spot forever.
+   * Buildings never hit this because you cannot walk into one — but a trunk is
+   * 1.5 m across, and a scripted pose, an R reset or a field that finished
+   * stamping while you happened to be standing there can all drop the camera
+   * inside one. So if you are ALREADY in a trunk, trunks do not block this
+   * frame and you simply walk out. Trapping the user is worse than the defect.
+   */
+  const trunkBlockedAt = (lng, lat, a) => !trunkStuck && trunkAt(lng, lat, a);
+
   /** Max indexed roof height within r metres of a ground position.
    *
    * THE ONE CHOKE POINT. Block-and-slide, the rooftop floor, the speed brake,
@@ -764,6 +997,10 @@ function initControls(map, scene) {
   // writeToMap. This makes all six agree.
   const blocks = (h, a) => h > 0 && h + SKIN > a;
   const blockedAt = (lng, lat) => blocks(maxHeightIn(lng, lat, rCam()), alt);
+  // Roofs OR trunks, for the two slide branches — the only places that ask
+  // "could I go this way at all" rather than "how high is it here".
+  const hardBlockedAt = (lng, lat) =>
+    trunkBlockedAt(lng, lat) || (gridBuilt && blockedAt(lng, lat));
 
   /**
    * Wall deflection (TUNE.WALL_*): called when a substep found the way blocked.
@@ -1147,6 +1384,7 @@ function initControls(map, scene) {
     // reset both move the camera without this controller owning it, and the
     // collision field wants filling in during exactly those, not after.
     outerMaybeScan();
+    trunkMaybeScan();
 
     const sprint = (sprintHeld || boostOn) ? SPRINT : 1;
     let fwd = 0, strafe = 0;
@@ -1279,27 +1517,36 @@ function initControls(map, scene) {
     const steps = Math.max(1, Math.ceil(frameDist / (R_CAM * 0.75)));
     const sdt = dt / steps;
     let stepFloor = 0;
+    // Read ONCE per frame, before the walk, and held for every substep: if the
+    // camera starts the frame inside a trunk it must be able to leave, and a
+    // test re-evaluated mid-walk could flip to "stuck" the instant the first
+    // substep put it in.
+    trunkStuck = trunkAt(eye.lng, eye.lat);
 
     for (let s = 0; s < steps; s++) {
       const pLng = eye.lng + (vel.e * sdt) / mLon(eye.lat);
       const pLat = eye.lat + (vel.n * sdt) / M_LAT;
+      // A trunk is a WALL, never a kerb, so it is kept out of the step-up test
+      // below rather than folded into blockedAt. Fold it in and a 4.95 m oak
+      // becomes something the camera climbs.
+      const tBlk = trunkBlockedAt(pLng, pLat);
 
       // Block and slide. Exactly ONE axis is applied when blocked: applying
       // both independently-free axes would reconstruct the very diagonal that
       // was just rejected and stutter along 45-degree walls.
-      if (!gridBuilt || !blockedAt(pLng, pLat)) {
+      if (!tBlk && (!gridBuilt || !blockedAt(pLng, pLat))) {
         eye.lng = pLng; eye.lat = pLat;
       } else {
-        const hObs = maxHeightIn(pLng, pLat, rCam());
-        if (hObs + SKIN - alt <= stepUp()) {         // low enough to skim over
+        const hObs = gridBuilt ? maxHeightIn(pLng, pLat, rCam()) : 0;
+        if (!tBlk && hObs + SKIN - alt <= stepUp()) {   // low enough to skim over
           stepFloor = Math.max(stepFloor, hObs + skinV());
           eye.lng = pLng; eye.lat = pLat;
-        } else if (!blockedAt(pLng, eye.lat)) {
+        } else if (!hardBlockedAt(pLng, eye.lat)) {
           // Slide east-west; the blocked northward component deflects (damped
           // + steered by wallDeflect) instead of zeroing instantly. Exactly one
           // axis of POSITION is still applied, as before.
           eye.lng = pLng; wallDeflect(sdt, false, true);
-        } else if (!blockedAt(eye.lng, pLat)) {
+        } else if (!hardBlockedAt(eye.lng, pLat)) {
           eye.lat = pLat; wallDeflect(sdt, true, false);
         } else {
           wallDeflect(sdt, true, true);
@@ -1521,6 +1768,17 @@ function initControls(map, scene) {
                          avgMs: outerScans ? +(outerScanMs / outerScans).toFixed(2) : 0,
                          maxMs: +outerScanMsMax.toFixed(2) }),
     outerScan: () => { outerScanAt = 0; outerStamp(); return outerCells.size; },
+    // The trunk field, on the same terms as the outer one: a verification can
+    // assert on what it holds and what it cost instead of inferring both from
+    // where the camera stopped.
+    trunkField: () => ({ buckets: trunkBuckets.size, trunks: trunkCount,
+                         scans: trunkScans,
+                         avgMs: trunkScans ? +(trunkScanMs / trunkScans).toFixed(2) : 0,
+                         maxMs: +trunkScanMsMax.toFixed(2),
+                         density: treeDensity(), dirty: trunkDirty,
+                         stuck: trunkStuck }),
+    trunkScan: () => { trunkScanAt = 0; trunkStamp(); return trunkCount; },
+    trunkAt: (lng, lat, a) => trunkAt(lng, lat, a),
     // A FUNCTION, not a snapshot. It used to be an object literal evaluated once
     // at init, so anything derived (the live probe radius, the pitch floor, the
     // altitude floor as pitch changes it) could not be read by a verification at
@@ -1530,6 +1788,8 @@ function initControls(map, scene) {
                      ZOOM_MIN, ZOOM_MAX, R_CAM, R_CAM_GROUND, HARD_CLEAR,
                      SKIN, SKIN_V, SKIN_V_GROUND, STEP_UP, STEP_UP_GROUND,
                      OUTER_MIN_H, OUTER_MIN_H_GROUND, PITCH_MIN, PITCH_MAX,
+                     TRUNK_ON, TRUNK_PAD, TRUNK_CLEAR, TRUNK_ALT, TRUNK_BUCKET,
+                     TRUNK_R_MIN, TRUNK_R_MAX,
                      SPEED_REF, SPEED_EXP, SPEED_MIN, SPEED_MAX,
                      TAU_ACCEL, TAU_DECEL, VERT_GAIN, SPRINT,
                      // live, derived — the whole point of making this a function
@@ -1566,6 +1826,7 @@ function initControls(map, scene) {
     window.removeEventListener('pageshow', onBlur);
     window.removeEventListener('pagehide', onBlur);
     document.removeEventListener('visibilitychange', onVisibility);
+    if (trunkListening) { try { map.off("sourcedata", onTrunkSourceData); } catch (e) {} }
     if (joystickBase) {
       joystickBase.removeEventListener('pointerdown', onJoyDown);
       joystickBase.removeEventListener('pointermove', onJoyMove);
