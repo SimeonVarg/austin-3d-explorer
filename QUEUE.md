@@ -659,6 +659,84 @@ was tuned for.
 `p = 0.90` only. The dusk handover is the app's best-looking moment and it has
 never been seen from a pavement.
 
+**Y12. MapLibre's near plane clips anything within 2.2 % of D — 0.4–1.1 m at
+walking height.** Diagnosed in §108: walk into a tree and the trunk you are
+touching *disappears* instead of filling the frame, because the near plane is in
+front of it, so a working collision reads as a rendering fault. `TRUNK_PAD` was
+raised 0.6 → 0.9 m so the stop lands outside it, which hides the symptom for
+trunks and does nothing for walls, kerbs or door surrounds. Candidate fix is
+overriding the transform's near plane below `ALT_GROUND`. It belongs to whoever
+owns the map transform, and it **must** be re-checked against `zfight` and
+`coplanar`, because a nearer near plane costs depth precision.
+
+**Y13. Nobody has photographed the moon behind a building since the sky fix.**
+§109 proved the sky FIELD (stars, clouds, glow, wash) paints **0 px** inside a
+270,794 px wall silhouette at two poses, against an old-overlay control that
+painted 33–51 % of the same wall. But at those poses the disc was in open sky —
+a 40x40 box around it is 0 % wall — so the **disc** is unproven. It rides the
+same depth-tested pass, so this is a photograph to take, not a bug to expect.
+`shots/eye/recon/24-dkr-the-moon-is-drawn-in-front-of-the-stadium-night.png` is
+the original defect frame; re-shoot that pose.
+
+**Y15. The trunk field's worst incremental scan is 841.5 ms.** Measured in §109:
+61 scans, 25.3 ms average, 2,976 trunks, **max 841.5 ms** — about fifty dropped
+frames. That run teleported across West Campus ten times, which forces rescans a
+real walk would not, so it is an upper bound rather than a typical cost. Same
+shape as Y7 and the same fix (spread `querySourceFeatures` across frames by tile
+rather than asking for everything). Measure it under a sustained walk first.
+
+**Y16. At 1.7 m you cannot look down, and the failure mode is not what §106
+recorded.** §106 said the controller BLOCKS the pitch. Driven through `setPitch`
+in §109 the pitch is **granted and the eye is silently lifted**: asked 80 you get
+4.23 m, asked 70 you get 8.34 m, asked 60 you get 12.19 m, asked 45 you get
+17.23 m. Same verdict as Y4 (`ZOOM_MAX` is still 21.5), but whoever picks Y4 up
+should know they are removing a silent lift, not a block.
+
+**Y14. `places-check.mjs` and `zfight.mjs` have not been run since §105.** Not a
+defect, a gap. `coplanar` is at baseline (roofs 85, places 1, entrances 1729) and
+`collision` was 8/8 in §108, both on this code. These two just have not been run.
+`zfight` needs a shots file as `argv[2]` and `VERIFY_URL`; `places-check` needs
+`VERIFY_URL` and to be run from `scripts/verify/`.
+
+---
+
+# PART Y — STATUS AFTER THE AUDIT (HANDOFF §109, 2026-08-06, verified on `main`)
+
+```
+Y1  stars/moon/clouds drawn through geometry ... DONE  (#160) and re-proved in §109
+Y2  the night street ......................... DONE for the CARRIAGEWAY (#161).
+                                                The PAVEMENT half is still blocked on
+                                                scripts/verify/night-lights.mjs asserting
+                                                a LAYER INDEX instead of an occlusion
+                                                property — not this lane's file. See §107.
+Y3  tree collision ........................... DONE  (#162). Trunks only; canopies
+                                                deliberately not collided.
+Y4  look down at your own feet ............... HALF. js/ground.js is ready
+                                                (texGroundMaxZoom 22 -> 25). ZOOM_MAX is
+                                                still 21.5, so the pitch floor stands and
+                                                you still cannot look at your feet.
+                                                Blocked behind Y8 by choice, and now also
+                                                behind Y5 (see that doc's sequencing note).
+Y5  facades at close range ................... OPEN — and it is now THE thing standing
+                                                between the Drag and good. Plan:
+                                                docs/camera/facades-at-two-metres.md
+Y6  motion-feel FOV assertion ................ OPEN (red on main, not from these passes)
+Y7  outer-ring scan worst case ............... OPEN
+Y8  the ground plane ......................... OPEN
+Y9  labels sized by zoom not metres .......... OPEN
+Y10 touch at walking height .................. OPEN
+Y11 dusk at eye level ........................ OPEN
+Y12 the near plane ........................... NEW
+Y13 the moon behind a building ............... NEW
+Y14 places-check / zfight not run ............ NEW
+```
+
+**The one-line verdict on the Drag at night:** it is genuinely better — no stars
+on the brick, and a carriageway that went from 0.78x the frame median to 1.40x —
+but **Y5 is what is still between it and good.** The shopfronts are excellent and
+the 40 m of wall above them is a barcode, and that is the first thing your eye
+goes to.
+
 ---
 
 ## Not negotiable

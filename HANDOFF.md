@@ -13603,3 +13603,231 @@ depth precision.
 * **Did not test a touch device.** Y10 remains untested at walking height.
 * **Did not run the pixel sweeps** (`zfight`, `coplanar`, `facade-parity`).
   Nothing here draws a pixel — but that is reasoning, not looking.
+
+## 109. Aug 6 2026 — the eye-level pass, audited on `main`; two of my own instruments were lying and the star gate had to be built three times (acer lane)
+
+**No code and no data changed in this pass.** §§106–108 were already merged
+(PRs #160, #161, #162) and `origin/main` was at `1ac23fd` throughout. This is the
+audit of that merged tree: the flyover, the star gate, the night street, the
+trees, the pitch floor, and the altitude regression. Files written: `shots/eye/`,
+`QUEUE.md`, this entry.
+
+**Setup, with the instrument settings, because they are part of the answer.**
+`python scripts/serve.py 8304` for `main` and `python scripts/serve.py 8305 <dir>`
+for a **pre-pass baseline** built from `330fbd9` (the walking-height merge, before
+any of §§106–108). Neither gzips; Pages does, ~5x. `harness-drift.mjs` **PASS,
+28 scripts in each file**, run before any pixel. 1440x900, dsf 1, SwiftShader,
+headless, `cancelGraphicsAutoDetect()` at the top of every run, **one browser at
+a time**, reaped at the end of every step.
+
+**The baseline server is the honest A/B.** Only five JS files differ between
+`330fbd9` and `1ac23fd` (`controls/ground/night/props/sky`) and **no data file
+changed at all**, so the baseline doc-root is a copy of the tree with those five
+files replaced and `data/` junctioned to the real one. `app.js` is byte-identical
+on both — confirmed by md5 over the wire — which matters for the flyover claim
+below.
+
+---
+
+### THE TWO WAYS I MEASURED THE STAR GATE WRONG, BOTH OF WHICH PASSED
+
+This is the most useful thing in this entry. The gate is "stand at 1.7 m facing a
+wall and assert ZERO sky-coloured pixels inside the wall's silhouette". I got a
+clean PASS twice from an instrument that could not have failed.
+
+**1. `gl.readPixels()` ON THE MAP CANVAS CANNOT SEE THE OLD SKY.** The pre-fix
+sky is a **DOM overlay** composited over the canvas by the browser; the canvas
+knows nothing about it. So every readPixels comparison reported *"the old overlay
+paints 0 pixels, anywhere, ever"* — the control could never fail, and a PASS from
+it meant nothing. The identical comparison taken from `page.screenshot()`, which
+captures the **composited page** (i.e. what a visitor sees), showed the same old
+overlay painting **311,559 px, 24.04% of the frame**, at the same pose.
+**Rule: if a DOM element is anywhere in the thing under test, screenshot it.
+readPixels measures the WebGL canvas and nothing else.**
+
+**2. A MASK MEASURED AT NIGHT IS NOT THE GEOMETRY.** QUEUE X8 already says
+silhouettes must be measured in day light. The same trap bit the *road*: the
+hide-diff carriageway mask came back **2,075 px at night against 174,229 px for
+the same geometry in day**, because at night the road FILL is nearly the colour
+of what is under it and the brightness on screen belongs to a different layer
+(the lamp pool). Every night-street number below uses a **day-derived mask
+applied to the night frame**.
+
+A third, cheaper trap: **a long single-browser run degrades.** The third site in
+a three-site run returned an all-zero frame (sky painted 0 px whole-frame,
+`skyFrame.sun` stuck at [0,0]). Two sites per browser was reliable; three was
+not. Do not trust the tail of a long run without a sanity value in it.
+
+### THE STAR GATE, THIRD BUILD, WITH A CONTROL THAT FAILS LOUDLY
+
+Silhouette by hide-diff on `buildings-3d/roof/ao` in DAY with the sky off; three
+night frames at the same pose (no sky / shipping / old overlay); all five are
+screenshots. Horizon row 381.
+
+| pose, 1.7 m, p = 0.92 | wall | shipping sky | **on the wall** | old overlay | **on the wall** |
+|---|---|---|---|---|---|
+| West Campus, wall filling the frame | 270,794 px, 20.9 % of frame, **41.3 % of the upper half** | 24,586 px, lowest row 235 | **0** | 311,559 px, lowest row 418 | **138,189 px = 51.0 % of the wall**, worst chan 252 |
+| South Mall, facing the Tower | 172,393 px, 13.3 %, 26.6 % of the upper half | 7,866 px, lowest row 341 | **0** | 177,721 px, lowest row 418 | **57,409 px = 33.3 %**, worst chan 245 |
+
+**Zero, against a control that paints a third to a half of the same wall.** The
+old overlay's brightest wall pixel is chan **252 at (304,330)** — a white star on
+brick, which is exactly the defect Y1 named. The shipping sky's lowest painted
+row is 235 and 341, both **above** the horizon at 381; the old overlay reached
+418, i.e. below it, onto the city.
+
+**The moon is NOT separately proven and I am not going to claim it is.** At the
+West Campus pose the disc was in frame at (1254,15) but in **open sky** — a 40x40
+box around it is 0 % wall — so that frame says nothing about a disc behind
+geometry. The disc rides the same depth-tested pass as the field (§106) and the
+field is proven at two sites, but nobody has photographed the moon behind a
+building since the fix. **Queue item Y13.**
+
+### THE NIGHT STREET
+
+Carriageway identified in DAY, luma read at NIGHT, `p = 0.92`, eye 1.57 m.
+
+| pose | carriageway | before (pre-pass build) | after | vs frame median |
+|---|---|---|---|---|
+| Guadalupe, on the pavement | 13.4 % of the frame | p50 **28.4**, median 36.2 → **0.78x** | p50 **62.6**, mean 60.8 | median 44.6 → **1.40x** |
+| West Campus (Nueces at 24th) | 25.7 % of the frame | p50 **28.4**, median 30.8 → **0.92x** | p50 **80.9**, mean 81.2 | median 44.8 → **1.81x** |
+
+The road went from **below** the median of the frame it fills a quarter of to
+**1.4–1.8x above** it. Whole-frame at those poses: Guadalupe night mean luma
+37.3 → 47.5, West Campus 18.2 → 44.7.
+
+**The day frame is the other half of the same fix and it is the bigger visual
+change:** `guadalupe-day` moved **99.6 % of pixels by >2, mean luma 109.2 →
+100.4 — darker.** That is the sun's bloom no longer being laid as a milky film
+over a street that is 20 m away. Colours read afterwards: the awning is orange,
+the sign is green, the road is grey.
+
+### THE FLYOVER IS UNCHANGED, AND HERE IS THE ARGUMENT IN THREE PARTS
+
+1. **The path cannot have moved.** `js/app.js`, which contains `SPAWN`, the
+   intro and all seven `TOUR` waypoints, is **byte-identical** between the
+   pre-pass build and `main`.
+2. **None of the new code is reachable up there.** Loaded as a visitor with the
+   intro running and then the tour started, the **minimum altitude over the whole
+   flight is 138.5 m**, against `ALT_GROUND` = 12 m where the pedestrian blend
+   begins. 0 page errors.
+3. **The frames agree.** Fifteen poses (7 tour waypoints, spawn day/dusk/night,
+   cruise 600 m day/dusk/night, and two higher) shot on both builds.
+
+**And the noise floor was measured first, because without it this section is
+worthless.** The same build shot twice: **nine of fifteen frames are
+BYTE-IDENTICAL**; the six that move are the ones with sky in them (stars twinkle
+off `performance.now()`). The clearest case: `CRUISE-600m-dusk` has a **noise
+floor of 93.2 % of pixels differing by >2** — *larger* than its 54.5 % pre-pass-
+vs-main difference. **That frame's "change" was entirely the instrument, and one
+reading would have reported a regression that is not there.**
+
+On the deterministic frames the pass does move pixels, and the move is confined:
+`TOUR-t1-southmall` differs by **0.289 % of pixels at threshold 4, of which 99.9 %
+are in the top two rows of the frame — the sky. Four pixels in the entire city.**
+`SPAWN-day` 0.087 % >2, max chan 6. `CRUISE-600m-day` 0.38 % >2, max chan 5.
+
+**So: the camera path is untouched, the city is untouched, and the sky is
+slightly different because the sky is what was fixed.** The one number worth
+Simeon's eye is `CRUISE-high-day`, where **2,037 px in a single 150x31 box at the
+top of frame move by up to 22** — that box is a cloud, and it is §106's known and
+documented residual (the GL composite reads warmer than the DOM one in the bright
+horizon band). It is a taste call and a one-line edit in `style.css`, which is not
+this lane's file.
+
+### TREES — THE STOP DISTANCE IS EXACTLY WHAT IT WAS DESIGNED TO BE
+
+Trunks are read out of `austin-trees` as **polygons carrying `kind: 'trunk'`**,
+not points, and the field only stamps below `ALT_GROUND` — asking for either of
+those from the default 163 m pose returns nothing and reads as *"there are no
+trees"*. That cost one browser run. Standing on the mall first: **906 trunks in
+1,663 buckets**.
+
+Walking head-on into a live oak of **trunk radius 0.39 m**, two interleaved reps:
+**closest approach 1.37 m and 1.30 m**. `TRUNK_PAD` is 0.9 m, so the design
+target is 0.39 + 0.9 = **1.29 m** and the worst rep lands 0.01 m outside it.
+Altitude was **1.70 m at the start, at the peak and at the end** — the camera
+never rode up over the trunk, which is the failure §105 fixed for houses and the
+one §108 was careful not to reintroduce. `08-WALKING-INTO-A-TREE...` shows bark
+filling the frame at the stop, which is `TRUNK_PAD` 0.9 keeping you outside the
+near plane (Y12) so you can SEE the thing that stopped you.
+
+**Only one of four candidate trees actually got walked**, and I am not going to
+round that up to "several": the other three failed *placement* — `__place`
+never converged on a target 400–500 m away — not collision. §108's own tree
+verification on this same code is the fuller one.
+
+**Frame cost while walking, minimum of 3 reps** (SwiftShader, headless,
+unthrottled, 1440x900): **190.6 ms** median frame. The outlier rep was 688 ms;
+the minimum is the honest reading.
+
+**One number worth writing down: the trunk field's WORST incremental scan was
+841.5 ms** (61 scans, 25.3 ms average, 2,976 trunks) — that is ~50 dropped
+frames. My run teleported across West Campus ten times, which forces rescans a
+real walk would not, so treat it as an upper bound rather than a typical cost.
+It is the same shape as Y7 and it is now written down.
+
+### YOU STILL CANNOT LOOK AT YOUR FEET, AND THE FAILURE MODE IS NOT WHAT §106 SAID
+
+Standing at 1.70 m on Guadalupe and asking the map for a lower pitch:
+
+| asked | granted pitch | **eye altitude** | pitch floor at that altitude |
+|---|---|---|---|
+| 86 | 86 | **1.70 m** | 84.72 |
+| 80 | 80 | **4.23 m** | 76.76 |
+| 70 | 70 | **8.34 m** | 63.19 |
+| 60 | 60 | **12.19 m** | 48.75 |
+| 45 | 45 | **17.23 m** | 21.17 |
+
+§106 described the controller *blocking* the pitch. Driven through `setPitch`
+the pitch is **granted and you are silently lifted instead** — 45 degrees of
+down-pitch costs you 15.5 m of height. Either way the answer to "can you look
+down at 1.7 m" is **no**, `ZOOM_MAX` is still 21.5, and **Y4 is half done**.
+`09-LOOKING-DOWN-...` is the frame; the ground at 17 m is the flyover ground and
+it is fine, which is not the question.
+
+### THE OTHER GATES
+
+* `harness-drift.mjs` **PASS** (28/28), before and after.
+* `coplanar.mjs` **at baseline** — `roofs.geojson` **85**, `places.geojson` **1**,
+  `entrances.geojson` **1729**. Identical to §105.
+* No page errors in any run: intro, tour, every eye-level pose, every walk.
+
+### WHAT I DID NOT DO
+
+* **Did not run `collision.mjs`, `places-check.mjs` or `zfight.mjs`.** §108 ran
+  `collision` 8/8 on this exact code; the other two are unrun this pass and I am
+  not going to imply otherwise. `coplanar` I did run, and it is at baseline.
+* **Did not photograph the moon behind a building** — see Y13.
+* **Did not fix Y5.** The facades above the shopfronts are still a barcode at
+  2 m. Out of scope by instruction; the plan is
+  `docs/camera/facades-at-two-metres.md`.
+* **Did not measure on a real GPU.** Every frame here is SwiftShader, headless.
+* **Only walked one tree**, for the reason above.
+* **Did not watch the tour settle home.** `flypath` sampled to 55 s and the tour
+  was still easing on the DKR dwell; the legs sum to ~51 s but a 2 fps headless
+  renderer lands the last frame late. `tour-check.mjs` is the script that
+  asserts the home pose and I did not run it.
+
+### THE PICTURES
+
+`shots/eye/final2/`, and they are the point of this entry:
+`01`/`02` Guadalupe at night before and after — stars all over the brick and a
+black road, against clean brick and a lit street. `03`–`06` the star gate with
+its control. `07`/`08` walking into a tree. `09` the look-down limit.
+`10`–`13` cruise altitude and the tour leg, before and after, proving nothing
+moved. `20`/`21` the day frame losing its milky film. `22`/`23` a West Campus
+street at night.
+
+### THE VERDICT ON WALKING GUADALUPE AT NIGHT
+
+**It is genuinely better and it is not yet good.** The two things that made it
+unwalkable are gone — the sky is no longer painted across solid brick, and the
+carriageway went from 0.78x the frame median to 1.40x — and the day frame
+improved as much as the night one. What your eye goes to now is the **40 m of
+barcode above the shopfronts**. The modelled ground floor is genuinely good and
+it is a 3 m stripe under forty metres of vertical stripes; that contrast is
+what stops the street reading as a street. **Y5 is the thing between the Drag
+and good, and it is not close.** The plan is already written in
+`docs/camera/facades-at-two-metres.md` and the one question in it is his:
+standing on the pavement opposite, does he want to read *windows*, or is a wall
+with real storey lines enough?
