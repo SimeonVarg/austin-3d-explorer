@@ -74,6 +74,35 @@
     // these are walkway lamps standing among them, not a second copy of the
     // street lighting. Radii are px at the listed zooms.
     litRadius: [14.5, 1.6, 16, 5, 17.5, 13, 19.5, 34],
+    // ── AND THE NEAR FIELD, WHICH THE PX CURVE ABOVE CANNOT REACH ─────
+    //
+    // A MapLibre interpolate CLAMPS past its last stop, so above z19.5 that
+    // 34 px stopped being a size and became a fixed pixel count — and a fixed
+    // pixel count is a ground radius that halves with every zoom level:
+    //
+    //     z19.5   34 px x 0.1823 m/px  =  6.2 m
+    //     z21.5   34 px x 0.0456 m/px  =  1.55 m   <- standing on the pavement
+    //
+    // z21.5 is `ZOOM_MAX`, i.e. exactly where the camera sits at walking
+    // height, so the glow under every lamp post you can actually SEE had shrunk
+    // to a 1.5 m dot. Same fault, same shape, as `POOL_GROUND_M` in js/night.js
+    // (QUEUE Y2) — these two arrays are the whole of "the night street is
+    // unlit".
+    //
+    // Authored in GROUND METRES here rather than px, because px is what hid the
+    // fault: [zoom, ground radius m]. Converted at load. Nothing at or below
+    // z19.5 is touched. Values stay under night.js's road pools on purpose —
+    // a walk lamp is a 4 m mast, not a 9 m one.
+    litGroundNear: [20.5, 7, 21.5, 8, 22.5, 9, 23.5, 9],
+    // The lamp HEAD is capped in ground metres so it cannot ride that growth
+    // and become a sun at arm's length. 1.49 m is exactly what it already is at
+    // z19.5 (34 px x 0.24 x 0.1823), so this is a no-op below the near field.
+    // ...and it only applies from `litCoreCapFromZ` up. A flat cap would shrink
+    // the head at EVERY zoom (its ground radius is 2.2-2.5 m across the flying
+    // stops), which quietly dims the aerial city — the same trap the night.js
+    // cap fell into and was measured falling into.
+    litCoreGroundCapM: 1.49,
+    litCoreCapFromZ: 19.5,
     litOpacity: 0.42,
     litCoreOpacity: 0.85,
     litBlur: 0.9,
@@ -94,6 +123,59 @@
   const LAMP = 'props-lamp', LINE = 'props-line';
   const LIT = 'props-lit', LIT_CORE = 'props-lit-core';
   const ART_LBL = 'props-art-label';
+
+  // Ground metres per screen pixel at this scene's latitude. Only valid because
+  // `circle-pitch-scale` is left at its default 'map', which makes a lit pool a
+  // real disc lying on the ground — same constant, same reason, as js/night.js.
+  const SCENE_LAT = 30.285;
+  const mPerPx = z => 156543.03392 * Math.cos(SCENE_LAT * Math.PI / 180) / Math.pow(2, z);
+
+  /**
+   * The lit-pool radius curve: PROPS.litRadius (px, the flying half) followed
+   * by PROPS.litGroundNear (ground metres, the walking half), converted here.
+   *
+   * The px→metres conversion and the head's ground cap are both resolved in JS
+   * rather than in the expression, because a ['min'] wrapped around a zoom
+   * interpolate is rejected by the style validator — and a rejected paint
+   * property takes the WHOLE LAYER down without saying so.
+   */
+  /**
+   * The lit pools land UNDER the pavement unless they are moved.
+   *
+   * `initProps` puts them in front of `buildings-shadow`, which in the built
+   * style is index 124 — after `ground-road` (116) but before `ground-paths`
+   * (144) and the rest of the ground extrusion stack. So a lamp's glow reached
+   * the carriageway and was then painted out by the pavement slab it is
+   * supposed to be lighting. Invisible from 18 m looking down at roofs,
+   * half the frame at walking height. Same fault, same fix, as js/night.js.
+   *
+   * The anchor is the first PROPS layer, so the glow is under the bins and
+   * benches standing in it and over every ground surface.
+   */
+  const STACK_AFTER_GROUND = ['props-cons', 'props-line', 'props-furn', 'props-lamp', 'props-art'];
+  let _litStacked = false;
+  function restackLit(map) {
+    if (_litStacked) return true;
+    const anchor = STACK_AFTER_GROUND.find(id => map.getLayer(id));
+    if (!anchor) return false;
+    try {
+      for (const id of [LIT, LIT_CORE]) if (map.getLayer(id)) map.moveLayer(id, anchor);
+      _litStacked = true;
+    } catch (err) { console.warn('[props] lit restack failed:', err); return false; }
+    return true;
+  }
+
+  function litRadiusExpr(k, capM) {
+    const stops = [];
+    const push = (z, px) => {
+      const cap = (capM && z >= (PROPS.litCoreCapFromZ || 19.5)) ? capM : Infinity;
+      stops.push(z, +Math.max(0.1, Math.min(px * k, cap / mPerPx(z))).toFixed(2));
+    };
+    for (let i = 0; i < PROPS.litRadius.length; i += 2) push(PROPS.litRadius[i], PROPS.litRadius[i + 1]);
+    const near = PROPS.litGroundNear || [];
+    for (let i = 0; i < near.length; i += 2) push(near[i], near[i + 1] / mPerPx(near[i]));
+    return ['interpolate', ['exponential', 1.7], ['zoom'], ...stops];
+  }
 
   // ── Palette. Day / golden / night, blended the same way as every other. ──
   // Muted on purpose: the protected palette is terracotta roofs over tan/olive
@@ -246,8 +328,7 @@
     const underBuildings = ['buildings-shadow', 'buildings-ao', 'buildings-3d']
       .find(id => map.getLayer(id));
 
-    const radiusExpr = k => ['interpolate', ['exponential', 1.7], ['zoom'],
-      ...PROPS.litRadius.map((v, i) => (i % 2 ? v * k : v))];
+    const radiusExpr = (k, cap) => litRadiusExpr(k, cap);
 
     if (!map.getLayer(LIT)) {
       map.addLayer({
@@ -270,7 +351,7 @@
           'circle-pitch-alignment': 'map',
           'circle-color': ['match', ['get', 'c'], 'blue', '#bcd8ff', '#ffe6bd'],
           'circle-blur': 0.35,
-          'circle-radius': radiusExpr(0.24),
+          'circle-radius': radiusExpr(0.24, PROPS.litCoreGroundCapM),
           'circle-opacity': 0,
         },
       }, underBuildings);
@@ -398,6 +479,9 @@
 
   window.applyPropColors = function applyPropColors(map, p) {
     if (!map || !map.getLayer || !map.getLayer(ART)) return;
+    // The ground stack may not exist yet when initProps runs; this no-ops once
+    // it has succeeded.
+    restackLit(map);
     const set = (id, prop, v) => { try { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); } catch (e) {} };
     const cm = classMatch(p);
     set(ART, 'fill-extrusion-color', pick(COL.art, p));
@@ -412,5 +496,23 @@
     const t = clamp01((p - PROPS.nightStart) / (PROPS.nightFull - PROPS.nightStart));
     set(LIT, 'circle-opacity', PROPS.litOpacity * t);
     set(LIT_CORE, 'circle-opacity', PROPS.litCoreOpacity * t);
+  };
+
+  /**
+   * Re-derive the lit pools from PROPS after a live edit, so a taste value can
+   * be tried — or a before/after shot — without a reload, and therefore in ONE
+   * browser rather than two. `window.PROPS` was already public; this is what
+   * makes editing it actually do something.
+   *
+   *   window.PROPS.litGroundNear = []; window.propsRetune(map);   // the old look
+   */
+  window.propsRetune = function propsRetune(map) {
+    if (!map || !map.getLayer) return false;
+    const set = (id, prop, v) => { try { if (map.getLayer(id)) map.setPaintProperty(id, prop, v); } catch (e) {} };
+    set(LIT, 'circle-radius', litRadiusExpr(1));
+    set(LIT, 'circle-blur', PROPS.litBlur);
+    set(LIT_CORE, 'circle-radius', litRadiusExpr(0.24, PROPS.litCoreGroundCapM));
+    try { window.applyPropColors(map, window.__todCurrentP != null ? window.__todCurrentP : 0.9); } catch (e) {}
+    return true;
   };
 })();

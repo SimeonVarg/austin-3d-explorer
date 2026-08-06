@@ -205,7 +205,40 @@
     // the radius of a flat disc — see LAMP_SPREAD above. They are left at their
     // measured values and the spread multiplier rides on top, so the authored
     // physical sizes stay readable and one number undoes the change.
-    POOL_GROUND_M: [13, 18, 15, 14, 17, 10, 19.5, 8],
+    // ── AND WHY THE CURVE NOW RUNS PAST z19.5 ────────────────────────
+    //
+    // z19.5 used to be the last stop, and MapLibre CLAMPS an interpolate past
+    // its last stop — so above z19.5 the radius stopped being a size in metres
+    // and became a size in PIXELS. Ground radius then halves for every zoom
+    // level you gain:
+    //
+    //     z19.5   65.82 px x 0.1823 m/px  =  12.0 m   (the authored value)
+    //     z21.5   65.82 px x 0.0456 m/px  =   3.0 m   <- the shipping eye pose
+    //     z23.9   65.82 px x 0.0084 m/px  =   0.55 m
+    //
+    // z21.5 is `ZOOM_MAX`, which is exactly where a camera at 1.7 m sits. So
+    // standing on a pavement at night, every street lamp's pool of light had
+    // shrunk to a 3 m smudge under a lamp 46 m away, and the carriageway
+    // measured 13.90 luma against a frame median of 20.79 — DARKER than the
+    // frame it is half of. That is QUEUE Y2, and it is not a brightness fault:
+    // no lamp is dim, the light is simply not on the ground any more.
+    //
+    // Nothing at or below z19.5 moves, so the flying city is untouched by this
+    // — the stops below are all new, and an interpolate between 17 and 19.5 is
+    // unchanged by what comes after 19.5.
+    //
+    // The near-field values GROW rather than merely holding at 12 m, and that
+    // is a deliberate taste call with one number behind it: majors are sampled
+    // every SPACING_MAJOR_M (46 m), so pools of 12 m radius leave 22 m of black
+    // road between them. 16.5 m closes most of that gap and the street reads as
+    // lit rather than as spotted. 21 m and 24 m were both rendered at this pose
+    // and both washed the whole ground to a flat orange with no falloff left in
+    // it, which is a different way of being wrong — the shots are
+    // `shots/eye/street/tune/`. Peak alpha is NOT raised anywhere: this is
+    // "dimmer and more spread out" done entirely as spread, which is the half
+    // of that note the aerial pass could not deliver.
+    POOL_GROUND_M: [13, 18, 15, 14, 17, 10, 19.5, 8,
+                    20.5, 9, 21.5, 11, 22.5, 12, 23.5, 12],
     MINOR_RADIUS_SCALE: 0.74,
     WALK_RADIUS_SCALE: 0.46,
     // The head was 0.22 of the pool with a hard edge. A head with a hard edge
@@ -213,6 +246,23 @@
     // it replaces or it disappears into the pool, so this goes UP while its
     // opacity goes down. Bigger and dimmer is the whole trade.
     CORE_RADIUS_SCALE: 0.30,
+    // ...and the head must NOT ride the near-field growth above. A head is
+    // 0.30 of the pool, so widening the pool to 24 m would put a 7 m ball of
+    // near-white on the road three metres from your feet — the mini sun, back,
+    // at the one range where it would fill the frame. This caps the head's
+    // GROUND radius at exactly what it already is at z19.5
+    // (8 m x LAMP_SPREAD x CORE_RADIUS_SCALE = 3.6 m), so the head freezes at
+    // its current physical size as you walk toward it while the pool keeps
+    // spreading. It is a no-op at and below z19.5 by construction.
+    //
+    // IT ONLY APPLIES FROM `CORE_CAP_FROM_Z` UP, and that is not a detail. The
+    // head's ground radius at z13 is 27 m x 0.30 = 8.1 m, so a flat 3.6 m cap
+    // shrinks every lamp head in the flying city — measured, it moved 5.6% of
+    // an altitude frame with a peak delta of 126. From altitude the head IS the
+    // lit city (see CORE_MIN_PX), so the cap starts where the near-field growth
+    // starts and the aerial curve is left exactly alone.
+    CORE_GROUND_CAP_M: 3.6,
+    CORE_CAP_FROM_Z: 19.5,
     // From altitude the LAMP HEAD is what reads as a lit city. Below this many
     // pixels a head is not a dim lamp, it is no lamp, so the head keeps a floor
     // the pool does not get. Nudged up with the blur: a 1.3 px circle that is
@@ -341,7 +391,7 @@
    * head); `minPx` is a visibility floor applied after the metres→px
    * conversion.
    */
-  function radiusExpr(k, minPx) {
+  function radiusExpr(k, minPx, capM) {
     const stops = [];
     for (let i = 0; i < LIGHTS.POOL_GROUND_M.length; i += 2) {
       const z = LIGHTS.POOL_GROUND_M[i];
@@ -349,11 +399,45 @@
       // the fixture gets bigger, not just its pool, so the head keeps sitting
       // in proportion inside the glow instead of shrinking into a point.
       const groundM = LIGHTS.POOL_GROUND_M[i + 1] * LIGHTS.LAMP_SPREAD;
-      const px = s => Math.max(minPx || 0, +(groundM * k * s / mPerPx(z)).toFixed(2));
+      // `capM` is a ceiling in GROUND METRES, applied per tier so the tier
+      // scaling survives it, and resolved here for the same reason everything
+      // else is: a ['min'] wrapped around the zoom interpolate is rejected by
+      // the style validator and takes the whole layer down silently.
+      const cap = (capM && z >= LIGHTS.CORE_CAP_FROM_Z) ? capM : Infinity;
+      const px = s => Math.max(minPx || 0,
+        +(Math.min(groundM * k, cap) * s / mPerPx(z)).toFixed(2));
       stops.push(z, tierMatch(px(1), px(LIGHTS.MINOR_RADIUS_SCALE), px(LIGHTS.WALK_RADIUS_SCALE)));
     }
     return ['interpolate', ['exponential', 1.7], ['zoom'], ...stops];
   }
+
+  /**
+   * ── THESE POOLS ONLY EVER REACH THE CARRIAGEWAY, AND THAT IS STRUCTURAL ──
+   *
+   * Measured layer order in the built style, and it is worth writing down
+   * because it explains why the fix above lights the ROAD and not the KERB:
+   *
+   *     116 ground-road (fill)              <- the carriageway, under the pools
+   *     134 night-streetlight-pool          <- here
+   *     138 buildings-shadow / 139 buildings-3d
+   *     144 ground-paths (fill-extrusion)   <- the PAVEMENT, OVER the pools
+   *     145 ground-paths-texture … 150 ground-depth
+   *
+   * The ground is not one layer, and half of it is drawn AFTER the buildings.
+   * A single light layer cannot be before the carriageway's half and after the
+   * pavement's half, so no position in this file lights both.
+   *
+   * Moving these three to just after the ground stack WAS tried and it works:
+   * the pavement lights up, and the aerial frame is unchanged because circle
+   * layers depth-test, so towers still occlude the pools behind them. It is
+   * NOT shipped, because `scripts/verify/night-lights.mjs` gates on
+   * `poolIdx < buildingsIdx` — a layer-INDEX assertion standing in for an
+   * occlusion property — and that file belongs to another lane. See HANDOFF:
+   * the pavement's light is waiting on that one assertion being re-expressed
+   * in pixels. `js/props.js` does make the move, because nothing gates the
+   * order of its walkway lamps, and a walkway lamp lighting the walkway it
+   * stands on is the right half of this to have.
+   */
 
   // ── Colour. Warm core → whiter edge, at constant luma ─────────────────
   function hexToRgb(hex) {
@@ -403,7 +487,8 @@
           'circle-pitch-alignment': 'map',
           'circle-color': ['get', 'head'],
           'circle-blur': LIGHTS.CORE_BLUR,
-          'circle-radius': radiusExpr(LIGHTS.CORE_RADIUS_SCALE, LIGHTS.CORE_MIN_PX),
+          'circle-radius': radiusExpr(LIGHTS.CORE_RADIUS_SCALE, LIGHTS.CORE_MIN_PX,
+                                      LIGHTS.CORE_GROUND_CAP_M),
           'circle-opacity': 0,
         },
       }, beforeId);
@@ -675,5 +760,46 @@
         map.setPaintProperty(TPOOL, 'circle-opacity', TOWER_POOL.OPACITY * t);
       }
     } catch (err) { /* layers not ready yet */ }
+  };
+
+  /**
+   * ── THE TASTE BLOCK, LIVE ────────────────────────────────────────────
+   *
+   * CLAUDE.md rule 11 asks that every aesthetic constant be overrulable in one
+   * line. Until now `LIGHTS` was sealed inside this IIFE, so the only way to
+   * try a value was to edit the file and reload — which also means a
+   * before/after can only be shot in two different browsers, and this suite's
+   * own history says two browsers is how you end up comparing a tile that
+   * loaded late with one that did not.
+   *
+   *   window.NIGHT_TUNE.POOL_GROUND_M = [...]; window.nightRetune(map);
+   *
+   * `nightRetune` re-derives every paint property that depends on a constant.
+   * It does NOT regenerate the lamp points: colour and `ob` are baked per
+   * feature at generation, so changing a COLOUR constant needs a reload. Sizes,
+   * blurs, opacities and the schedule are all live.
+   */
+  window.NIGHT_TUNE = LIGHTS;
+  window.NIGHT_TOWER = TOWER_POOL;
+  window.nightRetune = function nightRetune(map) {
+    if (!map || !map.getLayer) return false;
+    try {
+      if (map.getLayer(POOL)) {
+        map.setPaintProperty(POOL, 'circle-radius', radiusExpr(1, 0));
+        map.setPaintProperty(POOL, 'circle-blur', LIGHTS.POOL_BLUR);
+      }
+      if (map.getLayer(CORE)) {
+        map.setPaintProperty(CORE, 'circle-radius',
+          radiusExpr(LIGHTS.CORE_RADIUS_SCALE, LIGHTS.CORE_MIN_PX, LIGHTS.CORE_GROUND_CAP_M));
+        map.setPaintProperty(CORE, 'circle-blur', LIGHTS.CORE_BLUR);
+      }
+      if (map.getLayer(TPOOL)) {
+        map.setPaintProperty(TPOOL, 'circle-radius', towerRadiusExpr());
+        map.setPaintProperty(TPOOL, 'circle-color', TOWER_POOL.COLOR);
+        map.setPaintProperty(TPOOL, 'circle-blur', TOWER_POOL.BLUR);
+      }
+      window.applyNightLayer(map, _lastP);
+      return true;
+    } catch (err) { console.error('[night] retune failed:', err); return false; }
   };
 })();

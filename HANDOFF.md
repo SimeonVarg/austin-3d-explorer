@@ -13245,3 +13245,201 @@ look down" for "can look down at a grey void", which is the trade §105 refused.
   than it was: see the road note above.
 * **Did not measure on a real GPU.** Every frame time quoted is SwiftShader,
   headless, unthrottled.
+
+## 107. Aug 5 2026 — the street was not dim, the light had stopped being a size in metres (QUEUE Y2) (acer lane)
+
+**Branch** `acer/eye-defects`, cut from `origin/main` at `7ab1b8e`. **Files
+written:** `js/night.js`, `js/props.js`, `shots/eye/night-street/`,
+`shots/eye/street/`, this entry.
+
+**Setup, with the numbers.** `python scripts/serve.py 8302` (no gzip; Pages
+gzips ~5x). `node scripts/verify/harness-drift.mjs` **PASS, 28 scripts in each
+file**, before any pixel and again at the end. 1440x900, dsf 1, SwiftShader,
+headless, unthrottled, `cancelGraphicsAutoDetect()` at the top of every run,
+**one browser at a time**, reaped and the server killed.
+
+### THE POSE, AND WHY IT IS THE HONEST ONE
+
+Every frame here is shot at the pose the shipping app can really express at
+walking height: `zoom = ZOOM_MAX (21.5)`, `pitch = 85.1` (the pitch floor at
+1.7 m), and the map CENTRE placed `dMin * sin(pitch)` = 18.4 m ahead of the eye
+along the bearing, so MapLibre's own camera lands at **1.57 m**. The
+controller's per-frame writes are frozen by dropping `jumpTo` calls that carry
+`{fly:true}` — §106's trick — so a scripted pose survives.
+
+### WHAT WAS ACTUALLY WRONG: A CLAMPED INTERPOLATE
+
+`POOL_GROUND_M` ended at z19.5 and `PROPS.litRadius` ended at z19.5. **MapLibre
+clamps an interpolate past its last stop**, so above z19.5 both radii stopped
+being a size in metres and became a fixed number of PIXELS — and a fixed pixel
+count is a ground radius that halves with every zoom level:
+
+|  | z19.5 | z21.5 (`ZOOM_MAX`, walking height) | z23.9 |
+|---|---|---|---|
+| night.js road pool | 65.82 px = **12.0 m** | 65.82 px = **3.0 m** | **0.55 m** |
+| props.js walk lamp | 34 px = **6.2 m** | 34 px = **1.55 m** | 0.28 m |
+
+So at the exact zoom a camera at 1.7 m sits, every pool of light in the city had
+shrunk to a smudge. **Nothing was dim. The light had stopped being on the
+ground.** That is the whole of Y2, and it is why the "make the lamps brighter"
+reflex would have been wrong twice over — it would have walked straight back
+into *"the lights on big roads look like mini suns"*.
+
+**Peak alpha was not raised anywhere in this pass.** Both curves gain stops at
+z20.5 / 21.5 / 22.5 / 23.5 authored in ground metres. Nothing at or below z19.5
+is touched, so the flying city cannot move: an interpolate between 17 and 19.5
+is unaffected by what comes after 19.5.
+
+### THE MEASUREMENT (magenta is not available here — HIDE-DIFF is)
+
+Road and pavement pixels are established by **hide-diff**: screenshot with
+`ground-road` visible and again with only that layer switched off, and the mask
+is every pixel that changed. Repainting it magenta **does not work and returned
+a silent zero twice** — `ground-road` carries a `fill-pattern`, and a pattern
+beats a colour. Worth knowing before the next person spends the same twenty
+minutes.
+
+All lamp layers are hidden during the mask pass, so the same mask serves both
+states. Before/after are toggled at RUNTIME in ONE browser
+(`window.NIGHT_TUNE` + `window.nightRetune`, `window.PROPS` +
+`window.propsRetune`, both new), so the two frames cannot differ by a tile that
+loaded late. **Two interleaved reps, byte-identical both times.**
+
+| pose (1.7 m, p = 0.90) | surface | before | after | vs frame median |
+|---|---|---|---|---|
+| Guadalupe, on the pavement | carriageway, 12.1% of frame | **14.02** | **61.11** | 0.67x to 1.37x |
+| Guadalupe | pavement, 19.7% of frame | 20.76 | 24.45 | 1.00x to 0.55x |
+| West Campus (Nueces at 24th) | carriageway, 24.8% of frame | **13.97** | **82.56** | 0.96x to 1.76x |
+
+The road was **darker than the median of the frame it fills a quarter of**, and
+its p90 was 14.36 — there was no bright spot anywhere on it. It is now 4.4x /
+5.9x its own before, and lands under `js/places.js`'s already-approved shopfront
+pavement pool (rendered luma 94 in §91), which is the surface this was asked to
+be in family with.
+
+Frame median moves a lot (20.79 to 44.77) because the frame is bimodal — dark
+ground under lit facades — so the ground crossing the facade cluster drags the
+median with it. **Quote the absolute luma first; the ratio is the weaker number
+here.**
+
+### THE HALF THAT IS NOT FIXED, AND EXACTLY WHAT BLOCKS IT
+
+The pavement barely moved (20.76 to 24.45) and that is structural, not a tuning
+miss. Measured layer order:
+
+```
+116 ground-road (fill)              <- the carriageway, UNDER the pools
+134 night-streetlight-pool
+138 buildings-shadow / 139 buildings-3d
+144 ground-paths (fill-extrusion)   <- the PAVEMENT, OVER the pools
+145 ground-paths-texture ... 150 ground-depth
+```
+
+**The ground is not one layer, and half of it is drawn after the buildings.** No
+position in `night.js` is before the carriageway's half and after the pavement's
+half, so one light layer cannot light both. Every pool has been landing on the
+road and then being painted out again by the pavement slab.
+
+Moving the three night layers to just after the ground stack **was tried and it
+works** — `shots/eye/street/tune/v2mid-RESTACKED-guad.png`, the whole ground
+lights up — and it does NOT break occlusion: at z15.6 over West Campus the
+aerial frame is unchanged by the move, because circle layers depth-test.
+**It is not shipped**, because `scripts/verify/night-lights.mjs` gates on
+`poolIdx < buildingsIdx` — a layer-INDEX assertion standing in for an occlusion
+property, exactly the §102 shape — and that file is not this lane's to edit.
+Merging red is the one thing CLAUDE.md rule 2 does not permit.
+
+**REQUEST TO WHOEVER OWNS `scripts/verify/`:** re-express that assertion in
+pixels ("a building occludes a pool behind it") rather than in layer index, and
+the pavement's light is a four-line change in `night.js` that is already written
+up in the comment there. It is the largest remaining piece of Y2.
+
+`js/props.js` DOES make the move for `props-lit` / `props-lit-core`, because
+nothing gates their order and a walkway lamp lighting the walkway it stands on
+is the right half of this to have.
+
+### THE HEAD DOES NOT RIDE THE GROWTH
+
+Widening the pool at close range widens the head with it — a 7 m ball of
+near-white on the road three metres from your feet, which is the mini sun back
+at the one range where it fills the frame. Both files now cap the head's GROUND
+radius at exactly its own z19.5 value (3.6 m road, 1.49 m walk), so it freezes
+physically as you approach while the pool keeps spreading.
+
+**The first version of that cap applied at every zoom and was wrong**: the
+head's ground radius is 8.1 m at z13, so a flat cap shrank every lamp head in
+the flying city — measured, **5.6% of an altitude frame with a peak delta of
+126**. From altitude the head IS the lit city. Hence `CORE_CAP_FROM_Z` /
+`litCoreCapFromZ`: the cap starts where the growth starts.
+
+### THE ALTITUDE CHECK, AND A TIMING TRAP INSIDE IT
+
+Asked for explicitly, and the first two answers were **wrong in the same way**.
+A single before/after pair at a freshly-jumped pose reported 5.6% and then 1.7%
+of the frame changed. Shooting **before / after / before AGAIN** and diffing the
+two befores shows why: at the day spawn pose the noise floor is **6.259% with a
+peak delta of 176, identical to the "signal"** — i.e. the whole difference was
+the first frame after the jump still settling.
+
+Properly settled, with the noise floor measured at the same pose in the same
+run:
+
+| pose | noise (before vs before) | signal (before vs after) |
+|---|---|---|
+| 600 m aerial, z14.4, night | 0.000%, max 0 | **0.000%, max 0** |
+| spawn pose, z15.2, night | 0.000%, max 0 | **0.000%, max 0** |
+| spawn pose, z15.2, day | 6.259%, max 176 | 6.259%, max 176 — *all of it noise* |
+
+**The flying city is byte-identical.** No gate needed; there is nothing to gate.
+`js/controls.js` was not touched, so no camera path moved either.
+
+### COST
+
+Frame time at the Guadalupe eye pose, interleaved, **minimum of 3 reps**,
+SwiftShader headless **unthrottled** (perf.mjs's default 4x CPU throttle is not
+in play): before **min 74.6 ms / best-median 116.4 ms**, after **min 68.4 ms /
+best-median 99.0 ms**. The after is not slower; the run-to-run spread (74.6 to
+107.8 within the same state) is far larger than any difference between states,
+which is the whole reason for taking a minimum of interleaved reps.
+
+### GATES
+
+* `harness-drift.mjs` **PASS** (28/28), before and after.
+* `night-lights.mjs` **12/12 PASS**, including `pool layer sits before
+  buildings-3d` — which is exactly the assertion that made the restack
+  unshippable, and it is green because the restack is not in.
+* `night-lamps.mjs` **cannot run, and is red on `origin/main` too.** It exits
+  `FAIL: asked for tod 0.95, scene is at 0.5`. **Reproduced with `js/night.js`
+  and `js/props.js` checked back out to main**, so it is not from this pass.
+
+### TWO THINGS FOUND IN PASSING THAT SOMEBODY SHOULD OWN
+
+1. **`ground-base-texture` fails to be added, on `main`, right now.** Every page
+   load logs `layers.ground-base-texture.maxzoom: 25 is greater than the maximum
+   value 24` followed by three `Cannot style non-existing layer
+   "ground-base-texture"`. §106 raised `texGroundMaxZoom` 22 to 25 as
+   preparation for Y4; **MapLibre's ceiling is 24**, so the layer is rejected
+   outright and the base grain it was protecting is now missing at every zoom.
+   `js/ground.js` is not this lane's file. One-character fix: 25 to 24.
+2. **The carriageway has no texture at close range** (§106 said the same from
+   the other side). Now that light lands on it, a 12% slab of the frame is a
+   flat orange field with nothing in it. `gnd-tex-asphalt` exists, is
+   registered, is strength-tuned, and no layer uses it. That is Y8's best
+   argument.
+
+### WHAT I DID NOT DO
+
+* **Did not light the pavement.** Blocked on the `night-lights.mjs` assertion
+  above; the fix is written and measured but not shippable from this lane.
+* **Did not add a single lamp.** Density is unchanged at 3,349 points (535
+  major / 839 minor / 1,975 walk) and the fence is unchanged. On Guadalupe the
+  majors are 46 m apart, so between pools there is still real darkness — which
+  is correct for a street, but it means the middle band of
+  `01-GUADALUPE-from-the-pavement-after.png` (5-50 m out) is still dim.
+* **Did not touch the lamp POSTS.** `data/props.geojson` and
+  `scripts/bake_props.py` were in this lane's write list and are unchanged: the
+  bug was never in the data, and re-baking 2.19 MB to fix a radius curve would
+  have been a large diff hiding a four-number one.
+* **Did not measure on a real GPU.** Every frame time quoted is SwiftShader,
+  headless, unthrottled.
+* **Did not check a touch device** (Y10 is still untested at walking height).
