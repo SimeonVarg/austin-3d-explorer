@@ -109,6 +109,68 @@ MIN_BAND = 0.5           # thinner than this and a band is merged away
 PARAPET_MIN = 0.75
 PARAPET_FRAC = 0.055
 
+# ── THE TWO CANDIDATE WALLS (QUEUE Y5, decision branch acer/facade-choice) ──
+#
+# NOT A SHIPPED FEATURE. These are two mock-ups of what the 40 m of wall above
+# the Guadalupe shopfronts could be, built so Simeon can choose from pictures.
+# They are scoped to ONE BLOCK, they are off unless `?cand=` asks for them, and
+# they are written into the file's own `candidates` member rather than into
+# `features` so that nothing about the shipping city changes when they exist.
+#
+# WHY BOTH ARE GEOMETRY, which is the one execution call worth writing down.
+# docs/camera/facades-measured.md §8 measured the constraint: a
+# `fill-extrusion-pattern` is SCREEN-locked, so one repeat is
+# `displaySize x mpp(floor(cameraZoom))` metres of wall — 4.12 m at walking
+# height on this module's scale and 65.9 m at the spawn pose. A tile that draws
+# one storey is therefore a one-storey tile at exactly one altitude and a
+# sixteen-storey tile at the other, and the camera in this app moves
+# continuously between them. So a horizontal event can only come from geometry,
+# whose height is in metres and does not move. That kills the plan's (b2) as a
+# candidate for CANDIDATE B, and it is why B is window geometry rather than a
+# one-storey close tile.
+#
+# B IS A PLUS WINDOWS, deliberately. That makes the question Simeon is answering
+# exactly "is the horizontal rhythm enough, or do you want to pay for the
+# openings on top of it", and it makes B's marginal cost the honest number.
+CAND_ON = True
+CAND_LAT_MIN = 30.28500  # the block the measured pose looks at: roughly W 23rd
+CAND_LAT_MAX = 30.28650  # to W 24th, plus the Co-op at the north end of it.
+
+CAND_STOREY = 3.60       # nominal floor-to-floor for an upper wall, metres
+CAND_STOREY_MIN = 2.00   # under this, a "storey" is a parapet and gets no lines
+
+# A — storey bands. Proud rings; every number is metres of relief on the wall.
+A_BASE_PROUD = 0.17      # the base course, where the upper wall meets the sign
+A_BASE_H = 0.42
+A_COURSE_PROUD = 0.11    # the floor line between two storeys
+A_COURSE_H = 0.26
+A_CORN_PROUD = 0.34      # the cornice under the parapet. The deepest shadow.
+A_CORN_H = 0.55
+A_TRIM_LIFT = 0.17       # how far the trim is lifted off the building's own tone
+
+# B — windows. Heads and sills are proud; the pane sits just inside them, which
+# is the only way an additive extrusion can say "reveal" (you cannot cut a hole
+# in a fill-extrusion, so the surround is what stands out, not the glass that
+# stands back).
+B_BAY = 3.30             # window centres along an elevation, metres
+B_WIN_W = 1.35
+B_SILL_FRAC = 0.26       # sill height as a fraction of the storey
+B_WIN_FRAC = 0.56        # pane height as a fraction of the storey
+B_EDGE_MIN = 4.0         # elevations shorter than this get no windows
+B_GLASS_PROUD = 0.04     # the pane's own face, clear of the wall so it z-sorts
+B_GLASS_BACK = 0.12
+B_HEAD_PROUD = 0.10      # the lintel over the pane
+B_HEAD_H = 0.20
+B_HEAD_OVER = 0.13       # ... and how far it runs past the pane each side
+B_SILL_PROUD = 0.15
+B_SILL_H = 0.14
+B_SILL_OVER = 0.17
+B_LIT_RATE = 0.34        # share of panes lit after dark
+B_GLASS_DAY = "#4a5563"
+B_GLASS_GOLD = "#7a6d5e"
+B_GLASS_NIGHT_LIT = "#ffc98a"
+B_GLASS_NIGHT_DARK = "#1b2230"
+
 # Guadalupe Street's centreline, sampled from OSM (`way[highway][name=Guadalupe
 # Street]`, queried 2026-07-31) and reduced to one (lat, lon) per 0.0005 deg.
 # Embedded rather than fetched so the bake is deterministic and offline.
@@ -489,6 +551,180 @@ def build_coop(ring, lat0, H, stats):
     return retail_bands(ring, lat0, H, "coop", "coop", stats)
 
 
+# ── the two candidate walls ───────────────────────────────────────────
+# Everything below writes into `candidates`, never into `features`, and every
+# feature it makes carries `cand` = "A" or "B". js/drag.js merges them into the
+# source ONLY when the page is asked for them.
+
+def _hex_mix(hex_col, other, t):
+    a = [int(hex_col[i:i + 2], 16) for i in (1, 3, 5)]
+    b = other if isinstance(other, list) else [int(other[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join("%02x" % max(0, min(255, int(round(a[i] + (b[i] - a[i]) * t))))
+                         for i in range(3))
+
+
+def to_ll8(pts, lat0):
+    """to_ll at 8 decimals. A head is 0.10 m proud and 7 decimals quantises
+    longitude to ~1 cm, which is a tenth of that; 8 gives a millimetre."""
+    k = math.cos(math.radians(lat0))
+    ring = list(pts)
+    if ring[0] != ring[-1]:
+        ring = ring + [ring[0]]
+    return [[round(x / (M_LAT * k), 8), round(y / M_LAT, 8)] for (x, y) in ring]
+
+
+def cand_feature(ring_ll, cand, kind, part, base, top, trio, fam=None, mat=None):
+    wd, wg, wn = trio
+    pr = {"kind": kind, "cand": cand, "part": part,
+          "wd": wd, "wg": wg, "wn": wn,
+          "base": round(base, 3), "h": round(top, 3)}
+    if fam:
+        pr["fam"] = fam
+    if mat:
+        pr["mat"] = mat
+    return {"type": "Feature", "properties": pr,
+            "geometry": {"type": "Polygon", "coordinates": [ring_ll]}}
+
+
+def storeys_of(y0, y1):
+    """Split an upper wall into the base course, n storeys and the cornice.
+
+    Returns (base_span, [storey spans], cornice_span) in metres, or None if the
+    wall is too short to carry any of it — which is most of this street: half
+    the Drag is a shopfront and a fascia with a parapet on top, and pretending
+    otherwise would put a cornice 20 cm under a floor line.
+    """
+    if y1 - y0 < A_BASE_H + A_CORN_H + CAND_STOREY_MIN:
+        return None
+    b = (y0, y0 + A_BASE_H)
+    c = (y1 - A_CORN_H, y1)
+    n = max(1, int(round((c[0] - b[1]) / CAND_STOREY)))
+    s = (c[0] - b[1]) / n
+    return b, [(b[1] + i * s, b[1] + (i + 1) * s) for i in range(n)], c
+
+
+def cand_bands(ring, lat0, y0, y1, tone, cand, stats):
+    """Candidate A's wall, which candidate B also stands on.
+
+    The field is `retPlain` — the shipping `retUpper` tile with its punched
+    openings removed, so the ONLY rhythm on this wall is the horizontal one and
+    the picture answers the question honestly. The courses are proud rings: a
+    ring offset outward by d contains the wall's own face over that height, so
+    nothing is coplanar and there is nothing for the depth buffer to argue
+    about. Their undersides are what cast the line of shadow that a barcode
+    does not have.
+    """
+    m = ccw(to_m(ring, lat0))
+    closed = m + [m[0]]
+    full = to_ll8(m, lat0)
+    split = storeys_of(y0, y1)
+    trim = _hex_mix(MATERIALS[tone], "#ffffff", A_TRIM_LIFT)
+    trio_trim = (trim,) + wall_ramp(trim)
+    out = []
+    if split is None:
+        stats["cand_wall_too_short"] += 1
+        out.append(cand_feature(full, cand, "wall", "field", y0, y1,
+                                TRIO[tone], fam="retPlain", mat=tone))
+        return out, []
+    base, sts, corn = split
+    for (a, b) in sts:
+        out.append(cand_feature(full, cand, "wall", "field", a, b,
+                                TRIO[tone], fam="retPlain", mat=tone))
+    # base course, floor lines, cornice — three prouds, three depths
+    for (lo, hi, d, part) in ([(base[0], base[1], A_BASE_PROUD, "base")]
+                              + [(a - A_COURSE_H * 0.5, a + A_COURSE_H * 0.5,
+                                  A_COURSE_PROUD, "course")
+                                 for (a, _) in sts[1:]]
+                              + [(corn[0], corn[1], A_CORN_PROUD, "cornice")]):
+        r = offset(closed, d)
+        if r is None:
+            stats["cand_offset_failed"] += 1
+            continue
+        out.append(cand_feature(to_ll8(ccw(r), lat0), cand, "detail", part,
+                                lo, hi, trio_trim))
+    return out, sts
+
+
+def cand_windows(ring, lat0, sts, tone, seed, stats):
+    """Candidate B: heads, sills and panes, one bay every B_BAY metres, on every
+    elevation longer than B_EDGE_MIN.
+
+    Three features per opening — pane, head, sill — and no jambs. A jamb would
+    double the feature count for the vertical half of a frame that the wall's
+    own weathering already supplies; the thing the barcode is missing is the
+    horizontal, and that is what the head and the sill are.
+    """
+    m = ccw(to_m(ring, lat0))
+    n = len(m)
+    trim = _hex_mix(MATERIALS[tone], "#ffffff", A_TRIM_LIFT)
+    trio_trim = (trim,) + wall_ramp(trim)
+    lit = (B_GLASS_DAY, B_GLASS_GOLD, B_GLASS_NIGHT_LIT)
+    dark = (B_GLASS_DAY, B_GLASS_GOLD, B_GLASS_NIGHT_DARK)
+    out = []
+    h = seed
+    for i in range(n):
+        ax, ay = m[i]
+        bx, by = m[(i + 1) % n]
+        dx, dy = bx - ax, by - ay
+        L = math.hypot(dx, dy)
+        if L < B_EDGE_MIN:
+            continue
+        ux, uy = dx / L, dy / L
+        nx, ny = uy, -ux          # outward, matching offset()'s convention
+        bays = int(L // B_BAY)
+        if bays < 1:
+            continue
+        pitch = L / bays
+
+        def quad(u0, u1, v0, v1):
+            pts = [(ax + ux * u0 + nx * v0, ay + uy * u0 + ny * v0),
+                   (ax + ux * u1 + nx * v0, ay + uy * u1 + ny * v0),
+                   (ax + ux * u1 + nx * v1, ay + uy * u1 + ny * v1),
+                   (ax + ux * u0 + nx * v1, ay + uy * u0 + ny * v1)]
+            return to_ll8(ccw(pts), lat0)
+
+        for si, (z0, z1) in enumerate(sts):
+            s = z1 - z0
+            if s < CAND_STOREY_MIN:
+                continue
+            sill = z0 + B_SILL_FRAC * s
+            head = sill + B_WIN_FRAC * s
+            for b in range(bays):
+                cu = (b + 0.5) * pitch
+                if cu - B_WIN_W / 2 < 0.35 or cu + B_WIN_W / 2 > L - 0.35:
+                    continue
+                h = (h * 1103515245 + 12345) & 0x7FFFFFFF
+                pane = lit if (h / 0x7FFFFFFF) < B_LIT_RATE else dark
+                out.append(cand_feature(
+                    quad(cu - B_WIN_W / 2, cu + B_WIN_W / 2,
+                         -B_GLASS_BACK, B_GLASS_PROUD),
+                    "B", "detail", "pane", sill, head, pane))
+                out.append(cand_feature(
+                    quad(cu - B_WIN_W / 2 - B_HEAD_OVER, cu + B_WIN_W / 2 + B_HEAD_OVER,
+                         -B_GLASS_BACK, B_HEAD_PROUD),
+                    "B", "detail", "head", head, head + B_HEAD_H, trio_trim))
+                out.append(cand_feature(
+                    quad(cu - B_WIN_W / 2 - B_SILL_OVER, cu + B_WIN_W / 2 + B_SILL_OVER,
+                         -B_GLASS_BACK, B_SILL_PROUD),
+                    "B", "detail", "sill", sill - B_SILL_H, sill, trio_trim))
+                stats["cand_windows"] += 1
+    return out
+
+
+def build_candidates(scoped, stats):
+    """scoped: [(ring, lat0, y0, y1, tone, seed)] — one per building on the block."""
+    out = []
+    for k, (ring, lat0, y0, y1, tone, seed) in enumerate(scoped):
+        a, sts = cand_bands(ring, lat0, y0, y1, tone, "A", stats)
+        out.extend(a)
+        b, _ = cand_bands(ring, lat0, y0, y1, tone, "B", Counter())
+        out.extend(b)
+        if sts:
+            out.extend(cand_windows(ring, lat0, sts, tone, seed * 7919 + 17, stats))
+        stats["cand_buildings"] += 1
+    return out
+
+
 # ── the bake ──────────────────────────────────────────────────────────
 def main():
     feats = json.load(open(SNAP, encoding="utf-8"))["features"]
@@ -500,6 +736,28 @@ def main():
 
     out, replaced, report = [], [], []
     stats = Counter()
+    scoped = []          # the one block the two candidate walls are built on
+
+    def scope(f, made, tone):
+        """If this building is on the candidate block, mark its shipping upper
+        band as hideable and remember what a candidate would replace."""
+        if not CAND_ON:
+            return
+        ring = outer_ring(f["geometry"])
+        cy = sum(q[1] for q in ring) / len(ring)
+        if not (CAND_LAT_MIN <= cy <= CAND_LAT_MAX):
+            return
+        up = [m for m in made if m["properties"].get("band") == "upper"]
+        if not up:
+            stats["cand_skipped_no_upper"] += 1
+            return
+        # `candOff`, not `cand`: this is a SHIPPING feature and drag-check.mjs
+        # walks every shipping feature. An extra property is invisible to it; a
+        # missing or moved band would not be.
+        up[0]["properties"]["candOff"] = 1
+        lat0 = cy
+        scoped.append((ring, lat0, up[0]["properties"]["base"],
+                       up[0]["properties"]["h"], tone, len(scoped) + 1))
 
     def emit(f, made, label):
         # `bid` is not a paint property. It is what lets drag-check.mjs group a
@@ -533,6 +791,7 @@ def main():
             made = build_union(ring, lat0, H)
         else:
             made = build_coop(ring, lat0, H, stats)
+            scope(f, made, "coop")
         emit(f, made, "%s (%s)" % (f["properties"].get("name") or kind, kind))
         stats["named"] += 1
 
@@ -557,8 +816,9 @@ def main():
         p = f["properties"]
         ring = outer_ring(f["geometry"])
         lat0 = sum(q[1] for q in ring) / len(ring)
-        made = retail_bands(ring, lat0, p["final_height"], "shop",
-                            tone_for(p["id"]), stats)
+        tone = tone_for(p["id"])
+        made = retail_bands(ring, lat0, p["final_height"], "shop", tone, stats)
+        scope(f, made, tone)
         emit(f, made, "  %-26s %5.1f m" % ((p.get("name") or "(unnamed)")[:26],
                                            p["final_height"]))
         stats["streetwall"] += 1
@@ -585,18 +845,39 @@ def main():
     # photographed 27.5 m, so the roofscape's deck and 33 clutter features sit
     # 11.7 m down inside the library, invisible and paid for on every frame.
     # Declaring it here is what lets the roof bake skip it.
+    cands = build_candidates(scoped, stats) if CAND_ON else []
+
+    # `candidates`, NOT `features`. A GeoJSON foreign member the way
+    # `replacedBuildingIds` already is: every existing reader — including
+    # scripts/verify/drag-check.mjs, which walks every feature and asserts that
+    # each building's bands tile its height with no gap and no overlap — sees
+    # exactly the file it saw before. js/drag.js merges these in only when the
+    # page is loaded with `?cand=`, so the shipping city is byte-identical.
     fc = {"type": "FeatureCollection", "features": out,
           "replacedBuildingIds": replaced,
-          "authoredRoofIds": [PCL_ID]}
+          "authoredRoofIds": [PCL_ID],
+          "candidates": cands}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))
 
     for label, h, n in report:
         print("  %-40s h=%5.1f -> %2d features" % (label[:40], h, n))
+    ca = [c for c in cands if c["properties"]["cand"] == "A"]
+    cb = [c for c in cands if c["properties"]["cand"] == "B"]
     print(json.dumps({
         "features": len(out),
         "replaced_building_ids": len(replaced),
         "file_kb": round(os.path.getsize(OUT) / 1024, 1),
+        "candidates": {
+            "block": [CAND_LAT_MIN, CAND_LAT_MAX],
+            "buildings": stats.get("cand_buildings", 0),
+            "A_features": len(ca),
+            "B_features": len(cb),
+            "B_windows": stats.get("cand_windows", 0),
+            "shipping_features_replaced": stats.get("cand_buildings", 0),
+            "bytes_A_only": len(json.dumps(ca, separators=(",", ":"))),
+            "bytes_B_only": len(json.dumps(cb, separators=(",", ":"))),
+        },
         "counts": dict(sorted(stats.items())),
         "collisions_with_other_passes": clash,
         "materials": {k: list(v) for k, v in sorted(TRIO.items())},

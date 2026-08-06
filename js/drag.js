@@ -71,12 +71,31 @@
     on: q.get('drag') !== '0',
     minZoom: 14,
     opacity: 1.0,
+
+    // ── THE TWO CANDIDATE WALLS (QUEUE Y5). OFF BY DEFAULT. ────────────
+    //
+    // `?cand=A` or `?cand=B` shows one of the two mock-up walls on one block of
+    // Guadalupe; `?cand=all` loads BOTH plus today's, registers every image
+    // they need, and lets window.setDragCandidate() flip between them by FILTER
+    // alone — one page load, one pose, one light, so the only thing that
+    // changes between three frames is the wall. Anything else and the
+    // before/after difference has to be measured against a noise floor that is
+    // bigger than the difference (docs/camera/facades-measured.md, and
+    // scripts/verify/README.md's rule about interleaved reps).
+    //
+    // With no `?cand=` the candidate features are never merged into the source
+    // and never registered as images, so the shipping city is untouched — which
+    // is what lets scripts/verify/drag-check.mjs keep asserting `imageCount <=
+    // 18` and "no gap or overlap" against a file that now also carries 894
+    // features it does not know about.
+    cand: q.get('cand') || '0',
   };
   window.DRAG = DRAG;
 
   const SRC = 'austin-drag';
   const L_WALL = 'drag-wall';
   const L_CAP = 'drag-cap';
+  const L_DETAIL = 'drag-detail';
   const DATA = 'data/drag.geojson';
   const TILE = 64;
 
@@ -150,12 +169,20 @@
     RET_BAYS: 6, RET_WIN: 2, RET_NIGHT_LIT: 0.26,
     RET_STREAKS: 5, RET_STREAK_DARK: 0.06, RET_STREAK_ALPHA: 0.20,
 
+    // retPlain — CANDIDATE ONLY. `retUpper` with the punched openings taken
+    // out: weathering and nothing else. Both candidate walls stand on it, so
+    // that the ONLY rhythm in candidate A's picture is the horizontal one the
+    // geometry puts there, and B's windows are the only openings in B's. A
+    // candidate that kept the shipping tile's six full-height verticals would
+    // be answering a different question than the one being asked.
+    PLAIN_STREAKS: 4, PLAIN_STREAK_DARK: 0.055, PLAIN_STREAK_ALPHA: 0.18,
+
     // Shared. The pattern removes mean luma, so every family puts some back —
     // per family, because one shared gain over-lit the near-blank tiles while
     // barely covering the deep-void ones. Same lesson as DKR_GAIN in facades.js.
     GAIN: { pclSolid: 1.04, pclCoffer: 1.13, gymSolid: 1.04, gymArcade: 1.11,
             gymFrieze: 1.07, uniArcade: 1.10, uniWin: 1.06, uniSolid: 1.03,
-            shopGlass: 1.30, signBand: 1.06, retUpper: 1.07 },
+            shopGlass: 1.30, signBand: 1.06, retUpper: 1.07, retPlain: 1.07 },
     MOTTLE: 0.055,           // block-to-block value scatter, 4 px cell (~2.5 m)
     MOTTLE_CELL: 4,
   };
@@ -374,6 +401,17 @@
         fillC(ctx, mix(pane, [0, 0, 0], 0.30), x, 1);
       }
     },
+
+    /** retPlain — CANDIDATE ONLY. Wall material, no openings. */
+    retPlain(ctx, w, k, seed) {
+      fillC(ctx, w, 0, TILE);
+      for (let s = 0; s < T.PLAIN_STREAKS; s++) {
+        const x = Math.round(hash01(seed + 7717, s, 0) * TILE);
+        const wd = 3 + Math.round(hash01(seed + 7723, s, 0) * 3);
+        fillC(ctx, mix(w, [0, 0, 0], T.PLAIN_STREAK_DARK), x, wd,
+              T.PLAIN_STREAK_ALPHA * (1 - k.dark * 0.7));
+      }
+    },
   };
 
   /** The Union's ashlar joints. Vertical only — a horizontal course would be a
@@ -542,6 +580,36 @@
 
   let _added = false, _gone = [];
 
+  // ── candidate filters ───────────────────────────────────────────────
+  // `sel` is '0' (the wall you have), 'A' (storey bands) or 'B' (windows).
+  // A shipping feature marked `candOff` is the very band a candidate replaces,
+  // so it hides for A and B and shows for 0. Everything without either property
+  // is the rest of the city and is always drawn.
+  let _sel = (DRAG.cand === 'all' || DRAG.cand === '1') ? '0' : DRAG.cand;
+
+  function wallFilter(sel) {
+    const base = ['==', ['get', 'kind'], 'wall'];
+    if (sel === '0') return ['all', base, ['!', ['has', 'cand']]];
+    return ['all', base, ['any',
+      ['==', ['get', 'cand'], sel],
+      ['all', ['!', ['has', 'cand']], ['!', ['has', 'candOff']]]]];
+  }
+  function detailFilter(sel) {
+    return ['all', ['==', ['get', 'kind'], 'detail'], ['==', ['get', 'cand'], sel]];
+  }
+
+  /** Flip between the three walls with no reload. See DRAG.cand above. */
+  window.setDragCandidate = function setDragCandidate(sel) {
+    const map = window.__map;
+    _sel = String(sel);
+    if (!map || !map.getLayer) return _sel;
+    try { if (map.getLayer(L_WALL)) map.setFilter(L_WALL, wallFilter(_sel)); } catch (e) {}
+    try { if (map.getLayer(L_DETAIL)) map.setFilter(L_DETAIL, detailFilter(_sel)); } catch (e) {}
+    try { map.triggerRepaint(); } catch (e) {}
+    return _sel;
+  };
+  window.dragCandidate = () => _sel;
+
   /**
    * Stop `buildings-3d` and `buildings-roof` drawing the buildings this pass
    * has replaced, and KEEP them stopped.
@@ -581,6 +649,14 @@
     }
 
     const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
+    // Merge the candidate walls in ONLY when asked for. `?cand=all` loads both
+    // so a single page can photograph all three from one pose.
+    const wantCand = DRAG.cand !== '0';
+    if (wantCand && Array.isArray(gj.candidates) && gj.candidates.length) {
+      const keep = (DRAG.cand === 'all' || DRAG.cand === '1')
+        ? () => true : (f) => f.properties.cand === DRAG.cand;
+      gj.features = gj.features.concat(gj.candidates.filter(keep));
+    }
     const combos = stampPatterns(gj.features);
     const imgs = registerImages(map, p);
     map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
@@ -602,7 +678,7 @@
     if (!map.getLayer(L_WALL)) {
       map.addLayer({
         id: L_WALL, type: 'fill-extrusion', source: SRC, minzoom: DRAG.minZoom,
-        filter: ['==', ['get', 'kind'], 'wall'],
+        filter: wallFilter(_sel),
         paint: {
           // No `coalesce` fallback: every wall feature is stamped by
           // stampPatterns above, and a fallback id would have to be one that is
@@ -631,6 +707,28 @@
           'fill-extrusion-height': ['get', 'h'],
           'fill-extrusion-base': ['get', 'base'],
           'fill-extrusion-opacity': 1.0,
+        },
+      }, anchor);
+    }
+
+    // The candidate detail layer: proud stone (base courses, floor lines,
+    // cornices, heads, sills) and window panes. Flat colour, not a pattern —
+    // a 0.26 m band showing an arbitrary slice of a 4.12 m tile is the exact
+    // trap this module's header is about, and these are the features that exist
+    // to escape it. Added even when no candidate is on, so setDragCandidate()
+    // works from a `?cand=all` page without a reload.
+    if (wantCand && !map.getLayer(L_DETAIL)) {
+      map.addLayer({
+        id: L_DETAIL, type: 'fill-extrusion', source: SRC, minzoom: DRAG.minZoom,
+        filter: detailFilter(_sel),
+        paint: {
+          'fill-extrusion-color': bakedColor(p),
+          'fill-extrusion-height': ['get', 'h'],
+          'fill-extrusion-base': ['get', 'base'],
+          'fill-extrusion-opacity': 1.0,
+          // Same reason as drag-wall: a 0.20 m lintel that falls entirely
+          // inside the gradient goes black.
+          'fill-extrusion-vertical-gradient': false,
         },
       }, anchor);
     }
@@ -682,18 +780,20 @@
     try {
       if (map.getLayer(L_CAP))
         map.setPaintProperty(L_CAP, 'fill-extrusion-color', bakedColor(p));
+      if (map.getLayer(L_DETAIL))
+        map.setPaintProperty(L_DETAIL, 'fill-extrusion-color', bakedColor(p));
     } catch (e) {}
   };
 
   /** Re-read DRAG after a live edit. */
   window.applyDragSettings = function applyDragSettings(map) {
     if (!map || !map.getLayer) return;
-    for (const id of [L_WALL, L_CAP]) {
+    for (const id of [L_WALL, L_CAP, L_DETAIL]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', DRAG.on ? 'visible' : 'none');
         map.setPaintProperty(id, 'fill-extrusion-opacity',
-                             id === L_CAP ? 1.0 : DRAG.opacity);
+                             id === L_WALL ? DRAG.opacity : 1.0);
       } catch (e) {}
     }
   };

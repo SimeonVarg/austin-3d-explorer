@@ -13970,3 +13970,153 @@ Nothing in `js/` was edited.
   table) — offline arithmetic, untouched, but now arithmetic about a layer that
   paints 2.9 % of the Drag frame.
 * **Did not run `zfight`, `places-check` or `coplanar`.** No geometry changed.
+
+## 111. Aug 6 2026 — the two candidate walls, built as geometry and photographed from one pose (QUEUE Y5 step 2) (acer lane)
+
+Branch `acer/facade-choice`, continuing §110. **This is a decision branch. It is
+not merged and should not be.** Nothing about the shipping city changes: with no
+`?cand=` in the URL the candidate features are never merged into the source and
+never registered as images, and `drag-check.mjs` is **26/26** against the file
+with them in it.
+
+### The pictures, which are the point
+
+| | |
+|---|---|
+| **the day sheet, all three walls** | `shots/facade/50-CHOICE-DAY-the-three-walls.png` |
+| **the night sheet** | `shots/facade/51-CHOICE-NIGHT-the-three-walls.png` |
+| the whole frame, not just the wall | `shots/facade/52-CHOICE-FULL-FRAME-day.png` |
+| **does it break at altitude** | `shots/facade/53-CHOICE-ALTITUDE.png` |
+| which pixels are the candidate's geometry | `shots/facade/38-ISOLATE-{0,A,B}-*.png` (magenta = `drag-detail`) |
+| what actually changed | `shots/facade/_diff-0-vs-A.png`, `_diff-0-vs-B.png` |
+
+Six frames at the pose §110 recorded (`GUAD-24TH-PAVEMENT-WEST`, centre
+`[-97.74213782673931, 30.2856]`, zoom 20.68632, pitch 87, bearing 270), three
+walls x day/night, **from a single page load** — `?cand=all` registers
+everything and `window.setDragCandidate` flips between them by FILTER, so the
+pose, the light and the tile set are literally the same objects in all three.
+Noise floor measured first, as instructed: the same wall shot twice at each of
+the four poses is **byte-identical, 0.00 % of pixels**, so every difference
+below is signal.
+
+### What the two candidates are, and why BOTH are geometry
+
+**CANDIDATE A — storey bands, no windows.** Per building on the block: a base
+course, a floor line between storeys, and a cornice, each a **proud ring**
+(`offset(ring, +d)`, 0.11-0.34 m) on a new flat-coloured layer `drag-detail`;
+the wall between them is a new tile family `retPlain`, which is the shipping
+`retUpper` with its punched openings deleted so the only rhythm in the picture
+is the horizontal one.
+
+**CANDIDATE B — real windows. B is A plus openings**, deliberately, so the
+question Simeon is answering is exactly *"is the rhythm enough, or do you want
+to pay for the openings on top of it"* and B's marginal cost is the honest
+number. Three features per opening — pane, head, sill — 1.35 m wide on a 3.30 m
+bay, sill and head as fractions of the storey, one pane in three lit at night.
+No jambs: the vertical half of a frame is what the barcode already had too much
+of.
+
+**Both are geometry, and that is the one execution call worth writing down.**
+§110 §8 measured the constraint: a `fill-extrusion-pattern` is screen-locked, so
+one repeat is `displaySize x mpp(floor(cameraZoom))` metres of wall — 4.12 m at
+walking height on `drag.js`'s scale and **65.9 m at the spawn pose**. A tile that
+draws one storey is a one-storey tile at exactly one altitude and a
+sixteen-storey tile at the other, and this camera moves continuously between
+them. So the plan's (b2) one-storey close tile is not a candidate for B; a
+horizontal event has to have its height in metres. Heads and sills are proud
+rather than the pane being recessed, because you cannot cut a hole in a
+fill-extrusion — the surround is what stands out.
+
+### What the pictures say
+
+* **The barcode is gone in both.** `_diff-0-vs-A.png` is the proof and it is a
+  clean one: the only pixels that change are the stripes themselves. The
+  building's silhouette is **identical** — every candidate stack was checked
+  against the shipping `upper` band's top and reaches it exactly, and the diff
+  shows no block-shaped change at the parapet.
+* At the pose, day: **A moves 14.02 % of the frame (4.47 % by more than 24/255),
+  B moves 14.09 % (5.50 %)**; A vs B is 2.02 %. On the wall crop alone: A 50.4 %,
+  B 50.7 %. Night: A 11.28 %, B 11.99 %.
+* **B reads as windows at 15-20 m** — heads, sills and panes are all legible in
+  `34-CROP-day-B-WINDOWS.png`, and at night one pane in three is warm against a
+  dark wall.
+* **Neither breaks at altitude — they disappear.** At 60 m (`39-MID-*`) B is
+  2.12 % of the frame and the Co-op reads as a real three-storey building next
+  to plain neighbours; no moire, no aliasing. At the flyover altitude
+  (`37-FLYOVER-*`) both are **0.04 %**. All 290 window features survive
+  `geojson-vt` at every tile zoom, so this is framing, not simplification: the
+  candidates are a walking-camera feature and pay nothing at cruise.
+
+### What they cost. Measured, not estimated.
+
+| | shipping | A | B |
+|---|---|---|---|
+| `data/drag.geojson` | 51.2 KB | +9.5 KB | +292.5 KB |
+| features on the block (8 buildings) | — | **24** | **894** (24 + 290 windows x 3) |
+| tile images / atlas bytes | 16 / 256 KB | 20 / 320 KB | 20 / 320 KB |
+| `applyDragColors` (min of 10 interleaved reps, hardware GL) | **2.8 ms** | **3.3 ms** | 3.3 ms |
+| `updateFacades` (same instrument) | **82.4 ms** | 81.4 ms | 81.4 ms |
+| `austin-drag` source features at the pose | 258 | — | 1264 |
+
+`updateFacades` is unchanged because **`js/facades.js` is not touched by either
+candidate** — this whole defect is a `js/drag.js` one, per §110 §5. The 82.4 ms
+I measure on the shipping build against HANDOFF's 80.4 ms is the run-to-run
+band, not a regression.
+
+**Shipping city-wide, extrapolated from the measured rate and not flattered:**
+
+* **A: about 3 features per building** (8 buildings, 1.9 storeys average, 24
+  features), 395 bytes each. The Drag's own 24 buildings: ~72 features, ~30 KB.
+  Drag + campus core + West Campus (1,266 buildings, ~4 storeys average):
+  **~7,600 features, ~3.0 MB.** One bake, one new tile family, no new layer
+  type. **Days.**
+* **B: 36 windows per building here**, on 1.9 storeys and a small footprint. A
+  campus building at ~4 storeys and twice the perimeter is ~150. 1,266 buildings
+  gives **~190,000 openings, ~570,000 features, ~190 MB** at the measured 336
+  bytes/feature. That is PMTiles, a minzoom, an LOD story and a fresh perf pass,
+  none of which exist. It reconciles with the plan's ~165 MB. **Weeks, and it is
+  a project rather than a pass.**
+* Note the **atlas cost of both is the same and it is 64 KB** — four `retPlain`
+  images. Neither candidate is an atlas problem, which is the third independent
+  confirmation that option (a) was correctly rejected.
+
+### How it is wired, for whoever picks this up
+
+* `scripts/bake_drag.py` writes the candidates into a **`candidates` foreign
+  member** of `data/drag.geojson`, never into `features`. That is why
+  `drag-check.mjs`'s "bands tile each building with no gap or overlap" still
+  passes over 8 buildings that now also carry 894 overlapping proud features.
+* The shipping `upper` band of a scoped building gets `candOff: 1` — an extra
+  property, invisible to every existing reader, which the candidate filter uses
+  to hide it.
+* Block: `CAND_LAT_MIN/MAX` 30.28500-30.28650, 8 buildings, roughly W 23rd to
+  W 24th plus the Co-op. Every taste value (course depths, bay pitch, window
+  size, lit rate, storey height) is a named constant at the top of the bake.
+
+### WHAT I DID NOT DO
+
+* **Did not fix anything, and did not merge.** These are two mock-ups on one
+  block for a taste decision.
+* **Did not resolve one artifact I can see.** In A and B there is a thin blue
+  sliver at the extreme top edge of the eye-level frame where today's frame has
+  wall (visible in `50-CHOICE-DAY-*`). The candidate stacks were verified
+  arithmetically to reach the shipping band's top exactly, the isolate shows the
+  geometry where it belongs, and the pixel diff shows no block-shaped silhouette
+  change — so it is a render-order artifact at the frame edge, not missing
+  geometry. I could not name it, and `queryRenderedFeatures` at pitch 87 returned
+  `ground-road` for every point in the frame, which is the failure
+  `verify/README.md` already documents. Flagged, not rationalised.
+* **Did not build a texture variant of B to shoot at altitude.** Its failure is
+  arithmetic — one repeat is 65.9 m of wall at the spawn pose — and §110's shot
+  23 already photographs the same drawing at the wrong world scale.
+* **Did not touch campus or West Campus.** `js/facades.js` still needs the same
+  treatment where `buildings-3d` and `wc-wall` really do paint the wall; this
+  pass says nothing about it.
+* **Did not run `zfight.mjs` or `coplanar.mjs`.** The proud rings contain the
+  wall's own face rather than sitting on it, and the panes stand 4 cm clear, so
+  nothing here is coplanar by construction — but that is an argument and not a
+  measurement, and if either candidate is chosen it is the first thing to run.
+* **Did not measure on anything but this laptop.** Pixels are SwiftShader,
+  1440x900, dpr 1 (crops at dpr 2); the two timings are hardware GL.
+* **Did not measure the noise floor ACROSS page loads** — only within one load,
+  where it is 0.00 %.
