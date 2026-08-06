@@ -1,0 +1,151 @@
+{
+  "poses": {
+    "eye": {
+      "z": 20.6863,
+      "p": 87,
+      "b": -90,
+      "src": {
+        "base": 3,
+        "spandrel": 18,
+        "coffer": 18,
+        "crown": 3,
+        "cap": 60,
+        "plinth": 1,
+        "arcade": 4,
+        "frieze": 1,
+        "gable": 1,
+        "mid": 3,
+        "cornice": 3,
+        "shop": 53,
+        "sign": 53,
+        "upper": 37,
+        "A:field": 31,
+        "A:base": 14,
+        "A:course": 9,
+        "A:cornice": 14,
+        "B:field": 31,
+        "B:base": 14,
+        "B:course": 9,
+        "B:cornice": 14,
+        "B:pane": 290,
+        "B:head": 290,
+        "B:sill": 290
+      }
+    },
+    "block": {
+      "z": 16.7,
+      "p": 62,
+      "b": -114,
+      "src": {
+        "base": 4,
+        "spandrel": 24,
+        "coffer": 24,
+        "crown": 4,
+        "cap": 46,
+        "plinth": 2,
+        "arcade": 6,
+        "frieze": 2,
+        "gable": 2,
+        "mid": 4,
+        "cornice": 4,
+        "shop": 36,
+        "sign": 36,
+        "upper": 22,
+        "A:field": 15,
+        "A:base": 6,
+        "A:course": 5,
+        "A:cornice": 6,
+        "B:field": 15,
+        "B:base": 6,
+        "B:course": 5,
+        "B:cornice": 6,
+        "B:pane": 308,
+        "B:head": 311,
+        "B:sill": 311
+      }
+    },
+    "sky": {
+      "z": 16,
+      "p": 61,
+      "b": -20,
+      "src": {
+        "shop": 44,
+        "sign": 44,
+        "upper": 30,
+        "cap": 54,
+        "arcade": 6,
+        "mid": 3,
+        "cornice": 3,
+        "A:field": 22,
+        "A:base": 10,
+        "A:course": 6,
+        "A:cornice": 10,
+        "B:field": 22,
+        "B:base": 10,
+        "B:course": 6,
+        "B:cornice": 10,
+        "base": 4,
+        "spandrel": 24,
+        "coffer": 24,
+        "crown": 4,
+        "plinth": 3,
+        "frieze": 3,
+        "gable": 3,
+        "B:pane": 290,
+        "B:head": 290,
+        "B:sill": 290
+      }
+    }
+  },
+  "diffs": {
+    "cropDayNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "cropDayA": {
+      "any": 50.43,
+      "over24": 16.06
+    },
+    "cropDayB": {
+      "any": 50.68,
+      "over24": 19.77
+    },
+    "cropNightNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "cropNightA": {
+      "any": 40.59,
+      "over24": 17.74
+    },
+    "cropNightB": {
+      "any": 43.16,
+      "over24": 20.58
+    },
+    "blockNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "blockA": {
+      "any": 0.16,
+      "over24": 0.06
+    },
+    "blockB": {
+      "any": 0.16,
+      "over24": 0.08
+    },
+    "skyNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "skyA": {
+      "any": 0.04,
+      "over24": 0.01
+    },
+    "skyB": {
+      "any": 0.04,
+      "over24": 0.02
+    }
+  },
+  "errs": []
+}

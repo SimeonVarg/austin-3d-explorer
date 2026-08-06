@@ -1,0 +1,143 @@
+{
+  "boot": {
+    "cand": "0",
+    "combos": 20,
+    "fams": [
+      "pclSolid",
+      "pclCoffer",
+      "gymSolid",
+      "gymArcade",
+      "gymFrieze",
+      "uniArcade",
+      "uniWin",
+      "uniSolid",
+      "shopGlass",
+      "signBand",
+      "retUpper",
+      "retPlain"
+    ],
+    "layers": [
+      "drag-wall",
+      "drag-cap",
+      "drag-detail"
+    ]
+  },
+  "poses": {
+    "eye": {
+      "c": [
+        -97.7421378,
+        30.2856
+      ],
+      "z": 20.68632,
+      "p": 87,
+      "b": -90
+    },
+    "eyeNight": {
+      "c": [
+        -97.7421378,
+        30.2856
+      ],
+      "z": 20.68632,
+      "p": 87,
+      "b": -90
+    },
+    "cruise": {
+      "c": [
+        -97.7418,
+        30.2845
+      ],
+      "z": 15.9,
+      "p": 62,
+      "b": 8
+    },
+    "high": {
+      "c": [
+        -97.744,
+        30.281
+      ],
+      "z": 14.6,
+      "p": 66,
+      "b": 18
+    }
+  },
+  "diffs": {
+    "eyeDayNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "eyeDayA": {
+      "any": 14.02,
+      "over24": 4.47
+    },
+    "eyeDayB": {
+      "any": 14.09,
+      "over24": 5.5
+    },
+    "eyeDayAB": {
+      "any": 2.02,
+      "over24": 1.5
+    },
+    "eyeNightNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "eyeNightA": {
+      "any": 11.28,
+      "over24": 4.93
+    },
+    "eyeNightB": {
+      "any": 11.99,
+      "over24": 5.72
+    },
+    "cruiseNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "cruiseA": {
+      "any": 0.02,
+      "over24": 0.01
+    },
+    "cruiseB": {
+      "any": 0.02,
+      "over24": 0.01
+    },
+    "highNoise": {
+      "any": 0,
+      "over24": 0
+    },
+    "highA": {
+      "any": 0,
+      "over24": 0
+    },
+    "highB": {
+      "any": 0,
+      "over24": 0
+    }
+  },
+  "timing": {
+    "applyDragColors": {
+      "reps": [
+        25,
+        6.5,
+        6.8,
+        7.1,
+        6.4,
+        3.5,
+        3.2,
+        3.1,
+        3.1,
+        5.6
+      ],
+      "min": 3.1
+    },
+    "srcFeatures": {
+      "wall": 115,
+      "cap": 29,
+      "candA:wall": 11,
+      "candA:detail": 13,
+      "candB:wall": 11,
+      "candB:detail": 13
+    }
+  },
+  "errs": []
+}
