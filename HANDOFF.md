@@ -13831,3 +13831,142 @@ and good, and it is not close.** The plan is already written in
 `docs/camera/facades-at-two-metres.md` and the one question in it is his:
 standing on the pavement opposite, does he want to read *windows*, or is a wall
 with real storey lines enough?
+
+
+## 110. Aug 6 2026 — the facade plan's arithmetic is right and it is about the wrong layer (QUEUE Y5 step 1) (acer lane)
+
+**No code and no data changed.** Branch `acer/facade-choice` off `origin/main`
+`32e6dc4`. Files written: `docs/camera/facades-measured.md`, `shots/facade/`,
+this entry. This is step 1 of `docs/camera/facades-at-two-metres.md` — the half
+day of measurement it asked for before anybody spends a week on the fix.
+
+**Setup, with the settings, because they are part of the answer.**
+`python scripts/serve.py 8311`. `harness-drift.mjs` **PASS, 28 scripts in each
+file**, before any pixel. 1440x900, dpr 1, SwiftShader, headless,
+`cancelGraphicsAutoDetect()` at the top of every run, **one browser at a time**,
+`reap.mjs` between runs and at the end.
+
+### THE POSE, WHICH IS WHAT WAS MISSING
+
+The plan could not find the pose for the frame it measured and said so. Here it
+is, and it is in the doc:
+
+```
+GUAD-24TH-PAVEMENT-WEST
+eye -97.74180, 30.28560, 1.70 m   bearing 270   pitch 87   p = 0.30
+=> map.getZoom() 20.68632215318673   floor(zoom) 20   fov 58   camPx 811.82
+   pitch 86 at the same spot => 21.10085, floor 21
+```
+
+The plan predicted 20.69/floor 20 and 21.10/floor 21. **Both land exactly.**
+
+### THE HEADLINE: THE PLAN IS ARITHMETICALLY RIGHT AND ABOUT THE WRONG LAYER
+
+Paint `drag-wall` magenta and `buildings-3d` cyan and take one render
+(`shots/facade/12-WHO-PAINTS-THIS-WALL-...png`): **the whole upper wall of the
+Guadalupe frame is magenta.** `js/drag.js` is 24–26 % of the frame by two
+independent instruments (hide-diff 338,129 px; magenta paint 311,738 px);
+`js/facades.js`'s `buildings-3d` is **2.9 %** and is not visibly anywhere.
+
+So every family table, glazing ratio and wall-area percentage in
+`facades-at-two-metres.md` is about a layer that paints 2.9 % of the frame the
+document was written from. What Simeon is looking at is `js/drag.js`'s
+`retUpper`, **14 features**, whose header states the rule that makes the
+barcode: *no tile draws anything that varies with y*. Six 2-texel full-height
+"windows" plus five full-height streaks per repeat, and nothing horizontal, by
+design.
+
+At 1.7 m that is **a 12.9 cm dark stripe every 68.7 cm from the sign band to the
+parapet.** At the altitude it was authored for it is a 2.06 m window in an 11 m
+bay. A sixteen-fold collapse of a drawing that is correct where it was aimed.
+
+### THE CITY HAS TWO WALL SCALES AND NOBODY HAD WRITTEN THAT DOWN
+
+Read off the image manager: `facades.js` registers 64 texels at **pixelRatio 2**
+(displaySize 32 css). `drag.js`, `tower.js`, `heroes.js` and `places.js` all call
+`addImage(id, tile)` with **no pixelRatio option**, so their 64-texel tiles land
+at pixelRatio 1 — **displaySize 64, exactly double**. Their walls repeat every
+4.12 m at this pose where facades.js walls repeat every 2.06 m.
+
+### THE REPEAT, MEASURED, WITH A RULER THAT DOES NOT CARE ABOUT PERSPECTIVE
+
+Calibration tile (2-texel magenta column at u=0, cyan row at v=0) registered at
+the tier's own pixelRatio, every other layer hidden, silhouette by hide-diff.
+Then: **a wall's footprint edge length is exact from the source, and perspective
+cannot change how many repeats fit on it.**
+
+| `displaySize` | three walls | predicted |
+|---|---|---|
+| 32 | 2.0664 / 2.0770 / 2.0749 m | 2.0604 m (+0.3 / +0.8 / +0.7 %) |
+| 64 | 4.1326 / 4.1538 / 4.1447 m | 4.1208 m (+0.3 / +0.8 / +0.6 %) |
+
+Doubling `displaySize` doubles the repeat (x2.0019); one integer zoom halves it
+(x0.5008). **`repeat = displaySize x mpp(floor(cameraZoom))` is exactly the rule
+the app obeys, and the plan's 2.06 m is right.**
+
+### TWO OF MY INSTRUMENTS LIED AND BOTH ARE WORTH KEEPING
+
+1. **UNPROJECTING A STRIPE AT THE WALL'S BASE ROW IS USELESS AT DEPTH.** At 60 m
+   and pitch 87, **one pixel of base-row error is about three metres of depth**,
+   i.e. 5 % of scale, and a mask edge is only good to a couple of pixels. Its own
+   self-calibration disagreed with itself by 24 %. Its *ratios* are fine (the
+   depth error is common to every gap in a frame); its absolute is worthless.
+   Use a known length in the scene as the ruler, not the projection.
+2. **A TIER PROBE THAT COULD NOT FAIL.** Tinting every near-tier image red and
+   every far-tier one blue and reading the frame gave "113,599 red, 0 blue",
+   which looks like a clean confirmation and was nothing: `facades.js` paints no
+   visible pixel at that pose, and the red was the awning and the labels. Rerun
+   with `buildings-3d` as the only visible layer and counted inside its own
+   silhouette: **372,136 red (98.81 %) vs 4,483 blue (1.19 %)**, with the blue
+   sitting on the block further down the street where a far tier belongs.
+   **The plan's "at walking height everything is on the near tier" is CONFIRMED**
+   — but only the second instrument could have said so.
+
+A third, smaller one: **canonical tile z and overscaled tile z are different
+numbers and only one of them selects the image.** `austin-buildings` has
+`maxzoom: 16`, so canonical z stops at 16 and reading it alone says the near
+tier (`minZoom` 17) can never be picked. Overscaled z reaches 17 and 25 in the
+same frames. One walking frame samples tile zooms 4 to 14 levels apart.
+
+### THE TIER SEAM IS NOT THE REASON TO REJECT (b2)
+
+The plan says one frame decides between (b2) and (b3)/(c). It needs a control:
+a step frame and a no-step frame look identical to the eye, because two
+buildings at two distances also show two window scales. So — all-`displaySize`-64,
+all-32, and the step, at one pose. **The step frame is byte-identical to the
+all-64 frame at both poses tried (0 px), while all-32 moves 10.5 % and 12.4 % of
+the frame.** Every tile carrying a visible wall at walking height is already
+above the step; there is nothing to seam. The shipping boundary at tile zoom 17
+splits the wall **98.81 / 1.19**, and the 1.19 % is the block furthest down the
+street.
+
+The real objection to (b2) is not a seam between tiles. It is that **a
+screen-locked pattern cannot hold a storey height at more than one zoom** — a
+one-storey tile is a two-storey tile one zoom up. `js/drag.js` had already
+worked that out and wrote it down as its rule 2; it is why it draws no
+horizontals at all.
+
+### THE PICTURES, AND THE ONE QUESTION FOR SIMEON
+
+`shots/facade/20`–`23`: the wall he has today, **candidate A — real windows, one
+storey per repeat**, **candidate B — storey lines and bay piers, no windows**,
+and a control that is candidate A's drawing at *today's* 2.06 m scale, which
+puts two storeys of windows in the height of one and stops reading. Same
+drawing, half the world scale. Shopfront, awnings and sign band untouched in all
+four.
+
+Both candidates are runtime mock-ups drawn in the page by a scratch script.
+Nothing in `js/` was edited.
+
+### WHAT I DID NOT DO
+
+* **Did not fix anything**, by instruction.
+* **Did not measure `drag-wall`'s repeat directly** — at 16 m it fills the frame,
+  its corners are off-screen and only three repeats are visible, below what the
+  ruler needs. Its 4.12 m is **derived** from the confirmed law plus its
+  registered `displaySize` 64, and is labelled as derived.
+* **Did not measure at night**, on a real GPU, or anywhere but this one pose.
+* **Did not check the plan's wall-area census** (70.4 % above 4.2 m, the family
+  table) — offline arithmetic, untouched, but now arithmetic about a layer that
+  paints 2.9 % of the Drag frame.
+* **Did not run `zfight`, `places-check` or `coplanar`.** No geometry changed.
