@@ -1,0 +1,93 @@
+{
+  "shipping": {
+    "dragCombos": 16,
+    "dragFams": [
+      "gymArcade",
+      "gymFrieze",
+      "gymSolid",
+      "pclCoffer",
+      "pclSolid",
+      "retUpper",
+      "shopGlass",
+      "signBand",
+      "uniArcade",
+      "uniSolid",
+      "uniWin"
+    ],
+    "dragImages": 16,
+    "dragImageBytes": 262144,
+    "applyDragColorsMin": 2.8,
+    "applyDragColorsReps": [
+      12.9,
+      7.9,
+      5.8,
+      3.6,
+      4,
+      3.5,
+      5.7,
+      3.1,
+      3,
+      2.8
+    ],
+    "updateFacadesMin": 82.4,
+    "updateFacadesReps": [
+      112.1,
+      109.5,
+      89.6,
+      88.8,
+      82.4,
+      85.6,
+      86,
+      82.9,
+      82.6,
+      86.8
+    ],
+    "srcFeatures": 258
+  },
+  "&cand=all": {
+    "dragCombos": 20,
+    "dragFams": [
+      "gymArcade",
+      "gymFrieze",
+      "gymSolid",
+      "pclCoffer",
+      "pclSolid",
+      "retPlain",
+      "retUpper",
+      "shopGlass",
+      "signBand",
+      "uniArcade",
+      "uniSolid",
+      "uniWin"
+    ],
+    "dragImages": 20,
+    "dragImageBytes": 327680,
+    "applyDragColorsMin": 3.3,
+    "applyDragColorsReps": [
+      6.7,
+      8.7,
+      7,
+      7.4,
+      5.3,
+      3.3,
+      3.3,
+      3.4,
+      3.3,
+      3.4
+    ],
+    "updateFacadesMin": 81.4,
+    "updateFacadesReps": [
+      94.5,
+      115,
+      85.3,
+      90.8,
+      84.8,
+      85.1,
+      84.2,
+      84.2,
+      81.4,
+      107.8
+    ],
+    "srcFeatures": 1264
+  }
+}
