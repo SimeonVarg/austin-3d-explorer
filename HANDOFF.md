@@ -14120,3 +14120,118 @@ band, not a regression.
   1440x900, dpr 1 (crops at dpr 2); the two timings are hardware GL.
 * **Did not measure the noise floor ACROSS page loads** — only within one load,
   where it is 0.00 %.
+
+## 112. Aug 6 2026 — the decision sheets, and the noise floor caught the instrument lying about a fifth of the frame (QUEUE Y5 step 3) (acer lane)
+
+Branch `acer/facade-choice`, continuing §110 and §111. **Still a decision branch
+and still not for merging.** No code and no data changed in this pass; what
+changed is `shots/facade/`, `docs/camera/facade-choice.md`, `QUEUE.md` and this
+entry.
+
+### THE TWO PICTURES, WHICH ARE THE WHOLE POINT
+
+```
+shots/facade/final/CHOOSE-the-drag-at-eye-level.png   2212x1596
+shots/facade/final/CHOOSE-from-600m.png               2212x1932
+docs/camera/facade-choice.md                          half a page, plain English
+```
+
+Three walls across — today / storey lines / real windows — day on the top row and
+night on the bottom, each column labelled with what it costs in days or weeks.
+The recommendation written down is **storey lines, and do not start windows this
+month**; the one honest argument the other way is night, and the sheet says so on
+its face rather than in a footnote.
+
+### THE OLD FRAMES WERE HONEST AND THE POSE WAS STILL WRONG
+
+Checked first, as instructed. Diffing §111's six frames row by row: every
+difference sits in one contiguous band and **699 of 900 rows are byte-identical**
+between candidates — road, kerb, pavement, shopfront, labels, UI. The camera did
+not move. But the wall band is **rows 0-200**, i.e. the wall runs off the top of
+the frame: at 5.8 m stand-off candidate A's cornice is out of shot, which is why
+its day frame looks like a blank wall. Honest, and not a picture anyone can
+choose from. Re-shot from 37 m — across Guadalupe, the whole elevation in frame
+with sky above it — after scouting six poses.
+
+New pose, and the eye reads back at 1.70 m from `__fly.eye()`:
+
+```
+eye -97.741490, 30.286175, 1.70 m   bearing 270   pitch 88
+=> map.getZoom() 20.10160   D 48.71 m
+CRUISE  centre [-97.74210, 30.28570]  z 15.28919  pitch 64  bearing 200
+=> __fly.eye().alt 600.05 m
+```
+
+### THE HEADLINE: AUTO-EXPOSURE MAKES EVERY FRAME DEPEND ON THE FRAME BEFORE IT
+
+Measured the noise floor before reading any difference, and it came back
+**99.997 % of pixels differing, 74.7 % of them by more than 24/255** — between two
+shots of THE SAME WALL in one page load. That is larger than either candidate's
+effect. Rendered the difference rather than theorising: uniform over sky, ground
+and buildings alike, max 38, mean 29 (`shots/facade/scout/zz-diff-noise-sameload.png`).
+A global tone shift, not geometry.
+
+It is `js/graphics.js`'s **auto-exposure**. It meters the frame into an EMA with a
+900 ms time constant, clamps the gain to 0.85-1.20, and — by explicit design, and
+its comment says so — **the EMA persists across pose and hour changes.** So a
+matrix shot back to back is graded by the order it was shot in. Reading the gain
+per frame proved it: over one otherwise-identical matrix the gain landed on
+**1.000, 0.850, 0.967 and 1.200**. The cruise pair that measured "93 % of the
+frame changed" was gain 1.20 against gain 1.00 and nothing else.
+
+**`window.__aeReset()` is not enough and this is worth knowing.** It clears
+`aeLuma` and `aeLast` and **not `aeGain`** — so the gain simply stays wherever it
+was. Under SwiftShader `aeLuma` came back `null` on every read, i.e. the meter's
+`getImageData` never lands at all and the gain is frozen from whichever earlier
+state set it. The fix used here is `window.GFX.autoExposure = false;
+window.applyGraphics()`, asserted per frame (`if (ae.gain !== 1) throw`).
+
+With that off, the same two instruments:
+
+| | any pixel | > 24/255 | where the >24 pixels are |
+|---|---|---|---|
+| **noise, same page load** | 10.7 % | **0.000 %** | nowhere |
+| **noise, fresh browser + fresh load** | 33.6 % | **0.000 %** | nowhere |
+| eye day, 0 vs A | 37.8 % | 2.906 % | 37,658 px, **all of them on the wall** |
+| eye day, 0 vs B | 37.9 % | 4.386 % | 56,842 px, all on the wall |
+| eye night, 0 vs A / 0 vs B | 22.1 / 23.0 % | 1.402 / 1.901 % | 18,151 / 24,622 px on the wall; 15-20 px of sky (star twinkle) |
+| cruise day, 0 vs A and 0 vs B | 12.9 % | **0.007 %** | 95 px, rows 427-467 |
+| cruise night, 0 vs A and 0 vs B | 26.0 % | **0.005 %** | 61 px |
+
+So: a floor of **zero pixels above threshold in both directions**, and every
+above-threshold pixel at eye level inside the wall band (rows 111-347) with
+**none in the sky and none below the sign band**. The candidates change the wall
+and nothing else, and that is measured rather than asserted. The sub-24 haze over
+a third of the frame is SwiftShader's dither and it is at the floor.
+
+### SEVENTEEN PIXELS
+
+Painted `drag-detail` and `drag-wall` `#ff00ff` at the cruise pose and counted
+(HANDOFF §48). **The entire candidate block is 17 magenta pixels of a 1440x900
+frame, inside x 702-739 / y 428-461.** Two independent instruments agree: the
+>24 difference at cruise sits in rows 427-467. That box is drawn on the 600 m
+sheet, so the claim "neither hurts the flyover" is something Simeon can check
+with his own eyes instead of taking on trust.
+
+### WHAT I DID NOT DO
+
+* **Did not merge, and PR #164 says so in its title.** The three code files
+  (`js/drag.js`, `scripts/bake_drag.py`, `data/drag.geojson`) stay on the branch;
+  everything in this pass is docs and pictures and goes to `main` on its own.
+* **Did not fix the auto-exposure hysteresis, or `__aeReset()` not clearing the
+  gain.** Both are real and neither is mine this pass — `js/graphics.js` is not a
+  file this lane opened. Written down here rather than acted on. If a future
+  screenshot comparison in this repo skips this, it will measure the shooting
+  order and call it a result; four of my own numbers were that before I looked.
+* **Did not measure a separate night noise floor.** The night rows carry a star
+  field that twinkles off `performance.now()`, so they have a floor the day rows
+  do not. It is bounded at 15-20 px by the sky column of the table above, which
+  is three orders of magnitude under the signal, so I did not spend a run on it.
+* **Did not re-shoot the dusk row.** Day and night only; `p` 0.30 and 0.90.
+* **Did not touch campus or West Campus**, and nothing here is about them.
+* **Did not run `zfight`, `coplanar`, `places-check` or `drag-check`.** No
+  geometry changed in this pass; §111 ran `drag-check` 26/26 against the file the
+  candidates live in.
+* **Did not shoot on hardware GL or at dpr 2.** SwiftShader, 1440x900, dpr 1,
+  `cancelGraphicsAutoDetect()` at the top of every run, one browser at a time.
+  `harness-drift.mjs` PASS, 28 scripts in each file, before any pixel.

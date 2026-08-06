@@ -717,9 +717,11 @@ Y4  look down at your own feet ............... HALF. js/ground.js is ready
                                                 you still cannot look at your feet.
                                                 Blocked behind Y8 by choice, and now also
                                                 behind Y5 (see that doc's sequencing note).
-Y5  facades at close range ................... OPEN — and it is now THE thing standing
-                                                between the Drag and good. Plan:
-                                                docs/camera/facades-at-two-metres.md
+Y5  facades at close range ................... **BLOCKED ON SIMEON CHOOSING A WALL.**
+                                                Measured (§110), two candidates built and
+                                                photographed (§111), decision sheets made
+                                                (§112). Nothing more should be built here
+                                                until he picks. See below.
 Y6  motion-feel FOV assertion ................ OPEN (red on main, not from these passes)
 Y7  outer-ring scan worst case ............... OPEN
 Y8  the ground plane ......................... OPEN
@@ -736,6 +738,37 @@ on the brick, and a carriageway that went from 0.78x the frame median to 1.40x �
 but **Y5 is what is still between it and good.** The shopfronts are excellent and
 the 40 m of wall above them is a barcode, and that is the first thing your eye
 goes to.
+
+---
+
+## Y5 IS WAITING ON A TASTE DECISION. DO NOT BUILD PAST IT. (2026-08-06, §112)
+
+Both candidate walls exist and are photographed. The question left is the one
+`docs/camera/facades-at-two-metres.md` §6 said is Simeon's and not ours: **how
+close is the Drag meant to survive?**
+
+Show him these two, in this order:
+
+```
+shots/facade/final/CHOOSE-the-drag-at-eye-level.png
+shots/facade/final/CHOOSE-from-600m.png
+docs/camera/facade-choice.md      <- half a page, plain English, with a recommendation
+```
+
+The recommendation on the page is **storey lines, not windows** — most of the win
+for a twentieth of the work, and windows stay additive afterwards because the
+windows candidate IS the storey-lines candidate plus openings.
+
+**The code for both candidates lives on branch `acer/facade-choice` (PR #164),
+which is a DECISION BRANCH and must not be merged as it stands.** It is three
+files — `js/drag.js`, `scripts/bake_drag.py`, `data/drag.geojson` — scoped to one
+block and inert without `?cand=`. Leave it alive: whichever wall he picks gets
+finished from it rather than rebuilt.
+
+**Sequencing that still stands:** Y4 (raise `ZOOM_MAX`) pushes `floor(zoom)` to
+24-25 at walking height. Neither candidate cares — both are geometry and their
+heights are in metres — but the shipping *texture* underneath them does, so Y5
+should land before Y4 or Y4 must re-run the check.
 
 ---
 

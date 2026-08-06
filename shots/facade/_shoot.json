@@ -1,0 +1,204 @@
+{
+ "note": "auto-exposure reset + converged before every frame; see shoot2.mjs header",
+ "pose": {
+  "EYE": {
+   "center": [
+    -97.74199673743618,
+    30.286175
+   ],
+   "zoom": 20.101601051980996,
+   "pitch": 88,
+   "bearing": 270,
+   "eye": [
+    -97.74149,
+    30.286175,
+    1.7
+   ],
+   "D": 48.71130419133434
+  },
+  "CRUISE": {
+   "center": [
+    -97.7421,
+    30.2857
+   ],
+   "pitch": 64,
+   "bearing": 200,
+   "zoom": 15.28919181622542,
+   "eye": [
+    null,
+    null,
+    600
+   ]
+  }
+ },
+ "readback": {
+  "eye-day-0": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "0",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "eye-day-A": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "A",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "eye-day-B": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "B",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "eye-night-0": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "0",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "eye-night-A": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "A",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "eye-night-B": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "B",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "cruise-day-0": {
+   "z": 15.28919,
+   "alt": 600.05,
+   "pitch": 64,
+   "bearing": -160,
+   "sel": "0",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "cruise-day-A": {
+   "z": 15.28919,
+   "alt": 600.05,
+   "pitch": 64,
+   "bearing": -160,
+   "sel": "A",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "cruise-day-B": {
+   "z": 15.28919,
+   "alt": 600.05,
+   "pitch": 64,
+   "bearing": -160,
+   "sel": "B",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "cruise-night-0": {
+   "z": 15.28919,
+   "alt": 600.05,
+   "pitch": 64,
+   "bearing": -160,
+   "sel": "0",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "cruise-night-A": {
+   "z": 15.28919,
+   "alt": 600.05,
+   "pitch": 64,
+   "bearing": -160,
+   "sel": "A",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "cruise-night-B": {
+   "z": 15.28919,
+   "alt": 600.05,
+   "pitch": 64,
+   "bearing": -160,
+   "sel": "B",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "NOISE-sameload": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "B",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  },
+  "NOISE-newload": {
+   "z": 20.1016,
+   "alt": 1.7,
+   "pitch": 88,
+   "bearing": -90,
+   "sel": "B",
+   "aeGain": 1,
+   "aeLuma": null,
+   "aeGainPre": 1,
+   "pdb": true,
+   "aeOn": false
+  }
+ }
+}
