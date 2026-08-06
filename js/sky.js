@@ -827,7 +827,12 @@
     if (fogFailed || HAZE.MODE !== 'depth' || !HAZE.on || fogPlacing) return;
     fogPlacing = true;
     try {
-      const before = fogBeforeId(map) || null;
+      // The sky composites OVER the haze, exactly as the DOM overlay used to,
+      // so when the sky layer is installed the fog anchors under IT rather than
+      // under the labels. Anchoring both at the same id would make each one
+      // shove the other down the stack on every `styledata`, forever.
+      const before = (skyOn() && map.getLayer(SKY_LAYER_ID) ? SKY_LAYER_ID
+                                                            : fogBeforeId(map)) || null;
       if (!map.getLayer(FOG_LAYER_ID)) {
         map.addLayer(fogLayer, before || undefined);
         fogAnchor = before;
@@ -856,11 +861,323 @@
     fogPlacing = false;
   }
 
+  // ── The depth-tested sky compositor ───────────────────────────────
+  //
+  // THE BUG IT FIXES. Every sky element in this file used to be a DOM overlay
+  // sitting on top of the whole map canvas, clipped to the horizon ROW and to
+  // nothing else. A DOM overlay cannot know what is in front of it, so from a
+  // pavement — where a shopfront fills the upper half of the frame — the star
+  // field was painted straight across solid brick, and across tree canopies,
+  // and down the face of a wall 1.5 m from the camera. At the old 18 m camera
+  // floor the frame above the horizon was nearly always empty sky, which is why
+  // this survived the whole life of the project.
+  //
+  // THE FIX IS THE SAME DEPTH BUFFER THE HAZE ALREADY USES, and it is a
+  // compositing change, not an art change: the identical 2D canvas is uploaded
+  // as a texture and drawn as ONE quad inside MapLibre's own render pass, at
+  // NDC depth 0.999999 with depthFunc LESS. That is the exact complement of the
+  // fog ladder's mask pass (GREATER at the same depth, which is measured to
+  // select every 3D pixel and nothing else), so the sky lands on cleared sky
+  // and on the ground and never on geometry. Nothing fades, nothing is
+  // repositioned, no star is moved: pixels that were always wrong stop being
+  // drawn.
+  //
+  // WHAT IS DELIBERATELY GIVEN UP. The file header used to argue that screen
+  // blending was a feature — "a 97 m tower crossing the horizon line is never
+  // hidden by the sky, it just picks up a little bloom". That glare is real,
+  // but it belongs to the bloom pass in graphics.js (#fx-canvas), which reads
+  // the rendered frame and adds light over everything including silhouettes.
+  // Having the sky ALSO leak through solid geometry is not glare, it is a
+  // missing depth test — and at 1.7 m it reads as stars on a brick wall.
+  //
+  // The composite is preserved exactly, and it is `over`, not the `screen` the
+  // stylesheet asks for — see the long note on the blend func in drawSky().
+  const SKY_LAYER_ID = 'sky-overlay';
+  const SKY_COMP = {
+    on: true,        // false restores the old DOM overlay, unchanged, in one line
+    disc: true,      // the sun/moon core and its bloom go through the same pass
+    // Just under the far plane. Anything MapLibre drew has a smaller stored
+    // depth; cleared sky is exactly 1.0.
+    z: 0.999999,
+  };
+  window.SKY_COMP = SKY_COMP;
+
+  let skyGL = null, skyFailed = false, skyPlacing = false, skyAnchor = null;
+  let skyDirty = true, skyTexW = 0, skyTexH = 0, _skyDrawnP = null;
+  const skyOn = () => SKY_COMP.on && !skyFailed;
+
+  const VS_TEX = `
+    attribute vec2 a_unit;
+    uniform vec4 u_rect;                 // x0, y0, x1, y1 in NDC
+    uniform float u_z;
+    varying vec2 v_uv;
+    void main() {
+      // v grows DOWN the source canvas, y grows UP in NDC, so the two are
+      // mirrored. Getting this wrong puts the horizon wash at the zenith, which
+      // is at least an unmistakable failure.
+      v_uv = vec2(a_unit.x, 1.0 - a_unit.y);
+      gl_Position = vec4(mix(u_rect.x, u_rect.z, a_unit.x),
+                         mix(u_rect.y, u_rect.w, a_unit.y), u_z, 1.0);
+    }`;
+  const FS_TEX = `
+    precision mediump float;
+    uniform sampler2D u_tex;
+    uniform vec4 u_tint;                 // premultiplied multiplier
+    varying vec2 v_uv;
+    void main() { gl_FragColor = texture2D(u_tex, v_uv) * u_tint; }`;
+
+  /**
+   * One radial-gradient sprite, alpha only, matching what the CSS element it
+   * replaces actually painted. Two details are load-bearing and both were read
+   * off the CSS rather than assumed: `radial-gradient(circle, ...)` sizes to
+   * FARTHEST-CORNER, so 100% is the half-DIAGONAL of the square box, not the
+   * half-width; and `#sky-core`/`#sky-bloom` carry `border-radius:50%`, so the
+   * result is clipped to the inscribed circle.
+   */
+  function buildDiscSprite(stops) {
+    const S = 128, R = S / 2;
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const g2 = c.getContext('2d');
+    const g = g2.createRadialGradient(R, R, 0, R, R, R * Math.SQRT2);
+    for (const [t, a] of stops) g.addColorStop(t, `rgba(255,255,255,${a})`);
+    g2.fillStyle = g;
+    g2.beginPath();
+    g2.arc(R, R, R, 0, PI * 2);
+    g2.fill();
+    return c;
+  }
+  // The two profiles, copied stop for stop from the `place()` calls they
+  // replace. Change them there and here together, or don't change them.
+  const CORE_STOPS = [[0, 1], [0.42, 0.92], [0.72, 0]];
+  const BLOOM_STOPS = [[0, 0.95], [0.26, 0.34], [0.68, 0]];
+
+  function makeTex(gl, src) {
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    // The sky canvas is not a power of two and never will be: CLAMP + LINEAR
+    // with no mipmap is the only filtering WebGL1 allows it.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    if (src) {
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    }
+    return t;
+  }
+
+  const skyLayer = {
+    id: SKY_LAYER_ID,
+    type: 'custom',
+    renderingMode: '3d',
+
+    onAdd(map, gl) {
+      skyGL = {
+        prog: program(gl, VS_TEX, FS_TEX, ['u_rect', 'u_z', 'u_tex', 'u_tint']),
+        buf: gl.createBuffer(),
+        tex: makeTex(gl, null),
+        core: makeTex(gl, buildDiscSprite(CORE_STOPS)),
+        bloom: makeTex(gl, buildDiscSprite(BLOOM_STOPS)),
+      };
+      gl.bindBuffer(gl.ARRAY_BUFFER, skyGL.buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+      skyTexW = skyTexH = 0;
+      skyDirty = true;
+    },
+
+    onRemove(map, gl) {
+      if (!skyGL) return;
+      try {
+        gl.deleteBuffer(skyGL.buf);
+        gl.deleteProgram(skyGL.prog.p);
+        gl.deleteTexture(skyGL.tex);
+        gl.deleteTexture(skyGL.core);
+        gl.deleteTexture(skyGL.bloom);
+      } catch (e) {}
+      skyGL = null;
+    },
+
+    render(gl) {
+      if (!skyGL || !skyOn() || !_map || !canvas) return;
+      try { drawSky(gl); } catch (e) {
+        // Same contract as the fog: one failure retires the path for the
+        // session and the DOM overlay comes back, rather than throwing sixty
+        // times a second at a defect nobody can see.
+        skyFailed = true;
+        showDomSky(true);
+        console.warn('[sky] depth-composited sky failed, falling back to the DOM overlay:', e);
+      }
+    },
+  };
+
+  function drawSky(gl) {
+    const cv = _map.getCanvas();
+    const W = cv.clientWidth, H = cv.clientHeight;
+    if (!(W > 0 && H > 0) || !(canvas.width > 0) || !(cssH > 0)) return;
+
+    const P = skyGL.prog;
+    gl.useProgram(P.p);
+    gl.bindBuffer(gl.ARRAY_BUFFER, skyGL.buf);
+    gl.enableVertexAttribArray(P.a);
+    gl.vertexAttribPointer(P.a, 2, gl.FLOAT, false, 0, 0);
+
+    gl.disable(gl.CULL_FACE);
+    // A scissor or a stencil left on by the layer before this one would clip
+    // the sky to somebody else's tile. `setCustomLayerDefaults` resets neither.
+    gl.disable(gl.SCISSOR_TEST);
+    gl.disable(gl.STENCIL_TEST);
+
+    // THE WHOLE FIX IS THESE THREE LINES.
+    //
+    // `gl.depthRange` is deliberately NOT touched. MapLibre hands a
+    // renderingMode '3d' custom layer the same narrowed range it gives every
+    // fill-extrusion — [0, 0.958984] on this build — so an NDC z of 0.999999
+    // lands at the FAR END OF THE 3D BAND, above every building and below the
+    // 1.0 the frame was cleared to. Widening the range back to [0,1] would put
+    // the quad past the 2D layers' reserved band as well and the sky would stop
+    // drawing over the ground. This is the same z, on the same range, that the
+    // fog ladder's mask pass uses with GREATER; LESS is its exact complement.
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.depthFunc(gl.LESS);
+
+    gl.enable(gl.BLEND);
+    gl.blendEquation(gl.FUNC_ADD);
+    // OVER, premultiplied — and this is `over` on purpose, MEASURED, not a
+    // simplification of the `screen` the stylesheet asks for.
+    //
+    // style.css sets `mix-blend-mode: screen` on #sky-canvas, #sky-core and
+    // #sky-bloom, and the file header has argued for years that screen is what
+    // keeps a tower crossing the horizon from being painted over. IT HAS NEVER
+    // RUN. `#sky` is `position:absolute; z-index:3`, which makes it a stacking
+    // context, and a stacking context isolates the blending group — so every
+    // one of those elements blends against an EMPTY backdrop inside #sky and
+    // the group is then composited over the map with plain source-over.
+    //
+    // Probed rather than reasoned: three states (no sky / DOM sky / this layer)
+    // at the same pose, solving `out = b + P(1-b)` for the implied source. On a
+    // sky pixel beside the setting sun the DOM path implies a BLUE COMPONENT OF
+    // -0.091 — a screen composite cannot darken anything, so the shipped path
+    // is not screening. It is `over`, and it always was.
+    //
+    // Shipping a real screen here would have been a second change riding along
+    // with the depth fix: measured at +26,+40,+38 on that same pixel, a
+    // brighter sky nobody asked for. Whether the sky SHOULD screen is a taste
+    // call for Simeon and a one-line edit in style.css, which is not this
+    // lane's file. See HANDOFF §106.
+    gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+    gl.uniform1f(P.u.u_z, SKY_COMP.z);
+    gl.uniform1i(P.u.u_tex, 0);
+    gl.activeTexture(gl.TEXTURE0);
+
+    // ── the sky band ──
+    gl.bindTexture(gl.TEXTURE_2D, skyGL.tex);
+    if (skyDirty || skyTexW !== canvas.width || skyTexH !== canvas.height) {
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      skyTexW = canvas.width; skyTexH = canvas.height;
+      skyDirty = false;
+    }
+    // The canvas is pinned to the top-left of the map and is `cssH` CSS pixels
+    // tall — the sky band, not the viewport (see the note on resize()).
+    const yBot = 1 - 2 * Math.min(cssH, H) / H;
+    gl.uniform4f(P.u.u_rect, -1, yBot, 1, 1);
+    gl.uniform4f(P.u.u_tint, 1, 1, 1, 1);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // ── the disc and its bloom ──
+    // Same positions, sizes, colours and alphas the DOM elements were given;
+    // the only difference is that these are depth-tested.
+    if (SKY_COMP.disc && _disc) {
+      const quad = (tex, sizePx, tint) => {
+        const x0 = 2 * (_disc.x - sizePx / 2) / W - 1, x1 = 2 * (_disc.x + sizePx / 2) / W - 1;
+        const y1 = 1 - 2 * (_disc.y - sizePx / 2) / H, y0 = 1 - 2 * (_disc.y + sizePx / 2) / H;
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.uniform4f(P.u.u_rect, x0, y0, x1, y1);
+        gl.uniform4f(P.u.u_tint, tint[0], tint[1], tint[2], tint[3]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      };
+      const c = _disc.col;
+      if (_disc.bloomA > 0.005)
+        quad(skyGL.bloom, _disc.bloomR * 2,
+             [c.halo[0] / 255 * _disc.bloomA, c.halo[1] / 255 * _disc.bloomA,
+              c.halo[2] / 255 * _disc.bloomA, _disc.bloomA]);
+      if (_disc.coreA > 0.005)
+        quad(skyGL.core, _disc.coreR * 2,
+             [c.core[0] / 255 * _disc.coreA, c.core[1] / 255 * _disc.coreA,
+              c.core[2] / 255 * _disc.coreA, _disc.coreA]);
+    }
+
+    // ── restore ──
+    gl.depthFunc(gl.LEQUAL);
+    gl.depthMask(true);
+    _skyDrawnP = _p;
+  }
+
+  function skyBeforeId(map) { return fogBeforeId(map); }
+
+  function placeSkyLayer(map) {
+    if (!skyOn() || skyPlacing) return;
+    skyPlacing = true;
+    try {
+      const before = skyBeforeId(map) || null;
+      if (!map.getLayer(SKY_LAYER_ID)) {
+        map.addLayer(skyLayer, before || undefined);
+        skyAnchor = before;
+      } else {
+        // Custom layers are absent from `getStyle()` but present in the style's
+        // own order — the same probe the fog placement runs on.
+        const order = map.style && map.style._order;
+        let wrong;
+        if (Array.isArray(order)) {
+          const at = order.indexOf(SKY_LAYER_ID);
+          const want = before ? order.indexOf(before) : order.length;
+          wrong = at >= 0 && want >= 0 && at !== want - 1;
+        } else {
+          wrong = before !== skyAnchor;
+        }
+        if (wrong) { map.moveLayer(SKY_LAYER_ID, before || undefined); skyAnchor = before; }
+      }
+      showDomSky(false);
+    } catch (e) {
+      skyFailed = true;
+      showDomSky(true);
+      console.warn('[sky] could not install the depth-composited sky layer:', e);
+    }
+    skyPlacing = false;
+  }
+
+  /**
+   * The DOM overlay is the fallback, not a second copy: exactly one of the two
+   * paths is visible at a time, or every star is drawn twice and the one that
+   * ignores depth is the one on top.
+   */
+  let domSkyShown = null;
+  function showDomSky(show) {
+    if (domSkyShown === show) return;
+    domSkyShown = show;
+    // `visibility`, not `display`. A display:none element has no computed
+    // transform in Chrome � it resolves to `none` � and sky.mjs's disc-position
+    // assertion reads exactly that. The elements are still positioned and still
+    // carry their opacity; they simply do not paint, which is the whole ask.
+    if (canvas) canvas.style.visibility = show ? '' : 'hidden';
+    for (const el of [elCore, elBloom])
+      if (el) el.style.visibility = (show || !SKY_COMP.disc) ? '' : 'hidden';
+  }
+
   // ── Overlay elements ──────────────────────────────────────────────
   let host = null, elGlow = null, elBloom = null, elCore = null, elHaze = null,
       canvas = null, ctx = null;
   let stars = null, clouds = null, haloSprite = null;
   let _map = null, _p = 0.12;
+  // This frame's disc, published for the compositor. Null when there is no body
+  // to draw, which is also what the DOM path expresses as opacity 0.
+  let _disc = null;
 
   /**
    * One pre-rendered halo, blitted per bright star instead of building a fresh
@@ -971,8 +1288,11 @@
     clouds = buildClouds();
     haloSprite = buildHaloSprite();
 
+    // Sky first, haze under it — placeFogLayer anchors itself to the sky layer
+    // when there is one, so the two settle instead of chasing each other.
+    placeSkyLayer(map);
     placeFogLayer(map);
-    map.on('styledata', () => placeFogLayer(map));
+    map.on('styledata', () => { placeSkyLayer(map); placeFogLayer(map); });
 
     const redraw = () => updateSky(map, _p);
     map.on('move', redraw);
@@ -1068,6 +1388,16 @@
     // The horizon glow now lives in the canvas rather than a fourth
     // screen-blended DOM layer, so all of it composites in one pass.
     place(elGlow, { x: 0, y: 0 }, 1, 0, 'none');
+
+    // Hand the disc to the depth-tested compositor. Same numbers the two
+    // `place()` calls above just used — this is the SAME disc drawn in a pass
+    // that can be occluded, not a second one.
+    _disc = showDisc ? {
+      x: pos.x, y: pos.y,
+      coreR, coreA: vis * discFade,
+      bloomR, bloomA,
+      col: { core: coreCol, halo: haloCol },
+    } : null;
 
     // ── Canvas pass ──
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1317,6 +1647,24 @@
       ctx.fillRect(0, y0, W, y1 - y0);
     }
     ctx.globalCompositeOperation = 'source-over';
+
+    // The compositor's texture IS this canvas, so it is stale until a frame is
+    // drawn. `move` already lands before the render that follows it; a
+    // time-of-day change has nothing behind it, so ask for one frame. This
+    // cannot feed itself — triggerRepaint does not fire `move`.
+    skyDirty = true;
+    // `window.SKY_COMP.on = false` is a live A/B switch, not just a boot flag —
+    // both a verification and Simeon can put the old overlay back in one line.
+    showDomSky(!(skyOn() && skyGL));
+    // ...and the repaint request is guarded on the HOUR, exactly the way the
+    // fog's is, not asked for on every call. A camera move is already followed
+    // by a render, so an unconditional request adds a redundant frame to every
+    // single move — measured as four failures in `sky.mjs` (two setLight
+    // mismatches ~1 deg and a shadow hull that had not re-tiled inside the
+    // test's 6 s idle window) that all went green again once this was gated.
+    // Comparing against what was DRAWN, not what was asked for, is what stops
+    // it becoming a self-feeding render loop.
+    if (skyOn() && skyGL && _skyDrawnP !== p) map.triggerRepaint();
 
     // ── Hand the frame to the post-process pass ──
     // graphics.js needs the sun's screen position, and it must run in the SAME

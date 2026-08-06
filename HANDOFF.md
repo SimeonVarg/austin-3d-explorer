@@ -13054,3 +13054,194 @@ the street has no light in it.
 * **Did not test a touch device at walking height.** The joystick, the two-finger
   altitude gesture and the BOOST latch were only exercised by `collision.mjs`'s
   synthetic touch at flying altitude.
+
+---
+
+## 106. Aug 5 2026 — the sky was never behind anything, and the ground cap was never what stopped you looking down (QUEUE Y1, Y4) (acer lane)
+
+**Branch** `acer/eye-defects`, cut from `origin/main` at `330fbd9`. **Files
+written:** `js/sky.js`, `js/ground.js`, `shots/eye/`, this entry.
+
+**Setup, with the numbers.** `python scripts/serve.py 8301` (no gzip; Pages gzips
+~5x). `node scripts/verify/harness-drift.mjs` **PASS, 28 scripts in each file**,
+run before any pixel and again at the end. 1440x900, dsf 1, SwiftShader,
+`cancelGraphicsAutoDetect()` at the top of every run, **one browser at a time**,
+reaped and the server killed.
+
+### Y1 — THE STARS WERE NOT ON THE BUILDING BY ACCIDENT
+
+Every sky element in this app is a **DOM overlay sitting on the whole map
+canvas**, clipped to the horizon ROW and to nothing else. A DOM overlay cannot
+know what is in front of it. At the old 18 m floor the frame above the horizon
+was nearly always empty sky, so it never showed; from a pavement, where a
+shopfront fills the upper half, the star field is painted straight across solid
+brick.
+
+**The count Simeon asked for: NINE things composited over the city, EIGHT of them
+ignoring depth. All eight are fixed.** Six live on one 2D canvas (stars, clouds,
+the city skyglow band, the Belt of Venus, the wide horizon wash per body, the
+tight hot-spot per body); two are DOM divs (`#sky-core`, `#sky-bloom`). The
+ninth, `#sky-ground-haze`, only runs in the `screen` FALLBACK path — the default
+`depth` path is the `aerial-fog` custom layer, which has depth-tested correctly
+since it was written and is where this fix's technique came from. (`#sky-glow` is
+a tenth element that has been dead — permanently alpha 0 — for some time.)
+
+**The fix is a compositing change, not an art change.** The identical canvas is
+uploaded as a texture and drawn as ONE quad inside MapLibre's own render pass, at
+NDC z 0.999999 with `depthFunc LESS` — the exact complement of the fog ladder's
+mask pass, which uses GREATER at the same z and is measured to select every 3D
+pixel and nothing else. The disc and its bloom become two sprite quads in the
+same pass, built from the same gradient stops the CSS used. Nothing fades,
+nothing moves, no star is repositioned. Pixels that were always wrong stop being
+drawn.
+
+`gl.depthRange` is deliberately NOT touched: MapLibre hands a renderingMode '3d'
+custom layer the narrowed 3D range ([0, 0.958984] on this build), and that is
+what puts z 0.999999 above every building and below the cleared 1.0.
+
+**Proved in pixels, not in a style expression.** A known `rgba(255,64,32,0.5)`
+fill pushed into the sky canvas and photographed three ways (no sky / DOM sky /
+this layer) at the same pose: the DOM path lays the red film over the UT Tower,
+the teal roofs and the tan tower alike; the new path lays it on the sky only and
+leaves every building at its exact no-sky value. Numerically, on a building at
+the horizon the implied sky contribution goes from 0.198 to **0.000**.
+
+### THE COMPOSITE IS `over`, NOT `screen`, AND IT NEVER WAS
+
+`style.css` sets `mix-blend-mode: screen` on `#sky-canvas`, `#sky-core` and
+`#sky-bloom`, and the header of `js/sky.js` has argued for a long time that
+screen is what keeps a tower crossing the horizon from being painted over.
+**It has never run.** `#sky` is `position:absolute; z-index:3`, which makes it a
+stacking context, and a stacking context isolates the blending group — so those
+elements blend against an empty backdrop inside `#sky` and the group is
+composited over the map with plain source-over.
+
+Measured, not argued. Solving `out = b + P(1-b)` for the implied source on a sky
+pixel beside the setting sun, the DOM path implies a **blue component of
+-0.091** — a screen composite cannot darken anything. And the known-fill probe
+above matches `over` in sRGB to within 1 unit at every sample
+(`DOM [180,109,121]` against a predicted `[180,109,122]`), where `screen` would
+have predicted `[180,167,214]`.
+
+So the new layer uses `over`. Shipping a real `screen` here was tried and
+rejected: measured at **+26,+40,+38** on that same pixel — a brighter sky nobody
+asked for, riding along with a bug fix. **Whether the sky SHOULD screen is a
+taste call for Simeon and a one-line edit in `style.css`, which is not this
+lane's file.** Note that `sky.mjs` asserts `mix-blend-mode: screen` on all four
+elements and passes: it is reading a style property, and the property is not the
+behaviour.
+
+### WHAT THE FRAMES SHOW
+
+`shots/eye/before-*` / `after-*`, every pair shot in ONE browser with
+`window.SKY_COMP.on` toggled between them, so the two sides cannot be a tile that
+loaded late.
+
+* `20-guad-night` — the headline. Stars across the whole face of a lit shopfront,
+  gone. 13.3% of the frame changed, **100% of it darker.**
+* `21-mall-night` — stars on the tree canopies and the dark building masses,
+  gone; every star in the real sky beside the Tower is still there.
+* `22-guad-day` — the sun's bloom had been laying a milky film over the shopfront
+  AND over the carriageway. 3.9% changed, 100% darker, and the street reads as a
+  street.
+* `13-sun-golden` — the largest change (14%) and the clearest improvement: the
+  sunset sky is untouched, the city under it loses an orange film it had not
+  earned.
+* `10/11/12-spawn-*` — the flyover default pose at day, dusk and night:
+  **1.2% / 1.1% / 0.05% of pixels**, max 9 / 17 / 46. The flyover is intact, and
+  `js/controls.js` was not touched, so no camera path moved.
+
+### THE GATES
+
+* `harness-drift.mjs` **PASS** (28/28), before and after.
+* `sky.mjs` **12/12 PASS** — but only after two real fixes and one retraction:
+  1. The DOM disc is hidden with **`visibility:hidden`, not `display:none`**.
+     Chrome resolves `transform` to `none` on a display:none element and
+     `sky.mjs` reads exactly that, so `display:none` broke the disc-projection
+     assertion.
+  2. The repaint request is **gated on the hour** (`_skyDrawnP !== p`), the same
+     guard the fog uses. Asking for a frame on every `updateSky` adds a redundant
+     render to every camera move.
+  3. **`setLight azimuth/polar` is FLAKY ON `origin/main`.** Interleaved reps,
+     baseline and branch alternating: base rep 1 FAILED at **4.82 deg** — worse
+     than anything the branch produced — and base rep 2, branch rep 1 and branch
+     rep 2 all came back 0.00. The test waits 200 ms for a light that lands over
+     several frames on a 53-83 ms renderer. Do not read it once.
+* **Frame cost, interleaved, minimum of 3 reps at the Guadalupe eye-level pose,
+  SwiftShader headless, unthrottled:** DOM sky min **52.7 ms**, depth sky min
+  **55.3 ms**; best-median 82.7 ms against 80.8 ms. So ~2.6 ms at the minimum and
+  indistinguishable at the median. The browser was already re-uploading that same
+  canvas to the GPU every frame in order to composite it; this file does it now
+  instead.
+* `banding.mjs`, `silhouette.mjs`, `dusk.mjs` and `zfight.mjs` **could not be
+  run** — they are part of the known harness regression (`ReferenceError: r is
+  not defined` / `out is not defined` on the first lines, and `zfight` wants an
+  argument it is not given). Broken on `main`, not by this pass.
+
+### Y4 — THE GROUND CAP WAS NOT THE OBSTACLE, AND THE ROAD IS THE REAL PROBLEM
+
+QUEUE Y4 named `js/ground.js:349 texGroundMaxZoom: 22` as the reason you cannot
+look down at your own feet. Measured, three things are true and only the third is
+actionable:
+
+1. **`controls.js` clamps the derived zoom at `ZOOM_MAX = 21.5`, which is BELOW
+   22.** So this cap has never once bound, and it is not what blocks pitching
+   down. `ZOOM_MAX` is, and `js/controls.js` is not this lane's file this round.
+2. **The camera really does get there.** With the controller's own writes frozen
+   (they carry `{fly:true}`, so wrapping `map.jumpTo` drops them and lets a
+   scripted pose survive), z23.94 / pitch 60 gives MapLibre's own
+   `getCameraAltitude()` = **1.70 m** — standing on the South Mall looking 30
+   degrees down. z24.6/pitch 45 gives 1.52 m; z25.0/pitch 30 gives 1.41 m. The
+   library is not the obstacle, which is what §105 said from the other side.
+3. **At those poses, raising the cap from 22 to 25.5 changed 0 pixels** over the
+   South Mall, 0 over the East Mall plaza and 14 over a West Campus street. The
+   base grain is a `background` layer and every one of those surfaces is a
+   classified polygon drawn on top of it.
+
+**So the raise is shipped (22 -> 25) as preparation, not as a fix** — it removes
+a cliff that appears the moment `ZOOM_MAX` rises, over the unclassified catch-all
+ground where the base grain is the only texture there is.
+
+**And here is what the ground actually needs, photographed.**
+`shots/eye/gafter-pavement-guadalupe.png`, standing at 1.70 m on the Drag looking
+30 degrees down:
+
+* **the grass holds up beautifully** — `gbefore-z23.9-pitch60.png` on the South
+  Mall is believable turf at that range: fine grain, no magnification mush;
+* **the kerb profile holds up** — right height, right shadow, reads at 1.7 m;
+* **the carriageway is a flat grey field with no texture at all**, filling ~70%
+  of the frame. Not mush from magnification — *nothing*. `texPatternExpr()` only
+  serves `k:'area'` features from the `austin-ground` source; the roads come from
+  `austin-roads` and the `ground-road` layers are a flat colour. A
+  `gnd-tex-asphalt` image exists, is registered and is strength-tuned at 0.9 —
+  and no layer uses it;
+* the pavement slabs read as **wood decking** at this range, not concrete.
+
+**The proposal, and it is a `ground.js` pass rather than something to bodge into
+this one:** put `gnd-tex-asphalt` on the carriageway with a metre-scale repeat,
+give the walk slabs a concrete grain instead of a plank grain, and only then
+raise `ZOOM_MAX` in `controls.js`. Raising `ZOOM_MAX` first would trade "cannot
+look down" for "can look down at a grey void", which is the trade §105 refused.
+
+### WHAT I DID NOT DO
+
+* **Did not raise `ZOOM_MAX`.** `js/controls.js` is not in this pass's write
+  list, so the pitch floor at 1.7 m is unchanged and you still cannot look down
+  in the shipping app. Everything `ground.js` had to do first is done.
+* **Did not settle why the GL composite is stronger than the DOM one in the
+  bright horizon band.** On the REAL sky (not the known fill) the new path reads
+  10-20 luma warmer at the cloud and hot-spot pixels. Two structurally different
+  implementations — premultiplied with `ONE, ONE_MINUS_SRC_ALPHA`, and straight
+  alpha with `SRC_ALPHA, ONE_MINUS_SRC_ALPHA` — produced **byte-identical**
+  frames, which rules out the upload and the blend func and points at the DOM
+  group's isolation semantics (the disc elements blend against the canvas INSIDE
+  `#sky` before the group ever reaches the map). Pure sky far from the sun
+  matches to 0. Whoever picks this up: the instrument is the known-fill probe
+  above.
+* **Did not fix the four broken verify scripts.** `banding`, `silhouette`,
+  `dusk`, `zfight` — the Mac owns that regression.
+* **Did not touch Y2 (the unlit night street), Y3 (tree collision), Y5 (facade
+  textures at close range) or Y8 (the ground plane).** Y8 is better evidenced
+  than it was: see the road note above.
+* **Did not measure on a real GPU.** Every frame time quoted is SwiftShader,
+  headless, unthrottled.
