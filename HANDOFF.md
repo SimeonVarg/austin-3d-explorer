@@ -13443,3 +13443,163 @@ which is the whole reason for taking a minimum of interleaved reps.
 * **Did not measure on a real GPU.** Every frame time quoted is SwiftShader,
   headless, unthrottled.
 * **Did not check a touch device** (Y10 is still untested at walking height).
+
+---
+
+## 108. Aug 5 2026 — you no longer walk through trees, and the reason a tree you touch disappears is MapLibre's near plane (QUEUE Y3) (acer lane)
+
+Branch `acer/eye-defects`. Wrote `js/controls.js` only.
+
+### THE DEFECT, PHOTOGRAPHED
+
+`shots/tree/before-0-standing.png` is 5 m south of a live oak on the South Mall
+(-97.739031, 30.285164 — trunk radius 0.87 m, trunk top 4.95 m), eye 1.7 m,
+facing the Tower. The trunk fills the middle of the frame.
+`shots/tree/before-1-after-walk.png` is the same camera after holding W: it is
+**8.83 m past the tree, out on the far lawn**, and the measured closest approach
+to the trunk axis was **0.06 m** — dead centre of a solid trunk. All 7,559 of
+them behaved that way. `shots/tree/after-1-after-walk.png` is the same walk now:
+bark filling the frame, stopped 1.67 m from the axis, still at 1.7 m, never
+lifted.
+
+### WHAT WENT IN
+
+A **trunk field**: a separate sparse bucket grid of trunk CIRCLES, tested
+exactly, stamped incrementally off `austin-trees` by the same
+`querySourceFeatures` machinery the outer ring uses.
+
+**It is deliberately not part of `maxHeightIn`**, and that is the load-bearing
+decision, not a style preference:
+
+* `maxHeightIn` answers "how high is the ROOF here", and all six of its readers
+  treat the answer as something you can stand ON. Feed it a trunk and the
+  step-up branch reads a 4.95 m oak as a kerb, the rooftop floor lifts you onto
+  it and the hard net parks you at trunk + `HARD_CLEAR`. You would ride the
+  trees. That is exactly the failure §105 fixed for two-storey houses.
+* its cell is 6 m. The median trunk radius is 0.48 m; stamped into a 6 m cell it
+  becomes a 6 m obstacle, and the South Mall's rows are planted 6-8 m apart. The
+  mall would close.
+
+So `blockedAt` is untouched and a new `hardBlockedAt` (roof **or** trunk) is used
+by the two slide branches only, while the step-up branch is explicitly gated on
+`!tBlk` — a trunk is a wall, never a kerb.
+
+**Trunks only. The canopy is deliberately NOT collided** — real people walk under
+trees, and a median crown is 4.27 m of radius against a 1.0 m probe, so crowns
+in the field would wall off every tree-lined path on campus.
+
+**An escape hatch, because block-and-slide has no way out of a solid it is
+already inside.** A building can never contain you; a 1.5 m trunk can, if a
+scripted pose or an R reset drops you in one. `trunkStuck` is read once per
+frame before the walk, and while it is true trunks do not block at all. Trapping
+the user is worse than the defect.
+
+**Density is filtered at QUERY time, not at scan time,** and that was a measured
+correction. Filtering the scan by `window.treeFilter('trunk')` looked obviously
+right and left a **window with no tree collision at all** every time the setting
+moved — the graphics preset moves it at load and the auto-detect probe can move
+it again ~11 s later, i.e. exactly when a first-time visitor starts walking.
+Stamping `d` per trunk and comparing it at query time makes a density change free
+and exact in the same frame, and the collision set can never disagree with the
+drawn set.
+
+### THE NUMBERS, AND THE INSTRUMENT
+
+`tickperf.mjs` (scratch), launcher copied from `perf.mjs`: **HEADED on the real
+GPU** — ANGLE / NVIDIA RTX 3050 Ti Laptop, D3D11 — **CPU throttled 4x**
+(perf.mjs's own default), 1440x900, minimum of 3 reps at a fixed pose, `w` held.
+
+```
+                     controller tick     frame med
+FLYING  before            20.889 ms        283.2 ms
+FLYING  after             19.574 ms        211.2 ms
+WALKING before            19.681 ms        160.5 ms
+WALKING after             16.872 ms        124.7 ms
+```
+
+The "after" column is faster in both rows, which is the honest way of saying
+**the per-frame cost is below this instrument's noise floor on this machine** —
+the same code path moved 283 -> 211 ms while flying, and nothing in the flying
+path changed at all. Do not read the deltas as a speed-up.
+
+The real cost is the SCAN, and it is quoted separately: 13 scans, **avg 9.7 ms,
+max 65.7 ms at 4x throttle**, against the outer ring's avg 6.5 / max 33.0 in the
+same run. Same order as a mechanism that already ships.
+
+**The flyover pays nothing, proven rather than argued.** After the full intro and
+then the full T tour, `__fly.trunkField()` reads `{buckets: 0, trunks: 0,
+scans: 0}` — no query, no stamp, no allocation. Minimum altitude reached was
+95.4 m (intro) and 71.8 m (tour) against a `TRUNK_ALT` of 12 m. The `sourcedata`
+listener is attached LAZILY on the first descent below 12 m for the same reason:
+a flyover that never lands should not be dispatching into this file.
+
+The first draft polled `querySourceFeatures` every 1.5 s forever and measured
+**avg 12.3 ms / max 123.4 ms, repeating, for a field that had already finished**.
+It is now driven by tile arrival (`sourcedata`), 60 m of travel, or an unfinished
+list — standing still in a stamped district costs nothing.
+
+### THE CANOPY QUESTION, ANSWERED — IT IS THE NEAR PLANE
+
+Asked: why does a canopy vanish when you enter it? Measured, and it is not a
+fade rule, a zoom gate, or anything tree-specific:
+
+    nearZ = (canvasHeight / 50) px / transform.pixelsPerMeter
+          = D * 2 * tan(fov/2) / 50 = 0.0222 * D
+
+**0.72 m at 1.7 m eye / pitch 87**, and identical at 800x600 and 1280x800 —
+viewport-independent, it rides the camera-to-centre distance D. Anything nearer
+is clipped, and because MapLibre back-face-culls fill-extrusions, clipping a
+surface's near face does not show you its inside, **it shows you what is behind
+it**. One clip rule, two symptoms: crowns vanish when you step into them, and a
+trunk you are touching vanishes too.
+
+It is NOT cheap and it is not in this lane — it is a property of the map
+transform, not a paint property, and js/controls.js cannot reach it. But one
+consequence was in scope and is fixed: **`TRUNK_PAD` is 0.9 m, not the 0.6 m I
+first wrote**, because at 0.6 m you stop 0.6 m off the bark, inside the 0.72 m
+near plane, and the oak you just walked into is not in the frame — the collision
+working and looking like a bug. Photographed both ways.
+
+**FOR THE QUEUE (this lane could not write QUEUE.md):** add a Y-item — *the near
+plane is 2.2% of D and clips everything closer, which is 0.4-1.1 m at walking
+height depending on pitch, so every fill-extrusion you touch disappears rather
+than enclosing you.* Candidate fix is overriding the transform's near plane below
+`ALT_GROUND`; it belongs to whoever owns the map transform, and it must be
+re-checked against `zfight` and `coplanar` because a nearer near plane costs
+depth precision.
+
+### VERIFICATION
+
+* `harness-drift.mjs` PASS, run first, before any pixel work.
+* `collision.mjs` **8/8** — including "camera is never inside a building",
+  "a street stays flyable at sign height" and the two touch checks. Needs
+  `VERIFY_MAX_MS=900000` on this laptop; the 300 s default watchdog kills it.
+* `movement.mjs` **14/14**.
+* `keys.mjs` (scratch) **16/16**, all at WALKING height with the trunk field
+  live: W/A/S/D each in the right direction, the four arrow aliases, Q/E and
+  PageUp/PageDown, Shift boost (1.02 m plain vs 3.69 m boosted in the same
+  window), E bottoming out at the 1.7 m floor, and R resetting to 126.8 m.
+* Intro and tour both drive to their documented final pose with no page errors.
+
+### WHAT I DID NOT DO
+
+* **Did not fix the near-plane clipping.** Diagnosed and measured, not fixed —
+  it is not a `js/controls.js` file. Written up above for the queue.
+* **Did not collide canopies.** On purpose, per Y3, and I would push back on
+  anyone who asks for it.
+* **Did not settle `movement.mjs`'s two speed-ratio checks.** They are flaky on
+  this laptop: over five interleaved reps each I read 0.988-1.004 on
+  `origin/main` and 0.991-1.081 on this branch for the same east/north ratio.
+  I could not construct a code path by which the trunk field changes flight at
+  165 m — the field is empty there, every call returns on its first compare, and
+  intro+tour do 0 scans — but I also could not make the spread go away, and
+  three readings is exactly how you get this wrong.
+  **Whoever picks this up: the harness times each leg on the WALL CLOCK
+  (`waitForTimeout`) at ~2 fps headless, so a slower frame means less ground
+  covered, a different altitude at the end of the leg, and speed scales with
+  altitude. That is the likeliest mechanism and it would hit any change.**
+* **Did not touch the outer-ring scan (Y7).** Its 37.9 ms worst case is
+  unchanged and still unbudgeted.
+* **Did not test a touch device.** Y10 remains untested at walking height.
+* **Did not run the pixel sweeps** (`zfight`, `coplanar`, `facade-parity`).
+  Nothing here draws a pixel — but that is reasoning, not looking.
