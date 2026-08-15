@@ -14374,3 +14374,198 @@ green, and it was watched failing: perturbing one baseline by 20 % produced
   network and against campus geography I can reason about; nobody has looked at
   one of these routes drawn on the city. That is the next pass and it is the one
   that will find what this one could not.
+
+## 114. Aug 15 2026 — the walking feature, drawn on the city; and the ribbon that rendered nine pixels while three screenshots said it was fine (acer lane)
+
+**Branch `acer/wayfind`.** Five files, all mine: `js/wayfind.js` (new), `index.html`,
+`_harness.html`, `style.css`, this file. No data file and no other lane's file was
+touched. `harness-drift.mjs`:
+
+```
+index.html:    29 scripts
+_harness.html: 29 scripts
+
+ PASS  the harness loads the same city the site does
+```
+
+### What it does
+
+Type `WEL`, or `welch`, or `161`, or `the castilian`. Get a walking route over the
+real campus path network, drawn in 3D, ending at a door, with a headline that only
+says things `docs/walk/what-we-can-honestly-say.md` permits:
+
+```
+6-8 min walk · 530 m · No stairs on this route
+Robert A. Welch Hall · Entrances are on this side
+```
+
+`?walk=1` opens it, `?from=JES&to=WEL` routes on load, `&fit=1` frames it, and
+`?clip=1` hides every piece of the interface and keeps the ribbon — so
+`?clip=1&from=JES&to=WEL&fit=1` is a recordable shot of a route with no chrome.
+
+### THE FINDING OF THIS PASS: three convincing screenshots of somebody else's line
+
+The ribbon was a `line` layer on the ground under the buildings, exactly as
+`docs/walk/interface.md` section 4 specifies. I photographed it from altitude and
+at walking height, day and night, and the pictures showed a clean pale ribbon
+running from Jester up to Welch. It looked right. **It was Speedway.**
+
+`js/ground.js`'s paving happens to run exactly where a Jester-to-Welch route runs,
+and I was reading it as my own output. The isolation test — identical pose, route
+drawn versus `wayfindClear()`, diff the two frames — says what was actually mine:
+
+```
+                     route pixels on a 1440x900 frame, clip=1, pulse off
+                     v1 line layer   v2 extruded, base 0   v3 SHIPPED
+altitude  z16.2                  9               1,064          1,064
+high      z15.2                  0                 376            376
+eye       z20.1                  0                   0         48,113   (3.7 %)
+eye night z20.1                  0                   0         48,113
+```
+
+Those are pixels that CHANGE when the route is cleared, so they are ours and
+nothing else's. `shots/walk/route-eye-day.png` is the shot the feature exists for:
+a cream ribbon painted down the middle of the brick mall, running away toward
+Welch, at walking height, with no chrome on screen.
+
+**Nine pixels**, in a ten-pixel sliver at the far end of the frame. Playbook rule 2
+— *confirm you are sampling YOUR output, not a basemap that happens to look
+plausible* — cost this project a whole session once before and it has just earned
+its place again. Nothing but the A/B would have caught it; the frames were
+persuasive.
+
+**Two causes, both the same mistake, and neither is in any of the three docs.**
+
+1. **The ground in this app is not flat geometry.** `js/ground.js` extrudes its
+   footways, plazas, Speedway and roads as slabs, and those write depth. A 2D
+   `line` layer placed beneath them is drawn first and painted over by every slab
+   it lies on — which, for a footpath route, is all of them. So the ribbon is real
+   geometry now: a 1.6 m wide strip built by buffering the polyline, standing on
+   the pavement, depth-sorted against the ground *and* the buildings. The same
+   answer `js/places.js` reached for its shopfronts.
+2. **`GROUND.pathRaise` is 0.22 m, and the first extruded ribbon was also 0.22 m
+   tall from base 0** — exactly coplanar with the pavement. That is why v2 appeared
+   from above and was *still* invisible at walking height: looking along a coplanar
+   pair, the pavement wins. `WAYFIND.routeBaseM` is now 0.22 and the ribbon is a
+   14 cm painted strip resting on the pavement's own top surface. **If
+   `GROUND.pathRaise` ever moves, that constant moves with it.**
+
+A `line` layer still carries the route from altitude, where 1.6 m of ground is
+under a pixel. It fades out across z17.2 to z18.4 as the real ribbon takes over.
+
+### THE OTHER FINDING: `JES` routed to the wrong building, and every number was right
+
+The match ladder collected all its rungs into one list and then sorted the whole
+thing "routable first, then shortest name". Typing **`JES`** therefore returned
+**JCD, Jester East Hall** ahead of **JES, Beauford H. Jester Center** — seventeen
+characters against twenty-five. The route drew beautifully to the wrong building
+and reported 716 m and 2 sets of stairs, all of it internally consistent.
+
+That is the exact "made me late for my exam" failure. Fixed: sort **within** a
+rung, concatenate **between** rungs, and an exact code is a rung of one that ends
+the search. It was caught by checking the client's distances against the bake's
+audited nine pairs, which is the only reason to have frozen them.
+
+### The routing agrees with the bake, exactly
+
+All eight pairs, in the browser, against section 113's audited table:
+
+```
+pair                dist    client headline                              bake
+JES > WEL          525 m   6-8  min walk · 530 m · No stairs             525 m 6-8
+JES > GDC          472 m   5-8  min walk · 470 m · No stairs             472 m 5-8
+PCL > RLP          518 m   6-8  min walk · 520 m · Stairs: 1 set         518 m 6-8
+GRE > MAI          575 m   7-11 min walk · 580 m · Stairs: 2 sets        575 m 7-10
+STD > MAI         1002 m   12-17 min walk · 1.0 km · Stairs: 5 sets     1002 m 12-17
+BUR > CBA          949 m   11-15 min walk · 950 m · Stairs: 1 set        949 m 11-15
+The Castilian>GDC  698 m   8-13 min walk · 700 m · No stairs             698 m 8-13
+PCL > JES          156 m   2-3  min walk · 160 m · Stairs: 1 set         156 m 2-3
+```
+
+Every distance and every staircase count matches. Only GRE > MAI's upper bound
+differs, by one minute, because the bake did not apply `STAIR_UP_MULT`. PCL > JES
+is 156 m and not 80 m because the client makes the same `role: main` door choice
+section 113 said it had to.
+
+The match ladder on real strings: `welhc` finds Welch, `jestre` offers both Jester
+buildings, `161` and `0161` both find WEL, `gates dell` finds GDC, `MAI` displays
+as UT Tower.
+
+### Speed, measured, minimum of 5 interleaved reps
+
+Real Chrome via `chrome.mjs` (SwiftShader default), **no CPU throttle**, 1440x900,
+graphics auto-detect cancelled:
+
+```
+Dijkstra alone   0.20 - 2.30 ms   (11,062 nodes, 11,997 edges, binary heap)
+end to end       0.30 - 2.50 ms   (resolve both names, route, measure, build the
+                                   geometry, set two GeoJSON sources, render pill)
+```
+
+Single-digit milliseconds, as `graph.md` section 6g predicted. Assume roughly 4x on
+a throttled phone and it is still under 10 ms. The graph fetch is 2.3 s on this
+machine and happens **on first open of the panel, never at boot**.
+
+### The app with the feature off
+
+`js/wayfind.js` returns on line one unless `?walk=1`, `?from=` or `?to=` is present,
+or `WAYFIND.on` is flipped — **it is `false` and stays false until after the AWS
+shoot**. Five hero poses, shot with the feature absent from the tree entirely
+(the three tracked files reverted, `js/wayfind.js` moved out) and again with it
+present:
+
+```
+H1-spawn   IDENTICAL BYTES aa403611d536
+H2-drag    IDENTICAL BYTES b820229b09e7
+H3-tower   IDENTICAL BYTES 6ead9411e8c4
+H4-city    IDENTICAL BYTES 961a70b26db7
+H5-dkr     IDENTICAL BYTES c2dd3ad0fecd
+```
+
+Not "no visible difference" — the same SHA-256. The one honest caveat: the network
+request list gains exactly one entry, `js/wayfind.js` itself. It fetches no data.
+
+**H5 first came back 7.1 % different and it was my instrument, not the change.**
+The baseline H5 was shot solo after the five-shot run hit `VERIFY_MAX_MS`; re-shot
+under identical conditions it is byte-identical. Max delta was 16/255, which is a
+session-state difference in the facade atlas.
+
+**These are not the committed `shots/aws/C-HERO*.png` files** and cannot be. Those
+were flown by hand on the live site and their poses were never recorded, so they
+are not reproducible; `docs/aws/beautiful.md` gives prose directions and one exact
+camera. My five are reconstructions of the same compositions, and the A/B is
+before-and-after on this machine in the same session, which is the stronger test
+anyway.
+
+### A schema request for whoever owns `scripts/bake_walk.py` (CLAUDE.md rule 1)
+
+`walk_graph.json`'s `code` map holds only the 136 codes that have doors, and `name`
+only 113. So typing **`FC1`** returns **nothing at all**, and `interface.md`
+section 1 is right that silence reads as *"you typed it wrong"* rather than *"we
+don't have it"*. Please add the remaining register codes with an empty door list so
+the client can show them greyed and say so in words. Not my file to change.
+
+### What I did NOT manage to do
+
+* **The turn beads and the see-through ghost are not on screen.** `wayfind-ghost`
+  reports index -1 in the rendered style, i.e. the layer is not being added, and I
+  ran out of time to find out why — so the "solid on open ground, dashed through
+  the wall" half of the occlusion design is UNBUILT, and a route that runs behind
+  a building currently just disappears behind it. The ribbon and the altitude
+  thread are measured and good; the ghost is not. Start here.
+* **No boot-cost A/B.** `boot-ab.mjs` is written and was never run; the time went
+  to the ribbon. "No fetch at boot" is from reading the code and from the request
+  list, not from a time-to-interactive measurement.
+* **The avoid-stairs profile is built and never exercised.** It re-routes with
+  `highway=steps` deleted and re-anchors across all three door anchors per door.
+  Nobody has photographed one or re-checked `graph.md` section 6f's numbers.
+* **The coffee stop is built and never verified against a picture.** The chips
+  re-route through a via node and the wording is right; no frame shows one.
+* **`?clip=1` was used in every isolation run and works, but the advertised
+  `?clip=1&from=JES&to=WEL&fit=1` was never shot as a finished frame.**
+* **Nothing was tested at a phone viewport.** The bottom-sheet CSS at 640 px and
+  under is written and unphotographed.
+* **`Perry-Castañeda` cannot be typed as `castaneda`** — `norm()` strips the ñ
+  instead of folding it. One line, not done.
+* **No PR and not merged.** The eye-level measurement has to come back non-zero
+  first, and merging red is the one thing CLAUDE.md rule 2 does not permit.

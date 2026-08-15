@@ -115,6 +115,14 @@
   <!-- Render distance (docs: js/lod.js header). Self-booting; needs the tag in
        BOTH files or the harness measures a scene the site does not serve. -->
   <script src="js/lod.js"></script>
+  <!-- Walk to class (docs/walk/*.md). Self-booting off window.__map like
+       places.js; app.js never calls it. It RETURNS ON LINE ONE unless the
+       feature was asked for by URL (?walk=1, ?from=, ?to=) or WAYFIND.on is
+       flipped, so with the feature off it adds no element, no source, no layer
+       and no fetch — main stays byte-identical for the AWS recording. Loaded
+       after controls.js so the `/` key handler is installed over a controls
+       stack that is already listening. KEEP IN SYNC WITH _harness.html. -->
+  <script src="js/wayfind.js"></script>
   <script src="js/controls.js"></script>
   <script src="js/app.js"></script>
 </body>
