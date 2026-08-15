@@ -1,0 +1,16 @@
+{
+ "cruise": {
+  "px": 67,
+  "box": [
+   702,
+   428,
+   753,
+   490
+  ],
+  "frame": 1296000,
+  "note": "drag-detail painted #ff00ff, HANDOFF s48; readPixels count, threshold R>150,B>120,G<90"
+ },
+ "eye": {
+  "note": "NOT MEASURED - watchdog killed the run after the cruise pose; the eye-level footprint is visible in the before/after day pair instead"
+ }
+}

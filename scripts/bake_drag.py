@@ -109,6 +109,40 @@ MIN_BAND = 0.5           # thinner than this and a band is merged away
 PARAPET_MIN = 0.75
 PARAPET_FRAC = 0.055
 
+# ── Storey bands (QUEUE Y5, shipped 2026-08-15 from candidate A) ──────
+#
+# The 40 m of wall above the Guadalupe shopfronts had no horizontal structure
+# at all, and at walking height that reads as a vertical barcode
+# (docs/camera/facades-measured.md §8). A horizontal event cannot come from a
+# tile — a `fill-extrusion-pattern` repeat is `displaySize x
+# mpp(floor(cameraZoom))` metres of wall, so a storey line drawn into the tile
+# lands at a different height at every zoom. It has to be GEOMETRY, whose
+# height is in metres and does not move (that is also what survives Y4 raising
+# ZOOM_MAX: metres, not zoom stops).
+#
+# So every retail building whose upper wall is tall enough gets, as real
+# extrusions: a BASE COURSE where the upper wall meets the sign band, a FLOOR
+# LINE between each pair of storeys, and a CORNICE under the parapet. Each is
+# a ring offset OUTWARD from the footprint, so it contains the wall's own face
+# over its height — proud stone, nothing coplanar, nothing for the depth
+# buffer to argue about. The night look is NOT handled here: the wall tile
+# keeps its existing night treatment (js/drag.js retUpper), so the banded wall
+# after dark is never darker than the barcode wall was.
+#
+# Chosen over per-window geometry on the decision sheet
+# (docs/camera/facade-choice.md): most of the win for a twentieth of the work,
+# and windows stay additive later because that candidate was this one plus
+# openings.
+STOREY_M = 3.60          # nominal floor-to-floor for an upper wall, metres
+STOREY_MIN_M = 2.00      # under this, a "storey" is a parapet and gets no lines
+BAND_BASE_PROUD = 0.17   # the base course, where the upper wall meets the sign
+BAND_BASE_H = 0.42
+BAND_COURSE_PROUD = 0.11 # the floor line between two storeys
+BAND_COURSE_H = 0.26
+BAND_CORN_PROUD = 0.34   # the cornice under the parapet. The deepest shadow.
+BAND_CORN_H = 0.55
+BAND_TRIM_LIFT = 0.17    # how far the trim is lifted off the building's own tone
+
 # Guadalupe Street's centreline, sampled from OSM (`way[highway][name=Guadalupe
 # Street]`, queried 2026-07-31) and reduced to one (lat, lon) per 0.0005 deg.
 # Embedded rather than fetched so the bake is deterministic and offline.
@@ -274,6 +308,16 @@ def to_ll(pts, lat0):
     if ring[0] != ring[-1]:
         ring = ring + [ring[0]]
     return [[round(x / (M_LAT * k), 7), round(y / M_LAT, 7)] for (x, y) in ring]
+
+
+def to_ll8(pts, lat0):
+    """to_ll at 8 decimals. A course is 0.11 m proud and 7 decimals quantises
+    longitude to ~1 cm, which is a tenth of that; 8 gives a millimetre."""
+    k = math.cos(math.radians(lat0))
+    ring = list(pts)
+    if ring[0] != ring[-1]:
+        ring = ring + [ring[0]]
+    return [[round(x / (M_LAT * k), 8), round(y / M_LAT, 8)] for (x, y) in ring]
 
 
 def outer_ring(geom):
@@ -456,6 +500,82 @@ def build_union(ring, lat0, H):
     ]
 
 
+def _hex_mix(hex_col, other, t):
+    a = [int(hex_col[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(other[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join("%02x" % max(0, min(255, int(round(a[i] + (b[i] - a[i]) * t))))
+                         for i in range(3))
+
+
+def storeys_of(y0, y1):
+    """Split an upper wall into the base course, n storeys and the cornice.
+
+    Returns (base_span, [storey spans], cornice_span) in metres, or None if the
+    wall is too short to carry any of it — which is much of this street: half
+    the Drag is a shopfront and a fascia with a parapet on top, and pretending
+    otherwise would put a cornice 20 cm under a floor line.
+    """
+    if y1 - y0 < BAND_BASE_H + BAND_CORN_H + STOREY_MIN_M:
+        return None
+    b = (y0, y0 + BAND_BASE_H)
+    c = (y1 - BAND_CORN_H, y1)
+    n = max(1, int(round((c[0] - b[1]) / STOREY_M)))
+    s = (c[0] - b[1]) / n
+    return b, [(b[1] + i * s, b[1] + (i + 1) * s) for i in range(n)], c
+
+
+def detail_feature(ring_ll, grp, part, base, top, trio):
+    """One piece of proud trim.
+
+    DELIBERATELY `dbase`/`dh`, not `base`/`h`, and NO `bid`. `base`/`h` on this
+    file's features mean "a band in the stack that must tile the building's
+    height with no gap and no overlap" — drag-check.mjs asserts exactly that,
+    per bid, over every feature. Trim is not a band: it OVERLAPS the wall on
+    purpose (a proud ring containing the wall's own face), so if it carried the
+    band schema it would either break that invariant or force the invariant to
+    be weakened. Different name, different contract — same shape as
+    bake_entrances.py's proud geometry, which claims no building ids either.
+    """
+    wd, wg, wn = trio
+    return {"type": "Feature",
+            "properties": {"kind": "detail", "grp": grp, "part": part,
+                           "wd": wd, "wg": wg, "wn": wn,
+                           "dbase": round(base, 3), "dh": round(top, 3)},
+            "geometry": {"type": "Polygon", "coordinates": [ring_ll]}}
+
+
+def storey_details(ring, lat0, y0, y1, tone, grp, stats):
+    """The storey bands for one upper wall: base course, floor lines, cornice.
+
+    Three prouds, three depths — the cornice deepest, the floor line lightest.
+    The rings are offset OUTWARD, so nothing is coplanar with the wall; their
+    undersides are what cast the line of shadow a barcode does not have.
+    """
+    split = storeys_of(y0, y1)
+    if split is None:
+        stats["band_wall_too_short"] += 1
+        return []
+    m = ccw(to_m(ring, lat0))
+    closed = m + [m[0]]
+    base, sts, corn = split
+    trim = _hex_mix(MATERIALS[tone], "#ffffff", BAND_TRIM_LIFT)
+    trio = (trim,) + wall_ramp(trim)
+    out = []
+    for (lo, hi, d, part) in ([(base[0], base[1], BAND_BASE_PROUD, "base")]
+                              + [(a - BAND_COURSE_H * 0.5, a + BAND_COURSE_H * 0.5,
+                                  BAND_COURSE_PROUD, "course")
+                                 for (a, _) in sts[1:]]
+                              + [(corn[0], corn[1], BAND_CORN_PROUD, "cornice")]):
+        r = offset(closed, d)
+        if r is None:
+            stats["band_offset_failed"] += 1
+            continue
+        out.append(detail_feature(to_ll8(ccw(r), lat0), grp, part, lo, hi, trio))
+        stats["band_details"] += 1
+    stats["band_buildings_" + ("banded" if out else "bare")] += 1
+    return out
+
+
 def retail_bands(ring, lat0, H, grp, upper_mat, stats):
     """The shopfront scheme: glass, sign band, upper, parapet.
 
@@ -478,6 +598,7 @@ def retail_bands(ring, lat0, H, grp, upper_mat, stats):
     else:
         out.append(band(full, grp, "sign", "signBand", "sign", shop_top, sign_top))
         out.append(band(full, grp, "upper", "retUpper", upper_mat, sign_top, para_bot))
+        out.extend(storey_details(ring, lat0, sign_top, para_bot, upper_mat, grp, stats))
     out.append(cap(full, grp, para_bot, H))
     return out
 
@@ -509,7 +630,11 @@ def main():
         # nothing at all in a still.
         bid = f["properties"]["id"]
         for m in made:
-            m["properties"]["bid"] = bid
+            # Trim (kind "detail") gets no bid: it is not part of the band
+            # stack and must not join drag-check.mjs's gap/overlap accounting.
+            # See detail_feature's docstring.
+            if m["properties"].get("kind") != "detail":
+                m["properties"]["bid"] = bid
         out.extend(made)
         replaced.append(bid)
         report.append((label, f["properties"].get("final_height") or 0, len(made)))
@@ -610,6 +735,7 @@ def main():
             "gym_union_heights": "factual - kept at the baked values so data/roofs.geojson's tile roofs still land",
             "band_fractions": "GENERATIVE - proportions read off elevations, not measured drawings",
             "retail_upper_tones": "GENERATIVE - the range is from the street, the per-building pick is a hash",
+            "storey_bands": "GENERATIVE - 3.6 m nominal floor-to-floor fitted to each wall; course depths authored in metres (QUEUE Y5, from candidate A)",
         },
     }, indent=2))
 

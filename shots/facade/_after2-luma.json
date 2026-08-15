@@ -1,0 +1,22 @@
+{
+ "cruise-day": {
+  "luma": {
+   "mean": 138.229,
+   "rows": [
+    400,
+    500
+   ],
+   "px": 144000
+  },
+  "ae": {
+   "gain": 1,
+   "luma": null
+  },
+  "state": {
+   "z": 15.2892,
+   "pitch": 64,
+   "bearing": -160,
+   "aeOn": false
+  }
+ }
+}
