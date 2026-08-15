@@ -505,6 +505,21 @@ a person.
 * `We don't have door locations for this building — the route ends at the building`
 * `The last stretch isn't a mapped path` — for the door leg
 
+**The start** *(added 2026-08-15, QUEUE Z2 — the old placeholder `Where I am
+standing` promised geolocation that does not exist and is withdrawn)*
+* `Nearest building to the view` — the From field's placeholder and its default:
+  the routable building nearest the CAMERA. The camera always exists, needs no
+  permission, and this wording claims nothing about where the person is standing.
+  When geolocation is ever added, §9's rules apply and this line is revisited.
+
+**Buildings we cannot route yet** *(added 2026-08-15, QUEUE Z3 — an empty
+result list reads as "you typed it wrong" when the truth is "we don't have it")*
+* `SMC is not walkable in this build yet` — for any UT register code absent from
+  `walk_graph.json`. It names the build as the limitation, not the campus and
+  not the student's typing, and "yet" is honest because the graph coverage is
+  actively being raised.
+* `not walkable yet` — the same fact compressed to a result-row tag.
+
 **Food on the way**
 * `Coffee on the way: Medici, 200 m off route`
 * `OpenStreetMap lists 07:00-15:00. Check before you go.`

@@ -111,6 +111,8 @@
     colNight: '#ffcf6a',   // warm amber after dark
     ghostOpacity: 0.28,    // the copy that shows through buildings
     ghostDash: [1.6, 1.5],
+    ghostWidthMul: 0.55,   // the ghost is thinner than the ribbon it shadows
+    ghostMinPx: 1.5,       // but never thinner than a followable line
     ribbonOpacity: 0.95,
     legDash: [1.1, 1.3],
     legOpacity: 0.6,
@@ -170,6 +172,8 @@
 
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
+    registerUrl: 'data/ut_buildings.json',  // UT's own 198-code register; the
+                           // codes the graph lacks still deserve an answer
     minZoom: 13,
   };
 
@@ -187,7 +191,15 @@
     placeholder: 'Building code, name or number',
     fromLabel: 'From',
     toLabel: 'To',
-    here: 'Where I am standing',
+    // QUEUE Z2. The old placeholder was `Where I am standing` — a promise of
+    // geolocation this file does not have. The From default is now the
+    // routable building nearest the CAMERA (which always exists and never asks
+    // permission), and the placeholder says exactly that and nothing more.
+    fromDefault: 'Nearest building to the view',
+    // QUEUE Z3. A register code the graph lacks gets a specific, honest answer
+    // — never an empty list, never silence.
+    notWalkable: (code) => code + ' is not walkable in this build yet',
+    notWalkableTag: 'not walkable yet',
     minWalk: (lo, hi) => lo + '-' + hi + ' min walk',
     minWalkUnder: (hi) => 'Under ' + hi + ' min walk',
     stairsNone: 'No stairs on this route',
@@ -258,7 +270,13 @@
     if (loadPromise) return loadPromise;
     loadPromise = (async () => {
       const t0 = performance.now();
-      const r = await fetch(WAYFIND.graphUrl);
+      // The register rides along so the 85 codes the graph lacks can still be
+      // FOUND and answered honestly (QUEUE Z3). Its failure is tolerated: the
+      // feature works without it, it just answers less specifically.
+      const [r, reg] = await Promise.all([
+        fetch(WAYFIND.graphUrl),
+        fetch(WAYFIND.registerUrl).then(x => x.ok ? x.json() : null).catch(() => null),
+      ]);
       if (!r.ok) throw new Error(WAYFIND.graphUrl + ': ' + r.status);
       const text = await r.text();
       const t1 = performance.now();
@@ -266,7 +284,7 @@
       const t2 = performance.now();
       G = decode(raw);
       const t3 = performance.now();
-      buildIndex(G);
+      buildIndex(G, reg);
       const t4 = performance.now();
       stats.fetchMs = t1 - t0; stats.parseMs = t2 - t1;
       stats.decodeMs = t3 - t2; stats.indexMs = t4 - t3;
@@ -488,7 +506,7 @@
   const STOPWORDS = new Set(['hall', 'building', 'bldg', 'center', 'centre', 'the',
     'and', 'of', 'at', 'complex']);
 
-  function buildIndex(g) {
+  function buildIndex(g, reg) {
     // code -> {code, name, number, doors[]}
     const byCode = new Map();
     for (const c of Object.keys(g.code)) {
@@ -513,6 +531,21 @@
     const entries = Array.from(byCode.values());
     for (const [name, doors] of Object.entries(g.wc)) {
       entries.push({ kind: 'wc', code: '', name: norm(name), number: '', display: name, doors: doors.slice() });
+    }
+    // THE REGISTER MERGE (QUEUE Z3). 85 of UT's 198 register codes are not in
+    // walk_graph.json at all, and an empty result list reads as "you typed it
+    // wrong" rather than "we don't have it". So every register code the graph
+    // lacks becomes a findable, non-routable entry that gets the honest answer
+    // (`SMC is not walkable in this build yet`). Actually ROUTING them is the
+    // bake's job — scripts/bake_walk.py, QUEUE Z3/Z4 — not this file's.
+    if (reg && Array.isArray(reg.buildings)) {
+      for (const b of reg.buildings) {
+        if (!b || !b.ref || byCode.has(b.ref)) continue;
+        const e = { kind: 'reg', reg: true, code: b.ref, name: norm(b.name),
+          number: b.number || '', display: titleCase(norm(b.name)), doors: [] };
+        byCode.set(b.ref, e);
+        entries.push(e);
+      }
     }
     for (const e of entries) {
       e.tokens = norm(e.name || e.display).split(' ').filter(Boolean);
@@ -802,10 +835,19 @@
   // 0.06 m/px at the eye-level pose, so 1.6 m is 0.8 px from cruise altitude
   // (clamped up to a followable thread) and 27 px under your feet.
   function mPerPxAt(z) { return (40075016.686 * Math.cos(30.2862 * Math.PI / 180)) / (512 * Math.pow(2, z)); }
-  function groundWidthExpr(metres, minPx, maxPx) {
-    const w15 = metres / mPerPxAt(15), w21 = metres / mPerPxAt(21);
-    const e = ['interpolate', ['exponential', 2], ['zoom'], 15, w15, 21, w21];
-    return ['max', minPx, ['min', maxPx, e]];
+  // THE Z1 LESSON, PAID FOR IN A MISSING LAYER. MapLibre only accepts a
+  // ["zoom"] expression as the input of a TOP-LEVEL "interpolate" or "step".
+  // The first version wrapped the interpolate in ['max', 1.5, ['*', 0.55, ...]]
+  // — style validation rejected it, fired an error EVENT rather than throwing,
+  // and skipped the layer, so `wayfind-ghost` never entered the style and a
+  // route running behind a building simply vanished. So the clamp and the
+  // multiplier are applied HERE, in JavaScript, per stop, and MapLibre is
+  // handed a bare interpolate. Same ground-metres arithmetic as before:
+  // exponential base 2 is a constant ground width between the stops.
+  function ghostWidthExpr() {
+    const at = (z) => Math.max(WAYFIND.ghostMinPx, WAYFIND.ghostWidthMul *
+      Math.min(WAYFIND.routeMaxPx, Math.max(WAYFIND.routeMinPx, WAYFIND.routeWidthM / mPerPxAt(z))));
+    return ['interpolate', ['exponential', 2], ['zoom'], 15, at(15), 21, at(21)];
   }
 
   function nightness() {
@@ -914,8 +956,7 @@
       layout: { 'line-cap': 'butt' },
       paint: {
         'line-color': col,
-        'line-width': ['max', 1.5, ['*', 0.55,
-          groundWidthExpr(WAYFIND.routeWidthM, WAYFIND.routeMinPx, WAYFIND.routeMaxPx)]],
+        'line-width': ghostWidthExpr(),
         'line-opacity': WAYFIND.ghostOpacity,
         'line-dasharray': WAYFIND.ghostDash,
       },
@@ -1126,7 +1167,7 @@
     const rowFrom = h('div', 'wf-row');
     rowFrom.appendChild(h('span', 'wf-lab', SAY.fromLabel));
     const inFrom = document.createElement('input');
-    inFrom.id = 'wf-from'; inFrom.type = 'text'; inFrom.placeholder = SAY.here;
+    inFrom.id = 'wf-from'; inFrom.type = 'text'; inFrom.placeholder = SAY.fromDefault;
     inFrom.autocomplete = 'off'; inFrom.spellcheck = false;
     rowFrom.appendChild(inFrom);
 
@@ -1180,7 +1221,35 @@
     el.btn.classList.add('active');
     try { await loadGraph(); } catch (e) { el.hint.textContent = 'Could not load the campus paths.'; return; }
     el.hint.textContent = SAY.examples + ' · ' + SAY.asOf(fmtAsOf(G.asOf));
+    // QUEUE Z2: the From default. interface.md §2 wants From pre-filled from
+    // something that exists; geolocation does not exist here (honesty audit
+    // §9), the camera always does. So From opens holding the routable building
+    // nearest the camera — visibly a building name, never a claim about where
+    // the PERSON is standing — and the field stays fully editable.
+    if (!state.from && !el.inFrom.value) {
+      const near = nearestToCamera();
+      if (near) { state.from = near; el.inFrom.value = near.display; }
+    }
     el.inTo.focus();
+  }
+
+  // The routable entry whose nearest door is closest to the camera's centre.
+  // 132 routable entries x a handful of doors each is a sub-millisecond scan.
+  function nearestToCamera() {
+    if (!G || !window.__map || !window.__map.getCenter) return null;
+    const c = window.__map.getCenter();
+    let best = null, bd = Infinity;
+    for (const e of G.entries) {
+      if (!e.routable) continue;
+      for (const di of e.doors) {
+        if (!G.doors[di][2] || !G.doors[di][2].length) continue;
+        const ll = doorLL(G, di);
+        const dx = (ll[0] - c.lng) * MPD_LON, dy = (ll[1] - c.lat) * MPD_LAT;
+        const m2 = dx * dx + dy * dy;
+        if (m2 < bd) { bd = m2; best = e; }
+      }
+    }
+    return best;
   }
   function closeSheet() {
     if (!el) return;
@@ -1191,6 +1260,9 @@
 
   function renderList(inp) {
     if (!G) return;
+    // A new keystroke is a new question: put the default hint back so a
+    // previous failure message does not outlive the query it answered.
+    el.hint.textContent = SAY.examples + ' · ' + SAY.asOf(fmtAsOf(G.asOf));
     const rows = search(inp.value);
     el.list.innerHTML = '';
     const shown = rows.slice(0, WAYFIND.resultRows);
@@ -1199,16 +1271,42 @@
       r.appendChild(h('span', 'wf-code', e.code || '•'));
       r.appendChild(h('span', 'wf-name', e.display));
       const n = e.doors.length;
-      r.appendChild(h('span', 'wf-meta', e.routable ? (n + (n === 1 ? ' door' : ' doors')) : 'no door mapped'));
+      r.appendChild(h('span', 'wf-meta', e.routable ? (n + (n === 1 ? ' door' : ' doors'))
+        : (e.reg ? SAY.notWalkableTag : 'no door mapped')));
       if (e.routable) r.addEventListener('mousedown', (ev) => { ev.preventDefault(); pick(inp, e); });
+      // A non-routable row is not pickable, but clicking it must still ANSWER
+      // (QUEUE Z3) — and a failed answer must never sit on top of a stale route.
+      else r.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        answerFail(e.reg ? SAY.notWalkable(e.code) : SAY.notRoutable);
+      });
       el.list.appendChild(r);
     }
     if (rows.length > shown.length) el.list.appendChild(h('div', 'wf-more', SAY.more(rows.length - shown.length)));
   }
 
   function commitFirst(inp) {
-    const rows = search(inp.value).filter(e => e.routable);
-    if (rows.length) pick(inp, rows[0]);
+    const all = search(inp.value);
+    const rows = all.filter(e => e.routable);
+    if (rows.length) return pick(inp, rows[0]);
+    // Empty From + Enter used to do NOTHING, silently (QUEUE Z2). Now it takes
+    // the stated default: the routable building nearest the view.
+    if (!norm(inp.value)) {
+      if (inp === el.inFrom) { const near = nearestToCamera(); if (near) pick(inp, near); }
+      return;   // empty To + Enter: the hint line already says what to type
+    }
+    // A query that matched nothing routable gets a specific answer, and the
+    // previous route is CLEARED so a failed question never keeps a confident
+    // answer on screen (QUEUE Z3).
+    answerFail(all.length
+      ? (all[0].reg ? SAY.notWalkable(all[0].code) : SAY.notRoutable)
+      : SAY.notFound(inp.value));
+  }
+
+  // Say why, in the sheet, and take the old route off the map.
+  function answerFail(msg) {
+    failText(msg);
+    clear();
   }
 
   function pick(inp, entry) {
@@ -1242,7 +1340,14 @@
     el.card.classList.toggle('hidden', !state.expanded);
 
     if (!r || !r.ok) {
-      el.headline.textContent = r && r.why === 'nodoor' ? SAY.notRoutable : SAY.noRoute;
+      // 'nodoor' names whichever end cannot be routed; a register-only entry
+      // (QUEUE Z3) gets the specific sentence, a graph entry the general one.
+      const dead = r && r.why === 'nodoor'
+        ? [state.to, state.from].find(e => e && (!e.doors.length || !e.routable))
+        : null;
+      el.headline.textContent = dead
+        ? (dead.reg ? SAY.notWalkable(dead.code) : SAY.notRoutable)
+        : (r && r.why === 'nodoor' ? SAY.notRoutable : SAY.noRoute);
       el.sub.textContent = state.to ? state.to.display : '';
       return;
     }

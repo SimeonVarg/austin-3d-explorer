@@ -15012,3 +15012,167 @@ which is the trap that cost §114 a whole round.
   open from the honesty audit's own §14.
 * **No browser was left running and both servers were killed** (8323 feature,
   8324 the pinned `origin/main`), `reap.mjs` run at the end.
+
+
+## 117. Aug 15 2026 — the frames nobody had taken: dusk from the pavement, the moon behind a wall, and the Union ruled (QUEUE Y11, Y13, W8) (acer lane)
+
+**No code and no data changed.** Shot against a clean detached worktree of
+`origin/main` (`da335ef`) — NOT this working tree, which was carrying another
+workflow's live edit to `js/ground.js` at the time; photographing that would
+have been photographing their half-finished pass. Files written: `shots/blitz/`,
+`QUEUE.md` (W8 ruling, Y11/Y13 closed, Y17/Y18 opened), this entry.
+
+**Setup, instruments quoted.** `python scripts/serve.py 8341 <clean worktree>`.
+`harness-drift.mjs` **PASS, 28 scripts in each file**, before any pixel.
+`_harness.html?intro=0&drift=0`, 1440x900, dsf 1, SwiftShader headless,
+`cancelGraphicsAutoDetect()` at the top of every session, two poses per browser
+(§109's degradation lesson), one browser at a time, server killed at the end.
+Every pose verified at the shutter: `__fly.eye().alt` AND
+`transform.getCameraAltitude()` both 1.70 at every eye-level frame (§101's
+lesson — the pose at the shutter, not at the jump). Pixel numbers are offline
+PNG decodes of the composited `page.screenshot()` (§109's rule: if a DOM
+element can be in the frame, readPixels is the wrong instrument).
+
+### Y11 — dusk at eye level, p 0.55 / 0.62 / 0.70 at three sites, and it breaks in two specific ways
+
+The nine frames are `shots/blitz/y11-<site>-p0NN.png`. The sky itself is the
+good news — the Belt of Venus, the gradient and the star lag all read from the
+pavement, and `y11-southmall-p062.png` (the Tower against the mid-dusk sky) is
+the single best eye-level frame this project has produced. The two breaks:
+
+1. **The ground plane ignores the dusk clock (new QUEUE Y17).** Fixed pavement
+   box, mean luma across p 0.55/0.62/0.70: Guadalupe 128/141/101, West Campus
+   120/126/84, South Mall 134/118/80 — pavement BRIGHTENS through mid-dusk at
+   two sites, and at p 0.70 it sits at 2.3–2.9x the luma of the walls it meets
+   while the sky is already starlit. At walking height the ground is half the
+   frame, so this is the first wrong thing in every dusk frame.
+2. **The bloom/god-rays canvas paints glow bands across facades (new QUEUE
+   Y18).** Red-brown band on the Drag facade at p 0.70, 100+ rows above the
+   horizon; gone at the same pose with `GFX.bloom/godRays/flare = 0` (the A/B
+   pair is `y11-guadalupe-p070-ship.png` / `-fxoff.png`; the pass moves 73.1 %
+   of a 950x370 wall region by >8). The same class of band shows on a West
+   Campus tower at p 0.92 in the Y13 frames — night, not dusk — so it is not
+   the depth-tested sky field §109 cleared; it is the screen-space fx pass,
+   which is composited at z 6 over everything and cannot lose to a wall.
+   Also written into Y18: a suspected auto-exposure path-dependence (same pose,
+   same p, wall box 35 vs 56 luma depending on the p-path taken to reach it) —
+   suspected, single reps, needs interleaving before anyone leans on it.
+
+### Y13 — the moon does NOT paint through walls. Closed with its own control.
+
+Pose: 1.7 m, [-97.74575, 30.28640], bearing 112, pitch 85, p 0.92 — a West
+Campus tower across the disc's screen position (`skyFrame.sun` (724,71),
+`queryRenderedFeatures` at that point returns `buildings-3d`). 40x40 box at the
+disc: **wall present — mean 25.3, max 105.9, 0 px over luma 120. Buildings
+hidden, same pose — 412 px over 120, max 194: the disc, at exactly that
+position.** The control fails loudly, which is what makes one rep sufficient.
+Frames `shots/blitz/y13-wc-moon-night.png` / `-nobldg.png`; a DKR pair exists
+but canopies sat under the disc there, so the WC pair is the proof. The §106
+depth-tested pass holds for the disc, not just the field. Y13 closed.
+
+### W8 — the Union, photographed and ruled
+
+`w8-union-courtyard-door.png` / `-door-close.png`: the bake's main door
+(eid 350) is correctly and honestly placed in the east courtyard notch, facing
+north, and its composition — limestone surround, steps, bronze leaves, blue
+transom — is the best-authored door on the block. `w8-union-from-westmall.png`:
+from the West Mall at 1.7 m **no way into the Union reads at all**.
+`w8-union-overhead.png` shows both facts in one frame. **Ruling, written into
+QUEUE W8: keep eid 350 as main, and author ONE secondary south (West Mall)
+door, `src: "authored"`, same recipe as the hero doors** — the real building
+has a public south entrance the mall-side visitor expects, OSM just has not
+mapped it. No inscription renders on any Union elevation; if the inscription
+pass ever reaches the Union, the mall face is where it belongs.
+
+### What I did not do
+
+* **Did not fix anything** — Y17 and Y18 are written down with frames and
+  numbers, not patched; both belong to files this pass was told not to touch.
+* **Single reps on the A/B and luma numbers** (band presence is visual and
+  unambiguous; the percentages are one reading each — treat them as order of
+  magnitude until interleaved).
+* **Did not re-shoot the exact DKR defect pose** from
+  `shots/eye/recon/24-...png` — my DKR stand-in had canopies under the disc, so
+  I proved the disc at a cleaner pose instead and said so in Y13.
+* **The p-path/auto-exposure suspicion is unverified** — flagged in Y18, not
+  claimed.
+* Server on 8341 killed; clean worktree at
+  `<scratchpad>/blitz-main` left for the next blitz agent (remove with
+  `git worktree remove` when the night is over).
+
+## 118. Aug 15 2026 — Z1/Z2/Z3 fixed on `acer/wayfind`: the ghost is in the style and photographed through a wall, the From field stops lying, and a dead code gets a real answer (acer lane)
+
+**Branch `acer/wayfind`, this entry's commit. Files touched: `js/wayfind.js`,
+`docs/walk/what-we-can-honestly-say.md` (two new permitted sentences, §11),
+`shots/walk/zfix/`.** Z4 (the six missing West Campus towers) and the graph
+half of Z3 belong to `scripts/bake_walk.py` and were not touched. As of this
+commit **no branch on the remote carries a fatter `walk_graph.json`** — every
+one is still at `a56c69b`, so the not-routable count stands at **85 register
+codes** (all of them now findable and answered honestly) and the wc map still
+holds 18 of 24 towers.
+
+### Z1 — the ghost layer enters the style, proved the way it was caught
+
+The prescribed fix, exactly: the `max`/`*` arithmetic moved out of the
+expression into JavaScript (`ghostWidthExpr()`), and MapLibre is handed a bare
+top-level `['interpolate', ['exponential', 2], ['zoom'], 15, 1.65, 21, 27.30]`
+— both stops COMPUTED from the constants (`ghostWidthMul` 0.55 and
+`ghostMinPx` 1.5 are new named taste values), not hardcoded. Verified in the
+driven browser: `map.getLayer('wayfind-ghost')` present at style index 200,
+paint width exactly the two prescribed stops, and **zero wayfind MAP ERROR
+lines in the console across every run** (the rejection used to log once per
+load — a clean log is the regression check). The only MAP ERRORs anywhere are
+Z0's four `ground-base-texture` lines, which are `main`'s and another lane's.
+
+**The photograph nobody had taken:** `BTL > PMA` runs 25.5 m under the Welch
+arcade. `shots/walk/zfix/z1-ghost-night.png` (and `-crop.png`) shows the amber
+ribbon coming up the walkway, dying at the wall, and the dashed ghost tracing
+the route across Welch's dark mass — solid on open ground, dashed through the
+building, which is the sentence the file's header promised all along.
+`z1-ghost-night-cleared.png` is the identical pose with the route cleared
+(18,172 px differ, so the dashes are the route, not the basemap — the §114
+lesson applied). Day versions alongside; day dashes are legible in the crop
+but faint at 1440 px, which is `ghostOpacity` 0.28 doing its job on a pale
+wall — a taste value Simeon can turn up in one line if he wants the day ghost
+louder.
+
+### Z2 — the From field: camera default, chosen over the honest-empty option
+
+Decision (mine to make, wording extended in the honesty doc §11): **From now
+defaults to the routable building nearest the CAMERA**, filled in when the
+sheet opens, placeholder `Nearest building to the view`. Why this option: the
+camera always exists, needs no permission or prompt, `interface.md` §2 and
+Simeon's own brief specify a pre-filled From, and a building name in a From
+box claims nothing about where the PERSON stands — the withdrawn placeholder
+`Where I am standing` did. Empty From + Enter now picks that same default and
+routes — measured: field fills `Calhoun Hall`, route draws (was: nothing,
+silently). `z2-sheet-from-prefilled.png`, `z2-empty-from-enter.png`.
+
+### Z3 — dead codes answer, and a failed search clears the stale route
+
+`data/ut_buildings.json` (the register, 198 codes) now rides along with the
+graph fetch; the 85 codes the graph lacks become findable, non-routable
+entries. Typing `SMC` shows the row greyed `not walkable yet`; Enter answers
+**`SMC is not walkable in this build yet`** (new permitted sentence, doc §11)
+— and **clears any route already drawn**, so a failed question never keeps a
+confident answer on screen. Same clearing for no-match (`We couldn't find
+...`) and no-door commits. Measured: route drawn, `SMC` + Enter →
+`drawn: false`, pill hidden, hint carries the sentence.
+`z3-smc-typed-list.png`, `z3-smc-answer-route-cleared.png`, and the phone
+frame `z3-phone-393-smc-answer.png` (393x852 — the sheet, the greyed row and
+the sentence all legible; Z7/Z8's pill-width and joystick issues are still
+open and untouched).
+
+### For whoever picks up the rest of PART Z
+
+* Z4 + the graph half of Z3 (`bake_walk.py`): when the fatter graph lands, the
+  register merge here needs NO change — codes that gain doors simply stop
+  matching the `byCode.has` guard and route normally.
+* Z5 (the 15 fps pulse repaint), Z6 (the advertised URL vs the intro), Z7/Z8
+  (phone pill width / joystick under the sheet), Z9 (Jester ordering,
+  `#wf-list` max-height): all still open, none touched here.
+* Verification: `harness-drift` 29/29 PASS before any pixel work; server
+  `scripts/serve.py 8325`, killed at end of pass; SwiftShader default
+  (deterministic, no CPU throttle involved — no timing was measured this
+  pass); every screenshot taken twice, second trusted; route-vs-cleared
+  isolation diffed in pixels before any "the ghost is visible" claim.
