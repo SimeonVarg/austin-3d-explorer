@@ -15407,3 +15407,97 @@ close-up pass (coarser tiles keyed to the top zooms, or geometry).
   not render bottom faces, tops are 20 mm apart.
 * **Did not commit `scripts/verify/motion-feel.mjs`** — found already modified
   in this worktree by another session; left untouched.
+
+## 121. Aug 15 2026 — the Gate ran: both candidates judged against the live site, both merged (QUEUE Y5, Y8) (acer lane, gate)
+
+**This entry is a verdict, not a build.** PR #167 (storey bands) and PR #170
+(close ground grain) were judged independently against `flyover-utx.vercel.app`
+at the recorded poses — `_shoot.json`'s EYE/CRUISE, facades-measured.md §1's
+MEAS, the Y8 pass's FEET — A/B with labels stripped and left/right randomised
+by a salted hash. Both won. Both were rebased onto `main`, re-verified on the
+rebase, merged, branches deleted. Frames: `shots/facade/final2/` (GATE-* are
+the decisive pairs; `blind/` holds the judged composites and the key).
+
+### Instrument first (§112 discipline)
+
+- AE OFF, gain asserted == 1 before every frame. Same-session noise floors:
+  live 0 px > 24/255 (settled pair), storeys 0 px, ground 0 px (eye AND feet).
+  Cross-session same-build rep: two storeys eye-day frames 40 min apart, 0 px.
+- The live arm's NIGHT settle pair still differed by 6,491 px > 24 in the wall
+  band after a 15 s dwell — §115's night drift, alive on the live site. Night
+  was judged on each arm's later (-b) frame, and the night signal (10,141 px)
+  is only 1.6x that drift, so the night pixel numbers are indicative, not exact.
+  The day numbers are exact (floor 0).
+- **A sibling workflow switched the MAIN worktree's branch mid-shoot**
+  (drag-storeys -> wayfind, 17:51). The frames survived because one long-lived
+  page session never reloads — proved, not assumed: frame 3 of the session was
+  0 px > 24 against a frame shot before the switch — but every serve, rebase
+  and merge after that ran from throwaway `git worktree add` checkouts in the
+  scratchpad. **On a shared machine that should be the default for any gate.**
+- **gl.readPixels lied; the PNG did not.** A readPixels magenta count returned
+  0 at a pose where the layers demonstrably paint; the same count off
+  `page.screenshot()` returned 625,928. Count magenta from the screenshot.
+- The blind key for the ground pairs was disclosed to the judge by tooling
+  before those verdicts were written (a file-change notification printed the
+  key). The #167 verdicts were recorded strictly blind; the #170 ones are
+  label-known A/B. Written down rather than pretended away.
+
+### PR #167, storey bands — WIN, merged (`ede8c54`)
+
+- **Day, eye level: WIN, decisive.** The Co-op block goes from unbroken
+  vertical barcode to calm banded masonry — base course, floor lines, cornice.
+  36,931 px > 24, every one but 39 inside the §112 wall band, against a 0 floor.
+  The same number §114 measured, which also fingerprints live == origin/main.
+- **Night: not worse, slightly better** — the courses break the full-height lit
+  strips into storeys; lit-pane scatter untouched. MEAS pose day/night agree.
+- **Cruise: indistinguishable both hours** at full-frame look; the layer's
+  measured flyover footprint is §114's 67 px.
+- Re-verified on the rebase: harness-drift PASS, `drag-check` **26/26**, merged
+  frames 0 px > 24 vs the judged candidate at eye-day and cruise-day (8 px of
+  star twinkle at eye-night). HANDOFF numbering: storeys kept §114 (main had
+  reserved it), FOV-kick stays §115.
+
+### PR #170, close ground grain — WIN, merged (`45772a1`)
+
+- **Eye level, day: WIN.** The carriageway — the biggest band of the walking
+  frame — goes from untextured grey to readable asphalt, lane paint intact on
+  top. 483 px > 24 all inside the road band rows 447–553, plus a broad sub-24
+  grain that is the point; floor 0.
+- **Look-down (feet), day: WIN, modest and said so.** Walk-deck aggregate and
+  lawn speckle read as material; the plaza paving is visually unchanged at this
+  pose; the whole feet-day effect is 3 px > 24 of amplitude. Side by side the
+  grain side reads more finished; it is not a dramatic frame.
+- **Night: not worse.** Feet cross-arm 0 px > 24 — the PR's "daylight feature"
+  honesty is measured fact — and at eye the lamp pools carry a subtle grain.
+- **The byte-identity claim was re-proved, not inherited**, with a positive
+  control the PR's own gate lacked: layers forced magenta paint **625,928 px at
+  the feet pose** (so "0 elsewhere" means something), **0 px at default z16.5,
+  0 px at cruise**, and the cruise frame is **SHA-256-identical** with the
+  layers shown/hidden/shown — on the candidate and again on the rebase.
+- **PART Z0 check, as instructed:** #170 is NOT the rejected
+  `ground-base-texture` under another name. Z0 is an existing background layer
+  failing style validation (`texGroundMaxZoom: 25` > spec max 24); #170 adds
+  three NEW minzoom-18.8 layers, no maxzoom anywhere, and Z0's console error
+  fires identically on both arms. Z0 stays open: one character, `js/ground.js`,
+  which was not in this gate's write set.
+- No open `mac/*` PR touched `js/ground.js` (there are no open `mac/*` PRs).
+- Triangulation on the merged tree: merged eye-day vs storeys-only differs by
+  497 px, 489 in the ROAD band; vs ground-only differs by 37,994 px, all but 32
+  in the WALL band. The merge is exactly the sum of the two changes.
+
+### What this gate did NOT establish
+
+- **No dusk frames at any pose** (day p 0.30 / night p 0.90 only).
+- **Nothing on hardware GL, nothing at dpr 2** — SwiftShader 1440x900 dpr 1.
+- **No perf numbers.** `drag-perf.mjs` / `ground-perf.mjs` were not run; both
+  merges add layers and their frame cost is still a claim, and K1's budget
+  still has no owner.
+- **Campus and West Campus walls are still the barcode** at close range — Y5 is
+  DONE for the Drag only.
+- The live arm's frames predate the verdicts by ~1 h; the only merges to main
+  in between were docs and a verify script, so live == pre-merge main visually
+  — an inference from the merge list, corroborated by the 36,931-px match to
+  §114, not by a re-shoot.
+- One `eye-day-rep2` frame died to the 300 s chrome watchdog and was replaced
+  by the cross-session rep; the eye-pose magenta footprint of `drag-detail`
+  (§114's watchdog loss) is still unmeasured.

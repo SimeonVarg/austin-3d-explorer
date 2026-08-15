@@ -788,18 +788,35 @@ Y4  look down at your own feet ............... HALF. js/ground.js is ready
                                                 you still cannot look at your feet.
                                                 Blocked behind Y8 by choice, and now also
                                                 behind Y5 (see that doc's sequencing note).
-Y5  facades at close range ................... **BLOCKED ON SIMEON CHOOSING A WALL.**
-                                                Measured (§110), two candidates built and
-                                                photographed (§111), decision sheets made
-                                                (§112). Nothing more should be built here
-                                                until he picks. See below.
+Y5  facades at close range ................... DONE for the DRAG (#167, merged
+                                                2026-08-15 after a blind gate vs live:
+                                                day eye-level WIN, night not worse,
+                                                cruise footprint 67 px — §114, §121).
+                                                Storey bands, no windows; candidate B
+                                                (windows) stays alive on acer/facade-
+                                                choice (PR #164) for the later job.
+                                                Campus + West Campus (js/facades.js,
+                                                wc-wall) still need the same treatment
+                                                and are OPEN.
 Y6  motion-feel FOV assertion ................ DONE (acer/blitz-verify, HANDOFF §115).
                                                 Repaired to assert the MECHANISM: zero
                                                 kick at cruise, TUNE.FOV_KICK (read live)
                                                 at the sprint ceiling, exact restore.
                                                 Watched failing on an injected fault.
 Y7  outer-ring scan worst case ............... OPEN
-Y8  the ground plane ......................... OPEN
+Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
+                                                2026-08-15 after the gate re-proved the
+                                                byte-identical-flyover claim: SHA-256
+                                                equal with the layers on/off at cruise,
+                                                magenta 625,928 px at feet / 0 at
+                                                default and cruise — §120, §121).
+                                                Daylight feature by measurement; night
+                                                grain is nil by design. The GEOMETRY
+                                                half (gutter line, door thresholds,
+                                                smaller repeat ring) is still OPEN, and
+                                                so is PART Z's Z0 (texGroundMaxZoom 25
+                                                rejects ground-base-texture on main —
+                                                one character, 25 -> 24).
 Y9  labels sized by zoom not metres .......... OPEN
 Y10 touch at walking height .................. OPEN
 Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — found Y17+Y18
@@ -818,7 +835,17 @@ goes to.
 
 ---
 
-## Y5 IS WAITING ON A TASTE DECISION. DO NOT BUILD PAST IT. (2026-08-06, §112)
+## ~~Y5 IS WAITING ON A TASTE DECISION~~ — DECIDED AND SHIPPED (2026-08-15, §114/§121)
+
+**The decision was delegated and executed per this section's own written
+recommendation: storey lines, no windows.** PR #167 built them across the whole
+Drag corridor, the gate judged it blind against the live site (day eye-level
+WIN, night not worse, cruise 67 px) and merged it. What still stands from the
+original entry: **PR #164 stays alive** — the windows candidate is the storey
+candidate plus openings, and the queued windows job finishes from it. The
+sequencing note about Y4 also stands. Original entry follows for the record.
+
+## Y5, the original entry (2026-08-06, §112)
 
 Both candidate walls exist and are photographed. The question left is the one
 `docs/camera/facades-at-two-metres.md` §6 said is Simeon's and not ours: **how
