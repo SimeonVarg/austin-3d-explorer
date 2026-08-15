@@ -795,3 +795,109 @@ should land before Y4 or Y4 must re-run the check.
 2. **Never remove the watchdog or reaper in `scripts/verify/chrome.mjs`.**
 3. **Never leave a browser or a server running.** `reap.mjs` and kill the server.
 4. **Record every pass in `HANDOFF.md`** with the branch name.
+
+# PART Z — WALK TO CLASS. Written 2026-08-15 from the skeptic pass in HANDOFF
+# §115. **PR #169 IS OPEN AND WAS NOT MERGED.** The routes are right; four
+# things the interface says or fails to draw are not, and each is small.
+
+**The one-line verdict.** The routing is the best-verified thing in this repo —
+eighteen pairs driven in a real browser, every distance identical to the bake's
+audited table, nothing routed through a building that OSM does not mark
+`covered=yes`. What is not ready is the picture and the wording around it.
+
+**Z0 — NOT THIS FEATURE, AND THE MOST URGENT LINE ON THIS PAGE.
+`ground-base-texture` is rejected by MapLibre on `main` today.**
+`js/ground.js:370` sets `texGroundMaxZoom: 25`; the style spec's maximum for
+`maxzoom` is 24. So `addLayer` fails validation and the city-wide ground grain
+layer — a `background` layer carrying `TEX_IMG.paving` — is never added. The
+console says so on every single load:
+
+```
+MAP ERROR: layers.ground-base-texture.maxzoom: 25 is greater than the maximum value 24
+MAP ERROR: Cannot style non-existing layer "ground-base-texture".   (x3)
+```
+
+`js/ground.js` is byte-identical between this branch and `origin/main`, so this
+is on `main` now, and it is almost certainly the leftover of the Y4 half-fix
+that raised `texGroundMaxZoom` from 22 to 25. **QUEUE Y8 says "the ground plane
+is now 40-55 % of every frame and it is one flat colour" — this is at least part
+of why.** It is one character (`25` → `24`) and it is not this lane's file.
+
+---
+
+**Z1. `wayfind-ghost` never enters the style, and here is why.** §114 recorded
+"reports index -1 ... I ran out of time to find out why". The browser says it
+outright, once per load:
+
+```
+MAP ERROR: layers.wayfind-ghost.paint.line-width:
+           "zoom" expression may only be used as input to a top-level
+           "step" or "interpolate" expression.
+```
+
+`js/wayfind.js:917` wraps `groundWidthExpr()` — which IS a zoom `interpolate` —
+inside `['max', 1.5, ['*', 0.55, ...]]`. MapLibre rejects the layer at
+validation, fires an error event rather than throwing, and skips it. So the
+"solid on open ground, dashed through the wall" half of the occlusion design,
+which the file's own header calls "the whole occlusion design", is absent: a
+route that runs behind a building simply disappears.
+
+**The fix is to do the arithmetic in JavaScript and leave a bare top-level
+interpolate.** Measured at lat 30.2862, `routeWidthM` 1.6, `routeMinPx` 3,
+`routeMaxPx` 90, ghost multiplier 0.55, floor 1.5:
+
+```js
+'line-width': ['interpolate', ['exponential', 2], ['zoom'], 15, 1.65, 21, 27.30]
+```
+
+Do not hardcode those two numbers — compute them from the constants, the same
+way `groundWidthExpr` already does, and return the finished interpolate.
+**Then photograph a route that passes behind a building**, because nobody ever
+has.
+
+**Z2. The From field promises a location it does not have.** Its placeholder is
+`Where I am standing`. There is no `navigator.geolocation` anywhere in the file
+and no camera-position default; leave From empty, press Enter on a valid To, and
+**nothing happens at all** — `run()` returns on `!state.from`. `interface.md` §2
+specifies a pre-filled `Here · near Speedway at 24th` taken from the camera, and
+that is the flow in Simeon's own brief ("get a route from where you are").
+Either build the camera default (it needs no permission and no prompt) or change
+the placeholder to something true. Shipping the sentence without the feature is
+the one failure `what-we-can-honestly-say.md` §9 names by hand.
+
+**Z3. 85 of the 198 UT register codes return NOTHING when typed**, including
+`NUR`, `SMC`, `HDB`, `HLB`, `HTB`, `UTA`, `ACS`, `ANB`, `BMS`, `BMK`, `WMB` and
+`WAT`. `walk_graph.json`'s `code` map holds 113 of 198; 111 are routable and 2
+(`BIO`, `TSG`) are shown greyed with "no door mapped", which is the right
+behaviour. The other 85 are not in the index at all, so the list is empty and,
+as `interface.md` §1 says, **an empty list reads as "you typed it wrong" rather
+than "we don't have it".** §114 asked for this as a schema change to
+`scripts/bake_walk.py` and it is not done: add the remaining register codes with
+an empty door list.
+
+**Z4. Six of the twenty-four West Campus towers are not in the graph at all** —
+**21 Rio, Skyloft Austin, The Quarters Sterling House, The Block, Pointe on Rio,
+The Venue on Guadalupe**. All 24 are in `data/westcampus.geojson` with lobby
+doors; `walk_graph.json`'s `wc` map has 18. Simeon's brief says "works with
+wampus apartments too", and **§113's own audited table advertises a
+`21 Rio > WEL` route that the shipped client cannot produce** — typing `21 Rio`
+returns nothing. And it is not a hypothetical: **`21 Rio` and `Pointe on Rio` are
+both LABELLED ON SCREEN** in the golden-hour hero frame
+(`shots/walk/final/90-hero-unchanged-origin-main.png`). A student reads the name
+off the city, types it, and gets an empty list. `scripts/bake_walk.py`.
+
+**Z5. A drawn route repaints the whole city fifteen times a second, forever.**
+`startPulse()` runs a `requestAnimationFrame` loop that calls
+`setPaintProperty(..., 'line-gradient', ...)` at `pulseFps` 15 for as long as a
+route is on screen. Every one of those marks the style dirty and forces a full
+repaint of a scene that measures 3.7 fps on a software rasteriser and ~35 fps on
+this laptop's GPU. Worse, the layer it animates (`wayfind-thread`) is faded to
+zero opacity above `threadGoneZoom` 18.4, so **at walking height it repaints the
+city for an effect nobody can see.** Nobody has measured the frame cost. Gate it
+on the thread being visible at all, and measure it with `perf.mjs` before and
+after (quote the 4x CPU throttle).
+
+**Z6. Not a defect, a gap:** `?clip=1&from=JES&to=WEL&fit=1` is advertised in
+§114 as the recordable URL, and every isolation run that produced it also
+carried `intro=0`, which that URL does not. See §115 for what the camera
+actually does when the intro is left running.
