@@ -619,7 +619,16 @@ close-range atlas tier or a mip/detail level that fades the fine grid out under
 ~15 m of camera distance and leaves base colour plus the real modelled openings.
 This is the biggest piece of work on the list and the one with the highest ceiling.
 
-**Y6. `motion-feel.mjs`'s FOV-kick assertion is stale, and it fails on `main`.**
+**~~Y6.~~ DONE (HANDOFF §115).** Reproduced on `origin/main` `38fbeee` (sprint
+FOV 65.00 against a 2.5–4.5 window — exactly `TUNE.FOV_KICK` 7, i.e. correct
+behaviour, stale gate). The assertion now tests the mechanism `js/controls.js`
+implements: cruise kick < 0.5 deg (the `FOV_KICK_FROM` half), sprint kick =
+`TUNE.FOV_KICK` −0.6/+0.1 read live from `window.__fly.tune`, exact restore.
+Guard proven: with the ramp broken in-page (`tune.FOV_KICK_FROM = 99`) exactly
+the sprint assertion fails (kick 0.00), exit 1; clean reps 20/20 either side.
+The original entry follows.
+
+**Y6 (original). `motion-feel.mjs`'s FOV-kick assertion is stale, and it fails on `main`.**
 It expects a 2.5-4.5 deg sprint kick and measures 7.00, which is exactly
 `TUNE.FOV_KICK` — correct behaviour since `FOV_KICK_FROM` was introduced so that
 the whole effect belongs to sprinting. **Reproduced on `origin/main`'s
@@ -692,11 +701,15 @@ in §109 the pitch is **granted and the eye is silently lifted**: asked 80 you g
 17.23 m. Same verdict as Y4 (`ZOOM_MAX` is still 21.5), but whoever picks Y4 up
 should know they are removing a silent lift, not a block.
 
-**Y14. `places-check.mjs` and `zfight.mjs` have not been run since §105.** Not a
-defect, a gap. `coplanar` is at baseline (roofs 85, places 1, entrances 1729) and
-`collision` was 8/8 in §108, both on this code. These two just have not been run.
+**~~Y14.~~ CLOSED — both run against `origin/main` `38fbeee`, both at baseline
+(HANDOFF §115).** `places-check.mjs` **PASS, 40 ok / 0 failed** (same as §95).
+`zfight.mjs shots-places.json`: **7 poses no clusters; `westcampus-day` 242 px @
+[642,827,869,895]** — the same count and the same box as §95/§101/§104, i.e. the
+known QUEUE W6 cluster, unchanged. Nothing new to open. The original entry:
 `zfight` needs a shots file as `argv[2]` and `VERIFY_URL`; `places-check` needs
-`VERIFY_URL` and to be run from `scripts/verify/`.
+`VERIFY_URL` and to be run from `scripts/verify/`; under CPU load the fly-drag
+poses can come back `INVALID: the scene had not loaded` — rerun those poses,
+do not read INVALID as clean.
 
 ---
 
@@ -722,7 +735,11 @@ Y5  facades at close range ................... **BLOCKED ON SIMEON CHOOSING A WA
                                                 photographed (§111), decision sheets made
                                                 (§112). Nothing more should be built here
                                                 until he picks. See below.
-Y6  motion-feel FOV assertion ................ OPEN (red on main, not from these passes)
+Y6  motion-feel FOV assertion ................ DONE (acer/blitz-verify, HANDOFF §115).
+                                                Repaired to assert the MECHANISM: zero
+                                                kick at cruise, TUNE.FOV_KICK (read live)
+                                                at the sprint ceiling, exact restore.
+                                                Watched failing on an injected fault.
 Y7  outer-ring scan worst case ............... OPEN
 Y8  the ground plane ......................... OPEN
 Y9  labels sized by zoom not metres .......... OPEN
@@ -730,7 +747,7 @@ Y10 touch at walking height .................. OPEN
 Y11 dusk at eye level ........................ OPEN
 Y12 the near plane ........................... NEW
 Y13 the moon behind a building ............... NEW
-Y14 places-check / zfight not run ............ NEW
+Y14 places-check / zfight not run ............ CLOSED (both at baseline on 38fbeee, §115)
 ```
 
 **The one-line verdict on the Drag at night:** it is genuinely better — no stars

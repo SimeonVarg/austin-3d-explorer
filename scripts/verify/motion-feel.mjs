@@ -161,7 +161,16 @@ console.log('TUNE:', JSON.stringify(TUNE));
     r.tLevel !== null && r.tLevel <= 1.2, `levelled in ${r.tLevel == null ? '>budget' : r.tLevel.toFixed(2) + ' s'} (sim)`);
 }
 
-// ── 3. FOV KICK: rises with actual speed, restores base exactly ──
+// ── 3. FOV KICK: zero at cruise, reaches TUNE.FOV_KICK at full sprint, restores base ──
+// The kick target in js/controls.js is
+//   FOV_KICK * clamp((sp/spdBase - FOV_KICK_FROM) / (SPRINT - FOV_KICK_FROM), 0, 1)
+// so since FOV_KICK_FROM was introduced the WHOLE effect belongs to sprinting:
+// ordinary cruise sits at the authored FOV and a sustained full sprint converges
+// on exactly TUNE.FOV_KICK. The old 2.5–4.5 deg window here dated from the
+// pre-FOV_KICK_FROM tuning and was red on main (QUEUE Y6). The expectation is
+// read live from window.__fly.tune, so a deliberate retune moves the gate with
+// it — what this asserts is the MECHANISM: no kick at cruise, full kick at the
+// sprint ceiling, exact restore.
 
 {
   const r = await page.evaluate(async () => {
@@ -175,7 +184,15 @@ console.log('TUNE:', JSON.stringify(TUNE));
     window.__key('KeyQ', true);
     for (let i = 0; i < 30; i++) await window.__raf();
     window.__key('KeyQ', false);
-    // full sprint until the kick settles; track the sustained maximum
+    // CRUISE first, no sprint: sp eases up to spdBase = FOV_KICK_FROM x cruise,
+    // where the ramp starts — so the kick must stay at (near) zero throughout.
+    window.__key('KeyW', true);
+    let kickCruise = 0;
+    for (let i = 0; i < 60; i++) {
+      await window.__raf();
+      kickCruise = Math.max(kickCruise, F.fx().fovKick);
+    }
+    // then full sprint until the kick settles; track the sustained maximum
     window.__key('ShiftLeft', true);
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', shiftKey: true, bubbles: true }));
     let fovSprint = 0, spPeak = 0, kick = 0;
@@ -191,13 +208,16 @@ console.log('TUNE:', JSON.stringify(TUNE));
     // glide out; fov must come back to base exactly once idle
     const ok = await window.__settle(600);
     const fovAfter = m.getVerticalFieldOfView();
-    return { base, fovRest, fovSprint, kick, spPeak, settled: ok, fovAfter };
+    return { base, fovRest, kickCruise, fovSprint, kick, spPeak, settled: ok, fovAfter };
   });
   check('FOV at rest equals the graphics-menu base',
     Math.abs(r.fovRest - r.base) < 0.01, `rest ${r.fovRest.toFixed(2)} vs base ${r.base}`);
-  check('sustained sprint kicks the FOV up by 2.5–4.5 deg',
-    r.fovSprint - r.base >= 2.5 && r.fovSprint - r.base <= 4.5,
-    `sprint FOV ${r.fovSprint.toFixed(2)} (base ${r.base}, kick ${r.kick.toFixed(2)}, peak speed ${r.spPeak.toFixed(0)} m/s)`);
+  check('cruise without sprint leaves the FOV alone (kick < 0.5 deg)',
+    r.kickCruise < 0.5,
+    `cruise kick ${r.kickCruise.toFixed(2)} deg (FOV_KICK_FROM ${TUNE.FOV_KICK_FROM})`);
+  check('sustained sprint kick reaches TUNE.FOV_KICK (-0.6/+0.1 deg), read live',
+    r.fovSprint - r.base >= TUNE.FOV_KICK - 0.6 && r.fovSprint - r.base <= TUNE.FOV_KICK + 0.1,
+    `sprint FOV ${r.fovSprint.toFixed(2)} (base ${r.base}, kick ${r.kick.toFixed(2)}, TUNE.FOV_KICK ${TUNE.FOV_KICK}, peak speed ${r.spPeak.toFixed(0)} m/s)`);
   check('FOV restores exactly to base after stopping',
     r.settled && Math.abs(r.fovAfter - r.base) < 0.01,
     `after: ${r.fovAfter.toFixed(3)} (settled=${r.settled})`);
