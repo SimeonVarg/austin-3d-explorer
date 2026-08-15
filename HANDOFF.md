@@ -14576,7 +14576,7 @@ one that produced both 20/20 reps.
 (§114 is on branch `acer/drag-storeys`, PR #167, unmerged as this is written —
 numbered past it by chronology per the renumber rule.)
 
-**Branch `acer/ground-close`, PR #TBD. Not merged — the Gate agent decides.**
+**Branch `acer/ground-close`, PR #170. Not merged — the Gate agent decides.**
 One file: `js/ground.js`, **purely additive — 233 insertions, 0 deletions** —
 built off `origin/main`, independent of the storeys branch, per the plan.
 
