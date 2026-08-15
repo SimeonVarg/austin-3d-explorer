@@ -26,7 +26,11 @@
  *   1. VERTICAL EVENTS ARE GEOMETRY. Shopfront, sign band, upper floors,
  *      parapet, cornice, coffer row: each is a separate feature with its own
  *      base and height, emitted by the bake. Nothing below tries to put a
- *      cornice "at the top".
+ *      cornice "at the top". Since QUEUE Y5 that includes the STOREY BANDS on
+ *      the retail upper walls — base course, floor lines, cornice — drawn by
+ *      the `drag-detail` layer as proud flat-colour extrusions, because at
+ *      walking height they are the only horizontal structure a wall can hold
+ *      (docs/camera/facades-measured.md §8, docs/camera/facade-choice.md).
  *
  *   2. EVERY TILE IS STATIONARY IN Y. A band here is 1-9 m tall against a tile
  *      that spans 30-59 m, so a band shows an arbitrary horizontal SLICE of its
@@ -77,6 +81,7 @@
   const SRC = 'austin-drag';
   const L_WALL = 'drag-wall';
   const L_CAP = 'drag-cap';
+  const L_DETAIL = 'drag-detail';
   const DATA = 'data/drag.geojson';
   const TILE = 64;
 
@@ -145,9 +150,20 @@
     SIGN_BLOCKS: 5, SIGN_BLOCK_W: 7, SIGN_BLOCK_RATE: 0.55,
     SIGN_NIGHT: 0.80,
 
-    // retUpper — the floors above the shop. Stucco or painted brick with small
-    // punched openings. 6 bays = 6.7 m centres, 2 px (1.3 m).
-    RET_BAYS: 6, RET_WIN: 2, RET_NIGHT_LIT: 0.26,
+    // retUpper — the floors above the shop. Stucco or painted brick.
+    //
+    // THE OPENINGS ARE NIGHT-ONLY NOW (QUEUE Y5, 2026-08-15). At walking
+    // height one repeat is ~4.12 m of wall, so the six full-height 1.3 m
+    // "windows" collapsed to a 13 cm dark stripe every 69 cm — the barcode in
+    // docs/camera/facades-measured.md §8. By day the wall's structure now
+    // comes from the storey-band GEOMETRY (drag-detail, baked in metres), and
+    // the tile stays calm. After dark the exact old treatment fades back in —
+    // same bays, same lit share, same tones — because the streetlamps need
+    // something to catch and the banded wall must never be darker than the
+    // barcode wall was (HANDOFF, the Aug 15 2026 storey-band section, has the
+    // measured gate). RET_NIGHT_FADE is how fast the panes
+    // fade in across dusk (alpha = min(1, k.night * RET_NIGHT_FADE)).
+    RET_BAYS: 6, RET_WIN: 2, RET_NIGHT_LIT: 0.26, RET_NIGHT_FADE: 2.5,
     RET_STREAKS: 5, RET_STREAK_DARK: 0.06, RET_STREAK_ALPHA: 0.20,
 
     // Shared. The pattern removes mean luma, so every family puts some back —
@@ -353,7 +369,10 @@
       }
     },
 
-    /** retUpper — the floors over a shop: mostly wall, small punched openings. */
+    /** retUpper — the floors over a shop. Calm wall by day (the storey-band
+     * geometry carries the structure); the old punched openings fade back in
+     * after dark, unchanged, so the night wall is never darker than it was.
+     * See the note on RET_BAYS above. */
     retUpper(ctx, w, k, seed) {
       fillC(ctx, w, 0, TILE);
       // Weathering, aperiodic in x and constant in y, so it tiles in both axes.
@@ -363,15 +382,17 @@
         fillC(ctx, mix(w, [0, 0, 0], T.RET_STREAK_DARK), x, wd,
               T.RET_STREAK_ALPHA * (1 - k.dark * 0.7));
       }
+      const a = Math.min(1, k.night * T.RET_NIGHT_FADE);
+      if (a < 0.01) return;
       const pitch = TILE / T.RET_BAYS;
       for (let b = 0; b < T.RET_BAYS; b++) {
         const x = Math.round(b * pitch + (pitch - T.RET_WIN) / 2);
         let pane = k.glass;
-        if (k.night > 0.02 && hash01(seed + 37, b, 0) < T.RET_NIGHT_LIT) {
+        if (hash01(seed + 37, b, 0) < T.RET_NIGHT_LIT) {
           pane = mix(k.glass, [255, 198, 132], Math.min(1, k.night * 1.3) * 0.75);
         }
-        fillC(ctx, pane, x, T.RET_WIN);
-        fillC(ctx, mix(pane, [0, 0, 0], 0.30), x, 1);
+        fillC(ctx, pane, x, T.RET_WIN, a);
+        fillC(ctx, mix(pane, [0, 0, 0], 0.30), x, 1, a);
       }
     },
   };
@@ -634,6 +655,28 @@
         },
       }, anchor);
     }
+    // The storey bands (QUEUE Y5): base courses, floor lines and cornices as
+    // proud stone. Flat colour, not a pattern — a 0.26 m band showing an
+    // arbitrary slice of a 4.12 m tile is the exact trap this module's header
+    // is about, and these features exist to escape it. Their heights are
+    // `dh`/`dbase`, NOT `h`/`base`: trim overlaps the wall band on purpose,
+    // and the band schema carries drag-check.mjs's no-gap-no-overlap contract
+    // (see detail_feature in scripts/bake_drag.py).
+    if (!map.getLayer(L_DETAIL)) {
+      map.addLayer({
+        id: L_DETAIL, type: 'fill-extrusion', source: SRC, minzoom: DRAG.minZoom,
+        filter: ['==', ['get', 'kind'], 'detail'],
+        paint: {
+          'fill-extrusion-color': bakedColor(p),
+          'fill-extrusion-height': ['get', 'dh'],
+          'fill-extrusion-base': ['get', 'dbase'],
+          'fill-extrusion-opacity': 1.0,
+          // Same reason as drag-wall: a 0.26 m course that falls entirely
+          // inside the gradient goes black.
+          'fill-extrusion-vertical-gradient': false,
+        },
+      }, anchor);
+    }
 
     const audit = window.dragTileAudit();
     console.log('[drag]', gj.features.length, 'features,', _gone.length,
@@ -682,18 +725,20 @@
     try {
       if (map.getLayer(L_CAP))
         map.setPaintProperty(L_CAP, 'fill-extrusion-color', bakedColor(p));
+      if (map.getLayer(L_DETAIL))
+        map.setPaintProperty(L_DETAIL, 'fill-extrusion-color', bakedColor(p));
     } catch (e) {}
   };
 
   /** Re-read DRAG after a live edit. */
   window.applyDragSettings = function applyDragSettings(map) {
     if (!map || !map.getLayer) return;
-    for (const id of [L_WALL, L_CAP]) {
+    for (const id of [L_WALL, L_CAP, L_DETAIL]) {
       if (!map.getLayer(id)) continue;
       try {
         map.setLayoutProperty(id, 'visibility', DRAG.on ? 'visible' : 'none');
         map.setPaintProperty(id, 'fill-extrusion-opacity',
-                             id === L_CAP ? 1.0 : DRAG.opacity);
+                             id === L_WALL ? DRAG.opacity : 1.0);
       } catch (e) {}
     }
   };

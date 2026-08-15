@@ -1,0 +1,92 @@
+{
+ "meas-night": {
+  "luma": {
+   "mean": 60.568,
+   "rows": [
+    0,
+    500
+   ],
+   "px": 720000
+  },
+  "ae": {
+   "gain": 1,
+   "luma": null
+  },
+  "state": {
+   "z": 20.6863,
+   "pitch": 87,
+   "bearing": -90,
+   "aeOn": false
+  }
+ },
+ "cruise-day": {
+  "luma": {
+   "mean": 133.155,
+   "rows": [
+    400,
+    500
+   ],
+   "px": 144000
+  },
+  "ae": {
+   "gain": 1,
+   "luma": null
+  },
+  "state": {
+   "z": 15.2892,
+   "pitch": 64,
+   "bearing": -160,
+   "aeOn": false
+  }
+ },
+ "noise-a": {
+  "luma": {
+   "mean": 119.25,
+   "rows": [
+    111,
+    347
+   ]
+  },
+  "note": "from run log; json write lost to watchdog"
+ },
+ "noise-b": {
+  "luma": {
+   "mean": 119.25,
+   "rows": [
+    111,
+    347
+   ]
+  },
+  "note": "from run log"
+ },
+ "eye-day": {
+  "luma": {
+   "mean": 119.25,
+   "rows": [
+    111,
+    347
+   ]
+  },
+  "note": "from run log"
+ },
+ "eye-night": {
+  "luma": {
+   "mean": 34.127,
+   "rows": [
+    111,
+    347
+   ]
+  },
+  "note": "from run log"
+ },
+ "meas-day": {
+  "luma": {
+   "mean": 91.319,
+   "rows": [
+    0,
+    500
+   ]
+  },
+  "note": "from run log"
+ }
+}

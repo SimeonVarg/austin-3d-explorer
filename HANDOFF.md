@@ -14375,6 +14375,118 @@ green, and it was watched failing: perturbing one baseline by 20 % produced
   one of these routes drawn on the city. That is the next pass and it is the one
   that will find what this one could not.
 
+## 114. Aug 15 2026 — storey bands shipped on the whole Drag corridor (QUEUE Y5, the decision executed) (acer lane)
+
+**Branch `acer/drag-storeys`, PR #167. Not merged — the Gate agent decides.**
+Three files, all mine: `scripts/bake_drag.py`, `data/drag.geojson`, `js/drag.js`.
+The Y5 call was delegated and made per `docs/camera/facade-choice.md`'s written
+recommendation: **ship storey bands now; real windows stay queued as the later,
+bigger job.** This pass extends candidate A (branch `acer/facade-choice`,
+PR #164, one block, `?cand=` only) to every retail building the drag bake owns,
+as a shipping feature — on by default, no flag.
+
+### What shipped
+
+* **The bake** splits each retail upper wall into base course + n storeys +
+  cornice (`STOREY_M` 3.60 m nominal, `STOREY_MIN_M` 2.00 m floor) and emits
+  the courses as proud rings — `BAND_BASE_PROUD` 0.17 m / `BAND_COURSE_PROUD`
+  0.11 m / `BAND_CORN_PROUD` 0.34 m of relief, offset OUTWARD so the ring
+  contains the wall's own face and nothing is coplanar. Every value is METRES
+  of wall (the `facades-at-two-metres.md` sequencing rule), so Y4 raising
+  `ZOOM_MAX` cannot silently undo this. **23 detail features across 10
+  buildings; 4 upper walls honestly too short (`band_wall_too_short`); 7
+  buildings have no upper wall at all.** 124 features total (was 101), 60.0 KB.
+* **A new `drag-detail` layer** paints them flat colour on the wd/wg/wn ramp,
+  vertical-gradient off (a 0.26 m course inside the gradient goes black), same
+  anchor as the walls.
+* **`retUpper`'s punched openings are NIGHT-ONLY now.** By day the wall is calm
+  — the geometry carries the structure, and the old six full-height 1.3 m
+  "windows" (a 13 cm stripe every 69 cm at walking height, §8 of
+  facades-measured.md — the barcode itself) are simply not drawn. After dark
+  the EXACT old treatment fades back in (`RET_NIGHT_FADE`), same bays, same
+  `RET_NIGHT_LIT` share, same tones. That is "reuse the existing night wall
+  treatment underneath the bands"; no lit windows were invented.
+
+### Schema note (deliberate — do not "fix" it)
+
+Detail features carry **`dbase`/`dh`, not `base`/`h`, and no `bid`**.
+`base`/`h` + `bid` is drag-check.mjs's contract that a building's bands tile
+its height with no gap and no overlap; trim OVERLAPS the wall on purpose, so it
+uses different property names and stays out of that accounting — the same
+proud-geometry shape as `bake_entrances.py`, which claims no building ids
+either. drag-check still passes on the same assertions it always made.
+
+### Verified by looking (SwiftShader, 1440x900, dpr 1, headless; AE OFF via `GFX.autoExposure=false` and gain ASSERTED == 1 before every frame per §112; `cancelGraphicsAutoDetect()`; `harness-drift.mjs` PASS 28/28 before any pixel)
+
+Poses: `shots/facade/_shoot.json`'s recorded EYE (z 20.1016 / pitch 88 /
+bearing 270) and CRUISE (z 15.2892), plus facades-measured.md §1's
+GUAD-24TH-PAVEMENT-WEST. Instrument: mean luma over §112's wall band
+(rows 111–347) read off the GL canvas per frame; frames in
+`shots/facade/before-*.png` / `after-*.png`, lumas in `_before/-after-luma.json`.
+
+```
+                              before      after
+noise, same build shot twice  0 px > 24/255, luma identical to 3 d.p. (both builds)
+eye day     wall band luma    113.424     119.250   barcode gone; courses read
+eye NIGHT   wall band luma     33.669      34.127   THE GATE: not darker. PASS
+meas day                       87.777      91.319
+meas night                     60.286      60.568
+cruise day                    133.103     133.155
+```
+
+Pixel diffs (PIL, >24/255): eye day 36,931 px, all inside rows 111–437 (wall
+band + the shorter streetwall below it) except 13 px at the UI edges; eye night
+3,663 px with 17 out-of-band (star twinkle + UI). Cruise, before vs after with
+MATCHED session history: 12,406 px (0.96 %) — but see the instrument note.
+
+**The day pair is the whole argument** (`before-eye-day.png` vs
+`after-eye-day.png`): the Co-op's barcode becomes plain masonry with a base
+course, floor lines and a cornice shadow. The night pair is the weakness the
+decision priced in, and it lands slightly BRIGHTER than live because the
+lit-pane scatter is untouched and the trim is lifted toward white.
+
+### INSTRUMENT FINDING: the cruise frame has a 31% cross-session noise floor
+
+Two fresh sessions on the SAME build at the cruise pose differ by **407,928 px
+> 24 (31.5 % of the frame)** (`after-cruise-day.png` vs `after2-cruise-day.png`,
+AE off in both, gain 1 in both). Session HISTORY — which poses and hours the
+page visited before the shot — moves the cruise frame more than any change
+under test does. The matched-history before/after pair (both shot as "second
+frame after meas-night") is the only honest frame diff at this pose, and even
+its 12,406 px are dominated by label layout; the layer's true flyover footprint
+was therefore measured the §48 way, magenta mask: **drag-detail paints 67
+pixels of the 1.3-million-pixel cruise frame, inside x 702-753 / y 428-490** —
+the same box §112 measured the candidates in (`_detail-footprint.json`; the
+eye-pose magenta count was lost to the watchdog and not re-run — the eye
+footprint is visible in the day pair instead). Anyone diffing cruise frames
+across sessions in future: don't.
+
+### drag-check
+
+**26/26 PASS** on this branch (VERIFY_URL :8331, SwiftShader). The lines that
+matter to this pass: `source tiles the bands {"wall":195,"cap":54,"detail":46}`;
+`atlas cost stays small [16 images]` — the night-only retUpper is the same
+image count, no new family; `retUpper goes dark at night [198.3 -> 66.3]` — day
+luma UP from the openings' removal, night luma the old treatment's;
+`bands tile each building with no gap or overlap
+{"gaps":0,"overlaps":0,"notFromZero":0,"buildings":25}` — 24 buildings plus the
+un-bid'd trim group, which contributes no spans, exactly as the schema note
+intends.
+
+### What I did NOT manage to do
+
+* **Campus and West Campus are untouched.** `js/facades.js` / `wc-wall` need
+  the same treatment where they really paint (§110 measured who paints what);
+  this pass is the Drag corridor only, per the plan's own scoping.
+* **No windows and no new night lighting.** Candidate B stays intact on
+  `acer/facade-choice` for the queued job; B is A plus openings, so nothing
+  here is thrown away.
+* **PCL, Gregory and the Union got no storey bands** — they have authored band
+  structure and were never the barcode.
+* **No dusk frame** (day p 0.30 / night p 0.90 only), nothing on hardware GL,
+  nothing at dpr 2, and `drag-perf.mjs` was not run — the layer adds 23
+  extrusions, but that is a claim, not a measurement.
+
 ## 115. Aug 15 2026 — the FOV-kick gate is green and it has been watched failing; places-check and zfight re-run, both at baseline (QUEUE Y6, Y14) (acer lane)
 
 **Branch `acer/blitz-verify` off `origin/main` `38fbeee`. Files changed:
