@@ -901,3 +901,38 @@ after (quote the 4x CPU throttle).
 §114 as the recordable URL, and every isolation run that produced it also
 carried `intro=0`, which that URL does not. See §115 for what the camera
 actually does when the intro is left running.
+
+# PART Z, SECOND HALF — what the pictures found once they existed (same pass)
+
+**Z6 is a defect, not a gap.** `?clip=1&from=JES&to=WEL&fit=1`, the URL §114
+advertises as *"a recordable shot of a route with no chrome"*, loaded exactly as
+written with the intro running: `fitBounds` lands at t=2 s, **the intro takes the
+camera back at t=10 s**, and from t=16 s the frame is the intro's end pose
+(z16.9, centre `[-97.7394, 30.2836]`, pitch 72, bearing 2), not the route's. The
+route is still drawn — and at z16.9, below `threadFadeZoom` 17.2, the altitude
+thread is at full opacity **on top of the buildings**, so it reads as a white line
+laid across the rooftops and the tree canopies. Either put `intro=0` in the
+advertised URL or make `?fit=1` wait for the intro to finish.
+Frame: `shots/walk/final/13-the-advertised-recording-url-ends-on-the-intro-pose.png`.
+
+**Z7. On a phone the answer column is 197 px wide and can never be wider.**
+`#wf-pill` is `position:absolute; left:50%; transform:translateX(-50%)`, so its
+shrink-to-fit available width is `100% - 50%` = 196.5 px on a 393 px screen and
+the `max-width:calc(100vw - 32px)` in the `@media(max-width:640px)` block **never
+binds**. Result: the headline wraps to two lines and `Show route` wraps inside
+its own button. One line in the media block: `left:16px; right:16px;
+transform:none`. Nothing collides with the existing controls — that was measured
+box by box and is fine.
+
+**Z8. The open bottom sheet covers the joystick.** At 393x852 the sheet takes the
+bottom ~230 px and `#joystick-zone` sits at y 682-782, entirely inside it.
+`docs/walk/interface.md` §4 says the joystick and the hint are hidden at this
+width while searching; nothing in the shipped CSS does that.
+
+**Z9. Typing a partial word still puts the wrong Jester first.** §114 fixed the
+exact code — `JES` returns `JES` — but `jest` returns **JCD Jester East Hall**
+ahead of **JES Beauford H. Jester Center**, because the rung sorts routable-first
+then shortest display name. Both are on screen so nobody is misrouted; it is
+still the wrong first row. And in the same panel, `#wf-list`'s `max-height:196px`
+cuts the `+ N more — keep typing` row in half so it collides with the hint line.
+`shots/walk/final/09-typing-jest-shows-both-jesters.png`.
