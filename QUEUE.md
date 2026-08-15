@@ -619,7 +619,16 @@ close-range atlas tier or a mip/detail level that fades the fine grid out under
 ~15 m of camera distance and leaves base colour plus the real modelled openings.
 This is the biggest piece of work on the list and the one with the highest ceiling.
 
-**Y6. `motion-feel.mjs`'s FOV-kick assertion is stale, and it fails on `main`.**
+**~~Y6.~~ DONE (HANDOFF §115).** Reproduced on `origin/main` `38fbeee` (sprint
+FOV 65.00 against a 2.5–4.5 window — exactly `TUNE.FOV_KICK` 7, i.e. correct
+behaviour, stale gate). The assertion now tests the mechanism `js/controls.js`
+implements: cruise kick < 0.5 deg (the `FOV_KICK_FROM` half), sprint kick =
+`TUNE.FOV_KICK` −0.6/+0.1 read live from `window.__fly.tune`, exact restore.
+Guard proven: with the ramp broken in-page (`tune.FOV_KICK_FROM = 99`) exactly
+the sprint assertion fails (kick 0.00), exit 1; clean reps 20/20 either side.
+The original entry follows.
+
+**Y6 (original). `motion-feel.mjs`'s FOV-kick assertion is stale, and it fails on `main`.**
 It expects a 2.5-4.5 deg sprint kick and measures 7.00, which is exactly
 `TUNE.FOV_KICK` — correct behaviour since `FOV_KICK_FROM` was introduced so that
 the whole effect belongs to sprinting. **Reproduced on `origin/main`'s
@@ -692,11 +701,15 @@ in §109 the pitch is **granted and the eye is silently lifted**: asked 80 you g
 17.23 m. Same verdict as Y4 (`ZOOM_MAX` is still 21.5), but whoever picks Y4 up
 should know they are removing a silent lift, not a block.
 
-**Y14. `places-check.mjs` and `zfight.mjs` have not been run since §105.** Not a
-defect, a gap. `coplanar` is at baseline (roofs 85, places 1, entrances 1729) and
-`collision` was 8/8 in §108, both on this code. These two just have not been run.
+**~~Y14.~~ CLOSED — both run against `origin/main` `38fbeee`, both at baseline
+(HANDOFF §115).** `places-check.mjs` **PASS, 40 ok / 0 failed** (same as §95).
+`zfight.mjs shots-places.json`: **7 poses no clusters; `westcampus-day` 242 px @
+[642,827,869,895]** — the same count and the same box as §95/§101/§104, i.e. the
+known QUEUE W6 cluster, unchanged. Nothing new to open. The original entry:
 `zfight` needs a shots file as `argv[2]` and `VERIFY_URL`; `places-check` needs
-`VERIFY_URL` and to be run from `scripts/verify/`.
+`VERIFY_URL` and to be run from `scripts/verify/`; under CPU load the fly-drag
+poses can come back `INVALID: the scene had not loaded` — rerun those poses,
+do not read INVALID as clean.
 
 ---
 
@@ -722,7 +735,11 @@ Y5  facades at close range ................... **BLOCKED ON SIMEON CHOOSING A WA
                                                 photographed (§111), decision sheets made
                                                 (§112). Nothing more should be built here
                                                 until he picks. See below.
-Y6  motion-feel FOV assertion ................ OPEN (red on main, not from these passes)
+Y6  motion-feel FOV assertion ................ DONE (acer/blitz-verify, HANDOFF §115).
+                                                Repaired to assert the MECHANISM: zero
+                                                kick at cruise, TUNE.FOV_KICK (read live)
+                                                at the sprint ceiling, exact restore.
+                                                Watched failing on an injected fault.
 Y7  outer-ring scan worst case ............... OPEN
 Y8  the ground plane ......................... OPEN
 Y9  labels sized by zoom not metres .......... OPEN
@@ -730,7 +747,7 @@ Y10 touch at walking height .................. OPEN
 Y11 dusk at eye level ........................ OPEN
 Y12 the near plane ........................... NEW
 Y13 the moon behind a building ............... NEW
-Y14 places-check / zfight not run ............ NEW
+Y14 places-check / zfight not run ............ CLOSED (both at baseline on 38fbeee, §115)
 ```
 
 **The one-line verdict on the Drag at night:** it is genuinely better — no stars
@@ -778,3 +795,144 @@ should land before Y4 or Y4 must re-run the check.
 2. **Never remove the watchdog or reaper in `scripts/verify/chrome.mjs`.**
 3. **Never leave a browser or a server running.** `reap.mjs` and kill the server.
 4. **Record every pass in `HANDOFF.md`** with the branch name.
+
+# PART Z — WALK TO CLASS. Written 2026-08-15 from the skeptic pass in HANDOFF
+# §115. **PR #169 IS OPEN AND WAS NOT MERGED.** The routes are right; four
+# things the interface says or fails to draw are not, and each is small.
+
+**The one-line verdict.** The routing is the best-verified thing in this repo —
+eighteen pairs driven in a real browser, every distance identical to the bake's
+audited table, nothing routed through a building that OSM does not mark
+`covered=yes`. What is not ready is the picture and the wording around it.
+
+**Z0 — NOT THIS FEATURE, AND THE MOST URGENT LINE ON THIS PAGE.
+`ground-base-texture` is rejected by MapLibre on `main` today.**
+`js/ground.js:370` sets `texGroundMaxZoom: 25`; the style spec's maximum for
+`maxzoom` is 24. So `addLayer` fails validation and the city-wide ground grain
+layer — a `background` layer carrying `TEX_IMG.paving` — is never added. The
+console says so on every single load:
+
+```
+MAP ERROR: layers.ground-base-texture.maxzoom: 25 is greater than the maximum value 24
+MAP ERROR: Cannot style non-existing layer "ground-base-texture".   (x3)
+```
+
+`js/ground.js` is byte-identical between this branch and `origin/main`, so this
+is on `main` now, and it is almost certainly the leftover of the Y4 half-fix
+that raised `texGroundMaxZoom` from 22 to 25. **QUEUE Y8 says "the ground plane
+is now 40-55 % of every frame and it is one flat colour" — this is at least part
+of why.** It is one character (`25` → `24`) and it is not this lane's file.
+
+---
+
+**Z1. `wayfind-ghost` never enters the style, and here is why.** §114 recorded
+"reports index -1 ... I ran out of time to find out why". The browser says it
+outright, once per load:
+
+```
+MAP ERROR: layers.wayfind-ghost.paint.line-width:
+           "zoom" expression may only be used as input to a top-level
+           "step" or "interpolate" expression.
+```
+
+`js/wayfind.js:917` wraps `groundWidthExpr()` — which IS a zoom `interpolate` —
+inside `['max', 1.5, ['*', 0.55, ...]]`. MapLibre rejects the layer at
+validation, fires an error event rather than throwing, and skips it. So the
+"solid on open ground, dashed through the wall" half of the occlusion design,
+which the file's own header calls "the whole occlusion design", is absent: a
+route that runs behind a building simply disappears.
+
+**The fix is to do the arithmetic in JavaScript and leave a bare top-level
+interpolate.** Measured at lat 30.2862, `routeWidthM` 1.6, `routeMinPx` 3,
+`routeMaxPx` 90, ghost multiplier 0.55, floor 1.5:
+
+```js
+'line-width': ['interpolate', ['exponential', 2], ['zoom'], 15, 1.65, 21, 27.30]
+```
+
+Do not hardcode those two numbers — compute them from the constants, the same
+way `groundWidthExpr` already does, and return the finished interpolate.
+**Then photograph a route that passes behind a building**, because nobody ever
+has.
+
+**Z2. The From field promises a location it does not have.** Its placeholder is
+`Where I am standing`. There is no `navigator.geolocation` anywhere in the file
+and no camera-position default; leave From empty, press Enter on a valid To, and
+**nothing happens at all** — `run()` returns on `!state.from`. `interface.md` §2
+specifies a pre-filled `Here · near Speedway at 24th` taken from the camera, and
+that is the flow in Simeon's own brief ("get a route from where you are").
+Either build the camera default (it needs no permission and no prompt) or change
+the placeholder to something true. Shipping the sentence without the feature is
+the one failure `what-we-can-honestly-say.md` §9 names by hand.
+
+**Z3. 85 of the 198 UT register codes return NOTHING when typed**, including
+`NUR`, `SMC`, `HDB`, `HLB`, `HTB`, `UTA`, `ACS`, `ANB`, `BMS`, `BMK`, `WMB` and
+`WAT`. `walk_graph.json`'s `code` map holds 113 of 198; 111 are routable and 2
+(`BIO`, `TSG`) are shown greyed with "no door mapped", which is the right
+behaviour. The other 85 are not in the index at all, so the list is empty and,
+as `interface.md` §1 says, **an empty list reads as "you typed it wrong" rather
+than "we don't have it".** §114 asked for this as a schema change to
+`scripts/bake_walk.py` and it is not done: add the remaining register codes with
+an empty door list.
+
+**Z4. Six of the twenty-four West Campus towers are not in the graph at all** —
+**21 Rio, Skyloft Austin, The Quarters Sterling House, The Block, Pointe on Rio,
+The Venue on Guadalupe**. All 24 are in `data/westcampus.geojson` with lobby
+doors; `walk_graph.json`'s `wc` map has 18. Simeon's brief says "works with
+wampus apartments too", and **§113's own audited table advertises a
+`21 Rio > WEL` route that the shipped client cannot produce** — typing `21 Rio`
+returns nothing. And it is not a hypothetical: **`21 Rio` and `Pointe on Rio` are
+both LABELLED ON SCREEN** in the golden-hour hero frame
+(`shots/walk/final/90-hero-unchanged-origin-main.png`). A student reads the name
+off the city, types it, and gets an empty list. `scripts/bake_walk.py`.
+
+**Z5. A drawn route repaints the whole city fifteen times a second, forever.**
+`startPulse()` runs a `requestAnimationFrame` loop that calls
+`setPaintProperty(..., 'line-gradient', ...)` at `pulseFps` 15 for as long as a
+route is on screen. Every one of those marks the style dirty and forces a full
+repaint of a scene that measures 3.7 fps on a software rasteriser and ~35 fps on
+this laptop's GPU. Worse, the layer it animates (`wayfind-thread`) is faded to
+zero opacity above `threadGoneZoom` 18.4, so **at walking height it repaints the
+city for an effect nobody can see.** Nobody has measured the frame cost. Gate it
+on the thread being visible at all, and measure it with `perf.mjs` before and
+after (quote the 4x CPU throttle).
+
+**Z6. Not a defect, a gap:** `?clip=1&from=JES&to=WEL&fit=1` is advertised in
+§114 as the recordable URL, and every isolation run that produced it also
+carried `intro=0`, which that URL does not. See §115 for what the camera
+actually does when the intro is left running.
+
+# PART Z, SECOND HALF — what the pictures found once they existed (same pass)
+
+**Z6 is a defect, not a gap.** `?clip=1&from=JES&to=WEL&fit=1`, the URL §114
+advertises as *"a recordable shot of a route with no chrome"*, loaded exactly as
+written with the intro running: `fitBounds` lands at t=2 s, **the intro takes the
+camera back at t=10 s**, and from t=16 s the frame is the intro's end pose
+(z16.9, centre `[-97.7394, 30.2836]`, pitch 72, bearing 2), not the route's. The
+route is still drawn — and at z16.9, below `threadFadeZoom` 17.2, the altitude
+thread is at full opacity **on top of the buildings**, so it reads as a white line
+laid across the rooftops and the tree canopies. Either put `intro=0` in the
+advertised URL or make `?fit=1` wait for the intro to finish.
+Frame: `shots/walk/final/13-the-advertised-recording-url-ends-on-the-intro-pose.png`.
+
+**Z7. On a phone the answer column is 197 px wide and can never be wider.**
+`#wf-pill` is `position:absolute; left:50%; transform:translateX(-50%)`, so its
+shrink-to-fit available width is `100% - 50%` = 196.5 px on a 393 px screen and
+the `max-width:calc(100vw - 32px)` in the `@media(max-width:640px)` block **never
+binds**. Result: the headline wraps to two lines and `Show route` wraps inside
+its own button. One line in the media block: `left:16px; right:16px;
+transform:none`. Nothing collides with the existing controls — that was measured
+box by box and is fine.
+
+**Z8. The open bottom sheet covers the joystick.** At 393x852 the sheet takes the
+bottom ~230 px and `#joystick-zone` sits at y 682-782, entirely inside it.
+`docs/walk/interface.md` §4 says the joystick and the hint are hidden at this
+width while searching; nothing in the shipped CSS does that.
+
+**Z9. Typing a partial word still puts the wrong Jester first.** §114 fixed the
+exact code — `JES` returns `JES` — but `jest` returns **JCD Jester East Hall**
+ahead of **JES Beauford H. Jester Center**, because the rung sorts routable-first
+then shortest display name. Both are on screen so nobody is misrouted; it is
+still the wrong first row. And in the same panel, `#wf-list`'s `max-height:196px`
+cuts the `+ N more — keep typing` row in half so it collides with the hint line.
+`shots/walk/final/09-typing-jest-shows-both-jesters.png`.

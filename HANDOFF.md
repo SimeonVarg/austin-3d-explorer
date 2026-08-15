@@ -14570,7 +14570,91 @@ the client can show them greyed and say so in words. Not my file to change.
 * **No PR and not merged.** The eye-level measurement has to come back non-zero
   first, and merging red is the one thing CLAUDE.md rule 2 does not permit.
 
-## 115. Aug 15 2026 — the skeptic pass on the walking feature: the routes are right, the ghost layer never loaded, and a defect on `main` that has nothing to do with either (acer lane)
+
+## 115. Aug 15 2026 — the FOV-kick gate is green and it has been watched failing; places-check and zfight re-run, both at baseline (QUEUE Y6, Y14) (acer lane)
+
+**Branch `acer/blitz-verify` off `origin/main` `38fbeee`. Files changed:
+`scripts/verify/motion-feel.mjs`, `QUEUE.md`, this entry. No app code, no data.**
+
+**Setup, with the instrument settings, because they are part of the answer.**
+`python scripts/serve.py 8341`. `harness-drift.mjs` PASS, 28 scripts in each
+file, before anything else. Headless SwiftShader (the suite default), one
+browser at a time, killed after every run. **`VERIFY_MAX_MS` was raised to
+1,200,000 (motion-feel) / 3,000,000 (zfight) for every run quoted here** — two
+sibling workflows were loading this CPU all night and the default 300 s watchdog
+killed a healthy motion-feel run twice before anything had misbehaved. Three
+browser runs also died to sibling reapers mid-flight (`Target page ... has been
+closed`, a served page going `ERR_CONNECTION_REFUSED` mid-run); each was
+relaunched, not diagnosed, per the night's rules. **A killed instrument looks
+like a failing subject** — check which one died before believing either.
+
+### Y6 — the stale assertion, reproduced on main first
+
+`motion-feel.mjs` on untouched `origin/main` `38fbeee`: 18/19, one FAIL —
+
+```
+*FAIL  sustained sprint kicks the FOV up by 2.5–4.5 deg
+       sprint FOV 65.00 (base 58, kick 7.00, peak speed 174 m/s)
+```
+
+7.00 is exactly `TUNE.FOV_KICK`. The behaviour is correct; the gate dated from
+before `FOV_KICK_FROM`, when the kick rode all speed and a sprint only bought
+the top ~2.4–4 deg of it. Since `FOV_KICK_FROM` (= 1.0 x cruise) the whole
+effect belongs to sprinting, so the correct sprint reading IS the full 7.
+
+**What the assertion tests now** (derived from `js/controls.js` read-only: the
+kick target is `FOV_KICK * clamp((sp/spdBase − FOV_KICK_FROM) / (SPRINT −
+FOV_KICK_FROM), 0, 1)`):
+
+1. rest FOV = the graphics-menu base (unchanged);
+2. **NEW — cruise without sprint leaves the FOV alone**: sustained W-only
+   flight, max kick < 0.5 deg. This is the `FOV_KICK_FROM` half of the
+   mechanism, and it is what stops the repair from being a widened window that
+   tests nothing;
+3. sprint kick reaches **`TUNE.FOV_KICK` −0.6/+0.1 deg, read live from
+   `window.__fly.tune`** — a deliberate retune moves the gate with it, a broken
+   mechanism does not;
+4. exact restore to base after stopping (unchanged).
+
+**The guard has been watched failing.** Fault injected in-page (`tune` is the
+live object the controller reads every frame): `FOV_KICK_FROM = 99` pushes the
+ramp start past the sprint ceiling, so the kick never engages — the real
+fault class "sprint stops widening the view". Result: **19/20, exit 1, exactly
+the sprint assertion** — `sprint FOV 58.00 (base 58, kick 0.00, TUNE.FOV_KICK
+7, peak speed 173 m/s)`. Cruise and restore stayed green, so the failure is
+attributed, not scattershot. Interleaved clean reps either side: **20/20
+(sprint FOV 64.99, kick 6.99)** and **20/20 (sprint FOV 65.00, kick 7.00)**.
+The injection line was removed before commit; the committed file is the clean
+one that produced both 20/20 reps.
+
+### Y14 — places-check and zfight on origin/main, no code changes
+
+* **`places-check.mjs` PASS, 40 ok / 0 failed** — same as §95. (Run twice: the
+  first run's server was reaped mid-run and still passed 40/0 because the page
+  had already loaded; it was re-run on a fresh server and read 40/0 again. Only
+  the clean run is the record.)
+* **`zfight.mjs shots-places.json`, all 8 poses: 7 clean, `westcampus-day`
+  242 px @ [642,827,869,895]** — the same count and the same box as §95, §101
+  and §104. That is the known QUEUE W6 cluster, unchanged; nothing new opened.
+  Masks: `shots/y14-zf-*.png` (uncommitted, worktree only).
+* **Trap for the next runner:** under heavy CPU load the three fly-drag poses
+  returned `INVALID: 0 buildings / 5121 roofscape tiled — the scene had not
+  loaded`. The script's own sanity gate caught it (this is why it exists). They
+  were re-run alone and are clean — 3485/5121 tiled, no clusters. Do not read
+  INVALID as clean, and do not read it as a defect either.
+
+### What I did NOT do
+
+* **Did not decide whether a 7-deg kick is too big.** QUEUE Y6 offered "or
+  lower the kick" — that is taste, `TUNE.FOV_KICK` is one line in
+  `js/controls.js` (not this pass's file), and the gate now follows whatever
+  value is chosen.
+* **Did not touch the other 16 motion-feel assertions** beyond renumbering the
+  count (19 → 20).
+* **Did not investigate the westcampus-day 242 px cluster** — W6 owns it.
+* **Did not run the fly-drag INVALID case down to a root cause** beyond the
+  re-run proving it was load, not geometry.
+## 116. Aug 15 2026 — the skeptic pass on the walking feature: the routes are right, the ghost layer never loaded, and a defect on `main` that has nothing to do with either (acer lane)
 
 *(Numbering note: another lane is writing its own §115 on `acer/ground-close` at
 the same time. This one follows §114, the walking-feature entry, on
