@@ -369,6 +369,38 @@
     // surface texture at all.
     texGroundMaxZoom: 25,
 
+    // ── CLOSE RANGE (QUEUE Y8): the ground at walking height ──────────
+    //
+    // At 1.7 m the ground plane is 40-55% of every frame and, until this
+    // block, it was one flat colour per surface: the far-field grain above
+    // reads at 200-900 m and dissolves at 20. These three layers add
+    // pedestrian-scale variation — aggregate on the carriageway (HANDOFF
+    // §106: it had NO texture at all), tone clumps on the lawns, fine
+    // aggregate standing on the walk deck — and they exist ONLY at close
+    // range: `closeFadeZoom[0]` is each layer's `minzoom`, so below it they
+    // are not drawn at all and the cruise/default frames are byte-identical
+    // to a build without them. That gate is a ZOOM by necessity (a layer
+    // gate IS a zoom in MapLibre; camera zoom here is derived from eye
+    // height, so it is an altitude gate in practice: z18.8 is a camera
+    // distance of ~120 m, walking height is D 18-49 m / floor(zoom) 20-21,
+    // spawn is z16.5 and the cruise pose z15.3). The TILES themselves are
+    // scale-free noise on purpose — fill-pattern halves its metre size every
+    // integer zoom (see GROUND.texture), so when Y4 pushes walking height to
+    // floor(zoom) 24-25 the grain gets finer but never becomes a countable
+    // motif. Nothing else in this file changes below the fade.
+    close: true,
+    closeFadeZoom: [18.8, 19.8],  // minzoom + fade-in; keep [0] > 17 or the
+                                  // flyover pays for a walking-height feature
+    closeTile: 96,                // px per close tile (~6.2 m at z20)
+    closeStrength: {              // per family, 0..1 — multiplied by the
+      grass: 0.55, asphalt: 0.65, paving: 0.45,   // night fade below
+    },
+    closeNightFade: 0.5,          // same shape as texNightFade
+    // The walk-deck aggregate is a prism standing on the scored grain
+    // (base = pathRaise + pathTexLift), lifted by this so the depth order
+    // against PATH_TEX's top is defined — same trick, one storey up.
+    closePathLift: 0.02,
+
     // Per-feature lightness jitter, as a FRACTION of that surface's own luma,
     // so one number is right at noon and automatically quiet at night. This is
     // what stops 4,900 areas being 14 exact hexes.
@@ -387,6 +419,9 @@
   const PATH_CASE = 'ground-paths-casing', PATH = 'ground-paths';
   const SPEEDWAY = 'ground-speedway-brick';
   const PATH_TEX = 'ground-paths-texture';
+  const CLOSE_ROAD = 'ground-close-road-grain';
+  const CLOSE_AREA = 'ground-close-area-grain';
+  const CLOSE_PATH = 'ground-close-path-grain';
   const DEPTH = 'ground-depth', CHANNEL = 'ground-channel';
   const DECKL = 'ground-deck';
   const SHEEN = 'ground-creek-sheen', CANOPY = 'ground-creek-canopy';
@@ -403,6 +438,11 @@
                     water: 'gnd-tex-water', paving: 'gnd-tex-paving',
                     canopy: 'gnd-tex-canopy' };
   const HERRING_IMG = 'gnd-tex-herringbone';
+  // The close-range tiles. Water and canopy families get NOTHING here: the
+  // creek already carries its sheen slab and a canopy is overhead, not
+  // underfoot.
+  const CLOSE_IMG = { grass: 'gnd-close-grass', asphalt: 'gnd-close-asphalt',
+                      paving: 'gnd-close-paving' };
   // One image per (angle, variant). `o` on a k:'pathslab' feature indexes this
   // list directly: o = angle * pathSlabPhase.length + variant, which is the
   // same arithmetic scripts/bake_ground.py does when it emits the feature.
@@ -919,6 +959,60 @@
   }
 
   /**
+   * THE CLOSE-RANGE TILES (QUEUE Y8) — what a surface is made of, seen from
+   * 1.7 m. Pure alpha modulation like every tile above, drawn once at load,
+   * and deliberately still scale-free noise: fill-pattern halves its metre
+   * size at every integer zoom, so a countable motif (a paver, a crack, a
+   * blade of grass) would pop on the way down. What survives is statistics —
+   * aggregate density, clump size, patch frequency.
+   *
+   * The densities are the taste here and they are all named above
+   * (closeTile, closeStrength). At z20 a 96 px tile is ~6.2 m of ground, so
+   * a 1 px speckle is a ~6 cm stone — true aggregate scale, which is why
+   * these read as material where the 200-900 m tiles read as weather.
+   */
+  function drawCloseTexture(family, T) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = T;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.clearRect(0, 0, T, T);
+    const rand = rng({ grass: 60301, asphalt: 60302, paving: 60303 }[family]);
+    if (family === 'asphalt') {
+      // Aggregate first — dense 1 px chip, a scatter of 2 px stones — then
+      // the patching: an asphalt surface is never one age or one pour.
+      speckle(ctx, T, rand, Math.round(T * T * 0.55), 0.16, 1);
+      speckle(ctx, T, rand, Math.round(T * T * 0.06), 0.10, 2);
+      for (let i = 0; i < 7; i++) {
+        const fresh = rand() < 0.55;
+        blob(ctx, T, rand() * T, rand() * T, 10 + rand() * 22,
+             fresh ? '0,0,0' : '255,255,255', 0.030 + rand() * 0.035);
+      }
+    } else if (family === 'grass') {
+      // Tone clumps, not blades: a mown lawn at 2 m is patches of thicker
+      // and thinner growth. Many small clumps at two tones, then a fine
+      // speckle for the broken texture inside each.
+      for (let i = 0; i < 90; i++) {
+        const r = 2 + rand() * 6, dark = rand() < 0.55;
+        blob(ctx, T, rand() * T, rand() * T, r,
+             dark ? '18,26,9' : '232,244,198',
+             (0.05 + rand() * 0.09) * (dark ? 1 : 0.75));
+      }
+      speckle(ctx, T, rand, Math.round(T * T * 0.30), 0.12, 1);
+    } else {
+      // Paving / concrete: fine aggregate and old stains, quieter than the
+      // asphalt — the walking surfaces already carry their scored joints
+      // (PATH_TEX); this adds the material between the joints.
+      speckle(ctx, T, rand, Math.round(T * T * 0.40), 0.11, 1);
+      for (let i = 0; i < 6; i++) {
+        blob(ctx, T, rand() * T, rand() * T, 6 + rand() * 10, '0,0,0',
+             0.018 + rand() * 0.020);
+      }
+    }
+    const d = ctx.getImageData(0, 0, T, T);
+    return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
+  }
+
+  /**
    * The Speedway Mall herringbone, as pure ALPHA — dark joints, per-brick
    * lightness jitter, no colour. Same reason as the four tiles above: colour
    * inside an image means redrawing it on every time-of-day tick.
@@ -1108,6 +1202,12 @@
       if (map.hasImage && map.hasImage(id)) continue;
       try { map.addImage(id, drawTexture(family, T)); } catch (e) {}
     }
+    if (GROUND.close) {
+      for (const [family, id] of Object.entries(CLOSE_IMG)) {
+        if (map.hasImage && map.hasImage(id)) continue;
+        try { map.addImage(id, drawCloseTexture(family, GROUND.closeTile)); } catch (e) {}
+      }
+    }
     if (GROUND.speedway && !(map.hasImage && map.hasImage(HERRING_IMG))) {
       try {
         map.addImage(HERRING_IMG, drawHerringbone(
@@ -1189,6 +1289,52 @@
     const n = nightAmt(p);
     return +(GROUND.pathTexOpacity * (1 - n * (1 - GROUND.pathTexNightFade))).toFixed(3);
   }
+
+  // ── Close-range grain (QUEUE Y8) ────────────────────────────────────
+  /** Which close tile a surface key wears, or null for none (water, canopy). */
+  function closeFamilyOf(k) {
+    const fam = TEX_FAMILY[k] || 'paving';
+    return CLOSE_IMG[fam] ? fam : null;
+  }
+  /** Only surfaces that have a close tile — water and canopy stay bare. */
+  function closeAreaFilter() {
+    const bare = KEYS.filter(k => !closeFamilyOf(k));
+    return ['all', ['==', ['get', 'k'], 'area'],
+            ['match', ['get', 's'], bare, false, true]];
+  }
+  /** ['match', ['get','s'], …] — one close tile per surface family. */
+  function closeAreaPatternExpr() {
+    const e = ['match', ['get', 's']];
+    for (const k of KEYS) {
+      const fam = closeFamilyOf(k);
+      if (fam) e.push(k, CLOSE_IMG[fam]);
+    }
+    e.push(CLOSE_IMG.paving);
+    return e;
+  }
+  /**
+   * 0 below closeFadeZoom[0] (where the layer's minzoom already hides it),
+   * the full per-family strength above closeFadeZoom[1]. The minzoom is the
+   * byte-identity gate; this fade only stops the arrival being a pop.
+   */
+  function closeZoomFade(val) {
+    return ['interpolate', ['linear'], ['zoom'],
+            GROUND.closeFadeZoom[0], 0, GROUND.closeFadeZoom[1], val];
+  }
+  const closeStrengthAt = (fam, p) =>
+    +(GROUND.closeStrength[fam] *
+      (1 - nightAmt(p) * (1 - GROUND.closeNightFade))).toFixed(3);
+  function closeAreaOpacityExpr(p) {
+    const e = ['match', ['get', 's']];
+    for (const k of KEYS) {
+      const fam = closeFamilyOf(k);
+      if (fam) e.push(k, closeStrengthAt(fam, p));
+    }
+    e.push(closeStrengthAt('paving', p));
+    return closeZoomFade(e);
+  }
+  const closeRoadOpacityExpr = p => closeZoomFade(closeStrengthAt('asphalt', p));
+  const closePathOpacityExpr = p => closeZoomFade(closeStrengthAt('paving', p));
 
   /**
    * GROUND THAT IS NOT FLAT. "fountain in front of tower has stairs on both
@@ -1445,6 +1591,26 @@
     }
 
     /**
+     * CLOSE-RANGE GRAIN ON THE AREAS (QUEUE Y8). Same features as TEX, a
+     * finer tile, and a `minzoom` that is the whole contract: below
+     * closeFadeZoom[0] this layer does not exist, so the flyover and the
+     * spawn pose render byte-identically to a build without it. See the
+     * GROUND.close block for the full argument.
+     */
+    if (GROUND.texture && GROUND.close && !map.getLayer(CLOSE_AREA)) {
+      map.addLayer({
+        id: CLOSE_AREA, type: 'fill', source: SRC,
+        minzoom: GROUND.closeFadeZoom[0],
+        filter: closeAreaFilter(),
+        paint: {
+          'fill-pattern': closeAreaPatternExpr(),
+          'fill-opacity': closeAreaOpacityExpr(p),
+          'fill-antialias': false,
+        },
+      }, under);
+    }
+
+    /**
      * THE CULVERT / BRIDGE DECKS, and WHERE THIS LAYER SITS IS THE FIX.
      *
      * "the creek near DKR completely slices through 21st and DKR, but sidewalks
@@ -1483,6 +1649,32 @@
     }
 
     if (GROUND.roads) addRoadLayers(map, pal, p, under);
+
+    /**
+     * CLOSE-RANGE AGGREGATE ON THE CARRIAGEWAY (QUEUE Y8). HANDOFF §106,
+     * standing on the Drag at 1.7 m: "the carriageway is a flat grey field
+     * with no texture at all, filling ~70% of the frame … a gnd-tex-asphalt
+     * image exists, is registered and is strength-tuned — and no layer uses
+     * it". This is that layer, on the close tile rather than the far one,
+     * and gated to walking height by the same minzoom as CLOSE_AREA.
+     *
+     * Anchored UNDER the lane markings when they exist: the grain is the
+     * road surface, the markings are paint on it. (The alpha grain crossing
+     * a marking would only darken it, but under is simply correct.)
+     */
+    if (GROUND.texture && GROUND.close && GROUND.roads && !map.getLayer(CLOSE_ROAD)) {
+      const markAnchor = [LANE, STOPBAR].find(id => map.getLayer(id)) || under;
+      map.addLayer({
+        id: CLOSE_ROAD, type: 'fill', source: SRC,
+        minzoom: GROUND.closeFadeZoom[0],
+        filter: ROADAREA_FILTER,
+        paint: {
+          'fill-pattern': CLOSE_IMG.asphalt,
+          'fill-opacity': closeRoadOpacityExpr(p),
+          'fill-antialias': false,
+        },
+      }, markAnchor);
+    }
 
     /**
      * PATHS ARE FILLS, NOT LINES, and that is the fix for the Speedway fan.
@@ -1622,6 +1814,33 @@
           'fill-extrusion-base': GROUND.pathRaise,
           'fill-extrusion-height': GROUND.pathRaise + GROUND.pathTexLift,
           'fill-extrusion-opacity': pathTexOpacity(p),
+          'fill-extrusion-vertical-gradient': false,
+        },
+      });
+    }
+
+    /**
+     * CLOSE-RANGE AGGREGATE ON THE WALKS (QUEUE Y8). The walks already
+     * carry their scored joints (PATH_TEX); at 2 m the material BETWEEN the
+     * joints is still a flat sheet, and this is that material. A prism one
+     * lift above the scored grain — top at pathRaise + pathTexLift +
+     * closePathLift — so the depth order is defined, the same reason
+     * PATH_TEX stands on the deck. Speedway's brick is excluded: a mortar
+     * weave already is its close-range surface.
+     */
+    if (GROUND.texture && GROUND.close && !map.getLayer(CLOSE_PATH)) {
+      map.addLayer({
+        id: CLOSE_PATH, type: 'fill-extrusion', source: SRC,
+        minzoom: GROUND.closeFadeZoom[0],
+        filter: ['all', ['==', ['get', 'k'], 'patharea'],
+                        ['!=', ['get', 's'], 'brickpave']],
+        paint: {
+          'fill-extrusion-pattern': CLOSE_IMG.paving,
+          'fill-extrusion-base': GROUND.pathRaise + GROUND.pathTexLift,
+          'fill-extrusion-height':
+            GROUND.pathRaise + GROUND.pathTexLift + GROUND.closePathLift,
+          'fill-extrusion-opacity': closePathOpacityExpr(p),
+          // OFF, like every thin prism in this file: the slab is 20 mm tall.
           'fill-extrusion-vertical-gradient': false,
         },
       });
@@ -1966,6 +2185,11 @@
     // is swallowed by `set`, and the layer simply stops following the clock.
     set(SPEEDWAY, 'fill-extrusion-opacity', speedwayTexOpacity(p));
     set(PATH_TEX, 'fill-extrusion-opacity', pathTexOpacity(p));
+    // The close grain follows the same clock. Its tiles carry no colour, so
+    // night is an opacity move here exactly as it is for TEX and BASE_TEX.
+    set(CLOSE_AREA, 'fill-opacity', closeAreaOpacityExpr(p));
+    set(CLOSE_ROAD, 'fill-opacity', closeRoadOpacityExpr(p));
+    set(CLOSE_PATH, 'fill-extrusion-opacity', closePathOpacityExpr(p));
     set(DEPTH, 'fill-extrusion-color', depthColour(p));
     set(CHANNEL, 'fill-extrusion-color', bankColour(p));
     set(DECKL, 'fill-extrusion-color', bankColour(p));
@@ -2022,6 +2246,12 @@
     set(PATH_TEX, 'fill-extrusion-opacity', pathTexOpacity(p));
     set(PATH_TEX, 'fill-extrusion-base', GROUND.pathRaise);
     set(PATH_TEX, 'fill-extrusion-height', GROUND.pathRaise + GROUND.pathTexLift);
+    set(CLOSE_AREA, 'fill-opacity', closeAreaOpacityExpr(p));
+    set(CLOSE_ROAD, 'fill-opacity', closeRoadOpacityExpr(p));
+    set(CLOSE_PATH, 'fill-extrusion-opacity', closePathOpacityExpr(p));
+    set(CLOSE_PATH, 'fill-extrusion-base', GROUND.pathRaise + GROUND.pathTexLift);
+    set(CLOSE_PATH, 'fill-extrusion-height',
+        GROUND.pathRaise + GROUND.pathTexLift + GROUND.closePathLift);
     set(SHEEN, 'fill-extrusion-opacity', sheenOpacity(p));
     set(CANOPY, 'fill-extrusion-base', ['*', ['get', 'h'], GROUND.canopyBaseFrac]);
     set(CANOPY, 'fill-extrusion-opacity', GROUND.canopyOpacity);
@@ -2039,6 +2269,9 @@
     show(BASE_TEX, GROUND.on && GROUND.texture && GROUND.texGround);
     show(SPEEDWAY, GROUND.on && GROUND.texture && GROUND.speedway);
     show(PATH_TEX, GROUND.on && GROUND.texture && GROUND.pathTexture);
+    show(CLOSE_AREA, GROUND.on && GROUND.texture && GROUND.close);
+    show(CLOSE_PATH, GROUND.on && GROUND.texture && GROUND.close);
+    show(CLOSE_ROAD, GROUND.on && GROUND.texture && GROUND.close && GROUND.roads);
     for (const id of [ROAD, ROAD_CASE, ROAD_FAR]) show(id, GROUND.on && GROUND.roads);
     show(LANE, GROUND.on && GROUND.roads && GROUND.lanes);
     for (const id of [BIKE_L, BIKE_R, CYCLE]) show(id, GROUND.on && GROUND.roads && GROUND.bike);
