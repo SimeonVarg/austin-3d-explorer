@@ -15919,3 +15919,120 @@ explanation, frozen at its honest value.
   (§116) is still hardcoded and still not mine to touch.
 * **AF1** stays stranded — its register name matches AF2's footprint and the
   rehab pavilion genuinely has no door group anywhere.
+---
+
+## 125. Aug 15 2026 — the entrance bake stops testing doors against their own building, and every era comes from a measured year (acer lane)
+
+Branch `acer/blitz-entrances`, cut from `origin/main` at `38fbeee`. Writes
+limited to `scripts/bake_entrances.py`, `data/entrances.geojson`, `HANDOFF.md`.
+No browser this phase, so nothing here is a pixel claim: **the PR is left open
+for the Ship agent**, because the era change below repaints doorways on 57
+buildings and judging that is a looking job, not a reasoning job.
+(Renumbered 114 -> 125 on the rebase: wayfind DID merge first and main had
+taken 114-124, per the header rule.)
+
+### THE SELF-BLOCK (QUEUE X4) — fixed, and it had quietly moved two doors
+
+`clear_buried()` was testing every door against the union of nine passes'
+masses — including the mass that is just the door's own building re-drawn
+from its own footprint ring (westcampus does this for all 24 towers, tower
+for MAI, drag and moody for their hosts). A door on a wall always has its own
+building behind it; treating the building as a blocker fails every door that
+sits in a re-entrant notch of its own plan. Cambridge Tower is the measured
+case (§104): six of twelve march directions re-enter CAMBRIDGE'S OWN ring
+within 3 m and the nearest other footprint is 107 m away.
+
+The rule shipped: a mass with **IoU >= 0.90 against the host's footprint** is
+excluded from that host's burial test and from its clear-space march. The
+threshold is measured, not chosen: over all 1,456 qualifying masses vs the
+2026-08-04 snapshot the distribution is bimodal — 1,391 score < 0.5, six sit
+between 0.5 and 0.9, 57 score >= 0.9 — and the 57 are exactly the
+footprint-re-draw class. 0.90 sits in the empty gap. Printed every run:
+
+    buried doors       : 5 walled in by another pass's mass (2 relocated, 3 dropped)
+      self-block (X4)  : 33 masses on 33 buildings are the host's own footprint
+                         re-drawn (IoU >= 0.90) and are excluded from that
+                         host's burial test and march
+
+What it changed, against a baseline run that reproduced §99's output
+byte-for-byte before the edit (same worktree, same pinned snapshot):
+
+* **7 buried -> 5.** The Quarters Sterling House (moved 3 m in §99) and The
+  Nine at West Campus (moved 1 m) were self-blocks — flagged by their own
+  westcampus.geojson mass, then pointlessly relocated along it. Their doors
+  now stay where `wc_place()` put them. §106's suspicion about Sterling's
+  relocation was right.
+* **Gates-Dell is NOT this class and stays fixed** — the atrium slab is
+  authored outboard geometry, IoU far below the gate; still `moved GDC 22 m`
+  onto the Speedway face, door centroid byte-identical to the shipped file.
+* **MAI now moves 1 m instead of 2 m** — still genuinely buried by a
+  non-self tower piece, but the march no longer counts MAI's own
+  footprint-duplicate mass, so a nearer wall qualifies.
+* The three stadium drops (DKR x2, RMRZ;NEZ) are untouched.
+
+### W7, RE-VERIFIED, NOT RE-BUILT
+
+The queue entry predates §99: `clear_buried()` already shipped on main
+(commit `66699d9`) and this pass did not rebuild it — it re-ran it. The
+baseline run printed §99's exact list (7 found, 4 moved, 3 dropped, GDC 22 m)
+before the X4 edit changed it as above. The count still prints on every run.
+
+### ERAS FROM MEASURED YEARS — 57 buildings changed family, LISTED, NOT MERGED
+
+`data/ut_buildings.json` (UT's own register, 198 refs with the year first
+occupied) now drives eras.md §5.2's rule-6 date test, which had been waiting
+on a dated source since the doc was written. Cascade order is §5.2's own:
+WC table, NULL list and CELEBRATED (authored) still win; parking and church
+still beat the date (a 2003 garage is a garage); the hand list survives only
+for refs the register does not carry; the residential class and E5 come
+after. The bake prints every building the register moved, with its year —
+106 of 298 in-scope buildings carry a measured year, **57 changed family**:
+
+* `GEB B->A (1904)` — eras.md §6 itself said "probably predates the family;
+  verify". The measured year agrees with the doubt.
+* `BAT BEN MEZ PAR CAL B->C (1951-67)` — the five "B-late" flags. eras.md
+  said a 1950s building in that idiom usually has an aluminium storefront;
+  the date test now says so too.
+* `CBA D->C (1962)`, `DFA D->C (1979)` — the hand list had guessed modern.
+* 11 dorms `E2 -> B/C/D` (AND BHD CRD LTD PHD RHD 1927-37 -> cret; BLD CRH
+  MHD 1955-56 -> midcentury; ADH SJH 2000-07 -> modern).
+* 38 `E5 -> A/B/C/D` — buildings the hand list never covered (BIO 1924->A,
+  BRB 1941->B, 26 mid-century, 11 modern). Full list in the bake output and
+  the PR.
+
+**This is the visual change the Ship agent has to judge.** Family counts by
+piece: utility 5,880 -> 4,086, midcentury 1,310 -> 4,230, modern 1,807 ->
+2,843, cret 1,771 -> 1,911, gilbert 188 -> 351, highrise unchanged 821.
+
+### HEALTH, BASELINE -> AFTER, both from the bake's own instrument
+
+* entrances **629 on 280 buildings, unchanged**; per-building min/median/
+  mean/p90/max identical; celebrated table identical, WC 24 lobbies identical.
+* OSM recovery by the derivation alone: **64% at 3 m (46/72), unchanged** to
+  the digit at every threshold.
+* pieces 11,777 -> **14,242** (+2,465: rails 1,626->3,180, canopy 410->600,
+  glass 1,416->1,666 — richer families on those 57 buildings).
+* all assertions green: floating sills **0 of 629**, detached pieces **0 of
+  14,242**, bad base/h/colour **0**, pale-neutral wn **0**, mid glass **0**.
+* wn night values: {ffc06a: 743, ffaa3c: 696, f09a35: 616, ffd07a: 13} —
+  same four values as before, more pieces carrying them.
+* **payload: 5.26 -> 6.38 MB raw, 331 -> 396 KB gzipped** (`gzip -c | wc -c`,
+  which counts the whole file, not a cache hit). W3's "measure it or tile it"
+  note gets 65 KB heavier and is still unmeasured for load cost.
+
+### WHAT I DID NOT DO
+
+* **Did not merge.** The era repaint is a taste-adjacent visual change on 57
+  buildings and this phase had no browser; merging a visual change nobody
+  has looked at is how §86 happened. PR left open, with this section as the
+  reason, for the Ship agent to screenshot and judge.
+* **Did not verify a single pixel** — no harness-drift run either, since no
+  pixel work was done. The Cambridge/Sterling/Nine claims are geometry
+  claims, checked against the output file, not renders.
+* **Did not touch W8 (Texas Union courtyard door)** — still needs a
+  photograph before code — **or W3's load-cost measurement**, which this
+  pass made 65 KB gz more urgent.
+* The 33 self-mass exclusions are computed per building per run (cheap);
+  the bake itself is not — measured tonight at **~6 min of CPU and 30-40 min
+  of wall clock** with three workflows sharing the machine, both before and
+  after the edit. Nobody budgets bake runtime. Recorded, not fixed.
