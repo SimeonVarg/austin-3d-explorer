@@ -14377,7 +14377,7 @@ green, and it was watched failing: perturbing one baseline by 20 % produced
 
 ## 114. Aug 15 2026 — storey bands shipped on the whole Drag corridor (QUEUE Y5, the decision executed) (acer lane)
 
-**Branch `acer/drag-storeys`, PR #PRNUM. Not merged — the Gate agent decides.**
+**Branch `acer/drag-storeys`, PR #167. Not merged — the Gate agent decides.**
 Three files, all mine: `scripts/bake_drag.py`, `data/drag.geojson`, `js/drag.js`.
 The Y5 call was delegated and made per `docs/camera/facade-choice.md`'s written
 recommendation: **ship storey bands now; real windows stay queued as the later,
