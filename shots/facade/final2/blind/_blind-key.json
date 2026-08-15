@@ -1,0 +1,38 @@
+{
+ "eye-day": {
+  "left": "live",
+  "right": "candg"
+ },
+ "eye-night-b": {
+  "left": "live",
+  "right": "cand2"
+ },
+ "meas-day": {
+  "left": "live",
+  "right": "cand2"
+ },
+ "meas-night": {
+  "left": "live",
+  "right": "cand2"
+ },
+ "cruise-day": {
+  "left": "cand2",
+  "right": "live"
+ },
+ "cruise-night": {
+  "left": "cand2",
+  "right": "live"
+ },
+ "feet-day": {
+  "left": "candg",
+  "right": "liveg"
+ },
+ "feet-night": {
+  "left": "candg",
+  "right": "liveg"
+ },
+ "eye-night": {
+  "left": "candg",
+  "right": "live"
+ }
+}
