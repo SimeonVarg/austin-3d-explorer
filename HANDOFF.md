@@ -14235,3 +14235,142 @@ with his own eyes instead of taking on trust.
 * **Did not shoot on hardware GL or at dpr 2.** SwiftShader, 1440x900, dpr 1,
   `cancelGraphicsAutoDetect()` at the top of every run, one browser at a time.
   `harness-drift.mjs` PASS, 28 scripts in each file, before any pixel.
+
+---
+
+## 113. Aug 15 2026 — the walking graph exists, and nine real routes were checked against the path network (acer lane)
+
+**Branch `acer/wayfind`.** Two new files, both mine: `scripts/bake_walk.py` and
+`data/walk_graph.json`. **No js, no html, and no data file anyone else owns was
+touched**, so with the feature absent the app is byte-identical to `main` — that
+is not an assumption, it is `git status`: the only changed paths in the whole
+repo are those two plus this file. No browser was opened and no server was
+started; nothing to reap. `harness-drift.mjs` was NOT run and did not need to be
+— no pixel was measured in this pass.
+
+### The health numbers, printed on every run
+
+```
+nodes      11,062   (10,637 OSM ids + 425 door anchors spliced into edges)
+edges      11,997   (11,566 raw + 6 guarded snaps + 425 splits)
+components 57       (59 before snapping)
+largest    10,455 = 94.51 % of nodes;  next 85, 77, 54, 49, 31, 29, 24, 22
+walkable   160.44 km
+doors      629 groups, 599 attached (95.2 %), median link 2.49 m, p90 11.67,
+           WORST 28.96 m; 17 links re-routed around a neighbouring building
+buildings  111 of 198 UT register codes routable
+places     148 named POIs on the graph
+file       328.5 KB raw (scripts/serve.py, which does NOT gzip)
+            98.4 KB gzip -9 (GitHub Pages, which does)
+gates      13 of 13 green
+```
+
+The 87 codes that are NOT routable are printed in full by the bake. They are
+overwhelmingly sheds, garages, graduate-housing blocks and Facilities Complex
+buildings; the ones a student would actually miss are short — `NUR`, `SMC`,
+`HDB`/`HLB`/`HTB`, `UTA`, `BMS`/`BMK`. **The graph is not the bottleneck: 111 of
+the 118 codes that have a door are routable.**
+
+`docs/walk/graph.md` proposed four aliases for doors that carry no `ref`. I read
+the 59 unnamed-footprint names against UT's register and confirmed **seven**:
+RLP=Patton Hall, BME, ECG, CLK, plus **STD=DKR Memorial Stadium (8 doors)**,
+ATT and KIN. AF1/AF2 are still excluded because both register names match the
+same footprint. The list is a constant in the bake, not a data file, because
+this lane may not create one.
+
+### Snapping did almost nothing, exactly as the spec predicted
+
+612 dead ends, 61 candidates inside 2 m, **6 accepted**. The other 55 were
+either already connected to the segment they were nearest to, or rejected by the
+layer guard (4). Zero accepted stitches cross a wall or a road, because zero got
+that far. Section 3 of `graph.md` said this would be close to a no-op and it is;
+components went 59 to 57.
+
+### The nine named pairs, main door to main door
+
+```
+pair                     dist    time      stairs sig  detour  over  walls
+JES > GDC                 472 m   5-8  min    0     0   1.15x    0 m    0
+JES > WEL                 525 m   6-8  min    0     0   1.12x    0 m    0
+PCL > RLP                 518 m   6-8  min    1     0   1.44x    0 m    0
+GRE > MAI                 575 m   7-10 min    2     0   1.83x    0 m    0
+BUR > CBA                 949 m  11-15 min    1     0   2.04x  131 m    0   <-- FAILURE
+STD > MAI                1002 m  12-17 min    5     0   1.72x    0 m    0
+21 Rio > WEL             1015 m  12-18 min    3     2   1.29x    0 m    0
+The Castilian > GDC       698 m   8-13 min    0     2   1.24x    4 m    0
+PCL > JES                 156 m   2-3  min    1     0   1.63x    0 m    0
+```
+
+Eight of nine are routes a person who has walked this campus would recognise.
+**BUR > CBA is a failure and is reported as one.** McCombs' main door anchors
+onto a footway spur that only rejoins the network 130 m *south* of the building,
+so the route walks past the destination and comes back; the building's own
+secondary door 15 m west routes in 767 m. The gap between the two frontage paths
+is **11 m** — five times `SNAP_TOL_M`, and `graph.md` section 3c measured that
+stitching at that scale buys 59 road crossings. **This is a hole in OSM, not a
+tuning knob**, and it is written into `KNOWN_BAD` in the bake so a later pass
+cannot quietly "fix" it by loosening a guard.
+
+### Three things the audit found that nobody had written down
+
+1. **Taking the minimum over every door pair is the wrong question.** It answers
+   "what is the shortest mapped walk between these two footprints", which for
+   adjacent buildings is a pair of back doors: **PCL to Jester comes out at 80 m
+   that way and 156 m between the doors a person would use.** The bake now
+   prefers `role: main` and prints the any-door minimum beside it for
+   comparison. **Whoever writes `js/walk.js` must make the same choice** — the
+   difference is a factor of two on short routes.
+2. **The East Mall is a DECK, and a naive footprint test calls every route
+   across it a route through a building.** OSM way 129733834 is
+   `highway=pedestrian, area=yes, layer=1` sitting on top of the Computation
+   Center, and GRE to MAI runs 49.7 m across it. The audit is layer-aware now
+   and counts decks separately. This was the first "route through a building" I
+   found and it was the instrument, not the route.
+3. **14 edges of 11,997 really do run more than 3 m inside a building
+   footprint**, and the number only means something because the measurement is
+   depth-inside, not boundary-crossings. Raw boundary crossings were 38 edges;
+   **the Moody Center contributes two `building_class: roof` polygons of 16,450
+   and 18,554 m squared** — canopies, not walls — and small unnamed 9 to 94
+   m-squared roof/kiosk footprints account for most of the rest. What survives:
+   AT&T Center 20.3 m, Moody Center 19.6 m, Cockrell Hall 10.3 m, and a cluster
+   in the Moody College plaza that OSM itself tags `fixme: plaza needs to be
+   mapped`. **These are OSM-mapped outdoor footways whose line overlaps a
+   footprint from a different source. None is an indoor route and none was
+   invented by us**, so they are reported, not deleted — deleting a mapped
+   sidewalk because a machine-derived polygon overlaps it would make routes
+   worse. 16 of 299 sampled routes touch one.
+
+### The sweep, which is what says the other 12,000 routes are sane
+
+300 random routable-code pairs, seed 7: **299 routed, 0 with no route found**,
+detour ratio median 1.44 / p90 2.06 / max 3.77, 12 overshooting the destination
+by more than 15 %. That detour distribution is a believable pedestrian network,
+not one full of absurd detours.
+
+### The regression test
+
+`python scripts/bake_walk.py --regress` re-bakes from source, re-routes the nine
+frozen pairs and **exits 1** if any moves more than 5 % or starts crossing a
+building. It lives in the bake rather than in `scripts/verify/` because this
+lane owns exactly three files and that directory is not one of them. It is
+green, and it was watched failing: perturbing one baseline by 20 % produced
+`REGRESSION: FAIL (1 bad of 10)` and exit 1.
+
+### What I did NOT do
+
+* **No client code.** `js/walk.js` does not exist, nothing fetches
+  `walk_graph.json`, and no route has been drawn on screen. Assertion M in
+  `graph.md` section 8 — "with the feature off the request list is
+  byte-identical" — is trivially true today and must be re-run when the client
+  lands.
+* **No step-free profile.** The flags are in the file (`F_STEPS`, and three
+  anchors per door precisely so a profile can re-anchor), but the bake does not
+  route with stairs deleted and I did not re-measure section 6f's numbers.
+* **Areas are still not traversable.** 42 plaza polygons get walked around
+  rather than across. That is where most of the p90 2.06 detour lives.
+* **I did not fix the 87 doorless codes**, which needs `data/entrances.geojson`
+  — not this lane's file.
+* **I did not photograph a single route.** Every claim here is against the path
+  network and against campus geography I can reason about; nobody has looked at
+  one of these routes drawn on the city. That is the next pass and it is the one
+  that will find what this one could not.
