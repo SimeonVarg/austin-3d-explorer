@@ -14570,3 +14570,116 @@ one that produced both 20/20 reps.
 * **Did not investigate the westcampus-day 242 px cluster** — W6 owns it.
 * **Did not run the fly-drag INVALID case down to a root cause** beyond the
   re-run proving it was load, not geometry.
+
+## 120. Aug 15 2026 — close-range ground grain, gated to walking height, and the gate is a SHA-256 (QUEUE Y8) (acer lane)
+
+(§114 is on branch `acer/drag-storeys`, PR #167, unmerged as this is written —
+numbered past it by chronology per the renumber rule.)
+
+**Branch `acer/ground-close`, PR #170. Not merged — the Gate agent decides.**
+One file: `js/ground.js`, **purely additive — 233 insertions, 0 deletions** —
+built off `origin/main`, independent of the storeys branch, per the plan.
+
+### What shipped
+
+At 1.7 m the ground is 40–55 % of every frame and it was one flat colour per
+surface; the far-field grain is authored for 200–900 m and dissolves at 20.
+Three new layers, all in a marked `GROUND.close` block, every value named:
+
+* **`ground-close-road-grain`** — asphalt aggregate + patch mottle on the
+  `k:'roadarea'` carriageway, anchored UNDER the lane markings. §106 measured
+  this hole exactly ("a gnd-tex-asphalt image exists … and no layer uses it");
+  this is that layer.
+* **`ground-close-area-grain`** — tone clumps on lawns, fine aggregate on
+  plazas, per-family strengths; water and canopy families deliberately bare.
+* **`ground-close-path-grain`** — a 20 mm prism of concrete aggregate standing
+  on the walk deck one lift above the scored joints (`closePathLift`, heights
+  in METRES), Speedway's brick excluded.
+
+Three new 96 px pure-alpha tiles (`drawCloseTexture`), drawn once at load,
+scale-free noise by constraint — fill-pattern halves its metre size at every
+integer zoom, so a countable motif would pop; statistics survive.
+
+**The contract: `minzoom = closeFadeZoom[0] = 18.8` on all three.** Below it
+the layers do not exist. Spawn is z16.5, the cruise pose z15.3, walking height
+floor(zoom) 20–21. The gate is a zoom because a MapLibre layer gate IS a zoom;
+camera zoom here is derived from eye height, so it is an altitude gate in
+practice (~120 m). The tiles being scale-free is what Y4 pushing walking
+height to z24–25 costs: finer grain, never a motif — see the verdict below.
+
+### The byte-identity gate, proved not asserted
+
+Forced all three layers to a SOLID MAGENTA pattern at opacity 1 (§48), so the
+`minzoom` was the only thing protecting the frame:
+
+```
+default pose (z16.5)   0 magenta pixels of 1,296,000
+cruise pose  (z15.29)  0 magenta pixels — and the magenta frame is
+                       SHA-256-IDENTICAL to the shipping-state control frame
+                       (eb9aa9fc…, byte for byte)
+```
+
+Plus the structural argument: the diff is 233 added lines; no existing layer,
+expression or constant changed, so below z18.8 the style is live's style.
+
+### Verified by looking (SwiftShader 1440x900 dpr 1, AE OFF via `GFX.autoExposure=false`, gain asserted == 1 before every frame, `cancelGraphicsAutoDetect()`, `harness-drift.mjs` PASS 28/28 before any pixel; frames in `shots/facade/ground-close/`)
+
+Noise floor first, same build, consecutive same-state pairs: **0 pixels
+differing at all** (feet-day and eye-day pairs both 0.000 %). Before/after by
+visibility toggle in ONE session — §114's 31 % cross-session cruise lesson.
+
+```
+pose                              any px    > 24/255      where
+EYE  Guadalupe z20.1 p88  day     10.2 %    485 px        rows 447–553: the carriageway
+FEET South Mall z23.9 p60 day     35.7 %    3 px          sub-24 grain everywhere
+EYE  night (settled, adjacent)     0.001 %  0 px          nothing — see below
+FEET night                        25.7 %    0 px          sub-24 only
+```
+
+**The eye-day pair is the argument** (`eye-day-before/after.png`): the far
+carriageway goes from a flat grey field to asphalt with aggregate and
+patching, and every >24 pixel sits in the road band. The lawn at the feet
+pose reads as turf with growth variation (`feet-day-after.png`).
+
+**Night is honest and it is nil.** On the settled pair the close grain
+changes 0 pixels >24 and 0.001 % at all: ±3 luma of alpha grain does not
+survive a near-black ground. The night street keeps exactly the frame it has
+on live — not worse, not better. `closeNightFade` exists if anyone wants to
+push it, but the honest statement is that this is a daylight feature.
+
+### INSTRUMENT FINDING: an hour flip keeps settling for MINUTES
+
+The first eye-night pair, shot 2.5 s after `applyTimeOfDay(0.90)`, measured
+**38.9 % of the frame >24** — all of it the night transition still landing,
+none of it the layers (feet-night, same timing, was clean; re-shot eye-night
+with a 15 s dwell and a same-state pair proving stability: 0 px). Even then,
+two same-state frames ~2 min apart drifted 252 px >24 in the lamp-glow band.
+Anyone A/B-ing across an hour change: settle long, then PROVE the settle with
+a same-state pair before reading the toggle. §112's AE discipline is not
+enough on its own.
+
+### texGroundMaxZoom (Y4/Y16), the verdict asked for
+
+Already 25 on `main` — §106 raised it as preparation and measured why (the
+real blocker is `ZOOM_MAX` 21.5 in `js/controls.js`, not this file). Judged
+with the new grain at z23.9: **leave it at 25, and do not call this pass a
+Y4 solution.** Past ~z22 the alpha speckle goes sub-pixel and washes out —
+35.7 % of the feet frame moves but only 3 px clear 24/255. Screen-anchored
+patterns cannot hold metre-true grain there; when Y4 lands it needs its own
+close-up pass (coarser tiles keyed to the top zooms, or geometry).
+
+### What I did NOT manage to do
+
+* **The rest of Y8 that needs geometry:** the gutter line, thresholds/sills at
+  the entrance doors, a true smaller repeat ring. Those are bake work, not
+  texGround machinery, and were out of this candidate's scope by its own brief.
+* **Nothing at night.** Measured nil at the eye pose; stated, not hidden.
+* **No dusk frames, no hardware GL, no dpr 2.**
+* **No perf measurement** — three pattern layers on an existing mechanism is
+  a claim of cheapness, not a measurement. `ground-tex-perf.mjs` is the right
+  instrument when the harness regression is fixed (Mac owns it).
+* **`zfight`/`coplanar` not run** — both broken on `main` (§106); reasoned
+  instead: CLOSE_PATH's base coincides with PATH_TEX's top and extrusions do
+  not render bottom faces, tops are 20 mm apart.
+* **Did not commit `scripts/verify/motion-feel.mjs`** — found already modified
+  in this worktree by another session; left untouched.
