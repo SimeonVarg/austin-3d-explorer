@@ -857,7 +857,7 @@ should land before Y4 or Y4 must re-run the check.
 4. **Record every pass in `HANDOFF.md`** with the branch name.
 
 # PART Z — WALK TO CLASS. Written 2026-08-15 from the skeptic pass in HANDOFF
-# §115. **PR #169 IS OPEN AND WAS NOT MERGED.** The routes are right; four
+# §116. **PR #169 IS OPEN AND WAS NOT MERGED.** The routes are right; four
 # things the interface says or fails to draw are not, and each is small.
 
 **The one-line verdict.** The routing is the best-verified thing in this repo —
@@ -959,7 +959,7 @@ after (quote the 4x CPU throttle).
 
 **Z6. Not a defect, a gap:** `?clip=1&from=JES&to=WEL&fit=1` is advertised in
 §114 as the recordable URL, and every isolation run that produced it also
-carried `intro=0`, which that URL does not. See §115 for what the camera
+carried `intro=0`, which that URL does not. See §116 for what the camera
 actually does when the intro is left running.
 
 # PART Z, SECOND HALF — what the pictures found once they existed (same pass)
