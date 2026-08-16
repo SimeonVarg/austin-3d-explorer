@@ -14375,7 +14375,815 @@ green, and it was watched failing: perturbing one baseline by 20 % produced
   one of these routes drawn on the city. That is the next pass and it is the one
   that will find what this one could not.
 
-## 114. Aug 15 2026 — storey bands shipped on the whole Drag corridor (QUEUE Y5, the decision executed) (acer lane)
+## 114. Aug 15 2026 — the walking feature, drawn on the city; and the ribbon that rendered nine pixels while three screenshots said it was fine (acer lane)
+
+**Branch `acer/wayfind`.** Five files, all mine: `js/wayfind.js` (new), `index.html`,
+`_harness.html`, `style.css`, this file. No data file and no other lane's file was
+touched. `harness-drift.mjs`:
+
+```
+index.html:    29 scripts
+_harness.html: 29 scripts
+
+ PASS  the harness loads the same city the site does
+```
+
+### What it does
+
+Type `WEL`, or `welch`, or `161`, or `the castilian`. Get a walking route over the
+real campus path network, drawn in 3D, ending at a door, with a headline that only
+says things `docs/walk/what-we-can-honestly-say.md` permits:
+
+```
+6-8 min walk · 530 m · No stairs on this route
+Robert A. Welch Hall · Entrances are on this side
+```
+
+`?walk=1` opens it, `?from=JES&to=WEL` routes on load, `&fit=1` frames it, and
+`?clip=1` hides every piece of the interface and keeps the ribbon — so
+`?clip=1&from=JES&to=WEL&fit=1` is a recordable shot of a route with no chrome.
+
+### THE FINDING OF THIS PASS: three convincing screenshots of somebody else's line
+
+The ribbon was a `line` layer on the ground under the buildings, exactly as
+`docs/walk/interface.md` section 4 specifies. I photographed it from altitude and
+at walking height, day and night, and the pictures showed a clean pale ribbon
+running from Jester up to Welch. It looked right. **It was Speedway.**
+
+`js/ground.js`'s paving happens to run exactly where a Jester-to-Welch route runs,
+and I was reading it as my own output. The isolation test — identical pose, route
+drawn versus `wayfindClear()`, diff the two frames — says what was actually mine:
+
+```
+                     route pixels on a 1440x900 frame, clip=1, pulse off
+                     v1 line layer   v2 extruded, base 0   v3 SHIPPED
+altitude  z16.2                  9               1,064          1,064
+high      z15.2                  0                 376            376
+eye       z20.1                  0                   0         48,113   (3.7 %)
+eye night z20.1                  0                   0         48,113
+```
+
+Those are pixels that CHANGE when the route is cleared, so they are ours and
+nothing else's. `shots/walk/route-eye-day.png` is the shot the feature exists for:
+a cream ribbon painted down the middle of the brick mall, running away toward
+Welch, at walking height, with no chrome on screen.
+
+**Nine pixels**, in a ten-pixel sliver at the far end of the frame. Playbook rule 2
+— *confirm you are sampling YOUR output, not a basemap that happens to look
+plausible* — cost this project a whole session once before and it has just earned
+its place again. Nothing but the A/B would have caught it; the frames were
+persuasive.
+
+**Two causes, both the same mistake, and neither is in any of the three docs.**
+
+1. **The ground in this app is not flat geometry.** `js/ground.js` extrudes its
+   footways, plazas, Speedway and roads as slabs, and those write depth. A 2D
+   `line` layer placed beneath them is drawn first and painted over by every slab
+   it lies on — which, for a footpath route, is all of them. So the ribbon is real
+   geometry now: a 1.6 m wide strip built by buffering the polyline, standing on
+   the pavement, depth-sorted against the ground *and* the buildings. The same
+   answer `js/places.js` reached for its shopfronts.
+2. **`GROUND.pathRaise` is 0.22 m, and the first extruded ribbon was also 0.22 m
+   tall from base 0** — exactly coplanar with the pavement. That is why v2 appeared
+   from above and was *still* invisible at walking height: looking along a coplanar
+   pair, the pavement wins. `WAYFIND.routeBaseM` is now 0.22 and the ribbon is a
+   14 cm painted strip resting on the pavement's own top surface. **If
+   `GROUND.pathRaise` ever moves, that constant moves with it.**
+
+A `line` layer still carries the route from altitude, where 1.6 m of ground is
+under a pixel. It fades out across z17.2 to z18.4 as the real ribbon takes over.
+
+### THE OTHER FINDING: `JES` routed to the wrong building, and every number was right
+
+The match ladder collected all its rungs into one list and then sorted the whole
+thing "routable first, then shortest name". Typing **`JES`** therefore returned
+**JCD, Jester East Hall** ahead of **JES, Beauford H. Jester Center** — seventeen
+characters against twenty-five. The route drew beautifully to the wrong building
+and reported 716 m and 2 sets of stairs, all of it internally consistent.
+
+That is the exact "made me late for my exam" failure. Fixed: sort **within** a
+rung, concatenate **between** rungs, and an exact code is a rung of one that ends
+the search. It was caught by checking the client's distances against the bake's
+audited nine pairs, which is the only reason to have frozen them.
+
+### The routing agrees with the bake, exactly
+
+All eight pairs, in the browser, against section 113's audited table:
+
+```
+pair                dist    client headline                              bake
+JES > WEL          525 m   6-8  min walk · 530 m · No stairs             525 m 6-8
+JES > GDC          472 m   5-8  min walk · 470 m · No stairs             472 m 5-8
+PCL > RLP          518 m   6-8  min walk · 520 m · Stairs: 1 set         518 m 6-8
+GRE > MAI          575 m   7-11 min walk · 580 m · Stairs: 2 sets        575 m 7-10
+STD > MAI         1002 m   12-17 min walk · 1.0 km · Stairs: 5 sets     1002 m 12-17
+BUR > CBA          949 m   11-15 min walk · 950 m · Stairs: 1 set        949 m 11-15
+The Castilian>GDC  698 m   8-13 min walk · 700 m · No stairs             698 m 8-13
+PCL > JES          156 m   2-3  min walk · 160 m · Stairs: 1 set         156 m 2-3
+```
+
+Every distance and every staircase count matches. Only GRE > MAI's upper bound
+differs, by one minute, because the bake did not apply `STAIR_UP_MULT`. PCL > JES
+is 156 m and not 80 m because the client makes the same `role: main` door choice
+section 113 said it had to.
+
+The match ladder on real strings: `welhc` finds Welch, `jestre` offers both Jester
+buildings, `161` and `0161` both find WEL, `gates dell` finds GDC, `MAI` displays
+as UT Tower.
+
+### Speed, measured, minimum of 5 interleaved reps
+
+Real Chrome via `chrome.mjs` (SwiftShader default), **no CPU throttle**, 1440x900,
+graphics auto-detect cancelled:
+
+```
+Dijkstra alone   0.20 - 2.30 ms   (11,062 nodes, 11,997 edges, binary heap)
+end to end       0.30 - 2.50 ms   (resolve both names, route, measure, build the
+                                   geometry, set two GeoJSON sources, render pill)
+```
+
+Single-digit milliseconds, as `graph.md` section 6g predicted. Assume roughly 4x on
+a throttled phone and it is still under 10 ms. The graph fetch is 2.3 s on this
+machine and happens **on first open of the panel, never at boot**.
+
+### The app with the feature off
+
+`js/wayfind.js` returns on line one unless `?walk=1`, `?from=` or `?to=` is present,
+or `WAYFIND.on` is flipped — **it is `false` and stays false until after the AWS
+shoot**. Five hero poses, shot with the feature absent from the tree entirely
+(the three tracked files reverted, `js/wayfind.js` moved out) and again with it
+present:
+
+```
+H1-spawn   IDENTICAL BYTES aa403611d536
+H2-drag    IDENTICAL BYTES b820229b09e7
+H3-tower   IDENTICAL BYTES 6ead9411e8c4
+H4-city    IDENTICAL BYTES 961a70b26db7
+H5-dkr     IDENTICAL BYTES c2dd3ad0fecd
+```
+
+Not "no visible difference" — the same SHA-256. The one honest caveat: the network
+request list gains exactly one entry, `js/wayfind.js` itself. It fetches no data.
+
+**H5 first came back 7.1 % different and it was my instrument, not the change.**
+The baseline H5 was shot solo after the five-shot run hit `VERIFY_MAX_MS`; re-shot
+under identical conditions it is byte-identical. Max delta was 16/255, which is a
+session-state difference in the facade atlas.
+
+**These are not the committed `shots/aws/C-HERO*.png` files** and cannot be. Those
+were flown by hand on the live site and their poses were never recorded, so they
+are not reproducible; `docs/aws/beautiful.md` gives prose directions and one exact
+camera. My five are reconstructions of the same compositions, and the A/B is
+before-and-after on this machine in the same session, which is the stronger test
+anyway.
+
+### A schema request for whoever owns `scripts/bake_walk.py` (CLAUDE.md rule 1)
+
+`walk_graph.json`'s `code` map holds only the 136 codes that have doors, and `name`
+only 113. So typing **`FC1`** returns **nothing at all**, and `interface.md`
+section 1 is right that silence reads as *"you typed it wrong"* rather than *"we
+don't have it"*. Please add the remaining register codes with an empty door list so
+the client can show them greyed and say so in words. Not my file to change.
+
+### What I did NOT manage to do
+
+* **The turn beads and the see-through ghost are not on screen.** `wayfind-ghost`
+  reports index -1 in the rendered style, i.e. the layer is not being added, and I
+  ran out of time to find out why — so the "solid on open ground, dashed through
+  the wall" half of the occlusion design is UNBUILT, and a route that runs behind
+  a building currently just disappears behind it. The ribbon and the altitude
+  thread are measured and good; the ghost is not. Start here.
+* **No boot-cost A/B.** `boot-ab.mjs` is written and was never run; the time went
+  to the ribbon. "No fetch at boot" is from reading the code and from the request
+  list, not from a time-to-interactive measurement.
+* **The avoid-stairs profile is built and never exercised.** It re-routes with
+  `highway=steps` deleted and re-anchors across all three door anchors per door.
+  Nobody has photographed one or re-checked `graph.md` section 6f's numbers.
+* **The coffee stop is built and never verified against a picture.** The chips
+  re-route through a via node and the wording is right; no frame shows one.
+* **`?clip=1` was used in every isolation run and works, but the advertised
+  `?clip=1&from=JES&to=WEL&fit=1` was never shot as a finished frame.**
+* **Nothing was tested at a phone viewport.** The bottom-sheet CSS at 640 px and
+  under is written and unphotographed.
+* **`Perry-Castañeda` cannot be typed as `castaneda`** — `norm()` strips the ñ
+  instead of folding it. One line, not done.
+* **No PR and not merged.** The eye-level measurement has to come back non-zero
+  first, and merging red is the one thing CLAUDE.md rule 2 does not permit.
+
+
+## 115. Aug 15 2026 — the FOV-kick gate is green and it has been watched failing; places-check and zfight re-run, both at baseline (QUEUE Y6, Y14) (acer lane)
+
+**Branch `acer/blitz-verify` off `origin/main` `38fbeee`. Files changed:
+`scripts/verify/motion-feel.mjs`, `QUEUE.md`, this entry. No app code, no data.**
+
+**Setup, with the instrument settings, because they are part of the answer.**
+`python scripts/serve.py 8341`. `harness-drift.mjs` PASS, 28 scripts in each
+file, before anything else. Headless SwiftShader (the suite default), one
+browser at a time, killed after every run. **`VERIFY_MAX_MS` was raised to
+1,200,000 (motion-feel) / 3,000,000 (zfight) for every run quoted here** — two
+sibling workflows were loading this CPU all night and the default 300 s watchdog
+killed a healthy motion-feel run twice before anything had misbehaved. Three
+browser runs also died to sibling reapers mid-flight (`Target page ... has been
+closed`, a served page going `ERR_CONNECTION_REFUSED` mid-run); each was
+relaunched, not diagnosed, per the night's rules. **A killed instrument looks
+like a failing subject** — check which one died before believing either.
+
+### Y6 — the stale assertion, reproduced on main first
+
+`motion-feel.mjs` on untouched `origin/main` `38fbeee`: 18/19, one FAIL —
+
+```
+*FAIL  sustained sprint kicks the FOV up by 2.5–4.5 deg
+       sprint FOV 65.00 (base 58, kick 7.00, peak speed 174 m/s)
+```
+
+7.00 is exactly `TUNE.FOV_KICK`. The behaviour is correct; the gate dated from
+before `FOV_KICK_FROM`, when the kick rode all speed and a sprint only bought
+the top ~2.4–4 deg of it. Since `FOV_KICK_FROM` (= 1.0 x cruise) the whole
+effect belongs to sprinting, so the correct sprint reading IS the full 7.
+
+**What the assertion tests now** (derived from `js/controls.js` read-only: the
+kick target is `FOV_KICK * clamp((sp/spdBase − FOV_KICK_FROM) / (SPRINT −
+FOV_KICK_FROM), 0, 1)`):
+
+1. rest FOV = the graphics-menu base (unchanged);
+2. **NEW — cruise without sprint leaves the FOV alone**: sustained W-only
+   flight, max kick < 0.5 deg. This is the `FOV_KICK_FROM` half of the
+   mechanism, and it is what stops the repair from being a widened window that
+   tests nothing;
+3. sprint kick reaches **`TUNE.FOV_KICK` −0.6/+0.1 deg, read live from
+   `window.__fly.tune`** — a deliberate retune moves the gate with it, a broken
+   mechanism does not;
+4. exact restore to base after stopping (unchanged).
+
+**The guard has been watched failing.** Fault injected in-page (`tune` is the
+live object the controller reads every frame): `FOV_KICK_FROM = 99` pushes the
+ramp start past the sprint ceiling, so the kick never engages — the real
+fault class "sprint stops widening the view". Result: **19/20, exit 1, exactly
+the sprint assertion** — `sprint FOV 58.00 (base 58, kick 0.00, TUNE.FOV_KICK
+7, peak speed 173 m/s)`. Cruise and restore stayed green, so the failure is
+attributed, not scattershot. Interleaved clean reps either side: **20/20
+(sprint FOV 64.99, kick 6.99)** and **20/20 (sprint FOV 65.00, kick 7.00)**.
+The injection line was removed before commit; the committed file is the clean
+one that produced both 20/20 reps.
+
+### Y14 — places-check and zfight on origin/main, no code changes
+
+* **`places-check.mjs` PASS, 40 ok / 0 failed** — same as §95. (Run twice: the
+  first run's server was reaped mid-run and still passed 40/0 because the page
+  had already loaded; it was re-run on a fresh server and read 40/0 again. Only
+  the clean run is the record.)
+* **`zfight.mjs shots-places.json`, all 8 poses: 7 clean, `westcampus-day`
+  242 px @ [642,827,869,895]** — the same count and the same box as §95, §101
+  and §104. That is the known QUEUE W6 cluster, unchanged; nothing new opened.
+  Masks: `shots/y14-zf-*.png` (uncommitted, worktree only).
+* **Trap for the next runner:** under heavy CPU load the three fly-drag poses
+  returned `INVALID: 0 buildings / 5121 roofscape tiled — the scene had not
+  loaded`. The script's own sanity gate caught it (this is why it exists). They
+  were re-run alone and are clean — 3485/5121 tiled, no clusters. Do not read
+  INVALID as clean, and do not read it as a defect either.
+
+### What I did NOT do
+
+* **Did not decide whether a 7-deg kick is too big.** QUEUE Y6 offered "or
+  lower the kick" — that is taste, `TUNE.FOV_KICK` is one line in
+  `js/controls.js` (not this pass's file), and the gate now follows whatever
+  value is chosen.
+* **Did not touch the other 16 motion-feel assertions** beyond renumbering the
+  count (19 → 20).
+* **Did not investigate the westcampus-day 242 px cluster** — W6 owns it.
+* **Did not run the fly-drag INVALID case down to a root cause** beyond the
+  re-run proving it was load, not geometry.
+## 116. Aug 15 2026 — the skeptic pass on the walking feature: the routes are right, the ghost layer never loaded, and a defect on `main` that has nothing to do with either (acer lane)
+
+*(Numbering note: another lane is writing its own §115 on `acer/ground-close` at
+the same time. This one follows §114, the walking-feature entry, on
+`acer/wayfind`. Whichever lands second renumbers.)*
+
+**Branch `acer/wayfind`, PR #169, NOT MERGED.** `origin/main` was merged in first
+(`2e65d44`) and everything below was measured on the merged tree, not on the
+branch in isolation. The branch is pushed and the PR is open with the reason
+written in it.
+
+### FIRST, THE THING THAT IS NOT MINE AND MATTERS TONIGHT
+
+`ground-base-texture` **is rejected by MapLibre on `main` right now.** Every load
+of `index.html`, on this branch and on `origin/main` alike, prints:
+
+```
+MAP ERROR: layers.ground-base-texture.maxzoom: 25 is greater than the maximum value 24
+MAP ERROR: Cannot style non-existing layer "ground-base-texture".   (x3)
+```
+
+`js/ground.js:370` is `texGroundMaxZoom: 25` and the style spec's ceiling for
+`maxzoom` is 24, so `addLayer` fails validation and the city-wide paving-grain
+`background` layer is never added. **Proved, not argued:** with the layer absent,
+adding the identical `background` layer with `maxzoom: 24` instead of 25 is
+accepted on both trees (`sameLayerAt24: true`). `git diff origin/main --
+js/ground.js` is empty, so this is on `main`, it is not from any walking work,
+and it is the leftover of the Y4 half-fix that took `texGroundMaxZoom` from 22 to
+25. One character. QUEUE **Z0**.
+
+### THE TWO-SESSIONS PROBLEM, BECAUSE IT CHANGED HOW EVERYTHING BELOW WAS MEASURED
+
+Half an hour in, the working tree stopped being mine: another live session in the
+**same worktree** ran `git checkout acer/drag-storeys` and then
+`acer/blitz-verify`, so `js/wayfind.js` vanished from disk mid-run and the hero
+A/B that was running at the time was silently comparing `origin/main` against
+`origin/main`. Nothing was lost — the commit was already made — but every number
+below was re-taken against **two trees extracted with `git archive`** into the
+scratchpad and served on 8323 / 8324, so neither side can be moved by anyone
+else:
+
+```
+8323  acer/wayfind @ 2e65d44   its own index.html, _harness.html, style.css, js/
+8324  origin/main  @ 38fbeee   its own index.html, _harness.html, style.css, js/
+both  ONE pinned data/ tree, junctioned into both, so a data edit cannot land on one side
+```
+
+`harness-drift.mjs` was re-run inside the pinned feature tree: **29 scripts /
+29 scripts, PASS.**
+
+**And I put a merge commit on the other lane's branch by accident** — `git merge`
+in a shared worktree merges into *their* HEAD — and undid it with
+`git reset --keep`, which preserved their uncommitted
+`scripts/verify/motion-feel.mjs`. Their branch went back to `6edd6e2` and nothing
+was pushed. Everything after that was done with `git commit-tree` +
+`git update-ref` against a scratch `GIT_INDEX_FILE`, which touches neither their
+working tree nor their index. **If two sessions have to share one worktree, that
+is the only safe way to write a commit** — and the scratchpad is shared too: this
+file had to be renamed after the other session overwrote the first draft of it.
+
+### THE TEST THAT MATTERS MOST: eighteen routes, driven, checked against the network
+
+Every pair below was routed in a real Chrome against the merged tree, and the
+drawn polyline was read back out of the map source and measured against
+`data/snapshots/2026-08-15/buildings.enriched.geojson` — depth-inside, sampled
+every 2 m, not boundary crossings (§113 finding 3). `detour` is the route against
+the straight line between the two doors the client picked; `blocked` is how much
+of that straight line is inside a building, which is the part a road router
+cannot see.
+
+```
+pair                    dist   headline                                  detour  blocked  thru-bldg
+JES > WEL               525 m  6-8 min walk · 530 m · No stairs           1.12x    2%       0 m
+JES > GDC               472 m  5-8 min walk · 470 m · No stairs           1.15x   25%       0 m
+PCL > RLP               518 m  6-8 min walk · 520 m · Stairs: 1 set       1.44x   40%       0 m
+GRE > MAI               575 m  7-11 min walk · 580 m · Stairs: 2 sets     1.92x   17%       0 m
+STD > MAI              1002 m  12-17 min walk · 1.0 km · Stairs: 5 sets   1.75x   20%    25.5 m *
+BUR > CBA               949 m  11-15 min walk · 950 m · Stairs: 1 set     1.99x   38%       0 m
+The Castilian > GDC     698 m  8-13 min walk · 700 m · No stairs          1.22x   16%       0 m
+PCL > JES               156 m  2-3 min walk · 160 m · Stairs: 1 set       1.71x   22%       0 m
+The Standard > WEL     1279 m  15-22 min walk · 1.3 km · Stairs: 3 sets   1.52x   16%    10.6 m *
+2400 Nueces > PCL      1055 m  12-18 min walk · 1.1 km · No stairs        1.43x   23%       0 m
+BTL > PMA               766 m  9-13 min walk · 770 m · Stairs: 3 sets     1.37x   30%    25.5 m *
+GAR > BUR               719 m  8-12 min walk · 720 m · Stairs: 1 set      1.74x   25%    25.5 m *
+WEL > PMA               350 m  4-6 min walk · 350 m · No stairs           1.31x   22%       0 m
+UTC > SZB               341 m  4-6 min walk · 340 m · No stairs           2.02x   36%       0 m
+MAI > PCL               563 m  7-9 min walk · 560 m · Stairs: 3 sets      1.71x   20%       0 m
+PCL > RLP  [no stairs]  539 m  6-9 min walk · 540 m · No stairs           1.50x   40%       0 m
+JES > WEL  [no stairs]  525 m  6-8 min walk · 530 m · No stairs           1.12x    2%       0 m
+JES > WEL  [+ coffee]   679 m  8-11 min walk · 680 m · No stairs          1.44x    2%       0 m
+```
+
+**Every distance and every staircase count is identical to §113's audited bake
+table**, which is the entire point of having frozen them. `GRE > MAI` still reads
+7-11 against the bake's 7-10, for the `STAIR_UP_MULT` reason §114 gave.
+
+**The one thing that looks like a route through a building is a route UNDER one,
+and OSM says so.** The 25.5 m that three routes share is inside Robert A. Welch
+Hall's Overture footprint, max depth 10.2 m — and the ways carrying it are
+**OSM 865876282 and 865876285, both `highway=footway, covered=yes`**. That is the
+Welch arcade, and anyone who has walked the Painter/Welch corner goes under it.
+The routes are right. What nobody had looked at is what it *looks like* when the
+ribbon runs under an extruded building; there is a frame for that now.
+
+**Which door the route ends at, across all 132 routable entries:** 15 get
+`The main entrance` (a real OSM `entrance=main` node), 1 gets `An entrance`, 4 get
+`The lobby entrance`, and **112 get `Entrances are on this side`.** That is the
+honesty audit's §7 table applied exactly — **85 % of arrivals are worded as a
+side of a building rather than as a door** — and it is the strongest single thing
+in this feature.
+
+**Speed.** Real Chrome via `chrome.mjs` (SwiftShader default, **no CPU throttle**),
+1440x900, graphics auto-detect cancelled, minimum of interleaved reps across three
+pairs, run twice: **end to end 0.50 ms / 4.50 ms worst**, and **0.60 ms / 2.70 ms
+worst**. Single-digit milliseconds, as `graph.md` §6g predicted.
+
+### THE HERO FRAMES, AND WHY THE FIRST ANSWER WAS THE INSTRUMENT AGAIN
+
+Six poses, `origin/main` against the merged branch with the feature idle. The
+first run reported "H1 DIFFERS, H3 DIFFERS, H4 DIFFERS" on a SHA-256 compare —
+worth nothing until you know what this machine does to an identical page. So each
+pose was shot **three** times: `main`, `main` again, then the branch.
+
+```
+pose              main-vs-main (the floor)   main-vs-wayfind (best of the two mains)
+H1-spawn-sunset    0.001 %  max 60/255        0.000 %  max 57
+H2-drag-corridor   --                         0.000 %  max  0   (identical SHA-256)
+H3-tower-golden    --                         0.000 %  max  3
+H4-whole-city     13.389 %  max 144           0.078 %  max 144
+H5-dkr-skyline     6.087 %  max 150          16.942 %  max 193   <-- see below
+H6-tower-night     1.726 %  max 81            0.010 %  max 81
+```
+
+H2 is byte-identical. H3's largest single-pixel deviation is 3/255. H1's is 57
+against a same-page-twice floor of 60 — **smaller in amplitude than the noise this
+laptop makes on its own.** H6, the night tower Simeon records, is 0.010 % against
+a 1.726 % floor.
+
+**H5 is the only pose above its own floor, and the two frames say why:** the
+wayfind side is missing the ground layer entirely — no roads, no lawns, no sports
+fields, just flat tan — while `main` has all of it. That is a load state, not a
+change, and it is the same failure H4 shows at 13 % between two loads of the
+*identical page*. There is no mechanism: with the feature off `js/wayfind.js`
+adds no source and no layer, and `js/ground.js` runs long before it.
+
+**The real lesson is about the harness and it is worth more than this pass:**
+`map.loaded()` plus a fixed 4.5 s is not a settled frame for this city. At z14.6
+it moves 13.4 % of the frame between two identical loads; at z16.6 it moves 6.1 %.
+**Any A/B in this repo taken at a wide pose with the standard settle is measuring
+the loader**, and H4/H5 should not be used as gates until the settle waits on
+`isSourceLoaded` for every source plus `areTilesLoaded`.
+
+### THE FOUR THINGS THAT KEPT THIS OUT OF `main`
+
+**1. `wayfind-ghost` never enters the style, and the browser has been saying why
+all along.** §114 recorded "reports index -1 ... I ran out of time to find out
+why". Once per load, as soon as a route is drawn:
+
+```
+MAP ERROR: layers.wayfind-ghost.paint.line-width:
+           "zoom" expression may only be used as input to a top-level
+           "step" or "interpolate" expression.
+```
+
+`js/wayfind.js:917` wraps `groundWidthExpr()`, which IS a zoom `interpolate`,
+inside `['max', 1.5, ['*', 0.55, ...]]`. MapLibre rejects the layer at validation
+and — because style validation fires an error EVENT rather than throwing — the
+rest of `ensureLayers` runs happily and the ribbon looks fine, so nothing
+downstream ever noticed. The consequence is not cosmetic: **the "solid on open
+ground, dashed through the wall" half of the design is absent, so a route that
+runs behind a building simply disappears**, which is the exact ambiguity the ghost
+exists to remove. Fix and stops in QUEUE **Z1**.
+
+**2. The From field's placeholder is `Where I am standing` and there is no such
+thing.** No `navigator.geolocation` in the file and no camera-position default.
+Measured on the rendered DOM: put `WEL` in To, leave From empty, press Enter —
+`routed` stays **false** and the pill stays empty. Nothing happens, silently.
+`docs/walk/interface.md` §2 specifies a pre-filled `Here · near Speedway at 24th`
+read off the camera — no permission, no prompt — and that is the flow in Simeon's
+own brief. QUEUE **Z2**.
+
+**3. 85 of the 198 UT register codes return nothing when typed** — `NUR`, `SMC`,
+`HDB`, `HLB`, `HTB`, `UTA`, `ACS`, `ANB`, `BMS`, `BMK`, `WMB`, `WAT` and 73 more.
+113 codes are in `walk_graph.json`; 111 route and 2 (`BIO`, `TSG`) correctly show
+greyed as "no door mapped". The other 85 produce an empty list, which
+`interface.md` §1 is right to call *"you typed it wrong"* rather than *"we don't
+have it"*. **And the silence is worse than an empty list:** if a route is already
+drawn it stays on screen, so the student is looking at a confident answer to a
+question they did not ask. QUEUE **Z3**.
+
+**4. Six of the twenty-four West Campus towers are missing from the graph** —
+**21 Rio, Skyloft Austin, The Quarters Sterling House, The Block, Pointe on Rio,
+The Venue on Guadalupe**. All 24 are in `data/westcampus.geojson` with lobby
+doors; `walk_graph.json`'s `wc` map holds 18. **§113's own audited table
+advertises `21 Rio > WEL`, and typing `21 Rio` returns nothing** — and `21 Rio`,
+`Skyloft` and `Pointe on Rio` are all **labelled on screen** in the hero frames in
+`shots/walk/final/`. A student reads the name off the city, types it, gets
+nothing. QUEUE **Z4**.
+
+And one that is not a merge blocker but should not be found by a user: **a drawn
+route repaints the entire city 15 times a second for as long as it is on screen**
+(`startPulse`, `pulseFps` 15, one `setPaintProperty` per step), and above
+`threadGoneZoom` 18.4 the layer it animates is at zero opacity — so at walking
+height it repaints the city for an effect nobody can see. Unmeasured. QUEUE
+**Z5**.
+
+### THE ADVERTISED RECORDING URL DOES NOT DO WHAT IT SAYS
+
+§114 advertises `?clip=1&from=JES&to=WEL&fit=1` as *"a recordable shot of a route
+with no chrome"* and notes it was never shot as a finished frame. Every isolation
+run in that pass carried `intro=0`; the advertised URL does not. Loaded exactly as
+written, with the intro running, the camera does this:
+
+```
+t= 2 s   z16.65  centre on the route, pitch 55   <- fitBounds landed, route drawn
+t=10 s   easing                                   <- the intro takes the camera
+t=14 s   z15.45  centre 30.2748 (downtown)
+t=16 s+  z16.90  centre [-97.7394, 30.2836] pitch 72 bearing 2, and it stays
+```
+
+**The final frame is the intro's end pose, not the route's.** The route is still
+drawn, and there is a second problem visible in it: at z16.9 — below
+`threadFadeZoom` 17.2 — the altitude thread is at full opacity ON TOP of the
+buildings, so it reads as **a white line floating across the rooftops and the
+tree canopies**, not as a route on the ground. See
+`shots/walk/final/13-the-advertised-recording-url-ends-on-the-intro-pose.png`.
+Two fixes, either works: put `intro=0` in the advertised URL, or make `?fit=1`
+wait for the intro to finish. QUEUE **Z6**.
+
+### TWO SMALLER THINGS THE PICTURES FOUND
+
+**Typing a partial word still puts the wrong Jester first.** §114 fixed the exact
+code (`JES` now returns `JES`), but `jest` returns, in order: **JCD Jester East
+Hall**, then JES Beauford H. Jester Center, then JON, The Nine at West Campus,
+CCJ, CMA. Both Jesters are on screen so nobody is misrouted — the rung sorts
+routable-first then shortest display name, and "Jester East Hall" is shorter than
+"Beauford H. Jester Center". Not a correctness bug, but the building whose code
+you half-typed should not be second.
+`shots/walk/final/09-typing-jest-shows-both-jesters.png`.
+
+**`#wf-list`'s `max-height: 196px` cuts the "+ N more — keep typing" row in
+half** at six results, so it collides with the hint line underneath. Same
+picture, bottom of the panel.
+
+And the same frame is the best illustration of **Z4** there is: **`21 Rio`,
+`Skyloft` and `Pointe on Rio` are all labelled on the city behind the open
+panel**, and all three return nothing when typed into it.
+
+### THE ONE TASTE QUESTION FOR SIMEON, AND IT IS THE ONLY ONE
+
+At walking height the ribbon is excellent — a cream strip painted down the middle
+of the brick mall, **48,104 changed pixels, 3.71 % of the frame**, measured by
+isolation (same pose, route drawn vs `wayfindClear()`), and it reads instantly in
+day and at night.
+
+**From the air it is a different object.** At cruise it is 1,045 px / 0.08 % of
+the frame — a thin pale thread you have to look for. And at mid altitude it is a
+white line drawn straight **over the rooftops and the tree canopies**, because the
+altitude thread is a `line` layer above `buildings-3d` by design. It is legible;
+it does not look like something painted on the ground.
+
+Three frames say it better than the paragraph:
+
+```
+shots/walk/final/01-a-route-from-the-air-jester-to-welch.png   1,045 px, 0.08 %
+shots/walk/final/02-the-same-route-at-walking-height.png      48,104 px, 3.71 %
+shots/walk/final/10-the-answer-card-...-desktop.png           the line over the roofs
+```
+
+**This is a decision, not a defect**, and it is his: `WAYFIND.threadPx` (3.2),
+`WAYFIND.threadOpacity` (0.9), `threadFadeZoom` (17.2) and `casingCol` are the
+four constants, all in the taste block. Nobody should touch them without him
+looking.
+
+### PHONE, 393 x 852, MEASURED IN BOXES AND PHOTOGRAPHED
+
+**Nothing collides with the controls that were already there.** Boxes at
+393 x 852 with a route drawn and the card open:
+
+```
+wf-button      16, 16   44 x 44      gfx-button   343, 16   34 x 34
+wf-pill        98, 16  197 x 504     fb-button    343, 58   34 x 34
+wf-card       114, 95  165 x 417     tod-panel    341,324   44 x 205
+                                     joystick      32,682  100 x 100
+                                     controls-hint  -6,788  405 x 26
+```
+
+The button takes the free top-left corner; the answer column clears the
+right-edge slider, both top-right buttons, the BOOST control and the hint.
+Pictures: `11-phone-393x852-the-bottom-sheet.png` and
+`12-phone-393x852-a-route-and-the-card.png`.
+
+**Two things to fix, both one line, neither a blocker:**
+
+1. **The answer column is 197 px wide on a 393 px phone — half the screen — and
+   it can never be wider.** `#wf-pill` is `position:absolute; left:50%;
+   transform:translateX(-50%)`, so its shrink-to-fit available width is
+   `100% - 50%` = 196.5 px and the `max-width:calc(100vw - 32px)` in the ≤640 px
+   block **never binds**. That is why the headline wraps to two lines and
+   `Show route` wraps inside its own button. Fix in the media block:
+   `left:16px; right:16px; transform:none`.
+2. **The open bottom sheet covers the joystick.** The sheet occupies the bottom
+   ~230 px; `#joystick-zone` is at y 682-782, entirely inside it.
+   `docs/walk/interface.md` §4 says the joystick and the hint are hidden at this
+   width while searching; nothing in the shipped CSS does that.
+
+### THE PICTURES, AND WHAT EACH ONE IS PROOF OF
+
+`shots/walk/final/`, seventeen frames. Every route frame is `?clip=1` and every
+one was **isolated** — same pose, route drawn versus `wayfindClear()`, changed
+pixels counted — so the number beside it is ours and not `js/ground.js`'s paving,
+which is the trap that cost §114 a whole round.
+
+```
+01 a route from the air, Jester to Welch          1,045 px   0.08 %
+02 the same route at walking height              48,104 px   3.71 %
+03 the identical frame with the route cleared     (the other half of 02's A/B)
+04 the same route at walking height, at night    48,104 px   3.71 %
+05 arriving at the door, Gates Dell (osm main)      834 px   0.06 %
+06 West Campus: The Castilian to Gates Dell       1,332 px   0.10 %
+07 PCL to Patton: straight line 40 % in buildings    462 px  0.04 %
+08 the route goes UNDER Welch, and OSM says covered 1,408 px 0.11 %
+09 typing "jest" — both Jesters, and three towers it cannot find
+10 the answer card, and every word it is allowed to say
+11 phone 393x852, the bottom sheet
+12 phone 393x852, a route and the card
+13 the advertised recording URL ending on the intro pose
+90 / 91 hero unchanged: origin/main and acer/wayfind, IDENTICAL SHA-256
+92 / 93 the tower at night: origin/main and acer/wayfind, 0.010 % of frame differs
+```
+
+### What I did NOT manage to do
+
+* **I did not fix anything.** This lane could write only `shots/walk/`,
+  `docs/walk/`, `HANDOFF.md` and `QUEUE.md`, so every defect above is written
+  down and none is repaired. Z1 is one expression; Z2, Z7 and Z8 are one line
+  each.
+* **The strict-settle re-shoot of H5 was dropped for time.** It was queued, it
+  collided with another run (one browser at a time), and I killed it rather than
+  run two. So the H5 row stands as "17 % against a 6 % floor, and the two frames
+  show the wayfind side missing the ground layer". H2/H3/H6 carry the conclusion;
+  H5 is unresolved and honestly labelled.
+* **No `perf.mjs` frame-rate number, before or after.** Z5's 15 Hz repaint is
+  read off the code and the layer's own opacity ramp, not measured.
+* **Nobody has photographed a route running behind a building**, because the
+  layer that would draw it does not load. That picture is the acceptance test for
+  Z1 and it does not exist yet.
+* **The altitude frames are weak and I did not chase a better pose.** `01`, `06`
+  and `07` use a fixed z16.2, which is too far out for a 500 m route; fitting the
+  camera to the route's own bbox would frame them properly. The thin-thread
+  finding stands either way — it is 0.04-0.11 % of the frame at every one of
+  those poses.
+* **`avoidShown` hardcodes "189 mapped staircases"**, right for the 2026-07-30
+  snapshot and re-derived from nothing, so a re-bake will make it silently wrong.
+* **`data/surfaces.json` was never audited as a second walkable source** — still
+  open from the honesty audit's own §14.
+* **No browser was left running and both servers were killed** (8323 feature,
+  8324 the pinned `origin/main`), `reap.mjs` run at the end.
+
+
+## 117. Aug 15 2026 — the frames nobody had taken: dusk from the pavement, the moon behind a wall, and the Union ruled (QUEUE Y11, Y13, W8) (acer lane)
+
+**No code and no data changed.** Shot against a clean detached worktree of
+`origin/main` (`da335ef`) — NOT this working tree, which was carrying another
+workflow's live edit to `js/ground.js` at the time; photographing that would
+have been photographing their half-finished pass. Files written: `shots/blitz/`,
+`QUEUE.md` (W8 ruling, Y11/Y13 closed, Y17/Y18 opened), this entry.
+
+**Setup, instruments quoted.** `python scripts/serve.py 8341 <clean worktree>`.
+`harness-drift.mjs` **PASS, 28 scripts in each file**, before any pixel.
+`_harness.html?intro=0&drift=0`, 1440x900, dsf 1, SwiftShader headless,
+`cancelGraphicsAutoDetect()` at the top of every session, two poses per browser
+(§109's degradation lesson), one browser at a time, server killed at the end.
+Every pose verified at the shutter: `__fly.eye().alt` AND
+`transform.getCameraAltitude()` both 1.70 at every eye-level frame (§101's
+lesson — the pose at the shutter, not at the jump). Pixel numbers are offline
+PNG decodes of the composited `page.screenshot()` (§109's rule: if a DOM
+element can be in the frame, readPixels is the wrong instrument).
+
+### Y11 — dusk at eye level, p 0.55 / 0.62 / 0.70 at three sites, and it breaks in two specific ways
+
+The nine frames are `shots/blitz/y11-<site>-p0NN.png`. The sky itself is the
+good news — the Belt of Venus, the gradient and the star lag all read from the
+pavement, and `y11-southmall-p062.png` (the Tower against the mid-dusk sky) is
+the single best eye-level frame this project has produced. The two breaks:
+
+1. **The ground plane ignores the dusk clock (new QUEUE Y17).** Fixed pavement
+   box, mean luma across p 0.55/0.62/0.70: Guadalupe 128/141/101, West Campus
+   120/126/84, South Mall 134/118/80 — pavement BRIGHTENS through mid-dusk at
+   two sites, and at p 0.70 it sits at 2.3–2.9x the luma of the walls it meets
+   while the sky is already starlit. At walking height the ground is half the
+   frame, so this is the first wrong thing in every dusk frame.
+2. **The bloom/god-rays canvas paints glow bands across facades (new QUEUE
+   Y18).** Red-brown band on the Drag facade at p 0.70, 100+ rows above the
+   horizon; gone at the same pose with `GFX.bloom/godRays/flare = 0` (the A/B
+   pair is `y11-guadalupe-p070-ship.png` / `-fxoff.png`; the pass moves 73.1 %
+   of a 950x370 wall region by >8). The same class of band shows on a West
+   Campus tower at p 0.92 in the Y13 frames — night, not dusk — so it is not
+   the depth-tested sky field §109 cleared; it is the screen-space fx pass,
+   which is composited at z 6 over everything and cannot lose to a wall.
+   Also written into Y18: a suspected auto-exposure path-dependence (same pose,
+   same p, wall box 35 vs 56 luma depending on the p-path taken to reach it) —
+   suspected, single reps, needs interleaving before anyone leans on it.
+
+### Y13 — the moon does NOT paint through walls. Closed with its own control.
+
+Pose: 1.7 m, [-97.74575, 30.28640], bearing 112, pitch 85, p 0.92 — a West
+Campus tower across the disc's screen position (`skyFrame.sun` (724,71),
+`queryRenderedFeatures` at that point returns `buildings-3d`). 40x40 box at the
+disc: **wall present — mean 25.3, max 105.9, 0 px over luma 120. Buildings
+hidden, same pose — 412 px over 120, max 194: the disc, at exactly that
+position.** The control fails loudly, which is what makes one rep sufficient.
+Frames `shots/blitz/y13-wc-moon-night.png` / `-nobldg.png`; a DKR pair exists
+but canopies sat under the disc there, so the WC pair is the proof. The §106
+depth-tested pass holds for the disc, not just the field. Y13 closed.
+
+### W8 — the Union, photographed and ruled
+
+`w8-union-courtyard-door.png` / `-door-close.png`: the bake's main door
+(eid 350) is correctly and honestly placed in the east courtyard notch, facing
+north, and its composition — limestone surround, steps, bronze leaves, blue
+transom — is the best-authored door on the block. `w8-union-from-westmall.png`:
+from the West Mall at 1.7 m **no way into the Union reads at all**.
+`w8-union-overhead.png` shows both facts in one frame. **Ruling, written into
+QUEUE W8: keep eid 350 as main, and author ONE secondary south (West Mall)
+door, `src: "authored"`, same recipe as the hero doors** — the real building
+has a public south entrance the mall-side visitor expects, OSM just has not
+mapped it. No inscription renders on any Union elevation; if the inscription
+pass ever reaches the Union, the mall face is where it belongs.
+
+### What I did not do
+
+* **Did not fix anything** — Y17 and Y18 are written down with frames and
+  numbers, not patched; both belong to files this pass was told not to touch.
+* **Single reps on the A/B and luma numbers** (band presence is visual and
+  unambiguous; the percentages are one reading each — treat them as order of
+  magnitude until interleaved).
+* **Did not re-shoot the exact DKR defect pose** from
+  `shots/eye/recon/24-...png` — my DKR stand-in had canopies under the disc, so
+  I proved the disc at a cleaner pose instead and said so in Y13.
+* **The p-path/auto-exposure suspicion is unverified** — flagged in Y18, not
+  claimed.
+* Server on 8341 killed; clean worktree at
+  `<scratchpad>/blitz-main` left for the next blitz agent (remove with
+  `git worktree remove` when the night is over).
+
+## 118. Aug 15 2026 — Z1/Z2/Z3 fixed on `acer/wayfind`: the ghost is in the style and photographed through a wall, the From field stops lying, and a dead code gets a real answer (acer lane)
+
+**Branch `acer/wayfind`, this entry's commit. Files touched: `js/wayfind.js`,
+`docs/walk/what-we-can-honestly-say.md` (two new permitted sentences, §11),
+`shots/walk/zfix/`.** Z4 (the six missing West Campus towers) and the graph
+half of Z3 belong to `scripts/bake_walk.py` and were not touched. As of this
+commit **no branch on the remote carries a fatter `walk_graph.json`** — every
+one is still at `a56c69b`, so the not-routable count stands at **85 register
+codes** (all of them now findable and answered honestly) and the wc map still
+holds 18 of 24 towers.
+
+### Z1 — the ghost layer enters the style, proved the way it was caught
+
+The prescribed fix, exactly: the `max`/`*` arithmetic moved out of the
+expression into JavaScript (`ghostWidthExpr()`), and MapLibre is handed a bare
+top-level `['interpolate', ['exponential', 2], ['zoom'], 15, 1.65, 21, 27.30]`
+— both stops COMPUTED from the constants (`ghostWidthMul` 0.55 and
+`ghostMinPx` 1.5 are new named taste values), not hardcoded. Verified in the
+driven browser: `map.getLayer('wayfind-ghost')` present at style index 200,
+paint width exactly the two prescribed stops, and **zero wayfind MAP ERROR
+lines in the console across every run** (the rejection used to log once per
+load — a clean log is the regression check). The only MAP ERRORs anywhere are
+Z0's four `ground-base-texture` lines, which are `main`'s and another lane's.
+
+**The photograph nobody had taken:** `BTL > PMA` runs 25.5 m under the Welch
+arcade. `shots/walk/zfix/z1-ghost-night.png` (and `-crop.png`) shows the amber
+ribbon coming up the walkway, dying at the wall, and the dashed ghost tracing
+the route across Welch's dark mass — solid on open ground, dashed through the
+building, which is the sentence the file's header promised all along.
+`z1-ghost-night-cleared.png` is the identical pose with the route cleared
+(18,172 px differ, so the dashes are the route, not the basemap — the §114
+lesson applied). Day versions alongside; day dashes are legible in the crop
+but faint at 1440 px, which is `ghostOpacity` 0.28 doing its job on a pale
+wall — a taste value Simeon can turn up in one line if he wants the day ghost
+louder.
+
+### Z2 — the From field: camera default, chosen over the honest-empty option
+
+Decision (mine to make, wording extended in the honesty doc §11): **From now
+defaults to the routable building nearest the CAMERA**, filled in when the
+sheet opens, placeholder `Nearest building to the view`. Why this option: the
+camera always exists, needs no permission or prompt, `interface.md` §2 and
+Simeon's own brief specify a pre-filled From, and a building name in a From
+box claims nothing about where the PERSON stands — the withdrawn placeholder
+`Where I am standing` did. Empty From + Enter now picks that same default and
+routes — measured: field fills `Calhoun Hall`, route draws (was: nothing,
+silently). `z2-sheet-from-prefilled.png`, `z2-empty-from-enter.png`.
+
+### Z3 — dead codes answer, and a failed search clears the stale route
+
+`data/ut_buildings.json` (the register, 198 codes) now rides along with the
+graph fetch; the 85 codes the graph lacks become findable, non-routable
+entries. Typing `SMC` shows the row greyed `not walkable yet`; Enter answers
+**`SMC is not walkable in this build yet`** (new permitted sentence, doc §11)
+— and **clears any route already drawn**, so a failed question never keeps a
+confident answer on screen. Same clearing for no-match (`We couldn't find
+...`) and no-door commits. Measured: route drawn, `SMC` + Enter →
+`drawn: false`, pill hidden, hint carries the sentence.
+`z3-smc-typed-list.png`, `z3-smc-answer-route-cleared.png`, and the phone
+frame `z3-phone-393-smc-answer.png` (393x852 — the sheet, the greyed row and
+the sentence all legible; Z7/Z8's pill-width and joystick issues are still
+open and untouched).
+
+### For whoever picks up the rest of PART Z
+
+* Z4 + the graph half of Z3 (`bake_walk.py`): when the fatter graph lands, the
+  register merge here needs NO change — codes that gain doors simply stop
+  matching the `byCode.has` guard and route normally.
+* Z5 (the 15 fps pulse repaint), Z6 (the advertised URL vs the intro), Z7/Z8
+  (phone pill width / joystick under the sheet), Z9 (Jester ordering,
+  `#wf-list` max-height): all still open, none touched here.
+* Verification: `harness-drift` 29/29 PASS before any pixel work; server
+  `scripts/serve.py 8325`, killed at end of pass; SwiftShader default
+  (deterministic, no CPU throttle involved — no timing was measured this
+  pass); every screenshot taken twice, second trusted; route-vs-cleared
+  isolation diffed in pixels before any "the ghost is visible" claim.
+
+## 119. Aug 15 2026 — storey bands shipped on the whole Drag corridor (QUEUE Y5, the decision executed) (acer lane)
+
+*(Numbering note: this entry shipped on `main` as its §114 while `acer/wayfind`
+carried a different §114 (the walking feature). The branch numbering 114-118 was
+already cross-referenced from QUEUE PART Z on both trees, so this entry — cited
+nowhere by number — takes 119 in the merge. Chronology: it is an Aug 15 pass,
+same day as 114-118.)*
 
 **Branch `acer/drag-storeys`, PR #167. Not merged — the Gate agent decides.**
 Three files, all mine: `scripts/bake_drag.py`, `data/drag.geojson`, `js/drag.js`.
@@ -14486,90 +15294,6 @@ intends.
 * **No dusk frame** (day p 0.30 / night p 0.90 only), nothing on hardware GL,
   nothing at dpr 2, and `drag-perf.mjs` was not run — the layer adds 23
   extrusions, but that is a claim, not a measurement.
-
-## 115. Aug 15 2026 — the FOV-kick gate is green and it has been watched failing; places-check and zfight re-run, both at baseline (QUEUE Y6, Y14) (acer lane)
-
-**Branch `acer/blitz-verify` off `origin/main` `38fbeee`. Files changed:
-`scripts/verify/motion-feel.mjs`, `QUEUE.md`, this entry. No app code, no data.**
-
-**Setup, with the instrument settings, because they are part of the answer.**
-`python scripts/serve.py 8341`. `harness-drift.mjs` PASS, 28 scripts in each
-file, before anything else. Headless SwiftShader (the suite default), one
-browser at a time, killed after every run. **`VERIFY_MAX_MS` was raised to
-1,200,000 (motion-feel) / 3,000,000 (zfight) for every run quoted here** — two
-sibling workflows were loading this CPU all night and the default 300 s watchdog
-killed a healthy motion-feel run twice before anything had misbehaved. Three
-browser runs also died to sibling reapers mid-flight (`Target page ... has been
-closed`, a served page going `ERR_CONNECTION_REFUSED` mid-run); each was
-relaunched, not diagnosed, per the night's rules. **A killed instrument looks
-like a failing subject** — check which one died before believing either.
-
-### Y6 — the stale assertion, reproduced on main first
-
-`motion-feel.mjs` on untouched `origin/main` `38fbeee`: 18/19, one FAIL —
-
-```
-*FAIL  sustained sprint kicks the FOV up by 2.5–4.5 deg
-       sprint FOV 65.00 (base 58, kick 7.00, peak speed 174 m/s)
-```
-
-7.00 is exactly `TUNE.FOV_KICK`. The behaviour is correct; the gate dated from
-before `FOV_KICK_FROM`, when the kick rode all speed and a sprint only bought
-the top ~2.4–4 deg of it. Since `FOV_KICK_FROM` (= 1.0 x cruise) the whole
-effect belongs to sprinting, so the correct sprint reading IS the full 7.
-
-**What the assertion tests now** (derived from `js/controls.js` read-only: the
-kick target is `FOV_KICK * clamp((sp/spdBase − FOV_KICK_FROM) / (SPRINT −
-FOV_KICK_FROM), 0, 1)`):
-
-1. rest FOV = the graphics-menu base (unchanged);
-2. **NEW — cruise without sprint leaves the FOV alone**: sustained W-only
-   flight, max kick < 0.5 deg. This is the `FOV_KICK_FROM` half of the
-   mechanism, and it is what stops the repair from being a widened window that
-   tests nothing;
-3. sprint kick reaches **`TUNE.FOV_KICK` −0.6/+0.1 deg, read live from
-   `window.__fly.tune`** — a deliberate retune moves the gate with it, a broken
-   mechanism does not;
-4. exact restore to base after stopping (unchanged).
-
-**The guard has been watched failing.** Fault injected in-page (`tune` is the
-live object the controller reads every frame): `FOV_KICK_FROM = 99` pushes the
-ramp start past the sprint ceiling, so the kick never engages — the real
-fault class "sprint stops widening the view". Result: **19/20, exit 1, exactly
-the sprint assertion** — `sprint FOV 58.00 (base 58, kick 0.00, TUNE.FOV_KICK
-7, peak speed 173 m/s)`. Cruise and restore stayed green, so the failure is
-attributed, not scattershot. Interleaved clean reps either side: **20/20
-(sprint FOV 64.99, kick 6.99)** and **20/20 (sprint FOV 65.00, kick 7.00)**.
-The injection line was removed before commit; the committed file is the clean
-one that produced both 20/20 reps.
-
-### Y14 — places-check and zfight on origin/main, no code changes
-
-* **`places-check.mjs` PASS, 40 ok / 0 failed** — same as §95. (Run twice: the
-  first run's server was reaped mid-run and still passed 40/0 because the page
-  had already loaded; it was re-run on a fresh server and read 40/0 again. Only
-  the clean run is the record.)
-* **`zfight.mjs shots-places.json`, all 8 poses: 7 clean, `westcampus-day`
-  242 px @ [642,827,869,895]** — the same count and the same box as §95, §101
-  and §104. That is the known QUEUE W6 cluster, unchanged; nothing new opened.
-  Masks: `shots/y14-zf-*.png` (uncommitted, worktree only).
-* **Trap for the next runner:** under heavy CPU load the three fly-drag poses
-  returned `INVALID: 0 buildings / 5121 roofscape tiled — the scene had not
-  loaded`. The script's own sanity gate caught it (this is why it exists). They
-  were re-run alone and are clean — 3485/5121 tiled, no clusters. Do not read
-  INVALID as clean, and do not read it as a defect either.
-
-### What I did NOT do
-
-* **Did not decide whether a 7-deg kick is too big.** QUEUE Y6 offered "or
-  lower the kick" — that is taste, `TUNE.FOV_KICK` is one line in
-  `js/controls.js` (not this pass's file), and the gate now follows whatever
-  value is chosen.
-* **Did not touch the other 16 motion-feel assertions** beyond renumbering the
-  count (19 → 20).
-* **Did not investigate the westcampus-day 242 px cluster** — W6 owns it.
-* **Did not run the fly-drag INVALID case down to a root cause** beyond the
-  re-run proving it was load, not geometry.
 
 ## 120. Aug 15 2026 — close-range ground grain, gated to walking height, and the gate is a SHA-256 (QUEUE Y8) (acer lane)
 
@@ -14777,3 +15501,161 @@ the decisive pairs; `blind/` holds the judged composites and the key).
 - One `eye-day-rep2` frame died to the 300 s chrome watchdog and was replaced
   by the cross-session rep; the eye-pose magenta footprint of `drag-detail`
   (§114's watchdog loss) is still unmeasured.
+
+## 122. Aug 16 2026 — fresh eyes on the walking feature: every skeptic gate re-run on the merged tree, and PR #169 is merged (acer lane)
+
+**Branch `acer/wayfind`, PR #169, MERGED.** I did not build the Z1-Z3 fixes
+(§118 did); this pass judged them cold, on the merged result, and merged.
+
+### The night main would not sit still, and the merge was done three times
+
+`origin/main` moved twice while this pass ran: PR #170 (Y8 close-range ground
+grain, `js/ground.js`) merged mid-pass, then the Gate's record commits
+(docs + shots only). So: merge one (`a7b5370`, onto `ede8c54`), merge two
+(`23523c6`, onto `45772a1` — app code changed, so EVERY gate below was re-run
+from scratch on that tree), merge three (`3fcdefc`, onto `17708ba` — verified
+docs/shots-only by diff: `git diff 23523c6 3fcdefc -- index.html _harness.html
+style.css js/ data/` is EMPTY, so the pixel gates still describe the merged
+app files byte-for-byte).
+
+Also found on arrival: §117's QUEUE bookkeeping (W8/Y11/Y13 closures, Y17/Y18)
+sitting UNCOMMITTED in the shared worktree — committed as found (`6e61e63`)
+before anything else, so the merges had a clean base.
+
+**HANDOFF numbering:** main's storey-band entry collided with this branch's
+§114 and was renumbered §119 in merge one (QUEUE's §114-§118 cross-references
+on BOTH trees already assumed the branch numbering); §120 (grain) and §121
+(the Gate) landed pre-numbered around it. This entry is §122.
+
+### Instrument (quoted, per the rule)
+
+Pinned `git archive` trees served by `python scripts/serve.py 8325` from the
+scratchpad — the §116 lesson; a sibling `checkout` cannot move a served file.
+`way` = the merged branch, `main` = `origin/main`, ONE shared `data/` junction
+(data byte-identical between the two on every merge, verified by diff).
+`harness-drift.mjs` PASS both sides (29/29 way, 28/28 main) before any pixel.
+Real Chrome via `chrome.mjs`, SwiftShader headless (deterministic; no timing
+asserted), 1440x900 dpr 1, `intro=0&drift=0`, auto-detect cancelled,
+settle→idle→repaint→shoot twice trust the second. One sibling reap killed a
+browser mid-run and one killed the 8325 server (both relaunched, not
+diagnosed, per the night's rules); one watchdog kill at the default 300 s
+(rerun with `VERIFY_MAX_MS` raised).
+
+### The gates, all green
+
+**Behaviour + wording, 22/22** on the final merged tree, driven through the
+real DOM:
+
+* **Z1** — `wayfind-ghost` present in the style; `line-width` reads back as
+  the bare top-level interpolate with stops computed from the constants,
+  exactly 15:1.65 / 21:27.30 at 2dp; **zero wayfind MAP ERRORs in the console
+  across every load** (the only MAP ERRORs anywhere are Z0's four
+  `ground-base-texture` lines, which are `main`'s and still unfixed — the Y8
+  grain pass did NOT touch `texGroundMaxZoom: 25`; Z0 stays open).
+* **Z2** — placeholder `Nearest building to the view`; From pre-fills from
+  the camera (`Moontower` at the load pose); empty From + Enter picks the
+  default and, with a To committed, ROUTES (was: nothing, silently).
+* **Z3** — `SMC`, `NUR`, `UTA` each: greyed row `not walkable yet`, Enter
+  answers `<code> is not walkable in this build yet`, and a route drawn
+  immediately before is GONE from every wayfind source (113 strip features →
+  0, pill hidden). Nonsense input gets the not-found sentence.
+* **Wording** — every text node under `#wf-root` scanned against the honesty
+  doc's §12 forbidden list: zero hits (the one line naming accessibility is
+  §11's own mandated disclaimer, matched verbatim). Door phrases follow the
+  §7 table: GDC (osm main) gets `The main entrance`, WEL (derived) gets
+  `Entrances are on this side`. The headline is always range-form.
+
+**Route regression: 18/18 pairs identical to the audited table** (§113/§116)
+— every distance, every lo-hi minute range, every staircase count, on the
+graph the merged tree ships (`walk_graph.json` unchanged at `a56c69b`; the
+blitz's fatter graph had NOT landed as of this merge, so the 85-code count
+and the 18-of-24 towers stand). Worst route 16.3 ms (SwiftShader, no
+throttle — informational).
+
+**Z1's acceptance photograph, taken the honest way.** BTL>PMA at p 0.92,
+pose echo-verified (the first frame of the night came back at an unintended
+pose because nothing checked the jump landed — the README's own trap,
+relearned; the fix is jump → read back → re-jump until it holds), then the
+ghost layer toggled off at the identical pose and the 4,345 px that vanished
+painted magenta: **dashes ON the dark building mass along the route line,
+solid ribbon on the open walkway beside it** — solid on open ground, dashed
+through the wall, which is the sentence the file's header promises.
+`shots/walk/gate2/z1-ghost-night-merged.png`, `-noghost.png`, `-cleared.png`
+(route-vs-cleared 8,674 px — the §114 isolation rule), `-crop.png`,
+`_z1-ghost-pixels-magenta.png`.
+
+### Heroes: the feature idle is not at the floor, it is UNDER it
+
+Six hero-class poses (H2 pinned at §116's z-bands; the §116 pose scripts died
+with that session's scratchpad, so these are re-authored poses of the same
+compositions), three separate loads each in the order main-A → wayfind-C →
+main-B, so the floor pair BRACKETS the branch session in time. Strict settle:
+every source `isSourceLoaded` AND `areTilesLoaded` before each frame.
+
+```
+pose               floor (main A vs main B)      branch vs the mains
+H1-spawn-sunset    IDENTICAL sha256              IDENTICAL — all 3 loads one hash
+H2-drag-corridor   IDENTICAL sha256              IDENTICAL — all 3 loads one hash
+H3-tower-golden    IDENTICAL sha256              IDENTICAL — all 3 loads one hash
+H4-whole-city      0.294 %  max 1/255            IDENTICAL to main-B
+H5-dkr-skyline     27.658 % max 155              IDENTICAL to main-A
+H6-tower-night     20.443 % max 182              IDENTICAL to main-A
+```
+
+**At every pose the branch frame is byte-identical to at least one main
+load.** §116's bar was H2 byte-identical; H1 and H3 joined it. The only
+differences anywhere are between the two MAIN loads of the identical page:
+H4 at amplitude 1/255 (invisible), and H5/H6 where main-B alone shifted the
+whole frame below the sky (mean luma ±1-4, max 155-182) — §116's load-state
+finding reproduced with a stricter settle, plus a possible echo of QUEUE
+Y18's exposure path-dependence. Both are `main`'s to chase, not this
+feature's: the frames say the walking feature idle moves NOTHING.
+
+### `?clip=1` and the phone
+
+* `?clip=1&walk=1&from=JES&to=WEL&fit=1&intro=0`: all 13 chrome elements
+  (`hud`, hint, tod, joystick, gfx, fb, wf-button/sheet/pill) computed
+  `display:none`; **the OSM attribution stays visible (licence, not
+  chrome)**; the route stays drawn. `shots/walk/gate2/clip-route-no-chrome.png`.
+* 393x852 with a route and the pill: box-measured, zero overlap with
+  gfx-button (343,16), fb-button (343,58), tod-panel (341,324), joystick
+  (32,682); everything on screen. `shots/walk/gate2/phone-393-route-pill.png`.
+  Z7 (pill can never exceed 197 px, headline wraps) and Z8 (open sheet covers
+  the joystick) remain open, as scoped — visible in the frame, colliding with
+  nothing.
+
+### Merged, and what stays open
+
+PR #169 merged; branch deleted; QUEUE Z1, Z2 and the client half of Z3 closed
+in PART Z. Still open there: **Z0** (ground-base-texture rejected on `main` —
+one character, `js/ground.js`), **Z4 + Z3's graph half** (the bake; six West
+Campus towers, 85 register codes), **Z5** (the 15 fps pulse repaint,
+unmeasured), **Z6** (the advertised recording URL vs the intro), **Z7/Z8/Z9**
+(phone pill width, joystick under the sheet, Jester ordering + list clipping).
+
+### The one taste call left (flagged by §116, still his)
+
+From altitude the route is a thin thread — 0.04-0.11 % of the frame at cruise
+poses, drawn OVER rooftops and canopies by design. At walking height it is a
+painted strip on the pavement and it is excellent. My opinion, having driven
+both: **ship it as is.** The thread is legible the moment you look for it,
+and the moment you descend it hands over to the ribbon, which is the view
+that matters for walking to class. A fatter thread would read better in a
+30-second flyover clip but would sit on the roofs of the city he is about to
+record for AWS. The four constants are `WAYFIND.threadPx` 3.2,
+`threadOpacity` 0.9, `threadFadeZoom` 17.2, `casingCol` — one line each if he
+wants the flyover louder. Judge from
+`shots/walk/final/01-a-route-from-the-air-jester-to-welch.png` against
+`02-the-same-route-at-walking-height.png`.
+
+### For Simeon
+
+Walk-to-class is merged and it tells the truth: type a building and you get a
+route with honest numbers (all 18 test routes re-checked tonight, every one
+matching), dead codes get a real answer instead of silence, and the app
+everyone else sees is pixel-identical until you add `?walk=1` — the
+all-visitors button is still one constant (`WAYFIND.on`) you flip after the
+AWS shoot. One taste call left: from the air the route is a deliberately thin
+thread (0.04-0.11 % of the frame) — my call is ship it as is, and if you want
+the flyover louder it is a one-line change; compare frames 01 and 02 in
+`shots/walk/final/`.

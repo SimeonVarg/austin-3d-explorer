@@ -431,11 +431,23 @@ all 16 bearings tried. 1 of 584. The fix is in `scripts/bake_entrances.py` —
 read `heroes.geojson` and push the door out to the hero's own wall, or drop it
 and print that it was dropped.
 
-**W8. The Texas Union's main door is in a courtyard notch** (PART L, **L2**).
-The placement is not broken — the notch is real and the door is on its wall —
-but it faces north into a courtyard, not the West Mall, and the Union is one of
-the two buildings named for carved inscriptions. **Needs a photograph before any
-code**: which elevation, and is there lettering on it.
+**~~W8.~~ RULED — author the secondary West Mall door; the courtyard door stays
+as main (2026-08-15, HANDOFF §117, photographed).** The photographs:
+`shots/blitz/w8-union-courtyard-door.png` and `-door-close.png` show the bake's
+main door (eid 350, hinged-quad, bronze + limestone surround + steps) is
+genuinely good and correctly placed in the east courtyard notch, facing north
+toward the FAC courtyard. `w8-union-from-westmall.png` shows the cost: standing
+on the West Mall at 1.7 m, **no way into the Union reads at all** — the south
+elevation is a blank arcade wall. `w8-union-overhead.png` shows the geometry of
+the problem in one frame. **The ruling:** the real Union has a public south
+entrance up the steps from the West Mall; OSM simply has not mapped it, and the
+south face is the building's public face. So the next entrances pass should
+**add ONE authored secondary door on the south (West Mall) elevation, `src:
+"authored"`, `role: "secondary"`, same recipe as the hero doors** — and leave
+eid 350 exactly where it is, because the notch is honest and the composition is
+the best-authored door on that block. On lettering: no carved inscription
+renders on any Union elevation in these frames — if the inscription pass ever
+reaches the Union, the mall face is where it belongs.
 
 **W9. The Main Building's centre bay should be recessed and is flat** (PART L,
 **L3**). `docs/entrances/celebrated.md` §5.1 traces the OSM ring to prove the
@@ -664,9 +676,13 @@ altitude by `collision.mjs`'s synthetic touch. `SPEED_MIN` is now 1.0, so the
 joystick's expo curve is operating over a completely different speed range than it
 was tuned for.
 
-**Y11. No dusk frames at eye level.** §105 shot day `p = 0.14` and night
-`p = 0.90` only. The dusk handover is the app's best-looking moment and it has
-never been seen from a pavement.
+**~~Y11.~~ DONE — nine frames shot at 1.7 m, p 0.55/0.62/0.70, three sites
+(HANDOFF §117, `shots/blitz/y11-*.png`).** The dusk SKY at eye level is the
+best thing in the frame set — the Tower against the p 0.62 gradient
+(`y11-southmall-p062.png`) is the frame to show. What the transition breaks is
+now Y17 (the ground plane does not ride the dusk clock) and Y18 (the
+post-process canvas paints glow bands across facades). Both were found by these
+frames and both are measured below.
 
 **Y12. MapLibre's near plane clips anything within 2.2 % of D — 0.4–1.1 m at
 walking height.** Diagnosed in §108: walk into a tree and the trunk you are
@@ -678,14 +694,20 @@ overriding the transform's near plane below `ALT_GROUND`. It belongs to whoever
 owns the map transform, and it **must** be re-checked against `zfight` and
 `coplanar`, because a nearer near plane costs depth precision.
 
-**Y13. Nobody has photographed the moon behind a building since the sky fix.**
-§109 proved the sky FIELD (stars, clouds, glow, wash) paints **0 px** inside a
-270,794 px wall silhouette at two poses, against an old-overlay control that
-painted 33–51 % of the same wall. But at those poses the disc was in open sky —
-a 40x40 box around it is 0 % wall — so the **disc** is unproven. It rides the
-same depth-tested pass, so this is a photograph to take, not a bug to expect.
-`shots/eye/recon/24-dkr-the-moon-is-drawn-in-front-of-the-stadium-night.png` is
-the original defect frame; re-shoot that pose.
+**~~Y13.~~ CLOSED — the disc is occluded by geometry, photographed and measured
+(2026-08-15, HANDOFF §117).** Pose: eye 1.7 m at [-97.74575, 30.28640], bearing
+112, pitch 85, p 0.92 — a West Campus tower square across the moon's screen
+position, `skyFrame.sun` at (724,71) with `queryRenderedFeatures` returning
+`buildings-3d` at that point. A 40x40 box around the disc position: **with the
+wall present, mean luma 25.3, max 105.9 (a lit window), 0 px over luma 120;
+with `buildings-3d/roof/ao` hidden at the same pose, 412 px over 120, max 194 —
+the disc, exactly where it should be and nowhere else.** Frames:
+`shots/blitz/y13-wc-moon-night.png` / `-nobldg.png` (plus a DKR pair muddied by
+canopies under the disc; the WC pair is the proof). Instrument: composited
+`page.screenshot()` per §109's rule, SwiftShader headless 1440x900,
+`cancelGraphicsAutoDetect()`. One pose plus its own control, single rep — the
+control failing loudly (412 px) is what makes one rep enough here. What the
+frames DID catch is Y18 below.
 
 **Y15. The trunk field's worst incremental scan is 841.5 ms.** Measured in §109:
 61 scans, 25.3 ms average, 2,976 trunks, **max 841.5 ms** — about fifty dropped
@@ -710,6 +732,42 @@ known QUEUE W6 cluster, unchanged. Nothing new to open. The original entry:
 `VERIFY_URL` and to be run from `scripts/verify/`; under CPU load the fly-drag
 poses can come back `INVALID: the scene had not loaded` — rerun those poses,
 do not read INVALID as clean.
+
+**Y17. The ground plane does not ride the dusk clock at eye level.** Found by
+the Y11 frames (HANDOFF §117), measured with a fixed 400x150 pavement box per
+site (offline PNG decode, no instrument between the frame and the number).
+Pavement mean luma across p 0.55 / 0.62 / 0.70: Guadalupe **128 / 141 / 101**,
+West Campus **120 / 126 / 84**, South Mall **134 / 118 / 80** — at two of three
+sites the pavement gets BRIGHTER through mid-dusk, and at p 0.70, with the sky
+starlit (sky box 38) and the facades at night values (wall box 35–44), the
+pavement still reads 80–101: **2.3–2.9x the luma of the wall it meets, in the
+50–60 % of the frame the ground occupies at 1.7 m.** From the flyover this was
+invisible; on the pavement it is the first wrong thing in every dusk frame.
+Same family as §82 (three ramps rode the slider instead of the sun) — whatever
+ramps the ground texture/fill never got the §82 treatment, or has a floor.
+Frames: `shots/blitz/y11-*-p070.png` against their own p 0.55 siblings.
+
+**Y18. The post-process canvas (`fx-canvas`, z 6 — bloom/god-rays) paints glow
+bands across solid facades at eye level; it is composited over the whole frame
+and depth-tests nothing.** Two independent catches in the §117 frames:
+a red-brown band across the Drag facade at dusk (`y11-guadalupe-p070-ship.png`,
+rows ~150–260, well above the horizon at 379), and a warm band across a West
+Campus tower at full night p 0.92 (`y13-wc-moon-night.png`), i.e. this is not
+§109's sky field — that pass is depth-tested and proved 0 px on walls — it is
+`js/graphics.js`'s screen-space pass. A/B at the same pose: with
+`GFX.bloom/godRays/flare = 0` the band is gone and the wall reads its honest
+brown (`y11-guadalupe-p070-fxoff.png`); the pass moves **73.1 % of a 950x370
+wall region by >8, max channel delta 32** (single rep each; the band's
+presence/absence is visual and unambiguous, the percentage is one reading).
+Related, unproven but written down: the same wall box measured 35 luma when
+p 0.70 was reached via 0.55→0.62 in one session and 56 when jumped to directly
+in a fresh one — auto-exposure path-dependence is the suspect, and it needs
+interleaved reps before anyone treats frame-to-frame dusk numbers as stable.
+The §109 star gate could not have seen any of this: its poses had the FX band
+elsewhere and its assertion hunted sky colours, not warm washes. Fix belongs to
+whoever owns `js/graphics.js`; the honest options are masking the fx pass below
+the horizon against the depth of the scene, or gating bloom/rays off below
+`ALT_GROUND`. Do not fix by turning the preset down and calling it done.
 
 ---
 
@@ -761,10 +819,12 @@ Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
                                                 one character, 25 -> 24).
 Y9  labels sized by zoom not metres .......... OPEN
 Y10 touch at walking height .................. OPEN
-Y11 dusk at eye level ........................ OPEN
+Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — found Y17+Y18
 Y12 the near plane ........................... NEW
-Y13 the moon behind a building ............... NEW
+Y13 the moon behind a building ............... CLOSED (§117) — disc occluded, 0 px through wall
 Y14 places-check / zfight not run ............ CLOSED (both at baseline on 38fbeee, §115)
+Y17 ground plane ignores the dusk clock ...... NEW  (§117) — pavement 2.3-2.9x wall luma at p 0.70
+Y18 fx-canvas paints glow bands on facades ... NEW  (§117) — dusk AND night, A/B proven
 ```
 
 **The one-line verdict on the Drag at night:** it is genuinely better — no stars
@@ -824,8 +884,10 @@ should land before Y4 or Y4 must re-run the check.
 4. **Record every pass in `HANDOFF.md`** with the branch name.
 
 # PART Z — WALK TO CLASS. Written 2026-08-15 from the skeptic pass in HANDOFF
-# §116. **PR #169 IS OPEN AND WAS NOT MERGED.** The routes are right; four
-# things the interface says or fails to draw are not, and each is small.
+# §116. **PR #169 MERGED 2026-08-16 after a second fresh-eyes pass re-ran every
+# gate on the merged tree (HANDOFF §122): Z1-Z3 closed below, Z4 stays with the
+# graph bake, Z5-Z9 stay open.** The original header said: the routes are
+# right; four things the interface says or fails to draw are not.
 
 **The one-line verdict.** The routing is the best-verified thing in this repo —
 eighteen pairs driven in a real browser, every distance identical to the bake's
@@ -852,7 +914,17 @@ of why.** It is one character (`25` → `24`) and it is not this lane's file.
 
 ---
 
-**Z1. `wayfind-ghost` never enters the style, and here is why.** §114 recorded
+**~~Z1.~~ CLOSED — the ghost is in the style, the stops are computed from
+named constants, and its own pixels are photographed crossing a building
+(2026-08-16, HANDOFF §122, merged in PR #169).** `ghostWidthExpr()` does the
+clamp arithmetic in JavaScript and hands MapLibre the bare top-level
+interpolate; driven on the merged tree it reads back exactly 15:1.65 /
+21:27.30, the layer sits in the style, and the console is free of wayfind MAP
+ERRORs on every load. The photograph nobody had: `shots/walk/gate2/
+_z1-ghost-pixels-magenta.png` — the ghost layer toggled off at a fixed pose,
+the 4,345 px that vanished painted magenta: dashes ON the dark building mass
+along the BTL>PMA line, solid ribbon on the open walkway beside it. The
+original entry: §114 recorded
 "reports index -1 ... I ran out of time to find out why". The browser says it
 outright, once per load:
 
@@ -882,7 +954,13 @@ way `groundWidthExpr` already does, and return the finished interpolate.
 **Then photograph a route that passes behind a building**, because nobody ever
 has.
 
-**Z2. The From field promises a location it does not have.** Its placeholder is
+**~~Z2.~~ CLOSED — From defaults to the routable building nearest the camera,
+and the placeholder says exactly that (2026-08-16, HANDOFF §122, merged in
+PR #169).** Placeholder `Nearest building to the view` (added to the honesty
+doc §11 first), field pre-filled on open, and empty From + Enter now picks the
+same default and routes — all three driven on the merged tree. The withdrawn
+sentence `Where I am standing` renders nowhere. The original entry:
+its placeholder was
 `Where I am standing`. There is no `navigator.geolocation` anywhere in the file
 and no camera-position default; leave From empty, press Enter on a valid To, and
 **nothing happens at all** — `run()` returns on `!state.from`. `interface.md` §2
@@ -892,7 +970,15 @@ Either build the camera default (it needs no permission and no prompt) or change
 the placeholder to something true. Shipping the sentence without the feature is
 the one failure `what-we-can-honestly-say.md` §9 names by hand.
 
-**Z3. 85 of the 198 UT register codes return NOTHING when typed**, including
+**~~Z3 (client half).~~ CLOSED — every register code is findable and a dead
+one answers honestly and clears the stale route (2026-08-16, HANDOFF §122,
+merged in PR #169).** The register rides along with the graph fetch; `SMC`,
+`NUR` and `UTA` each show greyed `not walkable yet`, Enter answers `<code> is
+not walkable in this build yet`, and a route drawn immediately before is gone
+from every wayfind source (113 strip features → 0, measured). **The graph
+half — actually ROUTING those codes — is Z4's bake and stays open.** The
+original entry: 85 of the 198 UT register codes returned NOTHING when typed,
+including
 `NUR`, `SMC`, `HDB`, `HLB`, `HTB`, `UTA`, `ACS`, `ANB`, `BMS`, `BMK`, `WMB` and
 `WAT`. `walk_graph.json`'s `code` map holds 113 of 198; 111 are routable and 2
 (`BIO`, `TSG`) are shown greyed with "no door mapped", which is the right
