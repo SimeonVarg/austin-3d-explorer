@@ -18295,7 +18295,7 @@ microsecond clock and page milliseconds, so a long task at t = 2,652 ms can be
 windowed in the profile EXACTLY instead of guessed at from the shape of the
 samples. Without it a specific task cannot be attributed at all.
 
-### 136.1 What the 2,744 ms task IS
+### 139.1 What the 2,744 ms task IS
 
 **It is `buildScene()`** — `js/app.js:362`, called from the `map.on('load')`
 handler at `js/app.js:332`. On a loaded machine it reproduced at 2,309 and
@@ -18322,9 +18322,9 @@ and it is also the largest single self-time bucket at BOOT. Nobody has costed
 it. It is the next thing to look at and it belongs to the 221 layers.
 
 **`buildScene` was NOT fixed here — it is entirely inside `js/app.js`, which this
-lane was told not to touch.** See §136.4 for the request.
+lane was told not to touch.** See §139.4 for the request.
 
-### 136.2 What WAS fixed, and why it mattered more
+### 139.2 What WAS fixed, and why it mattered more
 
 Tracing forward from that task found the real reason downtown is late, and it is
 not the freeze:
@@ -18356,7 +18356,7 @@ requests and took **1,201 ms for 3 KB**; even on a quiet machine it started at
 carries `sourceId` and `isSourceLoaded`, which is the same answer the sweep went
 looking for. `shown()` alone was 172 ms of self time in the first 8 s under load.
 
-### 136.3 The numbers, and the load they were taken at
+### 139.3 The numbers, and the load they were taken at
 
 Chrome process count and `\Processor(_Total)\% Processor Time` recorded before
 and after every rep. Minimum of interleaved, counterbalanced reps, never a mean.
@@ -18380,7 +18380,7 @@ there to quote a figure, and none is quoted.
 have**: 4,530–5,554 ms in both builds, overlapping completely. This pass moved
 *when downtown starts loading*, not how much the main thread is blocked.
 
-### 136.4 Not established, and one request for the `js/app.js` owner
+### 139.4 Not established, and one request for the `js/app.js` owner
 
 * **The 2,744 ms task is named, not fixed.** It is `buildScene`, it is one
   synchronous block in `js/app.js`, and every candidate for chunking it
@@ -18434,7 +18434,7 @@ Files changed: **`js/facades.js` and `js/sky.js`, and nothing else.**
 and `scripts/verify/coplanar.mjs` were held by other lanes tonight and are
 untouched. `harness-drift.mjs` **PASS** on this tree before any pixel work.
 
-### 137.1 THE FINDING — `ImageManager.updatedImages` IS NEVER CLEARED
+### 140.1 THE FINDING — `ImageManager.updatedImages` IS NEVER CLEARED
 
 Read out of `maplibre-gl@5.24.0`, then measured. The string `updatedImages`
 appears **exactly three times** in the whole bundle:
@@ -18471,7 +18471,7 @@ under-attributed it because the cost is half a million inlined property reads
 spread across `getImage`, not one hot named function. Load probes beside these:
 21–35 Chrome processes, `_Total` CPU 14–84 %.
 
-### 137.2 THE FIX, AND WHY IT CANNOT BRING BACK THE SPLIT-HOUR ATLAS
+### 140.2 THE FIX, AND WHY IT CANNOT BRING BACK THE SPLIT-HOUR ATLAS
 
 `js/facades.js` `FACADE_ATLAS.RELEASE` — three named constants, a `render` hook
 and a `data` hook.
@@ -18506,7 +18506,7 @@ normally one per 30.
 
 `FACADE_ATLAS.RELEASE.on = false` restores stock MapLibre behaviour live.
 
-### 137.3 `updateSky` — the sun does not move when the camera pans
+### 140.3 `updateSky` — the sun does not move when the camera pans
 
 **`js/sky.js` now publishes `window.__sky`** — the G10 instrument `budget.md`
 §128 called "the highest-value single line available" and which did not exist.
@@ -18543,7 +18543,7 @@ change, and no future measurement is silently invalidated.
 `SKY_MEMO.on = false` is a live A/B switch and it reaches the hot loops, not just
 the memo, so the before arm really is the old code path rather than a cold cache.
 
-### 137.4 THE VISUAL BAR — ten poses, noise floor first, 1,296,000 px each
+### 140.4 THE VISUAL BAR — ten poses, noise floor first, 1,296,000 px each
 
 One build, one page session, one pose, two arms toggled by the two live
 switches, so the arms differ by exactly the change under test and none of the
@@ -18582,7 +18582,7 @@ atlas change and the wrong one for "the city at eye level"; E1 and E4 are the
 streets. Said plainly because `measured.md` §2 was caught quoting a wall as a
 walk.
 
-### 137.5 A1/A4 — the guard on the bug this change could have brought back
+### 140.5 A1/A4 — the guard on the bug this change could have brought back
 
 A1/A4 is "half the buildings switch their windows to night mode in complete
 daylight", and its mechanism is TILES holding an older hour. Releasing
@@ -18608,7 +18608,7 @@ that frame. Counters at the end of the RELEASE arm: `released 1670, staleFound
 0, remarks 0, blankScans 0, disabled null`; in the stock arm `released` did not
 move, which is how the switch is known to have been switched.
 
-### 137.6 THE AFTER COLUMN
+### 140.6 THE AFTER COLUMN
 
 One page session, both arms driven by the two live switches, four reps per
 case, **interleaved AND counterbalanced** (the order reverses on alternate reps,
@@ -18653,7 +18653,7 @@ first honest frame counts this project has taken.
   reduction rather than 100 %. Some arriving tiles really are behind, which is
   the case the `data` hook exists for.
 
-### 137.7 WHAT THIS DID NOT ESTABLISH
+### 140.7 WHAT THIS DID NOT ESTABLISH
 
 Listed first-class, because it is the part most likely to be misread as absence
 of a problem.
@@ -18681,7 +18681,7 @@ of a problem.
    count, not these two files.
 4. **BOOT WAS NOT RE-MEASURED.** The release sweeper cannot fire before the
    first render and the sky memo can only help, but neither claim was tested.
-   The 2,744 ms `buildScene` task (§136) is untouched and is still the biggest
+   The 2,744 ms `buildScene` task (§139) is untouched and is still the biggest
    number in `measured.md`.
 5. **This change ADDS a cost that was not measured: one held frame per
    time-of-day tick** (`holdFrames: 1`). During autoplay the heavy tod path
@@ -18708,3 +18708,149 @@ of a problem.
    safe (disable + warn) if the field moves, but a future MapLibre upgrade turns
    this optimisation off silently-but-loudly rather than breaking — check
    `window.__atlasRelease.disabled` after any version bump.
+
+---
+
+## 141. Aug 16 2026 — THE N6 GATE: the atlas fix is enormous, the boot fix is real but smaller than it was sold, and three of measured.md's headline numbers were the machine (QUEUE N6/K1) (acer lane, branch `acer/n6-boot`, merged)
+
+**In one line for Simeon:** the city looks pixel-for-pixel identical and it now
+runs about **three times faster** — at walking height it went from 98 frames to
+167 in the same three seconds, and the best frame at cruise dropped from 48 ms to
+15 ms. The loading complaint is improved but less than the branch claimed, and
+part of what you were feeling was your laptop being busy, not the app.
+
+Merged `origin/main` `640afcb` into the branch (HANDOFF conflict resolved the
+usual way — main's 136/137/138 keep their numbers, mine became 139/140) and
+**every number below was taken on that merged tree**, not on the branch in
+isolation. `harness-drift.mjs` PASS before any pixel work. Two throwaway
+worktrees, `scripts/serve.py` on 8403 (after) and 8404 (before), **each
+fingerprinted with a `curl | grep` for `__atlasRelease` and `SKY_MEMO` before
+use**, because the one way this A/B could have been silently worthless is both
+ports serving the same tree.
+
+### 141.1 THE HEADLINE — the facade atlas, and it is bigger than measured.md knew
+
+Same V8 sampler, same 100 µs interval as `measured.md` §1, SELF time, both arms
+in one page session toggled by the live switches:
+
+| condition | atlas self share, BEFORE | AFTER |
+|---|---:|---:|
+| cruise day | 40.5 – 52.1 % | **1.9 – 3.0 %** |
+| eye 1.7 m dusk | 38.0 – 47.0 % | **1.0 – 3.7 %** |
+
+`measured.md` §1 put the atlas at 19.1 % and called it "the largest single block
+of cost this project has ever left unexamined". **It was low by half.** §140's
+reading of the mechanism — `ImageManager.updatedImages` is written and never
+deleted from, so every loaded tile rescans every marked image every frame
+forever — is confirmed by a second, independent instrument.
+
+### 141.2 FRAME TIME — the number `measured.md` §2 refused to name
+
+**The machine went genuinely idle for the first time all night** (20–28 Chrome,
+`_Total` CPU 0–44 %, most reps under 30 %, load probed either side of every
+sweep). Renderer probed and printed: `ANGLE (NVIDIA RTX 3050 Ti, D3D11)`.
+4 reps, interleaved and counterbalanced, fixed 3 s camera path, nothing held
+down.
+
+| condition | frames / 3 s | best frame | median frame |
+|---|---:|---:|---:|
+| cruise day | 56 → **163** | 47.8 → **15.2 ms** | 53.9 → **18.0 ms** |
+| eye 1.7 m night | 98 → **167** | 27.6 → **10.8 ms** | 30.0 → **17.8 ms** |
+
+**All 8 after-reps beat all 8 before-reps in both conditions, no overlap.**
+That is what makes it a result. `budget.md`'s 60 fps target is 16.7 ms; the
+cruise best frame is now inside it.
+
+### 141.3 THE BOOT HALF — real, but it bought the TAIL, not the floor
+
+And here the gate disagrees with how §139 reads at a glance. §139 measured *time
+to the first downtown tile RESPONSE*, a network event, and reported
+5,266 → 3,340 ms. That is true and it reproduces. **It is not the same thing as
+downtown appearing on the skyline**, which is what Simeon actually complained
+about, and which nobody had read off a frame.
+
+Read off frames, at the app's own home pose with the camera pinned:
+
+| | BEFORE | AFTER |
+|---|---:|---:|
+| downtown on the skyline, best rep | 6,147 ms | **5,920 ms** |
+| worst rep on a quiet machine | 9,778 ms | **6,359 ms** |
+| `austin-outer` addSource | 3,555 ms | **1,986 ms** |
+| first downtown tile loaded | 4,700 ms | **3,955 ms** |
+| long-task blocking, first 8 s | 2,236 ms | 2,192 ms |
+| worst single task | 702 ms | 709 ms |
+
+**The best case moved 227 ms. The tail moved 3.4 seconds.** That is exactly the
+shape a queue-independence fix should have and it is worth shipping — but "the
+boot got much faster" would be an overstatement and I am not making it.
+
+### 141.4 THREE OF `measured.md`'S HEADLINE NUMBERS WERE THE MACHINE
+
+This is the retraction this pass owed, and it is the most useful thing in it.
+
+| | measured.md | quiet machine, same instrument |
+|---|---:|---:|
+| worst single boot task | 2,744 ms | **702 ms** |
+| long-task blocking, first 8 s | 7,072 ms | **2,236 ms** |
+| time to downtown | ~24 s | **6.1 s** at the home pose |
+| Y7 outer scan | 43.3 ms | **17.30 ms** |
+
+None of these were fixed by this change — **they were attributed to the code and
+they belonged to the machine** (32–42 Chrome processes at 61–100 % CPU). The
+24 s had a second cause too: **the intro flight runs 10.5 s** before the camera
+reaches the pose downtown is visible from, so an A/B on that number with the
+intro left running is measuring the camera, not the city. My own first attempt
+did exactly that and produced a "downtown got slower" result before I noticed.
+`measured.md` now opens with this table so nobody plans against the old figures.
+
+**Y7 is not weakened by this, it is sharpened.** 17.30 ms is the lowest reading
+anyone has taken, on the quietest machine, and it is still **2.2× over its 8 ms
+budget**. There is no machine state in which the outer ring comes in under
+budget. Y15 could not be measured again: every walk rep ended at **altitude
+23.8 m**, the same digit as §132 and §133 — QUEUE Y16's silent lift, third
+sighting.
+
+### 141.5 THE VISUAL GATE — 18 poses, and the city did not move
+
+A/A noise floor at every pose before any A/B number, threshold 24/255, AE per
+§127, second screenshot kept. At the **true default hour** (`TOD_DEFAULT_P` is
+0.50, not the 0.30 I first used — the sunset the C-HERO set was shot at):
+
+**All eight poses zero differing pixels**, including both dusk poses, which is
+the hour where both of `updateSky`'s heavy loops run at once. A first pass at day
+and night found 8 of 10 at zero and the other two at 12 px, both **below their
+own noise floor** — twinkling stars, alpha driven by `performance.now()`.
+
+Frames were looked at, not only differenced: `shots/perf2/final/gate-D1` is the
+C-HERO1 composition intact, and `gate-D6` is a real street at eye level with the
+Tower and the storey bands — **not a wall**, which is the defect `measured.md`
+§2 caught in its own walk instrument.
+
+`perf-budget.mjs` watched in **three** directions on the merged tree: FAIL on the
+shipped budget (G1/G3/G5a), PASS with thresholds raised, and — the one worth
+having — **FAIL on G3 alone** when only `PB_OUTER_MS` is tightened, with G1 and
+G5a still ok. It reads the live number per assertion; it is not stuck.
+
+### 141.6 WHAT I DID NOT ESTABLISH
+
+* **Nothing was measured under the load Simeon actually has.** His complaint is
+  about a laptop running Claude and many Chrome tabs. The quiet-machine numbers
+  are honest and the mechanism is the right shape for that case, but **"this
+  fixes it on your laptop" is not tested.**
+* **GC share went UP** — 0.51 → 2.16 % at cruise, 1.01 → 2.22 % at eye, on
+  comparable sample counts. Small beside the 40+ points the atlas returned, but
+  real, and not in §140.
+* **`buildScene` is still one synchronous block** in `js/app.js`. §139's request
+  stands: yield between `step()` calls.
+* **`measured.md` §1's `updateSky` 8.8 % was NOT re-profiled comparably.** Mine
+  is self time (0.06–0.40 %), §1's is subtree; the cost lives in the canvas2d
+  primitives, not in the function body. Use `window.__sky`'s CPU timer instead.
+* **The 16 % shader-compile share did not reproduce** (~0 % at cruise) — but my
+  sweep starts ~18 s after load with programs already compiled, so that is a
+  hypothesis about *when* it is paid, not a refutation.
+* **`dusk.mjs` / `silhouette.mjs` / `banding.mjs` still crash before opening a
+  browser** (the Mac lane's harness page-setup regression), so the dusk-handover
+  continuity and silhouette assertions have STILL not been run against the sky
+  change.
+* Exit codes were not re-checked, only printed verdicts — the pipeline used here
+  reports `tail`'s status.

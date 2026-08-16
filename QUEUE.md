@@ -75,7 +75,35 @@ CLOSED** — he tested on his phone 2026-08-04: *"i tested on my phone performan
 is great and it looks amazing - only thing is the boost button is a bit off
 visually but its great."* That removes the single biggest unknown in the project.
 
-## K1. Measure performance and set a budget — MEASURED 2026-08-16, NOW A LIST OF FIVE JOBS
+## K1. Measure performance and set a budget — JOBS 2 AND 3 DONE AND GATED 2026-08-16 (§141)
+
+> ### GATED 2026-08-16 — read this before the list below, three of its numbers were the machine
+>
+> `docs/perf/measured.md` **§7** is the AFTER column, taken on the first quiet
+> machine this project has had. HANDOFF **§139/§140/§141**, branch
+> `acer/n6-boot`, merged.
+>
+> * **JOB 2 (facade atlas) — DONE.** 40.5–52.1 % of main-thread self time at
+>   cruise → **1.9–3.0 %**. The 15–20 % below was LOW; the real figure was
+>   38–52 %. `js/facades.js` `FACADE_ATLAS.RELEASE`.
+> * **JOB 3 (`updateSky`) — DONE, and it was never the hog.** Measured with its
+>   own CPU timer it is **0.69–2.5 ms per call**, not the 2–8 ms/frame §128
+>   predicted. `window.__sky` now exists — that is `budget.md`'s G10.
+> * **FRAME TIME, at last:** cruise best frame **47.8 → 15.2 ms**, walking at
+>   night **27.6 → 10.8 ms**; frames per 3 s sweep 56 → 163 and 98 → 167. All 8
+>   after-reps beat all 8 before-reps, no overlap.
+> * **JOB 1 (boot) — PARTLY, and the number was wrong.** On an idle machine the
+>   "2,744 ms task" is **702 ms** and the "7.07 s of blocking" is **2,236 ms**.
+>   **Downtown is on the skyline at 6.1 s, not 24 s** — the 24 s was contention
+>   plus the 10.5 s intro flight. The reorder in `js/outer.js` moved the worst
+>   quiet rep 9,778 → 6,359 ms; the best case only moved 227 ms. `buildScene` is
+>   still one synchronous block and is still `js/app.js`.
+> * **JOB 5 (shader compile) — did NOT reproduce** at cruise (~0 %), but the
+>   sweep started with programs already compiled. Probably a first-flight cost.
+>   Still open, still needs the layer count.
+>
+> **Still not established:** anything under Simeon's real load, anything on a
+> phone or a throttled CPU, and GC share went UP 0.5 → 2.2 %.
 
 **The measuring half is DONE and the three documents exist** (HANDOFF §133,
 branch `acer/n1-perf`):
@@ -734,6 +762,21 @@ the whole effect belongs to sprinting. **Reproduced on `origin/main`'s
 pass.** Either widen the assertion to `TUNE.FOV_KICK +/- tolerance` read live from
 `window.__fly.tune`, or decide the kick is too big and lower it — but a test that
 has been red on `main` is a test nobody can use as a gate.
+
+**Y7 — RE-MEASURED AGAIN 2026-08-16 ON A QUIET MACHINE (§141,
+`docs/perf/measured.md` §7.6). STILL OPEN. The honest floor is ~17 ms, not
+43.3 — that figure was contention, and it does not matter, because it is STILL
+over budget.** `perf-budget.mjs` G3 on the merged tree read **17.30 ms** and
+**19.90 ms** at 15–29 % CPU with 27–32 Chrome processes: the two lowest readings
+anyone has ever taken of this scan, and both **2.2× over the 8 ms budget**. The
+claim to carry forward is not a number, it is: **there is no machine state in
+which the outer-ring scan comes in under budget** — 17.3, 18.6, 37.9, 40.1, 43.3
+and 154 ms across four separate passes and every machine state tested. Still
+`js/controls.js:475`, still not this lane's file. **Rank it FOURTH still** — but
+note the two things that outranked it (the atlas and the sky) are now FIXED, so
+Y7 is the top REMAINING frame cost. Y15 could not be measured a third time: every
+walk rep ended at **altitude 23.8 m** (QUEUE Y16's silent lift, third sighting),
+so the trunk field was gated off and the guard correctly printed no figure.
 
 **Y7 — RE-MEASURED 2026-08-16 (§133, `docs/perf/measured.md` §3.2). STILL OPEN,
 still ~40 ms, and now budgeted.** Driven three ways on the merged tree, minimum
