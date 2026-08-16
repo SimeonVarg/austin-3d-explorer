@@ -2148,4 +2148,227 @@
   // the whole thing in the zoom step that picks a mip tier.
   window.FACADE_PATTERN_EXPR = window.facadeTierExpr(['coalesce', ['get', 'wp'], 'mh00']);
   window.facadePalette = () => palette;
+
+  // ══════════════════════════════════════════════════════════════════
+  //  CAMPUS STOREY BANDS — QUEUE Y5, the campus half
+  //  data: scripts/bake_campus_storeys.py -> data/campus_storeys.geojson
+  //  design: docs/camera/walls-campus.md
+  // ══════════════════════════════════════════════════════════════════
+  //
+  // THIS IS THE ANSWER TO THIS FILE'S OWN HEADER. Everything above draws a
+  // SCREEN-locked pattern: one repeat is `displaySize x mpp(floor(cameraZoom))`
+  // metres of wall, so at walking height campus is on TIER_CSS 32 == 2.06 m per
+  // repeat and family `mh` puts eight window rows in it. A 26 cm storey. No
+  // change to a tile can fix that, because the failure is that the tile has no
+  // fixed size in metres at all.
+  //
+  // So the horizontal structure comes from GEOMETRY instead: proud rings baked
+  // in metres, which is also the only form that survives Y4 raising ZOOM_MAX
+  // (docs/camera/facades-at-two-metres.md's sequencing note — express it as
+  // metres of wall or a later zoom change silently undoes it). Same recipe as
+  // the Drag's shipped bands (PR #167), different vocabulary per era.
+  //
+  // WHY IT LIVES IN facades.js AND NOT IN A NEW MODULE. walls-campus.md §5.1
+  // proposed `js/storeys.js`. A new module needs a `<script>` tag in BOTH
+  // index.html and _harness.html, and those two files are shared with every
+  // other lane; this pass does not own them. This block needs nothing from the
+  // atlas and nothing in the atlas needs it, so it is self-contained and could
+  // be lifted into its own file later by moving it verbatim and adding the two
+  // tags. Recorded so the next pass knows it was a lane decision, not a design
+  // one.
+  //
+  // ADDS ZERO PATTERN IMAGES. The atlas budget (2,840 KB / 284 images,
+  // updateFacades 80.4 ms) is untouched by construction: these are flat-colour
+  // extrusions, which is the whole point — a 0.24 m course showing an arbitrary
+  // slice of a 2.06 m tile is the exact trap this file's header is about.
+  const CS = {
+    on: !/[?&]storeys=0(?:&|$)/.test(location.search),
+
+    // The layer is DEFERRED, the same way js/entrances.js defers its doors
+    // (HANDOFF §126/§127): 440 KB raw / 48 KB gzipped is nothing on a wire but
+    // it is a main-thread parse, and a storey band is invisible from cruise. So
+    // it loads at whichever comes first — the map's first idle plus a delay so
+    // the parse does not land in the veil-lift frame, the camera dropping below
+    // `altM`, or a ceiling because `idle` provably does not fire on a
+    // CPU-throttled machine. Thresholds copied from ENT.defer, which measured
+    // them: 60 m is below every pose the app flies on its own and still ~35x
+    // eye level, so crossing it can only mean a deliberate descent.
+    defer: { on: true, altM: 60, idleDelayMs: 2000, maxWaitMs: 25000 },
+
+    // A METRE-ANCHORED VISIBILITY GATE, not a zoom one. `minZoom` here is a
+    // floor under the whole layer and it exists for one reason only: the
+    // flyover. It is set from the MEASURED cruise cost (see HANDOFF) rather
+    // than guessed, and it is expressed as a zoom because MapLibre's layer
+    // property is a zoom — the BANDS themselves are in metres and nothing about
+    // their size or position depends on this number.
+    minZoom: 15.5,
+    opacity: 1.0,
+  };
+  window.CAMPUS_STOREYS = CS;
+
+  const CS_SRC = 'campus-storeys';
+  const CS_LAYER = 'campus-storeys';
+  const CS_DATA = 'data/campus_storeys.geojson';
+
+  /** The baked day/golden/night trio, ridden with the rest of the city rather
+   * than inventing a second dusk. Same shape as js/drag.js's bakedColor. */
+  function csColor(p) {
+    p = Math.max(0, Math.min(1, p));
+    return ['interpolate', ['linear'], p,
+      0, ['to-color', ['get', 'wd'], '#b7a98f'],
+      0.5, ['to-color', ['get', 'wg'], '#c6b294'],
+      1, ['to-color', ['get', 'wn'], '#23222a'],
+    ];
+  }
+
+  let _csLoaded = false;
+
+  window.initCampusStoreys = function initCampusStoreys(map) {
+    if (!CS.on || _csLoaded || !map || map.getSource(CS_SRC)) return Promise.resolve(0);
+    _csLoaded = true;
+    const t0 = performance.now();
+    return fetch(CS_DATA).then(r => r.json()).then(gj => {
+      const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
+      map.addSource(CS_SRC, { type: 'geojson', data: gj,
+                              ...(window.PATTERN_TILING || {}) });
+
+      // The anchor must be the first symbol layer AFTER buildings-3d, not the
+      // first in the style: the basemap puts symbol layers immediately after
+      // `background`, and anchoring there drops the pass under the ground.
+      // Learned the expensive way by the stadium; copied from js/drag.js.
+      const stack = map.getStyle().layers;
+      const after = Math.max(0, stack.findIndex(l => l.id === 'buildings-3d'));
+      const anchor = (stack.slice(after + 1).find(l => l.type === 'symbol') || {}).id;
+
+      if (!map.getLayer(CS_LAYER)) {
+        map.addLayer({
+          id: CS_LAYER, type: 'fill-extrusion', source: CS_SRC,
+          minzoom: CS.minZoom,
+          filter: ['==', ['get', 'kind'], 'detail'],
+          paint: {
+            'fill-extrusion-color': csColor(p),
+            // `dh`/`dbase`, NOT `h`/`base`. Trim OVERLAPS the wall on purpose —
+            // it is a proud ring containing the wall's own face — and `h`/`base`
+            // in this repo's band files mean "tiles the building height with no
+            // gap and no overlap", which a checker asserts. Different name,
+            // different contract. See detail_feature in the bake.
+            'fill-extrusion-height': ['get', 'dh'],
+            'fill-extrusion-base': ['get', 'dbase'],
+            'fill-extrusion-opacity': CS.opacity,
+            // OFF, and this is not optional: the gradient darkens the BOTTOM of
+            // every extrusion, and a 0.24 m course falls ENTIRELY inside it and
+            // goes black. Same call as drag-detail and stadium-wall.
+            'fill-extrusion-vertical-gradient': false,
+          },
+        }, anchor);
+      }
+      const ms = performance.now() - t0;
+      window.__campusStoreys = { features: (gj.features || []).length,
+                                 fetchParseMs: +ms.toFixed(1) };
+      console.log('[campus-storeys]', (gj.features || []).length,
+                  'bands in', ms.toFixed(0) + ' ms');
+      return (gj.features || []).length;
+    }).catch(e => {
+      _csLoaded = false;
+      console.warn('[campus-storeys]', e.message, '- pass not drawn');
+      return 0;
+    });
+  };
+
+  window.applyCampusStoreyColors = function applyCampusStoreyColors(map, p) {
+    if (!map || !map.getLayer || !map.getLayer(CS_LAYER)) return;
+    try { map.setPaintProperty(CS_LAYER, 'fill-extrusion-color', csColor(p)); }
+    catch (e) {}
+  };
+
+  /**
+   * Where the eye is, vertically. Transcribed from js/entrances.js's
+   * cameraAltM, INCLUDING its order, which that file learned the hard way: a
+   * `move` handler runs synchronously with the transform write while `__fly`
+   * copies the pose on its own rAF tick, so inside this very handler `__fly` is
+   * one frame stale and a `jumpTo` straight to eye level would read as "high"
+   * forever. MapLibre's own value first. Infinity on failure, deliberately — a
+   * broken altitude must defer, not fire on every frame.
+   */
+  function csCameraAltM(map) {
+    try {
+      const t = map.transform;
+      if (t && typeof t.getCameraAltitude === 'function') {
+        const a = t.getCameraAltitude();
+        if (isFinite(a)) return a;
+      }
+    } catch (e) {}
+    try {
+      const a = window.__fly && window.__fly.eye && window.__fly.eye().alt;
+      if (isFinite(a)) return a;
+    } catch (e) {}
+    return Infinity;
+  }
+
+  function armCampusStoreys(map) {
+    const D = CS.defer;
+    const dbg = window.__csDefer = {
+      on: !!(CS.on && D.on), altM: D.altM, armedAt: performance.now(),
+      trigger: null, firedAt: null,
+    };
+    if (!CS.on) { dbg.trigger = 'off'; return; }
+    if (!D.on) {
+      dbg.trigger = 'eager'; dbg.firedAt = performance.now();
+      window.initCampusStoreys(map);
+      return;
+    }
+    let fired = false, timer = null;
+    const fire = (why) => {
+      if (fired) return;
+      fired = true;
+      map.off('move', onMove);
+      if (timer) clearTimeout(timer);
+      dbg.trigger = why; dbg.firedAt = performance.now();
+      window.initCampusStoreys(map);
+    };
+    const onMove = () => { if (csCameraAltM(map) < D.altM) fire('alt'); };
+    map.on('move', onMove);
+    map.once('idle', () => setTimeout(() => fire('idle'), D.idleDelayMs));
+    timer = setTimeout(() => fire('timeout'), D.maxWaitMs);
+    // A page that STARTS below the threshold — which every eye-level verify
+    // pose does, because it jumps the camera before it moves it — must not sit
+    // waiting for a move event that will never come.
+    onMove();
+  }
+
+  // ── bootstrap ─────────────────────────────────────────────────────
+  // js/app.js is owned by another pass and calls initFacades, not this. Copied
+  // from js/entrances.js's boot, including the GLOBAL flag rather than a
+  // property on the wrapper: six passes wrap applyTimeOfDay and whichever boots
+  // last owns the outermost closure, so a check written against the wrapper's
+  // own property reads false for every pass except that one.
+  function csBoot() {
+    const map = window.__map;
+    if (!map) return setTimeout(csBoot, 60);
+
+    const hookTod = () => {
+      if (typeof window.applyTimeOfDay !== 'function' || window.__csTodHooked) return;
+      const prev = window.applyTimeOfDay;
+      const wrapped = function (m, p) {
+        const r = prev.apply(this, arguments);
+        try { window.applyCampusStoreyColors(m, p); } catch (e) {}
+        return r;
+      };
+      wrapped.__campusStoreys = true;
+      window.applyTimeOfDay = wrapped;
+      window.__csTodHooked = true;
+    };
+
+    const go = () => {
+      // Wait for the core buildings: the anchor search needs `buildings-3d` in
+      // the style, and trim standing proud of a wall that does not exist yet is
+      // invisible from every angle except straight down.
+      if (!map.getLayer('buildings-3d')) return setTimeout(go, 120);
+      hookTod();
+      armCampusStoreys(map);
+    };
+    go();
+  }
+  if (document.readyState === 'complete') csBoot();
+  else window.addEventListener('load', csBoot);
 })();
