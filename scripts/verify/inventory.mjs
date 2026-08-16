@@ -64,9 +64,37 @@ const EXCLUDE = (argVal('--exclude', '') || '').split(',').map(s => s.trim()).fi
 const SKIP = new Set(['chrome.mjs', 'reap.mjs', 'inventory.mjs', 'run.mjs', 'warmup.mjs']);
 
 const all = fs.readdirSync(HERE).filter(f => f.endsWith('.mjs') && !SKIP.has(f)).sort();
+
+// `--gates` — THE SET THAT ANSWERS "HOW MANY OF MY CHECKS ACTUALLY RUN?"
+// (added 2026-08-16, §152).
+//
+// A phase-B pass over all 138 was projected at twelve hours, and most of that
+// was spent on tools rather than checks: `art-sheet.mjs` and `arts-shots.mjs`
+// each burned the full 240 s budget photographing poses. Photographing is not
+// asserting. So the health question is scoped to the files that can actually
+// FAIL: a script is a GATE if it prints a PASS/FAIL verdict AND has some path to
+// a non-zero exit. Everything else is a tool, a probe or a shot list — useful,
+// but it has no verdict to report and no verdict can be claimed for it.
+//
+// The classification is mechanical and derived from the source every run, not a
+// hand-maintained list. A hand-maintained list of families is precisely what
+// went stale and gave this repo one of its four blind guards.
+const GATES_ONLY = args.includes('--gates');
+const isGate = (f) => {
+  const s = fs.readFileSync(path.join(HERE, f), 'utf8');
+  const verdict = /\bPASS\b/.test(s) && /FAIL\b/.test(s);
+  const canGoRed = /process\.exit\s*\((?!\s*0\s*\))|process\.exitCode\s*=\s*(?!0)/.test(s);
+  return verdict && canGoRed;
+};
+
 let files = all.filter(f => !EXCLUDE.some(p => f.includes(p)));
-const excluded = all.filter(f => EXCLUDE.some(p => f.includes(p)));
-if (ONLY) { files = ONLY.split(',').map(s => s.trim()); excluded.length = 0; }
+let excluded = all.filter(f => EXCLUDE.some(p => f.includes(p)));
+if (GATES_ONLY) {
+  const gates = files.filter(isGate);
+  excluded = excluded.concat(files.filter(f => !isGate(f)));
+  files = gates;
+}
+if (ONLY) { files = ONLY.split(',').map(s => s.trim()); excluded = []; }
 
 // A node-level throw. These strings only appear when the runtime itself gave
 // up — a script that PRINTS the word "Error" in a report is not a crash.

@@ -90,7 +90,7 @@ const ls = l => `chrome ${String(l.chrome).padStart(2)} node ${String(l.node).pa
 
 async function newPage(browser) {
   const page = await browser.newPage({ viewport: { width: VW, height: VH } });
-  await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 120000 });
+  await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
   await page.waitForFunction(() => window.__fly && window.__fly.indexed(), null, { timeout: 60000 });
   await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });

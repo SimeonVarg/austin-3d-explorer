@@ -58,7 +58,7 @@ const browser = await launch(chromium, { headless: false });
 async function once(cfg) {
   const page = await browser.newPage({ viewport: { width: 2560, height: 1400 } });
   await page.addInitScript(INSTALL, cfg);
-  await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
   await page.waitForTimeout(6000);
   await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());

@@ -31,7 +31,7 @@ page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
 const t0 = Date.now();
-await page.goto(SERVER + '/index.html' + SUFFIX, { timeout: 90000 });
+await page.goto(SERVER + '/index.html?drift=0' + (SUFFIX ? '&' + SUFFIX.replace(/^[?&]/, '') : ''), { timeout: 90000 });
 // The auto-detect probe (11 s) would stomp the flight's easeTo mid-run. The
 // production fix makes the probe defer while map.isEasing(); this script
 // verifies the FLIGHT, so it cancels the probe outright (non-blocking).
