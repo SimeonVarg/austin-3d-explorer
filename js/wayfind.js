@@ -142,6 +142,27 @@
                            // a style write every frame forces a full repaint
                            // every frame for as long as a route is on screen.
                            // 15 reads as smooth and costs a seventh of that.
+    // QUEUE Z5 — AND 15 A SECOND *FOREVER* WAS STILL THE WORST THING IN THIS
+    // FILE. Measured on this laptop's RTX 3050 Ti, headed, real GPU: a drawn
+    // route dirtied the style 8-12 times a second and never stopped, including
+    // at walking height where the layer it animates is at zero opacity, and
+    // including with the tab hidden. On a phone that is a battery drain buying
+    // an effect nobody is looking at. The pulse now has a life: it runs while
+    // it can be SEEN, and only for as long as it takes to say what it is for.
+    pulseSettleSec: 12,    // three full passes at pulseSec 4. The band exists to
+                           // show you which way the route runs; after it has run
+                           // start-to-end three times it has said that, and it
+                           // stops for good until a NEW route is drawn. Raise
+                           // this to bring the old forever-behaviour back.
+                           // (The gate for "can it be seen at all" is not a new
+                           // number: it is `threadGoneZoom` below, the zoom at
+                           // which the animated layer's own opacity reaches 0.)
+    pulseGapCapMs: 1000,   // the most one frame may charge to that budget. A
+                           // stalled main thread should not spend the pulse's
+                           // whole life in a single tick; a genuinely slow
+                           // renderer (SwiftShader draws this scene at ~3.7 fps
+                           // = 270 ms a frame) should count every millisecond,
+                           // because that time WAS watched.
 
     // ── the arithmetic (docs/walk/what-we-can-honestly-say.md §13) ────────
     // Defaults; every one is overwritten at load by walk_graph.json's own
@@ -155,8 +176,20 @@
     signalWaitHighS: 45,   // half a cycle on Guadalupe or MLK
     crossingPenaltyM: 8,   // a nudge so the router mildly prefers fewer roads
 
+    // ── the passing period (docs/walk/what-we-can-honestly-say.md §15) ────
+    // The question a student is actually asking is not "how do I get there" but
+    // "do I have time". §15 rules that we may WARN and may never REASSURE, and
+    // this is the number the warning is measured against. It is the ONLY value
+    // in this feature with no file behind it: UT's MWF blocks leave ten minutes
+    // and its TTh blocks fifteen, so the sentences say "a 15-minute passing
+    // period", never "the".
+    passingMin: 15,
+
     // ── search + stops ────────────────────────────────────────────────────
     resultRows: 6,
+    codeHeadMinLen: 3,     // QUEUE Z9. A code this long or longer, sitting at
+                           // the HEAD of what you typed, is evidence. Two
+                           // letters is not: `we` heads WEL, WEB and WCP alike.
     fuzzyMinLen: 4,        // NEVER fuzzy-match a 2-4 letter code: the 1-edit
                            // neighbourhood of WEL contains WCP, WMB and MEL
     detourMaxM: 250,       // a place further off the line is not "on the way"
@@ -169,6 +202,21 @@
     fitPitch: 55,
     fitMs: 1200,
     fitPadPx: 90,
+    // QUEUE Z6. `?clip=1&walk=1&from=JES&to=WEL&fit=1` is the URL the docs
+    // advertise as "a recordable shot of a route with no chrome", and loaded
+    // exactly as written it did not work: our fitBounds landed at t≈2 s and
+    // js/app.js's opening flight took the camera back at t≈10 s, so the shot
+    // ended on the intro's end pose with the route lying across the rooftops.
+    // The camera is not this file's to own, so we WAIT for it rather than
+    // fight it. Set fitWaitIntro false to go back to fitting immediately.
+    fitWaitIntro: true,
+    fitQuietMs: 600,       // camera silence required before the fit departs.
+                           // Must exceed the 30 ms gap between the intro's two
+                           // legs, or the fit fires into the middle of it.
+    fitWaitMaxMs: 30000,   // a stalled intro must never eat the recording: the
+                           // ceiling in js/app.js is 18 s of veil + 12.6 s of
+                           // flight, so this is that plus a little.
+    fitPollMs: 200,
 
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
@@ -207,6 +255,15 @@
     signals: (n) => 'Crosses ' + n + ' signalised crossing' + (n === 1 ? '' : 's') +
       ' — add up to a minute and a half if the lights are against you',
     lastLeg: "The last stretch isn't a mapped path",
+    // THE PASSING PERIOD, and it is one-sided ON PURPOSE — §15 of the honesty
+    // doc, written before these two strings existed. "You won't make it" costs
+    // a wrong reader one minute of walking faster. "You'll make it" costs a
+    // wrong reader the class. So there is a sentence for the bad news, a
+    // sentence for the borderline, and DELIBERATELY NO SENTENCE for the good
+    // news: the range is already on screen and any wording of "you have time"
+    // is a promise about a lift, a crowd and a stairwell we cannot see.
+    passingOver: (n) => 'Longer than a ' + n + '-minute passing period',
+    passingTight: (n) => 'Tight for a ' + n + '-minute passing period',
     // Doors, picked by `src` — the table in §7. A derived door may NEVER be
     // called "the main entrance": that role was assigned by a ranking, not by
     // anybody standing in front of the building.
@@ -548,7 +605,16 @@
       }
     }
     for (const e of entries) {
-      e.tokens = norm(e.name || e.display).split(' ').filter(Boolean);
+      // TOKENS COME FROM BOTH NAMES, NOT ONE (QUEUE Z9). The index key and the
+      // door's own register name genuinely differ — JCD is `jester residence
+      // hall` in the index and `Jester East Hall` on the door — and only the
+      // second is the string the student is reading off the screen. Searching
+      // the name we do not show, and not the one we do, made `jester east`
+      // match nothing.
+      const t = new Set();
+      for (const w of norm(e.name).split(' ')) if (w) t.add(w);
+      for (const w of norm(e.display).split(' ')) if (w) t.add(w);
+      e.tokens = Array.from(t);
       e.routable = e.doors.some(di => g.doors[di][2] && g.doors[di][2].length);
     }
     g.entries = entries;
@@ -582,7 +648,7 @@
 
   /**
    * The match ladder, first hit wins. Order is from interface.md §1 and the one
-   * rule that is not negotiable is step 6: NEVER fuzzy-match a short code. The
+   * rule that is not negotiable is the last step: NEVER fuzzy-match a code. The
    * 1-edit neighbourhood of `WEL` contains `WCP`, `WMB` and `MEL`, so a typo
    * rule on codes would confidently route a student to the wrong building —
    * exactly the failure this feature is not allowed to have.
@@ -633,12 +699,38 @@
     if (up.length >= 2 && /^[A-Z0-9]+$/.test(up)) {
       rung(G.entries.filter(e => e.code && e.code.startsWith(up)));
     }
-    // 5. token prefix on the name, order-free. Stop-words never have to be
-    //    typed but never block a match either.
     const qt = s.split(' ').filter(Boolean);
-    rung(G.entries.filter(e => e.tokens.length &&
-      qt.every(t => STOPWORDS.has(t) || e.tokens.some(w => w.startsWith(t)))));
-    // 6. one typo, on words of 4 characters or more, and ONLY on words.
+    // Token prefix on the name, order-free. Stop-words never have to be typed
+    // but never block a match either. Used by rungs 5 and 6.
+    const tokenHit = (e) => e.tokens.length &&
+      qt.every(t => STOPWORDS.has(t) || e.tokens.some(w => w.startsWith(t)));
+
+    // 5. YOU TYPED THE CODE AND THEN KEPT TYPING — QUEUE Z9, and this is the
+    //    rung that fixes `jest`.
+    //
+    //    Both Jesters carry the word "jester": JES is `Beauford H. Jester
+    //    Center` and JCD is `Jester East Hall`. So they land in the SAME rung
+    //    below and the tie falls to "shortest display name", which is JCD — the
+    //    wrong one, and the one nobody typing `jest` means. §116's photograph
+    //    caught it; nothing else would have.
+    //
+    //    What actually separates them is that `jest` BEGINS WITH `JES`. UT's
+    //    codes are almost always the head of the building's own name (WEL
+    //    Welch, GRE Gregory, BUR Burdine, PAI Painter, MAI Main), so a query
+    //    that starts with a building's code is real evidence about which
+    //    building is meant.
+    //
+    //    ALONE it would be dangerous — plenty of four-letter words start with
+    //    somebody's three-letter code. So it is a CONJUNCTION: the code must
+    //    head the query AND the entry's own words must match it. Two
+    //    independent signals agreeing is a different thing from one guess.
+    if (up.length > WAYFIND.codeHeadMinLen) {
+      rung(G.entries.filter(e => e.code &&
+        e.code.length >= WAYFIND.codeHeadMinLen && up.startsWith(e.code) && tokenHit(e)));
+    }
+    // 6. token prefix on the name, order-free.
+    rung(G.entries.filter(tokenHit));
+    // 7. one typo, on words of 4 characters or more, and ONLY on words.
     //    `welhc` -> `welch`, `jestre` -> `jester`. Never on the code.
     const found = rungs.reduce((n, r) => n + r.length, 0);
     if (found < WAYFIND.resultRows && qt.some(t => t.length >= WAYFIND.fuzzyMinLen)) {
@@ -866,7 +958,17 @@
       [ll[0] + dx, ll[1] + dy], [ll[0] - dx, ll[1] + dy], [ll[0] - dx, ll[1] - dy]]];
   }
 
-  let layersAdded = false, pulseRAF = null;
+  // `pulseGen` is not decoration. `cancelAnimationFrame` does not un-queue a
+  // callback that the browser has already handed to the current frame, so the
+  // PREVIOUS route's `step` can still fire once after the NEXT route's pulse
+  // has started — and it would then write `pulseRAF = null` over the live
+  // handle and, if its own budget had run out, call `endPulse` and take the
+  // new route's pulse down with it. That is exactly what happened: a route
+  // drawn after a route that had been on screen for more than pulseSettleSec
+  // never pulsed at all. Found by driving it; no amount of reading found it.
+  // Every loop therefore carries the generation it was born in and a stale one
+  // returns on its first line.
+  let layersAdded = false, pulseRAF = null, pulseDetach = null, pulseGen = 0;
 
   function ensureLayers(map) {
     if (layersAdded) return;
@@ -1073,24 +1175,81 @@
   // ribbon because `line-gradient` is a line-layer property and the ribbon is
   // geometry now — and because direction is a question you ask from above,
   // while at walking height the ribbon is simply the floor in front of you.
-  // Off under prefers-reduced-motion, and off entirely when no route is drawn,
-  // so this file never leaves a rAF running on an idle app.
-  function startPulse(map, on) {
+  //
+  // ── QUEUE Z5: THE PULSE NOW HAS A LIFE, AND IT ENDS ────────────────────────
+  //
+  // Every tick of this loop is a `setPaintProperty`, every `setPaintProperty`
+  // marks the style dirty, and every dirty style is a full repaint of a scene
+  // with 41 fill-extrusion passes in it. The first version did that at
+  // `pulseFps` for as long as a route was on screen, which measured 8-12
+  // repaints a second on this laptop's RTX 3050 Ti and did not stop — not when
+  // the tab went to the background, not at walking height where the layer it
+  // animates is faded to zero opacity, not after five minutes. On a phone that
+  // is the battery going down for an effect nobody is looking at.
+  //
+  // Three gates, and the loop is TORN DOWN rather than left spinning:
+  //
+  //   VISIBLE   `threadGoneZoom` is the zoom at which this exact layer's own
+  //             opacity interpolation reaches 0. Above it the pulse is
+  //             literally invisible, so it does not run. Not a new constant on
+  //             purpose: one number cannot drift from itself.
+  //   AWAKE     a hidden tab is not looking. (The browser throttles rAF there
+  //             anyway on most platforms — "most" is why this is explicit.)
+  //   FINITE    `pulseSettleSec` of ELIGIBLE running time and then it is done
+  //             for good. The band exists to say which way the route runs; it
+  //             has said it. A NEW route starts a new life.
+  //
+  // Parked is not stopped: `zoomend`/`moveend`/`visibilitychange` re-arm it, so
+  // a route drawn at walking height still pulses the moment you climb, using
+  // the budget it never spent. Nothing polls.
+  function pulseEligible(map) {
+    if (document.hidden) return false;
+    try { return map.getZoom() < WAYFIND.threadGoneZoom; } catch (e) { return false; }
+  }
+
+  // Stop the loop but keep the arming listeners: we may come back.
+  function parkPulse() {
     if (pulseRAF) { cancelAnimationFrame(pulseRAF); pulseRAF = null; }
-    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-    if (!on || !WAYFIND.pulse || reduce) {
-      if (map.getLayer(L_TURN)) {
-        try { map.setPaintProperty(L_TURN, 'line-gradient', null); } catch (e) {}
-      }
-      return;
+  }
+
+  // Stop for good, drop the listeners, and put the flat colour back so the
+  // thread rests as a plain line rather than frozen mid-band.
+  function endPulse(map) {
+    pulseGen++;              // anything still in flight is now a stale loop
+    parkPulse();
+    if (pulseDetach) { try { pulseDetach(); } catch (e) {} pulseDetach = null; }
+    if (map && map.getLayer && map.getLayer(L_TURN)) {
+      try { map.setPaintProperty(L_TURN, 'line-gradient', null); } catch (e) {}
     }
-    const t0 = performance.now();
+  }
+
+  function startPulse(map, on) {
+    endPulse(map);
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (!on || !WAYFIND.pulse || reduce) return;
+
+    const gen = ++pulseGen;
+    const budgetMs = Math.max(0, WAYFIND.pulseSettleSec) * 1000;
     const minGap = 1000 / Math.max(1, WAYFIND.pulseFps);
-    let last = -1e9;
+    const t0 = performance.now();
+    let spentMs = 0;        // ELIGIBLE milliseconds burned, not wall clock
+    let prevFrame = 0, lastWrite = -1e9;
+
     const step = () => {
+      if (gen !== pulseGen) return;        // a cancelled loop's last callback
+      pulseRAF = null;
       const now = performance.now();
-      if (now - last >= minGap) {
-        last = now;
+      // A gap longer than this is the machine having stopped drawing, not time
+      // the viewer got to watch, so it is not charged in full. The cap is well
+      // above a real slow frame — SwiftShader renders this scene at ~3.7 fps,
+      // a 270 ms gap, and that IS watched time and must count — and the tab-away
+      // case is handled by prevFrame being reset when the pulse parks.
+      if (prevFrame) spentMs += Math.min(now - prevFrame, WAYFIND.pulseGapCapMs);
+      prevFrame = now;
+      if (spentMs >= budgetMs) { endPulse(map); return; }
+      if (!pulseEligible(map)) { prevFrame = 0; return; }   // parked; events re-arm
+      if (now - lastWrite >= minGap) {
+        lastWrite = now;
         const phase = ((now - t0) / 1000 / WAYFIND.pulseSec) % 1;
         const w = Math.min(0.4, WAYFIND.pulseWidth);
         // The stops of an `interpolate` MUST be strictly increasing or MapLibre
@@ -1105,11 +1264,28 @@
           map.setPaintProperty(L_TURN, 'line-gradient',
             ['interpolate', ['linear'], ['line-progress'],
               0, c, st, c, t, '#ffffff', en, c, 1, c]);
-        } catch (e) { pulseRAF = null; return; }
+        } catch (e) { endPulse(map); return; }
       }
       pulseRAF = requestAnimationFrame(step);
     };
-    pulseRAF = requestAnimationFrame(step);
+
+    const arm = () => {
+      if (gen !== pulseGen) return;
+      if (pulseRAF || spentMs >= budgetMs) return;
+      if (!pulseEligible(map)) return;
+      prevFrame = 0;
+      pulseRAF = requestAnimationFrame(step);
+    };
+
+    const onVis = () => { if (document.hidden) { parkPulse(); prevFrame = 0; } else arm(); };
+    document.addEventListener('visibilitychange', onVis);
+    map.on('zoomend', arm);
+    map.on('moveend', arm);
+    pulseDetach = () => {
+      document.removeEventListener('visibilitychange', onVis);
+      try { map.off('zoomend', arm); map.off('moveend', arm); } catch (e) {}
+    };
+    arm();
   }
 
   function retint(map) {
@@ -1133,6 +1309,53 @@
     map.fitBounds([[w, s], [e, n]], {
       padding: WAYFIND.fitPadPx, pitch: WAYFIND.fitPitch, duration: WAYFIND.fitMs, bearing: map.getBearing(),
     });
+  }
+
+  // ── QUEUE Z6: `?fit=1` HAD TO LEARN TO WAIT ───────────────────────────────
+  //
+  // `?clip=1&walk=1&from=JES&to=WEL&fit=1` is the URL the docs advertise as the
+  // recordable shot of a route, and loaded exactly as written it produced the
+  // wrong frame: `applyURL` runs the moment the style is up, so the fitBounds
+  // landed at about t=2 s — while the veil was still down and js/app.js's
+  // opening flight had not even departed. At t=10 s the flight took the camera
+  // to its own end pose and stayed there, and what the recording caught was
+  // z16.9 over the Tower with the route thread drawn across the rooftops.
+  //
+  // The fix is not to fight for the camera — nothing in this file has ever
+  // moved the camera on its own and that rule stands. It is to wait for the
+  // camera to be FREE: the veil lifted (js/app.js publishes `window.__intro`
+  // and stamps `.reason` at the moment it lifts and the flight departs), the
+  // flight finished easing, and `fitQuietMs` of silence on top so the 30 ms gap
+  // between the intro's two legs cannot be mistaken for the end of it.
+  //
+  // A hard ceiling means a stalled tile can never eat the shot, and a user who
+  // touches anything cancels the intro in js/app.js — which jumps the camera to
+  // the end pose and stops easing, so the fit simply departs a moment later.
+  function introWillFly() {
+    return q.get('tour') === '1' || q.get('intro') !== '0';
+  }
+  function fitWhenFree(map, route) {
+    if (!WAYFIND.fitWaitIntro || !introWillFly()) { fitTo(map, route); return; }
+    const t0 = performance.now();
+    let quietSince = 0;
+    const tick = () => {
+      if (state.route !== route) return;      // cleared or replaced while waiting
+      const waited = performance.now() - t0;
+      let busy = true;
+      try {
+        const lifted = !window.__intro || window.__intro.reason != null;
+        busy = !lifted || (map.isEasing && map.isEasing()) || (map.isMoving && map.isMoving());
+      } catch (e) { busy = false; }
+      if (busy) quietSince = 0;
+      else if (!quietSince) quietSince = performance.now();
+      const quietFor = quietSince ? performance.now() - quietSince : 0;
+      if (quietFor >= WAYFIND.fitQuietMs || waited >= WAYFIND.fitWaitMaxMs) {
+        fitTo(map, route);
+        return;
+      }
+      setTimeout(tick, WAYFIND.fitPollMs);
+    };
+    tick();
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1182,6 +1405,13 @@
     sheet.appendChild(rowTo);
     const list = h('div', null); list.id = 'wf-list';
     sheet.appendChild(list);
+    // QUEUE Z9, second half. `+ N more — keep typing` used to be the last child
+    // of the scrolling list, so `#wf-list`'s max-height cut it in half and the
+    // remains collided with the hint line. It is not a result — it is a note
+    // ABOUT the results — so it lives outside the scroller and cannot be
+    // clipped by it. Empty means gone: see `#wf-more:empty` in style.css.
+    const more = h('div', null); more.id = 'wf-more';
+    sheet.appendChild(more);
     const hint = h('div', 'wf-hint', SAY.examples);
     sheet.appendChild(hint);
     const foot = h('div', 'wf-foot');
@@ -1192,13 +1422,18 @@
     const pill = h('div', 'hidden'); pill.id = 'wf-pill';
     const headline = h('div', null); headline.id = 'wf-headline';
     const sub = h('div', null); sub.id = 'wf-sub';
+    // THE PASSING-PERIOD LINE. It sits in the closed pill, above the fold,
+    // because "do I have time" is the question and an answer you have to tap to
+    // see is not an answer. Empty means gone (`#wf-verdict:empty`).
+    const verdict = h('div', null); verdict.id = 'wf-verdict';
     const card = h('div', 'hidden'); card.id = 'wf-card';
-    pill.appendChild(headline); pill.appendChild(sub); pill.appendChild(card);
+    pill.appendChild(headline); pill.appendChild(sub);
+    pill.appendChild(verdict); pill.appendChild(card);
 
     root.appendChild(btn); root.appendChild(sheet); root.appendChild(pill);
     document.body.appendChild(root);
 
-    el = { root, btn, sheet, list, hint, inFrom, inTo, pill, headline, sub, card, close };
+    el = { root, btn, sheet, list, more, hint, inFrom, inTo, pill, headline, sub, verdict, card, close };
 
     btn.addEventListener('click', () => openSheet());
     close.addEventListener('click', () => closeSheet());
@@ -1256,6 +1491,7 @@
     el.sheet.classList.add('hidden');
     el.btn.classList.remove('active');
     el.list.innerHTML = '';
+    el.more.textContent = '';
   }
 
   function renderList(inp) {
@@ -1282,7 +1518,7 @@
       });
       el.list.appendChild(r);
     }
-    if (rows.length > shown.length) el.list.appendChild(h('div', 'wf-more', SAY.more(rows.length - shown.length)));
+    el.more.textContent = rows.length > shown.length ? SAY.more(rows.length - shown.length) : '';
   }
 
   function commitFirst(inp) {
@@ -1313,6 +1549,7 @@
     inp.value = entry.display;
     if (inp === el.inFrom) state.from = entry; else state.to = entry;
     el.list.innerHTML = '';
+    el.more.textContent = '';
     if (state.from && state.to) { closeSheet(); run(); }
     else if (inp === el.inTo && !state.from) el.inFrom.focus();
   }
@@ -1328,7 +1565,9 @@
     if (!r.ok) { renderPill(); draw(window.__map, null); return; }
     draw(window.__map, r);
     renderPill();
-    if (opts && opts.fit) fitTo(window.__map, r);
+    // `?fit=1` waits for the opening flight (Z6). The card's own `Show route`
+    // button does NOT — that is a person asking, and the camera is theirs.
+    if (opts && opts.fit) fitWhenFree(window.__map, r);
   }
 
   function renderPill() {
@@ -1349,6 +1588,8 @@
         ? (dead.reg ? SAY.notWalkable(dead.code) : SAY.notRoutable)
         : (r && r.why === 'nodoor' ? SAY.notRoutable : SAY.noRoute);
       el.sub.textContent = state.to ? state.to.display : '';
+      el.verdict.textContent = '';
+      el.verdict.className = '';
       return;
     }
 
@@ -1362,6 +1603,35 @@
     ];
     el.headline.textContent = parts.join(' · ');
     el.sub.textContent = r.to.display + ' · ' + doorPhrase(G, r.toDoor);
+
+    // ── "WILL I MAKE IT?" — the one-sided answer. Honesty doc §15. ──────────
+    //
+    // A student between classes is not asking how to get there, they are
+    // asking whether they have time, and making them do the subtraction while
+    // walking is the app failing at its own job. So we do it — in ONE
+    // direction only.
+    //
+    //   both ends over the period   -> say so. If we are wrong they walk faster.
+    //   the range crosses it        -> say it is tight. True of our own numbers.
+    //   both ends under it          -> SAY NOTHING, on purpose.
+    //
+    // There is no "you'll make it" and there must not be. Our range measures
+    // pavement between two doors; it knows nothing about getting out of a
+    // lecture hall, a lift, a stairwell inside the building, the crowd on
+    // Speedway at the hour, or finding the room. On a 13-minute walk into a
+    // 15-minute gap those eat the whole buffer, and being wrong in THAT
+    // direction is the one failure this feature was written to avoid.
+    const pm = WAYFIND.passingMin;
+    el.verdict.className = '';
+    if (t.lo >= pm) {
+      el.verdict.textContent = SAY.passingOver(pm);
+      el.verdict.className = 'over';
+    } else if (t.hi >= pm) {
+      el.verdict.textContent = SAY.passingTight(pm);
+      el.verdict.className = 'tight';
+    } else {
+      el.verdict.textContent = '';
+    }
 
     if (!state.expanded) return;
 
@@ -1511,6 +1781,10 @@
       loaded: !!G, enabled: ENABLED, drawn: layersAdded && !!state.route,
       meta: G ? G.meta : null, timings: Object.assign({}, stats),
       asOf: G ? G.asOf : null,
+      // Z5's gates, readable from a test rather than inferred from a frame
+      // rate: `pulseRAF` is the loop, `pulseDetach` is whether it is merely
+      // parked (listeners still armed) or finished for good.
+      pulseRunning: !!pulseRAF, pulseArmed: !!pulseDetach,
     };
   };
   window.wayfindClear = clear;
@@ -1545,6 +1819,7 @@
       ok: true, distM: r.distM, lo: r.time.lo, hi: r.time.hi,
       stairSets: r.m.stairSets, signals: r.m.signals,
       headline: el.headline.textContent, sub: el.sub.textContent,
+      verdict: el.verdict.textContent,
       fromName: f.display, toName: t.display, fromCode: f.code, toCode: t.code,
       fromDoor: r.fromDoor, toDoor: r.toDoor,
       fromSrc: G.doors[r.fromDoor][5], toSrc: G.doors[r.toDoor][5],
