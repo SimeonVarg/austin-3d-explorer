@@ -20829,8 +20829,9 @@ c35f3f3  n8: fifteen buildings got doors   14,893 pieces   1614   (+56)
 intentional data commits that landed after it. The rate settles it: the file's
 standing rate is **10.9 %** of pieces in a coplanar pair, and the added doors
 came in at **8.6 %** and **6.7 %** — the new doors are *cleaner* than the file's
-own average. **Re-record it; expect ~1626**, but take a fresh reading because
-this branch moves 25 groups. The baseline file was NOT edited here.
+own average. **Re-record it; expect 1626 on `main` and 1627 once this branch
+lands** — measured, not assumed: 25 relocations add exactly **one** coplanar
+pair across 15,069 pieces. The baseline file was NOT edited here.
 
 Also flagged to that lane: the shared checkout's `scripts/verify/node_modules`
 **is empty** — harness-drift still passes because it is pure node, but every

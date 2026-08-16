@@ -1629,9 +1629,10 @@ standing rate is 1558/14,242 = **10.9 %** of pieces in a coplanar pair, and the
 added doors came in at **8.6 %** (56/651) and **6.7 %** (12/178). The new doors
 are *cleaner* than the file's own average.
 
-**Re-record against current `main` and the number to expect is `1626`.** Note
-`acer/nb2-buried` moves 25 door groups without adding or removing any, so it
-will land near that too — take a fresh reading rather than assuming.
+**Re-record against current `main` and the number to expect is `1626`.**
+Measured, not assumed: `acer/nb2-buried` moves 25 door groups without adding or
+removing any, and it comes out at **1627** — **one pair** across 25 relocations,
+on 15,069 pieces. Re-record after it merges and expect `1627`.
 
 **Not done here on purpose:** `scripts/verify/coplanar-baseline.json` is your
 file this round and this lane did not touch it.
