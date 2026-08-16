@@ -16788,7 +16788,181 @@ byte-identical on a re-run. File 526 KB → 555 KB.
 
 ---
 
-## 131. Aug 16 2026 — the budget gets a gate: the outer ring is over it on every reading ever taken, and the walk cannot be measured at all (QUEUE K1/Y7/Y15) (acer lane, n1-perf)
+## 131. Aug 16 2026 — THE N2 GATE: campus and West Campus walls judged against the live site, both WON, both merged (QUEUE Y5, second half) (acer lane, gate)
+
+**This entry is a verdict, not a build.** Two candidates I did not write —
+`acer/n2-campus` (PR #178) and `acer/n2-westcampus` (rebased onto `main` and
+re-opened as `gate/n2-wc-rebase`, PR #179) — were judged independently against
+`flyover-utx.vercel.app` at identical poses. Both won, both were merged onto
+`main`, both branches deleted. **Y5 is now DONE for all three districts**; what
+is left of the barcode is the other axis, written up as QUEUE **Y19**.
+
+Decisive frames, live on top and the candidate below in every one:
+**`shots/walls/final/`** — `campus-01…06`, `westcampus-01…06`. If you look at
+two, look at `campus-02-SOUTH-MALL-right-wall-closeup` and
+`westcampus-01-DOBIE-PODIUM-closeup`.
+
+### How it was judged, and one thing about blindness said plainly
+
+Blind A/B: labels stripped, both arms cropped to the same rows and stacked, and
+top/bottom decided by a salted SHA-256 per pose. The keys went to files that
+were not opened until the verdicts were written down. **The salt genuinely mixed
+the arms** — campus came out 2 bottom / 1 top, West Campus 3 top / 3 bottom —
+and the candidate was picked in every pair.
+
+**What blinding cannot hide here, and this is honest rather than a claim of
+purity: the feature under test is a visible horizontal line, so the moment you
+look at the picture you know which arm has it.** What the salt protects is which
+arm gets called *better*, not which arm can be *identified*. That is the whole
+value it can have for a visible feature, and it is stated rather than dressed up.
+
+### Instrument, quoted with its settings (CLAUDE.md 10, HANDOFF 112 and 127)
+
+- SwiftShader headless, 1440x900, dpr 1, `cancelGraphicsAutoDetect()` on every
+  page, `harness-drift.mjs` **PASS 29/29 in both worktrees before any pixel**.
+- AE off (`GFX.autoExposure = false`) **and one forced `updateSky(map, p)` after
+  every pose**, because `aeMeter` only runs inside `updateSky` and at a parked
+  camera the gain from the previous pose simply persists (127). **Gain read back
+  `1` on all 22 frames**, printed per pose.
+- **Noise floor first, at every pose, on both arms** — two frames with a full
+  re-settle between them and nothing else touched.
+- **Minimum of four interleaved cross pairs**, never one reading. This earned
+  itself four separate times: at W2, W4, W5 and W6 the candidate's *first* rep
+  was mid-transition (W4's own floor was 379,570 px) and the second was settled,
+  so the four reps came back as two values repeated twice and the min is the
+  settled one. A single reading at any of those four poses would have been a
+  number about a transition.
+- **Pose identity is not asserted, it is measured.** `centre`, `zoom`, `pitch`
+  and `bearing` read back identical to six decimals on both arms, AND the bottom
+  120 rows of every eye-level frame — the pavement under the camera, which no
+  storey band can reach — differ by **0 px > 24/255** across arms at every one
+  of the nine eye poses.
+- Every server was `python scripts/serve.py 8363` out of a **throwaway
+  `git worktree`**, never the shared checkout (121's lesson; a sibling did
+  switch the shared worktree's branch during this session).
+- **Live == `origin/main`, fingerprinted rather than assumed**: `js/facades.js`
+  and `_harness.html` fetched off the live site are SHA-256-identical to
+  `origin/main`'s. Vercel redeployed after the campus merge, so both West Campus
+  arms were shot against a live site that already carried the campus bands.
+
+### PR #178, campus storey bands — WIN, merged (`b0dc3ed`)
+
+| pose | floor LIVE | floor CAND | signal (min of 4) | where |
+|---|---|---|---|---|
+| South Mall, eye 1.7 m, day | 0 px | 29,494 px (trees settling, rows 333-392) | 12,798 | rows 69-394 |
+| Speedway at Welch, eye, day | **0 px** | **0 px** | **30,817** (all four reps identical) | rows 0-460 |
+| Battle Hall, eye, day | 0 px | 674 px | 29,733 | rows 0-403 |
+| South Mall, eye, NIGHT | **0 px** | **0 px** | 1,366 (max delta 120) | rows 26-380 |
+| cruise z16.2 | 196,159 px | 132,918 px | 24,027 | — |
+
+- **Day at eye level: WIN, decisively, and the South Mall frame is better, not
+  worse.** The walls flanking the mall go from an undifferentiated pegboard to
+  banded limestone with a base course, floor lines and a cornice under the red
+  roof. Nothing else in the frame moves: the sky rows and the pavement rows are
+  both 0 px across arms.
+- **The exact number is Speedway's**, because that is the pose where both arms
+  settled to a 0 px floor and all four interleaved reps returned the same
+  30,817 px. Everything else is bounded by a floor and says so above.
+- **Night: NOT WORSE.** 1,366 px of very faint pale line; the lit-pane scatter
+  is untouched. Exactly what `docs/camera/facade-choice.md` priced in when this
+  decision was made — storey lines go quiet after dark.
+- **Cruise: INDISTINGUISHABLE, and the pixel diff is not what says so.** Both
+  arms' own same-session floors at cruise are 133k-196k px, five to eight times
+  the cross-arm signal, so a frame diff at this pose means nothing (119 found
+  the same at 31 %). The instrument that does work is 48's mask, counted off the
+  PNG and not `gl.readPixels` (121), day light only (QUEUE X8):
+  **`campus-storeys` paints 6,127 px of a 1,296,000 px frame at z16.2 (0.47 %),
+  8,589 px at the z16.5 spawn, and 0 px at z15.2** — its `minZoom` is 15.5, so
+  it is simply not drawn from the wide flyover. Side by side at z16.2 the two
+  frames could not be told apart.
+- The merge was a fast-forward, so **the tree judged is the tree merged**:
+  `js/facades.js` on `main` is SHA-256-identical to the file the server served.
+
+### PR #179, West Campus storey lines — WIN, merged (`a4a70e5`)
+
+| pose | floor LIVE | floor CAND | signal (min of 4) | where |
+|---|---|---|---|---|
+| Dobie / Guadalupe, eye, day | 33,361 px | **0 px** | **26,933** | rows 0-208, the podium |
+| Castilian slot, eye, day | **0 px** | **0 px** | **22,138** (all four reps identical) | rows 6-230 |
+| 21 Rio lobby, eye, day | 0 px | 107,459 px | 6,518 | rows 18-416 |
+| Castilian lobby close, day | 0 px | 379,570 px | 19,305 | rows 51-115 only |
+| Castilian, eye, NIGHT | 0 px | 52,334 px | 13,638 (max delta 39) | rows 8-226 |
+| cruise z15.35 | **0 px** | 9,563 px | **824** | — |
+
+- **Day at eye level on a street: WIN.** The parking podium was the loudest
+  barcode in the district and it is the thing that changed: a field of 0.42 m
+  hairlines is now broken by real deck edges, and the wall acquires a scale.
+  The Castilian pose carries the exact number (both floors 0, four identical
+  reps); the Dobie pose is the better picture.
+- **Night: NOT WORSE, and the lit windows survive — measured, not asserted.** In
+  the tower-wall box the count of pixels over luma 120 is **852 on live and 852
+  on the candidate**, peak **230.7 on both**, mean luma **23.95 against 23.64** —
+  a hair brighter, i.e. not darker, which is the 114 bar.
+- **The 24 lobbies survive, three ways.** (1) `data/westcampus.geojson` is
+  **purely additive**: all **1,144** pre-existing features are byte-identical
+  **in order**, with 219 `kind:"detail"` features appended — so no lobby, no
+  glass and no sign band can have changed in the data. (2) `places-check.mjs`
+  **PASS, 40 ok / 0 failed**, the West Campus shopfront guard at its baseline.
+  (3) In pixels: the ground-floor band measures **332,104 lit px / mean luma
+  101.8 on both arms**, and the 21 Rio frame — glazed lobby, doors, red sign
+  band, canopy — is indistinguishable between arms.
+- **Cruise: INDISTINGUISHABLE.** 824 px > 24/255 against a **0 px live floor**,
+  and the two frames could not be told apart side by side.
+
+### The West Campus flyover mask is an unreliable instrument, and here is this gate's own reading of it
+
+130 recorded that the same magenta measurement returned **1,191 px once and
+0 px the next time** on the same build, and re-measured it three times at 1,191
+with a 20 s park. **This run reproduced the flakiness and did not reproduce the
+number**: with a 6 s dwell `wc-detail` masked to **0 px on the first rep and
+432 px on the second**, same session shape, same pose. So the honest statement
+is a bound, not a value: the layer's cruise footprint is **at or under ~1,191 px
+of 1,296,000 (<= 0.09 %)**. The claim does not rest on the mask anyway — the
+independent instrument is the live-vs-candidate cruise diff of **824 px against
+a 0 px floor**, which agrees in magnitude. **Anyone reading a single magenta
+count in this repo should treat a low number as a question.**
+
+### What this gate did NOT establish
+
+- **No dusk frames at any pose** (day p 0.30 / night p 0.92 only), nothing on
+  hardware GL, nothing at dpr 2.
+- **No frame-time measurement.** Campus adds 640 flat extrusions and West Campus
+  219; both merges are a claim of cheapness, not a measurement. **K1 still has no
+  owner and the scene is now 859 extrusions heavier.**
+- **`coplanar.mjs` cannot see the new trim.** It reported "1144 features, no
+  coplanar overlaps" on a file that now holds 1,363 — it keys on `base`/`h` and
+  the trim carries `dbase`/`dh` by design, so the 219 new rings were **not
+  checked by it at all**. The same is true of the 640 campus rings. Each bake's
+  own assertions are not a substitute, and somebody should say whether it matters.
+- **No lobby CONTACT SHEET was re-shot.** "The 24 lobbies survive" rests on
+  byte-identity, `places-check` and two frames, not on re-photographing all 24
+  (101 did that once; it costs 24 sessions).
+- **The campus deferred load never fired on its `alt` trigger in this harness** —
+  every session reported `__csDefer.trigger` as `timeout` or `idle`, because the
+  verify pages jump the camera rather than fly it down. The `alt` path is
+  **unexercised by this gate**; it is exercised by a real descent and nobody has
+  watched that happen.
+- **The campus South Mall candidate arm did not settle between its two reps**
+  (29,494 px, in the tree rows), so that pose's 12,798 px is indicative. Speedway
+  is the pose with a 0/0 floor and it is the number to quote.
+- **No spawn-pose A/B was shot.** The z16.5 magenta count exists (8,589 px) but
+  the app's own opening frame was not judged as a picture; the z16.2 cruise pair
+  stands in for it.
+
+### For Simeon, in one paragraph
+
+Stand on the South Mall now and the buildings either side of you have floors — a
+base course near the ground, a line at every storey, and a proper cornice under
+the red roof of the old limestone halls. Same on Speedway, same in front of
+Battle Hall. Over in West Campus the big parking podiums under Dobie and the
+Castilian have real deck edges instead of a fuzz of hairlines. From the air
+nothing changed at all, and that was checked twice with two different
+instruments. The pictures are in `shots/walls/final/`, live on top and the new
+one underneath; `campus-02` and `westcampus-01` are the two that show it best.
+
+---
+
+## 132. Aug 16 2026 — the budget gets a gate: the outer ring is over it on every reading ever taken, and the walk cannot be measured at all (QUEUE K1/Y7/Y15) (acer lane, n1-perf)
 
 Branch `acer/n1-perf`. **One file of code: `scripts/verify/perf-budget.mjs`.**
 
@@ -16957,7 +17131,7 @@ walking-height ceiling is unchanged by that pass.
 
 ---
 
-## 132. Aug 16 2026 — the frame is measured at last, and the two hogs everybody was chasing rank fourth and fifth (QUEUE K1/Y7/Y15) (acer lane, branch `acer/n1-perf`)
+## 133. Aug 16 2026 — the frame is measured at last, and the two hogs everybody was chasing rank fourth and fifth (QUEUE K1/Y7/Y15) (acer lane, branch `acer/n1-perf`)
 
 **In one line for Simeon:** the city is now measured, and the slow parts are not
 the ones we thought. The two "hogs" in the queue are real but they fire once
