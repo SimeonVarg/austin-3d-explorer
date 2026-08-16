@@ -18,6 +18,26 @@ const BASE_B = process.env.VERIFY_URL || 'http://127.0.0.1:8100';
 const BASE_A = process.env.BASELINE_URL || 'http://127.0.0.1:8102';
 const REPS = 4;
 
+// TWO SERVERS, AND SAY SO BEFORE LAUNCHING A BROWSER.
+//
+// This is an A/B against a pristine baseline checkout, so it needs a SECOND
+// server that nothing else in this suite needs. Run it with only the usual one
+// up and it used to open a headed Chrome, navigate at :8102, and die on
+// `net::ERR_CONNECTION_REFUSED` inside page.goto — which in the 2026-08-16
+// suite inventory was indistinguishable from a guard that crashes. Exit 2
+// (cannot run) rather than 1 (something failed) and name both ports.
+for (const [label, url, env] of [['A baseline', BASE_A, 'BASELINE_URL'], ['B candidate', BASE_B, 'VERIFY_URL']]) {
+  try {
+    const r = await fetch(`${url}/index.html`, { method: 'HEAD' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+  } catch (e) {
+    console.error(`light-perf.mjs needs TWO servers. ${label} is not answering at ${url} (${e.message}).`);
+    console.error(`  A = a pristine baseline checkout, served separately; set ${env} to move it.`);
+    console.error('  e.g.  git archive <baseline-sha> | tar -x -C /tmp/base && python scripts/serve.py 8102   (from /tmp/base)');
+    process.exit(2);
+  }
+}
+
 const browser = await launch(chromium, { headless: false });
 
 async function makePage(base) {

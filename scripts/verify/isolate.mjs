@@ -12,10 +12,11 @@
 import { chromium } from 'playwright-core';
 import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
+import { requireShots } from './lib/args.mjs';
 import path from 'node:path';
 
 const OUT = process.argv[2] || 'iso';
-const SHOTS = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+const SHOTS = requireShots(process.argv[3], 'node isolate.mjs <outPrefix> <shots.json> [layerKeyword ...]');
 const KEEP = process.argv.slice(4).length ? process.argv.slice(4) : ['stadium'];
 
 const outDir = path.resolve('shots');

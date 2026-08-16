@@ -10,8 +10,9 @@
 import { chromium } from 'playwright-core';
 import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
+import { requireShots } from './lib/args.mjs';
 
-const SHOTS = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const SHOTS = requireShots(process.argv[2], 'node dkrdiag.mjs <shots.json>');
 const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERR', e.message));

@@ -20123,7 +20123,187 @@ re-running gives the same 7** — so this branch adds zero. It must be run from
 
 ---
 
-## 149. Aug 16 2026 — the campus is older than the vocabulary: five buildings predate every family, and a 1904 one was wearing a Cass Gilbert arcade (QUEUE N13) (acer lane, branch `acer/n13-olddoors`, NOT merged)
+## 149. Aug 16 2026 — a mass edit deleted the bodies of seven guards sixteen days ago, the lint that detects it was already red, and nobody had ever run the suite (QUEUE Y15/Y16 follow-on; Y20, Y21 opened) (acer lane, branch `acer/n11-verify`, PR #189)
+
+Branch cut from `origin/main` `eb40f20`, merged up to `9b7f231` and re-verified on
+the merged result. **Files written: `scripts/verify/`, `HANDOFF.md`, `QUEUE.md`
+only.** No app file, no data file, no bake. Served with
+`python scripts/serve.py 8442` from a throwaway worktree; `harness-drift.mjs`
+PASS before any pixel was read, and again on the merged tree.
+
+### THE ARTEFACT NOBODY HAD: what in this directory actually runs
+
+`scripts/verify/inventory.mjs` runs every script with a budget and classifies it.
+The first full pass, 138 scripts at 22 s each:
+
+| verdict | n | what it means |
+|---|---:|---|
+| **CRASHES** | **20** | threw before asserting anything |
+| FAILS | 3 | ran, looked, says the thing it guards is wrong |
+| NEEDS-ARGS | 3 | exits asking for an argument |
+| PASSES | 5 | completed green inside 22 s |
+| REACHES-BROWSER | 107 | **still alive at the budget — NOT a pass** |
+
+That last row is the honest half. 107 scripts got a page open and were killed at
+22 s; whether they pass is **unknown from this run and is not claimed here**. The
+budget is a triage instrument for finding crashers, not a verdict on the suite.
+
+### THE CAUSE, and it is one commit
+
+`90ad9d7` (2026-07-31, *"the verification harness must not outlive its own
+process"*) rewrote all ~80 scripts to route through `launch()`. In **seven** of
+them the edit swallowed `newPage`, `goto` and the entire `page.evaluate` and
+left the trailing `console.log` behind. The files still parsed. They still
+launched a browser. Then they threw `ReferenceError: r is not defined`.
+
+Sixteen days. Through the sky rewrite that `dusk.mjs`, `silhouette.mjs` and
+`banding.mjs` exist to guard, and through the West Campus pass
+`westcampus-probe.mjs` exists to certify.
+
+**And `suite-lint.mjs` already detects exactly this.** It carries a check named
+*"opens a browser and never opens a page (THE BODY IS MISSING)"*. It was red the
+whole time. Nobody ran it. That is the finding of this pass in one line: the
+suite already contained the answer and the missing step was looking.
+
+### The five guards revived, each watched going red
+
+`--break` sabotages the thing a guard guards **in the page only** — no file on
+disk changes — and must come back red. Numbers are from the merged tree, machine
+otherwise idle apart from this lane's one browser.
+
+| guard | clean | `--break` | what was wrong |
+|---|---|---|---|
+| `dusk.mjs` | exit 0 | sun +180 deg at p=0.55 → **42 levels, exit 1** | body deleted |
+| `night-silhouette.mjs` | +16.1 night / +12.8 dusk, exit 0 | walls `#f2f2f2` + pattern cleared → exit 1 | body deleted |
+| `banding.mjs` | 9/9, exit 0 | `updateSky` stubbed before boot → exit 1 | body deleted, and asserted nothing |
+| `westcampus-probe.mjs` | 21/21, exit 0 | one `wc-` layer hidden → exit 1 | body deleted |
+| `harness-drift.mjs` | exit 0 from any cwd | `js/sky.js` tag removed → exit 1 | resolved paths off the shell's cwd |
+
+Three of them needed more than a restore, and the reasons are the interesting part.
+
+**`dusk.mjs` was re-implementing the thing it guarded.** It swept a *copy* of
+sky.js's alpha schedule — `(0.26 + 0.40 * golden) * wSun` pasted into the test —
+so sky.js could move the entire horizon wash into a canvas pass (it has, §142)
+and this file would go on sweeping a formula and reporting continuity for a sky
+it never looked at. It reads PIXELS now, across a 61-step sweep, and the only
+thing it knows about sky.js is the name of the function that sets the hour.
+
+**`night-silhouette.mjs` produced a confident WRONG answer on its first run.**
+Restored verbatim, it found the roofline with `queryRenderedFeatures` and got a
+hit at y=0.050 in all seven columns — above the horizon (y=0.207), i.e. sky. So
+the "wall" sample was sky as well, and it reported the skyline INVERTED at both
+hours. Shipping that would have been the fifth guard in this repo that cannot see
+what it guards. It finds the roofline by **diffing a render with the building
+layers hidden against one with them shown** now, which is README's own rule for
+"which layer owns this pixel" and cannot be fooled by a hit test.
+
+**`banding.mjs` was reading MapLibre's sky, not ours.** It sampled rows
+0.02–0.26 of frame height at bearing 20; at pitch 84 that band sits entirely
+above the horizon, facing away from the sun, where js/sky.js draws nothing.
+Proof rather than argument: hiding every sky overlay element returned numbers
+identical to the last decimal in all nine assertions. The band is anchored to the
+computed horizon now, at bearing 250.
+
+### TWO OPEN DEFECTS THE REVIVED GUARDS FOUND, in files this lane may not write
+
+**QUEUE Y20 — `js/sky.js:1420`, the disc still switches body in one frame.**
+
+```
+const useMoon = !B.sunUp && B.moon.elev > -2;
+```
+
+The moon crosses −2 degrees between p=0.590 (elev −2.24) and p=0.595 (−1.76), so
+`haloCol` goes from the warm `sunColour(elev)` to the cool `[150,172,226]` and
+`bloomA0` from `0.26+0.22*golden` to a flat `0.30`, in one step. Measured **83
+levels of blue** at (0.70, 0.278) — just above the western horizon — while its
+neighbours moved 5 and 6. Median across the sweep 5, p95 8. **Three reps, the
+same digit every time.**
+
+The TWO HORIZON WASHES ARE CONTINUOUS: the two-schedule rewrite holds and this is
+not a regression of it. The disc was simply never given the same treatment, and
+sky.js's own comment about the old switch *"flipping in one frame at p=0.5925"*
+is describing a sibling of a bug that is still in the file.
+
+**QUEUE Y21 — `data/westcampus.geojson`, 11 band gaps and overlaps.** The
+Standard, 2400 Nueces and Block on 25th East each show a positive gap on the main
+stack (+8.70 / +13.80 / +20.50 m) matched by an equal NEGATIVE one on the bays.
+The signed pairing is the tell: the bays' bands are offset from the main stack's
+by exactly the crown height. Not noise.
+
+Both are **baselined, not excused** — the pattern `coplanar.mjs --gate` already
+established here. `dusk.mjs` names the one known transition with a ceiling of 90
+and gates everything else at 26; `dusk.mjs --strict` ignores the allowance and
+goes red on it today. `westcampus-probe.mjs` accepts 11 gaps confined to those
+three buildings and fails on a twelfth or on a fourth building. Changing either
+number in a commit is the record of what was accepted.
+
+### Four more things that were quietly wrong
+
+- **`dupids.mjs` was auditing a six-week-stale snapshot.** It hardcoded
+  `2026-07-30` while `js/app.js` boots on `data/manifest.json`'s `latest`, now
+  `2026-08-16` — eight snapshots of drift, and its "claimed but not in the
+  snapshot" half was comparing bake claims against the wrong building set. It
+  reads the manifest now, and takes `--snapshot <date>` so it can be watched
+  failing: **10 phantom ids, exit 1** against `2026-07-10`, green against live.
+- **`harness-drift.mjs` — THE preflight — died on ENOENT when run the way README
+  tells you to run everything else.** It opened `'index.html'` relative to the
+  shell's cwd, so it worked only from the repo root while the whole rest of the
+  suite is invoked from `scripts/verify`. It resolves from its own path now, and
+  was watched red on a deliberately removed `js/sky.js` script tag.
+- **Five screenshot tools died on a raw `readFileSync(undefined)` stack trace**
+  with no arguments (`crop`, `dkrdiag`, `drag-shot`, `gallery`, `isolate`). From
+  outside that is indistinguishable from a crashing guard, and it cost a minute
+  per file to tell apart during the inventory. `lib/args.mjs`; they print usage
+  and exit 2.
+- **`light-perf.mjs` needs a SECOND server** on :8102 and said so only by dying
+  inside `page.goto` on `ERR_CONNECTION_REFUSED`. It preflights both ports now
+  and exits 2 with the command to start the baseline.
+
+**Exit codes are load-bearing now**: 0 pass, 1 an assertion failed, 2 cannot run,
+124 the `chrome.mjs` watchdog. §142 recorded that they *"read as verdicts only"*.
+
+### Three scripts deleted, and why
+
+- **`silhouette.mjs`** — superseded by `night-silhouette.mjs`: same claim, same
+  +8 threshold, but one column instead of seven, no `parts-*` layers in the
+  roofline scan, a "sky" sample that was reading distant GROUND (luma 11 at night
+  beside 117 at dusk for the same pixel), a hardcoded `:8099`, and `*FAIL`
+  followed by exit 0.
+- **`night-debug.mjs`, `night-roadprobe.mjs`** — both labelled "one-off" in their
+  own headers, both dead since 90ad9d7, both covered: `night-dusk-truth.mjs` and
+  `tower-atlas-tone.mjs` read the same facade-atlas bytes, and `road-probe.mjs`
+  prints a strictly richer transportation histogram.
+
+### WHAT THIS PASS DID NOT ESTABLISH
+
+1. **107 of 138 scripts are still unknown.** They reach a browser. Nothing here
+   claims they pass, and the table above must not be read as if it did. Running
+   the suite to completion is a separate pass and a long one.
+2. **`banding.mjs`'s overlay A/B is reported, not gated, and that is an
+   admission.** The reference page returned an empty `bands` map twice in a row
+   on the merged tree after producing 0.00 / 28.76 / 2.34 cleanly three times on
+   the same code minutes earlier — then produced them again. It looks like the
+   second page losing a race for a cold server (README: *"a cold server will hand
+   you a phantom bug"*), but **I did not prove it**, and a gate whose red state I
+   cannot explain is worse than no gate. One line in `TUNE.MIN_OVERLAY_DELTA`
+   turns it back on.
+3. **The `updateSky` cost printed by `banding.mjs` is not a performance number.**
+   It runs on swiftshader. The first revival gated it at 12 ms and produced three
+   red assertions that drifted 15.8/22.0/15.9 → 15.8/18.2/22.6 ms on the same
+   build. `perf*.mjs` is the instrument for that.
+4. **Y20 and Y21 are diagnosed, not fixed.** `js/sky.js` and
+   `data/westcampus.geojson` belong to other lanes.
+5. **`night-lamps.mjs` fails honestly** — *"asked for tod 0.95, scene is at 0.5 —
+   not measuring this frame"* — and I did not chase it. It is a real red in the
+   FAILS bucket and it is somebody's next hour.
+6. **The 10 scripts `suite-lint` warns never cancel the graphics auto-detect
+   probe** (including `movement.mjs`, `collision.mjs` and `sky.mjs`) are
+   untouched. It is a warn rather than a block, and it was out of scope here.
+7. **Nothing runs this suite on a schedule.** `inventory.mjs` is the cheapest
+   substitute and it only helps if somebody types it. The 16-day gap happened
+   because no step in any workflow asks whether the guards still run.
+
+## 150. Aug 16 2026 — the campus is older than the vocabulary: five buildings predate every family, and a 1904 one was wearing a Cass Gilbert arcade (QUEUE N13) (acer lane, branch `acer/n13-olddoors`, merged as part of PR #191)
 
 Last night's pass photographed fifteen new doors one by one and found, among
 other things, that **ANB (1859), JHH (1888) and LCH (1894) were wearing plain
@@ -20366,7 +20546,7 @@ scripts either side), server killed at the end.
 
 ---
 
-## 145. Aug 16 2026 — 171 of the 656 doors were stood in front of, and the red gate was already red on `main` (QUEUE NB1/NB2/NB3) (acer lane, branch `acer/n13-olddoors`, merged)
+## 151. Aug 16 2026 — 171 of the 656 doors were stood in front of, and the red gate was already red on `main` (QUEUE NB1/NB2/NB3/NB4) (acer lane, branch `acer/n13-olddoors`, merged)
 
 **Files written:** `docs/entrances/sweep.md` (new), `QUEUE.md`, this section,
 `shots/olddoors/sheets/` and `sheetsB/` (all 171 doors on both bearings, as

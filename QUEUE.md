@@ -1044,6 +1044,39 @@ Same family as §82 (three ramps rode the slider instead of the sun) — whateve
 ramps the ground texture/fill never got the §82 treatment, or has a floor.
 Frames: `shots/blitz/y11-*-p070.png` against their own p 0.55 siblings.
 
+**Y20. `js/sky.js:1420` — the sun/moon DISC still switches body in ONE frame,
+and the guard that would have caught it has been dead since 2026-07-31.**
+
+```
+const useMoon = !B.sunUp && B.moon.elev > -2;
+```
+
+The moon crosses −2 degrees between p=0.590 (elev −2.24) and p=0.595 (−1.76), so
+in a single step `haloCol` goes from the warm `sunColour(elev)` to the cool
+`[150,172,226]` and `bloomA0` from `0.26+0.22*golden` to a flat `0.30`.
+`dusk.mjs` measured **83 levels of blue** at (0.70, 0.278) — the sky just above
+the western horizon at pitch 78, bearing 250 — against a sweep median of 5 and a
+p95 of 8. **Three reps, the same digit every time.**
+
+Do not confuse this with the twilight rewrite: the TWO HORIZON WASHES ARE
+CONTINUOUS and that fix holds. The disc was simply never given the two-schedule
+treatment, and sky.js's own comment about the old switch *"flipping in one frame
+at p=0.5925"* is describing a sibling of a bug still in the file. It is baselined
+in `dusk.mjs` with a ceiling of 90 so the gate is not permanently red;
+`node dusk.mjs --strict` ignores the allowance and goes red on it. **Owner: the
+`js/sky.js` lane.** Delete the `KNOWN` entry in `dusk.mjs` when it is fixed —
+the script prints a note if the allowance stops firing.
+
+**Y21. `data/westcampus.geojson` — 11 vertical band gaps and overlaps across
+three buildings.** The Standard, 2400 Nueces and Block on 25th East each show a
+positive gap on the main stack (**+8.70 / +13.80 / +20.50 m**, `base -> crown`)
+matched by an equal NEGATIVE one on the bays (`tower -> tower`). The signed
+pairing is the tell — the bays' bands are offset from the main stack's by exactly
+the crown height, which is a bake arithmetic error rather than noise. Found by
+`westcampus-probe.mjs` on its first run since 90ad9d7 gutted it. Baselined at 11
+and confined to those three names, so a twelfth gap or a fourth building fails
+the gate. **Owner: the `scripts/bake_*.py` / `data/` lane.**
+
 **Y18. The post-process canvas (`fx-canvas`, z 6 — bloom/god-rays) paints glow
 bands across solid facades at eye level; it is composited over the whole frame
 and depth-tests nothing.** Two independent catches in the §117 frames:
@@ -1161,6 +1194,17 @@ Y17 ground plane ignores the dusk clock ...... NEW  (§117) — pavement 2.3-2.9
 Y18 fx-canvas paints glow bands on facades ... NEW  (§117) — dusk AND night, A/B proven
 Y19 the VERTICAL half of the barcode ......... NEW  (§131) — Y5 is done, this is what
                                                 Y5 did not touch. See below.
+Y20 the sun/moon DISC still switches in one
+    frame ................................... NEW  (§149) — js/sky.js:1420. 83 levels of
+                                                blue at p=0.595, three reps identical.
+                                                The two horizon WASHES are continuous;
+                                                the disc was never given the same
+                                                treatment. `dusk.mjs --strict` is red
+                                                on it today. See below.
+Y21 West Campus band gaps and overlaps ....... NEW  (§149) — 11 of them, on The Standard,
+                                                2400 Nueces and Block on 25th East.
+                                                Baselined in westcampus-probe.mjs. See
+                                                below.
 ```
 
 **The one-line verdict on the Drag at night:** it is genuinely better — no stars
