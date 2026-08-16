@@ -1361,6 +1361,77 @@ default `False`, one line to flip — the West Campus base band was deliberately
 left alone because the entrances and places passes already model 24 lobbies,
 canopies, sign bands and shopfront reveals there in metres.
 
+### THE VERTICAL AXIS WAS TRIED AS GEOMETRY AND IT WAS REFUSED (2026-08-16, §149 built it, §150 gated it, PR #189)
+
+**Do not build it again.** The obvious cheap idea — Y5 fixed the horizontal
+barcode with storey bands as geometry in metres, so rotate the recipe ninety
+degrees and give the walls their structural **bays** (piers at 6–8 m) instead of
+paying for real windows — was built on `acer/n12-vertical` and **judged blind
+against live. It lost.** PR #189 is kept OPEN as the record with the losing
+frames; it must not be merged.
+
+**Why it cannot work, and this is structural rather than a tuning problem.** The
+barcode is a **0.12 m** rhythm; a bay is a **6–8 m** rhythm. They do not
+interact. Y5 got away with the horizontal case only because `SOFTEN` had already
+smeared the tile's 1-texel horizontals into nothing, so a storey band had an
+empty field to land on. **`WALL.STREAKS` and `WALL.PIER` are drawn full tile
+height and are not smeared, so on this axis there is no empty field.** The piers
+sit on top of the stripe and the stripe carries on between them. **Geometry can
+add; it cannot subtract.**
+
+**What the blind gate found** (six poses, salted, A/A floor first on both arms,
+minimum of four interleaved counterbalanced reps, camera identical to six
+decimals, pavement band 0 px, AE gain 1; the candidate arm was correctly
+identified at all four poses where a difference was visible, so the test had
+power):
+
+| pose | floor LIVE / CAND | signal | verdict |
+|---|---:|---:|---|
+| South Mall, eye, day | 0 / 0 | 2,795 | not better |
+| South Mall, eye, night | 10 / 10 | 957 | wash at best |
+| Guadalupe, eye, day | 0 / 0 | 2,440 | **the only improvement** |
+| Guadalupe, eye, night | 13 / 0 | 1,124 | indistinguishable |
+| **Battle Hall, eye, day** | 5 / 0 | **9,930** | **WORSE** |
+| cruise z16.2, day | 33,836 / 0 | 1,528 | under its own floor, no verdict |
+
+**Battle Hall was the candidate's own claimed win and it is the clearest loss**
+— the piers cut era-A limestone into an even grid of identical cells, the named
+graph-paper failure, with the 0.12 m stripe still running inside every cell. The
+single pose it improves is a Drag streetwall that `js/drag.js` draws from its own
+tile and that **never carried the barcode**. `shots/vert/final/FINAL-01-VERDICT-battle-hall-day.png`
+is the whole argument; `FINAL-06-what-changed.png` is every pixel it moves.
+
+**The bar was to beat the banded wall, not the old barcode.** The storey walls
+already won their own blind test (§121, §131). Extra geometry that ties buys
+nothing and cost +542 KB — campus more than doubles, 450 KB → 993 KB.
+
+**So Y19 stays open and still points at the tile, not at geometry.** Nothing
+that can be baked will move a 0.12 m rhythm; the two routes above are unchanged
+and both are `js/facades.js`. **Real windows — option (c) in
+`docs/camera/facade-choice.md` — remains the honest answer** to "make this wall
+read as a building", at the price already written there: ~190,000 openings,
+~190 MB, and a loading strategy the app does not have. Bands-now-windows-later
+was the right call and this pass does not change it.
+
+**Performance did NOT veto this and was never going to** — worth saying so the
+next lane does not re-litigate it. Two counterbalanced cruise reps put best
+frame at **17.4–17.5 ms live against 17.6–17.9 ms cand**, warm median identical
+at 35.2 ms, and the candidate **cannot reach the facade atlas at all**
+(`js/facades.js` byte-identical to `main`, zero atlas tiles). It is not slow, it
+is just worse.
+
+**But §143's published atlas share is now OPEN, and this is the useful
+by-product.** The share fell **3.67 → 0.43 → 0.14 → 0.02 %** in the order the
+sweeps ran, *regardless of arm* — the first sweep after a pose change pays the
+tile arrival and later ones do not. §149 read 7–22 %, §150 read 0.02–3.67 %,
+§143 read 1.9–3.0 %: **the same quantity at different cache temperatures, so
+none of them is a property of the code.** That explanation fits four readings in
+run order and is **not itself tested** — nobody has deliberately varied cache
+state and re-measured. Whoever re-takes the atlas figure must pin the cache
+state or the number means nothing. The absolute frame numbers here (17.4 ms best
+against §143's 15.2) are a machine carrying 27–36 Chrome processes, not a
+regression.
+
 ---
 
 ## ~~Y5 IS WAITING ON A TASTE DECISION~~ — DECIDED AND SHIPPED (2026-08-15, §114/§121)
