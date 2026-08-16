@@ -968,7 +968,8 @@ goes to.
 ---
 
 ## N5. ~~`coplanar.mjs` cannot see the storey trim~~ — FIXED 2026-08-16 (§134),
-## and it found ten real coplanar pairs on the Drag. THOSE ARE STILL OPEN.
+## ~~and it found ten real coplanar pairs on the Drag~~ — N5a AND N5b BOTH
+## FIXED 2026-08-16 (§135, branch `acer/n7-cornice`). N5c stands as a baseline.
 
 The checker keyed on `h`/`height` and scanned a hardcoded list of eight files,
 so it silently skipped **882 extrusion rings** — 640 in `campus_storeys.geojson`
@@ -978,10 +979,10 @@ holding 1363. The tool is rewritten: it scans every `data/*.geojson`, prints
 `examined / flat / unreadable` on every file, fails hard on anything it cannot
 interpret, and audits its own vocabulary against every `fill-extrusion-height`
 and `fill-extrusion-base` expression in `js/*.js`. `--selftest` is eight
-assertions that make it fail on purpose. **What it then found is below and is
-NOT fixed.**
+assertions that make it fail on purpose. **What it then found is below, and
+§135 fixed both of them the same way: the trim moves, not the wall.**
 
-### N5a. Ten cornices on the Drag sit flush with the wall band they cap
+### N5a. ~~Ten cornices on the Drag sit flush with the wall band they cap~~ — FIXED
 
 `data/drag.geojson`, every `part:"cornice"` in the file — ten of them, one per
 building. The cornice's `dh` lands **2 to 4 mm** under the top of the `upper`
@@ -1001,7 +1002,19 @@ not in the data, and `docs/` should say which way (cornice proud ABOVE the band
 top, or band top pulled down to the cornice base). **Do not fix it by widening
 `--eps`.**
 
-### N5b. Fifty-five campus caps and cornices sit flush with their host building
+
+**FIXED 2026-08-16, §135.** `scripts/bake_drag.py` gained `CORNICE_LIFT = 0.03`
+and the cornice row now emits `corn[1] + CORNICE_LIFT`. **The trim moved, not
+the wall** — a cornice caps a wall, so the stone sits ON the wall head, and the
+size and the precedent are `scripts/bake_depth.py`'s `STEP_LIFT` ("two coplanar
+top faces z-fight; 30 mm settles it"). Re-baked: **`drag.geojson` goes 10
+coplanar pairs -> 0**, 124 features either side, geometry byte-identical,
+byte size identical, and the only changed property in the whole file is `dh` on
+those ten rings, each exactly +0.030. `storey_details()`'s docstring used to
+claim outward offset made coplanarity impossible; it now says which face that
+argument actually covers and which one it never did.
+
+### N5b. ~~Fifty-five campus caps and cornices sit flush with their host~~ — FIXED
 
 `data/campus_storeys.geojson`: all **40 `cap` + 15 `cornice`** rings have `dh`
 **exactly equal** (0.0000 m) to their host's `final_height` in
@@ -1019,17 +1032,52 @@ arithmetic.** `scripts/bake_campus_storeys.py` line 20 claims "Nothing
 coplanar, nothing for the depth buffer to argue"; against its own host heights
 that claim is not true, and somebody should either make it true or amend it.
 
+
+**FIXED 2026-08-16, §135, and it is now a machine check.**
+`scripts/bake_campus_storeys.py` gained `HOST_LIFT = 0.03` — `split_ends()`
+ends the top piece at `y1 + HOST_LIFT`, and only the top moves, so the storey
+span, the fitted pitch and every floor line are untouched. 40 `cap` + 15
+`cornice` rings, each `dh` exactly +0.030; 640 features either side; geometry
+byte-identical; nothing else in the file changed.
+
+**The important half is the assertion.** `check_host_clearance()` re-reads each
+host's `final_height` from the snapshot the bake already loads, runs BEFORE the
+file is written, raises on any ring face within `HOST_EPS = 0.01` of the host's
+ground or head, and prints `rings_checked / coplanar_with_host / worst_gap_m /
+against` on every run — `640 / 0 / 0.03 / final_height in snapshots/2026-08-16`.
+**Proved by making it fail**: with `HOST_LIFT` forced to 0 it raises and names
+**55** faces, which is the hand count of §134 exactly. So the cross-document
+tie `coplanar.mjs` structurally cannot see is now checked by the only thing
+that can see it — the bake that reads both documents — and it re-runs when the
+snapshot rolls. The header's "Nothing coplanar, nothing for the depth buffer to
+argue about" is gone, replaced by what is true: outward offset clears the SIDE
+faces and says nothing about the horizontal ones.
+
+**Still not established: nobody has looked at it.** This pass was arithmetic and
+bakes, no browser. `zfight.mjs` at a Drag cornice and at a campus roofline is
+the confirmation nobody has run — see N5d.
+
 ### N5c. Numbers nobody had ever seen, now baselined
 
 `scripts/verify/coplanar-baseline.json` records the per-file counts at
-eps=0.01/frac=0.30 so `--gate` goes red only on a NEW pair. Previously
+eps=0.01/frac=0.30 so `--gate` goes red only on a NEW pair. **`drag.geojson` was lowered 10 -> 0
+in §135**; the gate is green and the total is 2,332. Previously
 unmeasured files: `stadium` 313, `outer_ring` 179, `trees` 99, `art` 92,
-`drag` 10 (N5a), `capitol_parts` 2, and one each in `capitol_dome`, `ground`,
+`drag` 10 -> **0 after §135**, `capitol_parts` 2, and one each in `capitol_dome`, `ground`,
 `heroes`. The recorded baselines held: **roofs 85 and places 1 are unchanged.**
 `entrances` reads **1558**, not the recorded 1729 — the old number was computed
 on `h` as if it were an absolute top when `js/entrances.js` paints
 `['+',['get','base'],['get','h']]`, so 1729 was a count of coincident
 *thicknesses*. Nobody has looked at whether any of these are visible.
+
+### N5d. Nobody has ever SEEN any of these 2,332 pairs, fixed or not
+
+`zfight.mjs` needs a browser and every N5 pass so far has been pure data. Two
+poses are owed, for a lane that already holds a browser: **a Drag cornice at
+15.5 m** (Co-op, ≈ -97.74228, 30.28596) before/after §135, and **a campus
+roofline** on a family-C `cap` building. If the before frame does not flicker
+that is worth writing down too — it bounds how much the remaining 2,332
+baselined pairs are worth chasing.
 
 ---
 
