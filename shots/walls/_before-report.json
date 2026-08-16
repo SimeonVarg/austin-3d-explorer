@@ -1,0 +1,467 @@
+{
+ "tag": "before",
+ "base": "http://127.0.0.1:8362",
+ "url": "http://127.0.0.1:8362/_harness.html?intro=0&drift=0&clip=1",
+ "poses": {
+  "A-castilian": {
+   "pose": {
+    "center": [
+     -97.74229745352287,
+     30.28731
+    ],
+    "zoom": 20.68791024464342,
+    "pitch": 87,
+    "bearing": 270,
+    "eye": [
+     -97.74196,
+     30.28731,
+     1.7
+    ],
+    "D": 32.48,
+    "ground": 32.44,
+    "p": 0.3
+   },
+   "boxes": {
+    "A-castilian-day": {
+     "box": [
+      900,
+      120,
+      1340,
+      700
+     ],
+     "vertEdges100": 4.36,
+     "horizEdges100": 0,
+     "meanLuma": 44.39,
+     "sd": 6.63
+    },
+    "A-castilian-night": {
+     "box": [
+      900,
+      120,
+      1340,
+      700
+     ],
+     "vertEdges100": 25.2,
+     "horizEdges100": 0,
+     "meanLuma": 84.63,
+     "sd": 36.48
+    }
+   },
+   "day": {
+    "state": {
+     "z": 20.68791,
+     "pitch": 87,
+     "bearing": -90,
+     "center": [
+      -97.742297,
+      30.28731
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 4,
+    "unsettled": false
+   },
+   "night": {
+    "state": {
+     "z": 20.68791,
+     "pitch": 87,
+     "bearing": -90,
+     "center": [
+      -97.742297,
+      30.28731
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 4,
+    "unsettled": false
+   }
+  },
+  "B-21rio": {
+   "pose": {
+    "center": [
+     -97.74481255689923,
+     30.28428
+    ],
+    "zoom": 20.687954802312827,
+    "pitch": 87,
+    "bearing": 90,
+    "eye": [
+     -97.74515,
+     30.28428,
+     1.7
+    ],
+    "D": 32.48,
+    "ground": 32.44,
+    "p": 0.3
+   },
+   "boxes": {
+    "B-21rio-day": {
+     "box": [
+      200,
+      120,
+      900,
+      640
+     ],
+     "vertEdges100": 6.31,
+     "horizEdges100": 10.26,
+     "meanLuma": 104.48,
+     "sd": 52.38
+    },
+    "B-21rio-night": {
+     "box": [
+      200,
+      120,
+      900,
+      640
+     ],
+     "vertEdges100": 12.45,
+     "horizEdges100": 16.85,
+     "meanLuma": 66.2,
+     "sd": 44.62
+    }
+   },
+   "day": {
+    "state": {
+     "z": 20.68795,
+     "pitch": 87,
+     "bearing": 90,
+     "center": [
+      -97.744813,
+      30.28428
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 3,
+    "unsettled": false
+   },
+   "night": {
+    "state": {
+     "z": 20.68795,
+     "pitch": 87,
+     "bearing": 90,
+     "center": [
+      -97.744813,
+      30.28428
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 2,
+    "unsettled": false
+   }
+  },
+  "C-dobie": {
+   "pose": {
+    "center": [
+     -97.74171255999461,
+     30.28338
+    ],
+    "zoom": 20.687968036221864,
+    "pitch": 87,
+    "bearing": 90,
+    "eye": [
+     -97.74205,
+     30.28338,
+     1.7
+    ],
+    "D": 32.48,
+    "ground": 32.44,
+    "p": 0.3
+   },
+   "boxes": {
+    "C-dobie-day": {
+     "box": [
+      980,
+      40,
+      1420,
+      250
+     ],
+     "vertEdges100": 0,
+     "horizEdges100": 54.79,
+     "meanLuma": 83.5,
+     "sd": 31.89
+    },
+    "C-dobie-lower-day": {
+     "box": [
+      980,
+      300,
+      1420,
+      460
+     ],
+     "vertEdges100": 48.56,
+     "horizEdges100": 1.12,
+     "meanLuma": 107.34,
+     "sd": 40.48
+    },
+    "C-dobie-night": {
+     "box": [
+      980,
+      40,
+      1420,
+      250
+     ],
+     "vertEdges100": 0,
+     "horizEdges100": 52.5,
+     "meanLuma": 24.63,
+     "sd": 17.48
+    },
+    "C-dobie-lower-night": {
+     "box": [
+      980,
+      300,
+      1420,
+      460
+     ],
+     "vertEdges100": 21.44,
+     "horizEdges100": 1.08,
+     "meanLuma": 42.36,
+     "sd": 9.58
+    }
+   },
+   "day": {
+    "state": {
+     "z": 20.68797,
+     "pitch": 87,
+     "bearing": 90,
+     "center": [
+      -97.741713,
+      30.28338
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 2,
+    "unsettled": false
+   },
+   "night": {
+    "state": {
+     "z": 20.68797,
+     "pitch": 87,
+     "bearing": 90,
+     "center": [
+      -97.741713,
+      30.28338
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 2,
+    "unsettled": false
+   }
+  },
+  "D-lobby": {
+   "pose": {
+    "center": [
+     -97.74239745352286,
+     30.28731
+    ],
+    "zoom": 20.68791024464342,
+    "pitch": 87,
+    "bearing": 270,
+    "eye": [
+     -97.74206,
+     30.28731,
+     1.7
+    ],
+    "D": 32.48,
+    "ground": 32.44,
+    "p": 0.3
+   },
+   "boxes": {
+    "D-lobby-day": {
+     "box": [
+      200,
+      250,
+      1000,
+      700
+     ],
+     "vertEdges100": 24.14,
+     "horizEdges100": 6.45,
+     "meanLuma": 117.99,
+     "sd": 36.82
+    },
+    "D-lobby-night": {
+     "box": [
+      200,
+      250,
+      1000,
+      700
+     ],
+     "vertEdges100": 7.22,
+     "horizEdges100": 1.76,
+     "meanLuma": 57.99,
+     "sd": 30.46
+    }
+   },
+   "day": {
+    "state": {
+     "z": 20.68791,
+     "pitch": 87,
+     "bearing": -90,
+     "center": [
+      -97.742397,
+      30.28731
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 2,
+    "unsettled": false
+   },
+   "night": {
+    "state": {
+     "z": 20.68791,
+     "pitch": 87,
+     "bearing": -90,
+     "center": [
+      -97.742397,
+      30.28731
+     ],
+     "alt": 1.7,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 3,
+    "unsettled": false
+   }
+  },
+  "E-cruise": {
+   "pose": {
+    "center": [
+     -97.7445,
+     30.286
+    ],
+    "zoom": 15.35,
+    "pitch": 64,
+    "bearing": 200,
+    "p": 0.3,
+    "eye": [
+     null,
+     null,
+     600
+    ],
+    "D": null,
+    "ground": null
+   },
+   "boxes": {},
+   "day": {
+    "state": {
+     "z": 15.35,
+     "pitch": 64,
+     "bearing": -160,
+     "center": [
+      -97.7445,
+      30.286
+     ],
+     "alt": 575.28,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 4,
+    "unsettled": false
+   },
+   "night": {
+    "state": {
+     "z": 15.35,
+     "pitch": 64,
+     "bearing": -160,
+     "center": [
+      -97.7445,
+      30.286
+     ],
+     "alt": 575.28,
+     "aeGain": 1,
+     "aeOn": false,
+     "detail": false
+    },
+    "floor": {
+     "n": 0,
+     "max": 0,
+     "top": null,
+     "bot": null
+    },
+    "tries": 3,
+    "unsettled": false
+   },
+   "cruiseDetailMagenta": {
+    "n": 0,
+    "box": null,
+    "note": "no wc-detail layer on this build"
+   }
+  }
+ },
+ "errors": []
+}
