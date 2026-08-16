@@ -16283,3 +16283,179 @@ Seven branches merged, zero red merges, two PRs deliberately left open
 the Drag has architecture, the ground has grain, clip mode records clean, and
 every gate that was green tonight has also been watched failing. The city is
 yours in the morning.
+
+
+## 128. Aug 16 2026 — the frame budget, written by reading; the third hog is the sky and it repaints on every camera move (QUEUE K1, frame half) (acer lane, perf)
+
+**No code and no data changed. Nothing was measured.** Branch
+`acer/perf-budget` off `origin/main` `321dd9e`, PR #175, merged. One new file:
+`docs/perf/budget.md`. A follow-up commit cross-references
+`docs/perf/payload.md`, which a sibling workflow merged the same night as
+`20a88d9` — **K1 has two halves and they are now two documents: payload.md owns
+bytes and parse, budget.md owns the frame.**
+
+This phase was deliberately read-only. No browser, no server, no timing. The
+point was to have a written prediction *before* the Measure phase runs, so that
+what comes back is a result rather than a number.
+
+### THE THIRD O(EVERYTHING) SCAN, AND WHY IT HID FOR SO LONG
+
+Y7 (outer ring, **37.9 ms worst**, §109) and Y15 (trunk field, **841.5 ms
+worst**, §109) were already written down. The third is
+
+**`js/sky.js` `updateSky()` — a full CPU canvas repaint of 520 stars and ~88
+radial-gradient cloud lobes on EVERY camera move, with no throttle, no counter
+and no timer.**
+
+`sky.js:1298` registers `map.on('move', redraw)`. Per frame that fires, it
+clears the sky canvas and, in `globalCompositeOperation:'lighter'`, draws up to
+six large `drawGlow` ellipses, then loops **520 stars** (project, frustum-test,
+`arc`+`fill`, plus a `drawImage` halo for the bright ones), then loops **22
+clouds × 3–5 lobes ≈ 88 lobes**, each building its own `createRadialGradient`
+under a `save`/`translate`/`scale`/`restore`. The mutated canvas is then
+re-uploaded to the GPU.
+
+Four reasons nobody has noticed:
+
+1. **It rides `move`, not rAF**, so it does not appear in a grep for
+   `requestAnimationFrame`.
+2. **Its two heavy loops are gated on opposite halves of the day** — stars when
+   `B.stars > 0.02`, clouds when `cloudA > 0.02` — so at no single test hour is
+   all of it running. **At dusk both are**, and dusk is the frame set §117 calls
+   the best in the app and the one most likely to be recorded.
+3. **It has no instrument.** `window.__fly` publishes `outerField().maxMs` and
+   `trunkField().maxMs`; there is no `window.__sky` at all. The two hogs that
+   got written down are exactly the two that instrumented themselves.
+4. **Its cost RISES with pitch.** The canvas is sized to the horizon
+   (`0.5 − 0.5·tan(90−pitch)/tan(fov/2)`), so at pitch 88 the horizon sits at
+   ~47 % of frame height against ~29 % at a cruise pitch of 77. Walking height
+   pins pitch near the ceiling (§109: floor 84.72 at 1.70 m). **The sky canvas
+   is at its biggest, with the most stars in frame, exactly at eye level —
+   which is where the app is already slowest.**
+
+Prediction with a falsifier attached, which is the whole point: **2–8 ms per
+frame at dusk at 1.7 m. If it measures under 1 ms the section is wrong and
+should be struck.**
+
+### THE THING THAT MAKES EVERY LISTENER A PER-FRAME LISTENER
+
+Also not written down anywhere in this repo, and it is the frame through which
+everything else should be read:
+
+`js/controls.js` `writeToMap()` ends in `map.jumpTo(pose, {fly:true})` and runs
+on **every rAF tick while the controller is driving**. `jumpTo` fires MapLibre's
+whole event cascade in that one frame — `movestart`/`move`/`moveend`, plus
+`zoomstart`/`zoom`/`zoomend` whenever the derived zoom changed, and zoom is
+derived from altitude on the same line, so it changes on essentially every
+moving frame.
+
+**So `on('move')` means "every frame" here, and a module registered on two of
+those events runs twice a frame.** The consequence found by reading:
+`js/entrances.js:970–972` registers the *same* handler on `move`, `moveend`
+**and** `zoom`, so **the label gate runs three times per frame**, each call
+doing an unconditional `setPaintProperty(L_LABEL, 'text-translate', …)`. Two of
+those three writes are redundant by construction. `js/outer.js:571–572` is on
+`pitch` **and** `move` — twice a frame, but properly gated behind a 0.02
+opacity-bucket test, so it is a listener-count observation and not a hog. Both
+are written down so the Measure phase does not rediscover them and misrank them.
+
+### TWO COSTS THAT HAD NEVER BEEN COSTED
+
+* **`js/shadows.js` rebuilds 2,428 convex hulls about once a second while the
+  time-of-day autoplay runs.** `updateShadows` rebuilds when `|p − lastP| ≥
+  0.04`, debounced 140 ms; the autoplay sweep is 32 s, so `p` crosses 0.04 every
+  **1.28 s**. Each rebuild runs Andrew's monotone chain over 2× every ring's
+  points for every building ≥ 3 m (2,428 of the snapshot's 2,453), then
+  `setData`s the whole FeatureCollection, which re-tiles a GeoJSON source in a
+  worker.
+* **The facade atlas repaints ~200 images 4× a second on the same schedule.**
+  `applyTimeOfDay` quantises `p` to 1/128, so the heavy path fires ~4/s during
+  autoplay; each pass runs `paintTiers` over every registered combo × 2 mip
+  tiers (`facades.js:1784` says 100 images per tier), each a canvas draw plus a
+  **`getImageData` readback** — which `facades.js:291` itself names as the
+  slowest common canvas2d op on iOS — plus **eleven chained `applyTimeOfDay`
+  wrappers** (arts, drag, entrances, heroes, moody, outer, places, roofs, tower,
+  wayfind, westcampus) and six sweeps over the kept basemap layer lists.
+
+**Autoplay while walking is therefore the worst state the app can be in** — per-
+frame sky redraw at maximum canvas size, 4 heavy tod ticks/s, a 2,428-hull
+shadow rebuild every 1.28 s, and a trunk scan every 1.5 s — and it has never
+been measured. It is also a plausible thing for a demo recording to capture.
+
+### FOUR THINGS THAT LOOK O(EVERYTHING) AND ARE NOT
+
+Checked so nobody re-checks them. `maxHeightIn` is a 2×2–3×3 cell scan
+(`CELL` 6 m, `rCam()` 1–6 m), 4 calls/frame. The movement substepping cannot
+spiral: `steps = ceil(frameDist / 4.5 m)` and `frameDist` is bounded by
+`DT_MAX = 0.10 s` × the 300 m/s ceiling, so **≤ 7 substeps**, and a slow frame
+does *not* buy more because `dt` is clamped before use. `js/night.js:607`'s
+`querySourceFeatures` is one-shot behind a `_points` guard. `js/places.js:572`
+`labelDuplicates` is a verification entry point with **no** event registration —
+its own docstring warns that calling it per `render` takes the renderer down.
+
+### THE BUDGET PROPOSED
+
+16.7 ms at 60 fps, 33.3 ms at 30 — the second chosen because `graphics.js`
+already colours its own fps readout `bad` above 34 ms, so it is the number the
+app believes in. Main-thread JS gets **4.0 ms** of the 16.7: 1.0 to the flight
+tick, 1.5 to `updateSky`, 0.3 to the label gate, 0.2 to the remaining listeners,
+0.5 to the route pulse when a route is up, 0.5 slack. The rest belongs to
+MapLibre's 41 fill-extrusion passes and the compositor.
+
+Amortised ceilings, for work that must never land in one frame: **8 ms** per
+outer-ring instalment and **8 ms** per trunk instalment (not 4 and 3 —
+`OUTER_BUDGET_MS` and `TRUNK_BUDGET_MS` start their clocks *after*
+`querySourceFeatures` has returned, so neither constant is the frame cost);
+**12 ms** per tod heavy tick at ≤ 4/s; **25 ms** per shadow rebuild at ≤ 1 per
+1.28 s. Both 8 ms figures are blown by the measured worst cases on purpose —
+they are where the fix has to land, not a description of today.
+
+Thirteen named regression assertions, G1–G13. **Nine are readable today with no
+code change**, off `window.__fly.outerField().maxMs`,
+`.trunkField().maxMs/.scans`, `.tickMsAvg/.ticks`, `window.__entDefer`, and
+`map.getStyle().layers.length` (which has never been printed — 95 of our own
+`addLayer` sites plus the kept basemap plus `js/capitol.js`'s cloned layers).
+**Four need one line of instrumentation each**, and G10 — a `performance.now()`
+pair around `updateSky`'s canvas pass, published as `window.__sky` in the same
+shape `__fly.outerField()` already uses — is the highest-value single line
+available, because it is the only top-three suspect that cannot be tested at
+all today.
+
+### ONE INSTRUMENT FLAW WORTH KNOWING BEFORE THE MEASURE PHASE
+
+`window.__fly.tickMsAvg` is a **cumulative mean since page load**
+(`controls.js:1830`). A slow boot poisons it permanently and it can never show a
+regression that begins mid-session. Sample `(tickMsAvg, ticks)` twice and
+difference them — `Δ(tickMsAvg × ticks) / Δ(ticks)` — never read it raw.
+
+### WHAT THIS DID NOT ESTABLISH
+
+Written out in full as Part 5 of the document, and it is most of the value here.
+**Nothing was run tonight.** The three measured figures quoted (37.9 / 841.5 /
+12.3–123 ms) are §109's, on a different day and machine state, and §109 itself
+calls the 841.5 an upper bound because that run teleported across West Campus
+ten times. **The total style layer count is not knowable by reading** — the kept
+basemap layers and the Capitol's clones are uncounted anywhere. **No GPU cost is
+predicted, only ranked**; fill rate and overdraw across 41 fill-extrusion passes
+is the top suspect at cruise and on a phone and there is no arithmetic behind
+either claim. **Nothing about the phone is grounded in a phone** — Simeon's
+2026-08-04 "performance is great" predates entrances, storey bands, close ground
+grain, walking height and the route, so the phone is re-opened, not closed. And
+**the ms split is an allocation, not an observation**: if the Measure phase finds
+MapLibre's own render is already 15 ms at cruise, the budget is what gets
+rewritten, not the measurement that gets judged.
+
+### THE ORDER THE FIXES SHOULD GO IN, IF THE MEASUREMENTS AGREE
+
+1. Instrument `updateSky` (G10) **before fixing anything** — one function, no
+   owner conflict, and the only top-three suspect with no test today.
+2. **Y7 and Y15 together, as one fix.** Both are `querySourceFeatures` returning
+   a complete list; the fix QUEUE already names — ask tile by tile — is the same
+   code shape in both, and doing them separately means writing it twice.
+3. Deduplicate the entrance label gate (G13). Three lines, no risk.
+4. Only then the tod-tick cost. It is ~7 % duty and only while ▶ is on, so it is
+   real but it is not what a still camera or a flythrough pays.
+
+`js/wayfind.js` was not touched: Z5 (a route repainting at ~15 Hz forever) is
+the wayfind lane's tonight and appears in the inventory as row 15, named and
+not changed.
