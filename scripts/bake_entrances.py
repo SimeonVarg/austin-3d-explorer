@@ -76,6 +76,7 @@ from __future__ import print_function
 import json
 import math
 import os
+import re
 import sys
 from collections import Counter, defaultdict
 
@@ -120,6 +121,60 @@ SURVEY = (30.2760, -97.7480, 30.2960, -97.7220)   # the queried bbox   [M]
 MIN_AREA = 250.0        # m2 of footprint to be worth a door   [A]
 MIN_H = 4.0             # m; under this it is a shed   [A]
 SKIP_CLASSES = ("roof",)  # 33 of these in the bbox and they are canopies   [M]
+
+# ── SCOPE BY UT'S OWN REGISTER (docs/walk/the-78.md §3, §7) ───────────
+# The rect above was drawn when this file was about DRAWING doorways on the
+# historic core. It is now also the routing feature's only door source, and
+# the-78.md measured what that costs: eleven of the sixteen buildings that
+# have a good polygon and no door fail on the rect ALONE — Nursing, UT
+# Administration (13 m south of a number somebody typed), the whole Dell Med
+# block, Hargis, Nowotny, four garages. None of them is a data problem.
+#
+# the-78.md §7 Fix 1 proposed widening the rect to 30.2755/-97.7440. Measured
+# here, that takes the in-scope count from 276 to 401 — plus 125 buildings
+# whose doorways nobody has ever looked at, on the eve of a recording. So the
+# rect is NOT widened. Instead the scope test gains a second, narrower door:
+#
+#   a footprint that carries a UT REGISTER CODE is in scope anywhere inside
+#   SURVEY, whether or not it is inside CAMPUS.
+#
+# That is UT's own register agreeing with OSM's own `ref` tag — two
+# independent sources naming the same building — and it admits ELEVEN
+# buildings, not 125 [M]. Nothing about the derivation changes: the same
+# stage 2 and stage 3 run over them, every door they produce is `derived`,
+# and a building with no mapped approach still gets nothing (WAT is the test
+# case and it is expected to stay empty).
+REGISTER_SCOPE = True   # register code overrides the CAMPUS rect inside SURVEY
+MIN_AREA_REF = 100.0    # m2; the size floor for a REGISTER-CODED building.
+                        # 250 keeps doors off pump housings, and it also kept
+                        # them off the Littlefield Carriage House (161 m2, 1894)
+                        # and the Dobie House (162 m2). A code in UT's register
+                        # is UT saying "this is a building"; the derivation
+                        # still has to find an approach before it places
+                        # anything. MIN_H is NOT relaxed with it — a 2.44 m
+                        # leaf plus a 0.60 m transom does not fit honestly
+                        # under a 3.1 m roof, which is why FC7 stays out.
+REGISTER_NAME_JOIN = True  # a footprint whose name is letter-for-letter one
+                        # register name, and the ONLY footprint with that name,
+                        # carries that code. Checked against the spatial ref
+                        # join wherever both fire: 6 agreements, 0 conflicts
+                        # [M]. This is what recovers NUR (Nursing School) —
+                        # graph.md §5's LAC/"austin" false positive came from
+                        # TOKEN overlap, which this rule does not do.
+E1_REF_EXEMPT = True    # a register-coded building keeps its own doors even
+                        # when it hosts shopfronts (WMB, the West Mall Office
+                        # Building, is the case: 11 places.geojson slots, and
+                        # the whole-building veto is right for DRAWING and
+                        # wrong for ROUTING). The double-draw is prevented per
+                        # CANDIDATE instead, by the same claim test wc_place()
+                        # already uses on Dobie's Guadalupe frontage.
+E1_CLAIM_RUN = 6.0      # m of wall an entrance assembly is tested against
+                        # before it may stand on a shopfront host
+RECALL_FLOOR_8M = 0.65  # the derivation must still recover at least this share
+                        # of the measured OSM entrance nodes within 8 m. 0.67
+                        # measured, both before and after this pass [M]; the
+                        # floor is two points under it so a data refresh has
+                        # room to wobble and a bad placement rule does not.
 
 # ── PLACEMENT (docs/entrances/placement.md §8) ────────────────────────
 TERM_R = 8.0            # m; how far a dead-end path may sit off a wall
@@ -1036,6 +1091,7 @@ INSCRIPTIONS = {
 # UT building codes for buildings OSM does not carry a `ref` on. These are the
 # real codes, matched on the snapshot's exact `name` string. Authored, and
 # marked as such so nobody mistakes them for an OSM tag.
+REG_NAME_JOINED = []    # (ref, footprint name) rows the register name join made
 NAME_TO_REF = {
     "Goldsmith Hall": "GOL",
     "Robert A. Welch Hall": "WEL",
@@ -1053,12 +1109,47 @@ NAME_TO_REF = {
 # CELEBRATED families all sit above the date test, exactly as §5.2
 # orders it — a name is evidence where a date is a proxy, but a MEASURED
 # date beats a hand-guessed family.
+def reg_name_key(s):
+    """Case, punctuation and the one abbreviation the register actually uses.
+
+    Deliberately NOT a fuzzy matcher. Two names collapse to the same key only
+    when they are the same words in the same order; no token-overlap, no
+    Jaccard, no substring. graph.md §5 rejected an automatic name join because
+    a 0.5-Jaccard hit on the token "austin" would have put the Lake Austin
+    Centre on top of the Blanton — that failure mode needs partial matching
+    and this function cannot produce one."""
+    s = (s or "").lower().replace("&", " and ")
+    s = re.sub(r"\bbldg\b", "building", s)
+    s = re.sub(r"[^a-z0-9]+", " ", s)
+    return " ".join(s.split())
+
+
 UT_REGISTER = os.path.join(ROOT, "data", "ut_buildings.json")
 YEAR_BY_REF = {}
+REG_CODES = set()
+REG_NAME_TO_REF = {}
 if os.path.exists(UT_REGISTER):
-    for _e in json.load(open(UT_REGISTER, encoding="utf-8"))["buildings"]:
+    _rows = json.load(open(UT_REGISTER, encoding="utf-8"))["buildings"]
+    for _e in _rows:
         if _e.get("ref") and isinstance(_e.get("occupied"), int):
             YEAR_BY_REF[_e["ref"]] = _e["occupied"]
+        if _e.get("ref"):
+            REG_CODES.add(_e["ref"])
+    # The register writes its names in caps and abbreviates ("AUTRY C.
+    # STEPHENS ENGR DISC BLDG"), so this normalisation is what makes an
+    # EXACT comparison possible at all — it is not a fuzzy match and it must
+    # never become one. A register name shared by two codes is dropped here,
+    # and a name carried by two footprints is dropped at join time.
+    _seen = {}
+    for _e in _rows:
+        if not _e.get("ref") or not _e.get("name"):
+            continue
+        _k = reg_name_key(_e["name"])
+        if _k in _seen and _seen[_k] != _e["ref"]:
+            REG_NAME_TO_REF.pop(_k, None)
+            continue
+        _seen[_k] = _e["ref"]
+        REG_NAME_TO_REF[_k] = _e["ref"]
 
 # eras.md §5.2 rule 6, boundaries verbatim. Parameterised per CLAUDE.md
 # rule 11: each pair is (last year of the family, family).
@@ -1828,7 +1919,7 @@ def refresh():
 class Bldg(object):
     __slots__ = ("bid", "name", "cls", "h", "wd", "rings", "poly", "area",
                  "perim", "ref", "osm_name", "fam", "budget", "ents",
-                 "cx", "cy", "wc")
+                 "cx", "cy", "wc", "reg")
 
 
 def load_buildings():
@@ -1866,6 +1957,7 @@ def load_buildings():
         b.ref = None
         b.osm_name = None
         b.wc = None            # the West Campus lobby spec, if this is one
+        b.reg = False          # carries a UT register code inside SURVEY
         b.ents = []
         b.fam = "E5"
         b.budget = 0
@@ -1923,6 +2015,27 @@ def join_refs(blds, tree):
             nm = b.name or b.osm_name
             if nm and nm in NAME_TO_REF:
                 b.ref = NAME_TO_REF[nm]
+    # ── THE REGISTER NAME JOIN. A footprint whose name is letter-for-letter
+    #    one of UT's own register names, and the only footprint carrying that
+    #    name, takes that code. Two gates, both hard: the register name must
+    #    belong to exactly one code (enforced when REG_NAME_TO_REF is built)
+    #    and the footprint name must belong to exactly one footprint. A code
+    #    the spatial join already found is never overwritten.
+    if REGISTER_NAME_JOIN:
+        pool = defaultdict(list)
+        for b in blds:
+            for nm in (b.name, b.osm_name):
+                if nm:
+                    pool[reg_name_key(nm)].append(b)
+        for key, ref in sorted(REG_NAME_TO_REF.items()):
+            cands = pool.get(key) or []
+            if len(cands) != 1:
+                continue
+            b = cands[0]
+            if b.ref:
+                continue                 # measured tag beats a name every time
+            b.ref = ref
+            REG_NAME_JOINED.append((ref, b.name or b.osm_name))
     return hit
 
 
@@ -4167,12 +4280,28 @@ def main():
         % sorted(set(WC_LOBBIES) - set(b.name for b in blds if b.wc)))
 
     scope = []
+    reg_admitted, reg_area, reg_e1 = [], [], []
     for b in blds:
         lon, lat = to_ll(b.cx, b.cy)
         b.budget = -1
+        # A UT REGISTER CODE IS A SECOND DOOR INTO SCOPE. See the constant
+        # block: the rect stays exactly where it was, and a footprint that
+        # OSM and UT's register both name gets the derivation run over it
+        # anywhere inside the surveyed bbox.
+        b.reg = bool(REGISTER_SCOPE and b.ref and b.ref in REG_CODES
+                     and in_rect(lat, lon, SURVEY))
         if not b.wc and not in_rect(lat, lon, CAMPUS):
-            continue
-        if b.area < MIN_AREA or (b.h or 0) < MIN_H or b.cls in SKIP_CLASSES:
+            if not b.reg:
+                continue
+            reg_admitted.append(b)
+        floor = MIN_AREA_REF if b.reg else MIN_AREA
+        if b.area < MIN_AREA and b.area >= floor and b not in reg_admitted:
+            reg_area.append(b)
+        if b.area < floor or (b.h or 0) < MIN_H or b.cls in SKIP_CLASSES:
+            if b in reg_admitted:
+                reg_admitted.remove(b)
+            if b in reg_area:
+                reg_area.remove(b)
             continue
         # E1 keeps its veto everywhere EXCEPT the 24. Dobie Twenty21 is the
         # case: its `building_class` is null and places.geojson genuinely owns
@@ -4180,14 +4309,40 @@ def main():
         # zero doors — but its RESIDENTIAL lobby is on Whitis, 60 m away on the
         # other elevation. The claim test in wc_place() is what keeps this pass
         # off the Target, not the whole-building veto.
+        # ...and EXCEPT a building on UT's own register, for the same reason
+        # and by the same mechanism. The West Mall Office Building hosts the
+        # campus post office and copy shop, so E1 vetoed the whole building
+        # and it got zero doors — correct for drawing, wrong for routing,
+        # because the walk bake only ever reads this file. Admitted here, and
+        # every candidate on it is then tested against the shopfront claims
+        # below so the door cannot land on a frontage bake_places already owns.
         if b.bid in place_hosts and b.cls in PLACES_EXCLUDE_CLASSES and not b.wc:
-            stats["e1_places_excluded"] += 1
-            continue
+            if not (E1_REF_EXEMPT and b.reg):
+                stats["e1_places_excluded"] += 1
+                continue
+            reg_e1.append(b)
         b.fam = classify(b)
         b.budget = budget_for(b)
         scope.append(b)
     print("in scope           : %d buildings  (E1 excluded %d)"
           % (len(scope), stats["e1_places_excluded"]))
+    print("register scope     : %d admitted by a UT register code outside the"
+          " CAMPUS rect, %d by MIN_AREA_REF %.0f m2, %d past the E1 veto"
+          % (len(reg_admitted), len(reg_area), MIN_AREA_REF, len(reg_e1)))
+    for b in sorted(reg_admitted + reg_area + reg_e1,
+                    key=lambda b: (b.ref or "")):
+        lon, lat = to_ll(b.cx, b.cy)
+        why = "outside CAMPUS" if b in reg_admitted else (
+            "area %.0f < %.0f" % (b.area, MIN_AREA) if b in reg_area
+            else "E1 shopfront host")
+        print("                     %-4s %-38s %6.0f m2  %5.1f m   %s"
+              % (b.ref, (b.name or b.osm_name or "?")[:38], b.area, b.h or 0,
+                 why))
+    if REG_NAME_JOINED:
+        print("register name join : %d footprints took a code from a"
+              " letter-for-letter register name match" % len(REG_NAME_JOINED))
+        for ref, nm in REG_NAME_JOINED:
+            print("                     %-4s <- '%s'" % (ref, nm))
     print("families           : %s" % dict(Counter(b.fam for b in scope)))
 
     # ── ERAS FROM MEASURED YEARS: print exactly what the register changed,
@@ -4259,6 +4414,31 @@ def main():
     stage3_public(scope, grid, stats)
     print("stage 3 publicness : %d placed  (normal test %d)"
           % (stats["stage3_placed"], stats["normal_fail_stage3"]))
+
+    # ── E1, PER CANDIDATE INSTEAD OF PER BUILDING. Only the register-coded
+    #    shopfront hosts admitted above are tested; every other place host is
+    #    still vetoed whole, so nothing that E1 protects today moves. A door
+    #    that would stand on a run bake_places.py has already claimed is
+    #    dropped here — not slid, not narrowed: on a host whose frontage is
+    #    spoken for, silence is the honest answer and the building simply
+    #    keeps whatever doors its other elevations earned.
+    if reg_e1:
+        ctree = STRtree(claims) if claims else None
+        for b in reg_e1:
+            keep = []
+            for c in b.ents:
+                if ctree is not None and not claim_free(
+                        ctree, claims, c.x, c.y, c.tx, c.ty, c.nx, c.ny,
+                        E1_CLAIM_RUN):
+                    stats["e1_claim_dropped"] += 1
+                    continue
+                keep.append(c)
+            b.ents = keep
+        print("E1 per-candidate   : %d register-coded shopfront hosts admitted"
+              " (%s); %d doors dropped for standing on a claimed run"
+              % (len(reg_e1),
+                 ", ".join(sorted(b.ref or "-" for b in reg_e1)),
+                 stats["e1_claim_dropped"]))
 
     # AFTER stage 3, so a garage gate never spends a building's pedestrian
     # budget — the gate is extra evidence, not a door taken off the front.
@@ -4340,6 +4520,14 @@ def main():
           % (tot_ents, sum(1 for b in scope if b.ents)))
     print("  by src           : %s"
           % dict(Counter(c.src for b in scope for c in b.ents)))
+    # ── AUTHORED DOORS, PRINTED ON EVERY RUN AND NEVER FOLDED INTO A TOTAL.
+    #    `src` is the only thing that tells a measured door from an inferred
+    #    one, and `authored` is the only value that means A HUMAN PUT IT
+    #    THERE. If this number ever grows, it must grow in a commit message
+    #    that says which building and on what evidence.
+    auth = [(b.ref or b.name or "?", c.role) for b in scope for c in b.ents
+            if c.src == "authored"]
+    print("  AUTHORED BY HAND : %d  %s" % (len(auth), sorted(auth)))
     print("  by role          : %s"
           % dict(Counter(c.role for b in scope for c in b.ents)))
     print("  by era           : %s"
@@ -4362,6 +4550,24 @@ def main():
     for b in nod[:6]:
         print("      %-46s %5.0f m2  %.1f m"
               % ((b.name or b.osm_name or "(unnamed)")[:46], b.area, b.h))
+
+    # ── WHAT THE REGISTER SCOPE ACTUALLY BOUGHT, per building, including the
+    #    ones it bought nothing on. A building admitted and left empty is the
+    #    rule working, not the rule failing: the derivation looked and found
+    #    no approach. That row is the honest answer and it must be visible.
+    print("")
+    print("REGISTER SCOPE     : doors placed on each building this pass"
+          " admitted")
+    for b in sorted(reg_admitted + reg_area + reg_e1,
+                    key=lambda b: (-len(b.ents), b.ref or "")):
+        print("    %-4s %-40s %d door(s)  %s"
+              % (b.ref, (b.name or b.osm_name or "?")[:40], len(b.ents),
+                 dict(Counter(c.src for c in b.ents)) if b.ents
+                 else "*** NONE - no approach the derivation could see ***"))
+    codes_with_doors = sorted(set(
+        b.ref for b in scope if b.ref and b.ref in REG_CODES and b.ents))
+    print("    UT register codes carrying at least one door: %d of %d"
+          % (len(codes_with_doors), len(REG_CODES)))
 
     # ── THE CELEBRATED SET, checked by name every run. "Some of these are
     #    celebrated entrances" is the bar for this pass, so a celebrated
@@ -4465,6 +4671,21 @@ def main():
             "%s %d/%d" % (k, v0[0], v0[1]) for k, v0 in sorted(by_role.items())))
         print("    (precision is NOT reported: measured against a source whose")
         print("     median building carries ONE mapped entrance, it measures OSM)")
+        # ── THE HONESTY CHECK, MADE A GATE. Recall against the 91 measured
+        #    OSM entrance nodes is the only external check this pass has on
+        #    where it puts doors. Any change to scope or placement that makes
+        #    the derivation more generous shows up HERE first: if it starts
+        #    putting doors where real ones are not, recall against the nodes
+        #    it can be tested on falls. Measured 67% at 8 m on 2026-08-16,
+        #    before and after the register-scope rule, unchanged to the door.
+        r8 = hits[8.0] / float(max(1, tot))
+        print("    recall floor     : %.0f%% at 8 m, floor %.0f%%  %s"
+              % (100 * r8, 100 * RECALL_FLOOR_8M,
+                 "OK" if r8 >= RECALL_FLOOR_8M else "*** BELOW FLOOR ***"))
+        assert r8 >= RECALL_FLOOR_8M, (
+            "OSM recovery fell to %.1f%% at 8 m (floor %.0f%%): the placement "
+            "rule just changed is putting doors where measured ones are not"
+            % (100 * r8, 100 * RECALL_FLOOR_8M))
 
     bad = []
     for f in feats:
