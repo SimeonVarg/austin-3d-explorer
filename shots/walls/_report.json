@@ -1,0 +1,101 @@
+[
+  {
+    "pose": "04-southmall-hero-night",
+    "state": {
+      "zoom": 21.422,
+      "pitch": 85,
+      "bearing": -2,
+      "alt": 1.7,
+      "flyAlt": 1.7,
+      "gain": 1,
+      "ae": false
+    },
+    "floor": 758516,
+    "floorMax": 189,
+    "signalMin": 1351,
+    "signalMax": 120,
+    "box": [
+      43,
+      71,
+      1439,
+      345
+    ],
+    "reps": [
+      1351,
+      1351
+    ]
+  },
+  {
+    "pose": "05-speedway-welch-day",
+    "state": {
+      "zoom": 21.422,
+      "pitch": 85,
+      "bearing": 90,
+      "alt": 1.7,
+      "flyAlt": 1.7,
+      "gain": 1,
+      "ae": false
+    },
+    "floor": 0,
+    "floorMax": 0,
+    "signalMin": 30719,
+    "signalMax": 154,
+    "box": [
+      0,
+      0,
+      1439,
+      359
+    ],
+    "reps": [
+      30719,
+      30719
+    ]
+  },
+  {
+    "pose": "06-cruise-campus-day",
+    "state": {
+      "zoom": 16.2,
+      "pitch": 62,
+      "bearing": 20,
+      "alt": 341.8,
+      "flyAlt": 341.8,
+      "gain": 1,
+      "ae": false
+    },
+    "floor": 154516,
+    "floorMax": 158,
+    "signalMin": 8733,
+    "signalMax": 153,
+    "box": [
+      433,
+      201,
+      1439,
+      899
+    ],
+    "reps": [
+      8733,
+      8733
+    ]
+  },
+  {
+    "pose": "07-cruise-campus-high",
+    "state": {
+      "zoom": 15.2,
+      "pitch": 65,
+      "bearing": 30,
+      "alt": 615.39,
+      "flyAlt": 615.39,
+      "gain": 1,
+      "ae": false
+    },
+    "floor": 12576,
+    "floorMax": 131,
+    "signalMin": 0,
+    "signalMax": 0,
+    "box": null,
+    "reps": [
+      0,
+      0
+    ]
+  }
+]
