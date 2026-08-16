@@ -17,6 +17,14 @@ result.
 Written by the Acer lane, 2026-08-16, `docs/perf/budget.md` only.
 Owner of this file: whoever holds the perf lane. Nothing else writes it.
 
+**K1 has two halves and they are two documents.** This one is the **frame**
+bill — what a rendered frame costs and what runs per camera move.
+`docs/perf/payload.md` is the **byte** bill — what a visitor downloads and what
+the main thread parses before the city appears. It was measured the same night
+by a sibling workflow and it is authoritative on everything to do with bytes,
+parse time and load; where the two touch, it wins. Neither document has yet
+measured a frame.
+
 ---
 
 ## Part 0 — how to read the numbers, and what will lie to you
@@ -84,19 +92,28 @@ Feature counts, read off `data/` at `origin/main` `321dd9e`:
 | walk graph | `walk_graph.json` | 0.34 | — | no |
 | drag / tower / arts / moody / heroes / parts / landscape / depth | | ~0.20 | 605 | no |
 
-**The untiled always-fetched set is ~13.5 MB before gzip** (ground 4.95 + roofs
-1.61 + buildings 1.48 + roofscape 1.34 + capitol 1.13 + places 0.97 + art 0.59 +
-stadium 0.51 + westcampus 0.39 + walk 0.34 + ~0.20 of small ones).
-`ground.geojson` at 4.95 MB / 10,937 features is the largest untiled file in the
-app and it is the one nobody has proposed tiling. Confirm the real figure with
-`payload.mjs` — this is a sum of file sizes on disk, not of bytes over the wire,
-and a page-scoped CDP session under-reports by ~19 MB because the tile fetches
-happen in MapLibre's workers.
+**The byte half of K1 is not this document's — it is
+`docs/perf/payload.md`** (merged as `20a88d9`, a sibling workflow, the same
+night). It measured what this section could only estimate, so its numbers win
+wherever the two disagree. The ones that matter here:
 
-(The brief says "584 entrances, 11,890 features". `entrances.geojson` on
-`origin/main` `321dd9e` parses to **14,242** features over 280 `bid` values.
-Both may be true of different things — 11,890 may exclude a class — but the
-number the renderer is handed is 14,242 and that is the one budgeted here.)
+* **first paint, excluding tiles: 2.63 MB gzipped / 15.20 MB raw**, of which
+  920 KB gzipped is parsed on the **main thread** and 1,219 KB in workers;
+* **75.9 ms of eager main-thread `JSON.parse`** unthrottled (~304 ms at
+  `perf.mjs`'s 4× throttle), plus **63.9 ms** more when the deferred door file
+  lands — and a further **~100 ms of `JSON.stringify`** that is *suspected*
+  (fifteen modules hand MapLibre a parsed object) and explicitly **not yet
+  verified**;
+* **PMTiles do not gzip further** — each tile is already gzipped inside the
+  archive;
+* `entrances.geojson` is **6.690 MB / 14,242 features**, not the 5.44 MB /
+  11,890 the briefs have been carrying. `docs/entrances/` is stale.
+
+Two things that stay this document's problem: `ground.geojson` at 4.95 MB /
+10,937 features is the largest untiled file in the app and nobody has proposed
+tiling it; and none of the parse cost above is *per-frame*, so it belongs to the
+load budget, not the frame budget. Both budgets are needed and they are separate
+bills.
 
 Layer-owning modules, by `addLayer` count:
 `ground` 17, `app` 14, `props` 9, `entrances` 7, `outer` 6, `capitol` 5,
@@ -218,7 +235,7 @@ route landed. Treat the phone as re-opened, not closed.
 | rank | suspect | why |
 |---|---|---|
 | 1 | **the facade atlas repaint** — ~200 `getImageData` + `updateImage` per heavy tod tick, 4×/s | `facades.js` names `getImageData` as the slowest common canvas2d op on iOS. This is the one item where the phone is not just "the desktop, slower" — it is a *different* bottleneck |
-| 2 | **payload and parse**: ~12.6 MB ungzipped of untiled GeoJSON before the entrance file, on a cellular link | `tiles.js` header: "a first-time visitor downloads ~28 MB across 26 files before the city appears". Tiling took five of those; **`ground.geojson` at 4.95 MB / 10,937 features is the biggest one left untiled** |
+| 2 | **payload and parse** — 2.63 MB gzipped and **75.9 ms of main-thread `JSON.parse`** before the city appears, ~304 ms at a 4× throttle, which a mid-range phone is a fair model of | measured in `docs/perf/payload.md`; **`ground.geojson` at 4.95 MB / 10,937 features is the biggest file left untiled** |
 | 3 | **tile workers**: `perCores: 2`, capped 4 — a 4-core phone gets 2, a 2-core phone gets 1 | measured on desktop only (`tiles.js`); the scaling rule is a reasoned guess on mobile |
 | 4 | fill rate — the phone's real limit is overdraw, and `renderScale` 0.75 in the `performance` preset is the only lever that touches it | `lod.js` measured tier-dropping beating `renderScale 0.75` on desktop; on a phone that ranking may invert, because the phone is fill-bound and the desktop is not |
 | 5 | the shadow rebuild: 2,428 convex hulls + a whole-source `setData` | on a phone, once a second during autoplay, on one thread |
@@ -389,7 +406,7 @@ Readable **today**, with no code change:
 | G5 | `__fly.trunkField().scans` grows **no faster than** wall-seconds ÷ 1.5 during a walk | | catches the throttle being defeated |
 | G6 | dropped frames over a fixed 20 s bearing sweep, min of 5 interleaved counterbalanced reps, headed, occlusion flags on, `cancelGraphicsAutoDetect()` first | `outer-perf.mjs` pattern | the only honest fps number this suite produces |
 | G7 | `map.getStyle().layers.length` — record it, then assert it does not grow by more than 2 without a QUEUE entry | | 95 of ours + the kept basemap + the Capitol clones; **the total has never been printed** |
-| G8 | total bytes over the wire at boot, `payload.mjs`, quoted **ungzipped** with the note that Pages gzips ~5× | | ~12.6 MB untiled is the current reading to confirm |
+| G8 | **owned by `docs/perf/payload.md`, not by this file.** Its baseline: 2.63 MB gzipped first paint, 75.9 ms eager main-thread parse | `payload.md` §2–3 | do not re-derive it here; two documents with two payload numbers is how a stale figure survives |
 | G9 | `__entDefer.firedAt − armedAt` and `sourceLoadedAt − firedAt` | `entrances.js:1497` | the 6.38 MB file must still not be in the boot path |
 
 Needing **one instrument each**, and these are the deliverable of the Measure
