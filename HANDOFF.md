@@ -20889,3 +20889,63 @@ not on the branch in isolation:
   suite-repair lane should expect when it re-records the baseline.
 
 Server killed, worktree torn down, `reap.mjs` not run.
+
+## 153. Aug 16 2026 — the bake and the app read the same bytes: NB5 measured, and the one file that records its snapshot is the one that is stale (QUEUE NB5) (acer lane, branch `acer/nb5-snapshot-drift`, docs-only)
+
+Full working: **`docs/data/snapshot-drift.md`**. No code, no data, no browser.
+
+**NB5 is real as a pinning bug and empty as a data bug.**
+`bake_entrances.py` pins `2026-08-04`; the app draws `manifest.latest` =
+`2026-08-16`. Those two files are **byte-identical** — same md5, 2453 features
+each, 0 added, 0 removed, 0 geometry changed, 0 properties changed. Every door,
+every buried-door verdict and the Moody Center finding were computed against
+exactly the bytes the renderer extrudes. Same for `bake_walk.py`'s `2026-08-05`
+enriched pin and `bake_heroes.py`'s `2026-08-03`.
+
+`buildings.detailed.geojson` only has **three** distinct contents across the
+twelve dated directories, and `2026-08-01` through `2026-08-16` are all one of
+them.
+
+**The one pin that reads a different file is `2026-07-30`, and eight bakes sit
+on it.** Measured 07-30 → 08-16: **zero** geometry change on all 2453
+buildings; the only property differences are `wn` (night wall colour, re-derived
+wholesale on 08-01 — the two palettes share not one value) and `has_parts` on
+six buildings including the UT Tower. Cross-checked what each of those eight
+bakes actually reads: none consumes `has_parts`, and the only line in the repo
+that copies `wn` off a pinned snapshot (`bake_stadium.py:1150`) overwrites it
+three lines later. **Buildings carrying a door, a storey band or a walk-graph
+attachment that changed in a property their bake reads: zero.**
+
+**What IS broken, and it is one line.** `data/facade_palette.json` records
+`"snapshot": "2026-08-03"`; `js/facades.js:818` refuses the baked palette unless
+that equals `manifest.latest`. It does not, so the baked fast path has been off
+since the snapshot rolled. Re-ran `bake_facades.py` in a throwaway worktree:
+the output differs from the shipped file in **exactly one line** — the date.
+`palette` and `buckets` byte-identical. Fallback is documented-safe, so this is
+boot cost, not pixels — but it is the only place the drift was ever visible,
+because it is the only shipped file that records its own provenance.
+
+**Recommendation, plainly: nothing needs re-baking tonight except that one
+date stamp.** Everything else is a pinning-only edit with no data churn —
+repoint the twelve scripts at `bake_facades.snapshot_date()` so the *next*
+snapshot roll is caught, and do not re-bake 14,893 entrance features the night
+before a recording to produce a file that cannot differ. `bake_detail.py:33`'s
+argv default is the one genuinely dangerous pin: it is `2026-07-10`, the oldest
+snapshot, the only one where footprints actually moved (Jester 10.5 m), and that
+script *writes*.
+
+**Design for the recurrence**, in §6 of the doc: one resolver imported
+everywhere; every bake writes `"snapshot": <date>` into its own output;
+`scripts/verify/snapshot-parity.py` with **three** outcomes — PASS,
+**STALE-BUT-EQUAL** (dates differ, md5s match: advisory), FAIL (bytes differ,
+prints added/removed/geometry-changed). The middle outcome is the point: it
+turns tonight's whole pass into a one-second check.
+
+**Not established:** no browser was run, so the facades fast-path-off claim is
+from code plus two data values, not from `window.facadePaletteSource()` on a
+live page. No bake was re-run except `bake_facades.py`, reverted — the eight
+07-30 bakes were proved to read identical *inputs*, not to reproduce their
+shipped outputs. `austin.pmtiles` not diffed (nothing reads it). Outer ring not
+examined. `harness-drift` not run: there was no pixel work in this phase.
+
+No server started, no browser, no worktree left behind, `reap.mjs` not run.
