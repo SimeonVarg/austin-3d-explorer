@@ -16731,6 +16731,17 @@ which is the design and not an accident.
 NOT used (31 % noise floor, §114). For scale, the Drag's 23 features measured
 67 px.
 
+**And the instrument lied once on the way to that number, so it is written
+down.** The same measurement inside the pose sweep returned **1,191 px** on one
+run and **0 px** on the next, on the same build — a `setPaintProperty` plus a
+`triggerRepaint` six seconds after a night→day transition is not reliably a
+frame. Re-measured on its own with a 20 s park and 9 s per rep
+(`_wccruise.mjs`, in the scratchpad, not committed): **1,191 / 1,191 / 1,191,
+same box [431,334,1273,663], layer visible and `#ff00ff` read back each time.**
+A zero from a mask is a claim that a layer paints nothing, and this repo has
+already spent a session on one of those (QUEUE X8) — never accept it on one
+reading.
+
 ### Contracts and gates
 
 Trim is `kind:"detail"` with `dbase`/`dh` and claims **no `bid`, no `fam`, no
