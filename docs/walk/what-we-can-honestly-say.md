@@ -482,6 +482,22 @@ a person.
 * `About 12-15 minutes at an ordinary walking pace`
 * `950 m`
 * `Crosses 2 signalised crossings — add up to a minute and a half if the lights are against you`
+  *(revised 2026-08-16 — **the wait in this sentence is `n x SIGNAL_WAIT_S`,
+  computed, and it was frozen at the n=2 value for a whole build.** The line
+  above was written with two crossings in it and "a minute and a half" is
+  exactly 2 x 45 s. The build generalised the count and left the wait alone, so
+  a route across seven lights rendered `Crosses 7 signalised crossings — add up
+  to a minute and a half` while the range printed directly above it had already
+  added **five and a quarter minutes** for those same lights. That is not a
+  rounding quibble: it is one line of the card contradicting the line above it,
+  and the smaller of the two numbers is the one a late student would trust.
+  Caught by routing The Block to Patton Hall, a real West Campus walk.
+  The permitted family is now, with the allowance rounded **outward** to the
+  next half minute because "add up to" is a ceiling:*
+  * `Crosses 1 signalised crossing — add up to 45 seconds if the light is against you`
+  * `Crosses 4 signalised crossings — add up to 3 minutes if the lights are against you`
+  * `Crosses 7 signalised crossings — add up to 5 and a half minutes if the lights are against you`
+  * *…and at n = 2 the sentence still renders the line above it verbatim.*
 
 **Stairs**
 * `This route uses stairs`

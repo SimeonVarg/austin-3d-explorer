@@ -810,10 +810,30 @@ body.wf-routed.flying #wf-pill{opacity:1}
      put the headline straight back onto two lines, which is the defect Z7 is
      about. There is not enough width in that row for both, and a full-width
      bar with three buttons sitting on it is one bad frame away from a
-     collision. So the answer takes the row BELOW them: 16 px inset + 44 px of
-     button + 8 px of air = 68, and it gets the whole 361 px with no gutters.
-     `body.wf-routed` already hides #hud, so nothing else wants that row. */
-  #wf-pill{--wf-pill-inset:16px;--wf-pill-top:68px;
+     collision. So the answer takes the row BELOW them, and it gets the whole
+     361 px with no gutters. `body.wf-routed` already hides #hud, so nothing
+     else wants that row.
+
+     WHICH ROW IS "BELOW THEM" WAS WRONG BY ONE BUTTON (measured 2026-08-16 on
+     the merged tree). 68 px is `16 inset + 44 button + 8 air`, which is the
+     row below ONE button — and on a phone the top right stacks TWO: the block
+     ~160 lines above deliberately moves #fb-button to `top:58px` so it sits
+     under the gear rather than beside the title. Photographed at 393x852 with
+     the feedback button present, the answer bar ran y68..135 x16..377 and
+     #fb-button sat y58..92 x343..377, so the bar's top-right corner passed
+     UNDER the button. The words themselves cleared it by 8 px — the longest
+     real headline ends at x335 — which is precisely the margin this comment's
+     own last sentence calls "one bad frame away". So the row is measured off
+     the LOWER button: 58 top + 34 height + 8 air = 100. Re-measured after:
+     bar y100..167, zero overlap with any of the three buttons, still 361 px,
+     still one line. The two numbers are named so either can be overruled in
+     one edit if the buttons ever move again.
+
+     (#fb-button is created unconditionally by js/graphics.js — `buildFeedback()`
+     runs whether or not the endpoint is configured — but it is created LATE,
+     during graphics init. A gate that measures before it exists sees no
+     collision, and the first run of this gate did exactly that and passed.) */
+  #wf-pill{--wf-pill-inset:16px;--wf-pill-top:100px;
     top:var(--wf-pill-top);left:var(--wf-pill-inset);right:var(--wf-pill-inset);
     transform:none;max-width:none;padding:7px 15px}
   #wf-headline{font-size:12px}

@@ -252,8 +252,19 @@
     minWalkUnder: (hi) => 'Under ' + hi + ' min walk',
     stairsNone: 'No stairs on this route',
     stairsSets: (n) => 'Stairs: ' + n + (n === 1 ? ' set' : ' sets'),
+    // THE WAIT IS COMPUTED, NOT QUOTED. §11's permitted sentence was written
+    // with TWO crossings in it — "add up to a minute and a half" is exactly
+    // 2 x SIGNAL_WAIT_S — and the build generalised the COUNT while freezing
+    // the WAIT. Found 2026-08-16 by routing The Block > RLP, which crosses
+    // SEVEN: the card said "a minute and a half" while the range above it had
+    // already added five and a quarter minutes for those same lights. A
+    // sentence that contradicts the number printed directly above it is worse
+    // than no sentence. The allowance now comes off `signalWaitHighS`, the
+    // same constant timeRange() uses, so the two can never disagree again;
+    // n = 2 still renders §11's wording verbatim. Honesty doc §11, revised.
     signals: (n) => 'Crosses ' + n + ' signalised crossing' + (n === 1 ? '' : 's') +
-      ' — add up to a minute and a half if the lights are against you',
+      ' — add up to ' + waitPhrase(n * WAYFIND.signalWaitHighS) +
+      (n === 1 ? ' if the light is against you' : ' if the lights are against you'),
     lastLeg: "The last stretch isn't a mapped path",
     // THE PASSING PERIOD, and it is one-sided ON PURPOSE — §15 of the honesty
     // doc, written before these two strings existed. "You won't make it" costs
@@ -534,6 +545,20 @@
     let lo = Math.floor(lowS / 60), hi = Math.ceil(highS / 60);
     if (hi <= lo) hi = lo + 1;
     return { lo, hi, lowS, highS };
+  }
+
+  // The signal-wait allowance, said the way §11 says it and DERIVED from the
+  // same constant the range is built from. Rounds OUTWARD to the next half
+  // minute, because "add up to" is a ceiling and an undercounted ceiling is
+  // the failure mode this whole document exists to prevent. At the shipped
+  // `signalWaitHighS` 45 this reads: 1 crossing "45 seconds", 2 "a minute and
+  // a half" (§11 verbatim), 4 "3 minutes", 7 "5 and a half minutes".
+  function waitPhrase(sec) {
+    if (sec < 60) return Math.round(sec) + ' seconds';
+    const halves = Math.ceil(sec / 30);
+    const whole = Math.floor(halves / 2), half = halves % 2 === 1;
+    if (whole === 1) return half ? 'a minute and a half' : 'a minute';
+    return whole + (half ? ' and a half minutes' : ' minutes');
   }
 
   // Two significant figures below 950 m, kilometres above. `647 m` is a
