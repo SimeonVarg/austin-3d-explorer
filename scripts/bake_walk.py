@@ -65,6 +65,32 @@ DOOR_ANCHORS = 3           # candidate anchors per door, so a profile can re-anc
 ANCHOR_SPLIT_MIN_M = 2.0   # closer than this to an existing node, reuse it
 POI_LINK_MAX_M = 40.0
 
+# Anchors must span DISTINCT APPROACHES.  McCombs' main door sits 3 m from a
+# footway spur and 21 m from the frontage path the spur only rejoins 130 m
+# south; nearest-3 put all three anchors on the spur and the route overshot
+# the building by 131 m (HANDOFF #113, the one honest failure).  So after the
+# nearest anchor is picked, a later anchor is rejected while it lies within
+# this NETWORK radius of an earlier one — the ball is walked over the graph,
+# not measured in the air, so a path 11 m away across a gap is outside it
+# while the spur's own next segment is inside it.  Chosen above the local
+# wiggle of one approach (a spur's segments sit well inside 45 m of each
+# other) and below the 130 m detour it exists to catch.
+ANCHOR_SPREAD_M = 45.0
+
+# Walkable road access legs.  87 register codes were stranded; for the two
+# whose DOORS exist but sit >30 m from any footway (BIO, TSG) the frontage
+# genuinely has no drawn path — but a service road or residential street runs
+# right past the door.  Walking along a driveway or a quiet street is real
+# walking, so those roads join the graph — but ONLY as dead-end access legs:
+# each adopted chain is a tree hanging off exactly one node of the main
+# component, so NO route between two footway-reachable places can ever pass
+# along a road.  That structural guarantee replaces the per-edge time penalty
+# the client could not apply (js/wayfind.js prices every non-steps edge at
+# plain metres, and the bake and the client must never disagree on cost).
+ROAD_WALKABLE = {"service", "residential", "living_street", "unclassified"}
+ROAD_ACCESS_MAX_M = 250.0  # cap per adopted chain; measured need is <= 143 m
+ROAD_CAND_SEGS = 3         # road segments tried per stranded door, nearest first
+
 # A route "passes through a building" only if it stays inside the footprint
 # for longer than this.  See find_through_edges() for the measurement that
 # produced the number.
@@ -100,11 +126,27 @@ FLAG_DETOUR = 2.10          # path / straight line
 FLAG_BACK_PCT = 25.0        # backwards movement as a share of the route
 FLAG_OVERSHOOT_PCT = 15.0   # how far past the destination it goes, vs straight line
 
-# Hand-checked code aliases.  262 doors carry no `ref`; these footprint names
-# were matched against UT's own register and read one by one.  Each row is a
-# UT register code -> the exact `nm` on the door group.  AF1/AF2 are NOT here:
-# both register names match the same footprint, which is the honest failure
-# mode of name matching (graph.md §5).
+# Hand-checked code aliases.  262 doors carry no `ref`; these door-group
+# names were matched against UT's own register and read one by one.  Each row
+# is a UT register code -> the exact `nm` on the UNREF'D door group.  Every
+# row must resolve to door groups on exactly ONE footprint or the bake fails
+# loudly (gate I).
+#
+# The three 2026-08-15 additions, each verified against the door group's own
+# coordinates before being written down:
+#   AF2  the group nm is the register name verbatim.  graph.md §5 excluded
+#        AF1/AF2 because REGISTER-name matching hit one footprint twice;
+#        door-group-name matching does not — 'Athletic Fields Pavilion
+#        (Eastside)' is one group on one footprint at 30.28469, -97.72652.
+#        (AF1, the REHAB pavilion, stays stranded: the plain 'Athletic Fields
+#        Pavilion' group carries ref AFP, which is its own register code.)
+#   TCP  'Texas Cowboys Pavillion' — OSM's spelling, one group, role main,
+#        at 30.28488, -97.73395, north of DKR where the pavilion stands.
+#   BMK  register 'BLANTON MUSEUM ELLSWORTH KELLY' is the building the
+#        artwork world calls 'Austin', and that is the footprint name OSM
+#        uses: one group, role main, at 30.28161, -97.73787, on the Blanton
+#        block beside the Smith Building.  The nm is one word, so the
+#        one-footprint assertion is what makes this row safe to keep.
 CODE_ALIASES = {
     "RLP": "Patton Hall",
     "BME": "Biomedical Engineering Building",
@@ -113,6 +155,31 @@ CODE_ALIASES = {
     "STD": "DKR Memorial Stadium",
     "ATT": "AT&T Executive Education and Conference Center",
     "KIN": "Kinsolving Dormitory",
+    "AF2": "Athletic Fields Pavilion (Eastside)",
+    "TCP": "Texas Cowboys Pavillion",
+    "BMK": "Austin",
+}
+
+# Register codes whose doors already exist under a DIFFERENT ref — OSM and
+# the register disagree on what the building is called, and the register is
+# the one the student types.  Each row is register code -> the ref the door
+# groups actually carry, verified by name AND coordinates:
+#   DMC  G. B. Dealey Center for New Media is the renamed Belo Center; the
+#        doors carry BMC and sit at 30.29011, -97.74090 (Dean Keeton &
+#        Guadalupe).  BMC is not a register code.
+#   MNC  the register clips Moncrief-Neuhaus to MNC; OSM spells it MNAC.
+#        Same name letter for letter, doors at 30.28240, -97.73228.
+#   BMS  BLANTON MUSEUM SMITH BUILDING is the Edgar A. Smith Building; the
+#        doors carry EAS and sit at 30.28140, -97.73835, on the Blanton
+#        block.  EAS is not a register code.
+# The doors keep their original ref in the file (it is OSM's truth); they are
+# indexed under both codes.  Multi-refs like 'RMRZ;NEZ' are split on ';' and
+# indexed under each part, which is what recovers NEZ (the North End Zone
+# doors are tagged 'RMRZ;NEZ' — the ref itself names the register code).
+CODE_REF_JOINS = {
+    "DMC": "BMC",
+    "MNC": "MNAC",
+    "BMS": "EAS",
 }
 
 # Edge flag bits (graph.md §7).
@@ -133,34 +200,56 @@ DRIVABLE = {
     "service", "road", "busway",
 }
 
-# The nine pairs the brief named, plus the frozen baseline for --regress.
+# The nine pairs the brief named, plus one spot-check pair for every code
+# the 2026-08-15 recovery pass made routable, so none of the nine recoveries
+# can silently rot.  Origins are big buildings a student actually starts
+# from, on the same side of campus as the destination.
 VALIDATION_PAIRS = [
     ("JES", "GDC"), ("JES", "WEL"), ("PCL", "RLP"), ("GRE", "MAI"),
     ("BUR", "CBA"), ("STD", "MAI"), ("21 Rio", "WEL"),
     ("The Castilian", "GDC"), ("PCL", "JES"),
+    # the nine recovered codes
+    ("GDC", "BIO"), ("WEL", "TSG"), ("GDC", "DMC"), ("GRE", "MNC"),
+    ("GRE", "NEZ"), ("GRE", "TCP"), ("GRE", "AF2"), ("JES", "BMS"),
+    ("JES", "BMK"),
 ]
 
-# Frozen 2026-08-15 off the first audited bake, main door to main door, in
-# metres including both unmapped last legs.  A data refresh that moves any of
-# these by more than REGRESS_TOL_PCT is loud, not silent.  BUR>CBA is frozen
-# at its BROKEN value on purpose - see KNOWN_BAD.
+# Frozen 2026-08-15 off the audited recovery bake (18 pairs), main door to
+# main door, in metres including both unmapped last legs.  A data refresh
+# that moves any of these by more than REGRESS_TOL_PCT is loud, not silent.
+#
+# Three moved when ANCHOR_SPREAD_M landed, each re-audited before freezing:
+#   BUR>CBA  949.2 -> 788.7   THE FIX.  The main door now also anchors on
+#            the frontage path across the 11 m gap (a 21 m unmapped last
+#            leg, not an invented stitch), so the 131 m overshoot past the
+#            building is gone.  §113 froze the broken value on purpose;
+#            this freezes the repaired one.
+#   GRE>MAI  575.3 -> 540.3   shorter and clean (walls 0, overshoot 0):
+#            spread anchors opened a more direct South Mall approach.
+#   STD>MAI 1002.5 -> 1018.0  +1.5 %: the old third same-spur anchor that
+#            happened to give 1002.5 is now a distinct-approach anchor.
+#            The route sheds 3 staircases (5 -> 2) for 15 extra metres.
 REGRESS_BASELINE = {
-    "JES>GDC": 471.8, "JES>WEL": 525.2, "PCL>RLP": 518.3, "GRE>MAI": 575.3,
-    "BUR>CBA": 949.2, "STD>MAI": 1002.5, "21 Rio>WEL": 1015.1,
+    "JES>GDC": 471.8, "JES>WEL": 525.2, "PCL>RLP": 518.3, "GRE>MAI": 540.3,
+    "BUR>CBA": 788.7, "STD>MAI": 1018.0, "21 Rio>WEL": 1015.1,
     "The Castilian>GDC": 697.8, "PCL>JES": 156.2,
+    "GDC>BIO": 405.8, "WEL>TSG": 646.1, "GDC>DMC": 806.1, "GRE>MNC": 975.8,
+    "GRE>NEZ": 708.7, "GRE>TCP": 522.6, "GRE>AF2": 1505.1, "JES>BMS": 234.1,
+    "JES>BMK": 187.0,
 }
 
 # Routes that are audited as failures today and are NOT graph bugs to fix by
 # tuning.  Written down so a later pass does not silently "fix" one by
 # loosening a guard.
 KNOWN_BAD = {
-    "BUR>CBA": (
-        "McCombs' main door anchors onto a footway spur that only rejoins the "
-        "network 130 m SOUTH of the building, so the route walks past the "
-        "destination and comes back.  Its own secondary door 15 m west routes "
-        "in 767 m.  The gap between the two frontage paths is 11 m; closing it "
-        "needs a stitch five times SNAP_TOL_M, which graph.md 3c measured as "
-        "buying 59 road crossings.  This is a hole in OSM, not a tuning knob."
+    "GRE>MNC": (
+        "Moncrief-Neuhaus sits inside the fenced athletic complex south of "
+        "DKR and every mapped approach to its doors comes off the San "
+        "Jacinto loop to the EAST, while Gregory is to the WEST — so the "
+        "walk rounds the stadium block and arrives back along the building, "
+        "which the audit reads as a 90 m overshoot.  Both doors anchor "
+        "cleanly (1.6-27 m, three spread anchors); the router simply has no "
+        "western approach to choose.  That is the fence, not the graph."
     ),
 }
 
@@ -570,6 +659,239 @@ def snap(G, bgrid, rgrid):
 
 
 # --------------------------------------------------------------------------
+# 3b. walkable road access legs — dead-end chains only, never through-routes
+# --------------------------------------------------------------------------
+
+def edge_clips_building(bgrid, polys, bclass, ax, ay, bx, by, exempt=()):
+    """Depth-inside test for one straight edge, same method as
+    find_through_edges: boundary crossings are not evidence, metres INSIDE a
+    non-roof footprint beyond WALL_CLIP_TOL_M are."""
+    n, hits = crosses_building(bgrid, ax, ay, bx, by, exempt=exempt)
+    if not n:
+        return False
+    L = dist_m(ax, ay, bx, by)
+    k = max(2, int(L / WALL_CLIP_STEP_M))
+    for bid in hits:
+        if bclass.get(bid) in WALL_IGNORE_CLASSES:
+            continue
+        rings = polys.get(bid) or []
+        d = 0.0
+        for i in range(k + 1):
+            t = i / k
+            px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+            if any(point_in_ring(r, px, py) for r in rings):
+                d += L / k
+        if d > WALL_CLIP_TOL_M:
+            return True
+    return False
+
+
+def road_access(G, edges, main, doors, bgrid, polys, bclass):
+    """Attach otherwise-unreachable doors to the main component along real
+    service roads and residential streets.
+
+    The rules that keep this honest, in order:
+      * roads and footways share OSM node ids, so where a road meets the
+        walked network the join is GIVEN, never invented — those shared
+        nodes are the only places a chain may touch the main component;
+      * every adopted chain is a parent-path in ONE multi-source Dijkstra
+        forest rooted at those portal nodes, so the union of chains is a
+        forest and no chain can ever join two main-component nodes — a road
+        is a way IN to a stranded door, never a way THROUGH;
+      * a chain that would run more than WALL_CLIP_TOL_M inside a building
+        that is not the target door's own is rejected whole;
+      * nothing is adopted for a door the footway network already serves.
+    """
+    nx, ny = G["nx"], G["ny"]
+    nid_ix = G["nid_ix"]
+
+    # which doors does the footway main component already serve?
+    sgrid = Grid(25.0)
+    for key in edges:
+        a, b = key
+        if a in main and b in main:
+            sgrid.add(nx[a], ny[a], nx[b], ny[b], key)
+
+    def served(px, py):
+        for key in set(sgrid.near(px, py, DOOR_LINK_MAX_M)):
+            a, b = key
+            d, t, qx, qy = seg_point(px, py, nx[a], ny[a], nx[b], ny[b])
+            if d <= DOOR_LINK_MAX_M:
+                return True
+        return False
+
+    stranded = []
+    for i, dr in enumerate(doors):
+        px, py = xy(dr["lon"], dr["lat"])
+        if not served(px, py):
+            stranded.append((i, px, py))
+    if not stranded:
+        return dict(edges=set(), targets=0, portals=0, km=0.0, doors=[])
+
+    # road subgraph on OSM node ids
+    radj = defaultdict(list)
+    rpos = {}
+    rlayer = {}
+    for w in load("data/osm_cache/roads.json")["elements"]:
+        t = w.get("tags", {})
+        if t.get("highway") not in ROAD_WALKABLE:
+            continue
+        ns, g = w.get("nodes") or [], w.get("geometry") or []
+        if len(ns) != len(g):
+            continue
+        layer = int(t.get("layer", 0) or 0)
+        for i in range(len(ns)):
+            rpos[ns[i]] = xy(g[i]["lon"], g[i]["lat"])
+            rpos.setdefault(("ll", ns[i]), (g[i]["lon"], g[i]["lat"]))
+        for i in range(len(ns) - 1):
+            a, b = ns[i], ns[i + 1]
+            if a == b:
+                continue
+            L = dist_m(*rpos[a], *rpos[b])
+            if L <= 0:
+                continue
+            radj[a].append((b, L))
+            radj[b].append((a, L))
+            rlayer[(a, b) if a < b else (b, a)] = layer
+
+    portals = [nid for nid in radj
+               if nid in nid_ix and nid_ix[nid] in main]
+
+    # one multi-source Dijkstra from every portal: the parent forest
+    INF = float("inf")
+    dist = {}
+    prev = {}
+    pq = []
+    for p in portals:
+        dist[p] = 0.0
+        heapq.heappush(pq, (0.0, p))
+    done = set()
+    while pq:
+        d, u = heapq.heappop(pq)
+        if u in done:
+            continue
+        done.add(u)
+        if d > ROAD_ACCESS_MAX_M:
+            continue
+        for (v, L) in radj[u]:
+            nd = d + L
+            if nd < dist.get(v, INF):
+                dist[v] = nd
+                prev[v] = u
+                heapq.heappush(pq, (nd, v))
+
+    # road segment index for the door-side search
+    rsegs = Grid(40.0)
+    for a in radj:
+        for (b, L) in radj[a]:
+            if a < b:
+                rsegs.add(rpos[a][0], rpos[a][1], rpos[b][0], rpos[b][1], (a, b))
+
+    def mat(nid):
+        """Materialise a road OSM node as a graph node (or reuse it)."""
+        ix = nid_ix.get(nid)
+        if ix is None:
+            lon, lat = rpos[("ll", nid)]
+            ix = len(nx)
+            nid_ix[nid] = ix
+            G["nlon"].append(lon)
+            G["nlat"].append(lat)
+            px, py = rpos[nid]
+            nx.append(px)
+            ny.append(py)
+        return ix
+
+    adopted = set()
+    attached = []
+    for (di, px, py) in stranded:
+        dr = doors[di]
+        cands = []
+        for (a, b) in set(rsegs.near(px, py, DOOR_LINK_MAX_M)):
+            d, t, qx, qy = seg_point(px, py, rpos[a][0], rpos[a][1],
+                                     rpos[b][0], rpos[b][1])
+            if d <= DOOR_LINK_MAX_M:
+                cands.append((d, a, b, t, qx, qy))
+        cands.sort(key=lambda c: c[0])
+        ok = False
+        for (d, a, b, t, qx, qy) in cands[:ROAD_CAND_SEGS]:
+            end = a if t < 0.5 else b
+            if dist.get(end, INF) > ROAD_ACCESS_MAX_M:
+                continue
+            # the chain, endpoint to portal, plus the half-segment to q
+            chain = []
+            u = end
+            while u in prev:
+                chain.append((prev[u], u))
+                u = prev[u]
+            exempt = (dr["bid"],)
+            bad = False
+            for (u, v) in chain:
+                if edge_clips_building(bgrid, polys, bclass,
+                                       rpos[u][0], rpos[u][1],
+                                       rpos[v][0], rpos[v][1], exempt=exempt):
+                    bad = True
+                    break
+            if not bad and dist_m(rpos[end][0], rpos[end][1], qx, qy) >= 0.5 \
+                    and edge_clips_building(bgrid, polys, bclass,
+                                            rpos[end][0], rpos[end][1],
+                                            qx, qy, exempt=exempt):
+                bad = True
+            if bad:
+                continue
+            # adopt: chain edges first, then the half-segment toward the door
+            for (u, v) in chain:
+                iu, iv = mat(u), mat(v)
+                k = (iu, iv) if iu < iv else (iv, iu)
+                if k in edges:
+                    continue
+                lay = rlayer.get((u, v) if u < v else (v, u), 0)
+                edges[k] = [dist_m(nx[iu], ny[iu], nx[iv], ny[iv]), 0, -1, lay]
+                adopted.add(k)
+                main.add(iu)
+                main.add(iv)
+            iend = mat(end)
+            main.add(iend)
+            if dist_m(nx[iend], ny[iend], qx, qy) >= 0.5:
+                iq = len(nx)
+                G["nlon"].append(qx / MPD_LON)
+                G["nlat"].append(qy / MPD_LAT)
+                nx.append(qx)
+                ny.append(qy)
+                k = (iend, iq) if iend < iq else (iq, iend)
+                lay = rlayer.get((a, b) if a < b else (b, a), 0)
+                edges[k] = [dist_m(nx[iend], ny[iend], qx, qy), 0, -1, lay]
+                adopted.add(k)
+                main.add(iq)
+            attached.append((dr["ref"] or "-", dr["nm"] or "-",
+                             round(d, 1), round(dist.get(end, 0.0), 1)))
+            ok = True
+            break
+        if not ok:
+            continue
+
+    # forest assertion: each connected piece of the adopted subgraph must
+    # touch the pre-road main component at EXACTLY one node.  This is the
+    # structural fact that makes a zero-penalty road edge honest.
+    pre_main_ix = {nid_ix[p] for p in portals}
+    nodes_in = set()
+    for (u, v) in adopted:
+        nodes_in.add(u)
+        nodes_in.add(v)
+    idx = {n: i for i, n in enumerate(sorted(nodes_in))}
+    duf = DSU(len(idx))
+    for (u, v) in adopted:
+        duf.union(idx[u], idx[v])
+    comp_portals = defaultdict(set)
+    for n in nodes_in:
+        if n in pre_main_ix:
+            comp_portals[duf.find(idx[n])].add(n)
+    multi = [r for r, ps in comp_portals.items() if len(ps) > 1]
+    km = sum(edges[k][0] for k in adopted) / 1000.0
+    return dict(edges=adopted, targets=len(attached), portals=len(portals),
+                km=round(km, 3), doors=attached, forest_violations=len(multi))
+
+
+# --------------------------------------------------------------------------
 # 4. doors
 # --------------------------------------------------------------------------
 
@@ -603,22 +925,49 @@ def build_doors():
     return out
 
 
-def anchor_doors(G, doors, main, bgrid):
+def anchor_doors(G, doors, main, bgrid, road_keys=None):
     """Project each door onto the nearest main-component segments.
 
-    Two traps from graph.md, both honoured here:
+    Three traps, all honoured here:
       * link to the nearest segment ON THE MAIN COMPONENT, not the nearest
         segment — 25 doors have an island closer than the main network;
       * if the straight link crosses a DIFFERENT building, take the next
-        candidate that does not.
+        candidate that does not;
+      * anchors must span DISTINCT APPROACHES — after the first anchor, a
+        candidate within ANCHOR_SPREAD_M of an earlier anchor ALONG THE
+        NETWORK is passed over, so a door beside a long spur also anchors
+        on the path across the gap (the BUR>CBA overshoot fix).  If the
+        spread rule leaves slots empty, they are refilled nearest-first, so
+        no door loses an anchor it had before.
     """
     nx, ny = G["nx"], G["ny"]
     edges = G["edges"]
     sgrid = Grid(25.0)
+    incm = defaultdict(set)          # node -> incident edge keys, kept fresh
     for key in edges:
         a, b = key
         if a in main and b in main:
             sgrid.add(nx[a], ny[a], nx[b], ny[b], key)
+        incm[a].add(key)
+        incm[b].add(key)
+
+    def ball(key):
+        """Node set within ANCHOR_SPREAD_M of either endpoint, walked over
+        the graph as it stands right now."""
+        out = {}
+        pq = [(0.0, key[0]), (0.0, key[1])]
+        while pq:
+            d, u = heapq.heappop(pq)
+            if d >= out.get(u, float("inf")):
+                continue
+            out[u] = d
+            for k2 in incm[u]:
+                L = edges[k2][0]
+                v = k2[0] if k2[1] == u else k2[1]
+                nd = d + L
+                if nd <= ANCHOR_SPREAD_M and nd < out.get(v, float("inf")):
+                    heapq.heappush(pq, (nd, v))
+        return set(out)
 
     split_count = 0
     through_other = 0
@@ -638,20 +987,35 @@ def anchor_doors(G, doors, main, bgrid):
 
         picked = []
         used_edges = set()
-        blocked = False
-        for (d, key, t, qx, qy) in cands:
+        balls = []
+        blocked_ds = []
+        for spread_pass in (True, False):
+            for (d, key, t, qx, qy) in cands:
+                if len(picked) >= DOOR_ANCHORS:
+                    break
+                if key in used_edges or key not in edges:
+                    continue
+                if spread_pass and ANCHOR_SPREAD_M > 0 and balls and \
+                        any(key[0] in B or key[1] in B for B in balls):
+                    continue      # same approach as an earlier anchor
+                nb, hits = crosses_building(bgrid, px, py, qx, qy,
+                                            exempt=(dr["bid"],))
+                if nb:
+                    blocked_ds.append(d)
+                    used_edges.add(key)   # never retry a blocked link
+                    continue
+                used_edges.add(key)
+                picked.append((d, key, t, qx, qy))
+                if spread_pass and ANCHOR_SPREAD_M > 0:
+                    balls.append(ball(key))
             if len(picked) >= DOOR_ANCHORS:
                 break
-            if key in used_edges:
-                continue
-            nb, hits = crosses_building(bgrid, px, py, qx, qy,
-                                        exempt=(dr["bid"],))
-            if nb:
-                blocked = True
-                continue
-            used_edges.add(key)
-            picked.append((d, key, t, qx, qy))
-        if blocked and picked:
+        picked.sort(key=lambda c: c[0])
+        # 'Re-routed around a neighbour' keeps its original meaning: the
+        # door's NEAREST link crossed another building and a farther one was
+        # taken instead.  A far candidate that the spread pass merely probed
+        # and rejected is not a re-route and does not move the G gate.
+        if picked and blocked_ds and min(blocked_ds) < picked[0][0]:
             through_other += 1
         if not picked:
             dr["anchors"] = []
@@ -673,9 +1037,18 @@ def anchor_doors(G, doors, main, bgrid):
                 G["nlon"].append(qx / MPD_LON)
                 G["nlat"].append(qy / MPD_LAT)
                 L, f, sid, layer = edges.pop(key)
+                incm[a].discard(key)
+                incm[b].discard(key)
+                was_road = road_keys is not None and key in road_keys
+                if was_road:
+                    road_keys.discard(key)
                 for (u, v) in ((a, node), (node, b)):
                     k2 = (u, v) if u < v else (v, u)
                     edges[k2] = [dist_m(nx[u], ny[u], nx[v], ny[v]), f, sid, layer]
+                    incm[u].add(k2)
+                    incm[v].add(k2)
+                    if was_road:
+                        road_keys.add(k2)
                 main.add(node)
                 sgrid.add(nx[a], ny[a], qx, qy, (a, node) if a < node else (node, a))
                 sgrid.add(qx, qy, nx[b], ny[b], (node, b) if node < b else (b, node))
@@ -801,18 +1174,24 @@ def bake(verbose=True):
 
     bgrid, rgrid, polys, nroad, bnames, bclass = build_obstacles()
     sn = snap(G, bgrid, rgrid)
+    _, _, sizes_snap, main = components(len(nx), edges.keys())
+    comps_snap = len(sizes_snap)
+
+    doors = build_doors()
+    ra = road_access(G, edges, main, doors, bgrid, polys, bclass)
+    road_keys = set(ra["edges"])
     _, groups, sizes, main = components(len(nx), edges.keys())
     comps = len(sizes)
 
-    doors = build_doors()
-    an = anchor_doors(G, doors, main, bgrid)
+    an = anchor_doors(G, doors, main, bgrid, road_keys=road_keys)
     through, clip_events = find_through_edges(edges, nx, ny, bgrid, polys, bclass)
 
-    # --- code index, with the hand-checked aliases -------------------------
+    # --- code index: refs (split on ';'), nm aliases, then ref joins -------
     reg = load("data/ut_buildings.json")["buildings"]
     reg_codes = [b["ref"] for b in reg]
     code_doors = defaultdict(list)
     alias_hits = defaultdict(int)
+    alias_bids = defaultdict(set)
     for i, dr in enumerate(doors):
         ref = dr["ref"]
         if not ref:
@@ -820,10 +1199,20 @@ def bake(verbose=True):
                 if dr["nm"] == nm:
                     ref = code
                     alias_hits[code] += 1
+                    alias_bids[code].add(dr["bid"])
                     dr["ref"] = code
                     break
         if ref:
-            code_doors[ref].append(i)
+            for part in ref.split(";"):
+                part = part.strip()
+                if part and i not in code_doors[part]:
+                    code_doors[part].append(i)
+    join_hits = {}
+    for code, src_ref in CODE_REF_JOINS.items():
+        idxs = code_doors.get(src_ref, [])
+        if idxs:
+            code_doors[code] = sorted(set(code_doors.get(code, []) + idxs))
+            join_hits[code] = len(idxs)
 
     routable = set()
     for code, idxs in code_doors.items():
@@ -831,6 +1220,46 @@ def bake(verbose=True):
             routable.add(code)
     routable_reg = sorted(routable & set(reg_codes))
     missing = sorted(set(reg_codes) - routable)
+
+    # --- why is each missing code missing?  Printed with the health block --
+    fp_names = defaultdict(list)
+    for ft in load("data/snapshots/2026-08-05/buildings.enriched.geojson")["features"]:
+        nm = (ft["properties"].get("name") or "").strip()
+        if nm:
+            fp_names[nm.lower()].append(ft["properties"].get("id"))
+
+    _stop = {"the", "of", "and", "a", "at", "on", "for",
+             "hall", "building", "bldg", "center", "centre"}
+
+    def _toks(s):
+        return {t for t in "".join(ch.lower() if ch.isalnum() else " "
+                                   for ch in s).split()
+                if t not in _stop and len(t) > 1}
+
+    reg_by_code = {b["ref"]: b for b in reg}
+    stranded = []
+    for code in missing:
+        idxs = code_doors.get(code, [])
+        if idxs:
+            best = min((doors[i].get("_raw_link") or 1e9) for i in idxs)
+            stranded.append((code, "doors exist, none reachable "
+                            "(nearest network %s)" %
+                            (("%.0f m" % best) if best < 1e9
+                             else "beyond 30 m")))
+            continue
+        rt = _toks(reg_by_code[code]["name"])
+        hit = None
+        for nm in fp_names:
+            ft = _toks(nm)
+            if ft and len(rt & ft) / max(len(rt | ft), 1) >= 0.5:
+                hit = nm
+                break
+        if hit:
+            stranded.append((code, "no door in any source; nearest "
+                            "name-match on the map: '%s'" % hit))
+        else:
+            stranded.append((code, "no door in any source, no matching "
+                            "footprint"))
 
     # --- POIs --------------------------------------------------------------
     pgrid = Grid(25.0)
@@ -870,9 +1299,18 @@ def bake(verbose=True):
             name_ix[b["name"].lower()] = b["ref"]
             if b.get("number"):
                 name_ix[str(b["number"]).lstrip("0").lower()] = b["ref"]
+    # West Campus towers: the truth list is data/westcampus.geojson's names,
+    # and a tower's doors are matched by NAME, not by src — six of the 24
+    # towers' door groups were derived from the facade model rather than
+    # authored, and filtering on src == 'westcampus' is what kept 21 Rio,
+    # Pointe on Rio, Skyloft Austin, The Block, The Quarters Sterling House
+    # and The Venue on Guadalupe out of the shipped graph (QUEUE Z4).
+    wc_names = {ft["properties"].get("name")
+                for ft in load("data/westcampus.geojson")["features"]
+                if ft["properties"].get("name")}
     wc_doors = defaultdict(list)
     for i, dr in enumerate(doors):
-        if dr["src"] == "westcampus" and dr["nm"]:
+        if dr["nm"] in wc_names:
             wc_doors[dr["nm"]].append(i)
 
     # --- flags: mark off-main ---------------------------------------------
@@ -894,6 +1332,17 @@ def bake(verbose=True):
     ew = [int(round(edges[k][0] * 100.0)) for k in order]
     ef = [edges[k][1] for k in order]
     es = [edges[k][2] for k in order]
+
+    # Road access edges, as delta-coded indices into the edge arrays.  The
+    # flag byte is full (all eight bits are assigned and the client decodes
+    # it into a Uint8Array, so a ninth bit would silently wrap to zero) —
+    # membership ships out of band instead.  Today's client ignores this
+    # key; a later one can use it to draw or word the access legs.
+    rix = [i for i, k in enumerate(order) if k in road_keys]
+    rd, prevr = [], 0
+    for i in rix:
+        rd.append(i - prevr)
+        prevr = i
 
     qx, qy = [], []
     lastx = lasty = 0
@@ -921,15 +1370,20 @@ def bake(verbose=True):
     health = dict(
         nodes_raw=n_raw_nodes, edges_raw=n_raw_edges,
         nodes=len(nx), edges=len(edges),
-        components_before_snap=comps0, components=comps,
+        components_before_snap=comps0, components_after_snap=comps_snap,
+        components=comps,
         largest=len(main), largest_pct=round(100.0 * len(main) / len(nx), 2),
         snap_candidates=sn["candidates"], snap_accepted=len(sn["accepted"]),
         snap_rejected_layer=sn["rej_layer"], snap_rejected_building=sn["rej_bldg"],
         snap_rejected_road=sn["rej_road"], dead_ends=sn["dead_ends"],
+        road_edges=len(road_keys), road_km=ra["km"],
+        road_chains=ra["targets"], road_portals=ra["portals"],
+        road_forest_violations=ra.get("forest_violations", 0),
         doors=len(doors), doors_linked=sum(1 for d in doors if d.get("anchors")),
         through_edges=len(through),
         anchor_splits=an["splits"], door_links_rerouted=an["through_other"],
         routable_codes=len(routable_reg), register_codes=len(reg_codes),
+        ref_joins={k: v for k, v in sorted(join_hits.items())},
         pois=len(pois), walk_km=round(sum(edges[k][0] for k in order) / 1000.0, 2),
     )
 
@@ -948,8 +1402,13 @@ def bake(verbose=True):
                     "16 bridge, 32 covered, 64 wheelchair=yes (informational "
                     "ONLY, never route on it), 128 off-main-component. "
                     "e.s: steps way id or -1, so a router counts STAIRCASES "
-                    "and never steps. d: [x,y,anchorNodes,linkCm,role,src,"
+                    "and never steps. re: delta-coded edge indices that are "
+                    "walkable-road access legs (service/residential); they "
+                    "are dead-end chains off the main component, never "
+                    "through-routes, and cost plain metres like any footway. "
+                    "d: [x,y,anchorNodes,linkCm,role,src,"
                     "ref,name]. poi: [x,y,node,cat,name,opening_hours]."),
+        "re": rd,
         "d": dd,
         "code": {k: v for k, v in sorted(code_doors.items())},
         "name": name_ix,
@@ -983,7 +1442,9 @@ def bake(verbose=True):
                zero_w=zero_w, deg0=deg0,
                health=health, raw=raw, gz=gz, links=an["links"],
                missing=missing, routable=routable_reg, code_doors=code_doors,
-               alias_hits=alias_hits, bgrid=bgrid, polys=polys,
+               alias_hits=alias_hits, alias_bids=alias_bids,
+               join_hits=join_hits, road=ra, road_keys=road_keys,
+               stranded=stranded, bgrid=bgrid, polys=polys,
                elapsed=time.time() - t0, kind_len=G["kind_len"])
 
     if verbose:
@@ -1017,6 +1478,15 @@ def print_health(c):
     P(f"    rejected: layer {h['snap_rejected_layer']}  building {h['snap_rejected_building']}"
       f"  road {h['snap_rejected_road']}")
     P("")
+    P("  ROAD ACCESS LEGS  (dead-end chains only; classes %s)"
+      % ", ".join(sorted(ROAD_WALKABLE)))
+    P(f"    doors attached via a road   {h['road_chains']}")
+    P(f"    edges adopted               {h['road_edges']}   ({h['road_km']} km, cap {ROAD_ACCESS_MAX_M:.0f} m per chain)")
+    P(f"    portal nodes available      {h['road_portals']}   (OSM ids shared with the walked network)")
+    P(f"    forest violations           {h['road_forest_violations']}   (a chain joining two main-component nodes; MUST be 0)")
+    for (ref, nm, dlink, chain) in c["road"]["doors"]:
+        P("      %-6s %-34s road at %4.1f m, chain %5.1f m" % (ref, nm[:34], dlink, chain))
+    P("")
     links = c["links"]
     P("  DOORS")
     P(f"    door groups          {h['doors']}")
@@ -1029,8 +1499,12 @@ def print_health(c):
     P("")
     P("  BUILDINGS")
     P(f"    routable / register  {h['routable_codes']} / {h['register_codes']}")
-    P("    aliases used         " + ", ".join("%s:%d" % kv for kv in sorted(c["alias_hits"].items())))
-    P(f"    NOT routable ({len(c['missing'])}): {' '.join(c['missing'])}")
+    P("    nm aliases used      " + ", ".join("%s:%d" % kv for kv in sorted(c["alias_hits"].items())))
+    P("    ref joins used       " + ", ".join("%s<-%s:%d" % (k, CODE_REF_JOINS[k], v)
+                                              for k, v in sorted(c["join_hits"].items())))
+    P(f"    NOT routable ({len(c['missing'])}), and why each one is:")
+    for code, why in c["stranded"]:
+        P("      %-5s %s" % (code, why))
     P("")
     P("  PATHS THROUGH BUILDINGS  (clip tolerance %.1f m)" % WALL_CLIP_TOL_M)
     P(f"    edges inside a footprint by more than that   {h['through_edges']} of {h['edges']}")
@@ -1080,11 +1554,22 @@ def gates(c):
          "%.1f %%" % (100.0 * h["doors_linked"] / max(1, h["doors"]))),
         ("G  door links re-routed around a neighbour <= 20",
          h["door_links_rerouted"] <= 20, f"{h['door_links_rerouted']}"),
-        ("H  routable UT register codes >= 104",
-         h["routable_codes"] >= 104, f"{h['routable_codes']} / {h['register_codes']}"),
+        ("H  routable UT register codes >= 118",
+         h["routable_codes"] >= 118, f"{h['routable_codes']} / {h['register_codes']}"),
+        ("I  every nm alias resolves to exactly one footprint",
+         all(len(c["alias_bids"][k]) == 1 for k in c["alias_hits"]),
+         ", ".join("%s:%d" % (k, len(v)) for k, v in sorted(c["alias_bids"].items()))),
+        ("I  every ref join found its doors",
+         set(c["join_hits"]) == set(CODE_REF_JOINS),
+         "%d of %d" % (len(c["join_hits"]), len(CODE_REF_JOINS))),
         ("K  no zero-weight edge, no isolated node",
          c["zero_w"] == 0 and c["deg0"] == 0,
          f"w==0: {c['zero_w']}, degree 0: {c['deg0']}"),
+        ("R  road access chains are a forest, one portal each",
+         h["road_forest_violations"] == 0,
+         f"violations: {h['road_forest_violations']}"),
+        ("R  road access stays small  (<= 2.0 km adopted)",
+         h["road_km"] <= 2.0, f"{h['road_km']} km on {h['road_edges']} edges"),
         ("N  graph edges through a building > %.0f m  (report, not a gate)"
          % WALL_CLIP_TOL_M, True, f"{len(ev)} of {h['edges']}"),
         ("O  worst door link <= %.0f m" % DOOR_LINK_MAX_M,
@@ -1283,7 +1768,9 @@ def sweep(c, adj):
     whether the other 12,000 are sane."""
     import random
     doors = c["doors"]
-    codes = sorted({d["ref"] for d in doors if d["ref"] and d.get("anchors")})
+    # split multi-refs: 'RMRZ;NEZ' is two codes, not a code with a ';' in it
+    codes = sorted({p for d in doors if d["ref"] and d.get("anchors")
+                    for p in d["ref"].split(";") if p})
     rnd = random.Random(SWEEP_SEED)
     ok = noroute = 0
     walls = decks = overs = 0
@@ -1311,7 +1798,9 @@ def sweep(c, adj):
     P("  SWEEP - %d random routable-code pairs (seed %d)" % (ok, SWEEP_SEED))
     P("    routed                              %d" % ok)
     P("    no route found                      %d" % noroute)
-    P("    CROSSING A BUILDING AT GROUND LEVEL %d   <- must be 0" % walls)
+    P("    touching a mapped footway that OSM draws across a footprint  %d" % walls)
+    P("      (the PATHS THROUGH BUILDINGS list above - real sidewalks under")
+    P("       arcades and canopies, not routes we invented; HANDOFF #113.3)")
     P("    crossing over one on a tagged deck  %d   (correct, not a fault)" % decks)
     P("    overshooting the destination >%.0f %%   %d" % (FLAG_OVERSHOOT_PCT, overs))
     if det:
