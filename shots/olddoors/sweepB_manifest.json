@@ -1,0 +1,6671 @@
+[
+ {
+  "name": "WEL-eid554",
+  "ref": "WEL",
+  "eid": 554,
+  "nm": "Robert A. Welch Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7373199,
+   30.2868254
+  ],
+  "eye": [
+   -97.7371674,
+   30.2868543
+  ],
+  "alt": 1.7,
+  "bearing": 257.6,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 25832,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WEL-eid554.png"
+ },
+ {
+  "name": "GDC-eid197",
+  "ref": "GDC",
+  "eid": 197,
+  "nm": "Bill and Melinda Gates Computer Science Complex",
+  "role": "secondary",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7367896,
+   30.2865303
+  ],
+  "eye": [
+   -97.7367095,
+   30.2866462
+  ],
+  "alt": 1.7,
+  "bearing": 210.83,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 11912,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GDC-eid197.png"
+ },
+ {
+  "name": "GDC-eid195",
+  "ref": "GDC",
+  "eid": 195,
+  "nm": "Bill and Melinda Gates Computer Science Complex",
+  "role": "main",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7369137,
+   30.2862741
+  ],
+  "eye": [
+   -97.7370456,
+   30.2863465
+  ],
+  "alt": 1.7,
+  "bearing": 122.44,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 13459,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GDC-eid195.png"
+ },
+ {
+  "name": "GDC-eid196",
+  "ref": "GDC",
+  "eid": 196,
+  "nm": "Bill and Melinda Gates Computer Science Complex",
+  "role": "secondary",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7368441,
+   30.2859963
+  ],
+  "eye": [
+   -97.7369888,
+   30.2859454
+  ],
+  "alt": 1.7,
+  "bearing": 67.84,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 29786,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GDC-eid196.png"
+ },
+ {
+  "name": "GDC-eid198",
+  "ref": "GDC",
+  "eid": 198,
+  "nm": "Bill and Melinda Gates Computer Science Complex",
+  "role": "secondary",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7366473,
+   30.2859808
+  ],
+  "eye": [
+   -97.7367911,
+   30.2859281
+  ],
+  "alt": 1.7,
+  "bearing": 67,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 29786,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GDC-eid198.png"
+ },
+ {
+  "name": "GDC-eid199",
+  "ref": "GDC",
+  "eid": 199,
+  "nm": "Bill and Melinda Gates Computer Science Complex",
+  "role": "secondary",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7364749,
+   30.2862031
+  ],
+  "eye": [
+   -97.7363191,
+   30.2862136
+  ],
+  "alt": 1.7,
+  "bearing": 265.54,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 28750,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GDC-eid199.png"
+ },
+ {
+  "name": "GDC-eid200",
+  "ref": "GDC",
+  "eid": 200,
+  "nm": "Bill and Melinda Gates Computer Science Complex",
+  "role": "secondary",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7364708,
+   30.2862456
+  ],
+  "eye": [
+   -97.736316,
+   30.286264
+  ],
+  "alt": 1.7,
+  "bearing": 262.18,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 28750,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GDC-eid200.png"
+ },
+ {
+  "name": "GDC-eid201",
+  "ref": "GDC",
+  "eid": 201,
+  "nm": "Bill and Melinda Gates Computer Science Complex",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.736251,
+   30.28649
+  ],
+  "eye": [
+   -97.7361041,
+   30.2865358
+  ],
+  "alt": 1.7,
+  "bearing": 250.16,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 31976,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GDC-eid201.png"
+ },
+ {
+  "name": "POB-eid571",
+  "ref": "POB",
+  "eid": 571,
+  "nm": "O’Donnell Building for Applied Computational Engineering and Sciences",
+  "role": "exit",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7362669,
+   30.286848
+  ],
+  "eye": [
+   -97.7362135,
+   30.2867212
+  ],
+  "alt": 1.7,
+  "bearing": 340.02,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 40209,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "POB-eid571.png"
+ },
+ {
+  "name": "POB-eid570",
+  "ref": "POB",
+  "eid": 570,
+  "nm": "O’Donnell Building for Applied Computational Engineering and Sciences",
+  "role": "main",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7365369,
+   30.2871348
+  ],
+  "eye": [
+   -97.7366159,
+   30.2872512
+  ],
+  "alt": 1.7,
+  "bearing": 149.63,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 15672,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "POB-eid570.png"
+ },
+ {
+  "name": "WEL-eid549",
+  "ref": "WEL",
+  "eid": 549,
+  "nm": "Robert A. Welch Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "osm",
+  "door": [
+   -97.7373883,
+   30.2862721
+  ],
+  "eye": [
+   -97.7373037,
+   30.2861587
+  ],
+  "alt": 1.7,
+  "bearing": 327.2,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 38812,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WEL-eid549.png"
+ },
+ {
+  "name": "WEL-eid553",
+  "ref": "WEL",
+  "eid": 553,
+  "nm": "Robert A. Welch Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7376171,
+   30.2863036
+  ],
+  "eye": [
+   -97.7377053,
+   30.286415
+  ],
+  "alt": 1.7,
+  "bearing": 145.64,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 16310,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WEL-eid553.png"
+ },
+ {
+  "name": "WEL-eid552",
+  "ref": "WEL",
+  "eid": 552,
+  "nm": "Robert A. Welch Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.73786,
+   30.2862192
+  ],
+  "eye": [
+   -97.7378742,
+   30.2863536
+  ],
+  "alt": 1.7,
+  "bearing": 174.77,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 19894,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WEL-eid552.png"
+ },
+ {
+  "name": "WEL-eid551",
+  "ref": "WEL",
+  "eid": 551,
+  "nm": "Robert A. Welch Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.738085,
+   30.286537
+  ],
+  "eye": [
+   -97.7382149,
+   30.2864621
+  ],
+  "alt": 1.7,
+  "bearing": 56.27,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 32152,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WEL-eid551.png"
+ },
+ {
+  "name": "WEL-eid550",
+  "ref": "WEL",
+  "eid": 550,
+  "nm": "Robert A. Welch Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7383261,
+   30.2865788
+  ],
+  "eye": [
+   -97.7384101,
+   30.2866925
+  ],
+  "alt": 1.7,
+  "bearing": 147.44,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 19447,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WEL-eid550.png"
+ },
+ {
+  "name": "PAI-eid350",
+  "ref": "PAI",
+  "eid": 350,
+  "nm": "T. S. Painter Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7384662,
+   30.2869477
+  ],
+  "eye": [
+   -97.7383103,
+   30.286957
+  ],
+  "alt": 1.7,
+  "bearing": 266.07,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 24088,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAI-eid350.png"
+ },
+ {
+  "name": "PAI-eid349",
+  "ref": "PAI",
+  "eid": 349,
+  "nm": "T. S. Painter Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7384359,
+   30.2870773
+  ],
+  "eye": [
+   -97.7384033,
+   30.2872092
+  ],
+  "alt": 1.7,
+  "bearing": 192.04,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 22237,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAI-eid349.png"
+ },
+ {
+  "name": "PAI-eid348",
+  "ref": "PAI",
+  "eid": 348,
+  "nm": "T. S. Painter Hall",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7384239,
+   30.2871989
+  ],
+  "eye": [
+   -97.7382792,
+   30.2872498
+  ],
+  "alt": 1.7,
+  "bearing": 247.82,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 24496,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAI-eid348.png"
+ },
+ {
+  "name": "NHB-eid648",
+  "ref": "NHB",
+  "eid": 648,
+  "nm": "Norman Hackerman Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7385551,
+   30.287799
+  ],
+  "eye": [
+   -97.7386717,
+   30.2878887
+  ],
+  "alt": 1.7,
+  "bearing": 131.69,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 20,
+  "blocked": false,
+  "entSrcFeatures": 21317,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "NHB-eid648.png"
+ },
+ {
+  "name": "PHR-eid1",
+  "ref": "PHR",
+  "eid": 1,
+  "nm": "Pharmacy Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7385257,
+   30.2881767
+  ],
+  "eye": [
+   -97.7383702,
+   30.2881643
+  ],
+  "alt": 1.7,
+  "bearing": 275.3,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 55,
+  "blocked": false,
+  "entSrcFeatures": 23657,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PHR-eid1.png"
+ },
+ {
+  "name": "BUR-eid369",
+  "ref": "BUR",
+  "eid": 369,
+  "nm": "Burdine Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7386389,
+   30.2887781
+  ],
+  "eye": [
+   -97.7386293,
+   30.2889127
+  ],
+  "alt": 1.7,
+  "bearing": 183.5,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 55,
+  "blocked": false,
+  "entSrcFeatures": 25458,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BUR-eid369.png"
+ },
+ {
+  "name": "BME-eid510",
+  "ref": "BME",
+  "eid": 510,
+  "nm": "Biomedical Engineering Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7386496,
+   30.2888724
+  ],
+  "eye": [
+   -97.7385929,
+   30.2889981
+  ],
+  "alt": 1.7,
+  "bearing": 201.26,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 25458,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BME-eid510.png"
+ },
+ {
+  "name": "AHG-eid477",
+  "ref": "AHG",
+  "eid": 477,
+  "nm": "Anna Hiss Gymnasium",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7379063,
+   30.2889169
+  ],
+  "eye": [
+   -97.7379962,
+   30.2890273
+  ],
+  "alt": 1.7,
+  "bearing": 144.89,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20492,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "AHG-eid477.png"
+ },
+ {
+  "name": "MBB-eid444",
+  "ref": "MBB",
+  "eid": 444,
+  "nm": "Louise and James Robert Moffett Molecular Biology Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7370841,
+   30.2887767
+  ],
+  "eye": [
+   -97.7369507,
+   30.288847
+  ],
+  "alt": 1.7,
+  "bearing": 238.6,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20448,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MBB-eid444.png"
+ },
+ {
+  "name": "NMS-eid536",
+  "ref": "NMS",
+  "eid": 536,
+  "nm": "Neural Molecular Science Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7369941,
+   30.289176
+  ],
+  "eye": [
+   -97.736862,
+   30.289248
+  ],
+  "alt": 1.7,
+  "bearing": 237.74,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20448,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "NMS-eid536.png"
+ },
+ {
+  "name": "SEA-eid604",
+  "ref": "SEA",
+  "eid": 604,
+  "nm": "Sarah M. and Charles E. Seay Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.736917,
+   30.289722
+  ],
+  "eye": [
+   -97.7367838,
+   30.2897925
+  ],
+  "alt": 1.7,
+  "bearing": 238.51,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20557,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SEA-eid604.png"
+ },
+ {
+  "name": "CPE-eid229",
+  "ref": "CPE",
+  "eid": 229,
+  "nm": "Chemical and Petroleum Engineering Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "osm",
+  "door": [
+   -97.7361607,
+   30.2899875
+  ],
+  "eye": [
+   -97.7361271,
+   30.2898558
+  ],
+  "alt": 1.7,
+  "bearing": 347.58,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 15749,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "CPE-eid229.png"
+ },
+ {
+  "name": "ETC-eid628",
+  "ref": "ETC",
+  "eid": 628,
+  "nm": "Engineering Teaching Center II",
+  "role": "main",
+  "era": "midcentury",
+  "src": "osm",
+  "door": [
+   -97.7356032,
+   30.2897546
+  ],
+  "eye": [
+   -97.7357556,
+   30.289725
+  ],
+  "alt": 1.7,
+  "bearing": 77.3,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 12965,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ETC-eid628.png"
+ },
+ {
+  "name": "PMA-eid191",
+  "ref": "PMA",
+  "eid": 191,
+  "nm": "Physics, Math, and Astronomy Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7359932,
+   30.2889114
+  ],
+  "eye": [
+   -97.735989,
+   30.2890463
+  ],
+  "alt": 1.7,
+  "bearing": 181.51,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 18442,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PMA-eid191.png"
+ },
+ {
+  "name": "ECJ-eid565",
+  "ref": "ECJ",
+  "eid": 565,
+  "nm": "Ernest Cockrell, Jr. Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7358057,
+   30.2888273
+  ],
+  "eye": [
+   -97.7357672,
+   30.2886966
+  ],
+  "alt": 1.7,
+  "bearing": 345.73,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 19687,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ECJ-eid565.png"
+ },
+ {
+  "name": "EER-eid381",
+  "ref": "EER",
+  "eid": 381,
+  "nm": "Engineering Education and Research Center",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7349085,
+   30.2883599
+  ],
+  "eye": [
+   -97.734774,
+   30.2884286
+  ],
+  "alt": 1.7,
+  "bearing": 239.42,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 21081,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "EER-eid381.png"
+ },
+ {
+  "name": "PPA-eid100",
+  "ref": "PPA",
+  "eid": 100,
+  "nm": "Hal C. Weaver Power Plant Annex",
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7342032,
+   30.2868021
+  ],
+  "eye": [
+   -97.7340879,
+   30.2867111
+  ],
+  "alt": 1.7,
+  "bearing": 312.45,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 27449,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PPA-eid100.png"
+ },
+ {
+  "name": "ART-eid454",
+  "ref": "ART",
+  "eid": 454,
+  "nm": "Art Building and Museum",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7333861,
+   30.2858551
+  ],
+  "eye": [
+   -97.7335405,
+   30.2858346
+  ],
+  "alt": 1.7,
+  "bearing": 81.24,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20463,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ART-eid454.png"
+ },
+ {
+  "name": "X-eid292",
+  "ref": null,
+  "eid": 292,
+  "nm": "DKR Memorial Stadium",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7330797,
+   30.2848529
+  ],
+  "eye": [
+   -97.7330177,
+   30.2849767
+  ],
+  "alt": 1.7,
+  "bearing": 203.35,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 13341,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid292.png"
+ },
+ {
+  "name": "RMRZ;NEZ-eid90",
+  "ref": "RMRZ;NEZ",
+  "eid": 90,
+  "nm": "Red McCombs Red Zone",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7317922,
+   30.2847502
+  ],
+  "eye": [
+   -97.7318963,
+   30.2846497
+  ],
+  "alt": 1.7,
+  "bearing": 41.8,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 19004,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "RMRZ;NEZ-eid90.png"
+ },
+ {
+  "name": "X-eid294",
+  "ref": null,
+  "eid": 294,
+  "nm": "DKR Memorial Stadium",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7314533,
+   30.284471
+  ],
+  "eye": [
+   -97.7312982,
+   30.2844545
+  ],
+  "alt": 1.7,
+  "bearing": 277,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 30018,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid294.png"
+ },
+ {
+  "name": "PAC-eid128",
+  "ref": "PAC",
+  "eid": 128,
+  "nm": "College of Fine Arts Performing Arts Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.731531,
+   30.2859504
+  ],
+  "eye": [
+   -97.7315801,
+   30.2860784
+  ],
+  "alt": 1.7,
+  "bearing": 161.69,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 18529,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAC-eid128.png"
+ },
+ {
+  "name": "PAC-eid129",
+  "ref": "PAC",
+  "eid": 129,
+  "nm": "College of Fine Arts Performing Arts Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7315186,
+   30.2860763
+  ],
+  "eye": [
+   -97.7315749,
+   30.2862021
+  ],
+  "alt": 1.7,
+  "bearing": 158.86,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 18529,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAC-eid129.png"
+ },
+ {
+  "name": "PAC-eid130",
+  "ref": "PAC",
+  "eid": 130,
+  "nm": "College of Fine Arts Performing Arts Center",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7315003,
+   30.2862608
+  ],
+  "eye": [
+   -97.7316329,
+   30.2861895
+  ],
+  "alt": 1.7,
+  "bearing": 58.07,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 18282,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAC-eid130.png"
+ },
+ {
+  "name": "DFA-eid588",
+  "ref": "DFA",
+  "eid": 588,
+  "nm": "E. William Doty Fine Arts Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7320078,
+   30.2859035
+  ],
+  "eye": [
+   -97.7321593,
+   30.2858707
+  ],
+  "alt": 1.7,
+  "bearing": 75.92,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 18854,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "DFA-eid588.png"
+ },
+ {
+  "name": "TMM-eid247",
+  "ref": "TMM",
+  "eid": 247,
+  "nm": "Texas Memorial Museum",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7323019,
+   30.2868532
+  ],
+  "eye": [
+   -97.7321558,
+   30.286901
+  ],
+  "alt": 1.7,
+  "bearing": 249.26,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 29959,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "TMM-eid247.png"
+ },
+ {
+  "name": "TMM-eid246",
+  "ref": "TMM",
+  "eid": 246,
+  "nm": "Texas Memorial Museum",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7324389,
+   30.2871431
+  ],
+  "eye": [
+   -97.7324438,
+   30.2872779
+  ],
+  "alt": 1.7,
+  "bearing": 178.18,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 14904,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "TMM-eid246.png"
+ },
+ {
+  "name": "MRH-eid207",
+  "ref": "MRH",
+  "eid": 207,
+  "nm": "Music Recital Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7308325,
+   30.2877127
+  ],
+  "eye": [
+   -97.7307006,
+   30.287785
+  ],
+  "alt": 1.7,
+  "bearing": 237.57,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 33009,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MRH-eid207.png"
+ },
+ {
+  "name": "CCJ-eid282",
+  "ref": "CCJ",
+  "eid": 282,
+  "nm": "John B. Connally Center for Justice",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7306055,
+   30.2879401
+  ],
+  "eye": [
+   -97.7305324,
+   30.2878209
+  ],
+  "alt": 1.7,
+  "bearing": 332.12,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 45610,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "CCJ-eid282.png"
+ },
+ {
+  "name": "X-eid135",
+  "ref": null,
+  "eid": 135,
+  "nm": "GoPuff Market",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7293781,
+   30.2888704
+  ],
+  "eye": [
+   -97.7295269,
+   30.2889116
+  ],
+  "alt": 1.7,
+  "bearing": 107.77,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 11327,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid135.png"
+ },
+ {
+  "name": "X-eid146",
+  "ref": null,
+  "eid": 146,
+  "nm": null,
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7271414,
+   30.2895441
+  ],
+  "eye": [
+   -97.7269995,
+   30.2894876
+  ],
+  "alt": 1.7,
+  "bearing": 294.75,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 37168,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid146.png"
+ },
+ {
+  "name": "X-eid253",
+  "ref": null,
+  "eid": 253,
+  "nm": null,
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7274963,
+   30.2910978
+  ],
+  "eye": [
+   -97.7273403,
+   30.2910911
+  ],
+  "alt": 1.7,
+  "bearing": 272.86,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 26808,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid253.png"
+ },
+ {
+  "name": "X-eid358",
+  "ref": null,
+  "eid": 358,
+  "nm": null,
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.728995,
+   30.2917858
+  ],
+  "eye": [
+   -97.7288538,
+   30.2918436
+  ],
+  "alt": 1.7,
+  "bearing": 244.64,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 25648,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid358.png"
+ },
+ {
+  "name": "JON-eid75",
+  "ref": "JON",
+  "eid": 75,
+  "nm": "Jesse H. Jones Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7318533,
+   30.2889567
+  ],
+  "eye": [
+   -97.7318839,
+   30.289089
+  ],
+  "alt": 1.7,
+  "bearing": 168.7,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 19749,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JON-eid75.png"
+ },
+ {
+  "name": "X-eid555",
+  "ref": null,
+  "eid": 555,
+  "nm": null,
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7331428,
+   30.2903008
+  ],
+  "eye": [
+   -97.7330046,
+   30.2903636
+  ],
+  "alt": 1.7,
+  "bearing": 242.22,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 21820,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid555.png"
+ },
+ {
+  "name": "X-eid471",
+  "ref": null,
+  "eid": 471,
+  "nm": null,
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7333182,
+   30.2913725
+  ],
+  "eye": [
+   -97.7331749,
+   30.2914262
+  ],
+  "alt": 1.7,
+  "bearing": 246.55,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 22648,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid471.png"
+ },
+ {
+  "name": "X-eid158",
+  "ref": null,
+  "eid": 158,
+  "nm": null,
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7339449,
+   30.2916701
+  ],
+  "eye": [
+   -97.7338009,
+   30.2917225
+  ],
+  "alt": 1.7,
+  "bearing": 247.15,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 22587,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid158.png"
+ },
+ {
+  "name": "ARC-eid225",
+  "ref": "ARC",
+  "eid": 225,
+  "nm": "Animal Resource Center",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7357739,
+   30.2915875
+  ],
+  "eye": [
+   -97.7356256,
+   30.2916299
+  ],
+  "alt": 1.7,
+  "bearing": 251.69,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 21885,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ARC-eid225.png"
+ },
+ {
+  "name": "ARC-eid226",
+  "ref": "ARC",
+  "eid": 226,
+  "nm": "Animal Resource Center",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7361033,
+   30.2918186
+  ],
+  "eye": [
+   -97.7360537,
+   30.2916907
+  ],
+  "alt": 1.7,
+  "bearing": 341.5,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 13722,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ARC-eid226.png"
+ },
+ {
+  "name": "X-eid74",
+  "ref": null,
+  "eid": 74,
+  "nm": null,
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7355867,
+   30.2929088
+  ],
+  "eye": [
+   -97.7357323,
+   30.2929576
+  ],
+  "alt": 1.7,
+  "bearing": 111.23,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 8638,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid74.png"
+ },
+ {
+  "name": "ASE-eid527",
+  "ref": "ASE",
+  "eid": 527,
+  "nm": "Aerospace Engineering Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7377695,
+   30.2909187
+  ],
+  "eye": [
+   -97.737904,
+   30.2908501
+  ],
+  "alt": 1.7,
+  "bearing": 59.43,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20362,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ASE-eid527.png"
+ },
+ {
+  "name": "TSG-eid598",
+  "ref": "TSG",
+  "eid": 598,
+  "nm": "27th Street Garage",
+  "role": "service",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7382901,
+   30.2909855
+  ],
+  "eye": [
+   -97.7381501,
+   30.2909257
+  ],
+  "alt": 1.7,
+  "bearing": 296.32,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 9415,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "TSG-eid598.png"
+ },
+ {
+  "name": "SSB-eid103",
+  "ref": "SSB",
+  "eid": 103,
+  "nm": "Student Services Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7382633,
+   30.2904397
+  ],
+  "eye": [
+   -97.7383441,
+   30.2905552
+  ],
+  "alt": 1.7,
+  "bearing": 148.87,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 24863,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SSB-eid103.png"
+ },
+ {
+  "name": "X-eid307",
+  "ref": null,
+  "eid": 307,
+  "nm": "Kinsolving Dormitory",
+  "role": "emergency",
+  "era": "utility",
+  "src": "osm",
+  "door": [
+   -97.7392695,
+   30.2899289
+  ],
+  "eye": [
+   -97.7391518,
+   30.2898403
+  ],
+  "alt": 1.7,
+  "bearing": 311.09,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 8382,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid307.png"
+ },
+ {
+  "name": "X-eid311",
+  "ref": null,
+  "eid": 311,
+  "nm": "Kinsolving Dormitory",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7396376,
+   30.2899177
+  ],
+  "eye": [
+   -97.7397391,
+   30.2898152
+  ],
+  "alt": 1.7,
+  "bearing": 40.53,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 24590,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid311.png"
+ },
+ {
+  "name": "CMA-eid561",
+  "ref": "CMA",
+  "eid": 561,
+  "nm": "Jesse H. Jones Communication Center - A",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7405343,
+   30.2894787
+  ],
+  "eye": [
+   -97.7403822,
+   30.2895094
+  ],
+  "alt": 1.7,
+  "bearing": 256.83,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 17117,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "CMA-eid561.png"
+ },
+ {
+  "name": "HSM-eid398",
+  "ref": "HSM",
+  "eid": 398,
+  "nm": "William Randolph Hearst Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7409059,
+   30.2890044
+  ],
+  "eye": [
+   -97.7409464,
+   30.2891347
+  ],
+  "alt": 1.7,
+  "bearing": 164.97,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 29468,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HSM-eid398.png"
+ },
+ {
+  "name": "CMB-eid524",
+  "ref": "CMB",
+  "eid": 524,
+  "nm": "Jesse H. Jones Communication Center - B",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7410395,
+   30.2890179
+  ],
+  "eye": [
+   -97.7408877,
+   30.2890498
+  ],
+  "alt": 1.7,
+  "bearing": 256.33,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 17072,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "CMB-eid524.png"
+ },
+ {
+  "name": "WWH-eid120",
+  "ref": "WWH",
+  "eid": 120,
+  "nm": "Walter Webb Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7421009,
+   30.2891957
+  ],
+  "eye": [
+   -97.742067,
+   30.289064
+  ],
+  "alt": 1.7,
+  "bearing": 347.47,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 21840,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WWH-eid120.png"
+ },
+ {
+  "name": "SAG-eid612",
+  "ref": "SAG",
+  "eid": 612,
+  "nm": "San Antonio Garage",
+  "role": "service",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7423556,
+   30.288987
+  ],
+  "eye": [
+   -97.7422141,
+   30.2889299
+  ],
+  "alt": 1.7,
+  "bearing": 295.07,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 6634,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SAG-eid612.png"
+ },
+ {
+  "name": "LFH-eid585",
+  "ref": "LFH",
+  "eid": 585,
+  "nm": "Littlefield House",
+  "role": "main",
+  "era": "victorian",
+  "src": "derived",
+  "door": [
+   -97.7407825,
+   30.2879836
+  ],
+  "eye": [
+   -97.7409387,
+   30.287986
+  ],
+  "alt": 1.7,
+  "bearing": 91,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 39729,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "LFH-eid585.png"
+ },
+ {
+  "name": "GWB-eid562",
+  "ref": "GWB",
+  "eid": 562,
+  "nm": "Gordon-White Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7397299,
+   30.2880071
+  ],
+  "eye": [
+   -97.7398786,
+   30.2880485
+  ],
+  "alt": 1.7,
+  "bearing": 107.87,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -20,
+  "blocked": false,
+  "entSrcFeatures": 36349,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GWB-eid562.png"
+ },
+ {
+  "name": "GEA-eid273",
+  "ref": "GEA",
+  "eid": 273,
+  "nm": "Mary E. Gearing Hall",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7392193,
+   30.2877139
+  ],
+  "eye": [
+   -97.7391294,
+   30.2876036
+  ],
+  "alt": 1.7,
+  "bearing": 324.88,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 33707,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GEA-eid273.png"
+ },
+ {
+  "name": "BIO-eid95",
+  "ref": "BIO",
+  "eid": 95,
+  "nm": "Biological Laboratories",
+  "role": "main",
+  "era": "gilbert",
+  "src": "derived",
+  "door": [
+   -97.7394749,
+   30.2870878
+  ],
+  "eye": [
+   -97.7395491,
+   30.2869691
+  ],
+  "alt": 1.7,
+  "bearing": 28.37,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 47850,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BIO-eid95.png"
+ },
+ {
+  "name": "BIO-eid96",
+  "ref": "BIO",
+  "eid": 96,
+  "nm": "Biological Laboratories",
+  "role": "secondary",
+  "era": "gilbert",
+  "src": "derived",
+  "door": [
+   -97.7396086,
+   30.2870978
+  ],
+  "eye": [
+   -97.7396823,
+   30.2869788
+  ],
+  "alt": 1.7,
+  "bearing": 28.16,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 47850,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BIO-eid96.png"
+ },
+ {
+  "name": "MAI-eid421",
+  "ref": "MAI",
+  "eid": 421,
+  "nm": "UT Tower",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7394122,
+   30.286372
+  ],
+  "eye": [
+   -97.7394221,
+   30.2865066
+  ],
+  "alt": 1.7,
+  "bearing": 176.37,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20656,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MAI-eid421.png"
+ },
+ {
+  "name": "MAI-eid422",
+  "ref": "MAI",
+  "eid": 422,
+  "nm": "UT Tower",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7393175,
+   30.286365
+  ],
+  "eye": [
+   -97.7393239,
+   30.2864997
+  ],
+  "alt": 1.7,
+  "bearing": 177.65,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 21003,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MAI-eid422.png"
+ },
+ {
+  "name": "MAI-eid419",
+  "ref": "MAI",
+  "eid": 419,
+  "nm": "UT Tower",
+  "role": "secondary",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7389803,
+   30.2859785
+  ],
+  "eye": [
+   -97.7388245,
+   30.2859882
+  ],
+  "alt": 1.7,
+  "bearing": 265.88,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 27175,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MAI-eid419.png"
+ },
+ {
+  "name": "MAI-eid423",
+  "ref": "MAI",
+  "eid": 423,
+  "nm": "UT Tower",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7392231,
+   30.2856519
+  ],
+  "eye": [
+   -97.7393791,
+   30.2856447
+  ],
+  "alt": 1.7,
+  "bearing": 86.95,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 38829,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MAI-eid423.png"
+ },
+ {
+  "name": "MAI-eid418",
+  "ref": "MAI",
+  "eid": 418,
+  "nm": "UT Tower",
+  "role": "main",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7394179,
+   30.2857578
+  ],
+  "eye": [
+   -97.7393282,
+   30.2856473
+  ],
+  "alt": 1.7,
+  "bearing": 324.99,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 37769,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MAI-eid418.png"
+ },
+ {
+  "name": "MAI-eid420",
+  "ref": "MAI",
+  "eid": 420,
+  "nm": "UT Tower",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7396497,
+   30.2856532
+  ],
+  "eye": [
+   -97.7396421,
+   30.2855185
+  ],
+  "alt": 1.7,
+  "bearing": 357.19,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 48841,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MAI-eid420.png"
+ },
+ {
+  "name": "MAI-eid417",
+  "ref": "MAI",
+  "eid": 417,
+  "nm": "UT Tower",
+  "role": "secondary",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7397446,
+   30.2859562
+  ],
+  "eye": [
+   -97.7399004,
+   30.285946
+  ],
+  "alt": 1.7,
+  "bearing": 85.67,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 39634,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MAI-eid417.png"
+ },
+ {
+  "name": "FAC-eid70",
+  "ref": "FAC",
+  "eid": 70,
+  "nm": "Peter T. Flawn Academic Center",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7402739,
+   30.2859924
+  ],
+  "eye": [
+   -97.7402355,
+   30.2858616
+  ],
+  "alt": 1.7,
+  "bearing": 345.78,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 48366,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "FAC-eid70.png"
+ },
+ {
+  "name": "BTL-eid106",
+  "ref": "BTL",
+  "eid": 106,
+  "nm": "Battle Hall",
+  "role": "secondary",
+  "era": "gilbert",
+  "src": "derived",
+  "door": [
+   -97.7401489,
+   30.2855753
+  ],
+  "eye": [
+   -97.740011,
+   30.2855119
+  ],
+  "alt": 1.7,
+  "bearing": 298.03,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 22518,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BTL-eid106.png"
+ },
+ {
+  "name": "BTL-eid105",
+  "ref": "BTL",
+  "eid": 105,
+  "nm": "Battle Hall",
+  "role": "main",
+  "era": "gilbert",
+  "src": "authored",
+  "door": [
+   -97.7401654,
+   30.2854097
+  ],
+  "eye": [
+   -97.7400278,
+   30.2853459
+  ],
+  "alt": 1.7,
+  "bearing": 298.24,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 22881,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BTL-eid105.png"
+ },
+ {
+  "name": "PAR-eid23",
+  "ref": "PAR",
+  "eid": 23,
+  "nm": "Parlin Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "osm",
+  "door": [
+   -97.7398529,
+   30.2848784
+  ],
+  "eye": [
+   -97.7397009,
+   30.2849096
+  ],
+  "alt": 1.7,
+  "bearing": 256.63,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 19391,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAR-eid23.png"
+ },
+ {
+  "name": "CAL-eid236",
+  "ref": "CAL",
+  "eid": 236,
+  "nm": "Calhoun Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7403522,
+   30.2847177
+  ],
+  "eye": [
+   -97.7405036,
+   30.2846843
+  ],
+  "alt": 1.7,
+  "bearing": 75.66,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 43305,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "CAL-eid236.png"
+ },
+ {
+  "name": "HRC-eid219",
+  "ref": "HRC",
+  "eid": 219,
+  "nm": "Harry Ransom Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7409032,
+   30.2845461
+  ],
+  "eye": [
+   -97.7408453,
+   30.2844208
+  ],
+  "alt": 1.7,
+  "bearing": 338.28,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 42343,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HRC-eid219.png"
+ },
+ {
+  "name": "HRC-eid218",
+  "ref": "HRC",
+  "eid": 218,
+  "nm": "Harry Ransom Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7409289,
+   30.2846019
+  ],
+  "eye": [
+   -97.7407855,
+   30.2846556
+  ],
+  "alt": 1.7,
+  "bearing": 246.56,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 18594,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HRC-eid218.png"
+ },
+ {
+  "name": "HRC-eid217",
+  "ref": "HRC",
+  "eid": 217,
+  "nm": "Harry Ransom Center",
+  "role": "main",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7409294,
+   30.28428
+  ],
+  "eye": [
+   -97.7407909,
+   30.2843424
+  ],
+  "alt": 1.7,
+  "bearing": 242.44,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 18053,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HRC-eid217.png"
+ },
+ {
+  "name": "HRH-eid142",
+  "ref": "HRH",
+  "eid": 142,
+  "nm": "Homer Rainey Hall",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7401963,
+   30.2839764
+  ],
+  "eye": [
+   -97.7401069,
+   30.2838658
+  ],
+  "alt": 1.7,
+  "bearing": 325.11,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 39428,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HRH-eid142.png"
+ },
+ {
+  "name": "BEN-eid297",
+  "ref": "BEN",
+  "eid": 297,
+  "nm": "Benedict Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7391358,
+   30.2838792
+  ],
+  "eye": [
+   -97.7390996,
+   30.283748
+  ],
+  "alt": 1.7,
+  "bearing": 346.6,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 52517,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BEN-eid297.png"
+ },
+ {
+  "name": "UTC-eid542",
+  "ref": "UTC",
+  "eid": 542,
+  "nm": "University Teaching Center",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7385486,
+   30.2834265
+  ],
+  "eye": [
+   -97.7385835,
+   30.283558
+  ],
+  "alt": 1.7,
+  "bearing": 167.11,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 15927,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "UTC-eid542.png"
+ },
+ {
+  "name": "PCL-eid14",
+  "ref": "PCL",
+  "eid": 14,
+  "nm": "Perry-Castañeda Library",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7380518,
+   30.28301
+  ],
+  "eye": [
+   -97.7380865,
+   30.2831415
+  ],
+  "alt": 1.7,
+  "bearing": 167.18,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 15457,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PCL-eid14.png"
+ },
+ {
+  "name": "PCL-eid13",
+  "ref": "PCL",
+  "eid": 13,
+  "nm": "Perry-Castañeda Library",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7377464,
+   30.2829573
+  ],
+  "eye": [
+   -97.7375905,
+   30.2829486
+  ],
+  "alt": 1.7,
+  "bearing": 273.69,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 26503,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PCL-eid13.png"
+ },
+ {
+  "name": "JES-eid414",
+  "ref": "JES",
+  "eid": 414,
+  "nm": "Beauford H. Jester Center",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7371039,
+   30.2830242
+  ],
+  "eye": [
+   -97.7372519,
+   30.2829812
+  ],
+  "alt": 1.7,
+  "bearing": 71.4,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 27517,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JES-eid414.png"
+ },
+ {
+  "name": "JES-eid413",
+  "ref": "JES",
+  "eid": 413,
+  "nm": "Beauford H. Jester Center",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7371791,
+   30.2825939
+  ],
+  "eye": [
+   -97.7373304,
+   30.2825602
+  ],
+  "alt": 1.7,
+  "bearing": 75.54,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 27641,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JES-eid413.png"
+ },
+ {
+  "name": "GRE-eid68",
+  "ref": "GRE",
+  "eid": 68,
+  "nm": "Gregory Gym",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7369802,
+   30.2836716
+  ],
+  "eye": [
+   -97.7371115,
+   30.2837448
+  ],
+  "alt": 1.7,
+  "bearing": 122.86,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 12755,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GRE-eid68.png"
+ },
+ {
+  "name": "GRE-eid67",
+  "ref": "GRE",
+  "eid": 67,
+  "nm": "Gregory Gym",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7369676,
+   30.2837983
+  ],
+  "eye": [
+   -97.7370991,
+   30.2838711
+  ],
+  "alt": 1.7,
+  "bearing": 122.67,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 13133,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GRE-eid67.png"
+ },
+ {
+  "name": "GRE-eid66",
+  "ref": "GRE",
+  "eid": 66,
+  "nm": "Gregory Gym",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7369549,
+   30.283925
+  ],
+  "eye": [
+   -97.7370867,
+   30.2839973
+  ],
+  "alt": 1.7,
+  "bearing": 122.43,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 13133,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GRE-eid66.png"
+ },
+ {
+  "name": "GRE-eid64",
+  "ref": "GRE",
+  "eid": 64,
+  "nm": "Gregory Gym",
+  "role": "main",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7368353,
+   30.2840103
+  ],
+  "eye": [
+   -97.7369679,
+   30.2840816
+  ],
+  "alt": 1.7,
+  "bearing": 121.91,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 13133,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GRE-eid64.png"
+ },
+ {
+  "name": "GRE-eid65",
+  "ref": "GRE",
+  "eid": 65,
+  "nm": "Gregory Gym",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7368724,
+   30.2841612
+  ],
+  "eye": [
+   -97.7370043,
+   30.2842334
+  ],
+  "alt": 1.7,
+  "bearing": 122.34,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 13133,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GRE-eid65.png"
+ },
+ {
+  "name": "WCP-eid498",
+  "ref": "WCP",
+  "eid": 498,
+  "nm": "William C. Powers, Jr. Student Activity Center",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7370681,
+   30.2848355
+  ],
+  "eye": [
+   -97.737203,
+   30.2847675
+  ],
+  "alt": 1.7,
+  "bearing": 59.72,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 30901,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WCP-eid498.png"
+ },
+ {
+  "name": "WAG-eid492",
+  "ref": "WAG",
+  "eid": 492,
+  "nm": "Waggener Hall",
+  "role": "main",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7375144,
+   30.2849368
+  ],
+  "eye": [
+   -97.7373585,
+   30.2849464
+  ],
+  "alt": 1.7,
+  "bearing": 265.91,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 27336,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WAG-eid492.png"
+ },
+ {
+  "name": "WAG-eid489",
+  "ref": "WAG",
+  "eid": 489,
+  "nm": "Waggener Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7377259,
+   30.2849469
+  ],
+  "eye": [
+   -97.7378818,
+   30.2849373
+  ],
+  "alt": 1.7,
+  "bearing": 85.91,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 32573,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WAG-eid489.png"
+ },
+ {
+  "name": "WAG-eid490",
+  "ref": "WAG",
+  "eid": 490,
+  "nm": "Waggener Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.737709,
+   30.2851154
+  ],
+  "eye": [
+   -97.7378649,
+   30.2851058
+  ],
+  "alt": 1.7,
+  "bearing": 85.91,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 32573,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WAG-eid490.png"
+ },
+ {
+  "name": "WAG-eid491",
+  "ref": "WAG",
+  "eid": 491,
+  "nm": "Waggener Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7376924,
+   30.2852813
+  ],
+  "eye": [
+   -97.7378483,
+   30.2852717
+  ],
+  "alt": 1.7,
+  "bearing": 85.91,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 32573,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WAG-eid491.png"
+ },
+ {
+  "name": "WAG-eid493",
+  "ref": "WAG",
+  "eid": 493,
+  "nm": "Waggener Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "osm",
+  "door": [
+   -97.7374815,
+   30.2852647
+  ],
+  "eye": [
+   -97.7373256,
+   30.2852743
+  ],
+  "alt": 1.7,
+  "bearing": 265.91,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 27336,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WAG-eid493.png"
+ },
+ {
+  "name": "WEL-eid548",
+  "ref": "WEL",
+  "eid": 548,
+  "nm": "Robert A. Welch Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "osm",
+  "door": [
+   -97.737655,
+   30.2857464
+  ],
+  "eye": [
+   -97.7377886,
+   30.2856765
+  ],
+  "alt": 1.7,
+  "bearing": 58.83,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 30424,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WEL-eid548.png"
+ },
+ {
+  "name": "COM-eid235",
+  "ref": "COM",
+  "eid": 235,
+  "nm": "Computation Center",
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7384228,
+   30.2857241
+  ],
+  "eye": [
+   -97.7383367,
+   30.2856115
+  ],
+  "alt": 1.7,
+  "bearing": 326.55,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 39252,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "COM-eid235.png"
+ },
+ {
+  "name": "WCH-eid279",
+  "ref": "WCH",
+  "eid": 279,
+  "nm": "Will C. Hogg Building",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7384119,
+   30.2859856
+  ],
+  "eye": [
+   -97.7383246,
+   30.2858738
+  ],
+  "alt": 1.7,
+  "bearing": 326.01,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 39252,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "WCH-eid279.png"
+ },
+ {
+  "name": "GEB-eid457",
+  "ref": "GEB",
+  "eid": 457,
+  "nm": "Dorothy Gebauer Building",
+  "role": "main",
+  "era": "victorian",
+  "src": "derived",
+  "door": [
+   -97.7386387,
+   30.2862671
+  ],
+  "eye": [
+   -97.738685,
+   30.2861383
+  ],
+  "alt": 1.7,
+  "bearing": 17.27,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 49551,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GEB-eid457.png"
+ },
+ {
+  "name": "GAR-eid534",
+  "ref": "GAR",
+  "eid": 534,
+  "nm": "Garrison Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7384023,
+   30.2852608
+  ],
+  "eye": [
+   -97.738404,
+   30.2853957
+  ],
+  "alt": 1.7,
+  "bearing": 179.38,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 55,
+  "blocked": false,
+  "entSrcFeatures": 21087,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GAR-eid534.png"
+ },
+ {
+  "name": "GAR-eid535",
+  "ref": "GAR",
+  "eid": 535,
+  "nm": "Garrison Hall",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7382251,
+   30.2851513
+  ],
+  "eye": [
+   -97.7380897,
+   30.2852186
+  ],
+  "alt": 1.7,
+  "bearing": 240.08,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 23456,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GAR-eid535.png"
+ },
+ {
+  "name": "BAT-eid404",
+  "ref": "BAT",
+  "eid": 404,
+  "nm": "Batts Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7386665,
+   30.2848395
+  ],
+  "eye": [
+   -97.7385141,
+   30.2848692
+  ],
+  "alt": 1.7,
+  "bearing": 257.3,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 26131,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BAT-eid404.png"
+ },
+ {
+  "name": "MEZ-eid486",
+  "ref": "MEZ",
+  "eid": 486,
+  "nm": "Mezes Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7386989,
+   30.2846653
+  ],
+  "eye": [
+   -97.7385464,
+   30.2846945
+  ],
+  "alt": 1.7,
+  "bearing": 257.48,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 27165,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MEZ-eid486.png"
+ },
+ {
+  "name": "GSB-eid138",
+  "ref": "GSB",
+  "eid": 138,
+  "nm": "Graduate School of Business Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7381514,
+   30.2839891
+  ],
+  "eye": [
+   -97.7381591,
+   30.2838544
+  ],
+  "alt": 1.7,
+  "bearing": 2.84,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 55,
+  "blocked": false,
+  "entSrcFeatures": 54323,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GSB-eid138.png"
+ },
+ {
+  "name": "CBA-eid601",
+  "ref": "CBA",
+  "eid": 601,
+  "nm": "McCombs School of Business",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7376319,
+   30.2846854
+  ],
+  "eye": [
+   -97.7376693,
+   30.2848163
+  ],
+  "alt": 1.7,
+  "bearing": 166.13,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 14911,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "CBA-eid601.png"
+ },
+ {
+  "name": "BRB-eid516",
+  "ref": "BRB",
+  "eid": 516,
+  "nm": "Bernard and Audre Rapoport Building",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7364424,
+   30.2852578
+  ],
+  "eye": [
+   -97.7363139,
+   30.2853345
+  ],
+  "alt": 1.7,
+  "bearing": 235.33,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 10386,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BRB-eid516.png"
+ },
+ {
+  "name": "JGB-eid463",
+  "ref": "JGB",
+  "eid": 463,
+  "nm": "Jackson Geological Sciences Building",
+  "role": "exit",
+  "era": "midcentury",
+  "src": "osm",
+  "door": [
+   -97.7357866,
+   30.2860879
+  ],
+  "eye": [
+   -97.735841,
+   30.2862143
+  ],
+  "alt": 1.7,
+  "bearing": 159.61,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 11357,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JGB-eid463.png"
+ },
+ {
+  "name": "JGB-eid464",
+  "ref": "JGB",
+  "eid": 464,
+  "nm": "Jackson Geological Sciences Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.735542,
+   30.2860718
+  ],
+  "eye": [
+   -97.7353901,
+   30.286103
+  ],
+  "alt": 1.7,
+  "bearing": 256.59,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 32214,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JGB-eid464.png"
+ },
+ {
+  "name": "RLP-eid99",
+  "ref": "RLP",
+  "eid": 99,
+  "nm": "Patton Hall",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7350914,
+   30.2849971
+  ],
+  "eye": [
+   -97.7350148,
+   30.2848795
+  ],
+  "alt": 1.7,
+  "bearing": 330.63,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 43390,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "RLP-eid99.png"
+ },
+ {
+  "name": "BHD-eid285",
+  "ref": "BHD",
+  "eid": 285,
+  "nm": "Brackenridge Hall Dormitory",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.735631,
+   30.2831439
+  ],
+  "eye": [
+   -97.7355117,
+   30.2832311
+  ],
+  "alt": 1.7,
+  "bearing": 229.75,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 8290,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BHD-eid285.png"
+ },
+ {
+  "name": "BEL-eid166",
+  "ref": "BEL",
+  "eid": 166,
+  "nm": "L. Theo Bellmont Hall",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7335707,
+   30.2830259
+  ],
+  "eye": [
+   -97.7334846,
+   30.2829134
+  ],
+  "alt": 1.7,
+  "bearing": 326.55,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 46398,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BEL-eid166.png"
+ },
+ {
+  "name": "BEL-eid164",
+  "ref": "BEL",
+  "eid": 164,
+  "nm": "L. Theo Bellmont Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7334157,
+   30.2830599
+  ],
+  "eye": [
+   -97.7335092,
+   30.2829518
+  ],
+  "alt": 1.7,
+  "bearing": 36.76,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 34386,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BEL-eid164.png"
+ },
+ {
+  "name": "X-eid287",
+  "ref": null,
+  "eid": 287,
+  "nm": "DKR Memorial Stadium",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7334152,
+   30.2830599
+  ],
+  "eye": [
+   -97.7335359,
+   30.2829742
+  ],
+  "alt": 1.7,
+  "bearing": 50.56,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 19544,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid287.png"
+ },
+ {
+  "name": "SEZ-eid346",
+  "ref": "SEZ",
+  "eid": 346,
+  "nm": "South End Zone",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7332119,
+   30.2827906
+  ],
+  "eye": [
+   -97.733264,
+   30.2829178
+  ],
+  "alt": 1.7,
+  "bearing": 160.54,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 5648,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SEZ-eid346.png"
+ },
+ {
+  "name": "X-eid178",
+  "ref": null,
+  "eid": 178,
+  "nm": null,
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7329702,
+   30.2820039
+  ],
+  "eye": [
+   -97.7331174,
+   30.2819587
+  ],
+  "alt": 1.7,
+  "bearing": 70.43,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 21660,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid178.png"
+ },
+ {
+  "name": "SEZ-eid345",
+  "ref": "SEZ",
+  "eid": 345,
+  "nm": "South End Zone",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7322546,
+   30.2825963
+  ],
+  "eye": [
+   -97.7322281,
+   30.2824634
+  ],
+  "alt": 1.7,
+  "bearing": 350.23,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 48564,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SEZ-eid345.png"
+ },
+ {
+  "name": "X-eid293",
+  "ref": null,
+  "eid": 293,
+  "nm": "DKR Memorial Stadium",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7317676,
+   30.2829093
+  ],
+  "eye": [
+   -97.7317436,
+   30.282776
+  ],
+  "alt": 1.7,
+  "bearing": 351.19,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 47701,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid293.png"
+ },
+ {
+  "name": "MCA-eid574",
+  "ref": "MCA",
+  "eid": 574,
+  "nm": "Moody Center",
+  "role": "main",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.731163,
+   30.2814041
+  ],
+  "eye": [
+   -97.7313014,
+   30.2813415
+  ],
+  "alt": 1.7,
+  "bearing": 62.37,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 20251,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MCA-eid574.png"
+ },
+ {
+  "name": "MCA-eid576",
+  "ref": "MCA",
+  "eid": 576,
+  "nm": "Moody Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7304858,
+   30.2815946
+  ],
+  "eye": [
+   -97.7303898,
+   30.2817011
+  ],
+  "alt": 1.7,
+  "bearing": 217.92,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 16834,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MCA-eid576.png"
+ },
+ {
+  "name": "MCA-eid575",
+  "ref": "MCA",
+  "eid": 575,
+  "nm": "Moody Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7302463,
+   30.281416
+  ],
+  "eye": [
+   -97.7300984,
+   30.2814595
+  ],
+  "alt": 1.7,
+  "bearing": 251.17,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 33903,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MCA-eid575.png"
+ },
+ {
+  "name": "MCA-eid578",
+  "ref": "MCA",
+  "eid": 578,
+  "nm": "Moody Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7299691,
+   30.2805981
+  ],
+  "eye": [
+   -97.7299128,
+   30.2804722
+  ],
+  "alt": 1.7,
+  "bearing": 338.89,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 50119,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MCA-eid578.png"
+ },
+ {
+  "name": "MCA-eid577",
+  "ref": "MCA",
+  "eid": 577,
+  "nm": "Moody Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7307304,
+   30.2803108
+  ],
+  "eye": [
+   -97.7308862,
+   30.2803009
+  ],
+  "alt": 1.7,
+  "bearing": 85.8,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 16656,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "MCA-eid577.png"
+ },
+ {
+  "name": "JHH-eid202",
+  "ref": "JHH",
+  "eid": 202,
+  "nm": "John W. Hargis Hall",
+  "role": "main",
+  "era": "victorian",
+  "src": "derived",
+  "door": [
+   -97.7319795,
+   30.2783431
+  ],
+  "eye": [
+   -97.7318296,
+   30.278305
+  ],
+  "alt": 1.7,
+  "bearing": 286.39,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 30087,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JHH-eid202.png"
+ },
+ {
+  "name": "CDL-eid277",
+  "ref": "CDL",
+  "eid": 277,
+  "nm": "Collections Deposit Library",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7328461,
+   30.2788666
+  ],
+  "eye": [
+   -97.7326899,
+   30.2788681
+  ],
+  "alt": 1.7,
+  "bearing": 269.33,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 25576,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "CDL-eid277.png"
+ },
+ {
+  "name": "NUR-eid208",
+  "ref": "NUR",
+  "eid": 208,
+  "nm": "Nursing School",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7338148,
+   30.2775309
+  ],
+  "eye": [
+   -97.733971,
+   30.277532
+  ],
+  "alt": 1.7,
+  "bearing": 90.47,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 16741,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "NUR-eid208.png"
+ },
+ {
+  "name": "HTB-eid354",
+  "ref": "HTB",
+  "eid": 354,
+  "nm": "Health Transformation Building",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7351552,
+   30.2776352
+  ],
+  "eye": [
+   -97.7353036,
+   30.2775932
+  ],
+  "alt": 1.7,
+  "bearing": 71.88,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 22292,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HTB-eid354.png"
+ },
+ {
+  "name": "HCG-eid123",
+  "ref": "HCG",
+  "eid": 123,
+  "nm": "Health Center Garage",
+  "role": "service",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7356904,
+   30.276452
+  ],
+  "eye": [
+   -97.735812,
+   30.2765368
+  ],
+  "alt": 1.7,
+  "bearing": 128.93,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 563,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HCG-eid123.png"
+ },
+ {
+  "name": "BMA-eid368",
+  "ref": "BMA",
+  "eid": 368,
+  "nm": "Blanton Museum of Art",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7372043,
+   30.2806318
+  ],
+  "eye": [
+   -97.7371208,
+   30.2805178
+  ],
+  "alt": 1.7,
+  "bearing": 327.69,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 45074,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BMA-eid368.png"
+ },
+ {
+  "name": "BMA-eid367",
+  "ref": "BMA",
+  "eid": 367,
+  "nm": "Blanton Museum of Art",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7377774,
+   30.280741
+  ],
+  "eye": [
+   -97.7379076,
+   30.2806665
+  ],
+  "alt": 1.7,
+  "bearing": 56.45,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 34668,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BMA-eid367.png"
+ },
+ {
+  "name": "BMA-eid366",
+  "ref": "BMA",
+  "eid": 366,
+  "nm": "Blanton Museum of Art",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7378058,
+   30.2807476
+  ],
+  "eye": [
+   -97.7379077,
+   30.2806454
+  ],
+  "alt": 1.7,
+  "bearing": 40.72,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -55,
+  "blocked": false,
+  "entSrcFeatures": 49306,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BMA-eid366.png"
+ },
+ {
+  "name": "SZB-eid116",
+  "ref": "SZB",
+  "eid": 116,
+  "nm": "George I. Sanchez Building",
+  "role": "main",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7386017,
+   30.281908
+  ],
+  "eye": [
+   -97.7384497,
+   30.2819393
+  ],
+  "alt": 1.7,
+  "bearing": 256.6,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 20223,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SZB-eid116.png"
+ },
+ {
+  "name": "PCL-eid15",
+  "ref": "PCL",
+  "eid": 15,
+  "nm": "Perry-Castañeda Library",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7385178,
+   30.2823975
+  ],
+  "eye": [
+   -97.7386714,
+   30.282422
+  ],
+  "alt": 1.7,
+  "bearing": 100.44,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 29599,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PCL-eid15.png"
+ },
+ {
+  "name": "PCL-eid16",
+  "ref": "PCL",
+  "eid": 16,
+  "nm": "Perry-Castañeda Library",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.738611,
+   30.282492
+  ],
+  "eye": [
+   -97.7387641,
+   30.282519
+  ],
+  "alt": 1.7,
+  "bearing": 101.55,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 30495,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PCL-eid16.png"
+ },
+ {
+  "name": "X-eid263",
+  "ref": null,
+  "eid": 263,
+  "nm": "AT&T Executive Education and Conference Center",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7400086,
+   30.2821955
+  ],
+  "eye": [
+   -97.7399598,
+   30.2820673
+  ],
+  "alt": 1.7,
+  "bearing": 341.79,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 55138,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid263.png"
+ },
+ {
+  "name": "X-eid255",
+  "ref": null,
+  "eid": 255,
+  "nm": "University Avenue Church of Christ",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7393007,
+   30.281147
+  ],
+  "eye": [
+   -97.7393209,
+   30.2810132
+  ],
+  "alt": 1.7,
+  "bearing": 7.43,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 55154,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid255.png"
+ },
+ {
+  "name": "X-eid465",
+  "ref": null,
+  "eid": 465,
+  "nm": "Cambridge Tower",
+  "role": "main",
+  "era": "highrise",
+  "src": "westcampus",
+  "door": [
+   -97.7405202,
+   30.2807544
+  ],
+  "eye": [
+   -97.7404329,
+   30.2808663
+  ],
+  "alt": 1.7,
+  "bearing": 213.98,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 1931,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid465.png"
+ },
+ {
+  "name": "AUSUAHX-eid639",
+  "ref": "AUSUAHX",
+  "eid": 639,
+  "nm": "Hampton Inn & Suites Austin at The University/Capitol",
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7411044,
+   30.2794885
+  ],
+  "eye": [
+   -97.7411923,
+   30.2796001
+  ],
+  "alt": 1.7,
+  "bearing": 145.78,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 17102,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "AUSUAHX-eid639.png"
+ },
+ {
+  "name": "SUT-eid248",
+  "ref": "SUT",
+  "eid": 248,
+  "nm": "Sutton Hall",
+  "role": "main",
+  "era": "gilbert",
+  "src": "authored",
+  "door": [
+   -97.7408308,
+   30.2850659
+  ],
+  "eye": [
+   -97.7407573,
+   30.2851849
+  ],
+  "alt": 1.7,
+  "bearing": 208.11,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 20276,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SUT-eid248.png"
+ },
+ {
+  "name": "GOL-eid83",
+  "ref": "GOL",
+  "eid": 83,
+  "nm": "Goldsmith Hall",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7409333,
+   30.2851868
+  ],
+  "eye": [
+   -97.740778,
+   30.2852014
+  ],
+  "alt": 1.7,
+  "bearing": 263.79,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 24377,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GOL-eid83.png"
+ },
+ {
+  "name": "SUT-eid249",
+  "ref": "SUT",
+  "eid": 249,
+  "nm": "Sutton Hall",
+  "role": "secondary",
+  "era": "gilbert",
+  "src": "derived",
+  "door": [
+   -97.7411196,
+   30.2850879
+  ],
+  "eye": [
+   -97.741045,
+   30.2852064
+  ],
+  "alt": 1.7,
+  "bearing": 208.52,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 20276,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SUT-eid249.png"
+ },
+ {
+  "name": "GOL-eid84",
+  "ref": "GOL",
+  "eid": 84,
+  "nm": "Goldsmith Hall",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.741334,
+   30.2851242
+  ],
+  "eye": [
+   -97.7413234,
+   30.2849896
+  ],
+  "alt": 1.7,
+  "bearing": 356.11,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 56483,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GOL-eid84.png"
+ },
+ {
+  "name": "UNB-eid363",
+  "ref": "UNB",
+  "eid": 363,
+  "nm": "Union Building",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7409612,
+   30.2861613
+  ],
+  "eye": [
+   -97.7409933,
+   30.2862933
+  ],
+  "alt": 1.7,
+  "bearing": 168.17,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 55,
+  "blocked": false,
+  "entSrcFeatures": 25264,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "UNB-eid363.png"
+ },
+ {
+  "name": "UNB-eid365",
+  "ref": "UNB",
+  "eid": 365,
+  "nm": "Union Building",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7409886,
+   30.2863835
+  ],
+  "eye": [
+   -97.740962,
+   30.2865164
+  ],
+  "alt": 1.7,
+  "bearing": 189.83,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 25701,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "UNB-eid365.png"
+ },
+ {
+  "name": "UNB-eid364",
+  "ref": "UNB",
+  "eid": 364,
+  "nm": "Union Building",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7409771,
+   30.2864983
+  ],
+  "eye": [
+   -97.7409488,
+   30.286631
+  ],
+  "alt": 1.7,
+  "bearing": 190.43,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 25795,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "UNB-eid364.png"
+ },
+ {
+  "name": "HMA-eid78",
+  "ref": "HMA",
+  "eid": 78,
+  "nm": "Hogg Memorial Auditorium",
+  "role": "main",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7408605,
+   30.2869621
+  ],
+  "eye": [
+   -97.7409234,
+   30.2868386
+  ],
+  "alt": 1.7,
+  "bearing": 23.73,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": false,
+  "entSrcFeatures": 55017,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "HMA-eid78.png"
+ },
+ {
+  "name": "UNB-eid362",
+  "ref": "UNB",
+  "eid": 362,
+  "nm": "Union Building",
+  "role": "secondary",
+  "era": "cret",
+  "src": "derived",
+  "door": [
+   -97.7409775,
+   30.2870042
+  ],
+  "eye": [
+   -97.7409888,
+   30.2871388
+  ],
+  "alt": 1.7,
+  "bearing": 175.85,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 25494,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "UNB-eid362.png"
+ },
+ {
+  "name": "X-eid473",
+  "ref": null,
+  "eid": 473,
+  "nm": "Moontower",
+  "role": "main",
+  "era": "highrise",
+  "src": "westcampus",
+  "door": [
+   -97.7429692,
+   30.2856748
+  ],
+  "eye": [
+   -97.7429806,
+   30.2858094
+  ],
+  "alt": 1.7,
+  "bearing": 175.81,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 24945,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid473.png"
+ },
+ {
+  "name": "X-eid619",
+  "ref": null,
+  "eid": 619,
+  "nm": "Inspire on 22nd",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7440323,
+   30.285246
+  ],
+  "eye": [
+   -97.744135,
+   30.2851444
+  ],
+  "alt": 1.7,
+  "bearing": 41.11,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 56096,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid619.png"
+ },
+ {
+  "name": "X-eid56",
+  "ref": null,
+  "eid": 56,
+  "nm": "The Quarters Sterling House",
+  "role": "main",
+  "era": "highrise",
+  "src": "derived",
+  "door": [
+   -97.7463489,
+   30.2852267
+  ],
+  "eye": [
+   -97.7465043,
+   30.2852129
+  ],
+  "alt": 1.7,
+  "bearing": 84.14,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 0,
+  "blocked": true,
+  "entSrcFeatures": 45471,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid56.png"
+ },
+ {
+  "name": "X-eid189",
+  "ref": null,
+  "eid": 189,
+  "nm": "The Quarters Grayson House",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7463601,
+   30.285744
+  ],
+  "eye": [
+   -97.7464492,
+   30.2858548
+  ],
+  "alt": 1.7,
+  "bearing": 145.22,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 26428,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid189.png"
+ },
+ {
+  "name": "X-eid140",
+  "ref": null,
+  "eid": 140,
+  "nm": "The Standard",
+  "role": "secondary",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7462594,
+   30.287142
+  ],
+  "eye": [
+   -97.7463773,
+   30.2872305
+  ],
+  "alt": 1.7,
+  "bearing": 131.02,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 26476,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid140.png"
+ },
+ {
+  "name": "X-eid222",
+  "ref": null,
+  "eid": 222,
+  "nm": "The Nine at West Campus",
+  "role": "main",
+  "era": "highrise",
+  "src": "westcampus",
+  "door": [
+   -97.7491969,
+   30.2908317
+  ],
+  "eye": [
+   -97.7491112,
+   30.2909445
+  ],
+  "alt": 1.7,
+  "bearing": 213.23,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 1494,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid222.png"
+ },
+ {
+  "name": "LLE-eid214",
+  "ref": "LLE",
+  "eid": 214,
+  "nm": "Whitis Court Residence Hall",
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7411199,
+   30.2910165
+  ],
+  "eye": [
+   -97.7412371,
+   30.2911057
+  ],
+  "alt": 1.7,
+  "bearing": 131.4,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 29360,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "LLE-eid214.png"
+ },
+ {
+  "name": "BMC-eid322",
+  "ref": "BMC",
+  "eid": 322,
+  "nm": "Belo Center for New Media",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7408678,
+   30.2901095
+  ],
+  "eye": [
+   -97.7407867,
+   30.2899942
+  ],
+  "alt": 1.7,
+  "bearing": 328.73,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 21681,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "BMC-eid322.png"
+ },
+ {
+  "name": "ADH-eid299",
+  "ref": "ADH",
+  "eid": 299,
+  "nm": "Almetris Duren Hall",
+  "role": "emergency",
+  "era": "modern",
+  "src": "osm",
+  "door": [
+   -97.7402559,
+   30.2916521
+  ],
+  "eye": [
+   -97.7401946,
+   30.291528
+  ],
+  "alt": 1.7,
+  "bearing": 336.93,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 11899,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ADH-eid299.png"
+ },
+ {
+  "name": "X-eid402",
+  "ref": null,
+  "eid": 402,
+  "nm": "Scottish Rite Dormitory",
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7393027,
+   30.2923359
+  ],
+  "eye": [
+   -97.739433,
+   30.2922614
+  ],
+  "alt": 1.7,
+  "bearing": 56.51,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": -38,
+  "blocked": false,
+  "entSrcFeatures": 18534,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid402.png"
+ },
+ {
+  "name": "PAC-eid131",
+  "ref": "PAC",
+  "eid": 131,
+  "nm": "College of Fine Arts Performing Arts Center",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7305062,
+   30.2865055
+  ],
+  "eye": [
+   -97.7304531,
+   30.2863786
+  ],
+  "alt": 1.7,
+  "bearing": 340.12,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 47083,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "PAC-eid131.png"
+ },
+ {
+  "name": "LBJ-eid582",
+  "ref": "LBJ",
+  "eid": 582,
+  "nm": "Lyndon Baines Johnson Presidential Library and Museum",
+  "role": "main",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7291949,
+   30.2861524
+  ],
+  "eye": [
+   -97.7291832,
+   30.2862869
+  ],
+  "alt": 1.7,
+  "bearing": 184.29,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 18324,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "LBJ-eid582.png"
+ },
+ {
+  "name": "LBJ-eid583",
+  "ref": "LBJ",
+  "eid": 583,
+  "nm": "Lyndon Baines Johnson Presidential Library and Museum",
+  "role": "secondary",
+  "era": "modern",
+  "src": "derived",
+  "door": [
+   -97.7295224,
+   30.2856703
+  ],
+  "eye": [
+   -97.7296751,
+   30.2856417
+  ],
+  "alt": 1.7,
+  "bearing": 77.76,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 17589,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "LBJ-eid583.png"
+ },
+ {
+  "name": "SRH-eid62",
+  "ref": "SRH",
+  "eid": 62,
+  "nm": "Sid Richardson Hall",
+  "role": "secondary",
+  "era": "midcentury",
+  "src": "derived",
+  "door": [
+   -97.7293463,
+   30.2839201
+  ],
+  "eye": [
+   -97.729412,
+   30.2840425
+  ],
+  "alt": 1.7,
+  "bearing": 155.14,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 17408,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "SRH-eid62.png"
+ },
+ {
+  "name": "X-eid18",
+  "ref": null,
+  "eid": 18,
+  "nm": "Athletic Fields Pavilion (Eastside)",
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7265144,
+   30.2846974
+  ],
+  "eye": [
+   -97.7264269,
+   30.2845856
+  ],
+  "alt": 1.7,
+  "bearing": 325.93,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 49346,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid18.png"
+ },
+ {
+  "name": "X-eid383",
+  "ref": null,
+  "eid": 383,
+  "nm": null,
+  "role": "main",
+  "era": "utility",
+  "src": "derived",
+  "door": [
+   -97.7268512,
+   30.2804282
+  ],
+  "eye": [
+   -97.7269749,
+   30.2805106
+  ],
+  "alt": 1.7,
+  "bearing": 127.66,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 857,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "X-eid383.png"
+ },
+ {
+  "name": "ECG-eid427",
+  "ref": "ECG",
+  "eid": 427,
+  "nm": "East Campus Garage",
+  "role": "service",
+  "era": "utility",
+  "src": "osm",
+  "door": [
+   -97.7275355,
+   30.2795778
+  ],
+  "eye": [
+   -97.7273954,
+   30.279518
+  ],
+  "alt": 1.7,
+  "bearing": 296.32,
+  "pitch": 83.53406790106047,
+  "dist": 15,
+  "tq": 38,
+  "blocked": false,
+  "entSrcFeatures": 36005,
+  "entLayersVisible": 6,
+  "doorPx": [
+   450,
+   310
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.254,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ECG-eid427.png"
+ }
+]

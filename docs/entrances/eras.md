@@ -86,11 +86,24 @@ Two further corrections to the hypothesis:
   not Cass Gilbert, and their portals are square-headed. Two buildings is still
   worth a family — they are the two most architecturally significant entrances
   at UT — but a generator should not expect to apply it widely.
-- **Arno Nowotny Building (1856) and John W. Hargis Hall are 1850s Greek
+- ~~**Arno Nowotny Building (1856) and John W. Hargis Hall are 1850s Greek
   Revival** (the old Texas Asylum for the Blind, Abner Cook). They are in
   neither hypothesis nor this spec. **Give them NULL, not family B.** Writing a
   fifth monumental vocabulary for two buildings that sit 700 m south of the
-  Forty Acres is not worth it in this pass.
+  Forty Acres is not worth it in this pass.~~
+  **SUPERSEDED 2026-08-16 — see FAMILY V.** This was a budget decision, and it
+  said so ("not worth it *in this pass*"). Three things changed. The buildings
+  got *photographed*, one by one, and a flush glazed door on antebellum
+  limestone is the kind of defect a person who knows the campus spots
+  instantly. `data/ut_buildings.json` arrived and it dates **five** buildings
+  before Gilbert, not two — and one of them, **GEB (1904)**, was silently
+  wearing a **Cass Gilbert arcade** six years before Gilbert got the
+  commission, because the date test had no family below 1925 to give it. And
+  the style attribution above is wrong on its own terms: Nowotny is
+  **Italianate**, not Greek Revival `[S]`, and Hargis is **Victorian
+  Italianate** of 1889/1900, not 1850s `[S]`. Family V is four buildings, not
+  two, and its numbers are measured off a photograph of one of them rather
+  than reasoned from a style label.
 
 ---
 
@@ -183,6 +196,7 @@ Local frame: **u** across the wall (metres from the entrance centre),
 | Commercial standard | **0.914 m** (36″) | **2.134 m** (84″) | `[C]` STANLEY Access Technologies: "The workhorse commercial door is a 36-inch-wide leaf, often 84 inches tall" |
 | IBC egress minimum height | — | 2.032 m (80″) | `[C]` IBC 1010.1.1 |
 | ADA/IBC min **clear** width | 0.813 m (32″) | — | `[C]` IBC 1010.1.1 |
+| **19th century (family V)** | **0.800 m** | **2.700 m** | `[M]` ratio / `[A]` anchor — **3.55 : 1**, measured off a photograph, pixel window in §4V.1. The only leaf here whose *proportion* is a measurement rather than a standard. |
 | Monumental (families A, B) | **1.000 m** | **2.440 m** (8′-0″) | `[A]` — no measured drawing found. Reasoning: a monumental portal leaf is universally taller than the 84″ commercial leaf, and 8′-0″ is the next standard height above it. Argue with this number, not with a fabricated survey. |
 | Modern lobby (family D) | **1.067 m** (3′-6″) | **2.440 m** | `[A]` — same reasoning; wide-stile lobby doors are commonly 3′-6″. |
 
@@ -202,16 +216,21 @@ Local frame: **u** across the wall (metres from the entrance centre),
 the number to get right first.** Ordered:
 
 ```
+V  19th-c. porch       reveal_d = 2.40 m   ← deepest of all: it is a PORCH
 A  Gilbert arcade      reveal_d = 1.20 m   (walk-through loggia bays: 3.60 m)
 B  Cret portal         reveal_d = 0.65 m
-C  Mid-century         reveal_d = 1.50 m   ← deepest, and it is a punched recess
+C  Mid-century         reveal_d = 1.50 m   ← deepest PUNCHED recess
 D  Modern              reveal_d = 0.35 m   ← nearly flush
 ```
 
-All four `[A]`. Reasoning for each is in its family section. Note the ordering
-is **not** monotonic in date: mid-century punched recesses are the deepest
-setbacks on campus (they are sun-shading, not ceremony) while Gilbert's are the
-most *articulated*. A generator that assumes "older = deeper" will get C wrong.
+A–D are `[A]`; V is `[M]`/`[D]` off the photograph in §4V.1. Reasoning for each
+is in its family section. Note the ordering is **not** monotonic in date, in
+either direction: mid-century punched recesses are the deepest *setbacks* on
+campus (they are sun-shading, not ceremony) while Gilbert's are the most
+*articulated*, and the 19th-century entrance is deeper than any of them because
+it is not a recess at all — it is a room with a roof on it. A generator that
+assumes "older = deeper" gets C wrong; one that assumes "newer = deeper" gets V
+wrong. **Neither rule exists. Read the family.**
 
 Drawn as: a shadow slab at `v = +0.02`, `wd = reveal_mat`, spanning the full
 opening; plus two **jamb returns** — thin slabs perpendicular to the wall, at
@@ -313,14 +332,17 @@ whole pipeline and is called out there.
 
 | Family | Present | Projection | Thickness | Top at | Material |
 |---|---|---|---|---|---|
+| **V** | **yes, and it is a PORCH, not a blade** | **2.40 m** `[M]` | **0.94 m** `[M]` | **door head + 2.35 m** `[M]` | painted timber `#d98c59`; soffit `#4d4535` |
 | A | **no** — the arch is the canopy | — | — | — | — |
 | B | **no** | — | — | — | — |
 | C | **yes** | 2.40 m `[A]` | 0.25 m `[A]` | 3.60 m `[A]` | concrete, host `wd` darkened 12%; soffit `#6b6f72` |
 | D | **yes**, and it is the identifying feature | 3.20 m `[A]` | 0.18 m `[A]` | 4.20 m `[A]` | steel `#8e969c`, soffit `#74756d`; optionally glazed top face `#4f86b4` at 55% |
 | E2 | yes, small | 1.80 m `[A]` | 0.22 m `[A]` | 3.20 m `[A]` | host `wd` darkened 12% |
 
-Canopy width = bank width + 0.60 m each side (C, E2) or + 1.20 m each side (D).
-All `[A]`.
+Canopy width = bank width + 0.60 m each side (C, E2), + 1.20 m each side (D), or
+**+ 1.80 m each side (V)** — "a **wide** first-story portico extends to both
+sides of the main entry" `[S]`; *wide* is sourced, 1.80 m is `[A]`. The rest are
+all `[A]`.
 
 ### 3.9 Leaf-count rule — **derived, not authored**
 
@@ -348,6 +370,165 @@ the wrong number of doors, the *opening width* is wrong, not the count.
 Storey height reference used throughout: **3.46 m floor-to-floor** `[S]`
 (`bake_tower.py FLOOR`, derived from the gold spandrels in a rectified elevation
 photograph of the UT Tower).
+
+---
+
+### FAMILY V — 19th-century masonry porch, 1857–1909
+
+**Added 2026-08-16.** The family this document did not have, on a campus that is
+older than this document assumed. Every other family here was written from
+prose; **this one was written from a photograph**, and the numbers below are
+pixel measurements with the frame and the pixel window named, so anybody can
+re-take them.
+
+**Members: 4.** `ANB` Arno Nowotny Building **1859**, `JHH` John W. Hargis Hall
+**1888**, `LFH` Littlefield House **1894**, `GEB` Dorothy L. Gebauer Building
+**1904** — all four years from `data/ut_buildings.json`, UT's own register `[S]`.
+A fifth building is dated before Gilbert and **deliberately does not get this
+family**: `LCH` Littlefield Carriage House 1894, see the end of this section.
+
+**Sourced character.**
+
+- **ANB, and it is the anchor.** Not Greek Revival — **Italianate**, Abner H.
+  Cook, the 1857 Texas Asylum for the Blind, "rough limestone with red brick
+  detailing", brick quoins, paired windows "with limestone sills framed in
+  brick and topped with brick segmental arches", a brick cornice under an
+  octagonal Italianate dome `[S]` (Wikipedia, *Little Campus*). The sentence
+  that sets the family: **"a wide first-story portico extends to both sides of
+  the main entry"** `[S]`. Architexas, who did the restoration back to its 1857
+  appearance under a Texas Historical Commission State Antiquities permit,
+  confirm "limestone and brick masonry" and list **door and window
+  restoration/reconstruction** in the scope `[S]` — i.e. the doors in the
+  photograph are restored originals, not a 1980s replacement.
+- **JHH.** **Victorian Italianate**, two joined buildings of **1889 and 1900**,
+  tan brick with limestone detailing, windows with "limestone sills and topped
+  by limestone segmental arches with distinct keystones", a dark red cornice, a
+  grey metal roof, "a square clock tower on one side and a shorter square tower
+  on the other" `[S]`. **Its entrance is [U]** — the only photograph found of
+  Hargis Hall has the doorway behind trees.
+- **LFH.** James Wahrenberger, 1894. "Deep red brick, red sandstone, granite,
+  tile, and iron wraparound porch", two mismatched towers over multicoloured
+  slate `[S]`. `docs/entrances/celebrated.md` §5.9 is the measured spec and it
+  records **porch, columns, veranda, doors, steps and rails as `[U]`** — it says
+  so explicitly. **A photograph read for this pass settles part of that** and is
+  offered to celebrated.md's owner rather than written into it: the entrance is
+  a doorway **recessed** behind polished stone Corinthian columns under a
+  two-storey iron veranda, over a stone flight of about five risers with a thin
+  retrofitted pipe rail. celebrated.md's *judgement* — that the roof and towers
+  are the identity here and the budget belongs there — still stands; this only
+  stops the door being a flush aluminium storefront.
+- **GEB.** 1904, **the oldest surviving building on the Forty Acres**, "the same
+  yellow brick and limestone trim used for the other early UT buildings,
+  including Old Main", "a mix of arched and square windows", many of that group
+  by **Coughlin and Ayers** `[S]`. **Its entrance is [U].** What matters is what
+  it is *not*: before this family it took **family A**, a Cass Gilbert Spanish
+  Renaissance arcade, from a date test whose oldest bucket was 1925.
+
+#### V.1 The measurement — File:Arno_nowotny_building.jpg
+
+Wikimedia Commons, CC BY-SA, an axial front elevation. Coordinates below are
+pixels **in that original 1776 × 1184 frame**, so the sample is re-takeable.
+Scale at the wall plane: **1 px ≈ 0.021 m**, from grade (y≈1030) to cornice
+(y≈500) over a two-storey block on a raised ground floor. Everything at the
+doorway is in one frontal plane, so the **ratios** are the reliable part and the
+absolute scale is the assumption.
+
+| What | Pixels | Metres | Tag |
+|---|---|---|---|
+| Door pair, clear | x 861 → 937 = **76 px** | 1.60 m | `[M]` |
+| Leaf, each | 38 × 135 px, **3.55 : 1** | 0.80 × 2.70 | `[M]` ratio, `[A]` anchor |
+| Glazed band in the leaf | y 817 → 897 = 80 px | **0.59 of leaf** | `[M]` |
+| Fanlight opening | 78 px span, **27 px rise** | rise/half-span **0.71** | `[M]` |
+| Frame between head and springing | 4 px | 0.08 m | `[M]` |
+| Moulded architrave | 7.5–13 px a side | 0.26 m | `[M]` |
+| Door head → porch soffit | 67 px | 1.41 m | `[M]` |
+| Door head → top of porch deck | 112 px | 2.35 m | `[M]` |
+| Porch pier | 36 px wide, 201 px tall | 0.76 × 4.22 | `[M]` |
+| Flight | **5 risers**, 0.85 m total | riser 0.170 | `[M]` count, `[D]` riser |
+
+**Two of these are the whole family and both are easy to get wrong.**
+
+1. **The leaf is 3.55 : 1 — tall and narrow.** Family B's monumental leaf is
+   2.44 : 1 and the commercial leaf is 2.33 : 1. Put a 0.914 × 2.134 commercial
+   leaf in a 19th-century opening and you have drawn a **shed door**. This is
+   the single number to check in any render of this family.
+2. **The fanlight is a SEGMENT, not a semicircle.** Measured rise is 0.71 of the
+   half-span; a semicircle is 1.00. Drawing it semicircular adds ~0.4 m of glass
+   over the door and turns an Italianate light into a Georgian one.
+
+#### V.2 The table
+
+| Parameter | Value | Tag |
+|---|---|---|
+| Opening | **square-headed doorway with a segmental fanlight over** | `[M]` |
+| Bank clear width | **2.20 m** = pair 1.70 + 0.25 jamb each side | `[D]` |
+| Leaves | **2** (one pair), `max_pairs = 1` | `[M]` |
+| Leaf | **0.80 × 2.70 m**, timber, glazed upper band | `[M]`/`[A]` §V.1 |
+| Glazed band | **0.58** of the leaf, two narrow lights per leaf in the photograph, drawn as one | `[M]` |
+| Transom | **yes, segmental fanlight.** Springs at the door head + **0.08 m**; rise = **0.55 × the bank half-width** (= 0.71 of the half-span of the *door*, restated against the 2.20 m bank) | `[M]`/`[D]` |
+| Surround | **square, moulded architrave 0.26 m wide, projecting 0.08 m** | `[M]` width, `[A]` projection |
+| Accent | terracotta band **0.22 m**, over the head | `[S]` colour, `[A]` placement |
+| **Reveal depth** | **2.40 m — the deepest on this campus**, deeper than mid-century's 1.50 | `[M]`/`[D]` |
+| Steps | rise **0.85 m** → **5 risers** at **0.170**, tread 0.42 | `[M]` |
+| Rails | **tube rail, and it is DARK IRON `#3f4145`, not bright steel.** No cheek | `[M]` |
+| **Canopy — this family's identifying feature** | a **PORCH**: projection **2.40 m**, thickness **0.94 m**, top at **door head + 2.35 m**, soffit `#4d4535`, and it runs **1.80 m past the bank each side**. **Colour = the HOST WALL darkened 12%**, never an authored paint | `[M]`, side `[S]`/`[A]` |
+| Wall material | host `wd` — rough limestone with brick trim (ANB), tan brick (JHH), deep red brick + red sandstone (LFH), yellow brick + limestone trim (GEB). **Four different walls, one vocabulary** | `[S]` §3.4 |
+| Surround material | limestone `#e5dbc2` | §3.4 |
+| Reveal | `#9a9082`, the existing warm reveal | `[D]` |
+| Leaf | **`#9e3d21`** | `[M]`/`[D]` below |
+| Glazing | **`#374e6b`** = the saturated blue `#2f5c94` taken **0.52** toward iron `#3f4145` | `[D]` |
+| Porch trim | **`#d98c59`** | `[M]`/`[D]` below |
+
+**Why the reveal is 2.40 m and why that is not a stunt.** §3.3 says the reveal
+is the number that tells the families apart, and §2.3 says depth in this
+renderer is a **colour**, not a distance. On this family the door genuinely sits
+about 2.4 m back under a porch and is in permanent shade — that is not a
+stylistic recess like Cret's 0.65 m relief, and it is not sun-shading like
+mid-century's 1.50 m inlay. It is a room you stand in. The jamb returns the bake
+draws at that depth are, conveniently, the closest thing the nine-part alphabet
+has to the porch's own side walls. **Note the ordering is now doubly
+non-monotonic in date** (V 2.40, A 1.20, B 0.65, C 1.50, D 0.35): a generator
+that assumes "older = deeper" gets C wrong, and one that assumes the opposite
+gets V wrong.
+
+**The two colours, and how they were entered.** Both are sampled off the frame
+above and then put through the repo's own measured transfers — nothing here is
+a colour somebody liked.
+
+| Role | Sample | Entered | How |
+|---|---|---|---|
+| Door pair | `#6a2916`, median over 780 px, **sd 6.5**, in porch shade | **`#9e3d21`** | ÷ 0.67, the measured luma transfer — **a shadow is entered ALREADY LIT** or it reads as a hole punched in the building (§3.5). This is exactly how `BRONZE` was derived. |
+| Painted trim band | `#e4935e`, median over 3,300 px, **sd 4.7**, sunlit | **`#d98c59`** | less 5%, the same treatment `bake_drag.py` gave the UT-blend brick it sampled at `#c28e64`. Used for the **0.22 m accent band at the head**, and *only* there. |
+
+**The porch is NOT painted in that colour, and finding out cost a round.** The
+first cut used the sampled `#d98c59` for the porch slab itself, on the reasoning
+that ANB's portico really is painted terracotta. Photographed at walking height
+it put a **bright orange slab** over Littlefield's brick and Hargis's tan brick
+and read as a **shopfront awning** — which is the exact "it looks like a shed
+door" failure this family was written to fix, arriving by a different route.
+§3.4 already said what to do: **family sets geometry, host sets material.** The
+porch now takes the host's own `wd` at 0.88, and the sampled paint survives only
+in the accent band, where it is one building's trim rather than four buildings'
+roofs.
+
+For reference, the frame's other medians, not entered anywhere: fanlight
+glazing in shade `#26221e` (sd 25.7) — which is *why* this family's glass goes
+further toward iron than family A's leaded 0.35; shaded rubble limestone
+`#806d5a` (sd 16.8); step treads `#afb2b2` (sd 4.5); sunlit rubble limestone
+`#a47d55` (sd **41.6** — genuinely variegated, and that spread is the material,
+not the measurement).
+
+#### V.3 LCH stays NULL, on purpose
+
+`LCH` Littlefield Carriage House, 1894, is dated before Gilbert and is
+**deliberately left on the E5 null door**. It is an **outbuilding**: what it has
+is a carriage bay, not a portico with a fanlight. **No photograph of it and no
+description of it were found** — not on Commons, not in the Wahrenberger
+literature, not in the NRHP material. Giving it family V's porch would be a
+confident lie about a building nobody has looked at, and a dull correct door on
+an unknown building is the honest answer (§4 E5). The bake prints it in the
+family-V census every run with the reason attached, so it stays visible rather
+than becoming a hole.
 
 ---
 
@@ -551,7 +732,8 @@ Run in order; first match wins.
 4.  building_class = parking              → E3
 5.  building_class ∈ {church, mosque}     → E4
 6.  start_date present:
-        year ≤ 1925                       → A
+        year ≤ 1909                       → V     ← added 2026-08-16
+        1910 ≤ year ≤ 1925                → A
         1926 ≤ year ≤ 1949                → B
         1950 ≤ year ≤ 1989                → C
         year ≥ 1990                       → D
@@ -559,6 +741,15 @@ Run in order; first match wins.
                                           → E2
 8.  everything else                       → E5 NULL
 ```
+
+**The 1909 boundary is the register's, not anybody's taste.** Sorted by year,
+`data/ut_buildings.json` runs 1859, 1888, 1894, 1894, 1904 — and then jumps
+straight to **1911, Battle Hall**, Gilbert's own first building here. The gap in
+the data *is* the boundary; 1909 is just the last year inside it. Before this
+rule existed the oldest bucket was 1925, which handed a **1904** building a
+**Cass Gilbert arcade** and left the 1859 one on the null door. **A date test
+with no bucket below its oldest family does not decline to answer — it answers
+wrongly, silently, and at the top of the cascade.**
 
 **Note the deliberate ordering.** The named list (3) beats the date test (6),
 because a date is a proxy and a name is evidence. And rule 8 is NULL, not "C" —
@@ -688,12 +879,26 @@ revolving door),
 `Bernard and Audre Rapoport Building`.
 Dates without `[S]` are `[A]`.
 
+### Family V
+
+From the register, not from a hand-maintained list — see §5.2 rule 6.
+
+| ref | snapshot `name` | year | tag | notes |
+|---|---|---|---|---|
+| `ANB` | `Arno Nowotny Building` | **1859** | `[S]` | Italianate, Abner H. Cook. **The family's anchor** — the entrance is photographed and §4V.1 is measured off it |
+| `JHH` | `John W. Hargis Hall` | **1888** | `[S]` | Victorian Italianate, 1889 + 1900. Entrance `[U]` |
+| `LFH` | `Littlefield House` | **1894** | `[S]` | Wahrenberger. Also in `celebrated.md` §5.9, which stays the authority on it |
+| `GEB` | `Dorothy Gebauer Building` | **1904** | `[S]` | Oldest surviving on the Forty Acres. **Was wearing family A**, i.e. a Gilbert arcade, six years before Gilbert. Entrance `[U]` |
+
+*(The old §6 line "`Dorothy Gebauer Building` — pre-1910 `[A]`, probably predates
+the family; verify before drawing" under family B was **right**, and it sat there
+unverified through several passes. The register verified it.)*
+
 ### Explicitly NULL — do not give these a family
 
-`Arno Nowotny Building` (−97.73101, 30.27823, 1856 Greek Revival),
-`John W. Hargis Hall` (−97.73200, 30.27840, 1850s),
-`Littlefield House` (−97.74076, 30.28812, 1893 Victorian),
-`Littlefield Carriage House`,
+`Littlefield Carriage House` (1894 — dated before Gilbert and **still null on
+purpose**, see §4V.3: it is an outbuilding with a carriage bay, and no
+photograph or description of it was found),
 every `Chilling Station`, `Cooling Tower`, `Hal C. Weaver Power Plant*`,
 `Facilities Complex Building 7`, `University Sign Shop`,
 `Caven Clark Field Support Building`, and everything with
@@ -730,7 +935,33 @@ every `Chilling Station`, `Cooling Tower`, `Hal C. Weaver Power Plant*`,
    against *this renderer* — but they are campus-limestone-in-general, not
    Cordova Cream specifically.
 5. **`entrance_z` is unsolved** (§5.3). This is the biggest open item.
-6. **The footway dead-end rule for entrance placement is untested** (§5.3). It
+6. **Family V's own gaps, listed rather than papered over.**
+   - **Three of its four members have `[U]` entrances.** Only ANB is
+     photographed. JHH's doorway is behind trees in the only frame found; GEB
+     and LCH have no photograph on Wikimedia Commons at all. So the family is
+     one measured building generalised to three unmeasured ones — which is the
+     same shape of claim family A makes from two, but say it out loud.
+   - **The absolute scale of the leaf rests on one `[A]`.** The 3.55 : 1 *ratio*
+     is measured; the 0.80 m width that turns it into 2.70 m is assumed. A
+     dimensioned drawing would settle it in one line.
+   - **ANB's real architrave is painted timber, not limestone.** The family uses
+     the limestone surround from §3.4 so the flight comes out stone (which both
+     photographs show). The per-building painted-timber override is not written.
+   - **The porch is drawn as a canopy because the alphabet has no PIER.** The
+     photograph shows two fluted square piers 0.76 × 4.22 m carrying it. The
+     nine parts of §3 do not include a post and this pass did not add a tenth.
+     The porch therefore reads as a deep soffit with nothing under it at eye
+     level. **This is the biggest visible gap in the family.**
+   - **Both photographed flights carry a retrofitted pipe rail AND low masonry
+     terminal blocks.** The bake draws either a cheek or a rail, never both, so
+     the blocks are not drawn.
+   - **The National Register nomination for Little Campus (74002091) was not
+     read.** NPGallery served a placeholder blurb rather than the scanned form,
+     twice. It is the most likely source of a real measured description of the
+     1857 building and it is the correct next stop.
+   - **SAH Archipedia still 403s** — `TX-01-AU41.5` is the Littlefield House
+     entry and would settle celebrated.md §5.9's `[U]`s properly.
+7. **The footway dead-end rule for entrance placement is untested** (§5.3). It
    should be built and measured *first*, as coding step one, together with a
    render→pixel-sample→assert harness (playbook rule 2), before any vocabulary
    is drawn. A placement rule that is 60% right makes every beautiful portal
@@ -739,6 +970,45 @@ every `Chilling Station`, `Cooling Tower`, `Hal C. Weaver Power Plant*`,
 ---
 
 ## 8. Sources consulted
+
+**Added 2026-08-16 for family V:**
+
+- [Wikipedia — Little Campus](https://en.wikipedia.org/wiki/Little_Campus) — the
+  Italianate attribution, Abner H. Cook, "rough limestone with red brick
+  detailing", the brick segmental arches, and **"a wide first-story portico
+  extends to both sides of the main entry"**; also Hargis Hall's Victorian
+  Italianate 1889/1900, its limestone segmental arches with keystones and its
+  two towers.
+- [Architexas — UT Austin Arno Nowotny Building](https://architexas.com/projects/university-of-texas-at-austin-arno-nowotny-building/)
+  — the restoration to the 1857 appearance, "limestone and brick masonry", and
+  that **door and window restoration/reconstruction** was in scope, under a
+  Texas Historical Commission State Antiquities permit.
+- **[M] File:Arno_nowotny_building.jpg, Wikimedia Commons (CC BY-SA)** — the
+  frame every number in §4V.1 and both hexes in §4V.2 come from. 1776 × 1184;
+  pixel windows are named beside each value.
+- **[M] File:Littlefield_House_-_UT_Austin_(54984939058).jpg, Wikimedia Commons**
+  — read to settle part of celebrated.md §5.9's `[U]`: the entrance is recessed
+  behind polished stone Corinthian columns under a two-storey iron veranda,
+  over a stone flight with a thin retrofitted pipe rail. **No colour was
+  sampled from it and no number entered from it.**
+- File:John_W._Hargis_Hall_-_panoramio.jpg, Wikimedia Commons — read, and it
+  does **not** show the entrance. Recorded so the next pass does not re-find it.
+- [Wikipedia — Littlefield House](https://en.wikipedia.org/wiki/Littlefield_House)
+  — James Wahrenberger, 1894, $50,000. Carries **no** entrance description.
+- [Preservation Austin — History and Preservation at UT Austin](https://www.preservationaustin.org/news/history-and-preservation-at-the-university-of-texas-at-austin)
+  — GEB 1904 as the oldest surviving building on the Forty Acres, "the same
+  yellow brick and limestone trim used for the other early UT buildings", "a mix
+  of arched and square windows", Coughlin and Ayers.
+- `data/ut_buildings.json` — UT's own Main Campus register, retrieved
+  2026-08-05. **The whole authority for who is in this family.** Five codes
+  dated before 1910: ANB 1859, JHH 1888, LCH 1894, LFH 1894, GEB 1904.
+- **Blocked / returned nothing usable:** NPGallery NRHP **74002091** (Little
+  Campus) — both `GetAsset/NRHP/74002091_text` and
+  `pdfhost/docs/NRHP/Text/74002091.pdf` served a placeholder blurb, not the
+  scanned nomination. SAH Archipedia **TX-01-AU41.5** (George W. Littlefield
+  House) — HTTP 403, same as the other Archipedia pages here.
+
+**Original set:**
 
 - [Cass Gilbert Society — University of Texas Library (Battle Hall)](https://www.cassgilbertsociety.org/works/utexas-austin-library/)
 - [Cass Gilbert Society — UT Education Building (Sutton Hall)](https://cassgilbertsociety.org/works/utexas-austin-education-bldg/)

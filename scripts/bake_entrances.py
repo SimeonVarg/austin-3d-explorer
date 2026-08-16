@@ -317,6 +317,18 @@ DOOR_W = 1.00           # m, monumental leaf width                     [A]
 COMM_DOOR_H = 2.134     # m, commercial leaf (84")                     [C]
 COMM_DOOR_W = 0.914     # m, commercial leaf (36")                     [C]
 LOBBY_DOOR_W = 1.067    # m, modern wide-stile lobby leaf (3'-6")      [A]
+VICT_LEAF_W = 0.80      # m, 19th-century leaf                          [A]
+VICT_LEAF_H = 2.70      # m [M]/[D] The ASPECT is the measurement and the
+                        # width is the anchor. Measured off
+                        # File:Arno_nowotny_building.jpg: the pair spans
+                        # x 861..937 px and the leaves run y 812..947 px, so
+                        # each leaf is 38 x 135 px = 3.55 : 1 (the two leaves
+                        # are 3.4 : 1 after the meeting stile). At an anchor
+                        # width of 0.80 m that is 2.70 m, which the same
+                        # frame's whole-elevation scale (1 px ~ 0.021 m at the
+                        # wall plane) independently puts at 2.8 m. TALL AND
+                        # NARROW is the whole read; a 0.914 x 2.134 commercial
+                        # leaf here is what makes it look like a shed door.
 LEAF_T = 0.10           # m; how thick a leaf slab is drawn
 MEET_STILE = 0.10       # m; the meeting stile of a pair               [A]
 MULLION = 0.12          # m; the mullion between two pairs             [A]
@@ -403,6 +415,58 @@ REVEAL_COOL = "#74756d"  # [S] bake_heroes.py eer_soffit
 ARCH_SHADOW = "#4d4535"  # [S] bake_arts.py blanton_arc
 SOFFIT_DK = "#6b6f72"    # [D] eer_soffit cooled 5%
 IRON = "#3f4145"         # [A] wrought iron / a garage's dark vehicle opening
+
+# ── FAMILY V, THE 19th-CENTURY PORCH (eras.md §4 family V). Two of its four
+#    members were PHOTOGRAPHED for this pass and these two hexes are sampled
+#    off one of them: File:Arno_nowotny_building.jpg on Wikimedia Commons,
+#    CC BY-SA, the axial front elevation of the 1857 Abner Cook asylum block.
+#    Pixel windows and medians are written into docs/entrances/eras.md §4V so
+#    the sample can be re-taken. Both are then entered through the repo's own
+#    measured transfers, the same way BRONZE and BRICK were — nothing here is
+#    a colour somebody liked the look of.
+VICT_LEAF = "#9e3d21"    # [M]/[D] the door pair, sampled #6a2916 (median over
+                         # 780 px, sd 6.5) IN PORCH SHADE, lifted through the
+                         # repo's measured x0.67 luma transfer exactly as
+                         # BRONZE was: a shadow is entered ALREADY LIT or it
+                         # reads as a hole punched in the building.
+PORCH_HOST_DARKEN = 0.88 # a porch is the host's own wall in shadow, 12% down —
+                         # the number eras.md §3.8 already publishes for the
+                         # canopies that are meant to belong to their building.
+VICT_TRIM = "#d98c59"    # [M]/[D] the painted timber porch trim and quoin
+                         # bands, sampled #e4935e SUNLIT (median over 3,300 px,
+                         # sd 4.7), less 5% — the same treatment bake_drag.py
+                         # gave the UT-blend brick it sampled at #c28e64.
+VICT_GLASS_MIX = 0.52    # V: the saturated blue taken FURTHER toward iron than
+                         # family A's leaded 0.35. An 1850s fanlight sits at the
+                         # back of a 2.4 m porch and photographs near-black
+                         # (#26221e in the same frame); family A's arcade does
+                         # not. Derived from a sampled primary by a stated
+                         # channel operation, like every other glass here.
+VICT_RISER = 0.170       # m [M] FIVE risers are visible in the ANB frame and
+                         # the flight measures 0.85 m; 0.85/5 = 0.17, which is
+                         # also FLIGHT_RISER. Named separately so the count
+                         # stays 5 if somebody retunes the utility flight.
+VICT_ARCH_RISE_FRAC = 0.55  # [M]/[D] the fanlight is SEGMENTAL, not
+                         # semicircular: measured rise 27 px over a half-span
+                         # of 38 px = 0.71 of the half-span of the DOOR
+                         # opening (1.70 m). The bake draws the arch across the
+                         # whole 2.20 m bank, so restated against `half`:
+                         # 0.71 x 0.85/1.10 = 0.55. A semicircle would be 1.00
+                         # and would be wrong by 0.4 m of glass.
+VICT_HEAD_GAP = 0.08     # m [M] frame between the door head and the springing
+                         # of the fanlight — 4 px in the same frame.
+VICT_PORCH_OVER = 2.35   # m [M] from the door head to the TOP of the porch
+                         # deck (112 px). Derived from the head rather than
+                         # authored as an absolute height, so a building whose
+                         # flight comes out of OSM steps evidence still gets its
+                         # porch over its own door instead of through it.
+VICT_PORCH_T = 0.94      # m [M] the porch entablature + balcony deck, head to
+                         # soffit 1.41 m, so 2.35 - 1.41. Four times family C's
+                         # canopy: this is a masonry-and-timber PORCH carrying a
+                         # first-floor balcony, not a blade.
+CANOPY_SIDE_V = 1.80     # m [S]/[A] "a wide first-story portico extends to both
+                         # sides of the main entry" (Wikipedia, Little Campus).
+                         # WIDE is sourced; 1.80 m is the number and is [A].
 
 # Where the repo has ALREADY sampled a building's glass, the entrance uses that
 # value. An entrance in a different blue from the curtain wall three metres above
@@ -545,6 +609,7 @@ def spread_of(hex_col):
 
 # The four sampled blues are the only glass primaries; these are the derivations
 # named in the GLAZING BY FAMILY block above.
+GLASS_VICT = mix(GLASS_SAT, IRON, VICT_GLASS_MIX)
 GLASS_LEADED = mix(GLASS_SAT, IRON, GLASS_LEAD_MIX)
 GLASS_BRONZED = mix(GLASS_SAT, BRONZE, GLASS_BRONZE_MIX)
 GLASS_PLATE = chan(GLASS_COOL, 1.0, 1.0, GLASS_PLATE_B)
@@ -690,6 +755,45 @@ WC_MULL_LT = ALUMINIUM   # where it is `sp`/`sn` — mill finish (§4.5)
 #  family scheme with no null case gives Chipotle a Paul Cret portal.
 # ══════════════════════════════════════════════════════════════════════
 FAMILIES = {
+    # ── V — 19th-century masonry porch, 1857-1909. The family the four-family
+    #        hypothesis did not have, and the campus is older than the
+    #        hypothesis: UT's own register dates FIVE buildings before Cass
+    #        Gilbert arrived, the oldest by half a century. Before this they
+    #        wore the E5 null door — a flush aluminium storefront on antebellum
+    #        limestone.
+    #
+    #        The identifying feature is the PORCH, not the door. On a
+    #        two-storey 1850s-1890s masonry block the entrance is a doorway at
+    #        the back of a one-storey portico whose roof is the first-floor
+    #        balcony: 2.4 m of permanent shade, a deck 2.35 m over the door
+    #        head, and a deep warm shadow. That is also the surface the camera
+    #        can see (eras.md §2.1 — at 70 deg of pitch a horizontal face is
+    #        seen at nearly full size and a vertical one at a third), so the
+    #        part that is loudest is also the part that is true.
+    #
+    #        The leaf is TALL AND NARROW and that is measured, not styled: the
+    #        photographed pair is 3.4 : 1, against family B's monumental 2.44
+    #        at 2.44 : 1. Getting that ratio wrong is what makes a 19th-century
+    #        door look like a shed door.
+    "V": dict(
+        era="victorian", arched=True,
+        open_w=2.20, open_w_sec=2.20,        # [D] pair 1.70 + 0.25 jamb a side
+        leaf_w=VICT_LEAF_W, leaf_h=VICT_LEAF_H, max_pairs=1,
+        spring_h=0.0, arch_rise=0.0,         # DERIVED from the head, below
+        arch_from_head=True, arch_rise_frac=VICT_ARCH_RISE_FRAC,
+        transom=True, transom_h=0.0,         # ... and so is the fanlight
+        surround_w=0.26, surround_proj=0.08, # [M] moulded architrave
+        cornice=0.0, sign_band=False,
+        reveal_d=2.40, reveal_col=REVEAL_WARM,   # the PORCH is the reveal
+        rise=0.85, riser=VICT_RISER, tread=FLIGHT_TREAD,
+        cheek=False, rail=True, rail_col=IRON,   # [M] iron pipe, not bright
+        canopy=dict(proj=2.40, t=VICT_PORCH_T, top=0.0,
+                    over_head=VICT_PORCH_OVER, side=CANOPY_SIDE_V,
+                    host=True, mat="stone", col=None, soffit=ARCH_SHADOW),
+        leaf_mat="timber", leaf_col=VICT_LEAF, glaz_frac=0.58,
+        sur_mat="limestone", sur_col=LIMESTONE, glass_col=GLASS_VICT,
+        dt="arched-pair", accent=VICT_TRIM, accent_h=0.22,
+    ),
     # ── A — Cass Gilbert Spanish Renaissance arcade, 1910-1922. TWO members.
     "A": dict(
         era="gilbert", arched=True,
@@ -954,13 +1058,24 @@ CELEBRATED = {
              "hull misses the door people actually use.",
     ),
     "LFH": dict(
-        fam="E5", tier=2,                       # Littlefield HOUSE, 1894
-        open_w=2.00, n=2, dt="hinged-pair", mat="wood",
+        fam="V", tier=2,                        # Littlefield HOUSE, 1894
+        open_w=2.00, n=2, dt="arched-pair", mat="timber",
         risers=4, rail=True, cheek=False,
-        note="1894 Victorian. The ROOF is the identity here, not the door [D] — "
-             "multicoloured slate and two mismatched towers. Deliberately given "
-             "the NULL door. Do not confuse with Littlefield Dormitory (LTD) or "
-             "the Carriage House (LCH): three different buildings.",
+        note="1894 Victorian, James Wahrenberger. The ROOF is still the "
+             "identity here, not the door [D] — multicoloured slate and two "
+             "mismatched towers — and celebrated.md is right that the budget "
+             "belongs there. It was given the NULL door because there was no "
+             "19th-century vocabulary; there is one now, so it takes family V "
+             "rather than a flush aluminium storefront on an 1894 mansion. "
+             "celebrated.md §5.9 records porch/columns/doors as [U]; this pass "
+             "read a photograph (Commons, Littlefield House - UT Austin, "
+             "54984939058) and can now say the entrance is a doorway RECESSED "
+             "behind polished stone Corinthian columns under a two-storey iron "
+             "veranda, over a stone flight of about five risers with a thin "
+             "retrofitted pipe rail. That is family V's shape exactly. The "
+             "authored open_w / n / risers / rail are unchanged. Do not confuse "
+             "with Littlefield Dormitory (LTD) or the Carriage House (LCH): "
+             "three different buildings.",
     ),
     "LBJ": dict(
         fam="D", tier=1,
@@ -1153,7 +1268,15 @@ if os.path.exists(UT_REGISTER):
 
 # eras.md §5.2 rule 6, boundaries verbatim. Parameterised per CLAUDE.md
 # rule 11: each pair is (last year of the family, family).
-ERA_BOUNDS = ((1925, "A"), (1949, "B"), (1989, "C"))
+#
+# THE 1909 BOUNDARY IS THE REGISTER'S, NOT MINE. eras.md §5.2 rule 6 had no
+# family below 1925 because the hypothesis had none, and the bake happily
+# handed a 1904 building a Cass Gilbert arcade and a 1859 one the null door.
+# Sorting data/ut_buildings.json by year: the five oldest are 1859, 1888,
+# 1894, 1894, 1904, and then it jumps to BTL 1911 — Battle Hall, Gilbert's
+# own first building. So the gap in the data IS the boundary, and 1909 is
+# just the last year inside it.
+ERA_BOUNDS = ((1909, "V"), (1925, "A"), (1949, "B"), (1989, "C"))
 ERA_AFTER = "D"
 
 
@@ -1184,10 +1307,30 @@ for _r in ("GDC", "EER", "NHB", "BMA", "RRH", "WCP", "BMC", "HDB", "HTB",
 # Explicitly NULL — do not give these a family. 1850s Greek Revival, a Victorian
 # house, and plant. Writing a fifth monumental vocabulary for two buildings that
 # sit 700 m south of the Forty Acres is not worth it in this pass.
-NULL_REFS = set(("LFH", "LCH", "JHH", "ANB"))
+#
+# THREE OF THE FOUR CAME OFF THIS LIST WHEN FAMILY V LANDED. They were null
+# because there was no vocabulary for them, which is a budget decision
+# masquerading as a judgement — eras.md §1 said so out loud ("writing a fifth
+# monumental vocabulary for two buildings ... is not worth it IN THIS PASS").
+# There is a vocabulary now, it is measured off one of those very buildings,
+# and it covers four of the five the register dates before Gilbert.
+#
+# LCH STAYS NULL, and this is not an oversight. The Littlefield Carriage House
+# is an 1894 OUTBUILDING: what it has is a carriage bay, not a portico with a
+# fanlight, and NO photograph and NO description of it was found. Family V's
+# porch on a coach house would be a confident lie. A dull correct door on a
+# building nobody has looked at is the honest answer (eras.md §4E5).
+NULL_REFS = frozenset(("LCH",))
 NULL_NAME_PARTS = ("chilling station", "cooling tower", "power plant",
                    "facilities complex", "sign shop", "field support",
-                   "arno nowotny", "hargis hall", "carriage house")
+                   "carriage house")
+# The two lists AS THEY STOOD before family V, frozen, so that
+# classify_pre_register() keeps telling the truth about what moved. It is a
+# historical record and it must not drift when the live list is edited.
+NULL_REFS_PRE = frozenset(("LFH", "LCH", "JHH", "ANB"))
+NULL_NAME_PARTS_PRE = ("chilling station", "cooling tower", "power plant",
+                       "facilities complex", "sign shop", "field support",
+                       "arno nowotny", "hargis hall", "carriage house")
 
 # ══════════════════════════════════════════════════════════════════════
 #  THE 24 WEST CAMPUS BUILDINGS — westcampus.md §6, keyed on the exact
@@ -2086,9 +2229,9 @@ def classify_pre_register(b):
     if b.wc:
         return "W"
     nm = ((b.name or "") + " " + (b.osm_name or "")).lower()
-    if b.ref in NULL_REFS:
+    if b.ref in NULL_REFS_PRE:
         return "E5"
-    for w in NULL_NAME_PARTS:
+    for w in NULL_NAME_PARTS_PRE:
         if w in nm:
             return "E5"
     if b.ref and b.ref in CELEBRATED:
@@ -3523,7 +3666,8 @@ def assemble(feats, b, c, eid, stats):
     if mat is None:
         mat = fam["leaf_mat"]
     leaf_col = {"bronze": BRONZE, "wood": WOOD, "aluminium": ALUMINIUM,
-                "glass": STEEL, "steel": IRON}.get(mat, fam["leaf_col"])
+                "glass": STEEL, "steel": IRON,
+                "timber": VICT_LEAF}.get(mat, fam["leaf_col"])
 
     # ── the flight. Riser count is derived, never authored, and then the riser
     #    is re-sized so the flight lands EXACTLY on the threshold.
@@ -3579,6 +3723,18 @@ def assemble(feats, b, c, eid, stats):
         fam["spring_h"] = head + 0.25
         fam["arch_rise"] = half
         fam["transom_h"] = half
+
+    # Family V's fanlight is SPRUNG OFF ITS OWN DOOR HEAD, not off an authored
+    # absolute height, and it is a SEGMENT rather than a semicircle. Both
+    # matter. Family A's spring_h is an absolute 2.90 m while its own head sits
+    # at 3.44 m, so its fanlight is drawn through the top of its doors — that
+    # is a real defect in the oldest family here and this branch exists so the
+    # new one does not inherit it. And a semicircular head on a 2.20 m bank
+    # would put 1.10 m of glass over the door where the photograph shows 0.60.
+    if fam.get("arch_from_head"):
+        fam["spring_h"] = head + VICT_HEAD_GAP
+        fam["arch_rise"] = half * fam["arch_rise_frac"]
+        fam["transom_h"] = fam["arch_rise"]
 
     # ── 1. REVEAL. There is no CSG, so this is not a hole: it is a dark slab
     #       standing REVEAL_PROUD off the wall whose COLOUR is the shadow, plus
@@ -3794,12 +3950,17 @@ def assemble(feats, b, c, eid, stats):
                     e.box("rail", "limestone", step_light, u - CHEEK_W / 2,
                           u + CHEEK_W / 2, v0, v1, 0.0, ztop + CHEEK_H)
                 else:
+                    # A 19th-century flight carries a thin DARK iron pipe, not
+                    # a bright mill-finish tube — both photographs this pass
+                    # read show one. Every other family omits `rail_col` and
+                    # gets STEEL exactly as before.
+                    rcol = fam.get("rail_col", STEEL)
                     u = sgn * (flight_w / 2 - RAIL_D / 2)
-                    e.box("rail", "steel", STEEL, u - RAIL_D / 2,
+                    e.box("rail", "steel", rcol, u - RAIL_D / 2,
                           u + RAIL_D / 2, v0, v1, ztop + RAIL_H - RAIL_D,
                           ztop + RAIL_H)
                     vm = (v0 + v1) / 2.0
-                    e.box("rail", "steel", STEEL,
+                    e.box("rail", "steel", rcol,
                           u - RAIL_POST_D / 2, u + RAIL_POST_D / 2,
                           vm - RAIL_POST_D / 2, vm + RAIL_POST_D / 2,
                           0.0, ztop + RAIL_H - RAIL_D)
@@ -3821,13 +3982,29 @@ def assemble(feats, b, c, eid, stats):
     #        entrance has. Family D's 0.18 m against family C's 0.25 IS the read.
     can = fam["canopy"]
     if can:
-        side = CANOPY_SIDE_D if fam_key == "D" else CANOPY_SIDE
-        ct = can["top"]
+        side = can.get("side", CANOPY_SIDE_D if fam_key == "D" else CANOPY_SIDE)
+        # A PORCH is measured from the door it shelters, a blade from the
+        # ground. Family V is the only one that gives `over_head`, and it does
+        # so because its flight height can come out of OSM steps evidence — an
+        # absolute top would then sit through its own fanlight.
+        ct = (head + can["over_head"]) if can.get("over_head") else can["top"]
         if b.h and ct + 0.2 > b.h:
             ct = max(head + 0.4, b.h - 0.4)
-        e.box("canopy", can["mat"], can["col"], -(half + side), half + side,
+        # A PORCH IS PART OF ITS BUILDING; AN AWNING IS NOT. §3.4 — family sets
+        # geometry, HOST sets material — and the first cut of family V broke it
+        # by painting all four porches in the terracotta sampled off ANB's own
+        # trim. Photographed at walking height that landed a BRIGHT ORANGE SLAB
+        # on Littlefield's deep red brick and on Hargis's tan brick: it read as
+        # a shopfront awning, which is precisely the "looks like a shed door"
+        # failure this family exists to fix. So the porch takes the host wall,
+        # darkened. Only family V asks for `host`; every other canopy is
+        # unchanged.
+        ccol = (scale(b.wd, PORCH_HOST_DARKEN) if can.get("host")
+                else can["col"])
+        e.box("canopy", can["mat"], ccol, -(half + side), half + side,
               0.0, can["proj"], ct - can["t"], ct)
-        e.box("canopy", can["mat"], SOFFIT_DK, -(half + side), half + side,
+        e.box("canopy", can["mat"], can.get("soffit", SOFFIT_DK),
+              -(half + side), half + side,
               0.0, can["proj"], ct - can["t"] - 0.06, ct - can["t"])
     return e
 
@@ -4550,6 +4727,41 @@ def main():
     for b in nod[:6]:
         print("      %-46s %5.0f m2  %.1f m"
               % ((b.name or b.osm_name or "(unnamed)")[:46], b.area, b.h))
+
+    # ── FAMILY V CENSUS — docs/entrances/eras.md §4V. The register is the
+    #    whole authority for this family, so the roll call is printed FROM THE
+    #    REGISTER rather than from the scope: a building the register dates
+    #    before Gilbert that this bake never saw is a hole, and a silent hole
+    #    is the failure mode. Every row says which family it actually got and,
+    #    where that is not V, why.
+    print("")
+    pre = sorted(((r, y) for r, y in YEAR_BY_REF.items()
+                  if y <= ERA_BOUNDS[0][0]), key=lambda t: t[1])
+    byref = {}
+    for b in scope:
+        byref.setdefault(b.ref or "", b)
+    seen = [r for r, _ in pre if r in byref]
+    vv = [b for b in scope if b.fam == "V"]
+    vdoors = sum(len(b.ents) for b in vv)
+    print("FAMILY V (pre-%d)  : the register dates %d buildings before the"
+          " Gilbert era, %d of" % (ERA_BOUNDS[0][0] + 1, len(pre), len(seen)))
+    print("                     them in scope this bake; %d wear family V and"
+          " carry %d door(s)." % (len(vv), vdoors))
+    for r, y in pre:
+        b = byref.get(r)
+        got = b.fam if b else "--"
+        why = ("" if got == "V" else
+               ("   NULL by hand: an outbuilding, no photograph or description"
+                " found" if r in NULL_REFS else "   NOT IN SCOPE this bake"))
+        print("    %-4s %-34s %4d  fam %-2s  %d door(s)%s"
+              % (r, ((b.name or b.osm_name or "?") if b else "(no footprint)")[:34],
+                 y, got, len(b.ents) if b else 0, why))
+    for b in vv:
+        if (b.ref or "") not in dict(pre):
+            print("    %-4s %-34s   ??  fam V   <- NOT dated pre-%d by the"
+                  " register" % (b.ref or "?",
+                                 (b.name or b.osm_name or "?")[:34],
+                                 ERA_BOUNDS[0][0] + 1))
 
     # ── WHAT THE REGISTER SCOPE ACTUALLY BOUGHT, per building, including the
     #    ones it bought nothing on. A building admitted and left empty is the

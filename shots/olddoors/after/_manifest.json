@@ -1,0 +1,236 @@
+[
+ {
+  "name": "ANB-eid210",
+  "ref": "ANB",
+  "eid": 210,
+  "door": [
+   -97.7310559,
+   30.2781704
+  ],
+  "eye": [
+   -97.730975,
+   30.2779853
+  ],
+  "alt": 1.7,
+  "bearing": 339.33,
+  "pitch": 85.58,
+  "dist": 22,
+  "tq": -38,
+  "sightlineClear": true,
+  "bname": "Arno Nowotny Building",
+  "role": "main",
+  "era": "utility",
+  "entSrcFeatures": 49451,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "ANB-eid210.png"
+ },
+ {
+  "name": "GEB-eid457",
+  "ref": "GEB",
+  "eid": 457,
+  "door": [
+   -97.7386372,
+   30.286268
+  ],
+  "eye": [
+   -97.7387932,
+   30.286123
+  ],
+  "alt": 1.7,
+  "bearing": 42.9,
+  "pitch": 85.58,
+  "dist": 22,
+  "tq": 38,
+  "sightlineClear": true,
+  "bname": "Dorothy Gebauer Building",
+  "role": "main",
+  "era": "gilbert",
+  "entSrcFeatures": 35299,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "GEB-eid457.png"
+ },
+ {
+  "name": "JHH-eid202",
+  "ref": "JHH",
+  "eid": 202,
+  "door": [
+   -97.7319802,
+   30.278344
+  ],
+  "eye": [
+   -97.7317659,
+   30.278414
+  ],
+  "alt": 1.7,
+  "bearing": 249.29,
+  "pitch": 85.58,
+  "dist": 22,
+  "tq": -38,
+  "sightlineClear": true,
+  "bname": "John W. Hargis Hall",
+  "role": "main",
+  "era": "utility",
+  "entSrcFeatures": 25042,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JHH-eid202.png"
+ },
+ {
+  "name": "JHH-eid203",
+  "ref": "JHH",
+  "eid": 203,
+  "door": [
+   -97.7318595,
+   30.2785769
+  ],
+  "eye": [
+   -97.7316453,
+   30.278647
+  ],
+  "alt": 1.7,
+  "bearing": 249.23,
+  "pitch": 85.58,
+  "dist": 22,
+  "tq": -38,
+  "sightlineClear": true,
+  "bname": "John W. Hargis Hall",
+  "role": "secondary",
+  "era": "utility",
+  "entSrcFeatures": 25137,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "JHH-eid203.png"
+ },
+ {
+  "name": "LCH-eid72",
+  "ref": "LCH",
+  "eid": 72,
+  "door": [
+   -97.740897,
+   30.2886301
+  ],
+  "eye": [
+   -97.74102,
+   30.288797
+  ],
+  "alt": 1.7,
+  "bearing": 147.51,
+  "pitch": 85.58,
+  "dist": 22,
+  "tq": -38,
+  "sightlineClear": true,
+  "bname": "Littlefield Carriage House",
+  "role": "main",
+  "era": "utility",
+  "entSrcFeatures": 27040,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "LCH-eid72.png"
+ },
+ {
+  "name": "LFH-eid585",
+  "ref": "LFH",
+  "eid": 585,
+  "door": [
+   -97.7407811,
+   30.2879844
+  ],
+  "eye": [
+   -97.7406545,
+   30.2878195
+  ],
+  "alt": 1.7,
+  "bearing": 326.46,
+  "pitch": 85.58,
+  "dist": 22,
+  "tq": -38,
+  "sightlineClear": true,
+  "bname": "Littlefield House",
+  "role": "main",
+  "era": "utility",
+  "entSrcFeatures": 13156,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "LFH-eid585.png"
+ }
+]
