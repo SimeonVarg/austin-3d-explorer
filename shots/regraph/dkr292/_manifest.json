@@ -1,0 +1,218 @@
+[
+ {
+  "name": "292-orbit-000",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.733112,
+   30.28463114951998
+  ],
+  "alt": 1.7,
+  "bearing": 0,
+  "pitch": 85.58,
+  "dist": 22,
+  "entSrcFeatures": 43729,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 163
+   },
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-orbit-000.png"
+ },
+ {
+  "name": "292-orbit-030",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.73322655924154,
+   30.28465765645815
+  ],
+  "alt": 1.7,
+  "bearing": 30,
+  "pitch": 85.58,
+  "dist": 22,
+  "entSrcFeatures": 39454,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 67
+   },
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-orbit-030.png"
+ },
+ {
+  "name": "292-orbit-060",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.73331042242681,
+   30.284730074759988
+  ],
+  "alt": 1.7,
+  "bearing": 60,
+  "pitch": 85.58,
+  "dist": 22,
+  "entSrcFeatures": 19150,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 67
+   },
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-orbit-060.png"
+ },
+ {
+  "name": "292-orbit-090",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.73334111848305,
+   30.284829
+  ],
+  "alt": 1.7,
+  "bearing": 90,
+  "pitch": 85.58,
+  "dist": 22,
+  "entSrcFeatures": 21537,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 67
+   },
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-orbit-090.png"
+ },
+ {
+  "name": "292-orbit-120",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.73331042242681,
+   30.28492792524001
+  ],
+  "alt": 1.7,
+  "bearing": 120,
+  "pitch": 85.58,
+  "dist": 22,
+  "entSrcFeatures": 19346,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 47.1
+   },
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-orbit-120.png"
+ },
+ {
+  "name": "292-orbit-150",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.73322655924154,
+   30.285000343541846
+  ],
+  "alt": 1.7,
+  "bearing": 150,
+  "pitch": 85.58,
+  "dist": 22,
+  "entSrcFeatures": 6862,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 15,
+    "eyeAlt": 47.1
+   },
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-orbit-150.png"
+ }
+]

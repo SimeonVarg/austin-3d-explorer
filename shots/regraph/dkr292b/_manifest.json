@@ -1,0 +1,102 @@
+[
+ {
+  "name": "292-close-ene",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.7330149908284,
+   30.284849886267565
+  ],
+  "alt": 1.7,
+  "bearing": 256,
+  "pitch": 78,
+  "dist": 8,
+  "entSrcFeatures": 18439,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   2264
+  ],
+  "eyeAlt": 67,
+  "zoom": 17.376,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 8,
+    "eyeAlt": 2.72
+   }
+  ],
+  "doorOnScreen": false,
+  "file": "292-close-ene.png"
+ },
+ {
+  "name": "292-close-wsw",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.7333504808802,
+   30.284777654592233
+  ],
+  "alt": 1.7,
+  "bearing": 76,
+  "pitch": 85.58,
+  "dist": 22,
+  "entSrcFeatures": 21760,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   446
+  ],
+  "eyeAlt": 1.7,
+  "zoom": 21.244,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 8,
+    "eyeAlt": 67
+   },
+   {
+    "dist": 22,
+    "eyeAlt": 1.7
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-close-wsw.png"
+ },
+ {
+  "name": "292-lookdown",
+  "door": [
+   -97.733112,
+   30.284829
+  ],
+  "eye": [
+   -97.73294922959374,
+   30.28449786849615
+  ],
+  "alt": 28,
+  "bearing": 337,
+  "pitch": 55.01,
+  "dist": 40,
+  "entSrcFeatures": 5998,
+  "entLayersVisible": 6,
+  "doorPx": [
+   720,
+   450
+  ],
+  "eyeAlt": 28,
+  "zoom": 20.098,
+  "qrfUnusableAtThisPitch": true,
+  "tries": [
+   {
+    "dist": 40,
+    "eyeAlt": 28
+   }
+  ],
+  "doorOnScreen": true,
+  "file": "292-lookdown.png"
+ }
+]
