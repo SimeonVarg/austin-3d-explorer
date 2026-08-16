@@ -16285,6 +16285,7 @@ every gate that was green tonight has also been watched failing. The city is
 yours in the morning.
 
 
+
 ## 128. Aug 16 2026 — the frame budget, written by reading; the third hog is the sky and it repaints on every camera move (QUEUE K1, frame half) (acer lane, perf)
 
 **No code and no data changed. Nothing was measured.** Branch
@@ -16459,3 +16460,183 @@ rewritten, not the measurement that gets judged.
 `js/wayfind.js` was not touched: Z5 (a route repainting at ~15 Hz forever) is
 the wayfind lane's tonight and appears in the inventory as row 15, named and
 not changed.
+
+## 129. Aug 16 2026 — campus walls have storeys, the era decides the vocabulary, and the null default draws floor lines only (QUEUE Y5, campus half) (acer lane, branch `acer/n2-campus`)
+
+**What changed, in one line for Simeon:** stand anywhere on campus and the
+walls above the doorways now read as *floors* instead of a pegboard — a base
+course, a line at each storey, and a real cornice on the old limestone halls.
+The South Mall and Speedway frames are the ones to look at:
+`shots/walls/01-southmall-hero-day-*` and `05-speedway-welch-day-*`.
+
+**Scope.** Campus only. West Campus is the other half of Y5's second part and
+is untouched by this pass. The design document is `docs/camera/walls-campus.md`
+(written on `main` at `cdd5715`); this is its §5 executed.
+
+### The change
+
+Three files. `scripts/bake_campus_storeys.py` (new) writes
+`data/campus_storeys.geojson` (new) and nothing else writes it; `js/facades.js`
+draws it as `campus-storeys`.
+
+**Why the geometry rather than a better tile.** `facades.js` is SCREEN-locked —
+one repeat is `displaySize x mpp(floor(cameraZoom))` metres, so at walking
+height campus is on `TIER_CSS` 32 = **2.06 m of wall per repeat**, HALF the
+Drag's 4.12, and family `mh` puts eight window rows in it: a **0.258 m storey**
+with a full-height vertical every 0.121 m. No tile edit can fix that, because
+the failure is that the tile has no fixed size in metres at all. Same
+conclusion, same fix and the same recipe as the Drag's PR #167: proud rings,
+`dbase`/`dh`, no `bid`, 8-decimal offsets, `wall_ramp`'s day/golden/night trio,
+`fill-extrusion-vertical-gradient: false`.
+
+**What is NEW is the era table, and it is the whole point.** A base course +
+string course + cornice is a *masonry* vocabulary. Shipping it everywhere is
+how a pass looks wrong on half the city (walls-campus.md §6):
+
+```
+A/B  <=1949  Gilbert/Cret limestone  base .20/.55  string .14/.30  CORNICE .45/.75
+C    1950-89 concrete frame          base .12/.35  slab   .12/.30  cap .20/.45
+D    1990+   glass                   no base       reveal .06/.18  cap .15/.35
+NULL no year                         no base       line   .09/.24  nothing else
+```
+
+The **NULL row is the most important line in the pass.** 190 of 253 campus
+buildings have no measured year, and `eras.md` §5.2 rule 8 says the default
+must be NULL "because that is exactly how a wrong entrance gets onto 80
+buildings at once". That argument binds for the *cornice* and does not bind for
+the *floor line* — every building has floors, and a slab edge asserts only
+that. So a building without a year gets floor lines and nothing else, and it
+earns its cornice by having a year. The 0.09/0.24 depth is authored HERE and
+says so in the file: D's 0.06 reveal would be invisible across 68 % of the
+district and C's 0.12 slab edge would assert concrete frame on 190 undated
+buildings.
+
+`tg` (curtain wall — the mullion grid IS the structure), `st` (DKR has its own
+bake) and `lo` (a 4 m shed has one storey) are refused outright and counted.
+`dk` takes `DECK_M` 2.80, not `STOREY_M`: a parking deck is not a storey.
+
+**Storey height is measured where it can be.** `STOREY_M` 3.46 is
+`bake_tower.py`'s `FLOOR`, off the gold spandrels in a rectified photograph.
+Where `num_floors` exists the storeys are FITTED to the count instead — but
+only if the implied pitch lands in [2.60, 5.20], because `final_height` is a
+LiDAR high point and `h/levels` is an upper bound rather than a measurement.
+**The guard rejected 29 counts and accepted 21**, which is the guard working.
+
+### The bake, by the numbers
+
+```
+considered in bake_entrances.py's own CAMPUS box   668 unclaimed buildings
+banded                                            211
+nothing owed (one storey above the datum)         139
+refused: lo 115, short(<8 m) 193, st 5, tg 5      318
+features / storeys                                640 / 750
+dated from UT's own register (normalised name)     68
+by era        A 4   B 11   C 32   D 14   NULL 150
+by family     mh 136   mr 66   dk 6   tr 3
+size                                              440 KB raw / 48.2 KB gzip
+NEW PATTERN IMAGES                                ZERO
+```
+
+**Zero new atlas images, by construction.** These are flat-colour extrusions,
+so the 2,840 KB / 284-image atlas and the 80.4 ms `updateFacades` are untouched
+— and that is the point, not a saving: a 0.24 m course showing an arbitrary
+slice of a 2.06 m tile is the exact trap `facades.js`'s own header is about.
+
+The bake **claims no building ids**. `replacedBuildingIds` is absent on
+purpose; six passes already claim ids and a pass that claims none can never
+collide with any of them in either order.
+
+### Verified by looking (SwiftShader headless, 1440x900, dpr 1, `cancelGraphicsAutoDetect()`, AE OFF + one forced `updateSky` per §127, gain asserted **1** at every frame, `alt` read **1.70** at every eye pose)
+
+`harness-drift.mjs` **PASS, 29 scripts in each file**, before any pixel — and
+unchanged by this pass, because the client lives in a file that already has a
+`<script>` tag. Served from a throwaway `git worktree` on port 8361.
+
+The arms are **the layer hidden vs shown, in one page session at one pose**.
+That is exactly the before, because the pass adds no filter, replaces no
+building and claims no id — and it avoids the 31 % cross-session floor §114
+measured on reloads.
+
+```
+pose                        settled floor   signal (min of 2 interleaved reps)
+01 South Mall eye 1.7 day        0 px        12,280 px >24  rows 69-368   WIN
+03 Battle Hall eye 1.7 day       0 px        29,729 px >24  rows 0-356    WIN
+05 Speedway eye 1.7 day          0 px        30,719 px >24  rows 0-359    WIN
+04 South Mall eye 1.7 NIGHT      0 px         1,351 px >24  rows 71-345   not worse
+06 z16.2 / alt 342 m day         0 px         8,733 px >24  (0.67 % frame) indistinguishable
+07 z15.2 / alt 615 m CRUISE      0 px             0 px      SHA-256 IDENTICAL
+```
+
+**Day, eye level: WIN, decisively, at all three sites.** Battle Hall goes from
+a flat pegboard slab to a banded limestone hall with a deep cornice; the South
+Mall's flanking walls (Parlin, Batts/Mezes — family C) get a base course, slab
+edges and a parapet cap; Speedway becomes a street with depth because the
+courses run back in perspective. **The best pose in the app is better, not
+worse** — the Tower, the lawn, the trees and the sky are pixel-identical and
+every changed pixel is in the wall band.
+
+**Night: not worse, and barely visible.** 1,351 px against a 0 floor. The
+atlas's lit-pane scatter still owns the night wall, exactly as
+walls-campus.md §6.5 predicted, and this pass deliberately did NOT attempt the
+Drag's day/night tile swap — that fix lives in `js/drag.js`'s own tile, while
+`facades.js`'s night scatter is shared with downtown, the outer ring and the
+Capitol.
+
+**Cruise: byte-identical.** `CS.minZoom` 15.5 keeps the layer out of the
+flyover entirely; at 615 m the two PNGs have the same SHA-256. At 342 m — a
+descent, not a cruise — 8,733 px of 1,296,000 is 0.67 % of the frame and I
+looked at the pair and cannot tell them apart. walls-campus.md §5.4 warned that
+the Drag's 67 px would not scale to 3,200 features; it does not, and the
+minzoom is why. **That number is set from the measurement, not guessed.**
+
+**INSTRUMENT FINDING, and it invalidated my first three floors.** The in-run
+noise-floor pair is the first two frames after the pose change, and at night it
+read **758,516 px** and at z16.2 **154,516 px** — the scene still tiling, not
+the instrument. The honest floor is the two OFF frames of the two interleaved
+reps, taken a minute apart with everything settled: **0 px at every pose,
+including night.** Anyone reusing this harness should take the floor pair LAST,
+not first.
+
+Static gates: `geomlint` **640 features clean**, largest ring 300 m. No two
+bands on one building overlap vertically (checked directly: 211 hosts, 0
+overlaps, minimum gap 2.40 m, minimum span 0.179 m). **`coplanar.mjs` printed
+"0 features / no coplanar overlaps" and that line is VACUOUS** — it reads
+`p.h`/`p.height` and this file carries `dbase`/`dh`, so it saw nothing. Written
+down rather than quoted as a pass.
+
+### Two lane decisions, recorded because they were mine to make
+
+1. **The client is in `js/facades.js`, not a new `js/storeys.js`.**
+   walls-campus.md §5.1 proposed the new module. A new module needs a
+   `<script>` tag in BOTH `index.html` and `_harness.html`, and those are
+   shared with every other lane tonight; this pass owns neither. The block is
+   self-contained — nothing in the atlas needs it and it needs nothing from the
+   atlas — so it lifts out verbatim later by adding the two tags.
+2. **The bake and its data file are new files outside the pass's nominal write
+   list.** They collide with nobody by construction (nothing else writes
+   `data/campus_storeys.geojson`), and putting storey geometry into
+   `facade_palette.json` would have broken CLAUDE.md rule 1's one-bake-one-file
+   contract with `bake_facades.py`.
+
+### What I did NOT manage to do
+
+* **West Campus. Not started.** Y5's second half is still half open:
+  `bake_wc_storeys.py`, the 819 generic buildings, and the 24 authored towers'
+  slab edges (which must stay with `bake_westcampus.py` — it alone knows where
+  `base` ends and `podium`/`tower`/`crown` begin).
+* **No dusk frames.** p 0.30 and p 0.92 only. Y17/Y18 both live in dusk and
+  this pass says nothing about either.
+* **`zfight.mjs` was not run** — the trim is proud, never coplanar, and the
+  vertical-gap check above covers the static case, but nobody has rendered it
+  looking for a comb.
+* **No frame-time or `perf.mjs` number.** 640 extrusions were added and their
+  cost is a prediction, not a measurement. K1's bill grows again.
+* **Pose 02 (Calhoun frontal) was badly sited** — the eye landed against
+  Parlin Hall's own wall and the frame is unusable for judging. Deleted rather
+  than shipped; the era-C read is carried by the South Mall pair instead.
+* **`Homer Rainey Hall` and `McCombs School of Business` came out NULL**
+  because their snapshot names do not match the register's, where
+  walls-campus.md expected B and C. The null default did the right thing (floor
+  lines, no cornice) but a better name join would date them.
+* **Nothing measured on hardware GL, at dpr 2, or on a phone width.**
+* **Not merged.** The Gate decides.
