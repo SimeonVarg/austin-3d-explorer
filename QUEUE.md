@@ -1640,6 +1640,13 @@ regression.
 > moved 2.04–9.61 m and this lane did not touch the graph. Largest: GSB 9.61 m,
 > eid 281 8.09, MEZ 7.46, eid 276 7.35, BHD 6.62.
 >
+> **FOR THE SUITE-REPAIR LANE:** `coplanar.mjs` on this branch reads **1655**
+> against the 1627 you re-baselined tonight. **All 28 of the difference are
+> inside the 11 doors that moved** — delete those eids from both files and each
+> gives 988 — and they are step treads and cheek walls sharing a top plane in one
+> flight. Judged by looking: `shots/relocated/fix/zf-bhd.jpg`, no shimmer. The
+> baseline is your file, so the number is written here rather than re-recorded.
+>
 > **FOR WHOEVER RE-RUNS THE NUMERIC AUDIT:** `sweep.md` §2 test 3 ("no group more
 > than 6 m from its own footprint") now reads 4, and all four hosts are ids an
 > authored pass CLAIMS — `austin-buildings` never draws those rings. Exclude the
