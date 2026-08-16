@@ -21884,6 +21884,14 @@ instruction: a complication that buys nothing is worse than leaving the cost.
 
 ### 158C. THE GATES, ON THE MERGED TREE
 
+**`main` moved twice while this ran** — to `f1ef012` and then, mid-write-up, to
+`839227e` (PR #196, `acer/o5-regraph`, which moved `data/entrances.geojson`,
+`data/walk_graph.json` and `scripts/bake_entrances.py` again). Both were merged
+in and the load-bearing assertions re-run on the **second** merged result, not
+on the first: `harness-drift` PASS again, palette identity **30/30 shared
+buckets, 0 mismatched, bucket 0 still `#d38e5e` in both arms**, and
+`coplanar --gate` still **1627 -> 1655** (unchanged by #196).
+
 * `harness-drift.mjs` **PASS** (29 scripts both sides) before anything else.
 * `perf-budget.mjs`, headless, `gl=hardware`, no CPU throttle, auto-detect
   cancelled, cruise valid 3/3: **FAIL 6 of 6** — G1 8.586, G2 3.195, **G3 12.90
