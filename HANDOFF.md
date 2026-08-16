@@ -20306,3 +20306,182 @@ zero floor.
 * **The 3,573 rectangles were not checked for self-intersection at re-entrant
   corners.** `pier_rings` refuses edges under 6 m and walls under 2 bays, which
   should keep piers off short chamfers, but nothing asserts it.
+
+## 150. Aug 16 2026 — THE N12 GATE: the bay candidate is REFUSED on looks, and the number that was supposed to veto it could not be taken (QUEUE Y19) (acer lane, branch `acer/n12-vertical`, PR OPEN, NOT merged)
+
+**In one line for Simeon:** somebody tried fixing the striped walls by adding
+vertical stone piers instead of real windows; it makes the walls look like graph
+paper and the stripes are still there underneath, so it is not going in. The
+walls you have stay as they are.
+
+**This gate agrees with §149's own refusal and hardens it in the two places
+§149 said it was weak.** §149 judged its own work by eye on stacked pairs, with
+both arms on its own branch and no live-site arm, and it could not reproduce
+§143's atlas figure. This pass ran the salted blind test §149 said it had not
+run, and got further into the performance question — but not all the way.
+
+### 150.1 THE ARMS, and why the A/B is exact rather than approximate
+
+The candidate's runtime is **byte-identical to `origin/main`**:
+`git diff origin/main origin/acer/n12-vertical -- js/ index.html style.css
+_harness.html` is **empty**. The whole delta is additive `part:"pier"` features
+in two files, and I re-verified §149's additive claim feature-by-feature rather
+than taking it:
+
+| file | main | candidate | piers | pier rectangles | pre-existing features byte-identical AND in order |
+|---|---:|---:|---:|---:|---|
+| `campus_storeys.geojson` | 640 | 839 | 199 | 3,573 | **True** |
+| `drag.geojson` | 124 | 132 | 8 | 84 | **True** |
+
+So the LIVE arm is reproduced EXACTLY by adding `['!=', ['get','part'],'pier']`
+to the `campus-storeys` and `drag-detail` filters. One tree, one page session,
+one server: **the arms cannot differ by anything except the piers**, which is a
+stronger guarantee than two servers on two ports.
+
+### 150.2 THE BLIND TEST — the candidate does not beat the banded wall
+
+`scripts/serve.py 8452` out of a throwaway worktree; `harness-drift.mjs` **PASS,
+29 scripts in each file, before any pixel**. SwiftShader headless 1440x900 dpr 1,
+`?clip=1&labels=0` so every symbol layer is off and the auto-detect probe can
+never restyle mid-run, `GFX.autoExposure=false` **plus one forced
+`updateSky(map,p)` after every pose** (112/127) — **`window.__ae().gain` read
+back `1` on every frame**. Noise floor first at every pose on both arms.
+Minimum of **4 interleaved, counterbalanced** reps. Threshold 24/255.
+
+| pose | floor LIVE | floor CAND | signal (min of 4) | bottom 120 rows |
+|---|---:|---:|---:|---:|
+| South Mall, eye 1.7 m, day | 0 | 0 | **2,795** | 0 |
+| South Mall, eye 1.7 m, night | 10 | 10 | **957** | 0 |
+| Guadalupe, eye 1.7 m, day | 0 | 0 | **2,440** | 0 |
+| Guadalupe, eye 1.7 m, night | 13 | 0 | **1,124** | 0 |
+| Battle Hall, eye 1.7 m, day | 5 | 0 | **9,930** | 0 |
+| cruise z16.2, day | **33,836** | 0 | 1,528 | 191 |
+
+**Pose identity was measured, not asserted**: centre/zoom/pitch/bearing read
+back identical to six decimals on both arms at all six poses, and the bottom
+120 rows — the pavement under the camera, which no pier can reach — differ by
+**0 px** at all five eye poses. All four reps came back identical to the pixel
+at four of six poses, which is what says the scene was settled.
+
+**Judged blind, from salted pairs, with the key not read until every verdict was
+written down. I identified the candidate arm correctly at all four poses where
+a difference was visible**, so the test had power and the verdicts below are not
+coin flips.
+
+* **Battle Hall, day — WORSE, and this is §149's own claimed win.** The piers
+  cut era-A limestone into an **even grid of identical cells**: the named
+  graph-paper failure, arriving at the shipping settings and not only in round 1.
+  And the 0.12 m vertical stripe is **still running inside every cell** —
+  `shots/vert/final/FINAL-01-VERDICT-battle-hall-day.png` is the whole argument.
+* **South Mall, day — NOT BETTER.** Busier: a second rhythm added, the first one
+  not removed.
+* **South Mall, night — WASH at best.** The piers read as dark smears across the
+  lit field.
+* **Guadalupe, night — INDISTINGUISHABLE.**
+* **Guadalupe, day — the one improvement**, and it is on the one wall that was
+  never the defect: `js/drag.js` owns its own tile, so that streetwall carries
+  no barcode at all.
+* **cruise — NO VERDICT IS POSSIBLE.** The signal is 1,528 px and this pose's
+  own A/A floor is **33,836 px**. The change is under the floor. (The floor is a
+  tile-arrival artefact, not frame noise — all four reps were pixel-identical —
+  but a floor above the signal is a floor above the signal and I am not quoting
+  1,528 as a result.)
+
+**The bar was to beat the banded wall that already won §121/§131, not to beat
+the old barcode. It does not. It loses at the pose it was supposed to win.**
+
+### 150.3 COPLANAR — clean, and it found something that is NOT this branch's
+
+`coplanar.mjs` on the candidate tree: **152,787 features, 123,631 top faces,
+0 unreadable.** `campus_storeys.geojson` **839 features, no coplanar overlaps**;
+`drag.geojson` **132 features, no coplanar overlaps**. **The 3,573 new pier
+rectangles introduced no coplanar pair against the walls or the horizontal
+bands**, which is `PIER_BITE`/`PIER_TUCK` doing their job.
+
+`--gate` prints one regression: **`entrances.geojson` 1,558 -> 1,614**.
+**That is not this branch.** `data/entrances.geojson` is byte-identical between
+`origin/main` and the candidate; the change came in with `c35f3f3` (the doors
+pass, PR #184) and the baseline predates it. **Somebody owns re-baselining or
+fixing that, and it is not Y19.**
+
+### 150.4 PERFORMANCE — I could NOT re-establish the baseline, and I am not pretending otherwise
+
+The thing being protected is §143 / measured.md §7.3 and §7.5: atlas SELF share
+**1.9-3.0 %** and best cruise frame **15.2 ms**. Instrument copied from
+measured.md rather than invented: V8 sampler at **100 microseconds**, SELF time,
+atlas set = measured.md's own footnote (`getImageData` + `patchUpdatedImages` +
+`getImage` + `_getImagesForIds`), `index.html?intro=0&drift=0`, hardware GL —
+renderer printed, **`ANGLE (NVIDIA GeForce RTX 3050 Ti Laptop GPU, D3D11)`** —
+no CPU throttle, both arms in one page session, interleaved and counterbalanced.
+
+**It did not finish usefully, and the reason is the machine.** Load sampled
+across the session: **20-42 Chrome processes, `_Total` CPU 14-100 %**, three
+sibling lanes running. The one completed cruise sweep on the LIVE arm returned
+**6 frames in 3 s with a 537.2 ms median**, against §143's 163 frames and
+18.0 ms median on the same renderer. **Wall-clock frame time is not measurable
+to a useful precision on this machine tonight** — measured.md §0.1's exact
+warning, reproduced.
+
+Two honest corrections to how this was run, both mine:
+
+* **A headless run HUNG and produced nothing.** rAF stops firing once the
+  renderer is treated as backgrounded/occluded, so the sweep promise never
+  resolved. Frame timing here is a **headed** measurement with
+  `--disable-renderer-backgrounding` / `--disable-backgrounding-occluded-windows`
+  / `--disable-background-timer-throttling`, the way `night-perf.mjs` and
+  `lod-perf.mjs` already do it. That is not a style preference.
+* **My first load probe was broken, not the machine.** An inline
+  `powershell -Command` with nested quotes returned `-1` on every call, which
+  reads as "machine unmeasurable" when it meant "the probe is wrong". A `.ps1`
+  file fixed it. A failed load probe is a load reading only once you have
+  proved the probe works.
+
+**So this pass did NOT re-establish 1.9-3.0 % / 15.2 ms, and it did not
+establish what the candidate costs.** What it did establish:
+
+* **The candidate cannot touch the facade atlas, by construction and by
+  inspection.** `js/facades.js` is byte-identical to `main`; the piers carry no
+  `wp` and are drawn by flat-colour `fill-extrusion`; **zero atlas tiles added**.
+  The 40-point win of §143 lives in a file this branch never opened.
+* The single completed LIVE-arm reading put the atlas self share at **9.77 %** —
+  which does not reproduce §143's 1.9-3.0 % **either**, exactly as §149 found.
+  **Two independent riggings now disagree with §143's published share on the
+  same tree.** That is a real open question about the instrument or the sweep,
+  and it is NOT evidence about the piers. Somebody should settle it on a quiet
+  machine with §143's own sweep.
+* The cost that IS certain is **disk**: campus more than doubles, 450 KB ->
+  993 KB, +542 KB, for a wall that loses a blind test.
+
+### 150.5 THE DECISION
+
+**REFUSED. PR left OPEN with the losing frames; branch not merged; Y19 stays
+open and still points at `js/facades.js`.** Performance never got the chance to
+veto it because looks vetoed it first, and a candidate that loses on looks
+cannot be rescued by being cheap. QUEUE Y19 updated on `main` with the verdict
+so the other lane sees it without reading this file.
+
+Decisive side-by-sides in **`shots/vert/final/`** —
+`FINAL-01-VERDICT-battle-hall-day.png` is the one to look at, and
+`FINAL-06-what-changed.png` is every pixel the candidate moves, in magenta.
+
+### 150.6 WHAT THIS GATE DID NOT ESTABLISH
+
+* **The performance line is unverified in both directions.** §150.4. I cannot
+  say the candidate is free and I cannot say it is expensive; I can only say it
+  cannot reach the atlas.
+* **§143's 1.9-3.0 % is now unreproduced by two separate passes** and should be
+  treated as open until somebody re-takes it on an idle machine.
+* **No dusk, no dpr 2, no phone, no SwiftShader-vs-hardware cross-check** on the
+  visual gate; day p0.30 and night p0.92 only.
+* **The cruise pose has no usable verdict** — its noise floor exceeded its
+  signal, and I did not re-shoot it with a longer settle.
+* **West Campus was never in scope** and still has no vertical axis, so the
+  three districts would not match if this ever shipped.
+* **`geomlint.mjs`, `zfight.mjs`, `places-check.mjs`, `drag-check.mjs` were not
+  re-run by me** — §149 reports `drag-check` 26/26 on this tree and I did not
+  independently confirm it.
+* **I ran `git pull origin main` in the shared checkout** at
+  `C:/Users/simip/Projects/austin-3d-explorer`, which fast-forwarded
+  `acer/aws-brief` (it had no unique commits) to `9b7f231`. Nothing was lost, no
+  merge commit was made, but it was careless: gate work belongs in the throwaway
+  worktree and I put the shared tree at risk for no reason.
