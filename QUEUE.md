@@ -1434,6 +1434,53 @@ regression.
 
 ---
 
+> ## THE 25 RELOCATED DOORS WERE LOOKED AT — MAI never moved, three doors had
+> ## been made invisible, and NB6 fixes them — 2026-08-16, `acer/nb-relocated`
+> ## (full write-up: `docs/entrances/relocated.md`; pictures: `shots/relocated/`)
+>
+> **THE MAIN BUILDING'S SOUTH PORTAL DID NOT MOVE.** All seven MAI groups are
+> byte-identical to the file that shipped before the buried rule changed, and the
+> `moved MAI 1 m` line in the bake log appears with the new rule OFF as well as
+> ON — it is the old GDC/MAI pair, not one of the 25. Checked against
+> `celebrated.md` §5.1 point by point: 0.2 m from the measured OSM node, due
+> south, the recessed centre bay is modelled, 4 leaves, transom, limestone
+> surround, inscription band baked. Day and night match the committed frames.
+>
+> * **NB6, OPENED AND CLOSED IN THE SAME PASS. Three of the 25 relocations took a
+>   VISIBLE door and made it invisible** — Engineering Discovery Building (5,432
+>   changed px → 0), Brackenridge Hall (10,376 → 0) and one West Campus main door
+>   (15,351 → 0). Measured by shooting the old file at its own old poses, both
+>   bearings. `clear_buried()` was testing "4 m of clear space in front of the
+>   door" against a union that omits the door's own building, so **solid host
+>   building read as free space** and the march parked doors facing into their own
+>   walls. Fixed: the front clearance now sees the host.
+>   `BURIED_OWN_BLOCKS_FRONT = False` reverts it. After the fix those three read
+>   4,453 / 31,770 / 15,567 px. 11 groups move, **none worse, eight better**, zero
+>   identity drift, all bake gates unchanged.
+> * **21 of the 25 were already correct** and every `0` on a single bearing was
+>   the camera, exactly as `sweep.md` §3.4 predicted.
+> * **`eid 292` (DKR) is dark and stays dark** — 0 px both bearings on `main` AND
+>   on the pre-NB2 file. Its blocker is `js/stadium.js`'s authored wall. Not
+>   caused by NB2 and not fixed here.
+> * **The three dropped doors were walked to** (four bearings + a look-down) and
+>   dropping was right: curved concourse walls on the DKR service belt with
+>   roadway in front. Each drop line now prints its **coordinate** — it used to
+>   read `DROPPED 2 on 568a1f55` for two doors **215 m apart**.
+> * **HERO GATE GREEN.** `MAINr1 = MAINr2 = MAINr3`, one SHA-256 each. The fix vs
+>   `main`: H1/H4/H5 identical bytes, H2/H6 at floor, H3 **47 px** in the far
+>   bottom-left corner. `main` is recordable.
+>
+> **FOR THE SNAPSHOT LANE: `data/walk_graph.json` needs re-baking.** Eleven doors
+> moved 2.04–9.61 m and this lane did not touch the graph. Largest: GSB 9.61 m,
+> eid 281 8.09, MEZ 7.46, eid 276 7.35, BHD 6.62.
+>
+> **FOR WHOEVER RE-RUNS THE NUMERIC AUDIT:** `sweep.md` §2 test 3 ("no group more
+> than 6 m from its own footprint") now reads 4, and all four hosts are ids an
+> authored pass CLAIMS — `austin-buildings` never draws those rings. Exclude the
+> 73 claimed ids or the audit will report four defects that are not there.
+
+---
+
 > ## NB2 AND THE STALE GRAPH ARE CLOSED — 2026-08-16, branch `acer/nb2-buried`
 > ## (full write-up: `docs/entrances/buried.md`; pictures: `shots/nb2/`)
 >

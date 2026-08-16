@@ -20889,3 +20889,134 @@ not on the branch in isolation:
   suite-repair lane should expect when it re-records the baseline.
 
 Server killed, worktree torn down, `reap.mjs` not run.
+
+## 153. Aug 16 2026 — the 25 relocated doors were looked at: MAI never moved, three doors had been made invisible, and the rule is fixed (QUEUE NB6) (acer lane, branch `acer/nb-relocated`)
+
+**Full report, every number and every frame: `docs/entrances/relocated.md`.
+Pictures: `shots/relocated/`.** §152 flagged this against itself — *"the other 25
+relocated doors were never looked at one by one"* — and it was right to.
+
+**Grep `^## 15` before you pick a number.** §95 and §97 both warn about this and
+it has now happened twice; two lanes numbering against the same `main` in the
+same hour merge cleanly and silently because they land in different parts of the
+file.
+
+**Files written:** `scripts/bake_entrances.py`, `data/entrances.geojson`,
+`docs/entrances/relocated.md`, `shots/relocated/`, `QUEUE.md`, this section.
+**No `js/`, no `scripts/verify/`, no `scripts/bake_walk.py`, no
+`data/walk_graph.json`.** Server `python scripts/serve.py 8491` from a throwaway
+worktree; `harness-drift.mjs` **PASS** (29/29) before any pixel work and again on
+the merged tree.
+
+### 1. THE MAIN BUILDING'S SOUTH PORTAL DID NOT MOVE, and that is measured twice
+
+All seven MAI door groups (eids 417–423) are **byte-identical** between today's
+`main` and `efb0625^`, the file that shipped before the buried rule changed. And
+re-baking with `BURIED_DRAWN_FOOTPRINTS` False and True gives the same MAI
+geometry to the byte: **the `moved MAI 1 m` line in the bake log appears in BOTH
+arms.** It is the pre-existing GDC/MAI pair — an *authored* mass case — not one
+of the 25. Checked against `celebrated.md` §5.1 point by point: door centroid
+−97.739416, 30.285758 against the doc's measured OSM node 30.285759, −97.739416
+(**0.2 m**), normal 184.8° (**due south**), the recessed centre bay between two
+projecting wings is modelled, 4 leaves, divided lights, transom, limestone
+surround, inscription band baked (lettering deliberately off, and the file says
+why). Both secondaries within 0.2 m of their measured nodes. Day and night match
+the committed `shots/entrances/final/after-01`/`after-02`.
+
+### 2. THREE OF THE 25 HAD BEEN MADE INVISIBLE — this is the finding
+
+Measured by shooting the pre-NB2 file **at its own pre-NB2 poses** (not the new
+camera at the old data — `shots/nb2/README` deleted two frames for exactly that):
+
+```
+eid  building                       BEFORE (A/B px)     ON main          WITH THE FIX
+172  Engineering Discovery Building  5,432 /      0      0 /    0        0 /  4,453
+285  Brackenridge Hall Dormitory         0 / 10,376      0 /    0   31,770 / 29,754
+194  (West Campus block, role main) 15,351 / 13,837      0 /  557   15,567 / 15,241
+```
+
+**Cause:** `clear_buried()` hands `_free_wall()` a union that omits the door's own
+building (X4), and `_free_wall` used that one union for two jobs — walking a
+neighbour's wall edge AND testing 4 m of clear space in front of the leaf. With
+the host missing, **solid host building reads as free space**, so the march parks
+a door on a neighbour's wall facing back into its own building. It then passes
+every numeric test: real elevation, sane height, facing "outward", counted.
+
+**Fix, narrow:** the edge walk keeps the old union; the FRONT clearance is tested
+against a union that includes the host. `BURIED_OWN_BLOCKS_FRONT = True`, and
+`False` reverts it in one line. **The first cut of this fix dropped one of MAI's
+door groups** and had to be narrowed: `own` mixes footprints matched by **id**
+(which `austin-buildings` really extrudes) with authored re-draws matched by
+**IoU ≥ 0.90** (which are only ring-*shaped* — `js/tower.js` does not fill MAI's
+ring, it sets the centre bay back). Only the id-matched footprints join the front
+union. `buried.md` §4 already said *"an id match is exact; a ratio is a
+threshold"*; it turned out to be load-bearing.
+
+**Blast radius, photographed not assumed:** 11 groups move 2.04–9.61 m, all 11
+shot from both bearings on the fixed file, **none worse and eight better** (GSB
+1,052 → 27,047 on its weak bearing, MEZ 909 → 33,160, SEZ 345 0 → 19,426, 281
+0 → 10,728, 391 0 → 15,163, 346 0 → 27,448). 656 groups on 295 buildings, **zero
+identity drift**, sills 0, detached 0, bad base/h/colour 0, OSM recall 67 % at
+8 m — all unchanged. Pieces 15,069 → 15,067.
+
+### 3. Hero gate: `main` was never at risk, and neither is the fix
+
+Noise floor first, then interleaved launches, every arm waiting for
+`austin-entrances` LOADED. **`MAINr1` = `MAINr2` = `MAINr3`, one SHA-256 each at
+H1/H3/H5 — three launches, three identical files.**
+
+```
+                25 relocations vs pre-NB2      the fix vs main
+H1-spawn        IDENTICAL BYTES                IDENTICAL BYTES
+H2-drag         0 over24                       0 over24 max 4
+H3-tower        43 over24 max 200              47 over24 max 131
+H4-city         0 over24                       IDENTICAL BYTES
+H5-dkr          1 over24                       IDENTICAL BYTES
+H6-towernight   94 / 89  (own floor is 117)    0 over24 max 8
+```
+
+Both H3 differences are 40-odd pixels in the **far bottom-left corner** on the
+Moncrief-Neuhaus face — 0.003 % of the frame — and they are a door moving two
+metres along its own wall. `main` is recordable.
+
+**One arm was thrown out and the reason matters.** `NB6-r1` differed from
+everything by ~160,000 px at every day pose, visibly darker with no bloom. Its
+entrance file took **54.4 s** to land against 11–13 s everywhere else, and
+`cancelGraphicsAutoDetect()` runs before the entrance wait — on a launch that
+slow the auto-detect probe fires first and the cancel arrives too late. **A
+whole-frame tone shift in one arm is the graphics preset, not the data.**
+
+### 4. The three dropped doors, and one small instrument fix
+
+Each drop line now prints its **coordinate**. It used to read
+`DROPPED 2 on 568a1f55` for two doors that are **215 m apart**, and a drop with
+no coordinate cannot be walked to. All three were then walked to, four bearings
+plus a look-down: curved concourse and ramp walls on the DKR service belt with
+roadway in front, nothing a person approaches. **Dropping was right for all
+three** — though that checks the walls against the rule, not the rule against the
+world.
+
+### 5. FOR THE SNAPSHOT LANE: `data/walk_graph.json` needs re-baking
+
+Eleven doors moved 2.04–9.61 m and **this lane did not touch the graph** —
+`bake_walk.py` and `walk_graph.json` are yours. Largest movers GSB 9.61 m, eid
+281 8.09, MEZ 7.46, eid 276 7.35, BHD 6.62. §151 treated 0.64 m as inside routing
+tolerance; these are ten times that.
+
+### What this did NOT establish
+
+1. **eid 292 (DKR) is dark and is NOT fixed** — 0 px both bearings on `main` AND
+   on the pre-NB2 file. Its blocker is `js/stadium.js`'s authored wall, which the
+   fix deliberately does not touch. Pre-existing, recorded, not mine.
+2. **460 of 656 groups have still never been looked at.**
+3. **`BURIED_RUN_MIN` 3.0 and `BURIED_CLEAR_M` 4.0 were not tested against the
+   world**, only three walls against them.
+4. **The `-8m` re-shoots were taken at 22 m** — the harness falls back when the
+   collision net lifts the eye, so they are not the closer look they were meant
+   to be.
+5. **NB5 is still open**: the bake reads the `2026-08-04` snapshot, the app draws
+   `manifest.latest` = `2026-08-16`. Everything here inherits that.
+6. `MAI`'s flight has stone cheek walls where `celebrated.md` §5.1 says "no
+   rails". Period-correct, one constant, pre-dates this pass. Simeon's call.
+
+Server killed, worktree torn down, `reap.mjs` not run.
