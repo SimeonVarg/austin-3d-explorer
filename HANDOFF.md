@@ -22134,3 +22134,117 @@ table. Two other lanes were live for most of the pass.
 4. **Nothing was run against a deliberately broken app**, except that
    `perf-budget` inherits §143's two-way watch. Everywhere else the evidence is
    the weaker shape: the app was measured directly and found correct.
+
+---
+
+## 160. Aug 16 2026 — the twelve are read AND FIXED: eleven were the ruler, the twelfth is a real budget, and Y20's 83 levels of blue were the sun's own afterglow painted in the moon's colour (acer lane, branch `acer/o5-reds`, PR)
+
+**Branch `acer/o5-reds` off `origin/main` `9ef34a1`. Files written: `js/sky.js`,
+eleven scripts under `scripts/verify/` (one of them new), `QUEUE.md`,
+`HANDOFF.md`, four frames under `shots/reds/`.** Throwaway worktree, `python
+scripts/serve.py 8513`, `harness-drift.mjs` **PASS (29 = 29)** before any pixel
+and again after every edit; `suite-lint.mjs` **PASS, 0 blocking**.
+
+§158 and §159 diagnosed the twelve and fixed nothing — deliberately, and both
+said so. **This pass applied every correction they wrote down, and fixed Y20.**
+
+### Y20 — FIXED, AND THE DIAGNOSIS NAMED THE WRONG PAINTER
+
+QUEUE Y20 blamed `js/sky.js:1420`'s `useMoon` switch for teleporting the DISC.
+The switch is real; the disc is not what a visitor was seeing. **At the notch
+where it fires the sun's own visibility ramp is 0.000 and the moon's is 0.020** —
+there is barely a disc on screen. What moved was that the SUN's two horizon
+washes were painted in `haloCol`, the switched colour:
+
+```js
+drawGlow(hzSun,  ..., glowASun,  haloCol,  WIDE);   // <- the sun's wash, in the moon's colour
+drawGlow(hzMoon, ..., glowAMoon, moonHalo, WIDE);
+```
+
+so the western afterglow — in place, at unchanged alpha, at an unchanged
+position — was repainted from warm `sunColour(sun.elev)` to the cool moon halo
+in one frame. The twilight rewrite had given the two washes independent
+SCHEDULES and left their COLOURS on the boolean. This finishes it: each body's
+wash is painted in its own colour always, and the clouds (the one genuinely
+shared colour, being lit by whatever is up) cross-fade on `wMoon/(wSun+wMoon)`,
+the same two continuous weights the washes already ride.
+
+**Measured on the two ADJACENT QUANTISED notches the shipped slider produces,
+force off, BOTH ARMS IN ONE BUILD** (`scripts/verify/y20-handover.mjs`, via
+`SKY_TUNE.HANDOVER.ON` — which is in `hourMemo`'s cache key on purpose):
+
+```
+  HANDOVER.ON = false   75/128 -> 76/128   |dR| 35  |dG| 33  |dB| 83   worst 83
+  HANDOVER.ON = true    75/128 -> 76/128   |dR|  6  |dG|  6  |dB|  2   worst  6
+```
+
+The first run of that A/B **caught me shipping an OFF arm that already carried
+half the fix** — it read 6 on both arms. That is the exact failure this repo has
+recorded before (four "different" configurations running identically while the
+report printed four numbers), and it is why the flag now gates the wash colour
+in one place and the probe echoes the flag beside every reading.
+
+`dusk.mjs`'s `KNOWN` allowance is **deleted**, the list is empty, and it passes
+without it: **worst step 8 across all 60 transitions** against `MAX_STEP` 26.
+`node dusk.mjs --break` still goes red (42 at p=0.55, exit 1), so the gate did
+not simply stop looking. Frames `shots/reds/y20-{before,after}-q{75,76}.png`.
+
+### THE ELEVEN INSTRUMENTS, EACH FIXED AND EACH WATCHED FAIL
+
+| gate | the fix | after |
+|---|---|---|
+| `capitol-merge` | rewritten to read `window.__capitolMerge` and count the Capitol's OWN sources | **4/4**, `--selftest` 0/4 |
+| `night-luma` | `querySourceFeatures` given the `sourceLayer`, read off the layer | **12/12**, 36,364 trees |
+| `graphics` | `stillFlying` dropped from the assertion, reported instead | **27/27** |
+| `orbit-check` | 13 in-page samples of a MOVING bearing, not one `isEasing()` | **4/4**, 54.7 deg, easing 100 % |
+| `light-probe` | the load-time stopwatch split out of the precondition | see table below |
+| `light-ae` | meter driven by FRAMES not the clock; the lift bar made relative | see table below |
+| `arts-check` | the LBJ ratio restated as undercroft-mean vs lit face, bar from measurement | see table below |
+| `lookup-check` | the 8.5 s deadline made a 45 s WAIT, plus a new seed assertion | see table below |
+| `movement` | ramp AND window paced by sim time, in one `page.evaluate` | see table below |
+| `field-bleed` | `outside-north-70` corrected to `'some'`; `--only/--times` slicing | see table below |
+| `run.mjs` | per-script CEILINGS (300 s was never measured); `perf-budget` serialised | — |
+
+**Two of these deserve naming.** `capitol-merge` had sat unclaimed for thirteen
+days with its diagnosis already written in HANDOFF §49. And counting
+`austin-trees` in the Capitol box **with** a `sourceLayer` returns **3339**, not
+the 0 §158's table recorded — that table had the same vector-source bug it was
+about to find in `night-luma`, so one line of the diagnosis was itself the
+instrument.
+
+`movement` is the README's first gate and its headline was `east/north` 0.905,
+pass, 1.092 — an asymmetry that changed sign. The ramp is now spent in SIM time
+(`TAU_ACCEL` is 0.2 s of sim; at 4 fps the old 1500 ms wall-clock ramp was
+0.38 s of sim, so every leg captured a different slice of the acceleration).
+Its `__reset` poll also had no deadline — the one genuine hang shape in the
+twelve — and now has one that says so when it fires.
+
+### `perf-budget` IS STILL RED AND MUST STAY RED
+
+Six frame-budget assertions, five over. It was born red, §143 watched it go both
+ways, and it is QUEUE Y7 and Y15. **I did not touch it and I am not claiming it
+green.** What changed is that it can now finish: its ceiling is 900 s instead of
+300, and it is in `SERIAL_ONLY`, which it never was — the one gate whose entire
+subject is milliseconds had been running beside up to three other SwiftShader
+browsers, with its own CPU readings swinging 5 % to 64 % inside a single rep.
+
+### WHAT THIS PASS DID NOT ESTABLISH
+
+1. **`field-bleed`'s nine NIGHT poses are still unrun**, and so are two of the
+   three `'some'` day controls. My `outside-north-70` correction is proven by
+   §159's photograph and by the geometry, not by a full green run of this gate.
+2. **`perf-budget` was not re-run to completion by me.** Its ceiling and its
+   serialisation are changes to `run.mjs` that I verified by reading and by the
+   suite run below, not by watching a 900 s `perf-budget` finish inside it.
+3. **The reds I fixed were each re-run, but not repeatedly.** Every gate here
+   was watched pass and — where it has a break mode — watched fail. That is two
+   readings, not the interleaved minimum the README demands of a TIMING claim;
+   none of these assertions is a timing claim any more, which is the point, but
+   it is still two readings.
+4. **Y20's fix was judged at ONE pose** — `dusk.mjs`'s, so the numbers compare —
+   plus the full 60-step sweep `dusk.mjs` itself does. I did not photograph the
+   handover from other bearings, and the clouds' cross-fade is argued from
+   continuity of `wSun`/`wMoon` rather than measured pixel by pixel.
+5. **I did not re-derive §158's or §159's diagnoses.** Where I found one wrong
+   (the `austin-trees` count) it was because the rewrite happened to measure it;
+   I did not audit the rest.

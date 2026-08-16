@@ -835,3 +835,124 @@ them.)
    this document, in the tool written to catch it. (`harness-drift.mjs` is the
    mirror image — it must be run from the root, per §147.) Neither is mine to fix
    and both are one line.
+
+---
+---
+
+# The twelve reds — part three: all twelve applied, and the one the diagnosis got wrong
+
+**2026-08-16, acer lane, branch `acer/o5-reds`.** Parts one and two diagnosed the
+twelve and fixed nothing — both said so in their own "did not establish" lists.
+**This part applies every correction they wrote down.** It also fixes QUEUE Y20,
+the one item in this whole set that a visitor could actually see.
+
+Method: throwaway worktree off `origin/main` `9ef34a1`, `python scripts/serve.py
+8513`, `harness-drift.mjs` **PASS (29 = 29)** before any pixel and again after
+every edit, `suite-lint.mjs` **PASS, 0 blocking**. Every gate below was run after
+its fix, and every gate that has a break mode was watched go RED.
+
+---
+
+## The finding, in one line
+
+**Parts one and two were right about eleven of the twelve and wrong about one
+line inside their own evidence.** The eleven instrument fixes all landed and all
+went green. And Y20 — carried for weeks as "the DISC switches body in one frame"
+— was never about the disc.
+
+---
+
+## Y20: the diagnosis named the wrong painter, and the ramps prove it
+
+`js/sky.js`'s `const useMoon = !B.sunUp && B.moon.elev > -2` is a real
+single-frame switch, and every previous pass blamed the disc it selects. Read
+the disc's own visibility at the notch where the switch fires:
+
+```
+  q75  p=0.58594   sunElev  -2.59   moonElev  -2.62   visSun 0.000   visMoon 0.000
+  q76  p=0.59375   sunElev  -3.38   moonElev  -1.88   visSun 0.000   visMoon 0.020
+```
+
+**Both ramps are at zero.** There is no disc on screen to teleport. What the
+83 levels of blue actually were: the SUN's two horizon washes were painted in
+`haloCol`, the switched colour, while the MOON's were painted in the constant
+`moonHalo`. So the western afterglow — same position, same alpha — was repainted
+warm-to-cool the instant the moon crossed −2°.
+
+That is the twilight rewrite half-applied. It gave the two washes independent
+*schedules*; it left their *colours* on the boolean. The fix finishes it, and it
+reuses the file's own continuous weights rather than adding a third schedule:
+
+```js
+const sunHalo = sunColour(B.sun.elev);                       // never switched
+const moonMix = wMoon / Math.max(1e-6, wSun + wMoon);        // continuous, for the clouds
+drawGlow(hzSun,  ..., glowASun,  sunHalo,  WIDE);            // each body, its own colour
+drawGlow(hzMoon, ..., glowAMoon, moonHalo, WIDE);
+```
+
+**The A/B, both arms in one build** (`scripts/verify/y20-handover.mjs`, driven by
+`SKY_TUNE.HANDOVER.ON`, which is in `hourMemo`'s cache key so the arms cannot
+share a memo):
+
+| arm | 75/128 → 76/128 | worst channel |
+|---|---|---|
+| `HANDOVER.ON = false` | R 35, G 33, B 83 | **83** |
+| `HANDOVER.ON = true` | R 6, G 6, B 2 | **6** |
+
+**The first run of that A/B read 6 on both arms and caught me shipping an OFF
+arm that already carried half the fix.** That is the exact failure this repo has
+recorded before, and it is the reason the flag now gates the wash colour in one
+place and the probe echoes the flag beside every reading.
+
+`dusk.mjs`'s `KNOWN` list is now empty and it passes without it — **worst step 8
+across 60 transitions** against `MAX_STEP` 26 — while `dusk.mjs --break` still
+goes red at 42. Frames: `shots/reds/y20-{before,after}-q{75,76}.png`.
+
+---
+
+## The eleven, applied
+
+| gate | before | the correction | after |
+|---|---|---|---|
+| `capitol-merge` | 0 trees / "merge never ran" | reads `window.__capitolMerge`; counts the Capitol's OWN sources; fails loudly on an unrecognised shape | **4/4** (`--selftest` 0/4) |
+| `night-luma` | 0 of 4 poses, 830 s | `querySourceFeatures` given a `sourceLayer`, read off the layer | **12/12**, 36,364 trees |
+| `graphics` | 26/27 | `stillFlying` reported, not asserted | **27/27** |
+| `orbit-check` | 3/4 | 13 in-page samples of a moving bearing | **4/4**, 54.7°, easing 100 % |
+| `light-ae` | 6–7/8 | meter paced by FRAMES; lift bar relative to the spawn pose | **8/8**, spread 0.0000 ×4 |
+| `light-probe` | 8/9 | the load-time stopwatch split out of the precondition | see the health table |
+| `arts-check` | 27/28 | LBJ ratio restated as undercroft-mean vs lit face, bar 1.70 chosen from 1.37 (broken) and 1.98 (good) | see the health table |
+| `lookup-check` | 8/9 | the 8.5 s deadline made a 45 s WAIT; a new assertion that the seed landed | see the health table |
+| `movement` | 12–14/14 | ramp AND window paced by sim time, in one `page.evaluate`; `__reset` given a deadline | see the health table |
+| `field-bleed` | 1 red in 6 | `outside-north-70` corrected to `'some'`; `--only`/`--times` slicing with an honest partial verdict | see the health table |
+| `perf-budget` | 5 of 6 over | **untouched — it is a real budget.** Ceiling 900 s, added to `SERIAL_ONLY` | still red, correctly |
+
+---
+
+## One line of part one's own evidence was the instrument it was about to find
+
+Part one's table recorded `austin-trees` at **0** features inside the Capitol
+box, offered as proof that the Capitol had moved to its own sources. It had —
+but that particular zero was not the proof. Counted **with** a `sourceLayer`,
+`austin-trees` holds **3339** features in that box. Part one measured it the same
+way `night-luma` did, one section before diagnosing exactly that bug in
+`night-luma`. The verdict on `capitol-merge` was still right, for the other three
+reasons it gave.
+
+---
+
+## What part three did NOT establish
+
+1. **`field-bleed`'s nine night poses are still unrun**, and two of its three
+   `'some'` day controls with them. The `outside-north-70` correction rests on
+   §159's photograph and on the geometry, not on a full green run.
+2. **`perf-budget` was not run to completion here.** Its raised ceiling and its
+   `SERIAL_ONLY` entry are `run.mjs` changes verified by reading and by the suite
+   run, not by watching a 900 s `perf-budget` finish inside the runner.
+3. **Two readings, not many.** Each fixed gate was watched pass and, where it has
+   one, watched fail through its break mode. None of these assertions is a timing
+   claim any more — that was most of the point — but two readings is still two.
+4. **Y20 was judged at one pose**, `dusk.mjs`'s, plus that file's own 60-step
+   sweep. Other bearings are unphotographed, and the clouds' cross-fade is argued
+   from the continuity of `wSun`/`wMoon` rather than measured pixel by pixel.
+5. **Parts one and two were not re-derived.** The `austin-trees` error above
+   surfaced because the rewrite happened to measure it; nothing else was audited.

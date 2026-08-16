@@ -227,7 +227,29 @@ async function shoot() {
   return { buf, img: decodePNG(buf) };
 }
 
-const TIMES = { day: 0.30, night: 0.95 };
+// A FULL RUN IS 18 POSES AT 118-272 s EACH — ABOUT 48 MINUTES. That is why this
+// gate had never been seen past its sixth pose: run.mjs's 300 s default bought
+// it two of eighteen (§159). The ceiling is raised in run.mjs; these flags exist
+// so a person can also ask a question smaller than the whole gate.
+//
+//   node field-bleed.mjs --times day        just the nine day poses
+//   node field-bleed.mjs --only north       poses whose name contains "north"
+//
+// A SLICED RUN IS NOT A PASS OF THIS GATE and says so in its own verdict line,
+// because "I ran the six that were quick and they were green" is precisely the
+// shape of reasoning this suite keeps getting burned by.
+const argOf = f => { const i = process.argv.indexOf(f); return i > 0 ? process.argv[i + 1] : null; };
+const ONLY_POSE = argOf('--only');
+const ONLY_TIME = argOf('--times');
+const SLICED = !!(ONLY_POSE || ONLY_TIME);
+const ALL_TIMES = { day: 0.30, night: 0.95 };
+const TIMES = ONLY_TIME
+  ? Object.fromEntries(Object.entries(ALL_TIMES).filter(([k]) => k === ONLY_TIME))
+  : ALL_TIMES;
+const POSES_RUN = ONLY_POSE ? POSES.filter(P => P[0].includes(ONLY_POSE)) : POSES;
+if (!Object.keys(TIMES).length || !POSES_RUN.length) {
+  console.log('field-bleed: --only/--times matched nothing; nothing to run'); process.exit(2);
+}
 const rows = [];
 
 /**
@@ -264,7 +286,7 @@ async function setTimeOfDay(p) {
 for (const [tname, tp] of Object.entries(TIMES)) {
   await setTimeOfDay(tp);
 
-  for (const [name, zoom, pitch, bearing, expect] of POSES) {
+  for (const [name, zoom, pitch, bearing, expect] of POSES_RUN) {
     await page.evaluate(q => window.__map.jumpTo(q),
       { center: F, zoom, pitch, bearing });
     await settle();
@@ -323,5 +345,8 @@ if (bad.length) {
     console.log(`    ${r.tname} ${r.name}: only ${r.d.n} px — the field is not drawn where it SHOULD be`);
   }
 }
+// A slice with no bad poses exits 0 so it is usable in a loop, but it has
+// already printed that it is not a pass. A slice with a bad pose is red, which
+// is the only direction a partial run can be trusted in.
 process.exitCode = bad.length ? 1 : 0;
 await browser.__done();
