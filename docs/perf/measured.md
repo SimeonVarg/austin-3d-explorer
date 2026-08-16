@@ -1,7 +1,15 @@
 # measured.md — the first real performance record this project has
 
-**Measured 2026-08-16 by the Acer lane, in a real browser, on the merged tree
-(`acer/n1-perf` at `ca0952b`, which contains `origin/main` `6a63b4f`).**
+**Measured 2026-08-16 by the Acer lane, in a real browser, on `acer/n1-perf` at
+`ca0952b`, which contained `origin/main` `6a63b4f`.**
+
+**`main` moved twice under this pass while it was running** — the campus and
+West Campus storey walls landed (§129/§130/§131) — so the branch was merged
+forward to `43e3777` before shipping and **the gate was re-run on that fully
+merged tree**; the result is in §5.3. The profiler shares and the boot ladder
+were NOT re-taken on the merged tree, and adding storey geometry to two
+districts can only move the atlas and shader numbers **up**. Treat §1 and §4 as
+measured at `ca0952b` and as a floor for what is on `main` now.
 
 This is the third and last document of QUEUE K1. The other two are predictions
 and inventories; this one is the bill.
@@ -428,6 +436,32 @@ guard works. And in both runs it **refused to report the walk** — G2, G4 and
 G5b came back `INVALID`, printed no figure, and said so, because the walk phase
 never stayed at walking height. A guard that prints a clean number for a phase
 that did not happen is worse than no guard; this one does not.
+
+### 5.3 Re-run on the FULLY MERGED tree (`origin/main` `43e3777`), 2 reps
+
+Required by CLAUDE.md rule 2 — verify the merged result, not the branch in
+isolation. `main` had gained the campus and West Campus storey walls
+(§129/§130/§131) since the measurements above.
+
+```
+FAIL  G1   controls tick at cruise            19.867 ms vs 1.5 ms
+FAIL  G3   outer-ring scan worst case (Y7)   106.60 ms vs 8 ms
+FAIL  G5a  outer scan duty cycle               2.77 % vs 0.53 %
+----  G2 / G4 / G5b                          INVALID (walk again lifted)
+G7 style layers: 221   (was 219 before the two storey layers landed)
+```
+
+**Same verdict shape, same INVALID walk, no new failure mode.** G3's 106.60 ms
+is a two-rep minimum on a machine that was still at 95–100 % CPU and is not
+comparable to the three-rep 43.3 ms above; what it establishes is that the ring
+is still over budget after the merge, not a new figure for Y7.
+`harness-drift.mjs` **PASS** on the same tree.
+
+**And one number that is directly comparable and did move: the style layer count
+went 219 → 221.** `budget.md` G7 asks for growth of at most +2 per pass. Two
+districts of storey walls cost exactly two layers, which is the cheap way to do
+it — but the count now has a measured baseline, and someone should set
+`BUDGET.layersBaseline` so it starts gating.
 
 **It should stay red.** The budget in `docs/perf/budget.md` was written on
 purpose as the number a fix has to hit, not as a description of today. Do not
