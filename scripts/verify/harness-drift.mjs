@@ -31,6 +31,19 @@
  * Usage:  node scripts/verify/harness-drift.mjs
  */
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// RESOLVE FROM THIS FILE, NOT FROM THE SHELL'S CWD.
+//
+// It used to open 'index.html' relative to the working directory, so it worked
+// only when run from the repo root — while README tells you to `cd
+// scripts/verify` and run everything from there, which is how the whole rest of
+// this suite is invoked. Run the documented way, THE PREFLIGHT THAT GUARDS
+// EVERY PIXEL MEASUREMENT DIED ON ENOENT before reading a single script tag.
+// A gate you can only fire by knowing an undocumented cwd is a gate that does
+// not fire. It now runs identically from anywhere.
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // EVERY <script src>, not just the local `js/` ones.
 //
@@ -43,7 +56,7 @@ import fs from 'node:fs';
 // path". A checker that only compares the halves of the list it happens to
 // match will keep passing while the two pages diverge in the half it does not.
 const scriptsIn = (file) => {
-  const html = fs.readFileSync(file, 'utf8');
+  const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
   const out = [];
   const re = /<script\s+src="([^"]+)"/g;
   let m;

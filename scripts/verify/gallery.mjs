@@ -16,13 +16,14 @@
 import { chromium } from 'playwright-core';
 import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
+import { requireShots } from './lib/args.mjs';
 import path from 'node:path';
 
 const EXE = chromePath();
 const CLIP = process.argv.includes('clip');
 const BASE = SERVER + '/_harness.html?intro=0' + (CLIP ? '&clip=1' : '');
 const OUT = process.argv[2] || 'gallery';
-const SHOTS = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+const SHOTS = requireShots(process.argv[3], 'node gallery.mjs <outPrefix> <shots.json> [portrait] [clip]');
 const MODE = process.argv[4] === 'portrait' ? 'portrait' : 'landscape';
 
 const VIEW = MODE === 'portrait'
