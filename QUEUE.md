@@ -1369,16 +1369,24 @@ read as a building", at the price already written there: ~190,000 openings,
 ~190 MB, and a loading strategy the app does not have. Bands-now-windows-later
 was the right call and this pass does not change it.
 
-**Two things the gate did NOT establish**, so nobody quotes it as more:
-**(a)** the atlas self share and cruise frame time could not be re-established at
-§143's published **1.9–3.0 % / 15.2 ms** on a machine carrying 20–42 Chrome
-processes at 14–100 % CPU (a 3 s cruise sweep returned 6–7 frames against §143's
-163). That is an instrument-and-machine result, **not** evidence the candidate is
-expensive — it cannot reach the atlas at all (`js/facades.js` byte-identical,
-zero atlas tiles). **(b)** §143's 1.9–3.0 % is now **unreproduced by two
-independent riggings** (§149 read 7–22 %, §150 read 3.67–9.77 % on the live arm)
-and should be treated as OPEN until somebody re-takes it on an idle machine with
-§143's own sweep.
+**Performance did NOT veto this and was never going to** — worth saying so the
+next lane does not re-litigate it. Two counterbalanced cruise reps put best
+frame at **17.4–17.5 ms live against 17.6–17.9 ms cand**, warm median identical
+at 35.2 ms, and the candidate **cannot reach the facade atlas at all**
+(`js/facades.js` byte-identical to `main`, zero atlas tiles). It is not slow, it
+is just worse.
+
+**But §143's published atlas share is now OPEN, and this is the useful
+by-product.** The share fell **3.67 → 0.43 → 0.14 → 0.02 %** in the order the
+sweeps ran, *regardless of arm* — the first sweep after a pose change pays the
+tile arrival and later ones do not. §149 read 7–22 %, §150 read 0.02–3.67 %,
+§143 read 1.9–3.0 %: **the same quantity at different cache temperatures, so
+none of them is a property of the code.** That explanation fits four readings in
+run order and is **not itself tested** — nobody has deliberately varied cache
+state and re-measured. Whoever re-takes the atlas figure must pin the cache
+state or the number means nothing. The absolute frame numbers here (17.4 ms best
+against §143's 15.2) are a machine carrying 27–36 Chrome processes, not a
+regression.
 
 ---
 
