@@ -59,10 +59,22 @@ Usage:  python scripts/bake_westcampus.py
 import json
 import math
 import os
+import sys
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SNAP = os.path.join(ROOT, "data", "snapshots", "2026-07-30", "buildings.detailed.geojson")
+
+# The footprint file the RENDERER extrudes, resolved the way js/app.js resolves
+# it. Was `2026-07-30`; see the note in scripts/bake_drag.py for the measured
+# 07-30 -> 08-16 delta. This bake reads `name` and `final_height` off the
+# snapshot and neither moved; the `wn`/`wd` reads further down are of this
+# file's OWN output, not the snapshot.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bake_facades  # noqa: E402
+
+SNAP_SOURCE = "buildings.detailed.geojson"
+SNAP_DATE = bake_facades.snapshot_date()
+SNAP = os.path.join(ROOT, "data", "snapshots", SNAP_DATE, SNAP_SOURCE)
 OUT = os.path.join(ROOT, "data", "westcampus.geojson")
 M_LAT = 111320.0
 
@@ -2237,7 +2249,9 @@ def main():
     # would be a delayed-action bug: nothing changes until someone re-runs
     # bake_roofscape.py, and then ten roofs go bare in a pass that never touched
     # them. So the list is exactly the buildings whose roof this file draws.
-    fc = {"type": "FeatureCollection", "features": out,
+    fc = {"type": "FeatureCollection",
+          "snapshot": SNAP_DATE, "snapshot_source": SNAP_SOURCE,
+          "features": out,
           "replacedBuildingIds": replaced, "authoredRoofIds": authored}
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(fc, fh, separators=(",", ":"))

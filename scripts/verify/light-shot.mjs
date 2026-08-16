@@ -30,7 +30,7 @@ page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 // intro=0: without it the intro easeTo is still flying during the first shots
 // and a jumpTo pose gets overridden mid-settle (caught by an A/B pair whose
 // two frames were at visibly different camera states).
-await page.goto(`${BASE}/_harness.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/_harness.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4000);
 // The graphics auto-detect probe rewrites every setting 11 s after load, which

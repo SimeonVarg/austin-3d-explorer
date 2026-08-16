@@ -43,7 +43,7 @@ const browser = await launch(chromium, { headless: false });
 async function makePage(base) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
-  await page.goto(`${base}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.goto(`${base}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
   await page.waitForTimeout(4000);
   await page.evaluate(() => {

@@ -38,7 +38,7 @@ const page = await browser.newPage(VIEW);
 const errors = [];
 page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 
-await page.goto(BASE, { waitUntil: 'networkidle', timeout: 90000 });
+await page.goto(BASE + '/index.html?drift=0', { waitUntil: 'networkidle', timeout: 90000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });
 await page.waitForTimeout(4000);
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());

@@ -375,6 +375,73 @@ in this directory to settle the other two hypotheses without guessing.
 Note that `queryRenderedFeatures` is useless for this check — it returns 0 for
 fill-extrusion layers even at poses that demonstrably render.
 
+## THE APP MOVES ITSELF AFTER 25 SECONDS — always pass `?drift=0`
+
+`js/app.js`'s **idle cinema** turns an unattended screen into a screensaver of
+the city. After `DRIFT.idleMs = 25 s` of input silence it starts, and every
+`stepMs = 12 s` leg it:
+
+- eases the **bearing** by `bearingStep = 13°`,
+- breathes the **zoom** by `zoomBreathe = 0.05`,
+- and creeps the **hour** by `pStep = 0.010`.
+
+A scripted run sends no pointer or key events, so **the countdown never
+re-arms**. Any script that places a camera and then works for more than 25 s is
+being moved under its own feet — pose, zoom and time of day.
+
+This is not a bug and it is not new. It is a shipped feature with a shipped
+opt-out, and `js/app.js` says so in its own comment: *"?drift=0 disables it for
+scripted runs against index.html."* `drift-check.mjs` is the guard on it.
+
+**What it cost, measured.** On 2026-08-16, 91 of 129 page-loading scripts passed
+`drift=0` and **38 did not** — including `sky.mjs`, `dusk.mjs`, `banding.mjs`,
+`night-silhouette.mjs`, `graphics.mjs`, `movement.mjs`, `collision.mjs` and every
+`light-*`. `sky.mjs` was consequently reporting **10/12, with `setLight` said to
+disagree with the shared sun by up to 4.82°**, on the sky rewritten hours
+earlier. It was the ruler. `sunlight-probe.mjs` traced `setLight` being called
+twice for one request — az 118.8 then 120.88, `__todCurrentP` left at 0.11 for a
+requested 0.1, i.e. exactly `pStep` — and with the drift off the same file is
+**12/12**.
+
+Three things follow, and the third is the one that bites:
+
+1. `suite-lint.mjs` rule 8 now blocks any script that loads a page without it.
+2. **A clean run with the drift ON proves nothing.** Whether a 12-second leg
+   lands between a write and a read is a race: the same build gave 4.82°, 1.20°
+   and a clean 12/12 across three runs. Intermittent reds are why this one
+   survived so long.
+3. It compounds with every "settle and screenshot" wait in this directory.
+   `shot.mjs` settles 4 s per pose and a 12-pose list is well past 25 s, so a
+   shot list without `drift=0` can photograph a bearing nobody asked for.
+
+## A gate that prints FAIL and exits 0 is decoration
+
+`sky.mjs`, `collision.mjs` and `night-sky.mjs` each printed `*FAIL` and then
+exited 0 — so `inventory.mjs`, `run.mjs` and anything else that reads an exit
+code saw success. §149 deleted `silhouette.mjs` partly for this and added no
+check; `suite-lint.mjs` rule 7 is that check. Exit codes are load-bearing
+(§142): **0 pass, 1 an assertion failed, 2 cannot run, 124 the watchdog.**
+
+`sky.mjs --break` biases the `setLight` azimuth +7° in the page and must come
+back red with exit 1. Use it before trusting a green.
+
+## Two more traps from the same night
+
+- **`chrome.mjs`'s watchdog used to be unraisable from the script.** It read
+  `VERIFY_MAX_MS` into a module-level `const`, and ESM hoists imports, so a
+  script could not set its own ceiling before the value was frozen. `walk.mjs`
+  needs ~12 minutes and was therefore **unrunnable the way this README documents
+  it**: it printed PASS on all three sites and was then SIGKILLed at 300 s for
+  exit 124. It is read at `launch()` time now, and callers may pass `maxMs`;
+  `walk.mjs` and `walk-trunk.mjs` derive theirs from the constants that set the
+  walk length.
+- **`shot.mjs` cannot resolve a time-of-day change finer than 1/128.** It calls
+  `applyTimeOfDay(m, s.p)` with no force flag, so every `p` in every shots file
+  is rounded to the nearest 0.0078 before it is drawn. That is faithful to the
+  app — and it means the two poses either side of QUEUE Y20 (0.590 and 0.595)
+  render as the *same frame*. `y20-frames.mjs` photographs that transition on
+  the grid the app actually uses.
+
 ## The walking suite — and the reason nothing here could walk until 2026-08-16
 
 `lib/walker.mjs`, `walk.mjs`, `walk-lift.mjs`, `walk-trunk.mjs`.

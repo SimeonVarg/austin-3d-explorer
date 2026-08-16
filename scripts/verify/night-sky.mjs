@@ -12,9 +12,10 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 620 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4500);
+await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 
 const results = [];
 const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
@@ -224,4 +225,14 @@ check('no uncaught page errors', errs.length === 0, errs.slice(0, 3).join(' | ')
 console.log('');
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
+
+// EXIT CODE, added 2026-08-16 (§155). This file printed *FAIL and exited 0 for
+// its whole life. §149 deleted silhouette.mjs partly for exactly that and added
+// no lint to stop the next one; suite-lint rule 7 does now. Every wrapper in
+// this repo reads the exit code — inventory.mjs classifies on it and §142 made
+// exit codes load-bearing — so a red printed only to scrollback is a red that
+// nothing downstream can see.
+const _failed = results.filter(r => !r.pass);
+if (_failed.length) console.log('\n*FAIL — ' + _failed.length + ' of ' + results.length + ' failed: ' + _failed.map(r => r.name).join('; '));
+process.exitCode = _failed.length ? 1 : 0;
 await browser.__done();

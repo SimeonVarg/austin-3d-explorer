@@ -15,11 +15,11 @@ mai/     the Main Building's south portal, both bearings, day and night,
          plus the South Mall at 60 m and a raised hero. It did NOT move —
          all seven MAI groups are byte-identical to the pre-NB2 file.
 sheets/  contact sheets, one 300 px crop per pose, labelled with doorPixels.
-         r1/r2/r3 are the 25 on `main`; nb6/nb6b are the 11 the fix moves.
+         r1/r2/r3 are the 25 on `main`; nb8/nb8b are the 11 the fix moves.
 fix/     the three doors the relocation broke, three ways:
          PRE-*  the pre-NB2 file at its own pre-NB2 pose  (visible)
          plain  the same door on `main` today             (0 px)
-         NB6-*  the same door with the fix                (visible again)
+         NB8-*  the same door with the fix                (visible again)
 drops/   the three dropped doors' walls, four bearings and a look-down.
 hero/    the 43 changed pixels in H3-tower, enlarged 4x: MAIN vs pre-NB2.
          It is the Moncrief-Neuhaus door, 2.07 m along its own wall.

@@ -286,10 +286,10 @@ moved 2.07 m along its own wall. 43 pixels out of 1,296,000 is **0.003 %**.
 
 ### And what the FIX costs the hero frames, on top of that
 
-Three more launches, interleaved `NB6-r1 → MAINr3 → NB6-r2`:
+Three more launches, interleaved `NB8-r1 → MAINr3 → NB8-r2`:
 
 ```
-                NB6-r2 vs MAINr3
+                NB8-r2 vs MAINr3
 H1-spawn        IDENTICAL BYTES
 H2-drag         0 over24, max 4
 H3-tower        47 over24, max 131      <- same bottom-left corner, x 89-101 y 735-745
@@ -301,8 +301,8 @@ H6-towernight   0 over24, max 8
 **`MAINr1`, `MAINr2` and `MAINr3` are one SHA-256 each at H1, H3 and H5 — three
 launches, three identical files.** That is the floor this is measured against.
 
-**`NB6-r1` is thrown out, and the reason is worth keeping.** It differs from
-everything — including the other NB6 arm — by ~160,000 px at every day pose, and
+**`NB8-r1` is thrown out, and the reason is worth keeping.** It differs from
+everything — including the other NB8 arm — by ~160,000 px at every day pose, and
 the frames are visibly darker and warmer with no bloom on the sun. Its entrance
 file took **54.4 s** to land against 11–13 s for every other arm, and
 `cancelGraphicsAutoDetect()` runs *before* the entrance wait: on a launch that
