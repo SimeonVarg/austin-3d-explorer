@@ -16459,3 +16459,167 @@ rewritten, not the measurement that gets judged.
 `js/wayfind.js` was not touched: Z5 (a route repainting at ~15 Hz forever) is
 the wayfind lane's tonight and appears in the inventory as row 15, named and
 not changed.
+
+---
+
+## 129. Aug 16 2026 — the budget gets a gate: the outer ring is over it on every reading ever taken, and the walk cannot be measured at all (QUEUE K1/Y7/Y15) (acer lane, n1-perf)
+
+Branch `acer/n1-perf`. **One file of code: `scripts/verify/perf-budget.mjs`.**
+
+### The job I was given, and the one I could not do
+
+The brief was "kill the two measured hogs" — Y7 (outer-ring scan, 37.9 ms) and
+Y15 (trunk field, 841.5 ms) — with a writable set of `js/outer.js`,
+`js/props.js`, `js/trees.js`.
+
+**Both hogs are in `js/controls.js`, which another lane holds tonight, and
+`js/trees.js` does not exist.** `js/outer.js` is the ring's *rendering* module
+(`initOuter`, colours, settings); `js/props.js` is the props *rendering* module.
+Neither contains a `querySourceFeatures` call. `outerStamp()` is
+`controls.js:475` and `trunkStamp()` is `controls.js:703`, and the third
+unbounded scan `docs/perf/budget.md` found — `updateSky()` — is `js/sky.js`,
+also outside the writable set. So I did not edit any of them. Per CLAUDE.md
+rule 8 I am writing the collision down instead of driving through it.
+
+What I did instead is the other half of the brief, and it is the half that
+outlives tonight: **the guard exists, it is red, and it has been watched going
+both red and green.**
+
+### `scripts/verify/perf-budget.mjs` — what it asserts and what it refuses to
+
+Gates G1–G5 and G7 from `docs/perf/budget.md` §4.4. Every threshold is a `BUDGET`
+constant at the top with an env override (`PB_OUTER_MS`, `PB_TRUNK_MS`,
+`PB_TICK_CRUISE`, `PB_TICK_WALK`, `PB_DUTY_PCT`).
+
+    cd scripts/verify && VERIFY_URL=http://127.0.0.1:PORT node perf-budget.mjs 3
+
+Headless, `gl:'hardware'` (NOT SwiftShader — these are CPU timers and
+SwiftShader rasterises the city on the same CPU), **no CPU throttle** (unlike
+`perf.mjs`'s default 4x), auto-detect cancelled, `index.html?intro=0`.
+Interleaved and counterbalanced, minimum across reps, and chrome/node process
+counts plus CPU percent printed beside every single figure.
+
+**WATCHED IN BOTH DIRECTIONS on the same code and the same run shape**, which is
+the thing this repo has been burned on three times:
+
+| run | verdict | exit |
+|---|---|---|
+| default budget | `FAIL 3 of 3 judged: G1, G3, G5a` | 1 |
+| `PB_OUTER_MS=250 PB_TICK_CRUISE=40 PB_DUTY_PCT=10` | `PASS all 3 judged` | 0 |
+
+INVALID stayed INVALID in both. It is not a pass in either direction.
+
+### G3 / Y7 — the outer-ring scan is over budget on every reading I have
+
+Valid on 3/3 reps in every run (1500–1514 m of driven cruise, phase-attributed).
+Worst outer scan, min-across-reps, by run, **with the machine state that
+produced it**:
+
+| run | min maxMs | machine during the quietest rep |
+|---|---:|---|
+| A | **18.6 ms** | chrome 25, node 2, cpu 18 → 69 % |
+| B | 38.2 ms | chrome 28, node 2, cpu 100 → 77 % |
+| C | 49.7 ms | chrome 33, node 3, cpu 22 → 10 % |
+| D | 74.8 ms | chrome 28, node 2, cpu 29 → 18 % |
+| E | 154.0 ms | chrome 30+, cpu 90 %+ throughout |
+
+**The budget is 8 ms. The lowest number I ever saw was 18.6 ms — 2.3x over —
+and §109's 37.9 ms sits in the middle of the range.** Y7 is confirmed, and the
+claim that survives the noise is not "it costs 74.8 ms", it is **"there is no
+machine state in which it comes in under budget."** Duty cycle 1.07–2.13 % of
+wall time against a 0.53 % budget.
+
+### G4 / Y15 — NOT MEASURED, and the reason is structural, not the machine
+
+QUEUE Y15 says to measure the trunk field "under a sustained walk first",
+because §109's 841.5 ms came from a run that teleported ten times. **A sustained
+walk at 1.7 m does not exist in this app.** Probed at six sites, 45 s of held
+W+Shift each:
+
+| site | bearing | travelled | ENDED AT ALTITUDE |
+|---|---:|---:|---:|
+| Drag, south | 180 | 639 m | **23.8 m** |
+| Drag, north | 0 | 373 m | **86.0 m** |
+| Speedway, south | 180 | 242 m | **29.3 m** |
+| W Campus, 24th west | 270 | 104 m | **43.8 m** |
+| 24th, east | 90 | 11 m | 1.7 m (blocked) |
+| San Jacinto, south | 180 | 3 m | 1.7 m (blocked) |
+
+A held-W walk does exactly one of two things and never a third: it is stopped by
+geometry inside one block, or **the step-up / rooftop floor silently lifts it out
+of walking height.** That is QUEUE Y16's silent lift reached through the
+*movement* path rather than through `setPitch`, and it is a second, independent
+sighting of it. Above `TRUNK_ALT` (12 m) the trunk field switches off entirely,
+so a rep that travels 639 m has spent most of it not measuring the thing it is
+named for.
+
+So `perf-budget.mjs` marks a walk rep valid only if it went past `minMetres`
+**and ended below `maxAlt`**, and with 120 m targets every rep came back at
+121 m / **alt 23.8 m** → INVALID, 0/3. The guard printed
+`---- G4 phase did not run far enough to measure` and refused to produce a
+number. That refusal is the deliverable: a clean trunk figure from a phase with
+the trunk field gated off is exactly the kind of reassuring wrong number this
+suite exists to prevent.
+
+**Evidence recorded but NOT gated on:** at bearing 215, where the walker is
+blocked at ~63 m but stays at 1.7 m the whole way — one full `TRUNK_RESCAN_M`
+crossing — the trunk scan's worst case across seven reps was
+**594.5 / 177.9 / 120.1 / 81.4 / 65.7 / 56.3 / 27.7 ms**, with the walk phase
+itself setting the maximum in five of them. Every one of those is over the 8 ms
+budget, and 594.5 ms is within sight of §109's 841.5. **Y15 is very likely real
+and very likely worse than Y7.** I am not calling it measured.
+
+### Three things the instrument itself got wrong first, all caught by looking
+
+* **A fixed-duration phase measures nothing under load.** `DT_MAX` clamps the
+  movement integrator to 0.10 s per frame, so at low fps the camera covers less
+  ground than wall time says. A 24 s walk rendered 16 frames, travelled **1
+  metre**, and reported a trunk cost of 24.6 ms for a field that had never once
+  been asked to grow. **A phase is now a DISTANCE, with a watchdog.** Both scans
+  are triggered by movement — 200 m and 60 m — so wall time was the wrong control
+  variable from the start.
+* **`sprintHeld = e.shiftKey` (controls.js:1289) reads a modifier flag, not a
+  key.** Dispatching a separate `ShiftLeft` keydown does nothing *and* the plain
+  `KeyW` that follows clears the flag. The shift state has to ride on the same
+  event. Anything scripting sprint in this suite should know that.
+* G5 was first written as `scans / wallSeconds <= 1/1.5` and was **wrong by
+  construction**: `outerScans` counts instalments, and an unfinished list resumes
+  on the next frame on purpose, so a correctly-throttled build reported 1.6/s and
+  failed. It is a duty-cycle assertion now, derived from the budget's own two
+  numbers.
+
+### G1 — recorded, NOT established
+
+Differenced tick at cruise read 2.287 / 3.141 / 5.973 / 8.733 / 10.4 / 12.2 /
+14.8 / 16.9 / 17.9 / 190.4 ms across runs. That is an 80x spread on a machine
+carrying three sibling workflows, and the budget is 1.5 ms. **The lowest reading
+is 2.287 ms and I do not believe any of the others.** The gate is wired and it is
+red; treat it as unmeasured until it is re-run on a quiet machine.
+
+### G7 — the layer count, printed for the first time
+
+**219 style layers.** `docs/perf/budget.md` §5 lists "the layer count is not
+known" as one of the things it could not establish (95 of our own `addLayer`
+sites, plus the kept basemap, plus the Capitol's clones). It is 219. Recorded,
+not yet gated — `BUDGET.layersBaseline` is 0 until someone trusts the number.
+
+### What is NOT established
+
+* **Y7 and Y15 are not fixed.** No line of `js/controls.js` was touched.
+* **Y15 is not measured**, only evidenced, for the structural reason above.
+* **`updateSky()`, budget.md's third unbounded scan, was not touched or timed.**
+  It is in `js/sky.js` and it still has no instrument. budget.md §4.5 ranks
+  instrumenting it as the highest-value single line in the app; that is still true.
+* **G6 (dropped frames) is deliberately absent** — it needs a headed browser with
+  the occlusion flags and `outer-perf.mjs` already does that properly.
+* No screenshot was taken and no frame was read. The tree-collision correctness
+  check (stop 1.3 m from a trunk, §109) was **not** re-run, because nothing that
+  could affect it was changed.
+
+### For whoever picks up Y7 + Y15
+
+Do them as one fix — budget.md §4.5 is right that they are the same code shape.
+Both are `querySourceFeatures` returning a complete feature list before the
+`*_BUDGET_MS` clock even starts, which is why a 4 ms and a 3 ms budget bound
+nothing. Ask tile by tile. And run `perf-budget.mjs` before and after: the
+cruise half of it is valid and discriminating today.
