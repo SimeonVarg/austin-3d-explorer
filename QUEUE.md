@@ -1104,23 +1104,29 @@ this pass after printing PASS on all three sites and then being SIGKILLed:
 | `light-probe.mjs` | 8/9 | ease starts before the probe window (**test precondition** — likely the ruler) |
 | `capitol-merge.mjs` | — | `shots/capitol-merge.png` |
 
-**C. `coplanar.mjs` — AND IT FOUND A REAL REGRESSION THAT SHIPPED TONIGHT.**
-Bare it is permanently red by design (README); `--gate` is the verdict, and
-`--gate` is RED:
+**C. `coplanar.mjs` — RED, then RE-BASELINED, and the interesting part is who
+already knew.** Bare it is permanently red by design (README); `--gate` is the
+verdict, and on arrival `--gate` was RED:
 
 ```
 gate against baseline of 2026-08-16 (eps=0.01, frac=0.3):
-    REGRESSED  entrances.geojson          1558 -> 1626
+    REGRESSED  entrances.geojson          1558 -> 1627
 ```
 
-**+68 coplanar pairs in `data/entrances.geojson`**, 991 of the total being
-`entrance:reveal / entrance:reveal` and 524 `entrance:surround /
-entrance:surround`. That file was rebaked in PR #191 (§150/§151, the 171 extra
-doors) and **nobody ran the gate afterwards.** The instrument existed, was green
-before, is red now, and was not consulted — which is this repo's oldest failure
-mode with the volume turned all the way down. **Owner: the entrances bake lane.**
-Either fix the ties or re-baseline deliberately; changing
-`coplanar-baseline.json` in a commit is the record of what was accepted.
+**+69 pairs**, from PR #191's 171 extra doors (+68) and PR #192's 25
+relocations (+1). **The entrances lane had already measured all of it** — §151
+and §152 both print the ledger, note that the added doors sit at 8.6 % and 6.7 %
+coplanar rate against the file's own standing 10.9 %, i.e. *cleaner than the
+file average*, and say in as many words: *"`coplanar-baseline.json` is your file
+this round and this lane did not touch it"*, *"that is the number the
+suite-repair lane should expect when it re-records the baseline."*
+
+So this is a **lane-boundary handoff that was sitting unclaimed, not a missed
+regression** — and the initial reading here nearly wrote it up as the latter,
+which would have been unfair and wrong. Corrected before it shipped. The
+baseline is re-recorded (**the diff is one line, `entrances.geojson: 1558 ->
+1627`, and nothing else moved**) and `--gate` is green. That commit is the
+record of what was accepted, which is the whole point of the pattern.
 
 **What this table is NOT.** It is one reading per gate on a machine that was not
 idle, and the six in B are single runs — enough to say "this gate is red", not
@@ -1361,9 +1367,10 @@ Y23 the suite's own health table ............. NEW  (§154) — 25 green / 12 re
                                                 GATES. Five of the twelve are the 300 s
                                                 watchdog (verdict UNKNOWN, incl.
                                                 movement.mjs), six are real assertion
-                                                failures, and one is coplanar --gate
-                                                catching entrances.geojson going
-                                                1558 -> 1626 in PR #191. See below.
+                                                failures, and one is coplanar --gate,
+                                                whose entrances.geojson 1558 -> 1627
+                                                was an unclaimed lane handoff and
+                                                is now re-baselined. See below.
 ```
 
 **The one-line verdict on the Drag at night:** it is genuinely better — no stars

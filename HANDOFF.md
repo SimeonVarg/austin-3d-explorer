@@ -20274,6 +20274,14 @@ number in a commit is the record of what was accepted.
   `tower-atlas-tone.mjs` read the same facade-atlas bytes, and `road-probe.mjs`
   prints a strictly richer transportation histogram.
 
+### Re-verified on the merged tree, not on the branch
+
+`origin/main` moved twice while this was open (PR #192 and a docs commit; two
+sibling HANDOFF sections both numbered 152, so this one is 154). After merging:
+`harness-drift.mjs` PASS, `suite-lint.mjs` PASS with 0 blocking findings,
+`sky.mjs` **12/12**, `dusk.mjs` PASS with the one named Y20 allowance,
+`coplanar.mjs --gate` **green** after the re-record.
+
 ### WHAT THIS PASS DID NOT ESTABLISH
 
 1. **107 of 138 scripts are still unknown.** They reach a browser. Nothing here
@@ -21057,19 +21065,32 @@ and the twelve are three different things:
   travertine 1.67x its own undercroft, wants >2x), `light-ae` 7/8,
   `light-probe` 8/9 (its own precondition — probably the ruler again),
   `capitol-merge`.
-- **One is `coplanar.mjs`, and it caught a regression that shipped tonight.**
+- **One is `coplanar.mjs`, and it turned out to be a handoff, not a regression.**
 
-### `coplanar.mjs --gate` is RED on work merged hours ago
+### `coplanar.mjs --gate` was red on arrival, and the fix was a handoff nobody had picked up
 
 ```
-REGRESSED  entrances.geojson          1558 -> 1626
+gate against baseline of 2026-08-16 (eps=0.01, frac=0.3):
+    REGRESSED  entrances.geojson          1558 -> 1627
 ```
 
-**+68 coplanar pairs** in `data/entrances.geojson` — 991 of the file's total are
-`entrance:reveal / entrance:reveal`, 524 `entrance:surround /
-entrance:surround`. That file was rebaked in PR #191 (§150/§151, the 171 extra
-doors) and the gate was not run afterwards. The instrument existed, was green
-before, is red now, and nobody asked it. **Owner: the entrances bake lane.**
+**+69 pairs** — +68 from PR #191's 171 extra doors, +1 from PR #192's 25
+relocations. The first reading here was "a regression shipped tonight and
+nobody ran the gate". **That was wrong, and it is worth writing down that it was
+wrong**, because it is the same error in the opposite direction as the sky:
+accusing another lane on a number rather than reading what they wrote.
+
+They had measured all of it. §151 and §152 both print the ledger, both note that
+the added doors sit at **8.6 % and 6.7 % coplanar rate against the file's own
+standing 10.9 %** — i.e. *cleaner than the file average* — and both say plainly
+that `scripts/verify/coplanar-baseline.json` *"is your file this round and this
+lane did not touch it"*, and that 1627 is *"the number the suite-repair lane
+should expect when it re-records the baseline"*.
+
+So it was an unclaimed lane handoff, and this is the lane. Re-recorded: **the
+diff is one line, `entrances.geojson: 1558 -> 1627`, and nothing else in the
+file moved.** `--gate` is green on the merged tree. That commit is the record of
+what was accepted, which is the entire purpose of the pattern.
 
 ### Y20 photographed, on the grid a person actually uses
 
@@ -21151,6 +21172,12 @@ expected direction — so **quote the range 52-87 ms, not a digit.** Neither
    — that `js/app.js:1960` calls the module-local `applyTimeOfDay`, so the
    cinema is invisible to every `window.applyTimeOfDay` wrapper — is a note for
    that lane, not a change made here.
-8. **Nothing runs this suite on a schedule.** §149 said it and it is still true.
+8. **The shared checkout's `scripts/verify/node_modules` was EMPTY**, which
+   §152 flagged to this lane: `harness-drift.mjs` still passed (it is pure node)
+   while every playwright script there died on `Cannot find package
+   'playwright-core'`. `npm install` run; it resolves now. Note the shape — the
+   one guard that kept working was the one that needed nothing, which is exactly
+   how a dead suite reads as a live one.
+9. **Nothing runs this suite on a schedule.** §149 said it and it is still true.
    `inventory.mjs --gates` is now cheap enough to be a step in a workflow; no
    workflow asks for it.
