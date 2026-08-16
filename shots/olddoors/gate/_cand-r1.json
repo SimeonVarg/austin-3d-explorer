@@ -1,0 +1,56 @@
+[
+ {
+  "tag": "cand-r1",
+  "name": "H1-spawn",
+  "entSrcFeatures": 7647,
+  "file": "cand-r1-H1-spawn.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "H2-south",
+  "entSrcFeatures": 10727,
+  "file": "cand-r1-H2-south.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "H3-tower",
+  "entSrcFeatures": 19396,
+  "file": "cand-r1-H3-tower.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "H4-city",
+  "entSrcFeatures": 0,
+  "file": "cand-r1-H4-city.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "H5-dkr",
+  "entSrcFeatures": 9398,
+  "file": "cand-r1-H5-dkr.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "H6-night",
+  "entSrcFeatures": 7647,
+  "file": "cand-r1-H6-night.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "V1-anb",
+  "entSrcFeatures": 1001,
+  "file": "cand-r1-V1-anb.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "V2-lfh",
+  "entSrcFeatures": 20750,
+  "file": "cand-r1-V2-lfh.png"
+ },
+ {
+  "tag": "cand-r1",
+  "name": "V3-geb",
+  "entSrcFeatures": 10571,
+  "file": "cand-r1-V3-geb.png"
+ }
+]

@@ -1390,6 +1390,114 @@ regression.
 
 ---
 
+## NB. THE OLD DOORS WERE LOOKED AT — three things came back, none of them a blocker
+## (2026-08-16, branch `acer/n13-olddoors`, merged. Full report: `docs/entrances/sweep.md`)
+
+171 of the 656 shipped door groups were photographed one by one at walking
+height, on 87 buildings, chosen by a sampling plan written down before the
+results (`sweep.md` §1). With the 33 the n8 pass shot, **196 of 656 have now
+been stood in front of — 30%.** All 656 went through a five-test numeric audit
+first. Three items came back and all three are recorded here rather than fixed,
+because none of them is this branch's and two are not this lane's file.
+
+### NB1. Welch Hall is dated 1930 and wears a mid-century storefront on seven doors
+
+`bake_entrances.py`'s `CELEBRATED` table pins `WEL` to `fam="C"`, which sits
+ABOVE the register date test in the cascade, so the measured 1930 loses.
+`celebrated.md` §2 demoted Welch out of tier 1 for a real reason — "the
+building the public sees from Speedway is dominated by the large later
+addition" — but that is an argument about FAME and the `fam` field is an
+argument about ERA, and one table entry is carrying both.
+
+**Not changed here, deliberately.** `celebrated.md` was written from
+photographs and it wins. All seven doors are photographed
+(`shots/olddoors/sheets/sheet-era-02.png`, `-07`, and the same cells in `sheetsB/`) and they are consistent and well
+made; they sit on the addition, which is what the demotion note describes.
+
+**What would settle it:** one photograph of Welch Hall's 1930 limestone front
+(not the Speedway face). If that front carries a limestone portal, split the
+`CELEBRATED` entry's two jobs — keep `tier=3`, drop `fam` and let the register
+answer. That is a two-line change and it would move 7 doors from `midcentury`
+to `cret`. The same split would want re-checking on PAC (4 groups), HRC (3,
+sourced correct) and LBJ (2).
+
+### NB2. Six doors render ZERO pixels because an authored mass stands over them
+
+**Confirmed from two independent bearings, twelve frames.**
+
+**MCA 574–578, all five.** The only non-stadium centroids inside another
+footprint in the whole 656 (`sweep.md` §2 test 5). Ten frames — five doors ×
+two bearings, each crop centred on the door's own projected pixel — are
+**blank wall**. Eight of the ten had no clean three-quarter angle at all and
+fell through to head-on; head-on it is still blank wall.
+
+**EER 381**, the Engineering Education and Research Center's `main`. Both
+bearings are a solid orange field: the standing point is *inside* the
+building's authored mass, so the door is too. EER never appeared in the buried
+list because that test only knows OSM footprints and `js/heroes.js`'s mass is
+not one.
+
+Frames: `shots/olddoors/leads/B-MCA-eid577.png`, `B-MCA-eid578.png`,
+`B-EER-eid381.png`, and rows 1–5 and 11 of `shots/olddoors/leads/leads.png`.
+
+`bake_entrances.py` already owns this failure mode: `BURIED_MASS_FILES`
+includes `moody` and the buried-door audit relocates a swallowed door. The
+audit tests the LEAF PLANE against masses whose base is under
+`BURIED_BASE_MAX` 2.0 m; Moody's own re-drawn mass and its plaza footprints
+appear to be passing that test while still hiding the door.
+
+**All six predate this branch** — byte-identical between `origin/main` and
+`acer/n13-olddoors`, which changes only eids 202/203/210/457/585. Whoever picks
+it up: run the bake with the buried-door count printed and check whether MCA
+and EER appear in it AT ALL. If they do not, the TEST is what is wrong, not the
+placement — and the fix is `BURIED_BASE_MAX` / the mass-exterior sampling, not
+a per-building nudge.
+
+### NB4. LBJ has the glazed entrance `celebrated.md` §5.10 explicitly forbids
+
+The spec is unusually direct on this one building: *"Model the plaza podium and
+the overhang; do not put a shopfront-style glazed entrance on a windowless
+travertine wall. That is the specific failure mode here."* `LBJ-eid582` from
+the second bearing shows a glazed door pair in a stone frame on the travertine
+wall; `LBJ-eid583` shows another at the corner.
+
+In fairness it is not a *shopfront* — it is a modest family-D pair — and
+`celebrated.md` records LBJ's door side as `[U]`, so nothing measured says it
+is in the wrong place. But it is the shape of thing the spec named, on the one
+building where the spec named it, and LBJ is a **tier 1** portal. Frame:
+`shots/olddoors/leads/B-LBJ-eid582.png`. Predates this branch.
+
+### NB3. `coplanar.mjs`'s baseline is 56 pairs stale, and `origin/main` fails its own gate
+
+Measured today, both arms, same machine, same run:
+
+```
+scripts/verify/coplanar.mjs --gate     baseline recorded 2026-08-16
+  origin/main's data/entrances.geojson      1558 -> 1614   REGRESSED
+  acer/n13-olddoors's                       1558 -> 1626   REGRESSED
+```
+
+**56 of the 68 are already on `main`.** The 12 that are this branch's are all
+inside the five new family-V door groups and all of the kind
+`reveal / surround` — measured directly on the two files, 18 → 32 coplanar
+pairs within eids 202/203/210/457/585. A family-V surround band frames a
+reveal slab and the two share a top height by construction. The walking-height
+frames of ANB, JHH, LFH and GEB show no z-fighting on any surround.
+
+`scripts/verify/` is the suite-repair lane's file this round, so the baseline
+was NOT re-recorded here. **Somebody with that file should re-record it against
+current `main` and say what moved**, because until then the gate cannot tell a
+new regression from the stale 56.
+
+### And the thing the sweep did NOT find, which is the useful half
+
+No family is systematically wrong. Every era reads as its period at 1.7 m. No
+door floats, none is more than 6 m off its own wall, 655 of 656 face outward,
+and the one that does not is 0.16 m into a re-entrant notch. **460 of the 656
+have still never been looked at** — they passed the numeric audit and nothing
+more, and `sweep.md` §0 says so in those words.
+
+
 ## ~~Y5 IS WAITING ON A TASTE DECISION~~ — DECIDED AND SHIPPED (2026-08-15, §114/§121)
 
 **The decision was delegated and executed per this section's own written

@@ -20120,3 +20120,394 @@ re-running gives the same 7** — so this branch adds zero. It must be run from
 * **§146's 447 px was not explained**, only shown not to reproduce.
 * The 63 codes that remain unroutable were not re-examined.
 * Night was not shot. Every frame here is `p = 0.30`, daylight.
+
+---
+
+## 149. Aug 16 2026 — the campus is older than the vocabulary: five buildings predate every family, and a 1904 one was wearing a Cass Gilbert arcade (QUEUE N13) (acer lane, branch `acer/n13-olddoors`, NOT merged)
+
+Last night's pass photographed fifteen new doors one by one and found, among
+other things, that **ANB (1859), JHH (1888) and LCH (1894) were wearing plain
+flush glazed doors on 19th-century masonry.** This pass went looking for the
+rest of them and wrote the family that was missing.
+
+### 149.1 THE COUNT — it is five, not three, and the fifth one is the interesting one
+
+`data/ut_buildings.json` — UT's own register — dates **five** buildings before
+the Gilbert era:
+
+```
+ANB  Arno Nowotny Building          1859      was E5 null   -> V
+JHH  John W. Hargis Hall            1888      was E5 null   -> V
+LCH  Littlefield Carriage House     1894      was E5 null   -> STAYS E5, on purpose
+LFH  Littlefield House              1894      was E5 null   -> V
+GEB  Dorothy L. Gebauer Building    1904      was FAMILY A  -> V
+```
+
+**GEB is the one nobody had noticed.** It is the oldest surviving building on
+the Forty Acres, 1904, yellow brick with limestone trim, and the era table's
+date test was handing it **family A — a Cass Gilbert Spanish Renaissance
+arcade — six years before Gilbert got the commission**, because `ERA_BOUNDS`
+had no bucket below 1925 and its first rule was `year <= 1925 -> A`. The old
+§6 named list even carried the line *"Dorothy Gebauer Building — pre-1910 [A],
+probably predates the family; verify before drawing"*. It sat there unverified
+through several passes. **A date test with no bucket below its oldest family
+does not decline to answer. It answers wrongly, silently, at the top of the
+cascade.**
+
+The boundary is the register's own: sorted by year the data runs 1859, 1888,
+1894, 1894, 1904 and then jumps to **1911, Battle Hall** — Gilbert's first
+building here. The gap in the data is the boundary; 1909 is the last year in it.
+
+### 149.2 FAMILY V — the first family in this document written from a photograph
+
+Every other family in `docs/entrances/eras.md` was written from prose. Family V
+is measured off **File:Arno_nowotny_building.jpg** (Wikimedia Commons, CC BY-SA,
+axial front elevation of the 1857 Abner Cook asylum block). Pixel windows for
+every number are in eras.md §4V.1 so the sample can be re-taken.
+
+**The identifying feature is the PORCH, not the door.** Two numbers carry the
+family and both are easy to get wrong:
+
+* **The leaf is 3.55 : 1 — tall and narrow.** Measured: the pair spans 76 px
+  and the leaves run 135 px. Family B's monumental leaf is 2.44 : 1 and the
+  commercial leaf is 2.33 : 1. **Putting a 0.914 x 2.134 commercial leaf in a
+  19th-century opening is what makes it look like a shed door.** Family V is
+  0.80 x 2.70 m — ratio measured, width `[A]`, and the frame's own
+  whole-elevation scale independently puts the height at 2.8 m.
+* **The fanlight is a SEGMENT, not a semicircle.** Rise 27 px over a half-span
+  of 38 px = **0.71**; a semicircle is 1.00. Drawn semicircular it adds ~0.4 m
+  of glass over the door. GEB's *before* frame shows exactly that — family A's
+  semicircular head taking up half the composition on a 1904 building.
+
+Reveal **2.40 m — the deepest on campus**, deeper than mid-century's 1.50,
+because it is not a recess at all: it is a room with a roof on it. Note the
+depth ordering is now non-monotonic in **both** directions (V 2.40, A 1.20,
+B 0.65, C 1.50, D 0.35). Neither "older = deeper" nor the opposite exists.
+
+Two colours were sampled off the photograph and entered through the repo's own
+measured transfers, not invented: the door pair `#6a2916` in porch shade
+(median over 780 px, sd 6.5) lifted by the x0.67 luma transfer to **`#9e3d21`**,
+exactly as `BRONZE` was derived; and the painted trim `#e4935e` sunlit (3,300
+px, sd 4.7) less 5% to **`#d98c59`**, the treatment `bake_drag.py` gave the
+brick it sampled. Glass is `mix(GLASS_SAT, IRON, 0.52)` — a stated channel
+operation off an existing sampled primary, like every other glass in the file.
+
+### 149.3 THE ROUND THE PICTURES COST, and it is the point of taking them
+
+The first cut painted the **porch slab** in that sampled `#d98c59`, reasoning
+that ANB's portico really is painted terracotta. **Photographed at walking
+height it put a bright orange slab over Littlefield's brick and Hargis's tan
+brick and read as a shopfront awning** — the same "looks wrong to anyone who
+knows the campus" failure, arriving by a different route. eras.md §3.4 already
+had the answer: **family sets geometry, HOST sets material.** The porch now
+takes the host's own `wd` at 0.88 (`PORCH_HOST_DARKEN`) and the sampled paint
+survives only in the 0.22 m accent band at the head. The fix is one constant.
+
+### 149.4 LCH STAYS NULL, and that is a decision, not an omission
+
+The Littlefield Carriage House is dated 1894 and **deliberately keeps the E5
+null door**. It is an outbuilding — what it has is a carriage bay, not a
+portico with a fanlight — and **no photograph and no description of it were
+found**, not on Commons, not in the Wahrenberger material, not in the NRHP
+material. Family V's porch on a coach house would be a confident lie about a
+building nobody has looked at. The bake prints it in the census every run with
+the reason attached so it stays visible instead of becoming a hole. Its
+before/after frames are **byte-identical** (0.000% changed pixels), which is
+also the cleanest evidence that this change touched family V and nothing else.
+
+### 149.5 THE NUMBERS — every bake assertion and health figure, before and after
+
+Identical unless marked. `python scripts/bake_entrances.py`, no flags.
+
+```
+                              BEFORE            AFTER
+entrances                     656 on 295 bldgs  656 on 295 bldgs   unchanged
+per building                  min1 med2 mean2.22 p90 4 max 8       unchanged
+no entrance                   19 buildings      19 buildings       unchanged
+OSM recovery (derivation)     72 in-campus nodes, 66 on an in-scope building
+  recall floor                67% at 8 m, floor 65%  OK            unchanged
+  median position error       0.00 m, p75 15.64 m                  unchanged
+buried doors                  5 (2 relocated, 3 dropped)           unchanged
+floating sills                0 of 656                             unchanged
+detached pieces               0                                    unchanged
+bad base/h/colour             0                                    unchanged
+pale-neutral wn               0  (spread <=14 and luma >=40)       unchanged
+glazing neither lit nor dark  0  (luma outside <=30 or >=150)      unchanged
+families                      A 4               A 3      <- GEB left
+                              E5 162            E5 159   <- ANB, JHH, LFH left
+                              (no V)            V 4
+by era                        gilbert 7         gilbert 6, victorian 5
+pieces                        14,893            15,071   (+178, +1.2%)
+file                          6.67 MB           6.75 MB
+```
+
+**Placement did not move.** Not one door changed position, count, host or `src`;
+the OSM recovery rate, the buried-door count and both night assertions are
+character-for-character identical. The whole delta is vocabulary on five doors.
+
+### 149.6 THE FRAMES — `shots/olddoors/`
+
+Six doors — all five family-V doors plus LCH as the control — three-quarter,
+**22 m standoff, eye at 1.70 m on every single frame**, `p = 0.30`. Pose
+generation added the occlusion check last night's pass asked for: every
+candidate standing point is walked to the door in 0.5 m steps and rejected if
+any step lands inside a footprint that is not the host, both three-quarter
+sides tried. GEB's -38 deg side was rejected by it and it was shot from +38.
+
+**Two harness findings that matter more than my frames.**
+
+1. **The outward normal cannot be "whichever bearing has the most room".** My
+   first pose generator maximised free distance from the door; on a rectangular
+   block several bearings all run clear to the scan limit, it kept whichever it
+   saw first, and it put ANB's camera **165 degrees off the wall it was meant to
+   be looking at.** The fix is to take the reveal slab's own short axis — the
+   slab is a long thin box laid ON the wall, so its longest edge is the wall
+   direction — and settle which perpendicular points out against the footprint.
+2. **THE NOISE FLOOR AT THIS FRAMING IS ENORMOUS AND A PIXEL DIFF IS NOT THE
+   INSTRUMENT HERE.** Two runs of the identical tree at the identical poses:
+
+```
+   ANB     26.518% of pixels changed by >8    max channel delta 196
+   GEB     23.606%                            192
+   JHH-202 46.139%                            192
+   JHH-203, LCH, LFH   0.000%                   0
+```
+
+   Three of six poses disagree with themselves on a quarter to a half of the
+   frame. One `before` ANB frame came back with the building masses missing
+   entirely — the city caught mid-stream — and `entSrcFeatures` for the same
+   pose ranged **34,111 to 49,451** across runs. **Any before/after percentage
+   at this framing is inside that.** So the verdict here is the eye, not the
+   number, and the numbers are published only so nobody quotes a 39.6% as if it
+   meant something. (`before` vs `after` came out ANB 39.6, GEB 46.7,
+   JHH-203 2.2, LFH 1.8, JHH-202 0.9, LCH 0.000.)
+
+   Related: at **13 m** the derived zoom saturates against `controls.js`
+   `ZOOM_MAX 21.5` and the eye settles at 2.4 m instead of 1.7, and the
+   collision net fires non-deterministically there — the same ANB pose came back
+   at 13 m in one run and was thrown to 22 m in the next. **22 m lands 1.70 m
+   every time**, so it is pinned.
+
+**What the frames actually show.** On all four buildings the flush aluminium
+storefront is replaced by a tall red-brown timber pair in a pale limestone
+architrave with a fanlight over it, a stone flight and dark iron rails. GEB
+loses a semicircular Gilbert arch it should never have had. It reads as a
+19th-century door. It does not read as a shed door. `shots/olddoors/ab-*.png`
+are the before/after pairs, cropped to the doorway; the full frames and the
+manifests are in `before/` and `after/`, the repeat run in `_noise/`.
+
+### 149.7 WHAT I DID NOT ESTABLISH
+
+* **Three of the four members have `[U]` entrances.** Only ANB is photographed.
+  JHH's doorway is behind trees in the only frame found; **GEB and LCH have no
+  photograph on Wikimedia Commons at all.** The family is one measured building
+  generalised to three unmeasured ones. Say it out loud.
+* **The absolute size of the leaf rests on one assumption.** The 3.55 : 1 ratio
+  is measured; the 0.80 m width that turns it into 2.70 m is `[A]`.
+* **The porch is drawn as a canopy because the alphabet has no PIER.** The
+  photograph shows two fluted square piers 0.76 x 4.22 m holding it up. §3's
+  nine parts do not include a post and this pass did not add a tenth, so at eye
+  level the porch is a deep soffit with nothing under it. **This is the biggest
+  visible gap in the family.**
+* **Both photographed flights carry a retrofitted pipe rail AND low masonry
+  terminal blocks.** `assemble()` draws a cheek or a rail, never both, so the
+  blocks are not drawn. The rail itself is `RAIL_SEGS = 3` — three separate
+  T-shaped pickets a side rather than a continuous rail — which is how **every**
+  one of the file's 3,450 rail pieces already looks; dark iron just makes it
+  legible. Not fixed here; not this branch's file to redesign.
+* **Night was not photographed.** Every frame is `p = 0.30`. The night
+  assertions were checked numerically (pale-neutral 0, lit-or-dark 0) and pass,
+  but nobody has stood in front of a family-V door after dark.
+* **The NRHP nomination for Little Campus (74002091) was never read.** NPGallery
+  served a placeholder blurb rather than the scan at both
+  `GetAsset/NRHP/74002091_text` and `pdfhost/docs/NRHP/Text/74002091.pdf`. It is
+  the most likely source of a real measured description of the 1857 building.
+  **SAH Archipedia TX-01-AU41.5** (Littlefield House) still 403s.
+* **ANB's real architrave is painted timber, not limestone.** The family uses
+  the §3.4 limestone surround so the flight comes out stone, which both
+  photographs show. The per-building override is not written.
+* **About 550 doors that shipped before tonight still have had numeric checks
+  only.** This pass looked at six.
+
+### 149.8 A REQUEST FOR docs/entrances/celebrated.md'S OWNER
+
+`celebrated.md` §5.9 records Littlefield House's **porch, columns, veranda,
+doors, steps and rails as `[U]`**, and says so explicitly rather than guessing —
+which is why this could be corrected at all. Reading
+**File:Littlefield_House_-_UT_Austin_(54984939058).jpg** (Commons) settles part
+of it: the entrance is a doorway **recessed behind polished stone Corinthian
+columns under a two-storey iron veranda**, over a stone flight of about five
+risers with a thin retrofitted pipe rail. That is family V's shape. celebrated.md
+is not this branch's file, so its `CELEBRATED["LFH"]` entry in
+`scripts/bake_entrances.py` was moved `E5 -> V` with the reasoning written into
+the entry's own `note`, and **its authored `open_w` / `n` / `risers` / `rail`
+were left exactly as they were.** celebrated.md's judgement — that the roof and
+the two mismatched towers are the identity here and the budget belongs there —
+is untouched and still right. This only stops the door being a flush aluminium
+storefront on an 1894 mansion.
+
+### 149.9 THE SHAPE OF THE CHANGE
+
+`scripts/bake_entrances.py`, `data/entrances.geojson`, `docs/entrances/eras.md`,
+`shots/olddoors/`, this file. Nothing else. Every taste value is a named
+constant at the top of the bake — `VICT_LEAF_W`, `VICT_LEAF_H`, `VICT_RISER`,
+`VICT_ARCH_RISE_FRAC`, `VICT_HEAD_GAP`, `VICT_PORCH_OVER`, `VICT_PORCH_T`,
+`VICT_GLASS_MIX`, `CANOPY_SIDE_V`, `PORCH_HOST_DARKEN`, `VICT_LEAF`,
+`VICT_TRIM` — and the three hooks in `assemble()` are all `.get()` guarded, so
+**every other family renders byte-identically**. `NULL_REFS` and
+`NULL_NAME_PARTS` were split into live and `_PRE` copies so
+`classify_pre_register()` keeps telling the truth about what the register moved;
+without that split the bake's own before/after report would have quietly
+rewritten its own history.
+
+Served from a throwaway worktree on port 8461, `harness-drift` **PASS** (29
+scripts either side), server killed at the end.
+
+
+---
+
+## 145. Aug 16 2026 — 171 of the 656 doors were stood in front of, and the red gate was already red on `main` (QUEUE NB1/NB2/NB3) (acer lane, branch `acer/n13-olddoors`, merged)
+
+**Files written:** `docs/entrances/sweep.md` (new), `QUEUE.md`, this section,
+`shots/olddoors/sheets/` and `sheetsB/` (all 171 doors on both bearings, as
+labelled contact sheets), `sweep_manifest.json` / `sweepB_manifest.json` (every
+pose, every read-back eye altitude, every entrance feature count),
+`shots/olddoors/leads/` and `shots/olddoors/gate/`. **The 342 raw frames are
+164 MB and were NOT committed** — the sheets carry the same evidence at a fifth
+of the size, and the manifests carry every number. **No code and no data changed in this pass** — the
+family-V bake and `data/entrances.geojson` came in with the branch's first
+commit and were inspected, not edited. Throwaway worktree,
+`python scripts/serve.py 8462`. `harness-drift.mjs` **PASS, 29 scripts in each
+file**, before any pixel work.
+
+### 145.1 THE DENOMINATOR, first, because it is the honest part
+
+```
+656  door groups shipped in data/entrances.geojson (15,071 pieces, 295 buildings)
+ 33  photographed before tonight (n8, section 140)
+171  photographed in this pass, 87 buildings, 26%
+196  TOTAL a human has now stood in front of — 30%
+460  audited numerically and NEVER LOOKED AT
+```
+
+The sampling plan is written down *before* the results in `sweep.md` section 1
+— five disjoint strata (teaching mains, celebrated, random derived, audit
+leads, then a top-up to at least 3 of every era, src and role). Coverage: all
+7 eras, all 4 `src` values, all 5 roles.
+
+### 145.2 THE NUMERIC AUDIT OVER ALL 656 CAME BACK ALMOST CLEAN
+
+Five tests, run before a photograph because a rule wrong across 200 doors beats
+any single odd door. **0** doors more than 6 m from their own wall. **655/656**
+centroids outside the host ring (the one inside is 0.16 m into a re-entrant
+notch). **0** groups with no leaf, **0** rails without a flight, **0** leaves
+over their family maximum; every 4.30 m opening is a garage vehicle bay.
+**306 of 322** dated groups match the register year's family exactly.
+
+### 145.3 THE THREE THINGS THAT CAME BACK — and why none was fixed here
+
+1. **WEL (7 doors).** `CELEBRATED` sits above the date test and pins Welch
+   Hall to family C; the register dates it 1930, which is family B. That table
+   entry is doing two jobs — `tier` (how much hand-authoring) and `fam` (which
+   era) — and `celebrated.md` section 2's demotion note argues only the first.
+   **Not changed: `celebrated.md` was written from photographs and it wins.**
+   QUEUE NB1 names the two-line split and what photograph would settle it.
+2. **Six doors render ZERO pixels — MCA's five and EER's main.** Confirmed
+   from two independent bearings, twelve frames, each crop centred on the
+   door's own projected pixel. MCA is blank wall ten times out of ten; EER is
+   a solid orange field twice, because the standing point is inside the
+   building's own authored mass. `BURIED_MASS_FILES` already lists both
+   `moody` and `heroes`, so the buried-door audit is either not seeing these
+   masses or not relocating past them. **All six byte-identical between
+   `origin/main` and this branch.** QUEUE NB2. A seventh item, LBJ's glazed
+   pair on a travertine wall — the exact thing `celebrated.md` §5.10 forbids
+   by name — is QUEUE NB4 and also predates this branch.
+3. **`coplanar.mjs --gate` is RED — and it is red without this branch.**
+   Measured on the same machine in the same run by swapping the one changed
+   file: `origin/main` **1558 -> 1614 REGRESSED**; this branch
+   **1558 -> 1626**. **56 of the 68 are already on `main`**; the 12 that are
+   ours are all `reveal / surround` pairs inside the five new family-V groups
+   (18 -> 32 coplanar pairs within eids 202/203/210/457/585, measured directly
+   on the two files). A surround band frames a reveal slab and they share a top
+   height by construction; no z-fighting appears on any surround in any frame.
+   The baseline lives in `scripts/verify/`, which is the suite-repair lane's
+   file, so it was **not** re-recorded. QUEUE NB3.
+
+### 145.4 THE INSTRUMENT WAS WRONG ABOUT ONE FRAME IN FIVE, AND THAT IS WORTH MORE THAN THE DEFECTS
+
+The derived pose only tested the sight line against **other** buildings'
+footprints. **A building's own re-entrant wall is an occluder too:**
+`JON-eid75` photographed the flank of Jesse H. Jones Hall with its own door's
+handrails just visible round the corner, and `PAI-eid348`, `ASE-eid527`,
+`DFA-eid588` and `MAI-eid421..423` did the same thing. Fixed by aiming the
+occlusion segment at a point **1.6 m outside** the door instead of at the door,
+so the wall a door is set into does not count as blocking its own doorway —
+then **every door was re-shot from the opposite three-quarter angle at 15 m**,
+and both sets were read. **The second bearing paid for itself at once:**
+`AHG-eid477`, `CMA-eid561`, `BRB-eid516` and `GAR-eid535` each photographed a
+blank wall or the inside of a mass on the first bearing and a correct,
+well-made portal on the second. Four apparent defects that were the camera —
+against two (MCA, EER) that survived both bearings and are real.
+
+Four frames are featureless because the eye landed inside an **authored** mass
+(`js/heroes.js`, `js/moody.js`) that is not in the footprint snapshot at all —
+`EER-eid381`, `CMA-eid561`, `BRB-eid516`, `GAR-eid535`. That is NB2's blind
+spot seen from the camera's side, and it is the same one.
+
+### 145.5 THE VISUAL GATE — and the load race that would have faked it
+
+The branch's whole shipped delta is **five door groups on four buildings**:
+115 pieces out, 293 in, on eids 202/203/210/457/585 and nothing else in the
+city by a byte. Both arms were produced by swapping that one file on the SAME
+server and reloading — a tighter A/B than two worktrees, and it cannot drift.
+**Both arms wait for `austin-entrances` to report loaded before any frame is
+taken**; the file is lazy, and photographing one arm early measures a load race
+and invents hundreds of changed pixels. Feature counts at the moment of each
+shot are in `shots/olddoors/gate/_base-r1.json`, `_base-r2.json`, `_cand-r1.json`.
+
+Noise floor first, two reps of the base arm, then base vs candidate, 1200x800,
+a pixel counted when any channel differs by more than 8:
+
+```
+pose        noise r1-r2   base-vs-cand   where the changed pixels are
+H1-spawn              0            126   ONE 14x16 box  (Littlefield House)
+H2-south              0              0   —
+H3-tower           6613              0   —
+H4-city          109467              0   —   (z14.6: entrances below min-zoom)
+H5-dkr                0             11   26x45 scatter, 1.5 km from any change
+H6-night            121             96   scatter across the whole frame = noise
+V1-anb                0             59   ONE 44x10 band  (the ANB portal)
+V2-lfh            13233          13249   floor as big as the change: uninformative
+V3-geb                0             19   ONE 13x6 box    (the GEB portal)
+```
+
+Every localised change is a tight box on a building the change was supposed to
+touch. Nothing else in the city moved. **Two of the noise floors are enormous**
+(H3 6,613 px, H4 109,467 px between two identical-configuration reps) which is
+exactly why the floor is measured first and never assumed. V2-lfh's floor is as
+big as its own delta, so that pose says nothing either way — the evidence that
+Littlefield changed is H1's 126-pixel box and the walking-height before/after
+frames, not V2.
+
+`walk_graph.json`, `ut_buildings.json` and everything under `js/` are
+untouched, so the 19/19 walk regression was not owed. The five doors did move
+**0.10-0.64 m** when the vocabulary changed, so the shipped graph is that much
+stale on four buildings — inside any routing tolerance, and stated in
+`sweep.md` section 5 rather than glossed.
+
+### 145.6 WHAT THIS PASS DID NOT ESTABLISH
+
+* **460 of 656 door groups have still never been looked at.** They passed five
+  numeric tests. Say "audited", not "inspected".
+* **Nothing was photographed at night.** Every one of the 342 sweep frames is
+  `applyTimeOfDay(0.30)`; only the gate's H6 is a night frame.
+* **The garage `service` doors are unresolved** — `SAG-eid612` and
+  `TSG-eid598` photograph a corrugated wall with no readable vehicle opening,
+  from both bearings, and two doors is not enough to call it.
+* **No frame was compared to a photograph of the real building.** "Era
+  plausible" here means plausible against `eras.md` and the register year.
+* **The two scratch drivers were deleted, not committed** — `_sweep-n13.mjs`
+  (the fast walk-height driver: nearest-neighbour pose ordering took it from
+  168 s a frame to 5 s) and `_gate-n13.mjs` — because `scripts/verify/` is not
+  this lane's file this round. Their full output is in the two `_manifest.json`
+  files and in `shots/olddoors/gate/`.
