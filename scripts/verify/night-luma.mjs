@@ -111,11 +111,15 @@ const page = await browser.newPage({ viewport: { width: 960, height: 600 } });
 page.on('pageerror', e => console.log('PAGEERROR', e.message));
 await page.goto(`${BASE}/_harness.html?intro=0&drift=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
+// `!m.getSource(s) || m.isSourceLoaded(s)` let a MISSING source satisfy the
+// wait — the same blind spot, in the opposite direction, as the tree count
+// below. A source that never appears is the loudest possible failure and this
+// wait treated it as success. Require the source to exist AND be loaded.
 await page.waitForFunction(() => {
   const m = window.__map;
   if (!m || !m.getSource('austin-buildings')) return false;
   return ['austin-buildings', 'austin-ground', 'austin-trees']
-    .every(s => !m.getSource(s) || m.isSourceLoaded(s));
+    .every(s => !!m.getSource(s) && m.isSourceLoaded(s));
 }, null, { timeout: 90000 }).catch(() => console.log('WARN: sources not all loaded'));
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 await page.waitForFunction(() => !!window.__nightLights, null, { timeout: 60000 })
@@ -162,6 +166,34 @@ await page.evaluate(() => {
     }
     return null;
   };
+  // COUNT A SOURCE'S FEATURES WITHOUT ASSUMING ITS TYPE.
+  //
+  // `querySourceFeatures(id)` returns [] for a VECTOR source unless it is given
+  // the source-layer; for a GeoJSON source that layer is implicit. `austin-trees`
+  // became a vector source over `data/tiles/trees.pmtiles` when the trees were
+  // tiled to keep 9.13 MB off the wire — and this file has read **0 trees at
+  // every pose ever since**, whatever was on screen. Its settle predicate
+  // requires `trees > 300`, so every pose printed
+  // `NEVER SETTLED (0 trees, ..., drift 0)` and then ran its whole retry ladder:
+  // 830 s of retries chasing a number that could not move. Measured at this
+  // file's own `core` pose, the same camera holds **31,723** tree features.
+  //
+  // The source-layer is READ OFF THE LAYER rather than typed, so this cannot
+  // rot again the next time a bake changes shape — and a vector source whose
+  // layers do not declare one is returned as null, which counts 0 and shows up
+  // as the red it is instead of being papered over with a guessed string.
+  S.countSource = id => {
+    const src = m.getSource(id);
+    if (!src) return 0;
+    let sl = null;
+    for (const L of (m.getStyle().layers || []))
+      if (L.source === id && L['source-layer']) { sl = L['source-layer']; break; }
+    try {
+      return sl ? m.querySourceFeatures(id, { sourceLayer: sl }).length
+                : m.querySourceFeatures(id).length;
+    } catch (e) { return 0; }
+  };
+
   S.goto = async (pose, p) => {
     m.jumpTo({ center: pose.center, zoom: pose.zoom, pitch: pose.pitch, bearing: pose.bearing });
     window.applyTimeOfDay(m, p, true);
@@ -169,8 +201,8 @@ await page.evaluate(() => {
     await new Promise(r => { if (m.loaded()) return r(); m.once('idle', r); setTimeout(r, 15000); });
     let trees = 0, bld = 0;
     for (let i = 0; i < 25; i++) {
-      try { trees = m.querySourceFeatures('austin-trees').length; } catch (e) {}
-      try { bld = m.querySourceFeatures('austin-buildings').length; } catch (e) {}
+      trees = S.countSource('austin-trees');
+      bld = S.countSource('austin-buildings');
       if (trees > 300 && bld > 300) break;
       await S.settle(20);
     }

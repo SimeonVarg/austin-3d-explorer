@@ -52,31 +52,38 @@ const TUNE = {
   // discontinuity. Calibrated from the measured curve, not guessed — see the
   // HANDOFF section for the run this number came from.
   MAX_STEP: 26,
-  // == THE ONE KNOWN, ACCEPTED DISCONTINUITY ================================
+  // == THE ONE KNOWN DISCONTINUITY — FIXED 2026-08-16, ALLOWANCE REMOVED ====
   //
-  // The first run this file has ever completed found a REAL one-frame jump of
-  // 83 levels in the blue channel of the sky just above the western horizon at
+  // The first run this file ever completed found a REAL one-frame jump of 83
+  // levels in the blue channel of the sky just above the western horizon at
   // p=0.595, reproduced identically in three reps while its neighbours moved 5
-  // and 6. It is `js/sky.js:1420`:
+  // and 6. It was carried here as a named allowance (QUEUE Y20) because
+  // `js/sky.js` was not that lane's to write. IT IS NOW FIXED AND THE
+  // ALLOWANCE IS GONE — this list is empty on purpose, and it is meant to stay
+  // empty. An allowance left behind is how a fixed defect comes back
+  // unnoticed, so removing it is part of the fix and not bookkeeping.
   //
-  //     const useMoon = !B.sunUp && B.moon.elev > -2;
+  // THE DIAGNOSIS WAS ALMOST RIGHT AND NAMED THE WRONG PAINTER, which is worth
+  // keeping because it is why the fix is where it is. The switch really is
+  // `js/sky.js`'s `const useMoon = !B.sunUp && B.moon.elev > -2`. But the DISC
+  // is not what moved this pixel: at the notch where the switch fires, the
+  // sun's own visibility ramp is 0.000 and the moon's is 0.020, so there is
+  // barely a disc on screen to see. What moved was that the SUN's two horizon
+  // washes were painted in `haloCol` — the switched colour — so the western
+  // afterglow, in place and at unchanged alpha, was repainted from warm
+  // `sunColour(sun.elev)` to the cool moon halo in one frame. The two washes
+  // had been given independent SCHEDULES by the twilight rewrite; only their
+  // COLOURS were left on the boolean.
   //
-  // The moon crosses -2 degrees between p=0.590 (elev -2.24) and p=0.595
-  // (-1.76), so the DISC and its halo switch body in one step: `haloCol` goes
-  // from the warm `sunColour(elev)` to the cool `[150,172,226]` and `bloomA0`
-  // from `0.26+0.22*golden` to a flat `0.30`. THE TWO HORIZON WASHES ARE
-  // CONTINUOUS — that was the two-schedule rewrite, and it holds. The disc was
-  // never given the same treatment, and sky.js's own comment about the old
-  // switch "flipping in one frame at p=0.5925" describes a sibling of a bug
-  // that is still in the file.
+  // Measured on the two ADJACENT QUANTISED notches the shipped slider produces
+  // (`y20-handover.mjs`, both arms in one build via SKY_TUNE.HANDOVER.ON):
   //
-  // js/sky.js is not this lane's to write, so this is RECORDED, not fixed —
-  // QUEUE Y20. The allowance follows `coplanar.mjs --gate` and its baseline
-  // file: a guard that is permanently red is a guard nobody reads, so the one
-  // measured defect is named with a ceiling and everything else gates normally.
-  // If this jump GROWS past the ceiling, or a second one appears anywhere, the
-  // gate goes red. `--strict` ignores the allowance entirely.
-  KNOWN: [{ p: 0.595, upTo: 90, why: 'js/sky.js:1420 useMoon disc switch - QUEUE Y20' }],
+  //     HANDOVER.ON = false   75/128 -> 76/128   worst channel step 83
+  //     HANDOVER.ON = true    75/128 -> 76/128   worst channel step  6
+  //
+  // If a second discontinuity ever appears, add it here WITH ITS MEASUREMENT
+  // and a ceiling, the way this one was carried. `--strict` ignores the list.
+  KNOWN: [],
   POSE: { center: [-97.7434, 30.2857], zoom: 16.4, pitch: 78, bearing: 250 },
   // Where `--break` teleports the sun. 0.55, not later: the wash has to be at
   // full strength for a body swap to move pixels at all. See the note in the

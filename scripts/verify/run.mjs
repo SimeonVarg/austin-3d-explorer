@@ -90,17 +90,62 @@ const SERIAL_ONLY = new Set([
   // clock read next to a threshold
   'light-probe', 'loader-check', 'lod-capability', 'lod-within', 'moody-check',
   'moody-roofprobe', 'moody-shot', 'motion-feel',
+  // Added 2026-08-16. `perf-budget`'s ENTIRE subject is milliseconds — six
+  // frame-budget assertions — and it was outside this list, so the one gate
+  // that measures nothing else was running beside up to three other
+  // SwiftShader browsers. Within a single rep its own CPU readings went 5 % to
+  // 64 % (§159).
+  'perf-budget',
+  // `movement`, `lookup-check`, `night-luma` and `field-bleed` were flagged
+  // alongside it and are deliberately NOT here. Their wall-clock dependencies
+  // were the reds themselves and were removed this pass rather than hidden
+  // behind serialisation: `movement` now paces its ramp and window by the
+  // camera's own sim time, `lookup-check` waits for `!driving` instead of
+  // budgeting for it, `night-luma`'s settle never depended on the clock, and
+  // `field-bleed` counts pixels. Serialising a gate to stop it lying is a way
+  // of keeping the lie and paying for it in wall time.
 ]);
+
+/**
+ * PER-SCRIPT CEILINGS — because 300 s was never measured against anything.
+ *
+ * `--timeout` defaults to 300 s and that one number was applied to all 129
+ * scripts. Five of them need 400–2900 s, so §155 recorded them as "UNKNOWN,
+ * not red" — killed by the runner and reported as a mystery. They were not
+ * hung; nobody had ever timed them (§159 timed all five).
+ *
+ * The measurements, taken on a machine with two other lanes on it, are the
+ * FLOOR and not the setting. The values below take roughly 2x headroom over
+ * them, because the same suite has measured an identical page at 11 s and at
+ * 65 s and a ceiling set to a best case is a ceiling that kills honest runs:
+ *
+ *     movement      436 / 470 / 457 s        night-luma     830 s
+ *     lookup-check  448 s                    perf-budget    404 s
+ *     field-bleed   >= 1500 s, ~2900 s estimated for all 18 poses
+ *
+ * `--timeout` still sets the default for everything else, and passing it
+ * explicitly does NOT lower these — a run that opts into a short global
+ * ceiling should not silently un-fix the five gates this table exists for.
+ * Use `--timeout N --strict-timeout` to force one number everywhere.
+ */
+const CEILING_S = {
+  'movement': 1000,
+  'night-luma': 1800,
+  'lookup-check': 1000,
+  'perf-budget': 900,
+  'field-bleed': 3600,
+};
 
 // One pass, so a flag's VALUE can never be mistaken for a script name — the
 // obvious `argv.filter(a => !a.startsWith('--'))` would happily try to run a
 // script called "4".
 const argv = process.argv.slice(2);
-const opt = { jobs: 0, timeout: 300, list: null, all: false };
+const opt = { jobs: 0, timeout: 300, list: null, all: false, strictTimeout: false };
 const bare = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--all') opt.all = true;
+  else if (a === '--strict-timeout') opt.strictTimeout = true;
   else if (a === '--jobs') opt.jobs = Number(argv[++i]);
   else if (a === '--timeout') opt.timeout = Number(argv[++i]);
   else if (a === '--list') opt.list = argv[++i];
@@ -161,12 +206,21 @@ function cleanup(why) {
 process.on('SIGINT', () => { cleanup('SIGINT'); process.exit(130); });
 process.on('SIGTERM', () => { cleanup('SIGTERM'); process.exit(143); });
 
+// The ceiling this script gets, and WHY — printed with every kill, so a future
+// reader never has to guess whether 300 s was a considered number for it.
+function ceilingFor(name) {
+  const special = CEILING_S[name];
+  if (opt.strictTimeout || special == null) return { ms: timeoutMs, why: 'global --timeout' };
+  return { ms: special * 1000, why: 'measured ceiling for this script (§159)' };
+}
+
 function runOne(name) {
   return new Promise(resolve => {
     const t0 = Date.now();
+    const cap = ceilingFor(name);
     const child = spawn(process.execPath, [path.join(HERE, name + '.mjs')], {
       cwd: path.resolve(HERE, '..', '..'),
-      env: { ...process.env, VERIFY_MAX_MS: String(timeoutMs - 5000) },
+      env: { ...process.env, VERIFY_MAX_MS: String(cap.ms - 5000) },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     live.add(child);
@@ -176,8 +230,8 @@ function runOne(name) {
 
     const timer = setTimeout(() => {
       try { child.kill('SIGKILL'); } catch (e) {}
-      out += '\n[run.mjs] killed at ' + (timeoutMs / 1000) + ' s\n';
-    }, timeoutMs);
+      out += '\n[run.mjs] killed at ' + (cap.ms / 1000) + ' s (' + cap.why + ')\n';
+    }, cap.ms);
 
     child.on('close', code => {
       clearTimeout(timer);

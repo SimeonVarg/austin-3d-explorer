@@ -171,6 +171,33 @@
       STAR_ON: -7, STAR_FULL: -18,
       NIGHT_ON: 1, NIGHT_FULL: -31,
     },
+    // ── QUEUE Y20: the last single-body switch in the file ──────────────────
+    //
+    // The two HORIZON WASHES were given independent schedules long ago (see the
+    // note above `useMoon` in updateSky): the sun's afterglow decays over the
+    // sun's own elevation, the moon's glow rises over the moon's, both are
+    // always drawn, and they cross over smoothly. That fix was only half
+    // applied. `haloCol` — the COLOUR — kept the boolean, and the sun's own two
+    // washes were painted in it:
+    //
+    //     drawGlow(hzSun, ..., glowASun, haloCol, WIDE)
+    //
+    // so the instant `!sunUp && moon.elev > -2` went true, the SUN's afterglow,
+    // in place over the western horizon and at unchanged alpha, was repainted
+    // from warm sunColour(sun.elev) to the cool moon halo in one frame. That is
+    // QUEUE Y20's 83 levels of blue, measured at (0.70, 0.278) — the sky just
+    // above the WESTERN horizon, which is the sun's wash and not the disc.
+    //
+    // The fix is to finish the two-schedule treatment: each body's wash is
+    // painted in its OWN colour, always, and the only genuinely shared colour —
+    // the clouds, which are lit by whatever is up — cross-fades on the weights
+    // the file already computes for the washes (`wSun`, `wMoon`), both of which
+    // are continuous in their own body's elevation.
+    HANDOVER: {
+      ON: true,               // false restores the pre-Y20 single-body switch (A/B)
+      MOON_COL: [150, 172, 226],  // the moon's halo, unchanged
+      MOON_CORE: [226, 234, 255], // the moon's disc core, unchanged
+    },
     // Star twinkle for the bright ~quarter of the field. Driven by the clock
     // inside the existing redraw path — NO new rAF loop, so a parked camera
     // at a fixed hour costs nothing (and its stars simply hold still).
@@ -1410,20 +1437,46 @@
     const G = window.GFX || {};
     const gs = (G.stars == null ? 1 : G.stars);
     const gc = (G.clouds == null ? 1 : G.clouds);
-    if (SKY_MEMO.on && _memo && _memo.p === p && _memo.gs === gs && _memo.gc === gc) {
+    // `ho` is in the key so SKY_TUNE.HANDOVER.ON is a LIVE switch — flipping it
+    // from the console or a test rebuilds the hour instead of returning a memo
+    // built under the other setting. A/B arms that silently share a cache are
+    // how this repo once ran four "different" configurations identically.
+    const ho = SKY_TUNE.HANDOVER.ON ? 1 : 0;
+    if (SKY_MEMO.on && _memo && _memo.p === p && _memo.gs === gs && _memo.gc === gc && _memo.ho === ho) {
       SKY_METER.memoHits++;
       return _memo;
     }
     SKY_METER.memoMisses++;
 
     const B = window.skyBodies(p);
+    const HO = SKY_TUNE.HANDOVER;
     const useMoon = !B.sunUp && B.moon.elev > -2;
     const body = useMoon ? B.moon : B.sun;
-    const coreCol = useMoon ? [226, 234, 255] : sunColour(Math.max(B.sun.elev, 2));
-    const haloCol = useMoon ? [150, 172, 226] : sunColour(B.sun.elev);
-    const moonHalo = [150, 172, 226];
     const wSun = B.sun.elev >= 0 ? 1 : clamp01(1 + B.sun.elev / 20);
     const wMoon = Math.pow(clamp01((B.moon.elev + 3) / 9), 1.2);
+    const moonHalo = HO.MOON_COL;
+
+    // QUEUE Y20 — see SKY_TUNE.HANDOVER. `sunHalo` is the sun's OWN colour on
+    // the sun's OWN schedule and is never switched, so the sun's two horizon
+    // washes cannot change colour under a moon that has nothing to do with
+    // them. `moonMix` is the continuous cross-fade for the one colour that IS
+    // genuinely shared — the clouds — normalised from the same two weights the
+    // washes already ride, so it inherits their continuity rather than adding a
+    // third schedule to keep in step.
+    const sunHalo = sunColour(B.sun.elev);
+    const moonMix = HO.ON ? wMoon / Math.max(1e-6, wSun + wMoon) : (useMoon ? 1 : 0);
+
+    // The disc is one element and cannot be in two places, so `useMoon` still
+    // picks its body. That is free rather than papered over: the switch fires
+    // exactly at moon.elev = -2, where the moon's own `vis` ramp is 0, and the
+    // sun's is already 0 by then (sun.elev <= -1) — asserted by dusk.mjs's
+    // handover check, so a taste edit that moves either ramp goes red rather
+    // than quietly reintroducing a pop. Its COLOURS are each body's own.
+    const coreCol = HO.ON
+      ? (useMoon ? HO.MOON_CORE : sunColour(Math.max(B.sun.elev, 2)))
+      : (useMoon ? [226, 234, 255] : sunColour(Math.max(B.sun.elev, 2)));
+    const haloCol = HO.ON ? (useMoon ? moonHalo : sunHalo)
+                          : (useMoon ? [150, 172, 226] : sunColour(B.sun.elev));
     const vis = useMoon ? clamp01((B.moon.elev + 2) / 6) : clamp01((B.sun.elev + 1) / 5);
     const coreR = useMoon ? 15 : 20;
     const bloomR = useMoon ? 130 : (170 + 190 * B.golden);
@@ -1434,7 +1487,10 @@
       : 1 - (p - BELT.P1) / (BELT.P2 - BELT.P1);
 
     const cloudA = (0.26 + 0.50 * B.golden) * (1 - B.night * 0.88);
-    const lit = mix([255, 255, 255], haloCol, 0.35 + 0.45 * B.golden);
+    // The clouds are the one shared colour: they are lit by whatever is up, so
+    // they cross-fade rather than switch (QUEUE Y20).
+    const cloudLight = HO.ON ? mix(sunHalo, moonHalo, moonMix) : haloCol;
+    const lit = mix([255, 255, 255], cloudLight, 0.35 + 0.45 * B.golden);
     const base = mix(lit, SKY_TUNE.CLOUD.BASE, SKY_TUNE.CLOUD.BASE_MIX * (1 - 0.55 * B.golden));
     const midCol = mix(lit, base, 0.6);
 
@@ -1465,7 +1521,12 @@
     const gs3 = `rgba(255,176,96,${(0.052 * B.night).toFixed(4)})`;
 
     _memo = {
-      p, gs, gc, B, useMoon, body, coreCol, haloCol, moonHalo,
+      p, gs, gc, ho, B, useMoon, body, coreCol, haloCol, moonHalo, moonMix,
+      // The colour the SUN's own two horizon washes are painted in. With the
+      // handover off this is the old switched `haloCol`, so the A/B arm really
+      // is the pre-Y20 build and not a build carrying half the fix — which is
+      // exactly the mistake the first run of y20-handover.mjs caught in me.
+      sunHalo: HO.ON ? sunHalo : haloCol,
       wSun, wMoon, vis, coreR, bloomR,
       // The alpha the disc carries BEFORE the camera's own `discFade`.
       coreA0: vis,
@@ -1526,6 +1587,11 @@
     // at the same time, which is what dusk actually looks like.
     const useMoon = M.useMoon, body = M.body;
     const coreCol = M.coreCol, haloCol = M.haloCol, moonHalo = M.moonHalo;
+    // QUEUE Y20: the sun's washes are painted in the SUN's colour, not in the
+    // switched `haloCol`. Before this, the western afterglow changed colour in
+    // one frame the moment the moon crossed -2 degrees — 83 levels of blue on
+    // one notch of the shipped slider, which is what a visitor saw.
+    const sunHalo = M.sunHalo;
     const wSun = M.wSun, wMoon = M.wMoon;
 
     // Fade the disc out as it approaches and crosses the horizon rather than
@@ -1663,7 +1729,7 @@
     const WIDE = [[0, 0.9], [0.34, 0.28], [0.70, 0]];
     const glowASun = M.glowASun0 * hzSun.fade;
     const glowAMoon = M.glowAMoon0 * hzMoon.fade;
-    drawGlow(hzSun,  0.5 * S * kWide, 0.15 * S * kWide, glowASun,  haloCol,  WIDE);
+    drawGlow(hzSun,  0.5 * S * kWide, 0.15 * S * kWide, glowASun,  sunHalo,  WIDE);
     drawGlow(hzMoon, 0.5 * S * 1.5,   0.15 * S * 1.5,   glowAMoon, moonHalo, WIDE);
 
     // Tight hot-spot at the same anchor. The wide wash alone is structurally
@@ -1675,7 +1741,7 @@
     const HOT = [[0, 1], [0.30, 0.45], [0.62, 0.12], [1, 0]];
     const hotASun = Math.min(0.60, M.hotASun0 * hzSun.fade);
     const hotAMoon = Math.min(0.60, M.hotAMoon0 * hzMoon.fade);
-    drawGlow(hzSun, 0.16 * S, 0.042 * S, hotASun, haloCol, HOT);
+    drawGlow(hzSun, 0.16 * S, 0.042 * S, hotASun, sunHalo, HOT);
     drawGlow(hzMoon, 0.16 * S, 0.042 * S, hotAMoon, moonHalo, HOT);
 
     // Star and cloud counts are quality settings (graphics.js). Both arrays are

@@ -321,14 +321,35 @@ const tod = await page.evaluate(async () => {
   cv.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: 500, clientY: 400, bubbles: true, isPrimary: true, button: 0, pointerType: 'mouse' }));
   await new Promise(r => setTimeout(r, 60));
   const afterDrag = getComputedStyle(panel).pointerEvents;
+  // Reported, NOT asserted — see below.
   const stillFlying = document.body.classList.contains('flying');
   document.body.classList.remove('flying');
   return { flyingOnly, duringDrag, afterDrag, stillFlying };
 });
 
+// `stillFlying` USED TO BE PART OF THIS ASSERTION AND WAS THE ONLY THING IN IT
+// THAT EVER FAILED. It is bookkeeping about the TEST's own class, not about the
+// app, and the test cannot keep it:
+//
+//   - the block adds `.flying` itself, four lines up;
+//   - `js/controls.js` OWNS that class, and the `pointerdown` this very block
+//     dispatches lands on the canvas handler (controls.js:1196), which calls
+//     `markFlying()`, which arms a 4000 ms timer to REMOVE it (1398-1405);
+//   - so if the two 60 ms waits stretch past four seconds — routine on a
+//     contended SwiftShader run — the class is gone before it is read, and the
+//     assertion fails while the app is behaving perfectly.
+//
+// Reproduced deterministically in §158: over nine repetitions `flyingOnly` was
+// `auto` 9/9, `afterDrag` `auto` 9/9 and `duringDrag` `none` 9/9 — the three
+// facts this check is FOR — while `stillFlying` went false on 2 of 6 untouched
+// reps and 3 of 3 with a 4.5 s main-thread stall injected. The subject is
+// whether the time-of-day panel is clickable at the right moments, and the two
+// remaining conjuncts say exactly that.
 check('slider is live while .flying but no pointer is down',
-  tod.flyingOnly !== 'none' && tod.afterDrag !== 'none' && tod.stillFlying,
-  `.flying only: ${tod.flyingOnly}, after release: ${tod.afterDrag} (still .flying: ${tod.stillFlying})`);
+  tod.flyingOnly !== 'none' && tod.afterDrag !== 'none',
+  `.flying only: ${tod.flyingOnly}, after release: ${tod.afterDrag}` +
+  `  (the test's own .flying class survived the block: ${tod.stillFlying} — reported, not asserted;` +
+  ` controls.js reclaims it after 4 s and that is the app working)`);
 
 check('slider is still protected DURING a look drag', tod.duringDrag === 'none', tod.duringDrag);
 

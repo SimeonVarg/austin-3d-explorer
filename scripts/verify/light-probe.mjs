@@ -38,9 +38,31 @@ const wrapDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
   // Start the ease NOW and size it to safely span the 11 s probe slot.
   const tNow = await page.evaluate(() => performance.now());
   const priorProbe = logs.filter(l => l.text.includes('auto-detect')).length;
-  check('ease starts before the probe window (test precondition)',
-    tNow < 9500 && priorProbe === 0,
-    `page t=${(tNow / 1000).toFixed(1)}s, prior probe logs ${priorProbe}`);
+  // THIS USED TO BE `tNow < 9500 && priorProbe === 0` AND WAS A STOPWATCH ON THE
+  // MACHINE WEARING A PRECONDITION'S NAME.
+  //
+  // `tNow` is `performance.now()` when `isStyleLoaded()` first returns true, so
+  // the clause asserted "this computer finished loading 28 MB of city in under
+  // 9.5 seconds". That is a fact about the Acer, not about the auto-detect
+  // probe — and this suite has measured an identical page at 11 s and at 65 s.
+  // Worse, when it failed the three assertions that ARE about probe behaviour
+  // were still evaluated against a window that had already closed, so a slow
+  // load produced one red and three meaningless greens.
+  //
+  // Split in two. The part that is genuinely about the subject — has the probe
+  // already fired before we start? — stays a hard assertion, because if it has,
+  // everything after it is measuring nothing. The load time is REPORTED, and
+  // the ease below already sizes itself to span whatever is left of the window
+  // (`Math.max(12000, 11000 - tNow + 9000)`), which is the real handling of a
+  // slow start.
+  check('the auto-detect probe has NOT fired yet (the window is still open)',
+    priorProbe === 0,
+    `prior probe logs ${priorProbe}` +
+    `   [page reached style-load at t=${(tNow / 1000).toFixed(1)}s — reported, not asserted: ` +
+    `that is this machine's load time, and the ease below is sized around it]`);
+  if (tNow >= 9500)
+    console.log(`  note  slow load (${(tNow / 1000).toFixed(1)}s). The ease is being lengthened to ` +
+                `cover the rest of the probe window; this is not a defect and no longer a red.`);
   const duration = Math.max(12000, 11000 - tNow + 9000);
   await page.evaluate((duration) => {
     window.__easeDone = false;

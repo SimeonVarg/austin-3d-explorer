@@ -67,10 +67,37 @@ const F = [-97.7325465, 30.2836444];
 // So 62 is NOT a bleed case and an earlier version of this file wrongly called
 // it one. Everything at 70 and above is: there is 63 m of grandstand in the way
 // and the honest render is nothing.
+//
+// ── AND 70 WAS THE SAME MISTAKE ONE NOTCH DOWN. CORRECTED 2026-08-16. ──────
+//
+// `outside-north-70` was filed `'zero'` and had been red every time this gate
+// got far enough to reach it: 2986 turf pixels, box 594,369-685,405. That looked
+// like the find of the pass — `js/app.js:544` records the ORIGINAL raster defect
+// as "3318 px at pitch 79, box 581,381-687,422", the same band of the frame, one
+// pitch below the pose that was fixed.
+//
+// IT IS NOT THAT, AND THE PICTURE SETTLES IT.
+// `shots/reds/field-bleed-70-magenta.png` paints this file's own mask: the
+// magenta is INSIDE THE BOWL — the far half of the playing field seen over the
+// near rim, with the near grandstand's top edge cutting cleanly across below it.
+// Nothing paints on the outside face of the north wall.
+//
+// The arithmetic above agrees once it is applied to the right point. It is
+// derived for the sight line to the FIELD CENTRE, and the field is 123 m long:
+//
+//   pitch 70, eye 1094.6 m out
+//     line to CENTRE          398.4 * 135/1094.6            = 49.1 m at the rim  BLOCKED
+//     line to the FAR EDGE    398.4 * (1 - 959.6/1156.1)    = 67.7 m at the rim  CLEARS by 4.7
+//
+// A one-point calculation was generalised to a 123 m field. The expectation is
+// therefore `'some'`, and the reason it is not simply deleted is that a `'some'`
+// pose is a CONTROL: it catches a "fix" that stops drawing the field at all.
+// (The 63 m rim height and 135 m offset are this header's own numbers, so the
+// exact break-even pitch is its; the photograph does not depend on them.)
 const POSES = [
   // name,             zoom, pitch, bearing,   expectation
   ['outside-north',    16.9, 79, 180, 'zero'],
-  ['outside-north-70', 16.9, 70, 180, 'zero'],
+  ['outside-north-70', 16.9, 70, 180, 'some'],   // far half of the field clears the rim
   ['outside-northeast',16.9, 76, 225, 'zero'],   // "from top right looking down left"
   ['outside-east',     16.9, 79, 270, 'zero'],
   ['outside-south',    16.9, 79,   0, 'zero'],

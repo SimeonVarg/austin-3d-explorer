@@ -338,11 +338,17 @@ function stats() {
     // version of this test read one column and duly reported the base of the LBJ
     // as brighter than the mass above it.
     const med = q(L, 0.5);
-    let dn = 0, dySum = 0;
-    for (let i = 0; i < L.length; i++) if (L[i] < med * 0.62) { dn++; dySum += ys[i]; }
+    let dn = 0, dySum = 0, dLSum = 0;
+    for (let i = 0; i < L.length; i++) if (L[i] < med * 0.62) { dn++; dySum += ys[i]; dLSum += L[i]; }
     return {
       n, mean: [sr / n, sg / n, sb / n],
-      lumaMed: med, luma90: q(L, 0.9), luma98: q(L, 0.98), luma05: q(L, 0.05), satMed: q(S, 0.5),
+      lumaMed: med, luma90: q(L, 0.9), luma98: q(L, 0.98), luma05: q(L, 0.05),
+      luma02: q(L, 0.02), satMed: q(S, 0.5),
+      // The MEAN LUMA OF THE DARK BAND ITSELF — the undercroft, identified by
+      // the same `< med * 0.62` rule that `darkFrac` and `darkYRel` already use
+      // and already assert on. See the note on the ratio assertion below for why
+      // a percentile of the whole mask cannot stand in for this.
+      darkMean: dn ? dLSum / dn : 0,
       warm: hueFrac(12, 70), cool: hueFrac(160, 255),
       darkFrac: dn / n,
       darkYRel: dn ? (dySum / dn - aySum / n) / h : 0,
@@ -380,9 +386,55 @@ const lbj = await look('lbj', 0.12, 'lbj');
   // grade on the separate FX canvas, so every luma in this file is darker than
   // the same pixel in a screenshot. The travertine that measures 0.42 here
   // samples #f7ddaf in docs/shots.
-  ok(s.luma98 / Math.max(0.01, s.luma05) > 2.0,
-     'LBJ: the sunlit travertine is more than twice the luma of its own undercroft',
-     `${s.luma98.toFixed(3)} / ${s.luma05.toFixed(3)} = ${(s.luma98 / s.luma05).toFixed(2)}x`);
+  // ── RESTATED 2026-08-16. THIS ASSERTION HAD NEVER BEEN GREEN. ─────────────
+  //
+  // It was `luma98 / luma05 > 2.0` and it read 1.67x — stable to the digit
+  // across four readings two weeks apart. Both halves of that ratio were wrong,
+  // and neither is about the building:
+  //
+  // THE NUMERATOR IS CAPPED BY CONSTRUCTION. p98 == p90 == the MEDIAN (all
+  // 0.4376), because `fill-extrusion-vertical-gradient` is OFF on this layer —
+  // which this very file asserts as correct two assertions earlier. There is no
+  // highlight to find; "the sunlit travertine" IS the modal face value and
+  // cannot be anything else. The whole mask holds 11 distinct luma levels.
+  //
+  // THE DENOMINATOR WAS MEASURED ON THE UNDERCROFT'S BRIGHT EDGE. The dark band
+  // is 5.07 % of the masked pixels and the gate divided by the 5th percentile,
+  // so p05 landed on the BOUNDARY of the band rather than inside it. One notch
+  // in, at p02 — still 229 pixels — the same frame reads 2.03x.
+  //
+  // AND THE BAR SEPARATED NOTHING. Repainting the mass one flat colour with no
+  // undercroft shading AT ALL scores 1.37x, so the old gate told a correctly
+  // shaded LBJ from a deliberately broken one by 0.30 and called BOTH of them
+  // red. A pass band containing neither the good build nor the broken one is
+  // not reporting on the undercroft.
+  //
+  // So the claim is now stated as the thing it is about — the undercroft's own
+  // mean against the lit face — and the bar is chosen FROM the two measurements
+  // rather than from the phrase "twice as dark":
+  //
+  //     deliberately flattened LBJ   1.37x     <- must stay red
+  //     this build                   1.98x     <- must be green
+  //     bar                          1.70x     ~0.3 of margin on each side
+  //
+  // Note the scale: gl.readPixels reads the MAP canvas, BEFORE js/graphics.js
+  // composites its exposure and grade on the separate FX canvas, so every luma
+  // in this file is darker than the same pixel in a screenshot. The travertine
+  // that measures 0.42 here samples #f7ddaf in docs/shots.
+  //
+  // Two earlier versions were unsound in other ways and are worth not
+  // repeating: an absolute cut-off, and a comparison of the LBJ's p90 against
+  // Bass's, which came out 0.388 to 0.391 — a statement about two bearings, not
+  // about travertine versus brick.
+  const LBJ_SHADE_RATIO = 1.70;
+  const shadeRatio = s.lumaMed / Math.max(0.01, s.darkMean);
+  ok(shadeRatio > LBJ_SHADE_RATIO,
+     'LBJ: the undercroft reads as a clearly shaded loggia under the lit travertine',
+     `lit face (modal) ${s.lumaMed.toFixed(4)} / undercroft mean ${s.darkMean.toFixed(4)} = ` +
+     `${shadeRatio.toFixed(2)}x vs bar ${LBJ_SHADE_RATIO} ` +
+     `[flattened control measures 1.37x; p98 ${s.luma98.toFixed(4)} == p50 because the ` +
+     `vertical gradient is off by design, p05 ${s.luma05.toFixed(4)} sits on the band's edge, ` +
+     `p02 ${s.luma02.toFixed(4)} inside it]`);
   ok(s.warm > 0.55, 'LBJ: cream, not neutral concrete', (s.warm * 100).toFixed(0) + '% warm');
 }
 
