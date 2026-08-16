@@ -21144,3 +21144,187 @@ were identical at every pose on every arm.
 
 Two throwaway worktrees used and removed; the server on 8481 killed;
 `reap.mjs` NOT run. No `git stash` at any point. Branch deleted after merge.
+
+## 155. Aug 16 2026 — the guard that refused the baked palette was the only reason the Capitol looked lit; NB6 closed, and it was not a boot-cost item (QUEUE NB6) (acer lane, branch `acer/o3-palette`, PR pending — NOT merged)
+
+**Read this first if you are about to re-bake a palette file.** NB6 said the fix
+was one line and "**Boot cost, not pixels**". The boot cost is real and about
+1 ms. The "not pixels" half was wrong, and shipping the one-line fix on its own
+would have turned the floodlight off the Texas Capitol at night, hours before a
+recording. Full write-up with every number: `docs/perf/nb6-palette.md`.
+
+### The guard, exactly what it compares
+
+`js/facades.js:815-822` compares **two date strings** — the `snapshot` key
+`bake_facades.py` stamped into `data/facade_palette.json` against
+`data/manifest.json`'s `latest`:
+
+```js
+const want = m && m.latest;
+if (want && b.snapshot !== want) {
+  bakedSource = `baked for ${b.snapshot}, scene is ${want}`;
+  return null;                       // -> the browser elects instead
+}
+```
+
+`"2026-08-03" !== "2026-08-16"`, so the file was dropped and `quantiseFacades`
+re-elected the fourteen buckets at every load. It is a provenance stamp, not a
+content compare, and that is deliberate and argued at `js/facades.js:781-786`:
+adoption is all-or-nothing because a half-baked palette is fourteen buckets that
+do not mean the same thing twice. It went out of sync when the data bot rolled
+the snapshot and nothing re-ran the bake.
+
+### The palette was NOT equal. One bucket, one channel, and it is the Capitol
+
+`snapshot_parity.py`'s STALE-BUT-EQUAL is a statement about the *inputs* — the
+two snapshots' `buildings.detailed.geojson` are byte-identical, and that is
+true. It says nothing about the baked palette versus the elected one. Compared
+entry by entry in one page session:
+
+```
+  [ 0] DIFF  elect=#bd8477/#c88b75/#d38e5e   baked=#bd8477/#c88b75/#1f1b23
+  [1..13]    identical
+  3057 buildings: wp 3057/3057 identical, wf 3057/3057 identical
+```
+
+`wn`, the night wall colour, of the **protected** bucket — the Capitol's Sunset
+Red granite, which `js/facades.js:893-901` exempts from the fourteen-most-
+populous cut so a landmark material is not averaged into its neighbours' tan.
+`#d38e5e` is floodlit granite, `#1f1b23` is unlit.
+
+**Why:** `js/capitol.js:180-182` mutates the protected spec's `wn` to
+`CAPITOL.floodWall` before registering `window.FACADE_PROTECTED`, so the list
+the browser elects over is not the list in `data/capitol_parts.geojson`.
+`bake_facades.py:226` read that file raw and never applied the override. The
+override is deliberate and counted, at `js/capitol.js:107-121`.
+
+**The bug was hidden behind the bug.** The stale stamp was refusing the file, so
+nobody ever saw what the file said.
+
+**And a check already caught it, red, in the shipped tree** —
+`scripts/verify/facade_parity.py` said
+`palette[0].wn: python #1f1b23 vs browser #d38e5e` before a line was changed.
+
+### The fix — two halves, both in this lane's files
+
+* **`js/facades.js`**: `adoptBaked` now re-applies protected tones from the live
+  `window.FACADE_PROTECTED` spec, exactly as step 2b of the election does,
+  looking each up by coarse key in the baked index and refusing the whole
+  palette if the index has no bucket for it. General, not a Capitol patch — any
+  protected tone gets its exact runtime colour on the baked path, however late
+  it was computed. Built into a local and published only on success.
+* **`scripts/bake_facades.py`**: `capitol_flood_wall()` parses
+  `floodWall: '#rrggbb'` out of `js/capitol.js` and `load_scene()` applies it to
+  a deep copy of `facade_protect`, so the shipped file transcribes the scene the
+  browser actually elects over. `SystemExit` rather than a default if the
+  constant moves.
+* **`data/facade_palette.json`** re-baked: `snapshot` `2026-08-03` ->
+  `2026-08-16` **and** `palette[0].wn` `#1f1b23` -> `#d38e5e`. Every other byte
+  unchanged.
+
+`data/capitol_parts.geojson` and `js/capitol.js` are other lanes' files and were
+not touched.
+
+### What the refusal cost — measured, on a busy machine, and it is ~1 ms
+
+Headed (hardware GL, no background throttling), one browser session, arms
+**alternated** A B A B A B, seven timed reps of the real `quantiseFacades` per
+load on that load's own 3,057-feature copy, minimum within a load and minimum
+across loads, each load asserting `facadePaletteSource()` first:
+
+```
+elect  MIN across loads 5.20 ms   per-load mins [15.50 14.70 5.80 5.20 5.40]
+baked  MIN across loads 4.00 ms   per-load mins [10.60  6.30 4.00 11.20 4.00]
+delta 1.20 ms
+```
+
+**Machine load quoted with the number, because it is part of the answer:** 38
+Chrome / 4 node processes at 93 % CPU at the start, 28 / 3 at 44 % at the end —
+two other lanes were working. That is why the same code reads 15 ms early and
+5 ms late. **The effect is smaller than the noise**: load 4's baked arm came in
+above three of the five elect readings. Both paths walk all 3,057 features in
+`stampAll`; the bake only removes the grouping, mean, sort and tail-fold.
+
+**So the honest verdict on the boot cost is: about a millisecond, unmeasurable
+tonight above the floor, and fix it anyway** — a shipped file the app ignores is
+a lie in the repository even when it is a cheap one. The reason this pass
+mattered is the colour, not the clock.
+
+### Gates
+
+| Check | Before | After |
+|---|---|---|
+| `harness-drift.mjs` | PASS (29/29 both files) | PASS |
+| `facade-parity.mjs` pass A (the port) | 3057/3057 `wp`, 14 buckets | same |
+| `facade-parity.mjs` pass B (the switch) | **FAIL** `palette entries 1 DIFFER` | **PASS** all 14 identical |
+| `facade_parity.py` | **FAIL** `palette[0].wn` | **PASS** |
+| `snapshot_parity.py` | 5 pass, 1 stale-but-equal | 6 pass, 0 stale-but-equal, 0 FAIL |
+
+Both failures are the real ones from the shipped tree, watched failing before
+the fix — not contrived. Pass B asserts `facadePaletteSource()` reads
+`baked 2026-08-16` before its diff is believed, which is what stops a silent
+fallback from passing loudest.
+
+### The visual bar: it does not move a pixel
+
+Frames in `shots/palette/`. One session, order **A1 B1 A2 B2**, hardware GL,
+1200x800; every pose waits for the `austin-buildings` count to stop changing and
+then for the frame to stop moving. **B1 was starved** — that page never got its
+buildings (zero source features at the Capitol poses) because another lane's
+Chromes had the machine — so it is reported and not used. The comparison that
+counts is the two runs that both settled, A2 vs B2, floored by A1 vs A2:
+
+```
+pose                  A1-A2 noise    A2-B2 ACROSS
+capitol-day             IDENTICAL       IDENTICAL
+capitol-night         208px max48     129px max31
+city-day                 0px max2        2px max3
+city-night              IDENTICAL       IDENTICAL
+southmall-eye-day       IDENTICAL       IDENTICAL
+southmall-eye-night     IDENTICAL       IDENTICAL
+```
+
+**Four of six byte-identical across arms**, including both South Mall eye-level
+frames. `capitol-night`, the pose the finding is about, differs by 129 px of
+960,000 (0.013 %) at max delta 31 — **below its own within-arm noise floor of
+208 px / max 48**.
+
+The first draft of this gate waited for `>300` source features against a settled
+7,923, photographed a half-streamed city and reported 950,000 px of difference
+between two runs of the SAME build. The fix was the wait, not the tolerance.
+Anyone writing an A/B here should copy the settle, not the threshold.
+
+And because a pixel diff on a busy machine measures streaming as much as colour,
+the same question was put to the renderer directly — every resolved
+fill/fill-extrusion paint property under both arms, day and night:
+
+```
+palette arrays identical: YES (all 14)
+paint properties compared over 196 layer/phase pairs - 0 differ
+PASS - same palette, same paint expressions, day and night.
+```
+
+### Not established
+
+* **End-to-end boot time.** `quantiseFacades` is called from `js/app.js`'s
+  `loadScene`, which this lane does not own and did not instrument. The 1.2 ms
+  is the function's own cost, not "the page got 1.2 ms faster".
+* **A quiet-machine number.** Nobody should quote 5.20 / 4.00 ms as this app's
+  election cost.
+* **`scripts/bake_outer_facades.py` / `data/outer_tower_palette.json`.** The
+  outer ring snaps to this same campus palette and has its own baked file and
+  its own adoption path. **Whether it has the same protected-tone hole is open,
+  and it is the first thing the next person should look at.** Another lane's
+  files.
+* **Any other consumer of `FACADE_PROTECTED`.** The list has exactly one entry
+  today. The new loop handles more; more have never existed.
+* **Y7, the far-skyline scan, was not started.** This pass spent its whole
+  budget on NB6 once the palette turned out to differ, which was the right
+  trade: a recoloured Capitol hours before a recording outranks a frame-time
+  item that has been open for weeks. Y7 is untouched and still fails
+  `perf-budget.mjs` on its own assertion.
+
+### NOT MERGED
+
+Committed and pushed on `acer/o3-palette`, deliberately unmerged: this arms a
+boot path that has been off, and the branch is the record of the before/after.

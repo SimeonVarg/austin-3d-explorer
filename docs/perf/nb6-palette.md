@@ -195,6 +195,72 @@ loudest.
 
 ---
 
+## 5b. The visual bar: does arming the fast path move a pixel?
+
+Frames in `shots/palette/`. One browser session, order **A1 B1 A2 B2** so the
+noise floor is measured in the same session as the across-arm number. Arm A is
+`?bakedfacades=0` (the election, what the site does today), arm B is the bake
+armed. 1200x800, hardware GL. Each pose waits for the `austin-buildings` source
+count to **stop changing** and then for the frame's strided luma probe to stop
+moving (`drift < 0.02`) before it is read.
+
+**The first draft of this gate was wrong and it is worth writing down.** It
+waited for `> 300` source features against a settled 7,923, photographed a
+half-streamed city, and reported 950,000 px of "difference" between two runs of
+the *same* build. The fix is in the wait, not in the tolerance.
+
+Settled building counts per pose, which is the first thing to read:
+
+```
+A1  5721 5721 5798 5798 7923 7747     fully settled
+B1     0    0 3072 3072 7002 7747     STARVED - see below
+A2  5721 5721 5798 5798 7923 7747     fully settled
+B2  5721 5721 5798 5798 7923 7747     fully settled
+```
+
+**B1 is a bad run and is reported rather than dropped.** On a machine with
+another lane's Chromes on it, that page never got its buildings: the Capitol
+poses read *zero* source features. Every anomaly in a B1 column below traces to
+that and to nothing else. The honest comparison is the one between the two runs
+that both settled — **A2 vs B2** — with A1 vs A2 as its noise floor.
+
+```
+pose                  A1-A2 noise    B1-B2 (B1 starved)   A1-B1 (starved)   A2-B2 ACROSS
+capitol-day             IDENTICAL             IDENTICAL         IDENTICAL      IDENTICAL
+capitol-night         208px max48          478px max117      250px max117    129px max31
+city-day                 0px max2              0px max2          2px max3       2px max3
+city-night              IDENTICAL          6331px max127     6331px max127      IDENTICAL
+southmall-eye-day       IDENTICAL             IDENTICAL         IDENTICAL      IDENTICAL
+southmall-eye-night     IDENTICAL             IDENTICAL         IDENTICAL      IDENTICAL
+```
+
+**Four of six poses are byte-identical across the arms**, including both South
+Mall eye-level frames and `capitol-day`. `capitol-night` — the pose the whole
+finding is about — differs across arms by **129 px of 960,000 (0.013 %), max
+channel delta 31, which is *below* its own within-arm noise floor of 208 px /
+max 48**. `city-day` is 2 px against a floor of 0 px / max 2.
+
+### And the check that does not depend on tiles arriving at all
+
+A pixel diff on a busy machine measures streaming as much as colour, so the
+same question was put to the renderer directly: dump every resolved
+fill/fill-extrusion paint property under both arms, at day (`p=0.35`) and night
+(`p=0.92`), and compare.
+
+```
+A source: forced off by ?bakedfacades=0
+B source: baked 2026-08-16
+palette arrays identical: YES (all 14)
+paint properties compared over 196 layer/phase pairs — 0 differ
+PASS — same palette, same paint expressions, day and night.
+```
+
+Identical palette plus identical paint expressions plus identical `wp`/`wf` on
+all 3,057 buildings means no pixel can differ for a palette reason. **The visual
+bar is met.**
+
+---
+
 ## 6. What this page does NOT establish
 
 * **The 1.2 ms was measured on a busy machine** (38 Chrome / 4 node / 93 % CPU
@@ -209,6 +275,9 @@ loudest.
   examined.** The outer ring snaps to this same campus palette and has its own
   baked file with its own adoption path; whether it has the same protected-tone
   hole is an open question and another lane's file.
+* **One of the four photographic runs (B1) was starved and is not evidence
+  either way.** The verdict rests on A2 vs B2, one settled pair, plus the paint-
+  property comparison. A third settled pair on a quiet machine would be better.
 * **The parse of `js/capitol.js` is a regex.** It fails loudly, but it is a
   regex, and the right long-term shape is for the floodlit value to live in the
   data file the bake already reads.
