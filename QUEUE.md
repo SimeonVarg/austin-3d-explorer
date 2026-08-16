@@ -1478,29 +1478,104 @@ clear of the hint line.
 
 ### WHAT IS ACTUALLY LEFT, with numbers
 
-**ZA. 78 of 198 UT register codes still do not route, and the wall is door
-supply, not connectivity.** 624 of 629 doors attach to the graph (99.2 %); the
-five that do not are 30.9-47.4 m out and their buildings are routable by
-another door. Of the 78: **50 are not on the map at all** (no OSM `ref`, no
-footprint carrying the name — greenhouses GHA-GHF, storehouses E11-E27,
-graduate housing, NUR, SMC), **26 are on the map with the nearest mapped door
-> 40 m and belonging to a different building** (HDB 183 m, JHH 133 m, UTA
-99 m, SAG 78 m, TRG 67 m), and **2 were checked by hand and refused**. **The
-fix is authoring doors in `data/entrances.geojson`, which is another lane's
-file** — §136 has the shopping list with coordinates: NUR, UTA, HDB, HTB, JHH,
-WMB, CDL, ANB, LCH, SAG, TRG, GUG, HCG are buildings a surveyor has already
-drawn where only the door is missing.
+**~~ZA.~~ ANSWERED, ON A BRANCH: 120 of 198 becomes 135, and 14 of the twenty
+buildings a freshman actually needs (2026-08-16, HANDOFF §141 + §142, branch
+`acer/n8-doors`, PR #184 — OPEN, NOT MERGED, see the two unrun gates below).**
+The shopping list below was worked, and **no door was drawn by hand**: the
+entrance bake's hand-drawn `CAMPUS` rectangle was replaced by a scope test on
+UT's own register, which admitted twelve buildings rather than the 125 the wide
+rect would have. 27 new doors on 15 buildings, every one `src: derived`, so
+every one says *"Entrances are on this side"* and none can say *"the main
+entrance"*.
 
-**ZB. One of twenty student routes clips a building, and nobody has looked at
-it.** Pointe on Rio > EER runs one 13.9 m edge with 4.1 m inside an unnamed,
-unclassed footprint at `-97.7351, 30.2874`, beside EER. It is on the base
-graph — `origin/main` has the same edge — and it is one of the 22-of-299
-flagged pairs the bake's own sweep reports. It may be an arcade; it may be a
-mistake. Standing there (or reading the OSM way) is the only way to know.
+```
+                                  before      after
+routable UT register codes       120 / 198   135 / 198    (+15)
+merged in as "not walkable yet"   78          63
+door groups                      629         656   (651 attached, 99.2 %)
+bake gates                                   19 of 19 green
+--regress                                    19 of 19 PASS, every distance
+                                             identical to the tenth of a metre
+```
 
-**ZC. `avoidShown` hardcodes "Avoids 189 mapped staircases".** That is a count
-of the whole network, not of what the router actually avoided on the route
-being shown. It should come off the graph. Named in §125, §137 and §138.
+Newly routable: `NUR UTA WMB HDB HTB CDL JHH ANB LCH FDH SAG TRG GUG HCG E26`.
+**None lost.** The freshman list (`docs/walk/the-78.md` §5) goes **0 of 20 to
+14 of 20**.
+
+**The check that matters for a door pass was driven, not argued.** A new door
+creates exactly one part of a route — the *arrival leg*, the unmapped straight
+line from the network to the door. From all 143 origins that routed on `main`,
+to all 15 new buildings: **2,145 arrival legs, ZERO crossing a building**,
+longest 29.2 m, all inside `DOOR_LINK_MAX_M`.
+
+**What is still out of reach, and why — 63 codes.** `ACS` (the Autry C.
+Stephens Engineering Discovery Building, **opening this semester**) has no
+polygon, no label and no reference anywhere in this repository; the only route
+in is digitising a footprint from outside, which is authoring a *building* and
+needs its own pass. `HLB` and `SMC` (Dell Med) have real OSM ways in
+`capitol_area.json` but **are not in the 2,453-footprint snapshot the app
+renders**, so a door for them would stand in an empty field — refused on
+purpose. `WAT` has no mapped approach within 22 m and is refused on purpose.
+The remaining ~58 are the Facilities sheds, equipment storehouses, graduate
+housing, the aquatic plant and the parking garages — buildings no undergraduate
+has a class in. **All 63 answer `<code> is not walkable in this build yet`.**
+
+**ZB. Fourteen edges of the base network run through a footprint, and nobody
+has looked at any of them.** Unchanged and now sized: `origin/main`'s own graph
+carries **14 such edges**, found by `build_raw()` from `footways.json` alone
+before any door exists. Two named ones:
+
+* **`-97.7351, 30.2874`, beside EER** — one 13.9 m edge, 4.1 m inside an
+  unnamed unclassed footprint (the original ZB, from Pointe on Rio > EER).
+* **`-97.7380, 30.2809`** — a cluster of **four ~65 m² unnamed footprints**
+  with five short edges through them, ways 571500827 and 1199982733-5, **one of
+  them `highway=steps`**. This is what makes `JES>UTA` and `GRE>UTA` report
+  `walls 5`. Four tiny adjacent structures with footpaths and a staircase drawn
+  through them is the shape of a stair head or a gateway you walk between — or
+  four buildings a sidewalk was drawn across. Nobody knows.
+* and `PCL>UTA`'s single wall is **OSM way 1206168875**, tagged plainly
+  `highway=footway, footway=sidewalk` — no `covered`, no `layer`, no `tunnel` —
+  across the AT&T Center footprint. Avoiding it costs **0.8 m**.
+
+**The obvious fix was priced and REFUSED.** Dropping all 14 leaves every one of
+the 19 frozen pairs unmoved to two decimal places — and costs **`EER` 25.4 %**
+of its route to WEL. So at least one of the fourteen is a real passage, and
+deleting the set to buy a clean number is buying honesty with a disconnection,
+the mirror of the move `graph.md` §3d refused. **The rate, measured both ways,
+did not get worse when the new buildings landed:** among `main`'s own routable
+codes 20 of 300 sampled pairs cross a footprint (6.7 %); among routes ending at
+a newly routable building, 15 of 300 (5.0 %). Reading the OSM ways or standing
+there is still the only way to resolve it.
+
+**~~ZC.~~ CLOSED, on the same branch (2026-08-16, HANDOFF §142, PR #184).**
+`avoidShown` no longer has `189` typed into it. 189 is the count of
+`highway=steps` ways in the 2026-07-30 snapshot — a measurement of a file,
+printed by a program that had stopped consulting the file, so the next Overpass
+refresh would have moved the graph and left the sentence behind **looking
+exactly as plausible as before**. It now reads `swEdges.size`, the same set
+`edgeCost` prices at `Infinity` when the toggle is on, so the sentence
+describes what the filter did. Counted today: still 189, so the rendered string
+is byte-identical. `what-we-can-honestly-say.md` §11 carries the revision.
+**In the same pass, `no door mapped` was removed** — it was the one rendered
+string in `js/wayfind.js` living neither in `SAY` nor on §11's permitted list,
+and gate S had already made it unreachable.
+
+**ZC-NEW. TWO GATES ON PR #184 ARE UNRUN, AND IT IS OPEN BECAUSE OF THEM.**
+The machine went from 13 chrome / 0 node to **20 chrome / 1 node / 3 python**
+during the pass, with another lane mid-way through the frame-time measurement,
+so no browser was opened at all. `harness-drift` PASS (29 = 29), the route
+regression PASS and the 19 bake gates are all data-only and green. **Not
+measured: (1) the honesty scan of the RENDERED DOM against §12's forbidden
+families, (2) the feature-off proof and the six hero poses at their
+cross-launch noise floor.** The diff only ever *removes* a rendered string and
+`avoidShown` evaluates byte-identical — but that is the source, and the gate
+says the DOM. **One lane with a quiet machine needs about twenty minutes; the
+data half is final and will not move underneath it.**
+
+*Instrument note for whoever runs them:* `scripts/verify/harness-drift.mjs`
+must be run from the **repo root**, not from `scripts/verify/` as that
+directory's README says — it resolves `index.html` against the working
+directory and throws ENOENT otherwise.
 
 **ZD. Nothing in this feature has been on a real phone.** 393x852 in headless
 Chrome is not an iPhone: no real touch, no real DPR behaviour, no Safari.
