@@ -124,8 +124,12 @@ PARAPET_FRAC = 0.055
 # extrusions: a BASE COURSE where the upper wall meets the sign band, a FLOOR
 # LINE between each pair of storeys, and a CORNICE under the parapet. Each is
 # a ring offset OUTWARD from the footprint, so it contains the wall's own face
-# over its height — proud stone, nothing coplanar, nothing for the depth
-# buffer to argue about. The night look is NOT handled here: the wall tile
+# over its height — proud stone. This block used to add "nothing coplanar,
+# nothing for the depth buffer to argue about", and that was NOT TRUE: outward
+# offset clears the ring's SIDE faces and says nothing about its HORIZONTAL
+# ones, and the cornice ends where the wall ends, so all ten cornice top faces
+# were in the wall's plane until CORNICE_LIFT below. QUEUE N5a, HANDOFF §135.
+# The night look is NOT handled here: the wall tile
 # keeps its existing night treatment (js/drag.js retUpper), so the banded wall
 # after dark is never darker than the barcode wall was.
 #
