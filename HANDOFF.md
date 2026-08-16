@@ -20058,7 +20058,18 @@ harness-drift.mjs        PASS  29 scripts = 29 scripts
 bake_walk.py --regress   PASS  19 of 19, every distance to the tenth of a
                                metre, every one walls 0
 eight doors re-shot after the merge   unchanged by main's facade/sky/style work
+suite-lint.mjs           FAIL  7 blocking — and NONE of them are this branch's
 ```
+
+**`suite-lint` is red and it is not ours, watched rather than asserted.** The
+`acer/n11-verify` lane landed the husk detector in the same window; it names
+`banding`, `dusk`, `night-debug`, `night-roadprobe`, `night-silhouette`,
+`silhouette` and `westcampus-probe`. Neither `doorwalk.mjs` nor
+`herowhere.mjs` appears in any finding, and **removing both of them and
+re-running gives the same 7** — so this branch adds zero. It must be run from
+`scripts/verify/`, not the repo root: from the root it reports
+`0 scripts checked` and then PASSes, which is the same shape of false green
+`harness-drift` has in the opposite direction.
 
 ### Instrument notes
 
