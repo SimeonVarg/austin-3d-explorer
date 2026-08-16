@@ -16650,3 +16650,136 @@ both entries are kept.
   lines, no cornice) but a better name join would date them.
 * **Nothing measured on hardware GL, at dpr 2, or on a phone width.**
 * **Not merged.** The Gate decides.
+## 130. Aug 16 2026 — West Campus at two metres: the podium was the loudest barcode, and the storey lines are geometry now (QUEUE Y5, West Campus half) (acer lane)
+
+Branch `acer/n2-westcampus`, off `origin/main` `cdd5715`, then merged with
+`origin/main` `0f50a02` and re-verified on the merge. **Not merged — this is a
+candidate for the gate.** Writes limited to `scripts/bake_westcampus.py`,
+`data/westcampus.geojson`, `js/westcampus.js`, `shots/walls/`, this file.
+Pictures: **`shots/walls/`**, `01`/`02` is the pair to look at.
+
+### What the frames said before any code was written
+
+Five poses at **1.7 m of eye height**, `?clip=1`, AE off with the gain asserted
+`1` and one forced `updateSky` because `aeMeter` only runs inside it (§127).
+**Every pose settled to a 0 px > 24/255 noise floor** — the script shoots until
+two consecutive frames agree rather than sleeping a fixed time, because three
+other workflows share this laptop.
+
+Standing on Guadalupe facing Dobie Twenty21, the two things in frame are two
+barcodes at right angles:
+
+| what | family | vertical edges /100 px | horizontal edges /100 px |
+|---|---|---|---|
+| the PODIUM, 6–16.8 m (above-grade garage) | `dk` | **0.00** | **54.79** |
+| the BASE band, 0–6 m, under it | `sp` | **48.56** | 1.12 |
+
+`docs/camera/walls-campus.md` predicted the podium arithmetically (0.419 m of
+"deck" against a real 2.4–3.0) and it is right: it is the loudest thing at eye
+level on the street the AWS video shows most. **The brief asked whether only
+the podium needs work. The honest answer is no — the base band is as bad and
+at right angles — but the podium is the one this lane can fix.**
+
+### What shipped
+
+219 proud rings on 23 of the 24 towers, emitted by the bake in METRES so Y4
+raising `ZOOM_MAX` cannot undo them, drawn by a new `wc-detail` layer:
+
+* **208 residential slab edges**, `WC_SLAB_PROUD` 0.12 / `WC_SLAB_H` 0.30.
+* **11 parking-deck edges**, `WC_DECK_PROUD` 0.16 / `WC_DECK_H` **0.45** —
+  deliberately DEEPER than the residential slab. A garage's horizontal is a
+  spandrel beam, not a floor slab. The first cut had it at 0.10/0.25 and it
+  vanished into the tile's own hairlines; the frames are what said so.
+* **The pitch is harvested, not assumed.** Fifteen of these towers already
+  carry balcony slabs and those slabs ARE the floor line where they reach. So
+  the slab edge takes `span / count` off the SAME `balc` spec the balcony loop
+  uses and lands at the same 0.62-of-a-storey height — buried inside the
+  balconies (0.12 m proud against `BALC_PROJ` 1.40) and filling in the ends and
+  the balcony-less elevations. Never a second rhythm. `WC_STOREY_M` 3.25 is the
+  fallback, `WC_DECK_M` 2.80 its own constant.
+* `WC_SLAB_H` 0.30 is under `BALC_THICK` 0.34 **on purpose**, so a trim ring's
+  top face can never go coplanar with a balcony slab's. Raise it and that stops
+  being true.
+
+### The guard caught the one real defect this introduced
+
+A `step` wing refitting its own levels put lines **0.15 m** from the main
+tower's on Signature 1909 and **0.20 m** on Ion Austin — two floor rhythms on
+one building, the exact defect the pass exists to avoid. `WC_LINE_MIN_GAP`
+failed the bake by name and by metre; the wing now takes the tower's levels
+truncated. Watched failing, then watched passing.
+
+### Measured, min of interleaved reps, floor 0 px
+
+| pose | changed px > 24 | where | max Δ |
+|---|---|---|---|
+| Dobie / Guadalupe, day | **28,314** | rows 0–208, the podium | 103 |
+| Dobie / Guadalupe, night | 20,695 | rows 0–209 | 43 |
+| Castilian alley, day | 22,871 | rows 5–230 | 108 |
+| Castilian lobby close, day | 19,306 | rows 51–115 | 108 |
+| 21 Rio / Rio Grande, day | 6,696 | rows 18–441, the tower slabs | 64 |
+| **cruise, day** | **890** | — | 151 |
+
+Podium box, day: horizontal edges **54.79 → 48.38**, mean luma 83.5 → 89.74.
+Night: 52.50 → 45.95 and **mean luma 24.63 → 24.83, i.e. not darker** — the
+§114 night bar, met. The base band's box is **byte-identical** in both hours,
+which is the design and not an accident.
+
+**Flyover cost, magenta-masked (§48), off the screenshot and not
+`gl.readPixels` (§121): the whole `wc-detail` layer is 1,191 px of a
+1,296,000 px cruise frame — 0.09 %.** Frame-diffing cruise across sessions was
+NOT used (31 % noise floor, §114). For scale, the Drag's 23 features measured
+67 px.
+
+**And the instrument lied once on the way to that number, so it is written
+down.** The same measurement inside the pose sweep returned **1,191 px** on one
+run and **0 px** on the next, on the same build — a `setPaintProperty` plus a
+`triggerRepaint` six seconds after a night→day transition is not reliably a
+frame. Re-measured on its own with a 20 s park and 9 s per rep
+(`_wccruise.mjs`, in the scratchpad, not committed): **1,191 / 1,191 / 1,191,
+same box [431,334,1273,663], layer visible and `#ff00ff` read back each time.**
+A zero from a mask is a claim that a layer paints nothing, and this repo has
+already spent a session on one of those (QUEUE X8) — never accept it on one
+reading.
+
+### Contracts and gates
+
+Trim is `kind:"detail"` with `dbase`/`dh` and claims **no `bid`, no `fam`, no
+`s`** — the proud-geometry rule, so it stays out of `quantiseStadiumFacades`
+(**0 new atlas images**), out of `check_night_ramp` and out of `main()`'s
+overhang assertion, all three of which key on `kind == "wall"`. Four new
+assertions cover it instead: no band schema, every piece inside a wall band of
+its own building, nothing over `final_height`, no two lines closer than
+`WC_LINE_MIN_GAP`. `harness-drift.mjs` **PASS** before any pixel was read.
+`coplanar.mjs data/westcampus.geojson` **no overlaps**, unchanged. The bake is
+byte-identical on a re-run. File 526 KB → 555 KB.
+
+### What I did NOT do
+
+* **Did not line the base band.** `WC_BASE_LINES` is a named constant, default
+  `False`, one line to flip. Two reasons and both are written in the file: the
+  base band is where the entrances and places passes already model 24 lobbies,
+  canopies, sign bands and shopfront reveals in metres, and its 48.56 vertical
+  edges are a TILE problem in `js/facades.js` — a shared atlas this lane may
+  not write. **Somebody has to own that; it is the bigger half of what is left
+  in West Campus.**
+* **Did not touch `dk`'s tile.** The hairline field behind the new deck edges
+  is still there, at 0.419 m. `js/facades.js` draws it for the whole city, so
+  PR #167's day/night tile swap cannot be repeated here — `walls-campus.md` §6.5
+  says so and I did not try.
+* **Did not judge it blind against the live site.** The A/B here is
+  before/after on ONE build at the same poses. The gate the Drag got (§121) is
+  the next step, not this one.
+* **Did not shoot a good Castilian street frame.** Pose A puts the eye ~1 m
+  from a wall in a slot between two buildings; it is honest about the barcode
+  and useless as a picture. Poses A and D have their fixed wall boxes on
+  unchanged wall, so those two rows of the box table read identical — the
+  frames differ, the boxes do not. Say it that way round.
+* **Did not measure frame time.** 219 flat extrusions on an existing source is
+  a claim of cheapness, not a measurement.
+* **Did not run `zfight`, `westcampus-probe` or `places-check`** — the first
+  two need the browser I was holding for the shoot; `places-check` is
+  `data/places.geojson`, untouched.
+* **Did not line the 819 generic West Campus buildings.** That is
+  `bake_wc_storeys.py`, a different writer and a different lane
+  (`walls-campus.md` §5.1).
