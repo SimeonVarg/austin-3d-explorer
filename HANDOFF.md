@@ -17312,3 +17312,145 @@ baseline and somebody should set `BUDGET.layersBaseline` so it starts gating.
    still the worst state the app can be in and is still unmeasured.**
 8. The A/B on levers that already ship (`?outer=0`, the `performance` preset,
    post-process off) was written and never run — the machine ran out of quiet.
+
+---
+
+## 134. Aug 16 2026 — the coplanar checker was blind to 882 rings; fixed, and it found ten real ones on the Drag (QUEUE N5) (acer lane, branch `acer/n5-coplanar`)
+
+**Reproduced first, then fixed.** §131 recorded that `coplanar.mjs` reported
+`1144 features, no coplanar overlaps` on a `data/westcampus.geojson` that holds
+**1363**. The gap is the bug. Counted properly, the old selection skipped:
+
+| file | in the file | it examined | why |
+|---|---|---|---|
+| `campus_storeys.geojson` | 640 | **0** | not in its hardcoded TARGETS list at all |
+| `westcampus.geojson` | 1363 | 1144 | keyed on `h`; the trim carries `dh` |
+| `drag.geojson` | 124 | 101 | same |
+
+**882 extrusion rings unchecked**, of which 859 landed on `main` that night.
+
+### The fix is to the SELECTION, and it is four separate closures
+
+1. **Scope comes off `data/`**, not a list. 28 files, 151,929 features,
+   **122,773 top faces examined**, against 8 files and ~21k before.
+2. **Every feature is accounted for on screen.** Each file prints
+   `N feats / N tops / N flat / N unreadable`. The shape this bug takes is a
+   number smaller than the file, so the number is now always printed.
+3. **Uninterpretable is exit 2, never a skip** — unknown elevation signature,
+   non-finite `h`, or an absolute top below its own base.
+4. **The vocabulary is audited against the stylesheet.** `auditStylesheet()`
+   reads every `fill-extrusion-height`/`-base` in `js/*.js` and pulls the
+   `get` names out by balanced-bracket read (a line-scoped regex misses
+   `js/ground.js`'s wrapped `setPaintProperty` calls). Six names exist —
+   `h`, `b`, `base`, `dh`, `dbase`, `final_height` — and a seventh with no
+   schema stops the run. **This is what makes "the next bake invents a name"
+   loud instead of silent**, and it is not a list anyone maintains.
+
+**Proved by making it fail, twice.** `--selftest` is eight assertions that
+build the defect on purpose (a coplanar `dbase`/`dh` pair, an unknown signature,
+a null height, an inverted extrusion, the exact three-ring shape that slipped
+through, and an invented name wired into a synthetic paint expression). And
+end-to-end on real data in a scratchpad mirror: a duplicated cornice ring
+injected into `campus_storeys.geojson` was caught at `top=13.00, 1992 m², 100 %
+shared`, and `--gate` printed `REGRESSED campus_storeys.geojson 0 -> 1` and
+exited 1. Mirror removed; `git status` on `data/` and `js/` stayed clean.
+
+### THEN IT FOUND SOMETHING. Ten cornices on the Drag are genuinely coplanar
+
+Every `part:"cornice"` in `data/drag.geojson` — ten, one per building — has its
+top **2 to 4 mm** under the top of the `upper` wall band it rings, with the
+ring's footprint **100 % inside** the wall's. #26/#30 at 15.500 vs 15.498 over
+1878 m²; #34/#37 at 12.950 vs 12.946 over 1446 m²; #47/#49 dead level at 8.650.
+~6,300 m² of shared top face. 2 mm is inside the depth-buffer quantum at any
+flying distance. **Not fixed here** — the geometry belongs to
+`scripts/bake_drag.py` and this pass owned the checker. QUEUE **N5a**.
+
+**These are NOT from tonight's 859.** `campus_storeys.geojson` (640) and
+`westcampus.geojson` (1363, all of it) both come back **clean at eps=0.01**, and
+West Campus stays clean at eps=0.05 but for one 34 m² pair. The walls that won
+§131's blind test did not introduce a coplanar pair inside their own files. The
+Drag ten predate them.
+
+### And one thing the checker structurally cannot see, measured by hand
+
+`data/campus_storeys.geojson`'s **40 `cap` and 15 `cornice` rings — 55 of 640 —
+have `dh` EXACTLY equal (0.0000 m) to their host's `final_height`** in
+`data/snapshots/2026-08-16/buildings.detailed.geojson`, the snapshot the bake
+itself reads. The other 585 clear by 0.2 m or more. `coplanar.mjs` pairs within
+one document and the host is a basemap replacement, so it reports 0 here and is
+right to. Whether it is *visible* is a rendering question — the roof cap layer
+runs from `final_height` upward and may cover the tie, and a proud ring only
+overlaps the body on its inner edge. `scripts/bake_campus_storeys.py` line 20
+says "Nothing coplanar, nothing for the depth buffer to argue"; against its own
+host heights that is not true. QUEUE **N5b**, and the instrument is `zfight.mjs`,
+not more arithmetic.
+
+### The baselines, including one that was measuring the wrong thing
+
+`roofs` **85** and `places` **1** reproduce exactly. `entrances` reads **1558**,
+not 1729 — and the old number was not merely stale, it was *about something
+else*. `js/entrances.js` paints its height as base plus h on all four of its
+layers, so `h` is a THICKNESS. Read as an absolute top it reported pairs at
+`top=0.06` and `top=0.14`, i.e. pairs of coincident thicknesses. The
+below-your-own-base assertion is what makes that impossible to repeat.
+
+Newly measured and never looked at by anyone: `stadium` 313, `outer_ring` 179,
+`trees` 99, `art` 92, `drag` 10, `capitol_parts` 2, and one each in
+`capitol_dome`, `ground`, `heroes`. 2,342 pairs in total. Because a permanently
+red guard is a guard nobody runs, `scripts/verify/coplanar-baseline.json`
+records the per-file counts and `--gate` goes red only on growth. **A commit
+that changes that file is the record of what was accepted.**
+
+### The sibling guards (§131 asked; one no, one already-fixed)
+
+- **`zfight.mjs` does not have this bug.** It is a whole-frame pixel test — it
+  enumerates no layers and reads no feature properties, so there is no name list
+  to go stale. Its blindness is the documented one: it only sees what the camera
+  is pointed at, and its coverage is whatever `shots.json` it is handed.
+- **`places-check.mjs` was already fixed** for exactly this, at lines 76-111:
+  the family catalogue is parsed out of `scripts/bake_places.py`'s own
+  `band_props`/`glow_props` call sites and asserted set-equal to the data, with
+  a zero-length-parse guard. Same pattern this pass applied to the vocabulary.
+  It is hardcoded to `data/places.geojson`, but that is its subject, not a
+  selection bug.
+
+### What this pass did NOT establish
+
+- **Nothing was rendered.** No browser was opened, no server started. Every
+  number here is arithmetic on the shipped `data/*.geojson`, and **not one of
+  the 2,342 pairs has been shown to be visible** — including the Drag ten.
+  `zfight.mjs` at a Drag cornice and at a campus roofline is the missing half
+  and nobody has run it.
+- **N5b is a hand measurement, not a check.** The cross-document case lives in
+  no tool. If the snapshot date changes, nothing re-runs it.
+- **The `flat` column is a silent classification.** A feature carrying an
+  invented property that nothing renders is counted flat and skipped. That is
+  correct — an unrendered surface cannot z-fight — but it is visible only as a
+  jump in a number. The stylesheet audit covers the moment anything renders it,
+  which is the only path that can produce a defect, and not the other.
+- **The overlap test is unchanged** — 22x22 grid sampling of the smaller
+  polygon's bbox, not exact clipping. A sliver overlap under the sampling
+  resolution is still missed, exactly as before.
+- **The relative-vs-absolute call for `base`+`h` is still per-file.** Only
+  `entrances.geojson` is declared relative. The below-base assertion would catch
+  a second file adopting that convention only if some feature's thickness
+  exceeded its own base, which is not guaranteed.
+- **No performance claim.** A full scan takes about two minutes, single
+  threaded, and nothing was done about that.
+- **The 2,342 baseline is a record, not a blessing.** Accepting it was the
+  alternative to a guard nobody would run; nobody has judged whether `stadium`'s
+  313 or `outer_ring`'s 179 matter.
+
+### For Simeon, in one paragraph
+
+The tool that is supposed to catch the shimmering-roof bug had been quietly
+looking at a fraction of the city — it never opened one of the files at all, and
+in two others it skipped exactly the new wall trim that went in last night. It
+looks at all of it now, it prints how much it looked at every single time so
+this cannot hide again, and it refuses to run if it meets something it does not
+understand. With it fixed: last night's work is clean. But ten buildings on the
+Drag have a stone cornice whose top sits two millimetres under the wall it caps,
+which is the sort of thing that shimmers when you fly past, and fifty-five
+buildings on campus have a roof ring dead level with the roof. Neither is fixed
+— they are written up with the numbers, and the next step is to fly the camera
+at one and see whether it actually flickers.
