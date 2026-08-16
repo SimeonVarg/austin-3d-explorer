@@ -291,7 +291,16 @@
     avoidBlurb: 'Routes around every staircase OpenStreetMap has mapped on campus.',
     avoidNotAccess: "This is not an accessibility check. We don't have data on kerbs, " +
       'ramps, door widths or automatic doors, and there may be steps nobody has mapped.',
-    avoidShown: 'Avoids 189 mapped staircases. Kerbs and doorways are not checked.',
+    // THE COUNT IS READ, NOT TYPED. §11 permits this sentence and prints it
+    // with 189 in it, because 189 was the number of `highway=steps` ways in
+    // the 2026-07-30 snapshot. It was typed into this file, so the next
+    // Overpass refresh would have moved the graph and left the CLAIM behind —
+    // an interface asserting a count of a file it no longer matches. It now
+    // comes off `swEdges.size`, the distinct steps-way ids the decoder already
+    // builds, which is exactly the set `edgeCost` prices at Infinity when the
+    // toggle is on. So the sentence says what the filter did, by construction.
+    // Today that is still 189 and the rendered string is unchanged.
+    avoidShown: (n) => 'Avoids ' + n + ' mapped staircases. Kerbs and doorways are not checked.',
     avoidNone: 'No route that avoids mapped stairs.',
     onTheWay: (kind, name, m) => kind + ' on the way: ' + name + ', ' + m + ' off route',
     hours: (h) => 'OpenStreetMap lists ' + h + '. Check before you go.',
@@ -614,12 +623,15 @@
     for (const [name, doors] of Object.entries(g.wc)) {
       entries.push({ kind: 'wc', code: '', name: norm(name), number: '', display: name, doors: doors.slice() });
     }
-    // THE REGISTER MERGE (QUEUE Z3). 85 of UT's 198 register codes are not in
-    // walk_graph.json at all, and an empty result list reads as "you typed it
+    // THE REGISTER MERGE (QUEUE Z3). 63 of UT's 198 register codes are not in
+    // walk_graph.json at all (85 when this was written, 78 before the door
+    // pass of 2026-08-16), and an empty result list reads as "you typed it
     // wrong" rather than "we don't have it". So every register code the graph
     // lacks becomes a findable, non-routable entry that gets the honest answer
     // (`SMC is not walkable in this build yet`). Actually ROUTING them is the
-    // bake's job — scripts/bake_walk.py, QUEUE Z3/Z4 — not this file's.
+    // bake's job — scripts/bake_walk.py, QUEUE Z3/Z4 — not this file's, and
+    // the count above is a comment: nothing renders it, so it cannot go stale
+    // in the interface the way `avoidShown`'s 189 was about to.
     if (reg && Array.isArray(reg.buildings)) {
       for (const b of reg.buildings) {
         if (!b || !b.ref || byCode.has(b.ref)) continue;
@@ -1532,8 +1544,16 @@
       r.appendChild(h('span', 'wf-code', e.code || '•'));
       r.appendChild(h('span', 'wf-name', e.display));
       const n = e.doors.length;
+      // ONE TAG, AND IT IS ON THE PERMITTED LIST. This used to read
+      // `no door mapped` for a graph entry whose doors had no anchor — BIO and
+      // TSG, before the road access legs recovered them. Gate S now asserts
+      // that no findable entry can be unanchored, so that branch is
+      // unreachable; and `no door mapped` was the one rendered string in this
+      // file that lived neither in SAY nor on `what-we-can-honestly-say.md`
+      // §11's list. A string the permitted list has never seen is exactly what
+      // that list exists to prevent, so both cases now take the permitted tag.
       r.appendChild(h('span', 'wf-meta', e.routable ? (n + (n === 1 ? ' door' : ' doors'))
-        : (e.reg ? SAY.notWalkableTag : 'no door mapped')));
+        : SAY.notWalkableTag));
       if (e.routable) r.addEventListener('mousedown', (ev) => { ev.preventDefault(); pick(inp, e); });
       // A non-routable row is not pickable, but clicking it must still ANSWER
       // (QUEUE Z3) — and a failed answer must never sit on top of a stale route.
@@ -1685,7 +1705,7 @@
     el.card.appendChild(av);
     el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidBlurb));
     el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidNotAccess));
-    if (state.avoid) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidShown));
+    if (state.avoid) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidShown(G.swEdges.size)));
 
     const chips = h('div', 'wf-chips');
     for (const kind of ['Coffee', 'Food', 'Store']) {

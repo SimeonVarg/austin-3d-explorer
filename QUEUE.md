@@ -1595,9 +1595,10 @@ clear of the hint line.
 
 ### WHAT IS ACTUALLY LEFT, with numbers
 
-**~~ZA.~~ ANSWERED, ON A BRANCH: 120 of 198 becomes 135, and 14 of the twenty
-buildings a freshman actually needs (2026-08-16, HANDOFF §141 + §142, branch
-`acer/n8-doors`, PR #184 — OPEN, NOT MERGED, see the two unrun gates below).**
+**~~ZA.~~ CLOSED AND MERGED: 120 of 198 IS 135 on `main`, and 14 of the twenty
+buildings a freshman actually needs (2026-08-16, HANDOFF §146 + §147 + §148,
+branch `acer/n8-doors`, PR #184 — MERGED after all fifteen were photographed
+from the pavement; the red hero gate was cleared by re-measurement, see §148).**
 The shopping list below was worked, and **no door was drawn by hand**: the
 entrance bake's hand-drawn `CAMPUS` rectangle was replaced by a scope test on
 UT's own register, which admitted twelve buildings rather than the 125 the wide
@@ -1637,8 +1638,30 @@ The remaining ~58 are the Facilities sheds, equipment storehouses, graduate
 housing, the aquatic plant and the parking garages — buildings no undergraduate
 has a class in. **All 63 answer `<code> is not walkable in this build yet`.**
 
-**ZB. Fourteen edges of the base network run through a footprint, and nobody
-has looked at any of them.** Unchanged and now sized: `origin/main`'s own graph
+**ZB. Fourteen edges of the base network run through a footprint. TWO OF THEM
+HAVE NOW BEEN STOOD IN FRONT OF, and they are different problems (2026-08-16,
+HANDOFF §148).**
+
+* **The `-97.7380, 30.2809` cluster is IDENTIFIED and is NOT a defect.** It is
+  not "four unnamed footprints" — it is **ten** identical unnamed footprints,
+  each 64.5 m2 and exactly 8.0 m tall, ~9.1 m across, in a grid on the
+  **Blanton Museum's plaza**. OSM way 1199982735 says so itself:
+  `fixme=Northern portion of plaza incl. Moody Patio and Loggia stage need to
+  be mapped`. They are the **Snohetta petal canopies** —
+  `shots/walk/doors15/ZB-blanton-petal-cluster.png` shows stems flaring into
+  circular canopies with the paths running underneath. The footways and the
+  `highway=steps` pass beneath them **because you walk under them**. The
+  "wall" is an artefact of extruding an open-air canopy as a solid volume.
+  **`JES>UTA` and `GRE>UTA` `walls 5` needs no fix.**
+* **`PCL>UTA`'s single wall is photographed and is NOT resolved.** Way
+  1206168875 is 110.6 m long, **18.7 m of it inside the AT&T Center's 6,516 m2
+  footprint**, and
+  `shots/walk/doors15/ZB-att-sidewalk-into-footprint.png` shows the sidewalk
+  **stopping dead against a solid brick wall** — no arcade visible in this
+  scene. The likely real reading is a sidewalk under an overhang the footprint
+  includes, but that is **unconfirmed**. Costs 0.8 m to avoid. Still open.
+
+The rest is unchanged and still sized: `origin/main`'s own graph
 carries **14 such edges**, found by `build_raw()` from `footways.json` alone
 before any door exists. Two named ones:
 
@@ -1677,9 +1700,20 @@ is byte-identical. `what-we-can-honestly-say.md` §11 carries the revision.
 string in `js/wayfind.js` living neither in `SAY` nor on §11's permitted list,
 and gate S had already made it unreachable.
 
-**ZC-NEW. THE GATES WERE RUN, AND ONE IS RED — PR #184 IS OPEN ON A TASTE
-CALL, NOT A DEFECT.** The machine went quiet at 07:40 (13 chrome, 0 node,
-CPU 11 %) so the browser gates were taken after all, on port 8411.
+**~~ZC-NEW.~~ CLOSED — THE RED GATE WAS MEASUREMENT ERROR, AND PR #184 IS
+MERGED (2026-08-16, HANDOFF §148).** Re-run with the graphics probe cancelled
+and **both arms waited to `austin-entrances` loaded**, the H1 spawn pose gives
+**0 px over 24, max delta 10** with both arms' own floors at 0. At threshold >2
+the whole frame yields **2 changed pixels, in one cluster, sitting on an added
+door piece — 0 unexplained.** The rig was **watched failing** at the Nursing
+School door, where it reports 19,893 px. The 447 px below did not reproduce and
+was never explained; the entrance file is lazy and the candidate's is 4.6 %
+larger, so a fixed-timer shot catches the arms mid-load. Everything below this
+line is kept as the record of what was believed at the time.
+
+**ZC-NEW (superseded). THE GATES WERE RUN, AND ONE IS RED — PR #184 IS OPEN ON
+A TASTE CALL, NOT A DEFECT.** The machine went quiet at 07:40 (13 chrome, 0
+node, CPU 11 %) so the browser gates were taken after all, on port 8411.
 
 ```
 harness-drift.mjs                      PASS   29 scripts = 29 scripts
@@ -1720,10 +1754,24 @@ walkable.** Everything else on it is green and the data half is final.
 **ZD. Nothing in this feature has been on a real phone.** 393x852 in headless
 Chrome is not an iPhone: no real touch, no real DPR behaviour, no Safari.
 
-**ZE. Nobody has stood in front of any door.** Every door claim is checked
-against OSM entrance nodes, which under-map; the known worst-case derived-door
-position error is 76 m (Norman Hackerman) and the interface's wording is built
-to survive that, but it has never been checked against Austin.
+**~~ZE.~~ PARTLY CLOSED — somebody has now stood in front of 33 doors on 17
+buildings (2026-08-16, HANDOFF §148).** Every door added by PR #184 was
+photographed at walking height, three-quarter view, and read one by one: all 33
+are on a real elevation, at a sane height (leaf 2.13/2.44 m; 4.30 m only on the
+four garages, which is the vehicle opening), facing outward, and recognisable
+as doors. Frames in `shots/walk/doors15/`.
+
+**What is still open in ZE:** the check is still not photographic. No real
+photograph of any facade was obtained and compared — the independent evidence
+is street addresses and construction years (`UTA` 1616 Guadalupe with the Clay
+Pit at 1601 opposite; `JHH` 1888 Victorian Italianate, matching the register).
+**The 550-odd doors that predate PR #184 have still not been looked at**, and
+the 76 m worst case (Norman Hackerman) is among them.
+
+**And one taste call fell out of it, for Simeon.** Era comes from the register
+year and everything pre-1945 lands on `utility`, so **`ANB` (1859), `JHH`
+(1888) and `LCH` (1894) wear plain flush glazed doors on 19th-century masonry.**
+Placement is right; the vocabulary is not period. One table to overrule.
 
 **ZF. A taste call for Simeon, not a defect.** At cruise the route is a thread
 lying over the rooftops (the ground ribbon is for walking height, and fades in

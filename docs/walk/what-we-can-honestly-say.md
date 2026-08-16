@@ -370,6 +370,18 @@ about one building in eight.** For another 82 we can point at the right side of
 the right building. For 92 — including ACS, BME, BMS, ANB, ATT, CDL and 86 more
 — we have no door at all and the route has to end at the outline and say so.
 
+> **Revised 2026-08-16.** Those three counts moved and this block must not be
+> quoted at its original values. The door pass of that date (`docs/walk/the-78.md`
+> part two) took the file from 629 doors on 280 buildings to **656 on 295**, and
+> the register cross-check from 106 codes with a door to **124**; the walk bake
+> then took **120 of 198 routable to 135 of 198**. Every one of the 27 new doors
+> is `src: derived`, so **not one of them moved the verified figure** — that is
+> still 63 doors on 31 buildings, and §12's ban on `584 modelled entrances` as a
+> boast applies word for word to 656. What changed is the middle row: we can now
+> point at the right side of the right building for more of them. The ruling
+> table above is untouched, because it keys on `src` and nothing about `src`
+> changed.
+
 That is not a reason to cut the feature. Ending at the correct *side* of the
 correct building, drawn in 3D on a building you can see, is still better than a
 pin in the middle of a blob. It is a reason the wording has to carry its own
@@ -511,6 +523,21 @@ a person.
 * `Routes around every staircase OpenStreetMap has mapped on campus.`
 * `This is not an accessibility check. We don't have data on kerbs, ramps, door widths or automatic doors, and there may be steps nobody has mapped.`
 * `Avoids 189 mapped staircases. Kerbs and doorways are not checked.`
+  *(revised 2026-08-16 — **the count is now read from the graph, not typed
+  into the interface.** 189 is the number of `highway=steps` ways in the
+  2026-07-30 snapshot, and it was a literal in `js/wayfind.js`. That is a
+  measurement of a file, printed by a program that had stopped consulting the
+  file — the next Overpass refresh moves the graph and leaves the claim
+  behind, and nobody would have noticed, because the sentence would still
+  have looked plausible. It now comes off the decoder's own `swEdges` map, the
+  set of distinct steps-way ids, which is exactly the set the router prices at
+  `Infinity` when the toggle is on: the sentence describes what the filter did
+  rather than what someone remembered. Counted this date, the graph carries
+  **189** distinct steps ways, so the rendered string is byte-for-byte
+  unchanged today. The permitted family is now:*
+  * `Avoids N mapped staircases. Kerbs and doorways are not checked.` — *where
+    N is the number of distinct `highway=steps` ways in the shipped graph, and
+    it may not be typed, rounded, or carried over from a previous bake.*
 
 **Doors** — pick by `src`
 * `The main entrance` — `src: osm`, `role: main` only
