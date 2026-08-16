@@ -66,6 +66,54 @@
   const KEY = 'austin3d.gfx.v1';
   const clamp01 = v => Math.max(0, Math.min(1, v));
 
+  // ── Capture mode: ?clip=1, ?labels=, ?preset= ─────────────────────
+  //
+  // docs/aws/RECORDING-BRIEF.md is the brief for this block, and it names three
+  // things that made the app unsafe to point a camera at:
+  //
+  //   1. "?clip=1 hides the interface, NOT the picture." The building names are
+  //      drawn into the map, so chrome-free mode still shipped 10-25 floating
+  //      labels per frame and there was no switch for them.
+  //   2. "Silence is not safety." ?clip=1 hides the graphics toast but not the
+  //      auto-detect probe behind it, so the downgrade to `performance` still
+  //      landed 11 s in — mid-take, invisibly, and it also nudges the BEARING by
+  //      a hundredth of a degree per frame to force a redraw. That is a camera
+  //      move nobody asked for, in the middle of a shot.
+  //   3. "There is no flag for the graphics preset." The only way to pick one
+  //      was to press G and tap the gear, on camera, before every take.
+  //
+  // The credit line is NOT in any of this. The map data is OpenStreetMap and the
+  // credit is a licence condition, not decoration — style.css keeps
+  // `.maplibregl-ctrl-attrib` visible under `.clip` on purpose and nothing here
+  // touches it. Hiding it in a published video would be a real problem.
+  const CAPTURE = {
+    // Every layer of type `symbol` is hidden by capture mode. A blanket rule
+    // rather than a list of ids, because the list was the bug: the three
+    // building-name tiers, the shopfront tags, the artwork names and the
+    // wordmarks all live in different files and a new one arrives every pass.
+    // The app already hides the basemap's own labels at startup
+    // (js/timeofday.js cleanupBasemap), so every symbol layer still standing is
+    // ours and all of it is text over the city rather than city.
+    //
+    // Name a layer here to keep it on camera — e.g. ['signs-label'] would keep
+    // the lit brand wordmarks, which are arguably scene rather than caption.
+    keepLabels: [],
+    // Capture mode freezes the graphics settings: the probe never runs, so it
+    // can never restyle a take. Set false to let it run in clip mode again.
+    freezeGraphics: true,
+  };
+
+  const Q = new URLSearchParams(location.search);
+  // Read the class rather than the flag: index.html sets `.clip` at parse time
+  // and `P` toggles the same class live, so this one source covers both.
+  const isClip = () => document.documentElement.classList.contains('clip');
+  // ?labels=1 forces them on, ?labels=0 forces them off, absent follows clip.
+  const LABELS_URL = Q.get('labels') == null ? null : Q.get('labels') === '1';
+  // A function, not a value: `urlPreset` cannot be resolved until PRESETS exists
+  // further down, and a REJECTED ?preset= must not count as capture — otherwise
+  // a typo silently freezes the auto-detect an ordinary visitor still wants.
+  const captureOn = () => Q.get('clip') === '1' || LABELS_URL === false || !!urlPreset;
+
   // ── Settings ──────────────────────────────────────────────────────
   //
   // PLAIN NAMES, ALMOST NO PROSE. Two reports landed on this table, and the
@@ -341,6 +389,34 @@
     }
     GFX.rev = SETTINGS_REV;
   }
+
+  // ?preset=cinematic|balanced|performance|ultra — set the look from the URL
+  // bar, with no keypress and no gear tap on camera.
+  //
+  // IT HAS TO LAND HERE, above GFX_MSAA/GFX_PDB and below the localStorage
+  // restore. Above, because `antialias` and `preserveDrawingBuffer` are fixed
+  // when app.js constructs the WebGL context and cannot be changed on a live one
+  // — a preset applied after initGraphics would run `cinematic` with no MSAA and
+  // no buffer for bloom to read, and look nothing like the preset it named.
+  // Below, because the whole point is that it overrules whatever this browser
+  // has saved: the brief records a machine stuck on `performance` from one bad
+  // probe, which is exactly the state a URL flag has to be able to escape.
+  //
+  // Deliberately NOT saved — see the guard in save(). A URL is a per-load
+  // override; writing it to localStorage would leave the next ordinary visit
+  // wearing the recording's settings, and the brief already flags that
+  // stickiness as a live confusion. (This is not theoretical: applyGraphics()
+  // saves on every change, so the first version of this block did exactly that.)
+  const URL_PRESET = Q.get('preset');
+  const urlPreset = URL_PRESET && PRESETS[URL_PRESET] ? URL_PRESET : null;
+  if (urlPreset) {
+    Object.assign(GFX, PRESETS[urlPreset]);
+    GFX.preset = urlPreset;
+  } else if (URL_PRESET) {
+    console.warn(`[graphics] ?preset=${URL_PRESET} is not a preset — keeping ${GFX.preset}. ` +
+                 `Try: ${Object.keys(PRESETS).join(', ')}`);
+  }
+
   // Read before the map exists — app.js needs both at construction time, and
   // neither `antialias` nor `preserveDrawingBuffer` can be changed on a live
   // WebGL context. Bloom needs to read the GL canvas, so it needs the buffer
@@ -350,6 +426,16 @@
   window.GFX_PDB = GFX.bloom > 0.01 || !!GFX.autoExposure;  // auto-exposure meters the same buffer
 
   function save() {
+    // A ?preset= load NEVER writes settings. applyGraphics() calls save() on
+    // every change, so without this the URL preset lands in localStorage on the
+    // first frame and the next ordinary visit — days later, no flag on the URL —
+    // silently wears the recording's settings. Measured: opening
+    // ?preset=cinematic and then plain index.html came back cinematic.
+    //
+    // It costs the menu its persistence for that one session, which is the right
+    // trade: `?preset=` is a capture flag, and a capture session should leave no
+    // trace on the machine it was filmed on.
+    if (urlPreset) return;
     try { localStorage.setItem(KEY, JSON.stringify(GFX)); } catch (e) {}
   }
   // Stamp the new revision straight away. Without this the migration re-runs on
@@ -429,8 +515,78 @@
     buildMenu();
     buildFeedback();
     applyGraphics();
-    if (!GFX.autoDetected) scheduleAutoDetect();
+
+    // In capture mode the probe never runs — see CAPTURE. Cancelling rather
+    // than merely not scheduling also makes __gfxProbe() inert, so nothing can
+    // reach the downgrade path from a take. Outside capture mode this is the
+    // unchanged first-run behaviour.
+    if (captureOn() && CAPTURE.freezeGraphics) {
+      cancelAutoDetect();
+      console.log(`[graphics] capture mode: auto-detect off, preset ${GFX.preset}` +
+                  (urlPreset ? ' (from ?preset=)' : ''));
+    } else if (!GFX.autoDetected) {
+      scheduleAutoDetect();
+    }
+
+    applyCaptureLabels();
+    // Labels arrive late and out of order — app.js adds its three tiers at step
+    // `labels`, places.js/props.js/signs.js add theirs when their own data
+    // lands, seconds later. `styledata` is the event a layer addition fires, so
+    // this is what keeps a take clean instead of a one-shot sweep at init.
+    _map.on('styledata', applyCaptureLabels);
   };
+
+  // ── Capture labels ────────────────────────────────────────────────
+  //
+  // Restoring is the half that needs care: turning "every symbol layer" back on
+  // would also un-hide the BASEMAP's labels, which js/timeofday.js hid at
+  // startup and which nobody wants back — street names over the whole city. So
+  // only the layers this function actually hid are recorded, and only those are
+  // restored.
+  const _hidByCapture = new Set();
+
+  function symbolLayerIds() {
+    const out = [];
+    try {
+      for (const l of _map.getStyle().layers)
+        if (l.type === 'symbol' && !CAPTURE.keepLabels.includes(l.id)) out.push(l.id);
+    } catch (e) {}
+    return out;
+  }
+
+  /**
+   * Labels follow clip mode, unless ?labels= overrides it. Idempotent, and
+   * cheap enough to sit on `styledata`: it only writes when a layer's visibility
+   * actually has to change. That guard is not an optimisation — setLayoutProperty
+   * fires `styledata` itself, so writing unconditionally here is an infinite loop.
+   */
+  window.applyCaptureLabels = function applyCaptureLabels() {
+    if (!_map) return;
+    const on = LABELS_URL == null ? !isClip() : LABELS_URL;
+    if (on) {
+      for (const id of Array.from(_hidByCapture)) {
+        try {
+          if (_map.getLayer(id)) _map.setLayoutProperty(id, 'visibility', 'visible');
+        } catch (e) {}
+        _hidByCapture.delete(id);
+      }
+      return;
+    }
+    for (const id of symbolLayerIds()) {
+      try {
+        if (_map.getLayoutProperty(id, 'visibility') === 'none') continue;
+        _map.setLayoutProperty(id, 'visibility', 'none');
+        _hidByCapture.add(id);
+      } catch (e) {}
+    }
+  };
+
+  // Test hook: what capture mode decided, and what it hid.
+  window.__capture = () => ({
+    clip: isClip(), labelsUrl: LABELS_URL, captureOn: captureOn(),
+    preset: GFX.preset, urlPreset, autoDetectFrozen: captureOn() && CAPTURE.freezeGraphics,
+    hidden: Array.from(_hidByCapture),
+  });
 
   // ── Apply ─────────────────────────────────────────────────────────
   window.applyGraphics = function applyGraphics() {

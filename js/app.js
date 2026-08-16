@@ -2004,6 +2004,11 @@
       const t = e.target;
       if (t && (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(t.tagName) || t.isContentEditable)) return;
       document.documentElement.classList.toggle('clip');
+      // P and ?clip=1 must mean the same thing. Chrome is CSS and follows the
+      // class on its own; the labels are map layers and do not, so they are
+      // switched here. (js/graphics.js owns the rule, including the ?labels=
+      // override — this only tells it the class changed.)
+      if (typeof window.applyCaptureLabels === 'function') window.applyCaptureLabels();
     });
   }
 
