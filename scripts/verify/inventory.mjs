@@ -26,10 +26,26 @@
  * It never runs `reap.mjs` (it would kill the sibling lanes' browsers) and
  * never runs itself.
  *
+ * PHASE B, added 2026-08-16 (§152). Phase A's 25 s budget left 107 of 138
+ * scripts in REACHES-BROWSER, i.e. unknown, and §149 wrote that down as its
+ * first unestablished item. Phase B is the same instrument with a budget large
+ * enough that finishing is the normal outcome and being killed is the finding:
+ *
+ *   node inventory.mjs --budget 300 --exclude perf
+ *
+ * WHY `--exclude perf` IS NOT LAZINESS. The ~22 timing scripts launch HEADED
+ * (README: swiftshader "is right for pixel assertions and useless for timing"),
+ * they run for minutes each, and README states their numbers are trustworthy
+ * "only on an otherwise idle desktop". A run taken while another lane holds a
+ * browser measures that lane. Excluding them is the instrument's own rule; a
+ * verdict on them is a separate pass on a quiet machine, and it must be
+ * REPORTED AS EXCLUDED rather than folded into the totals.
+ *
  * Usage:
  *   node inventory.mjs                 phase A, 25 s each
  *   node inventory.mjs --budget 90     longer budget
  *   node inventory.mjs --only a.mjs,b.mjs
+ *   node inventory.mjs --exclude perf,tour   skip files matching any substring
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -41,13 +57,16 @@ const args = process.argv.slice(2);
 const argVal = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const BUDGET = Number(argVal('--budget', 25)) * 1000;
 const ONLY = argVal('--only', null);
+const EXCLUDE = (argVal('--exclude', '') || '').split(',').map(s => s.trim()).filter(Boolean);
 
 // reap.mjs is excluded on purpose: it kills every harness browser on the
 // machine by flag match, including a sibling lane's. chrome.mjs is a library.
 const SKIP = new Set(['chrome.mjs', 'reap.mjs', 'inventory.mjs', 'run.mjs', 'warmup.mjs']);
 
-let files = fs.readdirSync(HERE).filter(f => f.endsWith('.mjs') && !SKIP.has(f)).sort();
-if (ONLY) files = ONLY.split(',').map(s => s.trim());
+const all = fs.readdirSync(HERE).filter(f => f.endsWith('.mjs') && !SKIP.has(f)).sort();
+let files = all.filter(f => !EXCLUDE.some(p => f.includes(p)));
+const excluded = all.filter(f => EXCLUDE.some(p => f.includes(p)));
+if (ONLY) { files = ONLY.split(',').map(s => s.trim()); excluded.length = 0; }
 
 // A node-level throw. These strings only appear when the runtime itself gave
 // up — a script that PRINTS the word "Error" in a report is not a crash.
@@ -94,23 +113,43 @@ const classify = (r) => {
   return ['FAILS', `exit ${r.code}: ` + ((all.match(/.*\bFAIL\b.*/) || [''])[0].trim().slice(0, 70) || 'no FAIL line')];
 };
 
+// WRITE AFTER EVERY SCRIPT, not at the end (added 2026-08-16, §152). A phase-B
+// run is hours long and the end-of-run write meant a run that was interrupted —
+// by a reboot, a reaped browser, a wall clock — produced NOTHING, which is how
+// "run the whole suite" stayed undone. A partial inventory is a real result;
+// losing it is not a tidier one.
+// `out/` is gitignored, so a fresh worktree does not have it and the old
+// end-of-run write died on ENOENT after the whole run had already happened.
+const outName = argVal('--out', 'inventory.json');
+fs.mkdirSync(path.join(HERE, 'out'), { recursive: true });
+const outPath = path.join(HERE, 'out', outName);
 const rows = [];
+const flush = () => fs.writeFileSync(outPath, JSON.stringify(
+  { budgetMs: BUDGET, exclude: EXCLUDE, excluded, done: rows.length, of: files.length, rows }, null, 1));
+flush();
 for (const f of files) {
   const r = await run(f);
   const [verdict, note] = classify(r);
   rows.push({ file: f, verdict, note, ms: r.ms, code: r.code,
               out: r.out.slice(-1500), err: r.err.slice(-1500) });
-  console.error(`${verdict.padEnd(16)} ${f.padEnd(26)} ${String(r.ms).padStart(6)} ms  ${note}`);
+  flush();
+  console.error(`[${String(rows.length).padStart(3)}/${files.length}] ${verdict.padEnd(16)} ${f.padEnd(26)} ${String(r.ms).padStart(6)} ms  ${note}`);
 }
 
 const order = ['CRASHES', 'FAILS', 'NEEDS-ARGS', 'PASSES', 'REACHES-BROWSER'];
 console.log('\n\n=== SUITE INVENTORY ===');
-console.log(`budget ${BUDGET / 1000}s per script, VERIFY_URL=${process.env.VERIFY_URL}\n`);
+console.log(`budget ${BUDGET / 1000}s per script, VERIFY_URL=${process.env.VERIFY_URL}`);
+console.log(`REACHES-BROWSER at this budget means: still running when killed at ${BUDGET / 1000}s.`);
+console.log('It is NOT a pass and it is NOT a crash. Read it as "costs more than the budget".\n');
 for (const v of order) {
   const g = rows.filter(r => r.verdict === v);
   if (!g.length) continue;
   console.log(`\n--- ${v}  (${g.length})`);
   for (const r of g) console.log(`  ${r.file.padEnd(26)} ${String(r.ms).padStart(6)} ms  ${r.note}`);
 }
-console.log('\ntotals: ' + order.map(v => `${v} ${rows.filter(r => r.verdict === v).length}`).join(' / ') + `  (of ${rows.length})`);
-fs.writeFileSync(path.join(HERE, 'out', 'inventory.json'), JSON.stringify(rows, null, 1));
+if (excluded.length) {
+  console.log(`\n--- EXCLUDED BY --exclude ${EXCLUDE.join(',')}  (${excluded.length})  NO VERDICT IS CLAIMED FOR THESE`);
+  for (const f of excluded) console.log(`  ${f}`);
+}
+console.log('\ntotals: ' + order.map(v => `${v} ${rows.filter(r => r.verdict === v).length}`).join(' / ') + `  (of ${rows.length} run, ${excluded.length} excluded, ${rows.length + excluded.length} in the directory)`);
+flush();

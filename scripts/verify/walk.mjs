@@ -132,8 +132,18 @@ function printSeries(r, ceiling) {
   }
 }
 
+// THE WATCHDOG HAS TO BE DERIVED, NOT INHERITED (added 2026-08-16, §152).
+// chrome.mjs defaults to 300 s. This gate walks (SITES + the watched failure)
+// phases of up to SECS each, REPS times, each with its own page load — 3 sites
+// at the default 175 s is already 700 s of walking before a single load. Run
+// the way README documents it, this file printed PASS on all three sites and
+// was then SIGKILLed at 300 s for exit 124: a green gate reporting red, which
+// is the worst of the two ways a guard can lie. The ceiling now falls out of
+// the same constants that set the walk length, so raising SECS or adding a site
+// cannot silently re-break it. Explicit VERIFY_MAX_MS still wins.
+const NEED_MS = (SITES.length + 1) * REPS * (SECS * 1000 + 45000) + 60000;
 (async () => {
-  const browser = await launch(chromium, { gl: 'hardware' });
+  const browser = await launch(chromium, { gl: 'hardware', maxMs: process.env.VERIFY_MAX_MS || NEED_MS });
   console.log('walk — can the harness walk? (QUEUE Y16)');
   console.log(`  ${BASE}  |  headless, gl=hardware, NO cpu throttle, index.html?intro=0`);
   console.log(`  ceiling ${CEILING} m (TRUNK_ALT)  |  target ${TARGET_M} m  |  PASS needs >= ${MIN_M} m and 0 frames above ceiling`);
