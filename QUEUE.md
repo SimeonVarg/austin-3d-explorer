@@ -1317,6 +1317,69 @@ default `False`, one line to flip — the West Campus base band was deliberately
 left alone because the entrances and places passes already model 24 lobbies,
 canopies, sign bands and shopfront reveals there in metres.
 
+### THE VERTICAL AXIS WAS TRIED AS GEOMETRY AND IT WAS REFUSED (2026-08-16, §149 built it, §150 gated it, PR #189)
+
+**Do not build it again.** The obvious cheap idea — Y5 fixed the horizontal
+barcode with storey bands as geometry in metres, so rotate the recipe ninety
+degrees and give the walls their structural **bays** (piers at 6–8 m) instead of
+paying for real windows — was built on `acer/n12-vertical` and **judged blind
+against live. It lost.** PR #189 is kept OPEN as the record with the losing
+frames; it must not be merged.
+
+**Why it cannot work, and this is structural rather than a tuning problem.** The
+barcode is a **0.12 m** rhythm; a bay is a **6–8 m** rhythm. They do not
+interact. Y5 got away with the horizontal case only because `SOFTEN` had already
+smeared the tile's 1-texel horizontals into nothing, so a storey band had an
+empty field to land on. **`WALL.STREAKS` and `WALL.PIER` are drawn full tile
+height and are not smeared, so on this axis there is no empty field.** The piers
+sit on top of the stripe and the stripe carries on between them. **Geometry can
+add; it cannot subtract.**
+
+**What the blind gate found** (six poses, salted, A/A floor first on both arms,
+minimum of four interleaved counterbalanced reps, camera identical to six
+decimals, pavement band 0 px, AE gain 1; the candidate arm was correctly
+identified at all four poses where a difference was visible, so the test had
+power):
+
+| pose | floor LIVE / CAND | signal | verdict |
+|---|---:|---:|---|
+| South Mall, eye, day | 0 / 0 | 2,795 | not better |
+| South Mall, eye, night | 10 / 10 | 957 | wash at best |
+| Guadalupe, eye, day | 0 / 0 | 2,440 | **the only improvement** |
+| Guadalupe, eye, night | 13 / 0 | 1,124 | indistinguishable |
+| **Battle Hall, eye, day** | 5 / 0 | **9,930** | **WORSE** |
+| cruise z16.2, day | 33,836 / 0 | 1,528 | under its own floor, no verdict |
+
+**Battle Hall was the candidate's own claimed win and it is the clearest loss**
+— the piers cut era-A limestone into an even grid of identical cells, the named
+graph-paper failure, with the 0.12 m stripe still running inside every cell. The
+single pose it improves is a Drag streetwall that `js/drag.js` draws from its own
+tile and that **never carried the barcode**. `shots/vert/final/FINAL-01-VERDICT-battle-hall-day.png`
+is the whole argument; `FINAL-06-what-changed.png` is every pixel it moves.
+
+**The bar was to beat the banded wall, not the old barcode.** The storey walls
+already won their own blind test (§121, §131). Extra geometry that ties buys
+nothing and cost +542 KB — campus more than doubles, 450 KB → 993 KB.
+
+**So Y19 stays open and still points at the tile, not at geometry.** Nothing
+that can be baked will move a 0.12 m rhythm; the two routes above are unchanged
+and both are `js/facades.js`. **Real windows — option (c) in
+`docs/camera/facade-choice.md` — remains the honest answer** to "make this wall
+read as a building", at the price already written there: ~190,000 openings,
+~190 MB, and a loading strategy the app does not have. Bands-now-windows-later
+was the right call and this pass does not change it.
+
+**Two things the gate did NOT establish**, so nobody quotes it as more:
+**(a)** the atlas self share and cruise frame time could not be re-established at
+§143's published **1.9–3.0 % / 15.2 ms** on a machine carrying 20–42 Chrome
+processes at 14–100 % CPU (a 3 s cruise sweep returned 6–7 frames against §143's
+163). That is an instrument-and-machine result, **not** evidence the candidate is
+expensive — it cannot reach the atlas at all (`js/facades.js` byte-identical,
+zero atlas tiles). **(b)** §143's 1.9–3.0 % is now **unreproduced by two
+independent riggings** (§149 read 7–22 %, §150 read 3.67–9.77 % on the live arm)
+and should be treated as OPEN until somebody re-takes it on an idle machine with
+§143's own sweep.
+
 ---
 
 ## ~~Y5 IS WAITING ON A TASTE DECISION~~ — DECIDED AND SHIPPED (2026-08-15, §114/§121)
