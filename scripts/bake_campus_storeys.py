@@ -17,9 +17,17 @@ GEOMETRY whose height is in METRES, which is also the only form that survives
 Y4 raising ZOOM_MAX (see facades-at-two-metres.md's sequencing note). So this
 bake emits proud rings — base course, floor line, cornice, parapet cap — offset
 OUTWARD from each footprint so they contain the wall's own face over their
-height. Proud stone. Nothing coplanar, nothing for the depth buffer to argue
-about, and the underside is what casts the line of shadow a barcode does not
-have.
+height. Proud stone, and the underside is what casts the line of shadow a
+barcode does not have.
+
+This header used to say "nothing coplanar, nothing for the depth buffer to
+argue about" and that was NOT TRUE, for a whole pass. Offsetting outward clears
+the SIDE faces; it says nothing about the HORIZONTAL ones, and every `cap` and
+`cornice` ring ended exactly at its host's `final_height` — 55 of 640, at
+0.0000 m. HOST_LIFT is the fix and `check_host_clearance()` is the assertion
+that keeps it fixed: it runs on every bake, before the file is written, and
+prints its count — because the tie is cross-document and
+`scripts/verify/coplanar.mjs` structurally cannot see it. QUEUE N5b.
 
 THE RECIPE IS HARVESTED, NOT REINVENTED. `scripts/bake_drag.py`'s storey-band
 block (PR #167, judged blind against the live site and merged) is the source of
@@ -166,6 +174,25 @@ ERA_SPEC = {
 # A parking deck's horizontal is a deck edge every DECK_M and nothing else. Era
 # does not apply — a 1965 garage and a 2015 garage are the same object.
 DECK_SPEC = dict(base=None, course=(0.10, 0.25), cornice=None, cap=None, lift=0.10)
+
+# HOST_LIFT is the clearance the TOP face of a cornice or a parapet cap is
+# raised above the host building's own `final_height`. The trim is what moves,
+# never the host: a cornice caps a wall and a coping caps a parapet, so in both
+# cases the stone sits ON the head of the thing below it. Precedent and size
+# both come from `scripts/bake_depth.py`'s STEP_LIFT — "two coplanar top faces
+# z-fight; 30 mm settles it and is far too small to read as a second step" —
+# and the same 30 mm was applied to the Drag's cornices in bake_drag.py.
+#
+# WHY IT WAS MISSED FOR A WHOLE PASS. `scripts/verify/coplanar.mjs` pairs
+# surfaces WITHIN one document; the host here is a basemap building extruded by
+# js/app.js from the snapshot, so the tie is cross-document and no tool in the
+# repo could see it. All 40 `cap` and all 15 `cornice` rings — 55 of 640 — came
+# out with `dh` exactly equal to their host's final_height, to 0.0000 m, while
+# the other 585 cleared by 0.2 m or more. It was found by hand. HOST_EPS below
+# is the tolerance at which check_host_clearance() calls a ring coplanar with
+# its host, and it matches coplanar.mjs's own eps so the two agree on the word.
+HOST_LIFT = 0.03
+HOST_EPS = 0.01
 
 # Families this bake draws on, and the ones it refuses. See the header.
 FAMILIES = ("mh", "mr", "tr")
@@ -342,7 +369,10 @@ def split_ends(y0, y1, spec):
     if y1 - y0 < bh + th + STOREY_MIN_M:
         return None
     b = (y0, y0 + bh) if spec["base"] else None
-    c = (y1 - th, y1) if top else None
+    # The top piece STARTS th below the host's head and ENDS HOST_LIFT above it.
+    # Only the top moves: the storey span below is still divided at y1 - th, so
+    # the floor lines and the pitch fitted to them are untouched by the lift.
+    c = (y1 - th, y1 + HOST_LIFT) if top else None
     part = "cornice" if spec["cornice"] else ("cap" if spec["cap"] else None)
     return b, (b[1] if b else y0), (c[0] if c else y1), c, part
 
@@ -462,6 +492,44 @@ def bands_for(feature, era, stats):
     return out
 
 
+def check_host_clearance(feats, heights):
+    """Assert no emitted ring shares a horizontal plane with its host building.
+
+    THIS IS THE CHECK NO OTHER TOOL IN THE REPO CAN DO. `coplanar.mjs` pairs
+    surfaces within one document; the host is a basemap building extruded by
+    js/app.js straight from the snapshot this bake reads, so the tie between a
+    ring's `dh` and the host's `final_height` is CROSS-DOCUMENT and invisible to
+    it. It stayed invisible through a whole pass and was eventually measured by
+    hand: 55 of 640 rings at exactly 0.0000 m. The point of putting it here is
+    that it now re-runs on every bake, so it cannot come back the next time the
+    snapshot rolls or a new era spec is added.
+
+    Raises on any ring within HOST_EPS of its own host's top or bottom, and
+    returns (rings_checked, worst_clearance_m) so the run can print both.
+    """
+    worst, offenders = float("inf"), []
+    for f in feats:
+        p = f["properties"]
+        h = heights.get(p.get("host"))
+        if h is None:
+            raise AssertionError(
+                "host clearance: ring on host %r has no final_height in the "
+                "snapshot. Every emitted ring must be checkable." % (p.get("host"),))
+        for name in ("dbase", "dh"):
+            for plane in (0.0, h):
+                gap = abs(p[name] - plane)
+                worst = min(worst, gap)
+                if gap < HOST_EPS:
+                    offenders.append((p.get("host"), p.get("part"), name,
+                                      p[name], plane))
+    if offenders:
+        raise AssertionError(
+            "host clearance: %d ring face(s) within %.3f m of the host's own "
+            "ground or final_height — that is the N5b defect. First five: %r"
+            % (len(offenders), HOST_EPS, offenders[:5]))
+    return len(feats), (0.0 if worst == float("inf") else worst)
+
+
 def main():
     from collections import Counter
     stats = Counter()
@@ -471,6 +539,9 @@ def main():
     feats = json.load(open(snap, encoding="utf-8"))["features"]
     years = load_years()
     claimed = claimed_ids()
+
+    heights = {p.get("id"): (p.get("final_height") or 0.0)
+               for p in (f.get("properties") or {} for f in feats)}
 
     s, w, n, e = CAMPUS
     out = []
@@ -490,10 +561,20 @@ def main():
             stats["dated"] += 1
         out.extend(bands_for(f, era, stats))
 
+    # Runs BEFORE the file is written, so a bake that would reintroduce N5b
+    # raises and leaves the shipped data untouched rather than overwriting it
+    # with the defect.
+    checked, worst = check_host_clearance(out, heights)
+
     gj = {"type": "FeatureCollection", "features": out}
     if CHECK:
         print(json.dumps({"snapshot": date, "considered": considered,
-                          "features": len(out), "stats": dict(sorted(stats.items()))},
+                          "features": len(out),
+                          "host_clearance": {"rings_checked": checked,
+                                             "coplanar_with_host": 0,
+                                             "worst_gap_m": round(worst, 4),
+                                             "limit_m": HOST_EPS},
+                          "stats": dict(sorted(stats.items()))},
                          indent=2))
         return
 
@@ -505,6 +586,10 @@ def main():
         "buildings_banded": stats["banded"],
         "buildings_nothing_owed": stats["one_storey_nothing_owed"],
         "features": len(out),
+        # Cross-document, so no verify script can see it. Printed every run.
+        "host_clearance": {"rings_checked": checked, "coplanar_with_host": 0,
+                           "worst_gap_m": round(worst, 4), "limit_m": HOST_EPS,
+                           "against": "final_height in snapshots/%s" % date},
         "storeys": stats["storeys_total"],
         "dated_buildings": stats["dated"],
         "pitch": {"measured": stats["pitch_measured"], "nominal": stats["pitch_nominal"],

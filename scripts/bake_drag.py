@@ -124,8 +124,12 @@ PARAPET_FRAC = 0.055
 # extrusions: a BASE COURSE where the upper wall meets the sign band, a FLOOR
 # LINE between each pair of storeys, and a CORNICE under the parapet. Each is
 # a ring offset OUTWARD from the footprint, so it contains the wall's own face
-# over its height — proud stone, nothing coplanar, nothing for the depth
-# buffer to argue about. The night look is NOT handled here: the wall tile
+# over its height — proud stone. This block used to add "nothing coplanar,
+# nothing for the depth buffer to argue about", and that was NOT TRUE: outward
+# offset clears the ring's SIDE faces and says nothing about its HORIZONTAL
+# ones, and the cornice ends where the wall ends, so all ten cornice top faces
+# were in the wall's plane until CORNICE_LIFT below. QUEUE N5a, HANDOFF §135.
+# The night look is NOT handled here: the wall tile
 # keeps its existing night treatment (js/drag.js retUpper), so the banded wall
 # after dark is never darker than the barcode wall was.
 #
@@ -142,6 +146,17 @@ BAND_COURSE_H = 0.26
 BAND_CORN_PROUD = 0.34   # the cornice under the parapet. The deepest shadow.
 BAND_CORN_H = 0.55
 BAND_TRIM_LIFT = 0.17    # how far the trim is lifted off the building's own tone
+# CORNICE_LIFT is the clearance the cornice's TOP face is raised above the top
+# of the `upper` wall band it caps. The trim is what moves, not the wall,
+# because that is what the building does: a cornice CAPS a wall, so the stone
+# sits ON the wall head rather than flush into it. Without the lift the two top
+# faces are the same plane over ~6,300 m2 of this street (every one of the ten
+# banded buildings, footprint 100 % shared) and the depth buffer picks a winner
+# per pixel per frame — the exact defect scripts/bake_depth.py's STEP_LIFT was
+# written for: "two coplanar top faces z-fight; 30 mm settles it and is far too
+# small to read as a second step". Same 30 mm, same reason, and at 30 mm the
+# proud edge is under a hundredth of a pixel from any altitude this app flies.
+CORNICE_LIFT = 0.03
 
 # Guadalupe Street's centreline, sampled from OSM (`way[highway][name=Guadalupe
 # Street]`, queried 2026-07-31) and reduced to one (lat, lon) per 0.0005 deg.
@@ -548,8 +563,15 @@ def storey_details(ring, lat0, y0, y1, tone, grp, stats):
     """The storey bands for one upper wall: base course, floor lines, cornice.
 
     Three prouds, three depths — the cornice deepest, the floor line lightest.
-    The rings are offset OUTWARD, so nothing is coplanar with the wall; their
-    undersides are what cast the line of shadow a barcode does not have.
+    The rings are offset OUTWARD so their SIDE faces are clear of the wall, and
+    their undersides are what cast the line of shadow a barcode does not have.
+
+    Offsetting outward is not enough on its own, and this docstring used to
+    claim it was. The base course and the floor lines sit inside the wall's
+    span so their top faces are over open air, but the cornice ends where the
+    wall ends — the two TOP faces were the same plane on all ten banded
+    buildings until CORNICE_LIFT, which is the only place coplanarity was ever
+    possible here. Nothing else in this function can produce it.
     """
     split = storeys_of(y0, y1)
     if split is None:
@@ -565,7 +587,8 @@ def storey_details(ring, lat0, y0, y1, tone, grp, stats):
                               + [(a - BAND_COURSE_H * 0.5, a + BAND_COURSE_H * 0.5,
                                   BAND_COURSE_PROUD, "course")
                                  for (a, _) in sts[1:]]
-                              + [(corn[0], corn[1], BAND_CORN_PROUD, "cornice")]):
+                              + [(corn[0], corn[1] + CORNICE_LIFT,
+                                  BAND_CORN_PROUD, "cornice")]):
         r = offset(closed, d)
         if r is None:
             stats["band_offset_failed"] += 1

@@ -43,6 +43,19 @@
  *                 shade, furniture, mechanical penthouse, balconies and sign are
  *                 coloured from the SOLID trios below, the same way app.js
  *                 colours the stadium seating.
+ *   kind:"detail" flat, and it carries the STOREY LINES (QUEUE Y5). A wall
+ *                 pattern is scaled by the tile grid, so at walking height one
+ *                 repeat is 2.06 m and every family collapses to a barcode —
+ *                 the parking-deck podium worst of all, at seven times as many
+ *                 decks as a real one. A horizontal event therefore cannot come
+ *                 from a tile: it has to be geometry whose height is in METRES,
+ *                 which is also what survives QUEUE Y4 raising ZOOM_MAX. The
+ *                 bake emits proud rings — a slab edge at each residential
+ *                 floor, a deck edge at each parking level — and this module
+ *                 draws them as `wc-detail`. Their heights are `dbase`/`dh`,
+ *                 NOT `base`/`h`: trim overlaps its wall on purpose and must
+ *                 stay out of the band stack's accounting. Same shape, same
+ *                 reasons, as js/drag.js's `drag-detail` (PR #167).
  *
  * Public (window) API:
  *   initWestcampus(map)             — add the source + layers (called automatically)
@@ -68,6 +81,7 @@
   const L_WALL = 'wc-wall';
   const L_CAP = 'wc-wall-cap';
   const L_SOLID = 'wc-solid';
+  const L_DETAIL = 'wc-detail';
   const DATA = 'data/westcampus.geojson';
 
   // ── The flat-coloured pieces: day / golden / night ──────────────────
@@ -1051,9 +1065,28 @@
       },
     }, anchor);
 
+    // The storey lines (QUEUE Y5). Flat colour, never a pattern — a 0.25 m
+    // deck edge showing an arbitrary slice of a 2.06 m tile is the exact trap
+    // these features exist to escape. Vertical gradient OFF for the same
+    // reason the walls have it off, and more so: a 0.30 m ring that falls
+    // entirely inside the gradient renders black.
+    map.addLayer({
+      id: L_DETAIL, type: 'fill-extrusion', source: SRC, minzoom: WC.minZoom,
+      filter: ['==', ['get', 'kind'], 'detail'],
+      paint: {
+        'fill-extrusion-color': tod(p, 'wd', 'wg', 'wn'),
+        'fill-extrusion-height': ['get', 'dh'],
+        'fill-extrusion-base': ['get', 'dbase'],
+        'fill-extrusion-opacity': 1.0,
+        'fill-extrusion-vertical-gradient': false,
+      },
+    }, anchor);
+
     const walls = gj.features.filter(f => f.properties.kind === 'wall').length;
+    const trim = gj.features.filter(f => f.properties.kind === 'detail').length;
     console.log('[westcampus]', gj.features.length, 'features (', walls, 'wall bands,',
-                gj.features.length - walls, 'solid ),', gone.length,
+                trim, 'storey lines,',
+                gj.features.length - walls - trim, 'solid ),', gone.length,
                 'generic extrusions replaced,', added, 'new atlas images');
     if (t4) {
       console.log('[wc4]', t4, 'authored features;', JSON.stringify(_t4),
@@ -1072,6 +1105,12 @@
       if (map.getLayer(L_CAP))
         map.setPaintProperty(L_CAP, 'fill-extrusion-color', tod(p, 'rd', 'rg', 'rn'));
     } catch (e) {}
+    // The storey lines carry their own baked trio, so they retint on the same
+    // tick as the caps rather than riding the facade atlas the walls ride.
+    try {
+      if (map.getLayer(L_DETAIL))
+        map.setPaintProperty(L_DETAIL, 'fill-extrusion-color', tod(p, 'wd', 'wg', 'wn'));
+    } catch (e) {}
     // L_WALL carries its colour inside the shared facade atlas, which
     // updateFacades() has already repainted by the time we get here.
   };
@@ -1089,7 +1128,7 @@
   window.applyWestcampusSettings = function applyWestcampusSettings(map) {
     if (!map || !map.getLayer) return;
     const vis = WC.on ? 'visible' : 'none';
-    for (const id of [L_WALL, L_CAP, L_SOLID]) {
+    for (const id of [L_WALL, L_CAP, L_SOLID, L_DETAIL]) {
       if (!map.getLayer(id)) continue;
       try { map.setLayoutProperty(id, 'visibility', vis); } catch (e) {}
     }
