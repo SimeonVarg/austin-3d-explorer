@@ -21991,3 +21991,146 @@ ships because it is measurably a no-op on pixels and fixes a real refusal; the Y
 half ships as `docs/perf/y7-outer-scan.md` and a restated QUEUE entry, with no
 code, because the file that can fix it is not this lane's and a horizon-shrinking
 substitute would cost more than it saves.
+
+---
+
+## 159. Aug 16 2026 — none of the five timed-out gates is hung, four of the five reds are the ruler, and the one that is real had already been written down twice (the twelve, part two) (acer lane, branch `acer/o4-reds`, PR)
+
+**Branch `acer/o4-reds` off `origin/main` `f1ef012`. Files written:
+`docs/verify/the-twelve.md` (appended — part two), four new probe scripts under
+`scripts/verify/`, two frames under `shots/reds/`, this entry. NO GATE WAS
+EDITED and no app file was touched.** Throwaway worktree, `python
+scripts/serve.py 8512`, `harness-drift.mjs` **PASS (29 = 29)** before any pixel
+and again at the end; `suite-lint.mjs` **PASS, 147 scripts, 0 blocking**.
+
+§155 left twelve reds. Part one read the six "real assertion failures" and found
+all six were the instrument. **This is the other five — the ones §155 could only
+call UNKNOWN because every one of them was killed at the 300 s watchdog.**
+
+### The headline
+
+**None of the five is a hang. All five finish, and all five are red.**
+
+```
+movement       436 / 470 / 457 s   13/14, 14/14, 12/14   RULER
+night-luma     830 s               0 of 4 poses          RULER
+lookup-check   448 s               8/9                   RULER
+perf-budget    404 s               5 of 6 over budget    REAL — and already known
+field-bleed    >= 25 min, killed at 6 of 18 poses, 1 red RULER
+```
+
+`night-luma.mjs` was the one §155 singled out as *"may be a genuine hang"*. It is
+the clearest case of the opposite: it runs its whole retry ladder, prints a
+complete report and exits 1. **The ceiling was never these gates' fault either —
+five scripts needing 400 to 2900 s were being run at 300 s, a number that is
+`run.mjs`'s `--timeout` default and was never measured against any of them.**
+
+### The four that are the ruler, each chased to a cause and not left as "flaky"
+
+**`night-luma` reads 0 trees on a frame holding 31,723.** Every pose printed
+`NEVER SETTLED (0 trees, 4222 buildings, drift 0)`. Read the numbers, not the
+verdict: `drift 0` means the strided luma probe over all 576,000 pixels moved
+**0.0000** against a bar of 0.05, and the buildings clear their bar twenty-fold.
+The whole red is the `trees > 300` clause — and `_o4-treecount.mjs` shows why:
+`austin-trees` is now a **vector** source over `data/tiles/trees.pmtiles`, and
+`querySourceFeatures(id)` returns `[]` for a vector source with no `sourceLayer`.
+Pass the layer the app's own layers carry and the same camera reports **31,723**.
+It has read zero trees at every pose since the tree layer was tiled. **Same shape
+as `capitol-merge` in part one — a checker keyed on a source shape the app
+stopped using — which makes two of the twelve, found independently, and the fifth
+guard in this repo shown blind to the thing it guards.** The eight retries are
+where the 830 s goes, so one argument fixes the red and the runtime together.
+
+**`movement`'s headline assertion is a coin flip: 0.905, pass, 1.092.** The same
+assertion failing in opposite directions across three reps; an asymmetry in the
+app cannot change sign. `_o4-eastnorth.mjs` measures the same quantity but paces
+the ramp and the window by the camera's **sim time** instead of the wall clock,
+and samples `|vel|` every frame in one `page.evaluate`: **east/north 1.000,
+56.65 m/s both ways, zero spread across eight interleaved legs.** The gate's own
+rule is the one it breaks — it uses `simTime` for the denominator and
+`waitForTimeout` for the window boundaries, so at 4 fps each leg captures a
+different slice of the acceleration ramp. Every reading `movement.mjs` produced
+(55.6, 50.3, 49.1, 53.6) is **below** the 56.65 terminal speed, which is the
+signature. The fence was ruled out by reading it (3508–5332 m away against a
+250 m `FENCE_SOFT`), and collision by measuring 0.00 % velocity loss.
+
+**`lookup-check` runs all three altitude cases at the first one's altitude** —
+the exact defect its own comment at line 88 documents as fixed. `_o4-seedlag.mjs`
+shows the fix is a deadline, not a wait: after the two-pass look drag the
+controller's ownership tail is **24–27 s** on this machine and the gate budgets
+8500 + 4000. `driving` is still true at all three seeds, so every `jumpTo` is
+overwritten. Wait for `!driving` and the placement is exact — 120/450/880 land on
+120/450/880 with requested zoom equal to delivered zoom. `ZOOM_MIN` is 14 and is
+not involved; I checked rather than assumed.
+
+**`field-bleed`'s one red is a mis-set expectation, and it is photographed.** It
+looked like the find of the pass: 2986 px of turf at `outside-north-70`, box
+594,369-685,405, against `js/app.js:544`'s record of the original raster defect
+at *"3318 px at pitch 79, box 581,381-687,422"* — the same band of the frame, one
+pitch notch below the pose that was fixed. **Then look at it.**
+`shots/reds/field-bleed-70-magenta.png` paints field-bleed's own mask, and the
+magenta is **inside the bowl** — the far half of the field seen over the near rim,
+with the grandstand's top edge cutting cleanly across below it. The gate's own
+arithmetic agrees once it is applied to the right point: its formula puts the
+sight line to the field CENTRE at 49.1 m against a 63 m rim (blocked, as it
+says), but the line to the field's far edge 61.5 m beyond centre is at 67.7 m —
+**clears by 4.7 m**. The header generalised a one-point calculation to a 123 m
+field. It already made this mistake one notch down and says so: *"So 62 is NOT a
+bleed case and an earlier version of this file wrongly called it one."*
+
+### The one that is real, and the good news inside it
+
+**`perf-budget` is genuinely red — G1, G2, G3, G4, G5a over budget, G5b ok —
+and it is red on purpose.** It was born red (`f78860c`, *"the ring is over it on
+every reading"*), §143 recorded G1 19.975 / G3 43.30 / G5a 2.06 % on `main`, and
+§143 also watched it go GREEN on the same build through its env overrides. It is
+not stuck; the budget is the number a fix has to hit. It cannot fit in 300 s
+either: `REPS` defaults to 3 and `MIN_VALID` is 2, so two reps of two phases with
+a 110 s walk watchdog is the floor.
+
+**What is new is that the walk phase is measurable.** §143 recorded G2/G4/G5b as
+`INVALID` three passes running and §148 recorded that §145's walker rewrite *"was
+NOT re-run end to end"*. It has been now: **three valid walks, 300 m each, alt 1.7
+every frame — and G4 = 37.50 ms is QUEUE Y15's trunk-scan cost from a real
+sustained walk in a gate run for the first time.** G5b passing at 0.42 % says the
+throttle works and the per-instalment cost does not.
+
+**And §158B landed while this pass was running, from the other side.** It timed
+`querySourceFeatures` inside `perf-budget`'s own 1,500 m cruise and found G3's
+worst scan **IS a single query call** (100 %, 100 %, 100 %, 53 % across four
+reps). That is the same conclusion from the opposite direction — I establish that
+G3 is a real red and not the ruler; §158B establishes which half of the scan owns
+it. My G3 minimum of 18.40 ms sits below its 38–86 ms range because mine is a
+min-across-three on a quieter slot; the attribution is theirs and I have not
+re-derived it.
+
+### One instrument finding that applies to the whole suite
+
+**`perf-budget` is not in `run.mjs`'s `SERIAL_ONLY` set.** That list holds
+`perf`, `perf2`, `perf3` and matches on the exact script name, so the one gate
+whose entire subject is milliseconds runs concurrently with up to three other
+browsers. `movement`, `lookup-check`, `field-bleed` and `night-luma` are outside
+it too. Within a single `perf-budget` rep tonight the CPU went 5 % to 64 %.
+
+### The machine, quoted with the numbers
+
+14 chrome / 1 node / 3 python and CPU 17 % at the start; 21–31 chrome and CPU up
+to 97 % during the `movement` reps; 22 chrome and quiet through `night-luma`;
+14–26 chrome through `perf-budget`, with the per-phase counts printed in its own
+table. Two other lanes were live for most of the pass.
+
+### WHAT THIS PASS DID NOT ESTABLISH
+
+`docs/verify/the-twelve.md` carries the full list; the four that matter most:
+
+1. **`field-bleed`'s other twelve poses are unrun** — three `'some'` day controls
+   and **all nine night poses**. I am claiming the one red I saw is the
+   instrument, **not** that the gate is green.
+2. **I fixed nothing.** Five diagnoses, four probes, no gate edited. Every
+   correction is written down and none is applied.
+3. **`night-luma` would be green** is an inference about one blocking clause. I
+   read the histogram with the clause disregarded — it is the right shape — but I
+   did not re-run the assertions with it corrected.
+4. **Nothing was run against a deliberately broken app**, except that
+   `perf-budget` inherits §143's two-way watch. Everywhere else the evidence is
+   the weaker shape: the app was measured directly and found correct.
