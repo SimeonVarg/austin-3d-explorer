@@ -16590,3 +16590,284 @@ walls 0.
   about canopies** — both ship in the file, neither is read.
 * **QUEUE.md** is not this lane's to write; Z4 is closed and still says open
   there.
+
+## 130. Aug 16 2026 — the route stops repainting the city, the recordable URL waits for the intro, and the app finally answers "will I make it?" (QUEUE Z5-Z9) (acer lane)
+
+**Branch `acer/n3-graph`, commit on top of §129. Files: `js/wayfind.js`,
+`style.css`, `docs/walk/what-we-can-honestly-say.md`, `shots/walk/z59/`, this
+entry — exactly the five this lane may write. `WAYFIND.on` is UNTOUCHED: the
+feature is still behind `?walk=1`, the app a stranger loads is unchanged, and
+flipping the switch for everyone is one constant and Simeon's call after the
+AWS shoot.**
+
+### Z5, and it was the worst thing here
+
+A drawn route ran a `requestAnimationFrame` loop writing `line-gradient` on
+`wayfind-thread` at `pulseFps` 15 for as long as the route was on screen.
+Every write marks the style dirty and buys one full repaint of a scene with 41
+fill-extrusion passes in it. Nobody had ever measured it.
+
+**Instrument, quoted.** Headed Chrome on the machine's real GPU — `ANGLE
+(NVIDIA GeForce RTX 3050 Ti, D3D11)`, printed next to the numbers — because
+SwiftShader draws this scene at 3.7 fps and would hide a 15 Hz schedule
+entirely (the first attempt read 0.8/s on SwiftShader and said nothing true).
+Anti-throttle flags from `perf.mjs`. `intro=0&drift=0`, auto-detect cancelled,
+camera held still, 4 s windows, **three interleaved reps, minimum reported**,
+**noise floor first**. Two instruments, because one alone lies: `setPaint/s` is
+what the code SCHEDULES, `render/s` is what MapLibre actually repaints.
+**Machine load with the number: CPU pinned at ~99 %, 27 Chrome processes,
+three other workflows running all night.** A loaded machine only ever ADDS
+renders, so the minimum is the conservative reading and the "after" had to
+beat even that.
+
+```
+condition                                BEFORE            AFTER
+                                    setPaint/s render/s  setPaint/s render/s
+A  no route, cruise z16.5  (FLOOR)      0.0      0.0        0.0      0.0
+B  route, cruise z16.5 (thread seen)    8.3      8.3        8.0      9.3
+C  route, WALKING z19.2 (thread gone)   9.0     11.0        0.0      0.0
+D  route, cruise, TAB HIDDEN            5.3      5.5        0.0      1.0
+E  route, cruise, 14 s after drawing    2.5      2.5        0.0      0.0
+```
+
+**C is the damning row.** At walking height the layer the pulse animates is
+faded to zero opacity by `threadGoneZoom` 18.4, so the city was repainting
+eleven times a second for an effect that is not on the screen. **D is the
+battery** — a backgrounded tab was still paying. **E is the word "forever"**:
+the reps behind that 2.5 were 10/49/29 in a 4 s window, i.e. the schedule was
+still trying for 15/s and the starved machine delivered what it could.
+
+The pulse now has a life. Three gates, each one a named constant, and the loop
+is **torn down** rather than left spinning:
+
+* **VISIBLE** — it does not run at or above `threadGoneZoom`. Deliberately not
+  a new number: it is the same constant that fades the layer out, so the gate
+  cannot drift from the thing it gates.
+* **AWAKE** — `document.hidden` parks it.
+* **FINITE** — `pulseSettleSec` 12 s (three passes at `pulseSec` 4) of
+  *eligible* time and then it is finished for good and the thread rests as a
+  flat colour. A NEW route starts a new life. Raise the constant to get the
+  old forever-behaviour back.
+
+Parked is not stopped: `zoomend`/`moveend`/`visibilitychange` re-arm it, so a
+route drawn at walking height pulses the moment you climb, spending the budget
+it never spent. Nothing polls. `prefers-reduced-motion` still turns it off
+completely, and that is gated too.
+
+**One bug found by driving it that reading never would have.**
+`cancelAnimationFrame` does not un-queue a callback the browser has already
+handed to the current frame, so the PREVIOUS route's loop fired once after the
+NEXT route's pulse had started, wrote `null` over the live handle and — if its
+own budget had run out — called the teardown and took the new pulse down with
+it. Symptom: a route drawn after a route that had been up for more than 12 s
+never pulsed at all. Every loop now carries the generation it was born in and
+a stale one returns on its first line.
+
+**And a lesson about the harness, not the app.** Three Z5 gates "failed" twice
+before I stopped believing them: driven from node, a single `page.evaluate`
+round trip on this machine tonight took **longer than the 12 s budget being
+tested**, so the pulse was correctly dead by the time the assertion asked. The
+Z6 trace in the same run shows a 2 s in-page sleep landing 21 s later — the
+page's own timers starved ~10x. Every timing assertion now runs inside ONE
+`page.evaluate` on the page's own clock. The instrument was measuring the
+other three workflows.
+
+### Z6 — the advertised recording URL now works as advertised
+
+`?clip=1&walk=1&from=JES&to=WEL&fit=1` is what the docs call "a recordable
+shot of a route with no chrome", and loaded exactly as written it produced the
+wrong frame: `applyURL` runs the moment the style is up, so the fitBounds
+landed at ~t=2 s while the veil was still down, and at t=10 s the opening
+flight took the camera to its own end pose and stayed — z16.9 over the Tower
+with the route thread lying across the rooftops (§116's frame 13).
+
+The fix does not fight for the camera; nothing in this file has ever moved the
+camera on its own and that stands. It **waits** for it: veil lifted
+(`window.__intro.reason` is stamped when the flight departs), flight stopped
+easing, plus `fitQuietMs` 600 of silence — which has to exceed the 30 ms gap
+between the intro's two legs — with a `fitWaitMaxMs` ceiling so a stalled tile
+can never eat the shot. With `intro=0` (the whole verify suite) it fits
+immediately, exactly as before.
+
+Driven with the intro left running, sampled on the page's clock:
+
+```
+t= 0..21s  z16.2 [-97.7420,30.2680] pitch 78   veil down, nothing moves
+t= 46s     easing                              flight departs (veil hit its ceiling)
+t= 65s     z16.90 [-97.7394,30.2836] pitch 72  the intro's end pose
+t= 70s     z16.65 [-97.7373,30.2847] pitch 55  OUR fit, and it holds to the end
+```
+
+Whole route bbox inside the final viewport, at `fitPitch` 55 not the intro's
+72, all 13 chrome elements `display:none`, **the OSM attribution still visible
+because it is a licence condition and not chrome**.
+`shots/walk/z59/z6-advertised-url-day.png` / `-night.png`.
+
+### Z7 / Z8 — the phone, which is the device this feature is for
+
+**Z7.** `#wf-pill` was `left:50%` + `translateX(-50%)`, so its shrink-to-fit
+available width was `100% - 50%` = 196.5 px on a 393 px screen and the
+`max-width` sitting in the phone block **never once bound**. Both edges pinned,
+translate dropped: **361 px, headline on one line** (was two, with `Show route`
+wrapping inside its own button). The three 44 px buttons now sit ON the bar,
+which reads as one control bar and is right for a phone — so the text gets
+52 px gutters and stays between them (measured 69..324 against buttons at
+16..60 and 343..377).
+
+**Z8.** The open sheet covered the joystick: sheet y324-852, stick y682-782,
+BOOST reaching y650. `interface.md` says hide the joystick while searching;
+**hidden is not usable**, so instead the sheet keeps its top edge and gives up
+height at the bottom — only possible because `#wf-sheet` is now a flex column
+with the result list as the child that yields, so the head, both fields, the
+hint and the attribution footer stay whole at any cap. Sheet now y324-634.
+Stick visible, and `elementFromPoint` at its centre returns `#joystick-base`,
+which is the assertion that means *touchable* rather than *drawn*. It also
+stops running under `#tod-panel` on the right, which was wrong before this pass
+too. `--wf-joy-clear` 218 px and `--wf-tod-clear` 60 px are derived from those
+panels' own numbers with the arithmetic written next to them.
+
+### Z9 — the wrong Jester, and a row cut in half
+
+`jest` returned **JCD Jester East Hall** ahead of **JES Beauford H. Jester
+Center**, because both carry the word "jester" and the tie fell to "routable
+first, then shortest display name". The stated ladder (code > code prefix >
+name prefix > name contains) does not fix it either — "Jester East Hall"
+*starts* with the query and would still win.
+
+What actually separates them is that **`jest` begins with `JES`**. UT's codes
+are almost always the head of the building's own name — WEL Welch, GRE
+Gregory, BUR Burdine, PAI Painter, MAI Main — so a query that starts with a
+building's code is real evidence. Alone it would be dangerous, so it is a
+**conjunction**: the code must head the query AND the building's own words must
+match. New rung above the name rungs. Verified: `jest`, `jester`, `jes`,
+`welch`, `greg`, `burd`, `paint` all rank the intended building first; exact
+code is still the only result; one-typo matching still works.
+
+Also: tokens now come from the **displayed** name as well as the index key —
+JCD is `jester residence hall` in the index and `Jester East Hall` on the door,
+and we were searching the name we do not show — so `jester east` finds JCD.
+
+And `+ N more — keep typing` left the scrolling list. It was the last child of
+`#wf-list`, so the list's own `max-height` cut it through the middle and the
+remains sat on the hint line. It is a note about the results, not a result.
+
+### THE REAL QUESTION, and the answer is one-sided on purpose
+
+A student between classes is not asking how to get there. They are asking
+**"do I have time?"**, and an app that prints a distance and a range is making
+them do that subtraction while walking.
+
+`docs/walk/what-we-can-honestly-say.md` gained **§15 first**, before a line of
+code, and the ruling is asymmetric because the two errors are not comparable:
+
+| we say | we are wrong | cost |
+|---|---|---|
+| "you will not make it" | they would have | a minute of walking faster |
+| "you will make it" | they do not | **they are late** |
+
+So: **we may WARN and we may never REASSURE.**
+
+* `lo >= passingMin` -> **`Longer than a 15-minute passing period`**
+* `lo < passingMin <= hi` -> **`Tight for a 15-minute passing period`**
+* `hi < passingMin` -> **nothing at all.** Deliberate, and it is the part worth
+  defending: our range measures pavement between two doors. It knows nothing
+  about a lecture hall of 200 emptying, a lift, a stairwell *inside* the
+  building (§9 — there is no indoor data and there never will be), the crowd
+  on Speedway at the hour, or finding the room. On a 13-minute walk into a
+  15-minute gap those consume the whole buffer. There is no wording of the
+  good news that does not become a promise, so there is no wording of it.
+
+Driven on eight real pairs, every one landing where §15 says it must:
+
+```
+PCL>JES   2-3 min   silent        WEL>PAI   2-4 min   silent
+JES>WEL   6-8 min   silent        GRE>MAI   7-10 min  silent
+BUR>CBA   9-13 min  silent
+STD>MAI  12-17 min  "Tight for a 15-minute passing period"
+Pointe on Rio>EER 19-27 min  "Longer than a 15-minute passing period"
+ADH>MCA  23-35 min  "Longer than a 15-minute passing period"
+```
+
+`passingMin` is flagged in §15 as **the one number in this feature with no
+file behind it** — nothing in `data/` records UT's schedule, and UT's own MWF
+blocks leave ten minutes while TTh leave fifteen. So the sentences use the
+**indefinite** article ("a 15-minute passing period", never "the"), the value
+is one line, and §12 now forbids the reassuring family with the reason for
+each.
+
+### The gates
+
+`harness-drift.mjs` **PASS 29/29** before any pixel, on the served tree.
+**44 of 45 behaviour assertions green**; the one red is the assertion's fault
+and not the code's — it put a 25 s deadline on the `intro=0` fit, and the
+diagnostic it printed on failure shows the fit had happened correctly (pitch
+55, centred on the route). No latency claim survives a machine this loaded, so
+that gate now asserts the outcome and prints the time as information.
+Zero wayfind MAP ERRORs on every load. Every text node under `#wf-root`
+re-scanned against §12's forbidden list: clean, the single accessibility
+mention being §11's own mandated disclaimer verbatim.
+
+### Frames — `shots/walk/z59/`, read not just taken
+
+Desktop 1440x900 and phone 393x852, day `p=0.25` and night `p=0.92`, settle ->
+idle -> repaint -> shoot twice keep the second.
+
+* `desktop-verdict-over-day/-night` — ADH>MCA, `23-35 min walk · 2.0 km ·
+  Stairs: 1 set` with the warning under it.
+* `desktop-verdict-tight-day` — STD>MAI, the other sentence.
+* `desktop-verdict-silent-day` — WEL>PAI 2-4 min: **no line at all**, which is
+  the point.
+* `desktop-card-expanded-night` — every string on one frame.
+* `desktop-z9-jest-day` — JES above JCD, and `+ 2 more` whole above the hint.
+* `desktop-z9-more-row-day` — `+ 28 more` on a one-letter query.
+* `phone-z7-pill-day/-night` — the full-width bar, three lines, one line each.
+* `phone-z8-sheet-joystick-day/-night` — the sheet open with the stick and
+  BOOST clear below it and the time panel clear beside it.
+* `z6-advertised-url-day/-night` — the recordable URL, intro left running.
+
+### A worktree lesson, written down because it nearly cost the work
+
+Mid-pass a sibling workflow checked out its own branch in the SHARED worktree
+while I was editing there, and my commit landed on `acer/mobile-eye-level`
+instead of `acer/n3-graph`. Recovered by cherry-picking onto the right branch
+from my own throwaway worktree and resetting the sibling's branch back to its
+own commit (verified clean of tracked modifications first, so nothing of
+theirs was lost). **The rule the night was given — serve AND edit from a
+throwaway worktree — is not only about the server. Editing in the shared tree
+is enough to lose a commit to another lane.**
+
+### For Simeon
+
+Walk-to-class now answers the question people actually ask — *will I make it?*
+— and it only ever answers it in the safe direction: it will tell you a walk is
+too long or too tight for a fifteen-minute gap, and it says **nothing at all**
+when the walk is short, because "you will make it" is a promise about a lift
+and a crowd we cannot see. On a phone the answer is a full-width bar instead of
+a 197 px column that wrapped, and the joystick still works with the search
+panel open. The route no longer repaints the city fifteen times a second
+forever — that was a real battery drain and it is now measured at zero the
+moment you cannot see the effect. And `?clip=1&walk=1&from=JES&to=WEL&fit=1`
+finally does what the docs say: it waits for the opening flight, then frames
+the whole route. **Still behind `?walk=1`. Nothing a visitor sees has changed.**
+
+### What I did NOT manage to do
+
+* **Z4 and the graph half of Z3 are not mine tonight and are already closed**
+  (§125, §129) — but **QUEUE.md still says they are open, and this lane may not
+  write QUEUE.md.** Whoever can: Z4 closed, Z3 closed, and **Z5, Z6, Z7, Z8, Z9
+  closed by this entry.**
+* **78 of 198 register codes still do not route.** Unchanged; it needs doors
+  authored in `data/entrances.geojson`, another lane's file (§129 has the
+  shopping list with coordinates).
+* **`avoidShown`'s hardcoded "189 mapped staircases"** is still hardcoded. It
+  is a count of the whole network rather than of what the router actually
+  avoids, and it should come off the graph. Named in §125 and still true.
+* **No before/after PIXEL diff of the pulse itself.** The Z5 claim is a
+  repaint-rate claim, measured twice with two instruments; nobody has
+  photographed the bright band running along the thread and then stopping. A
+  short recording, not a still, is what would show it.
+* **The Z5 numbers are one machine on one night, at 99 % CPU.** They are
+  ratios worth trusting (0 versus 9-11 renders a second) and absolute figures
+  worth re-taking on an idle machine.
+* **Nothing here has been on a real phone.** 393x852 in headless Chrome is not
+  an iPhone, and the mobile lane's own instrument note says the same thing.
