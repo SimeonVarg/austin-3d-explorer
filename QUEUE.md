@@ -1645,7 +1645,75 @@ but every playwright script there dies with
 `git stash -u` eats it. This lane worked around it with a junction to another
 worktree's copy rather than reinstalling into your file.
 
-### NB5. The bake reads one footprint snapshot and the app draws another — OPEN
+### ~~NB5. The bake reads one footprint snapshot and the app draws another~~ — CLOSED 2026-08-16, branch `acer/o1-snapshot`
+
+**Closed with the numbers, and the answer was the good one: nothing on screen
+was ever wrong.** Full working in `docs/data/snapshot-drift.md` (§7 is what was
+done; §1–§6 is the measurement that decided it).
+
+* **The two files NB5 named are byte-identical.** `2026-08-04` and
+  `2026-08-16` `buildings.detailed.geojson` have the same md5: 2453 features,
+  0 added, 0 removed, 0 geometry changed, 0 properties changed. Every one of
+  the 656 door groups, the buried-door rule and the Moody Center finding were
+  computed against exactly the bytes the renderer extrudes.
+* **Five bakes now resolve the snapshot the way `js/app.js` does** —
+  `bake_facades.snapshot_date()`, i.e. `data/manifest.json` → `latest`:
+  `bake_entrances`, `bake_walk` (both reads), `bake_drag`, `bake_westcampus`;
+  `bake_campus_storeys` already did.
+* **All five re-run, twice — old pin then new pin — and every one reproduces
+  its shipped output with the features BIT-IDENTICAL.** That includes `drag`
+  and `westcampus`, whose input genuinely changed (`2026-07-30` → `2026-08-16`:
+  0 geometry moved, only `wn` and `has_parts`, neither of which either bake
+  reads). The only delta in any shipped file is two provenance keys.
+* **Every output now carries its own provenance**, so this can never again be
+  a question somebody has to spend a night answering:
+  `"snapshot": "2026-08-16", "snapshot_source": "buildings.detailed.geojson"`.
+* **`scripts/snapshot_parity.py`** compares those against the manifest in 1.8 s
+  over all 42 data files, with three outcomes — PASS, STALE-BUT-EQUAL
+  (advisory), FAIL. Watched failing on a forced `2026-07-30` stamp, on
+  `2026-07-10` (correctly: *FOOTPRINTS MOVED*, naming all 7), and on a date
+  with no directory. Then restored.
+* **Gate:** `harness-drift` PASS, walk bake 19/19 green, coplanar entrances
+  1627 before and 1627 after, five poses × two runs per arm with both arms
+  waiting on `austin-entrances` — the two `balanced` poses byte-identical
+  across builds, the three `cinematic` ones inside their own noise floor.
+
+**The two things it left behind — both one-liners, both now visible to the check:**
+
+#### NB6. `data/facade_palette.json` records `2026-08-03`, so the baked palette is refused at boot
+
+`js/facades.js:818` only accepts the baked palette when its recorded snapshot
+equals `manifest.latest`. It does not, so the browser re-elects the palette at
+every boot. `scripts/snapshot_parity.py` reports it as STALE-BUT-EQUAL on every
+run. The fix is `python scripts/bake_facades.py`, which changes **one line** —
+the palette and all 14 buckets come back byte-identical, proved by running it.
+Not done here: it is `bake_facades.py`'s output file, another lane's bake, and
+re-arming a boot path deserves its own before/after rather than being smuggled
+in the night before a recording. **Boot cost, not pixels** — the fallback is
+documented-safe at `js/facades.js:787-789`.
+
+#### NB7. Nine more bakes still state a date, and one of them WRITES
+
+Same one-line fix, other lanes' files: `bake_arts`, `bake_moody`, `bake_places`,
+`bake_roofs`, `bake_stadium`, `bake_tower` (all `2026-07-30`), `bake_heroes`
+(`2026-08-03`), plus `bake_capitol` / `bake_outer` argv defaults.
+
+**`bake_detail.py:33` is the one that matters** and should be done first: its
+argv default is `2026-07-10`, the *oldest* snapshot and the only one where
+footprints genuinely moved (Jester 10.5 m, 11 buildings added, 1 removed, 7
+rings changed) — and unlike every other script on this list, `bake_detail.py`
+**writes** `buildings.detailed.geojson`. Typing `python scripts/bake_detail.py`
+with no argument today would regenerate the city from a five-week-old
+snapshot. That is the only pin in the repo that can do real damage, and only
+by accident.
+
+Each of those bakes should also gain the `"snapshot"` stamp, so
+`snapshot_parity.py`'s "35 unstamped" count comes down. And whoever owns
+`scripts/verify/` should `git mv scripts/snapshot_parity.py` into it — it was
+written outside that directory only because a suite-repair lane owned it on the
+night it was needed.
+
+<details><summary>The original NB5 entry, for the record</summary>
 
 Opened 2026-08-16 by `acer/nb2-buried`, which is what made it matter.
 
@@ -1667,6 +1735,8 @@ same 21.3 m, and both have 2,453 features. Checked before the fix was written.
 door positions to move wherever the two snapshots disagree — that is a real
 delta and wants its own before/after), or pin the app to the snapshot the bake
 uses and say why. Do not leave them silently disagreeing.
+
+</details>
 
 ### And the thing the sweep did NOT find, which is the useful half
 

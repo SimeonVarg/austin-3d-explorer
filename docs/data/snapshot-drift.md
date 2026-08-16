@@ -12,6 +12,13 @@ fast path in `js/facades.js` is switched off right now.
 
 Nothing on this page needs a re-bake tonight except a one-line date stamp.
 
+> **STATUS 2026-08-16, branch `acer/o1-snapshot`: acted on. See §7 at the
+> bottom.** Five bakes repointed, five outputs stamped, and
+> `scripts/snapshot_parity.py` written and watched failing. Every prediction
+> on this page held when it was run rather than reasoned about — including the
+> one that mattered, that `bake_drag` and `bake_westcampus` could be moved off
+> `2026-07-30` without a pixel changing.
+
 ---
 
 ## 1. What each consumer reads
@@ -385,3 +392,156 @@ self-describing even before the check runs.
 * **`bake_capitol.py` and `bake_outer.py` argv defaults (2026-07-30) were not
   traced to a shipped file.** They take an argument; how they were last invoked
   is not recorded anywhere I could read.
+
+---
+
+## 7. What was actually done, 2026-08-16, branch `acer/o1-snapshot`
+
+§5 said "almost nothing needs re-baking" and §6 designed the mechanism. Both
+were followed. The one place this pass went further than §5: it **did** re-run
+all five bakes — because measuring the re-bake turned out to be cheaper than
+arguing about whether it was safe, and it converts §5's reasoning into a byte
+comparison.
+
+### 7.1 The five bakes, repointed
+
+| Bake | Was | Now | Output |
+|---|---|---|---|
+| `bake_entrances.py` | `2026-08-04` | `bake_facades.snapshot_date()` | `entrances.geojson` |
+| `bake_walk.py` (both reads) | `2026-08-05` | ” | `walk_graph.json` |
+| `bake_drag.py` | `2026-07-30` | ” | `drag.geojson` |
+| `bake_westcampus.py` | `2026-07-30` | ” | `westcampus.geojson` |
+| `bake_campus_storeys.py` | already correct | unchanged | `campus_storeys.geojson` |
+
+§6.1 proposed lifting the resolver into a new `scripts/snapshot.py`. It was not
+lifted: `bake_campus_storeys.py` has imported `bake_facades.snapshot_date()`
+since it was written, that pattern already works, and adding a module to move
+one twenty-line function is churn for its own sake. Four more importers, same
+call. If a sixth thing ever needs it, lift it then.
+
+### 7.2 Every bake re-run, and the outputs compared feature-by-feature
+
+Run once at the OLD pin first, to establish that each bake still reproduces its
+shipped file at all — several have authored inputs that have drifted since they
+were last run, and §"not established" flagged exactly that risk. **All five
+reproduced their shipped output byte-for-byte.** Then run again at the new pin:
+
+```
+data/campus_storeys.geojson   640 features   identical   + snapshot keys
+data/drag.geojson             124 features   identical   + snapshot keys
+data/westcampus.geojson      1363 features   identical   + snapshot keys
+data/entrances.geojson      15069 features   identical   + snapshot keys
+data/walk_graph.json          all keys       identical   + snapshot keys
+```
+
+`drag` and `westcampus` are the load-bearing pair: their input genuinely
+changed, `2026-07-30` -> `2026-08-16`, and their features came back
+**bit-identical**. §3's cross-check — that neither bake reads `wn` or
+`has_parts` — is now a measurement rather than an inference.
+
+Re-measured here independently of §2, on the shipped files rather than the
+md5 table: 07-30 -> 08-16 is 2453 -> 2453 features, 0 added, 0 removed,
+**0 geometry changed**, and exactly two property keys moved: `wn` on all 2453
+and `has_parts` on 6.
+
+### 7.3 The stamp
+
+Every one of the five now writes, at the top of its own output:
+
+```json
+{ "type": "FeatureCollection",
+  "snapshot": "2026-08-16",
+  "snapshot_source": "buildings.detailed.geojson",
+  "features": [ ... ] }
+```
+
+`snapshot_source` is one key more than §6.2 asked for, and it earns itself:
+without it the check has to *guess* which file inside the snapshot directory a
+given bake read, and `bake_walk.py` reads `buildings.enriched.geojson` while
+the other four read `buildings.detailed.geojson`. Guessing would have compared
+the wrong two files and called it equal.
+
+`walk_graph.json` keeps its `as_of` — that dates the OSM pull, and the comment
+above it now says so, because reading it as a footprint date is how the two
+stayed unrelated long enough for NB5 to happen.
+
+### 7.4 The check: `scripts/snapshot_parity.py`
+
+§6.3's three outcomes, built. **It lives at `scripts/snapshot_parity.py`, not
+`scripts/verify/snapshot-parity.py`** — a suite-repair lane owns `scripts/verify/`
+tonight and a second lane writing into it is how the file-ownership rule gets
+broken. It is stdlib-only, has no dependency on the verify harness, and moving
+it into `scripts/verify/` later is a `git mv`. Whoever owns that directory
+should do exactly that.
+
+Streaming top-level-key reader rather than `json.load`, so scanning 42 files
+including the 6.75 MB `entrances.geojson` takes **1.8 s**. A guard nobody runs
+is not a guard.
+
+**Watched failing, three ways, then restored:**
+
+```
+stamp forced to 2026-07-30   FAIL  2453->2453, 0 added, 0 removed, 0 geometry,
+                                   properties has_parts:6, wn:2453
+                                   -> "no footprint moved; check whether this
+                                       bake reads any of the changed properties"
+stamp forced to 2026-07-10   FAIL  2443->2453, 11 added, 1 removed, 7 geometry
+                                   -> "FOOTPRINTS MOVED. Anything derived from
+                                       them wants re-baking."  (names all 7)
+stamp forced to 2025-01-01   FAIL  "the snapshot it names does not exist"
+```
+
+The 07-10 case is the one worth reading: it reproduces §2's Jester finding from
+a cold start, in a second, with no analysis.
+
+**And it found the live case with no contrivance.** On a clean tree:
+
+```
+5 pass, 1 stale-but-equal, 0 FAIL, 35 unstamped
+STALE-BUT-EQUAL  facade_palette.json  2026-08-03 -> 2026-08-16
+```
+
+That is §4, detected automatically. The middle tier works, on real data, the
+first time it was run.
+
+### 7.5 What was deliberately NOT done
+
+* **`data/facade_palette.json` was not re-baked**, against §5's item 1. It is
+  `bake_facades.py`'s output file and this pass owns five other bakes; more to
+  the point, re-arming a boot path that is currently off is a behavioural
+  change that wants its own before/after, and this was the night before a
+  recording. The check now reports it every run, so it cannot be forgotten
+  again. Queued.
+* **The eight `2026-07-30` bakes outside this lane** (`bake_arts`, `bake_moody`,
+  `bake_places`, `bake_roofs`, `bake_stadium`, `bake_tower`, plus
+  `bake_heroes`'s `2026-08-03`) were left alone. Same pattern, same one-line
+  fix, other lanes' files.
+* **`bake_detail.py:33`'s `2026-07-10` argv default** — §5's genuinely dangerous
+  pin — was left alone for the same reason. It is the highest-value remaining
+  item on this page.
+
+### 7.6 The gate
+
+`harness-drift` PASS (29 scripts both files). Walk bake **19 of 19 green**.
+`coplanar.mjs` on `entrances.geojson`: **1627 before, 1627 after**, measured on
+`HEAD`'s file and the branch's file in the same run — the `--gate` red is the
+stale 1558 baseline of QUEUE NB3, not this change.
+
+Five poses, two runs per arm, sequential on one port, both arms waiting until
+`austin-entrances` reported loaded with 15,769 source features:
+
+```
+pose             within main      within cand      across (worst / best)
+southmall-eye    847,745 px       851,215 px       852,928 / 848,041
+door-close       836,527 px       839,044 px       841,325 / 836,240
+drag-street              0 px             0 px             0 /       0
+westcampus               0 px             0 px             0 /       0
+spawn-night      266,215 px       266,809 px       269,458 / 265,832
+```
+
+The two `balanced` poses are **byte-identical across builds** — and they are
+the two whose bake input actually changed. The three `cinematic` poses carry a
+huge intrinsic noise floor (~65% of the frame differs by >2 between two runs of
+the *same* build), and every across-build number sits inside the within-build
+band, with the best cross pair *below* the within-main floor at two of three
+poses. That is the signature of noise, not of a city that moved.
