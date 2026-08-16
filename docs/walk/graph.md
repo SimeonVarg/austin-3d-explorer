@@ -822,3 +822,176 @@ every mapped approach comes off the San Jacinto loop to the east, so a walk
 from Gregory rounds the stadium block and the audit reads the arrival as a
 90 m overshoot. Both doors anchor cleanly; there is no western approach to
 choose. That is the fence, not the graph.
+
+---
+
+## 12. Round three, 2026-08-16: findable now MEANS routable, and a canopy was eating the only surveyed door on the Moody Center
+
+Two questions this pass had to answer, and they are not the same question.
+**Findable** is "the search box offers this name". **Routable** is "pressing
+Enter produces a walk". A name that is findable and not routable is worse
+than a name that is absent, because it fails *after* the student believes it
+worked - and it fails while they are already walking. Everything below is
+**[M]** off `scripts/bake_walk.py` and the shipped `data/walk_graph.json` on
+this date.
+
+### 12a. QUEUE Z4, checked rather than assumed - and it was already closed
+
+Z4 says six of the 24 West Campus towers are not in the graph. **On `main`
+today they are.** §11 landed the fix (the `wc` map had been filtering door
+groups on `src == "westcampus"`, and six towers' lobby doors are `derived`);
+QUEUE.md was never updated because that lane could not write it.
+
+Trusting that was not good enough, so the shipped wire file was decoded by a
+second, independent router - not the bake's own in-memory graph - and every
+tower was routed end to end:
+
+```
+24 of 24 towers in `wc`, all with anchored doors, all producing a real route
+  21 Rio                  843 m      Skyloft Austin            718 m
+  Pointe on Rio          1017 m      The Block                1436 m
+  The Quarters Sterling   925 m      The Venue on Guadalupe   1140 m
+  (the other 18: 530-1461 m, all routing)
+120 of 120 register codes in the `code` map have an anchored door
+119 of 119 of them produce a real route to WEL
+  0 entries anywhere in the file are findable-but-not-routable
+```
+
+**So the two states now differ like this.** A building the graph ships is
+findable *and* routable - there is no in-between state left in the file. A
+building the graph does not ship (the 78 below) is findable because the
+client merges UT's register in, and it answers `<code> is not walkable in
+this build yet`. That is findable-and-refusing, which is honest; the state
+this pass abolished is findable-and-failing.
+
+**And it is now a gate, so it cannot come back.**
+
+* **Gate S** - every key in `code` and every name in `wc` has at least one
+  anchored door, and every anchor sits on the main component.
+* **Gate T** - all 24 towers are routed to `WC_ROUTE_TARGET` (`WEL`, chosen
+  because it is the far side of campus) on the finished graph, driven, not
+  argued.
+
+Both were **watched failing** before being believed. Re-apply the original
+Z4 bug (filter `wc` on `src == "westcampus"`) and T reports `18 of 18
+routed` and goes red. Leave a tower findable but strip its anchors and S
+reports `1 entries with no anchored door` and T names it: `23 of 24 routed,
+FAILING Skyloft Austin`.
+
+### 12b. A `building_class: roof` was counted as a wall in the one test that mattered
+
+The Moody Center's doors were the last four unlinked doors on campus, and
+one of them is `src: osm, role: main` - a **surveyed** entrance, the kind
+`what-we-can-honestly-say.md` §7 says may be called *"The main entrance"*.
+It sits **9.4 m** from the walked network and it was being thrown away.
+
+The cause is in this file's own constant. `WALL_IGNORE_CLASSES = {"roof"}`
+was declared with a comment naming the Moody Center by hand - canopies,
+awnings, arena roof planes, walking under one is walking outdoors - and it
+was honoured in `find_through_edges` and in `edge_clips_building` and **not
+in `anchor_doors`**, which called the raw boundary test. So every candidate
+link to those doors crossed an unnamed 8 m roof plane and was rejected:
+
+```
+Moody Center, before        after
+  door 461 osm/main    0 of  3 candidates usable   ->  2 anchors, 9.4 m
+  door 462 derived     0 of  2                     ->  3 anchors, 0.9 m
+  door 463 derived     0 of 19                     ->  3 anchors, 4.0 m
+  door 464 derived     0 of 43                     ->  2 anchors, 3.8 m
+doors linked   620 of 629 (98.6 %)  ->  624 of 629 (99.2 %)
+```
+
+The same inconsistency was in `audit()`, whose wall counter is the strongest
+guard in the file (*"any number here is a FAILURE"*). It tested the two
+unmapped last legs without the class filter, so the moment the Moody door
+attached, five spot-checked routes reported `walls 1` - and the wall was the
+awning. Both now use the class filter, and canopy contacts are **counted and
+printed separately** rather than dropped: the validation line reads
+`(last leg passes under 1 canopy/ies)`. Measured across the 299-pair sweep:
+
+```
+routes flagged, roof counted as a wall   27
+routes flagged now                       22
+the difference                            5, every one of them canopy-only
+```
+
+**What was deliberately NOT done**: `anchor_doors` still requires a link to
+cross *no* other building. It was tempting to give it `edge_clips_building`'s
+3 m depth tolerance for consistency, and that would be loosening a guard to
+buy connections, which is the one move this graph does not make.
+
+### 12c. The 78 that do not route, re-derived from OSM's own ref tags
+
+§11e said all 78 have "no door in any source". That was true and it was
+*argued* from fuzzy token-matching the register's names against footprint
+names - a method in which a fuzzy miss and a genuinely unmapped building
+read identically. This pass re-derived it a second, independent way.
+
+OSM tags **177 campus building ways with a `ref`, and 134 of those refs are
+register codes**. That is a surveyed answer to "where is this building" that
+depends on no name string agreeing with any other. Frozen into the bake as
+`OSM_REF_XY` (provenance in the comment; **diagnosis only - it creates no
+door, node or edge**), it turns the stranded list from a number into a
+per-building finding:
+
+```
+ 50  not on the map at all: no OSM ref, and no footprint carries the
+     register's name  (greenhouses GHA-GHF, equipment storehouses E11-E27,
+     the Facilities garages, graduate housing, NUR, SMC, UTA...)
+ 26  on the map, but the nearest mapped door is further than 40 m and
+     belongs to another building
+  2  on the map with a mapped door within 40 m - checked by hand, below
+```
+
+Each of the 78 prints one line, e.g. `HDB  OSM maps it as 'Health Discovery
+Building'; nearest mapped door is 183 m away and it is 1836 San Jacinto's`.
+
+**The three borderline cases were checked by hand and all three are
+rejected**, which is the point of surfacing them:
+
+* `FDH` J. Frank Dobie House - nearest door 39 m, on an unnamed neighbour.
+* `LCH` Littlefield Carriage House - nearest door 40 m, and it is the Jesse
+  H. Jones Communication Center B's.
+* `WMB` West Mall Office Building - nearest door 40 m, and it is Goldsmith
+  Hall's.
+
+Adopting any of them would put *"Entrances are on this side"* on the wrong
+building's wall, 40 m away. `AF1` deserves its own line because it is the
+trap: a 0.6-Jaccard name match pulls in *'Athletic Fields Pavilion
+(Eastside)'*, whose doors are 15 m away - and that footprint is **AF2**. The
+rehab pavilion still has no door anywhere.
+
+**So 120 of 198 remains the honest ceiling for this bake, now on two
+independent measurements rather than one.** The constraint is door supply,
+not connectivity: 624 of 629 doors attach, and the five that do not
+(`ARC`, `BIO` and `FAC` second doors, one unnamed) are 30.9-47.4 m from the
+network with their buildings already routable through other doors. Raising
+`DOOR_LINK_MAX_M` past 30 m to catch them would be buying a connection with
+a longer unsurveyed straight line, which is the same trade §3d refused.
+
+**The fix is still authoring doors in `data/entrances.geojson`, another
+lane's file.** With `OSM_REF_XY` the shopping list now comes with
+coordinates: the 26 "on the map" codes are the ones where a surveyor has
+already drawn the building and only the door is missing - `NUR`, `UTA`,
+`HDB`, `HTB`, `JHH`, `WMB`, `CDL`, `ANB`, `LCH`, `SAG`, `TRG`, `GUG`, `HCG`
+first, because they are named buildings a student types.
+
+### 12d. The numbers after
+
+```
+nodes 11,247   edges 12,194   components 50   largest 95.61 %
+doors attached 624 of 629 (99.2 %)   worst link 27.7 m   re-routed 5
+routable 120 / 198   `code` 143 keys   `wc` 24 towers
+file 336.0 KB raw / 101.3 KB gzip -9   bake 5.8 s (was 3.3 s: gate T
+     drives 24 real routes)
+gates 19 of 19 green   (17 -> 19: +S findable-means-routable, +T towers
+     driven; both watched failing)
+validation 19 pairs (18 frozen + JES>MCA, the recovered surveyed door),
+     all walls 0, --regress PASS and watched failing on a moved baseline
+sweep 299/299 routed, 0 no-route, detour median 1.41 / p90 1.81 / max 4.50
+```
+
+Two frozen rows moved by less than half a metre - `BUR>CBA` 788.7 -> 789.2
+and `GDC>BIO` 405.8 -> 405.7 - because four new anchors splice new nodes into
+existing edges and a shared edge is then summed in two pieces. Both were
+re-audited: same door pair, same path, walls 0.

@@ -16283,3 +16283,134 @@ Seven branches merged, zero red merges, two PRs deliberately left open
 the Drag has architecture, the ground has grain, clip mode records clean, and
 every gate that was green tonight has also been watched failing. The city is
 yours in the morning.
+
+## 128. Aug 16 2026 — findable now means routable, and a canopy was eating the Moody Center's only surveyed door (QUEUE Z4, Z3 graph half) (acer lane)
+
+**Branch `acer/n3-graph` off `origin/main` `321dd9e`, served from a throwaway
+worktree. Files: `scripts/bake_walk.py`, `data/walk_graph.json`,
+`docs/walk/graph.md` §12, this entry — exactly the four this lane may write.
+No js, no css, no other data file. No browser and no server this pass, so
+nothing here is a pixel claim and `harness-drift.mjs` was not run (same
+reasoning as §125). `WAYFIND.on` is untouched: the feature is still behind
+`?walk=1` and flipping it is one constant and Simeon's call.**
+
+### What a student gets
+
+**Nothing that used to work stopped working, and one building stopped
+lying.** The Moody Center now ends its routes at its real, OSM-surveyed
+front door — the interface may call that *"The main entrance"*, which it may
+not do for a derived door. Before this pass that door was in the file and
+attached to nothing, so a route to the Moody Center arrived at a guessed
+side entrance instead.
+
+**And the worst state this feature can be in is now impossible by
+construction**: a name the search box offers that fails when you press
+Enter. Every name the graph ships is routable, and it is a gate.
+
+### Z4: verified closed, and the two states named
+
+QUEUE Z4 says six of the 24 West Campus towers are missing from the graph.
+**They are not — §125 fixed it and QUEUE.md was never updated, because that
+lane could not write QUEUE.md.** I did not take that on trust: the shipped
+wire file was decoded by a second, independent router and every tower routed
+end to end (843 m for 21 Rio, 1,017 m Pointe on Rio, 925 m Quarters
+Sterling, 718 m Skyloft, 1,436 m The Block, 1,140 m The Venue). 24 of 24.
+
+**The two states differ like this now.** A building the graph ships is
+findable *and* routable — there is no in-between left in the file. A
+building the graph does not ship is findable anyway, because the client
+merges UT's register in, and it answers `SMC is not walkable in this build
+yet`. Findable-and-refusing is honest. Findable-and-failing is the one this
+pass abolished, and gates S and T exist so it cannot return. Both were
+watched failing on the exact original defect before being believed.
+
+**Somebody who can write QUEUE.md: Z4 is closed, both halves.**
+
+### The defect nobody had found: a roof is not a wall
+
+`WALL_IGNORE_CLASSES = {"roof"}` has been in `bake_walk.py` since the
+beginning, with a comment naming the Moody Center by hand. It was honoured
+in two of the three places that test a line against a building and **not in
+`anchor_doors`**, the one that decides whether a door exists at all. Result:
+all four of the Moody Center's doors — including the surveyed main one, 9.4 m
+from the sidewalk — were rejected because the straight line to them passes
+under an unnamed 8 m arena canopy. Doors linked went **620 → 624 of 629
+(98.6 % → 99.2 %)**.
+
+The same inconsistency was in `audit()`, whose wall counter is the strongest
+guard in this repo. Fixing the anchor test made five spot-checked routes
+report `walls 1`, and the wall was the awning. Both now use the class
+filter, and canopy contacts are printed rather than dropped — across the
+299-pair sweep, flagged routes went 27 → 22 and **all five of the difference
+were canopy-only**, measured, not assumed.
+
+I did **not** give `anchor_doors` the 3 m depth tolerance the rest of the
+file uses. That would be loosening a guard to buy connections.
+
+### The 78 that still do not route, re-derived a second way
+
+§11e argued them from fuzzy name-matching, where a fuzzy miss and an
+unmapped building read identically. OSM tags 177 campus buildings with a
+`ref` and **134 of those refs are register codes** — a surveyed position that
+depends on no name agreeing with any other. Frozen into the bake as
+`OSM_REF_XY`, **diagnosis only: it creates no door, node or edge.** Every
+stranded code now prints its own reason:
+
+```
+ 50  not on the map at all — no OSM ref, no footprint carrying the name
+     (greenhouses GHA-GHF, storehouses E11-E27, graduate housing, NUR, SMC)
+ 26  on the map, nearest mapped door > 40 m and it belongs to another
+     building  (HDB 183 m, JHH 133 m, UTA 99 m, SAG 78 m, TRG 67 m ...)
+  2  on the map with a door inside 40 m — checked by hand, all rejected
+```
+
+FDH (39 m, an unnamed neighbour's door), LCH (40 m, the Comm Center B's) and
+WMB (40 m, Goldsmith Hall's) were each examined and refused: adopting one
+puts *"Entrances are on this side"* on the wrong building's wall. AF1 is the
+trap worth naming — a loose name match pulls in 'Athletic Fields Pavilion
+(Eastside)', 15 m away, and that footprint is **AF2**.
+
+**So 120 of 198 stands, now on two independent measurements.** The wall is
+door supply, not connectivity — 624 of 629 doors attach, and the five that
+do not are 30.9–47.4 m out with their buildings already routable by another
+door. **The fix is authoring doors in `data/entrances.geojson`, another
+lane's file** — and the shopping list now comes with coordinates: NUR, UTA,
+HDB, HTB, JHH, WMB, CDL, ANB, LCH, SAG, TRG, GUG, HCG are all buildings a
+surveyor has already drawn where only the door is missing.
+
+### The numbers, printed by every bake run
+
+```
+nodes 11,247  edges 12,194  components 50  largest 95.61 %
+doors attached 624/629 (99.2 %)  worst link 27.7 m  re-routed 5
+routable 120 / 198   `code` 143 keys   `wc` 24 towers
+file 336.0 KB raw / 101.3 KB gzip -9   bake 5.8 s (was 3.3: gate T drives
+     24 real routes)
+gates 19 of 19 green   (17 -> 19: +S findable-means-routable, +T every
+     tower routed to WEL; BOTH watched failing)
+validation 19 pairs (18 frozen + JES>MCA, the recovered surveyed door),
+     all walls 0; --regress PASS and watched failing on a moved baseline
+sweep 299/299 routed, 0 no-route, detour median 1.41 / p90 1.81 / max 4.50
+```
+
+Two frozen rows moved under half a metre (BUR>CBA 788.7 → 789.2, GDC>BIO
+405.8 → 405.7): new anchors splice nodes into existing edges, so a shared
+edge sums in two pieces. Both re-audited — same door pair, same path,
+walls 0.
+
+### What I did NOT manage to do
+
+* **No browser, so no picture.** Nobody has looked at a route ending at the
+  Moody Center's real front door. It is the frame a later pass should take,
+  and the honest wording it unlocks (*"The main entrance"*) has never been
+  seen on screen.
+* **120 did not move.** Every avenue I could take from inside this bake was
+  measured and refused as dishonest; the remaining 78 need doors authored in
+  a file this lane may not write.
+* **Z5–Z9 untouched** — Z5 (the 15 fps repaint of the whole city while a
+  route is drawn) is still the worst item on the board and is a
+  `js/wayfind.js` job.
+* **`js/wayfind.js` cannot use the new `re` road-leg list or say anything
+  about canopies** — both ship in the file, neither is read.
+* **QUEUE.md** is not this lane's to write; Z4 is closed and still says open
+  there.
