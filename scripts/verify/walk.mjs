@@ -132,7 +132,7 @@ function printSeries(r, ceiling) {
   }
 }
 
-// THE WATCHDOG HAS TO BE DERIVED, NOT INHERITED (added 2026-08-16, §154).
+// THE WATCHDOG HAS TO BE DERIVED, NOT INHERITED (added 2026-08-16, §155).
 // chrome.mjs defaults to 300 s. This gate walks (SITES + the watched failure)
 // phases of up to SECS each, REPS times, each with its own page load — 3 sites
 // at the default 175 s is already 700 s of walking before a single load. Run

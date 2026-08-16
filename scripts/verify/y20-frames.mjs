@@ -43,7 +43,7 @@
  * preserveDrawingBuffer, auto-detect probe cancelled, 900x700, dusk.mjs's own
  * POSE and sample point so the numbers are comparable to its table.
  *
- * Written by the Acer lane, 2026-08-16 (§154). Owns: this file only. It asserts
+ * Written by the Acer lane, 2026-08-16 (§155). Owns: this file only. It asserts
  * nothing about js/sky.js beyond what it renders; the fix is another lane's.
  */
 import { chromium } from 'playwright-core';

@@ -128,7 +128,7 @@ for (const f of files) {
 
   // ── 7. Prints a failure a caller can never see. ─────────────────────
   //
-  // ADDED 2026-08-16 (§154). §149 DELETED `silhouette.mjs` partly for printing
+  // ADDED 2026-08-16 (§155). §149 DELETED `silhouette.mjs` partly for printing
   // `*FAIL` and then exiting 0 — and added no check, so the next one was free
   // to sit there. There were three: `sky.mjs`, `collision.mjs`, `night-sky.mjs`.
   //
@@ -150,7 +150,7 @@ for (const f of files) {
 
   // ── 8. Loads the page without ?drift=0. ─────────────────────────────
   //
-  // ADDED 2026-08-16 (§154). `js/app.js`'s idle cinema starts after
+  // ADDED 2026-08-16 (§155). `js/app.js`'s idle cinema starts after
   // `DRIFT.idleMs = 25 s` of input silence and then, every `stepMs = 12 s` leg,
   // eases the BEARING by 13 deg, breathes the ZOOM by 0.05, and creeps the HOUR
   // by `pStep = 0.010`. A scripted run sends no pointer or key events, so the

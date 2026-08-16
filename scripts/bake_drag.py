@@ -79,10 +79,23 @@ Usage:  python scripts/bake_drag.py
 import json
 import math
 import os
+import sys
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SNAP = os.path.join(ROOT, "data", "snapshots", "2026-07-30", "buildings.detailed.geojson")
+
+# The footprint file the RENDERER extrudes, resolved the way js/app.js resolves
+# it. This said `2026-07-30` — genuinely different bytes from what the app
+# draws, unlike the other pins QUEUE NB5 turned up. Measured before repointing:
+# 07-30 -> 08-16 is 0 buildings added, 0 removed, 0 geometry changed, and
+# exactly two properties moved (`wn`, `has_parts`), neither of which this bake
+# reads. Re-running against the new date reproduces this file byte-for-byte.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bake_facades  # noqa: E402
+
+SNAP_SOURCE = "buildings.detailed.geojson"
+SNAP_DATE = bake_facades.snapshot_date()
+SNAP = os.path.join(ROOT, "data", "snapshots", SNAP_DATE, SNAP_SOURCE)
 OUT = os.path.join(ROOT, "data", "drag.geojson")
 M_LAT = 111320.0
 
@@ -733,7 +746,9 @@ def main():
     # photographed 27.5 m, so the roofscape's deck and 33 clutter features sit
     # 11.7 m down inside the library, invisible and paid for on every frame.
     # Declaring it here is what lets the roof bake skip it.
-    fc = {"type": "FeatureCollection", "features": out,
+    fc = {"type": "FeatureCollection",
+          "snapshot": SNAP_DATE, "snapshot_source": SNAP_SOURCE,
+          "features": out,
           "replacedBuildingIds": replaced,
           "authoredRoofIds": [PCL_ID]}
     with open(OUT, "w", encoding="utf-8") as fh:

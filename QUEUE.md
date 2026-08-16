@@ -950,7 +950,7 @@ canopies under the disc; the WC pair is the proof). Instrument: composited
 control failing loudly (412 px) is what makes one rep enough here. What the
 frames DID catch is Y18 below.
 
-**Y15 — REPLICATED ON A SECOND INDEPENDENT WALK, 2026-08-16 (§154). 63.3 ms
+**Y15 — REPLICATED ON A SECOND INDEPENDENT WALK, 2026-08-16 (§155). 63.3 ms
 (Drag) and 52.0 ms (South Mall). Still open, still ~8x the budget.**
 `walk-trunk.mjs 3` again, merged tree, quieter machine (chrome 26–35, node 2–3,
 CPU 6–51 % with one sibling lane running, against §145's 90–100 %):
@@ -1065,7 +1065,7 @@ ramps the ground texture/fill never got the §82 treatment, or has a floor.
 Frames: `shots/blitz/y11-*-p070.png` against their own p 0.55 siblings.
 
 **Y23. THE SUITE HAS A HEALTH TABLE NOW, AND IT IS 25 GREEN / 12 RED OF 38
-GATES.** (2026-08-16, §154. Raw: `scripts/verify/out/gates*.json`.)
+GATES.** (2026-08-16, §155. Raw: `scripts/verify/out/gates*.json`.)
 
 §149 measured "what crashes"; this measures "what passes", which is a different
 question and the one nobody had answered. Scope is the **38 GATES** — every
@@ -1137,7 +1137,7 @@ sibling lane held a browser throughout.
 
 **Y22. `sky.mjs` was RED about the sun and could not say so — and the thing
 moving the sun was the screensaver, not `js/sky.js`. HARNESS HALF FIXED
-2026-08-16 (§154); nothing in `js/` needs to change.**
+2026-08-16 (§155); nothing in `js/` needs to change.**
 
 Three separate things, and the order matters because the middle one nearly
 became a false accusation against the lane that shipped the sky.
@@ -1173,7 +1173,7 @@ never sees it. That cost an hour of attribution here and is the only part of
 this that might deserve a code change.
 
 **Y20. `js/sky.js:1420` — the sun/moon DISC still switches body in ONE frame,
-and a person can see it. PHOTOGRAPHED 2026-08-16 (§154); still open.**
+and a person can see it. PHOTOGRAPHED 2026-08-16 (§155); still open.**
 
 `y20-frames.mjs` closes the gap §149's number left open. `dusk.mjs` finds this
 by sweeping with `force:true`, which bypasses `applyTimeOfDay`'s 1/128
@@ -1355,7 +1355,7 @@ Y21 West Campus band gaps and overlaps ....... NEW  (§149) — 11 of them, on T
                                                 2400 Nueces and Block on 25th East.
                                                 Baselined in westcampus-probe.mjs. See
                                                 below.
-Y22 sky.mjs was red and could not say so ..... HARNESS HALF FIXED (§154). The red was
+Y22 sky.mjs was red and could not say so ..... HARNESS HALF FIXED (§155). The red was
                                                 js/app.js's idle cinema creeping the
                                                 hour 0.010 every 12 s under a test that
                                                 sends no input — not js/sky.js. 38 of
@@ -1363,7 +1363,7 @@ Y22 sky.mjs was red and could not say so ..... HARNESS HALF FIXED (§154). The r
                                                 pass it now. sky.mjs is 12/12 and can
                                                 finally exit non-zero. Nothing in js/
                                                 needs to change. See below.
-Y23 the suite's own health table ............. NEW  (§154) — 25 green / 12 red of 38
+Y23 the suite's own health table ............. NEW  (§155) — 25 green / 12 red of 38
                                                 GATES. Five of the twelve are the 300 s
                                                 watchdog (verdict UNKNOWN, incl.
                                                 movement.mjs), six are real assertion
@@ -1811,7 +1811,75 @@ but every playwright script there dies with
 `git stash -u` eats it. This lane worked around it with a junction to another
 worktree's copy rather than reinstalling into your file.
 
-### NB5. The bake reads one footprint snapshot and the app draws another — OPEN
+### ~~NB5. The bake reads one footprint snapshot and the app draws another~~ — CLOSED 2026-08-16, branch `acer/o1-snapshot`
+
+**Closed with the numbers, and the answer was the good one: nothing on screen
+was ever wrong.** Full working in `docs/data/snapshot-drift.md` (§7 is what was
+done; §1–§6 is the measurement that decided it).
+
+* **The two files NB5 named are byte-identical.** `2026-08-04` and
+  `2026-08-16` `buildings.detailed.geojson` have the same md5: 2453 features,
+  0 added, 0 removed, 0 geometry changed, 0 properties changed. Every one of
+  the 656 door groups, the buried-door rule and the Moody Center finding were
+  computed against exactly the bytes the renderer extrudes.
+* **Five bakes now resolve the snapshot the way `js/app.js` does** —
+  `bake_facades.snapshot_date()`, i.e. `data/manifest.json` → `latest`:
+  `bake_entrances`, `bake_walk` (both reads), `bake_drag`, `bake_westcampus`;
+  `bake_campus_storeys` already did.
+* **All five re-run, twice — old pin then new pin — and every one reproduces
+  its shipped output with the features BIT-IDENTICAL.** That includes `drag`
+  and `westcampus`, whose input genuinely changed (`2026-07-30` → `2026-08-16`:
+  0 geometry moved, only `wn` and `has_parts`, neither of which either bake
+  reads). The only delta in any shipped file is two provenance keys.
+* **Every output now carries its own provenance**, so this can never again be
+  a question somebody has to spend a night answering:
+  `"snapshot": "2026-08-16", "snapshot_source": "buildings.detailed.geojson"`.
+* **`scripts/snapshot_parity.py`** compares those against the manifest in 1.8 s
+  over all 42 data files, with three outcomes — PASS, STALE-BUT-EQUAL
+  (advisory), FAIL. Watched failing on a forced `2026-07-30` stamp, on
+  `2026-07-10` (correctly: *FOOTPRINTS MOVED*, naming all 7), and on a date
+  with no directory. Then restored.
+* **Gate:** `harness-drift` PASS, walk bake 19/19 green, coplanar entrances
+  1627 before and 1627 after, five poses × two runs per arm with both arms
+  waiting on `austin-entrances` — the two `balanced` poses byte-identical
+  across builds, the three `cinematic` ones inside their own noise floor.
+
+**The two things it left behind — both one-liners, both now visible to the check:**
+
+#### NB6. `data/facade_palette.json` records `2026-08-03`, so the baked palette is refused at boot
+
+`js/facades.js:818` only accepts the baked palette when its recorded snapshot
+equals `manifest.latest`. It does not, so the browser re-elects the palette at
+every boot. `scripts/snapshot_parity.py` reports it as STALE-BUT-EQUAL on every
+run. The fix is `python scripts/bake_facades.py`, which changes **one line** —
+the palette and all 14 buckets come back byte-identical, proved by running it.
+Not done here: it is `bake_facades.py`'s output file, another lane's bake, and
+re-arming a boot path deserves its own before/after rather than being smuggled
+in the night before a recording. **Boot cost, not pixels** — the fallback is
+documented-safe at `js/facades.js:787-789`.
+
+#### NB7. Nine more bakes still state a date, and one of them WRITES
+
+Same one-line fix, other lanes' files: `bake_arts`, `bake_moody`, `bake_places`,
+`bake_roofs`, `bake_stadium`, `bake_tower` (all `2026-07-30`), `bake_heroes`
+(`2026-08-03`), plus `bake_capitol` / `bake_outer` argv defaults.
+
+**`bake_detail.py:33` is the one that matters** and should be done first: its
+argv default is `2026-07-10`, the *oldest* snapshot and the only one where
+footprints genuinely moved (Jester 10.5 m, 11 buildings added, 1 removed, 7
+rings changed) — and unlike every other script on this list, `bake_detail.py`
+**writes** `buildings.detailed.geojson`. Typing `python scripts/bake_detail.py`
+with no argument today would regenerate the city from a five-week-old
+snapshot. That is the only pin in the repo that can do real damage, and only
+by accident.
+
+Each of those bakes should also gain the `"snapshot"` stamp, so
+`snapshot_parity.py`'s "35 unstamped" count comes down. And whoever owns
+`scripts/verify/` should `git mv scripts/snapshot_parity.py` into it — it was
+written outside that directory only because a suite-repair lane owned it on the
+night it was needed.
+
+<details><summary>The original NB5 entry, for the record</summary>
 
 Opened 2026-08-16 by `acer/nb2-buried`, which is what made it matter.
 
@@ -1833,6 +1901,8 @@ same 21.3 m, and both have 2,453 features. Checked before the fix was written.
 door positions to move wherever the two snapshots disagree — that is a real
 delta and wants its own before/after), or pin the app to the snapshot the bake
 uses and say why. Do not leave them silently disagreeing.
+
+</details>
 
 ### And the thing the sweep did NOT find, which is the useful half
 

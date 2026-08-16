@@ -175,7 +175,7 @@ async function repHop(browser, S, opts) {
 
 const nm = v => (v == null ? '   --' : String(v));
 
-// Derived, for the reason written out at the same change in walk.mjs (§154):
+// Derived, for the reason written out at the same change in walk.mjs (§155):
 // REPS x SITES x {walk, hop} phases of up to SECS each, one page load per rep,
 // is far past chrome.mjs's 300 s default at every setting this file ships with.
 const NEED_MS = REPS * SITES.length * 2 * (SECS * 1000 + 45000) + 60000;
