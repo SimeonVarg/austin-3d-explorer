@@ -169,6 +169,36 @@
     return await r.json();
   }
 
+  /**
+   * ── THE TOWER PALETTE IS FETCHED HERE, AT PARSE TIME, AND THAT IS THE POINT ──
+   *
+   * MEASURED on a cold load (V8 sampler + a wrapped `fetch`, 2026-08-16, the
+   * numbers are in HANDOFF §133): `initOuter` used to be the thing that asked
+   * for this file, and it does not get to run until buildScene() has finished —
+   * around t = 8.0 s. By then roughly a hundred other requests for `data/` are
+   * in flight, so a 3 KB JSON took **1,201 ms** to come back. Requested from
+   * here it goes out at ~0.5 s into a queue that is still empty.
+   *
+   * That matters far more than 1.2 s of network sounds, because this file is on
+   * the critical path of DOWNTOWN. `austin-outer` is not "the far skyline" —
+   * it is where every downtown tower in the scene lives (L_TOWER, 114 of them),
+   * and nothing about downtown can start loading until this promise settles.
+   * Simeon's complaint is "the downtown buildings aren't loaded even when the
+   * loading screen completes", and this fetch was sitting in the middle of it.
+   *
+   * It costs one 3 KB request that the page was always going to make anyway. If
+   * the ring is switched off with ?outer=0 it is not made at all.
+   */
+  let _palettePromise = null;
+  function towerPaletteOnce() {
+    if (!_palettePromise) _palettePromise = getJSON(TOWER_PALETTE);
+    return _palettePromise;
+  }
+  // The .catch is not optional: an unawaited rejected promise is an unhandled
+  // rejection, and initOuter's own try/catch cannot cover a promise created
+  // before it ran. Both callers see the same rejection; only one reports it.
+  if (OUTER.on) towerPaletteOnce().catch(() => {});
+
   let _added = false;
   let _gj = null;          // kept for the palette-churn re-snap, below
   // `source-layer` for the ring's three layers, or {} on the GeoJSON fallback.
@@ -230,7 +260,7 @@
     const outerTiles = window.tileSource && window.tileSource('outer');
     outerLP = outerTiles ? outerTiles.layerProps : {};
 
-    let gj = null, patterned = 0, towers = [];
+    let gj = null, towers = [];
     // How L_TOWER and L_MID find their pattern: a match on the BAKED ordinal
     // `fb`, on BOTH data paths.
     //
@@ -263,36 +293,6 @@
       return window.facadeTierExpr ? window.facadeTierExpr(match) : match;
     };
 
-    {
-      // ── the tile path's own facade join ────────────────────────────
-      //
-      // A vector tile cannot be mutated, so `wp` — which does not exist until
-      // the campus palette has been derived in this browser — cannot be on it,
-      // and every one of the 114 downtown towers fell through
-      // ['coalesce', ['get','wp'], 'mh00'] to the campus-hall pattern. That is
-      // why downtown is forty identical brick-red boxes: not a data problem,
-      // one missing join. The towers' real colours are blue-grey glass and they
-      // have been baked and parity-proved (PR #71, #73) since; nothing rendered
-      // them.
-      //
-      // The join is an inert integer. `scripts/bake_outer_facades.py` clusters
-      // the towers on their OWN wall colours offline and stamps each with its
-      // bucket ORDINAL `fb`, plus the bucket colours in
-      // data/outer_tower_palette.json. At boot the browser registers those ten
-      // buckets in the shared atlas, gets back whatever palette indices it
-      // allocated, and builds the ordinal -> id map here. The ordinal belongs
-      // to the data; the id belongs to the session; neither can drift into the
-      // other.
-      try {
-        const pal = await getJSON(TOWER_PALETTE);
-        const t = joinBuckets(pal.buckets, 'outer-tower', 'tg');
-        if (t) { towerPattern = t; patterned += pal.buckets.length; }
-        midPattern = joinBuckets(pal.midrise, 'outer-midrise', 'mh');
-        if (midPattern) patterned += pal.midrise.length;
-      } catch (e) {
-        console.warn('[outer] downtown palette not applied:', e.message);
-      }
-    }
     if (!outerTiles) {
       try {
         gj = await getJSON(DATA);
@@ -360,7 +360,12 @@
     // adds for the core, so inserting before it keeps the ring at the bottom of
     // our stack and above the basemap. (Depth testing makes fill-extrusion
     // order mostly moot; this matters for the AO line, which is 2D.)
-    const before = ['buildings-ao', 'buildings-3d', 'buildings-labels']
+    //
+    // RECOMPUTED PER CALL, not captured once. The patterned layers below are now
+    // added in a second turn, after an await, and by then the graphics preset may
+    // have removed `buildings-ao` — addLayer against a `before` id that no longer
+    // exists THROWS, which would take downtown's towers out entirely.
+    const beforeId = () => ['buildings-ao', 'buildings-3d', 'buildings-labels']
       .find(id => map.getLayer(id));
     const p = (window.__todCurrentP != null) ? window.__todCurrentP : 0.3;
 
@@ -379,7 +384,71 @@
         // every box a self-shadow and the block reads as depth.
         'fill-extrusion-vertical-gradient': true,
       },
-    }, before);
+    }, beforeId());
+
+    watchPitch(map);
+
+    // ── STAGE TWO: the patterned downtown. Everything above this line is the
+    //    tile stream; everything below it needs the facade ATLAS.
+    //
+    // WHY THE SPLIT EXISTS. Measured on a cold load (HANDOFF §133): the source
+    // used to be added at 12.3-13.2 s, and the first downtown tile came back at
+    // 16.6 s. `initOuter` itself entered at 8.0 s — so four to five seconds went
+    // on things MapLibre did not need in order to start fetching downtown: a
+    // 1,201 ms fetch of a 3 KB palette (now prefetched at parse time, above) and
+    // registerFacadeBuckets, which rasterises new facade tiles into the shared
+    // atlas and re-uploads it. The atlas is the single most expensive thing this
+    // app does on a moving frame (measured.md §1.2 FINDING 2) and it was sitting
+    // in front of the tile request for the most-filmed subject in the scene.
+    //
+    // A vector source fetches nothing until a visible layer references it, so
+    // L_FLAT above is what actually opens the stream. By the time the buckets
+    // are registered the tiles are already in the browser and the patterned
+    // layers light up on the geometry that is there.
+    //
+    // The cost of the split, stated honestly: for the window between the two
+    // stages downtown's TOWERS are absent while the low-rise ring is drawn —
+    // L_FLAT's filter is NOT_TOWER. That window is short and it replaces a
+    // window in which NOTHING was drawn, so it is strictly less empty, not more.
+    let patterned = 0;
+    try {
+      // ── the tile path's own facade join ────────────────────────────
+      //
+      // A vector tile cannot be mutated, so `wp` — which does not exist until
+      // the campus palette has been derived in this browser — cannot be on it,
+      // and every one of the 114 downtown towers fell through
+      // ['coalesce', ['get','wp'], 'mh00'] to the campus-hall pattern. That is
+      // why downtown is forty identical brick-red boxes: not a data problem,
+      // one missing join. The towers' real colours are blue-grey glass and they
+      // have been baked and parity-proved (PR #71, #73) since; nothing rendered
+      // them.
+      //
+      // The join is an inert integer. `scripts/bake_outer_facades.py` clusters
+      // the towers on their OWN wall colours offline and stamps each with its
+      // bucket ORDINAL `fb`, plus the bucket colours in
+      // data/outer_tower_palette.json. At boot the browser registers those ten
+      // buckets in the shared atlas, gets back whatever palette indices it
+      // allocated, and builds the ordinal -> id map here. The ordinal belongs
+      // to the data; the id belongs to the session; neither can drift into the
+      // other.
+      const pal = await towerPaletteOnce();
+      const t = joinBuckets(pal.buckets, 'outer-tower', 'tg');
+      if (t) { towerPattern = t; patterned += pal.buckets.length; }
+      midPattern = joinBuckets(pal.midrise, 'outer-midrise', 'mh');
+      if (midPattern) patterned += pal.midrise.length;
+    } catch (e) {
+      // Unchanged behaviour: the towers still get drawn, on the campus pattern.
+      // "Palette missing" must never mean "downtown missing".
+      console.warn('[outer] downtown palette not applied:', e.message);
+    }
+
+    // The map can be torn down between the two stages (a reload mid-boot, the
+    // graphics menu rebuilding the style). Adding a layer to a dead map throws
+    // inside a promise, where nothing catches it.
+    if (!map.getSource(SRC)) {
+      console.warn('[outer] source gone before the patterned layers landed');
+      return;
+    }
 
     // 2. The exception: downtown towers, on the core's existing atlas.
     map.addLayer({
@@ -395,7 +464,7 @@
         'fill-extrusion-opacity': OUTER.opacity,
         'fill-extrusion-vertical-gradient': true,
       },
-    }, before);
+    }, beforeId());
 
     // 2a. The downtown STREETWALL. Same treatment as a tower — a real window
     //     pattern and a parapet — on the 8-40 m buildings between them. Falls
@@ -414,7 +483,7 @@
           'fill-extrusion-opacity': OUTER.opacity,
           'fill-extrusion-vertical-gradient': true,
         },
-      }, before);
+      }, beforeId());
     }
 
     // 2b. The downtown detail: crowns, gables, masts, ground-floor bands and
@@ -422,6 +491,20 @@
     //     on `k`. NOT density-filtered: a crown is 4% of its tower's height and
     //     the whole point of it, so thinning it before the tower under it is
     //     backwards, and there are 674 of these against 7,754 walls.
+    //
+    // IT STAYS IN STAGE TWO, AND THE REASON IS MEASURED. This layer does not
+    // need the palette, so the first cut of the split put it in stage one with
+    // L_FLAT — which moved it from fourth in the stack to second, ahead of
+    // L_TOWER. A settled downtown A/B then showed 63 pixels changed against a
+    // zero-pixel same-build noise floor, scattered as single pixels along the
+    // 2-8 km skyline. That is a coplanar tie-break flipping: a crown's BASE is
+    // exactly its shaft's HEIGHT, so the two surfaces meet on one plane and
+    // whichever fill-extrusion draws first wins the depth test on the seam.
+    //
+    // Nothing about opening the tile stream needs this layer — L_FLAT alone
+    // does that, since a vector source fetches nothing until a visible layer
+    // references it. So it costs nothing to keep the six layers in the order
+    // they have always been in, and the split becomes pixel-identical.
     map.addLayer({
       id: L_DETAIL, type: 'fill-extrusion', source: SRC, ...outerLP,
       minzoom: OUTER.minZoom,
@@ -433,7 +516,7 @@
         'fill-extrusion-opacity': OUTER.opacity,
         'fill-extrusion-vertical-gradient': true,
       },
-    }, before);
+    }, beforeId());
 
     // 3. A parapet cap on the towers only, using app.js's shared geometry rule
     //    so the ring cannot drift from the core's. Without it the window
@@ -457,7 +540,7 @@
           'fill-extrusion-base': G.base(['get', 'h']),
           'fill-extrusion-opacity': 1.0,
         },
-      }, before);
+      }, beforeId());
 
       // 3b. …and the same parapet on the streetwall, which is where a flat cut
       //     is most obvious: you look DOWN on a 12 m roof from anywhere on
@@ -475,11 +558,14 @@
             'fill-extrusion-base': G.base(['get', 'h']),
             'fill-extrusion-opacity': 1.0,
           },
-        }, before);
+        }, beforeId());
       }
     }
 
-    watchPitch(map);
+    // The pitch fade and the visibility sweep both walk the full layer list, and
+    // two of those layers only exist now. Re-run it so a camera that was already
+    // above OUTER.flatMaxPitch when stage one landed is honoured.
+    try { window.applyOuterSettings(map); } catch (e) {}
 
     console.log('[outer]', outerTiles ? 'ring streaming as tiles;'
                                       : gj.features.length + ' ring buildings;',

@@ -1807,8 +1807,248 @@
     // It is a floor, not a debounce: a continuous drag still gets a flush this
     // often, so no amount of dragging can starve the far field.
     FLUSH_MS: 90,
+
+    /**
+     * ── THE ATLAS TAX: MAPLIBRE NEVER FORGETS AN UPDATED IMAGE ──
+     *
+     * This is the single largest per-frame cost this app has ever had, it is
+     * 100 % waste, and it is invisible from our own source. MEASURED, not
+     * reasoned (scratchpad probe, 2026-08-16, cruise sweep, hardware GL):
+     *
+     *   updatedImages held      patchUpdatedImages   frames in 3 s   ms/frame
+     *   385 keys                6,044,885 key scans        26          46.07
+     *   0 keys (set emptied)            0 key scans       125           0.28
+     *   385 again (2nd rep)     7,192,955 key scans        30          46.79
+     *
+     * and in all 15,701 of those calls the count of images that ACTUALLY
+     * needed patching was ZERO.
+     *
+     * The mechanism, read out of maplibre-gl 5.24.0:
+     *   - `ImageManager.updateImage(id, img)` does `this.updatedImages[id] = true`
+     *   - the string `updatedImages` appears exactly three times in the bundle:
+     *     that write, the constructor's `updatedImages = {}`, and one read.
+     *     **Nothing ever deletes from it.** One repaint marks it for the life
+     *     of the page.
+     *   - `Tile.prepare(imageManager)` -> `ImageAtlas.patchUpdatedImages`, which
+     *     is `for (const n in imageManager.updatedImages)` with two
+     *     `getImage(n)` calls in the body — and it runs for EVERY loaded tile
+     *     of EVERY source on EVERY render. This app had 592 tiles carrying an
+     *     image atlas across 34 sources, so one time-of-day tick bought a
+     *     permanent ~232,000 key-iterations and ~465,000 property lookups per
+     *     frame, for nothing.
+     *   - a tile built AFTER the repaint never needs patching: its atlas is
+     *     built in the worker from the current image data at the current
+     *     version, so `pos.version === img.version` on arrival. That is why
+     *     the "actually patched" column is zero. The mark is only ever needed
+     *     by a tile that already existed when the pixels changed.
+     *
+     * So: leave the mark up long enough for MapLibre to consume it, then take
+     * it back down. The authority on "long enough" is not the frame counter —
+     * it is `staleImageIds()`, which asks the live tiles themselves whether any
+     * of them is still holding an older version. A key is only ever released
+     * when NO in-view tile still wants it, which makes this incapable of
+     * reintroducing the A1/A4 split-hour atlas above.
+     */
+    RELEASE: {
+      // Master switch. `window.FACADE_ATLAS.RELEASE.on = false` restores stock
+      // MapLibre behaviour live, for an A/B.
+      on: true,
+      // Rendered frames to leave a fresh mark up before the first release
+      // attempt. Pure slack: the staleness scan is the real guard, so this
+      // only exists so the common case never has to scan twice.
+      holdFrames: 1,
+      // With the set empty, re-ask the live tiles this often whether any of
+      // them has gone stale — which is how a tile returning from MapLibre's
+      // out-of-view cache at an older hour gets its repaint. The `data` hook
+      // below normally catches that in the same frame; this is the net under
+      // it, and it is what bounds the worst case at this many frames.
+      rescanFrames: 30,
+    },
   };
   window.FACADE_ATLAS = ATLAS;
+
+  // ── the release sweeper ───────────────────────────────────────────────
+  // Counters, so this is testable from a verification script rather than by
+  // reading the source and believing it.
+  const REL = window.__atlasRelease = {
+    on: true, frames: 0, releases: 0, released: 0, rescans: 0,
+    remarks: 0, staleFound: 0, held: 0, scans: 0, scanMsMax: 0,
+    tilesSeen: 0, blankScans: 0, disabled: null,
+  };
+  let _relMap = null, _relHooked = false, _relHold = 0, _relIdle = 0;
+
+  const imageManagerOf = (map) => {
+    try { return (map && map.style && map.style.imageManager) || null; }
+    catch (e) { return null; }
+  };
+
+  /** A tile, whether it arrived bare or wrapped in a cache entry. */
+  function tileOf(v) {
+    if (!v || typeof v !== 'object') return null;
+    if (v.imageAtlas) return v;
+    if (v.value && v.value.imageAtlas) return v.value;
+    return null;
+  }
+
+  /**
+   * Every tile that is IN VIEW — deliberately not the out-of-view cache.
+   *
+   * MapLibre only calls `Tile.prepare` on tiles it is drawing, so a cached tile
+   * is never patched however long the mark is left up. Including them here
+   * would find a permanent stale key and pin the mark up forever, i.e. it would
+   * silently turn this whole optimisation off. They are handled on the way back
+   * in instead, by `noteTile` on the `data` event and by the rescan.
+   *
+   * Returns the tile count, or -1 if MapLibre's internals are not where this
+   * expects them — in which case the caller must fail SAFE (leave the marks
+   * alone) rather than guess.
+   */
+  function eachInViewTile(map, fn) {
+    const st = map && map.style;
+    const tms = st && (st.tileManagers || st._sourceCaches || st.sourceCaches);
+    if (!tms || typeof tms !== 'object') return -1;
+    let n = 0;
+    // ONE level of unwrapping, because 5.24's `_inViewTiles` is not the dict —
+    // it is a small class holding the dict as its single own property. Probed,
+    // not assumed: `Object.keys(tm._inViewTiles)` has length 1 and that entry's
+    // own keys are the tile-id strings.
+    const walk = (store, depth) => {
+      if (!store || typeof store !== 'object') return;
+      if (typeof store.forEach === 'function' && typeof store.size === 'number') {
+        store.forEach(v => { const t = tileOf(v); if (t) { n++; fn(t); } });
+        return;
+      }
+      for (const k in store) {
+        const v = store[k];
+        const t = tileOf(v);
+        if (t) { n++; fn(t); continue; }
+        if (depth > 0 && v && typeof v === 'object' && !Array.isArray(v)) walk(v, depth - 1);
+      }
+    };
+    for (const k in tms) {
+      const tm = tms[k];
+      if (!tm) continue;
+      walk(tm._inViewTiles, 1);
+      walk(tm._tiles, 1);
+    }
+    return n;
+  }
+
+  /**
+   * Image ids some in-view tile is still holding at an older version.
+   *
+   * Returns `null` when MapLibre's tile store cannot be found at all — the
+   * caller must then fail safe. Returns `{ tiles: 0 }` when it can be walked but
+   * is empty, which is NOT the same thing: an empty walk proves nothing, so the
+   * caller must decline to release rather than release everything. Getting that
+   * distinction wrong once already made this "work" by releasing without ever
+   * checking a single tile.
+   */
+  function staleImageIds(map) {
+    const im = imageManagerOf(map);
+    if (!im || !im.images) return null;
+    const t0 = performance.now();
+    const seen = Object.create(null);
+    const ids = [];
+    const check = (pos) => {
+      if (!pos) return;
+      for (const id in pos) {
+        if (seen[id]) continue;
+        const img = im.images[id];
+        if (img && pos[id].version !== img.version) { seen[id] = 1; ids.push(id); }
+      }
+    };
+    const n = eachInViewTile(map, (t) => {
+      const a = t.imageAtlas;
+      if (!a) return;
+      check(a.patternPositions);
+      check(a.iconPositions);
+    });
+    if (n < 0) return null;
+    REL.scans++; REL.tilesSeen = n;
+    const ms = performance.now() - t0;
+    if (ms > REL.scanMsMax) REL.scanMsMax = +ms.toFixed(2);
+    return { tiles: n, ids };
+  }
+
+  /** One tile just arrived (or came back). Re-mark only what IT still wants. */
+  function noteTile(map, tile) {
+    if (!ATLAS.RELEASE.on) return;
+    const im = imageManagerOf(map);
+    const a = tile && tile.imageAtlas;
+    if (!im || !im.images || !a || !im.updatedImages) return;
+    let marked = 0;
+    const check = (pos) => {
+      if (!pos) return;
+      for (const id in pos) {
+        const img = im.images[id];
+        if (img && pos[id].version !== img.version) { im.updatedImages[id] = true; marked++; }
+      }
+    };
+    check(a.patternPositions);
+    check(a.iconPositions);
+    if (marked) { REL.remarks += marked; _relHold = ATLAS.RELEASE.holdFrames; _relIdle = 0; }
+  }
+
+  function releaseTick() {
+    const map = _relMap;
+    if (!map || !ATLAS.RELEASE.on) return;
+    const im = imageManagerOf(map);
+    if (!im || !im.updatedImages) return;
+    REL.frames++;
+
+    let any = false;
+    for (const k in im.updatedImages) { any = true; break; }
+
+    if (any) {
+      if (_relHold > 0) { _relHold--; REL.held++; return; }
+      const stale = staleImageIds(map);
+      // Internals moved: do nothing, forever, and say so once. A wrong guess
+      // here shows the city at two different hours at once.
+      if (stale === null) {
+        ATLAS.RELEASE.on = false; REL.on = false;
+        REL.disabled = 'cannot enumerate in-view tiles';
+        console.warn('[facades] atlas release disabled: ' + REL.disabled);
+        return;
+      }
+      // Walked, but found nothing to ask. That is not permission to release.
+      if (stale.tiles === 0) { REL.blankScans++; return; }
+      const before = Object.keys(im.updatedImages).length;
+      const keep = Object.create(null);
+      for (let i = 0; i < stale.ids.length; i++) keep[stale.ids[i]] = true;
+      im.updatedImages = keep;
+      REL.releases++;
+      REL.released += before - stale.ids.length;
+      REL.staleFound += stale.ids.length;
+      _relIdle = 0;
+      return;
+    }
+
+    if (++_relIdle >= ATLAS.RELEASE.rescanFrames) {
+      _relIdle = 0;
+      REL.rescans++;
+      const stale = staleImageIds(map);
+      if (stale && stale.ids.length) {
+        for (let i = 0; i < stale.ids.length; i++) im.updatedImages[stale.ids[i]] = true;
+        REL.staleFound += stale.ids.length;
+        REL.remarks += stale.ids.length;
+        _relHold = ATLAS.RELEASE.holdFrames;
+      }
+    }
+  }
+
+  function armRelease(map) {
+    if (!map) return;
+    _relMap = map;
+    _relHold = ATLAS.RELEASE.holdFrames;
+    if (_relHooked) return;
+    _relHooked = true;
+    map.on('render', releaseTick);
+    // A tile arriving from the out-of-view cache is the ONE case that can be
+    // stale, and the event hands us the tile, so no private tile store is
+    // needed for the common path.
+    map.on('data', (e) => { if (e && e.tile) noteTile(map, e.tile); });
+  }
 
   // `_atlasP` is the hour the atlas has been ASKED for. `_tierP` is the hour
   // each tier's images actually HOLD. A tier whose entry differs is stale, and
@@ -1843,6 +2083,10 @@
       }
     }
     for (const t of tiers) _tierP.set(t.id, p);
+    // Every path that repaints images goes through here — updateFacades, the
+    // stale-tier flush timer and the zoom watch — so the mark's grace period is
+    // set here rather than at each of the three call sites.
+    _relHold = ATLAS.RELEASE.holdFrames;
   }
 
   /** Tiers whose pixels are not at `_atlasP`. */
@@ -1886,6 +2130,12 @@
   }
 
   window.initFacades = function initFacades(map, p) {
+    // BEFORE the palette check, on purpose. The release sweeper is a property of
+    // MapLibre's image manager, not of this file's palette — ten other modules
+    // call `map.updateImage` on their own time-of-day hooks and 130 images are
+    // already marked at boot before any facade repaint. A tree with no facade
+    // palette would otherwise pay the full scan forever with nothing to show.
+    armRelease(map);
     if (!palette.length) return 0;
     // facadeGridAudit had ZERO call sites — the guard written to catch a grid
     // whose arithmetic disagrees with its own `want`, in a file whose comments
@@ -1903,6 +2153,7 @@
     for (const id of combos) ensureImages(map, id, p);
     for (const t of TIERS) _tierP.set(t.id, p);
     watchTierZoom(map);
+    armRelease(map);
     return combos.length;
   };
 
@@ -1915,6 +2166,10 @@
     paintTiers(map, activeTiers(), p);
     scheduleFlush(map);
     watchTierZoom(map);
+    armRelease(map);
+    // The marks this repaint just raised have to survive long enough for
+    // MapLibre to consume them — see ATLAS.RELEASE.
+    _relHold = ATLAS.RELEASE.holdFrames;
   };
 
   /**

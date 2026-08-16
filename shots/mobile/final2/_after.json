@@ -1,0 +1,1370 @@
+{
+  "after2-01-phone-boost-off": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 852,
+      "w": 393,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 32,
+      "y": 682,
+      "w": 100,
+      "h": 100,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 279,
+      "y": 700,
+      "w": 64,
+      "h": 64,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 333,
+      "y": 16,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 333,
+      "y": 68,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 325,
+      "y": 314.5,
+      "w": 60,
+      "h": 223,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 333,
+      "y": 482.5,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 15.3,
+      "y": 790,
+      "w": 362.5,
+      "h": 24,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 108.4,
+      "y": 16,
+      "w": 176.2,
+      "h": 29,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 84.8,
+      "y": 818,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "boostGap": {
+      "ringR": 50,
+      "nearestPointDist": 197,
+      "edgeToEdgeX": 147,
+      "cornerDist": 199.6
+    },
+    "elementAt": {
+      "joystick-base": "DIV#joystick-base",
+      "joy-boost": "svg",
+      "gfx-button": "svg",
+      "fb-button": "svg",
+      "tod-play": "BUTTON#tod-play"
+    },
+    "tooSmall": [],
+    "hintOverflow": -30.5,
+    "clipClass": "has-touch",
+    "eye": {
+      "lng": -97.73898169454313,
+      "lat": 30.2856116459293,
+      "alt": 1.6985983414091395,
+      "altUser": 1.6985983414091395,
+      "altFloor": 0,
+      "vE": 0,
+      "vN": 0,
+      "bearing": -8.399208333333263,
+      "pitch": 87,
+      "driving": false
+    },
+    "frame": {
+      "n": 3013524,
+      "mean": 113.7,
+      "med": 102.3,
+      "p99": 171,
+      "max": 246.6
+    },
+    "boostLuma": {
+      "n": 36864,
+      "mean": 161.6,
+      "med": 161.7,
+      "p99": 223.1,
+      "max": 223.1
+    },
+    "boostVsFrame": 1.58,
+    "boostRGB": {
+      "r": 188,
+      "g": 158.5,
+      "b": 114.1,
+      "chroma": 73.9
+    }
+  },
+  "after2-02-phone-boost-on": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 852,
+      "w": 393,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 32,
+      "y": 682,
+      "w": 100,
+      "h": 100,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 279,
+      "y": 700,
+      "w": 64,
+      "h": 64,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 333,
+      "y": 16,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 333,
+      "y": 68,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 325,
+      "y": 314.5,
+      "w": 60,
+      "h": 223,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 333,
+      "y": 482.5,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 15.3,
+      "y": 790,
+      "w": 362.5,
+      "h": 24,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 108.4,
+      "y": 16,
+      "w": 176.2,
+      "h": 29,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 84.8,
+      "y": 818,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "boostGap": {
+      "ringR": 50,
+      "nearestPointDist": 197,
+      "edgeToEdgeX": 147,
+      "cornerDist": 199.6
+    },
+    "elementAt": {
+      "joystick-base": "DIV#joystick-base",
+      "joy-boost": "svg",
+      "gfx-button": "svg",
+      "fb-button": "svg",
+      "tod-play": "BUTTON#tod-play"
+    },
+    "tooSmall": [],
+    "hintOverflow": -30.5,
+    "clipClass": "has-touch",
+    "boostAfterRealTouch": true,
+    "frame": {
+      "n": 3013524,
+      "mean": 100,
+      "med": 100,
+      "p99": 168.1,
+      "max": 246.6
+    },
+    "boostLuma": {
+      "n": 36864,
+      "mean": 140.2,
+      "med": 138.4,
+      "p99": 246.3,
+      "max": 246.3
+    },
+    "boostVsFrame": 1.4,
+    "boostRGB": {
+      "r": 188.2,
+      "g": 134.2,
+      "b": 59.1,
+      "chroma": 129.2
+    }
+  },
+  "after2-02b-phone-night-boost-off": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 852,
+      "w": 393,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 32,
+      "y": 682,
+      "w": 100,
+      "h": 100,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 279,
+      "y": 700,
+      "w": 64,
+      "h": 64,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 333,
+      "y": 16,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 333,
+      "y": 68,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 325,
+      "y": 314.5,
+      "w": 60,
+      "h": 223,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 333,
+      "y": 482.5,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 15.3,
+      "y": 790,
+      "w": 362.5,
+      "h": 24,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 108.4,
+      "y": 16,
+      "w": 176.2,
+      "h": 29,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 84.8,
+      "y": 818,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "boostGap": {
+      "ringR": 50,
+      "nearestPointDist": 197,
+      "edgeToEdgeX": 147,
+      "cornerDist": 199.6
+    },
+    "elementAt": {
+      "joystick-base": "DIV#joystick-base",
+      "joy-boost": "svg",
+      "gfx-button": "svg",
+      "fb-button": "svg",
+      "tod-play": "BUTTON#tod-play"
+    },
+    "tooSmall": [],
+    "hintOverflow": -30.5,
+    "clipClass": "has-touch",
+    "frame": {
+      "n": 3013524,
+      "mean": 19.3,
+      "med": 17.6,
+      "p99": 106.7,
+      "max": 246.6
+    },
+    "boostLuma": {
+      "n": 36864,
+      "mean": 40.6,
+      "med": 32.6,
+      "p99": 223.1,
+      "max": 223.1
+    },
+    "boostVsFrame": 2.31,
+    "boostRGB": {
+      "r": 43.6,
+      "g": 39.9,
+      "b": 39.4,
+      "chroma": 4.2
+    }
+  },
+  "after2-02c-phone-night-boost-on": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 852,
+      "w": 393,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 32,
+      "y": 682,
+      "w": 100,
+      "h": 100,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 279,
+      "y": 700,
+      "w": 64,
+      "h": 64,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 333,
+      "y": 16,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 333,
+      "y": 68,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 325,
+      "y": 314.5,
+      "w": 60,
+      "h": 223,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 333,
+      "y": 482.5,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 15.3,
+      "y": 790,
+      "w": 362.5,
+      "h": 24,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 108.4,
+      "y": 16,
+      "w": 176.2,
+      "h": 29,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 84.8,
+      "y": 818,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "boostGap": {
+      "ringR": 50,
+      "nearestPointDist": 197,
+      "edgeToEdgeX": 147,
+      "cornerDist": 199.6
+    },
+    "elementAt": {
+      "joystick-base": "DIV#joystick-base",
+      "joy-boost": "svg",
+      "gfx-button": "svg",
+      "fb-button": "svg",
+      "tod-play": "BUTTON#tod-play"
+    },
+    "tooSmall": [],
+    "hintOverflow": -30.5,
+    "clipClass": "has-touch",
+    "frame": {
+      "n": 3013524,
+      "mean": 19.8,
+      "med": 17.6,
+      "p99": 109.4,
+      "max": 246.6
+    },
+    "boostLuma": {
+      "n": 36864,
+      "mean": 80.9,
+      "med": 81.3,
+      "p99": 246.3,
+      "max": 246.3
+    },
+    "boostVsFrame": 4.6,
+    "boostRGB": {
+      "r": 106.1,
+      "g": 78,
+      "b": 35,
+      "chroma": 71.1
+    }
+  },
+  "after2-03-phone-graphics-panel-open": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 852,
+      "w": 393,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 32,
+      "y": 682,
+      "w": 100,
+      "h": 100,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 279,
+      "y": 700,
+      "w": 64,
+      "h": 64,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 324.4,
+      "y": 7.4,
+      "w": 61.3,
+      "h": 61.3,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 333,
+      "y": 68,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 8,
+      "y": 255.6,
+      "w": 377,
+      "h": 410.4,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 325,
+      "y": 314.5,
+      "w": 60,
+      "h": 223,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 333,
+      "y": 482.5,
+      "w": 44,
+      "h": 44,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 333,
+      "y": 344.5,
+      "w": 44,
+      "h": 112,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 15.3,
+      "y": 790,
+      "w": 362.5,
+      "h": 24,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 108.4,
+      "y": 16,
+      "w": 176.2,
+      "h": 29,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 84.8,
+      "y": 818,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "boostGap": {
+      "ringR": 50,
+      "nearestPointDist": 197,
+      "edgeToEdgeX": 147,
+      "cornerDist": 199.6
+    },
+    "elementAt": {
+      "joystick-base": "DIV#joystick-base",
+      "joy-boost": "svg",
+      "gfx-button": "svg",
+      "fb-button": "svg",
+      "tod-play": "LABEL.gfx-row"
+    },
+    "tooSmall": [],
+    "hintOverflow": -30.5,
+    "clipClass": "has-touch",
+    "frame": {
+      "n": 3013524,
+      "mean": 79.9,
+      "med": 87.8,
+      "p99": 185.7,
+      "max": 255
+    },
+    "boostLuma": {
+      "n": 36864,
+      "mean": 151.7,
+      "med": 149.7,
+      "p99": 222.1,
+      "max": 223.1
+    },
+    "boostVsFrame": 1.73,
+    "boostRGB": {
+      "r": 198.6,
+      "g": 144.5,
+      "b": 84,
+      "chroma": 114.6
+    }
+  },
+  "after2-04-clip1": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 84.8,
+      "y": 818,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "elementAt": {
+      "joystick-base": "CANVAS.maplibregl-canvas",
+      "joy-boost": "CANVAS.maplibregl-canvas",
+      "gfx-button": "CANVAS.maplibregl-canvas",
+      "fb-button": "CANVAS.maplibregl-canvas",
+      "tod-play": "CANVAS.maplibregl-canvas"
+    },
+    "tooSmall": [
+      "tod-play 0x0",
+      "joy-boost 0x0",
+      "tod-slider-wrap 0x0"
+    ],
+    "hintOverflow": -393,
+    "clipClass": "clip has-touch",
+    "frame": {
+      "n": 3013524,
+      "mean": 121.2,
+      "med": 118.9,
+      "p99": 170.2,
+      "max": 184.9
+    },
+    "boostLuma": {
+      "n": 0,
+      "mean": 0,
+      "med": 0,
+      "p99": 0,
+      "max": 0
+    },
+    "boostVsFrame": 0,
+    "boostRGB": null
+  },
+  "after2-05-clip1-drive1": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 852,
+      "w": 393,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 32,
+      "y": 682,
+      "w": 100,
+      "h": 100,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 279,
+      "y": 700,
+      "w": 64,
+      "h": 64,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 84.8,
+      "y": 818,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "boostGap": {
+      "ringR": 50,
+      "nearestPointDist": 197,
+      "edgeToEdgeX": 147,
+      "cornerDist": 199.6
+    },
+    "elementAt": {
+      "joystick-base": "DIV#joystick-base",
+      "joy-boost": "svg",
+      "gfx-button": "CANVAS.maplibregl-canvas",
+      "fb-button": "CANVAS.maplibregl-canvas",
+      "tod-play": "CANVAS.maplibregl-canvas"
+    },
+    "tooSmall": [
+      "tod-play 0x0",
+      "tod-slider-wrap 0x0"
+    ],
+    "hintOverflow": -393,
+    "clipClass": "clip clip-drive has-touch",
+    "frame": {
+      "n": 3013524,
+      "mean": 121.5,
+      "med": 118.9,
+      "p99": 171.2,
+      "max": 223.1
+    },
+    "boostLuma": {
+      "n": 36864,
+      "mean": 164.1,
+      "med": 164.5,
+      "p99": 223.1,
+      "max": 223.1
+    },
+    "boostVsFrame": 1.38,
+    "boostRGB": {
+      "r": 191.4,
+      "g": 160.8,
+      "b": 115.9,
+      "chroma": 75.5
+    }
+  },
+  "after2-06-desktop-1440x900": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 1390,
+      "y": 16,
+      "w": 34,
+      "h": 34,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 1348,
+      "y": 16,
+      "w": 34,
+      "h": 34,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 1372,
+      "y": 307.5,
+      "w": 54,
+      "h": 285,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 1384,
+      "y": 548.5,
+      "w": 30,
+      "h": 30,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 1390,
+      "y": 366,
+      "w": 18,
+      "h": 129,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 1382,
+      "y": 345.5,
+      "w": 34,
+      "h": 170,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 439.3,
+      "y": 847,
+      "w": 561.5,
+      "h": 29,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 618.2,
+      "y": 16,
+      "w": 203.6,
+      "h": 33,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 1131.8,
+      "y": 866,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "elementAt": {
+      "joystick-base": "CANVAS.maplibregl-canvas",
+      "joy-boost": "CANVAS.maplibregl-canvas",
+      "gfx-button": "svg",
+      "fb-button": "svg",
+      "tod-play": "BUTTON#tod-play"
+    },
+    "tooSmall": [
+      "gfx-button 34x34",
+      "fb-button 34x34",
+      "tod-play 30x30",
+      "joy-boost 0x0",
+      "tod-slider-wrap 34x170"
+    ],
+    "hintOverflow": -878.5,
+    "clipClass": "",
+    "frame": {
+      "n": 1296000,
+      "mean": 110.8,
+      "med": 108.3,
+      "p99": 172.2,
+      "max": 245.3
+    },
+    "boostLuma": {
+      "n": 0,
+      "mean": 0,
+      "med": 0,
+      "p99": 0,
+      "max": 0
+    },
+    "boostVsFrame": 0,
+    "boostRGB": null
+  },
+  "after2-07-desktop-graphics-open": {
+    "joystick-zone": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "joystick-base": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "joy-boost": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-button": {
+      "x": 1390,
+      "y": 16,
+      "w": 34,
+      "h": 34,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-button": {
+      "x": 1348,
+      "y": 16,
+      "w": 34,
+      "h": 34,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "gfx-panel": {
+      "x": 1118,
+      "y": 60,
+      "w": 306,
+      "h": 768,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "fb-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "disp": "none",
+      "vis": "visible"
+    },
+    "tod-panel": {
+      "x": 1054,
+      "y": 307.5,
+      "w": 54,
+      "h": 285,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-play": {
+      "x": 1066,
+      "y": 548.5,
+      "w": 30,
+      "h": 30,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "tod-slider": {
+      "x": 1072,
+      "y": 366,
+      "w": 18,
+      "h": 129,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "tod-slider-wrap": {
+      "x": 1064,
+      "y": 345.5,
+      "w": 34,
+      "h": 170,
+      "disp": "flex",
+      "vis": "visible"
+    },
+    "controls-hint": {
+      "x": 439.3,
+      "y": 847,
+      "w": 561.5,
+      "h": 29,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "hud": {
+      "x": 618.2,
+      "y": 16,
+      "w": 203.6,
+      "h": 33,
+      "disp": "block",
+      "vis": "visible"
+    },
+    "vl-credit": null,
+    "attrib": {
+      "x": 1131.8,
+      "y": 866,
+      "w": 298.2,
+      "h": 24,
+      "disp": "block",
+      "text": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"
+    },
+    "elementAt": {
+      "joystick-base": "CANVAS.maplibregl-canvas",
+      "joy-boost": "CANVAS.maplibregl-canvas",
+      "gfx-button": "svg",
+      "fb-button": "svg",
+      "tod-play": "BUTTON#tod-play"
+    },
+    "tooSmall": [
+      "gfx-button 34x34",
+      "fb-button 34x34",
+      "tod-play 30x30",
+      "joy-boost 0x0",
+      "tod-slider-wrap 34x170"
+    ],
+    "hintOverflow": -878.5,
+    "clipClass": "",
+    "frame": {
+      "n": 1296000,
+      "mean": 96.7,
+      "med": 101.9,
+      "p99": 174.4,
+      "max": 255
+    },
+    "boostLuma": {
+      "n": 0,
+      "mean": 0,
+      "med": 0,
+      "p99": 0,
+      "max": 0
+    },
+    "boostVsFrame": 0,
+    "boostRGB": null
+  },
+  "pageErrors": []
+}
