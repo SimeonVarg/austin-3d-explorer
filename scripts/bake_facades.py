@@ -53,6 +53,7 @@ Idempotent: recomputes from `wd` every run.
 
 Usage:  python scripts/bake_facades.py [--check]
 """
+import copy
 import json
 import math
 import os
@@ -199,6 +200,28 @@ def snapshot_date():
     return snaps[-1]
 
 
+FLOODWALL_RE = re.compile(r"floodWall\s*:\s*'(#[0-9a-fA-F]{6})'")
+
+
+def capitol_flood_wall():
+    """`CAPITOL.floodWall` from js/capitol.js, or die.
+
+    A default here would be the whole defect wearing a helmet: the value would
+    drift out of the JS and this bake would keep producing a palette that
+    matched nothing, silently, which is how the shipped file came to disagree
+    with the browser in the first place.
+    """
+    js = open(os.path.join(ROOT, "js", "capitol.js"), encoding="utf-8").read()
+    m = FLOODWALL_RE.search(js)
+    if not m:
+        raise SystemExit(
+            "bake_facades: could not find `floodWall: '#rrggbb'` in js/capitol.js. "
+            "The Capitol's floodlit night wall is applied over the protected "
+            "facade tone at js/capitol.js:180-182 and this bake must transcribe "
+            "it. If the constant was renamed or moved, update FLOODWALL_RE.")
+    return m.group(1)
+
+
 def load_scene():
     """Rebuild exactly the feature list quantiseFacades is handed in the browser."""
     date = snapshot_date()
@@ -221,9 +244,30 @@ def load_scene():
     cap = json.load(open(os.path.join(DATA, "capitol.geojson"), encoding="utf-8"))
     buildings.extend(cap.get("features", []))
 
-    # 2c. the protected tones
+    # 2c. the protected tones, AND THE FLOODLIGHT THE BROWSER PAINTS OVER THEM.
+    #
+    # THIS IS THE BUG NB6 WAS REALLY ABOUT, and it is worth spelling out because
+    # reading either file alone makes the other one look correct.
+    # `data/capitol_parts.geojson` says the protected wall tone's night colour is
+    # `#1f1b23` -- unlit granite. `js/capitol.js:180-182` then OVERWRITES that on
+    # every one of those specs with `CAPITOL.floodWall` (`#d38e5e`, the floodlit
+    # granite) BEFORE it registers them as `window.FACADE_PROTECTED`, and that
+    # override is deliberate and argued for at js/capitol.js:107-121: the
+    # floodlit Capitol is "the only lit thing in Austin that actually looks lit".
+    # So the list `quantiseFacades` actually elects over is the file's list with
+    # `wn` replaced. Reading `facade_protect` raw, as this bake did until now,
+    # transcribes a scene the browser never sees, and the one palette entry that
+    # comes out wrong is the Texas Capitol's walls at night.
+    #
+    # Parsed out of the JS rather than copied, so a taste edit to `floodWall`
+    # cannot leave this file silently one shade behind -- and it FAILS LOUDLY if
+    # the constant moves, because a bake that quietly falls back to the dark
+    # value is exactly the failure being fixed.
     capparts = json.load(open(os.path.join(DATA, "capitol_parts.geojson"), encoding="utf-8"))
-    protected = capparts.get("facade_protect") or []
+    protected = copy.deepcopy(capparts.get("facade_protect") or [])
+    flood = capitol_flood_wall()
+    for spec in protected:
+        spec["wn"] = flood
 
     # 3. Union on 24th
     u24 = 0
