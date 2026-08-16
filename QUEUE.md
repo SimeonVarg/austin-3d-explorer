@@ -950,6 +950,27 @@ canopies under the disc; the WC pair is the proof). Instrument: composited
 control failing loudly (412 px) is what makes one rep enough here. What the
 frames DID catch is Y18 below.
 
+**Y15 — MEASURED FROM A WALK AT LAST, 2026-08-16 (§145). The worst incremental
+trunk scan on a real walk is 86.6 ms, and the duty cycle is the worse number.**
+`scripts/verify/walk-trunk.mjs 3`, steered walk at 1.7 m against a hop control,
+3 interleaved counterbalanced reps, one page load each, minimum of the reps'
+maxima, headless `gl:hardware`, no CPU throttle, **another lane running
+`collision.mjs` at 90–100 % CPU for the drag reps**:
+
+| site | walk worst | hop worst | avg | duty (budget 0.53 %) |
+|---|---:|---:|---:|---:|
+| the Drag | **86.6 ms** (3/3 valid) | 53.4 ms | 11.64 ms | **1.31 %** |
+| South Mall | **78.3 ms** (1/3 valid) | 57.9 ms | 10.18 ms | **1.41 %** |
+
+**10.8× over the 8 ms budget, about five dropped frames — not the fifty §109's
+841.5 ms implied. Neither 841.5 nor 149.8 reproduced.** The new finding is the
+duty cycle: a walk crosses `TRUNK_RESCAN_M` continuously and runs 90–101 scan
+instalments in 85 s against the hop's 6–22, so **the walk is worse than the hop
+on the metric that matters and better on the one that has always been quoted.**
+Still open, still the same fix as Y7 (`querySourceFeatures` returns the whole
+list before `TRUNK_BUDGET_MS` starts its clock). Do Y7 and Y15 as one change.
+Caveat: South Mall rests on one valid rep. History follows.
+
 **Y15 — RESTATED 2026-08-16 (§133, `docs/perf/measured.md` §3.3). 841.5 ms DID
 NOT REPRODUCE. The honest worst case is 149.8 ms.** Still open, still 19× the
 8 ms budget, still about nine dropped frames — but an order of magnitude below
@@ -975,12 +996,29 @@ real walk would not, so it is an upper bound rather than a typical cost. Same
 shape as Y7 and the same fix (spread `querySourceFeatures` across frames by tile
 rather than asking for everything). Measure it under a sustained walk first.
 
-**Y16. At 1.7 m you cannot look down, and the failure mode is not what §106
-recorded.** §106 said the controller BLOCKS the pitch. Driven through `setPitch`
-in §109 the pitch is **granted and the eye is silently lifted**: asked 80 you get
-4.23 m, asked 70 you get 8.34 m, asked 60 you get 12.19 m, asked 45 you get
-17.23 m. Same verdict as Y4 (`ZOOM_MAX` is still 21.5), but whoever picks Y4 up
-should know they are removing a silent lift, not a block.
+**~~Y16 (the harness half).~~ CLOSED 2026-08-16 (§143). THE HARNESS WALKS. The
+23.8 m constant was the walk phase's own hard-coded start pose, and there is no
+silent lift in the movement path.** `scripts/verify/walk-lift.mjs` traced the
+camera frame by frame: `roofAt(-97.74170, 30.28950, 1 m)` is **8.6 m**, i.e.
+`perf-budget.mjs` had always started its walk INSIDE A BUILDING, and the hard net
+(`controls.js:1617`) ejected it on the first tick at **zero metres travelled** —
+`8.6 + HARD_CLEAR(4) = 12.6` — then again once `rCam()` had lerped 1 → 6 m past
+`ALT_GROUND`, because the wider probe sees the 19.8 m roof next door:
+`19.8 + 4 = 23.8`. Deterministic start, deterministic digit. Fixed in
+`scripts/verify/lib/walker.mjs` (refuse any start with `roofAt(p, 7 m) > 0`,
+steer along open ground, drive only through key and pointer events, and return
+the altitude of EVERY frame). **300 m walked on the Drag with `alt` min 1.7 and
+max 1.7 across 3,940 frames.** Gate: `walk.mjs`, watched red at the old start in
+the same run. NOTHING IN `js/controls.js` NEEDED TO CHANGE and none was changed.
+
+**Y16 (the app half) — still open, and it is the `setPitch` sighting only.** At
+1.7 m you cannot look down: driven through `setPitch` in §109 the pitch is
+**granted and the eye is silently lifted** — asked 80 you get 4.23 m, asked 70
+you get 8.34 m, asked 60 you get 12.19 m, asked 45 you get 17.23 m. Same verdict
+as Y4 (`ZOOM_MAX` is still 21.5), but whoever picks Y4 up should know they are
+removing a silent lift, not a block. §132's second "independent sighting through
+the movement path" was **not** this — it was the start pose above, and that
+sentence in §132 should be read as retracted.
 
 **~~Y14.~~ CLOSED — both run against `origin/main` `38fbeee`, both at baseline
 (HANDOFF §115).** `places-check.mjs` **PASS, 40 ok / 0 failed** (same as §95).
@@ -1103,14 +1141,22 @@ Y12 the near plane ........................... DONE (#185, §139) and NARROWER t
                                                 is the open half — js/trees.js.
 Y13 the moon behind a building ............... CLOSED (§117) — disc occluded, 0 px through wall
 Y14 places-check / zfight not run ............ CLOSED (both at baseline on 38fbeee, §115)
-Y15 trunk field worst scan ................... OPEN, RESTATED (§133): 841.5 ms did
-                                                NOT reproduce; worst honest reading
-                                                149.8 ms on a 60 m hop. Cannot be
-                                                measured by walking at all until Y16
-                                                is fixed — every walk is lifted to
-                                                23.8 m and the field switches off.
-Y16 the silent lift out of walking height .... OPEN and now BLOCKING (§133): it is why
-                                                perf-budget's walk phase is INVALID.
+Y15 trunk field worst scan ................... OPEN, MEASURED FROM A WALK (§145):
+                                                86.6 ms worst (Drag, 3/3 reps),
+                                                78.3 ms (South Mall, 1/3), against
+                                                an 8 ms budget. 841.5 and 149.8 both
+                                                failed to reproduce. The duty cycle
+                                                is the real damage: 1.31-1.41 %
+                                                against 0.53 %. Fix it with Y7.
+Y16 the silent lift out of walking height .... HARNESS HALF CLOSED (§145): there was no
+                                                silent lift. perf-budget's walk phase
+                                                started INSIDE A BUILDING and the hard
+                                                net ejected it at 0 m; 23.8 m is
+                                                roofAt(that start, 6 m) + HARD_CLEAR.
+                                                scripts/verify/lib/walker.mjs walks now
+                                                — 300 m at 1.7 m, every frame proved.
+                                                APP HALF STILL OPEN: the setPitch
+                                                lift of §109, which is Y4's job.
 Y17 ground plane ignores the dusk clock ...... NEW  (§117) — pavement 2.3-2.9x wall luma at p 0.70
 Y18 fx-canvas paints glow bands on facades ... NEW  (§117) — dusk AND night, A/B proven
 Y19 the VERTICAL half of the barcode ......... NEW  (§131) — Y5 is done, this is what

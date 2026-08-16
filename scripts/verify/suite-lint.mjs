@@ -85,6 +85,38 @@ for (const f of files) {
     }
   }
 
+  // ── 5. Opens a browser and NEVER OPENS A PAGE. The husk rule. ───────
+  //
+  // ADDED 2026-08-16, and it is the same bug this file was written for, one
+  // notch worse. `dusk.mjs`, `silhouette.mjs` and `banding.mjs` are each ~15
+  // lines: a doc comment, `launch(chromium)`, and then `console.log(r.worst)`
+  // for an `r` that is never assigned anywhere. The 90ad9d7 repair did not
+  // merely delete their page setup — it deleted THE ENTIRE MEASUREMENT — and
+  // every rule above passes them clean, including `no-page`, precisely BECAUSE
+  // the deletion took the `page.` usages with it. Three of this suite's sky
+  // assertions have therefore been dead since early August while reading as
+  // "the suite is there", which is the exact sentence at the top of this file.
+  //
+  // The rule that catches it is the cheapest one here: a script that opens a
+  // browser and never opens a page or navigates is not testing anything.
+  if (/await launch\(chromium/.test(src) &&
+      !/\.newPage\s*\(|\.goto\s*\(|newContext\s*\(/.test(src)) {
+    findings.push({ f, n: 0, rule: 'no-navigate',
+      msg: 'launches a browser but never opens a page or navigates — the body is missing, not just the setup' });
+  }
+
+  // ── 6, TRIED AND DELETED: "prints a result binding nothing assigns". ──
+  // It looked like the other half of the husk (`console.log(r.worst)` with no
+  // `r` anywhere) and it cried wolf immediately: 13 files on the raw source,
+  // and still 17 after comments and string literals were stripped — including
+  // `drag-perf.mjs`, `facade-perf.mjs` and `ground-flatness.mjs`, all healthy.
+  // Separating a genuinely undefined binding from one assigned through a
+  // destructure, a callback parameter or a nested scope needs real scope
+  // analysis, which the header of this file says explicitly does not belong
+  // here. Rule 5 above already catches all seven husks with no false positives,
+  // so this one is deliberately absent rather than shipped noisy. Recorded so
+  // the next person does not spend the same half hour rediscovering it.
+
   // ── 4. Drives the map without cancelling the auto-detect probe. ─────
   // It fires 11 s after load and rewrites every setting. Left running it lands
   // mid-test and reads as the lever under test being broken.
@@ -104,6 +136,7 @@ const RULES = {
   'raw-launch': 'bypasses launch() — no watchdog, no reaper',
   'no-close': 'never closes its browser',
   'use-before-decl': 'uses a binding before declaring it  (PARSES FINE, THROWS AT RUNTIME)',
+  'no-navigate': 'opens a browser and never opens a page  (THE BODY IS MISSING)',
   'no-probe-cancel': 'does not cancel the graphics auto-detect probe',
 };
 let hard = 0;
