@@ -884,8 +884,10 @@ should land before Y4 or Y4 must re-run the check.
 4. **Record every pass in `HANDOFF.md`** with the branch name.
 
 # PART Z — WALK TO CLASS. Written 2026-08-15 from the skeptic pass in HANDOFF
-# §116. **PR #169 IS OPEN AND WAS NOT MERGED.** The routes are right; four
-# things the interface says or fails to draw are not, and each is small.
+# §116. **PR #169 MERGED 2026-08-16 after a second fresh-eyes pass re-ran every
+# gate on the merged tree (HANDOFF §122): Z1-Z3 closed below, Z4 stays with the
+# graph bake, Z5-Z9 stay open.** The original header said: the routes are
+# right; four things the interface says or fails to draw are not.
 
 **The one-line verdict.** The routing is the best-verified thing in this repo —
 eighteen pairs driven in a real browser, every distance identical to the bake's
@@ -912,7 +914,17 @@ of why.** It is one character (`25` → `24`) and it is not this lane's file.
 
 ---
 
-**Z1. `wayfind-ghost` never enters the style, and here is why.** §114 recorded
+**~~Z1.~~ CLOSED — the ghost is in the style, the stops are computed from
+named constants, and its own pixels are photographed crossing a building
+(2026-08-16, HANDOFF §122, merged in PR #169).** `ghostWidthExpr()` does the
+clamp arithmetic in JavaScript and hands MapLibre the bare top-level
+interpolate; driven on the merged tree it reads back exactly 15:1.65 /
+21:27.30, the layer sits in the style, and the console is free of wayfind MAP
+ERRORs on every load. The photograph nobody had: `shots/walk/gate2/
+_z1-ghost-pixels-magenta.png` — the ghost layer toggled off at a fixed pose,
+the 4,345 px that vanished painted magenta: dashes ON the dark building mass
+along the BTL>PMA line, solid ribbon on the open walkway beside it. The
+original entry: §114 recorded
 "reports index -1 ... I ran out of time to find out why". The browser says it
 outright, once per load:
 
@@ -942,7 +954,13 @@ way `groundWidthExpr` already does, and return the finished interpolate.
 **Then photograph a route that passes behind a building**, because nobody ever
 has.
 
-**Z2. The From field promises a location it does not have.** Its placeholder is
+**~~Z2.~~ CLOSED — From defaults to the routable building nearest the camera,
+and the placeholder says exactly that (2026-08-16, HANDOFF §122, merged in
+PR #169).** Placeholder `Nearest building to the view` (added to the honesty
+doc §11 first), field pre-filled on open, and empty From + Enter now picks the
+same default and routes — all three driven on the merged tree. The withdrawn
+sentence `Where I am standing` renders nowhere. The original entry:
+its placeholder was
 `Where I am standing`. There is no `navigator.geolocation` anywhere in the file
 and no camera-position default; leave From empty, press Enter on a valid To, and
 **nothing happens at all** — `run()` returns on `!state.from`. `interface.md` §2
@@ -952,7 +970,15 @@ Either build the camera default (it needs no permission and no prompt) or change
 the placeholder to something true. Shipping the sentence without the feature is
 the one failure `what-we-can-honestly-say.md` §9 names by hand.
 
-**Z3. 85 of the 198 UT register codes return NOTHING when typed**, including
+**~~Z3 (client half).~~ CLOSED — every register code is findable and a dead
+one answers honestly and clears the stale route (2026-08-16, HANDOFF §122,
+merged in PR #169).** The register rides along with the graph fetch; `SMC`,
+`NUR` and `UTA` each show greyed `not walkable yet`, Enter answers `<code> is
+not walkable in this build yet`, and a route drawn immediately before is gone
+from every wayfind source (113 strip features → 0, measured). **The graph
+half — actually ROUTING those codes — is Z4's bake and stays open.** The
+original entry: 85 of the 198 UT register codes returned NOTHING when typed,
+including
 `NUR`, `SMC`, `HDB`, `HLB`, `HTB`, `UTA`, `ACS`, `ANB`, `BMS`, `BMK`, `WMB` and
 `WAT`. `walk_graph.json`'s `code` map holds 113 of 198; 111 are routable and 2
 (`BIO`, `TSG`) are shown greyed with "no door mapped", which is the right

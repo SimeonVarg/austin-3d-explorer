@@ -15501,3 +15501,161 @@ the decisive pairs; `blind/` holds the judged composites and the key).
 - One `eye-day-rep2` frame died to the 300 s chrome watchdog and was replaced
   by the cross-session rep; the eye-pose magenta footprint of `drag-detail`
   (§114's watchdog loss) is still unmeasured.
+
+## 122. Aug 16 2026 — fresh eyes on the walking feature: every skeptic gate re-run on the merged tree, and PR #169 is merged (acer lane)
+
+**Branch `acer/wayfind`, PR #169, MERGED.** I did not build the Z1-Z3 fixes
+(§118 did); this pass judged them cold, on the merged result, and merged.
+
+### The night main would not sit still, and the merge was done three times
+
+`origin/main` moved twice while this pass ran: PR #170 (Y8 close-range ground
+grain, `js/ground.js`) merged mid-pass, then the Gate's record commits
+(docs + shots only). So: merge one (`a7b5370`, onto `ede8c54`), merge two
+(`23523c6`, onto `45772a1` — app code changed, so EVERY gate below was re-run
+from scratch on that tree), merge three (`3fcdefc`, onto `17708ba` — verified
+docs/shots-only by diff: `git diff 23523c6 3fcdefc -- index.html _harness.html
+style.css js/ data/` is EMPTY, so the pixel gates still describe the merged
+app files byte-for-byte).
+
+Also found on arrival: §117's QUEUE bookkeeping (W8/Y11/Y13 closures, Y17/Y18)
+sitting UNCOMMITTED in the shared worktree — committed as found (`6e61e63`)
+before anything else, so the merges had a clean base.
+
+**HANDOFF numbering:** main's storey-band entry collided with this branch's
+§114 and was renumbered §119 in merge one (QUEUE's §114-§118 cross-references
+on BOTH trees already assumed the branch numbering); §120 (grain) and §121
+(the Gate) landed pre-numbered around it. This entry is §122.
+
+### Instrument (quoted, per the rule)
+
+Pinned `git archive` trees served by `python scripts/serve.py 8325` from the
+scratchpad — the §116 lesson; a sibling `checkout` cannot move a served file.
+`way` = the merged branch, `main` = `origin/main`, ONE shared `data/` junction
+(data byte-identical between the two on every merge, verified by diff).
+`harness-drift.mjs` PASS both sides (29/29 way, 28/28 main) before any pixel.
+Real Chrome via `chrome.mjs`, SwiftShader headless (deterministic; no timing
+asserted), 1440x900 dpr 1, `intro=0&drift=0`, auto-detect cancelled,
+settle→idle→repaint→shoot twice trust the second. One sibling reap killed a
+browser mid-run and one killed the 8325 server (both relaunched, not
+diagnosed, per the night's rules); one watchdog kill at the default 300 s
+(rerun with `VERIFY_MAX_MS` raised).
+
+### The gates, all green
+
+**Behaviour + wording, 22/22** on the final merged tree, driven through the
+real DOM:
+
+* **Z1** — `wayfind-ghost` present in the style; `line-width` reads back as
+  the bare top-level interpolate with stops computed from the constants,
+  exactly 15:1.65 / 21:27.30 at 2dp; **zero wayfind MAP ERRORs in the console
+  across every load** (the only MAP ERRORs anywhere are Z0's four
+  `ground-base-texture` lines, which are `main`'s and still unfixed — the Y8
+  grain pass did NOT touch `texGroundMaxZoom: 25`; Z0 stays open).
+* **Z2** — placeholder `Nearest building to the view`; From pre-fills from
+  the camera (`Moontower` at the load pose); empty From + Enter picks the
+  default and, with a To committed, ROUTES (was: nothing, silently).
+* **Z3** — `SMC`, `NUR`, `UTA` each: greyed row `not walkable yet`, Enter
+  answers `<code> is not walkable in this build yet`, and a route drawn
+  immediately before is GONE from every wayfind source (113 strip features →
+  0, pill hidden). Nonsense input gets the not-found sentence.
+* **Wording** — every text node under `#wf-root` scanned against the honesty
+  doc's §12 forbidden list: zero hits (the one line naming accessibility is
+  §11's own mandated disclaimer, matched verbatim). Door phrases follow the
+  §7 table: GDC (osm main) gets `The main entrance`, WEL (derived) gets
+  `Entrances are on this side`. The headline is always range-form.
+
+**Route regression: 18/18 pairs identical to the audited table** (§113/§116)
+— every distance, every lo-hi minute range, every staircase count, on the
+graph the merged tree ships (`walk_graph.json` unchanged at `a56c69b`; the
+blitz's fatter graph had NOT landed as of this merge, so the 85-code count
+and the 18-of-24 towers stand). Worst route 16.3 ms (SwiftShader, no
+throttle — informational).
+
+**Z1's acceptance photograph, taken the honest way.** BTL>PMA at p 0.92,
+pose echo-verified (the first frame of the night came back at an unintended
+pose because nothing checked the jump landed — the README's own trap,
+relearned; the fix is jump → read back → re-jump until it holds), then the
+ghost layer toggled off at the identical pose and the 4,345 px that vanished
+painted magenta: **dashes ON the dark building mass along the route line,
+solid ribbon on the open walkway beside it** — solid on open ground, dashed
+through the wall, which is the sentence the file's header promises.
+`shots/walk/gate2/z1-ghost-night-merged.png`, `-noghost.png`, `-cleared.png`
+(route-vs-cleared 8,674 px — the §114 isolation rule), `-crop.png`,
+`_z1-ghost-pixels-magenta.png`.
+
+### Heroes: the feature idle is not at the floor, it is UNDER it
+
+Six hero-class poses (H2 pinned at §116's z-bands; the §116 pose scripts died
+with that session's scratchpad, so these are re-authored poses of the same
+compositions), three separate loads each in the order main-A → wayfind-C →
+main-B, so the floor pair BRACKETS the branch session in time. Strict settle:
+every source `isSourceLoaded` AND `areTilesLoaded` before each frame.
+
+```
+pose               floor (main A vs main B)      branch vs the mains
+H1-spawn-sunset    IDENTICAL sha256              IDENTICAL — all 3 loads one hash
+H2-drag-corridor   IDENTICAL sha256              IDENTICAL — all 3 loads one hash
+H3-tower-golden    IDENTICAL sha256              IDENTICAL — all 3 loads one hash
+H4-whole-city      0.294 %  max 1/255            IDENTICAL to main-B
+H5-dkr-skyline     27.658 % max 155              IDENTICAL to main-A
+H6-tower-night     20.443 % max 182              IDENTICAL to main-A
+```
+
+**At every pose the branch frame is byte-identical to at least one main
+load.** §116's bar was H2 byte-identical; H1 and H3 joined it. The only
+differences anywhere are between the two MAIN loads of the identical page:
+H4 at amplitude 1/255 (invisible), and H5/H6 where main-B alone shifted the
+whole frame below the sky (mean luma ±1-4, max 155-182) — §116's load-state
+finding reproduced with a stricter settle, plus a possible echo of QUEUE
+Y18's exposure path-dependence. Both are `main`'s to chase, not this
+feature's: the frames say the walking feature idle moves NOTHING.
+
+### `?clip=1` and the phone
+
+* `?clip=1&walk=1&from=JES&to=WEL&fit=1&intro=0`: all 13 chrome elements
+  (`hud`, hint, tod, joystick, gfx, fb, wf-button/sheet/pill) computed
+  `display:none`; **the OSM attribution stays visible (licence, not
+  chrome)**; the route stays drawn. `shots/walk/gate2/clip-route-no-chrome.png`.
+* 393x852 with a route and the pill: box-measured, zero overlap with
+  gfx-button (343,16), fb-button (343,58), tod-panel (341,324), joystick
+  (32,682); everything on screen. `shots/walk/gate2/phone-393-route-pill.png`.
+  Z7 (pill can never exceed 197 px, headline wraps) and Z8 (open sheet covers
+  the joystick) remain open, as scoped — visible in the frame, colliding with
+  nothing.
+
+### Merged, and what stays open
+
+PR #169 merged; branch deleted; QUEUE Z1, Z2 and the client half of Z3 closed
+in PART Z. Still open there: **Z0** (ground-base-texture rejected on `main` —
+one character, `js/ground.js`), **Z4 + Z3's graph half** (the bake; six West
+Campus towers, 85 register codes), **Z5** (the 15 fps pulse repaint,
+unmeasured), **Z6** (the advertised recording URL vs the intro), **Z7/Z8/Z9**
+(phone pill width, joystick under the sheet, Jester ordering + list clipping).
+
+### The one taste call left (flagged by §116, still his)
+
+From altitude the route is a thin thread — 0.04-0.11 % of the frame at cruise
+poses, drawn OVER rooftops and canopies by design. At walking height it is a
+painted strip on the pavement and it is excellent. My opinion, having driven
+both: **ship it as is.** The thread is legible the moment you look for it,
+and the moment you descend it hands over to the ribbon, which is the view
+that matters for walking to class. A fatter thread would read better in a
+30-second flyover clip but would sit on the roofs of the city he is about to
+record for AWS. The four constants are `WAYFIND.threadPx` 3.2,
+`threadOpacity` 0.9, `threadFadeZoom` 17.2, `casingCol` — one line each if he
+wants the flyover louder. Judge from
+`shots/walk/final/01-a-route-from-the-air-jester-to-welch.png` against
+`02-the-same-route-at-walking-height.png`.
+
+### For Simeon
+
+Walk-to-class is merged and it tells the truth: type a building and you get a
+route with honest numbers (all 18 test routes re-checked tonight, every one
+matching), dead codes get a real answer instead of silence, and the app
+everyone else sees is pixel-identical until you add `?walk=1` — the
+all-visitors button is still one constant (`WAYFIND.on`) you flip after the
+AWS shoot. One taste call left: from the air the route is a deliberately thin
+thread (0.04-0.11 % of the frame) — my call is ship it as is, and if you want
+the flyover louder it is a one-line change; compare frames 01 and 02 in
+`shots/walk/final/`.
