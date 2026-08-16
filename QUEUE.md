@@ -68,7 +68,50 @@ CLOSED** — he tested on his phone 2026-08-04: *"i tested on my phone performan
 is great and it looks amazing - only thing is the boost button is a bit off
 visually but its great."* That removes the single biggest unknown in the project.
 
-## K1. Measure performance and set a budget — THE TOP RISK
+## K1. Measure performance and set a budget — MEASURED 2026-08-16, NOW A LIST OF FIVE JOBS
+
+**The measuring half is DONE and the three documents exist** (HANDOFF §129,
+branch `acer/n1-perf`):
+
+| | owns |
+|---|---|
+| `docs/perf/payload.md` | bytes and node-side parse, off disk |
+| `docs/perf/budget.md` | the frame budget, written by reading — a prediction |
+| **`docs/perf/measured.md`** | **what a frame and a boot actually cost in Chrome** |
+
+**The five things it found, in the order to fix them.** Nothing below was
+fixed — every one of these files belonged to another lane the night it was
+measured.
+
+1. **Boot blocks the main thread for 7.07 s out of the first 8 s, and one
+   single task is 2,744 ms.** This is Simeon's own complaint, photographed at
+   `shots/perf/boot-downtown-*.png`: veil gone at ~5 s, city completely FLAT at
+   8 s, campus built by 16 s, **downtown skyline not on screen until 24 s.**
+   `payload.md` says JSON parsing is ~15–20 ms a file, so **the freeze is not
+   parsing** — it is what happens after, in `addSource` and the atlas build.
+2. **The facade atlas is 15–20 % of every moving frame** (`getImageData` +
+   `patchUpdatedImages` + `getImage`), with the time of day held CONSTANT. That
+   is new-combos-entering-view, not the tod repaint. `js/facades.js`.
+3. **`updateSky` is 93 % of everything that runs on a camera move** and 6–9 % of
+   all main-thread time. `budget.md` §128 predicted 2–8 ms and attached a
+   falsifier; the falsifier is not met. One function, no throttle, no counter.
+   `js/sky.js`.
+4. **Y7 ~40 ms, Y15 ~150 ms** — see those entries, both restated with numbers.
+5. **16 % of a cruise frame is `getProgramParameter`/`getShaderParameter`** —
+   MapLibre compiling shaders mid-flight against 219 style layers.
+
+**What is NOT established and must not be read as clean:** frame time (2–10×
+rep noise on a machine at 91–100 % CPU — there is no fps number in the
+document), total wire bytes, anything on a real phone or a throttled CPU, and
+`js/shadows.js`'s 2,428-hull rebuild plus the 4/s tod tick, which need the
+autoplay clock running. **"Autoplay while walking" is still the worst state the
+app can be in and is still unmeasured.** Full list in `measured.md` §6.
+
+**`scripts/verify/perf-budget.mjs` is RED on `main` and should stay red** — it
+was watched failing on the real overrun and watched passing on the same build
+with loosened thresholds, so it is known to work. Do not re-baseline it.
+
+### The original entry, for the record
 
 **Nobody has measured frame rate or load time in about thirty-five merges**, and
 in that time the app has gained 3,015 road polygons (+445 KB on an untiled file),
@@ -685,6 +728,18 @@ pass.** Either widen the assertion to `TUNE.FOV_KICK +/- tolerance` read live fr
 `window.__fly.tune`, or decide the kick is too big and lower it — but a test that
 has been red on `main` is a test nobody can use as a gate.
 
+**Y7 — RE-MEASURED 2026-08-16 (§129, `docs/perf/measured.md` §3.2). STILL OPEN,
+still ~40 ms, and now budgeted.** Driven three ways on the merged tree, minimum
+of interleaved counterbalanced reps, machine at 91–100 % CPU with the load
+printed beside every reading: **43.3 ms** worst instalment over a natural
+1,500 m cruise at 420 m, **40.1 ms** over 200 m hops at 1.7 m, 27.2 ms on a
+forced rescan after a teleport. §109's 37.9 ms reproduces and is if anything
+optimistic. **It has never come in under its 8 ms budget on any machine state
+anyone has tested.** `perf-budget.mjs` G3 fails on it every run. Not fixed —
+`js/controls.js` belonged to another lane. **Rank it FOURTH**: the sky redraw
+(every frame) and the facade atlas (every frame) each cost more per second than
+this does, and both were found the same night. Original entry follows.
+
 **Y7. The outer-ring scan's worst case is 37.9 ms and nothing budgets it.**
 `querySourceFeatures` builds its whole feature list before returning, so
 `OUTER_BUDGET_MS` cannot bound it. Crossing `ALT_GROUND` now forces a rescan at
@@ -744,6 +799,24 @@ canopies under the disc; the WC pair is the proof). Instrument: composited
 `cancelGraphicsAutoDetect()`. One pose plus its own control, single rep — the
 control failing loudly (412 px) is what makes one rep enough here. What the
 frames DID catch is Y18 below.
+
+**Y15 — RESTATED 2026-08-16 (§129, `docs/perf/measured.md` §3.3). 841.5 ms DID
+NOT REPRODUCE. The honest worst case is 149.8 ms.** Still open, still 19× the
+8 ms budget, still about nine dropped frames — but an order of magnitude below
+the number that has been sitting in this file, and **it now comes from the
+regime a real walk produces** (one 60 m `TRUNK_RESCAN_M` hop, 149.8 ms) rather
+than from a teleport (89.9 ms). Minimum of three interleaved reps; the others
+read 235.8 / 439.9 / 522.7 / 543.9 ms on a machine at 100 % CPU. Read §109's
+841.5 ms as a stale upper bound from a different tree density.
+
+**It had to be measured without a walk, and that is its own finding.** All three
+`perf-budget.mjs` walk reps travelled their 120 m and **ended at altitude
+23.8 m — the same digit every rep, so it is a mechanism, not noise.** Above
+`TRUNK_ALT` (12 m) the trunk field switches off, so a lifted walk measures a
+subsystem that is not running; the gate correctly marks G2/G4/G5b `INVALID` and
+prints no figure. **QUEUE Y16's silent lift is now blocking a measurement as
+well as a camera, and it is the prerequisite for ever closing Y15 properly.**
+Not fixed — `js/controls.js` belonged to another lane. Original entry follows.
 
 **Y15. The trunk field's worst incremental scan is 841.5 ms.** Measured in §109:
 61 scans, 25.3 ms average, 2,976 trunks, **max 841.5 ms** — about fifty dropped
@@ -839,7 +912,11 @@ Y6  motion-feel FOV assertion ................ DONE (acer/blitz-verify, HANDOFF 
                                                 kick at cruise, TUNE.FOV_KICK (read live)
                                                 at the sprint ceiling, exact restore.
                                                 Watched failing on an injected fault.
-Y7  outer-ring scan worst case ............... OPEN
+Y7  outer-ring scan worst case ............... OPEN, now MEASURED (§129):
+                                                43.3 ms natural cruise / 40.1 ms at
+                                                1.7 m. Never under its 8 ms budget.
+                                                Ranks FOURTH behind the sky redraw
+                                                and the facade atlas.
 Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
                                                 2026-08-15 after the gate re-proved the
                                                 byte-identical-flyover claim: SHA-256
@@ -859,6 +936,14 @@ Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — fo
 Y12 the near plane ........................... NEW
 Y13 the moon behind a building ............... CLOSED (§117) — disc occluded, 0 px through wall
 Y14 places-check / zfight not run ............ CLOSED (both at baseline on 38fbeee, §115)
+Y15 trunk field worst scan ................... OPEN, RESTATED (§129): 841.5 ms did
+                                                NOT reproduce; worst honest reading
+                                                149.8 ms on a 60 m hop. Cannot be
+                                                measured by walking at all until Y16
+                                                is fixed — every walk is lifted to
+                                                23.8 m and the field switches off.
+Y16 the silent lift out of walking height .... OPEN and now BLOCKING (§129): it is why
+                                                perf-budget's walk phase is INVALID.
 Y17 ground plane ignores the dusk clock ...... NEW  (§117) — pavement 2.3-2.9x wall luma at p 0.70
 Y18 fx-canvas paints glow bands on facades ... NEW  (§117) — dusk AND night, A/B proven
 ```
