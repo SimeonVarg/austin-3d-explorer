@@ -17454,3 +17454,152 @@ which is the sort of thing that shimmers when you fly past, and fifty-five
 buildings on campus have a roof ring dead level with the roof. Neither is fixed
 — they are written up with the numbers, and the next step is to fly the camera
 at one and see whether it actually flickers.
+
+## 135. Aug 16 2026 — the trim moves, not the wall: 65 rings lifted 30 mm off the face they cap, and the cross-document tie became an assertion (QUEUE N5a/N5b) (acer lane, branch `acer/n7-cornice`)
+
+§134 repaired `coplanar.mjs` and it immediately found two things it had been
+blind to. This pass fixed both, and neither fix is in the data — both are in
+the bake, so a re-bake cannot undo them.
+
+### Which surface moves is a question about buildings, not about editing
+
+A cornice CAPS a wall. A coping CAPS a parapet. In both cases the stone sits ON
+the head of the thing below it, so **the trim is what lifts and the wall never
+moves**. That was the whole decision, and the size and the precedent came out
+of this repo rather than being invented: `scripts/bake_depth.py`'s `STEP_LIFT =
+0.03`, whose comment reads *"two coplanar top faces z-fight; 30 mm settles it
+and is far too small to read as a second step."* Same defect, same 30 mm, and
+each new constant says so in its own comment.
+
+| | constant | what it lifts | rings |
+|---|---|---|---|
+| N5a `bake_drag.py` | `CORNICE_LIFT = 0.03` | the `cornice` top above the `upper` band top | 10 |
+| N5b `bake_campus_storeys.py` | `HOST_LIFT = 0.03` | the top piece above the host's `final_height` | 40 `cap` + 15 `cornice` |
+
+On the campus side only the TOP of the top piece moves — `split_ends()` still
+divides the storey span at `y1 - th`, so the fitted pitch and every floor line
+are bit-for-bit what they were. That matters because those bands beat the live
+site in a blind test hours ago and this pass had no business touching them.
+
+### The N5a numbers were a rounding artifact of a real coplanarity
+
+§134 recorded the Drag cornices as "2 to 4 mm under" the wall. They were not
+approximately flush, they were **exactly** flush: `band()` rounds `h` to 2
+decimals and `detail_feature()` rounds `dh` to 3, so an unrounded 15.498 shows
+up as a wall at 15.50 and a cornice at 15.498. Ten buildings, one cornice each,
+~6,300 m² of shared top face, 100 % footprint containment.
+
+### N5b is the one that needed more than a lift, because no tool could see it
+
+The host is a basemap building extruded by `js/app.js` straight from the
+snapshot; `coplanar.mjs` pairs surfaces within ONE document and is right to
+report 0. The tie was found by hand and would have been re-found by hand, or
+not at all, the next time the snapshot rolled.
+
+So `check_host_clearance()` now lives in the bake — **the only place that reads
+both documents**. It re-reads each host's `final_height` out of the snapshot
+already loaded, runs BEFORE the file is written (so a bake that would
+reintroduce the defect raises and leaves the shipped data alone), refuses any
+ring face within `HOST_EPS = 0.01` of the host's ground or head, and prints on
+every run:
+
+```
+"host_clearance": { "rings_checked": 640, "coplanar_with_host": 0,
+                    "worst_gap_m": 0.03, "limit_m": 0.01,
+                    "against": "final_height in snapshots/2026-08-16" }
+```
+
+**Proved by making it fail.** With `HOST_LIFT` forced to 0 the bake raises and
+names **55** faces — the hand count of §134, exactly, reproduced by machine.
+
+### Two headers said something untrue and now say what is true
+
+Both bakes claimed "nothing coplanar, nothing for the depth buffer to argue
+about" on the strength of offsetting the rings outward. Outward offset clears
+the **side** faces; it says nothing about the **horizontal** ones, and the
+cornice ends exactly where the wall ends. Both headers, and
+`storey_details()`'s docstring, now say which face the argument covers and
+which one it never did.
+
+### The geometry did not move, and here is the proof rather than the assurance
+
+Old vs new, feature by feature, against `origin/main`:
+
+| file | features before/after | rings whose geometry changed | properties changed |
+|---|---|---|---|
+| `drag.geojson` | 124 / 124 | **0** | `dh` on 10 `cornice`, every delta **+0.030** |
+| `campus_storeys.geojson` | 640 / 640 | **0** | `dh` on 40 `cap` + 15 `cornice`, every delta **+0.030** |
+
+By kind, unchanged in both: drag `cap` 24, `detail` base 10 / cornice 10 /
+course 3, `wall` 76; campus `base` 46, `cap` 40, `cornice` 15, `course` 539.
+`drag.geojson` is even the same byte size (61,398); `campus_storeys.geojson`
+grew 55 bytes, one per lifted ring. **Not one wall, cap, band, footprint or
+height outside those 65 `dh` values is different.** And both bakes were run
+unmodified first and reproduced the shipped files byte-identically, so the
+baseline this diff is measured against is the bake's own output, not a
+coincidence.
+
+### The guard, re-run
+
+`node scripts/verify/coplanar.mjs` — 28 files, 151,929 features, **122,773 top
+faces examined**, 0 unreadable, stylesheet audit ok.
+
+- **`drag.geojson` 10 -> 0.** The pairs are gone.
+- **The §134 baselines are undisturbed: roofs 85, places 1, entrances 1558.**
+  Not 1729 — that old number counted coincident THICKNESSES, because
+  `js/entrances.js` paints base + h. `campus_storeys` reads 0 as it always did
+  and always would have.
+- Total **2,342 -> 2,332**, the ten and nothing else.
+- `scripts/verify/coplanar-baseline.json` lowered `drag.geojson` 10 -> 0, and
+  **that commit is the record that the drop was accepted deliberately**.
+  `--gate` prints `no file gained a coplanar pair` and exits 0.
+- `--selftest`: **all eight passed**, including the ones that make the tool fail
+  on purpose. The guard still catches a deliberately constructed defect.
+- `geomlint.mjs` and `dupids.mjs` both exit 0 (data-only; no collisions, no
+  unclaimed ids).
+
+### What this pass did NOT establish
+
+- **Nothing was rendered. No server, no browser, no frame.** Three other
+  workflows held the machine tonight, one of them taking the first trustworthy
+  frame-time measurement this project has had, and a browser here would have
+  poisoned it. So the honest statement is unchanged from §134: **not one of
+  these pairs has ever been shown to be visible, before the fix or after.**
+  The lift is justified by depth-precision arithmetic and by the fact that the
+  guard's own blindness survived four times while looking invisible.
+- **`zfight.mjs` at a Drag cornice and at a campus roofline is still owed**, and
+  is now **QUEUE N5d**, tagged for a lane that already holds a browser. Poses:
+  the Co-op cornice at 15.5 m (≈ -97.74228, 30.28596) and any family-C `cap`
+  building on campus. A null result there is worth recording too — it would
+  bound how much the remaining 2,332 baselined pairs are worth chasing.
+- **`drag-check.mjs` was not run** — it drives a page. Its invariant is the
+  per-`bid` band stack, and no band, cap or `bid`-carrying feature changed by
+  any amount, which the property diff above shows directly.
+- **`bake_drag.py` got no equivalent assertion.** It does not need one: the
+  Drag's cornice and its wall live in the same document, so `coplanar.mjs` plus
+  the baseline at 0 already goes red if it comes back. Only the campus case is
+  invisible to tooling and only the campus case got the in-bake check.
+- **30 mm is a judgement inherited from `STEP_LIFT`, not a measurement.** Nobody
+  has established the smallest lift that survives a 16-bit depth buffer on a
+  phone; 30 mm is known-sufficient elsewhere in this repo and is one line to
+  overrule in either bake.
+- **The other 2,332 pairs are untouched** — `stadium` 313, `outer_ring` 179,
+  `trees` 99, `art` 92 — and nobody has judged whether any of them matter.
+
+### For Simeon, in one paragraph
+
+Ten shopfronts on the Drag had a stone cornice whose top was in exactly the
+same plane as the wall it caps, and fifty-five buildings on campus had a roof
+ring dead level with the roof. When two surfaces are in the same plane the
+graphics card has to guess which one is in front, and it can guess differently
+from one frame to the next — that is the shimmer you sometimes see on a roof
+when the camera moves. The fix is that the trim now stops three centimetres
+proud of the wall, which is how a real cornice sits and is far too small to see.
+Nothing else about the city moved: same buildings, same heights, same storey
+bands you picked in the blind test, and I checked that by comparing every single
+feature rather than by looking at a screenshot. The campus one was invisible to
+every checking tool we have, because the ring and the building it caps come from
+two different files — so the recipe that makes them now refuses to run if it
+ever produces that again, and it says so on screen every time. **The one thing
+still owed: nobody has actually flown the camera at one of these to watch it
+flicker, and that needs a browser I deliberately did not open tonight.**
