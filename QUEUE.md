@@ -1,5 +1,24 @@
 # QUEUE — Acer lane
 
+## THE OVERNIGHT BLITZ, IN PLAIN WORDS (morning of Aug 16 — full story in HANDOFF §127, pictures in `shots/blitz/final/`)
+
+Eight PRs merged overnight, nothing merged red, and the app is recordable
+right now. What you'd notice: **you can type a building and walk to it**
+(120 of 198 route, all 24 West Campus towers findable), **the Drag's upper
+walls read as real masonry instead of a barcode**, **the ground has grain up
+close**, **the app boots about three-quarters of a second faster** because the
+door file now loads while you look at the city instead of before it appears,
+and **`?clip=1&preset=cinematic` gives a clean chrome-free frame for the AWS
+recording** (frame 01 in the final folder). Doorways on 57 buildings got their
+era looks from UT's own occupancy register — judged blind against the old
+build at seven poses: never worse, invisible from altitude. Still open, on
+purpose: the windows-vs-storeys decision branch (PR #164) and the July docs
+PR (#5). The two biggest unpaid bills are unchanged: nobody has measured the
+frame cost of everything that landed (K1), and campus/West Campus walls still
+need the Drag's close-range treatment (Y5's second half).
+
+---
+
 Rewritten 2026-08-04 from Simeon's fourth list. Everything above this in git
 history is superseded. **The project has been submitted to the product manager.**
 
@@ -390,12 +409,17 @@ the wrong surface to move — its top is clamped to the host's glass head and
 `places-check` asserts the sign band sits flush on it at 0.001 m. The look is
 unchanged and was measured, not argued: `shots/wampus/merged/`.
 
-**W3. `data/entrances.geojson` is 5.44 MB raw / 326.7 KB gzipped, 11,890
-features, loaded as a flat GeoJSON source.** Already on `main`; nothing this
-week measured its load cost. It is 4.4 % of the gzipped `data/` payload and
-10 % of the raw JSON the browser parses at boot, and K1's loading budget never
-saw it. Either tile it the way the note at `js/entrances.js:924` anticipates, or
-measure it and write down that it is affordable. Do not guess.
+**W3. `data/entrances.geojson` is now 6.38 MB raw / 396 KB gzipped, 14,242
+features, loaded as a flat GeoJSON source.** (Was 5.44 MB / 11,890 — the
+measured-era bake grew it, PR #166.) **HALF DONE (2026-08-16, §126): it no
+longer loads at boot** — `ENT.defer` fetches it at first idle + 2 s, or when
+the camera descends below 60 m, or on a 25 s ceiling; measured off the boot
+path (city-up 10.85 -> 10.08 s min-of-3, `boot.mjs`, localhost) with
+`?entdefer=0` as the one-build A/B lever and `window.__entDefer` as the
+instrument. The TILING half is still open and now heavier: on a phone
+connection 396 KB gz + a 683 ms main-thread parse still lands in one lump at
+idle — tile it the way the note in `js/entrances.js` anticipates if that lump
+ever shows up in a real profile.
 
 **W4. Several West Campus towers have no lit windows after dark.** The Castilian
 is the clearest: `shots/wampus/final/lobby-castilian-night.png` is a fully lit
@@ -424,12 +448,14 @@ untouched: `node scripts/verify/coplanar.mjs` on its DEFAULT file set reports
 is byte-identical on `main` and nobody owns the finding yet. Note the default
 set does not include `places.geojson` or `entrances.geojson` — name them.
 
-**W7. Gates-Dell's main door is still buried inside a `heroes.geojson` block.**
-This is PART L's **L1**, unchanged and unstarted: a measured OSM `entrance=main`
-node that lands inside a 28.7 m hero piece, so the door renders 0 pixels from
-all 16 bearings tried. 1 of 584. The fix is in `scripts/bake_entrances.py` —
-read `heroes.geojson` and push the door out to the hero's own wall, or drop it
-and print that it was dropped.
+**~~W7.~~ DONE — and it turned out to be ALREADY SHIPPED; this entry was stale
+(2026-08-16, §126/PR #166).** Gates-Dell's door was moved 22 m out to the
+Speedway wall by `66699d9` before the blitz; a baseline bake on the exact
+pre-blitz tree reproduced the committed geojson byte-for-byte, and the X4
+pass verified the GDC centroid stayed byte-identical through the self-block
+fix. The original entry follows for the record: a measured OSM
+`entrance=main` node landed inside a 28.7 m hero piece and rendered 0 pixels
+from all 16 bearings tried.
 
 **~~W8.~~ RULED — author the secondary West Mall door; the courtyard door stays
 as main (2026-08-15, HANDOFF §117, photographed).** The photographs:
@@ -514,7 +540,17 @@ comparison. **Nothing to fix.** The guard for the class —
 `scripts/verify/westcampus-probe.mjs:60`, "nothing stands above `final_height`" —
 is still dead in the page-setup regression the Mac lane owns.
 
-**X4. Cambridge Tower's door is blocked by CAMBRIDGE TOWER, and the bug is in
+**~~X4.~~ DONE — the march no longer tests a door against its own building
+(2026-08-16, PR #166, HANDOFF §126).** A mass with IoU >= 0.90 against the
+host footprint (`SELF_IOU`, threshold measured off a bimodal distribution:
+1,391 < 0.5, six between, 57 >= 0.9) is excluded from that host's burial test
+and clear-space march. Buried doors 7 -> 5; Sterling House and The Nine were
+self-blocks and keep their placed doors; GDC's centroid byte-identical.
+Judged in pixels at seven poses, never worse. Still unsettled from the
+original entry: whether Cambridge's glazing is on that elevation (X8's probe).
+The original entry follows for the record.
+
+**X4 (original). Cambridge Tower's door is blocked by CAMBRIDGE TOWER, and the bug is in
 the march, not the placement.** Not the AT&T Center and not the wrong wall — both
 guesses are wrong. Measured (§104): the main-door group's 40 points sit **0.2 m
 outside Cambridge Tower's own base ring** and the nearest *other* West Campus

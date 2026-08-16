@@ -15726,7 +15726,7 @@ something when turned.
 * No perf run — a rejected layer becoming a real one adds a background draw;
   at these frame counts nothing suggested it, but it was not measured.
 
-## 123. Aug 16 2026 — the Acer landed the Mac's stalled clip-mode segment: rescued, gated, merged (PR #173) (acer lane, clip-rescue)
+## 124. Aug 16 2026 — the Acer landed the Mac's stalled clip-mode segment: rescued, gated, merged (PR #173) (acer lane, clip-rescue)
 
 **`mac/clip-camera-safe` had sat unmerged with no PR since Aug 7** — its own
 commit message says UNVERIFIED AND UNJUDGED, an overnight builder's work
@@ -15813,7 +15813,7 @@ DKR: interleave launches before believing a cross-arm diff.
 - The Mac's branch still exists and still points at the pre-rebase commit —
   deliberately. Mac lane: delete it when you pick this up.
 
-## 124. Aug 15 2026 — the walking graph goes 111 -> 120 of 198, the broken route is fixed, and all 24 towers are findable (acer lane)
+## 125. Aug 15 2026 — the walking graph goes 111 -> 120 of 198, the broken route is fixed, and all 24 towers are findable (acer lane)
 
 **Branch `acer/walk-graph2` off `origin/main` `4b6bbcd`. Files: `scripts/bake_walk.py`,
 `data/walk_graph.json`, `docs/walk/graph.md` §11, this entry — exactly the four
@@ -15921,14 +15921,14 @@ explanation, frozen at its honest value.
   rehab pavilion genuinely has no door group anywhere.
 ---
 
-## 125. Aug 15 2026 — the entrance bake stops testing doors against their own building, and every era comes from a measured year (acer lane)
+## 126. Aug 15 2026 — the entrance bake stops testing doors against their own building, and every era comes from a measured year (acer lane)
 
 Branch `acer/blitz-entrances`, cut from `origin/main` at `38fbeee`. Writes
 limited to `scripts/bake_entrances.py`, `data/entrances.geojson`, `HANDOFF.md`.
 No browser this phase, so nothing here is a pixel claim: **the PR is left open
 for the Ship agent**, because the era change below repaints doorways on 57
 buildings and judging that is a looking job, not a reasoning job.
-(Renumbered 114 -> 125 on the rebase: wayfind DID merge first and main had
+(Renumbered 114 -> 126 (via 125) on the rebase and again at merge bookkeeping: wayfind DID merge first and main had
 taken 114-124, per the header rule.)
 
 ### THE SELF-BLOCK (QUEUE X4) — fixed, and it had quietly moved two doors
@@ -16134,3 +16134,152 @@ QUEUE W3 already names it.
 * The A/B and pop-in scripts live in the session scratchpad, not
   `scripts/verify/` — this lane may not write there. A future lane that wants
   them permanent should lift them with their pose and threshold notes.
+
+## 127. Aug 16 2026 — MORNING REPORT: the blitz is closed out, seven merges across three workflows, main recordable (acer lane, blitz skeptic/ship)
+
+**This is the final entry of the overnight blitz.** I was the skeptic for the
+whole run: every unmerged blitz branch was rebased onto current `origin/main`,
+re-gated on the rebase, and merged only when green. Everything below was
+verified by looking, floors first, instrument quoted.
+
+### What merged tonight, across all three workflows
+
+| PR | branch | what a visitor gets |
+|---|---|---|
+| #167 | acer/drag-storeys | the Drag's barcode is banded masonry by day (blind gate WIN, §119/§121) |
+| #168 | acer/blitz-verify | motion-feel's FOV gate tests the mechanism and has been watched failing (§115) |
+| #169 | acer/wayfind | walk-to-class: routes, honest wording, ghost line — pixel-inert without `?walk=1` (§122) |
+| #170 | acer/ground-close | close-range ground grain, byte-identical flyover (§120/§121) |
+| #172 | acer/z0-ground-maxzoom | the city-wide ground grain layer EXISTS for the first time (§123) |
+| #173 | acer/clip-rescue | the Mac's stalled clip-mode segment, rescued and gated (§124) |
+| #174 | acer/walk-graph2 | 120 of 198 buildings routable, BUR>CBA fixed, all 24 towers typeable (§125) |
+| #166 | acer/blitz-entrances | X4 self-block fix, eras from measured years, entrances load off the boot path (§126, judged below) |
+
+Also: the austin-data-bot landed the 2026-08-16 snapshot on `main` mid-blitz
+(`5406130`) — `manifest.latest` is now 2026-08-16, so the app renders a
+fresher OSM city than any frame shot before ~02:08 UTC. **The bot also
+re-pushes its snapshot commit onto lane branch refs**: it recreated
+`acer/walk-graph2` after that branch was merged and deleted, and then
+recreated `acer/blitz-entrances` minutes after I deleted it — each time one
+content-duplicate commit ahead of main. I deleted both (twice for the
+second); whoever owns the bot's workflow should point it at `main` only,
+or the branch list will keep growing ghosts. Open PRs left: **#164**
+(facade-choice DECISION BRANCH, stays open by design) and **#5** (a stale
+July docs PR, untouched tonight).
+
+### PR #166, the one judged tonight (the Ship agent's job, done)
+
+Rebased onto `8460aee` (one HANDOFF conflict, resolved by renumbering),
+`harness-drift` PASS, then two pinned scratchpad worktrees served on :8346 in
+turn — never the shared repo worktree.
+
+**The era recolour is NOT-WORSE at every hero-class pose, judged blind.**
+SwiftShader 1440x900 dpr 1, AE off with gain==1 asserted per frame, same-arm
+noise floors **0 px differing at all** (both arms, day and default hour).
+Five hero equivalents + two campus close poses, day and night, salted
+top/bottom composites, verdicts recorded before the key was read:
+
+```
+pose                    px > 24/255      verdict (blind)
+H1 spawn                 1,619  0.12%    indistinguishable
+H2 drag corridor           270           indistinguishable
+H3 tower portrait          458           indistinguishable
+H4 whole city                0  BYTES    identical — doors are invisible from 780 m
+H5 dkr                     369           indistinguishable (19.5% sub-24 = the known
+                                         bistable pose, section 124's finding)
+C1 south mall day           59           indistinguishable
+C2 jester day               32           indistinguishable
+C1 south mall night         61           indistinguishable
+C2 jester night         10,315  0.80%    sky-settle drift, not content — the branch
+                                         frame was the MORE settled one
+```
+
+The magenta mask of the spawn diff (final/03) is the argument in one picture:
+every changed pixel is a doorway-scale speck at street level; no wall, roof or
+family recolour anywhere. Offline audit matched the PR's claims exactly: 57
+refs changed piece counts, 11,777 -> 14,242 features, GDC centroid
+byte-identical, eras redistributed off the `utility` shrug (5,880 -> 4,086)
+into measured families. **Era commit kept — no revert needed; W7 and X4 land
+with it.**
+
+**The lazy-load half does what it says.** Fresh sessions on the branch build:
+
+- sit still: `__entDefer.trigger = 'idle'`, fetch+parse 683 ms, OFF the boot
+  path, stats loaded after; never 'eager'.
+- dive immediately: the alt trigger arms and fires (the arm-time `onMove()`
+  catches a camera already below 60 m), 15,452 entrance features rendered at
+  the eye pose.
+- threshold crossing photographed every ~700 ms: doors land as thin
+  base-level trim, **5,123 px (0.4 %) in one step, no flash, no relayout**
+  (final/04). On SwiftShader the fire->sourceLoaded window was 6.5 s;
+  hardware will be far shorter.
+- boot, interleaved 3+3, `boot.mjs`, hardware GL, NET=off, min of reps:
+  **city-up 10.08 s (branch) vs 10.85 s (main)**, and main's boot shows the
+  1.3 s `entrances.geojson` fetch that the branch no longer pays at boot.
+  Improved, and the payload growth (5.26 -> 6.38 MB raw) now bills to idle.
+
+**INSTRUMENT FINDING while shooting: `aeMeter` only runs inside `updateSky`**
+(a move or an hour change). The deferred entrance init re-meters AE once at
+idle+2 s, and a static camera then NEVER runs the AE-off reset path — my
+first three H1 attempts on the branch arm all read gain 0.9064, identically.
+Setting `GFX.autoExposure=false` is NOT enough at a parked camera: force one
+`updateSky(map, currentP)` call afterwards and re-read the gain. The AE
+discipline of section 112 gains a step.
+
+### The merged tree, re-proved end to end (current `origin/main` `3a9b104`)
+
+- `harness-drift` PASS (29/29 scripts).
+- `motion-feel.mjs` **20/20 PASS**, and with `tune.FOV_KICK_FROM = 99`
+  injected in-page exactly the sprint assertion fails (kick 0.00, 19/20) —
+  the #168 gate re-watched failing on the final tree.
+- **`?clip=1` is recordable**: chrome hidden, no app labels, OSM credit
+  painting, `?preset=cinematic` applied from the URL with auto-detect off
+  (final/01 is that frame, on the 08-16 snapshot).
+- `bake_walk.py --regress` **PASS 18/18** on the final tree (also ran green
+  on pre-#166 main — #174's graph survives everything that merged after it).
+
+### Health numbers that changed tonight
+
+- routable buildings **111 -> 120 of 198**; all 24 West Campus towers typeable
+- boot to city-up (localhost, hardware GL, min of 3) **10.85 -> 10.08 s**,
+  entrances fetch+parse moved off the boot path entirely
+- entrances payload **5.26 -> 6.38 MB raw / 331 -> 396 KB gz** (QUEUE W3's
+  tiling note is now HEAVIER and still open)
+- buried doors 7 -> 5 (two West Campus towers were self-blocks and keep
+  their doors); ground layer count 218 -> 219 (Z0)
+
+### What I did NOT manage to do
+
+- **No dusk frames in the #166 gate** (default hour + p 0.30/0.90 only), and
+  nothing on hardware GL or dpr 2 for the pixel work.
+- **No perf run on the merged pile** — K1's budget still has no owner; tonight
+  added three ground layers, 23 storey extrusions and 2,465 entrance pieces
+  and their frame cost is still a claim, not a number.
+- **The close poses were mid-height, not 1.7 m** — a true eye-level walk past
+  the recoloured dorm doorways is still unphotographed.
+- **The pop-in window was only measured on SwiftShader**; nobody has timed
+  the fire->sourceLoaded gap on hardware.
+- The C2 night diff is bounded by the night-settle drift of section 121, not
+  by a floor of zero — the night verdicts are visual, not exact.
+- Did not investigate whether the 08-16 snapshot moved any hero composition
+  (the clip frame looks right; no A/B against 08-15 was shot).
+- The clip-rescue confirmation was light (chrome/credit/preset + frame), not
+  the full 28-assertion clip-gate — that ran pre-#174 in section 124.
+
+### For Simeon — the night in five frames (`shots/blitz/final/`)
+
+1. **01** — `?clip=1&preset=cinematic` on tonight's main: this is the frame
+   the AWS recording starts from, chrome-free with the credit intact.
+2. **02** — the South Mall with measured-era doorways after the merge.
+3. **03** — everything the era change touched, painted magenta: doorway
+   specks, nothing else. This is why it merged.
+4. **04** — the honest cost of the faster boot: doors arriving as thin trim
+   ~0.4 % of the frame after a dive (top before, bottom after).
+5. **05** — Jester/PCL at night after the merge; the dorm windows kept their
+   light.
+
+Seven branches merged, zero red merges, two PRs deliberately left open
+(#164 decision branch, #5 stale docs). Boot is faster, 120 buildings route,
+the Drag has architecture, the ground has grain, clip mode records clean, and
+every gate that was green tonight has also been watched failing. The city is
+yours in the morning.
