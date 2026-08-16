@@ -18471,3 +18471,190 @@ authored value bit for bit at the 165 m altitude `movement.mjs` runs at.
   question rather than a fill-rate one, but nobody has timed a frame with it.
 - **The double-tap-and-drag altitude gesture** is still untested, exactly as the
   drive doc left it.
+
+---
+
+## 140. Aug 16 2026 — THE N4 GATE: the near plane merged, and two of the things it was supposed to prove turned out not to be true (QUEUE Y10, Y12) (acer lane, gate, branch `acer/n4-mobile`, merged)
+
+**Branch `acer/n4-mobile`, PR #184, MERGED.** Files this pass wrote:
+`shots/mobile/final/`, `QUEUE.md`, this section. The code under judgement is
+§139's and was not edited: `js/app.js` (`WALK_NEAR`, two hunks) and
+`js/controls.js` (`LOOK.PITCH_SPAN_PX`, `pitchSens`). Throwaway worktree,
+`python scripts/serve.py 8383`. `harness-drift.mjs` **PASS, 29 scripts in each
+file**, from the repo root, before any pixel work, and again after each of the
+**three** merges of `origin/main` that landed under this gate (`990607d`,
+`6f9b764`, `640afcb` — twelve commits from three other lanes, and this section's
+sibling had to be renumbered 129 -> 134 -> 136 -> 139 each time).
+
+### THE INSTRUMENT. READ THIS BEFORE QUOTING ANY NUMBER BELOW.
+
+> **REAL iOS SAFARI WAS NEVER TESTED AND CANNOT BE FROM THIS MACHINE.**
+> Everything phone-shaped here is Chromium in a phone costume: 393x852 CSS px,
+> `deviceScaleFactor` 3, `isMobile`, `hasTouch`, an iPhone UA, and real touch
+> through CDP `Input.dispatchTouchEvent`. That makes **touch handling, layout,
+> hit-target geometry, camera matrices and pixel counts solid**. It says
+> **nothing** about iOS's WebGL implementation, its memory ceiling, its
+> rasteriser, its reserved gestures, or about **frame rate, battery or heat on
+> Simeon's actual phone** — there is no thermal throttling here and the GPU is
+> an RTX 3050 Ti through ANGLE/D3D11. Do not let any figure here be quoted as a
+> phone number.
+
+### 1. TWO THINGS THIS GATE WAS MEANT TO CONFIRM, AND DID NOT
+
+**(a) The near-plane formula everyone has been quoting is the wrong one.**
+§108, §139 and my own first run all read
+`(cameraToCenterDistance / 50) / pixelsPerMeter`. That is MapLibre's DEFAULT
+formula, so it returns the same number whether the hook is installed or not —
+my first wall sweep duly reported `near_on == near_off == 0.974` at every pose
+and "no change" everywhere, which looks exactly like a dead fix. The effective
+plane is **`t.nearZ / t.pixelsPerMeter`**. Read that way, stock on a phone at
+1.7 m is **0.72 m at pitch 87 and 1.08 m at the 88 deg cap**, and with the hook
+**0.12 m**. Corrected before anything was concluded, and the correction is why
+the rest of this section exists.
+
+**(b) A plain wall never vanished, so "the wall that used to vanish" could not be
+photographed.** The drive doc's "3 cm margin" (`R_CAM_GROUND` 1.0 m against a
+near plane of 0.97 m) came from formula (a) and from treating
+`__fly.roofAt(p, 0.5)` as a wall position. **The collision field is a 6 m grid**
+(`CELL = 6` in `js/controls.js`), so it cannot locate a drawn face to better than
+metres. Driven into the Main Building block on the joystick by real touch, the
+app stops with the wall **fully drawn**, and at that identical pose the
+before/after frames are **0 differing pixels against a 0-pixel A/A floor at every
+pitch from 84.5 through the 88 cap** (near_off 0.39 / 0.54 / 0.72 / 0.86 /
+1.08 m). Pictures: `shots/mobile/final/01-*`. **The wall was always solid.**
+
+### 2. WHAT THE FIX ACTUALLY BUYS, swept with a noise floor at every step
+
+A/A floor **0 px at every single step**, so both middle rows are real:
+
+```
+South Mall live oak     gap 0.5 m    0 px
+                        gap 1.0 m    2,882,537 px   95.7 % of the frame
+                        gap 1.5 m      449,202 px   14.9 %
+                        gap 2.0 m    0 px
+```
+
+`final/02-*` is the pair: before, you look straight through the trunk to the
+building behind it; after, it is solid. **And then the honest half.** Walk to
+that same oak on the joystick with a real finger and **the app stops you at
+1.67 m, where the A/B is 0 px** (`final/03-*`). Four real walks — South Mall,
+the Drag, West Campus, Speedway, 24 eye-level poses, every one with its own A/A
+floor — turned up **one** non-tree pose that changed at all, on the Drag, at
+0.34 % of frame. So: **correct, free, and its visible benefit to somebody
+walking is small.** Y12 is closed as written, and the part that reads worst at
+eye level — a crown you are standing *inside*, whose near face is behind the eye
+— cannot be fixed by any near plane and is now a `js/trees.js` job.
+
+The new cost is correct rendering rather than a defect and should still be
+looked at: pressed against a surface you now get a featureless field where you
+used to get a view through it (`final/04-*`, a West Campus wall at zero metres).
+
+### 3. THE THREE GATES THAT COULD HAVE BLOCKED IT
+
+**Z-FIGHTING DID NOT GET WORSE. It did not change at all.** `zfight.mjs` (a
+scratch copy with one added line reading `window.__walkNear.ALT_HI`, since
+`scripts/verify/` is not this lane's to edit) on five eye-level poses, run
+twice — ALT_HI 40 (shipped) and 0 (stock MapLibre exactly):
+
+```
+pose                  flicker OFF   flicker ON   clusters
+eye-southmall-day        0.023 %      0.023 %    (none) / (none)
+eye-drag-day             0.554 %      0.554 %    same 7, IDENTICAL px and boxes
+eye-drag-night           0.016 %      0.016 %    (none) / (none)
+eye-westcampus-day       1.078 %      1.078 %    same 12, IDENTICAL px and boxes
+mid20-mall-day           0.550 %      0.550 %    same 11, IDENTICAL px and boxes
+```
+
+And the pose that has a recorded baseline, `westcampus-day` from
+`shots-places.json`: **242 px @ [642,827,869,895] in both arms, minimum of three
+interleaved reps** — the same count and box W6 has reported since §95. **Rep 1
+of that pair is the reason for the reps:** the ON arm came back 0.174 % with an
+extra 598 px cluster and **1,857 of 3,754 buildings tiled**, against 3,110–3,431
+in every other run. That was an unloaded scene, not a regression, and a single
+reading would have blocked a clean merge.
+
+`coplanar.mjs --gate` on the merged tree: **exit 0, "no file gained a coplanar
+pair"**, 151,929 features / 122,773 top faces examined. This branch changes no
+data file at all, so that is main's number, recorded rather than claimed.
+
+**THE FLYOVER DOES NOT MOVE, and it is proved twice.** Matrices first, because
+pixels cannot settle it (the Tower's window lights animate): `projectionMatrix`
+and `modelViewProjectionMatrix` compared element by element with `Object.is`,
+hook on against hook off, **desktop 1440x900 and phone 393x852** — bit-identical
+at **all 12 flyover poses and all 5 `shots-places` poses**, `farZ` identical
+everywhere, and **two control probes at 1.7 m and 20 m that DIFF**, without which
+the test would be inert. Lowest non-control altitude measured anywhere:
+**57.1 m on the phone against `ALT_HI` 40** — and that is a `shots-places` street
+pose, not the flyover, which bottoms out at 98.7 m. Then pixels: 12 poses x 2
+viewports, **23 byte-identical and one (phone `intro-start`) whose A/B exactly
+equals its own non-zero A/A floor**, i.e. a still-loading frame with nothing
+attributable surviving.
+
+**Why not against the deployed live site**, which the brief asked for: `main`
+took **twelve** commits from three other lanes while this gate ran, two of which
+changed `data/`. A frame from this tree against the deployed one differs for
+reasons that are main's, and cannot separate them. The controlled A/B — the same
+page, same tiles, same second, `ALT_HI` 40 against 0, where 0 is stock MapLibre
+bit for bit — is the comparison that answers "did MY change move the flyover".
+Said here rather than quietly substituted.
+
+### 4. DESKTOP DID NOT GET WORSE
+
+`collision.mjs` **8/8**. `motion-feel.mjs` **20/20**. `movement.mjs` **14/14** —
+including *diagonal speed matches cardinal* at 0.984, the assertion §139 could
+not get a clean reading on. `pitchSens()` at 165 m returns the authored **0.13
+mouse / 0.11 touch** exactly, and a real 150 px mouse drag there gives
+**dPitch −19.50, dYaw 330.00 identically with the fit on and off, 3/3 reps**.
+Zero page errors in every run of this gate.
+
+### 5. THE RANKED LIST FROM `docs/mobile/driving-at-eye-level.md`, ITEM BY ITEM
+
+**Item 1, the vertical look — FIXED.** Real touch, 150 px swipes, three
+interleaved reps each, toggled in one session: stock lands on the 84.42 floor
+**3/3**; fitted stops at **86.21, 3/3**, about half the range, no stop hit. The
+frame moves for the whole gesture instead of freezing after 33 px.
+
+**Item 2, the oak — narrowed, not fixed** (section 2 above).
+
+**Items 3, 4, 5, 7 — UNCHANGED, and they are `style.css`, which another lane
+holds.** Re-measured on the merged tree so the next lane does not have to:
+BOOST is 60x44 px with its nearest edge **53.0 px** from the joystick centre
+against a 50 px ring, centre x 149.5 on a 393 px screen (**same thumb as the
+stick**), **0.86x the frame mean off and 1.57x on** on a South Mall street frame against
+a 0-pixel A/A floor (and 0.89x / 2.35x from a pose facing a dark wall, which is
+why the ratio is quoted with its background) — Simeon's own "a bit off
+visually", still open, `final/06-*`. The graphics panel still returns `SPAN.gfx-group-note` at the
+joystick centre and its gear is 34x34 against Apple's 44. `?clip=1` still hides
+`#joystick-zone`. `controls-hint` is still 404.5 px at x = −5.8 on a 393 px
+screen.
+
+**Item 6, the two-finger altitude gesture — NOT re-tested this pass**, and the
+double-tap-and-drag gesture remains untested by anybody (§139's instrument could
+not produce a gap under 2,012 ms).
+
+### 6. WHAT THIS GATE DID NOT ESTABLISH
+
+- **Real iOS Safari, frame rate, battery, heat.** See the instrument box.
+- **Any performance number.** A nearer near plane is a depth-precision question
+  rather than a fill-rate one, and nobody has timed a frame with it. Unchanged
+  from §139.
+- **`zfight` on the other seven `shots-places` poses.** The matrices are
+  bit-identical at all of them so the result is determined, but only
+  `westcampus-day` was actually run — three reps per arm.
+- **The desktop look at eye level.** My drag went down-screen, which raises
+  pitch, and the camera was already on the 88 cap, so both arms read 88 -> 88.
+  The fitted constant is live there (0.0109 deg/px against an authored 0.13) but
+  no successful desktop eye-level drag was measured.
+- **Whether a door surround, kerb, step or bench sits inside the stock near
+  plane.** The four walks sampled 24 poses and did not aim at one deliberately.
+  `props-furn` measured **0.1 m** from the eye at one pose, so the class exists;
+  nobody has swept it.
+- **The BOOST button judged by eye against alternatives** — only geometry and
+  two luma ratios.
+- **Which tree each frame came from.** `harness-drift`, `coplanar --gate`, the
+  matrix proof, the 24-frame flyover A/B and the whole ranked-list re-drive were
+  re-run on the FINAL merged tree (`640afcb` merged in). The `zfight` pairs and
+  the oak/wall sweeps behind `final/01`, `02` and `04` were taken one merge
+  earlier; `js/` is byte-identical across all three merges and `trees.geojson`
+  never moved, so the numbers stand — but the frames are from that tree, not
+  this one, and that is worth knowing before anyone pixel-diffs them.
