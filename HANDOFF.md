@@ -17274,17 +17274,20 @@ That is QUEUE K1's opening sentence, photographed.
 G5a 2.06 % vs 0.53 %, and G2/G4/G5b `INVALID`. Then **GREEN on the same build**
 with the thresholds raised through the env overrides the script already carries
 (`PB_OUTER_MS=400 PB_TICK_CRUISE=45 PB_DUTY_PCT=30` gives G1 8.308, G3 261.20,
-G5a 3.23 %, PASS). 
-**Re-run on the FULLY MERGED tree ( , which had gained
-the campus and West Campus storey walls since these measurements): same verdict
-shape, same INVALID walk, no new failure mode — G1 19.867, G3 106.60, G5a
-2.77 %,  PASS. **The one directly comparable number that
-moved is the style layer count: 219 -> 221.** Two districts of storey walls
-cost exactly two layers, which is  G7s whole allowance for a pass.
-
-**So the guard is not stuck: watched failing on the real
+G5a 3.23 %, PASS). **So the guard is not stuck: watched failing on the real
 overrun and watched passing on the same code.** It should stay red — the budget
 is the number a fix has to hit. This lane could not have changed it anyway.
+
+**Re-run on the FULLY MERGED tree** (`origin/main` `43e3777`, which had gained
+the campus and West Campus storey walls since these measurements were taken, so
+CLAUDE.md rule 2 required it): same verdict shape, same `INVALID` walk, no new
+failure mode — G1 19.867, G3 106.60, G5a 2.77 %, and `harness-drift.mjs` PASS.
+G3's 106.60 is a two-rep minimum at 95–100 % CPU and is not a new figure for Y7;
+what it establishes is that the ring is still over budget after the merge.
+**The one directly comparable number that moved is the style layer count:
+219 → 221.** Two districts of storey walls cost exactly two layers, which is
+`budget.md` G7's whole allowance for a pass — cheap, but the count now has a
+baseline and somebody should set `BUDGET.layersBaseline` so it starts gating.
 
 ### WHAT I DID NOT ESTABLISH — read this before treating anything as clean
 
