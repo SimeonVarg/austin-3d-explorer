@@ -252,8 +252,16 @@
     const u = cross(r, f);
     const tv = Math.tan(rad(fov) / 2);
     const th = tv * (W / H);
-    return function project(az, elev) {
-      const t = dirOf(az, elev);
+    /**
+     * The vector form, for the 520 stars and ~88 cloud lobes whose (az, elev)
+     * NEVER CHANGE. `dirOf` is four trig calls; running it per star per frame
+     * was 2,080 sin/cos on the fixed part of a field that is baked at boot.
+     * The unit vectors are cached on the star/lobe records instead — see
+     * `buildStars`/`buildClouds` — and this is the entry point that consumes
+     * them. `project(az, elev)` below is the same function with the conversion
+     * in front of it, so there is exactly one projection, not two.
+     */
+    function projectVec(t) {
       const fd = dot(t, f);
       // `fd` is returned so callers can FADE as a body approaches the frustum
       // edge instead of hard-cutting at it. A hard cut on the largest element on
@@ -266,7 +274,10 @@
         fd, fade: clamp01((fd - 0.02) / 0.23),
         W, H,
       };
-    };
+    }
+    function project(az, elev) { return projectVec(dirOf(az, elev)); }
+    project.vec = projectVec;
+    return project;
   }
 
   /**
@@ -1211,11 +1222,10 @@
     // "to keep the horizon clean" and the result was two visible stars: at a
     // flying pitch you only ever see the first ~20° above the horizon.
     for (let i = 0; i < 520; i++) {
-      out.push({
-        az: rnd() * 360,
-        elev: 1.5 + Math.pow(rnd(), 1.5) * 62,
-        mag: 0.3 + Math.pow(rnd(), 2.6) * 0.7,
-      });
+      const az = rnd() * 360;
+      const elev = 1.5 + Math.pow(rnd(), 1.5) * 62;
+      // `v` is the unit vector for (az, elev), baked once. A star does not move.
+      out.push({ az, elev, mag: 0.3 + Math.pow(rnd(), 2.6) * 0.7, v: dirOf(az, elev) });
     }
     return out;
   }
@@ -1241,11 +1251,15 @@
       const lobes = [];
       const n = 3 + Math.floor(rnd() * 3);
       for (let k = 0; k < n; k++) {
+        const dAz = (rnd() - 0.5) * span;
+        const dEl = (rnd() - 0.5) * 1.1;
         lobes.push({
-          dAz: (rnd() - 0.5) * span,
-          dEl: (rnd() - 0.5) * 1.1,
+          dAz, dEl,
           r: span * (0.30 + rnd() * 0.34),
           a: 0.5 + rnd() * 0.5,
+          // Baked absolute direction, same reason as the stars: a lobe sits at
+          // a fixed (az, elev) and only the CAMERA moves.
+          v: dirOf(az + dAz, elev + dEl),
         });
       }
       // A cloud deck is a plane, not a dome: the higher up the sky you look, the
@@ -1254,7 +1268,7 @@
       // band from reading as the low band stamped overhead.
       const hi = Math.min(1, Math.max(0, (elev - 14) / 26));
       out.push({ az, elev, lobes, a: (0.45 + rnd() * 0.55) * (1 - 0.45 * hi),
-                 squash: (0.30 + rnd() * 0.22) * (1 + 0.9 * hi) });
+                 squash: (0.30 + rnd() * 0.22) * (1 + 0.9 * hi), v: dirOf(az, elev) });
     }
     return out;
   }
@@ -1337,24 +1351,171 @@
   function rgba(c, a) { return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
   function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
 
+  /**
+   * ── G10, THE INSTRUMENT budget.md §128 ASKED FOR ──
+   *
+   * `updateSky` measured at 8.8 % of all main-thread time at cruise and 93 % of
+   * the whole `jumpTo` cascade (docs/perf/measured.md §1.2 FINDING 1) with no
+   * counter, no timer and no way to test it. This is that counter. Same shape
+   * as `__fly.outerField()`: cumulative total, worst case, and the call count
+   * so a reader can difference two samples instead of trusting a running mean.
+   */
+  const SKY_METER = window.__sky = {
+    calls: 0, ms: 0, maxMs: 0, lastMs: 0,
+    memoHits: 0, memoMisses: 0, stars: 0, lobes: 0,
+  };
+
+  /**
+   * ── THE HOUR MEMO: the sun does not move when the camera pans ──
+   *
+   * `updateSky` runs on every `move`, and `writeToMap()` ends in `map.jumpTo`
+   * on every rAF tick while the controller is driving, so "on move" means "on
+   * every frame" here (budget.md §128). Nearly everything it recomputed was a
+   * function of the HOUR alone: the sun and moon tracks, every colour, every
+   * alpha weight, the two big `radial-gradient(...)` CSS strings written into
+   * the disc elements, the skyglow stops, the cloud lighting mix and all 264 of
+   * the cloud gradient's colour strings. None of that changes when the camera
+   * turns; all of it was rebuilt 60 times a second, and the string building in
+   * particular is straight into the garbage collector, which the same profile
+   * put at 9 % of main-thread time at dusk and 19 % on the phone viewport.
+   *
+   * So it is computed once per hour and reused. What stays per-frame is exactly
+   * what the camera changes: the projections, the canvas size, the clip, the
+   * horizon feather and the fades.
+   *
+   * `window.SKY_MEMO.on = false` is a live A/B switch — the same build with the
+   * memo off recomputes everything every frame, which is what the before column
+   * of any measurement here means.
+   */
+  const SKY_MEMO = { on: true };
+  window.SKY_MEMO = SKY_MEMO;
+  let _memo = null;
+
+  /**
+   * Star alpha strings, by thousandth. `rgba(238,244,255,${a.toFixed(3)})` ran
+   * 520 times a frame and allocated a string every time; the twinkle means the
+   * VALUE really does change per frame, so the fix is a table rather than a
+   * cache. Indexing by `Math.round(a*1000)` reproduces `toFixed(3)`'s output
+   * for every value except an exact half-thousandth tie, and the destination is
+   * an 8-bit additive blend either way.
+   */
+  const STAR_RGBA = new Array(1001);
+  function starFill(a) {
+    let i = (a * 1000 + 0.5) | 0;
+    if (i < 0) i = 0; else if (i > 1000) i = 1000;
+    return STAR_RGBA[i] || (STAR_RGBA[i] = `rgba(238,244,255,${(i / 1000).toFixed(3)})`);
+  }
+
+  function hourMemo(p) {
+    const G = window.GFX || {};
+    const gs = (G.stars == null ? 1 : G.stars);
+    const gc = (G.clouds == null ? 1 : G.clouds);
+    if (SKY_MEMO.on && _memo && _memo.p === p && _memo.gs === gs && _memo.gc === gc) {
+      SKY_METER.memoHits++;
+      return _memo;
+    }
+    SKY_METER.memoMisses++;
+
+    const B = window.skyBodies(p);
+    const useMoon = !B.sunUp && B.moon.elev > -2;
+    const body = useMoon ? B.moon : B.sun;
+    const coreCol = useMoon ? [226, 234, 255] : sunColour(Math.max(B.sun.elev, 2));
+    const haloCol = useMoon ? [150, 172, 226] : sunColour(B.sun.elev);
+    const moonHalo = [150, 172, 226];
+    const wSun = B.sun.elev >= 0 ? 1 : clamp01(1 + B.sun.elev / 20);
+    const wMoon = Math.pow(clamp01((B.moon.elev + 3) / 9), 1.2);
+    const vis = useMoon ? clamp01((B.moon.elev + 2) / 6) : clamp01((B.sun.elev + 1) / 5);
+    const coreR = useMoon ? 15 : 20;
+    const bloomR = useMoon ? 130 : (170 + 190 * B.golden);
+
+    const BELT = SKY_TUNE.BELT;
+    const beltW = p <= BELT.P0 || p >= BELT.P2 ? 0
+      : p <= BELT.P1 ? (p - BELT.P0) / (BELT.P1 - BELT.P0)
+      : 1 - (p - BELT.P1) / (BELT.P2 - BELT.P1);
+
+    const cloudA = (0.26 + 0.50 * B.golden) * (1 - B.night * 0.88);
+    const lit = mix([255, 255, 255], haloCol, 0.35 + 0.45 * B.golden);
+    const base = mix(lit, SKY_TUNE.CLOUD.BASE, SKY_TUNE.CLOUD.BASE_MIX * (1 - 0.55 * B.golden));
+    const midCol = mix(lit, base, 0.6);
+
+    // Per-lobe colour stops. `a = cloudA * cloud.a * lobe.a` and every one of
+    // those three is fixed for an hour, so all 264 strings are too. Built once
+    // here instead of 264 template literals per frame.
+    const nClouds = Math.round(clouds.length * gc);
+    const lobeStops = [];
+    if (cloudA > 0.02 && nClouds > 0) {
+      const CS = SKY_TUNE.CLOUD;
+      for (let ci = 0; ci < nClouds; ci++) {
+        const c = clouds[ci];
+        const a0 = cloudA * c.a;
+        const row = [];
+        for (let k = 0; k < c.lobes.length; k++) {
+          const a = a0 * c.lobes[k].a;
+          row.push([rgba(lit, Math.min(1, a * CS.RIM)), rgba(midCol, a * 0.42), rgba(base, 0)]);
+        }
+        lobeStops.push(row);
+      }
+    }
+
+    // The skyglow band's four stops: colour and alpha are hour-only; only the
+    // two y coordinates move with the camera, and those are set at the call.
+    const gs0 = 'rgba(150,160,196,0)';
+    const gs1 = `rgba(150,160,196,${(0.014 * B.night).toFixed(4)})`;
+    const gs2 = `rgba(228,164,110,${(0.032 * B.night).toFixed(4)})`;
+    const gs3 = `rgba(255,176,96,${(0.052 * B.night).toFixed(4)})`;
+
+    _memo = {
+      p, gs, gc, B, useMoon, body, coreCol, haloCol, moonHalo,
+      wSun, wMoon, vis, coreR, bloomR,
+      // The alpha the disc carries BEFORE the camera's own `discFade`.
+      coreA0: vis,
+      bloomA0: (useMoon ? 0.30 : 0.26 + 0.22 * B.golden) * vis,
+      // The two CSS gradients written into the disc elements. Hour-only, and
+      // each was a fresh ~120-character string plus a CSS parse every frame.
+      coreBg: `radial-gradient(circle, ${rgba(coreCol, 1)} 0%, ${rgba(coreCol, 0.92)} 42%, ${rgba(coreCol, 0)} 72%)`,
+      bloomBg: `radial-gradient(circle, ${rgba(haloCol, 0.95)} 0%, ${rgba(haloCol, 0.34)} 26%, ${rgba(haloCol, 0)} 68%)`,
+      beltW,
+      // The hour half of the two horizon washes; `fade` is multiplied in later.
+      glowASun0: (0.26 + 0.40 * B.golden) * wSun,
+      glowAMoon0: 0.17 * wMoon,
+      hotASun0: (0.26 + 0.30 * B.golden) * wSun,
+      hotAMoon0: 0.13 * wMoon,
+      kWide: 1.5 + 0.7 * B.golden,
+      // Direction vectors for the four wash anchors and the two body tracks.
+      vBody: dirOf(body.az, Math.max(body.elev, -1.5)),
+      vHzSun: dirOf(B.sun.az, 0.5),
+      vHzMoon: dirOf(B.moon.az, 0.5),
+      vRose: dirOf((B.sun.az + 180) % 360, SKY_TUNE.BELT.ROSE_ELEV),
+      vBlue: dirOf((B.sun.az + 180) % 360, SKY_TUNE.BELT.BLUE_ELEV),
+      nStars: Math.round(stars.length * gs), nClouds,
+      cloudA, lit, base, midCol, lobeStops,
+      glowStops: [gs0, gs1, gs2, gs3],
+    };
+    return _memo;
+  }
+
   window.updateSky = function updateSky(map, p) {
     if (!host || !map) return;
+    const _t0 = performance.now();
     _p = p;
-    const B = window.skyBodies(p);
+    const M = hourMemo(p);
+    const B = M.B;
     const project = projector(map);
+    const pvec = project.vec;
+    // The A/B switch reaches the hot loops too, so `SKY_MEMO.on = false` really
+    // is the old code path and not just a cold memo — otherwise the before
+    // column would already carry half the fix and under-report it.
+    const memoOn = SKY_MEMO.on;
     const cv = map.getCanvas();
     const W = cv.clientWidth, H = cv.clientHeight;
     // Horizon first: it decides how tall the canvas has to be this frame.
     const hzPxEarly = horizonPx(map);
     const dpr = resize(Math.max(0, hzPxEarly) + 0.5 * SKY_TUNE.HORIZON_FADE * H) || 1;
 
-    // Which body is lighting the sky, and in what colour.
-    const useMoon = !B.sunUp && B.moon.elev > -2;
-    const body = useMoon ? B.moon : B.sun;
-    const coreCol = useMoon ? [226, 234, 255] : sunColour(Math.max(B.sun.elev, 2));
-    const haloCol = useMoon ? [150, 172, 226] : sunColour(B.sun.elev);
-    const moonHalo = [150, 172, 226];
-
+    // Which body is lighting the sky, and in what colour. All hour-only — see
+    // `hourMemo`, which also carries the two `radial-gradient(...)` strings and
+    // the twilight weights whose derivation is preserved there and here:
+    //
     // Twilight runs on TWO INDEPENDENT SCHEDULES, both always drawn.
     // The old single-body switch (`useMoon`) flipped in one frame at p=0.5925,
     // teleporting the horizon glow 176.6 deg from the western to the eastern
@@ -1363,27 +1524,26 @@
     // its own elevation while the moon's glow rises over its own, so they
     // cross over smoothly around p=0.685 with warm west and cool east on screen
     // at the same time, which is what dusk actually looks like.
-    const wSun = B.sun.elev >= 0 ? 1 : clamp01(1 + B.sun.elev / 20);
-    const wMoon = Math.pow(clamp01((B.moon.elev + 3) / 9), 1.2);
+    const useMoon = M.useMoon, body = M.body;
+    const coreCol = M.coreCol, haloCol = M.haloCol, moonHalo = M.moonHalo;
+    const wSun = M.wSun, wMoon = M.wMoon;
 
     // Fade the disc out as it approaches and crosses the horizon rather than
     // letting it pop.
-    const vis = useMoon ? clamp01((B.moon.elev + 2) / 6) : clamp01((B.sun.elev + 1) / 5);
+    const vis = M.vis;
 
-    const pos = project(body.az, Math.max(body.elev, -1.5));
+    const pos = pvec(M.vBody);
     const showDisc = pos.front && vis > 0.01;
     const discFade = pos.fade;
 
     // Core disc — small and bright.
-    const coreR = useMoon ? 15 : 20;
-    place(elCore, pos, coreR * 2, showDisc ? vis * discFade : 0,
-      `radial-gradient(circle, ${rgba(coreCol, 1)} 0%, ${rgba(coreCol, 0.92)} 42%, ${rgba(coreCol, 0)} 72%)`);
+    const coreR = M.coreR;
+    place(elCore, pos, coreR * 2, showDisc ? M.coreA0 * discFade : 0, M.coreBg);
 
     // Bloom — wide, soft, the part that actually reads.
-    const bloomR = useMoon ? 130 : (170 + 190 * B.golden);
-    const bloomA = (useMoon ? 0.30 : 0.26 + 0.22 * B.golden) * vis * discFade;
-    place(elBloom, pos, bloomR * 2, showDisc ? bloomA : 0,
-      `radial-gradient(circle, ${rgba(haloCol, 0.95)} 0%, ${rgba(haloCol, 0.34)} 26%, ${rgba(haloCol, 0)} 68%)`);
+    const bloomR = M.bloomR;
+    const bloomA = M.bloomA0 * discFade;
+    place(elBloom, pos, bloomR * 2, showDisc ? bloomA : 0, M.bloomBg);
 
     // The horizon glow now lives in the canvas rather than a fourth
     // screen-blended DOM layer, so all of it composites in one pass.
@@ -1470,11 +1630,12 @@
       const band = 7.5 * (H / (map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58));
       const y0 = hzPx - band, y1 = hzPx + 0.012 * H;
       if (y1 > 0 && y0 < H) {
+        const gs = M.glowStops;
         const g = ctx.createLinearGradient(0, y0, 0, y1);
-        g.addColorStop(0.00, `rgba(150,160,196,0)`);
-        g.addColorStop(0.45, `rgba(150,160,196,${(0.014 * B.night).toFixed(4)})`);
-        g.addColorStop(0.78, `rgba(228,164,110,${(0.032 * B.night).toFixed(4)})`);
-        g.addColorStop(1.00, `rgba(255,176,96,${(0.052 * B.night).toFixed(4)})`);
+        g.addColorStop(0.00, gs[0]);
+        g.addColorStop(0.45, gs[1]);
+        g.addColorStop(0.78, gs[2]);
+        g.addColorStop(1.00, gs[3]);
         ctx.fillStyle = g;
         ctx.fillRect(0, y0, W, y1 - y0);
       }
@@ -1484,13 +1645,10 @@
     // stacked lobes: rose above, the cool earth-shadow lift below it. Drawn
     // before the body washes so those stay on top.
     const BELT = SKY_TUNE.BELT;
-    const beltW = p <= BELT.P0 || p >= BELT.P2 ? 0
-      : p <= BELT.P1 ? (p - BELT.P0) / (BELT.P1 - BELT.P0)
-      : 1 - (p - BELT.P1) / (BELT.P2 - BELT.P1);
+    const beltW = M.beltW;
     if (beltW > 0.02) {
-      const antiAz = (B.sun.az + 180) % 360;
-      const rosePos = project(antiAz, BELT.ROSE_ELEV);
-      const bluePos = project(antiAz, BELT.BLUE_ELEV);
+      const rosePos = pvec(M.vRose);
+      const bluePos = pvec(M.vBlue);
       drawGlow(rosePos, BELT.RX * S, BELT.RY_ROSE * S,
         BELT.ROSE_A * beltW * rosePos.fade, BELT.ROSE, BELT.STOPS);
       drawGlow(bluePos, BELT.RX * S * 0.9, BELT.RY_BLUE * S,
@@ -1499,12 +1657,12 @@
 
     // Wide washes — one per body, anchored to its AZIMUTH at the horizon, so
     // the sky brightens in the right direction even when the disc is off-screen.
-    const hzSun = project(B.sun.az, 0.5);
-    const hzMoon = project(B.moon.az, 0.5);
-    const kWide = 1.5 + 0.7 * B.golden;
+    const hzSun = pvec(M.vHzSun);
+    const hzMoon = pvec(M.vHzMoon);
+    const kWide = M.kWide;
     const WIDE = [[0, 0.9], [0.34, 0.28], [0.70, 0]];
-    const glowASun = (0.26 + 0.40 * B.golden) * wSun * hzSun.fade;
-    const glowAMoon = 0.17 * wMoon * hzMoon.fade;
+    const glowASun = M.glowASun0 * hzSun.fade;
+    const glowAMoon = M.glowAMoon0 * hzMoon.fade;
     drawGlow(hzSun,  0.5 * S * kWide, 0.15 * S * kWide, glowASun,  haloCol,  WIDE);
     drawGlow(hzMoon, 0.5 * S * 1.5,   0.15 * S * 1.5,   glowAMoon, moonHalo, WIDE);
 
@@ -1515,17 +1673,16 @@
     // a real falloff lands inside that band — the difference between "the sky is
     // orange" and "the sun is setting over there".
     const HOT = [[0, 1], [0.30, 0.45], [0.62, 0.12], [1, 0]];
-    const hotASun = Math.min(0.60, (0.26 + 0.30 * B.golden) * wSun * hzSun.fade);
-    const hotAMoon = Math.min(0.60, 0.13 * wMoon * hzMoon.fade);
+    const hotASun = Math.min(0.60, M.hotASun0 * hzSun.fade);
+    const hotAMoon = Math.min(0.60, M.hotAMoon0 * hzMoon.fade);
     drawGlow(hzSun, 0.16 * S, 0.042 * S, hotASun, haloCol, HOT);
     drawGlow(hzMoon, 0.16 * S, 0.042 * S, hotAMoon, moonHalo, HOT);
 
     // Star and cloud counts are quality settings (graphics.js). Both arrays are
     // built from a seeded shuffle, so a prefix is an unbiased random subset —
     // no need to regenerate anything when the slider moves.
-    const G = window.GFX || {};
-    const nStars = Math.round(stars.length * (G.stars == null ? 1 : G.stars));
-    const nClouds = Math.round(clouds.length * (G.clouds == null ? 1 : G.clouds));
+    const nStars = M.nStars;
+    const nClouds = M.nClouds;
 
     // Stars ride `B.stars`, NOT `B.night` — see SKY_TUNE.DUSK. On the old gate
     // the field was already at 20% alpha at p=0.62, when the sun is 5.8° down
@@ -1535,10 +1692,12 @@
     if (B.stars > 0.02 && nStars > 0) {
       const TW = SKY_TUNE.TWINKLE;
       const now = performance.now();
+      let drawn = 0;
       for (let si = 0; si < nStars; si++) {
         const s = stars[si];
-        const q = project(s.az, s.elev);
+        const q = memoOn ? pvec(s.v) : project(s.az, s.elev);
         if (!q.front || q.x < -8 || q.x > W + 8 || q.y < -8 || q.y > H) continue;
+        drawn++;
         let a = B.stars * s.mag;
         // Twinkle rides the existing redraw (camera moves, the auto cycle) —
         // deliberately NO dedicated loop, so a parked sky stays free and
@@ -1548,7 +1707,7 @@
           a *= 1 - TW.AMP * (0.5 + 0.5 * Math.sin(now * TW.SPEED * (0.6 + s.mag) + s.az * 7.3));
         }
         const r = 0.55 + s.mag * 1.25;
-        ctx.fillStyle = `rgba(238,244,255,${a.toFixed(3)})`;
+        ctx.fillStyle = memoOn ? starFill(a) : `rgba(238,244,255,${a.toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(q.x, q.y, r, 0, PI * 2);
         ctx.fill();
@@ -1561,25 +1720,25 @@
           ctx.globalAlpha = 1;
         }
       }
+      SKY_METER.stars = drawn;
     }
 
     // Clouds: lit from the side the body is on, so they warm up at golden hour.
-    const cloudA = (0.26 + 0.50 * B.golden) * (1 - B.night * 0.88);
+    // `cloudA`, the lit/base colours and all 264 gradient stop strings are
+    // hour-only and come from the memo; the geometry below is per-frame.
+    const cloudA = M.cloudA;
     if (cloudA > 0.02 && nClouds > 0) {
       const CS = SKY_TUNE.CLOUD;
-      const lit = mix([255, 255, 255], haloCol, 0.35 + 0.45 * B.golden);
-      // Shaded base: grey-blue by day; at golden hour it relaxes toward the
-      // lit colour so sunset clouds catch fire instead of going leaden.
-      const base = mix(lit, CS.BASE, CS.BASE_MIX * (1 - 0.55 * B.golden));
       const degPx = (() => {                    // pixels per degree, near centre
         const a = project(map.getBearing(), 0), b2 = project(map.getBearing() + 1, 0);
         return (a.front && b2.front) ? Math.max(2, Math.abs(b2.x - a.x)) : 12;
       })();
+      let lobesDrawn = 0;
       for (let ci = 0; ci < nClouds; ci++) {
         const c = clouds[ci];
-        const q = project(c.az, c.elev);
+        const q = memoOn ? pvec(c.v) : project(c.az, c.elev);
         if (!q.front || q.x < -W || q.x > W * 2) continue;
-        const a0 = cloudA * c.a;
+        const stopsFor = M.lobeStops[ci];
         // Direction from this cloud toward the lighting body, in (az, elev)
         // space — a proxy for screen direction that keeps working when the
         // body itself is off-screen. The azimuth term is CLAMPED and scaled
@@ -1593,12 +1752,14 @@
         const dElL = body.elev - c.elev;
         const Ld = Math.hypot(dAzL, dElL) || 1;
         const lx = dAzL / Ld, ly = -dElL / Ld;   // screen y grows downward
-        for (const lb of c.lobes) {
-          const lq = project(c.az + lb.dAz, c.elev + lb.dEl);
+        for (let li = 0; li < c.lobes.length; li++) {
+          const lb = c.lobes[li];
+          const lq = memoOn ? pvec(lb.v) : project(c.az + lb.dAz, c.elev + lb.dEl);
           if (!lq.front) continue;
           const r = lb.r * degPx;
           if (r < 3 || r > W * 1.5) continue;
-          const a = a0 * lb.a;
+          const stops = stopsFor[li];
+          lobesDrawn++;
           ctx.save();
           ctx.translate(lq.x, lq.y);
           ctx.scale(1, c.squash);
@@ -1613,9 +1774,9 @@
           // proportional to the ellipse's own short axis.
           const off = CS.OFFSET * r;
           const g = ctx.createRadialGradient(lx * off, ly * off, 0, 0, 0, r);
-          g.addColorStop(0, rgba(lit, Math.min(1, a * CS.RIM)));
-          g.addColorStop(0.55, rgba(mix(lit, base, 0.6), a * 0.42));
-          g.addColorStop(1, rgba(base, 0));
+          g.addColorStop(0, stops[0]);
+          g.addColorStop(0.55, stops[1]);
+          g.addColorStop(1, stops[2]);
           ctx.fillStyle = g;
           ctx.beginPath();
           ctx.arc(0, 0, r, 0, PI * 2);
@@ -1623,6 +1784,7 @@
           ctx.restore();
         }
       }
+      SKY_METER.lobes = lobesDrawn;
     }
     ctx.restore();                       // end sky clip
 
@@ -1679,15 +1841,34 @@
       golden: B.golden, night: B.night, lamps: B.lamps, stars: B.stars, p,
     };
     if (typeof window.renderFX === 'function') window.renderFX(map, window.skyFrame);
+
+    // G10. Note this INCLUDES renderFX (and therefore graphics.js's aeMeter),
+    // because that is what a caller actually pays for calling updateSky. The
+    // sky's own canvas pass is `ms - the post-process`, which graphics.js
+    // publishes separately.
+    const _ms = performance.now() - _t0;
+    SKY_METER.calls++;
+    SKY_METER.ms += _ms;
+    SKY_METER.lastMs = _ms;
+    if (_ms > SKY_METER.maxMs) SKY_METER.maxMs = _ms;
   };
 
   function place(el, pos, sizePx, alpha, background) {
     if (!el) return;
     if (!(alpha > 0.005)) { el.style.opacity = '0'; return; }
     el.style.opacity = String(alpha);
-    el.style.width = sizePx + 'px';
-    el.style.height = sizePx + 'px';
-    el.style.background = background;
+    // Writing the same values back costs a style recalc for nothing, and
+    // `background` in particular is a ~120-character gradient the engine
+    // re-parses on every assignment. Both are hour-only; the transform is not.
+    if (el.__skyW !== sizePx || !SKY_MEMO.on) {
+      el.__skyW = sizePx;
+      el.style.width = sizePx + 'px';
+      el.style.height = sizePx + 'px';
+    }
+    if (el.__skyBg !== background || !SKY_MEMO.on) {
+      el.__skyBg = background;
+      el.style.background = background;
+    }
     el.style.transform = `translate(${(pos.x - sizePx / 2).toFixed(1)}px, ${(pos.y - sizePx / 2).toFixed(1)}px)`;
   }
 })();

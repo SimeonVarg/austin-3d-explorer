@@ -17750,3 +17750,290 @@ have**: 4,530–5,554 ms in both builds, overlapping completely. This pass moved
 Frames: `shots/perf2/boot-{before,after}-{04,08,16,24}s.png` (matched load,
 cpu 32 % / 31 %), `shots/perf2/downtown-{before,after}.png` and
 `shots/perf2/downtown-diff-mask.png`.
+## 137. Aug 16 2026 — MapLibre never forgets an updated image: 48 ms a frame of pure no-op, and the sun stops being recomputed when the camera pans (QUEUE K1 jobs 2 and 3) (acer lane, branch `acer/n6-boot`)
+
+`docs/perf/measured.md` ranked the frame and put **atlas image work at 15–20 % of
+every moving frame (#1)** and **`updateSky` at 6–9 % of main-thread time and
+93 % of the whole `jumpTo` cascade (#2)**. Its §6 said, correctly, that no fix
+had been written and that every "after" column in that document would have been
+a fabrication. This pass wrote both fixes and measured them.
+
+Files changed: **`js/facades.js` and `js/sky.js`, and nothing else.**
+`js/app.js`, `js/controls.js`, `js/graphics.js`, `js/wayfind.js`, `style.css`
+and `scripts/verify/coplanar.mjs` were held by other lanes tonight and are
+untouched. `harness-drift.mjs` **PASS** on this tree before any pixel work.
+
+### 137.1 THE FINDING — `ImageManager.updatedImages` IS NEVER CLEARED
+
+Read out of `maplibre-gl@5.24.0`, then measured. The string `updatedImages`
+appears **exactly three times** in the whole bundle:
+
+* `this.updatedImages = {}` — the ImageManager constructor
+* `this.updatedImages[e] = true` — inside `updateImage`
+* `for (const n in t.updatedImages) { patchUpdatedImage(this.iconPositions[n], t.getImage(n), tex); patchUpdatedImage(this.patternPositions[n], t.getImage(n), tex); }` — inside `ImageAtlas.patchUpdatedImages`
+
+**There is no delete.** One `map.updateImage` call marks that image for the life
+of the page. And `Tile.prepare(imageManager)` calls `patchUpdatedImages` for
+**every loaded tile of every source on every render**.
+
+Probed in the running app: **592 tiles carry an image atlas across 34 sources**,
+and one time-of-day tick calls `updateImage` on **385 images** (130 are already
+marked at boot, before any tod change). So from the first tod tick onward the app
+pays, on every frame, forever:
+
+> **≈228,000 key iterations and ≈456,000 `getImage` calls per frame — and the
+> number of images that actually needed patching was ZERO.**
+
+Measured with a wrapper on `ImageAtlas.prototype.patchUpdatedImages`. Cruise
+sweep, hardware GL (`ANGLE / RTX 3050 Ti / D3D11`), 1440×900, headless,
+`index.html?intro=0&drift=0`, `cancelGraphicsAutoDetect()`, no CPU throttle.
+Interleaved and counterbalanced; **minimum of reps, never a mean.**
+
+| | key-scans per 3 s sweep | ms/frame inside `patchUpdatedImages` | frames per 3 s | images actually patched |
+|---|---:|---:|---:|---:|
+| **stock** | 6,725,950 · 6,967,730 | **48.00 · 48.77 · 211.93** | 6 · 27 · 29 | **0** |
+| **set emptied by hand** | 0 | **0.26 · 0.28 · 0.94** | 8 · 14 · 113 · 116 | 0 |
+
+**48 ms a frame, for nothing.** That is not 15–20 % of the frame — at the frame
+times this machine produces it is nearer 40 %. The sampling profiler
+under-attributed it because the cost is half a million inlined property reads
+spread across `getImage`, not one hot named function. Load probes beside these:
+21–35 Chrome processes, `_Total` CPU 14–84 %.
+
+### 137.2 THE FIX, AND WHY IT CANNOT BRING BACK THE SPLIT-HOUR ATLAS
+
+`js/facades.js` `FACADE_ATLAS.RELEASE` — three named constants, a `render` hook
+and a `data` hook.
+
+* leave the mark up for `holdFrames` (1) rendered frames so MapLibre can consume
+  it, then **ask the live tiles whether any of them still wants it**, and delete
+  only the keys nobody wants;
+* **`staleImageIds()` is the authority, not the frame counter.** It walks
+  `style.tileManagers[*]._inViewTiles` and compares each atlas position's
+  `version` against the image's. A key with a stale live tile is KEPT. That is
+  what makes this structurally incapable of reintroducing A1/A4;
+* **in-view tiles only, deliberately.** MapLibre only calls `Tile.prepare` on
+  tiles it is drawing, so a tile sitting in the out-of-view cache would read as
+  permanently stale and would pin the mark up forever — silently turning the
+  whole optimisation off. A tile coming BACK is caught by the `data` hook, which
+  is handed the tile itself and re-marks only what that tile is behind on, with
+  a `rescanFrames` (30) sweep as the net under it;
+* **three ways to fail safe.** Internals not found → disable and warn once.
+  Walk succeeds but sees zero tiles → **decline to release**, because an empty
+  walk proves nothing. (An earlier version of this "worked" by releasing without
+  ever checking a tile — `_inViewTiles` in 5.24 is not the dict, it is a small
+  class holding the dict as its single own property, so the naive walk found
+  nothing and returned "nothing is stale". That is exactly how A1/A4 would come
+  back, and it is why the zero-tile case is now its own branch.)
+* `window.__atlasRelease` publishes `released / staleFound / blankScans / scans /
+  scanMsMax / tilesSeen / rescans / disabled`, so this is testable from a script
+  instead of by reading the source and believing it.
+
+Across every run tonight `staleFound` stayed **0** and `tilesSeen` was 571–643.
+Worst observed scan **4.7 ms**, typical **0.4 ms**, at most one per frame and
+normally one per 30.
+
+`FACADE_ATLAS.RELEASE.on = false` restores stock MapLibre behaviour live.
+
+### 137.3 `updateSky` — the sun does not move when the camera pans
+
+**`js/sky.js` now publishes `window.__sky`** — the G10 instrument `budget.md`
+§128 called "the highest-value single line available" and which did not exist.
+Same shape as `__fly.outerField()`: `calls / ms / maxMs / lastMs`, plus
+`memoHits / memoMisses / stars / lobes`. It brackets `renderFX` too, because
+that is what a caller actually pays for calling `updateSky`.
+
+And `SKY_MEMO`, an hour memo. Everything `updateSky` recomputed that is a
+function of `p` alone is now computed once per hour: `skyBodies`, every colour,
+both twilight weights, the belt window, the star and cloud counts, the cloud
+lighting mix, **the two ~120-character `radial-gradient(...)` CSS strings written
+into the disc elements every frame**, the four skyglow stops and **all 264 cloud
+gradient colour strings**. Three more per-frame costs went with it:
+
+* **520 stars and ~88 cloud lobes no longer run `dirOf` per frame.** Their
+  (az, elev) never changes, so the unit vectors are baked in `buildStars` /
+  `buildClouds` and `projector` now exposes `project.vec`. That deletes 2,080
+  sin/cos calls a frame from the star field alone.
+* `rgba(238,244,255,${a.toFixed(3)})` × 520/frame became a 1,001-entry table.
+  The twinkle means the value really does change every frame, so a cache would
+  not have helped — a table does. Straight out of the garbage collector, which
+  the same profile put at 9 % at dusk and 19 % on the phone viewport.
+* `place()` stopped writing an identical `background` and `width`/`height` back
+  into the DOM every frame.
+
+**THE `aeMeter` CONTRACT IS UNCHANGED, AND THIS IS THE PART TO READ.** §127
+records that `aeMeter` only runs inside `updateSky` and that several
+verification scripts call `updateSky` to reset auto-exposure gain. **`updateSky`
+still runs on every `move`. Nothing was throttled, gated, debounced or made
+conditional. `renderFX` is still called on every single `updateSky`, in the same
+pass, for the reason its own comment gives.** No verification script needs to
+change, and no future measurement is silently invalidated.
+
+`SKY_MEMO.on = false` is a live A/B switch and it reaches the hot loops, not just
+the memo, so the before arm really is the old code path rather than a cold cache.
+
+### 137.4 THE VISUAL BAR — ten poses, noise floor first, 1,296,000 px each
+
+One build, one page session, one pose, two arms toggled by the two live
+switches, so the arms differ by exactly the change under test and none of the
+cross-load noise §114 measured at 31 %. `cancelGraphicsAutoDetect()`,
+`GFX.autoExposure = false` with a forced `updateSky` after it (§127), two
+screenshots per frame and the second kept, and an **A/A noise floor at every
+pose before any A/B number**. `shots/perf2/gate-sheet.png` is all ten, before
+over after.
+
+| pose | noise floor px >24 | **A/B px >24** | A/B max Δ |
+|---|---:|---:|---:|
+| E1 South Mall, eye 1.7 m, day | 0 | **0** | 8 |
+| E2 South Mall, eye, dusk | 541,678 | **0** | 8 |
+| E3 South Mall, eye, night | 4 | **7** | 37 |
+| E4 Speedway at Welch, eye, day | 18,961 | **0** | 8 |
+| E5 Castilian facade, close, day | 13,807 | **0** | 8 |
+| E6 Castilian facade, close, night | 0 | **0** | 8 |
+| C1 cruise campus z16.2, day | 41,065 | **0** | 8 |
+| C2 cruise z15.2, dusk | 139,819 | **0** | 8 |
+| C3 cruise z15.2, night | 64 | **11** | 56 |
+| C4 downtown skyline z15.1, day | 76,314 | **0** | 8 |
+
+**Eight of the ten are zero pixels over the §112 threshold.** The max Δ of 8 on
+those rows is the film grain (`GFX.grain 0.1`), which differs between any two
+captures including the noise floor's own pair.
+
+The two that are not zero are **7 px and 11 px out of 1,296,000 — and both are
+BELOW their own noise floor** (C3's noise floor found 64 of the same kind). E3's
+seven were located: `(1341,27) (1342,27) (1341,28) (838,62) (839,62) (838,63)
+(839,63)` — two 2×2 clusters in the sky band, ~320 px above the horizon. **They
+are twinkling stars**, whose alpha is driven by `performance.now()` and
+therefore differs between any two captures at any hour, in either arm.
+
+E5/E6 are a facade pressed close, not a street — which is the right test for an
+atlas change and the wrong one for "the city at eye level"; E1 and E4 are the
+streets. Said plainly because `measured.md` §2 was caught quoting a wall as a
+walk.
+
+### 137.5 A1/A4 — the guard on the bug this change could have brought back
+
+A1/A4 is "half the buildings switch their windows to night mode in complete
+daylight", and its mechanism is TILES holding an older hour. Releasing
+MapLibre's marks is exactly the kind of change that could bring it back, so it
+gets its own test, driving the hour AND the tile cache. `GFX.grain = 0` for this
+one, so the numbers are the scene and not the film grain.
+
+    A   day at the campus cruise pose
+    B   night at the same pose               must differ a lot, or the probe is dead
+    x   fly 2 km away at night, 9 s          evicts the campus tiles into the
+                                             out-of-view cache at the WRONG hour
+    C   fly back, force day, 9 s             must reproduce A
+
+| arm | day vs night, px >24 | **day vs day after the round trip, px >24** | max Δ |
+|---|---:|---:|---:|
+| `RELEASE.on = true` | 1,280,307 (98.8 % of frame) | **0** | 2 |
+| `RELEASE.on = false` (stock) | 1,280,310 | **0** | 0 |
+
+And the sharpest form of it: **the RELEASE arm's frame after the full round trip
+is BYTE-IDENTICAL to the stock arm's original day frame** — `any: 0` differing
+pixels out of 1,296,000, max Δ 0. `shots/perf2/gate-a1a4-REL-back-to-day.png` is
+that frame. Counters at the end of the RELEASE arm: `released 1670, staleFound
+0, remarks 0, blankScans 0, disabled null`; in the stock arm `released` did not
+move, which is how the switch is known to have been switched.
+
+### 137.6 THE AFTER COLUMN
+
+One page session, both arms driven by the two live switches, four reps per
+case, **interleaved AND counterbalanced** (the order reverses on alternate reps,
+because the machine drifts upward across a run and whichever arm always goes
+first wins by construction — `ground-tex-perf.mjs` learned that). Chrome process
+count and `_Total` CPU probed immediately before and after every single sweep
+and printed beside every figure. Minimum of reps for the timers, best of reps
+for the frame counts, **never a mean**.
+
+**And a piece of luck worth naming: the last eight reps landed on a genuinely
+QUIET machine** — 20 Chrome processes, `_Total` CPU 3–25 % — while the first
+eight ran at 85–100 %. Both windows are reported, and the quiet ones are the
+first honest frame counts this project has taken.
+
+| case | machine | frames per 3 s sweep, before → after | `updateSky` ms/call (min) | patch ms/frame (min) | key-scans per sweep |
+|---|---|---:|---:|---:|---:|
+| cruise day p0.30 | ch27–30, **cpu 85–100 %** | 8·12·12·12 → 33·38·39·**40** | 2.500 → **2.003** | 141.38 → **7.46** | 2.7 M → 0.27 M |
+| eye 1.7 m dusk p0.62 | ch20, **cpu 6–21 %** | 93·93 → 167·**168** | 0.762 → **0.687** | 15.63 → **0.09** | 7.86 M → **0** |
+| eye 1.7 m night p0.92 | ch20–23, **cpu 3–25 %** | 91·91·92·**94** → 167·167·167·**167** | 0.957 → **0.765** | 15.60 → **0.09** | 7.94 M → **0** |
+
+* On the quiet machine, at walking height: **94 → 167 frames in the same 3 s**,
+  and the four after-reps read 167, 167, 167, 167 — a spread of zero, against a
+  before spread of 91–94. **1.78×**, and it is the same 3 s of the same camera
+  path in the same page.
+* On the loaded machine at cruise: **12 → 40 frames, 3.3×**, with
+  `patchUpdatedImages` going from **141 ms a frame to 7.5**.
+* **Ranked honestly, the atlas is the whole story and the sky is a rounding
+  error beside it.** `updateSky`'s own cost — including `renderFX`, so this is
+  what a caller pays — measures **0.69 to 2.5 ms per call**, and the memo takes
+  10–20 % off it. That is 0.1–0.5 ms a frame. `budget.md` §128 predicted
+  "2–8 ms per frame at dusk at 1.7 m"; **the measured figure at that exact
+  condition is 0.76 ms, so §128's range is too high**, though its falsifier
+  ("under 1 ms and the section is wrong") is met only at dusk and night and not
+  at cruise, where it is 2.0–2.5 ms. The section's ranking claim — 93 % of the
+  `jumpTo` cascade — is untouched by this; it just means the whole cascade is
+  smaller than the prediction assumed.
+* **The residual 7.5 ms at cruise is the mechanism working, not failing.** At
+  the eye poses the camera barely moves, no tiles arrive, and key-scans go to
+  exactly **0**. At cruise the camera crosses 0.0075° of latitude every 5 s, so
+  tiles arrive continuously and `noteTile` re-marks the handful of keys those
+  arrivals genuinely need — about **13 keys held instead of 385**, a 96 %
+  reduction rather than 100 %. Some arriving tiles really are behind, which is
+  the case the `data` hook exists for.
+
+### 137.7 WHAT THIS DID NOT ESTABLISH
+
+Listed first-class, because it is the part most likely to be misread as absence
+of a problem.
+
+1. **THERE IS NO FRAME-RATE NUMBER IN THIS SECTION EITHER, AND FOR THE SAME
+   REASON AS §133.** Load probes taken immediately before and after every sweep:
+   **20–35 Chrome processes, `_Total` CPU 14–84 %**, three sibling workflows
+   running. Identical settings produced 6 and 29 frames in the same 3 s sweep in
+   the stock arm, and 8 and 116 in the release arm. **The frames column is a
+   ceiling on speed under contention, not a rate.** Everything load-driven in
+   this section is quoted as a MINIMUM of interleaved, counterbalanced reps, and
+   the two figures actually worth trusting are a COUNT (key-scans) and a CPU
+   timer over one function (`__sky`).
+2. **The `updateSky` share of main-thread time was NOT re-profiled.** §133's
+   "8.8 % at cruise" came from the V8 sampler; this pass measured the function's
+   own wall clock instead. The two are not the same quantity and the share is
+   not restated.
+3. **The shader-compile 16 % was NOT fixed, and it is NOT ours.** The brief
+   asked whether something in these files polls compilation every frame. It does
+   not: `getShaderParameter` / `getProgramParameter` appear exactly twice in all
+   of `js/`, both in `js/sky.js`'s `compile()`/`program()`, and both are reached
+   only from a custom layer's `onAdd`. **That is one-shot per layer creation.**
+   The 16 % at cruise is MapLibre compiling its own programs lazily during
+   flight against 221 style layers — QUEUE K1 job 5, and it needs the layer
+   count, not these two files.
+4. **BOOT WAS NOT RE-MEASURED.** The release sweeper cannot fire before the
+   first render and the sky memo can only help, but neither claim was tested.
+   The 2,744 ms `buildScene` task (§136) is untouched and is still the biggest
+   number in `measured.md`.
+5. **This change ADDS a cost that was not measured: one held frame per
+   time-of-day tick** (`holdFrames: 1`). During autoplay the heavy tod path
+   fires ~4/s, so ~4 frames a second still pay the full scan. "Autoplay while
+   walking" was the worst state the app can be in before tonight and it is still
+   unmeasured; this pass did not change that, and may have made the autoplay
+   case slightly worse than the parked case in a way nobody has looked at.
+6. **`scripts/verify/perf-budget.mjs` was not re-run** — `scripts/verify/` was
+   not in this pass's write scope, and its three live assertions (G1 controls
+   tick, G3/G5a outer ring) all measure `js/controls.js`, which this pass did not
+   touch. It should stay red.
+7. **`dusk.mjs`, `silhouette.mjs` and `banding.mjs` COULD NOT BE RUN AT ALL.**
+   All three crash before opening a browser with `ReferenceError: r is not
+   defined` / `out is not defined` — the harness page-setup regression the Mac
+   lane owns. **So the dusk-handover continuity assertion and the silhouette
+   assertion were not re-checked against this sky change.** The pixel gate covers
+   dusk at two poses and finds zero pixels over threshold, but that is not the
+   same test. `sky.mjs` DID run: 12 assertions, and the arms are identical
+   except for one shadow-hull re-tiling flake — the two `setLight` mismatches of
+   ~1° fail in BOTH arms and are pre-existing.
+8. **Nothing on a phone, a weak GPU or a throttled CPU.** Same gap `measured.md`
+   §6 records, unchanged.
+9. **The `_inViewTiles` walk depends on a MapLibre private field name.** It fails
+   safe (disable + warn) if the field moves, but a future MapLibre upgrade turns
+   this optimisation off silently-but-loudly rather than breaking — check
+   `window.__atlasRelease.disabled` after any version bump.
