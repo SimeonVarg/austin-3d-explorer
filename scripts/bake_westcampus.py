@@ -112,6 +112,76 @@ BAY_PAD = 60.0         # m the clipping strip overhangs the plan on both sides.
 # a `kind:"wall"` band and goes through quantiseStadiumFacades().
 
 
+# ══ TIER FIVE — STOREY LINES AT WALKING HEIGHT (QUEUE Y5) ═════════════
+#
+# THE PROBLEM, and it is the same one PR #167 solved on the Drag. Every wall
+# band here is drawn with `fill-extrusion-pattern`, and MapLibre scales a
+# pattern by the TILE GRID, not by the world: one repeat is
+# `displaySize x mpp(floor(cameraZoom))` metres of wall. At the walking-height
+# zoom this app now allows that is **2.06 m** (TIER_CSS 32; measured in
+# docs/camera/facades-measured.md 1 and re-derived in docs/camera/walls-campus.md
+# 1). So `mh`'s 8 rows of windows collapse into a 0.26 m storey and `dk`'s
+# parking-deck bands into a 0.42 m deck. Nothing drawn INTO the tile can fix
+# that, because the tile has no anchor and no metre.
+#
+# THE FIX, harvested rather than reinvented: a horizontal event has to be
+# GEOMETRY whose height is in METRES. A ring offset OUTWARD from the band's own
+# plan, containing the wall's own face over its height — proud trim, nothing
+# coplanar, nothing for the depth buffer to argue about, and an underside that
+# casts the line of shadow a barcode does not have. Metres, not zoom stops, is
+# also what survives QUEUE Y4 raising ZOOM_MAX.
+#
+# WHAT IS DIFFERENT HERE, and this is the whole reason the Drag's constants are
+# not simply reused (docs/camera/walls-campus.md 5.2, 6.4):
+#
+#   * A 2010s student high-rise has NO CORNICE and NO BASE COURSE. Its
+#     horizontal is a SLAB EDGE: a thin concrete lip at every residential
+#     floor. A projecting masonry cornice on The Standard would be the same
+#     class of lie as a curtain-wall grid on DKR.
+#   * FIFTEEN of these towers already carry balcony slabs, and those slabs ARE
+#     the floor line on the elevations they reach. A second horizontal at a
+#     different pitch would draw two floor rhythms on one wall. So the slab
+#     edge is emitted at EXACTLY the balcony rows, from the same
+#     `span / count` the balcony loop uses — buried inside the balconies where
+#     they exist (the ring is 0.10 m proud against BALC_PROJ 1.40) and filling
+#     in the ends and the balcony-less elevations, which is the whole job.
+#   * WC_SLAB_H is deliberately UNDER `BALC_THICK` so the ring's top face never
+#     becomes coplanar with a balcony slab's.
+#   * A PARKING DECK IS NOT A STOREY. `dk` gets its own pitch: a real deck is
+#     2.4-3.0 m floor to floor, against a residential 3.25.
+WC_SLAB_PROUD = 0.12   # m the residential slab edge stands proud of the face
+WC_SLAB_H = 0.30       # m of slab edge. Under BALC_THICK (0.34) on purpose, so
+                       # the ring's top face can never go coplanar with a
+                       # balcony slab's — raise this and that stops being true.
+WC_DECK_PROUD = 0.16   # m a parking-deck edge stands proud
+WC_DECK_H = 0.45       # m of deck edge, and it is DEEPER than the residential
+                       # slab, not thinner. An above-grade garage's horizontal
+                       # is a spandrel BEAM carrying the ramp, 0.45-0.9 m of
+                       # solid concrete between two open decks — it is the one
+                       # thing you see of a garage from the pavement. The first
+                       # cut had it at 0.25, under the 0.34 m balcony slabs
+                       # already in the scene, and it disappeared into the
+                       # tile's own hairlines at the Dobie pose.
+WC_DECK_M = 2.80       # m floor-to-floor of an above-grade parking deck. From
+                       # this bake's own nine-level podium spec; the measured
+                       # final_height/num_floors on family `dk` is 2.36-2.47.
+WC_STOREY_M = 3.25     # m floor-to-floor fallback where a tower has no balcony
+                       # spec to harvest. Median slab pitch across the 15
+                       # authored towers that do (walls-campus.md 4).
+WC_BAND_MIN_M = 6.0    # a band shorter than this carries no lines at all
+WC_LINE_MIN_GAP = 2.0  # never put two lines closer together than this
+WC_TRIM_LIFT = 0.06    # how far the trim is lifted off its host band's tone.
+                       # 0.06, not the Drag's 0.17: limestone trim on painted
+                       # brick is a different material; a slab edge is the same
+                       # concrete as the wall and only catches a little more sun.
+WC_BASE_LINES = False  # The base band belongs to the entrances and places
+                       # passes — 24 lobbies, shopfront reveals, canopies, sign
+                       # bands, all modelled in metres already. A proud ring
+                       # through the middle of that is a collision, not a fix.
+WC_CROWN_LINES = False # A crown here is a 1.8-5.0 m parapet or mechanical
+                       # screen. It has no storeys to line.
+
+
 # ── TASTE: the night wall ramp, and the one family it was wrong for ──────
 #
 # THE DEFECT THIS BLOCK EXISTS TO CLOSE (QUEUE W4, diagnosed in
@@ -1221,6 +1291,22 @@ def to_ll(pts, lon0, lat0):
     return [[round(lon0 + x / (M_LAT * k), 7), round(lat0 + y / M_LAT, 7)] for (x, y) in ring]
 
 
+def to_ll8(pts, lon0, lat0):
+    """to_ll at 8 decimals, for the storey trim only.
+
+    A slab edge is 0.10 m proud and 7 decimals quantises longitude to about a
+    centimetre — a tenth of the offset, i.e. enough to make the ring visibly
+    lumpy where it should be a clean line. 8 decimals gives a millimetre. Same
+    reasoning, same name, as bake_drag.py's.
+    """
+    k = math.cos(math.radians(lat0))
+    ring = list(pts)
+    if ring[0] != ring[-1]:
+        ring = ring + [ring[0]]
+    return [[round(lon0 + x / (M_LAT * k), 8), round(lat0 + y / M_LAT, 8)]
+            for (x, y) in ring]
+
+
 def obb(pts):
     """Minimum-area rectangle: (angle_rad, u0, u1, v0, v1) in the ring's frame.
 
@@ -1331,6 +1417,138 @@ def wall_feature(rings_m, base, top, fam, col, band, name, cap, lon0, lat0, stac
             "name": name, "cap": 1 if cap else 0, "stack": stack, **extra,
         },
     }
+
+
+def _hex_mix(hex_col, other, t):
+    a = [int(hex_col[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(other[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join("%02x" % max(0, min(255, int(round(a[i] + (b[i] - a[i]) * t))))
+                         for i in range(3))
+
+
+def detail_feature(rings_m, part, base, top, host_col, name, lon0, lat0):
+    """One piece of proud trim: a slab edge or a deck edge.
+
+    DELIBERATELY `kind:"detail"` with `dbase`/`dh`, never `base`/`h`, and it
+    claims NO `bid`, NO `fam` and NO `s`. Three guards in this file and one in
+    js/facades.js key off `kind`:
+
+      * `quantiseStadiumFacades` skips anything that is not `kind:"wall"`, so
+        trim never lands in the facade atlas and never costs an image;
+      * `check_night_ramp` reads walls only, and trim has no window grid to be
+        dark about — its night value comes off `wall_ramp` like any flat solid;
+      * main()'s overhang assertion reads walls only, and trim is offset
+        OUTWARD by design, so it would fail an assertion that is right for
+        bands and wrong for trim.
+
+    Different name, different contract — the same shape bake_drag.py's
+    `detail_feature` and bake_entrances.py's proud geometry already use.
+    """
+    trim = _hex_mix(host_col, "#ffffff", WC_TRIM_LIFT)
+    wg, wn = wall_ramp(trim)
+    return {
+        "type": "Feature",
+        "geometry": {"type": "Polygon",
+                     "coordinates": [to_ll8(r, lon0, lat0) for r in rings_m]},
+        "properties": {
+            "kind": "detail", "part": part,
+            "wd": trim, "wg": wg, "wn": wn,
+            "dbase": round(base, 3), "dh": round(top, 3), "name": name,
+        },
+    }
+
+
+def trim_rings(rings_m, proud):
+    """The band's plan, grown OUTWARD by `proud` — holes shrunk by it.
+
+    Growing the outer ring puts the trim proud of the wall face. A light well
+    has to go the other way: its wall face is the INSIDE of the hole, so trim
+    proud of that face means intruding into the well, i.e. a smaller hole. Get
+    that backwards and a courtyard tower grows a 0.10 m gap between its trim
+    and its own light-well wall, all the way up.
+    """
+    outer = offset(list(rings_m[0]), proud)
+    if outer is None:
+        return None
+    out = [ccw(outer)]
+    for h in rings_m[1:]:
+        hi = offset(list(h), -proud)
+        if hi is None:
+            return [ccw(outer)]      # keep the trim, lose the well; counted
+        out.append(ccw(hi))
+    return out
+
+
+def storey_levels(b, t, f2f, first_frac=0.0, hgt=WC_SLAB_H):
+    """Where the lines go on a band running b..t metres, at `f2f` pitch.
+
+    `first_frac` is how far up its own storey the first line sits — 0.62 for a
+    tower whose balconies are already there, so the trim lands on the balcony
+    rows exactly rather than half a metre under them. n is ROUNDED, not
+    floored, so the fitted pitch stays within half a storey of the intended
+    one instead of stretching by up to a whole one.
+    """
+    span = t - b
+    if span < WC_BAND_MIN_M or f2f < WC_LINE_MIN_GAP:
+        return []
+    n = max(1, int(round(span / f2f)))
+    s = span / n
+    lv = [b + (i + first_frac) * s for i in range(n)]
+    return [z for z in lv if z > b + 0.05 and z + hgt < t - 0.05]
+
+
+def band_levels(band, b, t, spec):
+    """Where the storey lines go on ONE band, and what shape they are.
+
+    Returns (levels, part, proud, height). The pitch is harvested, never
+    assumed, and in this order:
+
+      1. the tower band of a building with a `balc` spec takes `span / count`
+         off the SAME spec the balcony loop uses, and puts its line at the same
+         0.62-of-a-storey height, so trim and balcony are ONE row and never two
+         rhythms on one wall;
+      2. a `podium` takes WC_DECK_M, because a parking deck is not a storey;
+      3. anything else takes WC_STOREY_M.
+
+    `base` and `crown` are refused outright — WC_BASE_LINES / WC_CROWN_LINES
+    each say why in one line.
+    """
+    if band == "base" and not WC_BASE_LINES:
+        return [], None, 0, 0
+    if band == "crown" and not WC_CROWN_LINES:
+        return [], None, 0, 0
+    balc = spec.get("balc")
+    if band == "tower" and balc:
+        f2f, frac, part = (t - b) / max(1, balc[2]), 0.62, "slab"
+        proud, hgt = WC_SLAB_PROUD, WC_SLAB_H
+    elif band == "podium":
+        f2f, frac, part = WC_DECK_M, 0.0, "deck"
+        proud, hgt = WC_DECK_PROUD, WC_DECK_H
+    else:
+        f2f, frac, part = WC_STOREY_M, 0.0, "slab"
+        proud, hgt = WC_SLAB_PROUD, WC_SLAB_H
+    return storey_levels(b, t, f2f, frac, hgt), part, proud, hgt
+
+
+def storey_trim(rings_m, levels, part, proud, hgt, col, name, lon0, lat0, stats):
+    """Emit one proud ring per level. `levels` comes from band_levels()."""
+    if not levels:
+        # Two different refusals, counted apart on purpose: a band this pass
+        # deliberately does not line (base, crown) is not the same finding as a
+        # band that wanted lines and was too short to hold any.
+        stats["trim_band_too_short" if part else "trim_band_not_lined"] += 1
+        return []
+    rings = trim_rings(rings_m, proud)
+    if rings is None:
+        stats["trim_offset_failed"] += 1
+        return []
+    if len(rings) < len(rings_m):
+        stats["trim_hole_dropped"] += 1
+    out = [detail_feature(rings, part, z, z + hgt, col, name, lon0, lat0)
+           for z in levels]
+    stats["trim_" + part] += len(out)
+    stats["trim_bands"] += 1
+    return out
 
 
 def solid_feature(ring_m, base, top, cls, name, lon0, lat0):
@@ -1608,6 +1826,14 @@ def build(feature, spec, stats):
                 stats["crown_setback"] += 1
             else:
                 stats["crown_setback_failed"] += 1
+        # TIER FIVE: the storey lines, emitted HERE — after `rr` is final and
+        # BEFORE the colour-bay branch, which `continue`s past the flat band.
+        # A banded elevation is still one plan, so the trim is one ring round
+        # it and takes the band's base colour rather than each bay's; the trim
+        # is 0.06 off its host tone, which is well inside the spread between
+        # bays, so a single ring does not read as belonging to one of them.
+        _lv, _part, _prd, _hgt = band_levels(band, b, t, spec)
+        out.extend(storey_trim(rr, _lv, _part, _prd, _hgt, col, name, lon0, lat0, stats))
         if band == "tower" and bays:
             plan = _poly(rr)
             drawn = 0
@@ -1650,6 +1876,20 @@ def build(feature, spec, stats):
             out.append(wall_feature(step_rings, wing_crown, step_top, cfam, ccol,
                                     "crown", name, True, lon0, lat0, "step"))
             stats["band_step"] += 2
+            # The wing is a wall a person stands under too — Signature 1909's
+            # pool-deck wing and Ion Austin's are both on the street. Without
+            # this the trim stops dead at the step and the wing keeps the
+            # barcode, which is worse than not banding either.
+            # THE WING TAKES THE TOWER'S OWN LEVELS, TRUNCATED — it does not
+            # refit its own. The wing is a shorter span, so refitting put its
+            # lines 0.15-0.20 m away from the tower's on Signature 1909 and Ion
+            # Austin: two floor rhythms on one building, which is the exact
+            # defect this pass exists to avoid. The bake refused to write it
+            # (see the WC_LINE_MIN_GAP assertion in main), which is what a
+            # guard is for.
+            out.extend(storey_trim(step_rings,
+                                   [z for z in _lv if z + _hgt < wing_crown - 0.05],
+                                   _part, _prd, _hgt, col, name, lon0, lat0, stats))
 
     # ── balconies: one slab per floor, on the two long elevations -----
     #
@@ -1915,6 +2155,61 @@ def main():
         raise SystemExit("bake_westcampus: colour bays do not tile the elevation:\n  "
                          + "\n  ".join(bad_bays))
 
+    # ── TIER FIVE's own contract, asserted, because none of the assertions
+    # above can see it: they all filter `kind == "wall"` and trim is not a wall.
+    # Four things have to hold or the trim is a defect nobody would find until
+    # somebody stood in the street:
+    #   1. no `bid`, no `base`, no `h`, no `fam`, no `s` — the proud-geometry
+    #      rule. Trim that claimed a building id or the band schema would join
+    #      an accounting it is designed to overlap.
+    #   2. every piece sits inside a wall band of its own building. A line in
+    #      mid-air is what a wrong pitch looks like.
+    #   3. nothing reaches final_height — westcampus-probe.mjs's standing rule.
+    #   4. no two lines on one building are closer than WC_LINE_MIN_GAP.
+    bad_trim = []
+    bands_by_name = {}
+    for f in out:
+        p = f["properties"]
+        if p.get("kind") == "wall":
+            bands_by_name.setdefault(p["name"], []).append((p["base"], p["h"]))
+    tops_by_name = {}
+    for name, spec in BUILDINGS.items():
+        f = by_name.get(name)
+        if f:
+            tops_by_name[name] = f["properties"]["final_height"]
+    lines_by_name = {}
+    for f in out:
+        p = f["properties"]
+        if p.get("kind") != "detail":
+            continue
+        for k in ("bid", "base", "h", "fam", "s"):
+            if k in p:
+                bad_trim.append("%s: trim carries '%s', which belongs to a band" % (p["name"], k))
+        lo, hi = p["dbase"], p["dh"]
+        if not any(b - 1e-6 <= lo and hi <= t + 1e-6 for b, t in bands_by_name.get(p["name"], [])):
+            bad_trim.append("%s: trim %.2f-%.2f m is not inside any wall band"
+                            % (p["name"], lo, hi))
+        top = tops_by_name.get(p["name"])
+        if top is not None and hi > top:
+            bad_trim.append("%s: trim tops out at %.2f m over final_height %.2f"
+                            % (p["name"], hi, top))
+        lines_by_name.setdefault(p["name"], []).append(lo)
+    for name, zs in lines_by_name.items():
+        zs = sorted(zs)
+        for a, b in zip(zs, zs[1:]):
+            if 1e-6 < b - a < WC_LINE_MIN_GAP:
+                bad_trim.append("%s: storey lines %.2f and %.2f m are %.2f m apart"
+                                % (name, a, b, b - a))
+                break
+    if bad_trim:
+        raise SystemExit("bake_westcampus: refusing to write storey trim:\n  "
+                         + "\n  ".join(bad_trim))
+    print("  storey trim: %d pieces on %d buildings; %d bands lined, %d too short, "
+          "%d not lined by rule (base/crown)"
+          % (sum(1 for f in out if f["properties"]["kind"] == "detail"),
+             len(lines_by_name), stats["trim_bands"], stats["trim_band_too_short"],
+             stats["trim_band_not_lined"]))
+
     night = check_night_ramp(out)
 
     # How many NEW facade atlas images this costs. The atlas is repainted on
@@ -1974,6 +2269,12 @@ def main():
                             "GENERATIVE for Ion and Inspire",
             "band_heights": "GENERATIVE - floor-to-floor derived from the floor "
                             "count and final_height, per building",
+            "storey_lines": "HARVESTED where a building has balconies - the slab "
+                            "edge takes span/count off the same balc spec the "
+                            "balcony loop uses and lands on the same rows; "
+                            "GENERATIVE elsewhere (WC_STOREY_M 3.25 m, the median "
+                            "of those harvested pitches; WC_DECK_M 2.80 m for a "
+                            "parking deck). Depths authored in metres. QUEUE Y5.",
             "balconies": "sourced for Cambridge Tower (every floor, both long "
                          "elevations) and 21 Rio (private balconies documented); "
                          "projection depth is generative",
