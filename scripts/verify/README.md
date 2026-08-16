@@ -89,6 +89,66 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
   see the long comment at the end of the file for why a null result there is
   expected rather than reassuring.
 
+## The z-fighting pair: `coplanar.mjs` and `zfight.mjs`
+
+`zfight.mjs` renders and finds surfaces that FLICKER; `coplanar.mjs` reads the
+data and finds surfaces that CAN. Run both — the first cannot see what is off
+screen, the second cannot see across two documents.
+
+```bash
+node coplanar.mjs                      # every data/*.geojson, full report
+node coplanar.mjs --gate               # red ONLY on a pair the baseline lacks
+node coplanar.mjs --selftest           # eight assertions; makes itself fail
+node coplanar.mjs --write-baseline     # after a deliberate fix
+node coplanar.mjs data/drag.geojson    # one file
+```
+
+**Read the accounting line, not the verdict.** Every file prints
+`N feats / N tops / N flat / N unreadable` before its result, because the way
+this checker has actually failed is by examining fewer features than the file
+holds and then reporting a clean scene:
+
+> On the night the campus and West Campus storey trim merged (§131) it reported
+> **"1144 features, no coplanar overlaps"** on a file holding **1363**. It keyed
+> on `h`/`height`; the trim carries `dbase`/`dh`. Across three files **882
+> extrusion rings were unchecked**, and `data/campus_storeys.geojson` was not in
+> its hardcoded TARGETS list at all. That is the fourth guard in this repo found
+> to pass because it could not see the thing it was guarding.
+
+Three things now hold it shut, and it is worth knowing which one covers what:
+
+1. **Scope comes off the directory.** A new bake's output is in scope the moment
+   it lands in `data/`. There is no list to update.
+2. **Anything uninterpretable is exit 2**, never a skip — unknown elevation
+   signature, a non-finite `h`, or an absolute top below its own base. That last
+   one is what would have caught `entrances.geojson` being read as absolute when
+   `js/entrances.js` paints `['+',['get','base'],['get','h']]`.
+3. **The vocabulary is audited against the stylesheet.** `auditStylesheet()`
+   reads every `fill-extrusion-height`/`-base` expression in `js/*.js` and pulls
+   the `['get','x']` names out with a balanced-bracket read (a line-scoped regex
+   misses `js/ground.js`'s wrapped `setPaintProperty` calls). A name the app
+   extrudes on with no schema stops the run.
+
+**The seam that is still open, stated plainly.** A feature carrying an invented
+property that NOTHING renders is counted as `flat` and not checked — correctly,
+since an unrendered surface cannot z-fight, but it is a silent classification.
+It shows up only as a jump in the `flat` column. The moment any paint expression
+reads that name, guard 3 fires. So the loop is closed on the only path that can
+produce a defect, and not on the path that cannot.
+
+**`--gate` exists because the tool is permanently red without it.** The repo
+carries 2,342 coplanar pairs at eps=0.01/frac=0.30, most of them never looked at
+(`stadium` 313, `outer_ring` 179, `trees` 99). A guard that is always red is a
+guard nobody reads, so `coplanar-baseline.json` records the per-file counts and
+`--gate` reports only what grew. Changing that file in a commit is the record of
+what was accepted.
+
+**What it structurally cannot do**, and the reason QUEUE N5b had to be measured
+by hand: it pairs features **within one document**. Campus storey trim lives in
+`data/campus_storeys.geojson` while the buildings it rings come from the basemap
+via `data/snapshots/<date>/buildings.detailed.geojson`, so a tie between them is
+invisible here. There are 55 such ties. `zfight.mjs` is the instrument for that.
+
 ## Outer ring suite (added July 30 2026)
 
 - `node outer-check.mjs` — the outer ring is what `docs/OUTER_RING.md` claims

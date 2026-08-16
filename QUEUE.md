@@ -967,6 +967,72 @@ goes to.
 
 ---
 
+## N5. ~~`coplanar.mjs` cannot see the storey trim~~ — FIXED 2026-08-16 (§134),
+## and it found ten real coplanar pairs on the Drag. THOSE ARE STILL OPEN.
+
+The checker keyed on `h`/`height` and scanned a hardcoded list of eight files,
+so it silently skipped **882 extrusion rings** — 640 in `campus_storeys.geojson`
+(not in the list at all), 219 in `westcampus.geojson` and 23 in `drag.geojson`
+(all `dbase`/`dh`). It printed "1144 features, no coplanar overlaps" on a file
+holding 1363. The tool is rewritten: it scans every `data/*.geojson`, prints
+`examined / flat / unreadable` on every file, fails hard on anything it cannot
+interpret, and audits its own vocabulary against every `fill-extrusion-height`
+and `fill-extrusion-base` expression in `js/*.js`. `--selftest` is eight
+assertions that make it fail on purpose. **What it then found is below and is
+NOT fixed.**
+
+### N5a. Ten cornices on the Drag sit flush with the wall band they cap
+
+`data/drag.geojson`, every `part:"cornice"` in the file — ten of them, one per
+building. The cornice's `dh` lands **2 to 4 mm** under the top of the `upper`
+wall band it rings, and the ring's footprint is **100 % inside** the wall's:
+
+| wall | wall top | cornice | cornice `dh` | gap | shared |
+|---|---|---|---|---|---|
+| #26 | 15.500 | #30 | 15.498 | 2 mm | 1878 m² |
+| #34 | 12.950 | #37 | 12.946 | 4 mm | 1446 m² |
+| #47 | 8.650 | #49 | 8.650 | 0 mm | 661 m² |
+| … | | | | | ~6,300 m² total |
+
+2 mm is inside the depth-buffer quantum at any flying distance. `node
+scripts/verify/coplanar.mjs data/drag.geojson` lists all ten.
+**Owner: whoever owns `scripts/bake_drag.py`** — the fix is a lift in the bake,
+not in the data, and `docs/` should say which way (cornice proud ABOVE the band
+top, or band top pulled down to the cornice base). **Do not fix it by widening
+`--eps`.**
+
+### N5b. Fifty-five campus caps and cornices sit flush with their host building
+
+`data/campus_storeys.geojson`: all **40 `cap` + 15 `cornice`** rings have `dh`
+**exactly equal** (0.0000 m) to their host's `final_height` in
+`data/snapshots/2026-08-16/buildings.detailed.geojson`. The other 585 rings
+(`course`, `base`) are clear by 0.2 m or more.
+
+**`coplanar.mjs` cannot judge this and says so** — the host is a basemap
+building replaced by `js/app.js`, so the two surfaces live in different
+documents and the tool only ever pairs within one. This was measured by hand
+against the snapshot the bake itself reads. It may well be invisible: the roof
+**cap** layer runs from `final_height` upward and may cover the tie, and a
+proud ring only overlaps the body on its inner edge. **That is a rendering
+question, so the instrument is `zfight.mjs` at a campus roofline, not more
+arithmetic.** `scripts/bake_campus_storeys.py` line 20 claims "Nothing
+coplanar, nothing for the depth buffer to argue"; against its own host heights
+that claim is not true, and somebody should either make it true or amend it.
+
+### N5c. Numbers nobody had ever seen, now baselined
+
+`scripts/verify/coplanar-baseline.json` records the per-file counts at
+eps=0.01/frac=0.30 so `--gate` goes red only on a NEW pair. Previously
+unmeasured files: `stadium` 313, `outer_ring` 179, `trees` 99, `art` 92,
+`drag` 10 (N5a), `capitol_parts` 2, and one each in `capitol_dome`, `ground`,
+`heroes`. The recorded baselines held: **roofs 85 and places 1 are unchanged.**
+`entrances` reads **1558**, not the recorded 1729 — the old number was computed
+on `h` as if it were an absolute top when `js/entrances.js` paints
+`['+',['get','base'],['get','h']]`, so 1729 was a count of coincident
+*thicknesses*. Nobody has looked at whether any of these are visible.
+
+---
+
 ## Y19. Y5 fixed the HORIZONTAL barcode. The VERTICAL one is still there, and it
 ## is a `js/facades.js` tile problem that nobody owns.
 
