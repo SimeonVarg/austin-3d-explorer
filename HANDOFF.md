@@ -19324,16 +19324,38 @@ plausibly have broken: *"joystick moves the camera while a second finger looks
 around"* and *"a second finger is not misread as a pinch-zoom"*.
 **`motion-feel.mjs` 20/20.**
 
-**(c) `movement.mjs` is flaky, and it is not this branch.** Mine read 12/14 then
-13/14 with *different* assertions failing; `origin/main` read 14/14 on its first
-rep. That is exactly the shape of a wrong single-sample verdict, so it was run
-interleaved against a second worktree serving `origin/main` on 8422 rather than
-guessed at. The failing assertion in the run that named one was *"east/west
-speed matches north/south (cos-latitude corrected)"* — the same diagonal
-assertion §140 recorded as *"straddling its tolerance"*. Mechanism check: the
+**(c) `movement.mjs` swings from 11/14 to 14/14 WITH THE MACHINE, on both sides,
+and the best reading of the five is this branch's.** This is the part of the
+pass that nearly went wrong, so the whole sequence is written down.
+
+First reads: mine 12/14, then 13/14, with *different* assertions failing each
+time; `origin/main` 14/14 on its first rep. Read as three samples that is "the
+branch broke movement". It was run interleaved instead, against a second
+throwaway worktree serving `origin/main` on 8422, alternating base/mine:
+
+```
+BASE  origin/main   14/14   (quiet machine, 18 chrome processes)
+BASE  origin/main   11/14   east/west vs north/south, diagonal vs cardinal,
+                            Q on a second press          (busy, 32 chrome)
+MINE  acer/n9       12/14   (busy)
+MINE  acer/n9       13/14   east/west vs north/south     (busy)
+MINE  acer/n9       14/14   (busy)
+```
+
+**The untouched baseline produced the worst score in the set and this branch
+produced the best.** Every assertion that ever failed, on either side, is a
+speed-or-timing one — and the cos-latitude/diagonal pair is the same one §140
+recorded as *"straddling its tolerance"*. The variable is CPU load: chrome went
+from 18 to 34 processes during this pass as another lane started measuring, and
+that is part of the instrument's answer exactly the way `perf.mjs`'s 4x throttle
+is. The remaining reps were cancelled deliberately rather than run to six — the
+question was already answered, and the CPU belonged to a perf lane taking
+frame-time readings.
+
+Mechanism check, done before any of the above and independently of it: the
 suite is keyboard-only except a single drag from the CANVAS CENTRE (400,280 at
 its 800x560 viewport), and the new BOOST disc lands at x686-750 y408-472 there,
-so it cannot be intercepting anything.
+so it cannot be intercepting a gesture. Nothing in this branch touches `js/`.
 
 ### 4. WHAT I DID NOT FIX, AND WHY
 
