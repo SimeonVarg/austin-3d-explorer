@@ -15919,3 +15919,218 @@ explanation, frozen at its honest value.
   (§116) is still hardcoded and still not mine to touch.
 * **AF1** stays stranded — its register name matches AF2's footprint and the
   rehab pavilion genuinely has no door group anywhere.
+---
+
+## 125. Aug 15 2026 — the entrance bake stops testing doors against their own building, and every era comes from a measured year (acer lane)
+
+Branch `acer/blitz-entrances`, cut from `origin/main` at `38fbeee`. Writes
+limited to `scripts/bake_entrances.py`, `data/entrances.geojson`, `HANDOFF.md`.
+No browser this phase, so nothing here is a pixel claim: **the PR is left open
+for the Ship agent**, because the era change below repaints doorways on 57
+buildings and judging that is a looking job, not a reasoning job.
+(Renumbered 114 -> 125 on the rebase: wayfind DID merge first and main had
+taken 114-124, per the header rule.)
+
+### THE SELF-BLOCK (QUEUE X4) — fixed, and it had quietly moved two doors
+
+`clear_buried()` was testing every door against the union of nine passes'
+masses — including the mass that is just the door's own building re-drawn
+from its own footprint ring (westcampus does this for all 24 towers, tower
+for MAI, drag and moody for their hosts). A door on a wall always has its own
+building behind it; treating the building as a blocker fails every door that
+sits in a re-entrant notch of its own plan. Cambridge Tower is the measured
+case (§104): six of twelve march directions re-enter CAMBRIDGE'S OWN ring
+within 3 m and the nearest other footprint is 107 m away.
+
+The rule shipped: a mass with **IoU >= 0.90 against the host's footprint** is
+excluded from that host's burial test and from its clear-space march. The
+threshold is measured, not chosen: over all 1,456 qualifying masses vs the
+2026-08-04 snapshot the distribution is bimodal — 1,391 score < 0.5, six sit
+between 0.5 and 0.9, 57 score >= 0.9 — and the 57 are exactly the
+footprint-re-draw class. 0.90 sits in the empty gap. Printed every run:
+
+    buried doors       : 5 walled in by another pass's mass (2 relocated, 3 dropped)
+      self-block (X4)  : 33 masses on 33 buildings are the host's own footprint
+                         re-drawn (IoU >= 0.90) and are excluded from that
+                         host's burial test and march
+
+What it changed, against a baseline run that reproduced §99's output
+byte-for-byte before the edit (same worktree, same pinned snapshot):
+
+* **7 buried -> 5.** The Quarters Sterling House (moved 3 m in §99) and The
+  Nine at West Campus (moved 1 m) were self-blocks — flagged by their own
+  westcampus.geojson mass, then pointlessly relocated along it. Their doors
+  now stay where `wc_place()` put them. §106's suspicion about Sterling's
+  relocation was right.
+* **Gates-Dell is NOT this class and stays fixed** — the atrium slab is
+  authored outboard geometry, IoU far below the gate; still `moved GDC 22 m`
+  onto the Speedway face, door centroid byte-identical to the shipped file.
+* **MAI now moves 1 m instead of 2 m** — still genuinely buried by a
+  non-self tower piece, but the march no longer counts MAI's own
+  footprint-duplicate mass, so a nearer wall qualifies.
+* The three stadium drops (DKR x2, RMRZ;NEZ) are untouched.
+
+### W7, RE-VERIFIED, NOT RE-BUILT
+
+The queue entry predates §99: `clear_buried()` already shipped on main
+(commit `66699d9`) and this pass did not rebuild it — it re-ran it. The
+baseline run printed §99's exact list (7 found, 4 moved, 3 dropped, GDC 22 m)
+before the X4 edit changed it as above. The count still prints on every run.
+
+### ERAS FROM MEASURED YEARS — 57 buildings changed family, LISTED, NOT MERGED
+
+`data/ut_buildings.json` (UT's own register, 198 refs with the year first
+occupied) now drives eras.md §5.2's rule-6 date test, which had been waiting
+on a dated source since the doc was written. Cascade order is §5.2's own:
+WC table, NULL list and CELEBRATED (authored) still win; parking and church
+still beat the date (a 2003 garage is a garage); the hand list survives only
+for refs the register does not carry; the residential class and E5 come
+after. The bake prints every building the register moved, with its year —
+106 of 298 in-scope buildings carry a measured year, **57 changed family**:
+
+* `GEB B->A (1904)` — eras.md §6 itself said "probably predates the family;
+  verify". The measured year agrees with the doubt.
+* `BAT BEN MEZ PAR CAL B->C (1951-67)` — the five "B-late" flags. eras.md
+  said a 1950s building in that idiom usually has an aluminium storefront;
+  the date test now says so too.
+* `CBA D->C (1962)`, `DFA D->C (1979)` — the hand list had guessed modern.
+* 11 dorms `E2 -> B/C/D` (AND BHD CRD LTD PHD RHD 1927-37 -> cret; BLD CRH
+  MHD 1955-56 -> midcentury; ADH SJH 2000-07 -> modern).
+* 38 `E5 -> A/B/C/D` — buildings the hand list never covered (BIO 1924->A,
+  BRB 1941->B, 26 mid-century, 11 modern). Full list in the bake output and
+  the PR.
+
+**This is the visual change the Ship agent has to judge.** Family counts by
+piece: utility 5,880 -> 4,086, midcentury 1,310 -> 4,230, modern 1,807 ->
+2,843, cret 1,771 -> 1,911, gilbert 188 -> 351, highrise unchanged 821.
+
+### HEALTH, BASELINE -> AFTER, both from the bake's own instrument
+
+* entrances **629 on 280 buildings, unchanged**; per-building min/median/
+  mean/p90/max identical; celebrated table identical, WC 24 lobbies identical.
+* OSM recovery by the derivation alone: **64% at 3 m (46/72), unchanged** to
+  the digit at every threshold.
+* pieces 11,777 -> **14,242** (+2,465: rails 1,626->3,180, canopy 410->600,
+  glass 1,416->1,666 — richer families on those 57 buildings).
+* all assertions green: floating sills **0 of 629**, detached pieces **0 of
+  14,242**, bad base/h/colour **0**, pale-neutral wn **0**, mid glass **0**.
+* wn night values: {ffc06a: 743, ffaa3c: 696, f09a35: 616, ffd07a: 13} —
+  same four values as before, more pieces carrying them.
+* **payload: 5.26 -> 6.38 MB raw, 331 -> 396 KB gzipped** (`gzip -c | wc -c`,
+  which counts the whole file, not a cache hit). W3's "measure it or tile it"
+  note gets 65 KB heavier and is still unmeasured for load cost.
+
+### WHAT I DID NOT DO
+
+* **Did not merge.** The era repaint is a taste-adjacent visual change on 57
+  buildings and this phase had no browser; merging a visual change nobody
+  has looked at is how §86 happened. PR left open, with this section as the
+  reason, for the Ship agent to screenshot and judge.
+* **Did not verify a single pixel** — no harness-drift run either, since no
+  pixel work was done. The Cambridge/Sterling/Nine claims are geometry
+  claims, checked against the output file, not renders.
+* **Did not touch W8 (Texas Union courtyard door)** — still needs a
+  photograph before code — **or W3's load-cost measurement**, which this
+  pass made 65 KB gz more urgent.
+* The 33 self-mass exclusions are computed per building per run (cheap);
+  the bake itself is not — measured tonight at **~6 min of CPU and 30-40 min
+  of wall clock** with three workflows sharing the machine, both before and
+  after the edit. Nobody budgets bake runtime. Recorded, not fixed.
+
+## 115. Aug 15 2026 — the 6.4 MB entrance file no longer loads at boot, and the city is interactive 5.6 s sooner for it (QUEUE W3) (acer lane)
+
+Branch `acer/blitz-entrances`, continuing §114 on the same PR. Writes limited
+to `js/entrances.js`, `shots/blitz/`, this file. (If the wayfind lane lands
+its own §115 first, renumber this one by chronology, per the header rule.)
+
+### WHAT CHANGED
+
+`data/entrances.geojson` (6.38 MB raw / 396 KB gz after §114) was fetched and
+parsed on the main thread at boot, while the four sources the veil actually
+waits on were still tiling. `initEntrances()` is now DEFERRED to whichever
+fires first — the map's first `idle` + 2 s, the camera dropping below
+`ENT.defer.altM = 60` m, or a 25 s ceiling (because `idle` provably never
+fires on a CPU-throttled machine — js/app.js's introGate note). `?entdefer=0`
+restores the eager path, so every number below is A/B on ONE build.
+`window.__entDefer` records which trigger won and every timestamp;
+`entrancesStats()` is null until the load runs, which is new and documented
+in the file header. harness-drift PASS before and after (28/28 scripts, tag
+unmoved).
+
+### MEASURED — minimum of 4 interleaved A/B reps, localhost, hardware GL, auto-detect probe cancelled on every page and said so
+
+Instrument: scratchpad `w3-boot-ab.mjs` — "interactive city" = js/app.js's own
+INTRO.needs four sources `isSourceLoaded` over 2 consecutive 200 ms polls
+(the gateHolds rule; one poll lies for GeoJSON, boot.mjs documents it).
+
+* interactive city: **14.18 s eager -> 8.60 s deferred** (-5.6 s, -39%)
+* main-thread long tasks before that moment (PerformanceObserver):
+  **8.60 s -> 4.54 s**
+* entrances fetch+parse itself: **2.4-10.2 s when it competes with boot,
+  94 ms when it runs after idle.** Same file, same machine — the parse was
+  never the cost, the CONTENTION was.
+* doors usable (source loaded): eager 14.4 s, deferred 10.9 s — the deferred
+  build's doors arrive BEFORE the eager build's city does.
+* real visitor path (intro on, no flags): trigger `idle`, veil lifted at
+  6.2 s reason `idle`, doors fetched 8.0 s after arm. The flight's measured
+  minimum altitude over its first 15 s is **138.5 m**.
+
+### THE THRESHOLD WAS WRONG ONCE AND THE INSTRUMENT WAS WRONG ONCE, BOTH CAUGHT BY RUNNING IT
+
+* First `altM` candidate was 150 m "safely under spawn (163 m)". The intro
+  flight itself dips to 138.5 m — 150 would have fired the fetch mid-boot on
+  the exact path Simeon's complaint is about. Shipped 60 m: below everything
+  the app flies on its own, ~3x eye level, unreachable without a deliberate
+  descent.
+* The alt gate's first draft read `__fly.eye().alt` inside the `move`
+  handler. __fly copies the pose on its own rAF tick, so inside the very
+  event this gate serves it is one frame stale — a jumpTo from 163 m to
+  42.7 m read back 163, and a jumpTo emits no second move event, so the
+  trigger then NEVER fired. Fixed by reading `transform.getCameraAltitude()`
+  first (fresh before the event by construction); __fly and the closed-form
+  fallback stay behind it. cameraAltM() documents the incident.
+
+### POP-IN, MEASURED WITH PIXELS, NOISE FLOOR FIRST
+
+Magenta-mask per §48 with one amendment §48 never needed: fill-extrusion
+LIGHTING darkens painted walls, so exact-#ff00ff matching counts 0 px on
+geometry that is plainly on screen. Hue test (r,b high, g < 0.45·min(r,b))
+reads **3,784 px of entrance at the Main Building portal vs a floor of 0**
+(same pose, `?entrances=0`, max of 2 floor reps) — pose derived from the
+door's own centroid in the data, not guessed; two guessed poses honestly
+contained no doors and read 0.
+
+Trigger-to-drawable, alt path (idle and ceiling held open, scratchpad
+`w3-popin.mjs`): **838 ms at the quiet-machine minimum** (boot A/B
+instrument, min of 4), **15.5-26.6 s under tonight's three-workflow
+contention** (min of 3 dive reps; the pixel-poll confirmation adds its own
+readback seconds on swiftshader and is an upper bound, not a cost). On the
+path a visitor actually takes the doors are loaded during cruise ~8-14 s in,
+long before any descent, so nothing pops while walking — the alt gate is the
+fallback for diving inside the first ~10 s, and its ~0.9 s arrival at 60 m is
+a door growing from ~10 px, not a wall appearing. Distance-fade was therefore
+NOT built; if anyone ever sees it pop in anger, that is the next lever and
+QUEUE W3 already names it.
+
+### PHOTOGRAPHS (`shots/blitz/`)
+
+* `w3-cruise.png` — golden-hour cruise, city complete. (On this contended
+  rep the 25 s ceiling had already loaded the doors by shot time — the
+  honest caption is "doors invisible at cruise", not "doors absent".)
+* `w3-eye-day.png` — Main Building south portal at eye level, doors, glass,
+  surround and steps present after a descent-triggered load.
+* `w3-eye-night.png` — same pose at night, doorway lit, warm pools at the
+  thresholds.
+
+### WHAT I DID NOT DO
+
+* **Did not merge — same reason as §114**: this branch also carries the
+  57-building era repaint nobody has looked at. The Ship agent judges both.
+* **Did not tile the file.** W3 offered "tile it or measure it"; measured.
+  The flat GeoJSON off the boot path costs the visitor nothing visible, so
+  tiling is now an optimisation with no complaint behind it.
+* Did not re-run the 15 harness-page verify scripts (Mac owns that
+  regression) and did not test `?tour=1`'s camera against the 60 m gate.
+* The A/B and pop-in scripts live in the session scratchpad, not
+  `scripts/verify/` — this lane may not write there. A future lane that wants
+  them permanent should lift them with their pose and threshold notes.

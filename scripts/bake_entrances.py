@@ -177,6 +177,23 @@ BURIED_RUN_MIN = 3.0    # m of continuously free wall a relocation must find.
                         # so the first attempt validated the spot the door
                         # landed on and the door then slid 3 m back into the
                         # Gates-Dell atrium it had just been lifted out of.
+# ── THE SELF-BLOCK (QUEUE X4) ─────────────────────────────────────────
+# Some passes re-draw a whole building from its own footprint ring
+# (westcampus does it for all 24 towers, tower for MAI, drag and moody for
+# their hosts). To the buried-door audit such a mass is indistinguishable
+# from a wall built OVER the building — so a door in a re-entrant notch of
+# its own plan was tested against its own building and failed: Cambridge
+# Tower's measured march re-enters CAMBRIDGE'S OWN ring in six of twelve
+# directions within 3 m, while every other footprint is 107 m away. A door
+# on a wall always has its own building behind it; the building itself can
+# neither bury its own door nor block its own approach.
+#
+# A mass counts as "the host itself" when IoU(mass, host footprint) >=
+# SELF_IOU. Measured over all 1,456 qualifying masses vs the 2026-08-04
+# snapshot: 1,391 score < 0.5, six sit between 0.5 and 0.9, and 57 score
+# >= 0.9 — the distribution is bimodal and the 57 are exactly the
+# footprint-re-draw class. 0.90 sits in the empty gap.
+SELF_IOU = 0.90         # [M] intersection-over-union; see histogram above
 
 # ── A CELEBRATED PORTAL KEEPS ITS OWN WALL (QUEUE W9) ─────────────────
 # The Main Building's south portal sits in the middle of a 38 m recessed bay
@@ -1025,8 +1042,40 @@ NAME_TO_REF = {
     "Welch Hall": "WEL",
 }
 
-# eras.md §6 — the fallback named list, keyed on ref. The named list beats any
-# date test, because a date is a proxy and a name is evidence.
+# ── ERAS FROM MEASURED YEARS ──────────────────────────────────────────
+# data/ut_buildings.json is UT's own register: ref -> the year the
+# building was first occupied. eras.md §5.2 always wanted a DATE TEST
+# (rule 6) and fell back to the hand-maintained named list below only
+# because no dated source existed. One does now, so the cascade runs
+# §5.2's date test on the measured year, with §5.2's own boundaries, and
+# the named list survives only for refs the register does not carry.
+# Authored overrides still win: the WC table, the NULL refs and the
+# CELEBRATED families all sit above the date test, exactly as §5.2
+# orders it — a name is evidence where a date is a proxy, but a MEASURED
+# date beats a hand-guessed family.
+UT_REGISTER = os.path.join(ROOT, "data", "ut_buildings.json")
+YEAR_BY_REF = {}
+if os.path.exists(UT_REGISTER):
+    for _e in json.load(open(UT_REGISTER, encoding="utf-8"))["buildings"]:
+        if _e.get("ref") and isinstance(_e.get("occupied"), int):
+            YEAR_BY_REF[_e["ref"]] = _e["occupied"]
+
+# eras.md §5.2 rule 6, boundaries verbatim. Parameterised per CLAUDE.md
+# rule 11: each pair is (last year of the family, family).
+ERA_BOUNDS = ((1925, "A"), (1949, "B"), (1989, "C"))
+ERA_AFTER = "D"
+
+
+def era_family_from_year(year):
+    for last, fam in ERA_BOUNDS:
+        if year <= last:
+            return fam
+    return ERA_AFTER
+
+
+# eras.md §6 — the fallback named list, keyed on ref. Since the register
+# landed this list only decides refs WITHOUT a measured year; it is kept
+# because a name is still evidence where no measurement exists.
 FAMILY_BY_REF = {}
 for _r in ("BTL", "SUT"):
     FAMILY_BY_REF[_r] = "A"
@@ -1883,14 +1932,46 @@ def is_parking(b):
 
 
 def classify(b):
-    """The cascade, docs/entrances/eras.md §5.2. First match wins, and the ORDER
-    is deliberate: the named list beats the class test, because a class is a
-    proxy and a name is evidence — and the LAST rule is NULL, not "C". The
-    temptation is to default unknown campus buildings to mid-century because
-    mid-century is numerically dominant, and that is exactly how a wrong
-    entrance gets onto eighty buildings at once. Families are OPT-IN."""
+    """The cascade, docs/entrances/eras.md §5.2, now WITH its rule-6 date
+    test, running on the measured year in data/ut_buildings.json. First match
+    wins, and the ORDER is §5.2's: authored evidence (WC table, NULL list,
+    CELEBRATED) first, then the classes that no date can overrule (a 2003
+    garage is a garage, not a family-D glazed bay), then the measured year,
+    then the hand-maintained named list for undated refs, then the
+    residential class, and the LAST rule is NULL, not "C". Families are
+    OPT-IN — but a measured year IS evidence, so a dated dormitory now gets
+    its era's doorway rather than the E2 shrug, exactly as §5.2 rule 6
+    always specified for a present start_date."""
     if b.wc:
         return "W"          # the named list beats everything, here too
+    nm = ((b.name or "") + " " + (b.osm_name or "")).lower()
+    if b.ref in NULL_REFS:
+        return "E5"
+    for w in NULL_NAME_PARTS:
+        if w in nm:
+            return "E5"
+    if b.ref and b.ref in CELEBRATED:
+        return CELEBRATED[b.ref]["fam"]
+    if is_parking(b):
+        return "E3"
+    if b.cls in ("church", "mosque"):
+        return "E4"
+    year = YEAR_BY_REF.get(b.ref or "")
+    if year is not None:
+        return era_family_from_year(year)
+    if b.ref and b.ref in FAMILY_BY_REF:
+        return FAMILY_BY_REF[b.ref]
+    if b.cls in CLASS_FAMILY:
+        return CLASS_FAMILY[b.cls]
+    return "E5"
+
+
+def classify_pre_register(b):
+    """The cascade as it stood BEFORE the register (2026-08-05..14), kept
+    verbatim so the bake can print exactly which buildings the measured
+    years moved between families. Not used for placement."""
+    if b.wc:
+        return "W"
     nm = ((b.name or "") + " " + (b.osm_name or "")).lower()
     if b.ref in NULL_REFS:
         return "E5"
@@ -3819,26 +3900,59 @@ def _free_wall(union, host, px, py):
 
 
 def clear_buried(scope, stats):
-    """QUEUE W7. Relocate or drop every door that another pass has walled in."""
+    """QUEUE W7. Relocate or drop every door that another pass has walled in.
+
+    QUEUE X4, THE SELF-BLOCK: a mass that is just the host building's own
+    footprint re-drawn by another pass (IoU >= SELF_IOU against the host
+    ring) is EXCLUDED from that building's burial test and from its
+    clear-space march. A door on a wall always has its own building behind
+    it; treating the building itself as a blocker fails every door that
+    sits in a re-entrant notch of its own plan — Cambridge Tower's measured
+    march re-entered CAMBRIDGE'S OWN ring in six of twelve directions
+    within 3 m while the nearest other footprint was 107 m away. Gates-Dell
+    is NOT this case and stays fixed: the atrium slab that swallowed its
+    door is authored OUTBOARD geometry, IoU far below the gate."""
     masses = load_masses()
     if not masses:
         stats["buried_no_masses"] += 1
         return
-    union = unary_union(masses)
-    parts = list(union.geoms) if union.geom_type == "MultiPolygon" else [union]
-    tree = STRtree(parts)
+    mtree = STRtree(masses)
+
+    def self_mass_ids(b):
+        """Indices of masses that ARE b's own footprint re-drawn."""
+        own = set()
+        for i in mtree.query(b.poly):
+            m = masses[int(i)]
+            try:
+                inter = m.intersection(b.poly).area
+            except Exception:
+                continue
+            if inter <= 0.0:
+                continue
+            if inter / (m.area + b.poly.area - inter) >= SELF_IOU:
+                own.add(int(i))
+        return own
+
     for b in scope:
+        if not b.ents:
+            continue
+        own = self_mass_ids(b)
+        if own:
+            stats["self_mass_hosts"] += 1
+            stats["self_masses"] += len(own)
         keep = []
         for c in b.ents:
             # A POINT test misses the Red Zone, whose door centre is clear of
             # the stadium ramp and whose leaves are not. Sweep the bank.
-            host = None
+            host, hit_pt = None, None
             for u in (-BURIED_SPAN_M / 2.0, 0.0, BURIED_SPAN_M / 2.0):
                 pt = Point(c.x + c.tx * u + c.nx * BURIED_TEST_OUT,
                            c.y + c.ty * u + c.ny * BURIED_TEST_OUT)
-                for i in tree.query(pt):
-                    if parts[int(i)].contains(pt):
-                        host = parts[int(i)]
+                for i in mtree.query(pt):
+                    if int(i) in own:
+                        continue      # X4: its own building cannot bury it
+                    if masses[int(i)].contains(pt):
+                        host, hit_pt = masses[int(i)], pt
                         break
                 if host is not None:
                     break
@@ -3847,6 +3961,22 @@ def clear_buried(scope, stats):
                 continue
             stats["buried_found"] += 1
             who = (b.ref or b.name or b.osm_name or str(b.bid))[:28]
+            # The union the march tests is built here, per buried door,
+            # because it depends on the door's HOST BUILDING: every mass in
+            # marching range EXCEPT the ones that are b's own footprint. The
+            # merged part containing the hit keeps the old behaviour where
+            # touching masses offered their fused exterior to _free_wall.
+            zone = Point(c.x, c.y).buffer(
+                BURIED_MOVE_MAX + BURIED_CLEAR_M + BURIED_SPAN_M)
+            others = [masses[int(i)] for i in mtree.query(zone)
+                      if int(i) not in own]
+            union = unary_union(others)
+            parts = (list(union.geoms) if union.geom_type == "MultiPolygon"
+                     else [union])
+            for p in parts:
+                if p.contains(hit_pt):
+                    host = p
+                    break
             got = _free_wall(union, host, c.x, c.y)
             if got is None:
                 stats["buried_dropped"] += 1
@@ -4060,6 +4190,24 @@ def main():
           % (len(scope), stats["e1_places_excluded"]))
     print("families           : %s" % dict(Counter(b.fam for b in scope)))
 
+    # ── ERAS FROM MEASURED YEARS: print exactly what the register changed,
+    #    because the change is visual and judging it belongs to a human.
+    dated = sum(1 for b in scope if (b.ref or "") in YEAR_BY_REF)
+    changed = []
+    for b in scope:
+        old = classify_pre_register(b)
+        if old != b.fam:
+            changed.append((b.ref or (b.name or b.osm_name or "?")[:14],
+                            old, b.fam, YEAR_BY_REF.get(b.ref or "")))
+    print("eras from register : %d of %d in-scope buildings carry a measured"
+          " year (%d refs in data/ut_buildings.json);"
+          % (dated, len(scope), len(YEAR_BY_REF)))
+    print("                     %d changed family vs the hand-maintained list:"
+          % len(changed))
+    for ref, old, new, yr in sorted(changed, key=lambda t: (t[1], t[2], t[0])):
+        print("                     %-14s %-2s -> %-2s  (%s)"
+              % (ref, old, new, yr if yr is not None else "no year"))
+
     n1 = stage1_osm(blds, tree, stats)
     print("stage 1 osm        : %d placed  (unplaceable %d, off-campus %d,"
           " host out of scope %d, normal test %d)"
@@ -4149,6 +4297,10 @@ def main():
           " (%d relocated to a free wall, %d dropped)"
           % (stats["buried_found"], stats["buried_moved"],
              stats["buried_dropped"]))
+    print("  self-block (X4)  : %d masses on %d buildings are the host's own"
+          " footprint re-drawn (IoU >= %.2f) and are excluded from that"
+          " host's burial test and march"
+          % (stats["self_masses"], stats["self_mass_hosts"], SELF_IOU))
     for k in sorted(stats):
         if k.startswith("buriedmove|"):
             print("                     moved   %s" % k.split("|", 1)[1])
