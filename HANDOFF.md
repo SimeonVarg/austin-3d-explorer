@@ -19237,3 +19237,139 @@ G5a still ok. It reads the live number per assertion; it is not stuck.
   change.
 * Exit codes were not re-checked, only printed verdicts — the pipeline used here
   reports `tail`'s status.
+
+---
+
+## 144. Aug 16 2026 — BOOST crosses the screen, and the metric that nearly said it did nothing (QUEUE Y10 items 3/4/5/7) (acer lane, branch `acer/n9-chrome`)
+
+**Branch `acer/n9-chrome`, PR #187.** Files written: `style.css`, `index.html`,
+`_harness.html`, `shots/mobile/final2/`, `QUEUE.md`, this section. Nothing under
+`js/`. Throwaway worktree, `python scripts/serve.py 8421`; a second throwaway at
+`origin/main` on 8422 for the interleaved baseline. `harness-drift.mjs`
+**PASS, 29 scripts in each file**, from the repo root, before any pixel work and
+again after `index.html` / `_harness.html` were edited. `origin/main` moved from
+`2a36f52` to `ddba999` mid-pass (PR #186); rebased and re-verified on the result.
+
+**Machine state at the start, because a perf lane was measuring:** 18 chrome
+processes already up, 1 node, 2 python. Nothing was reaped — this pass used ONE
+browser at a time, in short bursts, with the CSS reasoning and the layout
+arithmetic done with the browser closed.
+
+### THE INSTRUMENT. READ THIS BEFORE QUOTING ANY NUMBER BELOW.
+
+> **REAL iOS SAFARI WAS NEVER TESTED AND CANNOT BE FROM THIS MACHINE.**
+> Chromium in a phone costume: 393x852 CSS px, `deviceScaleFactor` 3,
+> `isMobile`, `hasTouch`, an iPhone UA, and real touch through CDP
+> `Input.dispatchTouchEvent`. That makes **layout, hit-target geometry,
+> `elementFromPoint` and pixel counts solid** — which is all this pass claims,
+> because every change in it is CSS. It says nothing about iOS's own reserved
+> gestures (edge swipes, double-tap zoom, overscroll), and nothing at all about
+> frame rate, battery or heat on Simeon's phone.
+
+`window.cancelGraphicsAutoDetect()` at the top of every run. Zero page errors in
+every run, phone and desktop, before and after.
+
+### 1. THE METRIC THAT ALMOST PRODUCED A WRONG VERDICT
+
+The first read of the finished button said **BOOST off 161.3 mean luma, on
+162.9 — a 1 % change**, against 0.94x / 1.74x before. On those numbers the
+honest report is "the on-state no longer reads, and this is a regression."
+
+It was the instrument. The button had moved to a spot over pale South Mall
+limestone, and the amber it fills with (luma ~173) is *darker* than the stone it
+sits on, so a mean-luma box measures a colour change as nothing. Measured as
+**chroma** (max−min channel) at the same instant: **73.9 -> 129.2 by day**, and
+at night, where luma also works, **4.2 -> 71.1 chroma and 40.6 -> 80.9 luma**.
+The frames agree with the chroma and not with the luma. Written down because the
+previous pass's whole case for item 3 was a luma ratio, and that ratio is
+background-dependent in a way nobody had said out loud.
+
+### 2. WHAT MOVED, MEASURED BEFORE AND AFTER AT 393x852
+
+```
+                              before                after
+BOOST box                     60x44 rect            64x64 disc
+  nearest corner -> ring      53.0 px (r=50)        197.0 px
+  stick edge -> BOOST edge    -12.5 px              147.0 px
+  which thumb                 left (both)           right (stick keeps left)
+graphics sheet                393x596 @ y256        377x410 @ y256  (top unmoved)
+  elementFromPoint @ stick    SPAN.gfx-group-note   DIV#joystick-base
+  elementFromPoint @ BOOST    SPAN.gfx-name         svg (the button's own mark)
+controls in frame under 44px  4                     0
+controls-hint                 404.5 px @ x -5.8     362.5 px @ x 15.3
+?clip=1                       all chrome gone, credit present — UNCHANGED
+?clip=1&drive=1               (did nothing)         stick + BOOST + credit only
+desktop 1440x900              every rect identical before and after
+```
+
+The four sub-44 controls were the gear (34x34), the feedback button (34x34), the
+day/night play button (26x26) and the time slider's drag band (28 px thick). All
+four are `--touch-min` on phone only; the desktop numbers are untouched, and that
+is deliberate — 34 px is fine under a mouse and the top-right corner stays as
+tight as it was.
+
+### 3. THE THREE THINGS THAT COULD HAVE BLOCKED IT
+
+**(a) The stick still drives.** `#joystick-zone` became a full-width
+`pointer-events:none` frame so BOOST could sit at the opposite edge and still be
+its child — which is what keeps the 1025 px cut-off, `html.has-touch` and
+`.clip` applying to both controls from one place. `elementFromPoint` proving the
+base is hit-testable is necessary and not sufficient, so it was driven: real CDP
+touch, stick held full-forward for 6 s at 1.7 m — **8.43 m walked, peak
+1.36 m/s, altitude 1.70 for all 14 samples, no page errors.** 1.36 m/s is
+exactly the figure the survey measured on the untouched build.
+
+**(b) `collision.mjs` 8/8**, including the two assertions this change could
+plausibly have broken: *"joystick moves the camera while a second finger looks
+around"* and *"a second finger is not misread as a pinch-zoom"*.
+**`motion-feel.mjs` 20/20.**
+
+**(c) `movement.mjs` is flaky, and it is not this branch.** Mine read 12/14 then
+13/14 with *different* assertions failing; `origin/main` read 14/14 on its first
+rep. That is exactly the shape of a wrong single-sample verdict, so it was run
+interleaved against a second worktree serving `origin/main` on 8422 rather than
+guessed at. The failing assertion in the run that named one was *"east/west
+speed matches north/south (cos-latitude corrected)"* — the same diagonal
+assertion §140 recorded as *"straddling its tolerance"*. Mechanism check: the
+suite is keyboard-only except a single drag from the CANVAS CENTRE (400,280 at
+its 800x560 viewport), and the new BOOST disc lands at x686-750 y408-472 there,
+so it cannot be intercepting anything.
+
+### 4. WHAT I DID NOT FIX, AND WHY
+
+* **Item 6, the two-finger altitude gesture.** Pinching CLOSED lifts you, which
+  is backwards, and nothing says which way. Left alone on purpose: it is gesture
+  semantics in `js/controls.js` rather than chrome, it needs its own drive
+  before/after, the survey's own numbers for it are caveated (four of five
+  gestures were measured from the wrong starting altitude), and silently
+  inverting it would change a gesture the recording brief may depend on.
+  **It is now the only one of the seven still open.**
+* **The double-tap-and-drag altitude gesture is still untested by anybody.**
+* **The time-of-day panel is still covered by the graphics sheet on a phone.**
+  The sheet now clears the DRIVE controls, which is what item 4 was about; the
+  `body.gfx-open #tod-panel{right:332px}` slide-away only exists above 641 px.
+  Not in the ranked list, not done.
+* **Nothing was tested on real iOS Safari**, and the double-tap-to-zoom and edge
+  swipes a real phone reserves are exactly the things a 64 px disc in the
+  bottom-right corner might collide with. Somebody should hold the actual phone.
+* **No pixel sweeps** (`zfight`, `coplanar`, `facade-parity`). Nothing here
+  touches a scene pixel — but that is reasoning, not looking.
+
+### 5. THE SHAPE OF THE FIX, for whoever changes it next
+
+Every taste value is a named custom property on `:root`; nothing is a magic
+number in a rule body. `--drive-clear` is a `max()` over both controls and is the
+single number `#gfx-panel`, `#fb-panel` and `#wf-sheet` all clear the drive
+controls by — the old `--wf-joy-clear:218px` was arithmetic done once, in a
+comment, against a BOOST button that has since moved, which is the failure mode
+the `max()` exists to prevent. `--boost-right` and `--boost-bottom` are derived
+from the stick, so moving the stick moves BOOST across the screen with it.
+`--wf-pill-top` and `#fb-button`'s inset are expressions in `--touch-min` for the
+same reason.
+
+Two scratch scripts drove this pass and were deleted rather than committed,
+because `scripts/verify/` is not this lane's file: `_sweep-n9.mjs` (phone and
+desktop rect / luma / chroma sweep, nine poses including night) and
+`_drive-n9.mjs` (the real-touch stick drive above).
+`shots/mobile/final2/_before.json` and `_after.json` are their full output and
+carry every rect quoted here.

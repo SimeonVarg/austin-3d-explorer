@@ -811,10 +811,11 @@ nearest label is a billboard and everything else is dust, and because the horizo
 sits mid-frame every label in the city projects into one narrow band. Below some
 eye height, show only what is within ~60 m and size by metres.
 
-**~~Y10.~~ DRIVEN, RANKED, and ONE OF SEVEN FIXED (PR #185 merged 2026-08-16,
-HANDOFF §139).** The city has now been driven by thumb at 1.7 m, twice: the
-survey is `docs/mobile/driving-at-eye-level.md` and the fix-and-judge pass is
-§139. **NOT A REAL IPHONE AND NOT REAL SAFARI** — Chromium in a phone costume
+**~~Y10.~~ DRIVEN, RANKED, and FIVE OF SEVEN FIXED (PR #185 and PR #187,
+HANDOFF §139 and §144).** The city has now been driven by thumb at 1.7 m,
+twice: the survey is `docs/mobile/driving-at-eye-level.md`, the near-plane pass
+is §139/§140, and the chrome pass — every item that lived in `style.css` — is
+§144. **NOT A REAL IPHONE AND NOT REAL SAFARI** — Chromium in a phone costume
 (393x852, dpr 3, `isMobile`, `hasTouch`, real CDP touch events). Touch handling,
 layout and geometry are solid; frame rate, memory, battery and heat on Simeon's
 actual phone are untested and unpredicted.
@@ -830,21 +831,45 @@ half the range, no stop hit. Above 18.47 m the authored value wins by
 arithmetic, and a real 150 px mouse drag at 165 m gives dPitch −19.50 /
 dYaw 330.00 identically with the fit on and off, 3/3 reps.
 
-**Still open, and four of them are `style.css`, which this lane does not own:**
-- **item 3, BOOST** — 60x44 px, nearest edge **53.0 px** from the joystick
-  centre against a 50 px ring (3 px outside it), same side of the screen as the
-  stick, **0.86x the frame mean off and 1.57x on** on a South Mall street frame
-  (0.89x / 2.35x facing a dark wall — the ratio moves with the background, the
-  geometry does not). Simeon's own complaint, unfixed.
-  `shots/mobile/final/06-*`.
-- **item 4** — the graphics panel still covers the joystick
-  (`elementFromPoint` at the stick centre returns `SPAN.gfx-group-note`); the
-  gear is 34x34 against Apple's 44.
-- **item 5** — `?clip=1` still sets `#joystick-zone{display:none}`, so the one
-  clean recording mode is the one a phone cannot walk in.
-- **item 7** — `controls-hint` is 404.5 px wide, at x = −5.8, on a 393 px screen.
-- **item 6, the two-finger altitude gesture, was not re-tested this pass**, and
-  the double-tap-and-drag gesture is still untested by anybody.
+**Fixed: items 3, 4, 5 and 7 — the whole `style.css` set (PR #187, §144).**
+Before/after frames, real touch at 393x852, day and night:
+`shots/mobile/final2/`.
+- **item 3, BOOST — Simeon's own complaint, twice, and now moved rather than
+  redressed.** It was 60x44 with its nearest corner **53.0 px** from a 50 px
+  ring, on the same side and the same thumb as the stick, the only rounded
+  rectangle among controls that are all discs and pills, and **0.94x the frame
+  median off / 1.74x on with its brightest pixel ON equal to the brightest
+  pixel in the whole frame**. It is now a **64 px disc mirrored to the right
+  edge**, wearing the joystick base's own wash and ring with the knob's amber
+  as its mark. Separation **3.0 px -> 147 px**; left thumb steers, right thumb
+  sprints. Off->on is now a colour change, not a flare: **chroma 73.9 -> 129.2
+  by day, 4.2 -> 71.1 by night**, and luma actually FALLS by day (161.6 ->
+  140.2) because amber is darker than limestone. Luma alone would have called
+  that "no change" — see §144, it nearly did.
+- **item 4** — the graphics sheet was 393x596 at y256, exactly 70.0% of the
+  screen, with `elementFromPoint` returning `SPAN.gfx-group-note` at the
+  stick's centre. It now stops at `--drive-clear` (186 px) with its top edge
+  unmoved, and both drive controls hit-test to themselves with it open. The
+  gear, the feedback button, the day/night play button and the time slider's
+  drag band all went to **44 px on phone only** (desktop still 34/30/18).
+- **item 5** — `?clip=1` is byte-for-byte the mode it was; **`?clip=1&drive=1`**
+  is the opt-in that keeps the stick and BOOST and nothing else, so a phone can
+  walk through a shot. The OpenStreetMap credit is present in both.
+- **item 7** — `controls-hint` was 404.5 px wide at x = −5.8 on a 393 px
+  screen, clipped at BOTH edges; now 362.5 px at x = 15.3, one line, inside the
+  glass. Bought with `--hint-fs`, not with wrapping: the only row in the bottom
+  third clear of both controls is that one, and a second line grows into them.
+
+**Still open: item 6, and it is now the only one.** The two-finger altitude
+gesture goes the wrong way — pinching CLOSED lifts you, against the universal
+map convention — and nothing on screen says which way or marks "you are back on
+the pavement". Not fixed here: it is `js/controls.js` gesture semantics, not
+chrome, it needs its own before/after drive (the survey's own numbers for it are
+caveated — four of five gestures were measured from the wrong starting
+altitude), and inverting it silently would change a gesture the recording brief
+may already depend on. **The double-tap-and-drag gesture is still untested by
+anybody** — `TAP_MS` is 280 ms and the smallest gap that instrument could
+produce was 2,012 ms.
 
 What still works and should not be spent time on: `collision.mjs` 8/8,
 `movement.mjs` **14/14** (including the diagonal assertion that was straddling
@@ -1058,11 +1083,14 @@ Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
                                                 rejected ground-base-texture on main)
                                                 is CLOSED — 25 -> 24, PR #172, §123.
 Y9  labels sized by zoom not metres .......... OPEN
-Y10 touch at walking height .................. DRIVEN (#185, §139). Item 1 of 7 FIXED
-                                                (the vertical look now fits the range
-                                                that exists). Items 3/4/5/7 are all
-                                                style.css and untouched; item 6 not
-                                                re-tested. NOT REAL iOS SAFARI.
+Y10 touch at walking height .................. FIVE OF SEVEN FIXED. Item 1 (#185,
+                                                §139); items 3/4/5/7, the whole
+                                                style.css set, in §144. Item 2 is Y12
+                                                and closed. ITEM 6 IS THE ONLY ONE
+                                                LEFT — pinch-closed lifts you, which
+                                                is backwards, and the double-tap-drag
+                                                gesture is still untested by anybody.
+                                                NOT REAL iOS SAFARI, still.
 Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — found Y17+Y18
 Y12 the near plane ........................... DONE (#185, §139) and NARROWER than the
                                                 entry claimed. Flyover matrices
