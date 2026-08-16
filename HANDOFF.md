@@ -15725,3 +15725,90 @@ something when turned.
 * The night-sky twinkle floor beyond bounding it (49 px, rows 15–127).
 * No perf run — a rejected layer becoming a real one adds a background draw;
   at these frame counts nothing suggested it, but it was not measured.
+
+## 123. Aug 16 2026 — the Acer landed the Mac's stalled clip-mode segment: rescued, gated, merged (PR #173) (acer lane, clip-rescue)
+
+**`mac/clip-camera-safe` had sat unmerged with no PR since Aug 7** — its own
+commit message says UNVERIFIED AND UNJUDGED, an overnight builder's work
+preserved so it would not be lost, and the Mac lane has been idle since. The
+gauntlet brief wanted it in for the AWS recording. So the Acer rescued it:
+`acer/clip-rescue` off the Mac branch, rebased onto `origin/main` (twice —
+PR #169 landed mid-verification and PR #172 landed mid-merge; every gate was
+re-run on each new base, the last run on the merged main itself). Merged as
+**PR #173**, branch deleted. **`mac/clip-camera-safe` itself is untouched, for
+the Mac to clean up.** One commit, two files: `js/app.js` +5, `js/graphics.js`
++157. Both rebases were conflict-free.
+
+### The gate, run against the branch's own brief — all pixels, floors first
+
+Port 8343, one browser, headless SwiftShader 1440x900 dpr 1, AE off with
+gain==1 asserted before every frame, throwaway scratchpad worktree for every
+serve and rebase (§121's rule). `harness-drift.mjs` PASS before any pixel
+(28 scripts, then 29 after #169). Frames: `shots/blitz/clipgate-*`,
+`shots/blitz/heroab-*`.
+
+**`clip-gate.mjs` 28/28** (three runs: candidate, rebase-over-#169, merged main):
+
+- Noise floors: plain and clip same-state pairs both **0 px > 24/255**.
+- `?clip=1` hides **7 symbol layers**. Positive control: `?labels=1` at the
+  same pose restores them for **15,181 px > 24**. Forcing the layers visible
+  behind the feature's back is swept straight back to hidden by its
+  `styledata` hook — 0 px change — so a late-arriving label layer cannot leak
+  into a take either.
+- Auto-detect in clip mode: preset `balanced -> balanced` and **bearing
+  bit-equal** across a 26 s window spanning the probe's 11 s slot; the only
+  probe line in the console is `capture mode: auto-detect off`.
+- `?preset=cinematic|balanced|performance` apply at load, zero keypresses;
+  none writes `austin3d.gfx.v1` (the save() guard is real); cinematic vs
+  performance differ by **502k px > 24** — the presets change the picture, not
+  a field in a struct.
+- OpenStreetMap credit: present and PIXEL-PAINTING in every mode tested —
+  plain, clip, clip+labels, all three presets (hiding the ctrl changes
+  6,440 px). The licence condition survives capture mode.
+
+**Outside clip mode, five hero poses, byte-identity** (`hero-ab.mjs` /
+`hero-cmp.mjs`; poses reconstructed from `docs/aws/beautiful.md` — the
+committed `C-HERO*.png` were hand-flown and unreproducible, §116): candidate
+vs base arm, fresh context per arm, same worktree with only the two changed
+files swapped. Final run, on the MERGED main vs pre-merge main: **all five
+IDENTICAL BYTES, floors 0 px** (H1 9e4006c20971, H2 45f61945b605,
+H3 d53c8d55b80a, H4 f1d899aec6a7, H5 4cc709eee097).
+
+### INSTRUMENT FINDING: the H5/DKR pose is bistable across browser launches
+
+An earlier round returned H5 differing cross-arm by 3,385 px > 24 (max 146,
+rows 250–850). Interleaved reps settled it: the pose has (at least) two
+deterministic frame states across fresh launches, and **both arms produce both
+states byte-for-byte** — base-r1 == cand-r2 and base-r2 == cand-r1, SHA-equal
+(`shots/blitz/heroab-H5-{base,cand}-r{1,2}.png`). The flip is main's, not the
+branch's; probably load-order-dependent label/atlas state. Anyone A/B-ing at
+DKR: interleave launches before believing a cross-arm diff.
+
+### Two honest substitutions
+
+- The brief said "byte-identical to LIVE". Live lags main (the Aug 15/16
+  merges), so byte-identity against live is impossible for any branch off
+  main; the question that matters — does this branch change any pixel outside
+  clip mode — was answered against `origin/main` served locally, same
+  substitution and same argument as §116.
+- `gh pr merge --delete-branch` half-failed on this machine: the merge landed
+  server-side, then the local `main` checkout failed (`main` is held by the
+  facades worktree). The merge was then re-verified after the fact on the
+  merge commit itself, and the remote branch deleted by hand. Merge-by-gh
+  from a worktree that cannot hold `main`: expect that error, check the PR
+  state before reacting.
+
+### What I did NOT manage to do
+
+- **No dusk, no night frames in the hero A/B** — default hour only, matching
+  the C-HERO set. Clip-mode behaviour was only gated at the default hour too.
+- **Nothing on hardware GL, nothing at dpr 2, no phone viewport.**
+- **`keepLabels` (e.g. keeping the lit shopfront wordmarks on camera) is
+  untested** — it ships empty and only the empty set is verified.
+- **No perf numbers** — capture mode cancels a probe and hides layers, so it
+  should only ever be cheaper, but that is reasoning, not a measurement.
+- **The `?preset=ultra` the commit message mentions was not gated** (the brief
+  named three presets; ultra exists in the code path but no assertion covers
+  it).
+- The Mac's branch still exists and still points at the pre-rebase commit —
+  deliberately. Mac lane: delete it when you pick this up.
