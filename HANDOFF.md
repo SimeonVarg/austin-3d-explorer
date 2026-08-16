@@ -18275,3 +18275,91 @@ verbatim. Zero wayfind console errors in every run.
   frame 6 and decide about, and it is a taste call, so it is Simeon's.
 * **Still nothing on a real phone.** 393x852 in headless Chrome is not an
   iPhone.
+
+---
+
+## 139. Aug 16 2026 — fifteen buildings got doors and nobody drew one: the rect was replaced by UT's own register (QUEUE Part Z / `docs/walk/the-78.md`) (acer lane, branch `acer/n8-doors`, NOT merged)
+
+**The job.** `the-78.md` had just finished classifying why 78 of 198 UT
+buildings cannot be routed to, and its answer was that 62 have no polygon at
+all and 16 have a perfectly good one that a hand-drawn rectangle skipped. This
+pass placed the doors that could honestly be placed on those 16, and refused
+the rest.
+
+**What shipped, in one line: fifteen buildings gained 27 doors, every single
+one `src: derived`, and the count of doors authored by hand did not move off
+2.** It now prints on every run as `AUTHORED BY HAND : 2` so it can never grow
+quietly.
+
+```
+                        before    after
+in scope                  298      314
+entrances                 629      656   on 280 -> 295 buildings
+by src   derived          543      570
+         osm               63       63
+         westcampus        21       21
+         AUTHORED           2        2
+UT codes with a door      106      124
+pieces                 14,242   14,893   (+4.6 %)
+entrances.geojson     6.38 MB  6.67 MB
+```
+
+**The rectangle was not widened.** `the-78.md` §7 Fix 1 proposed pushing
+`CAMPUS` south and west; re-measured on this tree that is **+125 buildings**
+of doorway geometry, four days before a recording. Instead the scope test
+gained a second, narrower door: *a footprint that carries a UT register code
+is in scope anywhere inside `SURVEY`.* That is OSM's `ref` tag and UT's own
+register naming the same building, and it admits **twelve**. Plus
+`MIN_AREA_REF = 100` for register-coded buildings (Littlefield Carriage House,
+Dobie House), and the E1 shopfront veto moved from the whole building to the
+individual candidate for register-coded hosts, which is what freed `WMB`.
+
+Recovered: `NUR` `UTA` `HTB` `HDB` `JHH` `ANB` `CDL` `TRG` `SAG` `GUG` `HCG`
+`LCH` `FDH` `WMB` `E26` — Nursing, UT Administration and the Dell Med block
+among them.
+
+**The best result in the pass is a building that got nothing.** `WAT`, Arthur
+P. Watson House, was admitted to scope and the derivation placed zero doors on
+it, because it has no mapped walkable line within 22 m — exactly what §3c
+predicted. It prints as `*** NONE - no approach the derivation could see ***`.
+A scope rule that admits a building and still refuses to put a door on it is
+the rule working.
+
+**Every health number, before and after, is in `docs/walk/the-78.md` §12.** The
+one that matters: **OSM recovery by the derivation alone is 67 % at 8 m, the
+same to the door as before**, and it is now a hard assertion
+(`RECALL_FLOOR_8M = 0.65`) so a future placement change that starts inventing
+doors fails the bake. Read it honestly though — it could not have moved,
+because none of the sixteen admitted buildings carries an OSM entrance node.
+Buried doors 5/2/3 unchanged, floating sills 0, detached pieces 0, both night
+colour asserts hold, celebrated portals 0 defects. Two consecutive runs are
+md5-identical.
+
+**Three things checked because each would have been a different lie.** (1) All
+15 host footprints exist in all twelve snapshots on disk, so no door stands in
+an empty field. (2) Every new piece is outside its host's ring — still proud
+geometry, still claims no building ids. (3) `js/wayfind.js:848` keys the
+wording on `src`, so all 27 new doors say *"Entrances are on this side"* and
+none can ever say *"the main entrance"*.
+
+**NOT merged, and here is the gate it has to pass first.** Nobody has looked at
+a single one of these doorways. +651 pieces is an order of magnitude cheaper
+than the wide rect would have been, but cheap is not photographed — the Dell
+Med block in particular has never been seen up close in this project. **A blind
+A/B at the usual poses, day and night, before this merges.**
+
+**And no routable number is claimed here.** This pass writes
+`data/entrances.geojson`. Whether those doors reach the walked network within
+`DOOR_LINK_MAX_M` is `bake_walk.py`'s answer and it was deliberately not
+touched. Fifteen buildings gained a door; how many gained a *route* is the
+next phase's measurement, not this one's.
+
+**`HLB` and `SMC` were left alone, with a new and decisive reason.** `the-78.md`
+§7 Fix 4 wanted their real OSM geometry pulled out of `capitol_area.json`. But
+the app renders the snapshot's 2,453 footprints and neither building is in it,
+so a door for them would hang in mid-air in front of nothing. Importing the
+footprint is a building pass on somebody else's file.
+
+**No browser, no server.** Process check at the top of the pass read
+**27 chrome, 2 node, 2 python** — not a quiet machine, and two lanes were
+mid-measurement. Nothing here needed one.
