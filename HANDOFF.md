@@ -18861,24 +18861,72 @@ note that §7's `106 / 92` coverage counts moved — **and that not one of the 2
 new doors is `osm`, so the verified figure is still 63 doors on 31 buildings.**
 §12's ban on quoting the door total as a boast applies word for word to 656.
 
-### THE GATES I COULD NOT RUN, and why this is not self-merged
+### THE GATES, RUN AFTER ALL — and one of them is RED
 
-`harness-drift` PASS. Route regression PASS. Bake gates 19 of 19. All data-only.
+The machine went quiet at 07:40 (**13 chrome, 0 node, CPU 11 %** — the perf
+lane's driver process had exited), so the browser gates were taken on port 8411
+after all. Two other lanes started again mid-run (`_sweep-n9.mjs` 07:40,
+`_n6prof.mjs` 07:44; **37 chrome / 3 node / CPU 47 % at the peak**) — that
+matters for timing measurements and not for the byte/pixel comparisons here,
+and it is quoted with the numbers rather than left out.
 
-**Unrun, because the machine was not quiet:**
+```
+harness-drift.mjs                        PASS   29 scripts = 29 scripts
+bake gates                               19 of 19 green
+--regress                                19 of 19 PASS, all walls 0
+wfgate.mjs   behaviour + honesty DOM     34 pass, 0 fail
+n8gate.mjs   this pass's own gates       14 pass, 0 fail
+n8off.mjs    feature off + hero poses    SEE BELOW - H1 is red
+```
 
-1. **The honesty scan of the rendered DOM** against §12's forbidden families.
-   The diff only ever *removes* a rendered string, and `avoidShown` evaluates
-   byte-identical at n=189 — but that is the source, and the gate says the DOM.
-2. **The feature-off proof and the six hero poses** at their cross-launch noise
-   floor. Nothing here runs without `?walk=1` and `walk_graph.json` is not
-   fetched at boot — but §138's own lesson is that this gate has twice gone
-   green on something it had never seen.
+**`n8gate` drove all fifteen new buildings in the client**, posing the camera on
+each route's own centre before counting — all fifteen produce a drawn route
+(route / strip / arrive features all non-zero), all fifteen say *"Entrances are
+on this side"*, none says *"The main entrance"*. `ACS`, `SMC`, `HLB` and `NUG`
+each answer `<code> is not walkable in this build yet` and clear the previous
+route from every wayfind source. **`avoidShown` was watched failing**: serving a
+doctored graph with 63 staircases renders `Avoids 63 mapped staircases`, which
+is the proof the number is read rather than typed.
 
-**PR #184 is open, not merged, per CLAUDE.md rule 2's "leave it open with the
-reason written down".** It needs one lane with a quiet machine and about twenty
-minutes. **The data half will not move under you**: `data/walk_graph.json` is
-final, the regression is frozen, and `scripts/bake_walk.py` was not edited.
+**THE FEATURE IS STILL INERT WITH NO `?walk=1`.** Zero wayfind layers, zero
+wayfind sources, zero `#wf-*` / `.wf-*` DOM nodes, `WAYFIND.on === false`, and
+**zero fetches of `walk_graph.json` or `ut_buildings.json`** — on both arms.
+(Two assertions in my own harness were wrong and both failed identically on
+`origin/main`, which is how I know they were mine: `/^wayfind/i` matches the
+`WAYFIND` constants object, which exists on main too; and comparing the FULL
+request list including map tiles is not a stable instrument — 251 vs 256, all
+of the difference in tiles.)
+
+**THE HERO POSE IS NOT AT THE NOISE FLOOR, and this is the finding.** Four
+interleaved launches, base arm serving `origin/main`'s `js/wayfind.js`,
+`data/walk_graph.json` AND `data/entrances.geojson`:
+
+```
+pose          own cross-launch floor        candidate vs origin/main
+H4-city       over24 0                      over24 0, max delta 4    <- AT THE FLOOR
+H1-spawn      over24 0  (both arms)         over24 447, max 102, IDENTICAL IN BOTH REPS
+D1-dellmed    over24 0                      over24 107
+D2-historic   over24 0                      over24 140
+```
+
+Both arms are byte-stable with themselves at H1, so **447 pixels is a real,
+reproducible change, not launch noise.** It is 0.04 % of the frame and the
+magenta mask shows what it is: **scattered single doorway pieces on distant West
+Campus and campus-edge buildings**, a few pixels each — the entrance half of
+this branch rendering, exactly as §141 said it would. Nothing structural, no
+blemish, no geometry in the wrong place.
+
+`shots/walk/n8/1-hero-spawn-the-447-changed-pixels-in-magenta.png`.
+
+**So the gate the brief told me to hold has not held, and I am not merging over
+it.** §141 set this condition itself — *"this branch must not merge until
+someone has looked at the new doorways"* — and the honest reading is that the
+doorways are visible from the spawn hero pose, which makes this a question about
+how the city should look. **That is Simeon's call, not mine** (CLAUDE.md rule 9).
+Frames 2-5 are the before/after crops on the historic core and the Dell Med
+block, the two places nobody in this project had ever seen up close.
+
+**PR #184 stays open.** Everything else is green and the data half is final.
 
 ### One instrument note for the next lane
 
