@@ -16285,6 +16285,7 @@ every gate that was green tonight has also been watched failing. The city is
 yours in the morning.
 
 
+
 ## 128. Aug 16 2026 — the frame budget, written by reading; the third hog is the sky and it repaints on every camera move (QUEUE K1, frame half) (acer lane, perf)
 
 **No code and no data changed. Nothing was measured.** Branch
@@ -16462,7 +16463,859 @@ not changed.
 
 ---
 
-## 129. Aug 16 2026 — Y12: the near plane comes in from 0.72 m to 0.12 m at walking height, and the flyover does not move one bit (acer lane, n4-mobile)
+## 129. Aug 16 2026 — campus walls have storeys, the era decides the vocabulary, and the null default draws floor lines only (QUEUE Y5, campus half) (acer lane, branch `acer/n2-campus`)
+
+**What changed, in one line for Simeon:** stand anywhere on campus and the
+walls above the doorways now read as *floors* instead of a pegboard — a base
+course, a line at each storey, and a real cornice on the old limestone halls.
+The South Mall and Speedway frames are the ones to look at:
+`shots/walls/01-southmall-hero-day-*` and `05-speedway-welch-day-*`.
+
+**Scope.** Campus only. West Campus is the other half of Y5's second part and
+is untouched by this pass. The design document is `docs/camera/walls-campus.md`
+(written on `main` at `cdd5715`); this is its §5 executed.
+
+### The change
+
+Three files. `scripts/bake_campus_storeys.py` (new) writes
+`data/campus_storeys.geojson` (new) and nothing else writes it; `js/facades.js`
+draws it as `campus-storeys`.
+
+**Why the geometry rather than a better tile.** `facades.js` is SCREEN-locked —
+one repeat is `displaySize x mpp(floor(cameraZoom))` metres, so at walking
+height campus is on `TIER_CSS` 32 = **2.06 m of wall per repeat**, HALF the
+Drag's 4.12, and family `mh` puts eight window rows in it: a **0.258 m storey**
+with a full-height vertical every 0.121 m. No tile edit can fix that, because
+the failure is that the tile has no fixed size in metres at all. Same
+conclusion, same fix and the same recipe as the Drag's PR #167: proud rings,
+`dbase`/`dh`, no `bid`, 8-decimal offsets, `wall_ramp`'s day/golden/night trio,
+`fill-extrusion-vertical-gradient: false`.
+
+**What is NEW is the era table, and it is the whole point.** A base course +
+string course + cornice is a *masonry* vocabulary. Shipping it everywhere is
+how a pass looks wrong on half the city (walls-campus.md §6):
+
+```
+A/B  <=1949  Gilbert/Cret limestone  base .20/.55  string .14/.30  CORNICE .45/.75
+C    1950-89 concrete frame          base .12/.35  slab   .12/.30  cap .20/.45
+D    1990+   glass                   no base       reveal .06/.18  cap .15/.35
+NULL no year                         no base       line   .09/.24  nothing else
+```
+
+The **NULL row is the most important line in the pass.** 190 of 253 campus
+buildings have no measured year, and `eras.md` §5.2 rule 8 says the default
+must be NULL "because that is exactly how a wrong entrance gets onto 80
+buildings at once". That argument binds for the *cornice* and does not bind for
+the *floor line* — every building has floors, and a slab edge asserts only
+that. So a building without a year gets floor lines and nothing else, and it
+earns its cornice by having a year. The 0.09/0.24 depth is authored HERE and
+says so in the file: D's 0.06 reveal would be invisible across 68 % of the
+district and C's 0.12 slab edge would assert concrete frame on 190 undated
+buildings.
+
+`tg` (curtain wall — the mullion grid IS the structure), `st` (DKR has its own
+bake) and `lo` (a 4 m shed has one storey) are refused outright and counted.
+`dk` takes `DECK_M` 2.80, not `STOREY_M`: a parking deck is not a storey.
+
+**Storey height is measured where it can be.** `STOREY_M` 3.46 is
+`bake_tower.py`'s `FLOOR`, off the gold spandrels in a rectified photograph.
+Where `num_floors` exists the storeys are FITTED to the count instead — but
+only if the implied pitch lands in [2.60, 5.20], because `final_height` is a
+LiDAR high point and `h/levels` is an upper bound rather than a measurement.
+**The guard rejected 29 counts and accepted 21**, which is the guard working.
+
+### The bake, by the numbers
+
+```
+considered in bake_entrances.py's own CAMPUS box   668 unclaimed buildings
+banded                                            211
+nothing owed (one storey above the datum)         139
+refused: lo 115, short(<8 m) 193, st 5, tg 5      318
+features / storeys                                640 / 750
+dated from UT's own register (normalised name)     68
+by era        A 4   B 11   C 32   D 14   NULL 150
+by family     mh 136   mr 66   dk 6   tr 3
+size                                              440 KB raw / 48.2 KB gzip
+NEW PATTERN IMAGES                                ZERO
+```
+
+**Zero new atlas images, by construction.** These are flat-colour extrusions,
+so the 2,840 KB / 284-image atlas and the 80.4 ms `updateFacades` are untouched
+— and that is the point, not a saving: a 0.24 m course showing an arbitrary
+slice of a 2.06 m tile is the exact trap `facades.js`'s own header is about.
+
+The bake **claims no building ids**. `replacedBuildingIds` is absent on
+purpose; six passes already claim ids and a pass that claims none can never
+collide with any of them in either order.
+
+### Verified by looking (SwiftShader headless, 1440x900, dpr 1, `cancelGraphicsAutoDetect()`, AE OFF + one forced `updateSky` per §127, gain asserted **1** at every frame, `alt` read **1.70** at every eye pose)
+
+`harness-drift.mjs` **PASS, 29 scripts in each file**, before any pixel — and
+unchanged by this pass, because the client lives in a file that already has a
+`<script>` tag. Served from a throwaway `git worktree` on port 8361.
+
+The arms are **the layer hidden vs shown, in one page session at one pose**.
+That is exactly the before, because the pass adds no filter, replaces no
+building and claims no id — and it avoids the 31 % cross-session floor §114
+measured on reloads.
+
+```
+pose                        settled floor   signal (min of 2 interleaved reps)
+01 South Mall eye 1.7 day        0 px        12,280 px >24  rows 69-368   WIN
+03 Battle Hall eye 1.7 day       0 px        29,729 px >24  rows 0-356    WIN
+05 Speedway eye 1.7 day          0 px        30,719 px >24  rows 0-359    WIN
+04 South Mall eye 1.7 NIGHT      0 px         1,351 px >24  rows 71-345   not worse
+06 z16.2 / alt 342 m day         0 px         8,733 px >24  (0.67 % frame) indistinguishable
+07 z15.2 / alt 615 m CRUISE      0 px             0 px      SHA-256 IDENTICAL
+```
+
+**Day, eye level: WIN, decisively, at all three sites.** Battle Hall goes from
+a flat pegboard slab to a banded limestone hall with a deep cornice; the South
+Mall's flanking walls (Parlin, Batts/Mezes — family C) get a base course, slab
+edges and a parapet cap; Speedway becomes a street with depth because the
+courses run back in perspective. **The best pose in the app is better, not
+worse** — the Tower, the lawn, the trees and the sky are pixel-identical and
+every changed pixel is in the wall band.
+
+**Night: not worse, and barely visible.** 1,351 px against a 0 floor. The
+atlas's lit-pane scatter still owns the night wall, exactly as
+walls-campus.md §6.5 predicted, and this pass deliberately did NOT attempt the
+Drag's day/night tile swap — that fix lives in `js/drag.js`'s own tile, while
+`facades.js`'s night scatter is shared with downtown, the outer ring and the
+Capitol.
+
+**Cruise: byte-identical.** `CS.minZoom` 15.5 keeps the layer out of the
+flyover entirely; at 615 m the two PNGs have the same SHA-256. At 342 m — a
+descent, not a cruise — 8,733 px of 1,296,000 is 0.67 % of the frame and I
+looked at the pair and cannot tell them apart. walls-campus.md §5.4 warned that
+the Drag's 67 px would not scale to 3,200 features; it does not, and the
+minzoom is why. **That number is set from the measurement, not guessed.**
+
+**INSTRUMENT FINDING, and it invalidated my first three floors.** The in-run
+noise-floor pair is the first two frames after the pose change, and at night it
+read **758,516 px** and at z16.2 **154,516 px** — the scene still tiling, not
+the instrument. The honest floor is the two OFF frames of the two interleaved
+reps, taken a minute apart with everything settled: **0 px at every pose,
+including night.** Anyone reusing this harness should take the floor pair LAST,
+not first.
+
+Static gates: `geomlint` **640 features clean**, largest ring 300 m. No two
+bands on one building overlap vertically (checked directly: 211 hosts, 0
+overlaps, minimum gap 2.40 m, minimum span 0.179 m). **`coplanar.mjs` printed
+"0 features / no coplanar overlaps" and that line is VACUOUS** — it reads
+`p.h`/`p.height` and this file carries `dbase`/`dh`, so it saw nothing. Written
+down rather than quoted as a pass.
+
+### Re-verified on the rebase (`origin/main` `6a63b4f`, Y10/Y12 merged under me)
+
+`harness-drift` **PASS 29/29**. The bake is deterministic — re-run on the
+rebased tree, `data/campus_storeys.geojson` is SHA-256 identical. Two poses
+re-shot on the rebased tree and both reproduce EXACTLY: South Mall eye-day
+**12,280 px** against a **0 px** floor (and the frame is SHA-256 identical to
+the judged one), cruise z15.2 / 615 m **0 px**. The HANDOFF section number moved
+128 -> 129 because the perf lane took 128 on `main` while this was in flight;
+both entries are kept.
+
+### Two lane decisions, recorded because they were mine to make
+
+1. **The client is in `js/facades.js`, not a new `js/storeys.js`.**
+   walls-campus.md §5.1 proposed the new module. A new module needs a
+   `<script>` tag in BOTH `index.html` and `_harness.html`, and those are
+   shared with every other lane tonight; this pass owns neither. The block is
+   self-contained — nothing in the atlas needs it and it needs nothing from the
+   atlas — so it lifts out verbatim later by adding the two tags.
+2. **The bake and its data file are new files outside the pass's nominal write
+   list.** They collide with nobody by construction (nothing else writes
+   `data/campus_storeys.geojson`), and putting storey geometry into
+   `facade_palette.json` would have broken CLAUDE.md rule 1's one-bake-one-file
+   contract with `bake_facades.py`.
+
+### What I did NOT manage to do
+
+* **West Campus. Not started.** Y5's second half is still half open:
+  `bake_wc_storeys.py`, the 819 generic buildings, and the 24 authored towers'
+  slab edges (which must stay with `bake_westcampus.py` — it alone knows where
+  `base` ends and `podium`/`tower`/`crown` begin).
+* **No dusk frames.** p 0.30 and p 0.92 only. Y17/Y18 both live in dusk and
+  this pass says nothing about either.
+* **`zfight.mjs` was not run** — the trim is proud, never coplanar, and the
+  vertical-gap check above covers the static case, but nobody has rendered it
+  looking for a comb.
+* **No frame-time or `perf.mjs` number.** 640 extrusions were added and their
+  cost is a prediction, not a measurement. K1's bill grows again.
+* **Pose 02 (Calhoun frontal) was badly sited** — the eye landed against
+  Parlin Hall's own wall and the frame is unusable for judging. Deleted rather
+  than shipped; the era-C read is carried by the South Mall pair instead.
+* **`Homer Rainey Hall` and `McCombs School of Business` came out NULL**
+  because their snapshot names do not match the register's, where
+  walls-campus.md expected B and C. The null default did the right thing (floor
+  lines, no cornice) but a better name join would date them.
+* **Nothing measured on hardware GL, at dpr 2, or on a phone width.**
+* **Not merged.** The Gate decides.
+## 130. Aug 16 2026 — West Campus at two metres: the podium was the loudest barcode, and the storey lines are geometry now (QUEUE Y5, West Campus half) (acer lane)
+
+Branch `acer/n2-westcampus`, off `origin/main` `cdd5715`, then merged with
+`origin/main` `0f50a02` and re-verified on the merge. **Not merged — this is a
+candidate for the gate.** Writes limited to `scripts/bake_westcampus.py`,
+`data/westcampus.geojson`, `js/westcampus.js`, `shots/walls/`, this file.
+Pictures: **`shots/walls/`**, `01`/`02` is the pair to look at.
+
+### What the frames said before any code was written
+
+Five poses at **1.7 m of eye height**, `?clip=1`, AE off with the gain asserted
+`1` and one forced `updateSky` because `aeMeter` only runs inside it (§127).
+**Every pose settled to a 0 px > 24/255 noise floor** — the script shoots until
+two consecutive frames agree rather than sleeping a fixed time, because three
+other workflows share this laptop.
+
+Standing on Guadalupe facing Dobie Twenty21, the two things in frame are two
+barcodes at right angles:
+
+| what | family | vertical edges /100 px | horizontal edges /100 px |
+|---|---|---|---|
+| the PODIUM, 6–16.8 m (above-grade garage) | `dk` | **0.00** | **54.79** |
+| the BASE band, 0–6 m, under it | `sp` | **48.56** | 1.12 |
+
+`docs/camera/walls-campus.md` predicted the podium arithmetically (0.419 m of
+"deck" against a real 2.4–3.0) and it is right: it is the loudest thing at eye
+level on the street the AWS video shows most. **The brief asked whether only
+the podium needs work. The honest answer is no — the base band is as bad and
+at right angles — but the podium is the one this lane can fix.**
+
+### What shipped
+
+219 proud rings on 23 of the 24 towers, emitted by the bake in METRES so Y4
+raising `ZOOM_MAX` cannot undo them, drawn by a new `wc-detail` layer:
+
+* **208 residential slab edges**, `WC_SLAB_PROUD` 0.12 / `WC_SLAB_H` 0.30.
+* **11 parking-deck edges**, `WC_DECK_PROUD` 0.16 / `WC_DECK_H` **0.45** —
+  deliberately DEEPER than the residential slab. A garage's horizontal is a
+  spandrel beam, not a floor slab. The first cut had it at 0.10/0.25 and it
+  vanished into the tile's own hairlines; the frames are what said so.
+* **The pitch is harvested, not assumed.** Fifteen of these towers already
+  carry balcony slabs and those slabs ARE the floor line where they reach. So
+  the slab edge takes `span / count` off the SAME `balc` spec the balcony loop
+  uses and lands at the same 0.62-of-a-storey height — buried inside the
+  balconies (0.12 m proud against `BALC_PROJ` 1.40) and filling in the ends and
+  the balcony-less elevations. Never a second rhythm. `WC_STOREY_M` 3.25 is the
+  fallback, `WC_DECK_M` 2.80 its own constant.
+* `WC_SLAB_H` 0.30 is under `BALC_THICK` 0.34 **on purpose**, so a trim ring's
+  top face can never go coplanar with a balcony slab's. Raise it and that stops
+  being true.
+
+### The guard caught the one real defect this introduced
+
+A `step` wing refitting its own levels put lines **0.15 m** from the main
+tower's on Signature 1909 and **0.20 m** on Ion Austin — two floor rhythms on
+one building, the exact defect the pass exists to avoid. `WC_LINE_MIN_GAP`
+failed the bake by name and by metre; the wing now takes the tower's levels
+truncated. Watched failing, then watched passing.
+
+### Measured, min of interleaved reps, floor 0 px
+
+| pose | changed px > 24 | where | max Δ |
+|---|---|---|---|
+| Dobie / Guadalupe, day | **28,314** | rows 0–208, the podium | 103 |
+| Dobie / Guadalupe, night | 20,695 | rows 0–209 | 43 |
+| Castilian alley, day | 22,871 | rows 5–230 | 108 |
+| Castilian lobby close, day | 19,306 | rows 51–115 | 108 |
+| 21 Rio / Rio Grande, day | 6,696 | rows 18–441, the tower slabs | 64 |
+| **cruise, day** | **890** | — | 151 |
+
+Podium box, day: horizontal edges **54.79 → 48.38**, mean luma 83.5 → 89.74.
+Night: 52.50 → 45.95 and **mean luma 24.63 → 24.83, i.e. not darker** — the
+§114 night bar, met. The base band's box is **byte-identical** in both hours,
+which is the design and not an accident.
+
+**Flyover cost, magenta-masked (§48), off the screenshot and not
+`gl.readPixels` (§121): the whole `wc-detail` layer is 1,191 px of a
+1,296,000 px cruise frame — 0.09 %.** Frame-diffing cruise across sessions was
+NOT used (31 % noise floor, §114). For scale, the Drag's 23 features measured
+67 px.
+
+**And the instrument lied once on the way to that number, so it is written
+down.** The same measurement inside the pose sweep returned **1,191 px** on one
+run and **0 px** on the next, on the same build — a `setPaintProperty` plus a
+`triggerRepaint` six seconds after a night→day transition is not reliably a
+frame. Re-measured on its own with a 20 s park and 9 s per rep
+(`_wccruise.mjs`, in the scratchpad, not committed): **1,191 / 1,191 / 1,191,
+same box [431,334,1273,663], layer visible and `#ff00ff` read back each time.**
+A zero from a mask is a claim that a layer paints nothing, and this repo has
+already spent a session on one of those (QUEUE X8) — never accept it on one
+reading.
+
+### Contracts and gates
+
+Trim is `kind:"detail"` with `dbase`/`dh` and claims **no `bid`, no `fam`, no
+`s`** — the proud-geometry rule, so it stays out of `quantiseStadiumFacades`
+(**0 new atlas images**), out of `check_night_ramp` and out of `main()`'s
+overhang assertion, all three of which key on `kind == "wall"`. Four new
+assertions cover it instead: no band schema, every piece inside a wall band of
+its own building, nothing over `final_height`, no two lines closer than
+`WC_LINE_MIN_GAP`. `harness-drift.mjs` **PASS** before any pixel was read.
+`coplanar.mjs data/westcampus.geojson` **no overlaps**, unchanged. The bake is
+byte-identical on a re-run. File 526 KB → 555 KB.
+
+### What I did NOT do
+
+* **Did not line the base band.** `WC_BASE_LINES` is a named constant, default
+  `False`, one line to flip. Two reasons and both are written in the file: the
+  base band is where the entrances and places passes already model 24 lobbies,
+  canopies, sign bands and shopfront reveals in metres, and its 48.56 vertical
+  edges are a TILE problem in `js/facades.js` — a shared atlas this lane may
+  not write. **Somebody has to own that; it is the bigger half of what is left
+  in West Campus.**
+* **Did not touch `dk`'s tile.** The hairline field behind the new deck edges
+  is still there, at 0.419 m. `js/facades.js` draws it for the whole city, so
+  PR #167's day/night tile swap cannot be repeated here — `walls-campus.md` §6.5
+  says so and I did not try.
+* **Did not judge it blind against the live site.** The A/B here is
+  before/after on ONE build at the same poses. The gate the Drag got (§121) is
+  the next step, not this one.
+* **Did not shoot a good Castilian street frame.** Pose A puts the eye ~1 m
+  from a wall in a slot between two buildings; it is honest about the barcode
+  and useless as a picture. Poses A and D have their fixed wall boxes on
+  unchanged wall, so those two rows of the box table read identical — the
+  frames differ, the boxes do not. Say it that way round.
+* **Did not measure frame time.** 219 flat extrusions on an existing source is
+  a claim of cheapness, not a measurement.
+* **Did not run `zfight`, `westcampus-probe` or `places-check`** — the first
+  two need the browser I was holding for the shoot; `places-check` is
+  `data/places.geojson`, untouched.
+* **Did not line the 819 generic West Campus buildings.** That is
+  `bake_wc_storeys.py`, a different writer and a different lane
+  (`walls-campus.md` §5.1).
+
+---
+
+## 131. Aug 16 2026 — THE N2 GATE: campus and West Campus walls judged against the live site, both WON, both merged (QUEUE Y5, second half) (acer lane, gate)
+
+**This entry is a verdict, not a build.** Two candidates I did not write —
+`acer/n2-campus` (PR #178) and `acer/n2-westcampus` (rebased onto `main` and
+re-opened as `gate/n2-wc-rebase`, PR #179) — were judged independently against
+`flyover-utx.vercel.app` at identical poses. Both won, both were merged onto
+`main`, both branches deleted. **Y5 is now DONE for all three districts**; what
+is left of the barcode is the other axis, written up as QUEUE **Y19**.
+
+Decisive frames, live on top and the candidate below in every one:
+**`shots/walls/final/`** — `campus-01…06`, `westcampus-01…06`. If you look at
+two, look at `campus-02-SOUTH-MALL-right-wall-closeup` and
+`westcampus-01-DOBIE-PODIUM-closeup`.
+
+### How it was judged, and one thing about blindness said plainly
+
+Blind A/B: labels stripped, both arms cropped to the same rows and stacked, and
+top/bottom decided by a salted SHA-256 per pose. The keys went to files that
+were not opened until the verdicts were written down. **The salt genuinely mixed
+the arms** — campus came out 2 bottom / 1 top, West Campus 3 top / 3 bottom —
+and the candidate was picked in every pair.
+
+**What blinding cannot hide here, and this is honest rather than a claim of
+purity: the feature under test is a visible horizontal line, so the moment you
+look at the picture you know which arm has it.** What the salt protects is which
+arm gets called *better*, not which arm can be *identified*. That is the whole
+value it can have for a visible feature, and it is stated rather than dressed up.
+
+### Instrument, quoted with its settings (CLAUDE.md 10, HANDOFF 112 and 127)
+
+- SwiftShader headless, 1440x900, dpr 1, `cancelGraphicsAutoDetect()` on every
+  page, `harness-drift.mjs` **PASS 29/29 in both worktrees before any pixel**.
+- AE off (`GFX.autoExposure = false`) **and one forced `updateSky(map, p)` after
+  every pose**, because `aeMeter` only runs inside `updateSky` and at a parked
+  camera the gain from the previous pose simply persists (127). **Gain read back
+  `1` on all 22 frames**, printed per pose.
+- **Noise floor first, at every pose, on both arms** — two frames with a full
+  re-settle between them and nothing else touched.
+- **Minimum of four interleaved cross pairs**, never one reading. This earned
+  itself four separate times: at W2, W4, W5 and W6 the candidate's *first* rep
+  was mid-transition (W4's own floor was 379,570 px) and the second was settled,
+  so the four reps came back as two values repeated twice and the min is the
+  settled one. A single reading at any of those four poses would have been a
+  number about a transition.
+- **Pose identity is not asserted, it is measured.** `centre`, `zoom`, `pitch`
+  and `bearing` read back identical to six decimals on both arms, AND the bottom
+  120 rows of every eye-level frame — the pavement under the camera, which no
+  storey band can reach — differ by **0 px > 24/255** across arms at every one
+  of the nine eye poses.
+- Every server was `python scripts/serve.py 8363` out of a **throwaway
+  `git worktree`**, never the shared checkout (121's lesson; a sibling did
+  switch the shared worktree's branch during this session).
+- **Live == `origin/main`, fingerprinted rather than assumed**: `js/facades.js`
+  and `_harness.html` fetched off the live site are SHA-256-identical to
+  `origin/main`'s. Vercel redeployed after the campus merge, so both West Campus
+  arms were shot against a live site that already carried the campus bands.
+
+### PR #178, campus storey bands — WIN, merged (`b0dc3ed`)
+
+| pose | floor LIVE | floor CAND | signal (min of 4) | where |
+|---|---|---|---|---|
+| South Mall, eye 1.7 m, day | 0 px | 29,494 px (trees settling, rows 333-392) | 12,798 | rows 69-394 |
+| Speedway at Welch, eye, day | **0 px** | **0 px** | **30,817** (all four reps identical) | rows 0-460 |
+| Battle Hall, eye, day | 0 px | 674 px | 29,733 | rows 0-403 |
+| South Mall, eye, NIGHT | **0 px** | **0 px** | 1,366 (max delta 120) | rows 26-380 |
+| cruise z16.2 | 196,159 px | 132,918 px | 24,027 | — |
+
+- **Day at eye level: WIN, decisively, and the South Mall frame is better, not
+  worse.** The walls flanking the mall go from an undifferentiated pegboard to
+  banded limestone with a base course, floor lines and a cornice under the red
+  roof. Nothing else in the frame moves: the sky rows and the pavement rows are
+  both 0 px across arms.
+- **The exact number is Speedway's**, because that is the pose where both arms
+  settled to a 0 px floor and all four interleaved reps returned the same
+  30,817 px. Everything else is bounded by a floor and says so above.
+- **Night: NOT WORSE.** 1,366 px of very faint pale line; the lit-pane scatter
+  is untouched. Exactly what `docs/camera/facade-choice.md` priced in when this
+  decision was made — storey lines go quiet after dark.
+- **Cruise: INDISTINGUISHABLE, and the pixel diff is not what says so.** Both
+  arms' own same-session floors at cruise are 133k-196k px, five to eight times
+  the cross-arm signal, so a frame diff at this pose means nothing (119 found
+  the same at 31 %). The instrument that does work is 48's mask, counted off the
+  PNG and not `gl.readPixels` (121), day light only (QUEUE X8):
+  **`campus-storeys` paints 6,127 px of a 1,296,000 px frame at z16.2 (0.47 %),
+  8,589 px at the z16.5 spawn, and 0 px at z15.2** — its `minZoom` is 15.5, so
+  it is simply not drawn from the wide flyover. Side by side at z16.2 the two
+  frames could not be told apart.
+- The merge was a fast-forward, so **the tree judged is the tree merged**:
+  `js/facades.js` on `main` is SHA-256-identical to the file the server served.
+
+### PR #179, West Campus storey lines — WIN, merged (`a4a70e5`)
+
+| pose | floor LIVE | floor CAND | signal (min of 4) | where |
+|---|---|---|---|---|
+| Dobie / Guadalupe, eye, day | 33,361 px | **0 px** | **26,933** | rows 0-208, the podium |
+| Castilian slot, eye, day | **0 px** | **0 px** | **22,138** (all four reps identical) | rows 6-230 |
+| 21 Rio lobby, eye, day | 0 px | 107,459 px | 6,518 | rows 18-416 |
+| Castilian lobby close, day | 0 px | 379,570 px | 19,305 | rows 51-115 only |
+| Castilian, eye, NIGHT | 0 px | 52,334 px | 13,638 (max delta 39) | rows 8-226 |
+| cruise z15.35 | **0 px** | 9,563 px | **824** | — |
+
+- **Day at eye level on a street: WIN.** The parking podium was the loudest
+  barcode in the district and it is the thing that changed: a field of 0.42 m
+  hairlines is now broken by real deck edges, and the wall acquires a scale.
+  The Castilian pose carries the exact number (both floors 0, four identical
+  reps); the Dobie pose is the better picture.
+- **Night: NOT WORSE, and the lit windows survive — measured, not asserted.** In
+  the tower-wall box the count of pixels over luma 120 is **852 on live and 852
+  on the candidate**, peak **230.7 on both**, mean luma **23.95 against 23.64** —
+  a hair brighter, i.e. not darker, which is the 114 bar.
+- **The 24 lobbies survive, three ways.** (1) `data/westcampus.geojson` is
+  **purely additive**: all **1,144** pre-existing features are byte-identical
+  **in order**, with 219 `kind:"detail"` features appended — so no lobby, no
+  glass and no sign band can have changed in the data. (2) `places-check.mjs`
+  **PASS, 40 ok / 0 failed**, the West Campus shopfront guard at its baseline.
+  (3) In pixels: the ground-floor band measures **332,104 lit px / mean luma
+  101.8 on both arms**, and the 21 Rio frame — glazed lobby, doors, red sign
+  band, canopy — is indistinguishable between arms.
+- **Cruise: INDISTINGUISHABLE.** 824 px > 24/255 against a **0 px live floor**,
+  and the two frames could not be told apart side by side.
+
+### The West Campus flyover mask is an unreliable instrument, and here is this gate's own reading of it
+
+130 recorded that the same magenta measurement returned **1,191 px once and
+0 px the next time** on the same build, and re-measured it three times at 1,191
+with a 20 s park. **This run reproduced the flakiness and did not reproduce the
+number**: with a 6 s dwell `wc-detail` masked to **0 px on the first rep and
+432 px on the second**, same session shape, same pose. So the honest statement
+is a bound, not a value: the layer's cruise footprint is **at or under ~1,191 px
+of 1,296,000 (<= 0.09 %)**. The claim does not rest on the mask anyway — the
+independent instrument is the live-vs-candidate cruise diff of **824 px against
+a 0 px floor**, which agrees in magnitude. **Anyone reading a single magenta
+count in this repo should treat a low number as a question.**
+
+### What this gate did NOT establish
+
+- **No dusk frames at any pose** (day p 0.30 / night p 0.92 only), nothing on
+  hardware GL, nothing at dpr 2.
+- **No frame-time measurement.** Campus adds 640 flat extrusions and West Campus
+  219; both merges are a claim of cheapness, not a measurement. **K1 still has no
+  owner and the scene is now 859 extrusions heavier.**
+- **`coplanar.mjs` cannot see the new trim.** It reported "1144 features, no
+  coplanar overlaps" on a file that now holds 1,363 — it keys on `base`/`h` and
+  the trim carries `dbase`/`dh` by design, so the 219 new rings were **not
+  checked by it at all**. The same is true of the 640 campus rings. Each bake's
+  own assertions are not a substitute, and somebody should say whether it matters.
+- **No lobby CONTACT SHEET was re-shot.** "The 24 lobbies survive" rests on
+  byte-identity, `places-check` and two frames, not on re-photographing all 24
+  (101 did that once; it costs 24 sessions).
+- **The campus deferred load never fired on its `alt` trigger in this harness** —
+  every session reported `__csDefer.trigger` as `timeout` or `idle`, because the
+  verify pages jump the camera rather than fly it down. The `alt` path is
+  **unexercised by this gate**; it is exercised by a real descent and nobody has
+  watched that happen.
+- **The campus South Mall candidate arm did not settle between its two reps**
+  (29,494 px, in the tree rows), so that pose's 12,798 px is indicative. Speedway
+  is the pose with a 0/0 floor and it is the number to quote.
+- **No spawn-pose A/B was shot.** The z16.5 magenta count exists (8,589 px) but
+  the app's own opening frame was not judged as a picture; the z16.2 cruise pair
+  stands in for it.
+
+### For Simeon, in one paragraph
+
+Stand on the South Mall now and the buildings either side of you have floors — a
+base course near the ground, a line at every storey, and a proper cornice under
+the red roof of the old limestone halls. Same on Speedway, same in front of
+Battle Hall. Over in West Campus the big parking podiums under Dobie and the
+Castilian have real deck edges instead of a fuzz of hairlines. From the air
+nothing changed at all, and that was checked twice with two different
+instruments. The pictures are in `shots/walls/final/`, live on top and the new
+one underneath; `campus-02` and `westcampus-01` are the two that show it best.
+
+---
+
+## 132. Aug 16 2026 — the budget gets a gate: the outer ring is over it on every reading ever taken, and the walk cannot be measured at all (QUEUE K1/Y7/Y15) (acer lane, n1-perf)
+
+Branch `acer/n1-perf`. **One file of code: `scripts/verify/perf-budget.mjs`.**
+
+### The job I was given, and the one I could not do
+
+The brief was "kill the two measured hogs" — Y7 (outer-ring scan, 37.9 ms) and
+Y15 (trunk field, 841.5 ms) — with a writable set of `js/outer.js`,
+`js/props.js`, `js/trees.js`.
+
+**Both hogs are in `js/controls.js`, which another lane holds tonight, and
+`js/trees.js` does not exist.** `js/outer.js` is the ring's *rendering* module
+(`initOuter`, colours, settings); `js/props.js` is the props *rendering* module.
+Neither contains a `querySourceFeatures` call. `outerStamp()` is
+`controls.js:475` and `trunkStamp()` is `controls.js:703`, and the third
+unbounded scan `docs/perf/budget.md` found — `updateSky()` — is `js/sky.js`,
+also outside the writable set. So I did not edit any of them. Per CLAUDE.md
+rule 8 I am writing the collision down instead of driving through it.
+
+What I did instead is the other half of the brief, and it is the half that
+outlives tonight: **the guard exists, it is red, and it has been watched going
+both red and green.**
+
+### `scripts/verify/perf-budget.mjs` — what it asserts and what it refuses to
+
+Gates G1–G5 and G7 from `docs/perf/budget.md` §4.4. Every threshold is a `BUDGET`
+constant at the top with an env override (`PB_OUTER_MS`, `PB_TRUNK_MS`,
+`PB_TICK_CRUISE`, `PB_TICK_WALK`, `PB_DUTY_PCT`).
+
+    cd scripts/verify && VERIFY_URL=http://127.0.0.1:PORT node perf-budget.mjs 3
+
+Headless, `gl:'hardware'` (NOT SwiftShader — these are CPU timers and
+SwiftShader rasterises the city on the same CPU), **no CPU throttle** (unlike
+`perf.mjs`'s default 4x), auto-detect cancelled, `index.html?intro=0`.
+Interleaved and counterbalanced, minimum across reps, and chrome/node process
+counts plus CPU percent printed beside every single figure.
+
+**WATCHED IN BOTH DIRECTIONS on the same code and the same run shape**, which is
+the thing this repo has been burned on three times:
+
+| run | verdict | exit |
+|---|---|---|
+| default budget | `FAIL 3 of 3 judged: G1, G3, G5a` | 1 |
+| `PB_OUTER_MS=250 PB_TICK_CRUISE=40 PB_DUTY_PCT=10` | `PASS all 3 judged` | 0 |
+
+INVALID stayed INVALID in both. It is not a pass in either direction.
+
+### G3 / Y7 — the outer-ring scan is over budget on every reading I have
+
+Valid on 3/3 reps in every run (1500–1514 m of driven cruise, phase-attributed).
+Worst outer scan, min-across-reps, by run, **with the machine state that
+produced it**:
+
+| run | min maxMs | machine during the quietest rep |
+|---|---:|---|
+| A | **18.6 ms** | chrome 25, node 2, cpu 18 → 69 % |
+| B | 38.2 ms | chrome 28, node 2, cpu 100 → 77 % |
+| C | 49.7 ms | chrome 33, node 3, cpu 22 → 10 % |
+| D | 74.8 ms | chrome 28, node 2, cpu 29 → 18 % |
+| E | 154.0 ms | chrome 30+, cpu 90 %+ throughout |
+
+**The budget is 8 ms. The lowest number I ever saw was 18.6 ms — 2.3x over —
+and §109's 37.9 ms sits in the middle of the range.** Y7 is confirmed, and the
+claim that survives the noise is not "it costs 74.8 ms", it is **"there is no
+machine state in which it comes in under budget."** Duty cycle 1.07–2.13 % of
+wall time against a 0.53 % budget.
+
+### G4 / Y15 — NOT MEASURED, and the reason is structural, not the machine
+
+QUEUE Y15 says to measure the trunk field "under a sustained walk first",
+because §109's 841.5 ms came from a run that teleported ten times. **A sustained
+walk at 1.7 m does not exist in this app.** Probed at six sites, 45 s of held
+W+Shift each:
+
+| site | bearing | travelled | ENDED AT ALTITUDE |
+|---|---:|---:|---:|
+| Drag, south | 180 | 639 m | **23.8 m** |
+| Drag, north | 0 | 373 m | **86.0 m** |
+| Speedway, south | 180 | 242 m | **29.3 m** |
+| W Campus, 24th west | 270 | 104 m | **43.8 m** |
+| 24th, east | 90 | 11 m | 1.7 m (blocked) |
+| San Jacinto, south | 180 | 3 m | 1.7 m (blocked) |
+
+A held-W walk does exactly one of two things and never a third: it is stopped by
+geometry inside one block, or **the step-up / rooftop floor silently lifts it out
+of walking height.** That is QUEUE Y16's silent lift reached through the
+*movement* path rather than through `setPitch`, and it is a second, independent
+sighting of it. Above `TRUNK_ALT` (12 m) the trunk field switches off entirely,
+so a rep that travels 639 m has spent most of it not measuring the thing it is
+named for.
+
+So `perf-budget.mjs` marks a walk rep valid only if it went past `minMetres`
+**and ended below `maxAlt`**, and with 120 m targets every rep came back at
+121 m / **alt 23.8 m** → INVALID, 0/3. The guard printed
+`---- G4 phase did not run far enough to measure` and refused to produce a
+number. That refusal is the deliverable: a clean trunk figure from a phase with
+the trunk field gated off is exactly the kind of reassuring wrong number this
+suite exists to prevent.
+
+**Evidence recorded but NOT gated on:** at bearing 215, where the walker is
+blocked at ~63 m but stays at 1.7 m the whole way — one full `TRUNK_RESCAN_M`
+crossing — the trunk scan's worst case across seven reps was
+**594.5 / 177.9 / 120.1 / 81.4 / 65.7 / 56.3 / 27.7 ms**, with the walk phase
+itself setting the maximum in five of them. Every one of those is over the 8 ms
+budget, and 594.5 ms is within sight of §109's 841.5. **Y15 is very likely real
+and very likely worse than Y7.** I am not calling it measured.
+
+### Three things the instrument itself got wrong first, all caught by looking
+
+* **A fixed-duration phase measures nothing under load.** `DT_MAX` clamps the
+  movement integrator to 0.10 s per frame, so at low fps the camera covers less
+  ground than wall time says. A 24 s walk rendered 16 frames, travelled **1
+  metre**, and reported a trunk cost of 24.6 ms for a field that had never once
+  been asked to grow. **A phase is now a DISTANCE, with a watchdog.** Both scans
+  are triggered by movement — 200 m and 60 m — so wall time was the wrong control
+  variable from the start.
+* **`sprintHeld = e.shiftKey` (controls.js:1289) reads a modifier flag, not a
+  key.** Dispatching a separate `ShiftLeft` keydown does nothing *and* the plain
+  `KeyW` that follows clears the flag. The shift state has to ride on the same
+  event. Anything scripting sprint in this suite should know that.
+* G5 was first written as `scans / wallSeconds <= 1/1.5` and was **wrong by
+  construction**: `outerScans` counts instalments, and an unfinished list resumes
+  on the next frame on purpose, so a correctly-throttled build reported 1.6/s and
+  failed. It is a duty-cycle assertion now, derived from the budget's own two
+  numbers.
+
+### G1 — recorded, NOT established
+
+Differenced tick at cruise read 2.287 / 3.141 / 5.973 / 8.733 / 10.4 / 12.2 /
+14.8 / 16.9 / 17.9 / 190.4 ms across runs. That is an 80x spread on a machine
+carrying three sibling workflows, and the budget is 1.5 ms. **The lowest reading
+is 2.287 ms and I do not believe any of the others.** The gate is wired and it is
+red; treat it as unmeasured until it is re-run on a quiet machine.
+
+### G7 — the layer count, printed for the first time
+
+**219 style layers.** `docs/perf/budget.md` §5 lists "the layer count is not
+known" as one of the things it could not establish (95 of our own `addLayer`
+sites, plus the kept basemap, plus the Capitol's clones). It is 219. Recorded,
+not yet gated — `BUDGET.layersBaseline` is 0 until someone trusts the number.
+
+### What is NOT established
+
+* **Y7 and Y15 are not fixed.** No line of `js/controls.js` was touched.
+* **Y15 is not measured**, only evidenced, for the structural reason above.
+* **`updateSky()`, budget.md's third unbounded scan, was not touched or timed.**
+  It is in `js/sky.js` and it still has no instrument. budget.md §4.5 ranks
+  instrumenting it as the highest-value single line in the app; that is still true.
+* **G6 (dropped frames) is deliberately absent** — it needs a headed browser with
+  the occlusion flags and `outer-perf.mjs` already does that properly.
+* No screenshot was taken and no frame was read. The tree-collision correctness
+  check (stop 1.3 m from a trunk, §109) was **not** re-run, because nothing that
+  could affect it was changed.
+
+### For whoever picks up Y7 + Y15
+
+Do them as one fix — budget.md §4.5 is right that they are the same code shape.
+Both are `querySourceFeatures` returning a complete feature list before the
+`*_BUDGET_MS` clock even starts, which is why a 4 ms and a 3 ms budget bound
+nothing. Ask tile by tile. And run `perf-budget.mjs` before and after: the
+cruise half of it is valid and discriminating today.
+
+**Re-verified after rebase onto `origin/main` `6a63b4f`** (which landed Y10/Y12,
+touching walking): `harness-drift.mjs` PASS, guard runs, same verdict shape —
+G3 120.0 ms / G5a 3.79 % on a busy machine, G2/G4/G5b still INVALID 0/2. The
+walking-height ceiling is unchanged by that pass.
+
+---
+
+## 133. Aug 16 2026 — the frame is measured at last, and the two hogs everybody was chasing rank fourth and fifth (QUEUE K1/Y7/Y15) (acer lane, branch `acer/n1-perf`)
+
+**In one line for Simeon:** the city is now measured, and the slow parts are not
+the ones we thought. The two "hogs" in the queue are real but they fire once
+every 60–200 metres; what actually costs you a frame is the **sky repainting on
+every camera move** and the **building-facade textures being rebuilt while you
+fly**. And the loading picture is worse than the loading number — **the city is
+on screen and completely flat at 8 seconds, campus arrives by 16, and downtown
+does not show up until 24.** The pictures are in `shots/perf/`.
+
+**No code and no data changed.** New: `docs/perf/measured.md` (the third and
+last K1 document) and thirteen frames in `shots/perf/`. Branch off
+`origin/main`, merged. Everything measurable belonged to another lane —
+`js/controls.js`, `js/sky.js`, `js/facades.js`, `scripts/verify/` — so this pass
+had a write scope of four paths and **there is no "after" column anywhere in it
+on purpose.**
+
+### THE CONDITIONS, BECAUSE TONIGHT THEY ARE PART OF THE ANSWER
+
+Three sibling workflows and Simeon on the machine. Sampled before and after
+every reading: **20–42 Chrome processes, CPU 13 % at best and 91–100 % almost
+always**, and the PowerShell load probe itself timed out often enough that many
+rows print `cpu -1%`. **A failed load probe is a load reading.**
+
+So the document splits its own findings by whether they survive that:
+
+* **Wall-clock frame time does NOT survive.** Identical configurations,
+  interleaved and counterbalanced, came back 2.3x, 3.2x and **10.5x** apart.
+  `measured.md` §2 prints the table and then refuses to draw an fps figure from
+  it. That refusal is the finding.
+* **CPU-timer and profiler numbers DO survive**, because a share of main-thread
+  time is a ratio. Those carry the report.
+
+Instruments quoted with every number: no CPU throttle anywhere (`perf.mjs`
+throttles 4x and was not used); `serve.py` does not gzip; hardware GL probed and
+printed (`ANGLE (NVIDIA RTX 3050 Ti, D3D11)`) **headless AND headed, which is
+why the matrix ran headless** — the README mandates headed only because
+SwiftShader is the alternative, and it is not the alternative here; a headed
+window would have stolen focus from three siblings for forty minutes.
+
+### THE INSTRUMENT THAT MADE THIS PASS DIFFERENT
+
+**Chrome's own V8 sampling profiler over CDP, 100 us, while a scripted sweep
+drives the map.** It touches no source file, which is the only reason any of
+this was measurable with `js/sky.js` and `js/controls.js` held elsewhere. Four
+captures: cruise-day, walk-dusk, walk-night, phone-dusk.
+
+| | cruise day | walk dusk | walk night | phone dusk |
+|---|---:|---:|---:|---:|
+| MapLibre `_render` | 60.9 % | 64.3 % | 58.3 % | 56.3 % |
+| **atlas image work** | **19.1 %** | **20.3 %** | **16.5 %** | **15.2 %** |
+| shader/program queries | 15.9 % | 7.3 % | 6.6 % | 4.0 % |
+| **`updateSky`** | **8.8 %** | **8.3 %** | **5.6 %** | **6.0 %** |
+| whole `jumpTo` cascade | 9.5 % | 10.0 % | 6.6 % | 8.1 % |
+| garbage collector | 3.3 % | 9.0 % | 13.0 % | **19.1 %** |
+| `tick` (js/controls.js) | 2.1 % | 3.9 % | 0.7 % | 5.6 % |
+
+**FINDING 1 — §128 called the sky and the falsifier is not met.** §128 predicted
+`updateSky` at 2–8 ms/frame and wrote *"if it measures under 1 ms the section is
+wrong and should be struck."* It never went under 5.6 % of main-thread time, and
+the sharper number is this: **`updateSky` is 93 % of the entire `jumpTo` event
+cascade at cruise (1158.9 ms of 1250.0) and 84 % at dusk.** Every other `move`
+listener in the app put together is rounding error beside it.
+
+**FINDING 2 — the facade atlas is BIGGER than the sky and nobody had costed it.**
+15–20 % of main-thread time in `getImageData` + `patchUpdatedImages` +
+`getImage`. **The time of day was forced once and then held constant in every
+capture**, so this is not the 4/s tod repaint — it is new facade combos entering
+view during flight, being rasterised and re-uploaded. Largest single unexamined
+cost in the project.
+
+**FINDING 3 — 16 % of a cruise frame is asking the driver whether a shader
+compiled.** `getProgramParameter` + `getShaderParameter`, synchronous
+pipeline-stalling queries, against **219 style layers**. MapLibre is compiling
+programs mid-flight, not at load. Not mentioned anywhere in this repo before.
+
+**FINDING 4 — G1 has never measured `js/controls.js`.** `tickMsAcc`
+(`controls.js:1670`) brackets `writeToMap()`, which ends in `map.jumpTo` — so
+the gate's "controls tick" is the tick **plus the whole MapLibre event cascade
+plus every `move` listener**. Five cruise reps: 8.308 / 19.975 / 21.341 / ~26.7
+/ 39.494 ms, min **8.308 ms vs a 1.5 ms budget**. The tick's own work is
+0.7–5.6 %. The overrun is FINDING 1 wearing controls.js's name.
+
+### Y7 AND Y15, RE-MEASURED — AND NEITHER IS THE TOP OF THE LIST
+
+Both had to be driven through `__fly.outerScan()` / `__fly.trunkScan()` because
+**the app cannot walk**: all three `perf-budget.mjs` walk reps travelled their
+120 m and **ended at altitude 23.8 m, the same digit every rep.** Above
+`TRUNK_ALT` the trunk field switches off, so a lifted walk measures a subsystem
+that is not running; the gate marks G2/G4/G5b `INVALID` and prints no figure.
+That is QUEUE **Y16**, and it is now blocking a measurement as well as a camera.
+
+* **Y7 reproduces and is if anything worse than §109.** 43.3 ms worst instalment
+  on a natural 1,500 m cruise, 40.1 ms over 200 m hops at 1.7 m, 27.2 ms forced
+  after a teleport — min of interleaved reps each time. **It has never come in
+  under its 8 ms budget on any machine state anyone has tested.**
+* **Y15's 841.5 ms DID NOT REPRODUCE.** Worst honest reading **149.8 ms**, and it
+  comes from the 60 m-hop regime — what a real walk pays — not from a teleport
+  (89.9 ms). Still 19x budget and about nine dropped frames, but an order of
+  magnitude below the number that has been in the QUEUE. §109's figure is a
+  stale upper bound from a different tree density.
+
+**Ranked with everything measured: atlas (every frame) -> sky (every camera
+move) -> shader compilation (every cruise frame) -> Y7 (per 200 m) -> Y15 (per
+60 m).**
+
+### BOOT, AND THE PICTURE OF THE COMPLAINT
+
+Cold load, fresh context, cache disabled, min of 3.
+
+* DOMContentLoaded **454 ms**, `window.load` **455 ms**, map `'load'`
+  **2,676 ms**, first `idle` **21,568 ms**.
+* **In the first 8 seconds the main thread is blocked by long tasks for
+  7,072 ms — 88 % of the wall clock — and the worst single task is 2,744 ms,
+  starting at t = 2,652 ms, immediately after map `load`.** Over 28 s: 89 long
+  tasks, 18,010 ms of blocking, and they never stop.
+* **That freeze is NOT JSON parsing.** `payload.md` measures those parses at
+  15–20 ms per file. The cost is what happens after — `addSource`, style
+  construction, the atlas build. That changes where a loading fix should go.
+* Page-scoped transfer **16.34 MB** ungzipped (`data/` 14.99 MB over 102
+  requests). **Not a total**: worker tile fetches are invisible to a page-scoped
+  session (~19 MB per the repo) and the ten third-party requests report 0 bytes
+  because they are opaque. `payload.md` still owns bytes.
+
+`shots/perf/boot-downtown-*.png`, one cold load, same camera, timestamped:
+
+| t | what is on screen |
+|---|---|
+| 1–4 s | the veil, reading "READING THE CITY — 7 %" at 4 s |
+| **8 s** | **veil gone, city completely FLAT** — footprints, no extrusion, no trees, no labels |
+| 16 s | campus and West Campus built, **downtown horizon still empty** |
+| **24 s** | downtown towers finally on the skyline |
+
+**Time to a populated downtown: between 16 and 24 seconds, with a window from
+~5 s to 16 s where the app is interactive and showing a city that is not there.**
+That is QUEUE K1's opening sentence, photographed.
+
+### THE GATE
+
+`perf-budget.mjs` on the merged tree: **RED** — G1 19.975 vs 1.5, G3 43.30 vs 8,
+G5a 2.06 % vs 0.53 %, and G2/G4/G5b `INVALID`. Then **GREEN on the same build**
+with the thresholds raised through the env overrides the script already carries
+(`PB_OUTER_MS=400 PB_TICK_CRUISE=45 PB_DUTY_PCT=30` gives G1 8.308, G3 261.20,
+G5a 3.23 %, PASS). **So the guard is not stuck: watched failing on the real
+overrun and watched passing on the same code.** It should stay red — the budget
+is the number a fix has to hit. This lane could not have changed it anyway.
+
+**Re-run on the FULLY MERGED tree** (`origin/main` `43e3777`, which had gained
+the campus and West Campus storey walls since these measurements were taken, so
+CLAUDE.md rule 2 required it): same verdict shape, same `INVALID` walk, no new
+failure mode — G1 19.867, G3 106.60, G5a 2.77 %, and `harness-drift.mjs` PASS.
+G3's 106.60 is a two-rep minimum at 95–100 % CPU and is not a new figure for Y7;
+what it establishes is that the ring is still over budget after the merge.
+**The one directly comparable number that moved is the style layer count:
+219 → 221.** Two districts of storey walls cost exactly two layers, which is
+`budget.md` G7's whole allowance for a pass — cheap, but the count now has a
+baseline and somebody should set `BUDGET.layersBaseline` so it starts gating.
+
+### WHAT I DID NOT ESTABLISH — read this before treating anything as clean
+
+1. **No fix, no before/after, anywhere.** Write scope was four paths.
+2. **Frame time is not established.** §2 is ceilings under 2–10x noise.
+3. **`querySourceFeatures('austin-buildings')` returned 0 on every sample of
+   every boot rep**, in a browser visibly drawing thousands of buildings from
+   that source. The populated-downtown detector was built on it and never fired;
+   §4.4 was read off the frames instead. **Unexplained, and a live trap.**
+4. **My seeded camera pose was silently overridden** — the README's own "the
+   controller owns the camera" trap. Every boot frame is the DEFAULT spawn, not
+   the downtown pose I asked for.
+5. **The `walk` rows in §2 are a WALL, not a street.** `cond-walk-dusk.png`
+   shows the eye at 1.7 m pressed flat against Walter Webb Hall. That is far
+   cheaper than a street, so those two rows understate walking height. **Found
+   by looking at the frame after four hours of clocks** — the frame is in
+   `shots/perf/` as the evidence that the number is wrong.
+6. **Nothing on a real phone, a weak GPU or a throttled CPU.**
+7. **`js/shadows.js`'s 2,428-hull rebuild and the 4/s tod tick are still
+   predictions** — both need the autoplay clock, and every capture here held `p`
+   constant so the frames would be comparable. **"Autoplay while walking" is
+   still the worst state the app can be in and is still unmeasured.**
+8. The A/B on levers that already ship (`?outer=0`, the `performance` preset,
+   post-process off) was written and never run — the machine ran out of quiet.
+
+---
+
+## 134. Aug 16 2026 — Y12: the near plane comes in from 0.72 m to 0.12 m at walking height, and the flyover does not move one bit (acer lane, n4-mobile)
 
 **Branch `acer/n4-mobile`, cut from `origin/main` (`6a63b4f`). NOT MERGED —
 pushed for review.** Files written: `js/app.js` (near plane only, two hunks),
