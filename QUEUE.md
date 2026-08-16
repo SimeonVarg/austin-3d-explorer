@@ -1560,22 +1560,45 @@ is byte-identical. `what-we-can-honestly-say.md` §11 carries the revision.
 string in `js/wayfind.js` living neither in `SAY` nor on §11's permitted list,
 and gate S had already made it unreachable.
 
-**ZC-NEW. TWO GATES ON PR #184 ARE UNRUN, AND IT IS OPEN BECAUSE OF THEM.**
-The machine went from 13 chrome / 0 node to **20 chrome / 1 node / 3 python**
-during the pass, with another lane mid-way through the frame-time measurement,
-so no browser was opened at all. `harness-drift` PASS (29 = 29), the route
-regression PASS and the 19 bake gates are all data-only and green. **Not
-measured: (1) the honesty scan of the RENDERED DOM against §12's forbidden
-families, (2) the feature-off proof and the six hero poses at their
-cross-launch noise floor.** The diff only ever *removes* a rendered string and
-`avoidShown` evaluates byte-identical — but that is the source, and the gate
-says the DOM. **One lane with a quiet machine needs about twenty minutes; the
-data half is final and will not move underneath it.**
+**ZC-NEW. THE GATES WERE RUN, AND ONE IS RED — PR #184 IS OPEN ON A TASTE
+CALL, NOT A DEFECT.** The machine went quiet at 07:40 (13 chrome, 0 node,
+CPU 11 %) so the browser gates were taken after all, on port 8411.
 
-*Instrument note for whoever runs them:* `scripts/verify/harness-drift.mjs`
-must be run from the **repo root**, not from `scripts/verify/` as that
-directory's README says — it resolves `index.html` against the working
-directory and throws ENOENT otherwise.
+```
+harness-drift.mjs                      PASS   29 scripts = 29 scripts
+bake gates                             19 of 19 green
+--regress                              19 of 19 PASS, all walls 0
+wfgate.mjs  behaviour + honesty DOM    34 pass, 0 fail
+n8gate.mjs  this pass's own gates      14 pass, 0 fail
+n8off.mjs   feature off + hero poses   inert PASS, H4 at floor, H1 RED
+```
+
+**The feature is still inert with no `?walk=1`:** zero wayfind layers, zero
+sources, zero `#wf-*` DOM nodes, `WAYFIND.on === false`, zero fetches of
+`walk_graph.json` or `ut_buildings.json` — measured on both arms.
+
+**The hero spawn pose is NOT at the noise floor.** Four interleaved launches,
+base arm serving `origin/main`'s `wayfind.js` + `walk_graph.json` +
+`entrances.geojson`:
+
+```
+pose        own cross-launch floor    candidate vs origin/main
+H4-city     over24 0                  over24 0, max delta 4   <- at the floor
+H1-spawn    over24 0 on BOTH arms     over24 447, max 102, identical in both reps
+```
+
+447 px is 0.04 % of the frame and the magenta mask says what it is: **scattered
+single doorway pieces on distant West Campus and campus-edge buildings**, a few
+pixels each — the entrance half of the branch rendering, exactly as HANDOFF
+§141 predicted. Nothing structural, nothing in the wrong place.
+
+**FOR SIMEON, and it is the only thing on this branch that needs him.** The new
+doorways are faintly visible from the spawn hero pose. Look at
+`shots/walk/n8/1-hero-spawn-the-447-changed-pixels-in-magenta.png` and frames
+2-5 (before/after crops on the historic core and the Dell Med block, which
+nobody in this project had ever seen up close) and say whether the city should
+carry them. **If yes, PR #184 merges as-is and 135 of 198 buildings become
+walkable.** Everything else on it is green and the data half is final.
 
 **ZD. Nothing in this feature has been on a real phone.** 393x852 in headless
 Chrome is not an iPhone: no real touch, no real DPR behaviour, no Safari.
