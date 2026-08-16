@@ -182,6 +182,176 @@ CODE_REF_JOINS = {
     "BMS": "EAS",
 }
 
+
+# ── Where a register code IS on the map, when it has no door ──────────────
+#
+# A stranded code used to be reported as "no door in any source, no matching
+# footprint", which is a guess dressed as a finding: it came from fuzzy
+# token-matching the register's name against footprint names, and a fuzzy
+# miss and a genuinely unmapped building read identically.
+#
+# OSM tags 177 building ways on campus with a `ref`, and 134 of those refs
+# ARE register codes.  That is a direct, surveyed answer to "where is this
+# building", independent of any name string.  Frozen below as
+# (lon, lat, OSM name) from the same Overpass extract the entrance bake
+# uses (`way["building"](bbox); out tags center;`, bbox
+# 30.2760,-97.7480,30.2960,-97.7220, fetched 2026-08-04), so this file does
+# not import another lane's script at bake time.
+#
+# It is used for DIAGNOSIS ONLY.  Nothing here creates a door, a node or an
+# edge, and no route can reach any of it: a centroid is not an entrance, and
+# routing to one would put the client's "Entrances are on this side" on a
+# building whose entrances nobody has mapped.  What it buys is the
+# difference between "78 buildings do not route" and a per-building reason
+# that names the nearest real door and says whose it is.
+OSM_REF_XY = {
+    "ADH": (-97.740648, 30.291534, "Almetris Duren Hall"),
+    "AFP": (-97.726283, 30.285300, "Athletic Fields Pavilion"),
+    "AHG": (-97.737730, 30.288528, "Anna Hiss Gymnasium"),
+    "ANB": (-97.731018, 30.278246, "Arno Nowotny Building"),
+    "AND": (-97.739852, 30.288229, "Andrews Dormitory"),
+    "ART": (-97.732953, 30.286160, "Art Building and Museum"),
+    "ASE": (-97.737561, 30.291133, "Aerospace Engineering Building"),
+    "BAT": (-97.738921, 30.284805, "Batts Hall"),
+    "BBR": (-97.731732, 30.280407, "Basketball and Rowing Training Facility"),
+    "BEL": (-97.733512, 30.283746, "L. Theo Bellmont Hall"),
+    "BEN": (-97.739007, 30.283960, "Benedict Hall"),
+    "BHD": (-97.735972, 30.283120, "Brackenridge Hall Dormitory"),
+    "BIO": (-97.739762, 30.287218, "Biological Laboratories"),
+    "BLD": (-97.739484, 30.288535, "Blanton Dormitory"),
+    "BMA": (-97.737417, 30.280984, "Blanton Museum of Art"),
+    "BME": (-97.738506, 30.289119, "Biomedical Engineering Building"),
+    "BRB": (-97.736733, 30.285225, "Bernard and Audre Rapoport Building"),
+    "BRG": (-97.736220, 30.280918, "Brazos Garage"),
+    "BTL": (-97.740343, 30.285410, "Battle Hall"),
+    "BUR": (-97.738514, 30.288868, "Burdine Hall"),
+    "BWY": (-97.738222, 30.290792, "Bridgeway Building"),
+    "CAL": (-97.740179, 30.284490, "Calhoun Hall"),
+    "CBA": (-97.737855, 30.284211, "McCombs School of Business"),
+    "CCJ": (-97.730456, 30.288051, "John B. Connally Center for Justice"),
+    "CDA": (-97.725670, 30.282975, "Comal Child Development Center Annex"),
+    "CDL": (-97.733045, 30.278768, "Collections Deposit Library"),
+    "CMA": (-97.740737, 30.289418, "Jesse H. Jones Communication Center - A"),
+    "CMB": (-97.741167, 30.289199, "Jesse H. Jones Communication Center - B"),
+    "CML": (-97.725250, 30.282933, "Comal Child Development Center"),
+    "CPE": (-97.736139, 30.290234, "Chemical and Petroleum Engineering Building"),
+    "CRD": (-97.740096, 30.288697, "Carothers Dormitory"),
+    "CRH": (-97.733312, 30.288542, "Creekside Residence Hall"),
+    "D21": (-97.741345, 30.283383, "Dobie Center"),
+    "DEV": (-97.723586, 30.287287, "Development Center"),
+    "DFA": (-97.731770, 30.285851, "E. William Doty Fine Arts Building"),
+    "E26": (-97.736294, 30.292577, "University Sign Shop"),
+    "ECJ": (-97.735516, 30.288992, "Ernest Cockrell, Jr. Hall"),
+    "EER": (-97.735322, 30.288354, "Engineering Education and Research Center"),
+    "EPS": (-97.736670, 30.285770, "E. P. Schoch Building"),
+    "ETC": (-97.735418, 30.289898, "Engineering Teaching Center II"),
+    "FAC": (-97.740432, 30.286286, "Peter T. Flawn Academic Center"),
+    "FC1": (-97.722590, 30.284541, "Facilities Complex Building 1"),
+    "FC2": (-97.723100, 30.283920, "Facilities Complex Building 2"),
+    "FC3": (-97.723658, 30.284697, "Facilities Complex Building 3"),
+    "FC4": (-97.723411, 30.284323, "Facilities Complex Building 4"),
+    "FC5": (-97.724593, 30.283636, "Facilities Complex Building 5"),
+    "FC6": (-97.725837, 30.283448, "Facilities Complex Building 6"),
+    "FC7": (-97.726442, 30.283335, "Facilities Complex Building 7"),
+    "FC8": (-97.723923, 30.285393, "Facilities Complex Building 8"),
+    "FDH": (-97.732559, 30.289430, "J. Frank Dobie House"),
+    "FNT": (-97.737999, 30.287849, "Larry R. Faulkner Nano Science and Technology Building"),
+    "GAR": (-97.738495, 30.285138, "Garrison Hall"),
+    "GDC": (-97.736446, 30.286246, "Bill and Melinda Gates Computer Science Complex"),
+    "GEA": (-97.739217, 30.287716, "Mary E Gearing Hall"),
+    "GEB": (-97.738625, 30.286340, "Dorothy Gebauer Building"),
+    "GLT": (-97.735741, 30.287519, "Gary L. Thomas Energy Engineering Building"),
+    "GRE": (-97.736283, 30.283988, "Gregory Gymnasium"),
+    "GSB": (-97.738344, 30.284179, "Graduate School of Business Building"),
+    "GUG": (-97.743236, 30.279526, "Guadalupe Garage"),
+    "GWB": (-97.739945, 30.287833, "Gordon-White Building"),
+    "HCG": (-97.735393, 30.276500, "Health Center Garage"),
+    "HDB": (-97.734685, 30.278121, "Health Discovery Building"),
+    "HMA": (-97.740627, 30.286879, "Hogg Memorial Auditorium"),
+    "HRC": (-97.741229, 30.284335, "Harry Ransom Center"),
+    "HRH": (-97.740194, 30.284063, "Homer Rainey Hall"),
+    "HSM": (-97.740771, 30.288913, "William Randolph Hearst Building"),
+    "HTB": (-97.735119, 30.277189, "Health Transformation Building"),
+    "IPF": (-97.726561, 30.286292, "Indoor Practice Facility"),
+    "JCD": (-97.735925, 30.282353, "Jester Dormitory East"),
+    "JES": (-97.736847, 30.282888, "Beauford H. Jester Center"),
+    "JGB": (-97.735601, 30.285872, "Jackson Geological Sciences Building"),
+    "JHH": (-97.732025, 30.278364, "John W. Hargis Hall"),
+    "JON": (-97.731734, 30.288597, "Jesse H. Jones Hall"),
+    "LBJ": (-97.729285, 30.285895, "Lyndon Baines Johnson Presidential Library and Museum"),
+    "LCH": (-97.740868, 30.288560, "Littlefield Carriage House"),
+    "LDH": (-97.735972, 30.282634, "Longhorn Dining Facility"),
+    "LFH": (-97.740778, 30.288117, "Littlefield House"),
+    "LTD": (-97.739728, 30.289307, "Littlefield Dormitory"),
+    "LTH": (-97.735225, 30.285952, "Laboratory Theatre Building"),
+    "MAG": (-97.730985, 30.282792, "Manor Garage"),
+    "MAI": (-97.739359, 30.286010, "Main Building"),
+    "MBB": (-97.737280, 30.288479, "Louise and James Robert Moffett Molecular Biology Building"),
+    "MCA": (-97.730652, 30.280975, "Moody Center"),
+    "MEZ": (-97.738958, 30.284374, "Mezes Hall"),
+    "MFH": (-97.731111, 30.281997, "Richard Mithoff Track and Soccer Fieldhouse"),
+    "MHD": (-97.735424, 30.283685, "Moore-Hill Dormitory"),
+    "MRH": (-97.730645, 30.287255, "Music Recital Hall"),
+    "MSB": (-97.725699, 30.282747, "Mail Services Building"),
+    "N24": (-97.743450, 30.288407, "2400 Nueces"),
+    "NEZ": (-97.732428, 30.284881, "Red McCombs Red Zone"),
+    "NHB": (-97.738017, 30.287654, "Norman Hackerman Building"),
+    "NMS": (-97.737555, 30.289201, "Neural Molecular Science Building"),
+    "PAC": (-97.731028, 30.286296, "College of Fine Arts Performing Arts Center"),
+    "PAI": (-97.738763, 30.286971, "T. S. Painter Hall"),
+    "PAR": (-97.740106, 30.284903, "Parlin Hall"),
+    "PAT": (-97.736424, 30.288008, "J. T. Patterson Laboratories Building"),
+    "PCL": (-97.738194, 30.282777, "Perry-Casta\u00f1eda Library"),
+    "PHD": (-97.735031, 30.282384, "Prather Hall Dormitory"),
+    "PHR": (-97.738596, 30.288156, "Pharmacy Building"),
+    "PMA": (-97.736320, 30.288846, "Physics, Math, and Astronomy Building"),
+    "POB": (-97.736565, 30.286825, "O\u2019Donnell Building for Applied Computational Engineering and Sciences"),
+    "RHD": (-97.735166, 30.283006, "Roberts Hall Dormitory"),
+    "RRH": (-97.741454, 30.282121, "Robert B. Rowling Hall"),
+    "RSC": (-97.732387, 30.281534, "Recreational Sports Center"),
+    "SAG": (-97.742661, 30.288686, "San Antonio Garage"),
+    "SEA": (-97.737345, 30.290070, "Sarah M. and Charles E. Seay Building"),
+    "SEZ": (-97.732655, 30.282737, "South End Zone"),
+    "SJG": (-97.732877, 30.287731, "San Jacinto Garage"),
+    "SJH": (-97.734331, 30.282466, "San Jacinto Residence Hall"),
+    "SRH": (-97.728865, 30.284995, "Sid Richardson Hall"),
+    "SSB": (-97.738456, 30.290110, "Student Services Building"),
+    "SUT": (-97.740832, 30.284955, "Sutton Hall"),
+    "SW7": (-97.736356, 30.290810, "2617 Speedway"),
+    "SWG": (-97.737081, 30.291168, "Speedway Garage"),
+    "SZB": (-97.738763, 30.281677, "George I. Sanchez Building"),
+    "TCC": (-97.729094, 30.287006, "Joe C. Thompson Conference Center"),
+    "TMM": (-97.732365, 30.286981, "Texas Memorial Museum"),
+    "TNH": (-97.730796, 30.288539, "Townes Hall"),
+    "TRG": (-97.733880, 30.279084, "Trinity Garage"),
+    "TSC": (-97.733496, 30.279823, "Lee and Joe Jamail Texas Swimming Center"),
+    "TSG": (-97.738546, 30.291272, "27th Street Garage"),
+    "UA9": (-97.738682, 30.290310, "2609 University Avenue"),
+    "UIL": (-97.723647, 30.283316, "University Interscholastic League"),
+    "UNB": (-97.741136, 30.286651, "Union Building"),
+    "UTA": (-97.742846, 30.279308, "UT Administration Building"),
+    "UTC": (-97.738758, 30.283028, "University Teaching Center"),
+    "UTX": (-97.734475, 30.284335, "Etter-Harbin Alumni Center"),
+    "WAG": (-97.737604, 30.285105, "Waggener Hall"),
+    "WAT": (-97.733447, 30.278494, "Arthur P. Watson House"),
+    "WCH": (-97.738405, 30.286087, "Will C. Hogg Building"),
+    "WCP": (-97.736454, 30.284902, "William C. Powers, Jr. Student Activity Center"),
+    "WIN": (-97.734487, 30.285902, "F Loren Winship Drama Building"),
+    "WMB": (-97.740628, 30.285435, "West Mall Office Building"),
+    "WWH": (-97.741858, 30.289308, "Walter Webb Hall"),
+}
+
+# How near a mapped door has to be to a stranded code's OSM position before
+# the report calls it worth a human look.  Nothing routes on this; it only
+# splits the stranded list into "nothing near it" and "check this one".
+DOOR_EVIDENCE_M = 40.0
+
+# Gate T routes every West Campus tower to this register code on the finished
+# graph.  WEL is the far side of campus from West Campus, so a tower that can
+# reach it can reach anything on the main component — the point of the gate is
+# the crossing, not this particular building.
+WC_ROUTE_TARGET = "WEL"
+
 # Edge flag bits (graph.md §7).
 F_STEPS = 1 << 0
 F_CROSSING = 1 << 1
@@ -212,6 +382,11 @@ VALIDATION_PAIRS = [
     ("GDC", "BIO"), ("WEL", "TSG"), ("GDC", "DMC"), ("GRE", "MNC"),
     ("GRE", "NEZ"), ("GRE", "TCP"), ("GRE", "AF2"), ("JES", "BMS"),
     ("JES", "BMK"),
+    # The Moody Center's OSM-surveyed main door, which the roof-blocker fix
+    # recovered.  It is the pair worth freezing because it is the only one
+    # in this list whose destination the interface may call "The main
+    # entrance" on the strength of a survey rather than a ranking.
+    ("JES", "MCA"),
 ]
 
 # Frozen 2026-08-15 off the audited recovery bake (18 pairs), main door to
@@ -231,11 +406,18 @@ VALIDATION_PAIRS = [
 #            The route sheds 3 staircases (5 -> 2) for 15 extra metres.
 REGRESS_BASELINE = {
     "JES>GDC": 471.8, "JES>WEL": 525.2, "PCL>RLP": 518.3, "GRE>MAI": 540.3,
-    "BUR>CBA": 788.7, "STD>MAI": 1018.0, "21 Rio>WEL": 1015.1,
+    "BUR>CBA": 789.2, "STD>MAI": 1018.0, "21 Rio>WEL": 1015.1,
     "The Castilian>GDC": 697.8, "PCL>JES": 156.2,
-    "GDC>BIO": 405.8, "WEL>TSG": 646.1, "GDC>DMC": 806.1, "GRE>MNC": 975.8,
+    "GDC>BIO": 405.7, "WEL>TSG": 646.1, "GDC>DMC": 806.1, "GRE>MNC": 975.8,
     "GRE>NEZ": 708.7, "GRE>TCP": 522.6, "GRE>AF2": 1505.1, "JES>BMS": 234.1,
     "JES>BMK": 187.0,
+    # Two rows moved by half a metre when the roof-blocker fix gave the Moody
+    # Center four more anchors: anchoring splices new nodes into existing
+    # edges, so a shared edge is measured in two pieces instead of one and
+    # the sum differs in the third decimal.  BUR>CBA 788.7 -> 789.2 (+0.06 %)
+    # and GDC>BIO 405.8 -> 405.7 are that, not a different route: both were
+    # re-audited, walls 0, same door pair, same path length in nodes.
+    "JES>MCA": 827.2,
 }
 
 # Routes that are audited as failures today and are NOT graph bugs to fix by
@@ -507,11 +689,16 @@ def build_obstacles():
     return bgrid, rgrid, polys, nroad, bnames, bclass
 
 
-def crosses_building(bgrid, ax, ay, bx, by, exempt=()):
+def crosses_building(bgrid, ax, ay, bx, by, exempt=(), bclass=None):
+    """Boundary-crossing test.  `bclass` is optional and, when given, applies
+    WALL_IGNORE_CLASSES: a canopy is not a wall.  It defaults to None so the
+    SNAP guard keeps its deliberately stricter reading (see the constant)."""
     n = 0
     hit = set()
     for (p, q, bid) in bgrid.near_seg(ax, ay, bx, by):
         if bid in exempt:
+            continue
+        if bclass is not None and bclass.get(bid) in WALL_IGNORE_CLASSES:
             continue
         if segs_cross(ax, ay, bx, by, p[0], p[1], q[0], q[1]):
             n += 1
@@ -925,10 +1112,18 @@ def build_doors():
     return out
 
 
-def anchor_doors(G, doors, main, bgrid, road_keys=None):
+def anchor_doors(G, doors, main, bgrid, road_keys=None, bclass=None):
     """Project each door onto the nearest main-component segments.
 
-    Three traps, all honoured here:
+    Four traps, all honoured here:
+      * a ROOF is not a wall.  `building_class: roof` footprints are canopies
+        and arena roof planes; the rest of this file already says so and
+        already exempts them (find_through_edges, edge_clips_building), but
+        this test did not, and that alone cost the Moody Center every one of
+        its links — including its single OSM-SURVEYED main door, 9.4 m from
+        the network, rejected because the straight line to it passed under an
+        unnamed roof plane.  A door whose only honest wording is "The main
+        entrance" was being thrown away by a canopy;
       * link to the nearest segment ON THE MAIN COMPONENT, not the nearest
         segment — 25 doors have an island closer than the main network;
       * if the straight link crosses a DIFFERENT building, take the next
@@ -999,7 +1194,7 @@ def anchor_doors(G, doors, main, bgrid, road_keys=None):
                         any(key[0] in B or key[1] in B for B in balls):
                     continue      # same approach as an earlier anchor
                 nb, hits = crosses_building(bgrid, px, py, qx, qy,
-                                            exempt=(dr["bid"],))
+                                            exempt=(dr["bid"],), bclass=bclass)
                 if nb:
                     blocked_ds.append(d)
                     used_edges.add(key)   # never retry a blocked link
@@ -1183,7 +1378,8 @@ def bake(verbose=True):
     _, groups, sizes, main = components(len(nx), edges.keys())
     comps = len(sizes)
 
-    an = anchor_doors(G, doors, main, bgrid, road_keys=road_keys)
+    an = anchor_doors(G, doors, main, bgrid, road_keys=road_keys,
+                      bclass=bclass)
     through, clip_events = find_through_edges(edges, nx, ny, bgrid, polys, bclass)
 
     # --- code index: refs (split on ';'), nm aliases, then ref joins -------
@@ -1238,15 +1434,46 @@ def bake(verbose=True):
 
     reg_by_code = {b["ref"]: b for b in reg}
     stranded = []
+    strand_kind = defaultdict(int)
     for code in missing:
         idxs = code_doors.get(code, [])
         if idxs:
             best = min((doors[i].get("_raw_link") or 1e9) for i in idxs)
+            strand_kind["doors exist but none is within %.0f m of the walked "
+                        "network" % DOOR_LINK_MAX_M] += 1
             stranded.append((code, "doors exist, none reachable "
                             "(nearest network %s)" %
                             (("%.0f m" % best) if best < 1e9
                              else "beyond 30 m")))
             continue
+
+        # OSM's own ref tag is a surveyed answer to "where is this building",
+        # and it does not depend on any name string agreeing with any other.
+        # If we have it, say how far the NEAREST MAPPED DOOR is and whose it
+        # is — that is the whole reason, in one line, per building.
+        pos = OSM_REF_XY.get(code)
+        if pos:
+            px, py = xy(pos[0], pos[1])
+            near, nd = None, 1e9
+            for dr in doors:
+                dx, dy = xy(dr["lon"], dr["lat"])
+                d = dist_m(px, py, dx, dy)
+                if d < nd:
+                    nd, near = d, dr
+            owner = (near["nm"] or near["ref"] or "an unnamed building") \
+                if near else "nothing"
+            if nd <= DOOR_EVIDENCE_M:
+                strand_kind["on the map, and a mapped door lies within "
+                            "%.0f m — worth a human look" % DOOR_EVIDENCE_M] += 1
+            else:
+                strand_kind["on the map, but the nearest mapped door is "
+                            "further than %.0f m and belongs to another "
+                            "building" % DOOR_EVIDENCE_M] += 1
+            stranded.append((code, "OSM maps it as '%s'; nearest mapped door "
+                             "is %.0f m away and it is %s's"
+                             % (pos[2] or reg_by_code[code]["name"], nd, owner)))
+            continue
+
         rt = _toks(reg_by_code[code]["name"])
         hit = None
         for nm in fp_names:
@@ -1254,12 +1481,15 @@ def bake(verbose=True):
             if ft and len(rt & ft) / max(len(rt | ft), 1) >= 0.5:
                 hit = nm
                 break
+        strand_kind["not on the map at all: no OSM ref, and no footprint "
+                    "carries the register's name"] += 1
         if hit:
-            stranded.append((code, "no door in any source; nearest "
-                            "name-match on the map: '%s'" % hit))
+            stranded.append((code, "no OSM ref; a footprint named '%s' is the "
+                             "closest the names come, and it has no door"
+                             % hit))
         else:
-            stranded.append((code, "no door in any source, no matching "
-                            "footprint"))
+            stranded.append((code, "no OSM ref and no footprint whose name "
+                             "matches the register"))
 
     # --- POIs --------------------------------------------------------------
     pgrid = Grid(25.0)
@@ -1312,6 +1542,47 @@ def bake(verbose=True):
     for i, dr in enumerate(doors):
         if dr["nm"] in wc_names:
             wc_doors[dr["nm"]].append(i)
+
+    # --- FINDABLE MUST MEAN ROUTABLE (gates S and T) -----------------------
+    #
+    # QUEUE Z4's real damage was not that six towers were missing.  It was
+    # the state in between: a name the search box offers, that then fails
+    # when the student presses Enter.  That is worse than "not found",
+    # because it fails AFTER they believe it worked, and it fails at the
+    # moment they are already walking.  So the invariant is asserted here
+    # rather than hoped for: everything this file makes findable — every key
+    # in `code`, every name in `wc` — must have at least one door with an
+    # anchor, and every anchor must sit on the main component.  (Codes the
+    # graph does NOT ship are a different, honest state: the client merges
+    # the register in and answers `<code> is not walkable in this build
+    # yet`.  Findable-and-refusing is fine.  Findable-and-failing is not.)
+    def _anchored(idxs):
+        return [i for i in idxs if doors[i].get("anchors")]
+
+    findable = [("code:" + k, v) for k, v in code_doors.items()] + \
+               [("wc:" + k, v) for k, v in wc_doors.items()]
+    unroutable_entries = [k for k, v in findable if not _anchored(v)]
+    off_main_anchors = [k for k, v in findable
+                        for i in _anchored(v)
+                        for a in doors[i]["anchors"] if a not in main]
+
+    # Gate T is the end-to-end version of the same claim, driven rather than
+    # argued: every West Campus tower is routed to WC_ROUTE_TARGET on the
+    # finished graph, and the route has to come out.
+    adj_chk = build_adj(edges, len(nx))
+    tgt_doors = _anchored(code_doors.get(WC_ROUTE_TARGET, []))
+    wc_routed, wc_failed = {}, []
+    for nm_ in sorted(wc_doors):
+        got = None
+        for i in _anchored(wc_doors[nm_]):
+            for j in tgt_doors:
+                r = route(adj_chk, doors[i], doors[j])
+                if r and (got is None or r["total"] < got):
+                    got = r["total"]
+        if got is None:
+            wc_failed.append(nm_)
+        else:
+            wc_routed[nm_] = got
 
     # --- flags: mark off-main ---------------------------------------------
     for key, rec in edges.items():
@@ -1439,12 +1710,17 @@ def bake(verbose=True):
 
     ctx = dict(G=G, edges=edges, doors=doors, main=main, sizes=sizes,
                through_edges=through, clip_events=clip_events, names=bnames,
+               bclass=bclass,
                zero_w=zero_w, deg0=deg0,
                health=health, raw=raw, gz=gz, links=an["links"],
                missing=missing, routable=routable_reg, code_doors=code_doors,
                alias_hits=alias_hits, alias_bids=alias_bids,
                join_hits=join_hits, road=ra, road_keys=road_keys,
-               stranded=stranded, bgrid=bgrid, polys=polys,
+               stranded=stranded, strand_kind=strand_kind,
+               unroutable_entries=unroutable_entries,
+               off_main_anchors=off_main_anchors,
+               wc_routed=wc_routed, wc_failed=wc_failed,
+               bgrid=bgrid, polys=polys,
                elapsed=time.time() - t0, kind_len=G["kind_len"])
 
     if verbose:
@@ -1502,7 +1778,10 @@ def print_health(c):
     P("    nm aliases used      " + ", ".join("%s:%d" % kv for kv in sorted(c["alias_hits"].items())))
     P("    ref joins used       " + ", ".join("%s<-%s:%d" % (k, CODE_REF_JOINS[k], v)
                                               for k, v in sorted(c["join_hits"].items())))
-    P(f"    NOT routable ({len(c['missing'])}), and why each one is:")
+    P(f"    NOT routable ({len(c['missing'])}), grouped by reason:")
+    for why, n in sorted(c["strand_kind"].items(), key=lambda kv: -kv[1]):
+        P("      %3d  %s" % (n, why))
+    P("    and one line per building, so no number stands in for a finding:")
     for code, why in c["stranded"]:
         P("      %-5s %s" % (code, why))
     P("")
@@ -1575,6 +1854,16 @@ def gates(c):
         ("O  worst door link <= %.0f m" % DOOR_LINK_MAX_M,
          (max(links) if links else 0) <= DOOR_LINK_MAX_M,
          "%.1f m" % (max(links) if links else 0)),
+        ("S  every findable entry is routable  (QUEUE Z4's real defect)",
+         not c["unroutable_entries"] and not c["off_main_anchors"],
+         "%d entries with no anchored door, %d anchors off the main component"
+         % (len(c["unroutable_entries"]), len(c["off_main_anchors"]))),
+        ("T  every West Campus tower routes to %s, driven" % WC_ROUTE_TARGET,
+         not c["wc_failed"] and len(c["wc_routed"]) == 24,
+         "%d of %d routed%s" % (len(c["wc_routed"]),
+                                len(c["wc_routed"]) + len(c["wc_failed"]),
+                                (", FAILING " + ", ".join(c["wc_failed"]))
+                                if c["wc_failed"] else "")),
     ]
     P("  GATES")
     bad = 0
@@ -1664,9 +1953,20 @@ def audit(c, adj, r):
             if live:
                 walls += 1
                 hit |= set(live)
-    for i in (0, len(pts) - 2):        # the two unmapped last legs
+    # The two unmapped last legs.  A ROOF is not a wall here either: the
+    # Moody Center's OSM-surveyed main door is 9.4 m from the sidewalk and
+    # that 9.4 m passes under an 8 m canopy drawn as its own footprint.
+    # Counting it as a wall would either throw the only surveyed door on the
+    # building away or report a wall crossing that is a walk under an awning.
+    # It is counted separately instead, so it is exempted and still visible.
+    canopy = 0
+    for i in (0, len(pts) - 2):
         n, h = crosses_building(c["bgrid"], pts[i][0], pts[i][1],
-                                pts[i + 1][0], pts[i + 1][1], exempt=exempt)
+                                pts[i + 1][0], pts[i + 1][1], exempt=exempt,
+                                bclass=c["bclass"])
+        nall, _ = crosses_building(c["bgrid"], pts[i][0], pts[i][1],
+                                   pts[i + 1][0], pts[i + 1][1], exempt=exempt)
+        canopy += nall - n
         if n:
             walls += n
             hit |= h
@@ -1689,7 +1989,8 @@ def audit(c, adj, r):
             back += prev - prog
         prev = prog
     return dict(walls=walls, bldgs=len(hit), straight=straight, detour=detour,
-                off=off, back=back, decked=decked, overshoot=overshoot)
+                off=off, back=back, decked=decked, overshoot=overshoot,
+                canopy=canopy)
 
 
 def do_routes(c):
@@ -1734,6 +2035,8 @@ def do_routes(c):
           f"   {r['stairs']:>2}    {r['signals']:>2}   {au['detour']:.2f}x"
           f"  {au['off']:5.0f} m {au['back']:5.0f} m {au['overshoot']:5.0f} m"
           f" {au['walls']:>4}  {au['decked']:>3}  {rany['total']:6.0f} m"
+          + ("   (last leg passes under %d canopy/ies)" % au["canopy"]
+             if au["canopy"] else "")
           + ("   <-- " + ", ".join(bad) if bad else ""))
         if bad:
             fails.append((label, ", ".join(bad)))
