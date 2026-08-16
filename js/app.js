@@ -26,6 +26,93 @@
   // frame. Bearing 250 faces the golden-hour sun (az ≈ 247–256 near p = 0.5)
   // instead of leaving it behind the camera. Both are one-line taste edits.
   const SPAWN = { center: [-97.7434, 30.2857], zoom: 16.5, pitch: 74, bearing: 250 };
+
+  // ── Y12 — THE NEAR PLANE, AND WHY IT ONLY MOVES NEAR THE PAVEMENT ─
+  //
+  // MapLibre derives its near plane from the VIEWPORT, not from how close you
+  // are standing to anything: `_nearZ = height / 50`, in the projection's pixel
+  // units. Convert that to metres and it scales with the camera distance D, so
+  // at a flyover altitude it is tens of metres in front of a city that is
+  // hundreds of metres away — invisible. At 1.7 m eye height D collapses to
+  // ~30 m and the same rule puts the near plane 0.35–1.0 m in front of your
+  // face. Anything nearer is cut, and because fill-extrusions are back-face
+  // culled, cutting a surface's near face does not show you its inside — IT
+  // SHOWS YOU WHAT IS BEHIND IT. That is why a live oak you walk under loses
+  // its crown and a doorway you step into loses its surround
+  // (docs/mobile/driving-at-eye-level.md §2; HANDOFF §108).
+  //
+  // THE TRADE, STATED BEFORE THE VALUES. A nearer near plane costs depth
+  // precision everywhere, because depth resolution goes with near/far. So this
+  // does NOT set one small value: it scales the near plane with altitude, is a
+  // STRICT NO-OP above WALK_NEAR.ALT_HI, and never pushes the near plane
+  // further out than MapLibre's own answer. Nothing scripted in this app flies
+  // below 113.9 m (js/controls.js: SPAWN is 162.9 m), so the intro, the tour,
+  // the default pose and every hero frame are above ALT_HI by a factor of
+  // three and are byte-identical by construction, not by hope.
+  //
+  // Three taste values, all overrulable in one line (CLAUDE.md rule 11):
+  const WALK_NEAR = {
+    ALT_LO: 2.0,    // m — at or below this the near plane is exactly NEAR_M
+    ALT_HI: 40.0,   // m — at or above this MapLibre's own value is untouched
+    NEAR_M: 0.12,   // m — the near plane you get standing on a pavement
+  };
+  window.__walkNear = WALK_NEAR;   // read/overrule from the verify harness
+
+  /**
+   * Hook the transform's own near/far calculation rather than calling the
+   * public `overrideNearFarZ()`.
+   *
+   * WHY, because the public call looks like the right answer and is not:
+   * `overrideNearFarZ(near, far)` sets BOTH planes and latches
+   * `autoCalculateNearFarZ` off, so the FAR plane then freezes at whatever it
+   * was when you called it and the city clips out behind you the moment the
+   * camera climbs. There is no public setter for near alone. So: let MapLibre
+   * compute both exactly as it always has, then adjust `_nearZ` after it, and
+   * bail out untouched if anything has taken the override for itself.
+   *
+   * Patched on the transform's PROTOTYPE, not on the instance, and this is the
+   * one thing here that was found by looking rather than by reasoning: an
+   * instance patch applied at construction reads as installed and does
+   * nothing, because **MapLibre replaces the whole transform when the style
+   * loads.** Measured — the constructor name changes and the patched instance
+   * is no longer `map.transform`. So it is applied to the class, once, and
+   * re-asserted on `style.load` in case a later style swap changes the class
+   * too. Cloned transforms (the easing and `cameraForBounds` paths) inherit it
+   * and are unaffected in practice, because every scripted pose in this app is
+   * far above ALT_HI, where this function returns without touching anything.
+   */
+  function installWalkingNearPlane(map) {
+    const t = map && map.transform;
+    if (!t || typeof t._calculateNearFarZIfNeeded !== 'function') return false;
+    const proto = Object.getPrototypeOf(t);
+    if (!proto || proto.__walkNearInstalled) return true;
+    const orig = proto._calculateNearFarZIfNeeded;
+    proto._calculateNearFarZIfNeeded = function (camDist, pitchRad, offset) {
+      orig.call(this, camDist, pitchRad, offset);
+      const h = this._helper;
+      // Somebody else owns the planes this frame — leave both alone.
+      if (!h || !h.autoCalculateNearFarZ) return;
+      const ppm = h._pixelPerMeter;
+      if (!(ppm > 0)) return;
+      // The transform's own altitude answer, above ground, in metres.
+      const alt = this.getCameraAltitude() - (this.elevation || 0);
+      // `!(alt < HI)` and not `alt >= HI`: a NaN altitude must take the
+      // untouched branch, never the shortening one.
+      if (!(alt < WALK_NEAR.ALT_HI)) return;
+      const defM = h._nearZ / ppm;               // MapLibre's answer, in metres
+      if (!(defM > WALK_NEAR.NEAR_M)) return;    // already nearer than we ask
+      const x = (alt - WALK_NEAR.ALT_LO) /
+                (WALK_NEAR.ALT_HI - WALK_NEAR.ALT_LO);
+      const u = x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);   // smoothstep
+      // Blend in LOG space. A near plane is a scale, not a length: a linear
+      // ramp from 0.12 to 3 m spends nine tenths of its travel in the range
+      // where the difference is invisible and steps hard at the bottom.
+      // pow(k, 0) is exactly 1, so u = 1 returns MapLibre's value bit for bit.
+      h._nearZ = defM * Math.pow(WALK_NEAR.NEAR_M / defM, 1 - u) * ppm;
+    };
+    proto.__walkNearInstalled = true;
+    return true;
+  }
   // ?p=0.32 overrides the opening hour for filming without touching the UI.
   const urlP = parseFloat(new URLSearchParams(window.location.search).get('p'));
   const DEFAULT_P = (isFinite(urlP) && urlP >= 0 && urlP <= 1) ? urlP
@@ -319,6 +406,10 @@
       canvasContextAttributes: { antialias: !!window.GFX_MSAA, preserveDrawingBuffer: !!window.GFX_PDB },
     });
     window.__map = map;
+    // Y12. Before the first frame is drawn, and again once the style has
+    // swapped the transform out from under us. A no-op above WALK_NEAR.ALT_HI.
+    window.__walkNearOn = installWalkingNearPlane(map);
+    map.on('style.load', () => { window.__walkNearOn = installWalkingNearPlane(map); });
     if (typeof map.setVerticalFieldOfView === 'function')
       map.setVerticalFieldOfView((window.GFX && window.GFX.fov) || 58);
 
