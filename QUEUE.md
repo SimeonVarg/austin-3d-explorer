@@ -763,6 +763,60 @@ pass.** Either widen the assertion to `TUNE.FOV_KICK +/- tolerance` read live fr
 `window.__fly.tune`, or decide the kick is too big and lower it — but a test that
 has been red on `main` is a test nobody can use as a gate.
 
+**Y7 — RESTATED 2026-08-16 AFTER BEING SPLIT FOR THE FIRST TIME (§157,
+`docs/perf/y7-outer-scan.md`). STILL OPEN, AND THE THREE FIXES EVERYONE KEEPS
+PROPOSING ARE THE WRONG THREE.** Nobody had ever measured which HALF of
+`outerStamp()` is over budget. Split it — patching
+`maplibregl.Map.prototype.querySourceFeatures` in an `addInitScript` so every
+call is timed from the first — and in **three of four headed cruise reps the
+worst scan the app has ever recorded IS a single `querySourceFeatures` call, to
+within 0.2 ms** (38.3/38.2, 62.7/62.5, 55.1/54.9; the fourth 85.6/45.7).
+
+So: **a spatial index, a per-frame cap and a movement gate are all proposals
+about the STAMP LOOP, and the loop is not the problem.** It is already capped
+(`OUTER_BUDGET_MS`), already resumable across frames (`outerPending`), already
+gated (200 m / 1.5 s / x4 idle backoff) and already a sparse cell `Map`. The
+clock even starts *before* the query (`controls.js:505`), so whenever the query
+costs over 4 ms the loop is over budget on its first check and returns after one
+64-feature batch. **At its cheapest counterbalanced minimum the query alone is
+6.10 ms of the 8 ms budget.** No bounding of the loop reaches budget.
+
+**And the comment at `controls.js:521` is measurably wrong.** It says the filter
+"makes MapLibre drop the low-rise before it builds the feature objects".
+Counterbalanced ABBA/BAAB, camera not moved so both arms see identical tiles, 16
+timings per arm per rep, min of 4 reps: **filtered 6.1-10.9 ms -> 1,641 feats;
+unfiltered 3.8-5.5 ms -> 8,680 feats.** Filtering is 1.6-2.5x MORE expensive.
+**Keep the filter anyway** — the loop's own height reject over the unfiltered
+list costs 17.1-23.7 ms, so filtered is ~6-11 ms end to end against ~21 ms. It is
+worth ~15 ms per scan, for the opposite reason to the one written in the file.
+Fix the comment when the file is next opened; it is what stops anyone looking at
+the query.
+
+**THE FIX, AND IT IS `js/controls.js` — NOT `js/outer.js`.** Move `t0` to after
+the query so `OUTER_BUDGET_MS` bounds what it was written to bound, and stop
+asking for the whole source: hang the stamp off the outer source's `data` event
+and take `e.tile`, so an instalment sees one newly-loaded tile's features instead
+of every loaded tile's, and the same building is never re-materialised on every
+later scan. That is §109's own guess ("spread the query itself across frames by
+tile") and it is the only one of the four ideas that touches the thing that
+costs. **NOT BUILT, NOT MEASURED — do not quote a number for it.**
+
+**Why the outer lane could not do it.** `js/outer.js` has no lever: the scan
+reads only `window.TILES.layers.outer.layer` and the source id `'austin-outer'`
+and never reads `window.OUTER`. The one thing `js/outer.js` controls that would
+cut the query is how many outer tiles are loaded — i.e. the drawn skyline.
+Shrinking the far horizon to make its collision scan cheaper trades a visible
+defect for an invisible one, so nothing was changed and nothing should be.
+
+**The gate is live in both directions, watched on the merged tree:**
+`PB_OUTER_MS=8` FAIL 12.90 ms - `PB_OUTER_MS=4` FAIL 13.60 ms -
+`PB_OUTER_MS=200` **ok** 20.70 ms. So it is not stuck red. **12.90 ms is the
+lowest reading anyone has taken** (previous low 17.30), and it is still 1.6x
+over. §143's claim stands and is better evidenced: there is no machine state in
+which this scan comes in under budget.
+
+**Rank it FOURTH still.** Original entries follow.
+
 **Y7 — RE-MEASURED AGAIN 2026-08-16 ON A QUIET MACHINE (§143,
 `docs/perf/measured.md` §7.6). STILL OPEN. The honest floor is ~17 ms, not
 43.3 — that figure was contention, and it does not matter, because it is STILL
@@ -1285,7 +1339,10 @@ Y6  motion-feel FOV assertion ................ DONE (acer/blitz-verify, HANDOFF 
                                                 kick at cruise, TUNE.FOV_KICK (read live)
                                                 at the sprint ceiling, exact restore.
                                                 Watched failing on an injected fault.
-Y7  outer-ring scan worst case ............... OPEN, now MEASURED (§133):
+Y7  outer-ring scan worst case ............... OPEN, now SPLIT (§157): the
+    worst case IS the querySourceFeatures call, not the stamp loop; index/cap/
+    gate all address the loop and cannot help. Fix is in js/controls.js.
+    Previously (§133):
                                                 43.3 ms natural cruise / 40.1 ms at
                                                 1.7 m. Never under its 8 ms budget.
                                                 Ranks FOURTH behind the sky redraw
@@ -1900,7 +1957,36 @@ done; §1–§6 is the measurement that decided it).
 
 **The two things it left behind — both one-liners, both now visible to the check:**
 
-#### NB6. `data/facade_palette.json` records `2026-08-03`, so the baked palette is refused at boot
+#### ~~NB6.~~ CLOSED 2026-08-16 — and it was never a boot-cost item. The refusal was the only reason the Capitol looked lit. (PR on `acer/o3-palette`, HANDOFF §157, `docs/perf/nb6-palette.md`)
+
+**Closed with numbers.** `data/facade_palette.json` now records `2026-08-16`,
+the guard at `js/facades.js:818` passes, and every load reports
+`facadePaletteSource() === "baked 2026-08-16"`. The app no longer ignores a file
+the repo ships.
+
+**The entry below was wrong about the important half.** It said "**Boot cost,
+not pixels**" and that the fix was one line. Re-baking the date alone would have
+**turned the floodlight off the Texas Capitol at night**: `js/capitol.js:180-182`
+mutates the protected tone's `wn` to `CAPITOL.floodWall` *after* the file the
+bake reads, so bucket 0 was `#1f1b23` (unlit granite) in the baked file and
+`#d38e5e` (floodlit) in the browser's election. One bucket of fourteen, one
+channel, invisible by day, and the whole point of the building after dark.
+`js/facades.js` now re-applies every protected tone from the live spec on the
+baked path, and `scripts/bake_facades.py` transcribes the override too.
+
+**Verified on the merged tree** (worktree, port 8502, `harness-drift` PASS
+first): all 30 palette buckets both arms hold are identical, bucket 0's `wn` is
+`#d38e5e` in both; three of six poses byte-identical across arms, `capitol-night`
+across-arm 883 px **below** its own 944 px noise floor, `city-day` differing by a
+max of **3 of 255** against a noise floor of 4.
+
+**The boot cost is real and it is ~1.2 ms** — `elect` MIN 5.10 ms vs `baked` MIN
+3.90 ms, 5 loads per arm alternated, 7 reps per load, minimum within and across.
+Reproduced the branch's own figure exactly. It is not why this was worth doing.
+
+Original entry, kept because its error is the lesson:
+
+#### NB6 (as filed). `data/facade_palette.json` records `2026-08-03`, so the baked palette is refused at boot
 
 `js/facades.js:818` only accepts the baked palette when its recorded snapshot
 equals `manifest.latest`. It does not, so the browser re-elects the palette at

@@ -21508,7 +21508,7 @@ tolerance; these are ten times that.
 Server killed, worktree torn down, `reap.mjs` not run.
 
 
-## 157. Aug 16 2026 — the guard that refused the baked palette was the only reason the Capitol looked lit; NB6 closed, and it was not a boot-cost item (QUEUE NB6) (acer lane, branch `acer/o3-palette`, PR pending — NOT merged)
+## 157. Aug 16 2026 — the guard that refused the baked palette was the only reason the Capitol looked lit; and Y7's worst case turned out to be the query, not the loop (QUEUE NB6 closed, Y7 restated) (acer lane, branch `acer/o3-palette`)
 
 **Read this first if you are about to re-bake a palette file.** NB6 said the fix
 was one line and "**Boot cost, not pixels**". The boot cost is real and about
@@ -21687,7 +21687,122 @@ PASS - same palette, same paint expressions, day and night.
   item that has been open for weeks. Y7 is untouched and still fails
   `perf-budget.mjs` on its own assertion.
 
-### NOT MERGED
+### 157B. THE SECOND HALF OF THIS PASS — Y7, AND WHY NO CODE SHIPPED FOR IT
 
-Committed and pushed on `acer/o3-palette`, deliberately unmerged: this arms a
-boot path that has been off, and the branch is the record of the before/after.
+`origin/main` was merged in (PRs #193, #194, the relocated-doors work) and
+everything below was re-run on the **merged** tree, from a throwaway worktree,
+`python scripts/serve.py 8502`, `harness-drift.mjs` PASS before any pixel.
+Full write-up: **`docs/perf/y7-outer-scan.md`**.
+
+**Nobody had ever asked which HALF of `outerStamp()` is over budget.** It is one
+`querySourceFeatures` call plus a stamping loop, and every fix ever proposed for
+Y7 — a spatial index, a cap on work per frame, a movement gate — is a proposal
+about the loop. Patched `maplibregl.Map.prototype.querySourceFeatures` in an
+`addInitScript` so every call is timed from the first one, and drove
+`perf-budget.mjs`'s own 1,500 m cruise, headed, `gl: 'hardware'`:
+
+```
+rep 1  G3 worst scan 38.3 ms   worst query 38.2 ms   -> 100 %
+rep 2  G3 worst scan 62.7 ms   worst query 62.5 ms   -> 100 %
+rep 3  G3 worst scan 55.1 ms   worst query 54.9 ms   -> 100 %
+rep 4  G3 worst scan 85.6 ms   worst query 45.7 ms   ->  53 %
+```
+
+**The worst scan the app has ever recorded IS a single query call.** The loop is
+already capped, already resumable, already gated (200 m / 1.5 s / x4 backoff),
+already a sparse `Map`. Worse, the budget clock starts *before* the query
+(`controls.js:505`), so any query over 4 ms leaves the loop over budget on its
+first check. At its cheapest counterbalanced minimum the query alone is
+**6.10 ms of the 8 ms budget**. Nothing done to the loop can reach budget.
+
+**And `controls.js:521` is measurably wrong about the filter.** It says the
+filter makes MapLibre drop the low-rise before building feature objects.
+Counterbalanced ABBA/BAAB with the camera held still so both arms see identical
+tiles, 16 timings per arm per rep, min of 4 reps: **filtered 6.1-10.9 ms ->
+1,641 features; unfiltered 3.8-5.5 ms -> 8,680 features.** Filtering is
+1.6-2.5x *more* expensive. **Keep it anyway** — the loop's own height reject over
+the unfiltered list costs 17.1-23.7 ms, so filtered is ~6-11 ms end to end
+against ~21 ms. Right decision, wrong reason, and the wrong reason is what has
+kept anyone from looking at the query. Fix the comment when the file is opened.
+
+**NO CODE SHIPPED FOR Y7, ON PURPOSE.** The fix is in `js/controls.js`, which
+belongs to another lane; CLAUDE.md rule 1 says write the request down rather than
+make the change. It is written down here and in QUEUE Y7: move `t0` after the
+query, and take features per newly-loaded tile off the source's `data` event
+instead of asking for the whole source. **Not built, not measured — nobody should
+quote a number for it.**
+
+`js/outer.js` was this lane's writable file and it has **no lever**: the scan
+reads only `window.TILES.layers.outer.layer` and the source id `'austin-outer'`,
+never `window.OUTER`. The only `js/outer.js`-side lever on query cost is how many
+outer tiles are loaded, i.e. the drawn skyline. Shrinking the far horizon to make
+its collision scan cheaper trades a visible defect for an invisible one. So
+**the branch ships the measurement and not a complication**, which is the whole
+instruction: a complication that buys nothing is worse than leaving the cost.
+
+### 157C. THE GATES, ON THE MERGED TREE
+
+* `harness-drift.mjs` **PASS** (29 scripts both sides) before anything else.
+* `perf-budget.mjs`, headless, `gl=hardware`, no CPU throttle, auto-detect
+  cancelled, cruise valid 3/3: **FAIL 6 of 6** — G1 8.586, G2 3.195, **G3 12.90
+  vs 8**, G4 116.50, G5a 1.82 %, G5b 1.25 %. Unchanged by this branch, which
+  contains no code that runs in the tick.
+* **G3 watched in both directions**, because a gate only ever seen red could be
+  stuck: `PB_OUTER_MS=4` **FAIL** 13.60 — `PB_OUTER_MS=200` **ok** 20.70. It is
+  live. **12.90 ms is the lowest G3 reading anyone has taken** (previous low
+  17.30, §143) and still 1.6x over.
+* `coplanar.mjs --gate`: **`entrances.geojson` 1627 -> 1655, REGRESSED.** ***Not
+  this branch.*** This branch's entire diff is `data/facade_palette.json`,
+  `js/facades.js` and `scripts/bake_facades.py`; `git diff origin/main HEAD --
+  data/` shows no geometry file touched at all, so 1,655 is `main`'s number.
+  **The baseline is the suite lane's file and was NOT edited here.** Note the
+  brief for this pass said the baseline was stale at 1558 against a real 1627 —
+  on the merged tree the file already says **1627** and the real number is now
+  **1655**, so that correction has landed and been overtaken by the
+  relocated-doors merge. Somebody who owns `scripts/verify/` should re-baseline.
+* `zfight.mjs` over 8 hero/campus poses: 7 valid, `H4-whole-city` INVALID (0
+  roofscape tiles — scene had not loaded). One cluster, `C2-jester-day`, 224 px
+  at `[49,765,74,848]`. Recorded, not attributable to this branch for the same
+  reason as coplanar.
+* **The palette half's own bar** — §5b of `docs/perf/nb6-palette.md`: fast path
+  engages (`"baked 2026-08-16"`), **30/30 shared buckets identical** between the
+  elected and baked arms including bucket 0's `#d38e5e`, three of six poses
+  byte-identical, `capitol-night` across-arm 883 px **below** its own 944 px
+  noise floor, `city-day` differing by a max of **3 of 255** against a noise
+  floor of 4, and the boot delta reproducing at **1.20 ms** exactly.
+
+### 157D. A BROKEN THING ANOTHER LANE SHOULD KNOW ABOUT
+
+**`scripts/verify/node_modules` in the main checkout is damaged**:
+`playwright-core` is present but its `index.js` / `index.mjs` are missing, so
+every ESM `import ... from 'playwright-core'` in that directory dies with
+`ERR_MODULE_NOT_FOUND`. That is the `git stash -u` damage the working agreement
+warns about, still unrepaired. This pass worked around it locally rather than
+run `npm ci` under two other live lanes. **Recovery is
+`cd scripts/verify && npm ci`** — whoever is next on a quiet machine should do it.
+
+### 157E. WHAT THIS PASS DID NOT ESTABLISH
+
+* **The per-tile query rewrite was not built and not measured.** It is a
+  reasoned candidate from a measured cause. No number exists for it.
+* **The horizon was never photographed for popping, shimmer or late arrival**,
+  because nothing about the skyline was changed. That question is still open and
+  belongs to whoever implements the fix.
+* **G1, G2, G4, G5a, G5b** were not investigated; quoted as context only.
+* **The boot share of the outer scan was not separated out.** In two of six
+  cruise reps the cumulative max was set by the boot's first field build, and
+  that build was never measured alone.
+* **Nothing was measured on a quiet machine.** Two other lanes ran throughout;
+  Chrome 21-35 processes, CPU 5-100 %, sampled beside every reading. Every figure
+  is a minimum under contention, which biases against the app, not for it.
+* **`scripts/bake_outer_facades.py` / `data/outer_tower_palette.json`** — the
+  outer ring's own baked palette has its own adoption path and may have the same
+  protected-tone hole. Not examined. Another lane's bake.
+
+### MERGED
+
+Verified on the merged tree, then merged and the branch deleted. The palette half
+ships because it is measurably a no-op on pixels and fixes a real refusal; the Y7
+half ships as `docs/perf/y7-outer-scan.md` and a restated QUEUE entry, with no
+code, because the file that can fix it is not this lane's and a horizon-shrinking
+substitute would cost more than it saves.

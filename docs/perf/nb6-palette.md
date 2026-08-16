@@ -261,6 +261,78 @@ bar is met.**
 
 ---
 
+## 5b. RE-VERIFIED ON THE MERGED TREE, 2026-08-16, before the merge to `main`
+
+Everything above was measured on the branch in isolation. `origin/main` moved
+under it (PRs #193, #194 and the relocated-doors work), so CLAUDE.md rule 2 says
+re-run the verification on the merged result. Done, from a throwaway worktree on
+port 8502 with `harness-drift.mjs` PASS first.
+
+**1. The fast path engages.** Every baked-arm load reports
+`facadePaletteSource() === "baked 2026-08-16"`. The app no longer refuses the
+file the repo ships. That was the whole of NB6.
+
+**2. The palette is identical, which is stronger than any pixel test.** Read
+`window.facadePalette()` out of both arms after `facadeBakedReady()`, one page
+session, interleaved A1 B1 A2 B2:
+
+```
+buckets 0-29 (every bucket BOTH arms hold): 30/30 identical
+bucket 0 = #bd8477/#c88b75/#d38e5e  in BOTH arms
+CAPITOL.floodWall                   = #d38e5e
+```
+
+Bucket 0's night tone is the floodlit Capitol granite in the elected arm **and**
+in the baked arm. The defect §3 found is fixed on the merged tree. Entries past
+30 exist only in the baked arm at the instant of reading — those are the outer
+ring's tower buckets, which `js/outer.js` appends at runtime as tiles arrive, and
+their count is a function of when you look, not of which arm you are in.
+
+**3. The boot number reproduces, and this run is cleaner than the one in §2.**
+Same method, same script, on the merged tree, 5 loads per arm alternated, 7 timed
+reps per load, minimum within a load and across loads:
+
+```
+elect  per-load mins [7.30 6.80 5.10 5.30 7.90]   MIN 5.10 ms
+baked  per-load mins [5.00 3.90 4.30 4.00 4.20]   MIN 3.90 ms
+delta                                                  1.20 ms
+```
+
+**1.20 ms, the same figure as §2** — and unlike §2's run, the baked arm won every
+one of the five loads rather than four of five. The conclusion in §2 is unchanged
+and still the honest one: it is about a millisecond, it is not why this was worth
+fixing, and the reason remains that a shipped file the app ignores is a lie in
+the repository.
+
+**4. Pixels.** Six poses, arms interleaved A1 B1 A2 B2 in one session, the noise
+floor measured in the same session (A1 vs A2, B1 vs B2), differing-pixel counts
+and max channel delta:
+
+| pose | across A1-B1 | across A2-B2 | noise A1-A2 | noise B1-B2 |
+|---|---|---|---|---|
+| capitol-day | **0 px** | **0 px** | 0 px | 0 px |
+| southmall-eye-day | **0 px** | **0 px** | 0 px | 0 px |
+| southmall-eye-night | **0 px** | **0 px** | 0 px | 0 px |
+| city-night | **0 px** | 8,465 px d127 | 0 px | 8,465 px d127 |
+| capitol-night | 883 px 0.09 % d50 | 1,034 px 0.11 % d117 | 944 px 0.10 % d30 | 776 px 0.08 % d117 |
+| city-day | 99.12 % **d3** | 13.39 % **d2** | 99.74 % d4 | 97.72 % d2 |
+
+Three poses are byte-identical in every comparison. `city-night`'s only non-zero
+cell is B2, and `B1 vs B2` is the *same* 8,465 px — so it is that one run's
+noise, not an arm effect. `capitol-night`'s across-arm difference (883 px) is
+**smaller than its own noise floor** (944 px). `city-day` differs almost
+everywhere by at most **3 of 255**, with a noise floor of the same size and the
+same magnitude — dithering, not a bucket swap; a palette change cannot express
+itself as a max delta of 3.
+
+**5. Geometry gates.** `coplanar.mjs --gate` and `zfight.mjs` were run on the
+merged tree. Neither can be affected by this branch — the whole diff is
+`data/facade_palette.json` (a colour table), `js/facades.js` (which table gets
+chosen) and `scripts/bake_facades.py` (which does not run in the browser) — and
+the numbers are recorded in HANDOFF §157 as `main`'s, not this branch's.
+
+---
+
 ## 6. What this page does NOT establish
 
 * **The 1.2 ms was measured on a busy machine** (38 Chrome / 4 node / 93 % CPU
