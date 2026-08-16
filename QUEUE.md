@@ -768,7 +768,7 @@ nearest label is a billboard and everything else is dust, and because the horizo
 sits mid-frame every label in the city projects into one narrow band. Below some
 eye height, show only what is within ~60 m and size by metres.
 
-**~~Y10.~~ DRIVEN, RANKED, and ONE OF SEVEN FIXED (PR #184 merged 2026-08-16,
+**~~Y10.~~ DRIVEN, RANKED, and ONE OF SEVEN FIXED (PR #185 merged 2026-08-16,
 HANDOFF §139).** The city has now been driven by thumb at 1.7 m, twice: the
 survey is `docs/mobile/driving-at-eye-level.md` and the fix-and-judge pass is
 §139. **NOT A REAL IPHONE AND NOT REAL SAFARI** — Chromium in a phone costume
@@ -815,7 +815,7 @@ now Y17 (the ground plane does not ride the dusk clock) and Y18 (the
 post-process canvas paints glow bands across facades). Both were found by these
 frames and both are measured below.
 
-**~~Y12.~~ FIXED, AND NARROWER THAN THE ENTRY CLAIMED (PR #184 merged
+**~~Y12.~~ FIXED, AND NARROWER THAN THE ENTRY CLAIMED (PR #185 merged
 2026-08-16, HANDOFF §139).** `WALK_NEAR` in `js/app.js` scales the near plane
 with altitude — 0.12 m at or below 2 m, MapLibre's own value at or above 40 m,
 blended in log space — and it is a **strict no-op above 40 m**, proved rather
@@ -1015,13 +1015,13 @@ Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
                                                 rejected ground-base-texture on main)
                                                 is CLOSED — 25 -> 24, PR #172, §123.
 Y9  labels sized by zoom not metres .......... OPEN
-Y10 touch at walking height .................. DRIVEN (#184, §139). Item 1 of 7 FIXED
+Y10 touch at walking height .................. DRIVEN (#185, §139). Item 1 of 7 FIXED
                                                 (the vertical look now fits the range
                                                 that exists). Items 3/4/5/7 are all
                                                 style.css and untouched; item 6 not
                                                 re-tested. NOT REAL iOS SAFARI.
 Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — found Y17+Y18
-Y12 the near plane ........................... DONE (#184, §139) and NARROWER than the
+Y12 the near plane ........................... DONE (#185, §139) and NARROWER than the
                                                 entry claimed. Flyover matrices
                                                 bit-identical, zfight identical on/off,
                                                 coplanar --gate exit 0. A plain WALL

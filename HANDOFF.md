@@ -18476,7 +18476,7 @@ authored value bit for bit at the 165 m altitude `movement.mjs` runs at.
 
 ## 140. Aug 16 2026 — THE N4 GATE: the near plane merged, and two of the things it was supposed to prove turned out not to be true (QUEUE Y10, Y12) (acer lane, gate, branch `acer/n4-mobile`, merged)
 
-**Branch `acer/n4-mobile`, PR #184, MERGED.** Files this pass wrote:
+**Branch `acer/n4-mobile`, PR #185, MERGED.** Files this pass wrote:
 `shots/mobile/final/`, `QUEUE.md`, this section. The code under judgement is
 §139's and was not edited: `js/app.js` (`WALK_NEAR`, two hunks) and
 `js/controls.js` (`LOOK.PITCH_SPAN_PX`, `pitchSens`). Throwaway worktree,
