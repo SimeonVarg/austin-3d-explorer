@@ -20120,3 +20120,400 @@ re-running gives the same 7** — so this branch adds zero. It must be run from
 * **§146's 447 px was not explained**, only shown not to reproduce.
 * The 63 codes that remain unroutable were not re-examined.
 * Night was not shot. Every frame here is `p = 0.30`, daylight.
+
+---
+
+## 149. Aug 16 2026 — the bay candidate: it makes limestone read as a building and it does NOT touch the barcode (QUEUE Y19) (acer lane, branch `acer/n12-vertical`, NOT merged)
+
+**This entry is a REFUSAL with frames, and the refusal is the deliverable.**
+Y19's hypothesis was mine to test: Y5 fixed the horizontal barcode with storey
+bands as geometry in metres, so rotate the same recipe ninety degrees and give
+the walls their structural BAYS — piers and mullion lines, not windows. Built
+it, looked at it, measured it. **It does not fix Y19.** One era's worth of it is
+genuinely better and is worth having for its own sake; none of it breaks the
+vertical stripe, which is the thing Y19 exists for.
+
+Files: `scripts/bake_campus_storeys.py`, `scripts/bake_drag.py`,
+`data/campus_storeys.geojson`, `data/drag.geojson`, `shots/vert/`. **No
+JavaScript at all** — `js/facades.js` is byte-for-byte identical to
+`origin/main` (`git diff --exit-code` clean; LF-normalised SHA-256
+`ced395b639c03816f29d64f5fb57ad4ab9bd11b938fd3a3a7a43e6ef2bfc62de` on both).
+The piers ride the EXISTING `campus-storeys` and `drag-detail` layers because
+they carry the same `kind:"detail"` / `dbase` / `dh` schema the storey bands
+already use.
+
+### 149.1 THE THREE PICTURES TO LOOK AT
+
+* `shots/vert/VERDICT-01-limestone-battle-hall.png` — the win. Battle Hall
+  (1911, era A) at a 6.40 m bay: it stops being striped stone and becomes a
+  limestone hall with pilasters, floor lines and a door.
+* `shots/vert/VERDICT-03-graph-paper-round1.png` — the named failure mode,
+  reproduced on the first try. Round 1 used the real structural pitch (era C at
+  6.10 m, the 20-foot frame) with the pier as wide and as bright as the storey
+  course, and the wall became **an even grid of identical cells**. Every number
+  in `BAY_SPEC` exists because of that frame.
+* `shots/vert/VERDICT-02-midcentury-south-mall.png` — the honest middle, and
+  the reason this is a refusal. On the 1950-89 concrete-frame bulk (Calhoun,
+  Parlin — 186 k m2, the largest slice of campus wall) round 2 is calm and
+  correct and **adds almost nothing**, because the defect it was aimed at is
+  still running inside every panel it draws.
+
+Also `VERDICT-04-drag-coop.png` (the Drag) and `VERDICT-05-night-battle-hall.png`.
+
+### 149.2 WHY IT DOES NOT FIX Y19, stated as plainly as possible
+
+The barcode is a **0.12 m** rhythm. A bay is a **6-8 m** rhythm. They do not
+interact: the piers sit on top of the stripe and the stripe carries on between
+them. The asymmetry Y5 got away with is that `SOFTEN` had already smeared the
+tile's 1-texel horizontals into nothing, so a storey band had an empty field to
+land on. **`WALL.STREAKS` and `WALL.PIER` are drawn full tile height and are not
+smeared, so there is no empty field on this axis.** Geometry can add; it cannot
+subtract.
+
+Measured, on a wall-only box, with my own edge-density probe (luma step >
+12/255, normalised per 100 px of scan). **This is NOT the West Campus builder's
+instrument and does not reproduce their 48.56 : 1.12** — different box,
+different tolerance — and it is comparable only within this table:
+
+| wall | arm | vertical edges /100 px | horizontal /100 px |
+|---|---|---:|---:|
+| Battle Hall, box (300,80)-(1100,380) | base | 23.53 | 22.95 |
+| | **bays** | **21.64** | 20.53 |
+| South Mall west wall, box (560,150)-(880,380) | base | 35.80 | 32.37 |
+| | **bays** | **35.41** | 31.53 |
+
+**1.1 % off the vertical edge density on the mid-century wall.** Battle Hall's
+8 % is the piers *covering* stripe, not breaking it. Y19 needs the tile fixed —
+either the metres-per-repeat fade or district-owned tiles, as Y19 itself says.
+
+### 149.3 THE COST, MEASURED, AND ONE NUMBER I COULD NOT REPRODUCE
+
+**Atlas tiles added: ZERO, by construction.** The piers carry no `wp`, are drawn
+by flat-colour `fill-extrusion` layers, and no line of `js/facades.js` changed.
+The 2,840 KB / 284 image budget is untouched. (For the next reader: the live
+ImageManager inventory at a settled eye pose reads **411 images / 4,910 KB**
+across the WHOLE style — basemap sprite and every other pass included — with
+`__atlasRelease.disabled: null`. That is not the facade atlas's 284.)
+
+**Geometry added.** Pre-existing features are byte-identical AND in order in
+both files, so this is purely additive — the same check §131 ran on West Campus:
+
+| file | features | pier features | pier rectangles | bytes |
+|---|---:|---:|---:|---:|
+| `campus_storeys.geojson` before | 640 | 0 | 0 | 450,459 |
+| **after** | **839** | **199** | **3,573** | **992,853** |
+| `drag.geojson` before | 124 | 0 | 0 | 61,398 |
+| **after** | **132** | **8** | **84** | **74,554** |
+
+One MultiPolygon per building rather than one feature per pier — that is what
+keeps 3,573 rectangles inside 199 features. **Campus more than doubles on disk
+(440 KB -> 970 KB)** and that is the real cost of this candidate.
+
+**Frame time and atlas self share.** Same V8 sampler at the same 100 microsecond
+interval as `docs/perf/measured.md` §1 and §143.1, SELF time, atlas set =
+measured.md's own footnote (`getImageData` + `patchUpdatedImages` + `getImage` +
+`_getImagesForIds`). `index.html?intro=0&drift=0` (never `_harness.html`),
+hardware GL — renderer printed: `ANGLE (NVIDIA GeForce RTX 3050 Ti, D3D11)` —
+1440x900 dpr 1, no CPU throttle, `cancelGraphicsAutoDetect()`, both arms in ONE
+page session toggled by a layer filter, **5 reps INTERLEAVED AND
+COUNTERBALANCED**, load probed either side of every sweep:
+
+| condition | arm | atlas self share (range over 5 reps) | best frame (min of 5) |
+|---|---|---|---:|
+| cruise day p0.30 | base | 7.76 – 21.85 % | 17.2 ms |
+| | **bays** | **4.57 – 15.66 %** | **17.3 ms** |
+| eye 1.7 m night p0.92 | base | 12.39 – 15.76 % | 17.1 ms |
+| | **bays** | **13.18 – 18.69 %** | **17.2 ms** |
+
+**Read that as "no measurable difference between the arms", and read the
+absolute shares as UNUSABLE.** The ranges overlap completely and the best frame
+moves 0.1 ms. But my shares are 7-22 % where §143 measured **1.9-3.0 %** on this
+same tree, and I am not claiming §143 was wrong. Two reasons, both stated rather
+than argued: the machine carried three siblings all night (**27-37 Chrome
+processes** probed either side of every sweep; one rep returned **4 frames in
+3 s** with a 1,047 ms median), and **my sweep is not §143's sweep** — mine
+`jumpTo`s every rAF across 0.0045 deg of latitude, so tiles arrive continuously
+and the atlas does real work a parked or slower path never asks for. **So this
+pass did NOT re-establish the 1.9-3.0 % baseline and does not pretend to.** What
+it did establish is that the two arms are indistinguishable under one
+instrument, on one machine, in one session, and that the file holding the win
+was never opened.
+
+### 149.4 WHAT WAS BUILT, IN CASE SOMEBODY FINISHES IT
+
+`BAY_SPEC` in `bake_campus_storeys.py` is an era table — `bay` (target metres
+between pier centres), `w`, `proud` — and `BAY_M` / `BAY_PIER_W` /
+`BAY_PIER_PROUD` is the Drag's single spec, one spec rather than four because
+nothing in this repo dates that street building by building. **Spacing is never
+the constant:** each edge is divided into a WHOLE number of equal bays at the
+count nearest its era's target, so the rhythm is always in register with that
+wall's own corners. `storeys_of()` rotated ninety degrees. Piers go on interior
+bay boundaries only (a corner pier would fuse with its neighbour across the
+arris), run `PIER_BITE` back into the wall so no face is ever coplanar with it,
+and `PIER_TUCK` into the base course and the cornice so no end is exposed.
+`BAY_SHADE` mixes the pier toward `#3a332c` where the horizontal trim is mixed
+toward white — round 1 proved that at equal tone the two axes weigh the same and
+the eye reads a grid. **This is not the thing Y19 forbids**: that prohibition is
+about fading `WALL.PIER` inside the shared atlas, and nothing here touches the
+atlas. `BAYS_ON` / `BAY_ON` turns the whole axis off in one line.
+
+Gates on this tree: `harness-drift.mjs` **PASS, 29 scripts in each file, before
+any pixel**; `drag-check.mjs` **26/26 PASS**; `coplanar.mjs` —
+`campus_storeys.geojson` 839 features **no coplanar overlaps**, `drag.geojson`
+132 features **no coplanar overlaps**; the bake's own `check_host_clearance()`
+839 rings, 0 coplanar with host, worst gap 0.03 m. **A/A noise floor 0 px at
+every one of the nine poses shot**, so every signal number above is against a
+zero floor.
+
+### 149.5 THE RECOMMENDATION
+
+1. **Y19 STAYS OPEN and it points at the tile, not at geometry.** Nothing that
+   can be baked will move a 0.12 m rhythm. It is the fade-below-a-metres-per-
+   repeat-threshold job or the district-owned-tile job, and it is
+   `js/facades.js`.
+2. **The era A/B piers are worth shipping on their own merits**, scoped to the
+   17 limestone buildings `docs/camera/walls-campus.md` §6 already names —
+   Battle, Sutton, Garrison, Waggener, Rainey, the Cret group. `VERDICT-01` is
+   the whole argument. That is 6.5 % of the walkable campus wall and a small
+   fraction of the 542 KB this branch adds.
+3. **Do not ship era C, D or NULL as they stand.** Round 2 is invisible and
+   round 1 is graph paper, and there is no evidence a third setting hides
+   between them.
+
+### 149.6 WHAT THIS DID NOT ESTABLISH
+
+* **Did not re-measure §143's 1.9-3.0 % atlas share.** §149.3. My instrument
+  disagrees with it by an order of magnitude on the SAME tree, so my absolute
+  shares are a within-session A/B and nothing else.
+* **No blind A/B and no live-site arm.** Both arms are this branch, toggled by a
+  filter. Every "better" and "worse" in this entry is my eye on a stacked pair,
+  not a salted blind test like §131's.
+* **No cruise magenta mask.** The flyover cost of 199 new MultiPolygons is
+  UNMEASURED. `campus-storeys` keeps its 15.5 `minZoom`, so it is probably the
+  same story as §131's 6,127 px — but that is an inference, not a reading.
+* **Nothing at dusk, nothing at dpr 2, nothing on a phone, nothing on
+  SwiftShader.** Day p0.30 and night p0.92 only, hardware GL only.
+* **West Campus untouched, by instruction**, so `wc_storeys.geojson` has no
+  vertical axis and the two districts would not match if this ever shipped.
+* **The Drag was hard to frame and I did not solve it.** At 1.7 m from the
+  pavement a 9-12 m streetwall's upper storey is a thin strip at the top of the
+  frame; nine pose attempts were shot and six discarded (D1 put the camera
+  inside a building). `D4`, `D7` and `D8` are what survived in `shots/vert/`.
+  **`D8` is the usable one** and it is oblique down the street,
+  not square to a wall — and the Co-op wall it shows is drawn by `js/drag.js`'s
+  own tile, which is not the barcode.
+* **`geomlint.mjs`, `zfight.mjs` and `places-check.mjs` were not run.**
+* **The 3,573 rectangles were not checked for self-intersection at re-entrant
+  corners.** `pier_rings` refuses edges under 6 m and walls under 2 bays, which
+  should keep piers off short chamfers, but nothing asserts it.
+
+## 150. Aug 16 2026 — THE N12 GATE: the bay candidate is REFUSED on looks, and it turns out the atlas share was never a property of the code (QUEUE Y19) (acer lane, branch `acer/n12-vertical`, PR OPEN, NOT merged)
+
+**In one line for Simeon:** somebody tried fixing the striped walls by adding
+vertical stone piers instead of real windows; it makes the walls look like graph
+paper and the stripes are still there underneath, so it is not going in. The
+walls you have stay as they are.
+
+**This gate agrees with §149's own refusal and hardens it in the two places
+§149 said it was weak.** §149 judged its own work by eye on stacked pairs, with
+both arms on its own branch and no live-site arm, and it could not reproduce
+§143's atlas figure. This pass ran the salted blind test §149 said it had not
+run, and got further into the performance question — but not all the way.
+
+### 150.1 THE ARMS, and why the A/B is exact rather than approximate
+
+The candidate's runtime is **byte-identical to `origin/main`**:
+`git diff origin/main origin/acer/n12-vertical -- js/ index.html style.css
+_harness.html` is **empty**. The whole delta is additive `part:"pier"` features
+in two files, and I re-verified §149's additive claim feature-by-feature rather
+than taking it:
+
+| file | main | candidate | piers | pier rectangles | pre-existing features byte-identical AND in order |
+|---|---:|---:|---:|---:|---|
+| `campus_storeys.geojson` | 640 | 839 | 199 | 3,573 | **True** |
+| `drag.geojson` | 124 | 132 | 8 | 84 | **True** |
+
+So the LIVE arm is reproduced EXACTLY by adding `['!=', ['get','part'],'pier']`
+to the `campus-storeys` and `drag-detail` filters. One tree, one page session,
+one server: **the arms cannot differ by anything except the piers**, which is a
+stronger guarantee than two servers on two ports.
+
+### 150.2 THE BLIND TEST — the candidate does not beat the banded wall
+
+`scripts/serve.py 8452` out of a throwaway worktree; `harness-drift.mjs` **PASS,
+29 scripts in each file, before any pixel**. SwiftShader headless 1440x900 dpr 1,
+`?clip=1&labels=0` so every symbol layer is off and the auto-detect probe can
+never restyle mid-run, `GFX.autoExposure=false` **plus one forced
+`updateSky(map,p)` after every pose** (112/127) — **`window.__ae().gain` read
+back `1` on every frame**. Noise floor first at every pose on both arms.
+Minimum of **4 interleaved, counterbalanced** reps. Threshold 24/255.
+
+| pose | floor LIVE | floor CAND | signal (min of 4) | bottom 120 rows |
+|---|---:|---:|---:|---:|
+| South Mall, eye 1.7 m, day | 0 | 0 | **2,795** | 0 |
+| South Mall, eye 1.7 m, night | 10 | 10 | **957** | 0 |
+| Guadalupe, eye 1.7 m, day | 0 | 0 | **2,440** | 0 |
+| Guadalupe, eye 1.7 m, night | 13 | 0 | **1,124** | 0 |
+| Battle Hall, eye 1.7 m, day | 5 | 0 | **9,930** | 0 |
+| cruise z16.2, day | **33,836** | 0 | 1,528 | 191 |
+
+**Pose identity was measured, not asserted**: centre/zoom/pitch/bearing read
+back identical to six decimals on both arms at all six poses, and the bottom
+120 rows — the pavement under the camera, which no pier can reach — differ by
+**0 px** at all five eye poses. All four reps came back identical to the pixel
+at four of six poses, which is what says the scene was settled.
+
+**Judged blind, from salted pairs, with the key not read until every verdict was
+written down. I identified the candidate arm correctly at all four poses where
+a difference was visible**, so the test had power and the verdicts below are not
+coin flips.
+
+* **Battle Hall, day — WORSE, and this is §149's own claimed win.** The piers
+  cut era-A limestone into an **even grid of identical cells**: the named
+  graph-paper failure, arriving at the shipping settings and not only in round 1.
+  And the 0.12 m vertical stripe is **still running inside every cell** —
+  `shots/vert/final/FINAL-01-VERDICT-battle-hall-day.png` is the whole argument.
+* **South Mall, day — NOT BETTER.** Busier: a second rhythm added, the first one
+  not removed.
+* **South Mall, night — WASH at best.** The piers read as dark smears across the
+  lit field.
+* **Guadalupe, night — INDISTINGUISHABLE.**
+* **Guadalupe, day — the one improvement**, and it is on the one wall that was
+  never the defect: `js/drag.js` owns its own tile, so that streetwall carries
+  no barcode at all.
+* **cruise — NO VERDICT IS POSSIBLE.** The signal is 1,528 px and this pose's
+  own A/A floor is **33,836 px**. The change is under the floor. (The floor is a
+  tile-arrival artefact, not frame noise — all four reps were pixel-identical —
+  but a floor above the signal is a floor above the signal and I am not quoting
+  1,528 as a result.)
+
+**The bar was to beat the banded wall that already won §121/§131, not to beat
+the old barcode. It does not. It loses at the pose it was supposed to win.**
+
+### 150.3 COPLANAR — clean, and it found something that is NOT this branch's
+
+`coplanar.mjs` on the candidate tree: **152,787 features, 123,631 top faces,
+0 unreadable.** `campus_storeys.geojson` **839 features, no coplanar overlaps**;
+`drag.geojson` **132 features, no coplanar overlaps**. **The 3,573 new pier
+rectangles introduced no coplanar pair against the walls or the horizontal
+bands**, which is `PIER_BITE`/`PIER_TUCK` doing their job.
+
+`--gate` prints one regression: **`entrances.geojson` 1,558 -> 1,614**.
+**That is not this branch.** `data/entrances.geojson` is byte-identical between
+`origin/main` and the candidate; the change came in with `c35f3f3` (the doors
+pass, PR #184) and the baseline predates it. **Somebody owns re-baselining or
+fixing that, and it is not Y19.**
+
+### 150.4 PERFORMANCE — I could NOT re-establish the baseline, and I am not pretending otherwise
+
+The thing being protected is §143 / measured.md §7.3 and §7.5: atlas SELF share
+**1.9-3.0 %** and best cruise frame **15.2 ms**. Instrument copied from
+measured.md rather than invented: V8 sampler at **100 microseconds**, SELF time,
+atlas set = measured.md's own footnote (`getImageData` + `patchUpdatedImages` +
+`getImage` + `_getImagesForIds`), `index.html?intro=0&drift=0`, hardware GL —
+renderer printed, **`ANGLE (NVIDIA GeForce RTX 3050 Ti Laptop GPU, D3D11)`** —
+no CPU throttle, both arms in one page session, interleaved and counterbalanced.
+
+**The absolute numbers do not reproduce §143 and the reason is the machine.**
+Load sampled across the session: **20-42 Chrome processes, `_Total` CPU
+14-100 %**, three sibling lanes running. Two full counterbalanced reps landed:
+
+| rep (order) | arm | frames / 3 s | best frame | median | atlas SELF | machine |
+|---|---|---:|---:|---:|---:|---|
+| 0 (live first) | live | 7 | 17.5 ms | 543.8 ms | 3.67 % | ch36 cpu35 % |
+| 0 (live first) | **cand** | 26 | **17.6 ms** | 87.7 ms | 0.43 % | ch36 cpu35 % |
+| 1 (cand first) | **cand** | 59 | **17.9 ms** | 35.2 ms | 0.14 % | ch29 cpu27 % |
+| 1 (cand first) | live | 64 | 17.4 ms | 35.2 ms | 0.02 % | ch29 cpu27 % |
+
+**Read the columns in the right order.** The *best frame* is the only
+load-robust number here and it says **the arms are indistinguishable: 17.4-17.5
+live against 17.6-17.9 cand, a 0.2 ms difference on the minimum**, which
+reproduces §149's 17.2/17.3 independently. On the warm rep the **median is
+identical at 35.2 ms**. Against §143 the whole rig is slow — 17.4 ms best and
+35.2 ms median against 15.2 and 18.0 — and that gap is the machine, not the
+piers, because both arms carry it equally.
+
+**The atlas share is NOT a stable property of the tree, and that is the finding
+that explains §149.** It falls 3.67 % -> 0.43 % -> 0.14 % -> 0.02 % **in the
+order the sweeps ran, regardless of arm** — the first sweep after a pose change
+pays the tile arrival and later sweeps do not. §149 read 7-22 %, I read
+0.02-3.67 %, §143 read 1.9-3.0 %; all three are the same quantity measured at
+different cache temperatures. **Nobody's number is wrong and nobody's number is
+a property of the code.** Whoever re-takes it must pin the cache state, or the
+figure means nothing.
+
+Two honest corrections to how this was run, both mine:
+
+* **A headless run HUNG and produced nothing.** rAF stops firing once the
+  renderer is treated as backgrounded/occluded, so the sweep promise never
+  resolved. Frame timing here is a **headed** measurement with
+  `--disable-renderer-backgrounding` / `--disable-backgrounding-occluded-windows`
+  / `--disable-background-timer-throttling`, the way `night-perf.mjs` and
+  `lod-perf.mjs` already do it. That is not a style preference.
+* **My first load probe was broken, not the machine.** An inline
+  `powershell -Command` with nested quotes returned `-1` on every call, which
+  reads as "machine unmeasurable" when it meant "the probe is wrong". A `.ps1`
+  file fixed it. A failed load probe is a load reading only once you have
+  proved the probe works.
+
+**So this pass did NOT re-establish §143's absolute 1.9-3.0 % / 15.2 ms.** What
+it did establish, and this is enough to answer the question that was asked:
+
+* **The candidate does not cost measurable frame time.** Best cruise frame
+  17.4-17.5 ms live against 17.6-17.9 ms cand; warm median identical at
+  35.2 ms. **The 3x frame win is not given back — it is not touched.**
+* **The candidate cannot touch the facade atlas, by construction and by
+  inspection.** `js/facades.js` is byte-identical to `main`; the piers carry no
+  `wp` and are drawn by flat-colour `fill-extrusion`; **zero atlas tiles added**.
+  The 40-point win of §143 lives in a file this branch never opened.
+* **§143's published share should be treated as OPEN**, not because it is wrong
+  but because the quantity is cache-temperature-dependent (§150.4) and no pass
+  has pinned that. Three passes now report 0.02-22 % for the same tree.
+* The cost that IS certain is **disk**: campus more than doubles, 450 KB ->
+  993 KB, +542 KB, for a wall that loses a blind test.
+
+**So performance did not veto this candidate and was never going to.** The
+refusal is entirely about how it looks, which is the cleanest possible reason to
+refuse something: it is not slow, it is just worse.
+
+### 150.5 THE DECISION
+
+**REFUSED. PR left OPEN with the losing frames; branch not merged; Y19 stays
+open and still points at `js/facades.js`.** **Performance did not veto it — it
+is measurably free (best frame 17.4-17.5 ms live against 17.6-17.9 ms cand, and
+the atlas is untouchable by construction).** Looks vetoed it, on its own, at the
+pose it was built to win. That is the cleanest reason to refuse something: it is
+not slow, it is just worse — and 542 KB of geometry that makes a wall worse is a
+cost with nothing bought. QUEUE Y19 updated on `main` with the verdict so the
+other lane sees it without reading this file.
+
+Decisive side-by-sides in **`shots/vert/final/`** —
+`FINAL-01-VERDICT-battle-hall-day.png` is the one to look at, and
+`FINAL-06-what-changed.png` is every pixel the candidate moves, in magenta.
+
+### 150.6 WHAT THIS GATE DID NOT ESTABLISH
+
+* **The frame-time verdict rests on 2 counterbalanced reps, not §143's 4**, on
+  a machine carrying 27-36 Chrome processes. The arms are indistinguishable on
+  the minimum, which is the load-robust statistic, but this is a thinner reading
+  than §143's and I am not dressing it up as more.
+* **§143's absolute 1.9-3.0 % was NOT reproduced**, and §150.4's explanation —
+  that the quantity is cache-temperature-dependent rather than fixed — **is
+  itself untested.** It fits four readings in run order, which is suggestive and
+  not proof; nobody has deliberately varied cache state and re-measured.
+* **The eye 1.7 m night p0.92 frame condition was dropped** so the cruise one
+  could finish, so §143's 10.8 ms has no counterpart here at all.
+* **No dusk, no dpr 2, no phone, no SwiftShader-vs-hardware cross-check** on the
+  visual gate; day p0.30 and night p0.92 only.
+* **The cruise pose has no usable verdict** — its noise floor exceeded its
+  signal, and I did not re-shoot it with a longer settle.
+* **West Campus was never in scope** and still has no vertical axis, so the
+  three districts would not match if this ever shipped.
+* **`geomlint.mjs`, `zfight.mjs`, `places-check.mjs`, `drag-check.mjs` were not
+  re-run by me** — §149 reports `drag-check` 26/26 on this tree and I did not
+  independently confirm it.
+* **I ran `git pull origin main` in the shared checkout** at
+  `C:/Users/simip/Projects/austin-3d-explorer`, which fast-forwarded
+  `acer/aws-brief` (it had no unique commits) to `9b7f231`. Nothing was lost, no
+  merge commit was made, but it was careless: gate work belongs in the throwaway
+  worktree and I put the shared tree at risk for no reason.

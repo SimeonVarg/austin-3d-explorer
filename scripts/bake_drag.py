@@ -158,6 +158,60 @@ BAND_TRIM_LIFT = 0.17    # how far the trim is lifted off the building's own ton
 # proud edge is under a hundredth of a pixel from any altitude this app flies.
 CORNICE_LIFT = 0.03
 
+# ── THE VERTICAL AXIS — QUEUE Y19, a CANDIDATE and not a shipped rule ─────────
+#
+# The block above fixed the HORIZONTAL barcode and the gate agreed. The other
+# axis is untouched and is the louder one: facades-at-two-metres.md §2 measured
+# `drawWallMaterial`'s streaks and the WALL.PIER pilaster pair as FULL TILE
+# HEIGHT drawings on a tile that repeats vertically, so the shipped wall carries
+# a vertical every 0.12-0.14 m at eye level. The West Campus builder counted
+# 48.56 vertical edges per 100 px against 1.12 horizontal.
+#
+# Same recipe, rotated ninety degrees: BAYS. Not windows — that is option (c) on
+# the decision sheet, ~190,000 openings and ~190 MB, and the decision taken was
+# BANDS NOW, WINDOWS LATER. A pier between bays is the structural rhythm this
+# streetwall actually has, it is O(bays) rather than O(windows), and it is
+# GEOMETRY IN METRES so Y4 cannot undo it.
+#
+# The named failure mode is GRAPH PAPER — horizontal courses crossed by vertical
+# piers reading as a waffle rather than as a building. Every number is a named
+# constant so the pitch and the depth can be walked in one line, and
+# BAY_ON = False returns this file to its shipped Y5 behaviour.
+#
+# ONE SPEC, NOT AN ERA TABLE, and that is a deliberate difference from
+# bake_campus_storeys.py. The campus bake has UT's own register and can date 68
+# of its buildings; this street is 1920s-1960s commercial masonry throughout and
+# nothing in this repo dates it building by building, so inventing four
+# vocabularies here would be four claims with one piece of evidence behind them.
+# 4.60 m is a shopfront bay — it is the module the Drag's own awnings and tenant
+# fronts are already modelled on in bake_entrances.py — and 0.70 m is a brick
+# pier. `proud` is deliberately under BAND_BASE_PROUD and far under
+# BAND_CORN_PROUD so the pilaster dies INTO both rather than standing off them.
+#
+# ROUND 2. Round 1 ran the piers at 4.60 m / 0.70 m wide and coloured them with
+# the same white-lifted trim tone as the courses, and the campus frames of that
+# arm (`shots/vert/r1-*.png`) are the failure mode this comment names: an even
+# grid of identical cells. Three changes, and only three: fewer bays, narrower
+# piers, and the pier as a SHADOW rather than a second highlight — because a
+# proud ring's outward face is parallel to the wall and takes the same light as
+# a course's, so at equal tone the two axes weigh the same and the eye reads a
+# grid instead of a wall divided into bays.
+BAY_ON = True
+BAY_M = 6.20             # target metres between pier centres; rounds per wall
+BAY_PIER_W = 0.55        # pier width, metres
+BAY_PIER_PROUD = 0.13    # pier projection from the wall face, metres
+# The pier's own tone: the wall tone mixed toward BAY_SHADE_COL, where the
+# horizontal trim is mixed toward white by BAND_TRIM_LIFT. NOT the thing QUEUE
+# Y19 forbids — that is about fading `WALL.PIER` inside the shared ATLAS, and
+# nothing here touches the atlas.
+BAY_SHADE = 0.22
+BAY_SHADE_COL = "#3a332c"
+BAY_PIER_BITE = 0.05     # how far the pier's rear face is buried in the wall
+BAY_PIER_TUCK = 0.05     # how far it runs into the base course and the cornice
+BAY_MIN_EDGE_M = 6.0     # shorter than this is a chamfer, not an elevation
+BAY_MIN_BAYS = 2         # one bay has no interior boundary to put a pier on
+BAY_MIN_H = 2.50         # a pilaster under this is a lump
+
 # Guadalupe Street's centreline, sampled from OSM (`way[highway][name=Guadalupe
 # Street]`, queried 2026-07-31) and reduced to one (lat, lon) per 0.0005 deg.
 # Embedded rather than fetched so the bake is deterministic and offline.
@@ -559,6 +613,75 @@ def detail_feature(ring_ll, grp, part, base, top, trio):
             "geometry": {"type": "Polygon", "coordinates": [ring_ll]}}
 
 
+def detail_multi(rings_ll, grp, part, base, top, trio):
+    """Every pier on one wall as ONE MultiPolygon feature.
+
+    A horizontal band is one ring per LINE; a pier is one ring per PIER, and a
+    40 m elevation on a 4.6 m bay carries eight of them. One feature per pier
+    would multiply this file's feature count by an order of magnitude for no
+    benefit — `coplanar.mjs:238` already flattens MultiPolygon rings, so the
+    checker sees each pier individually either way, and `drag-check.mjs` keys on
+    `bid`, which trim does not carry (see detail_feature).
+    """
+    wd, wg, wn = trio
+    return {"type": "Feature",
+            "properties": {"kind": "detail", "grp": grp, "part": part,
+                           "wd": wd, "wg": wg, "wn": wn,
+                           "dbase": round(base, 3), "dh": round(top, 3)},
+            "geometry": {"type": "MultiPolygon",
+                         "coordinates": [[r] for r in rings_ll]}}
+
+
+def pier_rings(closed_m, stats):
+    """The pier rectangles for one footprint, in metre space.
+
+    Each edge is divided into a WHOLE number of equal bays at the count nearest
+    BAY_M, so the rhythm is always in register with that wall's own corners —
+    `storeys_of()` rotated ninety degrees. Piers go on INTERIOR bay boundaries
+    only: a pier at a corner would meet its neighbour from the adjoining edge
+    across the arris and fuse into a block, which is a different building.
+
+    Each rectangle runs from BAY_PIER_BITE inside the wall to BAY_PIER_PROUD
+    outside it, so its rear face is buried in the host solid and can never be
+    coplanar with the wall face. Outward is (dy, -dx)/L — the same convention
+    offset() uses, so positive is away from the building on a CCW ring.
+    """
+    p = closed_m[:-1] if closed_m[0] == closed_m[-1] else closed_m[:]
+    n = len(p)
+    if n < 3:
+        return []
+    out = []
+    for i in range(n):
+        x0, y0 = p[i]
+        x1, y1 = p[(i + 1) % n]
+        dx, dy = x1 - x0, y1 - y0
+        L = math.hypot(dx, dy)
+        if L < BAY_MIN_EDGE_M:
+            stats["bay_edge_short"] += 1
+            continue
+        nb = max(1, int(round(L / BAY_M)))
+        if nb < BAY_MIN_BAYS:
+            stats["bay_edge_one_bay"] += 1
+            continue
+        step = L / nb
+        if BAY_PIER_W >= step:
+            stats["bay_edge_too_wide"] += 1
+            continue
+        ux, uy = dx / L, dy / L
+        nx, ny = dy / L, -dx / L
+        for k in range(1, nb):
+            t = k * step
+            a, b = t - BAY_PIER_W * 0.5, t + BAY_PIER_W * 0.5
+            out.append(ccw([
+                (x0 + ux * a - nx * BAY_PIER_BITE, y0 + uy * a - ny * BAY_PIER_BITE),
+                (x0 + ux * b - nx * BAY_PIER_BITE, y0 + uy * b - ny * BAY_PIER_BITE),
+                (x0 + ux * b + nx * BAY_PIER_PROUD, y0 + uy * b + ny * BAY_PIER_PROUD),
+                (x0 + ux * a + nx * BAY_PIER_PROUD, y0 + uy * a + ny * BAY_PIER_PROUD),
+            ]))
+            stats["bay_piers"] += 1
+    return out
+
+
 def storey_details(ring, lat0, y0, y1, tone, grp, stats):
     """The storey bands for one upper wall: base course, floor lines, cornice.
 
@@ -595,6 +718,29 @@ def storey_details(ring, lat0, y0, y1, tone, grp, stats):
             continue
         out.append(detail_feature(to_ll8(ccw(r), lat0), grp, part, lo, hi, trio))
         stats["band_details"] += 1
+
+    # ── the vertical axis (QUEUE Y19) ─────────────────────────────────
+    # Appended AFTER the horizontal rings and as ONE MultiPolygon per wall, so a
+    # diff of data/drag.geojson against the shipped file shows every existing
+    # feature unchanged and in order, with the bays added.
+    if BAY_ON and out:
+        # The pilaster runs INTO the base course and INTO the cornice, so it has
+        # no exposed end. Both prouds are larger than BAY_PIER_PROUD, so the
+        # tuck is genuinely buried rather than merely overlapping.
+        p_lo = base[1] - BAY_PIER_TUCK
+        p_hi = corn[0] + BAY_PIER_TUCK
+        if p_hi - p_lo < BAY_MIN_H:
+            stats["bay_wall_too_short"] += 1
+        else:
+            rings = pier_rings(closed, stats)
+            if rings:
+                pier_tone = _hex_mix(MATERIALS[tone], BAY_SHADE_COL, BAY_SHADE)
+                pier_trio = (pier_tone,) + wall_ramp(pier_tone)
+                out.append(detail_multi([to_ll8(r, lat0) for r in rings], grp,
+                                        "pier", p_lo, p_hi, pier_trio))
+                stats["bay_features"] += 1
+            else:
+                stats["bay_none_fit"] += 1
     stats["band_buildings_" + ("banded" if out else "bare")] += 1
     return out
 
