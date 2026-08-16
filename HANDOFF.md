@@ -21506,3 +21506,145 @@ tolerance; these are ten times that.
    rails". Period-correct, one constant, pre-dates this pass. Simeon's call.
 
 Server killed, worktree torn down, `reap.mjs` not run.
+
+---
+
+## 157. Aug 16 2026 — the graph was routing into the wall on nine buildings, and eid 292 was never dark (QUEUE NB8 handover closed; NB9 answered, NB10 opened) (acer lane, branch `acer/o5-regraph`)
+
+**Branch:** `acer/o5-regraph`, cut from `origin/main` `55170d1`. **Server:**
+`python scripts/serve.py 8521` from a throwaway worktree. **Harness-drift:**
+PASS, 29 scripts in `index.html` and 29 in `_harness.html`, run before any
+pixel work. Write-ups: `docs/walk/regraph.md`, `shots/regraph/README.md`.
+
+### 157.1 The handover nobody picked up, and what it was actually worth
+
+`docs/entrances/relocated.md` §7.4 ended with a plain sentence — *"`data/walk_graph.json`
+is now stale by up to 9.61 m on 11 buildings and this pass did NOT re-bake
+it"* — addressed to a lane that had already finished. It sat.
+
+The 9.61 m framing undersold it. Testing each stale door position against the
+footprint rings `austin-buildings` actually extrudes: **nine of the eleven were
+inside their own building's footprint.** GSB 9.56, eid 281 8.12, MEZ 7.37, eid
+276 7.31, BHD 6.48, SEZ 5.96 and 5.28, EDB 4.46, eid 194 4.10 — all inside.
+Only eid 391 (3.27 m) and Jester West (2.01 m) were in open air. This follows
+directly from what NB8 fixed: those doors had been *in* their walls, NB8 pushed
+them out, and the graph kept the buried coordinates. "Stale by 9 m" and "aims
+at a point inside the building" are the same fact.
+
+### 157.2 Re-baked, and the proof
+
+```
+19 of 19 bake gates green      routable 135 / 198 (gate H, printed)
+frozen 19-pair regression      PASS, 0 bad of 19, walls 0 on every pair
+the 11 spot-checks             ->drawn 0.00 m on all eleven, 0 wall crossings
+every arrival leg (1,648)      0 cross a building, 16 under a roof/canopy
+route-driven, the-78's shape   158 origins x 11 buildings, 1,738 routes, 0 crossings
+diff vs the shipped graph      +3 nodes, +3 edges, +3 anchor splits, +117 bytes
+```
+
+Three things worth keeping:
+
+* **Match doors by identity, never by file order.** `build_doors()` sorts on
+  `(ref, nm, lon)` and `lon` is exactly what moves, so a positional diff invents
+  movers. Matched on `(ref, nm, role, src)` then nearest position.
+* **Twenty-one rows look like identity drift and are not.** Their `ref` is `''`
+  in `entrances.geojson` and `STD`/`KIN`/`ATT`/`BMK`/`TCP`/`AF2`/`CLK` in the
+  graph, because `bake_walk.py` fills those in itself from `CODE_ALIASES` by
+  building name. The graph's `ref` is post-alias; the entrance file's is raw.
+* **Two frozen baselines are stale and were NOT re-frozen.** `GRE>MNC` +1.6 %
+  and `JES>MCA` −0.5 % are the NB2 Moncrief/Moody relocations against a
+  2026-08-15 freeze. `do_regress()` re-bakes in memory, so it read those same
+  numbers on `main` before this branch existed. Both inside tolerance, both
+  `walls 0`. Re-freezing is a decision about which number is true and it belongs
+  to whoever last moved those doors.
+
+### 157.3 NB9 — eid 292 is not dark, and that is six camera zeros this week
+
+`relocated.md` Rank 2: *"0 px from both bearings at 15 m and 22 m — and 0 px
+from both bearings on the pre-NB2 file too"*, blamed on `js/stadium.js`'s
+authored wall. (`js/stadium.js` does not exist; the stadium is `data/stadium.geojson`
+drawn by `js/app.js`.)
+
+On the layer-toggle A/B the door is **nonzero from BOTH opposing bearings at
+walking height**, each against its own per-pose noise floor of 0:
+
+```
+  pose               bearing  eyeAlt   door px over24   floor over24
+  292-fromWSW-18m       76      1.70          1,341            0
+  292-fromENE-18m      256      1.70            139            0
+  292-fromWSW-12m       76     67.00              0            0   <- nowhere to stand
+  292-fromENE-12m      256     67.00              0            0   <- nowhere to stand
+```
+
+and the on/off pair shows the stoop and the doorway appearing and
+disappearing. The WSW reading is ten times the ENE one because from the ENE
+the pier immediately east of the leaf hides most of it — which is the shape
+you would expect, and is itself evidence the geometry is where it is claimed
+to be.
+
+**The aim was wrong, not the door.** The instrument shoots the *building's*
+outward normal ±40°; DKR's north wall there faces about 337°. The *door's* own
+leaf normal is about 256° — it faces WSW, **along** the building into the
+service canyon rather than out of it. 81° apart, so both "opposing" bearings
+were on the far side of the wall. `sweep.md` §3.4 predicted exactly this and
+the fix is to derive the standoff bearing from the LEAF, not the footprint.
+
+Also measured, and it matters for the next pass: **12 m of standoff reports
+`eyeAlt 67` on both sides** — the collision net throws the eye to 67 m because
+there is nowhere to stand that close. 18 m is the closest standoff that holds
+walking height here, and it is quoted with every number.
+
+**Nothing was changed. `data/entrances.geojson` is byte-identical to `main`.**
+
+### 157.4 NB10 — the buried probe never looks forward (measured, then reverted)
+
+`clear_buried()` sweeps `BURIED_SPAN_M` **along** the wall — the Red Zone
+taught it that — and samples exactly **one depth**, `BURIED_TEST_OUT = 0.25 m`.
+It asks "is the leaf inside a mass" and never "is anything standing in front of
+the leaf".
+
+Measured by adding `BURIED_TEST_DEPTHS = (0.25, 0.75, 1.5, 2.5)`:
+
+```
+arm (0.25,)                reproduces main's entrances file BYTE-IDENTICAL
+                           sha256 64844e42f9e03da4c2fd872448d97b90658df4cb…
+arm (0.25,0.75,1.5,2.5)    buried found 30 -> 32, relocated 27 -> 29, dropped 3 -> 3
+                           exactly TWO groups move, out of 656:
+                             eid 90  Red McCombs Red Zone            5.09 m
+                             eid 54  Hal C. Weaver Power Plant Expn  3.55 m
+```
+
+**Reverted on purpose.** Two moved doors need photographing from both bearings
+before they ship — that is a pass of its own — and eid 292 is not one of them,
+so it bought nothing tonight. The blast radius is now measured and it is tiny.
+Whoever takes NB10 re-applies the sweep and photographs 90 and 54.
+
+### 157.5 For every lane: the verify install in the main checkout is broken again
+
+`scripts/verify/node_modules/playwright-core` in `C:\Users\simip\Projects\austin-3d-explorer`
+is missing `index.mjs` **and** `index.js`. Every playwright-based script there
+dies with `ERR_MODULE_NOT_FOUND` before it opens a browser; confirmed by
+importing it directly. **Not repaired from here** — a sibling may have been
+mid-run and this lane does not own that tree. Recovery is documented:
+`cd scripts/verify && npm ci`. Note `package-lock.json` is untracked, so a
+fresh worktree needs it copied in before `npm ci` will run at all.
+
+### 157.6 What this pass did NOT establish
+
+1. **Job one was never photographed.** The graph is checked by geometry against
+   the file the renderer draws. That the doors themselves are visible is
+   `relocated.md`'s claim, taken on trust.
+2. **eid 292 was proven visible from two opposing bearings at 18 m only.** The
+   12 m poses on both sides report `eyeAlt 67` — nowhere to stand — and the
+   remaining twelve poses of the orbit had not finished when this was written,
+   so the door's visibility from the N and S quadrants is unmeasured. It is
+   also unmeasured at night.
+3. **The two moved regression baselines were not re-frozen** (§157.2).
+4. **`GRE>MNC` still fails its audit** for the `KNOWN_BAD` fence reason.
+5. **The 63 unroutable register codes were not touched.** 135 of 198 is held,
+   not improved.
+6. **NB10's two movers were not photographed**, which is exactly why it was
+   reverted rather than shipped.
+7. **NB5 is inherited, not answered.**
+
+Server killed, worktree left in place, `reap.mjs` not run.

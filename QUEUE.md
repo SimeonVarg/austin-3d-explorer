@@ -1600,6 +1600,74 @@ regression.
 
 ---
 
+> ## THE GRAPH WAS ROUTING INTO THE WALL ON NINE BUILDINGS, and eid 292 is not
+> ## dark — the camera was on the wrong side of it — 2026-08-16, `acer/o5-regraph`
+> ## (full write-up: `docs/walk/regraph.md`; pictures: `shots/regraph/`)
+>
+> **`data/walk_graph.json` IS RE-BAKED.** NB8's handover was picked up. It said
+> the graph was stale by up to 9.61 m on eleven buildings; measured, that
+> undersells it — **nine of the eleven stale arrival points sat INSIDE their own
+> building's drawn footprint**, not beside the door. GSB 9.56 m, eid 281 8.12,
+> MEZ 7.37, eid 276 7.31, BHD 6.48, SEZ 5.96 and 5.28, EDB 4.46, eid 194 4.10
+> were all inside; only eid 391 (3.27 m) and Jester West (2.01 m) were in open
+> air. A student asking for Mezes this morning was sent into the wall.
+>
+> * **All eleven now arrive at the door that is drawn: `->drawn` 0.00 m on every
+>   one, zero wall crossings on every arrival leg.** Routed door-to-door from the
+>   nearest of five real origins. Four of the eleven have no register code and
+>   were routed to the door directly rather than pretending a code route exists.
+> * **Frozen 19-pair regression PASS, 0 bad, walls 0 on all nineteen.** Two rows
+>   moved and **neither is this re-bake**: `GRE>MNC` +1.6 % and `JES>MCA` −0.5 %
+>   are the NB2 Moncrief/Moody relocations landing in a baseline frozen
+>   2026-08-15, and `do_regress()` re-bakes in memory so it read those same two
+>   numbers on `main` before this branch existed. **Not re-frozen — somebody
+>   should decide which number is the truth.**
+> * **19 of 19 bake gates green. Routable is 135 of 198**, printed by gate H, not
+>   assumed. 656 doors, 158 codes, both unchanged.
+> * **Arrival legs hold, two ways**: every door→anchor link in the graph (1,648
+>   of them) crosses 0 buildings, and the-78's route-driven shape — 158 origins
+>   into the 11 moved buildings, 1,738 completed routes — also crosses 0.
+> * The whole diff is the eleven re-anchoring: +3 nodes, +3 edges, +3 anchor
+>   splits, +117 bytes.
+>
+> **NB9 — eid 292 ON DKR IS NOT DARK, AND THIS IS THE SIXTH CAMERA ZERO THIS
+> WEEK.** `relocated.md` Rank 2 recorded it dark from both bearings at 15 m and
+> 22 m and blamed the stadium's authored wall. On the layer-toggle A/B it
+> is nonzero from **both opposing bearings at walking height** against a per-pose
+> noise floor of 0 — **1,341 pixels over 24 from the WSW at 18 m and 139 from the
+> ENE at 18 m** — and the on/off pair shows the stoop and doorway appearing. (At
+> 12 m both sides report `eyeAlt 67`: there is nowhere to stand that close.)
+> **The aim was wrong, not the door.** The instrument shot along the BUILDING's
+> outward normal — DKR's north wall faces about 337° — and the DOOR's own leaf
+> normal is about 256°: it faces WSW, *along* the building into the service
+> canyon, not out of it. 81° apart, so both "opposing" bearings were on the far
+> side of the wall. **No fix was needed and none was made; `data/entrances.geojson`
+> is byte-identical to `main`.**
+>
+> **NB10 — THE BURIED PROBE SWEEPS SIDEWAYS AND NEVER FORWARD, and it costs two
+> doors.** `clear_buried()` sweeps `BURIED_SPAN_M` along the wall (the Red Zone
+> taught it that) but samples ONE depth, `BURIED_TEST_OUT = 0.25 m`. It asks "is
+> the leaf inside a mass", never "is anything standing in front of the leaf".
+> Measured by adding a forward sweep at (0.25, 0.75, 1.5, 2.5) m: the arm with
+> only `(0.25,)` reproduces `main`'s entrances file **byte-identical** (sha
+> `64844e42f9e03da4…`), and the four-depth arm moves **exactly two doors** —
+> **eid 90 Red McCombs Red Zone 5.09 m** and **eid 54 Hal C. Weaver Power Plant
+> Expansion 3.55 m** — with buried found 30 → 32 and dropped 3 → 3 unchanged.
+> **The change was REVERTED, deliberately.** Two moved doors need photographing
+> from both bearings before they ship, that is a pass of its own, and eid 292 is
+> not one of them so it bought nothing tonight. The blast radius is measured and
+> tiny; whoever takes NB10 should re-apply the sweep and photograph 90 and 54.
+>
+> **FOR EVERY LANE: `scripts/verify/node_modules` IN THE MAIN CHECKOUT IS BROKEN
+> AGAIN.** `playwright-core` is missing `index.mjs` and `index.js`, so every
+> playwright-based script there dies with `ERR_MODULE_NOT_FOUND` before it opens
+> a browser. Confirmed by importing it. **Not repaired from here** — a sibling
+> may have been mid-run. Recovery is the documented one: `cd scripts/verify &&
+> npm ci` (and `package-lock.json` is untracked, so a fresh worktree needs it
+> copied in first).
+
+---
+
 > ## THE 25 RELOCATED DOORS WERE LOOKED AT — MAI never moved, three doors had
 > ## been made invisible, and NB8 fixes them — 2026-08-16, `acer/nb-relocated`
 > ## (full write-up: `docs/entrances/relocated.md`; pictures: `shots/relocated/`)
