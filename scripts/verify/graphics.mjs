@@ -48,7 +48,7 @@ process.on('uncaughtException', async (e) => {
 
 import { chromePath, GL_ARGS, BASE, launch } from './chrome.mjs';
 
-await page.goto(`${BASE}/_harness.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/_harness.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 

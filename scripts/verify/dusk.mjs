@@ -94,7 +94,7 @@ page.on('pageerror', e => console.log('PAGEERROR', e.message));
 // _harness.html, not index.html: readPixels on a swapped buffer returns black
 // and only the harness forces preserveDrawingBuffer. harness-drift.mjs is what
 // keeps that page honest about being the same city.
-await page.goto(`${BASE}/_harness.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/_harness.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4500);
 // README law: the auto-detect probe fires 11 s after load and rewrites every

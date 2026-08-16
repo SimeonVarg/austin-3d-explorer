@@ -90,7 +90,7 @@ const ls = l => `chrome ${String(l.chrome).padStart(2)} node ${String(l.node).pa
 
 async function newPage(browser) {
   const page = await browser.newPage({ viewport: { width: VW, height: VH } });
-  await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 120000 });
+  await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 120000 });
   await page.waitForFunction(() => window.__fly && window.__fly.indexed(), null, { timeout: 60000 });
   await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
@@ -175,8 +175,12 @@ async function repHop(browser, S, opts) {
 
 const nm = v => (v == null ? '   --' : String(v));
 
+// Derived, for the reason written out at the same change in walk.mjs (§155):
+// REPS x SITES x {walk, hop} phases of up to SECS each, one page load per rep,
+// is far past chrome.mjs's 300 s default at every setting this file ships with.
+const NEED_MS = REPS * SITES.length * 2 * (SECS * 1000 + 45000) + 60000;
 (async () => {
-  const browser = await launch(chromium, { gl: 'hardware' });
+  const browser = await launch(chromium, { gl: 'hardware', maxMs: process.env.VERIFY_MAX_MS || NEED_MS });
   console.log('walk-trunk — QUEUE Y15, measured from a walk (see lib/walker.mjs for why it could not be before)');
   console.log(`  ${BASE}  |  headless, gl=hardware, NO cpu throttle, index.html?intro=0, ${VW}x${VH}`);
   console.log(`  ${REPS} reps, interleaved + counterbalanced, one page load each; figure = MIN across reps`);

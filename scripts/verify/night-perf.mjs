@@ -42,7 +42,7 @@ const browser = await launch(chromium, { executablePath: chromePath(), headless:
 const page = await browser.newPage({ viewport: { width: 2560, height: 1400 } });
 await page.bringToFront();
 page.on('pageerror', e => console.log('  [pageerror] ' + e.message));
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 await page.waitForTimeout(6000);

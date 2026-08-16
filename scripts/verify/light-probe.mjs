@@ -30,7 +30,7 @@ const wrapDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
   // domcontentloaded, NOT networkidle: the probe timer arms at graphics init,
   // and a slow networkidle wait can eat the whole 11 s window before the test
   // even starts its ease (measured: the probe fired 14 s before the ease).
-  await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
   const armed = await page.evaluate(() => !window.GFX.autoDetected);
   check('first run: probe is armed (autoDetected false)', armed, 'autoDetected=' + !armed);
@@ -85,7 +85,7 @@ const wrapDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 // ── 3a: cancelGraphicsAutoDetect still works ─────────────────────────
 {
   const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
-  await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
   await page.waitForTimeout(3000);
   await page.evaluate(() => window.cancelGraphicsAutoDetect());
@@ -105,7 +105,7 @@ const wrapDiff = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 // after cancelGraphicsAutoDetect always reports null.
 {
   const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
-  await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
   await page.waitForTimeout(3000);
   const probe = await page.evaluate(async () => {

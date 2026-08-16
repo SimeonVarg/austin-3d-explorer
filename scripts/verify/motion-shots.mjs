@@ -43,7 +43,7 @@ const browser = await launch(chromium);
 
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(`${BASE}/index.html?drift=0&intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 

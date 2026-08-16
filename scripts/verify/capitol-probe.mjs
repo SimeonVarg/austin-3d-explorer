@@ -26,7 +26,7 @@ page.on('pageerror', e => errors.push('PAGEERROR ' + e.message));
 // jumpTo that follows is overwritten a frame later. Two runs of this probe
 // screenshotted campus and were nearly read as "the buildings are missing at
 // the Capitol"; they were missing because the camera was never there.
-await page.goto(SERVER + '/_harness.html?intro=0', { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(SERVER + '/_harness.html?drift=0&intro=0', { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 // The scene is ~4 MB of GeoJSON and js/capitol.js setData()s two more sources
 // after it; every one of those re-tiles in a worker. Wait for the sources to

@@ -15,7 +15,7 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERROR', e.message));
 
-await page.goto(SERVER + '/_harness.html?intro=0', { waitUntil: 'networkidle', timeout: 90000 });
+await page.goto(SERVER + '/_harness.html?drift=0&intro=0', { waitUntil: 'networkidle', timeout: 90000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 90000 });
 await page.waitForTimeout(4000);
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
