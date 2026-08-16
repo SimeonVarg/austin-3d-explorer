@@ -950,12 +950,29 @@ real walk would not, so it is an upper bound rather than a typical cost. Same
 shape as Y7 and the same fix (spread `querySourceFeatures` across frames by tile
 rather than asking for everything). Measure it under a sustained walk first.
 
-**Y16. At 1.7 m you cannot look down, and the failure mode is not what §106
-recorded.** §106 said the controller BLOCKS the pitch. Driven through `setPitch`
-in §109 the pitch is **granted and the eye is silently lifted**: asked 80 you get
-4.23 m, asked 70 you get 8.34 m, asked 60 you get 12.19 m, asked 45 you get
-17.23 m. Same verdict as Y4 (`ZOOM_MAX` is still 21.5), but whoever picks Y4 up
-should know they are removing a silent lift, not a block.
+**~~Y16 (the harness half).~~ CLOSED 2026-08-16 (§143). THE HARNESS WALKS. The
+23.8 m constant was the walk phase's own hard-coded start pose, and there is no
+silent lift in the movement path.** `scripts/verify/walk-lift.mjs` traced the
+camera frame by frame: `roofAt(-97.74170, 30.28950, 1 m)` is **8.6 m**, i.e.
+`perf-budget.mjs` had always started its walk INSIDE A BUILDING, and the hard net
+(`controls.js:1617`) ejected it on the first tick at **zero metres travelled** —
+`8.6 + HARD_CLEAR(4) = 12.6` — then again once `rCam()` had lerped 1 → 6 m past
+`ALT_GROUND`, because the wider probe sees the 19.8 m roof next door:
+`19.8 + 4 = 23.8`. Deterministic start, deterministic digit. Fixed in
+`scripts/verify/lib/walker.mjs` (refuse any start with `roofAt(p, 7 m) > 0`,
+steer along open ground, drive only through key and pointer events, and return
+the altitude of EVERY frame). **300 m walked on the Drag with `alt` min 1.7 and
+max 1.7 across 3,940 frames.** Gate: `walk.mjs`, watched red at the old start in
+the same run. NOTHING IN `js/controls.js` NEEDED TO CHANGE and none was changed.
+
+**Y16 (the app half) — still open, and it is the `setPitch` sighting only.** At
+1.7 m you cannot look down: driven through `setPitch` in §109 the pitch is
+**granted and the eye is silently lifted** — asked 80 you get 4.23 m, asked 70
+you get 8.34 m, asked 60 you get 12.19 m, asked 45 you get 17.23 m. Same verdict
+as Y4 (`ZOOM_MAX` is still 21.5), but whoever picks Y4 up should know they are
+removing a silent lift, not a block. §132's second "independent sighting through
+the movement path" was **not** this — it was the start pose above, and that
+sentence in §132 should be read as retracted.
 
 **~~Y14.~~ CLOSED — both run against `origin/main` `38fbeee`, both at baseline
 (HANDOFF §115).** `places-check.mjs` **PASS, 40 ok / 0 failed** (same as §95).
