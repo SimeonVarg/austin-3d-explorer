@@ -89,8 +89,22 @@ except ImportError:  # pragma: no cover
     raise
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SNAP = os.path.join(ROOT, "data", "snapshots", "2026-08-04",
-                    "buildings.detailed.geojson")
+
+# The footprint file the RENDERER extrudes, resolved exactly the way js/app.js
+# resolves it: `data/manifest.json` -> `latest`.  This used to read a written
+# date, `2026-08-04`, and QUEUE NB5 was opened because the app had rolled to
+# `2026-08-16` and nobody had compared the two.  They are byte-identical, so
+# the pin cost nothing this time — but a door placed against a footprint the
+# renderer does not draw is a door in the wrong place, and the only reason to
+# find that out by looking is that nothing was written down.  Now the date the
+# bake used is stamped into `entrances.geojson` itself and
+# `scripts/snapshot_parity.py` compares it against the manifest.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bake_facades  # noqa: E402
+
+SNAP_SOURCE = "buildings.detailed.geojson"
+SNAP_DATE = bake_facades.snapshot_date()
+SNAP = os.path.join(ROOT, "data", "snapshots", SNAP_DATE, SNAP_SOURCE)
 CACHE = os.path.join(ROOT, "data", "osm_cache")
 FOOTWAYS = os.path.join(CACHE, "footways.json")
 PLAZAS = os.path.join(CACHE, "plazas.json")
@@ -5133,7 +5147,13 @@ def main():
     assert not mid_glass, "glazing neither lit nor dark: %s" % mid_glass[:5]
     assert not float_sills, "floating sills: %s" % float_sills[:5]
 
-    out = {"type": "FeatureCollection", "features": feats,
+    out = {"type": "FeatureCollection",
+           # Provenance, not decoration. Every door below is placed against one
+           # named footprint file; this records which, so a check can compare
+           # it with what the app draws instead of someone remembering.
+           "snapshot": SNAP_DATE,
+           "snapshot_source": SNAP_SOURCE,
+           "features": feats,
            # PROUD GEOMETRY ONLY. This pass claims no building ids, on purpose
            # and permanently, so it can never collide with facades/drag/heroes/
            # westcampus/capitol in either order.
@@ -5141,7 +5161,8 @@ def main():
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump(out, fh, separators=(",", ":"))
     mb = os.path.getsize(OUT) / 1048576.0
-    print("  wrote %s  %.2f MB" % (os.path.relpath(OUT, ROOT), mb))
+    print("  wrote %s  %.2f MB  (snapshot %s)"
+          % (os.path.relpath(OUT, ROOT), mb, SNAP_DATE))
     if mb > 8.0:
         print("  NOTE: this is large enough that it may want tiling later.")
 

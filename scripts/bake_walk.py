@@ -35,6 +35,19 @@ from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# The footprint file the RENDERER extrudes, resolved the way js/app.js resolves
+# it: `data/manifest.json` -> `latest`.  Both reads below used to say
+# `2026-08-05`; the app had rolled to `2026-08-16` (QUEUE NB5).  The walls this
+# graph routes around, and the buildings its door links attach to, have to be
+# the walls on screen or the route goes through one.  Stamped into
+# `walk_graph.json` and checked by `scripts/snapshot_parity.py`.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import bake_facades  # noqa: E402
+
+SNAP_SOURCE = "buildings.enriched.geojson"
+SNAP_DATE = bake_facades.snapshot_date()
+SNAP_REL = "data/snapshots/%s/%s" % (SNAP_DATE, SNAP_SOURCE)
+
 
 def P(*a):
     print(*a, flush=True)
@@ -656,7 +669,7 @@ def build_obstacles():
     polys = {}          # bid -> list of rings in local xy
     bnames = {}
     bclass = {}
-    b = load("data/snapshots/2026-08-05/buildings.enriched.geojson")
+    b = load(SNAP_REL)
     for ft in b["features"]:
         bid = ft["properties"].get("id")
         bnames[bid] = ft["properties"].get("name") or "(unnamed footprint)"
@@ -1419,7 +1432,7 @@ def bake(verbose=True):
 
     # --- why is each missing code missing?  Printed with the health block --
     fp_names = defaultdict(list)
-    for ft in load("data/snapshots/2026-08-05/buildings.enriched.geojson")["features"]:
+    for ft in load(SNAP_REL)["features"]:
         nm = (ft["properties"].get("name") or "").strip()
         if nm:
             fp_names[nm.lower()].append(ft["properties"].get("id"))
@@ -1662,7 +1675,13 @@ def bake(verbose=True):
         "v": 1,
         "_license": "ODbL-1.0",
         "_source": "OpenStreetMap contributors (via Overpass); UT Austin building register. Not affiliated with UT Austin.",
+        # `as_of` dates the OSM pull. It is NOT the footprint snapshot, and
+        # reading it as one is how the two stayed unrelated long enough for
+        # QUEUE NB5 to happen. `snapshot` is the building file this graph's
+        # walls and door links were built against.
         "as_of": G["as_of"],
+        "snapshot": SNAP_DATE,
+        "snapshot_source": SNAP_SOURCE,
         "q": COORD_Q,
         "n": {"x": qx, "y": qy},
         "e": {"a": ea, "b": eb, "w": ew, "f": ef, "s": es},

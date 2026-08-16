@@ -20949,3 +20949,198 @@ shipped outputs. `austin.pmtiles` not diffed (nothing reads it). Outer ring not
 examined. `harness-drift` not run: there was no pixel work in this phase.
 
 No server started, no browser, no worktree left behind, `reap.mjs` not run.
+
+---
+
+## 154. Aug 16 2026 — every bake now reads the buildings the app draws, and says so in its own output; NB5 closed, NB6/NB7 opened (QUEUE NB5) (acer lane, branch `acer/o1-snapshot`, PR #193)
+
+Full working: **`docs/data/snapshot-drift.md` §7**. §153 measured the drift and
+recommended pinning-only fixes; this executed that, and went one step further
+in the one place where the extra step was cheaper than the argument.
+
+### 154.1 THE ANSWER SIMEON CARES ABOUT
+
+**The city he records is built from the buildings it draws.** It always was —
+the two files NB5 named have the same md5 — but that is now true *by
+construction* rather than by luck, and there is a one-second check that says so.
+
+### 154.2 WHAT CHANGED, IN ONE TABLE
+
+| Bake | Was pinned to | Now |
+|---|---|---|
+| `bake_entrances.py` | `2026-08-04` | `bake_facades.snapshot_date()` = `manifest.latest` |
+| `bake_walk.py` (both reads) | `2026-08-05` | same |
+| `bake_drag.py` | `2026-07-30` | same |
+| `bake_westcampus.py` | `2026-07-30` | same |
+| `bake_campus_storeys.py` | already correct | unchanged, gained the stamp |
+
+`bake_campus_storeys.py` has imported `bake_facades.snapshot_date()` since it
+was written. §153 §6.1 proposed lifting the resolver into a new
+`scripts/snapshot.py`; it was not lifted. Four more importers of a working
+twenty-line function beats a new module that exists only to hold it.
+
+### 154.3 EVERY BAKE RE-RUN TWICE, AND THAT IS THE WHOLE PROOF
+
+§153 was explicit that it had proved the eight `2026-07-30` bakes read
+identical *inputs*, not that re-running them reproduces their shipped outputs —
+several have authored inputs that have drifted for unrelated reasons. So each
+of the five was run at its OLD pin first:
+
+```
+bake_drag.py             0.5 s    reproduces shipped file byte-for-byte
+bake_westcampus.py       1.6 s    reproduces shipped file byte-for-byte
+bake_campus_storeys.py   0.7 s    reproduces shipped file byte-for-byte
+bake_entrances.py      104   s    reproduces shipped file byte-for-byte
+bake_walk.py            17   s    reproduces shipped file byte-for-byte
+```
+
+Then again at the new pin. **In all five the `features` are bit-identical and
+the only delta is the two new provenance keys.**
+
+```
+data/campus_storeys.geojson    640 features   identical
+data/drag.geojson              124 features   identical
+data/westcampus.geojson       1363 features   identical
+data/entrances.geojson       15069 features   identical
+data/walk_graph.json           every key      identical
+```
+
+`drag` and `westcampus` are the load-bearing pair — their input genuinely
+changed. Re-measured here independently of §153: `2026-07-30` to `2026-08-16`
+is 2453 to 2453 features, **0 added, 0 removed, 0 geometry changed**, and
+exactly two property keys moved (`wn` on all 2453, `has_parts` on 6). Neither
+bake reads either. §153's inference is now a measurement.
+
+### 154.4 THE STAMP — provenance lives in the data, not in someone's memory
+
+```json
+{ "type": "FeatureCollection",
+  "snapshot": "2026-08-16",
+  "snapshot_source": "buildings.detailed.geojson",
+  "features": [ ... ] }
+```
+
+`snapshot_source` is one key more than §153 §6.2 asked for and it earns itself:
+`bake_walk.py` reads `buildings.enriched.geojson` while the other four read
+`buildings.detailed.geojson`, so without it the check has to guess which two
+files to compare — and guessing wrong returns "equal" for free.
+
+`walk_graph.json` keeps `as_of`; the comment above it now says in words that it
+dates the OSM pull and is NOT the footprint snapshot. Reading it as one is how
+the two stayed unrelated long enough for NB5 to happen.
+
+### 154.5 THE CHECK, AND IT WAS WATCHED FAILING THREE WAYS
+
+**`scripts/snapshot_parity.py`.** Stdlib only, streaming top-level-key reader
+rather than `json.load`, **1.8 s over all 42 data files** including the 6.75 MB
+`entrances.geojson`. A guard nobody runs is not a guard.
+
+Three outcomes, because two would lie:
+
+```
+PASS             recorded date IS manifest.latest
+STALE-BUT-EQUAL  dates differ, snapshot bytes identical -> advisory
+FAIL             dates differ AND bytes differ -> prints added/removed/geometry
+```
+
+Watched failing, then restored:
+
+```
+forced 2026-07-30   FAIL   0 added, 0 removed, 0 geometry, props has_parts:6 wn:2453
+                           "no footprint moved; check whether this bake reads
+                            any of the changed properties before re-baking"
+forced 2026-07-10   FAIL   11 added, 1 removed, 7 geometry
+                           "FOOTPRINTS MOVED..."   (names all seven)
+forced 2025-01-01   FAIL   "the snapshot it names does not exist"
+```
+
+The 07-10 run reproduces §153's Jester finding from cold, in one second.
+
+**And it caught the live case with no contrivance**, first run on a clean tree:
+
+```
+5 pass, 1 stale-but-equal, 0 FAIL, 35 unstamped
+STALE-BUT-EQUAL  facade_palette.json  2026-08-03 -> 2026-08-16
+```
+
+**It lives at `scripts/snapshot_parity.py`, not in `scripts/verify/`, because a
+suite-repair lane owned that directory tonight.** That is a boundary call, not
+a design one: it is stdlib-only, depends on nothing in the harness, and moving
+it in later is a `git mv`. Whoever owns `scripts/verify/` should do that. This
+is the one file this pass wrote outside the paths it was scoped to, and it is
+flagged here rather than buried, because the alternative was to ship the fix
+with no check at all.
+
+### 154.6 THE GATE
+
+* `harness-drift` **PASS** — 29 scripts in `index.html`, 29 in `_harness.html`.
+* `bake_walk.py`'s own gates: **19 of 19 green**, including H (135/198 routable
+  codes), S (every findable entry routable), T (24/24 West Campus towers).
+* `coplanar.mjs` on `entrances.geojson`: **1627 before, 1627 after**, run on
+  `HEAD`'s file and the branch's file side by side. `--gate` is red — against a
+  baseline of **1558**, which is QUEUE NB3's stale baseline and is red on
+  `main` too. **Reported, not edited: that file belongs to the suite lane.**
+  NB3 predicted ~1626; the true figure is 1627.
+* Five poses, two runs per arm, sequential on port 8481 from two throwaway
+  worktrees (`origin/main` vs the branch) so there is no deployment lag in the
+  comparison. Both arms used `?entdefer=0` and refused to screenshot until
+  `austin-entrances` reported loaded — **15,769 source features on every arm**.
+
+```
+pose             within main    within cand    across (worst / best)
+southmall-eye     847,745 px     851,215 px     852,928 / 848,041
+door-close        836,527 px     839,044 px     841,325 / 836,240
+drag-street             0 px           0 px           0 /       0
+westcampus              0 px           0 px           0 /       0
+spawn-night       266,215 px     266,809 px     269,458 / 265,832
+```
+
+**The two `balanced` poses are byte-identical across builds — and they are the
+two whose bake input actually changed.** The three `cinematic` poses carry an
+enormous intrinsic noise floor (about 65% of the frame differs by more than 2
+between two runs of the *same* build); every across-build number sits inside
+the within-build band, and at two of three poses the *best* cross pair is below
+the within-main floor. That is noise, not a city that moved. Query counts
+(`entrances-portal`, `entrances-glass`, `austin-drag`, `austin-westcampus`)
+were identical at every pose on every arm.
+
+### 154.7 WHAT WAS DELIBERATELY NOT DONE — now QUEUE NB6 and NB7
+
+* **`data/facade_palette.json` not re-baked** (NB6), against §153's own item 1.
+  It is `bake_facades.py`'s output — another lane's bake — and re-arming a boot
+  path that is currently off is a behavioural change wanting its own
+  before/after, not a smuggled one-liner the night before a recording. It is
+  boot cost, not pixels, and the check now shouts about it every run.
+* **Nine other bakes still state a date** (NB7). Same one-line fix, other
+  lanes' files. **`bake_detail.py:33` is the one that matters**: its argv
+  default is `2026-07-10`, the only snapshot where footprints genuinely moved,
+  and that script *writes* `buildings.detailed.geojson`. It is the only pin in
+  the repo that can do real damage, and only by accident.
+
+### 154.8 WHAT THIS PASS DID NOT ESTABLISH
+
+* **The facades fast-path claim is still not confirmed in a browser.** §153
+  flagged it and this pass did not close it: nobody called
+  `window.facadePaletteSource()` on a live page. The claim remains code plus
+  two data values.
+* **The 35 unstamped data files were not audited.** The check lists them as
+  outside its sight; how many actually read a snapshot is unknown. It reports
+  the count so it cannot be forgotten, but it does not know which of them
+  *should* carry a stamp.
+* **Nothing was proved about `bake_detail.py` beyond reading it.** It was not
+  run — running it would rewrite the city's own footprint file.
+* **`austin.pmtiles` still not diffed**, outer ring still not examined — both
+  carried over from §153 unchanged.
+* **The noise floor is 2 runs per arm, not more.** The conclusion ("across sits
+  inside within") rests on four cross pairs and two within pairs per pose. It
+  is consistent at all five poses, but it is not a distribution.
+* **Only five poses.** The Capitol, DKR, the arts district and the outer ring
+  were not photographed. Nothing in this change touches their data files, but
+  nobody looked to say so.
+* **No performance measurement.** Two extra top-level keys cannot plausibly
+  cost anything, and nothing was measured to prove it.
+
+### 154.9 HOUSEKEEPING
+
+Two throwaway worktrees used and removed; the server on 8481 killed;
+`reap.mjs` NOT run. No `git stash` at any point. Branch deleted after merge.

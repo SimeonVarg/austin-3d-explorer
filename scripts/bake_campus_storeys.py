@@ -79,6 +79,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 OUT = os.path.join(DATA, "campus_storeys.geojson")
+SNAP_SOURCE = "buildings.detailed.geojson"
 CHECK = "--check" in sys.argv
 
 # `familyFor` is transcribed once, in scripts/bake_facades.py, and checked
@@ -534,8 +535,12 @@ def main():
     from collections import Counter
     stats = Counter()
 
+    # Already resolved the right way — this bake was the reference for the
+    # other four when QUEUE NB5 was fixed. What it lacked was the stamp: it
+    # printed the date to a terminal nobody kept, so its own output could not
+    # be checked against the manifest afterwards.
     date = bake_facades.snapshot_date()
-    snap = os.path.join(DATA, "snapshots", date, "buildings.detailed.geojson")
+    snap = os.path.join(DATA, "snapshots", date, SNAP_SOURCE)
     feats = json.load(open(snap, encoding="utf-8"))["features"]
     years = load_years()
     claimed = claimed_ids()
@@ -566,7 +571,9 @@ def main():
     # with the defect.
     checked, worst = check_host_clearance(out, heights)
 
-    gj = {"type": "FeatureCollection", "features": out}
+    gj = {"type": "FeatureCollection",
+          "snapshot": date, "snapshot_source": SNAP_SOURCE,
+          "features": out}
     if CHECK:
         print(json.dumps({"snapshot": date, "considered": considered,
                           "features": len(out),
