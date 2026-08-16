@@ -18254,8 +18254,12 @@ verbatim. Zero wayfind console errors in every run.
 
 ### What I did NOT manage to do
 
-* **No night frames this pass.** Everything photographed is `p=0.25`. §137's
-  night set still stands but it predates both of tonight's fixes.
+* ~~No night frames.~~ **Taken after all, on the merge commit**: the phone
+  gate (12/12) and the clip-URL gate (7/7) were both re-run at `p=0.92` and
+  `shots/walk/final2/7-the-recordable-url-at-night.png` and `8-phone-at-night.png`
+  are the frames. The night clip frame is the better of the two — the amber
+  route reads clean against a dark city with the Tower lit behind it. What is
+  still missing is a night version of the three DESKTOP card frames.
 * **The 78 register codes still do not route** — unchanged, and it still needs
   doors authored in `data/entrances.geojson`, another lane's file. §136 has the
   shopping list with coordinates.
