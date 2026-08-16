@@ -1633,8 +1633,10 @@ regression.
 > **NB9 — eid 292 ON DKR IS NOT DARK, AND THIS IS THE SIXTH CAMERA ZERO THIS
 > WEEK.** `relocated.md` Rank 2 recorded it dark from both bearings at 15 m and
 > 22 m and blamed the stadium's authored wall. On the layer-toggle A/B it
-> contributes **1,341 pixels over 24 from the WSW at 18 m, against a per-pose
-> noise floor of 0**, and the on/off pair shows the stoop and doorway appearing.
+> is nonzero from **both opposing bearings at walking height** against a per-pose
+> noise floor of 0 — **1,341 pixels over 24 from the WSW at 18 m and 139 from the
+> ENE at 18 m** — and the on/off pair shows the stoop and doorway appearing. (At
+> 12 m both sides report `eyeAlt 67`: there is nowhere to stand that close.)
 > **The aim was wrong, not the door.** The instrument shot along the BUILDING's
 > outward normal — DKR's north wall faces about 337° — and the DOOR's own leaf
 > normal is about 256°: it faces WSW, *along* the building into the service

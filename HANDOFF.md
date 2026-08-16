@@ -21565,9 +21565,22 @@ from both bearings on the pre-NB2 file too"*, blamed on `js/stadium.js`'s
 authored wall. (`js/stadium.js` does not exist; the stadium is `data/stadium.geojson`
 drawn by `js/app.js`.)
 
-On the layer-toggle A/B the door contributes **1,341 pixels over 24 from the
-WSW at 18 m of standoff, against a per-pose noise floor of 0**, and the on/off
-pair shows the stoop and the doorway appearing and disappearing.
+On the layer-toggle A/B the door is **nonzero from BOTH opposing bearings at
+walking height**, each against its own per-pose noise floor of 0:
+
+```
+  pose               bearing  eyeAlt   door px over24   floor over24
+  292-fromWSW-18m       76      1.70          1,341            0
+  292-fromENE-18m      256      1.70            139            0
+  292-fromWSW-12m       76     67.00              0            0   <- nowhere to stand
+  292-fromENE-12m      256     67.00              0            0   <- nowhere to stand
+```
+
+and the on/off pair shows the stoop and the doorway appearing and
+disappearing. The WSW reading is ten times the ENE one because from the ENE
+the pier immediately east of the leaf hides most of it — which is the shape
+you would expect, and is itself evidence the geometry is where it is claimed
+to be.
 
 **The aim was wrong, not the door.** The instrument shoots the *building's*
 outward normal ±40°; DKR's north wall there faces about 337°. The *door's* own
@@ -21621,11 +21634,11 @@ fresh worktree needs it copied in before `npm ci` will run at all.
 1. **Job one was never photographed.** The graph is checked by geometry against
    the file the renderer draws. That the doors themselves are visible is
    `relocated.md`'s claim, taken on trust.
-2. **eid 292 was proven visible from ONE bearing at walking height, not two.**
-   The opposing bearing at 12 m could not hold walking height (eyeAlt 67) and
-   the 18 m opposing run had not finished when this was written. A single
-   strong positive against a zero floor is not the same risk as a single zero,
-   but it is not the two-bearing standard either.
+2. **eid 292 was proven visible from two opposing bearings at 18 m only.** The
+   12 m poses on both sides report `eyeAlt 67` — nowhere to stand — and the
+   remaining twelve poses of the orbit had not finished when this was written,
+   so the door's visibility from the N and S quadrants is unmeasured. It is
+   also unmeasured at night.
 3. **The two moved regression baselines were not re-frozen** (§157.2).
 4. **`GRE>MNC` still fails its audit** for the `KNOWN_BAD` fence reason.
 5. **The 63 unroutable register codes were not touched.** 135 of 198 is held,

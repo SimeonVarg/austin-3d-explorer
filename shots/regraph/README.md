@@ -37,9 +37,20 @@ path. Move it into the suite when that lane is done.
 bearings at 15 m and at 22 m, on `main` and on the pre-NB2 file, and blamed the
 stadium's authored wall.
 
-It is not dark. From the WSW at 18 m of standoff it contributes **1,341
-pixels over 24 against a noise floor of 0**, and `292-fromWSW-18m-on.png` vs
-`-off.png` shows the stoop and the doorway appearing and disappearing.
+It is not dark. It is nonzero from **both** opposing bearings at walking
+height, each against its own noise floor of 0:
+
+```
+  pose               bearing  eyeAlt   door px over24   floor
+  292-fromWSW-18m       76      1.70          1,341        0
+  292-fromENE-18m      256      1.70            139        0
+  292-fromWSW-12m       76     67.00              0        0
+  292-fromENE-12m      256     67.00              0        0
+```
+
+`292-fromWSW-18m-on.png` vs `-off.png` shows the stoop and the doorway
+appearing and disappearing. The ENE reading is a tenth of the WSW one because
+from that side the pier immediately east of the leaf hides most of it.
 
 The reason the earlier reading was zero is the aim, not the door. The
 instrument aimed along the **building's** outward normal (the stadium's north
