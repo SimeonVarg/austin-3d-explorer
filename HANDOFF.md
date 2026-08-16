@@ -17606,3 +17606,147 @@ two different files — so the recipe that makes them now refuses to run if it
 ever produces that again, and it says so on screen every time. **The one thing
 still owed: nobody has actually flown the camera at one of these to watch it
 flicker, and that needs a browser I deliberately did not open tonight.**
+
+## 136. Aug 16 2026 — the 2,744 ms task is `buildScene`, and downtown was waiting on a 3 KB file (QUEUE N6) (acer lane, branch `acer/n6-boot`)
+
+`docs/perf/measured.md` §4.2 named a **2,744 ms blocking task right after map
+`load`** and said it was not JSON parsing, but did not say what it was. §6 listed
+"the boot freeze" as the number one unbudgeted item. This pass profiled it, named
+it, and fixed the thing downstream of it that was actually keeping downtown off
+the skyline.
+
+**Instrument.** Chrome's V8 sampler over CDP at 100 µs, started at navigation
+commit, plus a `longtask` PerformanceObserver installed before any page script,
+plus wrapped `fetch` / `addSource` / `addLayer`. The piece worth stealing is the
+**calibration marker**: a named function that busy-loops 60 ms and returns its
+own `performance.now()`. Finding it in the profile gives the offset between V8's
+microsecond clock and page milliseconds, so a long task at t = 2,652 ms can be
+windowed in the profile EXACTLY instead of guessed at from the shape of the
+samples. Without it a specific task cannot be attributed at all.
+
+### 136.1 What the 2,744 ms task IS
+
+**It is `buildScene()`** — `js/app.js:362`, called from the `map.on('load')`
+handler at `js/app.js:332`. On a loaded machine it reproduced at 2,309 and
+3,006 ms; **76.7 % of its samples sit under `buildScene` → `step`.** Inside it,
+by subtree share of the task:
+
+| | ms | share |
+|---|---:|---:|
+| `initGround` → `initTextures` (`speckle`, `drawScoredBars`, `drawTexture`) | 540 | 23.5 % |
+| MapLibre `sendAsync` (handing GeoJSON to the tile workers) | 529 | 23.1 % |
+| `initFacades` → `ensureImages` → `tileData` → `rawTile`/`softenTile` | 283 | 12.3 % |
+| MapLibre `addLayer` | 255 | 11.1 % |
+| `initGraphics` (`grainTile`, `aeMeter`) | 229 | 10.0 % |
+| MapLibre `addImage` | 174 | 7.6 % |
+
+So measured.md was right that it is not parsing, and the suspect list was right
+about *what* but not about *which*: it is style/layer construction and canvas
+rasterisation in one synchronous block, not shader compilation.
+
+**Separately, and not inside that task: 17.1 % of ALL self time in the first 8 s
+is `Ui` = MapLibre's `useProgram`** (1,342 ms), with `_setupPainter` at 711 ms.
+That is the same shader-compile cost measured.md §1.2 FINDING 3 found at cruise,
+and it is also the largest single self-time bucket at BOOT. Nobody has costed
+it. It is the next thing to look at and it belongs to the 221 layers.
+
+**`buildScene` was NOT fixed here — it is entirely inside `js/app.js`, which this
+lane was told not to touch.** See §136.4 for the request.
+
+### 136.2 What WAS fixed, and why it mattered more
+
+Tracing forward from that task found the real reason downtown is late, and it is
+not the freeze:
+
+```
+initOuter entered                        8,008 ms   (cannot run until buildScene ends)
+  await data/outer_tower_palette.json    requested 8,009 ms, took 1,201 ms
+  registerFacadeBuckets  (the atlas)
+map.addSource('austin-outer')           12,533 ms
+first downtown tile response            16,620 ms
+```
+
+**A vector source fetches nothing until a visible layer references it.** So
+`austin-outer` — which is not "the far skyline", it is where all 114 downtown
+towers live — could not begin loading until a 3 KB JSON file and an atlas rebuild
+had both finished. The palette request went out at 8 s behind ~100 other `data/`
+requests and took **1,201 ms for 3 KB**; even on a quiet machine it started at
+~2,994 ms and took 754 ms. Two changes, both in `js/outer.js`:
+
+1. **The palette is fetched at module parse time**, not inside `initOuter`.
+   Measured in every profiler rep: request start **2,994 → 250 ms**, duration
+   **754 → 6 ms**. Same request, empty queue.
+2. **The source and `outer-3d` are added BEFORE the palette await and the atlas
+   registration.** Stage one opens the tile stream; stage two adds the patterned
+   tower / streetwall / parapet layers once the buckets are registered.
+
+`js/loader.js` also stopped calling `map.getStyle()` — a deep clone of 221 layers
+— plus `getComputedStyle()` on **every `sourcedata` event**. The event already
+carries `sourceId` and `isSourceLoaded`, which is the same answer the sweep went
+looking for. `shown()` alone was 172 ms of self time in the first 8 s under load.
+
+### 136.3 The numbers, and the load they were taken at
+
+Chrome process count and `\Processor(_Total)\% Processor Time` recorded before
+and after every rep. Minimum of interleaved, counterbalanced reps, never a mean.
+
+**Time to the first downtown tile response**, quiet machine (cpu ≤ 22 %):
+
+| | reps | min |
+|---|---|---:|
+| before | 5,266 · 6,002 · 7,040 · 9,519 | **5,266 ms** |
+| after | 3,340 · 3,392 · 3,395 · 3,632 · 3,682 · 3,729 · 3,951 | **3,340 ms** |
+
+**Every after rep beats every before rep**, and the after spread is 18 % against
+before's 81 % — because the before path is queue-dependent and the after path is
+not. `austin-outer` addSource over the same reps: 4,458 → 2,703 ms minimum.
+
+Under load (cpu 47–100 %) the ordering held on both paired reps (first tile
+12,478 → 10,366, and 8,832 → 6,362) but there are too few matched-load pairs
+there to quote a figure, and none is quoted.
+
+**Long-task blocking in the first 8 s did not improve and is not claimed to
+have**: 4,530–5,554 ms in both builds, overlapping completely. This pass moved
+*when downtown starts loading*, not how much the main thread is blocked.
+
+### 136.4 Not established, and one request for the `js/app.js` owner
+
+* **The 2,744 ms task is named, not fixed.** It is `buildScene`, it is one
+  synchronous block in `js/app.js`, and every candidate for chunking it
+  (`initGround`/`initTextures` at 540 ms, `initGraphics` at 229 ms) sits behind a
+  `step()` call this lane may not edit. **Request: yield between `step()` calls.
+  The load screen is CSS-driven precisely so that it survives that.**
+* **`introGate()` cannot tell "module is off" from "source not added yet", and at
+  boot that is the whole question.** It skips any id not in the style, so it
+  skipped `austin-outer` and lifted the veil over an empty downtown — the exact
+  complaint the gate was written for, quoted verbatim in its own comment.
+  Observed in both builds: reps lifting at `reason=ceiling` with
+  `missingAtLift=["austin-outer"]`, and a rep lifting at `reason=gate` at
+  7,608 ms with the source added at 7,817 ms. **The fix is in `js/app.js`: wait
+  for a source that is expected-but-absent rather than skipping it.**
+  **This pass did NOT establish that its change improves the veil.** The load
+  probe timed out on all seven gate reps, so none can be paired by load, and the
+  ceiling outcome appeared under both builds. The gate numbers are recorded here
+  as a defect report, not as a result.
+* **No frame-rate effect was measured and no fps figure is quoted.** Nothing was
+  measured on a phone, a weak GPU or a throttled CPU.
+* **The downtown A/B is not byte-identical, and the reason is understood.**
+  Settled downtown pose, same-build noise floor **0 pixels**, cross-build **49 of
+  1,024,000 (0.005 %)**, scattered as isolated single pixels along the 2–8 km
+  skyline. Cause: atlas image ids are allocated in registration ORDER and are
+  documented as session-local, so registering outer's buckets earlier renumbers
+  its slots (`tg20…tg29` → `tg14…tg23`). Identical image count (674), identical
+  `fb` → bucket mapping, identical layer order, identical families — only the
+  slot names moved, which shifts atlas packing by a texel. `mh00`, the one
+  hard-coded id in the tree, is allocated by `js/facades.js` and is unaffected.
+  A first cut of the split ALSO moved `outer-detail` ahead of `outer-tower`; that
+  was reverted, because a crown's base is exactly its shaft's height and
+  reordering coplanar fill-extrusions flips the depth tie. **Reverting it did not
+  remove the 49 pixels, which is how the atlas explanation was found — the
+  coplanar theory was tested and was wrong.**
+* `outer-check.mjs` **21/21 PASS**, `harness-drift.mjs` PASS, no page errors in
+  any of ~25 boot reps.
+
+Frames: `shots/perf2/boot-{before,after}-{04,08,16,24}s.png` (matched load,
+cpu 32 % / 31 %), `shots/perf2/downtown-{before,after}.png` and
+`shots/perf2/downtown-diff-mask.png`.

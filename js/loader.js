@@ -333,24 +333,56 @@
    */
   window.loaderWatch = function loaderWatch(map) {
     if (!map || !map.on) return;
-    const scan = () => {
+
+    /**
+     * THE FULL SWEEP — `map.getStyle()`, which is not cheap and must not be on
+     * the hot path.
+     *
+     * MEASURED, V8 sampler, cold boot, 2026-08-16 (HANDOFF §133): this ran on
+     * EVERY `sourcedata` event, and `sourcedata` fires per source per tile
+     * batch — hundreds of times across a boot. Each call serialised the whole
+     * style (213 layers and 26 sources, deep-cloned into a plain object) and
+     * then called shown(), which does `getComputedStyle(fill).transform` and so
+     * forces a synchronous style recalc. `shown` alone was 172 ms of SELF time
+     * in the first 8 s and 135 ms inside the single 2.3 s blocking task — i.e.
+     * the load screen was spending real milliseconds of the load it is drawing.
+     *
+     * So the sweep is now the RARE path: once at subscribe, and on `idle`. It
+     * still exists because a source can be added and finish before we
+     * subscribe, and the event below would never mention it.
+     */
+    const sweep = () => {
       if (finished) return;
       let changed = false;
       const srcs = (map.getStyle && map.getStyle().sources) || {};
       for (const id of Object.keys(srcs)) {
         if (!id.startsWith('austin')) continue;      // the basemap is not our wait
         if (!srcSeen.has(id)) { srcSeen.add(id); changed = true; }
-        if (!srcDone.has(id)) {
-          let ok = false;
-          try { ok = map.isSourceLoaded(id); } catch (e) {}
-          if (ok) { srcDone.add(id); changed = true; }
-        }
+        if (!srcDone.has(id) && isLoaded(map, id)) { srcDone.add(id); changed = true; }
       }
-      if (changed) { tailFrac = tailProgress(); paint(); updateTailStatus(); }
+      if (changed) settleReading();
     };
-    map.on('sourcedata', scan);
-    map.on('idle', scan);
-    scan();
+
+    const isLoaded = (m, id) => { try { return m.isSourceLoaded(id); } catch (e) { return false; } };
+    const settleReading = () => { tailFrac = tailProgress(); paint(); updateTailStatus(); };
+
+    /**
+     * THE HOT PATH — the event already carries everything the sweep went
+     * looking for. `e.sourceId` names the source and `e.isSourceLoaded` is the
+     * same boolean `isSourceLoaded(id)` returns, so reading them off the event
+     * is not an approximation of the sweep, it IS the sweep's answer, arriving
+     * for free. No getStyle, no per-source query, and paint() only when a set
+     * actually grew — which is at most 26 times in a boot instead of hundreds.
+     */
+    map.on('sourcedata', (e) => {
+      if (finished || !e || !e.sourceId || !e.sourceId.startsWith('austin')) return;
+      let changed = false;
+      if (!srcSeen.has(e.sourceId)) { srcSeen.add(e.sourceId); changed = true; }
+      if (e.isSourceLoaded && !srcDone.has(e.sourceId)) { srcDone.add(e.sourceId); changed = true; }
+      if (changed) settleReading();
+    });
+    map.on('idle', sweep);
+    sweep();
     // buildScene() has handed everything over by the time app.js calls this, so
     // this — not "all fifteen stage names have fired" — is when the named build
     // is genuinely done. Gating the tail floor on the stage COUNT was wrong: a
