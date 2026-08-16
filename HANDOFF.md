@@ -20691,3 +20691,183 @@ stale on four buildings — inside any routing tolerance, and stated in
   168 s a frame to 5 s) and `_gate-n13.mjs` — because `scripts/verify/` is not
   this lane's file this round. Their full output is in the two `_manifest.json`
   files and in `shots/olddoors/gate/`.
+
+
+---
+
+## 152. Aug 16 2026 — the buried-door rule was reading nine files and missing the one the renderer draws; the Moody Center has a door (QUEUE NB2, NB3 answered, stale graph) (acer lane, branch `acer/nb2-buried`)
+
+**Files written:** `scripts/bake_entrances.py`, `data/entrances.geojson`,
+`data/walk_graph.json`, `docs/entrances/buried.md` (new), `QUEUE.md`,
+`shots/nb2/`, this section. Throwaway worktree,
+`python scripts/serve.py 8471`, `harness-drift.mjs` **PASS, 29 scripts in each
+file**, run before any pixel work. `scripts/verify/` was NOT touched — it is the
+suite-repair lane's this round — and the scratch drivers are not committed.
+
+### 152.1 THE HEADLINE, which is one door
+
+**The Moody Center's main entrance rendered zero pixels and now renders 33,768.**
+Same instrument, same eye height, both bearings:
+
+```
+                 BEFORE      AFTER
+MCA-eid574-A        0 px    33,768 px      eye 1.70 m
+MCA-eid574-B        0 px    32,982 px      eye 2.08 m
+```
+
+`shots/nb2/before/MCA-eid574-A.png` is a blank perforated wall with the label
+"Moody Center" floating on it. `shots/nb2/after/MCA-eid574-A.png` is a glazed
+four-leaf entrance bay under a canopy with a paved path running to it.
+
+### 152.2 IT WAS THE RULE, AND THE RULE WAS NAMED AFTER THE WRONG THING
+
+`load_masses()` read **nine authored files** — `BURIED_MASS_FILES` — because that
+is where the first case came from (Gates-Dell's atrium slab). But the invariant
+it is really enforcing is **"nothing the renderer extrudes may stand over a
+door"**, and the single largest thing the renderer extrudes was not in the list:
+`austin-buildings`, whose source is
+`data/snapshots/<date>/buildings.detailed.geojson`.
+
+Moody's five doors sit on footprint `d8b0698a` (Moody Center, 15,410 m2), which
+`data/moody.geojson` **claims**, so the buildings layer does not draw it. All
+five leaf planes are inside **`2b0f20a0`** — an unnamed **21.3 m** Overture ring
+over the same arena that **no pass claims**, so the buildings layer extrudes it
+in full. A 21.3 m building in front of a 6.0 m door, and every numeric check
+passed it: sane height, real elevation, facing outward, counted in every total.
+
+**Two things make a footprint count and both are load-bearing.** It must be
+DRAWN — seven passes claim ids, and a claimed ring is drawn by that pass's own
+geometry, so counting it twice would bury every door on every re-drawn building,
+starting with Moody's own host ring. And it must not be the door's own host —
+now tested by **bid**, because an id match is exact and an IoU ratio is a
+threshold.
+
+### 152.3 THE OBVIOUS SUSPECT WAS INNOCENT, AND MEASURING IT IS WHAT KILLED IT
+
+QUEUE NB2 pointed at `BURIED_BASE_MAX` and the X4 self-block, and the self-block
+does exclude Moody's plinth at **IoU 1.000**. It looked open and shut. Narrowing
+X4 to the march only — its original justification was Cambridge Tower's *march*
+re-entering its own ring, not a containment test — was measured over all 656
+doors **before a line of the bake was edited**: it catches **2** doors, at The
+Quarters Sterling House and The Nine at West Campus, and **neither is Moody's**.
+The leaf planes are 0.32–0.57 m OUTSIDE the plinth with or without the exclusion.
+Half an hour of probing beat a plausible theory.
+
+### 152.4 THE NUMBERS — the whole file, before and after
+
+```
+                              BEFORE            AFTER
+buried doors found            5                 30
+  relocated to a free wall    2                 27
+  dropped, reason printed     3                 3
+entrances                     656 on 295 bldgs  656 on 295 bldgs   unchanged
+pieces                        15,071            15,069             -2
+file                          6.75 MB           6.75 MB
+eid -> ref/name/era/src/role  ---------- identical on all 656 ----------
+groups that MOVED             25, from 0.97 m to 14.42 m
+```
+
+Nothing added, nothing lost, no door changed building, era, provenance or role.
+The five that matter: MCA 574 **12.06 m**, 576 4.02, 575 3.57, 578 3.31, 577
+1.20. `BURIED_DRAWN_FOOTPRINTS = False` reverts the whole change in one line.
+
+### 152.5 EER 381 WAS NEVER BROKEN — NB2 IS FIVE DOORS, NOT SIX
+
+Re-shot from the bake's own outward normal, EER's `main` contributes **7,149 px
+from bearing A**: a glazed door with a handrail, plainly there. Bearing B is 0 px
+and is the frame the sweep saw — the eye lands inside EER's own authored mass and
+photographs the inside of it, which is the "solid orange field".
+
+That is the **fifth** apparent defect this month that turned out to be the
+camera, after `AHG-eid477`, `CMA-eid561`, `BRB-eid516` and `GAR-eid535`. §151's
+instrument lesson held on its first use.
+
+### 152.6 THE INSTRUMENT, because a crop could not have decided this
+
+`queryRenderedFeatures` is unusable at this framing — doorwalk.mjs measured it
+returning ONE feature for the WHOLE screen at pitch > 82 / zoom 21.5 — and a crop
+is exactly what photographed the wrong thing one frame in five. So the judgement
+is **neither**: at every pose the entrance layers are toggled off and on and the
+same box around the door's own projected pixel is captured twice, and the
+changed-pixel count is what the door contributes. Camera-independent, and a door
+is only called invisible when both bearings say zero. Both arms wait for
+`austin-entrances` to report LOADED before any frame is taken.
+
+### 152.7 THE STALE WALK GRAPH, measured rather than estimated
+
+`main` shipped the doors of `9c94e14` with a `walk_graph.json` baked against
+`c35f3f3`. Diffing those two files by eid gives the staleness exactly — **5
+groups on 4 buildings**:
+
+```
+ANB eid 210  0.65 m     JHH eid 202  0.63 m     JHH eid 203  0.46 m
+LFH eid 585  0.33 m     GEB eid 457  0.10 m
+```
+
+Re-baked against the shipped doors. **19 of 19 frozen pairs PASS**, 0 walls
+crossed; the bake's own **19 gates green**; routable codes 135/198 unchanged. Two
+pairs moved and both are this pass showing up: `GRE>MNC` 975.8 → 991.2 (+1.6 %,
+MNAC's door moved 1.56 m) and `JES>MCA` 827.2 → 822.7 (−0.5 %, Moody's main door
+moved 12.06 m). **`JES>MCA` is the pair §136 called the one worth freezing, and
+it now points at a door you can see.** All four family-V buildings spot-checked
+from JES, 0 walls crossed: ANB 1086.6 m, JHH 943.1, LFH 958.1, GEB 655.6. ANB's
+route carries a 27 m overshoot on an unmapped last leg, which is pre-existing and
+not this pass's.
+
+### 152.8 NB3 ANSWERED FOR THE SUITE-REPAIR LANE — stale baseline, not a regression
+
+Measured by running `coplanar.mjs` on the entrances file **as it stood at each
+commit**:
+
+```
+dee79d3  where the baseline was RECORDED   14,242 pieces   1558 pairs
+c35f3f3  n8: fifteen buildings got doors   14,893 pieces   1614   (+56)
+9c94e14  family V                          15,071 pieces   1626   (+12)
+```
+
+1558 is exactly the baseline, which confirms the recording point. Both deltas are
+intentional data commits that landed after it. The rate settles it: the file's
+standing rate is **10.9 %** of pieces in a coplanar pair, and the added doors
+came in at **8.6 %** and **6.7 %** — the new doors are *cleaner* than the file's
+own average. **Re-record it; expect 1626 on `main` and 1627 once this branch
+lands** — measured, not assumed: 25 relocations add exactly **one** coplanar
+pair across 15,069 pieces. The baseline file was NOT edited here.
+
+Also flagged to that lane: the shared checkout's `scripts/verify/node_modules`
+**is empty** — harness-drift still passes because it is pure node, but every
+playwright script there dies with `Cannot find package 'playwright-core'`. That
+is QUEUE trap 6's signature.
+
+### 152.9 NB1 AND NB4 LEFT ALONE, ON PURPOSE, AND RESTATED FOR ONE-LINE OVERRULE
+
+Both are taste calls about a measured spec written from photographs, and
+`celebrated.md` wins by rule. Welch wears mid-century because one `CELEBRATED`
+entry is doing two jobs — `tier` (how hand-authored) and `fam` (which era) — and
+only the first is argued in the demotion note. LBJ wears a glazed pair on the one
+building whose spec forbids that shape by name, but it is a modest family-D pair
+rather than a shopfront and `celebrated.md` records LBJ's door side as `[U]`.
+QUEUE NB1 and NB4 now each state the exact one-line change and what it would
+move, so Simeon can overrule either without re-deriving anything.
+
+### 152.10 WHAT THIS PASS DID NOT ESTABLISH
+
+* **Only ONE of the five Moody doors was photographed before the fix** (eid 574,
+  both bearings). The other four rest on the sweep's ten frames plus the geometry
+  — the same unclaimed 21.3 m ring contains all five leaf planes. The before arm
+  was cut at 4 minutes a pose to buy the after arm.
+* **The other 25 relocated doors were not looked at one by one.** MEZ, GSB, PAC,
+  MNAC, Jester West, BEL, BHD, Cambridge Tower, MAI and four stadium doors have
+  had the numeric test and nothing more. **MAI moved 1 m and MAI is the
+  most-photographed portal on campus**; somebody should stand in front of it.
+* **Three doors are still dropped** for "no wall within 35 m carrying 3 m of free
+  run with 4 m of open space in front of it", two on an unnamed footprint and one
+  on `RMRZ;NEZ`. Nobody has looked at those three walls to say whether the
+  constants are wrong or the walls really are that tight.
+* **The bake reads the `2026-08-04` snapshot; the app draws `manifest.latest` =
+  `2026-08-16`.** The two agree exactly on `2b0f20a0`, so this finding does not
+  depend on it — but the buried rule now leans on a footprint file that is not
+  guaranteed to be the one on screen. Opened as QUEUE **NB5**.
+* **Night was not photographed.** Every frame is `applyTimeOfDay(0.30)`.
+* **No hero or cruise A/B was run.** The doors that moved are all below the
+  entrance layers' min-zoom from altitude and the piece count moved by 2 of
+  15,071 — but that is an argument, not a measurement.
