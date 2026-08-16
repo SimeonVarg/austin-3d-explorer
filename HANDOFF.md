@@ -16461,6 +16461,8 @@ rewritten, not the measurement that gets judged.
 the wayfind lane's tonight and appears in the inventory as row 15, named and
 not changed.
 
+---
+
 ## 129. Aug 16 2026 — campus walls have storeys, the era decides the vocabulary, and the null default draws floor lines only (QUEUE Y5, campus half) (acer lane, branch `acer/n2-campus`)
 
 **What changed, in one line for Simeon:** stand anywhere on campus and the
@@ -16784,6 +16786,8 @@ byte-identical on a re-run. File 526 KB → 555 KB.
   `bake_wc_storeys.py`, a different writer and a different lane
   (`walls-campus.md` §5.1).
 
+---
+
 ## 131. Aug 16 2026 — THE N2 GATE: campus and West Campus walls judged against the live site, both WON, both merged (QUEUE Y5, second half) (acer lane, gate)
 
 **This entry is a verdict, not a build.** Two candidates I did not write —
@@ -16955,3 +16959,356 @@ Castilian have real deck edges instead of a fuzz of hairlines. From the air
 nothing changed at all, and that was checked twice with two different
 instruments. The pictures are in `shots/walls/final/`, live on top and the new
 one underneath; `campus-02` and `westcampus-01` are the two that show it best.
+
+---
+
+## 132. Aug 16 2026 — the budget gets a gate: the outer ring is over it on every reading ever taken, and the walk cannot be measured at all (QUEUE K1/Y7/Y15) (acer lane, n1-perf)
+
+Branch `acer/n1-perf`. **One file of code: `scripts/verify/perf-budget.mjs`.**
+
+### The job I was given, and the one I could not do
+
+The brief was "kill the two measured hogs" — Y7 (outer-ring scan, 37.9 ms) and
+Y15 (trunk field, 841.5 ms) — with a writable set of `js/outer.js`,
+`js/props.js`, `js/trees.js`.
+
+**Both hogs are in `js/controls.js`, which another lane holds tonight, and
+`js/trees.js` does not exist.** `js/outer.js` is the ring's *rendering* module
+(`initOuter`, colours, settings); `js/props.js` is the props *rendering* module.
+Neither contains a `querySourceFeatures` call. `outerStamp()` is
+`controls.js:475` and `trunkStamp()` is `controls.js:703`, and the third
+unbounded scan `docs/perf/budget.md` found — `updateSky()` — is `js/sky.js`,
+also outside the writable set. So I did not edit any of them. Per CLAUDE.md
+rule 8 I am writing the collision down instead of driving through it.
+
+What I did instead is the other half of the brief, and it is the half that
+outlives tonight: **the guard exists, it is red, and it has been watched going
+both red and green.**
+
+### `scripts/verify/perf-budget.mjs` — what it asserts and what it refuses to
+
+Gates G1–G5 and G7 from `docs/perf/budget.md` §4.4. Every threshold is a `BUDGET`
+constant at the top with an env override (`PB_OUTER_MS`, `PB_TRUNK_MS`,
+`PB_TICK_CRUISE`, `PB_TICK_WALK`, `PB_DUTY_PCT`).
+
+    cd scripts/verify && VERIFY_URL=http://127.0.0.1:PORT node perf-budget.mjs 3
+
+Headless, `gl:'hardware'` (NOT SwiftShader — these are CPU timers and
+SwiftShader rasterises the city on the same CPU), **no CPU throttle** (unlike
+`perf.mjs`'s default 4x), auto-detect cancelled, `index.html?intro=0`.
+Interleaved and counterbalanced, minimum across reps, and chrome/node process
+counts plus CPU percent printed beside every single figure.
+
+**WATCHED IN BOTH DIRECTIONS on the same code and the same run shape**, which is
+the thing this repo has been burned on three times:
+
+| run | verdict | exit |
+|---|---|---|
+| default budget | `FAIL 3 of 3 judged: G1, G3, G5a` | 1 |
+| `PB_OUTER_MS=250 PB_TICK_CRUISE=40 PB_DUTY_PCT=10` | `PASS all 3 judged` | 0 |
+
+INVALID stayed INVALID in both. It is not a pass in either direction.
+
+### G3 / Y7 — the outer-ring scan is over budget on every reading I have
+
+Valid on 3/3 reps in every run (1500–1514 m of driven cruise, phase-attributed).
+Worst outer scan, min-across-reps, by run, **with the machine state that
+produced it**:
+
+| run | min maxMs | machine during the quietest rep |
+|---|---:|---|
+| A | **18.6 ms** | chrome 25, node 2, cpu 18 → 69 % |
+| B | 38.2 ms | chrome 28, node 2, cpu 100 → 77 % |
+| C | 49.7 ms | chrome 33, node 3, cpu 22 → 10 % |
+| D | 74.8 ms | chrome 28, node 2, cpu 29 → 18 % |
+| E | 154.0 ms | chrome 30+, cpu 90 %+ throughout |
+
+**The budget is 8 ms. The lowest number I ever saw was 18.6 ms — 2.3x over —
+and §109's 37.9 ms sits in the middle of the range.** Y7 is confirmed, and the
+claim that survives the noise is not "it costs 74.8 ms", it is **"there is no
+machine state in which it comes in under budget."** Duty cycle 1.07–2.13 % of
+wall time against a 0.53 % budget.
+
+### G4 / Y15 — NOT MEASURED, and the reason is structural, not the machine
+
+QUEUE Y15 says to measure the trunk field "under a sustained walk first",
+because §109's 841.5 ms came from a run that teleported ten times. **A sustained
+walk at 1.7 m does not exist in this app.** Probed at six sites, 45 s of held
+W+Shift each:
+
+| site | bearing | travelled | ENDED AT ALTITUDE |
+|---|---:|---:|---:|
+| Drag, south | 180 | 639 m | **23.8 m** |
+| Drag, north | 0 | 373 m | **86.0 m** |
+| Speedway, south | 180 | 242 m | **29.3 m** |
+| W Campus, 24th west | 270 | 104 m | **43.8 m** |
+| 24th, east | 90 | 11 m | 1.7 m (blocked) |
+| San Jacinto, south | 180 | 3 m | 1.7 m (blocked) |
+
+A held-W walk does exactly one of two things and never a third: it is stopped by
+geometry inside one block, or **the step-up / rooftop floor silently lifts it out
+of walking height.** That is QUEUE Y16's silent lift reached through the
+*movement* path rather than through `setPitch`, and it is a second, independent
+sighting of it. Above `TRUNK_ALT` (12 m) the trunk field switches off entirely,
+so a rep that travels 639 m has spent most of it not measuring the thing it is
+named for.
+
+So `perf-budget.mjs` marks a walk rep valid only if it went past `minMetres`
+**and ended below `maxAlt`**, and with 120 m targets every rep came back at
+121 m / **alt 23.8 m** → INVALID, 0/3. The guard printed
+`---- G4 phase did not run far enough to measure` and refused to produce a
+number. That refusal is the deliverable: a clean trunk figure from a phase with
+the trunk field gated off is exactly the kind of reassuring wrong number this
+suite exists to prevent.
+
+**Evidence recorded but NOT gated on:** at bearing 215, where the walker is
+blocked at ~63 m but stays at 1.7 m the whole way — one full `TRUNK_RESCAN_M`
+crossing — the trunk scan's worst case across seven reps was
+**594.5 / 177.9 / 120.1 / 81.4 / 65.7 / 56.3 / 27.7 ms**, with the walk phase
+itself setting the maximum in five of them. Every one of those is over the 8 ms
+budget, and 594.5 ms is within sight of §109's 841.5. **Y15 is very likely real
+and very likely worse than Y7.** I am not calling it measured.
+
+### Three things the instrument itself got wrong first, all caught by looking
+
+* **A fixed-duration phase measures nothing under load.** `DT_MAX` clamps the
+  movement integrator to 0.10 s per frame, so at low fps the camera covers less
+  ground than wall time says. A 24 s walk rendered 16 frames, travelled **1
+  metre**, and reported a trunk cost of 24.6 ms for a field that had never once
+  been asked to grow. **A phase is now a DISTANCE, with a watchdog.** Both scans
+  are triggered by movement — 200 m and 60 m — so wall time was the wrong control
+  variable from the start.
+* **`sprintHeld = e.shiftKey` (controls.js:1289) reads a modifier flag, not a
+  key.** Dispatching a separate `ShiftLeft` keydown does nothing *and* the plain
+  `KeyW` that follows clears the flag. The shift state has to ride on the same
+  event. Anything scripting sprint in this suite should know that.
+* G5 was first written as `scans / wallSeconds <= 1/1.5` and was **wrong by
+  construction**: `outerScans` counts instalments, and an unfinished list resumes
+  on the next frame on purpose, so a correctly-throttled build reported 1.6/s and
+  failed. It is a duty-cycle assertion now, derived from the budget's own two
+  numbers.
+
+### G1 — recorded, NOT established
+
+Differenced tick at cruise read 2.287 / 3.141 / 5.973 / 8.733 / 10.4 / 12.2 /
+14.8 / 16.9 / 17.9 / 190.4 ms across runs. That is an 80x spread on a machine
+carrying three sibling workflows, and the budget is 1.5 ms. **The lowest reading
+is 2.287 ms and I do not believe any of the others.** The gate is wired and it is
+red; treat it as unmeasured until it is re-run on a quiet machine.
+
+### G7 — the layer count, printed for the first time
+
+**219 style layers.** `docs/perf/budget.md` §5 lists "the layer count is not
+known" as one of the things it could not establish (95 of our own `addLayer`
+sites, plus the kept basemap, plus the Capitol's clones). It is 219. Recorded,
+not yet gated — `BUDGET.layersBaseline` is 0 until someone trusts the number.
+
+### What is NOT established
+
+* **Y7 and Y15 are not fixed.** No line of `js/controls.js` was touched.
+* **Y15 is not measured**, only evidenced, for the structural reason above.
+* **`updateSky()`, budget.md's third unbounded scan, was not touched or timed.**
+  It is in `js/sky.js` and it still has no instrument. budget.md §4.5 ranks
+  instrumenting it as the highest-value single line in the app; that is still true.
+* **G6 (dropped frames) is deliberately absent** — it needs a headed browser with
+  the occlusion flags and `outer-perf.mjs` already does that properly.
+* No screenshot was taken and no frame was read. The tree-collision correctness
+  check (stop 1.3 m from a trunk, §109) was **not** re-run, because nothing that
+  could affect it was changed.
+
+### For whoever picks up Y7 + Y15
+
+Do them as one fix — budget.md §4.5 is right that they are the same code shape.
+Both are `querySourceFeatures` returning a complete feature list before the
+`*_BUDGET_MS` clock even starts, which is why a 4 ms and a 3 ms budget bound
+nothing. Ask tile by tile. And run `perf-budget.mjs` before and after: the
+cruise half of it is valid and discriminating today.
+
+**Re-verified after rebase onto `origin/main` `6a63b4f`** (which landed Y10/Y12,
+touching walking): `harness-drift.mjs` PASS, guard runs, same verdict shape —
+G3 120.0 ms / G5a 3.79 % on a busy machine, G2/G4/G5b still INVALID 0/2. The
+walking-height ceiling is unchanged by that pass.
+
+---
+
+## 133. Aug 16 2026 — the frame is measured at last, and the two hogs everybody was chasing rank fourth and fifth (QUEUE K1/Y7/Y15) (acer lane, branch `acer/n1-perf`)
+
+**In one line for Simeon:** the city is now measured, and the slow parts are not
+the ones we thought. The two "hogs" in the queue are real but they fire once
+every 60–200 metres; what actually costs you a frame is the **sky repainting on
+every camera move** and the **building-facade textures being rebuilt while you
+fly**. And the loading picture is worse than the loading number — **the city is
+on screen and completely flat at 8 seconds, campus arrives by 16, and downtown
+does not show up until 24.** The pictures are in `shots/perf/`.
+
+**No code and no data changed.** New: `docs/perf/measured.md` (the third and
+last K1 document) and thirteen frames in `shots/perf/`. Branch off
+`origin/main`, merged. Everything measurable belonged to another lane —
+`js/controls.js`, `js/sky.js`, `js/facades.js`, `scripts/verify/` — so this pass
+had a write scope of four paths and **there is no "after" column anywhere in it
+on purpose.**
+
+### THE CONDITIONS, BECAUSE TONIGHT THEY ARE PART OF THE ANSWER
+
+Three sibling workflows and Simeon on the machine. Sampled before and after
+every reading: **20–42 Chrome processes, CPU 13 % at best and 91–100 % almost
+always**, and the PowerShell load probe itself timed out often enough that many
+rows print `cpu -1%`. **A failed load probe is a load reading.**
+
+So the document splits its own findings by whether they survive that:
+
+* **Wall-clock frame time does NOT survive.** Identical configurations,
+  interleaved and counterbalanced, came back 2.3x, 3.2x and **10.5x** apart.
+  `measured.md` §2 prints the table and then refuses to draw an fps figure from
+  it. That refusal is the finding.
+* **CPU-timer and profiler numbers DO survive**, because a share of main-thread
+  time is a ratio. Those carry the report.
+
+Instruments quoted with every number: no CPU throttle anywhere (`perf.mjs`
+throttles 4x and was not used); `serve.py` does not gzip; hardware GL probed and
+printed (`ANGLE (NVIDIA RTX 3050 Ti, D3D11)`) **headless AND headed, which is
+why the matrix ran headless** — the README mandates headed only because
+SwiftShader is the alternative, and it is not the alternative here; a headed
+window would have stolen focus from three siblings for forty minutes.
+
+### THE INSTRUMENT THAT MADE THIS PASS DIFFERENT
+
+**Chrome's own V8 sampling profiler over CDP, 100 us, while a scripted sweep
+drives the map.** It touches no source file, which is the only reason any of
+this was measurable with `js/sky.js` and `js/controls.js` held elsewhere. Four
+captures: cruise-day, walk-dusk, walk-night, phone-dusk.
+
+| | cruise day | walk dusk | walk night | phone dusk |
+|---|---:|---:|---:|---:|
+| MapLibre `_render` | 60.9 % | 64.3 % | 58.3 % | 56.3 % |
+| **atlas image work** | **19.1 %** | **20.3 %** | **16.5 %** | **15.2 %** |
+| shader/program queries | 15.9 % | 7.3 % | 6.6 % | 4.0 % |
+| **`updateSky`** | **8.8 %** | **8.3 %** | **5.6 %** | **6.0 %** |
+| whole `jumpTo` cascade | 9.5 % | 10.0 % | 6.6 % | 8.1 % |
+| garbage collector | 3.3 % | 9.0 % | 13.0 % | **19.1 %** |
+| `tick` (js/controls.js) | 2.1 % | 3.9 % | 0.7 % | 5.6 % |
+
+**FINDING 1 — §128 called the sky and the falsifier is not met.** §128 predicted
+`updateSky` at 2–8 ms/frame and wrote *"if it measures under 1 ms the section is
+wrong and should be struck."* It never went under 5.6 % of main-thread time, and
+the sharper number is this: **`updateSky` is 93 % of the entire `jumpTo` event
+cascade at cruise (1158.9 ms of 1250.0) and 84 % at dusk.** Every other `move`
+listener in the app put together is rounding error beside it.
+
+**FINDING 2 — the facade atlas is BIGGER than the sky and nobody had costed it.**
+15–20 % of main-thread time in `getImageData` + `patchUpdatedImages` +
+`getImage`. **The time of day was forced once and then held constant in every
+capture**, so this is not the 4/s tod repaint — it is new facade combos entering
+view during flight, being rasterised and re-uploaded. Largest single unexamined
+cost in the project.
+
+**FINDING 3 — 16 % of a cruise frame is asking the driver whether a shader
+compiled.** `getProgramParameter` + `getShaderParameter`, synchronous
+pipeline-stalling queries, against **219 style layers**. MapLibre is compiling
+programs mid-flight, not at load. Not mentioned anywhere in this repo before.
+
+**FINDING 4 — G1 has never measured `js/controls.js`.** `tickMsAcc`
+(`controls.js:1670`) brackets `writeToMap()`, which ends in `map.jumpTo` — so
+the gate's "controls tick" is the tick **plus the whole MapLibre event cascade
+plus every `move` listener**. Five cruise reps: 8.308 / 19.975 / 21.341 / ~26.7
+/ 39.494 ms, min **8.308 ms vs a 1.5 ms budget**. The tick's own work is
+0.7–5.6 %. The overrun is FINDING 1 wearing controls.js's name.
+
+### Y7 AND Y15, RE-MEASURED — AND NEITHER IS THE TOP OF THE LIST
+
+Both had to be driven through `__fly.outerScan()` / `__fly.trunkScan()` because
+**the app cannot walk**: all three `perf-budget.mjs` walk reps travelled their
+120 m and **ended at altitude 23.8 m, the same digit every rep.** Above
+`TRUNK_ALT` the trunk field switches off, so a lifted walk measures a subsystem
+that is not running; the gate marks G2/G4/G5b `INVALID` and prints no figure.
+That is QUEUE **Y16**, and it is now blocking a measurement as well as a camera.
+
+* **Y7 reproduces and is if anything worse than §109.** 43.3 ms worst instalment
+  on a natural 1,500 m cruise, 40.1 ms over 200 m hops at 1.7 m, 27.2 ms forced
+  after a teleport — min of interleaved reps each time. **It has never come in
+  under its 8 ms budget on any machine state anyone has tested.**
+* **Y15's 841.5 ms DID NOT REPRODUCE.** Worst honest reading **149.8 ms**, and it
+  comes from the 60 m-hop regime — what a real walk pays — not from a teleport
+  (89.9 ms). Still 19x budget and about nine dropped frames, but an order of
+  magnitude below the number that has been in the QUEUE. §109's figure is a
+  stale upper bound from a different tree density.
+
+**Ranked with everything measured: atlas (every frame) -> sky (every camera
+move) -> shader compilation (every cruise frame) -> Y7 (per 200 m) -> Y15 (per
+60 m).**
+
+### BOOT, AND THE PICTURE OF THE COMPLAINT
+
+Cold load, fresh context, cache disabled, min of 3.
+
+* DOMContentLoaded **454 ms**, `window.load` **455 ms**, map `'load'`
+  **2,676 ms**, first `idle` **21,568 ms**.
+* **In the first 8 seconds the main thread is blocked by long tasks for
+  7,072 ms — 88 % of the wall clock — and the worst single task is 2,744 ms,
+  starting at t = 2,652 ms, immediately after map `load`.** Over 28 s: 89 long
+  tasks, 18,010 ms of blocking, and they never stop.
+* **That freeze is NOT JSON parsing.** `payload.md` measures those parses at
+  15–20 ms per file. The cost is what happens after — `addSource`, style
+  construction, the atlas build. That changes where a loading fix should go.
+* Page-scoped transfer **16.34 MB** ungzipped (`data/` 14.99 MB over 102
+  requests). **Not a total**: worker tile fetches are invisible to a page-scoped
+  session (~19 MB per the repo) and the ten third-party requests report 0 bytes
+  because they are opaque. `payload.md` still owns bytes.
+
+`shots/perf/boot-downtown-*.png`, one cold load, same camera, timestamped:
+
+| t | what is on screen |
+|---|---|
+| 1–4 s | the veil, reading "READING THE CITY — 7 %" at 4 s |
+| **8 s** | **veil gone, city completely FLAT** — footprints, no extrusion, no trees, no labels |
+| 16 s | campus and West Campus built, **downtown horizon still empty** |
+| **24 s** | downtown towers finally on the skyline |
+
+**Time to a populated downtown: between 16 and 24 seconds, with a window from
+~5 s to 16 s where the app is interactive and showing a city that is not there.**
+That is QUEUE K1's opening sentence, photographed.
+
+### THE GATE
+
+`perf-budget.mjs` on the merged tree: **RED** — G1 19.975 vs 1.5, G3 43.30 vs 8,
+G5a 2.06 % vs 0.53 %, and G2/G4/G5b `INVALID`. Then **GREEN on the same build**
+with the thresholds raised through the env overrides the script already carries
+(`PB_OUTER_MS=400 PB_TICK_CRUISE=45 PB_DUTY_PCT=30` gives G1 8.308, G3 261.20,
+G5a 3.23 %, PASS). **So the guard is not stuck: watched failing on the real
+overrun and watched passing on the same code.** It should stay red — the budget
+is the number a fix has to hit. This lane could not have changed it anyway.
+
+**Re-run on the FULLY MERGED tree** (`origin/main` `43e3777`, which had gained
+the campus and West Campus storey walls since these measurements were taken, so
+CLAUDE.md rule 2 required it): same verdict shape, same `INVALID` walk, no new
+failure mode — G1 19.867, G3 106.60, G5a 2.77 %, and `harness-drift.mjs` PASS.
+G3's 106.60 is a two-rep minimum at 95–100 % CPU and is not a new figure for Y7;
+what it establishes is that the ring is still over budget after the merge.
+**The one directly comparable number that moved is the style layer count:
+219 → 221.** Two districts of storey walls cost exactly two layers, which is
+`budget.md` G7's whole allowance for a pass — cheap, but the count now has a
+baseline and somebody should set `BUDGET.layersBaseline` so it starts gating.
+
+### WHAT I DID NOT ESTABLISH — read this before treating anything as clean
+
+1. **No fix, no before/after, anywhere.** Write scope was four paths.
+2. **Frame time is not established.** §2 is ceilings under 2–10x noise.
+3. **`querySourceFeatures('austin-buildings')` returned 0 on every sample of
+   every boot rep**, in a browser visibly drawing thousands of buildings from
+   that source. The populated-downtown detector was built on it and never fired;
+   §4.4 was read off the frames instead. **Unexplained, and a live trap.**
+4. **My seeded camera pose was silently overridden** — the README's own "the
+   controller owns the camera" trap. Every boot frame is the DEFAULT spawn, not
+   the downtown pose I asked for.
+5. **The `walk` rows in §2 are a WALL, not a street.** `cond-walk-dusk.png`
+   shows the eye at 1.7 m pressed flat against Walter Webb Hall. That is far
+   cheaper than a street, so those two rows understate walking height. **Found
+   by looking at the frame after four hours of clocks** — the frame is in
+   `shots/perf/` as the evidence that the number is wrong.
+6. **Nothing on a real phone, a weak GPU or a throttled CPU.**
+7. **`js/shadows.js`'s 2,428-hull rebuild and the 4/s tod tick are still
+   predictions** — both need the autoplay clock, and every capture here held `p`
+   constant so the frames would be comparable. **"Autoplay while walking" is
+   still the worst state the app can be in and is still unmeasured.**
+8. The A/B on levers that already ship (`?outer=0`, the `performance` preset,
+   post-process off) was written and never run — the machine ran out of quiet.
