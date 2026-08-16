@@ -1,0 +1,134 @@
+[
+ {
+  "name": "D8-GUAD-COOP-from-south-day",
+  "floor": {
+   "px": 0,
+   "max": 0,
+   "rows": null
+  },
+  "signal": {
+   "px": 3415,
+   "max": 66,
+   "rows": [
+    41,
+    353
+   ]
+  },
+  "edgesBase": {
+   "vert": 3.28,
+   "horiz": 3.23
+  },
+  "edgesBays": {
+   "vert": 3.42,
+   "horiz": 3.24
+  },
+  "info": {
+   "c": [
+    -97.741916,
+    30.285874
+   ],
+   "z": 20.68632,
+   "p": 87,
+   "b": -20
+  }
+ },
+ {
+  "name": "D9-GUAD-from-north-day",
+  "floor": {
+   "px": 0,
+   "max": 0,
+   "rows": null
+  },
+  "signal": {
+   "px": 67,
+   "max": 48,
+   "rows": [
+    289,
+    375
+   ]
+  },
+  "edgesBase": {
+   "vert": 3.48,
+   "horiz": 2.78
+  },
+  "edgesBays": {
+   "vert": 3.49,
+   "horiz": 2.78
+  },
+  "info": {
+   "c": [
+    -97.741838,
+    30.286718
+   ],
+   "z": 20.68632,
+   "p": 87,
+   "b": -165
+  }
+ },
+ {
+  "name": "V1-SOUTHMALL-west-wall-night",
+  "floor": {
+   "px": 0,
+   "max": 0,
+   "rows": null
+  },
+  "signal": {
+   "px": 964,
+   "max": 115,
+   "rows": [
+    5,
+    370
+   ]
+  },
+  "edgesBase": {
+   "vert": 6.2,
+   "horiz": 6.01
+  },
+  "edgesBays": {
+   "vert": 6.07,
+   "horiz": 5.89
+  },
+  "info": {
+   "c": [
+    -97.739838,
+    30.2847
+   ],
+   "z": 20.68632,
+   "p": 87,
+   "b": -90
+  }
+ },
+ {
+  "name": "V3-BATTLE-HALL-night",
+  "floor": {
+   "px": 0,
+   "max": 0,
+   "rows": null
+  },
+  "signal": {
+   "px": 2738,
+   "max": 115,
+   "rows": [
+    41,
+    371
+   ]
+  },
+  "edgesBase": {
+   "vert": 4.92,
+   "horiz": 5.46
+  },
+  "edgesBays": {
+   "vert": 4.63,
+   "horiz": 5.08
+  },
+  "info": {
+   "c": [
+    -97.740038,
+    30.28543
+   ],
+   "z": 20.68632,
+   "p": 87,
+   "b": -90
+  }
+ }
+]

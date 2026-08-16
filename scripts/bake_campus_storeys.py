@@ -175,6 +175,127 @@ ERA_SPEC = {
 # does not apply — a 1965 garage and a 2015 garage are the same object.
 DECK_SPEC = dict(base=None, course=(0.10, 0.25), cornice=None, cap=None, lift=0.10)
 
+# ── THE VERTICAL AXIS — QUEUE Y19, and it is a CANDIDATE, not a shipped rule ──
+#
+# Y5 gave these walls horizontal structure in metres and the gate (§131) judged
+# it a win at all three districts. What it could not touch is the OTHER axis.
+# `docs/camera/facades-at-two-metres.md` §2 has the mechanism: `drawWallMaterial`
+# draws `WALL.STREAKS` and the `WALL.PIER` pilaster pair at FULL TILE HEIGHT and
+# the tile repeats vertically, so family `mh` puts 17 full-height verticals in
+# 2.06 m of wall — one every 0.121 m at walking height. The West Campus builder
+# measured it: 48.56 vertical edges per 100 px against 1.12 horizontal.
+#
+# THE HYPOTHESIS UNDER TEST: the same recipe rotated ninety degrees. Not
+# windows (that is option (c) in facade-choice.md, ~190,000 openings and ~190 MB,
+# and the decision taken was BANDS NOW, WINDOWS LATER) but BAYS — the pier and
+# mullion rhythm every one of these buildings actually has, as GEOMETRY in
+# metres, tucked under the horizontal trim that is already there.
+#
+# THE NAMED FAILURE MODE is graph paper: horizontal bands crossed by vertical
+# piers can turn a wall into a waffle, which is a different ugly rather than a
+# better one. Every number below is a named constant precisely so the pitch and
+# the depth can be walked without surgery. `BAYS_ON = False` turns the whole
+# axis off in one line and returns this file to its shipped Y5 behaviour.
+#
+# SPACING COMES FROM THE WALL, NOT FROM A CONSTANT. Each edge is divided into a
+# WHOLE number of equal bays at the count nearest its era's nominal `bay`, so
+# the rhythm is always in register with that wall's own corners — the same
+# shape as `storeys_of()`, rotated. A bay is therefore never exactly `bay`
+# metres; `bay` is the target it rounds to.
+BAYS_ON = True
+
+# `bay` = target metres between pier centres; `w` = pier width in metres;
+# `proud` = metres the pier projects from the wall face.
+#
+# Provenance, per era, and the one authored row says so:
+#   A/B — the Gilbert/Cret limestone halls (Battle, Sutton, Garrison, Waggener,
+#         Rainey). A masonry pier between window bays: wide, deep, and the
+#         dominant vertical on the elevation. 4.80 m bay / 0.95 m pier.
+#   C   — 1950-89 concrete frame with brick infill (Mezes, Batts, Parlin,
+#         Benedict, Calhoun, GSB, McCombs, Welch). Its vertical is a COLUMN
+#         LINE on the structural grid, not a pier: 6.10 m is the 20-foot bay
+#         that frame is built on, and the expressed column is narrow.
+#   D   — 1990+ glazed (GDC, EER, NHB, Rowling, Belo). Its vertical is a
+#         MULLION, and a mullion is thin and shallow by definition. 3.05 m is
+#         the doubled 5-foot planning module; a single module would be a fence
+#         at eye level and that is the failure this table is guarding.
+#   dk  — a parking deck's verticals are its real columns. 8.20 m is the
+#         standard two-car structural bay; `bake_westcampus.py`'s podium spec is
+#         the only other deck geometry in the repo and it says nothing about
+#         plan, so this is a type figure and is labelled one.
+#   NULL — AUTHORED HERE, and it is the judgement call in this table, exactly
+#         like the NULL row of ERA_SPEC. 190 of 253 campus buildings have no
+#         measured year. `eras.md` §5.2 rule 8 forbids defaulting them to a
+#         MATERIAL claim, and A/B's 0.95 m limestone pier is one. But "this
+#         building has structural bays" is true of every building ever built,
+#         which is the same standing a floor line has. 5.20 m sits between C's
+#         frame and A/B's masonry and 0.45 m claims neither. One line to
+#         overrule.
+#
+# ROUND 2, AND THE ROUND-1 NUMBERS ARE KEPT BELOW BECAUSE THE PICTURE THEY MADE
+# IS THE FINDING. Round 1 used the structural pitch straight — A/B 4.80,
+# C 6.10 (the real 20-foot frame), D 3.05, NULL 5.20 — with the pier as wide and
+# as bright as the storey course. `shots/vert/V1-SOUTHMALL-west-wall-day-bays.png`
+# is what that looks like and it is the named failure mode exactly: every cell
+# the same size, the pier and the course the same width and the same tone, and
+# the 0.12 m tile stripe still running inside every cell. Graph paper.
+#
+# Round 2 changes three things and nothing else, so the difference is readable:
+#   1. FEWER bays — the pitch is stretched ~1.3x, because grid DENSITY is most
+#      of the waffle read;
+#   2. NARROWER piers — a pilaster, not a panel edge;
+#   3. the pier is a SHADOW, not a second highlight (BAY_SHADE below). A proud
+#      ring's outward face is parallel to the wall and so takes the same light
+#      as a course's outward face; at equal tone the two axes weigh the same and
+#      the eye reads a grid rather than a wall divided into bays.
+BAY_SPEC = {
+    "A":  dict(bay=6.40, w=0.75, proud=0.16),
+    "B":  dict(bay=6.40, w=0.75, proud=0.16),
+    "C":  dict(bay=7.90, w=0.45, proud=0.10),
+    "D":  dict(bay=4.60, w=0.20, proud=0.07),
+    None: dict(bay=7.00, w=0.36, proud=0.09),
+}
+BAY_SPEC_DECK = dict(bay=8.20, w=0.45, proud=0.10)
+
+# The pier's own tone, as a mix of the host wall tone toward BAY_SHADE_COL. The
+# horizontal trim is lifted toward WHITE by `spec["lift"]`; this is the same
+# move in the other direction, and it is what stops the two axes from being the
+# same ribbon.
+#
+# THIS IS NOT "MAKING THE PIER LIGHTER", WHICH QUEUE Y19 FORBIDS. That
+# prohibition is about `WALL.PIER` in the shared facade ATLAS — fading the
+# tile's own pilasters so the barcode merely becomes fainter. Nothing here
+# touches the atlas. This is a colour on a piece of proud GEOMETRY that is
+# 0.10-0.16 m deep and holds its size in metres, and it is a claim about how a
+# recessed bay division reads, not a way to hide a defect.
+BAY_SHADE = 0.22
+BAY_SHADE_COL = "#3a332c"
+
+# A pier bites BACK into the wall so its rear face is inside the host solid and
+# can never be coplanar with the wall face. Same 30 mm class as HOST_LIFT; this
+# one is bigger because it must also survive the footprint's own 8-decimal
+# quantisation on a diagonal edge.
+PIER_BITE = 0.05
+
+# A pier does not float. Where the era has a base course and a cornice/cap the
+# pier runs INTO both by PIER_TUCK, so no top face and no bottom edge is ever
+# exposed and the trim reads as one piece of stone. Every era's pier `proud` is
+# smaller than that era's base and top proud, so the tuck is genuinely buried.
+PIER_TUCK = 0.05
+
+# Where an era has NO top piece (NULL, and any wall too short to carry one) the
+# pilaster stops short of the wall head rather than dying into the sky — and
+# that drop is also what keeps its top face clear of the host's own
+# `final_height`, which check_host_clearance() would otherwise reject.
+PIER_HEAD_DROP = 0.35
+
+# Refusals. An edge shorter than this is a chamfer or a bay window and gets no
+# piers; a wall that divides into fewer than two bays has no INTERIOR boundary
+# to put one on. And a pilaster under PIER_MIN_H is a lump, not a vertical.
+PIER_MIN_EDGE_M = 6.0
+PIER_MIN_BAYS = 2
+PIER_MIN_H = 2.50
+
 # HOST_LIFT is the clearance the TOP face of a cornice or a parapet cap is
 # raised above the host building's own `final_height`. The trim is what moves,
 # never the host: a cornice caps a wall and a coping caps a parapet, so in both
@@ -409,6 +530,100 @@ def detail_feature(ring_ll, host, part, era, base, top, trio):
             "geometry": {"type": "Polygon", "coordinates": [ring_ll]}}
 
 
+def detail_multi(rings_ll, host, part, era, base, top, trio, bays):
+    """Every pier on one building as ONE MultiPolygon feature.
+
+    THIS IS THE WHOLE REASON THE VERTICAL AXIS IS AFFORDABLE. A horizontal band
+    is one ring per LINE — the campus bake emits 640 of them for 253 buildings.
+    A pier is one ring per PIER, and a 40 m wall on a 5 m bay carries seven of
+    them per elevation, so one feature per pier would be ~6,000 features and
+    would be a different conversation about the frame. Collapsed into one
+    MultiPolygon per building it is +1 feature per banded building, and
+    `coplanar.mjs:238` already flattens MultiPolygon rings, so the checker sees
+    every pier individually either way.
+
+    Same `dbase`/`dh`, no `bid`, same reasons as detail_feature.
+    """
+    wd, wg, wn = trio
+    return {"type": "Feature",
+            "properties": {"kind": "detail", "part": part, "era": era or "",
+                           "host": host, "wd": wd, "wg": wg, "wn": wn,
+                           "bays": bays,
+                           "dbase": round(base, 3), "dh": round(top, 3)},
+            "geometry": {"type": "MultiPolygon",
+                         "coordinates": [[r] for r in rings_ll]}}
+
+
+def pier_rings(closed_m, spec, stats):
+    """The pier rectangles for one footprint, in metre space.
+
+    One edge at a time. The edge is divided into a WHOLE number of equal bays at
+    the count nearest `spec["bay"]`, and a pier goes on each INTERIOR boundary —
+    never on a corner, because two corner piers from two edges would overlap
+    across the arris and produce a solid block nobody asked for. So a wall reads
+    corner, bay, pier, bay, ... , bay, corner, which is what these buildings do.
+
+    Each rectangle runs from PIER_BITE INSIDE the wall to `proud` outside it, so
+    its rear face is buried in the host solid and cannot be coplanar with the
+    wall face. Outward is (dy, -dx)/L, the same convention offset() uses, so a
+    positive number is away from the building on a CCW ring.
+    """
+    p = closed_m[:-1] if closed_m[0] == closed_m[-1] else closed_m[:]
+    n = len(p)
+    if n < 3:
+        return [], 0
+    w, proud = spec["w"], spec["proud"]
+    out, bays_total = [], 0
+    for i in range(n):
+        x0, y0 = p[i]
+        x1, y1 = p[(i + 1) % n]
+        dx, dy = x1 - x0, y1 - y0
+        L = math.hypot(dx, dy)
+        if L < PIER_MIN_EDGE_M:
+            stats["pier_edge_short"] += 1
+            continue
+        nb = max(1, int(round(L / spec["bay"])))
+        if nb < PIER_MIN_BAYS:
+            stats["pier_edge_one_bay"] += 1
+            continue
+        ux, uy = dx / L, dy / L
+        nx, ny = dy / L, -dx / L
+        step = L / nb
+        # A pier must fit inside its own bay with wall either side of it.
+        if w >= step:
+            stats["pier_edge_too_wide"] += 1
+            continue
+        bays_total += nb
+        for k in range(1, nb):
+            t = k * step
+            a, b = t - w * 0.5, t + w * 0.5
+            ring = [
+                (x0 + ux * a - nx * PIER_BITE, y0 + uy * a - ny * PIER_BITE),
+                (x0 + ux * b - nx * PIER_BITE, y0 + uy * b - ny * PIER_BITE),
+                (x0 + ux * b + nx * proud,     y0 + uy * b + ny * proud),
+                (x0 + ux * a + nx * proud,     y0 + uy * a + ny * proud),
+            ]
+            out.append(ccw(ring))
+            stats["piers"] += 1
+    return out, bays_total
+
+
+def pier_span(base, top, lo_y, hi_y):
+    """Where the pilaster starts and stops, in metres.
+
+    It runs INTO the base course and INTO the cornice/cap where those exist
+    (PIER_TUCK), so neither end is ever an exposed face; where the era has no
+    top piece it stops PIER_HEAD_DROP under the wall head, which is both the
+    architectural read and what keeps its top face off the host's own
+    final_height. Returns None if what is left is a lump rather than a vertical.
+    """
+    lo = (base[1] - PIER_TUCK) if base else lo_y
+    hi = (top[0] + PIER_TUCK) if top else (hi_y - PIER_HEAD_DROP)
+    if hi - lo < PIER_MIN_H:
+        return None
+    return lo, hi
+
+
 def pitch_for(props, fam, lo, hi, stats):
     """Floor-to-floor for this building: measured where a count exists, nominal
     where it does not, and the nominal wherever the count implies something that
@@ -480,6 +695,28 @@ def bands_for(feature, era, stats):
         out.append(detail_feature(to_ll8(ccw(r), lat0), props.get("id"), part,
                                   era, lo, hi, trio))
         stats["details"] += 1
+
+    # ── the vertical axis (QUEUE Y19) ─────────────────────────────────
+    # Emitted last and as ONE feature, so a reader diffing this file against the
+    # shipped Y5 bake sees the horizontal rings unchanged, in order, with the
+    # bays appended — the same additive shape §131 checked West Campus for.
+    if BAYS_ON and out:
+        bspec = BAY_SPEC_DECK if fam == FAMILY_DECK else BAY_SPEC[era]
+        span = pier_span(base, top, lo_y, hi_y)
+        if span is None:
+            stats["pier_span_too_short"] += 1
+        else:
+            rings, nbays = pier_rings(closed, bspec, stats)
+            if rings:
+                pier_tone = hex_mix(props.get("wd") or "#b7a98f",
+                                    BAY_SHADE_COL, BAY_SHADE)
+                pier_trio = (pier_tone,) + wall_ramp(pier_tone)
+                out.append(detail_multi([to_ll8(r, lat0) for r in rings],
+                                        props.get("id"), "pier", era,
+                                        span[0], span[1], pier_trio, nbays))
+                stats["pier_features"] += 1
+            else:
+                stats["pier_none_fit"] += 1
     # "nothing to draw" is not a failure and must not be counted as one: a NULL
     # -era building with a single storey above the datum has no INTERMEDIATE
     # floor to line, and no base course or cap is owed to it either. That is the
