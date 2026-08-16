@@ -312,6 +312,47 @@ not the data.** (This is the open `graphics auto-detect sticking` defect showing
 up in an unrelated measurement.) Interleave, and check whether the outlier arm is
 outlying against *its own* twin before you believe it.
 
+### The coplanar gate, on the merged tree
+
+```
+coplanar.mjs data/entrances.geojson
+  origin/main's own file    1627   (the number the o1 lane re-baselined tonight)
+  this branch's             1655   +28
+```
+
+**All 28 are inside the 11 relocated groups, measured rather than argued.** Both
+files with those 11 eids deleted give **988 pairs each — the same number to the
+pair.** They are step treads and cheek walls sharing a top plane inside one
+flight, which is what `sweep.md` §3.3 found for the family-V surrounds and judged
+the same way: **by looking.** `shots/relocated/fix/zf-bhd.jpg` is Brackenridge's
+new portal at 1.7 m — clean surround, clean flight, no shimmer, no flicker.
+
+The baseline lives in `scripts/verify/coplanar-baseline.json`, which is the
+suite-repair lane's file, so the number goes in writing here rather than into a
+re-recorded baseline. **`1655` is what that lane should expect.**
+
+### Verified on the MERGED tree, not on the branch alone
+
+`origin/main` moved under this branch twice while it was open, and the second
+move wrote **both** of this lane's files: the `o1-snapshot` lane re-pointed
+`SNAP` at `manifest.latest` and re-baked `data/entrances.geojson`. A generated
+file has only one correct resolution, so it was **re-baked on the merged script**
+— and the result is geometrically **identical to the file photographed above**,
+max centroid delta **0.0000 m** over all 656 groups, now carrying their
+`snapshot: 2026-08-16` provenance fields. Every frame in `shots/relocated/`
+still stands. `harness-drift.mjs` PASS again on the merged tree, and the hero A/B
+was re-run on it:
+
+```
+                MERGED TREE: this branch vs main's entrances
+H1-spawn        IDENTICAL BYTES
+H2-drag         IDENTICAL BYTES
+H3-tower        47 over24, max 131     <- same corner, third independent reading
+H4-city         IDENTICAL BYTES
+H5-dkr          IDENTICAL BYTES
+H6-towernight   116 over24             <- its own floor is 117
+```
+
 ---
 
 ## 7. What this pass did NOT establish
