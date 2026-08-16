@@ -346,9 +346,16 @@
     // its own patterned background layer stacked under ours instead.
     texGround: true,
     texGroundOpacity: 0.5,  // relative to texOpacity
-    // 25, not 22. QUEUE Y4 named this cap as the reason you cannot look down at
-    // your own feet at walking height. MEASURED, and the story is more useful
-    // than that:
+    // 24, not 22 — and NOT 25, which is where QUEUE Z0 comes from. The style
+    // spec's ceiling for a layer `maxzoom` is 24; the Y4 half-fix set this to
+    // 25, MapLibre failed validation on `addLayer`, and the city-wide
+    // `ground-base-texture` layer was therefore NEVER in the style on `main` —
+    // every load logged "maxzoom: 25 is greater than the maximum value 24" and
+    // then "Cannot style non-existing layer" (HANDOFF §116, QUEUE Z0). 24 is
+    // the largest value the spec accepts, and above z24 you are closer than
+    // 1.7 m eye height ever gets, so the cap still never binds in practice.
+    //
+    // Why it is above 22 at all — MEASURED when Y4 raised it:
     //
     //   * `controls.js` clamps the derived zoom at `ZOOM_MAX = 21.5`, which is
     //     BELOW 22 — so this cap has never once bound, and it is not what stops
@@ -357,17 +364,17 @@
     //     camera really does reach z23.94 / pitch 60 / 1.70 m of eye height
     //     (MapLibre's own `getCameraAltitude`), so the library is not the
     //     obstacle either.
-    //   * At that pose, raising this cap from 22 to 25.5 changed **0 pixels**
-    //     over the South Mall, 0 over the East Mall plaza and 14 over a West
-    //     Campus street: the base grain is a `background` layer and every one of
+    //   * At that pose the cap's exact value changed **0 pixels** over the
+    //     South Mall, 0 over the East Mall plaza and 14 over a West Campus
+    //     street: the base grain is a `background` layer and every one of
     //     those surfaces is a classified polygon drawn on top of it.
     //
-    // So this raise is preparation, not a fix — it removes a cliff that would
+    // So the headroom is preparation, not a fix — it removes a cliff that would
     // have appeared the moment `ZOOM_MAX` rises, over the unclassified
     // catch-all ground where the base grain is the ONLY texture. What the
     // ground actually needs at 1.7 m is in HANDOFF §106: the carriageway has no
     // surface texture at all.
-    texGroundMaxZoom: 25,
+    texGroundMaxZoom: 24,
 
     // ── CLOSE RANGE (QUEUE Y8): the ground at walking height ──────────
     //
