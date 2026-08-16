@@ -16900,10 +16900,19 @@ because it is a licence condition and not chrome**.
 available width was `100% - 50%` = 196.5 px on a 393 px screen and the
 `max-width` sitting in the phone block **never once bound**. Both edges pinned,
 translate dropped: **361 px, headline on one line** (was two, with `Show route`
-wrapping inside its own button). The three 44 px buttons now sit ON the bar,
-which reads as one control bar and is right for a phone — so the text gets
-52 px gutters and stays between them (measured 69..324 against buttons at
-16..60 and 343..377).
+wrapping inside its own button).
+
+The first attempt kept the bar in the title's row with the three 44 px buttons
+sitting on it, and reserved 52 px gutters so the words could not run under
+them. **Re-running the gate on the merged tree caught that putting the headline
+straight back onto two lines** — 257 px of usable text is not enough, so the
+fix had reintroduced the exact defect Z7 is about. The bar now takes the row
+BELOW the buttons (`--wf-pill-top` 68 = 16 inset + 44 button + 8 air) and gets
+the whole 361 px with no gutters. `body.wf-routed` already hides `#hud`, so
+nothing else wants that row. Re-driven on the four longest real headlines
+(JES>WEL, ADH>MCA, STD>MAI, Pointe on Rio>EER): **13/13, every one on one line,
+every one 361 px, zero overlap with `#wf-button`, `#gfx-button`, `#fb-button`
+or the open sheet.**
 
 **Z8.** The open sheet covered the joystick: sheet y324-852, stick y682-782,
 BOOST reaching y650. `interface.md` says hide the joystick while searching;
@@ -16989,11 +16998,13 @@ each.
 ### The gates
 
 `harness-drift.mjs` **PASS 29/29** before any pixel, on the served tree.
-**44 of 45 behaviour assertions green**; the one red is the assertion's fault
-and not the code's — it put a 25 s deadline on the `intro=0` fit, and the
-diagnostic it printed on failure shows the fit had happened correctly (pitch
-55, centred on the route). No latency claim survives a machine this loaded, so
-that gate now asserts the outcome and prints the time as information.
+**45 of 45 behaviour assertions green on the merged tree**, plus 13/13 on the
+phone re-check. Two reds along the way, and both were worth having: one was the
+assertion's own fault (a 25 s deadline on the `intro=0` fit — the diagnostic it
+printed shows the fit had happened correctly at pitch 55 centred on the route;
+no latency claim survives a machine this loaded, so it now asserts the outcome
+and prints the time as information), and **one was a real regression the merged
+re-run caught in my own Z7 fix**, written up above.
 Zero wayfind MAP ERRORs on every load. Every text node under `#wf-root`
 re-scanned against §12's forbidden list: clean, the single accessibility
 mention being §11's own mandated disclaimer verbatim.
