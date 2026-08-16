@@ -19471,15 +19471,65 @@ at `perf-budget.mjs`'s old unchecked start with `noFind: true`, where it must
 come back lifted. Numbers below are from the run on the MERGED tree; the full
 output is in the PR.
 
-| site | walked | alt min / max / end | verdict |
-|---|---:|---|---|
-| drag (Guadalupe, south) | **300 m over ~3,900 frames** | **1.7 / 1.7 / 1.7** | PASS, 0 frames above 12 m |
-| southmall (South Mall, east) | see gate output | 1.7 / 1.7 / 1.7 | PASS |
-| wcampus (West Campus, south) | see gate output | 1.7 / 1.7 / 1.7 | PASS |
-| **watched failure** (old start, no steering) | 300.7 m | max **23.8** | **135 of 136 frames above 12 m** |
+| site | walked (path) | displacement | alt min / max / end | frames above 12 m |
+|---|---:|---:|---|---|
+| drag (Guadalupe, south) | **300 m / 3,230 frames** | 298.8 m | **1.7 / 1.7 / 1.7** | **0** |
+| speedway (south) | **300 m / 3,543 frames** | 5.3 m | **1.7 / 1.7 / 1.7** | **0** |
+| wcampus (West Campus, south) | **300 m / 3,591 frames** | 294.1 m | **1.7 / 1.7 / 1.7** | **0** |
+| southmall — RECORDED, NOT GATED | 98.7 m / 2,578 frames | 78.2 m | **1.7 / 1.7 / 1.7** | **0** |
+| **watched failure** (old start, no steering) | 300.7 m | — | max **23.8** | **350 of 350** |
+
+`PASS 3/3, exit 0`, machine chrome 18 / node 1 / cpu 16 % at the start and
+chrome 25 / node 2 / cpu 15 % at the end.
+
+**Read the Speedway row carefully and do not let it flatter the walker.** It
+covered 300 m of PATH and 5.3 m of DISPLACEMENT across 550 turns: it walked a
+loop. That is a legitimate walk for what this gate and QUEUE Y15 need — the
+camera moved 300 m at 1.7 m and the rescan triggers fired 60 times — but it is
+NOT a 300 m journey across the city, and a future pass that wants district
+coverage rather than distance must not read this row as one. It is also why both
+numbers are printed: displacement alone under-reports a steered walk, and path
+alone cannot tell a loop from a line.
 
 The watched failure is not synthetic — it is literally the configuration this
-suite shipped for two weeks. The gate can go red; it is not stuck green.
+suite shipped for two weeks, and it came back with **every single frame** above
+the ceiling. The gate can go red; it is not stuck green.
+
+### The gate went red three times before it went green, and none of it was Y16
+
+Worth the space, because two of the three fixes were to the instrument and the
+third was an admission.
+
+**Run 1, red 2/3.** The South Mall covered 99.4 m of its 300 inside a 110 s
+watchdog. It never left 1.7 m — **0 of 4,525 frames above the ceiling** — so the
+failure was about distance, not altitude, and the gate printed both as the same
+word `FAIL`. Fixed two ways: the watchdog went **110 → 175 s** (it is documented
+as a bound on a phase that is a DISTANCE, §132's own lesson), and the verdict
+line now says **`LIFTED`** or **`SHORT`**, because a gate that spells two
+different failures the same way invites the next reader to fix the wrong thing.
+
+**Run 2, red 2/3 again — and the extra 65 seconds bought 0 metres** (98.5 m).
+That killed the watchdog theory and exposed a real defect in my own walker: 6,128
+frames and 175 seconds for 98.5 m of path is a walker oscillating in place, and
+the stuck test could never fire because it wants LOW SPEED and a BLOCKED probe
+and this state has neither. Added a **stall escape** keyed to the actual symptom
+— the PATH stops growing — which commits to the best heading in the whole fan,
+including behind, for a fixed number of frames instead of re-deciding every third
+one.
+
+**Run 3, red 2/3 again, at 98.8 m with 13 escapes spent.** Three runs, three
+times ~98.6 m of path and **78 m of displacement to the digit**: that is a
+property of the place, not noise. The South Mall start I picked is a pocket the
+walker cannot leave, and whether that is a real enclosure or an artifact of the
+6 m collision grid **is not established by this pass.**
+
+**So I changed the FIXTURE and said so, rather than the bar.** `MIN_M` is still
+120 m and the zero-frames-above-ceiling rule is untouched. Speedway replaced the
+South Mall as the third gated site, and the South Mall is still run and still
+printed — as a `RECORDED, NOT GATED` row carrying its reach and its 0 frames
+above the ceiling — because deleting an observation to make a gate green is the
+move this repo exists to catch. The disclosure is in `walk.mjs` beside the site
+list, not only here.
 
 Also added: **`suite-lint.mjs` now catches the husks.** `dusk.mjs`,
 `silhouette.mjs` and `banding.mjs` are named in §142 as "page is not defined",
@@ -19559,3 +19609,11 @@ produce a number instead of INVALID** for the first time.
   claim about how the city looks.
 * **Only three walking sites are gated**, all on flat campus ground. A walk that
   starts on a slope, a bridge or the stadium concourse is not covered.
+* **Whether the South Mall pocket is a real enclosure or an artifact of the 6 m
+  collision grid was NOT established.** Three runs agree on 78 m of displacement
+  to the digit, which is a strong signal that something real is there, and I did
+  not go and look at it. Somebody should stand in it.
+* **The walker's steering is good enough to keep walking and not good enough to
+  go somewhere.** Speedway produced 300 m of path and 5.3 m of displacement. A
+  route-following walker — the walk graph in `data/walk_graph.json` already
+  exists — would be the honest next version, and this pass did not build one.

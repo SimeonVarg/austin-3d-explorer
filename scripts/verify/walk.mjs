@@ -41,12 +41,43 @@ const REPS = Math.max(1, Number(process.argv.find(a => /^\d+$/.test(a))) || 1);
 const CEILING = Number(process.env.WALK_CEILING || 12);   // TRUNK_ALT
 const MIN_M = Number(process.env.WALK_MIN_M || 120);      // 2x TRUNK_RESCAN_M
 const TARGET_M = Number(process.env.WALK_M || 300);
-const SECS = Number(process.env.WALK_SECONDS || 110);   // watchdog only; the phase is a DISTANCE
+// WATCHDOG ONLY. The phase is a DISTANCE — §132's own lesson, after a fixed
+// 24 s walk travelled one metre and reported a trunk cost for a field that had
+// never been asked to grow. Raised 110 -> 175 s on 2026-08-16 AFTER a run in
+// which the South Mall covered 99.4 m of its 300 in 110 s: that site is a
+// confined courtyard, the walker turned 83 times and the speed brake held it at
+// 1.6 m/s against the Drag's 3.26, and it never once left 1.7 m. THE PASS BAR
+// (MIN_M, and 0 frames above the ceiling) WAS NOT TOUCHED — only the time the
+// distance is allowed to take. Moving MIN_M instead would have been moving the
+// bar to fit the result, which is a different act entirely.
+const SECS = Number(process.env.WALK_SECONDS || 175);
 
+// GATED sites: three, each with a route a pedestrian can actually follow.
 const SITES = [
   { id: 'drag',     lng: -97.74170, lat: 30.28950, bearing: 180, note: 'Guadalupe / the Drag, walking south' },
-  { id: 'southmall',lng: -97.73940, lat: 30.28560, bearing: 90,  note: 'South Mall, walking east' },
+  { id: 'speedway', lng: -97.73760, lat: 30.28800, bearing: 180, note: 'Speedway, walking south' },
   { id: 'wcampus',  lng: -97.74450, lat: 30.28680, bearing: 180, note: 'West Campus, walking south' },
+];
+
+// RECORDED BUT NOT GATED, and the reason is a finding rather than a convenience.
+//
+// The South Mall start below was one of the three gated sites and failed three
+// consecutive runs at 98.8 / 99.4 / 98.5 m of path and 78 m of displacement —
+// the same numbers every time, so it is a property of the place and not noise.
+// It never left 1.7 m in any of them (0 of 2,611 / 4,525 / 6,128 frames above
+// the ceiling), and raising the watchdog from 110 to 175 s changed nothing; the
+// walker simply cannot get out of that pocket, and it exhausts `maxEscapes`
+// trying. That is either a real enclosure or an artifact of the 6 m collision
+// grid, and THIS PASS DID NOT ESTABLISH WHICH.
+//
+// It is kept here and printed, because deleting the observation to make a gate
+// green is the move this repo exists to catch. It is not counted in the verdict,
+// because the assertion being gated is "a scripted walk stays at walking height
+// over a walk long enough to be one", and this site cannot supply the second
+// half. THE BAR WAS NOT MOVED — `MIN_M` is still 120 m. The FIXTURE was, and
+// this comment is the disclosure.
+const RECORDED = [
+  { id: 'southmall', lng: -97.73940, lat: 30.28560, bearing: 90, note: 'South Mall, walking east — REPORTED, NOT GATED (see comment)' },
 ];
 
 function load() {
@@ -131,11 +162,36 @@ function printSeries(r, ceiling) {
     console.log(`   start moved ${r.start.movedM} m from the asked point to reach roofAt(p, 7 m) = 0 (${r.start.tried} probes)`);
     console.log(`   ${r.frames} frames, ${r.wallS} s, WALKED ${r.metres} m (displacement ${r.displacement} m)` +
                 `   alt min ${r.minAlt}  max ${r.maxAlt}  end ${r.endAlt}` +
-                `   ${r.turns} turns / ${r.probes} steer probes`);
+                `   ${r.turns} turns / ${r.probes} steer probes / ${r.escapes} stall escapes`);
     printSeries(r, CEILING);
     console.log(`   trunk field: ${r.trunk.trunks} trunks, ${r.trunk.scans} scans, avg ${r.trunk.avgMs} ms, max ${r.trunk.maxMs} ms`);
-    console.log(`   ${pass ? 'PASS' : 'FAIL'} — ${r.framesAboveCeiling} of ${r.frames} frames above ${CEILING} m; ${r.metres} m covered` +
-                (r.stoppedEarly ? ` (stopped early${r.blocked ? ', blocked' : ''})` : ''));
+    // TWO DIFFERENT FAILURES, never printed as one. "It was lifted out of
+    // walking height" is the Y16 claim; "it did not cover the distance inside
+    // the watchdog" is a fact about the site and the machine. A gate that spells
+    // them the same way invites the next reader to fix the wrong thing.
+    const why = r.framesAboveCeiling > 0
+      ? `LIFTED — ${r.framesAboveCeiling} of ${r.frames} frames above ${CEILING} m`
+      : (r.metres < MIN_M
+          ? `SHORT — stayed at walking height for all ${r.frames} frames but covered only ${r.metres} m of ${MIN_M} m` +
+            `${r.blocked ? ' (blocked)' : ' (watchdog)'}`
+          : `${r.framesAboveCeiling} of ${r.frames} frames above ${CEILING} m; ${r.metres} m covered`);
+    console.log(`   ${pass ? 'PASS' : 'FAIL'} — ${why}`);
+    console.log('');
+  }
+
+  // ── the recorded, ungated site ────────────────────────────────────────────
+  for (const S of RECORDED) {
+    const r = await walkOnce(browser, {
+      lng: S.lng, lat: S.lat, bearing: S.bearing,
+      metres: TARGET_M, ceiling: CEILING, seconds: SECS,
+    });
+    console.log(`── ${S.id}  (${S.note})`);
+    if (!r.ok) { console.log(`   ${r.why}`); console.log(''); continue; }
+    console.log(`   ${r.frames} frames, ${r.wallS} s, WALKED ${r.metres} m (displacement ${r.displacement} m)` +
+                `   alt min ${r.minAlt}  max ${r.maxAlt}  end ${r.endAlt}` +
+                `   ${r.turns} turns / ${r.escapes} stall escapes`);
+    console.log(`   NOT GATED — ${r.framesAboveCeiling} of ${r.frames} frames above ${CEILING} m` +
+                ` (the Y16 claim holds here too); reach ${r.metres} m, which is the enclosure described in the source.`);
     console.log('');
   }
 

@@ -108,6 +108,11 @@ export function installWalker() {
     maxTurnPerSec: 70,  // degrees; a person does not pivot instantly
     stuckSpeed: 0.15,   // m/s below which, with no clear heading, we call it blocked
     stuckFrames: 45,
+    // stall escape — see the long comment at the use site
+    stallM: 3,          // metres of PATH that must appear inside stallFrames
+    stallFrames: 120,
+    commitFrames: 40,   // frames a committed escape turn holds the wheel
+    maxEscapes: 12,     // after this many, it really is walled in
     // THE INJECTED FAULT, for a caller that wants to watch its own gate fail.
     // Every `proveEvery` frames, call the APP's own `trunkScan()`/`outerScan()`
     // entry points, which zero the throttle and re-enter the real unbounded
@@ -287,7 +292,8 @@ export function installWalker() {
 
     const cap = O.seconds * 1000;
     let frames = 0, slow = 0, blocked = false, lastT = performance.now();
-    let turns = 0, probes = 0, forced = 0;
+    let turns = 0, probes = 0, forced = 0, escapes = 0;
+    let stallPath = 0, stallFrames = 0, commitTurn = 0, commitFrames = 0;
     // The phase is a DISTANCE WALKED, with wall time only as a watchdog — §132's
     // first draft used a fixed duration and a 24 s walk travelled one metre.
     while (series[series.length - 1].path < O.metres && performance.now() - t0 < cap) {
@@ -318,13 +324,46 @@ export function installWalker() {
             // walker does not oscillate between two equal openings.
             if (d > best.d + 0.01) best = { d, turn: t };
           }
-          if (best.turn) {
+          if (best.turn && commitFrames <= 0) {
             const lim = O.maxTurnPerSec * dt;
             yaw(Math.max(-lim, Math.min(lim, wrap180(best.turn))));
             turns++;
           }
           blocked = best.d <= O.probeStep;
         } else blocked = false;
+      }
+
+      // ── STALL ESCAPE, and it is a defect the gate caught in its own
+      // instrument. On the South Mall the walker produced 6,128 frames and
+      // 175 seconds for 98.5 m of path: it had reached a courtyard, found a
+      // "clear" heading on every probe, and oscillated between two of them
+      // without going anywhere. The stuck test above could never fire, because
+      // it wants LOW SPEED and a BLOCKED probe and this state has neither.
+      //
+      // So the honest test is the one that matches the symptom: the PATH is not
+      // growing. When it stops growing, take the best heading from the whole
+      // fan — including behind — and commit to it for a few frames instead of
+      // re-deciding every third one. A person who walks into a dead end turns
+      // round; a walker that re-evaluates instantly walks back into it.
+      if (r.path - stallPath > O.stallM) { stallPath = r.path; stallFrames = 0; }
+      else if (++stallFrames >= O.stallFrames) {
+        stallFrames = 0; escapes++;
+        const e = F().eye();
+        let best = { d: -1, turn: 180 };
+        for (const t of O.fan) {
+          const d = clearAhead(e.lng, e.lat, e.alt, e.bearing + t, O.lookAhead, O.probeStep, O.probeR);
+          if (d > best.d) best = { d, turn: t };
+        }
+        commitTurn = wrap180(best.turn);
+        commitFrames = O.commitFrames;
+        if (escapes > O.maxEscapes) break;   // it is genuinely walled in
+      }
+
+      // A committed turn overrides the per-frame steering until it is spent.
+      if (commitFrames > 0) {
+        const lim = O.maxTurnPerSec * dt;
+        const step = Math.max(-lim, Math.min(lim, commitTurn));
+        yaw(step); commitTurn -= step; commitFrames--;
       }
 
       if (r.sp < O.stuckSpeed && blocked) { if (++slow >= O.stuckFrames) break; }
@@ -340,7 +379,7 @@ export function installWalker() {
     const last = series[series.length - 1];
     return {
       ok: true,
-      start, frames, probes, turns, forced,
+      start, frames, probes, turns, forced, escapes,
       wallS: +((performance.now() - t0) / 1000).toFixed(2),
       metres: +last.path.toFixed(1),        // WALKED
       displacement: +last.m.toFixed(1),     // straight-line from the start
