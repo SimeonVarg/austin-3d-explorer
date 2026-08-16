@@ -16036,3 +16036,101 @@ piece: utility 5,880 -> 4,086, midcentury 1,310 -> 4,230, modern 1,807 ->
   the bake itself is not — measured tonight at **~6 min of CPU and 30-40 min
   of wall clock** with three workflows sharing the machine, both before and
   after the edit. Nobody budgets bake runtime. Recorded, not fixed.
+
+## 115. Aug 15 2026 — the 6.4 MB entrance file no longer loads at boot, and the city is interactive 5.6 s sooner for it (QUEUE W3) (acer lane)
+
+Branch `acer/blitz-entrances`, continuing §114 on the same PR. Writes limited
+to `js/entrances.js`, `shots/blitz/`, this file. (If the wayfind lane lands
+its own §115 first, renumber this one by chronology, per the header rule.)
+
+### WHAT CHANGED
+
+`data/entrances.geojson` (6.38 MB raw / 396 KB gz after §114) was fetched and
+parsed on the main thread at boot, while the four sources the veil actually
+waits on were still tiling. `initEntrances()` is now DEFERRED to whichever
+fires first — the map's first `idle` + 2 s, the camera dropping below
+`ENT.defer.altM = 60` m, or a 25 s ceiling (because `idle` provably never
+fires on a CPU-throttled machine — js/app.js's introGate note). `?entdefer=0`
+restores the eager path, so every number below is A/B on ONE build.
+`window.__entDefer` records which trigger won and every timestamp;
+`entrancesStats()` is null until the load runs, which is new and documented
+in the file header. harness-drift PASS before and after (28/28 scripts, tag
+unmoved).
+
+### MEASURED — minimum of 4 interleaved A/B reps, localhost, hardware GL, auto-detect probe cancelled on every page and said so
+
+Instrument: scratchpad `w3-boot-ab.mjs` — "interactive city" = js/app.js's own
+INTRO.needs four sources `isSourceLoaded` over 2 consecutive 200 ms polls
+(the gateHolds rule; one poll lies for GeoJSON, boot.mjs documents it).
+
+* interactive city: **14.18 s eager -> 8.60 s deferred** (-5.6 s, -39%)
+* main-thread long tasks before that moment (PerformanceObserver):
+  **8.60 s -> 4.54 s**
+* entrances fetch+parse itself: **2.4-10.2 s when it competes with boot,
+  94 ms when it runs after idle.** Same file, same machine — the parse was
+  never the cost, the CONTENTION was.
+* doors usable (source loaded): eager 14.4 s, deferred 10.9 s — the deferred
+  build's doors arrive BEFORE the eager build's city does.
+* real visitor path (intro on, no flags): trigger `idle`, veil lifted at
+  6.2 s reason `idle`, doors fetched 8.0 s after arm. The flight's measured
+  minimum altitude over its first 15 s is **138.5 m**.
+
+### THE THRESHOLD WAS WRONG ONCE AND THE INSTRUMENT WAS WRONG ONCE, BOTH CAUGHT BY RUNNING IT
+
+* First `altM` candidate was 150 m "safely under spawn (163 m)". The intro
+  flight itself dips to 138.5 m — 150 would have fired the fetch mid-boot on
+  the exact path Simeon's complaint is about. Shipped 60 m: below everything
+  the app flies on its own, ~3x eye level, unreachable without a deliberate
+  descent.
+* The alt gate's first draft read `__fly.eye().alt` inside the `move`
+  handler. __fly copies the pose on its own rAF tick, so inside the very
+  event this gate serves it is one frame stale — a jumpTo from 163 m to
+  42.7 m read back 163, and a jumpTo emits no second move event, so the
+  trigger then NEVER fired. Fixed by reading `transform.getCameraAltitude()`
+  first (fresh before the event by construction); __fly and the closed-form
+  fallback stay behind it. cameraAltM() documents the incident.
+
+### POP-IN, MEASURED WITH PIXELS, NOISE FLOOR FIRST
+
+Magenta-mask per §48 with one amendment §48 never needed: fill-extrusion
+LIGHTING darkens painted walls, so exact-#ff00ff matching counts 0 px on
+geometry that is plainly on screen. Hue test (r,b high, g < 0.45·min(r,b))
+reads **3,784 px of entrance at the Main Building portal vs a floor of 0**
+(same pose, `?entrances=0`, max of 2 floor reps) — pose derived from the
+door's own centroid in the data, not guessed; two guessed poses honestly
+contained no doors and read 0.
+
+Trigger-to-drawable, alt path (idle and ceiling held open, scratchpad
+`w3-popin.mjs`): **838 ms at the quiet-machine minimum** (boot A/B
+instrument, min of 4), **15.5-26.6 s under tonight's three-workflow
+contention** (min of 3 dive reps; the pixel-poll confirmation adds its own
+readback seconds on swiftshader and is an upper bound, not a cost). On the
+path a visitor actually takes the doors are loaded during cruise ~8-14 s in,
+long before any descent, so nothing pops while walking — the alt gate is the
+fallback for diving inside the first ~10 s, and its ~0.9 s arrival at 60 m is
+a door growing from ~10 px, not a wall appearing. Distance-fade was therefore
+NOT built; if anyone ever sees it pop in anger, that is the next lever and
+QUEUE W3 already names it.
+
+### PHOTOGRAPHS (`shots/blitz/`)
+
+* `w3-cruise.png` — golden-hour cruise, city complete. (On this contended
+  rep the 25 s ceiling had already loaded the doors by shot time — the
+  honest caption is "doors invisible at cruise", not "doors absent".)
+* `w3-eye-day.png` — Main Building south portal at eye level, doors, glass,
+  surround and steps present after a descent-triggered load.
+* `w3-eye-night.png` — same pose at night, doorway lit, warm pools at the
+  thresholds.
+
+### WHAT I DID NOT DO
+
+* **Did not merge — same reason as §114**: this branch also carries the
+  57-building era repaint nobody has looked at. The Ship agent judges both.
+* **Did not tile the file.** W3 offered "tile it or measure it"; measured.
+  The flat GeoJSON off the boot path costs the visitor nothing visible, so
+  tiling is now an optimisation with no complaint behind it.
+* Did not re-run the 15 harness-page verify scripts (Mac owns that
+  regression) and did not test `?tour=1`'s camera against the 60 m gate.
+* The A/B and pop-in scripts live in the session scratchpad, not
+  `scripts/verify/` — this lane may not write there. A future lane that wants
+  them permanent should lift them with their pose and threshold notes.

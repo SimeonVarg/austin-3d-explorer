@@ -113,7 +113,10 @@
  * they have already rebuilt the wall behind it.
  *
  * Public (window) API:
- *   initEntrances(map)             — add source + layers (called automatically)
+ *   initEntrances(map)             — fetch data, add source + layers. Called
+ *                                    automatically, but DEFERRED: see ENT.defer
+ *                                    (QUEUE W3) and window.__entDefer. Until it
+ *                                    runs, entrancesStats() is null.
  *   applyEntranceColors(map, p)    — retint for time-of-day p (hooked automatically)
  *   applyEntranceDensity(map)      — re-read the LOD knob
  *   applyEntranceSettings(map)     — re-read ENT after a live edit
@@ -339,6 +342,42 @@
     // ── tiling ────────────────────────────────────────────────────────
     // NOT window.PATTERN_TILING. See point 2 in the header.
     tiling: { maxzoom: 18, tolerance: 0, buffer: 64 },
+
+    // ── deferred load (QUEUE W3) ──────────────────────────────────────
+    // The entrances file is 6.38 MB raw / 396 KB gzipped and was fetched and
+    // parsed on the main thread AT BOOT, while the four sources the veil gate
+    // actually waits on (js/app.js INTRO.needs) were still tiling. A door is
+    // invisible from cruise — ENT.minZoom draws a portal at 4-5 px there — so
+    // nothing a visitor can see needed that parse to happen before the city
+    // was interactive. It now happens at whichever of these comes FIRST:
+    //
+    //   idle      the map's first `idle` event (the same signal that lifts the
+    //             veil), plus `idleDelayMs` so the parse does not land in the
+    //             veil-lift frame itself;
+    //   alt       the camera dropping below `altM` metres — the "diving before
+    //             the map ever goes idle" case. The threshold must sit UNDER
+    //             every authored high pose or it fires at boot and the defer
+    //             never defers. Measured in `__fly.eye().alt`'s own units:
+    //             spawn (z16.5 p74) reads 163 m, HANDOFF §112's cruise reads
+    //             600 m, and the intro's start/end poses scale to ~146-150 m —
+    //             which is why the first candidate, 150, was wrong: it was
+    //             within 3 m of the intro's own flight path. 60 m is below
+    //             everything the app flies on its own and still ~3x eye
+    //             level, so crossing it can only mean a deliberate descent;
+    //   timeout   `maxWaitMs` after arming. `idle` provably does not fire on a
+    //             CPU-throttled machine (js/app.js §introGate and boot.mjs both
+    //             record it), and a camera nobody moves never crosses `altM`,
+    //             so without a ceiling the doors would simply never load there.
+    //
+    // ?entdefer=0 restores the old eager load, so before/after is measurable
+    // on ONE build — the same lever pattern as ?entrances=0 above.
+    // window.__entDefer records which trigger won and every timestamp.
+    defer: {
+      on: q.get('entdefer') !== '0',
+      altM: 60,
+      idleDelayMs: 2000,
+      maxWaitMs: 25000,
+    },
   };
   window.ENT = ENT;
 
@@ -742,6 +781,53 @@
   }
 
   /**
+   * WHERE THE EYE IS, VERTICALLY — for ENT.defer.altM.
+   *
+   * ORDER MATTERS AND THE FIRST DRAFT HAD IT BACKWARDS. The first version
+   * asked `__fly.eye().alt` first (js/controls.js's copy of the altitude,
+   * HANDOFF §112 reads 600.05 m at cruise, 1.70 m at a door). But a `move`
+   * handler runs SYNCHRONOUSLY with the transform write, while __fly copies
+   * the pose on its own rAF tick — so inside the very event this function
+   * exists to serve, __fly is one frame stale. Measured: a jumpTo from spawn
+   * (163 m) straight to 42.7 m left __fly answering 163 for the whole
+   * handler, the threshold test passed as "high", and since a jumpTo emits no
+   * further move events the trigger then never fired at all.
+   *
+   * So: `transform.getCameraAltitude()` first — MapLibre's own value, updated
+   * before the event fires (js/controls.js documents that its closed form
+   * "reproduces transform.getCameraAltitude() exactly"). Then __fly (right
+   * everywhere except inside a move handler). Then the closed form itself:
+   * cameraToCenterDistance px * cos(pitch) at the TRUE 512-px ground scale
+   * (mPerPx()/2 — labelRisePx documents the 2x constant). Infinity on total
+   * failure, deliberately: a broken altitude reads as "high", which defers
+   * rather than firing the fetch on every frame.
+   */
+  function cameraAltM(map) {
+    try {
+      const t = map.transform;
+      if (t && typeof t.getCameraAltitude === 'function') {
+        const a = t.getCameraAltitude();
+        if (isFinite(a)) return a;
+      }
+    } catch (e) {}
+    try {
+      const f = window.__fly;
+      if (f && typeof f.eye === 'function') {
+        const a = f.eye().alt;
+        if (isFinite(a)) return a;
+      }
+    } catch (e) {}
+    try {
+      const t = map.transform;
+      if (t && isFinite(t.cameraToCenterDistance)) {
+        return t.cameraToCenterDistance
+          * Math.cos(map.getPitch() * Math.PI / 180) * mPerPx(map.getZoom()) / 2;
+      }
+    } catch (e) {}
+    return Infinity;
+  }
+
+  /**
    * Which inscriptions may be drawn from where the camera is standing right
    * now. Three tests, all in world units:
    *   zoom     — ENT.label.minZoom, the "you are at the portal" gate
@@ -904,6 +990,7 @@
     _added = true;
 
     let gj;
+    const _tFetch = performance.now();
     try {
       const r = await fetch(DATA);
       if (!r.ok) throw new Error(DATA + ': ' + r.status);
@@ -912,6 +999,7 @@
       console.warn('[entrances]', e.message, '- pass not drawn');
       return;
     }
+    if (window.__entDefer) window.__entDefer.fetchParseMs = +(performance.now() - _tFetch).toFixed(0);
     // Read the band tones off the real file (see portalColor).
     for (const f of gj.features) {
       const pr = f.properties;
@@ -1389,6 +1477,56 @@
     window.applyEntranceDensity(map);
   }
 
+  /**
+   * THE DEFERRED TRIGGER (QUEUE W3). See ENT.defer for the design and the
+   * three ways it can fire. This replaces the direct initEntrances() call in
+   * boot(): the map exists and `buildings-3d` is in the style by the time this
+   * is armed, but the 6.38 MB fetch+parse has not happened and the source has
+   * not been added. fire() is idempotent, so the three triggers need no
+   * coordination beyond first-wins.
+   *
+   * window.__entDefer is the instrument (same shape as __boot / __intro /
+   * __fly): armedAt/firedAt/trigger, fetchParseMs from initEntrances, and
+   * sourceLoadedAt — the first `sourcedata` event where MapLibre reports the
+   * source usable, i.e. when a door could first reach the screen. firedAt →
+   * sourceLoadedAt is the measured pop-in window.
+   */
+  function armEntranceLoad(map) {
+    const D = ENT.defer;
+    const dbg = window.__entDefer = {
+      on: !!(D && D.on), altM: D && D.altM, armedAt: performance.now(),
+      trigger: null, firedAt: null, fetchParseMs: null, sourceLoadedAt: null,
+    };
+    if (!ENT.on) { dbg.trigger = 'off'; return; }
+    if (!dbg.on) {
+      dbg.trigger = 'eager'; dbg.firedAt = performance.now();
+      window.initEntrances(map);
+      return;
+    }
+    let fired = false, timer = null;
+    const onSrc = (e) => {
+      if (!e || e.sourceId !== SRC || !e.isSourceLoaded) return;
+      if (dbg.sourceLoadedAt == null) dbg.sourceLoadedAt = performance.now();
+      map.off('sourcedata', onSrc);
+    };
+    const fire = (why) => {
+      if (fired) return;
+      fired = true;
+      map.off('move', onMove);
+      if (timer) clearTimeout(timer);
+      dbg.trigger = why; dbg.firedAt = performance.now();
+      map.on('sourcedata', onSrc);
+      window.initEntrances(map);
+    };
+    const onMove = () => { if (cameraAltM(map) < D.altM) fire('alt'); };
+    map.on('move', onMove);
+    map.once('idle', () => setTimeout(() => fire('idle'), D.idleDelayMs));
+    timer = setTimeout(() => fire('timeout'), D.maxWaitMs);
+    // A page that STARTS below the threshold (every eye-level verify pose
+    // jumps the camera before moving it) must not wait for a move event.
+    onMove();
+  }
+
   // ── bootstrap ───────────────────────────────────────────────────────
   // js/app.js is owned by another pass and will not call us. Copied from
   // js/places.js, including the applyTimeOfDay wrap and the global flag —
@@ -1418,7 +1556,7 @@
       // the anchor search above depends on `buildings-3d` being in the style.
       if (!map.getLayer('buildings-3d')) return setTimeout(go, 120);
       hookTod();
-      window.initEntrances(map);
+      armEntranceLoad(map);
     };
     if (map.isStyleLoaded && map.isStyleLoaded()) go();
     else map.once('load', () => setTimeout(go, 0));
