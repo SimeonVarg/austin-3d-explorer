@@ -19398,7 +19398,229 @@ carry every rect quoted here.
 
 ---
 
-## 145. Aug 16 2026 — fifteen buildings got doors and nobody drew one: the rect was replaced by UT's own register (QUEUE Part Z / `docs/walk/the-78.md`) (acer lane, branch `acer/n8-doors`, NOT merged)
+## 145. Aug 16 2026 — the harness could not walk, and the constant everybody was hunting was the walk phase's own start pose (QUEUE Y16, Y15) (acer lane, branch `acer/n11-verify`)
+
+Branch `acer/n11-verify`, cut from `origin/main` `ddba999`, merged up to
+`3deefcd` before the final gate and re-verified on the merged tree.
+**Files written: `scripts/verify/` only.** No app file, no data file, no bake.
+
+### The thing that had been reported three times and never diagnosed
+
+Every scripted walk in this suite travelled its target distance and **ended at
+23.8 m, the same digit every rep**. Above `TRUNK_ALT` (12 m) the trunk field
+switches off, so QUEUE Y15 came back "could not be measured" in §132, §133 and
+QUEUE itself. §132 read the constant as a silent lift in `js/controls.js` and a
+second sighting of Y16, and parked it on another lane.
+
+**It is none of those things. `scripts/verify/walk-lift.mjs` traced the camera
+frame by frame and printed the probes beside the altitude:**
+
+```
+frame 0   alt  1.70   roofAt(eye, 1 m) = 8.6    roofAt(eye, 6 m) = 19.8
+frame 1   alt 12.60   = 8.6 + HARD_CLEAR(4)     <- hard net, 0 m travelled
+frame 3   alt 23.80   = 19.8 + HARD_CLEAR(4)    <- hard net again
+```
+
+**`perf-budget.mjs`'s walk phase started INSIDE A BUILDING.** Its hard-coded
+start `-97.74170, 30.28950` has a roof 8.6 m high within one metre of the eye,
+so the hard net (`controls.js:1617`, `h > 0 && alt < h + HARD_CLEAR`) ejected the
+camera on the very first tick, **at zero metres travelled**. It then fired a
+second time, because the ejection is a positive-feedback ladder: `rCam()` lerps
+1.0 to 6.0 m as `groundMix()` falls to zero, so the moment the first ejection
+carried the eye past `ALT_GROUND` the probe radius sextupled, saw the 19.8 m roof
+next door, and lifted again. **23.8 = 19.8 + 4.** Deterministic pose,
+deterministic digit — and every walk after that first second was a flight over
+the rooftops with the trunk field switched off, which the summary tables read as
+"the walk travelled 120 m".
+
+The app is innocent, `js/controls.js` is unchanged, and no request needs to go to
+whoever owns it. §132's line about "a second, independent sighting of the silent
+lift through the movement path" is **retracted**; the `setPitch` sighting in §109
+stands on its own and is still Y16's open half.
+
+### The fix, and it is all in the harness
+
+`scripts/verify/lib/walker.mjs`. It sends **only** the events a person sends — a
+`keydown`/`keyup` pair for W with the sprint bit riding on the same event
+(`sprintHeld = e.shiftKey`), and `pointermove` for the look. Nothing is
+monkey-patched and `bearing` is never written directly; `js/controls.js`
+arbitrates exactly as it does for a user. Two rules make a scripted walk a walk:
+
+1. **`findStart()` refuses any start where `roofAt(p, 7 m) > 0`** or a trunk
+   claims the cell, and searches outward in rings for the nearest legal point.
+   7 m rather than `R_CAM`'s 6: the collision grid is quantised to `CELL = 6 m`,
+   so a probe at exactly 6 can be one cell short of what the net will see once
+   the ladder starts. §105 already said "stand where `roofAt(p, 3 m) == 0`";
+   nothing enforced it, and the enforcement is the whole fix. It returns `null`
+   rather than a compromised start.
+2. **It steers.** A fixed bearing walks into the first building on that heading —
+   §132 measured 3 m and 11 m at two of its six sites. The walker probes the roof
+   and trunk fields along a fan of headings and turns toward the clearest, at a
+   bounded turn rate, through the look input.
+
+And the obligation that makes it trustworthy: **`walk()` reads
+`__fly.eye().alt` on EVERY FRAME and returns the series.** `stayedDown` is true
+only if no frame reached the ceiling. §132's 23.8 m was an endpoint that hid a
+walk which never happened, and §105 has the mirror case — a summary row that read
+as a ladder and was one correct ejection on frame one.
+
+### The gate, watched red and green in the same run
+
+`node walk.mjs` — three sites walk at 1.7 m, and then the SAME walker is pointed
+at `perf-budget.mjs`'s old unchecked start with `noFind: true`, where it must
+come back lifted. Numbers below are from the run on the MERGED tree; the full
+output is in the PR.
+
+| site | walked (path) | displacement | alt min / max / end | frames above 12 m |
+|---|---:|---:|---|---|
+| drag (Guadalupe, south) | **300 m / 3,230 frames** | 298.8 m | **1.7 / 1.7 / 1.7** | **0** |
+| speedway (south) | **300 m / 3,543 frames** | 5.3 m | **1.7 / 1.7 / 1.7** | **0** |
+| wcampus (West Campus, south) | **300 m / 3,591 frames** | 294.1 m | **1.7 / 1.7 / 1.7** | **0** |
+| southmall — RECORDED, NOT GATED | 98.7 m / 2,578 frames | 78.2 m | **1.7 / 1.7 / 1.7** | **0** |
+| **watched failure** (old start, no steering) | 300.7 m | — | max **23.8** | **350 of 350** |
+
+`PASS 3/3, exit 0`, machine chrome 18 / node 1 / cpu 16 % at the start and
+chrome 25 / node 2 / cpu 15 % at the end.
+
+**Read the Speedway row carefully and do not let it flatter the walker.** It
+covered 300 m of PATH and 5.3 m of DISPLACEMENT across 550 turns: it walked a
+loop. That is a legitimate walk for what this gate and QUEUE Y15 need — the
+camera moved 300 m at 1.7 m and the rescan triggers fired 60 times — but it is
+NOT a 300 m journey across the city, and a future pass that wants district
+coverage rather than distance must not read this row as one. It is also why both
+numbers are printed: displacement alone under-reports a steered walk, and path
+alone cannot tell a loop from a line.
+
+The watched failure is not synthetic — it is literally the configuration this
+suite shipped for two weeks, and it came back with **every single frame** above
+the ceiling. The gate can go red; it is not stuck green.
+
+### The gate went red three times before it went green, and none of it was Y16
+
+Worth the space, because two of the three fixes were to the instrument and the
+third was an admission.
+
+**Run 1, red 2/3.** The South Mall covered 99.4 m of its 300 inside a 110 s
+watchdog. It never left 1.7 m — **0 of 4,525 frames above the ceiling** — so the
+failure was about distance, not altitude, and the gate printed both as the same
+word `FAIL`. Fixed two ways: the watchdog went **110 → 175 s** (it is documented
+as a bound on a phase that is a DISTANCE, §132's own lesson), and the verdict
+line now says **`LIFTED`** or **`SHORT`**, because a gate that spells two
+different failures the same way invites the next reader to fix the wrong thing.
+
+**Run 2, red 2/3 again — and the extra 65 seconds bought 0 metres** (98.5 m).
+That killed the watchdog theory and exposed a real defect in my own walker: 6,128
+frames and 175 seconds for 98.5 m of path is a walker oscillating in place, and
+the stuck test could never fire because it wants LOW SPEED and a BLOCKED probe
+and this state has neither. Added a **stall escape** keyed to the actual symptom
+— the PATH stops growing — which commits to the best heading in the whole fan,
+including behind, for a fixed number of frames instead of re-deciding every third
+one.
+
+**Run 3, red 2/3 again, at 98.8 m with 13 escapes spent.** Three runs, three
+times ~98.6 m of path and **78 m of displacement to the digit**: that is a
+property of the place, not noise. The South Mall start I picked is a pocket the
+walker cannot leave, and whether that is a real enclosure or an artifact of the
+6 m collision grid **is not established by this pass.**
+
+**So I changed the FIXTURE and said so, rather than the bar.** `MIN_M` is still
+120 m and the zero-frames-above-ceiling rule is untouched. Speedway replaced the
+South Mall as the third gated site, and the South Mall is still run and still
+printed — as a `RECORDED, NOT GATED` row carrying its reach and its 0 frames
+above the ceiling — because deleting an observation to make a gate green is the
+move this repo exists to catch. The disclosure is in `walk.mjs` beside the site
+list, not only here.
+
+Also added: **`suite-lint.mjs` now catches the husks.** `dusk.mjs`,
+`silhouette.mjs` and `banding.mjs` are named in §142 as "page is not defined",
+which undersells it — each is about fifteen lines of doc comment,
+`launch(chromium)`, and a `console.log` of a binding nothing ever assigns. **The
+90ad9d7 repair deleted the entire measurement, not just the page setup**, and
+every existing lint rule passed them clean — including `no-page`, precisely
+BECAUSE the deletion took the `page.` usages with it. The new rule is the
+cheapest possible one (opens a browser, never opens a page) and it finds
+**seven**, not three: `night-debug.mjs`, `night-roadprobe.mjs`,
+`night-silhouette.mjs` and `westcampus-probe.mjs` are in the same state.
+`suite-lint.mjs` exits 1 today. A second rule was written, measured at seventeen
+false positives on healthy scripts, and deleted rather than shipped noisy; the
+reason is recorded in place.
+
+### QUEUE Y15, cashed in: measured from a walk at last
+
+`node walk-trunk.mjs 3`. WALK (steered, 1.7 m, 220 m of path) against a HOP
+control (60 m teleports at 1.7 m — the regime §109 and §133 measured), 3 reps,
+interleaved and counterbalanced, one page load each, **the baseline taken by the
+walker at the instant W goes down** so the field's first full build after the
+placement is charged to the boot and not to the walk.
+
+> That baseline is not a detail. The first run of `walk-trunk.mjs` sampled it
+> before `walk()` and reported **1504.8 ms** — a boot-scale full build wearing
+> the costume of a worst-case incremental scan. It was thrown away and the mark
+> moved inside the walker so no caller can get it wrong again.
+
+Instrument: headless, `gl:'hardware'`, **no CPU throttle**, `index.html?intro=0`,
+auto-detect cancelled, 1440x900. **Another lane was running `collision.mjs`
+throughout**; CPU sat at 90–100 % for the drag reps and 10–40 % for the South
+Mall ones, and the per-rep machine state is printed beside every figure.
+
+| site | condition | valid reps | walked | **worst scan (MIN of the reps' maxima)** | avg scan | duty |
+|---|---|---:|---:|---:|---:|---:|
+| drag | **walk** | 3/3 | 207 m | **86.6 ms** | 11.64 ms | 1.31 % |
+| drag | hop | 3/3 | 240 m | 53.4 ms | 9.61 ms | — |
+| southmall | **walk** | 1/3 | 220 m | **78.3 ms** | 10.18 ms | 1.41 % |
+| southmall | hop | 2/3 | 240 m | 57.9 ms | 9.33 ms | — |
+
+Per-rep walk maxima on the Drag were 149.3 / 86.6 / 434.8 ms; on the South Mall
+73.6 / 78.3 / 41.5 ms with two reps INVALID for distance.
+
+**Y15 IS REAL AND IT IS NOT THE MONSTER IT WAS FILED AS.** 86.6 ms against an
+8 ms budget is **10.8x over** and about **five dropped frames**, not the fifty
+that §109's 841.5 ms implied. Neither 841.5 nor 149.8 reproduced. The duty cycle
+is the more damning number and it is new: **1.31–1.41 % of wall time against a
+0.53 % budget**, because a walk crosses `TRUNK_RESCAN_M` continuously — 90 to 101
+scan instalments in 85 s, against 6 to 22 for the hop. **The walk is worse than
+the hop on the metric that matters and better on the one that was quoted.** Same
+fix as Y7 and it is still `querySourceFeatures` returning the whole list before
+the `TRUNK_BUDGET_MS` clock starts.
+
+`perf-budget.mjs`'s walk phase now uses the walker, so **G2, G4 and G5b can
+produce a number instead of INVALID** for the first time.
+
+### WHAT I DID NOT ESTABLISH
+
+* **I did not fix Y15 or Y7.** `js/controls.js` was read and never written.
+* **`dusk.mjs`, `silhouette.mjs` and `banding.mjs` were NOT repaired**, so the
+  dusk-continuity and silhouette assertions have STILL never run against the sky
+  change. They cannot be fixed by restoring a page — their measurements were
+  deleted and have to be written from scratch against `js/sky.js`. That is the
+  single highest-value job left in this directory and it is a real one, not a
+  patch. Four more scripts are in the same state; `suite-lint.mjs` names them.
+* **`perf-budget.mjs` was rewired but NOT re-run end to end.** The walker path is
+  exercised by `walk.mjs` and `walk-trunk.mjs` on the same code, and it
+  type-checks, but the G1–G7 report itself has not been printed since the change.
+* **The South Mall walk figure rests on ONE valid rep of three**; two runs did
+  not cover 120 m inside the 85 s watchdog on a loaded machine. Read `78.3 ms`
+  as a single reading, not as a minimum.
+* **The steering probes compete for the same core as the scan they measure.**
+  They cannot inflate the scan's own timer, which is taken inside `trunkStamp()`,
+  but the contention is unbounded and unmeasured; `--nosteer` exists and was not
+  run.
+* **No pixel was read and no screenshot was taken.** Nothing in this pass is a
+  claim about how the city looks.
+* **Only three walking sites are gated**, all on flat campus ground. A walk that
+  starts on a slope, a bridge or the stadium concourse is not covered.
+* **Whether the South Mall pocket is a real enclosure or an artifact of the 6 m
+  collision grid was NOT established.** Three runs agree on 78 m of displacement
+  to the digit, which is a strong signal that something real is there, and I did
+  not go and look at it. Somebody should stand in it.
+* **The walker's steering is good enough to keep walking and not good enough to
+  go somewhere.** Speedway produced 300 m of path and 5.3 m of displacement. A
+  route-following walker — the walk graph in `data/walk_graph.json` already
+  exists — would be the honest next version, and this pass did not build one.
+
+---
+
+## 146. Aug 16 2026 — fifteen buildings got doors and nobody drew one: the rect was replaced by UT's own register (QUEUE Part Z / `docs/walk/the-78.md`) (acer lane, branch `acer/n8-doors`, NOT merged)
 
 **The job.** `the-78.md` had just finished classifying why 78 of 198 UT
 buildings cannot be routed to, and its answer was that 62 have no polygon at
@@ -19486,7 +19708,7 @@ mid-measurement. Nothing here needed one.
 
 ---
 
-## 146. Aug 16 2026 — the doors reach the network: 120 of 198 walkable becomes 135, and 14 of the freshman twenty (QUEUE Part Z / ZA, ZC) (acer lane, branch `acer/n8-doors`, PR #184, NOT merged)
+## 147. Aug 16 2026 — the doors reach the network: 120 of 198 walkable becomes 135, and 14 of the freshman twenty (QUEUE Part Z / ZA, ZC) (acer lane, branch `acer/n8-doors`, PR #184, NOT merged)
 
 **Branch `acer/n8-doors`, `origin/main` merged in at the top of the pass (it had
 not moved: `640afcb` then and now). Files written: `data/walk_graph.json`,
@@ -19692,7 +19914,7 @@ false alarm sitting in front of the first gate anybody runs.
 
 ---
 
-## 147. Aug 16 2026 — somebody stood in front of all fifteen: the doors are real, the hero gate was measurement error, and the unnamed cluster is the Blanton's petals (QUEUE Part Z / ZA, ZB) (acer lane, branch `acer/n8-doors`, PR #184, MERGED)
+## 148. Aug 16 2026 — somebody stood in front of all fifteen: the doors are real, the hero gate was measurement error, and the unnamed cluster is the Blanton's petals (QUEUE Part Z / ZA, ZB) (acer lane, branch `acer/n8-doors`, PR #184, MERGED)
 
 **The one thing §146 admitted nobody had done, done.** Its own words were that
 *"nobody has stood in front of any of the fifteen buildings — every check is

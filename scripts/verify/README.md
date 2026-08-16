@@ -279,3 +279,73 @@ in this directory to settle the other two hypotheses without guessing.
 
 Note that `queryRenderedFeatures` is useless for this check — it returns 0 for
 fill-extrusion layers even at poses that demonstrably render.
+
+## The walking suite — and the reason nothing here could walk until 2026-08-16
+
+`lib/walker.mjs`, `walk.mjs`, `walk-lift.mjs`, `walk-trunk.mjs`.
+
+**The symptom, as three separate passes recorded it.** Every scripted walk
+travelled its target distance and **ended at 23.8 m, the same digit every rep**.
+Above `TRUNK_ALT` (12 m) the trunk field switches off, so QUEUE Y15 was written
+"could not be measured" three times (HANDOFF §132, §133, QUEUE Y15/Y16). A
+constant that precise was read as a silent lift inside `js/controls.js`.
+
+**The cause, traced frame by frame by `walk-lift.mjs`.** The app was innocent:
+
+```
+frame 0   alt  1.70   roofAt(eye, 1 m) = 8.6    roofAt(eye, 6 m) = 19.8
+frame 1   alt 12.60   = 8.6 + HARD_CLEAR(4)     <- hard net, 0 m travelled
+frame 3   alt 23.80   = 19.8 + HARD_CLEAR(4)    <- hard net again
+```
+
+**The walk phase started inside a building.** The hard net (`controls.js:1617`)
+ejected the camera on the first tick, at zero metres, and it fired TWICE because
+the ejection is a positive-feedback ladder: `rCam()` lerps 1.0 → 6.0 m as
+`groundMix()` falls to zero, so the moment the first ejection carries the eye
+past `ALT_GROUND` the probe radius sextuples, sees a taller roof, and the net
+fires again. **23.8 m is `roofAt(that hard-coded start, 6 m) + HARD_CLEAR`**, and
+it repeated to the digit because the start pose was hard-coded and deterministic.
+Nothing was resolving altitude to a constant.
+
+### The two rules that make a scripted walk a walk
+
+1. **Start on open ground.** `walker.findStart()` searches outward for a point
+   where `roofAt(p, 7 m) === 0` and no trunk claims the cell, and returns `null`
+   rather than a compromised start. 7, not `R_CAM`'s 6: the collision grid is
+   quantised to `CELL = 6 m`, so a probe at exactly 6 can be one cell short of
+   what the net will see once the ladder starts. §105 already said to stand where
+   `roofAt(p, 3 m) == 0`; nothing enforced it, and the enforcement is the fix.
+2. **Steer.** A fixed bearing walks into the first building on that heading —
+   §132 measured 3 m and 11 m at two of its six sites. The walker probes the roof
+   and trunk fields along a fan of candidate headings and turns toward the
+   clearest, applying the turn through the LOOK INPUT (`pointermove`), never by
+   writing `bearing`. Only keyboard and pointer events are sent; no app code is
+   patched and `js/controls.js` arbitrates exactly as it does for a person.
+
+### Judge the SERIES, never the endpoint
+
+`walk()` reads `__fly.eye().alt` on **every frame** and returns the whole series;
+`stayedDown` is true only if no frame reached the ceiling. This is not
+belt-and-braces. §132's 23.8 m was an endpoint that hid a walk which never
+happened, and §105 has the mirror-image case — a summary table that read as a
+ladder and was one correct ejection on frame one. **An endpoint cannot tell a
+walk from a flight, and a maximum cannot tell one bad frame from ninety.**
+
+### Two more traps this suite added
+
+- **Displacement is not distance walked.** A steered walk that turns a corner has
+  a displacement well under its path length, and the rescan triggers this suite
+  cares about (`TRUNK_RESCAN_M`, `OUTER_RESCAN_M`) fire on movement. The walker
+  reports both and stops on PATH. Reporting displacement alone under-reports a
+  real walk exactly as badly as the endpoint over-reported the old one.
+- **`sprintHeld = e.shiftKey`** (`controls.js:1326`) reads a modifier flag, not a
+  key: a separate `ShiftLeft` keydown does nothing AND the `KeyW` that follows
+  clears the flag. The shift bit has to ride on the same event. At walking height
+  `SPEED_MIN` is 1.0 m/s, so getting this wrong halves every walk.
+
+```bash
+node walk-lift.mjs [site ...]   # WHY a walk leaves the ground: per-frame trace + attribution
+node walk.mjs [reps] [--quiet]  # the gate: 3 sites walk, every frame under 12 m,
+                                # plus a WATCHED FAILURE that must come back lifted
+node walk-trunk.mjs [reps]      # QUEUE Y15 from a real walk, walk vs hop, interleaved
+```

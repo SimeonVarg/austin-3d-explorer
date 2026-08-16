@@ -84,6 +84,7 @@
 import { chromium } from 'playwright-core';
 import { execFileSync } from 'node:child_process';
 import { launch, BASE } from './chrome.mjs';
+import { installWalker } from './lib/walker.mjs';
 
 // ── THE BUDGET ──────────────────────────────────────────────────────────────
 // Every value is from docs/perf/budget.md §4.2/§4.3/§4.4. Parameterised here so
@@ -182,32 +183,32 @@ const PHASES = {
   // frame and the 200 m rescan trigger fires repeatedly. 1500 m = 7 rescans.
   cruise: { alt: 420, pitch: 76, lng: -97.7400, lat: 30.2870, bearing: 200,
             sprint: true, metres: 1500, minMetres: 800, maxSeconds: 90 },
-  // Guadalupe at eye level, heading south-west down the Drag and into West
-  // Campus — a real district boundary, and the densest trunk field in the data.
-  // SPRINTING, because SPEED_MIN is 1.0 m/s at walking height. 300 m crosses
-  // TRUNK_RESCAN_M (60 m) five times, which is what makes the scan cost real.
-  // 120 m, AND THAT CEILING IS A FINDING, not a convenience. Probed on
-  // 2026-08-16 across six sites, a held-W walk at 1.7 m does exactly one of two
-  // things and never a third:
-  //     drag S   bearing 180 -> 639 m travelled, ENDED AT ALTITUDE 23.8 m
-  //     drag N   bearing   0 -> 373 m,           ENDED AT 86.0 m
-  //     speedway bearing 180 -> 242 m,           ENDED AT 29.3 m
-  //     WC 24th  bearing 270 -> 104 m,           ENDED AT 43.8 m
-  //     24th E   bearing  90 ->  11 m at 1.7 m (blocked)
-  //     SanJac S bearing 180 ->   3 m at 1.7 m (blocked)
-  // It is either stopped by geometry inside one block, or the step-up/rooftop
-  // floor silently LIFTS it out of walking height — QUEUE Y16's silent lift,
-  // reached through the movement path instead of through setPitch. Above
-  // TRUNK_ALT (12 m) the trunk field switches off entirely, so a rep that
-  // travels 639 m has spent most of it not measuring the thing it is named for.
+  // Guadalupe at eye level, heading south down the Drag — the densest trunk
+  // field in the data. SPRINTING, because SPEED_MIN is 1.0 m/s at walking
+  // height. 300 m of PATH crosses TRUNK_RESCAN_M (60 m) five times, which is
+  // what makes the scan cost real.
   //
-  // So the walk is capped below the lift, and `minMetres` is TRUNK_RESCAN_M
-  // itself: 60 m is one full distance-triggered rescan, which is the mechanism's
-  // own unit and the most that is honestly reachable. This is a ONE-TRIGGER
-  // walk, not the multi-district walk QUEUE Y15 asked for, and the report says so.
+  // ── THIS PHASE USED TO BE IMPOSSIBLE, AND THE COMMENT THAT SAT HERE WAS
+  // WRONG ────────────────────────────────────────────────────────────────────
+  // It read: "a held-W walk at 1.7 m either stops inside one block or the
+  // step-up/rooftop floor silently LIFTS it out of walking height — QUEUE Y16",
+  // capped the walk at 120 m, and every rep still came back at alt 23.8 m and
+  // INVALID. Three passes reported Y15 unmeasurable on that basis.
+  //
+  // `walk-lift.mjs` traced it frame by frame on 2026-08-16 and there is no
+  // silent lift. THIS PHASE'S OWN START POSE WAS INSIDE A BUILDING:
+  // `roofAt(-97.74170, 30.28950, 1 m)` is 8.6 m. The hard net (controls.js:1617)
+  // ejected the camera on the FIRST TICK, at zero metres, to 8.6 + HARD_CLEAR =
+  // 12.6 m — and then again, because past ALT_GROUND `rCam()` lerps 1 -> 6 m,
+  // the probe sees the 19.8 m roof next door, and 19.8 + 4 = 23.8. The constant
+  // everybody was hunting is this phase's own hard-coded lat/lng.
+  //
+  // So it uses `lib/walker.mjs` now, which refuses to start anywhere the hard
+  // net can see a roof and steers to follow open ground, and it asserts on the
+  // whole per-frame altitude series rather than on the endpoint.
   walk:   { alt: 1.7, pitch: 85, lng: -97.74170, lat: 30.28950, bearing: 180,
-            sprint: true, metres: 120, minMetres: 60, maxSeconds: 150,
-            maxAlt: 12 },
+            sprint: true, metres: 300, minMetres: 120, maxSeconds: 110,
+            maxAlt: 12, walker: true },
 };
 
 const PAGE_HELPERS = () => {
@@ -244,7 +245,54 @@ async function runPhase(browser, name, prove) {
   // Correctness measure, not a speed one, and measured to cost nothing.
   await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
   await page.evaluate(PAGE_HELPERS);
+  await page.evaluate(installWalker);
   await page.waitForTimeout(3000);
+
+  // ── the walk phase, driven by lib/walker.mjs ──────────────────────────────
+  // Same return shape as the cruise branch below, so the report and the gates
+  // are untouched. The walker takes its OWN baseline at the instant W goes down
+  // — after the placement and its settle — which is the boundary this file
+  // already argued for; it is just enforced in one place now.
+  if (P.walker) {
+    const w = await page.evaluate(async ({ P, prove }) => {
+      const F = window.__fly;
+      const r = await window.__walker.walk({
+        lng: P.lng, lat: P.lat, bearing: P.bearing, alt: P.alt, pitch: P.pitch,
+        sprint: P.sprint, metres: P.metres, seconds: P.maxSeconds,
+        ceiling: P.maxAlt, proveEvery: prove ? 6 : 0,
+      });
+      if (!r.ok) return { ok: false, why: r.why };
+      const a = r.pre, b = r.post;
+      const dTicks = b.ticks - a.ticks;
+      return {
+        frames: r.frames, wallS: r.phaseS, forcedScans: r.forced,
+        metres: Math.round(r.metres), displacement: Math.round(r.displacement),
+        // BOTH clauses, and the second is the one three passes needed: far
+        // enough to have asked the field to grow, AND at walking height for
+        // EVERY FRAME — not merely at the end. An endpoint at 1.7 m proves
+        // nothing about the ninety frames before it.
+        valid: r.metres >= P.minMetres && r.stayedDown,
+        stayedDown: r.stayedDown, framesAboveCeiling: r.framesAboveCeiling,
+        startMovedM: r.start.movedM, turns: r.turns,
+        tickMs: dTicks > 0 ? +((b.tickAvg * b.ticks - a.tickAvg * a.ticks) / dTicks).toFixed(3) : NaN,
+        dTicks,
+        outer: b.outer, trunk: b.trunk,
+        outerNewMax: b.outer.maxMs > a.outer.maxMs + 1e-9,
+        trunkNewMax: b.trunk.maxMs > a.trunk.maxMs + 1e-9,
+        dOuterScans: b.outer.scans - a.outer.scans,
+        dTrunkScans: b.trunk.scans - a.trunk.scans,
+        alt0: r.series[0].alt, alt1: r.endAlt, altMax: r.maxAlt,
+        layers: window.__map.getStyle().layers.length,
+        consts: F.consts(),
+      };
+    }, { P, prove });
+    await page.close();
+    const after0 = load();
+    if (w.ok === false) return { valid: false, metres: 0, frames: 0, wallS: 0, why: w.why,
+                                 outer: { scans: 0, avgMs: 0, maxMs: 0 }, trunk: { scans: 0, avgMs: 0, maxMs: 0 },
+                                 tickMs: NaN, dTicks: 0, before, after: after0 };
+    return { ...w, before, after: after0 };
+  }
 
   const out = await page.evaluate(async ({ P, prove }) => {
     const F = window.__fly, M_LAT = 40030228.884 / 360;
