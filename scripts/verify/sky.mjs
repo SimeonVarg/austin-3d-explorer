@@ -13,7 +13,7 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 620 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
-// `--drift` REPLAYS THE INCIDENT (added 2026-08-16, §152) and is the watched
+// `--drift` REPLAYS THE INCIDENT (added 2026-08-16, §154) and is the watched
 // failure for this file. Without ?drift=0, js/app.js's idle cinema wakes after
 // 25 s of input silence and creeps the hour by DRIFT.pStep = 0.010 every 12 s
 // leg while easing the bearing 13 deg — so §2 below compares a light written at
@@ -35,7 +35,7 @@ await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), n
 await page.waitForTimeout(4500);
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
 
-// THE WATCHED FAILURE (added 2026-08-16, §152). A guard nobody has seen fail is
+// THE WATCHED FAILURE (added 2026-08-16, §154). A guard nobody has seen fail is
 // not known to work — four guards in this repo passed because they could not see
 // what they guarded, and this file could not report a failure AT ALL until
 // tonight (it printed *FAIL and exited 0). So: sabotage the exact claim §2
@@ -260,7 +260,7 @@ console.log('');
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
 
-// EXIT CODE, added 2026-08-16 (§152). This file printed *FAIL and exited 0 for
+// EXIT CODE, added 2026-08-16 (§154). This file printed *FAIL and exited 0 for
 // its whole life. §149 deleted silhouette.mjs partly for exactly that and added
 // no lint to stop the next one; suite-lint rule 7 does now. Every wrapper in
 // this repo reads the exit code — inventory.mjs classifies on it and §142 made

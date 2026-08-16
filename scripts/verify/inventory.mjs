@@ -26,7 +26,7 @@
  * It never runs `reap.mjs` (it would kill the sibling lanes' browsers) and
  * never runs itself.
  *
- * PHASE B, added 2026-08-16 (§152). Phase A's 25 s budget left 107 of 138
+ * PHASE B, added 2026-08-16 (§154). Phase A's 25 s budget left 107 of 138
  * scripts in REACHES-BROWSER, i.e. unknown, and §149 wrote that down as its
  * first unestablished item. Phase B is the same instrument with a budget large
  * enough that finishing is the normal outcome and being killed is the finding:
@@ -66,7 +66,7 @@ const SKIP = new Set(['chrome.mjs', 'reap.mjs', 'inventory.mjs', 'run.mjs', 'war
 const all = fs.readdirSync(HERE).filter(f => f.endsWith('.mjs') && !SKIP.has(f)).sort();
 
 // `--gates` — THE SET THAT ANSWERS "HOW MANY OF MY CHECKS ACTUALLY RUN?"
-// (added 2026-08-16, §152).
+// (added 2026-08-16, §154).
 //
 // A phase-B pass over all 138 was projected at twelve hours, and most of that
 // was spent on tools rather than checks: `art-sheet.mjs` and `arts-shots.mjs`
@@ -141,7 +141,7 @@ const classify = (r) => {
   return ['FAILS', `exit ${r.code}: ` + ((all.match(/.*\bFAIL\b.*/) || [''])[0].trim().slice(0, 70) || 'no FAIL line')];
 };
 
-// WRITE AFTER EVERY SCRIPT, not at the end (added 2026-08-16, §152). A phase-B
+// WRITE AFTER EVERY SCRIPT, not at the end (added 2026-08-16, §154). A phase-B
 // run is hours long and the end-of-run write meant a run that was interrupted —
 // by a reboot, a reaped browser, a wall clock — produced NOTHING, which is how
 // "run the whole suite" stayed undone. A partial inventory is a real result;

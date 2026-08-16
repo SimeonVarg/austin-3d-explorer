@@ -124,7 +124,7 @@ export const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8099';
  * If a run genuinely needs longer than the watchdog, pass VERIFY_MAX_MS. Do not
  * remove the watchdog.
  *
- * READ AT launch() TIME, NOT AT IMPORT TIME (changed 2026-08-16, §152). It used
+ * READ AT launch() TIME, NOT AT IMPORT TIME (changed 2026-08-16, §154). It used
  * to be a module-level `const`, which meant a script could not raise its own
  * ceiling: ESM hoists imports, so a `process.env.VERIFY_MAX_MS ||= ...` at the
  * top of the script ran AFTER this module body had already frozen the value.

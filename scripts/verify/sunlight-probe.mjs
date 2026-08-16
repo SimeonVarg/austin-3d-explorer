@@ -37,7 +37,7 @@
  * auto-detect cancelled, 1.2 s settle per sample rather than sky.mjs's 200 ms
  * so a slow style update cannot be mistaken for a disagreement.
  *
- * Written by the Acer lane, 2026-08-16 (§152). Asserts nothing; it attributes.
+ * Written by the Acer lane, 2026-08-16 (§154). Asserts nothing; it attributes.
  */
 import { chromium } from 'playwright-core';
 import { launch, BASE } from './chrome.mjs';

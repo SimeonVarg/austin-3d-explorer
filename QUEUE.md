@@ -950,7 +950,7 @@ canopies under the disc; the WC pair is the proof). Instrument: composited
 control failing loudly (412 px) is what makes one rep enough here. What the
 frames DID catch is Y18 below.
 
-**Y15 — REPLICATED ON A SECOND INDEPENDENT WALK, 2026-08-16 (§152). 63.3 ms
+**Y15 — REPLICATED ON A SECOND INDEPENDENT WALK, 2026-08-16 (§154). 63.3 ms
 (Drag) and 52.0 ms (South Mall). Still open, still ~8x the budget.**
 `walk-trunk.mjs 3` again, merged tree, quieter machine (chrome 26–35, node 2–3,
 CPU 6–51 % with one sibling lane running, against §145's 90–100 %):
@@ -1065,7 +1065,7 @@ ramps the ground texture/fill never got the §82 treatment, or has a floor.
 Frames: `shots/blitz/y11-*-p070.png` against their own p 0.55 siblings.
 
 **Y23. THE SUITE HAS A HEALTH TABLE NOW, AND IT IS 25 GREEN / 12 RED OF 38
-GATES.** (2026-08-16, §152. Raw: `scripts/verify/out/gates*.json`.)
+GATES.** (2026-08-16, §154. Raw: `scripts/verify/out/gates*.json`.)
 
 §149 measured "what crashes"; this measures "what passes", which is a different
 question and the one nobody had answered. Scope is the **38 GATES** — every
@@ -1131,7 +1131,7 @@ sibling lane held a browser throughout.
 
 **Y22. `sky.mjs` was RED about the sun and could not say so — and the thing
 moving the sun was the screensaver, not `js/sky.js`. HARNESS HALF FIXED
-2026-08-16 (§152); nothing in `js/` needs to change.**
+2026-08-16 (§154); nothing in `js/` needs to change.**
 
 Three separate things, and the order matters because the middle one nearly
 became a false accusation against the lane that shipped the sky.
@@ -1167,7 +1167,7 @@ never sees it. That cost an hour of attribution here and is the only part of
 this that might deserve a code change.
 
 **Y20. `js/sky.js:1420` — the sun/moon DISC still switches body in ONE frame,
-and a person can see it. PHOTOGRAPHED 2026-08-16 (§152); still open.**
+and a person can see it. PHOTOGRAPHED 2026-08-16 (§154); still open.**
 
 `y20-frames.mjs` closes the gap §149's number left open. `dusk.mjs` finds this
 by sweeping with `force:true`, which bypasses `applyTimeOfDay`'s 1/128
@@ -1349,7 +1349,7 @@ Y21 West Campus band gaps and overlaps ....... NEW  (§149) — 11 of them, on T
                                                 2400 Nueces and Block on 25th East.
                                                 Baselined in westcampus-probe.mjs. See
                                                 below.
-Y22 sky.mjs was red and could not say so ..... HARNESS HALF FIXED (§152). The red was
+Y22 sky.mjs was red and could not say so ..... HARNESS HALF FIXED (§154). The red was
                                                 js/app.js's idle cinema creeping the
                                                 hour 0.010 every 12 s under a test that
                                                 sends no input — not js/sky.js. 38 of
@@ -1357,7 +1357,7 @@ Y22 sky.mjs was red and could not say so ..... HARNESS HALF FIXED (§152). The r
                                                 pass it now. sky.mjs is 12/12 and can
                                                 finally exit non-zero. Nothing in js/
                                                 needs to change. See below.
-Y23 the suite's own health table ............. NEW  (§152) — 25 green / 12 red of 38
+Y23 the suite's own health table ............. NEW  (§154) — 25 green / 12 red of 38
                                                 GATES. Five of the twelve are the 300 s
                                                 watchdog (verdict UNKNOWN, incl.
                                                 movement.mjs), six are real assertion
@@ -1593,6 +1593,48 @@ regression.
 
 ---
 
+> ## NB2 AND THE STALE GRAPH ARE CLOSED — 2026-08-16, branch `acer/nb2-buried`
+> ## (full write-up: `docs/entrances/buried.md`; pictures: `shots/nb2/`)
+>
+> **THE MOODY CENTER HAS A VISIBLE DOOR.** Its main entrance went from **0
+> changed pixels to 33,768** at 1.70 m of eye height on the same instrument.
+>
+> * **NB2 was a rule fault, and the rule is fixed rather than the six doors.**
+>   `load_masses()` read nine AUTHORED files and never
+>   `data/snapshots/<date>/buildings.detailed.geojson` — the thing
+>   `austin-buildings` actually extrudes. Moody's five doors sit inside
+>   `2b0f20a0`, an unnamed **21.3 m** Overture ring over the same arena that **no
+>   pass claims**, so the buildings layer draws it in full over a 6.0 m door.
+>   The audit now reads the drawn footprints too, minus every id an authored
+>   pass claims. Buried doors found **5 → 30**, relocated **2 → 27**, dropped
+>   **3 → 3**. Still 656 groups on 295 buildings, and **every eid keeps its
+>   ref, name, era, src and role**; 25 groups moved 0.97–14.42 m onto a wall
+>   that is drawn. `BURIED_DRAWN_FOOTPRINTS = False` reverts it in one line.
+> * **The X4 self-block was the obvious suspect and it is innocent.** Narrowing
+>   it to the march only was measured over all 656 doors before anything was
+>   written: it catches 2 doors, neither of them Moody's.
+> * **EER 381 WAS NEVER BROKEN.** Re-shot from the bake's own outward normal it
+>   contributes **7,149 px** — a glazed door with a handrail. The sweep's "solid
+>   orange field" is bearing B, where the eye lands inside EER's own authored
+>   mass. Fifth apparent defect this month that was the camera. **NB2 is five
+>   doors, not six.**
+> * **THE STALE GRAPH IS RE-BAKED.** Measured exactly: `main` shipped the doors
+>   of `9c94e14` with a graph baked against `c35f3f3`, so **5 groups on 4
+>   buildings** were wrong by ANB 0.65 m, JHH 0.63 m, JHH 0.46 m, LFH 0.33 m,
+>   GEB 0.10 m. Re-baked; **19 of 19 frozen pairs PASS**, 0 walls; the bake's
+>   own 19 gates green; 135/198 routable unchanged. Two pairs moved and both are
+>   the fix showing up: `GRE>MNC` +1.6 % (MNAC's door moved 1.56 m) and
+>   `JES>MCA` −0.5 % (Moody's main door moved 12.06 m and now points at a door
+>   you can see). All four buildings spot-checked from JES: 0 walls crossed.
+> * **NB3 IS ANSWERED — the baseline is STALE, not a regression.** Numbers below.
+> * **NB1 and NB4 are LEFT ALONE ON PURPOSE** and restated below for Simeon to
+>   overrule in one line.
+>
+> **Opened by this pass: NB5** — the bake reads the `2026-08-04` snapshot while
+> the app draws `manifest.latest` = `2026-08-16`. Identical for `2b0f20a0`, so it
+> does not affect NB2, but the buried rule now depends on a footprint file that
+> is not guaranteed to be the one on screen.
+
 ## NB. THE OLD DOORS WERE LOOKED AT — three things came back, none of them a blocker
 ## (2026-08-16, branch `acer/n13-olddoors`, merged. Full report: `docs/entrances/sweep.md`)
 
@@ -1624,7 +1666,24 @@ answer. That is a two-line change and it would move 7 doors from `midcentury`
 to `cret`. The same split would want re-checking on PAC (4 groups), HRC (3,
 sourced correct) and LBJ (2).
 
+#### NB1 RESTATED FOR SIMEON — 2026-08-16, still NOT changed, deliberately.
+
+**One line from you settles it.** The whole disagreement is that one
+`CELEBRATED["WEL"]` entry is doing two different jobs: `tier` (how much this
+portal is hand-authored) and `fam` (which era it wears). The demotion note
+argues only the first — "the building the public sees from Speedway is dominated
+by the large later addition" — and the register says 1930, which is family B.
+All seven doors are photographed, consistent and well made, and they sit on the
+addition, exactly as the note describes. `celebrated.md` was written from
+photographs and by the hard rule it wins, so nothing was touched.
+
+* say **"leave Welch alone"** and nothing happens; or
+* say **"let the register decide Welch"** and the entry keeps `tier=3` and drops
+  `fam` — two lines, and 7 doors move `midcentury → cret`. PAC (4) and LBJ (2)
+  would then want the same look; HRC (3) is sourced correct and stays.
+
 ### NB2. Six doors render ZERO pixels because an authored mass stands over them
+### — CLOSED 2026-08-16, and it was FIVE, not six. See the box at the top of NB.
 
 **Confirmed from two independent bearings, twelve frames.**
 
@@ -1670,6 +1729,22 @@ is in the wrong place. But it is the shape of thing the spec named, on the one
 building where the spec named it, and LBJ is a **tier 1** portal. Frame:
 `shots/olddoors/leads/B-LBJ-eid582.png`. Predates this branch.
 
+#### NB4 RESTATED FOR SIMEON — 2026-08-16, still NOT changed, deliberately.
+
+**One line from you settles it.** `celebrated.md` §5.10 names this failure mode
+on this building, and `celebrated.md` was written from photographs, so by the
+hard rule it wins and the door stays. But the rule cuts the other way too: the
+door that is there is a modest family-D pair, not a shopfront, and
+`celebrated.md` itself records LBJ's door side as `[U]` — **unknown** — so
+nothing measured says the door is in the wrong place either. That is a taste
+call about a measured spec, which makes it yours and not this lane's.
+
+* say **"leave LBJ alone"** and nothing happens; or
+* say **"no glass on the travertine"** and `CELEBRATED["LBJ"]` gets a solid
+  family-B leaf on eids 582/583 — a one-table-entry change, no new geometry.
+
+Look at `shots/olddoors/leads/B-LBJ-eid582.png` first.
+
 ### NB3. `coplanar.mjs`'s baseline is 56 pairs stale, and `origin/main` fails its own gate
 
 Measured today, both arms, same machine, same run:
@@ -1691,6 +1766,66 @@ frames of ANB, JHH, LFH and GEB show no z-fighting on any surround.
 was NOT re-recorded here. **Somebody with that file should re-record it against
 current `main` and say what moved**, because until then the gate cannot tell a
 new regression from the stale 56.
+
+#### NB3, ANSWERED — 2026-08-16, `acer/nb2-buried`. FOR THE SUITE-REPAIR LANE.
+
+**The baseline is STALE. It is not a regression. Do re-record it.** The
+accounting is exact and was measured by running `coplanar.mjs` on the
+entrances file **as it stood at each commit**, not by reasoning:
+
+```
+node scripts/verify/coplanar.mjs <that commit's data/entrances.geojson>
+
+  dee79d3  the commit the baseline was RECORDED at   14,242 pieces   1558 pairs
+  c35f3f3  n8: fifteen buildings got doors           14,893 pieces   1614   (+56)
+  9c94e14  family V                                  15,071 pieces   1626   (+12)
+```
+
+`1558` is exactly the baseline, so the recording point is confirmed. **Both
+deltas are two intentional data commits that landed AFTER the baseline was
+taken** — nothing regressed. The strongest evidence is the rate: the file's
+standing rate is 1558/14,242 = **10.9 %** of pieces in a coplanar pair, and the
+added doors came in at **8.6 %** (56/651) and **6.7 %** (12/178). The new doors
+are *cleaner* than the file's own average.
+
+**Re-record against current `main` and the number to expect is `1626`.**
+Measured, not assumed: `acer/nb2-buried` moves 25 door groups without adding or
+removing any, and it comes out at **1627** — **one pair** across 25 relocations,
+on 15,069 pieces. Re-record after it merges and expect `1627`.
+
+**Not done here on purpose:** `scripts/verify/coplanar-baseline.json` is your
+file this round and this lane did not touch it.
+
+**Separately, and it will bite you:**
+`C:/Users/simip/Projects/austin-3d-explorer/scripts/verify/node_modules` **is
+empty** on the shared checkout. `harness-drift.mjs` still passes (pure node),
+but every playwright script there dies with
+`Cannot find package 'playwright-core'`. That is QUEUE trap 6's signature — a
+`git stash -u` eats it. This lane worked around it with a junction to another
+worktree's copy rather than reinstalling into your file.
+
+### NB5. The bake reads one footprint snapshot and the app draws another — OPEN
+
+Opened 2026-08-16 by `acer/nb2-buried`, which is what made it matter.
+
+```
+scripts/bake_entrances.py   SNAP = data/snapshots/2026-08-04/buildings.detailed.geojson
+js/app.js                   activeDate = manifest.latest = 2026-08-16
+```
+
+The bake places doors against the **2026-08-04** footprints; `austin-buildings`
+extrudes the **2026-08-16** ones. That was survivable while the buried rule only
+looked at authored masses. **It is not obviously survivable now**, because NB2's
+fix makes the rule test doors against the drawn footprint file — so the audit is
+reasoning about a file that is not guaranteed to be the one on screen.
+
+**It does not affect NB2's finding:** both snapshots carry `2b0f20a0` at the
+same 21.3 m, and both have 2,453 features. Checked before the fix was written.
+
+**What to do:** either point `SNAP` at `manifest.latest` and re-bake (and expect
+door positions to move wherever the two snapshots disagree — that is a real
+delta and wants its own before/after), or pin the app to the snapshot the bake
+uses and say why. Do not leave them silently disagreeing.
 
 ### And the thing the sweep did NOT find, which is the useful half
 

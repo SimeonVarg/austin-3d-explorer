@@ -1,0 +1,142 @@
+{
+ "tod": 0.3,
+ "box": 260,
+ "entLayers": [
+  "entrances-pool",
+  "entrances-detail",
+  "entrances-portal",
+  "entrances-mullion",
+  "entrances-glass",
+  "entrances-inscription",
+  "entrances-wordmark"
+ ],
+ "entLoadS": "19.6",
+ "errors": [],
+ "poses": [
+  {
+   "name": "MCA-eid574-A",
+   "eid": 574,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.731163,
+    30.2814021
+   ],
+   "eye": [
+    -97.73118449419673,
+    30.28159878811779
+   ],
+   "alt": 1.7,
+   "bearing": 177.41,
+   "pitch": 85.58137953301085,
+   "dist": 22,
+   "px": 680,
+   "py": 450,
+   "clip": {
+    "x": 550,
+    "y": 320,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 1.7,
+   "zoom": 21.244,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 31.7
+    },
+    {
+     "dist": 22,
+     "eyeAlt": 1.7
+    }
+   ],
+   "entSrcFeatures": 15839,
+   "onScreen": true,
+   "doorPixels": 0,
+   "maxDelta": 0,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid574-B",
+   "eid": 574,
+   "ref": "MCA",
+   "bearingTag": "B",
+   "door": [
+    -97.731163,
+    30.2814021
+   ],
+   "eye": [
+    -97.7313905844116,
+    30.281422725069216
+   ],
+   "alt": 1.7,
+   "bearing": 93.21,
+   "pitch": 85.58137953301085,
+   "dist": 22,
+   "px": 759,
+   "py": 450,
+   "clip": {
+    "x": 629,
+    "y": 320,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 1.7,
+   "zoom": 21.244,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 25.3
+    },
+    {
+     "dist": 22,
+     "eyeAlt": 1.7
+    }
+   ],
+   "entSrcFeatures": 19112,
+   "onScreen": true,
+   "doorPixels": 0,
+   "maxDelta": 0,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid575-A",
+   "eid": 575,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.7302485,
+    30.2814158
+   ],
+   "eye": [
+    -97.7300943,
+    30.2814364
+   ],
+   "alt": 1.7,
+   "bearing": 265.3,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 662,
+   "py": 471,
+   "clip": {
+    "x": 532,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 33442,
+   "onScreen": true,
+   "doorPixels": 0,
+   "maxDelta": 0,
+   "boxPx": 67600
+  }
+ ]
+}

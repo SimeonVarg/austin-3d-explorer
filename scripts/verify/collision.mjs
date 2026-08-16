@@ -256,7 +256,7 @@ for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n
 
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
 
-// EXIT CODE, added 2026-08-16 (§152). This file printed *FAIL and exited 0 for
+// EXIT CODE, added 2026-08-16 (§154). This file printed *FAIL and exited 0 for
 // its whole life. §149 deleted silhouette.mjs partly for exactly that and added
 // no lint to stop the next one; suite-lint rule 7 does now. Every wrapper in
 // this repo reads the exit code — inventory.mjs classifies on it and §142 made

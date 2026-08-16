@@ -1,0 +1,493 @@
+{
+ "tod": 0.3,
+ "box": 260,
+ "entLayers": [
+  "entrances-pool",
+  "entrances-detail",
+  "entrances-portal",
+  "entrances-mullion",
+  "entrances-glass",
+  "entrances-inscription",
+  "entrances-wordmark"
+ ],
+ "entLoadS": "9.7",
+ "errors": [],
+ "poses": [
+  {
+   "name": "MCA-eid574-A",
+   "eid": 574,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.7312823,
+    30.2814329
+   ],
+   "eye": [
+    -97.7313739,
+    30.281542
+   ],
+   "alt": 1.7,
+   "bearing": 148.17,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 662,
+   "py": 471,
+   "clip": {
+    "x": 532,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 1.7,
+   "zoom": 21.792,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 1.7
+    }
+   ],
+   "entSrcFeatures": 2666,
+   "onScreen": true,
+   "doorPixels": 33768,
+   "maxDelta": 129,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid574-B",
+   "eid": 574,
+   "ref": "MCA",
+   "bearingTag": "B",
+   "door": [
+    -97.7312823,
+    30.2814329
+   ],
+   "eye": [
+    -97.731427,
+    30.2813825
+   ],
+   "alt": 1.7,
+   "bearing": 63.97,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 777,
+   "py": 471,
+   "clip": {
+    "x": 647,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 21109,
+   "onScreen": true,
+   "doorPixels": 32982,
+   "maxDelta": 130,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid575-A",
+   "eid": 575,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.7302274,
+    30.2814422
+   ],
+   "eye": [
+    -97.7300735,
+    30.2814645
+   ],
+   "alt": 1.7,
+   "bearing": 264.6,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 662,
+   "py": 471,
+   "clip": {
+    "x": 532,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 33497,
+   "onScreen": true,
+   "doorPixels": 28387,
+   "maxDelta": 137,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid575-B",
+   "eid": 575,
+   "ref": "MCA",
+   "bearingTag": "B",
+   "door": [
+    -97.7302274,
+    30.2814422
+   ],
+   "eye": [
+    -97.7302152,
+    30.2815765
+   ],
+   "alt": 1.7,
+   "bearing": 180.4,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 777,
+   "py": 471,
+   "clip": {
+    "x": 647,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 2666,
+   "onScreen": true,
+   "doorPixels": 28344,
+   "maxDelta": 137,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid576-A",
+   "eid": 576,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.730472,
+    30.2816226
+   ],
+   "eye": [
+    -97.7303526,
+    30.2817093
+   ],
+   "alt": 1.7,
+   "bearing": 234.03,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 662,
+   "py": 471,
+   "clip": {
+    "x": 532,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 16430,
+   "onScreen": true,
+   "doorPixels": 15605,
+   "maxDelta": 131,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid576-B",
+   "eid": 576,
+   "ref": "MCA",
+   "bearingTag": "B",
+   "door": [
+    -97.730472,
+    30.2816226
+   ],
+   "eye": [
+    -97.7305406,
+    30.2817436
+   ],
+   "alt": 1.7,
+   "bearing": 149.83,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 777,
+   "py": 471,
+   "clip": {
+    "x": 647,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 2521,
+   "onScreen": true,
+   "doorPixels": 20329,
+   "maxDelta": 132,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid577-A",
+   "eid": 577,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.7307318,
+    30.2803014
+   ],
+   "eye": [
+    -97.7308662,
+    30.280233
+   ],
+   "alt": 1.7,
+   "bearing": 63.58,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 662,
+   "py": 471,
+   "clip": {
+    "x": 532,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 20203,
+   "onScreen": true,
+   "doorPixels": 26939,
+   "maxDelta": 98,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid577-B",
+   "eid": 577,
+   "ref": "MCA",
+   "bearingTag": "B",
+   "door": [
+    -97.7307318,
+    30.2803014
+   ],
+   "eye": [
+    -97.7306874,
+    30.2801722
+   ],
+   "alt": 1.7,
+   "bearing": 339.38,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 778,
+   "py": 471,
+   "clip": {
+    "x": 648,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 48889,
+   "onScreen": true,
+   "doorPixels": 25832,
+   "maxDelta": 112,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid578-A",
+   "eid": 578,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.7299374,
+    30.2805901
+   ],
+   "eye": [
+    -97.7298636,
+    30.2804714
+   ],
+   "alt": 1.7,
+   "bearing": 335.86,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 662,
+   "py": 471,
+   "clip": {
+    "x": 532,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 48834,
+   "onScreen": true,
+   "doorPixels": 28122,
+   "maxDelta": 105,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid578-B",
+   "eid": 578,
+   "ref": "MCA",
+   "bearingTag": "B",
+   "door": [
+    -97.7299374,
+    30.2805901
+   ],
+   "eye": [
+    -97.7297862,
+    30.2806232
+   ],
+   "alt": 1.7,
+   "bearing": 251.66,
+   "pitch": 83.53406790106047,
+   "dist": 15,
+   "px": 778,
+   "py": 471,
+   "clip": {
+    "x": 648,
+    "y": 341,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 2.08,
+   "zoom": 21.5,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 2.08
+    }
+   ],
+   "entSrcFeatures": 30781,
+   "onScreen": true,
+   "doorPixels": 28258,
+   "maxDelta": 103,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid574-A-oldcam",
+   "eid": 574,
+   "ref": "MCA",
+   "bearingTag": "A",
+   "door": [
+    -97.731163,
+    30.2814021
+   ],
+   "eye": [
+    -97.73118449419673,
+    30.28159878811779
+   ],
+   "alt": 1.7,
+   "bearing": 177.41,
+   "pitch": 85.58137953301085,
+   "dist": 22,
+   "px": 680,
+   "py": 450,
+   "clip": {
+    "x": 550,
+    "y": 320,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 1.7,
+   "zoom": 21.244,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 25.3
+    },
+    {
+     "dist": 22,
+     "eyeAlt": 1.7
+    }
+   ],
+   "entSrcFeatures": 15837,
+   "onScreen": true,
+   "doorPixels": 0,
+   "maxDelta": 0,
+   "boxPx": 67600
+  },
+  {
+   "name": "MCA-eid574-B-oldcam",
+   "eid": 574,
+   "ref": "MCA",
+   "bearingTag": "B",
+   "door": [
+    -97.731163,
+    30.2814021
+   ],
+   "eye": [
+    -97.7313905844116,
+    30.281422725069216
+   ],
+   "alt": 1.7,
+   "bearing": 93.21,
+   "pitch": 85.58137953301085,
+   "dist": 22,
+   "px": 759,
+   "py": 450,
+   "clip": {
+    "x": 629,
+    "y": 320,
+    "width": 260,
+    "height": 260
+   },
+   "eyeAlt": 1.7,
+   "zoom": 21.244,
+   "tries": [
+    {
+     "dist": 15,
+     "eyeAlt": 25.3
+    },
+    {
+     "dist": 22,
+     "eyeAlt": 1.7
+    }
+   ],
+   "entSrcFeatures": 19166,
+   "onScreen": true,
+   "doorPixels": 49790,
+   "maxDelta": 127,
+   "boxPx": 67600
+  }
+ ]
+}

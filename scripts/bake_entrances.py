@@ -210,8 +210,47 @@ FACADE_BONUS = 0.45     # score added to a sample on a celebrated building's
 # with the reason printed. The count prints on every run, so the day a new pass
 # grows a mass over somebody's front door it is one line of bake output, not a
 # 16-bearing photo hunt.
+#
+# ── THE RULE WAS NAMED AFTER THE WRONG THING (QUEUE NB2) ──────────────
+# It was written for authored masses because that is where the first case came
+# from, and `BURIED_MASS_FILES` below is the whole of what it looked at. But
+# the invariant the rule is really enforcing is
+#
+#       NOTHING THE RENDERER EXTRUDES MAY STAND OVER A DOOR
+#
+# and the single largest thing the renderer extrudes is not in that list at
+# all: `austin-buildings`, whose source is the footprint snapshot. So a door
+# swallowed by an ORDINARY NEIGHBOURING BUILDING passed every test.
+#
+# That is the Moody Center. Its five doors sit on footprint
+# d8b0698a (Moody Center, which `moody` claims, so the buildings layer does NOT
+# draw it) and all five leaf planes are inside 2b0f20a0 — an unnamed 21.3 m
+# Overture ring over the same arena that NOBODY claims, so the buildings layer
+# draws it in full. A 21.3 m building stands in front of a 6.0 m door and the
+# audit could not see it, because it was reading the nine authored files and
+# not the one the renderer actually extrudes. Every numeric check passed: sane
+# height, real elevation, facing outward, counted in every total.
+#
+# TWO THINGS MAKE A FOOTPRINT COUNT, and both matter:
+#   * it must be DRAWN. Seven passes CLAIM ids via `replacedBuildingIds` and
+#     the buildings layer filters those out. A claimed ring is not evidence of
+#     anything — and including Moody's own claimed host ring would bury every
+#     door on it.
+#   * it must not be the door's OWN host, tested by BID rather than by the
+#     IoU self-block, because an id match is exact and an overlap ratio is a
+#     threshold.
 BURIED_MASS_FILES = ("heroes", "stadium", "moody", "arts", "drag",
                      "capitol", "tower", "westcampus", "parts")   # [M]
+BURIED_DRAWN_FOOTPRINTS = True   # include the footprints `austin-buildings`
+                        # extrudes, minus every id an authored pass claims.
+                        # False restores the pre-NB2 rule in one line.
+BURIED_CLAIM_FILES = ("heroes", "stadium", "moody", "arts", "drag",
+                     "capitol", "tower", "westcampus", "parts", "art",
+                     "roofs", "places")   # whose replacedBuildingIds remove a
+                        # footprint from the DRAWN set. Wider than
+                        # BURIED_MASS_FILES on purpose: a pass can claim a
+                        # building without contributing a ground-level mass,
+                        # and claiming is what decides whether it is drawn.
 BURIED_BASE_MAX = 2.0   # m; a mass starting above this is a canopy, not a wall
 BURIED_TOP_MIN = 3.0    # m; below this it cannot hide a 2.4 m leaf
 BURIED_TEST_OUT = 0.25  # m along the normal — where the LEAF actually is, not
@@ -4071,16 +4110,46 @@ def attach_steps(blds, steps):
 #  celebrated.md enumerates some buildings' doors exhaustively. Neither
 #  fact is visible to a scoring loop over an Overture ring.
 # ══════════════════════════════════════════════════════════════════════
-def load_masses():
-    """Every OPAQUE GROUND-LEVEL mass another pass draws, in the metric frame.
+def claimed_building_ids():
+    """Every footprint id an authored pass has taken over, so `austin-buildings`
+    does NOT extrude it. A claimed ring is drawn by that pass's own geometry
+    (which is already in BURIED_MASS_FILES) and must not be counted twice."""
+    out = set()
+    for fn in BURIED_CLAIM_FILES:
+        path = os.path.join(ROOT, "data", fn + ".geojson")
+        if not os.path.exists(path):
+            continue
+        try:
+            doc = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            continue
+        for bid in (doc.get("replacedBuildingIds") or []):
+            out.add(str(bid))
+    return out
 
-    Only a mass that starts at grade and rises past a door head can hide a
-    door, so the filter happens once here rather than 600 times below. `h` is
-    an absolute top in every one of these files (heroes, stadium, moody, arts,
-    drag, tower, westcampus); capitol carries whole buildings with
-    `final_height` and no base; parts uses OSM's min_height_m/height_m.
+
+def load_masses():
+    """Everything the RENDERER EXTRUDES at ground level, in the metric frame.
+
+    Returns (polys, owners): `owners[i]` is the footprint id a polygon belongs
+    to, or None for an authored mass. The caller uses it to skip a door's own
+    host exactly, by id, instead of inferring it from an overlap ratio.
+
+    Two sources, because the renderer has two:
+
+      1. the authored masses in BURIED_MASS_FILES. Only a mass that starts at
+         grade and rises past a door head can hide a door, so the filter
+         happens once here rather than 600 times below. `h` is an absolute top
+         in every one of these files (heroes, stadium, moody, arts, drag,
+         tower, westcampus); capitol carries whole buildings with
+         `final_height` and no base; parts uses OSM's min_height_m/height_m.
+
+      2. THE FOOTPRINTS `austin-buildings` DRAWS — the thing this rule was
+         blind to until QUEUE NB2, and the reason the Moody Center's five doors
+         rendered zero pixels while passing every numeric check. Minus every id
+         an authored pass claims, because a claimed ring is not drawn.
     """
-    out = []
+    out, owner = [], []
     for fn in BURIED_MASS_FILES:
         path = os.path.join(ROOT, "data", fn + ".geojson")
         if not os.path.exists(path):
@@ -4112,7 +4181,41 @@ def load_masses():
                     continue
                 if p.is_valid and not p.is_empty and p.area > 1.0:
                     out.append(p)
-    return out
+                    owner.append(None)
+
+    if BURIED_DRAWN_FOOTPRINTS:
+        claimed = claimed_building_ids()
+        doc = json.load(open(SNAP, encoding="utf-8"))
+        for f in doc.get("features") or []:
+            pr = f.get("properties") or {}
+            bid = str(pr.get("id"))
+            if bid in claimed:
+                continue                     # another pass draws this one
+            top = pr.get("final_height") or pr.get("height") or 0.0
+            if top < BURIED_TOP_MIN:
+                continue                     # too low to hide a 2.4 m leaf
+            g = f.get("geometry") or {}
+            if g.get("type") == "Polygon":
+                rings = [g["coordinates"]]
+            elif g.get("type") == "MultiPolygon":
+                rings = g["coordinates"]
+            else:
+                continue
+            for cr in rings:
+                if not cr or len(cr[0]) < 4:
+                    continue
+                try:
+                    p = Polygon([to_m(x, y) for x, y in cr[0]])
+                except Exception:
+                    continue
+                if not p.is_valid:
+                    p = p.buffer(0)
+                    if p.geom_type == "MultiPolygon":
+                        p = max(p.geoms, key=lambda q: q.area)
+                if p.is_valid and not p.is_empty and p.area > 1.0:
+                    out.append(p)
+                    owner.append(bid)
+    return out, owner
 
 
 def _mass_free(union, x, y, nx, ny, reach):
@@ -4201,18 +4304,29 @@ def clear_buried(scope, stats):
     march re-entered CAMBRIDGE'S OWN ring in six of twelve directions
     within 3 m while the nearest other footprint was 107 m away. Gates-Dell
     is NOT this case and stays fixed: the atrium slab that swallowed its
-    door is authored OUTBOARD geometry, IoU far below the gate."""
-    masses = load_masses()
+    door is authored OUTBOARD geometry, IoU far below the gate.
+
+    QUEUE NB2: the mass set now also carries the footprints `austin-buildings`
+    extrudes, so a door can be buried by an ordinary neighbouring BUILDING and
+    not only by an authored slab. The door's own host is skipped by BID as well
+    as by the IoU self-block — an id match is exact, a ratio is a threshold."""
+    masses, owner = load_masses()
     if not masses:
         stats["buried_no_masses"] += 1
         return
     mtree = STRtree(masses)
 
     def self_mass_ids(b):
-        """Indices of masses that ARE b's own footprint re-drawn."""
+        """Indices of masses that ARE b's own footprint — by id where the mass
+        is a footprint, by IoU where it is an authored re-draw with no id."""
         own = set()
         for i in mtree.query(b.poly):
-            m = masses[int(i)]
+            i = int(i)
+            if owner[i] is not None:
+                if owner[i] == str(b.bid):
+                    own.add(i)
+                continue
+            m = masses[i]
             try:
                 inter = m.intersection(b.poly).area
             except Exception:
@@ -4220,7 +4334,7 @@ def clear_buried(scope, stats):
             if inter <= 0.0:
                 continue
             if inter / (m.area + b.poly.area - inter) >= SELF_IOU:
-                own.add(int(i))
+                own.add(i)
         return own
 
     for b in scope:
