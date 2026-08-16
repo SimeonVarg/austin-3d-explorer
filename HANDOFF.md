@@ -19689,3 +19689,201 @@ false alarm sitting in front of the first gate anybody runs.
   to hold; only the fifteen that moved were re-examined.
 * **`ACS`, the building opening this semester, is still nowhere in this repo**
   and still correctly answers *"not walkable in this build yet"*.
+
+---
+
+## 147. Aug 16 2026 — somebody stood in front of all fifteen: the doors are real, the hero gate was measurement error, and the unnamed cluster is the Blanton's petals (QUEUE Part Z / ZA, ZB) (acer lane, branch `acer/n8-doors`, PR #184, MERGED)
+
+**The one thing §146 admitted nobody had done, done.** Its own words were that
+*"nobody has stood in front of any of the fifteen buildings — every check is
+geometry agreeing with geometry, and the independent one is OSM checking OSM."*
+A door in the right place that LOOKS wrong — on a blank elevation, floating,
+facing a wall, at the wrong height — passes every numeric gate in that report.
+So this pass photographed every one of them from the pavement and read the
+frames.
+
+**Verdict: all fifteen are right, and PR #184 is merged.** 135 of 198 UT
+register codes are now routable on `main`.
+
+### What was actually looked at
+
+**33 doorways on 17 buildings, at walking height, three-quarter view**, in
+`shots/walk/doors15/` — one PNG per door group, named `CODE-eidNNN.png`.
+Not fifteen frames: the fifteen buildings have 33 door groups between them and
+every group was shot, because "the building has a door" and "all of its doors
+are right" are different claims.
+
+Poses are derived, not guessed. For each door: the nearest footprint EDGE in
+the rendered snapshot, its outward normal, then a standing point 13 m out at
+38 degrees off that normal, rejected if it falls inside any of the 2,453
+footprints. `js/controls.js`'s own closed form turns that eye into the map
+pose, so "1.7 m off the ground" means 1.7 m and not a zoom that looks about
+right.
+
+```
+every frame: eye 1.7-2.4 m, door projected inside the viewport, entrance
+             source loaded and carrying features for that viewport
+door leaf heights, all 15:  2.13 m or 2.44 m
+the only 4.30 m openings:   SAG TRG GUG HCG - the four parking garages,
+                            i.e. the vehicle entrance, measured at 4.4 m in
+                            frame against a 4.30 m value in the data
+main's own maximum:         4.30 m, unchanged. No door got taller.
+```
+
+**Read one by one: on a real elevation, at a sane height, facing outward, and
+recognisable as a door — all 33.** Every glazed entrance has leaves, a frame,
+a transom or canopy, and steps or a ramp where the ground drops. Nothing
+floats, nothing faces a wall, nothing sits at first-floor level. The garage
+openings are plain dark recesses, which is what a garage opening looks like.
+
+### Three findings the report did not contain
+
+**1. The pass changed TWO buildings it never mentioned: `RLP` and `BME`.**
+Diffing `entrances.geojson` against `origin/main` by geometry finds **737
+added pieces and 86 REMOVED** — and the removed ones are Patton Hall's and
+Biomedical Engineering's existing doors. Both buildings had `ref: null` and
+`era: utility` on main; the register-scope rule gave them a code, which moved
+them to `era: modern`, and all six doors were re-derived — `single` became
+`hinged-pair`/`hinged-quad`, 51 to 99 and 35 to 93 pieces, positions shifted
+up to 1.15 m. **This is an improvement and it is now photographed** (RLP
+97/98/99, BME 510/511/512 are handsome, correct entrances) — but "27 new doors
+on 15 buildings" was not the whole change, and 17 codes moved, not 15.
+
+**2. The `walls 5` cluster at `-97.7380, 30.2809` is the Blanton Museum's
+petal canopies.** ZB called it *"four ~65 m2 unnamed footprints... four tiny
+adjacent structures with footpaths and a staircase drawn through them...
+nobody knows."* It is **ten** identical unnamed footprints, every one 64.5 m2
+and exactly 8.0 m tall, ~9.1 m across, in a loose grid on the Blanton's plaza
+next to the Edgar A. Smith Building. OSM way 1199982735 names itself:
+`fixme=Northern portion of plaza incl. Moody Patio and Loggia stage need to be
+mapped`. `shots/walk/doors15/ZB-blanton-petal-cluster.png` is the picture:
+**cream stems flaring into circular canopies with the grass and the paths
+running underneath them.** They are the Snohetta petals. The footways and the
+`highway=steps` run beneath them **because you walk under them** — the "wall"
+is an artefact of extruding an open-air canopy as a solid volume, not a path
+through a building. **The refusal to delete those 14 edges was right, and now
+there is a reason on the record rather than a shrug.**
+
+**3. `PCL>UTA`'s wall is photographed and it is NOT resolved in our favour.**
+Way 1206168875 is 110.6 m long and **18.7 m of it lies inside the AT&T
+Center's 6,516 m2 footprint**.
+`shots/walk/doors15/ZB-att-sidewalk-into-footprint.png` shows the sidewalk
+running forward and **stopping dead against a solid brick wall** — no arcade,
+no porte-cochere, no opening at that point in this scene. The likely
+real-world reading is a sidewalk under an overhang the footprint polygon
+includes, but **this frame does not show that and I did not establish it.** It
+is on `origin/main`'s network, predates this branch, costs 0.8 m to avoid, and
+PR #184 does not touch it — so it did not block the merge. It stays QUEUE ZB
+with a photograph attached instead of a guess.
+
+### The hero gate: cleared by MEASUREMENT, not by waiving it
+
+§146 held the branch back because H1-spawn moved **447 px, max delta 102**
+against a 0-px floor, and called it real and reproducible. Re-run here, in one
+browser, same page, four interleaved launches, the base arm serving
+`origin/main`'s `js/wayfind.js` + `data/walk_graph.json` +
+`data/entrances.geojson`:
+
+```
+FLOOR base r1|r2      over24 0    max  2
+FLOOR cand r1|r2      over24 0    max  0
+A/B  base|cand r1     over24 0    max 10
+A/B  base|cand r2     over24 0    max 10
+```
+
+**Zero pixels over the suite's own 24 threshold. Max channel delta 10.** Drop
+the threshold to >2 and the entire frame yields **2 changed pixels, in 1
+cluster, and that cluster sits on an added door piece — 0 unexplained.**
+
+**That number is only worth anything because the instrument was watched
+failing.** Posed at the Nursing School door instead, where the arms MUST
+differ, the same rig reports **19,893 px, max 134**. So the file swap is real,
+the diff sees it, and the hero pose genuinely does not move.
+
+Two things separate this run from §146's: the graphics auto-detect probe is
+cancelled, and **both arms wait for `austin-entrances` to report loaded before
+the shutter**. Entrances are lazy (§115) and the candidate's file is 4.6 %
+larger, so a fixed-timer shot catches the two arms at different points in the
+same load. I could not reproduce 447 px under controlled conditions and I did
+not prove that is the cause — but the gate condition, re-measured properly, is
+met with room to spare.
+
+### The independent check, and how far it actually goes
+
+The report was right that OSM checking OSM is not independent. What was used
+instead, from outside the repo: **street addresses and construction years.**
+`UTA` is 1616 Guadalupe; its main door in this scene opens onto Guadalupe with
+the **Clay Pit, 1601 Guadalupe**, directly opposite — the real facing pair.
+`JHH` is an 1888/1891 Victorian Italianate building (the old Texas Asylum for
+the Blind), and UT's own register agrees at 1888.
+
+That last one exposes a **taste** issue, not a defect: era is assigned from the
+register year, and everything pre-1945 lands on `utility`, so **`ANB` (1859),
+`JHH` (1888) and `LCH` (1894) get plain flush glazed doors on 19th-century
+masonry.** Placement is correct; the vocabulary is not period. It is already
+parameterised — it is the era table's call. **This is Simeon's to overrule, and
+it is pre-existing behaviour, not something #184 introduced.**
+
+### Gates, on the merged tree
+
+`origin/main` moved twice during the pass (`3a08bff` to `3deefcd`, taking
+`js/sky.js`, `js/facades.js`, `js/loader.js`, `js/outer.js`, `style.css`,
+`index.html`, `_harness.html`). Merged in, one conflict in `HANDOFF.md` where
+both sides appended a §141; **both kept, ours renumbered to §145/§146.**
+
+```
+harness-drift.mjs        PASS  29 scripts = 29 scripts
+bake_walk.py --regress   PASS  19 of 19, every distance to the tenth of a
+                               metre, every one walls 0
+eight doors re-shot after the merge   unchanged by main's facade/sky/style work
+```
+
+### Instrument notes
+
+* `scripts/verify/doorwalk.mjs` (new) — stands at an eye pose and shoots. It
+  **reads `__fly.eye().alt` back after every jump**, because the collision net
+  moves the camera without telling the frame: BME's courtyard door threw the
+  eye from 1.7 m to **36.6 m** and photographed a rooftop while every other
+  number in the manifest still looked plausible. It re-poses further out
+  instead of shipping that frame.
+* **`queryRenderedFeatures` is unusable at walking height.** At pitch >82 /
+  zoom 21.5 it returns **1 feature for the entire screen** on a frame visibly
+  full of buildings and a lit doorway. A "0 rendered" reading from it is the
+  instrument failing, not the door missing. `querySourceFeatures` is the honest
+  substitute; the picture is the evidence that it drew.
+* **`ZOOM_MAX = 21.5` is the eye-height floor.** Below ~18 m of standoff the
+  derived zoom saturates and the eye settles at 2.4 m, not the requested 1.7 m.
+  That is the closest a user can stand, so it is reported rather than fought.
+* **A pose that retries by backing straight up can photograph a different
+  building.** `RLP-eid97`'s first frame was the Student Activity Center's own
+  opening — 14.6 m away, 27.6 m tall, squarely between camera and Patton Hall,
+  complete with a "Sabor Tacos y Mas" sign. Re-posed with an occlusion test
+  (sight line must not cross a non-host footprint) and a tree test, it is
+  Patton Hall's real door. **Eight of 33 first-pass frames were blocked by
+  trees or a neighbour and were re-shot.**
+* `_manifest.json` is written **after every shot**, not at the end:
+  `chrome.mjs` reaps at `VERIFY_MAX_MS` and the process dies where it stands,
+  which previously left the PREVIOUS run's manifest sitting next to a fresh set
+  of frames — a stale file that looks current. That cost two rounds here.
+* **A long run kills the CDP pipe.** At about 20 poses in one browser session,
+  Playwright threw `ERR_STRING_TOO_LONG — Cannot create a string longer than
+  0x1fffffe8 characters` out of `PipeTransport._dispatch` and the browser was
+  reaped. It is not the return values (those are small objects); it is the
+  session accumulating. **Run this suite in chunks of ~15 poses and merge the
+  manifests** — the per-shot manifest write is what makes that survivable.
+  The full 35-row manifest here is two chunks stitched together.
+* **The shared working directory changed branch mid-pass** (to
+  `acer/aws-brief`, another lane). A `git merge origin/main` typed there would
+  have landed on somebody else's branch. Do the merge in your own worktree.
+
+### What this pass did NOT establish
+
+* **No real photograph of any of the fifteen facades was obtained and
+  compared.** The independent check is street addresses and construction years,
+  not imagery. Whether `NUR`'s main entrance in the world is the one we drew is
+  unconfirmed.
+* **The AT&T Center sidewalk is not resolved** — the frame shows a wall, and
+  whether the real building has a covered walk there is unknown.
+* **§146's 447 px was not explained**, only shown not to reproduce.
+* The 63 codes that remain unroutable were not re-examined.
+* Night was not shot. Every frame here is `p = 0.30`, daylight.
