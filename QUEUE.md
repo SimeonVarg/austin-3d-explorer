@@ -768,11 +768,44 @@ nearest label is a billboard and everything else is dust, and because the horizo
 sits mid-frame every label in the city projects into one narrow band. Below some
 eye height, show only what is within ~60 m and size by metres.
 
-**Y10. Nobody has driven a touch device at walking height.** The joystick, the
-two-finger altitude gesture and the BOOST latch were only exercised at flying
-altitude by `collision.mjs`'s synthetic touch. `SPEED_MIN` is now 1.0, so the
-joystick's expo curve is operating over a completely different speed range than it
-was tuned for.
+**~~Y10.~~ DRIVEN, RANKED, and ONE OF SEVEN FIXED (PR #185 merged 2026-08-16,
+HANDOFF §139).** The city has now been driven by thumb at 1.7 m, twice: the
+survey is `docs/mobile/driving-at-eye-level.md` and the fix-and-judge pass is
+§139. **NOT A REAL IPHONE AND NOT REAL SAFARI** — Chromium in a phone costume
+(393x852, dpr 3, `isMobile`, `hasTouch`, real CDP touch events). Touch handling,
+layout and geometry are solid; frame rate, memory, battery and heat on Simeon's
+actual phone are untested and unpredicted.
+
+**Fixed: item 1, the vertical look.** At 1.7 m the whole pitch range is
+3.58 deg, which at the authored 0.11 deg/px was 33 px of thumb, so every 150 px
+swipe landed on the opposite stop and the other ~117 px moved nothing — it read
+as a hang. `LOOK.PITCH_SPAN_PX = 300` in `js/controls.js` fits the sensitivity
+to the range that exists and **can only ever slow the look down**
+(`Math.min` against the authored value). Measured, real touch, 3 interleaved
+reps each: stock lands on the 84.42 floor 3/3; fitted stops at 86.21 3/3, about
+half the range, no stop hit. Above 18.47 m the authored value wins by
+arithmetic, and a real 150 px mouse drag at 165 m gives dPitch −19.50 /
+dYaw 330.00 identically with the fit on and off, 3/3 reps.
+
+**Still open, and four of them are `style.css`, which this lane does not own:**
+- **item 3, BOOST** — 60x44 px, nearest edge **53.0 px** from the joystick
+  centre against a 50 px ring (3 px outside it), same side of the screen as the
+  stick, **0.86x the frame mean off and 1.57x on** on a South Mall street frame
+  (0.89x / 2.35x facing a dark wall — the ratio moves with the background, the
+  geometry does not). Simeon's own complaint, unfixed.
+  `shots/mobile/final/06-*`.
+- **item 4** — the graphics panel still covers the joystick
+  (`elementFromPoint` at the stick centre returns `SPAN.gfx-group-note`); the
+  gear is 34x34 against Apple's 44.
+- **item 5** — `?clip=1` still sets `#joystick-zone{display:none}`, so the one
+  clean recording mode is the one a phone cannot walk in.
+- **item 7** — `controls-hint` is 404.5 px wide, at x = −5.8, on a 393 px screen.
+- **item 6, the two-finger altitude gesture, was not re-tested this pass**, and
+  the double-tap-and-drag gesture is still untested by anybody.
+
+What still works and should not be spent time on: `collision.mjs` 8/8,
+`movement.mjs` **14/14** (including the diagonal assertion that was straddling
+its tolerance), `motion-feel.mjs` 20/20, zero page errors in every run.
 
 **~~Y11.~~ DONE — nine frames shot at 1.7 m, p 0.55/0.62/0.70, three sites
 (HANDOFF §117, `shots/blitz/y11-*.png`).** The dusk SKY at eye level is the
@@ -782,15 +815,57 @@ now Y17 (the ground plane does not ride the dusk clock) and Y18 (the
 post-process canvas paints glow bands across facades). Both were found by these
 frames and both are measured below.
 
-**Y12. MapLibre's near plane clips anything within 2.2 % of D — 0.4–1.1 m at
-walking height.** Diagnosed in §108: walk into a tree and the trunk you are
-touching *disappears* instead of filling the frame, because the near plane is in
-front of it, so a working collision reads as a rendering fault. `TRUNK_PAD` was
-raised 0.6 → 0.9 m so the stop lands outside it, which hides the symptom for
-trunks and does nothing for walls, kerbs or door surrounds. Candidate fix is
-overriding the transform's near plane below `ALT_GROUND`. It belongs to whoever
-owns the map transform, and it **must** be re-checked against `zfight` and
-`coplanar`, because a nearer near plane costs depth precision.
+**~~Y12.~~ FIXED, AND NARROWER THAN THE ENTRY CLAIMED (PR #185 merged
+2026-08-16, HANDOFF §139).** `WALK_NEAR` in `js/app.js` scales the near plane
+with altitude — 0.12 m at or below 2 m, MapLibre's own value at or above 40 m,
+blended in log space — and it is a **strict no-op above 40 m**, proved rather
+than asserted: `projectionMatrix` and `modelViewProjectionMatrix` bit-identical
+with the hook on and off at all 12 flyover poses and all 5 `shots-places` poses,
+on desktop AND phone, with two control probes at 1.7 m and 20 m that DIFF so the
+test is not inert. Lowest non-control altitude in the whole flyover: 57.1 m.
+
+**The gates it had to pass, on the merged tree:** `coplanar.mjs --gate` **exit 0,
+"no file gained a coplanar pair"**; `zfight.mjs` on five eye-level poses run
+twice, hook on and hook off, **every flicker percentage and every cluster
+identical to the pixel and to the screen box** (southmall 0.023 %, drag-day
+0.554 % / 7 clusters, drag-night 0.016 %, westcampus 1.078 % / 12 clusters,
+mid20 0.550 %); `zfight` on `westcampus-day` **242 px @ [642,827,869,895] in
+both arms, min of 3 interleaved reps** — the same box W6 has reported since §95.
+Flyover pixels: 24 frames across two viewports, 23 byte-identical, the 24th
+inside its own A/A noise floor.
+
+**Two corrections to what this entry and §108 said, both found by looking:**
+1. **The near plane is `t.nearZ / t.pixelsPerMeter`, not
+   `(cameraToCenterDistance / 50) / pixelsPerMeter`.** The second is MapLibre's
+   default *formula* and reads the same number whether the hook is on or off —
+   it made a first run of this gate report "no change" everywhere. The real
+   stock value on a phone at 1.7 m is **0.72 m at pitch 87 and 1.08 m at the
+   88 deg cap**, not the 0.97 the drive doc recorded.
+2. **A plain wall never vanished, and the "3 cm margin" was an artefact.** The
+   collision field is a **6 m grid** (`CELL = 6`), so `roofAt(p, 0.5)` cannot
+   locate a drawn face to better than metres. Driven into the Main Building
+   block by real touch, the app stops you with the wall **fully drawn and
+   solid**, and the before/after frames at that identical pose are **0 differing
+   pixels against a 0-pixel A/A floor at every pitch from 84.5 to the 88 cap**:
+   `shots/mobile/final/01-*`.
+
+**So what it actually buys, measured, and it is narrow.** A/B sweeps with an A/A
+floor at every step: at a South Mall live oak, **95.7 % of the frame at 1.0 m and
+14.9 % at 1.5 m, nothing at 0.5 or 2.0 m** (`final/02-*`). But the joystick
+**stops a walking user at 1.67 m from that trunk, where the A/B is 0 px**
+(`final/03-*`), and on four real walks — South Mall, the Drag, West Campus,
+Speedway, 24 poses — only one non-tree pose changed at all (the Drag, 0.34 %).
+**The fix is correct and free; its visible benefit to someone walking is small.**
+
+**What it does NOT fix, and this is the drive doc's own headline frame:** a crown
+you are standing INSIDE cannot be recovered by any near plane, because its near
+face is behind the eye. Every tree-lined path is still a corridor of poles at
+1.7 m. That is now the open half and belongs to `js/trees.js`, not the transform.
+
+**And the new cost, which is correct rendering rather than a bug:** pressed
+against a surface you now get a featureless field instead of a view through it
+(`final/04-*`). "Walk into a tree and the screen goes brown" is the next thing
+someone should look at.
 
 **~~Y13.~~ CLOSED — the disc is occluded by geometry, photographed and measured
 (2026-08-15, HANDOFF §117).** Pose: eye 1.7 m at [-97.74575, 30.28640], bearing
@@ -940,9 +1015,21 @@ Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
                                                 rejected ground-base-texture on main)
                                                 is CLOSED — 25 -> 24, PR #172, §123.
 Y9  labels sized by zoom not metres .......... OPEN
-Y10 touch at walking height .................. OPEN
+Y10 touch at walking height .................. DRIVEN (#185, §139). Item 1 of 7 FIXED
+                                                (the vertical look now fits the range
+                                                that exists). Items 3/4/5/7 are all
+                                                style.css and untouched; item 6 not
+                                                re-tested. NOT REAL iOS SAFARI.
 Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — found Y17+Y18
-Y12 the near plane ........................... NEW
+Y12 the near plane ........................... DONE (#185, §139) and NARROWER than the
+                                                entry claimed. Flyover matrices
+                                                bit-identical, zfight identical on/off,
+                                                coplanar --gate exit 0. A plain WALL
+                                                never vanished (the 6 m collision grid,
+                                                not a 3 cm margin); a trunk at 1.0 m did
+                                                and now does not. The CANOPY you stand
+                                                inside is still unfixable this way and
+                                                is the open half — js/trees.js.
 Y13 the moon behind a building ............... CLOSED (§117) — disc occluded, 0 px through wall
 Y14 places-check / zfight not run ............ CLOSED (both at baseline on 38fbeee, §115)
 Y15 trunk field worst scan ................... OPEN, RESTATED (§133): 841.5 ms did

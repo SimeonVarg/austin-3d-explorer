@@ -71,6 +71,35 @@ function initControls(map, scene) {
   const SENS_YAW_MOUSE = 0.20, SENS_PITCH_MOUSE = 0.13;
   const SENS_YAW_TOUCH = 0.18, SENS_PITCH_TOUCH = 0.11;
   const LOOK_DEADZONE = 0.4;
+
+  // ── The vertical look, when there is barely any of it left ────────
+  //
+  // MEASURED ON A PHONE AT WALKING HEIGHT, not reasoned about
+  // (docs/mobile/driving-at-eye-level.md §1). At 1.7 m the pitch is pinned
+  // between pitchFloor() 84.42 and PITCH_MAX 88 — the WHOLE vertical look is
+  // 3.58 degrees. At SENS_PITCH_TOUCH 0.11 deg/px that is 33 px of thumb, so a
+  // real 150 px swipe landed on the opposite stop every single time across
+  // three reps and ten consecutive 10 px nudges were over after the second.
+  // The other ~117 px of every swipe moved nothing. That does not read as "a
+  // limit"; it reads as the app having hung, which is worse than the limit.
+  //
+  // So the sensitivity is fitted to the range that actually exists: whatever
+  // pitch is available should take about LOOK.PITCH_SPAN_PX of travel to
+  // spend. 300 px is roughly a comfortable thumb sweep on an 852 px screen and
+  // a short mouse drag.
+  //
+  // IT CAN ONLY EVER SLOW THE LOOK DOWN, never speed it up — `Math.min` against
+  // the authored value. Above 18.47 m the floor is exactly PITCH_MIN and the
+  // available range is ~83 deg, which fits in 300 px at 0.277 deg/px, i.e. far
+  // coarser than the authored 0.11/0.13, so the authored value wins and NOTHING
+  // about the flyover changes. The clamp in the tick is untouched: this changes
+  // how much thumb it takes to reach a stop, not where the stop is.
+  // Kept on an object rather than as a bare const for one reason: it is the
+  // only way the harness can A/B this in a SINGLE browser session. Setting
+  // `__fly.look.PITCH_SPAN_PX = 1` makes the fitted value enormous, `Math.min`
+  // takes the authored sensitivity, and the stock behaviour is back exactly.
+  // Still one line for Simeon to overrule.
+  const LOOK = { PITCH_SPAN_PX: 300 };
   // MapLibre 5.24's own hard ceiling is exactly 90 deg, verified against the
   // running library rather than the docs (scripts/verify/pitch-probe.mjs):
   // setMaxPitch(95), (100) and (120) are all ACCEPTED and every one of them
@@ -926,6 +955,14 @@ function initControls(map, scene) {
   const dMin = () => camPx() * mpp(ZOOM_MAX, eye.lat);
   const pitchFloorAt = a => deg(Math.acos(clamp(a / dMin(), 0, 1)));
   const pitchFloor = () => Math.max(PITCH_MIN, pitchFloorAt(alt));
+  // See LOOK.PITCH_SPAN_PX. Reads the SAME two functions the tick clamps
+  // against, so the fitted sensitivity and the stop can never drift apart.
+  const pitchSens = (touch) => {
+    const authored = touch ? SENS_PITCH_TOUCH : SENS_PITCH_MOUSE;
+    const lo = pitchFloor(), hi = Math.max(lo, pitchCap());
+    const fitted = (hi - lo) / LOOK.PITCH_SPAN_PX;
+    return fitted < authored ? fitted : authored;
+  };
   // The same constraint read as an altitude. Used by EVERY altitude clamp in the
   // tick, including the one `driving` is tested against — if the drive test and
   // the settle clamp disagreed by so much as a metre the controller would own the
@@ -1191,7 +1228,7 @@ function initControls(map, scene) {
     const mx = (!touch && e.movementX != null) ? e.movementX : dx;
     const my = (!touch && e.movementY != null) ? e.movementY : dy;
     if (Math.abs(mx) >= LOOK_DEADZONE) pendingYaw += mx * (touch ? SENS_YAW_TOUCH : SENS_YAW_MOUSE);
-    if (Math.abs(my) >= LOOK_DEADZONE) pendingPitch += my * (touch ? SENS_PITCH_TOUCH : SENS_PITCH_MOUSE);
+    if (Math.abs(my) >= LOOK_DEADZONE) pendingPitch += my * pitchSens(touch);
     markFlying();
   }
 
@@ -1795,11 +1832,16 @@ function initControls(map, scene) {
                      // live, derived — the whole point of making this a function
                      groundMix: groundMix(), rCam: rCam(), skinV: skinV(),
                      stepUp: stepUp(), dMin: dMin(), pitchFloor: pitchFloor(),
-                     altFloorMin: altFloorMin(), outerMinH: outerMinH() }),
+                     altFloorMin: altFloorMin(), outerMinH: outerMinH(),
+                     lookPitchSpanPx: LOOK.PITCH_SPAN_PX,
+                     pitchSensTouch: pitchSens(true), pitchSensMouse: pitchSens(false) }),
     simTime: () => simTime,
     // Feel-effect debug/override surface: `tune` is the live TUNE object (any
     // value can be overruled at runtime), `fx` is this frame's derived outputs.
     tune: TUNE,
+    // Live look tuning. `look.PITCH_SPAN_PX = 1` restores the stock, unfitted
+    // vertical sensitivity, which is how the A/B for this is run in one session.
+    look: LOOK,
     fx: () => ({ roll: rollNow, fovKick: fovKickNow, altOff: fxAltOff,
                  pitchOff: fxPitchOff, yawRate, live: fxLive,
                  rollOk: ROLL_OK, fovOk: FOV_OK, boost: boostOn }),

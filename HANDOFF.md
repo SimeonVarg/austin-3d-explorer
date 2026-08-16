@@ -18278,7 +18278,387 @@ verbatim. Zero wayfind console errors in every run.
 
 ---
 
-## 139. Aug 16 2026 — fifteen buildings got doors and nobody drew one: the rect was replaced by UT's own register (QUEUE Part Z / `docs/walk/the-78.md`) (acer lane, branch `acer/n8-doors`, NOT merged)
+---
+
+## 139. Aug 16 2026 — Y12: the near plane comes in from 0.72 m to 0.12 m at walking height, and the flyover does not move one bit (acer lane, n4-mobile)
+
+**Branch `acer/n4-mobile`, cut from `origin/main` (`6a63b4f`). NOT MERGED —
+pushed for review.** Files written: `js/app.js` (near plane only, two hunks),
+`js/controls.js` (the vertical look), `shots/mobile/y12-oak-*`, this section.
+Throwaway worktree, served with `python scripts/serve.py 8382`.
+`harness-drift.mjs` **PASS, 29 scripts in each file**, from the repo root, before
+any pixel work. `window.cancelGraphicsAutoDetect()` at the top of every run.
+
+### THE INSTRUMENT, and it is the same one the drive doc used
+
+Chromium in a phone costume — 393 x 852, `isMobile`, `hasTouch`, real CDP touch
+events — plus a 1440 x 900 desktop. **This is not iOS Safari and cannot be from
+here.** Touch handling, layout, geometry, matrices and pixel counts are solid.
+Frame rate, memory, battery and heat on Simeon's actual iPhone are **not
+measured and not predicted**.
+
+### 1. Where the near plane actually lives, found by reading the running library
+
+MapLibre 5.24 computes it in `MercatorTransform._calculateNearFarZIfNeeded` as
+`_nearZ = _height / 50`, in the projection's PIXEL units — so it scales with the
+camera distance and has nothing to do with what is in front of you.
+
+Two things cost time and are worth writing down:
+
+1. **There IS a public API and it is the wrong one.** `transform.overrideNearFarZ(near, far)`
+   sets BOTH planes and latches `autoCalculateNearFarZ` off, so `farZ` then
+   freezes and the city clips out behind you as soon as the camera climbs. There
+   is no public setter for near alone. The hook wraps
+   `_calculateNearFarZIfNeeded` instead: MapLibre computes both exactly as
+   before, then `_nearZ` is adjusted after it.
+2. **AN INSTANCE PATCH APPLIED AT CONSTRUCTION READS AS INSTALLED AND DOES
+   NOTHING.** MapLibre replaces the whole transform when the style loads — the
+   constructor name changes and the patched object is no longer `map.transform`.
+   The first run reported `__walkNearOn true` next to a completely unchanged
+   nearZ column, which looks exactly like a broken formula. It is on the
+   PROTOTYPE now, re-asserted on `style.load`. Anyone hooking a MapLibre
+   internal in this app should assume the same trap.
+
+### 2. The curve, and it is a no-op above 40 m by construction
+
+`WALK_NEAR` in `js/app.js`: `ALT_LO 2.0`, `ALT_HI 40.0`, `NEAR_M 0.12`, blended
+in log space with a smoothstep, and it never pushes the near plane further out
+than MapLibre's own answer. Read off the live transform, phone viewport:
+
+```
+alt (m)   1.7    3.0     8.0    20.0    30.0    39.0    40.0    120.0
+near ON   0.120  0.121   0.141  0.543   2.542   6.163   3.218   9.653
+near OFF  0.720  1.271   1.275  3.186   4.779   6.213   3.218   9.653
+farZ                 identical at every one of 14 altitudes
+```
+
+### 3. THE FLYOVER DOES NOT MOVE, and this is the part that was proved twice
+
+Pixel A/B first (12 poses — SPAWN, all three INTRO legs, the ORBIT framing, all
+seven TOUR waypoints), noise floor at every pose: **10 of 12 byte-identical, and
+the 2 that differed ALSO differed A-against-A** (the Tower's animated window
+lights). A pixel A/B cannot separate those, so it does not settle it.
+
+The matrices do. `projectionMatrix` and `modelViewProjectionMatrix` compared
+element by element with `Object.is`, hook on vs off, **desktop AND phone**:
+
+```
+12/12 flyover poses      nearZ, projMat and mvpMat bit-identical, both viewports
+lowest flyover altitude  98.7 m on the phone, 104.3 m on the desktop  (ALT_HI is 40)
+two control probes at 1.7 m and 19 m   DIFF, as they must, or the test is inert
+```
+
+The margin is a factor of 2.5, and it is the same margin `js/controls.js` already
+documents ("nothing scripted in this app goes below 113.9 m").
+
+### 4. Z-fighting: no new cluster, at eye level or in the blend
+
+`zfight.mjs` on a new five-pose eye-level list, run twice — once with the hook,
+once with `ALT_HI` edited to 0, which is stock MapLibre exactly:
+
+```
+pose                  flicker OFF -> ON     clusters
+eye-southmall-day       0.010% -> 0.023%    (none) -> (none)
+eye-drag-day            0.554% -> 0.554%    same 7 clusters, IDENTICAL px and boxes
+eye-drag-night          0.016% -> 0.016%    (none) -> (none)
+eye-westcampus-day      0.961% -> 1.077%    same 12 clusters, IDENTICAL px and boxes
+mid20-mall-day (20 m)   0.718% -> 0.709%    same 12 clusters, IDENTICAL px and boxes
+```
+
+**Every cluster is identical in pixel count and screen box.** The scattered
+flagged fraction moved by at most 0.12 pp, at the one pose whose own "moved"
+percentage differed 3.4x between the two runs (51.7% vs 15.0%) — i.e. that pose
+was not rendering the same content twice and its delta is not attributable.
+**Honest caveat: one rep each, not a minimum of interleaved reps.** The machine
+had three other workflows on it and two later runs died to the watchdog.
+
+`coplanar.mjs` is pure geojson arithmetic and cannot be affected by a camera
+change; recorded anyway, from the repo root: **roofs 85, places 1, entrances
+1844**. Roofs and places match the last recorded baseline. **Entrances is 1844,
+not the 1729 in the brief** — `data/entrances.geojson` is byte-identical to
+`origin/main` on this branch, so 1729 is a stale reading, not a regression.
+
+### 5. WHAT IT BUYS, and the answer is narrower and uglier than hoped
+
+The only geometry that can change is what sits between 0.12 m and 0.72 m of the
+eye. So: walk the camera in toward a South Mall oak and count differing pixels at
+each separation, **with an A/A noise floor at every single step**:
+
+```
+gap from trunk axis   A/A floor      A/B differing
+0.5 m                 0 px           0 px          nothing
+1.0 m                 0 px           322,037 px    96.2% of the frame
+1.5 m                 0 px            49,684 px    14.8% of the frame
+2.0 m and beyond      0 px           0-5 px        nothing at all
+```
+
+A zero-pixel floor at every step, so the two middle rows are real.
+`shots/mobile/y12-oak-1m-before.png` against `-after.png` is the picture:
+**before, you look straight THROUGH the trunk to the building behind it; after,
+the trunk is solid and stops your view.** That is the illusion restored, and it
+is correct.
+
+**It is also not pretty, and that is a new queue item, not a win to claim.** At
+1.0-1.5 m an untextured trunk fills a portrait phone frame edge to edge — a
+0.7 m trunk at 1.2 m subtends 32 deg against the phone's ~29 deg horizontal FOV,
+so the arithmetic agrees with the frame — and what you get is a featureless
+brown field. Correct beats see-through, but "walk into a tree and the screen goes
+brown" is the next thing someone should look at.
+
+**And the drive doc's own headline frame is NOT fixed by this.** At 2.28 m from
+the trunk — where `y12-canopy-at-the-trunk.png` was shot — the sweep says nothing
+changes. A crown you are standing INSIDE cannot be recovered by any near plane,
+because its near face is behind the eye. Y12 is narrowed, not closed.
+
+### 6. The vertical look, ranked #1 by the drive, now fits the range that exists
+
+`js/controls.js`: `LOOK.PITCH_SPAN_PX = 300`, and `pitchSens()` returns
+`Math.min(authored, (pitchCap() - pitchFloor()) / 300)`. **It can only ever slow
+the look down.** Above 18.47 m the range is ~83 deg, which fits 300 px at
+0.277 deg/px — far coarser than the authored 0.11/0.13 — so the authored value
+wins and the flyover is untouched by arithmetic, not by hope.
+
+Measured at 1.7 m, real CDP touch swipes of 150 px, three interleaved reps,
+`__fly.look.PITCH_SPAN_PX` toggled 300 / 1 in one session (1 restores stock):
+
+```
+at the pose   pitchFloor 84.42   range 3.58 deg   fitted touch sens 0.01192 deg/px
+stock (span 1)    up-swipe  88.00 -> 84.30 / 84.45 / 84.43   lands ON the floor, every rep
+fitted (span 300) up-swipe  88.00 -> 86.15 / 86.19 / 86.33   about half the range, no stop
+```
+
+The frame now moves for the whole gesture instead of freezing after 33 px, which
+is what made it read as a hang rather than as a limit. The clamp itself is
+untouched: this changes how much thumb it takes to reach a stop, not where the
+stop is.
+
+### 7. Regression gates
+
+`collision.mjs` **8/8**, including "joystick moves the camera while a second
+finger looks around" (44.0 m and 36 deg at once) and "a second finger is not
+misread as a pinch-zoom".
+
+`movement.mjs` **13/14** with the change and **13/14 then 14/14** on
+`origin/main`'s files at the same hour — the one that moves is *diagonal speed
+matches cardinal*, which read 0.909 / 0.979 / 0.999 across those three runs
+against a plus-or-minus 0.05 band. **That assertion is straddling its own
+tolerance on this machine and I could not get a clean minimum of reps: two
+further attempts hit the browser watchdog because three other workflows were
+saturating the laptop.** It is called out rather than waved through. Nothing in
+either change touches input normalisation, and `pitchSens()` returns the
+authored value bit for bit at the 165 m altitude `movement.mjs` runs at.
+
+### 8. WHAT THIS PASS DID NOT ESTABLISH
+
+- **Anything about real iOS Safari, frame rate, battery or heat.** Unchanged
+  from the drive doc; do not let any number here be quoted as a phone number.
+- **`movement.mjs`'s diagonal assertion**, above. Needs a quiet machine.
+- **The BOOST button, items 3(b)(c)(d) of the drive doc — NOT TOUCHED, and it is
+  a file-ownership block, not a judgement.** Every one of them (which side of the
+  screen it sits on, the 0.71x-off / 1.21x-on luma swing, the glow that is the
+  brightest pixel in the city) lives in `style.css`, which another lane holds
+  tonight. It is a one-block CSS pass for whoever owns that file next.
+- **`?clip=1` still leaves a phone unable to walk** (drive doc #5). Same reason:
+  `.clip #joystick-zone{display:none}` is `style.css`. Forcing it from
+  `js/controls.js` with an inline style would work and would fight whoever owns
+  that file — deliberately not done.
+- **The graphics panel still covers the joystick and BOOST** (drive doc #4). The
+  bottom-sheet geometry is `style.css` too. The one fix that IS reachable from
+  `js/graphics.js` — close the sheet on a tap outside it, so you can at least
+  move away while it is open — was not written; out of time, and it is a
+  behaviour change that deserves its own pass.
+- **No perf measurement of any kind.** A nearer near plane is a depth-precision
+  question rather than a fill-rate one, but nobody has timed a frame with it.
+- **The double-tap-and-drag altitude gesture** is still untested, exactly as the
+  drive doc left it.
+
+---
+
+## 140. Aug 16 2026 — THE N4 GATE: the near plane merged, and two of the things it was supposed to prove turned out not to be true (QUEUE Y10, Y12) (acer lane, gate, branch `acer/n4-mobile`, merged)
+
+**Branch `acer/n4-mobile`, PR #185, MERGED.** Files this pass wrote:
+`shots/mobile/final/`, `QUEUE.md`, this section. The code under judgement is
+§139's and was not edited: `js/app.js` (`WALK_NEAR`, two hunks) and
+`js/controls.js` (`LOOK.PITCH_SPAN_PX`, `pitchSens`). Throwaway worktree,
+`python scripts/serve.py 8383`. `harness-drift.mjs` **PASS, 29 scripts in each
+file**, from the repo root, before any pixel work, and again after each of the
+**three** merges of `origin/main` that landed under this gate (`990607d`,
+`6f9b764`, `640afcb` — twelve commits from three other lanes, and this section's
+sibling had to be renumbered 129 -> 134 -> 136 -> 139 each time).
+
+### THE INSTRUMENT. READ THIS BEFORE QUOTING ANY NUMBER BELOW.
+
+> **REAL iOS SAFARI WAS NEVER TESTED AND CANNOT BE FROM THIS MACHINE.**
+> Everything phone-shaped here is Chromium in a phone costume: 393x852 CSS px,
+> `deviceScaleFactor` 3, `isMobile`, `hasTouch`, an iPhone UA, and real touch
+> through CDP `Input.dispatchTouchEvent`. That makes **touch handling, layout,
+> hit-target geometry, camera matrices and pixel counts solid**. It says
+> **nothing** about iOS's WebGL implementation, its memory ceiling, its
+> rasteriser, its reserved gestures, or about **frame rate, battery or heat on
+> Simeon's actual phone** — there is no thermal throttling here and the GPU is
+> an RTX 3050 Ti through ANGLE/D3D11. Do not let any figure here be quoted as a
+> phone number.
+
+### 1. TWO THINGS THIS GATE WAS MEANT TO CONFIRM, AND DID NOT
+
+**(a) The near-plane formula everyone has been quoting is the wrong one.**
+§108, §139 and my own first run all read
+`(cameraToCenterDistance / 50) / pixelsPerMeter`. That is MapLibre's DEFAULT
+formula, so it returns the same number whether the hook is installed or not —
+my first wall sweep duly reported `near_on == near_off == 0.974` at every pose
+and "no change" everywhere, which looks exactly like a dead fix. The effective
+plane is **`t.nearZ / t.pixelsPerMeter`**. Read that way, stock on a phone at
+1.7 m is **0.72 m at pitch 87 and 1.08 m at the 88 deg cap**, and with the hook
+**0.12 m**. Corrected before anything was concluded, and the correction is why
+the rest of this section exists.
+
+**(b) A plain wall never vanished, so "the wall that used to vanish" could not be
+photographed.** The drive doc's "3 cm margin" (`R_CAM_GROUND` 1.0 m against a
+near plane of 0.97 m) came from formula (a) and from treating
+`__fly.roofAt(p, 0.5)` as a wall position. **The collision field is a 6 m grid**
+(`CELL = 6` in `js/controls.js`), so it cannot locate a drawn face to better than
+metres. Driven into the Main Building block on the joystick by real touch, the
+app stops with the wall **fully drawn**, and at that identical pose the
+before/after frames are **0 differing pixels against a 0-pixel A/A floor at every
+pitch from 84.5 through the 88 cap** (near_off 0.39 / 0.54 / 0.72 / 0.86 /
+1.08 m). Pictures: `shots/mobile/final/01-*`. **The wall was always solid.**
+
+### 2. WHAT THE FIX ACTUALLY BUYS, swept with a noise floor at every step
+
+A/A floor **0 px at every single step**, so both middle rows are real:
+
+```
+South Mall live oak     gap 0.5 m    0 px
+                        gap 1.0 m    2,882,537 px   95.7 % of the frame
+                        gap 1.5 m      449,202 px   14.9 %
+                        gap 2.0 m    0 px
+```
+
+`final/02-*` is the pair: before, you look straight through the trunk to the
+building behind it; after, it is solid. **And then the honest half.** Walk to
+that same oak on the joystick with a real finger and **the app stops you at
+1.67 m, where the A/B is 0 px** (`final/03-*`). Four real walks — South Mall,
+the Drag, West Campus, Speedway, 24 eye-level poses, every one with its own A/A
+floor — turned up **one** non-tree pose that changed at all, on the Drag, at
+0.34 % of frame. So: **correct, free, and its visible benefit to somebody
+walking is small.** Y12 is closed as written, and the part that reads worst at
+eye level — a crown you are standing *inside*, whose near face is behind the eye
+— cannot be fixed by any near plane and is now a `js/trees.js` job.
+
+The new cost is correct rendering rather than a defect and should still be
+looked at: pressed against a surface you now get a featureless field where you
+used to get a view through it (`final/04-*`, a West Campus wall at zero metres).
+
+### 3. THE THREE GATES THAT COULD HAVE BLOCKED IT
+
+**Z-FIGHTING DID NOT GET WORSE. It did not change at all.** `zfight.mjs` (a
+scratch copy with one added line reading `window.__walkNear.ALT_HI`, since
+`scripts/verify/` is not this lane's to edit) on five eye-level poses, run
+twice — ALT_HI 40 (shipped) and 0 (stock MapLibre exactly):
+
+```
+pose                  flicker OFF   flicker ON   clusters
+eye-southmall-day        0.023 %      0.023 %    (none) / (none)
+eye-drag-day             0.554 %      0.554 %    same 7, IDENTICAL px and boxes
+eye-drag-night           0.016 %      0.016 %    (none) / (none)
+eye-westcampus-day       1.078 %      1.078 %    same 12, IDENTICAL px and boxes
+mid20-mall-day           0.550 %      0.550 %    same 11, IDENTICAL px and boxes
+```
+
+And the pose that has a recorded baseline, `westcampus-day` from
+`shots-places.json`: **242 px @ [642,827,869,895] in both arms, minimum of three
+interleaved reps** — the same count and box W6 has reported since §95. **Rep 1
+of that pair is the reason for the reps:** the ON arm came back 0.174 % with an
+extra 598 px cluster and **1,857 of 3,754 buildings tiled**, against 3,110–3,431
+in every other run. That was an unloaded scene, not a regression, and a single
+reading would have blocked a clean merge.
+
+`coplanar.mjs --gate` on the merged tree: **exit 0, "no file gained a coplanar
+pair"**, 151,929 features / 122,773 top faces examined. This branch changes no
+data file at all, so that is main's number, recorded rather than claimed.
+
+**THE FLYOVER DOES NOT MOVE, and it is proved twice.** Matrices first, because
+pixels cannot settle it (the Tower's window lights animate): `projectionMatrix`
+and `modelViewProjectionMatrix` compared element by element with `Object.is`,
+hook on against hook off, **desktop 1440x900 and phone 393x852** — bit-identical
+at **all 12 flyover poses and all 5 `shots-places` poses**, `farZ` identical
+everywhere, and **two control probes at 1.7 m and 20 m that DIFF**, without which
+the test would be inert. Lowest non-control altitude measured anywhere:
+**57.1 m on the phone against `ALT_HI` 40** — and that is a `shots-places` street
+pose, not the flyover, which bottoms out at 98.7 m. Then pixels: 12 poses x 2
+viewports, **23 byte-identical and one (phone `intro-start`) whose A/B exactly
+equals its own non-zero A/A floor**, i.e. a still-loading frame with nothing
+attributable surviving.
+
+**Why not against the deployed live site**, which the brief asked for: `main`
+took **twelve** commits from three other lanes while this gate ran, two of which
+changed `data/`. A frame from this tree against the deployed one differs for
+reasons that are main's, and cannot separate them. The controlled A/B — the same
+page, same tiles, same second, `ALT_HI` 40 against 0, where 0 is stock MapLibre
+bit for bit — is the comparison that answers "did MY change move the flyover".
+Said here rather than quietly substituted.
+
+### 4. DESKTOP DID NOT GET WORSE
+
+`collision.mjs` **8/8**. `motion-feel.mjs` **20/20**. `movement.mjs` **14/14** —
+including *diagonal speed matches cardinal* at 0.984, the assertion §139 could
+not get a clean reading on. `pitchSens()` at 165 m returns the authored **0.13
+mouse / 0.11 touch** exactly, and a real 150 px mouse drag there gives
+**dPitch −19.50, dYaw 330.00 identically with the fit on and off, 3/3 reps**.
+Zero page errors in every run of this gate.
+
+### 5. THE RANKED LIST FROM `docs/mobile/driving-at-eye-level.md`, ITEM BY ITEM
+
+**Item 1, the vertical look — FIXED.** Real touch, 150 px swipes, three
+interleaved reps each, toggled in one session: stock lands on the 84.42 floor
+**3/3**; fitted stops at **86.21, 3/3**, about half the range, no stop hit. The
+frame moves for the whole gesture instead of freezing after 33 px.
+
+**Item 2, the oak — narrowed, not fixed** (section 2 above).
+
+**Items 3, 4, 5, 7 — UNCHANGED, and they are `style.css`, which another lane
+holds.** Re-measured on the merged tree so the next lane does not have to:
+BOOST is 60x44 px with its nearest edge **53.0 px** from the joystick centre
+against a 50 px ring, centre x 149.5 on a 393 px screen (**same thumb as the
+stick**), **0.86x the frame mean off and 1.57x on** on a South Mall street frame against
+a 0-pixel A/A floor (and 0.89x / 2.35x from a pose facing a dark wall, which is
+why the ratio is quoted with its background) — Simeon's own "a bit off
+visually", still open, `final/06-*`. The graphics panel still returns `SPAN.gfx-group-note` at the
+joystick centre and its gear is 34x34 against Apple's 44. `?clip=1` still hides
+`#joystick-zone`. `controls-hint` is still 404.5 px at x = −5.8 on a 393 px
+screen.
+
+**Item 6, the two-finger altitude gesture — NOT re-tested this pass**, and the
+double-tap-and-drag gesture remains untested by anybody (§139's instrument could
+not produce a gap under 2,012 ms).
+
+### 6. WHAT THIS GATE DID NOT ESTABLISH
+
+- **Real iOS Safari, frame rate, battery, heat.** See the instrument box.
+- **Any performance number.** A nearer near plane is a depth-precision question
+  rather than a fill-rate one, and nobody has timed a frame with it. Unchanged
+  from §139.
+- **`zfight` on the other seven `shots-places` poses.** The matrices are
+  bit-identical at all of them so the result is determined, but only
+  `westcampus-day` was actually run — three reps per arm.
+- **The desktop look at eye level.** My drag went down-screen, which raises
+  pitch, and the camera was already on the 88 cap, so both arms read 88 -> 88.
+  The fitted constant is live there (0.0109 deg/px against an authored 0.13) but
+  no successful desktop eye-level drag was measured.
+- **Whether a door surround, kerb, step or bench sits inside the stock near
+  plane.** The four walks sampled 24 poses and did not aim at one deliberately.
+  `props-furn` measured **0.1 m** from the eye at one pose, so the class exists;
+  nobody has swept it.
+- **The BOOST button judged by eye against alternatives** — only geometry and
+  two luma ratios.
+- **Which tree each frame came from.** `harness-drift`, `coplanar --gate`, the
+  matrix proof, the 24-frame flyover A/B and the whole ranked-list re-drive were
+  re-run on the FINAL merged tree (`640afcb` merged in). The `zfight` pairs and
+  the oak/wall sweeps behind `final/01`, `02` and `04` were taken one merge
+  earlier; `js/` is byte-identical across all three merges and `trees.geojson`
+  never moved, so the numbers stand — but the frames are from that tree, not
+  this one, and that is worth knowing before anyone pixel-diffs them.
+## 141. Aug 16 2026 — fifteen buildings got doors and nobody drew one: the rect was replaced by UT's own register (QUEUE Part Z / `docs/walk/the-78.md`) (acer lane, branch `acer/n8-doors`, NOT merged)
 
 **The job.** `the-78.md` had just finished classifying why 78 of 198 UT
 buildings cannot be routed to, and its answer was that 62 have no polygon at
@@ -18366,7 +18746,7 @@ mid-measurement. Nothing here needed one.
 
 ---
 
-## 140. Aug 16 2026 — the doors reach the network: 120 of 198 walkable becomes 135, and 14 of the freshman twenty (QUEUE Part Z / ZA, ZC) (acer lane, branch `acer/n8-doors`, PR #184, NOT merged)
+## 142. Aug 16 2026 — the doors reach the network: 120 of 198 walkable becomes 135, and 14 of the freshman twenty (QUEUE Part Z / ZA, ZC) (acer lane, branch `acer/n8-doors`, PR #184, NOT merged)
 
 **Branch `acer/n8-doors`, `origin/main` merged in at the top of the pass (it had
 not moved: `640afcb` then and now). Files written: `data/walk_graph.json`,
@@ -18381,9 +18761,9 @@ through the frame-time measurement. Two gates are therefore unrun and they are
 named at the bottom rather than assumed away. `harness-drift.mjs` **PASS,
 29 scripts = 29 scripts** — it is pure text and needed nothing.
 
-### The number §139 refused to claim
+### The number §141 refused to claim
 
-§139 ended by saying that how many of its 27 new doors reach the walked network
+§141 ended by saying that how many of its 27 new doors reach the walked network
 was *"unmeasured here and must be measured there before anyone says a number out
 loud"*. Measured:
 
@@ -18406,7 +18786,7 @@ repo), `HLB`/`SMC` (real OSM ways, but no footprint in the scene, so a door
 would stand in an empty field — refused on purpose), and three parking garages.
 
 **135 without widening `CAMPUS` at all.** §8 forecast a 137 ceiling from four
-fixes including the wide rect; §139's register-scope rule got 135 by admitting
+fixes including the wide rect; §141's register-scope rule got 135 by admitting
 twelve buildings where the rect would have admitted 125 nobody has looked at.
 
 ### The check a door pass is actually accountable for
@@ -18510,7 +18890,7 @@ false alarm sitting in front of the first gate anybody runs.
 ### What this pass did NOT establish
 
 * **No pixel was measured and no frame was taken.** Nothing visual about the 27
-  new doorways has been looked at since §139 asked for it, and §139's own
+  new doorways has been looked at since §141 asked for it, and §141's own
   warning stands: **nobody has seen the Dell Med block (`HDB`, `HTB`, `HCG`) up
   close.** That is still a condition on merging, and it is still unmet.
 * **Nobody has stood in front of any of the fifteen buildings.** Every check
