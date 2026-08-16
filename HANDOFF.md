@@ -17607,9 +17607,680 @@ ever produces that again, and it says so on screen every time. **The one thing
 still owed: nobody has actually flown the camera at one of these to watch it
 flicker, and that needs a browser I deliberately did not open tonight.**
 
+<!-- NUMBERING: this branch wrote its entries as 130 and 131 while `main` took
+     130-135 for the West Campus walls, the N2 gate, the frame budget and the
+     two coplanar/cornice passes. Merging renumbered THIS branch's two to 136
+     and 137; nothing on main moved. Cross-references inside them that say
+     "§130"/"§131" mean these two. -->
+
+## 136. Aug 16 2026 — findable now means routable, and a canopy was eating the Moody Center's only surveyed door (QUEUE Z4, Z3 graph half) (acer lane)
+
+**Branch `acer/n3-graph` off `origin/main` `321dd9e`, served from a throwaway
+worktree. Files: `scripts/bake_walk.py`, `data/walk_graph.json`,
+`docs/walk/graph.md` §12, this entry — exactly the four this lane may write.
+No js, no css, no other data file. No browser and no server this pass, so
+nothing here is a pixel claim and `harness-drift.mjs` was not run (same
+reasoning as §125). `WAYFIND.on` is untouched: the feature is still behind
+`?walk=1` and flipping it is one constant and Simeon's call.**
+
+### What a student gets
+
+**Nothing that used to work stopped working, and one building stopped
+lying.** The Moody Center now ends its routes at its real, OSM-surveyed
+front door — the interface may call that *"The main entrance"*, which it may
+not do for a derived door. Before this pass that door was in the file and
+attached to nothing, so a route to the Moody Center arrived at a guessed
+side entrance instead.
+
+**And the worst state this feature can be in is now impossible by
+construction**: a name the search box offers that fails when you press
+Enter. Every name the graph ships is routable, and it is a gate.
+
+### Z4: verified closed, and the two states named
+
+QUEUE Z4 says six of the 24 West Campus towers are missing from the graph.
+**They are not — §125 fixed it and QUEUE.md was never updated, because that
+lane could not write QUEUE.md.** I did not take that on trust: the shipped
+wire file was decoded by a second, independent router and every tower routed
+end to end (843 m for 21 Rio, 1,017 m Pointe on Rio, 925 m Quarters
+Sterling, 718 m Skyloft, 1,436 m The Block, 1,140 m The Venue). 24 of 24.
+
+**The two states differ like this now.** A building the graph ships is
+findable *and* routable — there is no in-between left in the file. A
+building the graph does not ship is findable anyway, because the client
+merges UT's register in, and it answers `SMC is not walkable in this build
+yet`. Findable-and-refusing is honest. Findable-and-failing is the one this
+pass abolished, and gates S and T exist so it cannot return. Both were
+watched failing on the exact original defect before being believed.
+
+**Somebody who can write QUEUE.md: Z4 is closed, both halves.**
+
+### The defect nobody had found: a roof is not a wall
+
+`WALL_IGNORE_CLASSES = {"roof"}` has been in `bake_walk.py` since the
+beginning, with a comment naming the Moody Center by hand. It was honoured
+in two of the three places that test a line against a building and **not in
+`anchor_doors`**, the one that decides whether a door exists at all. Result:
+all four of the Moody Center's doors — including the surveyed main one, 9.4 m
+from the sidewalk — were rejected because the straight line to them passes
+under an unnamed 8 m arena canopy. Doors linked went **620 → 624 of 629
+(98.6 % → 99.2 %)**.
+
+The same inconsistency was in `audit()`, whose wall counter is the strongest
+guard in this repo. Fixing the anchor test made five spot-checked routes
+report `walls 1`, and the wall was the awning. Both now use the class
+filter, and canopy contacts are printed rather than dropped — across the
+299-pair sweep, flagged routes went 27 → 22 and **all five of the difference
+were canopy-only**, measured, not assumed.
+
+I did **not** give `anchor_doors` the 3 m depth tolerance the rest of the
+file uses. That would be loosening a guard to buy connections.
+
+### The 78 that still do not route, re-derived a second way
+
+§11e argued them from fuzzy name-matching, where a fuzzy miss and an
+unmapped building read identically. OSM tags 177 campus buildings with a
+`ref` and **134 of those refs are register codes** — a surveyed position that
+depends on no name agreeing with any other. Frozen into the bake as
+`OSM_REF_XY`, **diagnosis only: it creates no door, node or edge.** Every
+stranded code now prints its own reason:
+
+```
+ 50  not on the map at all — no OSM ref, no footprint carrying the name
+     (greenhouses GHA-GHF, storehouses E11-E27, graduate housing, NUR, SMC)
+ 26  on the map, nearest mapped door > 40 m and it belongs to another
+     building  (HDB 183 m, JHH 133 m, UTA 99 m, SAG 78 m, TRG 67 m ...)
+  2  on the map with a door inside 40 m — checked by hand, all rejected
+```
+
+FDH (39 m, an unnamed neighbour's door), LCH (40 m, the Comm Center B's) and
+WMB (40 m, Goldsmith Hall's) were each examined and refused: adopting one
+puts *"Entrances are on this side"* on the wrong building's wall. AF1 is the
+trap worth naming — a loose name match pulls in 'Athletic Fields Pavilion
+(Eastside)', 15 m away, and that footprint is **AF2**.
+
+**So 120 of 198 stands, now on two independent measurements.** The wall is
+door supply, not connectivity — 624 of 629 doors attach, and the five that
+do not are 30.9–47.4 m out with their buildings already routable by another
+door. **The fix is authoring doors in `data/entrances.geojson`, another
+lane's file** — and the shopping list now comes with coordinates: NUR, UTA,
+HDB, HTB, JHH, WMB, CDL, ANB, LCH, SAG, TRG, GUG, HCG are all buildings a
+surveyor has already drawn where only the door is missing.
+
+### The numbers, printed by every bake run
+
+```
+nodes 11,247  edges 12,194  components 50  largest 95.61 %
+doors attached 624/629 (99.2 %)  worst link 27.7 m  re-routed 5
+routable 120 / 198   `code` 143 keys   `wc` 24 towers
+file 336.0 KB raw / 101.3 KB gzip -9   bake 5.8 s (was 3.3: gate T drives
+     24 real routes)
+gates 19 of 19 green   (17 -> 19: +S findable-means-routable, +T every
+     tower routed to WEL; BOTH watched failing)
+validation 19 pairs (18 frozen + JES>MCA, the recovered surveyed door),
+     all walls 0; --regress PASS and watched failing on a moved baseline
+sweep 299/299 routed, 0 no-route, detour median 1.41 / p90 1.81 / max 4.50
+```
+
+Two frozen rows moved under half a metre (BUR>CBA 788.7 → 789.2, GDC>BIO
+405.8 → 405.7): new anchors splice nodes into existing edges, so a shared
+edge sums in two pieces. Both re-audited — same door pair, same path,
+walls 0.
+
+### What I did NOT manage to do
+
+* **No browser, so no picture.** Nobody has looked at a route ending at the
+  Moody Center's real front door. It is the frame a later pass should take,
+  and the honest wording it unlocks (*"The main entrance"*) has never been
+  seen on screen.
+* **120 did not move.** Every avenue I could take from inside this bake was
+  measured and refused as dishonest; the remaining 78 need doors authored in
+  a file this lane may not write.
+* **Z5–Z9 untouched** — Z5 (the 15 fps repaint of the whole city while a
+  route is drawn) is still the worst item on the board and is a
+  `js/wayfind.js` job.
+* **`js/wayfind.js` cannot use the new `re` road-leg list or say anything
+  about canopies** — both ship in the file, neither is read.
+* **QUEUE.md** is not this lane's to write; Z4 is closed and still says open
+  there.
+
+## 137. Aug 16 2026 — the route stops repainting the city, the recordable URL waits for the intro, and the app finally answers "will I make it?" (QUEUE Z5-Z9) (acer lane)
+
+**Branch `acer/n3-graph`, commit on top of §130. Files: `js/wayfind.js`,
+`style.css`, `docs/walk/what-we-can-honestly-say.md`, `shots/walk/z59/`, this
+entry — exactly the five this lane may write. `WAYFIND.on` is UNTOUCHED: the
+feature is still behind `?walk=1`, the app a stranger loads is unchanged, and
+flipping the switch for everyone is one constant and Simeon's call after the
+AWS shoot.**
+
+### Z5, and it was the worst thing here
+
+A drawn route ran a `requestAnimationFrame` loop writing `line-gradient` on
+`wayfind-thread` at `pulseFps` 15 for as long as the route was on screen.
+Every write marks the style dirty and buys one full repaint of a scene with 41
+fill-extrusion passes in it. Nobody had ever measured it.
+
+**Instrument, quoted.** Headed Chrome on the machine's real GPU — `ANGLE
+(NVIDIA GeForce RTX 3050 Ti, D3D11)`, printed next to the numbers — because
+SwiftShader draws this scene at 3.7 fps and would hide a 15 Hz schedule
+entirely (the first attempt read 0.8/s on SwiftShader and said nothing true).
+Anti-throttle flags from `perf.mjs`. `intro=0&drift=0`, auto-detect cancelled,
+camera held still, 4 s windows, **three interleaved reps, minimum reported**,
+**noise floor first**. Two instruments, because one alone lies: `setPaint/s` is
+what the code SCHEDULES, `render/s` is what MapLibre actually repaints.
+**Machine load with the number: CPU pinned at ~99 %, 27 Chrome processes,
+three other workflows running all night.** A loaded machine only ever ADDS
+renders, so the minimum is the conservative reading and the "after" had to
+beat even that.
+
+```
+condition                                BEFORE            AFTER
+                                    setPaint/s render/s  setPaint/s render/s
+A  no route, cruise z16.5  (FLOOR)      0.0      0.0        0.0      0.0
+B  route, cruise z16.5 (thread seen)    8.3      8.3        8.0      9.3
+C  route, WALKING z19.2 (thread gone)   9.0     11.0        0.0      0.0
+D  route, cruise, TAB HIDDEN            5.3      5.5        0.0      1.0
+E  route, cruise, 14 s after drawing    2.5      2.5        0.0      0.0
+```
+
+**C is the damning row.** At walking height the layer the pulse animates is
+faded to zero opacity by `threadGoneZoom` 18.4, so the city was repainting
+eleven times a second for an effect that is not on the screen. **D is the
+battery** — a backgrounded tab was still paying. **E is the word "forever"**:
+the reps behind that 2.5 were 10/49/29 in a 4 s window, i.e. the schedule was
+still trying for 15/s and the starved machine delivered what it could.
+
+The pulse now has a life. Three gates, each one a named constant, and the loop
+is **torn down** rather than left spinning:
+
+* **VISIBLE** — it does not run at or above `threadGoneZoom`. Deliberately not
+  a new number: it is the same constant that fades the layer out, so the gate
+  cannot drift from the thing it gates.
+* **AWAKE** — `document.hidden` parks it.
+* **FINITE** — `pulseSettleSec` 12 s (three passes at `pulseSec` 4) of
+  *eligible* time and then it is finished for good and the thread rests as a
+  flat colour. A NEW route starts a new life. Raise the constant to get the
+  old forever-behaviour back.
+
+Parked is not stopped: `zoomend`/`moveend`/`visibilitychange` re-arm it, so a
+route drawn at walking height pulses the moment you climb, spending the budget
+it never spent. Nothing polls. `prefers-reduced-motion` still turns it off
+completely, and that is gated too.
+
+**One bug found by driving it that reading never would have.**
+`cancelAnimationFrame` does not un-queue a callback the browser has already
+handed to the current frame, so the PREVIOUS route's loop fired once after the
+NEXT route's pulse had started, wrote `null` over the live handle and — if its
+own budget had run out — called the teardown and took the new pulse down with
+it. Symptom: a route drawn after a route that had been up for more than 12 s
+never pulsed at all. Every loop now carries the generation it was born in and
+a stale one returns on its first line.
+
+**And a lesson about the harness, not the app.** Three Z5 gates "failed" twice
+before I stopped believing them: driven from node, a single `page.evaluate`
+round trip on this machine tonight took **longer than the 12 s budget being
+tested**, so the pulse was correctly dead by the time the assertion asked. The
+Z6 trace in the same run shows a 2 s in-page sleep landing 21 s later — the
+page's own timers starved ~10x. Every timing assertion now runs inside ONE
+`page.evaluate` on the page's own clock. The instrument was measuring the
+other three workflows.
+
+### Z6 — the advertised recording URL now works as advertised
+
+`?clip=1&walk=1&from=JES&to=WEL&fit=1` is what the docs call "a recordable
+shot of a route with no chrome", and loaded exactly as written it produced the
+wrong frame: `applyURL` runs the moment the style is up, so the fitBounds
+landed at ~t=2 s while the veil was still down, and at t=10 s the opening
+flight took the camera to its own end pose and stayed — z16.9 over the Tower
+with the route thread lying across the rooftops (§116's frame 13).
+
+The fix does not fight for the camera; nothing in this file has ever moved the
+camera on its own and that stands. It **waits** for it: veil lifted
+(`window.__intro.reason` is stamped when the flight departs), flight stopped
+easing, plus `fitQuietMs` 600 of silence — which has to exceed the 30 ms gap
+between the intro's two legs — with a `fitWaitMaxMs` ceiling so a stalled tile
+can never eat the shot. With `intro=0` (the whole verify suite) it fits
+immediately, exactly as before.
+
+Driven with the intro left running, sampled on the page's clock:
+
+```
+t= 0..21s  z16.2 [-97.7420,30.2680] pitch 78   veil down, nothing moves
+t= 46s     easing                              flight departs (veil hit its ceiling)
+t= 65s     z16.90 [-97.7394,30.2836] pitch 72  the intro's end pose
+t= 70s     z16.65 [-97.7373,30.2847] pitch 55  OUR fit, and it holds to the end
+```
+
+Whole route bbox inside the final viewport, at `fitPitch` 55 not the intro's
+72, all 13 chrome elements `display:none`, **the OSM attribution still visible
+because it is a licence condition and not chrome**.
+`shots/walk/z59/z6-advertised-url-day.png` / `-night.png`.
+
+### Z7 / Z8 — the phone, which is the device this feature is for
+
+**Z7.** `#wf-pill` was `left:50%` + `translateX(-50%)`, so its shrink-to-fit
+available width was `100% - 50%` = 196.5 px on a 393 px screen and the
+`max-width` sitting in the phone block **never once bound**. Both edges pinned,
+translate dropped: **361 px, headline on one line** (was two, with `Show route`
+wrapping inside its own button).
+
+The first attempt kept the bar in the title's row with the three 44 px buttons
+sitting on it, and reserved 52 px gutters so the words could not run under
+them. **Re-running the gate on the merged tree caught that putting the headline
+straight back onto two lines** — 257 px of usable text is not enough, so the
+fix had reintroduced the exact defect Z7 is about. The bar now takes the row
+BELOW the buttons (`--wf-pill-top` 68 = 16 inset + 44 button + 8 air) and gets
+the whole 361 px with no gutters. `body.wf-routed` already hides `#hud`, so
+nothing else wants that row. Re-driven on the four longest real headlines
+(JES>WEL, ADH>MCA, STD>MAI, Pointe on Rio>EER): **13/13, every one on one line,
+every one 361 px, zero overlap with `#wf-button`, `#gfx-button`, `#fb-button`
+or the open sheet.**
+
+**Z8.** The open sheet covered the joystick: sheet y324-852, stick y682-782,
+BOOST reaching y650. `interface.md` says hide the joystick while searching;
+**hidden is not usable**, so instead the sheet keeps its top edge and gives up
+height at the bottom — only possible because `#wf-sheet` is now a flex column
+with the result list as the child that yields, so the head, both fields, the
+hint and the attribution footer stay whole at any cap. Sheet now y324-634.
+Stick visible, and `elementFromPoint` at its centre returns `#joystick-base`,
+which is the assertion that means *touchable* rather than *drawn*. It also
+stops running under `#tod-panel` on the right, which was wrong before this pass
+too. `--wf-joy-clear` 218 px and `--wf-tod-clear` 60 px are derived from those
+panels' own numbers with the arithmetic written next to them.
+
+### Z9 — the wrong Jester, and a row cut in half
+
+`jest` returned **JCD Jester East Hall** ahead of **JES Beauford H. Jester
+Center**, because both carry the word "jester" and the tie fell to "routable
+first, then shortest display name". The stated ladder (code > code prefix >
+name prefix > name contains) does not fix it either — "Jester East Hall"
+*starts* with the query and would still win.
+
+What actually separates them is that **`jest` begins with `JES`**. UT's codes
+are almost always the head of the building's own name — WEL Welch, GRE
+Gregory, BUR Burdine, PAI Painter, MAI Main — so a query that starts with a
+building's code is real evidence. Alone it would be dangerous, so it is a
+**conjunction**: the code must head the query AND the building's own words must
+match. New rung above the name rungs. Verified: `jest`, `jester`, `jes`,
+`welch`, `greg`, `burd`, `paint` all rank the intended building first; exact
+code is still the only result; one-typo matching still works.
+
+Also: tokens now come from the **displayed** name as well as the index key —
+JCD is `jester residence hall` in the index and `Jester East Hall` on the door,
+and we were searching the name we do not show — so `jester east` finds JCD.
+
+And `+ N more — keep typing` left the scrolling list. It was the last child of
+`#wf-list`, so the list's own `max-height` cut it through the middle and the
+remains sat on the hint line. It is a note about the results, not a result.
+
+### THE REAL QUESTION, and the answer is one-sided on purpose
+
+A student between classes is not asking how to get there. They are asking
+**"do I have time?"**, and an app that prints a distance and a range is making
+them do that subtraction while walking.
+
+`docs/walk/what-we-can-honestly-say.md` gained **§15 first**, before a line of
+code, and the ruling is asymmetric because the two errors are not comparable:
+
+| we say | we are wrong | cost |
+|---|---|---|
+| "you will not make it" | they would have | a minute of walking faster |
+| "you will make it" | they do not | **they are late** |
+
+So: **we may WARN and we may never REASSURE.**
+
+* `lo >= passingMin` -> **`Longer than a 15-minute passing period`**
+* `lo < passingMin <= hi` -> **`Tight for a 15-minute passing period`**
+* `hi < passingMin` -> **nothing at all.** Deliberate, and it is the part worth
+  defending: our range measures pavement between two doors. It knows nothing
+  about a lecture hall of 200 emptying, a lift, a stairwell *inside* the
+  building (§9 — there is no indoor data and there never will be), the crowd
+  on Speedway at the hour, or finding the room. On a 13-minute walk into a
+  15-minute gap those consume the whole buffer. There is no wording of the
+  good news that does not become a promise, so there is no wording of it.
+
+Driven on eight real pairs, every one landing where §15 says it must:
+
+```
+PCL>JES   2-3 min   silent        WEL>PAI   2-4 min   silent
+JES>WEL   6-8 min   silent        GRE>MAI   7-10 min  silent
+BUR>CBA   9-13 min  silent
+STD>MAI  12-17 min  "Tight for a 15-minute passing period"
+Pointe on Rio>EER 19-27 min  "Longer than a 15-minute passing period"
+ADH>MCA  23-35 min  "Longer than a 15-minute passing period"
+```
+
+`passingMin` is flagged in §15 as **the one number in this feature with no
+file behind it** — nothing in `data/` records UT's schedule, and UT's own MWF
+blocks leave ten minutes while TTh leave fifteen. So the sentences use the
+**indefinite** article ("a 15-minute passing period", never "the"), the value
+is one line, and §12 now forbids the reassuring family with the reason for
+each.
+
+### The gates
+
+`harness-drift.mjs` **PASS 29/29** before any pixel, on the served tree.
+**45 of 45 behaviour assertions green on the merged tree**, plus 13/13 on the
+phone re-check. Two reds along the way, and both were worth having: one was the
+assertion's own fault (a 25 s deadline on the `intro=0` fit — the diagnostic it
+printed shows the fit had happened correctly at pitch 55 centred on the route;
+no latency claim survives a machine this loaded, so it now asserts the outcome
+and prints the time as information), and **one was a real regression the merged
+re-run caught in my own Z7 fix**, written up above.
+Zero wayfind MAP ERRORs on every load. Every text node under `#wf-root`
+re-scanned against §12's forbidden list: clean, the single accessibility
+mention being §11's own mandated disclaimer verbatim.
+
+### Frames — `shots/walk/z59/`, read not just taken
+
+Desktop 1440x900 and phone 393x852, day `p=0.25` and night `p=0.92`, settle ->
+idle -> repaint -> shoot twice keep the second.
+
+* `desktop-verdict-over-day/-night` — ADH>MCA, `23-35 min walk · 2.0 km ·
+  Stairs: 1 set` with the warning under it.
+* `desktop-verdict-tight-day` — STD>MAI, the other sentence.
+* `desktop-verdict-silent-day` — WEL>PAI 2-4 min: **no line at all**, which is
+  the point.
+* `desktop-card-expanded-night` — every string on one frame.
+* `desktop-z9-jest-day` — JES above JCD, and `+ 2 more` whole above the hint.
+* `desktop-z9-more-row-day` — `+ 28 more` on a one-letter query.
+* `phone-z7-pill-day/-night` — the full-width bar, three lines, one line each.
+* `phone-z8-sheet-joystick-day/-night` — the sheet open with the stick and
+  BOOST clear below it and the time panel clear beside it.
+* `z6-advertised-url-day/-night` — the recordable URL, intro left running.
+
+### A worktree lesson, written down because it nearly cost the work
+
+Mid-pass a sibling workflow checked out its own branch in the SHARED worktree
+while I was editing there, and my commit landed on `acer/mobile-eye-level`
+instead of `acer/n3-graph`. Recovered by cherry-picking onto the right branch
+from my own throwaway worktree and resetting the sibling's branch back to its
+own commit (verified clean of tracked modifications first, so nothing of
+theirs was lost). **The rule the night was given — serve AND edit from a
+throwaway worktree — is not only about the server. Editing in the shared tree
+is enough to lose a commit to another lane.**
+
+### For Simeon
+
+Walk-to-class now answers the question people actually ask — *will I make it?*
+— and it only ever answers it in the safe direction: it will tell you a walk is
+too long or too tight for a fifteen-minute gap, and it says **nothing at all**
+when the walk is short, because "you will make it" is a promise about a lift
+and a crowd we cannot see. On a phone the answer is a full-width bar instead of
+a 197 px column that wrapped, and the joystick still works with the search
+panel open. The route no longer repaints the city fifteen times a second
+forever — that was a real battery drain and it is now measured at zero the
+moment you cannot see the effect. And `?clip=1&walk=1&from=JES&to=WEL&fit=1`
+finally does what the docs say: it waits for the opening flight, then frames
+the whole route. **Still behind `?walk=1`. Nothing a visitor sees has changed.**
+
+### What I did NOT manage to do
+
+* **Z4 and the graph half of Z3 are not mine tonight and are already closed**
+  (§125, §129) — but **QUEUE.md still says they are open, and this lane may not
+  write QUEUE.md.** Whoever can: Z4 closed, Z3 closed, and **Z5, Z6, Z7, Z8, Z9
+  closed by this entry.**
+* **78 of 198 register codes still do not route.** Unchanged; it needs doors
+  authored in `data/entrances.geojson`, another lane's file (§129 has the
+  shopping list with coordinates).
+* **`avoidShown`'s hardcoded "189 mapped staircases"** is still hardcoded. It
+  is a count of the whole network rather than of what the router actually
+  avoids, and it should come off the graph. Named in §125 and still true.
+* **No before/after PIXEL diff of the pulse itself.** The Z5 claim is a
+  repaint-rate claim, measured twice with two instruments; nobody has
+  photographed the bright band running along the thread and then stopping. A
+  short recording, not a still, is what would show it.
+* **The Z5 numbers are one machine on one night, at 99 % CPU.** They are
+  ratios worth trusting (0 versus 9-11 renders a second) and absolute figures
+  worth re-taking on an idle machine.
+* **Nothing here has been on a real phone.** 393x852 in headless Chrome is not
+  an iPhone, and the mobile lane's own instrument note says the same thing.
+
+
+## 138. Aug 16 2026 — twenty real walks, judged as a student: the routes hold, and two things the card said were wrong (QUEUE Z3-Z9 closed) (acer lane, branch `acer/n3-graph`, merged)
+
+**Branch `acer/n3-graph`, `origin/main` merged in during the pass (it moved
+from `b0dc3ed` to `6f9b764` under me — five entries landed, so this branch's
+own §130/§131 were renumbered §136/§137 and nothing on main moved). Served
+from a THROWAWAY WORKTREE on 8373 with `python scripts/serve.py`; the shared
+worktree was put back on its own branch before any of it, per §137's lesson.
+Files written this pass: `js/wayfind.js`, `style.css`,
+`docs/walk/what-we-can-honestly-say.md`, `shots/walk/`, `QUEUE.md`, this
+entry. `WAYFIND.on` is UNTOUCHED — the feature is still behind `?walk=1`,
+flipping it is one constant, and it is Simeon's call after the AWS shoot.**
+
+`harness-drift.mjs` **PASS, 29 scripts = 29 scripts**, before any pixel.
+
+### The test that mattered: twenty walks a student would actually take
+
+Seven West Campus towers to a class building, four buildings that only started
+routing in this line of work, four where the direct line looked blocked, five
+off the audited table. **Nineteen routed; the twentieth was my own bad input**
+— `NOA` is not a UT code, and the app said so (`We couldn't find "NOA".`),
+which is the right answer.
+
+Every route was then re-run through the bake's own wall counter, the only
+instrument here that can say *"this path goes through a building"*:
+
+```
+pair                     route m   crow m  ratio  walls
+The Castilian>WEL          635.0    512.5   1.24      0
+21 Rio>GDC                1022.1    801.2   1.28      0
+Pointe on Rio>EER         1587.2   1153.6   1.38      1   <-- see below
+The Quarters Sterling>PCL  997.3    833.9   1.20      0
+Skyloft Austin>CBA         772.2    609.1   1.27      0
+The Block>RLP             2046.3   1495.4   1.37      0
+The Venue on Guadalupe>BUR 894.4    706.0   1.27      0
+JES>MCA                    827.2    592.9   1.40      0
+GDC>DMC                    806.1    571.1   1.41      0
+PCL>BIO                    814.1    472.7   1.72      0
+WEL>BMS                    694.0    611.4   1.14      0
+RLP>MCA                    963.9    549.4   1.75      0
+PCL>MAI                    528.5    331.7   1.59      0
+CPE>WCH                    581.2    495.7   1.17      0
+JES>WEL                    525.2    470.4   1.12      0
+BUR>CBA                    789.2    465.3   1.70      0
+GRE>MAI                    540.3    313.9   1.72      0
+WEL>PAI                    227.0    113.5   2.00      0
+STD>MAI                   1018.0    581.4   1.75      0
+```
+
+**The blocked-line pairs are blocked, measurably**: PCL>MAI 1.59x the crow
+line, GRE>MAI 1.72x, BUR>CBA and STD>MAI 1.70/1.75x, WEL>PAI 2.00x for 227 m
+— the route goes round the block because the block is there.
+
+**`--regress` PASS, 19 of 19 frozen pairs, every one `walls 0`**, on the
+shipped `data/walk_graph.json`. Where the client's answer differs from the
+frozen table it is because the client may pick the best DOOR PAIR while the
+table pins main door to main door: BUR>CBA is 789.2 m in the bake and 729.8 m
+in the app — a better pair, not a different graph. Five pairs match the table
+to the tenth of a metre (JES>WEL 525.2, GRE>MAI 540.3, STD>MAI 1018,
+GDC>DMC 806.1, JES>MCA 827.2).
+
+**The one wall, named rather than waved away.** Pointe on Rio > EER runs one
+13.9 m edge with **4.1 m inside an unnamed, unclassed footprint** at
+`-97.7351, 30.2874`, beside EER. It is a `through_edge` on the base graph —
+`origin/main` has it too, and the roof-class filter §136 added can only ever
+REMOVE walls — so it is **not a regression from this branch**; it is one of the
+22-of-299 flagged pairs the sweep already reports. Nobody has stood there. It
+may be an arcade and it may be a mistake, and the honest position is that we do
+not know which.
+
+### Two things the card said that were not true
+
+**1. THE CROSSINGS SENTENCE QUOTED A TWO-CROSSING WAIT FOR EVERY ROUTE.**
+`SAY.signals` generalised the COUNT and froze the WAIT: "add up to a minute
+and a half" is exactly `2 x signalWaitHighS`. The Block to Patton Hall — a real
+West Campus walk — crosses **seven**, and the card said *a minute and a half*
+while the range printed **one line above it** had already added five and a
+quarter minutes for those same lights. One line of the answer contradicting the
+line above it, and the smaller number is the one a late student would believe.
+The allowance is now computed from `signalWaitHighS`, rounded **outward** to
+the next half minute because "add up to" is a ceiling: 1 crossing
+"45 seconds", 2 "a minute and a half" (§11 verbatim, unchanged), 4 "3 minutes",
+7 "5 and a half minutes". Driven at n = 0, 2, 4 and 7.
+`docs/walk/what-we-can-honestly-say.md` §11 carries the revision and the
+reason, extended openly rather than freelanced.
+
+**2. ON A PHONE THE ANSWER BAR SAT UNDER THE FEEDBACK BUTTON.**
+`--wf-pill-top` was 68 px = `16 inset + 44 button + 8 air`, the row below ONE
+button — and the phone block deliberately stacks a SECOND, moving `#fb-button`
+to `top:58px`. Measured at 393x852 with the button present: **bar y68..135
+x16..377, button y58..92 x343..377.** The words cleared it by 8 px (the longest
+real headline ends at x335), which is exactly the margin the stylesheet's own
+comment calls "one bad frame away from a collision". Now 100 px, measured off
+the lower button. Re-measured after: **six real headlines, all 361 px, all ONE
+line, zero overlap with any of the three buttons.**
+
+**The instrument lesson behind #2:** `#fb-button` is built by `js/graphics.js`
+LATE, during graphics init. The first run of the phone gate measured before it
+existed, saw no collision, and passed. It now waits for the button.
+
+### The other gate that was passing on something it could not see
+
+The Z3 assertion "the stale route is gone from every wayfind source" read
+`source._data.features.length`. In this MapLibre a GeoJSON source keeps `_data`
+as `{geojson: <FeatureCollection>}`, so `.features` is `undefined`,
+`(… || []).length` is 0, and **the assertion passed for a route that was
+plainly on screen**. It now uses `querySourceFeatures` + `queryRenderedFeatures`
+— what the renderer reads. Watched failing: before the query the sources hold
+`route 3 / strip 85 / arrive 2`; after, `0 / 0 / 0` and zero rendered features.
+Twice tonight a gate went green on something it had never seen.
+
+### Z5 — the forever-repaint, re-measured on the merged tree as a real A/B
+
+Not read, measured, and against `origin/main`'s own `js/wayfind.js` swapped
+into the same served tree rather than against a constant I turned off.
+
+**Instrument:** headed Chrome on the real GPU —
+`ANGLE (NVIDIA GeForce RTX 3050 Ti Laptop, D3D11)`, printed with the numbers,
+because SwiftShader draws this scene at ~3.7 fps and would hide a 15 Hz
+schedule entirely. Anti-throttle flags. `intro=0&drift=0`, auto-detect
+cancelled, camera held still, 4 s windows timed on the PAGE's clock, **three
+interleaved reps, minimum reported, noise floor first.** Two instruments:
+`setPaint/s` is what the code SCHEDULES, `render/s` what MapLibre repaints.
+**Machine load with the number: CPU sampled at 25-35 % at the start of the
+BEFORE arm and 97-99 % immediately after the AFTER arm, 15 -> 22 Chrome
+processes, three sibling workflows running all night.** A loaded machine only
+ever ADDS renders, so a minimum of 0.0 is the conservative reading.
+
+```
+condition                                BEFORE            AFTER
+                                    setPaint/s render/s  setPaint/s render/s
+A  no route, cruise z16.5  (FLOOR)      0.0      0.0        0.0      0.0
+B  route, cruise z16.5 (thread seen)   11.2     26.7        8.7      8.9
+C  route, WALKING z19.2 (thread gone)   7.8      9.7        0.0      0.0
+D  route, cruise, TAB HIDDEN            9.0      9.0        0.0      0.7
+E  route, cruise, 14 s after drawing    9.7     12.7        0.0      0.0
+```
+
+C, D and E are the whole item: at walking height the animated layer is at zero
+opacity and the city was repainting ~10 times a second for an effect nobody
+could see; a backgrounded tab was still paying; and fourteen seconds after
+drawing it was still going. All three are flat zero now. Row B is a bonus
+nobody claimed: main rendered **2.4 repaints per style write** (26.7 for 11.2)
+and the bounded pulse renders 1:1.
+
+### Z6 — the advertised URL, driven with the intro LEFT RUNNING
+
+`?clip=1&from=JES&to=WEL&fit=1` exactly as the docs write it (no `walk=1`, no
+`intro=0`), sampled on the page's clock:
+
+```
+t= 0..20s  z16.2 [-97.7420,30.2680] pitch 78   veil down, nothing moves
+t= 28.7s   z15.45                              the opening flight, mid-leg
+t= 38.7s   z16.90 [-97.7394,30.2836] pitch 72  the intro's end pose
+t= 43.8s   z16.65 [-97.7373,30.2847] pitch 55  OUR fit — and it holds to the end
+```
+
+Whole route bbox inside the final viewport, 72 rendered route features on
+screen, `fitPitch` 55 not the intro's 72, all 13 chrome elements gone, **OSM
+attribution still visible because it is a licence condition and not chrome.**
+`shots/walk/final2/6-the-recordable-url.png`.
+
+**My first draft of this gate reported the feature broken.** It waited for the
+camera to be "stable for 3.5 s" — but during the veil the camera is motionless,
+so it stabilised at t=18 s, before the flight had even departed, and reported
+the veil pose as the final frame. Stability only counts after the veil lifts
+AND the flight stops easing.
+
+### The feature is still OFF by default, and that is now a measurement
+
+With NO `?walk=1` and no from/to, on both arms: **zero wayfind layers, zero
+wayfind sources, zero `#wf-*` DOM nodes, zero `wayfind*` globals,
+`WAYFIND.on === false`, and zero fetches of `walk_graph.json` or
+`ut_buildings.json`.** Every CSS selector this branch touches is `#wf-*` or
+`.wf-*` and cannot match when none of them exist.
+
+Pixels, six hero-class poses (H1 spawn, H2 Drag, H3 Tower, H4 whole city,
+H5 DKR, H6 Tower at night `p=0.92`), candidate vs `origin/main`'s two files
+swapped into the same served tree, fresh launch per arm:
+
+```
+pose            cross-arm            verdict
+H1-spawn        over24=0 any=0       IDENTICAL BYTES (second interleave)
+H2-drag         over24=0 max=22      at floor
+H3-tower        over24=0 max=21      at floor (second interleave)
+H4-city         over24=0 max=18      at floor
+H5-dkr          over24=0 max=16      at floor
+H6-towernight   over24=0 max=24      at floor
+```
+
+**The first interleave looked like a difference and was not, and the reason is
+worth keeping.** H1 read `over24=2` cross-arm and H3 `over24=8` — until the
+BASE arm was launched a second time and its own cross-launch floor turned out
+to be `over24=2` at H1 and `over24=8` at H3, the same numbers to the pixel.
+§124 recorded this bistability at H5; it is at H1 and H3 too, and **both arms
+produce both states.** The same-session floor is 0 px at every pose and is not
+the floor that matters. Interleave launches before believing a cross-arm diff.
+
+### Everything else, re-run on the merged tree
+
+**33 behaviour assertions green**, plus 12 on the phone and 7 on the clip URL.
+Z9: `jest`, `jester`, `jes`, `welch`, `greg`, `burd`, `paint` all rank the
+intended building first; exact `JES` is the only row; `jester east` finds JCD
+by its displayed name; `+ 28 more` is whole, outside the scroller, and clear of
+the hint line. Z2: placeholder `Nearest building to the view`, From pre-filled
+(`Moontower` at the spawn camera), Enter routes, `Where I am standing` renders
+nowhere. Z3: `SMC` greyed and tagged, Enter answers `SMC is not walkable in
+this build yet`. Doors: seven pairs, **no derived door is ever called "the main
+entrance"** — MCA, GDC and MAI say it because their doors are `src: osm`; WEL,
+PAI, BIO and CBA say `Entrances are on this side`. Honesty: **11 rendered
+states, 151 strings, 61 distinct, scanned against §12's forbidden families in
+the live DOM** — no single-number minutes, no clock times, no flights, no step
+totals, no hill vocabulary, no accessibility badge, no open/closed, no "you'll
+make it". The one accessibility mention is §11's own mandated disclaimer,
+verbatim. Zero wayfind console errors in every run.
+
+### What I did NOT manage to do
+
+* ~~No night frames.~~ **Taken after all, on the merge commit**: the phone
+  gate (12/12) and the clip-URL gate (7/7) were both re-run at `p=0.92` and
+  `shots/walk/final2/7-the-recordable-url-at-night.png` and `8-phone-at-night.png`
+  are the frames. The night clip frame is the better of the two — the amber
+  route reads clean against a dark city with the Tower lit behind it. What is
+  still missing is a night version of the three DESKTOP card frames.
+* **The 78 register codes still do not route** — unchanged, and it still needs
+  doors authored in `data/entrances.geojson`, another lane's file. §136 has the
+  shopping list with coordinates.
+* **Nobody has stood in front of the EER footprint** the Pointe on Rio route
+  clips, and nobody has stood in front of the Moody Center's recovered door
+  either. Every door claim in this feature is checked against OSM, not against
+  Austin.
+* **`avoidShown` still hardcodes "189 mapped staircases"** — a count of the
+  whole network, not of what the router avoided. Named in §125 and §137 and
+  still true.
+* **The route at cruise is a thread lying over the rooftops.** That is by
+  design — the ribbon is for walking height — but it is the thing to look at in
+  frame 6 and decide about, and it is a taste call, so it is Simeon's.
+* **Still nothing on a real phone.** 393x852 in headless Chrome is not an
+  iPhone.
+
 ---
 
-## 136. Aug 16 2026 — Y12: the near plane comes in from 0.72 m to 0.12 m at walking height, and the flyover does not move one bit (acer lane, n4-mobile)
+---
+
+## 139. Aug 16 2026 — Y12: the near plane comes in from 0.72 m to 0.12 m at walking height, and the flyover does not move one bit (acer lane, n4-mobile)
 
 **Branch `acer/n4-mobile`, cut from `origin/main` (`6a63b4f`). NOT MERGED —
 pushed for review.** Files written: `js/app.js` (near plane only, two hunks),

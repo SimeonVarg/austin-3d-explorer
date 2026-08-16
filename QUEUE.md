@@ -1273,7 +1273,7 @@ than "we don't have it".** §114 asked for this as a schema change to
 `scripts/bake_walk.py` and it is not done: add the remaining register codes with
 an empty door list.
 
-**Z4. Six of the twenty-four West Campus towers are not in the graph at all** —
+**~~Z4.~~ CLOSED (2026-08-16, HANDOFF 136 — all 24 towers route, verified by a second independent router on the shipped wire file). Original entry:** Six of the twenty-four West Campus towers are not in the graph at all —
 **21 Rio, Skyloft Austin, The Quarters Sterling House, The Block, Pointe on Rio,
 The Venue on Guadalupe**. All 24 are in `data/westcampus.geojson` with lobby
 doors; `walk_graph.json`'s `wc` map has 18. Simeon's brief says "works with
@@ -1284,7 +1284,7 @@ both LABELLED ON SCREEN** in the golden-hour hero frame
 (`shots/walk/final/90-hero-unchanged-origin-main.png`). A student reads the name
 off the city, types it, and gets an empty list. `scripts/bake_walk.py`.
 
-**Z5. A drawn route repaints the whole city fifteen times a second, forever.**
+**~~Z5.~~ CLOSED and MEASURED (2026-08-16, HANDOFF 137 + 138 — 0.0 setPaint/s and 0.0 render/s at walking height, tab-hidden and 14 s after drawing; was 7.8-9.7). Original entry:** A drawn route repaints the whole city fifteen times a second, forever.
 `startPulse()` runs a `requestAnimationFrame` loop that calls
 `setPaintProperty(..., 'line-gradient', ...)` at `pulseFps` 15 for as long as a
 route is on screen. Every one of those marks the style dirty and forces a full
@@ -1295,7 +1295,7 @@ city for an effect nobody can see.** Nobody has measured the frame cost. Gate it
 on the thread being visible at all, and measure it with `perf.mjs` before and
 after (quote the 4x CPU throttle).
 
-**Z6. Not a defect, a gap:** `?clip=1&from=JES&to=WEL&fit=1` is advertised in
+**~~Z6.~~ CLOSED (2026-08-16, HANDOFF 137 + 138 — the fit waits for the intro and frames the route at t=43.8 s, pitch 55). Original entry:** Not a defect, a gap: `?clip=1&from=JES&to=WEL&fit=1` is advertised in
 §114 as the recordable URL, and every isolation run that produced it also
 carried `intro=0`, which that URL does not. See §116 for what the camera
 actually does when the intro is left running.
@@ -1313,7 +1313,7 @@ laid across the rooftops and the tree canopies. Either put `intro=0` in the
 advertised URL or make `?fit=1` wait for the intro to finish.
 Frame: `shots/walk/final/13-the-advertised-recording-url-ends-on-the-intro-pose.png`.
 
-**Z7. On a phone the answer column is 197 px wide and can never be wider.**
+**~~Z7.~~ CLOSED TWICE (2026-08-16, HANDOFF 137 for the width, 138 for the button it still sat under). Original entry:** On a phone the answer column is 197 px wide and can never be wider.
 `#wf-pill` is `position:absolute; left:50%; transform:translateX(-50%)`, so its
 shrink-to-fit available width is `100% - 50%` = 196.5 px on a 393 px screen and
 the `max-width:calc(100vw - 32px)` in the `@media(max-width:640px)` block **never
@@ -1322,15 +1322,116 @@ its own button. One line in the media block: `left:16px; right:16px;
 transform:none`. Nothing collides with the existing controls — that was measured
 box by box and is fine.
 
-**Z8. The open bottom sheet covers the joystick.** At 393x852 the sheet takes the
+**~~Z8.~~ CLOSED (2026-08-16, HANDOFF 137 — sheet y324..634, stick y682..782, elementFromPoint returns the joystick). Original entry:** The open bottom sheet covers the joystick. At 393x852 the sheet takes the
 bottom ~230 px and `#joystick-zone` sits at y 682-782, entirely inside it.
 `docs/walk/interface.md` §4 says the joystick and the hint are hidden at this
 width while searching; nothing in the shipped CSS does that.
 
-**Z9. Typing a partial word still puts the wrong Jester first.** §114 fixed the
+**~~Z9.~~ CLOSED (2026-08-16, HANDOFF 137 — seven ranking cases green, the +N more row is out of the scroller). Original entry:** Typing a partial word still puts the wrong Jester first. §114 fixed the
 exact code — `JES` returns `JES` — but `jest` returns **JCD Jester East Hall**
 ahead of **JES Beauford H. Jester Center**, because the rung sorts routable-first
 then shortest display name. Both are on screen so nobody is misrouted; it is
 still the wrong first row. And in the same panel, `#wf-list`'s `max-height:196px`
 cuts the `+ N more — keep typing` row in half so it collides with the hint line.
 `shots/walk/final/09-typing-jest-shows-both-jesters.png`.
+
+---
+
+# PART Z — THE STATE OF IT, 2026-08-16, overnight (HANDOFF §136, §137, §138)
+
+**Z0 CLOSED. Z1 CLOSED. Z2 CLOSED. Z3 CLOSED, both halves. Z4 CLOSED, both
+halves. Z5 CLOSED. Z6 CLOSED. Z7 CLOSED. Z8 CLOSED. Z9 CLOSED.** Everything
+above this line is kept for the record and every entry in it has been
+answered; read this block for what is true now.
+
+**Z3 / Z4 — closed, and the QUEUE was the last thing still saying otherwise.**
+All 24 West Campus towers are in the graph and every one routes end to end
+(§136 decoded the shipped wire file with a second, independent router: 21 Rio
+843 m, Pointe on Rio 1,017 m, Quarters Sterling 925 m, Skyloft 718 m,
+The Block 1,436 m, The Venue 1,140 m). Every name the search offers is
+routable, and a register code the graph lacks answers `SMC is not walkable in
+this build yet` rather than showing an empty list. **120 of 198 register codes
+route**, on two independent measurements.
+
+**Z5 — closed, and MEASURED, not read.** A drawn route no longer repaints the
+city forever. Headed Chrome, real GPU (RTX 3050 Ti, D3D11), 4 s windows,
+three interleaved reps, minimum reported, noise floor first, machine at
+25-99 % CPU with three sibling workflows running:
+
+```
+condition                         BEFORE (main)      AFTER
+                                setPaint/s render/s  setPaint/s render/s
+no route (FLOOR)                    0.0      0.0        0.0      0.0
+route, cruise, thread visible      11.2     26.7        8.7      8.9
+route, WALKING, thread invisible    7.8      9.7        0.0      0.0
+route, cruise, TAB HIDDEN           9.0      9.0        0.0      0.7
+route, cruise, 14 s later           9.7     12.7        0.0      0.0
+```
+
+**Z6 — closed.** `?clip=1&from=JES&to=WEL&fit=1`, loaded exactly as the docs
+write it with the intro left running, waits for the opening flight and then
+frames the whole route: fit lands at t=43.8 s at `fitPitch` 55, whole bbox in
+the viewport, 72 rendered route features, 13 chrome elements gone, OSM credit
+still painting. `shots/walk/final2/6-the-recordable-url.png`.
+
+**Z7 — closed TWICE.** The 197 px column became a 361 px full-width bar
+(§137), and this pass found it still sitting **under `#fb-button`** on a
+phone: `--wf-pill-top` 68 px is the row below ONE button and the phone block
+stacks a second at `top:58px`. Measured bar y68..135 against button y58..92;
+now 100 px, six real headlines all 361 px and all on one line, zero overlap.
+
+**Z8 — closed.** Sheet y324..634, joystick y682..782, `elementFromPoint` at
+the stick's centre returns the joystick and at BOOST's centre returns BOOST.
+Touchable, not merely drawn.
+
+**Z9 — closed.** `jest`, `jester`, `jes`, `welch`, `greg`, `burd`, `paint` all
+rank the intended building first; exact `JES` is the only row; `jester east`
+finds JCD by its displayed name; `+ 28 more` is whole, outside the scroller,
+clear of the hint line.
+
+### WHAT IS ACTUALLY LEFT, with numbers
+
+**ZA. 78 of 198 UT register codes still do not route, and the wall is door
+supply, not connectivity.** 624 of 629 doors attach to the graph (99.2 %); the
+five that do not are 30.9-47.4 m out and their buildings are routable by
+another door. Of the 78: **50 are not on the map at all** (no OSM `ref`, no
+footprint carrying the name — greenhouses GHA-GHF, storehouses E11-E27,
+graduate housing, NUR, SMC), **26 are on the map with the nearest mapped door
+> 40 m and belonging to a different building** (HDB 183 m, JHH 133 m, UTA
+99 m, SAG 78 m, TRG 67 m), and **2 were checked by hand and refused**. **The
+fix is authoring doors in `data/entrances.geojson`, which is another lane's
+file** — §136 has the shopping list with coordinates: NUR, UTA, HDB, HTB, JHH,
+WMB, CDL, ANB, LCH, SAG, TRG, GUG, HCG are buildings a surveyor has already
+drawn where only the door is missing.
+
+**ZB. One of twenty student routes clips a building, and nobody has looked at
+it.** Pointe on Rio > EER runs one 13.9 m edge with 4.1 m inside an unnamed,
+unclassed footprint at `-97.7351, 30.2874`, beside EER. It is on the base
+graph — `origin/main` has the same edge — and it is one of the 22-of-299
+flagged pairs the bake's own sweep reports. It may be an arcade; it may be a
+mistake. Standing there (or reading the OSM way) is the only way to know.
+
+**ZC. `avoidShown` hardcodes "Avoids 189 mapped staircases".** That is a count
+of the whole network, not of what the router actually avoided on the route
+being shown. It should come off the graph. Named in §125, §137 and §138.
+
+**ZD. Nothing in this feature has been on a real phone.** 393x852 in headless
+Chrome is not an iPhone: no real touch, no real DPR behaviour, no Safari.
+
+**ZE. Nobody has stood in front of any door.** Every door claim is checked
+against OSM entrance nodes, which under-map; the known worst-case derived-door
+position error is 76 m (Norman Hackerman) and the interface's wording is built
+to survive that, but it has never been checked against Austin.
+
+**ZF. A taste call for Simeon, not a defect.** At cruise the route is a thread
+lying over the rooftops (the ground ribbon is for walking height, and fades in
+as you descend). Look at `shots/walk/final2/6-the-recordable-url.png` and say
+whether that reads right for the recording.
+
+**ZG. THE FEATURE IS STILL OFF FOR EVERY VISITOR AND THAT IS DELIBERATE.**
+`WAYFIND.on` is one constant in `js/wayfind.js`. With no `?walk=1` there are
+zero wayfind layers, sources, DOM nodes and globals, zero fetches of
+`walk_graph.json` or `ut_buildings.json`, and six hero-class poses are at or
+below their own cross-launch noise floor against `origin/main` (H1 byte-
+identical). **Flipping it is Simeon's call and should wait for the AWS
+recording.**
