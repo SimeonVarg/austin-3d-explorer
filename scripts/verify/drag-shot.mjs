@@ -25,10 +25,11 @@
 import { chromium } from 'playwright-core';
 import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import fs from 'node:fs';
+import { requireShots } from './lib/args.mjs';
 import path from 'node:path';
 
 const OUT = process.argv[2] || 'drag';
-const SHOTS = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+const SHOTS = requireShots(process.argv[3], 'node drag-shot.mjs <outPrefix> <shots.json> [extraQuery]');
 const EXTRA = process.argv[4] ? '&' + process.argv[4] : '';
 const PER_SESSION = 4;   // shots before the browser is recycled
 // ?intro=0 is not optional. The intro easeTo does not start for a couple of

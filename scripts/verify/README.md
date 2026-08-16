@@ -18,27 +18,91 @@ cd scripts/verify && npm install
 That installs `playwright-core` only (no browser download — it uses your
 installed Chrome). If Chrome is somewhere unusual, set `CHROME_PATH`.
 
+**`npm install` is not optional and its absence is invisible.** The repo's own
+checkout carried an EMPTY `scripts/verify/node_modules` on 2026-08-16 — the
+directory existed, so nothing looked wrong, and every script in here died on
+`Cannot find module 'playwright-core'`. A fresh worktree has no `node_modules`
+at all. Run the install, or copy one in, before you conclude anything about a
+script's health.
+
 ## Running
 
-Serve the repo root on port 8099 first, from the repo root:
+Serve the repo root on **a port nobody else is using** — never
+`python -m http.server`, which has no directory scoping and will happily serve
+another lane's worktree if it bound first:
 
 ```bash
-python -m http.server 8099 --bind 127.0.0.1
+python scripts/serve.py 8442        # from the repo root
 ```
 
-Then, from `scripts/verify`:
+Then, from `scripts/verify`, with `VERIFY_URL` pointing at that port:
+
+```bash
+VERIFY_URL=http://127.0.0.1:8442 node <script>
+```
+
+`BASE` in `chrome.mjs` reads `VERIFY_URL` and defaults to `:8099`. A script that
+hardcodes a port is a bug — it measures whichever checkout answers first.
+
+### Start here
+
+```bash
+node harness-drift.mjs        # PREFLIGHT. Text only, milliseconds, no browser.
+node inventory.mjs            # what in this directory still runs at all
+```
+
+`harness-drift.mjs` runs from any working directory (it resolves the repo from
+its own path). Put it first in any suite — every pixel number in this harness is
+void if `_harness.html` and `index.html` have drifted apart.
+
+`inventory.mjs` runs every script in here with a short budget and classifies it
+CRASHES / FAILS / NEEDS-ARGS / PASSES / REACHES-BROWSER. Read its header for
+what each bucket does and does not claim. **REACHES-BROWSER is not a pass** —
+it means "still alive at the budget", nothing more.
+
+### The core gates
 
 ```bash
 node movement.mjs      # camera: symmetry, vertical control, momentum, stuck keys (14 assertions)
 node collision.mjs     # never inside a building, streets stay flyable, joystick+look (8 assertions)
+node walk.mjs          # a scripted walk really walks, at 1.7 m, and can be watched failing
 node sky.mjs           # one-sun coherence, disc projection, blend invariants (12 assertions)
-node dusk.mjs          # the dusk handover must be continuous (prints worst frame-to-frame change)
-node silhouette.mjs    # the skyline must read DARK against the sky at dusk and night
-node banding.mjs       # 8-bit banding in the sky gradient + sky overlay cost
+node dusk.mjs          # the dusk handover is continuous, measured in PIXELS across a p sweep
+node night-silhouette.mjs   # the skyline reads DARK against the sky at dusk and night
+node banding.mjs       # the sky gradient is still a gradient + updateSky cost
 node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
 ```
 
-`movement.mjs` accepts `--report` to print the table without failing.
+`movement.mjs`, `dusk.mjs` and `banding.mjs` accept `--report` to print the
+table without failing.
+
+### Exit codes mean something
+
+`0` the assertions passed. `1` an assertion failed. `2` the script could not
+run — bad or missing arguments. `124` the `chrome.mjs` watchdog killed it.
+Anything else is a crash. Before 2026-08-16 several scripts printed `*FAIL` and
+then exited `0`, so nothing in here could be automated; if you add a script,
+make its exit code its verdict.
+
+### Every gate must be watchable failing
+
+Several scripts take `--break`, which sabotages the thing they guard **inside
+the page only** (no file on disk changes) and must come back red:
+
+```bash
+node dusk.mjs --break              # a step discontinuity patched into skyBodies
+node banding.mjs --break           # the sky overlay hidden
+node night-silhouette.mjs --break  # building walls forced to #f2f2f2
+node westcampus-probe.mjs --break  # one of the three wc- layers hidden
+node walk.mjs                      # ships its own watched failure, see §145
+node coplanar.mjs --selftest       # eight assertions; makes itself fail
+```
+
+This repo has shipped a guard that could not fail **four separate times** (the
+harness drifting from index.html, twice; a stale hand-maintained family list; a
+star test that physically could not fail; a coplanar checker blind to 122,773
+faces). Reviving a crasher into a permanent green would be a fifth. If you fix a
+guard, watch it go red first.
 
 ## Things that will waste your time if you don't know them
 
@@ -62,6 +126,37 @@ node shot.mjs <prefix> [shots.json]   # screenshots at named camera poses
   the second.
 - **To find which layer owns a pixel**, hide layers one at a time and diff. To
   test *where* something is, paint it magenta and take one render.
+- **A mass edit across every script in here can delete a script's whole body
+  and nothing will notice.** Commit `90ad9d7` (2026-07-31, "the verification
+  harness must not outlive its own process") rewrote all ~80 scripts to route
+  through `launch()`. In seven of them the edit swallowed `newPage`, `goto` and
+  the entire `page.evaluate` and left the trailing `console.log` behind, so the
+  file still parsed, still launched a browser, and then threw
+  `ReferenceError: r is not defined`. They stayed that way for **sixteen days**,
+  across the sky rewrite two of them existed to guard, and were found only
+  because someone finally ran everything. Nothing in this repo runs the suite on
+  a schedule; `inventory.mjs` is the cheapest substitute. Run it after any
+  sweeping change to this directory.
+
+## Scripts that have been deleted, and why
+
+Kept here so nobody restores them from history thinking they were lost.
+
+- **`silhouette.mjs`** (deleted 2026-08-16). Superseded by
+  `night-silhouette.mjs`, which makes the identical claim at the identical
+  threshold but samples seven columns instead of one, includes `parts-3d`/
+  `parts-roof` in the roofline scan, samples the sky above the *computed*
+  horizon rather than 2.5% above the roofline (the old sample was reading
+  distant GROUND — luma 11 at night beside 117 at dusk for the same pixel),
+  honours `VERIFY_URL`, and exits non-zero when it fails. The old one printed
+  `*FAIL` and exited 0.
+- **`night-debug.mjs`** and **`night-roadprobe.mjs`** (deleted 2026-08-16).
+  Both are labelled "one-off" in their own headers, both were gutted by
+  `90ad9d7` and had thrown ever since, and both are covered:
+  `night-dusk-truth.mjs` and `tower-atlas-tone.mjs` read the same facade-atlas
+  image bytes `night-debug` read, and `road-probe.mjs` prints a strictly richer
+  version of `night-roadprobe`'s transportation histogram. A dead script that
+  everyone steps around is debt.
 
 ## Debug hooks the suite relies on
 

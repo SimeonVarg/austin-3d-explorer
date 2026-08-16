@@ -17,8 +17,11 @@
 import { chromium } from 'playwright-core';
 import { chromePath, BASE as SERVER, launch } from './chrome.mjs';
 import path from 'node:path';
+import { usage } from './lib/args.mjs';
 
 const [, , file, X, Y, W, H, out, scaleArg] = process.argv;
+if (!file || X === undefined || Y === undefined || W === undefined || H === undefined || !out)
+  usage('node crop.mjs <page.html> <x> <y> <w> <h> <out.png> [scale]');
 const S = Number(scaleArg || 3);
 const url = /^https?:/.test(file)
   ? file

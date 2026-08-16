@@ -22,7 +22,26 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DATA = join(ROOT, 'data');
-const SNAP = join(DATA, 'snapshots', '2026-07-30', 'buildings.detailed.geojson');
+// READ THE SNAPSHOT THE APP ACTUALLY LOADS, not a date frozen into this file.
+//
+// js/app.js boots on `data/manifest.json`'s `latest`. This line said
+// '2026-07-30' and stayed there while eight newer snapshots landed — so on
+// 2026-08-16, with the app rendering the 2026-08-16 snapshot, the
+// "claimed but not in the detailed snapshot" half of this audit was comparing
+// bake claims against a building set six weeks stale. That is this repo's
+// signature failure: a guard passing because it is not looking at the thing it
+// guards. The date is now derived, and an unreadable manifest is a hard error
+// rather than a silent fallback.
+const MANIFEST = JSON.parse(readFileSync(join(DATA, 'manifest.json'), 'utf8'));
+// `--snapshot <date>` overrides it. That exists so this gate can be WATCHED
+// FAILING against an older snapshot without editing data/manifest.json — a
+// guard nobody has seen go red is not evidence of anything.
+const snapArg = process.argv.indexOf('--snapshot');
+const SNAP_DATE = snapArg >= 0 ? process.argv[snapArg + 1] : MANIFEST.latest;
+if (!SNAP_DATE) { console.error('data/manifest.json has no `latest`'); process.exit(2); }
+const SNAP = join(DATA, 'snapshots', SNAP_DATE, 'buildings.detailed.geojson');
+
+console.log(`snapshot ${SNAP_DATE}${snapArg >= 0 ? '  (--snapshot override; manifest.latest is ' + MANIFEST.latest + ')' : '  (from data/manifest.json latest)'}`);
 
 const files = readdirSync(DATA).filter((f) => f.endsWith('.geojson'));
 
