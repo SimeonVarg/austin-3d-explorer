@@ -16623,3 +16623,8 @@ Both are `querySourceFeatures` returning a complete feature list before the
 `*_BUDGET_MS` clock even starts, which is why a 4 ms and a 3 ms budget bound
 nothing. Ask tile by tile. And run `perf-budget.mjs` before and after: the
 cruise half of it is valid and discriminating today.
+
+**Re-verified after rebase onto `origin/main` `6a63b4f`** (which landed Y10/Y12,
+touching walking): `harness-drift.mjs` PASS, guard runs, same verdict shape —
+G3 120.0 ms / G5a 3.79 % on a busy machine, G2/G4/G5b still INVALID 0/2. The
+walking-height ceiling is unchanged by that pass.
