@@ -1,6 +1,11 @@
 /**
  * drift-check.mjs — the idle cinema and the photo key, against the REAL page.
  *
+ * THE ONE SCRIPT THAT MUST NOT PASS ?drift=0. Everything else in this suite now
+ * does (suite-lint enforces it); this file is the guard ON the idle cinema, so
+ * disabling it here would be the fifth guard in this repo that cannot see the
+ * thing it guards. The exemption is deliberate and is asserted by suite-lint.
+ *
  * Loads index.html?intro=0 (the flight is verified separately; skipping it puts
  * the idle countdown on a known clock), waits out DRIFT.idleMs, and asserts:
  *   1. the camera starts drifting on its own (bearing moves, easing active)

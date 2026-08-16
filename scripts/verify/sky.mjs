@@ -13,9 +13,43 @@ const browser = await launch(chromium);
 const page = await browser.newPage({ viewport: { width: 900, height: 620 } });
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
-await page.goto(`${BASE}/index.html?intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
+// `--drift` REPLAYS THE INCIDENT (added 2026-08-16, §155) and is the watched
+// failure for this file. Without ?drift=0, js/app.js's idle cinema wakes after
+// 25 s of input silence and creeps the hour by DRIFT.pStep = 0.010 every 12 s
+// leg while easing the bearing 13 deg — so §2 below compares a light written at
+// one instant against a sun asked for at another. That is what made this file
+// report 10/12 with "worst mismatch 4.82 deg" on the night the sky shipped. The
+// sun was innocent; the ruler was moving. Run `node sky.mjs --drift` to watch it
+// go red on demand, which is the only way anyone knows this gate still can.
+//
+// IT IS A REPLAY, NOT THE WATCHED FAILURE, and the difference is the point.
+// The drift is wall-clock scheduled and `canRun()` gated, so whether a leg lands
+// between §2's write and its read is a race: three runs of this file on the same
+// build gave 4.82 deg, 1.20 deg and — with --drift — 12/12 clean. An
+// intermittent red is not a gate anyone can rely on. `--break` below is the
+// deterministic one.
+const DRIFT_ON = process.argv.includes('--drift');
+if (DRIFT_ON) console.log('*** --drift: the idle cinema is LEFT ON. §2 may fail; it is a RACE, so a clean run proves nothing.\n');
+await page.goto(`${BASE}/index.html?${DRIFT_ON ? '' : 'drift=0&'}intro=0`, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), null, { timeout: 60000 });
 await page.waitForTimeout(4500);
+await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+
+// THE WATCHED FAILURE (added 2026-08-16, §155). A guard nobody has seen fail is
+// not known to work — four guards in this repo passed because they could not see
+// what they guarded, and this file could not report a failure AT ALL until
+// tonight (it printed *FAIL and exited 0). So: sabotage the exact claim §2
+// makes — "MapLibre's light agrees with the same sun" — IN THE PAGE ONLY, by
+// biasing the azimuth handed to setLight. No file on disk changes and nothing
+// else in the scene moves. §2 must come back red, and the run must exit 1.
+if (process.argv.includes('--break')) {
+  const BIAS = Number(process.env.SKY_BREAK_DEG || 7);
+  await page.evaluate((bias) => {
+    const m = window.__map, real = m.setLight.bind(m);
+    m.setLight = (o, ...rest) => real({ ...o, position: [o.position[0], (o.position[1] + bias) % 360, o.position[2]] }, ...rest);
+  }, BIAS);
+  console.log(`*** --break: setLight azimuth biased +${BIAS}° IN THE PAGE. §2 must fail and the exit code must be 1.\n`);
+}
 
 const results = [];
 const check = (n, pass, d) => results.push({ name: n, pass, detail: d });
@@ -225,4 +259,14 @@ check('no uncaught page errors', errs.length === 0, errs.slice(0, 3).join(' | ')
 console.log('');
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 console.log(`\n${results.filter(r => r.pass).length}/${results.length} passed`);
+
+// EXIT CODE, added 2026-08-16 (§155). This file printed *FAIL and exited 0 for
+// its whole life. §149 deleted silhouette.mjs partly for exactly that and added
+// no lint to stop the next one; suite-lint rule 7 does now. Every wrapper in
+// this repo reads the exit code — inventory.mjs classifies on it and §142 made
+// exit codes load-bearing — so a red printed only to scrollback is a red that
+// nothing downstream can see.
+const _failed = results.filter(r => !r.pass);
+if (_failed.length) console.log('\n*FAIL — ' + _failed.length + ' of ' + results.length + ' failed: ' + _failed.map(r => r.name).join('; '));
+process.exitCode = _failed.length ? 1 : 0;
 await browser.__done();

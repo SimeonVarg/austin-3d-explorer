@@ -123,8 +123,18 @@ export const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8099';
  *
  * If a run genuinely needs longer than the watchdog, pass VERIFY_MAX_MS. Do not
  * remove the watchdog.
+ *
+ * READ AT launch() TIME, NOT AT IMPORT TIME (changed 2026-08-16, §155). It used
+ * to be a module-level `const`, which meant a script could not raise its own
+ * ceiling: ESM hoists imports, so a `process.env.VERIFY_MAX_MS ||= ...` at the
+ * top of the script ran AFTER this module body had already frozen the value.
+ * `walk.mjs` needs ~7 minutes for 3 sites plus the watched failure and was
+ * therefore UNRUNNABLE the way README documents it — exit 124, killed mid-gate,
+ * one minute after it had already printed PASS on all three sites. A gate that
+ * cannot finish inside its own watchdog is a dead gate, in the same family as a
+ * gate that crashes. Callers may also pass `maxMs`.
  */
-const MAX_RUN_MS = Number(process.env.VERIFY_MAX_MS || 300000);
+const DEFAULT_MAX_RUN_MS = 300000;
 
 /**
  * The tag reap.mjs filters on. It must be present on EVERY harness browser,
@@ -156,7 +166,9 @@ export async function launch(chromium, opts = {}) {
     ...(opts.args || glArgsFor(opts.gl || (headed ? 'hardware' : null))),
     MARK_ARG,
   ])];
+  const MAX_RUN_MS = Number(opts.maxMs || process.env.VERIFY_MAX_MS || DEFAULT_MAX_RUN_MS);
   delete opts.gl;
+  delete opts.maxMs;
   const browser = await chromium.launch({
     executablePath: chromePath(),
     headless: true,

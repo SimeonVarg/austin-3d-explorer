@@ -20274,6 +20274,14 @@ number in a commit is the record of what was accepted.
   `tower-atlas-tone.mjs` read the same facade-atlas bytes, and `road-probe.mjs`
   prints a strictly richer transportation histogram.
 
+### Re-verified on the merged tree, not on the branch
+
+`origin/main` moved twice while this was open (PR #192 and a docs commit; two
+sibling HANDOFF sections both numbered 152, so this one is 154). After merging:
+`harness-drift.mjs` PASS, `suite-lint.mjs` PASS with 0 blocking findings,
+`sky.mjs` **12/12**, `dusk.mjs` PASS with the one named Y20 allowance,
+`coplanar.mjs --gate` **green** after the re-record.
+
 ### WHAT THIS PASS DID NOT ESTABLISH
 
 1. **107 of 138 scripts are still unknown.** They reach a browser. Nothing here
@@ -21104,9 +21112,9 @@ the within-main floor. That is noise, not a city that moved. Query counts
 (`entrances-portal`, `entrances-glass`, `austin-drag`, `austin-westcampus`)
 were identical at every pose on every arm.
 
-### 154.7 WHAT WAS DELIBERATELY NOT DONE — now QUEUE NB6 and NB7
+### 154.7 WHAT WAS DELIBERATELY NOT DONE — now QUEUE NB8 and NB7
 
-* **`data/facade_palette.json` not re-baked** (NB6), against §153's own item 1.
+* **`data/facade_palette.json` not re-baked** (NB8), against §153's own item 1.
   It is `bake_facades.py`'s output — another lane's bake — and re-arming a boot
   path that is currently off is a behavioural change wanting its own
   before/after, not a smuggled one-liner the night before a recording. It is
@@ -21144,8 +21152,363 @@ were identical at every pose on every arm.
 
 Two throwaway worktrees used and removed; the server on 8481 killed;
 `reap.mjs` NOT run. No `git stash` at any point. Branch deleted after merge.
+## 155. Aug 16 2026 — the sky gate was red about the sun, could not say so, and the thing moving the sun was the screensaver (QUEUE Y15 replicated, Y20 photographed, Y22/Y23 opened) (acer lane, branch `acer/n14-suite-health`)
 
-## 155. Aug 16 2026 — the guard that refused the baked palette was the only reason the Capitol looked lit; NB6 closed, and it was not a boot-cost item (QUEUE NB6) (acer lane, branch `acer/o3-palette`, PR pending — NOT merged)
+`acer/n11-verify` was **already merged** (PR #190, `d98099a`) and contained
+nothing `origin/main` did not, so there was nothing to merge in; this branch is
+cut from `origin/main` `ee6052b` instead. **Files written: `scripts/verify/`,
+`shots/verify/`, `QUEUE.md`, `HANDOFF.md` only.** No app file, no data file, no
+bake. Served with `python scripts/serve.py 8443` from a throwaway worktree;
+`harness-drift.mjs` PASS before any pixel was read.
+
+**First, the correction to the brief.** `dusk.mjs`, `night-silhouette.mjs` and
+`banding.mjs` HAD already run against the rewritten sky — §149 revived them
+hours earlier and `js/sky.js` has not changed since `0a60dd0`. They ran again
+here, independently, and all three pass: dusk 0 unexcused steps of 60 with the
+Y20 allowance (and red under `--strict`, as designed), night-silhouette +16.1
+night / +12.8 dusk, banding 9/9. What had **not** been run was `sky.mjs`
+itself, and that is where the night went.
+
+### THE HEADLINE: the sky's own gate was red, about the sun, and exited 0
+
+```
+*FAIL  setLight azimuth equals the shared sun azimuth      worst mismatch 4.82 deg
+*FAIL  setLight polar equals 90 minus the sun elevation    worst mismatch 2.00 deg
+10/12 passed
+SKY_EXIT=0
+```
+
+Two red assertions about where the sun is, on the sky that shipped hours
+earlier, returning **success** to every caller. `collision.mjs` and
+`night-sky.mjs` were the same shape. §149 deleted `silhouette.mjs` partly for
+this exact defect — `*FAIL` followed by exit 0 — and added no check to stop the
+next one.
+
+### It was the RULER, and proving that mattered more than the finding
+
+Writing "js/sky.js regressed" would have cost another lane a night. The
+magnitude wandered — 4.82, then 0.92, then 1.20 degrees on the same build — and
+a wrong formula does not wander. `sunlight-probe.mjs` (new) separated the
+hypotheses by measurement rather than argument, sampling three ways at eight
+hours:
+
+| | p=0.10 | p=0.25 | p=0.50 | p=0.80 | worst |
+|---|---|---|---|---|---|
+| **A** as `sky.mjs` does it | 2.08 | 4.82 | 1.20 | 0.92 | **4.82** |
+| **B** quantised both sides | 1.75 | 4.82 | 1.20 | 1.21 | **4.82** |
+| **C** forced both sides | 0 | 0 | 0 | 0 | **0.00** |
+
+Column C is the answer: **with both sides on the same instant the light agrees
+with the shared bodies to the last decimal, at every hour.** The light maths is
+exact. So something was moving the hour between the write and the read — and
+wrapping `map.setLight` caught it:
+
+```
+p=0.1   setLight called 2x   sent az [118.8, 120.88]   __todCurrentP 0.11
+```
+
+Two calls for one request, and `__todCurrentP` left at **0.11 for a requested
+0.1**.
+
+### The second writer is the screensaver, and 38 scripts were exposed to it
+
+`js/app.js`'s **idle cinema**: after `DRIFT.idleMs = 25 s` of input silence it
+eases the bearing `13 deg`, breathes the zoom `0.05`, and creeps the hour by
+`DRIFT.pStep = 0.010` — exactly the 0.1 to 0.11 — every 12 s leg. A scripted run
+sends no pointer or key events, so **the countdown never re-arms**.
+
+It is not a bug. It is a shipped feature with a shipped opt-out, and `js/app.js`
+says so in its own comment: *"?drift=0 disables it for scripted runs against
+index.html."* **91 of 129 page-loading scripts passed it. 38 did not** —
+`sky`, `dusk`, `banding`, `night-silhouette`, `graphics`, `movement`,
+`collision`, `skycolour` and every `light-*`. All 38 do now. `drift-check.mjs`
+is exempt **by name** because it is the guard ON the idle cinema — adding
+`drift=0` there would have made it the fifth guard in this repo that cannot see
+what it guards, and it still PASSES. **With the drift off, `sky.mjs` is 12/12,
+three separate runs.**
+
+**A clean run with the drift ON proves nothing.** `sky.mjs --drift` replays the
+incident but came back 12/12 once — whether a 12-second leg lands between the
+write and the read is a race. That is why this survived, and it is why the
+file's watched failure is `--break` (bias the `setLight` azimuth +7 deg in the
+page): deterministic, red, exit 1.
+
+### THE HEALTH TABLE: 25 green / 12 red, of 38 GATES
+
+§149 measured what crashes and left 107 of 138 unknown. A phase-B pass over all
+138 was projected at **twelve hours**, and most of that was spent
+photographing: `art-sheet.mjs` and `arts-shots.mjs` each burned a 240 s budget
+taking pictures. Photographing is not asserting. So the health question is
+scoped to what can actually fail — a **GATE** prints a PASS/FAIL verdict AND has
+a path to a non-zero exit — classified from source on every run by
+`inventory.mjs --gates`, never from a list, because a hand-maintained list is
+what gave this repo one of its four blind guards.
+
+```
+green 25   RED 12   (of 38 gates)
+```
+
+and the twelve are three different things:
+
+- **Five are the 300 s watchdog (exit 124), verdict UNKNOWN:** `movement.mjs`
+  (316 s — README's FIRST gate, 14 camera assertions, unrunnable as documented),
+  `lookup-check` (303), `field-bleed` (302), `perf-budget` (306), `night-luma`
+  (300, and it retries on *"core did not settle"* — that one may be a real hang).
+- **Six are real assertion failures:** `graphics` 26/27 (slider live while
+  `.flying` with no pointer down), `orbit-check` 3/4 (the camera circles the
+  landmark — bearing moved 40 deg, easing false), `arts-check` 27/28 (LBJ
+  travertine 1.67x its own undercroft, wants >2x), `light-ae` 7/8,
+  `light-probe` 8/9 (its own precondition — probably the ruler again),
+  `capitol-merge`.
+- **One is `coplanar.mjs`, and it turned out to be a handoff, not a regression.**
+
+### `coplanar.mjs --gate` was red on arrival, and the fix was a handoff nobody had picked up
+
+```
+gate against baseline of 2026-08-16 (eps=0.01, frac=0.3):
+    REGRESSED  entrances.geojson          1558 -> 1627
+```
+
+**+69 pairs** — +68 from PR #191's 171 extra doors, +1 from PR #192's 25
+relocations. The first reading here was "a regression shipped tonight and
+nobody ran the gate". **That was wrong, and it is worth writing down that it was
+wrong**, because it is the same error in the opposite direction as the sky:
+accusing another lane on a number rather than reading what they wrote.
+
+They had measured all of it. §151 and §152 both print the ledger, both note that
+the added doors sit at **8.6 % and 6.7 % coplanar rate against the file's own
+standing 10.9 %** — i.e. *cleaner than the file average* — and both say plainly
+that `scripts/verify/coplanar-baseline.json` *"is your file this round and this
+lane did not touch it"*, and that 1627 is *"the number the suite-repair lane
+should expect when it re-records the baseline"*.
+
+So it was an unclaimed lane handoff, and this is the lane. Re-recorded: **the
+diff is one line, `entrances.geojson: 1558 -> 1627`, and nothing else in the
+file moved.** `--gate` is green on the merged tree. That commit is the record of
+what was accepted, which is the entire purpose of the pattern.
+
+### Y20 photographed, on the grid a person actually uses
+
+§149 measured Y20 with `force:true`, which bypasses `applyTimeOfDay`'s 1/128
+quantisation — and **0.590 and 0.595 both round to 76/128**, so the forced sweep
+could in principle have been reporting a step the app never draws. It is not.
+Across the two ADJACENT QUANTISED STEPS, force OFF, i.e. the exact call the
+slider makes:
+
+```
+75/128 = 0.58594   rgb 183, 81, 67    warm sunset glow
+76/128 = 0.59375   rgb 148,114,150    cold blue bloom
+                   |delta|  R35 G33 B83
+```
+
+**83 levels of blue in one notch of the shipped slider**, 3.2x `dusk.mjs`'s gate
+of 26, no forcing anywhere. `shots/verify/y20-q75.png` and `y20-q76.png`: the
+warm band along the western horizon is simply gone one step later. Y20 is
+upgraded from measured to **photographed and user-visible**; the fix is still
+the `js/sky.js` lane's. A side-finding: `shot.mjs` cannot photograph this at
+all, because it calls `applyTimeOfDay` without `force` and both poses round to
+the same frame.
+
+### Y15 replicated on a second walk
+
+`walk-trunk.mjs 3` again, quieter machine (chrome 26-35, node 2-3, CPU 6-51 %,
+against §145's 90-100 %): **the Drag 63.3 ms (3/3 valid), South Mall 52.0 ms
+(2/3, up from 1/3)**, duty 0.86 / 0.93 %. Every walk phase covered its full
+220 m at `maxAlt 1.7`, so the harness half of Y16 holds on a second
+machine-state. Lower than §145's 86.6 / 78.3 on a quieter machine, which is the
+expected direction — so **quote the range 52-87 ms, not a digit.** Neither
+841.5 nor 149.8 has ever reproduced.
+
+### Four harness defects fixed, each one a gate that could not run
+
+- **`walk.mjs` printed PASS on all three sites and then exited 124.** It needs
+  ~12 minutes; `chrome.mjs`'s watchdog is 300 s; and the ceiling could not be
+  raised from the script because `VERIFY_MAX_MS` was read into a module-level
+  `const` and ESM hoists imports, so any assignment in the caller ran too late.
+  It is read at `launch()` time now, with a `maxMs` option; `walk.mjs` and
+  `walk-trunk.mjs` derive theirs from the constants that set the walk length, so
+  adding a site cannot silently re-break them.
+- **`sky.mjs`, `collision.mjs`, `night-sky.mjs` could not exit non-zero.** They
+  can now, and they also cancel the graphics auto-detect probe (README calls it
+  law; all three run for far longer than its 11 s fuse).
+- **`suite-lint.mjs` gains the two rules that would have caught all of it** —
+  *"prints FAIL but cannot exit non-zero"* and *"loads the page without
+  ?drift=0"* — **both watched going red on a probe copy before being watched
+  going green.** The probe-cancel warning dropped 10 to 7 in passing.
+- **`inventory.mjs` writes its JSON after every script** and creates `out/`. A
+  phase-B run is hours long and the end-of-run write meant an interrupted run
+  produced nothing, which is part of why "run the whole suite" stayed undone.
+  It also takes `--exclude` and `--gates`.
+
+### WHAT THIS PASS DID NOT ESTABLISH
+
+1. **The ~100 non-gate scripts are still unmeasured, on purpose.** They
+   photograph and probe; they have no verdict to give. Nothing here claims one
+   for them, and the 25/38 must not be read as if it covered them.
+2. **The 22 `*-perf` scripts were excluded by name.** README says their numbers
+   are trustworthy *"only on an otherwise idle desktop"* and a sibling lane held
+   a browser for much of this run. Their health is a separate pass on a quiet
+   machine.
+3. **The five watchdog casualties are UNKNOWN, not red.** I did not raise their
+   ceilings and re-run them. `night-luma.mjs` in particular retries on *"core
+   did not settle"* and never converges, and whether that is slowness or a
+   genuine hang is not established here. `movement.mjs` is the one that matters
+   most: it is the first gate README lists and it cannot currently run.
+4. **The six real failures are one reading each.** Enough to say a gate is red,
+   not enough to quantify it, and none was chased to a cause.
+5. **`light-probe.mjs`'s failure says "test precondition"** and is more likely
+   the instrument than the app — I did not confirm which, and after tonight that
+   guess deserves a measurement rather than a sentence.
+6. **The server was reaped twice mid-run and relaunched** (per the standing
+   instruction not to diagnose). No gate row was classified as a connection
+   crash, but `night-luma.mjs`'s first row — exit 1 at 96 s with empty output —
+   is suspicious, and its honest verdict comes from the standalone re-run (124).
+7. **Y20 and Y21 remain diagnosed, not fixed.** Y22's one remaining suggestion
+   — that `js/app.js:1960` calls the module-local `applyTimeOfDay`, so the
+   cinema is invisible to every `window.applyTimeOfDay` wrapper — is a note for
+   that lane, not a change made here.
+8. **The shared checkout's `scripts/verify/node_modules` was EMPTY**, which
+   §152 flagged to this lane: `harness-drift.mjs` still passed (it is pure node)
+   while every playwright script there died on `Cannot find package
+   'playwright-core'`. `npm install` run; it resolves now. Note the shape — the
+   one guard that kept working was the one that needed nothing, which is exactly
+   how a dead suite reads as a live one.
+9. **Nothing runs this suite on a schedule.** §149 said it and it is still true.
+   `inventory.mjs --gates` is now cheap enough to be a step in a workflow; no
+   workflow asks for it.
+## 156. Aug 16 2026 — the 25 relocated doors were looked at: MAI never moved, three doors had been made invisible, and the rule is fixed (QUEUE NB8) (acer lane, branch `acer/nb-relocated`)
+
+**Full report, every number and every frame: `docs/entrances/relocated.md`.
+Pictures: `shots/relocated/`.** §152 flagged this against itself — *"the other 25
+relocated doors were never looked at one by one"* — and it was right to.
+
+**Grep `^## 15` before you pick a number.** §95 and §97 both warn about this and
+it has now happened twice; two lanes numbering against the same `main` in the
+same hour merge cleanly and silently because they land in different parts of the
+file.
+
+**Files written:** `scripts/bake_entrances.py`, `data/entrances.geojson`,
+`docs/entrances/relocated.md`, `shots/relocated/`, `QUEUE.md`, this section.
+**No `js/`, no `scripts/verify/`, no `scripts/bake_walk.py`, no
+`data/walk_graph.json`.** Server `python scripts/serve.py 8491` from a throwaway
+worktree; `harness-drift.mjs` **PASS** (29/29) before any pixel work and again on
+the merged tree.
+
+### 1. THE MAIN BUILDING'S SOUTH PORTAL DID NOT MOVE, and that is measured twice
+
+All seven MAI door groups (eids 417–423) are **byte-identical** between today's
+`main` and `efb0625^`, the file that shipped before the buried rule changed. And
+re-baking with `BURIED_DRAWN_FOOTPRINTS` False and True gives the same MAI
+geometry to the byte: **the `moved MAI 1 m` line in the bake log appears in BOTH
+arms.** It is the pre-existing GDC/MAI pair — an *authored* mass case — not one
+of the 25. Checked against `celebrated.md` §5.1 point by point: door centroid
+−97.739416, 30.285758 against the doc's measured OSM node 30.285759, −97.739416
+(**0.2 m**), normal 184.8° (**due south**), the recessed centre bay between two
+projecting wings is modelled, 4 leaves, divided lights, transom, limestone
+surround, inscription band baked (lettering deliberately off, and the file says
+why). Both secondaries within 0.2 m of their measured nodes. Day and night match
+the committed `shots/entrances/final/after-01`/`after-02`.
+
+### 2. THREE OF THE 25 HAD BEEN MADE INVISIBLE — this is the finding
+
+Measured by shooting the pre-NB2 file **at its own pre-NB2 poses** (not the new
+camera at the old data — `shots/nb2/README` deleted two frames for exactly that):
+
+```
+eid  building                       BEFORE (A/B px)     ON main          WITH THE FIX
+172  Engineering Discovery Building  5,432 /      0      0 /    0        0 /  4,453
+285  Brackenridge Hall Dormitory         0 / 10,376      0 /    0   31,770 / 29,754
+194  (West Campus block, role main) 15,351 / 13,837      0 /  557   15,567 / 15,241
+```
+
+**Cause:** `clear_buried()` hands `_free_wall()` a union that omits the door's own
+building (X4), and `_free_wall` used that one union for two jobs — walking a
+neighbour's wall edge AND testing 4 m of clear space in front of the leaf. With
+the host missing, **solid host building reads as free space**, so the march parks
+a door on a neighbour's wall facing back into its own building. It then passes
+every numeric test: real elevation, sane height, facing "outward", counted.
+
+**Fix, narrow:** the edge walk keeps the old union; the FRONT clearance is tested
+against a union that includes the host. `BURIED_OWN_BLOCKS_FRONT = True`, and
+`False` reverts it in one line. **The first cut of this fix dropped one of MAI's
+door groups** and had to be narrowed: `own` mixes footprints matched by **id**
+(which `austin-buildings` really extrudes) with authored re-draws matched by
+**IoU ≥ 0.90** (which are only ring-*shaped* — `js/tower.js` does not fill MAI's
+ring, it sets the centre bay back). Only the id-matched footprints join the front
+union. `buried.md` §4 already said *"an id match is exact; a ratio is a
+threshold"*; it turned out to be load-bearing.
+
+**Blast radius, photographed not assumed:** 11 groups move 2.04–9.61 m, all 11
+shot from both bearings on the fixed file, **none worse and eight better** (GSB
+1,052 → 27,047 on its weak bearing, MEZ 909 → 33,160, SEZ 345 0 → 19,426, 281
+0 → 10,728, 391 0 → 15,163, 346 0 → 27,448). 656 groups on 295 buildings, **zero
+identity drift**, sills 0, detached 0, bad base/h/colour 0, OSM recall 67 % at
+8 m — all unchanged. Pieces 15,069 → 15,067.
+
+### 3. Hero gate: `main` was never at risk, and neither is the fix
+
+Noise floor first, then interleaved launches, every arm waiting for
+`austin-entrances` LOADED. **`MAINr1` = `MAINr2` = `MAINr3`, one SHA-256 each at
+H1/H3/H5 — three launches, three identical files.**
+
+```
+                25 relocations vs pre-NB2      the fix vs main
+H1-spawn        IDENTICAL BYTES                IDENTICAL BYTES
+H2-drag         0 over24                       0 over24 max 4
+H3-tower        43 over24 max 200              47 over24 max 131
+H4-city         0 over24                       IDENTICAL BYTES
+H5-dkr          1 over24                       IDENTICAL BYTES
+H6-towernight   94 / 89  (own floor is 117)    0 over24 max 8
+```
+
+Both H3 differences are 40-odd pixels in the **far bottom-left corner** on the
+Moncrief-Neuhaus face — 0.003 % of the frame — and they are a door moving two
+metres along its own wall. `main` is recordable.
+
+**One arm was thrown out and the reason matters.** `NB8-r1` differed from
+everything by ~160,000 px at every day pose, visibly darker with no bloom. Its
+entrance file took **54.4 s** to land against 11–13 s everywhere else, and
+`cancelGraphicsAutoDetect()` runs before the entrance wait — on a launch that
+slow the auto-detect probe fires first and the cancel arrives too late. **A
+whole-frame tone shift in one arm is the graphics preset, not the data.**
+
+### 4. The three dropped doors, and one small instrument fix
+
+Each drop line now prints its **coordinate**. It used to read
+`DROPPED 2 on 568a1f55` for two doors that are **215 m apart**, and a drop with
+no coordinate cannot be walked to. All three were then walked to, four bearings
+plus a look-down: curved concourse and ramp walls on the DKR service belt with
+roadway in front, nothing a person approaches. **Dropping was right for all
+three** — though that checks the walls against the rule, not the rule against the
+world.
+
+### 5. FOR THE SNAPSHOT LANE: `data/walk_graph.json` needs re-baking
+
+Eleven doors moved 2.04–9.61 m and **this lane did not touch the graph** —
+`bake_walk.py` and `walk_graph.json` are yours. Largest movers GSB 9.61 m, eid
+281 8.09, MEZ 7.46, eid 276 7.35, BHD 6.62. §151 treated 0.64 m as inside routing
+tolerance; these are ten times that.
+
+### What this did NOT establish
+
+1. **eid 292 (DKR) is dark and is NOT fixed** — 0 px both bearings on `main` AND
+   on the pre-NB2 file. Its blocker is `js/stadium.js`'s authored wall, which the
+   fix deliberately does not touch. Pre-existing, recorded, not mine.
+2. **460 of 656 groups have still never been looked at.**
+3. **`BURIED_RUN_MIN` 3.0 and `BURIED_CLEAR_M` 4.0 were not tested against the
+   world**, only three walls against them.
+4. **The `-8m` re-shoots were taken at 22 m** — the harness falls back when the
+   collision net lifts the eye, so they are not the closer look they were meant
+   to be.
+5. **NB5 is still open**: the bake reads the `2026-08-04` snapshot, the app draws
+   `manifest.latest` = `2026-08-16`. Everything here inherits that.
+6. `MAI`'s flight has stone cheek walls where `celebrated.md` §5.1 says "no
+   rails". Period-correct, one constant, pre-dates this pass. Simeon's call.
+
+Server killed, worktree torn down, `reap.mjs` not run.
+
+
+## 157. Aug 16 2026 — the guard that refused the baked palette was the only reason the Capitol looked lit; NB6 closed, and it was not a boot-cost item (QUEUE NB6) (acer lane, branch `acer/o3-palette`, PR pending — NOT merged)
 
 **Read this first if you are about to re-bake a palette file.** NB6 said the fix
 was one line and "**Boot cost, not pixels**". The boot cost is real and about

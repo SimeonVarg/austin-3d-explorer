@@ -125,6 +125,53 @@ for (const f of files) {
   if (drivesMap && !cancels && /await launch\(chromium/.test(src)) {
     findings.push({ f, n: 0, rule: 'no-probe-cancel', msg: 'drives the map but never calls window.cancelGraphicsAutoDetect()' });
   }
+
+  // ── 7. Prints a failure a caller can never see. ─────────────────────
+  //
+  // ADDED 2026-08-16 (§155). §149 DELETED `silhouette.mjs` partly for printing
+  // `*FAIL` and then exiting 0 — and added no check, so the next one was free
+  // to sit there. There were three: `sky.mjs`, `collision.mjs`, `night-sky.mjs`.
+  //
+  // `sky.mjs` is the worst of them, and it is not a hypothetical. On the night
+  // this rule was written it was reporting **10/12, two red assertions about the
+  // sun's own light direction, on the sky that had shipped hours earlier** — and
+  // exiting 0. Every wrapper in this repo reads exit codes (`inventory.mjs`
+  // classifies on them, §142 made them load-bearing), so those two failures were
+  // invisible to everything except a human reading scrollback.
+  //
+  // A gate that cannot go red is not a weaker gate. It is decoration.
+  const printsFail = lines.some(l => /console\.(log|error)/.test(l) &&
+    /(\*FAIL|'FAIL|"FAIL|`FAIL| FAIL |FAIL\b.*\+)/.test(l));
+  const canGoRed = /process\.exit\s*\((?!\s*0\s*\))|process\.exitCode\s*=\s*(?!0)/.test(src);
+  if (printsFail && !canGoRed) {
+    findings.push({ f, n: 0, rule: 'fail-exits-zero',
+      msg: 'prints FAIL but has no path to a non-zero exit — no caller can ever see it go red' });
+  }
+
+  // ── 8. Loads the page without ?drift=0. ─────────────────────────────
+  //
+  // ADDED 2026-08-16 (§155). `js/app.js`'s idle cinema starts after
+  // `DRIFT.idleMs = 25 s` of input silence and then, every `stepMs = 12 s` leg,
+  // eases the BEARING by 13 deg, breathes the ZOOM by 0.05, and creeps the HOUR
+  // by `pStep = 0.010`. A scripted run sends no pointer or key events, so the
+  // countdown never re-arms: any script that jumps a camera and then works for
+  // more than 25 s is being moved under its own feet.
+  //
+  // This is not a bug in the app — it is a shipped feature with a shipped
+  // opt-out, and `js/app.js` says so in its own comment: "?drift=0 disables it
+  // for scripted runs against index.html." 91 scripts pass it. 38 did not, and
+  // the price was measured: `sky.mjs`'s setLight assertions, whose mismatch
+  // wandered 0.92 / 1.20 / 4.82 deg run to run because it depended on whether a
+  // 12-second leg had landed between the write and the read. `sunlight-probe.mjs`
+  // caught the second writer red-handed — setLight called twice for one call,
+  // az 118.8 then 120.88, `__todCurrentP` left at 0.11 for a p of 0.1.
+  //
+  // `drift-check.mjs` is the guard ON the idle cinema and is exempt by name.
+  const loadsPage = /(?:index|_harness)\.html|page\.goto\(BASE/.test(src) && /page\.goto\s*\(/.test(src);
+  if (loadsPage && !/drift=0/.test(src) && f !== 'drift-check.mjs') {
+    findings.push({ f, n: 0, rule: 'no-drift-off',
+      msg: 'loads the page without ?drift=0 — after 25 s idle the app moves the camera and the hour under it' });
+  }
 }
 
 const byRule = {};
@@ -137,6 +184,8 @@ const RULES = {
   'no-close': 'never closes its browser',
   'use-before-decl': 'uses a binding before declaring it  (PARSES FINE, THROWS AT RUNTIME)',
   'no-navigate': 'opens a browser and never opens a page  (THE BODY IS MISSING)',
+  'fail-exits-zero': 'prints FAIL but cannot exit non-zero  (A GATE THAT CANNOT GO RED)',
+  'no-drift-off': 'loads the page without ?drift=0  (THE IDLE CINEMA MOVES IT AFTER 25 s)',
   'no-probe-cancel': 'does not cancel the graphics auto-detect probe',
 };
 let hard = 0;

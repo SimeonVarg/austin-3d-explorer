@@ -255,6 +255,11 @@ FACADE_BONUS = 0.45     # score added to a sample on a celebrated building's
 #     threshold.
 BURIED_MASS_FILES = ("heroes", "stadium", "moody", "arts", "drag",
                      "capitol", "tower", "westcampus", "parts")   # [M]
+BURIED_OWN_BLOCKS_FRONT = True   # NB8. Test the 4 m of clear space in front
+                        # of a RELOCATED leaf against the host building too,
+                        # not only against everyone else's masses. False
+                        # restores the state that put three visible doors
+                        # inside their own building. See clear_buried().
 BURIED_DRAWN_FOOTPRINTS = True   # include the footprints `austin-buildings`
                         # extrudes, minus every id an authored pass claims.
                         # False restores the pre-NB2 rule in one line.
@@ -4257,7 +4262,7 @@ def _span_free(union, x, y, tx, ty, nx, ny, reach):
     return True
 
 
-def _free_wall(union, host, px, py):
+def _free_wall(union, host, px, py, front=None):
     """Nearest point on `host`'s own exterior with a RUN of free wall around it.
 
     Returns (dist, x, y, tx, ty, nx, ny, elen, left, right) or None. `left` and
@@ -4266,6 +4271,11 @@ def _free_wall(union, host, px, py):
     taken from the mass edge's full length would slide the door straight back
     into the mass it was lifted out of."""
     ring = list(host.exterior.coords)
+    # `front` is the union the OUTWARD clearance is tested against; it is
+    # `union` plus the host building's own masses (NB8). The wall walk below
+    # still uses `union`, so a door may still stand in its own notch.
+    if front is None:
+        front = union
     best = None
     for i in range(len(ring) - 1):
         ax, ay = ring[i]
@@ -4283,18 +4293,18 @@ def _free_wall(union, host, px, py):
                 continue
             for sg in (1, -1):
                 nx, ny = sg * ty, -sg * tx
-                if not _span_free(union, qx, qy, tx, ty, nx, ny,
+                if not _span_free(front, qx, qy, tx, ty, nx, ny,
                                   BURIED_CLEAR_M):
                     continue
                 # how far the free run reaches either way, bounded by the edge
                 left = right = 0.0
                 while left + BURIED_STEP_M <= s and _span_free(
-                        union, qx - tx * (left + BURIED_STEP_M),
+                        front, qx - tx * (left + BURIED_STEP_M),
                         qy - ty * (left + BURIED_STEP_M),
                         tx, ty, nx, ny, BURIED_CLEAR_M):
                     left += BURIED_STEP_M
                 while right + BURIED_STEP_M <= elen - s and _span_free(
-                        union, qx + tx * (right + BURIED_STEP_M),
+                        front, qx + tx * (right + BURIED_STEP_M),
                         qy + ty * (right + BURIED_STEP_M),
                         tx, ty, nx, ny, BURIED_CLEAR_M):
                     right += BURIED_STEP_M
@@ -4395,10 +4405,46 @@ def clear_buried(scope, stats):
                 if p.contains(hit_pt):
                     host = p
                     break
-            got = _free_wall(union, host, c.x, c.y)
+            # ── QUEUE NB8: THE CLEAR-SPACE TEST COULD NOT SEE THE HOST ──
+            # `union` deliberately omits b's own masses (X4), and _free_wall
+            # uses it for BOTH jobs: walking a neighbour's wall edge, and
+            # asking whether there is BURIED_CLEAR_M of open space in front
+            # of the leaf. The second job is wrong with the host missing —
+            # space that is solid host building reads as free, so the march
+            # can park a door on a neighbour's wall facing INTO its own
+            # building. Measured: eids 172 (Engineering Discovery), 285
+            # (Brackenridge Hall) and 194 went from 5,432 / 10,376 / 15,351
+            # changed pixels to ZERO from both bearings when NB2 turned the
+            # drawn footprints on (docs/entrances/relocated.md §4).
+            #
+            # So the edge walk keeps `union` — a door in its own re-entrant
+            # notch must still be allowed, which is all X4 ever claimed —
+            # and the FRONT clearance is tested against everything, host
+            # included.
+            # ONLY the own-masses that are real DRAWN FOOTPRINTS join `front`
+            # (`owner[i] is not None`), never the IoU-matched authored
+            # re-draws. buried.md §4 already draws that line — "an id match is
+            # exact; a ratio is a threshold" — and it is load-bearing here.
+            # Measured: blocking against the IoU matches as well DROPS one of
+            # the Main Building's door groups, because js/tower.js does not
+            # fill MAI's ring, it draws the recessed centre bay set back, and
+            # the ring-shaped IoU match says "solid" where the render shows
+            # open air. A ratio cannot be trusted to say where a wall IS.
+            front = union
+            if BURIED_OWN_BLOCKS_FRONT and own:
+                mine = [masses[i] for i in own if owner[i] is not None]
+                if mine:
+                    front = unary_union(others + mine)
+            got = _free_wall(union, host, c.x, c.y, front)
             if got is None:
                 stats["buried_dropped"] += 1
-                stats["burieddrop|" + who] += 1
+                # A drop line WITHOUT A COORDINATE cannot be walked to, and
+                # walking to it is the only way to tell a genuinely tight wall
+                # from a wrong constant. It also collapsed two distinct doors
+                # into one "DROPPED 2 on <bid>" line, which hid that they are
+                # 30 m apart. Key on the position so each drop is its own line.
+                stats["burieddrop|%s at %.6f,%.6f (%s %s)"
+                      % ((who,) + to_ll(c.x, c.y) + (c.role, c.src))] += 1
                 continue
             d, qx, qy, tx, ty, nx, ny, elen, left, right = got
             c.x, c.y = qx, qy
