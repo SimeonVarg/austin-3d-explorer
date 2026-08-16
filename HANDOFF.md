@@ -15812,3 +15812,110 @@ DKR: interleave launches before believing a cross-arm diff.
   it).
 - The Mac's branch still exists and still points at the pre-rebase commit —
   deliberately. Mac lane: delete it when you pick this up.
+
+## 124. Aug 15 2026 — the walking graph goes 111 -> 120 of 198, the broken route is fixed, and all 24 towers are findable (acer lane)
+
+**Branch `acer/walk-graph2` off `origin/main` `4b6bbcd`. Files: `scripts/bake_walk.py`,
+`data/walk_graph.json`, `docs/walk/graph.md` §11, this entry — exactly the four
+this lane may write. No js, no html, no other data file. No browser and no
+server; `harness-drift.mjs` was not run because no pixel was measured.**
+
+### What a student gets
+
+Nine more buildings route: **BIO, TSG, DMC, MNC, NEZ, BMS, BMK, AF2, TCP** —
+Biological Laboratories, the 27th Street Garage, the Dealey (ex-Belo) Center,
+Moncrief-Neuhaus, the North End Zone, both remaining Blanton buildings, the
+Eastside pavilion and the Texas Cowboys Pavilion. **BUR > CBA no longer walks
+131 m past McCombs and back** — 949 m is now 789 m to the same main door. And
+**all 24 West Campus towers are typeable** (the graph half of QUEUE Z4: the
+`wc` map filtered doors on `src == westcampus` and six towers' lobby doors are
+`src: derived`; it now matches the 24 names from `data/westcampus.geojson`,
+any src). I cannot write QUEUE.md from this lane — whoever can: Z4's graph
+half is done, the client half needed no change (§118 said so, and the shipped
+`code`/`wc` maps satisfy it).
+
+### Where the nine came from — nothing was invented
+
+* **7 were filing errors, not missing doors.** Doors for DMC sit under ref
+  `BMC` (the register renamed the building); MNC under OSM's `MNAC`; BMS
+  under `EAS` (the Smith Building IS the Edgar A. Smith Building); NEZ under
+  the multi-ref `RMRZ;NEZ` (split on `;`); AF2, TCP and BMK under door-group
+  names the register spells differently ('Athletic Fields Pavilion
+  (Eastside)', 'Texas Cowboys Pavillion', and Ellsworth Kelly's 'Austin').
+  Each is one hand-checked line in the bake with the coordinates it was
+  verified against; gate I fails the bake loudly if a data refresh makes any
+  join ambiguous.
+* **2 needed real roads.** BIO and TSG's doors are 35-37 m from any footway
+  but 10-18 m from a service road. Roads and footways share OSM node ids, so
+  84 road edges (1.087 km, classes service/residential/living_street/
+  unclassified) joined the graph **as dead-end access chains only**: each is
+  a parent-chain in one Dijkstra forest rooted at the 1,207 shared nodes, so
+  no chain can ever be a through-route. That structure — gate R, violations
+  must be 0 — is why a zero-cost-penalty road edge cannot bend any existing
+  route, and the staged run proves it: with roads on and spread off, all nine
+  §113 routes are identical to the tenth of a metre.
+
+### The BUR>CBA fix, and what it moved
+
+`ANCHOR_SPREAD_M = 45`: a door's second and third anchors must now be
+outside a 45 m NETWORK-walk of the earlier ones, so McCombs' main door
+anchors on both sides of the 11 m frontage gap instead of three times on the
+same spur. The last leg across the gap is 21 m of unmapped walking, drawn
+dashed like every other door link — not a stitch, and the §3c guards are
+untouched. Three of the nine frozen §113 routes moved and were re-audited
+before re-freezing: BUR>CBA 949.2 -> 788.7 (overshoot gone), GRE>MAI 575.3
+-> 540.3 (cleaner approach), STD>MAI 1002.5 -> 1018.0 (+1.5 %, sheds 3 of 5
+staircases). The other six: identical.
+
+### The numbers, printed by every bake run
+
+```
+nodes 11,228  edges 12,175  components 50  largest 95.6 %
+doors attached 620/629 (98.6 %)  worst link 27.7 m
+routable 120 / 198
+file 335.3 KB raw / 101.0 KB gzip (was 328.5 / 98.4)
+gates 17 of 17 green  (13 -> 17: +alias uniqueness, +ref-join coverage,
+                       +road forest property, +road size cap; H floor 104 -> 118)
+validation 18 pairs (9 frozen + 1 per recovered code), all walls-0,
+           --regress PASS and WATCHED FAILING on a perturbed baseline
+sweep 299/299 routed, detour median 1.41 / p90 1.83 / max 4.53
+```
+
+The client contract was verified against the shipped file, not reasoned
+about: every flag byte <= 255 (the client decodes flags into a Uint8Array,
+so road membership ships as a separate `re` index list the current client
+ignores), `wc` has 24 names, every recovered code resolves to anchored
+doors, `JSON.parse`-able, `meta` carries the health block.
+
+### The 78 still stranded, and why that is the honest maximum here
+
+Every one has **no door in any source** — the bake now prints each code
+with its reason on every run. Synthesized outline points were considered
+and REJECTED: the client words unknown-src arrivals as "Entrances are on
+this side", which would be a lie on a building nobody mapped. The fix is
+authoring doors in `data/entrances.geojson` — not this lane's file. Worth
+authoring first: NUR, UTA, HDB/HLB/HTB, SMC, JHH, WMB, CDL, ANB.
+
+### New known-bad, so nobody "fixes" it
+
+GRE > MNC reads as a 90 m overshoot: Moncrief-Neuhaus is inside the fenced
+athletic complex and every mapped approach comes off San Jacinto to the
+east, so a walk from Gregory rounds the stadium block. Both doors anchor
+cleanly; there is no western approach to choose. In `KNOWN_BAD` with the
+explanation, frozen at its honest value.
+
+### What I did NOT manage to do
+
+* **Nobody has photographed a route to any of the nine recovered buildings.**
+  Every check is against the path network and the audits; no browser was
+  allowed this phase. A route drawn to TSG along its 35 m road chain, and
+  one to BMK ending at 'Austin', are the frames a later pass should take.
+* **The 78 doorless codes are printed, not fixed** — needs
+  `data/entrances.geojson`, another lane's file.
+* **The client cannot say "along the service road"** for the new access
+  legs — the `re` list ships so a later client pass can word or style them;
+  today they draw like any footway.
+* **`avoidShown`'s hardcoded "189 mapped staircases" in `js/wayfind.js`**
+  (§116) is still hardcoded and still not mine to touch.
+* **AF1** stays stranded — its register name matches AF2's footprint and the
+  rehab pavilion genuinely has no door group anywhere.

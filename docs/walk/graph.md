@@ -688,3 +688,137 @@ document and a plausible-sounding graph.
   `interface.md`'s territory.
 * **Areas are still not traversable.** 42 plaza polygons will be walked around
   rather than across. Measured, accepted for v1, not solved.
+
+---
+
+## 11. Round two, 2026-08-15: 111 -> 120 routable, and where the honest maximum actually is
+
+The graph shipped (§113 of `HANDOFF.md`) at 111 of 198 register codes
+routable. This section is the recovery pass: what was recoverable without
+inventing anything, what was not, and the numbers after. Everything below is
+**[M]** off `scripts/bake_walk.py` on this date unless marked.
+
+### 11a. The 87 stranded codes, classified before anything was changed
+
+```
+  2   have doors, none within 30 m of the walked network     BIO, TSG
+  7   have doors filed under a name or ref the register
+      does not use                                           DMC MNC NEZ BMS BMK AF2 TCP
+ 78   have NO DOOR IN ANY SOURCE - not in OSM, not derived
+      from a facade model, not authored
+```
+
+The 7 are the finding. §5's name-matching pass stopped at door groups whose
+`nm` matched a register name; it never looked at door groups whose **ref**
+disagrees with the register:
+
+* `DMC` — the register renamed the Belo Center to the G. B. Dealey Center
+  for New Media; the doors still carry `BMC`. Ref join.
+* `MNC` — OSM spells the ref `MNAC`. Same building name letter for letter.
+* `BMS` — the Blanton Museum Smith Building IS the Edgar A. Smith Building;
+  doors carry `EAS` on the Blanton block. Ref join.
+* `NEZ` — the doors carry the multi-ref `RMRZ;NEZ`; splitting refs on `;`
+  is all it took. The ref itself names the register code.
+* `AF2` — §5 rejected AF1/AF2 because REGISTER-name matching hit one
+  footprint twice. DOOR-GROUP-name matching does not: the group is named
+  'Athletic Fields Pavilion (Eastside)' verbatim. (AF1, the rehab pavilion,
+  has no door anywhere and stays stranded.)
+* `TCP` — 'Texas Cowboys Pavillion', OSM's spelling, one group, role main.
+* `BMK` — the Ellsworth Kelly building is the footprint OSM names 'Austin'.
+  One unref'd main-role group, on the Blanton block. The nm is one word,
+  so this row leans entirely on the one-footprint assertion (gate I).
+
+Every join was verified against the door group's own coordinates before
+being written into the bake, and each is one line in `CODE_ALIASES` /
+`CODE_REF_JOINS` with the reasoning inline.
+
+### 11b. Walkable road access legs — the §3c trap, avoided structurally
+
+BIO's doors are 37 m from the walked network and 18 m from a service road;
+TSG's are 35 m and 10 m. The road network shares OSM node ids with the
+footway network, so where a road meets a footway the join is GIVEN — 1,207
+such portal nodes exist in the main component.
+
+The client prices every non-steps edge at plain metres and the bake may
+never disagree with it, so the brief's "roads at a time penalty" is
+replaced by a **structural guarantee that makes the penalty unnecessary**:
+adopted road edges are parent-chains in ONE multi-source Dijkstra forest
+rooted at the portals, so their union is a forest and each chain hangs off
+exactly one main-component node. A road is a way IN to a stranded door,
+never a way THROUGH — no route between two footway-served places can touch
+one. That is not an argument, it is gate R (forest violations == 0) plus
+the measured fact that all nine §113 routes were bit-identical with roads
+on and off (staged run, this date).
+
+```
+classes    service, residential, living_street, unclassified
+adopted    84 edges, 1.087 km, 18 door groups attached
+guards     chain <= 250 m; rejected whole if any edge runs > 3 m inside
+           a footprint that is not the target door's own building
+recovers   BIO (chain 34 m), TSG (35 m) - plus better doors for ARC, CT7,
+           MCA, SSB, TCC, TS2, UA9 and three unnamed groups
+```
+
+### 11c. Anchors now span distinct approaches, and BUR>CBA is fixed
+
+§113 froze BUR>CBA at its broken 949 m on purpose: McCombs' main door sat
+3 m from a spur that rejoins the network 130 m south, nearest-3 put all
+three anchors on that spur, and the route overshot the building by 131 m.
+The fix is `ANCHOR_SPREAD_M = 45`: after the nearest anchor, a candidate
+within 45 m of an earlier anchor ALONG THE NETWORK is passed over, so the
+door also anchors on the frontage path across the 11 m gap — a 21 m
+unmapped last leg, drawn dashed like every other, not an invented stitch.
+Slots the spread cannot fill are refilled nearest-first, so no door lost an
+anchor it had.
+
+Three frozen routes moved, each re-audited: BUR>CBA 949.2 -> 788.7 (the
+overshoot is gone, walls 0), GRE>MAI 575.3 -> 540.3 (cleaner South Mall
+approach, walls 0), STD>MAI 1002.5 -> 1018.0 (+1.5 %, and the route sheds
+3 of its 5 staircases). The other six did not move by a centimetre.
+
+### 11d. The numbers after, and the new assertion set
+
+```
+nodes 11,228   edges 12,175   components 50   largest 95.6 % of nodes
+doors attached 620 of 629 (98.6 %)   worst link 27.7 m
+routable 120 of 198   (118 codes have a door; 120 route because NEZ and
+                       BMS ride on doors filed under RMRZ;NEZ and EAS)
+file 335.3 KB raw / 101.0 KB gzip -9   (+6.8 KB raw over §113's)
+validation: 18 frozen pairs (the nine §113 pairs + one per recovered
+            code), all audited walls-0, regression PASS and watched
+            failing on a perturbed baseline
+```
+
+New wire key: `re` — delta-coded edge indices of the road access legs. The
+flag byte is full and the client decodes it into a Uint8Array, so a ninth
+bit would wrap to zero; membership ships out of band and today's client
+ignores it.
+
+Gates grew from 13 to 17: H's floor rises 104 -> 118, I asserts every nm
+alias resolves to exactly one footprint and every ref join found doors,
+R asserts the road forest property and caps adoption at 2 km.
+
+### 11e. The 78 that remain, and why they are the honest maximum for this bake
+
+Every one of the 78 has **no door in any source**. 23 of them have a named
+footprint on the map (NUR, UTA, HDB, HTB, JHH, WMB, WAT, CDL, ANB, LCH,
+the garages...); 55 have not even that (the Facilities Complex sheds, the
+equipment storehouses, graduate housing, Dell Seton, the aquatic plant).
+The bake prints each code with its reason on every run.
+
+Routing to a synthesized point on a footprint outline was considered and
+REJECTED: the client words every arrival as a door claim ("Entrances are
+on this side" for anything it does not recognise), and a synthesized point
+would put that sentence on a building whose entrances nobody has mapped.
+The honest fix is authoring doors in `data/entrances.geojson` — which is
+not this bake's file. The ten worth authoring first, per §5: NUR, UTA,
+HDB/HLB/HTB, SMC, JHH, WMB, CDL, ANB.
+
+### 11f. Known-bad, updated
+
+`BUR>CBA` is fixed and unfrozen from its broken value. The one entry now is
+`GRE>MNC`: Moncrief-Neuhaus sits inside the fenced athletic complex and
+every mapped approach comes off the San Jacinto loop to the east, so a walk
+from Gregory rounds the stadium block and the audit reads the arrival as a
+90 m overshoot. Both doors anchor cleanly; there is no western approach to
+choose. That is the fence, not the graph.
