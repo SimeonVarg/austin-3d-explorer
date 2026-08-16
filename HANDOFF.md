@@ -17517,9 +17517,12 @@ names **55** faces — the hand count of §134, exactly, reproduced by machine.
 Both bakes claimed "nothing coplanar, nothing for the depth buffer to argue
 about" on the strength of offsetting the rings outward. Outward offset clears
 the **side** faces; it says nothing about the **horizontal** ones, and the
-cornice ends exactly where the wall ends. Both headers, and
-`storey_details()`'s docstring, now say which face the argument covers and
-which one it never did.
+cornice ends exactly where the wall ends. Three places said it —
+`bake_campus_storeys.py`'s module docstring, `bake_drag.py`'s storey-band
+comment block, and `storey_details()`'s own docstring — and all three now say
+which face the argument covers and which one it never did. (The drag module
+header was missed on the first commit of this pass and corrected on branch
+`acer/n7-cornice-hdr`; comment only, data re-baked and byte-identical.)
 
 ### The geometry did not move, and here is the proof rather than the assurance
 
