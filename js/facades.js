@@ -843,59 +843,7 @@
         return null;
       }
     }
-    // Built as a LOCAL and only published on success, so a refusal below still
-    // honours this function's contract of leaving state alone. The election
-    // reassigns `palette` wholesale anyway, but a half-written module global is
-    // the kind of thing that is true until the day somebody reorders two calls.
-    const next = baked.palette.map(k => ({ wd: k.wd, wg: k.wg || k.wd, wn: k.wn || k.wd }));
-
-    // PROTECTED TONES ARE RE-APPLIED FROM THE LIVE SPEC, exactly as step 2b of
-    // the election below does, and this is the difference between a fast path
-    // and a wrong one.
-    //
-    // WHAT WENT WRONG WITHOUT IT (measured, not reasoned — QUEUE NB6):
-    // `js/capitol.js:180-182` mutates the protected spec's `wn` to
-    // `CAPITOL.floodWall` at merge time, so the list this module elects over is
-    // NOT the list sitting in `data/capitol_parts.geojson`. The bake reads the
-    // file, so its bucket 0 carried `#1f1b23`, unlit granite, while the browser
-    // elected `#d38e5e`, floodlit. Arming the baked palette without this loop
-    // turned the floodlight on the Texas Capitol OFF — one bucket out of
-    // fourteen, invisible in every daytime frame, and the whole point of the
-    // building after dark.
-    //
-    // GENERAL, NOT A CAPITOL PATCH. Anything that registers a protected tone
-    // gets its EXACT runtime colour here, whatever computed it and however late
-    // it ran, so the baked path cannot drift from the election again by the
-    // same mechanism. `scripts/bake_facades.py` also transcribes the override
-    // now, so the file and this loop agree — belt and braces, deliberately:
-    // the bake keeps `facade_parity.py` honest, this keeps the SCENE right even
-    // against a palette baked before the override existed.
-    const protectedIn = Array.isArray(window.FACADE_PROTECTED) ? window.FACADE_PROTECTED : [];
-    const seenProtected = new Set();
-    for (const spec of protectedIn) {
-      if (!spec || !spec.wd) continue;
-      const key = coarseKey(hexToRgb(spec.wd));
-      if (seenProtected.has(key)) continue;   // first wins, as in the election
-      seenProtected.add(key);
-      const b = baked.buckets.get(key);
-      if (b == null || !next[b]) {
-        // All-or-nothing, like the two guards above: a palette in which the
-        // protected material silently fell back to a neighbourhood mean is the
-        // pink-dome-on-tan-walls failure, and it is better to spend the 14 ms.
-        bakedSource = 'the baked index has no bucket for a protected tone — '
-                    + 're-run scripts/bake_facades.py';
-        return null;
-      }
-      // Round-tripped through hexToRgb/rgbToHex so the string is byte-identical
-      // to the one the election produces for the same spec.
-      next[b] = {
-        wd: rgbToHex(...hexToRgb(spec.wd)),
-        wg: rgbToHex(...hexToRgb(spec.wg || spec.wd)),
-        wn: rgbToHex(...hexToRgb(spec.wn || spec.wd)),
-      };
-    }
-
-    palette = next;
+    palette = baked.palette.map(k => ({ wd: k.wd, wg: k.wg || k.wd, wn: k.wn || k.wd }));
     bakedSource = 'baked ' + baked.snapshot;
     return stampAll(features, baked.buckets);
   }
