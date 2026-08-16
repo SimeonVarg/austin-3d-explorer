@@ -17,6 +17,13 @@ PR (#5). The two biggest unpaid bills are unchanged: nobody has measured the
 frame cost of everything that landed (K1), and campus/West Campus walls still
 need the Drag's close-range treatment (Y5's second half).
 
+**UPDATE, later on Aug 16 (§131):** that second half is **DONE and merged** —
+campus (#178) and West Campus (#179), both judged blind against the live site
+and both WON. Walk the South Mall or Guadalupe now and the walls above the
+doorways read as floors, not as a pegboard. **The remaining wall defect is the
+VERTICAL barcode**, which is a shared-atlas problem in `js/facades.js` and is
+written up as Y19. K1's frame cost is still unmeasured and still the top risk.
+
 ---
 
 Rewritten 2026-08-04 from Simeon's fourth list. Everything above this in git
@@ -824,16 +831,18 @@ Y4  look down at your own feet ............... HALF. js/ground.js is ready
                                                 you still cannot look at your feet.
                                                 Blocked behind Y8 by choice, and now also
                                                 behind Y5 (see that doc's sequencing note).
-Y5  facades at close range ................... DONE for the DRAG (#167, merged
-                                                2026-08-15 after a blind gate vs live:
-                                                day eye-level WIN, night not worse,
-                                                cruise footprint 67 px — §114, §121).
-                                                Storey bands, no windows; candidate B
-                                                (windows) stays alive on acer/facade-
-                                                choice (PR #164) for the later job.
-                                                Campus + West Campus (js/facades.js,
-                                                wc-wall) still need the same treatment
-                                                and are OPEN.
+Y5  facades at close range ................... DONE for all three districts.
+                                                DRAG #167 (2026-08-15, §114/§121);
+                                                CAMPUS #178 and WEST CAMPUS #179
+                                                (2026-08-16, §129/§130, both judged
+                                                blind against the live site in §131
+                                                and both WON). Storey lines, no
+                                                windows; candidate B (windows) stays
+                                                alive on acer/facade-choice (PR #164)
+                                                for the later job. WHAT IS LEFT is
+                                                Y19 below — the VERTICAL half of the
+                                                barcode, which is a js/facades.js
+                                                tile problem and nobody owns it.
 Y6  motion-feel FOV assertion ................ DONE (acer/blitz-verify, HANDOFF §115).
                                                 Repaired to assert the MECHANISM: zero
                                                 kick at cruise, TUNE.FOV_KICK (read live)
@@ -861,6 +870,8 @@ Y13 the moon behind a building ............... CLOSED (§117) — disc occluded,
 Y14 places-check / zfight not run ............ CLOSED (both at baseline on 38fbeee, §115)
 Y17 ground plane ignores the dusk clock ...... NEW  (§117) — pavement 2.3-2.9x wall luma at p 0.70
 Y18 fx-canvas paints glow bands on facades ... NEW  (§117) — dusk AND night, A/B proven
+Y19 the VERTICAL half of the barcode ......... NEW  (§131) — Y5 is done, this is what
+                                                Y5 did not touch. See below.
 ```
 
 **The one-line verdict on the Drag at night:** it is genuinely better — no stars
@@ -868,6 +879,40 @@ on the brick, and a carriageway that went from 0.78x the frame median to 1.40x �
 but **Y5 is what is still between it and good.** The shopfronts are excellent and
 the 40 m of wall above them is a barcode, and that is the first thing your eye
 goes to.
+
+---
+
+## Y19. Y5 fixed the HORIZONTAL barcode. The VERTICAL one is still there, and it
+## is a `js/facades.js` tile problem that nobody owns.
+
+Three passes have now put horizontal structure back into the walls as
+**geometry in metres** — the Drag (#167), campus (#178), West Campus (#179) —
+and a gate judged each of them against the live site and each one won
+(§121, §131). That closes Y5 as written.
+
+What none of them could touch is the **other axis**. The West Campus builder
+measured it on the base band under Dobie Twenty21 and wrote the number down:
+**48.56 vertical edges per 100 px against 1.12 horizontal**, i.e. at eye level
+that wall is a *vertical* barcode and always was. `facades-at-two-metres.md` §2
+has the mechanism and the table: `drawWallMaterial`'s `WALL.STREAKS` and the
+`WALL.PIER` pilaster pair are drawn **full tile height**, and the tile repeats
+vertically, so family `mh` puts **17 full-height verticals in 2.06 m of wall —
+one every 0.121 m** at walking height. It is the same screen-locked-repeat
+defect, rotated 90 degrees.
+
+**Why no lane has fixed it.** It lives in the shared facade atlas, which paints
+downtown, the outer ring and the Capitol as well as campus, so it cannot be
+changed for one district — PR #167's day/night tile swap worked only because
+`js/drag.js` owns its own tile. Whoever takes it must either fade the verticals
+out below a metres-per-repeat threshold (the honest analogue of what the storey
+bands did), or give the districts that matter their own tile the way the Drag
+has. **Do not fix it by making the pier lighter**; that is the "it looks
+plausible" trap the reference playbook names.
+
+Cheaper and also open, from the same pass: `WC_BASE_LINES` is a named constant,
+default `False`, one line to flip — the West Campus base band was deliberately
+left alone because the entrances and places passes already model 24 lobbies,
+canopies, sign bands and shopfront reveals there in metres.
 
 ---
 
