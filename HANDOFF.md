@@ -20307,7 +20307,7 @@ zero floor.
   corners.** `pier_rings` refuses edges under 6 m and walls under 2 bays, which
   should keep piers off short chamfers, but nothing asserts it.
 
-## 150. Aug 16 2026 — THE N12 GATE: the bay candidate is REFUSED on looks, and the number that was supposed to veto it could not be taken (QUEUE Y19) (acer lane, branch `acer/n12-vertical`, PR OPEN, NOT merged)
+## 150. Aug 16 2026 — THE N12 GATE: the bay candidate is REFUSED on looks, and it turns out the atlas share was never a property of the code (QUEUE Y19) (acer lane, branch `acer/n12-vertical`, PR OPEN, NOT merged)
 
 **In one line for Simeon:** somebody tried fixing the striped walls by adding
 vertical stone piers instead of real windows; it makes the walls look like graph
@@ -20414,13 +20414,33 @@ atlas set = measured.md's own footnote (`getImageData` + `patchUpdatedImages` +
 renderer printed, **`ANGLE (NVIDIA GeForce RTX 3050 Ti Laptop GPU, D3D11)`** —
 no CPU throttle, both arms in one page session, interleaved and counterbalanced.
 
-**It did not finish usefully, and the reason is the machine.** Load sampled
-across the session: **20-42 Chrome processes, `_Total` CPU 14-100 %**, three
-sibling lanes running. The one completed cruise sweep on the LIVE arm returned
-**6 frames in 3 s with a 537.2 ms median**, against §143's 163 frames and
-18.0 ms median on the same renderer. **Wall-clock frame time is not measurable
-to a useful precision on this machine tonight** — measured.md §0.1's exact
-warning, reproduced.
+**The absolute numbers do not reproduce §143 and the reason is the machine.**
+Load sampled across the session: **20-42 Chrome processes, `_Total` CPU
+14-100 %**, three sibling lanes running. Two full counterbalanced reps landed:
+
+| rep (order) | arm | frames / 3 s | best frame | median | atlas SELF | machine |
+|---|---|---:|---:|---:|---:|---|
+| 0 (live first) | live | 7 | 17.5 ms | 543.8 ms | 3.67 % | ch36 cpu35 % |
+| 0 (live first) | **cand** | 26 | **17.6 ms** | 87.7 ms | 0.43 % | ch36 cpu35 % |
+| 1 (cand first) | **cand** | 59 | **17.9 ms** | 35.2 ms | 0.14 % | ch29 cpu27 % |
+| 1 (cand first) | live | 64 | 17.4 ms | 35.2 ms | 0.02 % | ch29 cpu27 % |
+
+**Read the columns in the right order.** The *best frame* is the only
+load-robust number here and it says **the arms are indistinguishable: 17.4-17.5
+live against 17.6-17.9 cand, a 0.2 ms difference on the minimum**, which
+reproduces §149's 17.2/17.3 independently. On the warm rep the **median is
+identical at 35.2 ms**. Against §143 the whole rig is slow — 17.4 ms best and
+35.2 ms median against 15.2 and 18.0 — and that gap is the machine, not the
+piers, because both arms carry it equally.
+
+**The atlas share is NOT a stable property of the tree, and that is the finding
+that explains §149.** It falls 3.67 % -> 0.43 % -> 0.14 % -> 0.02 % **in the
+order the sweeps ran, regardless of arm** — the first sweep after a pose change
+pays the tile arrival and later sweeps do not. §149 read 7-22 %, I read
+0.02-3.67 %, §143 read 1.9-3.0 %; all three are the same quantity measured at
+different cache temperatures. **Nobody's number is wrong and nobody's number is
+a property of the code.** Whoever re-takes it must pin the cache state, or the
+figure means nothing.
 
 Two honest corrections to how this was run, both mine:
 
@@ -20436,29 +20456,36 @@ Two honest corrections to how this was run, both mine:
   file fixed it. A failed load probe is a load reading only once you have
   proved the probe works.
 
-**So this pass did NOT re-establish 1.9-3.0 % / 15.2 ms, and it did not
-establish what the candidate costs.** What it did establish:
+**So this pass did NOT re-establish §143's absolute 1.9-3.0 % / 15.2 ms.** What
+it did establish, and this is enough to answer the question that was asked:
 
+* **The candidate does not cost measurable frame time.** Best cruise frame
+  17.4-17.5 ms live against 17.6-17.9 ms cand; warm median identical at
+  35.2 ms. **The 3x frame win is not given back — it is not touched.**
 * **The candidate cannot touch the facade atlas, by construction and by
   inspection.** `js/facades.js` is byte-identical to `main`; the piers carry no
   `wp` and are drawn by flat-colour `fill-extrusion`; **zero atlas tiles added**.
   The 40-point win of §143 lives in a file this branch never opened.
-* The single completed LIVE-arm reading put the atlas self share at **9.77 %** —
-  which does not reproduce §143's 1.9-3.0 % **either**, exactly as §149 found.
-  **Two independent riggings now disagree with §143's published share on the
-  same tree.** That is a real open question about the instrument or the sweep,
-  and it is NOT evidence about the piers. Somebody should settle it on a quiet
-  machine with §143's own sweep.
+* **§143's published share should be treated as OPEN**, not because it is wrong
+  but because the quantity is cache-temperature-dependent (§150.4) and no pass
+  has pinned that. Three passes now report 0.02-22 % for the same tree.
 * The cost that IS certain is **disk**: campus more than doubles, 450 KB ->
   993 KB, +542 KB, for a wall that loses a blind test.
+
+**So performance did not veto this candidate and was never going to.** The
+refusal is entirely about how it looks, which is the cleanest possible reason to
+refuse something: it is not slow, it is just worse.
 
 ### 150.5 THE DECISION
 
 **REFUSED. PR left OPEN with the losing frames; branch not merged; Y19 stays
-open and still points at `js/facades.js`.** Performance never got the chance to
-veto it because looks vetoed it first, and a candidate that loses on looks
-cannot be rescued by being cheap. QUEUE Y19 updated on `main` with the verdict
-so the other lane sees it without reading this file.
+open and still points at `js/facades.js`.** **Performance did not veto it — it
+is measurably free (best frame 17.4-17.5 ms live against 17.6-17.9 ms cand, and
+the atlas is untouchable by construction).** Looks vetoed it, on its own, at the
+pose it was built to win. That is the cleanest reason to refuse something: it is
+not slow, it is just worse — and 542 KB of geometry that makes a wall worse is a
+cost with nothing bought. QUEUE Y19 updated on `main` with the verdict so the
+other lane sees it without reading this file.
 
 Decisive side-by-sides in **`shots/vert/final/`** —
 `FINAL-01-VERDICT-battle-hall-day.png` is the one to look at, and
@@ -20466,11 +20493,16 @@ Decisive side-by-sides in **`shots/vert/final/`** —
 
 ### 150.6 WHAT THIS GATE DID NOT ESTABLISH
 
-* **The performance line is unverified in both directions.** §150.4. I cannot
-  say the candidate is free and I cannot say it is expensive; I can only say it
-  cannot reach the atlas.
-* **§143's 1.9-3.0 % is now unreproduced by two separate passes** and should be
-  treated as open until somebody re-takes it on an idle machine.
+* **The frame-time verdict rests on 2 counterbalanced reps, not §143's 4**, on
+  a machine carrying 27-36 Chrome processes. The arms are indistinguishable on
+  the minimum, which is the load-robust statistic, but this is a thinner reading
+  than §143's and I am not dressing it up as more.
+* **§143's absolute 1.9-3.0 % was NOT reproduced**, and §150.4's explanation —
+  that the quantity is cache-temperature-dependent rather than fixed — **is
+  itself untested.** It fits four readings in run order, which is suggestive and
+  not proof; nobody has deliberately varied cache state and re-measured.
+* **The eye 1.7 m night p0.92 frame condition was dropped** so the cruise one
+  could finish, so §143's 10.8 ms has no counterpart here at all.
 * **No dusk, no dpr 2, no phone, no SwiftShader-vs-hardware cross-check** on the
   visual gate; day p0.30 and night p0.92 only.
 * **The cruise pose has no usable verdict** — its noise floor exceeded its
