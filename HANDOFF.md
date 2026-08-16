@@ -20871,3 +20871,21 @@ move, so Simeon can overrule either without re-deriving anything.
 * **No hero or cruise A/B was run.** The doors that moved are all below the
   entrance layers' min-zoom from altitude and the piece count moved by 2 of
   15,071 — but that is an argument, not a measurement.
+
+### 152.11 MERGED, AND MAIN IS STILL RECORDABLE
+
+PR #192, merge commit `0a4a0ba`, branch deleted. Re-checked on the MERGED tree,
+not on the branch in isolation:
+
+* `harness-drift` **PASS**, 29 scripts in each file;
+* **both bakes reproduce their committed output byte-for-byte** —
+  `python scripts/bake_entrances.py` and `python scripts/bake_walk.py` leave a
+  clean `git status`, so the shipped data really is what the shipped scripts
+  make;
+* walk regression **19 of 19 PASS** re-run after the merge;
+* `?clip=1&preset=cinematic` gives a **chrome-free frame with 0 page errors** —
+  `shots/nb2/final/clip-cinematic.png`. Nothing in the UI is left showing.
+* `coplanar.mjs` on merged `main` now reads **1627**; that is the number the
+  suite-repair lane should expect when it re-records the baseline.
+
+Server killed, worktree torn down, `reap.mjs` not run.
