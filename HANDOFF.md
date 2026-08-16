@@ -18363,3 +18363,161 @@ footprint is a building pass on somebody else's file.
 **No browser, no server.** Process check at the top of the pass read
 **27 chrome, 2 node, 2 python** — not a quiet machine, and two lanes were
 mid-measurement. Nothing here needed one.
+
+---
+
+## 140. Aug 16 2026 — the doors reach the network: 120 of 198 walkable becomes 135, and 14 of the freshman twenty (QUEUE Part Z / ZA, ZC) (acer lane, branch `acer/n8-doors`, PR #184, NOT merged)
+
+**Branch `acer/n8-doors`, `origin/main` merged in at the top of the pass (it had
+not moved: `640afcb` then and now). Files written: `data/walk_graph.json`,
+`js/wayfind.js`, `docs/walk/the-78.md`, `docs/walk/what-we-can-honestly-say.md`,
+`QUEUE.md`, this entry. `scripts/bake_walk.py` was READ and run, not edited.
+`WAYFIND.on` is untouched — the feature is still behind `?walk=1`.**
+
+**NO BROWSER AND NO SERVER WERE OPENED.** Process counts, checked three times:
+**13 chrome / 0 node at the start, 20 chrome / 1 node / 3 python at the end**,
+CPU 20–26 %. It went *up* during the pass, because another lane was mid-way
+through the frame-time measurement. Two gates are therefore unrun and they are
+named at the bottom rather than assumed away. `harness-drift.mjs` **PASS,
+29 scripts = 29 scripts** — it is pure text and needed nothing.
+
+### The number §139 refused to claim
+
+§139 ended by saying that how many of its 27 new doors reach the walked network
+was *"unmeasured here and must be measured there before anyone says a number out
+loud"*. Measured:
+
+```
+                                  before      after
+routable UT register codes       120 / 198   135 / 198     (+15)
+merged in as "not walkable yet"   78          63
+door groups                      629         656   (651 attached, 99.2 %)
+nodes / edges                 11,247/12,194  11,277/12,224
+bake gates                                   19 of 19 green
+```
+
+Newly routable: `NUR UTA WMB HDB HTB CDL JHH ANB LCH FDH SAG TRG GUG HCG E26`.
+**None lost.** `--regress`: **19 of 19 PASS, every distance identical to the
+tenth of a metre, every one `walls 0`.** Not one frozen pair moved.
+
+**The freshman list — `docs/walk/the-78.md` §5's twenty — goes from 0 of 20 to
+14 of 20.** The six that refuse: `ACS` (opened this semester, nothing in the
+repo), `HLB`/`SMC` (real OSM ways, but no footprint in the scene, so a door
+would stand in an empty field — refused on purpose), and three parking garages.
+
+**135 without widening `CAMPUS` at all.** §8 forecast a 137 ceiling from four
+fixes including the wide rect; §139's register-scope rule got 135 by admitting
+twelve buildings where the rect would have admitted 125 nobody has looked at.
+
+### The check a door pass is actually accountable for
+
+A route has three parts, and a new door only creates one of them: the **arrival
+leg**, the unmapped straight line from the network to the door. The network is
+`main`'s. So the accountable question is not "does any route flag a wall" but
+"does any *arrival leg* cross a building".
+
+Driven from **all 143 origins that routed on `main`, to all 15 new buildings**:
+
+```
+2,145 arrival legs
+    0 crossing a building
+ 29.2 m longest (E26), all inside DOOR_LINK_MAX_M = 30
+```
+
+Every new door is `src: derived`, so every one says *"Entrances are on this
+side"* and none can say *"The main entrance"*. Positions were also checked
+against `OSM_REF_XY` — OSM's own `ref` point, which depends on no name string
+agreeing with any other — and the thirteen that have one land 5–50 m from it.
+**`NUR`'s footprint carries no `ref` at all, so for `NUR` there is no
+independent check and the doc says so instead of implying one.**
+
+### The one flagged route, and the fix that was priced and refused
+
+`PCL>UTA` reports `walls 1`. It is **OSM way 1206168875**, tagged plainly
+`highway=footway, footway=sidewalk` — no `covered`, no `layer`, no `tunnel` —
+drawn across the AT&T Center footprint. `build_raw()` finds it from
+`footways.json` alone, before any door exists: **it is `origin/main`'s network.**
+Routing without it costs **0.8 m (+0.1 %)**.
+
+`JES>UTA` and `GRE>UTA` report `walls 5` — five short edges through **four
+~65 m² unnamed footprints in one cluster at `-97.7380, 30.2809`**, ways
+571500827 and 1199982733–5, one of them `highway=steps`. Nobody has stood there.
+
+Rate, not incidents, because incidents are cherry-pickable:
+
+```
+among main's own routable codes         20 of 300 sampled pairs cross a footprint  6.7 %
+routes ending at a newly routable one   15 of 300                                  5.0 %
+```
+
+**The rate went down.** And the obvious fix was measured before being rejected:
+dropping all 14 through-edges campus-wide leaves **every frozen pair unmoved to
+two decimal places** and costs **`EER` 25.4 %** of its route to WEL. So at least
+one of the fourteen is a real passage, and deleting the set to buy a clean
+number would be buying honesty with a disconnection — the mirror of the move
+§3d of `graph.md` refused. Left flagged, as QUEUE ZB.
+
+### Two claims the interface was making that had stopped being true
+
+**1. `avoidShown` had `189` typed into it (QUEUE ZC, named in §125, §137, §138).**
+189 is the count of `highway=steps` ways in the 2026-07-30 snapshot — a
+measurement of a file, printed by a program that had stopped consulting the
+file. The next Overpass refresh moves the graph and leaves the sentence behind
+**looking exactly as plausible as before**, which is the only kind of stale
+claim that survives a review. It now reads `swEdges.size`, the same set
+`edgeCost` prices at `Infinity` when the toggle is on, so the sentence describes
+what the filter did rather than what somebody remembered. Counted today: still
+189, and the rendered string is **byte-identical**.
+
+**2. `no door mapped` was not on the permitted list.** It was the one rendered
+string in `js/wayfind.js` living neither in `SAY` nor in
+`what-we-can-honestly-say.md` §11 — a string the list has never seen is exactly
+what the list exists to prevent. Gate S has also made it unreachable (no
+findable entry can be unanchored since §136). Both branches now take the
+permitted tag `not walkable yet`.
+
+`what-we-can-honestly-say.md` carries both revisions with their reasons, and a
+note that §7's `106 / 92` coverage counts moved — **and that not one of the 27
+new doors is `osm`, so the verified figure is still 63 doors on 31 buildings.**
+§12's ban on quoting the door total as a boast applies word for word to 656.
+
+### THE GATES I COULD NOT RUN, and why this is not self-merged
+
+`harness-drift` PASS. Route regression PASS. Bake gates 19 of 19. All data-only.
+
+**Unrun, because the machine was not quiet:**
+
+1. **The honesty scan of the rendered DOM** against §12's forbidden families.
+   The diff only ever *removes* a rendered string, and `avoidShown` evaluates
+   byte-identical at n=189 — but that is the source, and the gate says the DOM.
+2. **The feature-off proof and the six hero poses** at their cross-launch noise
+   floor. Nothing here runs without `?walk=1` and `walk_graph.json` is not
+   fetched at boot — but §138's own lesson is that this gate has twice gone
+   green on something it had never seen.
+
+**PR #184 is open, not merged, per CLAUDE.md rule 2's "leave it open with the
+reason written down".** It needs one lane with a quiet machine and about twenty
+minutes. **The data half will not move under you**: `data/walk_graph.json` is
+final, the regression is frozen, and `scripts/bake_walk.py` was not edited.
+
+### One instrument note for the next lane
+
+`scripts/verify/harness-drift.mjs` must be run **from the repo root**, not from
+`scripts/verify/` as `scripts/verify/README.md` says. It resolves `index.html`
+against the working directory and throws ENOENT otherwise. That is a two-minute
+false alarm sitting in front of the first gate anybody runs.
+
+### What this pass did NOT establish
+
+* **No pixel was measured and no frame was taken.** Nothing visual about the 27
+  new doorways has been looked at since §139 asked for it, and §139's own
+  warning stands: **nobody has seen the Dell Med block (`HDB`, `HTB`, `HCG`) up
+  close.** That is still a condition on merging, and it is still unmet.
+* **Nobody has stood in front of any of the fifteen buildings.** Every check
+  here is geometry agreeing with geometry, and the "independent" one is OSM
+  checking OSM.
+* **The four-footprint cluster at `-97.7380, 30.2809` is unidentified.**
+* **The 63 that remain were not re-classified** — §4's causes are assumed still
+  to hold; only the fifteen that moved were re-examined.
+* **`ACS`, the building opening this semester, is still nowhere in this repo**
+  and still correctly answers *"not walkable in this build yet"*.

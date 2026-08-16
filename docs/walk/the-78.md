@@ -648,3 +648,168 @@ is now a hard assertion in the bake so that a future placement change which
   close.
 * **Nobody has stood in front of any of these fifteen buildings.** Everything
   here is geometry agreeing with geometry.
+
+---
+
+# Part three — the graph, re-baked. Acer lane, 2026-08-16, branch `acer/n8-doors`
+
+Part one classified the 78. Part two placed doors on fifteen of them without
+drawing one by hand. **This part answers the only question that matters to a
+student: how many of the 198 can you now walk to.** Part two ended by refusing
+to claim a routable count — *"how many of those doors reach the walked network
+within `DOOR_LINK_MAX_M` is unmeasured here and must be measured there before
+anyone says a number out loud"*. This is that measurement.
+
+**No browser and no server were opened for this half either.** The machine read
+**13 chrome / 0 node at the top of the pass and 20 chrome / 1 node / 3 python at
+the end** — it went up, not down, because another lane was mid-measurement. Two
+gates went unrun because of it and they are named in §21.
+
+## 15. The number
+
+```
+                                  before      after
+routable UT register codes       120 / 198   135 / 198     (+15)
+merged into the search box as
+  "not walkable in this build"    78          63
+door groups                      629         656
+  attached to the graph          624         651   (99.2 %)
+nodes                         11,247      11,277
+edges                         12,194      12,224
+bake gates                                 19 of 19 green
+```
+**[M]**, `python scripts/bake_walk.py --routes`, this date.
+
+Newly routable, all fifteen: `NUR UTA WMB HDB HTB CDL JHH ANB LCH FDH SAG TRG
+GUG HCG E26`. **Nothing that routed before stopped routing.**
+
+Against §8's forecast, which predicted a ceiling of 137 by four fixes: this pass
+reached **135 without widening `CAMPUS` at all**, because §11a's register-scope
+rule admitted twelve buildings where the wide rect would have admitted 125. The
+two it is short of 137 are `HLB` and `SMC`, deliberately refused (§14): the app
+renders the snapshot's 2,453 footprints and neither building is in it, so a door
+imported for them would stand in an empty field. **A door with no building
+behind it is a different lie from an invented door and it is just as bad.**
+
+## 16. Nothing that routed before moved by a centimetre
+
+`--regress`, 19 frozen pairs, 5 % tolerance, on the re-baked wire file:
+
+```
+19 of 19 ok, every distance identical to the tenth of a metre, every one walls 0
+REGRESSION: PASS (0 bad of 19)
+```
+**[M]**
+
+## 17. The freshman list, routed one at a time
+
+§5 ranked the twenty a freshman is most likely to need. Before this line of work
+**none of them routed.** Now:
+
+| | | now |
+|---|---|---|
+| 14 | `NUR UTA WMB HDB HTB CDL JHH ANB LCH FDH SAG TRG GUG HCG` | **route** |
+| 3 | `NUG CCG RHG` — parking garages | nothing anywhere in the repo |
+| 2 | `HLB SMC` — the Dell Med pair | OSM way exists, no footprint in the scene (§14) |
+| 1 | `ACS` — opened this semester | no polygon, no label, no reference anywhere |
+
+**[M]** on the routing, **[A]** on §5's ranking, which is a judgement and still
+has no room inventory behind it.
+
+Distances are unremarkable in the good way: `WMB` 560 m 7–8 min, `TRG` 824 m,
+`HTB` 865 m, `HCG` 881 m, `CDL` 910 m, `HDB` 916 m, `GUG` 940 m, `UTA` 963 m,
+`LCH` 1,026 m, `JHH` 1,034 m, `SAG` 1,074 m, `NUR` 1,086 m, `ANB` 1,178 m,
+`FDH` 1,207 m. Every one of them a real cross-campus walk.
+
+## 18. The check this pass is actually accountable for
+
+A route has three parts: the start leg, the walked network, and the **arrival
+leg** — the unmapped straight line from the network to the door. The network is
+`main`'s and this branch never touched it. **The arrival leg is the only part of
+a route a new door creates**, so it is the only part a door pass can be blamed
+for.
+
+Driven from **all 143 origins that routed on `main`, to all 15 new buildings**:
+
+```
+2,145 arrival legs
+    0 crossing a building
+ 29.2 m longest (E26); all inside DOOR_LINK_MAX_M = 30
+```
+**[M]**
+
+Each new door's position was also checked against `OSM_REF_XY` — OSM's own
+`ref`-tagged point for that building, an answer to *"is this on the right
+building"* that depends on no name string agreeing with any other. The thirteen
+that have one land 5–50 m from it, i.e. inside the building. `NUR` has no `ref`
+on its footprint at all (§11b recovered it by the register name join), so for
+`NUR` there is no independent check and this document says so rather than
+implying one.
+
+## 19. One route is flagged, and it is `main`'s network
+
+`PCL>UTA` reports `walls 1`. Named rather than waved away:
+
+* the segment is **OSM way 1206168875**, tagged plainly
+  `highway=footway, footway=sidewalk` — **no `covered`, no `layer`, no
+  `tunnel`** — drawn across the AT&T Center footprint;
+* `build_raw()` finds it from `footways.json` alone, before any door exists, so
+  it is `origin/main`'s network **[M]**;
+* routing without it costs **0.8 m (+0.1 %)**.
+
+`JES>UTA` and `GRE>UTA` report `walls 5`, and that is five short edges through
+**four ~65 m² unnamed footprints in one cluster at `-97.7380, 30.2809`** — ways
+571500827 and 1199982733–5, one of them `highway=steps`. Four adjacent tiny
+structures with footpaths and a staircase drawn through them is the shape of a
+stair head or a gateway you walk between. **Nobody has stood there and this
+document does not guess.**
+
+The honest way to ask *"did this pass make wall-crossing more common"* is to
+measure the rate, not the incidents:
+
+```
+among main's own routable codes         20 of 300 sampled pairs cross a
+                                        footprint    6.7 %
+routes ending at a newly routable one   15 of 300                5.0 %
+```
+**[M]** — the rate went **down**.
+
+**And the tempting fix was priced and refused.** Dropping all 14 through-edges
+campus-wide leaves every frozen pair unmoved to two decimal places — and costs
+`EER` **25.4 %** of its route to WEL. So at least one of the fourteen is a real
+passage, and deleting the set to buy a clean number would be buying honesty with
+a disconnection, which is the mirror of the move §3d refused. The cluster stays,
+flagged, as QUEUE ZB.
+
+## 20. Two things the interface was claiming
+
+* **`avoidShown` had `189` typed into it.** It is the count of `highway=steps`
+  ways in the 2026-07-30 snapshot, printed by a program that had stopped
+  consulting the snapshot. The next Overpass refresh moves the graph and leaves
+  the sentence behind **looking exactly as plausible as before**, which is the
+  only kind of stale claim that survives. It now reads `swEdges.size`, the same
+  set `edgeCost` prices at `Infinity` when the toggle is on. Counted today:
+  still 189, so the rendered string is byte-identical **[M]**.
+* **`no door mapped`** was the one rendered string in `js/wayfind.js` living
+  neither in `SAY` nor on the honesty doc's permitted list, and gate S has made
+  it unreachable. Both branches now take the permitted tag.
+
+## 21. What this pass did NOT establish
+
+* **No browser was opened, so two gates are unrun** — the honesty scan of the
+  **rendered DOM** against §12's forbidden families, and the feature-off /
+  hero-pose proof. The machine was at 20 chrome / 1 node with another lane
+  mid-measurement. The diff only ever *removes* a rendered string and
+  `avoidShown` evaluates byte-identical — but that is the source, and the gate
+  says the DOM. **The PR is therefore not self-merged.**
+* **Nobody has stood in front of any of the fifteen buildings.** Every claim
+  here is geometry agreeing with geometry, and the independent check
+  (`OSM_REF_XY`) is still OSM checking OSM.
+* **The four-footprint cluster at `-97.7380, 30.2809` is unidentified.** It may
+  be a gateway you walk through; it may be four buildings a sidewalk was drawn
+  across. Reading the OSM ways or standing there is the only way to know.
+* **`ACS` is still nowhere in this repository** and still correctly answers
+  *"not walkable in this build yet"*. It is the one building on the freshman
+  list opening this semester, and nothing a bake can do will fix it.
+* **The 63 that remain were not re-classified.** §4's causes are assumed to
+  still hold for them; only the fifteen that moved were re-examined.
