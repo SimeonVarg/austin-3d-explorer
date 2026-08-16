@@ -15659,3 +15659,69 @@ AWS shoot. One taste call left: from the air the route is a deliberately thin
 thread (0.04-0.11 % of the frame) — my call is ship it as is, and if you want
 the flyover louder it is a one-line change; compare frames 01 and 02 in
 `shots/walk/final/`.
+
+## 123. Aug 16 2026 — Z0 closed: the city-wide ground grain renders for the first time, and at its authored strength it is almost invisible (acer lane)
+
+**Branch `acer/z0-ground-maxzoom`, PR #172, merged.** One constant:
+`js/ground.js` `texGroundMaxZoom: 25` → `24`, plus the surrounding comment,
+which described the 25 as a working raise when it was the reason the layer
+never existed. §116 diagnosed it: the style spec caps a layer `maxzoom` at 24,
+so `addLayer` failed validation and `ground-base-texture` — the city-wide
+paving-grain `background` layer — has never once been in the style on `main`.
+
+### PROOF, TWO PINNED TREES ON 8347 IN TURN
+
+`origin/main` @ 6ce3b3a and the branch, each its own worktree served by
+`scripts/serve.py 8347` (never `python -m http.server`), headless SwiftShader
+1440×900 dpr 1, `cancelGraphicsAutoDetect()`, `GFX.autoExposure = false`
+(§112 — `__aeReset()` alone leaves the gain), `harness-drift` PASS on both
+trees first.
+
+| | pinned main | fixed branch |
+|---|---|---|
+| console lines naming `ground-base-texture` | rejection + "non-existing layer" ×N | **0** |
+| `getLayer('ground-base-texture')` | absent, 218 layers | **present, 219** |
+| magenta mask at 1.70 m (§48), changed px | **0** | **154,097**, rows 444–899 |
+
+The magenta frame (`shots/z0/after-eye-magenta.png`) is the picture worth
+keeping: the layer paints exactly the unclassified catch-all strips — the wide
+near-field band at your feet, the slivers between road and pavement polygons —
+and nothing that was already classified. Identical count on a second fresh
+load, so the instrument is stable.
+
+### THE FLOOR WAS ZERO, WHICH MADE THE VERDICT EASY TO TRUST
+
+Same-load repeats AND fresh-load repeats of the same tree came back
+**byte-identical for every day frame** (0 pixels differing at all — SwiftShader
+plus AE-off is fully deterministic here); the only cross-load noise anywhere
+was 49 px of star twinkle in the night sky rows. Against that floor,
+before → after at >24/255:
+
+```
+default day   36 px   (0.0028 %)      cruise day   99 px  (0.0076 %)
+default night 37 px                   cruise night 62 px
+eye day        0 px
+```
+
+Scattered single-pixel specks (see `shots/z0/mask-cruise-day.png`), same order
+as the 95/61 px §112 called negligible at cruise. Dropping the threshold to
+>4/255 finds the whole real effect: **540 px at cruise, 16 at eye level** —
+everything else the layer does is a ≤4/255 shift on unclassified ground.
+
+### THE HONEST READING OF THE EYE-LEVEL RESULT
+
+Better, but barely. The grain is genuinely there now (the magenta count is six
+figures) yet at the baked `texGroundOpacity` its day-time visible effect is at
+the edge of an 8-bit channel. Nobody has ever seen this layer to tune it — the
+strength on `main` today is an untested guess that happens to be conservative.
+If Simeon wants the paving grain to actually read at walking height, that is a
+one-line taste change (`texGroundOpacity`, `js/ground.js`), and now it will do
+something when turned.
+
+### WHAT I DID NOT ESTABLISH
+
+* Whether the grain strength SHOULD be higher — taste, parameterised, his.
+* Anything on hardware GL, dpr 2, or dusk hours (day 0.30 / night 0.90 only).
+* The night-sky twinkle floor beyond bounding it (49 px, rows 15–127).
+* No perf run — a rejected layer becoming a real one adds a background draw;
+  at these frame counts nothing suggested it, but it was not measured.

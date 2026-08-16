@@ -813,10 +813,10 @@ Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
                                                 Daylight feature by measurement; night
                                                 grain is nil by design. The GEOMETRY
                                                 half (gutter line, door thresholds,
-                                                smaller repeat ring) is still OPEN, and
-                                                so is PART Z's Z0 (texGroundMaxZoom 25
-                                                rejects ground-base-texture on main —
-                                                one character, 25 -> 24).
+                                                smaller repeat ring) is still OPEN.
+                                                PART Z's Z0 (texGroundMaxZoom 25
+                                                rejected ground-base-texture on main)
+                                                is CLOSED — 25 -> 24, PR #172, §123.
 Y9  labels sized by zoom not metres .......... OPEN
 Y10 touch at walking height .................. OPEN
 Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — found Y17+Y18
@@ -893,6 +893,11 @@ should land before Y4 or Y4 must re-run the check.
 eighteen pairs driven in a real browser, every distance identical to the bake's
 audited table, nothing routed through a building that OSM does not mark
 `covered=yes`. What is not ready is the picture and the wording around it.
+
+**~~Z0.~~ CLOSED — `texGroundMaxZoom` 25 → 24 (PR #172, 2026-08-16, HANDOFF
+§123). The layer is in the style (219 layers, was 218), zero rejection lines on
+load, magenta-masked 154,097 px at the eye pose (was 0), and cruise/default
+stayed at the measured floor.** The original entry:
 
 **Z0 — NOT THIS FEATURE, AND THE MOST URGENT LINE ON THIS PAGE.
 `ground-base-texture` is rejected by MapLibre on `main` today.**
