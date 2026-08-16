@@ -16604,6 +16604,16 @@ overlaps, minimum gap 2.40 m, minimum span 0.179 m). **`coplanar.mjs` printed
 `p.h`/`p.height` and this file carries `dbase`/`dh`, so it saw nothing. Written
 down rather than quoted as a pass.
 
+### Re-verified on the rebase (`origin/main` `6a63b4f`, Y10/Y12 merged under me)
+
+`harness-drift` **PASS 29/29**. The bake is deterministic — re-run on the
+rebased tree, `data/campus_storeys.geojson` is SHA-256 identical. Two poses
+re-shot on the rebased tree and both reproduce EXACTLY: South Mall eye-day
+**12,280 px** against a **0 px** floor (and the frame is SHA-256 identical to
+the judged one), cruise z15.2 / 615 m **0 px**. The HANDOFF section number moved
+128 -> 129 because the perf lane took 128 on `main` while this was in flight;
+both entries are kept.
+
 ### Two lane decisions, recorded because they were mine to make
 
 1. **The client is in `js/facades.js`, not a new `js/storeys.js`.**
