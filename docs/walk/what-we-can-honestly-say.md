@@ -482,6 +482,22 @@ a person.
 * `About 12-15 minutes at an ordinary walking pace`
 * `950 m`
 * `Crosses 2 signalised crossings — add up to a minute and a half if the lights are against you`
+  *(revised 2026-08-16 — **the wait in this sentence is `n x SIGNAL_WAIT_S`,
+  computed, and it was frozen at the n=2 value for a whole build.** The line
+  above was written with two crossings in it and "a minute and a half" is
+  exactly 2 x 45 s. The build generalised the count and left the wait alone, so
+  a route across seven lights rendered `Crosses 7 signalised crossings — add up
+  to a minute and a half` while the range printed directly above it had already
+  added **five and a quarter minutes** for those same lights. That is not a
+  rounding quibble: it is one line of the card contradicting the line above it,
+  and the smaller of the two numbers is the one a late student would trust.
+  Caught by routing The Block to Patton Hall, a real West Campus walk.
+  The permitted family is now, with the allowance rounded **outward** to the
+  next half minute because "add up to" is a ceiling:*
+  * `Crosses 1 signalised crossing — add up to 45 seconds if the light is against you`
+  * `Crosses 4 signalised crossings — add up to 3 minutes if the lights are against you`
+  * `Crosses 7 signalised crossings — add up to 5 and a half minutes if the lights are against you`
+  * *…and at n = 2 the sentence still renders the line above it verbatim.*
 
 **Stairs**
 * `This route uses stairs`
@@ -519,6 +535,14 @@ result list reads as "you typed it wrong" when the truth is "we don't have it")*
   not the student's typing, and "yet" is honest because the graph coverage is
   actively being raised.
 * `not walkable yet` — the same fact compressed to a result-row tag.
+
+**The passing period** *(added 2026-08-16, QUEUE Z-passing — see §15 for why
+these are one-sided, and why there is no sentence here for the good case)*
+* `Longer than a 15-minute passing period` — only when the LOW end of the
+  printed range is already at or over `PASSING_MIN`.
+* `Tight for a 15-minute passing period` — only when the printed range crosses
+  `PASSING_MIN`, i.e. `lo < PASSING_MIN <= hi`.
+* *(nothing at all when `hi < PASSING_MIN`)* — deliberate. See §15.
 
 **Food on the way**
 * `Coffee on the way: Medici, 200 m off route`
@@ -577,6 +601,21 @@ guess at the rule.
 * ~~`Open now`~~ for a food POI where `hsrc` is `G` — that is a category habit table the bake itself calls wrong one time in six.
 * ~~`Live`~~ / ~~`Real-time`~~ / ~~`Up to date`~~ — a 30 July 2026 snapshot.
 
+**The passing period** *(added 2026-08-16, §15)*
+* ~~`You'll make it`~~ / ~~`You have time`~~ / ~~`Plenty of time`~~ — the one
+  sentence a student most wants and the one we cannot back. It is a promise
+  about arrival built on a walking-speed assumption, and it fails in the
+  direction that makes someone late.
+* ~~`Fits the 15-minute passing period`~~ / ~~`Comfortably inside the passing
+  period`~~ — the same promise wearing a measurement's clothes. Our range
+  models the *walk*; it does not model getting out of a lecture hall, a lift, a
+  stairwell inside the building, a crowd on Speedway at 11:00, or finding the
+  room. For a 13-minute walk those eat the buffer entirely.
+* ~~`Leave by 10:35 to make an 11:00`~~ — §3 already forbids clock times; this
+  is that rule with a passing period attached.
+* ~~`You'll be 4 minutes late`~~ — a single number again, and a subtraction of
+  two assumptions.
+
 **Routing itself**
 * ~~`Takes into account all pathways and walkways`~~ — it takes into account the 3,430 ways OSM had on 30 July, minus a 5 % island, plus whatever nobody mapped.
 * ~~`Through the building`~~ / ~~`Exit the north side of Welch`~~ — one indoor tag in the entire cache; no floor plans exist.
@@ -601,6 +640,8 @@ DOOR_TRUST_SRC         ['osm','westcampus','authored']  // may be named "the" do
 DOOR_MAX_SNAP_M        25     // beyond this, end at the outline instead
 DATA_AS_OF             read from footways.json osm3s.timestamp_osm_base
 AVOID_STAIRS_LABEL     'Avoid stairs'   // never 'step-free', never 'accessible'
+PASSING_MIN            15     // minutes. §15 — the ONLY number in this feature
+                              // that is not counted out of a file in this repo
 ```
 
 ---
@@ -629,3 +670,76 @@ AVOID_STAIRS_LABEL     'Avoid stairs'   // never 'step-free', never 'accessible'
   repo; they agree for 77 of 81 checked (`placement.md`).
 * **Did not write any code, and changed no data file.** The only file this pass
   wrote is this one.
+
+---
+
+## 15. "Will I make it?" — RULE: we may WARN, we may never REASSURE
+
+*Added 2026-08-16, Acer lane, before the string was written. This is the
+question the whole feature exists to answer and it is the one most likely to be
+answered dishonestly, so it gets its own section.*
+
+A student between classes is not asking "how do I get there". They already
+know. They are asking **"do I have time?"** — and a walking app that shows a
+distance and a range is making them do that subtraction in their head while
+walking. Doing it for them is the single sentence that turns directions into the
+thing people actually want.
+
+It is also, worded the obvious way, the most dangerous sentence in the feature.
+
+### The asymmetry, which is the whole ruling
+
+Our range is `lo`-`hi` minutes, from §3. Both ends are assumptions multiplied by
+someone's legs. So consider what happens when each half of a yes/no is wrong:
+
+| we say | we are wrong | what happens to the student |
+|---|---|---|
+| **"you won't make it"** | they would have made it | they leave a minute early, or jog. Cost: a minute. |
+| **"you'll make it"** | they don't | **they are late.** That is the failure this document was written to prevent. |
+
+Those are not comparable errors and they must not get comparable sentences.
+
+And the reassurance is wrong more often than the warning, because of what the
+range does **not** contain. `walk_graph.json` measures pavement between two
+doors. It does not model: getting out of a lecture hall of 200 people, a lift, a
+stairwell *inside* a building (§9 — there is no indoor data at all and there
+never will be), the crowd on Speedway at the top of the hour, finding a room
+once you are through the door, or a queue for coffee you just added yourself. On
+a 13-minute walk into a 15-minute gap, those consume the entire buffer, and
+every one of them is invisible to us.
+
+### The ruling
+
+Three states, and only two of them speak:
+
+* **`lo >= PASSING_MIN`** — even our *optimistic* end is over. MAY say
+  **`Longer than a 15-minute passing period`**. This is a claim about our own
+  printed range, it fails safe, and it is the case where the student most needs
+  to be told.
+* **`lo < PASSING_MIN <= hi`** — the range crosses the line. MAY say
+  **`Tight for a 15-minute passing period`**. Again a statement about the
+  range, not about arrival: our own numbers include values over the period.
+* **`hi < PASSING_MIN`** — **say nothing.** The range is already on screen and
+  it is under 15 at both ends; a reader can see that. Silence is not a promise,
+  and there is no wording of the good news that does not become one. This is
+  the deliberate hole in the feature and it should stay a hole.
+
+Never a clock time, never a "leave by", never a countdown, never a minutes-late
+number, and never a green tick — a tick is the reassurance with the words taken
+out.
+
+### `PASSING_MIN` is the one number here with no file behind it
+
+Everything else in this document was counted out of the repo. This was not:
+nothing in `data/` or `docs/` records UT's class schedule. It comes from the
+brief that asked for the feature, and it is worth writing down plainly that
+**UT's own blocks are not all 15 minutes** — the standard MWF pattern is 50
+minutes on the hour, which leaves ten, while the TTh 75-minute pattern leaves
+fifteen. So the constant is genuinely a taste value, exposed as
+`WAYFIND.passingMin` and overrulable in one line, and the sentences use the
+**indefinite** article — *"a 15-minute passing period"*, never *"the"* — because
+we are naming the number we used, not asserting a fact about the university.
+
+If someone later wants this to be right on both patterns, the honest version is
+a two-value constant and a sentence that names which one it used. It is not a
+guess about which day it is.
