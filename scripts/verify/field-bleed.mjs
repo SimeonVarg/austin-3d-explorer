@@ -335,7 +335,12 @@ for (const [tname, tp] of Object.entries(TIMES)) {
 }
 
 const bad = rows.filter(r => r.expect === 'zero' ? r.d.n > 0 : r.d.n <= 500);
-console.log(`\n${bad.length === 0 ? 'PASS' : '*FAIL'} — ${bad.length} of ${rows.length} poses wrong`);
+const TOTAL = Object.keys(ALL_TIMES).length * POSES.length;
+console.log(`\n${bad.length === 0 ? (SLICED ? 'SLICE OK' : 'PASS') : '*FAIL'} — `
+  + `${bad.length} of ${rows.length} poses wrong`
+  + (SLICED ? `   [SLICED RUN: ${rows.length} of ${TOTAL} poses. THIS IS NOT A PASS OF THIS `
+            + `GATE — the poses not run include 'some' controls that catch a "fix" which `
+            + `simply stops drawing the field.]` : ''));
 if (bad.length) {
   console.log('  outside-the-bowl poses that still paint turf:');
   for (const r of bad.filter(r => r.expect === 'zero')) {

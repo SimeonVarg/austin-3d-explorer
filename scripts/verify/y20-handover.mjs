@@ -154,6 +154,43 @@ check('the disc body switch happens where BOTH visibility ramps are at zero',
   arms.on.map(r => `q${r.q} visSun ${r.visSun.toFixed(3)} visMoon ${r.visMoon.toFixed(3)}`).join('   ') +
   '  — if a taste edit moves either ramp, the single disc would pop and this goes red');
 
+// ── THE HERO HOURS MUST BE A NO-OP ────────────────────────────────────────
+//
+// The fix touches two things outside the handover: the SUN's washes now take
+// `sunHalo`, and the clouds take a cross-faded colour. Both are provably
+// inert away from dusk — the moon track sits flat at -6 deg for every p <= 0.55
+// so `wMoon` is exactly 0 all day (`moonMix` 0, `cloudLight` = `sunHalo` =
+// the old `haloCol`, since `useMoon` is false), and past ~0.62 `wSun` is 0 so
+// the sun's washes draw at zero alpha whatever colour they are handed.
+//
+// THAT IS ARITHMETIC, AND ARITHMETIC IS NOT A MEASUREMENT. This repo has
+// shipped a formula that read identically hook-on and hook-off. So the claim is
+// asserted on pixels, at the hours the hero shots use, with the same two arms:
+// every channel must be BYTE-IDENTICAL between HANDOVER on and off.
+const HERO_P = [
+  { tag: 'day', p: 0.12 }, { tag: 'noon', p: 0.30 },
+  { tag: 'golden', p: 0.50 }, { tag: 'night', p: 0.92 },
+];
+const heroRows = [];
+for (const h of HERO_P) {
+  await readAt(h.p * 128, false);                     // settle this hour, OFF arm
+  const off = await readAt(h.p * 128, false);
+  await readAt(h.p * 128, true);
+  const on = await readAt(h.p * 128, true);
+  const d = off.rgb.map((v, i) => Math.abs(v - on.rgb[i]));
+  heroRows.push({ ...h, off: off.rgb, on: on.rgb, worst: Math.max(...d) });
+}
+console.log('\n  hero hours — HANDOVER off vs on, same build, same pixel:');
+for (const r of heroRows)
+  console.log(`    ${r.tag.padEnd(7)} p=${r.p.toFixed(3)}  off ${r.off.join(',').padEnd(12)} ` +
+              `on ${r.on.join(',').padEnd(12)} worst |delta| ${r.worst}`);
+
+check('the fix is a NO-OP at every hour outside the dusk handover',
+  heroRows.every(r => r.worst === 0),
+  heroRows.map(r => `${r.tag}:${r.worst}`).join('  ') +
+  '  — anything non-zero here means the cloud cross-fade or the wash colour ' +
+  'reached an hour it has no business touching');
+
 const ok = checks.every(c => c.ok);
 console.log(`\n${ok ? ' PASS' : '*FAIL'}  y20-handover: ${checks.filter(c => c.ok).length}/${checks.length}`);
 if (SHOTS) console.log(`  frames: shots/reds/y20-{before,after}-q{75,76}.png`);
