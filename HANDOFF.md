@@ -22655,3 +22655,100 @@ that is scripts again — not repo size, not the deploy, not the app.
   pmtiles range request, not a missing asset — the file is present, unmodified,
   serves HTTP 206, and `trees-trunk`/`trees-canopy` are in the rendered style.
   Worth knowing because it reads like a broken file in any log and is not one.
+
+---
+
+## 163. Aug 17 2026 — Y24's cause is "the march never asked what was already there", the obvious rule was wrong, and the pinch was never inverted (acer lane, branch `acer/r3-dkrdoor`, PR)
+
+**Grep `^## 16` before you pick a number.** §95, §97, §156 and §161 all warn
+about this.
+
+**Files written:** `scripts/bake_entrances.py` (rule, shipped OFF, plus a
+diagnostic), `scripts/verify/coplanar.mjs` (`--dump-pairs`, read-only),
+`scripts/verify/pinch-alt.mjs` (new), `docs/entrances/doorway-claim.md`,
+`QUEUE.md`, `shots/lastfix/`, this section. **NO `data/`, no `js/`, nothing the
+app loads.** `main` serves byte-for-byte the city it served before this branch.
+
+Server `python scripts/serve.py 8571` from a throwaway worktree cut from
+`origin/main` `e10d591`; `harness-drift.mjs` **PASS** (29/29) before any pixel
+work; `?intro=0&drift=0`; `cancelGraphicsAutoDetect()` first; every arm waited
+for `austin-entrances` LOADED.
+
+### 1. The cause, and why the obvious fix would have been a disaster
+
+The brief's hypothesis was "a relocated door must stay on its own building".
+**The bake's own log refutes it: 21 of 27 relocations land on a NEIGHBOUR's
+drawn footprint, and `relocated.md` photographed most of them as good** — the
+Moody Center's five doors, that page's headline, every one of them lands on
+`2b0f20a0`, which is not Moody's ring. That rule deletes twenty-one working
+doors to fix seven.
+
+The real discriminator is **what is already on the wall**: good landings are on
+blank masses (`2b0f20a0`, `d51aba3f`, `eddfc577`, `78a70444` — zero door groups
+between them), bad ones are on masses that already carry their own doors
+(`3fb4507f`, `6671852e`, `568a1f55`). **Seven of the eight door pairs closer
+than 4 m on `main` are two different buildings in one doorway.** eid 345/621 is
+the loudest, not the only one.
+
+`clear_buried` now prints where every relocation lands
+(`moved 1x MNAC 2.05 m to -97.732263,30.282580 -> onto BUILDING 3fb4507f`) with
+counts. That line is why this took an hour instead of a night.
+
+### 2. The fix works and is shipped OFF
+
+`BURIED_DOOR_CLAIM` — a live door-position register; a relocation may not rest
+within `BURIED_DOOR_CLEAR_M` (3.2 m) of another **building's** door. On:
+
+```
+coplanar entrances.geojson   1655 -> 1623   GATE GREEN, exit 0, 4 UNDER 1627
+removed, by eid pair (coplanar.mjs --dump-pairs, new):
+   (345,621) 25   (128,587) 4   (179,621) 1   (164,287) 1   (179,345) 1
+added: none.  656 groups kept, ZERO eid identity drift, health otherwise equal.
+```
+
+**Off because the camera said so.** `doorstack.mjs` at 1.70 m, five bearings
+including a true opposing pair: the doubling is gone (345's rectangle is no
+longer inside 621's at any bearing), and three of the four usable bearings read
+*cleaner*. But eid 621 — Moncrief-Neuhaus's **main** door — travels 6.70 m and
+narrows from `hinged-quad` n=4 to `single` n=1, and at 249.9 a glazed portal
+becomes a thin armature (`shots/lastfix/before-345-621/B250-both.png` vs
+`after-.../B250-both.png`). The defect being removed is **invisible** (the front
+portal hides the back one; `zfight` found no flicker at 12 poses, §161 §6).
+Trading an invisible defect for a visible change across six doors, five of them
+never photographed, hours before a recording, is the wrong way round.
+
+Two designs tried and rejected, written down so nobody repeats them:
+**priority order** sends 345 20.96 m and 621 12.60 m onto unrelated facades;
+**drop-instead-of-march** has the cleanest geometry but drops four groups, which
+**renumbers 427 eids** and silently invalidates every eid in QUEUE, HANDOFF and
+`relocated.md` (eids come from `assemble()` in sequence).
+
+### 3. The pinch was never inverted — Y10 item 6 closed as a NON-DEFECT
+
+Driven at 393x852 with real CDP touch events, two interleaved reps each:
+**closed +150.7 / +174.0 m, spread −50.9 / −174.0 m.** Pinch-closed CLIMBS.
+That is the map convention: closed = zoom out = away from the ground = **up**.
+`docs/mobile/driving-at-eye-level.md` §6 called it "the opposite of the
+universal map convention, where pinching closed zooms out, i.e. away" — treating
+"away" and "lifts you" as opposites when for an altitude camera they are the
+same direction. **The doc had it backwards, not the app. Do not invert it.**
+The hint ("two fingers for altitude") states no direction and stays true.
+New instrument: `scripts/verify/pinch-alt.mjs`. **The magnitudes are NOT a
+finding** — `altUser` does not resync to a bare `jumpTo`, so only the sign is
+established.
+
+### 4. Found in passing, not fixed: R4
+
+eids **165/288** and **166/289** are two more doubled doorways at **0.00 m** —
+BEL and `6b5bbe97`, same coordinate, base 0.73 vs 0.77. Identical in the 1627
+file, on `main`, and in every arm here, so **no relocation put them there**.
+Placement-pipeline defect, on the Bellmont/DKR block. QUEUE R4.
+
+### 5. What this did NOT establish
+
+Five of the six doors the fix moves (128, 164, 179, 287, 346) were never
+photographed. The hero set was not re-shot — it did not need to be: no file the
+app loads is touched, and the bake was proved feature-for-feature identical to
+what `main` ships with the rule off. `BURIED_DOOR_CLEAR_M` was chosen from the
+gap in the measured distribution, not from a photograph of a real doorway. The
+walk graph was not re-baked, correctly, because no door moved.

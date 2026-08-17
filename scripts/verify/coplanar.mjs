@@ -85,6 +85,22 @@ const SELFTEST = has('--selftest');
 const QUIET = has('--quiet');
 const GATE = has('--gate');
 const WRITE_BASELINE = has('--write-baseline');
+/* `--dump-pairs <path>` writes EVERY hit as JSON, carrying both features' ids
+ * (`eid` where the schema has one) instead of the worst twelve by area.
+ *
+ * It exists because the count alone cannot be reasoned about. QUEUE Y24 turned
+ * on WHICH pairs the +28 were — 26 of them were two different buildings' front
+ * doors in one doorway and 2 were a door against its own step — and answering
+ * that needed a throwaway pair dumper written from scratch, which then had to
+ * be argued back into agreement with this file's eps, frac and sampling before
+ * anyone could trust it. This is that dumper, inside the instrument, sharing
+ * its pairing loop by construction. It is READ-ONLY: it changes no count, no
+ * exit code and no baseline. */
+const DUMP_PAIRS = (() => {
+  const i = argv.indexOf('--dump-pairs');
+  return i < 0 ? null : argv[i + 1];
+})();
+const dumped = [];
 
 /* The recorded per-file pair counts, so a NEW coplanar pair is visible against
  * a repo that already carries some. Without this the tool is permanently red
@@ -368,6 +384,19 @@ function check(label, features, file) {
       const f = overlapFrac(S, L);
       if (f < FRAC) continue;
       hits.push({ S, L, f });
+      if (DUMP_PAIRS) {
+        const id = it => (it.p.eid !== undefined ? it.p.eid : null);
+        dumped.push({
+          file: label,
+          a: id(S), b: id(L),
+          ka: S.p.k || S.p.kind || S.p.part || null,
+          kb: L.p.k || L.p.kind || L.p.part || null,
+          top: +S.top.toFixed(3),
+          area: +S.area.toFixed(2),
+          shared: +(f * 100).toFixed(1),
+          at: [+S.bb[0][0].toFixed(6), +S.bb[0][1].toFixed(6)],
+        });
+      }
     }
   }
 
@@ -537,6 +566,10 @@ for (const path of TARGETS) {
 console.log('');
 console.log(`TOTAL  ${totalFeats} features, ${totalTops} top faces examined, ` +
             `${totalPairs} coplanar pair(s), ${totalBad} unreadable`);
+if (DUMP_PAIRS) {
+  writeFileSync(DUMP_PAIRS, JSON.stringify(dumped, null, 1) + '\n');
+  console.log(`dumped ${dumped.length} pair(s) to ${DUMP_PAIRS}`);
+}
 if (missing.length) {
   console.log('FILES THAT COULD NOT BE READ (this is a failure, not a skip):');
   for (const m of missing) console.log(`    ${m}`);

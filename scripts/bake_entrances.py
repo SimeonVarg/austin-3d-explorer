@@ -263,6 +263,79 @@ BURIED_OWN_BLOCKS_FRONT = True   # NB8. Test the 4 m of clear space in front
 BURIED_DRAWN_FOOTPRINTS = True   # include the footprints `austin-buildings`
                         # extrudes, minus every id an authored pass claims.
                         # False restores the pre-NB2 rule in one line.
+# ── QUEUE R3: A RELOCATION MUST NOT TAKE OVER SOMEBODY ELSE'S DOORWAY ──
+# The march walks the exterior of whatever mass buried the door and never asked
+# what was already standing there. eid 345 (South End Zone, secondary) was
+# carried 5.96 m onto the Moncrief-Neuhaus Athletic Center and came to rest
+# 1.71 m from eid 621, MNAC's MAIN door: canopy on canopy at 100 % shared area,
+# two complete portals in one opening, and the reason `coplanar --gate` reads
+# 1627 -> 1655 on main (QUEUE Y24, HANDOFF §161, shots/close/y24/).
+#
+# THE OBVIOUS RULE IS THE WRONG ONE, AND IT WAS MEASURED BEFORE IT WAS WRITTEN.
+# "A relocated door must stay on its own building" sounds right and is refuted
+# by the bake's own log: 21 of 27 relocations come to rest against a NEIGHBOUR'S
+# drawn footprint, and relocated.md photographed most of them as good — the
+# Moody Center's five doors are the headline of that page and every one of them
+# lands on 2b0f20a0, which is not Moody's ring. Refusing foreign walls would
+# delete twenty-one working doors to fix seven.
+#
+# What separates them is not WHOSE wall, it is WHAT IS ALREADY ON IT:
+#
+#   good landings -> 2b0f20a0, d51aba3f, eddfc577, 78a70444 ... BLANK masses,
+#                    not one door group between them
+#   bad  landings -> 3fb4507f, 6671852e, 568a1f55 ... every one already carries
+#                    its own doors, and that is where all seven cross-building
+#                    collisions on `main` are
+#
+# So the rule is a CLAIM rule, not an ownership rule: a relocated leaf bank may
+# not come to rest on a doorway a DIFFERENT building is already using. Two doors
+# on one building at 2.8 m are an authored bank (BMA 366/367) and are none of
+# this rule's business; two buildings' front doors in one hole are the defect.
+#
+# IT IS OFF, AND THAT IS A DELIBERATE JUDGEMENT, NOT AN UNFINISHED FIX.
+# Turned on it does exactly what it says — measured, not asserted:
+#
+#   coplanar entrances.geojson   1655 -> 1623   (gate GREEN, 4 UNDER the 1627
+#                                                baseline, exit 0)
+#   every one of the 32 removed pairs is a CROSS-BUILDING door collision,
+#   resolved by id with `coplanar.mjs --dump-pairs`:
+#       (345,621) 25   (128,587) 4   (179,621) 1   (164,287) 1   (179,345) 1
+#   656 groups on 295 buildings, ZERO eid identity drift, 0 floating sills,
+#   0 detached pieces, OSM recall unchanged. Six door groups move.
+#
+# It is off because of what the CAMERA said, at 1.70 m, five bearings, both
+# arms. The doubling is gone — 345 is no longer a subset of 621's rectangle at
+# any bearing — and three of the four usable bearings read cleaner afterwards.
+# But eid 621, Moncrief-Neuhaus's MAIN door, travels 6.70 m and its opening
+# narrows from `hinged-quad` n=4 to `single` n=1, and at bearing 249.9 that
+# reads as a thin armature where a glazed portal used to be
+# (shots/lastfix/before-345-621/ vs after-345-621/, B250-both.png).
+#
+# And the defect this removes is INVISIBLE: the front portal hides the back
+# one, `zfight.mjs` found no flicker at twelve poses (HANDOFF §161 §6), and
+# nobody looking at the city can see it. So switching this on the night before
+# a recording trades an invisible defect for a visible change across SIX door
+# groups of which ONE PAIR has been photographed. `relocated.md`'s own standard
+# is two bearings per moved door and there was not time to meet it.
+#
+# TO TURN IT ON: set this True, re-bake, and photograph eids 128, 164, 179,
+# 287, 345, 346 and 621 from two opposing bearings each. Everything else is
+# already measured above.
+BURIED_DOOR_CLAIM = False  # True enables the R3 rule. See the note above.
+BURIED_DOOR_CLEAR_M = 3.2  # m between a relocated door's centre and another
+                        # BUILDING's door centre. Defaults to BURIED_SPAN_M
+                        # because that is the width this file already calls a
+                        # door bank — closer than one bank width and the two
+                        # openings are in each other. Measured on `main`, the
+                        # cross-building pairs sit at 0.00, 0.00, 0.89, 1.08,
+                        # 1.79, 2.15 and 2.86 m and the next pair is past 4 m,
+                        # so this constant is in a real gap and not on top of
+                        # a cluster.
+BURIED_LANDED_PROBE_M = 0.25   # m INWARD from the landing wall, for the
+                        # diagnostic that names whose wall a door came to rest
+                        # against. The wall point itself is on a boundary by
+                        # construction and a point-on-boundary test is a coin
+                        # flip.
 BURIED_CLAIM_FILES = ("heroes", "stadium", "moody", "arts", "drag",
                      "capitol", "tower", "westcampus", "parts", "art",
                      "roofs", "places")   # whose replacedBuildingIds remove a
@@ -4262,7 +4335,28 @@ def _span_free(union, x, y, tx, ty, nx, ny, reach):
     return True
 
 
-def _free_wall(union, host, px, py, front=None):
+def _door_taken(claims, qx, qy):
+    """QUEUE R3. Is another BUILDING's door already standing here? `claims` is
+    the live list of door centres belonging to every building except this one.
+
+    A centre-to-centre test rather than an overlap test, because the opening's
+    real width is not chosen until assemble(), which then slides it along its
+    run. One bank width between centres is the honest approximation and it is
+    the constant the burial sweep already uses. The consequence is worth
+    writing down: two doors whose CENTRES clear this but whose slid openings do
+    not can still end up close, which is why PAC's 2.15 m neighbour survives
+    some arms of this fix and not others."""
+    if not claims:
+        return False
+    r = BURIED_DOOR_CLEAR_M
+    for (cx, cy) in claims:
+        if abs(cx - qx) <= r and abs(cy - qy) <= r and \
+                math.hypot(cx - qx, cy - qy) <= r:
+            return True
+    return False
+
+
+def _free_wall(union, host, px, py, front=None, claims=None):
     """Nearest point on `host`'s own exterior with a RUN of free wall around it.
 
     Returns (dist, x, y, tx, ty, nx, ny, elen, left, right) or None. `left` and
@@ -4291,22 +4385,36 @@ def _free_wall(union, host, px, py, front=None):
             d = math.hypot(qx - px, qy - py)
             if d > BURIED_MOVE_MAX or (best is not None and d >= best[0]):
                 continue
+            # R3: is somebody else's doorway already here? Asked before the
+            # geometry, because it is the cheapest test in the loop and it is
+            # the question the march never asked. Outside the `sg` loop
+            # because a doorway is taken from either side of the wall.
+            if _door_taken(claims, qx, qy):
+                continue
             for sg in (1, -1):
                 nx, ny = sg * ty, -sg * tx
                 if not _span_free(front, qx, qy, tx, ty, nx, ny,
                                   BURIED_CLEAR_M):
                     continue
-                # how far the free run reaches either way, bounded by the edge
+                # How far the free run reaches either way, bounded by the edge
+                # AND by other people's doors (R3): assemble() slides an
+                # opening along its run, so a run that reaches into a
+                # neighbour's doorway is a door that can slide into it — the
+                # same trap BURIED_RUN_MIN's own note records for Gates-Dell.
                 left = right = 0.0
                 while left + BURIED_STEP_M <= s and _span_free(
                         front, qx - tx * (left + BURIED_STEP_M),
                         qy - ty * (left + BURIED_STEP_M),
-                        tx, ty, nx, ny, BURIED_CLEAR_M):
+                        tx, ty, nx, ny, BURIED_CLEAR_M) and not _door_taken(
+                        claims, qx - tx * (left + BURIED_STEP_M),
+                        qy - ty * (left + BURIED_STEP_M)):
                     left += BURIED_STEP_M
                 while right + BURIED_STEP_M <= elen - s and _span_free(
                         front, qx + tx * (right + BURIED_STEP_M),
                         qy + ty * (right + BURIED_STEP_M),
-                        tx, ty, nx, ny, BURIED_CLEAR_M):
+                        tx, ty, nx, ny, BURIED_CLEAR_M) and not _door_taken(
+                        claims, qx + tx * (right + BURIED_STEP_M),
+                        qy + ty * (right + BURIED_STEP_M)):
                     right += BURIED_STEP_M
                 if left + right < BURIED_RUN_MIN:
                     continue
@@ -4339,6 +4447,24 @@ def clear_buried(scope, stats):
         stats["buried_no_masses"] += 1
         return
     mtree = STRtree(masses)
+    # bid -> something a person can read, so the R3 diagnostic can say
+    # "onto BUILDING MNAC" instead of "onto ec129b99".
+    names = {}
+    for b in scope:
+        names[str(b.bid)] = (b.ref or b.name or b.osm_name
+                             or str(b.bid)[:8])[:28]
+    # R3, THE DOOR CLAIM REGISTER. Every candidate on every building, at its
+    # position RIGHT NOW, so a relocation can be refused a doorway another
+    # building is already using. Kept LIVE: a door's claim travels with it, so
+    # nothing is blocked by where it used to be and a vacated spot is released.
+    # Keyed by identity because candidates carry no id at this point in the
+    # bake — assemble() hands out eids later, which is also why the move log
+    # below keys on coordinates.
+    claim_at, claim_bid = {}, {}
+    for b in scope:
+        for c in b.ents:
+            claim_at[id(c)] = (c.x, c.y)
+            claim_bid[id(c)] = str(b.bid)
 
     def self_mass_ids(b):
         """Indices of masses that ARE b's own footprint — by id where the mass
@@ -4435,7 +4561,27 @@ def clear_buried(scope, stats):
                 mine = [masses[i] for i in own if owner[i] is not None]
                 if mine:
                     front = unary_union(others + mine)
-            got = _free_wall(union, host, c.x, c.y, front)
+            # ── QUEUE R3: THE MARCH NEVER ASKED WHAT WAS ALREADY THERE ──
+            # NB8 made this half worse rather than better: once the host's own
+            # mass correctly blocked the FRONT test, the only clear space left
+            # for a door in a tight complex was off its own building entirely,
+            # and nothing then stopped it parking in a doorway somebody else
+            # was using. Ten of the eleven NB8 movers were fine; eid 345 is the
+            # difference. See the constant block for why the tempting rule
+            # ("stay on your own building") is refuted by this bake's own log.
+            #
+            # Trimmed to marching range before it goes in, because _free_wall
+            # probes this list at every sampled wall point and the register is
+            # 650-odd doors campus-wide.
+            claims = None
+            if BURIED_DOOR_CLAIM:
+                mine_bid = str(b.bid)
+                reach = BURIED_MOVE_MAX + BURIED_DOOR_CLEAR_M
+                claims = [xy for k, xy in claim_at.items()
+                          if claim_bid[k] != mine_bid
+                          and abs(xy[0] - c.x) <= reach
+                          and abs(xy[1] - c.y) <= reach]
+            got = _free_wall(union, host, c.x, c.y, front, claims)
             if got is None:
                 stats["buried_dropped"] += 1
                 # A drop line WITHOUT A COORDINATE cannot be walked to, and
@@ -4445,16 +4591,39 @@ def clear_buried(scope, stats):
                 # 30 m apart. Key on the position so each drop is its own line.
                 stats["burieddrop|%s at %.6f,%.6f (%s %s)"
                       % ((who,) + to_ll(c.x, c.y) + (c.role, c.src))] += 1
+                claim_at.pop(id(c), None)   # R3: a dropped door claims nothing
                 continue
             d, qx, qy, tx, ty, nx, ny, elen, left, right = got
+            # R3 DIAGNOSTIC. "moved 6 m" never said WHERE TO, which is why a
+            # door standing in another building's doorway read as a healthy
+            # relocation for a week and was caught by a coplanar count rather
+            # than by this log. Every move now names the wall it came to rest
+            # against, and the counts are printed because six doors landing on
+            # one wall point used to collapse into a single line.
+            landed = "an authored mass"
+            probe = Point(qx - nx * (BURIED_PROUD + BURIED_LANDED_PROBE_M),
+                          qy - ny * (BURIED_PROUD + BURIED_LANDED_PROBE_M))
+            for i in mtree.query(probe):
+                i = int(i)
+                if owner[i] is None or not masses[i].contains(probe):
+                    continue
+                landed = ("ITS OWN footprint" if owner[i] == str(b.bid)
+                          else "BUILDING %s" % names.get(owner[i],
+                                                        owner[i][:8]))
+                break
             c.x, c.y = qx, qy
+            claim_at[id(c)] = (qx, qy)   # R3: the claim travels with the door
             c.tx, c.ty, c.nx, c.ny = tx, ty, nx, ny
             c.elen, c.s = elen, left
             # wall_run() walks the HOST FOOTPRINT and the door is no longer on
             # it, so the run is the MEASURED free run on the mass edge instead.
             c.run = (left, right)
             stats["buried_moved"] += 1
-            stats["buriedmove|%s %.0f m" % (who, d)] += 1
+            # Keyed on the LANDING COORDINATE — eids are handed out by
+            # assemble(), not here, which is the same reason the drop lines
+            # carry one.
+            stats["buriedmove|%s %.2f m to %.6f,%.6f -> onto %s"
+                  % ((who, d) + to_ll(qx, qy) + (landed,))] += 1
             keep.append(c)
         b.ents = keep
 
@@ -4834,7 +5003,8 @@ def main():
           % (stats["self_masses"], stats["self_mass_hosts"], SELF_IOU))
     for k in sorted(stats):
         if k.startswith("buriedmove|"):
-            print("                     moved   %s" % k.split("|", 1)[1])
+            print("                     moved   %dx %s"
+                  % (stats[k], k.split("|", 1)[1]))
         elif k.startswith("burieddrop|"):
             print("                     DROPPED %d on %s  (no wall within"
                   " %.0f m carrying %.0f m of free run with %.0f m of open"
