@@ -1,0 +1,375 @@
+{
+  "arm": "base",
+  "url": "https://flyover-utx.vercel.app/",
+  "headless": false,
+  "errors": [],
+  "runs": [
+    {
+      "tag": "base-r1",
+      "navToLift": 8241,
+      "liftPerf": 8233.60000000149,
+      "rows": [
+        {
+          "off": 0,
+          "file": "base-r1-0000ms.jpg",
+          "t": 8278,
+          "veil": true,
+          "veilOpacity": "1",
+          "veilLift": true,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 16.2,
+          "pitch": 78,
+          "bearing": 5,
+          "center": [
+            -97.742,
+            30.268
+          ],
+          "loaded": false,
+          "tilesLoaded": false,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 350,
+          "file": "base-r1-0350ms.jpg",
+          "t": 9009,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 16.169,
+          "pitch": 77.7,
+          "bearing": 4.9,
+          "center": [
+            -97.74196,
+            30.26817
+          ],
+          "loaded": true,
+          "tilesLoaded": true,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 700,
+          "file": "base-r1-0700ms.jpg",
+          "t": 9304,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 16.142,
+          "pitch": 77.5,
+          "bearing": 4.8,
+          "center": [
+            -97.74192,
+            30.26833
+          ],
+          "loaded": true,
+          "tilesLoaded": true,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 1100,
+          "file": "base-r1-1100ms.jpg",
+          "t": 9560,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 16.112,
+          "pitch": 77.2,
+          "bearing": 4.8,
+          "center": [
+            -97.74188,
+            30.26851
+          ],
+          "loaded": true,
+          "tilesLoaded": true,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 1500,
+          "file": "base-r1-1500ms.jpg",
+          "t": 9834,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 16.074,
+          "pitch": 76.8,
+          "bearing": 4.7,
+          "center": [
+            -97.74183,
+            30.26874
+          ],
+          "loaded": true,
+          "tilesLoaded": true,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 1900,
+          "file": "base-r1-1900ms.jpg",
+          "t": 10150,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 16.025,
+          "pitch": 76.4,
+          "bearing": 4.5,
+          "center": [
+            -97.74175,
+            30.26907
+          ],
+          "loaded": true,
+          "tilesLoaded": true,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 2400,
+          "file": "base-r1-2400ms.jpg",
+          "t": 10864,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 15.895,
+          "pitch": 75.2,
+          "bearing": 4.2,
+          "center": [
+            -97.74152,
+            30.27003
+          ],
+          "loaded": false,
+          "tilesLoaded": false,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 3100,
+          "file": "base-r1-3100ms.jpg",
+          "t": 11378,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 15.796,
+          "pitch": 74.2,
+          "bearing": 3.9,
+          "center": [
+            -97.74132,
+            30.27088
+          ],
+          "loaded": false,
+          "tilesLoaded": false,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        },
+        {
+          "off": 3900,
+          "file": "base-r1-3900ms.jpg",
+          "t": 12197,
+          "veil": false,
+          "veilOpacity": null,
+          "veilLift": null,
+          "fxDisplay": "block",
+          "fxBlend": "screen",
+          "fxBlank": "0",
+          "fxW": 960,
+          "dofDisplay": "none",
+          "dofOpacity": "0",
+          "gfx": {
+            "preset": "balanced",
+            "bloom": 0.4,
+            "godRays": 0.5,
+            "flare": 0.3,
+            "dof": 0,
+            "grain": 0,
+            "renderScale": 1,
+            "msaa": false
+          },
+          "zoom": 15.645,
+          "pitch": 72.8,
+          "bearing": 3.5,
+          "center": [
+            -97.74097,
+            30.2724
+          ],
+          "loaded": false,
+          "tilesLoaded": false,
+          "easing": true,
+          "bakedReady": {},
+          "paletteSrc": "baked for 2026-08-16, scene is 2026-08-17",
+          "atlasRel": {
+            "released": 130
+          },
+          "todP": 0.5
+        }
+      ]
+    }
+  ]
+}
