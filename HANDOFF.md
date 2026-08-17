@@ -22571,3 +22571,87 @@ subtract.** Real windows remain the honest answer. Weeks, not days.
    3x speed-up or the blind wall tests myself.
 
 Server killed, worktree torn down, `reap.mjs` run last.
+
+---
+
+## 162. Aug 17 2026 — the declutter: 1611 MB of working tree went, not one byte of the app, and five of the audit's own calls were wrong (acer lane, branch `acer/r2-declutter`)
+
+**The recording is tomorrow morning. Nothing here touches the app.** That was
+the constraint and it is proved below, not asserted.
+
+### What went
+
+**1611 MB, every byte of it untracked and none of it ever committed.**
+
+- **1521 MB — `scripts/verify/shots/`.** Gitignored at `.gitignore:28`; the
+  scratch directory every harness script writes captures into. The directory and
+  `ref-dkr-georef.png` (still cited by a doc) were kept. `scripts/` went from
+  1543 MB to 22 MB.
+- **62 MB — superseded sweeps under `shots/`**, 49 paths, each verified
+  uncited and untracked one at a time.
+- **28 MB — `data/canopy_debug_*.png`**, the three `--debug` overlays written by
+  `scripts/detect_canopy.py:234`. Write-only; nothing reads them.
+
+**No tracked file was removed.** The audit found none worth removing and I agree:
+the two tracked `.log` files in `shots/gnd/` total 187 bytes and sit under a
+directory `HANDOFF.md:7804,7898` cites. `_serve.log` is tracked, 860 KB and
+uncited, but it lives at the repo root, outside this lane's write boundary — it
+is a one-line removal for whoever owns root next.
+
+### The audit was wrong five times, and the deletions were narrowed
+
+`docs/cleanup.md` §10 now records this in full. The load-bearing one: **§1 states
+the citation rule correctly and §2b then lists nine paths that violate it.** The
+first sweep looked self-confirming because the audit doc cites every path it
+proposes to delete — excluding it from the corpus is what surfaced the problem.
+`shots/ent-after/` (33.8 MB) is cited three times in this file as the AFTER half
+of a named pair; `shots/tree/` and `shots/i2ab/` likewise. All kept.
+
+§2b's `shots/wcg-*` glob also swept up three **tracked** files that the same
+document's KEEP list protects.
+
+### Branches: 55 to 21
+
+The test used was not "are the commits on main" but **"does this branch's tree
+hold a file main does not."** By that test **18** branches carry unique work, not
+the 4 the audit named — including `acer/roof-hole-coverage`, which was on the
+*safe to prune* list and holds `scripts/verify/art-sheet.mjs` plus six
+`shots/roofdiag/` before/after frames that exist nowhere else. Kept.
+`acer/j1-h5-roofs` and `acer/outer-far-clamp` are checked out in live lane
+worktrees and were kept for that reason alone.
+
+**33 refs deleted, each re-verified to add zero files to `main` seconds before
+deletion.** A ref is 41 bytes; this buys a readable branch list and nothing else.
+
+### PRs
+
+**#189 and #164 are still open, deliberately.** The gate was "close only if the
+frames are on `main`", and they are not: `acer/n12-vertical` holds 30.3 MB across
+32 files, `acer/facade-choice` 45.7 MB across 66. Landing 76 MB of A/B arms onto
+`main` hours before the recording would grow the Pages artifact for no benefit,
+so both stay open and both branches are kept. **#5 was closed** — its base is
+`add-plan` and its head is `main`, i.e. it proposes merging main backwards into
+the July branch, and it is CONFLICTING.
+
+### Say this plainly: the repository did not shrink
+
+`.git` is **3095 MB before and 3095 MB after**. Deleting a committed file does
+not reclaim anything, because the blob stays reachable from history forever; only
+a history rewrite removes it and that is correctly forbidden tonight. Everything
+reclaimed here was untracked. The win is working-tree size and a `scripts/` tree
+that is scripts again — not repo size, not the deploy, not the app.
+
+### The app is untouched, and here is the proof
+
+- `git diff origin/main -- index.html style.css js/ data/` — **empty**.
+- All **2529** files under `index.html`, `style.css`, `js/` and `data/` re-hashed
+  against the pre-cleanup SHA-256 list: **2529 OK, zero mismatches**.
+- `harness-drift.mjs` **PASS** — 29 scripts = 29 scripts.
+- `index.html?clip=1&preset=cinematic` served from the cleaned tree on 8561:
+  **PASS** — `.clip` set, all 15 chrome elements hidden, OSM credit visible,
+  **zero console errors**. The frame is `shots/r2/clipgate-cinematic.png` and it
+  is recordable: Tower, orange roofs, trees, downtown, sunset.
+- The single `net::ERR_ABORTED` on `data/tiles/trees.pmtiles` is a cancelled
+  pmtiles range request, not a missing asset — the file is present, unmodified,
+  serves HTTP 206, and `trees-trunk`/`trees-canopy` are in the rendered style.
+  Worth knowing because it reads like a broken file in any log and is not one.
