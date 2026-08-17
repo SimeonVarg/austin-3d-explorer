@@ -395,6 +395,19 @@ const pass = results.filter(r => r.pass).length;
 
 console.log('');
 
+if (legLog.length) {
+  console.log('speed legs — displacement/s and per-frame |vel|, both paced by SIM time');
+  console.log('  keys    bearing   dtSim   disp m/s   velMed   spread   frames   wall ms');
+  for (const l of legLog)
+    console.log('  ' + l.keys.padEnd(8) + String(l.bearing).padStart(5) + '   '
+                + String(l.dtSim).padStart(6) + String(l.disp).padStart(10)
+                + String(l.velMed).padStart(9) + String(l.spread).padStart(9)
+                + String(l.frames).padStart(9) + String(l.wallMs).padStart(10));
+  console.log('  (a spread near zero is the camera AT terminal speed for the WHOLE window,');
+  console.log('   which is the precondition the old wall-clock ramp could not guarantee —');
+  console.log('   every reading it produced was BELOW terminal speed, and east/north was');
+  console.log('   the ratio of two different shortfalls. See the note on speedOnce.)\n');
+}
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 
 console.log(`\n${pass}/${results.length} passed`);
