@@ -67,10 +67,37 @@ const F = [-97.7325465, 30.2836444];
 // So 62 is NOT a bleed case and an earlier version of this file wrongly called
 // it one. Everything at 70 and above is: there is 63 m of grandstand in the way
 // and the honest render is nothing.
+//
+// ── AND 70 WAS THE SAME MISTAKE ONE NOTCH DOWN. CORRECTED 2026-08-16. ──────
+//
+// `outside-north-70` was filed `'zero'` and had been red every time this gate
+// got far enough to reach it: 2986 turf pixels, box 594,369-685,405. That looked
+// like the find of the pass — `js/app.js:544` records the ORIGINAL raster defect
+// as "3318 px at pitch 79, box 581,381-687,422", the same band of the frame, one
+// pitch below the pose that was fixed.
+//
+// IT IS NOT THAT, AND THE PICTURE SETTLES IT.
+// `shots/reds/field-bleed-70-magenta.png` paints this file's own mask: the
+// magenta is INSIDE THE BOWL — the far half of the playing field seen over the
+// near rim, with the near grandstand's top edge cutting cleanly across below it.
+// Nothing paints on the outside face of the north wall.
+//
+// The arithmetic above agrees once it is applied to the right point. It is
+// derived for the sight line to the FIELD CENTRE, and the field is 123 m long:
+//
+//   pitch 70, eye 1094.6 m out
+//     line to CENTRE          398.4 * 135/1094.6            = 49.1 m at the rim  BLOCKED
+//     line to the FAR EDGE    398.4 * (1 - 959.6/1156.1)    = 67.7 m at the rim  CLEARS by 4.7
+//
+// A one-point calculation was generalised to a 123 m field. The expectation is
+// therefore `'some'`, and the reason it is not simply deleted is that a `'some'`
+// pose is a CONTROL: it catches a "fix" that stops drawing the field at all.
+// (The 63 m rim height and 135 m offset are this header's own numbers, so the
+// exact break-even pitch is its; the photograph does not depend on them.)
 const POSES = [
   // name,             zoom, pitch, bearing,   expectation
   ['outside-north',    16.9, 79, 180, 'zero'],
-  ['outside-north-70', 16.9, 70, 180, 'zero'],
+  ['outside-north-70', 16.9, 70, 180, 'some'],   // far half of the field clears the rim
   ['outside-northeast',16.9, 76, 225, 'zero'],   // "from top right looking down left"
   ['outside-east',     16.9, 79, 270, 'zero'],
   ['outside-south',    16.9, 79,   0, 'zero'],
@@ -200,7 +227,29 @@ async function shoot() {
   return { buf, img: decodePNG(buf) };
 }
 
-const TIMES = { day: 0.30, night: 0.95 };
+// A FULL RUN IS 18 POSES AT 118-272 s EACH — ABOUT 48 MINUTES. That is why this
+// gate had never been seen past its sixth pose: run.mjs's 300 s default bought
+// it two of eighteen (§159). The ceiling is raised in run.mjs; these flags exist
+// so a person can also ask a question smaller than the whole gate.
+//
+//   node field-bleed.mjs --times day        just the nine day poses
+//   node field-bleed.mjs --only north       poses whose name contains "north"
+//
+// A SLICED RUN IS NOT A PASS OF THIS GATE and says so in its own verdict line,
+// because "I ran the six that were quick and they were green" is precisely the
+// shape of reasoning this suite keeps getting burned by.
+const argOf = f => { const i = process.argv.indexOf(f); return i > 0 ? process.argv[i + 1] : null; };
+const ONLY_POSE = argOf('--only');
+const ONLY_TIME = argOf('--times');
+const SLICED = !!(ONLY_POSE || ONLY_TIME);
+const ALL_TIMES = { day: 0.30, night: 0.95 };
+const TIMES = ONLY_TIME
+  ? Object.fromEntries(Object.entries(ALL_TIMES).filter(([k]) => k === ONLY_TIME))
+  : ALL_TIMES;
+const POSES_RUN = ONLY_POSE ? POSES.filter(P => P[0].includes(ONLY_POSE)) : POSES;
+if (!Object.keys(TIMES).length || !POSES_RUN.length) {
+  console.log('field-bleed: --only/--times matched nothing; nothing to run'); process.exit(2);
+}
 const rows = [];
 
 /**
@@ -237,7 +286,7 @@ async function setTimeOfDay(p) {
 for (const [tname, tp] of Object.entries(TIMES)) {
   await setTimeOfDay(tp);
 
-  for (const [name, zoom, pitch, bearing, expect] of POSES) {
+  for (const [name, zoom, pitch, bearing, expect] of POSES_RUN) {
     await page.evaluate(q => window.__map.jumpTo(q),
       { center: F, zoom, pitch, bearing });
     await settle();
@@ -286,7 +335,12 @@ for (const [tname, tp] of Object.entries(TIMES)) {
 }
 
 const bad = rows.filter(r => r.expect === 'zero' ? r.d.n > 0 : r.d.n <= 500);
-console.log(`\n${bad.length === 0 ? 'PASS' : '*FAIL'} — ${bad.length} of ${rows.length} poses wrong`);
+const TOTAL = Object.keys(ALL_TIMES).length * POSES.length;
+console.log(`\n${bad.length === 0 ? (SLICED ? 'SLICE OK' : 'PASS') : '*FAIL'} — `
+  + `${bad.length} of ${rows.length} poses wrong`
+  + (SLICED ? `   [SLICED RUN: ${rows.length} of ${TOTAL} poses. THIS IS NOT A PASS OF THIS `
+            + `GATE — the poses not run include 'some' controls that catch a "fix" which `
+            + `simply stops drawing the field.]` : ''));
 if (bad.length) {
   console.log('  outside-the-bowl poses that still paint turf:');
   for (const r of bad.filter(r => r.expect === 'zero')) {
@@ -296,5 +350,8 @@ if (bad.length) {
     console.log(`    ${r.tname} ${r.name}: only ${r.d.n} px — the field is not drawn where it SHOULD be`);
   }
 }
+// A slice with no bad poses exits 0 so it is usable in a loop, but it has
+// already printed that it is not a pass. A slice with a bad pose is red, which
+// is the only direction a partial run can be trusted in.
 process.exitCode = bad.length ? 1 : 0;
 await browser.__done();

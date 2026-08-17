@@ -1118,8 +1118,40 @@ Same family as §82 (three ramps rode the slider instead of the sun) — whateve
 ramps the ground texture/fill never got the §82 treatment, or has a floor.
 Frames: `shots/blitz/y11-*-p070.png` against their own p 0.55 siblings.
 
-**Y23. THE SUITE HAS A HEALTH TABLE NOW, AND IT IS 25 GREEN / 12 RED OF 38
-GATES.** (2026-08-16, §155. Raw: `scripts/verify/out/gates*.json`.)
+**Y23 — THE TWELVE ARE NOW READ AND FIXED. ELEVEN WERE THE INSTRUMENT; ONE IS A
+REAL BUDGET AND STAYS RED ON PURPOSE. (Updated 2026-08-16, §160.)**
+
+The table below is §155's original 25/38, kept because the classification in it
+is what three passes then worked through. §158 diagnosed the six "real assertion
+failures" and found all six were the ruler; §159 timed the five watchdog
+casualties and found none of them hung; **§160 applied every correction and
+watched each fixed gate go both ways.** Per-gate outcome:
+
+| gate | §155 | §160 | the fix |
+|---|---|---|---|
+| `capitol-merge` | RED | **4/4** | reads `window.__capitolMerge`, counts the Capitol's OWN sources |
+| `night-luma` | UNKNOWN (300 s) | **12/12** | `querySourceFeatures` given its `sourceLayer` — 36,364 trees, was 0 |
+| `graphics` | 26/27 | **27/27** | `stillFlying` reported, not asserted (the test's own class) |
+| `orbit-check` | 3/4 | **4/4** | 13 in-page samples of a moving bearing, not one `isEasing()` |
+| `light-ae` | 7/8 | **8/8** | meter paced by FRAMES; lift bar relative to the spawn pose |
+| `light-probe` | 8/9 | **9/9** | the load-time stopwatch split out of the precondition |
+| `arts-check` | 27/28 | **28/28** | LBJ restated as undercroft-mean vs lit face; bar 1.70 from 1.37/1.98 |
+| `lookup-check` | UNKNOWN | see §160 | 8.5 s deadline became a 45 s WAIT; new assertion that the seed landed |
+| `movement` | UNKNOWN | see §160 | ramp AND window paced by sim time, in one `page.evaluate` |
+| `field-bleed` | UNKNOWN | see §160 | `outside-north-70` corrected to `'some'`; `--only`/`--times` slicing |
+| `perf-budget` | UNKNOWN | **STILL RED** | untouched. It is Y7 and Y15 and it is red on purpose |
+| `coplanar` | RED | resolved | stale baseline, fixed at 1627 in §157 — but see **Y24**, main is at 1655 now |
+
+**`run.mjs` had ONE ceiling for all 129 scripts and it was never measured against
+any of them.** 300 s is its `--timeout` default; five gates need 400-2900 s. There
+is now a per-script `CEILING_S` table with ~2x headroom over §159's measurements,
+and `perf-budget` — the one gate whose entire subject is milliseconds — is in
+`SERIAL_ONLY`, which it never was.
+
+**The original entry follows.**
+
+**Y23, as first written (§155). THE SUITE HAS A HEALTH TABLE NOW, AND IT IS 25
+GREEN / 12 RED OF 38 GATES.** (2026-08-16, §155. Raw: `scripts/verify/out/gates*.json`.)
 
 §149 measured "what crashes"; this measures "what passes", which is a different
 question and the one nobody had answered. Scope is the **38 GATES** — every
@@ -1226,8 +1258,57 @@ azimuth +7° in the page: red, exit 1. **Nothing here is an app defect and no
 never sees it. That cost an hour of attribution here and is the only part of
 this that might deserve a code change.
 
-**Y20. `js/sky.js:1420` — the sun/moon DISC still switches body in ONE frame,
-and a person can see it. PHOTOGRAPHED 2026-08-16 (§155); still open.**
+**Y20 — CLOSED 2026-08-16 (§160). FIXED IN `js/sky.js`, PHOTOGRAPHED BEFORE AND
+AFTER AT THE SAME TWO NOTCHES, AND THE ALLOWANCE IS OUT OF `dusk.mjs`.**
+
+**The diagnosis below named the disc and the disc was not what moved.** At the
+notch where `useMoon` flips, the sun's own visibility ramp is **0.000** and the
+moon's is **0.020** — there is barely a disc on screen to see. What moved was
+that the SUN's two horizon washes were painted in `haloCol`, the switched
+colour:
+
+```js
+drawGlow(hzSun, 0.5*S*kWide, 0.15*S*kWide, glowASun, haloCol, WIDE);   // <- the bug
+drawGlow(hzMoon, ...,                      glowAMoon, moonHalo, WIDE);
+```
+
+so the western afterglow, in place at unchanged alpha and unchanged position,
+was repainted from warm `sunColour(sun.elev)` to the cool moon halo in a single
+frame. The twilight rewrite gave the two washes independent SCHEDULES and left
+their COLOURS on the boolean; this finishes the job. Each body's wash is now
+painted in its own colour always, and the clouds — the one genuinely shared
+colour, since they are lit by whatever is up — cross-fade on `wMoon/(wSun+wMoon)`,
+the same two continuous weights the washes already ride.
+
+Measured on the two ADJACENT QUANTISED notches the shipped slider produces,
+force off, both arms driven in ONE build via `SKY_TUNE.HANDOVER.ON`
+(`scripts/verify/y20-handover.mjs`; the flag is in `hourMemo`'s cache key so the
+arms cannot share a memo — the first run of that A/B caught an OFF arm that
+already carried half the fix):
+
+```
+  HANDOVER.ON = false   75/128 -> 76/128   |dR| 35  |dG| 33  |dB| 83   worst 83
+  HANDOVER.ON = true    75/128 -> 76/128   |dR|  6  |dG|  6  |dB|  2   worst  6
+```
+
+`dusk.mjs`'s `KNOWN` list is now **empty** and it passes without it: worst step
+**8** across all 60 transitions against `MAX_STEP` 26. `node dusk.mjs --break`
+still goes red (42 at p=0.55, exit 1), so the gate did not simply stop looking.
+
+Frames: `shots/reds/y20-before-q76.png` (pale blue smear where the sunset was)
+and `shots/reds/y20-after-q76.png` (the warm band survives the notch). `q75` is
+byte-identical between arms, as it should be.
+
+**The disc's body switch is left as a boolean on purpose** — one element cannot
+be in two places — and `y20-handover.mjs` asserts that it fires where both
+visibility ramps are at zero, so a taste edit that moves either ramp goes red
+rather than quietly reintroducing a pop.
+
+**The original entry follows, unchanged, because its measurement was right and
+only its attribution was off by one painter.**
+
+**Y20, as recorded (§155). `js/sky.js:1420` — the sun/moon DISC still switches
+body in ONE frame, and a person can see it.**
 
 `y20-frames.mjs` closes the gap §149's number left open. `dusk.mjs` finds this
 by sweeping with `force:true`, which bypasses `applyTimeOfDay`'s 1/128
@@ -1270,6 +1351,40 @@ in `dusk.mjs` with a ceiling of 90 so the gate is not permanently red;
 `node dusk.mjs --strict` ignores the allowance and goes red on it. **Owner: the
 `js/sky.js` lane.** Delete the `KNOWN` entry in `dusk.mjs` when it is fixed —
 the script prints a note if the allowance stops firing.
+
+**Y24. `coplanar.mjs --gate` IS RED ON `origin/main` RIGHT NOW, AND IT IS NOT THE
+GATE. NEW 2026-08-16 (§160). NOT MINE, NOT FIXED — the entrances lane owns it.**
+
+```
+gate against baseline of 2026-08-16 (eps=0.01, frac=0.3):
+    REGRESSED  entrances.geojson          1627 -> 1655
+```
+
+Measured on `origin/main` `9ef34a1` with no local data changes at all — the
+branch that found it (`acer/o5-reds`) touches `js/sky.js` and eleven files under
+`scripts/verify/` and **nothing in `data/`, not `coplanar.mjs`, and not
+`coplanar-baseline.json`**, so the 28 new pairs are on main as it stands.
+
+The cause is the entrances re-bake in `c0a7d32` ("Merge origin/main into
+acer/nb-relocated: re-bake entrances on the merged script"), which landed the new
+`data/entrances.geojson` **without moving the baseline with it**. The README is
+explicit that changing `coplanar-baseline.json` in a commit is the record of what
+was accepted, so the re-bake either needed that record or needed these pairs
+looked at.
+
+The 28 are all in the door furniture, not the buildings — `step`, `transom` and
+`canopy` tops, mostly at 80-100 % shared area over 4-29 m², several at identical
+coordinates (e.g. `#7674 + #14330`, `#7675 + #14331`, `#7676 + #14332` all at
+-97.73227,30.28253, 100 % shared). That reads like a door emitting a duplicate
+step/transom stack after the relocation, which is a bake question rather than a
+z-fighting question.
+
+**I DID NOT FIX THIS AND DID NOT MOVE THE BASELINE.** `data/entrances.geojson`
+and `scripts/bake_entrances.py` are the relocation lane's files, and accepting 28
+of another lane's coplanar pairs on their behalf — at the end of a long night,
+without looking at the doors — is exactly the silent acceptance the baseline file
+exists to prevent. **Owner: the entrances lane.** Either re-bake without the
+duplicates, or move the baseline to 1655 in a commit that says why.
 
 **Y21. `data/westcampus.geojson` — 11 vertical band gaps and overlaps across
 three buildings.** The Standard, 2400 Nueces and Block on 25th East each show a
@@ -1401,13 +1516,18 @@ Y17 ground plane ignores the dusk clock ...... NEW  (§117) — pavement 2.3-2.9
 Y18 fx-canvas paints glow bands on facades ... NEW  (§117) — dusk AND night, A/B proven
 Y19 the VERTICAL half of the barcode ......... NEW  (§131) — Y5 is done, this is what
                                                 Y5 did not touch. See below.
-Y20 the sun/moon DISC still switches in one
-    frame ................................... NEW  (§149) — js/sky.js:1420. 83 levels of
-                                                blue at p=0.595, three reps identical.
-                                                The two horizon WASHES are continuous;
-                                                the disc was never given the same
-                                                treatment. `dusk.mjs --strict` is red
-                                                on it today. See below.
+Y20 83 levels of blue in one notch of the
+    slider .................................. DONE (§160) — FIXED, and it was not the
+                                                disc. The SUN's own horizon washes were
+                                                painted in the switched `haloCol`, so the
+                                                western afterglow went warm to cool in one
+                                                frame. 83 -> 6 on the two adjacent
+                                                quantised notches, both arms in one build.
+                                                dusk.mjs's KNOWN allowance DELETED and it
+                                                passes with the list empty (worst step 8
+                                                of 60 transitions vs MAX_STEP 26);
+                                                `--break` still goes red. Frames:
+                                                shots/reds/y20-{before,after}-q{75,76}.png
 Y21 West Campus band gaps and overlaps ....... NEW  (§149) — 11 of them, on The Standard,
                                                 2400 Nueces and Block on 25th East.
                                                 Baselined in westcampus-probe.mjs. See

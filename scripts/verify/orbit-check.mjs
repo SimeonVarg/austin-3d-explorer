@@ -49,10 +49,49 @@ const a = await page.evaluate(() => ({
 const distM = Math.hypot((a.c.lng - SKYLOFT[0]) * 96000, (a.c.lat - SKYLOFT[1]) * 111195);
 check(distM < 25, 'tap glides the camera to the landmark', `centre ${distM.toFixed(1)} m from the sign`);
 
-await page.waitForTimeout(6000);
-const b = await page.evaluate(() => ({ b: window.__map.getBearing(), easing: window.__map.isEasing() }));
-const swung = Math.abs(b.b - a.b);
-check(swung > 8 && b.easing, 'the camera circles the landmark', `bearing moved ${swung.toFixed(1)}deg, easing ${b.easing}`);
+// THE ORBIT IS A CHAIN OF LEGS, SO `isEasing()` HAS SEAMS — DO NOT SAMPLE IT ONCE.
+//
+// `js/app.js`'s landmark orbit is a chain of 9000 ms, 40-degree `easeTo` legs
+// re-armed by `setTimeout(leg, ORBIT.legMs + 50)`. Between legs there is a
+// ~50 ms window in which `map.isEasing()` is legitimately false. The old
+// assertion read that boolean at ONE instant, timed by wall-clock
+// `waitForTimeout`s that take no account of how long the intervening
+// `page.evaluate` round-trips take on a busy main thread — and when it failed
+// it reported "bearing moved 39.5deg", which is one leg EXACTLY, i.e. the
+// sample landed on the seam.
+//
+// §158 armed an in-page sampler before the tap so no CDP latency could move the
+// sample time, and watched 110 degrees of continuous orbit over 30 s with
+// **29 of 29 samples easing** and no stall anywhere. So the app is right and the
+// instantaneous boolean was the ruler.
+//
+// The subject is "does the camera keep going round", and the honest form of it
+// is that the bearing KEEPS ADVANCING — sampled repeatedly, in the page.
+const orbit = await page.evaluate(async () => {
+  const m = window.__map;
+  const marks = [];
+  const t0 = performance.now();
+  for (let i = 0; i < 12; i++) {
+    marks.push({ t: Math.round(performance.now() - t0), b: m.getBearing(), e: m.isEasing() });
+    await new Promise(r => setTimeout(r, 500));
+  }
+  marks.push({ t: Math.round(performance.now() - t0), b: m.getBearing(), e: m.isEasing() });
+  return marks;
+});
+// Unwrap across the +-180 seam so a legitimate wrap is not read as a 350 deg jump.
+let travelled = 0;
+for (let i = 1; i < orbit.length; i++) {
+  let d = orbit[i].b - orbit[i - 1].b;
+  while (d > 180) d -= 360;
+  while (d < -180) d += 360;
+  travelled += Math.abs(d);
+}
+const easingShare = orbit.filter(s => s.e).length / orbit.length;
+const b = orbit[orbit.length - 1];
+check(travelled > 8 && easingShare >= 0.75, 'the camera circles the landmark',
+  `bearing travelled ${travelled.toFixed(1)}deg over ${b.t} ms across ${orbit.length} in-page samples; ` +
+  `easing on ${(easingShare * 100).toFixed(0)}% of them ` +
+  `(the leg chain has a ~50 ms seam every 9 s, so a single sample of isEasing() is a coin flip — §158)`);
 await page.screenshot({ path: path.resolve('shots/orbit-mid.png'), timeout: 120000 });
 
 await page.mouse.move(500, 380);

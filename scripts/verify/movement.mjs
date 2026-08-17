@@ -45,6 +45,12 @@ await page.waitForFunction(() => window.__map && window.__map.isStyleLoaded(), n
 
 await page.waitForTimeout(5000);
 
+// suite-lint flags this file for never cancelling the probe, and it is right:
+// the graphics auto-detect fires 11 s after load and rewrites every setting,
+// inside a run that lasts seven minutes. Cancelling it is a CORRECTNESS
+// measure, not a speed one (README).
+await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+
 await page.evaluate(() => {
   const m = window.__map;
   // README trap: a seeded jumpTo is OVERWRITTEN on the next frame while the
@@ -55,11 +61,19 @@ await page.evaluate(() => {
   // legs ran into the soft data fence, which crushed vel.n — a stable-looking
   // diagonal/cardinal of 0.73 that was really the fence, not the input math.
   // Returning a promise makes every page.evaluate(__reset) call wait it out.
+  // The poll had NO DEADLINE — the one genuine hang shape in this file. It has
+  // not fired in any recorded run, but a gate that can wait forever is a gate
+  // that can be reported as "unknown" instead of red, which is exactly the
+  // state five of these scripts were in. 60 s, then seed anyway and SAY SO.
   window.__reset = (b, z, p) => new Promise(res => {
+    const t0 = performance.now();
+    const seed = () => m.jumpTo({ center: [-97.7434, 30.2857],
+                                  zoom: z ?? 16.5, pitch: p ?? 64, bearing: b ?? 90 });
     const tryIt = () => {
-      if (!window.__fly.eye().driving) {
-        m.jumpTo({ center: [-97.7434, 30.2857], zoom: z ?? 16.5, pitch: p ?? 64, bearing: b ?? 90 });
-        res();
+      if (!window.__fly.eye().driving) { seed(); res({ waitedMs: Math.round(performance.now() - t0), forced: false }); }
+      else if (performance.now() - t0 > 60000) {
+        console.warn('[movement] __reset gave up waiting for !driving after 60 s');
+        seed(); res({ waitedMs: Math.round(performance.now() - t0), forced: true });
       } else setTimeout(tryIt, 120);
     };
     tryIt();
@@ -89,14 +103,50 @@ const results = [];
 
 function check(name, pass, detail) { results.push({ name, pass, detail }); }
 
-async function speedOnce(keys, bearing, ms = 2500) {
+// ── THE HEADLINE ASSERTIONS WERE A COIN FLIP UNTIL 2026-08-16 ───────────────
+//
+// `speedOnce` honoured the README's rule for its DENOMINATOR — `dtSim =
+// __fly.simTime()` — and broke it for its WINDOW BOUNDARIES:
+//
+//     for (const k of keys) await page.keyboard.down(k);
+//     await page.waitForTimeout(1500);      // "spend the acceleration ramp first"
+//     const before = await page.evaluate(...);
+//     await page.waitForTimeout(ms);        // 2500 ms — WALL CLOCK
+//
+// `TAU_ACCEL` is 0.2 s of SIM time and `simTime` accumulates `min(delta, 64)`
+// per frame, so at 4 fps a 1500 ms wall-clock ramp is six frames — 0.38 s of
+// sim — and the camera is still accelerating when the window opens. Each leg
+// then captures a different fraction of the ramp and the assertion is the ratio
+// of two shortfalls.
+//
+// THE SIGNATURE IS IN THE GATE'S OWN OUTPUT. Terminal speed is 56.65 m/s and
+// every reading this file produced was BELOW it — 55.6 and 50.3 in one rep,
+// 49.1 and 53.6 in another — and `east/north` came in at 0.905, then passed,
+// then 1.092 (§159). A directional asymmetry in the movement code cannot change
+// sign. Measured with the ramp and the window paced by sim time instead, over
+// eight interleaved and counterbalanced legs: **east/north 1.000, 56.65 m/s
+// both ways, zero spread to five significant figures**.
+//
+// Two hypotheses were ruled out by measurement rather than argument: the soft
+// data fence (`FENCE_SOFT` is 250 m and the start pose is 3508-5332 m from its
+// own fence edges, against a 224 m leg) and collision (velocity loss was 0.00 %
+// on all eight legs).
+//
+// So the boundaries are now sim-time too, and the whole measurement happens
+// inside ONE page.evaluate so no CDP round trip can land mid-window.
+// Every leg, printed at the end. A ratio of two numbers is not a measurement
+// until you can see both of them and their spread. Declared BEFORE speedOnce so
+// suite-lint's use-before-declare rule has nothing to say about it.
+const legLog = [];
+
+const RAMP_SIM = 2.0;      // seconds of SIM time to spend accelerating. TAU_ACCEL is 0.2 s; 10x is terminal.
+const WINDOW_SIM = 2.5;    // seconds of SIM time the measurement window covers
+const LEG_WALL_MAX = 90000; // hard wall-clock ceiling per leg, so a stalled page cannot hang the gate
+
+async function speedOnce(keys, bearing) {
   await page.evaluate(b => window.__reset(b), bearing);
   await page.waitForTimeout(500);
-  // Measure against the camera's OWN integrated time (__fly.simTime), not the
-  // wall clock: headless swiftshader renders at ~4 fps here, so wall-clock
-  // speed would be a property of the renderer, not of the movement system.
-  //
-  // And measure the EYE (__fly.eye()), not map.getCenter(): center = eye +
+  // Measure the EYE (__fly.eye()), not map.getCenter(): center = eye +
   // alt*tan(pitch) along the bearing, and since the camera-feel pass the
   // rendered pitch carries dynamic output offsets (speed pitch, bob), so the
   // lead length breathes during a run. Measured: center-based speed read a
@@ -104,20 +154,66 @@ async function speedOnce(keys, bearing, ms = 2500) {
   // on BOTH headings — the old ruler was measuring the feel offsets, not the
   // movement. The eye is the movement system's state; measure that.
   for (const k of keys) await page.keyboard.down(k);
-  await page.waitForTimeout(1500);           // spend the acceleration ramp first
-  const before = await page.evaluate(() => ({ e: window.__fly.eye(), t: window.__fly.simTime() }));
-  await page.waitForTimeout(ms);
-  const after = await page.evaluate(() => ({ e: window.__fly.eye(), t: window.__fly.simTime() }));
+  const r = await page.evaluate(async ({ ramp, win, wallMax }) => {
+    const F = window.__fly;
+    const wall0 = performance.now();
+    const waitSim = async (from, need) => {
+      while (F.simTime() - from < need) {
+        if (performance.now() - wall0 > wallMax) return false;
+        await new Promise(res => requestAnimationFrame(res));
+      }
+      return true;
+    };
+    const tStart = F.simTime();
+    const rampOk = await waitSim(tStart, ramp);          // spend the ramp in SIM time
+    const before = { e: F.eye(), t: F.simTime() };
+    // Sample |vel| every frame across the window as well as the endpoints, so a
+    // leg that is still accelerating is visible in the SPREAD and not only in
+    // the mean. §159's discriminator did exactly this and read zero spread.
+    const speeds = [];
+    let winOk = true;
+    while (F.simTime() - before.t < win) {
+      if (performance.now() - wall0 > wallMax) { winOk = false; break; }
+      // `eye()` exposes the velocity as vE/vN (js/controls.js:1795), NOT as a
+      // `vel` object. Reading the wrong field name here would have produced an
+      // empty `speeds` array and a silent NaN spread, which is how an
+      // instrument stops measuring without saying so.
+      const e = F.eye();
+      if (isFinite(e.vE) && isFinite(e.vN)) speeds.push(Math.hypot(e.vE, e.vN));
+      await new Promise(res => requestAnimationFrame(res));
+    }
+    const after = { e: F.eye(), t: F.simTime() };
+    const sorted = speeds.slice().sort((a, b) => a - b);
+    return {
+      before: before.e, after: after.e, dtSim: after.t - before.t,
+      rampOk, winOk, frames: speeds.length,
+      velMed: sorted.length ? sorted[Math.floor(sorted.length / 2)] : NaN,
+      velMin: sorted.length ? sorted[0] : NaN,
+      velMax: sorted.length ? sorted[sorted.length - 1] : NaN,
+      wallMs: Math.round(performance.now() - wall0),
+    };
+  }, { ramp: RAMP_SIM, win: WINDOW_SIM, wallMax: LEG_WALL_MAX });
   for (const k of keys) await page.keyboard.up(k);
   await page.waitForTimeout(900);
-  const m = await page.evaluate(([a, b]) => window.__metres(a, b), [before.e, after.e]);
-  const dtSim = after.t - before.t;
-  return dtSim < 0.3 ? NaN : m / dtSim;      // too few ticks to be meaningful
+  if (!r.rampOk || !r.winOk) {
+    console.log(`  WARN  leg hit the ${LEG_WALL_MAX / 1000}s wall ceiling ` +
+                `(ramp ok ${r.rampOk}, window ok ${r.winOk}) — leg discarded, not counted as slow`);
+    return NaN;
+  }
+  const m = await page.evaluate(([a, b]) => window.__metres(a, b), [r.before, r.after]);
+  legLog.push({ keys: keys.join('+'), bearing, dtSim: +r.dtSim.toFixed(3),
+                disp: +(m / r.dtSim).toFixed(2), velMed: +r.velMed.toFixed(2),
+                spread: +(r.velMax - r.velMin).toFixed(3), frames: r.frames, wallMs: r.wallMs });
+  return r.dtSim < 0.3 ? NaN : m / r.dtSim;   // too few ticks to be meaningful
 }
 
 const speed = async (keys, bearing, n = 3) => {
-  const rs = []; for (let i = 0; i < n; i++) rs.push(await speedOnce(keys, bearing));
-  return median(rs);
+  const rs = [];
+  for (let i = 0; i < n; i++) rs.push(await speedOnce(keys, bearing));
+  const ok = rs.filter(x => isFinite(x));
+  // A discarded leg must not be silently averaged in as a zero or a NaN; if
+  // every leg was discarded the caller gets NaN and the assertion goes red.
+  return ok.length ? median(ok) : NaN;
 };
 
 // ── 1. Directional symmetry ────────────────────────────────────────
@@ -299,6 +395,19 @@ const pass = results.filter(r => r.pass).length;
 
 console.log('');
 
+if (legLog.length) {
+  console.log('speed legs — displacement/s and per-frame |vel|, both paced by SIM time');
+  console.log('  keys    bearing   dtSim   disp m/s   velMed   spread   frames   wall ms');
+  for (const l of legLog)
+    console.log('  ' + l.keys.padEnd(8) + String(l.bearing).padStart(5) + '   '
+                + String(l.dtSim).padStart(6) + String(l.disp).padStart(10)
+                + String(l.velMed).padStart(9) + String(l.spread).padStart(9)
+                + String(l.frames).padStart(9) + String(l.wallMs).padStart(10));
+  console.log('  (a spread near zero is the camera AT terminal speed for the WHOLE window,');
+  console.log('   which is the precondition the old wall-clock ramp could not guarantee —');
+  console.log('   every reading it produced was BELOW terminal speed, and east/north was');
+  console.log('   the ratio of two different shortfalls. See the note on speedOnce.)\n');
+}
 for (const r of results) console.log(`${r.pass ? ' PASS' : '*FAIL'}  ${r.name}\n         ${r.detail}`);
 
 console.log(`\n${pass}/${results.length} passed`);

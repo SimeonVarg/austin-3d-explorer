@@ -49,7 +49,23 @@ await page.waitForTimeout(7000);
  * wait-for-ready that can never be SLOWER than the sleep it replaces, only
  * faster, and never returns early on a camera that is still moving.
  */
-async function settled(page, { quietMs = 450, timeoutMs = 8500 } = {}) {
+// CEILING RAISED 8500 -> 45000, 2026-08-16. THE OLD NUMBER WAS THE RED.
+//
+// `settled()` is a wait wearing a deadline: when `timeoutMs` expires it returns
+// anyway and the caller seeds regardless. §159 measured the controller's actual
+// ownership tail after this file's own two-pass look drag at **24-27 seconds**
+// on this machine. The gate budgeted 8.5 + 4 = 12.5, so `driving` was still
+// true at EVERY seed, every `jumpTo` was overwritten on the next frame, and
+// `lookUpFrom(450)` and `lookUpFrom(880)` both produced an eye at 120 m — all
+// nine assertions evaluated three times at the FIRST case's altitude. This file's
+// own comment at the top of `lookUpFrom` describes that exact defect and claims
+// it fixed; it came back because the fix was a deadline rather than a wait.
+//
+// Waited out properly, the placement is exact: 120 -> 120, 450 -> 450,
+// 880 -> 880, with requested zoom equal to delivered zoom to three decimals.
+// The ceiling is now roughly 2x the measured tail — a wait that still cannot
+// hang, but that no longer expires before the thing it waits for.
+async function settled(page, { quietMs = 450, timeoutMs = 45000 } = {}) {
   const t0 = Date.now();
   let last = null, quietSince = null;
   while (Date.now() - t0 < timeoutMs) {
@@ -73,6 +89,9 @@ async function settled(page, { quietMs = 450, timeoutMs = 8500 } = {}) {
 
 const results = [];
 const check = (n, p, d) => results.push({ n, p, d });
+// Every seeded placement, so a silently-overwritten jumpTo is a RED and not a
+// footnote. See the note in settled().
+const seedOk = [];
 
 /**
  * Look up the way a user does: hold the altitude, then DRAG.
@@ -95,7 +114,10 @@ async function lookUpFrom(altM) {
     const m = window.__map;
     // The controller owns the camera while flying; a seeded pose must wait for
     // !driving or the next frame overwrites it (README).
-    for (let i = 0; i < 40 && window.__fly.eye().driving; i++)
+    // 400 x 100 ms = 40 s. Was 40 x 100 ms = 4 s, against a measured 24-27 s
+    // ownership tail (§159) — so this loop always fell through while the
+    // controller still owned the camera, and the jumpTo below was overwritten.
+    for (let i = 0; i < 400 && window.__fly.eye().driving; i++)
       await new Promise(r => setTimeout(r, 100));
     const C = 40030228.884, lat = 30.2857, pitch = 60;
     const camPx = 0.5 * m.getCanvas().clientHeight /
@@ -106,7 +128,14 @@ async function lookUpFrom(altM) {
   }, altM);
   await page.waitForTimeout(1200);
   const seeded = await page.evaluate(() => ({ alt: +window.__fly.eye().alt.toFixed(0),
-                                              pitch: +window.__fly.eye().pitch.toFixed(2) }));
+                                              pitch: +window.__fly.eye().pitch.toFixed(2),
+                                              driving: !!window.__fly.eye().driving }));
+  // FAIL LOUDLY WHEN THE SEED DOES NOT LAND, instead of printing "seeded 120 m"
+  // for a request of 880 and then measuring the wrong altitude three times.
+  // This is the assertion that would have caught the regression above on the
+  // day it happened rather than two weeks later.
+  seedOk.push({ want: altM, got: seeded.alt, driving: seeded.driving,
+                ok: Math.abs(seeded.alt - altM) <= Math.max(15, altM * 0.05) && !seeded.driving });
 
   // A real look gesture. Measured, not assumed: dragging the mouse UP tips the
   // camera DOWN in this app (pitch fell to PITCH_MIN=5 on the first attempt),
@@ -187,7 +216,10 @@ async function eyeDriftFromLookingUp(altM) {
   await settled(page);   // was a flat 8500 ms; see settled() above
   await page.evaluate(async alt => {
     const m = window.__map;
-    for (let i = 0; i < 40 && window.__fly.eye().driving; i++)
+    // 400 x 100 ms = 40 s. Was 40 x 100 ms = 4 s, against a measured 24-27 s
+    // ownership tail (§159) — so this loop always fell through while the
+    // controller still owned the camera, and the jumpTo below was overwritten.
+    for (let i = 0; i < 400 && window.__fly.eye().driving; i++)
       await new Promise(r => setTimeout(r, 100));
     const C = 40030228.884, lat = 30.2857, pitch = 60;
     const camPx = 0.5 * m.getCanvas().clientHeight /
@@ -226,6 +258,19 @@ for (const alt of [150, 450, 880]) {
     `eye moved ${d.moved} m while pitch went ${d.pitchFrom} -> ${d.pitchTo} ` +
     `(altitude ${d.altFrom} -> ${d.altTo})`);
 }
+
+// THE INSTRUMENT ASSERTS ON ITSELF FIRST.
+//
+// Every assertion above is only worth reading if the camera was actually put
+// where this file asked. It was not, for an unknown length of time: all three
+// altitude cases silently ran at the first one's (§159). So the seed is now
+// checked, and a bad seed is red on its own terms — no reader should ever again
+// have to notice that "seeded 120 m" appears under a request for 880.
+check('every seeded altitude actually landed (the camera was free when we placed it)',
+  seedOk.length > 0 && seedOk.every(s => s.ok),
+  seedOk.map(s => `${s.want}->${s.got} m${s.driving ? ' STILL DRIVING' : ''}`).join('   ') +
+  (seedOk.every(s => s.ok) ? '' :
+   '   <- a jumpTo issued while the controller owns the camera is overwritten on the next frame (README)'));
 
 check('no uncaught page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
 
