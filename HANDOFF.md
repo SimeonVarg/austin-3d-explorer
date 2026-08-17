@@ -22287,3 +22287,287 @@ The run also found two more 300 s casualties nobody had listed: **`walk`**
 5. **I did not re-derive §158's or §159's diagnoses.** Where I found one wrong
    (the `austin-trees` count) it was because the rewrite happened to measure it;
    I did not audit the rest.
+
+---
+
+## 161. Aug 16 2026 — MORNING REPORT: Y24 refused with a picture — two buildings' front doors are in one doorway — and the night in plain words (acer lane, branch `acer/y24-coplanar`)
+
+**Grep `^## 16` before you pick a number.** §95, §97 and §156 all warn about
+this and it has now happened three times.
+
+**Files written:** `scripts/verify/doorstack.mjs` (new), `scripts/verify/README.md`,
+`QUEUE.md`, `shots/close/y24/`, this section. **No `js/`, no `data/`, no bake, and
+deliberately NOT `scripts/verify/coplanar-baseline.json`.**
+
+Server `python scripts/serve.py 8531` from a throwaway worktree cut from
+`origin/main` `ba9a0f5`; `harness-drift.mjs` **PASS** (29 scripts in
+`index.html`, 29 in `_harness.html`) before any pixel work; every page loaded
+with `?intro=0&drift=0`; `cancelGraphicsAutoDetect()` at the top of every run.
+
+---
+
+## PART ONE — Y24: THE LAST RED GATE ON `main`, ADJUDICATED
+
+### 1. The verdict, first
+
+**REFUSED. The baseline stays at 1627.** The 28 new coplanar pairs are not a
+door overlapping its own steps. **26 of them are the South End Zone's secondary
+door (eid 345) sitting inside the Moncrief-Neuhaus Athletic Center's MAIN door
+(eid 621) — two different buildings, one doorway.** The gate was right to be red
+and it caught a real bake defect. Moving the number would have hidden it.
+
+The picture is `shots/close/y24/01-two-portals-one-doorway.png`: each door drawn
+alone at one camera, then both. `05-before-after.png` is the same walking-height
+pose on the file the baseline was recorded against, beside today's — the
+right-hand door leaves its own wall and reappears inside the left one.
+
+### 2. Which numbers are real
+
+`1558 -> 1614` is **a stale checkout, not a second opinion.** That is
+`acer/aws-brief`, whose `coplanar-baseline.json` still reads 1558. Measured
+myself, on a fresh worktree of `origin/main` `ba9a0f5`, no local data changes:
+
+```
+gate against baseline of 2026-08-16 (eps=0.01, frac=0.3):
+    REGRESSED  entrances.geojson          1627 -> 1655
+```
+
+**1627 -> 1655 is the live reading.** Quote the branch with the number.
+
+### 3. The 28 identified BY ID, and where §156's reasoning goes wrong
+
+A standalone pair dumper (same eps, frac, 22x22 sampling and entrances schema as
+`coplanar.mjs`; it reproduces 1655 and 1627 exactly) emitted every pair with both
+eids, on `main`'s file and on the file at `c30b606` — the commit that recorded
+the 1627 baseline.
+
+**Eleven eids move between the two files and no others**, by per-eid centroid,
+everything else identical to under a millimetre:
+
+```
+138 GSB 9.56 m   281 8.08   486 MEZ 7.37   276 7.34   285 BHD 6.44
+345 SEZ 5.96     346 SEZ 5.30   172 EDB 4.49   194 4.11   391 3.29   38 JW 2.05
+```
+
+Delete those 11 from both files and **both give 1605 pairs.** So §156's structure
+holds: the whole +28 involves the 11. (Its stated "988 both sides" does not
+reproduce at eps=0.01/frac=0.30 — the number is 1605. That is a bookkeeping
+error, not the important one.)
+
+**The important one is the inference.** Classify each pair by whether its two
+eids are in the moved 11:
+
+```
+                        pairs on the 1627 file      pairs on main
+neither eid moved              1605                     1605     identical key-for-key
+both eids moved                  22                       24     +2
+ONE eid moved, one did NOT        0                       26     +26   <-- this
+```
+
+The +26 are `345 <-> 621` and `179 <-> 345`. **eid 621 and eid 179 did not move
+and are not the South End Zone.** eid 345 travelled 5.96 m and closed the gap to
+eid 621's door from **7.43 m to 1.71 m**, landing canopy-on-canopy:
+
+```
+   #  eids       kinds              top     area    shared
+   1  345 621    canopy/canopy      4.02   22.4 m2   100%
+   2  345 621    canopy/canopy      4.20   22.4 m2   100%
+   3  345 621    step/step          0.39    6.5 m2   100%
+   4  345 621    step/step          0.42    5.8 m2   100%
+  ...             + surround, transom, reveal, glass, door, 6 rails at 100%
+  10  179 345    step/step         0.587    3.3 m2    32%
+```
+
+Only **2** of the 28 are a door against its own furniture (eid 276 and eid 281,
+one `reveal/reveal` each at ~0.1 m2, 32–33 %). Those two are the kind §156
+judged, and they are fine.
+
+**Why "delete the 11 and the counts match" could never have caught this.**
+Deleting eid 345 removes its collisions with 621 and 179 as well as with itself.
+The test cannot distinguish "a door overlapping its own step" from "a door
+parked inside a different building's entrance". That is the whole reason the
+guard asks for eyes.
+
+### 4. Photographed at walking height, from opposing bearings
+
+`doorwalk.mjs`, eye height **1.70 m** read back from `__fly.eye()` after every
+jump, entrance source waited for LOADED before any frame, screenshot twice and
+the second kept. Five sites, two bearings each (the wall's outward normal ±40°).
+One bearing, `P1-A`, ejected the camera to **28.8 m** on the collision net and is
+discarded rather than reported — `shots/close/y24/03-shipped-1m70-bearing332.png`
+is the honest opposing view, taken at 26 m of standoff where the eye stays down.
+
+**Noise floor first.** Same file, two separate browser launches, four poses:
+**0 pixels over 24 at every one** (max channel delta 1–4). Against that floor,
+main vs the 1627 file at the same poses:
+
+```
+pose                     MAINr1 vs MAINr2      MAINr2 vs the 1627 file
+P1-sez-mnac-B (232.2)       0 over24 max 4        21,698 over24  max 115
+P2-179-345-A  (169.9)       0 over24 max 1        43,091 over24  max 115
+P2-179-345-B  (249.9)       0 over24 max 2        11,402 over24  max 114
+P1-sez-mnac-E (332.2)       0 over24 max 3         1,614 over24  max  84
+```
+
+### 5. The instrument that settled it: `scripts/verify/doorstack.mjs`
+
+`coplanar.mjs` reads arithmetic and cannot tell a step tread capping its own
+cheek wall from two buildings' doors in one hole. `zfight.mjs` renders and
+answers a different question. So: filter every `entrances-*` layer down to ONE
+eid at a time at one fixed camera, and count what each is responsible for
+against an all-entrances-hidden control.
+
+```
+pose (eye 1.70 m)      eid 621 alone                 eid 345 alone
+bearing 232.2       36,991 px @[501,196,834,458]   24,814 px @[577,196,834,458]
+bearing 249.9       38,686 px @[426,211,1042,539]  26,156 px @[480,211,968,539]
+bearing 332.2       14,210 px @[598,286,854,462]    4,660 px @[678,286,854,453]
+```
+
+**345's box is a subset of 621's at every bearing.** Two complete portals, same
+pixels. In the shipped frame that is two canopies crossing, two step flights, two
+sets of rails and two glazing grids in one opening.
+
+*Its own first cut was wrong and the file says so:* it dropped the OTHER eid and
+kept everything else, so `onlyA vs none` counted every door in the viewport —
+110,030 px over half the frame, a number that says nothing about the pair being
+judged. It also has to re-pose outward like `doorwalk.mjs` does, because a 15 m
+standoff inside the collision net's padded probe radius throws the camera onto a
+roof while `__fly.eye().alt` still says 1.70.
+
+### 6. `zfight.mjs` says NO FLICKER, and that is reported as found
+
+**Twelve poses — the seven walking-height ones plus five close in on the doubled
+canopy at 5/6/8/12 m — and not one cluster >= 220 px.** `movedPct` 4.5–15.5 %
+every time, so the A-B-A discriminator was live and the null is not vacuous.
+
+```
+P1-sez-mnac-B  moved 10.3%  flicker 0.096%  (none)
+P2-179-345-A   moved 10.7%  flicker 1.549%  (none)
+P3-eid281-A    moved 10.2%  flicker 0.124%  (none)
+Z1-canopy-8m   moved 11.2%  flicker 0.043%  (none)
+Z4-canopy-5m   moved 10.8%  flicker 0.136%  (none)
+...12 poses, no clusters anywhere
+```
+
+**So say it plainly: this pair is not a proven z-fight on this renderer.** The
+brief for this pass was "a coplanar pair is only harmless if it does not z-fight
+on screen", and by that test alone these would pass. They are refused anyway,
+because what the isolation frames show is worse than a flicker: the city is
+wrong. A guard that gets re-baselined over a duplicated front door has been
+turned into decoration, and this repo has now caught itself doing that four
+separate ways.
+
+### 7. Owner, and what the fix probably is
+
+**`scripts/bake_entrances.py` and `data/entrances.geojson` — the entrances lane.
+It is a bake fix, not a baseline edit.** §156 diagnosed `_free_wall` using one
+union for two jobs and fixed the FRONT-clearance half
+(`BURIED_OWN_BLOCKS_FRONT`). This looks like the other half still open: **the
+edge walk is still allowed to march a door along a NEIGHBOUR's wall**, and with
+the front test now correctly refusing the host's own mass, eid 345 was pushed off
+its own building and onto MNAC's entrance bay. The rule needs to refuse a landing
+that falls inside another door group's footprint. When it is re-baked the gate
+should fall to 1627 on its own; if a residual remains, move the baseline in a
+commit that names the pairs.
+
+**Two consequences nobody has checked and I did not:** `data/walk_graph.json`'s
+arrival node for the South End Zone now points at Moncrief-Neuhaus's front door,
+and eid 345's `bid`/`nm` still say South End Zone while it stands on a different
+building — so the label a walker sees on arrival may be the wrong building's.
+
+---
+
+## PART TWO — THE NIGHT, IN PLAIN WORDS
+
+The block at the top of `QUEUE.md` is the version written for Simeon. This is the
+same content with the receipts, and **every claim below was checked against the
+repo rather than taken from the handover note.**
+
+### What shipped and holds
+
+| claim | where it is verified |
+|---|---|
+| the city is ~**3x faster in the frame** — 98 -> **167 frames** in the same three seconds at walking height, best cruise frame **48 ms -> 15 ms** | §143 headline; the cause is §142, MapLibre re-uploading an unchanged atlas image at **48 ms a frame of pure no-op** |
+| **storey bands** on campus and West Campus, judged **blind against the live site and both WON** | §129, §130, §131 |
+| **close-range ground grain**, gated to walking height | §120, §123 |
+| **the walking feature** — type a building, walk to it | §113, §114, §137, §138 |
+| **135 of 198** buildings routable, arriving **0.00 m** from the drawn door | §147, §148; re-verified in §157 (`->drawn 0.00 m on all eleven, 0 wall crossings`) |
+| **BOOST moved out from under the steering thumb** | §144 — and note the metric there *nearly said it did nothing* |
+
+### What was tried and REFUSED, which is also a result
+
+The remaining wall defect is the **vertical** barcode. It was built as real
+geometry (`acer/n12-vertical`, commits `ee36532` then `65ff5fb`) and judged
+blind — **and refused**, with the reason stated as arithmetic rather than taste:
+**a bay is 6–8 m and the stripe is 0.12 m; geometry can add but it cannot
+subtract.** Real windows remain the honest answer. Weeks, not days.
+
+### What was broken and got caught
+
+* **The suite went from 25 green of 38 to 37 green of 39** (§155 -> §160) — after
+  it was found **printing `*FAIL` and then exiting 0**, so reds were invisible.
+  Seven guards had had their bodies deleted by a mass edit sixteen days earlier
+  (§149); `banding.mjs` was green while asserting nothing at all.
+* **The idle screensaver was moving the sun** under **38 scripts** (§155). Any
+  sky reading taken without `?drift=0` was partly measuring the clock.
+* **The sunset washed to pale blue at one notch of the slider** — 83 levels of
+  blue against a sweep median of 5, three reps, same digit (Y20). Fixed in §160:
+  it was the sun's own afterglow being painted in the moon's colour.
+* **The Moody Center had no visible door** (§152) — `load_masses()` read **nine
+  authored files** and not the file the renderer actually draws, so a canopy ate
+  the building's only surveyed entrance.
+* **A gitignored lockfile meant no fresh worktree could install a browser**
+  (§158F). This pass hit it too: `doorwalk.mjs` died on
+  `Cannot find package 'playwright-core'` in a clean worktree.
+
+### The messes, written down because the record is worth more than the score
+
+* **A commit that called itself a lockfile change silently reverted 37 files.**
+  `841e89e`, the commit immediately after PR #197 merged, described itself only
+  as "Track the verify lockfile..." and took out two docs, 24 screenshots,
+  `js/facades.js`, `scripts/bake_facades.py`, `data/facade_palette.json` (which
+  reopened NB6) and ~400 lines of `HANDOFF.md`/`QUEUE.md`. Not a force-push, not
+  a deliberate revert — **a commit made from a working tree checked out before
+  the merge.** Another lane caught it and restored it. *A commit is a snapshot,
+  not a patch: capture the tree and the parent at the same instant, and run
+  `git show --stat` on your own commit before you believe its message.*
+* **The runner manufactured false reds.** `run.mjs --jobs 3` at the 300 s default
+  returned ten reds; re-run alone, **nine of ten passed.** Three SwiftShader
+  browsers on one CPU. The tenth was `coplanar` — Y24, the one in Part One.
+* **Several "defects" dissolved on inspection and were the camera, not the city**
+  (§159: four of five reds were the ruler). This pass paid the same toll once —
+  a bearing that came back with no door at all was looking along a wall.
+* **A performance figure quoted all week was cache temperature, not code.** §143:
+  three of `measured.md`'s headline numbers "were attributed to the code and they
+  belonged to the machine" (32–42 Chrome processes at 61–100 % CPU), and the
+  10.5 s intro flight meant one A/B was measuring the camera.
+
+### Still open, and honest about size
+
+1. **Real windows.** Weeks, not days. Y19; the geometry shortcut is closed.
+2. **460 of 656 door groups have never been looked at.** 196 have.
+3. **63 buildings are still unroutable.** 135 of 198.
+4. **The two-finger altitude gesture is still inverted** — pinching CLOSED lifts
+   you (§144 item 6, not re-tested since).
+5. **The perf budget is still missed on the outer scan**, and the cost was
+   measured to be **a single query call** — 100 %, 100 %, 100 %, 53 % across four
+   readings — **not the loop everyone wanted to optimise** (§158, QUEUE Y7).
+6. **Y24 itself** — the doorway above. Entrances lane.
+
+### What this pass did NOT establish
+
+1. **The other 24 relocated groups were not re-photographed here.** §156 shot
+   them; I looked at the five sites the 28 new pairs live at.
+2. **I did not re-bake anything and did not verify that a re-bake fixes it.** The
+   diagnosis in Part One §7 is reasoned from §156's own account of `_free_wall`,
+   not measured by re-running the bake with a candidate rule.
+3. **`zfight.mjs`'s null is a null at twelve poses on SwiftShader**, at one hour
+   (p 0.30). A depth tie that resolves stably here may not on a real GPU.
+4. **The walk-graph and label consequences in Part One §7 are stated, not
+   measured.** Nobody has walked to the South End Zone and read the sign.
+5. **The morning report is a check of the record, not a re-derivation.** Every
+   number above was verified to exist where it is cited; I did not re-measure the
+   3x speed-up or the blind wall tests myself.
+
+Server killed, worktree torn down, `reap.mjs` run last.

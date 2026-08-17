@@ -1,5 +1,61 @@
 # QUEUE — Acer lane
 
+## THE NIGHT OF AUG 16, IN PLAIN WORDS (morning report — full story in HANDOFF §161)
+
+About twenty separate runs. Everything that passed is merged, `main` is
+recordable, and nothing went in red.
+
+**What you would notice if you opened it now.** The city is roughly **three
+times faster in the frame** — at walking height it draws 167 frames in the time
+it used to draw 98, and the slowest thing in the scene turned out to be the app
+re-uploading the same window texture every frame for nothing. The **storey
+bands** shipped on campus and West Campus: the walls above the doorways now read
+as floors instead of a pegboard, and in blind tests against the live site both
+walls **won**. The **ground has grain** when you stand on it. You can **type a
+building and walk to it** — 135 of 198 buildings now have a route that puts you
+**0.00 m from the door the app actually draws**. The **BOOST button moved** out
+from under your steering thumb.
+
+**One thing was tried and refused, on purpose.** The remaining wall defect is the
+*vertical* barcode, and somebody built it as real geometry to see if that fixed
+it. It did not, and the reason is arithmetic: a bay is 6–8 m wide and the stripe
+is 0.12 m, so geometry can add a thing but it cannot subtract one. Real windows
+stay the honest answer, and they are weeks of work, not days. Picture is in
+`shots/facade/`.
+
+**What broke and got caught.** The suite went from **25 gates green of 38 to 37
+of 39** — after somebody noticed it had been *printing failures and then exiting
+success*, so half the reds were invisible. The **idle screensaver was moving the
+sun** underneath 38 different test scripts, which means a lot of past sky
+readings were measuring the clock. The **sunset washed out to pale blue** at one
+notch of the time slider — fixed. The **Moody Center had no visible door**,
+because the rule that places doors was reading nine authored files and not the
+one file the renderer actually draws. And a **lockfile had been gitignored**, so
+no fresh worktree could install a browser to test with — which is why some of
+this took longer than it should have.
+
+**The messes, because the record is worth more than the score.** A commit that
+called itself a lockfile change **silently reverted 37 files** — a full session
+of measured work left `main` ninety seconds after arriving, and nothing in the
+log said so; another lane caught it and put it back. The test *runner* was
+manufacturing false reds: nine of ten failures in one pass were three browsers
+fighting over one CPU, not the city. Several "defects" dissolved when somebody
+actually stood in front of them — they were the camera, not the city. And a
+performance number quoted all week turned out to be **cache temperature, not
+code**.
+
+**One gate is still red on `main` and it is red for a good reason.** See **Y24**
+below: two front doors from two different buildings are being drawn in the same
+doorway. Pictures: `shots/close/y24/`.
+
+**Still open, honestly.** Real windows (weeks). **460 of 656 doorways have never
+been looked at.** 63 buildings still have no route. The two-finger altitude
+gesture on a phone is still inverted — pinching closed lifts you. And the
+performance budget is still missed on the outer ring, where the cost was measured
+to be **one query call**, not the loop everyone wanted to optimise.
+
+---
+
 ## THE OVERNIGHT BLITZ, IN PLAIN WORDS (morning of Aug 16 — full story in HANDOFF §127, pictures in `shots/blitz/final/`)
 
 Eight PRs merged overnight, nothing merged red, and the app is recordable
@@ -1385,6 +1441,70 @@ of another lane's coplanar pairs on their behalf — at the end of a long night,
 without looking at the doors — is exactly the silent acceptance the baseline file
 exists to prevent. **Owner: the entrances lane.** Either re-bake without the
 duplicates, or move the baseline to 1655 in a commit that says why.
+
+### Y24 ADJUDICATED 2026-08-16 (§161): REFUSED. THE BASELINE STAYS AT 1627.
+
+**Somebody stood in front of it. It is two front doors from two different
+buildings drawn in the same doorway, and the gate was right to be red.**
+Pictures: `shots/close/y24/`. Full working: HANDOFF §161.
+
+1. **The numbers, re-measured on `origin/main` `ba9a0f5` from a throwaway
+   worktree.** The gate reads **1627 -> 1655**, +28. `1558 -> 1614` is a stale
+   local checkout, not a second opinion — that is `acer/aws-brief`, whose
+   baseline file still says 1558. Quote the branch with the number.
+2. **The +28 was resolved by id, not by assertion.** Exactly **11 eids** move
+   between the two files (38, 138, 172, 194, 276, 281, 285, 345, 346, 391, 486 —
+   measured on per-eid centroids, everything else is unmoved to within 1 mm), and
+   with those 11 deleted **both files give 1605 pairs**. So the whole +28 does
+   involve the 11. That much of §156's claim reproduces. (Its "988 both sides"
+   does not reproduce at eps=0.01/frac=0.30; the number here is 1605.)
+3. **But "inside the 11 relocated groups" is the wrong reading, and it is the
+   reading that matters.** Of the 28, only **2** are a door overlapping its own
+   furniture. **26 are eid 345 against eid 621 and eid 179 — door groups that did
+   NOT move, on DIFFERENT buildings.** eid 345 is the South End Zone's secondary
+   door; eid 621 is the Moncrief-Neuhaus Athletic Center's **main** door. The
+   relocation carried 345 **5.96 m**, from 7.43 m away from 621 to **1.71 m**.
+   The "delete the 11 and the counts match" test cannot see this, because
+   deleting 345 also deletes its collisions with everything else.
+4. **Photographed at 1.70 m of eye height from three bearings (232.2°, 249.9°,
+   332.2°), and the doors were then drawn one at a time.** With every entrance
+   layer filtered to one eid, **both** groups render a complete portal over the
+   **same** rectangle:
+
+   ```
+   pose (eye 1.70 m)      eid 621 alone            eid 345 alone
+   bearing 232.2       36,991 px @[501,196,834,458]   24,814 px @[577,196,834,458]
+   bearing 249.9       38,686 px @[426,211,1042,539]  26,156 px @[480,211,968,539]
+   bearing 332.2       14,210 px @[598,286,854,462]    4,660 px @[678,286,854,453]
+   ```
+
+   345's box is a subset of 621's at every bearing. In the shipped frame that is
+   two canopies crossing, two step flights, two sets of rails and two glazing
+   grids in one opening. `shots/close/y24/01-two-portals-one-doorway.png` is the
+   three-arm figure; `05-before-after.png` is the same pose on the 1627 file
+   beside today's, where the right-hand door simply leaves its own wall.
+5. **`zfight.mjs` found NO flicker at 12 poses** (7 at walking height, 5 close in
+   on the doubled canopy) — no cluster ≥ 220 px anywhere, `movedPct` 4.5–15.5 %
+   so the discriminator was live. **Say that plainly: this pair is not a proven
+   z-fight on this renderer.** It is refused anyway, because a coplanar guard
+   that gets re-baselined over a duplicated front door has been turned into
+   decoration, which is the fourth thing in this repo to fail that way.
+6. **Noise floor first**, as always: the same file photographed twice through two
+   browser launches is **0 pixels over 24** at all four poses (max 1–4). The
+   relocation moves 1,614–43,091 px at those same poses.
+
+**Owner: the entrances lane (`scripts/bake_entrances.py`, `data/entrances.geojson`).
+The fix is a bake fix, not a baseline edit.** `_free_wall`'s edge walk is allowed
+to march a door along a NEIGHBOUR's wall; §156 fixed the front-clearance half of
+that and this is the other half showing. The rule needs to refuse a landing that
+is inside another door group's footprint, or refuse to leave the host's own
+walls. When it is re-baked, the gate should fall back to 1627 on its own; if a
+residual remains, move the baseline in a commit that names the pairs.
+
+**New instrument: `scripts/verify/doorstack.mjs`** — draws each eid alone at one
+camera and reports what each is responsible for. `coplanar.mjs` cannot tell a
+step tread capping its own cheek wall from two buildings' doors in one hole; this
+can, and it is what turned this from an argument into a picture.
 
 **Y21. `data/westcampus.geojson` — 11 vertical band gaps and overlaps across
 three buildings.** The Standard, 2400 Nueces and Block on 25th East each show a
