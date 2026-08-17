@@ -979,15 +979,21 @@ Before/after frames, real touch at 393x852, day and night:
   glass. Bought with `--hint-fs`, not with wrapping: the only row in the bottom
   third clear of both controls is that one, and a second line grows into them.
 
-**Still open: item 6, and it is now the only one.** The two-finger altitude
-gesture goes the wrong way — pinching CLOSED lifts you, against the universal
-map convention — and nothing on screen says which way or marks "you are back on
-the pavement". Not fixed here: it is `js/controls.js` gesture semantics, not
-chrome, it needs its own before/after drive (the survey's own numbers for it are
-caveated — four of five gestures were measured from the wrong starting
-altitude), and inverting it silently would change a gesture the recording brief
-may already depend on. **The double-tap-and-drag gesture is still untested by
-anybody** — `TAP_MS` is 280 ms and the smallest gap that instrument could
+**~~Still open: item 6, and it is now the only one.~~ ITEM 6 IS CLOSED AS A
+NON-DEFECT — see R5.** This paragraph is kept because it is the record of how
+the claim was believed for a fortnight, and it was wrong. It read: *"The
+two-finger altitude gesture goes the wrong way — pinching CLOSED lifts you,
+against the universal map convention"*. **It does not go the wrong way.**
+Pinch-closed = zoom out = away from the ground = up is what every map does; the
+survey treated "away" and "lifts you" as opposites when for an altitude camera
+they are the same direction. Driven twice, from two opposing gestures, and the
+gain measured at exactly the finger-gap ratio (R5). `js/controls.js` was never
+touched. The second half of the item — *"nothing on screen says which way or
+marks you are back on the pavement"* — was never a lie, only a silence: the hint
+states no direction, so it stays true either way.
+
+**Still genuinely open from item 6: the double-tap-and-drag gesture is untested
+by anybody** — `TAP_MS` is 280 ms and the smallest gap that instrument could
 produce was 2,012 ms.
 
 What still works and should not be spent time on: `collision.mjs` 8/8,
@@ -1468,6 +1474,60 @@ a finding** — `altUser` does not resync to a bare `map.jumpTo`, so only the
 sign is established. The open question worth a pass is whether the gesture is
 far too *sensitive*, which is nobody's finding yet.
 
+**ANSWERED 2026-08-17 (§164, branch `acer/r4-pinch`). The gain is exactly
+right, and the +150.7 m was never the gesture.** Re-driven on unmodified
+shipping code with a reset that is *verified in a loop* rather than assumed,
+at open ground (`-97.7280,30.2830`, roof 0 m inside `R_CAM` 6 m, so the hard
+net provably cannot fire):
+
+```
+pinch CLOSED 260->60 px   alt 20 -> 86.667 m   4.333x   ideal 260/60 = 4.333x   (twice)
+pinch OPEN   60->260 px   alt 300 -> 88.8 / 116.9 m     descends              (twice)
+```
+
+**4.333x against an ideal of 4.333x, to three decimals, twice.** The gesture is
+a pure log-proportional map of the finger gap — pinch to twice the gap, halve
+your altitude — which is exactly what a map does. It is not over-sensitive.
+Direction re-confirmed on two opposing gestures, two reps each. **Y10 item 6
+stays closed, and `js/controls.js` was not touched.**
+
+The `+150.7 m` in the reading above is the collision system, not the pinch —
+see R6. The gesture applied `sum(L) = 1.4663 -> 4.33x` at *every* site tested,
+including the ones that ended 90x higher.
+
+**R6. CLIMBING BESIDE A TALL BUILDING SNAPS YOU TO ITS ROOF. NEW 2026-08-17
+(§164). NOT A PINCH BUG, NOT FIXED, AND DELIBERATELY NOT TOUCHED BEFORE THE
+RECORDING.** This is what the caveated `+150.7 m` was all along.
+
+Stand on the South Mall lawn (`-97.7394,30.2857`) at 1.70 m and raise altitude
+by any means — pinch, `Q`, or the wheel. The gesture asks for 1.7 -> **7.367 m**
+and gets it: instrumenting the tick shows `altUser` multiplied by exactly
+`exp(1.4663)`. Then the eye reads **98 m**, and a moment later **125.222 m**.
+
+The cause is in `js/controls.js` and it is the hard net doing its job:
+
+```
+rCam()  = lerp(R_CAM_GROUND 1 m, R_CAM 6 m, groundMix())   // groundMix hits 0 at ALT_GROUND 12 m
+if (h > 0 && alt < h + HARD_CLEAR) { alt = altUser = h + HARD_CLEAR; }
+```
+
+At 1.70 m the probe radius is **1 m** and the lawn is empty — `roofAt(...,1) = 0`.
+Climb past `ALT_GROUND` (12 m) and the radius lerps out to **6 m**, which now
+contains the **94 m** Main Building — `roofAt(...,6) = 94` — so the net fires and
+teleports the eye to `94 + HARD_CLEAR(4) = 98 m`, then higher as the radius keeps
+opening. Measured at three sites: open ground (roof 0 inside 6 m) gives exactly
+4.33x with no snap; the South Mall (roof 94 m inside 6 m) gives 73.66x.
+
+**It is a safety guarantee — "never inside a building" — not a feel bug, and it
+is one-way (it never drops you into a wall).** It also predates every touch
+gesture and fires identically for `Q` and the wheel, so it is not the touch
+lane's to fix.
+
+**FOR THE RECORDING:** if the camera ascends from street level *within ~6 m of
+a tall building*, expect a jump to roof + 4 m rather than a smooth climb. Ascend
+from open ground, or from above 12 m, and it does not happen. Not worth a code
+change hours before a shoot; worth knowing which shot not to set up.
+
 **Y24. `coplanar.mjs --gate` IS RED ON `origin/main` RIGHT NOW, AND IT IS NOT THE
 GATE. NEW 2026-08-16 (§160). NOT MINE, NOT FIXED — the entrances lane owns it.**
 
@@ -1656,13 +1716,17 @@ Y8  the ground plane ......................... TEXTURE half DONE (#170, merged
                                                 rejected ground-base-texture on main)
                                                 is CLOSED — 25 -> 24, PR #172, §123.
 Y9  labels sized by zoom not metres .......... OPEN
-Y10 touch at walking height .................. FIVE OF SEVEN FIXED. Item 1 (#185,
-                                                §139); items 3/4/5/7, the whole
-                                                style.css set, in §144. Item 2 is Y12
-                                                and closed. ITEM 6 IS THE ONLY ONE
-                                                LEFT — pinch-closed lifts you, which
-                                                is backwards, and the double-tap-drag
-                                                gesture is still untested by anybody.
+Y10 touch at walking height .................. SIX OF SEVEN FIXED, SEVENTH WAS NOT
+                                                A DEFECT. Item 1 (#185, §139);
+                                                items 3/4/5/7, the whole style.css
+                                                set, in §144. Item 2 is Y12 and
+                                                closed. ITEM 6 CLOSED as a
+                                                non-defect — the pinch was never
+                                                inverted and its gain is exactly the
+                                                finger-gap ratio (R5, §163+§164);
+                                                the doc had the convention backwards.
+                                                Still open: the double-tap-drag
+                                                gesture is untested by anybody.
                                                 NOT REAL iOS SAFARI, still.
 Y11 dusk at eye level ........................ DONE (§117, shots/blitz/) — found Y17+Y18
 Y12 the near plane ........................... DONE (#185, §139) and NARROWER than the

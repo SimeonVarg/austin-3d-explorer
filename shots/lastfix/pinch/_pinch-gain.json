@@ -1,0 +1,67 @@
+{
+ "_what": "HANDOFF 164 / QUEUE R5+R6. The pinch GAIN, measured on unmodified shipping code with a VERIFIED reset. Companion to _pinch.json, whose magnitudes are not quotable (see _caveat below).",
+ "branch": "acer/r4-pinch",
+ "cut_from": "origin/main 433f94e",
+ "js_controls_diff_vs_origin_main": "empty - byte-identical",
+ "viewport": "393x852, deviceScaleFactor 3, isMobile, hasTouch",
+ "driver": "CDP Input.dispatchTouchEvent, 2 fingers, 12 steps, horizontal, centre (196,420)",
+ "flags": "?intro=0&drift=0, cancelGraphicsAutoDetect() first, waited for austin-entrances LOADED",
+
+ "verdict": "PINCH CLOSED CLIMBS, PINCH OPEN DESCENDS = the universal map convention (closed = zoom out = away from the ground = up). NOT inverted. js/controls.js unchanged.",
+
+ "gain": {
+  "_site": "-97.7280,30.2830 intramural fields - open ground",
+  "_why_this_site": "roofAt(r=1m)=0 AND roofAt(r=R_CAM 6m)=0, so the collision hard net provably cannot fire and the gesture is measured alone",
+  "_reset": "verified in a loop: re-jump until !driving AND |altUser-target|<0.5 AND |alt-target|<0.5, else the reading is discarded",
+  "closed": [
+   { "gap_px": "260->60", "alt_m": [20, 86.667], "ratio": 4.333, "ideal": 4.333 },
+   { "gap_px": "260->60", "alt_m": [20, 86.667], "ratio": 4.333, "ideal": 4.333 }
+  ],
+  "open": [
+   { "gap_px": "60->260", "alt_m": [300, 88.846], "ratio": 0.296, "ideal": 0.231 },
+   { "gap_px": "60->260", "alt_m": [300, 116.923], "ratio": 0.390, "ideal": 0.231 }
+  ],
+  "_finding": "4.333x against an ideal of 4.333x, twice, to three decimals. The gesture is a pure log-proportional map of the finger gap: altUser *= (gapBefore/gapAfter). It is NOT over-sensitive - that was R5's open question and this closes it. The OPEN ratios fall short of the ideal because the fast descent drops move events on a loaded page; direction is the claim, not the exact metre."
+ },
+
+ "R6_the_amplifier_is_not_the_gesture": {
+  "_claim": "The pinch applies sum(L)=1.4663 -> 4.33x at EVERY site. Where the eye ends higher, the collision hard net moved it, not the finger.",
+  "_hard_net": "js/controls.js: rCam() = lerp(R_CAM_GROUND 1m, R_CAM 6m, groundMix()); groundMix -> 0 at ALT_GROUND 12m; then `if (h > 0 && alt < h + HARD_CLEAR) { alt = altUser = h + HARD_CLEAR; }`",
+  "by_site": [
+   { "site": "South Mall lawn -97.7394,30.2857", "roof_within_1m": 0, "roof_within_6m": 94,
+     "gesture_applied_sumL": 1.4663, "gesture_asked_alt_m": [1.7, 7.367],
+     "eye_actually_reached_m": 125.222, "eye_ratio": 73.66,
+     "_note": "snapped to 94+HARD_CLEAR(4)=98, then higher as the probe radius kept opening" },
+   { "site": "intramural fields -97.7280,30.2830", "roof_within_1m": 0, "roof_within_6m": 0,
+     "gesture_applied_sumL": 1.4663, "gesture_asked_alt_m": [20, 86.667],
+     "eye_actually_reached_m": 86.667, "eye_ratio": 4.333,
+     "_note": "no building inside the probe radius, so no snap - the clean case" }
+  ],
+  "_status": "NOT FIXED, deliberately. It is a safety guarantee (never inside a building), one-way, and it fires identically for Q and the wheel. Recorded as QUEUE R6.",
+  "_for_the_recording": "ascending from street level within ~6 m of a tall building jumps to roof + 4 m instead of climbing smoothly. Ascend from open ground, or from above 12 m, and it does not happen."
+ },
+
+ "event_stream_check": {
+  "_method": "capture-phase pointer spy on the canvas, reconstructing the gap the controller computes",
+  "at_1.7m":  { "down": 2, "move": 24, "up": 2, "coalesced_per_move": 1, "sum_log_terms": 1.4663, "exp": 4.33 },
+  "at_154m":  { "down": 2, "move": 24, "up": 2, "coalesced_per_move": 1, "sum_log_terms": 1.4663, "exp": 4.33 },
+  "_finding": "identical streams, both telescope exactly - the gesture handler is not the amplifier at either altitude"
+ },
+
+ "hint_text": {
+  "value": "Joystick to move | BOOST to sprint | swipe to look | two fingers for altitude",
+  "states_a_direction": false,
+  "_finding": "never a lie, needed no change, index.html untouched"
+ },
+
+ "_reproduced_163": "pinch-alt.mjs was re-run independently this session and REPRODUCED HANDOFF 163's reading: closed r1 1.7 -> 152.444 m, dAlt +150.744, identical to the millimetre; open r1 came out -53.077 against 163's -50.913. 163's own _pinch.json and phone-393x852.png in this directory are left exactly as 163 committed them and were NOT overwritten.",
+
+ "_caveat": "_pinch.json in this directory is scripts/verify/pinch-alt.mjs output and its SIGN verdict is sound, but its metres compound: place() jumps the map and waits a flat 9s, the controller keeps camera ownership on a loaded page, so reps 2..4 start wherever the previous rep ended. Do not quote '+150.7 m' as a pinch gain - that figure is R6's collision snap plus chained gestures.",
+
+ "_not_established": [
+  "not real iOS Safari - CDP touch into headless Chrome throughout",
+  "the double-tap-and-drag altitude gesture is still untested by anybody (TAP_MS 280ms)",
+  "R6 was not photographed - established from __fly.eye() and roofAt() numbers, not pixels",
+  "pinch-alt.mjs itself was not repaired; it is not this lane's file this round"
+ ]
+}

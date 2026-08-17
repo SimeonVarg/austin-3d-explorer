@@ -1,5 +1,120 @@
 # Austin 3D Explorer — Full Handoff
 
+## 164. Aug 17 2026 — the pinch gain is exactly the finger-gap ratio, and the "+150 m" everyone kept measuring was the collision net teleporting the camera onto the Tower (acer lane, branch `acer/r4-pinch`, PR)
+
+**Grep `^## 16` before you pick a number.** §95, §97, §156, §161 and §163 all
+warn about this, and §163 took 163 an hour before this one.
+
+**Files written:** `QUEUE.md` (R5 extended, **R6 new**, two stale "item 6 is
+open" spots corrected), `shots/lastfix/pinch/`, this section. **NO `js/`, no
+`index.html`, no `data/`, no `scripts/`.** `js/controls.js` is byte-identical to
+`origin/main` — proved with `git diff origin/main -- js/controls.js`, empty.
+**`main` serves byte-for-byte the city it served before this branch**, so the
+flyover, intro, tour and hero poses cannot have moved and the hero set was not
+re-shot. That is the proof, not a screenshot: nothing the app loads changed.
+
+Branch cut from `origin/main` `433f94e` (PR #203, §163, already merged — I did
+not continue `acer/r3-dkrdoor`). `python scripts/serve.py 8572` from a throwaway
+worktree; `harness-drift.mjs` **PASS (29 scripts / 29)** before any pixel work;
+`?intro=0&drift=0`; `cancelGraphicsAutoDetect()` first; every arm waited for
+`austin-entrances` LOADED.
+
+### 1. The verdict stands, and now the magnitude stands with it
+
+§163 §3 closed Y10 item 6 as a non-defect but wrote, honestly, *"the magnitudes
+are NOT a finding — `altUser` does not resync to a bare `jumpTo`, so only the
+sign is established"*, and left one question open: **is the gesture far too
+sensitive?** It is not, and here is the number it was missing. Reset verified in
+a loop (re-jump until `!driving` **and** `altUser` **and** `alt` are both within
+0.5 m of target, else the reading is discarded and says so), at open ground
+where `roofAt(...,R_CAM 6 m) = 0` so the hard net provably cannot fire:
+
+```
+pinch CLOSED 260->60 px   alt   20 -> 86.667 m   4.333x    ideal 260/60 = 4.333x   (x2)
+pinch OPEN   60->260 px   alt  300 -> 88.8 m / 116.9 m     descends                (x2)
+```
+
+**4.333x against an ideal of 4.333x, to three decimals, twice.** The gesture is
+a pure log-proportional map of the finger gap and nothing else. Direction
+re-confirmed on two opposing gestures. **Nothing was inverted, and
+`js/controls.js` was not opened except to instrument it and revert.**
+
+### 2. Where the 90x actually came from — R6, and it matters for the shoot
+
+Driving the same pinch from **1.70 m on the South Mall** gives **73.66x**, and
+from the spawn pose **exactly 4.33x**. That difference is the whole mystery, and
+it is not in the gesture. Two instruments, both temporary and both reverted:
+
+- **A capture-phase pointer spy** on the canvas. The event stream at 1.70 m is
+  *identical* to the one at 154 m — 2 down, 24 move, 2 up, `getCoalescedEvents`
+  = 1 throughout — and the log terms telescope to **exactly 1.4663 -> 4.33x** at
+  both altitudes. **The gesture is not the amplifier.**
+- **A tick probe** on `altUser` in `js/controls.js`. `sum of applied L = 1.4663
+  -> 4.33x`; `altUser` goes `1.7 -> 7.367 m`, precisely as asked. Then the eye
+  reads **98 m**, then **125.222 m**.
+
+The extra 118 m is the hard net:
+
+```
+rCam()  = lerp(R_CAM_GROUND 1 m, R_CAM 6 m, groundMix())   // groundMix -> 0 at ALT_GROUND 12 m
+if (h > 0 && alt < h + HARD_CLEAR) { alt = altUser = h + HARD_CLEAR; }
+```
+
+At 1.70 m the probe radius is **1 m** and the lawn is empty (`roofAt(...,1) = 0`).
+Climb past 12 m, the radius opens to **6 m**, that circle now contains the **94 m**
+Main Building (`roofAt(...,6) = 94`), and the net snaps the eye to `94 + 4 = 98`,
+then further as the radius keeps opening. Confirmed by site:
+
+| site | roof inside 1 m | roof inside 6 m | applied gesture | eye ratio |
+|---|---|---|---|---|
+| South Mall lawn | 0 | 94 m | 1.4663 (4.33x) | **73.66x** |
+| intramural fields | 0 | 0 | 1.4663 (4.33x) | **4.33x** (clean) |
+
+**This is a safety guarantee doing its job** — "never inside a building", one-way,
+and it fires identically for `Q` and the wheel, so it is not the touch lane's and
+it long predates the gesture. **Not fixed, on purpose, hours before a recording.**
+Written up as **QUEUE R6** with the one practical consequence: *if the camera
+ascends from street level within ~6 m of a tall building it will jump to roof +
+4 m instead of climbing smoothly.* Ascend from open ground, or from above 12 m,
+and it does not happen. Worth knowing which shot not to set up; not worth a code
+change tonight.
+
+### 3. Gates, on the merged tree
+
+`movement.mjs` **14/14 PASS** (`VERIFY_MAX_MS=900000` — the stock 300 s watchdog
+killed it twice on a machine carrying 26 sibling Chrome processes at 34 % CPU;
+that is the instrument's ceiling, not a regression, and raising it is what
+`chrome.mjs:124` says to do). `harness-drift.mjs` PASS 29/29.
+
+**The hint text was re-read and still tells the truth.** `"...swipe to look |
+two fingers for altitude"` — it states no direction, so it was never a lie and
+did not need to change. `index.html` untouched.
+
+### 4. What this did NOT establish
+
+**`pinch-alt.mjs`'s printed metres remain unquotable and I did not fix the
+script** — it is not my file this round; its `place()` still jumps the map and
+waits a flat 9 s, and on a loaded page the controller keeps ownership, so its
+reps 2..4 start wherever the previous rep ended and its magnitudes compound.
+Its *sign* verdict is sound. Anyone quoting "+150.7 m" as a pinch gain is
+quoting R6's collision snap plus three chained gestures.
+
+**The double-tap-and-drag altitude gesture is still untested by anybody** — the
+other genuinely open half of Y10 item 6, unchanged since §144.
+
+**Not real iOS Safari**, still — everything here is CDP `Input.dispatchTouchEvent`
+into headless Chrome at 393x852, which is a faithful pointer stream but not a
+real finger on a real phone.
+
+**R6 was not photographed.** The snap is established from `__fly.eye()` and
+`roofAt()` numbers at three sites, not from pixels; I did not shoot a
+before/after of a camera being teleported onto the Tower.
+
+**`collision.mjs` and `motion-feel.mjs` did not finish** — see the closing note
+in §164's PR; both were still running against the 900 s ceiling when this was
+written. Neither can regress from this branch (no `js/` change), but neither is
+a fresh green tick from me.
+
 ## 97. Aug 5 2026 — what `data/entrances.geojson` costs, measured (QUEUE W3) (acer lane)
 
 **This was written as 96 and renumbered to 97 at merge time**, because PR #148's
