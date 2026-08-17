@@ -23045,3 +23045,81 @@ assertion that would close it. QUEUE **S3** item 1.
 repository root. Grepped first: the **only** mention anywhere in the tree is the
 HANDOFF note that found it. Deleted, and `.gitignore` now carries it with the
 reason, so redirecting the server's output there again cannot re-commit it.
+
+## 166. Aug 17 2026 — the trees were diagnosed, refused, and the reason turned out to be that a bake cannot reach them at all (QUEUE R6) (acer lane, branch `acer/r6-trees`, docs+shots only)
+
+**Nothing in the app changed.** No `js/`, no `data/`, no bake script, no tile
+archive. This pass was sent to act on `docs/trees-at-eye-level.md` or refuse it,
+with the bar set at "provably better at eye level AND provably invisible between
+80 and 350 m". It refused, and then found a harder reason to refuse.
+
+### The finding that decided it
+
+`js/app.js` builds the tree source as `window.tileSource('trees')` and only
+falls back to `data/trees.geojson` if the archives are missing. **They are not
+missing — `data/tiles/trees.pmtiles` is 5.8 MB and tracked in git.**
+
+`data/trees.geojson` and `scripts/shape_trees.py` were the only tree files this
+lane could write. **Both are bake inputs the running app never reads.** A bake
+tonight would have produced a real-looking diff, passed every local check, and
+served the identical old city — the "nothing happened" failure, silently, hours
+before a shoot. Rebuilding the archive needs `tippecanoe`, which has no usable
+Windows build, through `.github/workflows/build-tiles.yml`.
+
+Separately: **`js/trees.js` does not exist.** The `trees-canopy` / `trees-trunk`
+layers are in `js/app.js` (~1370–1423). `fill-extrusion` has no per-face colour,
+so the actual defect — a flat unshaded *horizontal underside* — has no runtime
+lever at all. `fill-extrusion-vertical-gradient` is already `false` with its
+reason inline, and it is the right call.
+
+### What was verified rather than trusted
+
+* **harness-drift PASS**, 29 scripts both sides.
+* **The 80 m verdict holds** — `LAD-080-N-day` and `LAD-080-S-day`, opposing
+  bearings, both keepers. **The 5 m frame is as bad as claimed** — a flat green
+  bar across the entire frame.
+* **One correction pushed into the go/no-go:** the earlier "30 m and there is no
+  tree problem" is softer than its own table. At 30 m the near canopies still
+  show flat tops and countable octagon corners. **80 m is the honest floor**, and
+  it is what the brief already says.
+
+### `collision.mjs` does not assert what everyone says it asserts
+
+The instruction to this lane said "walk into a trunk and stop 1.3 m short, as
+`collision.mjs` asserts". **It does not.** Its 8 assertions are buildings,
+streets, the tallest tower and the joystick, and **no script in
+`scripts/verify` asserts a trunk stop distance.** That number was folklore.
+
+Measured directly instead, on the South Mall at 1.7 m: field settles at **2,747
+trunks**; a walk closes **9.2 m** and comes to rest **1.01 m from the trunk
+centre** and holds there, **never inside**. `TRUNK_PAD` 0.9 plus the 0.2–1.2 m
+radius clamp predicts 1.1–2.1 m, so behaviour matches constants. `walk.mjs` is
+**PASS 3/3** with its watched failure correctly red. **Walking is safe to demo.**
+
+Two traps worth keeping (QUEUE R6 item 1): **the first pose is not a measurement
+for the collision field either** — one scan at 8 s reported *zero* trunks, which
+reads exactly like "tree collision is gone"; settle on the field's own `dirty`
+flag. And **do not aim at the nearest trunk** — in a grove that is the cell under
+your own feet, and the first run walked away from its target while appearing to
+close on it.
+
+### Housekeeping that mattered more than expected
+
+`docs/trees-at-eye-level.md`, `docs/aws/go-nogo.md` and all 27 `shots/trees/`
+frames were **untracked — never committed to any branch**, despite the go/no-go's
+own note claiming the timing pass had committed it. `git log --all` had no
+history for either path. **The document Simeon is told to read in the morning
+existed only on this laptop's disk.** Both docs are now committed, along with
+the nine frames the recommendation rests on (18 MB; the other 18 stayed on disk).
+
+### What this pass did NOT establish
+
+* **No fix was built, so no fix was judged.** More sides, thicker tiers and a
+  shaded crown are all still untested reasoning.
+* **No frame-cost number was taken, and none was needed** — nothing changed, so
+  the atlas win (47.8 → 15.2 ms at cruise) is untouched by definition.
+* **The hero set and the 60-second tour were not re-shot.** Gate 2 was satisfied
+  by "nothing changed", not by re-photographing them.
+* Two sibling lanes ran throughout. The collision numbers are behavioural and
+  load does not move them, but the ~4 fps seen during one 11-second walk probe
+  is **not** a frame-rate finding and must not be quoted as one.
