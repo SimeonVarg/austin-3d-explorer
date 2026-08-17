@@ -15,10 +15,20 @@ this file and the pictures in `shots/rehearsal/`.
 > the picture is `shots/gaps/tour-frame-cadence.png`.
 >
 > **The deploy claim below is still good after the night's merges.** The
-> rehearsal fingerprinted the live site against `e10d591`; `main` has since moved
-> to `2ba9965`, but **not one byte of `js/`, `index.html`, `style.css` or
-> `data/` changed across those commits** — they are shots, docs and bake
-> bookkeeping. The site is still the tip of what ships.
+> rehearsal fingerprinted the live site against `e10d591`. `main` kept moving
+> overnight and will have moved again by the time you read this — but **not one
+> byte of `js/`, `index.html`, `style.css` or `data/` has changed since that
+> fingerprint.** Every commit on top is shots, docs and bake bookkeeping. Check
+> it yourself in one line before you roll, and believe the answer over this
+> paragraph:
+>
+> ```
+> git fetch && git diff --stat e10d591 origin/main -- js/ index.html style.css data/
+> ```
+>
+> **Empty output means the site you are about to record is still the tip of what
+> ships. Any output at all means something shippable landed after the rehearsal
+> looked at it, and nobody has checked that on camera.**
 
 # THE DEPLOY IS NOT STALE. **VERDICT: GO — WITH ONE INSTRUCTION.**
 
