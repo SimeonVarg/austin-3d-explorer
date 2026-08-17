@@ -1,0 +1,38 @@
+{
+ "rows": [
+  {
+   "name": "closed r1",
+   "fromGap": 260,
+   "toGap": 60,
+   "before": 1.7,
+   "after": 152.444,
+   "dAlt": 150.744
+  },
+  {
+   "name": "open   r1",
+   "fromGap": 60,
+   "toGap": 260,
+   "before": 152.444,
+   "after": 101.531,
+   "dAlt": -50.913
+  },
+  {
+   "name": "closed r2",
+   "fromGap": 260,
+   "toGap": 60,
+   "before": 102,
+   "after": 276.01,
+   "dAlt": 174.01
+  },
+  {
+   "name": "open   r2",
+   "fromGap": 60,
+   "toGap": 260,
+   "before": 276.01,
+   "after": 102,
+   "dAlt": -174.01
+  }
+ ],
+ "hint": "WASD move | drag to look | Q/E or wheel for altitude | Shift boost | R reset | P photo | T tour Joystick to move | BOOST to sprint | swipe to look | two fingers for altitude",
+ "verdict": "PINCH CLOSED CLIMBS, SPREAD DESCENDS  (= zoom out is up: the MAP convention)"
+}

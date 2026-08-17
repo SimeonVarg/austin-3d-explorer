@@ -46,13 +46,22 @@ code**.
 
 **One gate is still red on `main` and it is red for a good reason.** See **Y24**
 below: two front doors from two different buildings are being drawn in the same
-doorway. Pictures: `shots/close/y24/`.
+doorway. Pictures: `shots/close/y24/`. **The CAUSE is now established and the
+fix is written, measured and shipped OFF — see R3.** It is off because the
+defect is invisible on camera and the fix is not.
 
 **Still open, honestly.** Real windows (weeks). **460 of 656 doorways have never
-been looked at.** 63 buildings still have no route. The two-finger altitude
-gesture on a phone is still inverted — pinching closed lifts you. And the
-performance budget is still missed on the outer ring, where the cost was measured
-to be **one query call**, not the loop everyone wanted to optimise.
+been looked at.** 63 buildings still have no route. And the performance budget
+is still missed on the outer ring, where the cost was measured to be **one query
+call**, not the loop everyone wanted to optimise.
+
+**The two-finger altitude gesture is NOT inverted, and that claim is now
+withdrawn.** It was carried in this file and in `docs/mobile/` for weeks and
+nobody had driven it. Driven at 393x852 with real touch events, two interleaved
+reps each: **pinch closed CLIMBS, spread DESCENDS** — which is exactly what
+every map does, because pinch-closed zooms out, zooming out moves the camera
+further from the ground, and further from the ground is up. The doc treated
+"away" and "lifts you" as opposites. **Do not invert it.** See R5 below.
 
 ---
 
@@ -1407,6 +1416,57 @@ in `dusk.mjs` with a ceiling of 90 so the gate is not permanently red;
 `node dusk.mjs --strict` ignores the allowance and goes red on it. **Owner: the
 `js/sky.js` lane.** Delete the `KNOWN` entry in `dusk.mjs` when it is fixed —
 the script prints a note if the allowance stops firing.
+
+**R3. Y24's CAUSE, FOUND — and the fix is shipped OFF on purpose. NEW
+2026-08-17 (§163). Full working: `docs/entrances/doorway-claim.md`, frames in
+`shots/lastfix/`.**
+
+**The march never asked what was already standing on the wall it landed on.**
+Not "the door left its own building" — the bake's own log refutes that: **21 of
+27 relocations land on a neighbour's footprint and most of them are good**, the
+Moody Center's five included. What separates good from bad is that the good
+landings are on **blank** masses and every bad one is on a mass that already
+carries its own doors. Seven of the eight door pairs closer than 4 m on `main`
+are two different buildings in one doorway; eid 345/621 is just the loudest.
+
+`BURIED_DOOR_CLAIM` in `scripts/bake_entrances.py` is the fix: a live register
+of door positions, and a relocation may not come to rest within
+`BURIED_DOOR_CLEAR_M` (3.2 m) of another **building's** door. Measured with the
+rule on: **`coplanar` 1655 -> 1623, gate GREEN, exit 0, four UNDER the 1627
+baseline; all 32 removed pairs are cross-building collisions, resolved by id
+with the new `coplanar.mjs --dump-pairs`; 656 groups kept; zero eid identity
+drift.**
+
+**IT IS SET `False`.** Turned on, eid 621 — Moncrief-Neuhaus's MAIN door —
+travels 6.70 m and narrows from four leaves to one, and at bearing 249.9 a
+glazed portal becomes a thin armature. Three of the four usable bearings get
+*better*; that one gets worse. Meanwhile the defect being removed is
+**invisible** — the front portal hides the back one and `zfight` found no
+flicker at twelve poses. Trading an invisible defect for a visible change
+across six door groups, five of which nobody has photographed, the night before
+a recording, is the wrong way round. **To turn it on: set it `True`, re-bake,
+re-bake the walk graph, and photograph eids 128, 164, 179, 287, 345, 346, 621
+from two opposing bearings each.** Everything else is already measured.
+
+**R4. TWO MORE DOUBLED DOORWAYS, AT 0.00 m, AND THEY ARE NOT RELOCATION'S
+FAULT.** eids **165/288** and **166/289** — BEL and `6b5bbe97` — have door
+groups at the *same coordinate*, differing only by base height (0.73 vs 0.77).
+Identical in the 1627 file, on `main`, and in every arm of the R3 work, so no
+relocation put them there: two adjacent buildings derive a door at the same
+spot. On the Bellmont/DKR block. **Owner: the placement half of
+`bake_entrances.py`,** and it wants the same treatment R3 got — establish the
+cause before writing a rule.
+
+**R5. THE PINCH IS NOT INVERTED. Y10 item 6 is CLOSED as a non-defect.**
+Driven, not read: 393x852, real CDP touch events, two interleaved reps each —
+pinch closed **+150.7 / +174.0 m**, spread **−50.9 / −174.0 m**. Pinch-closed
+climbs, which is the map convention (closed = zoom out = away from the ground =
+up). `docs/mobile/driving-at-eye-level.md` §6 has the convention backwards. The
+hint text says "two fingers for altitude", states no direction, and stays true.
+New instrument: `scripts/verify/pinch-alt.mjs`. **The magnitudes above are NOT
+a finding** — `altUser` does not resync to a bare `map.jumpTo`, so only the
+sign is established. The open question worth a pass is whether the gesture is
+far too *sensitive*, which is nobody's finding yet.
 
 **Y24. `coplanar.mjs --gate` IS RED ON `origin/main` RIGHT NOW, AND IT IS NOT THE
 GATE. NEW 2026-08-16 (§160). NOT MINE, NOT FIXED — the entrances lane owns it.**
