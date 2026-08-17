@@ -1,0 +1,258 @@
+{
+ "host": "https://flyover-utx.vercel.app/",
+ "when": "2026-08-17T10:28:36.834Z",
+ "P": {
+  "before": {
+   "html": "",
+   "body": "",
+   "hud": "shown",
+   "hint": "shown",
+   "tod": "shown",
+   "gear": "shown",
+   "fb": "shown",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 516,
+    "y": 864,
+    "w": 1600,
+    "h": 1000
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 167.1
+  },
+  "after1": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 516,
+    "y": 864,
+    "w": 1600,
+    "h": 1000
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 167.1
+  },
+  "after2": {
+   "html": "",
+   "body": "",
+   "hud": "shown",
+   "hint": "shown",
+   "tod": "shown",
+   "gear": "shown",
+   "fb": "shown",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 516,
+    "y": 864,
+    "w": 1600,
+    "h": 1000
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 167.1
+  }
+ },
+ "R": {
+  "1600x1000": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 516,
+    "y": 864,
+    "w": 1600,
+    "h": 1000
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 167.1
+  },
+  "1600x950": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 491,
+    "y": 871,
+    "w": 1600,
+    "h": 950
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 158.7
+  },
+  "1600x900": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 458,
+    "y": 889,
+    "w": 1600,
+    "h": 900
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 150.4
+  },
+  "1600x860": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 422,
+    "y": 915,
+    "w": 1600,
+    "h": 860
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 143.7
+  },
+  "1600x820": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 373,
+    "y": 958,
+    "w": 1600,
+    "h": 820
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 137
+  },
+  "1600x780": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 302,
+    "y": 1029,
+    "w": 1600,
+    "h": 780
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 130.3
+  },
+  "1600x720": {
+   "html": "clip",
+   "body": "",
+   "hud": "hidden",
+   "hint": "hidden",
+   "tod": "hidden",
+   "gear": "hidden",
+   "fb": "hidden",
+   "stick": "hidden",
+   "credit": "shown",
+   "tower": {
+    "x": 102,
+    "y": 1256,
+    "w": 1600,
+    "h": 720
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 120.3
+  }
+ }
+}

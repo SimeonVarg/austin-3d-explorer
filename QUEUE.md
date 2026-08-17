@@ -1,5 +1,25 @@
 # QUEUE — Acer lane
 
+## THE MORNING OF THE SHOOT — read `docs/aws/go-nogo.md`, the list is at the top
+
+Overnight the three things the rehearsal admitted nobody had done were done, on
+the live site: **the plain opening flight was watched end to end** (it is good;
+the graphics warning it was supposed to throw did not appear once in five
+loads), **six walking routes were actually typed and read** (they work, and one
+of the frames is the best picture this project has made), and **every URL and
+keystroke in the recording brief was re-driven** — five of its instructions had
+gone stale and are now corrected in place.
+
+**The two things worth knowing before you press record.** Put
+`?preset=cinematic&drift=0` on every URL: without `drift=0` a shot you hold
+turns itself 59 degrees in 75 seconds and slides the sun. And **make the browser
+window taller than 16:9** — below that, pressing `R` gives you a nice sunset
+picture with no UT Tower in it at all.
+
+One new blemish, and it lasts two seconds: on the plain URL, the moment the
+title card lifts, a dark smear lies across the downtown towers. It clears on its
+own. Use the tour and you never see it.
+
 ## THE NIGHT OF AUG 16, IN PLAIN WORDS (morning report — full story in HANDOFF §161)
 
 About twenty separate runs. Everything that passed is merged, `main` is

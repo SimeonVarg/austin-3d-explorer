@@ -1,5 +1,35 @@
 # GO / NO-GO — the morning of the AWS recording
 
+# ⬛ THE ONE-HAND LIST. Do these, in order. Everything else in this file is why.
+
+1. **Close everything else on the laptop.** That, and not a fresh browser
+   profile, is what buys you a fifteen-second load instead of a fifty-seven.
+2. **Make the browser window taller than 16:9.** `1600 × 1000` is right.
+   Measured: at exactly 16:9 the Tower's base sits on the very bottom edge of
+   the `R` home frame, and at 16:9-and-shorter **`R` gives you no Tower at all.**
+3. **Set the screen recorder to 30 fps, not 60.** The app delivers ~28.
+4. **Put `?preset=cinematic&drift=0` on EVERY url you record from.** Both
+   matter. `preset=cinematic` stops the app quietly downgrading its own
+   graphics; **`drift=0` stops the camera turning itself.** Measured on the live
+   site: a shot held with no input rotated **59° in 75 seconds** and slid the
+   sun. With `drift=0`: zero degrees, zero. *(The old brief said not to use
+   `drift=0` for filming. That was wrong and it is corrected below.)*
+5. **The clip that carries the video** — paste it, then hands off for a minute:
+   `https://flyover-utx.vercel.app/?clip=1&tour=1&preset=cinematic&drift=0`
+   If ground and buildings are there within ~15 s, everything here holds.
+6. **The walking clip.** It needs the interface, so it cannot take `clip=1`:
+   `https://flyover-utx.vercel.app/?walk=1&preset=cinematic&drift=0`
+   Click the arrow, top-left. Type `JES`, click the row; type `GDC`, click the
+   row. It answers **"5-8 min walk · 470 m · No stairs on this route"**. Driven
+   this morning, six routes, on the live site. Then press **Show route ⤡**.
+7. **Two things not to hold:** anything above ~370 m (there is a hard line
+   across the sky up there), and the first ~2 seconds after the title card
+   lifts on the plain URL (there is a smear across the downtown towers).
+8. **`?shot=` does not exist.** There is no way to link to a camera position at
+   all. Don't type one tomorrow — it is silently ignored and you lose the take.
+
+---
+
 Written 2026-08-17, Acer lane, **read-only**. Everything below was driven against
 the **live site** `https://flyover-utx.vercel.app/`. No app file was changed,
 nothing was committed, pushed or merged. The only things this pass created are
@@ -74,6 +104,11 @@ that costs you a shot** (see item 5 below). Read this file, not that one.
 | `?p=0.92` / `?p=0.62` | **Yes.** Time slider reads 0.92 / 0.62 on load. Night and dusk. |
 | `?walk=1` | **Yes**, and it is **OFF by default** — see item 11. |
 | `?shot=` | **This does not exist.** There is no such parameter anywhere in the code. A `?shot=` URL is silently ignored. There is still **no way to link to a camera position.** |
+
+**The third pass re-drove all of these and eight more. The full verified table
+is in `docs/aws/RECORDING-BRIEF.md` — that file is now correct and this row is
+the summary: every flag above does what it says, `?shot=` does nothing, and
+`?drift=0` is the one the old brief told you not to use and you should.**
 
 ---
 
@@ -229,6 +264,164 @@ clearing step.**
 
 ---
 
+# THIRD PASS, 2026-08-17 — the three things nobody had driven
+
+*Acer lane, read-only, every line below driven against the **live site** in a
+headed Chrome on the real GPU (`ANGLE (NVIDIA GeForce RTX 3050 Ti Laptop,
+Direct3D11)`), clean profile — playwright's own fresh temp profile: no
+extensions, no cache, no saved preset. Machine quiet: CPU 2.8%, no sibling
+suites, 0 node processes at the start. Pictures in `shots/gaps/`.*
+
+## 1. THE PLAIN OPENING FLIGHT, WATCHED END TO END. It is good — and the toast did not fire.
+
+Five clean plain-URL loads, watched frame by frame (`shots/gaps/opening/`).
+
+**The headline correction: the graphics toast never landed on the hero shot,
+in any of the five.** Every run measured its own frame time at **18.0 ms
+(56 fps)** and kept **Balanced** — no downgrade, no message box, nothing on
+screen. The threshold in the code is 21.5 ms; on this machine, quiet, on a real
+GPU, the probe is not close to it.
+
+> **This does NOT retire the `?preset=cinematic` instruction, and here is why.**
+> The probe measures the machine *as it is at that moment*, and tomorrow the
+> machine will also be running a screen recorder. That cost was never measured.
+> The flag is now insurance rather than a certain rescue — but it costs one
+> word and the failure it prevents is unrecoverable, so keep it on every URL.
+
+**The flight itself, timed over four runs (minimum → maximum):**
+
+| | |
+|---|---|
+| white before anything paints | 0.57 – 2.03 s |
+| title card holds until | 8.6 – 10.2 s |
+| camera flies until | ~19.6 – 21.2 s |
+| the pose it lands on | zoom 16.9, bearing 2°, pitch 72°, just south of the Tower **facing north** |
+
+Note what a viewer actually sees: the *first* leg of the flight — the low
+Congress Avenue start — happens **behind the title card**. The picture opens
+already over the Capitol at bearing 5°, and flies north from there. The frames
+at 12.0 s, 19.5 s and 22.5 s (`shots/gaps/opening/plain-F-*.jpg`) are all
+strong; `plain-F-22500ms.jpg` is a proper campus hero with the Tower centred.
+
+### The one thing in it that would embarrass him — and it lasts two seconds
+
+**`shots/gaps/opening/lift-a-p00-0ms.jpg` and `lift-a-p03-1196ms.jpg`.** For
+about **the first two seconds after the title card lifts**, a ragged dark band
+is smeared horizontally across the faces of the downtown towers at the horizon
+line. It is ugly and it is the very first thing on screen. By 3.1 s
+(`lift-a-p06-3083ms.jpg`) it is completely gone and never returns.
+
+Reproduced on a dense re-shoot of that window, so it is a finding, not a fluke.
+**How to avoid: start the capture with the tab already loaded, or cut the first
+two seconds. Or just use the tour, whose opening is over West Campus and does
+not have it.**
+
+## 2. THE WALKING FEATURE, ACTUALLY DRIVEN. Six routes, live site. It works.
+
+Nobody had ever typed a building into the deployed site. Six routes were driven
+the way a student does it — click the arrow, type, click the row — on
+`?walk=1&drift=0&preset=cinematic`. **Zero JavaScript errors across all six.**
+Pictures in `shots/gaps/walk/`, raw answers in `walk.json`.
+
+| | route | what it answered | verdict line |
+|---|---|---|---|
+| A | `JES` → `GDC` | 5-8 min walk · 470 m · No stairs on this route | *(silent — under the period)* |
+| B | The Castilian → `RLP` | 13-19 min · 1.1 km · No stairs | **Tight for a 15-minute passing period** |
+| C | `PCL` → `GUG` | 11-15 min · 940 m · No stairs | **Tight for a 15-minute passing period** |
+| D | Dobie Twenty21 → `WEL` | 8-12 min · 720 m · **Stairs: 1 set** | *(silent)* |
+| E | The Castilian → `HTB` | 20-29 min · 1.8 km · No stairs | **Longer than a 15-minute passing period** |
+| F | `JES` → `ACS` | **"ACS is not walkable in this build yet"** | — |
+
+**Read as a student would: the answers are sane.** Distances match the real
+campus, the sub-line names the building and says which door
+("The main entrance", "Entrances are on this side"), stairs are called out when
+they exist, and the 15-minute line only ever *warns* — it never reassures. B, C
+and E include a West Campus apartment origin; B and E end at buildings that only
+started routing this week (`RLP`, `HTB`), and both routed cleanly.
+
+**F is the beat worth filming.** `shots/gaps/walk/F-answer.jpg`: the panel says
+*"ACS is not walkable in this build yet"*, **clears the previous route off the
+map**, and carries *"We can't route inside buildings"* and *"© OpenStreetMap
+contributors · Not affiliated with UT Austin"* underneath. An honest failure,
+on camera, is a better look than a feature that pretends.
+
+**What the route looks like, and the one place it disappoints:**
+
+* **At walking height it is the best thing in this app at eye level.**
+  `A-walking.jpg` — a cream ribbon with white dashes running straight down the
+  brick of Speedway. `B-walking.jpg` — the same, down a pavement. This is the
+  ONE exception to "no walking-height footage": the ribbon gives the ground
+  something to be, and the ground was the whole complaint.
+* **From altitude, long street routes read beautifully.**
+  **`E-altitude.jpg` is the best single frame this pass produced** — a
+  continuous white ribbon from The Castilian across campus to Dell Med, with
+  *"Longer than a 15-minute passing period"* in red in the pill.
+  `D-altitude.jpg` is nearly as good.
+* **From altitude, a route through the campus core breaks up.**
+  `B-altitude.jpg` — roofs and tree canopies cover most of the line and it
+  reads as three disconnected white scratches rather than a path.
+  **How to avoid: film routes that run along streets (E, D), not routes that
+  cut through the middle of campus (B).**
+
+One more thing to know: `?clip=1` **hides the answer pill.** So
+`?clip=1&...&from=…&to=…&fit=1` draws the ribbon with no caption at all
+(`shots/gaps/brief/10-deeplink.jpg`). If you want the minutes on tape, film the
+walking clip **without** `clip=1`.
+
+## 3. `R`, MEASURED — it always does the same thing; your WINDOW is the variable
+
+The rehearsal said `R` "depends on the shape of your window". True, and now it
+has a number. `R` restored **exactly the same map pose every single time** —
+zoom 16.5, bearing −110°, pitch 74°, centre 30.2857 / −97.7434. What changes
+with window height is the altitude that pose works out to, and therefore how
+much of the world is in shot.
+
+At 1600 px wide, `R` pressed, the UT Tower's ground point projected to:
+
+| window | camera altitude | Tower at | in frame? |
+|---|---|---|---|
+| 1600 × 1000 (16:10) | 167 m | 86% down | **yes, comfortably** |
+| 1600 × 950 | 159 m | 92% down | yes |
+| 1600 × 900 (**16:9**) | 150 m | 99% down | **base on the bottom edge — still the postcard** |
+| 1600 × 860 | 144 m | 106% down | **no** |
+| 1600 × 820 | 137 m | 117% down | no |
+| 1600 × 720 (20:9) | 120 m | 174% down | **no — not a trace of it** |
+
+`shots/gaps/brief/reset-1600x900.jpg` is the postcard: Tower cream with orange
+clock faces low-left, sun centred, downtown far left.
+`shots/gaps/brief/reset-1600x720.jpg` is the same keypress in a shorter window —
+a perfectly nice sunset wide **with no UT Tower anywhere in it.**
+
+**Instruction: make the window 16:10 or taller. 16:9 works but has no margin.**
+
+## 4. The idle drift — the old brief's advice on this was backwards
+
+Driven, 75 seconds of complete input silence on `?clip=1&preset=cinematic`:
+
+| | bearing | zoom | hour |
+|---|---|---|---|
+| **no flag** | −110° → **−168.9°** (59° of rotation) | 16.500 → 16.527 | 0.50 → **0.55** |
+| **`?drift=0`** | −110° → −110° (**zero**) | 16.500 → 16.500 | 0.50 → 0.50 |
+
+First movement about 21 s in. This is the app's "idle cinema": after 25 s of
+silence it orbits 13° every 12 s, breathes the zoom, and creeps the time of day.
+It is a nice screensaver and a disaster on a held shot.
+
+**`?drift=0` switches off nothing in the city.** The old brief filed it with
+`tiles=0` and `haze=0` under "do not use for filming" — that is wrong, and it is
+the flag most likely to save a take.
+
+## 5. The seam across the sky — exactly which framing shows it
+
+Answered in full by the sky-seam lane in `docs/aws/seam.md`, not re-derived here.
+The line is the horizon, it is in every frame, and **you can only see it from
+high up: don't hold a shot above about z14.6 — roughly 370 m.** From ~230 m down
+the city itself breaks the line up. Home (`R`) is 120–167 m depending on your
+window, well inside that, and **the 60-second tour never climbs above z16.5 at
+any point in the minute — so this defect cannot appear in the tour at all.**
+
+---
+
 # THE 60-SECOND TOUR: I WATCHED THE WHOLE MINUTE. IT IS GOOD.
 
 Nobody had sat through it since a dozen passes landed. I ran it on a clean
@@ -287,6 +480,16 @@ walking-height footage in this video.** The app's strength is 100–350 m.
 From high up there is a **straight horizontal seam running the full width of the
 frame** where the haze band stops, and everything past the middle distance is one
 flat tan carpet in a single orange tone. It is the weakest of the five heroes.
+
+> **The sky-seam lane investigated this and did not fix it — on purpose.**
+> `docs/aws/seam.md`: the line is the **horizon**, it is in every frame the app
+> draws, and the one knob that closes it dissolves the whole city into fog.
+> **Exactly which framing shows it: any shot held above about z14.6 — roughly
+> 370 m.** From z15.3 (~230 m) down, the city breaks the line up and it cannot
+> be seen. **`R` home is 120–167 m, and the 60-second tour never once goes above
+> z16.5 — so neither the postcard nor the tour can show this.** The only way to
+> get it on tape is to fly up yourself and hold it.
+
 **How to avoid: don't hold a high wide. Two seconds, then cut.**
 
 ### 4. A slow browser can put bare ground under the opening flight
@@ -306,8 +509,15 @@ centred on the horizon, downtown far left, red tile roofs everywhere.
 But home faces **west-south-west**, and **how much of it you get depends on the
 shape of your window** — in a short, wide window the Tower falls out of the
 bottom of the frame entirely, which is what happened on two of my runs.
-**How to avoid: after `R`, look at the screen and confirm the Tower is actually
-in shot before you roll.**
+
+> **MEASURED by the third pass, and it is now an instruction rather than a
+> warning.** `R` restores the identical pose every time (zoom 16.5, bearing
+> −110°, pitch 74°). The variable is your window: **16:10 comfortable, 16:9 with
+> the Tower's base on the bottom edge, anything shorter and there is no Tower in
+> the frame at all.** Full ladder in the third-pass section above; pictures are
+> `shots/gaps/brief/reset-1600x900.jpg` (the postcard) and
+> `reset-1600x720.jpg` (the same keypress, no Tower).
+> **Make the window 16:10 or taller and `R` is reliable.**
 
 ### 6. DKR is still the weakest landmark
 **UNAVOIDABLE as a hero shot; AVOIDABLE as a problem.** Picture:
@@ -403,11 +613,12 @@ through, so the record shows what was open and what closed it.)*
   either.
 * **DKR's south end — the two stacked front doors — was never photographed.**
   It is assumed still there, visible only up close at that one corner.
-* **The plain, no-flags opening flight was not watched end to end** on a clean
-  browser. Only the tour was.
-* **The walking feature was opened, not driven.** I confirmed the panel appears,
-  prefills, and carries honest captions; I did not type a building and walk a
-  route.
+* ~~**The plain, no-flags opening flight was not watched end to end** on a clean
+  browser. Only the tour was.~~ **ANSWERED by the third pass:** watched five
+  times, frame by frame. It is good, the toast did not fire once, and the only
+  defect is a two-second smear at the moment the title card lifts.
+* ~~**The walking feature was opened, not driven.**~~ **ANSWERED by the third
+  pass:** six routes typed and read on the live site, zero JS errors.
 * **One browser, one Windows machine, a real GPU, and siblings running on the
   same box the whole time.**
 
@@ -421,6 +632,21 @@ through, so the record shows what was open and what closed it.)*
   the app alone. OBS or Game Bar capturing 1080p sits on top of it.
 * **`balanced` never got a quiet rep at cruise altitude** — every attempt landed
   on a machine at 90%+ CPU. Its cruise number is the one hole in the table.
+
+### And what the THIRD pass (the gaps) did not establish
+
+* **No frame rate was re-measured.** The third pass was a watching-and-driving
+  pass; every timing number in this document is still the second pass's, taken
+  on a busy machine, and is a floor rather than a ceiling.
+* **The screen recorder's own cost is still unmeasured** — which is exactly why
+  the `?preset=cinematic` instruction survives a probe that did not fire.
+* **The two-second smear at the title-card lift was not diagnosed**, only
+  reproduced and timed. Nobody knows what draws it.
+* **Nothing about the phone changed.** The walk panel was driven at
+  1600 × 1000 only; the phone layout of the same six routes was not re-driven,
+  and real iOS Safari still cannot be tested from here.
+* **`?walk=1` was driven on a quiet machine with a warm graph.** Route compute
+  was 1.7–4.1 ms every time; what it costs on a cold, busy machine is unknown.
 * **The machine was never quiet.** Two sibling verification suites held the CPU
   between 80% and 100% for most of the night. The medians were stable from 2% to
   96% CPU, which is the evidence that the frame-rate finding is GPU-bound and

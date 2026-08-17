@@ -1,5 +1,38 @@
 # Recording brief — the honest state of the app
 
+> # ⚠ READ THIS BOX FIRST. This file is eleven days old and five of its instructions have since become wrong.
+>
+> **`docs/aws/go-nogo.md` is the document to follow tomorrow. This one is the
+> detail behind it.** Everything below was true on 2026-08-06; a lot shipped
+> since. On **2026-08-17** every URL and every keystroke this file recommends
+> was re-driven against the live site on a clean browser. Corrections, worst
+> first:
+>
+> 1. **"The building name labels are the one you cannot switch off" (Q3 item 2,
+>    Q5) is NO LONGER TRUE.** `?clip=1` now hides them: **0 of 33 symbol layers
+>    visible, 0 labels drawn.** Most of Q3 item 2 is obsolete — it still
+>    describes the plain URL correctly, and nothing else.
+> 2. **"There is no flag for the graphics preset" (Q5) is NO LONGER TRUE.**
+>    `?preset=cinematic` exists, works, and overrides a saved preset without
+>    writing itself back. It replaces both "press `G` first" and "clear the site
+>    data first" — **you can skip both of those steps entirely.**
+> 3. **"`drift=0` … switches parts of the city off. Do not use for filming"
+>    (Q5) is BACKWARDS.** It switches nothing off. It stops the camera turning
+>    itself on a held shot. Measured: without it, 59° of rotation in 75 seconds.
+>    **Use it.**
+> 4. **The graphics self-downgrade (Q3 item 1) did not fire once** in five clean
+>    plain loads on a quiet machine — the probe measured 18.0 ms and kept
+>    Balanced. It is still worth the flag, because tomorrow the machine will
+>    also be running a screen recorder and that cost has never been measured.
+> 5. **Q1's "the message box lands right on the finished shot" therefore did not
+>    reproduce either.** The opening flight was watched end to end five times.
+>    Its one real defect is new and is described in `go-nogo.md`: a two-second
+>    smear across the downtown towers at the instant the title card lifts.
+>
+> One thing this file gets RIGHT and the reader should trust: **there is no way
+> to link to a camera position.** No `?shot=`, no pose URL of any kind. Driven
+> and confirmed — a `?shot=` URL is silently ignored.
+
 **For: the person about to hit record on https://flyover-utx.vercel.app/**
 Written 2026-08-06. Everything here was found by looking at the **live site**,
 not a local copy. **Nothing in the app was changed, committed, pushed or
@@ -79,6 +112,25 @@ Three camera poses, two eased legs, about 12.6 seconds. It starts low on Congres
 Avenue downtown, pulls back over the Capitol, then runs north and settles on the
 UT Tower over the South Mall. Verified from the map's own reported position, not
 by eye. Default hour is sunset — magenta sky, long warm light.
+
+> **THE OPENING FLIGHT WAS FINALLY WATCHED END TO END, 2026-08-17** — five
+> clean plain-URL loads, frames every 1.5 s, in `shots/gaps/opening/`. It is
+> good, and the timeline above holds (white 0.6–2.0 s, title card to 8.6–10.2 s,
+> flight lands ~20 s at zoom 16.9 / bearing 2° / pitch 72°, just south of the
+> Tower facing north). **Two corrections:** the graphics message box below
+> **did not fire once** (see Q3 item 1), and the *first* leg of the flight —
+> the low Congress Avenue start — happens **behind the title card**, so the
+> picture opens already over the Capitol.
+>
+> **And one new defect, which is now the worst thing in the opening.** For about
+> **the first two seconds after the title card lifts**, a ragged dark band is
+> smeared across the faces of the downtown towers at the horizon line. It is the
+> very first thing on screen; by 3.1 s it is gone for good. Reproduced on a
+> dense re-shoot, so it is real. Pictures:
+> `shots/gaps/opening/lift-a-p00-0ms.jpg`, `lift-a-p03-1196ms.jpg`,
+> `lift-a-p06-3083ms.jpg` (clear). **Start the capture with the tab already
+> loaded, cut the first two seconds — or use the tour, whose opening is over
+> West Campus and does not have it.**
 
 ### The one thing that will ruin the opening shot
 
@@ -188,9 +240,12 @@ off the keyboard for a minute. `T` runs the same tour from wherever you are.
   like one shot. Cut at least one against the night Tower or the dusk Capitol.
 * **Every frame carries 10–25 building name labels** and there is no switch for
   them. See Q3 item 2 and Q5.
-* **There is no way to link to a camera position.** `?p=` sets the hour and
-  `?tour=1` runs the tour, but no URL jumps to a pose — every shot above has to
-  be flown by hand.
+* **There is no way to link to a camera position — CONFIRMED BY DRIVING IT,
+  2026-08-17.** `?p=` sets the hour, `?tour=1` runs the tour, `?from=`/`?to=`
+  route a walk, but **no URL jumps to a pose.** In particular **`?shot=` does
+  not exist**: a `?shot=` URL is accepted, silently ignored, and gives you a
+  page identical to the one without it. Do not type one tomorrow. Every shot
+  above has to be flown by hand.
 
 ### Where the good stills already live
 
@@ -216,6 +271,15 @@ follows is avoidable with framing or a keypress.
 
 ### 1. The app downgrades its own graphics on camera — and stays downgraded
 
+> **RE-MEASURED 2026-08-17, and it did not happen.** Five clean plain-URL loads
+> on a quiet machine with the real GPU: the probe measured **18.0 ms (56 fps)**
+> every time and **kept Balanced. No downgrade, no message box, on any of the
+> five.** The code's downgrade threshold is 21.5 ms, so on this machine it is
+> not close. **The mitigation still stands and has simply got easier:
+> `?preset=cinematic` on every URL** — because tomorrow the machine is also
+> running a screen recorder, and that load was never measured. It costs one word
+> and the failure it prevents cannot be fixed afterwards.
+
 **This is the worst thing in the report and it is completely avoidable.**
 
 Measured twice on the live site:
@@ -238,11 +302,18 @@ the app ever measuring itself again. **If you have already opened the site on th
 recording machine, clear the site data first**, or it will restore Performance
 before the app even starts.
 
-### 2. The building name labels. This is the one you cannot switch off.
+### 2. The building name labels. ~~This is the one you cannot switch off.~~ FIXED — `?clip=1` and `P` now hide them.
 
-`P` and `?clip=1` hide the interface. **They do not hide the building names** —
-those are drawn into the map. There is no key for them. Every frame carries 10–25
-of them and they are wrong in five ways at once:
+> **CORRECTED 2026-08-17, driven on the live site.** `?clip=1` (and `P`) now
+> switch off every label: **0 of 33 symbol layers visible, 0 labels rendered**,
+> against 7 visible and 11 drawn on a plain URL. The six complaints below are
+> all still accurate — **but only about the plain URL, which is not what you are
+> recording.** In clip mode none of this reaches the tape. `?walk=1` cannot take
+> `clip=1`, so the walking clip is the one place the labels are still in shot.
+
+`P` and `?clip=1` hide the interface. ~~They do not hide the building names~~ —
+those are drawn into the map. Every plain-URL frame carries 10–25 of them and
+they are wrong in five ways at once:
 
 * **They draw straight through the landmark.** The best night frame in the app
   has "Biomedical Engineering Building", "Scottish Rite Dormitory", "T. S. Painter
@@ -465,11 +536,23 @@ panels. That is every piece of app furniture there is.
 * `?clip=1&tour=1` together is a pure footage run: hidden interface, 60-second
   authored flight, hands off.
 
-### One trap worth knowing
+### Every KEYSTROKE this document recommends — RE-DRIVEN AND VERIFIED 2026-08-17
 
-`?clip=1` also hides the graphics message box. So in clip mode **you will not see
-"switched to the Performance preset" — but the downgrade still happens.** Silence
-is not safety. Press `G` and pick a preset before you roll, every time.
+| key | VERIFIED — what it actually does |
+|---|---|
+| `P` | **VERIFIED.** Adds `clip` to the `<html>` element — identical to `?clip=1`. Before: `hud` shown, hint shown, time column shown, gear shown, joystick shown. After one press: **all hidden, OSM credit still shown.** Second press restores everything. Pictures: `shots/gaps/brief/key-P-on.jpg`, `key-P-off.jpg`. Desktop only — a phone has no keyboard, so film a phone with `?clip=1`. |
+| `G` | **VERIFIED.** Opens the graphics panel (`gfx-open` on the body, panel visible); a second `G` closes it. **You no longer need it before a take** — `?preset=cinematic` does the job without a panel ever appearing on screen. |
+| `R` | **VERIFIED, and the pose is exact and identical every time**: zoom 16.5, bearing −110°, pitch 74°, centre 30.2857 / −97.7394. **What changes is your window.** At 1600 × 1000 the Tower sits 86% down the frame; at 1600 × 900 (16:9) its base is on the very bottom edge; at 1600 × 860 and shorter **the Tower is not in the frame at all.** Full ladder and pictures in `go-nogo.md`. **Make the window 16:10 or taller.** |
+| `T` | **VERIFIED.** Starts the 60-second tour from wherever you are — the camera left the home pose within two seconds of the press. |
+
+### One trap worth knowing — NOW OBSOLETE, and here is what replaced it
+
+`?clip=1` also hides the graphics message box, so in clip mode you would not see
+"switched to the Performance preset" while the downgrade still happened.
+**`?preset=cinematic` closes that hole properly: the preset is set before the
+probe can ever run, and the flag deliberately never writes itself to the
+machine.** Verified on the live site. Use the flag; you do not need to press `G`
+and you do not need to clear the site data.
 
 ### What it does NOT hide, and there is no switch for either
 
@@ -489,22 +572,30 @@ fight the picture. One honest caveat: check it survives the video export. If
 compression or a crop makes it unreadable, the answer is to add a credit line in
 the video description or a lower third, **not** to remove it from the app.
 
-### Every URL flag that exists today
+### Every URL flag that exists today — RE-DRIVEN AND VERIFIED 2026-08-17
 
-Worth having in one place:
+**Every row below was loaded against the live site on a clean browser this
+morning and the resulting page was read out of the DOM, not assumed. Screenshots
+and the raw readings are in `shots/gaps/brief/`.** The list this section used to
+carry was out of date in four ways and one of its warnings was backwards.
 
-* `?clip=1` — hide the interface (same as `P`)
-* `?p=0` … `?p=1` — set the hour at load: 0 = midday, 0.5 = golden (the default),
-  0.62 = dusk, 0.92 = night
-* `?tour=1` — run the 60-second tour instead of the opening flight
-* `?intro=0` — skip the opening flight entirely
-* `?debug=1` — engineering panel; not for filming
+| flag | VERIFIED — what it actually does |
+|---|---|
+| `?clip=1` | **VERIFIED.** `hud`, `controls-hint`, `tod-panel` (the whole time column incl. ▶), `gfx-button`, `gfx-panel`, `gfx-toast`, `fb-button`, `joystick-zone` all `display:none`. **And it now hides the building-name labels too — 0 of 33 symbol layers visible, 0 labels drawn**, against 7 visible / 11 drawn on the plain URL. The OpenStreetMap credit **stays** (`OpenFreeMap © OpenMapTiles Data from OpenStreetMap`, bottom right) and that is a licence condition. Picture: `03-clipcin.jpg`. |
+| `?preset=cinematic` | **VERIFIED — and this flag did not exist when this brief was written.** Sets the preset at load, overrides whatever the machine has saved, and deliberately does not write itself back. `balanced` and `performance` verified the same way. **Put it on every URL.** |
+| `?tour=1` | **VERIFIED.** 60-second authored tracking shot instead of the opening flight. `?clip=1&tour=1&preset=cinematic&drift=0` is the clip that carries the video. |
+| `?p=0.92` / `?p=0.62` | **VERIFIED.** Time slider reads exactly 0.92 / 0.62 on load. Night and dusk. |
+| `?intro=0` | **VERIFIED.** Skips the opening flight; the city is simply there at the home pose. |
+| `?walk=1` | **VERIFIED, and OFF by default** — on a plain URL there are **zero** `wf-*` elements in the page, not hidden, not present. With the flag there are 14. **It needs the interface, so it cannot be combined with `?clip=1`** if you want the answer caption — see the walking section below. |
+| `?from=` `?to=` `?fit=1` | **VERIFIED.** `?clip=1&preset=cinematic&from=JES&to=WEL&fit=1` loads, routes, and frames the route with no interface at all. **Caveat: under `clip=1` the answer pill is hidden**, so you get the ribbon with no minutes on it. Picture: `10-deeplink.jpg`. |
+| `?drift=0` | **VERIFIED, AND THE OLD WARNING BELOW WAS BACKWARDS.** It switches nothing in the city off. It disables the **idle cinema**: after 25 s of input silence the camera orbits 13° every 12 s, breathes the zoom and creeps the hour. Measured over 75 s of silence: **no flag → 59° of rotation and the hour moved 0.50 → 0.55; with `drift=0` → zero, zero, zero.** **Use it on every held shot.** |
+| `?debug=1` | **VERIFIED.** Engineering panel appears. Not for filming. |
+| `?shot=` **and every other camera-pose URL** | **DOES NOT EXIST.** Driven: `?clip=1&preset=cinematic&shot=tower` produced a page byte-for-byte indistinguishable from the same URL without it — silently ignored, no error. **There is no way to link to a camera position. Do not try one tomorrow.** Every hand-flown shot in this document has to be flown. |
 
-There are several other flags in the code (`tiles=0`, `outer=0`, `haze=0`,
-`fog=screen`, `roofcaps=0`, `bakedfacades=0`, `drift=0`). **They switch parts of
-the city off. Do not use them for filming.**
-
-**There is no flag for the graphics preset, and no flag for a camera position.**
+The genuinely scene-breaking flags are `tiles=0`, `outer=0`, `haze=0`,
+`fog=screen`, `roofcaps=0`, `bakedfacades=0`, `storeys=0`. **Those switch parts
+of the city off — do not use them for filming.** `drift=0` is not one of them
+and never was.
 
 ### If you wanted the labels gone too — the smallest change, NOT built
 
@@ -574,6 +665,64 @@ confirm the ground and roads appear.
 
 ---
 
+# Q7. The walking directions — ADDED 2026-08-17, and driven, not read
+
+This feature did not exist when this brief was written. **Six routes were typed
+into the deployed site this morning the way a student types them** — click the
+arrow top-left, type a code, click the row. Zero JavaScript errors across all
+six. Pictures in `shots/gaps/walk/`.
+
+**The URL:** `https://flyover-utx.vercel.app/?walk=1&preset=cinematic&drift=0`
+It **cannot take `?clip=1`** if you want the answer on screen — clip mode hides
+the pill. So the walking clip has the interface in it. That is the trade.
+
+**A route to have in your fingers before the camera is on:** type `JES`, click
+the row; type `GDC`, click the row. It answers
+**"5-8 min walk · 470 m · No stairs on this route / Bill and Melinda Gates
+Computer Science Complex · The main entrance"**. Then press **Show route ⤡**.
+
+**What the six answered**
+
+| route | answer | the passing-period line |
+|---|---|---|
+| `JES` → `GDC` | 5-8 min · 470 m · No stairs | *(silent)* |
+| The Castilian → `RLP` | 13-19 min · 1.1 km · No stairs | Tight for a 15-minute passing period |
+| `PCL` → `GUG` | 11-15 min · 940 m · No stairs | Tight for a 15-minute passing period |
+| Dobie Twenty21 → `WEL` | 8-12 min · 720 m · **Stairs: 1 set** | *(silent)* |
+| The Castilian → `HTB` | 20-29 min · 1.8 km · No stairs | Longer than a 15-minute passing period |
+| `JES` → `ACS` | **"ACS is not walkable in this build yet"** | — |
+
+The distances are right, the sub-line names the building and which side its
+doors are on, stairs are called out, and **the 15-minute line only ever warns —
+it never tells you that you will make it.** That restraint is the best thing
+about the feature and it is worth saying on camera.
+
+**Where to point the camera**
+
+* **Walking height is the ONE place this feature beats everything else in the
+  app at eye level.** `A-walking.jpg` — a cream ribbon with white dashes running
+  down the brick of Speedway. The ground was the app's weakest thing at 2 m; the
+  ribbon gives it a subject. This is the exception to "no walking-height
+  footage".
+* **From altitude, film a route that runs along streets.** `E-altitude.jpg` (The
+  Castilian → Dell Med) is the best frame this pass produced: an unbroken white
+  ribbon across the whole city with "Longer than a 15-minute passing period" in
+  red in the pill. `D-altitude.jpg` is nearly as good.
+* **Do not film a route that cuts through the middle of campus from altitude.**
+  `B-altitude.jpg` — roofs and tree canopies swallow most of the line and it
+  reads as three disconnected white scratches.
+* **`JES` → `ACS` is a beat, not a bug.** `F-answer.jpg`: it says
+  *"ACS is not walkable in this build yet"*, clears the old route off the map,
+  and carries *"We can't route inside buildings"* and *"© OpenStreetMap
+  contributors · Not affiliated with UT Austin"*. Filming an honest limit is a
+  better look than pretending there isn't one.
+
+**63 of the 198 UT register codes still answer "not walkable in this build
+yet" (135 route).** Type a building you have already tried before the camera is
+on.
+
+---
+
 # Where the four reports disagree with each other
 
 Rather than quietly picking a winner, here is each conflict and what settles it.
@@ -619,18 +768,25 @@ finding in this document.
 
 # If you only do three things before you hit record
 
-**1. Press `G` and pick Balanced (or Cinematic) — and clear the site data first
-if you have opened the app on that machine before.** One click, permanent on that
-machine. Without it, the app changes its own look 25 seconds into take one, and
-opens looking worse on every take after that, silently.
+*(REWRITTEN 2026-08-17. The old item 1 — "press `G`, and clear the site data
+first" — is obsolete: a flag does it now, before anything paints.)*
 
-**2. Record `https://flyover-utx.vercel.app/?clip=1&tour=1` at least once, and
-keep your hands off the keyboard for the full minute.** No interface, 60 seconds,
-moving, golden hour, and it cannot go wrong because nobody is flying it. If one
-clip has to carry the video, make it that one.
+**1. Put `?preset=cinematic&drift=0` on every URL you record from, and make the
+browser window 16:10 or taller.** `preset=cinematic` stops the app changing its
+own look mid-take and needs no panel and no site-data clearing. `drift=0` stops
+the camera turning itself — measured, 59° of rotation in 75 seconds of silence
+without it. The window shape is what decides whether `R` puts the UT Tower in
+your frame at all.
+
+**2. Record `https://flyover-utx.vercel.app/?clip=1&tour=1&preset=cinematic&drift=0`
+at least once, and keep your hands off the keyboard for the full minute.** No
+interface, no labels, 60 seconds, moving, golden hour, and it cannot go wrong
+because nobody is flying it. If one clip has to carry the video, make it that one.
 
 **3. Stay between 80 and 350 metres, and never touch the ▶ play button or drag
-the time slider.** Below 80 m the ground is blank and the trees are flat slabs;
+the time slider.** Below 80 m the ground is blank and the trees are flat slabs —
+*unless there is a route ribbon under your feet, which is the one thing worth
+filming down there (Q7)*. Above 370 m there is a hard line across the sky, and
 above 400 m the Tower disappears. The ▶ button runs at under two frames a second
 and is hard to stop once started — set the hour with `?p=` in the URL instead.
 
