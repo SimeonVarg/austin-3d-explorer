@@ -22228,6 +22228,45 @@ green.** What changed is that it can now finish: its ceiling is 900 s instead of
 subject is milliseconds had been running beside up to three other SwiftShader
 browsers, with its own CPU readings swinging 5 % to 64 % inside a single rep.
 
+### THE HEALTH TABLE, AND A NEW FINDING ABOUT HOW IT IS RUN
+
+**39 gates now (38 + the new `y20-handover`). 37 green, 2 red.** Was **25 green
+/ 12 red of 38** (§155).
+
+```
+RED, and correct:
+  perf-budget   5 of 6 over budget   REAL. QUEUE Y7 and Y15. Untouched, red on purpose.
+  coplanar      entrances 1627 -> 1655   NOT MINE — see QUEUE Y24 below.
+```
+
+**AND THE RUNNER ITSELF PRODUCED EIGHT FALSE REDS, WHICH IS ITS OWN FINDING.**
+The first full pass was `run.mjs --jobs 3` at the 300 s default and came back
+with ten reds. Every one was re-run ALONE:
+
+| gate | in the 3-way run | alone |
+|---|---|---|
+| `sky` | exit 1 | **12/12 PASS** |
+| `arts-check` | exit 124 (killed at 298 s) | **28/28 PASS** |
+| `light-ae` | exit 1 | **8/8 PASS** |
+| `light-tone` | exit 1 | **PASS** |
+| `night-silhouette` | exit 1 | **PASS** |
+| `places-check` | exit 1 | **PASS** |
+| `westcampus-probe` | exit 1 | **PASS** |
+| `collision` | exit null (301.6 s) | **PASS** |
+| `drag-night` | exit null (302.2 s) | **PASS** |
+| `coplanar` | exit 1 | **exit 1 — the only real one** |
+
+Nine of ten were the machine. §155 ran its table **sequentially at 330 s** and
+that was the right call; three concurrent SwiftShader browsers push honest gates
+past a 300 s ceiling and then the runner reports a kill in the same column as an
+assertion failure. `SERIAL_ONLY` protects the gates with millisecond budgets in
+them; it does not protect a gate that is merely SLOW. **Anyone re-running this
+table should use `--jobs 1`, or read every red twice.**
+
+The run also found two more 300 s casualties nobody had listed: **`walk`**
+(exit 124 at 300.3 s — a gate §155 had already had to rescue once) and
+`y20-handover` at 228 s. Both are in `CEILING_S` now.
+
 ### WHAT THIS PASS DID NOT ESTABLISH
 
 1. **`field-bleed`'s nine NIGHT poses are still unrun**, and so are two of the
