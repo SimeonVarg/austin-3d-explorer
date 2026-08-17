@@ -1,0 +1,255 @@
+{
+  "url": "https://flyover-utx.vercel.app/?clip=1&preset=cinematic&drift=0&intro=0",
+  "pose": {
+    "center": [
+      -97.74,
+      30.296
+    ],
+    "zoom": 13.9,
+    "pitch": 79,
+    "bearing": 200
+  },
+  "p": 0.5,
+  "W": 1600,
+  "H": 1000,
+  "seamRow": 362,
+  "refSpike": 49.91,
+  "noiseFloorPx": {
+    "n": 0,
+    "mx": 0
+  },
+  "knockouts": [
+    {
+      "tag": "K1-domsky-off",
+      "dSeam": 49.91,
+      "ref": 49.91,
+      "pixelsMoved": 0,
+      "maxDelta": 0,
+      "above": "#fead4d",
+      "below": "#e7a25c",
+      "top": [
+        {
+          "y": 362,
+          "v": 49.91
+        },
+        {
+          "y": 338,
+          "v": 12.03
+        },
+        {
+          "y": 415,
+          "v": 10.19
+        },
+        {
+          "y": 448,
+          "v": 8.64
+        },
+        {
+          "y": 477,
+          "v": 8.35
+        }
+      ],
+      "restoredD": 49.91,
+      "restoreDriftPx": 0
+    },
+    {
+      "tag": "K2-skymix-0",
+      "dSeam": 35.23,
+      "ref": 49.91,
+      "pixelsMoved": 1572232,
+      "maxDelta": 138,
+      "above": "#ffc04c",
+      "below": "#f6b45c",
+      "top": [
+        {
+          "y": 362,
+          "v": 35.23
+        },
+        {
+          "y": 338,
+          "v": 11.87
+        },
+        {
+          "y": 454,
+          "v": 11.86
+        },
+        {
+          "y": 419,
+          "v": 9.82
+        },
+        {
+          "y": 446,
+          "v": 8.37
+        }
+      ],
+      "restoredD": 48.27,
+      "restoreDriftPx": 1566834
+    },
+    {
+      "tag": "K3-skymix-0.5",
+      "dSeam": 57.38,
+      "ref": 49.91,
+      "pixelsMoved": 1572055,
+      "maxDelta": 142,
+      "above": "#ee944e",
+      "below": "#cf885c",
+      "top": [
+        {
+          "y": 338,
+          "v": 57.52
+        },
+        {
+          "y": 362,
+          "v": 57.38
+        },
+        {
+          "y": 454,
+          "v": 12.27
+        },
+        {
+          "y": 419,
+          "v": 10.03
+        },
+        {
+          "y": 446,
+          "v": 9.91
+        }
+      ],
+      "restoredD": 50.24,
+      "restoreDriftPx": 1565918
+    },
+    {
+      "tag": "K4-hazemax-1",
+      "dSeam": 1.19,
+      "ref": 49.91,
+      "pixelsMoved": 1573794,
+      "maxDelta": 136,
+      "above": "#f79a4b",
+      "below": "#f79b4c",
+      "top": [
+        {
+          "y": 338,
+          "v": 24.06
+        },
+        {
+          "y": 165,
+          "v": 7.55
+        },
+        {
+          "y": 67,
+          "v": 7.26
+        },
+        {
+          "y": 195,
+          "v": 6.83
+        },
+        {
+          "y": 185,
+          "v": 5.86
+        }
+      ],
+      "restoredD": 49.59,
+      "restoreDriftPx": 1566869
+    },
+    {
+      "tag": "K5-mix0-max1",
+      "dSeam": 1.19,
+      "ref": 49.91,
+      "pixelsMoved": 1059226,
+      "maxDelta": 148,
+      "above": "#ffc24e",
+      "below": "#ffc551",
+      "top": [
+        {
+          "y": 338,
+          "v": 19.17
+        },
+        {
+          "y": 165,
+          "v": 7.19
+        },
+        {
+          "y": 179,
+          "v": 6.19
+        },
+        {
+          "y": 275,
+          "v": 5.95
+        },
+        {
+          "y": 117,
+          "v": 5.91
+        }
+      ],
+      "restoredD": 46.37,
+      "restoreDriftPx": 1569196
+    },
+    {
+      "tag": "K6-fog-off",
+      "dSeam": 113.82,
+      "ref": 49.91,
+      "pixelsMoved": 1572111,
+      "maxDelta": 203,
+      "above": "#ffc04c",
+      "below": "#cc9f6e",
+      "top": [
+        {
+          "y": 362,
+          "v": 113.82
+        },
+        {
+          "y": 419,
+          "v": 25.22
+        },
+        {
+          "y": 454,
+          "v": 21.84
+        },
+        {
+          "y": 446,
+          "v": 20.47
+        },
+        {
+          "y": 411,
+          "v": 16.99
+        }
+      ],
+      "restoredD": 49.24,
+      "restoreDriftPx": 1565430
+    },
+    {
+      "tag": "K7-blend-0.3",
+      "dSeam": 49.24,
+      "ref": 49.91,
+      "pixelsMoved": 1595494,
+      "maxDelta": 131,
+      "above": "#feaf4f",
+      "below": "#e7a15c",
+      "top": [
+        {
+          "y": 362,
+          "v": 49.24
+        },
+        {
+          "y": 338,
+          "v": 13.62
+        },
+        {
+          "y": 454,
+          "v": 11.92
+        },
+        {
+          "y": 419,
+          "v": 9.4
+        },
+        {
+          "y": 446,
+          "v": 9.18
+        }
+      ],
+      "restoredD": 50.22,
+      "restoreDriftPx": 1569383
+    }
+  ],
+  "errors": []
+}

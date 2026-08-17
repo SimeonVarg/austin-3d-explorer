@@ -1,0 +1,155 @@
+{
+  "url": "https://flyover-utx.vercel.app/?clip=1&tour=1&preset=cinematic&drift=0",
+  "secs": 110,
+  "samples": 21,
+  "spanS": [
+    1.35,
+    123
+  ],
+  "largestGapS": 22.5,
+  "minZoom": 16.5,
+  "maxZoom": 17.1,
+  "samplesAboveZ14_6": 0,
+  "samplesAboveZ15_3": 0,
+  "highest": {
+    "t": 1.35,
+    "z": 16.5,
+    "pitch": 74,
+    "bearing": -110
+  },
+  "highestPose": {
+    "predictedRow": 296.9,
+    "foundRow": 297,
+    "stepLuma": 15.66,
+    "spreadBelow": 22.95
+  },
+  "trace": [
+    {
+      "t": 1.35,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 1.85,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 2.57,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 2.75,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 3.19,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 3.83,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 4.52,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 14.24,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 18.5,
+      "z": 16.5,
+      "pitch": 74,
+      "bearing": -110
+    },
+    {
+      "t": 41.03,
+      "z": 16.522,
+      "pitch": 73.78,
+      "bearing": -130
+    },
+    {
+      "t": 49.85,
+      "z": 16.6,
+      "pitch": 73,
+      "bearing": 160
+    },
+    {
+      "t": 57.45,
+      "z": 16.914,
+      "pitch": 74.79,
+      "bearing": 20.9
+    },
+    {
+      "t": 66.89,
+      "z": 16.95,
+      "pitch": 75,
+      "bearing": 5
+    },
+    {
+      "t": 75.66,
+      "z": 17.1,
+      "pitch": 74.5,
+      "bearing": 5
+    },
+    {
+      "t": 78.93,
+      "z": 17.099,
+      "pitch": 74.48,
+      "bearing": 5.9
+    },
+    {
+      "t": 88.91,
+      "z": 17,
+      "pitch": 73,
+      "bearing": 62
+    },
+    {
+      "t": 100.72,
+      "z": 16.5,
+      "pitch": 71,
+      "bearing": 95
+    },
+    {
+      "t": 106.3,
+      "z": 16.5,
+      "pitch": 71,
+      "bearing": 95
+    },
+    {
+      "t": 113.52,
+      "z": 16.62,
+      "pitch": 71.5,
+      "bearing": 95
+    },
+    {
+      "t": 118.44,
+      "z": 16.614,
+      "pitch": 71.63,
+      "bearing": 103.2
+    },
+    {
+      "t": 123,
+      "z": 16.541,
+      "pitch": 73.14,
+      "bearing": -163.1
+    }
+  ],
+  "errors": []
+}

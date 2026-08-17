@@ -51,3 +51,9 @@ scripts/verify/out/
 .env.*
 !.env.example
 .firecrawl/
+
+# A stderr dump left behind by an old `python scripts/serve.py` run. It was
+# tracked at the repository root at 860 KB, read by nothing (grepped: the only
+# mention anywhere is the HANDOFF note that found it). The server writes it only
+# when its output is redirected there by hand, so it can come back the same way.
+_serve.log

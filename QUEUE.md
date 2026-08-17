@@ -2961,3 +2961,36 @@ zero wayfind layers, sources, DOM nodes and globals, zero fetches of
 below their own cross-launch noise floor against `origin/main` (H1 byte-
 identical). **Flipping it is Simeon's call and should wait for the AWS
 recording.**
+
+## S3. The horizon is a hard step, and nothing in the suite watches it — INVESTIGATED AND REFUSED 2026-08-17 (§164, `docs/aws/seam.md`)
+
+The dress rehearsal's number-three finding, "the very wide has a hard seam drawn
+across the sky", is **the horizon itself**, not an overlay. Measured against the
+live site: the sky above the line is `horizon-color`, the ground below it only
+gets `HAZE_TUNE.MAX` (0.58 at golden) of the way to `fogColour()`, and the
+remaining 42% of raw tan is the step. **13.5–15 luma across one row, at every
+pitch from 60 to 84 and every zoom from 13.9 to 16.5** — the same size in the
+home frame as in the wide.
+
+**It was NOT fixed and the refusal is deliberate.** Every knob that moves it
+moves 98% of the frame; the one that closes it outright (`MAX` → 1.0) dissolves
+downtown into fog (`shots/seam/wide-hazemax-1.0.jpg`). Both constants are named,
+documented and calibrated against Simeon's own stated preference. The bar the
+night before a shoot was "provably invisible everywhere else" and nothing here
+can clear it.
+
+**Three things are left for whoever picks this up:**
+
+1. **Nothing gates this join.** `banding.mjs` samples the sky column from
+   `hz - 0.14` to `hz - 0.01` — it deliberately stops 1% of frame height short
+   of the horizon, so a future change to the fog could move this line and every
+   gate would stay green. A one-row-step assertion at the predicted horizon row
+   is cheap; `scripts/verify/seam-where.mjs` already computes it.
+2. **The narrow fix was never built.** Ramping the ground quad's alpha toward 1
+   only in the last rows before the horizon would close the step without
+   touching the near field. It is an argument, not a measurement — nobody has
+   rendered it. If it is ever tried, it is a `js/sky.js` shader change and needs
+   sky/dusk/silhouette/banding plus the hero set at three hours.
+3. **It is worst in daylight** (22.6 luma at the wide) and mildest at night
+   (5.3 at the night Tower). Any judgement should be made at `p=0.18`, not at
+   the sunset default.
