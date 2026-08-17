@@ -22979,6 +22979,23 @@ throwaway worktree on 8591:** `sky.mjs` 12/12; `dusk.mjs` PASS, 0 unexcused of
 60 transitions; `night-silhouette.mjs` PASS, night separation 22.5 and dusk 23.5
 against a bar of +8; `banding.mjs` PASS, 9 of 9 across day/golden/night.
 
+**Then two of them went red, three reps each, and it was the machine — proved
+rather than assumed.** After rebasing onto `origin/main` (which had moved),
+`sky.mjs` came back 10/12 with two SHADOW assertions failing and
+`night-silhouette` failed its dusk column, repeatably. The branch changes no
+file the app loads, so the first step was to stop reasoning and measure: a
+pristine `origin/main` worktree was served on 8592 alongside this one on 8591,
+and **every served app file — `index.html`, `style.css`, `_harness.html`, all 27
+scripts, `entrances.geojson`, `walk_graph.json` — hashes identical across the
+two ports.** Pristine came back 12/12 and PASS. Then, with the box quieter (20
+Chrome processes instead of 28), **8591 itself came back 12/12 twice and
+night-silhouette PASS**, interleaved 8591 / 8592 / 8591. Same bytes, opposite
+verdicts, and the difference tracked the load — which is `sky.mjs`'s own
+documented failure mode (its header records the same assertion reading 4.82 deg,
+1.20 deg and clean on one build). Final state of the merged tree: **sky 12/12,
+dusk PASS, night-silhouette PASS, banding 9/9.** Nothing was merged red; the red
+was the ruler, again.
+
 ### Where it shows — the rule, not a feeling
 
 The step never changes size. What changes is whether there is a city in front of
