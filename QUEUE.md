@@ -2962,7 +2962,7 @@ below their own cross-launch noise floor against `origin/main` (H1 byte-
 identical). **Flipping it is Simeon's call and should wait for the AWS
 recording.**
 
-## S3. The horizon is a hard step, and nothing in the suite watches it — INVESTIGATED AND REFUSED 2026-08-17 (§164, `docs/aws/seam.md`)
+## S3. The horizon is a hard step, and nothing in the suite watches it — INVESTIGATED AND REFUSED 2026-08-17 (§165, `docs/aws/seam.md`)
 
 The dress rehearsal's number-three finding, "the very wide has a hard seam drawn
 across the sky", is **the horizon itself**, not an overlay. Measured against the

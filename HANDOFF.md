@@ -22902,7 +22902,7 @@ walk graph was not re-baked, correctly, because no door moved.
 
 ---
 
-## 164. Aug 17 2026 — the seam across the sky is the horizon, it is in every frame, and the only knob that closes it dissolves the city (QUEUE S3) (acer lane, branch `acer/s3-seam`)
+## 165. Aug 17 2026 — the seam across the sky is the horizon, it is in every frame, and the only knob that closes it dissolves the city (QUEUE S3) (acer lane, branch `acer/s3-seam`)
 
 **Branch:** `acer/s3-seam`. **No rendering code was changed.** Everything below
 was measured against the **live site** `https://flyover-utx.vercel.app/` with

@@ -191,7 +191,7 @@ night is 14.3. There is no hour that saves the high wide.
   of frame height short of the horizon, so it can never see the step. That is a
   scope boundary rather than an allowance left behind by a fix, but it does mean
   a future change to the fog could move this line and no gate would notice.
-  Filed as **S3** in `QUEUE.md`, and written up in HANDOFF **§164**.
+  Filed as **S3** in `QUEUE.md`, and written up in HANDOFF **§165**.
 
 ---
 
