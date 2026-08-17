@@ -1,0 +1,508 @@
+{
+ "url": "https://flyover-utx.vercel.app/?walk=1&drift=0&preset=cinematic&intro=0",
+ "when": "2026-08-17T10:16:59.307Z",
+ "errors": [],
+ "results": [
+  {
+   "id": "A",
+   "from": "JES",
+   "to": "GDC",
+   "why": "the freshman classic: Jester to the CS building",
+   "fromRows": [
+    {
+     "code": "JES",
+     "name": "Beauford H. Jester Center",
+     "meta": "4 doors",
+     "off": false
+    }
+   ],
+   "fromMore": "",
+   "toRows": [
+    {
+     "code": "GDC",
+     "name": "Bill and Melinda Gates Computer Science Complex",
+     "meta": "7 doors",
+     "off": false
+    }
+   ],
+   "toMore": "",
+   "read": {
+    "headline": "5-8 min walk · 470 m · No stairs on this route",
+    "sub": "Bill and Melinda Gates Computer Science Complex · The main entrance",
+    "verdict": "",
+    "card": "",
+    "pillHidden": false,
+    "fromVal": "Beauford H. Jester Center",
+    "toVal": "Bill and Melinda Gates Computer Science Complex"
+   },
+   "geom": {
+    "ok": true,
+    "distM": 471.78000000000003,
+    "lo": 5,
+    "hi": 8,
+    "stairSets": 0,
+    "signals": 0,
+    "headline": "5-8 min walk · 470 m · No stairs on this route",
+    "sub": "Bill and Melinda Gates Computer Science Complex · The main entrance",
+    "verdict": "",
+    "fromName": "Beauford H. Jester Center",
+    "toName": "Bill and Melinda Gates Computer Science Complex",
+    "fromCode": "JES",
+    "toCode": "GDC",
+    "fromDoor": 433,
+    "toDoor": 379,
+    "fromSrc": "derived",
+    "toSrc": "osm",
+    "fromRole": "main",
+    "toRole": "main",
+    "fromLinkM": 0.41,
+    "toLinkM": 3.65,
+    "ms": 2.5,
+    "vertices": 27,
+    "bbox": [
+     -97.73751299999999,
+     30.282593,
+     -97.73687699999999,
+     30.286272999999998
+    ],
+    "centre": [
+     -97.73719499999999,
+     30.284433
+    ],
+    "on": [
+     -97.737428,
+     30.283521999999998
+    ],
+    "onNext": [
+     -97.737404,
+     30.283755
+    ],
+    "via": null
+   },
+   "fitCam": {
+    "z": 17.27,
+    "b": -110,
+    "p": 55
+   },
+   "eye": {
+    "alt": 1.7,
+    "z": 20.82,
+    "p": 85,
+    "b": 5.1
+   }
+  },
+  {
+   "id": "B",
+   "from": "Castilian",
+   "to": "RLP",
+   "why": "West Campus apartment -> a building that only started routing this week",
+   "fromRows": [
+    {
+     "code": "•",
+     "name": "The Castilian",
+     "meta": "3 doors",
+     "off": false
+    }
+   ],
+   "fromMore": "",
+   "toRows": [
+    {
+     "code": "RLP",
+     "name": "Patton Hall",
+     "meta": "3 doors",
+     "off": false
+    }
+   ],
+   "toMore": "",
+   "read": {
+    "headline": "13-19 min walk · 1.1 km · No stairs on this route",
+    "sub": "Patton Hall · Entrances are on this side",
+    "verdict": "Tight for a 15-minute passing period",
+    "card": "",
+    "pillHidden": false,
+    "fromVal": "The Castilian",
+    "toVal": "Patton Hall"
+   },
+   "geom": {
+    "ok": true,
+    "distM": 1125.8700000000001,
+    "lo": 13,
+    "hi": 19,
+    "stairSets": 0,
+    "signals": 2,
+    "headline": "13-19 min walk · 1.1 km · No stairs on this route",
+    "sub": "Patton Hall · Entrances are on this side",
+    "verdict": "Tight for a 15-minute passing period",
+    "fromName": "The Castilian",
+    "toName": "Patton Hall",
+    "fromCode": "",
+    "toCode": "RLP",
+    "fromDoor": 221,
+    "toDoor": 545,
+    "fromSrc": "westcampus",
+    "toSrc": "derived",
+    "fromRole": "main",
+    "toRole": "main",
+    "fromLinkM": 8.91,
+    "toLinkM": 0.25,
+    "ms": 3.699999999254942,
+    "vertices": 61,
+    "bbox": [
+     -97.742592,
+     30.284525,
+     -97.73509,
+     30.287699
+    ],
+    "centre": [
+     -97.73884100000001,
+     30.286112
+    ],
+    "on": [
+     -97.740461,
+     30.287477
+    ],
+    "onNext": [
+     -97.740405,
+     30.287471999999998
+    ],
+    "via": null
+   },
+   "fitCam": {
+    "z": 16.2,
+    "b": 5.1,
+    "p": 55
+   },
+   "eye": {
+    "alt": 1.7,
+    "z": 20.82,
+    "p": 85,
+    "b": 95.9
+   }
+  },
+  {
+   "id": "C",
+   "from": "PCL",
+   "to": "GUG",
+   "why": "library to Gregory Gym (newly routable)",
+   "fromRows": [
+    {
+     "code": "PCL",
+     "name": "Perry-Castañeda Library",
+     "meta": "4 doors",
+     "off": false
+    }
+   ],
+   "fromMore": "",
+   "toRows": [
+    {
+     "code": "GUG",
+     "name": "Guadalupe Garage",
+     "meta": "2 doors",
+     "off": false
+    }
+   ],
+   "toMore": "",
+   "read": {
+    "headline": "11-15 min walk · 940 m · No stairs on this route",
+    "sub": "Guadalupe Garage · Entrances are on this side",
+    "verdict": "Tight for a 15-minute passing period",
+    "card": "",
+    "pillHidden": false,
+    "fromVal": "Perry-Castañeda Library",
+    "toVal": "Guadalupe Garage"
+   },
+   "geom": {
+    "ok": true,
+    "distM": 940.3199999999999,
+    "lo": 11,
+    "hi": 15,
+    "stairSets": 0,
+    "signals": 0,
+    "headline": "11-15 min walk · 940 m · No stairs on this route",
+    "sub": "Guadalupe Garage · Entrances are on this side",
+    "verdict": "Tight for a 15-minute passing period",
+    "fromName": "Perry-Castañeda Library",
+    "toName": "Guadalupe Garage",
+    "fromCode": "PCL",
+    "toCode": "GUG",
+    "fromDoor": 517,
+    "toDoor": 403,
+    "fromSrc": "derived",
+    "toSrc": "derived",
+    "fromRole": "main",
+    "toRole": "secondary",
+    "fromLinkM": 0.38,
+    "toLinkM": 17.7,
+    "ms": 1.699999999254942,
+    "vertices": 76,
+    "bbox": [
+     -97.74315,
+     30.279829999999997,
+     -97.738039,
+     30.283564
+    ],
+    "centre": [
+     -97.7405945,
+     30.281696999999998
+    ],
+    "on": [
+     -97.740814,
+     30.282572
+    ],
+    "onNext": [
+     -97.740821,
+     30.282514
+    ],
+    "via": null
+   },
+   "fitCam": {
+    "z": 15.85,
+    "b": 95.9,
+    "p": 55
+   },
+   "eye": {
+    "alt": 1.7,
+    "z": 20.82,
+    "p": 85,
+    "b": -174.1
+   }
+  },
+  {
+   "id": "D",
+   "from": "Dobie",
+   "to": "WEL",
+   "why": "West Campus apartment -> Welch",
+   "fromRows": [
+    {
+     "code": "D21",
+     "name": "Dobie Twenty21",
+     "meta": "3 doors",
+     "off": false
+    },
+    {
+     "code": "•",
+     "name": "Dobie Twenty21",
+     "meta": "3 doors",
+     "off": false
+    },
+    {
+     "code": "FDH",
+     "name": "J. Frank Dobie House",
+     "meta": "1 door",
+     "off": false
+    },
+    {
+     "code": "FDG",
+     "name": "J Frank Dobie Garage",
+     "meta": "not walkable yet",
+     "off": true
+    },
+    {
+     "code": "PRH",
+     "name": "Dobie Paisano Ranch House",
+     "meta": "not walkable yet",
+     "off": true
+    }
+   ],
+   "fromMore": "",
+   "toRows": [
+    {
+     "code": "WEL",
+     "name": "Robert A. Welch Hall",
+     "meta": "7 doors",
+     "off": false
+    }
+   ],
+   "toMore": "",
+   "read": {
+    "headline": "8-12 min walk · 720 m · Stairs: 1 set",
+    "sub": "Robert A. Welch Hall · Entrances are on this side",
+    "verdict": "",
+    "card": "",
+    "pillHidden": false,
+    "fromVal": "Dobie Twenty21",
+    "toVal": "Robert A. Welch Hall"
+   },
+   "geom": {
+    "ok": true,
+    "distM": 717.5200000000001,
+    "lo": 8,
+    "hi": 12,
+    "stairSets": 1,
+    "signals": 0,
+    "headline": "8-12 min walk · 720 m · Stairs: 1 set",
+    "sub": "Robert A. Welch Hall · Entrances are on this side",
+    "verdict": "",
+    "fromName": "Dobie Twenty21",
+    "toName": "Robert A. Welch Hall",
+    "fromCode": "D21",
+    "toCode": "WEL",
+    "fromDoor": 348,
+    "toDoor": 649,
+    "fromSrc": "westcampus",
+    "toSrc": "derived",
+    "fromRole": "main",
+    "toRole": "main",
+    "fromLinkM": 18.28,
+    "toLinkM": 22.59,
+    "ms": 3,
+    "vertices": 46,
+    "bbox": [
+     -97.74093599999999,
+     30.283248999999998,
+     -97.737319,
+     30.286849999999998
+    ],
+    "centre": [
+     -97.7391275,
+     30.2850495
+    ],
+    "on": [
+     -97.74041299999999,
+     30.28504
+    ],
+    "onNext": [
+     -97.74036699999999,
+     30.285021999999998
+    ],
+    "via": null
+   },
+   "fitCam": {
+    "z": 16.14,
+    "b": -174.1,
+    "p": 55
+   },
+   "eye": {
+    "alt": 1.7,
+    "z": 20.82,
+    "p": 85,
+    "b": 114.4
+   }
+  },
+  {
+   "id": "E",
+   "from": "Castilian",
+   "to": "HTB",
+   "why": "the long one: West Campus to Dell Med (newly routable)",
+   "fromRows": [
+    {
+     "code": "•",
+     "name": "The Castilian",
+     "meta": "3 doors",
+     "off": false
+    }
+   ],
+   "fromMore": "",
+   "toRows": [
+    {
+     "code": "HTB",
+     "name": "Health Transformation Building",
+     "meta": "4 doors",
+     "off": false
+    }
+   ],
+   "toMore": "",
+   "read": {
+    "headline": "20-29 min walk · 1.8 km · No stairs on this route",
+    "sub": "Health Transformation Building · Entrances are on this side",
+    "verdict": "Longer than a 15-minute passing period",
+    "card": "",
+    "pillHidden": false,
+    "fromVal": "The Castilian",
+    "toVal": "Health Transformation Building"
+   },
+   "geom": {
+    "ok": true,
+    "distM": 1751.9699999999998,
+    "lo": 20,
+    "hi": 29,
+    "stairSets": 0,
+    "signals": 2,
+    "headline": "20-29 min walk · 1.8 km · No stairs on this route",
+    "sub": "Health Transformation Building · Entrances are on this side",
+    "verdict": "Longer than a 15-minute passing period",
+    "fromName": "The Castilian",
+    "toName": "Health Transformation Building",
+    "fromCode": "",
+    "toCode": "HTB",
+    "fromDoor": 221,
+    "toDoor": 418,
+    "fromSrc": "westcampus",
+    "toSrc": "derived",
+    "fromRole": "main",
+    "toRole": "main",
+    "fromLinkM": 8.91,
+    "toLinkM": 0.41,
+    "ms": 4.099999999627471,
+    "vertices": 149,
+    "bbox": [
+     -97.742592,
+     30.277632999999998,
+     -97.734949,
+     30.287699
+    ],
+    "centre": [
+     -97.7387705,
+     30.282666
+    ],
+    "on": [
+     -97.741886,
+     30.281868
+    ],
+    "onNext": [
+     -97.741868,
+     30.281845999999998
+    ],
+    "via": null
+   },
+   "fitCam": {
+    "z": 14.76,
+    "b": 114.4,
+    "p": 55
+   },
+   "eye": {
+    "alt": 1.7,
+    "z": 20.82,
+    "p": 85,
+    "b": 144.8
+   }
+  },
+  {
+   "id": "F",
+   "from": "JES",
+   "to": "ACS",
+   "why": "the honest failure: a building this build cannot route to",
+   "fromRows": [
+    {
+     "code": "JES",
+     "name": "Beauford H. Jester Center",
+     "meta": "4 doors",
+     "off": false
+    }
+   ],
+   "fromMore": "",
+   "toRows": [
+    {
+     "code": "ACS",
+     "name": "Autry C Stephens Engr Disc Bldg",
+     "meta": "not walkable yet",
+     "off": true
+    }
+   ],
+   "toMore": "",
+   "read": {
+    "headline": "10-13 min walk · 840 m · No stairs on this route",
+    "sub": "Health Transformation Building · Entrances are on this side",
+    "verdict": "",
+    "card": "",
+    "pillHidden": true,
+    "fromVal": "Beauford H. Jester Center",
+    "toVal": "ACS"
+   },
+   "geom": {
+    "ok": false,
+    "why": "nodoor"
+   }
+  }
+ ]
+}

@@ -1,0 +1,1171 @@
+{
+ "host": "https://flyover-utx.vercel.app/",
+ "when": "2026-08-17T10:20:18.344Z",
+ "arms": [
+  {
+   "id": "01-plain",
+   "q": "",
+   "note": "no flags at all",
+   "state": {
+    "preset": "balanced",
+    "renderScale": 1,
+    "viewDist": 700,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "shown",
+     "hint": "shown",
+     "tod": "shown",
+     "todPlay": "shown",
+     "gear": "shown",
+     "feedback": "shown",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 7,
+     "drawn": 11
+    },
+    "towerPx": {
+     "x": 650,
+     "y": 206,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 15.45,
+     "b": 3,
+     "p": 71,
+     "lat": 30.27481,
+     "lng": -97.7404
+    },
+    "alt": 284.8
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "02-clip",
+   "q": "?clip=1&drift=0&intro=0",
+   "note": "the brief: hide the interface",
+   "state": {
+    "preset": "balanced",
+    "renderScale": 1,
+    "viewDist": 700,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -202,
+     "y": 1404,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 116.5
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "03-clipcin",
+   "q": "?clip=1&preset=cinematic&drift=0&intro=0",
+   "note": "THE recording URL",
+   "state": {
+    "preset": "cinematic",
+    "renderScale": 1,
+    "viewDist": 1100,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -1219,
+     "y": 2707,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 107.4
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "04-balanced",
+   "q": "?clip=1&preset=balanced&drift=0&intro=0",
+   "note": "the fallback preset",
+   "state": {
+    "preset": "balanced",
+    "renderScale": 1,
+    "viewDist": 700,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -202,
+     "y": 1404,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 116.5
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "05-performance",
+   "q": "?clip=1&preset=performance&drift=0&intro=0",
+   "note": "what the probe downgrades to",
+   "state": {
+    "preset": "performance",
+    "renderScale": 0.75,
+    "viewDist": 350,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -202,
+     "y": 1404,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 116.5
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "06-p92",
+   "q": "?clip=1&preset=cinematic&p=0.92&drift=0&intro=0",
+   "note": "night",
+   "state": {
+    "preset": "cinematic",
+    "renderScale": 1,
+    "viewDist": 1100,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.92,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -1219,
+     "y": 2707,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 107.4
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "07-p62",
+   "q": "?clip=1&preset=cinematic&p=0.62&drift=0&intro=0",
+   "note": "dusk",
+   "state": {
+    "preset": "cinematic",
+    "renderScale": 1,
+    "viewDist": 1100,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.62,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -1219,
+     "y": 2707,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 107.4
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "08-shot",
+   "q": "?clip=1&preset=cinematic&shot=tower&drift=0&intro=0",
+   "note": "THE BRIEF IS WRONG: ?shot= does not exist",
+   "state": {
+    "preset": "cinematic",
+    "renderScale": 1,
+    "viewDist": 1100,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -1219,
+     "y": 2707,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 107.4
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "09-walk",
+   "q": "?walk=1&drift=0&intro=0",
+   "note": "walking directions on",
+   "state": {
+    "preset": "balanced",
+    "renderScale": 1,
+    "viewDist": 700,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "shown",
+     "hint": "shown",
+     "tod": "shown",
+     "todPlay": "shown",
+     "gear": "shown",
+     "feedback": "shown",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 14,
+    "walkBtn": "shown",
+    "walkSheet": "shown",
+    "walkPill": "hidden",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 6,
+     "drawn": 0,
+     "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+    },
+    "towerPx": {
+     "x": -202,
+     "y": 1404,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 116.5
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "10-deeplink",
+   "q": "?clip=1&preset=cinematic&from=JES&to=WEL&fit=1&drift=0",
+   "note": "route deep link",
+   "state": {
+    "preset": "cinematic",
+    "renderScale": 1,
+    "viewDist": 1100,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "wf-routed",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 14,
+    "walkBtn": "hidden",
+    "walkSheet": "hidden",
+    "walkPill": "hidden",
+    "wfHeadline": "6-8 min walk · 530 m · No stairs on this route",
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 31,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": 643,
+     "y": 228,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.23,
+     "b": 2.5,
+     "p": 71.5,
+     "lat": 30.28131,
+     "lng": -97.73966
+    },
+    "alt": 149.2
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "11-debug",
+   "q": "?debug=1&drift=0&intro=0",
+   "note": "engineering panel — not for filming",
+   "state": {
+    "preset": "balanced",
+    "renderScale": 1,
+    "viewDist": 700,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "shown",
+     "hint": "shown",
+     "tod": "shown",
+     "todPlay": "shown",
+     "gear": "shown",
+     "feedback": "shown",
+     "joystick": "hidden",
+     "debug": "shown",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "shown",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 6,
+     "drawn": 0,
+     "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+    },
+    "towerPx": {
+     "x": -202,
+     "y": 1404,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 116.5
+   },
+   "pageerrors": []
+  },
+  {
+   "id": "12-intro0",
+   "q": "?clip=1&preset=cinematic&intro=0&drift=0",
+   "note": "skip the opening flight",
+   "state": {
+    "preset": "cinematic",
+    "renderScale": 1,
+    "viewDist": 1100,
+    "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+    "photoBody": "",
+    "ui": {
+     "hud": "hidden",
+     "hint": "hidden",
+     "tod": "hidden",
+     "todPlay": "shown",
+     "gear": "hidden",
+     "feedback": "hidden",
+     "joystick": "hidden",
+     "debug": "hidden",
+     "credit": "shown"
+    },
+    "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+    "walkEls": 0,
+    "walkBtn": "ABSENT",
+    "walkSheet": "ABSENT",
+    "walkPill": "ABSENT",
+    "wfHeadline": null,
+    "debugPanel": "hidden",
+    "gfxPanel": "hidden",
+    "toast": "ABSENT",
+    "todP": 0.5,
+    "symbols": {
+     "total": 33,
+     "visible": 0,
+     "drawn": 0
+    },
+    "towerPx": {
+     "x": -1219,
+     "y": 2707,
+     "w": 1283,
+     "h": 643
+    },
+    "cam": {
+     "z": 16.5,
+     "b": -110,
+     "p": 74,
+     "lat": 30.2857,
+     "lng": -97.7434
+    },
+    "alt": 107.4
+   },
+   "pageerrors": []
+  }
+ ],
+ "keys": {
+  "before": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "shown",
+    "hint": "shown",
+    "tod": "shown",
+    "todPlay": "shown",
+    "gear": "shown",
+    "feedback": "shown",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 7,
+    "drawn": 0,
+    "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+   },
+   "towerPx": {
+    "x": -1219,
+    "y": 2707,
+    "w": 1283,
+    "h": 643
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 107.4
+  },
+  "p_1": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "hidden",
+    "hint": "hidden",
+    "tod": "hidden",
+    "todPlay": "shown",
+    "gear": "hidden",
+    "feedback": "hidden",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 0,
+    "drawn": 0
+   },
+   "towerPx": {
+    "x": -1219,
+    "y": 2707,
+    "w": 1283,
+    "h": 643
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 107.4
+  },
+  "p_2": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "shown",
+    "hint": "shown",
+    "tod": "shown",
+    "todPlay": "shown",
+    "gear": "shown",
+    "feedback": "shown",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 7,
+    "drawn": 0,
+    "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+   },
+   "towerPx": {
+    "x": -1219,
+    "y": 2707,
+    "w": 1283,
+    "h": 643
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 107.4
+  },
+  "g_1": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "gfx-open",
+   "ui": {
+    "hud": "shown",
+    "hint": "shown",
+    "tod": "shown",
+    "todPlay": "shown",
+    "gear": "shown",
+    "feedback": "shown",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "shown",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 7,
+    "drawn": 0,
+    "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+   },
+   "towerPx": {
+    "x": -1219,
+    "y": 2707,
+    "w": 1283,
+    "h": 643
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 107.4
+  },
+  "g_2": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "shown",
+    "hint": "shown",
+    "tod": "shown",
+    "todPlay": "shown",
+    "gear": "shown",
+    "feedback": "shown",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 7,
+    "drawn": 0,
+    "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+   },
+   "towerPx": {
+    "x": -1219,
+    "y": 2707,
+    "w": 1283,
+    "h": 643
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 107.4
+  },
+  "r_1": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "shown",
+    "hint": "shown",
+    "tod": "shown",
+    "todPlay": "shown",
+    "gear": "shown",
+    "feedback": "shown",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 7,
+    "drawn": 0,
+    "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+   },
+   "towerPx": {
+    "x": -1219,
+    "y": 2707,
+    "w": 1283,
+    "h": 643
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 107.4
+  },
+  "t_1": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "shown",
+    "hint": "shown",
+    "tod": "shown",
+    "todPlay": "shown",
+    "gear": "shown",
+    "feedback": "shown",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 7,
+    "drawn": 0,
+    "err": "Error: Out of bounds. Index requested n=0 can't be >= this._"
+   },
+   "towerPx": {
+    "x": -133,
+    "y": 484,
+    "w": 1283,
+    "h": 643
+   },
+   "cam": {
+    "z": 16.6,
+    "b": 164,
+    "p": 73,
+    "lat": 30.28388,
+    "lng": -97.74148
+   },
+   "alt": 106.4
+  }
+ },
+ "reset": {
+  "1600x1000": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "hidden",
+    "hint": "hidden",
+    "tod": "hidden",
+    "todPlay": "shown",
+    "gear": "hidden",
+    "feedback": "hidden",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 0,
+    "drawn": 0
+   },
+   "towerPx": {
+    "x": 516,
+    "y": 864,
+    "w": 1600,
+    "h": 1000
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 167.1
+  },
+  "1600x720": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "hidden",
+    "hint": "hidden",
+    "tod": "hidden",
+    "todPlay": "shown",
+    "gear": "hidden",
+    "feedback": "hidden",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 0,
+    "drawn": 0
+   },
+   "towerPx": {
+    "x": 102,
+    "y": 1256,
+    "w": 1600,
+    "h": 720
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 120.3
+  },
+  "1600x620": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "hidden",
+    "hint": "hidden",
+    "tod": "hidden",
+    "todPlay": "shown",
+    "gear": "hidden",
+    "feedback": "hidden",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 0,
+    "drawn": 0
+   },
+   "towerPx": {
+    "x": -3596,
+    "y": 5949,
+    "w": 1600,
+    "h": 620
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 103.6
+  },
+  "1920x540": {
+   "preset": "cinematic",
+   "renderScale": 1,
+   "viewDist": 1100,
+   "saved": "{\"austin3d.gfx.v1\":\"{\\\"renderScale\\\":1,\\\"msaa\\\":false,\\\"bloom\\\":0.4,\\\"godRays\\\":0.5,\\\"flare\\\":0.3,\\\"dof\\\":0,\\\"exposure\\\":1.03,\\\"contrast\\\":1.06,\\\"saturation\\\":1,\\\"filmic\\\":0.65,\\\"vignette\\\":1,\\\"autoExposure\\\":true,\\\"grain\\\":0,\\\"renderDistance\\\":700,\\\"ao\\\":true,\\\"shadows\\\":true,\\\"clouds\\\":1,\\\"stars\\\":1,\\\"fov\\\":58,\\\"treeDensity\\\":0.675,\\\"outerDensity\\\":1,\\\"preset\\\":\\\"balanced\\\",\\\"autoDetected\\\":false,\\\"rev\\\":2}\"}",
+   "photoBody": "",
+   "ui": {
+    "hud": "hidden",
+    "hint": "hidden",
+    "tod": "hidden",
+    "todPlay": "shown",
+    "gear": "hidden",
+    "feedback": "hidden",
+    "joystick": "hidden",
+    "debug": "hidden",
+    "credit": "shown"
+   },
+   "creditText": "OpenFreeMap © OpenMapTiles Data from OpenStreetMap",
+   "walkEls": 0,
+   "walkBtn": "ABSENT",
+   "walkSheet": "ABSENT",
+   "walkPill": "ABSENT",
+   "wfHeadline": null,
+   "debugPanel": "hidden",
+   "gfxPanel": "hidden",
+   "toast": "ABSENT",
+   "todP": 0.5,
+   "symbols": {
+    "total": 33,
+    "visible": 0,
+    "drawn": 0
+   },
+   "towerPx": {
+    "x": 1906,
+    "y": -943,
+    "w": 1920,
+    "h": 540
+   },
+   "cam": {
+    "z": 16.5,
+    "b": -110,
+    "p": 74,
+    "lat": 30.2857,
+    "lng": -97.7434
+   },
+   "alt": 90.2
+  }
+ }
+}

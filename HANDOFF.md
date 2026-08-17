@@ -23046,6 +23046,7 @@ repository root. Grepped first: the **only** mention anywhere in the tree is the
 HANDOFF note that found it. Deleted, and `.gitignore` now carries it with the
 reason, so redirecting the server's output there again cannot re-commit it.
 
+
 ## 166. Aug 17 2026 — the trees were diagnosed, refused, and the reason turned out to be that a bake cannot reach them at all (QUEUE R6) (acer lane, branch `acer/r6-trees`, docs+shots only)
 
 **Nothing in the app changed.** No `js/`, no `data/`, no bake script, no tile
@@ -23123,3 +23124,85 @@ the nine frames the recommendation rests on (18 MB; the other 18 stayed on disk)
 * Two sibling lanes ran throughout. The collision numbers are behavioural and
   load does not move them, but the ~4 fps seen during one 11-second walk probe
   is **not** a frame-rate finding and must not be quoted as one.
+---
+
+## 167. Aug 17 2026 — the three things nobody had driven before the AWS shoot: the plain opening, a real walk, and every URL in the brief (acer lane, branch `acer/aws-gaps`, docs only)
+
+The rehearsal returned GO and was honest that five things were unestablished.
+This pass closed three of them by driving the **live site**, corrected the
+recording brief line by line, and put a one-hand checklist at the top of
+`docs/aws/go-nogo.md`. **No app file was touched.** Everything ran from a
+throwaway worktree off `origin/main`; the five measurement scripts
+(`aws-opening`, `aws-lift`, `aws-walk`, `aws-brief-check`, `aws-keys`,
+`aws-drift`) lived in that worktree and went with it.
+
+**Instrument, stated before the findings.** Headed Chrome, real GPU
+(`ANGLE (NVIDIA GeForce RTX 3050 Ti Laptop, D3D11)`), clean profile — playwright's
+own fresh temp profile, no extensions, no cache, no saved preset. Machine quiet
+at the start: **CPU 2.8%, 11 chrome processes (the user's own), 0 node.** No
+local server was ever started; every reading is `https://flyover-utx.vercel.app/`.
+`harness-drift.mjs` PASS (29 = 29 scripts) before anything else.
+
+### What changed in the two documents
+
+1. **`?shot=` — the rehearsal's fifth gap needs a correction of its own.** The
+   *go-nogo* raised it; **`RECORDING-BRIEF.md` never claimed it existed** and
+   correctly said there is no way to link to a camera position. Driven anyway:
+   `?clip=1&preset=cinematic&shot=tower` produces a page indistinguishable from
+   the same URL without it. Both files now say so where he will see it.
+2. **The graphics toast did not fire** in five clean plain loads — the probe
+   measured 18.0 ms (56 fps) every time and kept Balanced against a 21.5 ms
+   downgrade threshold. `?preset=cinematic` is kept anyway, re-argued as
+   insurance against the screen recorder's own unmeasured load.
+3. **`?clip=1` now hides every label** — 0 of 33 symbol layers visible, 0 drawn,
+   against 7 / 11 plain. Q3 item 2 of the brief ("the one you cannot switch
+   off") is obsolete for anything recorded in clip mode.
+4. **The brief's `drift=0` warning was backwards.** It filed it with `tiles=0`
+   and `haze=0` as "switches parts of the city off, do not use for filming".
+   It switches nothing off; it disables the idle cinema. Driven, 75 s of input
+   silence: **no flag → 59° of bearing rotation and the hour slid 0.50 → 0.55;
+   `drift=0` → zero on all three axes.** This is the correction most likely to
+   save a take.
+5. **`R` is not shape-dependent in the way the go-nogo implied.** It restores an
+   identical pose every time (zoom 16.5, bearing −110°, pitch 74°,
+   30.2857 / −97.7434). The window is the variable, because altitude is derived
+   from canvas height: Tower 86% down at 1600×1000, 99% at 16:9, **out of frame
+   at 1600×860 and shorter, and completely absent at 1600×720.** Instruction is
+   now "make the window 16:10 or taller".
+6. **Every keystroke re-driven.** `P` toggles `clip` on `<html>` and back, credit
+   stays; `G` opens/closes the panel; `T` starts the tour; `R` as above.
+
+### The two new findings
+
+* **A two-second smear opens the plain URL.** At the instant the title card
+  lifts, a ragged dark band lies across the faces of the downtown towers at the
+  horizon line. Gone by 3.1 s, never returns. Reproduced on a dense re-shoot.
+  `shots/gaps/opening/lift-a-p00-0ms.jpg`, `-p03-1196ms.jpg`, `-p06-3083ms.jpg`.
+  **Not diagnosed** — only reproduced and timed.
+* **The walking feature works on the deployed site.** Six routes typed the way a
+  student types them, zero JS errors: `JES→GDC` 5-8 min / 470 m; Castilian→`RLP`
+  13-19 min *Tight for a 15-minute passing period*; `PCL→GUG` 11-15 min *Tight*;
+  Dobie→`WEL` 8-12 min *Stairs: 1 set*; Castilian→`HTB` 20-29 min *Longer than a
+  15-minute passing period*; `JES→ACS` **"ACS is not walkable in this build
+  yet"** with the old route cleared and the honesty captions intact. Two of the
+  six end at buildings that only started routing this week (`RLP`, `HTB`) and
+  both routed cleanly. Route compute 1.7–4.1 ms.
+  * **`shots/gaps/walk/E-altitude.jpg` is the best frame this pass produced.**
+  * **Walking height is where the ribbon shines** — the one exception to "no
+    eye-level footage in this video".
+  * **A route through the campus core fragments from altitude**
+    (`B-altitude.jpg`): roofs and canopies swallow the line.
+  * **`?clip=1` hides the answer pill**, so the deep link draws a ribbon with no
+    caption (`shots/gaps/brief/10-deeplink.jpg`).
+
+### What this pass did NOT establish
+
+* **No frame rate was re-measured.** Every timing number in `go-nogo.md` is
+  still §162's, taken on a busy machine, and is a floor not a ceiling.
+* **The screen recorder's own cost is still unmeasured** — which is precisely
+  why the preset flag survives a probe that did not fire.
+* **The smear was not diagnosed.** Nobody knows what draws it.
+* **Nothing about the phone changed.** The six routes were driven at 1600×1000
+  only; real iOS Safari still cannot be tested from here.
+* **The walk ran on a quiet machine with a warm graph.** Cold-and-busy is unknown.
+
