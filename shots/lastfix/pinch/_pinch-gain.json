@@ -37,7 +37,9 @@
      "eye_actually_reached_m": 86.667, "eye_ratio": 4.333,
      "_note": "no building inside the probe radius, so no snap - the clean case" }
   ],
-  "_status": "NOT FIXED, deliberately. It is a safety guarantee (never inside a building), one-way, and it fires identically for Q and the wheel. Recorded as QUEUE R6.",
+  "_status": "NOT FIXED, deliberately. It is a safety guarantee (never inside a building) and one-way. Recorded as QUEUE R6.",
+  "_read_not_driven": "That Q and the wheel behave identically follows from the net sitting in the tick downstream of where vertKey, wheelLogAcc and touchLogAcc all fold into one L - but ONLY THE PINCH WAS DRIVEN. Drive Q before quoting it.",
+  "_not_a_contradiction_with_collision_mjs": "collision.mjs 8/8 passes on this tree including 'flying into the tallest tower stops outside it, not inside' (approached from 140 m at alt 40 m, ended 12 m away). That gate covers the HORIZONTAL approach, which brakes. R6 is the VERTICAL ascent beside a building, which lifts.",
   "_for_the_recording": "ascending from street level within ~6 m of a tall building jumps to roof + 4 m instead of climbing smoothly. Ascend from open ground, or from above 12 m, and it does not happen."
  },
 

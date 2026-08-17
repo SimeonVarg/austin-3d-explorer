@@ -1515,13 +1515,23 @@ At 1.70 m the probe radius is **1 m** and the lawn is empty — `roofAt(...,1) =
 Climb past `ALT_GROUND` (12 m) and the radius lerps out to **6 m**, which now
 contains the **94 m** Main Building — `roofAt(...,6) = 94` — so the net fires and
 teleports the eye to `94 + HARD_CLEAR(4) = 98 m`, then higher as the radius keeps
-opening. Measured at three sites: open ground (roof 0 inside 6 m) gives exactly
-4.33x with no snap; the South Mall (roof 94 m inside 6 m) gives 73.66x.
+opening. **Two clean sites**, and they bracket it: open ground
+(`-97.7280,30.2830`, roof 0 inside 6 m) gives exactly **4.33x with no snap**;
+the South Mall (roof 94 m inside 6 m) gives **73.66x**. A third site was driven
+on the Drag but its start altitude was contaminated by the previous rep, so it
+is not quoted.
 
 **It is a safety guarantee — "never inside a building" — not a feel bug, and it
-is one-way (it never drops you into a wall).** It also predates every touch
-gesture and fires identically for `Q` and the wheel, so it is not the touch
-lane's to fix.
+is one-way (it never drops you into a wall).** `collision.mjs` 8/8 passes on
+this same tree, including *"flying into the tallest tower stops outside it"* —
+that gate covers the HORIZONTAL approach, which brakes; this is the VERTICAL
+ascent beside a building, which lifts. Different case, not a contradiction.
+
+**Read, not driven:** the claim that `Q` and the wheel do this identically is
+from the code — the net is in the tick, downstream of where `vertKey`,
+`wheelLogAcc` and `touchLogAcc` are all folded into the same `L` — **and it was
+not measured.** Only the pinch was driven. Whoever picks R6 up should drive `Q`
+first and confirm it before quoting that sentence.
 
 **FOR THE RECORDING:** if the camera ascends from street level *within ~6 m of
 a tall building*, expect a jump to roof + 4 m rather than a smooth climb. Ascend

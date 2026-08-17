@@ -71,8 +71,17 @@ then further as the radius keeps opening. Confirmed by site:
 | intramural fields | 0 | 0 | 1.4663 (4.33x) | **4.33x** (clean) |
 
 **This is a safety guarantee doing its job** — "never inside a building", one-way,
-and it fires identically for `Q` and the wheel, so it is not the touch lane's and
-it long predates the gesture. **Not fixed, on purpose, hours before a recording.**
+and it long predates the gesture. `collision.mjs` 8/8 passes on this same tree
+including *"flying into the tallest tower stops outside it"*: that gate covers the
+**horizontal** approach, which brakes at 12 m out; this is the **vertical** ascent
+beside a building, which lifts. Different case, not a contradiction.
+
+**One sentence here is read, not driven, and is labelled so in QUEUE R6:** that
+`Q` and the wheel do this identically follows from the net sitting in the tick
+downstream of where `vertKey`, `wheelLogAcc` and `touchLogAcc` all fold into one
+`L` — **but only the pinch was actually driven.** Drive `Q` before quoting it.
+
+**Not fixed, on purpose, hours before a recording.**
 Written up as **QUEUE R6** with the one practical consequence: *if the camera
 ascends from street level within ~6 m of a tall building it will jump to roof +
 4 m instead of climbing smoothly.* Ascend from open ground, or from above 12 m,
@@ -81,10 +90,28 @@ change tonight.
 
 ### 3. Gates, on the merged tree
 
-`movement.mjs` **14/14 PASS** (`VERIFY_MAX_MS=900000` — the stock 300 s watchdog
-killed it twice on a machine carrying 26 sibling Chrome processes at 34 % CPU;
-that is the instrument's ceiling, not a regression, and raising it is what
-`chrome.mjs:124` says to do). `harness-drift.mjs` PASS 29/29.
+| gate | result |
+|---|---|
+| `harness-drift.mjs` | **PASS** — 29 scripts in `index.html`, 29 in `_harness.html` |
+| `movement.mjs` | **14/14 PASS** |
+| `collision.mjs` | **8/8 PASS** |
+| `motion-feel.mjs` | **20/20 PASS** |
+
+**All of them needed `VERIFY_MAX_MS=900000`.** The stock 300 s watchdog killed
+`movement.mjs` twice and `collision.mjs` once on a machine carrying **26 sibling
+Chrome processes at 34 % CPU** (a neighbouring lane was running `aws-load.mjs`
+throughout). That is the instrument's ceiling on a busy box,
+not a regression — `chrome.mjs:124` says to pass `VERIFY_MAX_MS` and not to
+remove the watchdog, which is what was done. **No number here is a timing claim**;
+these are pass/fail behaviour gates and a loaded machine does not change their
+verdicts, only how long they take.
+
+`collision.mjs` is worth reading next to R6 rather than against it: its
+*"flying into the tallest tower stops outside it, not inside"* (tower 94 m,
+approached from 140 m at alt 40 m, **ended 12 m away**) and *"it brakes rather
+than riding an elevator over the top"* both cover the **horizontal** approach.
+R6 is the **vertical** ascent from beside the same building. Two different
+branches of the same guarantee, and both behave as designed.
 
 **The hint text was re-read and still tells the truth.** `"...swipe to look |
 two fingers for altitude"` — it states no direction, so it was never a lie and
@@ -110,10 +137,15 @@ real finger on a real phone.
 `roofAt()` numbers at three sites, not from pixels; I did not shoot a
 before/after of a camera being teleported onto the Tower.
 
-**`collision.mjs` and `motion-feel.mjs` did not finish** — see the closing note
-in §164's PR; both were still running against the 900 s ceiling when this was
-written. Neither can regress from this branch (no `js/` change), but neither is
-a fresh green tick from me.
+**No perf number was taken and none should be read into §3.** All four gates are
+pass/fail behaviour gates. The machine was busy for the whole pass and every run
+needed the watchdog raised; that says nothing about the app's speed and this
+section makes no speed claim.
+
+**The `?clip=1` recording mode was not re-driven**, nor the intro, tour or
+flyover. They are untouched by construction — no file the app loads changed —
+which is a stronger argument than a screenshot, but it is an argument from the
+diff and not from pixels, and it is worth saying which one this is.
 
 ## 97. Aug 5 2026 — what `data/entrances.geojson` costs, measured (QUEUE W3) (acer lane)
 
