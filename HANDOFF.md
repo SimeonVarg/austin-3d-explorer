@@ -22899,3 +22899,149 @@ app loads is touched, and the bake was proved feature-for-feature identical to
 what `main` ships with the rule off. `BURIED_DOOR_CLEAR_M` was chosen from the
 gap in the measured distribution, not from a photograph of a real doorway. The
 walk graph was not re-baked, correctly, because no door moved.
+
+---
+
+## 165. Aug 17 2026 — the seam across the sky is the horizon, it is in every frame, and the only knob that closes it dissolves the city (QUEUE S3) (acer lane, branch `acer/s3-seam`)
+
+**Branch:** `acer/s3-seam`. **No rendering code was changed.** Everything below
+was measured against the **live site** `https://flyover-utx.vercel.app/` with
+`?clip=1&preset=cinematic&drift=0&intro=0`, 1600x1000, SwiftShader, auto-detect
+cancelled. Scripts: `scripts/verify/seam.mjs`, `seam-where.mjs`, `seam-tour.mjs`.
+Pictures: `shots/seam/`. Write-up for Simeon: `docs/aws/seam.md`.
+
+### THE VERDICT: NOT FIXED, AND THAT IS THE RIGHT ANSWER
+
+`docs/aws/go-nogo.md` item 3 — "the very wide has a hard line drawn across the
+sky". It is real. It is **the horizon**. It is **in every frame the app draws**,
+at the same size, and the reason nobody had reported it anywhere but the wide is
+that everywhere else there is a city in front of it.
+
+### The first hypothesis was the right one to have and it was wrong
+
+The brief said to check `#fx-dof` first, because this repo has answered a
+"horizon line" complaint twice and both times it was a screen-row element —
+`#fx-dof` (a CSS blur band pinned to a fixed row, turned off by PR #116) and the
+old `#haze` DOM bar (`horizon-probe.mjs`, replaced by the depth fog). **Neither
+is the answer, and the knockout says so with a number rather than an argument:
+hiding the entire `#sky` stack — `#sky-canvas`, `#sky-ground-haze`, `#sky-glow`,
+`#sky-bloom`, `#sky-core` — moved ZERO pixels of the frame.** `#fx-dof` is
+`display:none`, height 0, as `js/graphics.js` documents. Every knockout in
+`seam.mjs` reports its own pixel count for exactly this reason: §48's ledger says
+a wrong instrument reading zero has the same shape as a fixed defect.
+
+### It is on the geometric horizon, and two independent derivations agree
+
+Solve the camera for where the horizon lands and one focal length falls out of
+**seven** pitches (60/66/70/72/74/76/79): **708 ± 1.2 px** at H=1000. Every seam
+row found is the row that focal length predicts, to within 1 px. Independently,
+`banding.mjs` computes `hz = 0.5 - 0.5·tan(90-pitch)/tan(fov/2)` and gives
+**362.4** at pitch 79; the step is at **362**. A screen-row artefact does not
+move with pitch. This does. It is a horizon — a hard one.
+
+### Why it is hard, and the arithmetic that closes
+
+Above the line the sky is `horizon-color`. Below it the ground fades toward
+`fogColour()` = `mix(horizon-color, sky-color, HAZE.SKY_MIX)` and only reaches
+`HAZE.MAX` of the way — 0.58 at golden. The other 42% is raw tan showing
+through. At the wide, x=800: row 361 `#fead4d`, row 362 `#e7a25c`. With the fog
+off the two sides are `#ffc04c` over `#cc9f6e`; **0.42 of that gap is, to the
+pixel, the step you see.**
+
+Both constants behave as doses, which is what makes it a mechanism and not a
+story. Noise floor first: **two captures of the same page differ by 0 pixels.**
+
+```
+                                     step at the horizon   pixels moved (of 1,600,000)
+shipped                                    49.9                    --
+HAZE_TUNE.SKY_MIX  0.22 -> 0               35.2               1,572,232
+HAZE_TUNE.SKY_MIX  0.22 -> 0.5             57.4               1,572,055
+HAZE_TUNE.MAX.golden 0.58 -> 1.0            1.2               1,573,794
+fog off entirely                          113.8               1,572,111
+the whole DOM #sky stack hidden            49.9 (unchanged)           0
+sky-horizon-blend 0.86 -> 0.3              49.2               1,595,494
+```
+
+### Why it was refused
+
+The bar was "provably invisible everywhere else". **Every knob that moves the
+seam moves 98% of the frame** — the haze IS the far field. The one that closes
+it outright, `MAX` → 1.0, also **dissolves downtown into fog**
+(`shots/seam/wide-hazemax-1.0.jpg` against `wide-shipped.jpg`; that pair is the
+whole argument). A narrower fix — ramping the ground quad's alpha toward 1 only
+in the last rows before the horizon — is a `js/sky.js` shader change on a file
+rewritten 48 hours ago, and its blast radius is the horizon band of every frame
+in a golden-hour video. It cannot clear the bar. Nobody has rendered it, so
+"it would be visible" is an argument, not a measurement, and it is filed as such.
+
+**The four sky guards were run anyway, on unmodified `main`, served from a
+throwaway worktree on 8591:** `sky.mjs` 12/12; `dusk.mjs` PASS, 0 unexcused of
+60 transitions; `night-silhouette.mjs` PASS, night separation 22.5 and dusk 23.5
+against a bar of +8; `banding.mjs` PASS, 9 of 9 across day/golden/night.
+
+**Then two of them went red, three reps each, and it was the machine — proved
+rather than assumed.** After rebasing onto `origin/main` (which had moved),
+`sky.mjs` came back 10/12 with two SHADOW assertions failing and
+`night-silhouette` failed its dusk column, repeatably. The branch changes no
+file the app loads, so the first step was to stop reasoning and measure: a
+pristine `origin/main` worktree was served on 8592 alongside this one on 8591,
+and **every served app file — `index.html`, `style.css`, `_harness.html`, all 27
+scripts, `entrances.geojson`, `walk_graph.json` — hashes identical across the
+two ports.** Pristine came back 12/12 and PASS. Then, with the box quieter (20
+Chrome processes instead of 28), **8591 itself came back 12/12 twice and
+night-silhouette PASS**, interleaved 8591 / 8592 / 8591. Same bytes, opposite
+verdicts, and the difference tracked the load — which is `sky.mjs`'s own
+documented failure mode (its header records the same assertion reading 4.82 deg,
+1.20 deg and clean on one build). Final state of the merged tree: **sky 12/12,
+dusk PASS, night-silhouette PASS, banding 9/9.** Nothing was merged red; the red
+was the ruler, again.
+
+### Where it shows — the rule, not a feeling
+
+The step never changes size. What changes is whether there is a city in front of
+it. "Spread" is the luma standard deviation across the width in the six rows
+under the line.
+
+```
+z13.9 pitch 79 (the wide)  ~600 m   step 14.0   spread  5.8   <- a drawn line
+z13.9 pitch 84             ~600 m   step 14.2   spread  6.7   <- a drawn line
+z14.6 pitch 79             ~370 m   step 14.1   spread  6.2   <- a drawn line
+z15.3 pitch 79             ~230 m   step 13.0   spread 14.7      the horizon
+z16.0 pitch 79             ~140 m   step 13.5   spread 18.1      the horizon
+z16.5 pitch 74 (home)      ~140 m   step 14.6   spread 22.9      the horizon
+```
+
+By hour at the wide: **daylight is worst (22.6 luma)**, golden 13.8, night 14.3.
+
+### The tour cannot show it, and that was checked rather than assumed
+
+The 60-second tour is the clip most likely to carry the video and it flies
+itself, so "don't hold a high wide" is advice nobody can follow while it runs.
+Traced twice, from the page's own t=0: **the zoom stays between 16.5 and 17.1
+for the entire minute and never once goes above z14.6.** Its highest moment is
+the home pose, step 15.7 against a spread of 22.9.
+
+**The first cut of that trace was wrong and reported a camera that never
+moved.** It started sampling after `networkidle` and the source waits, by which
+time `performance.now()` read 136 s — the 60-second tour had been over for more
+than a minute. **A tour that already finished and a tour that never ran produce
+the identical trace.** The fix is an init script so t=0 is the page's t=0, and
+the reason is written into the file. The honest caveat is still there: the tour
+starves a 500 ms timer, so the two runs are 21 samples over 123 s with gaps of
+up to 22.5 s, and a brief climb inside a gap would have been missed.
+
+### The gap nobody had noticed
+
+**Nothing in the suite watches this join.** `banding.mjs` samples the sky column
+from `hz - 0.14` to `hz - 0.01` — it deliberately stops 1% of frame height short
+of the horizon, so a change to the fog could move this line and every gate would
+stay green. That is a scope boundary rather than a Y20-style allowance left
+behind after a fix, but it is a hole, and `seam-where.mjs` already computes the
+assertion that would close it. QUEUE **S3** item 1.
+
+### Second job: `_serve.log` is gone
+
+860 KB of stderr from an old `python scripts/serve.py` run, tracked at the
+repository root. Grepped first: the **only** mention anywhere in the tree is the
+HANDOFF note that found it. Deleted, and `.gitignore` now carries it with the
+reason, so redirecting the server's output there again cannot re-commit it.

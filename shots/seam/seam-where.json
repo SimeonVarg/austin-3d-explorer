@@ -1,0 +1,63 @@
+{
+  "url": "https://flyover-utx.vercel.app/?clip=1&preset=cinematic&drift=0&intro=0",
+  "W": 1600,
+  "H": 1000,
+  "focalPx": 708.2,
+  "cases": [
+    {
+      "tag": "Q-z13.9-p79",
+      "pitch": 79,
+      "zoom": 13.9,
+      "predictedRow": 362.3,
+      "foundRow": 362,
+      "stepLuma": 13.99,
+      "spreadBelow": 5.82
+    },
+    {
+      "tag": "Q-z14.6-p79",
+      "pitch": 79,
+      "zoom": 14.6,
+      "predictedRow": 362.3,
+      "foundRow": 362,
+      "stepLuma": 14.09,
+      "spreadBelow": 6.21
+    },
+    {
+      "tag": "Q-z15.3-p79",
+      "pitch": 79,
+      "zoom": 15.3,
+      "predictedRow": 362.3,
+      "foundRow": 362,
+      "stepLuma": 12.95,
+      "spreadBelow": 14.7
+    },
+    {
+      "tag": "Q-z16.0-p79",
+      "pitch": 79,
+      "zoom": 16,
+      "predictedRow": 362.3,
+      "foundRow": 362,
+      "stepLuma": 13.48,
+      "spreadBelow": 18.09
+    },
+    {
+      "tag": "Q-z16.5-p74",
+      "pitch": 74,
+      "zoom": 16.5,
+      "predictedRow": 296.9,
+      "foundRow": 297,
+      "stepLuma": 14.58,
+      "spreadBelow": 22.92
+    },
+    {
+      "tag": "Q-z13.9-p84",
+      "pitch": 84,
+      "zoom": 13.9,
+      "predictedRow": 425.6,
+      "foundRow": 426,
+      "stepLuma": 14.16,
+      "spreadBelow": 6.67
+    }
+  ],
+  "errors": []
+}
