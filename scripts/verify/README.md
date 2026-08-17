@@ -244,6 +244,34 @@ by hand: it pairs features **within one document**. Campus storey trim lives in
 via `data/snapshots/<date>/buildings.detailed.geojson`, so a tie between them is
 invisible here. There are 55 such ties. `zfight.mjs` is the instrument for that.
 
+### `doorstack.mjs` — the third instrument, and why the pair needed a third
+
+```bash
+node doorstack.mjs shots/close/y24 poses.json 345 621
+```
+
+A coplanar pair between two `entrances.geojson` features can be one of two
+completely different things, and **neither `coplanar.mjs` nor `zfight.mjs` can
+tell them apart**:
+
+* a step tread sharing a top plane with the cheek wall it sits beside — one
+  door, benign, and what HANDOFF §156 judged by looking; or
+* **two different buildings' front doors baked into the same doorway** — which
+  looks fine in a still, because the front one hides the back one.
+
+`doorstack.mjs` filters every `entrances-*` layer down to ONE `eid` at a time at
+one fixed camera, and reports how many pixels each door group is responsible for
+against an all-entrances-hidden control. **Two large arms over the same bounding
+box is the doubling.** That is what turned QUEUE Y24 from an argument about a
+number into a picture (`shots/close/y24/`), and it is why the coplanar baseline
+was NOT moved to 1655.
+
+Two traps it inherits and re-states in its own header: it must draw
+**only-this-eid**, not all-but-that-eid (the first cut counted every door in the
+viewport and returned 110,030 px over half the frame), and it must **re-pose
+outward like `doorwalk.mjs`** — a 15 m standoff inside the collision net's padded
+probe radius puts the camera on a roof while `__fly.eye().alt` still reads 1.70.
+
 ## Outer ring suite (added July 30 2026)
 
 - `node outer-check.mjs` — the outer ring is what `docs/OUTER_RING.md` claims
