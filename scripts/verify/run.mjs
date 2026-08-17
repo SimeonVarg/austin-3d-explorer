@@ -134,6 +134,14 @@ const CEILING_S = {
   'lookup-check': 1000,
   'perf-budget': 900,
   'field-bleed': 3600,
+  // Added after the first full run with this table: `walk` was ALSO killed at
+  // 300 s (exit 124), which §159 never saw because `walk` was not one of its
+  // five. Three sites of steered walking plus a WATCHED FAILURE that has to
+  // come back lifted is not a 300 s job.
+  'walk': 900,
+  // The A/B for QUEUE Y20: two arms x two notches plus four hero hours, each
+  // settled and read twice, on SwiftShader. 228 s measured.
+  'y20-handover': 600,
 };
 
 // One pass, so a flag's VALUE can never be mistaken for a script name — the
