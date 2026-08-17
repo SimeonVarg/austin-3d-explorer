@@ -23206,3 +23206,109 @@ local server was ever started; every reading is `https://flyover-utx.vercel.app/
   only; real iOS Safari still cannot be tested from here.
 * **The walk ran on a quiet machine with a warm graph.** Cold-and-busy is unknown.
 
+
+## 168. Aug 17 2026 — the opening "smear" is not a load artefact at all: it is the opening camera angle, and nothing was changed (AWS shoot morning) (acer lane, branch `acer/aws-smear`, read-only against the site)
+
+**Morning of the AWS recording. No app file was touched.** Files written:
+`scripts/verify/smear.mjs`, `smear2.mjs`, `smear3.mjs`, `ladder.mjs`,
+`pitchbracket.mjs`, the frames in `shots/smear/`, `docs/aws/go-nogo.md`, `QUEUE.md`
+and this section. Everything below was driven against the **live site**
+`https://flyover-utx.vercel.app/` in a headed Chrome on the real GPU.
+
+### The finding, in one line
+
+**The ragged dark band that tears across the downtown towers for ~2 s after the
+title card lifts is the intro's own start pose, not anything still loading.**
+`INTRO.start` in `js/app.js` is `center [-97.7420, 30.2680], zoom 16.2,
+pitch 78, bearing 5` — and that is exactly the pose the artefact lives at.
+
+### The four candidate causes in the brief, and how each died
+
+The overnight note guessed the family: "something is not ready yet." It is not.
+
+1. **The facade atlas mid-build** — no. The band is present on a page loaded
+   with `?intro=0`, left for 25 s, with `map.loaded()` and `areTilesLoaded()`
+   both true and the atlas release counter static.
+2. **A texture uploaded before its mipmaps** — same disproof.
+3. **A coarse tile stretched while a finer one streams** — same disproof, and
+   `areTilesLoaded()` was true through the whole frozen window.
+4. **The lazy entrances load landing mid-flight** — same disproof, plus hiding
+   the whole `entrances-*` family changes nothing in the band.
+
+**The disproof that does all four at once:** load `?intro=0&drift=0`, settle
+25 s, `jumpTo` the pose, shoot (`shots/smear/s-settled-A.jpg`). The tearing is
+there. Fly to another part of the city, come back, shoot again
+(`s-settled-C-returned.jpg`) — there again. **Two shots of the same held frame
+differ by 0.000 mean absolute difference**, so the instrument is silent and the
+artefact is not noise.
+
+### It is not any overlay either — the magenta/peel pass
+
+`smear2.mjs` pins the intro at the instant `#veil` gets `.lift` (see the trap
+below), then peels. At that frozen pose, hiding `#fx-canvas` (bloom / god rays /
+flare), `#sky`, `#vignette`, `#fx-grain` and `#fx-dof` **one at a time and then
+all five together** moves the band region by **0.00** mean absolute difference.
+The artefact is inside the WebGL canvas.
+
+Then the magenta mask (§48) over 17 fill-extrusion families at that pose. Only
+`outer-*` and `buildings-*` paint anything meaningful there, and the torn pixels
+themselves come back **`outer-tower`** (19.2% of that frame).
+`shots/smear/s-mag-outer-tower.jpg` is the picture: the magenta is *smeared
+horizontally across the band*, over the top of a nearer tower that is not
+magenta at all.
+
+And the complement: hiding the `buildings-*` family kills the tearing **while the
+towers stay standing** (`shots/smear/f2-C-hide-buildings.jpg`). So this is two
+overlapping copies of the same downtown towers losing the depth argument at a
+steep angle — the failure `js/app.js`'s own cap-lift comment already warns about
+("MapLibre's far plane at a flying pitch is kilometres away, so a fraction of a
+metre of separation at mid-distance can fall below the depth resolution").
+
+### Where it shows, driven as a ladder, one axis at a time
+
+| framing | tearing? |
+|---|---|
+| the opening pose, z16.2 pitch 78 bearing 5 | **yes, badly** |
+| same spot, pitch 74–79 | yes at every rung |
+| same spot, **pitch 70** and **pitch 60** | **no** |
+| the pose the opening flight lands on (z16.9 pitch 72) | **no** |
+| `R` home | **no** |
+| the 60-second tour (max pitch 75, never over downtown) | never visits it |
+
+So the trigger is a steep look-down over downtown. The two-second lifetime is
+just how long the flight spends tilted that far: pitch reads 78.0 at the lift and
+72.8 by 3.9 s, and the reference frame at 3083 ms is clean.
+
+### Why nothing was changed, on purpose
+
+The bar this morning is "small, understood, and provably invisible everywhere
+else". De-duplicating downtown geometry is a bake; reframing `INTRO.start` to a
+shallower pitch changes the opening shot and would need the whole opening
+re-watched with a camera about to roll. Neither qualifies. **Verdict: change
+nothing, and correct the avoidance line in `docs/aws/go-nogo.md` item 7** —
+because the old avoidance ("start the capture with the tab already loaded") was
+written on the wrong cause and does not work.
+
+### The trap that wasted a run, worth writing down
+
+**One `map.stop()` is not a freeze.** The intro's leg 1 resolves and immediately
+eases into leg 2, so the first peel pass photographed z16.9 over campus — a pose
+with nothing wrong in it — and would have reported "no overlay causes it, and no
+layer either". The fix is a repeating `stop() + jumpTo(P)` at ~90 ms, and every
+shot's log line now prints the pose so a drift cannot go unnoticed. All 29 shots
+of the good run read `z=16.2 pitch=78 bear=5`.
+
+**And the second trap: freezing the camera also freezes everything gated on the
+camera** — LOD tier, atlas tier, the entrances gate. That is exactly why the
+frozen run alone is not proof, and why the `?intro=0` + 25 s + `jumpTo` arm had
+to exist. Do not accept a freeze as evidence of "it never goes away" on its own.
+
+### Close-out state at the end of this pass
+
+* **The deploy still matches `origin/main` byte for byte: 29 of 29** —
+  `index.html`, `style.css` and all 27 scripts, sha256 against the blobs at the
+  tip. (The 30th `<link>` is MapLibre's own CSS on unpkg.)
+* `git diff --stat e10d591 origin/main -- js/ index.html style.css data/` is
+  still **empty**, so the rehearsal's fingerprint is still good.
+* `docs/aws/go-nogo.md` **is committed on `main`** and its top eight lines are
+  the one-hand list. It was checked, not assumed.

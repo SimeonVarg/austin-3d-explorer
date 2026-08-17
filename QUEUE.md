@@ -1,5 +1,33 @@
 # QUEUE — Acer lane
 
+## THE OPENING SMEAR — DIAGNOSED, NOT FIXED, AND THE OLD AVOIDANCE WAS WRONG (morning of Aug 17, HANDOFF §168)
+
+The dark band that tears across the downtown towers for about two seconds after
+the title card lifts **is not the app still loading.** Every "not ready yet"
+theory was tested against the live site and every one is wrong — it is not the
+facade atlas, not a missing mipmap, not a coarse tile, not the lazy door load.
+**It is the opening camera position.** The intro starts over downtown at a very
+steep look-down, and at that angle two overlapping copies of the same downtown
+towers stop being able to tell which is in front.
+
+Proof: load the site with the intro switched off, leave it 25 seconds until
+everything says finished, then move to that exact camera position — the tearing
+is there, and it is there again after flying away and coming back. Two shots of
+the same held frame differ by literally zero.
+
+**So "give it a moment before you record" does nothing.** What works: use the
+tour clip, which never goes near that angle; or start the recording three
+seconds late, because by then the camera has tilted down on its own. And know
+that tilting steeply back down over downtown by hand brings it straight back.
+
+**Nothing was changed.** The real fix is either a rebuild of a data file or a
+reframing of the opening shot, and neither is a thing to do on the morning of a
+shoot with the site verified GO. Pictures: `shots/smear/`. Left open as **Y25**:
+stop the outer-tower bake and the detailed buildings bake putting two copies of
+the same downtown towers in the same place.
+
+---
+
 ## THE MORNING OF THE SHOOT — read `docs/aws/go-nogo.md`, the list is at the top
 
 Overnight the three things the rehearsal admitted nobody had done were done, on

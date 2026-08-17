@@ -24,7 +24,14 @@
    this morning, six routes, on the live site. Then press **Show route ⤡**.
 7. **Two things not to hold:** anything above ~370 m (there is a hard line
    across the sky up there), and the first ~2 seconds after the title card
-   lifts on the plain URL (there is a smear across the downtown towers).
+   lifts on the plain URL — the downtown towers tear there. **It was diagnosed
+   this morning and it is NOT the page still loading**, so "give it a moment"
+   does nothing: it is the opening camera position itself, and it lasts exactly
+   as long as the camera sits at that steep a tilt. Open with the tour clip in
+   item 5 and you never go near it. If you use the plain opening anyway, start
+   the recording three seconds late — by then the camera has tilted down and it
+   is gone — **and don't tilt steeply back down over downtown by hand, because
+   that brings it straight back.** Full write-up below under THE TEARING.
 8. **`?shot=` does not exist.** There is no way to link to a camera position at
    all. Don't type one tomorrow — it is silently ignored and you lose the take.
 
@@ -315,6 +322,72 @@ Reproduced on a dense re-shoot of that window, so it is a finding, not a fluke.
 **How to avoid: start the capture with the tab already loaded, or cut the first
 two seconds. Or just use the tour, whose opening is over West Campus and does
 not have it.**
+
+> **DIAGNOSED 2026-08-17 morning, fourth Acer pass — and the guess above about
+> WHY was wrong, which changes the advice.** See **THE TEARING** below.
+
+---
+
+# THE TEARING — diagnosed, and nothing was changed
+
+*Fourth Acer pass, morning of the shoot. Everything below was driven against the
+**live site**, headed Chrome on the real GPU. **No app file was touched, nothing
+was merged into the site.** The pictures are in `shots/smear/`.*
+
+## What it is not
+
+Every theory in the overnight note was tested and every one is wrong. It is
+**not** the facade atlas warming up, **not** a texture waiting for its mipmaps,
+**not** a coarse tile stretched while a finer one streams in, and **not** the
+lazy door load landing mid-flight. It is also **not** any of the screen
+overlays: the bloom/god-ray canvas, the sky canvas, the vignette, the grain and
+the old distance blur were each switched off in turn and then all five together,
+at the exact frozen moment, and the band did not move by a single pixel.
+
+## What it is
+
+**It is the opening camera position.** The intro starts the camera over downtown
+at a very steep look-down, and at that angle two overlapping copies of the same
+downtown towers stop being able to tell which one is in front. The faces tear
+into ragged horizontal streaks and you can see the far city straight through a
+near tower.
+
+**The proof that settles it:** the page was loaded with the intro switched off,
+left alone for twenty-five seconds until everything reported finished, and only
+then moved to that exact camera position. **The tearing is there.** Fly away,
+come back, it is there again, identically — two shots of the same held frame
+differ by literally zero. So there is nothing to wait for. Frames:
+`shots/smear/s-settled-A.jpg`, `s-settled-C-returned.jpg`.
+
+**Why it looked like a two-second warm-up:** the opening flight starts at that
+steep angle and tilts down over the next few seconds. The tearing lasts exactly
+as long as the steep angle does. Freeze the camera there and it never goes away
+— `shots/smear/f2-A-t0000.jpg` and `f2-A-t8000.jpg` are eight seconds apart and
+carry the same band, and the frames at 2 s, 4 s and 8 s are pixel-for-pixel the
+same as each other.
+
+## Where it shows and where it does not
+
+Driven as a ladder around the offending position, one axis at a time:
+
+* **Steep tilt over downtown is the whole trigger.** At the opening angle it is
+  bad; tilt the camera down to a normal flying angle and it is completely gone
+  (`shots/smear/L-L-pitch70.jpg`, `L-L-pitch60.jpg`).
+* **The pose the opening flight lands on is clean** (`shots/smear/L-X-flight-end.jpg`).
+* **`R` home is clean** (`shots/smear/L-R-home.jpg`).
+* **The 60-second tour never goes near it** — it never gets that steep and never
+  sits over downtown.
+* It does come back at other spots over downtown if you hold the same steep
+  tilt, so it is worth knowing rather than forgetting.
+
+## Why nothing was changed
+
+The honest fix is to stop two copies of the downtown towers occupying the same
+space, which is a rebuild of a data file, or to make the opening start at a
+shallower angle, which reframes the opening shot and would need the whole
+opening re-watched. Neither is a thing to do with a camera about to roll on a
+site that is verified GO. **So: nothing was touched, and the avoidance is one
+line in item 7.**
 
 ## 2. THE WALKING FEATURE, ACTUALLY DRIVEN. Six routes, live site. It works.
 
@@ -674,8 +747,10 @@ through, so the record shows what was open and what closed it.)*
   on a busy machine, and is a floor rather than a ceiling.
 * **The screen recorder's own cost is still unmeasured** — which is exactly why
   the `?preset=cinematic` instruction survives a probe that did not fire.
-* **The two-second smear at the title-card lift was not diagnosed**, only
-  reproduced and timed. Nobody knows what draws it.
+* ~~**The two-second smear at the title-card lift was not diagnosed**, only
+  reproduced and timed. Nobody knows what draws it.~~ **ANSWERED by the fourth
+  pass, and the guessed cause was wrong:** it is not loading at all, it is the
+  opening camera angle. See **THE TEARING** above.
 * **Nothing about the phone changed.** The walk panel was driven at
   1600 × 1000 only; the phone layout of the same six routes was not re-driven,
   and real iOS Safari still cannot be tested from here.
@@ -689,6 +764,22 @@ through, so the record shows what was open and what closed it.)*
 * **The walking route was still never driven**, the plain no-flags opening flight
   was still never watched end to end, and nothing about the phone changed. Those
   three gaps from the rehearsal are still open.
+
+### And what the FOURTH pass (the tearing) did not establish
+
+* **Which two layers are duplicated was narrowed, not nailed.** The torn pixels
+  belong to the outer-tower layer, and hiding the detailed buildings layer makes
+  the tearing go while the towers stay standing — so it is those two overlapping.
+  Exactly which buildings are doubled, and in which bake, was not chased, because
+  no fix was going to ship this morning either way.
+* **No fix was attempted, so no fix was verified.** Nothing here says the tearing
+  is cheap to remove.
+* **Only one machine, one GPU, one browser, and only the desktop window.** The
+  phone was not looked at again.
+* **Every reading is on `balanced`,** because a plain URL picks its own preset;
+  the same pose was not re-shot on `cinematic`. The tearing is geometry, not
+  post-processing, so a preset is unlikely to change it — but that is reasoning,
+  not a measurement, and it is not one that was taken.
 
 ---
 

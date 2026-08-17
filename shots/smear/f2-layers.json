@@ -1,0 +1,886 @@
+[
+  {
+    "id": "background",
+    "type": "background"
+  },
+  {
+    "id": "natural_earth",
+    "type": "raster"
+  },
+  {
+    "id": "park",
+    "type": "fill"
+  },
+  {
+    "id": "park_outline",
+    "type": "line"
+  },
+  {
+    "id": "landuse_residential",
+    "type": "fill"
+  },
+  {
+    "id": "landcover_wood",
+    "type": "fill"
+  },
+  {
+    "id": "landcover_grass",
+    "type": "fill"
+  },
+  {
+    "id": "landcover_ice",
+    "type": "fill"
+  },
+  {
+    "id": "landcover_wetland",
+    "type": "fill"
+  },
+  {
+    "id": "landuse_pitch",
+    "type": "fill"
+  },
+  {
+    "id": "landuse_track",
+    "type": "fill"
+  },
+  {
+    "id": "landuse_cemetery",
+    "type": "fill"
+  },
+  {
+    "id": "landuse_hospital",
+    "type": "fill"
+  },
+  {
+    "id": "landuse_school",
+    "type": "fill"
+  },
+  {
+    "id": "waterway_tunnel",
+    "type": "line"
+  },
+  {
+    "id": "waterway_river",
+    "type": "line"
+  },
+  {
+    "id": "waterway_other",
+    "type": "line"
+  },
+  {
+    "id": "water",
+    "type": "fill"
+  },
+  {
+    "id": "landcover_sand",
+    "type": "fill"
+  },
+  {
+    "id": "aeroway_fill",
+    "type": "fill"
+  },
+  {
+    "id": "aeroway_runway",
+    "type": "line"
+  },
+  {
+    "id": "aeroway_taxiway",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_motorway_link_casing",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_service_track_casing",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_link_casing",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_street_casing",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_secondary_tertiary_casing",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_trunk_primary_casing",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_motorway_casing",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_path_pedestrian",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_motorway_link",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_service_track",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_link",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_minor",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_secondary_tertiary",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_trunk_primary",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_motorway",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_major_rail",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_major_rail_hatching",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_transit_rail",
+    "type": "line"
+  },
+  {
+    "id": "tunnel_transit_rail_hatching",
+    "type": "line"
+  },
+  {
+    "id": "road_area_pattern",
+    "type": "fill"
+  },
+  {
+    "id": "road_motorway_link_casing",
+    "type": "line"
+  },
+  {
+    "id": "road_service_track_casing",
+    "type": "line"
+  },
+  {
+    "id": "road_link_casing",
+    "type": "line"
+  },
+  {
+    "id": "road_minor_casing",
+    "type": "line"
+  },
+  {
+    "id": "road_secondary_tertiary_casing",
+    "type": "line"
+  },
+  {
+    "id": "road_trunk_primary_casing",
+    "type": "line"
+  },
+  {
+    "id": "road_motorway_casing",
+    "type": "line"
+  },
+  {
+    "id": "road_path_pedestrian",
+    "type": "line"
+  },
+  {
+    "id": "road_motorway_link",
+    "type": "line"
+  },
+  {
+    "id": "road_service_track",
+    "type": "line"
+  },
+  {
+    "id": "road_link",
+    "type": "line"
+  },
+  {
+    "id": "road_minor",
+    "type": "line"
+  },
+  {
+    "id": "road_secondary_tertiary",
+    "type": "line"
+  },
+  {
+    "id": "road_trunk_primary",
+    "type": "line"
+  },
+  {
+    "id": "road_motorway",
+    "type": "line"
+  },
+  {
+    "id": "road_major_rail",
+    "type": "line"
+  },
+  {
+    "id": "road_major_rail_hatching",
+    "type": "line"
+  },
+  {
+    "id": "road_transit_rail",
+    "type": "line"
+  },
+  {
+    "id": "road_transit_rail_hatching",
+    "type": "line"
+  },
+  {
+    "id": "road_one_way_arrow",
+    "type": "symbol"
+  },
+  {
+    "id": "road_one_way_arrow_opposite",
+    "type": "symbol"
+  },
+  {
+    "id": "bridge_motorway_link_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_service_track_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_link_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_street_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_path_pedestrian_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_secondary_tertiary_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_trunk_primary_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_motorway_casing",
+    "type": "line"
+  },
+  {
+    "id": "bridge_path_pedestrian",
+    "type": "line"
+  },
+  {
+    "id": "bridge_motorway_link",
+    "type": "line"
+  },
+  {
+    "id": "bridge_service_track",
+    "type": "line"
+  },
+  {
+    "id": "bridge_link",
+    "type": "line"
+  },
+  {
+    "id": "bridge_street",
+    "type": "line"
+  },
+  {
+    "id": "bridge_secondary_tertiary",
+    "type": "line"
+  },
+  {
+    "id": "bridge_trunk_primary",
+    "type": "line"
+  },
+  {
+    "id": "bridge_motorway",
+    "type": "line"
+  },
+  {
+    "id": "bridge_major_rail",
+    "type": "line"
+  },
+  {
+    "id": "bridge_major_rail_hatching",
+    "type": "line"
+  },
+  {
+    "id": "bridge_transit_rail",
+    "type": "line"
+  },
+  {
+    "id": "bridge_transit_rail_hatching",
+    "type": "line"
+  },
+  {
+    "id": "building",
+    "type": "fill"
+  },
+  {
+    "id": "building-3d",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "boundary_3",
+    "type": "line"
+  },
+  {
+    "id": "boundary_2",
+    "type": "line"
+  },
+  {
+    "id": "boundary_disputed",
+    "type": "line"
+  },
+  {
+    "id": "waterway_line_label",
+    "type": "symbol"
+  },
+  {
+    "id": "water_name_point_label",
+    "type": "symbol"
+  },
+  {
+    "id": "water_name_line_label",
+    "type": "symbol"
+  },
+  {
+    "id": "poi_r20",
+    "type": "symbol"
+  },
+  {
+    "id": "poi_r7",
+    "type": "symbol"
+  },
+  {
+    "id": "poi_r1",
+    "type": "symbol"
+  },
+  {
+    "id": "poi_transit",
+    "type": "symbol"
+  },
+  {
+    "id": "highway-name-path",
+    "type": "symbol"
+  },
+  {
+    "id": "highway-name-minor",
+    "type": "symbol"
+  },
+  {
+    "id": "highway-name-major",
+    "type": "symbol"
+  },
+  {
+    "id": "highway-shield-non-us",
+    "type": "symbol"
+  },
+  {
+    "id": "highway-shield-us-interstate",
+    "type": "symbol"
+  },
+  {
+    "id": "road_shield_us",
+    "type": "symbol"
+  },
+  {
+    "id": "airport",
+    "type": "symbol"
+  },
+  {
+    "id": "label_other",
+    "type": "symbol"
+  },
+  {
+    "id": "label_village",
+    "type": "symbol"
+  },
+  {
+    "id": "label_town",
+    "type": "symbol"
+  },
+  {
+    "id": "label_state",
+    "type": "symbol"
+  },
+  {
+    "id": "label_city",
+    "type": "symbol"
+  },
+  {
+    "id": "label_city_capital",
+    "type": "symbol"
+  },
+  {
+    "id": "label_country_3",
+    "type": "symbol"
+  },
+  {
+    "id": "label_country_2",
+    "type": "symbol"
+  },
+  {
+    "id": "label_country_1",
+    "type": "symbol"
+  },
+  {
+    "id": "ground-base-texture",
+    "type": "background"
+  },
+  {
+    "id": "ground-areas",
+    "type": "fill"
+  },
+  {
+    "id": "ground-creek-bank",
+    "type": "line"
+  },
+  {
+    "id": "ground-texture",
+    "type": "fill"
+  },
+  {
+    "id": "ground-close-area-grain",
+    "type": "fill"
+  },
+  {
+    "id": "ground-deck",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-road-casing",
+    "type": "line"
+  },
+  {
+    "id": "ground-road",
+    "type": "fill"
+  },
+  {
+    "id": "ground-road-far",
+    "type": "line"
+  },
+  {
+    "id": "ground-bike-left",
+    "type": "line"
+  },
+  {
+    "id": "ground-bike-right",
+    "type": "line"
+  },
+  {
+    "id": "ground-cycleway",
+    "type": "fill"
+  },
+  {
+    "id": "ground-close-road-grain",
+    "type": "fill"
+  },
+  {
+    "id": "ground-road-lane",
+    "type": "line"
+  },
+  {
+    "id": "ground-stopbar",
+    "type": "line"
+  },
+  {
+    "id": "ground-paths-casing",
+    "type": "line"
+  },
+  {
+    "id": "outer-3d",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "outer-tower",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "outer-midrise",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "outer-detail",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "outer-tower-roof",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "outer-midrise-roof",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "buildings-ao",
+    "type": "line"
+  },
+  {
+    "id": "signs-ground-glow",
+    "type": "circle"
+  },
+  {
+    "id": "night-streetlight-pool",
+    "type": "circle"
+  },
+  {
+    "id": "night-streetlight-core",
+    "type": "circle"
+  },
+  {
+    "id": "night-tower-pool-fill",
+    "type": "circle"
+  },
+  {
+    "id": "entrances-pool",
+    "type": "circle"
+  },
+  {
+    "id": "buildings-shadow",
+    "type": "fill"
+  },
+  {
+    "id": "buildings-3d",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "buildings-roof",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "capitol-ground-areas",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "capitol-ground-texture",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "capitol-ground-paths",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-paths",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-paths-texture",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-close-path-grain",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-speedway-brick",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-channel",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-creek-sheen",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-creek-canopy",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "ground-depth",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "props-lit",
+    "type": "circle"
+  },
+  {
+    "id": "props-lit-core",
+    "type": "circle"
+  },
+  {
+    "id": "props-cons",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "props-line",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "props-furn",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "props-lamp",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "props-art",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "roofscape-deck",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "roofscape-major",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "roofscape-minor",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "props-artpart",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "stadium-field",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "stadium-wall",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "stadium-wall-roof",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "stadium-seating",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "stadium-detail",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "drag-wall",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "drag-cap",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "drag-detail",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "arts-solid",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "arts-panel",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "arts-glass",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "arts-cap",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-solid",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-lime",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-brick",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-nbrick",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-glass",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-glassb",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-glassc",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-lattice",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "heroes-cap",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "moody-wall",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "moody-roof",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "moody-plant",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "moody-cap",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "wc-wall",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "wc-wall-cap",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "wc-solid",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "wc-detail",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "tower-wall",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "tower-solid",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "tower-detail",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "places-solid",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "places-pool",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "places-entry",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "places-glass",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "campus-storeys",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "entrances-detail",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "entrances-portal",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "entrances-mullion",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "entrances-glass",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "props-art-label",
+    "type": "symbol"
+  },
+  {
+    "id": "roofs-pitched",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "parts-3d",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "parts-roof",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "trees-trunk",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "trees-trunk-capitol",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "trees-canopy",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "trees-canopy-capitol",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "capitol-dome",
+    "type": "fill-extrusion"
+  },
+  {
+    "id": "signs-label",
+    "type": "symbol"
+  },
+  {
+    "id": "entrances-inscription",
+    "type": "symbol"
+  },
+  {
+    "id": "entrances-wordmark",
+    "type": "symbol"
+  },
+  {
+    "id": "buildings-labels-major",
+    "type": "symbol"
+  },
+  {
+    "id": "buildings-labels-mid",
+    "type": "symbol"
+  },
+  {
+    "id": "places-label",
+    "type": "symbol"
+  },
+  {
+    "id": "buildings-labels",
+    "type": "symbol"
+  }
+]
