@@ -465,6 +465,40 @@ shadows, half the view distance. It happened on one of my two plain loads this
 morning. **How to avoid: `?preset=cinematic` on every URL.** It also has to be on
 *every* URL, because the flag deliberately does not save itself to the machine.
 
+> **AMENDED 2026-08-17 night, third Acer pass (the trees).** Item 2 below was
+> investigated properly — 27 frames, an altitude ladder, two opposing bearings at
+> every rung. **Nothing was changed, deliberately.** The verdict and the one
+> sentence you need are directly below; the full report is
+> `docs/trees-at-eye-level.md`.
+>
+> ### THE ONE SENTENCE FOR THE TREES
+>
+> **Keep the camera at 80 m or above and the trees are one of the best things in
+> the app — the defect is not distance, it is being *underneath a canopy*, and
+> 80 m clears it by a factor of about six.**
+>
+> * **80 m is the honest floor, not 30 m.** An earlier note said "30 m and there
+>   is no tree problem at all". That is softer than the evidence: at 30 m the
+>   nearest two or three canopies still show flat tops and countable octagon
+>   corners (`shots/trees/LAD-030-N-day.png`). The brief's own 80–350 m band is
+>   already correct — just stay in it.
+> * **The rule is crown base, not range.** Campus median crown base is 2.7 m and
+>   **74% of crowns start above head height**, so at walking height you are
+>   underneath three quarters of the trees on the Mall and what fills the frame
+>   is the flat, unshaded *bottom* of the canopy. 5 m is the worst altitude in
+>   the whole app (`shots/trees/LAD-005-N-day.png` — a flat green bar across the
+>   entire frame).
+> * **No night footage at walking height.** Day at eye level is bad; night is
+>   worse, because with the sun gone each canopy collapses to one flat dark shape
+>   and reads as a painted wall.
+> * **If you want a tree shot, this is it:** `shots/trees/LAD-080-S-day.png` —
+>   80 m over the Drag looking south, tree-lined street, red roofs, downtown
+>   skyline on the horizon. Two opposing bearings at 80 m were both keepers.
+> * **Walking still works and it was measured tonight, not assumed:** the trunk
+>   collision field carries 2,747 trunks on the Mall, and walking straight at a
+>   tree closes 9.2 m and stops **1.01 m from the trunk centre**, never passing
+>   through. `walk.mjs` is PASS 3/3. Demo it with confidence.
+
 ### 2. Eye level is still the weakest thing in the app
 **AVOIDABLE.** Pictures: `shots/rehearsal/SOUTHMALL-eyelevel-day2.png`,
 `shots/rehearsal/GUAD-eye-day.png`.

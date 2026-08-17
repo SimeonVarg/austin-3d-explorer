@@ -20,7 +20,7 @@ One new blemish, and it lasts two seconds: on the plain URL, the moment the
 title card lifts, a dark smear lies across the downtown towers. It clears on its
 own. Use the tour and you never see it.
 
-## THE NIGHT OF AUG 16, IN PLAIN WORDS (morning report — full story in HANDOFF §161)
+## THE NIGHT OF AUG 16, IN PLAIN WORDS (morning report — full story in HANDOFF §161; last night's passes in §162-§167)
 
 About twenty separate runs. Everything that passed is merged, `main` is
 recordable, and nothing went in red.
@@ -3014,3 +3014,64 @@ can clear it.
 3. **It is worst in daylight** (22.6 luma at the wide) and mildest at night
    (5.3 at the night Tower). Any judgement should be made at `p=0.18`, not at
    the sunset default.
+
+---
+
+## R6. The trees at eye level — DIAGNOSED AND REFUSED 2026-08-17 (§166, `docs/trees-at-eye-level.md`)
+
+The go/no-go's number-two ranked finding was *"eye level is still the weakest
+thing — blocky slab trees and the vertical stripe, avoidable by staying above
+80 m"*. The stripe half is closed (Y19, refused as geometry). **The tree half is
+now closed too, and nothing shipped.**
+
+**What is actually wrong.** "Blocky" is three things and only one matters: at
+walking height you are looking at the **flat, unshaded underside** of the canopy.
+A crown is a stack of octagonal prisms with `fill-extrusion-base` set, so every
+tier has a horizontal bottom face painted one uniform colour with no shading at
+all. 74% of campus crowns start above 1.7 m, so a walker is under three quarters
+of them. The crown gradient cannot help — it ramps over tier height, which you
+read from the side or above, never from below. Secondary: 34% of tiers are more
+than 4× wider than thick (wedding-cake read), every canopy is an 8-gon, 40% of
+campus crowns have no trunk at all, and a trunk is an unrotated square.
+
+**Where it stops mattering: 80 m.** The octagon corner is 100 px at eye level,
+26 px at 12 m, 10 px at 30 m, **3.7 px at 80 m** and 1.5 px at 200 m. Arithmetic
+and pictures agree. **80 m is the honest floor — not 30 m**, where the nearest
+canopies still show flat tops and countable corners.
+
+**Why nothing was built, and this is the part worth keeping:**
+
+1. **The change is not reachable from a bake.** `js/app.js` reads
+   `window.tileSource('trees')` first and only falls back to
+   `data/trees.geojson` when the archives are missing. **The archives exist and
+   are tracked** (`data/tiles/trees.pmtiles`, 5.8 MB). So editing the geojson or
+   `shape_trees.py` changes **nothing on screen** — the bake succeeds, the diff
+   looks real, local checks pass, and the served city keeps the old shapes.
+   Rebuilding the archive needs `tippecanoe` (no Windows build) via
+   `.github/workflows/build-tiles.yml`. **The failure mode is "nothing
+   happened", silently, on the morning of a shoot.**
+2. **`js/trees.js` does not exist.** The `trees-canopy` / `trees-trunk` layers
+   live in `js/app.js` (~1370–1423), wired through `js/tiles.js`.
+   `fill-extrusion-vertical-gradient` is already `false` **for a documented
+   reason** — with real tiers it darkens the bottom of every tier, five shadows
+   up one tree. There is no per-face colour in `fill-extrusion`, so an unshaded
+   horizontal plane cannot be shaded at runtime at all.
+3. **The gain is zero where he records**, and the blast radius is 59,884
+   canopies in every frame from the ground to 900 m — including the 80 m and
+   200 m frames that are currently *good*.
+
+**Two things left for whoever picks this up:**
+
+1. **Nothing in the suite asserts a trunk stop distance.** `collision.mjs`'s 8
+   assertions are buildings, streets, the tallest tower and the joystick; the
+   widely-repeated "you stop 1.3 m from a trunk" was folklore. Measured directly
+   tonight: 2,747 trunks in the field, a walk closes 9.2 m and rests **1.01 m**
+   from the trunk centre, never inside. `TRUNK_PAD` 0.9 + radius clamp 0.2–1.2
+   predicts 1.1–2.1 m, so the behaviour matches the constants. **A real gate is
+   cheap and does not exist** — any future tree bake would change trunk geometry
+   and nothing would catch it.
+2. **The real fix is real windows-grade work, not a constant.** More sides
+   (`octagon()` hard-codes `range(8)` in `fetch_city_trees.py`), thicker tiers
+   (`TIERS_BY_RADIUS` in `shape_trees.py`), or a genuinely shaded crown. All
+   three are a bake **plus** a tile rebuild through CI, and all three would move
+   the 80 m and 200 m frames that currently work. Not a night-before job.
