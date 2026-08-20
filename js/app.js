@@ -2050,6 +2050,29 @@
     [[-97.7333, 30.28396],     16.62, 71.5,  95,      3500],   // dwell: push in on DKR
     [[SPAWN.center[0], SPAWN.center[1]], SPAWN.zoom, SPAWN.pitch, SPAWN.bearing, 10500], // home into the sunset
   ];
+  // ── ?timelapse=1's own flight path ────────────────────────────────
+  // The standard TOUR is a highlights reel: it dwells, it orbits, and leg 1
+  // ends with a 155-degree spin. Watched back as footage that reads as a
+  // camera being flown by a machine, not a person. Simeon's note after
+  // recording it: "nobody flies like that in the app."
+  //
+  // So the timelapse gets its own path and the standard tour is untouched.
+  // ONE RULE MAKES IT FORWARD: every waypoint's bearing is COMPUTED as the
+  // compass bearing to the NEXT waypoint, so the nose always points where the
+  // camera is going. No reverse legs, no dwells, biggest turn 25.7 degrees.
+  // A single southbound cruise: in from the north-east, across the Tower and
+  // the malls, then easing west as downtown lifts on the horizon.
+  const TL_TOUR = [
+    // [center,               zoom,  pitch, bearing, ms]  bearings computed to point at the NEXT waypoint
+    [[-97.7352, 30.2921], 16.05, 67, 218.7, 8000],   // north-east of campus, nose south-west
+    [[-97.7378, 30.2893], 16.3, 70, 210.8, 8000],   // campus fills the frame, Tower ahead
+    [[-97.7398, 30.2864], 16.7, 73, 185.1, 8000],   // pass the Tower, South Mall opens
+    [[-97.7402, 30.2825], 16.55, 72, 190.0, 8000],   // straighten south over the malls
+    [[-97.7412, 30.2776], 16.2, 70, 194.4, 8000],   // West Campus below, downtown lifting
+    [[-97.7428, 30.2722], 15.95, 69, 191.6, 8000],   // ease west, skyline fills the frame
+    [[-97.7437, 30.2684], 15.85, 68, 191.6, 8500],   // settle into the towers at night
+  ];
+
   // ── ?timelapse=1 — the tour flies its normal path while the clock runs ──
   //
   // Sunset to night across the whole flight, with the time column left on
@@ -2064,13 +2087,13 @@
   // are far below what anyone can see, and the flight keeps its frame rate.
   const TL_FROM      = 0.50;   // sunset — TOD_DEFAULT_P, the hour the heroes were shot at
   const TL_TO        = 0.92;   // night
-  const TL_RETINT_MS = 1200;    // sky refresh; knob stays per-frame
+  const TL_RETINT_MS = 0;      // retint EVERY frame — measured, see the note below
   const TL_LEG_GAP   = 80;     // matches the setTimeout gap between tour legs
   let _tlRaf = null;
   function stopTimelapse() { if (_tlRaf) cancelAnimationFrame(_tlRaf); _tlRaf = null; }
   function startTimelapse() {
     const slider = document.getElementById('tod-slider');
-    const total  = TOUR.reduce((a, w) => a + w[4], 0) + (TOUR.length - 1) * TL_LEG_GAP;
+    const total  = TL_TOUR.reduce((a, w) => a + w[4], 0) + (TL_TOUR.length - 1) * TL_LEG_GAP;
     const apply  = p => (window.applyTimeOfDay || function () {})(map, p);
     if (slider) slider.value = String(TL_FROM);
     apply(TL_FROM);
@@ -2103,10 +2126,11 @@
     // Deferred a tick so the T keydown that started us doesn't also stop us.
     setTimeout(() => { if (!cancelled) evts.forEach(t => window.addEventListener(t, stop, true)); }, 80);
     if (document.documentElement.classList.contains('timelapse')) startTimelapse();
+    const legs = document.documentElement.classList.contains('timelapse') ? TL_TOUR : TOUR;
     let i = 0;
     const leg = () => {
-      if (cancelled || i >= TOUR.length) { if (!cancelled) stop(); return; }
-      const [center, zoom, pitch, bearing, ms] = TOUR[i++];
+      if (cancelled || i >= legs.length) { if (!cancelled) stop(); return; }
+      const [center, zoom, pitch, bearing, ms] = legs[i++];
       map.easeTo({ center, zoom, pitch, bearing, duration: ms,
                    easing: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2 },  // ease-in-out
                  { tour: true });
