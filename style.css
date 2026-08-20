@@ -181,6 +181,16 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 .clip #hud,.clip #controls-hint,.clip #date-panel,.clip #tod-panel,
 .clip #debug-panel,.clip #diff-banner,.clip #gfx-button,.clip #gfx-panel,.clip #gfx-toast,
 .clip #fb-button,.clip #fb-panel{display:none!important}
+
+/* ── ?timelapse=1 — chrome-free like clip, EXCEPT the time column, which is
+   the point of the shot: the knob has to be seen travelling from sunset to
+   night while the tour flies. The play button inside it is hidden because the
+   flag drives time itself and a ▶ on screen invites a tap that would fight it.
+   Overrides the .clip rule above by specificity (two classes beat one). */
+html.timelapse #tod-panel{display:flex!important}
+html.timelapse #tod-play{display:none!important}
+html.timelapse #tod-slider{pointer-events:none}
+
 /* ── ?clip=1&drive=1 — the drive controls are the one thing a phone cannot
    record without (QUEUE Y10 item 5) ──────────────────────────────────────
    `?clip=1` hides #joystick-zone, and #joystick-zone carries BOOST, so on a

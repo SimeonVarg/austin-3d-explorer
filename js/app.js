@@ -1808,7 +1808,7 @@
   // already golden and in motion.
   function revealAndIntro() {
     const q = new URLSearchParams(window.location.search);
-    const doTour = q.get('tour') === '1';           // ?tour=1 replaces the intro
+    const doTour = q.get('tour') === '1' || q.get('timelapse') === '1';  // ?tour=1 (or ?timelapse=1) replaces the intro
     const doIntro = !doTour && q.get('intro') !== '0';
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
     const t0 = performance.now();
@@ -1995,6 +1995,7 @@
       if (!orbiting) return;
       orbiting = false;
       clearTimeout(legTimer);
+      stopTimelapse();
       if (map.isEasing && map.isEasing()) map.stop();
     };
     canvas.addEventListener('pointerdown', e => {
@@ -2049,6 +2050,42 @@
     [[-97.7333, 30.28396],     16.62, 71.5,  95,      3500],   // dwell: push in on DKR
     [[SPAWN.center[0], SPAWN.center[1]], SPAWN.zoom, SPAWN.pitch, SPAWN.bearing, 10500], // home into the sunset
   ];
+  // ── ?timelapse=1 — the tour flies its normal path while the clock runs ──
+  //
+  // Sunset to night across the whole flight, with the time column left on
+  // screen so the knob is SEEN travelling. The tour path is untouched: this
+  // only drives time, never the camera.
+  //
+  // WHY THE SKY IS THROTTLED AND THE KNOB IS NOT. `startAuto()` in
+  // js/timeofday.js retints on every single frame and that is why the play
+  // button runs at a few frames a second — a retint walks every layer's paint.
+  // The slider's `value` is free. So the knob updates per frame (smooth to the
+  // eye) and the sky retints on an interval; over a 51-second dusk the steps
+  // are far below what anyone can see, and the flight keeps its frame rate.
+  const TL_FROM      = 0.50;   // sunset — TOD_DEFAULT_P, the hour the heroes were shot at
+  const TL_TO        = 0.92;   // night
+  const TL_RETINT_MS = 1200;    // sky refresh; knob stays per-frame
+  const TL_LEG_GAP   = 80;     // matches the setTimeout gap between tour legs
+  let _tlRaf = null;
+  function stopTimelapse() { if (_tlRaf) cancelAnimationFrame(_tlRaf); _tlRaf = null; }
+  function startTimelapse() {
+    const slider = document.getElementById('tod-slider');
+    const total  = TOUR.reduce((a, w) => a + w[4], 0) + (TOUR.length - 1) * TL_LEG_GAP;
+    const apply  = p => (window.applyTimeOfDay || function () {})(map, p);
+    if (slider) slider.value = String(TL_FROM);
+    apply(TL_FROM);
+    const t0 = performance.now();
+    let lastRetint = -1e9;
+    const tick = now => {
+      const t = Math.min(1, (now - t0) / total);
+      const p = TL_FROM + (TL_TO - TL_FROM) * t;
+      if (slider) slider.value = String(p);
+      if (now - lastRetint >= TL_RETINT_MS || t >= 1) { lastRetint = now; apply(p); }
+      _tlRaf = t < 1 ? requestAnimationFrame(tick) : null;
+    };
+    _tlRaf = requestAnimationFrame(tick);
+  }
+
   let _tourStop = null;
   function startTour() {
     if (_tourStop) _tourStop();
@@ -2065,6 +2102,7 @@
     _tourStop = stop;
     // Deferred a tick so the T keydown that started us doesn't also stop us.
     setTimeout(() => { if (!cancelled) evts.forEach(t => window.addEventListener(t, stop, true)); }, 80);
+    if (document.documentElement.classList.contains('timelapse')) startTimelapse();
     let i = 0;
     const leg = () => {
       if (cancelled || i >= TOUR.length) { if (!cancelled) stop(); return; }
