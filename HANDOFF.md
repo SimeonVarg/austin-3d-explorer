@@ -1,5 +1,116 @@
 # Austin 3D Explorer — Full Handoff
 
+## 165. Aug 21 2026 — the two reel flags, revised from the director's notes: Shot A stops spinning and loses DKR, and Shot B's knob was stepping the whole time (acer lane, branch `acer/shots-v2`, PR #209, MERGED)
+
+**Files written:** `js/app.js`, `style.css`, this section. Branch cut from
+`origin/main` `c29ab2e`; `main` had not moved when it merged, so the merged tree
+is exactly the tree that was verified.
+
+Simeon watched `?autopilot=1` back on his phone and stopped five seconds in:
+
+> "the first 5 seconds are pure rotating and 0 joystick. Im not even gonna watch
+> the rest. I like how it highlights campus though. Don't feature DKR im not
+> proud of it. ALso get rid of the backwards motion like after DKR because
+> people arent realistically going backwards. But yeah i don't see the
+> joystick" — and on the other flag, "B is fine ... but can you make the view
+> the campus?"
+
+### 1. All three Shot A notes were real, and none was visible from the code
+
+Driven on the LIVE site at 390x844 with touch, the opening leg swung the bearing
+from 250 deg to 29 deg while the centre moved 200 m. **A 220-degree rotation in
+place, nine seconds long, before the flight went anywhere** — because
+`?autopilot=1` flew the standard `TOUR`, whose first waypoint faces the opposite
+way from the spawn pose. Shot A now primes its own first waypoint under the veil
+and departs from it: first six seconds of bearing change, **220 deg -> 10.7 deg**.
+
+Shot A also gets its own path, `AP_TOUR`, and the standard tour is untouched.
+Every bearing is the compass bearing to the NEXT waypoint. **Worst
+course-vs-heading offset over the whole flight: 10.6 degrees** (90+ would be
+flying backwards). DKR is off the path and never within 50 degrees of the
+heading. The Tower is within 13 degrees of the heading for the first half.
+
+### 2. "I don't see the joystick" was true even though the joystick was visible
+
+The previous pass verified `joystick=VISIBLE` and 200 distinct nub positions and
+**that was not the same claim as "he can see it"**. Photographed, the stick is a
+pale ring on pale limestone with a translucent nub on sand. It reads as nothing.
+Autopilot now dresses it for camera — dark disc behind a bright ring, opaque nub
+with a glow, BOOST hidden — under `html.autopilot` only, so the stick a real
+visitor drives is byte-for-byte unchanged (checked: original colours, BOOST
+back, no console errors).
+
+The gain moved with it. The campus path turns 5-11 degrees a leg where the old
+one spun, and each leg is ease-in-out so the RATE swells mid-leg and returns to
+zero. At the old 14 deg/sec that swell moved the nub a couple of pixels. At
+**4 deg/sec** it swings -18.8 to +15.9 px and crosses centre four times.
+
+### 3. THE SHOT B KNOB WAS STEPPING, and last pass I said it was not
+
+This is the one worth remembering. `?sliderdemo=1` exists because sweeping the
+time of day costs ~93% of the frame rate even with the camera parked, so the
+knob was put on a "CSS animation, which runs on the compositor thread and is
+immune to main-thread jank". **The animation was on `top`.** `top` is a LAYOUT
+property. No engine can composite it. Every frame of it went through the same
+blocked main thread the sky retints on.
+
+Measured on the page's own clock: **14 positions, with a 19.9 px jump between
+two of them.** The previous pass had reported it gliding on the evidence that
+`getAnimations()[0].playState === 'running'` — which proves an animation exists,
+not that the picture moves.
+
+Only `transform` and `opacity` can be composited. The travel is now a
+`translateY` started through the Web Animations API.
+
+**THE INSTRUMENT THAT SETTLES IT — reuse this.** `getComputedStyle` is read on
+the main thread and therefore cannot see a compositor animation's true position;
+it will under-report a smooth animation as a stepping one. So: block the main
+thread in a busy loop and screencast through it. Nothing on the page can paint
+from the main thread, so any frame-to-frame difference is the animated element
+and nothing else. Have the PAGE report the wall-clock window it was actually
+blocked for, and filter frames to that window — otherwise the block and the
+window drift apart. Result: **during 1200 ms of measured solid block, 72-73
+frames, all distinct.** About 60 fps of knob travel with the main thread dead.
+Script: `scratchpad/knob-proof.mjs` (throwaway, not committed).
+
+Two follow-ups from LOOKING at where the knob ended up. It stopped 20 px short
+of the moon, because the travel was computed from the slider wrap (112 px) while
+the `top:<percent>` that places the knob resolves against its **offsetParent**,
+the panel (170 px). Measure against `knob.offsetParent`, at animation start, not
+at setup. And the rest position is now written inline on `finish` rather than
+trusted to `fill:'forwards'` — an engine may drop a finished filling animation,
+he records on an iPhone, and a knob snapping back to sunset on the last beat
+would be the one frame nobody could unsee.
+
+### 4. Shot B's pose, chosen by photographing nine of them at both ends
+
+A subagent shot nine candidates at sunset AND at night, in portrait, and looked
+at every frame. Winner `[[-97.7395, 30.2872], 16.6, 72, 186]`: Speedway running
+straight up the frame to the Tower, terracotta roofs filling the middle, the
+whole downtown skyline and the lit Capitol dome on the horizon, a quarter of the
+frame left as sky. **Both ends had to work** — the shot holds at night for four
+seconds after it arrives, and at night the Tower floods burnt orange and the
+skyline becomes a wall of lit windows, so the frame is fuller at night than at
+sunset. It beat my own first guess, which gave 40% of the frame to one dark roof.
+
+**Do not widen it past about z16.6**: at z16.35 the Tower's crown and clock
+faces drop out of LOD and it renders as a plain slab. Written into the comment.
+
+### 5. Numbers
+
+390x844 at 2x with touch, headed, `?drift=0`, graphics auto-detect cancelled.
+
+| | |
+|---|---|
+| Shot A | 36.0 fps average frames rendered; 118 distinct nub positions; 4 centre crossings |
+| Shot A chrome | joystick visible, BOOST hidden, slider parked and visible, HUD/hint/play hidden, OSM attribution visible |
+| Shot B | 13.5 and 14.2 fps (two interleaved reps) for map and sky; knob at ~60 fps on the compositor |
+| Shot B camera | identical start to end |
+| Regression | plain page unchanged, no console errors; `?tour=1`, `?timelapse=1`, `?clip=1` all unchanged and error-free |
+
+**The two URLs:**
+`?autopilot=1&preset=cinematic&drift=0` and `?sliderdemo=1&preset=cinematic&drift=0`.
+
 ## 164. Aug 17 2026 — the pinch gain is exactly the finger-gap ratio, and the "+150 m" everyone kept measuring was the collision net teleporting the camera onto the Tower (acer lane, branch `acer/r4-pinch`, PR)
 
 **Grep `^## 16` before you pick a number.** §95, §97, §156, §161 and §163 all
