@@ -1808,8 +1808,9 @@
   // already golden and in motion.
   function revealAndIntro() {
     const q = new URLSearchParams(window.location.search);
-    const doTour = q.get('tour') === '1' || q.get('timelapse') === '1';  // ?tour=1 (or ?timelapse=1) replaces the intro
-    const doIntro = !doTour && q.get('intro') !== '0';
+    const doTour = q.get('tour') === '1' || q.get('timelapse') === '1' || q.get('autopilot') === '1';  // ?tour=1 / ?timelapse=1 / ?autopilot=1 replace the intro
+    const doSlider = q.get('sliderdemo') === '1';   // SHOT B: parked, no flight
+    const doIntro = !doTour && !doSlider && q.get('intro') !== '0';
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
     const t0 = performance.now();
     let revealed = false, poll = null, holds = 0;
@@ -1837,7 +1838,8 @@
         veil.addEventListener('transitionend', () => veil.remove(), { once: true });
         setTimeout(() => { const v = document.getElementById('veil'); if (v) v.remove(); }, 2600);
       }
-      if (flight) flight.fly();
+      if (doSlider) startSliderDemo();
+      else if (flight) flight.fly();
       else if (doTour) startTour();
     };
 
@@ -1996,6 +1998,7 @@
       orbiting = false;
       clearTimeout(legTimer);
       stopTimelapse();
+      stopAutopilot();
       if (map.isEasing && map.isEasing()) map.stop();
     };
     canvas.addEventListener('pointerdown', e => {
@@ -2050,6 +2053,95 @@
     [[-97.7333, 30.28396],     16.62, 71.5,  95,      3500],   // dwell: push in on DKR
     [[SPAWN.center[0], SPAWN.center[1]], SPAWN.zoom, SPAWN.pitch, SPAWN.bearing, 10500], // home into the sunset
   ];
+  // ── ?autopilot=1 (SHOT A) — the app flies itself, with its own joystick ──
+  //
+  // The reel has to show the app being USED, not just the city. So the tour
+  // runs as normal and the on-screen joystick is driven FROM the flight: the
+  // nub leans into every turn the camera actually makes. Nothing is faked and
+  // nothing is scripted separately — steering is read back out of the camera.
+  //
+  // This is free. The nub is a DOM transform on the compositor, and the tour
+  // is already paying for the flight. Contrast ?timelapse=1, where animating
+  // the TIME costs ~90% of the frame rate because it repaints every tile.
+  const AP_FWD      = 0.72;  // how far forward the nub sits while cruising (0-1)
+  const AP_TURN_DEG = 14;    // deg/sec of turn that equals full sideways lean
+  const AP_MAX_PX   = 24;    // nub travel from centre, matches the base radius
+  const AP_SMOOTH   = 0.14;  // low-pass on the lean, so it eases rather than snaps
+  let _apRaf = null;
+  function stopAutopilot() {
+    if (_apRaf) cancelAnimationFrame(_apRaf);
+    _apRaf = null;
+    const k = document.getElementById('joystick-knob');
+    if (k) k.style.transform = '';
+  }
+  function startAutopilot() {
+    const knob = document.getElementById('joystick-knob');
+    if (!knob) return;
+    let lastB = map.getBearing(), lastT = performance.now(), lean = 0;
+    const tick = now => {
+      const dt = Math.max(16, now - lastT) / 1000; lastT = now;
+      const b = map.getBearing();
+      const dB = ((b - lastB + 540) % 360) - 180;   // shortest signed turn
+      lastB = b;
+      const target = Math.max(-1, Math.min(1, (dB / dt) / AP_TURN_DEG));
+      lean += (target - lean) * AP_SMOOTH;
+      knob.style.transform =
+        `translate(${(lean * AP_MAX_PX).toFixed(2)}px, ${(-AP_FWD * AP_MAX_PX).toFixed(2)}px)`;
+      _apRaf = requestAnimationFrame(tick);
+    };
+    _apRaf = requestAnimationFrame(tick);
+  }
+
+  // ── ?sliderdemo=1 (SHOT B) — the time slider drags itself ────────────────
+  //
+  // Camera PARKED on the opening skyline; only the clock moves. The knob is a
+  // CSS animation on an overlay element, NOT the native thumb and NOT rAF,
+  // because sweeping the time of day costs ~93% of the frame rate even with
+  // the camera parked (measured 56.5 -> 4.0 fps). rAF would stutter with the
+  // main thread; a compositor animation cannot. So the knob glides while the
+  // sky steps underneath it, which is the whole point of the shot.
+  const SD_HOLD_MS  = 2000;   // beat on the sunset before anything moves
+  const SD_SWEEP_MS = 5600;   // knob travels sunset -> night
+  const SD_TAIL_MS  = 4000;   // hold at night
+  const SD_STEPS_HZ = 5;      // p/repaint cadence underneath the gliding knob
+  // Ration the EXPENSIVE half of a retint (facades/ground/props/trees/shadows).
+  // js/timeofday.js quantises it at 128 by default, which a sweep crosses ~1.6
+  // times a second; each heavy pass costs hundreds of ms. The sky itself always
+  // follows the raw p, so it keeps stepping smoothly at SD_STEPS_HZ.
+  const SD_PQ = 14;
+  function startSliderDemo() {
+    const slider = document.getElementById('tod-slider');
+    const wrap   = document.getElementById('tod-slider-wrap') ||
+                   (slider && slider.parentNode);
+    if (!wrap) return;
+    let knob = document.getElementById('tl-knob');
+    if (!knob) { knob = document.createElement('div'); knob.id = 'tl-knob'; wrap.appendChild(knob); }
+    const root = document.documentElement;
+    // The overlay rides the TRACK, not the panel: the panel has the sun and moon
+    // glyphs top and bottom, so p 0..1 maps into an inset band. Without this the
+    // knob finishes sitting on top of the moon.
+    const SD_TRACK_TOP = 6, SD_TRACK_BOT = 88;   // percent of the wrap
+    const posFor = v => (SD_TRACK_TOP + (SD_TRACK_BOT - SD_TRACK_TOP) * v).toFixed(1) + '%';
+    root.style.setProperty('--tl-from', posFor(TL_FROM));
+    root.style.setProperty('--tl-to',   posFor(TL_TO));
+    root.style.setProperty('--tl-dur',  SD_SWEEP_MS + 'ms');
+    const apply = p => (window.applyTimeOfDay || function () {})(map, p);
+    if (slider) slider.value = String(TL_FROM);
+    apply(TL_FROM);
+    setTimeout(() => {
+      root.classList.add('tl-run');              // compositor takes the knob
+      window.__todPQ = SD_PQ;                    // ration the heavy recolour
+      const t0 = performance.now();
+      const iv = setInterval(() => {
+        const t = Math.min(1, (performance.now() - t0) / SD_SWEEP_MS);
+        const p = TL_FROM + (TL_TO - TL_FROM) * t;
+        if (slider) slider.value = String(p);
+        apply(p);
+        if (t >= 1) { clearInterval(iv); window.__todPQ = undefined; }
+      }, 1000 / SD_STEPS_HZ);
+    }, SD_HOLD_MS);
+  }
+
   // ── ?timelapse=1's own flight path ────────────────────────────────
   // The standard TOUR is a highlights reel: it dwells, it orbits, and leg 1
   // ends with a 155-degree spin. Watched back as footage that reads as a
@@ -2126,6 +2218,7 @@
     // Deferred a tick so the T keydown that started us doesn't also stop us.
     setTimeout(() => { if (!cancelled) evts.forEach(t => window.addEventListener(t, stop, true)); }, 80);
     if (document.documentElement.classList.contains('timelapse')) startTimelapse();
+    if (document.documentElement.classList.contains('autopilot')) startAutopilot();
     const legs = document.documentElement.classList.contains('timelapse') ? TL_TOUR : TOUR;
     let i = 0;
     const leg = () => {

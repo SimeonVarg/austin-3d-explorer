@@ -9,9 +9,13 @@
        (QUEUE Y10 item 5). Opt-in on purpose: ?clip=1 by itself is unchanged. */
     (function(){ var q = new URLSearchParams(location.search);
       var tl = q.get('timelapse') === '1';
-      if (q.get('clip') !== '1' && !tl) return;
+      var ap = q.get('autopilot') === '1';     // SHOT A: self-flying, joystick visible
+      var sd = q.get('sliderdemo') === '1';    // SHOT B: parked, slider drives itself
+      if (q.get('clip') !== '1' && !tl && !ap && !sd) return;
       document.documentElement.classList.add('clip');
       if (tl) document.documentElement.classList.add('timelapse');
+      if (ap) document.documentElement.classList.add('autopilot', 'clip-drive');
+      if (sd) document.documentElement.classList.add('sliderdemo');
       if (q.get('drive') === '1') document.documentElement.classList.add('clip-drive'); })();</script>
   <title>Austin 3D Explorer</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23140c04'/%3E%3Crect x='5' y='15' width='7' height='12' fill='%23c9a06a'/%3E%3Crect x='13' y='6' width='7' height='21' fill='%23f5a623'/%3E%3Crect x='21' y='12' width='6' height='15' fill='%23b5522e'/%3E%3C/svg%3E" />
