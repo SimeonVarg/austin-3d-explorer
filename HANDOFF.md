@@ -1,5 +1,101 @@
 # Austin 3D Explorer — Full Handoff
 
+## 166. Aug 21 2026 — the "TV static" over the whole city was our own film grain, and the joystick was on the wrong axis (acer lane, branches `acer/joy-honest` PR #210 and `acer/grain` PR #211, both MERGED)
+
+Three director's notes in one evening, two of which were real defects that had
+been shipping.
+
+### 1. The joystick styling was reverted because the PREMISE was wrong
+
+§165 dressed the autopilot joystick for camera because he said "0 joystick".
+He then said: *"thats my fault ... i realized i was opening it on my laptop."*
+`@media(min-width:1025px){#joystick-zone{display:none}}` — the stick has always
+been hidden on a wide screen, by design. **A defect report with a wrong premise
+produces a real change that should not exist.** The whole `html.autopilot`
+block came back out; `git diff c29ab2e -- style.css` now holds no joystick
+styling at all.
+
+### 2. THE NUB WAS ON THE WRONG AXIS — read js/controls.js before mirroring a control
+
+*"the joystick isnt accurate it moves to the top left and i go forward right?
+is that intentional?"* It was not. `joySet()` reads the nub as
+
+```js
+joyStrafe = nx;   // sideways is STRAFE — the D key
+joyFwd    = ny;   // up is forward — the W key
+```
+
+and **turning is not on the stick at all** — it is a drag on the canvas. §165
+put the camera's BEARING RATE on the sideways axis, so every gentle left curve
+drew a nub that in this app means "slide bodily left", which the flight never
+does. He read that off a 40-second clip.
+
+Now it is the flight's own ground velocity resolved into the camera's frame —
+forward component and right component — with the deflection scaled by speed, so
+it pushes forward through a leg and eases back at the joints. `AP_MAX_PX`
+24 → 34, which is `JOY_RADIUS`: the real stick's travel had been under-drawn by
+a third.
+
+**Verify a mirrored control against the thing it mirrors, not against itself.**
+The nub was compared with forward/strafe recomputed INDEPENDENTLY from the
+camera trail: worst disagreement 4.3 px over 150 cruising samples, forward in
+100% of them.
+
+Then *"its super smooth like too smoth ... like if a finger dragged it, alot
+faster"*: the per-frame low-pass 0.14 → 0.5, measured three ways in one browser
+over the same flight — 15.1 / 36.9 / 67.8 px/s of nub travel at 0.14 / 0.5 / 0.8,
+reaching 90% forward at 1566 / 842 / 576 ms. 0.5 ships; at 0.8 one frame moves
+the nub 22 px against a 34 px radius, which strobes. `window.__apSmooth`
+overrides it live.
+
+### 3. THE FILM GRAIN WAS PAINTING TELEVISION SNOW OVER THE ENTIRE CITY
+
+*"why is the scene staticky? Idk why i didn't notice this sooner ... when im
+completely still its not there but when im moving the whole screen is kinda
+static ... I dont like it"* — he described the mechanism exactly without seeing
+the code.
+
+`#fx-grain` is one 128 px noise tile at 0.11 opacity in `overlay` blend, and
+`renderFX` jumps it to a NEW OFFSET ON EVERY RENDERED FRAME. Parked, the
+renderer idles and the tile holds still, so it reads as texture. Moving, it
+re-lands **42 times a second**. `?preset=cinematic` — the preset the recording
+brief tells him to use — carried the highest value in the app, 0.22.
+
+**THE INSTRUMENT, and it is reusable.** Park the camera so the city cannot be
+the explanation, then step the suspect overlay BY HAND between two screenshots
+and diff the pixels in the page:
+
+| with the camera provably identical | mean diff | pixels changed | max |
+|---|---|---|---|
+| grain stepped one notch | **4.035 / 255** | **69.4%** | 93 |
+| the same two shots, overlay hidden | **0.000** | **0.0%** | 0 |
+
+A 0.000 control is what turns "probably the grain" into "the grain and nothing
+else". Every preset is now `grain: 0`; the slider and the implementation stay,
+so it is one value in `PRESETS` to bring back.
+
+### 4. A LOAD RACE ALMOST INVENTED A DEFECT ON PRODUCTION — again
+
+The same check run against the live site first reported a 100%-of-pixels change
+with the camera parked, in three presets out of four. It was the LOADING VEIL
+lifting between the two shots: the first screenshot photographed the load screen
+at *"TILING THE CITY — 23 of 26 layers ready"*. Production loads slower than
+localhost and the settle wait was tuned on localhost. **Wait for
+`!document.getElementById('veil')` before measuring anything on the deployed
+site**, take a throwaway first shot, and look at the frame before believing the
+number. With that fixed: 0.000 across 0.0% of pixels, all four presets.
+
+### 5. Numbers, on production
+
+390x844 @2x with touch, headed, `?drift=0`, graphics probe cancelled.
+
+| | |
+|---|---|
+| Shot A | 52.4 fps; nub worst disagreement 6.6 px over 153 samples; forward in 100% |
+| Every preset, parked | frame-to-frame identical — 0.000 across 0.0% of pixels |
+| Shot B | camera identical start to end; knob finishes at night; OSM attribution visible |
+| Regression | plain page unchanged, no console errors; `?tour=1`, `?timelapse=1`, `?clip=1` unchanged |
+
 ## 165. Aug 21 2026 — the two reel flags, revised from the director's notes: Shot A stops spinning and loses DKR, and Shot B's knob was stepping the whole time (acer lane, branch `acer/shots-v2`, PR #209, MERGED)
 
 **Files written:** `js/app.js`, `style.css`, this section. Branch cut from
