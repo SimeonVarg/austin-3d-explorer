@@ -2075,17 +2075,33 @@
   // This is free. The nub is a DOM transform on the compositor, and the tour
   // is already paying for the flight. Contrast ?timelapse=1, where animating
   // the TIME costs ~90% of the frame rate because it repaints every tile.
-  const AP_FWD      = 0.72;  // how far forward the nub sits while cruising (0-1)
-  // 4 deg/sec, not 14. The campus path below turns 5-11 degrees per leg, and
-  // each leg is EASE-IN-OUT, so the turn RATE swells to about twice the average
-  // mid-leg and returns to zero at the ends. At a 14 deg/sec gain that swell
-  // moved the nub a couple of pixels and read as a dead stick; at 4 it swings
-  // most of the way over and settles back between legs, which is what someone
-  // actually steering looks like. Still read straight off the camera - nothing
-  // is scripted - this is only how sensitive the stick is to it.
-  const AP_TURN_DEG = 4;
-  const AP_MAX_PX   = 24;    // nub travel from centre, matches the base radius
-  const AP_SMOOTH   = 0.14;  // low-pass on the lean, so it eases rather than snaps
+  //
+  // WHAT THE TWO AXES ACTUALLY MEAN, because the first version got this wrong.
+  // Simeon: "the joystick isnt accurate it moves to the top left and i go
+  // forward right? is that intentional?" It was not. `joySet()` in
+  // js/controls.js reads the nub as
+  //     joyStrafe = nx        // sideways is STRAFE, the D key, not a turn
+  //     joyFwd    = ny        // up is forward, the W key
+  // and TURNING is not on the stick at all - it is a drag on the canvas. The
+  // first version put the camera's BEARING RATE on the sideways axis, so every
+  // gentle left-hand curve showed a nub leaning left, which in this app means
+  // "slide bodily to the left" - something the flight never does.
+  //
+  // So the nub is now the flight's own ground velocity resolved into the
+  // camera's own frame: how much of it is along the way the camera is facing,
+  // and how much is sideways. That is exactly the quantity the stick controls,
+  // it is still read straight off the camera, and because the tour flies
+  // nose-first the nub sits near straight up - which is the true answer.
+  // Ground speed that equals a fully-pushed stick. The campus legs below run
+  // 250-330 m in 6.4 s, so about 45 m/s at cruise; each leg is EASE-IN-OUT, so
+  // the nub pushes forward as the leg accelerates and eases back toward centre
+  // between legs, exactly the way a thumb does.
+  const AP_REF_SPEED = 45;
+  // JOY_RADIUS in js/controls.js. The real stick's travel is 34 px, not 24 -
+  // the first version under-drew the nub by a third of its range.
+  const AP_MAX_PX   = 34;
+  const AP_SMOOTH   = 0.14;  // low-pass, so the nub eases rather than snaps
+  const M_LAT       = 111320;   // metres per degree of latitude
   // SHOT A FLIES ITS OWN PATH, and the standard TOUR is untouched.
   //
   // Simeon watched ?autopilot=1 on the standard tour and stopped five seconds
@@ -2128,16 +2144,32 @@
   function startAutopilot() {
     const knob = document.getElementById('joystick-knob');
     if (!knob) return;
-    let lastB = map.getBearing(), lastT = performance.now(), lean = 0;
+    let last = map.getCenter(), lastT = performance.now(), sx = 0, sy = 0;
     const tick = now => {
       const dt = Math.max(16, now - lastT) / 1000; lastT = now;
-      const b = map.getBearing();
-      const dB = ((b - lastB + 540) % 360) - 180;   // shortest signed turn
-      lastB = b;
-      const target = Math.max(-1, Math.min(1, (dB / dt) / AP_TURN_DEG));
-      lean += (target - lean) * AP_SMOOTH;
+      const c = map.getCenter();
+      // Ground velocity, east/north, in metres per second.
+      const mLon = M_LAT * Math.cos(last.lat * Math.PI / 180);
+      const vE = (c.lng - last.lng) * mLon  / dt;
+      const vN = (c.lat - last.lat) * M_LAT / dt;
+      last = c;
+      // Resolve it into the camera's own frame. Bearing is clockwise from
+      // north, so the heading is (sin b, cos b) and its right is (cos b, -sin b).
+      const b  = map.getBearing() * Math.PI / 180;
+      const hE = Math.sin(b), hN = Math.cos(b);
+      const fwd    = vE * hE + vN * hN;   // along the way the camera faces
+      const strafe = vE * hN - vN * hE;   // to the camera's right
+      const speed  = Math.hypot(fwd, strafe);
+      // Direction from the velocity, deflection from the speed: at a standstill
+      // the stick is centred, at cruise it is pushed all the way.
+      const mag = Math.min(1, speed / AP_REF_SPEED);
+      const tx = speed > 0.01 ? (strafe / speed) * mag : 0;
+      const ty = speed > 0.01 ? (fwd    / speed) * mag : 0;
+      sx += (tx - sx) * AP_SMOOTH;
+      sy += (ty - sy) * AP_SMOOTH;
+      // Up is forward: js/controls.js reads the nub as joySet(kx/R, -ky/R).
       knob.style.transform =
-        `translate(${(lean * AP_MAX_PX).toFixed(2)}px, ${(-AP_FWD * AP_MAX_PX).toFixed(2)}px)`;
+        `translate(${(sx * AP_MAX_PX).toFixed(2)}px, ${(-sy * AP_MAX_PX).toFixed(2)}px)`;
       _apRaf = requestAnimationFrame(tick);
     };
     _apRaf = requestAnimationFrame(tick);
