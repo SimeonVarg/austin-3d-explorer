@@ -1812,6 +1812,14 @@
     const doSlider = q.get('sliderdemo') === '1';   // SHOT B: parked, no flight
     const doIntro = !doTour && !doSlider && q.get('intro') !== '0';
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
+    // Shot A primes ITS first waypoint under the veil, the same way the intro
+    // primes its own start pose: the tiles it needs are fetched while the dark
+    // frame is still up, so the first visible frame is already the opening
+    // composition instead of the spawn pose swinging round to find it.
+    if (q.get('autopilot') === '1') {
+      const [c0, z0, p0, b0] = AP_TOUR[0];
+      try { map.jumpTo({ center: c0, zoom: z0, pitch: p0, bearing: b0 }); } catch (e) {}
+    }
     const t0 = performance.now();
     let revealed = false, poll = null, holds = 0;
 
@@ -2064,9 +2072,48 @@
   // is already paying for the flight. Contrast ?timelapse=1, where animating
   // the TIME costs ~90% of the frame rate because it repaints every tile.
   const AP_FWD      = 0.72;  // how far forward the nub sits while cruising (0-1)
-  const AP_TURN_DEG = 14;    // deg/sec of turn that equals full sideways lean
+  // 4 deg/sec, not 14. The campus path below turns 5-11 degrees per leg, and
+  // each leg is EASE-IN-OUT, so the turn RATE swells to about twice the average
+  // mid-leg and returns to zero at the ends. At a 14 deg/sec gain that swell
+  // moved the nub a couple of pixels and read as a dead stick; at 4 it swings
+  // most of the way over and settles back between legs, which is what someone
+  // actually steering looks like. Still read straight off the camera - nothing
+  // is scripted - this is only how sensitive the stick is to it.
+  const AP_TURN_DEG = 4;
   const AP_MAX_PX   = 24;    // nub travel from centre, matches the base radius
   const AP_SMOOTH   = 0.14;  // low-pass on the lean, so it eases rather than snaps
+  // SHOT A FLIES ITS OWN PATH, and the standard TOUR is untouched.
+  //
+  // Simeon watched ?autopilot=1 on the standard tour and stopped five seconds
+  // in: "the first 5 seconds are pure rotating and 0 joystick ... Don't
+  // feature DKR im not proud of it. Also get rid of the backwards motion like
+  // after DKR because people arent realistically going backwards." Measured on
+  // the live site, the opening leg swung the bearing from 250 to 29 degrees
+  // while the centre moved 200 m: a 220-degree spin in place, nine seconds
+  // long, before the flight went anywhere.
+  //
+  // THREE RULES BUILD THIS PATH:
+  //   1. The camera STARTS at waypoint 0 (see startTour) instead of easing
+  //      into it from the spawn pose, so there is no opening spin at all.
+  //   2. Every bearing is the compass bearing to the NEXT waypoint, so the
+  //      nose always points where the camera is going. No reverse legs.
+  //   3. It stays on the Forty Acres. DKR is off the path entirely, and the
+  //      Tower sits within 13 degrees of the heading for the whole first half,
+  //      so it is dead ahead rather than swinging past the shoulder.
+  // Turns run 5-11 degrees and alternate direction, which is what gives the
+  // joystick something honest to do. Every waypoint is a one-line taste edit.
+  const AP_TOUR = [
+    // [center,               zoom,  pitch, bearing, ms]   bearing = to the NEXT waypoint
+    [[-97.7381, 30.2913],     16.25, 69,    199.5,   6400],  // START POSE: campus roofs already filling the frame
+    [[-97.7390, 30.2891],     16.55, 72,    188.7,   6400],  // in over the north end, Tower dead ahead
+    [[-97.7393, 30.2874],     16.85, 74,    197.4,   6400],  // the Tower, close and centred
+    [[-97.7401, 30.2852],     16.75, 73,    189.8,   6400],  // past it, the South Mall opens below
+    [[-97.7406, 30.2827],     16.45, 72,    194.5,   6400],  // down the mall, downtown lifting behind
+    [[-97.7415, 30.2797],     16.2,  70,    194.0,   6600],  // over West Campus, skyline filling the sky
+    [[-97.7424, 30.2766],     16.05, 69,    194.0,   7000],  // settle into the sunset
+  ];
+  window.__AP_TOUR = AP_TOUR;   // read by revealAndIntro to prime the start pose
+
   let _apRaf = null;
   function stopAutopilot() {
     if (_apRaf) cancelAnimationFrame(_apRaf);
@@ -2219,8 +2266,18 @@
     setTimeout(() => { if (!cancelled) evts.forEach(t => window.addEventListener(t, stop, true)); }, 80);
     if (document.documentElement.classList.contains('timelapse')) startTimelapse();
     if (document.documentElement.classList.contains('autopilot')) startAutopilot();
-    const legs = document.documentElement.classList.contains('timelapse') ? TL_TOUR : TOUR;
+    const cls = document.documentElement.classList;
+    const legs = cls.contains('timelapse') ? TL_TOUR
+               : cls.contains('autopilot') ? AP_TOUR
+               : TOUR;
+    // Shot A opens ALREADY at waypoint 0 and departs from there, so the first
+    // thing on camera is the city moving rather than the camera turning round.
     let i = 0;
+    if (cls.contains('autopilot')) {
+      const [c0, z0, p0, b0] = legs[0];
+      map.jumpTo({ center: c0, zoom: z0, pitch: p0, bearing: b0 });
+      i = 1;
+    }
     const leg = () => {
       if (cancelled || i >= legs.length) { if (!cancelled) stop(); return; }
       const [center, zoom, pitch, bearing, ms] = legs[i++];
