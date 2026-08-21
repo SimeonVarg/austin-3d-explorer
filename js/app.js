@@ -2185,11 +2185,6 @@
     const posFor = v => (SD_TRACK_TOP + (SD_TRACK_BOT - SD_TRACK_TOP) * v).toFixed(1) + '%';
     root.style.setProperty('--tl-from', posFor(TL_FROM));
     root.style.setProperty('--tl-to',   posFor(TL_TO));
-    // The travel in PIXELS, because the animation is a translateY and a
-    // percentage in a transform means percent-of-the-knob, not of the track.
-    const trackPx = wrap.getBoundingClientRect().height *
-                    (SD_TRACK_BOT - SD_TRACK_TOP) / 100;
-    const dy = trackPx * (TL_TO - TL_FROM);
     const apply = p => (window.applyTimeOfDay || function () {})(map, p);
     if (slider) slider.value = String(TL_FROM);
     apply(TL_FROM);
@@ -2197,9 +2192,26 @@
       // Hand the travel to the COMPOSITOR. `top` could never go there — it is a
       // layout property, so it was being computed on the same blocked main
       // thread that the sky retints on, and it stepped. A transform can.
-      knob.animate([{ transform: 'translateY(0px)' },
-                    { transform: 'translateY(' + dy.toFixed(1) + 'px)' }],
-                   { duration: SD_SWEEP_MS, easing: SD_EASE, fill: 'forwards' });
+      // The travel in PIXELS, because a percentage inside a transform means
+      // percent-of-the-knob, not percent-of-the-track. It has to be measured
+      // against the SAME box the `top` percentage above resolves against —
+      // that is the knob's offsetParent, the panel, not the slider wrap inside
+      // it. Measuring the wrap made the knob stop 20 px short of the moon.
+      // Measured here rather than at setup so the panel is fully laid out.
+      const host  = knob.offsetParent || wrap;
+      const dy    = host.getBoundingClientRect().height *
+                    (SD_TRACK_BOT - SD_TRACK_TOP) / 100 * (TL_TO - TL_FROM);
+      const end = 'translateY(' + dy.toFixed(1) + 'px)';
+      const a = knob.animate([{ transform: 'translateY(0px)' }, { transform: end }],
+                            { duration: SD_SWEEP_MS, easing: SD_EASE, fill: 'forwards' });
+      // The shot HOLDS at night for four seconds after the sweep, so the resting
+      // position has to survive the animation finishing. `fill:'forwards'` is
+      // enough in Chrome, but engines are allowed to drop a finished filling
+      // animation, and a knob that snaps back to sunset on the last beat would
+      // be the one frame nobody could unsee. Write the end state down instead of
+      // trusting the fill — the recording is on an iPhone and this cannot be
+      // tested here.
+      a.addEventListener('finish', () => { knob.style.transform = end; });
       root.classList.add('tl-run');              // kept: scripts read it as "running"
       window.__todPQ = SD_PQ;                    // ration the heavy recolour
       const t0 = performance.now();
