@@ -239,15 +239,21 @@ html.autopilot #joy-boost{display:none!important}
    while the sky steps underneath it. The knob is the story; it must not step. */
 html.sliderdemo #tod-slider::-webkit-slider-thumb{opacity:0}
 html.sliderdemo #tod-slider::-moz-range-thumb{opacity:0}
+/* TRANSFORM, NOT `top`. The first version of this animated `top` and it stepped
+   just as badly as the thing it was built to avoid: `top` is a LAYOUT property,
+   so every frame of it has to go through the blocked main thread. Measured on
+   the page's own clock it moved through 14 positions with a 19.9 px jump
+   between two of them. Only `transform` and `opacity` can be handed to the
+   compositor, so the travel is a translateY started from js/app.js (Web
+   Animations API, which keeps the pixel distance in one place next to the
+   duration). `top` is still here, but only to PLACE the knob once. */
 #tl-knob{position:absolute;left:50%;width:22px;height:22px;border-radius:50%;
   margin-left:-11px;margin-top:-11px;pointer-events:none;z-index:3;
+  will-change:transform;
   background:radial-gradient(circle at 38% 34%,#fff6df 0%,#ffd489 46%,#f0a93c 100%);
   box-shadow:0 0 0 2px rgba(20,12,4,.55),0 2px 7px rgba(0,0,0,.45),0 0 14px rgba(255,196,92,.55);
   top:var(--tl-from,46%);opacity:0;}
 html.sliderdemo #tl-knob{opacity:1;}
-html.sliderdemo.tl-run #tl-knob{
-  animation:tlKnob var(--tl-dur,5600ms) cubic-bezier(.45,.02,.35,1) forwards;}
-@keyframes tlKnob{from{top:var(--tl-from,46%)}to{top:var(--tl-to,86%)}}
 
 html.timelapse #tod-play{display:none!important}
 html.timelapse #tod-slider{pointer-events:none}

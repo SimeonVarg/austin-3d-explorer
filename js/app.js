@@ -1820,6 +1820,10 @@
       const [c0, z0, p0, b0] = AP_TOUR[0];
       try { map.jumpTo({ center: c0, zoom: z0, pitch: p0, bearing: b0 }); } catch (e) {}
     }
+    // Shot B does the same for its parked pose: the camera never moves once the
+    // veil is up, so the pose has to be set BEFORE it lifts or the first frame
+    // is a jump cut from the spawn skyline to campus.
+    if (doSlider) { try { map.jumpTo(SD_POSE); } catch (e) {} }
     const t0 = performance.now();
     let revealed = false, poll = null, holds = 0;
 
@@ -2147,6 +2151,15 @@
   // the camera parked (measured 56.5 -> 4.0 fps). rAF would stutter with the
   // main thread; a compositor animation cannot. So the knob glides while the
   // sky steps underneath it, which is the whole point of the shot.
+  // WHERE SHOT B PARKS. It used to hold wherever the app happened to spawn,
+  // which is the downtown skyline; Simeon: "B is fine ... but can you make the
+  // view the campus?" So the shot names its own pose, and it is the one the
+  // Shot A flight passes through at its best moment - the Tower dead centre,
+  // the malls below it and downtown on the horizon behind. That frame has to
+  // work at BOTH ends of the sweep, because the shot starts at sunset and then
+  // holds at night for four seconds; a pose that is glorious at sunset and a
+  // black smear at night would fail the second half of its own subject.
+  const SD_POSE = { center: [-97.7393, 30.2874], zoom: 16.85, pitch: 74, bearing: 197.4 };
   const SD_HOLD_MS  = 2000;   // beat on the sunset before anything moves
   const SD_SWEEP_MS = 5600;   // knob travels sunset -> night
   const SD_TAIL_MS  = 4000;   // hold at night
@@ -2168,15 +2181,26 @@
     // glyphs top and bottom, so p 0..1 maps into an inset band. Without this the
     // knob finishes sitting on top of the moon.
     const SD_TRACK_TOP = 6, SD_TRACK_BOT = 88;   // percent of the wrap
+    const SD_EASE = 'cubic-bezier(.45,.02,.35,1)';
     const posFor = v => (SD_TRACK_TOP + (SD_TRACK_BOT - SD_TRACK_TOP) * v).toFixed(1) + '%';
     root.style.setProperty('--tl-from', posFor(TL_FROM));
     root.style.setProperty('--tl-to',   posFor(TL_TO));
-    root.style.setProperty('--tl-dur',  SD_SWEEP_MS + 'ms');
+    // The travel in PIXELS, because the animation is a translateY and a
+    // percentage in a transform means percent-of-the-knob, not of the track.
+    const trackPx = wrap.getBoundingClientRect().height *
+                    (SD_TRACK_BOT - SD_TRACK_TOP) / 100;
+    const dy = trackPx * (TL_TO - TL_FROM);
     const apply = p => (window.applyTimeOfDay || function () {})(map, p);
     if (slider) slider.value = String(TL_FROM);
     apply(TL_FROM);
     setTimeout(() => {
-      root.classList.add('tl-run');              // compositor takes the knob
+      // Hand the travel to the COMPOSITOR. `top` could never go there — it is a
+      // layout property, so it was being computed on the same blocked main
+      // thread that the sky retints on, and it stepped. A transform can.
+      knob.animate([{ transform: 'translateY(0px)' },
+                    { transform: 'translateY(' + dy.toFixed(1) + 'px)' }],
+                   { duration: SD_SWEEP_MS, easing: SD_EASE, fill: 'forwards' });
+      root.classList.add('tl-run');              // kept: scripts read it as "running"
       window.__todPQ = SD_PQ;                    // ration the heavy recolour
       const t0 = performance.now();
       const iv = setInterval(() => {
