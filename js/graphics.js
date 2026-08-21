@@ -317,6 +317,24 @@
   // the console still draws it — so this is a menu decision, not a capability
   // one, and re-adding the row is one line in SCHEMA if the effect is ever
   // keyed to real distance.
+  // FILM GRAIN IS OFF IN EVERY PRESET (2026-08-21). It was 0.22 in cinematic and
+  // 0.18 in ultra; performance and balanced were already 0.
+  //
+  // Simeon, watching a clip: "why is the scene staticky? ... Its like TV static
+  // filter over it, when im completely still its not there but when im moving
+  // the whole screen is kinda static like is this intentional? I dont like it"
+  //
+  // He described the mechanism exactly. The overlay is one 128 px noise tile,
+  // and `renderFX` jumps it to a new offset on EVERY rendered frame. Parked,
+  // the renderer idles and the tile holds still, so it reads as texture; moving,
+  // it re-lands 42 times a second and reads as television snow. Measured with
+  // the camera provably identical between shots: stepping the tile ONE notch
+  // changes 69.4% of all pixels (mean 4.0/255, max 93), and the same two shots
+  // with the overlay hidden differ by 0.000 across 0% of pixels. So it was the
+  // grain and nothing else.
+  //
+  // The slider stays in SCHEMA and the whole implementation stays. Turning it
+  // back on is one value here.
   const PRESETS = {
     performance: {
       renderScale: 0.75, msaa: false, bloom: 0, godRays: 0, flare: 0, dof: 0,
@@ -330,12 +348,12 @@
     },
     cinematic: {
       renderScale: 1.0, msaa: false, bloom: 0.62, godRays: 0.78, flare: 0.55, dof: 0,
-      ...GRADE, autoExposure: true, grain: 0.22, renderDistance: 1100,
+      ...GRADE, autoExposure: true, grain: 0, renderDistance: 1100,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
     ultra: {
       renderScale: 1.5, msaa: true, bloom: 0.72, godRays: 0.9, flare: 0.65, dof: 0,
-      ...GRADE, autoExposure: true, grain: 0.18, renderDistance: 1500,
+      ...GRADE, autoExposure: true, grain: 0, renderDistance: 1500,
       ao: true, shadows: true, clouds: 1, stars: 1, fov: 62, treeDensity: 1, outerDensity: 1,
     },
   };
