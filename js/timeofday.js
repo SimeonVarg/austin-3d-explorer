@@ -344,13 +344,26 @@
   // cheap half — the sky overlay, which has to track the camera — still runs
   // every frame.
   let _lastPq = null;
-  const PQ = 128;
+  // How finely the EXPENSIVE half of a retint is quantised. The cheap half (the
+  // sky) always follows the raw p, so it stays smooth; this only decides how
+  // often facades, ground, props, trees, shadows and the stadium recolour.
+  //
+  // 128 is right for a human dragging the slider. It is wrong for an automatic
+  // sweep: crossing 1/128 about 1.6 times a second, with each heavy pass
+  // costing hundreds of ms, is most of why sweeping the clock costs ~93% of the
+  // frame rate (measured 56.5 -> 4.0 fps with the camera parked). ?sliderdemo=1
+  // sets window.__todPQ coarser for the length of its sweep. Nothing else does,
+  // and it is cleared afterwards.
+  const PQ_DEFAULT = 128;
+  const pqNow = () => (typeof window.__todPQ === 'number' && window.__todPQ > 0)
+    ? window.__todPQ : PQ_DEFAULT;
 
   function applyTimeOfDay(map, p, force) {
     if (!map) return;
     const s = presetAt(p);
     window.__todCurrentP = p;
 
+    const PQ = pqNow();
     const pq = Math.round(clamp01(p) * PQ) / PQ;
     const heavy = force === true || _lastPq === null || pq !== _lastPq;
     if (heavy) _lastPq = pq;

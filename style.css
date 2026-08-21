@@ -181,6 +181,48 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,Blink
 .clip #hud,.clip #controls-hint,.clip #date-panel,.clip #tod-panel,
 .clip #debug-panel,.clip #diff-banner,.clip #gfx-button,.clip #gfx-panel,.clip #gfx-toast,
 .clip #fb-button,.clip #fb-panel{display:none!important}
+
+/* ── ?timelapse=1 — chrome-free like clip, EXCEPT the time column, which is
+   the point of the shot: the knob has to be seen travelling from sunset to
+   night while the tour flies. The play button inside it is hidden because the
+   flag drives time itself and a ▶ on screen invites a tap that would fight it.
+   Overrides the .clip rule above by specificity (two classes beat one). */
+html.timelapse #tod-panel{display:flex!important}
+
+/* ── ?autopilot=1 (SHOT A) and ?sliderdemo=1 (SHOT B) ────────────────────
+   Both are recording flags: the app performs its own demo with zero touches.
+   They keep exactly the controls the shot is ABOUT and nothing else. The
+   OpenStreetMap credit stays in both — licence, not decoration. */
+html.autopilot #tod-panel,
+html.sliderdemo #tod-panel{display:flex!important}
+html.autopilot #tod-play,
+html.sliderdemo #tod-play{display:none!important}
+html.autopilot #tod-slider,
+html.sliderdemo #tod-slider{pointer-events:none}
+/* the joystick is the subject of shot A, so it must not swallow taps either */
+html.autopilot #joystick-zone{pointer-events:none}
+
+/* SHOT B's knob. The native range thumb cannot be CSS-transitioned, and an
+   rAF-driven thumb would stutter: sweeping the time of day costs ~93% of the
+   frame rate (measured 56.5 -> 4.0 fps with the camera PARKED), so the main
+   thread is blocked in long chunks. A CSS animation runs on the COMPOSITOR
+   thread and is immune to that, so this overlay knob glides at full rate
+   while the sky steps underneath it. The knob is the story; it must not step. */
+html.sliderdemo #tod-slider::-webkit-slider-thumb{opacity:0}
+html.sliderdemo #tod-slider::-moz-range-thumb{opacity:0}
+#tl-knob{position:absolute;left:50%;width:22px;height:22px;border-radius:50%;
+  margin-left:-11px;margin-top:-11px;pointer-events:none;z-index:3;
+  background:radial-gradient(circle at 38% 34%,#fff6df 0%,#ffd489 46%,#f0a93c 100%);
+  box-shadow:0 0 0 2px rgba(20,12,4,.55),0 2px 7px rgba(0,0,0,.45),0 0 14px rgba(255,196,92,.55);
+  top:var(--tl-from,46%);opacity:0;}
+html.sliderdemo #tl-knob{opacity:1;}
+html.sliderdemo.tl-run #tl-knob{
+  animation:tlKnob var(--tl-dur,5600ms) cubic-bezier(.45,.02,.35,1) forwards;}
+@keyframes tlKnob{from{top:var(--tl-from,46%)}to{top:var(--tl-to,86%)}}
+
+html.timelapse #tod-play{display:none!important}
+html.timelapse #tod-slider{pointer-events:none}
+
 /* ── ?clip=1&drive=1 — the drive controls are the one thing a phone cannot
    record without (QUEUE Y10 item 5) ──────────────────────────────────────
    `?clip=1` hides #joystick-zone, and #joystick-zone carries BOOST, so on a
