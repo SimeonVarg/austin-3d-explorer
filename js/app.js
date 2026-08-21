@@ -2159,7 +2159,15 @@
   // work at BOTH ends of the sweep, because the shot starts at sunset and then
   // holds at night for four seconds; a pose that is glorious at sunset and a
   // black smear at night would fail the second half of its own subject.
-  const SD_POSE = { center: [-97.7393, 30.2874], zoom: 16.85, pitch: 74, bearing: 197.4 };
+  // Chosen by photographing nine candidates at BOTH ends of the sweep, in
+  // portrait at 390x844, and looking at every frame. It is the only one where
+  // three things land at once: Speedway running straight up the frame to the
+  // Tower with its clock face and crown intact, terracotta campus roofs filling
+  // the middle, and the whole downtown skyline plus the lit Capitol dome on the
+  // horizon behind - with about a quarter of the frame left as sky for the
+  // colour to swing through. Do NOT widen it past about z16.6: at z16.35 the
+  // Tower's crown and clock faces drop out of LOD and it renders as a slab.
+  const SD_POSE = { center: [-97.7395, 30.2872], zoom: 16.6, pitch: 72, bearing: 186 };
   const SD_HOLD_MS  = 2000;   // beat on the sunset before anything moves
   const SD_SWEEP_MS = 5600;   // knob travels sunset -> night
   const SD_TAIL_MS  = 4000;   // hold at night
