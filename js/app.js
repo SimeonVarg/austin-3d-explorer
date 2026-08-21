@@ -1812,6 +1812,18 @@
     const doSlider = q.get('sliderdemo') === '1';   // SHOT B: parked, no flight
     const doIntro = !doTour && !doSlider && q.get('intro') !== '0';
     const flight = doIntro ? primeIntro() : null;   // jumps to INTRO.start
+    // Shot A primes ITS first waypoint under the veil, the same way the intro
+    // primes its own start pose: the tiles it needs are fetched while the dark
+    // frame is still up, so the first visible frame is already the opening
+    // composition instead of the spawn pose swinging round to find it.
+    if (q.get('autopilot') === '1') {
+      const [c0, z0, p0, b0] = AP_TOUR[0];
+      try { map.jumpTo({ center: c0, zoom: z0, pitch: p0, bearing: b0 }); } catch (e) {}
+    }
+    // Shot B does the same for its parked pose: the camera never moves once the
+    // veil is up, so the pose has to be set BEFORE it lifts or the first frame
+    // is a jump cut from the spawn skyline to campus.
+    if (doSlider) { try { map.jumpTo(SD_POSE); } catch (e) {} }
     const t0 = performance.now();
     let revealed = false, poll = null, holds = 0;
 
@@ -2064,9 +2076,48 @@
   // is already paying for the flight. Contrast ?timelapse=1, where animating
   // the TIME costs ~90% of the frame rate because it repaints every tile.
   const AP_FWD      = 0.72;  // how far forward the nub sits while cruising (0-1)
-  const AP_TURN_DEG = 14;    // deg/sec of turn that equals full sideways lean
+  // 4 deg/sec, not 14. The campus path below turns 5-11 degrees per leg, and
+  // each leg is EASE-IN-OUT, so the turn RATE swells to about twice the average
+  // mid-leg and returns to zero at the ends. At a 14 deg/sec gain that swell
+  // moved the nub a couple of pixels and read as a dead stick; at 4 it swings
+  // most of the way over and settles back between legs, which is what someone
+  // actually steering looks like. Still read straight off the camera - nothing
+  // is scripted - this is only how sensitive the stick is to it.
+  const AP_TURN_DEG = 4;
   const AP_MAX_PX   = 24;    // nub travel from centre, matches the base radius
   const AP_SMOOTH   = 0.14;  // low-pass on the lean, so it eases rather than snaps
+  // SHOT A FLIES ITS OWN PATH, and the standard TOUR is untouched.
+  //
+  // Simeon watched ?autopilot=1 on the standard tour and stopped five seconds
+  // in: "the first 5 seconds are pure rotating and 0 joystick ... Don't
+  // feature DKR im not proud of it. Also get rid of the backwards motion like
+  // after DKR because people arent realistically going backwards." Measured on
+  // the live site, the opening leg swung the bearing from 250 to 29 degrees
+  // while the centre moved 200 m: a 220-degree spin in place, nine seconds
+  // long, before the flight went anywhere.
+  //
+  // THREE RULES BUILD THIS PATH:
+  //   1. The camera STARTS at waypoint 0 (see startTour) instead of easing
+  //      into it from the spawn pose, so there is no opening spin at all.
+  //   2. Every bearing is the compass bearing to the NEXT waypoint, so the
+  //      nose always points where the camera is going. No reverse legs.
+  //   3. It stays on the Forty Acres. DKR is off the path entirely, and the
+  //      Tower sits within 13 degrees of the heading for the whole first half,
+  //      so it is dead ahead rather than swinging past the shoulder.
+  // Turns run 5-11 degrees and alternate direction, which is what gives the
+  // joystick something honest to do. Every waypoint is a one-line taste edit.
+  const AP_TOUR = [
+    // [center,               zoom,  pitch, bearing, ms]   bearing = to the NEXT waypoint
+    [[-97.7381, 30.2913],     16.25, 69,    199.5,   6400],  // START POSE: campus roofs already filling the frame
+    [[-97.7390, 30.2891],     16.55, 72,    188.7,   6400],  // in over the north end, Tower dead ahead
+    [[-97.7393, 30.2874],     16.85, 74,    197.4,   6400],  // the Tower, close and centred
+    [[-97.7401, 30.2852],     16.75, 73,    189.8,   6400],  // past it, the South Mall opens below
+    [[-97.7406, 30.2827],     16.45, 72,    194.5,   6400],  // down the mall, downtown lifting behind
+    [[-97.7415, 30.2797],     16.2,  70,    194.0,   6600],  // over West Campus, skyline filling the sky
+    [[-97.7424, 30.2766],     16.05, 69,    194.0,   7000],  // settle into the sunset
+  ];
+  window.__AP_TOUR = AP_TOUR;   // read by revealAndIntro to prime the start pose
+
   let _apRaf = null;
   function stopAutopilot() {
     if (_apRaf) cancelAnimationFrame(_apRaf);
@@ -2100,6 +2151,23 @@
   // the camera parked (measured 56.5 -> 4.0 fps). rAF would stutter with the
   // main thread; a compositor animation cannot. So the knob glides while the
   // sky steps underneath it, which is the whole point of the shot.
+  // WHERE SHOT B PARKS. It used to hold wherever the app happened to spawn,
+  // which is the downtown skyline; Simeon: "B is fine ... but can you make the
+  // view the campus?" So the shot names its own pose, and it is the one the
+  // Shot A flight passes through at its best moment - the Tower dead centre,
+  // the malls below it and downtown on the horizon behind. That frame has to
+  // work at BOTH ends of the sweep, because the shot starts at sunset and then
+  // holds at night for four seconds; a pose that is glorious at sunset and a
+  // black smear at night would fail the second half of its own subject.
+  // Chosen by photographing nine candidates at BOTH ends of the sweep, in
+  // portrait at 390x844, and looking at every frame. It is the only one where
+  // three things land at once: Speedway running straight up the frame to the
+  // Tower with its clock face and crown intact, terracotta campus roofs filling
+  // the middle, and the whole downtown skyline plus the lit Capitol dome on the
+  // horizon behind - with about a quarter of the frame left as sky for the
+  // colour to swing through. Do NOT widen it past about z16.6: at z16.35 the
+  // Tower's crown and clock faces drop out of LOD and it renders as a slab.
+  const SD_POSE = { center: [-97.7395, 30.2872], zoom: 16.6, pitch: 72, bearing: 186 };
   const SD_HOLD_MS  = 2000;   // beat on the sunset before anything moves
   const SD_SWEEP_MS = 5600;   // knob travels sunset -> night
   const SD_TAIL_MS  = 4000;   // hold at night
@@ -2121,15 +2189,38 @@
     // glyphs top and bottom, so p 0..1 maps into an inset band. Without this the
     // knob finishes sitting on top of the moon.
     const SD_TRACK_TOP = 6, SD_TRACK_BOT = 88;   // percent of the wrap
+    const SD_EASE = 'cubic-bezier(.45,.02,.35,1)';
     const posFor = v => (SD_TRACK_TOP + (SD_TRACK_BOT - SD_TRACK_TOP) * v).toFixed(1) + '%';
     root.style.setProperty('--tl-from', posFor(TL_FROM));
     root.style.setProperty('--tl-to',   posFor(TL_TO));
-    root.style.setProperty('--tl-dur',  SD_SWEEP_MS + 'ms');
     const apply = p => (window.applyTimeOfDay || function () {})(map, p);
     if (slider) slider.value = String(TL_FROM);
     apply(TL_FROM);
     setTimeout(() => {
-      root.classList.add('tl-run');              // compositor takes the knob
+      // Hand the travel to the COMPOSITOR. `top` could never go there — it is a
+      // layout property, so it was being computed on the same blocked main
+      // thread that the sky retints on, and it stepped. A transform can.
+      // The travel in PIXELS, because a percentage inside a transform means
+      // percent-of-the-knob, not percent-of-the-track. It has to be measured
+      // against the SAME box the `top` percentage above resolves against —
+      // that is the knob's offsetParent, the panel, not the slider wrap inside
+      // it. Measuring the wrap made the knob stop 20 px short of the moon.
+      // Measured here rather than at setup so the panel is fully laid out.
+      const host  = knob.offsetParent || wrap;
+      const dy    = host.getBoundingClientRect().height *
+                    (SD_TRACK_BOT - SD_TRACK_TOP) / 100 * (TL_TO - TL_FROM);
+      const end = 'translateY(' + dy.toFixed(1) + 'px)';
+      const a = knob.animate([{ transform: 'translateY(0px)' }, { transform: end }],
+                            { duration: SD_SWEEP_MS, easing: SD_EASE, fill: 'forwards' });
+      // The shot HOLDS at night for four seconds after the sweep, so the resting
+      // position has to survive the animation finishing. `fill:'forwards'` is
+      // enough in Chrome, but engines are allowed to drop a finished filling
+      // animation, and a knob that snaps back to sunset on the last beat would
+      // be the one frame nobody could unsee. Write the end state down instead of
+      // trusting the fill — the recording is on an iPhone and this cannot be
+      // tested here.
+      a.addEventListener('finish', () => { knob.style.transform = end; });
+      root.classList.add('tl-run');              // kept: scripts read it as "running"
       window.__todPQ = SD_PQ;                    // ration the heavy recolour
       const t0 = performance.now();
       const iv = setInterval(() => {
@@ -2219,8 +2310,18 @@
     setTimeout(() => { if (!cancelled) evts.forEach(t => window.addEventListener(t, stop, true)); }, 80);
     if (document.documentElement.classList.contains('timelapse')) startTimelapse();
     if (document.documentElement.classList.contains('autopilot')) startAutopilot();
-    const legs = document.documentElement.classList.contains('timelapse') ? TL_TOUR : TOUR;
+    const cls = document.documentElement.classList;
+    const legs = cls.contains('timelapse') ? TL_TOUR
+               : cls.contains('autopilot') ? AP_TOUR
+               : TOUR;
+    // Shot A opens ALREADY at waypoint 0 and departs from there, so the first
+    // thing on camera is the city moving rather than the camera turning round.
     let i = 0;
+    if (cls.contains('autopilot')) {
+      const [c0, z0, p0, b0] = legs[0];
+      map.jumpTo({ center: c0, zoom: z0, pitch: p0, bearing: b0 });
+      i = 1;
+    }
     const leg = () => {
       if (cancelled || i >= legs.length) { if (!cancelled) stop(); return; }
       const [center, zoom, pitch, bearing, ms] = legs[i++];
