@@ -32,7 +32,25 @@
    the recording three seconds late — by then the camera has tilted down and it
    is gone — **and don't tilt steeply back down over downtown by hand, because
    that brings it straight back.** Full write-up below under THE TEARING.
-8. **`?shot=` does not exist.** There is no way to link to a camera position at
+8. **THE TWO HANDS-OFF CLIPS (added Aug 21).** These perform themselves. Open,
+   put the phone down, touch nothing.
+
+   **Shot A — the app flies itself and steers its own joystick, ~40 s:**
+   `https://flyover-utx.vercel.app/?autopilot=1&preset=cinematic&drift=0`
+   In over north campus, the Tower dead ahead, past it and down the mall.
+   The joystick in the corner leans into every turn the camera makes. It never
+   flies backwards, never spins in place, and never goes near DKR.
+
+   **Shot B — the time slider drags itself, sunset to night, ~12 s:**
+   `https://flyover-utx.vercel.app/?sliderdemo=1&preset=cinematic&drift=0`
+   Camera parked on campus with the Tower, Speedway and downtown behind it.
+   Two-second beat, the knob glides down over about six seconds, then it holds
+   at night — Tower lit burnt orange, skyline full of lit windows.
+   **The city steps and the knob does not, and that is on purpose.** Sweeping
+   the clock costs about nine tenths of the frame rate; the knob is on the
+   compositor so it stays smooth while the sky catches up. Film the knob.
+
+9. **`?shot=` does not exist.** There is no way to link to a camera position at
    all. Don't type one tomorrow — it is silently ignored and you lose the take.
 
 ---
