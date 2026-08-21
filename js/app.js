@@ -2100,7 +2100,18 @@
   // JOY_RADIUS in js/controls.js. The real stick's travel is 34 px, not 24 -
   // the first version under-drew the nub by a third of its range.
   const AP_MAX_PX   = 34;
-  const AP_SMOOTH   = 0.14;  // low-pass, so the nub eases rather than snaps
+  // HOW HARD THE NUB CHASES THE VELOCITY, per frame. 0.14 was a gentle filter
+  // and Simeon called it: "its super smooth like too smoth the joystick should
+  // be kinda like if a finger dragged it, alot faster." A thumb does not glide,
+  // it arrives and then fidgets. At 0.14 the nub took about 175 ms to reach a
+  // new position; at 0.5 it takes about 45 ms and picks up the small
+  // frame-to-frame variation in the flight's own speed, which is the fidget.
+  // Overridable live from the console — `window.__apSmooth = 0.7` — so this can
+  // be dialled without a deploy (CLAUDE.md rule 11).
+  const AP_SMOOTH_DEFAULT = 0.5;
+  const apSmooth = () => (typeof window.__apSmooth === 'number' &&
+                          window.__apSmooth > 0 && window.__apSmooth <= 1)
+                         ? window.__apSmooth : AP_SMOOTH_DEFAULT;
   const M_LAT       = 111320;   // metres per degree of latitude
   // SHOT A FLIES ITS OWN PATH, and the standard TOUR is untouched.
   //
@@ -2165,8 +2176,9 @@
       const mag = Math.min(1, speed / AP_REF_SPEED);
       const tx = speed > 0.01 ? (strafe / speed) * mag : 0;
       const ty = speed > 0.01 ? (fwd    / speed) * mag : 0;
-      sx += (tx - sx) * AP_SMOOTH;
-      sy += (ty - sy) * AP_SMOOTH;
+      const k = apSmooth();
+      sx += (tx - sx) * k;
+      sy += (ty - sy) * k;
       // Up is forward: js/controls.js reads the nub as joySet(kx/R, -ky/R).
       knob.style.transform =
         `translate(${(sx * AP_MAX_PX).toFixed(2)}px, ${(-sy * AP_MAX_PX).toFixed(2)}px)`;
