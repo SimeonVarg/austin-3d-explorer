@@ -202,35 +202,6 @@ html.sliderdemo #tod-slider{pointer-events:none}
 /* the joystick is the subject of shot A, so it must not swallow taps either */
 html.autopilot #joystick-zone{pointer-events:none}
 
-/* AND IT HAS TO READ ON CAMERA. Photographed on the live site at 390x844 the
-   stick was a pale ring on pale limestone and the nub was a translucent amber
-   disc on sand: Simeon watched the clip back and said "0 joystick". So
-   autopilot — and ONLY autopilot — dresses the stick for camera: a dark disc
-   behind the ring so it survives pavement, a brighter ring, and an OPAQUE nub
-   with a glow, so the lean is unmissable against any ground the tour crosses.
-   Nothing here touches the stick a real visitor drives. Every value is a
-   variable so any of it can be overruled in one line (CLAUDE.md rule 11). */
-html.autopilot{
-  --ap-base-face:rgba(14,9,3,.45);
-  --ap-base-edge:rgba(255,201,104,.9);
-  --ap-base-edge-w:3px;
-  --ap-knob-face:#ffcb63;
-  --ap-knob-edge:rgba(255,248,228,.95);
-  --ap-knob-glow:0 0 0 2px rgba(14,9,3,.6),0 3px 12px rgba(0,0,0,.55),0 0 22px rgba(255,196,92,.7);
-}
-html.autopilot #joystick-base{
-  background:var(--ap-base-face);
-  border:var(--ap-base-edge-w) solid var(--ap-base-edge);
-  box-shadow:0 0 0 1px rgba(10,6,2,.5),0 4px 18px rgba(0,0,0,.5);
-}
-html.autopilot #joystick-knob{
-  background:var(--ap-knob-face);
-  border:2px solid var(--ap-knob-edge);
-  box-shadow:var(--ap-knob-glow);
-}
-/* BOOST is not part of this shot and it pulls the eye away from the stick. */
-html.autopilot #joy-boost{display:none!important}
-
 /* SHOT B's knob. The native range thumb cannot be CSS-transitioned, and an
    rAF-driven thumb would stutter: sweeping the time of day costs ~93% of the
    frame rate (measured 56.5 -> 4.0 fps with the camera PARKED), so the main
