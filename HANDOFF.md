@@ -23803,3 +23803,79 @@ Frame-render cost of `g-blur` or `g-zoomfade` at cruise (both reasoned as
 near-zero — one draws once at load, the other only fires on a pitch-band
 crossing — neither was put through `perf.mjs`). Whether the same crawl
 shows up at poses beyond `street-drag` and its boxed variant.
+
+## 172. Aug 22 2026 — the ship lane: eleven branches judged, ten merged, and the queue got closed out (acer lane, PR #216 MERGED, branches deleted)
+
+Acted on `docs/queue-round-verdict.md` (the judge pass over the twelve-lane
+QUEUE round). Built the combined branch the judge only built locally
+(`acer/q-combined-verdict`, never pushed) as a real, pushed branch
+(`acer/q-ship`), merging in the judge's recommended order: the two code
+branches first (`acer/q-ground`, `acer/q-flythrough`, no file overlap), then
+the nine docs-only branches. **Zero git conflicts across all 11 merges**,
+matching the judge's own finding exactly — same diff shape confirmed
+independently: 100 files, +2078/-57, only `js/app.js`, `js/ground.js`,
+`QUEUE.md`, and five verify pose-json files are code. `acer/q-buildings`
+never pushed anything (no branch exists) and was dropped, not merged.
+
+**Re-verified the merged tree myself, not trusted from the judge doc**, on
+port 8615: `harness-drift.mjs` PASS (30/30). Plain load, both reel shots
+(`?autopilot=1`, `?sliderdemo=1`) — zero console errors on all three, OSM
+attribution visible, screenshots looked at with the Read tool (not just
+trusted from an error count): golden-hour Tower+downtown in frame at 5s for
+shot A, full night with the Tower lit and the slider knob at the moon icon
+for shot B. `tower-check.mjs`: 16/18 pass, same 2 fails with the same numeric
+values as bare `main` — pre-existing test-calibration mismatch, not a
+regression, crown intact. `js/controls.js`/`js/collision.js` confirmed
+byte-identical to `origin/main` (nothing in this round touches walking mode),
+`ALT_MIN = 1.7` read directly.
+
+Opened one combined PR (#216) with each lane's evidence in the body, waited
+for it to be mergeable (no branch protection on `main`), and self-merged per
+CLAUDE.md rule 2 — the only pending CI check was `build-data.yml`
+(the full DuckDB/tippecanoe accuracy pipeline), triggered incidentally by the
+pose-json files matching its `scripts/**` path filter, unrelated to this
+change and not something this repo's own verification method depends on.
+Separately merged `acer/q-round-verdict` (the judge's own doc, docs-only)
+straight to `main` per rule 4. All 12 branches (11 lanes + `q-ship`) plus
+`q-round-verdict` deleted after merging.
+
+**Verified on production** (`flyover-utx.vercel.app`) after the Vercel deploy
+landed (commit `73e0ae8`, confirmed via the GitHub commit-status API before
+checking, not assumed): plain load, both reel flags, zero console errors on
+all three, OSM attribution visible. Tower crown confirmed intact at z16.25
+with an actual screenshot (stepped belfry clearly narrower than the shaft) —
+not just the debug hook, though the hook also matched
+(`{"was":15,"now":20.2,"overlap":5.2}`, same numbers as local). Walking mode
+not re-driven live on production — inferred unchanged from the byte-identical
+file diff above, which is lower rigor than a live walk but matched to the
+risk (nothing touched those files this round).
+
+**QUEUE.md closed out**: I1, H4 (already closed by `q-ground`'s own commit),
+H1, H2, H3, K3, K6, I3 struck as ALREADY FIXED with each lane's evidence
+folded in; I2 struck as FIXED THIS ROUND (the new `INTRO.end`); H5 and K5
+left open with the refusal reasoning written in (H5 belongs in
+`bake_roofs.py`, not `js/roofs.js`; K5 has no single-file fix without
+un-fixing campus); Z1 stays open, updated with the refined non-diagnosis
+(structural `isSourceLoaded` finding kept, one contended timing run
+discarded, needs a quiet-machine re-run); the smear entry corrected — it is
+NOT two duplicate downtown towers, it's the real Tower occluding a distant
+outer-ring tower at extreme depth, so the old Y25 framing (filter a
+duplicate out of a bake) was the wrong fix to begin with. Added a POSE
+HYGIENE entry recording `q-audit`'s five-file fix so the buried-camera bug
+class doesn't get rediscovered a third time.
+
+**Cleanup**: reaped the one browser and the one server (port 8615) this pass
+used; removed the temp verify scripts (`gate1-tmp.mjs`, `prod-check-tmp.mjs`)
+before the final commit; ports 8601-8615 confirmed free at the end (see
+below).
+
+**What this did NOT establish**: did not live-drive `walk.mjs` or
+`movement.mjs`/`collision.mjs` on either the merged build or production —
+justified by the zero-diff finding on the two files that gate walking mode,
+not run. Did not run `perf.mjs`/frame timing on the merged build — this was
+explicitly the last of ~10-12 sibling lanes and any number would have been
+contended and not trustworthy as an absolute, per this repo's own rule. Did
+not independently re-shoot `q-windowflicker`, `q-horizontilt`, `q-downtown`,
+or `q-chrome`'s claims pixel-for-pixel beyond the Gate-1 re-run above —
+relied on the judge pass's own independent spot-checks for those five. Did
+not investigate why `acer/q-buildings` produced nothing.
