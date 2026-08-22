@@ -1,8 +1,8 @@
 [
   {
     "name": "street-drag-wall",
-    "note": "identical pose to street-drag, boxed to exclude the road/ground band (y>545) that scripts/verify/shots/sweep-r0-street-drag.png shows dominating the whole-frame crawl%. That band is js/ground.js's ALREADY-KNOWN, ALREADY-TRACKED fill-pattern zoom-aliasing bug (docs/GROUND_TEXTURE.md), a different layer on a different render path DRAG_SOFTEN cannot touch. This isolates the wall-only crawl DRAG_SOFTEN actually targets.",
-    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5,
+    "note": "identical pose to street-drag, boxed to exclude the road/ground band (y>545) that scripts/verify/shots/sweep-r0-street-drag.png shows dominating the whole-frame crawl%. CORRECTED 2026-08-22 (pose audit, QUEUE item 1): the band this box was built to dodge was NOT js/ground.js's fill-pattern aliasing -- a80502c later proved this exact pose (center/zoom/pitch below) had the CAMERA BURIED inside a surface (hiding all ground/road layers changed only 2.4% of pixels vs 16% at a valid pose), which is what was dominating the frame. Coordinates replaced with shimmer-poses.json's verified street-drag pose. LEFT AS-IS, FLAGGED FOR REVIEW: the y>545 crop was tuned to dodge the OLD broken pose's artifact boundary and has no established justification at the new camera position -- whoever next runs a wall-isolation measurement here should re-derive it rather than trust this value.",
+    "center": [-97.74155, 30.2876], "zoom": 17.8, "pitch": 70, "bearing": 180, "p": 0.5,
     "box": [0, 0, 1439, 545]
   }
 ]
