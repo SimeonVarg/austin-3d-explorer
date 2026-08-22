@@ -359,43 +359,58 @@ function check(label, features, file) {
     items.push(...r.items);
   });
 
-  // bucket by rounded top height, so only plausible pairs are ever compared
+  // Bucket by rounded top height, so only plausible pairs are ever compared.
+  //
+  // Each item lives in exactly ONE bucket (its own rounded key) and candidate
+  // pairs are drawn within a bucket and against the buckets at +1 and +2 —
+  // the same candidate set as the old "each item in three buckets" layout
+  // (two keys share a bucket there iff they differ by <= 2), but each
+  // unordered pair is visited exactly once BY CONSTRUCTION. The old layout
+  // visited a pair up to three times and deduped with a `seen` Set of string
+  // keys, and that Set is O(eps-close pairs): data/trees.geojson alone put
+  // 6.4M entries in it (2026-08-22 bake — canopy tops are quantised, e.g. a
+  // spike at exactly 17.00), and V8 throws `RangeError: Set maximum size
+  // exceeded` at 2^24 = 16.7M entries, which a denser tree bake or a wider
+  // --eps reaches. Reproduced: `--eps 0.05 data/trees.geojson` kills the old
+  // code and completes here. Constructive dedup needs no memory at all.
   const bucket = new Map();
   for (const it of items) {
     const k = Math.round(it.top / Math.max(EPS, 1e-6));
-    for (const kk of [k - 1, k, k + 1]) {
-      if (!bucket.has(kk)) bucket.set(kk, []);
-      bucket.get(kk).push(it);
-    }
+    if (!bucket.has(k)) bucket.set(k, []);
+    bucket.get(k).push(it);
   }
 
-  const seen = new Set(), hits = [];
-  for (const list of bucket.values()) {
-    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
-      const A = list[i], B = list[j];
-      if (A.idx === B.idx) continue;          // never a feature against itself
-      if (Math.abs(A.top - B.top) > EPS) continue;
-      const key = A.key < B.key ? `${A.key}|${B.key}` : `${B.key}|${A.key}`;
-      if (seen.has(key)) continue;
-      if (A.bb[1][0] < B.bb[0][0] || A.bb[0][0] > B.bb[1][0] ||
-          A.bb[1][1] < B.bb[0][1] || A.bb[0][1] > B.bb[1][1]) { seen.add(key); continue; }
-      seen.add(key);
-      const [S, L] = A.area <= B.area ? [A, B] : [B, A];
-      const f = overlapFrac(S, L);
-      if (f < FRAC) continue;
-      hits.push({ S, L, f });
-      if (DUMP_PAIRS) {
-        const id = it => (it.p.eid !== undefined ? it.p.eid : null);
-        dumped.push({
-          file: label,
-          a: id(S), b: id(L),
-          ka: S.p.k || S.p.kind || S.p.part || null,
-          kb: L.p.k || L.p.kind || L.p.part || null,
-          top: +S.top.toFixed(3),
-          area: +S.area.toFixed(2),
-          shared: +(f * 100).toFixed(1),
-          at: [+S.bb[0][0].toFixed(6), +S.bb[0][1].toFixed(6)],
-        });
+  const hits = [];
+  const consider = (A, B) => {
+    if (A.idx === B.idx) return;              // never a feature against itself
+    if (Math.abs(A.top - B.top) > EPS) return;
+    if (A.bb[1][0] < B.bb[0][0] || A.bb[0][0] > B.bb[1][0] ||
+        A.bb[1][1] < B.bb[0][1] || A.bb[0][1] > B.bb[1][1]) return;
+    const [S, L] = A.area <= B.area ? [A, B] : [B, A];
+    const f = overlapFrac(S, L);
+    if (f < FRAC) return;
+    hits.push({ S, L, f });
+    if (DUMP_PAIRS) {
+      const id = it => (it.p.eid !== undefined ? it.p.eid : null);
+      dumped.push({
+        file: label,
+        a: id(S), b: id(L),
+        ia: S.idx, ib: L.idx,
+        ka: S.p.k || S.p.kind || S.p.part || null,
+        kb: L.p.k || L.p.kind || L.p.part || null,
+        top: +S.top.toFixed(3),
+        area: +S.area.toFixed(2),
+        shared: +(f * 100).toFixed(1),
+        at: [+S.bb[0][0].toFixed(6), +S.bb[0][1].toFixed(6)],
+      });
+    }
+  };
+  for (const [k, list] of bucket) {
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) consider(list[i], list[j]);
+      for (const d of [1, 2]) {
+        const other = bucket.get(k + d);
+        if (other) for (const B of other) consider(list[i], B);
       }
     }
   }
@@ -522,6 +537,35 @@ function selftest() {
   });
   expect("wrapped expression's 'sh' still found",
          multi.unknown.some(([n]) => n === 'sh'), JSON.stringify(multi.unknown));
+
+  console.log('\n--- selftest 9: the pairing layout finds every pair ONCE — including');
+  console.log('               pairs that straddle a bucket boundary. Guards the 2026-08-22');
+  console.log('               rewrite (constructive dedup, no `seen` Set) and any future');
+  console.log('               edit to the bucket walk, against BOTH failure modes:');
+  console.log('               a missed boundary pair and a double-counted same-bucket pair.');
+  // Keys are round(top/EPS), EPS = 0.01 here.
+  //   P1: same key (1000/1000)            -> 1 hit
+  //   P2: adjacent keys (1000/1001), tops 0.0011 apart, well inside eps -> 1 hit
+  //   P3: keys two apart (1001/1003), tops 0.012 apart, OUTSIDE eps -> 0 hits
+  //       (exercises the +2 bucket walk without producing a pair)
+  //   T:  three identical footprints at one top -> exactly 3 hits. The old
+  //       triple-bucket layout visited each of these pairs 3x and relied on
+  //       the `seen` Set to report 3 rather than 9; here 3 must fall out of
+  //       the walk itself.
+  r = check('SELFTEST pair-once', [
+    F({ kind: 'p1', base: 0, h: 10.000 }, sq(-97.7400, 30.2840, 0.0004)),
+    F({ kind: 'p1', base: 0, h: 10.000 }, sq(-97.7400, 30.2840, 0.0004)),
+    F({ kind: 'p2', base: 0, h: 10.0040 }, sq(-97.7300, 30.2840, 0.0004)),
+    F({ kind: 'p2', base: 0, h: 10.0051 }, sq(-97.7300, 30.2840, 0.0004)),
+    F({ kind: 'p3', base: 0, h: 10.014 }, sq(-97.7200, 30.2840, 0.0004)),
+    F({ kind: 'p3', base: 0, h: 10.026 }, sq(-97.7200, 30.2840, 0.0004)),
+    F({ kind: 't', base: 0, h: 20.00 }, sq(-97.7100, 30.2840, 0.0004)),
+    F({ kind: 't', base: 0, h: 20.00 }, sq(-97.7100, 30.2840, 0.0004)),
+    F({ kind: 't', base: 0, h: 20.00 }, sq(-97.7100, 30.2840, 0.0004)),
+  ], 'selftest.geojson');
+  expect('exactly 5 pairs: 1 same-key + 1 boundary + 0 beyond-eps + 3 from the trio',
+         r.hits === 5, r.hits);
+  expect('all nine rings were examined', r.tops === 9, r.tops);
 
   console.log(`\nselftest: ${fails ? `${fails} FAILED` : 'all passed'}\n`);
   return fails;
