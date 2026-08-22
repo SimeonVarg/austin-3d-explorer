@@ -59,7 +59,32 @@ confirmed 27 of them before ~40 concurrent sibling Chrome processes made
 finishing the rest impractical this round — the remaining ~390 are unverified
 by eye, only by coordinate pattern. Full method: `docs/pose-audit.md`.
 
-## Z1 — "buildings in downtown slide in from the horizon" (open, still NOT diagnosed — re-attempted 2026-08-22, no clean read)
+## Z1 — "buildings in downtown slide in from the horizon" — SETTLED, not fixed (2026-08-22, `acer/r-slidein`)
+
+**It is confirmed to be MapLibre streaming the `austin-outer` vector tile
+source while the camera flies at it, spanning almost the entire ~45.6 s
+flight, not a one-time startup burst.** Confirmed two independent ways on a
+quiet machine: a timestamped tile-arrival log (first tile at t=7915ms, last
+new tile at t=46213ms of the flight) correlated against the camera's own
+pose, and a magenta-mask hide of every layer `js/outer.js` owns — the entire
+downtown skyline vanishes and nothing else in frame moves a pixel, confirming
+the appearing buildings are 100% this source's geometry. Screenshots of the
+progressive densification: `shots/r/slidein/flight-*.png`. Full evidence:
+`docs/z1-slidein.md`.
+
+**No code changed — the fix is not reachable from this lane's files.** The
+actual lever is raising the prewarm hold (`AP_PRIME_MS`) or otherwise
+delaying the veil relative to `austin-outer` finishing load — both live in
+`js/app.js`'s `reveal()`, not `js/outer.js`/`js/lod.js`/`js/tiles.js`.
+`js/tiles.js`'s only lever (`TILES.maxzoom`) is shared across all five tiled
+layers and too broad a blast radius to pull without evidence. **Whoever owns
+`js/app.js` next: raise the prewarm hold past the ~46 s window (costs opening
+delay) or accept this as what a tile-streamed skyline does at this camera
+speed — both are legitimate, this settles which mechanism it is, not which
+trade-off he wants.**
+
+The paragraphs below are what was already known before this pass and were
+not re-derived:
 
 Reported 2026-08-21 watching `?autopilot=1`: *"buildings in downtown in shot A
 start like sliding in from the horizon. Can we try infinite range?"*
@@ -431,7 +456,7 @@ recalibrated and the result has never been looked at.
 
 **Before a product manager finds something, I want to have found it.**
 
-## K5. Downtown still reads cooler and greyer than campus (open — no single-file fix exists, re-measured 2026-08-22)
+## K5. Downtown still reads cooler and greyer than campus — PARTIALLY FIXED 2026-08-22 (`acer/r-downtown`)
 
 In any wide daytime frame the two halves of the city do not look like they are in
 the same light. PR #117 established it was "undifferentiated, not dark" and fixed
@@ -448,6 +473,24 @@ real remaining gap is outside this lane: `js/facades.js:1341`
 (`mix(wall,[46,58,74],0.62)` on tower glass) and `bake_outer_facades.py`'s
 `AMBER_CANCEL`/`GOLDEN` knobs. HANDOFF #74 and PR #137 reached the same
 verdict twice already; this is a third confirmation, not a new lead.
+
+**Fixed the reachable part 2026-08-22 (`acer/r-downtown`).** Two prior lanes
+were right that `js/graphics.js`'s `GRADE` can't be the lever — but neither
+owned `js/outer.js`/`data/outer_tower_palette.json`, and HANDOFF #74's own
+population read shows the blue-grey cast is narrower than "downtown": the
+streetwall is already warm, it's specifically the 243 glass TOWER buckets
+that are blue-dominant. `warmTowerBuckets()` now nudges only tower day/golden
+wall+glass colour toward warm/saturated, luma-preserving, classified per-bucket
+so it survives a re-bake; midrise and night colours untouched. Bounded on
+purpose — real downtown glass measures genuinely blue in reference photos, so
+this closes about a third of the gap, not all of it: downtown tower B-R
+-2 → -14 (was -13.5 in the refusal above; different pose), campus stays
+byte-identical both runs. One taste knob, `OUTER.towerWarmAmount` (0 reverts,
+1 ships), per CLAUDE.md rule 11. Screenshots: `shots/r/downtown/wideday-*`.
+Both reel shots re-checked, no regression. **Still open, correctly not
+claimed here**: the majority of the remaining gap lives in
+`js/facades.js:1341`'s glass mix ratio and `bake_outer_facades.py`'s
+`AMBER_CANCEL` — outside `js/outer.js`'s ownership.
 
 ## ~~K6. The graphics menu is too wordy~~ — ALREADY FIXED, verified 2026-08-22 (`acer/q-chrome`)
 
@@ -585,7 +628,7 @@ screenshot at the exact East 26th crossing the fix's own comment cites —
 account: `docs/ground-rejudge.md` §3. Not re-checked at every one of the
 city's 8 pedestrian-mall features, only Speedway.
 
-## H5. Roofs intersect badly where footprints have many corners (open — confirmed real, belongs in `bake_roofs.py`, not `js/roofs.js`)
+## ~~H5. Roofs intersect badly where footprints have many corners~~ — FIXED on the 4 buildings that had it (2026-08-22, `acer/r-roofs`)
 
 *"Jester roofs have some weird extrusions with the diagonals. specifically above
 where it says J2. other buildings with alot of corners next to each other with
@@ -606,6 +649,23 @@ come from `scripts/bake_roofs.py`**, which already has a resolver built for
 exactly this failure mode (`untangle_facet`, `RESOLVE_SURFACES`, PR #74/#78)
 that isn't catching this case. No file this lane owns can fix it. Whoever
 picks this up next needs `bake_roofs.py`, not `js/roofs.js`.
+
+**Fixed 2026-08-22 (`acer/r-roofs`), in `bake_roofs.py` as the last lane
+scoped it.** The 85 `coplanar.mjs` pairs were not roof-facet noise (the
+ordinary pitched-roof facets already have mitre/corner-clearance math and
+came back 0 self-crossing) — they were three real bugs in the two AUTHORED
+elevation generators (`facade_band_parts`, `gable_front_parts`), the only two
+functions in this file with no such math, sized to the 4 buildings citywide
+that use either: Jester Center/West Hall/East Hall (`facade_bands`, 72 of 85
+pairs — a pier and the parapet frieze above it both capped at the literal
+same float) and Gregory Gym (`gable_front`, 13 of 85 — a rake-edge moulding
+and an inner pediment each sized without checking their own course/anchor).
+`coplanar.mjs` on `data/roofs.geojson`: 85 → 6, all 6 Gregory Gym corbels
+meant to sit against the surface they decorate (left alone on purpose, not a
+residual bug). Before/after at Gregory Gym's gable: `shots/r/roofs/`. Not
+re-tested: any other building gaining many-cornered roof parts in the future
+would need the same class of fix re-applied; this closes the 4 that exist
+today, not the general geometry rule.
 
 ---
 
@@ -707,31 +767,81 @@ than pretending to send.
 
 # PART J — SCENE FIXES. Things that are there and wrong.
 
-## J1. Calhoun's middle prism should be roofed
+## ~~J1. Calhoun's middle prism should be roofed~~ — ALREADY FIXED 2026-08-04 (`2db5bae`, PR #130), never struck off
 
 *"for calhoun u were right to not red roof the middle part - however the
 horizontal prism in the middle should be roofed. So there should be 3 horizontal
 roofed prisms, rn the top and bottom r roofed, the middle should be roofed, and
 the areas between should stay as they are (not roofed)."*
 
-Precise and easy to check with a picture.
+Landed weeks ago in `scripts/bake_roofs.py` / `data/roofs.geojson` (HANDOFF
+§69 — a per-wing roof classifier, not this bake's file), independently
+re-confirmed the same day in a full-city photo sweep (§78: "three red-tiled
+prisms, flat grey decks between them, exactly as asked"). **Re-verified a
+third time this round**, live, on the running app: `Calhoun Hall`'s label
+sits on the terracotta hipped bar with dormers, flanked by `Parlin Hall` and
+`Homer Rainey Hall`'s own grey standing-seam roofs —
+`shots/r/buildings/j1check-calhoun-nadir.png` and `-nadir2.png`. Was handed
+to this lane's dispatch as unfinished; it was a stale entry, not a live bug.
 
-## J2. University Christian Church reads as an office block
+## ~~J2. University Christian Church reads as an office block~~ — FIXED 2026-08-22 (`acer/r-buildings`)
 
 *"University Christian church looks like an office building make its outline
 better."* Its footprint or its massing is wrong — a church has a nave and usually
 a tower.
 
-## J3. The University Catholic Center is a stub
+Diagnosed in HANDOFF §68 (2026-08-04) and left unfixed for one specific
+reason: `final_height` lives in `buildings.detailed.geojson`, and that lane
+could only write `props`/`art`. Fixed now in `scripts/bake_detail.py` (a
+named, one-line-overrulable override table — not a hand-edit of the output
+file, which the next re-bake would silently wipe):
+- Overture's `37.0 m` applied uniformly across the whole ~42x43 m footprint
+  (a 9-storey office slab) dropped to `16.5 m` for the nave, matching the
+  Aug-4 lane's own "~16 m" estimate.
+- **Sourced, not guessed**: "Places of worship around UT" (Design Decadence,
+  2012) — the Sanctuary "rises 62 feet [18.9 m] above University Avenue" and
+  is the tower that "distinguishes the building along the streetscape." Added
+  as a synthetic 8x8 m tower part, base 0 to 18.9 m, sited in the SW corner
+  of the ring per HANDOFF §68's own siting (checked point-in-polygon against
+  the real footprint — no OSM/Overture `building:part` exists for this
+  building to adopt instead, so this is hand-authored, kept small on purpose).
+- Roof recoloured to a weathered copper green — the same source names
+  "copper roof and trim" specifically; wall colour untouched (already a close
+  match to the source's "cream cut limestone").
+Before/after: `shots/r/buildings/before-christian-air2.png` vs
+`after-christian-air2.png` — the tower is now visible rising above the nave
+roofline and the floor-band count is roughly halved.
+
+## ~~J3. The University Catholic Center is a stub~~ — PARTIALLY FIXED 2026-08-22 (`acer/r-buildings`)
 
 *"also that building between university christian church and dobie 21 is the
 University Catholic Center. Its a very important building idk why it was just a
 stub before. I think an earlier pass didn't have data on it and put construction
 around it. Build the university catholic center"*
 
-**Find out why it is a stub first** — if a pass wrapped it in construction
-hoarding for want of data, that decision is probably repeated elsewhere and worth
-reporting. Then build it.
+**Why it was a stub, already answered in HANDOFF §68 (2026-08-04):** nothing
+was missing. The 42x45 m footprint is real (confirmed again this round
+against satellite imagery — the real building has genuine roof massing and a
+roof cross, not a shed) and the "construction" he saw was a real OSM
+`landuse=construction` site next door (Mulva Hall) that a since-fixed
+`bake_props.py` bug drew as a single 2x2 m toothpick — already resolved,
+unrelated to this building. The one thing that lane could not touch: Overture's
+raw `7.4 m`, unrealistically short for a building the source describes as
+housing "a large chapel, a smaller...chapel, a conference room, kitchen,
+library, and several offices and classrooms."
+
+Raised to `12.8 m` in `scripts/bake_detail.py`, in the same override table as
+J2. **Unlike J2, this is a documented ESTIMATE, not a sourced number** — no
+height source was found for this specific building. 12.8 m was chosen because
+it crosses `js/facades.js`'s `familyFor()` 12 m line from `'mr'` ("2-3 storey
+walk-ups, shops") into `'mh'` ("4-7 storey campus halls"), the more
+appropriate texture family for a multi-program institutional building. One
+number, overrulable in one line. Before/after:
+`shots/r/buildings/before-catholic-air2.png` vs `after-catholic-air2.png` —
+visibly taller, still a plain box up close. **Not done:** the source
+describes "half-stucco and half-stone" walls with "symmetrical windows on all
+sides" — real facade materials, which is `js/facades.js` territory, not this
+bake's.
 
 ## J4. The parking garage and the food trucks
 
