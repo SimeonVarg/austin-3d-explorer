@@ -375,6 +375,125 @@
     return row;
   };
 
+  // ── band-limit (QUEUE F2, docs/facade-atlas-map.md §2) ───────────────
+  //
+  // This module was one of the five files painting `fill-extrusion-pattern`
+  // with zero prefilter (docs/second-front-map.md §5). `health-body`'s 4x4 px
+  // window cell on a 9-row/6-col staggered grid is a real, photograph-
+  // calibrated window grid — the closest analogue in this file to
+  // js/facades.js's own near tier, and the material this front's own ranking
+  // (docs/second-front-map.md §8) named as the primary risk. The kernel is
+  // the shared one (js/pattern-lowpass.js `blurWrap`, lifted verbatim from
+  // js/facades.js's own softenTile, extracted so js/drag.js and this module
+  // can share it without sharing a taste table — see that file's header).
+  //
+  // KEYED BY MATERIAL, not image id: eight registered images
+  // (moody-plinth/fins/glass/fascia, health-body/attic x cream/grey) share
+  // just seven distinct painters/geometries (health-body-cream and
+  // health-body-grey are the SAME grid, different baked colour), and the
+  // alias risk is a property of the grid, not the colour. `PAINTER_FOR[id]
+  // || id` is the same lookup tileData() already uses to pick a painter, so
+  // the softening key and the painter key can never drift apart.
+  //
+  // STARTING POINT. Simeon flagged this module (with arts.js) as "glass-
+  // heavy" and pointed at js/facades.js's own `tg` (curtain-wall) family as
+  // the closest calibration: RADIUS 2, AMOUNT 0.85 (facades.js SOFTEN table)
+  // — chosen there because `tg`'s own pier/spandrel gap (3.14/1.40 texels)
+  // is narrow enough that a wider box erases the glazing instead of
+  // anti-aliasing it, not anti-aliasing it. That same logic, applied to each
+  // material's OWN measured pitch (M.* above, every one commented in texels
+  // AND metres already):
+  //
+  //   material        finest real feature        radius chosen
+  //   health-attic    ATTIC_SLAT: 3 px pitch      1  (a 3-texel box is already
+  //                                                    2/3 of the pitch; wider
+  //                                                    erases alternating
+  //                                                    slats instead of
+  //                                                    softening them)
+  //   moody-fins      FIN_PITCH: 4 px pitch       1  (same reasoning, one
+  //                                                    step more headroom)
+  //   moody-glass     GLASS_MULLION: 5 px pitch   2  (tg's own pitch)
+  //   health-body     BODY_W/H: 4 px cell,        2  (tg's own radius — the
+  //                   ~3.1 px spandrel gap             flagged primary risk)
+  //   health-podium   POD_BAY: 11 px, 7 px open   2  (real headroom, kept at
+  //                                                    tg's radius rather
+  //                                                    than guessed higher)
+  //   moody-plinth    PLINTH_JOINT: 9 px pitch,   2
+  //                   single-texel stroke
+  //   moody-fascia    FASCIA_SEAM: 13 px pitch    2  (coarsest pitch in the
+  //                                                    file; still held at
+  //                                                    tg's radius, not
+  //                                                    pushed higher, because
+  //                                                    no measurement argues
+  //                                                    for spending it there
+  //                                                    — same call
+  //                                                    facades.js's own `dk`/
+  //                                                    `st` made)
+  //
+  // MEASURED against scripts/verify/shimmer.mjs (SHIM_SOFTEN_TARGET=moody),
+  // scripts/verify/shimmer-poses-moodyarts.json `moody-body-close` — Dell
+  // Med's Health Discovery Building (HDB, scripts/verify/moody-check.mjs's
+  // own coordinate), boxed to the building's own facade so a neighbouring
+  // building/road cannot leak into the number (box [560,335,1170,555],
+  // chosen from a framing screenshot, shots/shimmer/front2/moodyarts/):
+  //
+  //   before (r=0, pre-fix)     2.12% crawl, 49.7% moved
+  //   after  (this table)       1.50% crawl, 53.2% moved   (-29% relative)
+  //   floor  (SHIM_PATTERN=0)   1.23% crawl                (69% of headroom
+  //                                                          recovered)
+  //
+  // This is health-body's OWN number only — this pose does not exercise
+  // health-attic, moody-fins, moody-plinth, moody-fascia, moody-glass or
+  // health-podium (Moody Center/the fin field are out of frame at this
+  // bearing). Their radii above are the geometric reasoning in the table,
+  // NOT independently measured or eye-checked per material — same honest gap
+  // facades.js's own `dk`/`st` left open ("no measurement was taken to
+  // justify moving them"). The r2 chosen for health-body WAS eye-checked at
+  // this pose (shots/shimmer/front2/moodyarts/moody-body-close-{before,
+  // after}-*.png) — the checkered window grid on Health Discovery Building
+  // still reads as individual punched openings after the blur, not a flat
+  // wall.
+  //
+  // moody-cruise (the wider precinct framing, unboxed) was ALSO measured —
+  // 1.57% before, 1.39% after, 0.91% floor — but its single largest cluster
+  // (box [5,662,113,742], ~3900px, a corner of frame) is BYTE-IDENTICAL in
+  // size across before/after/floor runs, meaning it is not
+  // `fill-extrusion-pattern` crawl at all (most likely the ground/road
+  // `fill-pattern` bug, docs/GROUND_TEXTURE.md). This module's own
+  // contribution at cruise altitude was not cleanly isolated — the close
+  // pose above is the trustworthy number.
+  //
+  // FRAME COST. `scripts/verify/moody-perf.mjs 2` (headed, MIN of 9 reps,
+  // includes this blur — the blur runs INSIDE tileData(), called by
+  // registerTiles(), called by applyMoodyColors(), the same call chain that
+  // already existed): `applyMoodyColors` (all 8 tiles, including the new
+  // blur) 14.40 ms, 5% of the whole `applyTimeOfDay` hook (308.50 ms, every
+  // module's repaint together). Same shape of cost as the ALREADY-SHIPPED
+  // `shim-lowpass`/`js/drag.js` blur — atlas-generation time, on the
+  // quantised (1/128) time-of-day step only, never the per-frame render
+  // loop, and no new `addImage`/`updateImage` call site was added, so
+  // `ATLAS.RELEASE`'s staleness tracking (docs/facade-atlas-map.md §6) is
+  // untouched. Not compared against a pre-change baseline in the same run
+  // (that needs two checkouts or a temporary revert, not attempted this
+  // round) — the DRAW-cost half of the same script (frames dropped flying
+  // past the precinct, unaffected by this change since it never touches the
+  // render loop) came back inside its own run-to-run noise band.
+  //
+  // TASTE KNOB: window.MOODY_SOFTEN, same contract as window.FACADE_SOFTEN /
+  // window.DRAG_SOFTEN — any value here is a one-line console override, no
+  // code change, and scripts/verify/shimmer.mjs's SHIM_SOFTEN/SHIM_SOFTEN_R
+  // sweep drives this table by name for the next person who has to argue
+  // about this trade.
+  const MOODY_SOFTEN = {
+    RADIUS: { 'moody-plinth': 2, 'moody-fins': 1, 'moody-glass': 2,
+              'moody-fascia': 2, 'health-podium': 2, 'health-body': 2,
+              'health-attic': 1 },
+    AMOUNT: { 'moody-plinth': 1.0, 'moody-fins': 1.0, 'moody-glass': 1.0,
+              'moody-fascia': 1.0, 'health-podium': 1.0, 'health-body': 1.0,
+              'health-attic': 1.0 },
+  };
+  window.MOODY_SOFTEN = MOODY_SOFTEN;
+
   // ── pattern generation ─────────────────────────────────────────────
   let _canvas = null, _ctx = null;
   let _tileColours = null;   // image id -> {wd, wg, wn}, read from the baked data
@@ -407,13 +526,22 @@
     const golden = 1 - Math.abs(p - 0.5) / 0.5;
     const wall = mix(wallBase, hexToRgb(trio.wn), Math.max(0, dark - night));
 
-    const painter = TILES[PAINTER_FOR[id] || id] || TILES['health-body'];
+    const matKey = PAINTER_FOR[id] || id;
+    const painter = TILES[matKey] || TILES['health-body'];
     _ctx.clearRect(0, 0, TILE, TILE);
     let seed = 0;
     for (let i = 0; i < id.length; i++) seed = (seed * 31 + id.charCodeAt(i)) | 0;
     painter(_ctx, wall, dark, night, golden, Math.abs(seed) % 9973);
 
     const img = _ctx.getImageData(0, 0, TILE, TILE);
+    // Band-limit BEFORE the Uint8Array snapshot, same order js/drag.js draws
+    // in (mottle/paint first, blur last) — the blur has to see the same
+    // texture MapLibre will sample, not a cleaner draft of it. Unrecognised
+    // key falls back to health-body's number rather than silently skipping
+    // the low-pass, matching js/drag.js's own fallback shape.
+    const rOv = MOODY_SOFTEN.RADIUS[matKey] != null ? MOODY_SOFTEN.RADIUS[matKey] : MOODY_SOFTEN.RADIUS['health-body'];
+    const aOv = MOODY_SOFTEN.AMOUNT[matKey] != null ? MOODY_SOFTEN.AMOUNT[matKey] : MOODY_SOFTEN.AMOUNT['health-body'];
+    window.PatternLowpass.blurWrap(img.data, TILE, rOv, aOv);
     return { width: TILE, height: TILE, data: new Uint8Array(img.data.buffer.slice(0)) };
   }
 

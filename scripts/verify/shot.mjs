@@ -90,6 +90,8 @@ if (process.env.SHIM_SOFTEN != null) {
       { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(window.__map, p0) },
       { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(window.__map, p0) },
       { key: 'tower', S: window.TOWER_SOFTEN, repaint: () => window.applyTowerColors && window.applyTowerColors(window.__map, p0, true) },
+      { key: 'moody', S: window.MOODY_SOFTEN, repaint: () => window.applyMoodyColors && window.applyMoodyColors(window.__map, p0) },
+      { key: 'arts', S: window.ARTS_SOFTEN, repaint: () => window.applyArtsColors && window.applyArtsColors(window.__map, p0, true) },
     ];
     const hit = [];
     for (const t of targets) {
