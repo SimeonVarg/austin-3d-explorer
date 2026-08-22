@@ -1,0 +1,5 @@
+[
+ {"name":"shotB-parked",  "p":0.25, "center":[-97.7395,30.2872], "zoom":16.6, "pitch":72, "bearing":186},
+ {"name":"cruise-mid",    "p":0.25, "center":[-97.7434,30.2857], "zoom":16.5, "pitch":64, "bearing":90},
+ {"name":"street-lowpass","p":0.25, "center":[-97.73841,30.28918], "zoom":17.4, "pitch":68, "bearing":200}
+]

@@ -1,6 +1,13 @@
 # The window shimmer — what is established, so nobody re-derives it
 
-**Status: OPEN. This is the defect, not a theory about it.**
+**Status: PARTIALLY MITIGATED, 2026-08-22. `acer/shim-lowpass` merged (a
+real, blind-confirmed 17-41% reduction in measured crawl at the poses
+tested, no frame-time regression). The defect is REDUCED, not eliminated —
+windows still visibly crawl after the fix, and `js/tower.js`/`js/drag.js`/
+`js/moody.js` are structurally untouched by it (see below). Full detail:
+`docs/shimmer-mechanism.md` (root cause, confirmed) and
+`docs/shimmer-verdict.md` (the three candidates tried, one shipped, two
+rejected, with the measurements for each).**
 
 Reported 2026-08-21, after the AWS reel was recorded:
 
@@ -111,3 +118,45 @@ not evidence; a measurement of flicker against minification is.
 * The vertical 0.12 m "barcode" stripe is a CLOSED question — geometry cannot
   fix it, real windows is the honest answer, and it is weeks of work. Do not
   reopen it as part of this.
+
+## 7. What is now CLOSED (2026-08-22) — read before re-opening any of this
+
+* **Root cause confirmed**: `docs/shimmer-mechanism.md`. Linear-filtered,
+  no-mipmap `fill-extrusion-pattern` sampling, verified against the MapLibre
+  v5.24.0 engine source in `docs/pattern-sampling.md` — there is no
+  style-level lever to opt out, and the mechanism is continuous while any
+  zoom-stepped tier is discrete, so no tier chain can remove it, only reduce
+  its density. Do not re-derive this; read the two docs.
+* **Three fixes were built, measured, and judged**: `docs/shimmer-verdict.md`
+  and `docs/shimmer-cost.md`. `acer/shim-lowpass` (turn up the existing
+  `SOFTEN` band-limit) shipped as a real, partial, blind-confirmed
+  mitigation. Extending the `TIERS` zoom-stepped chain further
+  (`acer/shim-zoomstep`) and fading the pattern out with distance
+  (`acer/shim-fade`) were both built, measured, and are dead ends — do not
+  re-try either without reading why first.
+* **`js/tower.js`, `js/drag.js`, `js/moody.js` are a second, untouched
+  front**: `docs/facade-atlas-map.md` §2. Each is a closed pattern system
+  with its own atlas and references neither `facadeTierExpr`, `TIERS`, nor
+  `SOFTEN` — they draw the full-resolution pattern at every zoom
+  unconditionally. This is why "the bottom of the Tower" specifically was
+  never going to improve from any of the three candidates. The honest next
+  step, if this is picked up again, is porting the tier/soften machinery to
+  those three files (or a shared helper), not another `facades.js`-only
+  tweak.
+* **A meter pitfall, so it is not rediscovered**: a from-scratch rewrite of
+  `shimmer.mjs` that downsamples every frame to a fixed reference grid before
+  scoring (built to fix a real renderScale-comparability gap in the original)
+  produced a confident, reproducible, visually-plausible WRONG answer — it
+  said `shim-lowpass` made the crawl worse, at the exact poses three other
+  independent measurements (the candidate's own commit, a blind judge pass,
+  and a direct re-run with the ORIGINAL instrument) agreed it made better.
+  Best explanation: stacking the new meter's own downsample-filter on top of
+  an already-blurred candidate produces a different low-frequency beat
+  pattern than either filter alone, which a 3-frame discriminator reads as
+  MORE non-monotonic even though the native-resolution picture has less
+  aliasing energy. The rewrite was not shipped. **Use the existing, original
+  `scripts/verify/shimmer.mjs` for anything at a fixed renderScale** — it is
+  the one three independent passes agreed with. If renderScale-invariance is
+  ever needed again, that gap is real and worth fixing, but cross-validate
+  any replacement against the original on a case with an independent answer
+  before trusting it.
