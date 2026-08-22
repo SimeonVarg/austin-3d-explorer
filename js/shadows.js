@@ -28,6 +28,9 @@
   const SRC = 'austin-shadows', LAYER = 'buildings-shadow';
   const MIN_HEIGHT = 3;      // sheds don't earn a shadow
   const MAX_LENGTH = 2.4;    // cap the golden-hour stretch, in building heights
+  const RING_BOTTOM = 'outer-3d'; // js/outer.js L_FLAT — the ring's lowest layer
+  const TUCK_POLL_MS = 250;       // outer's layers arrive after a network fetch
+  const TUCK_TRIES = 240;         // ~60 s, then give up (?outer=0 has no ring)
 
   let _feats = null, _map = null, _lastP = null, _timer = null;
 
@@ -115,6 +118,7 @@
       // Below the buildings but above roads/ground, so shadows fall on the
       // street the way they should.
       const before = map.getLayer('buildings-shadow-anchor') ? 'buildings-shadow-anchor'
+                   : map.getLayer(RING_BOTTOM) ? RING_BOTTOM
                    : map.getLayer('buildings-3d') ? 'buildings-3d' : undefined;
       map.addLayer({
         id: LAYER, type: 'fill', source: SRC, minzoom: 13.5,
@@ -124,6 +128,25 @@
           'fill-antialias': true,
         },
       }, before);
+      // THE OPENING SMEAR (QUEUE "THE OPENING SMEAR", diagnosed 2026-08-22,
+      // acer/f-smear). This layer is a 2D fill: it never depth-tests, it
+      // paints over every pixel drawn before it. js/outer.js adds the
+      // downtown ring later (network) and anchors it below `buildings-ao`,
+      // i.e. BELOW this fill — so at INTRO.start (pitch 78) the campus
+      // shadows, compressed into the horizon band, painted their dark hulls
+      // straight across the downtown towers for ~2 s after the title card
+      // lifts. Ground shadows belong under every extrusion: once the ring's
+      // lowest layer exists, tuck this fill beneath it. Proof:
+      // shots/f/smear/fix-A-before.jpg vs fix-B-after.jpg.
+      let tuckTries = 0;
+      (function tuck() {
+        if (!_map || !_map.getLayer(LAYER)) return;
+        if (_map.getLayer(RING_BOTTOM)) {
+          try { _map.moveLayer(LAYER, RING_BOTTOM); } catch (e) {}
+          return;
+        }
+        if (++tuckTries < TUCK_TRIES) setTimeout(tuck, TUCK_POLL_MS);
+      })();
     }
   };
 
