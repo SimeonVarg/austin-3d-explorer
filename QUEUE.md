@@ -1,40 +1,50 @@
 # QUEUE — Acer lane
 
-## GROUND CRAWL — the street-drag ground band, three fixes built and refused (2026-08-22 night, `docs/ground-verdict.md`)
+## ~~GROUND CRAWL~~ — RE-JUDGED 2026-08-22, `g-blur` SHIPPED (`docs/ground-rejudge.md`)
+
+The "38.27%, refused with 0.00pp on all three candidates" verdict above was
+measured at a `street-drag` pose with **the camera buried inside a surface**
+(`a80502c`, `docs/pose-audit.md`) — hiding all 55 ground/road layers there
+changed only 2.4% of pixels, against 16% at the corrected pose, and the two
+frames were visually identical. Every number in the old version of this entry
+is void, not confirmed. See `shots/shimmer/posebug/`.
+
+**Re-measured at the corrected pose** (`shimmer-poses.json`'s current
+`street-drag`, subject-in-frame confirmed by eye): baseline crawl is **3.33%**,
+not 38%. All three candidates DO move it, repeatably (0.00pp noise floor,
+byte-identical repeat runs): `g-blur` **-0.34pp** (3.33→2.99%), `g-coarse`
+**-0.27 to -0.29pp** (own noise ~0.02pp), `g-zoomfade` **-0.24pp**. And
+hiding every layer `js/ground.js` owns now DOES move the number (3.3%→2.49%,
+~25% reduction) — the "it isn't `js/ground.js` at all" conclusion was also an
+artifact of the buried-camera pose.
+
+**`g-blur`'s table is now ported into `js/ground.js` on `main`** — largest
+effect of the three, cheapest mechanism (draws once at load, shared kernel),
+eye-checked clean on the highest-risk surface (Speedway herringbone,
+before/after indistinguishable). `g-coarse` and `g-zoomfade` are dominated
+(smaller effect, real added cost or complexity) and NOT shipped; their
+branches can be deleted. Full numbers, the isolation re-test, and the
+reasoning: `docs/ground-rejudge.md`. The z-fight/coplanar hypothesis in the
+old entry below was never run — still open, now lower priority since the
+real number is 3%, not 38%.
+
+<details><summary>Original (void) verdict, kept for the record</summary>
 
 The `street-drag` low pass down Guadalupe measures 38.27% crawl and did not
 move across two full rounds of window-shimmer fixes (`docs/shimmer-brief.md`).
 The working theory was that this was `js/ground.js`'s own `fill-pattern`
 ground/road texture aliasing — untested until this round.
 
-**Three candidates were built and all three refused, each with a zero
-measured effect on the number:**
-1. `acer/g-blur` — the same isotropic band-limit that fixed windows, ported
-   onto ground's own pattern images. 0.00pp at every radius.
-2. `acer/g-coarse` — redraw the grain coarser at the source instead of
-   blurring after. 0.00pp, plus a real +27% cold-load cost for nothing.
-3. `acer/g-zoomfade` — fade the ground pattern out at grazing camera pitch.
-   0.00pp, no regression either, just inert at this pose.
+Three candidates were built and all three refused, each with a zero measured
+effect on the number: `acer/g-blur` (isotropic band-limit, 0.00pp), `acer/
+g-coarse` (redraw coarser at source, 0.00pp + real +27% cold-load cost),
+`acer/g-zoomfade` (fade at grazing pitch, 0.00pp, no regression). The actual
+finding was said to be that it isn't `js/ground.js` at all — stripping every
+layer that file owns left the crawl completely unchanged. **All of the above
+was measured at the buried-camera pose and is void.** Full old writeup:
+`docs/ground-verdict.md`, `docs/ground-cost.md`.
 
-**The actual finding: it isn't `js/ground.js`.** Stripping every layer that
-file owns — patterns, colours, geometry, dashed lines, all of it, at once —
-left the crawl completely unchanged. This corrects the shared premise of
-`docs/second-front-verdict.md` and a comment in `js/drag.js` itself, neither
-of which had actually isolated the file before.
-
-**Honest remaining option, not started**: the crawl's flip-rate signature
-(≈2.0 flips/px, very regular — unlike the noisier many-flip signature
-texture aliasing shows everywhere else in this investigation) reads like two
-coplanar surfaces trading a depth-test tie. Point `scripts/verify/zfight.mjs`
-and `coplanar.mjs` at the exact pose (`center [-97.7417, 30.288598], zoom
-19.017, pitch 76, bearing 180`) and find which two surfaces are tied. Nobody
-has run either instrument against this pose yet. This is a different bug
-class (geometry/depth-precision) from the window-pattern fixes that came
-before it, not a continuation of the same one.
-
-All three branches (`acer/g-blur`, `acer/g-coarse`, `acer/g-zoomfade`) are
-pushed to origin, parked, not merged. Full writeup: `docs/ground-verdict.md`,
-`docs/ground-cost.md`.
+</details>
 
 ## Z1 — "buildings in downtown slide in from the horizon" (open, NOT diagnosed)
 
@@ -449,11 +459,19 @@ the sky canvas or a horizon band that takes the camera's roll with the wrong
 sign. The flight controller banks into turns (`rollNow` in `js/controls.js`), so
 the sign convention is knowable. One character, most likely.
 
-## H4. Asphalt bleeds into Speedway
+## ~~H4. Asphalt bleeds into Speedway~~ — ALREADY FIXED 2026-08-04 (`92860e9`), verified 2026-08-22
 
-*"some asphalt roads bleed into speedway"*. PR #78's ground rank ladder resolves
-overlaps; either Speedway is not in the ladder at the right rank, or the roads
-that bleed are `roadarea` polygons added by PR #105 that the ladder never saw.
+*"some asphalt roads bleed into speedway"*. Fixed weeks before this QUEUE entry
+was last touched, in commit `92860e9` ("a pedestrian mall is not a road") —
+`scripts/bake_ground.py`'s ground rank ladder now exempts a `patharea` tagged
+`u:'pedestrian'` from the carriageway cut in BOTH directions (the mall keeps
+its footprint, the road stub is clipped to exclude the mall), already baked
+into `data/ground.geojson`. Re-verified this pass by reading the wiring
+(`resolve_ground_conflicts` and `widen_roads`'s `keep_out`, both live) and by
+screenshot at the exact East 26th crossing the fix's own comment cites —
+`shots/q/ground/h4-speedway-26th.png`, clean brick, no asphalt stub. Full
+account: `docs/ground-rejudge.md` §3. Not re-checked at every one of the
+city's 8 pedestrian-mall features, only Speedway.
 
 ## H5. Roofs intersect badly where footprints have many corners
 
@@ -469,20 +487,24 @@ how many buildings share it.
 
 # PART I — PRESENTATION. This is what the product manager sees.
 
-## I1. Sidewalks look like bathroom tiles
+## ~~I1. Sidewalks look like bathroom tiles~~ — ALREADY FIXED 2026-08-04 (PR #129, §67), verified 2026-08-22
 
 *"sidewalks look like bathroom tiles. looks like its all one huge tile floor and
 the sidewalks just reveal a portion of that one floor. make sidewalks look
 better. At first it looked like tape now it looks like bathroom tiles i dont want
 another silly analogy next."*
 
-**He has diagnosed the mechanism exactly.** The paving texture is a
-world-anchored `fill-pattern`, so every sidewalk in the city is a window onto ONE
-continuous tiled plane — the joints line up across separate paths, which is why
-it reads as a single bathroom floor. **The joints must run along each path, not
-across the world.** That is the fix; a different tile image is not.
-
-Third attempt at this. Get it right.
+This was the third attempt, and it landed weeks before this QUEUE entry was
+last touched: `js/ground.js`'s `pathSlabAngles`/`pathSlabPhase` pick a
+pre-rotated joint-bar tile PER FEATURE off a baked per-region direction
+(`scripts/bake_ground.py`'s `walk_direction_runs`), with the angle set chosen
+so the phase is exactly periodic at every tile edge — no seam, no world-grid.
+Confirmed "Landed" against real production frames in an earlier session
+(cross-joints run perpendicular to each walk's own direction, not one tiled
+floor) and re-checked this pass by reading the code and fresh screenshots at
+South Mall and Speedway (`shots/q/ground/i1-southmall-along.png`,
+`i1-speedway-eyelevel-baseline.png`) — no continuous grid. Full account:
+`docs/ground-rejudge.md` §2. Not re-photographed at every walk in the city.
 
 ## I2. The startup flythrough
 
