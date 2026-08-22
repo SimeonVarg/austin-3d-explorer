@@ -23619,3 +23619,129 @@ reading the code path, not independently re-timed; whether anisotropic
 filtering or a per-tile mipmap could be retrofitted onto MapLibre's pattern
 atlas without engine changes (`docs/pattern-sampling.md` flags this as the
 real unexplored path and it remains unexplored).
+
+## 170. Aug 22 2026 — the second front: shim-lowpass ported to tower/drag/moody/arts/places, all four merged (acer lane, PR #215, MERGED, branches deleted)
+
+**Shipped: the identical shim-lowpass band-limit, ported to the five files
+`js/facades.js`'s own fix structurally could not reach — including
+`js/tower.js`, the file Simeon actually named.** Four fronts, each already
+independently built and measured by prior sibling lanes
+(`docs/second-front-verdict.md`), merged here in dependency order
+(`acer/f2-helper` first, then `acer/f2-tower`/`acer/f2-moodyarts`/
+`acer/f2-wcplaces`), re-verified on the actual merged result, and shipped
+together as PR #215.
+
+**What each front does.** `acer/f2-helper` extracts the shared blur kernel
+(`js/facades.js`'s own `softenTile` math, lifted verbatim, zero behaviour
+change) into `js/pattern-lowpass.js` and ports it to `js/drag.js`.
+`acer/f2-tower` ports to `js/tower.js`. `acer/f2-moodyarts` ports to
+`js/moody.js` and `js/arts.js`'s panel layer only (its glass layer
+deliberately untouched — no fine structure to alias, see
+`docs/second-front-map.md` §7). `acer/f2-wcplaces` found `js/westcampus.js`
+needed ZERO code changes (a false positive in the original six-file grep —
+it already reads the shared, already-fixed expression) and shipped
+`js/places.js` at radius 2, not 3 (radius 1 is exact numerical resonance
+with its mullion period and erases it; radius 3 leaves a worse off-period
+beat pattern — found by a direct pixel-variance diagnostic the whole-frame
+meter was blind to).
+
+**A fifth branch, `acer/f2-atlas-instrumentation`, was also merged first** —
+uncommitted diagnostic work found sitting in the working tree at the start
+of this pass (`docs/second-front-map.md`, `docs/second-front-poses.md`, a
+`SHIM_ONLY` isolation knob on `shimmer.mjs`). It corrects two premises in
+the original task brief: `js/westcampus.js` was never part of this front (it
+already inherited the core fix by reference), and `street-drag`'s huge
+round-one number (38%, "ten times worse than anything else") is ~74% the
+already-tracked ground/road `fill-pattern` bug, not `js/drag.js`'s own wall
+layer, which isolation shows contributes exactly 0% of that pose's crawl.
+Also fixed a real bug in `shimmer.mjs`'s own `SHIM_PATTERN=0` control: it was
+silently leaving `places-glass`, `arts-glass`, and all seven `heroes-*`
+layers patterned, understating the "pattern off" floor in every prior run.
+
+**Re-verified on the merged result, not the branches in isolation.**
+`scripts/verify/shimmer.mjs` on the actual merge commit, balanced preset,
+one browser, heavy sibling load throughout (23-31 concurrent `chrome.exe`):
+
+    pose                          before      after      change
+    shot-a-tower (reel)            2.64%       2.62%      flat, within noise
+    shot-b-park (reel)             1.83%       1.81%      flat, within noise
+    cruise-campus                  1.06%       1.05%      flat, within noise
+    street-drag (worst in city)   38.36%      38.27%      flat (see below)
+    tower-close (wide framing)    14.16%      13.63%      -3.7% relative
+
+The full 9-pose sweep did not finish inside the harness's own 300s watchdog
+under tonight's load; the 5 poses above are the ones that matter (the two
+reel poses, cruise, and the two poses named in the task) and they were
+measured directly on this commit. The other four (moody-west, arts-ransom,
+westcampus-street, places-shopfront) are carried forward from
+`docs/second-front-verdict.md`'s own cross-checked numbers, not re-run here.
+
+**Two honest caveats, stated because the raw numbers above look like nothing
+happened at the two poses this queue cared about most.** `street-drag` stays
+flat because `js/drag.js`'s own wall layer was never the cause — isolating
+layers shows 0% attributable to it, 86% to `buildings-3d` (already covered
+by round one, still crawling hard at this close/steep angle), the rest to
+the ground bug. `tower-close`'s modest -3.7% is because this wide framing
+puts San Jacinto Hall and other dorms in the foreground, and isolating
+`tower-wall` alone here moves only ~0.5pp. Boxed tightly to just the Tower's
+own facade, at a closer pose, the improvement is real and large: whole-frame
+25.28% to 19.18%, boxed to the wall 13.03% — a ~68% relative drop, blind-
+confirmed in `docs/second-front-verdict.md` Gate 2 (5/5 correct, zero false
+positives, including a by-eye Tower-crown check).
+
+**Frame cost, re-timed on the merged build — the one thing the verdict doc
+flagged as not yet measured** (`docs/second-front-cost.md`, new
+`scripts/verify/second-front-atlas-perf.mjs`, 12 interleaved/counterbalanced
+reps, minimum reported): the five new ports add ~113.6ms combined
+atlas-repaint cost (drag +15.6ms, tower +84.7ms, moody +10.9ms, arts +1.4ms,
+places +1.0ms). `js/facades.js`'s own +141.5ms is NOT new cost from this PR —
+those radii are unchanged from round one, only the math moved to a shared
+file. Every repaint fires at init and on a time-of-day tick only, never the
+render loop (`blurWrap` never calls `map.updateImage`/`addImage` itself, so
+`js/facades.js`'s `ATLAS.RELEASE` staleness tracker — the 46%-2-3%
+main-thread win — is untouched by construction). `tower`'s delta here
+(+84.7ms) reproduces `acer/f2-tower`'s own commit number (+88.4ms) within
+~5% on an independent run, confirming no cross-front inflation from
+combining. (One bug caught before shipping this measurement: a first draft
+of the perf script flattened every family in a registry to one family's
+radius instead of restoring each family's own shipped value — caught by
+comparing against `acer/f2-tower`'s own already-published number and finding
+a 6-9% discrepancy, fixed, re-run.)
+
+**Verified on production** (flyover-utx.vercel.app, after confirming the
+deploy landed — `js/pattern-lowpass.js` present on the live site): crawl
+numbers match the merged build exactly at all four poses checked.
+`?autopilot=1` flies its campus path (confirmed by real camera
+position/bearing movement over a 10s window past the reveal gate — an
+earlier 4s-window check looked like it hadn't moved and was just too early,
+a reminder to wait past this app's own documented settle time before
+judging). The joystick nub is correctly invisible on a desktop viewport
+(`style.css:405`, min-width 1025px media query hides `#joystick-zone`) and
+confirmed live and pushing forward on a touch/mobile viewport instead.
+`?sliderdemo=1` parks (camera unchanged) and sweeps time-of-day (p 0.68 to
+0.92 across the check window, holding at night after). Plain page: zero
+console errors, OSM/OpenFreeMap attribution visible. Tower crown
+re-screenshotted directly on production at the Shot A opening pose (z16.25)
+— intact.
+
+**Cleanup.** All merged branches deleted, local and remote:
+`acer/second-front-ship`, `acer/f2-atlas-instrumentation`, `acer/f2-helper`,
+`acer/f2-tower`, `acer/f2-moodyarts`, `acer/f2-wcplaces`. Two local-only
+branches with no remote ref (`acer/f2-verdict`, `acer/second-front-cost`)
+deleted locally. The six `wf_d5b85b82-c2c-*` worktrees this investigation's
+lanes used are removed. `scripts/verify/shimmer-aba-prototype.mjs` deleted —
+`shimmer.mjs` replaced it long ago and it was still sitting next to the
+better instrument. `docs/shimmer-brief.md` §7 updated to say what is now
+true. Port 8530 (mine) confirmed free at the end of this pass; 8521-8529
+were never mine to begin with and were already free.
+
+**What this did NOT establish**, stated plainly: the full 9-pose sweep on
+the merged build (4 of 9 poses carried forward from the verdict doc, not
+re-run on this exact commit); `js/heroes.js`'s seven pattern layers (EER,
+Dell CS, PCL-adjacent buildings) — found by live inventory during this
+pass, zero SOFTEN/tier references, not measured or ported; the exact split
+between "this file's own layer" and "a neighbouring building in frame" at
+`arts-ransom` and `places-shopfront`, read off a mask by eye rather than a
+further `SHIM_ONLY` isolation run; whether `?sliderdemo=1`'s sweep shows a
+visible stutter at a repaint tick (the ~113.6ms combined cost says a hitch
+of that size is structurally possible, not that one was observed).

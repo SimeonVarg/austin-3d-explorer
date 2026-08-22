@@ -1,13 +1,18 @@
 # The window shimmer — what is established, so nobody re-derives it
 
-**Status: PARTIALLY MITIGATED, 2026-08-22. `acer/shim-lowpass` merged (a
-real, blind-confirmed 17-41% reduction in measured crawl at the poses
-tested, no frame-time regression). The defect is REDUCED, not eliminated —
-windows still visibly crawl after the fix, and `js/tower.js`/`js/drag.js`/
-`js/moody.js` are structurally untouched by it (see below). Full detail:
-`docs/shimmer-mechanism.md` (root cause, confirmed) and
-`docs/shimmer-verdict.md` (the three candidates tried, one shipped, two
-rejected, with the measurements for each).**
+**Status: PARTIALLY MITIGATED, updated 2026-08-22 evening. Both fronts are
+now shipped: `acer/shim-lowpass` (PR #214, the core atlas —
+`buildings-3d`/`wc-wall`) and the second front (PR #215 —
+`js/tower.js`/`js/drag.js`/`js/moody.js`/`js/arts.js`/`js/places.js`, the
+five files the first front structurally could not reach). The defect is
+REDUCED at every pose measured on every one of these files, and windows
+still visibly crawl after both fixes — the mechanism is continuous
+minification aliasing (`docs/shimmer-mechanism.md`) and a band-limit reduces
+its density, it does not remove it. Full detail: `docs/shimmer-mechanism.md`
+(root cause, confirmed), `docs/shimmer-verdict.md` +
+`docs/shimmer-cost.md` (round one: the three candidates tried, one shipped),
+`docs/second-front-verdict.md` + `docs/second-front-cost.md` (round two: all
+four fronts shipped, frame cost re-timed on the merged build).**
 
 Reported 2026-08-21, after the AWS reel was recorded:
 
@@ -134,15 +139,25 @@ not evidence; a measurement of flicker against minification is.
   (`acer/shim-zoomstep`) and fading the pattern out with distance
   (`acer/shim-fade`) were both built, measured, and are dead ends — do not
   re-try either without reading why first.
-* **`js/tower.js`, `js/drag.js`, `js/moody.js` are a second, untouched
-  front**: `docs/facade-atlas-map.md` §2. Each is a closed pattern system
-  with its own atlas and references neither `facadeTierExpr`, `TIERS`, nor
-  `SOFTEN` — they draw the full-resolution pattern at every zoom
-  unconditionally. This is why "the bottom of the Tower" specifically was
-  never going to improve from any of the three candidates. The honest next
-  step, if this is picked up again, is porting the tier/soften machinery to
-  those three files (or a shared helper), not another `facades.js`-only
-  tweak.
+* **The second front is now CLOSED too, shipped 2026-08-22 evening (PR #215,
+  merged, branches deleted)**: `docs/second-front-map.md` (per-file map),
+  `docs/second-front-poses.md` (live measurement + two corrections to this
+  brief's own six-file premise — `js/westcampus.js` was never part of this
+  front, it already inherited the fix by reference; `street-drag`'s huge
+  round-one number is mostly the already-tracked ground/road bug, not
+  `js/drag.js`'s own layer), `docs/second-front-verdict.md` (all four ports
+  shipped: `js/drag.js`, `js/tower.js` — the file Simeon actually named —
+  `js/moody.js`, `js/arts.js`'s panel layer, `js/places.js`; `js/westcampus.js`
+  needed zero code changes), `docs/second-front-cost.md` (frame cost,
+  re-timed on the merged build: ~113.6ms combined added atlas-repaint cost
+  across the five new ports, `js/facades.js`'s own row unchanged from round
+  one — none of it in the render loop, cruise/flying fps unaffected by
+  construction). Verified on production (flyover-utx.vercel.app) after
+  deploy: crawl numbers match the merged build exactly, Tower crown intact
+  at the Shot A opening pose, `?autopilot=1`/`?sliderdemo=1` both still work,
+  zero console errors. **`js/heroes.js`'s seven pattern layers (EER, Dell CS,
+  PCL-adjacent buildings) were found during this pass and are NOT ported** —
+  flagged, not fixed, the next place to look if this is picked up again.
 * **A meter pitfall, so it is not rediscovered**: a from-scratch rewrite of
   `shimmer.mjs` that downsamples every frame to a fixed reference grid before
   scoring (built to fix a real renderScale-comparability gap in the original)
