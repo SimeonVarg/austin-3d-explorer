@@ -89,6 +89,12 @@ if (process.env.SHIM_SOFTEN != null) {
     const targets = [
       { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(window.__map, p0) },
       { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(window.__map, p0) },
+      // js/places.js (QUEUE F2 front 2), same rationale as shimmer.mjs's own
+      // copy of this list: one image, one family key (plGlass), same SOFTEN
+      // shape. js/westcampus.js is not a separate target — it paints through
+      // 'facade' already (see js/places.js's PLACES_SOFTEN comment / the
+      // acer/f2-wcplaces commit message).
+      { key: 'places', S: window.PLACES_SOFTEN, repaint: () => window.applyPlacesColors && window.applyPlacesColors(window.__map, p0) },
     ];
     const hit = [];
     for (const t of targets) {

@@ -168,6 +168,18 @@ const applied = await page.evaluate((cfg) => {
     const targets = [
       { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(m, p0) },
       { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(m, p0) },
+      // js/places.js (QUEUE F2 front 2): one image (GLASS_IMG/'pl-glass'), so
+      // this registry has a single family key (plGlass) rather than a table,
+      // but it is the same SOFTEN shape and the loop below needs no special
+      // case for that. NOTE: js/westcampus.js is deliberately NOT a target
+      // here — its wall layer (`wc-wall`) reads window.FACADE_PATTERN_EXPR
+      // directly and every wall feature is registered into facades.js's own
+      // `combos`/SOFTEN registry via quantiseStadiumFacades (confirmed by
+      // reading js/westcampus.js:1025 and js/facades.js:1047 — see the
+      // acer/f2-wcplaces commit message) — the 'facade' target above already
+      // reaches it, and a second entry here would double-apply the same
+      // override to the same pixels.
+      { key: 'places', S: window.PLACES_SOFTEN, repaint: () => window.applyPlacesColors && window.applyPlacesColors(m, p0) },
     ];
     const hit = [];
     for (const t of targets) {
@@ -182,8 +194,16 @@ const applied = await page.evaluate((cfg) => {
   }
 
   if (!cfg.pattern) {
+    // 'places-solid' was here already and is the WRONG layer for this control
+    // — it is places.js's flat-colour tier (L_SOLID), which never carried a
+    // pattern to strip. 'places-glass' (L_GLASS) is the one that does
+    // (GLASS_IMG) and was missing entirely, so SHIM_PATTERN=0 silently left
+    // every shopfront's glazing pattern ON while claiming to be the
+    // pattern-off floor. Left 'places-solid' in place (harmless no-op: it has
+    // no 'fill-extrusion-pattern' paint property to clear) rather than remove
+    // it, so nothing else that already depends on this exact array shrinks.
     for (const id of ['buildings-3d', 'parts-3d', 'wc-wall', 'drag-wall', 'moody-wall',
-                      'arts-panel', 'places-solid', 'tower-wall', 'stadium-wall']) {
+                      'arts-panel', 'places-solid', 'places-glass', 'tower-wall', 'stadium-wall']) {
       if (!m.getLayer(id)) continue;
       try {
         m.setPaintProperty(id, 'fill-extrusion-pattern', null);
@@ -306,6 +326,20 @@ for (const s of SHOTS) {
     if (m.isEasing && m.isEasing()) m.stop();
     m.jumpTo({ center: s.center, zoom: s.zoom, pitch: s.pitch, bearing: s.bearing });
     if (typeof s.p === 'number') window.applyTimeOfDay(m, s.p, true);
+    // Optional: {"hideLayers": ["buildings-3d"]} isolates one layer's own
+    // contribution to a pose's crawl% by hiding everything else that could
+    // also be painting pattern pixels in the same box — e.g. confirming
+    // js/westcampus.js's wc-wall crawl is really coming from wc-wall and not
+    // from a core buildings-3d facade standing behind/beside it in frame.
+    // One-way (not restored): each shot in a list gets a fresh jumpTo, but
+    // layer visibility is style state, not camera state, so a later shot in
+    // the SAME list that needs the layer back must say so with its own
+    // (possibly empty) hideLayers, not rely on a prior shot's absence of one.
+    if (Array.isArray(s.hideLayers)) {
+      for (const id of s.hideLayers) {
+        try { if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', 'none'); } catch (e) {}
+      }
+    }
   }, s);
   await settle(4500);
 

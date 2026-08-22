@@ -1,0 +1,26 @@
+[
+  {
+    "name": "wc-cruise",
+    "note": "shot-a-tower's pose, whole frame -- West Campus (Castilian, Moontower) plus core-atlas buildings both in frame.",
+    "center": [-97.7393, 30.2874], "zoom": 16.85, "pitch": 74, "bearing": 197.4, "p": 0.5,
+    "disableFacade": true
+  },
+  {
+    "name": "wc-cruise-iso",
+    "note": "same pose, buildings-3d hidden -- isolates wc-wall's own contribution.",
+    "center": [-97.7393, 30.2874], "zoom": 16.85, "pitch": 74, "bearing": 197.4, "p": 0.5,
+    "hideLayers": ["buildings-3d"], "disableFacade": true
+  },
+  {
+    "name": "wc-close",
+    "note": "shots-westcampus-key.json's own established 'castilian' pose, whole frame.",
+    "center": [-97.74245, 30.28660], "zoom": 16.75, "pitch": 66, "bearing": 0, "p": 0.5,
+    "disableFacade": true
+  },
+  {
+    "name": "wc-close-iso",
+    "note": "same pose, buildings-3d hidden -- isolates wc-wall's own contribution.",
+    "center": [-97.74245, 30.28660], "zoom": 16.75, "pitch": 66, "bearing": 0, "p": 0.5,
+    "hideLayers": ["buildings-3d"], "disableFacade": true
+  }
+]
