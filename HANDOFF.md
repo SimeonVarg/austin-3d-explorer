@@ -23519,3 +23519,103 @@ to exist. Do not accept a freeze as evidence of "it never goes away" on its own.
   still **empty**, so the rehearsal's fingerprint is still good.
 * `docs/aws/go-nogo.md` **is committed on `main`** and its top eight lines are
   the one-hand list. It was checked, not assumed.
+
+## 169. Aug 22 2026 — the window shimmer: `shim-lowpass` merged, a meter I built myself was the last wrong answer of the night (acer lane, PR #214, MERGED, branches deleted)
+
+**Shipped: `acer/shim-lowpass`, a real, blind-confirmed, 17-41% reduction in
+the window-shimmer crawl at every pose tested, including the two AWS-reel
+poses. The glitch is REDUCED, not gone.** Two other candidates
+(`acer/shim-zoomstep`, `acer/shim-fade`) were built by sibling lanes, measured,
+and are dead ends — closed, not merged. Full record: `docs/shimmer-verdict.md`,
+`docs/shimmer-cost.md`, `docs/shimmer-brief.md` §7.
+
+**What "reduced, not gone" means concretely.** `shim-lowpass` turns up the
+existing per-family blur (`SOFTEN.RADIUS`/`AMOUNT` in `js/facades.js`) that a
+2026-08-04 investigation already built and deliberately left conservative.
+It only touches `buildings-3d`/`wc-wall` — the core campus atlas.
+`js/tower.js`, `js/drag.js`, `js/moody.js` (the Tower shaft, PCL/Gregory
+Gym/Union/Co-op/the Drag, Moody Center/Dell Med) are each their OWN closed
+pattern system with no tier chain and no soften knob at all
+(`docs/facade-atlas-map.md`, a read-only pass against the actual files). **The
+Tower's own base — the specific thing Simeon named — was never going to
+improve from any of the three candidates**, and did not.
+
+**Root cause was already confirmed before this pass** (`docs/shimmer-mechanism.md`,
+merged earlier the same night): linear-filtered, no-mipmap
+`fill-extrusion-pattern` sampling. `docs/pattern-sampling.md` (a read-only pass
+against the actual MapLibre v5.24.0 engine source, fetched from GitHub) confirms
+there is no style-level lever to opt out, and that the minification driving
+this is continuous across view angle while any zoom-stepped tier is discrete —
+so a tier chain can only ever reduce the defect's density, never remove the
+mechanism. That is the honest ceiling on the whole approach, not just this
+candidate.
+
+**The judging.** A sibling lane (a "judge" worktree, separate from the three
+builders) measured all three candidates against 10 poses with the ORIGINAL
+`scripts/verify/shimmer.mjs`, got a 0.00pp noise floor (two `main` reps
+byte-identical), then ran a BLIND visual test — four poses, all four arms
+rendered, filenames shuffled, the mapping not opened until after judging by
+eye. **Every blind call was correct.** lowpass: -17% to -41% crawl at every
+translate pose measured. zoomstep/fade: statistically zero effect (zoomstep's
+own decisive test — forcing 100% far tier — crawls the same as normal, so no
+threshold value could ever have helped; fade is inert at both actual reel
+poses because they sit above its own `FADE_ZOOM`, and visibly flattens real
+buildings at the one altitude it does anything).
+
+**The part that cost the most time tonight, and is worth reading if you touch
+this again.** Working from a fresh session start, I found an UNCOMMITTED
+rewrite of `shimmer.mjs` sitting in the working tree — a real idea (downsample
+every frame to a fixed reference grid before scoring, to fix a genuine
+renderScale-comparability gap in the original tool) from an earlier,
+interrupted pass at this same task. I finished it, and it passed its own
+4/4 selftest including the exact invariance property it was built for. Then
+I ran it against `shim-lowpass` at the two reel poses and it said the
+candidate made the crawl WORSE — reproduced 4 times exactly, cross-checked at
+a second renderScale, and visually confirmed: its own mask images showed MORE
+magenta on Neural Molecular Science's wall in the candidate than the baseline.
+I chased this for real: fixed a genuine separate bug in it first (a
+`>200`-tiled-features floor that let a still-loading scene pass as "ready" —
+the same pose tiled anywhere from 1522 to 4222 features depending on machine
+load, a fresh instance of the README's own "cold server" trap), confirmed the
+regression held at a second renderScale, and only THEN cross-checked it
+against the original instrument at the identical poses myself. The original,
+run by me, independently, agreed with the judge worktree: -25%/-37%, not a
+regression. **Three independent measurements (the candidate's own commit, the
+blind judge pass, and my own direct re-run of the trusted tool) agreed;
+one — my own new instrument — was the outlier.** I reverted the rewrite and
+shipped the verdict the three agreeing measurements support. Best-guess
+mechanism for why the new meter was wrong, not proven: it stacks its own
+downsample-as-low-pass on top of an already-blurred candidate, which can
+produce a different, coarser beat pattern than either filter alone — read by
+a 3-frame discriminator as MORE non-monotonic even though the native-
+resolution picture (what a real screen actually shows) has less aliasing
+energy. Full account in `docs/shimmer-brief.md` §7. **If this defect is
+revisited: use the existing, original `scripts/verify/shimmer.mjs` for
+anything at a fixed renderScale — three independent passes agreed with it
+tonight, one from-scratch replacement did not.**
+
+**Verified on the merged result, then on production.** Re-ran the original
+`shimmer.mjs` against the actual merge commit (not the branch in isolation):
+2.64%/1.83% at the two reel poses, matching the pre-merge numbers exactly (no
+app code changed between the PR's last commit and the merge, only docs).
+Then against `https://flyover-utx.vercel.app` directly, after confirming the
+deploy had picked up the change (`js/facades.js`'s `RADIUS` constants present
+on the live site): identical 2.64%/1.83%. Plain page, `?autopilot=1`, and
+`?sliderdemo=1` all load clean on production — map instantiates, zero console
+errors, OSM/OpenFreeMap attribution visible.
+
+**Cleanup.** Both rejected branches deleted, local and remote. `shim-lowpass`
+deleted after merge. `acer/shimmer-brief` deleted (fully merged, an ancestor
+of `main`). The six `wf_da80896e-b51-*` worktrees this investigation's
+parallel lanes used are removed. Ports 8501-8510 confirmed free at the end of
+this pass.
+
+**What this did NOT establish**, stated plainly: whether the reverted meter's
+downsample-artifact theory is exactly right (plausible, not proven with a
+synthetic counter-example); whether `tower.js`/`drag.js`/`moody.js`'s missing
+tier/soften machinery is a MEASURABLE contributor to the citywide crawl
+(structural fact, not measured); frame cost was checked for plausibility by
+reading the code path, not independently re-timed; whether anisotropic
+filtering or a per-tile mipmap could be retrofitted onto MapLibre's pattern
+atlas without engine changes (`docs/pattern-sampling.md` flags this as the
+real unexplored path and it remains unexplored).
