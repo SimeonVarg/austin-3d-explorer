@@ -1,0 +1,19 @@
+[
+  {
+    "name": "street-drag",
+    "note": "acer/g-coarse candidate measurement. Identical pose/camera to shimmer-poses.json's street-drag (docs/second-front-verdict.md baseline 38.36% whole-frame on main).",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "street-drag-wall",
+    "note": "same camera, boxed to WALLS ONLY (excludes ground/road band) -- identical box to scripts/verify/shots-street-wall.json. Sanity check that js/ground.js changes do not move the wall-only number (they shouldn't touch anything drag.js/facades.js own).",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5,
+    "box": [0, 0, 1439, 545]
+  },
+  {
+    "name": "street-drag-ground",
+    "note": "same camera, boxed to the COMPLEMENT of street-drag-wall's box -- the road/ground band (y 546-899) that docs/second-front-verdict.md identifies as dominating the whole-frame street-drag number and NOT moving across both prior rounds. This isolates js/ground.js's own fill-pattern contribution.",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5,
+    "box": [0, 546, 1439, 899]
+  }
+]

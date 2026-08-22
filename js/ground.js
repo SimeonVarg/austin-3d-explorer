@@ -279,6 +279,22 @@
     texStrength: {          // per surface family, 0..1
       grass: 1.0, asphalt: 0.9, water: 0.95, paving: 0.5, canopy: 1.0,
     },
+    // ── Grain downsample (QUEUE g-coarse, docs/ground-pattern-map.md §7) ───
+    // Every speckle() dot below used to be ONE HARD-EDGED TEXEL — full-Nyquist
+    // per-pixel random noise with zero headroom before fill-pattern's
+    // linear/no-mipmap sampler aliases it (docs/pattern-sampling.md). Rather
+    // than blurring that noise after the fact (the `PatternLowpass.blurWrap`
+    // approach shipped for the facades — a wall can be face-on, this ground
+    // plane never is, see docs/second-front-verdict.md), speckle() now DRAWS
+    // its dots at 1/grainDownsample resolution and lets the canvas's own
+    // bilinear upscale turn each one-texel toggle into a soft blob
+    // grainDownsample texels wide before it is ever composited onto the
+    // tile. Fewer, larger, softer-edged grain BY CONSTRUCTION, not a filter
+    // bolted on top. One knob for every family in every one of the three
+    // fill-pattern layers (TEX, CLOSE_AREA, CLOSE_ROAD) plus the walk-deck's
+    // own aggregate speckle — all still name-called `speckle()`, so this is
+    // the one line to raise or lower every one of them at once.
+    grainDownsample: 3,
     // ── Waller Creek ──────────────────────────────────────────────────
     //
     // "the creek behind patton and alumni is a very vibrant in depth creek …
@@ -866,12 +882,32 @@
       ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
     });
   }
+  // CANDIDATE 3 (docs/ground-pattern-map.md §7): redraw the grain so it
+  // cannot alias, instead of blurring it after the fact. Draw the dots onto a
+  // sub-canvas at T/grainDownsample resolution, then let the browser's own
+  // bilinear drawImage upscale turn every one-texel hard toggle into a soft
+  // blob grainDownsample texels wide. n is scaled down by grainDownsample^2
+  // so the AREA COVERAGE — how much of the tile reads as textured — stays
+  // close to what it was; only the dot count and dot size change. Getting
+  // that scaling wrong is the trap: keeping n constant while shrinking the
+  // canvas means the same dot count massively oversaturates the smaller
+  // buffer and the grain reads as a flat tint, not coarser grain (the "turn
+  // the road to mush" failure mode the task brief itself warned about).
   function speckle(ctx, T, rand, n, maxA, size) {
-    for (let i = 0; i < n; i++) {
+    const DOWN = GROUND.grainDownsample;
+    const Ts = Math.max(8, Math.round(T / DOWN));
+    const sc = document.createElement('canvas');
+    sc.width = sc.height = Ts;
+    const sctx = sc.getContext('2d');
+    const sSize = Math.max(1, Math.round(size));
+    const nLow = Math.max(1, Math.round(n / (DOWN * DOWN)));
+    for (let i = 0; i < nLow; i++) {
       const light = rand() < 0.5;
-      ctx.fillStyle = `rgba(${light ? '255,255,255' : '0,0,0'},${(0.25 + rand()*0.75) * maxA})`;
-      ctx.fillRect(Math.floor(rand()*T), Math.floor(rand()*T), size, size);
+      sctx.fillStyle = `rgba(${light ? '255,255,255' : '0,0,0'},${(0.25 + rand()*0.75) * maxA})`;
+      sctx.fillRect(Math.floor(rand()*Ts), Math.floor(rand()*Ts), sSize, sSize);
     }
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(sc, 0, 0, Ts, Ts, 0, 0, T, T);
   }
 
   function drawTexture(family, T) {
