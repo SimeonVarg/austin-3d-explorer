@@ -68,6 +68,34 @@
     // sub-pixel and are pure overdraw.
     detailMinZoom: 14.6,
     opacity: 1.0,
+
+    // ── THE SOURCE MUST NOT BE SIMPLIFIED ────────────────────────────
+    // This used to spread `window.PATTERN_TILING` ({maxzoom 16, tolerance 0.5})
+    // like almost every other pass, and that is tuned for 40 m wall panels. The
+    // pieces here are the 1-1.5 m window slots, the belfry columns and the clock
+    // slabs. At z16 one tile pixel is about 2.4 m of ground, so a 1.5 m slot is
+    // well under a tile pixel and geojson-vt's simplifier is entitled to delete
+    // it — and everything above z16 then re-uses that gutted tile. js/entrances.js
+    // hit exactly this and its header documents it; this is the same fix.
+    //
+    // Simeon: "the UT tower in shot A has a black rectangle at the top as its
+    // not close enough for detail to appear ... is this a detail mode? i think
+    // it can handle higher detail."
+    //
+    // It was not a detail mode. `tower-detail` was VISIBLE the whole time and
+    // js/lod.js was dropping nothing (Shot A flies at 119-216 m against a
+    // 495 m threshold). The geometry simply was not in the tile. Counted with
+    // querySourceFeatures at the shot's opening pose: 440 features against 1360
+    // once closer, with `clock-dial` absent entirely. Painted magenta, the
+    // detail layer covered a single small box at the crown where closer in it
+    // covers the slots, the dial, the balustrade and the belfry columns. What he
+    // saw as a black rectangle was `tower-solid`'s unlit belfry core with the
+    // pale columns that break it up deleted by the simplifier.
+    //
+    // tolerance 0 is the load-bearing half — it means no simplification at ANY
+    // zoom, including the coarse tiles MapLibre serves toward the horizon at a
+    // flying pitch. One building's worth of features; measured cost below.
+    tiling: { maxzoom: 18, tolerance: 0, buffer: 128 },
   };
   window.TOWER = TOWER;
 
@@ -1423,7 +1451,7 @@
     // does not have is painted transparent, not defaulted.
     const nImg = registerPatterns(map, p);
 
-    map.addSource(SRC, { type: 'geojson', data: gj, ...(window.PATTERN_TILING || {}) });
+    map.addSource(SRC, { type: 'geojson', data: gj, ...TOWER.tiling });
     hideOriginals(map, gj);
 
     // The anchor must be the first symbol layer AFTER our buildings. The
