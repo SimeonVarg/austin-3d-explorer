@@ -248,6 +248,65 @@ for f in signs.get('features', []):
 feats = buildings['features']
 bboxes = [bbox(f['geometry']) for f in feats]
 
+# ------------------------------------------------------- QUEUE J2/J3 height fix
+#
+# HANDOFF #68 (2026-08-04, `acer/j2-j4-churches-trucks`) diagnosed both of
+# these and could not fix either: "[height] lives in the snapshot -- outside
+# this lane's files. One `data/building_overrides.json` entry fixes it" (J3),
+# and for J2 "Left for whoever owns `building_overrides.json`: the tower is
+# the SW corner of the ring, the nave the rest, and the nave wants about
+# 16 m." `building_overrides.json` is `bake_roofs.py`'s file (roof_run_m,
+# roof_colour, deck_colour, loggia -- no height field, per HANDOFF #78's "there
+# is still no way to override a building HEIGHT"). `final_height` is written
+# HERE, by this bake, into buildings.detailed.geojson -- so the fix belongs in
+# this file, not that one. Hand-editing the OUTPUT geojson was explicitly
+# rejected in HANDOFF #7166's note ("the next bake silently wipes it"); this
+# is a durable override that survives every re-bake.
+#
+# J2 -- University Christian Church. Overture's 37.0 m applied uniformly
+# across the whole ~42x43 m footprint reads as a 9-storey office slab
+# (confirmed on screen: `shots/r/buildings/before-christian-air2.png`).
+# SOURCED, not guessed: "Places of worship around UT" (Design Decadence,
+# 2012) says the Sanctuary "rises 62 feet [18.9 m] above University Avenue"
+# and is a tower-like Gothic structure that "distinguishes the building along
+# the streetscape" -- i.e. the real building is a low nave plus ONE tall
+# tower, not one uniform height. Nave dropped to 16.5 m, close to the Aug-4
+# lane's own "~16 m" estimate; the tower is added separately as a synthetic
+# part below rather than re-drawing the whole 28-point ring from a guess.
+#
+# J3 -- University Catholic Center. 7.4 m is Overture's raw figure for a
+# building the source describes as housing "a large chapel, a smaller...
+# chapel, a conference room, kitchen, library, and several offices and
+# classrooms" on an already-reasonable 42x45 m footprint (HANDOFF #68
+# confirms the OUTLINE -- only the height is wrong; the surrounding bare
+# plaza that reads as "construction" is `data/ground.geojson`, a different
+# lane's file, not this building). No sourced height exists for this one, so
+# unlike J2 this is a documented ESTIMATE: 12.8 m crosses `js/facades.js`'s
+# `familyFor()` 12 m line from 'mr' ("2-3 storey walk-ups, shops") into 'mh'
+# ("4-7 storey campus halls") -- the family a multi-program university
+# building should read as, instead of a shop. One number, overrulable in one
+# line, per CLAUDE.md's "parameterise every taste value."
+HEIGHT_OVERRIDES = {
+    '5d85b423-9d29-416b-98f6-fa5b991736ca': 16.5,   # University Christian Church (was 37.0)
+    '826faac8-c25d-4770-b955-8f13385022e3': 12.8,   # University Catholic Center (was 7.4)
+}
+for _f in feats:
+    _p = _f['properties']
+    _bid = _p.get('id')
+    if _bid in HEIGHT_OVERRIDES:
+        _old = _p.get('final_height')
+        _p['final_height'] = HEIGHT_OVERRIDES[_bid]
+        print(f'  [J2/J3 height override] {_p.get("name")}: {_old} -> {_p["final_height"]} m')
+
+# J2 roof colour: the source names "copper roof and trim" specifically, so the
+# generic church-class roof (a dull brownish-grey) is swapped for a weathered
+# green-patina copper. Wall colour is left alone -- the class palette's cream
+# already reads close enough to the "Cordova cream cut limestone" the same
+# source names, and the height fix above is doing the load-bearing work.
+ROOF_OVERRIDES = {
+    '5d85b423-9d29-416b-98f6-fa5b991736ca': '#5f8a76',   # University Christian Church: oxidised copper
+}
+
 
 def find_building(pt, want_height=None):
     """All containing footprints; if want_height given, pick the closest in
@@ -384,6 +443,9 @@ for i, f in enumerate(feats):
         nightw = cd.get('night_window', '#ffd9a0')
         class_hits += 1
 
+    if p.get('id') in ROOF_OVERRIDES:
+        roof = ROOF_OVERRIDES[p['id']]
+
     wd, wg, wn = make_tod_colors(wall, nightw)
     rd, rg, rn = make_roof_colors(roof)
     p.update(wd=wd, wg=wg, wn=wn, rd=rd, rg=rg, rn=rn)
@@ -443,6 +505,43 @@ for pf, parent in zip(parts.get('features', []), part_parent):
         'geometry': pf['geometry'],
         'properties': props,
     })
+
+# --------------------------------------------------- QUEUE J2: a hand-authored tower
+#
+# No OSM/Overture `building:part` exists for University Christian Church (0 of
+# 23 records in data/parts.geojson fall anywhere near it), so there is no real
+# sub-massing to adopt -- the church's own base volume above (16.5 m, the nave)
+# is the only geometry this snapshot has. HANDOFF #68 places the real tower "in
+# the SW corner of the ring"; that corner is confirmed against the actual
+# footprint below (an 8x8 m square, inset 1.5 m from the two SW-facing edges,
+# checked point-in-polygon against every corner so it stands on the church's
+# own walls rather than floating past them). Height is the SOURCED figure --
+# "rises 62 feet [18.9 m] above University Avenue" -- not a guess. `has_parts`
+# is deliberately NOT set on the church: this tower stands ALONGSIDE the base
+# volume, not instead of it, so buildings-3d keeps drawing the nave.
+CHURCH_ID = '5d85b423-9d29-416b-98f6-fa5b991736ca'
+_church = next((f for f in feats if f['properties'].get('id') == CHURCH_ID), None)
+if _church:
+    _tower_ring = [
+        [-97.7394744, 30.2831555], [-97.7393912, 30.2831555],
+        [-97.7393912, 30.2832273], [-97.7394744, 30.2832273],
+        [-97.7394744, 30.2831555],
+    ]
+    _cp = _church['properties']
+    # Wall matches the church's own baked stone colour exactly (same material,
+    # same tower) -- only the small cap gets its own copper tone.
+    _trd, _trg, _trn = make_roof_colors(adjust_light(ROOF_OVERRIDES[CHURCH_ID], -0.15))
+    part_feats.append({
+        'type': 'Feature',
+        'geometry': {'type': 'Polygon', 'coordinates': [_tower_ring]},
+        'properties': {
+            'h': 18.9, 'base': 0.0,
+            'wd': _cp['wd'], 'wg': _cp['wg'], 'wn': _cp['wn'],
+            'rd': _trd, 'rg': _trg, 'rn': _trn,
+            'pid': CHURCH_ID,
+        },
+    })
+    print(f'  [J2 tower] added synthetic 8x8 m tower part at 18.9 m for {_cp.get("name")}')
 
 # ---------------------------------------------------------------- write
 out_b = os.path.join(SNAP, 'buildings.detailed.geojson')

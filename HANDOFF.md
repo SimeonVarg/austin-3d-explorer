@@ -1,5 +1,99 @@
 # Austin 3D Explorer — Full Handoff
 
+## 173. Aug 22 2026 — J1 was stale, J2/J3 were waiting on a height lever this lane finally owns (acer lane, branch `acer/r-buildings`)
+
+**Branch:** `acer/r-buildings`. **QUEUE J1, J2, J3.** Files:
+`scripts/bake_detail.py`, `data/snapshots/2026-08-22/buildings.detailed.geojson`,
+`data/snapshots/2026-08-22/parts.detailed.geojson`. Shots: `shots/r/buildings/`.
+
+Dispatched as "three buildings that read as wrong." Only one of the three
+still did.
+
+**J1 — stale, not a bug.** Confirmed already fixed 2026-08-04 (PR #130,
+`scripts/bake_roofs.py`/`data/roofs.geojson`, neither owned by this lane),
+independently re-confirmed the same day in a photo sweep (§78). Re-verified a
+THIRD time this round with a fresh live look, at a pose chosen to avoid the
+occlusion that misled this same lane on the first pass (an early oblique shot
+made Calhoun's label look like it sat on a neighbour's grey roof —
+`shots/r/buildings/before-calhoun-air2.png` is that misleading frame, kept
+rather than deleted). A nadir-ish re-shot removed the ambiguity:
+`j1check-calhoun-nadir.png` / `-nadir2.png` show `Calhoun Hall`'s label on the
+terracotta hipped bar with dormers, `Parlin Hall` and `Homer Rainey Hall`
+flanking it with their own grey standing-seam roofs. Struck off in QUEUE.md
+with the evidence. **Do not re-open without a fresh screenshot** — the fix is
+real and three separate checks now agree.
+
+**J2 and J3 — genuinely blocked since HANDOFF §68 (2026-08-04), fixed now.**
+That lane diagnosed both correctly and could not fix either: *"[height] lives
+in the snapshot — outside this lane's files"* (J3) and *"Left for whoever owns
+`building_overrides.json`"* (J2) — except `building_overrides.json` is
+`bake_roofs.py`'s file (roof knobs only, confirmed by reading it: `roof_run_m`,
+`roof_over_max_height`, `roof_colour`, `deck_colour`, `loggia`, no height
+field), and `final_height` is written into `buildings.detailed.geojson` by
+THIS bake. The lever was real, just filed under the wrong owner. Added a
+small, named override table directly in `scripts/bake_detail.py` — not a
+hand-edit of the output geojson, which HANDOFF's own prior note says a re-bake
+silently wipes.
+
+- **J2**: Overture's `37.0 m` on the whole 42x43 m footprint (a 9-storey
+  office slab) dropped to `16.5 m`. Sourced, not guessed: "Places of worship
+  around UT" (Design Decadence, 2012) puts the Sanctuary tower at 62 ft
+  (18.9 m) above University Avenue. Added a synthetic 8x8 m tower part (no
+  OSM `building:part` exists for this building — 0 of 23 records in
+  `data/parts.geojson` land anywhere near it), base 0 to 18.9 m, sited in the
+  SW corner of the ring per §68's own siting and checked point-in-polygon
+  against the real footprint before use. Roof recoloured to weathered copper
+  green (source: "copper roof and trim"); wall left alone (already close to
+  the source's "cream cut limestone"). `before-christian-air2.png` vs
+  `after-christian-air2.png`: the tower now reads clearly above the nave
+  roofline and the floor-band count is roughly halved.
+- **J3**: `7.4 m` (Overture's raw figure, 2-storey-equivalent) raised to
+  `12.8 m`. **This one is a documented ESTIMATE** — no source gives a real
+  height for this specific building, unlike J2. 12.8 m crosses
+  `js/facades.js`'s `familyFor()` threshold from `'mr'` ("shops") to `'mh'`
+  ("campus halls") at 12 m, which is the more defensible target: the right
+  texture family for the program described (chapel, second chapel, library,
+  offices, classrooms) rather than a specific measured number. Re-confirmed
+  the footprint itself is fine (42x45 m, matches a fresh satellite pull — the
+  real building has genuine roof massing and a roof cross) and that the
+  "construction" he saw was Mulva Hall's site next door, already fixed by a
+  different, since-merged `bake_props.py` change (HANDOFF §68) — not this
+  building. `before-catholic-air.png`/`-air2.png` vs `after-*`: visibly
+  taller. Still a blank box up close — real facade materials
+  ("half-stucco and half-stone... symmetrical windows on all sides") are
+  `js/facades.js` territory, not touched.
+
+**How the reference was derived, not guessed, for J2's tower siting and J1's
+re-check**: pulled ESRI World Imagery satellite tiles directly (no API key
+needed, `server.arcgisonline.com/.../MapServer/tile/{z}/{y}/{x}`, stitched
+with PIL) for both Calhoun Hall and University Christian Church before writing
+any geometry. The Calhoun tiles are what turned "add red roofs" (wrong; §69
+already did that and this lane's first pass nearly redid it blind) into
+"re-check what's already there" — the mosaic showed the exact three-prism
+massing HANDOFF §69 already photographed, which is what triggered the re-scan
+that found the fix was real. The church tiles confirmed a real cast-shadow
+spire exists and roughly where.
+
+**Verification**: `harness-drift.mjs` PASS before any shot. All shots taken
+live against the running app on port 8621 (`python scripts/serve.py 8621`),
+via `scripts/verify/shot.mjs` (which loads `_harness.html`), reading the
+snapshot this lane rebaked in place — confirmed by re-running
+`python scripts/bake_detail.py 2026-08-22` and checking the override print
+lines land in the actual output file before screenshotting, not assumed.
+`manifest.json` untouched (same date, no new snapshot needed — the fix is to
+the bake, not the source data).
+
+**What this did NOT establish**: did not touch or verify J2/J3's facade
+materials (js/facades.js, out of this lane's ownership). Did not attempt a
+literal re-massing of either footprint from the satellite reference (a full
+tower-vs-nave ring split for J2, or a stepped roof for a hypothetical
+Catholic Center massing) — the height/tower fixes are deliberately the
+minimal, sourced correction, per this round's brief ("keep them minimal and
+correct rather than elaborate"). J3's 12.8 m is explicitly flagged as an
+estimate for Simeon to overrule in one line if he has a better number. Did
+not re-verify J1 against `data/roofs.geojson` internals (not this lane's
+file) beyond the live render check.
+
 ## 166. Aug 21 2026 — the "TV static" over the whole city was our own film grain, and the joystick was on the wrong axis (acer lane, branches `acer/joy-honest` PR #210 and `acer/grain` PR #211, both MERGED)
 
 Three director's notes in one evening, two of which were real defects that had
