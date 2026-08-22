@@ -40,6 +40,14 @@ reported machine state without invalidating the clock. And `?timelapse=1`
 retints every frame, so a harness screenshotting it needs interval polling
 and skippable screenshots (`z1flight.mjs` shows both).
 
+**Production verified after the merge (PR #218 → main `ad3e55c`,
+flyover-utx.vercel.app serving the new build):** `?autopilot=1` veil 9.5 s,
+17/39 tiles behind veil, knob driven, no console errors; `?timelapse=1` veil
+8.5 s, 13/36 behind veil, no errors; plain page veil 8.5 s via idle, no
+errors; OSM attribution visible bottom-right and the Tower crown standing at
+the z16.25 opening in the frames (`shots/f/z1/prod-*`). Production is faster
+than local `serve.py`, exactly as the evidence pass predicted.
+
 ## 173. Aug 22 2026 — J1 was stale, J2/J3 were waiting on a height lever this lane finally owns (acer lane, branch `acer/r-buildings`)
 
 **Branch:** `acer/r-buildings`. **QUEUE J1, J2, J3.** Files:
