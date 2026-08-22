@@ -200,6 +200,14 @@ const applied = await page.evaluate((cfg) => {
       // reaches it, and a second entry here would double-apply the same
       // override to the same pixels.
       { key: 'places', S: window.PLACES_SOFTEN, repaint: () => window.applyPlacesColors && window.applyPlacesColors(m, p0) },
+      // QUEUE Z1's g-blur candidate, js/ground.js. Unlike every entry above,
+      // these images carry no time-of-day content at all (pure alpha,
+      // ground-pattern-map.md §2), so there is no applyXColors(p) to call —
+      // the repaint hook is regenGroundTextures(map), which force-redraws
+      // and re-registers every ground pattern image against whatever
+      // GROUND_SOFTEN now says (js/ground.js's own comment explains why a
+      // plain initTextures() re-call would no-op via its hasImage guard).
+      { key: 'ground', S: window.GROUND_SOFTEN, repaint: () => window.regenGroundTextures && window.regenGroundTextures(m) },
     ];
     const hit = [];
     for (const t of targets) {

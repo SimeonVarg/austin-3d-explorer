@@ -457,6 +457,59 @@
   const walkImgCount = () =>
     GROUND.pathSlabAngles.length * GROUND.pathSlabPhase.length;
 
+  // ── band-limit: this atlas had NONE until now (QUEUE Z1's g-blur candidate) ──
+  //
+  // docs/ground-pattern-map.md is the read-only pass this is built from — same
+  // shared kernel (`PatternLowpass.blurWrap`, js/pattern-lowpass.js) the other
+  // six files already carry, same SOFTEN-shaped contract as js/drag.js's
+  // DRAG_SOFTEN, hooked at the one line each of the four draw functions
+  // already has in common: `getImageData` then `return` (map §6).
+  //
+  // WHY THIS FILE IS DIFFERENT, AND WHY IT MIGHT NOT WORK. Every other atlas
+  // paints a roughly vertical wall that can be face-on to the camera.
+  // `fill-pattern`/`fill-extrusion-pattern` on a flat z=0 ground plane has no
+  // face-on case — confirmed against the v5.24.0 vertex shader
+  // (ground-pattern-map.md §5): a wall's `fill_extrusion_pattern.vertex.glsl`
+  // carries an elevation term, the ground's `fill_pattern.vertex.glsl` does
+  // not, so minification is driven purely by view obliquity, which at this
+  // app's pitch ceiling is severe and HIGHLY ANISOTROPIC (compressed hard
+  // along the view direction, barely across it). `blurWrap` is an ISOTROPIC
+  // box blur — same radius both axes, no directional parameter exists in its
+  // signature. A radius that band-limits the compressed axis may over-soften
+  // the other one. See shots/shimmer/ground/blur/ for the eye check this
+  // predicts is the real risk, and the commit message for the measured
+  // crawl% this table actually bought.
+  //
+  // Per-family, not uniform — the ranking IS the priority order
+  // (ground-pattern-map.md §7): the close-range tiles are the densest,
+  // highest-frequency, scale-free noise in the file (its own header calls it
+  // that on purpose) and the least likely to be damaged by a blur; the
+  // far-field tiles are lower duty-cycle but live at every altitude; the
+  // Speedway brick's own comment says its finest feature is ALREADY at the
+  // Nyquist floor by design, so it gets the smallest radius and a partial
+  // blend rather than the shared default, to avoid erasing the motif the
+  // taste block spent its own words defending (§4's herringbone quote); the
+  // scored-walk bars already run a 3x3 supersample of their own (drawScoredBars
+  // above) so blurWrap here is a SECOND smoothing pass, not a replacement —
+  // scaled down for the same reason.
+  // TASTE KNOB: any value here is a one-line edit, readable from the console
+  // as window.GROUND_SOFTEN, same contract as window.DRAG_SOFTEN.
+  const GROUND_SOFTEN = {
+    RADIUS: {
+      grass: 3, asphalt: 3, water: 2, paving: 3, canopy: 3,     // TEX (far-field)
+      closeGrass: 3, closeAsphalt: 3, closePaving: 3,           // CLOSE (walking-height)
+      herringbone: 1,                                            // Speedway brick — floor already spent
+      walk: 1,                                                   // scored-bar joints — already supersampled once
+    },
+    AMOUNT: {
+      grass: 1.0, asphalt: 1.0, water: 0.8, paving: 1.0, canopy: 1.0,
+      closeGrass: 1.0, closeAsphalt: 1.0, closePaving: 1.0,
+      herringbone: 0.5,
+      walk: 0.5,
+    },
+  };
+  window.GROUND_SOFTEN = GROUND_SOFTEN;
+
   // ── Surface palettes, per hour ──────────────────────────────────────
   // Chosen against the protected palette: terracotta roofs over tan/olive
   // walls. So ground brick is browner and darker than any roof, and limestone
@@ -962,6 +1015,10 @@
       }
     }
     const d = ctx.getImageData(0, 0, T, T);
+    if (window.PatternLowpass) {
+      window.PatternLowpass.blurWrap(d.data, T,
+        GROUND_SOFTEN.RADIUS[family], GROUND_SOFTEN.AMOUNT[family]);
+    }
     return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
   }
 
@@ -1016,6 +1073,11 @@
       }
     }
     const d = ctx.getImageData(0, 0, T, T);
+    if (window.PatternLowpass) {
+      const key = 'close' + family[0].toUpperCase() + family.slice(1);
+      window.PatternLowpass.blurWrap(d.data, T,
+        GROUND_SOFTEN.RADIUS[key], GROUND_SOFTEN.AMOUNT[key]);
+    }
     return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
   }
 
@@ -1103,6 +1165,10 @@
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const d = ctx.getImageData(0, 0, T, T);
+    if (window.PatternLowpass) {
+      window.PatternLowpass.blurWrap(d.data, T,
+        GROUND_SOFTEN.RADIUS.herringbone, GROUND_SOFTEN.AMOUNT.herringbone);
+    }
     return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
   }
 
@@ -1200,6 +1266,10 @@
     // the difference between a drawn line and a poured surface.
     speckle(ctx, T, rng(5150 + angIdx * 17 + variant), Math.round(T * T * 0.22), 0.07, 1);
     const d = ctx.getImageData(0, 0, T, T);
+    if (window.PatternLowpass) {
+      window.PatternLowpass.blurWrap(d.data, T,
+        GROUND_SOFTEN.RADIUS.walk, GROUND_SOFTEN.AMOUNT.walk);
+    }
     return { width: T, height: T, data: new Uint8Array(d.data.buffer.slice(0)) };
   }
 
@@ -1239,6 +1309,56 @@
       }
     }
   }
+
+  /**
+   * regenGroundTextures — force every pattern image to be redrawn and
+   * re-registered, bypassing `initTextures`'s `hasImage` skip.
+   *
+   * WHY THIS EXISTS. Every image drawn above is cached forever and never
+   * touched again in normal operation (ground-pattern-map.md §2: "no
+   * per-repaint cost question here at all" — time-of-day retinting is
+   * `fill-opacity`, never pixels). That is correct for production, but it
+   * means `initTextures` alone gives `scripts/verify/shimmer.mjs`'s
+   * SHIM_SOFTEN sweep no way to see a GROUND_SOFTEN override take effect —
+   * the images are already registered by the time the sweep sets
+   * `window.GROUND_SOFTEN.RADIUS[...]`. This is the repaint hook, same shape
+   * as `applyDragColors`/`applyTowerColors`/etc. get from their own sweep
+   * entries in shimmer.mjs, just keyed on the taste table instead of `p`
+   * because these tiles carry no time-of-day content to re-quantise.
+   *
+   * `map.updateImage` replaces an already-registered image's bytes without a
+   * remove/re-add cycle (same dimensions here in every case, so it always
+   * applies); `addImage` covers the first call before anything is
+   * registered. Exposed on `window` for the same console-overridable
+   * contract as `initGround`/`applyGroundColors` below.
+   */
+  function regenGroundTextures(map) {
+    const put = (id, img) => {
+      try {
+        if (map.hasImage && map.hasImage(id)) map.updateImage(id, img);
+        else map.addImage(id, img);
+      } catch (e) {}
+    };
+    const T = GROUND.texTile;
+    for (const [family, id] of Object.entries(TEX_IMG)) put(id, drawTexture(family, T));
+    if (GROUND.close) {
+      for (const [family, id] of Object.entries(CLOSE_IMG)) {
+        put(id, drawCloseTexture(family, GROUND.closeTile));
+      }
+    }
+    if (GROUND.speedway) {
+      put(HERRING_IMG, drawHerringbone(
+        GROUND.speedwayTile, GROUND.speedwayCells, GROUND.speedwayAngle));
+    }
+    if (GROUND.pathTexture) {
+      const NV = GROUND.pathSlabPhase.length;
+      for (let o = 0; o < walkImgCount(); o++) {
+        put(WALK_IMG(o), drawScoredBars(GROUND.pathSlabTile, Math.floor(o / NV), o % NV));
+      }
+    }
+  }
+  window.regenGroundTextures = regenGroundTextures;
+
   /**
    * ['match', ['get','o'], 0, img0, …, img0] — one tile per direction.
    *

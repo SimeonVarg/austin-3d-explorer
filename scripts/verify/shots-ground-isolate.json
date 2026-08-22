@@ -1,0 +1,10 @@
+[
+  { "name": "0-all-visible",  "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": [] },
+  { "name": "1-hide-tex",       "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": ["ground-texture"] },
+  { "name": "2-hide-basetex",   "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": ["ground-base-texture"] },
+  { "name": "3-hide-closeroad", "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": ["ground-close-road-grain"] },
+  { "name": "4-hide-closearea", "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": ["ground-close-area-grain"] },
+  { "name": "5-hide-closepath", "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": ["ground-close-path-grain"] },
+  { "name": "6-hide-pathtex",   "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": ["ground-paths-texture"] },
+  { "name": "7-hide-speedway",  "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5, "box": [0, 546, 1439, 899], "hideLayers": ["ground-speedway-brick"] }
+]

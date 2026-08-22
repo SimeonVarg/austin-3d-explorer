@@ -98,6 +98,10 @@ if (process.env.SHIM_SOFTEN != null) {
       // 'facade' already (see js/places.js's PLACES_SOFTEN comment / the
       // acer/f2-wcplaces commit message).
       { key: 'places', S: window.PLACES_SOFTEN, repaint: () => window.applyPlacesColors && window.applyPlacesColors(window.__map, p0) },
+      // QUEUE Z1's g-blur candidate, js/ground.js — same mirror as
+      // shimmer.mjs's copy of this list (see that file's comment for why the
+      // repaint hook is regenGroundTextures, not an applyXColors(p) call).
+      { key: 'ground', S: window.GROUND_SOFTEN, repaint: () => window.regenGroundTextures && window.regenGroundTextures(window.__map) },
     ];
     const hit = [];
     for (const t of targets) {

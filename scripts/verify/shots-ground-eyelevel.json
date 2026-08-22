@@ -1,0 +1,17 @@
+[
+  {
+    "name": "drag-eyelevel",
+    "note": "pedestrian pose on the Drag, closed-form __placeEye(lng=-97.74170, lat=30.28950, alt=1.7m, bearing=180, pitch=85) from perf-budget.mjs PHASES.walk's own start point — intended as the CLOSE_ROAD asphalt grain underfoot, but at this exact bearing the camera stares point-blank into Walter Webb Hall's own wall (a facades/drag.js pattern, not ground.js) filling the whole frame — not useful for judging THIS candidate. Kept as a documented dead end so nobody re-spends the same browser run finding this out again; use speedway-eyelevel for the real pavement/herringbone look.",
+    "center": [-97.7417, 30.289325], "zoom": 21.42, "pitch": 85, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "speedway-eyelevel",
+    "note": "same closed form at Speedway Mall's herringbone corridor — the pattern ground-pattern-map.md §4 flags as already at its resolution floor, highest risk of visible damage from any blur.",
+    "center": [-97.73702, 30.286326], "zoom": 21.42, "pitch": 85, "bearing": 186, "p": 0.5
+  },
+  {
+    "name": "southmall-eyelevel",
+    "note": "same closed form on South Mall's scored concrete walk — the WALK_IMG joint bars, already 3x3-supersampled once before any blurWrap.",
+    "center": [-97.739428, 30.284373], "zoom": 21.42, "pitch": 85, "bearing": 352, "p": 0.5
+  }
+]

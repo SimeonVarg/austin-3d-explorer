@@ -1,0 +1,19 @@
+[
+  {
+    "name": "street-drag",
+    "note": "whole-frame, from shimmer-poses.json — the task's own bar.",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "street-drag-wall",
+    "note": "boxed to exclude the ground band (y>545) — from shots-street-wall.json.",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5,
+    "box": [0, 0, 1439, 545]
+  },
+  {
+    "name": "street-drag-ground",
+    "note": "boxed to the ground band ONLY (y 546-899) — from shots-street-ground.json.",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5,
+    "box": [0, 546, 1439, 899]
+  }
+]

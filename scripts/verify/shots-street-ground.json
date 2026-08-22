@@ -1,0 +1,8 @@
+[
+  {
+    "name": "street-drag-ground",
+    "note": "identical pose to street-drag / street-drag-wall, boxed to the INVERSE of shots-street-wall.json's box — y 546-899, the road/ground band shots/shimmer/shots/sweep-r0-street-drag.png shows the two full-width crawling clusters sitting in (docs/second-front-verdict.md: 'y~559-899'). street-drag-wall isolates the wall; this isolates the ground js/ground.js's own fill-pattern layers paint, so a GROUND_SOFTEN sweep can be read against a number that is not diluted by the (already-fixed, unrelated) wall pixels above it.",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5,
+    "box": [0, 546, 1439, 899]
+  }
+]
