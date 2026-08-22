@@ -23745,3 +23745,61 @@ between "this file's own layer" and "a neighbouring building in frame" at
 further `SHIM_ONLY` isolation run; whether `?sliderdemo=1`'s sweep shows a
 visible stutter at a repaint tick (the ~113.6ms combined cost says a hitch
 of that size is structurally possible, not that one was observed).
+
+## 171. Aug 22 2026 — the last piece of the ground crawl: three fixes built, all refused, and it turns out not to be `js/ground.js` at all (acer lane, NOTHING MERGED, branches parked)
+
+**Not fixed — and the reason is the actual finding.** `street-drag` (the low
+pass down Guadalupe) has measured 38.27% crawl unchanged across both window-
+shimmer rounds. The working theory since round two was that this was
+`js/ground.js`'s own `fill-pattern` texture aliasing on a grazing-angle
+ground plane — a real, well-reasoned hypothesis (`docs/ground-pattern-map.md`
+works out exactly how and why it could be) that nobody had actually tested.
+
+Three sibling lanes tested it, independently, three different ways:
+**`acer/g-blur`** ported the same band-limit that fixed the windows onto
+ground's own pattern images. **`acer/g-coarse`** redrew the grain coarser at
+the source instead of blurring it after. **`acer/g-zoomfade`** faded the
+ground pattern out toward flat colour as camera pitch gets steep. All three
+built real, working code. All three moved the crawl number by **exactly
+0.00 percentage points, at every setting tried.**
+
+The reason showed up under isolation testing: hiding every single layer
+`js/ground.js` owns — every fill, fill-extrusion, background layer, and
+dashed line, one at a time and then all at once — left the crawl completely
+unchanged, down to the exact pixel count of the two dominant clusters
+(231,239 px and 148,795 px). **The crawl is not in that file.** That
+corrects a premise stated as settled fact in `docs/second-front-verdict.md`
+and in a comment inside `js/drag.js` itself.
+
+Confirmed independently for this handoff, same commit (588f383), same
+instrument, same pose: 38.27% whole-frame, 77.79% boxed to the ground band,
+231,239 / 148,795 px clusters — byte-identical to all three candidates' own
+numbers.
+
+**The honest lead, not chased**: the boxed pose's flip-rate is ≈2.0 flips
+per pixel, almost perfectly regular — that shape matches two coplanar
+surfaces trading a depth-test tie every other frame, not the noisier
+many-flip signature texture aliasing shows everywhere else in this
+investigation. `scripts/verify/zfight.mjs` and `coplanar.mjs` exist for
+exactly this and have never been run against this exact pose. If that's
+right, this was never the same bug as the window shimmer — it only looked
+related because both live in the same demo pose.
+
+**Full writeup**: `docs/ground-verdict.md` (the three candidates, why each
+lost, the isolation test), `docs/ground-cost.md` (the one real cost found —
+`g-coarse`'s +27% cold load for zero benefit). `docs/shimmer-brief.md`'s
+status line now covers all three rounds.
+
+Nothing merged — this is the "IF NONE WON" outcome and it is a complete one.
+All three branches (`acer/g-blur`, `acer/g-coarse`, `acer/g-zoomfade`) are
+pushed to origin and left parked, not deleted, so the measurements stay
+reachable. Their worktrees were removed; the browser and server this pass
+used were both closed; ports 8541-8549 confirmed free at the end.
+
+**What this did NOT establish**: what the two dominant clusters actually
+are, beyond "not `js/ground.js`" — the coplanar/z-fight read is the
+best-fitting signature, not a measurement from either dedicated instrument.
+Frame-render cost of `g-blur` or `g-zoomfade` at cruise (both reasoned as
+near-zero — one draws once at load, the other only fires on a pitch-band
+crossing — neither was put through `perf.mjs`). Whether the same crawl
+shows up at poses beyond `street-drag` and its boxed variant.

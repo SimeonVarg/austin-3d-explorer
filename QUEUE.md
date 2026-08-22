@@ -1,5 +1,41 @@
 # QUEUE — Acer lane
 
+## GROUND CRAWL — the street-drag ground band, three fixes built and refused (2026-08-22 night, `docs/ground-verdict.md`)
+
+The `street-drag` low pass down Guadalupe measures 38.27% crawl and did not
+move across two full rounds of window-shimmer fixes (`docs/shimmer-brief.md`).
+The working theory was that this was `js/ground.js`'s own `fill-pattern`
+ground/road texture aliasing — untested until this round.
+
+**Three candidates were built and all three refused, each with a zero
+measured effect on the number:**
+1. `acer/g-blur` — the same isotropic band-limit that fixed windows, ported
+   onto ground's own pattern images. 0.00pp at every radius.
+2. `acer/g-coarse` — redraw the grain coarser at the source instead of
+   blurring after. 0.00pp, plus a real +27% cold-load cost for nothing.
+3. `acer/g-zoomfade` — fade the ground pattern out at grazing camera pitch.
+   0.00pp, no regression either, just inert at this pose.
+
+**The actual finding: it isn't `js/ground.js`.** Stripping every layer that
+file owns — patterns, colours, geometry, dashed lines, all of it, at once —
+left the crawl completely unchanged. This corrects the shared premise of
+`docs/second-front-verdict.md` and a comment in `js/drag.js` itself, neither
+of which had actually isolated the file before.
+
+**Honest remaining option, not started**: the crawl's flip-rate signature
+(≈2.0 flips/px, very regular — unlike the noisier many-flip signature
+texture aliasing shows everywhere else in this investigation) reads like two
+coplanar surfaces trading a depth-test tie. Point `scripts/verify/zfight.mjs`
+and `coplanar.mjs` at the exact pose (`center [-97.7417, 30.288598], zoom
+19.017, pitch 76, bearing 180`) and find which two surfaces are tied. Nobody
+has run either instrument against this pose yet. This is a different bug
+class (geometry/depth-precision) from the window-pattern fixes that came
+before it, not a continuation of the same one.
+
+All three branches (`acer/g-blur`, `acer/g-coarse`, `acer/g-zoomfade`) are
+pushed to origin, parked, not merged. Full writeup: `docs/ground-verdict.md`,
+`docs/ground-cost.md`.
+
 ## Z1 — "buildings in downtown slide in from the horizon" (open, NOT diagnosed)
 
 Reported 2026-08-21 watching `?autopilot=1`: *"buildings in downtown in shot A

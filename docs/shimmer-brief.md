@@ -1,18 +1,24 @@
 # The window shimmer — what is established, so nobody re-derives it
 
-**Status: PARTIALLY MITIGATED, updated 2026-08-22 evening. Both fronts are
-now shipped: `acer/shim-lowpass` (PR #214, the core atlas —
-`buildings-3d`/`wc-wall`) and the second front (PR #215 —
+**Status: PARTIALLY MITIGATED ON WINDOWS, updated 2026-08-22 night. Both
+window-shimmer fronts are shipped: `acer/shim-lowpass` (PR #214, the core
+atlas — `buildings-3d`/`wc-wall`) and the second front (PR #215 —
 `js/tower.js`/`js/drag.js`/`js/moody.js`/`js/arts.js`/`js/places.js`, the
 five files the first front structurally could not reach). The defect is
 REDUCED at every pose measured on every one of these files, and windows
 still visibly crawl after both fixes — the mechanism is continuous
 minification aliasing (`docs/shimmer-mechanism.md`) and a band-limit reduces
-its density, it does not remove it. Full detail: `docs/shimmer-mechanism.md`
-(root cause, confirmed), `docs/shimmer-verdict.md` +
-`docs/shimmer-cost.md` (round one: the three candidates tried, one shipped),
-`docs/second-front-verdict.md` + `docs/second-front-cost.md` (round two: all
-four fronts shipped, frame cost re-timed on the merged build).**
+its density, it does not remove it. **A third round went after the one pose
+that hadn't moved (`street-drag`, 38.27% crawl, unchanged across rounds one
+and two) and found it is not this bug at all** — see the correction below
+before reading anything else as still-open window shimmer. Full detail:
+`docs/shimmer-mechanism.md` (root cause, confirmed), `docs/shimmer-verdict.md`
++ `docs/shimmer-cost.md` (round one: the three candidates tried, one
+shipped), `docs/second-front-verdict.md` + `docs/second-front-cost.md`
+(round two: all four fronts shipped, frame cost re-timed on the merged
+build), `docs/ground-verdict.md` + `docs/ground-cost.md` (round three: three
+candidates tried against `js/ground.js`, all three refused — because the
+crawl they targeted turns out not to live in that file, see below).**
 
 Reported 2026-08-21, after the AWS reel was recorded:
 
@@ -158,6 +164,26 @@ not evidence; a measurement of flicker against minification is.
   zero console errors. **`js/heroes.js`'s seven pattern layers (EER, Dell CS,
   PCL-adjacent buildings) were found during this pass and are NOT ported** —
   flagged, not fixed, the next place to look if this is picked up again.
+* **Round three (2026-08-22 night, `docs/ground-verdict.md`) targeted the
+  one pose that never moved across rounds one and two: `street-drag`, stuck
+  at 38.27% crawl the whole time.** The working theory since round two was
+  that this was `js/ground.js`'s own `fill-pattern` ground/road texture
+  aliasing — a plausible-sounding, never-actually-tested guess. Three
+  candidates were built against it (an isotropic band-limit like the window
+  fix, a coarser-at-source redraw, a pitch-keyed fade) and **all three moved
+  the number by exactly 0.00 percentage points**, because a follow-up
+  isolation test stripped every single layer `js/ground.js` owns — every
+  fill, fill-extrusion, background, and dashed line, individually and all at
+  once — and the crawl did not move even with nothing left on screen for
+  that file to paint. **`street-drag`'s crawl is not window shimmer, not
+  ground-texture aliasing, and not `js/ground.js` at all.** Its flip-rate
+  signature (≈2.0 flips/px, very regular) reads like two coplanar surfaces
+  trading a depth-test tie, not like minification aliasing — a different bug
+  class, unconfirmed, `zfight.mjs`/`coplanar.mjs` never having been pointed
+  at this exact pose. Nothing shipped from round three; all three branches
+  are parked, unmerged. **This closes the window-shimmer investigation as
+  far as it can go by this mechanism** — the one pose that looked unfixed is
+  actually a different defect wearing the same instrument's symptom.
 * **A meter pitfall, so it is not rediscovered**: a from-scratch rewrite of
   `shimmer.mjs` that downsamples every frame to a fixed reference grid before
   scoring (built to fix a real renderScale-comparability gap in the original)
