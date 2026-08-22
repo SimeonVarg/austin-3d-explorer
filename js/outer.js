@@ -89,8 +89,150 @@
     flatMaxPitch: 80,
     flatFadePitch: 84,   // fully gone by here
     opacity: 1.0,
+    // ── QUEUE K5: downtown reads cooler and greyer than campus ──────
+    //
+    // Measured (HANDOFF #74, re-confirmed acer/q-downtown 2026-08-22, same
+    // wide day pose both times): downtown towers B-R -13.5 sat 8.8% against
+    // campus B-R -49.4 sat 30.2%. Two lanes already showed GRADE (js/graphics.js)
+    // can't fix this — it's one filter over the whole canvas and campus already
+    // matches its own reference photograph, so warming GRADE globally would
+    // make campus wrong to fix downtown.
+    //
+    // What's actually cool and grey is narrower than "downtown": HANDOFF #74's
+    // population read found downtown's own 645-building streetwall is already
+    // warm (B-R -34.3, close to campus) — it is specifically the 243 glass
+    // TOWERS (`pal.buckets` below, not `pal.midrise`) that are blue-dominant.
+    // So this dial only ever touches tower wall/glass day+golden colour
+    // (`wd`/`wg`) — see warmTowerBuckets() below, applied once per palette
+    // fetch. `wn` (night) is untouched: at night the wall is mostly covered by
+    // lit windows and this was never a night complaint.
+    //
+    // Bounded on purpose: the reference photographs this palette was fitted to
+    // (HANDOFF #74 again) put real downtown glass at B-R +1..+45 -- genuinely
+    // blue, not grey-neutral -- so this closes the "greyer" half hard and the
+    // "cooler" half partway, it does not chase downtown all the way to
+    // campus's own -49.4. TASTE KNOB (CLAUDE.md rule 11): 0 disables this
+    // entirely and ships the bake's own colours unmodified; 1 is what ships.
+    towerWarmAmount: 1,
   };
   window.OUTER = OUTER;
+
+  // The colour transform itself, and the numbers it runs on. Split out from
+  // OUTER above only because there are several of them and they're not
+  // independently meaningful — dial `OUTER.towerWarmAmount` for the one knob
+  // a taste call needs; these are for whoever re-derives the shape of it.
+  const TOWER_WARM = {
+    // RGB channel multipliers pulling a bucket toward warm: red up, blue down,
+    // green nearly flat. Applied luma-preserving (see warmRgb below) so this
+    // never reads as a brightness change, only a colour one.
+    gain: [1.28, 1.03, 0.74],
+    // How much of `gain` each bucket CLASS receives — see classifyBucket().
+    // Buckets already warm (masonry-toned accents) or already near-white
+    // (showpiece pale glass, e.g. a diagrid tower) get a light touch so they
+    // don't get pushed into looking like a different material; the plainly
+    // blue-grey buckets, which are the ones the complaint is actually about,
+    // get the full amount.
+    amount: { cool: 1.0, warm: 0.25, pale: 0.30 },
+    // HSL saturation multiplier applied AFTER the warm shift (the shift alone
+    // pulls some buckets close to neutral before it pulls them past it into
+    // warm, which would otherwise leave them looking greyer mid-transform).
+    satBoost: { cool: 1.3, warm: 1.1, pale: 1.15 },
+    // Ceiling on the boosted saturation so no bucket becomes a cartoon colour.
+    satCap: 42,
+  };
+
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+  }
+  function rgbToHex(rgb) {
+    return '#' + rgb.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+  }
+  const LUMA_W = [0.299, 0.587, 0.114];             // Rec.601, same as facades.js
+  const luma = rgb => rgb[0] * LUMA_W[0] + rgb[1] * LUMA_W[1] + rgb[2] * LUMA_W[2];
+  function rgbToHsl(rgb) {
+    let [r, g, b] = rgb.map(v => v / 255);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s; const l = (max + min) / 2;
+    if (max === min) { h = s = 0; } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h /= 6;
+    }
+    return [h * 360, s * 100, l * 100];
+  }
+  function hslToRgb(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    if (s === 0) { const v = l * 255; return [v, v, v]; }
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    return [hue2rgb(p, q, h + 1 / 3) * 255, hue2rgb(p, q, h) * 255, hue2rgb(p, q, h - 1 / 3) * 255];
+  }
+
+  /**
+   * cool  — blue channel clearly leads red: the blue-grey glass this exists for.
+   * pale  — light and already low-saturation: a showpiece near-white tower.
+   * warm  — everything else (already red-leaning masonry/accent tone).
+   *
+   * Classified from the bucket's OWN `wd`, not a hardcoded bucket-index map,
+   * so this keeps working if bake_outer_facades.py ever re-clusters the ten
+   * buckets differently — the rule is about what colour a bucket IS, not
+   * which ordinal it happens to land on this bake.
+   */
+  function classifyBucket(wdHex) {
+    const rgb = hexToRgb(wdHex);
+    const [, s, l] = rgbToHsl(rgb);
+    if (l > 80 && s < 20) return 'pale';
+    if (rgb[2] - rgb[0] > 8) return 'cool';
+    return 'warm';
+  }
+
+  /** Warm one hex colour by `amount` of TOWER_WARM.gain, luma-preserving. */
+  function warmHex(hex, amount) {
+    const rgb0 = hexToRgb(hex);
+    const g = TOWER_WARM.gain.map((v, i) => 1 + (v - 1) * amount);
+    const shifted = rgb0.map((v, i) => v * g[i]);
+    const l0 = luma(rgb0), l1 = luma(shifted);
+    const scaled = l1 > 0 ? shifted.map(v => v * (l0 / l1)) : shifted;
+    return scaled.map(v => Math.max(0, Math.min(255, v)));
+  }
+
+  /** Boost HSL saturation of an [r,g,b] by `factor`, capped, luma-preserving. */
+  function boostSat(rgb, factor, cap) {
+    const [h, s, l] = rgbToHsl(rgb);
+    const rgb1 = hslToRgb(h, Math.min(cap, s * factor), l);
+    const l0 = luma(rgb), l1 = luma(rgb1);
+    return l1 > 0 ? rgb1.map(v => Math.max(0, Math.min(255, v * (l0 / l1)))) : rgb1;
+  }
+
+  /**
+   * Returns a NEW buckets array (day + golden warmed, night and `fb` kept
+   * exactly as baked) — never mutates the fetched palette, so a second call
+   * (there isn't one today, but nothing here assumes there won't be) always
+   * starts from the same source numbers.
+   */
+  function warmTowerBuckets(buckets) {
+    const master = (window.OUTER && typeof window.OUTER.towerWarmAmount === 'number')
+      ? window.OUTER.towerWarmAmount : 1;
+    if (!master) return buckets;
+    return buckets.map(b => {
+      const cls = classifyBucket(b.wd);
+      const amt = TOWER_WARM.amount[cls] * master;
+      const satF = TOWER_WARM.satBoost[cls];
+      const warm = field => rgbToHex(boostSat(warmHex(b[field], amt), satF, TOWER_WARM.satCap));
+      return Object.assign({}, b, { wd: warm('wd'), wg: warm('wg') });
+    });
+  }
 
   const SRC = 'austin-outer';
   const L_FLAT = 'outer-3d';
@@ -191,7 +333,14 @@
    */
   let _palettePromise = null;
   function towerPaletteOnce() {
-    if (!_palettePromise) _palettePromise = getJSON(TOWER_PALETTE);
+    if (!_palettePromise) {
+      // QUEUE K5: warm the TOWERS only (see TOWER_WARM above) -- midrise is
+      // left exactly as baked, it was never the blue-grey half of the split.
+      _palettePromise = getJSON(TOWER_PALETTE).then(pal => {
+        if (pal && pal.buckets) pal.buckets = warmTowerBuckets(pal.buckets);
+        return pal;
+      });
+    }
     return _palettePromise;
   }
   // The .catch is not optional: an unawaited rejected promise is an unhandled
