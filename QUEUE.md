@@ -59,7 +59,39 @@ confirmed 27 of them before ~40 concurrent sibling Chrome processes made
 finishing the rest impractical this round — the remaining ~390 are unverified
 by eye, only by coordinate pattern. Full method: `docs/pose-audit.md`.
 
-## Z1 — "buildings in downtown slide in from the horizon" — SETTLED, not fixed (2026-08-22, `acer/r-slidein`)
+## Z1 — "buildings in downtown slide in from the horizon" — FIXED at the opening, honestly partial mid-flight (2026-08-22, `acer/f-z1`)
+
+**The fix (`acer/f-z1`, js/app.js):** the two recorded reel flags
+(`?autopilot=1`, `?timelapse=1`) no longer lift the veil on a flat 7 s
+timeout — they hold it on the intro's own source gate (`introGate()` +
+`gateHolds`, so `austin-outer` must actually report loaded over consecutive
+polls) with a hard ceiling `AP_VEIL_MAX_MS = 24000` so a slow network can
+never hold the screen forever. Measured before/after with interleaved reps
+(`shots/f/z1/`, full write-up at the bottom of `docs/z1-slidein.md`):
+
+- **Under load (2× CPU throttle, the state he reported it from), the old code
+  lifted the veil with ZERO `austin-outer` tiles loaded** — all four opening
+  sources missing, downtown literally empty land on camera
+  (`shots/f/z1/before2x-f00s.png`). The gated build opens with 17 tiles
+  including the coarse ancestors behind the veil, full skyline on frame one,
+  both reps. Cost: ~5 s more veil under that load, ~0 s on a quiet machine
+  (where MapLibre's `idle` event was already saving the shot by luck).
+- **Honestly partial:** ~21 tiles still stream in per flight (last ~+38 s in),
+  because they belong to viewports the camera has not reached yet — no veil
+  short of ~46 s can pre-load them from js/app.js. But with the opening
+  viewport's ancestors resident, those late arrivals refine buildings that
+  are already standing instead of materialising them; frames read at
+  0/2/4/10 s post-fix show no visible slide-in. If it is ever still visible
+  on his phone recording, the remaining lever is per-source prefetch inside
+  MapLibre territory, not reveal timing.
+- Shot A contract re-verified: opens at AP_TOUR waypoint 0 exactly,
+  forward-only, joystick nub driven; plain page / `?intro=0` / `?tour=1`
+  timing untouched to the millisecond; no console errors anywhere.
+
+The settling evidence below is kept as written — it is the reason the fix
+went where it went.
+
+### The settling pass (2026-08-22, `acer/r-slidein`) — kept for the record
 
 **It is confirmed to be MapLibre streaming the `austin-outer` vector tile
 source while the camera flies at it, spanning almost the entire ~45.6 s
