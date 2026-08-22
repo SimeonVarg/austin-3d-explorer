@@ -1,0 +1,21 @@
+{
+  "arm": "magenta",
+  "pose": {
+    "center": [
+      -97.742,
+      30.268
+    ],
+    "zoom": 16.2,
+    "pitch": 78,
+    "bearing": 5
+  },
+  "st": {
+    "z": 16.2,
+    "p": 78,
+    "b": 5,
+    "loaded": true,
+    "tiles": true,
+    "preset": "balanced"
+  },
+  "errors": []
+}
