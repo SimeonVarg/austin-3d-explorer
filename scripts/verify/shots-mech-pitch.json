@@ -1,0 +1,7 @@
+[
+ {"name":"p40", "center":[-97.73841,30.28918], "zoom":17.0, "pitch":40, "bearing":200, "p":0.25, "mode":"translate"},
+ {"name":"p50", "center":[-97.73841,30.28918], "zoom":17.0, "pitch":50, "bearing":200, "p":0.25, "mode":"translate"},
+ {"name":"p60", "center":[-97.73841,30.28918], "zoom":17.0, "pitch":60, "bearing":200, "p":0.25, "mode":"translate"},
+ {"name":"p70", "center":[-97.73841,30.28918], "zoom":17.0, "pitch":70, "bearing":200, "p":0.25, "mode":"translate"},
+ {"name":"p78", "center":[-97.73841,30.28918], "zoom":17.0, "pitch":78, "bearing":200, "p":0.25, "mode":"translate"}
+]

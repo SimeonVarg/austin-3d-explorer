@@ -1,0 +1,6 @@
+[
+ {"name":"bme-near",   "center":[-97.73841,30.28918], "zoom":17.4, "pitch":68, "bearing":200, "p":0.25, "mode":"translate"},
+ {"name":"biolab-near","center":[-97.73970,30.28723], "zoom":17.6, "pitch":66, "bearing":180, "p":0.25, "mode":"translate"},
+ {"name":"waggener-n", "center":[-97.73760,30.28514], "zoom":17.2, "pitch":66, "bearing":180, "p":0.25, "mode":"translate"},
+ {"name":"bme-zoom",   "center":[-97.73841,30.28918], "zoom":16.9, "pitch":68, "bearing":200, "p":0.25, "mode":"zoom"}
+]
