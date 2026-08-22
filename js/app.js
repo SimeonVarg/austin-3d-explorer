@@ -1712,11 +1712,24 @@
   //          up the avenue with the sunset sky behind them
   //   crest  climbing over the Capitol — the city opens out and the Forty
   //          Acres appears in the distance
-  //   end    the UT Tower centred, the South Mall below it, campus filling
-  //          the frame. It ends on the thing the app is *of*.
+  //   end    banked around to look back south: the Tower rising in front of
+  //          the downtown skyline the flight just climbed away from, campus
+  //          filling the frame in between. It ends on the thing the app is
+  //          *of*, with the journey that got there still visible behind it.
   //
-  // The old flight started low over campus and ran west down 24th into West
-  // Campus, i.e. it ended on apartment blocks; this one ends on the Tower.
+  // WHY `end` FACES BACKWARD. Reported: "starting looking at the tower is
+  // night but then it goes to like the guad buildings which are like
+  // whatever." That old `end` (bearing 2, facing the same way as `start` and
+  // `crest`) put the camera down among West Campus dorms with the Tower
+  // reduced to a small background sliver — correct per its own comment, wrong
+  // in practice; verified by screenshotting it, not by reasoning about the
+  // coordinates. Facing backward instead means downtown is behind the Tower,
+  // not behind the camera, so leg 2 both flies AND turns — a near-180°
+  // bearing swing that easeTo takes the short way round (confirmed against
+  // the live animation, not assumed). Sampled at quarter-steps through the
+  // eased curve the swing reads as a single continuous reveal, not a snap; if
+  // a device makes it feel like a spin instead, `end.bearing` is the one
+  // number to dial back toward `crest.bearing`.
   //
   // WHY THE CLIMB IS ALSO THE CHEAP OPTION, not just the pretty one. A flight
   // from downtown to campus has to pay for two neighbourhoods of tiles either
@@ -1732,9 +1745,9 @@
   const INTRO = {
     start: { center: [-97.7420, 30.2680], zoom: 16.2,  pitch: 78, bearing: 5 },
     crest: { center: [-97.7404, 30.2748], zoom: 15.45, pitch: 71, bearing: 3 },
-    end:   { center: [-97.7394, 30.2836], zoom: 16.9,  pitch: 72, bearing: 2 },
+    end:   { center: [-97.7365, 30.2900], zoom: 16.45, pitch: 74, bearing: 202 },
     leg1Ms: 6000,      // the rise out of downtown, decelerating into the crest
-    leg2Ms: 6600,      // the run north into campus and the long settle
+    leg2Ms: 6600,      // the run north into campus, the bank, and the long settle
 
     // ── THE OPENING-FRAME GATE ────────────────────────────────────────
     // Reported: "the intro starts nicely on my phone but on my laptop (running
