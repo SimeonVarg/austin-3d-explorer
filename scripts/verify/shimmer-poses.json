@@ -1,0 +1,22 @@
+[
+  {
+    "name": "shot-a-tower",
+    "note": "reel Shot A, nearest the Tower (docs/shimmer-brief.md table row 1)",
+    "center": [-97.7393, 30.2874], "zoom": 16.85, "pitch": 74, "bearing": 197.4, "p": 0.5
+  },
+  {
+    "name": "shot-b-park",
+    "note": "reel Shot B, the parked pose (docs/shimmer-brief.md table row 2)",
+    "center": [-97.7395, 30.2872], "zoom": 16.6, "pitch": 72, "bearing": 186, "p": 0.5
+  },
+  {
+    "name": "cruise-campus",
+    "note": "mid-altitude cruise: alt 420m, pitch 76, bearing 200, same pose perf-budget.mjs PHASES.cruise flies, converted center/zoom via the app's own placeEye closed form (collision.mjs / perf-budget.mjs) at viewport 1440x900",
+    "center": [-97.746, 30.272764], "zoom": 14.946, "pitch": 76, "bearing": 200, "p": 0.5
+  },
+  {
+    "name": "street-drag",
+    "note": "low pass down the Drag (Guadalupe): alt 25m, pitch 76, bearing 180 (same corridor as perf-budget.mjs PHASES.walk, elevated from pedestrian to a flying low pass), converted via the same closed form",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+  }
+]
