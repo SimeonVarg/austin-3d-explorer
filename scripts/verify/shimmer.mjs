@@ -231,10 +231,34 @@ const applied = await page.evaluate((cfg) => {
     const ids = cfg.only || FULL_STRIP;
     out.stripped = ids;
     for (const id of ids) {
-      if (!m.getLayer(id)) { out['missing_' + id] = true; continue; }
+      const lyr = m.getLayer(id);
+      if (!lyr) { out['missing_' + id] = true; continue; }
       try {
-        m.setPaintProperty(id, 'fill-extrusion-pattern', null);
-        m.setPaintProperty(id, 'fill-extrusion-color', ['to-color', ['get', 'wd'], '#b9ac93']);
+        // FULL_STRIP is all fill-extrusion-pattern (buildings/towers/etc);
+        // SHIM_ONLY can also name plain `fill`/`background` pattern layers
+        // (js/ground.js's TEX/CLOSE_AREA/CLOSE_ROAD, `background-pattern` on
+        // BASE_TEX) — those don't have a `fill-extrusion-*` property at all,
+        // so calling setPaintProperty with the wrong pair threw and silently
+        // left the layer patterned (added 2026-08-22, ground candidate pass).
+        if (lyr.type === 'fill-extrusion') {
+          m.setPaintProperty(id, 'fill-extrusion-pattern', null);
+          m.setPaintProperty(id, 'fill-extrusion-color', ['to-color', ['get', 'wd'], '#b9ac93']);
+        } else if (lyr.type === 'fill') {
+          m.setPaintProperty(id, 'fill-pattern', null);
+          m.setPaintProperty(id, 'fill-color', '#b9ac93');
+        } else if (lyr.type === 'background') {
+          m.setPaintProperty(id, 'background-pattern', null);
+          m.setPaintProperty(id, 'background-color', '#b9ac93');
+        } else if (lyr.type === 'line') {
+          // Dashed lines (js/ground.js's lane markings) sample a 1D dash
+          // texture the same LINEAR-no-mip way patterns do — a different
+          // render path from fill/fill-extrusion, but the same isolation
+          // need: kill the dash, not the line, so a real edge staying put
+          // isn't misread as "the layer is gone."
+          m.setPaintProperty(id, 'line-dasharray', null);
+        } else {
+          out['err_' + id] = 'unhandled layer type ' + lyr.type;
+        }
       } catch (e) { out['err_' + id] = String(e.message || e); }
     }
   }

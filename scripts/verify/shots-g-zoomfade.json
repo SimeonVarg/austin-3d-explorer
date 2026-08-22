@@ -1,0 +1,23 @@
+[
+  {
+    "name": "street-drag",
+    "note": "same as shimmer-poses.json street-drag — the worst pose in the city",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "street-drag-groundbox",
+    "note": "same pose, boxed to the ground band the verdict lane named (y~559-899 of a 1440x900 frame) to isolate the ground crawl from wall crawl",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5,
+    "box": [0, 559, 1439, 899]
+  },
+  {
+    "name": "eyelevel-drag",
+    "note": "standing on the Guadalupe sidewalk, looking down the corridor at walking height/pitch -- where the D6/D7 grain is meant to be seen up close",
+    "center": [-97.7417, 30.288598], "zoom": 20.6, "pitch": 55, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "eyelevel-lookout",
+    "note": "same standing spot, looking UP toward the horizon at a grazing pitch -- tests whether the fade correctly engages when a PERSON (not a flying camera) looks far down the corridor",
+    "center": [-97.7417, 30.288598], "zoom": 20.6, "pitch": 78, "bearing": 180, "p": 0.5
+  }
+]

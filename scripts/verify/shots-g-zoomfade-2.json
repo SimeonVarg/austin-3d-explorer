@@ -1,0 +1,22 @@
+[
+  {
+    "name": "shot-a-tower",
+    "note": "the reel's own opening pose -- pitch 74, close to street-drag's 76. Must NOT visibly flatten.",
+    "center": [-97.7393, 30.2874], "zoom": 16.85, "pitch": 74, "bearing": 197.4, "p": 0.5
+  },
+  {
+    "name": "shot-b-park",
+    "note": "reel Shot B -- pitch 72",
+    "center": [-97.7395, 30.2872], "zoom": 16.6, "pitch": 72, "bearing": 186, "p": 0.5
+  },
+  {
+    "name": "cruise-campus",
+    "note": "mid-altitude cruise, pitch 76 -- same pitch as street-drag but z14.946 (CLOSE_* inactive, only TEX live)",
+    "center": [-97.746, 30.272764], "zoom": 14.946, "pitch": 76, "bearing": 200, "p": 0.5
+  },
+  {
+    "name": "eyelevel-drag",
+    "note": "standing/looking down the corridor, pitch 55 -- below pitchFadeLo, must be BYTE-IDENTICAL to main",
+    "center": [-97.7417, 30.288598], "zoom": 20.6, "pitch": 55, "bearing": 180, "p": 0.5
+  }
+]

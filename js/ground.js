@@ -413,6 +413,40 @@
     // what stops 4,900 areas being 14 exact hexes.
     jitter: 0.06,
     pathJitter: 0.03,       // smaller: paths must not lose their separation
+
+    // ── Grazing-angle fade (QUEUE g-zoomfade) ───────────────────────────
+    //
+    // The window-shimmer investigation's own source read
+    // (docs/pattern-sampling.md) found fill_pattern.fragment.glsl carries no
+    // camera-distance or fog uniform -- u_texsize/u_fade/u_image is the whole
+    // list. The only camera-varying input ANY paint property can read is
+    // ["zoom"], and zoom is ONE number for the whole frame: it cannot spare
+    // the kerb under the camera while fading the horizon 400 m up the same
+    // street, which is why a zoom-keyed fade lost for facades
+    // (docs/shimmer-verdict.md, acer/shim-fade) -- a building 20 m away and
+    // one 200 m away sit at the same zoom.
+    //
+    // The ground is not a building, though: it is ONE continuous plane, and
+    // it is PITCH, not zoom, that turns a face-on view of that plane into a
+    // grazing one -- uniformly, everywhere the plane is in frame, because
+    // there is only one ground. Pitch is not a valid `interpolate` input in
+    // the style spec (only zoom is), so this is read imperatively off the
+    // camera and pushed into the paint properties on pitch change, not
+    // encoded as a style expression the GPU evaluates per-fragment.
+    //
+    // THE HONEST LIMIT, since pitch is still one number for the whole frame:
+    // a translate-mode low pass (the worst measured pose, street-drag) holds
+    // pitch FIXED for the entire flight, so within that one flight this is a
+    // single on/off switch for the WHOLE visible ground, near and far alike
+    // -- it cannot spare the ground under the camera while removing only the
+    // horizon in the SAME frame, because nothing in the fill-pattern render
+    // path can. See docs/g-zoomfade-verdict.md for what that measured to.
+    pitchFade: true,
+    pitchFadeLo: 66,        // deg; below this the ground pattern is untouched
+    pitchFadeHi: 77,        // deg; at/above this it's faded to pitchFadeFloor
+    pitchFadeFloor: 0.0,    // fraction of the pattern's own opacity kept at hi
+    pitchFadeQuantDeg: 1.0, // re-set paint only once pitch has moved this far,
+                             // so a smooth pitch drag doesn't spam setPaintProperty
   };
   window.GROUND = GROUND;
 
@@ -1988,6 +2022,42 @@
         },
       });
     }
+
+    // ── Grazing-angle fade, wired up. See the GROUND.pitchFade block above
+    // for what this is and its honest limit. Only touches the THREE plain
+    // `fill-pattern` layers (TEX, CLOSE_AREA, CLOSE_ROAD) -- the ones the
+    // shimmer brief named as carrying zero band-limit treatment. Not
+    // PATH_TEX/HERRING/CLOSE_IMG.paving: those are `fill-extrusion-pattern`,
+    // the same render path the facade band-limit already reaches, and out of
+    // this candidate's scope.
+    let _lastFadePitch = null;
+    function groundPitchFadeMul(pitch) {
+      if (!GROUND.pitchFade) return 1;
+      const lo = GROUND.pitchFadeLo, hi = GROUND.pitchFadeHi;
+      const t = Math.max(0, Math.min(1, (pitch - lo) / (hi - lo)));
+      return 1 - t * (1 - GROUND.pitchFadeFloor);
+    }
+    // `force` bypasses the quantisation guard: applyGroundColors/Settings call
+    // this after retinting TEX/CLOSE_AREA/CLOSE_ROAD for a new hour or a live
+    // edit, and without force their own unconditional set() would win the
+    // race and silently erase whatever pitch had faded out.
+    function refreshGroundPitchFade(force) {
+      if (!map.getLayer(TEX)) return;
+      const pitch = map.getPitch();
+      if (!force && _lastFadePitch != null &&
+          Math.abs(pitch - _lastFadePitch) < GROUND.pitchFadeQuantDeg) return;
+      _lastFadePitch = pitch;
+      const mul = groundPitchFadeMul(pitch);
+      const pNow = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
+      const set = (id, prop, val) => { try { map.setPaintProperty(id, prop, val); } catch (e) {} };
+      const wrap = expr => (GROUND.pitchFade && mul !== 1) ? ['*', expr, mul] : expr;
+      set(TEX, 'fill-opacity', wrap(texOpacityExpr(pNow)));
+      set(CLOSE_AREA, 'fill-opacity', wrap(closeAreaOpacityExpr(pNow)));
+      set(CLOSE_ROAD, 'fill-opacity', wrap(closeRoadOpacityExpr(pNow)));
+    }
+    window.applyGroundPitchFade = refreshGroundPitchFade;
+    map.on('pitch', refreshGroundPitchFade);
+    refreshGroundPitchFade();
   };
 
   /**
@@ -2183,7 +2253,9 @@
     set(PATH_CASE, 'line-color', jitterExpr(pal, GROUND.pathJitter, c => lighten(c, GROUND.kerbLight)));
     // The texture images carry no colour, so time of day only moves opacity —
     // no getImageData readback, no atlas upload, nothing per tick.
-    set(TEX, 'fill-opacity', texOpacityExpr(p));
+    // TEX's own opacity is set by refreshGroundPitchFade(true) below, not
+    // here directly — an unconditional set() here would win the race against
+    // the pitch fade and erase it on every hour change.
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
     // `fill-extrusion-opacity`, not `fill-opacity`: both grain layers became
     // prisms so they would stop losing the depth test to the deck they sit on.
@@ -2194,8 +2266,8 @@
     set(PATH_TEX, 'fill-extrusion-opacity', pathTexOpacity(p));
     // The close grain follows the same clock. Its tiles carry no colour, so
     // night is an opacity move here exactly as it is for TEX and BASE_TEX.
-    set(CLOSE_AREA, 'fill-opacity', closeAreaOpacityExpr(p));
-    set(CLOSE_ROAD, 'fill-opacity', closeRoadOpacityExpr(p));
+    // CLOSE_AREA/CLOSE_ROAD go through the pitch-fade helper too, same reason
+    // as TEX above.
     set(CLOSE_PATH, 'fill-extrusion-opacity', closePathOpacityExpr(p));
     set(DEPTH, 'fill-extrusion-color', depthColour(p));
     set(CHANNEL, 'fill-extrusion-color', bankColour(p));
@@ -2217,6 +2289,7 @@
     // the signal give it. Same ramp as the lane markings.
     set(STOPBAR, 'line-color',
         lerpHex(GROUND.stopBarColor, '#0a0c12', nightAmt(p) * GROUND.laneNightFade));
+    if (window.applyGroundPitchFade) window.applyGroundPitchFade(true);
   };
 
   /** Re-read GROUND after a live edit (widths, opacity, scale). */
@@ -2245,7 +2318,9 @@
     for (const id of [BIKE_L, BIKE_R]) set(id, 'line-opacity', GROUND.bikeOpacity);
     set(STOPBAR, 'line-width', stopBarWidthExpr());
     const p = window.__todCurrentP != null ? window.__todCurrentP : 0.5;
-    set(TEX, 'fill-opacity', texOpacityExpr(p));
+    // TEX/CLOSE_AREA/CLOSE_ROAD's fill-opacity is set by
+    // applyGroundPitchFade(true) below, not here — same race as
+    // applyGroundColors above.
     set(BASE_TEX, 'background-opacity', baseTexOpacity(p));
     set(SPEEDWAY, 'fill-extrusion-opacity', speedwayTexOpacity(p));
     set(SPEEDWAY, 'fill-extrusion-base', GROUND.pathRaise);
@@ -2253,8 +2328,6 @@
     set(PATH_TEX, 'fill-extrusion-opacity', pathTexOpacity(p));
     set(PATH_TEX, 'fill-extrusion-base', GROUND.pathRaise);
     set(PATH_TEX, 'fill-extrusion-height', GROUND.pathRaise + GROUND.pathTexLift);
-    set(CLOSE_AREA, 'fill-opacity', closeAreaOpacityExpr(p));
-    set(CLOSE_ROAD, 'fill-opacity', closeRoadOpacityExpr(p));
     set(CLOSE_PATH, 'fill-extrusion-opacity', closePathOpacityExpr(p));
     set(CLOSE_PATH, 'fill-extrusion-base', GROUND.pathRaise + GROUND.pathTexLift);
     set(CLOSE_PATH, 'fill-extrusion-height',
@@ -2286,5 +2359,6 @@
     // Turning our roads off has to give the basemap's back, or the scene ends
     // up with no roads at all and that reads as a broken layer, not a setting.
     if (GROUND.on && GROUND.roads) hideBasemapRoads(map); else showBasemapRoads(map);
+    if (window.applyGroundPitchFade) window.applyGroundPitchFade(true);
   };
 })();
