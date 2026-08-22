@@ -1,0 +1,1192 @@
+[
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 21.01,
+  "area": 1.56,
+  "shared": 100,
+  "at": [
+   -97.736839,
+   30.284032
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 25.26,
+  "area": 2.23,
+  "shared": 100,
+  "at": [
+   -97.736828,
+   30.284357
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 25.26,
+  "area": 2.23,
+  "shared": 100,
+  "at": [
+   -97.736853,
+   30.284126
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 22.18,
+  "area": 42.41,
+  "shared": 100,
+  "at": [
+   -97.736873,
+   30.284182
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 20.53,
+  "area": 3.51,
+  "shared": 84.4,
+  "at": [
+   -97.73684,
+   30.284024
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 22.84,
+  "area": 31.25,
+  "shared": 46.3,
+  "at": [
+   -97.736872,
+   30.284196
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 24.79,
+  "area": 3.51,
+  "shared": 62.4,
+  "at": [
+   -97.736828,
+   30.284362
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 24.79,
+  "area": 3.27,
+  "shared": 61.6,
+  "at": [
+   -97.736854,
+   30.284122
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 20.87,
+  "area": 1.63,
+  "shared": 82.7,
+  "at": [
+   -97.736861,
+   30.284331
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 20.87,
+  "area": 1.72,
+  "shared": 80.3,
+  "at": [
+   -97.736879,
+   30.284158
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 22.35,
+  "area": 1.63,
+  "shared": 30.4,
+  "at": [
+   -97.736875,
+   30.284191
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 24.57,
+  "area": 1.81,
+  "shared": 82.3,
+  "at": [
+   -97.736869,
+   30.284248
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 24.57,
+  "area": 1.63,
+  "shared": 84.3,
+  "at": [
+   -97.73687,
+   30.28424
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.69,
+  "shared": 91.6,
+  "at": [
+   -97.737272,
+   30.282025
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.77,
+  "shared": 87.2,
+  "at": [
+   -97.737282,
+   30.281933
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.83,
+  "shared": 82.9,
+  "at": [
+   -97.737291,
+   30.28184
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 74.4,
+  "at": [
+   -97.7372,
+   30.281741
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.64,
+  "shared": 91.4,
+  "at": [
+   -97.737099,
+   30.281734
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 75,
+  "at": [
+   -97.736997,
+   30.281726
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 85.2,
+  "at": [
+   -97.736895,
+   30.281718
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 94.8,
+  "at": [
+   -97.736793,
+   30.281711
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.8,
+  "shared": 73,
+  "at": [
+   -97.736692,
+   30.281703
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 94.5,
+  "at": [
+   -97.73659,
+   30.281696
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 95.1,
+  "at": [
+   -97.736488,
+   30.281688
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 74.8,
+  "at": [
+   -97.736386,
+   30.28168
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.64,
+  "shared": 91.4,
+  "at": [
+   -97.736285,
+   30.281673
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 85.3,
+  "at": [
+   -97.736183,
+   30.281665
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.64,
+  "shared": 82.3,
+  "at": [
+   -97.736182,
+   30.281767
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.69,
+  "shared": 87.5,
+  "at": [
+   -97.736255,
+   30.28205
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.64,
+  "shared": 83.4,
+  "at": [
+   -97.736346,
+   30.282141
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 75.8,
+  "at": [
+   -97.736664,
+   30.282168
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.69,
+  "shared": 96.7,
+  "at": [
+   -97.736936,
+   30.282271
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.64,
+  "shared": 87.9,
+  "at": [
+   -97.736927,
+   30.282357
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.64,
+  "shared": 98.5,
+  "at": [
+   -97.736919,
+   30.282442
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 74.4,
+  "at": [
+   -97.737004,
+   30.28254
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.8,
+  "shared": 73.2,
+  "at": [
+   -97.737091,
+   30.282547
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.8,
+  "shared": 77.4,
+  "at": [
+   -97.737178,
+   30.282553
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.69,
+  "shared": 85.6,
+  "at": [
+   -97.737271,
+   30.282473
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.69,
+  "shared": 87.8,
+  "at": [
+   -97.737279,
+   30.282392
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 85.3,
+  "at": [
+   -97.737203,
+   30.282306
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 76.5,
+  "at": [
+   -97.737081,
+   30.281834
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 90.9,
+  "at": [
+   -97.736985,
+   30.281827
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 95.9,
+  "at": [
+   -97.736889,
+   30.28182
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.8,
+  "shared": 74.1,
+  "at": [
+   -97.736794,
+   30.281812
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.8,
+  "shared": 73.8,
+  "at": [
+   -97.736698,
+   30.281805
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 75.5,
+  "at": [
+   -97.736602,
+   30.281798
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 80.8,
+  "at": [
+   -97.736506,
+   30.281791
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.64,
+  "shared": 84.3,
+  "at": [
+   -97.736394,
+   30.281869
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.69,
+  "shared": 88.7,
+  "at": [
+   -97.736385,
+   30.281956
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 75.5,
+  "at": [
+   -97.736483,
+   30.282057
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 87.1,
+  "at": [
+   -97.736583,
+   30.282065
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 75.7,
+  "at": [
+   -97.736683,
+   30.282072
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 93.1,
+  "at": [
+   -97.736783,
+   30.28208
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.74,
+  "shared": 74.9,
+  "at": [
+   -97.736883,
+   30.282087
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.6,
+  "shared": 99.2,
+  "at": [
+   -97.736983,
+   30.282095
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.69,
+  "shared": 82.2,
+  "at": [
+   -97.737156,
+   30.282022
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 51.52,
+  "area": 0.83,
+  "shared": 88.2,
+  "at": [
+   -97.737166,
+   30.281931
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.77,
+  "shared": 85.8,
+  "at": [
+   -97.736409,
+   30.282678
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.77,
+  "shared": 86.7,
+  "at": [
+   -97.736417,
+   30.282598
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.77,
+  "shared": 87.5,
+  "at": [
+   -97.736425,
+   30.282518
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 88.6,
+  "at": [
+   -97.736433,
+   30.282438
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.6,
+  "shared": 100,
+  "at": [
+   -97.736352,
+   30.282353
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 76,
+  "at": [
+   -97.736032,
+   30.282331
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 94.3,
+  "at": [
+   -97.735749,
+   30.282222
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 95.3,
+  "at": [
+   -97.735757,
+   30.282139
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.6,
+  "shared": 100,
+  "at": [
+   -97.735877,
+   30.28207
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 75.1,
+  "at": [
+   -97.735884,
+   30.281959
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.6,
+  "shared": 83.2,
+  "at": [
+   -97.735542,
+   30.281931
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 85.9,
+  "at": [
+   -97.735538,
+   30.282044
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 81.8,
+  "at": [
+   -97.735544,
+   30.282304
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.69,
+  "shared": 85.5,
+  "at": [
+   -97.735455,
+   30.282376
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 87.4,
+  "at": [
+   -97.735447,
+   30.282456
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.69,
+  "shared": 86.7,
+  "at": [
+   -97.735439,
+   30.282535
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 88.6,
+  "at": [
+   -97.735431,
+   30.282615
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.69,
+  "shared": 88.3,
+  "at": [
+   -97.735423,
+   30.282694
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 79.9,
+  "at": [
+   -97.735557,
+   30.282707
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.77,
+  "shared": 84.2,
+  "at": [
+   -97.735565,
+   30.28263
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 90.4,
+  "at": [
+   -97.735572,
+   30.282553
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.64,
+  "shared": 93,
+  "at": [
+   -97.73558,
+   30.282476
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.6,
+  "shared": 96.4,
+  "at": [
+   -97.735692,
+   30.282413
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 87.6,
+  "at": [
+   -97.735795,
+   30.28242
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 76.5,
+  "at": [
+   -97.735898,
+   30.282428
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 76.2,
+  "at": [
+   -97.736001,
+   30.282436
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.6,
+  "shared": 97.3,
+  "at": [
+   -97.736104,
+   30.282444
+  ]
+ },
+ {
+  "file": "roofs.geojson",
+  "a": null,
+  "b": null,
+  "ka": null,
+  "kb": null,
+  "top": 40.32,
+  "area": 0.74,
+  "shared": 87.6,
+  "at": [
+   -97.736207,
+   30.282451
+  ]
+ }
+]
