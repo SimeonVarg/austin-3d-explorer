@@ -46,6 +46,9 @@
  *
  * Config knobs, as env vars, so the A/B is one variable at a time:
  *   SHIM_PATTERN=0   strip fill-extrusion-pattern and paint flat wall colour
+ *   SHIM_ONLY=id,id  strip ONLY these layer ids (per-layer attribution) instead
+ *                    of the full list SHIM_PATTERN=0 uses — added 2026-08-22 for
+ *                    the second-front pass (docs/second-front-poses.md)
  *   SHIM_SCALE=1     GFX.renderScale override
  *   SHIM_PRESET=...  apply a named graphics preset first
  */
@@ -72,6 +75,11 @@ const CFG = {
   bootPreset: process.env.SHIM_BOOTPRESET || null,
   soften: process.env.SHIM_SOFTEN != null ? Number(process.env.SHIM_SOFTEN) : null,
   softenR: process.env.SHIM_SOFTEN_R != null ? Number(process.env.SHIM_SOFTEN_R) : 3,
+  // Isolate ONE layer (or a comma list) instead of the full pattern-off sweep,
+  // for per-layer attribution (which pattern system owns how much of the
+  // crawl at a given pose). Layer ids only — same setPaintProperty path as
+  // the full strip below, just scoped.
+  only: process.env.SHIM_ONLY ? process.env.SHIM_ONLY.split(',').map(s => s.trim()).filter(Boolean) : null,
 };
 
 // Frames per sweep, and how far the camera travels IN TOTAL across them.
@@ -158,10 +166,22 @@ const applied = await page.evaluate((cfg) => {
     out.softenApplied = { r: cfg.softenR, a: cfg.soften };
   }
 
-  if (!cfg.pattern) {
-    for (const id of ['buildings-3d', 'parts-3d', 'wc-wall', 'drag-wall', 'moody-wall',
-                      'arts-panel', 'places-solid', 'tower-wall', 'stadium-wall']) {
-      if (!m.getLayer(id)) continue;
+  // The full strip list, corrected: the original had 'places-solid' (a
+  // flat-colour layer with no pattern to begin with) where 'places-glass'
+  // (the actual GLASS_IMG pattern layer) belonged, and was missing
+  // 'arts-glass' (Bass Concert Hall) and all seven 'heroes-*' layers
+  // entirely — confirmed against the live style's own getPaintProperty,
+  // not the source comments. SHIM_PATTERN=0 before this fix was silently
+  // leaving those layers patterned.
+  const FULL_STRIP = ['buildings-3d', 'parts-3d', 'wc-wall', 'drag-wall', 'moody-wall',
+                       'arts-panel', 'arts-glass', 'places-glass', 'tower-wall', 'stadium-wall',
+                       'heroes-lime', 'heroes-brick', 'heroes-nbrick', 'heroes-glass',
+                       'heroes-glassb', 'heroes-glassc', 'heroes-lattice'];
+  if (cfg.only || !cfg.pattern) {
+    const ids = cfg.only || FULL_STRIP;
+    out.stripped = ids;
+    for (const id of ids) {
+      if (!m.getLayer(id)) { out['missing_' + id] = true; continue; }
       try {
         m.setPaintProperty(id, 'fill-extrusion-pattern', null);
         m.setPaintProperty(id, 'fill-extrusion-color', ['to-color', ['get', 'wd'], '#b9ac93']);
