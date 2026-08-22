@@ -588,6 +588,49 @@
     twvoid:  { strip: null,                   mottle: 0.030, streaks: 0 },
   };
 
+  // ── band-limit: this atlas had NONE until now ───────────────────────
+  //
+  // Same engine path as js/facades.js and js/drag.js: `fill-extrusion-pattern`
+  // is LINEAR-filtered with no mipmap unconditionally (docs/pattern-sampling.md
+  // §1), so the same crawl-while-moving defect applies here
+  // (docs/shimmer-mechanism.md) — and this is THE FILE Simeon actually named:
+  // "the bottom of the tower is having the same window glitching problem"
+  // (docs/shimmer-brief.md). Before this, `tileData` below drew one TILE=64
+  // texel image and handed it straight to `map.addImage`/`updateImage`, full
+  // resolution, unconditionally, at every zoom — one of the six files
+  // docs/facade-atlas-map.md §2 counted with zero SOFTEN/TIERS references.
+  //
+  // This is the SAME shipped fix (shim-lowpass — docs/shimmer-verdict.md),
+  // applied through the shared kernel in js/pattern-lowpass.js
+  // (`PatternLowpass.blurWrap`) — the identical port js/drag.js received one
+  // step earlier in this same queue (QUEUE F2). Not a zoom-stepped tier
+  // chain: this module still draws one resolution the way it always has and
+  // gets only the low-pass. `TOWER.tiling` (`{maxzoom:18, tolerance:0}`,
+  // above) is a DIFFERENT, unrelated fix for a DIFFERENT defect — the
+  // simplifier deleting the crown's geometry at distance — and is untouched
+  // by anything below.
+  //
+  // CALIBRATION. Radius is in TILE=64 drawing-space texels, the same unit
+  // js/drag.js's radius uses (no SCALE multiplier here either — see TILE
+  // above). Swept with scripts/verify/shimmer.mjs's SHIM_SOFTEN/
+  // SHIM_SOFTEN_R/SHIM_SOFTEN_TARGET=tower knobs against tower-base-close and
+  // tower-cruise (scripts/verify/shots-tower-front2.json) — every value
+  // below MEASURED, none guessed. See the commit message for the full table
+  // and the eye check that picked this radius.
+  //
+  // Uniform across every family (twshaft/twplain/twwall/twbase/twattic/
+  // twvoid), same first-pass call js/drag.js made for the same reason: no
+  // existing per-family calibration to preserve here, and a family-by-family
+  // split needs its own close-up pose per family — future work, not guessed.
+  // TASTE KNOB: any value here is a one-line edit, readable from the console
+  // as window.TOWER_SOFTEN, same contract as window.FACADE_SOFTEN /
+  // window.DRAG_SOFTEN.
+  const TOWER_SOFTEN = {
+    RADIUS: { twshaft: 3, twplain: 3, twwall: 3, twbase: 3, twattic: 3, twvoid: 3 },
+    AMOUNT: { twshaft: 1.0, twplain: 1.0, twwall: 1.0, twbase: 1.0, twattic: 1.0, twvoid: 1.0 },
+  };
+  window.TOWER_SOFTEN = TOWER_SOFTEN;
+
   // ── colour helpers, matching the ramp the rest of the scene uses ────
   const hx = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -691,6 +734,14 @@
         }
       }
     }
+    // Band-limit AFTER mottle, same order js/facades.js and js/drag.js draw
+    // in — the blur should see the same texture MapLibre will sample,
+    // weathering included, not a cleaner draft of it. Same fallback pattern
+    // as drag.js: an unrecognised fam gets twplain's number rather than
+    // silently skipping the low-pass.
+    const rOv = TOWER_SOFTEN.RADIUS[fam] != null ? TOWER_SOFTEN.RADIUS[fam] : TOWER_SOFTEN.RADIUS.twplain;
+    const aOv = TOWER_SOFTEN.AMOUNT[fam] != null ? TOWER_SOFTEN.AMOUNT[fam] : TOWER_SOFTEN.AMOUNT.twplain;
+    window.PatternLowpass.blurWrap(d, TILE, rOv, aOv);
     return { width: TILE, height: TILE, data: new Uint8Array(d.buffer.slice(0)) };
   }
 

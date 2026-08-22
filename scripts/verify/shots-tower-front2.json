@@ -1,0 +1,23 @@
+[
+  {
+    "name": "tower-base-close",
+    "note": "the literal complaint, dead centre -- built from tower.js's own footprint coordinates to fill the frame with the Main Building base/arcade (twbase/twwall) the way shots/shimmer/front2/drag/pclclose-*.png framed PCL for the same purpose. Whole-frame, unboxed -- the official number, per the task's own bar.",
+    "center": [-97.73937, 30.28627], "zoom": 19.3, "pitch": 70, "bearing": 200, "p": 0.5
+  },
+  {
+    "name": "tower-wall",
+    "note": "SAME camera as tower-base-close, boxed to the Tower's own facade (shaft + both Main Building wings, all drawn by tower.js) and out of the ground/plaza band below y~500 -- which streaks edge-to-edge in the unboxed mask and is js/ground.js's own already-tracked fill-pattern bug, a different render path -- and out of the slivers of neighbouring buildings at the frame edges. Box picked by eye against the unboxed floor mask.",
+    "center": [-97.73937, 30.28627], "zoom": 19.3, "pitch": 70, "bearing": 200, "p": 0.5,
+    "box": [200, 200, 1250, 470]
+  },
+  {
+    "name": "tower-mid",
+    "note": "medium range, same footprint/bearing pulled back to zoom 18.0 -- the Tower still fills roughly half the frame here (unlike tower-cruise below, where it is a sliver), so this is the 'flying near the tower, not parked at its base' case.",
+    "center": [-97.73937, 30.28627], "zoom": 18.0, "pitch": 70, "bearing": 200, "p": 0.5
+  },
+  {
+    "name": "tower-cruise",
+    "note": "shimmer-poses.json's shot-a-tower verbatim (reel Shot A, nearest the Tower) -- kept for continuity with the existing city-wide numbers, but the Tower itself is a thin sliver here (confirmed by eye, tf2-r0-tower-cruise.png) so this pose mostly measures OTHER files' already-fixed contribution, not tower.js's own. Reported for context, not treated as a tower.js signal.",
+    "center": [-97.7393, 30.2874], "zoom": 16.85, "pitch": 74, "bearing": 197.4, "p": 0.5
+  }
+]
