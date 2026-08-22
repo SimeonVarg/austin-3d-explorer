@@ -46,7 +46,20 @@ was measured at the buried-camera pose and is void.** Full old writeup:
 
 </details>
 
-## Z1 — "buildings in downtown slide in from the horizon" (open, NOT diagnosed)
+## POSE HYGIENE — five more files had the buried-camera bug, fixed 2026-08-22 (`acer/q-audit`)
+
+`a80502c` fixed the buried-camera `street-drag` pose in `shimmer-poses.json`
+but never propagated the fix to five sibling files that had copied the exact
+same broken coordinates: `shimmer-poses-front2.json`,
+`shimmer-poses-iso-drag.json`, `shots-drag-front2.json`,
+`shots-street-only.json`, `shots-street-wall.json`. All five now carry the
+verified pose. A static scan covered all 417 poses across 95 files for the
+known bug signature (100%, no browser needed); a live browser pass visually
+confirmed 27 of them before ~40 concurrent sibling Chrome processes made
+finishing the rest impractical this round — the remaining ~390 are unverified
+by eye, only by coordinate pattern. Full method: `docs/pose-audit.md`.
+
+## Z1 — "buildings in downtown slide in from the horizon" (open, still NOT diagnosed — re-attempted 2026-08-22, no clean read)
 
 Reported 2026-08-21 watching `?autopilot=1`: *"buildings in downtown in shot A
 start like sliding in from the horizon. Can we try infinite range?"*
@@ -66,6 +79,17 @@ What is already known and should not be re-derived:
   points through the flight. Raising `renderDistance` cannot be the fix.
 - `renderDistance: 1500` already means unlimited (`LOD.unlimitedAt`), so "infinite
   range" is a one-value change in `PRESETS` if it ever turns out to be the answer.
+- **2026-08-22 (`acer/q-slidein`): still could not get a trustworthy visual
+  verdict.** Structurally confirmed `map.isSourceLoaded('austin-outer')` never
+  reaches true across a long tracked window even with the prewarm
+  (`AP_PRIME_MS`) active — consistent with the tile-streaming theory below.
+  But the session had ~10 sibling browsers running at once, and one timed run
+  came back untrustworthy by this repo's own rule (a nominal ~40 s flight took
+  71 s+ of wall time, and consecutive checkpoints landed on an identical
+  frame) — not kept as evidence either way. Needs a re-run on a quiet machine.
+  The likeliest levers, `AP_PRIME_MS` and the PMTiles `maxzoom`, live in
+  `js/app.js` / `js/tiles.js`, outside `js/outer.js`/`js/lod.js` — no code
+  changed.
 
 Most likely candidates, in order, none confirmed: MapLibre streaming vector tiles
 into the frustum as the camera advances (i.e. it is tile LOADING, and no range
@@ -73,7 +97,8 @@ setting fixes it); the `outer-*` layers' `minzoom` in `js/outer.js`; MapLibre's
 own far plane at a flying pitch.
 
 **Use the magenta mask (HANDOFF §48) to establish which layer the appearing
-buildings belong to before concluding anything.**
+buildings belong to before concluding anything, and run it on a quiet machine —
+this one has not yet had a trustworthy attempt.**
 
 
 ## THE OPENING SMEAR — DIAGNOSED, NOT FIXED, AND THE OLD AVOIDANCE WAS WRONG (morning of Aug 17, HANDOFF §168)
@@ -101,6 +126,24 @@ reframing of the opening shot, and neither is a thing to do on the morning of a
 shoot with the site verified GO. Pictures: `shots/smear/`. Left open as **Y25**:
 stop the outer-tower bake and the detailed buildings bake putting two copies of
 the same downtown towers in the same place.
+
+**Correction, 2026-08-22 (`acer/q-slidein`): it is NOT two duplicate copies of
+the same downtown tower.** Re-reproduced with a fresh magenta mask on
+outer-tower (`shots/q/slidein/smear-repro-*.jpg`). Hiding the `buildings-*`
+family (core campus buildings) kills the tear AND un-hides a basemap "UT
+Tower" label that had been occluded behind it — the near-camera occluder is
+the real UT Tower / core campus geometry, ~2 km from the outer-ring downtown
+tower it's fighting with. Confirmed by data: no `outer_ring.geojson` t=1
+tower centroid falls inside the core `buildings.geojson` bbox (0 of 243), so
+there is no literal duplicate footprint to filter out. This reads as ordinary
+depth-buffer precision loss at extreme view distance under the steep,
+near-horizontal opening angle (pitch 78 of 90) — the same class `js/outer.js`'s
+own far-plane comment already names, not a duplicate-geometry bug. Y25 as
+written ("stop the two bakes putting two copies... in the same place") is the
+wrong fix — there is nothing to filter out of either bake without deleting a
+real building. Still nothing changed; still needs either a reframe of
+`INTRO.start` or a camera near/far clip change, both outside "don't touch it
+on shoot morning."
 
 ---
 
@@ -362,12 +405,23 @@ production speed.
 *"only thing is the boost button is a bit off visually but its great."* Shipped
 in PR #128 and never seen on a real device until now. Small, pure presentation.
 
-## K3. Finish DKR
+## ~~K3. Finish DKR~~ — ALREADY FIXED, verified 2026-08-22 (`acer/q-dkr`)
 
 Still the most-asked-for thing in the project. The Mac lane rebuilt the four
 sides, the real heights and the 2021 entry towers, and PR #114 unblocked the two
 faults it could not reach — but **the seating is still a stepped cone** until
 `bake_stadium.py` emits real deck bases into the void that fix opened.
+
+**The base/void fix is already shipped in both files.** 367 of 649 seat bands
+in `data/stadium.geojson` carry a nonzero base, 32 void soffits exist, and
+`js/app.js`'s stadium-seating layer already reads
+`'fill-extrusion-base': ['coalesce', ['get','base'], 0]`. Re-baked
+`stadium.geojson` from current `bake_stadium.py` against its frozen snapshot —
+byte-identical (sha256 matches), so nothing is stale. Fresh screenshots from
+every angle a visitor sees it (west/north/east/south close, nadir, golden
+hour, night — `shots/q/dkr/`) all show a real multi-deck bowl with aisles,
+orange chairback sections, both south entry towers, and the videoboard — not
+a solid cone. No code change needed.
 
 ## K4. A clean full sweep, and READ every frame
 
@@ -377,13 +431,25 @@ recalibrated and the result has never been looked at.
 
 **Before a product manager finds something, I want to have found it.**
 
-## K5. Downtown still reads cooler and greyer than campus
+## K5. Downtown still reads cooler and greyer than campus (open — no single-file fix exists, re-measured 2026-08-22)
 
 In any wide daytime frame the two halves of the city do not look like they are in
 the same light. PR #117 established it was "undifferentiated, not dark" and fixed
 the spread — that was real, and this is what is left after it.
 
-## K6. The graphics menu is too wordy
+**Honest refusal (`acer/q-downtown`): measured, and the gap is real but there
+is no fix inside one file that doesn't break campus.** Same wide day frame:
+downtown B-R -13.5 / sat 8.8% / luma 162.9 vs campus B-R -49.4 / sat 30.2% /
+luma 136.5 — matches HANDOFF #74's numbers from three weeks earlier, so it
+hasn't drifted. `js/graphics.js`'s `GRADE` is one CSS filter over the whole
+canvas — it cannot warm downtown without also warming campus, and campus
+already matches its own reference photo (measured under-warm, not over). The
+real remaining gap is outside this lane: `js/facades.js:1341`
+(`mix(wall,[46,58,74],0.62)` on tower glass) and `bake_outer_facades.py`'s
+`AMBER_CANCEL`/`GOLDEN` knobs. HANDOFF #74 and PR #137 reached the same
+verdict twice already; this is a third confirmation, not a new lead.
+
+## ~~K6. The graphics menu is too wordy~~ — ALREADY FIXED, verified 2026-08-22 (`acer/q-chrome`)
 
 *"add making the graphics menu less yap"* — 2026-08-04, correcting PR #128.
 
@@ -392,11 +458,18 @@ the spread — that was real, and this is what is left after it.
 explains too much. A settings menu should be scannable: a short label, and help
 text only where a control genuinely needs it. Cut the prose.
 
+**Already shipped in PR #128 and #136 (2026-08-04) — QUEUE.md was never
+pruned after they landed.** `js/graphics.js` already renders scannable
+Speed/Light groups with one-line descriptions instead of tooltips. Confirmed
+live, not from the doc: screenshotted the open graphics menu and all three
+reel flags (`?clip=1`, `?autopilot=1`, `?sliderdemo=1`) at mobile size —
+`shots/q/chrome/`. No markup or CSS change made.
+
 ---
 
 # PART H — GLITCHES. A flickering frame kills a demo; these come first.
 
-## H1. The Tower's night glow is wrong in five separate ways
+## ~~H1. The Tower's night glow is wrong in five separate ways~~ — ALREADY FIXED, verified 2026-08-22 (`acer/q-towerglow`)
 
 *"at night, UT tower finally glows but its weird - the bottom part of the
 illuminated prism glitches with the nonlit part they overlap and movement
@@ -424,7 +497,21 @@ available — but the honest options are worth naming: a bloom/glow sprite behin
 the tower, a lit ground pool under it, or brighter neighbouring surfaces to imply
 spill. Say what you chose and why.
 
-## H2. The window-density flicker is STILL happening
+**All five already shipped, HANDOFF §62/PR #124.** Re-verified live rather
+than trusting the comments: (1) `unstackShaft()` in `js/tower.js` lifts the
+shaft's base 15.0 → 20.2, deleting the 5.2 m overlap with the unlit prism —
+confirmed via `window.__towerShaftBase`; geometry-level fix, not angle-
+dependent. (2) `NIGHT.LEVELS.shaft` floors at 0.30, sampled shaft column stays
+visible top to bottom, no near-black band. (3) Sampled hue runs ~25-28° down
+the shaft, matching `#BF5700` (27.3°) — burnt orange, not red. (4) Top
+untouched, reads correctly. (5) `NIGHT.BASE` washes the Main Building
+roofline and `js/night.js`'s `TOWER_POOL` adds a lit ground pool plus
+brighter neighbouring surfaces — the honest answer to "can this be light":
+no point lights in MapLibre, so pool + spill is what's available, and both
+are already in. No code change; `js/tower.js`/`js/night.js` byte-identical
+to `origin/main`. Evidence: `shots/q/towerglow/`.
+
+## ~~H2. The window-density flicker is STILL happening~~ — ALREADY FIXED 2026-08-04, verified 2026-08-22 (`acer/q-windowflicker`)
 
 *"UTC still has the window glitching where it rapidly alternates between the less
 and more dense window pattern on movement. same with buildings behind dobie. and
@@ -449,7 +536,23 @@ that difference IS the flicker.
 Reproduce it in a script: park the camera where a named building is far, orbit or
 dolly slightly, and sample its wall across frames.
 
-## H3. The horizon line tilts the wrong way
+**PR #103's fix was already correct, and this round explains what's left.**
+`f0a8fdc` (same day) fixed the CONSEQUENCE — both mip tiers now draw the
+identical window rhythm at the identical world scale, differing only in
+texel resolution, so a tier flip no longer reads as a density change.
+Verified: forced `buildings-3d` to each tier at the dobie-w pose named in the
+report and diffed pixel-for-pixel — mean diff 0.58/255, only 6.2% of pixels
+differ (edge/AA noise), Dobie Twenty21 and Callaway House visually
+indistinguishable between forced tiers (`shots/q/windowflicker/`). The
+underlying tile-zoom SELECTION still oscillates near a distance boundary
+(confirmed against the MapLibre engine source — no hysteresis exists there,
+and nothing added it) — that part of the original report is structurally
+still true — but what it now flips between no longer looks like a bug. Did
+not capture the selection oscillating live (timed out twice under sibling
+contention); did not re-check Kinsolving/San Jacinto/Jester individually,
+only Dobie/U24 plus the source-level proof that generalizes.
+
+## ~~H3. The horizon line tilts the wrong way~~ — ALREADY FIXED (PR #125, 2026-08-04), motion-verified 2026-08-22 (`acer/q-horizontilt`)
 
 *"the horizontal horizon line tilts in the opposite direction as the map horizon
 when i move sideways make that the same direction"*
@@ -458,6 +561,15 @@ PR #116 turned `#fx-dof` off, so whatever tilts now is something else — probab
 the sky canvas or a horizon band that takes the camera's roll with the wrong
 sign. The flight controller banks into turns (`rollNow` in `js/controls.js`), so
 the sign convention is knowable. One character, most likely.
+
+**PR #125 already fixed this, but HANDOFF #63 flagged it as verified only at
+a synthetic forced roll, "needs a sideways move."** This round supplied that:
+real KeyD/KeyA strafing (no synthetic `setRoll`), edge rows read back with
+`gl.readPixels` and compared against an independent pinhole-geometry
+prediction. Measured delta tracks predicted delta to within ~1 px in both
+bank directions (right-strafe: predicted 30.37 px vs measured 30 px;
+left-strafe: predicted -23.44 px vs measured -24 px). No code change — full
+numbers in `shots/q/horizontilt/measurements.md`.
 
 ## ~~H4. Asphalt bleeds into Speedway~~ — ALREADY FIXED 2026-08-04 (`92860e9`), verified 2026-08-22
 
@@ -473,7 +585,7 @@ screenshot at the exact East 26th crossing the fix's own comment cites —
 account: `docs/ground-rejudge.md` §3. Not re-checked at every one of the
 city's 8 pedestrian-mall features, only Speedway.
 
-## H5. Roofs intersect badly where footprints have many corners
+## H5. Roofs intersect badly where footprints have many corners (open — confirmed real, belongs in `bake_roofs.py`, not `js/roofs.js`)
 
 *"Jester roofs have some weird extrusions with the diagonals. specifically above
 where it says J2. other buildings with alot of corners next to each other with
@@ -482,6 +594,18 @@ cornered roofs have this weird intersecting as well."*
 A general rule, not a Jester bug. Find the class — a footprint with closely-spaced
 corners generates roof facets that overshoot and stab through each other. Report
 how many buildings share it.
+
+**Confirmed and quantified 2026-08-22 (`acer/q-roofs`), still open.**
+Photographed at Jester (`shots/q/roofs/jester-overhead-crop.png`) and ran
+`coplanar.mjs` on `data/roofs.geojson`: 85 coplanar top-face pairs, matching
+the recorded baseline exactly — not a new regression. All 85 cluster within
+~250 m of the three Jester buildings (Center, West Hall, East Hall); zero
+pairs anywhere else among ~100 pitched-roof buildings. **`js/roofs.js` only
+draws the flat roofscape deck/clutter layer — the pitched hip-roof facets
+come from `scripts/bake_roofs.py`**, which already has a resolver built for
+exactly this failure mode (`untangle_facet`, `RESOLVE_SURFACES`, PR #74/#78)
+that isn't catching this case. No file this lane owns can fix it. Whoever
+picks this up next needs `bake_roofs.py`, not `js/roofs.js`.
 
 ---
 
@@ -506,7 +630,7 @@ South Mall and Speedway (`shots/q/ground/i1-southmall-along.png`,
 `i1-speedway-eyelevel-baseline.png`) — no continuous grid. Full account:
 `docs/ground-rejudge.md` §2. Not re-photographed at every walk in the city.
 
-## I2. The startup flythrough
+## ~~I2. The startup flythrough~~ — FIXED 2026-08-22 (`acer/q-flythrough`, merged PR #216)
 
 *"make the start up fly through a more cinematic location - by that i mean
 starting looking at the tower is night but then it goes to like the guad
@@ -518,7 +642,24 @@ The first thing anyone sees. His suggestion — rising from downtown into a wide
 campus view — is a good one; if it costs too much on a weak device, pick another
 and SAY why. It must not end on something forgettable.
 
-## I3. The chrome: loading screen, slider, graphics menu
+**Screenshotted the old ending (not just read its code) and confirmed the
+complaint verbatim** — the Tower was a small background sliver with ordinary
+West Campus dorms filling the frame, despite the code's own comment claiming
+otherwise. `start` and `crest` were already good (downtown towers, then the
+Capitol opening onto the Forty Acres) — left untouched. **`INTRO.end` now
+banks the camera ~180° over the second leg so it arrives facing back south:**
+the Tower rising in front of the downtown skyline the flight just left,
+campus filling the middle ground. Confirmed the bearing swing takes the short
+way round and reads as one continuous sweep, not a snap. Confirmed harmless
+to both reel shots — `autopilot=1`/`sliderdemo=1` never run the intro code
+path at all (`doIntro = !doTour && !doSlider`). Blind side-by-side judgment
+(judge pass, not this lane) preferred the new frame before knowing which was
+which. Only soft caveat: at night the label layout is a little busier at the
+new bearing (two building labels crowd each other) — MapLibre's own collision
+layout, not a regression this branch introduced; worth a look if he ends up
+disliking the new frame.
+
+## ~~I3. The chrome: loading screen, slider, graphics menu~~ — ALREADY FIXED, verified 2026-08-22 (`acer/q-chrome`)
 
 *"there should be an option to sprint on mobile. sprinting should increase my FOV
 a bit. Make the loading screen look nicer. make the day night slider look nicer
@@ -536,6 +677,17 @@ credentials Simeon Varghese on the loading screen."*
   "Ultra" and nothing else. The light and lens sliders mean nothing to him except
   distance blur. **Rename everything in plain language and say what each one
   does.** A control nobody understands is worse than no control.
+
+**Already shipped in PR #128 and #136 (2026-08-04) — QUEUE.md was never
+pruned after they landed.** Confirmed live: `index.html`/`_harness.html`/
+`style.css` already carry the loading screen (skyline silhouette, progress
+bar, "Built by / Simeon Varghese" credit), the drawn sun/moon marks with a
+day-to-night gradient slider (no emoji), and `js/graphics.js` already renders
+scannable Speed/Light groups with one-line descriptions. `?autopilot=1`
+screenshots show the mobile joystick with a BOOST control already present.
+**Not separately re-confirmed: whether `TUNE.FOV_KICK` (sprint raising FOV)
+is large enough to notice** — that one sub-item wasn't measured this pass.
+Evidence: `shots/q/chrome/`.
 
 ## I4. A recommendations box
 
