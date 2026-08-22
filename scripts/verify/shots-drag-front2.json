@@ -1,8 +1,8 @@
 [
   {
     "name": "street",
-    "note": "identical pose to shimmer-poses.json's street-drag, so the screenshot and the meter agree on what they are looking at",
-    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+    "note": "identical pose to shimmer-poses.json's street-drag, so the screenshot and the meter agree on what they are looking at. CORRECTED 2026-08-22 (pose audit, QUEUE item 1): this file said 'identical' but was a stale copy -- a80502c fixed shimmer-poses.json's street-drag (camera buried, 2.4% pixel change hiding ground/road layers vs 16% at a valid pose) without updating this sibling. Now actually identical again.",
+    "center": [-97.74155, 30.2876], "zoom": 17.8, "pitch": 70, "bearing": 180, "p": 0.5
   },
   {
     "name": "aerial",

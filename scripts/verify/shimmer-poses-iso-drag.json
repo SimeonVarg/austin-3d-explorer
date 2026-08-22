@@ -1,7 +1,7 @@
 [
   {
     "name": "street-drag",
-    "note": "isolation: only drag-wall stripped",
-    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+    "note": "isolation: only drag-wall stripped. CORRECTED 2026-08-22 (pose audit, QUEUE item 1): stale copy of the pose a80502c proved buried the camera in shimmer-poses.json (2.4% pixel change hiding all ground/road layers vs 16% at a valid pose) -- never updated here. Replaced with shimmer-poses.json's verified street-drag pose.",
+    "center": [-97.74155, 30.2876], "zoom": 17.8, "pitch": 70, "bearing": 180, "p": 0.5
   }
 ]

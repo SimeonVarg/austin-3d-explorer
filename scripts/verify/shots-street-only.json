@@ -1,7 +1,7 @@
 [
   {
     "name": "street-drag",
-    "note": "low pass down the Drag (Guadalupe): alt 25m, pitch 76, bearing 180 (same corridor as perf-budget.mjs PHASES.walk, elevated from pedestrian to a flying low pass), converted via the same closed form",
-    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+    "note": "low pass down the Drag (Guadalupe). CORRECTED 2026-08-22 (pose audit, QUEUE item 1): the original pose here (alt 25m, pitch 76, bearing 180, converted from perf-budget.mjs PHASES.walk) was the exact camera-buried pose a80502c fixed in shimmer-poses.json (2.4% pixel change hiding all ground/road layers vs 16% at a valid pose) -- this file's own copy was never updated. Replaced with shimmer-poses.json's verified street-drag pose.",
+    "center": [-97.74155, 30.2876], "zoom": 17.8, "pitch": 70, "bearing": 180, "p": 0.5
   }
 ]
