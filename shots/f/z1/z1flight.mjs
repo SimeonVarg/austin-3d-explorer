@@ -21,9 +21,10 @@ import { chromium } from '../../../scripts/verify/node_modules/playwright-core/i
 const OUT   = path.dirname(fileURLToPath(import.meta.url));
 const LABEL = process.argv[2] || 'run';
 const FLAG  = process.argv[3] || 'autopilot';   // autopilot | timelapse | plain (the intro page)
+const BASE  = process.env.Z1_BASE || 'http://127.0.0.1:8641';
 const URL   = FLAG === 'plain'
-  ? 'http://127.0.0.1:8641/?preset=cinematic&drift=0'
-  : `http://127.0.0.1:8641/?${FLAG}=1&preset=cinematic&drift=0`;
+  ? `${BASE}/?preset=cinematic&drift=0`
+  : `${BASE}/?${FLAG}=1&preset=cinematic&drift=0`;
 
 // Explicit executable, hardware GL (this is a timing run, not a pixel assert —
 // scripts/verify/chrome.mjs documents why timing must not run on SwiftShader).
