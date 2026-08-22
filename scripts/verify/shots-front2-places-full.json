@@ -1,0 +1,12 @@
+[
+  {
+    "name": "places-cruise",
+    "note": "shots-places.json's own established 'fly-wide-day' pose.",
+    "center": [-97.74100, 30.28560], "zoom": 16.50, "pitch": 66, "bearing": 20, "p": 0.5
+  },
+  {
+    "name": "places-close",
+    "note": "shots-places.json's own established 'westcampus-day' pose -- Raku Sushi/TSAOCAA plGlass storefronts, off the Drag.",
+    "center": [-97.74495, 30.28660], "zoom": 17.9, "pitch": 70, "bearing": 205, "p": 0.5
+  }
+]

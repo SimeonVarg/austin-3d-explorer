@@ -199,6 +199,96 @@
   };
   window.PLACES_T = T;
 
+  // ── band-limit: this atlas had NONE until now ───────────────────────
+  //
+  // js/facades.js samples `fill-extrusion-pattern` through the exact same
+  // engine path this module does — MapLibre's pattern atlas is LINEAR-
+  // filtered with no mipmap, unconditionally, confirmed against the v5.24.0
+  // source in docs/pattern-sampling.md — so the same crawl-while-moving
+  // defect applies here (docs/shimmer-mechanism.md). This module never had
+  // facades.js's SOFTEN/TIERS machinery: `glassTile` above drew one TILE=64
+  // texel image and handed it straight to `map.addImage`/`updateImage`, at
+  // full resolution, unconditionally, at every zoom (docs/facade-atlas-map.md
+  // §2's table — `places.js` was one of the six files listed with zero
+  // SOFTEN/TIERS references).
+  //
+  // This is the SAME shipped fix (shim-lowpass — docs/shimmer-verdict.md)
+  // applied here, through the shared kernel js/pattern-lowpass.js
+  // (`PatternLowpass.blurWrap`, extracted from js/facades.js's own softenTile
+  // — QUEUE F2, applied first to js/drag.js). Only ONE image exists here
+  // (GLASS_IMG / `pl-glass`), so this is a single-key registry rather than
+  // drag.js's eleven-family table — still SOFTEN-shaped (RADIUS/AMOUNT keyed
+  // by family, here just `plGlass`) so scripts/verify/shimmer.mjs's existing
+  // generic sweep (which does `for (const f of Object.keys(S.RADIUS)) ...`)
+  // drives it with no special-casing.
+  //
+  // CALIBRATION. Radius is in TILE=64 drawing-space texels, the same unit
+  // js/drag.js's shopGlass uses (no SCALE multiplier or decimation here
+  // either). MULL=3 above means this tile's mullion pattern repeats every 3
+  // texels — a MUCH finer period than facades.js's window grids or drag.js's
+  // coffers, and that period is what makes the naive "copy drag.js's shipped
+  // r3" choice actively wrong here, found by direct measurement, not assumed:
+  //
+  // DIRECT PIXEL DIAGNOSTIC on the actual registered `pl-glass` image
+  // (scripts/verify/places-glass-variance.mjs, texel-luma variance, mean
+  // preserved ~123 at every radius by the box blur's own construction):
+  //
+  //   radius   variance   vs floor   BY EYE (shots/shimmer/front2/wcplaces/
+  //                                  places-glass-tile-r*.png, 64px tile,
+  //                                  nearest-neighbour 10x)
+  //   0 (floor)  272.93      —       crisp mullions, high contrast
+  //   1            4.49    -98%      COMPLETELY FLAT — no mullions at all
+  //   2           13.24     -95%     soft but CLEARLY still a repeating
+  //                                  mullion pattern — the best-surviving
+  //                                  legibility of any nonzero radius
+  //   3            6.03     -98%     a faint WIDE-BANDED beat pattern, not
+  //                                  mullions — worse to look at than r2
+  //   4            1.36    -100%     nearly flat
+  //   6            2.24     -99%     nearly flat, faintest hint of texture
+  //
+  // r1's near-total erasure is not "aggressive softening", it is exact
+  // numerical resonance: a radius-1 box kernel is 3 texels wide, exactly one
+  // mullion period, so EVERY 3-texel window on this tile contains exactly one
+  // dark texel and two light ones — the average is a near-constant, by
+  // construction, regardless of camera pose. r3 (7-wide kernel) and r6
+  // (13-wide) are NOT integer multiples of the 3-texel period, so they leave
+  // a residual BEAT pattern instead of either crisp mullions or a clean flat
+  // band — visibly worse than either endpoint, not a graceful middle ground.
+  // r2 (5-wide kernel, also not a multiple of 3) is the one radius in this
+  // sweep whose beat residual still reads as "a repeating window pattern"
+  // rather than either a moiré band or nothing.
+  //
+  // shimmer.mjs's crawl% meter (SHIM_SOFTEN_TARGET=places), at `places-close`
+  // and `places-cruise` (scripts/verify/shots-front2-wcplaces.json, a Raku
+  // Sushi & Asian Bistro storefront in West Campus — off the Drag entirely)
+  // does NOT discriminate any of this: whole-frame, r0/r3/r6 sit within
+  // 0.02pp of each other at both poses (2.54/2.56/2.56 and 4.13/4.12/4.12),
+  // because The Standard and Union on 24th's own walls dominate the frame.
+  // Re-measured with buildings-3d AND wc-wall hidden to isolate this atlas's
+  // own pixels (scripts/verify/shots-front2-places-iso.json): STILL flat —
+  // r0=3.24%, r1=3.24%, r2=3.24%, r3=3.24%, identical to the hundredth of a
+  // point, even though r1 visually erases the pattern completely. The
+  // remaining ~3.2% at this pose is not the glass pattern at all (awning
+  // silhouettes, door/frame edges and tree-canopy occlusion boundaries are
+  // the likely source, per the pose's own screenshot) — this fix was never
+  // going to move it, and no radius choice here is more "correct" by that
+  // number. Said plainly, the same way drag.js's own commit said it for the
+  // ground-contaminated street-drag pose: the whole-frame crawl% is the WRONG
+  // instrument for this radius choice; the direct pixel diagnostic above is
+  // the real evidence, and it is decisive.
+  //
+  // SHIPPED: radius 2, not 3 — a deliberate departure from facades.js's and
+  // drag.js's own r3 default, because their tiles do not share this one's
+  // 3-texel mullion period and r3 is demonstrably worse here, not just
+  // "the same conservative choice". TASTE KNOB: readable and settable from
+  // the console as window.PLACES_SOFTEN, same contract as
+  // window.FACADE_SOFTEN / window.DRAG_SOFTEN.
+  const PLACES_SOFTEN = {
+    RADIUS: { plGlass: 2 },
+    AMOUNT: { plGlass: 1.0 },
+  };
+  window.PLACES_SOFTEN = PLACES_SOFTEN;
+
   // ── colour helpers (this module's own; drag.js's are private) ───────
   function hexToRgb(hex) {
     const h = String(hex || '#888888').replace('#', '');
@@ -294,6 +384,13 @@
     for (let x = 0; x < TILE; x += T.MULL) fillC(ctx, mull, x, 1);
 
     const img = ctx.getImageData(0, 0, TILE, TILE);
+    // Band-limit LAST, after every layer above (sky mix, night glow, bay
+    // scatter, mullions) is already in the buffer — the blur has to see the
+    // same texture MapLibre will sample, not a cleaner draft of it. Only one
+    // image/family here (`plGlass`), unlike js/drag.js's per-family table, so
+    // this reads the registry directly rather than looking up by feature.
+    const rOv = PLACES_SOFTEN.RADIUS.plGlass, aOv = PLACES_SOFTEN.AMOUNT.plGlass;
+    window.PatternLowpass.blurWrap(img.data, TILE, rOv, aOv);
     return { width: TILE, height: TILE, data: new Uint8Array(img.data.buffer.slice(0)) };
   }
 
