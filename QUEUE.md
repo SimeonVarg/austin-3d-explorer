@@ -707,31 +707,81 @@ than pretending to send.
 
 # PART J — SCENE FIXES. Things that are there and wrong.
 
-## J1. Calhoun's middle prism should be roofed
+## ~~J1. Calhoun's middle prism should be roofed~~ — ALREADY FIXED 2026-08-04 (`2db5bae`, PR #130), never struck off
 
 *"for calhoun u were right to not red roof the middle part - however the
 horizontal prism in the middle should be roofed. So there should be 3 horizontal
 roofed prisms, rn the top and bottom r roofed, the middle should be roofed, and
 the areas between should stay as they are (not roofed)."*
 
-Precise and easy to check with a picture.
+Landed weeks ago in `scripts/bake_roofs.py` / `data/roofs.geojson` (HANDOFF
+§69 — a per-wing roof classifier, not this bake's file), independently
+re-confirmed the same day in a full-city photo sweep (§78: "three red-tiled
+prisms, flat grey decks between them, exactly as asked"). **Re-verified a
+third time this round**, live, on the running app: `Calhoun Hall`'s label
+sits on the terracotta hipped bar with dormers, flanked by `Parlin Hall` and
+`Homer Rainey Hall`'s own grey standing-seam roofs —
+`shots/r/buildings/j1check-calhoun-nadir.png` and `-nadir2.png`. Was handed
+to this lane's dispatch as unfinished; it was a stale entry, not a live bug.
 
-## J2. University Christian Church reads as an office block
+## ~~J2. University Christian Church reads as an office block~~ — FIXED 2026-08-22 (`acer/r-buildings`)
 
 *"University Christian church looks like an office building make its outline
 better."* Its footprint or its massing is wrong — a church has a nave and usually
 a tower.
 
-## J3. The University Catholic Center is a stub
+Diagnosed in HANDOFF §68 (2026-08-04) and left unfixed for one specific
+reason: `final_height` lives in `buildings.detailed.geojson`, and that lane
+could only write `props`/`art`. Fixed now in `scripts/bake_detail.py` (a
+named, one-line-overrulable override table — not a hand-edit of the output
+file, which the next re-bake would silently wipe):
+- Overture's `37.0 m` applied uniformly across the whole ~42x43 m footprint
+  (a 9-storey office slab) dropped to `16.5 m` for the nave, matching the
+  Aug-4 lane's own "~16 m" estimate.
+- **Sourced, not guessed**: "Places of worship around UT" (Design Decadence,
+  2012) — the Sanctuary "rises 62 feet [18.9 m] above University Avenue" and
+  is the tower that "distinguishes the building along the streetscape." Added
+  as a synthetic 8x8 m tower part, base 0 to 18.9 m, sited in the SW corner
+  of the ring per HANDOFF §68's own siting (checked point-in-polygon against
+  the real footprint — no OSM/Overture `building:part` exists for this
+  building to adopt instead, so this is hand-authored, kept small on purpose).
+- Roof recoloured to a weathered copper green — the same source names
+  "copper roof and trim" specifically; wall colour untouched (already a close
+  match to the source's "cream cut limestone").
+Before/after: `shots/r/buildings/before-christian-air2.png` vs
+`after-christian-air2.png` — the tower is now visible rising above the nave
+roofline and the floor-band count is roughly halved.
+
+## ~~J3. The University Catholic Center is a stub~~ — PARTIALLY FIXED 2026-08-22 (`acer/r-buildings`)
 
 *"also that building between university christian church and dobie 21 is the
 University Catholic Center. Its a very important building idk why it was just a
 stub before. I think an earlier pass didn't have data on it and put construction
 around it. Build the university catholic center"*
 
-**Find out why it is a stub first** — if a pass wrapped it in construction
-hoarding for want of data, that decision is probably repeated elsewhere and worth
-reporting. Then build it.
+**Why it was a stub, already answered in HANDOFF §68 (2026-08-04):** nothing
+was missing. The 42x45 m footprint is real (confirmed again this round
+against satellite imagery — the real building has genuine roof massing and a
+roof cross, not a shed) and the "construction" he saw was a real OSM
+`landuse=construction` site next door (Mulva Hall) that a since-fixed
+`bake_props.py` bug drew as a single 2x2 m toothpick — already resolved,
+unrelated to this building. The one thing that lane could not touch: Overture's
+raw `7.4 m`, unrealistically short for a building the source describes as
+housing "a large chapel, a smaller...chapel, a conference room, kitchen,
+library, and several offices and classrooms."
+
+Raised to `12.8 m` in `scripts/bake_detail.py`, in the same override table as
+J2. **Unlike J2, this is a documented ESTIMATE, not a sourced number** — no
+height source was found for this specific building. 12.8 m was chosen because
+it crosses `js/facades.js`'s `familyFor()` 12 m line from `'mr'` ("2-3 storey
+walk-ups, shops") into `'mh'` ("4-7 storey campus halls"), the more
+appropriate texture family for a multi-program institutional building. One
+number, overrulable in one line. Before/after:
+`shots/r/buildings/before-catholic-air2.png` vs `after-catholic-air2.png` —
+visibly taller, still a plain box up close. **Not done:** the source
+describes "half-stucco and half-stone" walls with "symmetrical windows on all
+sides" — real facade materials, which is `js/facades.js` territory, not this
+bake's.
 
 ## J4. The parking garage and the food trucks
 
