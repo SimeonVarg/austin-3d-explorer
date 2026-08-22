@@ -168,6 +168,13 @@ const applied = await page.evaluate((cfg) => {
     const targets = [
       { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(m, p0) },
       { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(m, p0) },
+      // QUEUE F2 moodyarts. force=true on arts is load-bearing: applyArtsColors
+      // quantises p to 1/128 and no-ops a repeat call at the same quantised p
+      // (its own header explains why), which would silently make an arts sweep
+      // read as "radius does nothing" for reasons having nothing to do with the
+      // kernel. moody has no such guard.
+      { key: 'moody', S: window.MOODY_SOFTEN, repaint: () => window.applyMoodyColors && window.applyMoodyColors(m, p0) },
+      { key: 'arts', S: window.ARTS_SOFTEN, repaint: () => window.applyArtsColors && window.applyArtsColors(m, p0, true) },
     ];
     const hit = [];
     for (const t of targets) {

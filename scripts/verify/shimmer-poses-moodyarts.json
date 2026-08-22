@@ -1,0 +1,24 @@
+[
+  {
+    "name": "moody-body-close",
+    "note": "Health Discovery Building (Dell Med), health-body wall -- the flagged primary risk (docs/second-front-map.md sec5/sec8). Centre = moody-check.mjs's own HDB coordinate; bearing/pitch chosen after a framing check showed bearing 2 put a foreground roof in the way and bearing 86 does not. box crops to the HDB facade itself (mbc-only-moody-body-close.png), excluding Moody Center/Frank Erwin Center/Nourish which also sit in this frame and are NOT drawn by moody.js's own wall layer for HDB's own material.",
+    "center": [-97.734702, 30.277917], "zoom": 17.4, "pitch": 68, "bearing": 86, "p": 0.25,
+    "box": [560, 335, 1170, 555]
+  },
+  {
+    "name": "moody-cruise",
+    "note": "same precinct, cruise altitude -- P1-precinct-day from moody-shots.json, zoom/pitch/bearing unchanged.",
+    "center": [-97.7304, 30.277255], "zoom": 15.7, "pitch": 70, "bearing": 315, "p": 0.28
+  },
+  {
+    "name": "arts-ransom-close",
+    "note": "Ransom Center panel wall, close -- ransom pose from shots-arts.json/arts-check.mjs, zoom pushed from 17.1/17.4. UNBOXED whole-frame at this pose reads 17.11% (r0) but the mask shows heavy crawl on DKR/downtown towers in the same frame too, reproducing second-front-poses.md's own caution about this exact pose contaminating with neighbours -- box crops to the Ransom Center building itself (check-moodyarts-arts-ransom-close.png), excluding DKR (upper-left) and the downtown towers (upper-right/right).",
+    "center": [-97.74123, 30.28434], "zoom": 18.0, "pitch": 62, "bearing": 125, "p": 0.12,
+    "box": [540, 295, 825, 555]
+  },
+  {
+    "name": "arts-ransom-cruise",
+    "note": "same building, the wider framing second-front-poses.md measured as arts-ransom (6.11% baseline) -- kept for a direct before/after at the same pose that investigation used.",
+    "center": [-97.74123, 30.28434], "zoom": 17.1, "pitch": 62, "bearing": 125, "p": 0.12
+  }
+]
