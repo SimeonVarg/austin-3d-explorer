@@ -74,6 +74,34 @@ await page.waitForTimeout(4000);
 // The graphics auto-detect probe rewrites every setting 11 s after load, which
 // would silently change the look halfway through a shot list.
 await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
+// Same SHIM_SOFTEN/SHIM_SOFTEN_R contract as shimmer.mjs, so a before/after
+// screenshot pair uses the identical override the meter was swept with, not a
+// second, independently-typed one. Whole-run, not per-shot: this is an A/B of
+// the atlas, not a per-pose setting.
+if (process.env.SHIM_SOFTEN != null) {
+  // TARGET narrows the override to one atlas — 'drag' alone, for a Drag-only
+  // before/after pair that does not also perturb facades.js's own already-
+  // shipped calibration in the same frame. Defaults to both, matching
+  // shimmer.mjs, for a whole-city A/B.
+  const targetList = (process.env.SHIM_SOFTEN_TARGET || 'facade,drag').split(',');
+  const softenApplied = await page.evaluate(({ soften, softenR, targetList }) => {
+    const p0 = window.__todCurrentP != null ? window.__todCurrentP : 0.25;
+    const targets = [
+      { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(window.__map, p0) },
+      { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(window.__map, p0) },
+    ];
+    const hit = [];
+    for (const t of targets) {
+      if (!t.S || !targetList.includes(t.key)) continue;
+      for (const f of Object.keys(t.S.RADIUS)) t.S.RADIUS[f] = softenR;
+      for (const f of Object.keys(t.S.AMOUNT)) t.S.AMOUNT[f] = soften;
+      t.repaint();
+      hit.push(t.key);
+    }
+    return { r: softenR, a: soften, hit };
+  }, { soften: Number(process.env.SHIM_SOFTEN), softenR: Number(process.env.SHIM_SOFTEN_R || 3), targetList });
+  console.log('SOFTEN', JSON.stringify(softenApplied));
+}
 // The intro flythrough owns the camera for ~9 s and overwrites jumpTo on the very
 // next frame. Without this wait the FIRST shot in every list was taken mid-intro,
 // pointing wherever the intro happened to be — which is how a DKR shot list came

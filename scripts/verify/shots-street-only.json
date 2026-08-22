@@ -1,0 +1,7 @@
+[
+  {
+    "name": "street-drag",
+    "note": "low pass down the Drag (Guadalupe): alt 25m, pitch 76, bearing 180 (same corridor as perf-budget.mjs PHASES.walk, elevated from pedestrian to a flying low pass), converted via the same closed form",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+  }
+]

@@ -80,6 +80,14 @@ const CFG = {
   // crawl at a given pose). Layer ids only — same setPaintProperty path as
   // the full strip below, just scoped.
   only: process.env.SHIM_ONLY ? process.env.SHIM_ONLY.split(',').map(s => s.trim()).filter(Boolean) : null,
+  // Which SOFTEN-shaped registries the override touches. Default is both, for
+  // a whole-city A/B. 'drag' alone isolates js/drag.js's own effect without
+  // also perturbing facades.js's ALREADY-SHIPPED r3 default up or down —
+  // sweeping a uniform override at r<3 across BOTH registries silently
+  // regresses facades.js's own calibration for the low end of the sweep,
+  // which would confound "did drag.js's fix work" with "did facades.js's
+  // shipped fix get temporarily undone." QUEUE F2's own sweep hit this.
+  softenTarget: (process.env.SHIM_SOFTEN_TARGET || 'facade,drag').split(','),
 };
 
 // Frames per sweep, and how far the camera travels IN TOTAL across them.
@@ -157,13 +165,28 @@ const applied = await page.evaluate((cfg) => {
   // whether blur is the right lever at all: if radius 6 / amount 1.0 does not
   // approach the pattern-off floor, then sharpness is not what is crawling and
   // no amount of softening will fix it.
-  if (cfg.soften != null && window.FACADE_SOFTEN) {
-    const S = window.FACADE_SOFTEN;
-    for (const f of Object.keys(S.RADIUS)) S.RADIUS[f] = cfg.softenR;
-    for (const f of Object.keys(S.AMOUNT)) S.AMOUNT[f] = cfg.soften;
-    // The atlas is generated once at init, so it has to be redrawn in place.
-    if (window.updateFacades) window.updateFacades(m, window.__todCurrentP != null ? window.__todCurrentP : 0.25);
-    out.softenApplied = { r: cfg.softenR, a: cfg.soften };
+  if (cfg.soften != null) {
+    const p0 = window.__todCurrentP != null ? window.__todCurrentP : 0.25;
+    // Every atlas that carries a SOFTEN-shaped config (RADIUS/AMOUNT keyed by
+    // family) and a repaint function gets the SAME override — this is what
+    // lets ONE env-var sweep move facades.js AND js/drag.js in one run.
+    // js/drag.js is the QUEUE F2 addition (docs/facade-atlas-map.md §2's
+    // six-file table); more entries here are how the next file in that list
+    // joins the same sweep without a new script.
+    const targets = [
+      { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(m, p0) },
+      { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(m, p0) },
+    ];
+    const hit = [];
+    for (const t of targets) {
+      if (!t.S || !cfg.softenTarget.includes(t.key)) continue;
+      for (const f of Object.keys(t.S.RADIUS)) t.S.RADIUS[f] = cfg.softenR;
+      for (const f of Object.keys(t.S.AMOUNT)) t.S.AMOUNT[f] = cfg.soften;
+      // The atlas is generated once at init, so it has to be redrawn in place.
+      t.repaint();
+      hit.push(t.key);
+    }
+    out.softenApplied = { r: cfg.softenR, a: cfg.soften, hit };
   }
 
   // The full strip list, corrected: the original had 'places-solid' (a

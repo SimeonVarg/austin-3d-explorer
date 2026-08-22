@@ -1,0 +1,7 @@
+[
+  {
+    "name": "pcl",
+    "note": "Perry-Castaneda Library, drawn by js/drag.js (pclSolid/pclCoffer families), footprint roughly lng -97.7386..-97.7377 lat 30.2822..30.2833 per data/drag.geojson. Camera south of it at moderate distance, facing north, wide enough to be forgiving of orientation error.",
+    "center": [-97.7382, 30.2818], "zoom": 18.0, "pitch": 62, "bearing": 5, "p": 0.5
+  }
+]

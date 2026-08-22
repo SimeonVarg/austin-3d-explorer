@@ -1,0 +1,12 @@
+[
+  {
+    "name": "street",
+    "note": "identical pose to shimmer-poses.json's street-drag, so the screenshot and the meter agree on what they are looking at",
+    "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "aerial",
+    "note": "same corridor, pulled back and flattened to show the whole Guadalupe streetwall, not one building",
+    "center": [-97.7417, 30.288598], "zoom": 15.8, "pitch": 50, "bearing": 180, "p": 0.5
+  }
+]
