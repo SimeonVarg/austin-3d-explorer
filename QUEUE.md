@@ -1,5 +1,35 @@
 # QUEUE — Acer lane
 
+## Z1 — "buildings in downtown slide in from the horizon" (open, NOT diagnosed)
+
+Reported 2026-08-21 watching `?autopilot=1`: *"buildings in downtown in shot A
+start like sliding in from the horizon. Can we try infinite range?"*
+
+**Not investigated — he needed the machine to record and this was dropped.** Do
+not assume the answer; the sibling report in the same message ("the Tower has a
+black rectangle") looked like a render-distance problem and turned out to be the
+tile simplifier, so the obvious lever would have done nothing there either.
+
+What is already known and should not be re-derived:
+- `js/lod.js` is **altitude**-based, not horizontal-distance based, and it drops
+  whole draw passes, never individual features. Its header documents why
+  per-feature distance culling is impossible in this stack (`['within', poly]`
+  culls 100% of a fill-extrusion layer — measured in `scripts/verify/lod-within.mjs`).
+- Shot A flies at **119–216 m** against a fine-tier threshold of 495 m at
+  cinematic, so **LOD is dropping nothing during this shot**. Measured at six
+  points through the flight. Raising `renderDistance` cannot be the fix.
+- `renderDistance: 1500` already means unlimited (`LOD.unlimitedAt`), so "infinite
+  range" is a one-value change in `PRESETS` if it ever turns out to be the answer.
+
+Most likely candidates, in order, none confirmed: MapLibre streaming vector tiles
+into the frustum as the camera advances (i.e. it is tile LOADING, and no range
+setting fixes it); the `outer-*` layers' `minzoom` in `js/outer.js`; MapLibre's
+own far plane at a flying pitch.
+
+**Use the magenta mask (HANDOFF §48) to establish which layer the appearing
+buildings belong to before concluding anything.**
+
+
 ## THE OPENING SMEAR — DIAGNOSED, NOT FIXED, AND THE OLD AVOIDANCE WAS WRONG (morning of Aug 17, HANDOFF §168)
 
 The dark band that tears across the downtown towers for about two seconds after
