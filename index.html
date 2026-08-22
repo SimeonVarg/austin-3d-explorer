@@ -125,6 +125,12 @@
   <script src="js/timeofday.js"></script>
   <script src="js/signs.js"></script>
   <script src="js/night.js"></script>
+  <!-- The recommendations box's delivery path (QUEUE I4). js/graphics.js
+       builds the box; this makes Send actually deliver (mail-app handoff)
+       while no form-service endpoint is configured there. Self-booting; it
+       polls for the panel, so position in this list does not matter. KEEP IN
+       SYNC WITH _harness.html. -->
+  <script src="js/feedback.js"></script>
   <!-- Render distance (docs: js/lod.js header). Self-booting; needs the tag in
        BOTH files or the harness measures a scene the site does not serve. -->
   <script src="js/lod.js"></script>
