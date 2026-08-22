@@ -2041,7 +2041,19 @@ def gable_front_parts(ring, spec, height_m):
             if a1 - a0 < 0.4:
                 continue
             parts.append((rect(a0, a1, vu - gable_d, vu + proud_g), h0, h1, brick, True))
-            for (e0, e1) in ((a0, min(a1, a0 + 1.5)), (max(a0, a1 - 1.5), a1)):
+            # QUEUE H5: a flat 1.5 m block measured in from EACH end assumed
+            # the course was wide enough to hold both. Near the apex, and on
+            # the narrower side wings of a many-cornered elevation (Gregory
+            # Gym's own west face steps in three times), `hw` shrinks below
+            # 3 m and the two blocks reach past each other -- the same course,
+            # the same segment, two "ends" that are now the same middle.
+            # coplanar.mjs caught the pair six times. Capping each block's
+            # half-width at what its OWN course can hold keeps them from ever
+            # crossing; the moulding just tapers to a point at the apex
+            # instead of stabbing through itself, which is what a real rake
+            # does anyway.
+            hwid = min(1.5, (a1 - a0) * 0.5 - 0.02)
+            for (e0, e1) in ((a0, a0 + hwid), (a1 - hwid, a1)):
                 if abs(abs(e0) - hw) > 1.6 and abs(abs(e1) - hw) > 1.6:
                     continue          # an interior join, not the rake
                 if e1 - e0 < 0.3:
@@ -2053,10 +2065,20 @@ def gable_front_parts(ring, spec, height_m):
     # The footprint's 24.9 m projection IS the second pediment in the
     # photograph, and its rake carries the corbel arcade — the ornament that
     # makes this face Gregory rather than any brick gable in Texas.
+    #
+    # QUEUE H5: this used to reach back to a flat -1.2 m regardless of where
+    # item 2's own anchored face sits. That face is deliberately pulled back
+    # 0.9 m "so the inner one in front of it is not swallowed" (above) — but
+    # its own face still runs out to -0.9+proud_g, 0.76 m closer than -1.2, so
+    # at whichever course the two pediments' independent height ladders land
+    # on the same absolute height, the inner pediment's rear edge sat inside
+    # the outer one's own slab. Clearing that face by a hand's width is what
+    # the comment already promised and the number never did.
+    inner_rear = -0.9 + proud_g + 0.05
     for s in range(G):
         f0, f1 = s / float(G), (s + 1) / float(G)
         hw = (W_in * 0.5) * (1.0 - f0) + 0.6 * f0
-        parts.append((rect(-hw, hw, -1.2, proud_g),
+        parts.append((rect(-hw, hw, inner_rear, proud_g),
                       eave + (apex_in - eave) * f0,
                       eave + (apex_in - eave) * f1, brick, True))
     n_c = int(spec.get("corbels", 13))
@@ -2293,13 +2315,24 @@ def facade_band_parts(rings, spec, height_m):
                           height_m - 1.05, height_m - 0.08, top_c, az))
             # the blank piers — the TOWER's articulation, and only the tower's.
             # They start where the courses stop, so no wall carries both.
+            #
+            # QUEUE H5: they used to also STOP at `height_m - 0.08` — the exact
+            # same number the parapet frieze above them caps at. That is not a
+            # near miss, it is the same float twice, so every pier's own top
+            # face and the full-width parapet's top face were two different
+            # extrusions occupying the identical plane: coplanar.mjs found this
+            # 72 times, one for each (wall, pier) pair on Jester's three
+            # buildings, which is 85% of everything it flagged in this file.
+            # Not a corner defect — a pier meeting the frieze above it should
+            # stop AT the frieze's own underside and let the frieze cap it, the
+            # same way the piers already stop where the courses below them do.
             if L >= BAND_PIER_MIN_M and pier_w > 0.1 and height_m > band_to + 3.0:
                 n_p = max(1, int(round(L / pier_at)) - 1)
                 for j in range(n_p):
                     uc = L * (j + 1) / (n_p + 1)
                     parts.append((rect(uc - pier_w / 2, uc + pier_w / 2,
                                        BAND_GAP_M, BAND_GAP_M + pier_p),
-                                  band_to, height_m - 0.08, pier_c, az))
+                                  band_to, height_m - 1.05, pier_c, az))
 
     out = []
     for rg_m, b0, h0, day, az in parts:
