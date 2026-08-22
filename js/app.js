@@ -1816,10 +1816,7 @@
     // primes its own start pose: the tiles it needs are fetched while the dark
     // frame is still up, so the first visible frame is already the opening
     // composition instead of the spawn pose swinging round to find it.
-    if (q.get('autopilot') === '1') {
-      const [c0, z0, p0, b0] = AP_TOUR[0];
-      try { map.jumpTo({ center: c0, zoom: z0, pitch: p0, bearing: b0 }); } catch (e) {}
-    }
+    if (q.get('autopilot') === '1') apPrime();
     // Shot B does the same for its parked pose: the camera never moves once the
     // veil is up, so the pose has to be set BEFORE it lifts or the first frame
     // is a jump cut from the spawn skyline to campus.
@@ -1850,6 +1847,7 @@
         veil.addEventListener('transitionend', () => veil.remove(), { once: true });
         setTimeout(() => { const v = document.getElementById('veil'); if (v) v.remove(); }, 2600);
       }
+      apPrimeStop();      // never let a prime jump fight the flight it primed for
       if (doSlider) startSliderDemo();
       else if (flight) flight.fly();
       else if (doTour) startTour();
@@ -2144,6 +2142,50 @@
     [[-97.7424, 30.2766],     16.05, 69,    194.0,   7000],  // settle into the sunset
   ];
   window.__AP_TOUR = AP_TOUR;   // read by revealAndIntro to prime the start pose
+
+  // ── Pre-warming Shot A's route ────────────────────────────────────
+  //
+  // "buildings in downtown in shot A start like sliding in from the horizon.
+  // Can we try infinite range?"
+  //
+  // It is NOT range, and that is worth writing down because raising the range
+  // would have looked like the fix and done nothing. Parked at the shot's own
+  // opening pose and left to settle, the whole downtown skyline is already
+  // there — photographed. Nothing is clamped away. What IS true is that
+  // `austin-outer` is a VECTOR TILE source and `map.areTilesLoaded()` is still
+  // FALSE fifteen seconds into the flight: the far city is streaming in while
+  // the camera is flying at it.
+  //
+  // So the fix is to ask for those tiles EARLY. The route is pre-authored, so
+  // before the veil lifts the camera steps through every waypoint once, which
+  // makes MapLibre request each one's tiles, then returns home. They then keep
+  // downloading in the background while the veil is still up.
+  //
+  // Two safety properties, because this runs on the shot he records:
+  //   * it is bounded by AP_PRIME_MS and cannot delay the opening beyond it;
+  //   * `reveal()` calls apPrimeStop(), and startTour() jumps to waypoint 0
+  //     itself, so if the veil lifts mid-prime the pose is corrected on the
+  //     same tick and no stray jump can follow it.
+  const AP_PRIME_MS   = 2600;   // hard cap on the whole pre-warm
+  const AP_PRIME_STEP = 320;    // dwell per waypoint — long enough to request
+  const AP_TILE_CACHE = 1200;   // keep what we warmed instead of evicting it
+  let _apPrimeT = null;
+  function apPrimeStop() { if (_apPrimeT) { clearTimeout(_apPrimeT); _apPrimeT = null; } }
+  function apPrime() {
+    const home = AP_TOUR[0];
+    const go = w => { try { map.jumpTo({ center: w[0], zoom: w[1], pitch: w[2], bearing: w[3] }); } catch (e) {} };
+    try { if (map.setMaxTileCacheSize) map.setMaxTileCacheSize(AP_TILE_CACHE); } catch (e) {}
+    go(home);
+    const t0 = performance.now();
+    let i = 1;
+    const step = () => {
+      _apPrimeT = null;
+      if (i >= AP_TOUR.length || performance.now() - t0 > AP_PRIME_MS) { go(home); return; }
+      go(AP_TOUR[i++]);
+      _apPrimeT = setTimeout(step, AP_PRIME_STEP);
+    };
+    _apPrimeT = setTimeout(step, AP_PRIME_STEP);
+  }
 
   let _apRaf = null;
   function stopAutopilot() {
