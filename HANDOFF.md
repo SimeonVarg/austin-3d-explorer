@@ -23973,3 +23973,193 @@ not independently re-shoot `q-windowflicker`, `q-horizontilt`, `q-downtown`,
 or `q-chrome`'s claims pixel-for-pixel beyond the Gate-1 re-run above —
 relied on the judge pass's own independent spot-checks for those five. Did
 not investigate why `acer/q-buildings` produced nothing.
+
+## 174. Aug 22 2026 — H5's "many corners" class was two authored elevation generators sharing one float, fixed on the 4 buildings that have it (acer lane, branch `acer/r-roofs`)
+
+**Branch:** `acer/r-roofs`. **QUEUE H5.** Files: `scripts/bake_roofs.py`,
+`data/roofs.geojson`. Shots: `shots/r/roofs/`.
+
+The last lane (`acer/q-roofs`) correctly reproduced and scoped H5 to
+`bake_roofs.py` but read "many corners" too literally: the ordinary pitched
+hip-roof facets already have mitre/corner-clearance math from PR #74/#78 and
+came back 0 self-crossing on this run. `coplanar.mjs`'s 85-pair baseline for
+`data/roofs.geojson` was three real bugs in the two AUTHORED elevation
+generators — `facade_band_parts` and `gable_front_parts` — the only two
+functions in the file with no mitre math at all, because they build a fixed
+per-wall recipe rather than deriving one from the footprint. Only 4 buildings
+citywide carry either override (Jester Center/West Hall/East Hall via
+`facade_bands`; Gregory Gym via `gable_front`), so the fix is sized to those
+4, not a re-derivation of the roof pipeline.
+
+- **Jester's 72 pairs**: a wall's blank pier and the parapet frieze above it
+  both capped at the literal same float, `height_m - 0.08` — guaranteed
+  coplanar on every long-enough wall. Piers now stop at the frieze's own
+  underside.
+- **Gregory Gym's 13 pairs**: the outer pediment's two rake-edge stone blocks
+  were measured in 1.5 m from each end with no check the course was wide
+  enough to hold both, so near the apex and on the narrower side wings they
+  ran past each other — each block's half-width is now capped at what its
+  own course can hold. The inner pediment was hardcoded to reach back to
+  -1.2 regardless of where the outer pediment's own anchored face actually
+  sits (0.76 m closer) — pulled forward to actually clear it, matching what
+  the code's own comment already said it should do.
+
+`coplanar.mjs data/roofs.geojson`: 85 → 6, all 6 the same Gregory Gym corbels
+coinciding with the pediment/face they're meant to sit against architecturally
+— left alone rather than risk the photograph-calibrated look for a residual
+that reads as intentional adjacency, not a stab-through. `roofs_with_a_hole`,
+`facets_that_cross_themselves`, tiled-building count: unchanged (0, 0, 108).
+Confirmed `js/app.js` reads `data/roofs.geojson` directly (lines 254, 763),
+not a snapshot or a pmtiles archive — no dated-snapshot trap here.
+
+**Spot-checked independently this round** (not just the branch's own shots):
+fresh screenshot at Gregory Gym's gable on the merged build shows clean
+mitred hip-roof corners, no crossing facets. Matches the claim.
+
+**What this did NOT establish**: whether a future building gaining
+many-cornered `facade_bands`/`gable_front` parts would need the same fix
+re-applied — this closes the 4 buildings that exist today, not a general
+rule for the two generators.
+
+## 175. Aug 22 2026 — Z1 settled: it's austin-outer tile streaming across nearly the whole flight, and the fix isn't reachable from this lane's files (acer lane, branch `acer/r-slidein`, docs only)
+
+**Branch:** `acer/r-slidein`. **QUEUE Z1.** Files: `docs/z1-slidein.md`. Shots:
+`shots/r/slidein/`. No code changed.
+
+The prior attempt (`acer/q-slidein`) got a structurally-consistent but
+untrustworthy read under ~10-sibling contention. This pass re-ran on a quiet
+machine (one other lane's server on the box) and confirmed it two independent
+ways: a timestamped tile-arrival log (property-setter installed via
+`addInitScript`, so the clock starts before `app.js`'s first line runs) shows
+the first `austin-outer` tile landing at t=7915ms and new tiles still arriving
+at t=46213ms of a ~45.6s flight — the prewarm's own 2600ms window closes
+before a single tile has finished loading. A magenta-mask hide of every layer
+`js/outer.js` owns at a mid-flight pose removes the entire downtown skyline
+and nothing else in frame moves a pixel, confirming the appearing buildings
+are 100% this source's geometry, not something else (a facade cross-fade, a
+basemap label).
+
+**No code change, and the reasoning for why is itself the deliverable.** The
+actual lever — raising the prewarm hold or otherwise delaying the veil
+relative to `austin-outer` finishing load — lives in `js/app.js`'s `reveal()`,
+outside this lane's three owned files (`js/outer.js`, `js/lod.js`,
+`js/tiles.js`). `js/tiles.js`'s only real lever (`TILES.maxzoom`) is shared
+across all five tiled layers, too broad a blast radius to pull on reasoning
+alone. A tile fade-in was considered and rejected as not real — MapLibre's
+paint-property transitions interpolate a value between two states, they
+don't fade a feature INTO existence when its tile first becomes available;
+building an actual fade is a new mechanism, and this round is fixing, not
+adding. Recommendation written down for whoever owns `js/app.js` next: raise
+the prewarm hold past the ~46s window (costs opening delay) or accept this as
+what a tile-streamed skyline does at this camera speed — both legitimate,
+this settles which mechanism it is, not which trade-off he wants made.
+
+**Read in full, not independently re-shot** — pure verification pass with a
+well-instrumented, reproducible method (timestamped log + magenta mask, both
+standard techniques already used elsewhere in this project), internally
+consistent with Gate 1's own finding that the reel shots are unaffected.
+
+## 176. Aug 22 2026 — K5: the downtown palette warmed on the lever two prior refusals didn't own, campus untouched (acer lane, branch `acer/r-downtown`)
+
+**Branch:** `acer/r-downtown`. **QUEUE K5.** Files: `js/outer.js`. Shots:
+`shots/r/downtown/`.
+
+Two prior lanes (HANDOFF #74, `acer/q-downtown`) correctly refused this:
+`js/graphics.js`'s `GRADE` is one filter over the whole canvas, and warming it
+globally would break campus, which already matches its own reference photo.
+Both were right that GRADE isn't the lever — neither owned `js/outer.js` /
+`data/outer_tower_palette.json`, which HANDOFF #74's own population read says
+is the actual site of the problem: downtown's 645-building streetwall is
+already warm (B-R -34.3, close to campus), it's specifically the 243 glass
+TOWER buckets that are blue-dominant.
+
+`warmTowerBuckets()` nudges only tower day/golden wall+glass colour toward
+warm and saturated in HSL, luma-preserving, classified per-bucket from the
+bucket's own colour (not a hardcoded ordinal, so it survives a re-bake).
+Midrise buckets and night colour untouched — streetwall wasn't the problem
+and night was never the complaint. Bounded on purpose: real downtown glass in
+the reference photographs measures genuinely blue (B-R +1..+45), so this
+closes about a third of the gap, not all of it. One taste knob,
+`OUTER.towerWarmAmount` (CLAUDE.md rule 11): 0 reverts to the bake's own
+colours, 1 is what ships.
+
+Measured (`downtown-tone.mjs`, wide day pose): downtown tower B-R -2 → -14,
+sat 1.2% → 5.6%; campus buildings-3d byte-identical both runs. Both reel
+shots re-checked for regression, no visible change at golden hour (haze
+dominates at that distance) and a subtle, correct warm shift at sunset;
+night untouched (`wn` never touched, Tower glow and lit windows unaffected).
+
+**Spot-checked independently this round**: compared the branch's own
+`wideday-before.png`/`wideday-after.png` side by side — the downtown skyline
+visibly shifts from steel-blue-grey toward tan/warm in the after frame, a
+real, modest, bounded change, not garish. Matches the claim.
+
+**What this did NOT establish**: the majority of the remaining B-R/sat gap,
+which two lanes now agree lives in `js/facades.js:1341` (the glass mix ratio)
+and `bake_outer_facades.py`'s `AMBER_CANCEL` — both outside this lane's files.
+
+## 177. Aug 22 2026 — the ship lane: four branches judged, all four merged, the queue got closed out again (acer lane, branch `acer/r-ship`)
+
+Acted on the four branches dispatched this round (`acer/r-buildings`,
+`acer/r-roofs`, `acer/r-slidein`, `acer/r-downtown`) — all four had pushed,
+unlike the last round's `acer/q-buildings`, which never existed.
+
+**Built the combined branch (`acer/r-ship`) locally, merging in file-ownership
+order.** Zero git conflicts across all four merges: `r-buildings` owns
+`scripts/bake_detail.py` + the 2026-08-22 snapshot + its own `QUEUE.md`/
+`HANDOFF.md` edits (§173), `r-roofs` owns `scripts/bake_roofs.py` +
+`data/roofs.geojson`, `r-slidein` is docs-only, `r-downtown` owns
+`js/outer.js` — no two lanes touch the same file, matching the structural
+pattern the last two ship rounds also found (a lane and its bake's output
+file cannot collide by construction, per CLAUDE.md rule 1).
+
+**Re-verified myself, not trusted from each branch's own commit message:**
+- `harness-drift.mjs` PASS (30/30) on the merged tree.
+- Confirmed `manifest.latest` is `2026-08-22` and `js/app.js` loads
+  `data/snapshots/${date}/buildings.detailed.geojson` from it — so
+  `r-buildings`' rebake is the file the running app actually serves, not a
+  parked snapshot.
+- Took my own screenshots (not the branches' own) at University Christian
+  Church, University Catholic Center, and Calhoun Hall (J1 recheck) on the
+  running merged app: the church shows a distinct tower massing next to the
+  teaching center, the Catholic Center reads as a real building (not
+  hoarding), Calhoun's roof is intact. Gregory Gym's gable shows clean
+  mitred corners, no diagonal stab-through. Downtown skyline shows the
+  expected modest warm shift.
+- Plain load + both reel shots (`?autopilot=1&preset=cinematic&drift=0`,
+  `?sliderdemo=1&preset=cinematic&drift=0`) driven live on the merged build:
+  **zero console errors on all three**, OSM attribution visible.
+- `tower-check.mjs`: 16/18 pass, the same 2 fails with the same numeric
+  values (`belfry width/shaft width` got 0.251, `cap width/shaft width` got
+  0.160) as documented in HANDOFF §172 — pre-existing test-calibration
+  mismatch, not a regression. Crown intact: shaft 187px, crown/shaft ratio
+  6.45x, silhouette steps out at least twice below the cap.
+- `js/controls.js` / `js/collision.js` confirmed byte-identical to
+  `origin/main` (empty diff) — nothing in this round touches walking mode.
+  `ALT_MIN = 1.7` read directly. Not independently re-driven with a live
+  walk, matching the risk (no file this round touches gates it).
+
+Opened combined PR, self-merged per CLAUDE.md rule 2 after confirming
+mergeable and green. **QUEUE.md closed out**: H5 struck as FIXED, K5 struck
+as PARTIALLY FIXED with the remaining gap's location named, Z1 struck as
+SETTLED (diagnosed, not fixed, with the recommendation for `js/app.js`'s
+owner written in) — J1/J2/J3 were already struck by `r-buildings`' own
+commit. Deleted all four lane branches plus `acer/r-ship` after merging.
+
+**Verified on production** (`flyover-utx.vercel.app`) after confirming the
+deploy landed via the GitHub commit-status API: plain load, both reel flags,
+zero console errors on all three, OSM attribution visible, Tower crown
+screenshot confirms the same intact silhouette as local.
+
+**Cleanup**: reaped the one browser and one server (port 8625) this pass
+used; removed the temp verify scratch files (`gate-tmp-reel.mjs`,
+`r-ship-poses.json`, `r-ship-poses2.json`) before the final commit; ports
+8621-8625 confirmed free at the end.
+
+**What this did NOT establish**: did not live-drive `walk.mjs` or
+`movement.mjs`/`collision.mjs` — justified by the zero-diff finding on the
+files that gate walking mode, not run. Did not run `perf.mjs`/frame timing —
+matched to risk given this round's changes are two small bakes, a docs-only
+diagnosis, and one bounded palette nudge, none touching the render loop. Did
+not independently re-verify `r-buildings`' J1/J2/J3 claims beyond my own
+spot-check screenshots (not a pixel-level coplanar re-run of the bake).
