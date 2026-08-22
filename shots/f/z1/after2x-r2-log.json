@@ -1,0 +1,548 @@
+{
+  "summary": {
+    "label": "after2x-r2",
+    "url": "http://127.0.0.1:8641/?autopilot=1&preset=cinematic&drift=0",
+    "veilLiftAt": 18462,
+    "reason": "idle",
+    "atLift": {
+      "pose": {
+        "lng": -97.7381,
+        "lat": 30.2913,
+        "zoom": 16.25,
+        "pitch": 69,
+        "bearing": -160.5
+      },
+      "knobTransform": "translate(0px, 0px)",
+      "intro": {
+        "waitedMs": 13382,
+        "reason": "idle",
+        "gateOkAt": null,
+        "missingAtLift": []
+      }
+    },
+    "frames": [
+      {
+        "name": "after2x-r2-f00s.png",
+        "t": 18884,
+        "pose": {
+          "lng": -97.73811,
+          "lat": 30.29128,
+          "zoom": 16.25,
+          "bearing": -160.6
+        },
+        "knobTransform": "translate(0px, -3.39px)",
+        "tilesSoFar": 17
+      },
+      {
+        "name": "after2x-r2-f02s.png",
+        "t": 20544,
+        "pose": {
+          "lng": -97.73831,
+          "lat": 30.29077,
+          "zoom": 16.31,
+          "bearing": -162.7
+        },
+        "knobTransform": "translate(1.12px, -33.63px)",
+        "tilesSoFar": 17
+      },
+      {
+        "name": "after2x-r2-f04s.png",
+        "t": 22917,
+        "pose": {
+          "lng": -97.73885,
+          "lat": 30.28946,
+          "zoom": 16.49,
+          "bearing": -169.2
+        },
+        "knobTransform": "translate(4.75px, -33.66px)",
+        "tilesSoFar": 17
+      },
+      {
+        "name": "after2x-r2-f06s.png",
+        "t": 24559,
+        "pose": {
+          "lng": -97.739,
+          "lat": 30.28911,
+          "zoom": 16.55,
+          "bearing": -171.2
+        },
+        "knobTransform": "translate(1.44px, -7.67px)",
+        "tilesSoFar": 18
+      },
+      {
+        "name": "after2x-r2-f08s.png",
+        "t": 26575,
+        "pose": {
+          "lng": -97.73904,
+          "lat": 30.28887,
+          "zoom": 16.58,
+          "bearing": -170.3
+        },
+        "knobTransform": "translate(-0.33px, -22.39px)",
+        "tilesSoFar": 18
+      },
+      {
+        "name": "after2x-r2-f10s.png",
+        "t": 28814,
+        "pose": {
+          "lng": -97.7392,
+          "lat": 30.28794,
+          "zoom": 16.74,
+          "bearing": -165.8
+        },
+        "knobTransform": "translate(-2.59px, -32.07px)",
+        "tilesSoFar": 20
+      }
+    ],
+    "tilesTotal": 38,
+    "tilesBehindVeil": 17,
+    "tilesAfterLift": 21,
+    "lastTileT": 61467,
+    "lastTileAfterLiftMs": 43005,
+    "consoleErrors": []
+  },
+  "z1": {
+    "marks": [
+      {
+        "t": 2046,
+        "what": "map-object-assigned"
+      },
+      {
+        "t": 3316,
+        "what": "map-load-event"
+      },
+      {
+        "t": 18462,
+        "what": "veil-lift"
+      }
+    ],
+    "veilLiftAt": 18462,
+    "tiles": [
+      {
+        "t": 15379,
+        "tileID": "15/7487/13489",
+        "cum": 1,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 15401,
+        "tileID": "16/14975/26977",
+        "cum": 2,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 15401,
+        "tileID": "16/14976/26977",
+        "cum": 3,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 15597,
+        "tileID": "16/14974/26977",
+        "cum": 4,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18021,
+        "tileID": "16/14975/26976",
+        "cum": 5,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18022,
+        "tileID": "16/14976/26976",
+        "cum": 6,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18026,
+        "tileID": "15/7486/13488",
+        "cum": 7,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18029,
+        "tileID": "15/7486/13489",
+        "cum": 8,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18034,
+        "tileID": "16/14974/26976",
+        "cum": 9,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18038,
+        "tileID": "13/1870/3372",
+        "cum": 10,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18131,
+        "tileID": "15/7488/13489",
+        "cum": 11,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18132,
+        "tileID": "14/3742/6744",
+        "cum": 12,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18135,
+        "tileID": "14/3744/6745",
+        "cum": 13,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18137,
+        "tileID": "14/3742/6745",
+        "cum": 14,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18140,
+        "tileID": "13/1872/3373",
+        "cum": 15,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18159,
+        "tileID": "14/3743/6745",
+        "cum": 16,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 18232,
+        "tileID": "13/1871/3373",
+        "cum": 17,
+        "pose": {
+          "lng": -97.7381,
+          "lat": 30.2913,
+          "zoom": 16.25,
+          "bearing": -160.5
+        }
+      },
+      {
+        "t": 23433,
+        "tileID": "14/3745/6745",
+        "cum": 18,
+        "pose": {
+          "lng": -97.73892,
+          "lat": 30.2893,
+          "zoom": 16.52,
+          "bearing": -170.1
+        }
+      },
+      {
+        "t": 28423,
+        "tileID": "16/14974/26978",
+        "cum": 19,
+        "pose": {
+          "lng": -97.73917,
+          "lat": 30.28813,
+          "zoom": 16.7,
+          "bearing": -166.8
+        }
+      },
+      {
+        "t": 28581,
+        "tileID": "16/14975/26979",
+        "cum": 20,
+        "pose": {
+          "lng": -97.73919,
+          "lat": 30.28803,
+          "zoom": 16.72,
+          "bearing": -166.3
+        }
+      },
+      {
+        "t": 28818,
+        "tileID": "16/14975/26978",
+        "cum": 21,
+        "pose": {
+          "lng": -97.7392,
+          "lat": 30.28794,
+          "zoom": 16.74,
+          "bearing": -165.8
+        }
+      },
+      {
+        "t": 28852,
+        "tileID": "16/14974/26979",
+        "cum": 22,
+        "pose": {
+          "lng": -97.7392,
+          "lat": 30.28794,
+          "zoom": 16.74,
+          "bearing": -165.8
+        }
+      },
+      {
+        "t": 33272,
+        "tileID": "16/14976/26978",
+        "cum": 23,
+        "pose": {
+          "lng": -97.73941,
+          "lat": 30.28711,
+          "zoom": 16.84,
+          "bearing": -163.7
+        }
+      },
+      {
+        "t": 33435,
+        "tileID": "16/14976/26979",
+        "cum": 24,
+        "pose": {
+          "lng": -97.73943,
+          "lat": 30.28705,
+          "zoom": 16.83,
+          "bearing": -163.9
+        }
+      },
+      {
+        "t": 46470,
+        "tileID": "13/1870/3373",
+        "cum": 25,
+        "pose": {
+          "lng": -97.7407,
+          "lat": 30.28235,
+          "zoom": 16.42,
+          "bearing": -165.6
+        }
+      },
+      {
+        "t": 51445,
+        "tileID": "16/14973/26979",
+        "cum": 26,
+        "pose": {
+          "lng": -97.7415,
+          "lat": 30.2797,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54006,
+        "tileID": "16/14972/26979",
+        "cum": 27,
+        "pose": {
+          "lng": -97.74151,
+          "lat": 30.27967,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54089,
+        "tileID": "15/7489/13491",
+        "cum": 28,
+        "pose": {
+          "lng": -97.74151,
+          "lat": 30.27965,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54132,
+        "tileID": "15/7486/13491",
+        "cum": 29,
+        "pose": {
+          "lng": -97.74151,
+          "lat": 30.27965,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54244,
+        "tileID": "15/7487/13491",
+        "cum": 30,
+        "pose": {
+          "lng": -97.74152,
+          "lat": 30.27963,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54249,
+        "tileID": "15/7486/13490",
+        "cum": 31,
+        "pose": {
+          "lng": -97.74152,
+          "lat": 30.27963,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54251,
+        "tileID": "15/7488/13490",
+        "cum": 32,
+        "pose": {
+          "lng": -97.74152,
+          "lat": 30.27963,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54253,
+        "tileID": "15/7487/13490",
+        "cum": 33,
+        "pose": {
+          "lng": -97.74152,
+          "lat": 30.27963,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 54321,
+        "tileID": "15/7488/13491",
+        "cum": 34,
+        "pose": {
+          "lng": -97.74153,
+          "lat": 30.27961,
+          "zoom": 16.2,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 60588,
+        "tileID": "16/14974/26980",
+        "cum": 35,
+        "pose": {
+          "lng": -97.7424,
+          "lat": 30.2766,
+          "zoom": 16.05,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 60910,
+        "tileID": "16/14975/26980",
+        "cum": 36,
+        "pose": {
+          "lng": -97.7424,
+          "lat": 30.2766,
+          "zoom": 16.05,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 61020,
+        "tileID": "16/14975/26981",
+        "cum": 37,
+        "pose": {
+          "lng": -97.7424,
+          "lat": 30.2766,
+          "zoom": 16.05,
+          "bearing": -166
+        }
+      },
+      {
+        "t": 61467,
+        "tileID": "16/14974/26981",
+        "cum": 38,
+        "pose": {
+          "lng": -97.7424,
+          "lat": 30.2766,
+          "zoom": 16.05,
+          "bearing": -166
+        }
+      }
+    ]
+  },
+  "intro": {
+    "waitedMs": 13382,
+    "reason": "idle",
+    "gateOkAt": null,
+    "missingAtLift": []
+  },
+  "sourceLoadedAtEnd": true
+}

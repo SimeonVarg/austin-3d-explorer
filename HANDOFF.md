@@ -1,5 +1,45 @@
 # Austin 3D Explorer — Full Handoff
 
+## 178. Aug 22 2026 — Z1 fixed where it could be: the reel flags now hold the veil until the far city has loaded, capped at 24 s (acer lane, branch `acer/f-z1`)
+
+**Branch:** `acer/f-z1`. **QUEUE Z1.** Files: `js/app.js` (the only code
+change), `docs/z1-slidein.md` (fix section appended), `QUEUE.md`, `HANDOFF.md`.
+Evidence + instrument: `shots/f/z1/` (`z1flight.mjs` and its logs/frames).
+
+**What was done.** The Z1 settling pass (§175) proved the slide-in is
+`austin-outer` streaming while Shot A flies at it and pointed at `js/app.js`'s
+reveal timing. This pass pulled that lever: `?autopilot=1` and `?timelapse=1`
+no longer lift the veil on the flat 7 s timeout — they go through the same
+`introGate()`+`gateHolds` source gate the intro page uses, with their own
+named hard ceiling `AP_VEIL_MAX_MS = 24000` (a stalled tile must never hold
+the screen forever). Plain page, `?intro=0` (the whole verify suite) and
+`?tour=1` keep the old timing to the millisecond.
+
+**What the measurement showed** (interleaved reps, quiet + 2×-throttled arms,
+full tables at the bottom of `docs/z1-slidein.md`): the defect was
+intermittent because on a quiet machine MapLibre's `idle` event beat the
+timeout and gated the shot BY LUCK; under load the timeout won and the veil
+lifted with zero `austin-outer` tiles loaded — all four opening sources
+missing, empty land where downtown belongs, photographed
+(`shots/f/z1/before2x-f00s.png`). Post-fix both loaded reps open with 17
+tiles including the coarse ancestors behind the veil and a full skyline on
+frame one. Cost: ~5 s more veil under 2× load, nothing on a quiet machine.
+Honestly partial: ~21 tiles per flight still stream in (last ~+38 s) because
+they belong to viewports the camera hasn't reached — but with ancestors
+resident they refine standing buildings instead of materialising them, and
+the post-fix frames show no visible slide-in at 0/2/4/10 s.
+
+**Shot A contract re-verified on the merged result:** opens exactly at
+AP_TOUR waypoint 0, forward-only (lat strictly decreasing, bearing in the
+authored band), joystick nub driven every sampled frame, no console errors.
+
+**Trap for the next lane:** the 4× CPU throttle the perf suite defaults to
+wedged the whole page (nominal offsets slid by 35 s+) and that run was
+discarded under the repo's own trustworthiness rule — 2× reproduces the
+reported machine state without invalidating the clock. And `?timelapse=1`
+retints every frame, so a harness screenshotting it needs interval polling
+and skippable screenshots (`z1flight.mjs` shows both).
+
 ## 173. Aug 22 2026 — J1 was stale, J2/J3 were waiting on a height lever this lane finally owns (acer lane, branch `acer/r-buildings`)
 
 **Branch:** `acer/r-buildings`. **QUEUE J1, J2, J3.** Files:

@@ -1874,7 +1874,21 @@
     // verify suite loads with ?intro=0. Those pages keep the old timing to the
     // millisecond — a gate that adds ten seconds to ninety scripts would be a
     // change nobody asked for.
-    if (!doIntro) { setTimeout(() => reveal('timeout'), INTRO.minVeilMs); return; }
+    //
+    // THE TWO RECORDED REEL FLAGS ARE THE EXCEPTION (Z1). ?autopilot=1 and
+    // ?timelapse=1 used to take this flat 7 s timeout, which means the veil
+    // lifted READY OR NOT — and measured (docs/z1-slidein.md), on a loaded
+    // machine `austin-outer` has finished loading exactly zero tiles by then,
+    // so the recorded shot opens on a sparse skyline that visibly densifies
+    // as the flight flies at it ("buildings slide in from the horizon"). On a
+    // quiet machine the `idle` reveal above was accidentally saving the shot;
+    // this makes the save deliberate: the reel flags go through the same
+    // source gate as the intro, with their own ceiling (AP_VEIL_MAX_MS —
+    // see its comment for why a ceiling is not optional). Plain ?tour=1 is
+    // not a reel flag and keeps the old timing, as does everything else.
+    const doReelGate = q.get('autopilot') === '1' || q.get('timelapse') === '1';
+    if (!doIntro && !doReelGate) { setTimeout(() => reveal('timeout'), INTRO.minVeilMs); return; }
+    const veilCeilMs = doReelGate ? AP_VEIL_MAX_MS : INTRO.maxVeilMs;
 
     const tick = () => {
       const ms = performance.now() - t0;
@@ -1885,14 +1899,14 @@
       // 7 s. The gate can only ever make the wait LONGER, never shorter, so the
       // intro he likes on the phone is untouched.
       if (ms >= INTRO.minVeilMs && holds >= INTRO.gateHolds) { reveal('gate'); return; }
-      if (ms >= INTRO.maxVeilMs) { reveal('ceiling'); return; }
+      if (ms >= veilCeilMs) { reveal('ceiling'); return; }
       // Past the floor and still waiting: say so on the load screen rather than
       // holding a finished-looking bar over a stalled city.
       if (ms >= INTRO.minVeilMs && g.known) {
         try {
           if (window.loaderWaiting)
             window.loaderWaiting(g.known - g.missing.length, g.known,
-                                 INTRO.maxVeilMs - INTRO.minVeilMs);
+                                 veilCeilMs - INTRO.minVeilMs);
         } catch (e) {}
       }
     };
@@ -2182,6 +2196,30 @@
   const AP_PRIME_MS   = 2600;   // hard cap on the whole pre-warm
   const AP_PRIME_STEP = 320;    // dwell per waypoint — long enough to request
   const AP_TILE_CACHE = 1200;   // keep what we warmed instead of evicting it
+
+  // ── Z1's other half: the reel-shot veil ceiling ───────────────────
+  // The prewarm above ASKS for the route's tiles early, and that part works —
+  // but measured on a quiet machine (docs/z1-slidein.md) not one
+  // `austin-outer` tile has FINISHED loading when the prime window closes:
+  // the first lands ~4 s later and stragglers keep landing most of the
+  // flight. The tiles that matter for the "slide in from the horizon" look
+  // are the COARSE ancestors that cover downtown: while they are resident,
+  // a late z16-18 arrival refines a building that is already standing;
+  // without them it materialises from empty ground on camera. So the reel
+  // flags (?autopilot=1 / ?timelapse=1) hold the veil on the same source
+  // gate the intro uses (introGate + gateHolds — one poll is not evidence,
+  // a source can answer "loaded" before it has begun fetching) until the
+  // opening viewport's sources are actually loaded.
+  //
+  // THE CEILING IS NOT OPTIONAL. A slow network or a wedged machine must
+  // never hold the veil forever — past AP_VEIL_MAX_MS the veil lifts and the
+  // shot flies with whatever city has arrived, exactly as it always did.
+  // 24 s not 18 s (INTRO.maxVeilMs): these flags exist to be RECORDED, so a
+  // longer worst-case load screen is a fair trade for an opening frame that
+  // is actually there — and every held second moves ancestor tiles behind
+  // the veil even when the gate ultimately times out. The intro's own
+  // floor/ceiling belong to the plain page and are deliberately untouched.
+  const AP_VEIL_MAX_MS = 24000;   // hard ceiling on the reel-shot veil hold
   let _apPrimeT = null;
   function apPrimeStop() { if (_apPrimeT) { clearTimeout(_apPrimeT); _apPrimeT = null; } }
   function apPrime() {

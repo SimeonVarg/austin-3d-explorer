@@ -1,4 +1,9 @@
-# Z1 — the downtown horizon slide-in, SETTLED (2026-08-22, `acer/r-slidein`)
+# Z1 — the downtown horizon slide-in, SETTLED (`acer/r-slidein`) then FIXED (`acer/f-z1`), 2026-08-22
+
+> **The fix landed the same day — see "The fix" at the bottom of this file.**
+> The reel flags now hold the veil on the intro's own source gate with a hard
+> 24 s ceiling; measured before/after in `shots/f/z1/`. Everything below this
+> line is the evidence pass that found the mechanism, kept as written.
 
 *"buildings in downtown in shot A start like sliding in from the horizon."*
 
@@ -163,3 +168,84 @@ wants made.
 - Did not check whether other tiled layers (trees, roads, props, roofdetail)
   show the same symptom on their own routes — out of scope for Z1, which is
   specifically Shot A's downtown horizon.
+
+---
+
+# The fix (2026-08-22, `acer/f-z1`)
+
+**What changed.** `js/app.js` only. `?autopilot=1` and `?timelapse=1` used to
+lift the veil on a flat 7 s timeout (`INTRO.minVeilMs`), ready or not. They now
+go through the same `introGate()` + `gateHolds` poll the intro page uses —
+`map.isSourceLoaded` over every `austin*` opening source including
+`austin-outer`, held over two consecutive polls, because one poll is not
+evidence (a source answers "loaded" before it has begun fetching; boot.mjs
+measured that producing a 3× error). The reel flags get their own hard ceiling,
+`AP_VEIL_MAX_MS = 24000`: a slow network must never hold the veil forever, so
+past 24 s it lifts with whatever city has arrived, exactly as before. The
+intro's own floor and ceiling (`INTRO.minVeilMs` / `maxVeilMs`), plain
+`?tour=1`, and every `?intro=0` verify page keep their old timing to the
+millisecond.
+
+**Why the defect was intermittent, which the baseline run exposed.** On a quiet
+machine MapLibre's `idle` event happens to fire before the 7 s timeout and acts
+as an accidental gate — the shot was being saved by luck. Under load the
+timeout wins, and `__intro.missingAtLift` reads all four sources missing:
+the recorded shot opens on empty land.
+
+**The measurement** (`shots/f/z1/z1flight.mjs`, same instrument pattern as the
+evidence pass above: t0-at-navigation `sourcedata` log, first load event per
+`austin-outer` tile, veil lift via MutationObserver, all on one clock; local
+`scripts/serve.py`, hardware GL; sibling lanes were active on the box, so
+wall-clock numbers carry that noise — the structural counts do not).
+
+Quiet machine, `?autopilot=1`, one rep each arm — the no-regression check:
+
+| run | veil lift | reason | austin-outer tiles behind veil | last arrival after lift |
+|---|---|---|---|---|
+| before | 10.3 s | idle | 17/39 | +38.0 s |
+| after | 9.2 s | idle | 17/39 | +38.2 s |
+
+Identical behaviour, identical opening. An ordinary fast load got no slower.
+
+Loaded machine (CPU throttled 2×, the state Simeon originally reported the
+defect from — quoted per CLAUDE.md rule 10; the 4× the perf suite uses
+wedged the whole page past its own trustworthiness rule and was discarded),
+two interleaved reps each arm:
+
+| run | veil lift | reason | tiles behind veil | missing at lift |
+|---|---|---|---|---|
+| before2x | 26.1 s | **timeout** | **0**/27 | all four sources |
+| before2x-r2 | 13.6 s | **timeout** | **0**/38 | all four sources |
+| after2x | 16.6 s | idle | **17**/38 | none |
+| after2x-r2 | 18.5 s | idle | **17**/38 | none |
+
+Both baseline reps lift the veil with ZERO `austin-outer` tiles finished.
+`before2x-f00s.png` photographs what that means mid-shot: empty flat land
+behind the Tower where downtown should be — the reported defect exactly.
+`after2x-f00s.png` / `after2x-r2-f00s.png`: full skyline standing on the
+opening frame, both reps. Frames read at 0/2/10 s of the flight show no
+materialisation in either after rep.
+
+**The honest cost.** Comparing the clean pair (before2x-r2 vs after2x-r2), the
+gate held the veil ~5 s longer under 2× load; on the quiet machine it cost
+nothing (−1.1 s, run noise). Worst case is bounded at 24 s by design.
+
+**What did NOT move, on purpose.** The claim to beat was "last new tile at
+t=46213 ms of the flight" — and post-fix, stragglers still land ~+38 s into
+the flight (21–22 tiles after lift in every arm, quiet or loaded). That
+streaming cannot be removed from `js/app.js`: those tiles belong to viewports
+the camera has not reached yet, and holding the veil for them would mean a
+~46 s veil. What changed is what the straggler arrivals look like: with the
+opening viewport's tiles — including the coarse z13/z14 ancestors that carry
+the whole downtown massing — resident before the veil lifts, a late z16–18
+arrival refines a building that is already standing instead of materialising
+it from empty ground. Read the after frames: the skyline is complete from
+frame one in every post-fix run.
+
+**Also verified:** `?timelapse=1` gates the same way (13/19 tiles behind
+veil, skyline standing at frame left of its opening); Shot A still opens
+exactly at AP_TOUR waypoint 0 (pose read back: −97.7381/30.2913, z16.25,
+pitch 69, bearing 199.5), flies forward-only (lat strictly decreasing across
+all sampled frames, bearing within the authored 185–200 band), and drives the
+joystick nub (non-empty transform at every sampled frame); plain page and
+every run console-error free.
