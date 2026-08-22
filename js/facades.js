@@ -1633,23 +1633,85 @@
   // on the tile you are looking at from fifty metres as well as the one two
   // kilometres away. The tier chain above splits that. Each tier now carries
   // only the prefilter its OWN minification needs — a box the width of the
-  // minification factor, which is what a mip level is — and the near tier,
-  // which is 1:1 with the screen and cannot alias from minification at all,
-  // carries none. Sharp near, quiet far, from one drawing.
+  // minification factor, which is what a mip level is — and the FAR tier,
+  // which is decimated and then drawn at 1:1 or magnified so it cannot alias
+  // from minification at all, carries none (the sentence used to say "near"
+  // tier here — backwards; the TIERS block above and `far: soften 0.0` in
+  // TIERS agree with this correction, not with the old wording).
+  //
+  // ── QUEUE shim-lowpass, 2026-08-22: the near tier's OWN radius, raised ──
+  //
+  // The near tier still crawls, because `tier.soften=0.75` was calibrated for
+  // its NOMINAL 2:1 minification (a wall viewed face-on at the top of the
+  // near tier's zoom range), and the mechanism doc
+  // (docs/shimmer-mechanism.md) measured that real flight geometry pushes
+  // minification well past that at oblique pitch/bearing/distance within the
+  // SAME tier — crawl climbs from 2.19% to 21.27% across one zoom ladder and
+  // from 5.70% to 12.67% across one pitch ladder, all inside the near tier.
+  // A fixed radius calibrated for the best case under-filters the worst case;
+  // that headroom is what this raises.
+  //
+  // MEASURED with shimmer.mjs, shots-mech-std.json, translate mode, same
+  // poses as the mechanism doc (baseline reproduced fresh rather than
+  // trusted): pattern-on / this change / pattern-off floor —
+  //
+  //   pose          pattern-on   RADIUS below   floor
+  //   bme-near         8.57%        4.99%       3.83%   (75% of headroom)
+  //   biolab-near      7.28%        6.12%       3.08%   (28% of headroom)
+  //   waggener-n       9.96%      (not fully re-measured at these exact
+  //                                 per-family values — see commit message)
+  //
+  // The 4.99/6.12 pair is the UNIFORM r3/a1.0 override
+  // (SHIM_SOFTEN=1 SHIM_SOFTEN_R=3), not yet split by family; it is quoted
+  // here as the closest measured anchor to what ships below. Recovery is NOT
+  // uniform across buildings — bme-near's grid responds much better to a
+  // fixed radius than biolab-near's, which is itself evidence that one radius
+  // cannot be exactly right everywhere (the real fix is recommendation #1 in
+  // docs/shimmer-mechanism.md, a further-split zoom-stepped tier, not owned
+  // by this change).
+  //
+  // r6 (docs/shimmer-mechanism.md's own override, and the OLD investigation's
+  // number above) reaches the floor almost exactly but VISUALLY MUSHES the
+  // windows up close — confirmed by eye, not inferred: compare
+  // shots/shimmer/lowpass/soften-check-current.png,
+  // shots/shimmer/lowpass/soften-check-r3.png and
+  // shots/shimmer/lowpass/soften-check-r6.png. At r3 the Biomedical
+  // Engineering Building and Neural Molecular Science still read as punched
+  // windows, softer than today's default; at r6 they read as flat wall. r3 is
+  // shipped for exactly that reason — it is the strongest radius this pass
+  // could confirm BY EYE still reads as windows at the pose the calibration
+  // table above was measured at, not the strongest radius the meter alone
+  // would have picked.
+  //
+  // `tg` (curtain wall) gets LESS of this increase than the other glazed
+  // families on purpose, and it is a deliberate reversal of the OLD
+  // FAMILY multiplier (which gave tg the LARGEST multiplier, on the theory
+  // that the family nearest the pixel floor needs the most help). Geometrically
+  // it is the family that can least afford a wide box: its own pier/spandrel
+  // gap (3.14 / 1.40 texels, GRIDS.tg) is narrower than a 7-texel r3 kernel,
+  // so a box that size does not anti-alias tg's glazing, it erases it. `dk`
+  // and `st` are not window grids (bands, piers) and are left conservative for
+  // the same reason: no measurement was taken to justify moving them.
   const SOFTEN = {
     // Multiplier on the tier's radius, per family. `lo` has big sparse openings
     // that never approach the pixel floor; `tg` is the one curtain-wall family
-    // and lands nearest it (1.40 units of spandrel, 3.14 of pier).
+    // and lands nearest it (1.40 units of spandrel, 3.14 of pier). Superseded
+    // for radius by the explicit RADIUS table below wherever that table sets a
+    // number — this multiplier still governs any family RADIUS leaves null.
     // TASTE KNOB: set a family to 0 for the old razor-sharp, strobing tile.
     FAMILY: { lo: 0.5, mr: 1.0, mh: 1.0, tr: 1.0, tg: 1.2, dk: 1.0, st: 0.8 },
     AMOUNT_BASE: 1.0,
-    // Per-family OVERRIDES, null meaning "use the tier's own prefilter". They
-    // exist as objects keyed by family because scripts/verify/shimmer.mjs
-    // sweeps them by name, and that script is how the low-pass was calibrated
-    // in the first place — breaking its sweep would take the instrument away
-    // from the next person who has to argue about this trade.
-    RADIUS: { lo: null, mr: null, mh: null, tr: null, tg: null, dk: null, st: null },
-    AMOUNT: { lo: null, mr: null, mh: null, tr: null, tg: null, dk: null, st: null },
+    // Per-family OVERRIDES, null meaning "use the tier's own prefilter × the
+    // FAMILY multiplier above" (round(0.75 * mult) ≈ 1 texel for every family
+    // — see the QUEUE shim-lowpass comment above for why that is too small on
+    // the worst-case oblique view within the near tier). They exist as objects
+    // keyed by family because scripts/verify/shimmer.mjs sweeps them by name,
+    // and that script is how this low-pass is calibrated — breaking its sweep
+    // would take the instrument away from the next person who has to argue
+    // about this trade. TASTE KNOB: any value here is a one-line override,
+    // still readable from the console as window.FACADE_SOFTEN.
+    RADIUS: { lo: 3, mr: 3, mh: 3, tr: 3, tg: 2, dk: 2, st: 1 },
+    AMOUNT: { lo: 1.0, mr: 1.0, mh: 1.0, tr: 1.0, tg: 0.85, dk: 0.85, st: 0.85 },
   };
   // Exposed so scripts/verify/shimmer.mjs can sweep it, and so an aesthetic call
   // here can be overruled from the console without an edit.
