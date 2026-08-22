@@ -168,6 +168,11 @@ const applied = await page.evaluate((cfg) => {
     const targets = [
       { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(m, p0) },
       { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(m, p0) },
+      // 'tower' — QUEUE F2's second port, js/tower.js. applyTowerColors
+      // quantises p to 1/128 and skips its own repaint if that bucket didn't
+      // change (js/tower.js's `_lastPq` guard) — force=true bypasses that so
+      // a same-p override still redraws the atlas.
+      { key: 'tower', S: window.TOWER_SOFTEN, repaint: () => window.applyTowerColors && window.applyTowerColors(m, p0, true) },
     ];
     const hit = [];
     for (const t of targets) {
