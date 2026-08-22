@@ -1,0 +1,7 @@
+[
+  {
+    "name": "shotA-opening-z1625",
+    "note": "Shot A's literal START POSE (js/app.js:2136) -- 'campus roofs already filling the frame'. The crown-deletion fix (commit 5b6a92b) is verified intact here; the low-pass must not disturb it.",
+    "center": [-97.7381, 30.2913], "zoom": 16.25, "pitch": 69, "bearing": 199.5, "p": 0.5
+  }
+]

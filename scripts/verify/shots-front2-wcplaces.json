@@ -1,0 +1,22 @@
+[
+  {
+    "name": "wc-cruise",
+    "note": "identical pose to shimmer-poses.json's shot-a-tower -- the task's own description: West Campus is the mid-rise wall filling much of the lower half of this frame across the reel flight. Confirmed by screenshot (framecheck2-wc-cruise.png): Moontower and The Castilian both stand in frame.",
+    "center": [-97.7393, 30.2874], "zoom": 16.85, "pitch": 74, "bearing": 197.4, "p": 0.5
+  },
+  {
+    "name": "wc-close",
+    "note": "shots-westcampus-key.json's own established 'castilian' pose, reused verbatim rather than a freshly-invented coordinate (an earlier hand-built close pose at z18.6 hung the harness for 5+ minutes and was abandoned -- HANDOFF for this branch).",
+    "center": [-97.74245, 30.28660], "zoom": 16.75, "pitch": 66, "bearing": 0, "p": 0.5
+  },
+  {
+    "name": "places-cruise",
+    "note": "shots-places.json's own established 'fly-wide-day' pose -- moderate distance over West Campus, off the Drag.",
+    "center": [-97.74100, 30.28560], "zoom": 16.50, "pitch": 66, "bearing": 20, "p": 0.5
+  },
+  {
+    "name": "places-close",
+    "note": "shots-places.json's own established 'westcampus-day' pose -- closer, centred on the Raku Sushi / TSAOCAA plGlass storefront cluster in West Campus, off the Drag entirely (so this measures places.js's OWN contribution, not drag.js's already-fixed shopGlass corridor).",
+    "center": [-97.74495, 30.28660], "zoom": 17.9, "pitch": 70, "bearing": 205, "p": 0.5
+  }
+]

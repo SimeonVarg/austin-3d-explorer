@@ -16,7 +16,32 @@
   },
   {
     "name": "street-drag",
-    "note": "low pass down the Drag (Guadalupe): alt 25m, pitch 76, bearing 180 (same corridor as perf-budget.mjs PHASES.walk, elevated from pedestrian to a flying low pass), converted via the same closed form",
+    "note": "low pass down the Drag (Guadalupe): alt 25m, pitch 76, bearing 180 (same corridor as perf-budget.mjs PHASES.walk, elevated from pedestrian to a flying low pass), converted via the same closed form. targets js/drag.js (drag-wall) — MOVED% IS HIGH HERE (57.6%), see docs/second-front-poses.md for the pattern-off control that checks whether this is real crawl or step-size contamination from close-range parallax before trusting the raw number.",
     "center": [-97.7417, 30.288598], "zoom": 19.017, "pitch": 76, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "tower-close",
+    "note": "the Tower shaft base, close and steep — the exact thing Simeon named ('the bottom of the tower is having the same window glitching problem'). Coords reused from shots-towerglow.json tower-base-night (p overridden to 0.5 for daylight consistency with the rest of this file). Targets js/tower.js (tower-wall) — zero references to facadeTierExpr/TIERS/SOFTEN (docs/facade-atlas-map.md §2).",
+    "center": [-97.73932, 30.28637], "zoom": 18.0, "pitch": 64, "bearing": 180, "p": 0.5
+  },
+  {
+    "name": "moody-west",
+    "note": "Moody Center's west face. Coords reused from moody-shots.json M1-moody-west (p overridden to 0.5). Targets js/moody.js (moody-wall) — same untouched-front status as tower.js.",
+    "center": [-97.731845, 30.280934], "zoom": 16.6, "pitch": 68, "bearing": 90, "p": 0.5
+  },
+  {
+    "name": "arts-ransom",
+    "note": "Ransom Center. Coords reused from shots-arts.json ransom-day (p overridden to 0.5). Targets js/arts.js's arts-panel layer specifically (PANEL_IMG, a constant image id, not zoom-stepped) — arts-glass (Bass Concert Hall, a different building across campus) is the same file's other pattern layer and is NOT covered by this pose; not measured this round.",
+    "center": [-97.74123, 30.28434], "zoom": 17.1, "pitch": 62, "bearing": 125, "p": 0.5
+  },
+  {
+    "name": "westcampus-street",
+    "note": "West Campus, upper walls close and steep. Coords reused from shots-places.json westcampus-day (p overridden to 0.5). CORRECTION to the six-file list this task was handed: js/westcampus.js's wc-wall layer reads window.FACADE_PATTERN_EXPR directly (confirmed live via getPaintProperty — byte-identical step/concat/x/17 expression to buildings-3d) — it is NOT a closed pattern system and IS already tier+soften-aware, same as facades.js's own core. It should not have been counted among the untouched five. This pose exists to confirm that empirically (see docs/second-front-poses.md), not to attribute crawl the way the other four poses do.",
+    "center": [-97.74495, 30.28660], "zoom": 17.90, "pitch": 70, "bearing": 205, "p": 0.5
+  },
+  {
+    "name": "places-shopfront",
+    "note": "a Guadalupe shopfront row. Coords reused from shots-drag.json shopfront-day (p overridden to 0.5). Targets js/places.js's places-glass layer (GLASS_IMG, constant image id) — but this stretch of the Drag is also drag-wall territory, so both layers are live in the same frame here; the per-layer isolation runs (SHIM_ONLY) split their shares rather than assuming either owns it.",
+    "center": [-97.74200, 30.28690], "zoom": 17.45, "pitch": 66, "bearing": 288, "p": 0.5
   }
 ]

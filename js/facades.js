@@ -1718,46 +1718,23 @@
   window.FACADE_SOFTEN = SOFTEN;
 
   /**
-   * Separable box blur, WRAPPING on both axes, blended back over the original.
+   * The wrap-safe separable box blur itself now lives in
+   * js/pattern-lowpass.js (`window.PatternLowpass.blurWrap`), extracted so
+   * js/drag.js (and eventually tower.js/moody.js/heroes.js/arts.js/places.js
+   * — docs/facade-atlas-map.md §2's six-file table) can band-limit their own
+   * atlases with the identical, already-calibrated kernel instead of each
+   * carrying its own copy of this math. Nothing below this line changed
+   * behaviour — this file still owns 100% of ITS OWN taste (which family
+   * gets how much radius, at what tier) — only the wrap+sum+blend kernel
+   * moved. Verified unchanged: scripts/verify/shimmer.mjs on the facades
+   * poses before/after this extraction landed inside the 0.00pp noise floor
+   * docs/shimmer-verdict.md established (see the commit message for the
+   * numbers).
    *
-   * The wrap is not a detail: the tile repeats, so a clamped blur would darken
-   * the four edges and put a visible grid seam every ~40 m up and across every
-   * wall in the city — which is the same class of bug as the fascia band that
-   * appeared three times up DKR's elevation.
-   *
-   * ── WHY IT IS A SLIDING WINDOW NOW, AND WHY THAT IS EXACT ──
-   *
-   * A1's fix repaints three mip tiers per time-of-day step instead of the one or
-   * two the camera happens to be reading, and MEASURED that took `updateFacades`
-   * from 57.7 ms to 119.7 ms. Part of that is here: the far tier carries the
-   * widest box (radius 3, a 7-wide window) and the near tier carries none, so
-   * the tier the fix adds is the expensive one. This change bought back about
-   * 19 ms of the 62 — NOT all of it, and the rest is written up in HANDOFF as
-   * the next thing worth doing.
-   *
-   * The old loop re-summed the whole window at every pixel — O(RES^2 * r) per
-   * axis. A box blur does not need to: step the window by one and the new sum is
-   * the old sum plus the entering sample minus the leaving one, O(RES^2)
-   * regardless of radius. Same box, same wrap, same result.
-   *
-   * "Same result" is a claim, so it is made exact rather than approximately:
-   * `tmp` holds the horizontal window SUM, not the mean. A sum of at most
-   * (2r+1) bytes is a small integer, exactly representable in Float32, so the
-   * vertical running total is a sum of integers in double and carries NO
-   * rounding at all — where the old code rounded s/win into Float32 halfway
-   * through. Verified against the old implementation over the real atlas:
-   * max channel difference 0 on every image (see the PR).
+   * `res` is the tier's own resolution, NOT RES: a decimated tier is a
+   * smaller image and blurring it as if it were RES wide would read straight
+   * off the end of the buffer.
    */
-  // Reused across calls. One repaint is 300 images and the buffer is the same
-  // size every time; allocating it per image was 300 x 196 KB of garbage per
-  // time-of-day step for nothing.
-  let _blurTmp = null;
-
-  // `res` is the tier's own resolution, NOT RES: a decimated tier is a smaller
-  // image and blurring it as if it were RES wide would read straight off the
-  // end of the buffer. The scratch buffer is sized for the LARGEST tier once
-  // and indexed within, because paintTiers walks the tiers back to back and a
-  // length-exact test would reallocate on every one of them.
   function softenTile(d, fam, tier, res) {
     const mult = SOFTEN.FAMILY[fam] != null ? SOFTEN.FAMILY[fam] : 1;
     const rOv = SOFTEN.RADIUS[fam], aOv = SOFTEN.AMOUNT[fam];
@@ -1767,43 +1744,7 @@
     const r = Math.round((rOv != null ? rOv : (tier ? tier.soften : 0) * mult)
                          * SCALE / (tier ? tier.div : 1));
     const a = aOv != null ? aOv : SOFTEN.AMOUNT_BASE;
-    if (!r || a <= 0) return;
-    const N = res * res, win = r * 2 + 1, area = win * win;
-    if (!_blurTmp || _blurTmp.length < N * 3) _blurTmp = new Float32Array(N * 3);
-    const tmp = _blurTmp;
-    const wrap = i => ((i % res) + res) % res;      // r may exceed res/2 via the
-                                                    // per-family RADIUS override
-    // horizontal — tmp keeps the window SUM
-    for (let y = 0; y < res; y++) {
-      const row = y * res;
-      let s0 = 0, s1 = 0, s2 = 0;
-      for (let k = -r; k <= r; k++) {
-        const i = (row + wrap(k)) * 4;
-        s0 += d[i]; s1 += d[i + 1]; s2 += d[i + 2];
-      }
-      for (let x = 0; x < res; x++) {
-        const o = (row + x) * 3;
-        tmp[o] = s0; tmp[o + 1] = s1; tmp[o + 2] = s2;
-        const ia = (row + wrap(x + r + 1)) * 4, is = (row + wrap(x - r)) * 4;
-        s0 += d[ia] - d[is]; s1 += d[ia + 1] - d[is + 1]; s2 += d[ia + 2] - d[is + 2];
-      }
-    }
-    // vertical, and blend straight back into the pixel buffer
-    for (let x = 0; x < res; x++) {
-      let s0 = 0, s1 = 0, s2 = 0;
-      for (let k = -r; k <= r; k++) {
-        const o = (wrap(k) * res + x) * 3;
-        s0 += tmp[o]; s1 += tmp[o + 1]; s2 += tmp[o + 2];
-      }
-      for (let y = 0; y < res; y++) {
-        const i = (y * res + x) * 4;
-        d[i]     += (s0 / area - d[i])     * a;
-        d[i + 1] += (s1 / area - d[i + 1]) * a;
-        d[i + 2] += (s2 / area - d[i + 2]) * a;
-        const oa = (wrap(y + r + 1) * res + x) * 3, os = (wrap(y - r) * res + x) * 3;
-        s0 += tmp[oa] - tmp[os]; s1 += tmp[oa + 1] - tmp[os + 1]; s2 += tmp[oa + 2] - tmp[os + 2];
-      }
-    }
+    window.PatternLowpass.blurWrap(d, res, r, a);
   }
 
   function parseId(id) { return { fam: id.slice(0, 2), idx: parseInt(id.slice(2), 10) }; }

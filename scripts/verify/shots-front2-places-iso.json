@@ -1,0 +1,14 @@
+[
+  {
+    "name": "places-close-iso",
+    "note": "places-close (westcampus-day) with buildings-3d AND wc-wall hidden -- The Standard / Union on 24th (huge core-atlas or wc-wall towers) dominate the whole-frame reading at this pose (screenshot confirms it), swamping the tiny plGlass storefront footprint the same way street-drag's road plane swamped drag.js's own signal.",
+    "center": [-97.74495, 30.28660], "zoom": 17.9, "pitch": 70, "bearing": 205, "p": 0.5,
+    "hideLayers": ["buildings-3d", "wc-wall"]
+  },
+  {
+    "name": "places-cruise-iso",
+    "note": "places-cruise (fly-wide-day) with buildings-3d AND wc-wall hidden.",
+    "center": [-97.74100, 30.28560], "zoom": 16.50, "pitch": 66, "bearing": 20, "p": 0.5,
+    "hideLayers": ["buildings-3d", "wc-wall"]
+  }
+]

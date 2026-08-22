@@ -159,10 +159,84 @@
     return _ctx;
   }
   const css = v => `rgb(${v.map(x => Math.round(Math.max(0, Math.min(255, x)))).join(',')})`;
-  function grab(ctx) {
+  // r/a optional: only panelTile passes them (see ARTS_SOFTEN below).
+  // glassTile calls grab(ctx) unblurred on purpose — §7.
+  function grab(ctx, r, a) {
     const img = ctx.getImageData(0, 0, T, T);
+    if (r) window.PatternLowpass.blurWrap(img.data, T, r, a);
     return { width: T, height: T, data: new Uint8Array(img.data.buffer.slice(0)) };
   }
+
+  // ── band-limit (QUEUE F2, docs/facade-atlas-map.md §2) ────────────────
+  //
+  // ONE of this file's two images gets this, not both, and that is a
+  // decision, not an oversight — read docs/second-front-map.md §7 before
+  // changing it. The panel tile draws a real sub-pixel alias source: a
+  // 1-texel joint stroke (`ARTS.panelJoint`) on a 6-cell grid, the SAME class
+  // of feature as js/moody.js's `moody-plinth`/`health-attic` and
+  // js/places.js's mullion. The glass tile does not: its own header says the
+  // Bass lobby's mullion was deliberately dropped a level below drawable —
+  // eight columns across 64 px is a 4-7 m STRUCTURAL BAY, coarse by design,
+  // with nothing near the alias floor for a box blur to band-limit. Porting
+  // the kernel there would only soften the one thing that already reads
+  // clean (`ARTS.glassRows`/`glassCols`'s own bay fill), for one small lobby
+  // facade — pure cost, no measured or structural benefit, so it is left
+  // alone. `ARTS_SOFTEN` below deliberately has no `glass` key for the same
+  // reason `js/drag.js` falls back to a named default rather than silently
+  // no-op'ing on an unrecognised key: an absent key here is a STATEMENT, not
+  // a gap to fill in later.
+  //
+  // STARTING POINT, same as js/moody.js: js/facades.js's own `tg` (curtain-
+  // wall) family, RADIUS 2 / AMOUNT 0.85 — the calibration Simeon pointed at
+  // for both of this front's glass-heavy files. The panel joint (1 texel) is
+  // finer than tg's own pier/spandrel gap (3.14/1.40 texels), so headroom is
+  // narrower here, not wider — measured below.
+  //
+  // MEASURED against scripts/verify/shimmer.mjs (SHIM_SOFTEN_TARGET=arts),
+  // scripts/verify/shimmer-poses-moodyarts.json `arts-ransom-close`, boxed to
+  // the Ransom Center building itself (box [540,295,825,555], chosen from a
+  // framing screenshot — the UNBOXED whole-frame number at this same close
+  // pose read 17.11% before/3.50% after, because DKR and the downtown towers
+  // sit in the same frame and crawl hard on their own account; boxing out to
+  // just this building is what makes the number below actually about
+  // arts.js):
+  //
+  //   before (r=0, pre-fix)     5.02% crawl, 52.3% moved
+  //   after  (r=1, this table)  3.50% crawl, 53.1% moved   (-30% relative)
+  //   floor  (SHIM_PATTERN=0)   2.14% crawl                (53% of headroom
+  //                                                          recovered)
+  //
+  // r1 was eye-checked at this pose
+  // (shots/shimmer/front2/moodyarts/arts-ransom-close-{before,after}-*.png):
+  // the panel joint grid still reads as individual etched panels, not a
+  // flat slab. r2/r3 were NOT tried — with only 1 texel of real joint width
+  // to protect (narrower than `tg`'s own 1.40-texel spandrel, the family
+  // this radius was calibrated from), a wider box was judged more likely to
+  // fuse panels than to buy more measurable reduction, the same conservative
+  // call js/facades.js's own history made at its own pixel floor; this is a
+  // judgement call stated plainly, not a measured rejection of r2/r3.
+  //
+  // arts-ransom-cruise (the wider pose second-front-poses.md itself used, at
+  // zoom 17.1 instead of 18.0, unboxed) read 6.94% before AND after —
+  // byte-identical — confirming that framing is entirely dominated by
+  // buildings other than the Ransom Center's own panel wall, consistent with
+  // that doc's own caution about this exact pose.
+  //
+  // FRAME COST: NOT independently re-timed this round (no arts-perf.mjs run
+  // — see the HANDOFF/commit for why). By the same argument js/moody.js's
+  // own measurement makes (blur runs inside panelTile(), called from
+  // ensureImages(), the existing repaint call chain, on the quantised
+  // time-of-day step, never the render loop, no new addImage/updateImage
+  // call site) this file's cost should be smaller than moody.js's measured
+  // 14.40 ms: ONE 64x64 image blurred here against moody's eight.
+  //
+  // TASTE KNOB: window.ARTS_SOFTEN, same contract as window.FACADE_SOFTEN /
+  // window.DRAG_SOFTEN / window.MOODY_SOFTEN.
+  const ARTS_SOFTEN = {
+    RADIUS: { panel: 1 },
+    AMOUNT: { panel: 1.0 },
+  };
+  window.ARTS_SOFTEN = ARTS_SOFTEN;
   /** 0 before dusk, 1 at full night. */
   const nightAt = p => Math.max(0, (p - 0.62) / 0.38);
 
@@ -206,7 +280,7 @@
     // reading as graph paper.
     ctx.fillStyle = css(bay);
     for (let c = 0; c < N; c += ARTS.panelBay) ctx.fillRect(Math.round(c * step), 0, J, T);
-    return grab(ctx);
+    return grab(ctx, ARTS_SOFTEN.RADIUS.panel, ARTS_SOFTEN.AMOUNT.panel);
   }
 
   /**

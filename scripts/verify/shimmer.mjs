@@ -46,6 +46,9 @@
  *
  * Config knobs, as env vars, so the A/B is one variable at a time:
  *   SHIM_PATTERN=0   strip fill-extrusion-pattern and paint flat wall colour
+ *   SHIM_ONLY=id,id  strip ONLY these layer ids (per-layer attribution) instead
+ *                    of the full list SHIM_PATTERN=0 uses — added 2026-08-22 for
+ *                    the second-front pass (docs/second-front-poses.md)
  *   SHIM_SCALE=1     GFX.renderScale override
  *   SHIM_PRESET=...  apply a named graphics preset first
  */
@@ -72,6 +75,19 @@ const CFG = {
   bootPreset: process.env.SHIM_BOOTPRESET || null,
   soften: process.env.SHIM_SOFTEN != null ? Number(process.env.SHIM_SOFTEN) : null,
   softenR: process.env.SHIM_SOFTEN_R != null ? Number(process.env.SHIM_SOFTEN_R) : 3,
+  // Isolate ONE layer (or a comma list) instead of the full pattern-off sweep,
+  // for per-layer attribution (which pattern system owns how much of the
+  // crawl at a given pose). Layer ids only — same setPaintProperty path as
+  // the full strip below, just scoped.
+  only: process.env.SHIM_ONLY ? process.env.SHIM_ONLY.split(',').map(s => s.trim()).filter(Boolean) : null,
+  // Which SOFTEN-shaped registries the override touches. Default is both, for
+  // a whole-city A/B. 'drag' alone isolates js/drag.js's own effect without
+  // also perturbing facades.js's ALREADY-SHIPPED r3 default up or down —
+  // sweeping a uniform override at r<3 across BOTH registries silently
+  // regresses facades.js's own calibration for the low end of the sweep,
+  // which would confound "did drag.js's fix work" with "did facades.js's
+  // shipped fix get temporarily undone." QUEUE F2's own sweep hit this.
+  softenTarget: (process.env.SHIM_SOFTEN_TARGET || 'facade,drag').split(','),
 };
 
 // Frames per sweep, and how far the camera travels IN TOTAL across them.
@@ -149,19 +165,73 @@ const applied = await page.evaluate((cfg) => {
   // whether blur is the right lever at all: if radius 6 / amount 1.0 does not
   // approach the pattern-off floor, then sharpness is not what is crawling and
   // no amount of softening will fix it.
-  if (cfg.soften != null && window.FACADE_SOFTEN) {
-    const S = window.FACADE_SOFTEN;
-    for (const f of Object.keys(S.RADIUS)) S.RADIUS[f] = cfg.softenR;
-    for (const f of Object.keys(S.AMOUNT)) S.AMOUNT[f] = cfg.soften;
-    // The atlas is generated once at init, so it has to be redrawn in place.
-    if (window.updateFacades) window.updateFacades(m, window.__todCurrentP != null ? window.__todCurrentP : 0.25);
-    out.softenApplied = { r: cfg.softenR, a: cfg.soften };
+  if (cfg.soften != null) {
+    const p0 = window.__todCurrentP != null ? window.__todCurrentP : 0.25;
+    // Every atlas that carries a SOFTEN-shaped config (RADIUS/AMOUNT keyed by
+    // family) and a repaint function gets the SAME override — this is what
+    // lets ONE env-var sweep move facades.js AND js/drag.js in one run.
+    // js/drag.js is the QUEUE F2 addition (docs/facade-atlas-map.md §2's
+    // six-file table); more entries here are how the next file in that list
+    // joins the same sweep without a new script.
+    const targets = [
+      { key: 'facade', S: window.FACADE_SOFTEN, repaint: () => window.updateFacades && window.updateFacades(m, p0) },
+      { key: 'drag', S: window.DRAG_SOFTEN, repaint: () => window.applyDragColors && window.applyDragColors(m, p0) },
+      // 'tower' — QUEUE F2's second port, js/tower.js. applyTowerColors
+      // quantises p to 1/128 and skips its own repaint if that bucket didn't
+      // change (js/tower.js's `_lastPq` guard) — force=true bypasses that so
+      // a same-p override still redraws the atlas.
+      { key: 'tower', S: window.TOWER_SOFTEN, repaint: () => window.applyTowerColors && window.applyTowerColors(m, p0, true) },
+      // QUEUE F2 moodyarts. force=true on arts is load-bearing: applyArtsColors
+      // quantises p to 1/128 and no-ops a repeat call at the same quantised p
+      // (its own header explains why), which would silently make an arts sweep
+      // read as "radius does nothing" for reasons having nothing to do with the
+      // kernel. moody has no such guard.
+      { key: 'moody', S: window.MOODY_SOFTEN, repaint: () => window.applyMoodyColors && window.applyMoodyColors(m, p0) },
+      { key: 'arts', S: window.ARTS_SOFTEN, repaint: () => window.applyArtsColors && window.applyArtsColors(m, p0, true) },
+      // js/places.js (QUEUE F2 front 2): one image (GLASS_IMG/'pl-glass'), so
+      // this registry has a single family key (plGlass) rather than a table,
+      // but it is the same SOFTEN shape and the loop below needs no special
+      // case for that. NOTE: js/westcampus.js is deliberately NOT a target
+      // here — its wall layer (`wc-wall`) reads window.FACADE_PATTERN_EXPR
+      // directly and every wall feature is registered into facades.js's own
+      // `combos`/SOFTEN registry via quantiseStadiumFacades (confirmed by
+      // reading js/westcampus.js:1025 and js/facades.js:1047 — see the
+      // acer/f2-wcplaces commit message) — the 'facade' target above already
+      // reaches it, and a second entry here would double-apply the same
+      // override to the same pixels.
+      { key: 'places', S: window.PLACES_SOFTEN, repaint: () => window.applyPlacesColors && window.applyPlacesColors(m, p0) },
+    ];
+    const hit = [];
+    for (const t of targets) {
+      if (!t.S || !cfg.softenTarget.includes(t.key)) continue;
+      for (const f of Object.keys(t.S.RADIUS)) t.S.RADIUS[f] = cfg.softenR;
+      for (const f of Object.keys(t.S.AMOUNT)) t.S.AMOUNT[f] = cfg.soften;
+      // The atlas is generated once at init, so it has to be redrawn in place.
+      t.repaint();
+      hit.push(t.key);
+    }
+    out.softenApplied = { r: cfg.softenR, a: cfg.soften, hit };
   }
 
-  if (!cfg.pattern) {
-    for (const id of ['buildings-3d', 'parts-3d', 'wc-wall', 'drag-wall', 'moody-wall',
-                      'arts-panel', 'places-solid', 'tower-wall', 'stadium-wall']) {
-      if (!m.getLayer(id)) continue;
+  // The full strip list, corrected: the original had 'places-solid' (a
+  // flat-colour layer with no pattern to begin with) where 'places-glass'
+  // (the actual GLASS_IMG pattern layer) belonged, and was missing
+  // 'arts-glass' (Bass Concert Hall) and all seven 'heroes-*' layers
+  // entirely — confirmed against the live style's own getPaintProperty,
+  // not the source comments. SHIM_PATTERN=0 before this fix was silently
+  // leaving those layers patterned. (acer/f2-wcplaces independently found and
+  // fixed the same places-glass/places-solid swap; this superset also covers
+  // arts-glass and heroes-*, so its own narrower strip list was dropped here
+  // rather than merged — same fix, wider scope.)
+  const FULL_STRIP = ['buildings-3d', 'parts-3d', 'wc-wall', 'drag-wall', 'moody-wall',
+                       'arts-panel', 'arts-glass', 'places-glass', 'tower-wall', 'stadium-wall',
+                       'heroes-lime', 'heroes-brick', 'heroes-nbrick', 'heroes-glass',
+                       'heroes-glassb', 'heroes-glassc', 'heroes-lattice'];
+  if (cfg.only || !cfg.pattern) {
+    const ids = cfg.only || FULL_STRIP;
+    out.stripped = ids;
+    for (const id of ids) {
+      if (!m.getLayer(id)) { out['missing_' + id] = true; continue; }
       try {
         m.setPaintProperty(id, 'fill-extrusion-pattern', null);
         m.setPaintProperty(id, 'fill-extrusion-color', ['to-color', ['get', 'wd'], '#b9ac93']);
@@ -283,6 +353,20 @@ for (const s of SHOTS) {
     if (m.isEasing && m.isEasing()) m.stop();
     m.jumpTo({ center: s.center, zoom: s.zoom, pitch: s.pitch, bearing: s.bearing });
     if (typeof s.p === 'number') window.applyTimeOfDay(m, s.p, true);
+    // Optional: {"hideLayers": ["buildings-3d"]} isolates one layer's own
+    // contribution to a pose's crawl% by hiding everything else that could
+    // also be painting pattern pixels in the same box — e.g. confirming
+    // js/westcampus.js's wc-wall crawl is really coming from wc-wall and not
+    // from a core buildings-3d facade standing behind/beside it in frame.
+    // One-way (not restored): each shot in a list gets a fresh jumpTo, but
+    // layer visibility is style state, not camera state, so a later shot in
+    // the SAME list that needs the layer back must say so with its own
+    // (possibly empty) hideLayers, not rely on a prior shot's absence of one.
+    if (Array.isArray(s.hideLayers)) {
+      for (const id of s.hideLayers) {
+        try { if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', 'none'); } catch (e) {}
+      }
+    }
   }, s);
   await settle(4500);
 

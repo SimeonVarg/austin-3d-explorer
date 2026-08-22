@@ -177,6 +177,118 @@
   };
   window.DRAG_T = T;
 
+  // ── band-limit: this atlas had NONE until now ───────────────────────
+  //
+  // js/facades.js samples `fill-extrusion-pattern` through the exact same
+  // engine path this module does — MapLibre's pattern atlas is LINEAR-
+  // filtered with no mipmap, unconditionally, confirmed against the v5.24.0
+  // source in docs/pattern-sampling.md — so the same crawl-while-moving
+  // defect applies here (docs/shimmer-mechanism.md). But this module never
+  // had facades.js's SOFTEN/TIERS machinery: `tileData` below drew one
+  // TILE=64 texel image and handed it straight to `map.addImage`, at full
+  // resolution, unconditionally, at every zoom (docs/facade-atlas-map.md §2's
+  // table — this was one of the six files listed with zero SOFTEN/TIERS
+  // references). Measured, this made the Drag the worst crawl in the city:
+  // `street-drag` in scripts/verify/shimmer-poses.json (a low pass down
+  // Guadalupe) read 38-40% crawling pixels against 1-4% everywhere else the
+  // shim-lowpass fix already reached.
+  //
+  // This is the SAME shipped fix (shim-lowpass — docs/shimmer-verdict.md)
+  // applied here for the first time, through the shared kernel extracted
+  // into js/pattern-lowpass.js (`PatternLowpass.blurWrap`, lifted verbatim
+  // from js/facades.js's own softenTile — see that file's comment). It is
+  // NOT a zoom-stepped tier chain: this module draws one resolution the same
+  // way it always has, and gets only the low-pass. A tier chain
+  // (docs/shimmer-mechanism.md recommendation #1) is a bigger structural
+  // change — a second registered image per combo, a `step` expression at
+  // every call site that reads `wp` — and was explicitly out of scope for
+  // this pass (see the task/commit message).
+  //
+  // CALIBRATION. Radius is in TILE=64 drawing-space texels — the SAME unit
+  // js/facades.js's near tier uses (this module has no SCALE multiplier or
+  // decimation, so texels here are drawing-space directly, no conversion).
+  // Swept with scripts/verify/shimmer.mjs's SHIM_SOFTEN/SHIM_SOFTEN_R knobs
+  // (extended in that script to also drive this table — see its own
+  // comment), amount fixed at 1.0, against `street-drag`
+  // (scripts/verify/shimmer-poses.json), radius only — every value below
+  // MEASURED, none guessed:
+  //
+  //   radius  street-drag crawl%   street-drag-wall crawl%   pclCoffer variance
+  //   0 (floor)   39.58%              16.06%                   4741.8
+  //   1           39.81%              (not sampled)
+  //   2           39.65%              (not sampled)
+  //   3 (SHIPPED) 38.36%              14.64%                   (not sampled,
+  //                                                              see the eye
+  //                                                              check below)
+  //   4           37.14%              (not sampled)
+  //   6           28.70%              (not sampled)              176.74
+  //
+  // `street-drag-wall` is the SAME pose, boxed to exclude the road band
+  // (scripts/verify/shots-street-wall.json, box [0,0,1439,545]) — see (2)
+  // below for why the un-boxed number needs that caveat at all.
+  //
+  // Two things this sweep found, the SECOND one loudly, because it changes
+  // what the number above is actually measuring:
+  //
+  // (1) `street-drag`'s WHOLE-FRAME crawl% at the SHIPPED radius (38.36%) is
+  // IDENTICAL, to the hundredth of a point, to the pre-fix baseline measured
+  // with no DRAG_SOFTEN object in the page at all (also 38.36% — see the
+  // commit message: shot-a-tower/shot-b-park/cruise-campus/street-drag were
+  // all re-measured before AND after the facades.js refactor and landed
+  // exactly on the pre-existing numbers). Read plainly: on the OFFICIAL
+  // whole-frame metric, radius 3 does not move `street-drag` at all. This is
+  // NOT "the fix does nothing" — a direct pixel diagnostic (variance of the
+  // registered MapLibre image, not the mean, which a box blur preserves by
+  // construction and proves nothing) confirms the kernel changes the real
+  // texture data at every radius, and the boxed `street-drag-wall` variant
+  // (next point) shows a real, if modest, drop (16.06% -> 14.64%) once the
+  // untouchable majority of the frame is excluded. The whole-frame number is
+  // just the wrong instrument for this radius; it stays quoted here because
+  // it is the task's own bar, not because it is the fair one.
+  //
+  // (2) `street-drag`'s two largest crawling clusters (a combined ~350,000
+  // of 1,296,000 px, `scripts/verify/shots/sweep-r0-street-drag.png`) are
+  // the ROAD/GROUND plane, not a wall — confirmed by eye (the mask lands on
+  // two full-width horizontal bands at the bottom of frame) and numerically
+  // (one cluster reads EXACTLY 231239 px at every radius tested, 0 through
+  // 6 — untouched to the pixel). That is js/ground.js's OWN, ALREADY-
+  // TRACKED `fill-pattern` zoom-aliasing bug (docs/GROUND_TEXTURE.md,
+  // scripts/verify/pattern-scale.mjs), a different render path this fix has
+  // no way to reach. `street-drag`'s headline percentage is not a clean
+  // read of this module's own contribution; a boxed variant that excludes
+  // the road band (scripts/verify/shots-street-wall.json) isolates it.
+  //
+  // WHAT SHIPS. Radius 6 gets by far the strongest measured reduction, but
+  // BY EYE it visibly softens PCL's coffers past "punched openings" toward
+  // "flat wall with a shadow" (shots/shimmer/front2/drag/pclclose-r6-
+  // pclclose.png against -before-) — the identical trade facades.js's own
+  // history already made once, at the identical radius, for the identical
+  // reason. Radius 3 — facades.js's own shipped near-tier default — still
+  // reads clearly as coffered/arcaded openings at the same close pose
+  // (pclclose-r3-pclclose.png) while cutting real energy out of the pattern
+  // (pclCoffer's box-blur variance interpolates to roughly a third of the
+  // unfiltered tile at this radius). It is the same conservative call
+  // facades.js made for the same reason, not a data-optimal pick for the
+  // (partly ground-contaminated) street-drag number — Simeon overrules this
+  // from the console via window.DRAG_SOFTEN with no code change.
+  //
+  // Uniform across every family, unlike facades.js's final per-family
+  // table: this is the FIRST pass at this fix for this module, there is no
+  // existing calibration to preserve, and a family-by-family split needs
+  // its own close-up pose per family (only PCL's was built this round) —
+  // future work, not guessed here.
+  // TASTE KNOB: any value here is a one-line edit, readable from the console
+  // as window.DRAG_SOFTEN, same contract as window.FACADE_SOFTEN.
+  const DRAG_SOFTEN = {
+    RADIUS: { pclSolid: 3, pclCoffer: 3, gymSolid: 3, gymArcade: 3,
+              gymFrieze: 3, uniArcade: 3, uniWin: 3, uniSolid: 3,
+              shopGlass: 3, signBand: 3, retUpper: 3 },
+    AMOUNT: { pclSolid: 1.0, pclCoffer: 1.0, gymSolid: 1.0, gymArcade: 1.0,
+              gymFrieze: 1.0, uniArcade: 1.0, uniWin: 1.0, uniSolid: 1.0,
+              shopGlass: 1.0, signBand: 1.0, retUpper: 1.0 },
+  };
+  window.DRAG_SOFTEN = DRAG_SOFTEN;
+
   // Which families are windowless enough that the pier minimum does not apply.
   const CURTAIN = { shopGlass: true, signBand: true };
   const MIN_PIER = 5;   // px, from js/facades.js
@@ -512,6 +624,14 @@
         d[i + 2] += (tgt - d[i + 2]) * kk;
       }
     }
+    // Band-limit AFTER mottle, same order js/facades.js draws in (mottle
+    // inside rawTile, soften after) — the blur should see the same texture
+    // MapLibre will sample, weathering included, not a cleaner draft of it.
+    // Same fallback as the draw call two lines up: an unrecognised fam gets
+    // retUpper's number rather than silently skipping the low-pass.
+    const rOv = DRAG_SOFTEN.RADIUS[combo.fam] != null ? DRAG_SOFTEN.RADIUS[combo.fam] : DRAG_SOFTEN.RADIUS.retUpper;
+    const aOv = DRAG_SOFTEN.AMOUNT[combo.fam] != null ? DRAG_SOFTEN.AMOUNT[combo.fam] : DRAG_SOFTEN.AMOUNT.retUpper;
+    window.PatternLowpass.blurWrap(d, TILE, rOv, aOv);
     return { width: TILE, height: TILE, data: new Uint8Array(d.buffer.slice(0)) };
   }
 
