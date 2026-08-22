@@ -729,6 +729,16 @@ html.has-touch #joystick-zone{display:block}
   padding:7px 6px;cursor:pointer;transition:background .14s}
 #fb-send:hover:not(:disabled){background:rgba(245,166,35,.42)}
 #fb-send:disabled{opacity:.4;cursor:not-allowed;background:rgba(245,166,35,.08)}
+/* js/feedback.js adds a Copy fallback next to Send (mail-app handoff path
+   only). Keyed on the class it sets, so a foot without the button keeps the
+   original single full-width Send. Send stays the wider of the two — it is
+   the primary action; Copy is the recovery for machines with no mail app. */
+#fb-foot.has-copy{display:flex;gap:6px}
+#fb-foot.has-copy #fb-send{width:auto;flex:1.6}
+#fb-copy{flex:1;background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.26);
+  border-radius:8px;color:rgba(245,223,160,.9);font:inherit;font-size:12px;
+  padding:7px 6px;cursor:pointer;transition:background .14s}
+#fb-copy:hover{background:rgba(245,166,35,.3)}
 
 @media(max-width:640px){
   /* Stops above the drive controls, for the reason in the #gfx-panel block. */
