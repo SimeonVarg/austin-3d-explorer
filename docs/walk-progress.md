@@ -114,3 +114,49 @@ the front door is within about forty metres of as good.
 
 Pictures in `shots/walk/stairs/`, including the phone, since that is what he
 judges it on. Branch `acer/w-stairs`.
+
+## 2026-08-23 — critic pass on `acer/w-stairs`, round 1: the two checkable claims held, the third couldn't be checked
+
+Independent critic, fresh context, own scripts (not the builder's — those live
+in a scratchpad and aren't in the branch). Checked out `acer/w-stairs`, served
+it on its own port, drove the real `?walk=1` feature with playwright-core and
+real Chrome, not the builder's word.
+
+**Re-derived the two numbers from the raw files myself**, not from the docs:
+counted `highway=steps` ways straight out of `data/osm_cache/footways.json`
+(189, one of them — `147362093` — tagged `area=yes`) and cross-checked every
+`u:"steps"` feature in `data/ground.geojson` (180 polygons, every one carrying
+a `wid`, together covering all 189 way ids including the `area=yes` one). Both
+match what the branch claims to the digit.
+
+**Ran a fresh 250-pair census** with my own random seed, calling the branch's
+own `window.wayfindStairs()` and then independently re-requesting the
+avoid-stairs route for every offer to check it myself rather than trust the
+card: 97 of 250 pairs had stairs, 84 got a step-free offer, and every single
+one of those 84 came back clean on a fresh request — 0 that still crossed a
+staircase, 0 where the offered distance didn't match what pressing the button
+actually produces, 0 leg-list ordering bugs. Also drove the real UI by hand
+(not the API): typed a route with 7 flights, pressed the priced "Step-free"
+button, and the headline actually became "No stairs on this route" — and
+clicking the "Avoid stairs" checkbox on an open card left it open, both fixes
+holding under a real click. Screenshots (desktop + a 393×852 phone frame)
+looked, not just asserted: the leg list, the priced button, and the honest
+"avoids 168, not 189" caveat all render exactly as the branch's own doc says.
+
+**What I could not check: the Citymapper bar.** The brief asks to judge our
+leg list against how Citymapper states steps in its own — I have no device
+running the Citymapper app and no web equivalent that produces a real
+turn-by-turn leg list for a campus walk; Citymapper's own public pages
+describe step-free routing in marketing language and never show the actual
+leg-list format, so `docs/walk-stairs.md`'s own comparison table (§R10) is
+against that marketing copy, not a captured screenshot. That half of the bar
+was never actually fetched, by the builder or by me.
+
+**oursWins: false** — not because anything I could test failed (nothing did),
+but because one third of the stated bar was never obtained, and a pass on two
+of three isn't a win on the bar as written. The gap for next round: get an
+actual Citymapper leg list for a real walking route with stairs in front of a
+person (a phone with the app, or a support/help-centre page that shows one)
+and diff our card against it directly — until that exists, "matches
+Citymapper's format" is asserted, not verified, and shouldn't be treated as
+closed.
