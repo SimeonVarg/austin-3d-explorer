@@ -38,39 +38,79 @@ builds next: import UT's layer as a second source of truth alongside OSM
 single door that's the only thing the router will ever consider. Nothing in
 `js/wayfind.js` or the bake changed this round; `WAYFIND.on` untouched.
 
-## 2026-08-23 — stairs: the route now says where they are, and offers a way round them with the price on the button
+## 2026-08-23 — the stairs: one was drawn nowhere, and "avoid stairs" was walking people over them
 
-The walk feature already knew about every staircase on campus and was only
-telling you how many. Ask it to walk from the Art Building to the Tower and it
-said "Stairs: 7 sets" and gave you a checkbox — seven flights, no idea where,
-and a filter you could only understand by ticking it.
+Went after the stairs. Three things were wrong. First, the city was drawing 188
+of the 189 staircases OpenStreetMap has mapped on campus — the missing one, on
+the plaza at the north-west corner of the PCL, is tagged as a stepped *area*
+rather than a stepped path and was falling through a gap in the bake, so the
+router happily sent people up a flight the city drew nowhere. It is drawn now,
+and every drawn staircase carries the OSM id it came from, so "the route has 3
+sets of stairs" and "here are the stairs on the ground" can be checked against
+each other by name instead of by eye. That also settles the 179-versus-189
+confusion: they were always the same staircases, because touching flights merge
+into one drawn shape.
 
-It now lists them, in order, the way a transit app lists a leg: which flight,
-how far into the walk, and which building it is beside ("620 m in · near WEL").
-It says "up the steps" or "down the steps" where OpenStreetMap has recorded
-which way is up, and plainly says it does not know on the rest — that is one
-flight in eight today, and it is a bug in the graph bake rather than missing
-data, so `docs/walk-stairs.md` carries the exact patch to nearly double it.
+Second, and this is the one that mattered: the **Avoid stairs** toggle was
+lying. A walk is the mapped path plus two straight lines we draw ourselves from
+the path to each door — and on four buildings (the Computation Center,
+Magnetics, Studio Art, CS3) that last line runs straight over a flight of steps.
+Out of 140 routes where the app offered a stairs-free way, 11 of them still
+walked over a staircase. Batts Hall to the Computation Center was the worst:
+ticking the box changed nothing at all, and the card said "No stairs on this
+route" while the last thirty metres went down a flight. The avoiding route now
+refuses to arrive at a door it cannot reach without steps — it costs 32 more
+metres on that one, and 11 of 11 are clean now with no route lost.
 
-The bigger change: when a route has stairs, the card now works out the
-step-free route without being asked and offers it as a button with what it
-costs — "Step-free: 14–19 min · 1.2 km / Avoids all 7 sets · 250 m further".
-Nine routes in ten that have stairs get one. The other one in ten gets an
-honest sentence saying there is not one, said properly rather than buried in
-grey. Under step-free it will now use any door rather than insisting on the
-front one, which is what UT's own accessible-entrance data says is right, and
-which on its own rescued 21 of the 300 routes we tested from having no answer
-at all and halved the typical detour.
+Third, you had to know the toggle existed. Every route with stairs on it now
+works out the way round at the same time, checks it really is stairs-free, and
+hands it back with what it costs — and when there genuinely is no way round
+(about one stair route in six) it can say that instead of offering nothing. The
+route also now knows *which* staircases it uses, where along the walk each one
+starts, and which way you are going over it where OpenStreetMap says. That costs
+about a millisecond. The interface for it is written out ready in
+`docs/walk-stairs.md` for whoever owns the card — four lanes are in that file
+this round and I stayed out of it. Pictures in `shots/walk/stairs/`.
+Branch `acer/w-stairs`.
 
-Every offered step-free route is checked against the graph before it is shown —
-112 of 112 contained zero steps — and the check can be watched failing on
-demand. Two claims got quietly corrected while we were in there: the card used
-to say it avoided 189 staircases when 21 of those sit on paths the router
-cannot reach in any mode (168 now), and one line contradicted the number
-directly above it. And a defect that every number said was fine turned up in a
-screenshot: the step-free button offered a route and then landed on "no route".
-Fixed, and there is an assertion for it now.
+## 2026-08-23 (later) — the stairs, part two: the card now shows them, and the way round is a button with the price on it
 
-Branch `acer/w-stairs`. Pictures in `shots/walk/stairs/`, the full record in
-`docs/walk-stairs.md`. `WAYFIND.on` untouched; with the feature off the app
-makes byte-identical requests to before, checked.
+Part one put all the facts on the route and left the interface for whoever owned
+the card. Nobody did, so this is that — plus four things that only turned up
+once there was something to look at.
+
+Ask it to walk from the Art Building to the Tower and it used to say
+"Stairs: 7 sets" and give you a checkbox. It now lists them, in order, the way a
+transit app lists a leg: which flight, how far into the walk, and which building
+it is beside ("620 m in · near WEL"). It says "up the steps" or "down the steps"
+where OpenStreetMap has recorded which way is up, and plainly says it does not
+know on the rest — that is one flight in eight today, and it is a bug in the
+graph bake rather than missing data, so the exact patch is written down.
+
+The way round is now a button with its cost already worked out — "Step-free:
+14–19 min · 1.2 km / Avoids all 7 sets · 250 m further" — and when there is no
+way round it says so in plain sight rather than in grey footnote text.
+
+Four things the pictures and a 300-route sweep caught:
+
+The offer and the button disagreed. It offered a step-free route on Art Building
+→ Tower and then answered "no route that avoids mapped stairs" when you pressed
+it. Every number was green while that was on screen; it was found by looking at
+the screenshot. There is one step-free implementation now and one assertion that
+says so.
+
+Ticking "Avoid stairs" folded the card shut on the same click, so you turned it
+on and the answer vanished. One line.
+
+The card claimed it avoided 189 staircases when 21 of those sit on paths the
+router cannot reach in any mode. It says 168, and the sentence above it that
+contradicted the number is fixed too.
+
+And the step-free route now uses any door rather than insisting on the ranked
+front one — which is what UT's own accessible-entrance data says is right, and
+which on its own rescued 21 of the 300 routes we tested from having no answer at
+all and halved the typical detour. It still comes back to the front door when
+the front door is within about forty metres of as good.
+
+Pictures in `shots/walk/stairs/`, including the phone, since that is what he
+judges it on. Branch `acer/w-stairs`.

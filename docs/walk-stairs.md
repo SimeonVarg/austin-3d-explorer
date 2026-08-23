@@ -1,94 +1,464 @@
-# Stairs — knowing where they are, and offering a way round them
+# Stairs on the walk, and the way round them
 
-Acer lane `acer/w-stairs`, 2026-08-23, round 1. Written files: `js/wayfind.js`
-(§5b plus four marked lines elsewhere), `shots/walk/stairs/`, this document.
-`scripts/bake_ground.py` was read closely and **deliberately not changed** — §8
-says why. Nothing else was touched; four other lanes are in this file today.
+**Date:** 2026-08-23. **Branch:** `acer/w-stairs`, cut from `origin/main`
+(`5896981`). **Server:** `python scripts/serve.py 8713`. **Harness-drift:**
+PASS — 31 scripts in `index.html`, 31 in `_harness.html`, run before and after
+the code changes. **Instrument:** playwright-core from
+`scripts/verify/node_modules` (installed into this worktree; it starts empty),
+Chrome at `C:/Program Files/Google/Chrome/Application/chrome.exe`,
+`gl:'hardware'`, `?walk=1&intro=0&drift=0`, `cancelGraphicsAutoDetect()`
+called, waited on `!document.getElementById('veil')`, every frame taken twice
+and the second kept.
 
-Confidence marks are the house convention from `docs/entrances/`:
-**[M]** measured here, **[D]** derived from an [M] by an argument written out,
-**[C]** cited to a source I have not re-measured, **[U]** an authoring default.
-
-**The one-line answer.** The router already knew where every staircase was and
-was saying only how many. It now lists them in order, says which way you go up
-where OpenStreetMap knows, and — on nine routes in ten that have stairs — offers
-a step-free route with its price on the button. The step-free answer is checked
-against the graph on every single route before it is offered, and 112 of 112
-offers in the census contain zero stepped edges.
+Owns: `js/wayfind.js` (cost/penalty and alternate-route functions only),
+`scripts/bake_ground.py`, `shots/walk/stairs/`, this file. Two changes that
+belong to other lanes are written out verbatim in §5 and §6 rather than made.
 
 ---
 
-## 1. Four counts, and three of them were being confused
+## 0. The headline
 
-Everything downstream depends on getting this straight, so it is first.
+Three things were wrong and are now right.
 
-| count | what it is | how it was measured |
-|---|---|---|
-| **189** | `highway=steps` ways in `data/osm_cache/footways.json` | **[M]** direct count |
-| **215** | edges in `data/walk_graph.json` with the STEPS flag | **[M]** a flight with a bend is several edges of ONE way; `e.s` carries the way id |
-| **168** | steps ways with at least one edge **on the main component** | **[M]** `F_STEPS && !F_OFFMAIN`, 21 ways are entirely on stranded islands |
-| **179** | `u:'steps'` polygons in `data/ground.geojson` | **[M]** and it is **not a staircase count** — see below |
+1. **One mapped staircase on campus was drawn nowhere.** OSM way `147362093`
+   is tagged `highway=steps area=yes`; the ground bake skipped every
+   `area=yes` pedestrian way as "a plaza, handled with the areas", and the
+   plaza pass reads a different Overpass query, so it fell between the two.
+   The walk graph charges people for it. **189 of 189 mapped staircases are
+   now drawn**, and every stepped slab carries the OSM way ids that made it,
+   so the drawn staircase and the routed staircase join on identity instead of
+   on a centroid guess.
 
-### 1a. 168 is the number the interface may print, and it was printing 189
+2. **"Avoid stairs" was routing people over stairs.** A route is graph edges
+   *plus two straight lines we drew ourselves* — door to network, network to
+   door — and those are not surveyed paths. Over 396 routes, **11 of the 140
+   step-free routes the feature offered walked a door leg clean across a
+   mapped staircase.** Four door anchors of 421 do it (COM, CS3, MAG, STD) and
+   they sit on popular ends. The avoiding pass now refuses those anchors:
+   **140 offered before, 140 offered after; 11 dirty before, 0 after.**
 
-`dijkstra()` skips every `F_OFFMAIN` edge, with the avoid-stairs toggle on or
-off. So 21 of the 189 staircases are ones the router has never been able to walk
-over in either state, and ticking the box does not "avoid" them — it changes
-nothing about them at all. The shipped card said:
+3. **Nothing offered the way round unless you found the toggle.** Every route
+   with stairs on it now computes and *verifies* a step-free alternative
+   alongside the direct one, and hands it back on the answer object with what
+   it costs. When there is no such walk — 31 of 171 stair routes on this
+   campus — it says so rather than offering nothing.
 
-> Avoids **189** mapped staircases. Kerbs and doorways are not checked.
-
-It now reads 168, off `routableStairways(g)`, which counts exactly the set
-`edgeCost()` prices at Infinity **and** `dijkstra()` is willing to relax. The
-sentence one line above it said *"Routes around every staircase OpenStreetMap
-has mapped on campus"* — 189 — sitting directly over a count of 168. That is now
-*"Routes around every mapped staircase it can reach."*
-
-### 1b. 179 is paint, not stairs, and it is reproducible to the digit
-
-`scripts/bake_ground.py` takes every `highway=steps` line, buffers it out to
-`DEFAULT_WIDTH['steps'] = 3.0 m` with flat caps and mitre joins, and unions the
-result **per (use, surface) group**. Flights that touch a neighbour merge into
-one polygon. I re-ran that transform from the OSM cache and got the shipped file
-back exactly **[M]**:
-
-```
-LAT0 30.285 | steps ways entering the ground bake: 188   (189 minus one crossing)
-  surface brick        2 flights ->   2 polygons
-  surface concrete   159 flights -> 151 polygons
-  surface limestone    1 flights ->   1 polygons
-  surface paving      26 flights ->  25 polygons
-reproduced polygon count: 179
-shipped ground.geojson u='steps': 179  [concrete 151, paving 25, brick 2, limestone 1]
-```
-
-**179 = 188 flights with nine merges.** Nothing in the route may ever be checked
-against it, and no sentence may ever print it as a number of staircases. The
-script that reproduces it is `prove179.py`, quoted in §10.
-
----
-
-## 2. What the card says now
-
-`shots/walk/stairs/` — before and after on the same route, ART → UT Tower, which
-crosses seven flights.
+Pictures: `shots/walk/stairs/`.
 
 | file | what it shows |
 |---|---|
-| `before-card-crop.png` | the shipped card: `Stairs: 7 sets`, a checkbox, and nothing else |
-| `after-card-legs.png` | the leg list, positioned, and the step-free offer with its price |
-| `after-card-stepfree.png` | what the offer button lands on, and the way back priced too |
-| `after-card-nostepfree.png` | a route with stairs and no step-free answer — FAC → ASE |
+| `ART-STD-1-direct.png` / `-2-stepfree.png` | Same camera. `2-4 min walk · 160 m · **Stairs: 4 sets**` becomes `2-4 min walk · 210 m · **No stairs on this route**`, and the ribbon visibly swings west round the stepped approach to DKR. |
+| `com-door-1-before.png` / `-2-after.png` | Same camera, the one constant flipped. Before: the dashed last stretch lands **on** the highlighted staircase while the card says "No stairs on this route". After: 180 m, the walk comes round the plaza and the dashed stub never touches it. |
+| `campus-1-plain.png` / `-2-stairs-lit.png` | Every `u:"steps"` slab lit cyan — what "know where the stairs are" looks like. |
+| `area-steps-1-plain.png` / `-2-lit.png` | The staircase at the north-west corner of the PCL plaza that was drawn nowhere until this round, plain and then lit. |
+
+The lit layer is a **test-only** `fill-extrusion` added by the verify script and
+filtered on `wid`; nothing in the app draws it. It is there because
+"189 of 189 are drawn" read out of a JSON count is not the same claim as
+looking at them.
+
+---
+
+## 1. The 179 and the 189 are the same staircases, and neither number was wrong
+
+The brief says `data/ground.geojson` has 179 features tagged `steps`. It did.
+The walk graph prices 189 `highway=steps` ways. Both are true and they are the
+same staircases counted two ways:
+
+* `data/osm_cache/footways.json` holds **189** ways with `highway=steps`.
+* `data/walk_graph.json`'s `e.s` holds **exactly those 189 ids** — set
+  equality, nothing in the cache missing from the graph, nothing in the graph
+  invented. 215 edges over 189 ways.
+* `widen_paths()` buffers each stepped centreline and **unions per
+  `(use, surface)`**, so flights that touch merge into one drawn polygon. 188
+  ways came out as 179 slabs.
+* The 189th, way `147362093`, was tagged `area=yes` and drawn nowhere at all.
+
+So "179 features" was never a count of staircases; it was a count of connected
+blobs. **The honest number is 189 mapped staircases**, and after this round the
+drawing carries the ids to prove it:
+
+```
+patharea u:steps        179  ->  180        (+1: the stepped area)
+distinct OSM way ids drawn      188  ->  189
+slabs with no `wid`                    0
+slabs made by one way                171
+slabs made by two ways                 9
+```
+
+The extra tags now on the slab, and **only** where OSM actually says it:
+`inc` 76, `hr` (handrail) 57, `sc` (step_count) 9, `rmp` 3, `lit` 2. `inc` is
+written only when a single way made the slab — "up" on a merged blob of three
+flights is not a direction, and inventing one is the failure this file's own
+TRUTH RULE forbids.
+
+`data/ground.geojson` 5,192,647 → 5,197,734 bytes (+0.1 %), one extra feature,
+and **nothing else in the file moved**: the bake was byte-for-byte reproducible
+against the shipped file before the change, and the only signature difference
+after it is `('patharea','steps','concrete') 151 → 152`. `data/roads.geojson`
+is untouched.
+
+## 2. The bug this round actually fixes
+
+`js/wayfind.js` prices every `highway=steps` edge at `Infinity` when the toggle
+is on. That is not the whole route. The last stretch from the walk network to a
+door is a straight line we drew, and it is drawn dashed precisely because it is
+not surveyed — but it is still metres a person walks.
+
+Measured offline against the shipped graph, 396 pseudo-random building pairs:
+
+```
+                                                     before      after
+routes that completed                                   396        396
+routes with a staircase on them                         171        171
+step-free route existed and was offered                 140        140
+   ...of which walked a door leg over a staircase        11          0
+no step-free route exists at all                         31         31
+median extra distance of the alternative               111 m      118 m
+worst extra distance                                   702 m      702 m
+```
+
+Coverage did not move. The 7 m of extra median is the price of arriving at a
+door you can actually reach.
+
+**Only four door anchors of 421 cause it** — on `COM`, `CS3`, `MAG`, `STD` —
+which is why it went unnoticed and why it mattered anyway: those are common
+destinations, so four anchors poisoned 8 % of every offer.
+
+Re-measured in the real client (115 routes routed through `wayfindRoute` in the
+page, not a mirror):
+
+```
+routes with stairs                48
+step-free alternative offered     36     of which not genuinely step-free: 0
+no alternative exists             12
+the shipped toggle, same pairs    36 routes, not genuinely step-free: 0
+```
+
+### The A/B, in the browser, on the one constant that fixes it
+
+`WAYFIND.stairAltCleanDoors` is a taste constant, so the old behaviour can be
+put back in one line and the two answers compared in the same session:
+
+```
+BAT > COM   direct 151 m, "no stairs", last stretch crosses way 126328792
+            toggle, cleanDoors OFF   151 m   legWays [126328792]   clean false
+            toggle, cleanDoors ON    183 m   legWays []            clean true
+ART > MAG   direct 544 m, 3 sets, last stretch crosses way 1512289474
+            toggle, cleanDoors OFF   582 m   legWays [1512289474]  clean false
+            toggle, cleanDoors ON    579 m   legWays []            clean true
+PCL > COM   direct 504 m, 2 sets, last stretch crosses way 126328792
+            toggle, cleanDoors OFF   523 m   legWays [126328792]   clean false
+            toggle, cleanDoors ON    556 m   legWays []            clean true
+```
+
+`BAT > COM` is the ugliest of the three and it is in the pictures: with the old
+rule the "avoid stairs" answer is **byte-identical to the direct route**, says
+"No stairs on this route", and ends by walking down a flight of steps. `ART >
+MAG` is the pleasant surprise — the clean door is 3 m *closer*.
+
+## 3. What the code now says about a staircase
+
+`window.wayfindStairs()` returns facts, never sentences — the wording belongs
+to `docs/walk/what-we-can-honestly-say.md`, not here.
+
+```js
+{
+  avoidingStairs, clean,
+  sets, ways,                       // staircases the ROUTED path climbs
+  list: [{ way, atM, m, dir, steps }],   // in walk order, capped at stairListMax
+  legWays, legWayCount,             // staircases the two unmapped door legs cross
+  stepFree: { clean, distM, extraM, lo, hi, extraMinLo, extraMinHi,
+              far, sameWalk, doorChanged, doorsRefused, doorsForced,
+              avoided, vertices } | null,
+  stepFreeNone,                     // true when we looked and there is no way round
+  graphStaircases                   // 189
+}
+```
+
+`list` is the Citymapper-shaped leg list: **one entry per staircase**, never per
+step and never per drawn segment, because a staircase drawn in fourteen pieces
+is one staircase you climb once. What each entry may claim:
+
+* `way` — the OSM way id, which now joins straight to `wid` on the drawn slab.
+* `atM` — metres from the start of the walk to the foot of it.
+* `m` — its plan length. Campus staircases run 0.7 m to 63.9 m, median 3.7 m.
+* `dir` — `'up'`, `'down'`, or `''`. Direction of travel over the actual edge,
+  so `up` means up **for you**, not up in OSM's node order. `''` today for 150
+  of the 189, and `''` is the truth, not a gap to paper over. §5 halves that.
+* `steps` — `null` today. OSM carries `step_count` on 9 ways of 189 and the
+  graph does not carry it at all. §5 wires it; until then we do not print a
+  number of steps, and Citymapper's "Up 24 steps" is a claim this data cannot
+  make.
+
+Nothing here says "flight". Nothing in OSM records a landing, so a flight is not
+in the data — the same ruling `interface.md` already lost once.
+
+Live example, `ART > STD`:
+
+```
+157 m, 4 sets
+  way 1526526671  at   9 m   3.6 m   dir ''
+  way 1526526673  at  14 m   3.1 m   dir ''
+  way 1526526669  at  20 m   3.9 m   dir ''
+  way 1419272907  at 142 m   7.4 m   dir 'up'
+step-free: 212 m, +55 m, verified clean, 1 door anchor refused
+```
+
+## 4. What it costs
+
+One extra Dijkstra per route that has stairs on it. **Eight fixed pairs, nine
+interleaved reps, minimum of each, hardware GL, no CPU throttle, one browser:**
+
+```
+pair        without   with    extra
+ART>STD      0.4 ms   0.9 ms   +0.5
+GEB>WEL      0.4      1.7      +1.3      <- worst
+COM>WEL      0.4      1.6      +1.2
+JES>PCL      0.3      0.7      +0.4
+PCL>GDC      0.7      1.3      +0.6
+WEL>RLP      0.9      0.9       0.0      (no stairs, no second search)
+BAT>COM      0.4      0.8      +0.4
+ART>MAG      1.0      2.1      +1.1
+```
+
+Worst +1.3 ms on a route that costs 0.4 ms. `WAYFIND.stairAlt = false` turns it
+off entirely. The stair spatial index is built lazily on the first stair
+question and memoised, so a session that never routes over a staircase never
+pays for it.
+
+## 5. TWO PATCHES FOR `scripts/bake_walk.py` — NOT THIS LANE'S FILE
+
+Both are small, both are the difference between a leg list that reads like
+Citymapper's and one that reads like ours. `js/wayfind.js` **already accepts
+both** (`stairExtras()`) and reports `''` / `null` until they arrive, so these
+land with no client change.
+
+### 5a. `incline=down` is being thrown away
+
+Flag bit 8 only ever means "up in the stored a→b order", and the bake sets it
+only for `incline=up`. A way tagged `incline=down` therefore arrives as *no
+direction at all*: 80 of 189 staircases carry `incline` in OSM and only **39**
+reach the client with a usable direction.
+
+There is no free flag bit (1,2,4,8,16,32,64,128 are all taken), so the down
+edges ship as their own sparse list.
+
+In the edge loop, replace:
+
+```python
+            ef = f
+            # incline is a direction on the way's node order, not a gradient.
+            if inc == "up":
+                ef |= F_INCLINE_UP_AB
+            key = (a, b) if a < b else (b, a)
+            if inc == "up" and key[0] != a:
+                ef &= ~F_INCLINE_UP_AB   # stored a->b in sorted order
+```
+
+with:
+
+```python
+            ef = f
+            # incline is a direction on the way's node order, not a gradient.
+            # `down` is as much a direction as `up`; dropping it lost 36 of
+            # the 80 tagged staircases (docs/walk-stairs.md §5a).
+            up_ab = True if inc == "up" else (False if inc == "down" else None)
+            key = (a, b) if a < b else (b, a)
+            if up_ab is not None and key[0] != a:
+                up_ab = not up_ab            # stored a->b in sorted order
+            if up_ab is True:
+                ef |= F_INCLINE_UP_AB
+            elif up_ab is False:
+                down_keys.add(key)
+```
+
+with `down_keys = set()` declared next to `edges = {}`, and — once `order` (the
+emitted edge order) exists — one more array in the `e` block:
+
+```python
+    dn, prev = [], 0
+    for i, k in enumerate(order):
+        if k in down_keys:
+            dn.append(i - prev)
+            prev = i
+    ...
+    "e": {..., "dn": dn},
+```
+
+`dn` is delta-coded edge indices, the same shape as `re`. On today's data it is
+about 40 small integers. Extend `_format` with:
+`"e.dn: delta-coded edge indices whose stored a->b direction is DOWNhill; bit 8 is UP, and an edge in neither has no tagged incline."`
+
+### 5b. `step_count` never reaches the client
+
+Nine ways of 189 carry `step_count` and the graph drops it, so the interface
+cannot say "21 steps" about the one staircase where OSM knows. Emit a small
+top-level map beside `code` / `name`:
+
+```python
+    sc = {}
+    for w in load("data/osm_cache/footways.json")["elements"]:
+        t = w.get("tags") or {}
+        if t.get("highway") != "steps":
+            continue
+        v = str(t.get("step_count") or "").strip()
+        if v.isdigit():
+            sc[str(w["id"])] = int(v)
+    ...
+    "sc": sc,          # way id -> OSM step_count. NINE ways of 189 have one.
+```
+
+Nine entries, ~150 bytes. `js/wayfind.js` reads `g.raw.sc` already.
+
+## 6. THE INTERFACE PATCH — NOT THIS LANE'S FUNCTIONS EITHER
+
+Four sibling lanes are in `js/wayfind.js` this round and `renderPill()` is not
+mine, so the presentation is written out rather than made. Everything it needs
+is already on the answer object.
+
+Wording is a **proposal**, not a decision: `docs/walk/what-we-can-honestly-say.md`
+§11 outranks this file and should ratify these before they ship. They are built
+to survive its three existing rulings — no single number, no "flight", and
+never the phrase "step-free" as a headline promise (the audit already replaced
+`Step-free: 15 min` with `Avoid stairs` for exactly that reason).
+
+Add to `SAY`:
+
+```js
+    // one line per staircase, in walk order — the leg list
+    stairLegUp:   (d) => 'Up a staircase, ' + d + ' in',
+    stairLegDown: (d) => 'Down a staircase, ' + d + ' in',
+    stairLeg:     (d) => 'A staircase, ' + d + ' in',
+    // ...and, once bake_walk ships `sc` (§5b), only where OSM has the number
+    stairLegUpN:   (n, d) => 'Up ' + n + ' steps, ' + d + ' in',
+    stairLegDownN: (n, d) => 'Down ' + n + ' steps, ' + d + ' in',
+    // the offer. `Avoiding stairs`, not `Step-free`, per the honesty audit.
+    avoidOffer: (lo, hi, dist, extra) =>
+      'Avoiding stairs: ' + lo + '-' + hi + ' min, ' + dist + ' (+' + extra + ')',
+    avoidOfferSame: (lo, hi, dist) =>
+      'Avoiding stairs costs nothing here: ' + lo + '-' + hi + ' min, ' + dist,
+    avoidOfferFar: (extra) => 'The way round adds ' + extra + '.',
+    // the disclosure the router could never make before
+    legStairs: (n) => 'The last stretch crosses ' + n + ' mapped staircase' +
+      (n === 1 ? '' : 's'),
+```
+
+In `renderPill()`, immediately after the `r.m.signals` line:
+
+```js
+    // THE STAIRS, ONE LINE EACH, IN WALK ORDER (docs/walk-stairs.md §3).
+    if (r.stair && r.stair.list.length) {
+      const ul = h('div', 'wf-stairs');
+      for (const s of r.stair.list) {
+        const d = fmtDist(s.atM);
+        const t = s.steps != null
+          ? (s.dir === 'up' ? SAY.stairLegUpN(s.steps, d)
+            : s.dir === 'down' ? SAY.stairLegDownN(s.steps, d) : SAY.stairLeg(d))
+          : (s.dir === 'up' ? SAY.stairLegUp(d)
+            : s.dir === 'down' ? SAY.stairLegDown(d) : SAY.stairLeg(d));
+        ul.appendChild(h('div', 'wf-c wf-stair', t));
+      }
+      el.card.appendChild(ul);
+    }
+    // The unmapped last stretch crossing a staircase is a DIFFERENT fact from
+    // the route climbing one, and it is the fact the toggle used to get wrong.
+    if (r.stair && r.stair.legWayCount) {
+      el.card.appendChild(h('div', 'wf-c wf-dim', SAY.legStairs(r.stair.legWayCount)));
+    }
+    // THE OFFER. Not behind the toggle: a person who cannot climb should not
+    // have to find a checkbox to be told the way round exists.
+    if (r.stepFree) {
+      const sf = r.stepFree;
+      const b = h('button', 'wf-alt', sf.sameWalk
+        ? SAY.avoidOfferSame(sf.time.lo, sf.time.hi, fmtDist(sf.distM))
+        : SAY.avoidOffer(sf.time.lo, sf.time.hi, fmtDist(sf.distM), fmtDist(sf.extraM)));
+      b.addEventListener('click', (ev) => {
+        ev.stopPropagation(); state.avoid = true; run();
+      });
+      el.card.appendChild(b);
+      if (sf.far) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidOfferFar(fmtDist(sf.extraM))));
+    } else if (r.stepFreeNone) {
+      el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidNone));
+    }
+```
+
+`SAY.avoidNone` already exists in the file and is currently referenced nowhere —
+this is the branch it was written for.
+
+**One CSS note for whoever owns the stylesheet:** `.wf-alt` should read as a
+button, not a sentence; `.wf-stair` wants a small left rule or a glyph so the
+leg list reads as a list at a glance. Both are taste and both are theirs.
+
+## 7. What this pass did NOT establish
+
+1. **Lighting is untouched.** The brief asked about streetlights and this lane
+   did not do them; `data/props.geojson` has 532 OSM lamps and nothing routes
+   on them (`docs/walk-evidence.md`). Two of the 189 staircases carry `lit` and
+   that is now on the slab as `lit`, which is a start and not an answer.
+2. **A staircase nobody mapped is still invisible.** Everything here is a claim
+   about `highway=steps` in OSM, and the interface already says so
+   ("there may be steps nobody has mapped"). The `clean` flag means "no MAPPED
+   stairs", and no wording should promise more.
+3. **Ramps beside steps are not used.** 12 ways carry `ramp` and 1
+   `ramp:wheelchair`; a staircase with a ramp beside it is still refused by the
+   avoiding pass. That is the conservative direction and it is deliberate, but
+   it is a decision someone could revisit with better data.
+4. **`sc`/`inc`/`hr` on the drawn slab are carried, not yet drawn.** Nothing in
+   `js/ground.js` reads them. They exist so the two files can be joined and so
+   the risers in `data/depth.geojson` have something to key on later.
+5. **The base route still prefers the same doors it always did.** Only the
+   avoiding pass is fussy. Changing the default door policy would desynchronise
+   the client from `bake_walk.py`'s audited router, and that is a decision for
+   whoever owns the bake, not a side effect of a stairs pass.
+6. **No pixel assertion on the stepped slab's colour.** The new staircase is
+   proved present by `querySourceFeatures` carrying `wid: 147362093` *and* by a
+   filtered highlight layer in the frame. Its surface class is `concrete`, the
+   same as the plaza it sits on, so a hex probe would not have distinguished
+   it — the highlight is the honest instrument here.
+
+---
+---
+
+# Round 2 — the card, and four things that only showed up once you could see it
+
+**Date:** 2026-08-23, later the same day. **Branch:** `acer/w-stairs`, continued
+on top of `735e235`. **Server:** `python scripts/serve.py 8713`. Same
+instrument as round 1: playwright-core from `scripts/verify/node_modules`,
+Chrome at `C:/Program Files/Google/Chrome/Application/chrome.exe`,
+`?walk=1&intro=0&drift=0`, `cancelGraphicsAutoDetect()`, waited on
+`!document.getElementById('veil')`, every frame taken twice and the second kept.
+**Harness-drift:** PASS, 31 / 31.
+
+Round 1 stopped at the route object and wrote §6's interface patch out rather
+than making it, because four lanes were in `js/wayfind.js`. **§6 is made now.**
+The rest of this section is what happened once the facts were on screen.
+
+**The one-line answer.** Of 300 random routable pairs, 125 walk over stairs and
+**113 of those (90.4 %) now carry a verified step-free alternative on the card
+with its price on the button**; the flights are listed in walk order, named by
+the building each one is beside (215 of 216); and four defects that every number
+in round 1 said were fine turned up the moment there was a picture to look at or
+a control to click.
+
+---
+
+## R1. §6 is made. What the card says now
+
+`shots/walk/stairs/` gained eight frames; round 1's are still there.
+
+| file | what it shows |
+|---|---|
+| `before-card-crop.png` | the card as shipped: `Stairs: 7 sets`, a checkbox, nothing else |
+| `after-card-legs.png` | the leg list, positioned and named, with the offer under it |
+| `after-card-stepfree.png` | what the offer button lands on, with the way back priced |
+| `after-card-nostepfree.png` | FAC → ASE: stairs, and no step-free answer, said in plain sight |
 | `after-card-longdetour.png` | MAI → TNH, where step-free costs 460 m |
-| `after-card-direction.png` | WIN → DKR, the one case in eight where OSM says which way is up |
+| `after-card-direction.png` | WIN → DKR, one of the flights where OSM says which way is up |
 | `after-phone-legs.png` | 393 × 852, because that is what he judges it on |
 | `after-city-stepfree.png` | the step-free ribbon on the city, camera from the app's own fit |
 
-The before card, in full: *"12-16 min walk · 940 m · Stairs: 7 sets"*, then a
-checkbox labelled **Avoid stairs**. Seven staircases, no idea where, and a filter
-whose effect you can only discover by ticking it.
-
-The after card, same route:
+ART → UT Tower, seven flights, after:
 
 ```
 12-16 min walk · 940 m · Stairs: 7 sets
@@ -114,237 +484,272 @@ This is not an accessibility check. …
 ```
 
 Three flights inside the first twenty metres reads like a bug, so I looked
-**[M]**. They are OSM ways `1526526671`, `1526526673`, `1526526669`, at
-30.28584 / 30.28579 / 30.28574 — three short flights with landings between them
-on the terraced approach out of the Art Building, and every one of them carries
-`handrail=yes`, `ramp=separate` and **`incline=down`**. The card cannot say
-"down the steps" about any of the three, and §5 is why.
+**[M]**. OSM ways `1526526671`, `1526526673`, `1526526669`, at 30.28584 /
+30.28579 / 30.28574 — three short flights with landings between them on the
+terraced approach out of the Art Building, each tagged `handrail=yes`,
+`ramp=separate` and **`incline=down`**. The card cannot say "down the steps"
+about any of the three, which is §5a of round 1 showing up in a screenshot.
 
-### 2a. Every taste value in the block
+Two additions to round 1's leg-list facts, both in `stairLegs()`:
 
-All in `STAIRS` at the top of §5b (CLAUDE.md rule 11), one line each:
-`offer`, `offerMaxExtraM` (Infinity — the option is never hidden for being
-long), `allDoorsStepFree`, `mainDoorSlackM` (40), `dropStepAnchors`,
-`legListMax` (5), `legListMaxNarrow` (3), `narrowPx` (520), `atRoundM` (10),
-`nearBuildingM` (70), `breakStepFree` (the watched failure).
+* **`code`** — the nearest register code within `STAIRS.nearBuildingM = 70 m` of
+  where the flight starts. "620 m in" alone makes a reader count; "620 m in ·
+  near WEL" is a place. **215 of 216** flights in the census got a name **[M]**.
+* **position rounds to `STAIRS.atRoundM = 10 m`** in the copy, and collapses to
+  *"at the start"* below one rounding step. The first cut printed `8.6 m in`,
+  which reads as a survey and is worth nothing to a walker.
 
----
-
-## 3. The leg list
-
-**One entry per contiguous RUN of stepped edges, not one per OSM way.** Measured
-before it was written: only **2 nodes** on this campus have two distinct steps
-ways meeting directly, so runs and ways agree on 187 of 189 flights **[M]** — and
-the census confirms zero divergence over 300 routes. The reason to group by run
-anyway is the other direction: a route that goes up and back down the *same*
-flight is two runs and one way id, and the way-id count that feeds the headline
-would call that one staircase.
-
-Each entry carries:
-
-* **position** — metres from the door you start at, including the unmapped door
-  leg, rounded to `atRoundM = 10 m` and collapsed to *"at the start"* below one
-  rounding step. The first cut printed `8.6 m in`, which reads as a survey and
-  is worth nothing to a walker.
-* **which building** — the nearest register code within `nearBuildingM = 70 m`
-  of the flight's own coordinates. **215 of 216** flights in the census got a
-  name **[M]**.
-* **direction** — *"Up the steps"* / *"Down the steps"* / *"Steps"*.
-
-### 3a. Direction is right one time in eight, and that is the bake, not the tag
-
-`F_INCLINE_UP_AB` means *A→B is up*, so traversing B→A is **down** and both
-senses are printable from one bit. The problem is upstream: of the 80 steps ways
-OSM tags with `incline` (44 up, 36 down **[M]**), `walk_graph.json` can express
-**39** **[M]**. Two separate losses in `scripts/bake_walk.py`:
-
-* `incline=down` is dropped outright — the code only ever tests `inc == "up"`;
-* when an edge is stored against the way's node order the bit is **cleared**
-  (`ef &= ~F_INCLINE_UP_AB`) rather than flipped, which destroys the fact
-  instead of reversing it.
-
-Measured effect on the census: **26 of 216** flights got a direction, 12.0 %.
-Cross-referencing the same 216 against the OSM tags, **49** of them are on a way
-OSM does tag, 22.7 % **[M]** — so the patch in §5 would very nearly double it.
+`legWays` — round 1's staircases that the unmapped door leg crosses rather than
+the router climbs — gets its own line, because it is a different fact from the
+list and the route cannot avoid it.
 
 ---
 
-## 4. The step-free alternative
+## R2. The offer and the button were not the same route
 
-`attachStairs()` runs on every answer. If the route has at least one flight, it
-computes the step-free route and puts it on the card with the extra distance and
-the extra time already worked out. No toggle to discover, no guessing what it
-costs. The checkbox stays where it was and now does exactly the same thing.
+The card offered **"Step-free: 14–19 min · 1.2 km"** on ART → MAI. Pressing the
+button answered **"No route that avoids mapped stairs."**
 
-### 4a. Two judgement calls, and what each one buys
+Round 1 built the alternative in `stepFreeAlternative()` with its own door and
+anchor handling while `run()` built the toggle's answer through `computeRoute`,
+and the two agreed only because they happened to make the same choices. The
+moment R4 below let the alternative use side doors they diverged. **Every number
+in the census was already green while this was on screen.** It was found by
+reading `after-card-stepfree.png`.
 
-Same 300 pairs, same browser, interleaved, repeated to check for drift **[M]**:
+There is one implementation now. `stepFreeRoute()` in §5b is it;
+`computeRoute()` delegates to it whenever `avoidStairs` arrives without an
+explicit profile, and `stepFreeAlternative()` decorates its answer with the
+price. The census carries an assertion for it — *"the offered route IS the route
+the toggle produces"* — and it is checked on every offer.
+
+## R3. Ticking "Avoid stairs" folded the card shut
+
+`#wf-pill` toggles `state.expanded` on **any** click inside it. Every other
+control on the card calls `stopPropagation` — the chips, both action buttons,
+the result rows. The **Avoid stairs** checkbox did not. So ticking the one
+control this whole feature is about turned step-free on *and closed the panel
+the answer was on*, in the same gesture. One line. `smoke.mjs` drives it as a
+person does and reads back `"2-4 min walk · 190 m · Stairs: 1 set"` →
+`"2-4 min walk · 210 m · No stairs on this route"`, card still open.
+
+## R4. Under step-free, any door — not only the ranked front one
+
+`STAIRS.allDoorsStepFree`. Round 1 used `doorSet()`, which returns `role: main`
+doors when a building has any. Measured over 300 random routable pairs, same
+browser, interleaved, repeated for drift **[M]**:
 
 ```
                                  stairy  offered          extra distance (m)
-A+B  (shipped)                    124    112  90.3%  | med  50  p90 291  max 706 | diffdoor 66 | weak 10
-     main door only               124     91  73.4%  | med 119  p90 328  max 770 | diffdoor  1 | weak  2
-A only, keep stair anchors        124    112  90.3%  | med  44  p90 291  max 706 | diffdoor 67 | weak  0
-A+B  (repeat, drift check)        124    112  90.3%  | med  50  p90 291  max 706 | diffdoor 66 | weak 10
+A+B  (shipped)                    125    113  90.4%  | med  40  p90 291  max 706 | diffdoor 64
+     main door only               125     96  76.8%  | med 116  p90 328  max 770 | diffdoor  1
+A, no front-door slack            125    113  90.4%  | med  40  p90 283  max 706 | diffdoor 89
+A+B  (repeat, drift check)        125    113  90.4%  | med  40  p90 291  max 706 | diffdoor 64
 ```
 
-**A — `allDoorsStepFree`: under step-free, route to any door, not only
-`role: main`.** Worth **21 more routes with an answer at all** (91 → 112) and it
-halves the typical detour (median 119 m → 44 m). The justification is not
-convenience: `docs/walk-progress.md` (2026-08-23) found UT's own
-`Celebrated_Entrances` survey records a *separate accessible door* for buildings
-where it differs from the front door, and our `main` label came out of a ranking
-rather than out of anybody standing in front of the building. Refusing the side
-door because a ranking called it "secondary" is the ranking overruling the person
-the toggle exists for. Citymapper's published behaviour is the same instinct —
-its step-free router *"finds the best accessible entrances"*.
+**17 more routes get an answer at all** (96 → 113) and the typical detour drops
+by two thirds (median 116 m → 40 m). The justification is not convenience:
+`docs/walk-progress.md` (2026-08-23, the recon lane) found UT's own
+`Celebrated_Entrances` survey records a *separate accessible door* where it
+differs from the front door, and our `main` label came out of a ranking rather
+than out of anybody standing in front of the building. Refusing the side door
+because a ranking called it "secondary" is the ranking overruling the person the
+toggle exists for. Citymapper's published behaviour is the same instinct — its
+step-free router *"finds the best accessible entrances"*.
 
-**`mainDoorSlackM = 40`** is A's brake. Without it, 89 of 112 offers moved you to
-a different entrance, most of them to save a handful of metres. The step-free
-pass therefore runs **twice** — front doors only, and every door — and the front
-door wins unless the other saves more than 40 m. Different-door drops 89 → 66 and
-the median detour rises 44 → 50 m **[M]**. Six metres for twenty-three fewer
-surprises.
+**`STAIRS.mainDoorSlackM = 40`** is the brake. Without it, 89 of 113 offers
+moved you to a different entrance, most of them to save a handful of metres. The
+step-free pass runs **twice** — front doors only, and every door — and the front
+door wins unless the other saves more than 40 m. Different-door **89 → 64 with
+no change at all in the median detour** (40 m either way) and 8 m at the p90
+**[M]**. Twenty-five fewer surprise entrances for nothing.
 
-**B — `dropStepAnchors`: never seed a step-free walk on a staircase node.** 44
-doors campus-wide have at least one anchor node that is an *end* of a staircase;
-3 have nothing else **[M]**. Without this, a "no stairs" route can begin at the
-top of a flight. It costs 6 m of median detour, loses no offers at all, and
-raises a *"we can't tell whether the last few metres into the door involve
-steps"* line on the 10 routes where the chosen door had no clean anchor.
+## R5. The card was claiming 189 and the number is 168
 
-That warning is deliberately an admission and not an assertion: what we know is
-that the door's only mapped attachment point is an *end* of a staircase; whether
-that puts steps between you and the door depends on which end, and the data does
-not say. The first cut raised it for the whole door set, so a building with
-eleven doors warned about a staircase the route never went near — 14 lines, 2 of
-them deserved. The flag rides on the anchor now, so it is about the door you are
-actually walking to.
+`dijkstra()` skips every `F_OFFMAIN` edge with the toggle on or off, and **21 of
+the 189** steps ways are entirely on stranded components **[M]**. So the filter
+never "avoided" them — it changes nothing about them in either state. The card
+said *"Avoids 189 mapped staircases"* directly under *"Routes around every
+staircase OpenStreetMap has mapped on campus"*. It now reads 168, off
+`routableStairways(g)`, which counts exactly the set `edgeCost()` prices at
+Infinity **and** `dijkstra()` will relax; and the blurb above it reads *"Routes
+around every mapped staircase it can reach."*
 
-### 4b. The offer is checked, not asserted
+189 is still what the file holds, and `window.wayfindStairs()` returns both
+(`graphStaircases`, `routableStaircases`) so a test can tell them apart.
 
-`edgeCost()` prices a stepped edge at `Infinity` under the step-free profile, so
-a step-free route containing one is impossible. That is exactly why the check is
-code:
+## R6. And the phone
 
-```js
-let bad = 0;
-for (const leg of r.legs) for (const e of leg.edges) if (g.F[e] & F_STEPS) bad++;
-if (bad) return { ok: false, why: 'assert', bad };
+Five leg rows put the card at **825 px of an 852 px screen**, over the joystick
+and the whole city, and the rows themselves read `S…`, `St…`, `Ste…` — the first
+cut gave the instruction `flex:1` with `text-overflow:ellipsis` and the position
+`flex:none`, so the position won the width fight and the instruction, the half
+you cannot lose, was lost. `.wf-step` wraps and never ellipses now; the position
+drops to its own line. `STAIRS.legListMaxNarrow = 3` under
+`STAIRS.narrowPx = 520` brings the card to 812 px. `nb()` keeps a quantity as
+one word, because the button was breaking as "Step-free: 14–19 min · 1.2 / km".
+
+`#wf-pill` still has no joystick clearance — `#wf-sheet` got that in QUEUE Z8 via
+`--drive-clear` and the pill never did. That is not this lane's to fix and it is
+not caused by this lane; `legListMaxNarrow` is only this lane declining to make
+it worse.
+
+---
+
+## R7. `179` reproduced to the digit
+
+Round 1 §1 said the 179 and the 189 were never a disagreement. Here is the
+arithmetic, run from the OSM cache with `bake_ground.py`'s own constants
+(`DEFAULT_WIDTH['steps'] = 3.0`, `PATH_SIMPLIFY_M = 0.15`,
+`PATH_MIN_AREA_M2 = 1.0`, `LAT0 = 30.285`), producing the shipped file's
+per-surface counts exactly **[M]**:
+
+```
+steps ways entering the ground bake: 188        (189 minus one tagged as a crossing)
+  surface brick        2 flights ->   2 polygons
+  surface concrete   159 flights -> 151 polygons
+  surface limestone    1 flights ->   1 polygons
+  surface paving      26 flights ->  25 polygons
+reproduced polygon count: 179
+shipped ground.geojson u='steps': 179  [concrete 151, paving 25, brick 2, limestone 1]
 ```
 
-**The offer is withheld if it ever fires.** A wrong "step-free" badge leaves
-somebody at the bottom of a flight; no route at all is a better failure than
-that, and the card has an honest sentence for it.
+**179 = 188 flights with nine merges.** No sentence may ever print it as a
+number of staircases. Script: `prove179.py`, §R11.
 
-**And it can be watched failing** (`scripts/verify/README.md` §"Every gate must
-be watchable failing"). `WAYFIND.stairs.breakStepFree = true` makes the filter
-leaky inside the page, no file on disk changes:
+---
+
+## R8. The gate, and it can be watched failing
+
+Six assertions over 300 random routable pairs, driven through the real
+`js/wayfind.js` by `window.wayfindStairs(from, to)` — which routes without
+touching the UI or the map and re-derives the step-free claim straight from the
+graph, so a test never takes the card's word for anything.
 
 ```
-stairy 124 | offers WITHHELD by the assertion: 101 | still offered: 23 | of those LEAKING stairs: 0
+ PASS  every offered step-free route is CLEAN — no stepped edge, no door leg across one
+ PASS  headline set-count == distinct steps ways on the path
+ PASS  the leg list accounts for every steps way on the path
+ PASS  every flight is positioned inside the route it is on
+ PASS  the offered route IS the route the toggle produces
+ PASS  the list is in walk order and never runs past the route
+```
+
+And the watched failure, per `scripts/verify/README.md`. `WAYFIND.stairs
+.breakStepFree = true` makes `edgeCost()`'s step-free filter leaky **inside the
+page** — no file on disk changes:
+
+```
+stairy 125 | offers WITHHELD by the verification: 108 | still offered: 17 | of those LEAKING: 0
  PASS  the guard fires, and nothing leaks past it
 ```
 
-The 23 still offered are routes where even a leaky filter happened to find a
-genuinely step-free path, and they are checked too.
+The 17 still offered are routes where even a leaky filter happened to find a
+genuinely clean path, and they are checked too.
 
-### 4c. When there is no step-free route, it says so
+## R9. And what it costs
 
-12 of 124 stairy routes in the census have no step-free answer **[M]**. The card
-prints *"No step-free route we can find between these two."* — and **not dim**.
-For the one person this toggle exists for that is the most important line on the
-card and a footnote is not where it goes. `SAY.avoidNone` had been written for
-this and nothing said it; the failure branch printed the generic *"No walking
-route found"*, which is a different and wrong fact.
+Round 1 measured the alternative at +1.3 ms. Round 2 runs the step-free pass
+twice (front doors, then every door), so a route WITH stairs is three routings
+instead of one. Measured inside the page, 300 routes a run, reported as the
+**minimum of three runs** per `scripts/verify/README.md` — the machine was **not
+quiet**, several sibling lanes were driving browsers, and the three medians for
+the with-stairs case came out 6.9 / 7.7 / 11.6 ms, which is the machine and not
+the code **[M]**:
+
+```
+no stairs      (1 routing)       1.3 ms median   (min of 3 runs; spread 1.3-1.9)
+with stairs    (3 routings)      6.9 ms median   (min of 3 runs; spread 6.9-11.6)
+worst single answer             34.3 ms          (the first call, cold)
+```
+
+It is on a button press, not a frame. On a 4× throttled phone assume ~26 ms
+**[D]**.
+
+With the feature off — which is how it ships, `WAYFIND.on = false` — none of it
+exists: no injected `<style>`, no `window.wayfindStairs`, no `WAYFIND.stairs`,
+and **zero** requests for `walk_graph.json` **[M]**, checked on a plain
+`index.html`.
 
 ---
 
-## 5. The bug the screenshot caught, and it is the reason to look at pictures
+## R10. Against Citymapper
 
-The first build offered **"Step-free: 14–19 min · 1.2 km"** on ART → MAI. Pressing
-the button answered **"No route that avoids mapped stairs."**
+The literal instruction strings are not published anywhere I could source, so
+this is against Citymapper's own **published behaviour**, stated rather than
+guessed.
 
-The offer had been worked out with the step-free door and anchor rules; the
-click had not — `run()` sets `state.avoid` and calls `computeRoute` with plain
-`{ avoidStairs: true }`, which is main-doors-only, and ART → MAI has no
-main-door step-free route. Every number in the census was already green when
-this was on screen. It was found by reading `after-card-stepfree.png`.
+| Citymapper says it does | us, now |
+|---|---|
+| step-free is a **route option** giving *"journeys with NO stairs"* | an offered alternative with its own time and distance, and the claim is verified against the graph on every route before it is shown |
+| *"finds the best accessible entrances"* | R4 — any door, not just the ranked front one. We may not call a door accessible, so the card says *"It uses a different entrance"* |
+| steps appear **in the leg list**, in sequence, with a direction | one row per flight, in walk order, positioned by distance into the walk, named by the building beside it, up/down where the tag survives |
+| never states a number of individual steps | never. `docs/walk/graph.md` §6c has the measurement that forbids it, and round 1 §5b keeps `step_count` behind the same bar |
+| *"walking times are adjusted for people with reduced mobility"* | **deliberately not done.** Our time is a 1.1–1.4 m/s band from Bohannon; there is no honest reduced-mobility number in this repo, and inventing one turns an assumption into a promise about a specific person |
+| *"routes prioritise simplicity over travel times"* | not done. Ours is still shortest-path with a stair penalty |
 
-The fix is one delegation at the top of `computeRoute`: **`avoidStairs` with no
-explicit profile IS the step-free profile**, so the toggle and the offer cannot
-be different routes by construction. The census now carries an assertion for it —
-*"the offered route IS the route the toggle produces"*, 112 checked, 0 bad.
-
-### 5a. And a second one, found by driving the DOM rather than the API
-
-`#wf-pill` toggles `state.expanded` on **any** click inside it (`js/wayfind.js`
-line ~1942). Every other control on the card calls `stopPropagation` — the
-chips, both action buttons, the result rows. The **Avoid stairs** checkbox did
-not. So ticking the one control this whole feature is about turned step-free on
-*and folded the card shut on the same gesture*: you got the answer and lost the
-screen it was on. One line, marked `// 5b`. `smoke.mjs` drives it as a person
-does — `document.querySelector('#wf-card .wf-toggle input').click()` — and now
-reads back `"2-4 min walk · 190 m · Stairs: 1 set"` → `"2-4 min walk · 210 m ·
-No stairs on this route"` with the card still open.
-
-### The `incline` patch for `scripts/bake_walk.py` — NOT APPLIED, not my file
-
-This recovers §3a's other 41 staircases. It needs a way to say *"the incline is
-known and A→B is down"*, and the flag byte is full (bit 4 BRIDGE, 5 COVERED,
-6 WHEELCHAIR_YES, 7 OFF_MAIN). The cheapest correct shape uses the file's own
-existing idiom — `re` is already *"delta-coded edge indices"* — so add a second
-such array rather than a bit:
-
-```python
-# scripts/bake_walk.py, in the edge loop (currently ~line 632)
-#
-#   OLD                                     the bit is CLEARED on a reversed
-#   if inc == "up":                         edge, which destroys "b->a is up"
-#       ef |= F_INCLINE_UP_AB               instead of recording it, and
-#   key = (a, b) if a < b else (b, a)       incline=down never gets here at all
-#   if inc == "up" and key[0] != a:
-#       ef &= ~F_INCLINE_UP_AB
-#
-#   NEW
-key = (a, b) if a < b else (b, a)
-if inc in ("up", "down"):
-    up_ab = (inc == "up")
-    if key[0] != a:
-        up_ab = not up_ab          # stored reversed: FLIP the sense, do not lose it
-    if up_ab:
-        ef |= F_INCLINE_UP_AB
-    else:
-        ef &= ~F_INCLINE_UP_AB
-    incline_known.add(key)         # a set built alongside `edges`
-```
-
-and, next to where `re` is emitted, ship the membership:
-
-```python
-out["inc"] = delta_encode(sorted(edge_index[k] for k in incline_known))
-```
-
-`js/wayfind.js` §5b then reads it in `decode()` as a `Uint8Array` mask and
-`stairRuns()` changes one line — `const known = g.incKnown[e]` instead of
-testing the bit for presence. Expected effect, measured on this census: flights
-with a direction go from **12.0 % to 22.7 %** **[M]**. Cost: ~200 integers.
-
-Until that lands, `F_UP_AB` set means "up in the A→B sense" and clear means
-"unknown", which is what §5b assumes, so nothing here is wrong today — it is
-only quiet.
+Two places we say more than Citymapper does, both because the data is thin
+enough that saying less would be dishonest: *"Up or down is only mapped on some
+of them"*, and *"We can't tell whether the last few metres into the door involve
+steps"* (round 1's `doorsForced`).
 
 ---
 
-## 6. The exact patches for files this lane may not write
+## R11. What round 2 did not do
 
-### 6a. `style.css` — lift these rules out of `js/wayfind.js`
+* **`scripts/bake_ground.py` is unchanged this round.** Round 1 already fixed
+  the missing `area=yes` staircase and stamped `wid` on the slabs, which is the
+  change that mattered; nothing further was needed and re-baking a 5 MB data
+  file for cosmetics is not a good trade.
+* **`scripts/bake_walk.py` is still untouched**, so round 1 §5a and §5b stand as
+  written. §5a is worth more now than it was: with the leg list on screen,
+  direction is visible, and it is right **26 of 216 times (12.0 %)**. Of the
+  same 216 flights, **49 (22.7 %)** are on a way OSM does tag `incline` **[M]** —
+  the patch nearly doubles it.
+* **The checkbox and the button now do the same thing.** The button is the
+  priced call to action, the checkbox the sticky preference. If the card is ever
+  redesigned, the button is the one that goes above the fold.
+
+## R12. How to re-run it
+
+`python scripts/serve.py 8713`, then, from a directory where `playwright-core`
+resolves:
+
+```
+node census.mjs 300 census300.json     # the six assertions, exit 1 on any failure
+node ab.mjs 300                        # allDoorsStepFree / mainDoorSlackM + the watched failure
+node smoke.mjs                         # the via stop, the checkbox, both buttons, clear
+node offcheck.mjs                      # the ship switch still ships nothing
+python prove179.py                     # 188 flights -> 179 polygons, reproduced
+```
+
+They live in the session scratchpad. `census.mjs` is the gate and should be
+lifted into `scripts/verify/stairs.mjs` by whoever owns that directory; it needs
+only `window.wayfindStairs(from, to)`, which is public and read-only.
+
+`smoke.mjs` covers what a census cannot, because it clicks:
+
+```
+ PASS  ?from=ART&to=MAI still routes from the URL
+ PASS  a coffee stop with avoidStairs=false -> {"via":"Starbucks","sets":4,"dist":1864}
+ PASS  a coffee stop with avoidStairs=true  -> {"via":"Jester Java","sets":0,"dist":1276}
+ PASS  the checkbox itself produces a step-free answer
+ PASS  offer "Step-free: 14–19 min · 1.2 km" lands on "14-19 min walk · 1.2 km · No stairs on this route"
+ PASS  back  "With stairs: 12–16 min · 940 m" lands on "12-16 min walk · 940 m · Stairs: 7 sets"
+ PASS  clear still clears
+```
+
+Round 1 refused the combination of a via stop and the step-free pass outright.
+Round 2 carries the stop through and verifies the whole walk, because refusing
+it silently dropped the option for anyone who had picked a coffee shop — and the
+verification does not care that there is a stop in the middle.
+
+### The stylesheet, for whoever owns `style.css`
 
 §5b injects a `<style id="wf-stairs-css">` from JS. That is not this repo's
-convention and it is not meant to survive; it is there because `style.css` is
-another lane's file this round and a rule that lands in the wrong file is worse
-than a rule that announces where it should have gone. Paste this beside the
-other `.wf-*` rules and delete `STAIRS_CSS` / `ensureStairsCss()`:
+convention and it is not meant to survive; `style.css` is another lane's file
+this round. Paste this beside the other `.wf-*` rules and delete `STAIRS_CSS`
+and `ensureStairsCss()`:
 
 ```css
 .wf-sthead{margin:11px 0 4px;font-weight:600;letter-spacing:.02em}
@@ -359,223 +764,7 @@ other `.wf-*` rules and delete `STAIRS_CSS` / `ensureStairsCss()`:
 .wf-alt{display:block;width:100%;margin-top:8px;text-align:center}
 ```
 
-`.wf-step` **wraps and never ellipses**, and that is load-bearing. The first cut
-gave the instruction `flex:1` with `text-overflow:ellipsis` and the position
-`flex:none`, so on a 393 px phone the position won the width fight and the rows
-read `S…`, `St…`, `Ste…` — the half you cannot lose, lost. The position drops to
-its own line instead.
+`.wf-step` wrapping rather than ellipsing is load-bearing — see R6.
 
-### 6b. Fold `SAY_S` into `SAY`
-
-`SAY_S` is a separate copy block only because four lanes are editing this file
-today. Once they land it is a straight merge into `SAY`, alphabetically, with the
-comments intact. Nothing else refers to `SAY_S`.
-
-### 6c. Two things for the UI lane, if there is one
-
-* **The checkbox and the button now do the same thing.** The button is the priced
-  call to action and the checkbox is the sticky preference; they read as one
-  control because they are adjacent, but if the card is ever redesigned, the
-  button is the one to keep above the fold.
-* **`#wf-pill` has no joystick clearance.** With the card open on a 393 × 852
-  phone it is 812 px tall and sits over `#joystick-zone`. `#wf-sheet` solved this
-  in QUEUE Z8 with `--drive-clear`; the pill never got the same treatment.
-  `legListMaxNarrow = 3` is this lane's contribution to the height (five rows put
-  it at 825 px), not a fix for the underlying overlap.
-
----
-
-## 7. Against Citymapper
-
-The literal instruction strings are not published anywhere I could source, so
-this compares against Citymapper's own **published behaviour**, which is, and
-that is stated rather than guessed at.
-
-| Citymapper says it does | us, now |
-|---|---|
-| step-free is a **route option** giving *"journeys with NO stairs"* | an offered alternative with its own time and distance, and the no-stairs claim is asserted against the graph on every route before it is shown |
-| *"finds the best accessible entrances"* | `allDoorsStepFree` — any door, not just the ranked front one. We may not call a door accessible, so the card says *"It uses a different entrance"* |
-| steps appear **in the leg list**, in sequence, with a direction | one row per flight, in order, positioned by distance into the walk, with up/down where the tag survives |
-| never states a number of individual steps | never, and `docs/walk/graph.md` §6c has the measurement that forbids it — the best estimator is out by 8× on the long flights |
-| *"walking times are adjusted for people with reduced mobility"* | **deliberately not done.** Our time is a 1.1–1.4 m/s band from Bohannon; there is no honest reduced-mobility number in this repo, and inventing one turns an assumption into a promise about a specific person |
-| *"routes prioritise simplicity over travel times"* | not done. Ours is still shortest-path with a stair penalty |
-
-Two places we say more than Citymapper does, both because the data is thin
-enough that saying less would be dishonest: *"Up or down is only mapped on some
-of them"*, and *"We can't tell whether the last few metres into the door involve
-steps"*.
-
----
-
-## 8. What this lane did not do, and why
-
-* **`scripts/bake_ground.py` is unchanged**, though this lane owns it. The useful
-  change would be to stop unioning steps across flights and stamp the OSM way id
-  on each, so `ground.geojson` carries 188 identifiable staircases whose ids
-  match `walk_graph.json`'s `e.s` — the ribbon could then light the exact flights
-  on the route. But **`data/ground.geojson` is not on this lane's write list**,
-  and a bake script that no longer describes the data file beside it is worse
-  than a bake script nobody touched. The patch is one line —
-  `groups.setdefault((p.get("u"), p.get("s"), p.get("wid") if p.get("u") == "steps" else None), [])`
-  in `widen_paths()`, plus carrying `wid` through from the `load("footways")`
-  loop — and it needs a re-bake and a `coplanar.mjs --gate` run, because
-  un-merging nine touching pairs creates up to nine new coplanar pairs at
-  0.22 m. Whoever owns the file next: that is the whole job.
-* **No step counts, no gradient, no "uphill".** `docs/walk/graph.md` §6c-d, and
-  the measurements there stand.
-* **No `ramp=separate` surfacing.** 3 steps ways carry it (and one carries
-  `ramp:wheelchair=separate`) **[M]** — 1.6 % of the network, and the tag says a
-  ramp exists somewhere alongside, not that it is drawn or where it goes. The
-  step-free router already routes around those flights.
-* **No wheelchair routing.** `wheelchair=yes` is in the graph as bit 6 and is
-  marked *informational only, never route on it*, which is right.
-
----
-
-## 9. Cost
-
-One extra Dijkstra becomes three on a route that has stairs (the step-free pass
-runs twice, front doors and all doors). Measured **inside the page**, 300 routes
-per run, unthrottled desktop Chrome, and reported as the **minimum of five runs**
-per `scripts/verify/README.md` — the machine was **not quiet** (several sibling
-lanes were running browsers), and the five medians for the with-stairs case
-spread 6.6 / 6.7 / 7.2 / 9.8 / 13.3 ms, which is the machine, not the code
-**[M]**:
-
-```
-no stairs      (1 dijkstra)      1.5 ms median   (min of 5 runs; spread 1.5-2.7)
-with stairs    (+2)              6.6 ms median   (min of 5 runs; spread 6.6-13.3)
-worst single answer             45.5 ms          (the first call, cold)
-```
-
-It is on a button press, not a frame, and the graph is 11,284 nodes. On a 4×
-throttled phone assume ~26 ms. **[D]**
-
-With the feature off — which is how it ships, `WAYFIND.on = false` — none of it
-exists: no injected style, no `window.wayfindStairs`, no `WAYFIND.stairs`, and
-zero requests for `walk_graph.json` **[M]**, checked on a plain `index.html`.
-
----
-
-## 10. How to re-run it
-
-`python scripts/serve.py <port>`, then the two scripts below from a directory
-with `playwright-core` resolvable. They live in the session scratchpad; the
-census is quoted in full because it is the gate and it should be lifted into
-`scripts/verify/stairs.mjs` by whoever owns that directory.
-
-```
-node census.mjs 300 census300.json     # six assertions, exit 1 on any failure
-node ab.mjs 300                        # the two judgement calls + the watched failure
-node smoke.mjs                         # the via stop, the checkbox, the buttons, clear
-node offcheck.mjs                      # the ship switch still ships nothing
-python prove179.py                     # 188 flights -> 179 polygons, reproduced
-```
-
-`smoke.mjs` covers what the census cannot, because it clicks:
-
-```
- PASS  ?from=ART&to=MAI still routes from the URL
- PASS  a coffee stop with avoidStairs=false -> {"via":"Starbucks","sets":4,"dist":1864}
- PASS  a coffee stop with avoidStairs=true  -> {"via":"Jester Java","sets":0,"dist":1276}
- PASS  the checkbox itself produces a step-free answer
- PASS  offer "Step-free: 14–19 min · 1.2 km" lands on "14-19 min walk · 1.2 km · No stairs on this route"
- PASS  back  "With stairs: 12–16 min · 940 m" lands on "12-16 min walk · 940 m · Stairs: 7 sets"
- PASS  clear still clears
-```
-
-Six assertions, all green over 300 random routable pairs:
-
-```
- PASS  every offered step-free route has ZERO stepped edges  (112 checked, 0 bad)
- PASS  headline set-count == distinct steps ways on the path  (0 bad)
- PASS  the leg list accounts for every steps way on the path  (0 bad)
- PASS  every flight is positioned inside the route it is on  (0 bad)
- PASS  the offered route IS the route the toggle produces  (112 checked, 0 bad)
- PASS  flights (contiguous runs) == sets (distinct ways)      (0 differ)
-```
-
-The debug hook everything above is built on is `window.wayfindStairs(from, to,
-{avoidStairs})`. It routes without touching the UI or the map and returns the
-runs, the steps-way ids, the door pair, both counts, and — for the offer — a
-re-derivation of the step-free route straight from the graph, so a test never
-has to take the card's word for anything.
-
-### `census.mjs`
-
-```js
-/**
- * census.mjs — the stairs census, driven through the REAL js/wayfind.js.
- * Nothing here reimplements the router. It calls window.wayfindStairs(), which
- * is the same computeRoute() the card draws from, then checks the answer
- * against the graph the answer came out of.
- */
-import { chromium } from 'playwright-core';
-import { launch } from '<repo>/scripts/verify/chrome.mjs';
-
-const URL = `http://127.0.0.1:${process.env.PORT}/index.html?walk=1&intro=0&drift=0`;
-const browser = await launch(chromium, { maxMs: 900000 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
-await page.evaluate(() => window.cancelGraphicsAutoDetect && window.cancelGraphicsAutoDetect());
-await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 240000 });
-await page.waitForFunction(() => typeof window.wayfindStairs === 'function', null, { timeout: 60000 });
-
-await page.evaluate(() => window.wayfindStairs('WEL', 'PCL'));          // warm the graph
-const LIST = await page.evaluate(async () =>
-  Object.keys(await fetch('data/walk_graph.json').then(r => r.json()).then(g => g.code)));
-
-// a fixed seed, so a re-run compares against the same 300 pairs
-function rng(s) { s >>>= 0; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
-const rand = rng(20260823), pairs = [], seen = new Set();
-while (pairs.length < 300) {
-  const a = LIST[Math.floor(rand() * LIST.length)], b = LIST[Math.floor(rand() * LIST.length)];
-  if (a === b || seen.has(a + '>' + b)) continue;
-  seen.add(a + '>' + b); pairs.push([a, b]);
-}
-
-const rows = await page.evaluate(async (pairs) => {
-  const out = [];
-  for (const [a, b] of pairs) {
-    const t0 = performance.now();
-    const r = await window.wayfindStairs(a, b);
-    r.wallMs = performance.now() - t0;
-    out.push(r);
-  }
-  return out;
-}, pairs);
-
-const ok = rows.filter(r => r.ok);
-const offered = ok.filter(r => r.stairFlights > 0 && r.stepFree && r.stepFree.ok);
-let fails = 0;
-
-// 1. THE ONE THAT MATTERS. Asserted per route, not argued once.
-const leak = offered.filter(r => r.stepFree.verifiedStepEdges !== 0 || r.stepFree.verifiedFlights !== 0);
-if (leak.length) fails++;
-
-// 2. the headline count is the distinct steps ways actually walked over
-const badCount = ok.filter(r => r.stairSets !== new Set(r.stepWays).size);
-if (badCount.length) fails++;
-
-// 3. the list accounts for every one of them
-const badRuns = ok.filter(r => r.runs.length !== r.stairFlights ||
-  r.runs.reduce((n, s) => n + s.ways, 0) < r.stepWays.length);
-if (badRuns.length) fails++;
-
-// 4. every flight is positioned inside the route it is on
-const badAt = ok.filter(r => r.runs.some(s => !(s.atM >= 0) || s.atM > r.distM + 1));
-if (badAt.length) fails++;
-
-// 5. THE OFFER IS THE ROUTE THE BUTTON LANDS ON. This exists because the first
-//    build failed it, and the failure was invisible in every number above.
-const toggled = await page.evaluate(async (p) => {
-  const out = []; for (const [a, b] of p) out.push(await window.wayfindStairs(a, b, { avoidStairs: true }));
-  return out;
-}, offered.map(r => [r.from, r.to]));
-const mismatch = offered.filter((r, i) => !toggled[i].ok ||
-  Math.abs(toggled[i].distM - r.stepFree.distM) > 0.5 || toggled[i].stairFlights !== 0);
-if (mismatch.length) fails++;
-
-await browser.__done();
-process.exit(fails ? 1 : 0);
-```
+`SAY_S` is a separate copy block for the same reason and folds straight into
+`SAY` once the other lanes land. Nothing else refers to it.
