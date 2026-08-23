@@ -928,6 +928,15 @@
     GHOSTS: {
       SKY_DAMP: 0.35,  // ghosts above the horizon dim by this (second-sun fix)
     },
+    FLARE: {
+      // Fraction of the frame diagonal over which the disc-anchored flare
+      // elements (the ghost chain and the anamorphic streak) fade out as the
+      // sun's DISC leaves the viewport. 0.12 of a 1440x900 diagonal is ~200 px:
+      // a sun just past the edge still flares at half strength (a light just
+      // out of frame really does), a sun 300+ px out draws nothing. 0 makes
+      // the cut hard at the frame edge; large values revert to the K7 #3 bug.
+      OFFSCREEN_SOFT: 0.12,
+    },
   };
   window.FX_TUNE = FX_TUNE;
 
@@ -1110,7 +1119,23 @@
       }
     }
 
-    const flA = GFX.flare * S.fade;
+    // The ghost chain and the streak are images OF THE DISC — ghosts are its
+    // internal reflections, the streak is its smear — so they need the disc
+    // itself on screen, not merely the sun in the front hemisphere. `S.front`
+    // and `S.fade` cannot tell the difference: they come off the angle to the
+    // view AXIS (fade saturates within ~75 deg) while the frame's half-angle
+    // is ~42 deg, so at the K7 #3 sweep poses the disc sat 327 px and 683 px
+    // outside a 1440-wide frame with front=true, fade=1 — and the ghosts,
+    // cast along the axis from that off-screen point through frame centre,
+    // landed mid-frame as rings ON facades (shots/f/sweep/sw-westcampus-dusk).
+    // GHOSTS.SKY_DAMP never saw them: it only damps ghosts above the horizon.
+    // Fade by how far the disc is outside the viewport instead of hard-cutting
+    // at the edge — a light just out of frame really does still flare.
+    const offX = Math.max(0, -S.x, S.x - F.W);
+    const offY = Math.max(0, -S.y, S.y - F.H);
+    const discIn = clamp01(1 - Math.hypot(offX, offY) /
+      Math.max(1, FX_TUNE.FLARE.OFFSCREEN_SOFT * diag));
+    const flA = GFX.flare * S.fade * discIn;
     if (flA > 0.004) {
       // Anamorphic streak. One horizontal bar through the disc — the single most
       // recognisable "this is a camera looking at a light" cue there is.
