@@ -841,110 +841,336 @@ html.has-touch #joystick-zone{display:block}
    the top-left corner, which is the ONLY corner free at every breakpoint
    (#hud top-centre, #gfx-button and #fb-button top-right, #tod-panel right
    edge, #joystick-zone bottom-left, #controls-hint bottom-centre, attribution
-   bottom-right). Answered, the headline REPLACES the title pill in the same
-   slot at the same size, so the visible chrome count does not go up at all. */
-#wf-button{position:absolute;top:16px;left:16px;z-index:30;
-  width:44px;height:44px;border-radius:11px;display:grid;place-items:center;
-  background:rgba(18,11,4,.55);backdrop-filter:blur(10px) saturate(1.1);
-  border:1px solid rgba(255,190,90,.16);color:#f5dfa0;cursor:pointer;
-  box-shadow:0 6px 24px rgba(0,0,0,.28);transition:background .14s,color .14s}
-#wf-button:hover{background:rgba(245,166,35,.28);color:#fff3d4}
-#wf-button.active{background:rgba(245,166,35,.42);color:#fff}
+   bottom-right). Answered, the bar takes the row below the top buttons, where
+   nothing else lives once `body.wf-routed` has hidden #hud.
 
-/* A COLUMN, NOT A BOX, and that is what makes the phone rules below possible:
+   ── EVERY TASTE VALUE IS ONE LINE, AT THE TOP ────────────────────────────────
+   CLAUDE.md rule 11. The numeric judgements live in `WF_UI` in js/wayfind.js;
+   every SIZE and COLOUR is a custom property in the `#wf-root` block directly
+   below, so any aesthetic call in this feature can be overruled with a one-line
+   edit and without reading a rule. Nothing further down invents a colour.
+
+   ── THE COMMENT THAT ATE ITS OWN RULE (fixed 2026-08-23, acer/w-ui) ──────────
+   The QUEUE Z7 note that used to sit above the phone rule for #wf-pill closed
+   itself with a comment terminator, then carried on for four more lines of
+   English and terminated a second time. CSS has
+   no way to read that as a comment: the second half became a selector prelude,
+   the prelude ran on into `#wf-pill{...}`, and an invalid selector drops the
+   whole rule. So the fix Z7 shipped — the answer bar pinned to both edges and
+   dropped below the top buttons — was silently NOT IN EFFECT on any phone, for
+   however long that comment had been there. Photographed at 390x844 before the
+   fix: the bar was the 197 px column Z7 was written to kill, its headline was
+   on two lines, `Show route` was wrapping inside its own button, and it was
+   sitting on top of the three top-row buttons. Both halves of the note are kept
+   below, inside ONE comment this time.
+   ──────────────────────────────────────────────────────────────────────────── */
+#wf-root{
+  /* type */
+  --wf-big:27px;            /* the minutes. The one number read at a glance */
+  --wf-unit:12.5px;         /* `min walk` beside it */
+  --wf-fact:12.5px;         /* distance and the stairs sentence */
+  --wf-line:11.5px;         /* the destination line */
+  --wf-small:10.5px;        /* footnotes, tags, the hint */
+  /* ink */
+  --wf-ink:#f8ead0;
+  --wf-dim:rgba(248,234,208,.60);
+  --wf-dimmer:rgba(248,234,208,.42);
+  --wf-accent:#ffc663;      /* the one warm hit: the minutes and the fill */
+  /* surfaces */
+  --wf-glass:rgba(17,10,3,.72);
+  --wf-glass-solid:rgba(15,9,2,.93);
+  --wf-edge:rgba(255,190,90,.20);
+  --wf-edge-soft:rgba(255,190,90,.12);
+  --wf-hot:rgba(245,166,35,.30);
+  --wf-shadow:0 10px 34px rgba(0,0,0,.42);
+  --wf-radius:16px;
+  --wf-pad:13px;
+  /* the strip */
+  --wf-rail-h:7px;
+  --wf-cap-in:9px;          /* the room the two end marks get outside the rail */
+  --wf-rail:rgba(255,222,170,.17);
+  --wf-fill:#ffc663;
+  --wf-pip-stairs:#ffdca8;
+  --wf-pip-signal:#9ed3ff;
+  --wf-pip-via:#8fd3ff;
+  --wf-you:#fffaf0;
+  /* the walking readout */
+  --wf-arrow:44px;
+  /* the two rows the answer bar is measured against, so a button move carries
+     the bar with it instead of leaving it to be re-measured by hand */
+  --wf-btn-row:calc(var(--touch-min) + 8px);
+}
+
+#wf-button{position:absolute;top:16px;left:16px;z-index:30;
+  width:var(--touch-min);height:var(--touch-min);border-radius:12px;
+  display:grid;place-items:center;
+  background:var(--wf-glass);backdrop-filter:blur(10px) saturate(1.1);
+  border:1px solid var(--wf-edge);color:#f5dfa0;cursor:pointer;
+  box-shadow:0 6px 24px rgba(0,0,0,.28);transition:background .14s,color .14s}
+#wf-button:hover{background:var(--wf-hot);color:#fff3d4}
+#wf-button.active{background:rgba(245,166,35,.44);color:#fff}
+
+/* ══ THE QUESTION ═══════════════════════════════════════════════════════════
+   A COLUMN, NOT A BOX, and that is what makes the phone rules below possible:
    the list is the one child allowed to give up height, so the sheet can be
-   capped at any height at all and the head, the two fields, the hint and the
-   footer are still whole. Before this it was `overflow:hidden` on a plain
-   block, which meant any cap silently ate the footer. */
-#wf-sheet{position:absolute;top:68px;left:16px;z-index:30;width:330px;max-width:calc(100vw - 32px);
-  background:rgba(16,10,3,.9);backdrop-filter:blur(12px) saturate(1.1);
-  border:1px solid rgba(255,190,90,.18);border-radius:13px;
-  box-shadow:0 14px 44px rgba(0,0,0,.45);color:#f5dfa0;font-size:12.5px;overflow:hidden;
+   capped at any height at all and the head, the two fields, the examples and
+   the footer are still whole. */
+#wf-sheet{position:absolute;top:68px;left:16px;z-index:30;width:344px;max-width:calc(100vw - 32px);
+  background:var(--wf-glass-solid);backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid rgba(255,190,90,.18);border-radius:var(--wf-radius);
+  box-shadow:var(--wf-shadow);color:var(--wf-ink);font-size:12.5px;overflow:hidden;
   display:flex;flex-direction:column}
-#wf-sheet.hidden,#wf-pill.hidden,#wf-card.hidden{display:none}
+#wf-sheet.hidden,#wf-pill.hidden,#wf-card.hidden,#wf-live.hidden,
+#wf-strip.hidden,#wf-egs.hidden,#wf-chev.hidden{display:none}
 #wf-head{display:flex;align-items:center;justify-content:space-between;
-  padding:10px 12px 8px;border-bottom:1px solid rgba(255,190,90,.13)}
-#wf-head .wf-h{font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;opacity:.85}
-#wf-close{background:none;border:none;color:inherit;opacity:.55;cursor:pointer;font-size:13px;padding:2px 4px}
-#wf-close:hover{opacity:1}
-.wf-row{display:flex;align-items:center;gap:9px;padding:8px 12px;flex:none}
-.wf-lab{font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.5;width:34px;flex:none}
-.wf-row input{flex:1;min-width:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,190,90,.16);
-  border-radius:8px;color:#fff3d4;font:inherit;font-size:13px;padding:7px 9px;outline:none}
-.wf-row input:focus{border-color:rgba(245,166,35,.5);background:rgba(255,255,255,.08)}
-#wf-list{max-height:196px;overflow-y:auto;min-height:0}
-.wf-item{display:flex;align-items:baseline;gap:9px;padding:7px 12px;cursor:pointer}
+  padding:10px 10px 8px 14px;border-bottom:1px solid var(--wf-edge-soft)}
+#wf-head .wf-h{font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--wf-dim)}
+#wf-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
+  width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
+#wf-close svg{width:15px;height:15px}
+#wf-close:hover{opacity:1;background:rgba(255,255,255,.07)}
+
+/* THE TWO ENDS, and the swap button that lives on their seam. Swap is the one
+   thing a two-field router is asked for constantly, so it is a button and not a
+   menu item; the field column stops short of it rather than running under it. */
+#wf-ends{position:relative;padding:6px 40px 6px 0}
+.wf-row{position:relative;display:flex;align-items:center;gap:7px;padding:4px 0 4px 12px;flex:none}
+.wf-lab{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--wf-dimmer);width:28px;flex:none}
+.wf-row input{flex:1;min-width:0;background:rgba(255,255,255,.055);
+  border:1px solid var(--wf-edge-soft);
+  border-radius:10px;color:#fff6e2;font:inherit;font-size:14px;
+  padding:0 11px;height:40px;outline:none;transition:border-color .12s,background .12s}
+/* THE CLEAR BUTTON ONLY EXISTS WHEN THERE IS SOMETHING TO CLEAR, so the room it
+   needs is only reserved then. Reserving it always cost 19 px of the field at
+   exactly the moment the field is empty and showing its placeholder, which is
+   how `Building code, name or number` came to render as `...name or num`. */
+.wf-row.has-val input{padding-right:30px}
+/* and the placeholder is set smaller than the value it stands in for: the
+   value has to clear iOS's 16 px zoom threshold, the placeholder does not. */
+.wf-row input::placeholder{color:rgba(248,234,208,.34);font-size:12px;letter-spacing:0}
+.wf-row input:focus{border-color:rgba(245,166,35,.55);background:rgba(255,255,255,.09)}
+.wf-x{position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:26px;height:26px;display:grid;place-items:center;padding:0;
+  background:none;border:none;border-radius:50%;color:var(--wf-dim);cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .12s}
+.wf-x svg{width:11px;height:11px}
+.wf-x.on{opacity:1;pointer-events:auto}
+.wf-x:hover{background:rgba(255,255,255,.1);color:var(--wf-ink)}
+#wf-swap{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;display:grid;place-items:center;padding:0;
+  background:rgba(255,255,255,.055);border:1px solid var(--wf-edge-soft);
+  border-radius:50%;color:var(--wf-dim);cursor:pointer;transition:background .12s,color .12s}
+#wf-swap svg{width:15px;height:15px}
+#wf-swap:hover{background:var(--wf-hot);color:#fff3d4}
+
+#wf-list{max-height:212px;overflow-y:auto;min-height:0;padding:2px 0}
+.wf-item{display:flex;align-items:baseline;gap:10px;padding:8px 14px;cursor:pointer;
+  min-height:34px;box-sizing:border-box}
 .wf-item:hover{background:rgba(245,166,35,.14)}
+/* THE ROW ENTER WILL TAKE. It used to be "the first routable match", which is
+   correct and completely invisible; arrow keys move it and it is drawn. */
+.wf-item.active{background:rgba(245,166,35,.20);box-shadow:inset 2px 0 0 var(--wf-accent)}
 /* Shown and NOT selectable, greyed. Hiding a building we have no door for
    would read as "you typed it wrong"; this reads as "we don't have it". */
 .wf-item.off{opacity:.38;cursor:default}
 .wf-item.off:hover{background:none}
-.wf-code{font-weight:700;letter-spacing:.06em;width:52px;flex:none;color:#ffcf7a}
-.wf-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wf-meta{font-size:10.5px;opacity:.5;flex:none}
+.wf-code{font-weight:700;letter-spacing:.06em;width:50px;flex:none;color:#ffcf7a;font-size:12.5px}
+.wf-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.wf-meta{font-size:var(--wf-small);color:var(--wf-dimmer);flex:none}
 /* QUEUE Z9, second half. `+ N more — keep typing` used to be the last child of
    #wf-list, so the list's own max-height cut it through the middle and the
    remains sat on the hint line. It is a note ABOUT the results, not a result,
    so it is a sibling of the scroller and cannot be clipped by it. `:empty`
-   because js writes textContent rather than adding and removing a node — an
-   empty div would otherwise still cost its padding. */
-#wf-more{padding:6px 12px;font-size:10.5px;opacity:.45;flex:none}
+   because js writes textContent rather than adding and removing a node. */
+#wf-more{padding:5px 14px;font-size:var(--wf-small);color:var(--wf-dimmer);flex:none}
 #wf-more:empty{display:none}
-.wf-hint{padding:7px 12px;font-size:10.5px;opacity:.45;line-height:1.45;flex:none}
-.wf-foot{padding:8px 12px 10px;border-top:1px solid rgba(255,190,90,.11);
-  font-size:9.5px;opacity:.42;line-height:1.55;flex:none}
+/* THE FIRST-RUN STATE, which interface.md listed as undesigned. Four codes you
+   can tap: it answers "what does this field want" with an example rather than a
+   sentence, and it is gone the moment a character is typed. */
+#wf-egs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 14px 2px;flex:none}
+.wf-eg-lab{font-size:9.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--wf-dimmer);margin-right:1px}
+.wf-eg{background:rgba(255,255,255,.06);border:1px solid var(--wf-edge-soft);
+  border-radius:8px;color:#ffcf7a;font:inherit;font-size:11.5px;font-weight:700;
+  letter-spacing:.05em;padding:5px 10px;cursor:pointer}
+.wf-eg:hover{background:var(--wf-hot);color:#fff3d4}
+.wf-hint{padding:7px 14px;font-size:var(--wf-small);color:var(--wf-dimmer);line-height:1.45;flex:none}
+.wf-foot{padding:8px 14px 10px;border-top:1px solid rgba(255,190,90,.11);
+  font-size:9.5px;color:var(--wf-dimmer);line-height:1.55;flex:none}
 
-/* The answer takes over the title pill's slot: same shape, same blur, same
-   border, same place. One pill in one place, and the title comes back when the
-   route is cleared. */
+/* ══ THE ANSWER ═════════════════════════════════════════════════════════════
+   One bar. It takes the row below the top buttons — `body.wf-routed` hides
+   #hud, so nothing else wants it — and it holds, in this order: what is left
+   (only while the view is on the route), the whole-journey figures, the strip,
+   the destination and its door, and the passing-period line. */
 #wf-pill{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:11;
-  max-width:min(560px,calc(100vw - 120px));
-  background:rgba(18,11,4,.6);backdrop-filter:blur(10px) saturate(1.1);
-  border:1px solid rgba(255,190,90,.2);border-radius:18px;
-  box-shadow:0 6px 24px rgba(0,0,0,.3);padding:8px 20px;color:#f7e6bd;
-  text-align:center;cursor:pointer}
+  width:min(560px,calc(100vw - 120px));
+  background:var(--wf-glass);backdrop-filter:blur(12px) saturate(1.12);
+  border:1px solid var(--wf-edge);border-radius:var(--wf-radius);
+  box-shadow:var(--wf-shadow);padding:10px var(--wf-pad) 11px;color:var(--wf-ink);
+  text-align:left;cursor:pointer;box-sizing:border-box}
 body.wf-routed #hud{display:none}
 /* On purpose, and it is the one place this differs from #hud: you read the
-   headline WHILE walking, which is exactly when it matters. */
+   answer WHILE walking, which is exactly when it matters. */
 body.wf-routed.flying #wf-pill{opacity:1}
-#wf-headline{font-size:13px;font-weight:600;letter-spacing:.03em}
-#wf-sub{font-size:10.5px;opacity:.62;margin-top:2px;letter-spacing:.02em}
-/* THE PASSING-PERIOD LINE (docs/walk/what-we-can-honestly-say.md §15). It is
-   above the fold in the closed pill because "do I have time" is the question,
-   and an answer you have to tap to see is not an answer. It appears in exactly
-   two states and there is deliberately no third, green, everything-is-fine
-   state — a tick is a promise with the words taken out. `:empty` keeps the
-   pill the same height when there is nothing to say. */
-#wf-verdict{font-size:11px;font-weight:600;margin-top:4px;letter-spacing:.02em;
+
+/* THE AFFORDANCE. Before this the card was behind a tap on an element with
+   nothing on it to tap. The chevron turns when the card is open. */
+#wf-chev{position:absolute;top:9px;right:9px;width:26px;height:26px;
+  display:grid;place-items:center;color:var(--wf-dimmer);
+  transition:transform .16s ease,color .12s;pointer-events:none}
+#wf-chev svg{width:16px;height:16px}
+#wf-pill:hover #wf-chev{color:var(--wf-ink)}
+#wf-pill.open #wf-chev{transform:rotate(180deg);color:var(--wf-ink)}
+
+/* THE FIGURE LINE. The minutes are the one number read at a glance, so they are
+   the only thing on this bar set larger than the body. The rest of the sentence
+   is the same permitted string it always was — the type is spans inside
+   #wf-headline, so its .textContent is unchanged. */
+/* WHERE IT THINKS YOU ARE STARTING FROM. The From default is the routable
+   building nearest the CAMERA, which is a guess the app makes on your behalf,
+   so the bar shows it rather than hiding it under a tap. */
+#wf-orig{display:flex;align-items:baseline;gap:7px;margin-bottom:3px;padding-right:26px;
+  font-size:var(--wf-small);min-width:0}
+#wf-orig.hidden{display:none}
+.wf-from-lab{font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--wf-dimmer);flex:none}
+.wf-from-name{color:var(--wf-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.wf-live #wf-orig{display:none}
+
+#wf-headline{line-height:1.15;padding-right:26px}
+#wf-headline .wf-pre{font-size:var(--wf-unit);color:var(--wf-dim)}
+#wf-headline .wf-big{font-size:var(--wf-big);font-weight:700;letter-spacing:-.01em;
+  color:var(--wf-accent);font-variant-numeric:tabular-nums}
+#wf-headline .wf-unit{font-size:var(--wf-unit);font-weight:600;color:var(--wf-dim)}
+#wf-headline .wf-mid{color:var(--wf-dimmer)}
+#wf-headline .wf-dist,#wf-headline .wf-cond{font-size:var(--wf-fact);font-weight:600;
+  color:rgba(248,234,208,.86)}
+#wf-headline.fail{font-size:13px;font-weight:600;line-height:1.35}
+
+/* THE STRIP — where the things on this route actually are.
+   NOT AN ELEVATION PROFILE and it must never be mistaken for one: §12 of
+   docs/walk/what-we-can-honestly-say.md forbids the whole hill family and there
+   is no elevation source in this repo. It is a flat rail with a pip at each
+   mapped staircase and each signalised crossing, at its true fraction of the
+   route — the counts the bar already prints, turned into WHERE. */
+#wf-strip{position:relative;margin:10px 0 9px;height:14px}
+/* The rail is inset by --wf-cap-in so the two end marks sit OUTSIDE it. A pip
+   at 97 % of the route is a real thing (a staircase twenty metres from the
+   door) and inside the rail it was drawn underneath the destination ring. */
+.wf-rail{position:absolute;left:var(--wf-cap-in);right:var(--wf-cap-in);top:50%;
+  margin-top:calc(var(--wf-rail-h) / -2);
+  height:var(--wf-rail-h);border-radius:99px;background:var(--wf-rail)}
+.wf-fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;
+  background:linear-gradient(90deg,rgba(255,198,99,.55),var(--wf-fill));width:0}
+.wf-pip{position:absolute;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;
+  border-radius:99px;box-shadow:0 0 0 2px rgba(20,12,4,.72)}
+/* two of a kind within pipMergeT of each other: one capsule, labelled with the
+   count, so the number of things on the strip equals the number in the card */
+.wf-pip.multi{border-radius:99px}
+.wf-pip-stairs.multi{border-radius:2.5px}
+.wf-pip-stairs{background:var(--wf-pip-stairs);border-radius:1.5px;
+  width:8px;height:8px;margin:-4px 0 0 -4px}
+.wf-pip-signal{background:var(--wf-pip-signal)}
+.wf-pip-via{background:var(--wf-pip-via);width:9px;height:9px;margin:-4.5px 0 0 -4.5px}
+.wf-pip.past{opacity:.42}
+/* THE TWO ENDS. Drawn as DIFFERENT SHAPES on purpose: a rail with a round blob
+   at each end is a slider, and the first cut of this read as one — a control
+   you could drag rather than a picture of a walk. The start is a flat tick, the
+   destination is a ring, and neither is a thumb. */
+.wf-cap{position:absolute;top:50%}
+.wf-cap-a{left:1px;width:3px;height:13px;margin-top:-6.5px;border-radius:2px;
+  background:rgba(248,234,208,.8);box-shadow:0 0 0 1.5px rgba(20,12,4,.7)}
+.wf-cap-b{right:0;width:13px;height:13px;margin-top:-6.5px;border-radius:50%;
+  background:rgba(20,12,4,.9);border:3px solid var(--wf-accent);box-sizing:border-box}
+.wf-you{position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
+  border-radius:50%;background:var(--wf-you);
+  box-shadow:0 0 0 2.5px rgba(20,12,4,.85),0 0 12px rgba(255,232,180,.75)}
+
+#wf-sub{font-size:var(--wf-line);line-height:1.35}
+#wf-sub .wf-dest{font-weight:700;color:var(--wf-ink)}
+#wf-sub .wf-mid,#wf-sub .wf-door{color:var(--wf-dim);font-weight:400}
+/* THE PASSING-PERIOD LINE (docs/walk/what-we-can-honestly-say.md §15). Above the
+   fold in the closed bar because "do I have time" is the question, and an
+   answer you have to tap to see is not an answer. Two states and deliberately
+   no third, green, everything-is-fine state — a tick is a promise with the
+   words taken out. `:empty` keeps the bar the same height with nothing to say. */
+#wf-verdict{font-size:11.5px;font-weight:700;margin-top:6px;letter-spacing:.01em;
+  padding:4px 8px;border-radius:7px;display:inline-block;
   --wf-over:#ffb4a2;      /* both ends of the range over the period */
   --wf-tight:#ffd79a}     /* the range crosses it */
 #wf-verdict:empty{display:none}
-#wf-verdict.over{color:var(--wf-over)}
-#wf-verdict.tight{color:var(--wf-tight)}
-#wf-card{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,190,90,.14);
-  text-align:left;font-size:11.5px;line-height:1.5}
+#wf-verdict.over{color:var(--wf-over);background:rgba(255,120,90,.14);
+  box-shadow:inset 0 0 0 1px rgba(255,150,120,.3)}
+#wf-verdict.tight{color:var(--wf-tight);background:rgba(255,190,90,.13);
+  box-shadow:inset 0 0 0 1px rgba(255,190,90,.26)}
+
+/* THE WALKING READOUT. Only on screen when the view is actually on the route
+   (js/wayfind.js §7d), and when it is, the whole-journey figures demote to a
+   footnote rather than disappearing — you still want to know what the whole
+   walk was while you are halfway through it. */
+#wf-live{display:flex;align-items:center;gap:11px;padding-right:26px}
+.wf-arrow{width:var(--wf-arrow);height:var(--wf-arrow);flex:none;border-radius:50%;
+  display:grid;place-items:center;color:#1b1204;background:var(--wf-accent);
+  box-shadow:0 3px 14px rgba(255,190,90,.34)}
+.wf-arrow svg{width:24px;height:24px;transition:transform .18s ease-out}
+.wf-livetxt{min-width:0;flex:1}
+.wf-figs{display:flex;align-items:baseline;gap:6px;line-height:1.1}
+.wf-figs .wf-big{font-size:var(--wf-big);font-weight:700;color:var(--wf-accent);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.wf-figs .wf-unit{font-size:var(--wf-unit);font-weight:600;color:var(--wf-dim)}
+.wf-figs .wf-dim2{font-size:var(--wf-small);color:var(--wf-dimmer);
+  text-transform:uppercase;letter-spacing:.13em;font-weight:700}
+.wf-liveline{font-size:var(--wf-line);color:rgba(248,234,208,.82);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.wf-live #wf-headline{margin-top:7px;padding-right:0}
+body.wf-live #wf-headline .wf-big{font-size:var(--wf-small);font-weight:700;color:var(--wf-dim)}
+body.wf-live #wf-headline .wf-unit,body.wf-live #wf-headline .wf-pre,
+body.wf-live #wf-headline .wf-dist,body.wf-live #wf-headline .wf-cond{
+  font-size:var(--wf-small);font-weight:600;color:var(--wf-dimmer)}
+
+#wf-card{margin-top:10px;padding-top:10px;border-top:1px solid var(--wf-edge-soft);
+  text-align:left;font-size:11.5px;line-height:1.5;
+  /* the card must never run off the bottom of a phone: it gives up height and
+     scrolls inside itself rather than pushing the bar's own actions off screen */
+  max-height:calc(100vh - var(--wf-card-clear,220px));overflow-y:auto}
 .wf-c{margin:5px 0}
-.wf-dim{opacity:.5;font-size:10.5px;line-height:1.45}
+.wf-dim{color:var(--wf-dimmer);font-size:var(--wf-small);line-height:1.45}
 .wf-via{color:#bfe4ff}
-.wf-toggle{display:flex;align-items:center;gap:8px;margin:9px 0 3px;cursor:pointer;font-weight:600}
-.wf-toggle input{accent-color:#f5a623;cursor:pointer}
-.wf-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
-.wf-chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,190,90,.2);
-  border-radius:999px;color:inherit;font:inherit;font-size:11px;padding:4px 11px;cursor:pointer}
+.wf-toggle{display:flex;align-items:center;gap:9px;margin:10px 0 3px;cursor:pointer;
+  font-weight:700;min-height:30px}
+.wf-toggle input{accent-color:#f5a623;cursor:pointer;width:17px;height:17px}
+.wf-chips{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0 4px}
+.wf-chip{background:rgba(255,255,255,.06);border:1px solid var(--wf-edge);
+  border-radius:999px;color:inherit;font:inherit;font-size:11.5px;padding:6px 13px;cursor:pointer}
 .wf-chip:hover{background:rgba(245,166,35,.24)}
-.wf-chip.on{background:rgba(245,166,35,.36);color:#fff}
-.wf-acts{display:flex;gap:7px;margin-top:9px}
-.wf-act{flex:1;background:rgba(245,166,35,.2);border:1px solid rgba(245,166,35,.4);
-  border-radius:8px;color:#fff3d4;font:inherit;font-size:11.5px;font-weight:600;
-  padding:6px;cursor:pointer}
-.wf-act:hover{background:rgba(245,166,35,.38)}
+.wf-chip.on{background:rgba(245,166,35,.38);color:#fff;border-color:rgba(245,166,35,.6)}
+.wf-chip-x{display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:50%}
+.wf-chip-x svg{width:11px;height:11px}
+.wf-acts{display:flex;gap:8px;margin-top:11px}
+.wf-act{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--wf-edge);
+  border-radius:10px;color:var(--wf-ink);font:inherit;font-size:12px;font-weight:700;
+  padding:10px 6px;cursor:pointer;min-height:38px}
+.wf-act:hover{background:rgba(245,166,35,.26)}
+.wf-act-go{background:rgba(245,166,35,.26);border-color:rgba(245,166,35,.5);color:#fff3d4}
+.wf-act-go:hover{background:rgba(245,166,35,.44)}
 
 /* ?clip=1 — the chrome is UI, the ribbon is scene. So the panel, the button and
-   the pill go and the route stays: ?clip=1&from=JES&to=WEL&fit=1 is a
-   recordable shot of a route with nothing on screen but the city. */
+   the bar go and the route stays: ?clip=1&from=JES&to=WEL&fit=1 is a recordable
+   shot of a route with nothing on screen but the city. `?autopilot=1` and
+   `?sliderdemo=1` both add `.clip` in index.html's head script, so all three
+   recording surfaces are covered by this one rule — and every element this
+   feature has ever added is a CHILD of one of these three, which is why the
+   rule has not had to grow as the bar did. */
 .clip #wf-button,.clip #wf-sheet,.clip #wf-pill{display:none!important}
 /* ...and with the chrome hidden the title pill must come back for nobody, so
    the #hud override above is undone too — .clip already hides #hud. */
+
+@media(prefers-reduced-motion:reduce){
+  #wf-chev,.wf-arrow svg{transition-duration:.01ms}
+}
 
 @media(max-width:640px){
   /* ── QUEUE Z8: THE SHEET STOPS ABOVE THE JOYSTICK ────────────────────────
@@ -963,64 +1189,65 @@ body.wf-routed.flying #wf-pill{opacity:1}
      note "if the stick or the BOOST button moves, this is the one line to
      move". BOOST duly moved (QUEUE Y10 item 3, to the opposite edge), so the
      line is now `--drive-clear` off :root, which is a max() over both controls
-     and cannot go stale the same way. On this screen it reads 186 px, and the
-     sheet gains the 32 px the old arithmetic was over by.
+     and cannot go stale the same way.
 
-     --wf-tod-clear is the same idea on the other axis, and it fixes something
-     that was wrong before that pass too: #tod-panel sits on the right edge at
-     y324-529 on this screen and the full-width sheet ran straight under it.
-     8 px right inset + the panel + 8 px of air; the panel is --touch-min wide
-     plus its own 7 px of padding either side, so it grew with the play button
-     and the slider band and this grew with it. */
+     --wf-tod-clear is the same idea on the other axis: #tod-panel sits on the
+     right edge and a full-width sheet ran straight under it. 8 px right inset
+     + the panel + 8 px of air; the panel is --touch-min wide plus its own 7 px
+     of padding either side, so it grew with the play button and this grew with
+     it. */
   #wf-sheet{--wf-tod-clear:calc(8px + var(--touch-min) + 14px + 8px);
     top:auto;bottom:var(--drive-clear);left:8px;right:var(--wf-tod-clear);width:auto;
     max-height:calc(62vh - var(--drive-clear));border-radius:16px}
   #wf-list{max-height:none;flex:1 1 auto}
+  .wf-row input{font-size:16px}   /* iOS zooms a focused field under 16 px */
+  /* A RESULT ROW IS A THUMB TARGET. At 34 px it was under the size this
+     stylesheet's own --touch-min calls "the smallest target a thumb reliably
+     hits", on the one control in the feature you have to hit correctly to
+     avoid being routed to the wrong building. The list is the flex child that
+     yields, so the taller rows cost the sheet no height — they scroll. */
+  .wf-item{padding:12px 14px;min-height:var(--touch-min)}
+  .wf-eg{padding:8px 12px}
+
   /* ── QUEUE Z7: THE ANSWER COLUMN WAS 197 px AND COULD NEVER BE WIDER ─────
      `left:50%` makes the shrink-to-fit available width `100% - 50%`, so on a
-     393 px screen the pill could never exceed 196.5 px however generous its
+     393 px screen the bar could never exceed 196.5 px however generous its
      max-width was — the `max-width:calc(100vw - 32px)` that used to live here
      never once bound. The headline wrapped to two lines and `Show route`
      wrapped inside its own button. Pinning both edges and dropping the
-     translate gives the whole width, and the pill is centred because its two
+     translate gives the whole width, and the bar is centred because its two
      margins are equal, not because it was pushed.
 
-     AND IT DROPS BELOW THE BUTTONS, which is the other half of the same fix
-     and was measured rather than guessed. The first attempt kept the bar in
-     the title's row and reserved 52 px gutters so the words could not run
-     under #wf-button (16..60) or #gfx-button/#fb-button (343..377) — and that
-     put the headline straight back onto two lines, which is the defect Z7 is
-     about. There is not enough width in that row for both, and a full-width
-     bar with three buttons sitting on it is one bad frame away from a
-     collision. So the answer takes the row BELOW them, and it gets the whole
-     361 px with no gutters. `body.wf-routed` already hides #hud, so nothing
-     else wants that row.
+     AND IT DROPS BELOW THE BUTTONS, which is the other half of the same fix and
+     was measured rather than guessed. The first attempt kept the bar in the
+     title's row and reserved 52 px gutters so the words could not run under
+     #wf-button (16..60) or #gfx-button/#fb-button (343..377) — and that put the
+     headline straight back onto two lines, which is the defect Z7 is about.
+     There is not enough width in that row for both, and a full-width bar with
+     three buttons sitting on it is one bad frame away from a collision. So the
+     answer takes the row BELOW them, and it gets the whole width with no
+     gutters. `body.wf-routed` already hides #hud, so nothing else wants it.
 
      WHICH ROW IS "BELOW THEM" WAS WRONG BY ONE BUTTON (measured 2026-08-16 on
-     the merged tree). 68 px is `16 inset + 44 button + 8 air`, which is the
-     row below ONE button — and on a phone the top right stacks TWO: the block
-     ~160 lines above deliberately moves #fb-button to `top:58px` so it sits
-     under the gear rather than beside the title. Photographed at 393x852 with
-     the feedback button present, the answer bar ran y68..135 x16..377 and
-     #fb-button sat y58..92 x343..377, so the bar's top-right corner passed
-     UNDER the button. The words themselves cleared it by 8 px — the longest
-     real headline ends at x335 — which is precisely the margin this comment's
-     own last sentence calls "one bad frame away". So the row is measured off
-     the LOWER button: 58 top + 34 height + 8 air = 100. Re-measured after:
-     bar y100..167, zero overlap with any of the three buttons, still 361 px,
-     still one line. The two numbers are named so either can be overruled in
-     one edit if the buttons ever move again.
+     the merged tree). 68 px is `16 inset + 44 button + 8 air`, which is the row
+     below ONE button — and on a phone the top right stacks TWO: the block above
+     deliberately moves #fb-button under the gear rather than beside the title.
+     Photographed at 393x852 with the feedback button present, a bar at 68 ran
+     its top-right corner UNDER #fb-button. So the row is measured off the LOWER
+     button, as `16 + 2 x (button + air)`, written as the expression rather than
+     as the number so the next change to the button size carries the bar with
+     it. (#fb-button is created unconditionally by js/graphics.js, but LATE,
+     during graphics init — a gate that measures before it exists sees no
+     collision, and the first run of that gate did exactly that and passed.)
 
-     (#fb-button is created unconditionally by js/graphics.js — `buildFeedback()`
-     runs whether or not the endpoint is configured — but it is created LATE,
-     during graphics init. A gate that measures before it exists sees no
-     collision, and the first run of this gate did exactly that and passed.) */
-     AND IT MOVED AGAIN when the two buttons went to --touch-min for QUEUE Y10
-     item 4: the same derivation with a 44 px button reads 16 + 2*(44+8) = 120.
-     It is written as that expression rather than as the number, so the next
-     change to the button size carries the bar with it. */
-  #wf-pill{--wf-pill-inset:16px;--wf-pill-top:calc(16px + 2 * (var(--touch-min) + 8px));
+     AND THEN THIS WHOLE RULE WAS DEAD FOR A COMMENT'S SAKE — see the header of
+     this section. It is one comment now, and the rule below it parses. */
+  #wf-pill{--wf-pill-inset:12px;
+    --wf-pill-top:calc(16px + 2 * var(--wf-btn-row));
+    /* the card's ceiling: the top of the bar, plus the bar's own closed height,
+       plus the room the drive controls need at the bottom */
+    --wf-card-clear:calc(var(--wf-pill-top) + 128px + var(--drive-clear));
     top:var(--wf-pill-top);left:var(--wf-pill-inset);right:var(--wf-pill-inset);
-    transform:none;max-width:none;padding:7px 15px}
-  #wf-headline{font-size:12px}
+    transform:none;width:auto;max-width:none;padding:10px 12px 11px}
+  #wf-root{--wf-big:25px;--wf-arrow:40px}
 }

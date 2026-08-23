@@ -1397,9 +1397,126 @@
 
   // ══════════════════════════════════════════════════════════════════════════
   // 7. THE INTERFACE
+  //
+  // The whole feature is TWO objects and there is never more than one of them
+  // on screen: the QUESTION (`#wf-sheet`, one field per end) and the ANSWER
+  // (`#wf-pill`, which takes over the title pill's slot). Picking a building
+  // closes the question, because an answer sitting under the form that asked
+  // for it is two panels.
+  //
+  // ── WHAT CHANGED IN THIS PASS, AND WHY (acer/w-ui, 2026-08-23) ────────────
+  // The answer was a centred paragraph of 12 px text: `6-8 min walk · 530 m ·
+  // No stairs on this route` set as one run, with the door line under it. Three
+  // things were wrong with it at 390x844, all of them photographed first:
+  //
+  //   1. THE MOBILE RULE FOR #wf-pill WAS DEAD. `style.css` had a stray `*/`
+  //      inside the QUEUE Z7 comment above it, so the comment closed early and
+  //      four lines of English became the rule's selector. An invalid selector
+  //      drops the whole rule, so on a phone the answer fell back to the
+  //      desktop `left:50%` — which is exactly the 197 px column Z7 was written
+  //      to kill. It had been silently un-fixed. Photographed at 390x844: the
+  //      headline on two lines, `Show route` wrapping inside its own button,
+  //      the bar sitting on top of the three top-row buttons.
+  //   2. NOTHING SAID THE PILL OPENED. The card was behind a tap on an element
+  //      with no affordance at all. There is now a chevron, and it turns.
+  //   3. THE APP KNEW WHERE THE CAMERA WAS AND NEVER SAID SO. You could be
+  //      standing halfway along the route and the bar still read the whole
+  //      journey. That is the one thing this app can do that a maps app cannot,
+  //      and it was on the floor.
+  //
+  // So the answer is now a real bar: a figure line with the minutes at 26 px, a
+  // STRIP showing where the staircases and the signalised crossings fall along
+  // the route, the destination and its door, and — when the view is actually on
+  // the route — a WALKING READOUT that replaces the figure line with what is
+  // left and an arrow pointing at the next turn.
+  //
+  // ── THE STRINGS DID NOT MOVE ──────────────────────────────────────────────
+  // `#wf-headline`, `#wf-sub` and `#wf-verdict` still exist, still hold exactly
+  // the strings §11 permits, and `.textContent` on each still returns the same
+  // sentence it returned before this pass — the typography is spans INSIDE
+  // them, so `wayfindRoute()`'s return value is byte-identical. Nothing that
+  // reads this UI from a test had to change.
   // ══════════════════════════════════════════════════════════════════════════
+
+  // ── TASTE, interface half (CLAUDE.md rule 11) ─────────────────────────────
+  // A SEPARATE BLOCK ON PURPOSE. Four lanes are editing this file at once and
+  // `WAYFIND` is the one object all four of them want to append to; a second
+  // named block is the same rule-11 promise (every judgement is one line, in
+  // one place) without four lanes queuing on the same twenty lines. Everything
+  // that is a NUMBER lives here; everything that is a SIZE or a COLOUR is a
+  // custom property on `#wf-pill` in style.css, named the same way and listed
+  // in the block comment there.
+  const WF_UI = {
+    // The walking readout. It is not a mode you switch on: the bar shows it
+    // when the VIEW is on the route, and goes back to the summary when it is
+    // not. Both gates are needed — from 300 m up you are directly over the
+    // ribbon and you are not walking it.
+    liveOnRouteM: 45,      // perpendicular distance from the drawn path
+    liveAltMaxM: 90,       // camera altitude; above this you are looking at it
+    liveHz: 6,             // DOM writes a second WHILE THE CAMERA MOVES. Zero
+                           // at rest: this is a `move` handler, not a loop, so
+                           // a parked camera costs nothing at all. (The pulse's
+                           // Z5 finding was about a style write every frame
+                           // FOREVER; this is a textContent write, and it stops
+                           // the moment the camera does.)
+    liveMinMoveM: 1.0,     // below this the readout would only flicker
+    arriveM: 15,           // this close to the end, say so instead of counting
+    turnAheadMinM: 8,      // a turn nearer than this is one you are in
+    // The strip. Fractions of the route, so they hold at any width.
+    pipMergeT: 0.018,      // two pips closer than this would overlap; the
+                           // second is dropped and the first is labelled with
+                           // the count, because a smear of dots is not a fact
+    stripMinPipT: 0.01,    // a pip exactly on an end would be half off the rail
+    // The empty sheet. Four codes a first-time user can tap instead of
+    // wondering what the field wants. Ordered by how likely a freshman is to
+    // be going there, not alphabetically.
+    exampleCodes: ['WEL', 'PCL', 'GDC', 'JES'],
+  };
+
+  // ── LABELS, and why they are not in SAY ───────────────────────────────────
+  // `SAY` is quotations from §11 of the honesty doc: the sentences that make a
+  // CLAIM about the campus, the route or the time. Everything below is a LABEL
+  // — a word naming a control or a part of the picture — and none of it asserts
+  // anything that could be true or false about the world. They are collected
+  // here anyway, in one block, so that a future honesty pass can audit the
+  // whole readable surface from two places instead of hunting the file.
+  //
+  // The two that come closest to being claims, and the reasoning:
+  //   `remaining` — the route's own length minus how far along it the CAMERA
+  //     is. It is a measurement of the drawn line and of the view, both of
+  //     which we have exactly. It says nothing about where the person is
+  //     standing (§12's `You are here`), and the minutes beside it are the
+  //     same range arithmetic, over the same permitted wording, run on the
+  //     part of the route that is left.
+  //   `to the next turn` — a distance along the drawn line to the next vertex
+  //     where the bearing changes by more than `WAYFIND.turnMinDeg`. It names
+  //     no street, because the graph carries no street names, and it gives no
+  //     instruction beyond what the ribbon on the ground already shows.
+  const SAY_UI = {
+    remaining: 'remaining',
+    unitMin: 'min walk',
+    toNextTurn: 'to the next turn',
+    toTheEnd: 'to the end of the route',
+    atTheEnd: 'You are at the end of the drawn route',
+    pipStairs: 'A staircase OpenStreetMap has mapped',
+    pipSignal: 'A signalised crossing',
+    pipStairsN: (n) => n + ' staircases OpenStreetMap has mapped',
+    pipSignalN: (n) => n + ' signalised crossings',
+    pipVia: 'The stop on the way',
+    capStart: 'Start of the route',
+    details: 'Details',
+    hideDetails: 'Hide details',
+    swap: 'Swap the two ends',
+    clearField: 'Clear this field',
+    tryLabel: 'Try',
+  };
+
   let el = null, state = { from: null, to: null, route: null, avoid: false, via: null,
     viaKind: null, viaList: [], viaAt: 0, viaNote: null, expanded: false };
+  // The walking readout's own state. `prof` is the route measured segment by
+  // segment (see routeProfile); `live` is the last projection of the camera
+  // onto it, or null when the view is not on the route.
+  let prof = null, live = null, liveHooked = false, liveAt = 0, liveFrom = null;
 
   function h(tag, cls, txt) {
     const n = document.createElement(tag);
@@ -1407,7 +1524,162 @@
     if (txt != null) n.textContent = txt;
     return n;
   }
+  // One helper for every icon in the feature, so no icon is a font glyph that
+  // may or may not exist on the device (`⤡` and `✕` were, and both render at a
+  // different size on Android than on this laptop).
+  function icon(cls, d, w) {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor');
+    s.setAttribute('stroke-width', w || 2);
+    s.setAttribute('stroke-linecap', 'round');
+    s.setAttribute('stroke-linejoin', 'round');
+    s.setAttribute('aria-hidden', 'true');
+    if (cls) s.setAttribute('class', cls);
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', d);
+    s.appendChild(p);
+    return s;
+  }
+  const IC = {
+    chev: 'M6 9.5 12 15.5 18 9.5',
+    close: 'M6 6 18 18M18 6 6 18',
+    swap: 'M7 4v16M7 4 4 7.5M7 4l3 3.5M17 20V4M17 20l3-3.5M17 20l-3-3.5',
+    arrow: 'M12 3.5 12 20.5M12 3.5 5.5 11M12 3.5 18.5 11',
+    pin: 'M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z M12 10.2v.01',
+  };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7a. THE ROUTE, MEASURED FOR THE PICTURE
+  //
+  // Everything the strip and the walking readout need comes out of ONE walk of
+  // the route, done once when the route is drawn. `leg.nodes[i] -> leg.edges[i]
+  // -> leg.nodes[i+1]` is exact by construction (dijkstra builds the two arrays
+  // together), so every segment carries its own true length and its own flags.
+  // Nothing here estimates or interpolates.
+  // ══════════════════════════════════════════════════════════════════════════
+  function routeProfile(g, r) {
+    const segs = [];
+    const push = (a, b, len, f, sid, link) => {
+      if (!(len > 0)) return;
+      segs.push({ a, b, len, f, sid, link });
+    };
+    let first = null, last = null;
+    for (const leg of r.legs) if (leg.nodes.length) { first = lonlat(g, leg.nodes[0]); break; }
+    for (let i = r.legs.length - 1; i >= 0; i--) {
+      const leg = r.legs[i];
+      if (leg.nodes.length) { last = lonlat(g, leg.nodes[leg.nodes.length - 1]); break; }
+    }
+    const fd = doorLL(g, r.fromDoor), td = doorLL(g, r.toDoor);
+    if (first) push(fd, first, metresBetween(fd, first), 0, -1, true);
+    let viaAfter = -1;
+    for (let li = 0; li < r.legs.length; li++) {
+      const leg = r.legs[li];
+      for (let i = 0; i < leg.edges.length; i++) {
+        const e = leg.edges[i];
+        push(lonlat(g, leg.nodes[i]), lonlat(g, leg.nodes[i + 1]), g.W[e] / 100, g.F[e], g.S[e], false);
+      }
+      if (li === 0 && r.via) viaAfter = segs.length - 1;
+    }
+    if (last) push(last, td, metresBetween(last, td), 0, -1, true);
+
+    let total = 0;
+    for (const s of segs) { s.at = total; total += s.len; }
+    // The bar prints `r.distM`, so the strip and the remaining figure are
+    // scaled to that same number rather than to this walk's own sum. The two
+    // differ by the metre or two between a door-link COST and the straight line
+    // it stands for, and a bar that says `530 m` above a readout that counts
+    // down from 532 is a bar arguing with itself.
+    const k = total > 0 ? (r.distM / total) : 1;
+    return { segs, total, k, viaAfter, distM: r.distM };
+  }
+
+  /** Where the staircases, the crossings and the stop fall along the route. */
+  function routeMarks(g, r, p) {
+    if (!p || !p.total) return [];
+    const raw = [];
+    const seen = new Set();
+    for (let i = 0; i < p.segs.length; i++) {
+      const s = p.segs[i];
+      if (s.f & F_STEPS) {
+        if (!seen.has(s.sid)) { seen.add(s.sid); raw.push({ t: s.at / p.total, kind: 'stairs' }); }
+      }
+      if (s.f & F_SIGNAL) raw.push({ t: (s.at + s.len / 2) / p.total, kind: 'signal' });
+      if (i === p.viaAfter) raw.push({ t: (s.at + s.len) / p.total, kind: 'via' });
+    }
+    raw.sort((a, b) => a.t - b.t);
+    // MERGE, DO NOT SMEAR. Two crossings 12 m apart on a 900 m route are 1.3 %
+    // of the strip; drawn as two dots they are one blurred dot that reads as
+    // one crossing. Merged, the pip carries the count and its label says two.
+    const out = [];
+    for (const m of raw) {
+      const prev = out[out.length - 1];
+      if (prev && prev.kind === m.kind && m.t - prev.t < WF_UI.pipMergeT) { prev.n++; continue; }
+      out.push({ t: Math.min(1 - WF_UI.stripMinPipT, Math.max(WF_UI.stripMinPipT, m.t)), kind: m.kind, n: 1 });
+    }
+    return out;
+  }
+
+  /** Closest point on the drawn route to a lon/lat, in metres along it. */
+  function projectOnRoute(p, ll) {
+    if (!p || !p.segs.length) return null;
+    let best = null;
+    for (const s of p.segs) {
+      const ax = s.a[0] * MPD_LON, ay = s.a[1] * MPD_LAT;
+      const bx = s.b[0] * MPD_LON, by = s.b[1] * MPD_LAT;
+      const px = ll[0] * MPD_LON, py = ll[1] * MPD_LAT;
+      const dx = bx - ax, dy = by - ay;
+      const L2 = dx * dx + dy * dy;
+      let u = L2 > 0 ? ((px - ax) * dx + (py - ay) * dy) / L2 : 0;
+      u = Math.max(0, Math.min(1, u));
+      const qx = ax + u * dx, qy = ay + u * dy;
+      const off = Math.hypot(px - qx, py - qy);
+      if (!best || off < best.off) best = { off, at: s.at + u * s.len, seg: s, u };
+    }
+    return best;
+  }
+
+  /**
+   * What is LEFT, measured rather than scaled: every segment ahead of the
+   * projection contributes its own length to flat or to stair, and the
+   * staircases and crossings ahead are counted, not prorated. The result goes
+   * through `timeRange()` — the same arithmetic, the same constants and the
+   * same outward rounding as the whole-route figure above it.
+   */
+  function remainingOf(p, at) {
+    const m = { flat: 0, stair: 0, signals: 0, stairSets: 0 };
+    const sets = new Set();
+    for (const s of p.segs) {
+      const end = s.at + s.len;
+      if (end <= at) continue;
+      const len = Math.min(s.len, end - Math.max(at, s.at));
+      if (s.f & F_STEPS) { m.stair += len; sets.add(s.sid); }
+      else m.flat += len;
+      if ((s.f & F_SIGNAL) && s.at + s.len / 2 > at) m.signals++;
+    }
+    m.stairSets = sets.size;
+    m.flat *= p.k; m.stair *= p.k;
+    return { m, time: timeRange(m), distM: Math.max(0, (p.total - at) * p.k) };
+  }
+
+  /** The next vertex ahead where the route really turns, and how far off it is. */
+  function nextTurnFrom(p, at) {
+    for (let i = 0; i < p.segs.length - 1; i++) {
+      const s = p.segs[i], n = p.segs[i + 1];
+      const v = s.at + s.len;
+      if (v - at < WF_UI.turnAheadMinM) continue;
+      let d = Math.abs(bearing(s.a, s.b) - bearing(n.a, n.b));
+      if (d > 180) d = 360 - d;
+      if (d >= WAYFIND.turnMinDeg) return { at: v, ll: s.b, distM: (v - at) * p.k };
+    }
+    const lastSeg = p.segs[p.segs.length - 1];
+    return { at: p.total, ll: lastSeg.b, distM: Math.max(0, (p.total - at) * p.k), end: true };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7b. THE DOM
+  // ══════════════════════════════════════════════════════════════════════════
   function buildUI() {
     if (el) return el;
     const root = h('div', null); root.id = 'wf-root';
@@ -1417,38 +1689,76 @@
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
       '<path d="M5 20.5 9.5 4.2l4.4 5.3 5.6 1.2-4.3 3.2 1 5.6-4.7-2.9z"/></svg>';
 
+    // ── the question ──────────────────────────────────────────────────────
     const sheet = h('div', 'hidden'); sheet.id = 'wf-sheet';
+    sheet.setAttribute('role', 'dialog');
+    sheet.setAttribute('aria-label', SAY.title);
     const head = h('div', null); head.id = 'wf-head';
     head.appendChild(h('div', 'wf-h', SAY.title));
-    const close = h('button', null, '✕'); close.id = 'wf-close'; close.setAttribute('aria-label', 'Close');
+    const close = h('button', null); close.id = 'wf-close';
+    close.setAttribute('aria-label', 'Close'); close.appendChild(icon(null, IC.close, 2.1));
     head.appendChild(close);
     sheet.appendChild(head);
 
-    const rowFrom = h('div', 'wf-row');
-    rowFrom.appendChild(h('span', 'wf-lab', SAY.fromLabel));
-    const inFrom = document.createElement('input');
-    inFrom.id = 'wf-from'; inFrom.type = 'text'; inFrom.placeholder = SAY.fromDefault;
-    inFrom.autocomplete = 'off'; inFrom.spellcheck = false;
-    rowFrom.appendChild(inFrom);
+    const ends = h('div', null); ends.id = 'wf-ends';
+    const mk = (id, lab, ph) => {
+      const row = h('div', 'wf-row');
+      row.appendChild(h('span', 'wf-lab', lab));
+      const inp = document.createElement('input');
+      inp.id = id; inp.type = 'text'; inp.placeholder = ph;
+      inp.autocomplete = 'off'; inp.spellcheck = false;
+      inp.setAttribute('aria-label', lab);
+      inp.enterKeyHint = 'go';
+      row.appendChild(inp);
+      const x = h('button', 'wf-x'); x.setAttribute('aria-label', SAY_UI.clearField);
+      x.appendChild(icon(null, IC.close, 2.4));
+      x.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        inp.value = '';
+        if (inp.id === 'wf-from') state.from = null; else state.to = null;
+        inp.focus(); renderList(inp); syncClears();
+      });
+      row.appendChild(x);
+      return { row, inp, x };
+    };
+    const from = mk('wf-from', SAY.fromLabel, SAY.fromDefault);
+    const to = mk('wf-to', SAY.toLabel, SAY.placeholder);
+    ends.appendChild(from.row);
+    ends.appendChild(to.row);
+    // SWAP. It is the one thing a two-field router is asked for constantly and
+    // it costs one button, so it is not in a menu. It sits on the seam between
+    // the rows because that is what it acts on.
+    const swap = h('button', null); swap.id = 'wf-swap';
+    swap.setAttribute('aria-label', SAY_UI.swap); swap.title = SAY_UI.swap;
+    swap.appendChild(icon(null, IC.swap, 1.9));
+    swap.addEventListener('click', (ev) => { ev.preventDefault(); swapEnds(); });
+    ends.appendChild(swap);
+    sheet.appendChild(ends);
 
-    const rowTo = h('div', 'wf-row');
-    rowTo.appendChild(h('span', 'wf-lab', SAY.toLabel));
-    const inTo = document.createElement('input');
-    inTo.id = 'wf-to'; inTo.type = 'text'; inTo.placeholder = SAY.placeholder;
-    inTo.autocomplete = 'off'; inTo.spellcheck = false;
-    rowTo.appendChild(inTo);
-
-    sheet.appendChild(rowFrom);
-    sheet.appendChild(rowTo);
     const list = h('div', null); list.id = 'wf-list';
+    list.setAttribute('role', 'listbox');
     sheet.appendChild(list);
-    // QUEUE Z9, second half. `+ N more — keep typing` used to be the last child
-    // of the scrolling list, so `#wf-list`'s max-height cut it in half and the
-    // remains collided with the hint line. It is not a result — it is a note
-    // ABOUT the results — so it lives outside the scroller and cannot be
-    // clipped by it. Empty means gone: see `#wf-more:empty` in style.css.
+    // QUEUE Z9, second half. `+ N more — keep typing` is a note ABOUT the
+    // results, not a result, so it lives outside the scroller and cannot be
+    // clipped by its max-height. Empty means gone: `#wf-more:empty`.
     const more = h('div', null); more.id = 'wf-more';
     sheet.appendChild(more);
+    // THE FIRST-RUN STATE, which interface.md flagged as undesigned. Four codes
+    // you can tap. It answers "what does this field want" with an example
+    // instead of a sentence, and it disappears the moment you type.
+    const egs = h('div', null); egs.id = 'wf-egs';
+    egs.appendChild(h('span', 'wf-eg-lab', SAY_UI.tryLabel));
+    for (const code of WF_UI.exampleCodes) {
+      const c = h('button', 'wf-eg', code);
+      c.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        const inp = (document.activeElement === el.inFrom) ? el.inFrom : el.inTo;
+        inp.value = code; inp.focus();
+        renderList(inp); syncClears();
+      });
+      egs.appendChild(c);
+    }
+    sheet.appendChild(egs);
     const hint = h('div', 'wf-hint', SAY.examples);
     sheet.appendChild(hint);
     const foot = h('div', 'wf-foot');
@@ -1456,35 +1766,86 @@
     foot.appendChild(h('div', null, SAY.osm + ' · ' + SAY.notUT));
     sheet.appendChild(foot);
 
+    // ── the answer ────────────────────────────────────────────────────────
     const pill = h('div', 'hidden'); pill.id = 'wf-pill';
+    pill.setAttribute('role', 'button');
+    pill.tabIndex = 0;
+    const chev = h('span', null); chev.id = 'wf-chev'; chev.appendChild(icon(null, IC.chev, 2.2));
+    // THE WALKING READOUT. Above the headline, and the headline hides under it
+    // rather than being replaced, so `#wf-headline`.textContent is still the
+    // whole-journey sentence for anything reading this UI from a test.
+    const liveEl = h('div', null); liveEl.id = 'wf-live';
+    // WHERE IT THINKS YOU ARE STARTING FROM. This is not decoration: with an
+    // empty From the app picks the routable building nearest the CAMERA
+    // (QUEUE Z2) and until now it never said which one it picked. A router
+    // that hides its own assumed origin is the "wrong building, beautifully
+    // drawn" failure with an extra step.
+    const orig = h('div', null); orig.id = 'wf-orig';
     const headline = h('div', null); headline.id = 'wf-headline';
+    const strip = h('div', null); strip.id = 'wf-strip';
+    strip.setAttribute('aria-hidden', 'true');
     const sub = h('div', null); sub.id = 'wf-sub';
-    // THE PASSING-PERIOD LINE. It sits in the closed pill, above the fold,
-    // because "do I have time" is the question and an answer you have to tap to
-    // see is not an answer. Empty means gone (`#wf-verdict:empty`).
     const verdict = h('div', null); verdict.id = 'wf-verdict';
     const card = h('div', 'hidden'); card.id = 'wf-card';
-    pill.appendChild(headline); pill.appendChild(sub);
-    pill.appendChild(verdict); pill.appendChild(card);
+    pill.appendChild(chev);
+    pill.appendChild(orig);
+    pill.appendChild(liveEl); pill.appendChild(headline); pill.appendChild(strip);
+    pill.appendChild(sub); pill.appendChild(verdict); pill.appendChild(card);
 
     root.appendChild(btn); root.appendChild(sheet); root.appendChild(pill);
     document.body.appendChild(root);
 
-    el = { root, btn, sheet, list, more, hint, inFrom, inTo, pill, headline, sub, verdict, card, close };
+    el = { root, btn, sheet, list, more, egs, hint, inFrom: from.inp, inTo: to.inp,
+      xFrom: from.x, xTo: to.x, swap, pill, chev, liveEl, orig, headline, strip, sub,
+      verdict, card, close, ends };
 
     btn.addEventListener('click', () => openSheet());
     close.addEventListener('click', () => closeSheet());
-    pill.addEventListener('click', () => { state.expanded = !state.expanded; renderPill(); });
-    for (const inp of [inFrom, inTo]) {
-      inp.addEventListener('input', () => renderList(inp));
-      inp.addEventListener('focus', () => renderList(inp));
+    const toggle = () => { state.expanded = !state.expanded; renderPill(); };
+    pill.addEventListener('click', toggle);
+    // The BAR toggles the card; the CARD does not. Reading the accessibility
+    // disclaimer and having the panel shut under your thumb because you touched
+    // a word of it is the kind of thing nobody reports and everybody notices.
+    card.addEventListener('click', (ev) => ev.stopPropagation());
+    pill.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); }
+    });
+    for (const inp of [from.inp, to.inp]) {
+      inp.addEventListener('input', () => { renderList(inp); syncClears(); });
+      inp.addEventListener('focus', () => { renderList(inp); syncClears(); });
       inp.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); commitFirst(inp); }
-        if (ev.key === 'Escape') { ev.preventDefault(); closeSheet(); }
+        // ARROW KEYS PICK. Enter used to commit "the first routable match",
+        // which is correct and completely invisible: nothing on screen said
+        // which row that was. There is now a highlighted row, it starts on the
+        // first one, and Enter takes it.
+        if (ev.key === 'ArrowDown') { ev.preventDefault(); moveActive(1); }
+        else if (ev.key === 'ArrowUp') { ev.preventDefault(); moveActive(-1); }
+        else if (ev.key === 'Enter') { ev.preventDefault(); commitFirst(inp); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); closeSheet(); }
         ev.stopPropagation();     // controls.js already ignores text inputs; belt and braces
       });
     }
     return el;
+  }
+
+  function syncClears() {
+    if (!el) return;
+    for (const [inp, x] of [[el.inFrom, el.xFrom], [el.inTo, el.xTo]]) {
+      const has = !!inp.value;
+      x.classList.toggle('on', has);
+      // The row, not just the button: the field only gives up the 19 px the
+      // clear button needs while there is a value in it to clear.
+      inp.parentNode.classList.toggle('has-val', has);
+    }
+  }
+
+  function swapEnds() {
+    const a = state.from, b = state.to;
+    const av = el.inFrom.value, bv = el.inTo.value;
+    state.from = b; state.to = a;
+    el.inFrom.value = bv; el.inTo.value = av;
+    syncClears();
+    if (state.from && state.to) run(); else renderList(el.inTo);
   }
 
   async function openSheet() {
@@ -1492,17 +1853,18 @@
     el.sheet.classList.remove('hidden');
     el.btn.classList.add('active');
     try { await loadGraph(); } catch (e) { el.hint.textContent = 'Could not load the campus paths.'; return; }
-    el.hint.textContent = SAY.examples + ' · ' + SAY.asOf(fmtAsOf(G.asOf));
-    // QUEUE Z2: the From default. interface.md §2 wants From pre-filled from
-    // something that exists; geolocation does not exist here (honesty audit
-    // §9), the camera always does. So From opens holding the routable building
-    // nearest the camera — visibly a building name, never a claim about where
-    // the PERSON is standing — and the field stays fully editable.
+    el.hint.textContent = SAY.asOf(fmtAsOf(G.asOf));
+    // QUEUE Z2: the From default. Geolocation does not exist here (honesty
+    // audit §9); the camera always does. So From opens holding the routable
+    // building nearest the camera — visibly a building name, never a claim
+    // about where the PERSON is standing — and the field stays editable.
     if (!state.from && !el.inFrom.value) {
       const near = nearestToCamera();
       if (near) { state.from = near; el.inFrom.value = near.display; }
     }
+    syncClears();
     el.inTo.focus();
+    renderList(el.inTo);
   }
 
   // The routable entry whose nearest door is closest to the camera's centre.
@@ -1523,35 +1885,42 @@
     }
     return best;
   }
+
   function closeSheet() {
     if (!el) return;
     el.sheet.classList.add('hidden');
     el.btn.classList.remove('active');
     el.list.innerHTML = '';
     el.more.textContent = '';
+    activeRow = 0;
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7c. THE RESULT LIST
+  // ══════════════════════════════════════════════════════════════════════════
+  let activeRow = 0, activeRows = [];
+
   function renderList(inp) {
-    if (!G) return;
+    if (!G || !el) return;
     // A new keystroke is a new question: put the default hint back so a
     // previous failure message does not outlive the query it answered.
-    el.hint.textContent = SAY.examples + ' · ' + SAY.asOf(fmtAsOf(G.asOf));
+    el.hint.textContent = SAY.asOf(fmtAsOf(G.asOf));
     const rows = search(inp.value);
     el.list.innerHTML = '';
     const shown = rows.slice(0, WAYFIND.resultRows);
+    activeRows = shown.filter(e => e.routable);
+    if (activeRow >= activeRows.length) activeRow = 0;
     for (const e of shown) {
-      const r = h('div', 'wf-item' + (e.routable ? '' : ' off'));
+      const isActive = e.routable && activeRows[activeRow] === e;
+      const r = h('div', 'wf-item' + (e.routable ? '' : ' off') + (isActive ? ' active' : ''));
+      r.setAttribute('role', 'option');
+      r.setAttribute('aria-selected', isActive ? 'true' : 'false');
       r.appendChild(h('span', 'wf-code', e.code || '•'));
       r.appendChild(h('span', 'wf-name', e.display));
       const n = e.doors.length;
-      // ONE TAG, AND IT IS ON THE PERMITTED LIST. This used to read
-      // `no door mapped` for a graph entry whose doors had no anchor — BIO and
-      // TSG, before the road access legs recovered them. Gate S now asserts
-      // that no findable entry can be unanchored, so that branch is
-      // unreachable; and `no door mapped` was the one rendered string in this
-      // file that lived neither in SAY nor on `what-we-can-honestly-say.md`
-      // §11's list. A string the permitted list has never seen is exactly what
-      // that list exists to prevent, so both cases now take the permitted tag.
+      // ONE TAG, AND IT IS ON THE PERMITTED LIST (§11). `no door mapped` used
+      // to appear here and lived in neither SAY nor the permitted list; both
+      // cases now take the permitted tag.
       r.appendChild(h('span', 'wf-meta', e.routable ? (n + (n === 1 ? ' door' : ' doors'))
         : SAY.notWalkableTag));
       if (e.routable) r.addEventListener('mousedown', (ev) => { ev.preventDefault(); pick(inp, e); });
@@ -1564,12 +1933,23 @@
       el.list.appendChild(r);
     }
     el.more.textContent = rows.length > shown.length ? SAY.more(rows.length - shown.length) : '';
+    el.egs.classList.toggle('hidden', !!norm(inp.value));
+  }
+
+  function moveActive(d) {
+    if (!activeRows.length) return;
+    activeRow = (activeRow + d + activeRows.length) % activeRows.length;
+    const inp = document.activeElement === el.inFrom ? el.inFrom : el.inTo;
+    renderList(inp);
+    const on = el.list.querySelector('.wf-item.active');
+    if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
   }
 
   function commitFirst(inp) {
     const all = search(inp.value);
     const rows = all.filter(e => e.routable);
-    if (rows.length) return pick(inp, rows[0]);
+    // The highlighted row, which is the first one until an arrow key moves it.
+    if (rows.length) return pick(inp, rows[Math.min(activeRow, rows.length - 1)]);
     // Empty From + Enter used to do NOTHING, silently (QUEUE Z2). Now it takes
     // the stated default: the routable building nearest the view.
     if (!norm(inp.value)) {
@@ -1595,6 +1975,8 @@
     if (inp === el.inFrom) state.from = entry; else state.to = entry;
     el.list.innerHTML = '';
     el.more.textContent = '';
+    activeRow = 0;
+    syncClears();
     if (state.from && state.to) { closeSheet(); run(); }
     else if (inp === el.inTo && !state.from) el.inFrom.focus();
   }
@@ -1607,14 +1989,167 @@
     });
     state.route = r;
     closeSheet();          // the answer replaces the question; two panels is two panels
+    prof = r.ok ? routeProfile(G, r) : null;
+    live = null; liveFrom = null;
     if (!r.ok) { renderPill(); draw(window.__map, null); return; }
     draw(window.__map, r);
+    armLive();
+    sampleLive();
     renderPill();
     // `?fit=1` waits for the opening flight (Z6). The card's own `Show route`
     // button does NOT — that is a person asking, and the camera is theirs.
     if (opts && opts.fit) fitWhenFree(window.__map, r);
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7d. THE WALKING READOUT
+  //
+  // ZERO COST AT REST, and that is the whole design of it. It is a `move`
+  // handler on the map, not a loop: a parked camera does nothing, a hidden tab
+  // does nothing, and clearing the route unhooks it entirely. While the camera
+  // IS moving it does one projection (a few hundred segment distances) and one
+  // textContent write, capped at `WF_UI.liveHz` a second.
+  // ══════════════════════════════════════════════════════════════════════════
+  function armLive() {
+    const map = window.__map;
+    if (!map || liveHooked) return;
+    map.on('move', onCam);
+    map.on('moveend', onCamEnd);
+    liveHooked = true;
+  }
+  function disarmLive() {
+    const map = window.__map;
+    if (!map || !liveHooked) return;
+    try { map.off('move', onCam); map.off('moveend', onCamEnd); } catch (e) {}
+    liveHooked = false;
+  }
+  function onCam() {
+    const now = performance.now();
+    if (now - liveAt < 1000 / WF_UI.liveHz) return;
+    liveAt = now;
+    if (sampleLive()) renderLive();
+  }
+  // THE LAST SAMPLE IS NOT OPTIONAL. `moveend` through the same throttle drops
+  // the frame the camera actually stopped on whenever the move was shorter than
+  // one tick — which is every jump — and leaves the readout one step stale at
+  // exactly the moment somebody stops to read it.
+  function onCamEnd() { liveAt = 0; onCam(); }
+
+  /** Camera -> a point on the route, or null. Returns true if it changed. */
+  function sampleLive() {
+    const map = window.__map;
+    if (!prof || !map || !state.route || !state.route.ok) { live = null; return false; }
+    let lng, lat, alt = 0, brg = 0;
+    try {
+      const eye = window.__fly && window.__fly.eye ? window.__fly.eye() : null;
+      if (eye) { lng = eye.lng; lat = eye.lat; alt = eye.alt; brg = eye.bearing; }
+      else { const c = map.getCenter(); lng = c.lng; lat = c.lat; alt = 0; brg = map.getBearing(); }
+    } catch (e) { return false; }
+    const p = projectOnRoute(prof, [lng, lat]);
+    const on = p && p.off <= WF_UI.liveOnRouteM && alt <= WF_UI.liveAltMaxM;
+    if (!on) { const had = !!live; live = null; return had; }
+    if (live && Math.abs(p.at - live.at) * prof.k < WF_UI.liveMinMoveM &&
+        Math.abs(brg - live.brg) < 4) return false;
+    const rem = remainingOf(prof, p.at);
+    const turn = nextTurnFrom(prof, p.at);
+    // The arrow is screen-relative: bearing from the view to the next turn,
+    // minus where the view is pointing. Straight ahead is straight up.
+    const b = bearing([lng, lat], turn.ll);
+    live = { at: p.at, off: p.off, brg, rem, turn, deg: ((b - brg) % 360 + 360) % 360,
+      done: rem.distM <= WF_UI.arriveM };
+    return true;
+  }
+
+  function renderLive() {
+    if (!el) return;
+    const on = !!live;
+    document.body.classList.toggle('wf-live', on);
+    el.liveEl.classList.toggle('hidden', !on);
+    if (!on) { renderStrip(); return; }
+    el.liveEl.innerHTML = '';
+    const arrow = h('div', 'wf-arrow');
+    const ic = icon(null, IC.arrow, 2.3);
+    ic.style.transform = 'rotate(' + live.deg.toFixed(0) + 'deg)';
+    arrow.appendChild(ic);
+    el.liveEl.appendChild(arrow);
+
+    const txt = h('div', 'wf-livetxt');
+    if (live.done) {
+      txt.appendChild(h('div', 'wf-liveline', SAY_UI.atTheEnd));
+    } else {
+      const t = live.rem.time;
+      const fig = h('div', 'wf-figs');
+      fig.appendChild(h('span', 'wf-big', t.lo === 0 ? ('<' + t.hi) : (t.lo + '–' + t.hi)));
+      fig.appendChild(h('span', 'wf-unit', SAY_UI.unitMin));
+      fig.appendChild(h('span', 'wf-dim2', SAY_UI.remaining));
+      txt.appendChild(fig);
+      txt.appendChild(h('div', 'wf-liveline',
+        fmtDist(live.turn.distM) + ' ' + (live.turn.end ? SAY_UI.toTheEnd : SAY_UI.toNextTurn) +
+        ' · ' + fmtDist(live.rem.distM)));
+    }
+    el.liveEl.appendChild(txt);
+    renderStrip();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7e. THE STRIP — where the things on this route actually are
+  //
+  // Not an elevation profile and it must never be mistaken for one: §12 forbids
+  // the whole hill family and there is no elevation source in this repo. This
+  // is a flat rail with a pip at each mapped staircase and each signalised
+  // crossing, at its true fraction of the route. It turns two counts the bar
+  // already prints — `Stairs: 1 set`, `Crosses 2 signalised crossings` — into
+  // WHERE, which is the part a student is actually planning around.
+  // ══════════════════════════════════════════════════════════════════════════
+  function renderStrip() {
+    if (!el) return;
+    const r = state.route;
+    el.strip.innerHTML = '';
+    if (!r || !r.ok || !prof) { el.strip.classList.add('hidden'); return; }
+    el.strip.classList.remove('hidden');
+    const rail = h('div', 'wf-rail');
+    const fill = h('div', 'wf-fill');
+    const doneT = live ? Math.max(0, Math.min(1, live.at / prof.total)) : 0;
+    fill.style.width = (doneT * 100).toFixed(2) + '%';
+    rail.appendChild(fill);
+    for (const m of routeMarks(G, r, prof)) {
+      const pip = h('span', 'wf-pip wf-pip-' + m.kind);
+      pip.style.left = (m.t * 100).toFixed(2) + '%';
+      // A MERGED PIP IS WIDER, and that is the only way the picture can agree
+      // with the card. `Crosses 4 signalised crossings` over a strip with two
+      // dots on it is the bar arguing with itself; a divided road tags both
+      // carriageways and they land within a metre of each other, so the two
+      // become one capsule that is labelled with the count it stands for.
+      if (m.n > 1) {
+        pip.classList.add('multi');
+        pip.style.width = (7 + 4 * (m.n - 1)) + 'px';
+        pip.style.marginLeft = (-(7 + 4 * (m.n - 1)) / 2) + 'px';
+      }
+      const lab = m.kind === 'stairs' ? (m.n > 1 ? SAY_UI.pipStairsN(m.n) : SAY_UI.pipStairs)
+        : m.kind === 'signal' ? (m.n > 1 ? SAY_UI.pipSignalN(m.n) : SAY_UI.pipSignal)
+        : SAY_UI.pipVia;
+      pip.title = lab; pip.setAttribute('aria-label', lab);
+      if (m.t <= doneT) pip.classList.add('past');
+      rail.appendChild(pip);
+    }
+    if (live) {
+      const you = h('span', 'wf-you');
+      you.style.left = (doneT * 100).toFixed(2) + '%';
+      rail.appendChild(you);
+    }
+    el.strip.appendChild(rail);
+    // THE TWO ENDS ARE SIBLINGS OF THE RAIL, NOT CHILDREN OF IT. A staircase
+    // 20 m from the door is at 97 % of a 660 m route, and inside the rail it
+    // was drawn underneath the destination ring — the one mark on the strip a
+    // student most needs to see, hidden by the mark it is nearest to.
+    const a = h('span', 'wf-cap wf-cap-a'); a.title = SAY_UI.capStart;
+    const b = h('span', 'wf-cap wf-cap-b'); b.title = r.to.display;
+    el.strip.appendChild(a); el.strip.appendChild(b);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7f. THE ANSWER BAR
+  // ══════════════════════════════════════════════════════════════════════════
   function renderPill() {
     buildUI();
     const r = state.route;
@@ -1622,6 +2157,13 @@
     document.body.classList.add('wf-routed');
     el.card.innerHTML = '';
     el.card.classList.toggle('hidden', !state.expanded);
+    el.pill.classList.toggle('open', !!state.expanded);
+    el.pill.setAttribute('aria-expanded', state.expanded ? 'true' : 'false');
+    el.chev.setAttribute('aria-hidden', 'true');
+    el.chev.title = state.expanded ? SAY_UI.hideDetails : SAY_UI.details;
+    el.headline.innerHTML = '';
+    el.sub.innerHTML = '';
+    el.orig.innerHTML = '';
 
     if (!r || !r.ok) {
       // 'nodoor' names whichever end cannot be routed; a register-only entry
@@ -1632,29 +2174,63 @@
       el.headline.textContent = dead
         ? (dead.reg ? SAY.notWalkable(dead.code) : SAY.notRoutable)
         : (r && r.why === 'nodoor' ? SAY.notRoutable : SAY.noRoute);
+      el.headline.className = 'fail';
+      // BOTH ENDS STAY ON SCREEN ON A FAILURE, and that is not decoration.
+      // The headline names whichever end we cannot route, and with only the
+      // DESTINATION under it the bar read `FC1 is not walkable in this build
+      // yet` over `Robert A. Welch Hall` — which says, to any reader, that
+      // Welch is the building we do not have. The origin line comes back so
+      // the sentence has the pair it is about underneath it.
+      if (state.from) {
+        el.orig.classList.remove('hidden');
+        el.orig.appendChild(h('span', 'wf-from-lab', SAY.fromLabel));
+        el.orig.appendChild(h('span', 'wf-from-name', state.from.display));
+      } else {
+        el.orig.classList.add('hidden');
+      }
       el.sub.textContent = state.to ? state.to.display : '';
       el.verdict.textContent = '';
       el.verdict.className = '';
+      el.strip.classList.add('hidden');
+      el.liveEl.classList.add('hidden');
+      document.body.classList.remove('wf-live');
+      el.chev.classList.add('hidden');
       return;
     }
+    el.headline.className = '';
+    el.chev.classList.remove('hidden');
+    el.orig.classList.remove('hidden');
+    el.orig.appendChild(h('span', 'wf-from-lab', SAY.fromLabel));
+    el.orig.appendChild(h('span', 'wf-from-name', r.from.display));
 
-    // THE HEADLINE. Three facts, in decreasing order of how much they change
-    // your decision, and not one of them is a claim we cannot back.
+    // ── THE FIGURE LINE ────────────────────────────────────────────────────
+    // Three facts, in decreasing order of how much they change your decision,
+    // and not one of them is a claim we cannot back. They are the SAME strings
+    // §11 permits: the minutes are 26 px and the rest is not, but
+    // `el.headline.textContent` still returns `6-8 min walk · 530 m · No stairs
+    // on this route` character for character, because the type is spans inside
+    // it rather than a different sentence.
     const t = r.time;
-    const parts = [
-      t.lo === 0 ? SAY.minWalkUnder(t.hi) : SAY.minWalk(t.lo, t.hi),
-      fmtDist(r.distM),
-      r.m.stairSets ? SAY.stairsSets(r.m.stairSets) : SAY.stairsNone,
-    ];
-    el.headline.textContent = parts.join(' · ');
-    el.sub.textContent = r.to.display + ' · ' + doorPhrase(G, r.toDoor);
+    const mins = t.lo === 0 ? String(t.hi) : (t.lo + '-' + t.hi);
+    if (t.lo === 0) el.headline.appendChild(h('span', 'wf-pre', 'Under '));
+    el.headline.appendChild(h('span', 'wf-big', mins));
+    el.headline.appendChild(h('span', 'wf-unit', ' ' + SAY_UI.unitMin));
+    el.headline.appendChild(h('span', 'wf-mid', ' · '));
+    el.headline.appendChild(h('span', 'wf-dist', fmtDist(r.distM)));
+    el.headline.appendChild(h('span', 'wf-mid', ' · '));
+    el.headline.appendChild(h('span', 'wf-cond',
+      r.m.stairSets ? SAY.stairsSets(r.m.stairSets) : SAY.stairsNone));
+
+    // ── THE DESTINATION AND ITS DOOR ───────────────────────────────────────
+    el.sub.appendChild(h('span', 'wf-dest', r.to.display));
+    el.sub.appendChild(h('span', 'wf-mid', ' · '));
+    el.sub.appendChild(h('span', 'wf-door', doorPhrase(G, r.toDoor)));
 
     // ── "WILL I MAKE IT?" — the one-sided answer. Honesty doc §15. ──────────
     //
-    // A student between classes is not asking how to get there, they are
-    // asking whether they have time, and making them do the subtraction while
-    // walking is the app failing at its own job. So we do it — in ONE
-    // direction only.
+    // A student between classes is not asking how to get there, they are asking
+    // whether they have time, and making them do the subtraction while walking
+    // is the app failing at its own job. So we do it — in ONE direction only.
     //
     //   both ends over the period   -> say so. If we are wrong they walk faster.
     //   the range crosses it        -> say it is tight. True of our own numbers.
@@ -1663,9 +2239,7 @@
     // There is no "you'll make it" and there must not be. Our range measures
     // pavement between two doors; it knows nothing about getting out of a
     // lecture hall, a lift, a stairwell inside the building, the crowd on
-    // Speedway at the hour, or finding the room. On a 13-minute walk into a
-    // 15-minute gap those eat the whole buffer, and being wrong in THAT
-    // direction is the one failure this feature was written to avoid.
+    // Speedway at the hour, or finding the room.
     const pm = WAYFIND.passingMin;
     el.verdict.className = '';
     if (t.lo >= pm) {
@@ -1677,6 +2251,8 @@
     } else {
       el.verdict.textContent = '';
     }
+
+    renderLive();
 
     if (!state.expanded) return;
 
@@ -1701,6 +2277,8 @@
     const av = h('label', 'wf-toggle');
     const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = state.avoid;
     cb.addEventListener('change', () => { state.avoid = cb.checked; run(); });
+    cb.addEventListener('click', (ev) => ev.stopPropagation());
+    av.addEventListener('click', (ev) => ev.stopPropagation());
     av.appendChild(cb); av.appendChild(h('span', null, SAY.avoidStairs));
     el.card.appendChild(av);
     el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidBlurb));
@@ -1714,13 +2292,15 @@
       chips.appendChild(c);
     }
     if (state.via != null) {
-      const x = h('button', 'wf-chip', '✕');
+      const x = h('button', 'wf-chip wf-chip-x');
+      x.setAttribute('aria-label', SAY.clear);
+      x.appendChild(icon(null, IC.close, 2.4));
       x.addEventListener('click', (ev) => { ev.stopPropagation(); state.via = null; state.viaKind = null; run(); });
       chips.appendChild(x);
     }
     el.card.appendChild(chips);
 
-    const show = h('button', 'wf-act', SAY.showRoute + ' ⤡');
+    const show = h('button', 'wf-act wf-act-go', SAY.showRoute);
     show.addEventListener('click', (ev) => { ev.stopPropagation(); fitTo(window.__map, state.route); });
     const clr = h('button', 'wf-act', SAY.clear);
     clr.addEventListener('click', (ev) => { ev.stopPropagation(); clear(); });
@@ -1766,8 +2346,15 @@
 
   function clear() {
     state.route = null; state.via = null; state.viaKind = null; state.expanded = false;
-    if (el) { el.pill.classList.add('hidden'); el.card.classList.add('hidden'); }
+    prof = null; live = null;
+    disarmLive();
+    if (el) {
+      el.pill.classList.add('hidden'); el.card.classList.add('hidden');
+      el.pill.classList.remove('open');
+      el.liveEl.classList.add('hidden');
+    }
     document.body.classList.remove('wf-routed');
+    document.body.classList.remove('wf-live');
     if (window.__map && layersAdded) draw(window.__map, null);
   }
 
