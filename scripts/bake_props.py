@@ -45,6 +45,20 @@ CACHE = os.path.join(DATA, "osm_cache")
 GROUND = os.path.join(DATA, "ground.geojson")
 MANIFEST = os.path.join(DATA, "manifest.json")
 OUT = os.path.join(DATA, "props.geojson")
+# The lamp index: the SAME light points this bake writes into props.geojson,
+# republished as a ~5 KB file so js/wayfind.js can ask "is there a mapped light
+# near this path" without downloading a 1.5 MB prop file it does not otherwise
+# need (props ship as data/tiles/props.pmtiles at runtime, so the GeoJSON is
+# never fetched by the page at all). Written ONLY by this script — see
+# `lamp_index()` for why it is derived from the shipped file rather than a
+# re-bake.
+LAMP_OUT = os.path.join(DATA, "walk_lamps.json")
+# The Overpass snapshot behind every `k:lit` point. It is NOT the same snapshot
+# as the walk network's (data/walk_graph.json, 2026-07-30): the furniture caches
+# under data/osm_cache/furn_*.json carry their own `osm3s.timestamp_osm_base`,
+# and the interface must not print one date over the other's data. Read from the
+# cache when it is present; this is the fallback so the index is never undated.
+LAMP_AS_OF_FALLBACK = "2026-06-12"
 M_LAT = 111320.0
 LAT0 = 30.286
 
@@ -1581,10 +1595,99 @@ def _seg_dist(px, py, a, b):
     return math.hypot(px - (a[0] + t * dx), py - (a[1] + t * dy))
 
 
+def lamp_index():
+    """Republish the light points from the SHIPPED data/props.geojson as
+    data/walk_lamps.json, for js/wayfind.js.
+
+    WHY IT READS THE SHIPPED FILE INSTEAD OF RE-BAKING. Same reason `reshape()`
+    above does, and it is not a shortcut: HANDOFF §44 records that a full
+    `bake_props.py` run on a machine without the City of Austin inventory caches
+    emits a fraction of the shipped file. An index built from a local re-bake
+    would therefore claim lights the scene does not draw, and miss lights it
+    does — which is the exact failure this index exists to prevent. The shipped
+    props.geojson IS the source the renderer was built from, so it is the only
+    honest source for a claim about what the renderer draws.
+
+    WHAT COUNTS AS A LIGHT. `k: "lit"` and nothing else. props.geojson also
+    carries 532 `k: "lamp"` POLES, but only 236 of them have a `lit` point — the
+    other 296 are flagpoles, masts, bus-stop poles, gates and traffic signals,
+    which are drawn as dark verticals and throw no light in the scene. Indexing
+    poles instead of lights would put a "lit" claim under a flagpole. Split by
+    colour class, because they are two different facts a walker cares about
+    separately: `warm` = highway=street_lamp, `blue` = emergency=phone, UT's
+    blue-light call boxes.
+
+    FORMAT. Quantised integers, delta-coded after a sort, same convention as
+    data/walk_graph.json — about 3 KB for 236 points against 12 KB of raw
+    coordinate text, and the decode is one cumulative sum.
+    """
+    with open(OUT, encoding="utf-8") as f:
+        gj = json.load(f)
+    buckets = {"warm": [], "blue": []}
+    for feat in gj["features"]:
+        p = feat["properties"]
+        if p.get("k") != "lit":
+            continue
+        c = feat["geometry"]["coordinates"]
+        buckets.setdefault(p.get("c") or "warm", []).append((c[0], c[1]))
+
+    as_of = LAMP_AS_OF_FALLBACK
+    for key in ("furn_vertical", "furniture"):
+        p = os.path.join(CACHE, key + ".json")
+        if not os.path.exists(p):
+            continue
+        with open(p, encoding="utf-8") as f:
+            stamp = (json.load(f).get("osm3s") or {}).get("timestamp_osm_base")
+        if stamp:
+            as_of = stamp[:10]
+            break
+
+    Q = 1e-6
+
+    def pack(pts):
+        q = sorted((int(round(lo / Q)), int(round(la / Q))) for lo, la in pts)
+        xs, ys, px, py = [], [], 0, 0
+        for x, y in q:
+            xs.append(x - px)
+            ys.append(y - py)
+            px, py = x, y
+        return {"x": xs, "y": ys}
+
+    out = {
+        "_source": "data/props.geojson `k:lit` points, republished by "
+                   "scripts/bake_props.py --lamp-index",
+        "_license": "© OpenStreetMap contributors, ODbL",
+        "_format": "x/y: quantised by q, first absolute then deltas, sorted by x. "
+                   "warm = highway=street_lamp, blue = emergency=phone.",
+        "_what_it_is_not": "Not a lighting survey. These are the lights OSM "
+                           "mappers recorded and the scene draws; real campus "
+                           "lighting is denser and a mapped lamp may be out.",
+        "as_of": as_of,
+        "q": Q,
+        "n_warm": len(buckets.get("warm", [])),
+        "n_blue": len(buckets.get("blue", [])),
+        "warm": pack(buckets.get("warm", [])),
+        "blue": pack(buckets.get("blue", [])),
+    }
+    with open(LAMP_OUT, "w", encoding="utf-8") as f:
+        json.dump(out, f, separators=(",", ":"))
+    print(json.dumps({
+        "mode": "lamp-index (derived from the shipped props.geojson)",
+        "out": os.path.relpath(LAMP_OUT, ROOT).replace("\\", "/"),
+        "warm_street_lamps": out["n_warm"],
+        "blue_emergency_phones": out["n_blue"],
+        "as_of": as_of,
+        "file_kb": round(os.path.getsize(LAMP_OUT) / 1024, 1),
+        "props_untouched": True,
+    }, indent=2))
+
+
 if __name__ == "__main__":
     if "--reshape" in sys.argv:
         reshape()
     elif "--relines" in sys.argv:
         relines()
+    elif "--lamp-index" in sys.argv:
+        lamp_index()
     else:
         main()

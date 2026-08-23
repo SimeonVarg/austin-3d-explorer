@@ -218,6 +218,90 @@
                            // flight, so this is that plus a little.
     fitPollMs: 200,
 
+    // ── AFTER DARK: which of this walk has a mapped light on it ───────────
+    //
+    // WHAT THE NUMBERS ARE AND WHY THEY ARE THESE NUMBERS. Measured on this
+    // repo's own files, 2026-08-23, and written up in docs/walk-lit.md:
+    //
+    //   data/props.geojson carries 236 `k:"lit"` points — 193 warm
+    //   (highway=street_lamp) and 43 blue (emergency=phone, UT's blue-light
+    //   call boxes). They are the ONLY lights the 3D scene actually stands a
+    //   pole under, and data/walk_lamps.json is those same points republished
+    //   at 2.5 KB so this file can read them.
+    //
+    //   Against the 11,773 routable edges of the walk graph, a warm lamp
+    //   within 25 m covers 9.2 % of the network's METRES. Nine per cent is why
+    //   the default is to ANNOTATE and not to re-route: optimising a path for
+    //   a signal that thin steers by who bothered to map, not by where the
+    //   light is. The lit alternative below is offered, priced, and taken by
+    //   the user — never chosen for them.
+    litOn: true,
+    litUrl: 'data/walk_lamps.json',
+    litRadiusM: 25,        // a mapped streetlight this close COUNTS as covering
+                           // the path. A UT walkway lamp is a ~5 m mast and the
+                           // scene draws its pool at 7-9 m ground radius
+                           // (PROPS.litGroundNear); 25 m is the walkable throw,
+                           // deliberately more generous than the drawn disc so
+                           // the claim is not an artifact of a render choice.
+    litPhoneNearM: 40,     // a blue-light phone is a thing you RUN TO, not a
+                           // thing that lights your path. Counted separately,
+                           // at a radius that means "on this walk", not "over
+                           // your head".
+    litSampleM: 8,         // resample step. Half the shortest gap worth naming.
+    litGapMinM: 60,        // an unmapped stretch shorter than this gets no
+                           // sentence: at 1.2 m/s it is under a minute and
+                           // every route has one.
+    litNightP: 0.45,       // nightness (0 day, 1 full night) at or above which
+                           // the lighting line is worth putting in the closed
+                           // pill instead of only in the card.
+    litDayOpacityMul: 0.25, // the marks never vanish in daylight — you may be
+                           // planning a walk you will take at 9 pm — but they
+                           // step back to a quarter until the sun goes down.
+    litLampCol: '#ffc27a', // EXACTLY js/props.js's warm `lit` circle colour, so
+    litPhoneCol: '#6fa8ff', // and its blue one. A mark under a lamp that is not
+                           // the lamp's own colour is a second light source.
+    // The unmapped stretch: cool, flat, and deliberately NOT black — it is
+    // "nothing is mapped here", not "this is dark", and a black route would say
+    // the second thing and also be unfollowable.
+    //
+    // TUNED BY LOOKING, AND THE FIRST VALUE WAS BACKWARDS. At `#59637a` the
+    // unmapped stretch came out as the BRIGHTEST thing in a night aerial —
+    // brighter than the amber it was supposed to read as the poor relation of
+    // (shots/walk/lit/anb-etc-lamp-air.png, first pass). A stretch we are
+    // warning about must not look like the stretch we are recommending, so it
+    // went two steps down in value and stayed cool.
+    litDarkCol: '#39435e',
+    // The SAME fact needs two different colours: `litDarkCol` is a mark lying
+    // on a night street and has to be dark to read as unlit; the same words on
+    // the dark glass of the pill have to be light to read at all. Keeping one
+    // constant for both is how "no mapped streetlight" became unreadable text.
+    litTextDim: '#9fb0cc',
+    // The mark at every counted lamp is a square RING, not a filled pad: the
+    // lamp already throws its own warm pool in the scene and a second amber
+    // blob on top of it reads as a second light. A ring reads as a tag on the
+    // light that is already there — which is exactly what it is.
+    litPadM: 2.8,          // outer side, ground metres
+    litPadRimM: 0.45,      // how thick the ring is
+    litPadH: 0.34,         // stands proud of GROUND.pathRaise (0.22) so it is
+                           // not buried by the pavement slab, like the ribbon.
+    litPadOpacity: 0.8,
+    litDarkLiftM: 0.05,    // the unmapped overlay rides this far above the
+                           // ribbon's own top so the two never z-fight.
+    litDarkWidthMul: 1.04, // ...and is a hair wider, so its edges are visible
+                           // against the ribbon rather than exactly on them.
+    litDarkOpacity: 0.9,
+    // The offered alternative. `litAltMult` is what an unmapped metre costs the
+    // search; `litAltMaxFrac` is the hard ceiling on the answer it may return.
+    // The multiplier only decides which way it leans — the ceiling is the
+    // promise, and it is checked against the REAL distance, re-measured after
+    // the search with the real edge lengths.
+    litAltMult: 1.7,
+    litAltMaxFrac: 1.35,   // never offer a route more than 35 % longer. Time
+                           // outside after dark is itself a cost and we cannot
+                           // measure the trade, so we bound it.
+    litAltMinGainM: 40,    // and never offer one that buys less than this much
+                           // extra covered walking. Below that it is noise.
+
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
     registerUrl: 'data/ut_buildings.json',  // UT's own 198-code register; the
@@ -317,6 +401,45 @@
     chipFood: 'Food',
     chipStore: 'Store',
     examples: 'Try WEL, PCL, GDC, or an apartment name',
+
+    // ── AFTER DARK (docs/walk-lit.md) ─────────────────────────────────────
+    //
+    // A COUNT OF MAPPED LAMPS IS NOT A SAFETY RATING, and these strings are
+    // written so that cannot be misread. §12 above bans "accessible route" on
+    // a field with 1.4 % coverage; mapped street lighting covers 9.2 % of this
+    // network's metres, so "well lit", "safe", "safest route", "avoids the
+    // dark bits" and a shield icon are banned by exactly the same argument and
+    // for a stronger reason — being wrong about a staircase costs a detour,
+    // being wrong about safety costs something we are not entitled to gamble.
+    //
+    // So every sentence here is about the MAP, never about the street:
+    // "mapped", "none mapped", "OpenStreetMap has". The one place we describe
+    // the world is to say the map UNDERSTATES it, which is the direction that
+    // cannot hurt anyone.
+    litHeading: 'Street lighting',
+    litLamps: (n) => n + (n === 1 ? ' mapped streetlight' : ' mapped streetlights') +
+      ' along this route',
+    litNone: 'No mapped streetlight along this route',
+    litGap: (d) => 'Longest stretch with none mapped: ' + d,
+    litSource: (n, when) => 'OpenStreetMap has ' + n + ' streetlights mapped in this area' +
+      (when ? ', from ' + when : '') + '. Real lighting is denser than that, and a mapped ' +
+      'lamp can be out. This is not a safety rating.',
+    litPhones: (n) => n + (n === 1 ? ' emergency phone' : ' emergency phones') + ' near this route',
+    litPhonesNone: 'No emergency phone mapped near this route',
+    // The offer. The price is printed BEFORE the button, never after it.
+    litAltOffer: (extra, pct, was, now) => 'A way with more mapped light: ' + extra +
+      ' further (' + pct + '%), ' + now + ' streetlights instead of ' + was,
+    // ...and sometimes the price is nothing. Measured over 120 random pairs:
+    // where an alternative exists at all it is a median 2 % longer, and one in
+    // eight of them is not longer at all — the shortest-COST route is not the
+    // shortest-METRES route once crossings and staircases are priced in. A
+    // sentence that says "-67 m further" is a sentence nobody can read.
+    litAltOfferFree: (was, now) => 'A way with more mapped light, no further: ' +
+      now + ' streetlights instead of ' + was,
+    litAltTake: 'Take the lit way',
+    litAltOn: 'Showing the way with more mapped light',
+    litAltOff: 'Back to the shortest way',
+    litAltNone: 'No way with more mapped light within the extra distance we allow',
   };
 
   // ── ON/OFF, decided before anything else happens ──────────────────────────
@@ -1205,6 +1328,7 @@
     map.getSource(SRC_COL).setData({ type: 'FeatureCollection', features: cols });
 
     startPulse(map, !!route);
+    litDraw(map, route);            // §6b — the lamps this route has, and hasn't
   }
 
   // Direction without arrowheads: a bright band runs start -> end along the
@@ -1337,6 +1461,470 @@
     if (map.getLayer(L_COL)) {
       try { map.setPaintProperty(L_COL, 'fill-extrusion-color', ['case', ['==', ['get', 'r'], 'via'], WAYFIND.viaRingCol, col]); } catch (e) {}
     }
+    litRetint(map);                 // §6b — the lighting marks ride the same clock
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 6b. AFTER DARK — WHICH OF THIS WALK HAS A MAPPED LIGHT ON IT
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // THE SOURCE, AND WHY IT IS THIS ONE. The scene draws exactly 236 lights:
+  // `k:"lit"` points in data/props.geojson, 193 warm street lamps and 43 blue
+  // emergency phones, every one of them an OpenStreetMap node. js/night.js also
+  // paints pools of light along the BASEMAP's road and path classes, but those
+  // are generated at runtime at a fixed spacing to keep the city from reading
+  // as a void — there is no lamp under them and no survey behind them. Counting
+  // those would be counting our own decoration, so this file counts the 236 and
+  // says "mapped" every time it opens its mouth. Fly to any pad this draws at
+  // night and there is a pole standing in it; that is the whole test.
+  //
+  // WHY IT DOES NOT SILENTLY RE-ROUTE. A warm lamp within `litRadiusM` covers
+  // 9.2 % of the walk network's metres (measured; docs/walk-lit.md). Steering
+  // every night route by a signal that thin optimises for OSM's mapping
+  // coverage, not for light, and it buys that with time spent outside, which is
+  // itself the risk. So the default answer ANNOTATES, and the alternative is
+  // computed, priced in metres and lamps, and offered as a button. The user
+  // makes the trade; we only make it visible.
+  //
+  // The light index is NOT the same OSM snapshot as the path network — the
+  // furniture caches are 2026-06-12 and the walk graph is 2026-07-30 — so the
+  // date printed under the lighting block is the light index's own, read from
+  // the file, never the graph's.
+  const SRC_LIT = 'wayfind-lit';
+  const L_LIT_PAD = 'wayfind-lit-pad', L_LIT_DARK = 'wayfind-lit-dark';
+  const L_LIT_THREAD = 'wayfind-lit-thread';
+  let LAMPS = null, lampPromise = null, litLayersAdded = false;
+
+  function decodeLampSet(o) {
+    const xs = (o && o.x) || [], ys = (o && o.y) || [], n = xs.length;
+    const X = new Float64Array(n), Y = new Float64Array(n);
+    let ax = 0, ay = 0;
+    for (let i = 0; i < n; i++) { ax += xs[i]; ay += ys[i]; X[i] = ax; Y[i] = ay; }
+    return { X, Y, n };
+  }
+  /** A metric hash grid. `cell` must be >= the query radius: the lookup only
+   *  visits the 3x3 block around a point, which is exact only under that. */
+  function lampGrid(set, cell) {
+    const m = new Map();
+    for (let i = 0; i < set.n; i++) {
+      const k = Math.floor(set.X[i] * MPD_LON / cell) + ':' + Math.floor(set.Y[i] * MPD_LAT / cell);
+      const a = m.get(k);
+      if (a) a.push(i); else m.set(k, [i]);
+    }
+    return { m, cell };
+  }
+  function lampsNear(set, gr, lon, lat, r, into) {
+    const cx = Math.floor(lon * MPD_LON / gr.cell), cy = Math.floor(lat * MPD_LAT / gr.cell);
+    let any = false;
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const a = gr.m.get((cx + dx) + ':' + (cy + dy));
+        if (!a) continue;
+        for (let k = 0; k < a.length; k++) {
+          const i = a[k];
+          const ddx = (set.X[i] - lon) * MPD_LON, ddy = (set.Y[i] - lat) * MPD_LAT;
+          if (ddx * ddx + ddy * ddy <= r * r) { any = true; if (into) into.add(i); }
+        }
+      }
+    }
+    return any;
+  }
+
+  async function loadLamps() {
+    if (LAMPS) return LAMPS;
+    if (lampPromise) return lampPromise;
+    lampPromise = (async () => {
+      const r = await fetch(WAYFIND.litUrl);
+      if (!r.ok) throw new Error(WAYFIND.litUrl + ': ' + r.status);
+      const j = await r.json();
+      const q = j.q || 1e-6;
+      const warm = decodeLampSet(j.warm), blue = decodeLampSet(j.blue);
+      for (const s of [warm, blue]) for (let i = 0; i < s.n; i++) { s.X[i] *= q; s.Y[i] *= q; }
+      LAMPS = {
+        warm, blue, asOf: j.as_of || null,
+        nWarm: j.n_warm != null ? j.n_warm : warm.n,
+        nBlue: j.n_blue != null ? j.n_blue : blue.n,
+        gWarm: lampGrid(warm, WAYFIND.litRadiusM),
+        gBlue: lampGrid(blue, WAYFIND.litPhoneNearM),
+      };
+      return LAMPS;
+    })().catch((e) => { lampPromise = null; throw e; });
+    return lampPromise;
+  }
+
+  /** Everything the walker actually walks: the door leg, the mapped path, the
+   *  other door leg. An unmapped door leg is real metres in the dark too. */
+  function walkedLine(route) {
+    const out = [];
+    const push = (p) => {
+      const last = out[out.length - 1];
+      if (!last || last[0] !== p[0] || last[1] !== p[1]) out.push(p);
+    };
+    if (route.geom.startLeg) push(route.geom.startLeg[0]);
+    for (const p of route.geom.line) push(p);
+    if (route.geom.endLeg) push(route.geom.endLeg[1]);
+    return out;
+  }
+
+  /**
+   * Walk the route in `litSampleM` steps and classify every step by whether a
+   * mapped street lamp is within `litRadiusM` of its MIDPOINT. Returns the
+   * metres each way, the distinct lamps and phones involved, and the runs
+   * themselves so the map can draw the unmapped ones.
+   *
+   * Memoised on the route object: renderPill and draw both want it, and a route
+   * is immutable once computed.
+   */
+  function litScan(route) {
+    if (!route || !route.ok || !LAMPS) return null;
+    if (route.__lit) return route.__lit;
+    const line = walkedLine(route);
+    if (line.length < 2) return null;
+    const step = WAYFIND.litSampleM;
+    const lamps = new Set(), phones = new Set();
+    let litM = 0, darkM = 0, longestGap = 0;
+    const runs = [];                 // {lit:bool, m:number, line:[[lon,lat],…]}
+    let cur = null;
+    const emit = (isLit, a, b, m) => {
+      if (cur && cur.lit === isLit) { cur.m += m; cur.line.push(b); }
+      else { cur = { lit: isLit, m, line: [a, b] }; runs.push(cur); }
+    };
+    for (let i = 0; i < line.length - 1; i++) {
+      const a = line[i], b = line[i + 1];
+      const segM = metresBetween(a, b);
+      if (segM < 1e-6) continue;
+      const n = Math.max(1, Math.ceil(segM / step));
+      for (let k = 0; k < n; k++) {
+        const t0 = k / n, t1 = (k + 1) / n;
+        const p0 = [a[0] + (b[0] - a[0]) * t0, a[1] + (b[1] - a[1]) * t0];
+        const p1 = [a[0] + (b[0] - a[0]) * t1, a[1] + (b[1] - a[1]) * t1];
+        const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2;
+        const m = segM / n;
+        const on = lampsNear(LAMPS.warm, LAMPS.gWarm, mx, my, WAYFIND.litRadiusM, lamps);
+        lampsNear(LAMPS.blue, LAMPS.gBlue, mx, my, WAYFIND.litPhoneNearM, phones);
+        if (on) litM += m; else darkM += m;
+        emit(on, p0, p1, m);
+      }
+    }
+    for (const r of runs) if (!r.lit && r.m > longestGap) longestGap = r.m;
+    const out = {
+      litM, darkM, totalM: litM + darkM, longestGapM: longestGap,
+      lamps: Array.from(lamps), phones: Array.from(phones), runs,
+      pct: (litM + darkM) > 0 ? litM / (litM + darkM) : 0,
+    };
+    route.__lit = out;
+    return out;
+  }
+
+  // ── the alternative, and the whole reason it is an OFFER ──────────────────
+  //
+  // HOW IT IS SEARCHED WITHOUT A SECOND DIJKSTRA. `edgeCost` prices an edge off
+  // `g.W`, the decoded centimetre length array. So a lit-preferring search is
+  // the SAME search over a swapped `g.W` in which every unmapped edge is
+  // `litAltMult` longer than it really is. The swap is synchronous, restored in
+  // a `finally`, and nothing else runs between — and the answer is then
+  // RE-MEASURED against the true lengths, because a route whose printed
+  // distance came off the inflated array would be lying by exactly the amount
+  // of the preference.
+  function litEdgeWeights(g) {
+    if (g.__litW) return g.__litW;
+    const W = Int32Array.from(g.W);
+    for (let i = 0; i < g.E; i++) {
+      const mx = (g.X[g.A[i]] + g.X[g.B[i]]) / 2, my = (g.Y[g.A[i]] + g.Y[g.B[i]]) / 2;
+      if (!lampsNear(LAMPS.warm, LAMPS.gWarm, mx, my, WAYFIND.litRadiusM, null)) {
+        W[i] = Math.round(g.W[i] * WAYFIND.litAltMult);
+      }
+    }
+    g.__litW = W;
+    return W;
+  }
+  /** Re-measure a route against the TRUE edge lengths. Same arithmetic as
+   *  computeRoute's own, and it must stay the same arithmetic. */
+  function litRemeasure(g, r) {
+    const m = { flat: 0, stair: 0, signals: 0, stairSets: 0 };
+    const sets = new Set();
+    for (const leg of r.legs) {
+      const s = measure(g, leg);
+      m.flat += s.flat; m.stair += s.stair; m.signals += s.signals;
+      for (const e of leg.edges) if (g.F[e] & F_STEPS) sets.add(g.S[e]);
+    }
+    m.stairSets = sets.size;
+    m.flat += r.legs.fromLinkM + r.legs.toLinkM;
+    r.m = m;
+    r.distM = m.flat + m.stair;
+    r.time = timeRange(m);
+    r.__lit = null;
+    return r;
+  }
+  function sameEdges(a, b) {
+    const ea = [].concat.apply([], a.legs.map(l => l.edges));
+    const eb = [].concat.apply([], b.legs.map(l => l.edges));
+    if (ea.length !== eb.length) return false;
+    for (let i = 0; i < ea.length; i++) if (ea[i] !== eb[i]) return false;
+    return true;
+  }
+  /**
+   * The lit alternative to `route`, or null if there isn't one worth offering.
+   * Both gates are checked against re-measured reality, never against the
+   * search's own inflated numbers.
+   */
+  function litAlternative(route) {
+    if (!G || !LAMPS || !route || !route.ok || route.__litPreferred) return null;
+    if (route.__litAlt !== undefined) return route.__litAlt;
+    let alt = null;
+    const W0 = G.W;
+    try {
+      G.W = litEdgeWeights(G);
+      alt = computeRoute(G, route.from, route.to,
+        { avoidStairs: route.avoidStairs, via: route.via ? route.via.i : null });
+    } catch (e) { alt = null; } finally { G.W = W0; }
+    if (alt && alt.ok) {
+      litRemeasure(G, alt);
+      alt.__litPreferred = true;
+      const base = litScan(route), got = litScan(alt);
+      const ok = base && got &&
+        !sameEdges(route, alt) &&
+        alt.distM <= route.distM * WAYFIND.litAltMaxFrac &&
+        (got.litM - base.litM) >= WAYFIND.litAltMinGainM;
+      alt = ok ? alt : null;
+    } else { alt = null; }
+    route.__litAlt = alt;
+    return alt;
+  }
+
+  // ── drawing: the pads under the lamps, and the stretches with no lamp ─────
+  function litEnsure(map) {
+    if (litLayersAdded || !map || !map.getStyle) return;
+    litLayersAdded = true;
+    map.addSource(SRC_LIT, { type: 'geojson', data: empty() });
+    // The unmapped stretch. An extrusion for the same reason the ribbon is one
+    // (see §6): a 2D line under js/ground.js's proud pavement slabs renders
+    // nine pixels. It rides `litDarkLiftM` above the ribbon's own top surface.
+    map.addLayer({
+      id: L_LIT_DARK, type: 'fill-extrusion', source: SRC_LIT, minzoom: WAYFIND.minZoom,
+      filter: ['==', ['get', 'k'], 'dark'],
+      paint: {
+        'fill-extrusion-color': WAYFIND.litDarkCol,
+        'fill-extrusion-height': ['get', 'h'],
+        'fill-extrusion-base': ['get', 'base'],
+        'fill-extrusion-opacity': WAYFIND.litDarkOpacity,
+        'fill-extrusion-vertical-gradient': false,
+      },
+    }, overOf(map));
+    // ── AND THE SAME SPLIT AT ALTITUDE, WHICH THE STRIP CANNOT CARRY ────────
+    //
+    // Above `threadFadeZoom` the route on screen is not the 1.6 m ribbon — it
+    // is `wayfind-thread`, a line drawn over the buildings, because 1.6 m of
+    // ground is under a pixel from up there (§6). The first cut of this pass
+    // only recoloured the ribbon, so from 600 m up the whole route read as one
+    // amber line with no lighting in it at all: exactly the altitude at which
+    // you are choosing between two ways home. This is the thread's twin, with
+    // the thread's own width and fade curve — copied from the same constants,
+    // so the two cannot drift apart — carrying the unmapped stretches.
+    map.addLayer({
+      id: L_LIT_THREAD, type: 'line', source: SRC_LIT, minzoom: WAYFIND.minZoom,
+      filter: ['==', ['get', 'k'], 'darkline'],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': WAYFIND.litDarkCol,
+        'line-width': ['interpolate', ['linear'], ['zoom'],
+          14, WAYFIND.threadPx, WAYFIND.threadFadeZoom, WAYFIND.threadPx, WAYFIND.threadGoneZoom, 0.5],
+        'line-opacity': ['interpolate', ['linear'], ['zoom'],
+          WAYFIND.threadFadeZoom, WAYFIND.threadOpacity, WAYFIND.threadGoneZoom, 0],
+      },
+    }, overOf(map));
+    // A ring round the foot of every lamp this route counted, in that lamp's
+    // own colour. This is the claim's receipt: stand in one at night and the
+    // pole is in it.
+    map.addLayer({
+      id: L_LIT_PAD, type: 'fill-extrusion', source: SRC_LIT, minzoom: WAYFIND.minZoom,
+      filter: ['match', ['get', 'k'], ['lamp', 'phone'], true, false],
+      paint: {
+        'fill-extrusion-color': ['case', ['==', ['get', 'k'], 'phone'],
+          WAYFIND.litPhoneCol, WAYFIND.litLampCol],
+        'fill-extrusion-height': ['get', 'h'],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': WAYFIND.litPadOpacity,
+        'fill-extrusion-vertical-gradient': false,
+      },
+    }, overOf(map));
+    litRetint(map);
+  }
+
+  function litDraw(map, route) {
+    if (!route) litPillClear();     // cleared, or a route that could not be found
+    if (!WAYFIND.litOn || !map || !map.getStyle) return;
+    if (!LAMPS) {
+      // First route on the page: fetch the index and come back. A failure is
+      // survivable — the route is still a route, it just says nothing about
+      // light — so this never rejects into the console on the user's behalf.
+      loadLamps().then(() => { if (state.route === route) { litDraw(map, route); renderPill(); } })
+        .catch(() => {});
+      return;
+    }
+    litEnsure(map);
+    const feats = [];
+    const scan = route ? litScan(route) : null;
+    if (scan) {
+      for (const run of scan.runs) {
+        if (run.lit) continue;
+        const w = WAYFIND.routeWidthM * WAYFIND.litDarkWidthMul;
+        const h = WAYFIND.routeBaseM + WAYFIND.routeHeightM + WAYFIND.litDarkLiftM;
+        for (const f of ribbonPolys(run.line, w, h, 'dark')) {
+          f.properties.base = WAYFIND.routeBaseM + WAYFIND.routeHeightM;
+          feats.push(f);
+        }
+        feats.push({
+          type: 'Feature', properties: { k: 'darkline' },
+          geometry: { type: 'LineString', coordinates: run.line },
+        });
+      }
+      const ring = (ll, kind) => ({
+        type: 'Feature', properties: { k: kind, h: WAYFIND.litPadH },
+        // Outer square plus an inner square as a HOLE. `squareAround` returns a
+        // one-ring polygon, so this is its outer ring followed by the smaller
+        // one — winding order does not matter to MapLibre's earcut tessellator,
+        // only that the hole is the second ring.
+        geometry: {
+          type: 'Polygon',
+          coordinates: squareAround(ll, WAYFIND.litPadM)
+            .concat(squareAround(ll, Math.max(0.2, WAYFIND.litPadM - 2 * WAYFIND.litPadRimM))),
+        },
+      });
+      for (const i of scan.lamps) feats.push(ring([LAMPS.warm.X[i], LAMPS.warm.Y[i]], 'lamp'));
+      for (const i of scan.phones) feats.push(ring([LAMPS.blue.X[i], LAMPS.blue.Y[i]], 'phone'));
+    }
+    const src = map.getSource(SRC_LIT);
+    if (src) src.setData({ type: 'FeatureCollection', features: feats });
+  }
+
+  /** Night makes these marks matter, so night is when they are at full
+   *  strength. By day they step back rather than disappear: you may be planning
+   *  a walk you will take at nine. */
+  function litRetint(map) {
+    if (!litLayersAdded || !map || !map.getLayer) return;
+    const k = WAYFIND.litDayOpacityMul + (1 - WAYFIND.litDayOpacityMul) * nightness();
+    const set = (id, v) => { if (map.getLayer(id)) { try { map.setPaintProperty(id, 'fill-extrusion-opacity', v); } catch (e) {} } };
+    set(L_LIT_DARK, WAYFIND.litDarkOpacity * k);
+    set(L_LIT_PAD, WAYFIND.litPadOpacity * k);
+    // The thread's opacity is a zoom interpolation, not a scalar, so the whole
+    // expression is rebuilt with the night factor folded into its peak. Same
+    // two stops as `wayfind-thread`, off the same two constants.
+    if (map.getLayer(L_LIT_THREAD)) {
+      try {
+        map.setPaintProperty(L_LIT_THREAD, 'line-opacity', ['interpolate', ['linear'], ['zoom'],
+          WAYFIND.threadFadeZoom, WAYFIND.threadOpacity * k, WAYFIND.threadGoneZoom, 0]);
+      } catch (e) {}
+    }
+    // The line in the closed pill is gated on `litNightP`, so it has to move
+    // with the clock too. Without this, dragging the time slider back to noon
+    // with a route on screen left "24 mapped streetlights along this route"
+    // sitting under a midday sky — found by driving the slider, not by reading.
+    // `litScan` is memoised on the route, so this is a DOM swap and no work.
+    litPillLine(state.route);
+  }
+
+  // ── the words ─────────────────────────────────────────────────────────────
+  /**
+   * The one line worth putting in the CLOSED pill, and only after dark.
+   *
+   * It goes in the pill itself rather than inside `#wf-sub`, which was the
+   * first cut and the wrong one: `#wf-sub` carries `opacity:.62`, and a child
+   * cannot be more opaque than its parent, so the line a person is meant to
+   * read while walking at night came out at 62 % of everything else in the
+   * pill. Living in the pill means owning its lifetime — `renderPill` clears
+   * the headline, the sub and the card but not a node it does not know about —
+   * so this removes its own previous node first, and `litDraw(map, null)` takes
+   * it down when the route goes away or fails.
+   */
+  let litPillNode = null;
+  function litPillClear() {
+    if (litPillNode && litPillNode.parentNode) litPillNode.parentNode.removeChild(litPillNode);
+    litPillNode = null;
+  }
+  function litPillLine(r) {
+    litPillClear();
+    if (!WAYFIND.litOn || !el || !r || !r.ok) return;
+    const scan = litScan(r);
+    if (!scan || nightness() < WAYFIND.litNightP) return;
+    const n = scan.lamps.length;
+    const line = h('div', null, n ? SAY.litLamps(n) : SAY.litNone);
+    line.style.cssText = 'font-size:11px;font-weight:600;margin-top:4px;letter-spacing:.02em;' +
+      'color:' + (n ? WAYFIND.litLampCol : WAYFIND.litTextDim);
+    el.pill.insertBefore(line, el.card);
+    litPillNode = line;
+  }
+
+  /** The block in the open card: what is mapped, where it runs out, what that
+   *  claim is and is not, and the priced alternative. */
+  function litCard(card, r) {
+    if (!WAYFIND.litOn || !r || !r.ok) return;
+    const scan = litScan(r);
+    if (!scan) return;
+
+    const head = h('div', 'wf-c', SAY.litHeading);
+    head.style.fontWeight = '600';
+    head.style.marginTop = '11px';
+    card.appendChild(head);
+
+    const n = scan.lamps.length;
+    const lamps = h('div', 'wf-c', n ? SAY.litLamps(n) : SAY.litNone);
+    lamps.style.color = n ? WAYFIND.litLampCol : WAYFIND.litTextDim;
+    card.appendChild(lamps);
+
+    if (scan.longestGapM >= WAYFIND.litGapMinM) {
+      card.appendChild(h('div', 'wf-c', SAY.litGap(fmtDist(scan.longestGapM))));
+    }
+    const ph = scan.phones.length;
+    const phone = h('div', 'wf-c', ph ? SAY.litPhones(ph) : SAY.litPhonesNone);
+    if (ph) phone.style.color = WAYFIND.litPhoneCol;
+    card.appendChild(phone);
+
+    if (r.__litPreferred) {
+      const on = h('div', 'wf-c', SAY.litAltOn);
+      on.style.color = WAYFIND.litLampCol;
+      card.appendChild(on);
+      const back = h('button', 'wf-chip', SAY.litAltOff);
+      back.addEventListener('click', (ev) => { ev.stopPropagation(); litSwap(false); });
+      const row = h('div', 'wf-chips'); row.appendChild(back);
+      card.appendChild(row);
+    } else {
+      const alt = litAlternative(r);
+      if (alt) {
+        const extra = alt.distM - r.distM;
+        const pct = Math.round(100 * extra / Math.max(1, r.distM));
+        const now = litScan(alt).lamps.length;
+        card.appendChild(h('div', 'wf-c', pct >= 1
+          ? SAY.litAltOffer(fmtDist(extra), pct, scan.lamps.length, now)
+          : SAY.litAltOfferFree(scan.lamps.length, now)));
+        const take = h('button', 'wf-chip', SAY.litAltTake);
+        take.addEventListener('click', (ev) => { ev.stopPropagation(); litSwap(true); });
+        const row = h('div', 'wf-chips'); row.appendChild(take);
+        card.appendChild(row);
+      } else if (scan.longestGapM >= WAYFIND.litGapMinM) {
+        card.appendChild(h('div', 'wf-c wf-dim', SAY.litAltNone));
+      }
+    }
+
+    card.appendChild(h('div', 'wf-c wf-dim',
+      SAY.litSource(LAMPS.nWarm, LAMPS.asOf ? fmtAsOf(LAMPS.asOf) : '')));
+  }
+
+  /** Swap the drawn route between the shortest and the lit-preferring one.
+   *  Deliberately NOT sticky: change the destination, the stairs toggle or the
+   *  stop and you are back on the shortest route with the offer made again,
+   *  priced for the new walk. A preference that survives a change of question
+   *  is a preference nobody asked the new question about. */
+  function litSwap(preferLit) {
+    if (!G || !state.route) return;
+    let next = null;
+    if (preferLit) next = litAlternative(state.route);
+    else next = computeRoute(G, state.from, state.to,
+      { avoidStairs: state.avoid, via: state.via });
+    if (!next || !next.ok) return;
+    state.route = next;
+    draw(window.__map, next);
+    renderPill();
   }
 
   function fitTo(map, route) {
@@ -1648,6 +2236,7 @@
     ];
     el.headline.textContent = parts.join(' · ');
     el.sub.textContent = r.to.display + ' · ' + doorPhrase(G, r.toDoor);
+    litPillLine(r);                 // §6b — after dark, above the fold
 
     // ── "WILL I MAKE IT?" — the one-sided answer. Honesty doc §15. ──────────
     //
@@ -1706,6 +2295,8 @@
     el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidBlurb));
     el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidNotAccess));
     if (state.avoid) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidShown(G.swEdges.size)));
+
+    litCard(el.card, r);            // §6b — street lighting, and the lit way
 
     const chips = h('div', 'wf-chips');
     for (const kind of ['Coffee', 'Food', 'Store']) {
@@ -1832,6 +2423,41 @@
       pulseRunning: !!pulseRAF, pulseArmed: !!pulseDetach,
     };
   };
+  // §6b, readable from a test. Everything here is measured off the SAME scan
+  // the card prints, so a verify script can never be agreeing with a different
+  // arithmetic than the interface's. `lampsAt` is the list of coordinates a
+  // camera should be able to see a pole standing at — the whole point of the
+  // pads is that this list is checkable by looking.
+  window.wayfindLit = async function () {
+    await loadLamps().catch(() => {});
+    const r = state.route;
+    const scan = r ? litScan(r) : null;
+    if (!LAMPS) return { ok: false, why: 'noindex' };
+    if (!scan) return { ok: false, why: 'noroute', indexWarm: LAMPS.nWarm, indexBlue: LAMPS.nBlue };
+    const alt = litAlternative(r);
+    const altScan = alt ? litScan(alt) : null;
+    return {
+      ok: true, preferred: !!r.__litPreferred,
+      indexWarm: LAMPS.nWarm, indexBlue: LAMPS.nBlue, asOf: LAMPS.asOf,
+      radiusM: WAYFIND.litRadiusM,
+      lamps: scan.lamps.length, phones: scan.phones.length,
+      litM: Math.round(scan.litM), darkM: Math.round(scan.darkM),
+      totalM: Math.round(scan.totalM), pct: Math.round(100 * scan.pct),
+      longestGapM: Math.round(scan.longestGapM),
+      runs: scan.runs.length,
+      lampsAt: scan.lamps.map(i => [LAMPS.warm.X[i], LAMPS.warm.Y[i]]),
+      phonesAt: scan.phones.map(i => [LAMPS.blue.X[i], LAMPS.blue.Y[i]]),
+      darkAt: scan.runs.filter(x => !x.lit && x.m >= WAYFIND.litGapMinM)
+        .map(x => ({ m: Math.round(x.m), mid: x.line[Math.floor(x.line.length / 2)] })),
+      alt: alt ? {
+        distM: Math.round(alt.distM), baseDistM: Math.round(r.distM),
+        extraM: Math.round(alt.distM - r.distM),
+        lamps: altScan.lamps.length, litM: Math.round(altScan.litM),
+        pct: Math.round(100 * altScan.pct),
+      } : null,
+    };
+  };
+  window.wayfindLitSwap = function (preferLit) { litSwap(!!preferLit); };
   window.wayfindClear = clear;
   window.wayfindRoute = async function (from, to, opts) {
     opts = opts || {};
