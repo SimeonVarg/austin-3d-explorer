@@ -489,3 +489,259 @@ The same UT ArcGIS layers as round 1, re-queried live 2026-08-23:
 (430 Austin buildings, checked and rejected as a door source), both public and
 unauthenticated on `services9.arcgis.com/w9x0fkENXvuWZY26`. © The University of
 Texas at Austin. Campus paths © OpenStreetMap contributors, ODbL.
+
+---
+
+# Round 3, 2026-08-23 — the number is in the repo now, and the Tower turned out to be unreachable
+
+Rounds 1 and 2 drove the door error down and wrote the result in this file. A
+harsh read of them finds the same hole twice: **there was no way for anyone else
+to check the number.** The pairs and the meter lived in a session scratchpad, so
+"96.8 metres over twenty pairs" was a claim, not a measurement anybody could
+re-run. That is fixed first — and fixing it is what found the defect below.
+
+|  | round 2 | round 3 |
+|---|---|---|
+| the harness | in a scratchpad, gone | **`scripts/verify/walkmeter.mjs` + `walk-pairs.json`, in the repo** |
+| extra metres over the twenty pairs | 96.8 m (unverifiable) | **96.2 m, reproducible** |
+| UT buildings reachable with "avoid stairs" on | not measured | **55/56, was 52/56** |
+| the accessibility claim | asserted | **measured — 9/9 buildings clean** |
+| why 11 UT buildings do not route | unexplained | **10 are 11 km off this map; 1 is not in UT's own register** |
+
+## 1. The harness, which is the actual deliverable
+
+```
+python scripts/serve.py 8711
+VERIFY_URL=http://127.0.0.1:8711 node scripts/verify/walkmeter.mjs
+```
+
+`scripts/verify/walk-pairs.json` holds the twenty class-to-class walks and says
+in the file why each one is there. `walkmeter.mjs` drives the real page, routes
+all twenty, and scores **the distance from the door the router picked to the
+nearest door UT itself publishes**, at both ends. It runs the A/B itself: the
+"baseline" column is the same page with `useUTSurvey`, `utVirtualDoors` and
+`widenSideDoors` turned off — the router exactly as it behaved before this work
+— so the graph, the data and the browser are identical across the comparison and
+the only thing that differs is the rule.
+
+Run on this branch, 2026-08-23:
+
+```
+  THE TWENTY PAIRS                        baseline       shipped
+    total extra metres, 20 pairs           1333.3 m        96.2 m
+    mean extra metres per pair               66.7 m         4.8 m
+    worst single pair                       120.4 m        15.7 m
+    ends at the right door                     7/40         40/40
+    mean route length                       421.0 m       415.9 m
+
+  EVERY BUILDING UT SURVEYED (a pair list can be lucky)
+    routable buildings scored                    55            56
+    mean WORST-case door error               29.1 m         2.5 m
+    every candidate inside 15 m               16/55         56/56
+```
+
+Twenty pairs out of twenty improve; none regress. The oracle is read out of the
+page (`window.wayfindUTDoors()`) rather than re-fetched or copied into the
+harness, so the score is against exactly the rows the router used and the list
+cannot go stale in silence.
+
+**The residual 96.2 m is not headroom, and driving it to zero would be a
+mistake.** Every remaining end is under 12 m, and each one is one of OUR doors —
+real geometry, drawn in the city — standing in for UT's bare coordinate, which
+is exactly what `utDoorMatchM = 12` is for. The worst building is BME at 11.9 m.
+Lowering that constant would score better and route worse, because the metric
+measures distance to UT's point and would therefore reward abandoning a modelled
+doorway for a coordinate. Left alone on purpose.
+
+## 2. The defect the harness found: you could not walk to the Tower
+
+Scoring the "avoid stairs" claim meant routing with the toggle on, and **every
+route to or from the Main Building came back "we cannot take you there."**
+
+`shots/walk/door/stepfree-mai-before.jpg` — the UT Tower, centre frame, and the
+card reads *"No walking route found."* Same pose as `stepfree-mai-after.jpg`.
+
+The cause sits one level below the door choice. UT's west entrance to the Main
+Building has no door of ours within 12 m, so round 1's `virtualDoor()` builds a
+target at UT's coordinate and snaps it to the nearest node of the walked network
+with any usable edge. That node is on the Tower's plinth. The plinth is
+perfectly walkable — and every one of its exits is a staircase. Measured on
+`data/walk_graph.json`: from that node you can reach **10,790 nodes if you may
+climb steps and 37 if you may not.**
+
+So "the nearest usable node" was the wrong test for a walker who cannot use
+stairs. `nearestUsableNode()` now takes the mode, and with the toggle on it
+requires the node to sit in the **step-free component** of the network — the
+graph flooded with `F_STEPS` edges removed. That component is 10,383 of 11,284
+nodes (92.0%); the runner-up island is 68 nodes, so "the largest one" is not a
+close call that could flip between bakes. The flood runs once, lazily, and never
+at all for a walker who never ticks the box.
+
+`WAYFIND.utVirtualStepFree = true` is the switch (CLAUDE.md rule 11). Measured
+on the real page by flipping it, inside `walkmeter.mjs` itself:
+
+```
+    reachable step-free from a hub         52/56         55/56   (off -> on)
+    stranded before: CMA CMB JGB MAI   after: CMB
+```
+
+It costs the Tower 3.8 m of extra dashed leg (42.8 m → 46.6 m, well inside the
+58 m cap) and gives back three buildings, including the one on the postcard.
+
+`stepfree-mai-after.jpg` is the same walk with the fix in: the dashed stretch
+leaves the Tower's west entrance, joins the mapped path, "Avoid stairs" ticked,
+*"1–3 min walk · 170 m · No stairs on this route."*
+
+**CMB is left stranded on purpose.** Its own mapped doors all anchor onto a
+stairs island, so there is no honest snap to move. Fixing it would mean routing
+to a door UT did not survey, or mapping the missing kerb-level connection in
+OSM. That is a data gap, and it is named here rather than papered over.
+
+The virtual-door cache key carries the mode (`|sf`). It memoises refusals as
+well as hits, so a key that ignored the toggle would hand a step-free walker the
+door snapped for a stair-climber — the bug, cached.
+
+## 3. The accessibility claim, measured instead of asserted
+
+Round 1 said `doorSet()` drops UT's non-barrier-free doors when "avoid stairs"
+is on. That is a sentence with a truth value, so `walkmeter.mjs` now checks it
+on the buildings where UT records **both** kinds of door:
+
+```
+    BAT   UT doors 3   candidates 3 -> 2   non-barrier-free among them 1 -> 0   ok
+    CCJ   UT doors 2   candidates 2 -> 1   non-barrier-free among them 1 -> 0   ok
+    ECJ, EPS, GEA, NHB, PAR, WCH, WWH — the same shape
+    9/9 clean; 9 of them would have offered a stepped door with the toggle off
+```
+
+Nine, not ten, because SSW is not in this city (§4).
+
+And the toggle moves the walk, not just the candidate list:
+`shots/walk/door/stairsdoor-par-off.jpg` and `stairsdoor-par-on.jpg` are Calhoun
+Hall to Parlin Hall at one pose, straight down, centred on the midpoint of
+Parlin's two UT doors so both are in frame by construction. Off, the walk ends
+at Parlin's east entrance, which UT records as **neither** barrier-free nor
+auto-opening. On, the door moves **41 m** round to the west entrance, which UT
+records as both, and the walk goes 160 m → 197 m.
+
+Read the two frames along the **north face of Parlin**: in the "on" frame a
+ribbon runs the length of it that is simply not there in the "off" frame — that
+stretch is the detour round to the west door. The cards differ too (*"160 m ·
+The main entrance"* against *"200 m · Entrances are on this side"*), and the
+chosen door coordinates are in `stairs-manifest.json` next to the pictures.
+
+Being straight about the framing, because three attempts got it wrong and the
+reasons are reusable: `fit: true` at the shipped `fitPitch` of 55 puts Parlin and
+Sutton between the camera and the route, so the ground line is hidden and the
+two frames look identical — a picture that does not show its own subject. And a
+hand-set pose stalled the page for minutes, which looked like a zoom problem and
+was not: the frame helper was calling `querySourceFeatures('austin-entrances')`
+on a 10,000-feature source, which blocks the main thread. Neither of those is
+about this round's fix, and both will cost the next lane an hour if they are not
+written down.
+
+## 4. Why eleven UT buildings do not route, which was an open question
+
+`walkmeter.mjs` prints them, and they are not a shortfall:
+
+* **Ten are at the J.J. Pickle Research Campus** — BE1, BEG, EME, FS1, FSL, MER,
+  PX3, ROC, SV1, TCB, all at latitude 30.38–30.39, about **11 km north** of the
+  Forty Acres and outside everything this app draws.
+* **One is SSW**, and it is absent from UT's own 198-code Main Campus register
+  (`data/ut_buildings.json`, retrieved 2026-08-05) as well as from our data.
+
+So the honest denominator is 57, not 67: **56 of the 57 UT-surveyed buildings
+that exist in this city route to UT's own door.**
+
+## 5. Simeon's sidewalk question, answered with a measurement and a no
+
+> *"so many sidewalks are not being utilized properly ... at least make sure
+> existing sidewalks are identified properly and used to the advantage."*
+
+The idea worth testing was that **a footway which dead-ends at a building was
+built by somebody to reach a door** — which would be a door signal for the 228
+buildings UT does not cover, drawn from sidewalks already sitting in the graph.
+Tested on the same held-out 55 buildings round 2 built, ranking without ever
+looking at UT:
+
+| rule (never looks at UT) | mean | median | ≤15 m |
+|---|---|---|---|
+| shipped: `role: main` first | 29.0 m | 29.3 m | 16/54 |
+| our door nearest a dead-ending footway | 31.2 m | 30.9 m | 17/54 |
+| same, including service spurs | 31.0 m | 30.9 m | 16/54 |
+| the dead-end node itself, within 45 m | 35.9 m | 30.2 m | 13/54 |
+| oracle — the best door in our own data | 17.6 m | 12.4 m | 29/54 |
+
+**It does not work, and the reason is worth writing down: campus sidewalks are a
+mesh, not a set of spurs.** 11,284 nodes carry only 610 terminal nodes, 488 of
+them pedestrian. A campus path almost always continues to somewhere else, so
+"where does the pavement stop" carries nearly no information about where a door
+is. Different angle from round 2's experiment, same landing: the door is missing
+from our data, not mis-ranked.
+
+What the same numbers *do* say, in the sidewalks' favour: the network itself is
+fine. 92.0% of it is one step-free component, and the connectivity work in
+`docs/walk/graph.md` had it at 94.26% overall. The sidewalks are identified and
+they are being used. It is the doors that are missing.
+
+## 6. What round 3 changed in the code
+
+All inside the entrance-choice functions this lane owns; four sibling lanes are
+in `js/wayfind.js`:
+
+* `WAYFIND.utVirtualStepFree` — new, default `true`. §2.
+* `stepFreeComp()` — new, memoised flood fill over the graph with `F_STEPS`
+  edges removed. Runs on the first avoid-stairs door and never otherwise.
+* `nearestUsableNode()` takes the mode; `virtualDoor()` takes it and keys its
+  cache on it.
+* `window.wayfindUTDoors()` with no argument now returns the building codes as
+  well as the row count, so the harness can score every UT building without
+  carrying its own copy of the list.
+
+`scripts/bake_entrances.py` and `data/entrances.geojson` are unchanged this
+round — round 1's UT stage already placed those doors and nothing here found a
+reason to move one. `WAYFIND.on` untouched.
+
+## 7. Still not done
+
+* **`data/walk_graph.json` is still not rebaked**, so the bake's 47 placed doors
+  still reach the router through the runtime table rather than as ordinary
+  doors. Unchanged from rounds 1–2; the one-command patch is above, and it
+  belongs to whoever owns `scripts/bake_walk.py`.
+* **`doorPhrase()` still calls a UT-surveyed door a guess** — the same one-line
+  patch as round 1, for whichever lane owns the copy block:
+  ```js
+  if (src === 'ut') return SAY.doorOsmMain;   // "The main entrance"
+  ```
+* **CMB cannot be reached step-free**, and that is honest rather than fixed (§2).
+* **Nothing here helps the 228 buildings UT does not cover.** Three separate
+  experiments across rounds 2 and 3 now say the same thing: it is a missing-door
+  problem. The next real move is more surveyed doors, not a cleverer rule.
+
+## 8. The shipped data file, checked rather than assumed
+
+Round 1 said the bake placed 47 doors we never had. `data/entrances.geojson` is
+this lane's file, so that claim is checkable and was checked: cluster every
+feature tagged `src: "ut"` by building and by 6 m linkage — a door in this city
+is an assembly of parts (reveal, frame, glass, steps), not one polygon — and
+measure each cluster against UT's published coordinate.
+
+```
+placed UT door groups: 47 on 35 buildings
+distance from the DRAWN door to UT's published coordinate:
+  median 1.5 m   mean 3.2 m   p90 11.7 m   max 17.8 m
+  within 5 m: 40/47      worst: ECJ 17.8 m, JON 17.1 m, WWH 14.5 m
+```
+
+47 on 35 is exactly what round 1 claimed, and the doors sit where UT says.
+
+**The tail is worth naming, because it is a real seam.** The bake runs a placed
+door through `snap_to_edge` / `normal_test` / `clear_buried` so it lands ON a
+wall rather than floating at a raw coordinate, and for seven doors that moves it
+5–18 m along the facade. Meanwhile the ROUTER walks to UT's raw coordinate,
+because it reads `data/walk_graph.json` and that file predates the UT stage of
+the bake. So on those seven buildings **the door you see drawn and the door the
+route ends at are up to 18 m apart.** Neither is wrong — one is on the wall, the
+other is UT's survey point — but they are two objects and they will stay two
+objects until `data/walk_graph.json` is rebaked (§7). Written down here so the
+next lane meets it as a known seam rather than as a mystery.

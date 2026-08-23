@@ -291,6 +291,20 @@
                            // The alternative for Jones Hall was a route 129 m
                            // LONGER that stopped 62 m short of the door and
                            // left those 62 m uncounted.
+    utVirtualStepFree: true, // and with "avoid stairs" on, that snap must land
+                           // in the step-free component of the network, not
+                           // merely on a walkable node. Without this the Main
+                           // Building's west entrance snapped onto the Tower's
+                           // plinth — 37 nodes, every exit a staircase — and
+                           // EVERY step-free route to or from the Tower came
+                           // back "we cannot take you there", while UT's own
+                           // survey calls that entrance barrier-free with an
+                           // auto-opener. It costs 3.8 m of extra dashed leg at
+                           // the Tower (42.8 -> 46.6 m) and recovers 3 of the 4
+                           // buildings that were stranded (CMA, JGB, MAI; CMB's
+                           // own mapped doors are all on a stairs island, which
+                           // is a data gap, not a snapping one). Set false to
+                           // snap the same way in both modes.
 
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
@@ -1020,8 +1034,23 @@
   // Exposed so a verify script can score the router against UT's own answer
   // without re-fetching ArcGIS, and so the count in docs/walk-door.md is read
   // off the shipped table rather than typed next to it.
+  //
+  // With no argument it returns the WHOLE oracle — the row count and every
+  // building code in it. scripts/verify/walkmeter.mjs needs the code list to
+  // score "every building UT surveyed" rather than only the forty ends a pair
+  // list happens to name, and the alternative was the harness carrying its own
+  // copy of the list, which is a copy that can go stale against this table
+  // without anything failing. Deliberately NOT gated on useUTSurvey: the
+  // held-out pass turns the survey off inside the ROUTER and still has to score
+  // itself against it, so the oracle must survive its own master switch.
   window.wayfindUTDoors = function (code) {
-    return code ? (utTruth(code) || []).slice() : { doors: UT_CELEBRATED.length };
+    if (code) return (utTruth(code) || []).slice();
+    const codes = [];
+    for (const row of UT_CELEBRATED) {
+      const c = row.slice(0, row.indexOf(' '));
+      if (codes.indexOf(c) < 0) codes.push(c);
+    }
+    return { doors: UT_CELEBRATED.length, buildings: codes.length, codes };
   };
   // Where a door index actually is. A verify script cannot read this out of
   // data/walk_graph.json any more, because a door UT surveyed and our bake
@@ -1066,7 +1095,61 @@
   // (see docs/walk-door.md); once data/walk_graph.json is rebaked from the new
   // data/entrances.geojson these become ordinary doors and this never fires.
   const utVirtual = new Map();
-  function nearestUsableNode(g, lon, lat) {
+
+  // ── THE STEP-FREE COMPONENT, and the Main Building bug that found it ──────
+  //
+  // Snapping a door to "the nearest node with a walkable edge" is not enough
+  // when the walker cannot use stairs, because a node can be perfectly walkable
+  // and still sit on an island whose ONLY connections to the rest of campus are
+  // staircases. The Main Building is exactly that: UT's west entrance snapped to
+  // node 871 on the Tower's plinth, which reaches 10,790 nodes if you may climb
+  // steps and 37 if you may not. So with "avoid stairs" ticked, EVERY route to
+  // or from the most recognisable building on campus answered "we cannot take
+  // you there" — while UT's own survey records that entrance as BarrierFree with
+  // an auto-opener. Measured, 2026-08-23: 4 of the 56 UT-covered buildings were
+  // unreachable that way (CMA, CMB, JGB, MAI).
+  //
+  // So when the toggle is on, the snap must land in the step-free component, not
+  // merely on a walkable node. Labels are flooded once, lazily, on the first
+  // avoid-stairs door — 11,284 nodes, and it never runs for a walker who never
+  // ticks the box. The largest component is 92.0% of the graph; the runner-up is
+  // 68 nodes, so "largest" is not a close call that could flip between bakes.
+  //
+  // What it does NOT do: move a REAL door. If a building's own mapped doors all
+  // anchor onto a stairs island (CMB), the honest answer is still that we cannot
+  // take you there step-free, and changing which real door we pick to dodge that
+  // would walk people to a door UT did not survey. One building, left alone.
+  let stepFree = null;
+  function stepFreeComp(g) {
+    if (stepFree && stepFree.g === g) return stepFree;
+    const comp = new Int32Array(g.N).fill(-1);
+    const stack = new Int32Array(g.N);
+    const sizes = [];
+    for (let s = 0; s < g.N; s++) {
+      if (comp[s] !== -1) continue;
+      const cid = sizes.length;
+      let sp = 0, n = 0;
+      stack[sp++] = s; comp[s] = cid;
+      while (sp > 0) {
+        const u = stack[--sp]; n++;
+        for (let k = g.off[u]; k < g.off[u + 1]; k++) {
+          const f = g.F[g.eix[k]];
+          if (f & F_OFFMAIN) continue;
+          if (f & F_STEPS) continue;
+          const v = g.to[k];
+          if (comp[v] === -1) { comp[v] = cid; stack[sp++] = v; }
+        }
+      }
+      sizes.push(n);
+    }
+    let big = 0;
+    for (let c = 1; c < sizes.length; c++) if (sizes[c] > sizes[big]) big = c;
+    stepFree = { g, comp, big, size: sizes[big], parts: sizes.length };
+    return stepFree;
+  }
+
+  function nearestUsableNode(g, lon, lat, stepFreeOnly) {
+    const sf = stepFreeOnly ? stepFreeComp(g) : null;
     let best = -1, bd = Infinity;
     for (let i = 0; i < g.N; i++) {
       const dx = (g.X[i] - lon) * MPD_LON, dy = (g.Y[i] - lat) * MPD_LAT;
@@ -1074,20 +1157,30 @@
       if (d2 >= bd) continue;
       // A node whose every edge is F_OFFMAIN is on a stranded island the router
       // refuses to walk on, so snapping to it would produce "no route found"
-      // for a building that was fine before.
+      // for a building that was fine before. With "avoid stairs" on, the same
+      // argument applies one level up: the node must be in a component the
+      // walker can actually leave without climbing anything.
       let usable = false;
-      for (let k = g.off[i]; k < g.off[i + 1]; k++) {
-        if (!(g.F[g.eix[k]] & F_OFFMAIN)) { usable = true; break; }
+      if (sf) {
+        usable = sf.comp[i] === sf.big;
+      } else {
+        for (let k = g.off[i]; k < g.off[i + 1]; k++) {
+          if (!(g.F[g.eix[k]] & F_OFFMAIN)) { usable = true; break; }
+        }
       }
       if (usable) { bd = d2; best = i; }
     }
     return best < 0 ? null : { node: best, m: Math.sqrt(bd) };
   }
-  function virtualDoor(g, entry, t) {
-    const key = entry.code + '|' + t.lat + ',' + t.lon;
+  function virtualDoor(g, entry, t, avoidStairs) {
+    const wantStepFree = !!avoidStairs && WAYFIND.utVirtualStepFree;
+    // THE CACHE KEY CARRIES THE MODE. It memoises REFUSALS as well as hits, so
+    // a key that ignored the toggle would hand an avoid-stairs walker the door
+    // snapped for a stair-climbing one — which is the whole bug, cached.
+    const key = entry.code + '|' + t.lat + ',' + t.lon + (wantStepFree ? '|sf' : '');
     if (utVirtual.has(key)) return utVirtual.get(key);
     let di = -1;
-    const s = nearestUsableNode(g, t.lon, t.lat);
+    const s = nearestUsableNode(g, t.lon, t.lat, wantStepFree);
     if (s && s.m <= WAYFIND.utVirtualSnapM) {
       di = g.doors.length;
       // Same 8-field door record scripts/bake_walk.py writes, with `src: 'ut'`
@@ -1138,7 +1231,7 @@
       if (!truth || !WAYFIND.utVirtualDoors) return all;
       const made = [];
       for (const t of utWant(truth, avoidStairs)) {
-        const v = virtualDoor(g, entry, t);
+        const v = virtualDoor(g, entry, t, avoidStairs);
         if (v >= 0 && made.indexOf(v) < 0) made.push(v);
       }
       return made;
@@ -1165,7 +1258,7 @@
           if (picked.indexOf(best) < 0) picked.push(best);
           continue;
         }
-        const v = WAYFIND.utVirtualDoors ? virtualDoor(g, entry, t) : -1;
+        const v = WAYFIND.utVirtualDoors ? virtualDoor(g, entry, t, avoidStairs) : -1;
         if (v >= 0) { if (picked.indexOf(v) < 0) picked.push(v); }
         else if (best >= 0 && bd < farD) { farD = bd; far = best; }
       }

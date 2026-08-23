@@ -1,0 +1,29 @@
+{
+  "_what": "The twenty class-to-class walks the door choice is scored on.",
+  "_why": "Every pair is a walk a real UT student has on a real timetable, and BOTH ends are buildings UT Facilities itself surveyed in its Celebrated_Entrances layer (the doors maps.utexas.edu draws). Both ends scoreable is the whole point: a pair with an unsurveyed end can only be argued about, not measured. Weighted toward the buildings docs/walk-evidence.md measured as worst (EER, JES, BME, NHB, GDC, MEZ, WAG, MAI) so the list stresses the failure rather than avoiding it.",
+  "_metric": "extra metres = distance from the door the router picked to the NEAREST door UT publishes for that building, summed over both ends of the pair. Zero means the walk ends where maps.utexas.edu says the entrance is.",
+  "_rerun": "python scripts/serve.py 8711   then   VERIFY_URL=http://127.0.0.1:8711 node scripts/verify/walkmeter.mjs",
+  "_source": "UT Austin Celebrated_Entrances_view, services9.arcgis.com/w9x0fkENXvuWZY26, public and unauthenticated, fetched 2026-08-23. (c) The University of Texas at Austin.",
+  "pairs": [
+    { "from": "JES", "to": "WEL", "note": "Jester dorm to Welch Hall - the freshman chemistry walk" },
+    { "from": "GDC", "to": "RLP", "note": "Gates Dell to Patton Hall - CS to a stats lecture" },
+    { "from": "EER", "to": "GDC", "note": "EER to Gates Dell - the worst mislabel in the audit, 71.9 m" },
+    { "from": "PCL", "to": "MEZ", "note": "the library to Mezes - UT's own note says the door is a breezeway" },
+    { "from": "WAG", "to": "NHB", "note": "Waggener to Hackerman - across Speedway" },
+    { "from": "BME", "to": "JES", "note": "Biomedical Engineering back to Jester" },
+    { "from": "MAI", "to": "CAL", "note": "the Tower to Calhoun Hall" },
+    { "from": "CMB", "to": "PCL", "note": "the communication complex to the library" },
+    { "from": "JGB", "to": "WEL", "note": "Jackson Geosciences to Welch" },
+    { "from": "PHR", "to": "PAI", "note": "Pharmacy to Painter Hall" },
+    { "from": "UTC", "to": "GDC", "note": "the teaching centre to Gates Dell" },
+    { "from": "PAT", "to": "BIO", "note": "Patterson Labs to Biological Labs - the route that got LONGER and more correct" },
+    { "from": "GOL", "to": "SUT", "note": "Goldsmith to Sutton Hall - the old south campus pair" },
+    { "from": "WCH", "to": "BAT", "note": "Will C. Hogg to Batts - the stairs-versus-barrier-free building" },
+    { "from": "MBB", "to": "PMA", "note": "Moffett Molecular Biology to Physics Math Astronomy" },
+    { "from": "CAL", "to": "BUR", "note": "Calhoun to Burdine - the liberal arts crossing" },
+    { "from": "UA9", "to": "EER", "note": "2609 University Avenue to EER - north campus edge" },
+    { "from": "CMA", "to": "DMC", "note": "Jesse Jones Communication A to the Moody media centre" },
+    { "from": "ECJ", "to": "ETC", "note": "Cockrell Jr Hall to Engineering Teaching Centre" },
+    { "from": "SZB", "to": "JES", "note": "Sanchez education building back to Jester" }
+  ]
+}

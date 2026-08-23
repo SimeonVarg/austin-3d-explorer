@@ -112,3 +112,55 @@ possible fixes and both turned out to be building centres, not doors.
 
 Branch `acer/w-door`. Details, tables and pictures in `docs/walk-door.md`.
 `WAYFIND.on` untouched.
+
+## 2026-08-23 — door lane, round 3: the number is checkable now, and it caught a bug
+
+The last two rounds got the walk ending at the right door and wrote the result
+down. Read back hard, both had the same hole: **nobody else could check the
+number.** The twenty pairs and the thing that measured them lived in a scratch
+folder that no longer exists, so "96.8 metres" was a claim, not a measurement.
+So the first job this round was to put the ruler in the repo:
+`scripts/verify/walk-pairs.json` has the twenty walks and says why each one is
+in the list, and `scripts/verify/walkmeter.mjs` drives the real page and scores
+them. Anyone can run it now, and it prints the before and the after side by
+side because it flips the switches itself rather than trusting an old note.
+It comes out at 96.2 metres over twenty pairs against 1,333 before, and all
+forty ends of those twenty walks are within 15 m of the door UT itself puts on
+the map.
+
+Then measuring the accessibility side found something ugly. **Every walk to or
+from the UT Tower failed when you ticked "avoid stairs."** The card just said
+"No walking route found." The reason is that the Tower's west entrance had been
+attached to the nearest bit of pavement, which happens to be up on the Tower's
+own plinth — and every way off that plinth is a staircase. Thirty-seven paths
+you can reach from up there without steps, versus ten thousand seven hundred if
+you're allowed to climb. So the walk was being started somewhere you couldn't
+leave. Fixed: with the toggle on, a door now has to attach to pavement you can
+actually walk away from step-free. That costs the Tower about four extra metres
+of dashed line and gives back three buildings that used to be unreachable —
+the Tower, the Music Recital Hall and Jackson Geosciences. Fifty-five of the
+fifty-six UT buildings can now be reached without stairs, up from fifty-two.
+The last one, the Jones communication building, genuinely can't: every door we
+hold on it is up steps, and pretending otherwise would be a lie.
+
+Pictures in `shots/walk/door/`: `stepfree-mai-before.jpg` is the Tower with "No
+walking route found" on the card, and `stepfree-mai-after.jpg` is the same view
+with a real step-free walk. `stairsdoor-par-off.jpg` / `stairsdoor-par-on.jpg`
+show the toggle moving the Parlin Hall door 41 m from the east side, which UT
+records as having neither a ramp nor an automatic opener, round to the west
+side, which has both.
+
+Two open questions from earlier rounds are now closed rather than open. Eleven
+UT buildings don't route, and that turned out to be fine: ten of them are at the
+Pickle research campus eleven kilometres north, outside everything this app
+draws, and the eleventh isn't in UT's own campus register either. And Simeon's
+sidewalk hunch got a real test — the idea that a footpath which dead-ends at a
+building was built to reach its door. It doesn't work here, and the reason is
+interesting: campus paths are a mesh, not a set of driveways. Out of eleven
+thousand junctions only six hundred are dead ends, so "where the pavement stops"
+barely says anything about where a door is. The sidewalks themselves are fine —
+92% of them are one connected step-free network. It's the doors that are
+missing, which is the third experiment in a row to land there.
+
+Branch `acer/w-door`. Tables, the full harness output and the reasoning are in
+`docs/walk-door.md`. `WAYFIND.on` untouched.
