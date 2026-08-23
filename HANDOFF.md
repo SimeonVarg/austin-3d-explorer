@@ -44,6 +44,19 @@ matched to risk, every taste value a named constant. NOT established: motion
 (zfight/shimmer) at the 15 coplanar poses; night emissive leak through the
 buried doorway seam; hardware-GL or dpr-2 rendering of any of it.
 
+**Production verified after the merge (PR #220 → main `ebb6adf`,
+flyover-utx.vercel.app serving the new build ~4 min later):** plain page zero
+console errors, attribution visible; `buildings-shadow` sits immediately
+below `outer-3d` live (the smear tuck fired); feedback box composes, copies,
+and assembles the address correctly, and is invisible in all three capture
+modes at 390x844 with touch (zero console errors in each); Shot A at
+lift+10s has the Tower centred with the downtown skyline behind, Shot B at
+20 s is full night with the Tower lit and the knob at the moon;
+`tower-check.mjs` 16/18 with the identical two pre-existing calibration
+fails (same `got` values as local and as before the round). The small
+floating sky object left of downtown in phone-aspect Shot A is on production
+too — pre-existing, filed under QUEUE K7's blob family.
+
 ## 178. Aug 22 2026 — Z1 fixed where it could be: the reel flags now hold the veil until the far city has loaded, capped at 24 s (acer lane, branch `acer/f-z1`)
 
 **Branch:** `acer/f-z1`. **QUEUE Z1.** Files: `js/app.js` (the only code
