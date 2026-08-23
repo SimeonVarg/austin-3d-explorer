@@ -280,3 +280,212 @@ UT Austin celebrated entrances, © The University of Texas at Austin, fetched
 `services9.arcgis.com/w9x0fkENXvuWZY26/.../Celebrated_Entrances_view/FeatureServer/0`
 — the same data maps.utexas.edu itself draws. Campus paths and entrance nodes
 © OpenStreetMap contributors, ODbL. Prior recon: `docs/walk-evidence.md`.
+
+---
+
+# Round 2, 2026-08-23 — the picture that was missing, the building that could not be reached, and a number that turned out to be right
+
+Round 1 above shipped UT's survey and left three things open. This round closed
+all three. The thing it *expected* to be the win turned out not to be one, and
+that is the most useful finding in it.
+
+|  | round 1 | round 2 |
+|---|---|---|
+| buildings UT surveyed that this build routes to | 55 | **56** |
+| mean worst-case door error over those buildings | 3.7 m | **2.5 m** |
+| every candidate door within 15 m of UT's own | 54 / 55 | **56 / 56** |
+| extra metres over the twenty pairs | 96.8 m | 96.8 m (unchanged, on purpose) |
+
+The twenty pairs are unchanged deliberately: all forty of their doors were
+already inside 15 m of UT's, so there was nothing left to win there. Everything
+below is about the buildings a pair list does not happen to name.
+
+## 1. The walking-height photograph, which was the open debt
+
+Round 1 shipped 47 doors it had never photographed from the pavement — three
+attempts died on the watchdog. They are photographed now, with
+`scripts/verify/doorwalk.mjs` on hardware GL, eye altitude read back off
+`__fly.eye()` after every jump and written next to the frame:
+
+* `shots/walk/door/eye-mai-west.jpg` — the Main Building's west entrance, eye at
+  **1.70 m**. A modelled doorway with its steps and stone surround, on the wall
+  UT names, on the building everybody recognises.
+* `shots/walk/door/eye-bio-west.jpg` — Biological Laboratories' west entrance,
+  eye at 2.23 m (the app's own floor at this framing — `ZOOM_MAX` saturates
+  below ~18 m of standoff, which the script reports rather than fights). Our
+  nearest own door is 62 m away; this is the flight of steps a student climbs.
+* `shots/walk/door/eye-sea-southwest.jpg` — the Seay Building's southwest
+  entrance, eye at 2.23 m. Oracle error before the bake placed it: **79.8 m**.
+
+That closes the "no walking-height photograph" item. These are real geometry in
+`data/entrances.geojson` — a reveal, a frame, glass, steps — not a marker.
+
+## 2. Jesse H. Jones Hall — the one building the cap still refused
+
+`utVirtualSnapM` was 45 m and Jones Hall's UT entrance is 57 m from the nearest
+mapped path, so it kept a door **62.1 m** out. Round 1 wrote that 45 m was where
+a dashed leg stops being honest. That was a guess about geometry, and geometry
+can be looked at:
+
+`shots/walk/door/jon-courtyard-eye.jpg` — standing on the snap node, 1.70 m up,
+looking north along exactly the 57 m the dashed leg runs. It is an **open
+courtyard between the two wings of Jones Hall**, paved end to end, with the
+entrance at the far end. Nothing is in the way.
+
+(An offline segment-versus-footprint test was written first and thrown away. Its
+control — a line driven straight through the middle of Jones Hall — also came
+back "no crossing", because `data/parts.geojson` holds 23 features, not the
+building set; the footprints live in the tiles. A test that cannot fail is not
+evidence. The photograph is.)
+
+So the cap is now **58 m**: 57 plus a metre, and 57 is a measured courtyard
+rather than a round number. What it buys, on the real page:
+
+```
+RLP -> JON   before   832 m, ends at a derived door 62 m from the entrance
+             after    703 m, ends at UT's own entrance, last 57 m dashed and counted
+```
+
+**129 m shorter AND at the right door** — `jon-route-before.jpg` /
+`jon-route-after.jpg`, same pose, both cards readable. Four other buildings gain
+an extra UT door in the 45–58 m band (FAC 53 m, NHB 50 m, UTA 47 m, and HLB
+below at 42 m); none regressed — every candidate on all 56 buildings is still
+inside 15 m of a UT door. The longest dashed leg anywhere in the build is now
+Jones Hall's 57 m.
+
+## 3. The Health Learning Building, which used to answer "we cannot take you there"
+
+`doorSet()` opened with `if (!all.length) return all;` — it gave up on a
+building with nothing anchored to the network **before** it looked at UT's
+survey. HLB is the live case: the code resolves, the register knows the
+building, and `data/entrances.geojson` has no door on it at all. UT publishes
+its north entrance. The empty case now builds the same virtual target the
+matched case does:
+
+```
+PCL -> HLB   1.3 km, 16-21 min, arrives at UT's north entrance, 42 m dashed
+HLB -> PCL   the same walk back
+```
+
+`shots/walk/door/hlb-route-after.jpg`. That is where the 56th building came
+from.
+
+## 4. What did NOT work — and the instrument built to find out
+
+The plan for the 228 buildings UT does not cover was to rank their doors better:
+prefer an OSM-surveyed door over one the bake's publicness score guessed, and
+lower `sideDoorPenaltyM` so a nearer side door wins more often. Both were tested
+before being written, and both are wrong.
+
+**The instrument.** `WAYFIND.useUTSurvey` (new, default `true`) turns the whole
+UT path off. With it off, the 55 buildings UT surveyed stop being answers and
+become a **labelled test set** for the guessing rule that has to carry the other
+228: rank our own doors without ever looking at UT, then score the top pick
+against UT's coordinate. `data/walk_graph.json` predates the UT stage of the
+bake, so no UT door has leaked into the doors being ranked — the hold-out is
+clean by construction, not by care.
+
+**Ranking is not the lever.** Eight rules, 55 labelled buildings, top-1 error
+against UT's own door:
+
+| rule (never looks at UT) | mean | median | ≤15 m |
+|---|---|---|---|
+| shipped: `role: main` first | 29.0 m | 29.2 m | 16/55 |
+| prefer an OSM-surveyed public door, then role | 27.6 m | 26.2 m | 17/55 |
+| prefer OSM anything, then role | 27.6 m | 26.2 m | 17/55 |
+| role, then shortest link to the network | 29.0 m | 29.2 m | 16/55 |
+| shortest link only | 31.4 m | 30.0 m | 13/55 |
+| **oracle — the best door in our own data** | **17.8 m** | **12.4 m** | **29/55** |
+
+Every rule lands between 27.6 and 31.4 m, and the *oracle* — cheating, picking
+the best door we hold — is still 17.8 m out. **26 of 55 buildings have no door
+of ours within 15 m of UT's at all.** The door is missing, not mislabelled, so
+no amount of re-ranking can find it. And the one rule that gained gains by
+flipping five buildings: four better (MEZ 40→3 m, NHB 40→2 m, EER 74→18 m,
+JGB 46→26 m) and one catastrophically worse (WEL 15→90 m). That is a coin flip
+dressed as a heuristic, so it was not shipped.
+
+The same table is the quantified version of Simeon's complaint. Measured from
+the building centre, the shipped rule's pick sits a **median 95° away** from the
+door UT names, and **12 of 55 are on the literally opposite side** of the
+building. "Most routes take you to a farther entrance than you have to go" is,
+for the buildings nobody surveyed, still true.
+
+**`sideDoorPenaltyM = 55` was already right, and now it is measured.** Swept
+0 → ∞ over 432 real routes into those 55 buildings with UT held out:
+
+```
+handicap      0 m   mean door error 28.2 m   within 15 m 34%   mean route 599 m
+handicap     20 m   mean door error 28.2 m   within 15 m 34%   mean route 600 m
+handicap     35 m   mean door error 28.1 m   within 15 m 32%   mean route 609 m
+handicap     55 m   mean door error 27.5 m   within 15 m 32%   mean route 626 m
+handicap    120 m   mean door error 28.7 m   within 15 m 30%   mean route 659 m
+handicap      inf   mean door error 28.9 m   within 15 m 29%   mean route 674 m
+```
+
+Flat on door correctness, monotone on route length — on that evidence alone the
+handicap should be as low as it can go. It is not, because of what the hold-out
+cannot see: both ends of the HANDOFF #113 pair are UT-surveyed now, so the test
+set is blind to the failure the number was built to stop. Re-run with UT off,
+that pair has a **cliff between 35 and 55**:
+
+```
+        PCL->JES    doors chosen
+  H= 0     80 m     secondary/derived -> secondary/derived   (the #113 bug, exactly)
+  H=20     80 m     secondary/derived -> secondary/derived
+  H=35     80 m     secondary/derived -> secondary/derived
+  H=55    156 m     main/derived      -> main/derived        (the doors people use)
+  H=120   156 m     main/derived      -> main/derived
+```
+
+55 is the smallest value that holds, so it stays, and the comment in
+`js/wayfind.js` now carries the sweep and the cliff instead of a feeling.
+
+## 5. What round 2 changed in the code
+
+All inside the entrance-choice functions this lane owns — four sibling lanes are
+in this file:
+
+* `WAYFIND.useUTSurvey` — new switch, default `true`. The hold-out instrument.
+* `WAYFIND.utVirtualSnapM` 45 → **58**, on the courtyard photograph.
+* `WAYFIND.sideDoorPenaltyM` stays **55**, now with the sweep and the #113 cliff
+  written next to it.
+* `doorSet()` consults UT **before** giving up on a building with no anchored
+  door of ours (HLB).
+* `utWant()` factored out — which UT doors are on offer once "avoid stairs" has
+  had its say, shared by both branches instead of written twice.
+* `window.wayfindDoorAt()` also reports `linkM`, so a verify script can measure
+  a dashed leg instead of inferring it.
+
+`WAYFIND.on` untouched. `?walk=0` still exposes no `wayfindRoute`,
+`wayfindDoors` or `wayfindUTDoors`, draws no pill and logs nothing — re-checked
+this round, not carried over.
+
+## 6. Still not done
+
+* **`data/walk_graph.json` is still not rebaked**, so the bake's 47 placed doors
+  still reach the router through the runtime table rather than as ordinary
+  doors. Unchanged from round 1; the one-command patch is in §"What this does
+  NOT do" above.
+* **`doorPhrase()` still calls a UT-surveyed door a guess.** Same one-line patch
+  as round 1, still for whichever lane owns the copy block.
+* **`utVirtual` caches a refusal.** A session that changes `utVirtualSnapM` at
+  runtime must reload the page, or a door already refused stays refused. It
+  costs nothing at a fixed setting; it cost this round one wrong measurement
+  before it was caught.
+* **Nothing here helps the 228 buildings UT does not cover**, and §4 is why: it
+  is a data problem, not a ranking problem. The honest next move is more
+  surveyed doors, not a cleverer guess. Two candidate sources were checked and
+  ruled out this round: UT's `Campus_Buildings_view` layer carries a
+  `Google_Directions_URL` point for 308 Austin buildings, but it is a centroid —
+  median **20.9 m** from the nearest celebrated entrance, only 2 of 66 inside
+  5 m — and the per-building pages on `utdirect.utexas.edu` embed that same
+  point. Neither is a door.
+
+## Round 2 sources
+
+The same UT ArcGIS layers as round 1, re-queried live 2026-08-23:
+`Celebrated_Entrances_view` (98 rows, 67 buildings) and `Campus_Buildings_view`
+(430 Austin buildings, checked and rejected as a door source), both public and
+unauthenticated on `services9.arcgis.com/w9x0fkENXvuWZY26`. © The University of
+Texas at Austin. Campus paths © OpenStreetMap contributors, ODbL.

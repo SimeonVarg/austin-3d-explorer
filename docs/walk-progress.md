@@ -71,3 +71,44 @@ down in `docs/walk-door.md` along with the numbers, the pictures, a one-line
 copy patch for the door caption, and the one thing not verified this round (no
 walking-height photograph of a newly placed door; the ground-level poses died on
 the watchdog with several other lanes on the machine). `WAYFIND.on` untouched.
+
+## 2026-08-23 — round 2 of the door pass: the photographs that were missing, one more building reachable, and the thing that turned out not to work
+
+Went back for the three things the last round left open. The doors it placed
+from UT's survey had never been photographed from the pavement, so they are now:
+the Main Building's west entrance, Biological Laboratories' west steps and the
+Seay Building's southwest doors, all shot standing on the ground at eye height.
+They are real modelled doorways with steps and glass, on the walls UT names.
+
+Jesse H. Jones Hall was the one building the router still sent you to the wrong
+side of, because its entrance is 57 metres from the nearest mapped path and the
+old rule refused anything past 45. Rather than argue about it, we stood on the
+path and looked: it is an open, paved courtyard between the building's two wings
+with the door at the far end, nothing in the way. So the walk now goes up the
+courtyard — 700 m to the right door instead of 830 m to the wrong one, with
+those last 57 m drawn dashed and counted like every other unmapped stretch.
+
+The Health Learning Building used to answer "we can't take you there", because
+we hold no door on it at all and the code gave up before it checked UT's survey.
+It routes now, both ways, to UT's own north entrance.
+
+Across every building UT surveyed, the worst door the router might pick is now
+2.5 m out, down from 3.7, and all 56 of them are inside 15 m — up from 54 of 55.
+The twenty-pair number did not move, and was not meant to: all forty of its
+doors were already right.
+
+The interesting failure: the plan was to make the *guessing* better for the 228
+buildings UT does not cover. So we held UT's answers out and used the 55
+buildings it does cover as a marked exam paper for the guessing rule. Every rule
+we tried scored between 27 and 31 metres, and even cheating — picking the best
+door we hold — is still 18 metres out, because for 26 of those 55 buildings the
+right door simply is not in our data. It is a missing-data problem, not a
+ranking problem, and no cleverer rule fixes it. Worth knowing before someone
+spends a week on a better guess. The same test does put a number on Simeon's
+original complaint though: on a building nobody surveyed, the door we pick is a
+median 95 degrees around the building from the one UT names, and 12 times out of
+55 it is on the opposite side. Two other UT data sources were checked as
+possible fixes and both turned out to be building centres, not doors.
+
+Branch `acer/w-door`. Details, tables and pictures in `docs/walk-door.md`.
+`WAYFIND.on` untouched.

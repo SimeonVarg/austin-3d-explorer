@@ -238,6 +238,13 @@
                            // door nearest UT's point rather than to the one the
                            // bake's scoring guessed. Set false to fall back to
                            // the old `role: main` behaviour on those buildings.
+    useUTSurvey: true,     // the master switch on all of the above. Turning it
+                           // OFF is how the numbers below were chosen: with UT
+                           // held out, the 55 buildings UT surveyed become a
+                           // labelled test set for the guessing rule that has
+                           // to carry the other 228, and a rule can be scored
+                           // instead of argued about. See docs/walk-door.md
+                           // "held out" and scripts/verify walk harnesses.
     widenSideDoors: true,  // consider side doors at all on buildings UT does
                            // not cover. False = the old behaviour exactly, one
                            // `role: main` door per building and nothing else.
@@ -248,6 +255,20 @@
                            // to a loading bay (HANDOFF #113: PCL->Jester came
                            // out 80 m through two back doors and 156 m through
                            // the two doors a person actually uses).
+                           // 55 was a taste value when it was written and it is
+                           // now a measured one. Held out (useUTSurvey false)
+                           // and swept over 432 real routes into the buildings
+                           // UT surveyed, this number turns out NOT to be a
+                           // door-correctness lever at all — mean error to UT's
+                           // door is 27.5-29.1 m at every setting from 0 to
+                           // infinity, with no trend — but it IS a route-length
+                           // lever: 599 m per route at 0, 674 m at infinity. So
+                           // the argument for the value is #113, re-run here:
+                           // PCL->Jester comes out 80 m through two back doors
+                           // at 35 and below, and 156 m through the two front
+                           // doors at 55 and above. The cliff is between 35 and
+                           // 55, so 55 is the smallest safe value, not a round
+                           // one. Curve and table in docs/walk-door.md.
     backDoorPenaltyM: 400, // service / exit / emergency doors. Effectively
                            // never, but not literally never: a building whose
                            // only mapped door is a service door still routes.
@@ -256,15 +277,20 @@
                            // Route to UT's coordinate anyway, snapped to the
                            // walked network. Set false to route only to doors
                            // that exist in data/entrances.geojson.
-    utVirtualSnapM: 45,    // and only if there is a mapped path that close to
+    utVirtualSnapM: 58,    // and only if there is a mapped path that close to
                            // it — past that we would be inventing the walk as
-                           // well as the door. 45 m is long for a dashed
-                           // last stretch, but it is the honest length of one:
-                           // the Music Recital Hall's entrance really is 37 m
-                           // from the nearest footway anybody has mapped, and
-                           // the alternative is arriving at the wrong door and
-                           // walking those metres uncounted. Everything past
-                           // 45 m (Jones Hall, 57 m) keeps its old door.
+                           // well as the door. This is long for a dashed last
+                           // stretch and it is the honest length of one: the
+                           // Music Recital Hall's entrance really is 37 m from
+                           // the nearest footway anybody has mapped, and Jesse
+                           // H. Jones Hall's is 57 m, at the far end of an open
+                           // courtyard between its two wings. 58 is that 57
+                           // plus a metre, and it was raised from 45 only after
+                           // standing at the snap node and looking up the
+                           // courtyard — shots/walk/door/jon-courtyard-eye.jpg.
+                           // The alternative for Jones Hall was a route 129 m
+                           // LONGER that stopped 62 m short of the door and
+                           // left those 62 m uncounted.
 
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
@@ -979,7 +1005,7 @@
   ];
   let utByCode = null;
   function utTruth(code) {
-    if (!code) return null;
+    if (!code || !WAYFIND.useUTSurvey) return null;
     if (!utByCode) {
       utByCode = new Map();
       for (const row of UT_CELEBRATED) {
@@ -1003,7 +1029,12 @@
   window.wayfindDoorAt = function (di) {
     if (!G || di == null || !G.doors[di]) return null;
     const d = G.doors[di];
-    return { ll: [d[0] * G.q, d[1] * G.q], role: d[4], src: d[5], ref: d[6] };
+    return {
+      ll: [d[0] * G.q, d[1] * G.q], role: d[4], src: d[5], ref: d[6],
+      // how far the dashed "not a mapped path" leg to this door runs, in
+      // metres — the thing utVirtualSnapM caps.
+      linkM: (d[3] && d[3].length) ? Math.min.apply(null, d[3]) / 100 : null,
+    };
   };
   // The candidate doors for one building, without routing anywhere — so the
   // door choice can be scored across every building UT covers instead of only
@@ -1069,6 +1100,16 @@
     return di;
   }
 
+  // Which of a building's UT-surveyed doors are on offer. With "avoid stairs"
+  // on, only the barrier-free ones — unless UT records none for this building,
+  // in which case the honest answer is still the doors that exist (the card
+  // already says the toggle is not an accessibility guarantee).
+  function utWant(truth, avoidStairs) {
+    if (!avoidStairs) return truth;
+    const bf = truth.filter(t => t.bf);
+    return bf.length ? bf : truth;
+  }
+
   /**
    * The candidate doors for one end of a route, in order of how much we know.
    *
@@ -1079,20 +1120,31 @@
    *      DOOR, and the stairs toggle used to only know about PATHS.
    *   2. Nobody surveyed it -> `role: main`, exactly as before.
    *   3. No main -> everything routable.
+   *   4. No door of ours at all, but UT surveyed one -> UT's door. This is
+   *      last in the list and first in the order of operations, because a
+   *      building with nothing anchored to the network used to answer "we
+   *      cannot take you there" (SAY.notRoutable) even when UT publishes the
+   *      entrance. HLB, the Health Learning Building, is the live case.
    *
    * Returns the same shape it always did (an array of door indices) so the
    * `via` branch of computeRoute keeps its old, conservative behaviour.
    */
   function doorSet(g, entry, avoidStairs) {
     const all = entry.doors.filter(di => g.doors[di][2] && g.doors[di][2].length);
-    if (!all.length) return all;
     const truth = utTruth(entry.code);
-    if (truth) {
-      let want = truth;
-      if (avoidStairs) {
-        const bf = truth.filter(t => t.bf);
-        if (bf.length) want = bf;
+    if (!all.length) {
+      // Nothing of ours is anchored to the network here. If UT surveyed the
+      // entrance, walk to UT's own coordinate rather than refusing the trip.
+      if (!truth || !WAYFIND.utVirtualDoors) return all;
+      const made = [];
+      for (const t of utWant(truth, avoidStairs)) {
+        const v = virtualDoor(g, entry, t);
+        if (v >= 0 && made.indexOf(v) < 0) made.push(v);
       }
+      return made;
+    }
+    if (truth) {
+      const want = utWant(truth, avoidStairs);
       // ONE UT DOOR AT A TIME, AND WHAT HAPPENS NEXT DEPENDS ON WHETHER WE HAVE
       // IT. Under utDoorMatchM our door IS UT's door and we simply mislabelled
       // it. Over it, our data has no door there at all — Biological
