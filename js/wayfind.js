@@ -1488,9 +1488,22 @@
     arriveM: 15,           // this close to the end, say so instead of counting
     turnAheadMinM: 8,      // a turn nearer than this is one you are in
     // The strip. Fractions of the route, so they hold at any width.
-    pipMergeT: 0.018,      // two pips closer than this would overlap; the
+    pipMergeT: 0.03,       // two pips closer than this would overlap; the
                            // second is dropped and the first is labelled with
-                           // the count, because a smear of dots is not a fact
+                           // the count, because a smear of dots is not a fact.
+                           // RAISED FROM 0.018, and the reason is that a MERGED
+                           // pip is wider than an unmerged one — a capsule of
+                           // three is 19 px, so it needs about 5.5 % of a 342 px
+                           // rail of clearance and the old threshold only bought
+                           // it 1.8 %. Photographed on JES -> ANB at 390 x 844:
+                           // a capsule of three and a single dot 20 m apart drew
+                           // ON TOP of each other, and the result on the rail
+                           // was a blue pill with a paler circle inside it —
+                           // i.e. an iOS toggle switch, sitting on the one
+                           // element in this bar that already had to be argued
+                           // out of looking like a slider. At 0.03 they are one
+                           // capsule of four, which is also the number the card
+                           // prints two lines below.
     stripMinPipT: 0.01,    // a pip exactly on an end would be half off the rail
     // THE KEY under the strip. A `title` attribute is not reachable on a phone,
     // which is the only device this bar is judged at, so the marks were three
@@ -1506,6 +1519,54 @@
     // wondering what the field wants. Ordered by how likely a freshman is to
     // be going there, not alphabetically.
     exampleCodes: ['WEL', 'PCL', 'GDC', 'JES'],
+
+    // ── THE ITINERARY (round 3) ───────────────────────────────────────────
+    // The strip says WHERE the things on this route are, as a picture. The
+    // itinerary says WHAT THEY ARE, in order, as a list — which is the one
+    // shape every walking-directions app in the world has and this bar did
+    // not. It is derived entirely from the drawn line: the distance between
+    // consecutive events, the sign of the bearing change at a vertex, and the
+    // marks the strip already draws. It names no street, because the graph
+    // carries no street names, and it gives no instruction — the rows read
+    // `then left`, the same audited wording the walking readout uses.
+    stepsOn: true,
+    stepsMax: 10,          // event rows the list will hold before it prunes
+                           // turns it would otherwise have kept
+    stepTurnMinLegM: 40,   // A TURN IS A DECISION ONLY IF THERE IS WALKING
+                           // AROUND IT. With no rule here, JES -> DKR listed
+                           // twelve turns for 580 m — a `then right` every
+                           // fifteen metres, describing the wander of the
+                           // pavement rather than the walk. A turn is kept when
+                           // the longer of its two legs reaches this; below it
+                           // the turn is dropped and its two legs merge, so the
+                           // distances still sum to the route. Staircases,
+                           // crossings and the stop are never pruned.
+    stepMergeM: 14,        // the FLOOR on the merge distance. The real one is
+                           // `pipMergeT` of the route, so the list merges where
+                           // the rail merges and the two can never print
+                           // different counts of the same four lights. Turns
+                           // merge only when they go the SAME WAY: a
+                           // left-then-right jink is two facts and collapsing
+                           // it would invent one.
+    // THE CARD STOPS ABOVE THE DRIVE CONTROLS, MEASURED. style.css caps the
+    // card with `100vh - (bar top + 168px + --drive-clear)`, where the 168 is a
+    // GUESS at the closed bar's height — and the closed bar is 173 px with
+    // nothing to say and 249 px with a passing-period warning and a wrapped
+    // action row. Photographed on JES -> ANB at 390 x 844, the open card ran to
+    // y739 and the joystick ring (which draws ABOVE the bar) punched an orange
+    // circle straight through the middle of the itinerary. The guess cannot be
+    // right for both bars, so the card is sized from where it actually starts.
+    // The CSS rule stays as the pre-script fallback.
+    cardGapPx: 8,          // air between the card's bottom and the controls
+    cardMinPx: 150,        // never squeeze it below something worth scrolling
+    stepMinLegM: 12,       // shorter than this and the distance row is noise —
+                           // the 10 m of median between the two halves of a
+                           // divided crossing is not a leg of anybody's walk.
+                           // (It is also below the point where `fmtDist` starts
+                           // printing a decimal: `10.0 m` is the formatter's
+                           // sub-10-metre branch catching a rounded 9.96, and
+                           // that formatter is not this lane's to change — the
+                           // one-line patch is written into docs/walk-ui.md.)
   };
 
   // ── LABELS, and why they are not in SAY ───────────────────────────────────
@@ -1542,6 +1603,14 @@
     toNextTurn: 'to the next turn',
     toTheEnd: 'to the end of the route',
     atTheEnd: 'You are at the end of the drawn route',
+    // ROUND 3. THE ONE AFTER. `24 m, then left` says what happens next; this
+    // says what the line does after that, and it is deliberately a DIRECTION
+    // WITH NO DISTANCE — a second number on the bar would be read as the
+    // distance to the first turn by anybody glancing, and the direction alone
+    // is the part that decides which side of the path to walk on. It reads as
+    // the continuation of the sentence above it: `24 m, then left` / `and then
+    // right`.
+    andThen: 'and ',
     thenLeft: 'then left',
     thenRight: 'then right',
     thenSharpLeft: 'then a sharp left',
@@ -1554,6 +1623,11 @@
     pipSignalN: (n) => n + ' signalised crossings',
     pipVia: 'The stop on the way',
     capStart: 'Start of the route',
+    // ROUND 3. The heading over the itinerary. `Step by step` is a label for a
+    // list of things the drawn line does; it promises no instruction and no
+    // street name, both of which §12 forbids and neither of which the rows
+    // contain.
+    stepsTitle: 'Step by step',
     details: 'Details',
     hideDetails: 'Hide details',
     swap: 'Swap the two ends',
@@ -1608,6 +1682,17 @@
     door: 'M15.5 21V4.2a1 1 0 0 0-1.2-1L6.7 4.7a1 1 0 0 0-.7.97V21M4 21h13M12.6 12.4v.01',
     // The route frames itself: a rectangle with two corners pulled out.
     frame: 'M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15',
+    // ROUND 3. THE MODE, on the figure line. Every walking-directions screen
+    // ever shipped says WALKING before it says a number, and this bar said it
+    // nowhere: `6-8 min walk` carried the whole claim in a 12.5 px word at the
+    // end of a sentence. A walking figure in front of the minutes says it at a
+    // glance and costs no character of `#wf-headline`.textContent, because an
+    // <svg> contributes nothing to it.
+    walk: 'M13.7 2.9a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 1 0 0-3.5' +
+      'M14.9 21.4 13.2 15.1 10.3 12.7 11.5 7.9' +
+      'M11.5 7.9 15.3 9.7 17 12.9' +
+      'M11.5 7.9 8.4 9.5 7.2 12.6' +
+      'M10.3 12.7 7.5 17.4',
   };
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1681,6 +1766,110 @@
     return out;
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7a-ii. THE ITINERARY — the same walk, as a list (round 3)
+  //
+  // The rail is a picture of WHERE things are. This is the list of WHAT they
+  // are, in order, and it is the one shape every walking-directions screen has
+  // that this bar did not. Every row comes off the SAME profile the rail and
+  // the walking readout are built from — the distance between consecutive
+  // events, the signed bearing change at a vertex, and the marks `routeMarks`
+  // already draws — so the list, the rail and the sentences cannot disagree.
+  //
+  // What it deliberately does NOT do: name a street (the graph has none), give
+  // an instruction (§12 — the rows are `then left`, a description of the line
+  // already painted on the ground), or print a clock time (§3 forbids arrival
+  // times outright, which is why there is no `arrive 3:47` on this bar and
+  // never will be).
+  // ══════════════════════════════════════════════════════════════════════════
+  function routeSteps(g, r, p) {
+    if (!p || !p.total) return [];
+    const ev = [];
+    const seen = new Set();
+    for (let i = 0; i < p.segs.length; i++) {
+      const s = p.segs[i], n = p.segs[i + 1];
+      if ((s.f & F_STEPS) && !seen.has(s.sid)) { seen.add(s.sid); ev.push({ at: s.at, kind: 'stairs', n: 1 }); }
+      if (s.f & F_SIGNAL) ev.push({ at: s.at + s.len / 2, kind: 'signal', n: 1 });
+      if (i === p.viaAfter) ev.push({ at: s.at + s.len, kind: 'via', n: 1 });
+      // NOT A TURN IF EITHER SIDE OF IT IS THE DOOR LINK, and this was on the
+      // frame the first time the list was drawn: `JES -> WEL` opened with `then
+      // a sharp right` before it had walked a metre, and ended with `then a
+      // sharp left` at the door. Both were the joint between the routed path
+      // and OUR OWN STRAIGHT LINE from the door to the nearest path node —
+      // geometry this app drew, not a corner anybody surveyed. Describing a
+      // manoeuvre there is asserting something about the world off a line we
+      // invented, which is the one thing this feature is not allowed to do.
+      // `link` is set by routeProfile on exactly those two segments.
+      if (n && !s.link && !n.link) {
+        const d = ((bearing(n.a, n.b) - bearing(s.a, s.b) + 540) % 360) - 180;
+        if (Math.abs(d) >= WAYFIND.turnMinDeg) ev.push({ at: s.at + s.len, kind: 'turn', n: 1, dir: d });
+      }
+    }
+    ev.sort((a, b) => a.at - b.at);
+    // MERGE, and only where merging cannot invent a fact. Two crossings on a
+    // divided road are one place; two turns the same way inside 14 m are one
+    // corner; two turns OPPOSITE ways inside 14 m are a jink, and calling that
+    // "then left" would delete the half of it that comes back.
+    // THE LIST MERGES AT THE SAME DISTANCE THE RAIL DOES, by construction. The
+    // rail merges marks closer than `pipMergeT` of the route; the list used a
+    // flat 14 m, and on JES -> ANB (1.1 km) the rail drew ONE capsule of four
+    // crossings where the list printed two rows of two, 15 m apart. Two
+    // pictures of the same four lights that count them differently is the bar
+    // arguing with itself, which is the exact failure `pipMergeT` was written
+    // to prevent on the rail. The floor keeps short routes from merging nothing.
+    const mergeM = Math.max(WF_UI.stepMergeM, WF_UI.pipMergeT * p.total);
+    const merged = [];
+    for (const e of ev) {
+      const q = merged[merged.length - 1];
+      const sameWay = e.kind !== 'turn' || (e.dir < 0) === (q && q.dir < 0);
+      if (q && q.kind === e.kind && sameWay && e.at - q.at < mergeM) {
+        q.n++;
+        if (e.kind === 'turn' && Math.abs(e.dir) > Math.abs(q.dir)) q.dir = e.dir;
+        continue;
+      }
+      merged.push(Object.assign({}, e));
+    }
+    // PRUNE THE JINKS — the first draft of this list printed TWELVE turns for a
+    // 580 m walk to DKR, `then right` / `then left` every fifteen metres, and
+    // what it was describing was the shape of the pavement rather than the
+    // shape of the walk. A turn earns a row when there is real walking on at
+    // least one side of it; under that it is a wiggle you take without looking
+    // up. Dropping one MERGES ITS TWO LEGS into a single longer distance, so
+    // the list still adds up to the route's own length — that is the property
+    // that makes this a summary and not a truncation. Staircases, crossings and
+    // the stop are never pruned, whatever the row count.
+    //
+    // It converges: every drop lengthens the legs either side, so the turns
+    // that survive are the ones with distance around them, and a list can never
+    // be pruned to nothing on a route long enough to have a turn in it.
+    let keep = merged;
+    for (;;) {
+      let worst = -1, worstV = Infinity;
+      for (let i = 0; i < keep.length; i++) {
+        if (keep[i].kind !== 'turn') continue;
+        const before = keep[i].at - (i > 0 ? keep[i - 1].at : 0);
+        const after = (i < keep.length - 1 ? keep[i + 1].at : p.total) - keep[i].at;
+        const v = Math.max(before, after) * p.k;
+        if (v < worstV) { worstV = v; worst = i; }
+      }
+      if (worst < 0) break;
+      if (keep.length <= WF_UI.stepsMax && worstV >= WF_UI.stepTurnMinLegM) break;
+      keep = keep.slice(0, worst).concat(keep.slice(worst + 1));
+    }
+    const rows = [{ kind: 'start' }];
+    let prev = 0;
+    for (const e of keep) {
+      const legM = (e.at - prev) * p.k;
+      if (legM >= WF_UI.stepMinLegM) rows.push({ kind: 'leg', m: legM });
+      rows.push(e);
+      prev = e.at;
+    }
+    const tail = (p.total - prev) * p.k;
+    if (tail >= WF_UI.stepMinLegM) rows.push({ kind: 'leg', m: tail });
+    rows.push({ kind: 'end' });
+    return rows;
+  }
+
   /** Closest point on the drawn route to a lon/lat, in metres along it. */
   function projectOnRoute(p, ll) {
     if (!p || !p.segs.length) return null;
@@ -1736,6 +1925,11 @@
       const s = p.segs[i], n = p.segs[i + 1];
       const v = s.at + s.len;
       if (v - at < WF_UI.turnAheadMinM) continue;
+      // Same rule as the itinerary (§7a-ii): the joint with the door link is
+      // not a corner, it is where our own straight line meets the surveyed
+      // path. Without this the readout opened a walk with `then a sharp right`
+      // before the first metre.
+      if (s.link || n.link) continue;
       const d = ((bearing(n.a, n.b) - bearing(s.a, s.b) + 540) % 360) - 180;
       if (Math.abs(d) >= WAYFIND.turnMinDeg) {
         return { at: v, ll: s.b, distM: (v - at) * p.k, turn: d };
@@ -1890,23 +2084,50 @@
     const clrBtn = h('button', 'wf-act wf-act-clr', SAY.clear);
     clrBtn.addEventListener('click', (ev) => { ev.stopPropagation(); clear(); });
     acts.appendChild(showBtn); acts.appendChild(clrBtn);
+    // THE LAST ROW IS ONE ROW. Photographed at 390 x 844 while walking, the
+    // bar's bottom 44 px held a single 90 px `Clear` button with 270 px of
+    // nothing to the left of it, directly under a passing-period warning that
+    // was itself on a line of its own. Two half-empty rows where one would do
+    // is the most expensive kind of space on a phone. `#wf-footrow` is a
+    // wrapping flex: with a wide primary action in it the actions take their
+    // own line (the `flex-basis` is wider than what is left beside a verdict),
+    // and while walking — when the only action is `Clear` — the warning and the
+    // way out share the row. Nothing is hidden to achieve it.
+    const footrow = h('div', null); footrow.id = 'wf-footrow';
+    // WHAT THE ROUTE DOES AFTER THE NEXT TURN. It lives in the footer row
+    // because that row is where the space is: walking a route with nothing to
+    // warn about, the row held `Clear` and 250 px of nothing. One more fact
+    // about the walk is a better tenant of that space than air.
+    const then2 = h('div', 'hidden'); then2.id = 'wf-then2';
+    // ORDER IN THE DOM: verdict, then2, acts. ORDER ON THE FRAME: then2,
+    // verdict, acts (`order:-1` in style.css). They differ on purpose, because
+    // CSS can only look FORWARD from a sibling: with the warning first in the
+    // markup, `#wf-verdict:not(:empty) + #wf-then2` can drop the chained turn
+    // on exactly the routes that have something to warn about — and those are
+    // the routes where all three would not fit, and where the warning is the
+    // one that changes what you do.
+    footrow.appendChild(verdict); footrow.appendChild(then2); footrow.appendChild(acts);
     const card = h('div', 'hidden'); card.id = 'wf-card';
     pill.appendChild(chev);
     pill.appendChild(orig);
     pill.appendChild(liveEl); pill.appendChild(headline); pill.appendChild(strip);
     pill.appendChild(key);
-    pill.appendChild(sub); pill.appendChild(verdict);
-    pill.appendChild(acts); pill.appendChild(card);
+    pill.appendChild(sub);
+    pill.appendChild(footrow); pill.appendChild(card);
 
     root.appendChild(btn); root.appendChild(sheet); root.appendChild(pill);
     document.body.appendChild(root);
 
     el = { root, btn, sheet, list, more, egs, hint, inFrom: from.inp, inTo: to.inp,
       xFrom: from.x, xTo: to.x, swap, pill, chev, liveEl, orig, headline, strip, key, sub,
-      verdict, acts, card, close, ends };
+      verdict, acts, footrow, then2, card, close, ends };
 
     btn.addEventListener('click', () => openSheet());
     close.addEventListener('click', () => closeSheet());
+    // A rotation changes both the room above the controls and the height of the
+    // bar above the card, and the card is the only thing in this feature whose
+    // size is measured rather than declared.
+    window.addEventListener('resize', () => { if (state.expanded) fitCard(); });
     const toggle = () => { state.expanded = !state.expanded; renderPill(); };
     pill.addEventListener('click', toggle);
     // The BAR toggles the card; the CARD does not. Reading the accessibility
@@ -2170,6 +2391,8 @@
     const on = !!live;
     document.body.classList.toggle('wf-live', on);
     el.liveEl.classList.toggle('hidden', !on);
+    el.then2.innerHTML = '';
+    el.then2.classList.add('hidden');
     if (!on) { renderStrip(); return; }
     el.liveEl.innerHTML = '';
     // THE DISC SHOWS THE MANOEUVRE. It used to show the BEARING to the turn
@@ -2211,9 +2434,27 @@
       fig.appendChild(h('span', 'wf-mid', '·'));
       fig.appendChild(h('span', 'wf-unit', fmtDist(live.rem.distM)));
       txt.appendChild(fig);
+
+      // AND THEN. The turn after the next one, direction only — see SAY_UI's
+      // note for why it carries no distance. `nextTurnFrom` is asked again from
+      // just past the first turn, so the two come off one function and one
+      // definition of what a turn is; if the second one is the end of the route
+      // there is nothing to chain and the row stays empty.
+      if (!live.turn.end && prof) {
+        const t2 = nextTurnFrom(prof, live.turn.at + 0.01);
+        if (t2 && !t2.end) {
+          el.then2.classList.remove('hidden');
+          el.then2.appendChild(icon('wf-sturn', t2.turn < 0 ? IC.turnLeft : IC.turnRight, 2.3));
+          el.then2.appendChild(h('span', null, SAY_UI.andThen + turnWord(t2.turn)));
+        }
+      }
     }
     el.liveEl.appendChild(txt);
     renderStrip();
+    // The readout appearing or going away moves everything under it, so the
+    // card's ceiling moves with it. Only when the card is open, which is never
+    // the common case while walking.
+    if (state.expanded) fitCard();
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -2310,6 +2551,81 @@
     }
   }
 
+  /**
+   * HOW TALL THE CARD MAY BE, from where it actually starts.
+   *
+   * `--drive-clear` is resolved by MEASURING a one-pixel probe styled with it,
+   * because a custom property holding a `calc(max(...))` reads back as its own
+   * token stream and not as a number. The probe is added, measured and removed
+   * inside one frame, and this only runs when the card is open — which is never
+   * while the camera is moving unless somebody deliberately opened it.
+   */
+  function driveClearPx() {
+    const probe = h('div', 'wf-probe');
+    el.root.appendChild(probe);
+    const px = probe.getBoundingClientRect().height;
+    el.root.removeChild(probe);
+    return px;
+  }
+  function fitCard() {
+    if (!el || !state.expanded || el.card.classList.contains('hidden')) {
+      if (el) el.card.style.maxHeight = '';
+      return;
+    }
+    const top = el.card.getBoundingClientRect().top;
+    const room = Math.max(WF_UI.cardMinPx,
+      window.innerHeight - top - driveClearPx() - WF_UI.cardGapPx);
+    el.card.style.maxHeight = room + 'px';
+    // A LIST CUT OFF FLAT AT THE PANEL'S EDGE LOOKS FINISHED. The class is only
+    // on when the content really is taller than the room, so a card that fits
+    // ends with a hard, deliberate edge and one that does not says so.
+    el.card.classList.toggle('scrolls', el.card.scrollHeight > room + 1);
+  }
+
+  /**
+   * THE ITINERARY, DRAWN — one thread, one row per thing that happens.
+   *
+   * Every mark on it is the SAME element the rail draws (`.wf-pip` with the
+   * same kind class) and the two ends wear the SAME marks as the two name
+   * lines (`.wf-mk-a`, `.wf-mk-b`), so a colour or a shape changed once in
+   * style.css moves the bar, the rail and the list together and cannot be left
+   * behind in one of the three. The turn glyphs are the manoeuvre discs from
+   * the walking readout, at list size.
+   */
+  function renderSteps(r) {
+    const box = h('div', null); box.id = 'wf-steps';
+    box.appendChild(h('div', 'wf-steps-h', SAY_UI.stepsTitle));
+    const rows = routeSteps(G, r, prof);
+    for (const s of rows) {
+      const row = h('div', 'wf-step wf-step-' + s.kind);
+      const ic = h('span', 'wf-si');
+      const tx = h('span', 'wf-sx');
+      if (s.kind === 'start') {
+        ic.appendChild(h('span', 'wf-mk wf-mk-a'));
+        tx.appendChild(h('span', 'wf-sname', r.from.display));
+      } else if (s.kind === 'end') {
+        ic.appendChild(h('span', 'wf-mk wf-mk-b'));
+        tx.appendChild(h('span', 'wf-sname', r.to.display));
+        tx.appendChild(h('span', 'wf-sdoor', doorPhrase(G, r.toDoor)));
+      } else if (s.kind === 'leg') {
+        tx.textContent = fmtDist(s.m);
+      } else if (s.kind === 'turn') {
+        ic.appendChild(icon('wf-sturn', s.dir < 0 ? IC.turnLeft : IC.turnRight, 2.3));
+        tx.textContent = turnWord(s.dir);
+      } else {
+        ic.appendChild(h('span', 'wf-pip wf-pip-' + s.kind + ' wf-sw'));
+        tx.textContent = s.kind === 'stairs'
+          ? (s.n > 1 ? SAY_UI.pipStairsN(s.n) : SAY_UI.pipStairs)
+          : s.kind === 'signal'
+            ? (s.n > 1 ? SAY_UI.pipSignalN(s.n) : SAY_UI.pipSignal)
+            : (r.via ? r.via.name : SAY_UI.pipVia);
+      }
+      row.appendChild(ic); row.appendChild(tx);
+      box.appendChild(row);
+    }
+    return box;
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // 7f. THE ANSWER BAR
   // ══════════════════════════════════════════════════════════════════════════
@@ -2394,12 +2710,26 @@
     // it rather than a different sentence.
     const t = r.time;
     const mins = t.lo === 0 ? String(t.hi) : (t.lo + '-' + t.hi);
+    // THE MODE COMES FIRST, AS A GLYPH. `min walk` carried the entire "this is
+    // a walking route" claim in a 12.5 px word at the tail of the sentence,
+    // which is the last thing an eye reaches on a bar whose first thing is a
+    // 25 px number. The figure says it before the number does and costs
+    // `.textContent` nothing — an <svg> contributes no characters to it.
+    el.headline.appendChild(icon('wf-mode', IC.walk, 1.85));
     if (t.lo === 0) el.headline.appendChild(h('span', 'wf-pre', 'Under '));
     el.headline.appendChild(h('span', 'wf-big', mins));
     el.headline.appendChild(h('span', 'wf-unit', ' ' + SAY_UI.unitMin));
     el.headline.appendChild(h('span', 'wf-mid', ' · '));
     el.headline.appendChild(h('span', 'wf-dist', fmtDist(r.distM)));
-    el.headline.appendChild(h('span', 'wf-mid', ' · '));
+    // THE CONDITION TAKES ITS OWN LINE, AND THE SEPARATOR IN FRONT OF IT GOES
+    // WITH IT — hidden, not deleted, so `.textContent` is unchanged. Left as
+    // one run, the figure line broke wherever it ran out of room: `12-20 min
+    // walk · 1.1 km ·` / `No stairs on this route`, photographed at 390 x 844
+    // on JES -> ANB, with the middot stranded at the end of the first line.
+    // A line that sometimes wraps and sometimes does not is two layouts; the
+    // break is deliberate now, the same on every route, and it puts the stairs
+    // swatch at the head of its own line where it can be read.
+    el.headline.appendChild(h('span', 'wf-mid wf-mid-cond', ' · '));
     // THE STAIRS SWATCH GOES ON THE SENTENCE, NOT IN A SECOND LIST. The key
     // below the strip binds a colour to a word, and the word for stairs is
     // already here — printing `Stairs: 3 sets` twice, forty pixels apart, to
@@ -2458,7 +2788,13 @@
 
     renderLive();
 
-    if (!state.expanded) return;
+    if (!state.expanded) { fitCard(); return; }
+
+    // THE ITINERARY IS THE FIRST THING IN THE CARD, because it is the thing the
+    // card is opened for. The disclaimers that used to lead it are the thing
+    // you read once; the list of what the walk does is the thing you read every
+    // time. See §7a-ii for why every row of it is derivable.
+    if (WF_UI.stepsOn && prof) el.card.appendChild(renderSteps(r));
 
     if (state.viaNote) el.card.appendChild(h('div', 'wf-c', state.viaNote));
     if (r.via) {
@@ -2520,6 +2856,8 @@
     f.appendChild(h('div', null, SAY.asOf(fmtAsOf(G.asOf)) + ' · ' + SAY.changed));
     f.appendChild(h('div', null, SAY.noIndoor + ' · ' + SAY.osm + ' · ' + SAY.notUT));
     el.card.appendChild(f);
+
+    fitCard();
   }
 
   function viaOffset() {

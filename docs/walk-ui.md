@@ -534,3 +534,246 @@ after the bar appears is of the **intro's end pose**, not of the fit. Load with
 `intro=0`, then wait on `!map.isMoving() && !map.isEasing()` before the frame.
 Every round-2 shot in `shots/walk/ui/` was taken that way; round 1's were not,
 which is why the two sets do not frame the same city.
+
+---
+---
+
+# ROUND 3
+
+Same lane, `acer/w-ui` continued. Round 2 fixed what the walking readout *said*.
+Round 3 is about the shape of the thing beside Citymapper's walking directions at
+390 x 844 — **the pre-walk summary and the during-walk view**, which is what this
+lane is judged on. Everything below was photographed before and after at that
+size; the shots are in `shots/walk/ui/`.
+
+## 13. The itinerary — the one shape every walking app has and this bar did not
+
+The rail says **where** the things on a route are. Nothing said **what they
+are, in order**. Open the details on any other walking app and you get a list;
+open this one and you got three disclaimers and a checkbox.
+
+`STEP BY STEP` is now the first thing in the card, `JES -> WEL`:
+
+```
+▌  Beauford H. Jester Center
+│    33 m
+↱  then right
+│    470 m
+↰  then left
+│    24 m
+◎  Robert A. Welch Hall   Entrances are on this side
+```
+
+**Every row is derived, and nothing in it is invented.** One walk of the same
+`routeProfile` the rail and the walking readout are built from: the distance
+between consecutive events, the SIGN of the bearing change at a vertex, and the
+marks `routeMarks` already draws. It names no street — the graph has none — and
+it gives no instruction: the rows read `then left`, the audited round-2 wording,
+because we are describing a line already painted on the ground. There is no
+arrival clock time on this bar and there will not be one; §3 of the honesty doc
+forbids it outright, which is the one place where copying Citymapper exactly
+would have been the wrong move.
+
+Four rules earned on the frame, in the order they were found:
+
+**(a) The joint with the door link is not a turn.** The first list drawn opened
+`JES -> WEL` with `then a sharp right` before it had walked a metre, and closed
+it with `then a sharp left` at the door. Both were the seam between the routed
+path and **our own straight line** from the door to the nearest path node —
+geometry this app drew. Describing a manoeuvre there asserts something about the
+world off a line we invented. `routeProfile` already flags those two segments
+(`link`), and both the list and `nextTurnFrom` now skip them, so the walking
+readout stopped opening a walk with a turn that is not there either.
+
+**(b) A turn is a decision only when there is walking around it.** `JES -> DKR`
+listed **twelve** turns for 580 m — `then right` / `then left` every fifteen
+metres — which describes the wander of the pavement, not the walk.
+`stepTurnMinLegM` 40: a turn is kept when the longer of its two legs reaches
+40 m. Dropping one **merges its two legs into one longer distance**, so the
+printed distances still sum to the route's own length, which is the property
+that makes this a summary rather than a truncation. It converges — every drop
+lengthens the legs either side. Staircases, crossings and the stop are never
+pruned, at any row count. `JES -> ANB` (1.1 km) now lists eight turns, and
+33+120+90+99+260+21+130+54+30+180+74 = 1,091 m against the bar's 1,090.
+
+**(c) The list merges where the RAIL merges, by construction.** The rail merges
+marks closer than `pipMergeT` of the route; the list used a flat 14 m. On
+`JES -> ANB` the rail drew one capsule of four crossings while the list printed
+two rows of two, 15 m apart — two pictures of the same four lights, counting
+them differently. The list's merge distance is now `max(stepMergeM, pipMergeT x
+total)`. Turns still merge only when they go the **same way**: a left-then-right
+jink is two facts and collapsing it would invent one.
+
+**(d) Every mark in the gutter is an element that already exists.** The two ends
+are `.wf-mk-a` / `.wf-mk-b` — the same tick and ring the origin and destination
+lines wear and the rail is capped with. The staircases, crossings and the coffee
+stop are `.wf-pip` in the same kind classes. So the bar, the rail and the list
+cannot drift apart: a colour or a shape changed once moves all three. With a stop
+on the route the list shows `● Jester Java` in the same green the rail's via pip
+uses and the key row names.
+
+## 14. `pipMergeT` 0.018 -> 0.03, because a merged pip is wider than an unmerged one
+
+A capsule of three is 19 px, so it needs about 5.5 % of a 342 px rail of
+clearance; the old threshold bought it 1.8 %. Photographed on `JES -> ANB`: a
+capsule of three and a single dot, 20 m apart, drew **on top of each other**, and
+what landed on the frame was a blue pill with a paler circle inside it — an iOS
+toggle switch, sitting on the one element in this bar that had already had to be
+argued out of looking like a slider. At 0.03 they are one capsule of four, which
+is also the number the card prints two lines below.
+
+## 15. The card stopped being sized by a guess
+
+`style.css` capped the details card at `100vh - (bar top + 128px + --drive-clear)`,
+where 128 was a guess at the closed bar's height. The closed bar is **173 px with
+nothing to say and 249 px with a passing-period warning and a wrapped action
+row**, so the guess could not be right for both. Measured on `JES -> ANB` at
+390 x 844, the open card ran to y781 — and the joystick ring, which draws *above*
+the bar, punched an orange circle through the middle of the itinerary.
+
+`fitCard()` sizes it from where the card actually starts:
+`innerHeight - card.top - --drive-clear - 8`. `--drive-clear` is a
+`calc(max(...))` and reads back through `getComputedStyle` as its own token
+stream, so it is **measured** — a 1 px probe styled with it, added and removed
+inside one frame, only while the card is open. Both routes now end at **y662**,
+clear of the ring at y674. The CSS rule stays as the pre-script fallback and its
+128 became 168. A `.scrolls` class (set only when the content really is taller)
+fades the last 20 px, so a list that continues says so and one that fits keeps a
+hard edge.
+
+## 16. The figure line has a mode, and one layout instead of two
+
+* **A walking figure in front of the minutes.** `min walk` carried the entire
+  "this is a walking route" claim in a 12.5 px word at the tail of a sentence
+  whose first thing is a 25 px number. `#wf-headline`.textContent is untouched —
+  an `<svg>` contributes no characters to it.
+* **The condition takes its own line, always.** As an inline run it wrapped only
+  on routes long enough to overflow, and when it did it stranded the middot at
+  the end of the line above: `12-20 min walk · 1.1 km ·` / `No stairs on this
+  route`, photographed on `JES -> ANB`. A line that sometimes wraps is two
+  layouts. The break is deliberate now and the stairs swatch leads its own line.
+  The middot is visually hidden, not deleted. **While walking it goes back
+  inline**, because demoted to footnote size the whole sentence is ~230 px of a
+  342 px bar and the break would cost a row for nothing.
+* **The destination is 12.5 px, not 11.5.** Which building is the subject of the
+  whole bar and it was set smaller than the distance beside the minutes.
+* **`Show route` is solid.** It was amber at 26 % over dark glass — the same
+  weight as the panel behind it — and it is the control the whole answer exists
+  to offer. It is now the one filled thing on the bar, in the same amber as the
+  manoeuvre disc, so this feature has exactly one filled colour and it always
+  means "the thing to do".
+
+## 17. The during-walk view: one row shorter, one fact richer, and the comma fixed
+
+**`13 m , then left`.** `.wf-then` is the string `, then left` — the comma
+belongs to the distance in front of it — and a 4 px flex gap put a space before
+it on every walking frame round 2 shot. `gap:0`.
+
+**The footer was two half-empty rows.** The passing-period warning sat on a line
+of its own and under it a 44 px row held one 90 px `Clear` with 270 px of nothing
+beside it. `#wf-footrow` is a wrapping flex: `#wf-acts` asks for 210 px, more
+than survives next to a warning chip on a 366 px bar, so with the wide primary
+action present the actions still take their own line — and while walking, when
+the only action is `Clear`, the two share a row. `margin-left:auto` and not the
+container's `justify-content`, because `#wf-verdict:empty` removes itself and
+`space-between` with one child puts that child on the **left**: photographed
+walking `JES -> DKR`, a route with nothing to warn about, `Clear` sat alone in
+the bottom-left corner where the primary action lives.
+
+**And then right.** The space that freed up carries the turn AFTER the next one,
+direction only. It is deliberately without a distance — a second number on the
+bar is read as the distance to the first turn by anybody glancing — and it reads
+as the continuation of the line above it: `24 m, then left` / `and then right`.
+It comes from `nextTurnFrom` asked again from just past the first turn, so both
+manoeuvres come off one function and one definition of a turn. **Three things do
+not fit on 342 px**, so `#wf-verdict:not(:empty) + #wf-then2` drops it on exactly
+the routes that have something to warn about — which is why the DOM order is
+verdict, then2, acts while the frame order is then2, verdict, acts (`order:-1`):
+CSS can only look forward from a sibling.
+
+Measured, both poses at alt 2.40 m with the ribbon under the middle of the lower
+half of the frame:
+
+| | `21 Rio -> WEL` | `JES -> DKR` |
+|---|---|---|
+| bar height while walking, round 2 | 225.7 px | 196.7 px |
+| bar height while walking, round 3 | **195.7 px** | **195.7 px** |
+| top line | `150 m, then left` | `24 m, then left` |
+| second line | `7–10 min walk REMAINING · 580 m` | `3–5 min walk REMAINING · 270 m` |
+| footer row | `Tight for a 15-minute passing period` + `Clear` | `↱ and then right` + `Clear` |
+| ribbon sample points hit | 5 of 5 | 5 of 5 |
+| horizontal overflow | none | none |
+
+One height for both, and the taller of the two came down 30 px while gaining a
+fact.
+
+## 18. What was verified this round, and how
+
+One browser, port 8715, `python scripts/serve.py`, `?walk=1&drift=0&intro=0`,
+`cancelGraphicsAutoDetect()`, waited on `!#veil`, two screenshots and the second
+kept, 390 x 844 at DSF 2 (desktop shot at 1440 x 900).
+
+```
+node scripts/verify/harness-drift.mjs
+  index.html:    31 scripts
+  _harness.html: 31 scripts
+  PASS  the harness loads the same city the site does
+```
+
+No `<script>` was added, so neither HTML file needed an edit; the check is quoted
+because the rule says to run it.
+
+**The recording surfaces, all three, measured rather than assumed** —
+`?clip=1`, `?autopilot=1`, `?sliderdemo=1`, each with `from=JES&to=WEL&fit=1`:
+
+```
+                 #wf-button   #wf-sheet   #wf-pill   #hud
+clip=1              none         none       none     none
+autopilot=1         none         none       none     none
+sliderdemo=1        none         none       none     none
+```
+
+**Horizontal overflow 0** on every state photographed: summary, details, details
+with marks, details with a stop, both walking poses, the failure, the night
+summary, and the three capture modes.
+
+**The walking poses were rejected by the script, not by me.** It tries fractions
+along the line and throws away any pose where `__walker.clearAhead` reports under
+20 m on the heading, then any where `queryRenderedFeatures` finds the
+`wayfind-ribbon` layer under fewer than 3 of 5 points down the lower half of the
+frame — **and then any where `body.wf-live` never arms**, which is new this round
+and caught a run that photographed the summary layout from a camera standing on
+the route. `during-walk` was rejected at 0.30 and 0.40 ("wall at 6 m", "wall at
+2 m") before 0.22 passed; `during-walk-2` was rejected at 0.30, 0.40 and 0.22
+before 0.62 passed. Every frame reported above was opened and looked at.
+
+## 19. One line for another lane, and one thing still not done
+
+**`fmtDist` prints `10.0 m`.** Its sub-10-metre branch is `m.toFixed(1)`, and a
+distance of 9.96 m rounds into it, so a leg between the two halves of a divided
+crossing rendered as `10.0 m` while every other distance on the bar is a whole
+number. The formatter is in the arithmetic half of `js/wayfind.js` and is not
+this lane's to change. The patch:
+
+```js
+  if (m < 10) return (m >= 9.95 ? '10' : m.toFixed(1)) + ' m';
+```
+
+The itinerary sidesteps it for now — `stepMinLegM` is 12, and 10 m of median is
+not a leg of anybody's walk — but the headline can still hit it on a very short
+route.
+
+**Still no `Walk it` button.** Unchanged from rounds 1 and 2: placing a camera at
+eye level without a clearance search is how a pose ends up inside a wall, and the
+camera is not this lane's to own beyond the existing `Show route`. The proposal
+stands — `__walker.findStart`'s ring search around the origin door, then
+`placeEye(lng, lat, 1.7, bearingOfFirstLeg, 80)`, behind a tap.
+
+## 20. Taste values added this round (CLAUDE.md rule 11)
+
+`WF_UI`: `stepsOn`, `stepsMax` 10, `stepTurnMinLegM` 40, `stepMergeM` 14 (a
+floor under the rail-bound distance), `stepMinLegM` 12, `cardGapPx` 8,
+`cardMinPx` 150; `pipMergeT` moved 0.018 -> 0.03. `SAY_UI`: `stepsTitle`,
+`andThen`. Custom properties on `#wf-root`: `--wf-step`, `--wf-step-h`,
+`--wf-thread`, `--wf-step-ic`, `--wf-mode`, `--wf-go-bg`, `--wf-go-edge`,
+`--wf-go-ink`; `--wf-line` 11.5 -> 12.5.

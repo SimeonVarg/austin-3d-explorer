@@ -121,3 +121,40 @@ flying, so every "here is the route framed" picture from round 1 was actually th
 opening flight's end pose. This round's fifteen shots wait for the camera to
 stop. Write-up in `docs/walk-ui.md`, shots in `shots/walk/ui/`. Branch
 `acer/w-ui`. `WAYFIND.on` still false.
+
+## 2026-08-23 — the walk now lists itself, step by step
+
+The walking answer had a bar and a little map-strip of where the stairs and the
+crossings fall, and it still had nothing that any other walking app has: the
+walk written out in order. Open the details now and you get it — start, walk
+33 m, turn right, walk 470 m, turn left, walk 24 m, Welch Hall, north side —
+strung on one thread with the same marks the strip uses, so the picture and the
+list can never say different things. Nothing in it is made up: it is the drawn
+line measured, no street names (we have none) and no "turn left" orders, just a
+description of the path already painted on the ground. Two things it learned
+the hard way and both were caught by looking at the phone: it opened every walk
+with "then a sharp right" before you had moved a metre — that was the little
+straight line we draw from the door to the pavement, not a corner anybody has
+ever turned — and on the way to DKR it listed twelve turns in 580 m, which is
+describing the wiggle of the footpath rather than the walk. A turn only earns a
+line now if there is real walking either side of it, and the distances still add
+up to the total.
+
+The rest of the round was the two views side by side with a real walking app at
+phone size. "Show route" is a solid button instead of a tinted one. There is a
+little walking figure in front of the minutes so the bar says what kind of trip
+this is before you read a word. The stairs line stopped wrapping raggedly and
+now always takes its own line. While you are walking, the bar lost a row and
+gained a fact — the direction of the turn after the next one — and it is the
+same height (196 px of 844) on every route now instead of 226 on some and 197 on
+others. And the "13 m , then left" with the floating comma is gone.
+
+Two defects were found only because the frames got opened and looked at: the
+details card was long enough to run under the joystick, so the orange ring drew
+straight through the middle of the step list, and two crossing marks on a long
+route overlapped into something that looked exactly like an iOS toggle switch
+sitting on the strip. The card is now measured against where the drive controls
+actually are rather than a guessed number, and the two marks merge into one that
+carries the count the card prints. Write-up in `docs/walk-ui.md`, seventeen
+shots in `shots/walk/ui/`. Branch `acer/w-ui`. `WAYFIND.on` still false, so
+none of this is on for anybody who has not asked for it by URL.
