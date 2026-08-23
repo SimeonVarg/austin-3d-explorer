@@ -246,6 +246,43 @@
                            // ~55 m spatial bucket for the leg-crossing test.
                            // Not taste, but it is a tuning number and it does
                            // not belong in a function body either.
+    // ── ROUND 4: A STAIRCASE IS AN OBJECT, NOT A LINE ────────────────────
+    // Rounds 1-3 tested the door leg against the staircase's CENTRELINE with
+    // a segment-segment intersection, and that test cannot see the worst
+    // case there is: a leg running ALONG a flight rather than across it is
+    // parallel, so the determinant is zero and the answer is "no crossing"
+    // while the person walks the whole staircase. `bake_ground.py` draws the
+    // same staircase 3.0 m wide (`DEFAULT_WIDTH['steps']`), so the drawn slab
+    // said "you are on the steps" for four of forty-eight offered step-free
+    // routes while the router said clean. This is that width, given to the
+    // router, so the two files agree by construction rather than by luck.
+    stairLegHalfWidthM: 1.5,
+    // ...and how much of the leg has to lie inside that width before it is
+    // walking on the staircase rather than clipping its corner. MEASURED,
+    // not assumed: over 120 routes the metres-inside-a-drawn-slab for door
+    // legs the old test called clean came out
+    // 0.24 0.24 0.24 0.24 0.73 0.73 | 1.98 2.74 2.99 2.99 — a graze cannot
+    // reach half the slab's width, and a real crossing of a 3.0 m slab
+    // cannot fall below it. 1.5 m is the gap, and it is half the width for a
+    // reason rather than a number picked out of the histogram's middle.
+    stairLegOverlapMinM: 1.5,
+    // ── AND THE ONE THAT KEEPS THE WIDTH TEST HONEST ─────────────────────
+    // Overlap ALONE convicts the innocent, and the frame is what showed it.
+    // Every door leg that leaves the top of a flight starts ON the flight and
+    // diverges, so it overlaps for the first couple of metres without anyone
+    // walking down a single step. Measured on the eight legs the width test
+    // caught, the angle between the leg and the flight is completely
+    // bimodal:
+    //     1  1  1  1 deg   the leg IS the flight, 4.0-4.2 m of overlap
+    //    32 61 61 61 deg   the leg leaves an end of it and walks away
+    // Both groups share an endpoint with the staircase to within 6 cm, so
+    // "does it touch" cannot separate them and "which way does it point"
+    // separates them completely. 20 deg sits in a 12-degree empty gap.
+    //
+    // This is also precisely the case the intersection test cannot see: two
+    // parallel segments never cross, so 0 deg is its blind spot and 0 deg is
+    // the only angle at which a door leg is really a staircase.
+    stairLegParallelDeg: 20,
     stairListMax: 12,      // most staircases we will name in one leg list. A
                            // route with more than this is not a leg list, it
                            // is a wall of text; the count above it is still
@@ -689,6 +726,52 @@
     return g._stairIx;
   }
 
+  // ROUND 4 — how much of segment AB lies within `r` metres of segment CD.
+  //
+  // THE CASE THE INTERSECTION TEST BELOW CANNOT SEE. Two parallel segments
+  // never intersect, so a door leg drawn straight up a flight of steps — the
+  // single worst thing this feature can do to somebody who cannot climb —
+  // came back "no crossing" every time, and four of forty-eight offered
+  // step-free routes did exactly that. A staircase is 3.0 m wide on the map
+  // (`bake_ground.py` DEFAULT_WIDTH['steps']); measuring against that width
+  // makes the router and the drawing agree by construction.
+  //
+  // Sampling rather than solving: the closed form for capsule-segment overlap
+  // is fiddly and this runs at most a few hundred times per route, on a
+  // button press. The step is a quarter of the tolerance, so the answer is
+  // good to well under the metre the threshold is stated in.
+  const LEG_SAMPLE_DIV = 6;   // samples per `r` of leg length
+  function segmentOverlapM(ax, ay, bx, by, cx, cy, dx, dy, r) {
+    const x1 = ax * MPD_LON, y1 = ay * MPD_LAT, x2 = bx * MPD_LON, y2 = by * MPD_LAT;
+    const x3 = cx * MPD_LON, y3 = cy * MPD_LAT, x4 = dx * MPD_LON, y4 = dy * MPD_LAT;
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (len === 0) return 0;
+    const ex = x4 - x3, ey = y4 - y3, e2 = ex * ex + ey * ey;
+    const n = Math.max(1, Math.ceil(len / (r / LEG_SAMPLE_DIV)));
+    const step = len / n;
+    let inside = 0;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, px = x1 + (x2 - x1) * t, py = y1 + (y2 - y1) * t;
+      let u = e2 ? ((px - x3) * ex + (py - y3) * ey) / e2 : 0;
+      u = u < 0 ? 0 : u > 1 ? 1 : u;
+      if (Math.hypot(px - (x3 + ex * u), py - (y3 + ey * u)) <= r) inside++;
+    }
+    return inside * step;
+  }
+
+  /**
+   * Does the door leg a->b point along the stepped segment `s`, either way
+   * round? Direction only — "along" and "against" are the same staircase.
+   * `cos` is the cosine of the tolerance, precomputed by the caller.
+   */
+  function nearlyParallel(a, b, s, cos) {
+    const ux = (b[0] - a[0]) * MPD_LON, uy = (b[1] - a[1]) * MPD_LAT;
+    const vx = (s.bx - s.ax) * MPD_LON, vy = (s.by - s.ay) * MPD_LAT;
+    const lu = Math.hypot(ux, uy), lv = Math.hypot(vx, vy);
+    if (lu === 0 || lv === 0) return false;
+    return Math.abs((ux * vx + uy * vy) / (lu * lv)) >= cos;
+  }
+
   // Proper segment-segment intersection in local metres. Endpoint contact is
   // NOT a crossing — a door leg that starts at the top of a staircase touches
   // it and does not walk down it.
@@ -702,14 +785,32 @@
     return t > 0.001 && t < 0.999 && u > 0.001 && u < 0.999;
   }
 
-  /** Steps-way ids a straight line from a to b crosses. `[]` is the good case. */
+  /**
+   * Steps-way ids a straight line from a to b walks over. `[]` is the good
+   * case, and it is the case the whole "avoid stairs" promise rests on.
+   *
+   * ROUND 4 — TWO TESTS, EITHER OF WHICH CONVICTS.
+   *   1. the centreline is genuinely crossed (rounds 1-3's test, unchanged);
+   *   2. OR the leg runs ALONG the flight — within `stairLegParallelDeg` of
+   *      its direction — for at least `stairLegOverlapMinM` inside
+   *      `stairLegHalfWidthM` of the centreline. Test 1 is mathematically
+   *      incapable of seeing this one: parallel segments never intersect.
+   * The angle is not optional. Without it the test convicts every door leg
+   * that merely LEAVES the top of a flight, because such a leg starts on the
+   * staircase and diverges; the constants above carry the measurement.
+   * Overlap is summed PER WAY, so a flight drawn as three short segments
+   * convicts on the total rather than needing one segment to do it alone.
+   */
   function legCrossesStairs(g, a, b) {
     const ix = stairIndex(g);
     if (!ix.seg.length) return [];
-    const C = ix.CELL;
-    const x0 = Math.floor(Math.min(a[0], b[0]) / C), x1 = Math.floor(Math.max(a[0], b[0]) / C);
-    const y0 = Math.floor(Math.min(a[1], b[1]) / C), y1 = Math.floor(Math.max(a[1], b[1]) / C);
-    const seen = new Set(), hit = [];
+    const C = ix.CELL, R = WAYFIND.stairLegHalfWidthM;
+    const COS = Math.cos(WAYFIND.stairLegParallelDeg * Math.PI / 180);
+    // One cell of padding: a staircase whose centreline sits just outside the
+    // leg's own bucket can still be within R metres of it.
+    const x0 = Math.floor(Math.min(a[0], b[0]) / C) - 1, x1 = Math.floor(Math.max(a[0], b[0]) / C) + 1;
+    const y0 = Math.floor(Math.min(a[1], b[1]) / C) - 1, y1 = Math.floor(Math.max(a[1], b[1]) / C) + 1;
+    const seen = new Set(), hit = [], over = new Map();
     for (let cx = x0; cx <= x1; cx++) {
       for (let cy = y0; cy <= y1; cy++) {
         const arr = ix.grid.get(cx + ':' + cy);
@@ -719,10 +820,18 @@
           if (seen.has(i)) continue;
           seen.add(i);
           const s = ix.seg[i];
-          if (segmentsCross(a[0], a[1], b[0], b[1], s.ax, s.ay, s.bx, s.by) &&
-              hit.indexOf(s.way) < 0) hit.push(s.way);
+          if (segmentsCross(a[0], a[1], b[0], b[1], s.ax, s.ay, s.bx, s.by)) {
+            if (hit.indexOf(s.way) < 0) hit.push(s.way);
+            continue;
+          }
+          if (!nearlyParallel(a, b, s, COS)) continue;
+          const m = segmentOverlapM(a[0], a[1], b[0], b[1], s.ax, s.ay, s.bx, s.by, R);
+          if (m > 0) over.set(s.way, (over.get(s.way) || 0) + m);
         }
       }
+    }
+    for (const [way, m] of over) {
+      if (m >= WAYFIND.stairLegOverlapMinM && hit.indexOf(way) < 0) hit.push(way);
     }
     return hit;
   }
@@ -1550,8 +1659,13 @@
       ? 'The unmapped stretch to the door crosses a staircase.'
       : 'The unmapped stretches to the doors cross ' + n + ' staircases.',
     offerBtn: (lo, hi, dist) => 'Step-free: ' + nb(lo + '–' + hi + ' min') + ' · ' + nb(dist),
+    // `n` is EVERY staircase the alternative gets you away from — the ones
+    // the router climbs plus the ones under our own straight door legs. The
+    // n===0 arm should be unreachable (an alternative is only offered when
+    // the direct walk has stairs on it) and exists because the version that
+    // did not have it printed "Avoids all 0 sets" in a screenshot.
     offerCost: (extra, n) => 'Avoids ' +
-      (n === 1 ? 'the staircase' : n === 2 ? 'both sets' : 'all ' + n + ' sets') +
+      (n <= 0 ? 'the stairs' : n === 1 ? 'the staircase' : n === 2 ? 'both sets' : 'all ' + n + ' sets') +
       (extra > 0 ? ' · ' + fmtDist(extra) + ' further' : ' · no further to walk'),
     // ROUND 3 — NAME THE ENTRANCE. Citymapper's step-free route detail does
     // not say "a different entrance"; it opens an inset row labelled
@@ -1841,7 +1955,13 @@
     btn.addEventListener('click', (ev) => { ev.stopPropagation(); state.avoid = true; run(); });
     card.appendChild(btn);
     card.appendChild(h('div', 'wf-c wf-dim',
-      SAY_S.offerCost(Math.max(0, Math.round(sf.extraM)), st.sets)));
+      // ROUND 4 — `st.sets` counts only the staircases the ROUTER climbs. A
+      // staircase under one of our own straight door legs is the other kind
+      // and the alternative avoids it too, so it counts here. Reading only
+      // the climbed half printed "Avoids all 0 sets" on WEL>AND, where the
+      // only staircase on the walk was under the last stretch. Found in a
+      // screenshot; every number in the census was green.
+      SAY_S.offerCost(Math.max(0, Math.round(sf.extraM)), st.sets + st.legWayCount)));
     // ROUND 3 — name it. `toDoorWhere` is null when the arrival door did not
     // move, or when the graph cannot name the building it belongs to, and the
     // round-1 sentence is still what gets said in both of those cases.
@@ -2861,6 +2981,48 @@
       routableStaircases: G ? routableStairways(G) : 0,
     };
   }
+  /**
+   * ROUND 4 — THE WALKED POLYLINE, END TO END, FOR AN OUTSIDE INSTRUMENT.
+   *
+   * Rounds 1-3 verified "this route is step-free" against `walk_graph.json`'s
+   * own STEPS flag — which is asking the object that built the route whether
+   * the route is good. `data/ground.geojson` holds the SAME staircases as
+   * drawn polygons, baked by a different script from the same OSM cache, and
+   * a check against those cannot be fooled by a bad flag, a missed edge, or a
+   * door leg nobody thought to test. It needs geometry, so this hands it over.
+   *
+   * Opt-in (`{ geom: true }`) and verification-only: the card never asks for
+   * it and the shipped answer object is byte-for-byte what it was.
+   *
+   * The two straight door legs are INCLUDED, in walk order, because they are
+   * metres a person walks and they are exactly where round 1 found eleven
+   * "step-free" routes crossing a staircase.
+   */
+  function walkGeom(r) {
+    if (!r || !r.ok) return null;
+    const line = [];
+    const push = (p) => {
+      const last = line[line.length - 1];
+      if (!last || last[0] !== p[0] || last[1] !== p[1]) line.push([p[0], p[1]]);
+    };
+    if (r.geom.startLeg) for (const p of r.geom.startLeg) push(p);
+    for (const p of r.geom.line) push(p);
+    if (r.geom.endLeg) for (const p of r.geom.endLeg) push(p);
+    return {
+      line,
+      // The surveyed part and our own two straight lines are DIFFERENT
+      // OBJECTS and an instrument has to be able to tell them apart. Handing
+      // over only the concatenation cost round 4 an afternoon: a door leg
+      // that leaves the end of a 2.1 m flight sits within a metre of it for
+      // most of its length, so a corridor test run over the whole walk reads
+      // that as "the router climbed this staircase" when the router never
+      // went near it. `net` is the graph edges alone.
+      net: r.geom.line.map(p => [p[0], p[1]]),
+      startLeg: r.geom.startLeg || null,
+      endLeg: r.geom.endLeg || null,
+    };
+  }
+
   window.wayfindStairs = function (from, to, opts) {
     if (from == null) return stairAnswer(state.route);
     return (async () => {
@@ -2879,7 +3041,9 @@
           ? alt.legs.reduce((n, leg) => n + leg.edges.filter(e => g.F[e] & F_STEPS).length, 0) : -1;
         a.stepFree.verifiedLegWays = alt.ok ? alt.stair.legWayCount : -1;
         a.stepFree.verifiedDistM = alt.ok ? alt.distM : -1;
+        if (opts && opts.geom) a.stepFree.geom = walkGeom(alt);
       }
+      if (opts && opts.geom) a.geom = walkGeom(r);
       return a;
     })();
   };

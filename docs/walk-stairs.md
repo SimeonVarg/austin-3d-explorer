@@ -1095,3 +1095,791 @@ involve steps."*
   flights. They are in the data and the router charges for them, so the card
   names them. Suppressing them would make the reported count stop matching the
   ground, which is the first thing this round is judged on.
+
+---
+---
+
+# ROUND 4 — checked against files the router never reads, and it was wrong
+
+Round 3's critic returned nothing at all — no verdict, no gap named. So this
+round did the critic's job on this lane's own work first, and the harshest
+question available was the one nobody had asked in three rounds:
+
+> Every "this route is step-free" claim so far has been verified against
+> `walk_graph.json` — the same object that built the route. That is asking
+> the witness to confirm his own alibi.
+
+It does not survive. **Nine of 122 offered step-free walks (7.4 %) had their
+last stretch lying on a mapped staircase**, and five routes of 300 said *"No
+stairs on this route"* while walking over one. Every one of them was green in
+round 3's eleven-assertion census, because the census and the defect shared a
+blind spot.
+
+## R19. The blind spot, and it is a one-line piece of geometry
+
+`legCrossesStairs()` is the test the whole step-free promise rests on: does
+the straight line from the walk network to a door cross a staircase? Rounds
+1-3 answered it with `segmentsCross()`, a proper segment-segment intersection
+in local metres — correct code, and:
+
+```js
+    const den = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3);
+    if (Math.abs(den) < 1e-12) return false;          // parallel or degenerate
+```
+
+**Two parallel segments never intersect.** A door leg drawn straight *up a
+flight of steps* — the single worst thing this feature can do to somebody who
+cannot climb — is parallel to it, so `den` is zero and the answer is "no
+crossing". The one case that matters most is the one case the test is
+mathematically incapable of seeing. A staircase was also being treated as a
+line with no width, while `bake_ground.py` draws it 3.0 m wide.
+
+WAG → KIN, with **Avoid stairs already ticked**, is the picture:
+
+| file | what it shows |
+|---|---|
+| `r4-legonstairs-before.png` | the dashed last stretch coming straight out of the middle of a lit staircase (OSM way `1429644810`, `incline=down`), card reading **"9-13 min walk · 760 m · No stairs on this route"** |
+| `r4-legonstairs-after.png` | identical camera, identical zoom, one constant flipped: the walk is not there any more |
+| `r4-legonstairs-before-card.png` | the offer that produced it — **"✓ Step-free · no further to walk than the route with stairs"**. A free lunch, and it went down a flight of steps |
+| `r4-legonstairs-after-card.png` | the honest answer: 1.1 km, 160 m further |
+
+The cyan slab is a test-only `fill-extrusion` filtered on `wid`; nothing in
+the app draws it. The tree canopy is hidden in both frames — it sits directly
+over the subject — and both frames are checked with `queryRenderedFeatures`
+for the ribbon *and* the lit slab before either is kept.
+
+## R20. The fix: give the staircase the width the map already draws it with
+
+`legCrossesStairs()` now convicts on **either** test:
+
+1. the centreline is genuinely crossed — rounds 1-3's test, unchanged;
+2. **or** the leg runs *along* the flight: at least `stairLegOverlapMinM` of
+   it inside `stairLegHalfWidthM` of the centreline, pointing within
+   `stairLegParallelDeg` of the flight's own direction.
+
+The angle is not decoration and the frame is what proved it. Without it the
+test convicts every door leg that merely **leaves** the top of a flight —
+such a leg starts *on* the staircase and diverges, so it overlaps for a metre
+or two while the walker takes no step at all. Measured on the eight legs the
+width test catches, the angle is completely bimodal:
+
+```
+  1  1  1  1 deg    the leg IS the flight            4.0-4.2 m of overlap
+ 32 61 61 61 deg    it leaves an end and walks away  1.7-2.9 m of overlap
+```
+
+Both groups share an endpoint with the staircase to within 6 cm, so *"does it
+touch"* cannot separate them and *"which way does it point"* separates them
+completely. `20` sits in a twelve-degree empty gap. The first cut of this
+round shipped the width test **without** the angle, refused five good offers,
+and only the picture showed why.
+
+All three numbers are `WAYFIND` constants (CLAUDE.md rule 11), and
+`stairLegOverlapMinM = Infinity` restores rounds 1-3 exactly — which is the
+A/B below.
+
+## R21. The instrument: two files, and neither is the walk graph
+
+`scripts/serve.py 8713`, 300 pseudo-random routable pairs, `?walk=1&intro=0
+&drift=0`, `cancelGraphicsAutoDetect()`, waited on `!veil`, one browser.
+
+* **TRAVERSAL** — `data/osm_cache/footways.json`, the raw Overpass survey with
+  no bake between it and the assertion. A staircase counts as walked when half
+  its own centreline lies within 0.3 m of the **surveyed** part of the walk.
+* **CROSSING** — `data/ground.geojson`, the drawn slabs from `bake_ground.py`.
+  Only the two straight door legs are tested against these, in metres of leg
+  inside the polygon.
+
+Round 4 adds `wayfindStairs(from, to, { geom: true })`, which hands back the
+walked polyline — the surveyed part and the two door legs as separate objects.
+Opt-in and verification-only; the shipped answer object is unchanged.
+
+**THE A/B, one constant, same 300 pairs, same browser:**
+
+```
+                                              rounds 1-3      round 4
+routes completed                                 300            300
+routes with a staircase on them                  129            134
+step-free offered                                122            120
+   ...whose door leg lies on a drawn staircase     9              0
+   ...that traverse an OSM staircase                0              0
+routes with a staircase the card never states      5              0
+door legs inside a slab the app calls clean        8              0
+no way round                                       7             14
+```
+
+**Nine false step-free promises and five undisclosed staircases, for the
+price of two offers of 122.** The five routes that gained a staircase did not
+get worse; they stopped lying about one they already had.
+
+The door-leg histogram is the same measurement seen the other way round — the
+metres each door leg spends inside a drawn staircase, split by whether the app
+calls it a crossing:
+
+```
+rounds 1-3   app calls it a crossing   1.49 1.49
+             app says clean            0.25 0.25 0.25 1.98 1.98 2.74 2.74 5.50
+round 4      app calls it a crossing   0.25 0.25 0.25 1.49 1.49 1.98 1.98 2.74 2.74 5.50
+             app says clean            (none)
+```
+
+**Nothing is left in the second row.** There is no longer a single door leg on
+this campus lying inside a drawn staircase that the router calls clean.
+
+### The seven assertions, all green at 300 pairs
+
+```
+ PASS  routes completed — 300 of 300
+ PASS  no offered step-free walk TRAVERSES an OSM staircase — 0 dirty of 120 offered
+ PASS  no offered step-free walk lays a DOOR LEG over a drawn staircase — 0 dirty of 120
+ PASS  every staircase the card states is one the walk comes within 1.5 m of — 0 routes
+ PASS  every staircase the walk touches is stated by the card — 0 routes
+ PASS  a staircase the router walks along is filed as climbed, not as a door leg — 0
+ PASS  the leg list carries every staircase the router climbs — 0 bad of 300
+```
+
+### And watched failing, both switches, on the outside instrument
+
+```
+node gate.mjs 300 --break --breakgate
+  step-free offered 134 (nothing withheld)
+  FAIL  no offered step-free walk TRAVERSES an OSM staircase — 117 dirty of 134
+```
+
+117 of 134. Rounds 2 and 3 watched their guard fail against the graph; this
+watches it fail against the OSM survey, which is the version that could not
+have been rigged by the thing being tested.
+
+## R22. Four times this round the number was green and the picture was not
+
+Kept as a list because it is the argument for the house rule, not decoration.
+
+1. **The parallel door leg** (§R19) — eleven green assertions over 300 pairs
+   while a step-free walk went down a flight of steps.
+2. **The angle** (§R20) — the width test alone refused five good offers.
+   Frames of the acquitted cases showed door legs *leaving* staircases at
+   32° and 61°, which is not walking on them.
+3. **`Avoids all 0 sets`** — the offer's price line counted only the
+   staircases the router *climbs*, so on WEL → AND, where the only staircase
+   is under the last stretch, it printed that. Fixed here: it counts
+   `sets + legWayCount`, and the unreachable `n <= 0` arm now says "the
+   stairs" rather than arithmetic. `r4-disclose-WELAND-after.png`.
+4. **The A/B that was not one** — the first cut of the frames came back at
+   zoom 20.41 and 19.24 with the card open in one and shut in the other,
+   because `state.expanded` survives a re-route. Both passes are separated
+   and the camera is pinned now.
+
+And one trap avoided rather than fallen into: the first pose put the camera
+under a building roof with the subject invisible, exactly as the brief warns.
+Every frame this round is confirmed with `queryRenderedFeatures` before it is
+kept.
+
+## R23. A PATCH FOR `renderPill()`'s HEADLINE — NOT THIS LANE'S FUNCTION
+
+**The headline still says "No stairs on this route" while the body of the same
+card says the last stretch crosses one.** Visible in
+`r4-disclose-WELAND-after.png`: WEL → AND, 400 m, headline *"No stairs on this
+route"*, three lines below it *"The unmapped stretch to the door crosses a
+staircase."* Round 4 made this visible by detecting the crossing; the
+contradiction is older than round 4 and belongs to whoever owns the headline.
+
+`js/wayfind.js` line ~2661 reads `r.m.stairSets`, which counts only the
+staircases the **router climbs**. `r.stair.clean` is already the AND of both
+kinds. Replace:
+
+```js
+      r.m.stairSets ? SAY.stairsSets(r.m.stairSets) : SAY.stairsNone,
+```
+
+with:
+
+```js
+      // A staircase under our own straight door leg is still a staircase you
+      // walk over, and `r.stair.clean` is already the AND of both kinds. The
+      // headline read only the climbed half and printed "No stairs on this
+      // route" three lines above "The unmapped stretch to the door crosses a
+      // staircase" (docs/walk-stairs.md §R23; 5 routes of 300).
+      r.m.stairSets ? SAY.stairsSets(r.m.stairSets)
+        : (r.stair && !r.stair.clean) ? SAY.stairsLegOnly : SAY.stairsNone,
+```
+
+and add one line to `SAY`, wording subject to
+`docs/walk/what-we-can-honestly-say.md` as always:
+
+```js
+    stairsLegOnly: 'Steps on the last stretch',
+```
+
+Round 1 §5a (`incline=down` thrown away) and §5b (`step_count`) still stand
+unmade, and so does round 3 §R15 (`#wf-pill` is 197 px wide on a phone because
+shrink-to-fit against `left:50%` can only ever be half the viewport). The
+phone card measured **869 px of an 852 px screen** on WEL → AND this round,
+which is that same rule and not the leg list.
+
+## R24. What it costs: nothing measurable
+
+`legCrossesStairs()` now samples a capsule as well as solving an intersection,
+and `cleanAnchors()` calls it once per door anchor, so this is where a stairs
+change gets expensive. It does not, because the angle test rejects almost
+every candidate before any sampling happens.
+
+**Interleaved A/B, three reps of 120 routes, MINIMUM of each per
+`scripts/verify/README.md`. Hardware GL, no CPU throttle. The machine was NOT
+quiet — sibling lanes were driving browsers — which is why the minimum is the
+only number quoted:**
+
+```
+                         rounds 1-3   round 4
+a route WITH stairs        5.2 ms      5.1 ms    (median)
+   ...p90                  8.7 ms      8.1 ms
+a route with no stairs     1.1 ms      1.1 ms    (median)
+```
+
+The two are the same to within the run-to-run spread; the new one reading
+nominally faster is noise, not a win.
+
+`WAYFIND.on` is **still `false`** — a plain `index.html` makes **zero**
+requests for `walk_graph.json` and exposes no `window.wayfindStairs`. Nothing
+this round ships anything. `harness-drift.mjs`: **PASS, 31 scripts in
+`index.html`, 31 in `_harness.html`** (no new `<script>` this round).
+
+And it still works by **click**, not only by census — round 2's worst bug was
+green in every census and visible only in a screenshot:
+
+```
+ PASS  a route renders — 11-17 min walk · 950 m · Stairs: 1 set
+ PASS  the card offers a priced step-free button — Step-free: 13–19 min · 1.1 km
+ PASS  clicking the offer does not fold the card shut
+ PASS  the offer lands on a step-free answer — ... No stairs on this route
+ PASS  and a way back, priced — With stairs: 11–17 min · 950 m
+ PASS  no "Avoids all 0 sets" anywhere on the card
+```
+
+## R25. Against Citymapper, one line added
+
+§R17's table stands. One row changes, and it is the row this round is about:
+
+| Citymapper, from the frame | us, now |
+|---|---|
+| sf2 — `Step-free` / `Avoiding steps and stairs` | the claim is now verified against two files the router never reads, including the last few metres to the door. Citymapper publishes no equivalent check, so this is not a comparison — it is the standard we hold ourselves to for the one person the feature exists for |
+
+## R26. Where the remaining doubt is, stated rather than buried
+
+* **14 routes of 300 have no step-free answer**, up from 7. Seven of those are
+  new and every one is a building whose every door anchor is reachable only by
+  a straight line over a staircase. "We cannot get you there without steps" is
+  the truthful answer to that and the card says it in full colour, not as a
+  footnote — but it is a worse *product* answer than the lie it replaces, and
+  somebody should look at whether those doors have another anchor. That is
+  `bake_walk.py`, not this lane.
+* **The corridor and the angle are thresholds, and thresholds can be wrong.**
+  Both were read off histograms with a visible empty gap (0.3–0.5 of a
+  flight's length; 1–32 degrees), and both are `WAYFIND` constants, so
+  disagreeing with either is a one-line edit. The fraction histogram has ten
+  samples in the 0.5–0.6 bucket sitting just above the bar; nothing at all
+  between 0.3 and 0.5.
+* **Everything here is still a claim about `highway=steps` in OSM.** A
+  staircase nobody mapped is still invisible and the card still says so.
+* **Two of the 189 carry `lit`, and lighting is still not wired to anything.**
+  Unchanged from round 1 §7.
+* **`scripts/bake_ground.py` is unchanged this round**, as in rounds 2 and 3.
+  Round 1's fix — the missing `area=yes` staircase and `wid` on every slab —
+  is what made this round's ground-truth join possible at all, and nothing
+  further needed re-baking a 5 MB file.
+
+## R27. The gate, committed, so the next critic can run it
+
+Rounds 2 and 3 both ended with the census "in a session scratchpad" because
+`scripts/verify/` is not this lane's directory. That is three rounds of
+numbers nobody else could reproduce, and it is the fairest criticism available
+of this lane. The whole instrument is therefore written out below. It needs
+only `window.wayfindStairs(from, to, {geom:true})`, which is public and
+read-only, and two data files. Save the two blocks beside each other, run
+`npm install playwright-core`, start `python scripts/serve.py 8713`, then:
+
+```
+REPO_ROOT=/path/to/repo node gate.mjs 300              # the seven assertions
+REPO_ROOT=/path/to/repo node gate.mjs 300 --oldleg     # §R21's A/B: goes RED
+REPO_ROOT=/path/to/repo node gate.mjs 300 --break --breakgate   # watched failure
+REPO_ROOT=/path/to/repo node gate.mjs 300 --hist       # the histograms above
+```
+
+It should still be lifted into `scripts/verify/stairs.mjs` by whoever owns
+that directory. Until then it is at least *in the repository* rather than in a
+directory that gets deleted.
+
+### `lib.mjs`
+
+```js
+// Round-4 stairs harness. ONE browser, per the lane brief.
+import { chromium } from 'playwright-core';
+
+export const PORT = process.env.PORT || 8713;
+export const BASE = `http://127.0.0.1:${PORT}`;
+export const CHROME = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+
+export async function open({ w = 1440, h = 900, q = '' } = {}) {
+  const browser = await chromium.launch({
+    executablePath: CHROME,
+    headless: true,
+    args: ['--use-gl=angle', '--no-sandbox', '--disable-dev-shm-usage',
+      '--ignore-gpu-blocklist', '--enable-gpu-rasterization'],
+  });
+  const page = await browser.newPage({ viewport: { width: w, height: h },
+    deviceScaleFactor: 1 });
+  page.on('pageerror', e => console.log('  [pageerror]', String(e).slice(0, 200)));
+  const url = `${BASE}/index.html?walk=1&intro=0&drift=0${q}`;
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  // Correctness measure, not a speed one (CLAUDE.md rule 10).
+  await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
+  await page.waitForFunction(() => !document.getElementById('veil'), null,
+    { timeout: 180000 });
+  await page.waitForFunction(() => !!window.__map && !!window.wayfindStairs, null,
+    { timeout: 120000 });
+  await page.waitForTimeout(600);
+  return { browser, page };
+}
+
+/** Screenshot twice, keep the second (CLAUDE.md rule 10). */
+export async function shot(page, path, clip) {
+  const o = clip ? { path, clip } : { path };
+  await page.screenshot(o);
+  await page.waitForTimeout(180);
+  await page.screenshot(o);
+  return path;
+}
+
+export function ok(cond, label, detail = '') {
+  console.log(`${cond ? ' PASS ' : ' FAIL '} ${label}${detail ? ' — ' + detail : ''}`);
+  return !!cond;
+}
+```
+
+### `gate.mjs`
+
+```js
+/**
+ * gate.mjs — ROUND 4. The stair claims, checked against files the router
+ * never reads.
+ *
+ * Rounds 1-3 asked `walk_graph.json` whether a route built out of
+ * `walk_graph.json` touched a staircase. Two outside instruments here:
+ *
+ *   TRAVERSAL, from `data/osm_cache/footways.json` — the raw OSM survey, no
+ *   bake in between. A staircase counts as walked when TRAVERSE_MIN_FRAC of
+ *   its own centreline lies within CORRIDOR_M of the SURVEYED part of the
+ *   walk. Measured off the way's geometry rather than by node identity, so
+ *   the bake's 578 anchor splits (which insert vertices between OSM nodes)
+ *   cannot fool it. `area=yes` staircases are rings and are tested as
+ *   polygons instead.
+ *
+ *   CROSSING, from `data/ground.geojson` — the drawn slabs, written by
+ *   `bake_ground.py`, 3.0 m wide. Only the two straight DOOR LEGS are tested
+ *   against these: a door leg is the one part of the walk not made of graph
+ *   edges, and it can lie flat on top of a staircase without ever crossing
+ *   its centreline. Counted in METRES OF LEG INSIDE THE SLAB and only where
+ *   the leg runs ALONG the flight, both thresholds read off `--hist`.
+ *
+ * Nothing in this file imports a flag, an edge or a cost from the router.
+ *
+ *   node gate.mjs [pairs] [--break] [--breakgate] [--oldleg] [--hist]
+ *                 [--json out.json]
+ *
+ * --break/--breakgate are the watched failure (leaky filter / no guard).
+ * --oldleg restores rounds 1-3's door-leg test, which is the A/B this round
+ * turns on. Run from a directory where `playwright-core` resolves, with
+ * `python scripts/serve.py 8713` up.
+ */
+import fs from 'node:fs';
+import { open, ok } from './lib.mjs';
+
+// Repo root. Override with REPO_ROOT when running from elsewhere.
+const ROOT = process.env.REPO_ROOT || process.cwd();
+
+// ── every threshold a named constant (CLAUDE.md rule 11) ──────────────────
+// How close the walk must run to a centreline to count as ON it. The graph
+// quantises node positions to q=1e-6 deg = 0.11 m, so a way the router really
+// traverses lies within about 0.15 m of the walked line — measured at
+// 0.02-0.07 m on every traversal checked by hand. At 1.0 m this test also
+// convicted a footway running PARALLEL 0.9 m from a 2.1 m flight (CS3>RSC,
+// way 1429644803), which is a path beside a staircase and not a staircase.
+// 0.3 m is double the quantisation and a third of that parallel path.
+const CORRIDOR_M = Number(process.env.CORRIDOR_M || 0.3);
+// ...and for what FRACTION of the staircase's own length, before it counts as
+// walked. An absolute metre bar cannot work: campus staircases run 0.7 m to
+// 64 m, so 1 m is 100 % of one flight and 2 % of another. Read off --hist.
+const TRAVERSE_MIN_FRAC = Number(process.env.TRAVERSE_MIN_FRAC || 0.5);
+const SAMPLE_M = 0.25;
+const CELL_M = 25;
+// Metres of a straight door leg lying inside a drawn staircase before it
+// counts as walking over it. A leg that merely TOUCHES an endpoint and leaves
+// at an angle clips at most half the 3.0 m slab width. Chosen off the
+// histogram in --hist, not assumed.
+// Same 1.5 m the app uses, and for the same reason: half the drawn slab's
+// own width. The two measurements are still independent — the app measures a
+// capsule round the GRAPH's centreline, this measures the inside of the
+// polygon `bake_ground.py` drew.
+const LEG_OVERLAP_MIN_M = Number(process.env.LEG_OVERLAP_MIN_M || 1.5);
+// Metres of walk inside a stepped AREA before it counts as crossing it.
+const AREA_MIN_M = Number(process.env.AREA_MIN_M || 1.0);
+// How close the walk must come to a staircase before the card is ALLOWED to
+// state it. Over-disclosure is not a defect — a door leg that passes 6 cm
+// from a 4.6 m flight (MFH>GRE, way 1212689302) is a staircase the walker is
+// on, and saying so is the conservative call. The bar is only there to catch
+// the card naming a staircase the walk goes nowhere near. Same 1.5 m as the
+// drawn slab's half-width.
+const NEAR_M = Number(process.env.NEAR_M || 1.5);
+// A door leg only walks a staircase when it runs ALONG it. Every leg that
+// leaves the top of a flight starts on the flight and diverges, overlapping
+// the slab for a metre or two without anyone taking a step. Measured on the
+// eight legs the width test catches, the angle is bimodal 1/1/1/1 vs
+// 32/61/61/61 degrees. Same 20 deg the app uses, arrived at from the same
+// measurement — and the direction here comes from footways.json, not from the
+// walk graph, so the two are still independent.
+const PARALLEL_DEG = Number(process.env.PARALLEL_DEG || 20);
+
+const N = Number(process.argv.find(a => /^\d+$/.test(a)) || 120);
+const BREAK = process.argv.includes('--break');
+const BREAKGATE = process.argv.includes('--breakgate');
+const HIST = process.argv.includes('--hist');
+// THE A/B ON ONE CONSTANT. Puts rounds 1-3's door-leg test back — centreline
+// intersection only, no width — without touching a file on disk.
+const OLDLEG = process.argv.includes('--oldleg');
+const JSONOUT = (() => { const i = process.argv.indexOf('--json'); return i > 0 ? process.argv[i + 1] : null; })();
+
+const MPD_LAT = 111320.0, MPD_LON = 111320.0 * Math.cos(30.2862 * Math.PI / 180);
+const mBetween = (a, b) => Math.hypot((a[0] - b[0]) * MPD_LON, (a[1] - b[1]) * MPD_LAT);
+const key = (i, j) => i + ':' + j;
+const CL = CELL_M / MPD_LON, CB = CELL_M / MPD_LAT;
+
+// ── INSTRUMENT 1: the raw OSM staircases ──────────────────────────────────
+const fw = JSON.parse(fs.readFileSync(`${ROOT}/data/osm_cache/footways.json`, 'utf8'));
+const WAY_BY_ID = new Map();
+const stepWays = [];
+for (const e of fw.elements) {
+  if (((e.tags || {}).highway) !== 'steps') continue;
+  const pts = (e.geometry || []).map(p => [p.lon, p.lat]);
+  if (pts.length < 2) continue;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, L = 0;
+  for (let i = 0; i < pts.length; i++) {
+    if (pts[i][0] < x0) x0 = pts[i][0]; if (pts[i][0] > x1) x1 = pts[i][0];
+    if (pts[i][1] < y0) y0 = pts[i][1]; if (pts[i][1] > y1) y1 = pts[i][1];
+    if (i) L += mBetween(pts[i - 1], pts[i]);
+  }
+  // `area=yes` staircases are a RING, not a centreline: way 147362093 at the
+  // north-west corner of the PCL plaza is the one on this campus. A route
+  // crossing it covers almost none of its perimeter, so the corridor test
+  // below would call it untouched. Tested as a polygon instead.
+  const closed = pts.length > 2 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1];
+  stepWays.push({ id: e.id, pts, bbox: [x0, y0, x1, y1], len: L, closed });
+}
+for (const w of stepWays) WAY_BY_ID.set(w.id, w);
+const wayGrid = new Map();
+for (const w of stepWays) {
+  const pad = 2 / MPD_LON, padY = 2 / MPD_LAT;
+  for (let i = Math.floor((w.bbox[0] - pad) / CL); i <= Math.floor((w.bbox[2] + pad) / CL); i++)
+    for (let j = Math.floor((w.bbox[1] - padY) / CB); j <= Math.floor((w.bbox[3] + padY) / CB); j++) {
+      const k = key(i, j); if (!wayGrid.has(k)) wayGrid.set(k, new Set()); wayGrid.get(k).add(w);
+    }
+}
+function inRing(ring, x, y) {
+  let inside = false;
+  for (let a = 0, b = ring.length - 1; a < ring.length; b = a++) {
+    const xa = ring[a][0], ya = ring[a][1], xb = ring[b][0], yb = ring[b][1];
+    if (((ya > y) !== (yb > y)) && (x < (xb - xa) * (y - ya) / (yb - ya) + xa)) inside = !inside;
+  }
+  return inside;
+}
+
+/** perpendicular metres from point p to segment AB */
+function distToSeg(p, A, B) {
+  const ax = (p[0] - A[0]) * MPD_LON, ay = (p[1] - A[1]) * MPD_LAT;
+  const bx = (B[0] - A[0]) * MPD_LON, by = (B[1] - A[1]) * MPD_LAT;
+  const L2 = bx * bx + by * by;
+  let t = L2 ? (ax * bx + ay * by) / L2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(ax - bx * t, ay - by * t);
+}
+function distToLine(p, line) {
+  let best = Infinity;
+  for (let i = 0; i + 1 < line.length; i++) {
+    const d = distToSeg(p, line[i], line[i + 1]);
+    if (d < best) best = d;
+    if (best === 0) break;
+  }
+  return best;
+}
+/** closest approach in metres from a walked polyline to one steps way */
+function lineNearWay(line, wayId) {
+  const w = WAY_BY_ID.get(wayId);
+  if (!w || line.length < 2) return Infinity;
+  // Sample the WAY against the line's SEGMENTS, not the line's vertices
+  // against the way. A door leg is one 23 m segment with two vertices, and a
+  // 1.5 m flight sitting in the middle of it (MAG>CPE, 7.9-12.0 m along the
+  // leg) is 9 m from the nearest vertex — the vertex form of this test called
+  // that "nowhere near" while the walker was on the steps.
+  let best = Infinity;
+  for (let j = 0; j + 1 < w.pts.length; j++) {
+    const seg = mBetween(w.pts[j], w.pts[j + 1]);
+    const n = Math.max(1, Math.ceil(seg / SAMPLE_M));
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const p = [w.pts[j][0] + (w.pts[j + 1][0] - w.pts[j][0]) * t,
+        w.pts[j][1] + (w.pts[j + 1][1] - w.pts[j][1]) * t];
+      const d = distToLine(p, line);
+      if (d < best) best = d;
+    }
+  }
+  return best;
+}
+
+/** ways whose centreline the walked polyline runs along -> metres walked of each */
+const FRACS = [];
+function traversed(line) {
+  // candidate ways: any whose cell the polyline visits
+  const cand = new Set();
+  for (let i = 0; i + 1 < line.length; i++) {
+    const a = line[i], b = line[i + 1];
+    const n = Math.max(1, Math.ceil(mBetween(a, b) / CELL_M));
+    for (let s = 0; s <= n; s++) {
+      const t = s / n, x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t;
+      const c = wayGrid.get(key(Math.floor(x / CL), Math.floor(y / CB)));
+      if (c) for (const w of c) cand.add(w);
+    }
+  }
+  const out = new Map();
+  for (const w of cand) {
+    if (w.closed) {
+      // does the walk enter the stepped AREA at all?
+      let inM = 0;
+      for (let i = 0; i + 1 < line.length; i++) {
+        const seg = mBetween(line[i], line[i + 1]);
+        const steps = Math.max(1, Math.ceil(seg / SAMPLE_M));
+        for (let s2 = 0; s2 <= steps; s2++) {
+          const t = s2 / steps;
+          const x = line[i][0] + (line[i + 1][0] - line[i][0]) * t;
+          const y = line[i][1] + (line[i + 1][1] - line[i][1]) * t;
+          if (inRing(w.pts, x, y)) inM += seg / (steps + 1);
+        }
+      }
+      if (inM >= AREA_MIN_M) out.set(w.id, +inM.toFixed(1));
+      continue;
+    }
+    let along = 0;
+    for (let i = 0; i + 1 < w.pts.length; i++) {
+      const seg = mBetween(w.pts[i], w.pts[i + 1]);
+      const steps = Math.max(1, Math.ceil(seg / SAMPLE_M));
+      let inside = 0;
+      for (let s = 0; s <= steps; s++) {
+        const t = s / steps;
+        const p = [w.pts[i][0] + (w.pts[i + 1][0] - w.pts[i][0]) * t,
+          w.pts[i][1] + (w.pts[i + 1][1] - w.pts[i][1]) * t];
+        if (distToLine(p, line) <= CORRIDOR_M) inside++;
+      }
+      along += seg * (inside / (steps + 1));
+    }
+    const frac = w.len > 0 ? along / w.len : 0;
+    if (frac > 0) FRACS.push({ way: w.id, len: +w.len.toFixed(1), along: +along.toFixed(1), frac: +frac.toFixed(3) });
+    if (frac >= TRAVERSE_MIN_FRAC) out.set(w.id, +along.toFixed(1));
+  }
+  return out;
+}
+
+// ── INSTRUMENT 2: the drawn slabs, for the two straight door legs ─────────
+// (inRing is shared with the area-staircase test above.)
+const gj = JSON.parse(fs.readFileSync(`${ROOT}/data/ground.geojson`, 'utf8'));
+const slabs = [];
+for (const f of gj.features) {
+  const p = f.properties || {};
+  if (p.u !== 'steps') continue;
+  const ring = f.geometry.coordinates[0];
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const c of ring) {
+    if (c[0] < x0) x0 = c[0]; if (c[0] > x1) x1 = c[0];
+    if (c[1] < y0) y0 = c[1]; if (c[1] > y1) y1 = c[1];
+  }
+  slabs.push({ ring, wid: Array.isArray(p.wid) ? p.wid : (p.wid != null ? [p.wid] : []), bbox: [x0, y0, x1, y1] });
+}
+const slabGrid = new Map();
+for (const s of slabs) {
+  for (let i = Math.floor(s.bbox[0] / CL); i <= Math.floor(s.bbox[2] / CL); i++)
+    for (let j = Math.floor(s.bbox[1] / CB); j <= Math.floor(s.bbox[3] / CB); j++) {
+      const k = key(i, j); if (!slabGrid.has(k)) slabGrid.set(k, []); slabGrid.get(k).push(s);
+    }
+}
+/** is the leg pointing along this steps way (either direction)? */
+function legAlong(leg, wayId) {
+  const w = WAY_BY_ID.get(wayId);
+  if (!w) return false;
+  const ux = (leg[1][0] - leg[0][0]) * MPD_LON, uy = (leg[1][1] - leg[0][1]) * MPD_LAT;
+  const lu = Math.hypot(ux, uy); if (!lu) return false;
+  const cos = Math.cos(PARALLEL_DEG * Math.PI / 180);
+  for (let i = 0; i + 1 < w.pts.length; i++) {
+    const vx = (w.pts[i + 1][0] - w.pts[i][0]) * MPD_LON, vy = (w.pts[i + 1][1] - w.pts[i][1]) * MPD_LAT;
+    const lv = Math.hypot(vx, vy); if (!lv) continue;
+    if (Math.abs((ux * vx + uy * vy) / (lu * lv)) >= cos) return true;
+  }
+  return false;
+}
+/** METRES of a straight door leg lying inside each drawn staircase, counted
+ *  only where the leg runs ALONG that staircase. */
+function legInside(leg) {
+  const out = new Map();
+  if (!leg || leg.length < 2) return out;
+  const len = mBetween(leg[0], leg[1]);
+  const n = Math.max(1, Math.ceil(len / SAMPLE_M));
+  const step = len / n;
+  for (let s = 0; s <= n; s++) {
+    const t = s / n, x = leg[0][0] + (leg[1][0] - leg[0][0]) * t, y = leg[0][1] + (leg[1][1] - leg[0][1]) * t;
+    const cand = slabGrid.get(key(Math.floor(x / CL), Math.floor(y / CB)));
+    if (!cand) continue;
+    for (const sl of cand) {
+      if (x < sl.bbox[0] || x > sl.bbox[2] || y < sl.bbox[1] || y > sl.bbox[3]) continue;
+      if (!inRing(sl.ring, x, y)) continue;
+      for (const w of sl.wid) {
+        if (!legAlong(leg, w)) continue;   // leaving an end is not walking it
+        out.set(w, (out.get(w) || 0) + step);
+      }
+    }
+  }
+  return out;
+}
+function legsInside(geom) {
+  const out = new Map();
+  for (const leg of [geom.startLeg, geom.endLeg]) {
+    for (const [w, m] of legInside(leg)) out.set(w, Math.max(out.get(w) || 0, m));
+  }
+  return out;
+}
+
+console.log(`OSM steps ways ${stepWays.length} | drawn stair polygons ${slabs.length}`);
+console.log(`pairs ${N} | breakStepFree=${BREAK} breakStepFreeGate=${BREAKGATE}`);
+console.log(`corridor ${CORRIDOR_M} m / traverse frac>=${TRAVERSE_MIN_FRAC} | door-leg overlap>=${LEG_OVERLAP_MIN_M} m`);
+
+const { browser, page } = await open();
+if (BREAK || BREAKGATE || OLDLEG) {
+  await page.evaluate(([b, bg, ol]) => {
+    if (b) window.WAYFIND.stairs.breakStepFree = true;
+    if (bg) window.WAYFIND.stairs.breakStepFreeGate = true;
+    if (ol) window.WAYFIND.stairLegOverlapMinM = Infinity;   // width test off
+  }, [BREAK, BREAKGATE, OLDLEG]);
+}
+if (OLDLEG) console.log('*** --oldleg: door-leg width test DISABLED (rounds 1-3 behaviour) ***');
+
+const res = await page.evaluate(async (n) => {
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code);
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const out = []; let tries = 0;
+  while (out.length < n && tries < n * 6) {
+    tries++;
+    const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+    if (a === b) continue;
+    const r = await window.wayfindStairs(a, b, { geom: true });
+    if (!r || !r.ok || !r.geom) continue;
+    out.push({
+      from: a, to: b, clean: r.clean, sets: r.sets, ways: r.ways, legWays: r.legWays,
+      distM: Math.round(r.distM), rowCount: r.rowCount,
+      list: (r.list || []).map(x => ({ way: x.way, atM: Math.round(x.atM), m: +x.m.toFixed(1) })),
+      rows: (r.rows || []).map(x => ({ ways: x.ways, atM: Math.round(x.atM), place: x.place, flights: x.flights })),
+      geom: r.geom, stepFreeNone: r.stepFreeNone,
+      sf: r.stepFree ? { distM: r.stepFree.distM, verifiedDistM: r.stepFree.verifiedDistM,
+        verifiedStepEdges: r.stepFree.verifiedStepEdges, verifiedLegWays: r.stepFree.verifiedLegWays,
+        clean: r.stepFree.clean, geom: r.stepFree.geom } : null,
+    });
+  }
+  return out;
+}, N);
+
+// ── the assertions ────────────────────────────────────────────────────────
+let stairy = 0, offered = 0, none = 0;
+let dirtyTraverse = 0, dirtyLeg = 0, namedNotWalked = 0, walkedNotNamed = 0, listBad = 0, legNotNamed = 0;
+const detail = { dirty: [], join: [] };
+const histTouch = [], histCross = [];
+
+for (const r of res) {
+  if (!r.clean) stairy++;
+  if (r.sf) offered++;
+  if (r.stepFreeNone) none++;
+
+  // THE CARD MAKES TWO DIFFERENT CLAIMS AND THEY GET TWO DIFFERENT
+  // INSTRUMENTS. `ways` = staircases the ROUTER walks along, checked against
+  // the OSM centrelines. `legWays` = staircases one of the two straight door
+  // legs cuts across, checked against the drawn slabs.
+  //
+  // The two do NOT partition cleanly and pretending they do is wrong: on a
+  // 1.4 m flight the door leg IS the traversal, so way 1512289474 on MAG>CPE
+  // shows up in both instruments at once. So the gate asserts the claim that
+  // actually matters — every staircase the walk touches is STATED, by one
+  // route or the other — and only checks the classification where the two
+  // instruments agree it is unambiguous.
+  const li = legsInside(r.geom);                       // drawn-slab crossings
+  const legCrossed = new Set([...li.entries()].filter(([, mm]) => mm >= LEG_OVERLAP_MIN_M).map(([w]) => w));
+  const t = traversed(r.geom.net);   // centreline traversals, GRAPH EDGES ONLY
+  const climbed = new Set(r.ways || []);
+  const legNamed = new Set(r.legWays || []);
+  const stated = new Set([...climbed, ...legNamed]);
+  const touched = new Set([...t.keys(), ...legCrossed]);
+
+  const a = [...stated].filter(w => !touched.has(w) && lineNearWay(r.geom.line, w) > NEAR_M);
+  const b = [...touched].filter(w => !stated.has(w));
+  if (a.length) { namedNotWalked++; detail.join.push({ p: `${r.from}>${r.to}`, stated_not_touched: a }); }
+  if (b.length) { walkedNotNamed++; detail.join.push({ p: `${r.from}>${r.to}`, touched_not_stated: b }); }
+  // classification: a way the router walks along and NO door leg goes near
+  // must be in `ways`, not `legWays`.
+  const c = [...t.keys()].filter(w => !legCrossed.has(w) && !li.has(w) && !climbed.has(w));
+  if (c.length) { legNotNamed++; detail.join.push({ p: `${r.from}>${r.to}`, walked_but_filed_as_legcross: c }); }
+  // the leg list must carry every staircase the ROUTER climbs
+  const listWays = new Set(r.list.map(x => x.way));
+  const d = [...climbed].filter(w => !listWays.has(w));
+  if (d.length) { listBad++; detail.join.push({ p: `${r.from}>${r.to}`, missing_from_list: d }); }
+
+  for (const [w, mm] of li) ((r.legWays || []).includes(w) ? histCross : histTouch).push(+mm.toFixed(2));
+
+  if (r.sf) {
+    const t2 = traversed(r.sf.geom.net);
+    if (t2.size) { dirtyTraverse++; detail.dirty.push({ p: `${r.from}>${r.to}`, traversed: [...t2.entries()] }); }
+    const l2 = [...legsInside(r.sf.geom).entries()].filter(([, mm]) => mm >= LEG_OVERLAP_MIN_M);
+    if (l2.length) { dirtyLeg++; detail.dirty.push({ p: `${r.from}>${r.to}`, doorLegInside: l2.map(([w, mm]) => [w, +mm.toFixed(1)]) }); }
+  }
+}
+
+console.log(`\nroutes ${res.length} | with stairs ${stairy} | step-free offered ${offered} | no way round ${none}`);
+if (HIST) {
+  const show = (name, arr) => {
+    arr.sort((x, y) => x - y);
+    console.log(`  ${name}: n=${arr.length} ` + (arr.length ? `min=${arr[0]} p50=${arr[Math.floor(arr.length / 2)]} max=${arr[arr.length - 1]}` : ''));
+    console.log(`    ${JSON.stringify(arr)}`);
+  };
+  const f = FRACS.map(x => x.frac).sort((a, b) => a - b);
+  console.log(`centreline fraction of a nearby staircase covered by the walk: n=${f.length}`);
+  const buckets = {};
+  for (const v of f) { const b = Math.min(9, Math.floor(v * 10)); buckets['0.' + b + '-0.' + (b + 1)] = (buckets['0.' + b + '-0.' + (b + 1)] || 0) + 1; }
+  console.log('  ' + JSON.stringify(buckets));
+  console.log('door-leg metres inside a drawn staircase, DIRECT routes:');
+  show('app already calls it a crossing', histCross);
+  show('app says clean', histTouch);
+}
+
+let pass = true;
+pass &= ok(res.length === N, 'routes completed', `${res.length} of ${N}`);
+pass &= ok(dirtyTraverse === 0,
+  'no offered step-free walk TRAVERSES an OSM staircase',
+  `${dirtyTraverse} dirty of ${offered} offered  [footways.json, no bake]`);
+pass &= ok(dirtyLeg === 0,
+  'no offered step-free walk lays a DOOR LEG over a drawn staircase',
+  `${dirtyLeg} dirty of ${offered} offered  [ground.geojson slabs]`);
+pass &= ok(namedNotWalked === 0, `every staircase the card states is one the walk comes within ${NEAR_M} m of`, `${namedNotWalked} routes`);
+pass &= ok(walkedNotNamed === 0, 'every staircase the walk touches is stated by the card', `${walkedNotNamed} routes`);
+pass &= ok(legNotNamed === 0, 'a staircase the router walks along is filed as climbed, not as a door leg', `${legNotNamed} routes`);
+pass &= ok(listBad === 0, 'the leg list carries every staircase the router climbs', `${listBad} bad of ${res.length}`);
+
+if (detail.dirty.length) console.log('\nDIRTY:\n' + JSON.stringify(detail.dirty.slice(0, 15)));
+if (detail.join.length) console.log('\nJOIN:\n' + JSON.stringify(detail.join.slice(0, 15)));
+
+if (JSONOUT) fs.writeFileSync(JSONOUT, JSON.stringify({
+  res: res.map(r => ({ ...r, geom: undefined, sf: r.sf ? { ...r.sf, geom: undefined } : null })), detail }, null, 1));
+await browser.close();
+process.exit(pass ? 0 : 1);
+```

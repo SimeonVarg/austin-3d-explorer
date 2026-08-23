@@ -215,3 +215,43 @@ that check is standing between this feature and the person it's for.
 Everything green: eleven checks over 300 routes, fourteen more that click the
 real buttons. `WAYFIND.on` is still false — none of this is public yet.
 Pictures in `shots/walk/stairs/` (`r3-*`). Branch `acer/w-stairs`.
+
+## 2026-08-23 — the "avoid stairs" answer was walking people down steps, and the check meant to catch it couldn't see them
+
+Every time this feature has said "no stairs on this route", it checked that
+claim against the same file it built the route from. This round checked it
+against two different files instead — the raw OpenStreetMap survey, and the
+staircases the map actually draws — and the claim did not hold up. Out of 122
+step-free walks offered across 300 routes, **nine ended by walking along a
+mapped flight of steps**, and five more routes said "no stairs" while crossing
+one. All of them had passed every test the feature had.
+
+The reason is small and a bit silly. A route is the surveyed path plus two
+straight lines we draw ourselves — from the pavement to your starting door, and
+from the pavement to the door you're going to. The test asked "does that
+straight line *cross* a staircase?", which works fine for a staircase you cut
+across and fails completely for one you walk *down*, because a line running
+along a flight never crosses it. It also treated a staircase as having no width
+at all, when the map draws it three metres wide. So the worst case — the last
+stretch to the door running straight down a flight of steps — was the one case
+the check was incapable of noticing.
+
+It now measures whether the last stretch lies *along* a staircase, using the
+same three-metre width the map draws. Nine false promises became zero, and it
+cost two offers out of 122. There is a picture of it: same camera, one setting
+flipped — the dashed last stretch coming out of the middle of a lit staircase
+while the card cheerfully says "No stairs on this route · no further to walk
+than the route with stairs", and then the same view with the walk gone
+elsewhere. Two of the four things fixed this round were only ever going to be
+found by looking at a frame; the numbers were green for all of them.
+
+Fourteen routes of 300 now have no step-free answer at all, up from seven. That
+is honest rather than good — those are buildings whose only doors can be
+reached only by stepping over a staircase, and the card says so plainly instead
+of offering a walk that does not work. Also written down rather than fixed: the
+headline still reads "No stairs on this route" on a card whose own body says
+the last stretch crosses one. That line belongs to another lane, so the exact
+one-line change is in `docs/walk-stairs.md` §R23. The whole test harness is now
+written into that file too, so the next person can re-run every number in it
+instead of taking my word for any of them. `WAYFIND.on` is still off; nothing
+here is public yet. Branch `acer/w-stairs`.
