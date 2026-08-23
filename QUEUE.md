@@ -513,27 +513,81 @@ no film grain, new intro ending holds at all three hours, Tower night glow
 clean. The judge lane re-read the key frames and confirms the findings are
 real pixels, not prose. **Three NEW open findings came out of it** (K7 below).
 
-## K7. What the first finished sweep FOUND (open, owned by other lanes' files)
+## ~~K7. What the first finished sweep FOUND~~ — JUDGED AND SHIPPED 2026-08-22/23 (four lanes, all merged; HANDOFF §180, judge frames `shots/k7/judge/`)
 
-1. **A day-pale sheet of far terrain glows on the night horizon at the SPAWN
-   pose** — the one view every visitor sees (`shots/f/sweep/sw-H1-spawn-night.png`,
-   judge-confirmed). Exactly the class `night-pale.mjs` polices; point it at
-   this pose. Far basemap / outer-ring / water — not isolated yet.
-2. **Far-ring vegetation outlines ignore the time of day** — glowing
-   mint-green squiggles on the dark far field, worst in
-   `sw-H4-city-night.png`; present muted at dusk and day. `js/outer.js`
-   territory (another workflow's lane this round — report only).
-3. **Lens-flare ghost rings paint on buildings with the sun off-screen** —
-   `sw-westcampus-dusk.png` (two rings ON a facade), fainter in
-   `sw-H3-tower-dusk.png` / `sw-H5-dkr-dusk.png`; a rust streak in the day
-   frame. FX layer not isolated.
+1. ~~**A day-pale sheet on the night horizon at the SPAWN pose**~~ — ISOLATED,
+   NOT A RENDER DEFECT (`acer/k7-nighthorizon`, `docs/k7-nighthorizon.md`).
+   The sheet is the outer ring caught MID-RETINT: the dusk→night recolour
+   rebuilds per-tile paint asynchronously (~6 s under SwiftShader) and the
+   sweep's capture landed inside that window. Reproduced on demand, ruled out
+   five other mechanisms, and `night-pale.mjs` now refuses to count a scene
+   still converging (two samples 900 ms apart must agree). Judge re-verified:
+   settled spawn-night is clean (`shots/k7/judge/H1-spawn-night-settled-newsnapshot.png`),
+   `night-pale.mjs spawn` runs green on the merged tree. Open request on
+   record for `shot.mjs`'s settle to compare two captures — without it any
+   pose captured right after an hour change can freeze this class again.
+2. ~~**Far-ring vegetation outlines ignore the time of day**~~ — FIXED
+   (`acer/k7-greenring`, `docs/k7-greenring.md`). Not ring geometry: the
+   basemap `park` fill's authored constant mint `fill-outline-color`, which
+   the hourly retint never touched. Isolated by magenta mask (that one paint
+   property owned all 159 squiggle pixels). `js/outer.js` now copies the
+   fill's own just-tinted colour onto the outline every retint; knob
+   `OUTER.vegOutlineTint`. Judge re-verified with own frames: night squiggles
+   159→0, day parks keep their legitimate green
+   (`shots/k7/judge/H4-city-night-after-merge.png`, `H4-city-day-after-merge.png`).
+3. ~~**Lens-flare ghost rings on buildings with the sun off-screen**~~ —
+   FIXED (`acer/k7-flare`, `docs/k7-flare.md`). The gate tested the front
+   HEMISPHERE (~75°) while the frame is ~42° wide, so a sun 300+ px off-screen
+   still drew its ghost chain mid-frame. The disc-anchored elements now fade
+   with the disc's distance outside the viewport; knob
+   `FX_TUNE.FLARE.OFFSCREEN_SOFT`. Judge re-verified both ways: rings gone at
+   westcampus-dusk, designed flare intact with the sun IN frame at H3
+   (`shots/k7/judge/westcampus-dusk-after-merge.png`, `H3-tower-dusk-control.png`);
+   `graphics.mjs` 27/27 on the merged tree. The day-frame rust streak is NOT
+   this defect (flare changes zero pixels at that pose) and did not reproduce —
+   still open, see K8.
 
-Also on record there: giant near-camera labels + labels shining through
-buildings (engine behaviour, pre-existing), and a small floating blob/cuboid
-family (`sw-introend-*`, `sw-downtown-night.png`; the ship lane saw the same
-object in the sky of the phone-aspect Shot A frames,
-`shots/f/ship/phone-autopilot-10s.png` — pre-existing, not from this week's
-merges, but it IS on camera at the recording aspect).
+The floating blob/cuboid family — IDENTIFIED OBJECT BY OBJECT, honest refusal
+to fake a fix (`acer/k7-floater`, `docs/k7-floater.md`, no code changed): the
+photographed sky teardrop in phone Shot A is a MapLibre tile-streaming
+transient of the Sixth & Guadalupe supertall's top (heals when tiles land;
+narrowed by the merged prewarm, fully closable only by the Z1 veil lever);
+a slab+mast over downtown is TWO crown stacks baked 11 m / 3.8 m above their
+shafts in `outer_ring.geojson` (owner `bake_outer.py` + retile — needs
+tippecanoe, whole-family snap rule written and verified to touch exactly 2
+towers city-wide); the green cuboid near Kinsolving is a well-formed creek
+canopy crown standing alone at building scale (taste, owner `bake_ground.py`);
+the pale night blob is the Bullock dome wearing the Capitol's floodlit night
+colour over a dark museum (owner `bake_capitol.py`, one authored colour).
+Judge re-verified Shot A at 390×844 with touch on the merged tree: no
+teardrop at lift+1/5/10 s, both reel shots compose correctly, zero console
+errors (`shots/k7/judge/reel-A-*.png`, `reel-B-lift20s.png`). Still on
+record: giant near-camera labels + labels through buildings (engine
+behaviour, pre-existing).
+
+## K8. NEW from the K7 judging: the FX canvas freezes a stale red glow on an idle map after a time jump (pre-existing; owner `js/graphics.js`)
+
+Jump the hour to night and let the map go idle: a red-only dome (~+14 R over
+the whole upper sky, G/B untouched) hangs in the night sky until the NEXT
+camera move, then vanishes. Isolated 2026-08-23 by hide-and-diff: hiding
+`#fx-canvas` removes exactly it; `triggerRepaint()` alone does NOT heal it; a
+1° bearing nudge does (`shots/k7/judge/stalefx-before-idle.png`,
+`stalefx-after-camera-nudge.png`, `stalefx-fxcanvas-diff-x4.png` — the diff
+shows bloom's city ghost plus the red dome). Reproduced byte-identical on
+`main` WITHOUT any K7 code (sky-patch mean R 23.8 with fx, 9.6 without, both
+trees) — pre-existing, not from this round. It is the "faint red-only additive
+sky glow" `docs/k7-greenring.md` logged as unidentified, and it is why several
+still captures this round (including the K4 sweep's) carry extra sky red: the
+last FX frame painted during the transition outlives the transition on an
+idle canvas. Two real consequences: any scripted still taken after a p jump
+with no camera move can wear a phantom glow (the nighthorizon lane's
+two-captures-agree gate will NOT catch it — the stale canvas is stable), and
+a visitor who slides to night and holds still keeps it until they move. Fix
+direction for the owner: when `renderFX` runs with rays/flare dead and bloom's
+input dark, it already clears — the stale frame survives because nothing
+requests that final paint after the map idles; request one repaint (or clear
+the canvas) when the time-of-day transition completes. Rust-streak note from
+K7 #3 likely this same class.
 
 ## K5. Downtown still reads cooler and greyer than campus — PARTIALLY FIXED 2026-08-22 (`acer/r-downtown`)
 
