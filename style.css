@@ -887,15 +887,38 @@ html.has-touch #joystick-zone{display:block}
   --wf-pad:13px;
   /* the strip */
   --wf-rail-h:7px;
-  --wf-cap-in:9px;          /* the room the two end marks get outside the rail */
+  /* The room the two end marks get OUTSIDE the rail. Raised from 9 px: a
+     staircase 20 m from the door sits at 97 % of a 1 km route and clamps to
+     `stripMinPipT`, which puts it hard against the rail's right end — and with
+     9 px the destination ring began within a pixel of it, so the two read as
+     one smear at exactly the end of the walk. Photographed at 390 x 844 before
+     and after. */
+  --wf-cap-in:14px;
   --wf-rail:rgba(255,222,170,.17);
   --wf-fill:#ffc663;
   --wf-pip-stairs:#ffdca8;
   --wf-pip-signal:#9ed3ff;
-  --wf-pip-via:#8fd3ff;
+  /* THE STOP IS NOT THE SAME BLUE AS A CROSSING. It was #8fd3ff against the
+     crossing's #9ed3ff — six units apart on one channel — and in the key that
+     put `2 signalised crossings` and `Starbucks` behind two dots no eye can
+     tell apart. On the rail alone the two never had to be told apart; the key
+     is what made them adjacent. (`WAYFIND.viaRingCol` still paints the ring on
+     the GROUND in the old blue and should follow this — that constant lives in
+     the shared taste block four lanes are appending to, so it is a written
+     request in docs/walk-ui.md rather than an edit from here.) */
+  --wf-pip-via:#8fe6bd;
   --wf-you:#fffaf0;
+  /* the key under the strip — what a coloured mark on the rail stands for.
+     `title` is a desktop affordance and this bar is judged on a phone. */
+  --wf-key:10.5px;
+  --wf-key-gap:14px;
+  /* the two end marks, repeated on the origin and destination lines so the rail
+     reads as the walk between those two places and not as a slider */
+  --wf-mk-col:rgba(248,234,208,.8);
+  --wf-mk-w:15px;           /* the gutter both name lines are indented into */
   /* the walking readout */
   --wf-arrow:44px;
+  --wf-then:15px;           /* `, then left` beside the distance to the turn */
   /* the two rows the answer bar is measured against, so a button move carries
      the bar with it instead of leaving it to be re-measured by hand */
   --wf-btn-row:calc(var(--touch-min) + 8px);
@@ -1018,9 +1041,19 @@ body.wf-routed.flying #wf-pill{opacity:1}
 
 /* THE AFFORDANCE. Before this the card was behind a tap on an element with
    nothing on it to tap. The chevron turns when the card is open. */
-#wf-chev{position:absolute;top:9px;right:9px;width:26px;height:26px;
+/* A REAL BUTTON NOW (see buildUI), so it takes pointer events, a focus ring and
+   a thumb-sized target. The visible disc stays 26 px; the hit area is grown to
+   --touch-min with a negative-inset pseudo-element rather than by drawing a
+   44 px control in the corner of a bar that is only 172 px tall. */
+#wf-chev{position:absolute;top:8px;right:8px;width:28px;height:28px;
   display:grid;place-items:center;color:var(--wf-dimmer);
-  transition:transform .16s ease,color .12s;pointer-events:none}
+  background:none;border:none;padding:0;cursor:pointer;border-radius:50%;
+  transition:transform .16s ease,color .12s,background .12s}
+#wf-chev::after{content:"";position:absolute;
+  top:calc((28px - var(--touch-min)) / 2);left:calc((28px - var(--touch-min)) / 2);
+  width:var(--touch-min);height:var(--touch-min)}
+#wf-chev:hover{background:rgba(255,255,255,.08);color:var(--wf-ink)}
+#wf-chev:focus-visible{outline:2px solid var(--wf-accent);outline-offset:1px}
 #wf-chev svg{width:16px;height:16px}
 #wf-pill:hover #wf-chev{color:var(--wf-ink)}
 #wf-pill.open #wf-chev{transform:rotate(180deg);color:var(--wf-ink)}
@@ -1032,13 +1065,27 @@ body.wf-routed.flying #wf-pill{opacity:1}
 /* WHERE IT THINKS YOU ARE STARTING FROM. The From default is the routable
    building nearest the CAMERA, which is a guess the app makes on your behalf,
    so the bar shows it rather than hiding it under a tap. */
-#wf-orig{display:flex;align-items:baseline;gap:7px;margin-bottom:3px;padding-right:26px;
+#wf-orig{display:flex;align-items:baseline;gap:6px;margin-bottom:3px;padding-right:26px;
   font-size:var(--wf-small);min-width:0}
 #wf-orig.hidden{display:none}
 .wf-from-lab{font-weight:700;letter-spacing:.15em;text-transform:uppercase;
   color:var(--wf-dimmer);flex:none}
 .wf-from-name{color:var(--wf-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.wf-live #wf-orig{display:none}
+
+/* THE END MARKS, REPEATED ON THE NAMES. Identical shapes to .wf-cap-a and
+   .wf-cap-b on the rail — a flat tick for the start, a ring for the door — so
+   the origin line, the rail and the destination line are visibly one object.
+   `--wf-mk-w` is the gutter, and it is the SAME on both lines: two markers of
+   different widths would leave the two names off each other's left edge, which
+   is the whole reason a route header reads as a route in the first place. */
+.wf-mk{flex:none;display:inline-block;width:var(--wf-mk-w);position:relative;
+  align-self:center}
+.wf-mk::before{content:"";position:absolute;top:50%;left:0}
+.wf-mk-a::before{width:3px;height:11px;margin-top:-5.5px;border-radius:2px;
+  background:var(--wf-mk-col)}
+.wf-mk-b::before{width:11px;height:11px;margin-top:-5.5px;border-radius:50%;
+  box-sizing:border-box;background:rgba(20,12,4,.9);border:2.5px solid var(--wf-accent)}
 
 #wf-headline{line-height:1.15;padding-right:26px}
 #wf-headline .wf-pre{font-size:var(--wf-unit);color:var(--wf-dim)}
@@ -1048,6 +1095,10 @@ body.wf-live #wf-orig{display:none}
 #wf-headline .wf-mid{color:var(--wf-dimmer)}
 #wf-headline .wf-dist,#wf-headline .wf-cond{font-size:var(--wf-fact);font-weight:600;
   color:rgba(248,234,208,.86)}
+/* The stairs swatch, inline in the sentence it belongs to. Same .wf-pip class
+   as the mark on the rail, so the colour is bound in one place. */
+#wf-headline .wf-cond{display:inline-flex;align-items:center;gap:5px}
+.wf-pip.wf-sw{position:static;margin:0;flex:none}
 #wf-headline.fail{font-size:13px;font-weight:600;line-height:1.35}
 
 /* THE STRIP — where the things on this route actually are.
@@ -1089,9 +1140,40 @@ body.wf-live #wf-orig{display:none}
   border-radius:50%;background:var(--wf-you);
   box-shadow:0 0 0 2.5px rgba(20,12,4,.85),0 0 12px rgba(255,232,180,.75)}
 
-#wf-sub{font-size:var(--wf-line);line-height:1.35}
+/* THE KEY. Only on the frame when the route actually has marks on it — an
+   empty legend under an empty rail is two rows of nothing. Wraps rather than
+   truncates: at 366 px a stairs count and a crossings count fit on one line and
+   a third item (the stop on the way, which carries a business name) does not,
+   and a business name cut to `Medi…` is worse than a second row. */
+#wf-key{display:flex;flex-wrap:wrap;gap:4px var(--wf-key-gap);margin:-3px 0 8px;
+  font-size:var(--wf-key);color:var(--wf-dim);line-height:1.3}
+#wf-key.hidden,#wf-key:empty{display:none}
+/* Not while you are walking it. The key is a thing you read once, standing
+   still, to learn what the marks on the rail mean; on the move the rail is
+   showing you where you ARE and the 24 px it costs are better spent on the
+   turn. The card still carries every one of those marks as a sentence. */
+body.wf-live #wf-key{display:none}
+.wf-keyit{display:inline-flex;align-items:center;gap:6px;min-width:0}
+/* The swatch IS a pip — same class, so a colour or a shape changed above moves
+   the key with it and cannot be left behind. Only the absolute placement the
+   rail imposes is undone. */
+#wf-key .wf-pip{position:static;margin:0;flex:none}
+.wf-keytx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+#wf-sub{display:flex;align-items:baseline;gap:6px;font-size:var(--wf-line);
+  line-height:1.35;flex-wrap:wrap}
 #wf-sub .wf-dest{font-weight:700;color:var(--wf-ink)}
-#wf-sub .wf-mid,#wf-sub .wf-door{color:var(--wf-dim);font-weight:400}
+#wf-sub .wf-mid{color:var(--wf-dim);font-weight:400}
+/* Present in .textContent, absent from the frame — see the note in renderPill. */
+#wf-sub .wf-mid-hid{position:absolute;width:1px;height:1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap}
+/* WHICH DOOR is the one answer here that a maps app does not have, and it was
+   the dimmest run of text on the bar. It keeps the modest colour — it is a
+   qualifier, not a headline — and gains a doorway glyph so the eye finds it. */
+#wf-sub .wf-door{display:inline-flex;align-items:center;gap:4px;
+  color:rgba(248,234,208,.72);font-weight:500;min-width:0}
+.wf-door-ic{width:12px;height:12px;flex:none;opacity:.75;transform:translateY(.5px)}
+body.wf-live #wf-sub{margin-top:2px}
 /* THE PASSING-PERIOD LINE (docs/walk/what-we-can-honestly-say.md §15). Above the
    fold in the closed bar because "do I have time" is the question, and an
    answer you have to tap to see is not an answer. Two states and deliberately
@@ -1107,6 +1189,33 @@ body.wf-live #wf-orig{display:none}
 #wf-verdict.tight{color:var(--wf-tight);background:rgba(255,190,90,.13);
   box-shadow:inset 0 0 0 1px rgba(255,190,90,.26)}
 
+/* THE PRIMARY ACTION, ON THE CLOSED BAR.
+   The camera never moves on its own, so without `?fit=1` the route this bar is
+   describing can be entirely off screen — and until now the only control that
+   framed it lived inside the card, behind a chevron. An answer whose subject is
+   not on screen, and whose "show me" is not on screen either, is not an answer.
+   `Show route` is the wide one and `Clear` is the narrow one, because one of
+   them is what you came for and the other is how you leave. */
+#wf-acts{display:flex;gap:8px;margin-top:9px}
+#wf-acts.hidden{display:none}
+#wf-acts .wf-act{min-height:var(--touch-min);display:flex;align-items:center;
+  justify-content:center;gap:7px}
+#wf-acts .wf-act-go{flex:1 1 auto}
+#wf-acts .wf-act-clr{flex:0 0 auto;padding-left:16px;padding-right:16px;
+  background:rgba(255,255,255,.045);border-color:var(--wf-edge-soft);
+  color:var(--wf-dim);font-weight:600}
+#wf-acts .wf-act-clr:hover{background:rgba(255,255,255,.1);color:var(--wf-ink)}
+.wf-act-ic{width:15px;height:15px;flex:none}
+/* While you are walking it, framing it from above is not what you want and the
+   bar has better uses for 44 px. Clearing it still is — and it tucks into the
+   bottom-right corner, where a dismiss lives, rather than standing on the left
+   in the slot the primary action just vacated. */
+body.wf-live #wf-acts{justify-content:flex-end;margin-top:6px}
+body.wf-live #wf-acts .wf-act-go{display:none}
+/* On a failure there is no route to frame, so only the way out is left. */
+#wf-acts.fail{justify-content:flex-end;margin-top:8px}
+#wf-acts.fail .wf-act-go{display:none}
+
 /* THE WALKING READOUT. Only on screen when the view is actually on the route
    (js/wayfind.js §7d), and when it is, the whole-journey figures demote to a
    footnote rather than disappearing — you still want to know what the whole
@@ -1117,10 +1226,22 @@ body.wf-live #wf-orig{display:none}
   box-shadow:0 3px 14px rgba(255,190,90,.34)}
 .wf-arrow svg{width:24px;height:24px;transition:transform .18s ease-out}
 .wf-livetxt{min-width:0;flex:1}
-.wf-figs{display:flex;align-items:baseline;gap:6px;line-height:1.1}
-.wf-figs .wf-big{font-size:var(--wf-big);font-weight:700;color:var(--wf-accent);
-  font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+/* THE NEXT THING THAT HAPPENS, AND WHICH WAY IT GOES.
+   Walking, the question is not how long the whole walk is — it is how far to
+   the next decision and which way that decision turns. So the distance to the
+   turn takes the large size the whole-journey minutes had, `, then left` sits
+   beside it at reading size, and the journey figures move to the line below. */
+.wf-next{display:flex;align-items:baseline;gap:4px;line-height:1.05;min-width:0}
+.wf-next .wf-big{font-size:var(--wf-big);font-weight:700;color:var(--wf-accent);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;flex:none}
+.wf-next .wf-then{font-size:var(--wf-then);font-weight:700;color:var(--wf-ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-figs{display:flex;align-items:baseline;gap:5px;line-height:1.1;margin-top:4px;
+  flex-wrap:wrap}
+.wf-figs .wf-mins{font-size:var(--wf-fact);font-weight:700;color:var(--wf-ink);
+  font-variant-numeric:tabular-nums}
 .wf-figs .wf-unit{font-size:var(--wf-unit);font-weight:600;color:var(--wf-dim)}
+.wf-figs .wf-mid{color:var(--wf-dimmer)}
 .wf-figs .wf-dim2{font-size:var(--wf-small);color:var(--wf-dimmer);
   text-transform:uppercase;letter-spacing:.13em;font-weight:700}
 .wf-liveline{font-size:var(--wf-line);color:rgba(248,234,208,.82);margin-top:3px;
@@ -1249,5 +1370,8 @@ body.wf-live #wf-headline .wf-dist,body.wf-live #wf-headline .wf-cond{
     --wf-card-clear:calc(var(--wf-pill-top) + 128px + var(--drive-clear));
     top:var(--wf-pill-top);left:var(--wf-pill-inset);right:var(--wf-pill-inset);
     transform:none;width:auto;max-width:none;padding:10px 12px 11px}
-  #wf-root{--wf-big:25px;--wf-arrow:40px}
+  /* `--wf-then` comes down with `--wf-big` so `, then a sharp left` — the
+     longest of the four turn words — still sits on one line beside a
+     four-character distance at 366 px of bar. */
+  #wf-root{--wf-big:25px;--wf-arrow:40px;--wf-then:14px;--wf-key-gap:12px}
 }

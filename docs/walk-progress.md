@@ -76,3 +76,48 @@ any of the three recording modes — the gate now walks every element the featur
 owns rather than the three it used to name. Fifteen screenshots in
 `shots/walk/ui/`, the whole write-up in `docs/walk-ui.md`. Branch `acer/w-ui`.
 `WAYFIND.on` untouched.
+
+## 2026-08-23 — walk UI, round 2 (Acer, `acer/w-ui`)
+
+The walking view had an arrow that argued with its own words. It pointed at
+where the next turn was, relative to whichever way you were facing — which is
+true, and useless next to a line of text saying the route goes left. Photographed
+on a phone: a big arrow pointing up-and-right over the words "then left". The
+disc now shows the turn itself, and the top line of the bar is the next thing
+that happens rather than the whole journey: "13 m, then left", with the minutes
+left and the distance left on the line below. The code already knew which way
+the turn went and was throwing the answer away two lines before it returned it.
+A side effect: looking around with a swipe used to redraw the bar every few
+degrees and now costs nothing at all, because nothing up there depends on which
+way you face any more.
+
+The other change you can see straight away: "Show route" is on the bar now
+instead of hidden behind the little chevron. The camera never moves on its own —
+that is deliberate — so the route the bar is describing can be completely off
+screen, and until now the only button that would go and find it was also off
+screen. There is one copy of it, it is thumb-sized, and it disappears while you
+are walking the route because framing it from above is not what you want when
+you are standing on it. On a building we cannot route to, it disappears too, but
+"Clear" stays, so the bar is no longer a dead end.
+
+Small ones that mattered more than they sound: the coloured marks on the route
+strip had nothing anywhere explaining what a colour meant except a tooltip, and
+tooltips do not exist on a phone — there is a one-line key now, and the stairs
+colour sits inline in the sentence that already counts them. The stop-on-the-way
+dot and the crossing dot were two blues six units apart and are now clearly
+different. The door you should arrive at got a doorway icon and a bit more
+weight, because which door is the one thing this app tells you that Google will
+not. And the bar itself stopped pretending to be a single button while holding
+five real ones inside it, which no screen reader could ever have made sense of.
+
+One idea was measured and thrown away: padding the "show route" framing around
+the answer bar so the route cannot hide behind it. Measured on three routes, the
+plain version already puts 100% of the route below the bar, the bar-aware version
+changed nothing, and the mirror-image version — pad the bottom instead, which
+reads just as sensible — would have hidden half of the two longest routes. That
+is written down above `fitTo` so nobody spends another round on it. It also
+caught that the old screenshots were being taken before the camera had finished
+flying, so every "here is the route framed" picture from round 1 was actually the
+opening flight's end pose. This round's fifteen shots wait for the camera to
+stop. Write-up in `docs/walk-ui.md`, shots in `shots/walk/ui/`. Branch
+`acer/w-ui`. `WAYFIND.on` still false.

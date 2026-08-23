@@ -1339,6 +1339,31 @@
     }
   }
 
+  /**
+   * MEASURED, THEN NOT DONE. `padding: fitPadPx` is one number on all four
+   * sides, and the obvious complaint is that the top of a phone frame is not
+   * empty — the answer bar is sitting in it, 172-220 px of it. So this fit grew
+   * a bar-aware top padding, and then the claim was measured rather than
+   * believed: every vertex of the drawn path projected to screen after a real
+   * `Show route`, counted against the bar's own measured bottom edge, on three
+   * routes of 30, 66 and 86 vertices at 390 x 844.
+   *
+   *   padding                      JES>WEL   21 Rio>WEL   JES>ANB
+   *   uniform 90                    100 %       100 %       100 %
+   *   90 + the bar on top           100 %       100 %       100 %
+   *   90 + the bar at the bottom    100 %        59 %        45 %
+   *
+   * A fit at `fitPitch` 55 already lands the whole route in the lower half of
+   * the frame: MapLibre's `cameraForBounds` solves the bounds unpitched and
+   * applies the pitch afterwards, so the tilt carries the content down the
+   * screen on its own and there is nothing left for the padding to fix. The
+   * bar-aware version was three functions and a clamp that moved no pixel, and
+   * the mirror-image "pad the bottom instead" — which reads just as plausible —
+   * is the one that would have broken it, on the two longest routes.
+   *
+   * So the padding stays one number. Written down because the next person to
+   * look at a phone frame will have the same idea.
+   */
   function fitTo(map, route) {
     const pts = route.geom.line.concat([doorLL(G, route.fromDoor), doorLL(G, route.toDoor)]);
     let w = 180, s = 90, e = -180, n = -90;
@@ -1467,6 +1492,16 @@
                            // second is dropped and the first is labelled with
                            // the count, because a smear of dots is not a fact
     stripMinPipT: 0.01,    // a pip exactly on an end would be half off the rail
+    // THE KEY under the strip. A `title` attribute is not reachable on a phone,
+    // which is the only device this bar is judged at, so the marks were three
+    // colours of dot with nothing anywhere saying what a colour meant. The key
+    // is drawn from the SAME counts the card prints — `r.m.stairSets`,
+    // `r.m.signals` — so the picture and the sentences cannot disagree.
+    keyOn: true,
+    // Which way the route turns at the next turn, in words, because the arrow
+    // says where the turn IS and not which way it goes. Beyond this many
+    // degrees the turn is described as a sharp one.
+    turnSharpDeg: 100,
     // The empty sheet. Four codes a first-time user can tap instead of
     // wondering what the field wants. Ordered by how likely a freshman is to
     // be going there, not alphabetically.
@@ -1492,12 +1527,27 @@
   //     where the bearing changes by more than `WAYFIND.turnMinDeg`. It names
   //     no street, because the graph carries no street names, and it gives no
   //     instruction beyond what the ribbon on the ground already shows.
+  //   `then left` / `then right` — ROUND 2. The sign of that same bearing
+  //     change. It is a description of the line already painted on the ground,
+  //     not an instruction: the wording is `340 m, then left`, never `turn
+  //     left`, because we are saying what the route does and not telling
+  //     anybody what to do. It names no street for the same reason as above.
+  //     Without it the readout knew the turn was coming and would not say
+  //     which way it went, and the 24 px arrow beside it is the whole of what
+  //     a person had to read that off — which is exactly the kind of thing
+  //     that is legible on a laptop and gone on a phone in sunlight.
   const SAY_UI = {
     remaining: 'remaining',
     unitMin: 'min walk',
     toNextTurn: 'to the next turn',
     toTheEnd: 'to the end of the route',
     atTheEnd: 'You are at the end of the drawn route',
+    thenLeft: 'then left',
+    thenRight: 'then right',
+    thenSharpLeft: 'then a sharp left',
+    thenSharpRight: 'then a sharp right',
+    fromMark: 'Where the route starts',
+    toMark: 'Where the route ends',
     pipStairs: 'A staircase OpenStreetMap has mapped',
     pipSignal: 'A signalised crossing',
     pipStairsN: (n) => n + ' staircases OpenStreetMap has mapped',
@@ -1547,7 +1597,17 @@
     close: 'M6 6 18 18M18 6 6 18',
     swap: 'M7 4v16M7 4 4 7.5M7 4l3 3.5M17 20V4M17 20l3-3.5M17 20l-3-3.5',
     arrow: 'M12 3.5 12 20.5M12 3.5 5.5 11M12 3.5 18.5 11',
+    // THE MANOEUVRE, not a compass bearing — see renderLive. A shaft coming up
+    // from the bottom of the disc and hooking the way the route goes.
+    turnLeft: 'M13.5 21V12a3.5 3.5 0 0 0-3.5-3.5H5.2M8.6 4.6 4.2 8.5l4.4 3.9',
+    turnRight: 'M10.5 21v-9a3.5 3.5 0 0 1 3.5-3.5h4.8M15.4 4.6l4.4 3.9-4.4 3.9',
     pin: 'M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z M12 10.2v.01',
+    // A DOORWAY, not a pin. The destination line's job is to say WHICH DOOR,
+    // which is the one thing a maps app will not tell you here, and a map pin
+    // says "a place" — the same glyph every other row of every other app uses.
+    door: 'M15.5 21V4.2a1 1 0 0 0-1.2-1L6.7 4.7a1 1 0 0 0-.7.97V21M4 21h13M12.6 12.4v.01',
+    // The route frames itself: a rectangle with two corners pulled out.
+    frame: 'M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15',
   };
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1663,18 +1723,33 @@
     return { m, time: timeRange(m), distM: Math.max(0, (p.total - at) * p.k) };
   }
 
-  /** The next vertex ahead where the route really turns, and how far off it is. */
+  /**
+   * The next vertex ahead where the route really turns, how far off it is, and
+   * — ROUND 2 — WHICH WAY IT GOES. `turn` is the SIGNED bearing change in
+   * degrees, negative left and positive right, wrapped to -180..180. The old
+   * version took `Math.abs` two lines before it returned, so the sign the whole
+   * question turns on was computed and thrown away, and the readout could say a
+   * turn was 340 m off without being able to say it was a left.
+   */
   function nextTurnFrom(p, at) {
     for (let i = 0; i < p.segs.length - 1; i++) {
       const s = p.segs[i], n = p.segs[i + 1];
       const v = s.at + s.len;
       if (v - at < WF_UI.turnAheadMinM) continue;
-      let d = Math.abs(bearing(s.a, s.b) - bearing(n.a, n.b));
-      if (d > 180) d = 360 - d;
-      if (d >= WAYFIND.turnMinDeg) return { at: v, ll: s.b, distM: (v - at) * p.k };
+      const d = ((bearing(n.a, n.b) - bearing(s.a, s.b) + 540) % 360) - 180;
+      if (Math.abs(d) >= WAYFIND.turnMinDeg) {
+        return { at: v, ll: s.b, distM: (v - at) * p.k, turn: d };
+      }
     }
     const lastSeg = p.segs[p.segs.length - 1];
     return { at: p.total, ll: lastSeg.b, distM: Math.max(0, (p.total - at) * p.k), end: true };
+  }
+
+  /** The signed turn, in the words §11's neighbours permit. Description, not order. */
+  function turnWord(deg) {
+    const sharp = Math.abs(deg) >= WF_UI.turnSharpDeg;
+    if (deg < 0) return sharp ? SAY_UI.thenSharpLeft : SAY_UI.thenLeft;
+    return sharp ? SAY_UI.thenSharpRight : SAY_UI.thenRight;
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1768,9 +1843,18 @@
 
     // ── the answer ────────────────────────────────────────────────────────
     const pill = h('div', 'hidden'); pill.id = 'wf-pill';
-    pill.setAttribute('role', 'button');
-    pill.tabIndex = 0;
-    const chev = h('span', null); chev.id = 'wf-chev'; chev.appendChild(icon(null, IC.chev, 2.2));
+    // THE BAR IS NOT ITSELF A BUTTON ANY MORE, AND IT CANNOT BE. It carried
+    // `role="button"` and `tabIndex=0` while containing `Show route`, `Clear`,
+    // a checkbox and three chips — a control with controls inside it, which no
+    // assistive technology can present and which puts every one of those on the
+    // wrong side of one focus stop. The CHEVRON is the button now: a real
+    // <button> with a real label and `aria-controls` on the card it opens.
+    // Tapping the bar still toggles, because on a phone the whole bar is the
+    // affordance; that is a pointer convenience on top of a keyboard control
+    // that exists, rather than the only way in.
+    const chev = h('button', null); chev.id = 'wf-chev';
+    chev.setAttribute('aria-controls', 'wf-card');
+    chev.appendChild(icon(null, IC.chev, 2.2));
     // THE WALKING READOUT. Above the headline, and the headline hides under it
     // rather than being replaced, so `#wf-headline`.textContent is still the
     // whole-journey sentence for anything reading this UI from a test.
@@ -1784,20 +1868,42 @@
     const headline = h('div', null); headline.id = 'wf-headline';
     const strip = h('div', null); strip.id = 'wf-strip';
     strip.setAttribute('aria-hidden', 'true');
+    // THE KEY. Not aria-hidden, unlike the strip: on a phone this row is the
+    // ONLY thing that says what a coloured mark on the rail stands for, and
+    // `title` is a desktop affordance that does not exist under a thumb.
+    const key = h('div', null); key.id = 'wf-key';
     const sub = h('div', null); sub.id = 'wf-sub';
     const verdict = h('div', null); verdict.id = 'wf-verdict';
+    // THE PRIMARY ACTION, IN THE CLOSED BAR. It was inside the card, behind a
+    // tap on a chevron, and that is the wrong side of a door for it: the camera
+    // never moves on its own (WAYFIND.fit*), so unless the answer arrived with
+    // `?fit=1` the route this bar is describing can be entirely off screen and
+    // the one control that puts it back was not on screen either.
+    const acts = h('div', null); acts.id = 'wf-acts';
+    const showBtn = h('button', 'wf-act wf-act-go');
+    showBtn.appendChild(icon('wf-act-ic', IC.frame, 1.9));
+    showBtn.appendChild(h('span', null, SAY.showRoute));
+    showBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (state.route && state.route.ok) fitTo(window.__map, state.route);
+    });
+    const clrBtn = h('button', 'wf-act wf-act-clr', SAY.clear);
+    clrBtn.addEventListener('click', (ev) => { ev.stopPropagation(); clear(); });
+    acts.appendChild(showBtn); acts.appendChild(clrBtn);
     const card = h('div', 'hidden'); card.id = 'wf-card';
     pill.appendChild(chev);
     pill.appendChild(orig);
     pill.appendChild(liveEl); pill.appendChild(headline); pill.appendChild(strip);
-    pill.appendChild(sub); pill.appendChild(verdict); pill.appendChild(card);
+    pill.appendChild(key);
+    pill.appendChild(sub); pill.appendChild(verdict);
+    pill.appendChild(acts); pill.appendChild(card);
 
     root.appendChild(btn); root.appendChild(sheet); root.appendChild(pill);
     document.body.appendChild(root);
 
     el = { root, btn, sheet, list, more, egs, hint, inFrom: from.inp, inTo: to.inp,
-      xFrom: from.x, xTo: to.x, swap, pill, chev, liveEl, orig, headline, strip, sub,
-      verdict, card, close, ends };
+      xFrom: from.x, xTo: to.x, swap, pill, chev, liveEl, orig, headline, strip, key, sub,
+      verdict, acts, card, close, ends };
 
     btn.addEventListener('click', () => openSheet());
     close.addEventListener('click', () => closeSheet());
@@ -1807,9 +1913,7 @@
     // disclaimer and having the panel shut under your thumb because you touched
     // a word of it is the kind of thing nobody reports and everybody notices.
     card.addEventListener('click', (ev) => ev.stopPropagation());
-    pill.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); }
-    });
+    chev.addEventListener('click', (ev) => { ev.stopPropagation(); toggle(); });
     for (const inp of [from.inp, to.inp]) {
       inp.addEventListener('input', () => { renderList(inp); syncClears(); });
       inp.addEventListener('focus', () => { renderList(inp); syncClears(); });
@@ -2048,15 +2152,16 @@
     const p = projectOnRoute(prof, [lng, lat]);
     const on = p && p.off <= WF_UI.liveOnRouteM && alt <= WF_UI.liveAltMaxM;
     if (!on) { const had = !!live; live = null; return had; }
-    if (live && Math.abs(p.at - live.at) * prof.k < WF_UI.liveMinMoveM &&
-        Math.abs(brg - live.brg) < 4) return false;
+    // LOOKING AROUND IS NOW FREE. The old gate re-rendered whenever the view
+    // turned more than 4 degrees, because the arrow was a compass bearing and
+    // had to follow it. The arrow is the manoeuvre now (renderLive), so nothing
+    // on this readout depends on where the view is POINTING — only on how far
+    // along the route it is. Swiping to look, which is the most common gesture
+    // there is on a phone, costs no DOM write at all.
+    if (live && Math.abs(p.at - live.at) * prof.k < WF_UI.liveMinMoveM) return false;
     const rem = remainingOf(prof, p.at);
     const turn = nextTurnFrom(prof, p.at);
-    // The arrow is screen-relative: bearing from the view to the next turn,
-    // minus where the view is pointing. Straight ahead is straight up.
-    const b = bearing([lng, lat], turn.ll);
-    live = { at: p.at, off: p.off, brg, rem, turn, deg: ((b - brg) % 360 + 360) % 360,
-      done: rem.distM <= WF_UI.arriveM };
+    live = { at: p.at, off: p.off, brg, rem, turn, done: rem.distM <= WF_UI.arriveM };
     return true;
   }
 
@@ -2067,25 +2172,45 @@
     el.liveEl.classList.toggle('hidden', !on);
     if (!on) { renderStrip(); return; }
     el.liveEl.innerHTML = '';
+    // THE DISC SHOWS THE MANOEUVRE. It used to show the BEARING to the turn
+    // vertex — the arrow rotated to point at where the turn was, relative to
+    // where the view faced. Photographed at 390 x 844 the result was an arrow
+    // pointing up and to the RIGHT with the words `, then left` set beside it,
+    // because those are two different true facts about the same turn and only
+    // one of them is what a person reads off a big glyph. A disc this size gets
+    // to say one thing, so it says the one the ribbon on the ground cannot:
+    // which way the route goes at the turn. Where the turn IS, you can see —
+    // it is painted on the floor in front of you.
     const arrow = h('div', 'wf-arrow');
-    const ic = icon(null, IC.arrow, 2.3);
-    ic.style.transform = 'rotate(' + live.deg.toFixed(0) + 'deg)';
-    arrow.appendChild(ic);
+    const path = live.done ? IC.arrow
+      : live.turn.end ? IC.arrow
+        : (live.turn.turn < 0 ? IC.turnLeft : IC.turnRight);
+    arrow.appendChild(icon(null, path, 2.3));
     el.liveEl.appendChild(arrow);
 
     const txt = h('div', 'wf-livetxt');
     if (live.done) {
       txt.appendChild(h('div', 'wf-liveline', SAY_UI.atTheEnd));
     } else {
+      // THE NEXT THING THAT HAPPENS, FIRST AND BIGGEST. What a person walking
+      // wants off a glance is not how long the whole thing takes — it is how
+      // far to the next decision and which way that decision goes. So the top
+      // line is `340 m, then left`, with the distance in the same weight as the
+      // minutes were, and the journey figures move to the line under it.
+      const nx = h('div', 'wf-next');
+      nx.appendChild(h('span', 'wf-big', fmtDist(live.turn.distM)));
+      nx.appendChild(h('span', 'wf-then',
+        live.turn.end ? (' ' + SAY_UI.toTheEnd) : (', ' + turnWord(live.turn.turn))));
+      txt.appendChild(nx);
+
       const t = live.rem.time;
       const fig = h('div', 'wf-figs');
-      fig.appendChild(h('span', 'wf-big', t.lo === 0 ? ('<' + t.hi) : (t.lo + '–' + t.hi)));
+      fig.appendChild(h('span', 'wf-mins', t.lo === 0 ? ('<' + t.hi) : (t.lo + '–' + t.hi)));
       fig.appendChild(h('span', 'wf-unit', SAY_UI.unitMin));
       fig.appendChild(h('span', 'wf-dim2', SAY_UI.remaining));
+      fig.appendChild(h('span', 'wf-mid', '·'));
+      fig.appendChild(h('span', 'wf-unit', fmtDist(live.rem.distM)));
       txt.appendChild(fig);
-      txt.appendChild(h('div', 'wf-liveline',
-        fmtDist(live.turn.distM) + ' ' + (live.turn.end ? SAY_UI.toTheEnd : SAY_UI.toNextTurn) +
-        ' · ' + fmtDist(live.rem.distM)));
     }
     el.liveEl.appendChild(txt);
     renderStrip();
@@ -2105,7 +2230,11 @@
     if (!el) return;
     const r = state.route;
     el.strip.innerHTML = '';
-    if (!r || !r.ok || !prof) { el.strip.classList.add('hidden'); return; }
+    if (!r || !r.ok || !prof) {
+      el.strip.classList.add('hidden');
+      el.key.classList.add('hidden'); el.key.innerHTML = '';
+      return;
+    }
     el.strip.classList.remove('hidden');
     const rail = h('div', 'wf-rail');
     const fill = h('div', 'wf-fill');
@@ -2145,6 +2274,40 @@
     const a = h('span', 'wf-cap wf-cap-a'); a.title = SAY_UI.capStart;
     const b = h('span', 'wf-cap wf-cap-b'); b.title = r.to.display;
     el.strip.appendChild(a); el.strip.appendChild(b);
+    renderKey(r);
+  }
+
+  /**
+   * THE KEY — what the marks on the rail mean, in words, on the frame.
+   *
+   * The strip shipped three colours of pip whose only explanation was a `title`
+   * attribute, and a `title` does not exist on a phone: there is no hover, and
+   * this bar is judged at 390 x 844. So the picture was asserting something the
+   * reader had no way to decode, which is a worse failure than not drawing it.
+   *
+   * The counts come off `r.m` — the SAME object the card's sentences are built
+   * from — and not off the merged pip list, so the key, the card and the strip
+   * cannot drift apart. The pip's own class draws the swatch, so a colour or a
+   * shape changed in style.css moves the key with it and cannot be forgotten.
+   */
+  function renderKey(r) {
+    el.key.innerHTML = '';
+    if (!WF_UI.keyOn) { el.key.classList.add('hidden'); return; }
+    const items = [];
+    // Stairs are NOT here: the headline already prints `Stairs: 3 sets` and
+    // carries the swatch inline. The key is for the marks the bar has no
+    // sentence for yet.
+    if (r.m.signals) {
+      items.push(['signal', r.m.signals === 1 ? SAY_UI.pipSignal : SAY_UI.pipSignalN(r.m.signals)]);
+    }
+    if (r.via) items.push(['via', r.via.name]);
+    el.key.classList.toggle('hidden', !items.length);
+    for (const [kind, label] of items) {
+      const it = h('span', 'wf-keyit');
+      it.appendChild(h('span', 'wf-pip wf-pip-' + kind));
+      it.appendChild(h('span', 'wf-keytx', label));
+      el.key.appendChild(it);
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -2158,9 +2321,9 @@
     el.card.innerHTML = '';
     el.card.classList.toggle('hidden', !state.expanded);
     el.pill.classList.toggle('open', !!state.expanded);
-    el.pill.setAttribute('aria-expanded', state.expanded ? 'true' : 'false');
-    el.chev.setAttribute('aria-hidden', 'true');
+    el.chev.setAttribute('aria-expanded', state.expanded ? 'true' : 'false');
     el.chev.title = state.expanded ? SAY_UI.hideDetails : SAY_UI.details;
+    el.chev.setAttribute('aria-label', state.expanded ? SAY_UI.hideDetails : SAY_UI.details);
     el.headline.innerHTML = '';
     el.sub.innerHTML = '';
     el.orig.innerHTML = '';
@@ -2183,6 +2346,7 @@
       // the sentence has the pair it is about underneath it.
       if (state.from) {
         el.orig.classList.remove('hidden');
+        el.orig.appendChild(h('span', 'wf-mk wf-mk-a'));
         el.orig.appendChild(h('span', 'wf-from-lab', SAY.fromLabel));
         el.orig.appendChild(h('span', 'wf-from-name', state.from.display));
       } else {
@@ -2192,14 +2356,32 @@
       el.verdict.textContent = '';
       el.verdict.className = '';
       el.strip.classList.add('hidden');
+      el.key.classList.add('hidden'); el.key.innerHTML = '';
+      // NO `SHOW ROUTE` ON A FAILURE — AND NO DEAD END EITHER. A button
+      // offering to frame the route directly under `FC1 is not walkable in this
+      // build yet` is offering the thing the line above it just said we do not
+      // have, so it goes. Hiding the whole row went too far: the chevron is
+      // hidden on a failure too, so the bar had no control on it at all and the
+      // only way out was to find the button in the opposite corner and reopen
+      // the sheet. `Clear` stays, alone, and it is the honest one.
+      el.acts.classList.remove('hidden');
+      el.acts.classList.add('fail');
       el.liveEl.classList.add('hidden');
       document.body.classList.remove('wf-live');
       el.chev.classList.add('hidden');
       return;
     }
+    el.acts.classList.remove('hidden');
+    el.acts.classList.remove('fail');
     el.headline.className = '';
     el.chev.classList.remove('hidden');
     el.orig.classList.remove('hidden');
+    // THE TWO ENDS WEAR THE SAME MARKS AS THE STRIP'S TWO ENDS. The rail used
+    // to be a tick and a ring with nothing to attach them to, which is why the
+    // first cut of it read as a slider (the comment in style.css says so). The
+    // origin line now carries the tick and the destination line the ring, and
+    // the rail between them stops being a control and becomes the walk.
+    el.orig.appendChild(h('span', 'wf-mk wf-mk-a'));
     el.orig.appendChild(h('span', 'wf-from-lab', SAY.fromLabel));
     el.orig.appendChild(h('span', 'wf-from-name', r.from.display));
 
@@ -2218,13 +2400,35 @@
     el.headline.appendChild(h('span', 'wf-mid', ' · '));
     el.headline.appendChild(h('span', 'wf-dist', fmtDist(r.distM)));
     el.headline.appendChild(h('span', 'wf-mid', ' · '));
-    el.headline.appendChild(h('span', 'wf-cond',
+    // THE STAIRS SWATCH GOES ON THE SENTENCE, NOT IN A SECOND LIST. The key
+    // below the strip binds a colour to a word, and the word for stairs is
+    // already here — printing `Stairs: 3 sets` twice, forty pixels apart, to
+    // introduce a colour is worse than either. So the pip's own class draws a
+    // swatch in front of this phrase and the key carries only what the bar has
+    // not said yet. `.textContent` is untouched: the swatch is an empty span.
+    const cond = h('span', 'wf-cond');
+    if (r.m.stairSets) cond.appendChild(h('span', 'wf-pip wf-pip-stairs wf-sw'));
+    cond.appendChild(h('span', null,
       r.m.stairSets ? SAY.stairsSets(r.m.stairSets) : SAY.stairsNone));
+    el.headline.appendChild(cond);
 
     // ── THE DESTINATION AND ITS DOOR ───────────────────────────────────────
+    // The door phrase gets a doorway glyph and its own weight, because WHICH
+    // DOOR is the single thing this app answers that a maps app does not, and
+    // it was running on as the tail of a sentence in the dimmest colour in the
+    // bar. `.textContent` is unchanged: the glyph is an aria-hidden <svg>.
+    el.sub.appendChild(h('span', 'wf-mk wf-mk-b'));
     el.sub.appendChild(h('span', 'wf-dest', r.to.display));
-    el.sub.appendChild(h('span', 'wf-mid', ' · '));
-    el.sub.appendChild(h('span', 'wf-door', doorPhrase(G, r.toDoor)));
+    // THE MIDDOT IS STILL IN `.textContent` AND NO LONGER ON THE FRAME. The
+    // separator's whole job is done by the doorway glyph beside it, and a
+    // middot followed by an icon reads as a dropped word. It is kept in the
+    // string, hidden, because `#wf-sub`.textContent is what the honesty gates
+    // and the verify scripts assert on and it must not move.
+    el.sub.appendChild(h('span', 'wf-mid wf-mid-hid', ' · '));
+    const dsp = h('span', 'wf-door');
+    dsp.appendChild(icon('wf-door-ic', IC.door, 1.7));
+    dsp.appendChild(h('span', null, doorPhrase(G, r.toDoor)));
+    el.sub.appendChild(dsp);
 
     // ── "WILL I MAKE IT?" — the one-sided answer. Honesty doc §15. ──────────
     //
@@ -2271,20 +2475,13 @@
       el.card.appendChild(h('div', 'wf-c', SAY.lastLeg));
     }
 
-    // AVOID STAIRS. Named for what it does. Its limits sit next to the toggle,
-    // not in an about page, because being wrong here strands a specific person
-    // at the bottom of a staircase.
-    const av = h('label', 'wf-toggle');
-    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = state.avoid;
-    cb.addEventListener('change', () => { state.avoid = cb.checked; run(); });
-    cb.addEventListener('click', (ev) => ev.stopPropagation());
-    av.addEventListener('click', (ev) => ev.stopPropagation());
-    av.appendChild(cb); av.appendChild(h('span', null, SAY.avoidStairs));
-    el.card.appendChild(av);
-    el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidBlurb));
-    el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidNotAccess));
-    if (state.avoid) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidShown(G.swEdges.size)));
-
+    // THE CONTROLS COME BEFORE THE SMALL PRINT. The three stop chips were the
+    // LAST thing in the card, under two paragraphs of disclaimer, so the two
+    // things you can actually do to a route — put a stop on it, take the stairs
+    // off it — sat either side of the longest run of grey text in the feature.
+    // Photographed at 390 x 844: the chips landed 500 px below the top of the
+    // bar and off the bottom of a phone whenever the card also had a via note
+    // and an hours line in it.
     const chips = h('div', 'wf-chips');
     for (const kind of ['Coffee', 'Food', 'Store']) {
       const c = h('button', 'wf-chip' + (state.viaKind === kind && state.via != null ? ' on' : ''), '+ ' + SAY['chip' + kind]);
@@ -2300,12 +2497,24 @@
     }
     el.card.appendChild(chips);
 
-    const show = h('button', 'wf-act wf-act-go', SAY.showRoute);
-    show.addEventListener('click', (ev) => { ev.stopPropagation(); fitTo(window.__map, state.route); });
-    const clr = h('button', 'wf-act', SAY.clear);
-    clr.addEventListener('click', (ev) => { ev.stopPropagation(); clear(); });
-    const acts = h('div', 'wf-acts'); acts.appendChild(show); acts.appendChild(clr);
-    el.card.appendChild(acts);
+    // AVOID STAIRS. Named for what it does. Its limits sit next to the toggle,
+    // not in an about page, because being wrong here strands a specific person
+    // at the bottom of a staircase.
+    const av = h('label', 'wf-toggle');
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = state.avoid;
+    cb.addEventListener('change', () => { state.avoid = cb.checked; run(); });
+    cb.addEventListener('click', (ev) => ev.stopPropagation());
+    av.addEventListener('click', (ev) => ev.stopPropagation());
+    av.appendChild(cb); av.appendChild(h('span', null, SAY.avoidStairs));
+    el.card.appendChild(av);
+    el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidBlurb));
+    el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidNotAccess));
+    if (state.avoid) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidShown(G.swEdges.size)));
+
+    // NO ACTION ROW DOWN HERE ANY MORE. `Show route` and `Clear` moved OUT of
+    // the card and into the closed bar — see `#wf-acts` in buildUI. Two copies
+    // of the same button, one of them behind a chevron, is worse than either
+    // one alone, and the copy that mattered was the one you could not see.
 
     const f = h('div', 'wf-foot');
     f.appendChild(h('div', null, SAY.asOf(fmtAsOf(G.asOf)) + ' · ' + SAY.changed));
