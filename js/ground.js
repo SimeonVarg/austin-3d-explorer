@@ -413,6 +413,35 @@
     // what stops 4,900 areas being 14 exact hexes.
     jitter: 0.06,
     pathJitter: 0.03,       // smaller: paths must not lose their separation
+
+    // ── QUEUE J5: the lushness dial ───────────────────────────────────
+    // "Make south mall more vibrant and saturated. Lawns like that
+    // throughout the project should be more saturated." HANDOFF §70 did
+    // the data half (LAWN_TONE in bake_ground.py moved the mown panels to
+    // `turf`, the deepest green SURF had) and asked this file for the
+    // control he actually described: a saturation multiplier over the
+    // green band. This is that dial — applied in paletteAt(), scaled by
+    // (1 − nightAmt) so the NIGHT table is untouched at p=1: the night
+    // fades exist because lawns used to glow after dark, and this knob
+    // must not be able to bring that back (checked at p=0.92).
+    //
+    // `lushSat` is the master: 1.0 turns the whole pass off. `lushLight`
+    // rides along slightly BELOW 1 — an irrigated lawn is deeper, not
+    // brighter, and saturation alone drifts toward neon. Both defaults
+    // were chosen by eye against shots/f/lawns/ A-B frames.
+    // `lushWeight` is per-class because the greens are NOT one band: the
+    // creek corridor's three planting zones separate BY colour (scrub is
+    // dry and grey ON PURPOSE — see SURF's own comments), so the mown
+    // surfaces get the full dial and the creek zones a fraction, keeping
+    // their luma/saturation order intact. A class not named here is never
+    // touched.
+    lushSat: 1.45,
+    lushLight: 0.97,
+    lushWeight: {
+      turf: 1.0, grass: 1.0, gardenlawn: 1.0,   // the mown lawns he named
+      understorey: 0.5, wood: 0.5,              // the creek keeps its depth
+      scrub: 0.25,                              // dry on purpose — barely moves
+    },
   };
   window.GROUND = GROUND;
 
@@ -685,10 +714,55 @@
     const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
     const out = {};
     for (const k of KEYS) out[k] = lerpHex(a[k], b[k], t);
+    // QUEUE J5: the lush dial rides the same blend — full strength through
+    // day and golden, fading to zero exactly as the night table takes over,
+    // so a saturated lawn cannot glow after dark. One hook here covers every
+    // consumer (initial build and applyGroundColors both read paletteAt).
+    const lw = 1 - nightAmt(p);
+    if (lw > 0 && GROUND.lushWeight) {
+      for (const k in GROUND.lushWeight) {
+        if (out[k]) out[k] = lushify(out[k], GROUND.lushWeight[k] * lw);
+      }
+    }
     return out;
   }
   /** How far into night we are — the same second half of the palette blend. */
   const nightAmt = p => clamp01((clamp01(p) - 0.5) / 0.5);
+
+  // ── QUEUE J5: saturation over the green band (see GROUND.lushSat) ───
+  /** hex → [h 0..360, s 0..1, l 0..1]. Only the lush dial reads these. */
+  function hex2hsl(hex) {
+    const [r, g, b] = hex2rgb(hex).map(v => v / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    if (mx === mn) return [0, 0, l];
+    const d = mx - mn;
+    const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    let h;
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    return [h * 60, s, l];
+  }
+  function hsl2hex(h, s, l) {
+    h = (((h % 360) + 360) % 360) / 360;
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, pp = 2 * l - q;
+    const f = t => {
+      t = ((t % 1) + 1) % 1;
+      if (t < 1 / 6) return pp + (q - pp) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return pp + (q - pp) * (2 / 3 - t) * 6;
+      return pp;
+    };
+    return rgb2hex(f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255);
+  }
+  /** Push one green toward lush by w of the dial — w=0 is an exact no-op. */
+  function lushify(hex, w) {
+    const sat = 1 + (GROUND.lushSat - 1) * w;
+    const light = 1 + (GROUND.lushLight - 1) * w;
+    if (sat === 1 && light === 1) return hex;
+    const [h, s, l] = hex2hsl(hex);
+    return hsl2hex(h, clamp01(s * sat), clamp01(l * light));
+  }
 
   /** ['match', ['get','s'], 'grass', '#..', …, fallback] */
   function matchExpr(pal, tweak) {

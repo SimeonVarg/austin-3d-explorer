@@ -1,5 +1,49 @@
 # Austin 3D Explorer — Full Handoff
 
+## 179. Aug 22 2026 — the Fable fix round, judged and shipped: the opening smear is dead, the lawns got their dial, the feedback box delivers, and the first full sweep ever finished (ship lane, branch `acer/f-ship`)
+
+Five lanes ran (`acer/f-smear`, `f-coplanar`, `f-sweep`, `f-lawns`,
+`f-feedback`); all five pushed, all five were spot-checked with the judge's
+own frames on the merged tree (port 8636, one browser at a time), and all
+five shipped. The merged result was re-verified as one build, not five:
+`harness-drift` 31/31, plain page zero console errors with attribution
+visible, Tower crown at z16.25 (16/18 — the 2 fails are the pre-existing
+ratio-calibration mismatch, same `got` values as the last two builds), night
+p=0.92 glow clean, walking untouched by construction (`js/controls.js` /
+`js/collision.js` zero diff, `ALT_MIN = 1.7`), both reel flags photographed
+at 390x844 with touch (`shots/f/ship/phone-*.png`).
+
+- **The opening smear is FIXED and it was never a depth fight** — it was
+  `buildings-shadow` (a 2D fill, never depth-tests) painting campus shadow
+  hulls over the downtown ring that js/outer.js anchors BELOW it. f-smear
+  proved it with a magenta mask (the stock fams list omitted the culprit —
+  that omission is how two earlier rounds blamed extrusions) and wrote the
+  patch; the ship lane applied it to js/shadows.js (a file no lane owned):
+  the fill tucks itself beneath `outer-3d` once the ring lands. Tear gone at
+  the exact settled pose, judge's own frames, `shots/f/ship/smear/`.
+- **J5 lawns**: `GROUND.lushSat/lushLight/lushWeight` in js/ground.js.
+  Judged blind on/off: preferred ON at golden clearly, at day mildly; at
+  p=0.92 on/off are pixel-identical (0.00%) — the dial cannot re-light the
+  lawns at night.
+- **I4 feedback box delivers** via mail-app handoff + Copy fallback while no
+  form endpoint exists (js/feedback.js; steps aside automatically if
+  `FEEDBACK_ENDPOINT` in js/graphics.js is ever filled). Invisible in
+  `.clip`/`.autopilot`/`.sliderdemo`, photographed on all three.
+- **N5d closed**: the 2,429 baselined coplanar pairs got their first human
+  look — none is a visitor-visible defect today. The coplanar.mjs Set
+  overflow is gone by construction (judge reproduced the old crash, verified
+  byte-identical pair output old-vs-new, 14/14 selftests, gate still red on
+  exactly Y24).
+- **K4 done**: 38 frames, all read; three NEW findings are QUEUE K7 (night
+  horizon day-pale sheet at spawn, far-ring vegetation ignoring time of day,
+  lens-flare ghosts with the sun off-screen). A small floating object is on
+  camera in phone-aspect Shot A sky (pre-existing; K7's blob family).
+
+Round conventions that held: no timing numbers (contended machine), rigor
+matched to risk, every taste value a named constant. NOT established: motion
+(zfight/shimmer) at the 15 coplanar poses; night emissive leak through the
+buried doorway seam; hardware-GL or dpr-2 rendering of any of it.
+
 ## 178. Aug 22 2026 — Z1 fixed where it could be: the reel flags now hold the veil until the far city has loaded, capped at 24 s (acer lane, branch `acer/f-z1`)
 
 **Branch:** `acer/f-z1`. **QUEUE Z1.** Files: `js/app.js` (the only code

@@ -158,6 +158,27 @@ buildings belong to before concluding anything, and run it on a quiet machine �
 this one has not yet had a trustworthy attempt.**
 
 
+## ~~THE OPENING SMEAR~~ — FIXED 2026-08-22 (`acer/f-smear` diagnosed it, the ship lane applied it)
+
+**It was never a depth fight at all.** `buildings-shadow` (js/shadows.js) is a
+2D fill that paints over every pixel drawn before it, and js/outer.js inserts
+the whole downtown ring BELOW it — so at the steep opening angle the campus
+ground shadows, compressed into the horizon band, smeared their dark hulls
+straight across the downtown towers. Proven positively: magenta on
+`buildings-shadow` alone turned the entire tear magenta; magenta on every
+extrusion family left it dark (`shots/f/smear/`, `docs/smear-fix.md`). Both
+prior diagnoses (duplicate towers; depth-buffer precision) are disproven.
+The fix is one `moveLayer`: the shadow fill now tucks itself beneath the
+ring's lowest layer once the ring lands (js/shadows.js, constants
+`RING_BOTTOM`/`TUCK_POLL_MS`/`TUCK_TRIES`). Re-verified independently by the
+ship lane on the merged tree: tear gone at the exact settled pose
+(`shots/f/ship/smear/`), shadows still draw, crown intact at z16.25, night
+glow intact at p=0.92. Same defect class left open on purpose:
+`buildings-ao` and `night-tower-pool-fill` also sit above the ring (faint,
+never dominated a frame) — see `docs/smear-fix.md`.
+
+<details><summary>Original diagnosis (Aug 17, superseded)</summary>
+
 ## THE OPENING SMEAR — DIAGNOSED, NOT FIXED, AND THE OLD AVOIDANCE WAS WRONG (morning of Aug 17, HANDOFF §168)
 
 The dark band that tears across the downtown towers for about two seconds after
@@ -201,6 +222,8 @@ wrong fix — there is nothing to filter out of either bake without deleting a
 real building. Still nothing changed; still needs either a reframe of
 `INTRO.start` or a camera near/far clip change, both outside "don't touch it
 on shoot morning."
+
+</details>
 
 ---
 
@@ -480,13 +503,37 @@ hour, night — `shots/q/dkr/`) all show a real multi-deck bowl with aisles,
 orange chairback sections, both south entry towers, and the videoboard — not
 a solid cone. No code change needed.
 
-## K4. A clean full sweep, and READ every frame
+## ~~K4. A clean full sweep, and READ every frame~~ — DONE 2026-08-22 (`acer/f-sweep`, `docs/sweep-2026-08-22.md`)
 
-Day, dusk and night. The last attempt was killed by the watchdog at 7 of 12
-frames and roughly twenty PRs have landed since. `night-pale.mjs`'s threshold was
-recalibrated and the result has never been looked at.
+38 frames — 12 poses × day/dusk/night plus both reel-shot modes — all taken
+AND read by eye. The pose set is committed (`scripts/verify/sweep-poses.json`,
+deterministic under SwiftShader, so future sweeps can diff against these).
+Every merge from this week checked clean: both reel shots compose correctly,
+no film grain, new intro ending holds at all three hours, Tower night glow
+clean. The judge lane re-read the key frames and confirms the findings are
+real pixels, not prose. **Three NEW open findings came out of it** (K7 below).
 
-**Before a product manager finds something, I want to have found it.**
+## K7. What the first finished sweep FOUND (open, owned by other lanes' files)
+
+1. **A day-pale sheet of far terrain glows on the night horizon at the SPAWN
+   pose** — the one view every visitor sees (`shots/f/sweep/sw-H1-spawn-night.png`,
+   judge-confirmed). Exactly the class `night-pale.mjs` polices; point it at
+   this pose. Far basemap / outer-ring / water — not isolated yet.
+2. **Far-ring vegetation outlines ignore the time of day** — glowing
+   mint-green squiggles on the dark far field, worst in
+   `sw-H4-city-night.png`; present muted at dusk and day. `js/outer.js`
+   territory (another workflow's lane this round — report only).
+3. **Lens-flare ghost rings paint on buildings with the sun off-screen** —
+   `sw-westcampus-dusk.png` (two rings ON a facade), fainter in
+   `sw-H3-tower-dusk.png` / `sw-H5-dkr-dusk.png`; a rust streak in the day
+   frame. FX layer not isolated.
+
+Also on record there: giant near-camera labels + labels shining through
+buildings (engine behaviour, pre-existing), and a small floating blob/cuboid
+family (`sw-introend-*`, `sw-downtown-night.png`; the ship lane saw the same
+object in the sky of the phone-aspect Shot A frames,
+`shots/f/ship/phone-autopilot-10s.png` — pre-existing, not from this week's
+merges, but it IS on camera at the recording aspect).
 
 ## K5. Downtown still reads cooler and greyer than campus — PARTIALLY FIXED 2026-08-22 (`acer/r-downtown`)
 
@@ -781,19 +828,28 @@ screenshots show the mobile joystick with a BOOST control already present.
 is large enough to notice** — that one sub-item wasn't measured this pass.
 Evidence: `shots/q/chrome/`.
 
-## I4. A recommendations box
+## ~~I4. A recommendations box~~ — DELIVERS 2026-08-22 (`acer/f-feedback`, js/feedback.js)
 
 *"add a recommendations box, have the message send to simeonvarg@outlook.com. or
 tell me how to do this if thats a bad idea idk how to do that."*
 
-**A static site cannot send mail.** The right answer is a form service —
-Formspree, Web3Forms or similar: he creates a free account, it gives an endpoint,
-the page posts to it and the service emails him. **His address never appears in
-the page source**, which a `mailto:` would expose to scrapers.
+The box itself shipped in PR #128 but its Send button stayed disabled waiting
+for a form-service endpoint nobody ever created — a channel that had never
+carried a message. Now, while no endpoint is configured, Send opens the
+visitor's own mail app pre-filled and addressed (it never claims to "send"),
+and a Copy button puts the address + message on the clipboard for machines
+with no mail client. Judge-verified live: compose/copy/address all work on
+the plain page, and the control is INVISIBLE in `.clip`, `.autopilot` and
+`.sliderdemo`, photographed at 390x844 with touch, zero console errors
+(`shots/f/ship/phone-*.png`).
 
-Build the form and read the endpoint from ONE config constant. **Do not create an
-account for him.** Until an endpoint is set the form must say so plainly rather
-than pretending to send.
+**The stated trade:** the address lives in js/feedback.js split into two
+constants (assembled at run time — plain-regex harvesters miss it, an
+executing one gets it). **The upgrade path is still the form service** and
+needs no code: create a Formspree/Web3Forms endpoint, fill
+`FEEDBACK_ENDPOINT` in js/graphics.js, and the mail-app handoff steps aside
+automatically — the address then leaves the page entirely. Do that whenever
+you have five minutes.
 
 ---
 
@@ -884,10 +940,21 @@ on 21st"* — he flags his own uncertainty, so CHECK before building.
 *"add the food truck that is always in front of jester, and always in the PCL
 area"* — these are certain.
 
-## J5. The South Mall and the lawns are washed out
+## ~~J5. The South Mall and the lawns are washed out~~ — SHIPPED 2026-08-22 (`acer/f-lawns`, the lushness dial)
 
 *"Make south mall more vibrant and saturated. Lawns like that throughout the
 project should be more saturated."* A global taste value, parameterised.
+
+Done as a saturation multiplier over the green band in js/ground.js:
+`GROUND.lushSat` (1.45; 1.0 turns it off), `GROUND.lushLight` (0.97 — deeper,
+not brighter), `GROUND.lushWeight` per class (mown lawns full, creek zones a
+fraction, scrub barely — their colour separation is deliberate). Fades out
+with the night blend so it cannot re-light the lawns after dark. The ship
+lane judged it blind against dial-off on the merged tree: preferred the dial
+at golden hour clearly and at midday mildly, and at p=0.92 the on/off frames
+are pixel-identical (0.00% changed) — no night glow
+(`shots/f/ship/lawns/blind-*.png`, branch A/Bs in `shots/f/lawns/`).
+One-line overrule lives at js/ground.js `lushSat`.
 
 ## J6. The starred medians south of the fountain
 
@@ -2345,14 +2412,27 @@ on `h` as if it were an absolute top when `js/entrances.js` paints
 `['+',['get','base'],['get','h']]`, so 1729 was a count of coincident
 *thicknesses*. Nobody has looked at whether any of these are visible.
 
-### N5d. Nobody has ever SEEN any of these 2,332 pairs, fixed or not
+### ~~N5d. Nobody has ever SEEN any of these 2,332 pairs, fixed or not~~ — LOOKED AT 2026-08-22 (`acer/f-coplanar`, `docs/coplanar-audit.md`)
 
-`zfight.mjs` needs a browser and every N5 pass so far has been pure data. Two
-poses are owed, for a lane that already holds a browser: **a Drag cornice at
-15.5 m** (Co-op, ≈ -97.74228, 30.28596) before/after §135, and **a campus
-roofline** on a family-C `cap` building. If the before frame does not flicker
-that is worth writing down too — it bounds how much the remaining 2,332
-baselined pairs are worth chasing.
+**Somebody has now looked: none of the baselined pairs is a visible defect a
+visitor can meet today.** The top 15 by shared area were photographed in the
+RUNNING app with on-screen proof per frame (qRF members + hide-the-source
+pixel change; `shots/f/coplanar/`). The two real doubled-geometry families
+(DKR's second full-height wall, the Y24 doorway) are covered or buried on the
+current build — deleting all 35 of the doorway's features changed 0.00% of
+pixels at nine poses. The biggest-area families (outer plaza pads, tree
+canopies) fight over identically-coloured faces. The instrument's value is as
+a REGRESSION gate: chase a NEW pair against the baseline, not the stock.
+
+**Bonus, same branch: the "Set maximum size exceeded" crash is fixed by
+construction** — one bucket per item, pairs visited exactly once, no Set to
+overflow. Reproduced on the old code (`data/trees.geojson --eps 0.05` dies at
+the exact reported line), old vs new `--dump-pairs` byte-identical across the
+full sweep, selftests 14/14 (new selftest 9 pins the pairing walk), `--gate`
+still red on exactly the Y24 entrances regression. Judge re-ran all of it
+independently on the merged tree. Still unrun: a `zfight.mjs` motion sweep at
+those 15 poses, and night frames (emissive leak through the buried doorway
+seam is the one theoretical residual).
 
 ---
 
