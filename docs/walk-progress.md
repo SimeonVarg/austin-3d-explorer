@@ -164,3 +164,22 @@ missing, which is the third experiment in a row to land there.
 
 Branch `acer/w-door`. Tables, the full harness output and the reasoning are in
 `docs/walk-door.md`. `WAYFIND.on` untouched.
+
+## 2026-08-23 -- critic pass on acer/w-door, round 2: the door numbers hold up, the stairs toggle does not
+
+Re-ran scripts/verify/walkmeter.mjs myself, fresh server on a clean port, not
+trusting the builder figure: 1,333 m of extra walking over the twenty pairs
+before this branch, 96.2 m after; every one of the forty pair-ends lands within
+15 m of the door UT itself publishes; mean worst-case door error across all 55
+UT-surveyed buildings this build can route to, 29.1 m down to 2.5 m. The door
+work is real and it holds. But driving the actual UI (not the wayfindRoute API)
+found a break in the exact feature this round measured hardest: click "Avoid
+stairs" in the route card and the whole panel snaps shut instead of turning the
+toggle on -- the checkbox click bubbles up to the pills own click handler
+(js/wayfind.js:1999), which flips state.expanded back to false and collapses
+the card before the checkboxs change handler (js/wayfind.js:2225) can stick.
+Confirmed three ways, including a real mouse click at the checkboxs exact
+pixel coordinates: the box stays unchecked after you click it. The routing fix
+behind the toggle is sound -- walkmeter drives it directly and it is clean on
+9/9 buildings -- but a person who actually cannot climb stairs, clicking the
+control Simeon asked for by name, cannot turn it on. Not shipped as-is.
