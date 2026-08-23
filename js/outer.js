@@ -114,6 +114,25 @@
     // campus's own -49.4. TASTE KNOB (CLAUDE.md rule 11): 0 disables this
     // entirely and ships the bake's own colours unmodified; 1 is what ships.
     towerWarmAmount: 1,
+    // ── QUEUE K7 #2: far-ring vegetation outlines ignored the hour ──
+    //
+    // The Liberty basemap's `park` FILL ships an explicit constant
+    // fill-outline-color — rgba(95, 208, 100, 1), a bright mint green.
+    // js/timeofday.js retints every park/landcover fill to the hour's park
+    // tone, but it only writes 'fill-color', and a fill layer with an
+    // AUTHORED outline keeps it. So beyond the core box (where our own
+    // opaque ground covers the basemap) every far park polygon wore a
+    // glowing daylight-green wireframe at night — the squiggles in
+    // shots/f/sweep/sw-H4-city-night.png, muted but present at day/dusk.
+    // Isolated by magenta mask 2026-08-22 (docs/k7-greenring.md): painting
+    // this one paint property magenta recoloured exactly the squiggles.
+    //
+    // The fix copies the fill's own just-tinted colour onto the outline on
+    // every retint, so the outline rides the same night fade the fill does,
+    // at every hour, by construction — no second copy of the park palette
+    // in this file to drift. TASTE KNOB (CLAUDE.md rule 11): false leaves
+    // the basemap outlines exactly as authored.
+    vegOutlineTint: true,
   };
   window.OUTER = OUTER;
 
@@ -722,8 +741,53 @@
                 'ordinals (towers + streetwall)', midPattern ? '' : '- NO STREETWALL');
   };
 
+  // ── K7 #2: keep the basemap's vegetation outlines on the hour's tint ──
+  //
+  // Which layers: mirrors the park bucket test in js/timeofday.js
+  // cleanupBasemap() — the basemap fills whose 'fill-color' already follows
+  // the hour — narrowed to the ones that CARRY an authored outline, since a
+  // fill without one antialiases in its own (tinted) fill colour and needs
+  // nothing. On today's Liberty style that is exactly one layer, `park`;
+  // derived rather than hardcoded so a basemap update cannot quietly ship a
+  // second daylight wireframe.
+  const isVegFill = l => l.type === 'fill' && (
+    ['park', 'landcover'].includes((l['source-layer'] || '').toLowerCase()) ||
+    /park|grass|wood|forest|garden/.test(l.id.toLowerCase()));
+  let _vegOutlineIds = null;    // derived once; existence re-checked per call
+  const _vegOutlineLast = {};   // last colour written, to skip per-frame writes
+  function tintVegOutlines(map) {
+    if (!OUTER.vegOutlineTint || !map || !map.getStyle) return;
+    if (_vegOutlineIds === null) {
+      try {
+        const style = map.getStyle();
+        if (!style || !style.layers) return;
+        _vegOutlineIds = style.layers
+          .filter(l => isVegFill(l) &&
+                       map.getPaintProperty(l.id, 'fill-outline-color') != null)
+          .map(l => l.id);
+      } catch (e) { return; }
+    }
+    for (const id of _vegOutlineIds) {
+      try {
+        if (!map.getLayer(id)) continue;
+        const fill = map.getPaintProperty(id, 'fill-color');
+        if (fill == null) continue;
+        // applyOuterColors runs on EVERY applyTimeOfDay call, including the
+        // cheap per-frame ones; the fill only moves on the quantised heavy
+        // passes, so a string compare skips the redundant writes.
+        const key = typeof fill === 'string' ? fill : JSON.stringify(fill);
+        if (_vegOutlineLast[id] === key) continue;
+        map.setPaintProperty(id, 'fill-outline-color', fill);
+        _vegOutlineLast[id] = key;
+      } catch (e) {}
+    }
+  }
+
   window.applyOuterColors = function applyOuterColors(map, p) {
     if (!map || !map.getLayer) return;
+    // Before the early returns on our own layers: the vegetation outlines are
+    // BASEMAP layers and must follow the hour even with the ring off (?outer=0).
+    tintVegOutlines(map);
     try {
       if (map.getLayer(L_FLAT))
         map.setPaintProperty(L_FLAT, 'fill-extrusion-color', bakedColor(p));
@@ -838,6 +902,13 @@
         return setTimeout(go, 120);
       }
       hookTod();
+      // Catch-up for K7 #2: the initial retint may have run before the hook
+      // above existed, leaving the vegetation outlines on their authored
+      // daylight green until the next slider move. Copy the (already tinted)
+      // fills once now; every later retint flows through the wrapper. Once
+      // more on idle, in case the basemap's own layers land after us.
+      try { tintVegOutlines(map); } catch (e) {}
+      try { map.once('idle', () => tintVegOutlines(map)); } catch (e) {}
       window.initOuter(map);
     };
     if (map.isStyleLoaded && map.isStyleLoaded()) go();
