@@ -218,6 +218,39 @@
                            // flight, so this is that plus a little.
     fitPollMs: 200,
 
+    // ── stairs, and the way round them (docs/walk-stairs.md) ──────────────
+    // Every judgement the stair code makes is one line here. Nothing in
+    // section 3b invents a number.
+    stairAlt: true,        // compute the step-free alternative alongside any
+                           // route that has stairs on it. One extra Dijkstra.
+                           // MEASURED, not assumed: eight fixed pairs, nine
+                           // interleaved reps, minimum of each, hardware GL,
+                           // no CPU throttle — worst pair +1.3 ms, most +0.5,
+                           // on routes that cost 0.3-1.0 ms to begin with.
+                           // False = the alternative is only ever produced by
+                           // the toggle.
+    stairAltCleanDoors: true,
+                           // ...and, in that pass ONLY, refuse a door whose
+                           // unmapped last-stretch line crosses a mapped
+                           // staircase. Four anchors of 421 do (COM, CS3, MAG,
+                           // STD) and they made 11 of 140 offered step-free
+                           // routes not step-free. False = the old behaviour.
+    stairAltFarExtraM: 400,
+                           // above this much extra walking the alternative is
+                           // still offered — never hidden, that is the whole
+                           // point of it — but it is FAR, and the interface
+                           // should say so rather than let a number pass as a
+                           // suggestion. GEB>WEL is 178 m direct and 994 m
+                           // step-free; that is a decision, not a detour.
+    stairLegGridDeg: 0.0006,
+                           // ~55 m spatial bucket for the leg-crossing test.
+                           // Not taste, but it is a tuning number and it does
+                           // not belong in a function body either.
+    stairListMax: 12,      // most staircases we will name in one leg list. A
+                           // route with more than this is not a leg list, it
+                           // is a wall of text; the count above it is still
+                           // exact.
+
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
     registerUrl: 'data/ut_buildings.json',  // UT's own 198-code register; the
@@ -588,6 +621,278 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════════
+  // 3b. THE STAIRS, AND THE WAY ROUND THEM      (docs/walk-stairs.md)
+  //
+  // ── THE 179 AND THE 189 ARE THE SAME STAIRCASES ──────────────────────────
+  // `data/ground.geojson` draws 179 features tagged `steps` and this graph
+  // prices 189 `highway=steps` ways. That is not a disagreement and neither
+  // number is wrong: the ground bake buffers each stepped centreline and
+  // UNIONS them per surface, so flights that touch merge into one drawn
+  // polygon. Checked by identity rather than by eye — every one of the 189
+  // way ids in `data/osm_cache/footways.json` appears in this file's `e.s`,
+  // and after this round every one of them is also drawn and carries its own
+  // `wid` on the slab. (One, way 147362093, was tagged `area=yes` and was
+  // being skipped by the ground bake entirely: the router would send you up a
+  // staircase the city did not draw. Fixed in `scripts/bake_ground.py`.)
+  //
+  // ── A ROUTE IS EDGES *PLUS TWO LINES WE DREW OURSELVES* ──────────────────
+  // The last stretch from the walk network to a door is not a surveyed path,
+  // it is a straight line, and it is drawn dashed for exactly that reason.
+  // It can therefore run clean across a staircase. Measured over 396 routes:
+  // 11 of the 140 step-free routes this feature offered did precisely that,
+  // so "no stairs on this route" was false for the one person the toggle
+  // exists for. Only four door anchors of 421 are responsible — on COM, CS3,
+  // MAG and STD — but they sit on popular ends, so they poisoned 8 % of the
+  // offers. `legCrossesStairs` is the test; `cleanAnchors` is the fix, and it
+  // costs nothing in coverage: 140 offered before, 140 offered after, 11
+  // dirty before, 0 after.
+  //
+  // ── WHAT WE MAY SAY ABOUT A STAIRCASE ────────────────────────────────────
+  // Its way id, its plan length, how far along the walk it starts, and — for
+  // the 39 ways of 189 that carry a usable `incline` — whether you are going
+  // up or down it. NOT a step count: OSM has `step_count` on 9 ways of 189
+  // and this graph does not carry it at all (the patch that would is written
+  // out in docs/walk-stairs.md §5, and it is not this lane's file). NOT a
+  // number of flights: nothing in OSM records a landing. So `dir` is 'up',
+  // 'down' or '' and the empty string is honest.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // Built once per graph, on the first question anyone asks about stairs, and
+  // memoised on the graph object. A route that never touches a staircase never
+  // pays for this.
+  function stairIndex(g) {
+    if (g._stairIx) return g._stairIx;
+    const CELL = WAYFIND.stairLegGridDeg;
+    const seg = [], grid = new Map();
+    for (let i = 0; i < g.E; i++) {
+      if (!(g.F[i] & F_STEPS)) continue;
+      const ax = g.X[g.A[i]], ay = g.Y[g.A[i]], bx = g.X[g.B[i]], by = g.Y[g.B[i]];
+      const ix = seg.push({ ax, ay, bx, by, way: g.S[i] }) - 1;
+      const x0 = Math.floor(Math.min(ax, bx) / CELL), x1 = Math.floor(Math.max(ax, bx) / CELL);
+      const y0 = Math.floor(Math.min(ay, by) / CELL), y1 = Math.floor(Math.max(ay, by) / CELL);
+      for (let cx = x0; cx <= x1; cx++) {
+        for (let cy = y0; cy <= y1; cy++) {
+          const k = cx + ':' + cy;
+          let a = grid.get(k); if (!a) { a = []; grid.set(k, a); }
+          a.push(ix);
+        }
+      }
+    }
+    g._stairIx = { CELL, seg, grid };
+    return g._stairIx;
+  }
+
+  // Proper segment-segment intersection in local metres. Endpoint contact is
+  // NOT a crossing — a door leg that starts at the top of a staircase touches
+  // it and does not walk down it.
+  function segmentsCross(ax, ay, bx, by, cx, cy, dx, dy) {
+    const x1 = ax * MPD_LON, y1 = ay * MPD_LAT, x2 = bx * MPD_LON, y2 = by * MPD_LAT;
+    const x3 = cx * MPD_LON, y3 = cy * MPD_LAT, x4 = dx * MPD_LON, y4 = dy * MPD_LAT;
+    const den = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3);
+    if (Math.abs(den) < 1e-12) return false;          // parallel or degenerate
+    const t = ((x3 - x1) * (y4 - y3) - (y3 - y1) * (x4 - x3)) / den;
+    const u = ((x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1)) / den;
+    return t > 0.001 && t < 0.999 && u > 0.001 && u < 0.999;
+  }
+
+  /** Steps-way ids a straight line from a to b crosses. `[]` is the good case. */
+  function legCrossesStairs(g, a, b) {
+    const ix = stairIndex(g);
+    if (!ix.seg.length) return [];
+    const C = ix.CELL;
+    const x0 = Math.floor(Math.min(a[0], b[0]) / C), x1 = Math.floor(Math.max(a[0], b[0]) / C);
+    const y0 = Math.floor(Math.min(a[1], b[1]) / C), y1 = Math.floor(Math.max(a[1], b[1]) / C);
+    const seen = new Set(), hit = [];
+    for (let cx = x0; cx <= x1; cx++) {
+      for (let cy = y0; cy <= y1; cy++) {
+        const arr = ix.grid.get(cx + ':' + cy);
+        if (!arr) continue;
+        for (let k = 0; k < arr.length; k++) {
+          const i = arr[k];
+          if (seen.has(i)) continue;
+          seen.add(i);
+          const s = ix.seg[i];
+          if (segmentsCross(a[0], a[1], b[0], b[1], s.ax, s.ay, s.bx, s.by) &&
+              hit.indexOf(s.way) < 0) hit.push(s.way);
+        }
+      }
+    }
+    return hit;
+  }
+
+  /**
+   * The leg list, in walk order — one entry per STAIRCASE, never per step and
+   * never per drawn segment, because a staircase drawn in fourteen pieces is
+   * still one staircase you climb once. This is the shape Citymapper states a
+   * flight in: where it is along the walk, how long it is, which way it goes.
+   */
+  // TWO FIELDS THE GRAPH DOES NOT CARRY YET, READ HERE THE MOMENT IT DOES.
+  //
+  //   e.dn   edge indices whose stored a->b direction is DOWN. Flag bit 8 only
+  //          ever means "up", so `incline=down` — 36 of the 80 tagged
+  //          staircases on campus — currently arrives as no direction at all.
+  //   sc     way id -> OSM `step_count`, on 9 of 189 ways. Without it we may
+  //          not print a number of steps, and we do not.
+  //
+  // Both are one small patch to scripts/bake_walk.py, written out verbatim in
+  // docs/walk-stairs.md §5. That file belongs to another lane, so this side is
+  // built to accept them and reports '' / null until it gets them, which is
+  // exactly what it should say today.
+  function stairExtras(g) {
+    if (g._stairExtra) return g._stairExtra;
+    const down = new Set();
+    const raw = g.raw && g.raw.e;
+    if (raw && Array.isArray(raw.dn)) {
+      let acc = 0;
+      for (let i = 0; i < raw.dn.length; i++) { acc += raw.dn[i]; down.add(acc); }
+    }
+    const count = (g.raw && g.raw.sc) || null;
+    g._stairExtra = { down: down, count: count };
+    return g._stairExtra;
+  }
+
+  function stairLegs(g, legs, startAtM) {
+    const ex = stairExtras(g);
+    const out = [];
+    let at = startAtM || 0;
+    let cur = null;
+    for (const leg of legs) {
+      for (let i = 0; i < leg.edges.length; i++) {
+        const e = leg.edges[i];
+        const m = g.W[e] / 100;
+        if (g.F[e] & F_STEPS) {
+          // direction of travel over THIS edge, so `up` means up for you
+          const ab = leg.nodes[i] === g.A[e];
+          let dir = '';
+          if (g.F[e] & F_UP_AB) dir = ab ? 'up' : 'down';
+          else if (ex.down.has(e)) dir = ab ? 'down' : 'up';
+          if (cur && cur.way === g.S[e]) {
+            cur.m += m;
+            if (!cur.dir) cur.dir = dir;
+          } else {
+            const sc = ex.count ? ex.count[g.S[e]] : null;
+            cur = { way: g.S[e], atM: at, m: m, dir: dir, steps: sc == null ? null : sc };
+            out.push(cur);
+          }
+        } else {
+          cur = null;
+        }
+        at += m;
+      }
+    }
+    // A staircase re-entered later in the same walk is two entries above and
+    // one staircase in the count; the count is the set, the list is the walk.
+    for (const s of out) { s.atM = Math.round(s.atM); s.m = Math.round(s.m * 10) / 10; }
+    return out;
+  }
+
+  /**
+   * Everything true about stairs on one finished route, including the part
+   * that is not in the graph: the two lines we drew ourselves.
+   *   sets      distinct staircases the ROUTED path climbs
+   *   list      those staircases in walk order (capped for display)
+   *   legWays   staircases the unmapped door legs cross — not routed over,
+   *             but walked over, and the reason `clean` can be false while
+   *             `sets` is 0
+   *   clean     true only when BOTH are empty. This is the whole test behind
+   *             offering a step-free alternative at all.
+   */
+  function stairFacts(g, legs, geom, fromDoor, toDoor, startAtM) {
+    const list = stairLegs(g, legs, startAtM);
+    const sets = [];
+    for (const s of list) if (sets.indexOf(s.way) < 0) sets.push(s.way);
+    const legWays = [];
+    if (geom && geom.startLeg) {
+      for (const w of legCrossesStairs(g, geom.startLeg[0], geom.startLeg[1]))
+        if (legWays.indexOf(w) < 0) legWays.push(w);
+    }
+    if (geom && geom.endLeg) {
+      for (const w of legCrossesStairs(g, geom.endLeg[0], geom.endLeg[1]))
+        if (legWays.indexOf(w) < 0) legWays.push(w);
+    }
+    return {
+      sets: sets.length, ways: sets,
+      list: list.slice(0, WAYFIND.stairListMax), listTruncated: list.length > WAYFIND.stairListMax,
+      legWays: legWays, legWayCount: legWays.length,
+      clean: sets.length === 0 && legWays.length === 0,
+    };
+  }
+
+  /**
+   * Door anchors a step-free walk may actually use. Same shape as `anchors()`,
+   * minus every anchor whose straight last-stretch line crosses a staircase.
+   * If that empties a building — it never does today, but a data refresh could
+   * — the dropped ones come back rather than the building becoming unroutable,
+   * and `dropped` says so so the answer can be honest about it.
+   */
+  function cleanAnchors(g, doors, role) {
+    const kept = [], dropped = [];
+    for (const di of doors) {
+      const d = g.doors[di];
+      const dll = doorLL(g, di);
+      for (let k = 0; k < d[2].length; k++) {
+        const rec = { node: d[2][k], c: d[3][k] / 100, door: di, role: role };
+        if (WAYFIND.stairAltCleanDoors && legCrossesStairs(g, dll, lonlat(g, d[2][k])).length) {
+          dropped.push(rec);
+        } else {
+          kept.push(rec);
+        }
+      }
+    }
+    return kept.length ? { anchors: kept, dropped: dropped.length, forced: false }
+                       : { anchors: dropped, dropped: 0, forced: dropped.length > 0 };
+  }
+
+  /**
+   * THE ALTERNATE ROUTE. Same two buildings, no mapped staircase anywhere on
+   * it — not on the path, and not on either straight line we drew ourselves.
+   *
+   * Returns null when there is no such walk, and null is a RESULT: 31 of 171
+   * stair routes in a 396-route sample have no step-free way at all, and the
+   * interface has to be able to say that instead of quietly offering nothing.
+   * It never returns a route it could not verify: if the result still touches
+   * stairs, `clean` is false and the caller must not call it step-free.
+   *
+   * No `via` stop. A step-free route that also takes in a coffee shop is two
+   * questions at once, and the second one would silently un-verify the first.
+   */
+  function stepFreeAlternative(g, from, to, base) {
+    const fromDoors = doorSet(g, from), toDoors = doorSet(g, to);
+    if (!fromDoors.length || !toDoors.length) return null;
+    const s = cleanAnchors(g, fromDoors, 'from'), t = cleanAnchors(g, toDoors, 'to');
+    if (!s.anchors.length || !t.anchors.length) return null;
+    const r = dijkstra(g, s.anchors, t.anchors, true);
+    if (!r) return null;
+    r.fromDoor = r.seed ? r.seed.door : fromDoors[0];
+    r.fromLinkM = r.seed ? r.seed.c : 0;
+    r.toDoor = r.target.door;
+    r.toLinkM = r.target.c;
+    const legs = [r];
+    const m = measure(g, r);
+    m.flat += r.fromLinkM + r.toLinkM;
+    const geom = geometryOf(g, legs, r.fromDoor, r.toDoor);
+    const st = stairFacts(g, legs, geom, r.fromDoor, r.toDoor, r.fromLinkM);
+    const distM = m.flat + m.stair;
+    const time = timeRange(m);
+    const extraM = base ? distM - base.distM : 0;
+    return {
+      ok: true, clean: st.clean, stair: st,
+      legs: legs, geom: geom, m: m, time: time, distM: distM,
+      fromDoor: r.fromDoor, toDoor: r.toDoor,
+      fromLinkM: r.fromLinkM, toLinkM: r.toLinkM,
+      extraM: extraM,
+      extraMinLo: base ? time.lo - base.time.lo : 0,
+      extraMinHi: base ? time.hi - base.time.hi : 0,
+      far: extraM > WAYFIND.stairAltFarExtraM,
+      sameWalk: base ? Math.abs(extraM) < 0.5 : false,
+      doorChanged: base ? (r.toDoor !== base.toDoor || r.fromDoor !== base.fromDoor) : false,
+      doorsRefused: s.dropped + t.dropped,
+      doorsForced: s.forced || t.forced,
+      avoidStairs: true,
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
   // 4. THE SEARCH INDEX AND THE MATCH LADDER
   // ══════════════════════════════════════════════════════════════════════════
   function norm(s) {
@@ -809,8 +1114,16 @@
   }
 
   function legBetween(g, fromDoors, toDoors, avoidStairs) {
-    const seeds = anchors(g, fromDoors, 'from');
-    const targets = anchors(g, toDoors, 'to');
+    // WHEN THE ANSWER IS SUPPOSED TO BE STEP-FREE, THE DOOR IS PART OF THE
+    // ANSWER. §3b: the last stretch is a straight line we drew, and four
+    // anchors on campus draw it clean across a staircase. Pricing the graph's
+    // step edges at Infinity while still arriving over one of those made the
+    // toggle wrong on 11 of 140 routes. Same anchors as before on a normal
+    // route; only the avoiding pass is fussy about its doors.
+    const seeds = avoidStairs ? cleanAnchors(g, fromDoors, 'from').anchors
+                              : anchors(g, fromDoors, 'from');
+    const targets = avoidStairs ? cleanAnchors(g, toDoors, 'to').anchors
+                                : anchors(g, toDoors, 'to');
     if (!seeds.length || !targets.length) return null;
     const r = dijkstra(g, seeds, targets, avoidStairs);
     if (!r) return null;
@@ -916,15 +1229,34 @@
     const geom = geometryOf(g, legs, legs.fromDoor, legs.toDoor);
     const dist = m.flat + m.stair;
     const t = timeRange(m);
-    const ms = performance.now() - t0;
-    stats.lastRouteMs = ms; stats.routes++;
 
-    return {
+    // ── stairs (§3b) ───────────────────────────────────────────────────────
+    // `stair` is the leg list and the honest `clean` flag; `stepFree` is the
+    // alternate route, computed HERE rather than waiting for someone to find
+    // the toggle, because a person who cannot climb should not have to know
+    // the toggle exists to be told the way round. It is produced only when
+    // there is something to route around, and never on top of a via stop.
+    const out = {
       ok: true, from, to, legs, geom, m, time: t, distM: dist,
       fromDoor: legs.fromDoor, toDoor: legs.toDoor,
       fromLinkM: legs.fromLinkM, toLinkM: legs.toLinkM,
-      via: viaPoi, avoidStairs: !!opts.avoidStairs, ms,
+      via: viaPoi, avoidStairs: !!opts.avoidStairs, ms: 0,
     };
+    out.stair = stairFacts(g, legs, geom, legs.fromDoor, legs.toDoor, legs.fromLinkM);
+    out.stepFree = null;
+    if (WAYFIND.stairAlt && opts.stepFree !== false && !opts.avoidStairs &&
+        !viaPoi && !out.stair.clean) {
+      const alt = stepFreeAlternative(g, from, to, out);
+      // Never hand back an alternative that did not come out clean. It would
+      // be a promise about a staircase, made to the one person who cannot
+      // absorb being wrong about it.
+      out.stepFree = (alt && alt.clean) ? alt : null;
+      out.stepFreeNone = !out.stepFree;
+    }
+    const ms = performance.now() - t0;
+    out.ms = ms;
+    stats.lastRouteMs = ms; stats.routes++;
+    return out;
   }
 
   // ── the optional stop ─────────────────────────────────────────────────────
@@ -1874,6 +2206,48 @@
       bbox: [w, s, e, n], centre: [(w + e) / 2, (s + n) / 2],
       on: r.geom.line[at], onNext: r.geom.line[at + 1] || r.geom.line[at],
       via: r.via ? { name: r.via.name, cat: r.via.cat, hours: r.via.hours } : null,
+    };
+  };
+
+  /**
+   * THE STAIR ANSWER, for the interface and for the verify harness (§3b).
+   *
+   * Everything here is measured off the drawn route, never estimated, and
+   * every field is something the data can actually back:
+   *   sets/list   staircases the route climbs, in walk order, with `dir`
+   *               'up' | 'down' | '' — empty means OSM does not say, which is
+   *               150 of the 189 staircases on campus, and '' is the truth.
+   *   legWays     staircases the two unmapped straight door legs cross. Not
+   *               climbed by the router; walked over by you.
+   *   clean       no stairs anywhere on this walk, both kinds counted.
+   *   stepFree    the verified alternative, or null. `null` with
+   *               `stepFreeNone` true means we looked and there is no way
+   *               round — 31 of 171 stair routes on this campus.
+   * Wording is deliberately NOT here: docs/walk/what-we-can-honestly-say.md
+   * owns every sentence, and this returns facts for it to phrase.
+   */
+  window.wayfindStairs = function () {
+    const r = state.route;
+    if (!r || !r.ok || !r.stair) return null;
+    const sf = r.stepFree;
+    return {
+      avoidingStairs: !!r.avoidStairs,
+      sets: r.stair.sets, ways: r.stair.ways.slice(),
+      list: r.stair.list.map(s => ({ way: s.way, atM: s.atM, m: s.m, dir: s.dir, steps: s.steps })),
+      listTruncated: r.stair.listTruncated,
+      legWays: r.stair.legWays.slice(), legWayCount: r.stair.legWayCount,
+      clean: r.stair.clean,
+      distM: r.distM, lo: r.time.lo, hi: r.time.hi,
+      stepFree: sf ? {
+        clean: sf.clean, distM: Math.round(sf.distM),
+        extraM: Math.round(sf.extraM), lo: sf.time.lo, hi: sf.time.hi,
+        extraMinLo: sf.extraMinLo, extraMinHi: sf.extraMinHi,
+        far: sf.far, sameWalk: sf.sameWalk, doorChanged: sf.doorChanged,
+        doorsRefused: sf.doorsRefused, doorsForced: sf.doorsForced,
+        avoided: r.stair.sets, vertices: sf.geom.line.length,
+      } : null,
+      stepFreeNone: !!r.stepFreeNone,
+      graphStaircases: G ? G.swEdges.size : 0,
     };
   };
 
