@@ -103,7 +103,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bake_facades  # noqa: E402
 
 SNAP_SOURCE = "buildings.detailed.geojson"
-SNAP_DATE = bake_facades.snapshot_date()
+# `SNAP_DATE=2026-08-16 python scripts/bake_entrances.py` pins the bake to a
+# named snapshot instead of `manifest.latest`. It exists because a rebake for
+# one reason must not smuggle in a second: on 2026-08-23 the manifest had
+# rolled from 2026-08-16 (which the shipped data/entrances.geojson was built
+# from) to 2026-08-23, and re-running the bake to add the UT entrance stage
+# below would have shipped a whole snapshot roll — 0.3 MB of unrelated
+# geometry change — inside a door-choice diff. Pin, ship the one change, and
+# let the snapshot roll be its own pass with its own screenshots.
+SNAP_DATE = os.environ.get("SNAP_DATE") or bake_facades.snapshot_date()
 SNAP = os.path.join(ROOT, "data", "snapshots", SNAP_DATE, SNAP_SOURCE)
 CACHE = os.path.join(ROOT, "data", "osm_cache")
 FOOTWAYS = os.path.join(CACHE, "footways.json")
@@ -191,6 +199,140 @@ RECALL_FLOOR_8M = 0.65  # the derivation must still recover at least this share
                         # room to wobble and a bad placement rule does not.
 
 # ── PLACEMENT (docs/entrances/placement.md §8) ────────────────────────
+# ══════════════════════════════════════════════════════════════════════
+#  UT'S OWN ANSWER, WHICH BEATS EVERY HEURISTIC IN THIS FILE
+# ══════════════════════════════════════════════════════════════════════
+# maps.utexas.edu is an Esri app over public, unauthenticated ArcGIS layers,
+# and one of them is UT Facilities' hand-surveyed record of the real front
+# door of 67 campus buildings, with a barrier-free and an auto-opener flag on
+# each. It is the same standing as an OSM `entrance=main` node and it covers
+# more of the academic core than OSM does: 97 doors, against 16 OSM nodes
+# tagged `main` anywhere in the campus rectangle.
+#
+# Why this matters here specifically: stage 3's publicness field is a good
+# ranking and it is still a ranking. Cross-checked against UT's survey, the
+# door this bake labelled `main` was the right one on 16 of 55 routable
+# buildings; on the other 39 the right door was already placed, correctly, and
+# labelled `secondary`. `docs/walk-door.md` has the measurement.
+#
+#   CODE  latitude  longitude  side  barrier-free  auto-opener
+#
+# Fetched 2026-08-23, © The University of Texas at Austin. Re-pull with
+# `python scripts/bake_entrances.py --refresh-ut`, which prints a fresh table
+# for pasting rather than writing one silently.
+UT_CELEBRATED_URL = (
+    "https://services9.arcgis.com/w9x0fkENXvuWZY26/arcgis/rest/services/"
+    "Celebrated_Entrances_view/FeatureServer/0/query"
+    "?where=1%3D1&outFields=*&f=json&outSR=4326&resultRecordCount=2000")
+UT_CELEBRATED = [
+    'ASE 30.291228 -97.737604 W Y Y',
+    'BAT 30.284753 -97.739088 SW Y Y',
+    'BAT 30.284796 -97.738677 E Y Y',
+    'BAT 30.284889 -97.738916 N N N',
+    'BE1 30.391820 -97.726989 N Y Y',
+    'BEG 30.391018 -97.725348 N Y Y',
+    'BEN 30.283956 -97.738771 E Y Y',
+    'BIO 30.287254 -97.740083 W Y Y',
+    'BME 30.289431 -97.738752 NW Y Y',
+    'BRB 30.285259 -97.737006 W Y Y',
+    'BUR 30.288627 -97.738492 S Y Y',
+    'BWY 30.290797 -97.738079 E Y N',
+    'CAL 30.284460 -97.740360 S Y Y',
+    'CCJ 30.287988 -97.730652 W Y Y',
+    'CCJ 30.288093 -97.730635 NW N N',
+    'CMA 30.289220 -97.740757 S Y Y',
+    'CMB 30.289279 -97.741010 E Y Y',
+    'CPE 30.289992 -97.736153 S Y N',
+    'DMC 30.290092 -97.740528 S Y Y',
+    'ECJ 30.288962 -97.735494 W Y Y',
+    'ECJ 30.289045 -97.735751 W N N',
+    'EER 30.288143 -97.735633 W Y Y',
+    'EME 30.389588 -97.727334 E Y Y',
+    'EPS 30.285686 -97.736684 S N N',
+    'EPS 30.285801 -97.736945 W Y Y',
+    'ETC 30.289903 -97.735587 W Y Y',
+    'FAC 30.286257 -97.740100 SE Y Y',
+    'FAC 30.286422 -97.740629 NW Y Y',
+    'FAC 30.286556 -97.739980 NE Y N',
+    'FNT 30.287855 -97.737753 E Y Y',
+    'FS1 30.386885 -97.731999 E Y N',
+    'FSL 30.387375 -97.731553 W N N',
+    'GAR 30.285060 -97.738772 W Y Y',
+    'GAR 30.285101 -97.738540 S Y Y',
+    'GDC 30.285996 -97.736679 S Y Y',
+    'GEA 30.287668 -97.738956 E Y Y',
+    'GEA 30.287691 -97.739222 S N N',
+    'GOL 30.285294 -97.741409 SW Y Y',
+    'GOL 30.285697 -97.741276 NW Y N',
+    'GWB 30.287863 -97.740069 W Y Y',
+    'HLB 30.275597 -97.733208 N Y Y',
+    'HRH 30.284081 -97.740424 SW Y Y',
+    'HSM 30.288992 -97.740945 W Y N',
+    'JES 30.283089 -97.737014 NW Y Y',
+    'JGB 30.285757 -97.735853 SW Y Y',
+    'JHH 30.278357 -97.731978 E Y Y',
+    'JHH 30.278383 -97.732079 W Y Y',
+    'JON 30.288508 -97.731335 S Y Y',
+    'MAI 30.286186 -97.739719 W Y Y',
+    'MBB 30.288590 -97.737132 SW Y Y',
+    'MER 30.385289 -97.728277 SE Y N',
+    'MER 30.385775 -97.727978 E Y Y',
+    'MER 30.386410 -97.727796 NE Y N',
+    'MEZ 30.284308 -97.739144 SW Y Y',
+    'MEZ 30.284377 -97.738739 E Y Y',
+    'MRH 30.287193 -97.730867 S Y N',
+    'NHB 30.287474 -97.737253 E Y Y',
+    'NHB 30.287493 -97.737785 SE N N',
+    'NHB 30.287530 -97.738271 SW N Y',
+    'NHB 30.287738 -97.737621 NE Y N',
+    'PAI 30.286928 -97.738670 SW Y Y',
+    'PAI 30.287011 -97.738471 E Y Y',
+    'PAR 30.284880 -97.739860 E N N',
+    'PAR 30.285003 -97.740252 W Y Y',
+    'PAT 30.288170 -97.736524 N Y Y',
+    'PCL 30.282994 -97.737865 N Y Y',
+    'PHR 30.288104 -97.738815 W Y Y',
+    'PHR 30.288355 -97.738917 N Y Y',
+    'PMA 30.288903 -97.736342 S Y Y',
+    'PMA 30.288912 -97.736006 NE Y Y',
+    'PX3 30.387322 -97.729725 E Y N',
+    'RLP 30.284868 -97.735765 W Y N',
+    'RLP 30.285002 -97.734889 NE Y Y',
+    'RLP 30.285229 -97.735365 N Y Y',
+    'ROC 30.390533 -97.725667 W Y Y',
+    'SEA 30.289739 -97.737745 SW Y Y',
+    'SSW 30.280372 -97.732967 SW Y Y',
+    'SSW 30.280701 -97.732878 NW N N',
+    'SUT 30.285065 -97.740788 N Y Y',
+    'SV1 30.382449 -97.725727 W Y N',
+    'SZB 30.281936 -97.738864 NW Y Y',
+    'SZB 30.281952 -97.738621 E Y Y',
+    'TCB 30.387216 -97.727045 W Y Y',
+    'UA9 30.290245 -97.738825 SW Y Y',
+    'UTA 30.279248 -97.742630 E Y Y',
+    'UTA 30.279461 -97.743022 W Y Y',
+    'UTC 30.283339 -97.738594 NE Y N',
+    'WAG 30.285273 -97.737505 NE Y Y',
+    'WCH 30.286121 -97.738138 NE N Y',
+    'WCH 30.286130 -97.738658 W Y Y',
+    'WEL 30.286522 -97.737405 E Y Y',
+    'WEL 30.286690 -97.738026 NW Y Y',
+    'WEL 30.286888 -97.737452 NE Y N',
+    'WIN 30.285631 -97.734505 S Y Y',
+    'WMB 30.285617 -97.740594 N Y Y',
+    'WWH 30.289196 -97.741842 S N N',
+    'WWH 30.289318 -97.741895 W Y Y',
+]
+UT_MATCH_R = 12.0       # m; one of our doors IS this UT door within this far.
+                        # Not a round number: of the 83 UT doors on buildings
+                        # this build can route to, the distance to our nearest
+                        # door piles up at 0-8 m (25 of them), thins out at
+                        # 8-16 m (9), and piles up again at 16-28 m (25). The
+                        # trough is the boundary between "same doorway,
+                        # mislabelled" and "different doorway, different wall".
+                        # js/wayfind.js WAYFIND.utDoorMatchM is the same number
+                        # for the same reason; keep them together.
+
 TERM_R = 8.0            # m; how far a dead-end path may sit off a wall
 CLUSTER_R = 5.0         # m; two candidates this close are one entrance
 NORMAL_MIN = 0.25       # cos; how squarely a path must face the wall
@@ -2559,7 +2701,7 @@ ROLE_FROM_TAG = {"main": "main", "yes": "secondary", "staircase": "secondary",
 class Cand(object):
     __slots__ = ("x", "y", "tx", "ty", "nx", "ny", "elen", "s", "role", "src",
                  "score", "wheel", "door", "prio", "risers", "handrail",
-                 "ri", "ei", "wcrole", "wcmeth", "run")
+                 "ri", "ei", "wcrole", "wcmeth", "run", "ut")
 
     def __init__(self, x, y, tx, ty, nx, ny, elen, s, role, src, score, prio,
                  wheel=None, door=None, ri=0, ei=0):
@@ -2572,6 +2714,8 @@ class Cand(object):
         self.risers = None        # from an adjacent OSM steps way, if any
         self.handrail = False
         self.ri, self.ei = ri, ei
+        self.ut = None            # (side, barrier-free, auto-opener) when UT's
+                                  # own survey says this is the front door
         self.wcrole = None        # "lobby" | "gate" on a West Campus building
         self.wcmeth = None        # which method placed it, for the audit
         # (left, right) metres of straight wall, when the wall the door ended
@@ -2665,6 +2809,95 @@ def stage1b_authored(blds, tree, stats):
                                   "authored", 10.0, 0, None, None, ri, ei))
             placed += 1
     return placed
+
+
+def ut_celebrated_rows():
+    """The table above, parsed, grouped by building code."""
+    out = defaultdict(list)
+    for row in UT_CELEBRATED:
+        p = row.split(" ")
+        out[p[0]].append((float(p[1]), float(p[2]), p[3], p[4] == "Y",
+                          p[5] == "Y"))
+    return out
+
+
+def stage_ut(blds, stats):
+    """UT's surveyed front doors, applied last and applied hard.
+
+    Two outcomes per UT door, and which one happens is measured, not assumed:
+
+      RELABEL — a door we already placed sits within UT_MATCH_R of UT's point.
+        It IS that door; the only thing wrong with it was the role. Promote it
+        to `main`, demote whatever else on that building was calling itself
+        main, and hang UT's own flags on it.
+
+      PLACE — nothing of ours is within UT_MATCH_R. Then our data does not have
+        that door at all (Biological Laboratories' west entrance is 62 m from
+        our nearest), and it is placed here, snapped to the host wall through
+        the same snap_to_edge / normal_test the OSM stage uses. `src` says
+        `ut`, so the provenance is never laundered into `derived`.
+
+    It runs AFTER stage 3 and before the two audits, so a UT door still has to
+    survive the buried-door test like any other. It deliberately ignores
+    `budget_for` — this file's stated rule is that truth is never deleted to
+    satisfy a budget, and this is the most direct truth it has.
+    """
+    by_ref = defaultdict(list)
+    for b in blds:
+        if b.ref and b.budget >= 0:
+            by_ref[b.ref].append(b)
+    rows = ut_celebrated_rows()
+    for code, doors in sorted(rows.items()):
+        hosts = by_ref.get(code)
+        if not hosts:
+            stats["ut_no_host"] += 1
+            continue
+        claimed = []
+        for lat, lon, side, bf, ao in doors:
+            x, y = to_m(lon, lat)
+            best, bd, bb = None, UT_MATCH_R, None
+            for b in hosts:
+                for c in b.ents:
+                    d = math.hypot(c.x - x, c.y - y)
+                    if d < bd:
+                        best, bd, bb = c, d, b
+            if best is not None:
+                best.role = "main"
+                best.ut = (side, bf, ao)
+                claimed.append((bb, best))
+                stats["ut_relabelled"] += 1
+                continue
+            # nothing of ours is there: place it.
+            host, hd = None, 1e9
+            for b in hosts:
+                d = b.poly.exterior.distance(Point(x, y))
+                if d < hd:
+                    host, hd = b, d
+            if host is None or hd > OSM_MAX_SNAP:
+                stats["ut_unplaceable"] += 1
+                continue
+            sn = snap_to_edge(host, x, y)
+            if sn is None:
+                stats["ut_unplaceable"] += 1
+                continue
+            d, qx, qy, tx, ty, nx, ny, elen, sa, ri, ei = sn
+            if not normal_test(host, qx, qy, nx, ny):
+                stats["normal_fail_ut"] += 1
+                continue
+            c = Cand(qx, qy, tx, ty, nx, ny, elen, sa, "main", "ut",
+                     11.0, 0, None, None, ri, ei)
+            c.ut = (side, bf, ao)
+            host.ents.append(c)
+            claimed.append((host, c))
+            stats["ut_placed"] += 1
+        # One building, one front door per UT row and no others. Any OTHER
+        # candidate still calling itself main is our own ranking disagreeing
+        # with a survey, and the survey wins.
+        for b, keep in claimed:
+            for c in b.ents:
+                if c.role == "main" and not any(c is k for _, k in claimed):
+                    c.role = "secondary"
+                    stats["ut_demoted"] += 1
 
 
 def stage2_paths(blds, tree, paths, stats):
@@ -4754,9 +4987,52 @@ def validate_recall(blds):
     return tot, hits, errs, by_role, reach, rhits
 
 
+def refresh_ut():
+    """Re-pull UT's celebrated entrances and PRINT a table to paste.
+
+    It prints rather than writes for the same reason `--refresh` does: a table
+    in the file is reviewable in a diff and cannot half-apply when the fetch
+    times out. Paste the result over UT_CELEBRATED here AND over the identical
+    table in js/wayfind.js — the router reads its own copy so that the door
+    choice keeps working on a checkout whose data/walk_graph.json is older than
+    this bake's output.
+    """
+    try:
+        from urllib.request import urlopen
+    except ImportError:                                   # pragma: no cover
+        from urllib2 import urlopen                       # noqa: F401
+    side = {"North": "N", "South": "S", "East": "E", "West": "W",
+            "Northeast": "NE", "Northwest": "NW", "Southeast": "SE",
+            "Southwest": "SW", "SW": "SW", "W": "W", "": "-"}
+    j = json.loads(urlopen(UT_CELEBRATED_URL, timeout=90).read().decode("utf-8"))
+    rows = set()
+    for f in j.get("features", []):
+        a = f["attributes"]
+        la, lo = a.get("Latitude"), a.get("Longitude")
+        if la is None or lo is None:
+            g = f.get("geometry") or {}
+            lo, la = g.get("x"), g.get("y")
+        if la is None or lo is None:
+            continue
+        rows.add("    '%s %.6f %.6f %s %s %s'," % (
+            (a.get("Bldg_Abbr") or "").strip().upper(), la, lo,
+            side.get((a.get("Directional") or "").strip(), "-"),
+            "Y" if (a.get("BarrierFree") or "").strip().upper() == "Y" else "N",
+            "Y" if (a.get("AutoOpener") or "").strip().upper() == "Y" else "N"))
+    print("UT_CELEBRATED = [")
+    for r in sorted(rows):
+        print(r)
+    print("]")
+    print("# %d doors on %d buildings"
+          % (len(rows), len({r.split("'")[1].split(" ")[0] for r in rows})))
+
+
 def main():
     if "--refresh" in sys.argv:
         refresh()
+        return
+    if "--refresh-ut" in sys.argv:
+        refresh_ut()
         return
     src_e, src_b = load_osm()
     stats = Counter()
@@ -4989,6 +5265,19 @@ def main():
     print("                     %d of %d steps-way ends land within %.0f m of a"
           " placed door (%.0f%%)"
           % (near, len(ev), STEPS_R, 100.0 * near / max(1, len(ev))))
+
+    # `UT_STAGE=0` turns the whole stage off. It is here so the stage can be
+    # A/B'd against the previous bake byte for byte, which is how the claim
+    # "this diff is UT's doors and nothing else" was checked rather than
+    # asserted (docs/walk-door.md).
+    if os.environ.get("UT_STAGE") != "0":
+        stage_ut(scope, stats)
+    print("UT celebrated      : %d of our doors relabelled `main` from UT's own"
+          " survey, %d doors placed that we never had, %d of our `main` labels"
+          " demoted  (no host %d, unplaceable %d, normal test %d)"
+          % (stats["ut_relabelled"], stats["ut_placed"], stats["ut_demoted"],
+             stats["ut_no_host"], stats["ut_unplaceable"],
+             stats["normal_fail_ut"]))
 
     # ── THE TWO AUDITS. After every placement stage, before roles: a door
     #    that is about to be deleted must not first have been promoted to main.
