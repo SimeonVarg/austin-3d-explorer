@@ -1,5 +1,49 @@
 # Austin 3D Explorer — Full Handoff
 
+## 180. Aug 23 2026 — the K7 round, judged and shipped: the sweep's three defects all closed, the floater family named object by object, and the judging itself found a fourth (ship lane, branch `acer/k7-ship`)
+
+Four lanes ran on the first finished sweep's findings (`acer/k7-floater`,
+`k7-nighthorizon`, `k7-greenring`, `k7-flare`); all four pushed, all four
+were spot-checked with the judge's own frames on the MERGED tree (port 8655,
+one browser at a time, `harness-drift` PASS first), and all four merged.
+Full verdicts in QUEUE K7; docs per lane in `docs/k7-*.md`; judge frames in
+`shots/k7/judge/`.
+
+- **Green squiggles (K7 #2)**: the basemap `park` fill's authored mint
+  outline, never retinted. Fixed in `js/outer.js` (`OUTER.vegOutlineTint`).
+  Judge frame: 159→0 green px at night, day parks intact.
+- **Flare rings (K7 #3)**: hemisphere gate vs a 42°-wide frame. Fixed in
+  `js/graphics.js` (`FX_TUNE.FLARE.OFFSCREEN_SOFT`); control pose keeps the
+  designed flare with the sun in frame; `graphics.mjs` 27/27 merged.
+- **Night-horizon sheet (K7 #1)**: not a render defect — a capture inside the
+  outer ring's ~6 s dusk→night per-tile rebake. `night-pale.mjs` now refuses
+  to measure a scene still converging. Settled spawn-night is clean.
+  **Open request**: `shot.mjs`'s settle should compare two captures.
+- **The floater family**: honest refusal with the best evidence of the round —
+  four different objects in four different owners' files, none writable from
+  the lane (details in QUEUE K7 / `docs/k7-floater.md`). The photographed
+  Shot A teardrop is a tile-streaming transient, narrowed by prewarm (§178
+  territory), and did not appear in the judge's merged-tree phone runs.
+- **NEW, found while judging (QUEUE K8)**: the FX canvas freezes its last
+  painted frame on an idle map — jump the hour, hold still, and a red-only
+  dome from mid-transition hangs in the night sky until the next camera move.
+  Reproduced byte-identical on `main` (pre-existing). This is the greenring
+  lane's "unidentified red sky glow", it contaminates scripted stills taken
+  after a p jump, and the two-captures-agree gate cannot catch it (the stale
+  canvas is stable). Owner `js/graphics.js`: request one repaint when the
+  hour transition completes.
+
+The nightly data bot pushed the 2026-08-23 snapshot onto
+`acer/k7-nighthorizon` mid-judging; it rode the merge (manifest.latest →
+2026-08-23) and the spawn/night smoke was re-taken on the new snapshot before
+shipping. Verification of the merged tree: both reel flags at 390×844 with
+touch (Shot A downtown standing frame one, Tower centre +10 s, no teardrop;
+Shot B full night, knob at the moon), zero console errors both modes,
+`night-pale.mjs spawn` green, `graphics.mjs` 27/27, OSM attribution visible.
+Blind judging as specified was not meaningful here — the three fixed defects
+are binary presence/absence at fixed poses, not taste calls — so the judge
+verified presence/absence with fresh frames instead and says so honestly.
+
 ## 179. Aug 22 2026 — the Fable fix round, judged and shipped: the opening smear is dead, the lawns got their dial, the feedback box delivers, and the first full sweep ever finished (ship lane, branch `acer/f-ship`)
 
 Five lanes ran (`acer/f-smear`, `f-coplanar`, `f-sweep`, `f-lawns`,
