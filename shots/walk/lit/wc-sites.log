@@ -1,0 +1,5 @@
+{"step":"route","from":"PCL","to":"The Block","ok":true,"distM":1892}
+{"step":"scan","lamps":0,"phones":3,"reported":26,"inDarkArea":true,"quote":"24th is the heart of west campus and should appear as so when walking, and driving","alt":{"distM":1964,"baseDistM":1892,"extraM":72,"lamps":8,"litM":320,"pct":16,"why":"lamps","reported":16},"longestGapM":1892,"totalM":1892}
+{"step":"site","key":"agree","at":[-97.747965,30.286507],"nearestMappedLampM":563,"note":"San gabriel from 23rd to MLK is very dark","plan":{"props-lit":0,"props-lit-core":0,"props-lamp":0,"wayfind-lit-pad":0,"wayfind-dark-mark":0,"wayfind-lit-dark":0},"eye":{"props-lit":0,"props-lit-core":0,"props-lamp":0,"wayfind-lit-pad":0,"wayfind-dark-mark":0,"wayfind-lit-dark":20}}
+{"step":"site","key":"disagree","at":[-97.74167,30.287032],"nearestMappedLampM":9.3,"note":"too dim","plan":{"props-lit":2,"props-lit-core":1,"props-lamp":1,"wayfind-lit-pad":0,"wayfind-dark-mark":0,"wayfind-lit-dark":0},"eye":{"props-lit":10,"props-lit-core":10,"props-lamp":13,"wayfind-lit-pad":0,"wayfind-dark-mark":15,"wayfind-lit-dark":261}}
+{"step":"done"}

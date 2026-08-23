@@ -8,6 +8,16 @@ one-line calls, listed in §7.
 Simeon asked for *"streetlights for safety"*. This is what exists to answer that,
 what it is worth, and the case for the design that came out of it.
 
+> **ROUND 2 (later the same day) added a second source and it is the more
+> important one.** §8 of the first round named its own biggest gap: 193 OSM
+> street lamps is obviously an undercount, and somebody should go looking for
+> more. Round 2 went looking and found something better than another lamp
+> inventory — **the City of Austin's 2017 West Campus Lighting Survey**, in
+> which residents dropped 262 pins where they thought a light was needed and
+> typed why. It is the only signal in this feature that is about the world
+> rather than the map. Everything from §9 down is round 2; §1–§8 are the first
+> round's and are unchanged except where a number moved.
+
 ---
 
 ## 0. The headline, in one paragraph
@@ -388,3 +398,395 @@ measured against today's doors.
   in the data, not in the interface, not in this document.
 * **Tree cover over a lamp.** `data/trees.geojson` could in principle tell us a
   lamp is under a canopy. Not attempted.
+
+
+---
+
+## 9. The second source: 182 pins where people said it was dark
+
+`docs/walk-evidence.md` §D searched OpenStreetMap for lighting and found street
+lamps. `scripts/fetch_city_props.py`'s own header records an earlier search of
+the City of Austin's Socrata catalogue for a street-lamp inventory — *"searched
+the Socrata catalogue for 'street furniture', 'bench', 'light pole' — zero
+results"* — and that is still true. **[M]**, re-run 2026-08-23: five queries
+(`street light`, `streetlight`, `lighting`, `light pole`, `luminaire`) against
+`api.us.socrata.com/api/catalog/v1?domains=data.austintexas.gov`, all zero.
+
+The city's ArcGIS org is a different catalogue and nobody had searched it.
+**[M]**, 2026-08-23: `services.arcgis.com/0L95CJ0VTaxqcmED/ArcGIS/rest/services`
+lists **2,172 services**, two of which are `WestCampusLightingSurvey` and
+`WestCampusLightingSurvey_2`.
+
+**It is not an inventory of lights. It is the opposite, and that is why it is
+worth more.** Layer 0 is 262 points named "Suggested Lighting", each with a
+free-text `Comments` field, published by `ATD_Publisher` — the City of Austin
+Transportation Department. It is a public-input map: residents dropped a pin
+where they wanted a light and typed why.
+
+```
+This street isn't lit at all at night
+The alleyway here is very dark at night. Makes me feel uncomfortable
+San gabriel from 23rd to MLK is very dark
+Walking behind 2400 is really sketchy for the most part
+There are no street lights on this block
+Lots of shrubs and vehicles along the roadway make this section of the sidewalk dark
+```
+**[M]**, verbatim from the layer, 2026-08-23.
+
+### Provenance and age, stated first because it is the weakness
+
+| | |
+|---|---|
+| Publisher | City of Austin Transportation Department (`ATD_Publisher`) |
+| ArcGIS item | `2dddd24022e64b809188fa15e12a05ee` |
+| Created | 2017-09-21 **[M]** |
+| Last pin dropped | **2018-01-26** (`editingInfo.dataLastEditDate` = 1516985019079) **[M]** |
+| Access | public FeatureServer, no authentication |
+
+**It is eight years old and lights have been added since — that is what the
+survey was for.** Every sentence the interface builds on it says so. That is not
+a caveat bolted on afterwards; it is the reason the copy is phrased the way it
+is (§11).
+
+### The cleaning, and what each filter is for
+
+`scripts/bake_props.py --lamp-index` now also fetches this layer, caches it at
+`data/osm_cache/city_wc_lighting.json`, and applies three filters in order:
+
+```
+raw pins                                      262
+  dropped: outside the survey's own study area  78   layer 1's polygon. The public
+                                                     map let people pin anywhere in
+                                                     Austin; one landed 6 km north.
+  dropped: outside this project's render bbox    0   kept as a filter anyway: a pin
+                                                     we cannot fly to cannot be
+                                                     verified by looking.
+  dropped: somebody testing the form             2   "Test", "te", "vintage" — an
+                                                     EXACT-match list, not a substring
+                                                     one. The first cut dropped a pin
+                                                     whose whole comment was "dark".
+shipped                                       182
+  ...of which carry the person's own words      100
+```
+
+They ride in `data/walk_lamps.json` — the same file, one fetch, 2.5 KB -> **8.9
+KB** — under their own keys with their own `dark_source`, `dark_license` and
+`dark_as_of`. Two sources with two dates never share one banner.
+
+**One decode bug worth writing down.** `json.load(urlopen(...))` on this
+endpoint turns the curly apostrophe in *"This street isn't lit at all at
+night"* into U+FFFD. The bytes on the wire are correct UTF-8 (`\xe2\x80\x99`,
+checked); the encoding sniff is what loses it. This feature quotes people, so
+the fetch now decodes explicitly. Found by grepping the shipped index for
+non-ASCII, not by reading the code.
+
+---
+
+## 10. The measurement that justifies carrying an eight-year-old file
+
+All **[M]** on this repo, 2026-08-23, inside the survey's own study-area polygon.
+
+**West Campus is exactly where the lamp layer runs out.**
+
+| inside the West Campus study area | |
+|---|---|
+| OSM street lamps mapped there | **58** of 193 |
+| walk-network metres with a mapped lamp within 25 m | **7.1 %** (4,418 of 61,832 m) |
+| walk-network metres within 35 m of a reported-dark pin | **32.6 %** (20,152 m) |
+
+The pins touch **4.6x more of the network** than the lamps do. West Campus after
+midnight is the walk this whole feature exists for, and before this the lamp
+layer had almost nothing to say about it.
+
+**And the two sources do not fight.**
+
+| pins with a mapped OSM street lamp within... | n | of 182 |
+|---|---|---|
+| 15 m | 1 | 1 % |
+| 25 m | **3** | **2 %** |
+| 40 m | 4 | 2 % |
+
+A point dropped at random along the same network sits within 25 m of a mapped
+lamp **7.1 %** of the time — that is the coverage figure above, by length. The
+pins do it **2 %** of the time, about a third as often as chance. They land
+where OSM has no light either, which is exactly what a report of darkness ought
+to do. **[D]** from the two **[M]** rows above; n=182, expected around 13,
+observed 3.
+
+That is the whole argument for the import in three numbers: the pins are dense
+where the lamps are absent, they are not noise, and they say something the lamp
+layer structurally cannot.
+
+---
+
+## 11. What it says, and why every sentence survives §5's test
+
+§5 banned "well lit", "safe route" and "this route is dark" on a 9.2 %-coverage
+lamp field. **This data licenses a sentence that one never could — somebody
+stood on that pavement and said it was too dark — and it licenses it only while
+it stays attributed and dated.** So the rule for this family is: *name the
+reporter and the year, every time.*
+
+Banned, on top of everything §5 already bans:
+
+> ~~`3 dark spots on this route`~~ - ~~`Dangerous`~~ - ~~`Unsafe`~~ -
+> ~~`Avoid this street`~~ - and **any sentence in the present tense about the
+> street rather than about the report**.
+
+*Reason:* "3 dark spots on this route" claims to know the street is dark today,
+off a file that stopped taking pins in January 2018.
+
+Shipped verbatim:
+
+* `6 spots on this route were reported too dark`
+* `No spot on this route was reported too dark`
+* `"This entire corner of the GWB building is too dark."`
+  `— a resident, City of Austin lighting survey, 2017-18`
+* `Nobody was asked about lighting along this route`
+* `A way past fewer reported-dark spots: 61 m further (5%), 4 instead of 11`
+* `The City of Austin asked West Campus where lighting was needed and 182 pins
+  came back in this area, the last on 26 January 2018. Lights may have been
+  added since — that is what the survey was for.`
+
+**Three drafting calls worth defending.**
+
+1. **The quote is the point.** A count is a number we produced; *"This street
+   isn't lit at all at night"* is a person. It is the only testimony in this
+   feature, and it does the honesty work for free — nobody reads a quotation
+   mark as a live measurement. `darkQuoteFor` picks the **longest** usable
+   comment on the route, not the nearest, because the nearest is usually "too
+   dark here", which tells the reader nothing the count above it did not.
+2. **"2017-18", not "2018".** The first cut attributed the quote to
+   `dark_as_of.slice(0,4)` = 2018, the date of the *last* pin. Nothing records
+   which pin came when, so a single year printed under a specific person's
+   sentence is a fact we do not have. The range is one we do.
+3. **`Nobody was asked about lighting along this route`** exists so that zero
+   reports is never read as an all-clear. On a route that never enters the
+   surveyed area the count is not printed at all — only the absence of standing
+   to print it. This is the whole reason `scan.inDarkArea` exists. The word is
+   "area" and not "West Campus" because the polygon ATD drew reaches east over
+   Guadalupe onto the campus blocks, and pins landed there (`PAI is too dark
+   here`, `MAI is too dark here`, `WEL is too dark here`).
+
+---
+
+## 12. Does it change the route, or only annotate it — round 2's answer
+
+**Still: annotates by default, re-routes only on a button. But the button now
+has a second reason to exist, and in West Campus it is the only reason.**
+
+The first round's offered alternative preferred edges with a mapped lamp near
+them. West of Guadalupe there are 58 lamps in the whole neighbourhood, so that
+preference had almost nothing to bite on — the offer could essentially never
+fire on exactly the walk it was built for. `litEdgeWeights` now also charges
+`darkAltMult` (1.5x) on an edge within `darkNearM` of a reported-dark pin. The
+two multipliers **compound** on an edge that is both unmapped and reported,
+which is the right ordering: no light recorded *and* a person saying so is a
+worse edge than either alone.
+
+The acceptance gate is now an OR, and this is the substantive change:
+
+```
+offer the alternative when it is <= litAltMaxFrac (35%) longer   AND
+    (  it gains >= litAltMinGainM (40 m) of lamp-covered walking
+    OR it sheds >= darkAltMinDrop (2) reported-dark spots        )
+```
+
+**Why an OR and not an AND.** In West Campus a route can shed four reported-dark
+spots while gaining no mapped lamp at all, because there are no lamps there to
+gain. An AND would have made the new signal decorative.
+
+**The offer names what it actually bought.** `alt.__litWhy` records which gate
+fired and the sentence follows it. An offer that says "more mapped light" when
+what it did was route around four reported-dark spots would be selling the user
+the wrong reason — and the wrong reason is the one they would judge the result
+by.
+
+### The A/B, because "it earns its place in the search" is a claim
+
+Same 36 pairs, same page, driven twice through the real `window.wayfindRoute`
+with `WAYFIND.darkOn` flipped between runs. Pairs are a campus building code to
+a West Campus address, seeded and identical across both runs — the walk home.
+Two page loads, because `litEdgeWeights` memoises its weight array on the graph
+and there is no hook to drop it. **[M]**, 2026-08-23.
+
+| | lamps only | + reported dark |
+|---|---|---|
+| routes that produced an alternative at all | **17 / 36** | **25 / 36** |
+| ...because it gained mapped lamps | 17 | 17 |
+| ...because it shed reported-dark spots | — | **8** |
+| median extra distance of an offer | 24 m | **24 m** |
+| routes with zero mapped lamps on them | 17 | 17 |
+| median reported-dark spots on a route in the surveyed area | — | 8 |
+
+**Eight offers exist that did not exist before, and they cost the same.** The
+median offer is 24 m further in both configurations — the new signal is not
+buying its extra offers by relaxing the price, because it cannot: the 35 %
+ceiling is checked against the re-measured true distance either way. The 17
+lamp-driven offers are byte-identical between the runs, which is the control:
+adding the second preference did not quietly rewrite the answers the first one
+was already giving.
+
+**What did NOT change, and the first round's argument is undamaged.** This is a
+2017 self-selected public-input survey. Steering every night walk by it would
+optimise for who filled in a form eight years ago. It is offered, priced in
+metres, taken by the user, and still not sticky.
+
+---
+
+## 13. Verification — the claim against the pixels, in both directions
+
+House rule: prove the subject is on screen. The test picked its two sites **from
+the data rather than by eye**, which is the only way it could have failed
+honestly: the pin furthest from any mapped lamp, and the pin nearest one.
+
+| | site | the resident's words | nearest mapped lamp |
+|---|---|---|---|
+| **agree** | `-97.747965 30.286507` (San Gabriel St) | *"San gabriel from 23rd to MLK is very dark"* | **563 m** — the furthest any pin gets |
+| **disagree** | `-97.741670 30.287032` (Guadalupe, by the 7-Eleven) | *"too dim"* | **9.3 m** — the nearest any pin gets |
+
+Plan view, pitch 0, z 20.6, `p = 0.92`, graphics auto-detect cancelled, veil
+gone, second screenshot of a pair, hardware GL.
+
+| frame | renderer says | what is in it |
+|---|---|---|
+| `wc-pole-lamp.png` | `props-lit 1 · props-lit-core 1 · props-lamp 1` | a warm pool with **a dark pole square in the middle of it**, at the exact coordinate of the mapped lamp |
+| `wc-pole-nolamp.png` | `props-lit 0 · props-lit-core 0 · props-lamp 0` | **black.** Tree canopy and dark ground. No pole, no pool |
+| `wc-agree-plan.png` | `props-lit 0 · props-lamp 0` | the San Gabriel block — dark, and see the caveat below |
+| `wc-disagree-plan.png` | `props-lit 2 · props-lamp 1` | the Drag: real lamp pools, with cores |
+| `wc-pin.png` | `wayfind-dark-mark 1` | standing at a counted pin: the violet diamond on the pavement, no pole anywhere near it |
+| `wc-card.png` | — | the card: count, quote, attribution, both source lines |
+
+**The claim matches the scene in both directions.** Where the index says a lamp,
+the scene stands a pole in a pool. Where it says none for 563 m, the frame is
+black. And at the one place the two sources look like they disagree, they do
+not: the resident wrote *"too dim"*, not "no light" — a lamp being present and
+being too dim are both true at once.
+
+### The one real mismatch, and it is ours, not the data's
+
+`wc-agree-plan.png` shows **two soft warm glows on a street where nothing is
+mapped**. They are not lamps: `props-lit 0`, `props-lamp 0` in that frame, and
+cropped at 3x the glow has **no pole and no bright core** — compare
+`wc-pole-lamp.png`, where both are unmistakable. They are `js/night.js`'s
+decorative pools, painted at fixed spacing along the basemap's road classes so
+the city does not read as a void after dark. §1 already refuses to count them,
+and that is right.
+
+**But a person flying there sees light on a street the card calls unmapped.**
+The card is defensible — every sentence is about the map, and it says the map
+understates reality. The *scene* is what creates the impression. Naming it
+rather than leaving it to be found:
+
+* it is not a defect in this lane's claim, and no number here moves;
+* it is a real reason a user could believe the feature is wrong;
+* the fix, if Simeon wants one, is in `js/night.js`, which this lane does not
+  own: either give the decorative pools a visibly cooler falloff than a surveyed
+  lamp's, or fade them while a walking route is on screen. §14 has the request.
+
+### A trap, and what it cost
+
+`page.evaluate((ll) => window.__map.jumpTo({...}), ll)` — an **expression-bodied
+arrow returns the Map**, and Playwright then tries to serialise that whole
+cyclic object graph across CDP. The call never returns, the run dies at the
+watchdog with no error, and nothing is written. **Two full runs, about
+twenty-five minutes.** Braces are load-bearing:
+
+```js
+page.evaluate((ll) => { window.__map.jumpTo({ ... }); }, ll)
+```
+
+Worth adding to `scripts/verify/README.md`'s trap list by whoever owns it.
+
+Second, smaller: these screenshot passes run on **hardware GL**
+(`launch(chromium, { gl: 'hardware' })`), which the README already sanctions for
+screenshot scripts. On SwiftShader the page's main thread stayed saturated long
+enough that even a bare `jumpTo` took minutes to return. No assertion in this
+pass depends on exact hex, so determinism is not being traded away.
+
+### And a mistake of mine, recorded because it cost somebody else
+
+Clearing a stalled run I used `taskkill /F /IM node.exe`, which killed **every**
+node process on the machine — including a sibling lane's browser run that was
+mid-flight. The brief says not to run `reap.mjs` because siblings are live; this
+was worse. The right move, used for every kill after it: match the command line
+first (`Get-CimInstance Win32_Process -Filter "Name='node.exe'"`) and stop only
+your own PID.
+
+---
+
+## 14. Requests to lanes that own other files (round 2)
+
+Written here rather than made, per CLAUDE.md rule 1. §7's two requests still
+stand; these are new.
+
+**d) `js/night.js` — the decorative pools versus a surveyed lamp.** (Owner of
+`js/night.js`.) See §13. The pools have no pole and no survey behind them, but
+at a walking camera they read like street lighting, on streets this feature is
+telling the user have none mapped. Nothing here needs it to change — but if it
+should, the cheapest version is a cooler tint and a flatter falloff for the
+decorative pool so the two are distinguishable at a glance, which is a taste
+call for Simeon, not an execution one.
+
+**e) `scripts/bake_walk.py` — nothing is wrong, and here is the near-miss.**
+While picking demo endpoints this lane decoded `walk_graph.json`'s `wc` register
+as node indices and got nonsense: "21 Rio" 800 m from 21 Rio, every West Campus
+address collapsed into one blob south of MLK. It was about to be written up as a
+defect. **`wc` maps a name to DOOR indices** (`js/wayfind.js:846`), and decoded
+that way every one of the 24 addresses lands correctly. No bug — but the file's
+own `_format` string documents `n`, `e`, `re`, `d` and not `wc`/`code`/`poi`, and
+one line saying which array those index would have saved the trip.
+
+---
+
+## 15. What round 2 did NOT establish
+
+* **Whether any given reported-dark spot is still dark.** It is a 2017 report.
+  The whole survey existed to get lights installed, so the best case is that
+  many of these are fixed. Nothing in the interface claims otherwise, and the
+  attribution line says it in as many words.
+* **Who did not fill in the form.** A self-selected public-input map measures
+  who answers surveys as much as it measures darkness. The blocks with no pins
+  are not blocks with no problem; they may be blocks with nobody who saw the
+  map. This is the honest ceiling on the whole source and it cannot be measured
+  from inside it.
+* **Whether `darkNearM` = 35 m is the right radius.** It is defended in the
+  constant's comment — a pin is a finger on a phone map describing a stretch of
+  street, not a survey point — but it is a judgement and it is one line.
+* **Whether UT Facilities publishes campus lighting.** Checked the UT ArcGIS org
+  (123 services) and there is no lighting layer; the closest are
+  `Emergency_Phones_view` and `Sure_Walk_view`. Still unchecked: whether UT
+  publishes it anywhere else. §16.
+* **Anything about crime.** Not in the data, not in the interface, not here.
+
+---
+
+## 16. Two more UT layers found while looking, not used, worth someone's round
+
+Both **[M]**, live 2026-08-23, from the same UT ArcGIS org
+(`services9.arcgis.com/w9x0fkENXvuWZY26`) that `docs/walk-evidence.md` §B found
+the entrance data on. Neither is in this lane's scope; both are better leads
+than another lamp hunt.
+
+**`Emergency_Phones_view` — 116 rows, and the app counts 43.** UT's own survey
+of its blue-light phones, with `Status` (109 `Reviewed`, 3 `Inactive`),
+`DeviceLocation` (EXT/INT) and a written `Description` per phone
+(*"located southwest of San Jacinto Garage (SJG) along San Jacinto Blvd near the
+intersection of 24th Street"*). The app's 43 come from OSM `emergency=phone`.
+**This lane deliberately did not import them**, and the reason is the same rule
+that governs everything above: the scene draws 43 blue posts, and a card
+claiming 116 would be a claim about lights the renderer does not stand. Importing
+them properly means putting them in `data/props.geojson` so they are *drawn* —
+which is `bake_props.py`'s main path, and HANDOFF §44 says that path cannot be
+re-run here without the City of Austin inventory caches. That is a whole task,
+and it is a good one.
+
+**`Sure_Walk_view` — the UT night walking escort.** Five polygons: one pickup
+zone, four drop-off zones, with `Phone_Number` (512-232-9255) and
+`Home_URL` (`parking.utexas.edu/transportation/walking`), and the note
+*"If you are on campus late and have concerns about your safety getting home,
+students, faculty, and staff can request Sure Walkers for assistance."* For the
+question Simeon actually asked — streetlights, for safety — the most useful
+thing this project could say to a student at 1 a.m. may not be a lamp count at
+all. It may be that somebody will walk with them, free, and here is the number.
+That is a UI call and belongs to whoever owns the card, not here.

@@ -302,6 +302,75 @@
     litAltMinGainM: 40,    // and never offer one that buys less than this much
                            // extra covered walking. Below that it is noise.
 
+    // ── AND THE OTHER SOURCE: WHERE PEOPLE SAID IT WAS DARK ────────────────
+    //
+    // Everything above is about the MAP — where a lamp is recorded. This is the
+    // one signal in the feature that is about the WORLD: in 2017 the City of
+    // Austin Transportation Department put up a public-input map for West
+    // Campus and asked residents to drop a pin where a light was needed. 182 of
+    // those pins are inside the city we draw, 100 of them with the person's own
+    // words attached — "This street isn't lit at all at night", "The alleyway
+    // here is very dark at night."
+    //
+    // WHY IT IS WORTH CARRYING A 2018 FILE. Measured on this repo, 2026-08-23:
+    // inside the survey's own study area OSM has 58 street lamps covering 7.1 %
+    // of the walk network's metres; the pins touch 32.6 % of the same metres.
+    // West Campus after midnight is the walk this whole feature exists for and
+    // the lamp layer is nearly silent about it.
+    //
+    // AND THE TWO SOURCES DO NOT FIGHT. Only 3 of the 182 pins have a mapped
+    // lamp within 25 m. A point dropped at random on the same network would sit
+    // near a mapped lamp about 7 % of the time; these do it 2 % of the time —
+    // they land where OSM has no light either, which is what you would want a
+    // report of darkness to do.
+    //
+    // WHAT IT IS NOT: current, complete, or a measurement. It is what people
+    // said eight years ago. Lights have been added since — that is what the
+    // survey was FOR — and nobody surveyed the streets nobody pinned. Every
+    // sentence built on it carries the year, and none of them says "dark".
+    // They say "reported".
+    darkOn: true,
+    darkNearM: 35,         // how close a pin has to be to count as being ON this
+                           // route. A pin is a finger on a phone map describing
+                           // a STRETCH of street ("this entire street is very
+                           // dark"), not a survey point, so this is wider than
+                           // litRadiusM on purpose and should not be read as a
+                           // precision claim.
+    darkQuoteMinLen: 12,   // a comment shorter than this ("dark", "more light")
+                           // is a vote, not a sentence, and quoting it back to
+                           // someone makes the feature look thinner than it is.
+    darkQuoteMaxLen: 96,   // and one longer than this is trimmed on a word.
+    // A THIRD colour, and it has to be a third. Amber already means "a mapped
+    // lamp is here" and litDarkCol means "nothing is mapped here"; a person
+    // saying "it is dark here" is neither of those, and painting it in either
+    // one would fold a human report into a fact about the map. Cool violet: it
+    // cannot be mistaken for a light source in a night frame, and it is the one
+    // hue nothing else in this scene uses.
+    darkCol: '#a98cff',
+    darkTextCol: '#c3b0ff', // the same fact on the dark glass of the card, where
+                           // the ground colour is too dark to read as text.
+    darkMarkM: 4.6,        // outer side of the mark, ground metres — larger than
+                           // litPadM so the two never read as the same object.
+    darkMarkRimM: 0.5,
+    darkMarkH: 0.30,       // just under litPadH: where a pin and a lamp land in
+                           // the same place (3 of 182 do) the lamp's ring is the
+                           // one on top, because the lamp is the newer fact.
+    darkMarkOpacity: 0.72,
+    darkMarkDiamond: true, // drawn as a diamond, not a square. The lamp ring is
+                           // an axis-aligned square; at a walking camera two
+                           // squares of different sizes read as the same mark
+                           // twice, and a 45-degree turn is legible at a glance
+                           // where a size difference is not.
+    // What a reported-dark edge costs the OFFERED alternative's search. This is
+    // the second reason that alternative exists — and in West Campus it is the
+    // only reason, because there are hardly any lamps there to prefer toward.
+    darkAltMult: 1.5,
+    darkAltMinDrop: 2,     // an alternative that sheds fewer reported spots than
+                           // this is not worth a button. It is offered when it
+                           // clears EITHER this or litAltMinGainM, because in
+                           // West Campus a route can drop four reported-dark
+                           // spots while gaining no mapped lamp at all.
+
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
     registerUrl: 'data/ut_buildings.json',  // UT's own 198-code register; the
@@ -440,6 +509,49 @@
     litAltOn: 'Showing the way with more mapped light',
     litAltOff: 'Back to the shortest way',
     litAltNone: 'No way with more mapped light within the extra distance we allow',
+    // ...and once the search is also steering away from reported-dark spots,
+    // "no way with more mapped light" no longer describes what it looked for.
+    // A sentence that names only half the search is a sentence that will be
+    // read as the whole search.
+    litAltNoneEither: 'No way with more mapped light, or past fewer reported-dark ' +
+      'spots, within the extra distance we allow',
+
+    // ── the reported-dark sentences ───────────────────────────────────────
+    //
+    // THE RULE THEY ALL OBEY: name the reporter and the year, every time. This
+    // data licenses a sentence the lamp data never could — someone stood on
+    // that pavement and said it was too dark — and it licenses it only while
+    // it is attributed. "3 dark spots on this route" would be us claiming to
+    // know the street is dark today, off a file that stopped taking pins in
+    // January 2018. "3 spots residents reported too dark in 2017" is the same
+    // information and it is true.
+    //
+    // BANNED HERE FOR THE SAME REASON §5 of docs/walk-lit.md bans them on the
+    // lamp side, and one more besides: `Dangerous` · `Unsafe` · `Avoid this
+    // street` · `3 dark spots` · any sentence in the present tense about the
+    // street rather than about the report. A 2017 pin is evidence about 2017.
+    darkSpots: (n) => n + (n === 1 ? ' spot on this route was' : ' spots on this route were') +
+      ' reported too dark',
+    darkNoneOnRoute: 'No spot on this route was reported too dark',
+    darkQuote: (q) => '“' + q + '”',
+    // The SURVEY's years, not the file's last-edited date. Pins came in from
+    // September 2017 to January 2018 and nothing records which pin came when,
+    // so a single year under a specific person's sentence would be a fact we
+    // do not have. The range is one we do.
+    darkQuoteWho: () => '— a resident, City of Austin lighting survey, 2017–18',
+    darkSource: (n, when) => 'The City of Austin asked West Campus where lighting ' +
+      'was needed and ' + n + ' pins came back in this area, the last on ' + when +
+      '. Lights may have been added since — that is what the survey was for.',
+    // Outside the surveyed area there is nothing to say, and saying nothing is
+    // the honest thing. This line exists so the ABSENCE of reports is never
+    // read as an all-clear on a route nobody was ever asked about. "Area" and
+    // not "West Campus": the study polygon the city drew reaches east over
+    // Guadalupe onto the campus blocks, and pins landed there.
+    darkOutside: 'Nobody was asked about lighting along this route',
+    darkAltOffer: (extra, pct, was, now) => 'A way past fewer reported-dark spots: ' +
+      extra + ' further (' + pct + '%), ' + now + ' instead of ' + was,
+    darkAltOfferFree: (was, now) => 'A way past fewer reported-dark spots, no further: ' +
+      now + ' instead of ' + was,
   };
 
   // ── ON/OFF, decided before anything else happens ──────────────────────────
@@ -1492,7 +1604,7 @@
   // the file, never the graph's.
   const SRC_LIT = 'wayfind-lit';
   const L_LIT_PAD = 'wayfind-lit-pad', L_LIT_DARK = 'wayfind-lit-dark';
-  const L_LIT_THREAD = 'wayfind-lit-thread';
+  const L_LIT_THREAD = 'wayfind-lit-thread', L_DARK_MARK = 'wayfind-dark-mark';
   let LAMPS = null, lampPromise = null, litLayersAdded = false;
 
   function decodeLampSet(o) {
@@ -1530,6 +1642,27 @@
     return any;
   }
 
+  /** The bounding box of the reported-dark pins, padded by the radius at which
+   *  a pin counts, so a route running along the edge of the surveyed area is
+   *  inside it rather than just outside it. */
+  function darkBounds(set) {
+    if (!set || !set.n) return null;
+    let w = 180, s = 90, e = -180, n = -90;
+    for (let i = 0; i < set.n; i++) {
+      w = Math.min(w, set.X[i]); e = Math.max(e, set.X[i]);
+      s = Math.min(s, set.Y[i]); n = Math.max(n, set.Y[i]);
+    }
+    const px = WAYFIND.darkNearM / MPD_LON, py = WAYFIND.darkNearM / MPD_LAT;
+    return [w - px, s - py, e + px, n + py];
+  }
+  /** Does any part of this walked line fall in the surveyed area? */
+  function touchesDarkArea(line) {
+    const b = LAMPS && LAMPS.darkBox;
+    if (!b) return false;
+    for (const p of line) if (p[0] >= b[0] && p[0] <= b[2] && p[1] >= b[1] && p[1] <= b[3]) return true;
+    return false;
+  }
+
   async function loadLamps() {
     if (LAMPS) return LAMPS;
     if (lampPromise) return lampPromise;
@@ -1539,13 +1672,28 @@
       const j = await r.json();
       const q = j.q || 1e-6;
       const warm = decodeLampSet(j.warm), blue = decodeLampSet(j.blue);
-      for (const s of [warm, blue]) for (let i = 0; i < s.n; i++) { s.X[i] *= q; s.Y[i] *= q; }
+      // The city's reported-dark pins ride in the same file — a different
+      // source, a different licence and a different date, so they are decoded
+      // into their own set and never merged into `warm`. `dark_notes[i]` is the
+      // person's own words for `dark[i]`; the bake sorts both the same way.
+      const dark = decodeLampSet(j.dark);
+      for (const s of [warm, blue, dark]) for (let i = 0; i < s.n; i++) { s.X[i] *= q; s.Y[i] *= q; }
       LAMPS = {
         warm, blue, asOf: j.as_of || null,
         nWarm: j.n_warm != null ? j.n_warm : warm.n,
         nBlue: j.n_blue != null ? j.n_blue : blue.n,
         gWarm: lampGrid(warm, WAYFIND.litRadiusM),
         gBlue: lampGrid(blue, WAYFIND.litPhoneNearM),
+        dark, nDark: j.n_dark != null ? j.n_dark : dark.n,
+        darkNotes: j.dark_notes || [],
+        darkAsOf: j.dark_as_of || null,
+        gDark: lampGrid(dark, WAYFIND.darkNearM),
+        // The study area, as a bounding box off the pins themselves. Used for
+        // one thing only: knowing when to say "this survey did not cover here"
+        // instead of letting an empty count read as an all-clear. A box and not
+        // the real polygon because the difference does not change that sentence
+        // and the polygon is 60 vertices we would have to ship.
+        darkBox: darkBounds(dark),
       };
       return LAMPS;
     })().catch((e) => { lampPromise = null; throw e; });
@@ -1581,7 +1729,7 @@
     const line = walkedLine(route);
     if (line.length < 2) return null;
     const step = WAYFIND.litSampleM;
-    const lamps = new Set(), phones = new Set();
+    const lamps = new Set(), phones = new Set(), reported = new Set();
     let litM = 0, darkM = 0, longestGap = 0;
     const runs = [];                 // {lit:bool, m:number, line:[[lon,lat],…]}
     let cur = null;
@@ -1602,6 +1750,13 @@
         const m = segM / n;
         const on = lampsNear(LAMPS.warm, LAMPS.gWarm, mx, my, WAYFIND.litRadiusM, lamps);
         lampsNear(LAMPS.blue, LAMPS.gBlue, mx, my, WAYFIND.litPhoneNearM, phones);
+        // The city's pins, on the same sweep and into their own set. They are
+        // NOT allowed to move `litM`/`darkM`: those two numbers mean "a lamp is
+        // mapped here" and nothing else, and a resident's report is a different
+        // kind of thing that gets its own count and its own sentence.
+        if (WAYFIND.darkOn && LAMPS.dark) {
+          lampsNear(LAMPS.dark, LAMPS.gDark, mx, my, WAYFIND.darkNearM, reported);
+        }
         if (on) litM += m; else darkM += m;
         emit(on, p0, p1, m);
       }
@@ -1611,6 +1766,8 @@
       litM, darkM, totalM: litM + darkM, longestGapM: longestGap,
       lamps: Array.from(lamps), phones: Array.from(phones), runs,
       pct: (litM + darkM) > 0 ? litM / (litM + darkM) : 0,
+      reported: Array.from(reported),
+      inDarkArea: WAYFIND.darkOn && touchesDarkArea(line),
     };
     route.__lit = out;
     return out;
@@ -1626,14 +1783,29 @@
   // RE-MEASURED against the true lengths, because a route whose printed
   // distance came off the inflated array would be lying by exactly the amount
   // of the preference.
+  //
+  // AND THE SECOND PREFERENCE, WHICH IS THE ONE THAT WORKS IN WEST CAMPUS. An
+  // edge near a pin somebody dropped saying "too dark here" costs `darkAltMult`
+  // more as well. This matters because the lamp preference alone has almost
+  // nothing to bite on west of Guadalupe — 58 mapped lamps for the whole
+  // neighbourhood — so before this the offer could essentially never fire on
+  // exactly the walk it exists for. The two multipliers compound on an edge
+  // that is both unmapped and reported, which is the right ordering: no light
+  // recorded AND a person saying so is a worse edge than either alone.
   function litEdgeWeights(g) {
     if (g.__litW) return g.__litW;
     const W = Int32Array.from(g.W);
+    const useDark = WAYFIND.darkOn && LAMPS.dark && LAMPS.dark.n > 0;
     for (let i = 0; i < g.E; i++) {
       const mx = (g.X[g.A[i]] + g.X[g.B[i]]) / 2, my = (g.Y[g.A[i]] + g.Y[g.B[i]]) / 2;
+      let mult = 1;
       if (!lampsNear(LAMPS.warm, LAMPS.gWarm, mx, my, WAYFIND.litRadiusM, null)) {
-        W[i] = Math.round(g.W[i] * WAYFIND.litAltMult);
+        mult *= WAYFIND.litAltMult;
       }
+      if (useDark && lampsNear(LAMPS.dark, LAMPS.gDark, mx, my, WAYFIND.darkNearM, null)) {
+        mult *= WAYFIND.darkAltMult;
+      }
+      if (mult !== 1) W[i] = Math.round(g.W[i] * mult);
     }
     g.__litW = W;
     return W;
@@ -1682,10 +1854,20 @@
       litRemeasure(G, alt);
       alt.__litPreferred = true;
       const base = litScan(route), got = litScan(alt);
+      // Two ways to earn the button, and it needs only one of them. The first
+      // is the original: enough extra metres with a mapped lamp on them. The
+      // second is new and is the West Campus case: shedding reported-dark spots
+      // while gaining no lamp at all, because there are no lamps there to gain.
+      // Both are measured against the RE-MEASURED route, never the search's own
+      // inflated numbers, and the distance ceiling binds either way.
+      const gainedLamps = base && got ? got.litM - base.litM : 0;
+      const droppedSpots = base && got ? base.reported.length - got.reported.length : 0;
       const ok = base && got &&
         !sameEdges(route, alt) &&
         alt.distM <= route.distM * WAYFIND.litAltMaxFrac &&
-        (got.litM - base.litM) >= WAYFIND.litAltMinGainM;
+        (gainedLamps >= WAYFIND.litAltMinGainM ||
+         droppedSpots >= WAYFIND.darkAltMinDrop);
+      if (ok) alt.__litWhy = gainedLamps >= WAYFIND.litAltMinGainM ? 'lamps' : 'reports';
       alt = ok ? alt : null;
     } else { alt = null; }
     route.__litAlt = alt;
@@ -1748,6 +1930,23 @@
         'fill-extrusion-vertical-gradient': false,
       },
     }, overOf(map));
+    // A DIAMOND at every reported-dark spot this route passes. Deliberately a
+    // different shape, a different size and a different hue from the lamp ring:
+    // it marks a sentence somebody typed in 2017, not a light, and the one
+    // thing this mark must never do is read as another lamp. It is added BELOW
+    // the lamp ring in the layer order so that at the three places where a pin
+    // and a mapped lamp coincide, the lamp — the newer fact — sits on top.
+    map.addLayer({
+      id: L_DARK_MARK, type: 'fill-extrusion', source: SRC_LIT, minzoom: WAYFIND.minZoom,
+      filter: ['==', ['get', 'k'], 'reported'],
+      paint: {
+        'fill-extrusion-color': WAYFIND.darkCol,
+        'fill-extrusion-height': ['get', 'h'],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': WAYFIND.darkMarkOpacity,
+        'fill-extrusion-vertical-gradient': false,
+      },
+    }, L_LIT_PAD);
     litRetint(map);
   }
 
@@ -1793,9 +1992,36 @@
       });
       for (const i of scan.lamps) feats.push(ring([LAMPS.warm.X[i], LAMPS.warm.Y[i]], 'lamp'));
       for (const i of scan.phones) feats.push(ring([LAMPS.blue.X[i], LAMPS.blue.Y[i]], 'phone'));
+      // ...and the city's pins, as a diamond ring in their own colour.
+      if (WAYFIND.darkOn && LAMPS.dark) {
+        for (const i of scan.reported) {
+          feats.push(diamondRing([LAMPS.dark.X[i], LAMPS.dark.Y[i]]));
+        }
+      }
     }
     const src = map.getSource(SRC_LIT);
     if (src) src.setData({ type: 'FeatureCollection', features: feats });
+  }
+
+  /** The reported-dark mark: an open ring, like the lamp's, but turned 45° and
+   *  bigger. `squareAround` is axis-aligned by construction, so the corners are
+   *  built here rather than by rotating it — a rotation would have to know the
+   *  latitude scaling and would come out as a kite, not a diamond. */
+  function diamondRing(ll) {
+    const corners = (sideM) => {
+      const rx = (sideM / 2) / MPD_LON, ry = (sideM / 2) / MPD_LAT;
+      return [[ll[0], ll[1] - ry], [ll[0] + rx, ll[1]],
+        [ll[0], ll[1] + ry], [ll[0] - rx, ll[1]], [ll[0], ll[1] - ry]];
+    };
+    const outer = WAYFIND.darkMarkM;
+    const inner = Math.max(0.2, outer - 2 * WAYFIND.darkMarkRimM);
+    const shape = WAYFIND.darkMarkDiamond
+      ? [corners(outer), corners(inner)]
+      : squareAround(ll, outer).concat(squareAround(ll, inner));
+    return {
+      type: 'Feature', properties: { k: 'reported', h: WAYFIND.darkMarkH },
+      geometry: { type: 'Polygon', coordinates: shape },
+    };
   }
 
   /** Night makes these marks matter, so night is when they are at full
@@ -1807,6 +2033,7 @@
     const set = (id, v) => { if (map.getLayer(id)) { try { map.setPaintProperty(id, 'fill-extrusion-opacity', v); } catch (e) {} } };
     set(L_LIT_DARK, WAYFIND.litDarkOpacity * k);
     set(L_LIT_PAD, WAYFIND.litPadOpacity * k);
+    set(L_DARK_MARK, WAYFIND.darkMarkOpacity * k);
     // The thread's opacity is a zoom interpolation, not a scalar, so the whole
     // expression is rebuilt with the night factor folded into its peak. Same
     // two stops as `wayfind-thread`, off the same two constants.
@@ -1848,11 +2075,49 @@
     const scan = litScan(r);
     if (!scan || nightness() < WAYFIND.litNightP) return;
     const n = scan.lamps.length;
-    const line = h('div', null, n ? SAY.litLamps(n) : SAY.litNone);
+    // WHICH ONE LINE. The closed pill has room for exactly one sentence about
+    // light, so it gets the one that carries the most information about THIS
+    // walk. A route with no mapped lamp on it but four spots people reported
+    // too dark is far better described by the second fact than by the first —
+    // and that is not an edge case, it is every walk home into West Campus.
+    // A route with lamps on it, or one the survey never covered, keeps the
+    // lamp sentence.
+    const spots = WAYFIND.darkOn ? scan.reported.length : 0;
+    const useReports = spots > 0 && n === 0;
+    const line = h('div', null,
+      useReports ? SAY.darkSpots(spots) : (n ? SAY.litLamps(n) : SAY.litNone));
     line.style.cssText = 'font-size:11px;font-weight:600;margin-top:4px;letter-spacing:.02em;' +
-      'color:' + (n ? WAYFIND.litLampCol : WAYFIND.litTextDim);
+      'color:' + (useReports ? WAYFIND.darkTextCol : (n ? WAYFIND.litLampCol : WAYFIND.litTextDim));
     el.pill.insertBefore(line, el.card);
     litPillNode = line;
+  }
+
+  /** One resident's sentence, picked from the pins this route passes.
+   *
+   *  WHY QUOTE AT ALL. A count is a number we produced; "This street isn't lit
+   *  at all at night" is a person, and it is the only thing in this feature
+   *  that is testimony rather than arithmetic. It also does the honesty work
+   *  for free — nobody reads a quotation mark as a live measurement.
+   *
+   *  Picks the LONGEST usable comment rather than the nearest, because the
+   *  nearest is often "too dark here", which tells the reader nothing they did
+   *  not just read in the count above it. Deterministic: same route, same quote.
+   */
+  function darkQuoteFor(scan) {
+    if (!WAYFIND.darkOn || !LAMPS || !LAMPS.darkNotes || !scan) return null;
+    let best = null;
+    for (const i of scan.reported) {
+      const t = (LAMPS.darkNotes[i] || '').trim();
+      if (t.length < WAYFIND.darkQuoteMinLen) continue;
+      if (!best || t.length > best.length) best = t;
+    }
+    if (!best) return null;
+    if (best.length > WAYFIND.darkQuoteMaxLen) {
+      const cut = best.slice(0, WAYFIND.darkQuoteMaxLen);
+      const sp = cut.lastIndexOf(' ');
+      best = (sp > WAYFIND.darkQuoteMinLen ? cut.slice(0, sp) : cut) + '…';
+    }
+    return best;
   }
 
   /** The block in the open card: what is mapped, where it runs out, what that
@@ -1880,6 +2145,33 @@
     if (ph) phone.style.color = WAYFIND.litPhoneCol;
     card.appendChild(phone);
 
+    // ── what people said, where anybody was asked ─────────────────────────
+    //
+    // Ordered after the map facts and before the offer, because that is the
+    // order they carry weight in: here is what is recorded, here is what people
+    // who live here said about it, here is what you can do about it.
+    const spots = WAYFIND.darkOn && LAMPS.dark ? scan.reported.length : 0;
+    if (WAYFIND.darkOn && LAMPS.dark && LAMPS.dark.n) {
+      if (!scan.inDarkArea) {
+        // The survey only ever covered West Campus. On a route that never
+        // enters it, zero reports is not an all-clear and must not be printed
+        // as one — so the count is not printed at all, only its absence of
+        // standing. This line is the whole reason `inDarkArea` exists.
+        card.appendChild(h('div', 'wf-c wf-dim', SAY.darkOutside));
+      } else {
+        const rep = h('div', 'wf-c', spots ? SAY.darkSpots(spots) : SAY.darkNoneOnRoute);
+        rep.style.color = spots ? WAYFIND.darkTextCol : WAYFIND.litTextDim;
+        card.appendChild(rep);
+        const q = darkQuoteFor(scan);
+        if (q) {
+          const quote = h('div', 'wf-c', SAY.darkQuote(q));
+          quote.style.cssText = 'font-style:italic;color:' + WAYFIND.darkTextCol + ';opacity:.9';
+          card.appendChild(quote);
+          card.appendChild(h('div', 'wf-c wf-dim', SAY.darkQuoteWho()));
+        }
+      }
+    }
+
     if (r.__litPreferred) {
       const on = h('div', 'wf-c', SAY.litAltOn);
       on.style.color = WAYFIND.litLampCol;
@@ -1893,21 +2185,41 @@
       if (alt) {
         const extra = alt.distM - r.distM;
         const pct = Math.round(100 * extra / Math.max(1, r.distM));
-        const now = litScan(alt).lamps.length;
-        card.appendChild(h('div', 'wf-c', pct >= 1
-          ? SAY.litAltOffer(fmtDist(extra), pct, scan.lamps.length, now)
-          : SAY.litAltOfferFree(scan.lamps.length, now)));
+        const gotScan = litScan(alt);
+        // The offer names the thing the alternative actually buys. An offer
+        // that says "more mapped light" when what it really did was route
+        // around four reported-dark spots — gaining no lamp at all — would be
+        // selling the user the wrong reason, and the wrong reason is the one
+        // they would judge the result by.
+        const byReports = alt.__litWhy === 'reports';
+        const was = byReports ? scan.reported.length : scan.lamps.length;
+        const now = byReports ? gotScan.reported.length : gotScan.lamps.length;
+        const offer = pct >= 1
+          ? (byReports ? SAY.darkAltOffer : SAY.litAltOffer)(fmtDist(extra), pct, was, now)
+          : (byReports ? SAY.darkAltOfferFree : SAY.litAltOfferFree)(was, now);
+        card.appendChild(h('div', 'wf-c', offer));
         const take = h('button', 'wf-chip', SAY.litAltTake);
         take.addEventListener('click', (ev) => { ev.stopPropagation(); litSwap(true); });
         const row = h('div', 'wf-chips'); row.appendChild(take);
         card.appendChild(row);
       } else if (scan.longestGapM >= WAYFIND.litGapMinM) {
-        card.appendChild(h('div', 'wf-c wf-dim', SAY.litAltNone));
+        const searchedBoth = WAYFIND.darkOn && LAMPS.dark && LAMPS.dark.n && scan.inDarkArea;
+        card.appendChild(h('div', 'wf-c wf-dim',
+          searchedBoth ? SAY.litAltNoneEither : SAY.litAltNone));
       }
     }
 
     card.appendChild(h('div', 'wf-c wf-dim',
       SAY.litSource(LAMPS.nWarm, LAMPS.asOf ? fmtAsOf(LAMPS.asOf) : '')));
+    // The second source gets its own attribution line and its own date, and
+    // only where it has standing. Two sources with two dates must never share
+    // one banner — the lamps are a June 2026 snapshot, the pins stopped in
+    // January 2018, and printing either date over the other's data is the
+    // exact mistake the lamp line was already careful not to make.
+    if (WAYFIND.darkOn && LAMPS.dark && LAMPS.dark.n && scan.inDarkArea) {
+      card.appendChild(h('div', 'wf-c wf-dim',
+        SAY.darkSource(LAMPS.nDark, LAMPS.darkAsOf ? fmtAsOf(LAMPS.darkAsOf) : '')));
+    }
   }
 
   /** Swap the drawn route between the shortest and the lit-preferring one.
@@ -2449,11 +2761,22 @@
       phonesAt: scan.phones.map(i => [LAMPS.blue.X[i], LAMPS.blue.Y[i]]),
       darkAt: scan.runs.filter(x => !x.lit && x.m >= WAYFIND.litGapMinM)
         .map(x => ({ m: Math.round(x.m), mid: x.line[Math.floor(x.line.length / 2)] })),
+      // The city's reported-dark pins, with the coordinates so a test can fly
+      // to one and look at what is standing there — which is the only way this
+      // claim has ever been checked and the only way it should be.
+      indexDark: LAMPS.nDark, darkAsOf: LAMPS.darkAsOf, darkNearM: WAYFIND.darkNearM,
+      inDarkArea: !!scan.inDarkArea,
+      reported: scan.reported.length,
+      reportedAt: scan.reported.map(i => ({
+        at: [LAMPS.dark.X[i], LAMPS.dark.Y[i]], note: LAMPS.darkNotes[i] || '',
+      })),
+      quote: darkQuoteFor(scan),
       alt: alt ? {
         distM: Math.round(alt.distM), baseDistM: Math.round(r.distM),
         extraM: Math.round(alt.distM - r.distM),
         lamps: altScan.lamps.length, litM: Math.round(altScan.litM),
         pct: Math.round(100 * altScan.pct),
+        why: alt.__litWhy || null, reported: altScan.reported.length,
       } : null,
     };
   };

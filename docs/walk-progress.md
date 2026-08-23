@@ -73,3 +73,60 @@ prop layers that no longer exist, so it drops the lamp glow at altitude while
 never dropping the furniture it thinks it is dropping — written up, not touched,
 it's another lane's file. Full write-up and the pictures: `docs/walk-lit.md` and
 `shots/walk/lit/`. `WAYFIND.on` untouched.
+
+
+## 2026-08-23 — the walk now knows where people said it was dark, not just where a lamp is mapped (`acer/w-lit`, round 2)
+
+This morning's pass could tell you how many streetlights OpenStreetMap has
+mapped along your route. Its own write-up said the honest problem out loud: 193
+lamps for the whole city is obviously an undercount, and somebody should go
+looking for more. So this pass went looking — and found something better than
+another list of lamps.
+
+In 2017 the City of Austin put up a public map and asked West Campus where it
+needed lighting. **262 people dropped a pin and typed why.** *"This street isn't
+lit at all at night."* *"The alleyway here is very dark at night."* *"San
+Gabriel from 23rd to MLK is very dark."* *"Walking behind 2400 is really
+sketchy."* It is a real, official, public city dataset, and nothing in this
+project had ever touched it. 182 of those pins are inside the city we draw, 100
+with the person's own words attached, and they are now part of the walk feature.
+
+**Why it matters more than the lamps do, for the walk that actually matters.**
+West Campus — where you walk home at one in the morning — is exactly where the
+lamp data runs out: 58 mapped lamps in the whole neighbourhood, touching 7% of
+the walking network. The residents' pins touch 33% of it, more than four times
+as much. And the two sources agree: only 3 of the 182 pins have a mapped lamp
+anywhere near them. Where people said it was dark, the map has no light either.
+
+So a walk from the CS building home to 2400 Nueces used to say "no mapped
+streetlight along this route" and stop there. Now it says that, and then: **"6
+spots on this route were reported too dark"**, and quotes one of them, and says
+who said it and when. Each of those spots gets a violet diamond on the pavement
+you can walk up to.
+
+**It still does not send you the long way round on its own** — that argument
+did not change, and this is a 2017 survey of whoever happened to fill in a form.
+But the button that offers you a different way now has something to work with in
+West Campus, where before it had almost nothing. Over 36 walks home, offering an
+alternative went from 17 to 25 — eight routes that now have an option they did
+not have — at exactly the same median cost of 24 extra metres. Nothing anywhere
+says "safe" or "dark"; every sentence names the City of Austin and the year, and
+says plainly that lights may have been added since, because that is what the
+survey was for.
+
+**Checked by flying there at night and looking, in both directions.** The test
+picked its two spots from the data, not by eye: the pin furthest from any mapped
+lamp (563 m — the San Gabriel one) and the pin nearest one (9 m, where somebody
+wrote "too dim"). At the first, the frame is black — no pole, no light, nothing.
+At the second, a lamp post is standing there in its own pool of light. The claim
+and the city agree at both ends. One honest wrinkle found and written up: on
+streets with nothing mapped, our own night lighting still paints a soft glow
+with no lamp post under it, which could make the feature look wrong even though
+the words are careful — that is in `js/night.js`, another lane's file, so it is
+written down and not touched.
+
+Also found while looking and left for someone else: **UT publishes 116 emergency
+phones and we only draw 43**, and UT publishes its SURE Walk night-escort zones
+with the phone number. Both are in `docs/walk-lit.md` §16. Pictures and the full
+argument: `docs/walk-lit.md` §9-§16 and `shots/walk/lit/wc-*.png`. `WAYFIND.on`
+untouched.
