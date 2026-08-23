@@ -802,6 +802,39 @@
   }
 
   /**
+   * ROUND 3 — THE ROWS, which are not the flights.
+   *
+   * `stairLegs` stays exact: one entry per mapped `highway=steps` way, in walk
+   * order, and `sets`/`ways` are still counted off it, so nothing about how
+   * many staircases we report changes here. This is the DISPLAY grouping —
+   * consecutive flights at the same named building, starting within
+   * STAIRS.mergeGapM of one another, are one thing you do and get one row.
+   *
+   * A merged row keeps every way id it swallowed, so a test can still join a
+   * row back to the ground. `dir` survives only when every flight in the row
+   * agrees; three flights where one is tagged `up` and two are untagged is not
+   * an "up", and saying so would be the exact failure this file forbids.
+   */
+  function stairRows(list) {
+    const out = [];
+    for (const s of list) {
+      const p = out.length ? out[out.length - 1] : null;
+      const near = p && p.code && s.code === p.code &&
+        (s.atM - (p.atM + p.m)) <= STAIRS.mergeGapM;
+      if (near) {
+        p.ways.push(s.way);
+        p.m = Math.round((p.m + s.m) * 10) / 10;
+        p.flights++;
+        if (p.dir !== s.dir) p.dir = '';
+      } else {
+        out.push({ way: s.way, ways: [s.way], atM: s.atM, m: s.m, dir: s.dir,
+          code: s.code, flights: 1 });
+      }
+    }
+    return out;
+  }
+
+  /**
    * Everything true about stairs on one finished route, including the part
    * that is not in the graph: the two lines we drew ourselves.
    *   sets      distinct staircases the ROUTED path climbs
@@ -825,9 +858,14 @@
       for (const w of legCrossesStairs(g, geom.endLeg[0], geom.endLeg[1]))
         if (legWays.indexOf(w) < 0) legWays.push(w);
     }
+    // ROUND 3 — the rows are grouped from the WHOLE list and capped after, so
+    // the cap counts rows a person sees rather than ways the graph holds.
+    const allRows = stairRows(list);
+    const rows = allRows.slice(0, WAYFIND.stairListMax);
     return {
       sets: sets.length, ways: sets,
       list: list.slice(0, WAYFIND.stairListMax), listTruncated: list.length > WAYFIND.stairListMax,
+      rows: rows, rowCount: allRows.length,
       legWays: legWays, legWayCount: legWays.length,
       clean: sets.length === 0 && legWays.length === 0,
     };
@@ -902,6 +940,12 @@
       far: extraM > WAYFIND.stairAltFarExtraM,
       sameWalk: base ? Math.abs(extraM) < 0.5 : false,
       doorChanged: base ? (r.toDoor !== base.toDoor || r.fromDoor !== base.fromDoor) : false,
+      // ROUND 3 — WHICH entrance, not just "a different" one. Computed here
+      // rather than in the card because it is a property of the alternate
+      // route, and because `wayfindStairs()` hands it to the verify harness.
+      toDoorChanged: base ? r.toDoor !== base.toDoor : false,
+      fromDoorChanged: base ? r.fromDoor !== base.fromDoor : false,
+      toDoorWhere: (base && r.toDoor !== base.toDoor) ? doorWhere(g, r.toDoor) : null,
       doorsRefused: r.doorsRefused || 0,
       doorsForced: !!r.doorsForced,
       avoidStairs: true,
@@ -1297,7 +1341,10 @@
       // Never hand back an alternative that did not come out clean. It would
       // be a promise about a staircase, made to the one person who cannot
       // absorb being wrong about it.
-      out.stepFree = (alt && alt.clean) ? alt : null;
+      // `breakStepFreeGate` is the watched failure and nothing else — it is
+      // the ONLY way this line hands back an unclean alternative, and it
+      // ships false. See STAIRS.breakStepFreeGate.
+      out.stepFree = (alt && (alt.clean || STAIRS.breakStepFreeGate)) ? alt : null;
       out.stepFreeNone = !out.stepFree;
     }
     const ms = performance.now() - t0;
@@ -1388,10 +1435,65 @@
     narrowPx: 520,
     atRoundM: 10,           // how coarsely a flight's position down the route reads
     nearBuildingM: 70,      // a code may be named beside a flight this close
+    // ── ROUND 3, and every one of these came off a Citymapper screenshot ──
+    // docs/walk-stairs.md §R13 has the captured frames and their sha256s. The
+    // shape being copied is: WHERE first, what second, WHICH NAMED THING last,
+    // with the leg's own size on the right.
+    //
+    // A leg row names the building rather than its register code, because
+    // "near WEL" is staff shorthand and "at Welch Hall" is a place. But 158
+    // codes have display names running to 69 characters ("O'Donnell Building
+    // for Applied Computational Engineering and Sciences"), and a name that
+    // wraps three lines is worse than the code. Measured on the shipped
+    // walk_graph.json: at 26 characters, 111 of 158 buildings (70 %) keep
+    // their name and the rest fall back to the code — which for exactly those
+    // long ones (POB, GDC, ATT) is what people say out loud anyway.
+    placeNameMaxCh: 26,
+    // A flight's own plan length, on the right of the row where Citymapper
+    // puts the leg's minutes. Below this it is a kerb, not a staircase, and
+    // printing "3 m" beside "Up the steps" reads as precision we did not earn.
+    flightLenMinM: 4,
+    // Naming which SIDE of a building a step-free route arrives at. Both
+    // guards exist so the sentence is never invented: a building with one
+    // door has no "side", and a door sitting on the door-cloud's own centroid
+    // has no bearing worth rounding to a compass point.
+    doorSideMinDoors: 2,
+    doorSideMinM: 6,
+    // ── ONE APPROACH IS ONE ROW ──────────────────────────────────────────
+    // Found by looking at the frame, which is the only way it was ever going
+    // to be found: ART -> MAI printed
+    //     at the start   Steps at Art Building and Museum
+    //     at the start   Steps at Art Building and Museum
+    //     in 20 m        Steps at Art Building and Museum
+    // — three rows that read as a rendering bug and used the whole phone
+    // list. They are three genuine `highway=steps` ways, and OSM is right:
+    // the approach to the Art Building really is three mapped flights. But a
+    // leg list states MANOEUVRES, not ways. Citymapper's rows are "in 25 m /
+    // Turn right onto / Goldsmith's Row" — one row is one thing you do.
+    //
+    // So consecutive flights at the same building, starting within this of
+    // each other, become ONE row that says how many. `sets`, `ways` and the
+    // count in the headline are untouched and still come off the way ids, so
+    // the number of staircases we report is exactly what the data holds —
+    // only the row count changes.
+    mergeGapM: 40,
     // Only for the watched failure: makes the step-free filter leaky so the
     // verification in stepFreeRoute() has something to catch. Never true
     // shipped. With it on, 101 of 124 offers are withheld and none leak.
     breakStepFree: false,
+    // ROUND 3 — and the OTHER half of the watched failure, because round 2's
+    // was only half of one. `breakStepFree` alone proves the gate WORKS: the
+    // filter leaks, the verification catches every leak, and the census still
+    // reads 0 dirty (measured: 91 offers drop to 6, none of them dirty). That
+    // is a green run, so it never demonstrated that the census's own
+    // "verified clean" assertion can go red — an assertion nobody has watched
+    // fail is an assertion nobody has tested.
+    //
+    // This one removes the verification itself. With BOTH on, the leak
+    // reaches the answer and the census must come back RED. Never true
+    // shipped, and the two are separate switches on purpose: one breaks the
+    // routing, the other breaks the guard, and they fail differently.
+    breakStepFreeGate: false,
   };
   WAYFIND.stairs = STAIRS;
 
@@ -1411,9 +1513,35 @@
     // A position along a route is not a precision claim: it rounds to
     // STAIRS.atRoundM and collapses to "at the start" below one rounding step,
     // because "8.6 m in" reads as a survey and is worth nothing to a walker.
+    //
+    // ROUND 3 — PREPOSITION FIRST, because that is what the bar does. Two
+    // independently captured Citymapper walking rows (§R13) both lead with
+    // `in 25 m` / `in 85 m`; the spoken form in the same screenshot is
+    // "In 25m, turn right onto Goldsmith's Row". Ours read `620 m in`, which
+    // is the same fact in the order a spreadsheet would print it.
+    //
+    // AND IN METRES ALL THE WAY OUT, not fmtDist. fmtDist is the ROUTE's
+    // formatter and collapses anything over 950 m to one decimal of a
+    // kilometre, which on ADH -> COM printed two different flights 20 m apart
+    // as `in 1.1 km` and `in 1.1 km` — the same row twice, on screen, in the
+    // frame. A position along a walk needs the resolution the rounding step
+    // already promises, so it stays in metres and gets a thousands separator.
     at: (m) => m < STAIRS.atRoundM * 1.5 ? 'at the start'
-      : fmtDist(Math.round(m / STAIRS.atRoundM) * STAIRS.atRoundM) + ' in',
-    near: (code) => 'near ' + code,
+      : 'in ' + String(Math.round(m / STAIRS.atRoundM) * STAIRS.atRoundM)
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' m',
+    // A row that merged several mapped flights at one building says so. It is
+    // a count of `highway=steps` WAYS, which is a thing OSM records, and never
+    // a count of steps or of landings, which are things it does not.
+    sets: (n) => n + ' sets of steps',
+    // The named thing the flight is at. Citymapper's third line is a NAME
+    // ("Goldsmith's Row", "D - Republic Plaza"), never an internal id.
+    atPlace: (name) => 'at ' + name,
+    // Where Citymapper prints the leg's minutes. We print the flight's plan
+    // length instead, on purpose: at 0.5 m/s every flight on this campus
+    // rounds to "1 min", and this file's own honesty rule (§3 of the audit)
+    // forbids collapsing a range to one number. The metre is measured; the
+    // minute would be theatre.
+    flightLen: (m) => fmtDist(m),
     more: (n) => '+ ' + n + ' more',
     dirNote: 'Up or down is only mapped on some of them.',
     // The unmapped door leg crossing a flight — round 1 §3b. This is the one
@@ -1425,7 +1553,21 @@
     offerCost: (extra, n) => 'Avoids ' +
       (n === 1 ? 'the staircase' : n === 2 ? 'both sets' : 'all ' + n + ' sets') +
       (extra > 0 ? ' · ' + fmtDist(extra) + ' further' : ' · no further to walk'),
+    // ROUND 3 — NAME THE ENTRANCE. Citymapper's step-free route detail does
+    // not say "a different entrance"; it opens an inset row labelled
+    // "Best Step-Free Entrance" and names the door — "D - Republic Plaza"
+    // (§R13, sf3). We have no entrance letters, but we do know which building
+    // and which side of it, so we say that.
+    //
+    // We deliberately do NOT copy the words "Step-Free Entrance". What this
+    // route verified is that nothing between the two doors crosses a mapped
+    // staircase — including the two straight lines we drew ourselves. It did
+    // not verify the door. `doorForced` below is the same distinction and it
+    // is the one this feature must not blur.
+    offerDoorAt: (w) => 'Ends at ' +
+      (w.side ? 'the ' + w.side + ' side of ' : '') + w.name + '.',
     offerDoor: 'It uses a different entrance.',
+    offerDoorStart: 'It also starts from a different entrance.',
     offerNone: 'No step-free route we can find between these two.',
     backBtn: (lo, hi, dist) => 'With stairs: ' + nb(lo + '–' + hi + ' min') + ' · ' + nb(dist),
     // The headline already says "No stairs on this route", so this line must
@@ -1479,6 +1621,61 @@
     return best;
   }
 
+  // ── ROUND 3: a code is not a name ────────────────────────────────────────
+  // buildIndex() already resolved every code to the string the search list
+  // shows ("Welch Hall", "UT Tower"), so the leg list says that instead of
+  // "WEL". Falls back to the code when the name is too long to sit on a row —
+  // see STAIRS.placeNameMaxCh for the measurement behind the number — and
+  // when the register has nothing better than the code anyway (3 of 158).
+  function displayName(g, code) {
+    if (!code) return null;
+    const rec = g.byCode && g.byCode.get(code);
+    return (rec && rec.display) || code;
+  }
+  // The LEG ROW's name, capped — a row is one line of a five-row list.
+  function placeName(g, code) {
+    const d = displayName(g, code);
+    if (!d) return null;
+    return d.length <= STAIRS.placeNameMaxCh ? d : code;
+  }
+
+  const COMPASS8 = ['north', 'north-east', 'east', 'south-east',
+    'south', 'south-west', 'west', 'north-west'];
+
+  /**
+   * ROUND 3. Which building a door belongs to, and which side of it — the
+   * fact Citymapper's step-free detail carries as "D - Republic Plaza".
+   *
+   * The side is a bearing from the CENTROID OF THAT BUILDING'S OWN DOORS, not
+   * from a footprint we do not have here, so it is "which of this building's
+   * doors is this" rather than a survey claim. It is withheld entirely when
+   * the building has one door (nothing to be a side of) or when the door sits
+   * within STAIRS.doorSideMinM of the centroid, where the bearing is noise.
+   */
+  function doorWhere(g, di) {
+    if (di == null) return null;
+    const code = doorCode(g).get(di);
+    // The FULL name here, not the leg row's capped one. This sentence owns a
+    // whole line, and the card was reading "Jackson Geological Sciences
+    // Building" in the headline and "Ends at the north side of JGB" three
+    // lines below it — the same building under two names, in one frame.
+    const name = displayName(g, code);
+    if (!name) return null;
+    const list = code ? g.code[code] : null;
+    let side = null;
+    if (list && list.length >= STAIRS.doorSideMinDoors) {
+      let sx = 0, sy = 0;
+      for (const j of list) { const ll = doorLL(g, j); sx += ll[0]; sy += ll[1]; }
+      const c = [sx / list.length, sy / list.length], d = doorLL(g, di);
+      if (metresBetween(c, d) >= STAIRS.doorSideMinM) {
+        let b = bearing(c, d);
+        if (b < 0) b += 360;
+        side = COMPASS8[Math.round(b / 45) % 8];
+      }
+    }
+    return { code: code || null, name: name, side: side };
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // THE ONE STEP-FREE IMPLEMENTATION
   //
@@ -1515,7 +1712,9 @@
     if (front.ok && (!any.ok || front.distM - any.distM <= STAIRS.mainDoorSlackM)) r = front;
     else if (any.ok) r = any;
     if (!r) return { ok: false, why: (front.why || (any && any.why) || 'nostepfree') };
-    if (!r.stair || !r.stair.clean) return { ok: false, why: 'assert', stair: r.stair };
+    if (!STAIRS.breakStepFreeGate && (!r.stair || !r.stair.clean)) {
+      return { ok: false, why: 'assert', stair: r.stair };
+    }
     return { ok: true, route: r };
   }
 
@@ -1531,10 +1730,20 @@
   const STAIRS_CSS = `
 .wf-sthead{margin:11px 0 4px;font-weight:600;letter-spacing:.02em}
 .wf-steps{margin:0 0 6px;border-left:2px solid rgba(255,190,90,.28);padding-left:9px}
-.wf-step{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 8px;padding:2.5px 0;font-size:11.5px}
+/* ROUND 3 — the row is Citymapper's, in two lines instead of three.
+   Line 1  WHERE it is, and the leg's own size on the right.
+   Line 2  WHAT you do, and the NAMED place it happens at.
+   Citymapper splits the verb and the name onto separate lines; it owns the
+   whole screen and this card is 233 px of text over a 3D city, so the two are
+   merged. The hierarchy is kept: position and place are the weighted things,
+   the verb is the small dim one. Frames in docs/walk-stairs.md §R13. */
+.wf-step{padding:3.5px 0;font-size:11.5px}
+.wf-step-l1{display:flex;align-items:baseline;gap:8px}
+.wf-step-l2{padding-left:19px;font-size:10.5px;line-height:1.4;opacity:.72}
 .wf-step-i{width:11px;flex:none;text-align:center;color:#ffcf7a;font-weight:700}
-.wf-step-t{flex:1 0 auto;white-space:nowrap}
-.wf-step-w{flex:0 1 auto;margin-left:auto;font-size:10.5px;opacity:.5;letter-spacing:.01em}
+.wf-step-at{flex:0 1 auto;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.wf-step-w{flex:none;margin-left:auto;font-size:10.5px;opacity:.45;letter-spacing:.01em}
+.wf-step-p{font-weight:600;opacity:1}
 .wf-step.wf-dim{opacity:.5;font-size:10.5px;padding-left:19px}
 .wf-stepfree{color:#a8e6b0;font-weight:600}
 .wf-nostepfree{color:#ffd79a;font-weight:600}
@@ -1575,28 +1784,43 @@
     if (st.clean) return;
 
     // ── the leg list ───────────────────────────────────────────────────────
-    if (st.list.length) {
+    const rows = st.rows || st.list;
+    if (rows.length) {
       card.appendChild(h('div', 'wf-c wf-sthead', SAY_S.listTitle));
       const list = h('div', 'wf-steps');
       const cap = (window.innerWidth <= STAIRS.narrowPx) ? STAIRS.legListMaxNarrow : STAIRS.legListMax;
-      const show = Math.min(st.list.length, cap);
+      const show = Math.min(rows.length, cap);
       let anyUnknown = false;
-      for (let i = 0; i < st.list.length; i++) if (!st.list[i].dir) anyUnknown = true;
+      for (let i = 0; i < rows.length; i++) if (!rows[i].dir) anyUnknown = true;
       for (let i = 0; i < show; i++) {
-        const s = st.list[i];
+        const s = rows[i];
         const row = h('div', 'wf-step');
-        row.appendChild(h('span', 'wf-step-i', s.dir === 'up' ? '↑' : s.dir === 'down' ? '↓' : '•'));
-        row.appendChild(h('span', 'wf-step-t',
-          s.dir === 'up' ? SAY_S.up : s.dir === 'down' ? SAY_S.down : SAY_S.unknown));
-        const where = [nb(SAY_S.at(s.atM))];
-        if (s.code) where.push(SAY_S.near(s.code));
-        row.appendChild(h('span', 'wf-step-w', where.join(' · ')));
+        // line 1 — where, and how big
+        const l1 = h('div', 'wf-step-l1');
+        l1.appendChild(h('span', 'wf-step-i', s.dir === 'up' ? '↑' : s.dir === 'down' ? '↓' : '•'));
+        l1.appendChild(h('span', 'wf-step-at', nb(SAY_S.at(s.atM))));
+        if (s.m >= STAIRS.flightLenMinM) {
+          l1.appendChild(h('span', 'wf-step-w', nb(SAY_S.flightLen(s.m))));
+        }
+        row.appendChild(l1);
+        // line 2 — what you do, and the named place it happens at
+        const l2 = h('div', 'wf-step-l2');
+        l2.appendChild(document.createTextNode(
+          s.flights > 1 ? SAY_S.sets(s.flights)
+            : s.dir === 'up' ? SAY_S.up : s.dir === 'down' ? SAY_S.down : SAY_S.unknown));
+        const place = placeName(G, s.code);
+        if (place) {
+          l2.appendChild(document.createTextNode(' '));
+          l2.appendChild(h('span', 'wf-step-p', SAY_S.atPlace(place)));
+        }
+        row.appendChild(l2);
         list.appendChild(row);
       }
-      // `list` is already capped at WAYFIND.stairListMax upstream, so count the
-      // remainder off the SET when that cap bit, not off the list we were given.
-      const total = st.listTruncated ? Math.max(st.sets, st.list.length) : st.list.length;
-      if (total > show) list.appendChild(h('div', 'wf-step wf-dim', SAY_S.more(total - show)));
+      // ROUND 3 — `rows` is grouped from the WHOLE leg list before any cap, so
+      // the remainder is now a plain subtraction and cannot disagree with the
+      // headline the way round 2's had to be reconciled against `sets`.
+      const totalRows = st.rowCount != null ? st.rowCount : rows.length;
+      if (totalRows > show) list.appendChild(h('div', 'wf-step wf-dim', SAY_S.more(totalRows - show)));
       card.appendChild(list);
       if (anyUnknown) card.appendChild(h('div', 'wf-c wf-dim', SAY_S.dirNote));
     }
@@ -1618,7 +1842,15 @@
     card.appendChild(btn);
     card.appendChild(h('div', 'wf-c wf-dim',
       SAY_S.offerCost(Math.max(0, Math.round(sf.extraM)), st.sets)));
-    if (sf.doorChanged) card.appendChild(h('div', 'wf-c wf-dim', SAY_S.offerDoor));
+    // ROUND 3 — name it. `toDoorWhere` is null when the arrival door did not
+    // move, or when the graph cannot name the building it belongs to, and the
+    // round-1 sentence is still what gets said in both of those cases.
+    if (sf.toDoorWhere) {
+      card.appendChild(h('div', 'wf-c wf-dim', SAY_S.offerDoorAt(sf.toDoorWhere)));
+      if (sf.fromDoorChanged) card.appendChild(h('div', 'wf-c wf-dim', SAY_S.offerDoorStart));
+    } else if (sf.doorChanged) {
+      card.appendChild(h('div', 'wf-c wf-dim', SAY_S.offerDoor));
+    }
     if (sf.doorsForced) card.appendChild(h('div', 'wf-c wf-dim', SAY_S.doorForced));
   }
 
@@ -2592,9 +2824,19 @@
       avoidingStairs: !!r.avoidStairs,
       from: r.from && r.from.code, to: r.to && r.to.code,
       sets: r.stair.sets, ways: r.stair.ways.slice(),
+      // ROUND 3 — `place` is what the row actually PRINTS, so a census can
+      // check the name a person reads rather than the code behind it.
       list: r.stair.list.map(s => ({ way: s.way, atM: s.atM, m: s.m, dir: s.dir,
-        steps: s.steps, code: s.code })),
+        steps: s.steps, code: s.code, place: G ? placeName(G, s.code) : null })),
       listTruncated: r.stair.listTruncated,
+      // ROUND 3 — `rows` is what the card DRAWS: consecutive flights at one
+      // building grouped into one manoeuvre. `list` above is still one entry
+      // per mapped way, and `sets`/`ways` are still counted off that, so a
+      // test can check the grouping without losing the ground truth.
+      rows: (r.stair.rows || []).map(s => ({ ways: s.ways.slice(), atM: s.atM,
+        m: s.m, dir: s.dir, flights: s.flights, code: s.code,
+        place: G ? placeName(G, s.code) : null })),
+      rowCount: r.stair.rowCount,
       legWays: r.stair.legWays.slice(), legWayCount: r.stair.legWayCount,
       clean: r.stair.clean,
       distM: r.distM, lo: r.time.lo, hi: r.time.hi,
@@ -2606,6 +2848,10 @@
         far: sf.far, sameWalk: sf.sameWalk, doorChanged: sf.doorChanged,
         doorsRefused: sf.doorsRefused, doorsForced: sf.doorsForced,
         fromDoor: sf.fromDoor, toDoor: sf.toDoor,
+        // ROUND 3 — the named entrance the card prints, or null when the
+        // arrival door did not move.
+        toDoorChanged: sf.toDoorChanged, fromDoorChanged: sf.fromDoorChanged,
+        toDoorWhere: sf.toDoorWhere,
         avoided: r.stair.sets, vertices: sf.geom.line.length,
       } : null,
       stepFreeNone: !!r.stepFreeNone,

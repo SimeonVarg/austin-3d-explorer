@@ -768,3 +768,330 @@ and `ensureStairsCss()`:
 
 `SAY_S` is a separate copy block for the same reason and folds straight into
 `SAY` once the other lanes land. Nothing else refers to it.
+
+---
+---
+
+# ROUND 3 — the bar, actually fetched
+
+Round 2's critic passed both checkable claims and then wrote `oursWins: false`
+for one reason, quoted here so it does not get lost:
+
+> *"one third of the stated bar was never obtained... get an actual Citymapper
+> leg list for a real walking route with stairs in front of a person... until
+> that exists, 'matches Citymapper's format' is asserted, not verified."*
+
+That is the whole of round 3. §R10 above compared us against Citymapper's
+**marketing copy**, which was the only thing either the builder or the critic
+had. It is now compared against **captured frames of the product**, and five
+things changed in `js/wayfind.js` because of what they showed.
+
+## R13. The bar, fetched — Citymapper's own frames
+
+Citymapper publishes screenshots of its own UI in its newsroom. No app, no
+device, no login: the images sit on a public S3 bucket linked from two public
+articles. They are **not** copied into this repo — it is a public repo and they
+are someone else's product shots — so what is recorded here is the URL and the
+sha256, and anyone can re-fetch and re-check every claim below.
+
+| ref | article | image (prefix `https://cm-messenger-blog-assets.s3.eu-west-1.amazonaws.com/`) | sha256 (first 16) |
+|---|---|---|---|
+| **w4** | [Turn-by-turn directions for Walking](https://content.citymapper.com/news/2194/turn-by-turn-directions-for-walking) | `b68c754f-6266-4930-b78a-9e2036263d86` | `825d3aaaee9e41ba` |
+| **w7** | same | `c67cb488-1675-4c88-92fa-5858e4a9b0b2` | `847b32c1f15a1ead` |
+| **w3** | same | `48e48861-f4de-451f-824f-05977dcf6047` | `9f180c744efdab78` |
+| **sf2** | [Find the best accessible journey with step-free routes](https://content.citymapper.com/news/2577/find-the-best-accessible-journey-with-step-free-routes) | `8b1ba990-a647-4ae2-959d-8f5133cbda3c` | `616b18705534b065` |
+| **sf3** | same | `97df4248-31ba-4da8-8830-c3631f460218` | `7688b5a24415e7d4` |
+
+**The Citymapper walking leg row, read off w4 and again off w7** — two
+different cities, two different manoeuvres, identical structure:
+
+```
+ [icon]   in 85 m              1 min          [icon]   in 25 m           1 min
+          Turn left onto                               Turn right onto
+          Rue de l'Échiquier                           Goldsmith's Row
+```
+
+Three lines and a right-hand column. **Line 1 is WHERE, and it leads with the
+preposition.** Line 2 is the verb alone. Line 3 is the **named thing**, bold.
+The right column is the leg's own size, in minutes. w7 also shows the spoken
+form of the same row — *"In 25m, turn right onto Goldsmith's Row"* — which
+confirms the ordering is the product's, not the layout's.
+
+w3 is the route summary above that list: `Walk for 2.7 mi` with `42 min` and a
+`185 cal` chip, then `Leave now` / `Arrive 14:38`.
+
+**The step-free side, read off sf2 and sf3.** sf2 is the results list with the
+mode on: a header row reading `Step-free` over `Avoiding steps and stairs`, and
+a mode bar along the bottom — `Classic`, `Step-free`, `Bus+`, `Train+`,
+`Walk Less`, `Mix`. sf3 is one of those routes opened up, and it is the frame
+that mattered most: inside the leg list, under a leg reading `Go to`
+*Raffles Place* with `4 min` on the right, sits an inset row labelled
+**`Best Step-Free Entrance`** and, beneath it, the entrance's own name —
+`D - Republic Plaza`. The map behind it labels the same door `Entrance D`.
+
+**So Citymapper names the door.** That is the single biggest thing round 2's
+card was missing, and it was invisible from the marketing copy §R10 was written
+against.
+
+## R14. What changed because of the frames
+
+All of it is in `js/wayfind.js`, in this lane's own §3b/§5b blocks. Numbers are
+from a 300-pair census; how to re-run it is §R16.
+
+### 1. The row is Citymapper's shape, in two lines instead of three
+
+`Up the steps` · `620 m in · near WEL`  becomes
+
+```
+ ↑   in 630 m                                     5.8 m
+     Steps at Robert A. Welch Hall
+```
+
+Position leads and carries the preposition (`SAY_S.at`); the verb is the small
+dim one; the **named building is the anchor and is bold**. Citymapper's three
+lines are merged into two because it owns the whole screen and this card owns
+233 px of text over a 3D city — the hierarchy is kept, the line count is not.
+
+The right-hand column is **the flight's own plan length, not minutes, and that
+is deliberate**: at `stairSpeed` 0.5 m/s every flight on this campus rounds to
+"1 min", and §3 of the honesty audit forbids collapsing a range to a single
+number. The metre is measured off the graph; the minute would be theatre.
+
+### 2. It says the building's name, not its register code
+
+`near WEL` → `at Robert A. Welch Hall`, via `buildIndex()`'s own display name —
+the same string the search list shows. **210 of 210 rows in the census got a
+name**, 41 of them the code because the register has nothing better or the name
+is too long for a row (`STAIRS.placeNameMaxCh` 26; measured on the shipped
+graph, that keeps the name on 111 of 158 buildings and falls back for exactly
+the ones people abbreviate out loud anyway — POB, GDC, ATT).
+
+The cap is on the ROW only. The entrance sentence in §3 gets the full name,
+because the card was printing "Jackson Geological Sciences Building" in the
+headline and "Ends at the north side of JGB" three lines below it — one
+building under two names, in one frame.
+
+### 3. The step-free entrance is named — sf3's `Best Step-Free Entrance`
+
+`It uses a different entrance.` → `Ends at the north side of Jackson
+Geological Sciences Building.`
+
+`doorWhere()` takes the bearing from the centroid of **that building's own
+doors** to the door the alternative arrives at, and rounds to eight points. It
+is withheld when the building has one door (nothing to be a side of) or when
+the door sits within `STAIRS.doorSideMinM` of the centroid (the bearing is
+noise). **50 of 50 changed arrival doors in the census got a named building AND
+a side; 0 named a building other than the one you asked for** — which is the
+assertion, not the anecdote.
+
+**We deliberately do not copy the words "Best Step-Free Entrance."** What the
+route verified is that nothing between the two doors crosses a mapped
+staircase, including the two straight lines we drew ourselves. It did not
+verify the door. `doorForced` is the same distinction and it is the one this
+feature must not blur.
+
+### 4. One approach is one row
+
+This came out of the frame, not the census — every number was green while it
+was on screen. ART → MAI printed:
+
+```
+ •   at the start        Steps at Art Building and Museum
+ •   at the start        Steps at Art Building and Museum
+ •   in 20 m             Steps at Art Building and Museum
+```
+
+Three rows that read as a rendering bug, spending the whole phone list on one
+thing. They are three genuine `highway=steps` ways and OSM is right — the
+approach to the Art Building really is three mapped flights. But **a leg list
+states manoeuvres, not ways**: Citymapper's rows are one thing you do. So
+consecutive flights at the same building within `STAIRS.mergeGapM` (40 m) are
+one row that says how many:
+
+```
+ •   at the start                                  11 m
+     3 sets of steps at Art Building and Museum
+```
+
+`shots/walk/stairs/r3-legs-desk-ungrouped.png` is the same route with
+`mergeGapM = 0` — the A/B on one constant.
+
+**The staircase count is untouched by this.** `sets`, `ways` and the headline
+still come off the way ids; only the row count changes. The census asserts it —
+*grouping rows loses no staircase and invents none, 0 bad* — and every row
+carries the way ids it swallowed, so a row joins back to the ground.
+
+Across 300 pairs, **210 flights draw as 164 rows; 37 rows carry more than one
+flight.**
+
+### 5. A leg position no longer collapses to a kilometre
+
+`SAY_S.at` used `fmtDist`, which is the ROUTE's formatter and rounds anything
+over 950 m to one decimal of a kilometre. On ADH → COM that printed two
+different flights 20 m apart as `in 1.1 km` and `in 1.1 km` — the same row
+twice, in the frame. Leg positions are metres all the way out now, with a
+thousands separator, at the resolution `atRoundM` already promises.
+
+### The frames
+
+| file | what it shows |
+|---|---|
+| `r3-legs-desk.png` | ART → MAI. Five rows, five different buildings, the merged Art Building approach at the top. |
+| `r3-legs-desk-ungrouped.png` | The same route, `mergeGapM = 0`. Three identical-looking Art Building rows. |
+| `r3-entrance-desk.png` | ADH → COM. `Ends at the south-west side of Computation Center.` |
+| `r3-down-desk.png` | HRH → JGB. A mapped `↓` — `Down the steps at Waggener Hall`, 51 m. |
+| `r3-legs-phone.png` | 393×852. **The card is 926 px tall on an 852 px screen.** See §R15. |
+| `r3-legs-phone-pillpatch.png` | The same frame with §R15's two lines injected: 634 px, and it fits. |
+| `r3-entrance-phone-pillpatch.png` | ADH → COM, same patch. |
+
+## R15. A PATCH FOR `style.css` — NOT THIS LANE'S FILE
+
+**The walk card has been running off the bottom of the phone, and the leg list
+is not why.** Measured on a 393×852 viewport, `#wf-pill` is **197 px wide** —
+half the screen — and the leg list is only 185 px of the 926 px total. Capping
+the list would lose information and would not fix it.
+
+The mechanism, confirmed in the page rather than reasoned about:
+
+```
+#wf-pill{position:absolute;left:50%;transform:translateX(-50%);
+         max-width:min(560px,calc(100vw - 120px))}
+```
+
+`left:50%` puts the box's containing-block edge at 196.5 px, so the space
+available to a shrink-to-fit element is `100vw - 196.5px` = **196.5 px**. The
+`max-width` of 273 px never binds. `translateX(-50%)` re-centres it visually
+*after* layout and cannot give the width back.
+
+Measured, in the page, on ART → MAI at 393×852:
+
+```
+                                             width     card height
+as shipped                                   197 px      926 px
+left:0;right:0;transform:none;margin:0 auto  273 px      694 px
+   ...+ a phone-sized gutter                 369 px      634 px    (viewport 852)
+```
+
+Two lines, and the card stops being clipped:
+
+```css
+/* Shrink-to-fit against `left:50%` can only ever be 50vw wide; the transform
+   re-centres it after layout and cannot give the width back. Lay it out
+   across the viewport and centre it with auto margins instead. */
+#wf-pill{left:0;right:0;transform:none;margin:0 auto;width:fit-content}
+/* 120px of gutter is a desktop number. On a phone it is a third of the screen. */
+@media (max-width:520px){#wf-pill{max-width:calc(100vw - 24px)}}
+```
+
+`body.wf-routed.flying #wf-pill{opacity:1}` and the `.hidden` rule are
+unaffected; nothing else in `style.css` targets `#wf-pill`'s box.
+
+This lane did not make the change — `style.css` belongs to another lane, and a
+rule that lands in the wrong file is worse than a rule that says where it
+should have gone. `r3-legs-phone.png` and `r3-legs-phone-pillpatch.png` are the
+before and the after.
+
+## R16. The gate, and BOTH halves of the watched failure
+
+Round 2's watched failure was half a watched failure, and it took running it to
+see that. `WAYFIND.stairs.breakStepFree = true` makes the step-free edge filter
+leaky on purpose — and the verification inside `stepFreeRoute()` then catches
+every leak and **withholds the offer**, so the census comes back *green*:
+offers collapse from 91 to 6 over 120 pairs and 0 of them are dirty. That
+proves the gate works. It never proved the census's own "verified clean"
+assertion could go red, and an assertion nobody has watched fail is an
+assertion nobody has tested.
+
+So there is a second switch, `STAIRS.breakStepFreeGate`, which removes the
+verification itself. Both on:
+
+```
+ PASS  WATCHED FAILURE: with the gate removed the leak reaches the answer
+       — 49 dirty of 55 offered
+```
+
+**49 of 55.** That is the number of bad "step-free" promises the gate stands
+between this feature and the one person it exists for. Both switch names live
+in `STAIRS` and both ship `false`.
+
+### The census, ready to lift into `scripts/verify/stairs.mjs`
+
+It still lives in a session scratchpad because `scripts/verify/` is not this
+lane's directory (round 2's §R12 said the same and it is still true). It needs
+no page API beyond `window.wayfindStairs(from, to)`, which is public and
+read-only, and it reads its building pool straight out of
+`data/walk_graph.json` rather than out of the page.
+
+```
+node census.mjs 300 out.json               # eleven assertions, exit 1 on any failure
+node census.mjs 120 --break                # the gate WITHHOLDS: offers collapse, 0 dirty
+node census.mjs 120 --break --breakgate    # the gate is gone: 49 of 55 dirty, RED
+node smoke.mjs                             # the same, by CLICK
+```
+
+The eleven, all green at 300 pairs on `?walk=1&intro=0&drift=0`, port 8713:
+
+```
+ PASS  routes completed — 300 of 300 pairs
+ PASS  every named staircase is a real way id — 0 bad
+ PASS  leg list in walk order and inside the route — 0 bad
+ PASS  every step-free offer verified clean — 0 dirty of 115 offered
+ PASS  offer distance == what the button produces — 0 mismatched
+ PASS  routable count is below the file count — 168 routable of 189 in the file
+ PASS  every row with a code prints a place — 0 bad of 210 rows
+ PASS  every named step-free entrance is on the target building — 0 bad of 50 named
+ PASS  grouping rows loses no staircase and invents none — 0 bad
+ PASS  grouped rows in walk order — 0 bad
+ PASS  every row's flight count equals its way ids — 0 bad
+
+  with stairs 125   offered 115   no way round 10
+  drawn rows 164 for those 210 flights — 37 rows carry more than one flight
+  arrival door moved and named 50 (with a side: 50), moved and unnameable 0
+```
+
+`smoke.mjs` clicks rather than calls, because §R2's bug — the offer and the
+button being different routes — was green in every census and visible in a
+screenshot. Fourteen assertions, all green, including that `WAYFIND.on` is
+**still `false`**: nothing this round ships anything.
+
+## R17. Against Citymapper — the table §R10 could not write
+
+§R10's left column was Citymapper's marketing copy. This one is the frames.
+
+| Citymapper, from the frame | us, now |
+|---|---|
+| w4/w7 — a row is `in 25 m` / `Turn right onto` / **`Goldsmith's Row`**: position first, named thing bold | `in 630 m` / `Steps at` **`Robert A. Welch Hall`** — same order, two lines instead of three |
+| w4/w7 — a per-leg quantity, right-aligned: `1 min` | the flight's plan length, `5.8 m`. **Deliberately not minutes** — every flight here rounds to "1 min", and a one-number time is what §3 of the audit forbids |
+| w4/w7 — one row is one manoeuvre | one row is one manoeuvre. The three mapped flights at the Art Building are one row saying `3 sets of steps` |
+| sf3 — names the door: `Best Step-Free Entrance` / `D - Republic Plaza` | names the door: `Ends at the north side of Jackson Geological Sciences Building.` We have no entrance letters; we have the building and the side, checked against the target building 50 of 50 |
+| sf3 — the label asserts the entrance itself is step-free | **we do not.** We verified the walk, not the door. Saying otherwise is the one promise this feature must not make |
+| sf2 — `Step-free` / `Avoiding steps and stairs`, an unpriced mode | `Step-free: 14–19 min · 1.2 km` with `Avoids all 7 sets · 250 m further`. **Ours is better here**: it prices the alternative before you pick it |
+| sf2 — a mode among six in a bottom bar | a button in the answer plus a sticky checkbox — same route, one implementation, asserted (§R2) |
+| never prints a number of individual steps | never. `step_count` is on 9 of 189 ways and stays behind the same bar |
+| *(marketing, still unverifiable from any frame)* walking times adjusted for reduced mobility | still deliberately not done. There is no honest reduced-mobility number in this repo |
+
+Two places we say more than Citymapper does, both because the data is thin
+enough that saying less would be dishonest: *"Up or down is only mapped on some
+of them"*, and *"We can't tell whether the last few metres into the door
+involve steps."*
+
+## R18. What round 3 did NOT do
+
+* **`scripts/bake_ground.py` is unchanged**, as in round 2. Round 1's fix — the
+  missing `area=yes` staircase and `wid` on every slab — is what mattered, and
+  nothing this round needed the ground re-baked.
+* **`scripts/bake_walk.py` is still untouched**, so §5a (`incline=down` thrown
+  away) and §5b (`step_count`) stand exactly as written. §5a is worth more
+  again now: direction is the arrow at the left of every row, and it is known
+  on 26 of 216 flights.
+* **A flight is named after the nearest door within 70 m, and sometimes that
+  door is on a service building.** HRH → JGB reads `Steps at Chilling Station
+  No. 6` — a real building with real doors, and not what a person would call
+  that place. The honest fix is a filter on building class in the bake rather
+  than a hand-written exclusion list here, and that is another lane's file.
+  Left visible rather than papered over.
+* **The sub-metre "staircases" are still reported.** Several mapped
+  `highway=steps` ways on campus are under a metre long — kerb steps, not
+  flights. They are in the data and the router charges for them, so the card
+  names them. Suppressing them would make the reported count stop matching the
+  ground, which is the first thing this round is judged on.

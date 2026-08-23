@@ -160,3 +160,58 @@ person (a phone with the app, or a support/help-centre page that shows one)
 and diff our card against it directly — until that exists, "matches
 Citymapper's format" is asserted, not verified, and shouldn't be treated as
 closed.
+
+## 2026-08-23 (round three) — the stairs read like a transit app now, because we finally went and looked at one
+
+The last round was marked down for one reason: we kept saying our list of
+stairs was shaped "like Citymapper's" without anybody ever having seen
+Citymapper's. So this round started by getting it. Citymapper puts screenshots
+of its own app in its public newsroom, and two of them show a walking
+direction close up. Their row is three lines: how far away it is, then what you
+do, then the name of the thing you do it at — "in 25 m / Turn right onto /
+Goldsmith's Row" — with the leg's own size on the right. A third picture, from
+their step-free feature, does something we weren't doing at all: it **names the
+door it's sending you to**.
+
+So five things changed, all of them because of what was in those pictures.
+
+The list of stairs now leads with how far along the walk each one is, and names
+the building instead of its code — "in 630 m / Steps at Robert A. Welch Hall"
+where it used to say "Up the steps · 620 m in · near WEL". Every one of 210
+staircases across a 300-route sweep got a real name.
+
+The way round now tells you where it puts you down: "Ends at the north side of
+Jackson Geological Sciences Building" instead of "It uses a different
+entrance." It works out the side from where that door sits among the building's
+own doors, and stays quiet when the building only has one. Fifty of fifty
+checked out. It deliberately does **not** copy Citymapper's wording ("Best
+Step-Free Entrance") — what we checked is that the walk has no steps on it, not
+that the door doesn't, and those aren't the same promise.
+
+Three things were only visible by looking at the picture, which is the whole
+argument for taking one. The Art Building approach was printing three
+near-identical rows in a row — three real staircases, but one thing you
+actually do — so they're one row now that says "3 sets of steps". Anything
+past 950 m was rounding to "1.1 km", so two different flights twenty metres
+apart read as the same row twice. And the card was calling the same building
+by its full name at the top and by its three-letter code four lines down.
+
+While measuring the phone I found something bigger and it isn't the stairs'
+fault: **the walk card is half the width of the screen on a phone, and runs
+about eighty pixels off the bottom.** It's one CSS line — the card is pinned at
+the halfway mark and then slid back, which leaves it only half a screen to grow
+into. Fixing it makes the card 369 px wide instead of 197 and 634 px tall
+instead of 926, so it fits with room to spare. That file belongs to another
+lane, so the exact two lines are written down in `docs/walk-stairs.md` §R15
+with the before-and-after pictures rather than made here.
+
+Last thing: the safety check that stops a "step-free" route being offered when
+it isn't really step-free had never been watched failing properly. Turning the
+old switch on made the check *withhold* every bad route, which is it working —
+green, not red. So there's a second switch now that removes the check itself,
+and with it off the sweep reports 49 bad routes out of 55. That's the number
+that check is standing between this feature and the person it's for.
+
+Everything green: eleven checks over 300 routes, fourteen more that click the
+real buttons. `WAYFIND.on` is still false — none of this is public yet.
+Pictures in `shots/walk/stairs/` (`r3-*`). Branch `acer/w-stairs`.
