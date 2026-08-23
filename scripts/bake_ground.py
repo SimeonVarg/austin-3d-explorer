@@ -120,6 +120,72 @@ DEFAULT_WIDTH = {
     "footway": 2.4, "steps": 3.0, "cycleway": 2.2, "path": 1.5, "pedestrian": 6.0,
 }
 
+# ── the kerb apron ─────────────────────────────────────────────────────────
+# A `footway=crossing` way is not drawn as a path, and that is right: the
+# painted zebra belongs to the street, and laying a pale concrete ribbon across
+# every carriageway on campus is the defect the skip exists to prevent.
+#
+# But a crossing way does not start at the kerb. It starts a metre or two back,
+# on the ramp, and the sidewalk it leaves ALSO stops short — `widen_paths` uses
+# flat caps, so the pavement polygon ends square at the sidewalk's last node.
+# Between the two there was nothing painted at all. Measured against the
+# router's own network: 2,245 m of the walking graph runs over ground the scene
+# paints as neither pavement nor road, and essentially all of it is these two
+# stubs, at every street corner in the city. Walk a route across Speedway and
+# the ribbon steps off the end of the sidewalk onto bare dirt before it reaches
+# the street.
+#
+# So: emit the FIRST and LAST CROSSING_APRON_M of every crossing as ordinary
+# footway, and nothing in between. The middle — the part actually over the
+# street — is still never drawn, and the resolver's carriageway cut removes any
+# apron that overshoots onto the travelled way, so this cannot become the pale
+# ribbon the skip was guarding against. It can only close the gap.
+CROSSING_APRON_M = 2.5
+# A kerb ramp is poured concrete here whatever the crossing carries. The tag on
+# a crossing describes the ROAD it is painted on — `surface=asphalt` is common
+# and true of the street, not of the ramp — and honouring it would drop a black
+# patch at every corner instead of continuing the sidewalk.
+CROSSING_APRON_SURFACE = "concrete"
+
+
+def crossing_aprons(coords, apron_m=None):
+    """The two ends of a crossing way, `apron_m` metres each, as coordinate
+    lists. Returns [] for a way shorter than one apron (it is all ramp anyway,
+    and the carriageway cut will take whatever of it is street)."""
+    apron_m = CROSSING_APRON_M if apron_m is None else apron_m
+    mlat = 111195.08
+    mlon = mlat * math.cos(math.radians(LAT0))
+    pts = [((x + 97.74) * mlon, (y - LAT0) * mlat) for x, y in coords]
+    segs = [math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1)]
+    total = sum(segs)
+    if total <= 0:
+        return []
+    if total <= apron_m:
+        return [list(coords)]
+
+    def walk(order):
+        """Trim from one end, returning the coords covering `apron_m`."""
+        idx = range(len(segs)) if order > 0 else range(len(segs) - 1, -1, -1)
+        out = [coords[0] if order > 0 else coords[-1]]
+        left = apron_m
+        for i in idx:
+            d = segs[i]
+            nxt = i + 1 if order > 0 else i
+            if d >= left:
+                f = (left / d) if d else 0.0
+                a = coords[i] if order > 0 else coords[i + 1]
+                b = coords[i + 1] if order > 0 else coords[i]
+                out.append([round(a[0] + (b[0] - a[0]) * f, 6),
+                            round(a[1] + (b[1] - a[1]) * f, 6)])
+                break
+            left -= d
+            out.append(list(coords[nxt]))
+        return out
+
+    head, tail = walk(1), walk(-1)
+    return [p for p in (head, tail) if len(p) >= 2]
+
+
 # landuse/natural/leisure value -> our `use`, for area features.
 AREA_USE = {
     "grass": "lawn", "meadow": "lawn", "village_green": "lawn", "greenfield": "lawn",
@@ -3011,13 +3077,24 @@ def main():
         # A pedestrian AREA is a plaza, not a line — handled with the areas.
         if t.get("area") == "yes":
             continue
-        # Skip crossings: they are road markings, and drawing them as paths
-        # lays pale ribbons across every street.
-        if t.get("footway") == "crossing" or t.get("crossing"):
-            stats["skipped_crossing"] += 1
-            continue
         coords = [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]]
         if len(coords) < 2:
+            continue
+        # Skip crossings: they are road markings, and drawing them as paths
+        # lays pale ribbons across every street. Their two KERB APRONS are not
+        # road markings though -- they are the ramp the sidewalk is missing --
+        # so those go in as ordinary footway. See CROSSING_APRON_M.
+        if t.get("footway") == "crossing" or t.get("crossing"):
+            stats["skipped_crossing"] += 1
+            for ap in crossing_aprons(coords):
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "LineString", "coordinates": ap},
+                    "properties": {"k": "path", "u": "footway",
+                                   "s": CROSSING_APRON_SURFACE,
+                                   "w": DEFAULT_WIDTH["footway"], "wt": 0},
+                })
+                stats["crossing_apron"] += 1
             continue
         use = "steps" if hw == "steps" else hw
         surf, tagged = surface_of(t, use)

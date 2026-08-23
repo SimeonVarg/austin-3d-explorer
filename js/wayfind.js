@@ -421,6 +421,39 @@
 
   const F_STEPS = 1, F_CROSS = 2, F_SIGNAL = 4, F_UP_AB = 8, F_OFFMAIN = 128;
 
+  // ── A DOOR LINK IS NOT PAVEMENT, SO IT MUST NOT COST WHAT PAVEMENT COSTS ──
+  //
+  // The bake gives every door up to three anchors — the three nearest points on
+  // the network, up to DOOR_LINK_MAX_M = 30 m away — and the router was free to
+  // pick whichever gave the cheapest total. It costed the link at one metre per
+  // metre, exactly like a surveyed footway, so a 27 m straight line across a
+  // lawn was a legal shortcut whenever it saved 27 m of real walking. It did
+  // that a lot: measured over twenty class-to-class pairs, the router spent
+  // 485 m of invented straight line and 278 m of that lay on grass or on
+  // nothing at all. Burdine's front door has an anchor 2.3 m away and another
+  // 27.6 m away; the router was taking the 27.6 m one.
+  //
+  // A link is not a path. Nobody surveyed it, we draw it dashed precisely
+  // because we are not claiming it is walkable, and it may cross a flowerbed,
+  // a hedge or the corner of another building. So charge it more than pavement
+  // and the router will only ever spend one when there is no pavement instead.
+  //
+  // 4.0 is the knee of the measured curve (docs/walk-sidewalks.md): it removes
+  // 55 % of the off-pavement metres for 2.7 % more route. Going higher keeps
+  // buying, but at 4.5 m of extra walking per metre of lawn saved — at the
+  // limit ("always take the nearest anchor") routes are 14 % longer, which is
+  // a worse answer to the question the student actually asked.
+  //
+  // TASTE VALUE, CLAUDE.md rule 11. Raise it to keep the ribbon on pavement at
+  // the cost of longer routes; set it to 1 to restore the old behaviour.
+  const LINK_COST_MULT = 4.0;
+  /** Routing cost of an anchor. `.c` stays TRUE METRES so every printed
+   *  distance and every drawn door leg is unchanged; `.pc` is what Dijkstra
+   *  spends. Anchors without a `.pc` (the via stop) cost their plain metres. */
+  function linkCost(a) {
+    return a.pc != null ? a.pc : a.c;
+  }
+
   // Edge cost in "equivalent flat metres". Stairs cost what they cost because a
   // staircase is slow, not because of any claim about a hill.
   function edgeCost(g, i, avoidStairs) {
@@ -449,7 +482,7 @@
     const tmap = new Map();
     for (const t of targets) {
       const p = tmap.get(t.node);
-      if (!p || t.c < p.c) tmap.set(t.node, t);
+      if (!p || linkCost(t) < linkCost(p)) tmap.set(t.node, t);
     }
     const hn = [], hd = [];
     const push = (n, d) => {
@@ -483,7 +516,8 @@
     };
     for (let k = 0; k < seeds.length; k++) {
       const s = seeds[k];
-      if (s.c < dist[s.node]) { dist[s.node] = s.c; seedOf[s.node] = k; push(s.node, s.c); }
+      const sc = linkCost(s);
+      if (sc < dist[s.node]) { dist[s.node] = sc; seedOf[s.node] = k; push(s.node, sc); }
     }
     let best = null;
     let left = tmap.size;
@@ -498,7 +532,7 @@
       if (best && d > best.cost) break;
       if (tmap.has(u)) {
         const t = tmap.get(u);
-        const tot = d + t.c;
+        const tot = d + linkCost(t);
         if (!best || tot < best.cost) best = { cost: tot, node: u, target: t };
         tmap.delete(u);
         left--;
@@ -801,9 +835,15 @@
   }
   function anchors(g, doors, role) {
     const out = [];
+    const mult = WAYFIND.linkCostMult != null ? WAYFIND.linkCostMult : LINK_COST_MULT;
     for (const di of doors) {
       const d = g.doors[di];
-      for (let k = 0; k < d[2].length; k++) out.push({ node: d[2][k], c: d[3][k] / 100, door: di, role });
+      for (let k = 0; k < d[2].length; k++) {
+        const m = d[3][k] / 100;
+        // `c` is the truth (metres you walk, printed and drawn). `pc` is what
+        // the router pays for making an unsurveyed claim of that length.
+        out.push({ node: d[2][k], c: m, pc: m * mult, door: di, role });
+      }
     }
     return out;
   }
