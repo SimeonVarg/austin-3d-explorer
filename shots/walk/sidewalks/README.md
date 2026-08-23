@@ -38,3 +38,29 @@ the file `main` ships, **after** is the same bake with `CROSSING_APRON_M`.
   become "pale ribbons across every street", which is why the bake skips
   crossings in the first place. They don't: at this scale the two frames are
   indistinguishable and the streets still read as streets.
+
+## `aprons-` vs `malls-` — a pedestrian mall becomes a walk
+
+Later the same day, on the same branch. Same camera, same everything, only
+`data/ground.geojson` swapped: **`aprons-`** is this branch as the section above
+left it (kerb aprons in, malls still flat plaza fills), **`malls-`** is the same
+bake with `PEDESTRIAN_AREA_IS_A_WALK`. See `docs/walk-sidewalks.md` §9.
+
+* `2-eastmall` — **the pair to look at.** The Jester forecourt goes from a flat
+  cool-grey slab with the walking ribbon running along its edge to warm paving
+  the same colour as the footways that cross it, with the ribbon on it.
+* `1-mainmall` — the same change beside Garrison Hall, on the GRE → MAI route.
+* `6-eastmall-city` — the East Mall pose with the tree layers left in, i.e. what
+  a person actually sees rather than what the ground is doing.
+
+The frames are **near-nadir** and their poses are computed offline from
+`data/walk_graph.json`, so both halves are byte-identical camera. The browser
+reported z 18.91 on every one of them, which is the offline prediction to the
+second decimal, and the route pill in each frame carries the distance (520 m for
+PCL → RLP, 580 m for GRE → MAI) that `bake_ground.py --walkaudit` predicts for
+the same pair.
+
+The non-`-city` frames have the five tree and canopy layers hidden so the ground
+is the subject. The filter is `/^trees-|canopy/` and NOT `/tree|canop/i`: the
+loose one also matches s-**tree**-t and hid `bridge_street` and both
+night-streetlight layers in frames that are evidence about streets.

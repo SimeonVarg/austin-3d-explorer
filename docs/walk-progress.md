@@ -79,3 +79,38 @@ pictures of four routes and two street corners are in
 the malls and the Six Pack are plazas, the graph only knows their outside edge,
 so routes walk around them instead of across — that one needs a change in the
 graph bake, which is a different lane's file. `WAYFIND.on` untouched.
+
+## 2026-08-23 (later) — the campus malls were being drawn as lawns, so the route floated over them
+
+Picking up the same branch after the kerb-apron pass. That pass had already
+found the important thing — the router was never ignoring the sidewalks, it was
+spending invented door links as shortcuts — and it noticed in passing that a
+route across the Main Mall scores as "off pavement" because OSM draws a mall as
+a ring and the route walks its edge. It worked around that with a ten-centimetre
+tolerance. This pass fixed the cause instead.
+
+Forty-four of the pedestrian areas on campus — Main Mall, East Mall, the
+Speedway courts, the Jester, Gates and Blanton forecourts — were being drawn as
+flat coloured areas, in the same family as lawns and parking lots. Everything
+else you walk on in this city is a slab standing 22 cm proud, and the walking
+ribbon's height is pinned to that slab, so over a mall the ribbon was floating
+22 cm in the air. A mall was also a different colour from the footpaths crossing
+it, in the same frame, both concrete. The bake's own rules already said a mall is
+a walk; only one branch of the code was putting it elsewhere. One switch.
+
+The share of the twenty test routes lying on a drawn walk went 86.7% to 90.2%,
+and eight of the twenty moved — PCL to Patton Hall goes 54% to 78%. It costs
+nothing: the ground file is the same size to the kilobyte gzipped, because the
+polygons only changed which family they belong to. Two numbers went very slightly
+the wrong way (ten metres out of thirteen thousand) and that is written down
+rather than hidden. Look at `shots/walk/sidewalks/aprons-2-eastmall.png` next to
+`malls-2-eastmall.png`: the Jester forecourt goes from a flat grey slab with the
+route running along its edge to paving the same colour as the walks that cross
+it. The malls being warmer and raised is a taste call and it is one line to undo.
+
+Also moved the measurement into the repo. `python scripts/bake_ground.py
+--walkaudit` routes twenty real class-to-class walks with the app's own cost
+model and reports what every metre of the drawn ribbon is standing on. The last
+pass's scripts lived in a scratchpad and are gone; this one does not. Still not
+fixed, and still another lane's file: the router walks around a mall rather than
+across it, because OSM only gives it the rim. `WAYFIND.on` untouched.

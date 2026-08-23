@@ -147,6 +147,36 @@ CROSSING_APRON_M = 2.5
 # patch at every corner instead of continuing the sidewalk.
 CROSSING_APRON_SURFACE = "concrete"
 
+# ── a pedestrian mall is a WALK, not a lawn-band area ──────────────────────
+#
+# OSM draws the campus malls — Main Mall, East Mall, the Speedway courts, the
+# Jester, Gates and Blanton forecourts — as `highway=pedestrian, area=yes`
+# polygons, 44 of them in this cache. They were emitted as `k:'area',
+# u:'plaza'`: a FLAT fill, in the same band as lawns and parking lots.
+# Everything else you walk on in this scene is a `k:'patharea'` slab standing
+# GROUND.pathRaise = 0.22 m proud, and the walking ribbon's own base is pinned
+# to that same 0.22 m (`WAYFIND.routeBaseM`, and its comment says to keep the
+# two equal). So over a mall the ribbon floated 22 cm in the air, and over a
+# mall's outline — which is where the walking graph runs, because a closed way
+# is a ring of edges — it half floated and half sat on nothing.
+#
+# The apron pass above closed the gap at the kerb. This closes the other one,
+# and it is the bigger of the two: 4.0 % of the twenty routes' drawn length is
+# on a mall, against 2.5 % on a crossing.
+#
+# This file's own rank ladder already says what a mall is: ('patharea',
+# 'pedestrian') sits at 60, above the generic footway laid over it. Only the
+# `area=yes` branch was routing the very things that entry describes into the
+# other band. Speedway — tagged `highway=pedestrian` as a LINE — has always come
+# out of this bake as a patharea; the polygons are the same kind of thing, and
+# after this they are the same colour as the walks that cross them, which they
+# were not before (measured off the frames in shots/walk/sidewalks/: the mall
+# was rgb(224,207,175) and a walk crossing it rgb(237,192,132), in one frame,
+# both concrete).
+#
+# Set False and the malls go back to flat plaza fills with no other change.
+PEDESTRIAN_AREA_IS_A_WALK = True
+
 
 def crossing_aprons(coords, apron_m=None):
     """The two ends of a crossing way, `apron_m` metres each, as coordinate
@@ -1776,6 +1806,16 @@ def tone_lawns(feats, stats):
 PLINTH = {
     "r_m": 2.2,                 # radius of the stone base
     "surface": "limestone",
+    # A pole standing on a PEDESTRIAN MALL gets no plinth, and that is
+    # deliberate rather than an oversight. Since PEDESTRIAN_AREA_IS_A_WALK the
+    # malls arrive in the `patharea` band, so they no longer match `plaza`
+    # here -- two poles moved from "plinth laid" to "not in a surface". Nothing
+    # visible changed: a plinth is ('area','plinth') at rank 13 and a plaza was
+    # rank 30, so the surface underneath ATE the plinth in the resolver anyway
+    # (the bake reported one of them as `resolve_covered_plinth` every run).
+    # Emitting a polygon that is then deleted is not better than not emitting
+    # it; if a mall pole should ever have a visible base it needs its own entry
+    # in the path band of RANK, not a line here.
     "hosts": ("lawn", "park", "garden", "plaza"),
     "simplify_m": 0.08,
 }
@@ -3058,6 +3098,358 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
     return kept
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# --walkaudit — IS THERE PAVEMENT UNDER THE WALKING ROUTE?
+#
+# The ground this file bakes is the ground the `?walk=1` ribbon is drawn on, so
+# this bake is the right place to ask whether the two agree. It routes twenty
+# real class-to-class pairs against data/walk_graph.json using js/wayfind.js's
+# OWN cost model (read out of the graph's `tune` block, so the two can never
+# disagree), samples the drawn ribbon every WALKAUDIT_SAMPLE_M, and asks which
+# polygon of the file just baked each sample is standing on.
+#
+# It never bakes and never writes. `python scripts/bake_ground.py --walkaudit`.
+#
+# WHY IT SAMPLES THE DRAWN LINE RATHER THAN COUNTING EDGES. Counting graph edges
+# answers "did the router use an OSM footway", and the answer to that has always
+# been yes — 95.8 % of routed metres are ordinary footway edges. It does not
+# answer the question a person asks looking at the city, which is whether the
+# ribbon in front of them is lying on paving. Only the pixels-under-the-line
+# test answers that, and the two answers are 9 points apart.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Twenty pairs. The nineteen scripts/bake_walk.py freezes as its route
+# regression (so a number here can be compared with a number there without
+# re-deriving the fixture), plus GDC>PCL, the walk a computer-science student
+# makes most days.
+WALKAUDIT_PAIRS = [
+    ("JES", "GDC"), ("JES", "WEL"), ("PCL", "RLP"), ("GRE", "MAI"),
+    ("BUR", "CBA"), ("STD", "MAI"), ("21 Rio", "WEL"),
+    ("The Castilian", "GDC"), ("PCL", "JES"), ("GDC", "BIO"),
+    ("WEL", "TSG"), ("GDC", "DMC"), ("GRE", "MNC"), ("GRE", "NEZ"),
+    ("GRE", "TCP"), ("GRE", "AF2"), ("JES", "BMS"), ("JES", "BMK"),
+    ("JES", "MCA"), ("GDC", "PCL"),
+]
+
+WALKAUDIT_SAMPLE_M = 1.0     # one reading per metre of ribbon
+# MUST EQUAL js/wayfind.js's LINK_COST_MULT. A door link is charged this many
+# pavement metres per real metre while the route is being chosen, so the router
+# only spends one where there is no pavement to spend instead. If the two ever
+# drift apart this audit is measuring a router the app does not have.
+WALKAUDIT_LINK_COST_MULT = 4.0
+# Ground classes that are a hard surface a person walks on, in the order a
+# sample is credited to them when two overlap. `patharea` first because that is
+# the answer the goal is phrased in: a drawn footway/steps/mall slab.
+WALKAUDIT_PAVED = ["patharea", "pathslab", "cyclearea", "plaza", "roadarea"]
+WALKAUDIT_GRID_M = 25.0      # spatial index cell; only affects speed
+
+
+def _wa_paved_polys():
+    """Every hard-surface polygon in the file just baked, in local metres."""
+    with open(OUT, "r", encoding="utf-8") as fh:
+        g = json.load(fh)
+    out = []
+    for f in g["features"]:
+        p = f["properties"]
+        k, u = p.get("k"), p.get("u")
+        if k in ("patharea", "pathslab", "cyclearea", "roadarea"):
+            lab = k
+        elif k == "area" and u in ("plaza", "parking"):
+            lab = "plaza"
+        else:
+            continue
+        geom = f["geometry"]
+        groups = ([geom["coordinates"]] if geom["type"] == "Polygon"
+                  else geom["coordinates"] if geom["type"] == "MultiPolygon" else [])
+        for poly in groups:
+            rings = [[_wa_xy(c[0], c[1]) for c in r] for r in poly]
+            if not rings or len(rings[0]) < 4:
+                continue
+            xs = [q[0] for q in rings[0]]
+            ys = [q[1] for q in rings[0]]
+            out.append((lab, rings, (min(xs), min(ys), max(xs), max(ys))))
+    return out
+
+
+def _wa_xy(lon, lat):
+    # The same local frame bake_walk.py and js/wayfind.js use, so a metre here
+    # is a metre there.
+    return (lon * 96061.0, lat * 111195.0)
+
+
+def _wa_index(polys):
+    ix = {}
+    for i, (_, _, bb) in enumerate(polys):
+        for cx in range(int(bb[0] // WALKAUDIT_GRID_M), int(bb[2] // WALKAUDIT_GRID_M) + 1):
+            for cy in range(int(bb[1] // WALKAUDIT_GRID_M), int(bb[3] // WALKAUDIT_GRID_M) + 1):
+                ix.setdefault((cx, cy), []).append(i)
+    return ix
+
+
+def _wa_in_ring(ring, px, py):
+    inside = False
+    j = len(ring) - 1
+    for i in range(len(ring)):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if (yi > py) != (yj > py):
+            if px < (xj - xi) * (py - yi) / (yj - yi) + xi:
+                inside = not inside
+        j = i
+    return inside
+
+
+def _wa_under(polys, ix, px, py):
+    best = None
+    for i in ix.get((int(px // WALKAUDIT_GRID_M), int(py // WALKAUDIT_GRID_M)), ()):
+        lab, rings, bb = polys[i]
+        if px < bb[0] or px > bb[2] or py < bb[1] or py > bb[3]:
+            continue
+        if not _wa_in_ring(rings[0], px, py):
+            continue
+        if any(_wa_in_ring(r, px, py) for r in rings[1:]):
+            continue
+        if best is None or WALKAUDIT_PAVED.index(lab) < WALKAUDIT_PAVED.index(best):
+            best = lab
+    return best
+
+
+# ── the router, copied from js/wayfind.js and checked against it ────────────
+# Verified 2026-08-23 against a browser dump of window.wayfindRoute over all
+# twenty pairs: every distance agreed to within 0.5 m, and the drawn vertex
+# lists were identical. If this ever disagrees with the app, the app is right
+# and this is stale.
+
+def _wa_load_graph():
+    import heapq  # noqa: F401  (used by _wa_dijkstra)
+    with open(os.path.join(ROOT, "data", "walk_graph.json"), "r", encoding="utf-8") as fh:
+        g = json.load(fh)
+    q = g["q"]
+    n = len(g["n"]["x"])
+    e = len(g["e"]["a"])
+    X = [0.0] * n
+    Y = [0.0] * n
+    ax = ay = 0
+    for i in range(n):
+        ax += g["n"]["x"][i]
+        ay += g["n"]["y"][i]
+        X[i] = ax * q
+        Y[i] = ay * q
+    A = [0] * e
+    B = [0] * e
+    a = 0
+    for i in range(e):
+        a += g["e"]["a"][i]
+        A[i] = a
+        B[i] = a + g["e"]["b"][i]
+    adj = [[] for _ in range(n)]
+    for i in range(e):
+        adj[A[i]].append((B[i], i))
+        adj[B[i]].append((A[i], i))
+    sw = {}
+    for i in range(e):
+        if g["e"]["s"][i] >= 0:
+            sw[g["e"]["s"][i]] = sw.get(g["e"]["s"][i], 0) + 1
+    return dict(raw=g, N=n, X=X, Y=Y, W=g["e"]["w"], F=g["e"]["f"],
+                S=g["e"]["s"], adj=adj, sw=sw, q=q, doors=g["d"],
+                code=g["code"], name=g["name"], wc=g["wc"], tune=g["tune"])
+
+
+_WA_STEPS, _WA_CROSS = 1, 2
+_WA_OFFMAIN = 128
+
+
+def _wa_cost(G, i):
+    m = G["W"][i] / 100.0
+    t = G["tune"]
+    if G["F"][i] & _WA_STEPS:
+        n = G["sw"].get(G["S"][i], 1)
+        return (m * (t["WALK_SPEED_LOW_MS"] / t["STAIR_SPEED_MPS"])
+                + (t["STAIR_FIXED_S"] * t["WALK_SPEED_LOW_MS"]) / n)
+    c = m
+    if G["F"][i] & _WA_CROSS:
+        c += t["CROSSING_PENALTY_M"]
+    return c
+
+
+def _wa_dijkstra(G, seeds, targets):
+    import heapq
+    INF = float("inf")
+    dist = [INF] * G["N"]
+    prevE = [-1] * G["N"]
+    prevN = [-1] * G["N"]
+    seedOf = [-1] * G["N"]
+    tmap = {}
+    for t in targets:
+        p = tmap.get(t[0])
+        if p is None or t[1] < p[1]:
+            tmap[t[0]] = t
+    h = []
+    for k, s in enumerate(seeds):
+        if s[1] < dist[s[0]]:
+            dist[s[0]] = s[1]
+            seedOf[s[0]] = k
+            heapq.heappush(h, (s[1], s[0]))
+    best = None
+    left = len(tmap)
+    while h:
+        d, u = heapq.heappop(h)
+        if d > dist[u]:
+            continue
+        if best and d > best[0]:
+            break
+        if u in tmap:
+            t = tmap.pop(u)
+            if best is None or d + t[1] < best[0]:
+                best = (d + t[1], u, t)
+            left -= 1
+            if not left:
+                break
+        for v, ei in G["adj"][u]:
+            if G["F"][ei] & _WA_OFFMAIN:
+                continue
+            nd = d + _wa_cost(G, ei)
+            if nd < dist[v]:
+                dist[v] = nd
+                prevE[v] = ei
+                prevN[v] = u
+                seedOf[v] = seedOf[u]
+                heapq.heappush(h, (nd, v))
+    if best is None:
+        return None
+    nodes = [best[1]]
+    n = best[1]
+    while prevE[n] != -1:
+        n = prevN[n]
+        nodes.append(n)
+    nodes.reverse()
+    return nodes, seeds[seedOf[best[1]]], best[2]
+
+
+def _wa_doors(G, key):
+    """The same rule js/wayfind.js's doorSet() uses: a main door if there is
+    one, every attached door otherwise."""
+    if key in G["code"]:
+        ds = G["code"][key]
+    elif key in G["wc"]:
+        ds = G["wc"][key]
+    else:
+        ds = G["code"].get(G["name"].get(key.lower(), ""), None)
+    if not ds:
+        return []
+    ds = [d for d in ds if G["doors"][d][2]]
+    mains = [d for d in ds if G["doors"][d][4] == "main"]
+    return mains or ds
+
+
+def _wa_route(G, a_key, b_key):
+    def anchors(ds):
+        out = []
+        for di in ds:
+            d = G["doors"][di]
+            for k in range(len(d[2])):
+                # The routing cost of a door link is its TRUE metres times
+                # WALKAUDIT_LINK_COST_MULT -- js/wayfind.js's `anchors()` does
+                # exactly this and Dijkstra spends the penalised number while
+                # every printed distance keeps the true one. The two constants
+                # must stay equal or this audit stops describing the app.
+                out.append((d[2][k], d[3][k] / 100.0 * WALKAUDIT_LINK_COST_MULT, di))
+        return out
+    A, B = _wa_doors(G, a_key), _wa_doors(G, b_key)
+    if not A or not B:
+        return None
+    r = _wa_dijkstra(G, anchors(A), anchors(B))
+    if not r:
+        return None
+    nodes, seed, target = r
+    line = []
+    for n in nodes:
+        p = (G["X"][n], G["Y"][n])
+        if not line or line[-1] != p:
+            line.append(p)
+    q = G["q"]
+    da = (G["doors"][seed[2]][0] * q, G["doors"][seed[2]][1] * q)
+    db = (G["doors"][target[2]][0] * q, G["doors"][target[2]][1] * q)
+    return dict(line=line, legs=[[da, line[0]], [line[-1], db]])
+
+
+def walkaudit():
+    """Print the pavement table. Bakes nothing."""
+    if not os.path.exists(OUT):
+        print("no %s — run the bake first" % OUT)
+        return 2
+    polys = _wa_paved_polys()
+    ix = _wa_index(polys)
+    G = _wa_load_graph()
+
+    print("PAVEMENT UNDER THE WALKING ROUTE")
+    print("  ground   %s (%d hard-surface polygons)" % (os.path.basename(OUT), len(polys)))
+    print("  graph    data/walk_graph.json, as of %s" % G["raw"].get("as_of", "?"))
+    print("  method   %s pairs, sampled every %.1f m of drawn ribbon"
+          % (len(WALKAUDIT_PAIRS), WALKAUDIT_SAMPLE_M))
+    print("")
+    head = ("pair", "drawn m", "leg m", "path", "mall", "road", "other", "BARE")
+    print("  %-22s %8s %7s | %6s %6s %6s %6s | %7s" % head)
+
+    grand = Counter()
+    grand_len = 0.0
+    rows = []
+    for a, b in WALKAUDIT_PAIRS:
+        r = _wa_route(G, a, b)
+        if r is None:
+            print("  %-22s   NO ROUTE" % (a + ">" + b))
+            continue
+        c = Counter()
+        legm = 0.0
+        drawn = 0.0
+        parts = [("path", r["line"])] + [("leg", L) for L in r["legs"]]
+        for kind, co in parts:
+            for i in range(len(co) - 1):
+                ax, ay = _wa_xy(*co[i])
+                bx, by = _wa_xy(*co[i + 1])
+                L = math.hypot(bx - ax, by - ay)
+                if L <= 0.001:
+                    continue
+                n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+                step = L / n
+                for s in range(n):
+                    t = (s + 0.5) / n
+                    lab = _wa_under(polys, ix, ax + (bx - ax) * t, ay + (by - ay) * t)
+                    c[lab or "BARE"] += step
+                    drawn += step
+                    if kind == "leg":
+                        legm += step
+        grand.update(c)
+        grand_len += drawn
+
+        def P(*keys):
+            return 100.0 * sum(c[k] for k in keys) / drawn if drawn else 0.0
+        # `patharea` is split in the report because "mall" is the answer to a
+        # different question: a mall slab is a walk, but it is the one the
+        # router rides the OUTLINE of rather than crossing.
+        rows.append((a + ">" + b, drawn, legm, P("patharea"), P("plaza"),
+                     P("roadarea"), P("pathslab", "cyclearea"), P("BARE")))
+        print("  %-22s %8.0f %7.0f | %5.1f%% %5.1f%% %5.1f%% %5.1f%% | %6.1f%%" % rows[-1])
+
+    def T(*keys):
+        return 100.0 * sum(grand[k] for k in keys) / grand_len if grand_len else 0.0
+    print("")
+    print("  %-22s %8.0f %7s | %5.1f%% %5.1f%% %5.1f%% %5.1f%% | %6.1f%%"
+          % ("ALL, weighted", grand_len, "", T("patharea"), T("plaza"),
+             T("roadarea"), T("pathslab", "cyclearea"), T("BARE")))
+    print("")
+    print("  ON A DRAWN SURFACE        %6.2f %%" % (100.0 - T("BARE")))
+    print("  ON A DRAWN WALK (path)    %6.2f %%" % T("patharea"))
+    print("  OVER BARE GROUND          %6.2f %%   (%.0f m)"
+          % (T("BARE"), grand["BARE"]))
+    print("")
+    worst = sorted(rows, key=lambda r: -r[7])[:5]
+    print("  worst five:")
+    for w in worst:
+        print("    %-22s %6.1f %% bare" % (w[0], w[7]))
+    return 0
+
+
 def main():
     feats = []
     stats = Counter()
@@ -3143,8 +3535,22 @@ def main():
             rings = rings_from_relation(el)
         if not rings:
             continue
-        surf, _ = surface_of(t, "plaza")
+        # A `highway=pedestrian` polygon is a MALL — a walk you step up onto —
+        # and belongs in the path band with every other walk. Anything else in
+        # this cache (traffic islands, stepped terraces tagged `area:highway`)
+        # keeps the flat plaza treatment it has always had.
+        mall = PEDESTRIAN_AREA_IS_A_WALK and t.get("highway") == "pedestrian"
+        surf, _ = surface_of(t, "pedestrian" if mall else "plaza")
         for r in rings:
+            if mall:
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "Polygon", "coordinates": [r]},
+                    "properties": {"k": "patharea", "u": "pedestrian", "s": surf,
+                                   **({"name": t["name"]} if t.get("name") else {})},
+                })
+                stats["pedestrian_mall_area"] += 1
+                continue
             feats.append({
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": [r]},
@@ -3387,4 +3793,9 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
+    if "--walkaudit" in sys.argv:
+        # AUDIT ONLY. Reads the ground already on disk and never writes it, so
+        # it can be run against a shipped file to grade it.
+        sys.exit(walkaudit())
     main()

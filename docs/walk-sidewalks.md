@@ -437,3 +437,196 @@ Two smaller ones, also outside this lane:
   live in the session scratchpad because `scripts/verify/` is not this lane's to
   write. The method is written out above in enough detail to rebuild them.
 * **`WAYFIND.on` untouched.** Still `false`.
+
+---
+
+# Round 2 — the malls, and the audit moves into the repo
+
+Same lane, same branch, later the same day. Everything above stands; nothing in
+it was rewritten. This section is additive and every number in it was measured
+**on top of** the branch as §0–§7 left it — kerb aprons painted, `LINK_COST_MULT`
+at 4.0 — so the deltas below are this change and nothing else.
+
+Two things landed.
+
+## 8. `--walkaudit`: the measurement is in the repo now, not in a scratchpad
+
+§7 above says, honestly, that the measuring scripts live in the session
+scratchpad because `scripts/verify/` is not this lane's to write. That is true
+and it is also the reason nobody will ever re-run them. `scripts/bake_ground.py`
+IS this lane's, so the audit lives there:
+
+```bash
+python scripts/bake_ground.py --walkaudit    # no browser, no bake, ~40 s
+```
+
+It routes the twenty pairs against `data/walk_graph.json` with a Python copy of
+`js/wayfind.js`'s decode + Dijkstra + `geometryOf`, samples the drawn ribbon
+every metre, and reports what each metre is standing on. `WALKAUDIT_LINK_COST_MULT`
+sits at the top with a comment saying it must equal `LINK_COST_MULT` in
+`js/wayfind.js`; if the two drift the audit is measuring a router the app does
+not have.
+
+**It was checked against the browser before it was trusted.** Driving the real
+`index.html` at `?walk=1`, calling `window.wayfindRoute()` on all twenty pairs
+and reading the drawn geometry off the `wayfind-route` source: every route
+distance agreed to within 0.5 m and grading the browser's own geometry gave the
+same table, per route, to a tenth of a percent.
+
+Its numbers are not the same as §0's and that is by construction, not a
+disagreement: §0 samples at 0.5 m with a 10 cm tolerance and counts a mall rim
+as pavement; this samples at 1 m with **zero tolerance** and counts a rim as
+whatever the polygon test says. The strict version is the harder bar and it is
+the one that makes the mall problem below visible instead of absorbing it.
+
+## 9. A pedestrian mall is a WALK, and it was being drawn as a lawn-band area
+
+§0 already spotted the mechanism and worked around it: *"42 of OSM's pedestrian
+areas on this campus are drawn as `area=yes` rings… a route walking the Main
+Mall runs along the Main Mall polygon's own edge, and a strict test scores it as
+off-pavement."* The workaround was a 10 cm tolerance. The cause is worth fixing
+instead.
+
+Those 44 polygons — Main Mall, East Mall, the Speedway courts, the Jester, Gates
+and Blanton forecourts — were emitted as `k:'area', u:'plaza'`: a **flat fill**,
+in the same band as lawns and parking lots. Everything else you walk on in this
+scene is a `k:'patharea'` slab standing `GROUND.pathRaise` = 0.22 m proud. Two
+consequences, and the second is the one you can see:
+
+1. **The route ribbon floated.** `WAYFIND.routeBaseM` is 0.22, pinned to
+   `GROUND.pathRaise` on purpose so the ribbon rests on the pavement slab rather
+   than z-fighting it. Over a mall there is no slab, so the ribbon stood 22 cm in
+   the air — over **4.0 %** of the twenty routes' drawn length, and over 23 % of
+   PCL→RLP.
+2. **A mall was a different colour from the walks crossing it.** Sampled off two
+   frames at the same pixel: the mall `rgb(224,207,175)`, a footway slab drawn
+   across that same mall `rgb(237,192,132)`. In one frame, both concrete.
+
+This file's own rank ladder already says what a mall is — `('patharea',
+'pedestrian')` sits at 60, above the generic footway laid over it — and Speedway,
+which OSM tags `highway=pedestrian` as a **line**, has always come out of this
+bake as a `patharea`. Only the `area=yes` branch was routing the very things that
+ladder entry describes into the other band.
+
+`PEDESTRIAN_AREA_IS_A_WALK = True`. Set it False and they go back to flat plaza
+fills with no other change.
+
+### What it moved
+
+`python scripts/bake_ground.py --walkaudit`, twenty pairs, 13,097 drawn metres,
+1 m sampling, **zero tolerance**:
+
+| | branch before | with the malls |
+|---|---:|---:|
+| **on a drawn WALK** (`k:'patharea'`) | 86.69 % | **90.20 %** |
+| on a flat plaza fill | 3.8 % | 0.2 % |
+| on any drawn surface | 96.00 % | 95.92 % |
+| over bare ground | 4.00 % (524 m) | 4.08 % (534 m) |
+
+Per route, the ones that moved (share on a drawn walk):
+
+| pair | before | after |
+|---|---:|---:|
+| PCL>RLP | 54.3 % | **78.1 %** |
+| PCL>JES | 69.2 % | **89.3 %** |
+| GDC>PCL | 88.1 % | **97.8 %** |
+| GRE>MAI | 77.9 % | **85.3 %** |
+| 21 Rio>WEL | 80.6 % | **87.0 %** |
+| GRE>NEZ | 81.8 % | **88.0 %** |
+| GRE>MNC | 86.7 % | **89.9 %** |
+| STD>MAI | 86.2 % | **88.9 %** |
+
+**The two numbers that did not improve are the honest part.** "Any drawn
+surface" moves 0.08 % the wrong way and bare ground gains 10 m of 13,097. Both
+are the same thing: a mall in the path band cuts the `patharea/footway` slabs
+that overlap it (rank 60 beats 52, which is what the ladder says should happen),
+and a handful of the resulting slivers fall under `RESOLVE_MIN_M2` and are
+dropped. It is 10 metres across twenty routes and it buys 3.5 points of correctly
+classified walk plus the end of the floating ribbon. **The rim straddle itself is
+untouched, and that is expected** — it is a routing problem, not a paint problem,
+and §6's `bake_walk.py` patch is still the fix for it.
+
+### What it cost
+
+**Nothing measurable.** `data/ground.geojson` goes 5,406 → 5,409 KB raw and
+**995 → 995 KB gzipped**: 44 polygons changed band, they did not multiply.
+Coincident-surface conflicts pick up three pairs totalling 24 m² — two
+`footway/pedestrian` and one `pedestrian/steps`, i.e. a walk and the mall it
+crosses now sharing the 0.22 m band. Carriageway-versus-path overlap is
+unchanged at 81 pairs / 108 m², exactly the figure §2 reports.
+
+**One knock-on, disclosed.** Two flagpoles that stood on plaza polygons no longer
+get a limestone plinth, because the polygon under them changed band. Nothing
+visible changed: a plinth is `('area','plinth')` at rank 13 and a plaza was rank
+30, so the surface underneath ate the plinth in the resolver anyway — the bake
+reported one of them as `resolve_covered_plinth` on every run. The reasoning is
+written at `PLINTH` so it cannot rot into a mystery.
+
+### The frames — this is a taste call, so look at it
+
+`shots/walk/sidewalks/aprons-*.png` and `malls-*.png`, same camera, near-nadir,
+tree layers hidden except on the `-city` frame. The only difference between the
+two sets is `PEDESTRIAN_AREA_IS_A_WALK`.
+
+* **`2-eastmall`** is the one to look at: the Jester forecourt goes from a flat
+  pale slab with the route running along its edge to paving the same colour as
+  the walks that cross it, with the route on it.
+* **`1-mainmall`** is the same change beside Garrison Hall.
+* **`6-eastmall-city`** is the East Mall pose with the trees left in — what a
+  person actually sees.
+
+The malls are now warmer and stand 22 cm proud with a kerb stroke. Whether the
+campus should look like that is Simeon's call (CLAUDE.md rule 9); it is one
+constant either way.
+
+**Near-nadir on purpose.** The first attempt at these stood at 20 m with 74° of
+pitch, photographed tree trunks, and did not contain one pixel of ribbon while
+the route pill in the same frame said a route was drawn. Poses are derived
+offline from `data/walk_graph.json` and are identical between the two sets; the
+zoom the browser reported matched the offline prediction to the second decimal
+on every frame.
+
+## 10. Two things in `js/wayfind.js` found while measuring, and not fixed here
+
+Neither is in a graph-building function, so neither is this pass's to change.
+
+**`overOf()` asks for the whole style, three times, per session.** It is
+`map.getStyle().layers`, and `getStyle()` on this style serialises every source
+carrying inline GeoJSON — trees at 27 MB, ground at 5.4 MB, roads, entrances.
+`ensureLayers()` calls it three times, at exactly the moment a user first asks
+for a route. The one-line fix is `map.getLayersOrder()`, which returns ids only.
+
+It is a real allocation and it is worth removing, but **it is NOT what broke
+this round's harness, and saying so is the point of this paragraph.** Six
+verification runs died — five on a node heap limit at 373 / 398 / 593 / 409 s
+across three different heap caps, one on chrome.mjs's 25-minute watchdog with
+the page unresponsive — and a whole theory was built on `getStyle()` before the
+actual cause turned up: **`df` reported the machine's C: drive at 476 G of 476 G,
+zero bytes free.** Chrome and node both want scratch space and neither says so
+when they cannot have it. Freeing 5.6 G ended the failures. The lesson is the
+one already in `scripts/verify/README.md` in a different costume: an
+instrument's environment is part of its answer, and "the harness ran out of
+memory" and "the machine ran out of disk" look identical from inside the log.
+
+**The ribbon still floats over the carriageway.** `WAYFIND.routeBaseM` = 0.22 is
+right for a `patharea`, and `k:'roadarea'` is a flat `fill` at ground level.
+**5.5 %** of the twenty routes' drawn length is on a carriageway — every marked
+crossing — and over those metres the ribbon stands 22 cm in the air. Raising the
+ground fixed the mall half of this defect; the road half cannot be fixed that way
+because the road really is at zero. It needs a per-feature base chosen in
+`ribbonPolys()` from what the segment is crossing.
+
+## 11. One thing measured and rejected
+
+Before §3's `LINK_COST_MULT` was on this branch, this round independently
+measured the same lever from the other side: penalising the door link at 1.5×
+cut the invented straight line from 397 m to 231 m across twenty pairs and moved
+off-pavement from 5.06 % to 4.60 %, for +135 m (+1.0 %) of real walking — and it
+was written off as buying a prettier drawing with a student's legs.
+
+**That verdict was wrong and §3 is right.** The argument this round missed is in
+§3's own evidence: the far anchor Burdine was taking is not merely unsurveyed,
+it crosses the building, and the app was drawing a dashed leg over the roof. The
+extra metres are not paid for a nicer picture, they are paid to stop claiming a
+line nobody can walk. Recorded here so the measurement is not repeated a third
+time and so the reasoning that beat it is on the record.
