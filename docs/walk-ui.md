@@ -777,3 +777,261 @@ floor under the rail-bound distance), `stepMinLegM` 12, `cardGapPx` 8,
 `andThen`. Custom properties on `#wf-root`: `--wf-step`, `--wf-step-h`,
 `--wf-thread`, `--wf-step-ic`, `--wf-mode`, `--wf-go-bg`, `--wf-go-edge`,
 `--wf-go-ink`; `--wf-line` 11.5 -> 12.5.
+
+# ROUND 4
+
+Same lane, `acer/w-ui` continued. Round 3 gave the bar a list. Round 4 found
+that **half of what this lane is judged on could not be reached from the
+interface at all**, and fixed that first; the rest is the two shapes that were
+still reading as something they are not.
+
+Everything below was photographed at 390 x 844, before and after, in
+`shots/walk/ui/`. Two new frames — `during-walk-walkit.png` and
+`during-walk-2-walkit.png` — are the during-walk view as the **button** produces
+it, not as a test harness poses it.
+
+## 21. The during-walk view had no door into it
+
+`renderLive` and everything it draws — the manoeuvre disc, `27 m, then right`,
+`and then left`, the remaining figures, the progress on the rail — arm on
+`body.wf-live`, which arms when the camera is within `liveOnRouteM` of the drawn
+line and under `liveAltMaxM`. **Nothing in the interface ever put the camera
+there.** Three rounds of this lane photographed that readout by flying a
+Playwright harness onto the route. A person holding the phone would have had to
+spot the line from 300 m up and fly down onto it by hand, with nothing anywhere
+telling them there was a different bar waiting when they did.
+
+So the bar could say two things and the product could only ever show one.
+
+**`Walk it` is the door**, and it is the primary action now. It stands the eye
+at 1.7 m on the first point of the route that is clear of every building,
+looking down the walk. `Show route` — which frames the line from above, i.e.
+the thing every maps app already does — keeps its glyph and its word at
+secondary weight, and `Clear` gives up its word for the ✕ it always meant, which
+is the only reason three controls fit on 342 px.
+
+Four things had to be right, and each of them was wrong first and was found on
+a frame:
+
+**(a) A door is on a wall, so the start is a SEARCH.** `js/controls.js` answers
+a camera inside geometry by lifting it clear (`writeToMap` raises the altitude
+to `roofAt + HARD_CLEAR`), so placing the eye at the origin door does not clip
+through a facade — it puts you on the roof looking down at one. That is exactly
+the "camera buried inside a surface" that voided two rounds of work on this
+project. `walkIt` walks the route's own profile outward, probing
+`__fly.roofAt(lng, lat, walkClearR)` every `walkStepM`, and stands at the first
+point that reads zero. The lowest roof seen is kept as a fallback, because a
+button that silently does nothing is worse than one that stands you in the best
+place it could find.
+
+**(b) `walkClearR` was 7 m and had to be measured, not copied.** 7 is what the
+verify harness's `findStart` uses to drop a camera on open ground, and on
+`JES -> DKR` it found nothing in 140 m and the button did nothing at all: a
+pavement three metres from a wall never has seven clear metres around it.
+`js/controls.js` itself walks at `R_CAM_GROUND = 1.0` — at walking altitude the
+app asks "is there a roof within one metre of me". `walkClearR` is 2.
+
+**(c) The readout did not arm, because `__fly.eye()` was stale.** The camera
+moves by `jumpTo`, and the controller only re-reads the map on its own next tick
+(`syncFromMap`, and only while nothing is driving). `jumpTo` fires `move` and
+`moveend`, `onCam` is on both, and BOTH of those samples still saw the camera
+745 m up — photographed, with the bar showing the summary layout while the view
+stood on the pavement. The readout is now re-asked `walkSettleN` times at
+`walkSettleMs`, and stops the moment it takes.
+
+**(d) You look down the WALK, not along one segment of it.** Two frames were
+needed for this. Facing along the segment underfoot opened `21 Rio -> WEL`
+across the pavement rather than down it, because the accepted point is usually
+the far end of the **door link** — the straight line this app drew from the door
+to the nearest path node — and describing a heading off geometry we invented is
+the same mistake round 3's itinerary already had to fix. Facing along the first
+*real* segment fixed that one and not `JES -> DKR`, where the eye stood exactly
+on the line with **zero degrees** of deviation from its own segment and the
+route still crossed only 23 % of the centre of the frame: that walk bends inside
+its first twenty metres. The camera now aims at the point `walkLookM` along the
+polyline, and steps `walkLeadM` in along the polyline too (not along a straight
+bearing — measured, five metres along the old bearing walked off the pavement
+onto a plaza and the ribbon left the frame entirely).
+
+Both routes now: eye 1.70 m, pitch 85, `wf-live` armed, and the route under
+**100 %** of the centre column of the lower half of the frame.
+
+## 22. The rail was still a slider, and thickness was not the fix
+
+Two rounds of notes in `style.css` say this element had been "argued out of
+looking like a slider". It had not. Photographed this round at 390 x 844:
+
+* summary — a 7 px hairline track, empty, with one bright round amber cap at the
+  right end. That is a slider at 100 %;
+* walking — the same track with an amber fill and a **13 px white disc** sitting
+  in the middle of it. That is a volume slider, and nothing else;
+* `JES -> ANB` — the merged four-crossing capsule, a pale blue pill on a dark
+  track, i.e. an iOS toggle switch.
+
+Four changes, in the order they were tried, and the first three were not enough
+on their own — each one was photographed before the next was made:
+
+1. **10 px, then 14 px.** Better and not sufficient: a band with one prominent
+   round mark on it is a slider whatever its height.
+2. **Filled with the route's own colour** (`--wf-rail` from 17 % neutral cream to
+   26 % amber) so it is a drawn thing rather than an empty groove waiting to be
+   filled. The brighter `--wf-fill` still marks the walked part, so progress is
+   a change of weight inside one object.
+3. **A 4 px corner instead of a pill** (`--wf-rail-r`). A fully-rounded
+   horizontal band is a control; a band with a square-ish corner is a bar in a
+   chart. Cheapest signal available and the one that had not been spent.
+4. **AND THE ONE THAT ACTUALLY DID IT: every mark cuts the band.** No slider in
+   the world is segmented. Each mark now punches a full-height notch through the
+   band and sits in the gap, so the amber comes apart into the stretches of
+   uninterrupted walking between the things that happen — which is a better
+   picture than the dots were, because the width of a piece is how far you go
+   without stopping. `.wf-notch` is its own element appended just before its
+   mark (a `::before` is painted over its element's background and would have
+   covered the dot it exists to frame) and is sized from the same number that
+   sizes a merged capsule, so the two cannot drift.
+
+The merged mark is a **block** now, not a capsule — with a notch behind it, a
+rounded blue pill in a dark rounded slot is a toggle switch, and that is the
+second time this element has had to be argued out of being a control.
+
+`.wf-you` is a **playhead**: a 4 x 24 bar overhanging the band both ways, which
+is the mark every scrubbing UI uses for position and none of them use for a
+handle. The two terminals are exactly `--wf-rail-h` tall, so nothing on the rail
+stands proud of it any more.
+
+## 23. Walking, the bar carried two whole trip summaries and one was stale
+
+Photographed walking `21 Rio -> WEL`: `27 m, then right`, under it `11–17 min
+walk REMAINING · 940 m`, and under THAT `12-18 min walk · 1.0 km · Stairs: 3
+sets`. Two complete trip summaries stacked on a 366 px bar — and the second one
+measures a walk you are no longer taking, because `Stairs: 3 sets` goes on
+counting sets already behind you.
+
+The whole-route figure line is `display:none` while walking (`#wf-headline`
+.textContent is unchanged — it is what the honesty gates and every verify script
+assert on), and the row it vacates carries **what is ahead**: the marks past the
+camera's own projection onto the line, which is the same class of measurement as
+`remaining` and the one that changes what you do next. `3 staircases · 2
+signalised crossings AHEAD`, in the same uppercase footnote `REMAINING` wears.
+
+The counts use short labels. The legend's own strings — written for something
+you read standing still, where naming the source is the point of the row —
+wrapped this onto two lines. **What is still named: signalised**, because a
+signalised crossing and an unsignalised one are different facts about the walk.
+**What is not: OpenStreetMap**, which the details card states in full two lines
+below and the standing legend still carries. Flagging that for the honesty lane
+rather than assuming it: `SAY_UI.aheadStairsN` / `aheadSignalN`.
+
+## 24. The open card: readable over the city, and one duplicate row shorter
+
+`--wf-glass` is 72 % over a rendered city. Closed, that is four lines over sky
+and it is right. Open, it is 540 px of small type — photographed on `JES -> ANB`,
+the itinerary's leg distances sat on a bright green field and `260 m` was the
+same value as the grass behind it. `#wf-pill.open` takes `--wf-glass-solid`, the
+token the search panel next door already uses, so there is exactly one
+"readable panel" colour in the feature and it is set in one place.
+
+`#wf-key` is hidden when the card is open. `#wf-steps` prints every one of those
+marks, in order, with the same swatch, so on the open bar the key was the
+identical fact twice forty pixels apart; the 18 px buys another row of the
+itinerary. The rail stays — it is the picture and the list is the words.
+
+## 25. What was verified this round, and how
+
+One browser, port 8715, `python scripts/serve.py`, `?walk=1&drift=0&intro=0`,
+`cancelGraphicsAutoDetect()`, waited on `!#veil`, two screenshots and the second
+kept, 390 x 844 at DSF 2 (desktop at 1440 x 900). Every frame reported below was
+opened and looked at with the Read tool.
+
+```
+node scripts/verify/harness-drift.mjs
+  index.html:    31 scripts
+  _harness.html: 31 scripts
+  PASS  the harness loads the same city the site does
+```
+
+No `<script>` was added, so neither HTML file needed an edit; the check is
+quoted because the rule says to run it. `style.css` balances: 182 comment
+openers, 182 closers, brace depth 0, no stray terminators.
+
+**The four walking frames, and how the instrument got there.** The gate is "is
+the route actually under the middle of the lower half of the frame", and
+**three instruments answered it wrongly before the fourth**:
+
+| instrument | what it did | why it was wrong |
+|---|---|---|
+| `queryRenderedFeatures(['wayfind-ribbon'])` | 0 of 5 on a frame with the ribbon plainly down the middle | a fill-extrusion at 1.7 m and pitch 85 is not reliably hit-tested; `buildings-shadow` was the only feature it would name |
+| in-page `drawImage` of the GL canvas | right on some calls, blank on others, same page | `js/app.js` builds the context with `preserveDrawingBuffer: !!window.GFX_PDB` — whether the buffer still holds the frame depends on the graphics preset |
+| Playwright screenshots **with a `clip`** | "nothing changed" | an unclipped diff of the very same two states changed 38 % of the frame |
+| **two full screenshots, diffed** | the answer | goes through the compositor; cannot be empty |
+
+The one that ships hides every layer this feature draws, shoots, restores,
+shoots again, and diffs in a second Chromium page (the only PNG decoder in
+reach). **It carries its own control** — an A/A pair with nothing changed
+between them — because "the pixels changed" only means "the route is there" when
+nothing else moves, and the thing being measured *does* move: `startPulse` runs
+a gradient down the route's thread and an A/A pair taken while it runs differs
+by 37 %. The measurement waits for the scene to go still (up to five tries) and
+refuses to answer rather than reporting a number over a moving picture. Reduced
+motion was deliberately NOT set: the frame photographed should be the frame that
+ships.
+
+| | via | alt | pitch | `wf-live` | A/A control | route on frame | route on centre column |
+|---|---|---|---|---|---|---|---|
+| `21 Rio -> WEL` | **`Walk it`** | 1.70 m | 85 | armed | 0.25 % | 38.4 % | **100 %** |
+| `21 Rio -> WEL` | posed at t=0.22 | 1.7 m | 85 | armed | 0 % | 38.4 % | **100 %** |
+| `JES -> DKR` | **`Walk it`** | 1.70 m | 85 | armed | 0.25 % | 37.5 % | **100 %** |
+| `JES -> DKR` | posed at t=0.62 | 1.7 m | 85 | armed | 0 % | 38.8 % | 87.1 % |
+
+**The recording surfaces, all three, measured rather than assumed** —
+`?clip=1`, `?autopilot=1`, `?sliderdemo=1`, each with `from=JES&to=WEL&fit=1`:
+
+```
+                 #wf-button   #wf-sheet   #wf-pill   #hud
+clip=1              none         none       none     none
+autopilot=1         none         none       none     none
+sliderdemo=1        none         none       none     none
+```
+
+**Horizontal overflow 0** on every state photographed: summary, summary with
+marks, summary at night, details, details with marks, details with a stop, four
+walking frames, the failure, the three capture modes, and desktop.
+
+**Bar heights at 390 x 844.** Closed summary 195 px (245 with a passing-period
+warning); open card bottom y650, clear of the joystick ring at y674; walking
+195 px — one row of whole-route figures traded for one row of what is ahead.
+
+**The failure state**, `FC1 -> WEL`: `Walk it` none, `Show route` none, `Clear`
+44 x 44. There is no route to frame and none to stand on, so only the way out is
+left.
+
+**Desktop**, 1440 x 900: bar 560 px, action row 532 px, overflow 0, all three
+controls on one line with the itinerary under them.
+
+## 26. Not done, and one line for another lane
+
+**`fmtDist` still prints a decimal under 10 m** — `8.4 m, then right` is on
+`during-walk-2.png`. Correct at that distance and the only place it looks odd is
+`10.0 m` from a rounded 9.96. The formatter is in the arithmetic half of
+`js/wayfind.js` and is not this lane's to change; the patch is still:
+
+```js
+  if (m < 10) return (m >= 9.95 ? '10' : m.toFixed(1)) + ' m';
+```
+
+**`Walk it` moves the camera and nothing else** — no state, no route, no
+re-render. It does not start a walk, follow you, or re-frame as you go; the
+joystick does that, and the readout follows the camera the way it always has.
+
+**The night bar was shot but not tuned.** `pre-summary-night.png` reads fine as
+it stands; nothing in this round was chosen for it.
+
+## 27. Taste values added this round (CLAUDE.md rule 11)
+
+`WF_UI`: `walkItOn`, `walkAltM` 1.7, `walkPitch` 85, `walkClearR` 2.0 (from a
+first cut of 7), `walkStepM` 4, `walkMaxM` 200, `walkSettleMs` 90,
+`walkSettleN` 8, `walkLeadM` 5, `walkLookM` 25. `SAY_UI`: `walkIt`,
+`walkItHint`, `aheadTag`, `aheadStairsN`, `aheadSignalN`. Custom properties on
+`#wf-root`: `--wf-rail-r` 4px, `--wf-you-w` 4px, `--wf-you-h` 24px,
+`--wf-notch`, `--wf-notch-pad`; `--wf-rail-h` 7 -> 14,
+`--wf-rail` `rgba(255,222,170,.17)` -> `rgba(255,198,99,.26)`.

@@ -158,3 +158,47 @@ actually are rather than a guessed number, and the two marks merge into one that
 carries the count the card prints. Write-up in `docs/walk-ui.md`, seventeen
 shots in `shots/walk/ui/`. Branch `acer/w-ui`. `WAYFIND.on` still false, so
 none of this is on for anybody who has not asked for it by URL.
+
+## 2026-08-23 — the walk interface, round 4: there was no button that put you on the pavement, so half the feature was unreachable
+
+Lane `acer/w-ui`. The bar has always had two faces — the answer you read
+standing still, and a different readout that appears once you are actually on
+the route, with the next turn, which way it goes, and how much is left. Nothing
+in the app ever put you on the route. Every picture of that second face for
+three rounds was taken by a test script flying the camera down onto the line by
+hand; a person holding the phone would have had to find the route from three
+hundred metres up and fly down onto it themselves, with nothing telling them
+there was anything down there to find.
+
+So there is a **Walk it** button now, and it is the big one. Tap it and you are
+standing on the path at eye height, looking down the walk. It is fussier than it
+sounds: a building's front door is a point on its wall, and the app answers a
+camera standing in a wall by lifting it onto the roof — so the button walks the
+route outward until it finds ground with nothing over it, steps a few paces in,
+and aims at a point twenty-five metres down the walk so a bend does not take the
+path out of frame. Every one of those was wrong first and was found by taking
+the picture and looking at it. **Show route**, which frames the line from above,
+is the second button now, and **Clear** is an ✕.
+
+Two other things. The little bar showing where the stairs and crossings fall
+along the walk **was reading as a slider** — a thin track with a bright round
+cap at one end, and while walking a white disc sitting in an amber fill, which
+is a volume slider and nothing else. Thickening it did not fix it and neither
+did colour. What fixed it is that every mark now cuts a notch clean through the
+bar, so it comes apart into the stretches of uninterrupted walking between the
+things that happen. No slider is segmented. And while you are walking, the bar
+was carrying **two complete trip summaries stacked** — the second one counting
+staircases you had already climbed. That row now says what is still ahead of
+you instead.
+
+The details panel is opaque now: it was 72 % glass over a rendered city and the
+step distances were landing on bright grass.
+
+Numbers, at phone size: after tapping Walk it on both test routes the eye is at
+1.70 m, the walking readout arms, and the route covers **100 %** of the middle
+of the lower half of the frame — measured by hiding the route, re-photographing,
+and diffing, with an A/A control so a moving picture cannot fake it. Three
+earlier ways of measuring that all gave wrong answers and are written up in
+`docs/walk-ui.md`. The bar is 195 px walking, the same as before, having traded
+a stale row for a useful one; no horizontal overflow anywhere; the feature is
+still completely invisible in all three recording modes.

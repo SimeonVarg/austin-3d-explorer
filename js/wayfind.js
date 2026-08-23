@@ -1559,6 +1559,72 @@
     // The CSS rule stays as the pre-script fallback.
     cardGapPx: 8,          // air between the card's bottom and the controls
     cardMinPx: 150,        // never squeeze it below something worth scrolling
+    // ── WALK IT (round 4) ─────────────────────────────────────────────────
+    // THE DURING-WALK VIEW HAD NO DOOR INTO IT. Everything in §7d — the
+    // manoeuvre disc, `27 m, then left`, `and then right`, the remaining
+    // figures — arms itself on `body.wf-live`, which arms when the CAMERA is
+    // on the route under `liveAltMaxM`. Nothing in the interface ever put the
+    // camera there. Three rounds of this lane photographed that readout by
+    // flying a test harness onto the line; a person holding the phone had to
+    // find the route from 300 m up and fly down onto it by hand, and there was
+    // no reason for them to believe there was anything down there to find. So
+    // half of what this bar can say was unreachable from the bar.
+    //
+    // `Walk it` is the door. It stands the eye at the first point of the route
+    // that is CLEAR OF EVERY BUILDING, facing the way the route goes, at the
+    // height the app's own walking mode uses. It is the primary action now and
+    // `Show route` — which frames the line from above — is the secondary,
+    // because the thing this app has that a maps app does not is the walk
+    // itself, not another aerial of it.
+    walkItOn: true,
+    walkAltM: 1.7,         // eye height. The app's own walking altitude.
+    walkPitch: 85,         // and its own walking pitch — looking down the path.
+    // THE CLEARANCE SEARCH IS NOT OPTIONAL AND THIS IS THE LANE THAT LEARNED
+    // IT. A pose placed at a door is placed ON A WALL: the door is a point on
+    // the building's outline, and `js/controls.js` answers a camera inside
+    // geometry by lifting it onto the roof — so `Walk it` without a search puts
+    // you forty metres up looking at a rooftop, which is precisely the "camera
+    // buried inside a surface" that voided two rounds of work on this project.
+    // The route's own line walks away from the door onto the path, so the
+    // search is: step along it until `__fly.roofAt` reads zero.
+    // MEASURED, NOT COPIED. The first cut used 7 m — the radius the verify
+    // harness's `findStart` uses to drop a camera on open ground — and on
+    // `JES -> DKR` it found nothing in 140 m and the button silently did
+    // nothing, because a pavement three metres from a wall never has seven
+    // clear metres around it. `js/controls.js` itself walks at
+    // `R_CAM_GROUND = 1.0`: at walking altitude the app asks "is there a roof
+    // within one metre of me", not seven. 2 m is that, with a metre of margin.
+    walkClearR: 2.0,       // metres of radius that must read 0 to stand there
+    walkStepM: 4,          // how far along the line each probe steps
+    walkMaxM: 200,         // stop looking after this much route
+    // The camera moves by `jumpTo`, and `js/controls.js` only re-reads the map
+    // on its OWN next tick (`syncFromMap`, and only while nothing is driving),
+    // so for a frame or two `__fly.eye()` still reports where you were. The
+    // walking readout is built off `__fly.eye()`, so asking it once on the next
+    // frame asks it while the answer is still stale — measured, and the bar
+    // stayed on the summary layout with the camera standing on the route. It
+    // is asked a few times over half a second instead, and it stops as soon as
+    // the answer changes.
+    walkSettleMs: 90,
+    walkSettleN: 8,
+    // A FEW STEPS IN, NOT ON THE JOINT. At pitch 85 and 1.7 m the bottom of the
+    // frame is a metre or two in front of your shoes, so standing exactly on
+    // the vertex where the route turns fills the near field with the segment
+    // you have just left. Measured on `JES -> DKR`: the eye was on the line,
+    // the readout armed correctly, and the ribbon changed only 1 of 5 sampled
+    // pixels down the centre of the lower half because the walk started off to
+    // the left. Advancing along the segment you FACE puts the ribbon under
+    // your feet and running to the horizon, which is the shot.
+    walkLeadM: 5,
+    // AND YOU LOOK DOWN THE WALK, NOT ALONG ONE SEGMENT OF IT. Facing along the
+    // segment underfoot is right on a straight path and wrong on a curved one:
+    // measured on `JES -> DKR`, the eye stood exactly on the line with zero
+    // degrees of deviation from its segment and the ribbon still crossed only
+    // 23 % of the centre strip, because the walk bends away inside the first
+    // twenty metres. Aiming at a point this far along the polyline keeps the
+    // route in the middle of the frame through a bend, which is what a person
+    // looking down a path does with their head.
+    walkLookM: 25,
     stepMinLegM: 12,       // shorter than this and the distance row is noise —
                            // the 10 m of median between the two halves of a
                            // divided crossing is not a leg of anybody's walk.
@@ -1628,6 +1694,34 @@
     // street name, both of which §12 forbids and neither of which the rows
     // contain.
     stepsTitle: 'Step by step',
+    // ROUND 4. The label on the door into the walking readout. It names a
+    // control and claims nothing: tapping it moves the CAMERA to the start of
+    // the drawn line at eye level. It does not say you will make it, how long
+    // you will take, or that the way is passable — all of which the bar above
+    // it is already careful not to say.
+    walkIt: 'Walk it',
+    walkItHint: 'Stand at the start of this route, at eye level',
+    // ROUND 4. WHAT IS STILL IN FRONT OF YOU. While walking, the third line of
+    // the bar was the WHOLE-ROUTE figure line demoted to footnote size — a
+    // second complete trip summary under the first, and a stale one: `Stairs:
+    // 3 sets` counts sets you may already have climbed. The marks past the
+    // camera's own projection onto the line are the same measurement class as
+    // `remaining` (see the note above), and they are the ones that change what
+    // you do next.
+    aheadTag: 'ahead',
+    // THE COUNTS, IN THE WORDS A NAV BAR HAS ROOM FOR. Photographed walking
+    // 21 Rio -> WEL at 390 x 844, the legend's own strings wrapped this row
+    // onto two lines — `3 staircases OpenStreetMap has mapped` / `2 signalised
+    // crossings AHEAD` — because they are written for a legend you read
+    // standing still, where naming the source is the whole point of the row.
+    // On the move the row is a count of the marks left on the drawn line, the
+    // same measurement as `remaining`, and it fits on one. WHAT IS STILL
+    // NAMED: signalised, because a signalised crossing and an unsignalised one
+    // are different facts about the walk. WHAT IS NOT: OpenStreetMap, which
+    // the details card states in full two lines below and the standing legend
+    // still carries.
+    aheadStairsN: (n) => n + (n === 1 ? ' staircase' : ' staircases'),
+    aheadSignalN: (n) => n + (n === 1 ? ' signalised crossing' : ' signalised crossings'),
     details: 'Details',
     hideDetails: 'Hide details',
     swap: 'Swap the two ends',
@@ -2074,16 +2168,34 @@
     // `?fit=1` the route this bar is describing can be entirely off screen and
     // the one control that puts it back was not on screen either.
     const acts = h('div', null); acts.id = 'wf-acts';
-    const showBtn = h('button', 'wf-act wf-act-go');
+    // ROUND 4: THE PRIMARY ACTION IS THE WALK, NOT ANOTHER AERIAL OF IT.
+    // `Show route` frames the line from above — useful, and it is what every
+    // maps app already does. The thing this app has that they do not is that
+    // you can stand on the pavement it just drew, and until now no control
+    // anywhere put you there (see walkIt's header). So `Walk it` takes the
+    // filled amber and the width, `Show route` keeps its glyph and its word at
+    // secondary weight, and `Clear` becomes the ✕ it always meant — three
+    // controls on 342 px only fit if the way out stops asking for a word.
+    const walkBtn = h('button', 'wf-act wf-act-go');
+    walkBtn.appendChild(icon('wf-act-ic wf-act-walk', IC.walk, 1.9));
+    walkBtn.appendChild(h('span', null, SAY_UI.walkIt));
+    walkBtn.title = SAY_UI.walkItHint;
+    walkBtn.setAttribute('aria-label', SAY_UI.walkIt + ' — ' + SAY_UI.walkItHint);
+    walkBtn.addEventListener('click', (ev) => { ev.stopPropagation(); walkIt(); });
+    const showBtn = h('button', 'wf-act wf-act-show');
     showBtn.appendChild(icon('wf-act-ic', IC.frame, 1.9));
     showBtn.appendChild(h('span', null, SAY.showRoute));
+    showBtn.title = SAY.showRoute;
     showBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       if (state.route && state.route.ok) fitTo(window.__map, state.route);
     });
-    const clrBtn = h('button', 'wf-act wf-act-clr', SAY.clear);
+    const clrBtn = h('button', 'wf-act wf-act-clr');
+    clrBtn.appendChild(icon('wf-act-ic', IC.close, 2.2));
+    clrBtn.title = SAY.clear;
+    clrBtn.setAttribute('aria-label', SAY.clear);
+    acts.appendChild(walkBtn); acts.appendChild(showBtn); acts.appendChild(clrBtn);
     clrBtn.addEventListener('click', (ev) => { ev.stopPropagation(); clear(); });
-    acts.appendChild(showBtn); acts.appendChild(clrBtn);
     // THE LAST ROW IS ONE ROW. Photographed at 390 x 844 while walking, the
     // bar's bottom 44 px held a single 90 px `Clear` button with 270 px of
     // nothing to the left of it, directly under a passing-period warning that
@@ -2482,6 +2594,8 @@
     const doneT = live ? Math.max(0, Math.min(1, live.at / prof.total)) : 0;
     fill.style.width = (doneT * 100).toFixed(2) + '%';
     rail.appendChild(fill);
+    // THE NOTCH PAD, read once off the element rather than hard-coded twice.
+    const notchPad = parseFloat(getComputedStyle(el.root).getPropertyValue('--wf-notch-pad')) || 3;
     for (const m of routeMarks(G, r, prof)) {
       const pip = h('span', 'wf-pip wf-pip-' + m.kind);
       pip.style.left = (m.t * 100).toFixed(2) + '%';
@@ -2500,9 +2614,27 @@
         : SAY_UI.pipVia;
       pip.title = lab; pip.setAttribute('aria-label', lab);
       if (m.t <= doneT) pip.classList.add('past');
+      // THE CUT THE MARK MAKES IN THE BAND. Sized from the pip's own width so a
+      // merged capsule cuts a wider gap than a single dot and the two can never
+      // disagree; appended BEFORE the pip because a ::before is painted over
+      // its own element's background and would have covered the dot.
+      const pw = m.n > 1 ? (7 + 4 * (m.n - 1)) : 9;
+      const notch = h('span', 'wf-notch');
+      notch.style.left = (m.t * 100).toFixed(2) + '%';
+      notch.style.width = (pw + notchPad * 2) + 'px';
+      notch.style.marginLeft = (-(pw + notchPad * 2) / 2) + 'px';
+      rail.appendChild(notch);
       rail.appendChild(pip);
     }
     if (live) {
+      // The playhead cuts the band too, so where the view is reads as a joint
+      // in the walk rather than as a handle lying on a track.
+      const youW = parseFloat(getComputedStyle(el.root).getPropertyValue('--wf-you-w')) || 4;
+      const yn = h('span', 'wf-notch');
+      yn.style.left = (doneT * 100).toFixed(2) + '%';
+      yn.style.width = (youW + notchPad * 2) + 'px';
+      yn.style.marginLeft = (-(youW + notchPad * 2) / 2) + 'px';
+      rail.appendChild(yn);
       const you = h('span', 'wf-you');
       you.style.left = (doneT * 100).toFixed(2) + '%';
       rail.appendChild(you);
@@ -2533,21 +2665,52 @@
    */
   function renderKey(r) {
     el.key.innerHTML = '';
+    el.key.classList.remove('ahead');
     if (!WF_UI.keyOn) { el.key.classList.add('hidden'); return; }
     const items = [];
-    // Stairs are NOT here: the headline already prints `Stairs: 3 sets` and
-    // carries the swatch inline. The key is for the marks the bar has no
-    // sentence for yet.
-    if (r.m.signals) {
-      items.push(['signal', r.m.signals === 1 ? SAY_UI.pipSignal : SAY_UI.pipSignalN(r.m.signals)]);
+    if (live && prof && prof.total) {
+      // ── WALKING: THE SAME ROW COUNTS WHAT IS STILL IN FRONT OF YOU ───────
+      // Round 4. Standing still, this row is a legend — it binds a colour on
+      // the rail to a word, and you read it once. Walking, a legend is the
+      // least useful row on the bar, and the row it replaced (the whole-route
+      // figure line at footnote size) was a SECOND complete trip summary under
+      // the first, printing counts that go stale the moment you climb the first
+      // staircase. The marks past the camera's own projection onto the line are
+      // the same class of measurement as `remaining` — the drawn line and the
+      // view, both of which we have exactly — and they are the ones that change
+      // what you do next.
+      const doneT = Math.max(0, Math.min(1, live.at / prof.total));
+      const n = { stairs: 0, signal: 0 };
+      let viaAhead = false;
+      for (const m of routeMarks(G, r, prof)) {
+        if (m.t <= doneT) continue;
+        if (m.kind === 'via') viaAhead = true; else n[m.kind] += m.n;
+      }
+      if (n.stairs) items.push(['stairs', SAY_UI.aheadStairsN(n.stairs)]);
+      if (n.signal) items.push(['signal', SAY_UI.aheadSignalN(n.signal)]);
+      if (viaAhead && r.via) items.push(['via', r.via.name]);
+      if (items.length) el.key.classList.add('ahead');
+    } else {
+      // Stairs are NOT here: the headline already prints `Stairs: 3 sets` and
+      // carries the swatch inline. The key is for the marks the bar has no
+      // sentence for yet.
+      if (r.m.signals) {
+        items.push(['signal', r.m.signals === 1 ? SAY_UI.pipSignal : SAY_UI.pipSignalN(r.m.signals)]);
+      }
+      if (r.via) items.push(['via', r.via.name]);
     }
-    if (r.via) items.push(['via', r.via.name]);
     el.key.classList.toggle('hidden', !items.length);
     for (const [kind, label] of items) {
       const it = h('span', 'wf-keyit');
       it.appendChild(h('span', 'wf-pip wf-pip-' + kind));
       it.appendChild(h('span', 'wf-keytx', label));
       el.key.appendChild(it);
+    }
+    // The tag that says these are counts of what is LEFT, in the same
+    // uppercase footnote the remaining figures already wear, so the two read as
+    // one thought: `8–12 min walk REMAINING · 630 m` / `3 crossings AHEAD`.
+    if (items.length && el.key.classList.contains('ahead')) {
+      el.key.appendChild(h('span', 'wf-aheadtag', SAY_UI.aheadTag));
     }
   }
 
@@ -2580,6 +2743,155 @@
     // on when the content really is taller than the room, so a card that fits
     // ends with a hard, deliberate edge and one that does not says so.
     el.card.classList.toggle('scrolls', el.card.scrollHeight > room + 1);
+  }
+
+  /**
+   * WALK IT — the door into the walking readout. (Round 4.)
+   *
+   * THE DEFECT IT CLOSES, and it is a whole half of this feature. Everything
+   * §7d renders — the manoeuvre disc, `27 m, then left`, `and then right`, the
+   * remaining figures, the progress on the ribbon — arms on `body.wf-live`,
+   * which arms when the camera is within `liveOnRouteM` of the drawn line and
+   * under `liveAltMaxM`. NOTHING IN THE INTERFACE EVER PUT IT THERE. Three
+   * rounds of this lane photographed that readout by flying a test harness onto
+   * the route; a person holding the phone would have had to spot the line from
+   * 300 m up and fly down onto it by hand, with nothing anywhere telling them
+   * there was a different bar waiting when they did.
+   *
+   * WHERE IT STANDS YOU, and why it is a search and not a point. The origin
+   * DOOR is a point on a building's outline — it is on a wall. `js/controls.js`
+   * answers a camera inside geometry by lifting it clear (`writeToMap`: if the
+   * height field reads anything under the eye, the altitude is raised to
+   * `h + HARD_CLEAR`), so placing the eye at the door does not clip through a
+   * facade, it puts you on the ROOF looking down at one. That is exactly the
+   * "camera buried inside a surface" failure that voided two rounds of work on
+   * this project, and it is why this walks the route's own line outward,
+   * probing `__fly.roofAt(lng, lat, walkClearR)` every `walkStepM`, and stands
+   * at the first point that reads zero.
+   *
+   * It moves the camera and NOTHING else — no state, no route, no re-render.
+   * `renderLive` arms itself off the camera the way it always has, so the walk
+   * this opens is the same walk the readout was already written for.
+   *
+   * Returns true when it moved. Never throws into a click handler.
+   */
+  function walkIt() {
+    const map = window.__map;
+    const r = state.route;
+    if (!WF_UI.walkItOn || !map || !r || !r.ok || !prof || !prof.segs.length) return false;
+    const fly = window.__fly;
+
+    // WHICH WAY YOU FACE IS THE NEXT REAL SEGMENT, NOT THE ONE YOU STAND ON.
+    // The first cut faced along whatever segment the chosen point sat on — and
+    // the chosen point is very often the far end of the DOOR LINK, the straight
+    // line this app drew from the door to the nearest path node. Facing along
+    // that put the view across the pavement instead of down it: measured on
+    // `21 Rio -> WEL`, the ribbon was under 1 of 5 sample points down the lower
+    // half of the frame. You face along the first segment that is a real piece
+    // of the walked network.
+    const faceAt = (j) => {
+      for (let k = j; k < prof.segs.length; k++) {
+        if (!prof.segs[k].link) return bearing(prof.segs[k].a, prof.segs[k].b);
+      }
+      const s = prof.segs[j];
+      return bearing(s.a, s.b);
+    };
+
+    // Walk the profile outward from the origin door, sampling every
+    // `walkStepM`, and keep the first sample with nothing over it. `roofAt` is
+    // the app's own collision height field, so "clear" here means exactly what
+    // the controller means by it. The lowest roof seen is kept as a fallback:
+    // a button that silently does nothing is worse than one that stands you in
+    // the best place on the route it could find, and the controller's own hard
+    // net (`writeToMap`) guarantees the pose is never inside geometry either
+    // way.
+    // A POINT AT `m` METRES ALONG THE WALK, AND THE WAY THE WALK GOES THERE.
+    // Both come off the polyline itself. The first cut stepped `walkLeadM`
+    // along a straight bearing from the chosen point, which is only the same
+    // thing while the route is straight: on `21 Rio -> WEL` the chosen point
+    // was the END of a segment, the route turned there, and five metres along
+    // the old bearing walked off the pavement onto a plaza — photographed, and
+    // the ribbon was nowhere in the frame.
+    const along = (m) => {
+      for (let j = 0; j < prof.segs.length; j++) {
+        const s = prof.segs[j];
+        if (m <= s.at + s.len || j === prof.segs.length - 1) {
+          const f = s.len > 0 ? Math.max(0, Math.min(1, (m - s.at) / s.len)) : 0;
+          return { p: [s.a[0] + (s.b[0] - s.a[0]) * f, s.a[1] + (s.b[1] - s.a[1]) * f], j };
+        }
+      }
+      return null;
+    };
+
+    let standAt = -1, best = null, bestRoof = Infinity;
+    outer:
+    for (let j = 0; j < prof.segs.length; j++) {
+      const s = prof.segs[j];
+      const n = Math.max(1, Math.ceil(s.len / WF_UI.walkStepM));
+      for (let i = 0; i <= n; i++) {
+        const f = i / n;
+        const at = s.at + s.len * f;
+        const p = [s.a[0] + (s.b[0] - s.a[0]) * f, s.a[1] + (s.b[1] - s.a[1]) * f];
+        if (at > WF_UI.walkMaxM) break outer;
+        if (s.link && i < n) continue;   // still on our own straight line to the door
+        // No height field yet (the grid builds after the style does) is not a
+        // reason to refuse — `roofAt` answers 0 and the first real point wins,
+        // which is the path node the door link runs to and is never a wall.
+        const roof = fly && typeof fly.roofAt === 'function'
+          ? fly.roofAt(p[0], p[1], WF_UI.walkClearR) : 0;
+        if (roof < bestRoof) { bestRoof = roof; best = at; }
+        if (roof > 0) continue;
+        standAt = at; break outer;
+      }
+    }
+    if (standAt < 0 && best != null) standAt = best;
+    if (standAt < 0) return false;
+
+    // A few steps IN, measured along the polyline so a corner cannot throw it
+    // off, and only if that ground is clear too.
+    let hit = along(standAt);
+    const ahead = along(standAt + WF_UI.walkLeadM);
+    if (ahead && (!fly || typeof fly.roofAt !== 'function'
+      || fly.roofAt(ahead.p[0], ahead.p[1], WF_UI.walkClearR) === 0)) { hit = ahead; standAt += WF_UI.walkLeadM; }
+    if (!hit) return false;
+    const stand = hit.p;
+    // Look at a point down the WALK, falling back to the segment's own bearing
+    // when the whole route left is shorter than the look-ahead.
+    const look = along(Math.min(standAt + WF_UI.walkLookM, prof.total));
+    const face = (look && metresBetween(stand, look.p) > 1)
+      ? bearing(stand, look.p) : faceAt(hit.j);
+
+    // The same closed-form placement the verification harness uses, so the pose
+    // this button produces and the pose every walking shot in shots/walk/ui was
+    // taken from are the same arithmetic. `alt = D cos(pitch)` and the centre
+    // runs `alt tan(pitch)` ahead of the eye, which is what `syncFromMap` reads
+    // back — so the controller inherits the pose instead of fighting it.
+    const alt = WF_UI.walkAltM, pit = WF_UI.walkPitch;
+    const rad = (d) => d * Math.PI / 180;
+    const fov = map.getVerticalFieldOfView ? map.getVerticalFieldOfView() : 58;
+    const camPx = 0.5 * map.getCanvas().clientHeight / Math.tan(rad(fov) / 2);
+    const D = alt / Math.cos(rad(pit));
+    const lead = alt * Math.tan(rad(pit));
+    const cLat = stand[1] + lead * Math.cos(rad(face)) / MPD_LAT;
+    const cLng = stand[0] + lead * Math.sin(rad(face)) / MPD_LON;
+    const z = Math.log2(40030228.884 * Math.cos(rad(cLat)) * camPx / (512 * D));
+    if (map.stop) map.stop();
+    map.jumpTo({ center: [cLng, cLat], zoom: z, bearing: face, pitch: pit });
+    // AND THEN ASK THE READOUT AGAIN, A FEW TIMES. `jumpTo` does fire `move`
+    // and `moveend`, and `onCam` is on both — but the readout reads
+    // `__fly.eye()`, and the controller has not re-read the map yet on either
+    // of those frames, so both samples see the camera that was 745 m up. The
+    // bar stayed on the summary layout with the view standing on the pavement.
+    // A handful of re-asks over half a second is bounded, costs nothing but a
+    // textContent write when it lands, and stops the moment it takes.
+    for (let i = 1; i <= WF_UI.walkSettleN; i++) {
+      setTimeout(() => {
+        if (document.body.classList.contains('wf-live')) return;
+        liveAt = 0;
+        try { onCam(); } catch (e) {}
+      }, i * WF_UI.walkSettleMs);
+    }
+    return true;
   }
 
   /**

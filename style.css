@@ -890,7 +890,21 @@ html.has-touch #joystick-zone{display:block}
   --wf-radius:16px;
   --wf-pad:13px;
   /* the strip */
-  --wf-rail-h:7px;
+  /* THE RIBBON'S THICKNESS, AND IT IS THE WHOLE ARGUMENT ABOUT WHAT IT IS.
+     At 7 px this was a hairline track with a bright round cap at one end and,
+     while walking, a white circle sitting in the middle of an amber fill —
+     which is a volume slider, photographed at 390 x 844 and unmistakable. Two
+     rounds of notes here say "argued out of looking like a slider" and it was
+     still one on the frame, because the shapes of the ENDS were being asked to
+     carry a job that thickness does. A 10 px band with the marks sunk INTO it
+     reads as a bar chart of a journey; nothing in a phone's vocabulary offers
+     you a 10 px groove to drag. */
+  --wf-rail-h:14px;
+  /* AND IT IS NOT A PILL. A fully-rounded horizontal band with a bright round
+     mark at one end is a slider in every phone's vocabulary, whatever it is
+     made of; a band with a 4 px corner is a bar in a chart. This is the single
+     cheapest signal available and it was the one not being spent. */
+  --wf-rail-r:4px;
   /* The room the two end marks get OUTSIDE the rail. Raised from 9 px: a
      staircase 20 m from the door sits at 97 % of a 1 km route and clamps to
      `stripMinPipT`, which puts it hard against the rail's right end — and with
@@ -898,7 +912,16 @@ html.has-touch #joystick-zone{display:block}
      one smear at exactly the end of the walk. Photographed at 390 x 844 before
      and after. */
   --wf-cap-in:14px;
-  --wf-rail:rgba(255,222,170,.17);
+  /* THE BAND IS THE WALK, NOT A TRACK WAITING FOR ONE.
+     At 17 % neutral cream this was an EMPTY groove with one bright round cap at
+     the far end, which is a slider at 100 % and reads as one however thick it
+     gets. Filled with the route's own colour it becomes a drawn thing — the
+     same amber the ribbon on the ground is, the same amber the manoeuvre disc
+     and `Walk it` are — and the destination ring stops being the only lit
+     object on it. The BRIGHTER `--wf-fill` is still what the walked part gets,
+     so progress is a change of weight inside one object rather than a fill
+     creeping along a rail. */
+  --wf-rail:rgba(255,198,99,.26);
   --wf-fill:#ffc663;
   --wf-pip-stairs:#ffdca8;
   --wf-pip-signal:#9ed3ff;
@@ -912,6 +935,13 @@ html.has-touch #joystick-zone{display:block}
      request in docs/walk-ui.md rather than an edit from here.) */
   --wf-pip-via:#8fe6bd;
   --wf-you:#fffaf0;
+  --wf-you-w:4px;           /* the marker is a PLAYHEAD, not a thumb — see .wf-you */
+  --wf-you-h:24px;
+  /* THE GAP A MARK CUTS IN THE BAND. Near-black rather than transparent: the
+     bar sits on glass, and a transparent notch would show the city through the
+     journey and change colour as the camera moved. */
+  --wf-notch:#150d04;
+  --wf-notch-pad:3px;       /* how far the cut reaches either side of the mark */
   /* the key under the strip — what a coloured mark on the rail stands for.
      `title` is a desktop affordance and this bar is judged on a phone. */
   --wf-key:10.5px;
@@ -1055,6 +1085,15 @@ html.has-touch #joystick-zone{display:block}
   border:1px solid var(--wf-edge);border-radius:var(--wf-radius);
   box-shadow:var(--wf-shadow);padding:10px var(--wf-pad) 11px;color:var(--wf-ink);
   text-align:left;cursor:pointer;box-sizing:border-box}
+/* THE OPEN BAR IS A SHEET, AND A SHEET IS OPAQUE.
+   Closed, this thing is four lines over sky and the 72 % glass is right. Open,
+   it is 540 px of small type over a city that is being rendered underneath it —
+   photographed at 390 x 844 on JES -> ANB, the itinerary's leg distances sat on
+   a bright green field and `260 m` was the same value as the grass behind it.
+   The search panel next door already solved this and has a token for it; the
+   open bar takes the same one, so there is exactly one "readable panel" colour
+   in the feature and it is set in one place. */
+#wf-pill.open{background:var(--wf-glass-solid)}
 body.wf-routed #hud{display:none}
 /* On purpose, and it is the one place this differs from #hud: you read the
    answer WHILE walking, which is exactly when it matters. */
@@ -1143,38 +1182,85 @@ body.wf-live #wf-orig{display:none}
    is no elevation source in this repo. It is a flat rail with a pip at each
    mapped staircase and each signalised crossing, at its true fraction of the
    route — the counts the bar already prints, turned into WHERE. */
-#wf-strip{position:relative;margin:10px 0 9px;height:14px}
+#wf-strip{position:relative;margin:10px 0 9px;height:20px}
 /* The rail is inset by --wf-cap-in so the two end marks sit OUTSIDE it. A pip
    at 97 % of the route is a real thing (a staircase twenty metres from the
    door) and inside the rail it was drawn underneath the destination ring. */
 .wf-rail{position:absolute;left:var(--wf-cap-in);right:var(--wf-cap-in);top:50%;
   margin-top:calc(var(--wf-rail-h) / -2);
-  height:var(--wf-rail-h);border-radius:99px;background:var(--wf-rail)}
-.wf-fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;
+  height:var(--wf-rail-h);border-radius:var(--wf-rail-r);background:var(--wf-rail);
+  /* An inner hairline, not an outer one: a band with a rim around it is a
+     trough, and a trough is a slider. This one sits just inside the edge, so
+     the shape reads as a solid tile of the journey rather than a channel. */
+  box-shadow:inset 0 0 0 1px rgba(255,222,170,.10)}
+.wf-fill{position:absolute;left:0;top:0;bottom:0;
+  border-radius:var(--wf-rail-r) 0 0 var(--wf-rail-r);
   background:linear-gradient(90deg,rgba(255,198,99,.55),var(--wf-fill));width:0}
-.wf-pip{position:absolute;top:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;
-  border-radius:99px;box-shadow:0 0 0 2px rgba(20,12,4,.72)}
-/* two of a kind within pipMergeT of each other: one capsule, labelled with the
-   count, so the number of things on the strip equals the number in the card */
-.wf-pip.multi{border-radius:99px}
+/* EVERY MARK CUTS THE BAND, AND THAT IS WHAT STOPS IT BEING A SLIDER.
+   Thickness alone did not do it and neither did colour: photographed at
+   390 x 844 on JES -> ANB, a 14 px amber band with a pale blue four-crossing
+   capsule sitting in it at 72 % and a bright ring at the right end still read
+   as an iOS control with a thumb on it, because ONE continuous track with ONE
+   prominent object on it is the shape of a slider whatever it is made of.
+
+   No slider in the world is SEGMENTED. Each mark now punches a full-height
+   notch straight through the band and sits in the gap, so the amber comes
+   apart into the stretches of uninterrupted walking between the things that
+   happen — which is also a better picture than the dots were: the width of a
+   piece is how far you go without stopping. The marks keep their own colours
+   and shapes, so the key row, the itinerary swatches and the rail are still
+   one element changed in one place. */
+.wf-pip{position:absolute;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;
+  border-radius:99px}
+/* The notch is its OWN element, appended just before the mark it belongs to,
+   because a ::before is painted over its element's background and would have
+   covered the very dot it exists to frame. renderStrip sizes it from the same
+   number that sizes a merged capsule, so the two cannot drift. */
+.wf-notch{position:absolute;top:50%;
+  margin-top:calc(var(--wf-rail-h) / -2 - 1px);
+  height:calc(var(--wf-rail-h) + 2px);background:var(--wf-notch);
+  border-radius:1.5px}
+/* two of a kind within pipMergeT of each other: one BLOCK, labelled with the
+   count, so the number of things on the strip equals the number in the card.
+   A BLOCK AND NOT A CAPSULE, and this is the second time this element has had
+   to be argued out of looking like a control: with the notch behind it, a
+   rounded blue capsule inside a dark rounded slot is an iOS toggle switch,
+   photographed on JES -> ANB at 390 x 844 with four crossings merged. Square
+   the corners and the same mark is a run of the bar in a different colour,
+   which is what it is. */
+.wf-pip.multi{border-radius:2.5px}
 .wf-pip-stairs.multi{border-radius:2.5px}
 .wf-pip-stairs{background:var(--wf-pip-stairs);border-radius:1.5px;
-  width:8px;height:8px;margin:-4px 0 0 -4px}
+  width:9px;height:9px;margin:-4.5px 0 0 -4.5px}
 .wf-pip-signal{background:var(--wf-pip-signal)}
-.wf-pip-via{background:var(--wf-pip-via);width:9px;height:9px;margin:-4.5px 0 0 -4.5px}
+.wf-pip-via{background:var(--wf-pip-via);width:10px;height:10px;margin:-5px 0 0 -5px}
 .wf-pip.past{opacity:.42}
 /* THE TWO ENDS. Drawn as DIFFERENT SHAPES on purpose: a rail with a round blob
    at each end is a slider, and the first cut of this read as one — a control
    you could drag rather than a picture of a walk. The start is a flat tick, the
    destination is a ring, and neither is a thumb. */
 .wf-cap{position:absolute;top:50%}
-.wf-cap-a{left:1px;width:3px;height:13px;margin-top:-6.5px;border-radius:2px;
+/* THE TWO TERMINALS ARE THE SAME HEIGHT AS THE BAND. A mark standing PROUD of
+   a track is a handle; a mark exactly as tall as the bar it ends is a terminal
+   on a chart. Both are `--wf-rail-h` now, so the three move together. */
+.wf-cap-a{left:1px;width:3px;height:var(--wf-rail-h);
+  margin-top:calc(var(--wf-rail-h) / -2);border-radius:2px;
   background:rgba(248,234,208,.8);box-shadow:0 0 0 1.5px rgba(20,12,4,.7)}
-.wf-cap-b{right:0;width:13px;height:13px;margin-top:-6.5px;border-radius:50%;
+.wf-cap-b{right:0;width:var(--wf-rail-h);height:var(--wf-rail-h);
+  margin-top:calc(var(--wf-rail-h) / -2);border-radius:50%;
   background:rgba(20,12,4,.9);border:3px solid var(--wf-accent);box-sizing:border-box}
-.wf-you{position:absolute;top:50%;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;
-  border-radius:50%;background:var(--wf-you);
-  box-shadow:0 0 0 2.5px rgba(20,12,4,.85),0 0 12px rgba(255,232,180,.75)}
+/* WHERE THE VIEW IS ON THE ROUTE — A PLAYHEAD, NOT A THUMB.
+   This was a 13 px white DISC with a glow, sitting on an amber fill, on a
+   hairline track. Photographed walking 21 Rio -> WEL at 390 x 844, the result
+   was an iOS volume slider at 43 %, on a bar whose one job is to be a picture
+   rather than a control. A tall thin bar that overhangs the band both ways is
+   the mark every scrubbing UI in the world uses for POSITION and none of them
+   use for a handle, and the overhang is what makes it read as sitting ON the
+   journey rather than IN a groove. */
+.wf-you{position:absolute;top:50%;width:var(--wf-you-w);height:var(--wf-you-h);
+  margin-top:calc(var(--wf-you-h) / -2);margin-left:calc(var(--wf-you-w) / -2);
+  border-radius:2px;background:var(--wf-you);
+  box-shadow:0 0 0 1.5px rgba(20,12,4,.85),0 0 10px rgba(255,232,180,.6)}
 
 /* THE KEY. Only on the frame when the route actually has marks on it — an
    empty legend under an empty rail is two rows of nothing. Wraps rather than
@@ -1184,11 +1270,24 @@ body.wf-live #wf-orig{display:none}
 #wf-key{display:flex;flex-wrap:wrap;gap:4px var(--wf-key-gap);margin:-3px 0 8px;
   font-size:var(--wf-key);color:var(--wf-dim);line-height:1.3}
 #wf-key.hidden,#wf-key:empty{display:none}
-/* Not while you are walking it. The key is a thing you read once, standing
-   still, to learn what the marks on the rail mean; on the move the rail is
-   showing you where you ARE and the 24 px it costs are better spent on the
-   turn. The card still carries every one of those marks as a sentence. */
-body.wf-live #wf-key{display:none}
+/* ROUND 4: WALKING, THE SAME ROW COUNTS WHAT IS STILL IN FRONT OF YOU.
+   It used to be hidden on the move, on the reasoning that a legend is read once
+   standing still — which was right about the legend and wrong about the row.
+   The row it was making space for was the whole-route figure line demoted to
+   footnote size: a SECOND complete trip summary under the first, and a stale
+   one, because `Stairs: 3 sets` goes on counting sets you have already climbed.
+   The marks past the camera's own projection onto the line are the same
+   measurement as `remaining` and they are the ones that change what you do. */
+#wf-key.ahead{color:rgba(248,234,208,.82);font-size:var(--wf-fact);
+  font-weight:600;margin:2px 0 8px}
+.wf-aheadtag{font-size:var(--wf-small);color:var(--wf-dimmer);font-weight:700;
+  text-transform:uppercase;letter-spacing:.13em;align-self:center}
+/* WITH THE CARD OPEN THE LEGEND IS THE LIST'S JOB. `#wf-steps` prints every one
+   of these marks, in order, with the SAME swatch — so on the open bar the key
+   is the identical fact twice, forty pixels apart, and the 18 px it costs buys
+   another row of the itinerary on a phone. The rail stays: it is the picture,
+   and the list is the words. */
+#wf-pill.open #wf-key:not(.ahead){display:none}
 .wf-keyit{display:inline-flex;align-items:center;gap:6px;min-width:0}
 /* The swatch IS a pip — same class, so a colour or a shape changed above moves
    the key with it and cannot be left behind. Only the absolute placement the
@@ -1271,25 +1370,42 @@ body.wf-live #wf-sub{margin-top:2px}
    answer exists to offer. Solid accent with dark ink reads as a button at arm's
    length in sunlight, and it is the same amber as the manoeuvre disc, so the
    feature has exactly one filled colour and it always means "the thing to do". */
+/* ROUND 4: THE FILLED ONE IS `WALK IT`. `Show route` frames the line from
+   above, which is what every maps app on the phone already does; the thing
+   this app has that they do not is that you can stand on the pavement it just
+   drew — and no control anywhere put you there, so the whole walking readout
+   was unreachable from the interface. Three controls fit on 342 px only
+   because `Clear` gives up its word for the ✕ it always meant. */
 #wf-acts .wf-act-go{flex:1 1 auto;font-size:13px;
   background:var(--wf-go-bg);border-color:var(--wf-go-edge);color:var(--wf-go-ink);
   box-shadow:0 3px 13px rgba(255,190,90,.22)}
 #wf-acts .wf-act-go:hover{background:#ffd484;border-color:#ffe1a8}
-#wf-acts .wf-act-clr{flex:0 0 auto;padding-left:16px;padding-right:16px;
+#wf-acts .wf-act-go .wf-act-walk{width:17px;height:17px}
+#wf-acts .wf-act-show{flex:0 1 auto;padding-left:13px;padding-right:13px;
+  background:rgba(255,255,255,.05);border-color:var(--wf-edge);
+  color:var(--wf-ink);font-weight:700;white-space:nowrap}
+#wf-acts .wf-act-show:hover{background:rgba(245,166,35,.22)}
+/* THE WAY OUT IS A GLYPH. It was a 90 px box of the same dark grey as the
+   panel, and at that width it read as the second half of a two-button choice
+   rather than as a dismissal — the ✕ says "leave" in the width of a thumb and
+   gives the two real actions the other 60 px. */
+#wf-acts .wf-act-clr{flex:0 0 auto;width:var(--touch-min);padding:0;
   background:rgba(255,255,255,.045);border-color:var(--wf-edge-soft);
   color:var(--wf-dim);font-weight:600}
 #wf-acts .wf-act-clr:hover{background:rgba(255,255,255,.1);color:var(--wf-ink)}
+#wf-acts .wf-act-clr .wf-act-ic{width:14px;height:14px}
 .wf-act-ic{width:15px;height:15px;flex:none}
-/* While you are walking it, framing it from above is not what you want and the
-   bar has better uses for 44 px. Clearing it still is — and with the primary
-   gone the row shrinks to the button's own width, which is what lets it sit
-   beside the passing-period warning instead of under it. */
+/* While you are walking it, framing it from above is not what you want and
+   neither is being put back at the start of it. Clearing it still is — and
+   with both gone the row shrinks to the ✕'s own width, which is what lets it
+   sit beside the passing-period warning instead of under it. */
 body.wf-live #wf-acts{justify-content:flex-end;flex:0 0 auto}
-body.wf-live #wf-acts .wf-act-go{display:none}
-body.wf-live #wf-acts .wf-act-clr{min-height:36px}
-/* On a failure there is no route to frame, so only the way out is left. */
+body.wf-live #wf-acts .wf-act-go,body.wf-live #wf-acts .wf-act-show{display:none}
+body.wf-live #wf-acts .wf-act-clr{min-height:36px;height:36px}
+/* On a failure there is no route to frame and none to stand on, so only the
+   way out is left. */
 #wf-acts.fail{justify-content:flex-end}
-#wf-acts.fail .wf-act-go{display:none}
+#wf-acts.fail .wf-act-go,#wf-acts.fail .wf-act-show{display:none}
 #wf-footrow{margin-top:9px}
 body.wf-live #wf-footrow{margin-top:6px}
 
@@ -1328,20 +1444,20 @@ body.wf-live #wf-footrow{margin-top:6px}
   text-transform:uppercase;letter-spacing:.13em;font-weight:700}
 .wf-liveline{font-size:var(--wf-line);color:rgba(248,234,208,.82);margin-top:3px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-body.wf-live #wf-headline{margin-top:7px;padding-right:0}
-body.wf-live #wf-headline .wf-big{font-size:var(--wf-small);font-weight:700;color:var(--wf-dim)}
-body.wf-live #wf-headline .wf-unit,body.wf-live #wf-headline .wf-pre,
-body.wf-live #wf-headline .wf-dist,body.wf-live #wf-headline .wf-cond{
-  font-size:var(--wf-small);font-weight:600;color:var(--wf-dimmer)}
-/* AND WHILE WALKING IT GOES BACK ON ONE LINE. The deliberate break exists
-   because the figure line at full size does not fit; demoted to footnote size
-   the whole sentence is about 230 px of a 342 px bar, so the break would be
-   buying nothing and costing a row in the one state where a row is most
-   expensive — the bar is over the city you are walking through. The middot
-   comes back with it. */
-body.wf-live #wf-headline .wf-cond{display:inline-flex;margin-top:0}
-body.wf-live #wf-headline .wf-mid-cond{position:static;width:auto;height:auto;
-  clip-path:none;color:var(--wf-dimmer)}
+/* ROUND 4: WALKING, THE WHOLE-ROUTE FIGURE LINE COMES OFF THE FRAME.
+   Rounds 2 and 3 demoted it to footnote size rather than dropping it, on the
+   reasoning that you still want to know what the whole walk was while you are
+   halfway through it. Photographed at 390 x 844 walking 21 Rio -> WEL, that
+   put THREE numbered lines on a 366 px bar — `27 m, then left`, then `8–12 min
+   walk REMAINING · 630 m`, then `12-18 min walk · 1.0 km · Stairs: 3 sets` —
+   i.e. two complete trip summaries stacked, and the second one measured a walk
+   you are no longer taking. `Stairs: 3 sets` counts sets already behind you.
+   The row it vacates now carries what is AHEAD (see #wf-key.ahead), which is
+   the same fact re-asked of the part of the route that is left.
+
+   `display:none`, NOT a deletion: `#wf-headline`.textContent is what the
+   honesty gates and every verify script assert on, and it is unchanged. */
+body.wf-live #wf-headline{display:none}
 
 #wf-card{margin-top:10px;padding-top:10px;border-top:1px solid var(--wf-edge-soft);
   text-align:left;font-size:11.5px;line-height:1.5;
