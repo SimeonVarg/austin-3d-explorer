@@ -1,0 +1,227 @@
+{
+ "band": [
+  25,
+  60
+ ],
+ "zoom": 19.8,
+ "greenMin": 200,
+ "rows": [
+  {
+   "from": "LDH",
+   "to": "FDH",
+   "ll": [
+    -97.73401299999999,
+    30.284375999999998
+   ],
+   "nearestM": 56.2,
+   "inDisc": 0,
+   "inFrame": 0,
+   "seen": false
+  },
+  {
+   "from": "LDH",
+   "to": "FDH",
+   "ll": [
+    -97.73372649999999,
+    30.2857865
+   ],
+   "nearestM": 26.4,
+   "inDisc": 327,
+   "inFrame": 364,
+   "seen": true
+  },
+  {
+   "from": "LDH",
+   "to": "FDH",
+   "ll": [
+    -97.73365916666665,
+    30.286935083333333
+   ],
+   "nearestM": 26.9,
+   "inDisc": 0,
+   "inFrame": 0,
+   "seen": false
+  },
+  {
+   "from": "LDH",
+   "to": "FDH",
+   "ll": [
+    -97.73348899999999,
+    30.287471999999998
+   ],
+   "nearestM": 29.4,
+   "inDisc": 0,
+   "inFrame": 0,
+   "seen": false
+  },
+  {
+   "from": "LDH",
+   "to": "FDH",
+   "ll": [
+    -97.733994,
+    30.288166
+   ],
+   "nearestM": 25.9,
+   "inDisc": 85,
+   "inFrame": 85,
+   "seen": false
+  },
+  {
+   "from": "LDH",
+   "to": "FDH",
+   "ll": [
+    -97.73424,
+    30.289437999999997
+   ],
+   "nearestM": 25.2,
+   "inDisc": 1820,
+   "inFrame": 3882,
+   "seen": true
+  },
+  {
+   "from": "LLD",
+   "to": "RMRZ",
+   "ll": [
+    -97.741224,
+    30.290471
+   ],
+   "nearestM": 26.4,
+   "inDisc": 687,
+   "inFrame": 3808,
+   "seen": true
+  },
+  {
+   "from": "LLD",
+   "to": "RMRZ",
+   "ll": [
+    -97.7409605,
+    30.289899499999997
+   ],
+   "nearestM": 31.2,
+   "inDisc": 0,
+   "inFrame": 11,
+   "seen": false
+  },
+  {
+   "from": "LLD",
+   "to": "RMRZ",
+   "ll": [
+    -97.7329125,
+    30.285078
+   ],
+   "nearestM": 32.1,
+   "inDisc": 0,
+   "inFrame": 3638,
+   "seen": true
+  },
+  {
+   "from": "BMC",
+   "to": "HSM",
+   "ll": [
+    -97.74086899999999,
+    30.290108
+   ],
+   "nearestM": 42.1,
+   "inDisc": 0,
+   "inFrame": 0,
+   "seen": false
+  },
+  {
+   "from": "BMC",
+   "to": "HSM",
+   "ll": [
+    -97.74127399999999,
+    30.289689
+   ],
+   "nearestM": 30.9,
+   "inDisc": 0,
+   "inFrame": 0,
+   "seen": false
+  },
+  {
+   "from": "BMC",
+   "to": "HSM",
+   "ll": [
+    -97.7413610909091,
+    30.289059090909088
+   ],
+   "nearestM": 28.3,
+   "inDisc": 0,
+   "inFrame": 3462,
+   "seen": true
+  },
+  {
+   "from": "BMC",
+   "to": "HSM",
+   "ll": [
+    -97.7413045,
+    30.28883925
+   ],
+   "nearestM": 28.6,
+   "inDisc": 0,
+   "inFrame": 3878,
+   "seen": true
+  },
+  {
+   "from": "SWG",
+   "to": "TCC",
+   "ll": [
+    -97.7351765,
+    30.289482999999997
+   ],
+   "nearestM": 54,
+   "inDisc": 0,
+   "inFrame": 0,
+   "seen": false
+  },
+  {
+   "from": "SWG",
+   "to": "TCC",
+   "ll": [
+    -97.73414066666666,
+    30.289126333333332
+   ],
+   "nearestM": 25.9,
+   "inDisc": 1180,
+   "inFrame": 3772,
+   "seen": true
+  },
+  {
+   "from": "MNC",
+   "to": "MAG",
+   "ll": [
+    -97.732264,
+    30.282542999999997
+   ],
+   "nearestM": 25.7,
+   "inDisc": 699,
+   "inFrame": 3821,
+   "seen": true
+  },
+  {
+   "from": "MNC",
+   "to": "MAG",
+   "ll": [
+    -97.73139499999999,
+    30.282197999999998
+   ],
+   "nearestM": 28.9,
+   "inDisc": 6,
+   "inFrame": 6056,
+   "seen": true
+  },
+  {
+   "from": "LBJ",
+   "to": "TS1",
+   "ll": [
+    -97.732885,
+    30.287164166666667
+   ],
+   "nearestM": 54.4,
+   "inDisc": 0,
+   "inFrame": 0,
+   "seen": false
+  }
+ ],
+ "errs": []
+}

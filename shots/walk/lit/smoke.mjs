@@ -61,8 +61,50 @@ ok(r.lit.lampsUnderCanopy <= r.lit.lamps, 'covered is a SUBSET of counted', [r.l
 ok(r.lit.lampsUnderCanopy + r.lit.lampsInClear === r.lit.lamps, 'covered + clear === counted');
 ok(r.mult === 1, 'litCanopyMult ships at 1 (search unchanged from round 2)', r.mult);
 ok(/under tree cover/.test(r.text), 'the card says the canopy line');
-ok(/scenery, not mapped light/.test(r.text), 'the card says the decoration line');
 ok(/24 mapped streetlights/.test(r.text), 'the card still says the lamp count');
+
+// ROUND 4: the strip, and the fold.
+//
+// The three source paragraphs now sit in a drawer, so they are legitimately
+// NOT in the card's text until it is opened — which is exactly why the two
+// disclaimers that must never be behind a tap are asserted on the visible
+// label FIRST, and the paragraphs asserted after opening it. A test that only
+// checked the opened state would pass on a build that hid the warning too.
+const fold = await page.evaluate(() => {
+  const card = document.getElementById('wf-card');
+  const kids = Array.from(card.children);
+  const tog = kids.find(k => /where these numbers come from/i.test(k.textContent || ''));
+  const before = card.innerText;
+  if (tog) tog.click();
+  return { label: tog ? tog.textContent : null, before, after: card.innerText };
+});
+ok(!!fold.label, 'the provenance fold has a visible label');
+ok(/Mapped lamps only/.test(fold.label || ''), 'the label says the count is of the MAP', fold.label);
+ok(/not a safety rating/.test(fold.label || ''), 'the label says it is not a safety rating');
+ok(!/scenery, not mapped light/.test(fold.before), 'sources are folded away until asked for');
+ok(/scenery, not mapped light/.test(fold.after), 'the decoration line is there when opened');
+ok(/OpenStreetMap has 193 streetlights/.test(fold.after), 'the lamp source line is there when opened');
+ok(/12 June 2026/.test(fold.after), 'and it still carries its own date');
+
+const strip = await page.evaluate(() => {
+  const t = document.querySelector('#wf-card [role="img"]');
+  if (!t) return null;
+  const segs = Array.from(t.children).filter(c => !c.style.position);
+  const r = t.getBoundingClientRect();
+  return {
+    aria: t.getAttribute('aria-label'), segs: segs.length,
+    ticks: Array.from(t.children).filter(c => c.style.position === 'absolute').length,
+    w: Math.round(r.width), h: Math.round(r.height),
+    // the segments must TILE the track: a gap is a stretch the picture makes
+    // no claim about while the count does
+    span: Math.round(segs.reduce((a, c) => a + c.getBoundingClientRect().width, 0)),
+  };
+});
+ok(!!strip, 'the lighting strip is drawn');
+ok(strip && strip.w > 100 && strip.h >= 8, 'the strip has real size', strip && [strip.w, strip.h]);
+ok(strip && Math.abs(strip.span - strip.w) <= 2, 'its runs tile the whole track', strip && [strip.span, strip.w]);
+ok(strip && strip.segs === r.lit.runs, 'one segment per run, none dropped', strip && [strip.segs, r.lit.runs]);
+ok(strip && /mapped streetlight within 25 metres/.test(strip.aria || ''), 'the strip describes itself in words', strip && strip.aria);
 // typeof INSIDE the page: a function cannot be serialised across CDP, so
 // evaluating the function itself returns undefined and this assertion was
 // failing on a hook that is plainly there.
@@ -89,6 +131,27 @@ ok(!off.src, 'no wayfind-lit source with the switch off');
 ok(fetched.length === 0, 'walk_lamps.json / walk_graph.json not fetched', fetched);
 ok(errs2.length === 0, 'no errors with the switch off', errs2.slice(0, 4));
 
+// ROUND 4: the near-miss clause. CMB->TMM is one of the three routes in 60
+// that carry it (shots/walk/lit/nearmiss.json) — a route with no counted lamp
+// and two mapped just outside the radius. It is asserted on a NAMED route
+// rather than 'some route somewhere', so a change that silently stops it
+// firing fails here instead of going quiet.
+const nm = await page.evaluate(async () => {
+  await window.wayfindRoute('CMB', 'TMM', { expand: true });
+  const lit = await window.wayfindLit();
+  return { lamps: lit.lamps, nearMiss: lit.nearMiss, ring: lit.nearMissM,
+    text: document.getElementById('wf-card').innerText };
+});
+ok(nm.lamps === 0, 'CMB->TMM still has no counted lamp', nm.lamps);
+ok(nm.nearMiss === 2, 'and two mapped just outside the radius', nm.nearMiss);
+ok(/No mapped streetlight along this route · 2 more are mapped within 50 m of it/.test(nm.text),
+  'the near-miss clause rides on the zero-lamp sentence');
+const noNm = await page.evaluate(async () => {
+  await window.wayfindRoute('ANB', 'ETC', { expand: true });
+  await window.wayfindLit();
+  return document.getElementById('wf-card').innerText;
+});
+ok(!/more are mapped within/.test(noNm), 'and does NOT appear on a route that has counted lamps');
 await browser.close();
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nall pass');
 process.exit(fails.length ? 1 : 0);

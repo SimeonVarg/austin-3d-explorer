@@ -1177,3 +1177,263 @@ better fix.
   which is the strictest reading and the one that matches the picture. One line.
 * **Anything at all about crime, response times, or how safe a stretch is.**
   Unchanged, and it will stay unchanged.
+
+---
+
+# ROUND 4 — the block the claim is printed in, and the band the audit skipped
+
+Rounds 1–3 verified the lighting CLAIM against the scene at six sites, then at
+forty-three. None of them ever looked at the card. Simeon's brief for this
+feature ends *"The UI should be outstanding for the walk feature"*, and three
+rounds of careful, honest prose had made the lighting block the longest thing in
+the app that nobody would read.
+
+Round 4 photographed it, measured it, rebuilt it around a picture, and then went
+back to the one part of round 3's matrix that was chosen to be easy.
+
+---
+
+## 25. What the block actually looked like
+
+`shots/walk/lit/cardshot.mjs` — committed, with its before and after JSON. It
+opens the card at night, walks the card's own children from the `Street
+lighting` heading, and measures the block: pixel height, share of the card,
+rendered lines, words on screen. **[M]**, 2026-08-23, 1280 × 900, `p = 0.92`.
+
+| | height | share of the card | lines | words |
+|---|---|---|---|---|
+| ANB → ETC | 252 px | 54 % | 13 | 105 |
+| GDC → The Castilian | 312 px | **59 %** | 16 | **162** |
+| PMA → WEL | 232 px | 52 % | 12 | 99 |
+
+`shots/walk/lit/cardfull-before-GDC-TheCastilian.png` is the picture, and it is
+the argument. The walk home into West Campus — the walk this whole feature
+exists for — printed **`No mapped streetlight along this route`** in the same
+grey, at the same size, in the same weight as three paragraphs of provenance
+below it. Eight of those twenty lines were sourcing. Every sentence was honest
+and every sentence had the same standing, which is the same as no sentence
+having any.
+
+**The consequence is not aesthetic.** Copy nobody reads is not a caveat. The
+three source paragraphs were the longest text in the app and therefore the
+least-read, so the honesty they carry was, in practice, not being delivered.
+
+---
+
+## 26. What it looks like now
+
+`shots/walk/lit/cardfull-after-GDC-TheCastilian.png`, `card-after-ANB-ETC.png`,
+`card-after-CMB-TMM.png`. Same instrument, same routes, same night:
+
+| | height | share | lines | words on screen | behind one tap |
+|---|---|---|---|---|---|
+| ANB → ETC | 195 px (−23 %) | 48 % | 10 | **67** (−36 %) | 52 |
+| GDC → The Castilian | 240 px (−23 %) | 53 % | 13 | **87** (−46 %) | 90 |
+| PMA → WEL | 195 px (−16 %) | 48 % | 11 | **63** (−36 %) | 52 |
+
+Nothing was deleted. Three things changed.
+
+**a) The strip.** The whole walk, left to right: amber where a mapped street
+lamp is within `litRadiusM`, cool where none is, a violet tick at every spot
+somebody reported too dark, `START` and `DOOR` under the ends. It answers the
+question the numbers structurally could not — **where**. `Longest stretch with
+none mapped: 700 m` is true and cannot distinguish a 700 m gap in the middle of
+a walk from a 700 m gap at your door, which are the same sentence and two
+different walks.
+
+**b) One headline instead of six equals.** The count is 13 px and coloured; the
+canopy split and the near-miss ride *on* it as clauses rather than under it as
+lines; the longest-gap and emergency-phone sentences share one row, joined by a
+middot and otherwise verbatim.
+
+**c) The provenance folded, with its warning promoted.** The three dated
+paragraphs sit behind one always-visible line:
+
+> `▸ Mapped lamps only, and not a safety rating — where these numbers come from`
+
+The two disclaimers that must never be behind a tap are in the label. Every
+source line, every date, and the decoration note are unchanged one tap away.
+`litProvenanceFold: false` prints all three in full again.
+
+---
+
+## 27. The strip is a schematic, so it was tested as one
+
+`litStripMinFrac` floors the width of a short run so one lamp on a 2 km walk is
+a visible mark rather than a rounding error. Every floor is a small lie, and on
+a fragmented route the floors compound. **If they compounded upward the
+prettiest thing in this block would also be the only part of it that overstates
+light** — the one direction this feature has spent three rounds refusing to be
+wrong in.
+
+**`shots/walk/lit/strip-truth.mjs`** — 40 seeded building pairs, amber share
+read off the laid-out DOM (`getBoundingClientRect` on the segments, colour read
+back with `getComputedStyle`, not assumed from the loop that built them),
+against `litM / totalM`. **[M]**
+
+```
+strip amber share MINUS true lamp-covered share
+  min -0.22%   p25 -0.02%   median 0.00%   p75 0.00%   max +0.05%
+routes where the picture shows MORE light than the count:  0 / 40
+most fragmented: TSC->ETC, 15 runs over 1,429 m -> strip 37.42% vs true 37.51%
+reported-dark ticks equal the printed count on all 22 routes that have any
+```
+
+The first cut of this compared against `lit.pct`, which the test surface rounds
+to a whole percent — so the tolerance and the instrument's own noise floor were
+the same size and the gate could not fail by less than it could not see. Taking
+the truth from `litM/totalM` (metres, ±1 in ~1,500) dropped the noise to 0.07 %
+and left the gate something to catch.
+
+**And the ratio is the easy half.** The strip's real claim is about *position*,
+and position is exactly what a floor distorts.
+**`shots/walk/lit/strip-scene.mjs`** does what a person does: put a finger on
+the widest amber block and the widest cool block, read its left-to-right
+fraction as a fraction of the walk, go and stand there at night, and look. Plan
+view, site dead centre, `p = 0.92` asserted, hardware GL, `props-lit` and
+`props-lit-core` masked flat and diffed against the unmasked frame, the 25 m
+disc measured through the map's own `project()` and drawn on every saved frame.
+
+Eight routes, **12 readings at 12 distinct places** (deduplicated by
+coordinate — the first cut used ANB→ETC and TSC→ETC and both routes' widest
+amber run is the *same* stretch of the tail into ETC, so two "independent" sites
+were one point measured twice):
+
+| what the finger was on | sites | warm-lamp pool pixels in the 25 m disc |
+|---|---|---|
+| **amber** | 4 | 10,394 · 3,130 · 2,287 · 2,257 |
+| **cool** | 8 | 0 · 0 · 0 · 0 · 0 · 0 · 0 · 0 |
+
+The populations do not touch — the same result round 3's matrix got, on a
+surface that did not exist when round 3 ran. `r4-strip-WEL-amber-disc.png` is a
+lamp with a bright core, its warm pool, and this lane's square receipt ring
+around its foot, inside the drawn disc. `r4-strip-GAR-cool-disc.png` is the same
+disc with tree canopy, a cool route strip, and nothing else.
+
+### Three instrument bugs, all of them mine, all found by looking
+
+Recorded because each produced a confident number and two of them flattered the
+change.
+
+1. **The measurement counted the drawer.** A collapsed element has zero client
+   rects, and the first cut scored that as `|| 1` line and all of its words — so
+   the round-4 block came back with *more* words than the round-3 block it had
+   just cut eight lines out of.
+2. **A line is a row, not a box.** The second cut counted `getClientRects()`
+   directly, and the strip's fifteen flex segments registered as fifteen lines
+   of text. Adding a picture appeared to make the block longer to read. Distinct
+   rect *tops* is the count that means what the word means.
+3. **The card was standing in front of the evidence.** `strip-scene.mjs` first
+   measured pixels through the open route card, which covers the middle of a
+   960 × 600 frame and most of the 25 m disc. It *passed* — the amber sites had
+   lamps outside the card's footprint — but a cool site whose lamp was behind
+   the card would have read zero green and been recorded as a clean pass. With
+   `#wf-root` hidden the amber sites went 7,328 → 10,394 green pixels and the
+   cool sites stayed at exactly 0. **An occluded instrument that happens to
+   agree with you is the worst kind.**
+
+And one trap worth the next lane's time, the same family as §13's:
+`new Promise(r => map.once('idle', r) || setTimeout(r, 3000))` looks like a
+fallback and is not one — `once` returns the Map, which is truthy, so the
+timeout never arms and a frame that never idles hangs the run until the
+watchdog. Cost one five-minute run.
+
+---
+
+## 28. The band round 3 chose not to look at
+
+Round 3's matrix sampled "unmapped" sites only where the nearest counted lamp is
+**more than 60 m away**, *"clear of the 25 m boundary on purpose, so the sample
+tests the claim rather than the arithmetic either side of it."* That is a fair
+thing to do, and it means the clean result was obtained on the easy half. The
+hard half is 25–60 m: places the card calls unmapped with a mapped lamp standing
+just off the radius, which is exactly where a user goes looking and finds one.
+
+**`shots/walk/lit/boundary.mjs`** — nearest-lamp distance computed in node
+against the *shipped* `data/walk_lamps.json` (not a re-derivation), 18 sites off
+8 real routes inside the band, same night pose, card hidden. **[M]**
+
+```
+a warm street lamp is somewhere in the night frame        9 / 18
+...its pool reaches inside the 25 m disc itself           5 / 18
+nearest-lamp distance   min 25.2 m   median 28.9 m   max 56.2 m
+```
+
+**Half the time, at a place this card calls unmapped, you can see a street
+lamp.** The card is right — its claim is about 25 m — and it is right in a way
+that will get it called wrong.
+
+### The fix is a clause, and deliberately not a wider radius
+
+Raising `litRadiusM` to swallow the band would inflate every coverage figure in
+this feature and make "covers the path" mean a lamp across a lawn. The radius is
+defended on what a 5 m mast throws (§2) and it stays at 25 m.
+
+Instead the scan counts the ring outside it — `litNearMissM: 50`, on its own
+hash grid, because `lampsNear` only visits the 3×3 block around a point and is
+exact only while the cell is at least the query radius; asking the 25 m grid for
+50 m would quietly miss lamps two cells away. **The clause prints only on a
+route with no counted lamp at all**, because that is the sentence that reads
+like a verdict and the only one worth qualifying:
+
+> `No mapped streetlight along this route · 2 more are mapped within 50 m of it`
+
+**Priced before it was written.** `shots/walk/lit/nearmiss.mjs`, 60 seeded
+routes: 33 have no counted lamp, and only **3 of those 33** have any lamp in the
+25–50 m ring — median 1, at most 2. So it fires on **one route in twenty** and
+says a small number when it does, which is the whole reason it is affordable as
+a clause on an existing line rather than a new line. It rides on the count as a
+suffix and costs no rendered line at all. It is still a statement about the map,
+and it can only ever make an empty count sound like *more* light, never less.
+`shots/walk/lit/card-after-CMB-TMM.png` is the photograph; `smoke.mjs` asserts
+it on that named route and asserts it is *absent* on ANB→ETC.
+
+**The residue, stated plainly.** The clause answers the route-level sentence. It
+does not answer the stretch-level one: a *cool segment of the strip* 28 m from a
+lamp still reads as cool, and 9-in-18 says a lamp is often visible from there.
+Sizing that properly needs a per-stretch measurement over a real sample, and the
+honest options then are a second strip colour for "just outside" or nothing at
+all. Not attempted. It is the biggest thing round 4 leaves open.
+
+---
+
+## 29. Does it change the route? Still no, and round 4 added nothing to the search
+
+`litNearMissM` is a counting radius and appears nowhere in `litEdgeWeights`. The
+strip is a rendering of a scan that already existed. The fold is a `display`
+toggle. **Every routing constant is byte-identical to round 3** — `litAltMult`
+1.7, `litAltMaxFrac` 1.35, `litAltMinGainM` 40, `darkAltMult` 1.5,
+`darkAltMinDrop` 2, `litCanopyMult` 1 — and `smoke.mjs` still asserts ANB→ETC at
+24 lamps, 2 phones, 678 m, 4 under canopy, unchanged since round 2.
+
+The argument is unchanged and is now four rounds old: **the feature annotates by
+default and re-routes only on a button, with the price printed before the
+button.** Round 4's contribution to it is that the annotation is finally
+readable, which is the part that had been quietly failing.
+
+---
+
+## 30. What round 4 changed
+
+* `js/wayfind.js` §6b only — `litStrip()`; `reportedAtM` on the scan; the
+  rebuilt `litCard()` body (headline weight, merged secondary row, folded
+  provenance with the warning in the label); `nearMiss` on the scan and its
+  clause; `gWarmWide`. Eleven new named constants, all in the constants block,
+  every one a one-line override.
+* `shots/walk/lit/` — `cardshot.mjs`, `strip-truth.mjs`, `strip-scene.mjs`,
+  `boundary.mjs`, `nearmiss.mjs`, their JSON, and the frames. `smoke.mjs` gained
+  eleven assertions.
+* No data file was re-baked. `scripts/bake_props.py` is untouched this round.
+
+## 31. What round 4 did NOT establish
+
+* **The stretch-level near miss.** §28's residue, and the honest headline of it:
+  a cool segment 28 m from a lamp still reads cool, and a lamp is often visible
+  there. Route-level is answered; stretch-level is not.
+* **Whether the fold is the right trade.** It is defended above — a short caveat
+  that is read beats a long one that is not — but nobody has watched a person
+  use it, and it is one constant to reverse.
+* **Whether `litNearMissM` = 50 m is the right ring.** It is twice the counting
+  radius and inside round 3's 60 m, which is a reason, not a measurement.
+* **Anything about crime, response times, or how safe a stretch is.** Unchanged
+  across four rounds, and it will stay unchanged.

@@ -185,3 +185,52 @@ phones and we only draw 43**, and UT publishes its SURE Walk night-escort zones
 with the phone number. Both are in `docs/walk-lit.md` §16. Pictures and the full
 argument: `docs/walk-lit.md` §9-§16 and `shots/walk/lit/wc-*.png`. `WAYFIND.on`
 untouched.
+
+## 2026-08-23 — lit lane, round 4: the lighting box was unreadable, so it got a picture
+
+Three rounds of this lane kept proving the streetlight claim was true and never
+once looked at the box it prints in. So I took a photograph of it. On the walk
+home into West Campus — the exact walk this whole thing exists for — the
+lighting box was **59% of the whole route card, twenty lines, 162 words**, and
+"No mapped streetlight along this route" was set in the same grey, at the same
+size, as three paragraphs of small print about where the data came from. Nobody
+reads that at 11pm, which also means nobody was reading the careful honest bits
+either. Before and after are `shots/walk/lit/cardfull-before-GDC-TheCastilian.png`
+and `cardfull-after-GDC-TheCastilian.png`.
+
+**Now the first thing in the box is a picture of your walk.** One bar, left to
+right, start to door: amber where a streetlight is mapped beside the path, cool
+blue where none is, and a violet tick everywhere a resident reported it too
+dark. You can see at a glance that a walk is dark at the *start* versus dark at
+your *door* — same sentence before, completely different walk. Under it the
+count is now the one big line, the small facts share a row, and the three
+source paragraphs are behind a single line that still says the two things that
+matter out loud: **"Mapped lamps only, and not a safety rating."** Nothing was
+deleted; one tap and every date and source is right there. Words on screen
+dropped 36-46%, the box shrank by about a fifth, and it gained the picture.
+
+**Then I checked the picture against the real city, at night.** Put a finger on
+the bar, read it as a fraction of the walk, fly there, look. Twelve places on
+eight routes: everywhere the bar is amber there is a lamp post burning in frame
+with our little ring around its foot (`r4-strip-WEL-amber-disc.png`), and
+everywhere it is cool there is nothing at all — not one lamp pixel at any of the
+eight (`r4-strip-GAR-cool-disc.png`). I also checked the bar can never show more
+light than the count claims, over 40 routes: worst case it is off by five
+hundredths of a percent, and never in the flattering direction.
+
+**And I went back to a place the last round deliberately skipped.** Round 3
+tested "no streetlight here" only where the nearest lamp was more than 60m away
+— the easy half. I sampled the hard half, 25 to 60m, at 18 places: **half the
+time you can see a streetlight standing there anyway.** The card isn't lying —
+it counts lamps within 25m of your path — but it is right in a way that would
+get it called wrong. Rather than widen the radius (which would inflate every
+number in this feature), a route with no streetlight at all now adds "· 2 more
+are mapped within 50 m of it". I measured before writing it: that fires on about
+one route in twenty and says one or two, so it costs nothing the rest of the
+time. The thing it does *not* fix is written down — a single dark stretch 28m
+from a lamp still reads as dark.
+
+Nothing about the routing changed. Every steering number is byte-identical to
+last round, the feature still only annotates unless you press the button, and
+`WAYFIND.on` is untouched. Full argument and every number: `docs/walk-lit.md`
+§25-§31.

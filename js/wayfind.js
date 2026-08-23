@@ -334,6 +334,86 @@
     litAltMinGainM: 40,    // and never offer one that buys less than this much
                            // extra covered walking. Below that it is noise.
 
+    // ── THE BLOCK IN THE CARD, AND WHY IT IS A PICTURE NOW ─────────────────
+    //
+    // MEASURED, NOT FELT (shots/walk/lit/cardshot.mjs, before/after JSON next
+    // to it). Three rounds of this lane verified the lighting CLAIM against the
+    // scene and never once looked at the block it is printed in. Photographed:
+    //
+    //   ANB -> ETC          252 px of a 466 px card = 54 %  17 lines  105 words
+    //   GDC -> Castilian    312 px of a 526 px card = 59 %  20 lines  162 words
+    //   PMA -> WEL          232 px of a 446 px card = 52 %  16 lines   99 words
+    //
+    // Every sentence in it is honest and every sentence is the same weight, so
+    // the walk home into West Campus printed "No mapped streetlight along this
+    // route" in the same grey, at the same size, as three paragraphs of
+    // provenance. Nobody reads that at 11 pm, which means the caveats were not
+    // being read either. Round 4 gave the block one picture, one headline, and
+    // put the provenance behind a line that carries its own warning.
+    //
+    // THE STRIP is the whole walk left to right, amber where a mapped lamp is
+    // within `litRadiusM` and cool where none is, with a tick at every spot
+    // somebody reported too dark. It answers the question the numbers could
+    // not: WHERE. A 700 m gap in the middle of a walk and a 700 m gap at the
+    // door are the same sentence and completely different walks.
+    litStripOn: true,
+    litStripH: 10,         // px. Tall enough to read a colour, short enough not
+                           // to be a chart.
+    litStripRadius: 5,
+    litStripMinFrac: 0.008, // a run this much of the walk or less still gets
+                           // this much width, so a single lamp in a 2 km walk
+                           // is a visible mark rather than a rounding error.
+                           // It makes the strip a schematic, not a scale bar —
+                           // which is why the metres are still printed under it.
+    // The map's `litDarkCol` is #39435e because it is a mark lying on a night
+    // street. The SAME fact on the dark glass of the card needs to be lighter
+    // to read at all — this is exactly the `litTextDim` lesson, one object
+    // along. Two constants because they are two surfaces, not one value used
+    // twice.
+    litStripLitCol: '#ffc27a',   // = litLampCol. A lamp is a lamp on both.
+    litStripDarkCol: '#46536f',
+    litStripTickCol: '#c3b0ff',  // = darkTextCol, the on-glass violet
+    litStripTickW: 2,      // px
+    litStripCapsOn: true,  // the two end labels under the strip. Without them
+                           // nothing says which end is your door.
+    // ── THE LAMP JUST OFF THE PATH ─────────────────────────────────────────
+    //
+    // MEASURED, AND IT IS THE FINDING OF ROUND 4 (shots/walk/lit/boundary.mjs).
+    // Round 3's 43-site matrix sampled "unmapped" only where the nearest
+    // counted lamp is more than 60 m away — clear of the boundary on purpose,
+    // which means the clean result was obtained on the easy half. Round 4
+    // sampled the band the matrix skipped, 25 to 60 m, at 18 sites off 8 real
+    // routes, plan view, night, card hidden:
+    //
+    //   a warm street lamp is somewhere in the night frame       9 of 18
+    //   ...its pool reaches inside the 25 m disc itself          5 of 18
+    //   nearest-lamp distance: min 25.2 m, median 28.9 m
+    //
+    // So on a route with no lamp inside 25 m, half the time a person who goes
+    // and looks can see one. The card is right — the claim is about 25 m — and
+    // it is right in a way that will get it called wrong.
+    //
+    // THE FIX IS A CLAUSE, NOT A WIDER RADIUS. Raising `litRadiusM` to swallow
+    // the band would inflate every coverage number in this feature and make
+    // "covering the path" mean a lamp across a lawn. The radius is defended on
+    // what a 5 m mast actually throws and it stays. Instead the scan counts the
+    // ring OUTSIDE it and the card says so — but only on a route with no
+    // counted lamp at all, because that is the sentence that reads like a
+    // verdict and the only one worth qualifying.
+    litNearMissOn: true,
+    litNearMissM: 50,      // outer ring. Twice the counting radius, and inside
+                           // the 60 m round 3 called "clear of the boundary",
+                           // so this names the near misses without reaching
+                           // into the territory the matrix already checked.
+    // FOLDING THE PROVENANCE. Three dated paragraphs, eight of the twenty
+    // lines, and they were the least-read text in the app precisely because
+    // they were the longest. Folded, the two disclaimers that matter most —
+    // "mapped only" and "not a safety rating" — are promoted into the
+    // always-visible label, and the full sourcing is one tap away, unchanged
+    // and still dated. Nothing is deleted; a shorter caveat that is read beats
+    // a longer one that is not. Flip to false and all three print in full.
+    litProvenanceFold: true,
+
     // ── AND THE OTHER SOURCE: WHERE PEOPLE SAID IT WAS DARK ────────────────
     //
     // Everything above is about the MAP — where a lamp is recorded. This is the
@@ -536,6 +616,36 @@
     // the pavement, which nobody here has measured.
     litCanopy: (n, of) => (n === of ? (of === 1 ? 'It is' : 'All ' + of + ' are')
       : n + ' of them ' + (n === 1 ? 'is' : 'are')) + ' under tree cover',
+    // THE NEAR MISS, and it rides ON the zero-lamp sentence rather than under
+    // it, so it costs no line at all. Measured before it was written
+    // (shots/walk/lit/nearmiss.mjs, 60 seeded routes): 33 routes have no
+    // counted lamp, and only 3 of those have any lamp in the 25-50 m ring,
+    // median 1 and at most 2. So this fires on one route in twenty and says a
+    // small number when it does — which is the whole reason it is affordable.
+    // Still "mapped", still a statement about the index, and it can only ever
+    // make an empty count sound like MORE light, never less.
+    litNearMiss: (n, r) => ' · ' + n + (n === 1 ? ' more is' : ' more are') +
+      ' mapped within ' + r + ' m of it',
+    // The same claim, sized to sit on the end of the count instead of under it.
+    // Identical fact, one line rather than two — "4 under tree cover" cannot be
+    // read as anything "4 of them are under tree cover" could not.
+    litCanopyShort: (n) => n + ' under tree cover',
+    // ── the strip ─────────────────────────────────────────────────────────
+    // Spoken form of the picture, because a picture that only exists as pixels
+    // is unreadable to a screen reader and unassertable by a test. Both read
+    // this string; it is the strip's own description of itself.
+    litStripAria: (pct, gapTxt, ticks) => 'Lighting along the walk, start on the ' +
+      'left: ' + pct + '% of it has a mapped streetlight within 25 metres' +
+      (gapTxt ? ', longest stretch with none mapped ' + gapTxt : '') +
+      (ticks ? ', ' + ticks + ' spot' + (ticks === 1 ? '' : 's') + ' reported too dark' : '') + '.',
+    litStripFrom: 'start',
+    litStripTo: 'door',
+    // ── the fold ──────────────────────────────────────────────────────────
+    // The label is doing real work, not naming a drawer. It carries the two
+    // disclaimers that must never be behind a tap — the count is of the MAP,
+    // and this is not a safety rating — so that folding the three source
+    // paragraphs hides sourcing, never the warning.
+    litFold: 'Mapped lamps only, and not a safety rating — where these numbers come from',
     // The scene paints soft pools along roads at night that have no pole under
     // them and no survey behind them. A 43-site audit found decoration as
     // bright as a real lamp inside the 25 m disc at 5 of 24 places this card
@@ -1733,6 +1843,11 @@
         nWarm: j.n_warm != null ? j.n_warm : warm.n,
         nBlue: j.n_blue != null ? j.n_blue : blue.n,
         gWarm: lampGrid(warm, WAYFIND.litRadiusM),
+        // A SECOND grid at the near-miss radius, not the same one queried
+        // wider: `lampsNear` only visits the 3x3 block around a point, which
+        // is exact only while the cell is at least the query radius. Asking
+        // the 25 m grid for 50 m would quietly miss lamps two cells away.
+        gWarmWide: lampGrid(warm, WAYFIND.litNearMissM),
         gBlue: lampGrid(blue, WAYFIND.litPhoneNearM),
         dark, nDark: j.n_dark != null ? j.n_dark : dark.n,
         darkNotes: j.dark_notes || [],
@@ -1787,7 +1902,19 @@
     if (line.length < 2) return null;
     const step = WAYFIND.litSampleM;
     const lamps = new Set(), phones = new Set(), reported = new Set();
+    // Lamps within the OUTER ring. A superset of `lamps`, so the near-miss
+    // count is the difference and a lamp can never be counted in both.
+    const wide = new Set();
     let litM = 0, darkM = 0, longestGap = 0;
+    // Where along the walk each reported-dark pin was first met, in METRES from
+    // the start door. The card's strip needs a POSITION, not just a count — a
+    // Set has no geometry — and `reportedAtM[k]` is kept index-aligned with
+    // `Array.from(reported)[k]` by pushing exactly once per newly-added pin.
+    // The `M` is not decoration: the test surface already exposes a
+    // `reportedAt` that is a list of lon/lat, and two arrays with one name is
+    // how the wrong one gets plotted.
+    let walkedM = 0;
+    const reportedAtM = [];
     const runs = [];                 // {lit:bool, m:number, line:[[lon,lat],…]}
     let cur = null;
     const emit = (isLit, a, b, m) => {
@@ -1806,15 +1933,21 @@
         const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2;
         const m = segM / n;
         const on = lampsNear(LAMPS.warm, LAMPS.gWarm, mx, my, WAYFIND.litRadiusM, lamps);
+        if (WAYFIND.litNearMissOn) {
+          lampsNear(LAMPS.warm, LAMPS.gWarmWide, mx, my, WAYFIND.litNearMissM, wide);
+        }
         lampsNear(LAMPS.blue, LAMPS.gBlue, mx, my, WAYFIND.litPhoneNearM, phones);
         // The city's pins, on the same sweep and into their own set. They are
         // NOT allowed to move `litM`/`darkM`: those two numbers mean "a lamp is
         // mapped here" and nothing else, and a resident's report is a different
         // kind of thing that gets its own count and its own sentence.
         if (WAYFIND.darkOn && LAMPS.dark) {
+          const had = reported.size;
           lampsNear(LAMPS.dark, LAMPS.gDark, mx, my, WAYFIND.darkNearM, reported);
+          for (let q = had; q < reported.size; q++) reportedAtM.push(walkedM + m / 2);
         }
         if (on) litM += m; else darkM += m;
+        walkedM += m;
         emit(on, p0, p1, m);
       }
     }
@@ -1828,10 +1961,14 @@
     const out = {
       litM, darkM, totalM: litM + darkM, longestGapM: longestGap,
       lamps: lampList, phones: Array.from(phones), runs,
+      // Counted lamps are a subset of `wide` by construction, so this is the
+      // number of mapped lamps that are near the walk and NOT near enough to
+      // count. It is never added to the headline count.
+      nearMiss: WAYFIND.litNearMissOn ? Math.max(0, wide.size - lamps.size) : 0,
       lampsUnderCanopy: canopy,
       lampsInClear: lampList.length - canopy,
       pct: (litM + darkM) > 0 ? litM / (litM + darkM) : 0,
-      reported: Array.from(reported),
+      reported: Array.from(reported), reportedAtM,
       inDarkArea: WAYFIND.darkOn && touchesDarkArea(line),
     };
     route.__lit = out;
@@ -2196,6 +2333,83 @@
     return best;
   }
 
+  /**
+   * The walk, left to right, as one bar: amber where a mapped street lamp is
+   * within `litRadiusM`, cool where none is, a violet tick at every spot
+   * somebody reported too dark.
+   *
+   * WHY THIS EXISTS. The block already printed "Longest stretch with none
+   * mapped: 700 m" — a true number that cannot answer the question a person
+   * standing on a doorstep at midnight is actually asking, which is WHERE. A
+   * 700 m unmapped stretch in the middle of a walk and a 700 m unmapped stretch
+   * at the far door are the same sentence and two different walks.
+   *
+   * It is a SCHEMATIC, not a scale bar: `litStripMinFrac` floors the width of a
+   * short run so a single lamp on a 2 km walk is a visible mark instead of a
+   * rounding error. That trade is why the metres are still printed underneath
+   * it — the picture says where, the number says how much, and the number is
+   * the one that is exact.
+   *
+   * The colours are the card's own, not the map's, for the reason `litTextDim`
+   * already records: the same fact lying on a night street and sitting on dark
+   * glass needs two different values to be legible on both.
+   */
+  function litStrip(scan) {
+    if (!WAYFIND.litStripOn || !scan || !scan.totalM) return null;
+    const wrap = h('div', null);
+    wrap.style.cssText = 'margin:7px 0 4px';
+
+    const track = h('div', null);
+    track.style.cssText = 'position:relative;display:flex;width:100%;overflow:hidden;' +
+      'height:' + WAYFIND.litStripH + 'px;border-radius:' + WAYFIND.litStripRadius + 'px;' +
+      'background:' + WAYFIND.litStripDarkCol + ';';
+    // Runs first, in order, as flex children — so they tile the full width with
+    // no sub-pixel gaps, which absolute lefts computed from rounded percentages
+    // do not. Every run is present in the DOM even at the floor width; a run
+    // that is dropped for being small is a lamp the picture denies and the
+    // count claims.
+    const floor = WAYFIND.litStripMinFrac;
+    let sum = 0;
+    const fracs = scan.runs.map(run => Math.max(floor, run.m / scan.totalM));
+    for (const f of fracs) sum += f;
+    scan.runs.forEach((run, i) => {
+      const seg = h('div', null);
+      seg.style.cssText = 'flex:' + (fracs[i] / sum) + ' 1 0;min-width:0;' +
+        'background:' + (run.lit ? WAYFIND.litStripLitCol : WAYFIND.litStripDarkCol) + ';';
+      track.appendChild(seg);
+    });
+    // The pins ride on top at their true position, never floored: a tick is a
+    // point and has no length to lose.
+    if (WAYFIND.darkOn && scan.inDarkArea && scan.reportedAtM) {
+      for (const at of scan.reportedAtM) {
+        const t = h('div', null);
+        t.style.cssText = 'position:absolute;top:0;bottom:0;width:' + WAYFIND.litStripTickW + 'px;' +
+          'margin-left:' + (-WAYFIND.litStripTickW / 2) + 'px;' +
+          'left:' + (100 * Math.min(1, Math.max(0, at / scan.totalM))).toFixed(2) + '%;' +
+          'background:' + WAYFIND.litStripTickCol + ';';
+        track.appendChild(t);
+      }
+    }
+    // A picture that exists only as pixels is unreadable to a screen reader and
+    // unassertable by a test. This string is the strip saying what it is.
+    const ticks = (WAYFIND.darkOn && scan.inDarkArea && scan.reportedAtM) ? scan.reportedAtM.length : 0;
+    track.setAttribute('role', 'img');
+    track.setAttribute('aria-label', SAY.litStripAria(
+      Math.round(100 * scan.pct),
+      scan.longestGapM >= WAYFIND.litGapMinM ? fmtDist(scan.longestGapM) : '', ticks));
+    wrap.appendChild(track);
+
+    if (WAYFIND.litStripCapsOn) {
+      const caps = h('div', null);
+      caps.style.cssText = 'display:flex;justify-content:space-between;font-size:9.5px;' +
+        'opacity:.45;letter-spacing:.05em;text-transform:uppercase;margin-top:3px';
+      caps.appendChild(h('span', null, SAY.litStripFrom));
+      caps.appendChild(h('span', null, SAY.litStripTo));
+      wrap.appendChild(caps);
+    }
+    return wrap;
+  }
+
   /** The block in the open card: what is mapped, where it runs out, what that
    *  claim is and is not, and the priced alternative. */
   function litCard(card, r) {
@@ -2208,25 +2422,50 @@
     head.style.marginTop = '11px';
     card.appendChild(head);
 
+    // The picture first, then the headline it is a picture of.
+    const strip = litStrip(scan);
+    if (strip) card.appendChild(strip);
+
     const n = scan.lamps.length;
+    // THE ONE FACT, GIVEN THE WEIGHT OF ONE FACT. Everything under this is a
+    // qualifier on it, and until round 4 all of them were set in the same grey
+    // at the same size, which is how "No mapped streetlight along this route"
+    // ended up indistinguishable from a licence attribution.
     const lamps = h('div', 'wf-c', n ? SAY.litLamps(n) : SAY.litNone);
-    lamps.style.color = n ? WAYFIND.litLampCol : WAYFIND.litTextDim;
+    lamps.style.cssText = 'font-size:13px;font-weight:600;margin:6px 0 2px;color:' +
+      (n ? WAYFIND.litLampCol : WAYFIND.litTextDim);
+    // Under tree cover rides ON the count rather than under it — it is a
+    // qualifier on that number and nothing else, and a separate line gave it
+    // the standing of a separate fact.
+    if (n && WAYFIND.canopyOn && scan.lampsUnderCanopy > 0) {
+      const cov = h('span', null, ' · ' + SAY.litCanopyShort(scan.lampsUnderCanopy));
+      cov.style.cssText = 'font-weight:400;opacity:.62';
+      lamps.appendChild(cov);
+    }
+    // ...and on a route with NO counted lamp, the lamps that are near it but
+    // not near enough. "No mapped streetlight along this route" is the
+    // strongest sentence in this block and the one a user is most likely to go
+    // and check — and round 4 measured that in the 25-60 m band a lamp is
+    // visible from the pavement at 9 of 18 sampled places
+    // (shots/walk/lit/boundary.mjs). Qualifying the sentence is honest; widening
+    // `litRadiusM` to swallow the band would have made "covers the path" mean
+    // a lamp across a lawn, and inflated every coverage figure in the feature.
+    if (!n && WAYFIND.litNearMissOn && scan.nearMiss > 0) {
+      const nm = h('span', null, SAY.litNearMiss(scan.nearMiss, WAYFIND.litNearMissM));
+      nm.style.cssText = 'font-weight:400;opacity:.62;color:' + WAYFIND.litTextDim;
+      lamps.appendChild(nm);
+    }
     card.appendChild(lamps);
 
-    // Under the count, never instead of it: the covered lamps are already IN
-    // the number above, and this says how many of them a tree is standing over.
-    if (n && WAYFIND.canopyOn && scan.lampsUnderCanopy > 0) {
-      const cov = h('div', 'wf-c wf-dim', SAY.litCanopy(scan.lampsUnderCanopy, n));
-      card.appendChild(cov);
-    }
-
-    if (scan.longestGapM >= WAYFIND.litGapMinM) {
-      card.appendChild(h('div', 'wf-c', SAY.litGap(fmtDist(scan.longestGapM))));
-    }
+    // The two secondary map facts, on one row, verbatim. Both sentences are
+    // the permitted ones from docs/walk-lit.md §5 — joined, not reworded.
+    const bits = [];
+    if (scan.longestGapM >= WAYFIND.litGapMinM) bits.push(SAY.litGap(fmtDist(scan.longestGapM)));
     const ph = scan.phones.length;
-    const phone = h('div', 'wf-c', ph ? SAY.litPhones(ph) : SAY.litPhonesNone);
-    if (ph) phone.style.color = WAYFIND.litPhoneCol;
-    card.appendChild(phone);
+    bits.push(ph ? SAY.litPhones(ph) : SAY.litPhonesNone);
+    const second = h('div', 'wf-c', bits.join(' · '));
+    second.style.cssText = 'margin:2px 0 0;opacity:.8';
+    card.appendChild(second);
 
     // ── what people said, where anybody was asked ─────────────────────────
     //
@@ -2292,7 +2531,17 @@
       }
     }
 
-    card.appendChild(h('div', 'wf-c wf-dim',
+    // ── the sourcing ─────────────────────────────────────────────────────
+    //
+    // Three dated paragraphs. They were eight of this block's twenty lines and
+    // they were the least-read text in the app precisely because they were the
+    // longest — set in the same grey as the answer, immediately under it. They
+    // go in a drawer whose LABEL carries the two disclaimers that must never be
+    // behind a tap: the count is of the map, and this is not a safety rating.
+    // Nothing is removed and no date is dropped. A shorter caveat that is read
+    // beats a longer one that is not.
+    const src = h('div', null);
+    src.appendChild(h('div', 'wf-c wf-dim',
       SAY.litSource(LAMPS.nWarm, LAMPS.asOf ? fmtAsOf(LAMPS.asOf) : '')));
     // The second source gets its own attribution line and its own date, and
     // only where it has standing. Two sources with two dates must never share
@@ -2300,15 +2549,41 @@
     // January 2018, and printing either date over the other's data is the
     // exact mistake the lamp line was already careful not to make.
     if (WAYFIND.darkOn && LAMPS.dark && LAMPS.dark.n && scan.inDarkArea) {
-      card.appendChild(h('div', 'wf-c wf-dim',
+      src.appendChild(h('div', 'wf-c wf-dim',
         SAY.darkSource(LAMPS.nDark, LAMPS.darkAsOf ? fmtAsOf(LAMPS.darkAsOf) : '')));
     }
-    // Last, and only after dark, because before dark there is no glow to
-    // explain. It answers the one thing a user who goes and checks will see
-    // and reasonably read as this card being wrong.
+    // Only after dark, because before dark there is no glow to explain. It
+    // answers the one thing a user who goes and checks will see and reasonably
+    // read as this card being wrong.
     if (WAYFIND.decorNoteOn && nightness() >= WAYFIND.litNightP) {
-      card.appendChild(h('div', 'wf-c wf-dim', SAY.litDecor));
+      src.appendChild(h('div', 'wf-c wf-dim', SAY.litDecor));
     }
+
+    if (!WAYFIND.litProvenanceFold) { card.appendChild(src); return; }
+
+    src.style.display = 'none';
+    const tog = h('div', 'wf-c wf-dim', '▸ ' + SAY.litFold);
+    tog.style.cssText = 'cursor:pointer;margin-top:7px;opacity:.62;' +
+      'text-decoration:underline;text-decoration-color:rgba(255,255,255,.18);' +
+      'text-underline-offset:3px';
+    tog.setAttribute('role', 'button');
+    tog.setAttribute('tabindex', '0');
+    const flip = (ev) => {
+      // The pill's own click handler collapses the card. Every control inside
+      // it has to stop the event or opening the drawer closes the card it is in.
+      if (ev) ev.stopPropagation();
+      const open = src.style.display === 'none';
+      src.style.display = open ? '' : 'none';
+      tog.firstChild.nodeValue = (open ? '▾ ' : '▸ ') + SAY.litFold;
+      tog.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    tog.setAttribute('aria-expanded', 'false');
+    tog.addEventListener('click', flip);
+    tog.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); flip(ev); }
+    });
+    card.appendChild(tog);
+    card.appendChild(src);
   }
 
   /** Swap the drawn route between the shortest and the lit-preferring one.
@@ -2842,6 +3117,7 @@
       indexWarm: LAMPS.nWarm, indexBlue: LAMPS.nBlue, asOf: LAMPS.asOf,
       radiusM: WAYFIND.litRadiusM,
       lamps: scan.lamps.length, phones: scan.phones.length,
+      nearMiss: scan.nearMiss, nearMissM: WAYFIND.litNearMissM,
       // The canopy split, and the coordinates of the covered ones, so a test
       // can fly to one and look up. Same discipline as `lampsAt`: a claim that
       // cannot be checked by looking does not belong in the card.
@@ -2874,6 +3150,10 @@
       reportedAt: scan.reported.map(i => ({
         at: [LAMPS.dark.X[i], LAMPS.dark.Y[i]], note: LAMPS.darkNotes[i] || '',
       })),
+      // ...and the same pins as a position ALONG the walk, in metres, which is
+      // what the card's strip draws its ticks from. Exposed so the picture's
+      // tick positions are assertable against the scan rather than eyeballed.
+      reportedAtM: scan.reportedAtM.map(x => Math.round(x)),
       quote: darkQuoteFor(scan),
       alt: alt ? {
         distM: Math.round(alt.distM), baseDistM: Math.round(r.distM),
