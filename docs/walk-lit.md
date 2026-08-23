@@ -17,6 +17,16 @@ what it is worth, and the case for the design that came out of it.
 > typed why. It is the only signal in this feature that is about the world
 > rather than the map. Everything from §9 down is round 2; §1–§8 are the first
 > round's and are unchanged except where a number moved.
+>
+> **ROUND 3 stopped adding sources and audited the claim instead.** Rounds 1
+> and 2 checked it at six places they picked themselves. Round 3 wrote an
+> instrument that picks the places — 43 sites off 12 real routes, a confusion
+> matrix, committed next to its output — and it came back clean in the
+> direction that matters: **no site this card calls unmapped has a street lamp
+> standing in it.** Then the two sites it could not explain turned out to have
+> a live oak sitting on the lamp, which is now a field in the index and a
+> sentence in the card, and which was measured *out* of the router rather than
+> argued into it. §17–§24, and they are the sections to read first.
 
 ---
 
@@ -790,3 +800,380 @@ question Simeon actually asked — streetlights, for safety — the most useful
 thing this project could say to a student at 1 a.m. may not be a lamp count at
 all. It may be that somebody will walk with them, free, and here is the number.
 That is a UI call and belongs to whoever owns the card, not here.
+
+---
+
+# ROUND 3 — the claim, audited over a sample instead of six places; and the
+# thing the audit found that nobody had looked for
+
+Rounds 1 and 2 verified this feature's claim at six sites they chose themselves,
+two of them deliberately extreme. Six frames chosen by the author is an
+anecdote, and the question being asked of this lane — *does the lit/unlit claim
+match the lamps actually present in the 3D scene at that location* — has a
+proper form: a confusion matrix over sites a script picked.
+
+Round 3 built that. The matrix is in §18. It came back clean, and then the two
+places it did NOT come back clean turned out to be the interesting part: **a
+counted street lamp with a live oak standing on top of it.** That is now a
+field in the index, a sentence in the card, and — after being A/B'd over sixty
+routes — deliberately *not* a term in the router. §20 and §21.
+
+Everything here is reproducible: the three scripts are committed next to their
+output in `shots/walk/lit/`, which rounds 1 and 2 did not do.
+
+---
+
+## 17. The instrument, and the four ways the first cut of it was wrong
+
+`shots/walk/lit/litaudit.mjs`. One page load, night (`p = 0.92`, asserted, not
+assumed), graphics auto-detect cancelled, veil gone, hardware GL. It routes
+twelve fixed building pairs through the real `window.wayfindRoute`, samples
+sites off the classified geometry `litScan` itself produced, flies to each one
+and reads three instruments: `queryRenderedFeatures`, a framebuffer, and a
+masked framebuffer.
+
+**It is worth reading the four things that were wrong with it first, because
+each one produced a confident, plausible, false number, and three of the four
+would have survived into this document.**
+
+**a) The frame was not the claim.** The first pose was pitch 55 at z19.4 — the
+walking pose, the obvious choice. At that pitch the frame sees several hundred
+metres up the street, so two sites reported *"said none is mapped, and a lamp
+IS on screen"* when the lamp was three hundred metres away and had nothing to
+do with the stretch being described. A claim about a 25 m disc has to be
+measured on that disc. Every pose is now plan view with the site dead centre and
+a zoom chosen so the disc is a circle of known pixel radius about the frame
+centre — which also makes WebGL's bottom-left origin irrelevant, because a
+circle about the centre is the same circle either way up. **The disc is drawn on
+every saved frame**, so a picture shows the window its own number came from.
+
+**b) Counting coloured pixels is not the same as counting a layer.**
+`night-lamps.mjs` marks the light layers in flat primaries and counts only
+pixels that CHANGED between the two frames; this script dropped the diff and
+counted green pixels directly. Night tree canopy is green-dominant. One site
+came back with 423 "surveyed lamp" pixels and zero `props-lit` features in the
+same disc, on the run where that bug was live. The diff is back, and the two frames are now taken back to back at
+one pose with the mask restored after every site.
+
+**c) `props-lit` is two different facts wearing one layer.** It carries the 193
+warm street lamps *and* the 43 blue emergency phones, and this card counts those
+separately on purpose — a call box is a thing you run to, not a thing that
+lights the pavement. Painting the layer one colour produced three more
+*"said none is mapped, a lamp IS on screen"* reports, every one of them a blue
+phone the card had already counted correctly in its own sentence. The mask now
+splits on the `c` property.
+
+**d) …and even split, the classifier leaked, until the data said where.** Two
+sites still showed warm-lamp pixels with no warm lamp within 260 m. Looking at
+the channels rather than the totals: `green: 0, cyan: 53, blue: 1818` — a blue
+phone's glow composited over green canopy reads cyan, and cyan is the warm
+lamp's *core*. So the rule is not "green or cyan": **a warm lamp is present when
+its POOL is**, `props-lit` green. Measured, the two populations do not overlap
+at all — every one of the seventeen real lamps has green ≥ 691 px, and all three
+phone-only sites have green = 0.
+
+All four were caught by looking at a frame or at the raw channel counts. None
+would have been caught by reasoning about the code.
+
+---
+
+## 18. The matrix
+
+43 sites off 12 real routes: 19 where `litScan` classified the stretch as
+covered by a mapped lamp, 24 where it classified it as unmapped **and** the
+nearest counted lamp is more than 60 m away — clear of the 25 m boundary on
+purpose, so the sample tests the claim rather than the arithmetic either side of
+it. Sites are drawn with a fixed seed from `runsAt`, which is `litScan`'s own
+classified geometry, so a camera stands exactly where the claim was made.
+
+Pose: plan, `p = 0.92`, z19.8, hardware GL, graphics auto-detect cancelled, veil
+gone. The map's canvas ran at a 0.75 device scale on this run, so the 25 m disc
+is **253 device pixels of a 960 × 600 buffer** — the script measures it through
+the map's own `project()` at the site rather than from a formula, and asserts it
+fits the frame, so a different device scale changes the pixel totals below and
+not a single verdict.
+
+| what the card said | sites | a warm lamp on screen | a blue phone | any decorative glow | decoration as bright as a real lamp | nothing lit at all |
+|---|---|---|---|---|---|---|
+| a lamp within 25 m — **"lit"** | 19 | **17** | 0 | 17 | 2 | 0 |
+| none within 60 m — **"unmapped"** | 24 | **0** | 3 | 10 | 5 | 13 |
+
+The classes do not merely separate, they do not touch: every one of the 17 real
+lamps put down **at least 691 green pixels**, and **every single "unmapped" site
+put down exactly 0.** There is no threshold to argue about.
+
+**Read it in the direction that matters.** The claim this feature makes is
+about *mapped* lamps, and against the scene it is exact:
+
+* **No site the card called unmapped has a warm street lamp standing in it.**
+  Zero false "dark". The three blue phones that show up there are counted by a
+  different sentence in the same card, and that sentence is right too.
+* **Every "lit" site has the lamp the index claims** — verified two ways, see
+  below. Zero invented lamps.
+
+The two "lit" sites where no lamp pixel survived are not the index being wrong.
+They are §20.
+
+**The frames, every one with its own measurement window drawn on it.** Base and
+`-mask` pairs at eight sampled sites (`r2-site-NN-{lit,unmapped}.png`), plus a
+frame for every site that failed or glowed, taken whether or not the random draw
+picked it — a failure nobody can look at is a number, and this house does not
+ship those. Worth opening first:
+
+* `r2-site-20-unmapped.png` — a brick path between buildings, trees, and inside
+  the ring nothing at all. This is what "no mapped streetlight" looks like when
+  it is true, which is 13 of the 24.
+* `r2-site-05-lit.png` / `-mask.png` — the same disc with a lamp in it, and the
+  mask showing the pool is `props-lit` and not something else warm.
+* `r2-flag-decorloud-2.png` — §22 in one picture: a warm glow inside a disc the
+  card calls unmapped, with no pole under it and no bright core.
+* `r2-flag-nolamp-0.png` and `r2-occl-4.png` — §20.
+
+---
+
+## 19. What the tiles carry, and the one honest caveat about altitude
+
+`data/walk_lamps.json` is republished from `data/props.geojson`; the page never
+fetches that GeoJSON — it streams `data/tiles/props.pmtiles`. Two files, two
+bakes, and nothing in this repo checked that they agree. Now something does.
+
+**At walking zoom they agree exactly.** Flown to a seeded random sample of 30 of
+the index's own lamps at z19.8 and asked what the props source decodes there:
+**30 of 30 within 3 m.** No lamp the card counts is missing from the scene where
+a walker would be standing.
+
+**At planning zoom they do not, and that is worth saying out loud.** A zoom
+ladder over four anchors (campus core, West Campus, the Drag, south campus):
+
+| zoom | share of the index's lamps in view that the tiles carry |
+|---|---|
+| 15.0 | **33–43 %** |
+| 16.0 | 100 % |
+| 17.0 | 100 % |
+| 18.0 | 100 % |
+| 19.4 | 100 % |
+
+So `props.pmtiles` drops points below about z16, the way every vector tileset
+does. Nothing is stale and nothing is broken — but **a user who reads "24 mapped
+streetlights along this route" and then pulls back to see the whole walk is
+looking at a third of them.** This lane's own `wayfind-lit-pad` rings are drawn
+from the index rather than from the tiles, so the receipt stays complete when
+the poles thin out; that is now a reason the pads exist rather than a
+coincidence. Nothing was changed for this. It is written down because it is the
+one place the count and the picture legitimately disagree, and the next person
+to notice should find it here rather than rediscover it.
+
+---
+
+## 20. A live oak on top of a street lamp
+
+Two of the nineteen "lit" sites had a lamp by every instrument except the one
+that matters: `queryRenderedFeatures` reported `props-lit: 1` inside the disc,
+and the night frame had no lamp pixel in it at all.
+
+**The probe.** Hide the layers that could be standing over it, read the same
+frame again, and see whether the lamp appears. It did — about 2,950 pixels at
+both sites. But that first probe hid trees *and* buildings *and* ground in one
+go, which is a bundle, not an attribution, and a bundle is how a fix gets
+shipped for the wrong layer. `shots/walk/lit/occluder.mjs` hides one family at a
+time:
+
+| hidden | lamp pixels in the disc, site A | site B |
+|---|---|---|
+| nothing (as shipped) | **0** | **0** |
+| buildings (41 layers) | 0 | 0 |
+| ground (24 layers) | 0 | 0 |
+| **trees (4 layers)** | **3,285** | **3,282** |
+
+Trees, entirely. `shots/walk/lit/occl-flag-A-shipped.png` and
+`occl-flag-A-no-trees.png` are the same pose one second apart: in the first the
+disc is empty, in the second a masked lamp is burning in the middle of it.
+
+**And `data/trees.geojson` says the same thing independently.** Both lamps are
+4.93 m heads sitting under a stack of canopy shells of radius 10.3 m centred
+within a metre of them, reaching 12 m. A big cedar directly over a street light.
+Across the whole city that is **56 of 193 warm street lamps — 29 %.**
+
+That is not a rendering curiosity. A campus lamp under a live oak is a real
+thing a student walks under, and it throws a fraction of its light onto the
+pavement. The pixel audit went looking for whether the claim matched the scene
+and found a fact about the city instead.
+
+### What shipped
+
+`scripts/bake_props.py --lamp-index` now reads the same `trees.geojson` the
+renderer draws and emits `warm_canopy[i]` alongside `warm[i]` — 1 where the lamp
+stands inside a canopy disc that reaches its own head. Two named constants,
+`CANOPY_MARGIN_M` (0, so the lamp must be inside the disc the renderer actually
+draws) and `CANOPY_REACH_SLACK_M` (1 m, because both heights are modelled rather
+than surveyed). Widen the margin and the count rises — measured, 0 m → 56 lamps,
+1 m → 77, 2 m → 87.
+
+`litScan` counts them per route. The card says, under the count and never
+instead of it:
+
+> `24 mapped streetlights along this route`
+> `4 of them are under tree cover`
+
+**It is counted, never deducted.** A lamp under an oak is still a lamp, and
+subtracting it would be a claim about how much light reaches the pavement, which
+nobody here has measured. The sentence survives §5's test for the same reason
+every other permitted sentence does: it is about the same map and the same scene
+as the count above it, it is checkable by flying there and looking up, and it
+can only make a counted lamp sound like *less* light, never more.
+
+Banned alongside the rest: ~~`these lamps are blocked`~~ ·
+~~`the trees make this dark`~~ · any present-tense claim about light reaching
+the ground.
+
+### The test that could have failed, and did once
+
+`shots/walk/lit/canopy.mjs` picks the covered lamp and an uncovered lamp **from
+the data, on the same route**, and takes two frames at each: as shipped, and
+with the tree layers hidden. A flag worth printing has to separate them.
+
+| lamp | pose | as shipped | trees hidden | revealed |
+|---|---|---|---|---|
+| covered | plan | 17,337 | 17,989 | **+652** |
+| covered | eye (pitch 58) | 5,055 | 5,203 | +148 |
+| clear | plan | 3,050 | 3,050 | 0 |
+| clear | eye | 1,923 | 1,967 | +44 |
+
+**800 revealed at the covered lamp against 44 at the clear one.** PASS.
+
+The first run of this script reported FAIL — and it was the script, not the
+flag. It counted "any bright warm pixel", and `js/night.js`'s decorative road
+pool is also bright and warm and was drowning the thing being measured. Masking
+`props-lit` flat green, the way `occluder.mjs` had done from the start, made the
+separation obvious. *Two scripts measuring the same fact and disagreeing is the
+cheapest bug detector in this whole harness.*
+
+---
+
+## 21. Does it change the route? No — and that is a measurement, not a preference
+
+The obvious next move was to teach the search about it: charge more for a
+stretch whose only light is under a tree, so the offered alternative leans to
+the open one. It was written, at `litCanopyMult = 1.25` — between 1 (as good as
+open light) and `litAltMult` (as bad as no lamp at all), which is where the
+truth sits.
+
+Then it was A/B'd. `shots/walk/lit/canopy-ab.mjs`, 60 seeded building pairs
+drawn from the codes in `data/entrances.geojson`, every pair routed twice:
+
+```
+routed pairs                                    60 / 60
+...carrying at least one tree-covered lamp      12
+offers made at litCanopyMult 1.25               17
+offers made at litCanopyMult 1.0                18
+routes where the OFFER differs                   1
+...of those, routes that had a covered lamp      0
+```
+
+**It does nothing where it was aimed and one thing where it was not.** Zero of
+the twelve routes that actually carry a covered lamp changed. The single route
+that changed had no covered lamp on it at all — and it changed for the worse:
+at 1.25 it lost an offer that 1.0 makes, 1,201 m with ten mapped streetlights.
+The multiplier reshaped the search space around the route rather than the route.
+
+**So it ships at `litCanopyMult: 1`, which is off.** The canopy count is
+verified and worth *saying*; it is not verified to be worth *routing by*. A term
+in a cost function that provably moves nothing should not ship steering
+anything, however good the reasoning behind it — and the reasoning here was
+good, which is exactly why it needed the A/B. One line raises it to 1.25 if
+Simeon disagrees, and the count in the card is identical either way.
+
+This is the same answer rounds 1 and 2 gave, arrived at the same way: **the
+feature annotates; it re-routes only where a measurement says the alternative is
+real, and only when the user presses the button.** The lamp preference earns its
+place in the search (17 offers over 60 pairs). The reported-dark preference
+earns its place (§12). The canopy preference did not, and was measured out
+rather than argued out.
+
+### An A/B that measured nothing, first
+
+Worth recording because round 2 wrote the warning and round 3 walked into it
+anyway. `litEdgeWeights` memoises its weight array on the graph; §12 of this
+document says so and says "two page loads, because there is no hook to drop it".
+Round 3 read that, wrote a single-page A/B, flipped the constant between runs
+and got a clean `0/12 offers differ` — from a second run that was answering with
+the first run's array. A note is not a guard. There is now a hook,
+`window.wayfindLitReprice()`, in §6b's test surface, and both A/B scripts check
+its return value before believing anything, because a hook that quietly is not
+there looks exactly like a clean null result.
+
+---
+
+## 22. One line for the glow that is not a lamp
+
+§13 of round 2 found that `js/night.js` paints soft warm pools along road
+classes that have no pole under them and no survey behind them, named it as a
+real reason a user could think this card is wrong, and left it — correctly, as
+a request to a lane that owns that file.
+
+The audit measured it. Inside the 25 m disc, at the sites this card calls
+unmapped:
+
+```
+any decorative glow at all                      10 / 24
+decoration as bright as a real street lamp       5 / 24
+decorative footprint, px   p25 0 · median 1 · p75 385 · max 7,787
+```
+
+"As bright as a real lamp" is calibrated against this run's own lamps — half the
+median footprint a surveyed lamp puts inside the same disc at the same zoom
+(1,685 px, so the bar is 843), not a number picked by hand. So **one time in five, a user who flies
+down to check a stretch the card calls unmapped is looking at something that
+reads exactly like a street light, and is right to wonder.**
+
+The card is still defensible sentence by sentence — every one is about the map,
+and the provenance line already says the map understates reality. But "our copy
+is technically correct" is a poor answer to a person looking at a light. The
+cheapest honest answer available to a lane that does not own `js/night.js` is to
+say so, once, at the bottom with the other provenance and only after dark:
+
+> `The soft glow along roads after dark is scenery, not mapped light. Every
+> counted lamp has a ring drawn at its foot.`
+
+The second sentence is the useful half: `wayfind-lit-pad` already draws a ring
+at every counted lamp, so a glow without a ring is a glow this card did not
+count — and now the user has been told how to tell. Behind `WAYFIND.decorNoteOn`,
+one word to drop. §14's request to `js/night.js` still stands and is still the
+better fix.
+
+---
+
+## 23. What round 3 changed
+
+* `scripts/bake_props.py` — `canopy_cover()`, and `warm_canopy` /
+  `n_warm_under_canopy` in `data/walk_lamps.json`. 9.5 KB, up from 8.9.
+  `props.geojson` still untouched.
+* `js/wayfind.js` §6b only — decode the flag; `lampsUnderCanopy` /
+  `lampsInClear` on the scan; the canopy line and the decoration line in the
+  card; `litCanopyMult` (shipped off) in `litEdgeWeights`; `runsAt` and the
+  canopy fields on `window.wayfindLit()`; and `window.wayfindLitReprice()`.
+  Two new named constants and one new switch, all in the constants block.
+* `shots/walk/lit/litaudit.mjs`, `canopy.mjs`, `canopy-ab.mjs`, `occluder.mjs`
+  — committed, not left in a scratchpad, so the next round argues with the
+  method instead of rebuilding it.
+
+## 24. What round 3 did NOT establish
+
+* **How much of UT's real lighting is missing from OSM.** Round 1 called this
+  its own biggest gap and round 3 went looking properly: the City of Austin's
+  ArcGIS org (2,172 services, searched for light/lamp/luminaire/pole/Austin
+  Energy), ArcGIS Online's public catalogue, and `data.austintexas.gov`'s
+  Socrata catalogue on eight queries. **There is no public streetlight inventory
+  for Austin.** The only light-adjacent layer in the city org is
+  `pole_attachments`, which is 1,218 telecom attachments on traffic-signal
+  poles, no lighting. So the undercount cannot be measured from public data, and
+  the card's "real lighting is denser than that" stays a direction-only claim,
+  which is the only form it is entitled to take. That closes the question rather
+  than answering it.
+* **Whether a canopy-covered lamp is meaningfully darker on the ground.** The
+  flag says a tree is over the lamp. It does not say how much light gets past
+  it, and neither does anything in this repo.
+* **Whether 29 % is the right count.** It is the count at `CANOPY_MARGIN_M = 0`,
+  which is the strictest reading and the one that matches the picture. One line.
+* **Anything at all about crime, response times, or how safe a stretch is.**
+  Unchanged, and it will stay unchanged.

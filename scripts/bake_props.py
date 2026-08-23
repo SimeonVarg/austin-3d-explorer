@@ -1713,6 +1713,91 @@ def wc_dark_spots(refresh=False):
                   "kept_with_a_written_comment": sum(1 for p in kept if p[2])}
 
 
+# How far outside a canopy's own radius still counts as being under the tree.
+# Zero: the lamp has to be inside the disc the renderer draws, because the whole
+# point of this flag is that it agrees with what a camera sees. Named per
+# CLAUDE.md rule 11 — widen it and the count rises (measured: 0 m -> 56 lamps,
+# 1 m -> 77, 2 m -> 87 of 193).
+CANOPY_MARGIN_M = 0.0
+# A canopy only shades a lamp if it reaches the lamp's head. Allow a metre of
+# slack because both heights are modelled, not surveyed.
+CANOPY_REACH_SLACK_M = 1.0
+TREES_SRC = os.path.join(DATA, "trees.geojson")
+
+
+def canopy_cover(warm_pts, Q):
+    """Flag every warm street lamp that is standing inside a tree canopy.
+
+    WHY THIS EXISTS, AND WHY IT IS NOT A GUESS. The pixel audit in
+    `shots/walk/lit/litaudit.mjs` sampled 43 places on real routes and found two
+    where the card counted a mapped lamp and the night frame showed no light at
+    all. Hiding the tree and building layers and re-reading the same frame
+    brought ~2,950 lamp pixels back at both — so the lamp was there and the
+    scene was covering it. Looked up in `data/trees.geojson`, both lamps (4.93 m
+    heads) sit under a stack of canopy shells of radius 10.3 m centred within a
+    metre of them, reaching 12 m. A live oak over a street lamp.
+
+    Across the whole city that is **56 of 193 warm lamps (29%)**. A lamp under a
+    canopy is not a lamp that is off, and this does NOT remove it from the
+    count — it is reported separately, because "there is a street light here but
+    it is under a tree" is a different fact from "there is a street light here",
+    and it is the one a walker can check by looking up.
+
+    Returns a list of 0/1 aligned with `pack()`'s sort order, so `canopy[i]`
+    belongs to `warm` point `i` after decoding.
+    """
+    if not os.path.exists(TREES_SRC):
+        return None
+    with open(TREES_SRC, encoding="utf-8") as f:
+        trees = json.load(f)
+    MPD_LAT, MPD_LON, CELL = 111320.0, 96500.0, 30.0
+    cans, grid = [], {}
+    for feat in trees.get("features", ()):
+        p = feat["properties"]
+        if p.get("kind") != "canopy":
+            continue
+        ring = feat["geometry"]["coordinates"][0]
+        xs = [q[0] for q in ring]
+        ys = [q[1] for q in ring]
+        cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+        r = p.get("r0") or ((max(xs) - min(xs)) * MPD_LON / 2)
+        i = len(cans)
+        cans.append((cx, cy, float(r), float(p.get("h") or 0)))
+        grid.setdefault((int(cx * MPD_LON / CELL), int(cy * MPD_LAT / CELL)), []).append(i)
+
+    # Lamp heights come off the same shipped file the points did.
+    with open(OUT, encoding="utf-8") as f:
+        gj = json.load(f)
+    height = {}
+    for feat in gj["features"]:
+        p = feat["properties"]
+        if p.get("k") == "lit" and (p.get("c") or "warm") == "warm":
+            c = feat["geometry"]["coordinates"]
+            height[(int(round(c[0] / Q)), int(round(c[1] / Q)))] = float(p.get("h") or 5.0)
+
+    out = []
+    for x, y in sorted((int(round(lo / Q)), int(round(la / Q))) for lo, la in warm_pts):
+        lon, lat = x * Q, y * Q
+        lh = height.get((x, y), 5.0)
+        gx, gy = int(lon * MPD_LON / CELL), int(lat * MPD_LAT / CELL)
+        span = int((14 + CANOPY_MARGIN_M) / CELL) + 1
+        hit = 0
+        for dx in range(-span, span + 1):
+            for dy in range(-span, span + 1):
+                for i in grid.get((gx + dx, gy + dy), ()):
+                    cx, cy, r, h = cans[i]
+                    d = math.hypot((cx - lon) * MPD_LON, (cy - lat) * MPD_LAT)
+                    if d <= r + CANOPY_MARGIN_M and h >= lh - CANOPY_REACH_SLACK_M:
+                        hit = 1
+                        break
+                if hit:
+                    break
+            if hit:
+                break
+        out.append(hit)
+    return out
+
+
 def lamp_index():
     """Republish the light points from the SHIPPED data/props.geojson as
     data/walk_lamps.json, for js/wayfind.js.
@@ -1771,6 +1856,9 @@ def lamp_index():
             px, py = x, y
         return {"x": xs, "y": ys}
 
+    # ── which lamps are standing under a tree ────────────────────────────────
+    canopy = canopy_cover([(lo, la) for lo, la in buckets.get("warm", [])], Q)
+
     # The city's reported-dark pins ride in the SAME file. They are a different
     # source with a different licence and a different date, so each set carries
     # its own provenance rather than inheriting one banner — but it is one file
@@ -1799,6 +1887,16 @@ def lamp_index():
         "n_blue": len(buckets.get("blue", [])),
         "warm": pack(buckets.get("warm", [])),
         "blue": pack(buckets.get("blue", [])),
+        # 1 where the lamp is standing inside a tree canopy the scene draws over
+        # it. Aligned with `warm` after decoding. Not a claim that the lamp is
+        # off — a claim that a walker looking up would find a tree between the
+        # head and the pavement, which is why it is counted apart rather than
+        # deducted. See canopy_cover() for how the two flagged sites were found.
+        "canopy_source": "data/trees.geojson `kind:canopy`, the same canopies "
+                         "the renderer draws; a lamp counts as covered when it "
+                         "is inside a canopy disc that reaches its own head.",
+        "n_warm_under_canopy": (sum(canopy) if canopy else None),
+        "warm_canopy": canopy,
         # ── the second source ────────────────────────────────────────────────
         "dark_source": "City of Austin Transportation Department, West Campus "
                        "Lighting Survey public-input map (ArcGIS item "
@@ -1824,6 +1922,7 @@ def lamp_index():
         "blue_emergency_phones": out["n_blue"],
         "as_of": as_of,
         "reported_dark_spots": out["n_dark"],
+        "warm_under_canopy": out["n_warm_under_canopy"],
         "reported_dark_as_of": WC_LIGHTING_AS_OF,
         "reported_dark_filtering": dstats,
         "file_kb": round(os.path.getsize(LAMP_OUT) / 1024, 1),

@@ -1,0 +1,25 @@
+# occluder — tod 0.92
+trees: 4 layers
+buildings: 41 layers
+ground: 24 layers
+lamp pixels in the 25 m disc, by what is hidden:
+[
+ {
+  "site": "flag-A",
+  "shipped": 0,
+  "trees": 3285,
+  "buildings": 0,
+  "ground": 0,
+  "allThree": 2962
+ },
+ {
+  "site": "flag-B",
+  "shipped": 0,
+  "trees": 3282,
+  "buildings": 0,
+  "ground": 0,
+  "allThree": 2960
+ }
+]
+  flag-A: trees +3285, buildings +0, ground +0  | all three +2962
+  flag-B: trees +3282, buildings +0, ground +0  | all three +2960

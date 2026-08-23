@@ -1,0 +1,2020 @@
+{
+ "when": "2026-08-23T17:42:47.010Z",
+ "tod": 0.92,
+ "zoom": 19.8,
+ "pitch": 0,
+ "maskMinPx": 40,
+ "lampRefPx": 1685,
+ "decorLoudPx": 843,
+ "discPx": {
+  "cssR": 337.6402383022113,
+  "scale": 0.75,
+  "devR": 253.23017872665847,
+  "w": 960,
+  "h": 600
+ },
+ "inventory": {
+  "indexWarm": 193,
+  "indexBlue": 43,
+  "stops": 50,
+  "ladder": [
+   {
+    "anchor": "campus-core",
+    "zoom": 15,
+    "indexInView": 88,
+    "drawnInView": 34,
+    "matched": 34,
+    "pctDrawn": 39,
+    "decodedAnywhere": 94
+   },
+   {
+    "anchor": "campus-core",
+    "zoom": 16,
+    "indexInView": 58,
+    "drawnInView": 58,
+    "matched": 58,
+    "pctDrawn": 100,
+    "decodedAnywhere": 128
+   },
+   {
+    "anchor": "campus-core",
+    "zoom": 17,
+    "indexInView": 9,
+    "drawnInView": 9,
+    "matched": 9,
+    "pctDrawn": 100,
+    "decodedAnywhere": 42
+   },
+   {
+    "anchor": "campus-core",
+    "zoom": 18,
+    "indexInView": 0,
+    "drawnInView": 0,
+    "matched": 0,
+    "pctDrawn": null,
+    "decodedAnywhere": 14
+   },
+   {
+    "anchor": "campus-core",
+    "zoom": 19.4,
+    "indexInView": 0,
+    "drawnInView": 0,
+    "matched": 0,
+    "pctDrawn": null,
+    "decodedAnywhere": 10
+   },
+   {
+    "anchor": "west-campus",
+    "zoom": 15,
+    "indexInView": 21,
+    "drawnInView": 7,
+    "matched": 7,
+    "pctDrawn": 33,
+    "decodedAnywhere": 50
+   },
+   {
+    "anchor": "west-campus",
+    "zoom": 16,
+    "indexInView": 14,
+    "drawnInView": 14,
+    "matched": 14,
+    "pctDrawn": 100,
+    "decodedAnywhere": 54
+   },
+   {
+    "anchor": "west-campus",
+    "zoom": 17,
+    "indexInView": 0,
+    "drawnInView": 0,
+    "matched": 0,
+    "pctDrawn": null,
+    "decodedAnywhere": 30
+   },
+   {
+    "anchor": "west-campus",
+    "zoom": 18,
+    "indexInView": 0,
+    "drawnInView": 0,
+    "matched": 0,
+    "pctDrawn": null,
+    "decodedAnywhere": 6
+   },
+   {
+    "anchor": "west-campus",
+    "zoom": 19.4,
+    "indexInView": 0,
+    "drawnInView": 0,
+    "matched": 0,
+    "pctDrawn": null,
+    "decodedAnywhere": 6
+   },
+   {
+    "anchor": "the-drag",
+    "zoom": 15,
+    "indexInView": 55,
+    "drawnInView": 22,
+    "matched": 22,
+    "pctDrawn": 40,
+    "decodedAnywhere": 94
+   },
+   {
+    "anchor": "the-drag",
+    "zoom": 16,
+    "indexInView": 18,
+    "drawnInView": 18,
+    "matched": 18,
+    "pctDrawn": 100,
+    "decodedAnywhere": 52
+   },
+   {
+    "anchor": "the-drag",
+    "zoom": 17,
+    "indexInView": 8,
+    "drawnInView": 8,
+    "matched": 8,
+    "pctDrawn": 100,
+    "decodedAnywhere": 42
+   },
+   {
+    "anchor": "the-drag",
+    "zoom": 18,
+    "indexInView": 3,
+    "drawnInView": 3,
+    "matched": 3,
+    "pctDrawn": 100,
+    "decodedAnywhere": 6
+   },
+   {
+    "anchor": "the-drag",
+    "zoom": 19.4,
+    "indexInView": 1,
+    "drawnInView": 1,
+    "matched": 1,
+    "pctDrawn": 100,
+    "decodedAnywhere": 6
+   },
+   {
+    "anchor": "south-campus",
+    "zoom": 15,
+    "indexInView": 87,
+    "drawnInView": 37,
+    "matched": 37,
+    "pctDrawn": 43,
+    "decodedAnywhere": 56
+   },
+   {
+    "anchor": "south-campus",
+    "zoom": 16,
+    "indexInView": 39,
+    "drawnInView": 39,
+    "matched": 39,
+    "pctDrawn": 100,
+    "decodedAnywhere": 108
+   },
+   {
+    "anchor": "south-campus",
+    "zoom": 17,
+    "indexInView": 8,
+    "drawnInView": 8,
+    "matched": 8,
+    "pctDrawn": 100,
+    "decodedAnywhere": 36
+   },
+   {
+    "anchor": "south-campus",
+    "zoom": 18,
+    "indexInView": 2,
+    "drawnInView": 2,
+    "matched": 2,
+    "pctDrawn": 100,
+    "decodedAnywhere": 22
+   },
+   {
+    "anchor": "south-campus",
+    "zoom": 19.4,
+    "indexInView": 0,
+    "drawnInView": 0,
+    "matched": 0,
+    "pctDrawn": null,
+    "decodedAnywhere": 17
+   }
+  ],
+  "lampProbe": {
+   "n": 30,
+   "hit": 30,
+   "miss": []
+  }
+ },
+ "routes": [
+  {
+   "pair": "ANB->ETC",
+   "distM": 1738,
+   "lamps": 24,
+   "pct": 31,
+   "runs": 15,
+   "verts": 296
+  },
+  {
+   "pair": "KIN->LTH",
+   "distM": 1223,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 193
+  },
+  {
+   "pair": "PMA->JES",
+   "distM": 811,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 128
+  },
+  {
+   "pair": "GDC->JES",
+   "distM": 472,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 76
+  },
+  {
+   "pair": "UTC->DKR",
+   "distM": 637,
+   "lamps": 3,
+   "pct": 4,
+   "runs": 2,
+   "verts": 98
+  },
+  {
+   "pair": "MAI->SZB",
+   "distM": 653,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 113
+  },
+  {
+   "pair": "WEL->BUR",
+   "distM": 450,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 67
+  },
+  {
+   "pair": "CLA->PAI",
+   "distM": 1088,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 174
+  },
+  {
+   "pair": "GRE->JGB",
+   "distM": 458,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 77
+  },
+  {
+   "pair": "BAT->ETC",
+   "distM": 795,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 126
+  },
+  {
+   "pair": "UNB->PCL",
+   "distM": 1057,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 165
+  },
+  {
+   "pair": "NHB->ECJ",
+   "distM": 505,
+   "lamps": 0,
+   "pct": 0,
+   "runs": 1,
+   "verts": 79
+  }
+ ],
+ "matrix": [
+  {
+   "claim": "a lamp within 25 m (\"lit\")",
+   "sites": 19,
+   "warm lamp on screen": 17,
+   "blue phone on screen": 0,
+   "any decorative glow": 17,
+   "decoration as bright as a lamp": 2,
+   "nothing lit at all": 0
+  },
+  {
+   "claim": "none within 60 m (\"unmapped\")",
+   "sites": 24,
+   "warm lamp on screen": 0,
+   "blue phone on screen": 3,
+   "any decorative glow": 10,
+   "decoration as bright as a lamp": 5,
+   "nothing lit at all": 13
+  }
+ ],
+ "sites": [
+  {
+   "at": [
+    -97.7335585,
+    30.28550575
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 14.5,
+   "bearing": 9,
+   "runM": 147,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 2,
+    "props-lit-core": 2,
+    "props-lamp": 3,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 111,
+    "warm": 111
+   },
+   "mask": {
+    "green": 932,
+    "cyan": 238,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 48,
+    "inDisc": 201481,
+    "changed": 2560
+   },
+   "surveyedPx": 1170,
+   "phonePx": 0,
+   "decorPx": 48,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7335955,
+    30.285168999999996
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 6.2,
+   "bearing": 7,
+   "runM": 147,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 6,
+    "props-lit-core": 5,
+    "props-lamp": 5,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 626,
+    "warm": 626
+   },
+   "mask": {
+    "green": 5059,
+    "cyan": 939,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 127,
+    "inDisc": 201481,
+    "changed": 12180
+   },
+   "surveyedPx": 5998,
+   "phonePx": 0,
+   "decorPx": 127,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73346042857142,
+    30.286121785714286
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 20.9,
+   "bearing": 9,
+   "runM": 48,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 72,
+    "warm": 72
+   },
+   "mask": {
+    "green": 691,
+    "cyan": 219,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 14,
+    "inDisc": 201481,
+    "changed": 1810
+   },
+   "surveyedPx": 910,
+   "phonePx": 0,
+   "decorPx": 14,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7336675,
+    30.284625
+   ],
+   "pair": "UTC->DKR",
+   "nearestLampM": 19.5,
+   "bearing": 10,
+   "runM": 28,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 2,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 5150,
+    "warm": 121
+   },
+   "mask": {
+    "green": 1503,
+    "cyan": 273,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 67,
+    "inDisc": 201481,
+    "changed": 3806
+   },
+   "surveyedPx": 1776,
+   "phonePx": 0,
+   "decorPx": 67,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73471262499999,
+    30.288975625
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 20.1,
+   "bearing": -13,
+   "runM": 49,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 0,
+    "night-streetlight-pool": 3,
+    "night-streetlight-core": 2
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 237,
+    "warm": 237
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 3135,
+    "yellow": 204,
+    "inDisc": 201481,
+    "changed": 6863
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 3339,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": true,
+   "uncoveredLampPx": 1669,
+   "shot": "r2-flag-nolamp-0.png"
+  },
+  {
+   "at": [
+    -97.734178,
+    30.2880726
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 16.9,
+   "bearing": -41,
+   "runM": 50,
+   "claim": "lit",
+   "shot": "r2-site-05-lit.png",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 126,
+    "warm": 126
+   },
+   "mask": {
+    "green": 1286,
+    "cyan": 353,
+    "blue": 0,
+    "magenta": 391,
+    "yellow": 148,
+    "inDisc": 201481,
+    "changed": 5381
+   },
+   "surveyedPx": 1639,
+   "phonePx": 0,
+   "decorPx": 539,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73367024999999,
+    30.287286249999998
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 23.1,
+   "bearing": -6,
+   "runM": 45,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 0,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 156,
+    "warm": 156
+   },
+   "mask": {
+    "green": 1374,
+    "cyan": 311,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 40,
+    "inDisc": 201481,
+    "changed": 2835
+   },
+   "surveyedPx": 1685,
+   "phonePx": 0,
+   "decorPx": 40,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.733774,
+    30.282884000000003
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 11,
+   "bearing": -33,
+   "runM": 170,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 3,
+    "props-lit-core": 2,
+    "props-lamp": 2,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 496,
+    "warm": 496
+   },
+   "mask": {
+    "green": 2622,
+    "cyan": 348,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 79,
+    "inDisc": 201481,
+    "changed": 6349
+   },
+   "surveyedPx": 2970,
+   "phonePx": 0,
+   "decorPx": 79,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73475124999999,
+    30.289286500000003
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 15.4,
+   "bearing": 9,
+   "runM": 49,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 3,
+    "night-streetlight-pool": 4,
+    "night-streetlight-core": 3
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 929,
+    "warm": 929
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 12323,
+    "yellow": 583,
+    "inDisc": 201481,
+    "changed": 21000
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 12906,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": true,
+   "uncoveredLampPx": 1665,
+   "shot": "r2-flag-nolamp-1.png"
+  },
+  {
+   "at": [
+    -97.73352399999999,
+    30.282575666666666
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 6.7,
+   "bearing": -40,
+   "runM": 170,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 7,
+    "props-lit-core": 7,
+    "props-lamp": 5,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 592,
+    "warm": 592
+   },
+   "mask": {
+    "green": 6710,
+    "cyan": 878,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 426,
+    "inDisc": 201481,
+    "changed": 14602
+   },
+   "surveyedPx": 7588,
+   "phonePx": 0,
+   "decorPx": 426,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73344178571429,
+    30.28660757142857
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 23.1,
+   "bearing": 0,
+   "runM": 27,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 2,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 119,
+    "warm": 119
+   },
+   "mask": {
+    "green": 1279,
+    "cyan": 288,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 40,
+    "inDisc": 201481,
+    "changed": 2631
+   },
+   "surveyedPx": 1567,
+   "phonePx": 0,
+   "decorPx": 40,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73323549999999,
+    30.2819275
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 1.5,
+   "bearing": -16,
+   "runM": 170,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 141,
+    "warm": 141
+   },
+   "mask": {
+    "green": 1383,
+    "cyan": 339,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 40,
+    "inDisc": 201481,
+    "changed": 3231
+   },
+   "surveyedPx": 1722,
+   "phonePx": 0,
+   "decorPx": 40,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7336675,
+    30.284625
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 19.5,
+   "bearing": 10,
+   "runM": 147,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 2,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 5150,
+    "warm": 121
+   },
+   "mask": {
+    "green": 1503,
+    "cyan": 273,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 67,
+    "inDisc": 201481,
+    "changed": 3806
+   },
+   "surveyedPx": 1776,
+   "phonePx": 0,
+   "decorPx": 67,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73344499999999,
+    30.286431375
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 13.6,
+   "bearing": 2,
+   "runM": 48,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 135,
+    "warm": 135
+   },
+   "mask": {
+    "green": 1250,
+    "cyan": 294,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 36,
+    "inDisc": 201481,
+    "changed": 2712
+   },
+   "surveyedPx": 1544,
+   "phonePx": 0,
+   "decorPx": 36,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73354075,
+    30.287016499999996
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 23.3,
+   "bearing": 1,
+   "runM": 45,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 0,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 246,
+    "warm": 246
+   },
+   "mask": {
+    "green": 1359,
+    "cyan": 233,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 57,
+    "inDisc": 201481,
+    "changed": 2698
+   },
+   "surveyedPx": 1592,
+   "phonePx": 0,
+   "decorPx": 57,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73332975,
+    30.282231999999997
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 4.5,
+   "bearing": -22,
+   "runM": 170,
+   "claim": "lit",
+   "shot": "r2-site-15-lit.png",
+   "qrf": {
+    "props-lit": 4,
+    "props-lit-core": 3,
+    "props-lamp": 2,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 401,
+    "warm": 401
+   },
+   "mask": {
+    "green": 4552,
+    "cyan": 491,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 351,
+    "inDisc": 201481,
+    "changed": 9611
+   },
+   "surveyedPx": 5043,
+   "phonePx": 0,
+   "decorPx": 351,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73367325,
+    30.284927375000002
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 7.4,
+   "bearing": 10,
+   "runM": 147,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 6,
+    "props-lit-core": 6,
+    "props-lamp": 7,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 937,
+    "warm": 937
+   },
+   "mask": {
+    "green": 7648,
+    "cyan": 1448,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 166,
+    "inDisc": 201481,
+    "changed": 17881
+   },
+   "surveyedPx": 9096,
+   "phonePx": 0,
+   "decorPx": 166,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73394633333334,
+    30.287816333333332
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 19.4,
+   "bearing": -46,
+   "runM": 50,
+   "claim": "lit",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 125,
+    "warm": 125
+   },
+   "mask": {
+    "green": 1284,
+    "cyan": 349,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 153,
+    "inDisc": 201481,
+    "changed": 3155
+   },
+   "surveyedPx": 1633,
+   "phonePx": 0,
+   "decorPx": 153,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7332025,
+    30.281699
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 24.6,
+   "bearing": -4,
+   "runM": 170,
+   "claim": "lit",
+   "shot": "r2-site-18-lit.png",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 2,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 104,
+    "warm": 104
+   },
+   "mask": {
+    "green": 847,
+    "cyan": 211,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 61,
+    "inDisc": 201481,
+    "changed": 1816
+   },
+   "surveyedPx": 1058,
+   "phonePx": 0,
+   "decorPx": 61,
+   "surveyedSeen": true,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.738663,
+    30.287501
+   ],
+   "pair": "KIN->LTH",
+   "nearestLampM": 1000000000,
+   "bearing": 95,
+   "runM": 1223,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 3,
+    "night-streetlight-core": 2
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 82,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 2644
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 82,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7369358,
+    30.288189199999998
+   ],
+   "pair": "NHB->ECJ",
+   "nearestLampM": 1000000000,
+   "bearing": 6,
+   "runM": 505,
+   "claim": "unmapped",
+   "shot": "r2-site-20-unmapped.png",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 20,
+    "warm": 20
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 79,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 1988
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 79,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7406895,
+    30.287442
+   ],
+   "pair": "UNB->PCL",
+   "nearestLampM": 1000000000,
+   "bearing": 124,
+   "runM": 1057,
+   "claim": "unmapped",
+   "shot": "r2-site-21-unmapped.png",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 4,
+    "night-streetlight-core": 3
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 459,
+    "warm": 459
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 6186,
+    "yellow": 414,
+    "inDisc": 201481,
+    "changed": 11799
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 6600,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": true
+  },
+  {
+   "at": [
+    -97.73712724999999,
+    30.28637175
+   ],
+   "pair": "PMA->JES",
+   "nearestLampM": 1000000000,
+   "bearing": -174,
+   "runM": 810,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 310,
+    "warm": 310
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 75
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73259449999999,
+    30.281256454545453
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 96.7,
+   "bearing": -77,
+   "runM": 678,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7389865625,
+    30.2888765625
+   ],
+   "pair": "KIN->LTH",
+   "nearestLampM": 1000000000,
+   "bearing": -174,
+   "runM": 1223,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 229,
+    "warm": 229
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 2268,
+    "yellow": 206,
+    "inDisc": 201481,
+    "changed": 4156
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 2474,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": true,
+   "shot": "r2-flag-decorloud-2.png"
+  },
+  {
+   "at": [
+    -97.73221385714285,
+    30.279634428571427
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 272.9,
+   "bearing": 20,
+   "runM": 678,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73729749999998,
+    30.28474825
+   ],
+   "pair": "CLA->PAI",
+   "nearestLampM": 1000000000,
+   "bearing": 7,
+   "runM": 1089,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 220,
+    "warm": 220
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.736976,
+    30.28782275
+   ],
+   "pair": "NHB->ECJ",
+   "nearestLampM": 1000000000,
+   "bearing": 6,
+   "runM": 505,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 1,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 1728
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 1,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73740079999999,
+    30.2837849
+   ],
+   "pair": "GDC->JES",
+   "nearestLampM": 1000000000,
+   "bearing": -174,
+   "runM": 472,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 2,
+    "night-streetlight-core": 2
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 1452
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7372765,
+    30.2873885
+   ],
+   "pair": "NHB->ECJ",
+   "nearestLampM": 1000000000,
+   "bearing": 92,
+   "runM": 505,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 2,
+    "night-streetlight-core": 2
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 502,
+    "warm": 502
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 1290
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73883512500001,
+    30.287699375
+   ],
+   "pair": "KIN->LTH",
+   "nearestLampM": 1000000000,
+   "bearing": -172,
+   "runM": 1223,
+   "claim": "unmapped",
+   "shot": "r2-site-30-unmapped.png",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 3,
+    "night-streetlight-core": 3
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 545,
+    "warm": 439
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 53,
+    "blue": 1818,
+    "magenta": 3942,
+    "yellow": 202,
+    "inDisc": 201481,
+    "changed": 11401
+   },
+   "surveyedPx": 53,
+   "phonePx": 1818,
+   "decorPx": 4144,
+   "surveyedSeen": false,
+   "phoneSeen": true,
+   "decorAny": true,
+   "decorLoud": true
+  },
+  {
+   "at": [
+    -97.7374729375,
+    30.283471875
+   ],
+   "pair": "UNB->PCL",
+   "nearestLampM": 1000000000,
+   "bearing": -86,
+   "runM": 1057,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73755,
+    30.282242999999998
+   ],
+   "pair": "CLA->PAI",
+   "nearestLampM": 1000000000,
+   "bearing": 8,
+   "runM": 1089,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 67,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 840,
+    "magenta": 36,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 2001
+   },
+   "surveyedPx": 0,
+   "phonePx": 840,
+   "decorPx": 36,
+   "surveyedSeen": false,
+   "phoneSeen": true,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7365245,
+    30.281482499999996
+   ],
+   "pair": "CLA->PAI",
+   "nearestLampM": 1000000000,
+   "bearing": -174,
+   "runM": 1089,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 1,
+    "props-lit-core": 1,
+    "props-lamp": 1,
+    "night-streetlight-pool": 2,
+    "night-streetlight-core": 2
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 333,
+    "warm": 228
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 192,
+    "blue": 1624,
+    "magenta": 3672,
+    "yellow": 205,
+    "inDisc": 201481,
+    "changed": 11362
+   },
+   "surveyedPx": 192,
+   "phonePx": 1624,
+   "decorPx": 3877,
+   "surveyedSeen": false,
+   "phoneSeen": true,
+   "decorAny": true,
+   "decorLoud": true,
+   "shot": "r2-flag-decorloud-3.png"
+  },
+  {
+   "at": [
+    -97.7369434,
+    30.288121599999997
+   ],
+   "pair": "BAT->ETC",
+   "nearestLampM": 1000000000,
+   "bearing": 6,
+   "runM": 795,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 2,
+    "night-streetlight-core": 1
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 14,
+    "warm": 14
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 84,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 2081
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 84,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73529299999998,
+    30.2816095
+   ],
+   "pair": "CLA->PAI",
+   "nearestLampM": 1000000000,
+   "bearing": -126,
+   "runM": 1089,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 5,
+    "night-streetlight-core": 3
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 282,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 6878
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 282,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.7370045,
+    30.287542375
+   ],
+   "pair": "NHB->ECJ",
+   "nearestLampM": 1000000000,
+   "bearing": 6,
+   "runM": 505,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 1,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 187,
+    "warm": 187
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73106949999999,
+    30.278132
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 470.8,
+   "bearing": -159,
+   "runM": 678,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73077024999999,
+    30.278422999999997
+   ],
+   "pair": "ANB->ETC",
+   "nearestLampM": 456.5,
+   "bearing": -47,
+   "runM": 678,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73947933333334,
+    30.289762666666668
+   ],
+   "pair": "KIN->LTH",
+   "nearestLampM": 1000000000,
+   "bearing": 93,
+   "runM": 1223,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 1,
+    "night-streetlight-pool": 2,
+    "night-streetlight-core": 2
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 495,
+    "warm": 495
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 7472,
+    "yellow": 315,
+    "inDisc": 201481,
+    "changed": 15107
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 7787,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": true,
+   "shot": "r2-flag-decorloud-4.png"
+  },
+  {
+   "at": [
+    -97.73759899999999,
+    30.2868475
+   ],
+   "pair": "BAT->ETC",
+   "nearestLampM": 1000000000,
+   "bearing": 95,
+   "runM": 795,
+   "claim": "unmapped",
+   "shot": "r2-site-40-unmapped.png",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 0,
+    "night-streetlight-core": 0
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 0,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 0
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 0,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.73617233333333,
+    30.288481166666664
+   ],
+   "pair": "BAT->ETC",
+   "nearestLampM": 1000000000,
+   "bearing": 95,
+   "runM": 795,
+   "claim": "unmapped",
+   "shot": "r2-site-41-unmapped.png",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 4,
+    "night-streetlight-core": 3
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 1,
+    "yellow": 0,
+    "inDisc": 201481,
+    "changed": 2975
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 1,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": false,
+   "decorLoud": false
+  },
+  {
+   "at": [
+    -97.736629,
+    30.288605999999998
+   ],
+   "pair": "PMA->JES",
+   "nearestLampM": 1000000000,
+   "bearing": -173,
+   "runM": 810,
+   "claim": "unmapped",
+   "qrf": {
+    "props-lit": 0,
+    "props-lit-core": 0,
+    "props-lamp": 0,
+    "night-streetlight-pool": 3,
+    "night-streetlight-core": 3
+   },
+   "hot": {
+    "inDisc": 201481,
+    "hot": 0,
+    "warm": 0
+   },
+   "mask": {
+    "green": 0,
+    "cyan": 0,
+    "blue": 0,
+    "magenta": 382,
+    "yellow": 3,
+    "inDisc": 201481,
+    "changed": 4029
+   },
+   "surveyedPx": 0,
+   "phonePx": 0,
+   "decorPx": 385,
+   "surveyedSeen": false,
+   "phoneSeen": false,
+   "decorAny": true,
+   "decorLoud": false
+  }
+ ]
+}

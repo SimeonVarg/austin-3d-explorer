@@ -1,0 +1,1280 @@
+{
+ "when": "2026-08-23T17:37:31.150Z",
+ "tod": 0.92,
+ "pairs": 60,
+ "routed": 60,
+ "withCanopy": 12,
+ "offersA": 17,
+ "offersB": 18,
+ "differ": 1,
+ "differWithCanopy": 0,
+ "diffs": [
+  {
+   "pair": "PHD>SW7",
+   "canopy": 0,
+   "at1_25": "none",
+   "at1_0": "1201/10/lamps"
+  }
+ ],
+ "runs": {
+  "1": [
+   {
+    "pair": "PPE>TS1",
+    "r": {
+     "distM": 655,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "MNAC>SEA",
+    "r": {
+     "distM": 1376,
+     "lamps": 36,
+     "canopy": 13,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SAG>CS6",
+    "r": {
+     "distM": 940,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": 44,
+      "lamps": 3,
+      "why": "lamps",
+      "distM": 984
+     }
+    }
+   },
+   {
+    "pair": "BME>MAI",
+    "r": {
+     "distM": 789,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPL>TSC",
+    "r": {
+     "distM": 1267,
+     "lamps": 14,
+     "canopy": 1,
+     "alt": {
+      "extraM": 25,
+      "lamps": 20,
+      "why": "lamps",
+      "distM": 1293
+     }
+    }
+   },
+   {
+    "pair": "EAS>PHD",
+    "r": {
+     "distM": 445,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "WMB>GAR",
+    "r": {
+     "distM": 338,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "NHB>MRH",
+    "r": {
+     "distM": 885,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CPE>CBA",
+    "r": {
+     "distM": 691,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SJG>TCC",
+    "r": {
+     "distM": 375,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CDL>BRB",
+    "r": {
+     "distM": 1167,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": 86,
+      "lamps": 10,
+      "why": "lamps",
+      "distM": 1252
+     }
+    }
+   },
+   {
+    "pair": "HDB>GSB",
+    "r": {
+     "distM": 917,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "RLP>PHR",
+    "r": {
+     "distM": 890,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CS5>NHB",
+    "r": {
+     "distM": 651,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SW7>CRD",
+    "r": {
+     "distM": 602,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "AHG>BEL",
+    "r": {
+     "distM": 1271,
+     "lamps": 6,
+     "canopy": 0,
+     "alt": {
+      "extraM": 25,
+      "lamps": 12,
+      "why": "lamps",
+      "distM": 1296
+     }
+    }
+   },
+   {
+    "pair": "LFH>UTX",
+    "r": {
+     "distM": 1256,
+     "lamps": 4,
+     "canopy": 0,
+     "alt": {
+      "extraM": 34,
+      "lamps": 7,
+      "why": "lamps",
+      "distM": 1290
+     }
+    }
+   },
+   {
+    "pair": "JES>SJH",
+    "r": {
+     "distM": 345,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "DFA>BIO",
+    "r": {
+     "distM": 961,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": {
+      "extraM": 28,
+      "lamps": 4,
+      "why": "lamps",
+      "distM": 989
+     }
+    }
+   },
+   {
+    "pair": "CS5>TRG",
+    "r": {
+     "distM": 1624,
+     "lamps": 14,
+     "canopy": 1,
+     "alt": {
+      "extraM": 40,
+      "lamps": 23,
+      "why": "lamps",
+      "distM": 1664
+     }
+    }
+   },
+   {
+    "pair": "BME>CS3",
+    "r": {
+     "distM": 1323,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "ADH>BME",
+    "r": {
+     "distM": 469,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "GEB>CT7",
+    "r": {
+     "distM": 1458,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": {
+      "extraM": 10,
+      "lamps": 10,
+      "why": "lamps",
+      "distM": 1469
+     }
+    }
+   },
+   {
+    "pair": "WCH>HRH",
+    "r": {
+     "distM": 441,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "TCC>GWB",
+    "r": {
+     "distM": 1128,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": {
+      "extraM": 1,
+      "lamps": 1,
+      "why": "reports",
+      "distM": 1129
+     }
+    }
+   },
+   {
+    "pair": "PAR>LTD",
+    "r": {
+     "distM": 862,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": {
+      "extraM": 40,
+      "lamps": 6,
+      "why": "lamps",
+      "distM": 902
+     }
+    }
+   },
+   {
+    "pair": "LLE>BIO",
+    "r": {
+     "distM": 645,
+     "lamps": 4,
+     "canopy": 2,
+     "alt": {
+      "extraM": 5,
+      "lamps": 8,
+      "why": "lamps",
+      "distM": 650
+     }
+    }
+   },
+   {
+    "pair": "TNH>E26",
+    "r": {
+     "distM": 939,
+     "lamps": 8,
+     "canopy": 2,
+     "alt": null
+    }
+   },
+   {
+    "pair": "JGB>AHG",
+    "r": {
+     "distM": 736,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PHD>SW7",
+    "r": {
+     "distM": 1105,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": 96,
+      "lamps": 10,
+      "why": "lamps",
+      "distM": 1201
+     }
+    }
+   },
+   {
+    "pair": "SEA>JES",
+    "r": {
+     "distM": 831,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "MAI>CS6",
+    "r": {
+     "distM": 557,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "GSB>AHG",
+    "r": {
+     "distM": 995,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "BBR>IPF",
+    "r": {
+     "distM": 894,
+     "lamps": 6,
+     "canopy": 1,
+     "alt": {
+      "extraM": 76,
+      "lamps": 22,
+      "why": "lamps",
+      "distM": 970
+     }
+    }
+   },
+   {
+    "pair": "MHD>SJH",
+    "r": {
+     "distM": 145,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CPE>TNH",
+    "r": {
+     "distM": 766,
+     "lamps": 3,
+     "canopy": 2,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CS6>EER",
+    "r": {
+     "distM": 331,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "E26>SZB",
+    "r": {
+     "distM": 1280,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "EPS>JON",
+    "r": {
+     "distM": 896,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CRD>UTC",
+    "r": {
+     "distM": 1003,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "LDH>BRG",
+    "r": {
+     "distM": 626,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "GUG>HRC",
+    "r": {
+     "distM": 698,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPE>PHD",
+    "r": {
+     "distM": 806,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "LTH>BRB",
+    "r": {
+     "distM": 912,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "WCH>GOL",
+    "r": {
+     "distM": 374,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPA>BHD",
+    "r": {
+     "distM": 628,
+     "lamps": 4,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "WCP>LTD",
+    "r": {
+     "distM": 847,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": -6,
+      "lamps": 0,
+      "why": "reports",
+      "distM": 841
+     }
+    }
+   },
+   {
+    "pair": "TCC>UPB",
+    "r": {
+     "distM": 505,
+     "lamps": 3,
+     "canopy": 2,
+     "alt": null
+    }
+   },
+   {
+    "pair": "MFH>ARC",
+    "r": {
+     "distM": 1664,
+     "lamps": 34,
+     "canopy": 11,
+     "alt": null
+    }
+   },
+   {
+    "pair": "UNB>PMA",
+    "r": {
+     "distM": 768,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "UTA>HRC",
+    "r": {
+     "distM": 722,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SUT>GLT",
+    "r": {
+     "distM": 726,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": -11,
+      "lamps": 0,
+      "why": "reports",
+      "distM": 715
+     }
+    }
+   },
+   {
+    "pair": "GLT>MBE",
+    "r": {
+     "distM": 506,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "BLD>GUG",
+    "r": {
+     "distM": 1291,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": {
+      "extraM": 6,
+      "lamps": 2,
+      "why": "reports",
+      "distM": 1297
+     }
+    }
+   },
+   {
+    "pair": "BHD>BMC",
+    "r": {
+     "distM": 1233,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": 1,
+      "lamps": 0,
+      "why": "reports",
+      "distM": 1234
+     }
+    }
+   },
+   {
+    "pair": "MBB>ART",
+    "r": {
+     "distM": 705,
+     "lamps": 3,
+     "canopy": 1,
+     "alt": null
+    }
+   },
+   {
+    "pair": "NMS>TNH",
+    "r": {
+     "distM": 709,
+     "lamps": 2,
+     "canopy": 1,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CDL>BTL",
+    "r": {
+     "distM": 1333,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPL>LTH",
+    "r": {
+     "distM": 529,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "UNB>MFH",
+    "r": {
+     "distM": 1696,
+     "lamps": 28,
+     "canopy": 9,
+     "alt": {
+      "extraM": 28,
+      "lamps": 31,
+      "why": "lamps",
+      "distM": 1724
+     }
+    }
+   }
+  ],
+  "1.25": [
+   {
+    "pair": "PPE>TS1",
+    "r": {
+     "distM": 655,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "MNAC>SEA",
+    "r": {
+     "distM": 1376,
+     "lamps": 36,
+     "canopy": 13,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SAG>CS6",
+    "r": {
+     "distM": 940,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": 44,
+      "lamps": 3,
+      "why": "lamps",
+      "distM": 984
+     }
+    }
+   },
+   {
+    "pair": "BME>MAI",
+    "r": {
+     "distM": 789,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPL>TSC",
+    "r": {
+     "distM": 1267,
+     "lamps": 14,
+     "canopy": 1,
+     "alt": {
+      "extraM": 25,
+      "lamps": 20,
+      "why": "lamps",
+      "distM": 1293
+     }
+    }
+   },
+   {
+    "pair": "EAS>PHD",
+    "r": {
+     "distM": 445,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "WMB>GAR",
+    "r": {
+     "distM": 338,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "NHB>MRH",
+    "r": {
+     "distM": 885,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CPE>CBA",
+    "r": {
+     "distM": 691,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SJG>TCC",
+    "r": {
+     "distM": 375,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CDL>BRB",
+    "r": {
+     "distM": 1167,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": 86,
+      "lamps": 10,
+      "why": "lamps",
+      "distM": 1252
+     }
+    }
+   },
+   {
+    "pair": "HDB>GSB",
+    "r": {
+     "distM": 917,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "RLP>PHR",
+    "r": {
+     "distM": 890,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CS5>NHB",
+    "r": {
+     "distM": 651,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SW7>CRD",
+    "r": {
+     "distM": 602,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "AHG>BEL",
+    "r": {
+     "distM": 1271,
+     "lamps": 6,
+     "canopy": 0,
+     "alt": {
+      "extraM": 25,
+      "lamps": 12,
+      "why": "lamps",
+      "distM": 1296
+     }
+    }
+   },
+   {
+    "pair": "LFH>UTX",
+    "r": {
+     "distM": 1256,
+     "lamps": 4,
+     "canopy": 0,
+     "alt": {
+      "extraM": 34,
+      "lamps": 7,
+      "why": "lamps",
+      "distM": 1290
+     }
+    }
+   },
+   {
+    "pair": "JES>SJH",
+    "r": {
+     "distM": 345,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "DFA>BIO",
+    "r": {
+     "distM": 961,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": {
+      "extraM": 28,
+      "lamps": 4,
+      "why": "lamps",
+      "distM": 989
+     }
+    }
+   },
+   {
+    "pair": "CS5>TRG",
+    "r": {
+     "distM": 1624,
+     "lamps": 14,
+     "canopy": 1,
+     "alt": {
+      "extraM": 40,
+      "lamps": 23,
+      "why": "lamps",
+      "distM": 1664
+     }
+    }
+   },
+   {
+    "pair": "BME>CS3",
+    "r": {
+     "distM": 1323,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "ADH>BME",
+    "r": {
+     "distM": 469,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "GEB>CT7",
+    "r": {
+     "distM": 1458,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": {
+      "extraM": 10,
+      "lamps": 10,
+      "why": "lamps",
+      "distM": 1469
+     }
+    }
+   },
+   {
+    "pair": "WCH>HRH",
+    "r": {
+     "distM": 441,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "TCC>GWB",
+    "r": {
+     "distM": 1128,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": {
+      "extraM": 1,
+      "lamps": 1,
+      "why": "reports",
+      "distM": 1129
+     }
+    }
+   },
+   {
+    "pair": "PAR>LTD",
+    "r": {
+     "distM": 862,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": {
+      "extraM": 40,
+      "lamps": 6,
+      "why": "lamps",
+      "distM": 902
+     }
+    }
+   },
+   {
+    "pair": "LLE>BIO",
+    "r": {
+     "distM": 645,
+     "lamps": 4,
+     "canopy": 2,
+     "alt": {
+      "extraM": 5,
+      "lamps": 8,
+      "why": "lamps",
+      "distM": 650
+     }
+    }
+   },
+   {
+    "pair": "TNH>E26",
+    "r": {
+     "distM": 939,
+     "lamps": 8,
+     "canopy": 2,
+     "alt": null
+    }
+   },
+   {
+    "pair": "JGB>AHG",
+    "r": {
+     "distM": 736,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PHD>SW7",
+    "r": {
+     "distM": 1105,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SEA>JES",
+    "r": {
+     "distM": 831,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "MAI>CS6",
+    "r": {
+     "distM": 557,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "GSB>AHG",
+    "r": {
+     "distM": 995,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "BBR>IPF",
+    "r": {
+     "distM": 894,
+     "lamps": 6,
+     "canopy": 1,
+     "alt": {
+      "extraM": 76,
+      "lamps": 22,
+      "why": "lamps",
+      "distM": 970
+     }
+    }
+   },
+   {
+    "pair": "MHD>SJH",
+    "r": {
+     "distM": 145,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CPE>TNH",
+    "r": {
+     "distM": 766,
+     "lamps": 3,
+     "canopy": 2,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CS6>EER",
+    "r": {
+     "distM": 331,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "E26>SZB",
+    "r": {
+     "distM": 1280,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "EPS>JON",
+    "r": {
+     "distM": 896,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CRD>UTC",
+    "r": {
+     "distM": 1003,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "LDH>BRG",
+    "r": {
+     "distM": 626,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "GUG>HRC",
+    "r": {
+     "distM": 698,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPE>PHD",
+    "r": {
+     "distM": 806,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "LTH>BRB",
+    "r": {
+     "distM": 912,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "WCH>GOL",
+    "r": {
+     "distM": 374,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPA>BHD",
+    "r": {
+     "distM": 628,
+     "lamps": 4,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "WCP>LTD",
+    "r": {
+     "distM": 847,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": -6,
+      "lamps": 0,
+      "why": "reports",
+      "distM": 841
+     }
+    }
+   },
+   {
+    "pair": "TCC>UPB",
+    "r": {
+     "distM": 505,
+     "lamps": 3,
+     "canopy": 2,
+     "alt": null
+    }
+   },
+   {
+    "pair": "MFH>ARC",
+    "r": {
+     "distM": 1664,
+     "lamps": 34,
+     "canopy": 11,
+     "alt": null
+    }
+   },
+   {
+    "pair": "UNB>PMA",
+    "r": {
+     "distM": 768,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "UTA>HRC",
+    "r": {
+     "distM": 722,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "SUT>GLT",
+    "r": {
+     "distM": 726,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": -11,
+      "lamps": 0,
+      "why": "reports",
+      "distM": 715
+     }
+    }
+   },
+   {
+    "pair": "GLT>MBE",
+    "r": {
+     "distM": 506,
+     "lamps": 1,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "BLD>GUG",
+    "r": {
+     "distM": 1291,
+     "lamps": 2,
+     "canopy": 0,
+     "alt": {
+      "extraM": 6,
+      "lamps": 2,
+      "why": "reports",
+      "distM": 1297
+     }
+    }
+   },
+   {
+    "pair": "BHD>BMC",
+    "r": {
+     "distM": 1233,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": {
+      "extraM": 1,
+      "lamps": 0,
+      "why": "reports",
+      "distM": 1234
+     }
+    }
+   },
+   {
+    "pair": "MBB>ART",
+    "r": {
+     "distM": 705,
+     "lamps": 3,
+     "canopy": 1,
+     "alt": null
+    }
+   },
+   {
+    "pair": "NMS>TNH",
+    "r": {
+     "distM": 709,
+     "lamps": 2,
+     "canopy": 1,
+     "alt": null
+    }
+   },
+   {
+    "pair": "CDL>BTL",
+    "r": {
+     "distM": 1333,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "PPL>LTH",
+    "r": {
+     "distM": 529,
+     "lamps": 0,
+     "canopy": 0,
+     "alt": null
+    }
+   },
+   {
+    "pair": "UNB>MFH",
+    "r": {
+     "distM": 1696,
+     "lamps": 28,
+     "canopy": 9,
+     "alt": {
+      "extraM": 28,
+      "lamps": 31,
+      "why": "lamps",
+      "distM": 1724
+     }
+    }
+   }
+  ]
+ }
+}

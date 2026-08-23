@@ -243,6 +243,38 @@
                            // (PROPS.litGroundNear); 25 m is the walkable throw,
                            // deliberately more generous than the drawn disc so
                            // the claim is not an artifact of a render choice.
+    // ── a lamp standing under a tree ────────────────────────────────────────
+    // Found by looking, not by reasoning: a 43-site pixel audit
+    // (shots/walk/lit/litaudit.mjs) turned up two places where the card counted
+    // a mapped lamp and the night frame showed nothing at all. Hiding the tree
+    // and building layers brought ~2,950 lamp pixels back at both, and
+    // data/trees.geojson has a 10.3 m canopy centred within a metre of each
+    // lamp, reaching 12 m over a 4.9 m head. City-wide that is 56 of 193 warm
+    // lamps. It is REPORTED, never deducted — a lamp under an oak is still a
+    // lamp — and it nudges the offered alternative, which is the only place
+    // this feature is allowed to act rather than say.
+    canopyOn: true,
+    decorNoteOn: true,    // the one line that tells a user the road glow is
+                          // scenery. Taste call, and one word to drop.
+    // WHAT AN EDGE COSTS THE LIT-PREFERRING SEARCH WHEN ITS ONLY LAMPS ARE
+    // UNDER TREES — and it ships at 1, which means OFF, on measurement rather
+    // than on taste. It was written at 1.25, on the reasoning that a covered
+    // lamp still throws light but less of it reaches the pavement. Then it was
+    // A/B'd over 60 seeded building pairs (shots/walk/lit/canopy-ab.mjs), and:
+    //
+    //   routes carrying at least one tree-covered lamp        12 of 60
+    //   ...of those, routes whose OFFER changed at 1.25        0
+    //   routes whose offer changed at all                      1
+    //   ...and that one had NO covered lamp on it: at 1.25 it
+    //      lost an offer of 1,201 m with 10 lamps that 1.0 made
+    //
+    // So it does nothing where it was aimed and takes away a good offer where
+    // it was not. A term in a cost function that provably moves nothing should
+    // not ship steering anything, however sound the reasoning behind it — the
+    // canopy count is verified and worth SAYING, and is not verified to be
+    // worth ROUTING BY. Raise it to 1.25 and the search prefers open lamps
+    // again; the count in the card is unaffected either way.
+    litCanopyMult: 1,
     litPhoneNearM: 40,     // a blue-light phone is a thing you RUN TO, not a
                            // thing that lights your path. Counted separately,
                            // at a radius that means "on this walk", not "over
@@ -495,6 +527,24 @@
       'lamp can be out. This is not a safety rating.',
     litPhones: (n) => n + (n === 1 ? ' emergency phone' : ' emergency phones') + ' near this route',
     litPhonesNone: 'No emergency phone mapped near this route',
+    // THE CANOPY LINE. It survives the §5 test — "under a tree" is a statement
+    // about the same map and the same scene as the lamp count, checkable by
+    // flying there and looking up, and it is the direction that cannot hurt
+    // anyone: it can only make a counted lamp sound like LESS light, never
+    // more. Banned alongside the rest: "these lamps are blocked", "the trees
+    // make this dark", any present-tense claim about how much light reaches
+    // the pavement, which nobody here has measured.
+    litCanopy: (n, of) => (n === of ? (of === 1 ? 'It is' : 'All ' + of + ' are')
+      : n + ' of them ' + (n === 1 ? 'is' : 'are')) + ' under tree cover',
+    // The scene paints soft pools along roads at night that have no pole under
+    // them and no survey behind them. A 43-site audit found decoration as
+    // bright as a real lamp inside the 25 m disc at 5 of 24 places this card
+    // calls unmapped — so a user who flies down to check is, one time in five,
+    // looking at light the count does not include and being right to wonder.
+    // One line, at the bottom with the other provenance, is the cheapest
+    // honest answer available to a lane that does not own js/night.js.
+    litDecor: 'The soft glow along roads after dark is scenery, not mapped ' +
+      'light. Every counted lamp has a ring drawn at its foot.',
     // The offer. The price is printed BEFORE the button, never after it.
     litAltOffer: (extra, pct, was, now) => 'A way with more mapped light: ' + extra +
       ' further (' + pct + '%), ' + now + ' streetlights instead of ' + was,
@@ -1688,6 +1738,13 @@
         darkNotes: j.dark_notes || [],
         darkAsOf: j.dark_as_of || null,
         gDark: lampGrid(dark, WAYFIND.darkNearM),
+        // 1 where `warm[i]` is standing inside a tree canopy the scene draws
+        // over it. The bake reads the same trees.geojson the renderer does, so
+        // this flag and the picture cannot disagree — which is the only reason
+        // it is allowed to appear in a sentence. It never removes a lamp from
+        // the count; a lamp under an oak is still a lamp.
+        warmCanopy: Array.isArray(j.warm_canopy) ? j.warm_canopy : null,
+        nWarmCanopy: j.n_warm_under_canopy != null ? j.n_warm_under_canopy : null,
         // The study area, as a bounding box off the pins themselves. Used for
         // one thing only: knowing when to say "this survey did not cover here"
         // instead of letting an empty count read as an all-clear. A box and not
@@ -1762,9 +1819,17 @@
       }
     }
     for (const r of runs) if (!r.lit && r.m > longestGap) longestGap = r.m;
+    const lampList = Array.from(lamps);
+    // How many of this route's lamps are standing under a tree. Counted, never
+    // deducted — see `warmCanopy` in loadLamps for why a covered lamp is still
+    // a lamp. `canopyOn` is the switch, so the whole idea is one line to drop.
+    const canopy = (WAYFIND.canopyOn && LAMPS.warmCanopy)
+      ? lampList.filter(i => LAMPS.warmCanopy[i]).length : 0;
     const out = {
       litM, darkM, totalM: litM + darkM, longestGapM: longestGap,
-      lamps: Array.from(lamps), phones: Array.from(phones), runs,
+      lamps: lampList, phones: Array.from(phones), runs,
+      lampsUnderCanopy: canopy,
+      lampsInClear: lampList.length - canopy,
       pct: (litM + darkM) > 0 ? litM / (litM + darkM) : 0,
       reported: Array.from(reported),
       inDarkArea: WAYFIND.darkOn && touchesDarkArea(line),
@@ -1796,11 +1861,22 @@
     if (g.__litW) return g.__litW;
     const W = Int32Array.from(g.W);
     const useDark = WAYFIND.darkOn && LAMPS.dark && LAMPS.dark.n > 0;
+    const useCanopy = WAYFIND.canopyOn && LAMPS.warmCanopy && WAYFIND.litCanopyMult !== 1;
+    const hit = useCanopy ? new Set() : null;
     for (let i = 0; i < g.E; i++) {
       const mx = (g.X[g.A[i]] + g.X[g.B[i]]) / 2, my = (g.Y[g.A[i]] + g.Y[g.B[i]]) / 2;
       let mult = 1;
-      if (!lampsNear(LAMPS.warm, LAMPS.gWarm, mx, my, WAYFIND.litRadiusM, null)) {
+      if (hit) hit.clear();
+      if (!lampsNear(LAMPS.warm, LAMPS.gWarm, mx, my, WAYFIND.litRadiusM, hit)) {
         mult *= WAYFIND.litAltMult;
+      } else if (useCanopy) {
+        // Covered by lamps, but is any of them in the clear? A stretch whose
+        // only light is under a tree is charged BETWEEN "lit" and "unmapped",
+        // so given two lit ways the offer leans to the open one — and given a
+        // lit way and no way, it still takes the lit one.
+        let clear = false;
+        for (const k of hit) if (!LAMPS.warmCanopy[k]) { clear = true; break; }
+        if (!clear) mult *= WAYFIND.litCanopyMult;
       }
       if (useDark && lampsNear(LAMPS.dark, LAMPS.gDark, mx, my, WAYFIND.darkNearM, null)) {
         mult *= WAYFIND.darkAltMult;
@@ -2137,6 +2213,13 @@
     lamps.style.color = n ? WAYFIND.litLampCol : WAYFIND.litTextDim;
     card.appendChild(lamps);
 
+    // Under the count, never instead of it: the covered lamps are already IN
+    // the number above, and this says how many of them a tree is standing over.
+    if (n && WAYFIND.canopyOn && scan.lampsUnderCanopy > 0) {
+      const cov = h('div', 'wf-c wf-dim', SAY.litCanopy(scan.lampsUnderCanopy, n));
+      card.appendChild(cov);
+    }
+
     if (scan.longestGapM >= WAYFIND.litGapMinM) {
       card.appendChild(h('div', 'wf-c', SAY.litGap(fmtDist(scan.longestGapM))));
     }
@@ -2219,6 +2302,12 @@
     if (WAYFIND.darkOn && LAMPS.dark && LAMPS.dark.n && scan.inDarkArea) {
       card.appendChild(h('div', 'wf-c wf-dim',
         SAY.darkSource(LAMPS.nDark, LAMPS.darkAsOf ? fmtAsOf(LAMPS.darkAsOf) : '')));
+    }
+    // Last, and only after dark, because before dark there is no glow to
+    // explain. It answers the one thing a user who goes and checks will see
+    // and reasonably read as this card being wrong.
+    if (WAYFIND.decorNoteOn && nightness() >= WAYFIND.litNightP) {
+      card.appendChild(h('div', 'wf-c wf-dim', SAY.litDecor));
     }
   }
 
@@ -2753,6 +2842,13 @@
       indexWarm: LAMPS.nWarm, indexBlue: LAMPS.nBlue, asOf: LAMPS.asOf,
       radiusM: WAYFIND.litRadiusM,
       lamps: scan.lamps.length, phones: scan.phones.length,
+      // The canopy split, and the coordinates of the covered ones, so a test
+      // can fly to one and look up. Same discipline as `lampsAt`: a claim that
+      // cannot be checked by looking does not belong in the card.
+      indexCanopy: LAMPS.nWarmCanopy, lampsUnderCanopy: scan.lampsUnderCanopy,
+      lampsInClear: scan.lampsInClear,
+      canopyAt: (LAMPS.warmCanopy ? scan.lamps.filter(i => LAMPS.warmCanopy[i]) : [])
+        .map(i => [LAMPS.warm.X[i], LAMPS.warm.Y[i]]),
       litM: Math.round(scan.litM), darkM: Math.round(scan.darkM),
       totalM: Math.round(scan.totalM), pct: Math.round(100 * scan.pct),
       longestGapM: Math.round(scan.longestGapM),
@@ -2761,6 +2857,14 @@
       phonesAt: scan.phones.map(i => [LAMPS.blue.X[i], LAMPS.blue.Y[i]]),
       darkAt: scan.runs.filter(x => !x.lit && x.m >= WAYFIND.litGapMinM)
         .map(x => ({ m: Math.round(x.m), mid: x.line[Math.floor(x.line.length / 2)] })),
+      // EVERY classified stretch, lit ones included, with the geometry the
+      // classification was made on. `darkAt` above only ever exposed the long
+      // unmapped runs, so an audit could sample where this feature is UNSURE
+      // and never where it is CONFIDENT — and a confusion matrix needs both
+      // columns or it is just a list of the places we already doubted.
+      // `m` is metres, `line` is the same resampled polyline `litScan` walked,
+      // so a camera placed on it is standing exactly where the claim was made.
+      runsAt: scan.runs.map(x => ({ lit: !!x.lit, m: Math.round(x.m), line: x.line })),
       // The city's reported-dark pins, with the coordinates so a test can fly
       // to one and look at what is standing there — which is the only way this
       // claim has ever been checked and the only way it should be.
@@ -2781,6 +2885,24 @@
     };
   };
   window.wayfindLitSwap = function (preferLit) { litSwap(!!preferLit); };
+  /**
+   * Drop the memoised lit-preference weight array, and every route's memoised
+   * scan, so the next search re-prices from the current constants.
+   *
+   * THIS EXISTS BECAUSE ITS ABSENCE INVALIDATED AN A/B. `litEdgeWeights`
+   * memoises on the graph object, which is right for the app and fatal for a
+   * test: flip `litCanopyMult` or `litAltMult` between two runs in one page and
+   * the second run silently answers with the first run's array. The first round
+   * of this lane worked around it by loading the page twice and wrote that down;
+   * the second round read the note, wrote a one-page A/B anyway, and got a
+   * clean-looking "no difference" that measured nothing. A hook is cheaper than
+   * the note.
+   */
+  window.wayfindLitReprice = function () {
+    if (G) delete G.__litW;
+    if (state.route) delete state.route.__lit;
+    return true;
+  };
   window.wayfindClear = clear;
   window.wayfindRoute = async function (from, to, opts) {
     opts = opts || {};

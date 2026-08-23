@@ -1,5 +1,60 @@
 # Walk feature — progress log
 
+## 2026-08-23 — the lighting claim, checked at 43 places instead of six: it holds, and it turned up a live oak sitting on top of a street lamp
+
+The walk feature can already tell you which parts of a route have a streetlight
+mapped on them. Up to now that had been checked by flying to six places we
+picked ourselves, which is a nice way to check something you already believe. So
+this round wrote a script that picks the places instead: it runs twelve real
+routes, drops 43 sample points along them — some where the app says there is a
+light, some where it says there is none — flies to every one at night, and
+compares what the card says with what is actually standing there in the frame.
+
+It holds up. Nowhere the app says "no streetlight" does a streetlight turn out to
+be standing there, and every place it says there is one, there is one. The
+instrument was wrong four separate times before it was right, though, and each
+wrong version produced a confident number: it was looking at a whole frame
+instead of the 25 m the claim is about, it was counting green tree leaves as
+lamplight, and it was counting the blue emergency call boxes as streetlights
+twice over. All four were caught by looking at the picture, not by reading code.
+
+The interesting part is what it found at two of the 43. The card counted a
+mapped streetlight and the night frame showed nothing at all — because there is
+a big cedar planted directly on top of it. Hiding just the trees brings the lamp
+back, brightly; hiding the buildings or the ground does nothing. The tree data
+agrees: those lamps are five metres tall standing under a canopy twelve metres
+tall centred a metre away. City-wide it is 56 of the 193 streetlights we know
+about — nearly a third of them are under a tree. So the card now says it: "24
+mapped streetlights along this route · 4 of them are under tree cover."
+
+Then the tempting bit, which did not survive. Since a lamp under an oak lights
+the pavement less, the obvious move was to make the "show me a better-lit way"
+button prefer routes with lamps in the open. That was built, and then A/B'd over
+60 random building-to-building walks — and it changed nothing on any of the 12
+routes that actually have a covered lamp, while quietly deleting one good
+suggestion on a route that had none. So it ships switched off. The tree count is
+worth telling you; it is not worth silently steering you by, and now there is a
+measurement saying so rather than an opinion. One line in the file turns it back
+on if you want it.
+
+Two smaller things. The lamps thin out in the map tiles below zoom 16, so if you
+read "24 streetlights" and then pull back to see the whole walk you are looking
+at about a third of them — the little rings we draw at each counted lamp come
+from our own list, not the tiles, so those stay complete. And after dark the
+card now ends with one line admitting that the soft glow along the roads is
+scenery rather than surveyed light, because the audit measured that one time in
+five a stretch we call unmapped has decorative glow on it as bright as a real
+lamp, and a person who flies down to check is right to wonder. The real fix for
+that lives in the night lighting file, which this lane does not own.
+
+Also went looking, properly this time, for a real inventory of Austin's
+streetlights to replace our guesswork — the city's whole GIS catalogue, the
+public ArcGIS index, and the open-data portal. There isn't one. Worth knowing so
+nobody spends another round hunting for it.
+
+Branch `acer/w-lit`. Scripts and every frame are in `shots/walk/lit/`; the long
+version with all the numbers is `docs/walk-lit.md` §17-24.
+
 ## 2026-08-23 — recon only, no code touched: UT publishes its own official front-door data, and our heuristic is currently wrong most of the time
 
 Went looking for where students actually enter buildings before anyone writes

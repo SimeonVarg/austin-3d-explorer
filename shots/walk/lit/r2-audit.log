@@ -1,0 +1,59 @@
+# litaudit r2 — 2026-08-23T17:38:21.868Z
+base=http://127.0.0.1:8714 sites=24/class tod=0.92 zoom=19.8 pitch=0
+tod asserted: 0.92
+radius asserted: 25 m
+
+## A. inventory — props tiles vs walk_lamps.json
+index: warm=193 blue=43 (file says 193/43), as_of 2026-06-12
+index extent: -97.7560,30.2720 .. -97.7221,30.2999
+ladder: [{"anchor":"campus-core","zoom":15,"indexInView":88,"drawnInView":34,"matched":34,"pctDrawn":39,"decodedAnywhere":94},{"anchor":"campus-core","zoom":16,"indexInView":58,"drawnInView":58,"matched":58,"pctDrawn":100,"decodedAnywhere":128},{"anchor":"campus-core","zoom":17,"indexInView":9,"drawnInView":9,"matched":9,"pctDrawn":100,"decodedAnywhere":42},{"anchor":"campus-core","zoom":18,"indexInView":0,"drawnInView":0,"matched":0,"pctDrawn":null,"decodedAnywhere":14},{"anchor":"campus-core","zoom":19.4,"indexInView":0,"drawnInView":0,"matched":0,"pctDrawn":null,"decodedAnywhere":10},{"anchor":"west-campus","zoom":15,"indexInView":21,"drawnInView":7,"matched":7,"pctDrawn":33,"decodedAnywhere":50},{"anchor":"west-campus","zoom":16,"indexInView":14,"drawnInView":14,"matched":14,"pctDrawn":100,"decodedAnywhere":54},{"anchor":"west-campus","zoom":17,"indexInView":0,"drawnInView":0,"matched":0,"pctDrawn":null,"decodedAnywhere":30},{"anchor":"west-campus","zoom":18,"indexInView":0,"drawnInView":0,"matched":0,"pctDrawn":null,"decodedAnywhere":6},{"anchor":"west-campus","zoom":19.4,"indexInView":0,"drawnInView":0,"matched":0,"pctDrawn":null,"decodedAnywhere":6},{"anchor":"the-drag","zoom":15,"indexInView":55,"drawnInView":22,"matched":22,"pctDrawn":40,"decodedAnywhere":94},{"anchor":"the-drag","zoom":16,"indexInView":18,"drawnInView":18,"matched":18,"pctDrawn":100,"decodedAnywhere":52},{"anchor":"the-drag","zoom":17,"indexInView":8,"drawnInView":8,"matched":8,"pctDrawn":100,"decodedAnywhere":42},{"anchor":"the-drag","zoom":18,"indexInView":3,"drawnInView":3,"matched":3,"pctDrawn":100,"decodedAnywhere":6},{"anchor":"the-drag","zoom":19.4,"indexInView":1,"drawnInView":1,"matched":1,"pctDrawn":100,"decodedAnywhere":6},{"anchor":"south-campus","zoom":15,"indexInView":87,"drawnInView":37,"matched":37,"pctDrawn":43,"decodedAnywhere":56},{"anchor":"south-campus","zoom":16,"indexInView":39,"drawnInView":39,"matched":39,"pctDrawn":100,"decodedAnywhere":108},{"anchor":"south-campus","zoom":17,"indexInView":8,"drawnInView":8,"matched":8,"pctDrawn":100,"decodedAnywhere":36},{"anchor":"south-campus","zoom":18,"indexInView":2,"drawnInView":2,"matched":2,"pctDrawn":100,"decodedAnywhere":22},{"anchor":"south-campus","zoom":19.4,"indexInView":0,"drawnInView":0,"matched":0,"pctDrawn":null,"decodedAnywhere":17}]
+share of counted lights the tiles actually carry — at walking zoom (>=18): 100% | at planning zoom (<=16): 69%
+walking-zoom inventory: 30/30 of a random sample of counted lights are decoded from the tiles within 3 m at z19.8
+
+## B. sites — the claim at a place, against that place on camera
+routes: [{"pair":"ANB->ETC","distM":1738,"lamps":24,"pct":31,"runs":15,"verts":296},{"pair":"KIN->LTH","distM":1223,"lamps":0,"pct":0,"runs":1,"verts":193},{"pair":"PMA->JES","distM":811,"lamps":0,"pct":0,"runs":1,"verts":128},{"pair":"GDC->JES","distM":472,"lamps":0,"pct":0,"runs":1,"verts":76},{"pair":"UTC->DKR","distM":637,"lamps":3,"pct":4,"runs":2,"verts":98},{"pair":"MAI->SZB","distM":653,"lamps":0,"pct":0,"runs":1,"verts":113},{"pair":"WEL->BUR","distM":450,"lamps":0,"pct":0,"runs":1,"verts":67},{"pair":"CLA->PAI","distM":1088,"lamps":0,"pct":0,"runs":1,"verts":174},{"pair":"GRE->JGB","distM":458,"lamps":0,"pct":0,"runs":1,"verts":77},{"pair":"BAT->ETC","distM":795,"lamps":0,"pct":0,"runs":1,"verts":126},{"pair":"UNB->PCL","distM":1057,"lamps":0,"pct":0,"runs":1,"verts":165},{"pair":"NHB->ECJ","distM":505,"lamps":0,"pct":0,"runs":1,"verts":79}]
+candidate sites: claimed-lit 19, claimed-unmapped 243
+sampled 43 sites (19 lit / 24 unmapped)
+the claim's 25 m disc is 253 device px of a 960x600 frame
+light layers present in the style: props-lit, props-lit-core, night-streetlight-pool, night-streetlight-core
+shipped circle-color: {"props-lit":["match",["get","c"],"blue","#6fa8ff","#ffc27a"],"props-lit-core":["match",["get","c"],"blue","#bcd8ff","#ffe6bd"],"night-streetlight-pool":["get","color"],"night-streetlight-core":["get","head"]}
+
+a surveyed lamp's median footprint inside the disc: 1685 px (n=17)
+so "decoration a walker would read as a street light" = >= 843 px
+
+### the matrix — what is actually standing inside the claim's 25 m disc
+[
+ {
+  "claim": "a lamp within 25 m (\"lit\")",
+  "sites": 19,
+  "warm lamp on screen": 17,
+  "blue phone on screen": 0,
+  "any decorative glow": 17,
+  "decoration as bright as a lamp": 2,
+  "nothing lit at all": 0
+ },
+ {
+  "claim": "none within 60 m (\"unmapped\")",
+  "sites": 24,
+  "warm lamp on screen": 0,
+  "blue phone on screen": 3,
+  "any decorative glow": 10,
+  "decoration as bright as a lamp": 5,
+  "nothing lit at all": 13
+ }
+]
+
+CLAIM FAILURES — the thing being judged:
+  said a lamp covers this walk, no surveyed lamp visible: 2/19
+  said none is mapped, a surveyed lamp IS visible:        0/24
+  [{"at":[-97.734713,30.288976],"pair":"ANB->ETC","near":20,"sv":0,"dec":3339,"qrf":{"props-lit":1,"props-lit-core":1,"props-lamp":0,"night-streetlight-pool":3,"night-streetlight-core":2}},{"at":[-97.734751,30.289287],"pair":"ANB->ETC","near":15,"sv":0,"dec":12906,"qrf":{"props-lit":1,"props-lit-core":1,"props-lamp":3,"night-streetlight-pool":4,"night-streetlight-core":3}}]
+
+THE CONTRADICTION A USER CAN SEE — not a claim failure, a scene one:
+  "unmapped" sites with ANY decorative glow in the disc:            10/24
+  ...with decoration as bright as a real lamp (>= 843 px):   5/24
+  decorative footprint on unmapped sites, px: p25 0 · median 1 · p75 385 · max 7787
+
+occlusion probe: 2 site(s) where the renderer reports a lamp and no lamp pixel survived
+  [-97.734713,30.288976] — with trees and buildings hidden, lamp pixels in the disc: 1669  -> the lamp IS there, the scene was covering it
+  [-97.734751,30.289287] — with trees and buildings hidden, lamp pixels in the disc: 1665  -> the lamp IS there, the scene was covering it
+taking 5 extra frames of the sites that failed or glowed
