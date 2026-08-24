@@ -2177,3 +2177,43 @@ campus code, not Pickle), at coordinates that match this app's own
 `UT_CELEBRATED` door rows for SSW almost exactly. So SSW being unroutable is
 a bug in this app's own routing graph, not a missing UT record — a smaller
 and different fix than the brief assumed.
+
+## 2026-08-24 — recon only, no code touched: what Apple Calendar's own subscribe flow actually promises (ahead of the class-schedule-import feature)
+
+Read five of Apple's own support-guide pages end to end for what "subscribe
+to a webcal:// link" and "import an .ics file" really do, ahead of anyone
+building the three-source schedule import Simeon asked for (Google Calendar,
+Apple Calendar, UT's registration export). No real screenshot was possible —
+no Mac or iPhone in this session, and the Claude Browser pane errored on
+every screenshot attempt with "the Browser pane is not displayed", then
+partway through started showing pages this session never navigated to
+(UT's registrar and login pages), which turned out to mean the pane is
+shared with another concurrent task — so it was dropped and everything below
+comes from direct `WebFetch` reads of `support.apple.com`, quoted close to
+verbatim with the URL for each claim. Write-up: `docs/import-bar-apple.md`;
+`shots/import/bar-apple/NOTE.md` explains why there are no images in that
+folder rather than leaving it silently empty.
+
+The useful finding for the seam Simeon named ("MAI 220, TTh 2:00pm" → a
+building CODE): both of Apple's two import paths — a live `webcal://`
+subscription and a downloaded `.ics` file — end up as the same plain ICS
+`VEVENT` blocks, no structured building/room field, just a `LOCATION` string
+whatever the source chose to put there. So the actual code that turns a
+location string into a CODE doesn't care which of the three sources produced
+the file; it only has to be fed by three different front-ends now (a
+Google Calendar export, an Apple Calendar export, UT's own export) and,
+later, by a fourth and fifth (OCR, a Registration-Plus API) without being
+rewritten — which is exactly the shape Simeon asked for.
+
+Two things worth carrying into the build: subscriptions are read-only by
+Apple's own explicit statement ("You can't edit calendars you are subscribed
+to"), so a subscribed schedule can't be hand-corrected on the phone the way
+an imported one-time snapshot could; and refresh on a subscription is a
+client-side poll on an interval Apple's own pages describe as a menu but
+never itemize the choices for, not a push — so neither "subscribe" path
+(this recon's Apple reading, or Google's, going by third-party sources since
+Google wasn't fetched this pass) gives same-day visibility into a UT
+schedule change. If the feature ever promises "always up to date," a webcal
+subscription alone doesn't deliver that promise on its own schedule.
+
+Nothing in `js/wayfind.js` touched, `WAYFIND.on` untouched.
