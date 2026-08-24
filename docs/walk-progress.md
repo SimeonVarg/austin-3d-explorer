@@ -38,6 +38,82 @@ builds next: import UT's layer as a second source of truth alongside OSM
 single door that's the only thing the router will ever consider. Nothing in
 `js/wayfind.js` or the bake changed this round; `WAYFIND.on` untouched.
 
+## 2026-08-23 — the routes were already on the sidewalks; what was crossing the lawns was the last few metres to the door (`acer/w-sidewalks`)
+
+Went in expecting to find the router ignoring the 1,324 sidewalk shapes the
+scene draws, and that turned out not to be true — measured against every
+polygon in the ground file, 99.9% of the walking network already runs over
+pavement the city actually paints. The metres that were crossing grass were
+the little straight lines from a building's door out to the nearest path. The
+router had been treating those as if they were pavement, so whenever cutting
+25 metres diagonally across a lawn saved 25 metres of real walking, it did it.
+Burdine Hall was the clearest one: its front door has a path 2 metres away and
+another 28 metres away on the far side, and the router kept picking the far
+one, drawing a dashed line straight over the roof of the building.
+
+So a door-to-path link now costs four times what a metre of real sidewalk
+costs. The router will still use one when there is no alternative — it has to,
+that is how you get out of a building — but it will happily walk up to four
+extra metres of real pavement rather than invent one. Across twenty
+class-to-class walks that cut the invented straight line from 485 metres down
+to 164, and cut the metres of route sitting on grass or on bare ground from
+308 to 124. Routes got 2.7% longer, which is the honest price and is the right
+trade: they are longer because they are no longer taking shortcuts that do not
+exist.
+
+The second thing was smaller but it is everywhere. Sidewalks in the scene were
+stopping a stride short of every street corner in the city — about 1.4 metres
+of bare ground between the end of the pavement and the edge of the road, at
+both ends of every crossing, roughly 2.2 kilometres of it in total. The bake
+deliberately does not draw crossings (painting 800 crosswalks would put pale
+ribbons across every street), but the kerb ramps at each end are not road
+markings, they are the sidewalk. They are drawn now, and the resolver still
+scrubs off anything that overshoots onto the road, so the streets look exactly
+as they did. Ground file grew 50 KB compressed.
+
+Together: 95.4% of a drawn route is on pavement now, up from 93.7%, and 98.6%
+is on either pavement or a street it is legitimately crossing. Before-and-after
+pictures of four routes and two street corners are in
+`shots/walk/sidewalks/`, the full method and every number is in
+`docs/walk-sidewalks.md`, and the biggest thing left is written up there too:
+the malls and the Six Pack are plazas, the graph only knows their outside edge,
+so routes walk around them instead of across — that one needs a change in the
+graph bake, which is a different lane's file. `WAYFIND.on` untouched.
+
+## 2026-08-23 (later) — the campus malls were being drawn as lawns, so the route floated over them
+
+Picking up the same branch after the kerb-apron pass. That pass had already
+found the important thing — the router was never ignoring the sidewalks, it was
+spending invented door links as shortcuts — and it noticed in passing that a
+route across the Main Mall scores as "off pavement" because OSM draws a mall as
+a ring and the route walks its edge. It worked around that with a ten-centimetre
+tolerance. This pass fixed the cause instead.
+
+Forty-four of the pedestrian areas on campus — Main Mall, East Mall, the
+Speedway courts, the Jester, Gates and Blanton forecourts — were being drawn as
+flat coloured areas, in the same family as lawns and parking lots. Everything
+else you walk on in this city is a slab standing 22 cm proud, and the walking
+ribbon's height is pinned to that slab, so over a mall the ribbon was floating
+22 cm in the air. A mall was also a different colour from the footpaths crossing
+it, in the same frame, both concrete. The bake's own rules already said a mall is
+a walk; only one branch of the code was putting it elsewhere. One switch.
+
+The share of the twenty test routes lying on a drawn walk went 86.7% to 90.2%,
+and eight of the twenty moved — PCL to Patton Hall goes 54% to 78%. It costs
+nothing: the ground file is the same size to the kilobyte gzipped, because the
+polygons only changed which family they belong to. Two numbers went very slightly
+the wrong way (ten metres out of thirteen thousand) and that is written down
+rather than hidden. Look at `shots/walk/sidewalks/aprons-2-eastmall.png` next to
+`malls-2-eastmall.png`: the Jester forecourt goes from a flat grey slab with the
+route running along its edge to paving the same colour as the walks that cross
+it. The malls being warmer and raised is a taste call and it is one line to undo.
+
+Also moved the measurement into the repo. `python scripts/bake_ground.py
+--walkaudit` routes twenty real class-to-class walks with the app's own cost
+model and reports what every metre of the drawn ribbon is standing on. The last
+pass's scripts lived in a scratchpad and are gone; this one does not. Still not
+fixed, and still another lane's file: the router walks around a mall rather than
+across it, because OSM only gives it the rim. `WAYFIND.on` untouched.
 ## 2026-08-24 — the baseline meter, built: 20 real class-to-class pairs, a real number
 
 The recon above never got turned into an actual measurement before the run
@@ -72,6 +148,116 @@ table, and the re-run instructions are in `docs/walk-baseline.md`.
 `WAYFIND.on` still untouched; nothing in `js/wayfind.js` changed this round
 either. Pushed as `acer/w-baseline`, self-merged after the self-check passed.
 
+## 2026-08-24 — the malls were painted but their EDGES were not, and the edge is where the router walks (`acer/w-sidewalks`)
+
+Round 2 finished by saying the last problem — the walking line running along the
+outline of a mall rather than across it — was a routing problem and not
+something the ground could fix. That was wrong, and this round found out by
+measuring instead of guessing. Of every metre of route sitting on unpainted
+ground, **not one was more than five metres from pavement, and seven eighths of
+it was within five centimetres.** Nothing was missing. The route was walking
+along a seam.
+
+The seam is this: OpenStreetMap draws the campus malls as closed shapes, and the
+part of the app that builds the walking network turns a closed shape into a
+line you can walk — around the edge. The part that paints the ground drew only
+the shape. So for seven kilometres of mall edge, the router was sending students
+down a line the scene painted nothing under, and half the width of the drawn
+ribbon hung out over bare dirt. It is exactly the kerb-ramp problem the first
+pass fixed at street corners, in the one place that pass could not see it.
+
+So the edge of a mall is now painted as what it is — a walk, at the same 2.4 m
+this file has always used when nobody says otherwise, in the mall's own colour.
+The share of the twenty test routes lying on drawn paving goes **90.2 % to
+93.4 %**, and the metres over bare ground drop from 534 to 128. Ten routes
+improved, ten stayed the same, **none got worse**. On the twenty pairs the
+baseline lane froze for everybody (`--pairs house`, so this lane's number can
+sit beside the others') it is **90.2 % to 95.0 %**, eleven better and none
+worse: Winship→Main goes 71 % to 100 %, RLP→Garrison 71 % to 98 %.
+
+The honest version of the headline is the one about the ribbon rather than its
+centreline — how much of the drawn strip a person actually sees is off the
+paving — and that goes **4.2 % to 1.2 %**.
+
+It costs 8 KB gzipped. Two things were checked hard rather than assumed. First,
+that this is not a lie about grass: 87 % of the new paving went over ground the
+scene painted as *nothing*, 12 % trims a lawn edge by up to a metre, and the
+malls themselves were not made one square metre bigger. Second, that it does not
+put a halo round every mall — look at `shots/walk/sidewalks/rim-city-before.png`
+next to `rim-city-after.png` and they are indistinguishable, while
+`rim-pcljes-before/after` shows the change close up. Re-running the bake with
+the new switch off reproduced the old file byte for byte, so the whole change is
+that one switch. Full method, the two rejected explanations, and what is left
+for the door and graph lanes: `docs/walk-sidewalks.md` §12–§16. `WAYFIND.on`
+untouched.
+
+## 2026-08-24 — acer/w-sidewalks, round 4: the other half of the question, and 5.75 km of sidewalk nobody can walk on
+
+Three rounds of this lane all answered "is there paint under the walking line",
+and that is now 99 %. But the thing this lane is supposed to prove has two
+halves, and nobody had ever measured the second one: **how much of a route runs
+along a real sidewalk that actually exists in the map, and how much is a line
+this project drew itself.** So that got built, and it comes out at **98.5 % real
+on this lane's twenty test walks and 97.5 % on the twenty the baseline froze for
+everybody** — and every single invented metre, in all forty walks, is the short
+dashed hop between a door and the nearest path. **Not one metre of the routed
+part is made up.** The instrument was checked three ways before any of that was
+believed, including running it against the old router, where it correctly
+reports two and a half times as much invented line.
+
+The obvious next move was to lean harder on the door-link penalty, and it was
+measured and **rejected**: the absolute best case removes 18 more metres of
+invented line and costs 223 metres of extra walking, and on the harder fixture
+it makes every route 11 % longer. Simeon's own complaint is that routes take you
+farther than you have to go, so that trade is the wrong way round.
+
+Then the more interesting question — his actual sentence, *"so many sidewalks
+are not being utilized properly"* — got a number for the first time. Walking all
+**161 km** of surveyed campus footway instead of just the test routes:
+**5.75 km of sidewalk is painted in the city, is in the walking graph, and the
+router can never use it**, because it sits on a piece of network disconnected
+from everything else. Confirmed two independent ways. Fourteen places; the worst
+one in the middle of campus is **321 m of pavement 45 m from the UT Tower**, and
+**175 m of it is two metres from the network it should be joined to**. That is
+not this lane's file to fix — `scripts/bake_walk.py` owns the joining — so it is
+written up with coordinates and the exact gap widths as a request, not a change.
+The mirror-image question, "is any sidewalk the router uses missing paint", came
+back at **54 m across the whole campus** once the crossings-over-streets (which
+are deliberately never painted) are separated out. The ground file is done.
+
+Finally, the picture. Every frame this lane has ever taken was from straight
+overhead, which is the one angle that cannot see whether the walking ribbon is
+lying on the pavement or hovering over it — the exact defect round 2 fixed. So
+these are taken standing on the route at eye level:
+`shots/walk/sidewalks/eye-mainmall.png` on the Main Mall looking at the Tower,
+`eye-eastmall.png` outside Jester, `eye-speedway.png` by the geology building.
+Next to each is the same camera with the route switched off, so you can see
+exactly which pixels are the ribbon, and one with the ribbon deliberately raised
+a metre — where it turns into a kerb-height wall you cannot miss. The camera can
+see the mistake; the shipped ribbon does not have it. No pixel of the city
+changed this round and `js/wayfind.js` was not touched. Method and every number:
+`docs/walk-sidewalks.md` §17–§21. `WAYFIND.on` untouched.
+
+**2026-08-24, later — `acer/w-sidewalks`, round 5.** Eight kilometres of real
+campus sidewalk were being painted as street, and the walking route was being
+drawn on the asphalt as a result. The cause: the bake trims every pavement slab
+back where a road runs, and it works out how wide a road is by counting its
+lanes — a guess — while the sidewalk itself is surveyed. Where the survey puts a
+sidewalk close to the kerb, which is where sidewalks are, the guess swallowed it
+whole and the pavement vanished. Now the trim is not allowed to take the middle
+of a walk somebody actually surveyed. On Robert Dedman Drive the route used to
+run down a bare traffic lane; it now runs on a paved strip along the kerb, and
+the before/after pair is in `shots/walk/sidewalks/kerb-greaf2-nadir-*`. Measured
+over twenty class-to-class trips, the share of the drawn route standing on real
+pavement went from 93.4 % to 96.2 % on this lane's own pairs and from 95.0 % to
+96.8 % on the shared ones, with the amount standing on nothing at all unchanged
+to the metre — which is the check that says no pavement was invented. Two things
+this lane said last round turned out to be wrong and are corrected in writing:
+the 5.75 km of "switched-off" sidewalk mostly cannot be honestly reconnected,
+because almost every gap under four metres is a street with no crossing mapped;
+and a before/after screenshot pair has to come out of one browser session, not
+two. `js/wayfind.js` untouched again, `data/roads.geojson` byte-identical,
+`WAYFIND.on` still false. Everything: `docs/walk-sidewalks.md` §22–§26.
 ## 2026-08-24 — `acer/w-sidewalks` round 4 critic: it wins, verified independently
 
 Reviewed `acer/w-sidewalks` (round 4 of 5, HEAD `6c50c1d`) against `origin/main`

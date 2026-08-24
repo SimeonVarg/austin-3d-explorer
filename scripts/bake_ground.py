@@ -120,6 +120,211 @@ DEFAULT_WIDTH = {
     "footway": 2.4, "steps": 3.0, "cycleway": 2.2, "path": 1.5, "pedestrian": 6.0,
 }
 
+# ── the kerb apron ─────────────────────────────────────────────────────────
+# A `footway=crossing` way is not drawn as a path, and that is right: the
+# painted zebra belongs to the street, and laying a pale concrete ribbon across
+# every carriageway on campus is the defect the skip exists to prevent.
+#
+# But a crossing way does not start at the kerb. It starts a metre or two back,
+# on the ramp, and the sidewalk it leaves ALSO stops short — `widen_paths` uses
+# flat caps, so the pavement polygon ends square at the sidewalk's last node.
+# Between the two there was nothing painted at all. Measured against the
+# router's own network: 2,245 m of the walking graph runs over ground the scene
+# paints as neither pavement nor road, and essentially all of it is these two
+# stubs, at every street corner in the city. Walk a route across Speedway and
+# the ribbon steps off the end of the sidewalk onto bare dirt before it reaches
+# the street.
+#
+# So: emit the FIRST and LAST CROSSING_APRON_M of every crossing as ordinary
+# footway, and nothing in between. The middle — the part actually over the
+# street — is still never drawn, and the resolver's carriageway cut removes any
+# apron that overshoots onto the travelled way, so this cannot become the pale
+# ribbon the skip was guarding against. It can only close the gap.
+CROSSING_APRON_M = 2.5
+# A kerb ramp is poured concrete here whatever the crossing carries. The tag on
+# a crossing describes the ROAD it is painted on — `surface=asphalt` is common
+# and true of the street, not of the ramp — and honouring it would drop a black
+# patch at every corner instead of continuing the sidewalk.
+CROSSING_APRON_SURFACE = "concrete"
+
+# ── a pedestrian mall is a WALK, not a lawn-band area ──────────────────────
+#
+# OSM draws the campus malls — Main Mall, East Mall, the Speedway courts, the
+# Jester, Gates and Blanton forecourts — as `highway=pedestrian, area=yes`
+# polygons, 44 of them in this cache. They were emitted as `k:'area',
+# u:'plaza'`: a FLAT fill, in the same band as lawns and parking lots.
+# Everything else you walk on in this scene is a `k:'patharea'` slab standing
+# GROUND.pathRaise = 0.22 m proud, and the walking ribbon's own base is pinned
+# to that same 0.22 m (`WAYFIND.routeBaseM`, and its comment says to keep the
+# two equal). So over a mall the ribbon floated 22 cm in the air, and over a
+# mall's outline — which is where the walking graph runs, because a closed way
+# is a ring of edges — it half floated and half sat on nothing.
+#
+# The apron pass above closed the gap at the kerb. This closes the other one,
+# and it is the bigger of the two: 4.0 % of the twenty routes' drawn length is
+# on a mall, against 2.5 % on a crossing.
+#
+# This file's own rank ladder already says what a mall is: ('patharea',
+# 'pedestrian') sits at 60, above the generic footway laid over it. Only the
+# `area=yes` branch was routing the very things that entry describes into the
+# other band. Speedway — tagged `highway=pedestrian` as a LINE — has always come
+# out of this bake as a patharea; the polygons are the same kind of thing, and
+# after this they are the same colour as the walks that cross them, which they
+# were not before (measured off the frames in shots/walk/sidewalks/: the mall
+# was rgb(224,207,175) and a walk crossing it rgb(237,192,132), in one frame,
+# both concrete).
+#
+# Set False and the malls go back to flat plaza fills with no other change.
+PEDESTRIAN_AREA_IS_A_WALK = True
+
+# ── the mall rim ───────────────────────────────────────────────────────────
+#
+# THE SAME DEFECT AS THE KERB APRON, IN THE ONE PLACE THAT PASS COULD NOT SEE.
+# Measured on this branch with `--walkaudit --where`: of the 454 m of walking
+# graph the twenty routes ride over ground this file paints as NOTHING, **not
+# one metre is more than 5 m from pavement, 87 % is within 5 CENTIMETRES, and
+# 88 % of it is riding the outline of a `('patharea','pedestrian')` polygon**.
+# 81 % of those metres have pavement on one side and open, unpainted ground on
+# the other. It is not a missing sidewalk. It is a seam.
+#
+# WHY THE SEAM IS THERE. The loop below drops every `area=yes` way with the
+# comment "a pedestrian AREA is a plaza, not a line", and for PAINT that is
+# right — the polygon is emitted with the areas. But `scripts/bake_walk.py`
+# reads the SAME `data/osm_cache/footways.json` and does not drop them: a closed
+# way goes into the walking graph as an ordinary ring of edges (its own
+# `areas` counter counts them). So 41 of these rings are simultaneously the
+# outer EDGE of a painted polygon and a line the router sends people down, and
+# the scene paints a walk's worth of nothing on the far side of it. The ribbon
+# is 1.6 m wide and centred on that line, so its outer half hangs over bare
+# ground for 7.1 km of rim.
+#
+# So paint under the line, exactly as the kerb apron does. The rim goes in as an
+# ordinary footway of PEDESTRIAN_RIM_WALK_M, which is DEFAULT_WIDTH['footway']
+# and not a new number: when OSM does not say how wide a walk is, this file has
+# always said 2.4 m, and this is a walk.
+#
+# THREE THINGS MAKE IT SAFE, and all three are machinery that already exists:
+#   * `u:'footway'` (52) is CUT BY the mall (60), so the inward half is
+#     discarded and only the hem outside the polygon survives — see the rank
+#     ladder, and the round-2 note that already relies on this cut.
+#   * `u:'footway'` is also cut by the carriageway, so a mall that ends on a
+#     street cannot creep onto the asphalt. `u:'pedestrian'` would NOT have
+#     been: "a pedestrian mall outranks a carriageway" is right for a surveyed
+#     mall and wrong for a 1.2 m hem this file derived itself.
+#   * colour in js/ground.js is keyed on `s`, never on `u`, so taking the
+#     mall's own surface makes the hem the mall's own colour. There is no halo
+#     to see; that was checked on the frames, not assumed.
+#
+# Set False and the rims go back to unpainted with no other change.
+# Default True / 2.4 m. Both read the environment ONLY so the control bake can
+# flip them without editing this file -- `RIM=0 python scripts/bake_ground.py`
+# reproduced the pre-change data/ground.geojson to the same SHA-256, which is
+# what lets §14 of docs/walk-sidewalks.md say the whole diff is this change.
+PEDESTRIAN_RIM_IS_A_WALK = os.environ.get("RIM", "1") != "0"
+PEDESTRIAN_RIM_WALK_M = float(os.environ.get("RIM_W", DEFAULT_WIDTH["footway"]))
+
+# ── a surveyed sidewalk must not be painted as road ────────────────────────
+#
+# THE THIRD FORM OF THE SAME DEFECT, and the biggest of the three. The apron
+# pass painted under the walking graph at the kerb; the rim pass painted under
+# it around the malls. This paints under it along the STREETS, which is where
+# most of a campus's sidewalk network actually is.
+#
+# `resolve_ground_conflicts` cuts every `patharea` against the buffered
+# carriageways, and that cut is right — it is the one cross-band cut in this
+# file and it exists to stop a pale slab standing across the middle of every
+# junction. But the carriageway polygon is DERIVED: `w` is lanes * LANE_M +
+# KERB_M, a guess from a lane count, while a sidewalk centreline is SURVEYED.
+# Where OSM maps a sidewalk close to the kerb — which is where sidewalks are —
+# the whole 2.4 m slab falls inside the guessed corridor and is deleted, and
+# the scene then paints asphalt over a sidewalk that is really there.
+#
+# Measured on this branch before the change, sampling all 160.78 km of surveyed
+# campus footway at 1 m against the shipped data/ground.geojson:
+#
+#     ALONGSIDE (non-crossing)  149.05 km    patharea  90.5 %
+#                                            roadarea   5.5 %   <- 8.24 km
+#                                            cyclearea  3.9 %
+#     CROSSING                   11.73 km    roadarea  66.1 %   <- correct
+#
+# 8.24 km of surveyed, non-crossing campus sidewalk had carriageway paint under
+# it. The route audit agrees from the other side: 4.9 % of the twenty pairs'
+# drawn ribbon stands on a `roadarea`, and `js/wayfind.js`'s own note (§10 of
+# docs/walk-sidewalks.md) says what that costs — `WAYFIND.routeBaseM` is 0.22 m
+# because a walk stands 0.22 m proud, and a road is a FLAT fill at zero, so
+# over every one of those metres the walking ribbon floats 22 cm in the air.
+#
+# THE RULE: the carriageway cut may not take the CORE of a way OSM actually
+# surveyed. It may still take the rest, so a sidewalk that overhangs the
+# travelled way is still trimmed back, and a crossing apron — which this bake
+# DERIVED rather than read — is still cut exactly as before. Only a surveyed
+# centreline is exempt, and only for SIDEWALK_KEEP_HALF_M either side of it.
+#
+# HOW WIDE, and the number is not a guess. `WAYFIND.routeWidthM` is 1.6 m, so
+# the walking ribbon drawn along a sidewalk is 1.6 m wide: keep a narrower strip
+# than that and the ribbon covers every pixel of it, the route still LOOKS
+# painted on the road, and the outer rail hangs over asphalt. That is the same
+# argument PEDESTRIAN_RIM_WALK_M already makes for the mall rims, one street
+# over. Measured: at a 0.45 half-width the eye-level frame at Robert Dedman
+# Drive is indistinguishable from the frame before the change. 0.9 paints a
+# 1.8 m strip — the ribbon plus 10 cm either side — and is still narrower than
+# DEFAULT_WIDTH['footway'] / 2 = 1.2, so a sidewalk that genuinely overhangs the
+# travelled way is still trimmed back.
+#
+# TASTE VALUE, CLAUDE.md rule 11: it is the width of the pale strip that now
+# appears along the kerb of every street a surveyed sidewalk runs beside. Set it
+# to 0 and the cut goes back to taking everything with no other change — checked,
+# not assumed: `KEEPHALF=0 python scripts/bake_ground.py` reproduces the previous
+# data/ground.geojson to the same SHA-256.
+SIDEWALK_KEEP_HALF_M = float(os.environ.get("KEEPHALF", "0.9"))
+
+# `k:'path'` LineStrings this bake DERIVED rather than read out of OSM carry
+# this private key, and the keep-core exemption skips them. It never reaches the
+# output file: widen_paths re-emits {k, u, s} only. Two things wear it — the
+# crossing aprons (CROSSING_APRON_M) and the mall rims (PEDESTRIAN_RIM_IS_A_WALK)
+# — and both are cut by the carriageway on purpose, which is what stops an apron
+# reaching past the kerb and a mall creeping onto the asphalt.
+DERIVED_PATH_KEY = "drv"
+
+
+def crossing_aprons(coords, apron_m=None):
+    """The two ends of a crossing way, `apron_m` metres each, as coordinate
+    lists. Returns [] for a way shorter than one apron (it is all ramp anyway,
+    and the carriageway cut will take whatever of it is street)."""
+    apron_m = CROSSING_APRON_M if apron_m is None else apron_m
+    mlat = 111195.08
+    mlon = mlat * math.cos(math.radians(LAT0))
+    pts = [((x + 97.74) * mlon, (y - LAT0) * mlat) for x, y in coords]
+    segs = [math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1)]
+    total = sum(segs)
+    if total <= 0:
+        return []
+    if total <= apron_m:
+        return [list(coords)]
+
+    def walk(order):
+        """Trim from one end, returning the coords covering `apron_m`."""
+        idx = range(len(segs)) if order > 0 else range(len(segs) - 1, -1, -1)
+        out = [coords[0] if order > 0 else coords[-1]]
+        left = apron_m
+        for i in idx:
+            d = segs[i]
+            nxt = i + 1 if order > 0 else i
+            if d >= left:
+                f = (left / d) if d else 0.0
+                a = coords[i] if order > 0 else coords[i + 1]
+                b = coords[i + 1] if order > 0 else coords[i]
+                out.append([round(a[0] + (b[0] - a[0]) * f, 6),
+                            round(a[1] + (b[1] - a[1]) * f, 6)])
+                break
+            left -= d
+            out.append(list(coords[nxt]))
+        return out
+
+    head, tail = walk(1), walk(-1)
+    return [p for p in (head, tail) if len(p) >= 2]
+
+
 # landuse/natural/leisure value -> our `use`, for area features.
 AREA_USE = {
     "grass": "lawn", "meadow": "lawn", "village_green": "lawn", "greenfield": "lawn",
@@ -1710,6 +1915,16 @@ def tone_lawns(feats, stats):
 PLINTH = {
     "r_m": 2.2,                 # radius of the stone base
     "surface": "limestone",
+    # A pole standing on a PEDESTRIAN MALL gets no plinth, and that is
+    # deliberate rather than an oversight. Since PEDESTRIAN_AREA_IS_A_WALK the
+    # malls arrive in the `patharea` band, so they no longer match `plaza`
+    # here -- two poles moved from "plinth laid" to "not in a surface". Nothing
+    # visible changed: a plinth is ('area','plinth') at rank 13 and a plaza was
+    # rank 30, so the surface underneath ATE the plinth in the resolver anyway
+    # (the bake reported one of them as `resolve_covered_plinth` every run).
+    # Emitting a polygon that is then deleted is not better than not emitting
+    # it; if a mall pole should ever have a visible base it needs its own entry
+    # in the path band of RANK, not a line here.
     "hosts": ("lawn", "park", "garden", "plaza"),
     "simplify_m": 0.08,
 }
@@ -2876,7 +3091,40 @@ def carriageway_polys(road_feats):
     return out
 
 
-def resolve_ground_conflicts(feats, road_polys, stats, warnings):
+def sidewalk_keep_polys(feats, stats):
+    """The core strip of every SURVEYED walking centreline, as metric polygons.
+
+    Call it BEFORE widen_paths, while the walks are still LineStrings — the same
+    ordering walk_direction_runs needs and for the same reason. Ways this bake
+    derived itself (DERIVED_PATH_KEY) are excluded: an apron and a mall rim are
+    extrapolations, and the carriageway cut is what keeps them honest.
+    """
+    if SIDEWALK_KEEP_HALF_M <= 0:
+        return []
+    try:
+        from shapely.geometry import LineString
+    except ImportError:
+        return []
+    out = []
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+            continue
+        if p.get(DERIVED_PATH_KEY):
+            stats["sidewalk_keep_skipped_derived"] += 1
+            continue
+        try:
+            q = LineString(_line_m(f["geometry"]["coordinates"])).buffer(
+                SIDEWALK_KEEP_HALF_M, cap_style=2, join_style=2, mitre_limit=2.0)
+        except Exception:
+            continue
+        if not q.is_empty:
+            out.append(q)
+            stats["sidewalk_keep_cores"] += 1
+    return out
+
+
+def resolve_ground_conflicts(feats, road_polys, stats, warnings, keep_polys=()):
     """Give every square metre of ground to exactly one surface."""
     try:
         from shapely.strtree import STRtree
@@ -2909,6 +3157,8 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
     work.sort(key=lambda w: (-w["rank"], -w["a0"], w["i"]))
 
     road_tree = STRtree(road_polys) if road_polys else None
+    keep_polys = list(keep_polys)
+    keep_tree = STRtree(keep_polys) if keep_polys else None
     settled = []          # metric geometries already given their ground
     s_band = []
     s_tree = None
@@ -2935,8 +3185,35 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
         # half that stops the asphalt being painted over the notch.
         if w["band"] == "path" and road_tree is not None \
                 and not is_pedestrian_mall(w["f"]["properties"]):
-            for bi in road_tree.query(w["q"]):
-                cutters.append(road_polys[int(bi)])
+            rc = [road_polys[int(bi)] for bi in road_tree.query(w["q"])]
+            # SIDEWALK_KEEP_HALF_M: the carriageway may take everything of this
+            # slab EXCEPT the core of a surveyed centreline. Punching the keep
+            # strips out of the CUTTER rather than adding them back afterwards
+            # is what keeps the same-band cuts intact -- a walk that lost ground
+            # to a higher-ranked walk must not get it back here, or the two
+            # z-fight again.
+            #
+            # With nothing to keep, the cutters go in exactly as they always did
+            # and are unioned exactly once, by the single difference() below.
+            # Unioning them here as well would be the same set and a different
+            # last digit, and this file is checked byte for byte.
+            kl = []
+            if rc and keep_tree is not None:
+                kl = [keep_polys[int(j)] for j in keep_tree.query(w["q"])]
+            if kl:
+                try:
+                    ru = unary_union(rc).difference(unary_union(kl))
+                    stats["sidewalk_keep_applied"] += 1
+                    if not ru.is_empty:
+                        cutters.append(ru)
+                except Exception:
+                    warnings.append("sidewalk keep-core difference failed on a "
+                                    "%s/%s; cut left whole"
+                                    % (w["f"]["properties"].get("k"),
+                                       w["f"]["properties"].get("u")))
+                    cutters.extend(rc)
+            else:
+                cutters.extend(rc)
         g = w["q"]
         if cutters:
             try:
@@ -2992,6 +3269,1077 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
     return kept
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# --walkaudit — IS THERE PAVEMENT UNDER THE WALKING ROUTE?
+#
+# The ground this file bakes is the ground the `?walk=1` ribbon is drawn on, so
+# this bake is the right place to ask whether the two agree. It routes twenty
+# real class-to-class pairs against data/walk_graph.json using js/wayfind.js's
+# OWN cost model (read out of the graph's `tune` block, so the two can never
+# disagree), samples the drawn ribbon every WALKAUDIT_SAMPLE_M, and asks which
+# polygon of the file just baked each sample is standing on.
+#
+# It never bakes and never writes. `python scripts/bake_ground.py --walkaudit`.
+#
+# WHY IT SAMPLES THE DRAWN LINE RATHER THAN COUNTING EDGES. Counting graph edges
+# answers "did the router use an OSM footway", and the answer to that has always
+# been yes — 95.8 % of routed metres are ordinary footway edges. It does not
+# answer the question a person asks looking at the city, which is whether the
+# ribbon in front of them is lying on paving. Only the pixels-under-the-line
+# test answers that, and the two answers are 9 points apart.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Twenty pairs. The nineteen scripts/bake_walk.py freezes as its route
+# regression (so a number here can be compared with a number there without
+# re-deriving the fixture), plus GDC>PCL, the walk a computer-science student
+# makes most days.
+WALKAUDIT_PAIRS = [
+    ("JES", "GDC"), ("JES", "WEL"), ("PCL", "RLP"), ("GRE", "MAI"),
+    ("BUR", "CBA"), ("STD", "MAI"), ("21 Rio", "WEL"),
+    ("The Castilian", "GDC"), ("PCL", "JES"), ("GDC", "BIO"),
+    ("WEL", "TSG"), ("GDC", "DMC"), ("GRE", "MNC"), ("GRE", "NEZ"),
+    ("GRE", "TCP"), ("GRE", "AF2"), ("JES", "BMS"), ("JES", "BMK"),
+    ("JES", "MCA"), ("GDC", "PCL"),
+]
+
+# THE HOUSE FIXTURE, added 2026-08-24. `scripts/verify/walk-pairs.json` is the
+# twenty pairs the walk baseline (docs/walk-baseline.md) froze for every w-*
+# lane, so a per-route percentage from here can be laid beside one from
+# scripts/verify/walkmeter.mjs without re-deriving anything. It is a DIFFERENT
+# twenty from the set above, which stays the default so this branch's own
+# round-over-round deltas remain apples to apples.
+#
+#   python scripts/bake_ground.py --walkaudit --pairs house
+#
+WALKAUDIT_HOUSE_PAIRS_JSON = os.path.join("scripts", "verify", "walk-pairs.json")
+
+
+def walkaudit_house_pairs():
+    """The house twenty, or None if the fixture is not on this branch yet."""
+    p = os.path.join(ROOT, WALKAUDIT_HOUSE_PAIRS_JSON)
+    if not os.path.exists(p):
+        return None
+    with open(p, "r", encoding="utf-8") as fh:
+        j = json.load(fh)
+    return [(d["from"], d["to"]) for d in j.get("pairs", [])]
+
+
+WALKAUDIT_SAMPLE_M = 1.0     # one reading per metre of ribbon
+# MUST EQUAL js/wayfind.js's LINK_COST_MULT. A door link is charged this many
+# pavement metres per real metre while the route is being chosen, so the router
+# only spends one where there is no pavement to spend instead. If the two ever
+# drift apart this audit is measuring a router the app does not have.
+WALKAUDIT_LINK_COST_MULT = 4.0
+# Ground classes that are a hard surface a person walks on, in the order a
+# sample is credited to them when two overlap. `patharea` first because that is
+# the answer the goal is phrased in: a drawn footway/steps/mall slab.
+WALKAUDIT_PAVED = ["patharea", "pathslab", "cyclearea", "plaza", "roadarea"]
+WALKAUDIT_GRID_M = 25.0      # spatial index cell; only affects speed
+
+
+def _wa_paved_polys():
+    """Every hard-surface polygon in the file just baked, in local metres."""
+    with open(OUT, "r", encoding="utf-8") as fh:
+        g = json.load(fh)
+    out = []
+    for f in g["features"]:
+        p = f["properties"]
+        k, u = p.get("k"), p.get("u")
+        if k in ("patharea", "pathslab", "cyclearea", "roadarea"):
+            lab = k
+        elif k == "area" and u in ("plaza", "parking"):
+            lab = "plaza"
+        else:
+            continue
+        geom = f["geometry"]
+        groups = ([geom["coordinates"]] if geom["type"] == "Polygon"
+                  else geom["coordinates"] if geom["type"] == "MultiPolygon" else [])
+        for poly in groups:
+            rings = [[_wa_xy(c[0], c[1]) for c in r] for r in poly]
+            if not rings or len(rings[0]) < 4:
+                continue
+            xs = [q[0] for q in rings[0]]
+            ys = [q[1] for q in rings[0]]
+            out.append((lab, rings, (min(xs), min(ys), max(xs), max(ys))))
+    return out
+
+
+def _wa_xy(lon, lat):
+    # The same local frame bake_walk.py and js/wayfind.js use, so a metre here
+    # is a metre there.
+    return (lon * 96061.0, lat * 111195.0)
+
+
+def _wa_index(polys):
+    ix = {}
+    for i, (_, _, bb) in enumerate(polys):
+        for cx in range(int(bb[0] // WALKAUDIT_GRID_M), int(bb[2] // WALKAUDIT_GRID_M) + 1):
+            for cy in range(int(bb[1] // WALKAUDIT_GRID_M), int(bb[3] // WALKAUDIT_GRID_M) + 1):
+                ix.setdefault((cx, cy), []).append(i)
+    return ix
+
+
+def _wa_in_ring(ring, px, py):
+    inside = False
+    j = len(ring) - 1
+    for i in range(len(ring)):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if (yi > py) != (yj > py):
+            if px < (xj - xi) * (py - yi) / (yj - yi) + xi:
+                inside = not inside
+        j = i
+    return inside
+
+
+def _wa_under(polys, ix, px, py):
+    best = None
+    for i in ix.get((int(px // WALKAUDIT_GRID_M), int(py // WALKAUDIT_GRID_M)), ()):
+        lab, rings, bb = polys[i]
+        if px < bb[0] or px > bb[2] or py < bb[1] or py > bb[3]:
+            continue
+        if not _wa_in_ring(rings[0], px, py):
+            continue
+        if any(_wa_in_ring(r, px, py) for r in rings[1:]):
+            continue
+        if best is None or WALKAUDIT_PAVED.index(lab) < WALKAUDIT_PAVED.index(best):
+            best = lab
+    return best
+
+
+# ── the router, copied from js/wayfind.js and checked against it ────────────
+# Verified 2026-08-23 against a browser dump of window.wayfindRoute over all
+# twenty pairs: every distance agreed to within 0.5 m, and the drawn vertex
+# lists were identical. If this ever disagrees with the app, the app is right
+# and this is stale.
+
+def _wa_load_graph():
+    import heapq  # noqa: F401  (used by _wa_dijkstra)
+    with open(os.path.join(ROOT, "data", "walk_graph.json"), "r", encoding="utf-8") as fh:
+        g = json.load(fh)
+    q = g["q"]
+    n = len(g["n"]["x"])
+    e = len(g["e"]["a"])
+    X = [0.0] * n
+    Y = [0.0] * n
+    ax = ay = 0
+    for i in range(n):
+        ax += g["n"]["x"][i]
+        ay += g["n"]["y"][i]
+        X[i] = ax * q
+        Y[i] = ay * q
+    A = [0] * e
+    B = [0] * e
+    a = 0
+    for i in range(e):
+        a += g["e"]["a"][i]
+        A[i] = a
+        B[i] = a + g["e"]["b"][i]
+    adj = [[] for _ in range(n)]
+    for i in range(e):
+        adj[A[i]].append((B[i], i))
+        adj[B[i]].append((A[i], i))
+    sw = {}
+    for i in range(e):
+        if g["e"]["s"][i] >= 0:
+            sw[g["e"]["s"][i]] = sw.get(g["e"]["s"][i], 0) + 1
+    return dict(raw=g, N=n, X=X, Y=Y, W=g["e"]["w"], F=g["e"]["f"],
+                S=g["e"]["s"], adj=adj, sw=sw, q=q, doors=g["d"],
+                code=g["code"], name=g["name"], wc=g["wc"], tune=g["tune"])
+
+
+_WA_STEPS, _WA_CROSS = 1, 2
+_WA_OFFMAIN = 128
+
+
+def _wa_cost(G, i):
+    m = G["W"][i] / 100.0
+    t = G["tune"]
+    if G["F"][i] & _WA_STEPS:
+        n = G["sw"].get(G["S"][i], 1)
+        return (m * (t["WALK_SPEED_LOW_MS"] / t["STAIR_SPEED_MPS"])
+                + (t["STAIR_FIXED_S"] * t["WALK_SPEED_LOW_MS"]) / n)
+    c = m
+    if G["F"][i] & _WA_CROSS:
+        c += t["CROSSING_PENALTY_M"]
+    return c
+
+
+def _wa_dijkstra(G, seeds, targets):
+    import heapq
+    INF = float("inf")
+    dist = [INF] * G["N"]
+    prevE = [-1] * G["N"]
+    prevN = [-1] * G["N"]
+    seedOf = [-1] * G["N"]
+    tmap = {}
+    for t in targets:
+        p = tmap.get(t[0])
+        if p is None or t[1] < p[1]:
+            tmap[t[0]] = t
+    h = []
+    for k, s in enumerate(seeds):
+        if s[1] < dist[s[0]]:
+            dist[s[0]] = s[1]
+            seedOf[s[0]] = k
+            heapq.heappush(h, (s[1], s[0]))
+    best = None
+    left = len(tmap)
+    while h:
+        d, u = heapq.heappop(h)
+        if d > dist[u]:
+            continue
+        if best and d > best[0]:
+            break
+        if u in tmap:
+            t = tmap.pop(u)
+            if best is None or d + t[1] < best[0]:
+                best = (d + t[1], u, t)
+            left -= 1
+            if not left:
+                break
+        for v, ei in G["adj"][u]:
+            if G["F"][ei] & _WA_OFFMAIN:
+                continue
+            nd = d + _wa_cost(G, ei)
+            if nd < dist[v]:
+                dist[v] = nd
+                prevE[v] = ei
+                prevN[v] = u
+                seedOf[v] = seedOf[u]
+                heapq.heappush(h, (nd, v))
+    if best is None:
+        return None
+    nodes = [best[1]]
+    n = best[1]
+    while prevE[n] != -1:
+        n = prevN[n]
+        nodes.append(n)
+    nodes.reverse()
+    return nodes, seeds[seedOf[best[1]]], best[2]
+
+
+def _wa_doors(G, key):
+    """The same rule js/wayfind.js's doorSet() uses: a main door if there is
+    one, every attached door otherwise."""
+    if key in G["code"]:
+        ds = G["code"][key]
+    elif key in G["wc"]:
+        ds = G["wc"][key]
+    else:
+        ds = G["code"].get(G["name"].get(key.lower(), ""), None)
+    if not ds:
+        return []
+    ds = [d for d in ds if G["doors"][d][2]]
+    mains = [d for d in ds if G["doors"][d][4] == "main"]
+    return mains or ds
+
+
+def _wa_route(G, a_key, b_key):
+    def anchors(ds):
+        out = []
+        for di in ds:
+            d = G["doors"][di]
+            for k in range(len(d[2])):
+                # The routing cost of a door link is its TRUE metres times
+                # WALKAUDIT_LINK_COST_MULT -- js/wayfind.js's `anchors()` does
+                # exactly this and Dijkstra spends the penalised number while
+                # every printed distance keeps the true one. The two constants
+                # must stay equal or this audit stops describing the app.
+                out.append((d[2][k], d[3][k] / 100.0 * WALKAUDIT_LINK_COST_MULT, di))
+        return out
+    A, B = _wa_doors(G, a_key), _wa_doors(G, b_key)
+    if not A or not B:
+        return None
+    r = _wa_dijkstra(G, anchors(A), anchors(B))
+    if not r:
+        return None
+    nodes, seed, target = r
+    line = []
+    for n in nodes:
+        p = (G["X"][n], G["Y"][n])
+        if not line or line[-1] != p:
+            line.append(p)
+    q = G["q"]
+    da = (G["doors"][seed[2]][0] * q, G["doors"][seed[2]][1] * q)
+    db = (G["doors"][target[2]][0] * q, G["doors"][target[2]][1] * q)
+    return dict(line=line, legs=[[da, line[0]], [line[-1], db]])
+
+
+# ── --where: WHAT KIND of miss is a bare metre? ────────────────────────────
+#
+# "4.08 % of the ribbon is over bare ground" does not say whether the scene is
+# missing a sidewalk or missing a hem, and those want completely different
+# fixes. This bins every bare sample by its distance to the nearest paved
+# polygon and names the polygon whose EDGE it is riding.
+#
+# The reading that produced PEDESTRIAN_RIM_IS_A_WALK, 2026-08-24, before it:
+#
+#   <5cm 395.8   <15cm 15.5   <30cm 3.1   <60cm 8.1   <1.2m 17.7   ...   >=10m 0.0
+#   88 % of it on the boundary of a ('patharea','pedestrian')
+#
+# A missing sidewalk would have put metres in the far buckets. Not one metre of
+# the walking graph is more than 5 m from pavement anywhere in the twenty
+# routes, which is why this round painted a hem instead of hunting for a path.
+WALKAUDIT_WHERE_BUCKETS = [0.05, 0.15, 0.30, 0.60, 1.20, 2.40, 5.0, 10.0, 1e9]
+WALKAUDIT_WHERE_NAMES = ["<5cm", "<15cm", "<30cm", "<60cm", "<1.2m",
+                         "<2.4m", "<5m", "<10m", ">=10m"]
+# Half the drawn ribbon's width, `WAYFIND.routeWidthM` / 2 in js/wayfind.js.
+# A centreline exactly on a seam is a coin flip; the RAILS are what a person
+# sees hanging off the pavement, so --where grades those too.
+WALKAUDIT_RIBBON_HALF_M = 0.8
+
+
+def _wa_where(polys, ix, G, pairs):
+    """The bucket table. Needs shapely; returns None without it."""
+    try:
+        from shapely.geometry import Polygon, Point
+        from shapely.strtree import STRtree
+    except ImportError:
+        print("  (--where needs shapely)")
+        return None
+    shp, lab = [], []
+    for k_u, rings, _bb in polys:
+        try:
+            q = Polygon(rings[0], rings[1:])
+            if not q.is_valid:
+                q = q.buffer(0)
+            if q.is_empty:
+                continue
+        except Exception:
+            continue
+        shp.append(q)
+        lab.append(k_u)
+    tree = STRtree(shp)
+
+    buck = Counter()
+    owner = Counter()
+    rail_off = rail_tot = 0.0
+    for a, b in pairs:
+        r = _wa_route(G, a, b)
+        if r is None:
+            continue
+        for kind, co in [("path", r["line"])] + [("leg", L) for L in r["legs"]]:
+            for i in range(len(co) - 1):
+                ax, ay = _wa_xy(*co[i])
+                bx, by = _wa_xy(*co[i + 1])
+                L = math.hypot(bx - ax, by - ay)
+                if L <= 0.001:
+                    continue
+                nx, ny = -(by - ay) / L, (bx - ax) / L
+                n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+                step = L / n
+                for s in range(n):
+                    t = (s + 0.5) / n
+                    px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+                    for off in (-WALKAUDIT_RIBBON_HALF_M, WALKAUDIT_RIBBON_HALF_M):
+                        rail_tot += step
+                        if _wa_under(polys, ix, px + nx * off, py + ny * off) is None:
+                            rail_off += step
+                    if _wa_under(polys, ix, px, py) is not None:
+                        continue
+                    pt = Point(px, py)
+                    cand = list(tree.query(pt.buffer(12.0)))
+                    d = min([shp[j].distance(pt) for j in cand], default=1e9)
+                    for k, lim in enumerate(WALKAUDIT_WHERE_BUCKETS):
+                        if d < lim:
+                            buck[(kind, WALKAUDIT_WHERE_NAMES[k])] += step
+                            break
+                    if kind == "path" and cand and d < 1.2:
+                        j = min(cand, key=lambda j: shp[j].distance(pt))
+                        owner[lab[j]] += step
+
+    print("")
+    print("  WHERE THE BARE METRES ARE — distance to the nearest paved polygon")
+    print("  %-10s %10s %10s" % ("bucket", "graph m", "doorleg m"))
+    gs = ls = 0.0
+    for nm in WALKAUDIT_WHERE_NAMES:
+        g, l = buck[("path", nm)], buck[("leg", nm)]
+        gs += g
+        ls += l
+        if g or l:
+            print("  %-10s %10.1f %10.1f" % (nm, g, l))
+    print("  %-10s %10.1f %10.1f" % ("", gs, ls))
+    near = sum(buck[("path", nm)] for nm in WALKAUDIT_WHERE_NAMES[:5])
+    print("  seam (graph metres within 1.2 m of pavement)   %.1f of %.1f = %.0f %%"
+          % (near, gs, 100.0 * near / gs if gs else 0.0))
+    print("  whose edge is the seam on:")
+    for kv, v in owner.most_common(8):
+        print("     %-26s %7.1f m" % (str(kv), v))
+    print("  RIBBON RAILS at +/- %.1f m off pavement   %.2f %%   (%.0f of %.0f m)"
+          % (WALKAUDIT_RIBBON_HALF_M, 100.0 * rail_off / rail_tot if rail_tot else 0.0,
+             rail_off, rail_tot))
+    return True
+
+
+# ── --prov: IS THIS METRE A REAL OSM FEATURE, OR DID WE INVENT IT? ─────────
+#
+# The pavement table above answers "is there paving under the ribbon". This
+# answers the OTHER half of the goal, and they are not the same question: a
+# metre can be over beautiful concrete and still be a line this project made up
+# (a door link across a plaza), and a metre can be over bare ground and still be
+# a surveyed OSM footway (a path nobody has drawn paint for yet). Round 3 closed
+# the paint half to 99.03 %. Nothing had ever measured the provenance half PER
+# ROUTE, which is the number the goal is actually phrased in.
+#
+# HOW IT DECIDES, and why it is not a guess. scripts/bake_walk.py's build_raw()
+# ingests every way in data/osm_cache/footways.json and emits one graph edge per
+# consecutive OSM NODE PAIR; road_access() does the same for the walkable
+# classes of data/osm_cache/roads.json. So every honest graph edge is either a
+# whole OSM segment or -- after the 578 anchor splits -- a sub-piece of one,
+# and in both cases it lies exactly on that way's polyline. This walks the drawn
+# ribbon at WALKAUDIT_SAMPLE_M and asks, for each sample, whether some OSM
+# segment running the SAME WAY (within WALKAUDIT_PROV_BEARING_DEG) passes within
+# WALKAUDIT_PROV_TOL_M of it. The tolerance is three times the 0.11 m the graph's
+# q=1e-6 quantiser can move a node, and nothing else in the pipeline moves one.
+#
+# The bearing gate is what makes the answer mean something. Without it a straight
+# invented leg gets credited the instant it TOUCHES a sidewalk it is crossing;
+# with it, a metre only counts as a footway if it is running ALONG one.
+WALKAUDIT_PROV_TOL_M = 0.30
+WALKAUDIT_PROV_BEARING_DEG = 20.0
+# The walkable road classes, mirroring scripts/bake_walk.py's ROAD_WALKABLE.
+# Those legs are real surveyed OSM ways -- they are simply not footways, so they
+# get their own column rather than being lumped in with either side.
+WALKAUDIT_PROV_ROAD_WALKABLE = ("service", "residential", "living_street",
+                                "unclassified")
+# highway= values that count as "an actual footway feature". This is the whole
+# set bake_walk.py routes on, not a hand-picked subset.
+WALKAUDIT_PROV_FOOT = ("footway", "steps", "path", "pedestrian", "corridor",
+                       "cycleway", "track", "elevator")
+# Which label wins when two real ways both run under a sample.
+WALKAUDIT_PROV_RANK = ("foot", "road", "other")
+
+
+def _wa_prov_segments():
+    """Every OSM way segment a route could legitimately be running along, in
+    local metres, as (x1, y1, x2, y2, class)."""
+    segs = []
+
+    def eat(elements, road_only):
+        for w in elements:
+            if w.get("type") != "way":
+                continue
+            g = w.get("geometry") or []
+            if len(g) < 2:
+                continue
+            hw = (w.get("tags", {}) or {}).get("highway", "")
+            if road_only:
+                if hw not in WALKAUDIT_PROV_ROAD_WALKABLE:
+                    continue
+                cls = "road"
+            else:
+                cls = "foot" if hw in WALKAUDIT_PROV_FOOT else "other"
+            pts = [_wa_xy(c["lon"], c["lat"]) for c in g]
+            for i in range(len(pts) - 1):
+                (x1, y1), (x2, y2) = pts[i], pts[i + 1]
+                if x1 == x2 and y1 == y2:
+                    continue
+                segs.append((x1, y1, x2, y2, cls))
+
+    eat(load("footways"), False)
+    eat(load("roads"), True)
+    return segs
+
+
+def _wa_prov_index(segs):
+    ix = {}
+    g = WALKAUDIT_GRID_M
+    pad = WALKAUDIT_PROV_TOL_M
+    for i, (x1, y1, x2, y2, _c) in enumerate(segs):
+        for cx in range(int((min(x1, x2) - pad) // g), int((max(x1, x2) + pad) // g) + 1):
+            for cy in range(int((min(y1, y2) - pad) // g), int((max(y1, y2) + pad) // g) + 1):
+                ix.setdefault((cx, cy), []).append(i)
+    return ix
+
+
+def _wa_seg_dist(px, py, x1, y1, x2, y2):
+    dx, dy = x2 - x1, y2 - y1
+    L2 = dx * dx + dy * dy
+    if L2 <= 0.0:
+        return math.hypot(px - x1, py - y1)
+    t = ((px - x1) * dx + (py - y1) * dy) / L2
+    t = 0.0 if t < 0.0 else (1.0 if t > 1.0 else t)
+    return math.hypot(px - (x1 + dx * t), py - (y1 + dy * t))
+
+
+def _wa_prov_at(segs, ix, px, py, ux, uy):
+    """Which class of real OSM way is this sample running along, or None.
+    (ux, uy) is the drawn segment's unit direction; a way pointing some other
+    way is not the thing this metre is on."""
+    g = WALKAUDIT_GRID_M
+    cosmin = math.cos(math.radians(WALKAUDIT_PROV_BEARING_DEG))
+    best = None
+    for i in ix.get((int(px // g), int(py // g)), ()):
+        x1, y1, x2, y2, cls = segs[i]
+        sx, sy = x2 - x1, y2 - y1
+        sl = math.hypot(sx, sy)
+        if sl <= 0.0:
+            continue
+        if abs((sx * ux + sy * uy) / sl) < cosmin:
+            continue
+        if _wa_seg_dist(px, py, x1, y1, x2, y2) > WALKAUDIT_PROV_TOL_M:
+            continue
+        # foot beats road beats other, so a sidewalk laid beside a service road
+        # is reported as the sidewalk it is. Any class this ladder does not name
+        # (--coverage indexes graph EDGES through here, labelled 'edge') simply
+        # answers the yes/no question and never competes for the label.
+        rank = WALKAUDIT_PROV_RANK
+        if best is None or rank.index(cls if cls in rank else rank[-1]) < rank.index(best if best in rank else rank[-1]):
+            best = cls
+    return best
+
+
+def _wa_prov(G, pairs):
+    """Per-route: how much of the drawn ribbon is a real OSM feature."""
+    segs = _wa_prov_segments()
+    ix = _wa_prov_index(segs)
+    print("")
+    print("  PROVENANCE — REAL OSM FEATURE vs INVENTED EDGE")
+    print("  %d OSM way segments (footways.json + walkable roads.json), "
+          "tolerance %.2f m, bearing %.0f deg"
+          % (len(segs), WALKAUDIT_PROV_TOL_M, WALKAUDIT_PROV_BEARING_DEG))
+    print("")
+    print("  %-22s %8s | %7s %6s | %8s %8s"
+          % ("pair", "drawn m", "footway", "road", "INVENT m", "INVENT %"))
+
+    tot = Counter()
+    tot_len = 0.0
+    rows = []
+    for a, b in pairs:
+        r = _wa_route(G, a, b)
+        if r is None:
+            continue
+        c = Counter()
+        drawn = 0.0
+        for kind, co in [("path", r["line"])] + [("leg", L) for L in r["legs"]]:
+            for i in range(len(co) - 1):
+                ax, ay = _wa_xy(*co[i])
+                bx, by = _wa_xy(*co[i + 1])
+                L = math.hypot(bx - ax, by - ay)
+                if L <= 0.001:
+                    continue
+                ux, uy = (bx - ax) / L, (by - ay) / L
+                n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+                step = L / n
+                for s in range(n):
+                    t = (s + 0.5) / n
+                    cls = _wa_prov_at(segs, ix, ax + (bx - ax) * t,
+                                      ay + (by - ay) * t, ux, uy)
+                    if cls is None:
+                        cls = "invent_leg" if kind == "leg" else "invent_graph"
+                    c[cls] += step
+                    drawn += step
+        tot.update(c)
+        tot_len += drawn
+        inv = c["invent_leg"] + c["invent_graph"]
+        rows.append((a + ">" + b, drawn,
+                     100.0 * c["foot"] / drawn if drawn else 0.0,
+                     100.0 * c["road"] / drawn if drawn else 0.0,
+                     inv, 100.0 * inv / drawn if drawn else 0.0))
+        print("  %-22s %8.0f | %6.1f%% %5.1f%% | %8.1f %7.1f%%" % rows[-1])
+
+    def T(*k):
+        return 100.0 * sum(tot[x] for x in k) / tot_len if tot_len else 0.0
+    inv = tot["invent_leg"] + tot["invent_graph"]
+    print("")
+    print("  %-22s %8.0f | %6.1f%% %5.1f%% | %8.1f %7.1f%%"
+          % ("ALL, weighted", tot_len, T("foot"), T("road"), inv, T("invent_leg", "invent_graph")))
+    print("")
+    print("  ON A REAL OSM FOOTWAY FEATURE   %6.2f %%" % T("foot"))
+    print("  ON ANY REAL OSM WAY             %6.2f %%" % T("foot", "road", "other"))
+    print("  INVENTED                        %6.2f %%   (%.0f m)"
+          % (T("invent_leg", "invent_graph"), inv))
+    print("     of which door legs           %8.0f m" % tot["invent_leg"])
+    print("     of which inside the graph    %8.0f m" % tot["invent_graph"])
+    print("")
+    print("  MEAN PER-ROUTE footway share    %6.2f %%   (unweighted, %d routes)"
+          % (sum(r[2] for r in rows) / len(rows) if rows else 0.0, len(rows)))
+    print("  WORST ROUTE                     %6.2f %% invented   (%s)"
+          % max(((r[5], r[0]) for r in rows), default=(0.0, "-")))
+    print("  routes at or above %.0f %% real   %d of %d"
+          % (WALKAUDIT_PROV_PASS_PCT,
+             sum(1 for r in rows if 100.0 - r[5] >= WALKAUDIT_PROV_PASS_PCT), len(rows)))
+    for nm, dr, ft, rd, im, ip in sorted(rows, key=lambda r: -r[5])[:5]:
+        print("    worst: %-22s %6.1f %% invented  (%.0f m of %.0f)" % (nm, ip, im, dr))
+    return rows
+
+
+# The bar this lane holds itself to per route, not just in the weighted mean:
+# a route where more than one metre in twenty is a line nobody surveyed is a
+# route this feature should not be drawing with a straight face.
+WALKAUDIT_PROV_PASS_PCT = 95.0
+
+
+# ── --coverage: THE OTHER DIRECTION — IS EVERY SIDEWALK USABLE? ────────────
+#
+# --prov walks the ROUTE and asks what it is standing on. That can read 98.5 %
+# while the router is quietly ignoring half the sidewalks on campus, because a
+# route can only be graded on the ground it actually visits. The brief's actual
+# sentence is the other direction — "so many sidewalks are not being utilized
+# properly... at least make sure existing sidewalks are identified properly and
+# used to the advantage" — and answering it means walking the SIDEWALKS and
+# asking whether each one is (a) painted in this scene and (b) reachable by the
+# router at all.
+#
+# The cell that matters is PAINTED BUT NOT ROUTABLE: a sidewalk a student can
+# see in the 3D city and the router will never send them down. Those are not
+# missing data. They are drawn, they are surveyed, and they are switched off.
+WALKAUDIT_COV_TOL_M = 0.30           # same gate as --prov
+WALKAUDIT_COV_MIN_RUN_M = 8.0        # report runs at least this long
+
+
+def _wa_graph_segments(G, main_only):
+    """Every walking-graph edge as (x1,y1,x2,y2), in local metres.
+    `main_only` drops the edges dijkstra() refuses to traverse (F 128)."""
+    out = []
+    # rebuild A/B the same way _wa_load_graph did
+    g = G["raw"]
+    e = len(g["e"]["a"])
+    a = 0
+    for i in range(e):
+        a += g["e"]["a"][i]
+        b = a + g["e"]["b"][i]
+        if main_only and (G["F"][i] & _WA_OFFMAIN):
+            continue
+        x1, y1 = _wa_xy(G["X"][a], G["Y"][a])
+        x2, y2 = _wa_xy(G["X"][b], G["Y"][b])
+        if x1 == x2 and y1 == y2:
+            continue
+        out.append((x1, y1, x2, y2, "edge"))
+    return out
+
+
+def _wa_coverage(G, polys, ix_paved):
+    """Walk every OSM footway on campus and grade it: painted? routable?"""
+    foot = [s for s in _wa_prov_segments() if s[4] == "foot"]
+    routable = _wa_graph_segments(G, True)
+    all_edges = _wa_graph_segments(G, False)
+    ix_r = _wa_prov_index(routable)
+    ix_a = _wa_prov_index(all_edges)
+    # Where the DEAD sidewalk is, not just how much of it. A number without a
+    # place cannot become a queue item, and this one is not this lane's to fix.
+    dead = []          # (metres, x, y) samples of painted-but-unroutable
+    unpainted = []     # (metres, x, y) samples of routable-but-unpainted
+
+    cell = Counter()
+    for (x1, y1, x2, y2, _c) in foot:
+        L = math.hypot(x2 - x1, y2 - y1)
+        if L <= 0.001:
+            continue
+        ux, uy = (x2 - x1) / L, (y2 - y1) / L
+        n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+        step = L / n
+        for s in range(n):
+            t = (s + 0.5) / n
+            px, py = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
+            paint = _wa_under(polys, ix_paved, px, py) is not None
+            rout = _wa_prov_at(routable, ix_r, px, py, ux, uy) is not None
+            ingraph = _wa_prov_at(all_edges, ix_a, px, py, ux, uy) is not None
+            cell[(paint, rout, ingraph)] += step
+            if paint and not rout:
+                dead.append((step, px, py))
+            elif rout and not paint:
+                unpainted.append((step, px, py))
+
+    tot = sum(cell.values())
+
+    def S(paint=None, rout=None, ingraph=None):
+        return sum(v for k, v in cell.items()
+                   if (paint is None or k[0] == paint)
+                   and (rout is None or k[1] == rout)
+                   and (ingraph is None or k[2] == ingraph))
+
+    print("")
+    print("  SIDEWALK COVERAGE — every OSM footway on campus, not just the routes")
+    print("  %.2f km of surveyed footway in data/osm_cache/footways.json" % (tot / 1000.0))
+    print("")
+    print("  %-42s %9s %7s" % ("", "km", "share"))
+    print("  %-42s %9.2f %6.1f%%" % ("painted in this scene", S(paint=True) / 1000.0,
+                                     100.0 * S(paint=True) / tot))
+    print("  %-42s %9.2f %6.1f%%" % ("in the walking graph at all", S(ingraph=True) / 1000.0,
+                                     100.0 * S(ingraph=True) / tot))
+    print("  %-42s %9.2f %6.1f%%" % ("ROUTABLE (graph, main component)", S(rout=True) / 1000.0,
+                                     100.0 * S(rout=True) / tot))
+    print("")
+    print("  %-42s %9.2f %6.1f%%" % ("PAINTED BUT NOT ROUTABLE",
+                                     S(paint=True, rout=False) / 1000.0,
+                                     100.0 * S(paint=True, rout=False) / tot))
+    print("  %-42s %9.2f %6.1f%%" % ("   ...of which in the graph but off-main",
+                                     S(paint=True, rout=False, ingraph=True) / 1000.0,
+                                     100.0 * S(paint=True, rout=False, ingraph=True) / tot))
+    print("  %-42s %9.2f %6.1f%%" % ("   ...of which not in the graph at all",
+                                     S(paint=True, rout=False, ingraph=False) / 1000.0,
+                                     100.0 * S(paint=True, rout=False, ingraph=False) / tot))
+    print("  %-42s %9.2f %6.1f%%" % ("ROUTABLE BUT NOT PAINTED",
+                                     S(paint=False, rout=True) / 1000.0,
+                                     100.0 * S(paint=False, rout=True) / tot))
+    _wa_clusters("DEAD SIDEWALK — painted, surveyed, and unroutable", dead, G)
+    # The unpainted set is graded at a much smaller grain on purpose: this is
+    # the half that IS this lane's file, so "no run big enough to see" has to be
+    # a measurement rather than a threshold that hid it.
+    _wa_clusters("ROUTABLE BUT UNPAINTED — this lane's own file", unpainted, G,
+                 min_m=WALKAUDIT_CLUSTER_MIN_OWN_M)
+    return cell
+
+
+# A cluster is every sample within this of another one. 40 m keeps one stranded
+# courtyard together and does not glue two neighbouring ones into one row.
+WALKAUDIT_CLUSTER_M = 40.0
+WALKAUDIT_CLUSTER_MIN_M = 60.0     # rows shorter than this are not worth a name
+WALKAUDIT_CLUSTER_MIN_OWN_M = 10.0  # …but grade THIS lane's own file finely
+WALKAUDIT_CLUSTER_SHOW = 10
+
+
+def _wa_clusters(title, samples, G, min_m=None):
+    """Group loose samples into places and name each by its nearest door."""
+    if min_m is None:
+        min_m = WALKAUDIT_CLUSTER_MIN_M
+    if not samples:
+        print("")
+        print("  %s — nothing" % title)
+        return
+    g = WALKAUDIT_CLUSTER_M
+    cellmap = {}
+    for i, (m, x, y) in enumerate(samples):
+        cellmap.setdefault((int(x // g), int(y // g)), []).append(i)
+    seen = [False] * len(samples)
+    groups = []
+    for key in list(cellmap):
+        for i in cellmap[key]:
+            if seen[i]:
+                continue
+            stack, members = [i], []
+            seen[i] = True
+            while stack:
+                j = stack.pop()
+                members.append(j)
+                _m, jx, jy = samples[j]
+                cx, cy = int(jx // g), int(jy // g)
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        for k in cellmap.get((cx + dx, cy + dy), ()):
+                            if not seen[k]:
+                                seen[k] = True
+                                stack.append(k)
+            groups.append(members)
+
+    q = G["q"]
+    doors = [(d[0] * q, d[1] * q, d[7]) for d in G["doors"] if d[7]]
+    rows = []
+    for mem in groups:
+        L = sum(samples[j][0] for j in mem)
+        if L < min_m:
+            continue
+        cx = sum(samples[j][1] for j in mem) / len(mem)
+        cy = sum(samples[j][2] for j in mem) / len(mem)
+        lon, lat = cx / 96061.0, cy / 111195.0
+        near, nd = "", 1e9
+        for dl, dt, nm in doors:
+            dx, dy = _wa_xy(dl, dt)
+            d = math.hypot(dx - cx, dy - cy)
+            if d < nd:
+                nd, near = d, nm
+        rows.append((L, lon, lat, near, nd))
+    rows.sort(reverse=True)
+    print("")
+    print("  %s — %d places over %.0f m, %.2f km of the total"
+          % (title, len(rows), min_m, sum(r[0] for r in rows) / 1000.0))
+    for L, lon, lat, near, nd in rows[:WALKAUDIT_CLUSTER_SHOW]:
+        print("    %7.0f m  %.5f,%.5f   nearest door: %s (%.0f m)"
+              % (L, lon, lat, near[:44], nd))
+
+
+# ── --surfaces: WHAT IS PAINTED UNDER EVERY SURVEYED SIDEWALK? ─────────────
+#
+# --coverage grades a sidewalk metre as "painted" if ANY hard surface is under
+# it, and WALKAUDIT_PAVED includes `roadarea`. That is the right test for "is
+# there a hole in the ground file" and the wrong one for "is this sidewalk drawn
+# as a sidewalk": a surveyed walk with asphalt under it reads as covered, and
+# the walking ribbon standing on it floats 22 cm (WAYFIND.routeBaseM is pinned
+# to GROUND.pathRaise, and a road is a flat fill at zero).
+#
+# So this splits the same 160.78 km two ways: by whether the OSM way is a
+# CROSSING — where carriageway paint is correct and deliberate, see
+# CROSSING_APRON_M — and by what is actually drawn under it. The cell that
+# matters is ALONGSIDE x roadarea: a non-crossing sidewalk painted as street.
+def _wa_surfaces(polys, ix):
+    cell = Counter()
+    runs = []
+    for w in load("footways"):
+        if w.get("type") != "way":
+            continue
+        geo = w.get("geometry") or []
+        if len(geo) < 2:
+            continue
+        t = w.get("tags", {}) or {}
+        if t.get("highway", "") not in WALKAUDIT_PROV_FOOT:
+            continue
+        # the same test main() uses to decide whether to emit aprons instead of
+        # a path, plus the cycleway spelling widen_roads' loop uses
+        is_x = (t.get("footway") == "crossing" or t.get("cycleway") == "crossing"
+                or t.get("crossing") is not None)
+        kind = "crossing" if is_x else "alongside"
+        pts = [_wa_xy(c["lon"], c["lat"]) for c in geo]
+        for i in range(len(pts) - 1):
+            (x1, y1), (x2, y2) = pts[i], pts[i + 1]
+            L = math.hypot(x2 - x1, y2 - y1)
+            if L <= 0.001:
+                continue
+            n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+            step = L / n
+            for s in range(n):
+                u = (s + 0.5) / n
+                px, py = x1 + (x2 - x1) * u, y1 + (y2 - y1) * u
+                lab = _wa_under(polys, ix, px, py) or "BARE"
+                cell[(kind, lab)] += step
+                if kind == "alongside" and lab in ("roadarea", "cyclearea"):
+                    runs.append((step, px, py))
+
+    tot = sum(cell.values())
+    print("")
+    print("  WHAT IS PAINTED UNDER EVERY SURVEYED SIDEWALK")
+    print("  %.2f km of surveyed footway, sampled every %.1f m"
+          % (tot / 1000.0, WALKAUDIT_SAMPLE_M))
+    for kind in ("alongside", "crossing"):
+        sub = {k[1]: v for k, v in cell.items() if k[0] == kind}
+        st = sum(sub.values())
+        if not st:
+            continue
+        print("")
+        print("  %-12s %8.2f km" % (kind.upper(), st / 1000.0))
+        for k, v in sorted(sub.items(), key=lambda kv: -kv[1]):
+            print("      %-12s %8.2f km  %5.1f%%" % (k, v / 1000.0, 100.0 * v / st))
+    print("")
+    # Split, because the two are not the same defect. A carriageway is a STREET
+    # and a sidewalk drawn as one is wrong. A `cyclearea` is a drawn cycleway out
+    # of data/roads.geojson, and a footway sharing ground with one is usually a
+    # genuine shared-use path -- it is not a cutter here and this change does not
+    # touch it, so it is reported separately rather than folded into the headline.
+    print("  SURVEYED NON-CROSSING SIDEWALK PAINTED AS CARRIAGEWAY  %.2f km"
+          % (cell[("alongside", "roadarea")] / 1000.0))
+    print("  ...and as a drawn cycleway (shared path, not this change)  %.2f km"
+          % (cell[("alongside", "cyclearea")] / 1000.0))
+    print("  (SIDEWALK_KEEP_HALF_M = %.2f m)" % SIDEWALK_KEEP_HALF_M)
+    return cell
+
+
+# ── --islands: CAN THE STRANDED SIDEWALKS BE HONESTLY RECONNECTED? ─────────
+#
+# --coverage found 5.75 km of painted, surveyed, unroutable sidewalk and §21 of
+# docs/walk-sidewalks.md asked the bake_walk lane to close the gaps: "a rule
+# that closed gaps up to ~3 m would reconnect 175 m". THAT REQUEST WAS WRONG and
+# this is the instrument that says so. A gap distance cannot tell an unmapped
+# CONNECTION from an unmapped ROAD CROSSING, and the scene already knows which
+# is which — it paints the ground. So classify every candidate connector by what
+# is drawn under it, and only a connector that runs entirely on pedestrian
+# pavement is a topology artefact this project may repair.
+WALKAUDIT_ISLAND_MAX_GAP_M = 20.0     # candidates wider than this are not close
+WALKAUDIT_ISLAND_MIN_RUN_M = 8.0      # components shorter than this are noise
+WALKAUDIT_ISLAND_STEP_M = 0.25        # sampling along the connector
+
+
+def _wa_islands(G, polys, ix):
+    g = G["raw"]
+    e = len(g["e"]["a"])
+    A = [0] * e
+    B = [0] * e
+    a = 0
+    for i in range(e):
+        a += g["e"]["a"][i]
+        A[i] = a
+        B[i] = a + g["e"]["b"][i]
+    N = G["N"]
+    PX = [0.0] * N
+    PY = [0.0] * N
+    for i in range(N):
+        PX[i], PY[i] = _wa_xy(G["X"][i], G["Y"][i])
+
+    par = list(range(N))
+
+    def find(x):
+        while par[x] != x:
+            par[x] = par[par[x]]
+            x = par[x]
+        return x
+
+    off = [i for i in range(e) if G["F"][i] & _WA_OFFMAIN]
+    for i in off:
+        rx, ry = find(A[i]), find(B[i])
+        if rx != ry:
+            par[rx] = ry
+    is_main = [False] * N
+    for i in range(e):
+        if not (G["F"][i] & _WA_OFFMAIN):
+            is_main[A[i]] = True
+            is_main[B[i]] = True
+
+    grid = WALKAUDIT_GRID_M
+    mix = {}
+    for i in range(N):
+        if is_main[i]:
+            mix.setdefault((int(PX[i] // grid), int(PY[i] // grid)), []).append(i)
+
+    def nearest_main(n):
+        c = int(WALKAUDIT_ISLAND_MAX_GAP_M // grid) + 1
+        cx, cy = int(PX[n] // grid), int(PY[n] // grid)
+        best = (1e18, -1)
+        for dx in range(-c, c + 1):
+            for dy in range(-c, c + 1):
+                for m in mix.get((cx + dx, cy + dy), ()):
+                    d = math.hypot(PX[n] - PX[m], PY[n] - PY[m])
+                    if d < best[0]:
+                        best = (d, m)
+        return best
+
+    comp = {}
+    for i in off:
+        comp.setdefault(find(A[i]), []).append(i)
+
+    rows = []
+    for root, eds in comp.items():
+        L = sum(G["W"][i] for i in eds) / 100.0
+        if L < WALKAUDIT_ISLAND_MIN_RUN_M:
+            continue
+        nodes = set()
+        for i in eds:
+            nodes.add(A[i])
+            nodes.add(B[i])
+        best = (1e18, -1, -1)
+        for n in nodes:
+            d, m = nearest_main(n)
+            if m >= 0 and d < best[0]:
+                best = (d, n, m)
+        if best[1] < 0 or best[0] > WALKAUDIT_ISLAND_MAX_GAP_M:
+            continue
+        gap, n, m = best
+        k = max(4, int(gap / WALKAUDIT_ISLAND_STEP_M) + 1)
+        c = Counter()
+        for s in range(k + 1):
+            t = s / k
+            px = PX[n] + (PX[m] - PX[n]) * t
+            py = PY[n] + (PY[m] - PY[n]) * t
+            c[_wa_under(polys, ix, px, py) or "BARE"] += 1.0 / (k + 1)
+        rows.append((gap, L, c, G["X"][n], G["Y"][n]))
+
+    rows.sort()
+    print("")
+    print("  STRANDED SIDEWALK — WHAT WOULD A STITCH HAVE TO CROSS?")
+    print("  %d components of >= %.0f m within %.0f m of the network"
+          % (len(rows), WALKAUDIT_ISLAND_MIN_RUN_M, WALKAUDIT_ISLAND_MAX_GAP_M))
+    print("")
+    print("  %7s %9s %7s %7s %7s   %s"
+          % ("gap m", "island m", "walk%", "road%", "bare%", "lon,lat"))
+    for gap, L, c, lon, lat in rows:
+        walk = 100.0 * (c["patharea"] + c["pathslab"] + c["plaza"])
+        road = 100.0 * (c["roadarea"] + c["cyclearea"])
+        bare = 100.0 * c["BARE"]
+        print("  %7.2f %9.1f %6.0f%% %6.0f%% %6.0f%%   %.5f,%.5f"
+              % (gap, L, walk, road, bare, lon, lat))
+
+    print("")
+    print("  IF A GAP RULE WERE APPLIED AT EACH THRESHOLD")
+    print("  %7s %10s %8s | %10s %8s"
+          % ("gap<=", "km back", "stitches", "km on PAVING", "stitches"))
+    for lim in (2.0, 3.0, 4.0, 5.0, 8.0, 12.0, 20.0):
+        blind = [r for r in rows if r[0] <= lim]
+        pure = [r for r in blind
+                if (r[2]["patharea"] + r[2]["pathslab"] + r[2]["plaza"]) >= 0.999]
+        print("  %7.1f %10.3f %8d | %10.3f %8d"
+              % (lim, sum(r[1] for r in blind) / 1000.0, len(blind),
+                 sum(r[1] for r in pure) / 1000.0, len(pure)))
+    return rows
+
+
+def walkaudit(pairs=None, where=False, prov=False, coverage=False,
+              surfaces=False, islands=False):
+    """Print the pavement table. Bakes nothing."""
+    if not os.path.exists(OUT):
+        print("no %s — run the bake first" % OUT)
+        return 2
+    pairs = WALKAUDIT_PAIRS if pairs is None else pairs
+    polys = _wa_paved_polys()
+    ix = _wa_index(polys)
+    G = _wa_load_graph()
+
+    print("PAVEMENT UNDER THE WALKING ROUTE")
+    print("  ground   %s (%d hard-surface polygons)" % (os.path.basename(OUT), len(polys)))
+    print("  graph    data/walk_graph.json, as of %s" % G["raw"].get("as_of", "?"))
+    print("  method   %s pairs, sampled every %.1f m of drawn ribbon"
+          % (len(pairs), WALKAUDIT_SAMPLE_M))
+    print("")
+    head = ("pair", "drawn m", "leg m", "path", "mall", "road", "other", "BARE")
+    print("  %-22s %8s %7s | %6s %6s %6s %6s | %7s" % head)
+
+    grand = Counter()
+    grand_len = 0.0
+    rows = []
+    for a, b in pairs:
+        r = _wa_route(G, a, b)
+        if r is None:
+            print("  %-22s   NO ROUTE" % (a + ">" + b))
+            continue
+        c = Counter()
+        legm = 0.0
+        drawn = 0.0
+        parts = [("path", r["line"])] + [("leg", L) for L in r["legs"]]
+        for kind, co in parts:
+            for i in range(len(co) - 1):
+                ax, ay = _wa_xy(*co[i])
+                bx, by = _wa_xy(*co[i + 1])
+                L = math.hypot(bx - ax, by - ay)
+                if L <= 0.001:
+                    continue
+                n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+                step = L / n
+                for s in range(n):
+                    t = (s + 0.5) / n
+                    lab = _wa_under(polys, ix, ax + (bx - ax) * t, ay + (by - ay) * t)
+                    c[lab or "BARE"] += step
+                    drawn += step
+                    if kind == "leg":
+                        legm += step
+        grand.update(c)
+        grand_len += drawn
+
+        def P(*keys):
+            return 100.0 * sum(c[k] for k in keys) / drawn if drawn else 0.0
+        # `patharea` is split in the report because "mall" is the answer to a
+        # different question: a mall slab is a walk, but it is the one the
+        # router rides the OUTLINE of rather than crossing.
+        rows.append((a + ">" + b, drawn, legm, P("patharea"), P("plaza"),
+                     P("roadarea"), P("pathslab", "cyclearea"), P("BARE")))
+        print("  %-22s %8.0f %7.0f | %5.1f%% %5.1f%% %5.1f%% %5.1f%% | %6.1f%%" % rows[-1])
+
+    def T(*keys):
+        return 100.0 * sum(grand[k] for k in keys) / grand_len if grand_len else 0.0
+    print("")
+    print("  %-22s %8.0f %7s | %5.1f%% %5.1f%% %5.1f%% %5.1f%% | %6.1f%%"
+          % ("ALL, weighted", grand_len, "", T("patharea"), T("plaza"),
+             T("roadarea"), T("pathslab", "cyclearea"), T("BARE")))
+    print("")
+    print("  ON A DRAWN SURFACE        %6.2f %%" % (100.0 - T("BARE")))
+    print("  ON A DRAWN WALK (path)    %6.2f %%" % T("patharea"))
+    print("  OVER BARE GROUND          %6.2f %%   (%.0f m)"
+          % (T("BARE"), grand["BARE"]))
+    print("")
+    worst = sorted(rows, key=lambda r: -r[7])[:5]
+    print("  worst five:")
+    for w in worst:
+        print("    %-22s %6.1f %% bare" % (w[0], w[7]))
+    if where:
+        _wa_where(polys, ix, G, pairs)
+    if prov:
+        _wa_prov(G, pairs)
+    if coverage:
+        _wa_coverage(G, polys, ix)
+    if surfaces:
+        _wa_surfaces(polys, ix)
+    if islands:
+        _wa_islands(G, polys, ix)
+    return 0
+
+
 def main():
     feats = []
     stats = Counter()
@@ -3009,15 +4357,58 @@ def main():
         if hw not in ("footway", "steps", "path", "pedestrian"):
             continue
         # A pedestrian AREA is a plaza, not a line — handled with the areas.
+        # Its RIM is both, though: bake_walk.py puts this same closed way into
+        # the walking graph as a ring of edges and routes people along it, so
+        # the walk's own width gets painted here or the ribbon hangs off the
+        # side of the polygon. See PEDESTRIAN_RIM_IS_A_WALK.
         if t.get("area") == "yes":
-            continue
-        # Skip crossings: they are road markings, and drawing them as paths
-        # lays pale ribbons across every street.
-        if t.get("footway") == "crossing" or t.get("crossing"):
-            stats["skipped_crossing"] += 1
+            coords = [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]]
+            if (PEDESTRIAN_RIM_IS_A_WALK and hw == "pedestrian"
+                    and len(coords) > 3 and coords[0] == coords[-1]):
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "LineString", "coordinates": coords},
+                    "properties": {
+                        "k": "path", "u": "footway",
+                        # the mall's OWN surface, so the hem is the mall's own
+                        # colour rather than a ring of a different concrete
+                        "s": surface_of(t, "pedestrian")[0],
+                        "w": PEDESTRIAN_RIM_WALK_M, "wt": 0,
+                        # derived from a mall outline, not a surveyed walk
+                        # centreline: the carriageway cut still applies to it,
+                        # which is the third of the three things §13 of
+                        # docs/walk-sidewalks.md says makes the rim safe.
+                        DERIVED_PATH_KEY: 1,
+                    },
+                })
+                stats["pedestrian_rim_walk"] += 1
+            else:
+                stats["skipped_area_way"] += 1
             continue
         coords = [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]]
         if len(coords) < 2:
+            continue
+        # Skip crossings: they are road markings, and drawing them as paths
+        # lays pale ribbons across every street. Their two KERB APRONS are not
+        # road markings though -- they are the ramp the sidewalk is missing --
+        # so those go in as ordinary footway. See CROSSING_APRON_M.
+        if t.get("footway") == "crossing" or t.get("crossing"):
+            stats["skipped_crossing"] += 1
+            for ap in crossing_aprons(coords):
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "LineString", "coordinates": ap},
+                    "properties": {"k": "path", "u": "footway",
+                                   "s": CROSSING_APRON_SURFACE,
+                                   "w": DEFAULT_WIDTH["footway"], "wt": 0,
+                                   # an apron is this bake's own extrapolation
+                                   # past the last surveyed node, so the
+                                   # carriageway still trims it — that is the
+                                   # guarantee in CROSSING_APRON_M's own note
+                                   # that an overshoot cannot ship.
+                                   DERIVED_PATH_KEY: 1},
+                })
+                stats["crossing_apron"] += 1
             continue
         use = "steps" if hw == "steps" else hw
         surf, tagged = surface_of(t, use)
@@ -3066,8 +4457,22 @@ def main():
             rings = rings_from_relation(el)
         if not rings:
             continue
-        surf, _ = surface_of(t, "plaza")
+        # A `highway=pedestrian` polygon is a MALL — a walk you step up onto —
+        # and belongs in the path band with every other walk. Anything else in
+        # this cache (traffic islands, stepped terraces tagged `area:highway`)
+        # keeps the flat plaza treatment it has always had.
+        mall = PEDESTRIAN_AREA_IS_A_WALK and t.get("highway") == "pedestrian"
+        surf, _ = surface_of(t, "pedestrian" if mall else "plaza")
         for r in rings:
+            if mall:
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "Polygon", "coordinates": [r]},
+                    "properties": {"k": "patharea", "u": "pedestrian", "s": surf,
+                                   **({"name": t["name"]} if t.get("name") else {})},
+                })
+                stats["pedestrian_mall_area"] += 1
+                continue
             feats.append({
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": [r]},
@@ -3206,6 +4611,11 @@ def main():
     # and a direction is a property of a LINE, not of the union of a thousand of
     # them. Held until after the resolver; see score_walks.
     walk_runs = walk_direction_runs(feats, stats)
+    # BEFORE widen_paths, for the same reason walk_direction_runs is: the walks
+    # are still surveyed centrelines here, and after it they are one unioned
+    # polygon per (use, surface) with no way left to tell a surveyed sidewalk
+    # from an apron this bake extrapolated. See SIDEWALK_KEEP_HALF_M.
+    keep_cores = sidewalk_keep_polys(feats, stats)
     feats = widen_paths(feats, stats, warnings)
     # AFTER widen_paths on purpose: a garden's beds are derived from the
     # walks around them and paths are still LineStrings until then. The
@@ -3236,7 +4646,8 @@ def main():
     feats = deck_creek_crossings(feats, road_feats, stats, warnings)
 
     before = count_conflicts(feats, roads_m)
-    feats = resolve_ground_conflicts(feats, roads_m, stats, warnings)
+    feats = resolve_ground_conflicts(feats, roads_m, stats, warnings,
+                                     keep_polys=keep_cores)
     after = count_conflicts(feats, roads_m)
 
     # AFTER the resolver, deliberately. The planted zones are still the raw
@@ -3310,4 +4721,37 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
+    if "--walkaudit" in sys.argv:
+        # AUDIT ONLY. Reads the ground already on disk and never writes it, so
+        # it can be run against a shipped file to grade it.
+        #   --pairs house   grade the twenty in scripts/verify/walk-pairs.json
+        #                   instead, so a number here lines up with the ones
+        #                   scripts/verify/walkmeter.mjs prints
+        #   --where         bin the bare metres by distance to pavement, i.e.
+        #                   "is this a missing sidewalk or a missing hem"
+        #   --prov          the OTHER half of the goal: per route, how much of
+        #                   the ribbon is a real OSM way and how much is a line
+        #                   this project invented
+        #   --surfaces      walk every surveyed sidewalk and say what is drawn
+        #                   UNDER it — the cell that matters is a non-crossing
+        #                   sidewalk painted as carriageway
+        #   --islands       every stranded sidewalk component and what a stitch
+        #                   to it would have to cross
+        pairs = None
+        if "--pairs" in sys.argv:
+            which = sys.argv[sys.argv.index("--pairs") + 1]
+            if which == "house":
+                pairs = walkaudit_house_pairs()
+                if pairs is None:
+                    print("no %s on this branch" % WALKAUDIT_HOUSE_PAIRS_JSON)
+                    sys.exit(2)
+            elif which != "own":
+                print("--pairs takes `house` or `own`")
+                sys.exit(2)
+        sys.exit(walkaudit(pairs=pairs, where="--where" in sys.argv,
+                           prov="--prov" in sys.argv,
+                           coverage="--coverage" in sys.argv,
+                           surfaces="--surfaces" in sys.argv,
+                           islands="--islands" in sys.argv))
     main()
