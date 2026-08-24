@@ -1018,8 +1018,8 @@
     'WWH 30.289318 -97.741895 W Y Y',
   ];
   let utByCode = null;
-  function utTruth(code) {
-    if (!code || !WAYFIND.useUTSurvey) return null;
+  /** The table, parsed. NOT gated on anything — see wayfindUTDoors below. */
+  function utIndex() {
     if (!utByCode) {
       utByCode = new Map();
       for (const row of UT_CELEBRATED) {
@@ -1029,7 +1029,13 @@
         if (utByCode.has(k)) utByCode.get(k).push(rec); else utByCode.set(k, [rec]);
       }
     }
-    return utByCode.get(code.toUpperCase()) || null;
+    return utByCode;
+  }
+  /** What the ROUTER is allowed to use. `useUTSurvey` is the master switch and
+   *  it belongs here, on the routing path, and nowhere else. */
+  function utTruth(code) {
+    if (!code || !WAYFIND.useUTSurvey) return null;
+    return utIndex().get(code.toUpperCase()) || null;
   }
   // Exposed so a verify script can score the router against UT's own answer
   // without re-fetching ArcGIS, and so the count in docs/walk-door.md is read
@@ -1043,8 +1049,16 @@
   // without anything failing. Deliberately NOT gated on useUTSurvey: the
   // held-out pass turns the survey off inside the ROUTER and still has to score
   // itself against it, so the oracle must survive its own master switch.
+  //
+  // IT DID NOT, UNTIL 2026-08-24, AND THE COMMENT ABOVE WAS THE ONLY PLACE THAT
+  // SAID SO. The per-code branch went through utTruth(), which returns null the
+  // moment useUTSurvey is false — so the A/B pass that turns the survey off
+  // silently lost the ground truth it was being scored against and fell back to
+  // a coarser proxy, comparing 30 ends against 38 and calling it a before-and-
+  // after. Reading the table directly is the fix; the switch stays where it
+  // belongs, on the routing path.
   window.wayfindUTDoors = function (code) {
-    if (code) return (utTruth(code) || []).slice();
+    if (code) return (utIndex().get(String(code).toUpperCase()) || []).slice();
     const codes = [];
     for (const row of UT_CELEBRATED) {
       const c = row.slice(0, row.indexOf(' '));
@@ -1063,6 +1077,17 @@
       // how far the dashed "not a mapped path" leg to this door runs, in
       // metres — the thing utVirtualSnapM caps.
       linkM: (d[3] && d[3].length) ? Math.min.apply(null, d[3]) / 100 : null,
+      // WHERE IT ATTACHES TO THE NETWORK, so an offline replay can route to a
+      // door that exists only in this tab. scripts/verify/walkmeter.mjs keeps
+      // its own Dijkstra and self-checks it against the browser's number every
+      // run; a virtual door (src:'ut') has no index in the served
+      // data/walk_graph.json, so without these two fields that self-check has
+      // to be SKIPPED for exactly the doors this lane added — the ones most in
+      // need of checking. `virtual` is not a guess: it is whether this record
+      // was pushed on at run time rather than baked.
+      nodes: (d[2] || []).slice(),
+      costM: (d[3] || []).map(c => c / 100),
+      virtual: utVirtualIdx.has(di),
     };
   };
   // The candidate doors for one building, without routing anywhere — so the
@@ -1095,6 +1120,10 @@
   // (see docs/walk-door.md); once data/walk_graph.json is rebaked from the new
   // data/entrances.geojson these become ordinary doors and this never fires.
   const utVirtual = new Map();
+  // Which door indices this file invented at run time. `wayfindDoorAt` reports
+  // it so a verify script can tell a baked door from one that exists only in
+  // this tab, and route to the second anyway.
+  const utVirtualIdx = new Set();
 
   // ── THE STEP-FREE COMPONENT, and the Main Building bug that found it ──────
   //
@@ -1188,6 +1217,7 @@
       g.doors.push([Math.round(t.lon / g.q), Math.round(t.lat / g.q),
         [s.node], [Math.round(s.m * 100)], 'main', 'ut', entry.code || '',
         entry.display || '']);
+      utVirtualIdx.add(di);
     }
     utVirtual.set(key, di);
     return di;
@@ -1996,7 +2026,31 @@
 
     btn.addEventListener('click', () => openSheet());
     close.addEventListener('click', () => closeSheet());
-    pill.addEventListener('click', () => { state.expanded = !state.expanded; renderPill(); });
+    // A CLICK ON A CONTROL IS NOT A CLICK ON THE PILL, and getting that wrong
+    // cost the one feature Simeon named. The card's buttons each call
+    // stopPropagation, but a CHECKBOX cannot be fixed that way: a checkbox
+    // fires `change` only AFTER its click has finished bubbling, so by the time
+    // the box's own handler would run, this listener has already flipped
+    // `state.expanded` to false and renderPill() has emptied `#wf-card` — the
+    // input is detached from the document, Chrome drops its activation, and
+    // nothing happens at all.
+    //
+    // Measured on this page, 2026-08-24, real mouse click at the "Avoid stairs"
+    // box's own pixel centre (docs/walk-door.md round 4 §1): checkbox still
+    // unchecked, card shut, headline still reading "Stairs: 1 set", route
+    // unchanged at 260 m — while the same route asked through the API with
+    // avoidStairs:true comes back 166 m with no stairs at all. The routing was
+    // right the whole time; the control that turns it on was unreachable.
+    //
+    // So guard once, here, rather than per control: anything interactive inside
+    // the pill owns its own click, and the expand/collapse gesture is only ever
+    // a click on the pill's own text.
+    const WF_CONTROL_SEL = 'input, button, select, textarea, label, a';
+    pill.addEventListener('click', (ev) => {
+      const t = ev.target;
+      if (t && t.closest && t.closest(WF_CONTROL_SEL)) return;
+      state.expanded = !state.expanded; renderPill();
+    });
     for (const inp of [inFrom, inTo]) {
       inp.addEventListener('input', () => renderList(inp));
       inp.addEventListener('focus', () => renderList(inp));

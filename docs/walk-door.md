@@ -745,3 +745,329 @@ route ends at are up to 18 m apart.** Neither is wrong — one is on the wall, t
 other is UT's survey point — but they are two objects and they will stay two
 objects until `data/walk_graph.json` is rebaked (§7). Written down here so the
 next lane meets it as a known seam rather than as a mystery.
+
+# Round 4, 2026-08-24 — the checkbox nobody could click, and two rulers made into one
+
+Round 3's own critic pass ended on a defect it could not fix inside its budget:
+the routing behind "Avoid stairs" was clean on 9/9 buildings **through the API**,
+and the checkbox a person actually clicks did nothing. That is round 4's first
+job. The second is that `origin/main` has since merged a *different*
+`scripts/verify/walkmeter.mjs` and a *different* `scripts/verify/walk-pairs.json`
+from the baseline lane — two instruments with the same filename measuring two
+different quantities, which is the worst thing that can happen to a shared
+scoreboard. They are one instrument now.
+
+---
+
+## 1. The checkbox — reproduced, understood, fixed, and photographed
+
+**Reproduced first, on the real page, with a real mouse.** Not inferred from the
+source. Route WCH → MAI, card expanded, `page.mouse.click()` at the checkbox's
+own pixel centre:
+
+```
+BEFORE  found=true  checked=false  box at (387.5, 116.9)  "3-5 min walk · 260 m · Stairs: 1 set"
+AFTER   the input is GONE from the document (stillThere=false)
+        card hidden=true
+        headline unchanged — "3-5 min walk · 260 m · Stairs: 1 set"
+        the same route through the API with avoidStairs:true — 166.2 m, 0 stair sets
+```
+
+So the toggle was hiding a route that is **95 m shorter and has no stairs at
+all**, and there was no way for a person to reach it.
+
+**THE MECHANISM.** `#wf-pill` carries a click listener that flips
+`state.expanded` and calls `renderPill()`, and `renderPill()` opens with
+`el.card.innerHTML = ''`. A checkbox does not fire `change` during its click —
+it fires it in the *activation behaviour*, which runs **after** the click has
+finished bubbling. So the order on every click was:
+
+1. click on the input bubbles up to the pill,
+2. the pill collapses the card and `renderPill()` empties it,
+3. the input is now detached from the document, Chrome drops the activation,
+4. `change` never fires, `state.avoid` never moves, `run()` is never called.
+
+Every *button* in the card already dodged this by calling `stopPropagation` in
+its own handler — the chips, `Show route`, `Clear`. A checkbox cannot be fixed
+that way, because by the time its handler would run it is already too late.
+
+**THE FIX is a guard at the source, not a patch at the leaf.** The pill's
+expand/collapse gesture now ignores clicks that originate on anything
+interactive:
+
+```js
+const WF_CONTROL_SEL = 'input, button, select, textarea, label, a';
+pill.addEventListener('click', (ev) => {
+  const t = ev.target;
+  if (t && t.closest && t.closest(WF_CONTROL_SEL)) return;
+  state.expanded = !state.expanded; renderPill();
+});
+```
+
+One place, for every control the card will ever hold, rather than one
+`stopPropagation` per control and a new bug the next time someone adds one.
+
+**Measured after, same script, same pixel:**
+
+```
+after one click       checked=true   card open=true   "1-3 min walk · 170 m · No stairs on this route"
+after clicking back   checked=false  card open=true   "3-5 min walk · 260 m · Stairs: 1 set"
+```
+
+**And the thing the fix could plausibly have broken is now asserted too.** A
+guard that is too wide would leave the card permanently stuck open, and no
+number in this document would notice. So the gate also clicks the pill's *own
+text* twice and requires the card to collapse and reopen: `yes`.
+
+Pictures, and the route visibly changes, not just the words —
+`shots/walk/door/r3-stairs-off.jpg` and `shots/walk/door/r3-stairs-on.jpg`: the
+same pose over the Main Building, box unticked with a long ribbon running the
+length of the South Mall front, box ticked with a shorter one curling round the
+north side.
+
+**It is in the harness now, so it cannot rot.** `walkmeter.mjs` ends with a live
+UI gate that drives the real control with a real mouse and fails the run if the
+route does not change. An API-only harness said this feature worked for three
+rounds.
+
+---
+
+## 2. Two walkmeters, one instrument
+
+`origin/main` (PR #222, the baseline lane) now ships `walkmeter.mjs` and
+`walk-pairs.json` at the same paths this lane had been using. They are not
+duplicates — they measure different things:
+
+| | what it asks | what it says on `origin/main` |
+|---|---|---|
+| **A. route-length extra** (baseline lane) | app route length − the route forced to the ground-truth door | **795.3 m** over the pairs it hurts, **+209.5 m** signed |
+| **B. door-offset extra** (this lane) | metres from the door the router picked to the nearest door UT publishes, both ends | **1151.6 m**, **7/38** ends at the right door |
+
+**Both are kept, because each is blind to what the other catches.** A shorter
+route to the wrong door scores *well* on A and badly on B, and B is right —
+the metres you then walk around the building are real and simply go uncounted.
+And A catches what B cannot see: `docs/walk-baseline.md` measured that forcing
+every building onto one published door makes nine of nineteen pairs *longer*,
+because a building can have two real front doors on different sides. A rule that
+wins on B and loses on A has traded one complaint for another.
+
+**Main's pair list is the house pair list**, adopted verbatim — it is on trunk,
+it carries a per-pair UT citation, and the other four w-* lanes are told to run
+against it. This lane's own 20-pair file was dropped rather than kept alongside.
+
+**The reconciliation is proved, not asserted.** The merged script was pointed at
+a clean `origin/main` checkout (extracted with `git archive`, served on the same
+port, one server at a time):
+
+```
+    total, over pairs it makes worse    795.3 m      <- docs/walk-baseline.md says 795.3 m
+    signed total                       +209.5 m      <- that doc says +209.5 m
+    worst offender             eer-nhb +298 m        <- that doc says EER→NHB +298.1 m
+    self-check drift                    0.00 m on all 20 pairs
+```
+
+To the decimal. The merge lost nothing.
+
+**Two things had to be added for the merged script to be honest on this branch.**
+
+- **The self-check now survives a run-time door.** Main's script replays the
+  app's chosen doors through its own Dijkstra and fails loud on disagreement —
+  but a UT entrance our bake never placed is created in the tab and has no index
+  in the served `data/walk_graph.json`, so that check would have had to be
+  *skipped for exactly the doors this lane added*. `wayfindDoorAt()` now reports
+  `nodes`, `costM` and `virtual`, and the replay uses them. Drift: **0.00 m on
+  all 20 pairs**, virtual doors included.
+- **A bake hole no longer eats metric B.** BIO's UT-matched graph door (index
+  286) carries empty node arrays — it was never snapped to the network, which
+  `docs/walk-baseline.md` §2 found and flagged. Metric A is unmeasurable for
+  PHR → BIO by construction. Main's script dropped the whole pair and exited 1;
+  it now warns, scores metric B anyway (**0.0 m** — this branch walks to UT's own
+  coordinate), and does not fail the run for someone else's bake gap.
+
+---
+
+## 3. The A/B had been lying, and its own comment said so
+
+`window.wayfindUTDoors(code)` carried this comment since round 3:
+
+> Deliberately NOT gated on `useUTSurvey`: the held-out pass turns the survey off
+> inside the ROUTER and still has to score itself against it, so the oracle must
+> survive its own master switch.
+
+It did not. The per-code branch went through `utTruth()`, which returns `null`
+the moment `useUTSurvey` is false. So the "doors off" column silently lost the
+ground truth it was being scored against, fell back to the pair file's coarser
+proxy, and compared **30 ends against 38** while printing them side by side.
+
+The table is now read through an ungated `utIndex()`; the switch stays on the
+routing path where it belongs. The A/B below is the first one in this document
+where both columns are scored on the same oracle over the same ends.
+
+---
+
+## 4. THE NUMBERS — same page, same graph, same browser, only the rule differs
+
+`--baseline` is not an old checkout: it is this page with `useUTSurvey`,
+`utVirtualDoors` and `widenSideDoors` turned off. That configuration reproduces
+`origin/main`'s numbers exactly, which is the check that it really is the
+"before".
+
+```
+                                          doors off       shipped
+A. ROUTE-LENGTH EXTRA
+   total, over pairs it makes worse        795.3 m        162.1 m
+   signed total (credit for the rest)     +209.5 m       -276.7 m
+   median per pair                          -0.0 m         -8.4 m
+
+B. DOOR-OFFSET EXTRA  (UT's own coordinates, 38 scoreable ends)
+   total over 20 pairs, both ends          1151.6 m         83.7 m
+   mean per pair                             57.6 m          4.2 m
+   worst single pair                        114.4 m         10.9 m
+   ends at the right door                      7/38          38/38
+
+EVERY BUILDING UT SURVEYED (a pair list can be lucky)
+   routable buildings scored                     55             56
+   mean WORST-case door error                29.1 m          2.5 m
+   every candidate inside 15 m                16/55          56/56
+
+"AVOID STAIRS"
+   door filter clean                                          9/9
+   reachable step-free from a hub             52/56          55/56
+   the checkbox a person clicks             broken           works
+```
+
+**Nineteen of the twenty pairs improved on metric B; one is unchanged
+(CBA → UTC, where UTC was already 10.9 m out and CBA has no UT row at all); none
+got worse.** Worst pair falls from 114.4 m to 10.9 m — i.e. the worst walk in the
+set now ends within eleven metres of the door UT draws on its own map.
+
+The signed route total going from **+209.5 m to −276.7 m** is the part worth
+reading twice: the door fix does not merely stop wasting metres, it now saves
+277 m net across the twenty walks *while also* ending at the right door.
+
+---
+
+## 5. Is the remaining 83.7 m reducible? Measured: yes, and it should not be
+
+`utDoorMatchM` decides when one of OUR doors counts as "the same door" as UT's.
+Under it the router walks to our real, modelled doorway; over it, it builds a
+target at UT's own coordinate and the last leg is drawn dashed. Swept on the
+live page, one page load per value (`virtualDoor()` memoises refusals):
+
+```
+utDoorMatchM   doorExtra(UT)   atDoor   meanRoute   dashed ends   dashed metres
+        0          0.0 m        38/38     446.3 m         38          576 m
+        6         31.4 m        38/38     442.5 m         28          530 m
+       12  (ship) 83.7 m        38/38     439.5 m         22          465 m
+       20        210.4 m        32/38     425.6 m         14          351 m
+       40        499.2 m        22/38     421.8 m          3           83 m
+```
+
+**Metric B has a degenerate optimum and it is worth naming out loud.** Setting
+`utDoorMatchM` to 0 scores a perfect 0.0 m — because the router then never uses
+its own geometry at all and every target sits on UT's coordinate by
+construction. The cost is that all 38 ends become "not a mapped path" dashed
+legs, 111 m more of them, and sixteen real modelled doorways get replaced by
+synthetic points 3–11 m away that we would then have to draw nothing at.
+
+Twelve stays, and the reason is the same one round 1 measured: under 12 m our
+door **is** UT's door and only the label was wrong; over it, it is a different
+doorway on a different wall. The residual 83.7 m is 16 ends standing at a real
+door within 10.9 m of UT's survey point. Chasing it to zero would improve the
+score and make the product worse — which is precisely the sort of thing a
+scoreboard should be made to say about itself, so it is now in `walkmeter.mjs`'s
+own header.
+
+---
+
+## 6. The door maps.utexas.edu presents, re-checked against the live layer today
+
+The scoring is only worth anything if the shipped table still equals what UT
+publishes. Re-pulled live, 2026-08-24:
+
+```
+python scripts/bake_entrances.py --refresh-ut
+```
+
+- live `Celebrated_Entrances_view`: **98 rows**, all `Status: Active`, none with a
+  null coordinate.
+- after dedupe: **97 rows on 67 buildings** — the 98th is UT's own duplicate,
+  OBJECTID 154 and 228, byte-identical West entrances for WCH (same coordinate to
+  seven decimals, same `BarrierFree`, same `AutoOpener`, same description).
+- the fresh pull is **identical, line for line**, to the table in
+  `js/wayfind.js` AND to the copy in `scripts/bake_entrances.py`.
+- independently matched row by row: **97/97 matched, worst coordinate
+  disagreement 0.07 m, zero side/barrier-free/auto-opener disagreements.**
+- `Non_ADA_Celebrated_Entrances_view` (12 rows) is a **strict subset**: 8 rows
+  are in the main layer at 0.0 m, and the other 4 (FSL W, BAT N, NHB SW, NHB SE)
+  have null coordinates in that view but *do* carry coordinates in the main layer
+  and are already in our table. Nothing is published there that we lack.
+
+So "the door maps.utexas.edu presents" and "the door this router walks to" are
+scored against the same 97 rows, verified current on the day of this round, with
+a one-command way to re-check.
+
+---
+
+## 7. What round 4 changed in the code
+
+`js/wayfind.js` — entrance-choice functions and the one control that turns the
+entrance choice on. Four sibling lanes are in this file; the diff is small and
+deliberately narrow.
+
+- `utIndex()` factored out of `utTruth()`, and `wayfindUTDoors(code)` reads it
+  directly, so the oracle finally survives its own master switch (§3).
+- `wayfindDoorAt()` also reports `nodes`, `costM` and `virtual`, so an offline
+  replay can route to a door that exists only in the tab (§2).
+- `utVirtualIdx`, a set of the door indices this file invents at run time, which
+  is what `virtual` reads.
+- the pill's click listener ignores clicks on controls (§1).
+
+`scripts/verify/walkmeter.mjs` — main's script, kept as the base, with metric B,
+the virtual-door replay, the two-oracle reporting, `--baseline`, `--shots` and
+the live UI gate folded in.
+
+`scripts/verify/walk-pairs.json` — main's, verbatim. This lane's own pair file
+is gone.
+
+`data/entrances.geojson`, `scripts/bake_entrances.py`: unchanged; the table
+inside the bake script was re-verified against the live layer (§6) rather than
+edited. `WAYFIND.on` untouched — still `false`. `?walk=0` re-checked: no
+`wayfindRoute`, no `wayfindUTDoors`, no `wayfindDoorAt`, no `wayfindDoors`, no
+`#wf-root`, no pill, no page errors. `harness-drift`: 31 scripts both sides,
+PASS.
+
+---
+
+## 8. Still not done
+
+- **`data/walk_graph.json` is still unrebaked.** Everything §5 calls a "dashed
+  leg" and everything round 3 §8 calls a "seam" closes the day the lane that owns
+  `scripts/bake_walk.py` reruns it against the current `data/entrances.geojson`.
+  BIO's unanchored door (§2) closes with it, and metric A becomes measurable on
+  all 20 pairs.
+- **CMB is still stranded step-free**, on purpose. Every door we hold on it
+  anchors onto a stairs island; moving it would mean walking people to a door UT
+  did not survey.
+- **`doorPhrase()` still calls a UT door a guess.** A door sourced `ut` falls
+  through to `SAY.doorDerived`. It is one line and it belongs to whichever lane
+  owns the copy, so it is written down rather than taken.
+- **The UI gate covers one control on one pair.** It is the control Simeon named
+  and the pair that has stairs to avoid; the chips and `Show route` are still only
+  covered by the fact that they already call `stopPropagation`.
+
+## Round 4 sources
+
+UT Austin `Celebrated_Entrances_view` and `Non_ADA_Celebrated_Entrances_view`,
+public unauthenticated ArcGIS FeatureServer,
+`services9.arcgis.com/w9x0fkENXvuWZY26`, re-queried live 2026-08-24. © The
+University of Texas at Austin. Baseline numbers from `docs/walk-baseline.md`
+(acer/w-baseline, merged to `main` as PR #222) and reproduced here against an
+`origin/main` checkout. All measurements on `python scripts/serve.py 8811`,
+headless Chrome via `scripts/verify/chrome.mjs`, `?drift=0`,
+`cancelGraphicsAutoDetect()` called, veil waited out. Re-run:
+
+```
+python scripts/serve.py 8811
+cd scripts/verify && VERIFY_URL=http://127.0.0.1:8811 node walkmeter.mjs --baseline
+```

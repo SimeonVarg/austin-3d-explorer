@@ -183,3 +183,67 @@ pixel coordinates: the box stays unchecked after you click it. The routing fix
 behind the toggle is sound -- walkmeter drives it directly and it is clean on
 9/9 buildings -- but a person who actually cannot climb stairs, clicking the
 control Simeon asked for by name, cannot turn it on. Not shipped as-is.
+## 2026-08-24 — the baseline meter, built: 20 real class-to-class pairs, a real number
+
+The recon above never got turned into an actual measurement before the run
+that was doing it died (disk full, not a code failure). This picks that up.
+Built `scripts/verify/walk-pairs.json` (20 real building-code pairs a UT
+student would actually walk back-to-back — GDC→JES, WEL→PAI, and 18 more,
+spread across campus, 5 crossing Speedway, 1 crossing the Drag, 2 confirmed
+level-change routes) and `scripts/verify/walkmeter.mjs`, a reusable script any
+of the five w-* lanes can point at their own branch to get the identical
+measurement. Drove all 20 through the live app's own `wayfindRoute()` API
+against unmodified `origin/main`, then compared each app-picked door against
+the door UT Austin's own public entrance survey says is correct, using a
+from-scratch Dijkstra reimplementation that self-checks against the app's own
+reported numbers every single run (drift was 0.00 m on all 19 measurable
+pairs this round — the one unmeasurable pair, PHR→BIO, is its own finding:
+BIO's UT-verified door was never snapped to the path network in the bake at
+all).
+
+The headline number: **795 m of real extra walking**, summed only over the 6
+pairs the current door mislabelling actually makes worse, worst single case
+EER→NHB at +298 m (screenshotted, matches the measured number to the metre —
+`docs/shots/walk-baseline-eer-nhb.jpg`). But the more useful finding for
+whoever builds the fix: 9 of the other 19 pairs would get LONGER, not
+shorter, if every building were simply forced onto UT's single verified door
+— PMA→MEZ alone would get 231 m worse, because MEZ's two real, front-facing
+doors sit on different sides of the building and PMA approaches from the side
+the "wrong" door already faces. That's a live demonstration of exactly what
+`docs/walk-evidence.md`'s own fix list warned about: collapsing a building to
+one door, even a UT-verified one, isn't the fix — keeping near-tied
+candidates open so the router picks per-trip is. Full writeup, the 20-pair
+table, and the re-run instructions are in `docs/walk-baseline.md`.
+`WAYFIND.on` still untouched; nothing in `js/wayfind.js` changed this round
+either. Pushed as `acer/w-baseline`, self-merged after the self-check passed.
+
+## 2026-08-24 — the "Avoid stairs" box you could not tick, and one ruler instead of two
+
+Branch `acer/w-door`. Last round's critic found that the routing behind "Avoid
+stairs" was right and the checkbox was unusable, and that turned out to be exactly
+true: clicking it shut the panel and did nothing else. Clicking anything inside the
+answer card was being read as "close the card", and a checkbox only reports itself
+after the click has finished travelling — by which time the card, and the checkbox
+with it, had already been thrown away. Fixed, and photographed both ways: on the walk
+from Will C. Hogg to the Tower, ticking the box now takes you from a 260 m walk with
+a set of steps in it to a 170 m walk with none. The box was hiding a route that is
+ninety metres shorter. The panel still opens and closes when you click its own text —
+that is now checked too, because it was the obvious thing to break.
+
+The other half was tidying. Two different lanes had each built a thing called
+`walkmeter.mjs` measuring two different quantities, which is worse than having none.
+They are one script now, on one list of twenty walks, reporting both numbers: how far
+out of your way the chosen door sends you, and how far from UT's own published
+entrance you end up. Proof it lost nothing: pointed at an untouched copy of `main` it
+reprints the baseline lane's headline to the decimal. Against the same twenty walks,
+this branch takes the second number from 1152 m to 84 m, with all 38 measurable ends
+now landing at the door UT draws on its own map (it was 7), and the first number from
++210 m of wasted walking to 277 m saved. Across every building UT surveyed, the worst
+door the router might pick is 2.5 m out, down from 29.
+
+Also re-pulled UT's entrance data live to be sure we are still scoring against what
+maps.utexas.edu actually shows: identical, line for line, to the table we ship — the
+only "new" row is a duplicate UT has of its own Will C. Hogg entrance. And one honest
+finding written down: the door score can be driven to a perfect zero by never using
+our own modelled doorways at all, which would score better and look worse, so it was
+not done. `WAYFIND.on` untouched.
