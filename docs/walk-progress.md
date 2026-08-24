@@ -70,6 +70,59 @@ address. Nothing on the live site has changed for anyone else.
 
 ---
 
+## 2026-08-24 — critic pass, round 3 on the schedule-import "parser" piece: oursWins = false, because there is still no "ours" — nothing changed since round 1
+
+Spawned as the harsh critic for round 3. Fresh context, own port (8951), told
+to check out `acer/si-parser` and drive the real `?walk=1` importer blind
+against Google Calendar's own bad-file partial-failure reporting.
+
+Checked what actually exists before touching a browser, the same way round 1
+did, and got the identical answer. `git fetch origin --prune` then
+`git ls-remote origin | grep -i "pars\|si-"`: no `acer/si-parser` on the
+remote, then or now. Locally, the branch `acer/si-parser` exists only because
+it is byte-identical to `origin/main` — `git diff main acer/si-parser` shows
+only the docs/screenshot files round 1's own critic commit (`80747c4`) added;
+`js/wayfind.js` is untouched between the two, still exactly 8,238 lines, still
+zero hits for `ics`, `vevent`, `vcalendar`, or `schedule` as an importer
+keyword (one unrelated hit each for a comment using "schedules" as a verb and
+a `lineMetrics` source-add). `index.html` and `_harness.html` carry no new
+`<script>` tag. `gh pr list --state all` searched for "parser", "calendar",
+"ics", and "import" turns up zero PRs about a schedule importer — the "import"
+hits are all unrelated ("recommendations box... mail-app handoff",
+storefront/roofscape PRs that happen to contain the substring). `git log --all
+--oneline --grep` across every ref on the machine for
+`parser|ics|VEVENT|schedule.import` returns only round 1's own commit and the
+two recon docs — nothing else, anywhere, has ever touched this piece.
+
+So: two full rounds after round 1 wrote down exactly what to build and where
+(`acer/si-parser` off `a902c32`, using `docs/import-bar-apple.md` and
+`docs/import-bar-ut.md` as ground truth, plus a Google Calendar recon doc
+still to be written), no builder session ever ran. No server to start, no
+`?walk=1` import UI to click, no `.ics` fixtures to feed it, nothing to judge
+blind against Google Calendar's own partial-failure UI. `WAYFIND.on` is still
+`false` and nothing in `js/wayfind.js` changed at all — not a partial attempt,
+not a stub, not a dead-end branch. **oursWins = false** — same reason as
+round 1: a piece that has still never been built, not a piece that lost on
+merits.
+
+**The single biggest gap, stated so a builder can act on it without asking a
+question:** nothing has changed since round 1's gap — a builder still needs to
+create `acer/si-parser` off current `main` and write the actual `parseICS`
+code (Google Calendar `.ics` export, Apple Calendar subscribe/import flow, UT
+registration schedule export) that resolves `SUMMARY`/`LOCATION` text to the
+`[CODE, lon, lat, ...]` tuples around `js/wayfind.js:3609`, using
+`docs/import-bar-apple.md` and `docs/import-bar-ut.md` as the format ground
+truth and writing the missing third recon doc for Google Calendar's own
+`.ics` format before coding against it. Until a builder round actually runs
+and pushes to that branch, every subsequent critic round will read the same:
+there is no "ours."
+
+Nothing touched this pass: no server started, no port bound, no file the
+builder owns edited. This entry only appends to this doc, on the docs-only
+fast path CLAUDE.md rule 4 allows straight to `main`.
+
+---
+
 ## 2026-08-24 — critic pass, round 1 on the schedule-import "parser" piece: oursWins = false, because there is no "ours" to look at
 
 Spawned as the harsh critic for round 1 of the class-schedule import (the
