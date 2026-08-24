@@ -2453,3 +2453,114 @@ The drop zone, the error list and the import bar itself are still to build —
 that is the interface lane's half. Everything it needs is five functions and a
 paragraph in `docs/si-parser.md`. Nothing here is wired into the shipped app;
 `WAYFIND.on` is untouched and still false.
+
+---
+
+## 2026-08-24 — critic round 4 verdict on `acer/si-parser`: oursWins = true, one real gap found in the auto-sniff path
+
+Fresh context. `acer/si-parser` finally exists (e855af3, "Schedule import, the
+parsing half"), so this is the first round that could actually review it.
+Checked out the branch fresh from `origin`, served it on 8951, drove the real
+`?walk=1` page with `playwright-core` and real Chrome — not the builder's own
+screenshots.
+
+**Confirmed additive-only independently**, not from the commit message: `git
+diff origin/main...acer/si-parser -- js/wayfind.js` shows zero deleted lines,
+1185 added, everything else in the repo untouched except two new docs files,
+six new fixture files and two shot files.
+
+**Re-ran the builder's own gate rather than trusting its printed number**:
+`schedule-fixtures/schedule-parse.mjs` against a freshly served copy of this
+branch — 209/209 assertions, independently reproduced.
+
+**Then built four fixtures of my own from scratch** — different building
+codes than the builder ever used (BUR, CBA, SZB, GDC, SEA, PAR, ANT), a
+different malformed-date shape (an ISO-8601-style `2026-08-28T09:00:00`
+pasted into `DTSTART` instead of the builder's letter-O typo), a genuinely
+empty `LOCATION:` property (not merely an absent one), a `LOCATION` forced to
+fold across real 75-octet lines by a long real Austin address with the code
+in parens at the very end, and a manual-paste ambiguity trap with a building
+code (`SEA`) sitting both as a plausible course prefix AND as the correct
+answer next to a decoy course-shaped token — to make sure I wasn't grading the
+builder's own tuned inputs. All of it resolved and routed correctly: every
+clean event became a real leg through `wayfindScheduleCheck`'s actual
+`computeRoute()` path, every bad row failed with the specific right problem
+code and a suggestion where one existed (`WEK`→`WEL`, `CBQ`→`CBA`), and the
+DST-aware `UNTIL` conversion landed on the correct Chicago calendar date on a
+`RRULE` I wrote myself. Independently re-verified the doc's central factual
+claims by calling the functions directly rather than reading the write-up:
+`HLB` resolves and **routes** despite `resolved.routable` never being asked
+first, `SSW` fails `BUILDING_NOT_WALKABLE`, a Pickle code fails
+`BUILDING_OFF_MAP`, and both `webcal://` and `webcals://` rewrite to the same
+`https://` feed. Looked at the two committed screenshots with the Read tool
+per house rule — both really do show a drawn card and route (GDC→Welch,
+140 m, "No stairs on this route"), not a buried camera.
+
+**The one thing that doesn't hold up: the auto-sniff path is blind to the
+exact failure the builder's own docs call "the single likeliest real-world
+'bad file.'"** `wayfindParseSchedule(text, opts)` is documented to auto-detect
+`kind` when it's omitted, via `schedLooksLikeICS()`, which only checks for the
+literal substrings `BEGIN:VCALENDAR` / `BEGIN:VEVENT`. An HTML sign-in page —
+`docs/si-parser.md`'s own `not-a-calendar.ics` fixture, modelled on the UT EID
+wall — contains neither, so it auto-detects as `'rows'` and is fed to
+`schedParseRows`, which has no "this isn't a schedule at all" check. The
+result, reproduced verbatim with the builder's own fixture through the public
+entry point exactly as documented (`wayfindParseSchedule(text, {})`, no kind
+forced): **nine `LOCATION_MISSING` errors, one per line of markup**, each
+reading `Line 3 ("<head><title>Sign in with your UT EID</title></head>") names
+a course but no building` — a wrong, actively misleading sentence (there is no
+course on that line at all) instead of the crafted, correct message that
+exists specifically for this case: *"That is not a calendar file... you
+probably saved the sign-in page instead of the .ics."* That crafted message is
+only reachable if the caller manually forces `kind:'ics'` — which is exactly
+what the builder's own gate does (`EXPECT['not-a-calendar.ics'].kind` is
+hardcoded `'ics'` and the harness passes it straight through), so 209/209
+green never actually exercised the code path a real unqualified call takes.
+This is the failure mode CLAUDE.md's house rule about a passing critic not
+being proof exists for: the gate is green and the exact scenario it was built
+to catch still gets through when called the documented way.
+
+**Why this doesn't flip the verdict.** The brief's bar is Google Calendar's
+own import UX, and I went and got the actual wording rather than assuming it
+(`support.google.com` via WebFetch, cross-checked against a second query):
+Google's own partial-failure message is **"Processed x of y events,"** a bare
+count with no per-row reason ever surfaced, for any failure, of any kind. Even
+in the one scenario where this branch's own wording goes wrong, it still
+names every failing line individually with a problem code and an actionable
+hint — which is more than Google's bar gives a student on any bad file, ever.
+The defect is real and worth a fast follow-up (teach `schedLooksLikeICS`, or a
+sibling check in `schedParseRows`, to recognise `<!DOCTYPE`/`<html` and reuse
+the existing `FILE_NOT_CALENDAR` message instead of running the row parser on
+markup), but it is a wording bug on top of a design that already clears the
+stated bar, not a bar-losing one.
+
+**oursWins = true.**
+
+**Single biggest remaining gap, concretely:** `schedLooksLikeICS()` in
+`js/wayfind.js` (used by `wayfindParseSchedule` to pick `'ics'` vs `'rows'`
+when `opts.kind` is omitted) only tests for `BEGIN:VCALENDAR` / `BEGIN:VEVENT`
+substrings, so any non-calendar text that lacks those literal tokens —
+starting with the HTML sign-in page the builder's own docs name as the most
+likely real bad file — is silently routed into `schedParseRows` and reported
+as a schedule full of buildingless "courses" instead of hitting
+`FILE_NOT_CALENDAR`'s purpose-built message. Fix the sniff (or add the same
+markup check inside `schedParseRows`) and then change the test harness's
+`EXPECT['not-a-calendar.ics']` to call `wayfindParseSchedule(text, {})` with
+no forced `kind`, so the gate can no longer go green while blind to the one
+scenario it exists to catch.
+
+**What I actually looked at or measured:** the branch's own 209-assertion gate
+re-run fresh (pass); four fixtures I wrote myself covering every category the
+brief named (bad code, missing location, malformed date, multi-line address),
+run against the live page via `wayfindParseSchedule`/`wayfindScheduleCheck`/
+`wayfindScheduleFrom`; a direct call reproducing `HLB`/`SSW`/Pickle-code
+behaviour; both `webcal://` and `webcals://` rewrite; the builder's own
+`not-a-calendar.ics` fixture re-run through the *undecorated* public entry
+point (the defect above); the two committed screenshots opened and read, not
+assumed; `git diff origin/main...acer/si-parser` read directly for the
+additive-only claim. Branch left as found — deleted the four scratch `.mjs`
+scripts I wrote into `scripts/verify` before finishing, and reverted the two
+`shots/si/parser/*.png` files that the builder's own gate script rewrote when
+I re-ran it (same camera, same fixture — not a real change, just noise from
+running their own script). Server on 8951 killed, port re-confirmed free by
+`netstat`. No files the builder owns were edited.
