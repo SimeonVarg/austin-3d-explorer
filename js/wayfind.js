@@ -283,6 +283,73 @@
     // parallel segments never cross, so 0 deg is its blind spot and 0 deg is
     // the only angle at which a door leg is really a staircase.
     stairLegParallelDeg: 20,
+    // ── ROUND 5: A REFUSAL IS A CLAIM TOO ────────────────────────────────
+    // "There is no step-free way to get you there" is a UNIVERSAL NEGATIVE,
+    // and it was the one thing this feature says that nothing had ever
+    // checked. Rounds 1-4 verified the routes it OFFERS; nobody verified the
+    // ones it REFUSES. Checked at last against two files the router never
+    // reads, FIVE of the fourteen refusals over 300 pairs were false — and
+    // false on the app's own graph, with the app's own anchors, so this is
+    // not a data complaint.
+    //
+    // The mechanism is that a door gets at most three precomputed anchors,
+    // and at Gearing Hall BOTH doors' clean anchors sit on a stub whose only
+    // way out is the flight of steps. Priced at Infinity under this profile,
+    // that stub is an island; the router correctly finds nothing and then
+    // says something much stronger than "nothing from here". The step-free
+    // network runs 13 m away.
+    //
+    // So: one more pass, and ONLY when the first two have failed, in which a
+    // door may leave the network at any graph node within this radius whose
+    // straight leg is clean of stairs — not only at its baked anchors. False
+    // restores round 4 exactly, and is the A/B every number in §R28 is from.
+    stairAltWide: true,
+    // THE DANGER THIS PAIR OF NUMBERS EXISTS TO BOUND. A door leg is a
+    // straight line THIS FILE draws itself, and this file has no building
+    // footprints — they are a 1.4 MB snapshot the client never loads. So a
+    // widened anchor can put the last stretch straight through a wall, and
+    // the first cut of this pass did exactly that on three of the five walks
+    // it recovered (13.8 m of the Pharmacy Building on FNT>GEA). Routing
+    // through buildings is ruled out, so both numbers below are chosen off a
+    // measurement against those footprints, made offline over all 300 pairs.
+    //
+    // WORST ADDED DOOR LEG INSIDE A FOOTPRINT, and (+n) refusals answered:
+    //
+    //     radius \ cap        4            8           24
+    //       13 m         0.00 (+0)    0.00 (+0)    0.00 (+0)
+    //       20 m         0.00 (+5)    0.00 (+5)    0.00 (+5)   <-- SHIPPED
+    //       24 m         0.00 (+5)    0.00 (+5)    0.00 (+5)
+    //       28 m         0.00 (+5)  * 9.42 (+5)  * 9.42 (+5)
+    //       30 m         0.00 (+5)  *13.81 (+5)  *13.81 (+5)
+    //       40 m         0.00 (+5)  *13.81 (+5)  *24.70 (+14)
+    //
+    // Read it before changing either. THE CAP IS THE BINDING CONSTRAINT, not
+    // the radius: candidates are taken nearest-first, and every through-wall
+    // anchor on this campus is a FAR one, so a small cap excludes them at any
+    // radius. (The first version of this comment credited the radius alone,
+    // because that sweep was run with the cap still at its first-cut 24.)
+    //
+    // The shipped pair is clean with margin in both directions — the radius
+    // could double to 40 m and the cap could reach 24 at 24 m, either way
+    // still 0.00. Below 13.5 m the fix stops working at all.
+    //
+    // NOTE the bottom-right cell. At 40 m and cap 24 the pass "answers" all
+    // 14 refusals — by walking someone 24.7 m through a building. A number
+    // that looks like a complete fix is what a wrong constant looks like here.
+    //
+    // This plateau is a property of THIS graph and THIS footprint snapshot,
+    // and nothing at runtime can notice it moving. Re-run the matrix
+    // (docs/walk-stairs.md §R31) after any re-bake.
+    stairAltWideRadiusM: 20,
+    // ...and how many widened anchors one door may contribute, nearest first.
+    // Besides bounding the wall risk above, this is the whole COST of the
+    // pass — every candidate is stair-tested and every kept one is a Dijkstra
+    // seed — and it buys nothing above a very small number. Swept over 300
+    // pairs at 2/3/4/6/8/12/24: 125 offered and 9 refused at EVERY setting,
+    // so the nearest TWO clean anchors per door already carry all five
+    // recovered walks. Shipped at double the measured need. The cost was
+    // real: WAG>GEA measured p50 247 ms at 24 and 86 ms at 8.
+    stairAltWideMax: 4,
     stairListMax: 12,      // most staircases we will name in one leg list. A
                            // route with more than this is not a leg list, it
                            // is a wall of text; the count above it is still
@@ -980,6 +1047,14 @@
     };
   }
 
+  // ROUND 5 — set ONLY by stepFreeRoute()'s third pass and cleared in a
+  // `finally`. computeRoute() reaches cleanAnchors() through a closure it
+  // builds itself, and computeRoute belongs to the door lane this round, so
+  // the third pass is signalled here rather than by threading a new option
+  // through a function another branch is rewriting. Never true outside one
+  // synchronous call.
+  let stairWidePass = false;
+
   /**
    * Door anchors a step-free walk may actually use. Same shape as `anchors()`,
    * minus every anchor whose straight last-stretch line crosses a staircase.
@@ -1001,8 +1076,80 @@
         }
       }
     }
+    // ROUND 5 — THE WIDENED PASS, and it is off unless stepFreeRoute() has
+    // already failed twice. See WAYFIND.stairAltWide. Note the trigger is NOT
+    // `kept.length === 0`: at Gearing Hall two anchors survive this function
+    // perfectly well and are both stranded on a stub behind a flight of
+    // steps, which only the Dijkstra can discover. So the signal has to come
+    // from the caller, and it does.
+    if (stairWidePass && WAYFIND.stairAltWide) {
+      const seen = new Set();
+      for (const a of kept) seen.add(a.door + ':' + a.node);
+      for (const a of wideAnchors(g, doors, role)) {
+        const k = a.door + ':' + a.node;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        kept.push(a);
+      }
+    }
     return kept.length ? { anchors: kept, dropped: dropped.length, forced: false }
                        : { anchors: dropped, dropped: 0, forced: dropped.length > 0 };
+  }
+
+  /**
+   * ROUND 5 — every graph node a door could honestly leave the network at.
+   *
+   * The bake precomputes at most three anchors per door and they are the only
+   * places the router has ever been able to start or finish a walk. That is
+   * the right default — they are snapped against the building footprints,
+   * which this file does not have — but when the step-free profile has
+   * already failed twice it is the difference between "no way round" and a
+   * walk that exists. Nearest first, capped, and every candidate held to the
+   * same stair test as a baked anchor.
+   *
+   * `wide: true` rides along so the answer can be told apart from a normal
+   * one; `stepFreeRoute()` reads it and `wayfindStairs()` reports it.
+   */
+  function nodeIndex(g) {
+    if (g._nodeIx) return g._nodeIx;
+    const CELL = WAYFIND.stairLegGridDeg;
+    const grid = new Map();
+    for (let i = 0; i < g.N; i++) {
+      const k = Math.floor(g.X[i] / CELL) + ':' + Math.floor(g.Y[i] / CELL);
+      let a = grid.get(k); if (!a) { a = []; grid.set(k, a); }
+      a.push(i);
+    }
+    g._nodeIx = { CELL, grid };
+    return g._nodeIx;
+  }
+
+  function wideAnchors(g, doors, role) {
+    const ix = nodeIndex(g), C = ix.CELL, R = WAYFIND.stairAltWideRadiusM;
+    const dLon = R / MPD_LON, dLat = R / MPD_LAT;
+    const out = [];
+    for (const di of doors) {
+      const dll = doorLL(g, di);
+      const cand = [];
+      const x0 = Math.floor((dll[0] - dLon) / C), x1 = Math.floor((dll[0] + dLon) / C);
+      const y0 = Math.floor((dll[1] - dLat) / C), y1 = Math.floor((dll[1] + dLat) / C);
+      for (let cx = x0; cx <= x1; cx++) {
+        for (let cy = y0; cy <= y1; cy++) {
+          const arr = ix.grid.get(cx + ':' + cy);
+          if (!arr) continue;
+          for (let i = 0; i < arr.length; i++) {
+            const m = metresBetween(dll, lonlat(g, arr[i]));
+            if (m <= R) cand.push({ node: arr[i], c: m, door: di, role: role, wide: true });
+          }
+        }
+      }
+      cand.sort((a, b) => a.c - b.c);
+      let kept = 0;
+      for (let i = 0; i < cand.length && kept < WAYFIND.stairAltWideMax; i++) {
+        if (legCrossesStairs(g, dll, lonlat(g, cand[i].node)).length) continue;
+        out.push(cand[i]); kept++;
+      }
+    }
+    return out;
   }
 
   /**
@@ -1057,6 +1204,12 @@
       toDoorWhere: (base && r.toDoor !== base.toDoor) ? doorWhere(g, r.toDoor) : null,
       doorsRefused: r.doorsRefused || 0,
       doorsForced: !!r.doorsForced,
+      // ROUND 5 — true when this walk only exists because a door was allowed
+      // to leave the network somewhere the bake did not precompute. Nothing on
+      // the card reads it yet; it is here because the card SHOULD eventually
+      // say so, and because a route found this way is worth being able to tell
+      // apart in a census. See docs/walk-stairs.md §R28.
+      doorsWide: !!r.doorsWide,
       avoidStairs: true,
     };
   }
@@ -1825,6 +1978,22 @@
     let r = null;
     if (front.ok && (!any.ok || front.distM - any.distM <= STAIRS.mainDoorSlackM)) r = front;
     else if (any.ok) r = any;
+    // ── ROUND 5. THE THIRD PASS, AND ONLY IF THE FIRST TWO FAILED ──────────
+    // Everything above is untouched: a route that works today takes the
+    // identical path through this function and never reaches this line. This
+    // is the last resort before the feature tells somebody who cannot climb
+    // stairs that there is no way to get there — a sentence that was wrong 5
+    // times in 14 and that nothing had ever checked. See WAYFIND.stairAltWide
+    // and docs/walk-stairs.md §R28.
+    if (WAYFIND.stairAltWide && (!r || !r.stair || !r.stair.clean)) {
+      let wide = null;
+      stairWidePass = true;
+      try { wide = one(true); } finally { stairWidePass = false; }
+      if (wide && wide.ok && wide.stair && wide.stair.clean) {
+        wide.doorsWide = true;
+        r = wide;
+      }
+    }
     if (!r) return { ok: false, why: (front.why || (any && any.why) || 'nostepfree') };
     if (!STAIRS.breakStepFreeGate && (!r.stair || !r.stair.clean)) {
       return { ok: false, why: 'assert', stair: r.stair };

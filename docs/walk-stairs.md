@@ -1883,3 +1883,468 @@ if (JSONOUT) fs.writeFileSync(JSONOUT, JSON.stringify({
 await browser.close();
 process.exit(pass ? 0 : 1);
 ```
+
+---
+---
+
+# ROUND 5 — the refusal was a claim too, and five of fourteen were false
+
+Round 4 ended by admitting, in §R26, that its own fix had raised "no step-free
+way round" from 7 routes of 300 to 14, and handed the problem to
+`bake_walk.py`. That was the wrong instinct, and this round is about why.
+
+> Every "this route is step-free" claim has now been checked against two files
+> the router never reads. **"There is no step-free way to get you there" had
+> never been checked against anything at all** — and it is a universal
+> negative, said to the one person the feature exists for, who has no way to
+> falsify it.
+
+Checked at last: **all fourteen are false on raw OpenStreetMap, and five of
+them are false on the app's own graph, using the app's own anchors.** The five
+are fixed here. The nine that remain are a specific, named defect in
+`bake_walk.py`, written out in §R32 with the way ids.
+
+**FNT → GEA is the whole round in one card.** Before, the app told you there
+was no step-free way from the Pharmacy Building to Gearing Hall. After, there
+is one, and it is **eleven metres longer**.
+
+| file | what it shows |
+|---|---|
+| `shots/walk/stairs/r5-FNTGEA-before-card.png` | `Stairs: 1 set` · **"No step-free route we can find between these two."** |
+| `shots/walk/stairs/r5-FNTGEA-after-card.png` | `3-5 min walk · 270 m · No stairs on this route` · **"✓ Step-free · 11 m further than the route with stairs"** · `With stairs: 3–4 min · 250 m` |
+| `shots/walk/stairs/r5-FNTGEA-before.jpg` | the same, in the city |
+| `shots/walk/stairs/r5-FNTGEA-after.jpg` | identical camera, offer pressed, the walk redrawn round the flight |
+
+## R28. First: the 189 still hold, and round 4 reproduces to the digit
+
+Before touching anything. `data/osm_cache/footways.json` carries **189**
+`highway=steps` ways; `data/ground.geojson` draws **180** polygons carrying
+**189 distinct `wid`s**; the join is exact both ways — **0 OSM step ways not
+drawn, 0 drawn ids that are not OSM step ways.** Round 1's fix stands, and the
+180-versus-189 gap is still just touching flights merging into one shape.
+
+Round 4's gate, re-run unmodified at 300 pairs on this branch merged with
+`main`: **300 routes, 134 with a staircase, 120 step-free offered, 14 no way
+round, all seven assertions green.** Identical to what §R21 published.
+
+## R29. The instrument for a refusal, and it needed a positive control first
+
+A refusal cannot be checked the way an offer is. There is no route to
+inspect — the claim is that no route exists — so the only test is to go and
+find one somewhere else.
+
+`osmfree.mjs` (§R36) builds a step-free walking network from OSM node ids with
+every `highway=steps` way **deleted outright**, snaps each door to it, and asks
+whether the two buildings are connected. Door legs are held to the app's own
+standard: at most 30 m (`bake_walk.py`'s own anchor cap, measured at 29.94 m
+over 1,648 anchors) and not lying on a drawn staircase.
+
+**The first version of it was wrong, and its own positive control caught it.**
+An instrument that convicts the app of refusing a walk that exists must first
+be shown to find the walks the app *did* find. It found only **111 of 120**:
+
+```
+  MISSED: PCL>SSB (unreachable), AHG>LLE (no clean attach), STD>SSB,
+          MAI>LLE, LLF>TMM, TSG>WCH, GEB>BLD ...
+  Instrument not trusted. Stopping before it accuses anything.
+```
+
+Two real bugs in the instrument, either of which would have produced a
+spectacular and false accusation:
+
+* **it snapped doors to OSM nodes only.** The bake splits ways at door
+  anchors, so a door's nearest point on the network is routinely in the middle
+  of an OSM edge. LLE and LLF had no node at all within 30 m. Fixed by snapping
+  to the nearest point on a segment and seeding both its endpoints with the
+  along-way metres added.
+* **it read `footways.json` alone**, while `bake_walk.py` also adopts
+  `service`, `residential`, `living_street` and `unclassified` from
+  `roads.json` for stranded doors. SSB, BLD and WCH reach campus only along a
+  service road.
+
+With both fixed: **120 of 120, then 125 of 125.** Only then was it allowed to
+say anything.
+
+## R30. What it found, and then what the app's OWN graph said
+
+```
+all 14 refusals, on raw OSM with every staircase deleted:   14 of 14 FALSE
+```
+
+Raw OSM is not the last word, because it still contains the footways the bake
+deletes for passing through a building — a fair objection to a distance and a
+fatal one to an existence claim. So the same question was put to
+`walk_graph.json` itself (`owngraph.mjs`), already cleaned of those edges, with
+**exactly one thing changed: a door may leave the network at any graph node
+within 30 m whose leg is clean of stairs, not only at its <= 3 baked anchors.**
+Stepped edges Infinity, `F_OFFMAIN` skipped, precisely as `edgeCost` and
+`dijkstra` do it.
+
+```
+pair         app anchors   as shipped   any node <= 30 m   raw OSM
+GEA>JON          2/6          NONE          883 m           883 m
+FNT>GEA          2/2          NONE          136 m           110 m
+GUG>GEA          5/2          NONE         1217 m          1171 m
+WAG>GEA         10/2          NONE          504 m           392 m
+ADH>GEA         11/2          NONE          510 m           481 m
+LTH>PAR          3/3          NONE          NONE            868 m
+LTH>CMA / FAC>AF2 / MAG>FAC / CRH>FAC / LTH>BMA / TS2>BBR / LTH>SAG / D21>TS2
+                              NONE          NONE            (all reachable)
+```
+
+**Five refusals are the anchor list's fault and nothing else's**, and all five
+are Gearing Hall.
+
+### The mechanism, and it is not what §R26 guessed
+
+`cleanAnchors()` was not emptying. GEA has two doors and six baked anchors; the
+stair test drops four and **keeps two, one per door** — node 1089 at 1.5 m from
+the main door, node 10582 at 0.6 m from the other:
+
+```
+  door 386  main       anchor  1089   1.5 m   clean
+                       anchor 10582  17.8 m   DIRTY  way 1512521141, 1.73 m at 1.1 deg
+                       anchor  1095  20.2 m   DIRTY  way 1512521141, 3.96 m at 1.0 deg
+  door 387  secondary  anchor 10582   0.6 m   clean
+                       anchor  1089  16.8 m   DIRTY
+                       anchor  6982  22.3 m   DIRTY
+```
+
+**Both surviving anchors sit on the same stub, and the only way off that stub
+is the flight of steps.** Priced at Infinity under the step-free profile it is
+an island; the Dijkstra correctly finds nothing, and the feature then says
+something far stronger than "nothing from *here*". The step-free network runs
+**13 metres away**. No local test on a door can see this — only the search
+can — so §R26's guess that this was a `bake_walk.py` door-placement problem
+was wrong for these five.
+
+## R31. The fix: a third pass, and a radius read off a curve
+
+`stepFreeRoute()` gains a third attempt **and only if the first two failed**,
+so every route that works today takes the identical path through the function
+and never reaches the new line. In that pass `cleanAnchors()` also offers every
+graph node within `stairAltWideRadiusM` whose leg is clean of stairs.
+
+`computeRoute()` is **not touched by a single line**, deliberately: it is the
+`acer/w-door` lane's function this round and its diff already covers exactly
+that region. The third pass is signalled by a module-scoped `stairWidePass`
+flag, set and cleared in a `finally` — uglier than an option, and the correct
+trade against a conflict in a file four lanes are editing.
+
+### And the first cut of it walked three people through a wall
+
+At 30 m — chosen as "no more permissive than the bake's own anchor cap" — the
+five walks came back and **three of them drew a door leg straight through a
+building**:
+
+```
+  FNT>GEA  13.81 m through the Pharmacy Building
+  WAG>GEA  11.32 m through Mary E. Gearing Hall
+  GUG>GEA   9.42 m through Mary E. Gearing Hall
+```
+
+A door leg is a line this file draws itself, and this file has no footprints —
+they are a 1.4 MB snapshot the client never loads — so the only available
+defence is a constant measured against them offline. Measured over all 300
+pairs against the same `buildings.enriched.geojson` snapshot `bake_walk.py`
+snaps to. **Worst added door leg inside a footprint, and (+n) refusals
+answered:**
+
+```
+     radius \ cap        4            8           24
+       13 m         0.00 (+0)    0.00 (+0)    0.00 (+0)
+       20 m         0.00 (+5)    0.00 (+5)    0.00 (+5)   <-- SHIPPED
+       24 m         0.00 (+5)    0.00 (+5)    0.00 (+5)
+       28 m         0.00 (+5)  * 9.42 (+5)  * 9.42 (+5)
+       30 m         0.00 (+5)  *13.81 (+5)  *13.81 (+5)
+       40 m         0.00 (+5)  *13.81 (+5)  *24.70 (+14)
+```
+
+**And the first version of this section was wrong about which constant does
+the work.** It swept the radius alone, with `stairAltWideMax` still at its
+first-cut 24, and concluded the radius was what kept a leg out of a wall. The
+matrix says otherwise: **the cap is the binding constraint.** Candidates are
+taken nearest-first and every through-wall anchor on this campus is a FAR one,
+so a small cap excludes them at any radius. The single-variable sweep is still
+right *along its own row* — 13.5 m turns the fix on, 24 m is the last wholly
+clean radius at cap 24, 25–27 m clips 2.48 m (under `WALL_CLIP_TOL_M`), 28 m
+goes through — it was just the wrong row to generalise from.
+
+The shipped pair sits clean with margin in **both** directions: the radius
+could double to 40 m, or the cap could reach 24 at 24 m, and either way it is
+still 0.00. Below 13.5 m the fix stops working at all.
+
+**Look at the bottom-right cell.** At 40 m with cap 24 the pass "answers" all
+fourteen refusals — by walking somebody 24.7 m through a building. A number
+that looks like a total victory is exactly what a wrong constant looks like
+here, and it is the reason this is a matrix and not a preference.
+
+*(Re-checked against the `2026-08-24` snapshot that landed on `main`
+mid-round. The bake's own baseline below is identical to the metre on both
+snapshots — 221 legs touching, 123 over 3.0 m, worst 29.77 m — which is also
+the check that the footprint reader is really reading the new file rather than
+silently matching nothing.)*
+
+**The yardstick nobody had published, and it is not flattering.** The same
+measurement run over what the app already ships:
+
+```
+  the bake's own 1,078 door legs:  123 spend more than 3.0 m inside a
+                                   building footprint, worst 29.77 m
+  direct routes, both legs, 300 pairs:  58 of 600 over 3.0 m  (9.7 %)
+```
+
+So one door leg in ten already crosses a wall on every walk this app draws.
+That is not this round's to fix — it is `bake_walk.py`'s snap — but it is why
+the radius here is held to a *stricter* bar than the shipped data meets, not a
+looser one. **Every one of the five walks the widened pass adds is outside
+every footprint for its whole length.**
+
+### And the cap: the answer was two
+
+`stairAltWideMax` is the whole cost of the pass — every candidate is
+stair-tested and every kept one is a Dijkstra seed. Swept over 300 pairs:
+
+```
+  stairAltWideMax   2   3   4   6   8  12  24
+  offered         125 125 125 125 125 125 125
+  refused           9   9   9   9   9   9   9
+```
+
+It buys nothing above two. The nearest two clean anchors per door already carry
+all five walks. Shipped at **4**, double the measured need — and it cost a real
+3x to learn: WAG>GEA measured p50 247 ms at 24 and 86 ms at 8 on a busy
+machine.
+
+## R32. The result, and the nine that are left
+
+```
+                                              round 4    round 5
+routes                                          300        300
+routes with a staircase on them                 134        134
+step-free offered                               120        125
+   ...whose door leg lies on a drawn staircase    0          0
+   ...that traverse an OSM staircase              0          0
+routes with a staircase the card never states     0          0
+no way round                                     14          9
+   ...of which false on the app's own graph        5          0
+   ...of which false on raw OSM                   14          9
+```
+
+All seven of round 4's assertions stay green at 125 offered.
+`stairAltWide = false` restores round 4 exactly, and is the A/B every number
+above is from.
+
+**Nothing that already worked moved.** All 120 pre-existing offers come back
+with the identical distance and the identical arrival door — checked pair by
+pair, 0 changed — and the third pass adds **10 `computeRoute` calls in 758 over
+300 routes**.
+
+### THE NINE ARE A NAMED DEFECT IN `scripts/bake_walk.py` — NOT THIS LANE'S FILE
+
+Every one of the nine involves one of three buildings, and the reason is the
+same for all three. Their entire step-free neighbourhood in `walk_graph.json`
+is an **island**, and the only edges joining that island to the rest of the
+graph are flights of steps:
+
+```
+  FAC  step-free component of  38 nodes   boundary: steps ways 129733836, 126328789
+  LTH  step-free component of   4 nodes   boundary: steps way  146428823
+  TS2  step-free component of  22 nodes   boundary: steps way  1212689333
+                     (the main component is 10,383 nodes of 11,284)
+
+  LTH > PAR / CMA / BMA / SAG      4 routes
+  FAC > AF2, MAG > FAC, CRH > FAC  3 routes
+  TS2 > BBR, D21 > TS2             2 routes   = the nine
+```
+
+So on the app's own data the refusal is **true**, and no change inside
+`js/wayfind.js` can help. On raw OSM all nine have a step-free walk — and
+before that becomes a bug report, each of those nine walks was put through the
+same footprint test as everything else above:
+
+```
+  LTH>PAR 868 m, LTH>CMA 895 m, FAC>AF2 1882 m, MAG>FAC 1396 m, CRH>FAC 922 m,
+  LTH>BMA 1063 m, TS2>BBR 204 m, LTH>SAG 984 m, D21>TS2 1257 m
+     metres of each spent inside a building footprint:  0.0
+```
+
+**Outdoors the whole way, all nine.** The walk graph is dropping a step-free
+connection to the Flawn Academic Center, the Littlefield Home and Texas Student
+Housing that OSM has. Whoever owns `bake_walk.py`: start at the four steps way
+ids above — the island boundary is only four edges wide, and whatever should
+have been the fifth is what is missing.
+
+## R33. What it costs, and the honest answer is that the clock cannot see it
+
+**The structural number is the one to quote: 10 extra `computeRoute` calls in
+758, over 300 routes — 1.3 %,** on the 3 % of routes that reach the third pass
+at all.
+
+The clock cannot resolve that on this machine, and pretending otherwise would
+be the mistake `scripts/verify/README.md` exists to prevent. Two runs of the
+identical 300-route census in the identical configuration, each the minimum of
+several interleaved reps, an hour apart:
+
+```
+  stairAltWide=false   total 1029 ms, p50 2.1 ms      (3 reps)
+  stairAltWide=false   total 1458 ms, p50 2.9 ms      (6 reps, later)
+```
+
+The run-to-run spread on ONE configuration is larger than the difference
+between the two configurations. Sibling lanes were driving browsers throughout.
+The pairs that actually pay, minimum of 5 interleaved reps of 40 routes,
+hardware GL, no CPU throttle:
+
+```
+                                     stairAltWide=false    =true
+  GEA>JON   reaches the third pass        2.1 ms          7.4 ms
+  WAG>GEA   reaches the third pass        9.5 ms         17.4 ms
+  ART>MAI   never reaches it             21.0 ms         22.5 ms
+  JES>PCL   no stairs at all              2.0 ms          2.4 ms
+```
+
+A route that reaches the pass pays for one more Dijkstra, on a button press,
+once. A route that does not pay nothing, and the two rows that never reach it
+say so.
+
+`WAYFIND.on` is **still `false`**. `harness-drift.mjs`: **PASS, 31 scripts in
+`index.html`, 31 in `_harness.html`** (no new `<script>` this round).
+
+## R34. Watched failing, on instruments that could not have been rigged
+
+```
+node gate.mjs 300 --oldleg          rounds 1-3's door-leg test, no width
+   step-free offered 122
+   FAIL  no offered step-free walk lays a DOOR LEG over a drawn staircase
+         9 dirty of 122
+   FAIL  every staircase the walk touches is stated by the card — 5 routes
+```
+
+Read the nine: `GEA>JON`, `FNT>GEA`, `GUG>GEA`, `WAG>GEA`, `ADH>GEA`,
+`AND>NUR`, `FDH>WAG`, `WAG>KIN`, `WAG>BMC`. **Five of them are the exact five
+walks this round recovers.** That is the arc of this lane in one line: rounds
+1-3 offered those five *down the Gearing Hall steps*; round 4 saw it and
+correctly refused them; round 5 found the real way round. The same person, the
+same trip, three different answers, and only the last one is both true and
+useful.
+
+```
+node gate.mjs 300 --break --breakgate
+   step-free offered 134 (nothing withheld), no way round 0
+   FAIL  no offered step-free walk TRAVERSES an OSM staircase — 96 dirty of 134
+```
+
+(Round 4 reported 117 of 134 for the same switches. The difference is not a
+regression: with the filter leaky almost every route is unclean, so the third
+pass fires on almost every route and picks a different broken walk. The point
+is unchanged — the guard is watched failing loudly against the raw OSM survey.)
+
+## R35. The frames, and `queryRenderedFeatures` is not proof
+
+The house rule is to prove the subject is on screen. **This round shows why the
+obvious way of doing that is not enough.** Two poses passed a
+`queryRenderedFeatures` check on the four walk layers — 72 features, then 33 —
+with the route entirely hidden behind the card and off the bottom of the frame.
+`queryRenderedFeatures` counts what the **map** drew; the card is an HTML
+overlay on top of it.
+
+So the frames here are proved in **pixels**: the same camera shot twice, once
+with the four walk layers visible and once with `visibility: none`, and the two
+decoded and diffed (`png.mjs`, §R36 — nothing but `zlib`). Those pixels *are*
+the walk.
+
+```
+  before   3963 px change, bbox [190,544,616,822], card [440,16,1000,408]
+  after    3918 px change, bbox [272,544,616,806], card [440,16,1000,375]
+```
+
+And a third trap, caught the same way: **the map draws the DIRECT route until
+the offer is pressed.** A before/after taken without clicking the button is the
+same walk twice, and the diff said so — 2272 px versus 2269 px, a three-pixel
+"difference" between two frames that were supposed to be the whole point of the
+round. The script presses the button and reports whether it found one.
+
+## R36. The instruments, written out
+
+`gate.mjs` and `lib.mjs` are unchanged from §R27; run them with
+`window.WAYFIND.stairAltWide = false` for the A/B. Four new files. They still
+belong in `scripts/verify/`, which is still not this lane's directory.
+
+### `osmfree.mjs` — a step-free network with no bake in it
+
+Builds a walking graph from OSM node ids out of `footways.json` **plus** the
+four `ROAD_WALKABLE` classes of `roads.json`, with every `highway=steps` way
+deleted. `attach(doorLL)` returns the step-free attach points for a door: the
+nearest point on any segment within `LEG_MAX_M` (30 m), rejected if the
+straight leg lies >= 1.5 m along a drawn staircase within 20 deg of it (the
+round-4 test, against `ground.geojson` rather than against the graph), seeded
+at both endpoints of its segment with the along-way metres added.
+`stepFreeDist(seeds, targets, wantPath)` is a plain Dijkstra over it.
+
+### `noway.mjs` — the refusal check, positive control first
+
+Drives the same 300 seeded pairs through `window.wayfindStairs`, then:
+
+1. **POSITIVE CONTROL.** For every pair the app DID answer step-free, the
+   outside network must independently find a step-free walk. If it cannot, the
+   run prints `Instrument not trusted. Stopping before it accuses anything.`
+   and exits 1 **without evaluating a single refusal.** This is not decoration
+   — it is what caught the two instrument bugs in §R29.
+2. Only then, for every `stepFreeNone` pair, report whether a walk exists.
+
+### `owngraph.mjs` — the same question on `walk_graph.json`
+
+Decodes the shipped graph in node (delta-coded nodes and edges, `F_STEPS`
+priced Infinity, `F_OFFMAIN` skipped exactly as `dijkstra()` line 586 does — an
+instrument that forgets that line is more permissive than the router and will
+accuse it of refusals it is right to make). `bakedAnchors(di)` is what the app
+has today; `wideAnchors(di, R)` is every graph node within `R` whose leg passes
+the app's own `legCrossesStairs`, re-implemented line for line in
+`anchdiag.mjs`. The difference between the two is §R30's table.
+
+### `legcheck.mjs` — the footprint test that chose the radius
+
+Reads the newest `data/snapshots/*/buildings.enriched.geojson`, drops
+`building_class: roof` (a canopy is not a wall — `bake_walk.py` says so), and
+returns the metres a straight leg spends inside any footprint, sampled at
+0.5 m. `WALL_CLIP_TOL_M = 3.0` is the bake's own bar. This produced the radius
+curve, the 123-of-1,078 baseline, and the all-clear on the five.
+
+## R37. Where the doubt is, stated rather than buried
+
+* **Nine refusals remain, and they are still wrong** — true on the app's data,
+  false on the ground. §R32 names the file, the three buildings and the four
+  way ids. Until that is fixed the feature tells nine people in 300 that they
+  cannot get somewhere they can.
+* **The 20 m / 4 pair is a property of THIS graph and THIS snapshot.** The
+  plateau was measured on the shipped `walk_graph.json` against the 2026-08-23
+  and 2026-08-24 footprint snapshots (identical results). A data refresh can
+  move it and **nothing at runtime would notice** — the client has no
+  footprints, so this is a verified invariant of the shipped data, not a check
+  the code performs. Re-run §R31's matrix after any re-bake. The honest
+  permanent fix is for `bake_walk.py` to publish, per door, the candidate
+  attach nodes it has already checked against the footprints; this file would
+  then never have to guess.
+* **One door leg in ten already crosses a building** on the walks this app
+  ships today (58 of 600 over 3.0 m). Round 5 does not add to that and holds
+  its own five to zero, but the number belongs in the open, not in a footnote.
+* **`stairWidePass` is module-scoped mutable state.** It is set and cleared in
+  a `finally` inside one synchronous call and nothing in this file is
+  re-entrant, so it is safe — but it is a workaround for not touching
+  `computeRoute()` while another lane rewrites it, and it should become a plain
+  option the moment that lane lands.
+* **`doorsWide` is reported and nothing reads it.** A walk that only exists
+  because a door left the network somewhere the bake did not precompute is
+  worth telling apart, and arguably worth saying out loud. The card's wording
+  is `docs/walk/what-we-can-honestly-say.md`'s, and another lane's.
+* Round 1 §5a (`incline=down` discarded), §5b (`step_count`), round 3 §R15
+  (`#wf-pill` is 197 px wide on a phone) and round 4 §R23 (the headline still
+  says "No stairs on this route" over a body that says the last stretch crosses
+  one) **all still stand unmade.**
+* **Everything here is still a claim about `highway=steps` in OSM.** A
+  staircase nobody mapped is invisible, and the card still says so.
+* **`scripts/bake_ground.py` is unchanged this round**, as in rounds 2, 3 and
+  4. Round 1's fix — the missing `area=yes` staircase and `wid` on every slab —
+  is what makes the ground-truth join possible, and §R28 re-verified it holds
+  at 189 of 189.

@@ -289,3 +289,53 @@ candidates open so the router picks per-trip is. Full writeup, the 20-pair
 table, and the re-run instructions are in `docs/walk-baseline.md`.
 `WAYFIND.on` still untouched; nothing in `js/wayfind.js` changed this round
 either. Pushed as `acer/w-baseline`, self-merged after the self-check passed.
+
+## 2026-08-24 — "there's no step-free way there" was the one thing we'd never checked, and five times in fourteen it wasn't true
+
+Every round so far checked the walks the app *offers* — is this really
+step-free, does it really avoid the steps. Nobody ever checked the walks it
+*refuses*. When the app says "no step-free route we can find between these
+two", that's a much bigger claim than it looks, and it's said to the one person
+who can't just go and try it. So this round went and looked.
+
+Built a second, completely separate map of campus straight out of the raw
+OpenStreetMap files — every staircase deleted — and asked it, for each of the
+fourteen refusals, whether a step-free walk existed anyway. It did. Fourteen
+times out of fourteen. (The check earned its keep by failing its own sanity
+test first: before it was allowed to accuse anything it had to independently
+find the walks the app *had* found, and the first version only managed 111 of
+120. Two bugs in the checker, both fixed, then 120 of 120.)
+
+Then the harder question: is that the app's fault or the map data's? Asked the
+same thing of the app's own map, and **five of the fourteen were the app's own
+fault**. All five were Gearing Hall. It has two doors; both of them are pinned
+to a little dead-end scrap of path whose only exit is a flight of steps. Block
+the steps and the app is stuck on that scrap, so it concludes there's no way to
+the building at all — while the real step-free path runs thirteen metres away.
+
+Fixed by letting a walk leave the path network somewhere other than the two or
+three spots the data pre-picked, and **only** as a last resort when the normal
+search has already come up empty, so nothing that works today changes (checked:
+all 120 existing step-free walks come back identical). The headline case is
+Pharmacy Building to Gearing Hall: it used to say there was no step-free way,
+and there is one — **eleven metres longer**. Screenshots of the card before and
+after are in `shots/walk/stairs/`.
+
+The first attempt at that fix was worse than the bug: three of the five new
+walks drew their last stretch **straight through a building**, up to fourteen
+metres of it. Caught it by measuring every one of those lines against the real
+building outlines, then swept how far the search is allowed to reach and picked
+a distance from the middle of the range where all five walks work and none of
+them clip a wall. (Uncomfortable thing that fell out of the same measurement:
+about one door-line in ten on *every* walk this app draws already cuts through
+a building. That's older than this feature and belongs to the map-building
+script, but it's written down now instead of nobody knowing.)
+
+The nine refusals left over are genuinely impossible on the app's map and
+genuinely possible on the ground — three buildings (Flawn Academic Center, the
+Littlefield Home, Texas Student Housing) are marooned on islands whose only
+links to the rest of campus are staircases. That's four specific missing
+connections in `scripts/bake_walk.py`, written up with the exact IDs for
+whoever owns it. Also re-checked the thing this lane is judged on first: all
+189 mapped staircases are still drawn, none missing, none invented. The feature
+is still switched off; nothing here is public yet. Branch `acer/w-stairs`.
