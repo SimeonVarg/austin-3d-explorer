@@ -2298,15 +2298,120 @@ LAT0 = 30.285                       # metric anchor for the buffer, mid-campus
 PATH_SIMPLIFY_M = 0.15              # post-union tolerance; well under a pixel
 PATH_MIN_AREA_M2 = 1.0              # drop slivers the union leaves behind
 
+# ---------------------------------------------------------------- stairs --
+#
+# WHY A DRAWN STAIRCASE NEEDS TO SAY WHICH OSM WAY IT IS.
+#
+# The walking router (data/walk_graph.json, js/wayfind.js) prices 189
+# `highway=steps` ways and tells a student "3 sets of stairs on this route".
+# This file draws them. Until now the only way to ask "is the staircase the
+# router just charged me for the same one the city drew?" was to compare
+# centroids and hope -- and comparing by eye is exactly how this project has
+# been wrong before. So every stepped slab now carries the OSM way ids that
+# made it, and the two files join on identity.
+#
+# THEY ALSO EXPLAIN THE 179 vs 189, WHICH IS NOT A DISAGREEMENT. widen_paths
+# unions the buffered centrelines per (use, surface), so flights that touch
+# merge into one drawn polygon: 188 ways come out as 179 slabs and `wid` says
+# which went where. (The 189th, way 147362093, is tagged `area=yes` and was
+# being dropped on the floor by the line branch -- one real staircase the
+# router would send you up and the city drew nowhere. It is drawn now.)
+#
+# WHAT ELSE RIDES ALONG, and only where OSM actually says it: a step count
+# (9 ways of 189 have one), a handrail (68), a ramp beside the steps (12) and
+# an incline direction (80, and only where ONE way made the slab, because
+# "up" on a merged blob of three flights is not a direction).
+STAIR_ID_USES = ("steps",)          # which `u` values get `wid` attribution
+STAIR_ATTRIB_MIN_M2 = 0.05          # source must really be in the merged part
+
+
+def stair_tags(t):
+    """The step facts OSM actually carries, or {} -- never a guess.
+
+    Kept as a plain dict on the source feature under `_st`, merged by
+    `_stair_props` once the union knows which sources made which slab.
+    """
+    out = {}
+    sc = t.get("step_count")
+    if sc and str(sc).strip().lstrip("-").isdigit():
+        out["sc"] = int(str(sc).strip())
+    inc = t.get("incline")
+    if inc in ("up", "down"):
+        out["inc"] = inc
+    hr = t.get("handrail") or t.get("handrail:both") or t.get("handrail:left") \
+        or t.get("handrail:right")
+    if hr:
+        out["hr"] = 0 if hr == "no" else 1
+    if t.get("ramp") not in (None, "no") or t.get("ramp:wheelchair") == "yes" \
+            or t.get("ramp:stroller") == "yes" or t.get("ramp:bicycle") == "yes":
+        out["rmp"] = 1
+    if t.get("lit") not in (None, "no"):
+        out["lit"] = 1
+    if t.get("conveying") not in (None, "no"):
+        out["cv"] = 1                      # an escalator, and it is not stairs
+    return out
+
+
+def _stair_props(part, sources, tree, stats):
+    """Which OSM ways made this merged slab, and what they agree on.
+
+    `sources` is [(polygon, way_id, tags_dict)]; `tree` an STRtree over their
+    polygons in the same index order. A source counts only if it really
+    overlaps -- a shared boundary is not a contribution.
+    """
+    idxs = tree.query(part)
+    hits = []
+    for i in idxs:
+        poly, wid, st = sources[int(i)]
+        try:
+            if part.intersection(poly).area >= STAIR_ATTRIB_MIN_M2:
+                hits.append((wid, st))
+        except Exception:
+            continue
+    if not hits:
+        stats["stair_slab_unattributed"] += 1
+        return {}
+    wids = sorted(w for w, _ in hits)
+    props = {"wid": wids}
+    tags = [st for _, st in hits]
+    if all("sc" in st for st in tags):
+        props["sc"] = sum(st["sc"] for st in tags)
+    # A direction only means something when ONE way drew this slab. Merged
+    # flights genuinely have no single answer and inventing one would be the
+    # exact failure this file's TRUTH RULE forbids.
+    if len(hits) == 1 and "inc" in tags[0]:
+        props["inc"] = tags[0]["inc"]
+    if tags and all(st.get("hr") == 1 for st in tags):
+        props["hr"] = 1
+    if any(st.get("rmp") for st in tags):
+        props["rmp"] = 1
+    if tags and all(st.get("lit") for st in tags):
+        props["lit"] = 1
+    if any(st.get("cv") for st in tags):
+        props["cv"] = 1
+    stats["stair_slab_ways_%d" % min(len(hits), 4)] += 1
+    return props
+
 
 def widen_paths(feats, stats, warnings):
-    """k:'path' LineStrings -> unioned k:'patharea' Polygons, width in metres."""
+    """k:'path' LineStrings -> unioned k:'patharea' Polygons, width in metres.
+
+    A k:'path' feature whose geometry is already a Polygon is a mapped
+    pedestrian AREA (`area=yes`) and joins the same union un-buffered: it is
+    the thing itself, not a centreline standing in for it.
+    """
     try:
-        from shapely.geometry import LineString
+        from shapely.geometry import LineString, Polygon
         from shapely.ops import unary_union
+        from shapely.strtree import STRtree
     except ImportError:
         warnings.append("shapely not installed: paths left as LineStrings, which "
                         "means they fan out with pitch (see road-fan.mjs)")
+        # `_wid`/`_st` are scaffolding for the union below and must never reach
+        # a shipped file, not even down the degraded path.
+        for f in feats:
+            f["properties"].pop("_wid", None)
+            f["properties"].pop("_st", None)
         return feats
 
     mlat = 111195.08
@@ -2314,40 +2419,58 @@ def widen_paths(feats, stats, warnings):
     to_m = lambda c: [((x + 97.74) * mlon, (y - LAT0) * mlat) for x, y in c]
     to_ll = lambda c: [[round(x / mlon - 97.74, 6), round(y / mlat + LAT0, 6)] for x, y in c]
 
-    kept, groups = [], {}
+    kept, groups, sources = [], {}, {}
     for f in feats:
         p = f["properties"]
-        if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+        gt = f["geometry"]["type"]
+        if p.get("k") != "path" or gt not in ("LineString", "Polygon"):
             kept.append(f)
             continue
-        coords = f["geometry"]["coordinates"]
-        if len(coords) < 2:
-            continue
-        w = float(p.get("w") or 2.0)
-        # Mitre joins and flat caps: a round join on a 2 m footpath adds a dozen
-        # vertices per corner to draw a curve nobody can see at 200 m.
-        poly = LineString(to_m(coords)).buffer(
-            w / 2.0, cap_style=2, join_style=2, mitre_limit=2.0)
+        if gt == "Polygon":
+            ring = f["geometry"]["coordinates"][0]
+            if len(ring) < 4:
+                continue
+            poly = Polygon(to_m(ring))
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+            stats["path_area_polygon"] += 1
+        else:
+            coords = f["geometry"]["coordinates"]
+            if len(coords) < 2:
+                continue
+            w = float(p.get("w") or 2.0)
+            # Mitre joins and flat caps: a round join on a 2 m footpath adds a
+            # dozen vertices per corner to draw a curve nobody can see at 200 m.
+            poly = LineString(to_m(coords)).buffer(
+                w / 2.0, cap_style=2, join_style=2, mitre_limit=2.0)
+            stats["path_widened"] += 1
         if poly.is_empty:
             continue
-        groups.setdefault((p.get("u"), p.get("s")), []).append(poly)
-        stats["path_widened"] += 1
+        key = (p.get("u"), p.get("s"))
+        groups.setdefault(key, []).append(poly)
+        if p.get("u") in STAIR_ID_USES and p.get("_wid") is not None:
+            sources.setdefault(key, []).append((poly, p["_wid"], p.get("_st") or {}))
 
     for (use, surf), polys in sorted(groups.items(), key=lambda kv: str(kv[0])):
         merged = unary_union(polys)
         if PATH_SIMPLIFY_M:
             merged = merged.simplify(PATH_SIMPLIFY_M)
         parts = merged.geoms if merged.geom_type == "MultiPolygon" else [merged]
+        src = sources.get((use, surf))
+        tree = STRtree([s[0] for s in src]) if src else None
         for gm in parts:
             if gm.is_empty or gm.area < PATH_MIN_AREA_M2:
                 stats["path_sliver_dropped"] += 1
                 continue
             rings = [to_ll(list(gm.exterior.coords))]
             rings += [to_ll(list(r.coords)) for r in gm.interiors]
+            props = {"k": "patharea", "u": use, "s": surf}
+            if tree is not None:
+                props.update(_stair_props(gm, src, tree, stats))
             kept.append({
                 "type": "Feature",
                 "geometry": {"type": "Polygon", "coordinates": rings},
-                "properties": {"k": "patharea", "u": use, "s": surf},
+                "properties": props,
             })
             stats["patharea_" + str(use)] += 1
     return kept
@@ -4361,6 +4484,22 @@ def main():
         # the walking graph as a ring of edges and routes people along it, so
         # the walk's own width gets painted here or the ribbon hangs off the
         # side of the polygon. See PEDESTRIAN_RIM_IS_A_WALK.
+        #
+        # EXCEPT A STAIRCASE. `highway=steps area=yes` is a stepped terrace,
+        # and it was falling between two stools: skipped here as an area, and
+        # never picked up by the plaza pass, which reads a different Overpass
+        # query. One such way exists on campus (147362093, off Speedway by
+        # Jester) and the router happily sends people up it — a staircase the
+        # walk graph charges for and the city drew nowhere. It is emitted as
+        # the polygon it is; widen_paths takes it un-buffered.
+        #
+        # INTEGRATION NOTE (acer/w-integrate): acer/w-sidewalks and
+        # acer/w-stairs both rewrote this one branch, and they do NOT
+        # contradict each other — they key on different `highway` values. A
+        # closed `highway=pedestrian` way is a mall whose RIM is a walk; a
+        # closed `highway=steps` way is a stepped terrace that must be drawn
+        # as a polygon. Both arms are kept, and anything that is neither still
+        # falls through to `skipped_area_way` exactly as it did on main.
         if t.get("area") == "yes":
             coords = [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]]
             if (PEDESTRIAN_RIM_IS_A_WALK and hw == "pedestrian"
@@ -4382,6 +4521,23 @@ def main():
                     },
                 })
                 stats["pedestrian_rim_walk"] += 1
+            elif hw == "steps":
+                r = ring_of(el.get("geometry"))
+                if not r:
+                    stats["steps_area_unringed"] += 1
+                else:
+                    surf, _tagged = surface_of(t, "steps")
+                    feats.append({
+                        "type": "Feature",
+                        "geometry": {"type": "Polygon", "coordinates": [r]},
+                        "properties": {
+                            "k": "path", "u": "steps", "s": surf,
+                            "w": DEFAULT_WIDTH.get("steps", 3.0), "wt": 0,
+                            "_wid": el["id"], "_st": stair_tags(t),
+                            **({"name": t["name"]} if t.get("name") else {}),
+                        },
+                    })
+                    stats["path_steps_area"] += 1
             else:
                 stats["skipped_area_way"] += 1
             continue
@@ -4431,6 +4587,14 @@ def main():
             stats["speedway_mall_segments"] += 1
             if (t.get("surface") or "") == "asphalt":
                 stats["speedway_stale_asphalt_overridden"] += 1
+
+        # A stepped path carries its OSM identity through the union, so the
+        # drawn staircase and the routed staircase can be matched by id
+        # instead of by centroid. Only steps: attributing 1,300 footway slabs
+        # back to their sources costs a lot and answers nothing anybody asks.
+        if use in STAIR_ID_USES:
+            extra["_wid"] = el["id"]
+            extra["_st"] = stair_tags(t)
 
         feats.append({
             "type": "Feature",
