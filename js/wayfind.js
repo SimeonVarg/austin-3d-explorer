@@ -8253,6 +8253,23 @@
   //     computeRoute() invents a virtual door off the UT survey. So this file
   //     NEVER reports routability from `entry.routable`. The only honest test
   //     is trying the route, which is what wayfindScheduleCheck() does.
+  //
+  // A BUG A REVIEW FOUND THAT THE GATE COULD NOT, AND WHY (2026-08-24). The
+  // sniff that decides which parser gets the text was a two-way question —
+  // "is it ICS? no? then rows" — so the fixture in this suite modelling the
+  // single likeliest real-world bad file, a saved UT EID sign-in page, went
+  // to the ROW parser and came back with NINE errors, one per line of markup,
+  // each reading "names a course but no building" about a line like
+  // `<!DOCTYPE html>`. The correct sentence for that file existed and was
+  // unreachable: only a caller that forced `kind:'ics'` ever saw it, and the
+  // only caller that did was the test. 209 green assertions, and the exact
+  // scenario they were written for still got through when called the way the
+  // docs say to call it. Three changes, all below: the sniff is three-way
+  // (schedSniff), a row that names no course gets the sentence written for
+  // that case instead of the one written for a different case, and a paste
+  // with no schedule signal on ANY line is refused once rather than per line.
+  // The gate now calls the public entry point with NO options, for every
+  // fixture, which is the assertion that was actually missing.
 
   const SCHEDULE = {
     // ── the shape ─────────────────────────────────────────────────────────
@@ -8297,6 +8314,33 @@
       ['M', ['MO']], ['T', ['TU']], ['W', ['WE']], ['F', ['FR']], ['S', ['SA']],
     ],
 
+    // ── telling a schedule from a file that is not one ────────────────────
+    //
+    // ADDED AFTER A REVIEW CAUGHT THE GATE GRADING ITS OWN HOMEWORK. The old
+    // sniff asked one question — "does this contain BEGIN:VCALENDAR" — and
+    // anything else fell through to the row parser. A saved UT EID sign-in
+    // page (the likeliest wrong file a student uploads, and already a fixture
+    // here) therefore produced NINE errors, one per line of markup, each
+    // reading "names a course but no building" about a line like
+    // `<!DOCTYPE html>`. Nine wrong sentences instead of the one right one
+    // that was already written. The crafted message was only reachable when
+    // the caller forced `kind:'ics'`, which the gate did, so the gate was
+    // green on a path no real caller takes.
+    //
+    // So the sniff is now THREE-way — ics / rows / markup — and the row
+    // parser has a floor under it for junk that is not markup either.
+    markupHeadChars: 512,       // how much of the head the opener test reads
+    markupTagsMin: 3,           // fewest tag-shaped tokens that can convict
+    markupLineFraction: 0.5,    // ...and they must be on this share of lines
+    // A paste with at least this many lines and NO schedule signal anywhere
+    // (no building candidate, no course number, no time, no day word) is not
+    // a schedule at all, and says so once instead of once per line. Below
+    // this, per-line errors read better than a verdict on the whole file.
+    notScheduleMinLines: 3,
+    // Quoted back to the student inside an error. A whole line of minified
+    // markup in an error message is not a message.
+    rowSnippetMax: 60,
+
     // ── network ───────────────────────────────────────────────────────────
     fetchTimeoutMs: 12000,
     // `webcal://` is not a wire protocol — it is an OS handoff that means
@@ -8329,8 +8373,12 @@
       eventTruncated: 'Row {n} ({title}) is cut off at the end of the file and was skipped.',
       guessedByName: 'Row {n} ({title}) says "{loc}" — matched to {code} ({name}) by name rather than by building code. Worth a look.',
       noRoute: '{fromCode} to {toCode}: no walking route found between those two buildings.',
-      rowNoLocation: 'Line {n} ("{line}") names a course but no building.',
-      rowUnreadable: 'Line {n} ("{line}") could not be read as a class.',
+      // "Row", not "Line", and deliberately the same word the ICS problems
+      // use. A paste that produced one `Row 6` and one `Line 7` about the
+      // same seven lines reads like two different programs talking.
+      rowNoLocation: 'Row {n} ("{line}") names a course but no building.',
+      rowUnreadable: 'Row {n} ("{line}") does not read like a class. A row needs at least a building and room, e.g. "WEL 2.224".',
+      fileNotSchedule: 'None of the {total} lines in that text look like a class. A schedule line needs a building and room, e.g. "GOV 312L, WEL 2.224, MWF 1:00pm".',
     },
   };
   WAYFIND.schedule = SCHEDULE;
@@ -8369,12 +8417,31 @@
   // that guard `MWF 10` parses as building `MWF` room `10`.
   const SCHED_TIME_RE = /\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?\b|\b(\d{1,2}):(\d{2})\b/gi;
   const SCHED_COURSE_RE = /\b([A-Z]{1,3}(?:\s+[A-Z])?\s+\d{3}[A-Z]?)\b/;
+  // A saved WEB PAGE, which is what a student uploads when the export link
+  // bounced them through a sign-in wall. Two independent tests, because the
+  // two real shapes differ: a whole saved document opens with a doctype or an
+  // `<html>` root, while a page saved as a FRAGMENT (or copied out of a
+  // Canvas panel) has neither and is only recognisable by tag density.
+  const SCHED_MARKUP_HEAD_RE = /^\uFEFF?\s*(?:<\?xml\b|<!DOCTYPE\b|<!--|<html\b|<head\b|<body\b)/i;
+  const SCHED_TAG_RE = /<\/?[a-z][a-z0-9]*(?:\s[^<>]*)?\/?>/i;
 
   /** Fill `{k}` placeholders in one of SCHEDULE.say's strings. */
   function schedSay(key, vars) {
     let s = String((SCHEDULE.say && SCHEDULE.say[key]) || key);
     if (vars) for (const k in vars) s = s.split('{' + k + '}').join(String(vars[k]));
     return s;
+  }
+
+  /**
+   * A line, quoted back to the student, trimmed to something readable.
+   *
+   * The error that prompted this quoted a whole line of HTML into a sentence.
+   * An error message that is itself unreadable is not an error message.
+   */
+  function schedSnippet(line) {
+    const s = String(line == null ? '' : line).trim().replace(/\s+/g, ' ');
+    const max = SCHEDULE.rowSnippetMax;
+    return s.length > max ? s.slice(0, max - 1) + '…' : s;
   }
 
   function schedProblem(level, code, text, at, hint) {
@@ -9020,11 +9087,28 @@
       const tail = cands[cands.length - 1];
       if (!(cands.length === 1 && tail.text === ev.course)) pick = tail;
     }
+    // DOES THIS LINE CARRY ANY SIGNAL AT ALL that it is about a class? A
+    // building candidate, a course number, a clock time, or a day word will
+    // do. `schedParseRows` uses this to tell "a schedule with a broken row"
+    // apart from "this is not a schedule", which are different sentences.
+    ev.hasSignal = !!(cands.length || ev.course || ev.startMin != null || ev.days.length);
+
     if (!pick) {
       ev.status = 'failed';
-      ev.problems.push(schedProblem('error', 'LOCATION_MISSING',
-        schedSay('rowNoLocation', { n: idx, line: line.trim() }), at,
-        'Add the building and room, e.g. "WEL 2.224".'));
+      // TWO DIFFERENT FAILURES, AND SAYING THE WRONG ONE IS WORSE THAN SAYING
+      // NOTHING. "names a course but no building" is exactly right for
+      // `PSY 301, TTh 2:00pm-3:30pm` and a lie about `<!DOCTYPE html>` — and
+      // the lie is what shipped, because this branch did not look at whether
+      // a course had actually been found. `rowUnreadable` existed for the
+      // other case and was dead text nothing ever reached.
+      const named = !!ev.course;
+      ev.problems.push(schedProblem('error',
+        named ? 'LOCATION_MISSING' : 'ROW_UNREADABLE',
+        schedSay(named ? 'rowNoLocation' : 'rowUnreadable',
+          { n: idx, line: schedSnippet(line) }), at,
+        named
+          ? 'Add the building and room, e.g. "WEL 2.224".'
+          : 'Type one class per line, e.g. "GOV 312L, WEL 2.224, MWF 1:00pm".'));
       return ev;
     }
     ev.locationText = pick.text;
@@ -9133,14 +9217,82 @@
     if (!events.length) {
       problems.push(schedProblem('error', 'NO_EVENTS', schedSay('fileEmpty', {}), null,
         'Type one class per line, e.g. "GOV 312L, WEL 2.224, MWF 1:00pm".'));
+      return schedAssemble(source, events, problems, schedSay('fileEmpty', {}));
+    }
+
+    // THE FLOOR UNDER THE ROW PARSER, and it is deliberately hard to trip.
+    //
+    // The markup sniff catches a saved web page. This catches everything else
+    // that is not a schedule — a syllabus paragraph, a CSV of grades, a
+    // paste that missed. A verdict on the WHOLE file is only allowed when
+    // NOT ONE line anywhere carries any evidence of a class: no building
+    // candidate, no course number, no time, no day word.
+    //
+    // ONE SURVIVING ROW REVOKES IT, which is the whole point and is asserted
+    // (`mostly-junk.txt`: one real class among five junk lines still imports
+    // 1 of 6, per-line). That is the same "one bad row never kills the file"
+    // rule this feature is built on, applied to the failure mode this floor
+    // itself introduces — a summary verdict that swallows a good class would
+    // be a worse bug than the nine wrong sentences it replaced.
+    if (lines.length >= SCHEDULE.notScheduleMinLines && !events.some(e => e.hasSignal)) {
+      const text = schedSay('fileNotSchedule', { total: lines.length });
+      return schedAssemble(source, [], [schedProblem('error', 'FILE_NOT_SCHEDULE', text, null,
+        'If you meant to upload a calendar file, look for one ending in .ics.')], text);
     }
     return schedAssemble(source, events, problems, schedSay('fileEmpty', {}));
   }
 
-  /** Is this text an iCalendar payload, or a paste? Cheap and decisive. */
+  /** Is this text an iCalendar payload? Cheap and decisive. */
   function schedLooksLikeICS(text) {
     const head = String(text || '').slice(0, 4096).toUpperCase();
     return head.indexOf('BEGIN:VCALENDAR') >= 0 || head.indexOf('BEGIN:VEVENT') >= 0;
+  }
+
+  /**
+   * Is this a saved WEB PAGE rather than anything a student meant to hand us?
+   *
+   * Two tests because the two real shapes differ. A whole saved document opens
+   * with a doctype or an `<html>` root and the head test catches it on the
+   * first non-blank byte. A page saved or copied as a FRAGMENT has no such
+   * opener, so it is convicted on density instead: enough tag-shaped tokens,
+   * spread across enough of the lines, that no schedule paste could look like
+   * this by accident. Both bars are named constants in SCHEDULE.
+   */
+  function schedLooksLikeMarkup(text) {
+    const s = String(text || '');
+    if (SCHED_MARKUP_HEAD_RE.test(s.slice(0, SCHEDULE.markupHeadChars))) return true;
+    const lines = s.split(/\r\n?|\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < SCHEDULE.markupTagsMin) return false;
+    let tagged = 0;
+    for (const l of lines) if (SCHED_TAG_RE.test(l)) tagged++;
+    return tagged >= SCHEDULE.markupTagsMin &&
+      tagged >= lines.length * SCHEDULE.markupLineFraction;
+  }
+
+  /**
+   * WHICH PARSER GETS THIS TEXT — and it is a THREE-way question, not two.
+   *
+   * It used to be two ("is it ICS? no? then it is rows"), and that is the bug
+   * a review found: the fall-through swallowed a saved sign-in page and the
+   * row parser dutifully reported one error per line of markup. There was
+   * already a correct, crafted sentence for that exact file — it was simply
+   * unreachable unless the caller forced `kind:'ics'`, which only the test
+   * ever did.
+   *
+   * Returns 'ics' | 'markup' | 'rows'. ICS is asked first because a calendar
+   * file that happens to carry an HTML description is still a calendar file.
+   */
+  function schedSniff(text) {
+    if (schedLooksLikeICS(text)) return 'ics';
+    if (schedLooksLikeMarkup(text)) return 'markup';
+    return 'rows';
+  }
+
+  /** The one thing to say about a file that is not a calendar at all. */
+  function schedNotCalendar(source) {
+    const text = schedSay('fileNotCalendar', {});
+    return schedAssemble(source, [], [schedProblem('error', 'FILE_NOT_CALENDAR', text, null,
+      'Look for a file ending in .ics.')], text);
   }
 
   // ── the public entry points ───────────────────────────────────────────────
@@ -9148,19 +9300,29 @@
   /**
    * wayfindParseSchedule(text, opts) — the file/paste front end.
    *
-   * `opts.kind` forces `'ics'` or `'rows'`; left off, the text decides. Async
-   * only because the building vocabulary lives in walk_graph.json and a
-   * resolution made before it loads would be wrong about every code.
+   * `opts.kind` forces `'ics'` or `'rows'`; left off, the text decides — and
+   * the sniff is three-way, so a file that is NEITHER (a saved sign-in page)
+   * is named as such instead of being fed to the row parser. Async only
+   * because the building vocabulary lives in walk_graph.json and a resolution
+   * made before it loads would be wrong about every code.
+   *
+   * `source.sniffed` always records what the sniff decided, even when
+   * `opts.kind` overruled it, so the interface can say "we read this as a
+   * paste" without guessing. `source.kind` is 'ics' | 'rows' | 'unknown'.
    */
   window.wayfindParseSchedule = async function (text, opts) {
     opts = opts || {};
     try { await loadGraph(); } catch (e) { /* resolve against UT_CELEBRATED alone */ }
+    const sniffed = schedSniff(text);
+    const route = opts.kind || sniffed;
     const source = {
-      kind: opts.kind || (schedLooksLikeICS(text) ? 'ics' : 'rows'),
+      kind: route === 'markup' ? 'unknown' : route,
+      sniffed: sniffed,
       label: opts.label || '', url: opts.url || '', producer: '',
       importedAt: new Date().toISOString(),
     };
-    if (source.kind === 'rows') return schedParseRows(text, source);
+    if (route === 'markup') return schedNotCalendar(source);
+    if (route === 'rows') return schedParseRows(text, source);
     return schedParseICS(text, source);
   };
 
@@ -9224,10 +9386,11 @@
     }
     clearTimeout(timer);
     try { await loadGraph(); } catch (e) {}
-    if (!schedLooksLikeICS(text)) {
-      return schedAssemble(source, [], [schedProblem('error', 'FILE_NOT_CALENDAR',
-        schedSay('fileNotCalendar', {}), null, '')], schedSay('fileNotCalendar', {}));
-    }
+    // A feed URL that answers 200 with a LOGIN PAGE is the common way this
+    // fails in the wild — the same wrong bytes an upload brings, arriving
+    // over the wire. Same sniff, same sentence.
+    source.sniffed = schedSniff(text);
+    if (source.sniffed !== 'ics') return schedNotCalendar(source);
     return schedParseICS(text, source);
   };
 
@@ -9254,6 +9417,9 @@
     try { await loadGraph(); } catch (e) {}
     const source = {
       kind: meta.kind || 'rows', label: meta.label || '', url: meta.url || '',
+      // Nothing was sniffed — these rows arrived already structured. Recording
+      // that keeps `source` one shape across all four ways in.
+      sniffed: null,
       producer: meta.producer || '', importedAt: new Date().toISOString(),
     };
     const list = Array.isArray(rows) ? rows.slice(0, SCHEDULE.maxEvents) : [];

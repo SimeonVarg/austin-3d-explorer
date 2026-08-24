@@ -19,6 +19,22 @@
  *   4. Partial failure behaves like Google Calendar's own import: one bad row
  *      never kills the file. messy.ics has EIGHT broken events and its one good
  *      one must still come through, with an "Imported 1 of 9" summary line.
+ *   5. EVERY FIXTURE IS GRADED THROUGH THE UNQUALIFIED CALL —
+ *      `wayfindParseSchedule(text)` with no `kind` — because that is the call
+ *      the docs describe and the one an interface will make.
+ *
+ *      THIS ASSERTION EXISTS BECAUSE ITS ABSENCE HID A REAL BUG. The table
+ *      below used to hand each fixture a `kind`, and `not-a-calendar.ics` was
+ *      handed `'ics'`. So the fixture built to model the likeliest bad file a
+ *      student uploads was the one fixture that never took the path a real
+ *      upload takes: unqualified, the two-way sniff sent a saved sign-in page
+ *      to the ROW parser, which reported nine errors — one per line of markup,
+ *      each claiming the line "names a course but no building". 209 assertions
+ *      were green over it. A gate that only calls the code the way that makes
+ *      it pass is not a gate. `maxProblems` below is the specific guard: a
+ *      file that is not a calendar must produce ONE problem, not one per line.
+ *      The explicit `kind` override is still asserted, in its own section,
+ *      where it cannot stand in for the default path.
  *
  * Run:
  *   python scripts/serve.py 8911
@@ -40,13 +56,20 @@ const URL = `${BASE}/index.html?walk=1&drift=0&intro=0`;
 const FIXTURE_URL = `${BASE}/scripts/verify/schedule-fixtures`;
 
 // ══════════════════════════════════════════════════════════════════════════
-// The expectation table. `code` is the machine-readable problem code; `says`
-// is a phrase that must appear in the sentence a student actually reads,
-// because a problem code nobody can act on is not an error report.
+// The expectation table. Every entry is graded through `wayfindParseSchedule
+// (text)` with NO options — the sniff has to get it right on its own.
+//
+//   sniff       what `source.sniffed` must say the text looked like
+//   kind        what `source.kind` must end up as
+//   maxProblems a CEILING on the problem list, which is how "one wrong file
+//               produces one error, not one error per line" is asserted
+//   code/says   the machine-readable problem code, and a phrase that must
+//               appear in the sentence a student actually reads, because a
+//               problem code nobody can act on is not an error report
 // ══════════════════════════════════════════════════════════════════════════
 const EXPECT = {
   'google-clean.ics': {
-    kind: 'ics', total: 4, ok: 4, errors: 0,
+    sniff: 'ics', kind: 'ics', total: 4, ok: 4, errors: 0,
     events: [
       { code: 'GDC', room: '2.216', days: ['MO', 'WE'], startMin: 600, endMin: 660, lastDate: '2026-12-07' },
       { code: 'WEL', room: '2.224', days: ['MO', 'WE', 'FR'], startMin: 660, endMin: 720 },
@@ -55,7 +78,7 @@ const EXPECT = {
     ],
   },
   'apple-clean.ics': {
-    kind: 'ics', total: 4, ok: 4, errors: 0,
+    sniff: 'ics', kind: 'ics', total: 4, ok: 4, errors: 0,
     events: [
       { code: 'ART', room: '1.102', days: ['TU', 'TH'], startMin: 930 },
       // The folded, escaped, three-line address with the code in parentheses.
@@ -65,7 +88,7 @@ const EXPECT = {
     ],
   },
   'ut-regplus.ics': {
-    kind: 'ics', total: 4, ok: 4, errors: 0,
+    sniff: 'ics', kind: 'ics', total: 4, ok: 4, errors: 0,
     events: [
       { code: 'UTC', room: '3.102', days: ['MO', 'TU', 'WE', 'TH'], startMin: 960, exDates: 3 },
       { code: 'CMA', room: '6.146', days: ['TU', 'TH'], startMin: 660, exDates: 1 },
@@ -74,7 +97,7 @@ const EXPECT = {
     ],
   },
   'messy.ics': {
-    kind: 'ics', total: 9, ok: 1, minErrors: 8,
+    sniff: 'ics', kind: 'ics', total: 9, ok: 1, minErrors: 8,
     summaryHas: 'Imported 1 of 9',
     fileProblems: [{ code: 'FILE_TRUNCATED', says: 'stops in the middle' }],
     events: [
@@ -89,12 +112,49 @@ const EXPECT = {
       { status: 'failed', problem: 'EVENT_TRUNCATED', says: 'cut off' },
     ],
   },
+  // THE FIXTURE THE OLD GATE COULD NOT SEE. A saved UT EID sign-in page,
+  // uploaded because the export link bounced through a login wall. Sniffed
+  // unqualified it must be recognised as a web page and refused ONCE — the
+  // regression this whole round is about is `maxProblems`, which was 9.
   'not-a-calendar.ics': {
-    kind: 'ics', total: 0, ok: 0, minErrors: 1,
+    sniff: 'markup', kind: 'unknown', total: 0, ok: 0, minErrors: 1, maxProblems: 1,
+    fileProblems: [
+      { code: 'FILE_NOT_CALENDAR', says: 'not a calendar' },
+      { code: 'FILE_NOT_CALENDAR', says: 'sign-in page' },
+    ],
+  },
+  // The same wrong file WITHOUT a doctype or an <html> root — a panel copied
+  // out of a course site. Only the tag-density half of the sniff can catch
+  // this one, so it is here to keep that half honest.
+  'saved-page.ics': {
+    sniff: 'markup', kind: 'unknown', total: 0, ok: 0, minErrors: 1, maxProblems: 1,
     fileProblems: [{ code: 'FILE_NOT_CALENDAR', says: 'not a calendar' }],
   },
+  // Not markup, not a calendar, not a schedule: a syllabus paragraph pasted
+  // into the box by mistake. One verdict on the file, not five on its lines.
+  'not-a-schedule.txt': {
+    sniff: 'rows', kind: 'rows', total: 0, ok: 0, minErrors: 1, maxProblems: 1,
+    fileProblems: [{ code: 'FILE_NOT_SCHEDULE', says: 'look like a class' }],
+  },
+  // THE GUARD ON THAT VERDICT, and the reason it is safe. One real class
+  // among five lines of portal boilerplate. The file-level "this is not a
+  // schedule" answer must NOT fire — a summary verdict that swallowed a good
+  // class would be a worse bug than the one it replaced — so this imports
+  // 1 of 6 and names the five junk lines individually.
+  'mostly-junk.txt': {
+    sniff: 'rows', kind: 'rows', total: 6, ok: 1, minErrors: 5,
+    summaryHas: 'Imported 1 of 6',
+    events: [
+      { status: 'failed', problem: 'ROW_UNREADABLE', says: 'does not read like a class' },
+      { status: 'failed', problem: 'ROW_UNREADABLE', says: 'does not read like a class' },
+      { code: 'WEL', room: '2.224', days: ['MO', 'WE', 'FR'], startMin: 780, status: 'ok' },
+      { status: 'failed', problem: 'ROW_UNREADABLE', says: 'does not read like a class' },
+      { status: 'failed', problem: 'ROW_UNREADABLE', says: 'does not read like a class' },
+      { status: 'failed', problem: 'ROW_UNREADABLE', says: 'does not read like a class' },
+    ],
+  },
   'manual-paste.txt': {
-    kind: 'rows', total: 7, ok: 5, minErrors: 2,
+    sniff: 'rows', kind: 'rows', total: 7, ok: 5, minErrors: 2,
     summaryHas: 'Imported 5 of 7',
     events: [
       { code: 'GDC', room: '2.216', days: ['MO', 'WE', 'FR'], startMin: 600, endMin: 660, status: 'ok' },
@@ -148,10 +208,12 @@ for (const name of Object.keys(EXPECT)) {
   // (The webcal/URL front end is tested over the wire further down, where the
   // network IS the thing under test.)
   const text = fs.readFileSync(path.join(HERE, name), 'utf8');
-  const got = await page.evaluate(async ({ text, kind, label }) => {
-    const s = await window.wayfindParseSchedule(text, { kind, label });
+  // NO `kind`. The sniff has to decide, because that is the documented call
+  // and the one an interface makes — see assertion 5 in the header.
+  const got = await page.evaluate(async ({ text, label }) => {
+    const s = await window.wayfindParseSchedule(text, { label });
     return JSON.parse(JSON.stringify(s));
-  }, { text, kind: exp.kind, label: name });
+  }, { text, label: name });
   parsed[name] = got;
 
   if (DUMP) {
@@ -161,8 +223,18 @@ for (const name of Object.keys(EXPECT)) {
   }
 
   console.log('\n--- ' + name + ' ---');
+  console.log('  sniffed: ' + got.source.sniffed + '  ->  kind: ' + got.source.kind);
   console.log('  summary: ' + got.summary);
   check(got.shape === 'ut-walk-schedule' && got.version === 1, `${name}: shape stamped`);
+  check(got.source.sniffed === exp.sniff, `${name}: sniffed as ${exp.sniff}`, String(got.source.sniffed));
+  check(got.source.kind === exp.kind, `${name}: source kind ${exp.kind}`, String(got.source.kind));
+  if (exp.maxProblems != null) {
+    // The regression guard. Nine LOCATION_MISSING errors for nine lines of
+    // HTML is what this number is here to make impossible.
+    check(got.problems.length <= exp.maxProblems,
+      `${name}: at most ${exp.maxProblems} problem(s), not one per line`,
+      `got ${got.problems.length}: ` + got.problems.map(p => p.code).join(','));
+  }
   check(got.counts.total === exp.total, `${name}: ${exp.total} events`, `got ${got.counts.total}`);
   check(got.counts.ok === exp.ok, `${name}: ${exp.ok} usable`, `got ${got.counts.ok}`);
   if (exp.errors != null) {
@@ -208,6 +280,54 @@ for (const name of Object.keys(EXPECT)) {
 }
 
 if (DUMP) { await browser.__done(); process.exit(0); }
+
+// ── the explicit `kind` override, in its own section ──────────────────────
+//
+// It has to be here and it must NOT be how the table above is graded. A drop
+// zone knows a file's extension and may reasonably force the parser, so the
+// override is real API and is asserted in both directions. But when the
+// override was doing double duty as the default path's test, it hid the bug
+// this round exists to fix: the one fixture that needed the sniff most was
+// the one fixture the sniff was never asked about.
+console.log('\n--- the explicit kind override ---');
+const forced = await page.evaluate(async ({ ics, html }) => {
+  const asRows = await window.wayfindParseSchedule(ics, { kind: 'rows' });
+  const asIcs = await window.wayfindParseSchedule(html, { kind: 'ics' });
+  return JSON.parse(JSON.stringify({
+    asRows: { kind: asRows.source.kind, sniffed: asRows.source.sniffed },
+    asIcs: {
+      kind: asIcs.source.kind, sniffed: asIcs.source.sniffed,
+      problems: asIcs.problems.map(p => ({ code: p.code, text: p.text })),
+    },
+  }));
+}, {
+  ics: fs.readFileSync(path.join(HERE, 'google-clean.ics'), 'utf8'),
+  html: fs.readFileSync(path.join(HERE, 'not-a-calendar.ics'), 'utf8'),
+});
+check(forced.asRows.kind === 'rows' && forced.asRows.sniffed === 'ics',
+  'kind:"rows" overrules a sniff that said ics, and the sniff is still recorded',
+  JSON.stringify(forced.asRows));
+check(forced.asIcs.kind === 'ics' && forced.asIcs.sniffed === 'markup',
+  'kind:"ics" overrules a sniff that said markup, and the sniff is still recorded',
+  JSON.stringify(forced.asIcs));
+check(forced.asIcs.problems.length === 1 && forced.asIcs.problems[0].code === 'FILE_NOT_CALENDAR',
+  'and forcing ics on a web page still gives exactly one named failure',
+  JSON.stringify(forced.asIcs.problems.map(p => p.code)));
+console.log('  google-clean.ics forced to rows -> ' + JSON.stringify(forced.asRows));
+console.log('  not-a-calendar.ics forced to ics -> [' + forced.asIcs.problems[0].code + ']');
+
+// A BOM in front of the doctype. Windows and several export paths write one,
+// and the head test is anchored at `^`, so an unhandled BOM would push the
+// doctype off the anchor and drop the file back into the row parser — the
+// exact bug, wearing three invisible bytes. The regex allows for it; this is
+// the assertion that says so, since nothing about it is visible in the source.
+const bommed = await page.evaluate(async ({ html }) => {
+  const s = await window.wayfindParseSchedule('﻿' + html);
+  return JSON.parse(JSON.stringify({ sniffed: s.source.sniffed, problems: s.problems.map(p => p.code) }));
+}, { html: fs.readFileSync(path.join(HERE, 'not-a-calendar.ics'), 'utf8') });
+check(bommed.sniffed === 'markup' && bommed.problems.length === 1,
+  'a BOM in front of the doctype does not hide the web page',
+  JSON.stringify(bommed));
 
 // ── every clean event must actually ROUTE ─────────────────────────────────
 console.log('\n--- routing the clean schedules ---');
@@ -257,6 +377,22 @@ check(webcal.counts.ok === 4, 'subscribe-by-URL imports 4 classes',
   JSON.stringify(webcal.counts) + ' ' + JSON.stringify(webcal.problems.map(p => p.code)));
 check(webcal.source.kind === 'ics-url', 'and stamps itself as a URL source', webcal.source.kind);
 console.log('  ' + webcal.summary + '   (from ' + webcal.source.url + ')');
+
+// A feed URL that answers 200 with a SIGN-IN PAGE — the same wrong bytes an
+// upload brings, arriving over the wire, and the way this actually fails in
+// the wild. The URL front end must reach the same one sentence.
+const loginFeed = await page.evaluate(async ({ base }) => {
+  const s = await window.wayfindFetchSchedule(`${base}/scripts/verify/schedule-fixtures/not-a-calendar.ics`);
+  return JSON.parse(JSON.stringify({
+    kind: s.source.kind, sniffed: s.source.sniffed, counts: s.counts,
+    problems: s.problems.map(p => ({ code: p.code, text: p.text })),
+  }));
+}, { base: BASE });
+check(loginFeed.problems.length === 1 && loginFeed.problems[0].code === 'FILE_NOT_CALENDAR',
+  'a feed that answers with a sign-in page fails with one named reason',
+  JSON.stringify(loginFeed.problems.map(p => p.code)));
+check(loginFeed.sniffed === 'markup', 'and records that it read as a web page', String(loginFeed.sniffed));
+console.log('  [' + loginFeed.problems[0].code + '] ' + loginFeed.problems[0].text.slice(0, 72) + '…');
 
 const badUrl = await page.evaluate(async () => {
   const s = await window.wayfindFetchSchedule('https://calendar.google.com/calendar/ical/definitely-not-real/basic.ics');

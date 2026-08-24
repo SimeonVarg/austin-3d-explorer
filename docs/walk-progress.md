@@ -2564,3 +2564,66 @@ scripts I wrote into `scripts/verify` before finishing, and reverted the two
 I re-ran it (same camera, same fixture — not a real change, just noise from
 running their own script). Server on 8951 killed, port re-confirmed free by
 `netstat`. No files the builder owns were edited.
+
+---
+
+## 2026-08-24 — the schedule parser, round 5: fixing the bug the test could not see (`acer/si-parser`)
+
+Short version: a student who uploads the wrong file used to get nine wrong
+sentences. Now they get one right one.
+
+The importer's job is to read a schedule and tell you plainly what it could not
+use. Last round it did that well for a *calendar* with broken rows. But the
+likeliest wrong file a student uploads is not a broken calendar — it is a saved
+web page, because the export link bounced them through a UT EID sign-in wall and
+they saved that instead. There was already a good sentence written for exactly
+that case: *"That is not a calendar file. If you saved it from a page that asked
+you to sign in, you probably saved the sign-in page instead of the .ics."* The
+problem was that nothing could reach it. Handed a saved sign-in page, the
+importer decided it must be typed-out text, read it a line at a time, and
+reported nine errors — one per line of HTML — each saying *"Line 3 (...) names a
+course but no building."* There is no course on that line. It was nine lies
+about a file it had already been taught how to describe.
+
+The uncomfortable part is that the test suite was green over it, and green for a
+specific reason: the test told the importer what kind of file it was looking at.
+The one fixture that most needed the importer to work that out for itself was
+the one fixture it never had to. So the test has been changed to stop helping:
+every fixture now goes in with no hint at all, which is how the app will really
+use it, and each bad-file case carries a hard ceiling of **one** error message
+so "one error per line" cannot come back.
+
+Three things were fixed underneath. The importer now tells three kinds of text
+apart instead of two — a calendar, a paste, and a web page — and it catches a
+web page both when it starts with the usual markup and when it is only a
+fragment copied out of a course site. A pasted line that names no course now
+gets the sentence written for that case instead of one written for a different
+case. And a paste where *nothing* looks like a class — someone's syllabus, a
+page of registration boilerplate — is turned down once with a single sentence
+rather than line by line.
+
+That last one introduced a risk worth naming, because it is the same risk the
+whole feature is built to avoid: a verdict on a whole file can swallow a good
+class. So there is now a fixture that is five lines of junk with one real class
+buried in the middle, and it must still import that one class and name the five
+junk lines individually. One good row cancels the verdict.
+
+Also re-measured the list of buildings that cannot be routed to, rather than
+carrying last round's numbers forward: still exactly eleven, ten of them at the
+Pickle Research Campus 10.8–11.8 km north, plus SSW. And corrected something
+this lane's own write-up had overstated. It had flatly called the brief's claim
+about SSW "false"; checking each source properly, it is half true — SSW really
+is missing from our copy of UT's building register (198 rows, no social-work
+entry under any name), but UT's own entrances survey does know it, with two
+surveyed doors already sitting in this repo. Which matters, because it changes
+the fix from "handle a building nobody has a record of" to "copy one row across
+from the table next door."
+
+The whole lane is still strictly additive to the shared file: 1,351 lines added
+to `js/wayfind.js`, none deleted, which is worth knowing with five lanes writing
+into it. 286 assertions pass, up from 209. The Monday walk out of a real parsed
+Google calendar — Gates Computer Science to Welch Hall, 140 m, no stairs — was
+re-photographed against this code and looked at. Nothing here is switched on:
+`WAYFIND.on` is still false and the import bar itself is the interface lane's
+half. Server on 8911 stopped and the port confirmed free; the scratch script
+written to reproduce the bug was deleted.
