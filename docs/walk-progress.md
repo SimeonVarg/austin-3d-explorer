@@ -2625,3 +2625,73 @@ owns were edited on the branch. Server on 8953 killed by PID after `netstat`
 confirmed it was still listening; port re-confirmed free. Browser pane closed.
 No scratch scripts or screenshots committed to the repo — all work stayed in
 the scratchpad.
+
+---
+
+## 2026-08-24 — critic verdict on the "dayview" piece, round 3: oursWins = true
+
+Drove `acer/si-dayview` (commit `3103eac`) at `?walk=1&day=tth|mwf|gaps`, real
+Chrome via `playwright-core`, served on 8954. Re-ran the builder's own ruler
+myself rather than trusting the number in the doc: `node
+scripts/verify/dayview.mjs 8954` — **59 ok, 0 failed**, including a live re-probe
+of all eleven forcing-function codes (matches the doc: ten really are 10.8–11.8
+km north at Pickle, SSW really is 0.90 km from the Tower with two UT-surveyed
+doors, and all eleven fail as `notfound`, not `noroute`). Also re-ran `node
+scripts/verify/walkmeter.mjs 8954` independently: 87.0 m route extra, 90.6 m
+door-offset extra, 38/38 ends at UT's door, drift 0.00 m on every pair, avoid-stairs
+UI gate PASS — identical to the figures quoted in `docs/si-dayview.md`, so the
+routing this lane sits on top of was not disturbed. `harness-drift.mjs` PASS
+(31/31 scripts both pages). Grepped the raw source for `spare`, `you'll make
+it`, `plenty of time`, `enough time`, `in time`, `easy`, `no rush` inside the
+day-plan section myself — the only hit is a code comment citing the forbidden
+phrase as an example of what NOT to print.
+
+**Blind visual judgement.** Bar = a real, current Google Calendar product
+screenshot (workspace.google.com's own Calendar marketing page, fetched live —
+not a mockup I built), showing its week/day column of stacked, colour-coded,
+timed event blocks. Ours = a panel-only crop of the `tth` fixture's day list at
+10:50, stripped of the "From UT registration" footer. Saved as
+`crop-alpha.png` (bar) / `crop-beta.png` (ours) in the scratchpad, judged on
+the stated question — does it read at a glance which walk is next, how long it
+takes, and whether it has a problem — before un-shuffling. Verdict: **ours,
+clearly.** Calendar's day view has no visual language for the gap *between*
+events at all — no duration number, no problem flag, nothing but blank space —
+because a calendar was never built to answer "which walk is next." Ours answers
+all three parts of the question in one glance: an explicit `NEXT` badge, big
+`13–18 min · 1.1 km` numbers, a gap bar sized to the schedule's own passing
+period with a hatched stub where the walk runs over it, and one-line chips
+(`Tight for this gap`, `1 set of stairs · a step-free way is 29 m shorter`,
+`Crosses 4 signalised crossings`). This is a real win, not a tie: Calendar
+structurally cannot do the thing being judged.
+
+Also drove the `gaps` fixture and the after-last-class state by eye
+(`gaps-desktop.jpg`, `tth-done.jpg`, `clip-nothing.jpg`, both phone shots) —
+all read cleanly, the three-sentence forcing-function claim in the doc (`We've
+never heard of SSW`, `We can't take you to BE1`, one good leg) is visible and
+correctly worded on screen, and `?clip=1` really does hide the whole thing.
+
+**Single biggest remaining gap, concretely:** this branch and its sibling
+`acer/si-ui` (the schedule-import screen, also unmerged) both append their new
+~1,000-line section to `js/wayfind.js` at the identical insertion point — right
+after the same closing brace at the end of the file — so combining them is not
+a clean fast-forward. Confirmed with `git merge-tree 80747c4 origin/acer/si-dayview
+origin/acer/si-ui`: a real conflict in `js/wayfind.js` (dayview's §10 vs. ui's
+§9, both wanting to be the first new section after the existing code), plus the
+same shape of conflict against `origin/acer/si-parser`, and between si-ui and
+si-parser too — all three pairs conflict. Checked for the worse, silent version
+of this (a shared identifier reused by two lanes for different things) and
+found none: `WF_DAY`/`dayBoot`/`DAY_CSS`/`wayfindDay` appear nowhere in si-ui's
+file, and `IMP_SOURCES`/`impDecodeICS`/`impPlace`/`wayfindSchedule` appear
+nowhere in si-dayview's — so the fix is mechanical (concatenate both blocks,
+pick a section order, renumber, re-run both lanes' harnesses on the merged
+result) rather than a rewrite, but nobody has done it or even test-merged it
+yet, and whichever lane merges second inherits it per CLAUDE.md rule 2. Not
+this lane's file to fix alone; written down for whichever lane merges next.
+
+Nothing the builder owns was edited. Server on 8954 killed by PID after
+`Get-NetTCPConnection` confirmed it was still listening; port re-confirmed
+free. Temporary worktree used to read the branch (`critic-dayview-r3`)
+removed with `git worktree remove --force` and pruned. No screenshots
+committed — all frames stayed in the scratchpad; the five already-committed
+`shots/si/dayview/*.jpg` from the builder's own harness run were reused rather
+than re-shot.
