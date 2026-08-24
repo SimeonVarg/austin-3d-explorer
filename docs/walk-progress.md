@@ -2828,3 +2828,77 @@ committed bytes, `scripts/verify/node_modules` (this worktree's own copy,
 not committed, server on 8951 killed by PID and the port re-confirmed free by
 `netstat`, no scratch scripts committed to `scripts/verify`. No file the
 builder owns was edited.
+
+## 2026-08-24 — critic round 3 on the gaps piece (`acer/si-gaps`, tip `7fd3596`), oursWins=true
+
+Fresh context, own scripts, own server on port 8952 (`scripts/verify/node_modules`
+was empty in this worktree — `npm install`-ed fresh, then the two files it
+touched, `package.json`/`package-lock.json`, were checked back out so nothing
+extra shipped). `harness-drift.mjs` PASS first (31/31 both files). Note for
+whoever reads branch names off this log: my locally cached `acer/si-gaps` ref
+was three rounds stale (tip `a902c32`, docs-only); the branch that actually
+matters is what `origin/acer/si-gaps` points at now, `7fd3596`, which is the
+same commit a sibling session's local branch called `si-gaps-r3`.
+
+**The judged bar, re-measured myself, not read off the doc.** Ran
+`walkmeter.mjs` twice on this exact checkout, same port, same browser: once
+as shipped, once with `js/wayfind.js` swapped for `origin/main`'s copy and
+then swapped back (confirmed byte-identical after). Shipped: **10** unroutable
+UT buildings (`BE1 BEG EME FS1 FSL MER PX3 ROC SV1 TCB`), 57 routable
+buildings scored, avoid-stairs 10/10 clean. Main: **11** unroutable (same list
+plus `SSW`), 56 scored, 9/9 clean. The 20 baseline pairs' full per-pair output
+lines diffed byte-for-byte identical between the two runs (`diff` exit 0) —
+zero regression, not just an unchanged summary total.
+
+**SSW driven for real, not just through the API.** A fresh Playwright script
+(not the builder's) opened `#wf-sheet` with a real click on `#wf-button`,
+typed `SSW` into `#wf-to` with real keystrokes, and read the DOM: one row,
+`SSW · School of Social Work Building · 2 doors`, class `wf-item active` — not
+`off`, matching the builder's claim that the search list no longer refuses it.
+Clicked it, set `FROM` to `JES` the same way, and got a real answer:
+`7-11 min walk · 660 m · No stairs on this route`. Screenshotted twice and
+read both with the Read tool: the closed card, and the map after clicking
+`Show route` — a real cream route line following an actual footpath past DKR
+Stadium toward the building, not a straight line through walls or a stub.
+`window.wayfindOffMap('MER')` and `wayfindRoute('JES','ZZQEXAMPLE')` reproduce
+the doc's exact `offmap`/`notfound` shapes. Diffed `js/wayfind.js` against
+`origin/main` myself (after fixing a CRLF-vs-LF false positive that made a
+naive `diff` claim the whole file changed): 307 insertions, 0 deletions —
+additive-only holds.
+
+**No sibling-lane regression risk right now, checked rather than assumed:**
+`git merge-base origin/main origin/acer/si-gaps` equals `origin/main` HEAD —
+nothing has landed on `main` since this branch's base, so there is nothing
+for this round to have silently broken yet. That will need re-checking at
+integration time, not before.
+
+**oursWins = true.**
+
+**Single biggest remaining gap, concretely:** this round fixed the one
+`notfound`-class code (a real building the router had no index entry for at
+all). It left untouched the larger, harder class the doc's own §6(d) already
+found and sized: **14 `nodoor` codes are real, drawn, on-map buildings whose
+nearest mapped door belongs to a different building** — SSW-shaped, but
+blocked because none of the 14 has a `UT_CELEBRATED` row to borrow rule 4's
+fix from, and the honest repair (`data/entrances.geojson` + a
+`scripts/bake_entrances.py` re-bake) is out of this lane's write permission
+and was correctly not attempted blind — the doc measured that a clean re-bake
+with zero input changes still moves 50 doors, because `data/walk_graph.json`
+is eight days stale against the city it routes around. A schedule import will
+still hit `nodoor` silence on those 14 real buildings after this ships;
+closing them needs the graph-bake owner to review and land a fresh bake
+first, then this lane's same door-matching check re-run against it.
+
+**What I actually looked at or measured:** two independent `walkmeter.mjs`
+runs (shipped and `origin/main`-swapped) with the 20-pair output diffed
+line-for-line; a fresh Playwright script driving real clicks and keystrokes
+into `#wf-button`/`#wf-to`/`#wf-from`, two screenshots opened with the Read
+tool; `window.wayfindDoors`/`wayfindRoute`/`wayfindOffMap` called directly for
+SSW, MER and a made-up code; `git diff --numstat` on `js/wayfind.js` against
+`origin/main` after correcting for a line-ending false positive;
+`git merge-base` to confirm `main` hasn't moved. Branch left as found: no
+file the builder owns was edited, the scratch Playwright script was written
+under `scripts/verify/_critic_ssw.mjs` and deleted before finishing,
+`package.json`/`package-lock.json` reverted to the committed copy after
+`npm install`, `scripts/verify/node_modules` is gitignored and not committed,
+server on 8952 killed by PID and the port re-confirmed free by `netstat`.
