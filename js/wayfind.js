@@ -317,6 +317,35 @@
     litPadH: 0.34,         // stands proud of GROUND.pathRaise (0.22) so it is
                            // not buried by the pavement slab, like the ribbon.
     litPadOpacity: 0.8,
+    // ── THE RING ROUND A LAMP WITH A TREE ON IT ────────────────────────────
+    //
+    // Round 3 found live oaks standing on counted street lamps and made it a
+    // field in the index (`warm_canopy`, 56 of 193) and a clause in the card
+    // ("4 of them are under tree cover"), counted and never deducted. Round 5's
+    // matrix put twelve cameras on stretches this card draws AMBER
+    // (shots/walk/lit/stretchscene.mjs) and the flag turned out to predict the
+    // picture exactly: ten of twelve sites have a lamp burning in the frame,
+    // the two that are pitch black are BOTH canopy-flagged, and at a third
+    // flagged site the flagged lamp itself contributes nothing inside the 25 m
+    // disc while another lamp lights the frame. Three flagged, three with no
+    // light of their own; nine unflagged, nine lit. `litgap.mjs` hid one layer
+    // family at a time at the two black ones: buildings 0, ground 0, TREES
+    // +4,380 and +3,034 pool pixels.
+    //
+    // WHICH MAKES THE RING THE ONE THING IN THIS FEATURE THAT OVERSTATES. Fly
+    // to a flagged lamp at night and there is a full-strength amber ring on the
+    // pavement — the claim's receipt — with no light in it. The card's canopy
+    // sentence was the only claim in the block with nothing on the map to check
+    // it against, and the mark that WAS there quietly contradicted it.
+    //
+    // So a flagged lamp gets the same ring, same size, same shape, same hue,
+    // in a dimmer value. It is still a counted lamp and the count is unchanged:
+    // this can only ever make a counted lamp look like LESS light, which is the
+    // same test every permitted sentence in docs/walk-lit.md §5 has to pass.
+    // One line to drop the whole idea.
+    litPadCanopyOn: true,
+    litPadCanopyCol: '#9c7748', // litLampCol carried down in value, not shifted
+                           // in hue: a dimmer lamp, not a different object.
     litDarkLiftM: 0.05,    // the unmapped overlay rides this far above the
                            // ribbon's own top so the two never z-fight.
     litDarkWidthMul: 1.04, // ...and is a hair wider, so its edges are visible
@@ -401,10 +430,38 @@
     // counted lamp at all, because that is the sentence that reads like a
     // verdict and the only one worth qualifying.
     litNearMissOn: true,
-    litNearMissM: 50,      // outer ring. Twice the counting radius, and inside
-                           // the 60 m round 3 called "clear of the boundary",
-                           // so this names the near misses without reaching
-                           // into the territory the matrix already checked.
+    // ROUND 5 MEASURED THE WIDTH OF THIS RING INSTEAD OF REASONING ABOUT IT.
+    // Round 4 shipped 50 m — "twice the counting radius, and inside the 60 m
+    // round 3 called clear of the boundary" — and wrote in its own §31 that
+    // this "is a reason, not a measurement". Round 4's own 9-of-18 came off a
+    // sample that put six sites on one route and two of them 24 m apart.
+    //
+    // shots/walk/lit/stretchscene.mjs: 24 sites, four distance buckets,
+    // deduplicated by coordinate and spread over 35 routes, flown to at night,
+    // masked pixels, card hidden. A warm street lamp is somewhere in the frame:
+    //
+    //   25-30 m from the nearest mapped lamp     5 of 6
+    //   30-35 m                                  4 of 6
+    //   35-40 m                                  3 of 6
+    //   40-50 m                                  0 of 6
+    //   >120 m (the control)                     0 of 12
+    //
+    // The outer ten metres of the shipped ring hold lamps NOBODY STANDING THERE
+    // CAN SEE. This clause exists to stop "No mapped streetlight along this
+    // route" being called wrong by a person who walks out and looks at one — and
+    // a lamp that cannot be seen is not that person's objection. Counting it
+    // makes the sentence longer and less true in the same stroke, and in the one
+    // direction this feature has spent five rounds refusing to be wrong in:
+    // sounding like more light than is there.
+    //
+    // PRICED BEFORE IT WAS CHANGED (shots/walk/lit/ringsweep.mjs, 60 seeded
+    // routes, the sweep driven through the real router with the reprice hook
+    // checked every pass): 33 routes have no counted lamp; the clause fires on
+    // 3 of them at 50 m and 2 at 40 m. Exactly one route in sixty changes —
+    // NEZ->TMM, which at 50 m was told about a single lamp 40-50 m away.
+    litNearMissM: 40,      // outer ring, at the measured edge of what is
+                           // visible from the pavement at night. Raise it and
+                           // the clause starts naming lamps you cannot see.
     // FOLDING THE PROVENANCE. Three dated paragraphs, eight of the twenty
     // lines, and they were the least-read text in the app precisely because
     // they were the longest. Folded, the two disclaimers that matter most —
@@ -1766,6 +1823,9 @@
   const L_LIT_PAD = 'wayfind-lit-pad', L_LIT_DARK = 'wayfind-lit-dark';
   const L_LIT_THREAD = 'wayfind-lit-thread', L_DARK_MARK = 'wayfind-dark-mark';
   let LAMPS = null, lampPromise = null, litLayersAdded = false;
+  // The tally of marks litDraw last handed to the source, by kind. Test surface
+  // only — see the note where it is written.
+  let litDrawn = {};
 
   function decodeLampSet(o) {
     const xs = (o && o.x) || [], ys = (o && o.y) || [], n = xs.length;
@@ -2131,12 +2191,21 @@
     // A ring round the foot of every lamp this route counted, in that lamp's
     // own colour. This is the claim's receipt: stand in one at night and the
     // pole is in it.
+    //
+    // ...except where a tree is standing on the lamp, which round 5 measured at
+    // three of three flagged sites. There the ring is the same ring in a dimmer
+    // value (`litPadCanopyCol`), because a full-strength receipt around a lamp
+    // throwing nothing was the only mark in this feature that claimed more light
+    // than the scene has. Three kinds, one layer, one filter — a second layer
+    // would have to be kept in step with this one's opacity clock.
     map.addLayer({
       id: L_LIT_PAD, type: 'fill-extrusion', source: SRC_LIT, minzoom: WAYFIND.minZoom,
-      filter: ['match', ['get', 'k'], ['lamp', 'phone'], true, false],
+      filter: ['match', ['get', 'k'], ['lamp', 'lampcanopy', 'phone'], true, false],
       paint: {
-        'fill-extrusion-color': ['case', ['==', ['get', 'k'], 'phone'],
-          WAYFIND.litPhoneCol, WAYFIND.litLampCol],
+        'fill-extrusion-color': ['match', ['get', 'k'],
+          'phone', WAYFIND.litPhoneCol,
+          'lampcanopy', WAYFIND.litPadCanopyCol,
+          WAYFIND.litLampCol],
         'fill-extrusion-height': ['get', 'h'],
         'fill-extrusion-base': 0,
         'fill-extrusion-opacity': WAYFIND.litPadOpacity,
@@ -2203,7 +2272,14 @@
             .concat(squareAround(ll, Math.max(0.2, WAYFIND.litPadM - 2 * WAYFIND.litPadRimM))),
         },
       });
-      for (const i of scan.lamps) feats.push(ring([LAMPS.warm.X[i], LAMPS.warm.Y[i]], 'lamp'));
+      // A flagged lamp is still a counted lamp and still gets a ring — the
+      // count above the card and the marks on the ground have to agree, or the
+      // receipt stops being a receipt. Only its VALUE changes.
+      const covered = (i) => WAYFIND.litPadCanopyOn && WAYFIND.canopyOn &&
+        LAMPS.warmCanopy && LAMPS.warmCanopy[i];
+      for (const i of scan.lamps) {
+        feats.push(ring([LAMPS.warm.X[i], LAMPS.warm.Y[i]], covered(i) ? 'lampcanopy' : 'lamp'));
+      }
       for (const i of scan.phones) feats.push(ring([LAMPS.blue.X[i], LAMPS.blue.Y[i]], 'phone'));
       // ...and the city's pins, as a diamond ring in their own colour.
       if (WAYFIND.darkOn && LAMPS.dark) {
@@ -2214,6 +2290,19 @@
     }
     const src = map.getSource(SRC_LIT);
     if (src) src.setData({ type: 'FeatureCollection', features: feats });
+    // WHAT WAS ACTUALLY DRAWN, kept for the test surface. Not a convenience:
+    // the marks cannot be counted back off the map. `getSource()._data` is not
+    // the FeatureCollection that was set (it reads as undefined with zero
+    // features, which looks exactly like a change that did nothing), and
+    // `querySourceFeatures` repeats a feature in every tile it touches — 24
+    // rings came back as 64, then as 39 after a deduplication by vertex, which
+    // is the right ratio and a meaningless count. A tally taken here is taken
+    // from the array that was handed to the source, once.
+    litDrawn = feats.reduce((n, f) => {
+      const k = f.properties && f.properties.k;
+      if (k) n[k] = (n[k] || 0) + 1;
+      return n;
+    }, {});
   }
 
   /** The reported-dark mark: an open ring, like the lamp's, but turned 45° and
@@ -3129,6 +3218,10 @@
       totalM: Math.round(scan.totalM), pct: Math.round(100 * scan.pct),
       longestGapM: Math.round(scan.longestGapM),
       runs: scan.runs.length,
+      // The marks litDraw actually put on the ground, by kind, so a test can
+      // check that the card's sentence and the map's receipt agree — 24 counted
+      // lamps must be 24 rings, of which `lampcanopy` many are the dim ones.
+      drawn: litDrawn, padCanopyOn: !!WAYFIND.litPadCanopyOn,
       lampsAt: scan.lamps.map(i => [LAMPS.warm.X[i], LAMPS.warm.Y[i]]),
       phonesAt: scan.phones.map(i => [LAMPS.blue.X[i], LAMPS.blue.Y[i]]),
       darkAt: scan.runs.filter(x => !x.lit && x.m >= WAYFIND.litGapMinM)

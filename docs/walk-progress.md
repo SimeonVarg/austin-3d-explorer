@@ -234,3 +234,53 @@ Nothing about the routing changed. Every steering number is byte-identical to
 last round, the feature still only annotates unless you press the button, and
 `WAYFIND.on` is untouched. Full argument and every number: `docs/walk-lit.md`
 §25-§31.
+
+## 2026-08-24 — streetlights, round 5 (`acer/w-lit`)
+
+**Last round left one thing hanging and I went and measured it.** The bar in the
+lighting box is amber where a streetlight is mapped and cool where none is — but
+a cool stretch 28m from a lamp looks exactly like a cool stretch 300m from one,
+and last round said somebody should find out whether that matters. It mostly
+doesn't: **the average cool stretch on this campus is 228m from the nearest
+mapped streetlight**, and only 7.5% of all the cool walking is within 50m of
+one. Painting a third colour on the bar would have repainted about 4% of it and
+chopped it into more pieces on more than half the routes. So I didn't. That's the
+second idea this feature has thrown out by measuring it rather than arguing
+about it.
+
+**What the measuring did turn up is how far you can actually see a streetlight.**
+I flew to 24 cool spots at night, sorted by how far the nearest mapped lamp is,
+and looked: at 25-30m away you can see it 5 times out of 6, at 35-40m 3 times
+out of 6, and **at 40-50m you cannot see it at all, 6 out of 6**. The card used
+to say "2 more are mapped within 50 m of it" — so it was pointing at lamps
+nobody standing there could see. That's now 40m, the distance where seeing one
+stops. Exactly one route in sixty changes.
+
+**Then I checked the amber half properly for the first time.** Every round so far
+has been hardest on the "no light here" claim and easy on the "there is light
+here" one. Twelve amber spots, picked by a script, flown to at night: ten have a
+streetlight burning in the frame. **The two that are pitch black both have a live
+oak sitting on top of the lamp** — hide the trees and 4,000 pixels of lamplight
+appear. That's the thing round 3 found at two places, and it now predicts
+perfectly: every tree-covered lamp I looked at throws no light you can see, and
+every uncovered one does.
+
+**Which showed up one thing we were getting wrong.** We draw a little amber ring
+on the ground at the foot of every streetlight we count — it's the receipt, so
+you can stand in one and see the pole. At a lamp with a tree over it that ring
+was at full brightness with **no light in it at all**. It's now dimmer for those
+— same ring, same shape, just darker, so it reads as "counted, but don't expect
+much". Before and after: `r5-ring-covered-before.png` and `r5-ring-covered.png`.
+
+**And I checked last round's rebuilt box on a phone, which nobody had done.** It
+was measured on a laptop screen. On a 390px handset the bar still shows all seven
+of its amber marks — same as on the laptop — and it never claims more light than
+the count, same as on the laptop. The rebuild holds up. One thing that doesn't,
+and it isn't mine to fix: **the whole route card is only 153px wide on a phone,
+39% of the screen**, so every sentence in it wraps three or four times with empty
+space either side. Photo and numbers are in `docs/walk-lit.md` §38 for the lane
+rebuilding that card.
+
+Routing untouched again — every steering number identical to round 3.
+Full argument, every number and the three instruments that lied to me first:
+`docs/walk-lit.md` §32-§41.

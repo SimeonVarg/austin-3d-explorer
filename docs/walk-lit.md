@@ -1437,3 +1437,391 @@ readable, which is the part that had been quietly failing.
   radius and inside round 3's 60 m, which is a reason, not a measurement.
 * **Anything about crime, response times, or how safe a stretch is.** Unchanged
   across four rounds, and it will stay unchanged.
+
+---
+
+# ROUND 5 — the thing round 4 wrote down and did not answer, and the amber
+# column nobody had sampled
+
+Round 4 ended §28 with a paragraph headed *"The residue, stated plainly"* and
+called it **the biggest thing round 4 leaves open**: the near-miss clause
+answers the route-level sentence and not the stretch-level one — *"a cool
+segment of the strip 28 m from a lamp still reads as cool, and 9-in-18 says a
+lamp is often visible from there."* Sizing it properly, it said, needs a
+per-stretch measurement over a real sample, and then the honest options are a
+second strip colour for "just outside" or nothing at all.
+
+Round 5 made that measurement. It came back **nothing at all** for the strip and
+**one constant** for the ring — and on the way it turned up two things nobody
+was looking for: the amber column of the confusion matrix had never been sampled
+with the deduplication rules the cool column got, and one mark this feature puts
+on the ground was overstating.
+
+Two constants changed. Everything else here is a measurement, a photograph, or
+an instrument that was wrong first.
+
+---
+
+## 32. How much cool strip is actually near a lamp
+
+`shots/walk/lit/stretchmiss.mjs`, committed with its JSON. 60 seeded
+building-to-building pairs driven through the real `window.wayfindRoute`; every
+8 m step of every COOL run classified by its nearest-warm-lamp distance,
+computed in node against the **shipped** `data/walk_lamps.json` rather than a
+re-derivation. **[M]**, 2026-08-24.
+
+```
+cool metres over the sample                          52,405 m
+  ...within 50 m of a mapped lamp                     3,927 m   7.5%
+  ...beyond it                                       48,479 m  92.5%
+nearest-lamp distance at a cool step   p10 57 m · median 228 m · p90 359 m
+routes with ANY near-ring cool metres                    35 / 60
+routes where it is >= 15% of their cool                  10 / 60
+per-route near share of cool   p25 0% · median 5% · p75 13% · max 65%
+```
+
+**The median cool step on this network is 228 m from the nearest mapped street
+lamp.** The thing §28 worried about is real and it is 7.5 % of the cool metres.
+Round 4's own 9-of-18 is not evidence against that: it was measured on a sample
+drawn from inside the band on purpose, so it says how often a lamp is visible
+*given* you are in the band, not how much of the walk is.
+
+### And what a third colour would cost the picture
+
+The strip draws runs. Splitting a cool run wherever it crosses the 50 m boundary
+turns one segment into several:
+
+```
+extra strip segments per route      median +1 · p75 +2 · max +10
+segments today                      median  2 · max 15
+routes where it would AT LEAST DOUBLE the segment count   8 / 60
+share of the WHOLE strip that changes colour   median 4.3% · max 60.6%
+```
+
+Median +1 segment to repaint a median 4.3 % of the bar — about twenty-two pixels
+of a 518 px strip. And the floors make it worse in the one direction that
+matters: `litStripMinFrac` rounds a short run UP, so every sub-segment the split
+creates is a small overstatement, and §27 spent a whole gate proving the strip
+never shows more light than the count.
+
+**So: nothing at all.** No third strip colour. Same answer, arrived at the same
+way, as `litCanopyMult` in §21 — a good idea, measured, and measured out rather
+than argued out.
+
+---
+
+## 33. THE MATRIX — 48 sites, and the column that had never been sampled
+
+Round 3's matrix (§18) had 43 sites and no deduplication; round 4's strip check
+(§27) had 12 and learned to deduplicate; round 4's boundary check (§28) had 18
+and did not. Round 5's has **48 sites in three populations**, every one
+deduplicated by coordinate at 40 m and spread across distinct routes first, and
+for the first time the AMBER column is drawn from geometry rather than by eye.
+
+`shots/walk/lit/stretchscene.mjs`. Plan view, site dead centre, `p = 0.92`
+asserted not assumed, hardware GL, graphics auto-detect cancelled, veil gone,
+the route card hidden, `props-lit` and `props-lit-core` masked flat and diffed
+against the unmasked frame, the 25 m disc measured through the map's own
+`project()` and drawn on every saved frame. **[M]**, 2026-08-24.
+
+| what the card draws | sites | a warm lamp inside the 25 m disc | a warm lamp anywhere in the frame |
+|---|---|---|---|
+| **amber** — a lamp within 25 m | 12 | **9** | **10** |
+| **cool** — none within 25 m, nearest 25–50 m | 24 | 1 | 12 |
+| **cool** — nearest more than 120 m (the control) | 12 | **0** | **0** |
+
+**Read it in the direction that matters, which has not changed in three rounds.**
+No site the card calls unmapped has a warm street lamp *in the disc the claim is
+about* — bar one, and that one is a lamp 25.2 m away whose pool spills over a
+boundary the claim draws at 25.0 (`r5-near-03-25m-disc.png`: the lamp's position
+is outside, its light is not). The control is empty in both windows twelve times
+out of twelve; `r5-far-11-410m-disc.png` is what 410 m from a mapped lamp looks
+like, and it is black.
+
+### How far the surprise actually reaches — and it is not 50 m
+
+The band was sampled in four distance buckets, so the question could be *how
+far* rather than *ever*:
+
+| nearest mapped lamp | a warm lamp is somewhere in the night frame | median frame pool px |
+|---|---|---|
+| 25–30 m | **5 / 6** | 2,766 |
+| 30–35 m | 4 / 6 | 2,972 |
+| 35–40 m | 3 / 6 | 481 |
+| **40–50 m** | **0 / 6** | 0 |
+| > 120 m | 0 / 12 | 0 |
+
+`r5-near-14-39m-disc.png` is 39.4 m from the nearest counted lamp with a lamp
+plainly burning inside the drawn disc. `r5-near-21-42m-disc.png` is 42.1 m and
+is empty. **The visible reach ends between 40 and 50 m** — and round 4's ring
+was set at 50 for a reason rather than a measurement, as its own §31 says.
+
+---
+
+## 34. The two amber sites with no light, and they are the live oak again
+
+Two of the twelve amber sites came back with zero lamp pixels in the frame while
+`queryRenderedFeatures` found the feature and this lane's receipt ring was drawn
+at its foot. That is §20's signature, and `shots/walk/lit/litgap.mjs` asked the
+four questions that separate the possible causes — is it in the index, is it in
+the tiles, does the style render it, is something standing on it — hiding one
+layer family at a time:
+
+| hidden | lamp pool px, AFP→TCC | LLD→BRG |
+|---|---|---|
+| nothing (as shipped) | **0** | **0** |
+| buildings (13 layers) | 0 | 0 |
+| ground (24 layers) | 0 | 0 |
+| **trees (4 layers)** | **4,380** | **3,034** |
+
+`r5-gap-AFP-TCC-shipped.png` and `r5-gap-AFP-TCC-no-trees.png` are the same pose
+one second apart.
+
+**And `warm_canopy` predicted every one of them.** Of the twelve amber sites,
+three have a canopy-flagged lamp nearest them and nine do not:
+
+* the **three flagged** sites contribute **no light of their own** — two are
+  black frames, and the third (BWY→TSC, flagged lamp 2.6 m away) has 3,641 pool
+  pixels in the frame and **exactly 0 inside the 25 m disc**, which is a
+  different lamp lighting the picture;
+* the **nine unflagged** sites all have their lamp burning, 9 of 9
+  (`r5-lit-03-11m-disc.png`); `r5-lit-01-9m-disc.png` is a flagged one.
+
+Round 3 found the phenomenon at two places and shipped a count. Round 5 put
+twelve cameras on stretches chosen by a script and the flag separated them
+perfectly. That is a stronger result than round 3 was entitled to claim, and it
+is the reason for the one visual change below.
+
+---
+
+## 35. The one mark in this feature that was overstating
+
+Every counted lamp gets a square ring at its foot — the claim's receipt, "stand
+in one at night and the pole is in it" (§6). At a canopy-covered lamp that
+sentence was false in the only way that matters: **the ring was there at full
+strength and the light was not.** The card's canopy clause ("4 of them are under
+tree cover") was simultaneously the only claim in the block with nothing on the
+map to check it against, and the mark that *was* there quietly contradicted it.
+
+So a flagged lamp now gets **the same ring, same size, same shape, same hue, in
+a dimmer value** — `litPadCanopyCol` (`#9c7748`: `litLampCol` carried down in
+value, not shifted in hue). It is still counted, the count is unchanged, and
+this can only ever make a counted lamp look like *less* light, which is the same
+test every permitted sentence in §5 has to pass. `litPadCanopyOn: false` reverts
+it.
+
+**Verified as a picture, and A/B'd against what shipped before.**
+`shots/walk/lit/canopyring.mjs`, AFP→TCC (4 counted lamps, 2 flagged), the ring
+isolated by hiding its own layer and diffing so a composited mark cannot be
+confused with the ground under it. **[M]**
+
+| | ring pixels | mean colour | luminance |
+|---|---|---|---|
+| covered lamp, as shipped | 476 | 74, 58, 39 | **60** |
+| covered lamp, `litPadCanopyOn: false` | 476 | 109, 88, 67 | **91** |
+| open lamp on the same route | 207 | 111, 88, 71 | **92** |
+
+Before the change the covered lamp's ring was luminance 91 against an open
+lamp's 92 — the same mark, indistinguishable. It is now 60, a mean colour move
+of **54 in RGB distance**. `r5-ring-covered-before.png` and
+`r5-ring-covered.png` are the pair; `r5-ring-clear.png` is the open lamp.
+
+**One honest caveat, found by taking the other pose first.** Straight down at
+z20.6 the change is invisible, because the live oak covers the ring as
+completely as it covers the lamp: **0 ring pixels**, and
+`r5-ring-covered-plan.png` is a frame full of canopy. The pose this matters in
+is the one the app opens in — a person on the pavement, under the tree, looking
+along the path. A test run only in plan view would have called the change
+pointless.
+
+---
+
+## 36. The near-miss ring, narrowed to what a person can see
+
+`litNearMissM` **50 m → 40 m.** §33's buckets are the reason: the outer ten
+metres of the shipped ring hold lamps nobody standing there can see. The clause
+exists so that "No mapped streetlight along this route" is not called wrong by a
+person who walks out and looks at one — and a lamp that cannot be seen is not
+that person's objection. Counting it made the sentence longer and less true at
+once, in the one direction this feature has spent five rounds refusing to be
+wrong in.
+
+**Priced before it was changed.** `shots/walk/lit/ringsweep.mjs`, the same 60
+seeded routes, driven through the real router, `window.wayfindLitReprice()`
+checked every pass — and the sweep only ever goes DOWN from the shipped value,
+because `LAMPS.gWarmWide` is built once at `litNearMissM` and `lampsNear` is
+exact only while the grid cell is at least the query radius.
+
+| ring | zero-lamp routes | the clause fires on | it says |
+|---|---|---|---|
+| 50 m (shipped) | 33 / 60 | 3 | median 1, max 2 |
+| 45 m | 33 / 60 | 2 | median 2 |
+| **40 m** | 33 / 60 | **2** | median 2, max 2 |
+| 35 m | 33 / 60 | 1 | median 2 |
+| 30 m | 33 / 60 | 1 | median 1 |
+
+**Exactly one route in sixty changes: NEZ→TMM**, which at 50 m was told about a
+single lamp 40–50 m away — the band where 0 of 6 sampled sites can see one.
+`smoke.mjs` now asserts the ring is 40 and builds the expected sentence from the
+page's own constant, so a future change of mind moves one line and the gate
+follows it.
+
+---
+
+## 37. Did round 4's rebuild land? Yes — and it lands on a phone, which nobody had checked
+
+Round 4 photographed the lighting block, measured it, rebuilt it around a
+picture, and did all of that at 1280 × 900. That is the one width this app is
+never watched at: it is judged off a phone screen recording.
+
+`shots/walk/lit/phonecard.mjs` — three routes chosen for the three shapes the
+block can take, at 360 (Android), 390 (iPhone) and 1280 px, `p = 0.92`, DPR 2.
+**[M]**
+
+```
+                       card width   block   lines   words   strip    narrowest run
+ANB->ETC   android        138 px    772 px    7      116   138x10       1.09 px
+ANB->ETC   iphone         153 px    726 px    7      116   153x10       1.22 px
+ANB->ETC   desktop        518 px    389 px    7      116   518x10       4.13 px
+```
+
+A 1.22 px run is a DOM fact. Whether it is a mark a person can see in a screen
+recording is a pixel fact, and this project has confused the two before. So the
+strip was **photographed** at each width and its middle row read back:
+
+| | device px wide | amber survives as | amber share of the bar |
+|---|---|---|---|
+| android 360 | 276 | **7 marks** | 30.43 % |
+| iphone 390 | 308 | **7 marks** | 31.17 % |
+| desktop 1280 | 1036 | **7 marks** | 30.89 % |
+
+**Seven marks at every width**, against a true lamp-covered share of 31 %. The
+picture does not degrade on a handset, because the floor is a *fraction* of the
+bar and the arithmetic is therefore width-independent — confirmed by re-running
+round 4's own over-claim gate at phone width (`strip-truth.mjs` now takes a
+width argument; the default is unchanged):
+
+```
+viewport 390 px wide
+strip amber share MINUS true lamp-covered share
+  min -0.22%   p25 -0.02%   median 0.00%   p75 0.00%   max 0.05%
+routes where the picture shows MORE light than the count:  0 / 40
+PASS
+```
+
+The same distribution round 4 measured at 1280 px, to the second decimal. **No
+change was needed and none was made.** `r5-phone-iphone-lamps-full.png` is the
+block on a phone at night and the strip is the most legible thing in it;
+`r5-phone-android-lamps-strip.png` is the bar itself at its narrowest, 276
+device pixels, with its seven amber marks intact.
+
+### The one thing that IS wrong on a phone, and it is not this lane's to fix
+
+On a 390 px handset **the whole route card is 153 px wide — 39 % of the screen**
+— so every sentence in it wraps three and four times and the block runs 726 px
+tall off the bottom of an 844 px screen. That is `#wf-card`'s own width, not the
+lighting block's; it affects every section of the card equally, and `acer/w-ui`
+is rebuilding this surface for phones right now. §38 has the request, with the
+photograph and the numbers that lane would otherwise have to re-measure.
+
+---
+
+## 38. Requests to lanes that own other files (round 5)
+
+§7's and §14's requests still stand. One new.
+
+**f) Whoever owns the route card's width.** (`acer/w-ui`, phone rebuild.) At a
+390 × 844 viewport `#wf-card` lays out at **153 px wide**, and at 360 px it is
+**138 px** — measured, `shots/walk/lit/phonecard.json`, photographed in
+`r5-phone-iphone-lamps-full.png`. Nothing in this lane depends on it and no
+number here moves; the lighting block behaves correctly at that width and its
+picture is verified to survive it (§37). But every line of card copy in the app
+is wrapping three and four times for want of about 200 px of width that is
+sitting empty on both sides of it, and that is a bigger readability win than
+anything left in this block.
+
+---
+
+## 39. What round 5 changed
+
+* `js/wayfind.js` §6b only — `litNearMissM` 50 → 40, with the bucket table in
+  the constant's comment; `litPadCanopyOn` / `litPadCanopyCol` and the third pad
+  kind `lampcanopy` in `litEnsure` / `litDraw`; `litDrawn`, the tally of marks
+  actually handed to the source, exposed as `drawn` / `padCanopyOn` on
+  `window.wayfindLit()`. Two new named constants, both one-line reversals.
+  **No routing constant moved** — `litAltMult` 1.7, `litAltMaxFrac` 1.35,
+  `litAltMinGainM` 40, `darkAltMult` 1.5, `darkAltMinDrop` 2, `litCanopyMult` 1
+  and `litRadiusM` 25 are all byte-identical to round 3.
+* `shots/walk/lit/` — `stretchmiss.mjs`, `stretchscene.mjs`, `ringsweep.mjs`,
+  `litgap.mjs`, `phonecard.mjs`, `canopyring.mjs` and their JSON;
+  `strip-truth.mjs` gained a width argument; `smoke.mjs` gained six assertions.
+* No data file was re-baked. `scripts/bake_props.py` is untouched this round.
+* **A prune, per CLAUDE.md rule 12.** This round generated 44 MB of frames and
+  committed 6 MB of them — the fourteen this document cites. It also deleted the
+  frames rounds 2–4 left behind that no document names: each of those sweeps is
+  reproducible from the script committed next to it, and a screenshot nothing
+  cites is multiplied by every parallel worktree. Every frame named anywhere in
+  `docs/` is still here.
+
+## 40. Three instruments that were wrong first, and what each false number was
+
+Recorded because every one produced a confident, plausible answer, and two of
+them would have gone into this document.
+
+**a) A layer that does not exist yet reports a confident zero.** The first run of
+`stretchscene.mjs` began flying sites about a second after the veil went, and
+`props-lit` is added when the props source initialises, some seconds later. The
+mask loop skips a layer that is not there (`if (!m.getLayer(id)) continue`), both
+frames come out identical, and the diff is honestly zero — so the first two
+AMBER sites came back *"no warm lamp on screen"* with zero features in the query.
+**On the amber column a false negative means the card is claiming a lamp that is
+not there**, which is the single worst thing this feature could be told. It was
+caught by flying to one of those coordinates by hand and seeing three lamps. The
+script now waits for the layer, records `missing` per site, and drops a site with
+a missing layer from the table rather than scoring it.
+
+Its twin, in the same run: no route had been created, so `wayfind-lit-pad` and
+`wayfind-lit-dark` were not in the style at all, and two rows of the matrix were
+a tidy column of zeros meaning *"the layer does not exist"*. Same family as
+§27.3's camera pointed through the card — the instrument is not looking at the
+subject, and it agrees with you anyway.
+
+**b) A composited pixel is not its paint constant.** `canopyring.mjs` first
+classified ring pixels by nearest of the two colour constants. But the ring is
+drawn at `fill-extrusion-opacity` 0.8, multiplied again by the night clock, over
+near-black ground: `#ffc27a` (255, 194, 122) lands on screen at about
+(131, 113, 82) — **nearer the dim constant than the bright one**. The open lamp's
+ring was scored as the covered one's, 11,454 pixels of it, and the covered lamp
+scored as nothing at all because it composited darker than either. A test that
+reads a paint constant off a composited pixel is measuring the opacity. The ring
+is now isolated by hiding its own layer and diffing.
+
+**c) Counting the same thing twice, three different ways.** `querySourceFeatures`
+repeats a feature in every tile it touches: 24 rings tallied as 64, then as 39
+after deduplicating by first vertex, because tile clipping moves the vertices.
+`getSource('wayfind-lit')._data` is not the FeatureCollection that was set — it
+reads as undefined with zero features, which looks exactly like a change that did
+nothing. Both were replaced by a tally taken once, inside `litDraw`, off the
+array handed to the source. And the sampling had the same disease: the first cut
+of `stretchmiss.mjs` stashed sites until a flat cap filled, so both pools came
+off the first handful of routes and the control ended up five sites from one
+pair — round 4's boundary sample (six routes, eighteen sites, two of them 24 m
+apart) rediscovered from the other end.
+
+## 41. What round 5 did NOT establish
+
+* **Whether a canopy-covered lamp is meaningfully darker on the ground.** Still
+  no. The flag now predicts the *rendered* scene at 12 of 12, and the renderer is
+  a model of the city, not a photometer. Nothing here measures lux.
+* **Whether 40 m is the right ring rather than 38 or 43.** It is the bucket edge
+  at which six of six sampled sites saw nothing. The buckets are 5 m wide and the
+  sample is six per bucket; a finer answer needs a bigger sample and would move
+  the clause on at most one route in sixty.
+* **The stretch-level near miss in the sense of DRAWING it.** Sized (7.5 % of
+  cool metres, §32) and answered with *nothing*, which is a decision about a
+  third colour rather than a measurement of one that was never built. If Simeon
+  wants to see it, the price is median +1 segment and 4.3 % of the bar.
+* **Whether anybody reads the fold.** Round 4 said nobody has watched a person
+  use it. Still true.
+* **Anything about crime, response times, or how safe a stretch is.** Unchanged
+  across five rounds, and it will stay unchanged.

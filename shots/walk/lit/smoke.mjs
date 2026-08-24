@@ -144,7 +144,14 @@ const nm = await page.evaluate(async () => {
 });
 ok(nm.lamps === 0, 'CMB->TMM still has no counted lamp', nm.lamps);
 ok(nm.nearMiss === 2, 'and two mapped just outside the radius', nm.nearMiss);
-ok(/No mapped streetlight along this route · 2 more are mapped within 50 m of it/.test(nm.text),
+// ROUND 5 narrowed the ring from 50 m to 40 m, at the measured edge of what is
+// visible from the pavement at night (js/wayfind.js `litNearMissM`,
+// shots/walk/lit/stretchscene.mjs). The sentence is asserted against the RING
+// THE PAGE IS ACTUALLY USING rather than a hard-coded 50, so a future change of
+// mind moves one constant and this gate follows it — but the ring itself is
+// pinned below, because a silent drift back to 50 is exactly what this is for.
+ok(nm.ring === 40, 'the near-miss ring is the measured 40 m', nm.ring);
+ok(new RegExp(`No mapped streetlight along this route · 2 more are mapped within ${nm.ring} m of it`).test(nm.text),
   'the near-miss clause rides on the zero-lamp sentence');
 const noNm = await page.evaluate(async () => {
   await window.wayfindRoute('ANB', 'ETC', { expand: true });
@@ -152,6 +159,33 @@ const noNm = await page.evaluate(async () => {
   return document.getElementById('wf-card').innerText;
 });
 ok(!/more are mapped within/.test(noNm), 'and does NOT appear on a route that has counted lamps');
+
+// ROUND 5: the ring round a lamp with a tree on it. ANB->ETC has 24 counted
+// lamps, 4 of them canopy-flagged (asserted above, unchanged since round 3), so
+// the marks on the ground must split 20/4 — the card's sentence and the map's
+// receipt agreeing is the whole point of the change.
+//
+// COUNTED OFF THE ARRAY litDraw HANDED THE SOURCE, and it took two wrong
+// instruments to get there. `getSource('wayfind-lit')._data` is not the
+// FeatureCollection that was set: it comes back undefined with zero features,
+// which reads exactly like "the change did nothing". And `querySourceFeatures`
+// repeats a feature in every tile it touches — 24 rings tallied as 64, then as
+// 39 after deduplicating by first vertex, because tile clipping moves the
+// vertices. Right ratio, meaningless count, and the kind of number that would
+// pass a ">0" assertion and quietly fail an equality forever.
+const pads = await page.evaluate(async () => {
+  await window.wayfindRoute('ANB', 'ETC', { expand: true });
+  const lit = await window.wayfindLit();
+  return { n: lit.drawn || {}, on: lit.padCanopyOn, canopyCol: window.WAYFIND.litPadCanopyCol };
+});
+console.log('  (marks drawn: ' + JSON.stringify(pads.n) + ')');
+ok(pads.on === true, 'the canopy ring ships on', pads.on);
+ok(pads.n.lampcanopy === 4, 'four rings are drawn dim, one per covered lamp', pads.n.lampcanopy);
+ok(pads.n.lamp === 20, 'and the other twenty at full strength', pads.n.lamp);
+ok((pads.n.lamp || 0) + (pads.n.lampcanopy || 0) === 24,
+  'every counted lamp still gets a ring — the count and the map agree');
+ok(typeof pads.canopyCol === 'string' && /^#[0-9a-f]{6}$/i.test(pads.canopyCol),
+  'the dim value is a named constant', pads.canopyCol);
 await browser.close();
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nall pass');
 process.exit(fails.length ? 1 : 0);

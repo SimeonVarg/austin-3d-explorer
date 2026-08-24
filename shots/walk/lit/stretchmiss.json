@@ -1,0 +1,4383 @@
+{
+ "radiusM": 25,
+ "nearM": 50,
+ "farM": 120,
+ "pairs": 60,
+ "buckets": [
+  [
+   25,
+   30
+  ],
+  [
+   30,
+   35
+  ],
+  [
+   35,
+   40
+  ],
+  [
+   40,
+   50
+  ]
+ ],
+ "bucketCount": [
+  11,
+  14,
+  23,
+  57
+ ],
+ "totals": {
+  "darkM": 52405,
+  "nearM": 3927,
+  "farM": 48479
+ },
+ "perRoute": [
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "totalM": 463,
+   "lamps": 4,
+   "darkM": 353,
+   "nearM": 231,
+   "nearFrac": 0.6545513148864103,
+   "stripFracOfWalk": 0.4989073557910314,
+   "extraSegs": 2,
+   "runs": 7
+  },
+  {
+   "from": "SEZ",
+   "to": "UPB",
+   "totalM": 348,
+   "lamps": 20,
+   "darkM": 53,
+   "nearM": 32,
+   "nearFrac": 0.6033857139029756,
+   "stripFracOfWalk": 0.09253431976896732,
+   "extraSegs": 1,
+   "runs": 2
+  },
+  {
+   "from": "MAG",
+   "to": "MCA",
+   "totalM": 105,
+   "lamps": 0,
+   "darkM": 106,
+   "nearM": 64,
+   "nearFrac": 0.6028735585402166,
+   "stripFracOfWalk": 0.6059579662537151,
+   "extraSegs": 1,
+   "runs": 1
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "totalM": 627,
+   "lamps": 4,
+   "darkM": 425,
+   "nearM": 209,
+   "nearFrac": 0.4906695116276782,
+   "stripFracOfWalk": 0.3327064685306541,
+   "extraSegs": 4,
+   "runs": 11
+  },
+  {
+   "from": "TS1",
+   "to": "MCA",
+   "totalM": 1085,
+   "lamps": 23,
+   "darkM": 625,
+   "nearM": 230,
+   "nearFrac": 0.367446047949347,
+   "stripFracOfWalk": 0.21165333059480712,
+   "extraSegs": 6,
+   "runs": 13
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "totalM": 1861,
+   "lamps": 3,
+   "darkM": 1763,
+   "nearM": 439,
+   "nearFrac": 0.24916893032042375,
+   "stripFracOfWalk": 0.23606555361997625,
+   "extraSegs": 10,
+   "runs": 7
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "totalM": 895,
+   "lamps": 3,
+   "darkM": 784,
+   "nearM": 186,
+   "nearFrac": 0.23693481432232225,
+   "stripFracOfWalk": 0.2074480180912293,
+   "extraSegs": 6,
+   "runs": 5
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "totalM": 1776,
+   "lamps": 24,
+   "darkM": 1241,
+   "nearM": 288,
+   "nearFrac": 0.23219188165887283,
+   "stripFracOfWalk": 0.16221499892213995,
+   "extraSegs": 8,
+   "runs": 15
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "totalM": 1543,
+   "lamps": 7,
+   "darkM": 1322,
+   "nearM": 247,
+   "nearFrac": 0.18660528561861175,
+   "stripFracOfWalk": 0.15982583499295624,
+   "extraSegs": 5,
+   "runs": 8
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "totalM": 1508,
+   "lamps": 28,
+   "darkM": 1005,
+   "nearM": 184,
+   "nearFrac": 0.18313494320088716,
+   "stripFracOfWalk": 0.1220150285882811,
+   "extraSegs": 6,
+   "runs": 9
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "totalM": 939,
+   "lamps": 2,
+   "darkM": 861,
+   "nearM": 128,
+   "nearFrac": 0.14890103543883307,
+   "stripFracOfWalk": 0.13652595926574362,
+   "extraSegs": 4,
+   "runs": 5
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "totalM": 298,
+   "lamps": 2,
+   "darkM": 254,
+   "nearM": 37,
+   "nearFrac": 0.14592535432704787,
+   "stripFracOfWalk": 0.12458803115853105,
+   "extraSegs": 1,
+   "runs": 2
+  },
+  {
+   "from": "PAT",
+   "to": "STD",
+   "totalM": 609,
+   "lamps": 7,
+   "darkM": 471,
+   "nearM": 64,
+   "nearFrac": 0.13600665890019498,
+   "stripFracOfWalk": 0.10525604156307056,
+   "extraSegs": 3,
+   "runs": 2
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "totalM": 1371,
+   "lamps": 18,
+   "darkM": 1110,
+   "nearM": 147,
+   "nearFrac": 0.13280793702471233,
+   "stripFracOfWalk": 0.10753828318953859,
+   "extraSegs": 4,
+   "runs": 5
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "totalM": 1077,
+   "lamps": 2,
+   "darkM": 1010,
+   "nearM": 128,
+   "nearFrac": 0.12634668262066595,
+   "stripFracOfWalk": 0.11842974512920654,
+   "extraSegs": 2,
+   "runs": 5
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "totalM": 946,
+   "lamps": 2,
+   "darkM": 911,
+   "nearM": 101,
+   "nearFrac": 0.11084227062685922,
+   "stripFracOfWalk": 0.10670459641420468,
+   "extraSegs": 2,
+   "runs": 5
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "totalM": 934,
+   "lamps": 4,
+   "darkM": 831,
+   "nearM": 92,
+   "nearFrac": 0.1107988355715874,
+   "stripFracOfWalk": 0.09857524377514772,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "totalM": 1388,
+   "lamps": 6,
+   "darkM": 1162,
+   "nearM": 122,
+   "nearFrac": 0.10474608751121137,
+   "stripFracOfWalk": 0.08771772471348964,
+   "extraSegs": 4,
+   "runs": 7
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "totalM": 804,
+   "lamps": 7,
+   "darkM": 666,
+   "nearM": 64,
+   "nearFrac": 0.09621212211606929,
+   "stripFracOfWalk": 0.07972752401978851,
+   "extraSegs": 3,
+   "runs": 2
+  },
+  {
+   "from": "GAR",
+   "to": "WIN",
+   "totalM": 830,
+   "lamps": 0,
+   "darkM": 831,
+   "nearM": 74,
+   "nearFrac": 0.08942920034095281,
+   "stripFracOfWalk": 0.08954857339718185,
+   "extraSegs": 4,
+   "runs": 1
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "totalM": 1644,
+   "lamps": 12,
+   "darkM": 1377,
+   "nearM": 114,
+   "nearFrac": 0.08317660923416921,
+   "stripFracOfWalk": 0.06964612661018861,
+   "extraSegs": 4,
+   "runs": 5
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "totalM": 1421,
+   "lamps": 4,
+   "darkM": 1318,
+   "nearM": 98,
+   "nearFrac": 0.07432960542648318,
+   "stripFracOfWalk": 0.06894664138009834,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "totalM": 832,
+   "lamps": 8,
+   "darkM": 720,
+   "nearM": 53,
+   "nearFrac": 0.07393067554990815,
+   "stripFracOfWalk": 0.06393677364255042,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "totalM": 626,
+   "lamps": 4,
+   "darkM": 460,
+   "nearM": 32,
+   "nearFrac": 0.07016781394080802,
+   "stripFracOfWalk": 0.05151894435076734,
+   "extraSegs": 1,
+   "runs": 4
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "totalM": 883,
+   "lamps": 1,
+   "darkM": 876,
+   "nearM": 58,
+   "nearFrac": 0.06567620208193843,
+   "stripFracOfWalk": 0.06512697016508402,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "totalM": 1716,
+   "lamps": 4,
+   "darkM": 1613,
+   "nearM": 98,
+   "nearFrac": 0.060731660818090616,
+   "stripFracOfWalk": 0.057093926224428763,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "RSC",
+   "to": "GUG",
+   "totalM": 1272,
+   "lamps": 0,
+   "darkM": 1273,
+   "nearM": 77,
+   "nearFrac": 0.060220386790223256,
+   "stripFracOfWalk": 0.06025156934945549,
+   "extraSegs": 2,
+   "runs": 1
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "totalM": 1226,
+   "lamps": 8,
+   "darkM": 1114,
+   "nearM": 53,
+   "nearFrac": 0.04776620762451673,
+   "stripFracOfWalk": 0.043389392879773205,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "totalM": 999,
+   "lamps": 1,
+   "darkM": 933,
+   "nearM": 44,
+   "nearFrac": 0.04728600298600869,
+   "stripFracOfWalk": 0.044159715084748724,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "totalM": 670,
+   "lamps": 3,
+   "darkM": 642,
+   "nearM": 30,
+   "nearFrac": 0.04682544853591397,
+   "stripFracOfWalk": 0.0449001134262649,
+   "extraSegs": 1,
+   "runs": 2
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "totalM": 1066,
+   "lamps": 1,
+   "darkM": 1000,
+   "nearM": 44,
+   "nearFrac": 0.04412513148580971,
+   "stripFracOfWalk": 0.04138419828298684,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "totalM": 1124,
+   "lamps": 1,
+   "darkM": 1058,
+   "nearM": 44,
+   "nearFrac": 0.041689996478965916,
+   "stripFracOfWalk": 0.039248714741693926,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "totalM": 1234,
+   "lamps": 1,
+   "darkM": 1169,
+   "nearM": 44,
+   "nearFrac": 0.037750438855291314,
+   "stripFracOfWalk": 0.03575004487006805,
+   "extraSegs": 2,
+   "runs": 3
+  },
+  {
+   "from": "DMC",
+   "to": "BMS",
+   "totalM": 1390,
+   "lamps": 0,
+   "darkM": 1391,
+   "nearM": 38,
+   "nearFrac": 0.027470263924698188,
+   "stripFracOfWalk": 0.027499588789025985,
+   "extraSegs": 1,
+   "runs": 1
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "totalM": 1593,
+   "lamps": 3,
+   "darkM": 1485,
+   "nearM": 32,
+   "nearFrac": 0.021717192300473528,
+   "stripFracOfWalk": 0.0202453604291151,
+   "extraSegs": 1,
+   "runs": 4
+  },
+  {
+   "from": "PHR",
+   "to": "CDL",
+   "totalM": 1631,
+   "lamps": 0,
+   "darkM": 1633,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "BRB",
+   "to": "EPS",
+   "totalM": 232,
+   "lamps": 0,
+   "darkM": 232,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "HRH",
+   "to": "JGB",
+   "totalM": 693,
+   "lamps": 0,
+   "darkM": 694,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "JHH",
+   "to": "GDC",
+   "totalM": 1349,
+   "lamps": 0,
+   "darkM": 1350,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "BRG",
+   "to": "NHB",
+   "totalM": 1071,
+   "lamps": 0,
+   "darkM": 1072,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "BLD",
+   "to": "SW7",
+   "totalM": 533,
+   "lamps": 0,
+   "darkM": 533,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "KIN",
+   "to": "SW7",
+   "totalM": 540,
+   "lamps": 0,
+   "darkM": 540,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "E26",
+   "to": "MBB",
+   "totalM": 475,
+   "lamps": 0,
+   "darkM": 475,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "BME",
+   "to": "COM",
+   "totalM": 686,
+   "lamps": 0,
+   "darkM": 686,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "ADH",
+   "to": "AND",
+   "totalM": 495,
+   "lamps": 0,
+   "darkM": 496,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "LTD",
+   "to": "BLD",
+   "totalM": 219,
+   "lamps": 0,
+   "darkM": 219,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "HSM",
+   "to": "AND",
+   "totalM": 304,
+   "lamps": 0,
+   "darkM": 305,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "TSC",
+   "to": "BRG",
+   "totalM": 508,
+   "lamps": 0,
+   "darkM": 508,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "EPS",
+   "to": "BLD",
+   "totalM": 551,
+   "lamps": 0,
+   "darkM": 552,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "CDL",
+   "to": "UNB",
+   "totalM": 1818,
+   "lamps": 0,
+   "darkM": 1820,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "WCP",
+   "to": "JCD",
+   "totalM": 494,
+   "lamps": 0,
+   "darkM": 495,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "RHD",
+   "to": "MEZ",
+   "totalM": 543,
+   "lamps": 0,
+   "darkM": 544,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "NUR",
+   "to": "FNT",
+   "totalM": 1859,
+   "lamps": 0,
+   "darkM": 1861,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "SEA",
+   "to": "BRB",
+   "totalM": 627,
+   "lamps": 0,
+   "darkM": 627,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "BTL",
+   "to": "ECJ",
+   "totalM": 770,
+   "lamps": 0,
+   "darkM": 771,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "LTD",
+   "to": "PAT",
+   "totalM": 521,
+   "lamps": 0,
+   "darkM": 522,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "GEB",
+   "to": "NUR",
+   "totalM": 1547,
+   "lamps": 0,
+   "darkM": 1548,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "ECJ",
+   "to": "BME",
+   "totalM": 476,
+   "lamps": 0,
+   "darkM": 476,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "D21",
+   "to": "RHD",
+   "totalM": 653,
+   "lamps": 0,
+   "darkM": 653,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  },
+  {
+   "from": "TS2",
+   "to": "MBB",
+   "totalM": 1581,
+   "lamps": 0,
+   "darkM": 1583,
+   "nearM": 0,
+   "nearFrac": 0,
+   "stripFracOfWalk": 0,
+   "extraSegs": 0,
+   "runs": 1
+  }
+ ],
+ "bandSites": [
+  {
+   "from": "PAT",
+   "to": "STD",
+   "key": "PAT>STD",
+   "ll": [
+    -97.73417549999999,
+    30.2866935
+   ],
+   "d": 49.6,
+   "bucket": 3
+  },
+  {
+   "from": "PAT",
+   "to": "STD",
+   "key": "PAT>STD",
+   "ll": [
+    -97.73416375,
+    30.286654
+   ],
+   "d": 48.6,
+   "bucket": 3
+  },
+  {
+   "from": "PAT",
+   "to": "STD",
+   "key": "PAT>STD",
+   "ll": [
+    -97.73415324999999,
+    30.286618
+   ],
+   "d": 48.1,
+   "bucket": 3
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.72660985714285,
+    30.285533357142853
+   ],
+   "d": 46,
+   "bucket": 3
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.72668757142856,
+    30.285548071428572
+   ],
+   "d": 38.5,
+   "bucket": 2
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.72676528571428,
+    30.285562785714284
+   ],
+   "d": 30.9,
+   "bucket": 1
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.735056125,
+    30.289478499999998
+   ],
+   "d": 45.9,
+   "bucket": 3
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.73499050000001,
+    30.289475499999998
+   ],
+   "d": 42.1,
+   "bucket": 3
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.7349515,
+    30.2894735
+   ],
+   "d": 40.2,
+   "bucket": 3
+  },
+  {
+   "from": "SEZ",
+   "to": "UPB",
+   "key": "SEZ>UPB",
+   "ll": [
+    -97.73042883333332,
+    30.283699999999996
+   ],
+   "d": 27.4,
+   "bucket": 0
+  },
+  {
+   "from": "SEZ",
+   "to": "UPB",
+   "key": "SEZ>UPB",
+   "ll": [
+    -97.7303545,
+    30.283683999999997
+   ],
+   "d": 34.8,
+   "bucket": 1
+  },
+  {
+   "from": "SEZ",
+   "to": "UPB",
+   "key": "SEZ>UPB",
+   "ll": [
+    -97.73028016666666,
+    30.283668
+   ],
+   "d": 42.1,
+   "bucket": 3
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "key": "DFA>ATT",
+   "ll": [
+    -97.73279265,
+    30.2850699
+   ],
+   "d": 43.6,
+   "bucket": 3
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "key": "DFA>ATT",
+   "ll": [
+    -97.73287255,
+    30.2850753
+   ],
+   "d": 35.9,
+   "bucket": 2
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "key": "DFA>ATT",
+   "ll": [
+    -97.73295245,
+    30.285080699999998
+   ],
+   "d": 28.3,
+   "bucket": 0
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73417549999999,
+    30.2866935
+   ],
+   "d": 49.6,
+   "bucket": 3
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73416375,
+    30.286654
+   ],
+   "d": 48.6,
+   "bucket": 3
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73415324999999,
+    30.286618
+   ],
+   "d": 48.1,
+   "bucket": 3
+  },
+  {
+   "from": "RSC",
+   "to": "GUG",
+   "key": "RSC>GUG",
+   "ll": [
+    -97.73830625,
+    30.279481999999994
+   ],
+   "d": 47.3,
+   "bucket": 3
+  },
+  {
+   "from": "RSC",
+   "to": "GUG",
+   "key": "RSC>GUG",
+   "ll": [
+    -97.73836075,
+    30.279497999999997
+   ],
+   "d": 43.2,
+   "bucket": 3
+  },
+  {
+   "from": "RSC",
+   "to": "GUG",
+   "key": "RSC>GUG",
+   "ll": [
+    -97.738416,
+    30.279514499999998
+   ],
+   "d": 39.4,
+   "bucket": 2
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.73335,
+    30.287528666666667
+   ],
+   "d": 36.7,
+   "bucket": 2
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.733416,
+    30.287529999999997
+   ],
+   "d": 35.8,
+   "bucket": 2
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.733482,
+    30.287531333333334
+   ],
+   "d": 35.9,
+   "bucket": 2
+  },
+  {
+   "from": "MAG",
+   "to": "MCA",
+   "key": "MAG>MCA",
+   "ll": [
+    -97.7314055,
+    30.282199499999997
+   ],
+   "d": 28.2,
+   "bucket": 0
+  },
+  {
+   "from": "MAG",
+   "to": "MCA",
+   "key": "MAG>MCA",
+   "ll": [
+    -97.7314205,
+    30.282176999999997
+   ],
+   "d": 29.7,
+   "bucket": 0
+  },
+  {
+   "from": "MAG",
+   "to": "MCA",
+   "key": "MAG>MCA",
+   "ll": [
+    -97.73142775,
+    30.282127249999995
+   ],
+   "d": 31.4,
+   "bucket": 1
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.74122600000001,
+    30.290450749999998
+   ],
+   "d": 25.2,
+   "bucket": 0
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.74099525,
+    30.289902249999997
+   ],
+   "d": 27.8,
+   "bucket": 0
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.74092575,
+    30.289896749999997
+   ],
+   "d": 34.5,
+   "bucket": 1
+  },
+  {
+   "from": "DMC",
+   "to": "BMS",
+   "key": "DMC>BMS",
+   "ll": [
+    -97.74087266666666,
+    30.290072333333335
+   ],
+   "d": 40.4,
+   "bucket": 3
+  },
+  {
+   "from": "DMC",
+   "to": "BMS",
+   "key": "DMC>BMS",
+   "ll": [
+    -97.74087999999999,
+    30.290001
+   ],
+   "d": 38.2,
+   "bucket": 2
+  },
+  {
+   "from": "DMC",
+   "to": "BMS",
+   "key": "DMC>BMS",
+   "ll": [
+    -97.74088733333332,
+    30.289929666666666
+   ],
+   "d": 37.5,
+   "bucket": 2
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "key": "TMM>UTC",
+   "ll": [
+    -97.73304525,
+    30.285645000000002
+   ],
+   "d": 45.6,
+   "bucket": 3
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "key": "TMM>UTC",
+   "ll": [
+    -97.73308574999999,
+    30.285629
+   ],
+   "d": 41.6,
+   "bucket": 3
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "key": "TMM>UTC",
+   "ll": [
+    -97.7331225,
+    30.285603
+   ],
+   "d": 38.2,
+   "bucket": 2
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "key": "CCJ>WAG",
+   "ll": [
+    -97.73299,
+    30.287171916666665
+   ],
+   "d": 44.2,
+   "bucket": 3
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "key": "CCJ>WAG",
+   "ll": [
+    -97.73306,
+    30.287177083333333
+   ],
+   "d": 37.5,
+   "bucket": 2
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "key": "CCJ>WAG",
+   "ll": [
+    -97.73312999999999,
+    30.28718225
+   ],
+   "d": 30.7,
+   "bucket": 1
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "key": "CCJ>HSM",
+   "ll": [
+    -97.73299,
+    30.287171916666665
+   ],
+   "d": 44.2,
+   "bucket": 3
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "key": "CCJ>HSM",
+   "ll": [
+    -97.73306,
+    30.287177083333333
+   ],
+   "d": 37.5,
+   "bucket": 2
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "key": "CCJ>HSM",
+   "ll": [
+    -97.73312999999999,
+    30.28718225
+   ],
+   "d": 30.7,
+   "bucket": 1
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "key": "BHD>BEL",
+   "ll": [
+    -97.73410075,
+    30.283133999999997
+   ],
+   "d": 48.8,
+   "bucket": 3
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "key": "BHD>BEL",
+   "ll": [
+    -97.73404024999999,
+    30.283133999999997
+   ],
+   "d": 43.9,
+   "bucket": 3
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "key": "BHD>BEL",
+   "ll": [
+    -97.733988,
+    30.28313475
+   ],
+   "d": 39.9,
+   "bucket": 2
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.74156785,
+    30.2862522
+   ],
+   "d": 49.7,
+   "bucket": 3
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.74156095000001,
+    30.286317399999998
+   ],
+   "d": 43.4,
+   "bucket": 3
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.74155404999999,
+    30.2863826
+   ],
+   "d": 37.4,
+   "bucket": 2
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "key": "WAG>NEZ",
+   "ll": [
+    -97.733767,
+    30.284387833333334
+   ],
+   "d": 46.3,
+   "bucket": 3
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "key": "WAG>NEZ",
+   "ll": [
+    -97.733757,
+    30.284439499999998
+   ],
+   "d": 40.5,
+   "bucket": 3
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "key": "WAG>NEZ",
+   "ll": [
+    -97.733747,
+    30.284491166666662
+   ],
+   "d": 34.6,
+   "bucket": 1
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "key": "PAC>ATT",
+   "ll": [
+    -97.7328465,
+    30.28532425
+   ],
+   "d": 48,
+   "bucket": 3
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "key": "PAC>ATT",
+   "ll": [
+    -97.73290464285714,
+    30.285328857142854
+   ],
+   "d": 44,
+   "bucket": 3
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "key": "PAC>ATT",
+   "ll": [
+    -97.73297592857142,
+    30.28533457142857
+   ],
+   "d": 39.6,
+   "bucket": 2
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "key": "MBE>HSM",
+   "ll": [
+    -97.73299,
+    30.287171916666665
+   ],
+   "d": 44.2,
+   "bucket": 3
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "key": "MBE>HSM",
+   "ll": [
+    -97.73306,
+    30.287177083333333
+   ],
+   "d": 37.5,
+   "bucket": 2
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "key": "MBE>HSM",
+   "ll": [
+    -97.73312999999999,
+    30.28718225
+   ],
+   "d": 30.7,
+   "bucket": 1
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "key": "CCJ>BME",
+   "ll": [
+    -97.73299,
+    30.287171916666665
+   ],
+   "d": 44.2,
+   "bucket": 3
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "key": "CCJ>BME",
+   "ll": [
+    -97.73306,
+    30.287177083333333
+   ],
+   "d": 37.5,
+   "bucket": 2
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "key": "CCJ>BME",
+   "ll": [
+    -97.73312999999999,
+    30.28718225
+   ],
+   "d": 30.7,
+   "bucket": 1
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "key": "MRH>AUSUAHX",
+   "ll": [
+    -97.7328465,
+    30.28532425
+   ],
+   "d": 48,
+   "bucket": 3
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "key": "MRH>AUSUAHX",
+   "ll": [
+    -97.73290464285714,
+    30.285328857142854
+   ],
+   "d": 44,
+   "bucket": 3
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "key": "MRH>AUSUAHX",
+   "ll": [
+    -97.73297592857142,
+    30.28533457142857
+   ],
+   "d": 39.6,
+   "bucket": 2
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "key": "MCA>SZB",
+   "ll": [
+    -97.73339775,
+    30.281507499999996
+   ],
+   "d": 47.9,
+   "bucket": 3
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "key": "MCA>SZB",
+   "ll": [
+    -97.73339299999999,
+    30.281567499999998
+   ],
+   "d": 41.4,
+   "bucket": 3
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "key": "MCA>SZB",
+   "ll": [
+    -97.733394,
+    30.2816205
+   ],
+   "d": 35.9,
+   "bucket": 2
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.74077978571427,
+    30.289885642857143
+   ],
+   "d": 48.5,
+   "bucket": 3
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.74085392857143,
+    30.289891214285717
+   ],
+   "d": 41.3,
+   "bucket": 3
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.74092575,
+    30.289896749999997
+   ],
+   "d": 34.5,
+   "bucket": 1
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74206714285714,
+    30.2891755
+   ],
+   "d": 48.6,
+   "bucket": 3
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74199342857142,
+    30.289168499999995
+   ],
+   "d": 41.8,
+   "bucket": 3
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74191971428571,
+    30.2891615
+   ],
+   "d": 35,
+   "bucket": 2
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.72722787500001,
+    30.283521125
+   ],
+   "d": 49.4,
+   "bucket": 3
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.727265625,
+    30.283465375
+   ],
+   "d": 47.3,
+   "bucket": 3
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.72730337499999,
+    30.283409624999997
+   ],
+   "d": 46.4,
+   "bucket": 3
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "key": "STD>CBA",
+   "ll": [
+    -97.733677,
+    30.284574
+   ],
+   "d": 25.1,
+   "bucket": 0
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "key": "STD>CBA",
+   "ll": [
+    -97.733712,
+    30.284532499999997
+   ],
+   "d": 29.7,
+   "bucket": 0
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "key": "STD>CBA",
+   "ll": [
+    -97.733747,
+    30.284491166666662
+   ],
+   "d": 34.6,
+   "bucket": 1
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "key": "STD>NMS",
+   "ll": [
+    -97.73402175,
+    30.285572000000002
+   ],
+   "d": 29,
+   "bucket": 0
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "key": "STD>NMS",
+   "ll": [
+    -97.73405594444445,
+    30.285614444444445
+   ],
+   "d": 34.6,
+   "bucket": 1
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "key": "STD>NMS",
+   "ll": [
+    -97.73404983333333,
+    30.28568333333333
+   ],
+   "d": 39.7,
+   "bucket": 2
+  },
+  {
+   "from": "GAR",
+   "to": "WIN",
+   "key": "GAR>WIN",
+   "ll": [
+    -97.73417549999999,
+    30.2866935
+   ],
+   "d": 49.6,
+   "bucket": 3
+  },
+  {
+   "from": "GAR",
+   "to": "WIN",
+   "key": "GAR>WIN",
+   "ll": [
+    -97.73416375,
+    30.286654
+   ],
+   "d": 48.6,
+   "bucket": 3
+  },
+  {
+   "from": "GAR",
+   "to": "WIN",
+   "key": "GAR>WIN",
+   "ll": [
+    -97.73415324999999,
+    30.286618
+   ],
+   "d": 48.1,
+   "bucket": 3
+  },
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "key": "UPB>DFA",
+   "ll": [
+    -97.73020775,
+    30.2837835
+   ],
+   "d": 48.5,
+   "bucket": 3
+  },
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "key": "UPB>DFA",
+   "ll": [
+    -97.73025525,
+    30.2837945
+   ],
+   "d": 44.1,
+   "bucket": 3
+  },
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "key": "UPB>DFA",
+   "ll": [
+    -97.73029299999999,
+    30.283803
+   ],
+   "d": 40.7,
+   "bucket": 3
+  },
+  {
+   "from": "TS1",
+   "to": "MCA",
+   "key": "TS1>MCA",
+   "ll": [
+    -97.7336445,
+    30.288152999999998
+   ],
+   "d": 47.9,
+   "bucket": 3
+  },
+  {
+   "from": "TS1",
+   "to": "MCA",
+   "key": "TS1>MCA",
+   "ll": [
+    -97.73367975,
+    30.288142
+   ],
+   "d": 44.3,
+   "bucket": 3
+  },
+  {
+   "from": "TS1",
+   "to": "MCA",
+   "key": "TS1>MCA",
+   "ll": [
+    -97.73368925,
+    30.288092
+   ],
+   "d": 41,
+   "bucket": 3
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.73304525,
+    30.285645000000002
+   ],
+   "d": 45.6,
+   "bucket": 3
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.73308574999999,
+    30.285629
+   ],
+   "d": 41.6,
+   "bucket": 3
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.7331225,
+    30.285603
+   ],
+   "d": 38.2,
+   "bucket": 2
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.72719089999998,
+    30.2854599
+   ],
+   "d": 26.7,
+   "bucket": 0
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.72721166,
+    30.285390659999997
+   ],
+   "d": 34.5,
+   "bucket": 1
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.72723241999999,
+    30.285321419999995
+   ],
+   "d": 28.3,
+   "bucket": 0
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.73339775,
+    30.281507499999996
+   ],
+   "d": 47.9,
+   "bucket": 3
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.73339299999999,
+    30.281567499999998
+   ],
+   "d": 41.4,
+   "bucket": 3
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.733394,
+    30.2816205
+   ],
+   "d": 35.9,
+   "bucket": 2
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.74171225,
+    30.287488999999997
+   ],
+   "d": 43.8,
+   "bucket": 3
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.74171283333334,
+    30.287428
+   ],
+   "d": 37,
+   "bucket": 2
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.74171849999999,
+    30.287367999999997
+   ],
+   "d": 30.3,
+   "bucket": 1
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.733943625,
+    30.287042125
+   ],
+   "d": 47.5,
+   "bucket": 3
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.7339015,
+    30.287037499999997
+   ],
+   "d": 44.8,
+   "bucket": 3
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.73387249999999,
+    30.287029999999998
+   ],
+   "d": 42.7,
+   "bucket": 3
+  }
+ ],
+ "farSites": [
+  {
+   "from": "PAT",
+   "to": "STD",
+   "key": "PAT>STD",
+   "ll": [
+    -97.73654299999998,
+    30.287851499999995
+   ],
+   "d": 223.5,
+   "bucket": -1
+  },
+  {
+   "from": "PAT",
+   "to": "STD",
+   "key": "PAT>STD",
+   "ll": [
+    -97.736493,
+    30.287816499999998
+   ],
+   "d": 222.4,
+   "bucket": -1
+  },
+  {
+   "from": "PAT",
+   "to": "STD",
+   "key": "PAT>STD",
+   "ll": [
+    -97.73644300000001,
+    30.2877815
+   ],
+   "d": 221.5,
+   "bucket": -1
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.72860674999998,
+    30.286513749999997
+   ],
+   "d": 120.7,
+   "bucket": -1
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.7286645,
+    30.286518875
+   ],
+   "d": 125.9,
+   "bucket": -1
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.7287315,
+    30.286522625
+   ],
+   "d": 132,
+   "bucket": -1
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.7380565,
+    30.290842749999996
+   ],
+   "d": 304.4,
+   "bucket": -1
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.7379875,
+    30.290836249999998
+   ],
+   "d": 301.6,
+   "bucket": -1
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.7379185,
+    30.29082975
+   ],
+   "d": 295,
+   "bucket": -1
+  },
+  {
+   "from": "PHR",
+   "to": "CDL",
+   "key": "PHR>CDL",
+   "ll": [
+    -97.73855649999999,
+    30.288171
+   ],
+   "d": 280.9,
+   "bucket": -1
+  },
+  {
+   "from": "PHR",
+   "to": "CDL",
+   "key": "PHR>CDL",
+   "ll": [
+    -97.73861716666666,
+    30.288168166666665
+   ],
+   "d": 275.1,
+   "bucket": -1
+  },
+  {
+   "from": "PHR",
+   "to": "CDL",
+   "key": "PHR>CDL",
+   "ll": [
+    -97.73867349999999,
+    30.2881725
+   ],
+   "d": 269.7,
+   "bucket": -1
+  },
+  {
+   "from": "BRB",
+   "to": "EPS",
+   "key": "BRB>EPS",
+   "ll": [
+    -97.73643237499999,
+    30.2852285
+   ],
+   "d": 255.2,
+   "bucket": -1
+  },
+  {
+   "from": "BRB",
+   "to": "EPS",
+   "key": "BRB>EPS",
+   "ll": [
+    -97.736439125,
+    30.2851695
+   ],
+   "d": 256.4,
+   "bucket": -1
+  },
+  {
+   "from": "BRB",
+   "to": "EPS",
+   "key": "BRB>EPS",
+   "ll": [
+    -97.73644587499999,
+    30.2851105
+   ],
+   "d": 257.8,
+   "bucket": -1
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "key": "DFA>ATT",
+   "ll": [
+    -97.73201875000001,
+    30.28587375
+   ],
+   "d": 120.8,
+   "bucket": -1
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "key": "DFA>ATT",
+   "ll": [
+    -97.73485980000001,
+    30.283331099999998
+   ],
+   "d": 124.1,
+   "bucket": -1
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "key": "DFA>ATT",
+   "ll": [
+    -97.7349266,
+    30.2833377
+   ],
+   "d": 130.4,
+   "bucket": -1
+  },
+  {
+   "from": "HRH",
+   "to": "JGB",
+   "key": "HRH>JGB",
+   "ll": [
+    -97.7401975,
+    30.2839465
+   ],
+   "d": 338,
+   "bucket": -1
+  },
+  {
+   "from": "HRH",
+   "to": "JGB",
+   "key": "HRH>JGB",
+   "ll": [
+    -97.74016537499999,
+    30.283925500000002
+   ],
+   "d": 341.5,
+   "bucket": -1
+  },
+  {
+   "from": "HRH",
+   "to": "JGB",
+   "key": "HRH>JGB",
+   "ll": [
+    -97.74009812499999,
+    30.2839205
+   ],
+   "d": 345,
+   "bucket": -1
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73970525,
+    30.288001124999997
+   ],
+   "d": 172,
+   "bucket": -1
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73964975,
+    30.287973375
+   ],
+   "d": 177.7,
+   "bucket": -1
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73959425,
+    30.287945625
+   ],
+   "d": 183.5,
+   "bucket": -1
+  },
+  {
+   "from": "RSC",
+   "to": "GUG",
+   "key": "RSC>GUG",
+   "ll": [
+    -97.73369299999999,
+    30.2808465
+   ],
+   "d": 126.7,
+   "bucket": -1
+  },
+  {
+   "from": "RSC",
+   "to": "GUG",
+   "key": "RSC>GUG",
+   "ll": [
+    -97.733742,
+    30.280796499999997
+   ],
+   "d": 133.5,
+   "bucket": -1
+  },
+  {
+   "from": "RSC",
+   "to": "GUG",
+   "key": "RSC>GUG",
+   "ll": [
+    -97.73379399999999,
+    30.2807495
+   ],
+   "d": 140.2,
+   "bucket": -1
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.73605187499999,
+    30.289309124999996
+   ],
+   "d": 124.6,
+   "bucket": -1
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.736127125,
+    30.289313874999998
+   ],
+   "d": 131.8,
+   "bucket": -1
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.736202375,
+    30.289318625
+   ],
+   "d": 139.1,
+   "bucket": -1
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.74021299999998,
+    30.289362166666663
+   ],
+   "d": 122.3,
+   "bucket": -1
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.740219,
+    30.289300499999996
+   ],
+   "d": 125.7,
+   "bucket": -1
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.74022500000001,
+    30.289238833333332
+   ],
+   "d": 129,
+   "bucket": -1
+  },
+  {
+   "from": "JHH",
+   "to": "GDC",
+   "key": "JHH>GDC",
+   "ll": [
+    -97.732012,
+    30.278354
+   ],
+   "d": 410,
+   "bucket": -1
+  },
+  {
+   "from": "JHH",
+   "to": "GDC",
+   "key": "JHH>GDC",
+   "ll": [
+    -97.73209,
+    30.278376
+   ],
+   "d": 408.1,
+   "bucket": -1
+  },
+  {
+   "from": "JHH",
+   "to": "GDC",
+   "key": "JHH>GDC",
+   "ll": [
+    -97.732168,
+    30.278398
+   ],
+   "d": 405.2,
+   "bucket": -1
+  },
+  {
+   "from": "BRG",
+   "to": "NHB",
+   "key": "BRG>NHB",
+   "ll": [
+    -97.736645,
+    30.280786
+   ],
+   "d": 260.3,
+   "bucket": -1
+  },
+  {
+   "from": "BRG",
+   "to": "NHB",
+   "key": "BRG>NHB",
+   "ll": [
+    -97.73668275,
+    30.28082245
+   ],
+   "d": 260.1,
+   "bucket": -1
+  },
+  {
+   "from": "BRG",
+   "to": "NHB",
+   "key": "BRG>NHB",
+   "ll": [
+    -97.73667624999999,
+    30.28088935
+   ],
+   "d": 265.3,
+   "bucket": -1
+  },
+  {
+   "from": "DMC",
+   "to": "BMS",
+   "key": "DMC>BMS",
+   "ll": [
+    -97.74021299999998,
+    30.289362166666663
+   ],
+   "d": 122.3,
+   "bucket": -1
+  },
+  {
+   "from": "DMC",
+   "to": "BMS",
+   "key": "DMC>BMS",
+   "ll": [
+    -97.740219,
+    30.289300499999996
+   ],
+   "d": 125.7,
+   "bucket": -1
+  },
+  {
+   "from": "DMC",
+   "to": "BMS",
+   "key": "DMC>BMS",
+   "ll": [
+    -97.74022500000001,
+    30.289238833333332
+   ],
+   "d": 129,
+   "bucket": -1
+  },
+  {
+   "from": "BLD",
+   "to": "SW7",
+   "key": "BLD>SW7",
+   "ll": [
+    -97.739316,
+    30.288399
+   ],
+   "d": 205,
+   "bucket": -1
+  },
+  {
+   "from": "BLD",
+   "to": "SW7",
+   "key": "BLD>SW7",
+   "ll": [
+    -97.73929999999999,
+    30.288430499999997
+   ],
+   "d": 206.2,
+   "bucket": -1
+  },
+  {
+   "from": "BLD",
+   "to": "SW7",
+   "key": "BLD>SW7",
+   "ll": [
+    -97.7392935,
+    30.2884985
+   ],
+   "d": 206.2,
+   "bucket": -1
+  },
+  {
+   "from": "KIN",
+   "to": "SW7",
+   "key": "KIN>SW7",
+   "ll": [
+    -97.73941049999999,
+    30.290119124999997
+   ],
+   "d": 180,
+   "bucket": -1
+  },
+  {
+   "from": "KIN",
+   "to": "SW7",
+   "key": "KIN>SW7",
+   "ll": [
+    -97.73934750000001,
+    30.290131375
+   ],
+   "d": 186.2,
+   "bucket": -1
+  },
+  {
+   "from": "KIN",
+   "to": "SW7",
+   "key": "KIN>SW7",
+   "ll": [
+    -97.7392845,
+    30.290143625
+   ],
+   "d": 192.4,
+   "bucket": -1
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "key": "TMM>UTC",
+   "ll": [
+    -97.73228225,
+    30.286804749999998
+   ],
+   "d": 120.8,
+   "bucket": -1
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "key": "TMM>UTC",
+   "ll": [
+    -97.73223475,
+    30.286756249999996
+   ],
+   "d": 126.3,
+   "bucket": -1
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "key": "TMM>UTC",
+   "ll": [
+    -97.73218724999998,
+    30.286707749999998
+   ],
+   "d": 128.5,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "key": "CCJ>WAG",
+   "ll": [
+    -97.730604,
+    30.287930499999998
+   ],
+   "d": 284.9,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "key": "CCJ>WAG",
+   "ll": [
+    -97.73063149999999,
+    30.287924999999998
+   ],
+   "d": 282.2,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "key": "CCJ>WAG",
+   "ll": [
+    -97.73069625,
+    30.28793175
+   ],
+   "d": 276.5,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "key": "CCJ>HSM",
+   "ll": [
+    -97.730604,
+    30.287930499999998
+   ],
+   "d": 284.9,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "key": "CCJ>HSM",
+   "ll": [
+    -97.73063149999999,
+    30.287924999999998
+   ],
+   "d": 282.2,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "key": "CCJ>HSM",
+   "ll": [
+    -97.73069625,
+    30.28793175
+   ],
+   "d": 276.5,
+   "bucket": -1
+  },
+  {
+   "from": "E26",
+   "to": "MBB",
+   "key": "E26>MBB",
+   "ll": [
+    -97.73637825,
+    30.29262675
+   ],
+   "d": 221.3,
+   "bucket": -1
+  },
+  {
+   "from": "E26",
+   "to": "MBB",
+   "key": "E26>MBB",
+   "ll": [
+    -97.73642275,
+    30.292646249999997
+   ],
+   "d": 225.6,
+   "bucket": -1
+  },
+  {
+   "from": "E26",
+   "to": "MBB",
+   "key": "E26>MBB",
+   "ll": [
+    -97.7364485,
+    30.292652499999996
+   ],
+   "d": 223.9,
+   "bucket": -1
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "key": "BHD>BEL",
+   "ll": [
+    -97.73624374999999,
+    30.283188499999998
+   ],
+   "d": 249.9,
+   "bucket": -1
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "key": "BHD>BEL",
+   "ll": [
+    -97.73623525,
+    30.2832535
+   ],
+   "d": 250.1,
+   "bucket": -1
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "key": "BHD>BEL",
+   "ll": [
+    -97.73618992857142,
+    30.283281857142857
+   ],
+   "d": 246.3,
+   "bucket": -1
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.74092512499999,
+    30.284312625
+   ],
+   "d": 273.9,
+   "bucket": -1
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.740919375,
+    30.284379875
+   ],
+   "d": 267,
+   "bucket": -1
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.74091362499999,
+    30.284447125
+   ],
+   "d": 260,
+   "bucket": -1
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "key": "WAG>NEZ",
+   "ll": [
+    -97.73750166666666,
+    30.284911166666667
+   ],
+   "d": 361.5,
+   "bucket": -1
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "key": "WAG>NEZ",
+   "ll": [
+    -97.737481,
+    30.284861499999998
+   ],
+   "d": 360.4,
+   "bucket": -1
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "key": "WAG>NEZ",
+   "ll": [
+    -97.73746033333333,
+    30.28481183333333
+   ],
+   "d": 359.4,
+   "bucket": -1
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "key": "PAC>ATT",
+   "ll": [
+    -97.73153574999999,
+    30.286264249999995
+   ],
+   "d": 148.5,
+   "bucket": -1
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "key": "PAC>ATT",
+   "ll": [
+    -97.73160324999999,
+    30.286268749999998
+   ],
+   "d": 149.7,
+   "bucket": -1
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "key": "PAC>ATT",
+   "ll": [
+    -97.73164175,
+    30.28629025
+   ],
+   "d": 152.7,
+   "bucket": -1
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "key": "MBE>HSM",
+   "ll": [
+    -97.73169899999999,
+    30.287320333333334
+   ],
+   "d": 168.6,
+   "bucket": -1
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "key": "MBE>HSM",
+   "ll": [
+    -97.73175699999999,
+    30.287323
+   ],
+   "d": 163,
+   "bucket": -1
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "key": "MBE>HSM",
+   "ll": [
+    -97.731815,
+    30.287325666666664
+   ],
+   "d": 157.5,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "key": "CCJ>BME",
+   "ll": [
+    -97.730604,
+    30.287930499999998
+   ],
+   "d": 284.9,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "key": "CCJ>BME",
+   "ll": [
+    -97.73063149999999,
+    30.287924999999998
+   ],
+   "d": 282.2,
+   "bucket": -1
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "key": "CCJ>BME",
+   "ll": [
+    -97.73069625,
+    30.28793175
+   ],
+   "d": 276.5,
+   "bucket": -1
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "key": "MRH>AUSUAHX",
+   "ll": [
+    -97.73089925,
+    30.28685775
+   ],
+   "d": 217.7,
+   "bucket": -1
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "key": "MRH>AUSUAHX",
+   "ll": [
+    -97.73095574999999,
+    30.28686325
+   ],
+   "d": 217.5,
+   "bucket": -1
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "key": "MRH>AUSUAHX",
+   "ll": [
+    -97.73102162499998,
+    30.2868688125
+   ],
+   "d": 217.3,
+   "bucket": -1
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "key": "MCA>SZB",
+   "ll": [
+    -97.734576,
+    30.281884499999997
+   ],
+   "d": 122.5,
+   "bucket": -1
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "key": "MCA>SZB",
+   "ll": [
+    -97.734621,
+    30.281879999999997
+   ],
+   "d": 126.6,
+   "bucket": -1
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "key": "MCA>SZB",
+   "ll": [
+    -97.734668,
+    30.281867
+   ],
+   "d": 131.3,
+   "bucket": -1
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.73858675,
+    30.28780475
+   ],
+   "d": 281.6,
+   "bucket": -1
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.73865225,
+    30.287814249999997
+   ],
+   "d": 275.2,
+   "bucket": -1
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.73871775,
+    30.287823749999998
+   ],
+   "d": 268.8,
+   "bucket": -1
+  },
+  {
+   "from": "BME",
+   "to": "COM",
+   "key": "BME>COM",
+   "ll": [
+    -97.73867924999999,
+    30.288864750000002
+   ],
+   "d": 266.4,
+   "bucket": -1
+  },
+  {
+   "from": "BME",
+   "to": "COM",
+   "key": "BME>COM",
+   "ll": [
+    -97.73874175,
+    30.288852249999998
+   ],
+   "d": 260.3,
+   "bucket": -1
+  },
+  {
+   "from": "BME",
+   "to": "COM",
+   "key": "BME>COM",
+   "ll": [
+    -97.73880424999999,
+    30.28883975
+   ],
+   "d": 254.2,
+   "bucket": -1
+  },
+  {
+   "from": "ADH",
+   "to": "AND",
+   "key": "ADH>AND",
+   "ll": [
+    -97.74021299999998,
+    30.289362166666663
+   ],
+   "d": 122.3,
+   "bucket": -1
+  },
+  {
+   "from": "ADH",
+   "to": "AND",
+   "key": "ADH>AND",
+   "ll": [
+    -97.740219,
+    30.289300499999996
+   ],
+   "d": 125.7,
+   "bucket": -1
+  },
+  {
+   "from": "ADH",
+   "to": "AND",
+   "key": "ADH>AND",
+   "ll": [
+    -97.74022500000001,
+    30.289238833333332
+   ],
+   "d": 129,
+   "bucket": -1
+  },
+  {
+   "from": "LTD",
+   "to": "BLD",
+   "key": "LTD>BLD",
+   "ll": [
+    -97.73998316666666,
+    30.289447166666665
+   ],
+   "d": 137,
+   "bucket": -1
+  },
+  {
+   "from": "LTD",
+   "to": "BLD",
+   "key": "LTD>BLD",
+   "ll": [
+    -97.73997949999999,
+    30.289497499999996
+   ],
+   "d": 135.1,
+   "bucket": -1
+  },
+  {
+   "from": "LTD",
+   "to": "BLD",
+   "key": "LTD>BLD",
+   "ll": [
+    -97.73997583333332,
+    30.28954783333333
+   ],
+   "d": 133.3,
+   "bucket": -1
+  },
+  {
+   "from": "HSM",
+   "to": "AND",
+   "key": "HSM>AND",
+   "ll": [
+    -97.74035624999999,
+    30.287729499999998
+   ],
+   "d": 120.2,
+   "bucket": -1
+  },
+  {
+   "from": "HSM",
+   "to": "AND",
+   "key": "HSM>AND",
+   "ll": [
+    -97.740228,
+    30.287937
+   ],
+   "d": 123.9,
+   "bucket": -1
+  },
+  {
+   "from": "HSM",
+   "to": "AND",
+   "key": "HSM>AND",
+   "ll": [
+    -97.74017066666667,
+    30.28795033333333
+   ],
+   "d": 128.9,
+   "bucket": -1
+  },
+  {
+   "from": "TSC",
+   "to": "BRG",
+   "key": "TSC>BRG",
+   "ll": [
+    -97.73299937499999,
+    30.279995874999997
+   ],
+   "d": 215.2,
+   "bucket": -1
+  },
+  {
+   "from": "TSC",
+   "to": "BRG",
+   "key": "TSC>BRG",
+   "ll": [
+    -97.73297812499999,
+    30.279935625
+   ],
+   "d": 222.1,
+   "bucket": -1
+  },
+  {
+   "from": "TSC",
+   "to": "BRG",
+   "key": "TSC>BRG",
+   "ll": [
+    -97.732956875,
+    30.279875375
+   ],
+   "d": 229,
+   "bucket": -1
+  },
+  {
+   "from": "EPS",
+   "to": "BLD",
+   "key": "EPS>BLD",
+   "ll": [
+    -97.73690099999999,
+    30.285914
+   ],
+   "d": 304.7,
+   "bucket": -1
+  },
+  {
+   "from": "EPS",
+   "to": "BLD",
+   "key": "EPS>BLD",
+   "ll": [
+    -97.736933,
+    30.285932499999998
+   ],
+   "d": 308.1,
+   "bucket": -1
+  },
+  {
+   "from": "EPS",
+   "to": "BLD",
+   "key": "EPS>BLD",
+   "ll": [
+    -97.73700099999999,
+    30.285937499999996
+   ],
+   "d": 314.6,
+   "bucket": -1
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74163236363636,
+    30.28557918181818
+   ],
+   "d": 121.4,
+   "bucket": -1
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74163818181817,
+    30.285510090909092
+   ],
+   "d": 129,
+   "bucket": -1
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.741644,
+    30.285441
+   ],
+   "d": 136.6,
+   "bucket": -1
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.72927716666666,
+    30.283571583333334
+   ],
+   "d": 122.3,
+   "bucket": -1
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.72934749999999,
+    30.283587749999995
+   ],
+   "d": 129.2,
+   "bucket": -1
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.72941783333332,
+    30.283603916666664
+   ],
+   "d": 125.1,
+   "bucket": -1
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "key": "STD>CBA",
+   "ll": [
+    -97.73485980000001,
+    30.283331099999998
+   ],
+   "d": 124.1,
+   "bucket": -1
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "key": "STD>CBA",
+   "ll": [
+    -97.7349266,
+    30.2833377
+   ],
+   "d": 130.4,
+   "bucket": -1
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "key": "STD>CBA",
+   "ll": [
+    -97.73499728571429,
+    30.283343857142857
+   ],
+   "d": 137,
+   "bucket": -1
+  },
+  {
+   "from": "CDL",
+   "to": "UNB",
+   "key": "CDL>UNB",
+   "ll": [
+    -97.73280875,
+    30.278882250000002
+   ],
+   "d": 340.4,
+   "bucket": -1
+  },
+  {
+   "from": "CDL",
+   "to": "UNB",
+   "key": "CDL>UNB",
+   "ll": [
+    -97.73273825000001,
+    30.27891675
+   ],
+   "d": 337.5,
+   "bucket": -1
+  },
+  {
+   "from": "CDL",
+   "to": "UNB",
+   "key": "CDL>UNB",
+   "ll": [
+    -97.732705,
+    30.2789475
+   ],
+   "d": 334.6,
+   "bucket": -1
+  },
+  {
+   "from": "WCP",
+   "to": "JCD",
+   "key": "WCP>JCD",
+   "ll": [
+    -97.73710599999998,
+    30.284839499999997
+   ],
+   "d": 325.4,
+   "bucket": -1
+  },
+  {
+   "from": "WCP",
+   "to": "JCD",
+   "key": "WCP>JCD",
+   "ll": [
+    -97.737178,
+    30.2848445
+   ],
+   "d": 332.1,
+   "bucket": -1
+  },
+  {
+   "from": "WCP",
+   "to": "JCD",
+   "key": "WCP>JCD",
+   "ll": [
+    -97.73724999999999,
+    30.2848495
+   ],
+   "d": 338.8,
+   "bucket": -1
+  },
+  {
+   "from": "RHD",
+   "to": "MEZ",
+   "key": "RHD>MEZ",
+   "ll": [
+    -97.73493033333332,
+    30.28284683333333
+   ],
+   "d": 121.9,
+   "bucket": -1
+  },
+  {
+   "from": "RHD",
+   "to": "MEZ",
+   "key": "RHD>MEZ",
+   "ll": [
+    -97.735003,
+    30.282838499999997
+   ],
+   "d": 129,
+   "bucket": -1
+  },
+  {
+   "from": "RHD",
+   "to": "MEZ",
+   "key": "RHD>MEZ",
+   "ll": [
+    -97.73507566666666,
+    30.282830166666667
+   ],
+   "d": 136,
+   "bucket": -1
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "key": "STD>NMS",
+   "ll": [
+    -97.7348865,
+    30.28710625
+   ],
+   "d": 121.4,
+   "bucket": -1
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "key": "STD>NMS",
+   "ll": [
+    -97.7349465,
+    30.287110749999997
+   ],
+   "d": 124.8,
+   "bucket": -1
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "key": "STD>NMS",
+   "ll": [
+    -97.73502149999999,
+    30.287116249999997
+   ],
+   "d": 129.2,
+   "bucket": -1
+  },
+  {
+   "from": "NUR",
+   "to": "FNT",
+   "key": "NUR>FNT",
+   "ll": [
+    -97.73384475,
+    30.277519249999997
+   ],
+   "d": 308.7,
+   "bucket": -1
+  },
+  {
+   "from": "NUR",
+   "to": "FNT",
+   "key": "NUR>FNT",
+   "ll": [
+    -97.73388625000001,
+    30.277497749999995
+   ],
+   "d": 304,
+   "bucket": -1
+  },
+  {
+   "from": "NUR",
+   "to": "FNT",
+   "key": "NUR>FNT",
+   "ll": [
+    -97.7338995,
+    30.277475499999998
+   ],
+   "d": 301.8,
+   "bucket": -1
+  },
+  {
+   "from": "SEA",
+   "to": "BRB",
+   "key": "SEA>BRB",
+   "ll": [
+    -97.736906,
+    30.28972
+   ],
+   "d": 215,
+   "bucket": -1
+  },
+  {
+   "from": "SEA",
+   "to": "BRB",
+   "key": "SEA>BRB",
+   "ll": [
+    -97.736901,
+    30.289689749999997
+   ],
+   "d": 213.6,
+   "bucket": -1
+  },
+  {
+   "from": "SEA",
+   "to": "BRB",
+   "key": "SEA>BRB",
+   "ll": [
+    -97.736909,
+    30.28963125
+   ],
+   "d": 212.6,
+   "bucket": -1
+  },
+  {
+   "from": "GAR",
+   "to": "WIN",
+   "key": "GAR>WIN",
+   "ll": [
+    -97.7382255,
+    30.285151
+   ],
+   "d": 379.9,
+   "bucket": -1
+  },
+  {
+   "from": "GAR",
+   "to": "WIN",
+   "key": "GAR>WIN",
+   "ll": [
+    -97.73819999999999,
+    30.28515
+   ],
+   "d": 382.2,
+   "bucket": -1
+  },
+  {
+   "from": "GAR",
+   "to": "WIN",
+   "key": "GAR>WIN",
+   "ll": [
+    -97.738146,
+    30.285145999999997
+   ],
+   "d": 387.1,
+   "bucket": -1
+  },
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "key": "UPB>DFA",
+   "ll": [
+    -97.73201875000001,
+    30.28587375
+   ],
+   "d": 120.8,
+   "bucket": -1
+  },
+  {
+   "from": "BTL",
+   "to": "ECJ",
+   "key": "BTL>ECJ",
+   "ll": [
+    -97.740129,
+    30.285407499999998
+   ],
+   "d": 210.7,
+   "bucket": -1
+  },
+  {
+   "from": "BTL",
+   "to": "ECJ",
+   "key": "BTL>ECJ",
+   "ll": [
+    -97.74009033333334,
+    30.285431666666664
+   ],
+   "d": 211.7,
+   "bucket": -1
+  },
+  {
+   "from": "BTL",
+   "to": "ECJ",
+   "key": "BTL>ECJ",
+   "ll": [
+    -97.740085,
+    30.285484999999998
+   ],
+   "d": 208.3,
+   "bucket": -1
+  },
+  {
+   "from": "LTD",
+   "to": "PAT",
+   "key": "LTD>PAT",
+   "ll": [
+    -97.73998316666666,
+    30.289447166666665
+   ],
+   "d": 137,
+   "bucket": -1
+  },
+  {
+   "from": "LTD",
+   "to": "PAT",
+   "key": "LTD>PAT",
+   "ll": [
+    -97.73997949999999,
+    30.289497499999996
+   ],
+   "d": 135.1,
+   "bucket": -1
+  },
+  {
+   "from": "LTD",
+   "to": "PAT",
+   "key": "LTD>PAT",
+   "ll": [
+    -97.73997583333332,
+    30.28954783333333
+   ],
+   "d": 133.3,
+   "bucket": -1
+  },
+  {
+   "from": "GEB",
+   "to": "NUR",
+   "key": "GEB>NUR",
+   "ll": [
+    -97.738638,
+    30.286257499999998
+   ],
+   "d": 304.3,
+   "bucket": -1
+  },
+  {
+   "from": "GEB",
+   "to": "NUR",
+   "key": "GEB>NUR",
+   "ll": [
+    -97.7386405,
+    30.286240499999998
+   ],
+   "d": 304.4,
+   "bucket": -1
+  },
+  {
+   "from": "GEB",
+   "to": "NUR",
+   "key": "GEB>NUR",
+   "ll": [
+    -97.738643,
+    30.2862195
+   ],
+   "d": 304.5,
+   "bucket": -1
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.73228225,
+    30.286804749999998
+   ],
+   "d": 120.8,
+   "bucket": -1
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.73223475,
+    30.286756249999996
+   ],
+   "d": 126.3,
+   "bucket": -1
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.73218724999998,
+    30.286707749999998
+   ],
+   "d": 128.5,
+   "bucket": -1
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.7286652,
+    30.282497899999996
+   ],
+   "d": 126.6,
+   "bucket": -1
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.7287164,
+    30.2824533
+   ],
+   "d": 133.4,
+   "bucket": -1
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.72876819999999,
+    30.2824061
+   ],
+   "d": 140.4,
+   "bucket": -1
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.73156499999999,
+    30.279475749999996
+   ],
+   "d": 284.7,
+   "bucket": -1
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.73154099999999,
+    30.27943725
+   ],
+   "d": 289.1,
+   "bucket": -1
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.731559,
+    30.2794039
+   ],
+   "d": 292.7,
+   "bucket": -1
+  },
+  {
+   "from": "ECJ",
+   "to": "BME",
+   "key": "ECJ>BME",
+   "ll": [
+    -97.73605187499999,
+    30.289309124999996
+   ],
+   "d": 124.6,
+   "bucket": -1
+  },
+  {
+   "from": "ECJ",
+   "to": "BME",
+   "key": "ECJ>BME",
+   "ll": [
+    -97.736127125,
+    30.289313874999998
+   ],
+   "d": 131.8,
+   "bucket": -1
+  },
+  {
+   "from": "ECJ",
+   "to": "BME",
+   "key": "ECJ>BME",
+   "ll": [
+    -97.736202375,
+    30.289318625
+   ],
+   "d": 139.1,
+   "bucket": -1
+  },
+  {
+   "from": "D21",
+   "to": "RHD",
+   "key": "D21>RHD",
+   "ll": [
+    -97.7409055,
+    30.283246666666663
+   ],
+   "d": 389.3,
+   "bucket": -1
+  },
+  {
+   "from": "D21",
+   "to": "RHD",
+   "key": "D21>RHD",
+   "ll": [
+    -97.7408445,
+    30.283241999999998
+   ],
+   "d": 391.1,
+   "bucket": -1
+  },
+  {
+   "from": "D21",
+   "to": "RHD",
+   "key": "D21>RHD",
+   "ll": [
+    -97.74078349999999,
+    30.283237333333332
+   ],
+   "d": 392.9,
+   "bucket": -1
+  },
+  {
+   "from": "TS2",
+   "to": "MBB",
+   "key": "TS2>MBB",
+   "ll": [
+    -97.73156499999999,
+    30.279475749999996
+   ],
+   "d": 284.7,
+   "bucket": -1
+  },
+  {
+   "from": "TS2",
+   "to": "MBB",
+   "key": "TS2>MBB",
+   "ll": [
+    -97.73154099999999,
+    30.27943725
+   ],
+   "d": 289.1,
+   "bucket": -1
+  },
+  {
+   "from": "TS2",
+   "to": "MBB",
+   "key": "TS2>MBB",
+   "ll": [
+    -97.731559,
+    30.2794039
+   ],
+   "d": 292.7,
+   "bucket": -1
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.74315,
+    30.288103
+   ],
+   "d": 161,
+   "bucket": -1
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.743068,
+    30.288097
+   ],
+   "d": 153.2,
+   "bucket": -1
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.74302975,
+    30.28806675
+   ],
+   "d": 149.9,
+   "bucket": -1
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.73579699999999,
+    30.286188
+   ],
+   "d": 211.9,
+   "bucket": -1
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.73575033333333,
+    30.286171833333334
+   ],
+   "d": 207,
+   "bucket": -1
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.73569499999999,
+    30.286167499999998
+   ],
+   "d": 202,
+   "bucket": -1
+  }
+ ],
+ "litSites": [
+  {
+   "from": "PAT",
+   "to": "STD",
+   "key": "PAT>STD",
+   "ll": [
+    -97.7336865,
+    30.285137999999996
+   ],
+   "d": 6.7,
+   "bucket": -2
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.727139,
+    30.285632999999997
+   ],
+   "d": 8.7,
+   "bucket": -2
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.72697057142857,
+    30.28616
+   ],
+   "d": 1.1,
+   "bucket": -2
+  },
+  {
+   "from": "AFP",
+   "to": "TCC",
+   "key": "AFP>TCC",
+   "ll": [
+    -97.72693799999999,
+    30.287028
+   ],
+   "d": 20.6,
+   "bucket": -2
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.734743,
+    30.289154999999997
+   ],
+   "d": 2.6,
+   "bucket": -2
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.73408366666666,
+    30.28795733333333
+   ],
+   "d": 1.3,
+   "bucket": -2
+  },
+  {
+   "from": "BWY",
+   "to": "TSC",
+   "key": "BWY>TSC",
+   "ll": [
+    -97.733542,
+    30.287146999999997
+   ],
+   "d": 11.4,
+   "bucket": -2
+  },
+  {
+   "from": "SEZ",
+   "to": "UPB",
+   "key": "SEZ>UPB",
+   "ll": [
+    -97.73123,
+    30.283303999999998
+   ],
+   "d": 10.8,
+   "bucket": -2
+  },
+  {
+   "from": "DFA",
+   "to": "ATT",
+   "key": "DFA>ATT",
+   "ll": [
+    -97.73356899999999,
+    30.285014
+   ],
+   "d": 8.4,
+   "bucket": -2
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73357999999999,
+    30.285307999999997
+   ],
+   "d": 21,
+   "bucket": -2
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73138,
+    30.284909
+   ],
+   "d": 3.2,
+   "bucket": -2
+  },
+  {
+   "from": "GWB",
+   "to": "MFH",
+   "key": "GWB>MFH",
+   "ll": [
+    -97.73122057142857,
+    30.28423857142857
+   ],
+   "d": 19.4,
+   "bucket": -2
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.73389999999999,
+    30.288065999999997
+   ],
+   "d": 21.9,
+   "bucket": -2
+  },
+  {
+   "from": "SJG",
+   "to": "BMC",
+   "key": "SJG>BMC",
+   "ll": [
+    -97.734543,
+    30.289175999999998
+   ],
+   "d": 13.7,
+   "bucket": -2
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.741147,
+    30.2905875
+   ],
+   "d": 16.5,
+   "bucket": -2
+  },
+  {
+   "from": "LLD",
+   "to": "BRG",
+   "key": "LLD>BRG",
+   "ll": [
+    -97.74126871428571,
+    30.290070999999998
+   ],
+   "d": 11.6,
+   "bucket": -2
+  },
+  {
+   "from": "TMM",
+   "to": "UTC",
+   "key": "TMM>UTC",
+   "ll": [
+    -97.73383299999999,
+    30.285214999999997
+   ],
+   "d": 22.1,
+   "bucket": -2
+  },
+  {
+   "from": "CCJ",
+   "to": "WAG",
+   "key": "CCJ>WAG",
+   "ll": [
+    -97.73344399999999,
+    30.287183
+   ],
+   "d": 3,
+   "bucket": -2
+  },
+  {
+   "from": "CCJ",
+   "to": "HSM",
+   "key": "CCJ>HSM",
+   "ll": [
+    -97.73344399999999,
+    30.287183
+   ],
+   "d": 3,
+   "bucket": -2
+  },
+  {
+   "from": "BHD",
+   "to": "BEL",
+   "key": "BHD>BEL",
+   "ll": [
+    -97.73373699999999,
+    30.282923
+   ],
+   "d": 7.2,
+   "bucket": -2
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.741523,
+    30.286676
+   ],
+   "d": 23.7,
+   "bucket": -2
+  },
+  {
+   "from": "HRC",
+   "to": "BUR",
+   "key": "HRC>BUR",
+   "ll": [
+    -97.7414822,
+    30.2870796
+   ],
+   "d": 24.1,
+   "bucket": -2
+  },
+  {
+   "from": "WAG",
+   "to": "NEZ",
+   "key": "WAG>NEZ",
+   "ll": [
+    -97.73356899999999,
+    30.285014
+   ],
+   "d": 8.4,
+   "bucket": -2
+  },
+  {
+   "from": "PAC",
+   "to": "ATT",
+   "key": "PAC>ATT",
+   "ll": [
+    -97.73383299999999,
+    30.285214999999997
+   ],
+   "d": 22.1,
+   "bucket": -2
+  },
+  {
+   "from": "MBE",
+   "to": "HSM",
+   "key": "MBE>HSM",
+   "ll": [
+    -97.73344399999999,
+    30.287183
+   ],
+   "d": 3,
+   "bucket": -2
+  },
+  {
+   "from": "CCJ",
+   "to": "BME",
+   "key": "CCJ>BME",
+   "ll": [
+    -97.73344399999999,
+    30.287183
+   ],
+   "d": 3,
+   "bucket": -2
+  },
+  {
+   "from": "MRH",
+   "to": "AUSUAHX",
+   "key": "MRH>AUSUAHX",
+   "ll": [
+    -97.73383299999999,
+    30.285214999999997
+   ],
+   "d": 22.1,
+   "bucket": -2
+  },
+  {
+   "from": "MCA",
+   "to": "SZB",
+   "key": "MCA>SZB",
+   "ll": [
+    -97.733413,
+    30.281789999999997
+   ],
+   "d": 21.4,
+   "bucket": -2
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.74126157142857,
+    30.290132999999997
+   ],
+   "d": 18.5,
+   "bucket": -2
+  },
+  {
+   "from": "NHB",
+   "to": "LLF",
+   "key": "NHB>LLF",
+   "ll": [
+    -97.74118359999999,
+    30.290898799999997
+   ],
+   "d": 21,
+   "bucket": -2
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74159466666667,
+    30.288878333333333
+   ],
+   "d": 4.6,
+   "bucket": -2
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74166249999999,
+    30.288178
+   ],
+   "d": 17.9,
+   "bucket": -2
+  },
+  {
+   "from": "WWH",
+   "to": "RHD",
+   "key": "WWH>RHD",
+   "ll": [
+    -97.74176366666667,
+    30.286890666666665
+   ],
+   "d": 23.1,
+   "bucket": -2
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.728067,
+    30.283338999999998
+   ],
+   "d": 17.1,
+   "bucket": -2
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.730729,
+    30.284872
+   ],
+   "d": 22,
+   "bucket": -2
+  },
+  {
+   "from": "AF2",
+   "to": "HMA",
+   "key": "AF2>HMA",
+   "ll": [
+    -97.733789,
+    30.285432
+   ],
+   "d": 2.6,
+   "bucket": -2
+  },
+  {
+   "from": "STD",
+   "to": "CBA",
+   "key": "STD>CBA",
+   "ll": [
+    -97.733599,
+    30.284689666666665
+   ],
+   "d": 15.2,
+   "bucket": -2
+  },
+  {
+   "from": "STD",
+   "to": "NMS",
+   "key": "STD>NMS",
+   "ll": [
+    -97.73373,
+    30.285147
+   ],
+   "d": 9.9,
+   "bucket": -2
+  },
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "key": "UPB>DFA",
+   "ll": [
+    -97.73068119999999,
+    30.283892199999997
+   ],
+   "d": 17.1,
+   "bucket": -2
+  },
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "key": "UPB>DFA",
+   "ll": [
+    -97.7308025,
+    30.284345
+   ],
+   "d": 19.2,
+   "bucket": -2
+  },
+  {
+   "from": "UPB",
+   "to": "DFA",
+   "key": "UPB>DFA",
+   "ll": [
+    -97.730729,
+    30.284872
+   ],
+   "d": 22,
+   "bucket": -2
+  },
+  {
+   "from": "TS1",
+   "to": "MCA",
+   "key": "TS1>MCA",
+   "ll": [
+    -97.7338765,
+    30.288033
+   ],
+   "d": 21.9,
+   "bucket": -2
+  },
+  {
+   "from": "TS1",
+   "to": "MCA",
+   "key": "TS1>MCA",
+   "ll": [
+    -97.73344399999999,
+    30.287183
+   ],
+   "d": 3,
+   "bucket": -2
+  },
+  {
+   "from": "TS1",
+   "to": "MCA",
+   "key": "TS1>MCA",
+   "ll": [
+    -97.73344157142857,
+    30.28670014285714
+   ],
+   "d": 21,
+   "bucket": -2
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.73365749999999,
+    30.28502075
+   ],
+   "d": 6.9,
+   "bucket": -2
+  },
+  {
+   "from": "TMM",
+   "to": "NUR",
+   "key": "TMM>NUR",
+   "ll": [
+    -97.733368,
+    30.282325
+   ],
+   "d": 7.9,
+   "bucket": -2
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.727115,
+    30.285629
+   ],
+   "d": 7.1,
+   "bucket": -2
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.72730508,
+    30.285079079999996
+   ],
+   "d": 0.5,
+   "bucket": -2
+  },
+  {
+   "from": "IPF",
+   "to": "BMK",
+   "key": "IPF>BMK",
+   "ll": [
+    -97.727673,
+    30.283852999999997
+   ],
+   "d": 3.5,
+   "bucket": -2
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.73344399999999,
+    30.281909
+   ],
+   "d": 19.1,
+   "bucket": -2
+  },
+  {
+   "from": "TS2",
+   "to": "GRE",
+   "key": "TS2>GRE",
+   "ll": [
+    -97.733611,
+    30.282308999999998
+   ],
+   "d": 18.5,
+   "bucket": -2
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.74176366666667,
+    30.286890666666665
+   ],
+   "d": 23.1,
+   "bucket": -2
+  },
+  {
+   "from": "N24",
+   "to": "RSC",
+   "key": "N24>RSC",
+   "ll": [
+    -97.733368,
+    30.282325
+   ],
+   "d": 7.9,
+   "bucket": -2
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.733494,
+    30.287186499999997
+   ],
+   "d": 5.1,
+   "bucket": -2
+  },
+  {
+   "from": "CS6",
+   "to": "TNH",
+   "key": "CS6>TNH",
+   "ll": [
+    -97.73389999999999,
+    30.288065999999997
+   ],
+   "d": 21.9,
+   "bucket": -2
+  }
+ ],
+ "errs": []
+}

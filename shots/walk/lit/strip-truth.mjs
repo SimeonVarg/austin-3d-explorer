@@ -18,7 +18,15 @@
  * The gate is one-sided on purpose. A strip that under-shows light is a
  * cautious picture; a strip that over-shows it is a false claim.
  *
- * Usage: VERIFY_URL=http://127.0.0.1:8714 node shots/walk/lit/strip-truth.mjs [n]
+ * ROUND 5 ADDED THE WIDTH. Round 4 ran this at 1280 x 900 and only there, which
+ * is the one width nobody watches this app at: it is judged off a phone screen
+ * recording. The floors this gate exists to police are a FRACTION of the bar's
+ * width (`litStripMinFrac`), so the bar shrinking 3.4x shrinks every floored run
+ * with it — and sub-pixel flex rounding, which is the whole tolerance budget
+ * here, is three times coarser on a 153 px bar than on a 518 px one. The gate
+ * has to be run at the width it will be seen at. Default is unchanged.
+ *
+ * Usage: VERIFY_URL=http://127.0.0.1:8714 node shots/walk/lit/strip-truth.mjs [n] [cssWidth]
  */
 import fs from 'node:fs';
 import { chromium } from '../../../scripts/verify/node_modules/playwright-core/index.mjs';
@@ -37,8 +45,10 @@ const OUT = 'shots/walk/lit';
 // to 1 m in ~1,500 is noise of 0.07 %, which leaves the gate something to catch.
 const OVERCLAIM_TOL = 0.0015;
 
+const VW = Number(process.argv[3] || 1280);
 const browser = await launch(chromium, { gl: 'hardware' });
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const page = await browser.newPage({ viewport: { width: VW, height: VW < 768 ? 844 : 900 } });
+console.log(`viewport ${VW} px wide`);
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));
 
@@ -124,7 +134,7 @@ const ticked = rows.filter(r => r.ticks);
 console.log(`routes with reported-dark ticks: ${ticked.length}; ticks always match the count: ` +
   (ticked.every(r => r.ticks === r.reported) ? 'yes' : '*NO*'));
 
-fs.writeFileSync(`${OUT}/strip-truth.json`, JSON.stringify({ tol: OVERCLAIM_TOL, rows }, null, 1));
+fs.writeFileSync(`${OUT}/strip-truth${VW === 1280 ? '' : '-' + VW}.json`, JSON.stringify({ tol: OVERCLAIM_TOL, viewport: VW, rows }, null, 1));
 console.log('errors:', errs.length ? errs.slice(0, 3) : 'none');
 await browser.close();
 console.log(errsOver.length ? '\nFAIL — the strip overstates light' : '\nPASS — the strip never shows more light than the count');
