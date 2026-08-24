@@ -265,6 +265,13 @@ through the normal door path, not a special case.
 routing on (WCH → MAI, 240 m → 46 m) and back off, and the pill still collapses
 and reopens.
 
+**And it was re-run on the MERGED tree, not on the branch in isolation**
+(CLAUDE.md rule 2). `origin/main` was merged in — docs only, plus one screenshot,
+and one conflict in `docs/walk-progress.md` where two lanes had both appended,
+resolved by keeping both entries — and `harness-drift.mjs` + `walkmeter.mjs`
+were run again on the result. 720/720 identical to the pre-merge run; same 10
+unroutable, same 57 scored, same stairs and reachability rows.
+
 ### The one difference §4c makes to that table, and why it is not one
 
 Turning `utDoorsIndexed` on moves **17 numbers** in the per-pair JSON, and a
