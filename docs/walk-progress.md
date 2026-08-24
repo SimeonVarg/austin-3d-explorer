@@ -481,3 +481,59 @@ Frames: `shots/walk/ui/r7-summary.jpg`, `r7-walk.jpg`, `r7-bar-before-after.jpg`
 `r7-walkbar-before-after.jpg`. Full writeup in `docs/walk-ui.md` §41–46. Branch
 `acer/w-ui`, port 8815, one browser, server killed and the port confirmed free,
 no scratch scripts left in `scripts/verify`. `WAYFIND.on` is still false.
+
+## 2026-08-24 — round 8 critic verdict on `acer/w-ui`: oursWins = true
+
+Fresh context, no memory of how hard round 7 tried. Checked out `origin/acer/w-ui`
+at `806ad8f` into its own worktree, served it on 8855, drove the real `?walk=1`
+feature at 390x844 in real Chromium — not the builder's screenshots.
+
+**Camera fight (the round 1 critic's original finding): held.** Tapped `Walk it`
+on JES→WEL and sampled `__fly.eye().alt` once a second for 14 straight seconds.
+It read exactly 1.70 m on all 14 samples — never ejected. One run isn't the four
+the builder logged, but it's a real, fresh, independent check and it agrees.
+
+**Every specific claim in round 7's own writeup, checked, held.** The spine —
+one hairline from the start tick to the door ring — renders correctly; closeup
+at `shots/walk/ui/r8-critic-spine-closeup.png`. Exactly one filled control on
+the closed bar (`Walk it`, `rgb(255,198,99)`); `Show route` and the "and then
+left" next-turn glyph are both transparent-background, confirmed by reading
+computed style off every visible button, not by eye. The feature stays hidden
+(`display:none` on `#wf-button`/`#wf-sheet`/`#wf-pill`) under `?clip=1`,
+`?autopilot=1`, and `?sliderdemo=1` — all three checked, all three pass.
+`walkmeter.mjs` against this branch: 19/20 pairs, 0.00 m self-check drift,
+795 m total extra — identical to `docs/walk-baseline.md`, so nothing upstream
+of the UI broke either.
+
+**The blind comparison, done for real this time.** Citymapper's own web app
+(`citymapper.com/directions`, cookie banner rejected through its actual "Reject
+All", not just accepted to get past it) turns out to have no live walking
+navigation at all — a pure campus walk there is one line, "12 min · Show Map,"
+thinner than anything on our bar. So the true bar — the GO-pill pre-trip card
+and the "19 min / 14:38, turn left onto [street]" live card — was pulled instead
+from Citymapper's own product blog,
+`citymapper.com/news/2266/turn-by-turn-directions-for-walking`, which is the
+first time this project has had the *actual* walking-specific screens instead of
+a multi-modal marketing composite. Saved neutrally, shuffled, judged before
+looking at the mapping: **ours preferred on both pieces.** Pre-walk: ours
+carries entrance-side and stairs-on-route information Citymapper's card doesn't
+have room for; during-walk: the first-person camera IS the orientation cue,
+where Citymapper needs a 2D dot-and-cone to fake it. Real bar images at
+`shots/walk/ui/r8-critic-citymapper-gopill-real.png` and
+`-turncard-real.png` for whoever runs this next.
+
+**The one gap Citymapper's real card has that ours structurally cannot close
+without another lane.** Its turn card names the actual street — "Turn left onto
+Rue de l'Échiquier" — twice. Ours never names a path anywhere, not on the live
+bar and not in the expanded step list; it's distance-and-icon only ("24 m, then
+right"). This is not a UI bug: `data/walk_graph.json`'s edges (`g.e`: `a b w f
+s`) carry no name field at all, so there is nothing for `js/wayfind.js` to print.
+Whoever owns the sidewalk graph needs to add a name to the edge schema before
+any bar round can close this — it's the literal thing Simeon asked for
+("sidewalks... identified properly and used to the advantage") and the one
+thing the real bar visibly does that ours can't yet.
+
+Ran `harness-drift.mjs` clean before starting. One browser, port 8855 confirmed
+free after, no scratch scripts left in `scripts/verify` (six `_critic-*.mjs`
+fetch/compare helpers were written and deleted in the same session). `WAYFIND.on`
+untouched.
