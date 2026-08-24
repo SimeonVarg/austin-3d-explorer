@@ -2501,3 +2501,55 @@ scripts I wrote into `scripts/verify` before finishing, and reverted the two
 I re-ran it (same camera, same fixture — not a real change, just noise from
 running their own script). Server on 8951 killed, port re-confirmed free by
 `netstat`. No files the builder owns were edited.
+
+## 2026-08-24 — critic round 3 on the privacy piece (`acer/si-privacy`), oursWins=true
+
+Drove `acer/si-privacy` for real on port 8955, own browser, own scripts — not the
+builder's `schedule-privacy.mjs`. Server on 8955, `npm install` run fresh in
+`scripts/verify` (empty `node_modules`), `harness-drift.mjs` PASS first.
+
+Both halves of THE BAR hold under independent testing, and harder than the
+builder's own audit tried: imported a schedule with a distinct canary string
+under `?walk=1&drift=0&intro=0`, routed GDC→PAR to generate real traffic, and
+scanned all 153 captured requests (page + worker fetches) — zero carried any
+schedule content, and the canary string appeared in none of them at any phase.
+Then went further than the builder's negative control, which only fired a
+`fetch`: a raw `XMLHttpRequest.send()` and a `navigator.sendBeacon()` carrying
+the schedule were both thrown/refused by the guard (`XMLHttpRequest carried
+stored schedule content`, `sendBeacon` returned `false`), and neither request
+reached the wire. Delete: a real click on `#wf-priv-del`, then `page.goto` a
+fresh document — no `austin3d.schedule.*` key in local or session storage, no
+reserved IndexedDB database, panel back to "No schedule saved on this device
+yet." With `?walk=1` absent, `window.fetch` is the untouched native function —
+the feature installs nothing on a page that doesn't have it on. Screenshots
+taken and looked at with the Read tool at every stage (loaded city, panel with
+2 classes and the exact source label passed in, empty state after reload) —
+the subject was on screen and the builder's own `shots/si/privacy/3-panel-saved.png`
+and `4-panel-deleted.png` match what an independent run actually produces, not
+just what the doc claims. Also reran `walkmeter.mjs` clean (own process,
+independent of the builder's figures): the stairs-avoidance live-click gate
+still passes and the 11-unroutable-building list is unchanged, so this branch
+does not regress the sibling lane's work.
+
+The one real problem: `docs/si-privacy.md` §7 backs its central factual claim —
+"SSW... demolished September 2024; the school moved to Walter Webb Hall" — with
+four citations to `docs/schedule-gaps.md`, a file that does not exist anywhere
+in this repo's history, on any branch. It doesn't just lack a citation; the
+actual sibling analysis that exists, `docs/si-gaps.md` on `origin/acer/si-gaps`,
+independently measured UT's own surveyed SSW doors at 0.4 m and 2.5 m from a
+building footprint this app already draws (37.4 m from the walk graph, versus
+9.6–10.6 KM for the ten real Pickle buildings) and concludes the opposite: SSW
+is a real, current, main-campus building UT surveys doors for, missing only a
+row in our own register — a one-line fix, not a demolition. `si-privacy`'s
+storage design itself doesn't depend on this (this lane correctly doesn't own
+`OFF_MAP_BUILDINGS` and just stores whatever `unroutableWhy` string it's
+handed), so it doesn't break THE BAR — but it's a fabricated source backing a
+claim that's very likely wrong, sitting in a doc that otherwise says "verified,
+not taken on trust" about numbers I re-checked and found accurate. Fix:
+drop the demolished/moved narrative and the fake citation from §7, or replace
+it with `si-gaps`'s real finding, before another lane trusts this doc as a
+source for the off-map table.
+
+No files the builder owns were edited. Scratch scripts and screenshots stayed
+in the scratchpad, not the repo. Server on 8955 killed by PID after `netstat`
+found it still listening; port re-confirmed free.
