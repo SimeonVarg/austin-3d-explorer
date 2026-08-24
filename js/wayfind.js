@@ -189,6 +189,24 @@
     // Anything unreadable (below 1, negative, NaN, Infinity, a string) fails
     // SAFE to 1, i.e. to round 6, rather than to a guess: stairClimbMult().
     stairClimbCostMult: null,
+    // WHAT AN INVENTED DOOR LINK COSTS, per metre of pavement. A link is the
+    // dashed straight line from a door to the path network: nobody surveyed it,
+    // it may cross a flowerbed, and at 1.0 the router spent them as shortcuts —
+    // 485 m of invented line over twenty pairs, 278 m of it on grass or on
+    // nothing. 4.0 is the knee of the measured curve (docs/walk-sidewalks.md):
+    // 55 % of the off-pavement metres removed for 2.7 % more route. Set to 1 to
+    // restore the old behaviour.
+    //
+    // INTEGRATION (acer/w-integrate): acer/w-sidewalks already read this key
+    // here and fell back to a `const LINK_COST_MULT` buried in a function body
+    // when it was absent — which it always was, so the value was in the body,
+    // against CLAUDE.md rule 11, and INVISIBLE to anything outside this file.
+    // scripts/verify/walkmeter.mjs reimplements this router to check itself and
+    // could not see it, so its self-check drifted on 15 of 19 pairs the moment
+    // the sidewalks lane landed and its "extra metres" number went uncalibrated.
+    // Declaring it is what lets the meter read the real value off the page
+    // instead of hardcoding a copy that can rot.
+    linkCostMult: 4.0,
     signalWaitLowS: 0,     // a green light on arrival
     signalWaitHighS: 45,   // half a cycle on Guadalupe or MLK
     crossingPenaltyM: 8,   // a nudge so the router mildly prefers fewer roads
@@ -7687,27 +7705,6 @@
 
     if (!state.expanded) { fitCard(); drawSpine(); return; }
 
-    // THE ITINERARY IS THE FIRST THING IN THE CARD, because it is the thing the
-    // card is opened for. The disclaimers that used to lead it are the thing
-    // you read once; the list of what the walk does is the thing you read every
-    // time. See §7a-ii for why every row of it is derivable.
-    if (WF_UI.stepsOn && prof) el.card.appendChild(renderSteps(r));
-
-    if (state.viaNote) el.card.appendChild(h('div', 'wf-c', state.viaNote));
-    if (r.via) {
-      const line = h('div', 'wf-c wf-via', SAY.onTheWay(state.viaKind, r.via.name, fmtDist(viaOffset())));
-      el.card.appendChild(line);
-      // Hours ONLY where OpenStreetMap actually carries the string. The baked
-      // `open` flag in places.geojson is a category habit table the bake itself
-      // calls wrong one time in six; it lights a shopfront and it is not an
-      // opening-hours source. Never "open now".
-      if (r.via.hours) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.hours(r.via.hours)));
-    }
-    if (r.m.signals) el.card.appendChild(h('div', 'wf-c', SAY.signals(r.m.signals)));
-    if (Math.max(r.fromLinkM, r.toLinkM) > WAYFIND.lastLegNoteM) {
-      el.card.appendChild(h('div', 'wf-c', SAY.lastLeg));
-    }
-
     // THE CONTROLS COME BEFORE THE SMALL PRINT. The three stop chips were the
     // LAST thing in the card, under two paragraphs of disclaimer, so the two
     // things you can actually do to a route — put a stop on it, take the stairs
@@ -7716,15 +7713,30 @@
     // bar and off the bottom of a phone whenever the card also had a via note
     // and an hours line in it.
     //
-    // INTEGRATION (acer/w-integrate): acer/w-stairs and acer/w-lit added a
-    // stairs section and a lighting section around the avoid-stairs toggle
-    // here, while acer/w-ui MOVED the whole toggle below the chips for the
-    // phone. Both edits are real, and keeping them literally would have built
-    // the toggle twice. w-ui's ordering wins — it is the one that was
-    // photographed failing at 390 x 844 — and the stairs and lighting sections
-    // travel with the toggle to its new home below the chips, in the same
-    // order they had relative to it.
-
+    // INTEGRATION (acer/w-integrate) — AND THE CONTROLS COME BEFORE THE
+    // ITINERARY TOO, which is a change to acer/w-ui's own ordering, made
+    // because a photograph said so rather than because it reads better.
+    //
+    // MEASURED, three ways, on WCH -> MAI at 1280x800 through walkmeter's live
+    // UI gate (a real mouse click at the checkbox's own pixel centre):
+    //   acer/w-door alone            PASS  the box ticks, the route changes
+    //   acer/w-ui alone              FAIL  "the card was destroyed by the click"
+    //   the two merged, w-ui order   FAIL  the box did not tick
+    // acer/w-ui's rebuild puts a step-by-step itinerary of up to WF_UI.stepsMax
+    // events at the top of the card. fitCard() caps the card's height and lets
+    // it scroll, so on a route of any length the chips and the avoid-stairs
+    // toggle land BELOW THE VISIBLE EDGE — the gate's click went through to the
+    // map, and the one control Simeon named by name was unusable again. That is
+    // the exact defect acer/w-door had just fixed and its critic had flagged
+    // twice, reintroduced by a lane that never ran this gate.
+    //
+    // No value of stepsMax fixes it: the card is shorter still on a phone. So
+    // the two CONTROLS move above the itinerary, which is also the maximal
+    // reading of w-ui's own rule at the top of this comment. w-ui's "itinerary
+    // first" was written against the DISCLAIMERS that used to lead the card, and
+    // those are still below it. Nothing is unreachable — the card scrolls — but
+    // a control must be reachable WITHOUT scrolling, and reference material need
+    // not be.
     const chips = h('div', 'wf-chips');
     for (const kind of ['Coffee', 'Food', 'Store']) {
       const c = h('button', 'wf-chip' + (state.viaKind === kind && state.via != null ? ' on' : ''), '+ ' + SAY['chip' + kind]);
@@ -7739,12 +7751,6 @@
       chips.appendChild(x);
     }
     el.card.appendChild(chips);
-
-    // 5b — WHERE THE STAIRS ARE, and the step-free answer with its price. It
-    // goes ABOVE the toggle on purpose: the list is the reason you would reach
-    // for the toggle, and a filter you have to guess the effect of is a filter
-    // nobody ticks. Everything it draws lives in §5b.
-    stairsSection(el.card, r);
 
     // AVOID STAIRS. Named for what it does. Its limits sit next to the toggle,
     // not in an about page, because being wrong here strands a specific person
@@ -7766,6 +7772,36 @@
     // are on stranded islands dijkstra() refuses to enter with the toggle on OR
     // off, so the filter never "avoided" them. routableStairways() is 168.
     if (state.avoid) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.avoidShown(routableStairways(G))));
+
+    // THE ITINERARY, and it is still the first thing in the card that is not a
+    // control, because it is the thing the card is opened for. The disclaimers
+    // that used to lead it are the thing you read once; the list of what the
+    // walk does is the thing you read every time. See §7a-ii for why every row
+    // of it is derivable.
+    if (WF_UI.stepsOn && prof) el.card.appendChild(renderSteps(r));
+
+    if (state.viaNote) el.card.appendChild(h('div', 'wf-c', state.viaNote));
+    if (r.via) {
+      const line = h('div', 'wf-c wf-via', SAY.onTheWay(state.viaKind, r.via.name, fmtDist(viaOffset())));
+      el.card.appendChild(line);
+      // Hours ONLY where OpenStreetMap actually carries the string. The baked
+      // `open` flag in places.geojson is a category habit table the bake itself
+      // calls wrong one time in six; it lights a shopfront and it is not an
+      // opening-hours source. Never "open now".
+      if (r.via.hours) el.card.appendChild(h('div', 'wf-c wf-dim', SAY.hours(r.via.hours)));
+    }
+    if (r.m.signals) el.card.appendChild(h('div', 'wf-c', SAY.signals(r.m.signals)));
+    if (Math.max(r.fromLinkM, r.toLinkM) > WAYFIND.lastLegNoteM) {
+      el.card.appendChild(h('div', 'wf-c', SAY.lastLeg));
+    }
+
+    // 5b — WHERE THE STAIRS ARE, and the step-free answer with its price. It
+    // sits directly under the toggle it explains: the list is the reason you
+    // would reach for the toggle, and a filter you have to guess the effect of
+    // is a filter nobody ticks. Everything it draws lives in §5b. (acer/w-stairs
+    // put it ABOVE the toggle; see the INTEGRATION note at the controls block
+    // for the frame that moved it below.)
+    stairsSection(el.card, r);
 
     litCard(el.card, r);            // §6b — street lighting, and the lit way
 

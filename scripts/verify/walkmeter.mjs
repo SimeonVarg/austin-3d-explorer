@@ -153,7 +153,7 @@ function decode(g) {
   };
 }
 
-const F_STEPS = 1, F_CROSS = 2, F_SIGNAL = 4, F_OFFMAIN = 128;
+const F_STEPS = 1, F_CROSS = 2, F_SIGNAL = 4, F_UP_AB = 8, F_OFFMAIN = 128;
 
 function makeConsts(raw) {
   const c = {
@@ -167,15 +167,59 @@ function makeConsts(raw) {
     SIGNAL_WAIT_HIGH_S: 'signalWaitHighS', CROSSING_PENALTY_M: 'crossingPenaltyM',
     DOOR_LINK_MAX_M: 'doorLinkMaxM' };
   for (const k in map) if (raw.tune && raw.tune[k] != null) c[map[k]] = raw.tune[k];
+  // The two terms that live in js/wayfind.js's own config rather than in the
+  // graph's `tune` block. Filled in from the page by applyPageCost() once the
+  // app has loaded; until then the defaults reproduce the pre-sidewalks,
+  // pre-stairs router, which is what `origin/main` still is.
+  c.linkCostMult = 1;
+  c.stairClimbCostMult = null;
   return c;
 }
 
-function edgeCost(g, WF, i, avoidStairs) {
+/**
+ * Take the live cost model off the page. Called once the app is up, BEFORE any
+ * pair is scored, so the reimplementation and the router are spending the same
+ * currency. If a lane retunes either number this follows it automatically; if a
+ * lane adds a cost term this does not know about, the self-check goes red and
+ * names the drift rather than quietly reporting a wrong "extra metres".
+ */
+function applyPageCost(WF, cost) {
+  if (!cost) return WF;
+  if (cost.linkCostMult != null) WF.linkCostMult = cost.linkCostMult;
+  if (cost.stairUpMult != null) WF.stairUpMult = cost.stairUpMult;
+  WF.stairClimbCostMult = cost.stairClimbCostMult;
+  return WF;
+}
+
+// js/wayfind.js's stairClimbMult(): never below 1, so a bad override can only
+// turn the pass off, never make an edge cheaper than it was before the pass.
+function stairClimbMult(WF) {
+  const v = WF.stairClimbCostMult;
+  const m = Number(v == null ? WF.stairUpMult : v);
+  return isFinite(m) && m > 1 ? m : 1;
+}
+
+// js/wayfind.js's isClimb(): F_UP_AB means "the STORED a->b order of this edge
+// is uphill", so it says nothing until you know which end you are walking from.
+// An edge without the bit is UNTAGGED, not downhill — 109 of 189 mapped flights
+// arrive with nothing said about them — and those cost what they always cost.
+// The `ex.down` list js/wayfind.js also consults is not emitted by the bake yet,
+// so this reimplementation matches it exactly while that stays true; if the bake
+// starts emitting it, the drift check goes red here, which is correct.
+function isClimb(g, i, from) {
+  if (from == null) return false;
+  if (!(g.F[i] & F_STEPS)) return false;
+  if (!(g.F[i] & F_UP_AB)) return false;
+  return from === g.A[i];
+}
+
+function edgeCost(g, WF, i, avoidStairs, from) {
   const m = g.W[i] / 100;
   if (g.F[i] & F_STEPS) {
     if (avoidStairs) return Infinity;
     const n = g.swEdges.get(g.S[i]) || 1;
-    return m * (WF.speedLow / WF.stairSpeed) + (WF.stairFixedS * WF.speedLow) / n;
+    const base = m * (WF.speedLow / WF.stairSpeed) + (WF.stairFixedS * WF.speedLow) / n;
+    return isClimb(g, i, from) ? base * stairClimbMult(WF) : base;
   }
   let c = m;
   if (g.F[i] & F_CROSS) c += WF.crossingPenaltyM;
@@ -191,7 +235,7 @@ function dijkstra(g, WF, seeds, targets, avoidStairs) {
   const tmap = new Map();
   for (const t of targets) {
     const p = tmap.get(t.node);
-    if (!p || t.c < p.c) tmap.set(t.node, t);
+    if (!p || linkCost(t) < linkCost(p)) tmap.set(t.node, t);
   }
   const hn = [], hd = [];
   const push = (n, d) => {
@@ -225,7 +269,8 @@ function dijkstra(g, WF, seeds, targets, avoidStairs) {
   };
   for (let k = 0; k < seeds.length; k++) {
     const s = seeds[k];
-    if (s.c < dist[s.node]) { dist[s.node] = s.c; seedOf[s.node] = k; push(s.node, s.c); }
+    const sc = linkCost(s);
+    if (sc < dist[s.node]) { dist[s.node] = sc; seedOf[s.node] = k; push(s.node, sc); }
   }
   let best = null;
   let left = tmap.size;
@@ -235,7 +280,7 @@ function dijkstra(g, WF, seeds, targets, avoidStairs) {
     if (best && d > best.cost) break;
     if (tmap.has(u)) {
       const t = tmap.get(u);
-      const tot = d + t.c;
+      const tot = d + linkCost(t);
       if (!best || tot < best.cost) best = { cost: tot, node: u, target: t };
       tmap.delete(u);
       left--;
@@ -244,7 +289,9 @@ function dijkstra(g, WF, seeds, targets, avoidStairs) {
     for (let k = g.off[u]; k < g.off[u + 1]; k++) {
       const e = g.eix[k];
       if (g.F[e] & F_OFFMAIN) continue;
-      const c = edgeCost(g, WF, e, avoidStairs);
+      // `u` is the node we are walking FROM, which is the only thing that turns
+      // the stored a->b incline bit into "this traversal is a climb".
+      const c = edgeCost(g, WF, e, avoidStairs, u);
       if (!isFinite(c)) continue;
       const v = g.to[k];
       const nd = d + c;
@@ -278,17 +325,30 @@ function measure(g, leg) {
  * the page. Without it the self-check would have to be skipped for exactly the
  * doors the door round added.
  */
-function anchors(g, doors, role, extra) {
+function anchors(g, doors, role, extra, WF) {
   const out = [];
+  // `c` is the TRUTH — metres you walk, printed and drawn. `pc` is what the
+  // router pays for making an unsurveyed claim of that length. js/wayfind.js
+  // keeps exactly this split, and the reason the two must not be collapsed is
+  // that every reported distance is in `c` while every routing DECISION is made
+  // on `pc`: charging the reported number would change the answer, and routing
+  // on the true metres is what let the router take a 27.6 m link across a lawn
+  // when a 2.3 m one existed.
+  const mult = WF && WF.linkCostMult != null ? WF.linkCostMult : 1;
   for (const di of doors) {
     let nodes = null, costsM = null;
     if (g.doors[di]) { nodes = g.doors[di][2]; costsM = (g.doors[di][3] || []).map(c => c / 100); }
     else if (extra && extra[di]) { nodes = extra[di].nodes; costsM = extra[di].costM; }
     if (!nodes || !nodes.length) continue;
-    for (let k = 0; k < nodes.length; k++) out.push({ node: nodes[k], c: costsM[k], door: di, role });
+    for (let k = 0; k < nodes.length; k++) {
+      out.push({ node: nodes[k], c: costsM[k], pc: costsM[k] * mult, door: di, role });
+    }
   }
   return out;
 }
+
+// js/wayfind.js's linkCost(): anchors without a `.pc` cost their plain metres.
+function linkCost(a) { return a.pc != null ? a.pc : a.c; }
 
 // js/wayfind.js's doorSet(): role:main wins where a building has one.
 function doorSetFor(g, code) {
@@ -298,8 +358,8 @@ function doorSetFor(g, code) {
 }
 
 function routeBetween(g, WF, fromDoors, toDoors, avoidStairs, extra) {
-  const seeds = anchors(g, fromDoors, 'from', extra);
-  const targets = anchors(g, toDoors, 'to', extra);
+  const seeds = anchors(g, fromDoors, 'from', extra, WF);
+  const targets = anchors(g, toDoors, 'to', extra, WF);
   if (!seeds.length || !targets.length) return null;
   const r = dijkstra(g, WF, seeds, targets, avoidStairs);
   if (!r) return null;
@@ -369,8 +429,24 @@ async function pass(label, flags) {
         utVirtualSnapM: window.WAYFIND.utVirtualSnapM, sideDoorPenaltyM: window.WAYFIND.sideDoorPenaltyM,
         utVirtualStepFree: window.WAYFIND.utVirtualStepFree,
       } : null,
+      // THE COST MODEL, READ OFF THE PAGE RATHER THAN COPIED INTO THIS FILE.
+      // The reimplementation below has to spend what js/wayfind.js spends or the
+      // self-check is measuring the difference between two routers instead of
+      // guarding one. Both of these arrived after this script was written and
+      // both silently broke it: acer/w-sidewalks charges an invented door link
+      // `linkCostMult` per metre, and acer/w-stairs bills a KNOWN climb at
+      // `stairClimbCostMult` (falling back to `stairUpMult`). Reading them means
+      // a later lane that retunes either number does not have to remember to
+      // come and edit this file — and if a lane adds a THIRD term, the drift
+      // check goes red and says so, which is the whole point of it.
+      cost: window.WAYFIND ? {
+        linkCostMult: window.WAYFIND.linkCostMult,
+        stairClimbCostMult: window.WAYFIND.stairClimbCostMult,
+        stairUpMult: window.WAYFIND.stairUpMult,
+      } : null,
     };
   }, flags);
+  applyPageCost(WF, cap.cost);
 
   const rows = [];
   let selfCheckFail = 0, pairErrors = 0, correctedMissing = 0;
