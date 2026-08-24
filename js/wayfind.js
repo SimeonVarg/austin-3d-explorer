@@ -277,20 +277,45 @@
                            // Route to UT's coordinate anyway, snapped to the
                            // walked network. Set false to route only to doors
                            // that exist in data/entrances.geojson.
-    utVirtualSnapM: 58,    // and only if there is a mapped path that close to
+    utVirtualSnapM: 75,    // and only if there is a mapped path that close to
                            // it — past that we would be inventing the walk as
                            // well as the door. This is long for a dashed last
                            // stretch and it is the honest length of one: the
                            // Music Recital Hall's entrance really is 37 m from
                            // the nearest footway anybody has mapped, and Jesse
-                           // H. Jones Hall's is 57 m, at the far end of an open
-                           // courtyard between its two wings. 58 is that 57
-                           // plus a metre, and it was raised from 45 only after
-                           // standing at the snap node and looking up the
-                           // courtyard — shots/walk/door/jon-courtyard-eye.jpg.
-                           // The alternative for Jones Hall was a route 129 m
+                           // H. Jones Hall's is at the far end of an open
+                           // courtyard between its two wings — it was raised
+                           // from 45 only after standing at the snap node and
+                           // looking up the courtyard,
+                           // shots/walk/door/jon-courtyard-eye.jpg. The
+                           // alternative for Jones Hall was a route 129 m
                            // LONGER that stopped 62 m short of the door and
                            // left those 62 m uncounted.
+                           //
+                           // IT WAS 58 UNTIL 2026-08-24, AND 58 WAS JONES HALL'S
+                           // OWN 57 PLUS A METRE. That is a constant fitted to
+                           // the last digit of one building's coordinate, and it
+                           // broke the moment the coordinate moved: reading UT's
+                           // point geometry instead of its Longitude/Latitude
+                           // columns shifted Jones Hall's door 2 m, the snap it
+                           // needs went 57.x -> 58.8, and the building silently
+                           // stopped being routable — 0 m from UT's door became
+                           // 59.9 m, with nothing failing to say so.
+                           //
+                           // MEASURED, cap lifted to 400 m, all 39 invented
+                           // doors: 38 of them need 41.6 m or less, and Jones
+                           // Hall needs 58.8 m. NOTHING lies between. So this
+                           // number decides exactly one building and every cap
+                           // from 58.8 m upward admits the identical set — its
+                           // value above that is unobservable in today's data
+                           // and matters only for the next data refresh. 75 is
+                           // therefore set for HEADROOM, not for fit: 16.2 m
+                           // above the real maximum, which is more than the
+                           // 15.2 m by which UT's own two coordinate fields
+                           // disagree on the worst building in play, so a
+                           // future source swap of this kind cannot strand a
+                           // building again. Lower it below 58.8 only if you
+                           // mean to drop Jones Hall on purpose.
     utVirtualStepFree: true, // and with "avoid stairs" on, that snap must land
                            // in the step-free component of the network, not
                            // merely on a walkable node. Without this the Main
@@ -962,114 +987,126 @@
   // ══════════════════════════════════════════════════════════════════════════
 
   // UT Austin celebrated entrances, © The University of Texas at Austin,
-  // fetched 2026-08-23 from the public, unauthenticated layer
+  // re-pulled 2026-08-24 from the public, unauthenticated layer
   //   services9.arcgis.com/w9x0fkENXvuWZY26/arcgis/rest/services/
   //   Celebrated_Entrances_view/FeatureServer/0/query?where=1=1&outFields=*
   // — the same data the campus map itself draws. 97 doors on 67 buildings.
   //
   //   CODE  latitude  longitude  side  barrier-free  auto-opener
   //
+  // THE COORDINATE IS THE ROW'S POINT GEOMETRY, NOT ITS Longitude/Latitude
+  // COLUMNS, and the difference is not cosmetic: every row carries both, they
+  // are a median 2.7 m apart, 15 buildings are 10 m+ apart and MBB is 39 m
+  // apart. Rounds 1-6 of this lane read the columns and were therefore scoring
+  // themselves against a point maps.utexas.edu does not draw. An ArcGIS feature
+  // layer renders `geometry`; the columns are drawn by nothing, and 29 of the
+  // 98 rows have no columns at all yet still appear on the map. The full
+  // measurement, including why this is a correctness fix and NOT a claim that
+  // the geometry is the better survey, is in scripts/bake_entrances.py above
+  // UT_COORD_SOURCE — which is also the one-line switch back.
+  //
   // It is a literal table on purpose: a wrong coordinate is a one-line edit,
   // and a table in the file cannot go stale against a fetch that fails at boot.
-  // Re-pull it with `python scripts/bake_entrances.py --refresh-ut`.
+  // Re-pull it with `python scripts/bake_entrances.py --refresh-ut`, which
+  // prints the disagreement between the two fields alongside the table.
   const UT_CELEBRATED = [
-    'ASE 30.291228 -97.737604 W Y Y',
+    'ASE 30.291253 -97.737547 W Y Y',
     'BAT 30.284753 -97.739088 SW Y Y',
-    'BAT 30.284796 -97.738677 E Y Y',
+    'BAT 30.284797 -97.738693 E Y Y',
     'BAT 30.284889 -97.738916 N N N',
     'BE1 30.391820 -97.726989 N Y Y',
     'BEG 30.391018 -97.725348 N Y Y',
-    'BEN 30.283956 -97.738771 E Y Y',
-    'BIO 30.287254 -97.740083 W Y Y',
-    'BME 30.289431 -97.738752 NW Y Y',
-    'BRB 30.285259 -97.737006 W Y Y',
-    'BUR 30.288627 -97.738492 S Y Y',
+    'BEN 30.283959 -97.738779 E Y Y',
+    'BIO 30.287254 -97.740064 W Y Y',
+    'BME 30.289405 -97.738721 NW Y Y',
+    'BRB 30.285261 -97.736991 W Y Y',
+    'BUR 30.288629 -97.738532 S Y Y',
     'BWY 30.290797 -97.738079 E Y N',
     'CAL 30.284460 -97.740360 S Y Y',
-    'CCJ 30.287988 -97.730652 W Y Y',
-    'CCJ 30.288093 -97.730635 NW N N',
+    'CCJ 30.288101 -97.730595 W Y Y',
+    'CCJ 30.288205 -97.730582 NW N N',
     'CMA 30.289220 -97.740757 S Y Y',
-    'CMB 30.289279 -97.741010 E Y Y',
-    'CPE 30.289992 -97.736153 S Y N',
-    'DMC 30.290092 -97.740528 S Y Y',
-    'ECJ 30.288962 -97.735494 W Y Y',
-    'ECJ 30.289045 -97.735751 W N N',
-    'EER 30.288143 -97.735633 W Y Y',
+    'CMB 30.289316 -97.741017 E Y Y',
+    'CPE 30.290032 -97.736140 S Y N',
+    'DMC 30.290125 -97.740480 S Y Y',
+    'ECJ 30.288962 -97.735493 W Y Y',
+    'ECJ 30.289034 -97.735890 W N N',
+    'EER 30.288310 -97.735657 W Y Y',
     'EME 30.389588 -97.727334 E Y Y',
     'EPS 30.285686 -97.736684 S N N',
-    'EPS 30.285801 -97.736945 W Y Y',
-    'ETC 30.289903 -97.735587 W Y Y',
-    'FAC 30.286257 -97.740100 SE Y Y',
+    'EPS 30.285800 -97.736936 W Y Y',
+    'ETC 30.289814 -97.735485 W Y Y',
+    'FAC 30.286071 -97.740009 SE Y Y',
     'FAC 30.286422 -97.740629 NW Y Y',
     'FAC 30.286556 -97.739980 NE Y N',
-    'FNT 30.287855 -97.737753 E Y Y',
+    'FNT 30.287846 -97.737779 E Y Y',
     'FS1 30.386885 -97.731999 E Y N',
     'FSL 30.387375 -97.731553 W N N',
-    'GAR 30.285060 -97.738772 W Y Y',
-    'GAR 30.285101 -97.738540 S Y Y',
-    'GDC 30.285996 -97.736679 S Y Y',
-    'GEA 30.287668 -97.738956 E Y Y',
-    'GEA 30.287691 -97.739222 S N N',
+    'GAR 30.285109 -97.738549 S Y Y',
+    'GAR 30.285182 -97.738702 W Y Y',
+    'GDC 30.285991 -97.736639 S Y Y',
+    'GEA 30.287729 -97.739216 S N N',
+    'GEA 30.287782 -97.738929 E Y Y',
     'GOL 30.285294 -97.741409 SW Y Y',
-    'GOL 30.285697 -97.741276 NW Y N',
-    'GWB 30.287863 -97.740069 W Y Y',
+    'GOL 30.285689 -97.741284 NW Y N',
+    'GWB 30.287829 -97.740064 W Y Y',
     'HLB 30.275597 -97.733208 N Y Y',
-    'HRH 30.284081 -97.740424 SW Y Y',
+    'HRH 30.284097 -97.740421 SW Y Y',
     'HSM 30.288992 -97.740945 W Y N',
-    'JES 30.283089 -97.737014 NW Y Y',
-    'JGB 30.285757 -97.735853 SW Y Y',
-    'JHH 30.278357 -97.731978 E Y Y',
-    'JHH 30.278383 -97.732079 W Y Y',
-    'JON 30.288508 -97.731335 S Y Y',
-    'MAI 30.286186 -97.739719 W Y Y',
-    'MBB 30.288590 -97.737132 SW Y Y',
+    'JES 30.283087 -97.737032 NW Y Y',
+    'JGB 30.285622 -97.735839 SW Y Y',
+    'JHH 30.278341 -97.731966 E Y Y',
+    'JHH 30.278370 -97.732079 W Y Y',
+    'JON 30.288525 -97.731347 S Y Y',
+    'MAI 30.286023 -97.739757 W Y Y',
+    'MBB 30.288237 -97.737147 SW Y Y',
     'MER 30.385289 -97.728277 SE Y N',
     'MER 30.385775 -97.727978 E Y Y',
     'MER 30.386410 -97.727796 NE Y N',
-    'MEZ 30.284308 -97.739144 SW Y Y',
-    'MEZ 30.284377 -97.738739 E Y Y',
+    'MEZ 30.284323 -97.739133 SW Y Y',
+    'MEZ 30.284376 -97.738725 E Y Y',
     'MRH 30.287193 -97.730867 S Y N',
     'NHB 30.287474 -97.737253 E Y Y',
     'NHB 30.287493 -97.737785 SE N N',
     'NHB 30.287530 -97.738271 SW N Y',
-    'NHB 30.287738 -97.737621 NE Y N',
+    'NHB 30.287733 -97.737757 NE Y N',
     'PAI 30.286928 -97.738670 SW Y Y',
-    'PAI 30.287011 -97.738471 E Y Y',
-    'PAR 30.284880 -97.739860 E N N',
-    'PAR 30.285003 -97.740252 W Y Y',
-    'PAT 30.288170 -97.736524 N Y Y',
+    'PAI 30.286948 -97.738468 E Y Y',
+    'PAR 30.284894 -97.739866 E N N',
+    'PAR 30.284934 -97.740339 W Y Y',
+    'PAT 30.288162 -97.736508 N Y Y',
     'PCL 30.282994 -97.737865 N Y Y',
-    'PHR 30.288104 -97.738815 W Y Y',
-    'PHR 30.288355 -97.738917 N Y Y',
+    'PHR 30.288100 -97.738786 W Y Y',
+    'PHR 30.288351 -97.738902 N Y Y',
     'PMA 30.288903 -97.736342 S Y Y',
     'PMA 30.288912 -97.736006 NE Y Y',
     'PX3 30.387322 -97.729725 E Y N',
     'RLP 30.284868 -97.735765 W Y N',
-    'RLP 30.285002 -97.734889 NE Y Y',
-    'RLP 30.285229 -97.735365 N Y Y',
+    'RLP 30.285000 -97.734882 NE Y Y',
+    'RLP 30.285186 -97.735451 N Y Y',
     'ROC 30.390533 -97.725667 W Y Y',
     'SEA 30.289739 -97.737745 SW Y Y',
-    'SSW 30.280372 -97.732967 SW Y Y',
-    'SSW 30.280701 -97.732878 NW N N',
-    'SUT 30.285065 -97.740788 N Y Y',
+    'SSW 30.280477 -97.732959 SW Y Y',
+    'SSW 30.280797 -97.732860 NW N N',
+    'SUT 30.285052 -97.740815 N Y Y',
     'SV1 30.382449 -97.725727 W Y N',
+    'SZB 30.281923 -97.738584 E Y Y',
     'SZB 30.281936 -97.738864 NW Y Y',
-    'SZB 30.281952 -97.738621 E Y Y',
     'TCB 30.387216 -97.727045 W Y Y',
-    'UA9 30.290245 -97.738825 SW Y Y',
-    'UTA 30.279248 -97.742630 E Y Y',
+    'UA9 30.290197 -97.738854 SW Y Y',
+    'UTA 30.279248 -97.742629 E Y Y',
     'UTA 30.279461 -97.743022 W Y Y',
     'UTC 30.283339 -97.738594 NE Y N',
     'WAG 30.285273 -97.737505 NE Y Y',
+    'WCH 30.286112 -97.738639 W Y Y',
     'WCH 30.286121 -97.738138 NE N Y',
-    'WCH 30.286130 -97.738658 W Y Y',
     'WEL 30.286522 -97.737405 E Y Y',
     'WEL 30.286690 -97.738026 NW Y Y',
     'WEL 30.286888 -97.737452 NE Y N',
-    'WIN 30.285631 -97.734505 S Y Y',
+    'WIN 30.285663 -97.734532 S Y Y',
     'WMB 30.285617 -97.740594 N Y Y',
     'WWH 30.289196 -97.741842 S N N',
-    'WWH 30.289318 -97.741895 W Y Y',
+    'WWH 30.289354 -97.741895 W Y Y',
   ];
   let utByCode = null;
   /** The table, parsed. NOT gated on anything — see wayfindUTDoors below. */

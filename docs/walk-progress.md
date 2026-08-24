@@ -432,3 +432,46 @@ design in `docs/walk-door.md` round 6 §6 — still open, not this round's find.
 
 Server on 8851 killed and port confirmed free. Touched only this file
 (`docs/walk-progress.md`) — no file `acer/w-door` owns.
+
+## 2026-08-24 — door round 7: the critic was right about the coordinate, and fixing it was worth 64 metres
+
+The critic's find held up under a fresh check from scratch. UT's entrance layer
+gives every door two positions — a pair of ordinary columns and the point the
+map actually draws — and they are a median 2.7 m apart, fifteen buildings are
+more than 10 m apart, and one is 39 m apart. Rounds 1 to 6 read the columns. The
+map draws the other one, and two of the buildings that disagree are ends of the
+headline pairs, so the lane had been marking its own homework against a point
+maps.utexas.edu does not show. Switched to the drawn point: the extra walking the
+door choice costs you across the twenty pairs fell from 142 m to **78 m**, the
+credit it earns went from 354 m to **405 m**, and — the line that matters most,
+because it cannot be moved by rewriting the table — the independent oracle whose
+doors were matched by hand offline went from 434 m to **349 m** and from 15 to
+**19** of its thirty ends landing on the right door. Still 38 of 38 pair-ends at
+UT's own door, still 56 of 56 buildings inside 15 m, avoid-stairs still clean on
+all nine buildings, the checkbox still passes a real mouse click each way, ruler
+drift still 0.00 m.
+
+What it did not do is make the doors better, and this round says so out loud
+rather than banking a win it did not earn. Both coordinate fields were scored
+against a referee neither of them controls — how far each sits from the wall of
+its own building — and it is a dead heat: geometry nearer on 18 rows, the columns
+nearer on 23, a tie on 25, 2.37 m against 2.58 m on average. There are pictures
+of that in `docs/walk-door.md`: standing at each of the Main Building's two
+candidate coordinates at eye level, the old one puts you square in front of the
+monumental west entrance and the new one 18 m south on the plaza. We use the
+published point because it is the published one, not because it is the better
+door.
+
+The interesting damage was elsewhere. Moving Jones Hall's door by **two metres**
+knocked the building out of the app entirely — 0 m from UT's door became 59.9 m,
+and nothing failed to say so. The cap that decides whether a door far from any
+mapped path is still routable had been set to 58 because Jones Hall's own gap was
+57, "plus a metre". A constant fitted to the last digit of one building's
+coordinate. Rather than re-fit it, the whole distribution was measured with the
+cap lifted: 38 of the 39 invented doors need 41.6 m or less, Jones Hall needs
+58.8 m, and nothing at all lies in between. So this number decides exactly one
+building and every value above 58.8 admits the same set. It now reads 75 — chosen
+for headroom, not fit, with more slack than the worst disagreement between UT's
+own two fields, so the next data refresh cannot silently strand a building the
+way this one did. Jones Hall is back at 0 m. `WAYFIND.on` still false. Branch
+`acer/w-door`.

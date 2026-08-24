@@ -1539,3 +1539,183 @@ one page load per setting (`virtualDoor()` memoises its refusals). Re-run:
 python scripts/serve.py 8811
 cd scripts/verify && VERIFY_URL=http://127.0.0.1:8811 node walkmeter.mjs --baseline
 ```
+
+---
+
+# Round 7, 2026-08-24 — we were scoring ourselves against a point the campus map does not draw
+
+A critic reading round 6 found something none of the six rounds before it had:
+`Celebrated_Entrances_view` carries the entrance position **twice** per row, and
+rounds 1-6 read the wrong copy. This round changes the source, measures what it
+did, and fixes the one thing it broke.
+
+| | round 6 | **round 7** |
+|---|---|---|
+| extra metres over the twenty pairs (metric A) | 142.1 m | **78.5 m** |
+| signed total, credit for the pairs it shortens | −354.3 m | **−404.6 m** |
+| door-offset extra, both ends (metric B) | 83.7 m | **81.4 m** |
+| ends at the door UT publishes | 38 / 38 | **38 / 38** |
+| on the pair-file oracle alone | 434.2 m | **349.0 m** |
+| ends at the right door, pair-file oracle | 15 / 30 | **19 / 30** |
+| mean worst-case door error, all 56 buildings | 2.5 m | **2.3 m** |
+| every candidate door within 15 m of UT's | 56 / 56 | **56 / 56** |
+| "Avoid stairs" clean at the door | 9 / 9 | **9 / 9** |
+| live UI gate, a real mouse on the real checkbox | PASS | **PASS** |
+| walkmeter self-check drift | 0.00 m | **0.00 m** |
+
+The pair-file line is the one worth reading. That oracle is the set of door
+INDICES cited offline in `walk-pairs.json`, matched to UT rows by hand — it is
+*not* the table this round rewrote, so it cannot be moved by rewriting the
+table. It improved from 434.2 m to 349.0 m and from 15 to 19 ends on the right
+door. The change is real, not a redefinition of the ruler.
+
+## 1. The two coordinates
+
+Every row of the layer has a `Longitude`/`Latitude` **attribute pair** and its
+own point **geometry**. They disagree:
+
+```
+69 rows carry both     median 2.7 m apart     15 rows 10 m+     max 39.4 m (MBB)
+29 rows have NO attribute pair at all — geometry only
+```
+
+The worst: MBB 39.4, FAC 22.4, EER 18.7, MAI 18.5, GAR 15.2, JGB 15.2, ETC 14.0,
+CCJ 13.7, ECJ 13.4, NHB 13.2, GEA 12.9, PAR 11.5. **EER and MAI are both ends of
+headline pairs** — EER→NHB is the baseline document's worst offender and WCH→MAI
+is walkmeter's own UI-gate pair — so this was not a rounding argument about
+buildings nobody routes to.
+
+**The geometry is what the map draws, and that settles it.** An ArcGIS feature
+layer renders `geometry`; `Longitude`/`Latitude` are ordinary columns and are
+drawn by nothing. The proof is in the layer itself: 29 rows have no attribute
+pair whatsoever and still appear on maps.utexas.edu. One of the three things
+this lane is judged on is agreement with the door maps.utexas.edu presents, so
+the ground truth has to be the drawn point.
+
+## 2. What this round refuses to claim
+
+**It is not a better survey, and round 6's numbers were not wrong because the
+coordinates were bad.** Both fields were scored against a referee neither
+controls — signed distance to the exterior wall of the footprint carrying that
+building's own code, signed so a pin dropped inside a lobby is told apart from
+one dropped in a car park. Over the 66 rows with both a pair and a joined
+footprint:
+
+```
+geometry nearer a wall 18    attribute nearer 23    tie (<0.5 m) 25
+mean |distance to wall|      geometry 2.37 m        attribute 2.58 m
+outside / inside the wall    geometry 24 / 58       attribute 26 / 40
+```
+
+A dead heat. UT's own `Directional` column was tried as a second referee and is
+too blunt to break it: on a long or L-shaped building the bearing from the
+centroid is 45°+ off for a perfectly good door — PCL, UTA and PMA all read 45°+
+with **both fields at the same point**, so the error is the referee's — and it
+disagrees with the wall referee as often as it agrees, 9 to 7.
+
+`shots/walk/door/r7-mai-west-attr-eye.jpg` and `r7-mai-west-geom-eye.jpg` are
+the honest picture of that, both at 1.7 m eye height, 18 m standoff, bearing 90°,
+the only difference between them being which coordinate you stand at. The old
+attribute point puts you square in front of the Main Building's monumental west
+entrance. The published point puts you 18 m south on the plaza, with that
+entrance at the left edge of frame and a smaller ramped door on the right. UT's
+own field note for that row reads *"Access point is off the lane between MAI and
+FAC"*, and the row is flagged barrier-free with auto doors — which the monumental
+stair is not. Neither picture is obviously wrong. **We use the published one
+because it is published**, not because it is nearer a door.
+
+## 3. The one thing this broke, and why it was waiting to break
+
+Switching source moved Jones Hall's door **2 metres** and the building fell out
+of the app: 0 m from UT's door became 59.9 m, and `walkmeter` went from
+`buildings still outside 15 m: none` to `JON 59.9 m`.
+
+`utVirtualSnapM` was **58**, and round 2's own comment says why: *"Jesse H. Jones
+Hall's is 57 m … 58 is that 57 plus a metre."* A constant fitted to the last
+digit of one building's coordinate. Move the coordinate 2 m and the fit is gone,
+silently — nothing failed, the building simply stopped being routable.
+
+So before re-fitting it, the distribution was measured with the cap lifted to
+400 m, over all 39 doors the router invents:
+
+```
+38 of 39 need 41.6 m or less        Jones Hall needs 58.8 m
+NOTHING lies in between — a 17.1 m gap
+every cap from 58.8 m upward admits the identical set
+```
+
+This constant decides exactly one building, and its value above 58.8 m is
+unobservable in today's data. It now reads **75** — set for headroom, not fit:
+16.2 m above the real maximum, which is more than the 15.2 m by which UT's own
+two coordinate fields disagree on the worst building in play, so a source swap
+of this kind cannot strand a building again. Jones Hall is back at 0 m and
+`buildings still outside 15 m: none` is restored.
+
+Jones Hall stays routable on the evidence round 2 already gathered rather than
+on a number: `shots/walk/door/jon-courtyard-eye.jpg` is the view from the snap
+node, and the walking ribbon runs straight up the open courtyard between the two
+wings to the door. That is a real approach, not an invented one.
+
+## 4. The pictures
+
+* `r7-before-eer-nhb.jpg` / `r7-after-eer-nhb.jpg` — same pose, magenta = the
+  door UT publishes, cyan = the door the router picked. EER→NHB, 290 m → 270 m,
+  and the route-length extra on that pair went 18.7 m → 0.0 m. Both ends now sit
+  on UT's own point.
+* `r7-mai-west-attr-eye.jpg` / `r7-mai-west-geom-eye.jpg` — §2 above.
+* `r7-stairs-on.jpg` — the "Avoid stairs" checkbox ticked on camera, after one
+  real mouse click at its real pixel centre: *"3-5 min walk · 270 m · No stairs
+  on this route"*, *"Avoids 189 mapped staircases."*
+
+## 5. The honest costs
+
+* **Worst single pair went 10.9 m → 13.1 m** (JGB→GDC), and that pair's route
+  got 19 m longer, 87 m → 106 m. Both ends of it now resolve to our own OSM
+  doors rather than UT's. It is the only pair that moved backwards.
+* **`WCH→MAI` with "Avoid stairs" now costs metres instead of saving them** —
+  230 m → 270 m, where before it was 250 m → 160 m. Both are correct: the old
+  attribute point sat 0.1 m *inside* the Main Building on the monumental stair,
+  so avoiding stairs threw the route somewhere else entirely.
+* **JON's published door is 15.9 m outside its own footprint in BOTH fields.**
+  Not caused by this round and not fixed by it — the only row of 82 that is
+  genuinely off its building rather than deep inside it.
+* Six other rows are more than 6 m from their coded wall (ECJ, WEL ×2, ETC, WWH,
+  UTC) and every one of them is *inside* the footprint — a lobby pin on a large
+  building, not a misplaced door. `UT_AUDIT_WALL_M` reports them; nothing is
+  dropped on it.
+
+## 6. Round 7 files
+
+`scripts/bake_entrances.py` — `refresh_ut()` now prefers the row geometry, with
+`UT_COORD_SOURCE` as the one-line switch back to the old behaviour and
+`UT_AUDIT_WALL_M` as the data-quality report; it also prints the per-row
+disagreement between the two fields alongside the table, because the
+disagreement is invisible in the finished table and cost this lane six rounds.
+
+`js/wayfind.js` — entrance-choice only: the `UT_CELEBRATED` table regenerated
+from the geometry (54 of 97 rows moved), its header comment, and
+`utVirtualSnapM` 58 → 75. `data/entrances.geojson` read, not edited.
+`WAYFIND.on` still `false`.
+
+Both copies of `UT_CELEBRATED` — the one in `scripts/bake_entrances.py` and the
+one in `js/wayfind.js` — are asserted byte-identical after the paste, 97 rows on
+67 buildings, every row inside the Austin bbox. A paste that lands in only one
+of them is the failure mode that check exists to catch.
+
+## Round 7 sources
+
+UT Austin `Celebrated_Entrances_view`, © The University of Texas at Austin,
+re-pulled 2026-08-24 from the public, unauthenticated layer — 98 features, both
+coordinate fields read from the same response. Footprints from
+`data/snapshots/2026-08-16/buildings.detailed.geojson` via the bake's own
+`load_buildings()` / `join_refs()`, so the polygons are the ones the router sees
+(164 footprints carrying a code). All measurements on
+`python scripts/serve.py 8811`, headless Chrome via `scripts/verify/chrome.mjs`,
+`?drift=0`, `cancelGraphicsAutoDetect()` called, veil waited out, one browser.
+`harness-drift`: 31 scripts both sides, PASS. Re-run:
+
+```
+python scripts/serve.py 8811
+cd scripts/verify && VERIFY_URL=http://127.0.0.1:8811 node walkmeter.mjs --baseline
+python scripts/bake_entrances.py --refresh-ut     # prints the table AND the disagreement
+```
