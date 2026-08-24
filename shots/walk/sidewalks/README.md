@@ -136,6 +136,52 @@ than in `scripts/verify/` because that directory is not this lane's to write, an
 round 2 already lost a set of measuring scripts to a session scratchpad; its
 header says how to run it.
 
+## `kerb-greaf2-` — the ribbon BESIDE A STREET (round 5, 2026-08-24)
+
+Robert Dedman Drive at the east edge of campus, on the `GRE → AF2` route, at the
+midpoint of that route's **longest contiguous run of ribbon standing on asphalt**
+(194 m) measured offline against the `-before` file — so the pose is the router's
+choice, not ours. See `docs/walk-sidewalks.md` §24–§25.
+
+`-before` is this branch as round 4 left it; `-after` is the same bake with
+`SIDEWALK_KEEP_HALF_M`. **Both halves come out of ONE page load** — see the
+warning below.
+
+| frame | what it is |
+|---|---|
+| `kerb-greaf2-nadir-before` / `-after` | **the pair to look at.** In *before* the walking ribbon lies directly on the carriageway between the lane markings with nothing under it. In *after* it runs inside a paved band along the kerb, with the kerb stroke on its outer edge. |
+| `kerb-greaf2-eye-before` / `-after` | the same change from walking height — the only angle that can see whether the ribbon is ON anything. |
+| `kerb-greaf2-eye-float` | the height control: identical camera, `WAYFIND.routeBaseM` raised to 0.95 m. Moves 2,185 px, so the pose is not blind to height. |
+
+```
+kerb-greaf2-eye     ground change 34,568 px (3.38 %)   noise floor 0 px
+kerb-greaf2-nadir   ground change 24,800 px (2.42 %)   noise floor 0 px
+```
+
+`kerb-mezcal-*` (Inner Campus Drive, the case §5 predicted) were taken to the
+same recipe and are deliberately NOT committed — their numbers are in §25 and
+CLAUDE.md rule 12 says a frame no doc points at is a multiplier.
+`kerbswap.mjs` in this directory regenerates every one of them; `kerbshot.mjs`
+is the earlier two-process version, kept because it is what produced the
+measurement in the warning below.
+
+### METHOD WARNING #2: a before/after pair needs ONE browser, not two
+
+**The `-before`/`-after` sections above were shot as two runs with the file
+swapped on disk, and §14 reported a 0-pixel noise floor for that. Round 5 could
+not reproduce it.** Three separate launches at the identical camera, with
+`?p=0.30` pinning the opening hour, differ from each other by **12–22 % of the
+frame** — enough to swamp a real change. The first attempt at this round's
+frames was thrown away for it.
+
+`austin-ground` is a plain geojson source, so swap the DATA instead of the
+process: `getSource('austin-ground').setData(…)` repaints the whole ground band
+without touching the camera, the light, the tiles or the route.
+`kerbswap.mjs` does that inside one page load and **measures the floor rather
+than assuming it**, by re-setting the same data first. It came back 0 px on all
+four frames. Nothing already published here is wrong — round 3's pairs were each
+shot in one run — but do not shoot the next pair across two processes.
+
 ### METHOD WARNING for anyone taking the next frame here
 
 The `-x1`/`-x4` and `aprons-`/`malls-` sections above prove "the subject is on

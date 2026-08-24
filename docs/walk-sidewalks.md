@@ -1289,3 +1289,377 @@ The §16 list stands, and round 4 adds the biggest item on it.
   door-placement question in the bake, not a routing one.
 * §10's per-feature ribbon base (17 m of ribbon riding a `roadarea`) and §6's
   plaza interiors are unchanged and still not this lane's files.
+
+---
+
+# Round 5 — the sidewalks that were painted as street
+
+Same lane, same branch, 2026-08-24, later. §0–§21 stand and none of it was
+rewritten. **Two of round 4's own conclusions are retracted here, each with the
+measurement that overturns it**, and the change that follows is in
+`scripts/bake_ground.py` alone: `js/wayfind.js` is untouched again this round
+(four sibling lanes are in it), `data/roads.geojson` reproduces byte for byte,
+and `WAYFIND.on` is still `false`.
+
+Round 4 closed by saying the provenance number was at its ceiling and that the
+work left belonged to other lanes. Two of the three leads it handed off were
+followed here before anything was built, and **both came back "no"** — that is
+§22 and §23 — which is why §24 went looking elsewhere and found **8.24 km of
+surveyed campus sidewalk that this scene was painting as asphalt.**
+
+## 22. The obvious lever, measured and rejected: doors are already on the network
+
+§21 named `GDC>BIO` the worst route on this lane's fixture and said its door
+"has exactly two anchors and both are 17.8 m away; there is no shorter one to
+prefer." The natural reading is that the bake snapped that door to a distant
+VERTEX when a nearer point on the same sidewalk existed — `bake_walk.py` snaps
+doors to graph NODES, and a door beside the middle of a 30 m sidewalk segment
+can be 15 m from either end of it and a stride from the line itself. Projecting
+a door onto the nearest EDGE instead, and splitting that edge, is a change to a
+graph-building function and therefore squarely this lane's to make.
+
+**It is worth nothing.** Over the 41 doors the two fixtures actually use, the
+nearest point on a graph edge beats the best baked node anchor by a **mean of
+0.14 m and a median of 0.03 m**; two doors gain more than a metre and the best
+gain in the whole set is **1.34 m**; 25 of the 41 already sit within 2 m of a
+node. **[M]** The bake's snapping is not leaving anything on the table, and edge
+projection would have bought four metres across forty routes for a per-query
+edge split in `decode()`.
+
+Recorded so a third session does not measure it again.
+
+## 23. RETRACTION: §21's request to the `bake_walk.py` lane was wrong
+
+§21 shipped a request for another lane to action:
+
+> **Request to that lane:** find out why 51 of 61 candidates are rejected… A
+> rule that closed gaps up to ~3 m would reconnect 175 m; up to ~5 m, 987 m.
+
+**Do not do that.** It would send students across streets nobody surveyed a
+crossing for — and the scene already holds the evidence that says so, because it
+paints the ground. `python scripts/bake_ground.py --walkaudit --islands`
+classifies every candidate connector by what is drawn under it:
+
+```
+    gap m   island m   walk%   road%   bare%   what a connector would cross
+     2.01      174.7     40%     60%      0%   a service drive by the UT Tower
+     2.50       12.5     45%     55%      0%
+     3.79       86.7      0%    100%      0%
+     3.87      394.1      6%     94%      0%
+     4.85      332.0     81%     10%     10%   the best one in the city
+     5.11       46.7     32%     68%      0%
+     5.24      180.6     23%     77%      0%
+```
+**[M]** 26 components of ≥ 8 m lie within 20 m of the network; the flag prints
+all of them. (These percentages are against the file THIS round ships. Against
+the file round 4 shipped, the same run reads the Tower connector as 0 % paving
+and 100 % road, and finds exactly one connector in the city — the 332 m West
+Campus one — at 100 % paving. §24's kerb-side pavement is what moved the rest.
+The verdict is the same either way and the table below is why.)
+
+**Every gap in this graph narrower than four metres is a STREET.** That is not a
+coincidence, it is how OSM is drawn: sidewalks are separate ways and they are
+joined only where somebody mapped a crossing. Where nobody did, the two
+sidewalks end two to four metres apart *across the carriageway* — and a rule
+that looks only at distance cannot tell that from an unmapped connection.
+
+The 175 m beside the UT Tower — §19.3's headline, the "two metres" — is two
+metres of **asphalt**. Sampled every 0.25 m along the connector, every sample is
+inside a `roadarea` polygon and the nearest pedestrian pavement is 3.29 m away.
+**[M]** Reconnecting it would draw a route straight over a service drive at a
+place this project has no evidence anyone crosses.
+
+Applying the paint as the test instead of the distance:
+
+```
+  gap <=      km back (blind)    km back (connector entirely on paving)
+    2.0            0.000                      0.000
+    3.0            0.187                      0.000
+    4.0            0.668                      0.000
+    5.0            1.000                      0.000
+   12.0            1.623                      0.000
+   20.0            4.554                      0.000
+```
+**[M]** **Zero.** Not one stranded component in the city can be reconnected by a
+line this project is able to verify. The best candidate anywhere — the 332 m in
+West Campus at a 4.85 m gap — was 100 % paving before this round's own change
+and is 81 % now, and §19.2 already recorded that its nearest door is **581 m**
+away, so no route in either fixture would have used it regardless.
+
+**The 5.75 km is not a switched-off network waiting for a flag. It is mostly the
+far side of streets.** §21's request is withdrawn; what replaces it is in §26.
+
+### 23.1 …and it is why three of the worst doors cannot be fixed either
+
+The same instrument corrects §21's other open item. Three doors in the two
+fixtures are far from the routable network and a stride from a STRANDED footway:
+
+```
+  door           to the routable network     to a stranded footway
+  BIO   287                17.77 m                   1.70 m
+  DMC   294                23.87 m                   1.86 m
+  FAC   374                23.90 m                   0.19 m
+```
+**[M]** So `GDC>BIO`'s 17.8 m door link is **not** "a door-placement question in
+the bake" as §21 called it — the sidewalk is right there and it is switched off.
+But BIO's stranded sidewalk is the Tower component above, whose only way back is
+two metres of asphalt; DMC's connector crosses 60 % bare ground; FAC's is 17 m
+away. **None of the three can be reconnected without inventing something**, so
+all three stay as they are and the reason is now written down instead of
+misattributed.
+
+## 24. THE DEFECT: 8.24 km of surveyed sidewalk was painted as street
+
+With both handed-off leads dead, the question went back to the goal's own words —
+*"at least make sure existing sidewalks are identified properly"* — and to an
+instrument nobody had built. `--coverage` (§19) grades a sidewalk metre as
+"painted" if **any** hard surface is under it, and `WALKAUDIT_PAVED` includes
+`roadarea`. That is the right test for "is there a hole in the ground file" and
+the wrong one for "is this sidewalk drawn as a sidewalk", and it is why §19.4
+could report only 54 m outstanding while a fifth of some routes stood on asphalt.
+
+`python scripts/bake_ground.py --walkaudit --surfaces` walks the same 160.78 km
+and splits it two ways: by whether the OSM way is a CROSSING — where carriageway
+paint is correct and deliberate (§2) — and by what is actually drawn under it.
+On the file round 4 shipped:
+
+```
+  ALONGSIDE (non-crossing)  149.05 km      patharea   134.87 km   90.5 %
+                                           roadarea     8.24 km    5.5 %
+                                           cyclearea    5.77 km    3.9 %
+  CROSSING                   11.73 km      roadarea     7.75 km   66.1 %
+                                           patharea     2.79 km   23.8 %
+```
+**[M]** **8.24 km of surveyed, non-crossing campus sidewalk had carriageway paint
+under it.** The route audit agrees from the other side and always had: 4.9 % of
+the twenty pairs' drawn ribbon stands on a `roadarea`, and `GRE>AF2` spent
+**17.1 %** of a 1.5 km walk that way.
+
+### Why, and it is one line of the resolver
+
+`resolve_ground_conflicts` cuts every `patharea` against the buffered
+carriageways. That cut is right and this round does not remove it — it is the one
+cross-band cut in the file and it exists to stop a pale slab standing across the
+middle of every junction. But look at what is being compared:
+
+* the carriageway polygon is **derived**: `w = lanes * LANE_M + KERB_M`, a width
+  inferred from a lane count, inset by `CARRIAGEWAY_INSET_M`;
+* the sidewalk centreline is **surveyed**.
+
+Where OSM maps a sidewalk close to the kerb — which is where sidewalks are — the
+whole 2.4 m slab falls inside the guessed corridor and is deleted outright. The
+scene then paints asphalt over a sidewalk that is really there, and
+`js/wayfind.js`'s `routeBaseM` = 0.22 m (pinned to `GROUND.pathRaise`) means the
+walking ribbon over those metres is standing 22 cm in the air, because a road is
+a flat fill at zero. §10 named that float in round 2 and could not see where it
+came from.
+
+### The rule
+
+```python
+SIDEWALK_KEEP_HALF_M = 0.9
+DERIVED_PATH_KEY = "drv"
+```
+
+**The carriageway cut may not take the core of a way OSM actually surveyed.** It
+still takes everything else, so a sidewalk that genuinely overhangs the travelled
+way is still trimmed back. The keep strips are punched out of the *cutter* rather
+than added back afterwards, which is what leaves the same-band cuts intact — a
+walk that lost ground to a higher-ranked walk must not get it back here or the
+two z-fight again.
+
+**Only a surveyed centreline is exempt.** The two kinds of `k:'path'` line this
+bake DERIVES itself wear `DERIVED_PATH_KEY` and are cut exactly as before: the
+**crossing aprons**, whose whole safety argument in §2 is that the carriageway
+removes any overshoot, and the **mall rims**, where §13's third bullet says the
+same. The key is private and never reaches the output — `widen_paths` re-emits
+`{k, u, s}` and nothing else. Measured, not asserted: the crossing row of
+`--surfaces` moves by 50 m out of 11.73 km.
+
+### Why 0.9 and not less, which the first attempt got wrong
+
+`WAYFIND.routeWidthM` is 1.6 m. **A strip narrower than that is invisible: the
+ribbon covers every pixel of it, the route still looks painted on the road, and
+the outer rail hangs over asphalt.** This was built at 0.45 first — a 0.9 m
+strip, one person wide — and the eye-level frame at Robert Dedman Drive was
+indistinguishable from the frame before the change while the audit said 8 km had
+moved. **[M]** That is the same argument `PEDESTRIAN_RIM_WALK_M` already makes
+one street over in §13, and it should have been applied here first time.
+
+0.9 paints a 1.8 m strip: the ribbon plus 10 cm either side, and still narrower
+than `DEFAULT_WIDTH['footway'] / 2` = 1.2 m.
+
+### What it moved
+
+```
+  --surfaces, ALONGSIDE (149.05 km of non-crossing surveyed sidewalk)
+                          round 4        round 5
+      patharea         134.87 km       143.15 km      90.5% -> 96.0%
+      roadarea           8.24 km         0.07 km       5.5% -> 0.0%
+      cyclearea          5.77 km         5.75 km       (not this change)
+
+  --surfaces, CROSSING (11.73 km) — must NOT move
+      roadarea           7.75 km         7.70 km
+      patharea           2.79 km         2.84 km
+      unpainted          1.15 km         1.15 km
+```
+**[M]**
+
+| the twenty pairs | round 4 | round 5 |
+|---|---:|---:|
+| **own, on a drawn WALK** | 93.38 % | **96.21 %** |
+| own, ribbon standing on a carriageway | 4.9 % | **2.1 %** |
+| own, over bare ground | 0.97 % (128 m) | 0.97 % (128 m) |
+| **house, on a drawn WALK** | 95.01 % | **96.83 %** |
+| house, ribbon standing on a carriageway | 3.3 % | **1.5 %** |
+| house, over bare ground | 1.63 % (154 m) | 1.63 % (154 m) |
+
+**[M]** **Bare ground does not move at all, in either fixture, and that is the
+control.** This change cannot add pavement where there was none — it can only
+stop the carriageway taking pavement that a survey says is there — so a bare
+metre must stay bare. It does, to the metre.
+
+Per route, the ones that moved (share of drawn ribbon on a drawn walk):
+
+| pair | round 4 | round 5 | on a carriageway |
+|---|---:|---:|---|
+| GRE>AF2 | 79.8 % | **94.4 %** | 17.1 % → 2.5 % |
+| WEL>TSG | 89.8 % | **91.2 %** | 7.0 % → 5.9 % |
+| 21 Rio>WEL | 92.5 % | **95.5 %** | 6.6 % → 3.6 % |
+| GDC>DMC | 91.0 % | **91.7 %** | 5.2 % → 4.5 % |
+| The Castilian>GDC | 94.4 % | **96.0 %** | 5.0 % → 3.5 % |
+| STD>MAI | 95.2 % | **96.7 %** | 4.1 % → 2.5 % |
+| GRE>MNC | 96.2 % | **98.5 %** | 3.2 % → 0.9 % |
+| GRE>NEZ | 89.4 % | **91.6 %** | 3.2 % → 1.0 % |
+| GRE>TCP | 96.6 % | **99.2 %** | 2.6 % → 0.0 % |
+| JES>MCA | 96.2 % | **97.1 %** | 3.0 % → 2.1 % |
+| BUR>CBA | 97.0 % | **97.9 %** | 2.2 % → 1.2 % |
+| GDC>BIO | 85.7 % | **86.7 %** | 10.2 % → 9.2 % |
+| GRE>MAI | 98.9 % | **100.0 %** | 1.1 % → 0.0 % |
+
+**Thirteen of twenty better, seven unchanged, none worse.** **[M]**
+
+### What it cost, and the control that says the diff is only this
+
+```
+  data/ground.geojson   5,533.1 -> 5,599.4 KB raw
+                        1,011.9 -> 1,043.5 KB gzipped     (+31.6 KB, +3.1 %)
+  features                12,324 -> 11,436                (FEWER, see below)
+  carriageway x path residual, after the cut
+                        81 pairs / 108 m2 -> 952 pairs / 16,112 m2
+```
+**[M]**
+
+* **Fewer features for more bytes** is the right way round and worth a line: the
+  kept cores rejoin slabs the cut had been splitting into slivers, so the file
+  holds fewer, longer polygons with more vertices each. At the 0.45 half-width
+  it was 11,433 features and **5,627.6 KB** — wider strips made the file
+  *smaller*.
+* **The carriageway × path residual is meant to go up and it is not z-fighting.**
+  A `patharea` stands 0.22 m proud and a `roadarea` is a flat fill at zero, so
+  the two are not coplanar; 16,112 m² is the sidewalk this scene now draws
+  ON TOP of the asphalt it had been hidden under, and 16,112 / 1.8 ≈ 9 km, which
+  is the 8.24 km the audit found plus junction corners. The same-height counter,
+  which is the one that actually reports z-fighting, is unchanged.
+* **The drawn road is NOT cut by the kept strips.** Carving 8 km of 1.8 m slots
+  out of `widen_roads` would cost geometry and gain nothing, because the 0.22 m
+  raise already puts the sidewalk visibly on top. Written down as a decision, not
+  an oversight.
+
+**The control was run, not argued.** `SIDEWALK_KEEP_HALF_M` reads `KEEPHALF`
+from the environment only so it can be turned off without editing the file:
+
+```
+KEEPHALF=0 python scripts/bake_ground.py
+  ->  ac152d1abd731cea9e128c650a2f58a413cd8dd7e84210d4c82c79ca8dd090b5
+committed data/ground.geojson before this round
+  ->  ac152d1abd731cea9e128c650a2f58a413cd8dd7e84210d4c82c79ca8dd090b5
+```
+**[M]** Byte-identical, so the whole diff in that file is this one constant. And
+`data/roads.geojson` comes out at `b5b454af…503cf8` both before and after: **no
+street lost a millimetre of drawn width.**
+
+That control caught a real defect on the way in, which is why it is run first
+rather than last. The first version appended the road cutters as one
+`unary_union` instead of extending the list, which is the same set of cutters and
+a different last digit — `KEEPHALF=0` came back `59b0fe33…` instead of
+`ac152d1a…`. The no-op path now goes through the identical code it always did.
+
+## 25. The picture — and an instrument that had to be rebuilt first
+
+The frames are `shots/walk/sidewalks/kerb-greaf2-*`: Robert Dedman Drive at the
+east edge of campus, on `GRE>AF2`, at the midpoint of that route's **longest
+contiguous run of ribbon standing on asphalt** (194 m) measured offline against
+the before file. The subject cannot be off screen because the router chose the
+pose.
+
+* **`kerb-greaf2-nadir-before.png` / `-after.png`** — the pair to look at. In
+  *before* the walking ribbon is a pale strip lying directly on the carriageway
+  between the lane markings, with nothing under it. In *after* it runs inside a
+  paved band along the kerb, with the kerb stroke on its outer edge.
+* **`kerb-greaf2-eye-before.png` / `-after.png`** — the same change from walking
+  height, which is the only angle that can see whether the ribbon is ON anything.
+* **`kerb-greaf2-eye-float.png`** — the height control: the identical camera with
+  `WAYFIND.routeBaseM` raised to 0.95 m. It moves 2,185 px, so the pose is not
+  blind to height.
+
+### 25.1 RETRACTION of §14's method: the before/after diff needs one browser
+
+§14 reported that shooting identical poses twice off an identical file changed
+**0 pixels**, and every before/after pair this lane has published rests on that.
+**Round 5 could not reproduce it.** Three separate browser launches at the
+identical camera, with `?p=0.30` pinning the opening hour, differ from each other
+by **12 % to 22 % of the frame** — and on a 69 % before/after diff that is not a
+noise floor, it is most of the number. The first attempt at this round's frames
+was thrown away for it; the change mask was lit differently on every facade and
+the sky.
+
+The fix is not a better pose, it is one process. `austin-ground` is a plain
+geojson source, so `getSource('austin-ground').setData(…)` repaints the entire
+ground band without touching the camera, the light, the tiles or the route.
+`shots/walk/sidewalks/kerbswap.mjs` serves the other ground file alongside the
+shipping one, swaps it inside a single page load, and **measures the floor rather
+than assuming it** by re-setting the same data first:
+
+```
+  kerb-greaf2-eye     ground change  34,568 px (3.38 %)   noise floor 0 px
+  kerb-greaf2-nadir   ground change  24,800 px (2.42 %)   noise floor 0 px
+  kerb-mezcal-eye     ground change  70,733 px (6.91 %)   noise floor 0 px
+  kerb-mezcal-nadir   ground change  86,136 px (8.41 %)   noise floor 0 px
+```
+**[M]** Zero on all four, so these diffs can be believed and the ones taken
+across processes cannot. Nothing already published is thereby wrong — round 3's
+pairs were shot in one run each — but the method note in
+`shots/walk/sidewalks/README.md` would have carried the two-process version into
+the next round, so it says this now.
+
+The harness also caught its own control being wrong, which is recorded in its
+header: the float diff first came back at 1,008,396 px — essentially the whole
+frame — because the eye frame and the nadir frame were snapped under the same
+key, so it was measuring a camera move. A control that reports "everything
+changed" is not a strong result, it is a broken instrument.
+
+## 26. What is left, and whose it is
+
+* **`--coverage`'s "painted" cell is too generous and should be split at source.**
+  It counts `roadarea` as pavement, which is exactly how 8.24 km hid inside a
+  99.2 % figure for a whole round. `--surfaces` is the honest version; the two
+  should be one flag. This lane's file, next round.
+* **`--where`'s rail metric has the same blind spot.** "Ribbon rails off
+  pavement" reads 1.23 % before and after this change, unmoved, because a rail
+  over asphalt already counted as on pavement. The number is not wrong, it is
+  answering a different question, and §13 quoted it as the headline. Use "on a
+  drawn WALK" for this class of defect.
+* **The remaining 2.1 % of ribbon on a carriageway is crossings**, i.e. the part
+  over the street that §2 deliberately never paints. Over those metres the ribbon
+  still floats 22 cm and the fix is still §10's — a per-feature base chosen in
+  `ribbonPolys()`, which is not a graph-building function and so still not this
+  lane's to write. It is now the ONLY float left.
+* **5.75 km of stranded sidewalk: closed as WONTFIX, with the measurement.** §23
+  replaces §21's request. If anyone wants to reopen it, the honest version is not
+  a gap rule — it is *mapping the missing crossings*, in OSM, upstream.
+* **`cyclearea` under 5.75 km of surveyed footway** is untouched and probably
+  fine: a footway sharing ground with a drawn cycleway is usually a real
+  shared-use path. It is reported separately by `--surfaces` rather than folded
+  into the headline so that nobody has to take that on trust.
+* §6's plaza interiors and `w-door`'s door legs are unchanged.

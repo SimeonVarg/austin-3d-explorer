@@ -223,6 +223,69 @@ PEDESTRIAN_AREA_IS_A_WALK = True
 PEDESTRIAN_RIM_IS_A_WALK = os.environ.get("RIM", "1") != "0"
 PEDESTRIAN_RIM_WALK_M = float(os.environ.get("RIM_W", DEFAULT_WIDTH["footway"]))
 
+# ── a surveyed sidewalk must not be painted as road ────────────────────────
+#
+# THE THIRD FORM OF THE SAME DEFECT, and the biggest of the three. The apron
+# pass painted under the walking graph at the kerb; the rim pass painted under
+# it around the malls. This paints under it along the STREETS, which is where
+# most of a campus's sidewalk network actually is.
+#
+# `resolve_ground_conflicts` cuts every `patharea` against the buffered
+# carriageways, and that cut is right — it is the one cross-band cut in this
+# file and it exists to stop a pale slab standing across the middle of every
+# junction. But the carriageway polygon is DERIVED: `w` is lanes * LANE_M +
+# KERB_M, a guess from a lane count, while a sidewalk centreline is SURVEYED.
+# Where OSM maps a sidewalk close to the kerb — which is where sidewalks are —
+# the whole 2.4 m slab falls inside the guessed corridor and is deleted, and
+# the scene then paints asphalt over a sidewalk that is really there.
+#
+# Measured on this branch before the change, sampling all 160.78 km of surveyed
+# campus footway at 1 m against the shipped data/ground.geojson:
+#
+#     ALONGSIDE (non-crossing)  149.05 km    patharea  90.5 %
+#                                            roadarea   5.5 %   <- 8.24 km
+#                                            cyclearea  3.9 %
+#     CROSSING                   11.73 km    roadarea  66.1 %   <- correct
+#
+# 8.24 km of surveyed, non-crossing campus sidewalk had carriageway paint under
+# it. The route audit agrees from the other side: 4.9 % of the twenty pairs'
+# drawn ribbon stands on a `roadarea`, and `js/wayfind.js`'s own note (§10 of
+# docs/walk-sidewalks.md) says what that costs — `WAYFIND.routeBaseM` is 0.22 m
+# because a walk stands 0.22 m proud, and a road is a FLAT fill at zero, so
+# over every one of those metres the walking ribbon floats 22 cm in the air.
+#
+# THE RULE: the carriageway cut may not take the CORE of a way OSM actually
+# surveyed. It may still take the rest, so a sidewalk that overhangs the
+# travelled way is still trimmed back, and a crossing apron — which this bake
+# DERIVED rather than read — is still cut exactly as before. Only a surveyed
+# centreline is exempt, and only for SIDEWALK_KEEP_HALF_M either side of it.
+#
+# HOW WIDE, and the number is not a guess. `WAYFIND.routeWidthM` is 1.6 m, so
+# the walking ribbon drawn along a sidewalk is 1.6 m wide: keep a narrower strip
+# than that and the ribbon covers every pixel of it, the route still LOOKS
+# painted on the road, and the outer rail hangs over asphalt. That is the same
+# argument PEDESTRIAN_RIM_WALK_M already makes for the mall rims, one street
+# over. Measured: at a 0.45 half-width the eye-level frame at Robert Dedman
+# Drive is indistinguishable from the frame before the change. 0.9 paints a
+# 1.8 m strip — the ribbon plus 10 cm either side — and is still narrower than
+# DEFAULT_WIDTH['footway'] / 2 = 1.2, so a sidewalk that genuinely overhangs the
+# travelled way is still trimmed back.
+#
+# TASTE VALUE, CLAUDE.md rule 11: it is the width of the pale strip that now
+# appears along the kerb of every street a surveyed sidewalk runs beside. Set it
+# to 0 and the cut goes back to taking everything with no other change — checked,
+# not assumed: `KEEPHALF=0 python scripts/bake_ground.py` reproduces the previous
+# data/ground.geojson to the same SHA-256.
+SIDEWALK_KEEP_HALF_M = float(os.environ.get("KEEPHALF", "0.9"))
+
+# `k:'path'` LineStrings this bake DERIVED rather than read out of OSM carry
+# this private key, and the keep-core exemption skips them. It never reaches the
+# output file: widen_paths re-emits {k, u, s} only. Two things wear it — the
+# crossing aprons (CROSSING_APRON_M) and the mall rims (PEDESTRIAN_RIM_IS_A_WALK)
+# — and both are cut by the carriageway on purpose, which is what stops an apron
+# reaching past the kerb and a mall creeping onto the asphalt.
+DERIVED_PATH_KEY = "drv"
+
 
 def crossing_aprons(coords, apron_m=None):
     """The two ends of a crossing way, `apron_m` metres each, as coordinate
@@ -3028,7 +3091,40 @@ def carriageway_polys(road_feats):
     return out
 
 
-def resolve_ground_conflicts(feats, road_polys, stats, warnings):
+def sidewalk_keep_polys(feats, stats):
+    """The core strip of every SURVEYED walking centreline, as metric polygons.
+
+    Call it BEFORE widen_paths, while the walks are still LineStrings — the same
+    ordering walk_direction_runs needs and for the same reason. Ways this bake
+    derived itself (DERIVED_PATH_KEY) are excluded: an apron and a mall rim are
+    extrapolations, and the carriageway cut is what keeps them honest.
+    """
+    if SIDEWALK_KEEP_HALF_M <= 0:
+        return []
+    try:
+        from shapely.geometry import LineString
+    except ImportError:
+        return []
+    out = []
+    for f in feats:
+        p = f["properties"]
+        if p.get("k") != "path" or f["geometry"]["type"] != "LineString":
+            continue
+        if p.get(DERIVED_PATH_KEY):
+            stats["sidewalk_keep_skipped_derived"] += 1
+            continue
+        try:
+            q = LineString(_line_m(f["geometry"]["coordinates"])).buffer(
+                SIDEWALK_KEEP_HALF_M, cap_style=2, join_style=2, mitre_limit=2.0)
+        except Exception:
+            continue
+        if not q.is_empty:
+            out.append(q)
+            stats["sidewalk_keep_cores"] += 1
+    return out
+
+
+def resolve_ground_conflicts(feats, road_polys, stats, warnings, keep_polys=()):
     """Give every square metre of ground to exactly one surface."""
     try:
         from shapely.strtree import STRtree
@@ -3061,6 +3157,8 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
     work.sort(key=lambda w: (-w["rank"], -w["a0"], w["i"]))
 
     road_tree = STRtree(road_polys) if road_polys else None
+    keep_polys = list(keep_polys)
+    keep_tree = STRtree(keep_polys) if keep_polys else None
     settled = []          # metric geometries already given their ground
     s_band = []
     s_tree = None
@@ -3087,8 +3185,35 @@ def resolve_ground_conflicts(feats, road_polys, stats, warnings):
         # half that stops the asphalt being painted over the notch.
         if w["band"] == "path" and road_tree is not None \
                 and not is_pedestrian_mall(w["f"]["properties"]):
-            for bi in road_tree.query(w["q"]):
-                cutters.append(road_polys[int(bi)])
+            rc = [road_polys[int(bi)] for bi in road_tree.query(w["q"])]
+            # SIDEWALK_KEEP_HALF_M: the carriageway may take everything of this
+            # slab EXCEPT the core of a surveyed centreline. Punching the keep
+            # strips out of the CUTTER rather than adding them back afterwards
+            # is what keeps the same-band cuts intact -- a walk that lost ground
+            # to a higher-ranked walk must not get it back here, or the two
+            # z-fight again.
+            #
+            # With nothing to keep, the cutters go in exactly as they always did
+            # and are unioned exactly once, by the single difference() below.
+            # Unioning them here as well would be the same set and a different
+            # last digit, and this file is checked byte for byte.
+            kl = []
+            if rc and keep_tree is not None:
+                kl = [keep_polys[int(j)] for j in keep_tree.query(w["q"])]
+            if kl:
+                try:
+                    ru = unary_union(rc).difference(unary_union(kl))
+                    stats["sidewalk_keep_applied"] += 1
+                    if not ru.is_empty:
+                        cutters.append(ru)
+                except Exception:
+                    warnings.append("sidewalk keep-core difference failed on a "
+                                    "%s/%s; cut left whole"
+                                    % (w["f"]["properties"].get("k"),
+                                       w["f"]["properties"].get("u")))
+                    cutters.extend(rc)
+            else:
+                cutters.extend(rc)
         g = w["q"]
         if cutters:
             try:
@@ -3925,7 +4050,209 @@ def _wa_clusters(title, samples, G, min_m=None):
               % (L, lon, lat, near[:44], nd))
 
 
-def walkaudit(pairs=None, where=False, prov=False, coverage=False):
+# ── --surfaces: WHAT IS PAINTED UNDER EVERY SURVEYED SIDEWALK? ─────────────
+#
+# --coverage grades a sidewalk metre as "painted" if ANY hard surface is under
+# it, and WALKAUDIT_PAVED includes `roadarea`. That is the right test for "is
+# there a hole in the ground file" and the wrong one for "is this sidewalk drawn
+# as a sidewalk": a surveyed walk with asphalt under it reads as covered, and
+# the walking ribbon standing on it floats 22 cm (WAYFIND.routeBaseM is pinned
+# to GROUND.pathRaise, and a road is a flat fill at zero).
+#
+# So this splits the same 160.78 km two ways: by whether the OSM way is a
+# CROSSING — where carriageway paint is correct and deliberate, see
+# CROSSING_APRON_M — and by what is actually drawn under it. The cell that
+# matters is ALONGSIDE x roadarea: a non-crossing sidewalk painted as street.
+def _wa_surfaces(polys, ix):
+    cell = Counter()
+    runs = []
+    for w in load("footways"):
+        if w.get("type") != "way":
+            continue
+        geo = w.get("geometry") or []
+        if len(geo) < 2:
+            continue
+        t = w.get("tags", {}) or {}
+        if t.get("highway", "") not in WALKAUDIT_PROV_FOOT:
+            continue
+        # the same test main() uses to decide whether to emit aprons instead of
+        # a path, plus the cycleway spelling widen_roads' loop uses
+        is_x = (t.get("footway") == "crossing" or t.get("cycleway") == "crossing"
+                or t.get("crossing") is not None)
+        kind = "crossing" if is_x else "alongside"
+        pts = [_wa_xy(c["lon"], c["lat"]) for c in geo]
+        for i in range(len(pts) - 1):
+            (x1, y1), (x2, y2) = pts[i], pts[i + 1]
+            L = math.hypot(x2 - x1, y2 - y1)
+            if L <= 0.001:
+                continue
+            n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+            step = L / n
+            for s in range(n):
+                u = (s + 0.5) / n
+                px, py = x1 + (x2 - x1) * u, y1 + (y2 - y1) * u
+                lab = _wa_under(polys, ix, px, py) or "BARE"
+                cell[(kind, lab)] += step
+                if kind == "alongside" and lab in ("roadarea", "cyclearea"):
+                    runs.append((step, px, py))
+
+    tot = sum(cell.values())
+    print("")
+    print("  WHAT IS PAINTED UNDER EVERY SURVEYED SIDEWALK")
+    print("  %.2f km of surveyed footway, sampled every %.1f m"
+          % (tot / 1000.0, WALKAUDIT_SAMPLE_M))
+    for kind in ("alongside", "crossing"):
+        sub = {k[1]: v for k, v in cell.items() if k[0] == kind}
+        st = sum(sub.values())
+        if not st:
+            continue
+        print("")
+        print("  %-12s %8.2f km" % (kind.upper(), st / 1000.0))
+        for k, v in sorted(sub.items(), key=lambda kv: -kv[1]):
+            print("      %-12s %8.2f km  %5.1f%%" % (k, v / 1000.0, 100.0 * v / st))
+    print("")
+    # Split, because the two are not the same defect. A carriageway is a STREET
+    # and a sidewalk drawn as one is wrong. A `cyclearea` is a drawn cycleway out
+    # of data/roads.geojson, and a footway sharing ground with one is usually a
+    # genuine shared-use path -- it is not a cutter here and this change does not
+    # touch it, so it is reported separately rather than folded into the headline.
+    print("  SURVEYED NON-CROSSING SIDEWALK PAINTED AS CARRIAGEWAY  %.2f km"
+          % (cell[("alongside", "roadarea")] / 1000.0))
+    print("  ...and as a drawn cycleway (shared path, not this change)  %.2f km"
+          % (cell[("alongside", "cyclearea")] / 1000.0))
+    print("  (SIDEWALK_KEEP_HALF_M = %.2f m)" % SIDEWALK_KEEP_HALF_M)
+    return cell
+
+
+# ── --islands: CAN THE STRANDED SIDEWALKS BE HONESTLY RECONNECTED? ─────────
+#
+# --coverage found 5.75 km of painted, surveyed, unroutable sidewalk and §21 of
+# docs/walk-sidewalks.md asked the bake_walk lane to close the gaps: "a rule
+# that closed gaps up to ~3 m would reconnect 175 m". THAT REQUEST WAS WRONG and
+# this is the instrument that says so. A gap distance cannot tell an unmapped
+# CONNECTION from an unmapped ROAD CROSSING, and the scene already knows which
+# is which — it paints the ground. So classify every candidate connector by what
+# is drawn under it, and only a connector that runs entirely on pedestrian
+# pavement is a topology artefact this project may repair.
+WALKAUDIT_ISLAND_MAX_GAP_M = 20.0     # candidates wider than this are not close
+WALKAUDIT_ISLAND_MIN_RUN_M = 8.0      # components shorter than this are noise
+WALKAUDIT_ISLAND_STEP_M = 0.25        # sampling along the connector
+
+
+def _wa_islands(G, polys, ix):
+    g = G["raw"]
+    e = len(g["e"]["a"])
+    A = [0] * e
+    B = [0] * e
+    a = 0
+    for i in range(e):
+        a += g["e"]["a"][i]
+        A[i] = a
+        B[i] = a + g["e"]["b"][i]
+    N = G["N"]
+    PX = [0.0] * N
+    PY = [0.0] * N
+    for i in range(N):
+        PX[i], PY[i] = _wa_xy(G["X"][i], G["Y"][i])
+
+    par = list(range(N))
+
+    def find(x):
+        while par[x] != x:
+            par[x] = par[par[x]]
+            x = par[x]
+        return x
+
+    off = [i for i in range(e) if G["F"][i] & _WA_OFFMAIN]
+    for i in off:
+        rx, ry = find(A[i]), find(B[i])
+        if rx != ry:
+            par[rx] = ry
+    is_main = [False] * N
+    for i in range(e):
+        if not (G["F"][i] & _WA_OFFMAIN):
+            is_main[A[i]] = True
+            is_main[B[i]] = True
+
+    grid = WALKAUDIT_GRID_M
+    mix = {}
+    for i in range(N):
+        if is_main[i]:
+            mix.setdefault((int(PX[i] // grid), int(PY[i] // grid)), []).append(i)
+
+    def nearest_main(n):
+        c = int(WALKAUDIT_ISLAND_MAX_GAP_M // grid) + 1
+        cx, cy = int(PX[n] // grid), int(PY[n] // grid)
+        best = (1e18, -1)
+        for dx in range(-c, c + 1):
+            for dy in range(-c, c + 1):
+                for m in mix.get((cx + dx, cy + dy), ()):
+                    d = math.hypot(PX[n] - PX[m], PY[n] - PY[m])
+                    if d < best[0]:
+                        best = (d, m)
+        return best
+
+    comp = {}
+    for i in off:
+        comp.setdefault(find(A[i]), []).append(i)
+
+    rows = []
+    for root, eds in comp.items():
+        L = sum(G["W"][i] for i in eds) / 100.0
+        if L < WALKAUDIT_ISLAND_MIN_RUN_M:
+            continue
+        nodes = set()
+        for i in eds:
+            nodes.add(A[i])
+            nodes.add(B[i])
+        best = (1e18, -1, -1)
+        for n in nodes:
+            d, m = nearest_main(n)
+            if m >= 0 and d < best[0]:
+                best = (d, n, m)
+        if best[1] < 0 or best[0] > WALKAUDIT_ISLAND_MAX_GAP_M:
+            continue
+        gap, n, m = best
+        k = max(4, int(gap / WALKAUDIT_ISLAND_STEP_M) + 1)
+        c = Counter()
+        for s in range(k + 1):
+            t = s / k
+            px = PX[n] + (PX[m] - PX[n]) * t
+            py = PY[n] + (PY[m] - PY[n]) * t
+            c[_wa_under(polys, ix, px, py) or "BARE"] += 1.0 / (k + 1)
+        rows.append((gap, L, c, G["X"][n], G["Y"][n]))
+
+    rows.sort()
+    print("")
+    print("  STRANDED SIDEWALK — WHAT WOULD A STITCH HAVE TO CROSS?")
+    print("  %d components of >= %.0f m within %.0f m of the network"
+          % (len(rows), WALKAUDIT_ISLAND_MIN_RUN_M, WALKAUDIT_ISLAND_MAX_GAP_M))
+    print("")
+    print("  %7s %9s %7s %7s %7s   %s"
+          % ("gap m", "island m", "walk%", "road%", "bare%", "lon,lat"))
+    for gap, L, c, lon, lat in rows:
+        walk = 100.0 * (c["patharea"] + c["pathslab"] + c["plaza"])
+        road = 100.0 * (c["roadarea"] + c["cyclearea"])
+        bare = 100.0 * c["BARE"]
+        print("  %7.2f %9.1f %6.0f%% %6.0f%% %6.0f%%   %.5f,%.5f"
+              % (gap, L, walk, road, bare, lon, lat))
+
+    print("")
+    print("  IF A GAP RULE WERE APPLIED AT EACH THRESHOLD")
+    print("  %7s %10s %8s | %10s %8s"
+          % ("gap<=", "km back", "stitches", "km on PAVING", "stitches"))
+    for lim in (2.0, 3.0, 4.0, 5.0, 8.0, 12.0, 20.0):
+        blind = [r for r in rows if r[0] <= lim]
+        pure = [r for r in blind
+                if (r[2]["patharea"] + r[2]["pathslab"] + r[2]["plaza"]) >= 0.999]
+        print("  %7.1f %10.3f %8d | %10.3f %8d"
+              % (lim, sum(r[1] for r in blind) / 1000.0, len(blind),
+                 sum(r[1] for r in pure) / 1000.0, len(pure)))
+    return rows
+
+
+def walkaudit(pairs=None, where=False, prov=False, coverage=False,
+              surfaces=False, islands=False):
     """Print the pavement table. Bakes nothing."""
     if not os.path.exists(OUT):
         print("no %s — run the bake first" % OUT)
@@ -4006,6 +4333,10 @@ def walkaudit(pairs=None, where=False, prov=False, coverage=False):
         _wa_prov(G, pairs)
     if coverage:
         _wa_coverage(G, polys, ix)
+    if surfaces:
+        _wa_surfaces(polys, ix)
+    if islands:
+        _wa_islands(G, polys, ix)
     return 0
 
 
@@ -4043,6 +4374,11 @@ def main():
                         # colour rather than a ring of a different concrete
                         "s": surface_of(t, "pedestrian")[0],
                         "w": PEDESTRIAN_RIM_WALK_M, "wt": 0,
+                        # derived from a mall outline, not a surveyed walk
+                        # centreline: the carriageway cut still applies to it,
+                        # which is the third of the three things §13 of
+                        # docs/walk-sidewalks.md says makes the rim safe.
+                        DERIVED_PATH_KEY: 1,
                     },
                 })
                 stats["pedestrian_rim_walk"] += 1
@@ -4064,7 +4400,13 @@ def main():
                     "geometry": {"type": "LineString", "coordinates": ap},
                     "properties": {"k": "path", "u": "footway",
                                    "s": CROSSING_APRON_SURFACE,
-                                   "w": DEFAULT_WIDTH["footway"], "wt": 0},
+                                   "w": DEFAULT_WIDTH["footway"], "wt": 0,
+                                   # an apron is this bake's own extrapolation
+                                   # past the last surveyed node, so the
+                                   # carriageway still trims it — that is the
+                                   # guarantee in CROSSING_APRON_M's own note
+                                   # that an overshoot cannot ship.
+                                   DERIVED_PATH_KEY: 1},
                 })
                 stats["crossing_apron"] += 1
             continue
@@ -4269,6 +4611,11 @@ def main():
     # and a direction is a property of a LINE, not of the union of a thousand of
     # them. Held until after the resolver; see score_walks.
     walk_runs = walk_direction_runs(feats, stats)
+    # BEFORE widen_paths, for the same reason walk_direction_runs is: the walks
+    # are still surveyed centrelines here, and after it they are one unioned
+    # polygon per (use, surface) with no way left to tell a surveyed sidewalk
+    # from an apron this bake extrapolated. See SIDEWALK_KEEP_HALF_M.
+    keep_cores = sidewalk_keep_polys(feats, stats)
     feats = widen_paths(feats, stats, warnings)
     # AFTER widen_paths on purpose: a garden's beds are derived from the
     # walks around them and paths are still LineStrings until then. The
@@ -4299,7 +4646,8 @@ def main():
     feats = deck_creek_crossings(feats, road_feats, stats, warnings)
 
     before = count_conflicts(feats, roads_m)
-    feats = resolve_ground_conflicts(feats, roads_m, stats, warnings)
+    feats = resolve_ground_conflicts(feats, roads_m, stats, warnings,
+                                     keep_polys=keep_cores)
     after = count_conflicts(feats, roads_m)
 
     # AFTER the resolver, deliberately. The planted zones are still the raw
@@ -4385,6 +4733,11 @@ if __name__ == "__main__":
         #   --prov          the OTHER half of the goal: per route, how much of
         #                   the ribbon is a real OSM way and how much is a line
         #                   this project invented
+        #   --surfaces      walk every surveyed sidewalk and say what is drawn
+        #                   UNDER it — the cell that matters is a non-crossing
+        #                   sidewalk painted as carriageway
+        #   --islands       every stranded sidewalk component and what a stitch
+        #                   to it would have to cross
         pairs = None
         if "--pairs" in sys.argv:
             which = sys.argv[sys.argv.index("--pairs") + 1]
@@ -4398,5 +4751,7 @@ if __name__ == "__main__":
                 sys.exit(2)
         sys.exit(walkaudit(pairs=pairs, where="--where" in sys.argv,
                            prov="--prov" in sys.argv,
-                           coverage="--coverage" in sys.argv))
+                           coverage="--coverage" in sys.argv,
+                           surfaces="--surfaces" in sys.argv,
+                           islands="--islands" in sys.argv))
     main()

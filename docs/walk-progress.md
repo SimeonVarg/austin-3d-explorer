@@ -237,3 +237,24 @@ a metre — where it turns into a kerb-height wall you cannot miss. The camera c
 see the mistake; the shipped ribbon does not have it. No pixel of the city
 changed this round and `js/wayfind.js` was not touched. Method and every number:
 `docs/walk-sidewalks.md` §17–§21. `WAYFIND.on` untouched.
+
+**2026-08-24, later — `acer/w-sidewalks`, round 5.** Eight kilometres of real
+campus sidewalk were being painted as street, and the walking route was being
+drawn on the asphalt as a result. The cause: the bake trims every pavement slab
+back where a road runs, and it works out how wide a road is by counting its
+lanes — a guess — while the sidewalk itself is surveyed. Where the survey puts a
+sidewalk close to the kerb, which is where sidewalks are, the guess swallowed it
+whole and the pavement vanished. Now the trim is not allowed to take the middle
+of a walk somebody actually surveyed. On Robert Dedman Drive the route used to
+run down a bare traffic lane; it now runs on a paved strip along the kerb, and
+the before/after pair is in `shots/walk/sidewalks/kerb-greaf2-nadir-*`. Measured
+over twenty class-to-class trips, the share of the drawn route standing on real
+pavement went from 93.4 % to 96.2 % on this lane's own pairs and from 95.0 % to
+96.8 % on the shared ones, with the amount standing on nothing at all unchanged
+to the metre — which is the check that says no pavement was invented. Two things
+this lane said last round turned out to be wrong and are corrected in writing:
+the 5.75 km of "switched-off" sidewalk mostly cannot be honestly reconnected,
+because almost every gap under four metres is a street with no crossing mapped;
+and a before/after screenshot pair has to come out of one browser session, not
+two. `js/wayfind.js` untouched again, `data/roads.geojson` byte-identical,
+`WAYFIND.on` still false. Everything: `docs/walk-sidewalks.md` §22–§26.
