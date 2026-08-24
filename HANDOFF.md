@@ -24312,3 +24312,99 @@ matched to risk given this round's changes are two small bakes, a docs-only
 diagnosis, and one bounded palette nudge, none touching the render loop. Did
 not independently re-verify `r-buildings`' J1/J2/J3 claims beyond my own
 spot-check screenshots (not a pixel-level coplanar re-run of the bake).
+
+## 181. Aug 24 2026 — the walk gauntlet integrated: five lanes merged, 795 m of wasted walking down to 87 m (acer lane, PR #223 MERGED, all six branches deleted)
+
+The integration and ship lane for the walk feature. Merged `acer/w-door`,
+`acer/w-sidewalks`, `acer/w-stairs`, `acer/w-lit`, `acer/w-ui` and the baseline
+onto `main`, resolved the collisions, fixed two defects the merge exposed, and
+re-measured. **`WAYFIND.on` is still `false` — deliberately not flipped.**
+
+**Disk first, because the previous run on this gauntlet died of it rather than
+of any code fault.** Free space was **12.98 GB** with 41 worktrees holding
+~34 GB. Swept the 27 whose newest file predated 07:30 (all clean, all on pushed
+branches), left the recent ones alone — two had uncommitted work and were live
+siblings. **12.98 GB → 36.48 GB.** Rule 12's warning is exact: `git worktree
+prune` unregisters without deleting; the directory has to be swept itself.
+
+**THE NUMBER.** `walkmeter.mjs`, twenty pairs, UT's ArcGIS oracle: extra metres
+over the pairs the router makes worse **795.3 m → 87.0 m**; signed total
+**+209.5 m → −393.7 m**, which matters because the baseline's own finding was
+that nine of nineteen pairs got LONGER when forced onto UT's single door — so
+the constraint was "don't regress the trips that are already fine", and the
+merged router is now net shorter across the twenty. All 38 ends land at UT's
+published door. EER→NHB, the worst at 569 m for a 271 m walk, routes at 272 m.
+
+**The brief's premise was stale and checking it saved building a duplicate.** It
+said the baseline meter had never been built. It had — the baseline lane landed
+`docs/walk-baseline.md` and `walkmeter.mjs` on `main` after the brief was
+written.
+
+**Collisions.** Five lanes edited different functions of one file, plus one bake
+collision nobody had noticed. `scripts/bake_ground.py`: sidewalks and stairs
+both rewrote the same `area == "yes"` branch and they do NOT contradict — they
+key on different `highway` values (a closed `pedestrian` way is a mall whose rim
+is a walk; a closed `steps` way is a terrace drawn as a polygon). Both arms
+kept, and `data/ground.geojson` REGENERATED from the merged script rather than
+hand-merged, which is the only honest way to merge a generated file:
+`pedestrian_rim_walk=41`, `path_steps_area=1` (the single campus terrace the
+stairs lane predicted, which is a good sign its reasoning was real),
+`crossing_apron=1604`. `legBetween()` was the one genuine contradiction — door
+and stairs gave it different signatures for different jobs, so both parameters
+are carried.
+
+**Two defects, both found by driving the app, neither by reading the diff.**
+
+1. **The "Avoid stairs" checkbox was dead, and it is not a merge artifact.**
+   Measured three ways through walkmeter's live UI gate: `w-door` alone PASSES,
+   **`w-ui` alone FAILS**, merged FAILS. `w-ui`'s rebuild put a step-by-step
+   itinerary at the top of a card `fitCard()` height-caps and scrolls, pushing
+   the checkbox below the visible edge — the click went through to the map. The
+   frame shows the card clipped mid-word. It had silently reintroduced the exact
+   defect `w-door` fixed and `w-door`'s critic flagged twice, and `w-ui`'s own
+   round-8 critic still returned `oursWins=true`. Controls now sit above the
+   itinerary. **A lane's own critic passing is not evidence the lane did not
+   break a sibling's fix — only the shared gate caught this.**
+
+2. **The ruler had drifted off the router, so its number was not real.**
+   `walkmeter.mjs` reimplements the Dijkstra to self-check, and two lanes changed
+   the cost model underneath it (`linkCostMult`, `stairClimbCostMult`). It
+   optimised a different currency, picked different paths, and self-check failed
+   on 15 of 19 pairs with drifts to 27 m — so every "extra metres" it printed on
+   any branch carrying those lanes was uncalibrated. The sidewalks critic noticed
+   and set the tool aside; the right move was to fix the tool. It reads both
+   terms OFF THE PAGE now, so a retune follows automatically and a genuinely new
+   cost term goes red rather than quiet. Drift 0.00 m on all 19. That required
+   declaring `WAYFIND.linkCostMult`, which `w-sidewalks` already read but never
+   declared — the value was sitting in a `const` in a function body, against
+   rule 11 and invisible outside the file.
+
+**Judgement, honestly.** No piece has a blind result; the critic returned nothing
+for all five. Door, sidewalks and ui graded their own final round a win; stairs'
+only recorded verdict is round 1 `oursWins=false` with rounds 2–8 unjudged; lit
+was never judged. Nothing is presented as having beaten a bar — only as
+measurably better than what `main` carried that morning.
+
+**Gate, photographed.** `autopilot`, `sliderdemo`, `clip` all correct at 390×844
+with touch, walk UI not painted in any; plain page 0 console errors; OSM
+attribution visible in all five modes; and the detector is not vacuous — under
+`?walk=1` the same check does report `wf-sheet` painted. `harness-drift` PASS,
+`movement` 14/14, `collision` 8/8, `coplanar --gate` clean after an accepted
+baseline move, `walkmeter` exit 0.
+
+**The coplanar baseline move was checked, not rubber-stamped.**
+`entrances.geojson` 1627 → 1786 pairs. The merged file is byte-identical to
+`w-door`'s, so the integration added none of it; pairs-per-door went DOWN
+(1.147 → 1.140); and the failure mode the README says this number cannot itself
+distinguish — two buildings' doors baked into one doorway vs a step tread
+sharing a plane with its cheek wall — is unchanged at 5, measured by bucketing
+door centroids to a 3 m grid. 148 more doors' worth of the benign kind.
+
+**Recommendation recorded in QUEUE.md as W1: do not flip `WAYFIND.on` until
+`stairs` and `lit` are judged.** They are the two that make accessibility
+claims, and that is the one class of claim not to ship on a screenshot.
+
+**What I did not do:** did not independently re-derive the door lane's UT
+matching or the lit lane's 43-site audit; took their evidence as read and
+verified only the merged behaviour, the gate, and the meter. W2–W6 in QUEUE.md
+are open and none were attempted.

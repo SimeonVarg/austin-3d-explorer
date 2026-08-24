@@ -1,5 +1,38 @@
 # QUEUE — Acer lane
 
+## ~~WALK GAUNTLET~~ — INTEGRATED AND MERGED 2026-08-24 (PR #223, `docs/walk-progress.md`)
+
+All five walk lanes (`w-door`, `w-sidewalks`, `w-stairs`, `w-lit`, `w-ui`) plus
+the baseline are merged to `main` and their branches deleted. **The number:
+extra metres over the twenty class-to-class pairs the router makes worse went
+795.3 m → 87.0 m, and the signed total +209.5 m → −393.7 m.** All 38 ends land
+at the door UT publishes. `walkmeter.mjs` exit 0, self-check drift 0.00 m.
+
+**`WAYFIND.on` is still `false` and was deliberately NOT flipped.** The routing
+is ready and the gate is clean; what is missing is that `stairs` and `lit` were
+never judged, and those two make the accessibility claims ("step-free", "no
+mapped streetlight along this route"). A wrong distance costs a detour; a wrong
+step-free claim strands someone. That is the open item before the switch.
+
+Still open, and none of it blocks the merge:
+
+- **W1. `stairs` and `lit` have no blind verdict.** stairs' only recorded
+  judgement is round 1 `oursWins=false`; rounds 2–8 unjudged. lit unjudged at
+  every round. Judge these two before flipping `WAYFIND.on`.
+- **W2. PHR→BIO is unmeasurable.** BIO's UT-verified door (286) carries empty
+  node/cost arrays in `data/walk_graph.json` — never snapped to the path
+  network. A bake gap for whoever owns `scripts/bake_walk.py`, not a router bug.
+- **W3. Two pairs still meaningfully worse than their UT-door alternative:**
+  `wag-gar +38 m`, `wel-pai +33 m`.
+- **W4. 6 endpoints have no confident UT correction** (WEL, CAL ×2, CBA, UNB ×2,
+  and the ambiguous RLP/UTA cases) and fall back to the app's own door.
+- **W5. 11 UT buildings cannot be routed to at all** — 10 are at the Pickle
+  campus 11 km north and off this map; SSW is not in UT's own register.
+- **W6. The ribbon still floats 22 cm over a marked street crossing.**
+  `WAYFIND.routeBaseM` = 0.22 m is right for paving and wrong over a `roadarea`
+  crossing, which sits at z=0. The fix is a per-feature base in `ribbonPolys()`;
+  `js/wayfind.js` is free now that all five lanes have landed.
+
 ## ~~GROUND CRAWL~~ — RE-JUDGED 2026-08-22, `g-blur` SHIPPED (`docs/ground-rejudge.md`)
 
 The "38.27%, refused with 0.00pp on all three candidates" verdict above was

@@ -1,5 +1,60 @@
 # Walk feature — progress log
 
+## Where this stands — 2026-08-24, thirty seconds
+
+**The walking directions used to send students the long way round. Across twenty
+real back-to-back class trips they wasted 795 metres. They now waste 87.** That
+is the whole headline: about nine tenths of the wasted walking is gone.
+
+The worst single trip was Engineering Education and Research to Norman Hackerman
+— the app sent you **569 metres for a walk that is 271**, more than double,
+because it was aiming at the wrong door. It now routes 272 metres.
+
+The reason it was wrong is that UT publishes its own list of where each
+building's real front door is, and we were ignoring it. **All 38 ends of the
+twenty trips now arrive at the door UT itself names.** Before, our door was the
+right one about a quarter of the time.
+
+Five separate pieces were built for this: **the door** (which door you walk to),
+**the pavement** (routing on real sidewalks instead of across grass and asphalt),
+**the stairs** (drawing them, pricing them, and offering a step-free way round),
+**the lighting** (telling you which of the walk has a mapped streetlight on it),
+and **the interface** (the whole answer card, rebuilt for a phone).
+
+**Which of them beat the bar blind? None — because none of them were ever
+judged.** The blind comparison came back empty for all five. Three of them graded
+their own last round a win, which is not the same thing and I have not counted it
+as one. So nothing here is being presented as having won; it is being presented
+as measurably better than what was on the site this morning, which is a claim the
+numbers above do support.
+
+Two things broke on the way in, both found by driving the app rather than reading
+the code:
+
+- **The "Avoid stairs" tickbox did not work.** The interface rebuild had pushed
+  it off the bottom of the visible card, so clicking it did nothing at all. It
+  had been fixed once already by another piece and quietly broken again. Fixed:
+  the controls now sit above the long step-by-step list. It ticks.
+- **The ruler itself had gone out of true.** The tool that measures the wasted
+  metres carries its own copy of the routing maths so it can check itself, and
+  two of the five pieces changed that maths underneath it. It was silently
+  measuring the wrong thing on fifteen of nineteen trips. Fixed — it now reads
+  the real settings off the running page, and its self-check is exact to the
+  centimetre on every trip.
+
+**Would I switch it on for everyone? Not yet — but it is close.** The routing is
+in good shape and nothing else on the site regressed. What is missing is that the
+stairs and lighting pieces were never independently judged, and those two are the
+ones that make *accessibility* promises — "step-free", "no mapped streetlight
+along this route". Getting a distance wrong costs someone a detour. Getting
+"step-free" wrong strands someone at the bottom of a staircase. That is the one
+promise I would not turn on because it looked right in a screenshot.
+
+Until then it stays where it is: invisible unless you add `?walk=1` to the
+address. Nothing on the live site has changed for anyone else.
+
+---
+
 ## 2026-08-23 — the lighting claim, checked at 43 places instead of six: it holds, and it turned up a live oak sitting on top of a street lamp
 
 The walk feature can already tell you which parts of a route have a streetlight
@@ -1994,3 +2049,69 @@ fix is a per-feature base picked in `ribbonPolys()` in `js/wayfind.js`: use
 segment. Every sibling lane is currently in `js/wayfind.js`, which is
 presumably why this round left it alone three times running (§10, §14, §26)
 — it should be the first change made once the file is free.
+
+## 2026-08-24 — the five lanes merged, and the number went 795 m to 87 m (`acer/w-integrate`, PR #223 MERGED, branches deleted)
+
+The integration pass. All five walk lanes — door, sidewalks, stairs, lit, ui —
+merged onto `main`, their collisions resolved, and the result re-measured with
+the baseline meter. `WAYFIND.on` is still false and this pass did not touch it.
+
+**The number.** `walkmeter.mjs`, same twenty pairs, same UT ArcGIS oracle:
+extra metres over the pairs the router makes worse went **795.3 m → 87.0 m**,
+and the signed total — which the baseline warned was the real constraint,
+because nine of nineteen pairs got LONGER when forced onto UT's single door —
+went **+209.5 m → −393.7 m**. So the merged router is net shorter across the
+twenty, not just better on the bad ones. All 38 ends now land at the door UT
+publishes; EER→NHB, the baseline's worst at 569 m for a 271 m walk, routes at
+272 m.
+
+**The premise this pass was given was out of date.** It said the baseline meter
+had never been built. It had — the baseline lane landed it on `main` as
+`docs/walk-baseline.md` + `walkmeter.mjs` after the brief was written. Checked
+before building a second one.
+
+**Two real collisions, and neither was resolved by picking a side.**
+`scripts/bake_ground.py`: sidewalks and stairs both rewrote the same
+`area == "yes"` branch, but they key on different `highway` values — a closed
+`pedestrian` way is a mall whose rim is a walk, a closed `steps` way is a
+terrace to be drawn as a polygon — so both arms are kept and `ground.geojson`
+was REGENERATED rather than hand-merged (41 rim walks, 1 steps terrace, 1,604
+kerb aprons, all three lanes' counters non-zero). `legBetween()`: door and
+stairs redefined it with different signatures, which is the one place two lanes
+genuinely contradicted; `fromEntry`/`toEntry` and `mk` do different jobs and
+both are carried.
+
+**Two defects the merge exposed, both found by driving the app.** The
+"Avoid stairs" checkbox was unusable — and measuring it three ways showed this
+was NOT a merge artifact: `w-door` alone passes the gate, `w-ui` alone fails it.
+The interface rebuild put a step-by-step list at the top of a height-capped
+scrolling card, which pushed the checkbox below the visible edge, so the click
+went through to the map. The frame shows the card clipped mid-word. It had
+reintroduced exactly the defect `w-door` fixed and its critic flagged twice. The
+controls now sit above the itinerary. And the meter itself had drifted off the
+router: sidewalks' `linkCostMult` and stairs' `stairClimbCostMult` changed the
+cost model after the meter was written, so it optimised a different currency and
+its self-check failed on 15 of 19 pairs with drifts to 27 m — every "extra
+metres" it printed on those branches was uncalibrated. It reads both terms off
+the page now; drift is 0.00 m on all 19.
+
+**Judgement, stated honestly: no piece has a blind result. The critic returned
+nothing for all five.** Door, sidewalks and ui graded their own final round a
+win; stairs' only recorded verdict is round 1 `oursWins=false` and rounds 2–8
+were never judged; lit was never judged at all. Nothing here is presented as
+having beaten a bar — only as measurably better than what `main` carried this
+morning.
+
+**Gate, photographed:** `autopilot`, `sliderdemo` and `clip` all correct at
+390×844 with touch and the walk UI not painted in any of them; plain page 0
+console errors; OSM attribution visible in all five modes; and the detector is
+not vacuous — under `?walk=1` it does report `wf-sheet` painted. Suite on the
+merged result: `harness-drift` PASS, `movement` 14/14, `collision` 8/8,
+`coplanar --gate` clean after an accepted baseline move (entrances 1627→1786 is
+`w-door`'s 148 new doors; pairs-per-door went DOWN 1.147→1.140 and the
+two-buildings-one-doorway case is unchanged at 5), `walkmeter` exit 0.
+
+**Recommendation: do not flip `WAYFIND.on` yet.** The routing is ready and the
+gate is clean, but stairs and lit are unjudged and they are the two that make
+accessibility claims. A wrong distance costs a detour; a wrong "step-free"
+strands someone. That is the claim not to ship on a screenshot.
