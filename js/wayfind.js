@@ -8199,6 +8199,781 @@
     })();
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 12. THE SCHEDULE STAYS ON THE DEVICE, AND THAT HAS TO BE PROVABLE
+  // ══════════════════════════════════════════════════════════════════════════
+  /**
+   * A class schedule is not a preference. It is where one named person is,
+   * hour by hour, for four months. So this section holds exactly two promises
+   * and tries to make both of them *checkable by a machine* rather than
+   * believable by a reader:
+   *
+   *   1. NOTHING LEAVES. The schedule is written to this browser's own
+   *      localStorage and to nothing else. No fetch, no XHR, no beacon, no
+   *      socket, no worker message carries a byte of it.
+   *   2. DELETE MEANS GONE. One tap wipes every key this feature ever wrote
+   *      — including keys a *future* import source might write — plus the
+   *      IndexedDB database reserved below for the image-OCR pass, and the
+   *      in-memory copy. Reload and there is nothing to find.
+   *
+   * PROMISE 1 IS ENFORCED, NOT ASSERTED. `installEgressGuard()` wraps the six
+   * ways bytes actually leave a page (fetch, XMLHttpRequest, sendBeacon,
+   * WebSocket, EventSource, Worker.postMessage) plus form submission, and
+   * refuses any of them that carries a string out of the stored schedule. It
+   * is a seatbelt, not the safety case: the safety case is that no code here
+   * ever sends anything. The guard exists so that if some later lane wires an
+   * analytics call into this file, the call fails loudly instead of quietly
+   * working. Its log is what `docs/si-privacy.md` audits.
+   *
+   * WHY THE GUARD CANNOT BE THE WHOLE ANSWER, said plainly so nobody reads it
+   * as more than it is:
+   *   - it is main-thread only. That is why `Worker.prototype.postMessage` is
+   *     wrapped too — schedule bytes cannot reach a worker, so a worker cannot
+   *     send them. That converts the blind spot into a closed door.
+   *   - it does not watch `<img src>` or a plain link navigation. Those are
+   *     covered by the browser-level network capture in `docs/si-privacy.md`,
+   *     which sees every request the page makes regardless of who made it.
+   *   - a leak of a FRAGMENT of a field ("Data" out of "Data Structures")
+   *     would not match. Whole field values are the tokens, because whole
+   *     field values are what a serialiser emits and word fragments are what
+   *     tile URLs are full of.
+   *   - inspection failures fail OPEN (the request proceeds) and are counted.
+   *     Failing closed would let a bug in this file break the map. The count
+   *     is asserted to be zero by the audit, which is the right place to catch
+   *     it.
+   *
+   * THE SHAPE IS BUILT FOR THE SOURCES THAT DO NOT EXIST YET. Simeon asked for
+   * Google Calendar, Apple Calendar and UT's registration export now, and said
+   * a photo of a schedule and a Registration-Plus API should be addable later
+   * "without a rewrite". Three reservations in the envelope below are what buy
+   * that, and each one is a thing that would otherwise force a schema change:
+   *   - `sources` is a LIST, and every class points at one of them. A photo
+   *     imported on top of an .ics has to ADD to a schedule, not replace it;
+   *     a single `source` string on the envelope cannot express that.
+   *   - every class carries `confidence` and `provenance`. An .ics is exact
+   *     (1.0, and the VEVENT UID); OCR is not, and needs somewhere to put the
+   *     box on the image it read a room number out of so the student can be
+   *     shown what to check. Adding that later means rewriting every stored
+   *     schedule.
+   *   - `v` plus `SCHEDULE_MIGRATIONS` means a v2 reader can still open a v1
+   *     blob, and a v1 reader hands back `tooNew` rather than deleting a
+   *     schedule it does not understand.
+   */
+
+  // ── the taste values, all of them, in one block (CLAUDE.md rule 11) ────────
+  const SCHEDULE_STORE = {
+    /** The one key the schedule itself lives under. */
+    key: 'austin3d.schedule.v1',
+    /** Delete sweeps EVERY key with this prefix, not just the one above, so a
+     *  future source that writes its own key is covered by a delete written
+     *  today. `austin3d.gfx.v1` (js/graphics.js) does not match it. */
+    prefix: 'austin3d.schedule.',
+    /** Reserved for the image-OCR pass: a photo will not fit in localStorage,
+     *  and delete has to reach it on the day it starts existing. Deleting a
+     *  database that was never created is a no-op, so this costs nothing now. */
+    idbName: 'austin3d-schedule',
+    /** A term of classes is a few KB. Anything near this is a bug or a paste
+     *  of the wrong file, and localStorage throws at ~5 MB with a quota error
+     *  that reads like a crash. */
+    maxBytes: 256 * 1024,
+    /** Strings shorter than this are not watched by the egress guard. Three
+     *  letters is a building CODE — `?from=WEL&to=MAI` is a documented URL
+     *  feature of this app and the codes are its public vocabulary, so a code
+     *  on its own is not the private part. `MAI 220`, a course title and an
+     *  instructor's name all clear the bar. */
+    minTokenLen: 4,
+    /** Ring buffer for the guard's log. */
+    logCap: 400,
+    /** One tap deletes, with no "are you sure". Flip to true if that ever
+     *  reads as too sharp — the brief asked for one tap and an undo would
+     *  mean keeping the data around after saying it was gone. */
+    deleteNeedsConfirm: false,
+    /** How long the "Deleted." line stays up before the panel goes back to
+     *  its empty state. */
+    deletedNoticeMs: 5000,
+  };
+
+  /** Where a schedule came from. An open registry: adding a source is one line
+   *  here and a parser somewhere else, never a change to what is stored. The
+   *  last two are deliberately listed before they are built — they are the
+   *  forward compatibility, written down. */
+  const SCHEDULE_SOURCES = {
+    'google-ics': 'a Google Calendar export',
+    'apple-ics': 'an Apple Calendar export',
+    'ut-registration': 'UT’s registration export',
+    'manual': 'classes typed in by hand',
+    // Not built this pass. Named so the storage format already has a home for
+    // them and the delete sweep already covers what they will write.
+    'image-ocr': 'a photo of a schedule',
+    'registration-plus': 'Registration Plus',
+  };
+
+  const SCHEDULE_SCHEMA_VERSION = 1;
+  /** v => function turning a v blob into a v+1 blob. Empty today; the loop
+   *  below is what makes it a one-line job later. */
+  const SCHEDULE_MIGRATIONS = {};
+
+  /**
+   * THE COPY. index.html carries the editable copy of this in
+   * `<template id="wf-privacy-copy">` and it WINS — these are the defaults, so
+   * `_harness.html` (which has no such template, and must not, or
+   * harness-drift.mjs is not the only thing that can drift) still says the
+   * same words. `scripts/verify` asserts the two agree; see docs/si-privacy.md.
+   */
+  const SCHEDULE_PRIVACY_COPY = {
+    line: 'Your schedule stays on this device — saved in this browser only, ' +
+          'never uploaded anywhere, and Delete wipes it for good.',
+    deleteBtn: 'Delete my schedule',
+    deleted: 'Deleted. Nothing of it is left in this browser.',
+    empty: 'No schedule saved on this device yet.',
+    confirm: 'Delete it? This cannot be undone.',
+  };
+  /** Rendered when a schedule IS stored. Counts and a source, never a class
+   *  name — the panel sits in the footer of a sheet that may be on screen
+   *  while someone else is looking. */
+  const scheduleSavedLine = (n, srcLabel) =>
+    n + (n === 1 ? ' class' : ' classes') + ' from ' + srcLabel + ', on this device only';
+
+  /** The panel's look. Reuses the feature's own custom properties so it is not
+   *  a second design system living in the footer. */
+  const SCHEDULE_PRIVACY_CSS = [
+    '#wf-priv{display:block;padding:8px 14px 9px;border-top:1px solid var(--wf-edge-soft);',
+    'font-size:var(--wf-small);line-height:1.5;color:var(--wf-dim)}',
+    '#wf-priv .wf-priv-line{color:var(--wf-dimmer)}',
+    '#wf-priv .wf-priv-state{margin-top:5px;color:var(--wf-ink);opacity:.82}',
+    '#wf-priv .wf-priv-state:empty{display:none}',
+    '#wf-priv-del{margin-top:6px;display:none;align-items:center;gap:6px;',
+    'min-height:32px;padding:0 var(--wf-ghost-pad);border-radius:9px;',
+    'border:1px solid var(--wf-edge);background:transparent;color:var(--wf-ink);',
+    'font:inherit;font-size:var(--wf-small);letter-spacing:.02em;cursor:pointer}',
+    '#wf-priv-del:hover{border-color:var(--wf-hot);background:rgba(245,166,35,.10)}',
+    '#wf-priv-del:focus-visible{outline:2px solid var(--wf-accent);outline-offset:2px}',
+    // An <svg> with a viewBox and no width collapses to 300x150 and blows the
+    // footer apart. Every other icon in this feature is sized by style.css,
+    // which this lane does not own, so this one sizes itself.
+    '#wf-priv-del svg{width:11px;height:11px;flex:none}',
+    '#wf-priv.has-schedule #wf-priv-del{display:inline-flex}',
+  ].join('');
+
+  // ── the envelope ──────────────────────────────────────────────────────────
+  /**
+   * normaliseSchedule — the one place that decides what a stored schedule is.
+   * Every import source hands its result through here, so a photo and an .ics
+   * cannot drift into two shapes.
+   */
+  function normaliseSchedule(doc) {
+    const d = doc || {};
+    const now = new Date().toISOString();
+    const srcIn = Array.isArray(d.sources) ? d.sources
+      : (d.source ? [{ kind: d.source, importedAt: d.importedAt || now }] : []);
+    const sources = srcIn.map((s, i) => ({
+      id: String((s && s.id) || ('s' + i)),
+      kind: String((s && s.kind) || 'manual'),
+      label: String((s && s.label) || SCHEDULE_SOURCES[(s && s.kind)] || 'an import'),
+      importedAt: String((s && s.importedAt) || now),
+    }));
+    const classes = (Array.isArray(d.classes) ? d.classes : []).map((c, i) => {
+      const o = c || {};
+      return {
+        id: String(o.id || ('c' + i)),
+        code: o.code == null ? null : String(o.code).toUpperCase(),
+        room: o.room == null ? null : String(o.room),
+        title: o.title == null ? null : String(o.title),
+        instructor: o.instructor == null ? null : String(o.instructor),
+        days: Array.isArray(o.days) ? o.days.map(String) : [],
+        startMin: Number.isFinite(o.startMin) ? o.startMin : null,
+        endMin: Number.isFinite(o.endMin) ? o.endMin : null,
+        // WHY THIS IS NOT `resolved: true/false`. docs/schedule-gaps.md found
+        // eleven codes a real UT schedule can name that this map cannot route
+        // to — ten at the Pickle campus 11 km north, one (SSW) demolished in
+        // 2024. "unknown code" and "known, just not on this map" want
+        // different sentences, so the reason is stored, not a boolean.
+        unroutableWhy: o.unroutableWhy == null ? null : String(o.unroutableWhy),
+        // Reserved for OCR. An .ics sets 1; a photo will not.
+        confidence: Number.isFinite(o.confidence) ? o.confidence : 1,
+        // Reserved for OCR and for a future API: which source, and where in it.
+        src: o.src == null ? (sources[0] ? sources[0].id : null) : String(o.src),
+        provenance: o.provenance == null ? null : o.provenance,
+      };
+    });
+    return {
+      v: SCHEDULE_SCHEMA_VERSION,
+      savedAt: now,
+      term: d.term == null ? null : String(d.term),
+      tz: d.tz == null ? null : String(d.tz),
+      sources,
+      classes,
+    };
+  }
+
+  function migrateSchedule(raw) {
+    let d = raw, guard = 0;
+    while (d && Number(d.v) < SCHEDULE_SCHEMA_VERSION && guard++ < 16) {
+      const step = SCHEDULE_MIGRATIONS[Number(d.v)];
+      if (!step) return null;      // a gap in the chain is not a thing to guess at
+      d = step(d);
+    }
+    return d;
+  }
+
+  // ── the egress guard ──────────────────────────────────────────────────────
+  let schedWatch = [];             // lowercased strings that must never leave
+  const schedGuard = {
+    installed: false,
+    armed: true,
+    log: [],
+    blocked: 0,
+    checked: 0,
+    quietChecked: 0,          // worker messages: counted, not individually logged
+    inspectFailures: 0,
+    unreadableBodies: 0,
+  };
+
+  /** Every string leaf in the schedule, long enough to be distinctive, plus
+   *  the serialised blob itself and the `CODE ROOM` composites the router will
+   *  be handed. Lowercased once here so the hot path is a plain indexOf. */
+  function buildWatchlist(doc) {
+    const out = new Set();
+    const add = (s) => {
+      if (typeof s !== 'string') return;
+      const t = s.trim().toLowerCase();
+      if (t.length >= SCHEDULE_STORE.minTokenLen) out.add(t);
+    };
+    const walk = (v) => {
+      if (v == null) return;
+      if (typeof v === 'string') return add(v);
+      if (Array.isArray(v)) return v.forEach(walk);
+      if (typeof v === 'object') return Object.keys(v).forEach(k => walk(v[k]));
+    };
+    walk(doc);
+    for (const c of (doc && doc.classes) || []) {
+      if (c.code && c.room) { add(c.code + ' ' + c.room); add(c.code + '-' + c.room); }
+    }
+    try { add(JSON.stringify(doc)); } catch (e) {}
+    return Array.from(out);
+  }
+
+  /** The redaction the log itself needs, so reading the audit log is not a
+   *  second copy of the leak. */
+  const redactToken = (t) => t.slice(0, 2) + '…(' + t.length + ')';
+
+  /**
+   * WHAT SCANS ONE STRING, AND WHY IT IS A LOOP OF `indexOf` AND NOT A REGEX.
+   *
+   * A single compiled alternation `/tok1|tok2|.../i` looks like the obvious
+   * win — one pass, no allocation — and it is the wrong primitive here. An
+   * alternation has to try every branch at every start position, so on a
+   * 60-character tile URL with ~22 branches it does over a thousand attempted
+   * matches to conclude "no". `String.prototype.indexOf` is a single
+   * vectorised substring search per token, and it is the operation V8 has
+   * actually optimised. Two cheap gates come first and remove most of the work
+   * outright: a haystack shorter than the shortest token cannot contain one,
+   * and every token is stored pre-lowercased so the haystack is lowercased
+   * exactly once per scan instead of once per token.
+   *
+   * `schedRe` is kept only as the "is anything watched" flag the hot paths
+   * test, so there is one thing to check rather than two.
+   */
+  let schedRe = null;               // null == nothing stored == fast path
+  let schedMinLen = Infinity;
+  /** THE ONLY WRITER of `schedWatch`. The list, the flag and the shortest
+   *  length must never disagree — a stale one of those is either a guard that
+   *  blocks nothing or one that blocks the map. */
+  function setWatchlist(list) {
+    schedWatch = list || [];
+    schedRe = schedWatch.length ? true : null;
+    schedMinLen = Infinity;
+    for (const t of schedWatch) if (t.length < schedMinLen) schedMinLen = t.length;
+  }
+
+  function scanForSchedule(hay) {
+    if (!schedRe || !hay) return null;
+    const s = typeof hay === 'string' ? hay : String(hay);
+    if (s.length < schedMinLen) return null;
+    const h = s.toLowerCase();
+    for (let i = 0; i < schedWatch.length; i++) {
+      const t = schedWatch[i];
+      if (t.length <= h.length && h.indexOf(t) !== -1) return t;
+    }
+    return null;
+  }
+
+  /**
+   * scanStructured — walk a structured-clone payload testing each string leaf
+   * against the watchlist, and stop at the first hit.
+   *
+   * This replaced a `stringsOf()` that CONCATENATED every string in the
+   * message into one haystack and then scanned it. Concatenation is the wrong
+   * shape here twice over: it allocates a fresh string per message on the map's
+   * hot path, and it is not needed, because every watched token is a whole
+   * field value and therefore lives inside ONE leaf if it is there at all.
+   * Testing leaf by leaf finds exactly the same leaks and builds nothing.
+   * Typed arrays and buffers are skipped — they cannot hold a JS string — and
+   * the walk stops at `maxNodes` so a hostile payload cannot make it unbounded.
+   */
+  function scanStructured(v, maxNodes) {
+    let nodes = 0, hit = null;
+    const walk = (x) => {
+      if (hit !== null || nodes++ > maxNodes) return;
+      if (x == null) return;
+      const t = typeof x;
+      if (t === 'string') { hit = scanForSchedule(x); return; }
+      if (t !== 'object') return;
+      if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;
+      if (Array.isArray(x)) { for (let i = 0; i < x.length && hit === null; i++) walk(x[i]); return; }
+      for (const k in x) {
+        if (hit !== null) return;
+        if (Object.prototype.hasOwnProperty.call(x, k)) walk(x[k]);
+      }
+    };
+    walk(v);
+    return { hit, complete: nodes <= maxNodes };
+  }
+
+  /** Best-effort synchronous text of a request body. Returns `undefined` for a
+   *  body we cannot read without going async (a Blob, a big buffer) — counted,
+   *  never silently treated as empty. */
+  function bodyToText(b) {
+    if (b == null) return '';
+    if (typeof b === 'string') return b;
+    if (typeof URLSearchParams !== 'undefined' && b instanceof URLSearchParams) return b.toString();
+    if (typeof FormData !== 'undefined' && b instanceof FormData) {
+      let s = '';
+      for (const pair of b.entries()) s += pair[0] + '=' + (typeof pair[1] === 'string' ? pair[1] : '[file]') + '&';
+      return s;
+    }
+    if (typeof ArrayBuffer !== 'undefined' && (b instanceof ArrayBuffer || ArrayBuffer.isView(b))) {
+      try {
+        const u8 = b instanceof ArrayBuffer ? new Uint8Array(b) : new Uint8Array(b.buffer, b.byteOffset, b.byteLength);
+        if (u8.length > SCHEDULE_STORE.maxBytes) return undefined;
+        return new TextDecoder('utf-8', { fatal: false }).decode(u8);
+      } catch (e) { return undefined; }
+    }
+    return undefined;   // Blob, ReadableStream, anything else
+  }
+
+  /** How deep into one worker message the walk is willing to go. A MapLibre
+   *  `loadTile` request is about 25 nodes; this is two orders of magnitude of
+   *  headroom and still a hard stop. */
+  const WORKER_SCAN_NODES = 4000;
+
+  function noteEgress(via, method, url, hit, blocked, bytes) {
+    if (schedGuard.log.length >= SCHEDULE_STORE.logCap) schedGuard.log.shift();
+    let u = String(url == null ? '' : url);
+    if (hit) {
+      const re = new RegExp(hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      u = u.replace(re, '[REDACTED]');
+    }
+    schedGuard.log.push({
+      t: Math.round(performance.now()),
+      via, method: method || 'GET', url: u,
+      bytes: bytes == null ? 0 : bytes,
+      watched: schedWatch.length,
+      blocked: !!blocked,
+      matched: hit ? redactToken(hit) : null,
+    });
+  }
+
+  /**
+   * The one decision. Returns the matched token, or null to let it through.
+   *
+   * `quiet` MEANS "COUNT IT, DO NOT WRITE A LOG LINE FOR IT" — and it is a
+   * measured fix, not a style choice. The first version logged every call, and
+   * `Worker.postMessage` is MapLibre's per-tile path: 4,000 messages measured
+   * at 47 µs each over the unguarded baseline, and most of that was the log
+   * entry — a `performance.now()`, an object, and a `shift()` off a full ring
+   * buffer, per tile. The log exists to audit egress to the NETWORK, where the
+   * traffic is tens of requests and every line is worth having. A worker
+   * message still gets counted, and still gets a log line the moment it
+   * actually matches, which is the only worker message anyone would ever read.
+   */
+  function inspect(via, method, url, body, quiet) {
+    schedGuard.checked++;
+    if (quiet) schedGuard.quietChecked++;
+    if (!schedWatch.length) { if (!quiet) noteEgress(via, method, url, null, false, 0); return null; }
+    let hit = null;
+    try {
+      hit = scanForSchedule(url);
+      if (!hit && body !== undefined) hit = scanForSchedule(body);
+      if (!hit && body === undefined) schedGuard.unreadableBodies++;
+    } catch (e) {
+      // FAIL OPEN, AND COUNT IT. A throw in here must not be able to stop the
+      // map loading; the audit asserts this counter is zero, which is where a
+      // broken inspector actually gets caught.
+      schedGuard.inspectFailures++;
+      if (!quiet) noteEgress(via, method, url, null, false, 0);
+      return null;
+    }
+    const block = !!(hit && schedGuard.armed);
+    if (!quiet || hit) {
+      noteEgress(via, method, url, hit, block, body === undefined ? -1 : String(body || '').length);
+    }
+    if (block) schedGuard.blocked++;
+    return block ? hit : null;
+  }
+
+  function egressError(via, hit) {
+    return new Error('[wayfind] blocked: ' + via + ' carried stored schedule content (' +
+      redactToken(hit) + '). The schedule never leaves this device.');
+  }
+
+  function installEgressGuard() {
+    if (schedGuard.installed) return;
+    schedGuard.installed = true;
+
+    // fetch ────────────────────────────────────────────────────────────────
+    if (typeof window.fetch === 'function') {
+      const orig = window.fetch;
+      window.fetch = function (input, init) {
+        // FAST PATH. With nothing stored there is nothing to scan, and this is
+        // the path every tile in the city takes.
+        if (!schedWatch.length) return orig.apply(this, arguments);
+        const isReq = (typeof Request !== 'undefined' && input instanceof Request);
+        const url = isReq ? input.url : String(input);
+        const method = (init && init.method) || (isReq && input.method) || 'GET';
+        let body = init ? bodyToText(init.body) : '';
+        if (isReq && body === '' && input.body) body = undefined;   // stream: unreadable here
+        const hit = inspect('fetch', method, url, body);
+        if (hit) return Promise.reject(egressError('fetch', hit));
+        return orig.apply(this, arguments);
+      };
+    }
+
+    // XMLHttpRequest ───────────────────────────────────────────────────────
+    if (typeof XMLHttpRequest !== 'undefined') {
+      const op = XMLHttpRequest.prototype.open, sd = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function (m, u) {
+        this.__wfM = m; this.__wfU = u;
+        return op.apply(this, arguments);
+      };
+      XMLHttpRequest.prototype.send = function (b) {
+        if (schedWatch.length) {
+          const hit = inspect('xhr', this.__wfM, this.__wfU, bodyToText(b));
+          if (hit) throw egressError('XMLHttpRequest', hit);
+        }
+        return sd.apply(this, arguments);
+      };
+    }
+
+    // sendBeacon ───────────────────────────────────────────────────────────
+    if (navigator && typeof navigator.sendBeacon === 'function') {
+      const orig = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = function (u, d) {
+        if (schedWatch.length && inspect('sendBeacon', 'POST', u, bodyToText(d))) return false;
+        return orig(u, d);
+      };
+    }
+
+    // WebSocket ────────────────────────────────────────────────────────────
+    if (typeof window.WebSocket === 'function') {
+      const OrigWS = window.WebSocket;
+      class GuardedWebSocket extends OrigWS {
+        constructor(url, protocols) {
+          if (schedWatch.length && inspect('websocket', 'OPEN', url, '')) throw egressError('WebSocket', 'url');
+          super(url, protocols);
+        }
+        send(data) {
+          if (schedWatch.length) {
+            const hit = inspect('websocket', 'SEND', this.url, bodyToText(data));
+            if (hit) throw egressError('WebSocket.send', hit);
+          }
+          return super.send(data);
+        }
+      }
+      window.WebSocket = GuardedWebSocket;
+    }
+
+    // EventSource ──────────────────────────────────────────────────────────
+    if (typeof window.EventSource === 'function') {
+      const OrigES = window.EventSource;
+      class GuardedEventSource extends OrigES {
+        constructor(url, cfg) {
+          if (schedWatch.length && inspect('eventsource', 'OPEN', url, '')) throw egressError('EventSource', 'url');
+          super(url, cfg);
+        }
+      }
+      window.EventSource = GuardedEventSource;
+    }
+
+    // Worker.postMessage ───────────────────────────────────────────────────
+    // THIS IS THE ONE THAT CLOSES THE HOLE. The guard is main-thread, and
+    // MapLibre does its tile fetching inside workers where it cannot reach. So
+    // instead of trying to follow the bytes into the worker, it stops schedule
+    // bytes from ever getting in. A worker cannot send what it was never told.
+    if (typeof Worker !== 'undefined' && Worker.prototype && Worker.prototype.postMessage) {
+      const pm = Worker.prototype.postMessage;
+      // THE HOT PATH. Its own inline check rather than a trip through
+      // `inspect()`, because `inspect()` builds a log line and a MapLibre tile
+      // load is a thousand of these. Counted, never logged unless it matches.
+      Worker.prototype.postMessage = function (msg) {
+        if (schedRe) {
+          schedGuard.checked++; schedGuard.quietChecked++;
+          let hit = null;
+          try {
+            hit = (typeof msg === 'string') ? scanForSchedule(msg)
+              : scanStructured(msg, WORKER_SCAN_NODES).hit;
+          } catch (e) { schedGuard.inspectFailures++; hit = null; }
+          if (hit && schedGuard.armed) {
+            schedGuard.blocked++;
+            noteEgress('worker.postMessage', 'POST', '[worker]', hit, true, -1);
+            throw egressError('Worker.postMessage', hit);
+          }
+        }
+        return pm.apply(this, arguments);
+      };
+    }
+
+    // form submission ──────────────────────────────────────────────────────
+    if (typeof HTMLFormElement !== 'undefined' && HTMLFormElement.prototype.submit) {
+      const sub = HTMLFormElement.prototype.submit;
+      HTMLFormElement.prototype.submit = function () {
+        if (schedWatch.length) {
+          const hit = inspect('form.submit', this.method || 'GET', this.action,
+            bodyToText(typeof FormData !== 'undefined' ? new FormData(this) : null));
+          if (hit) throw egressError('form.submit', hit);
+        }
+        return sub.apply(this, arguments);
+      };
+    }
+    document.addEventListener('submit', (ev) => {
+      if (!schedWatch.length) return;
+      const f = ev.target;
+      if (!f || f.tagName !== 'FORM') return;
+      let text = '';
+      try { text = bodyToText(new FormData(f)); } catch (e) { text = undefined; }
+      if (inspect('form.event', f.method || 'GET', f.action, text)) ev.preventDefault();
+    }, true);
+  }
+
+  // ── read, write, and the delete that has to be total ───────────────────────
+  let schedCache = null;
+  const schedListeners = new Set();
+  function fireScheduleChange(why) {
+    for (const fn of schedListeners) { try { fn(schedCache, why); } catch (e) {} }
+    renderPrivacyPanel();
+  }
+
+  function scheduleLoad() {
+    if (schedCache) return schedCache;
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(SCHEDULE_STORE.key) || 'null'); } catch (e) { return null; }
+    if (!raw || typeof raw !== 'object') return null;
+    if (Number(raw.v) > SCHEDULE_SCHEMA_VERSION) return { tooNew: true, v: raw.v };
+    const d = migrateSchedule(raw);
+    if (!d) return null;
+    schedCache = d;
+    setWatchlist(buildWatchlist(d));
+    return d;
+  }
+
+  function scheduleSave(doc) {
+    const d = normaliseSchedule(doc);
+    let text;
+    try { text = JSON.stringify(d); } catch (e) { return { ok: false, why: 'unserialisable' }; }
+    if (text.length > SCHEDULE_STORE.maxBytes) return { ok: false, why: 'toobig', bytes: text.length };
+    try { localStorage.setItem(SCHEDULE_STORE.key, text); }
+    catch (e) { return { ok: false, why: 'storage', message: String(e && e.name) }; }
+    schedCache = d;
+    setWatchlist(buildWatchlist(d));
+    fireScheduleChange('save');
+    return { ok: true, bytes: text.length, classes: d.classes.length };
+  }
+
+  /** Every key this feature could ever have written, right now, on disk. */
+  function scheduleKeys() {
+    const out = [];
+    for (const store of [['local', localStorage], ['session', sessionStorage]]) {
+      try {
+        for (let i = 0; i < store[1].length; i++) {
+          const k = store[1].key(i);
+          if (k && k.indexOf(SCHEDULE_STORE.prefix) === 0) out.push({ where: store[0], key: k });
+        }
+      } catch (e) {}
+    }
+    return out;
+  }
+
+  function scheduleInventory() {
+    const keys = scheduleKeys().map(k => {
+      let v = '';
+      try { v = ((k.where === 'local' ? localStorage : sessionStorage).getItem(k.key)) || ''; } catch (e) {}
+      return { where: k.where, key: k.key, bytes: v.length };
+    });
+    return { keys, bytes: keys.reduce((n, k) => n + k.bytes, 0), inMemory: !!schedCache };
+  }
+
+  /**
+   * scheduleClear — the delete control's whole job. Sweeps the prefix in both
+   * web storages (not just the one key), drops the reserved IndexedDB database
+   * whether or not anything has created it yet, drops the in-memory copy, and
+   * empties the guard's watchlist so the guard is not holding the last copy of
+   * what it was guarding.
+   */
+  function scheduleClear() {
+    const removed = [];
+    for (const k of scheduleKeys()) {
+      try { (k.where === 'local' ? localStorage : sessionStorage).removeItem(k.key); removed.push(k.key); } catch (e) {}
+    }
+    schedCache = null;
+    setWatchlist([]);
+    const idb = new Promise((res) => {
+      if (typeof indexedDB === 'undefined' || !indexedDB.deleteDatabase) return res('no-idb');
+      let done = false;
+      const fin = (r) => { if (!done) { done = true; res(r); } };
+      try {
+        const req = indexedDB.deleteDatabase(SCHEDULE_STORE.idbName);
+        req.onsuccess = () => fin('deleted');
+        req.onerror = () => fin('error');
+        req.onblocked = () => fin('blocked');
+        setTimeout(() => fin('timeout'), 2000);
+      } catch (e) { fin('threw'); }
+    });
+    fireScheduleChange('clear');
+    return { removed, idb, remaining: scheduleInventory() };
+  }
+
+  async function scheduleClearAsync() {
+    const r = scheduleClear();
+    r.idbResult = await r.idb;
+    r.remaining = scheduleInventory();
+    return r;
+  }
+
+  // A delete in one tab is a delete everywhere. Cheap, and the alternative is
+  // a second tab still holding a schedule the student believes they erased.
+  window.addEventListener('storage', (ev) => {
+    if (!ev || !ev.key || ev.key.indexOf(SCHEDULE_STORE.prefix) !== 0) return;
+    schedCache = null;
+    const d = scheduleLoad();
+    if (!d || d.tooNew) setWatchlist([]);
+    fireScheduleChange('othertab');
+  });
+
+  // ── the panel: the sentence, what is stored, and the one tap ──────────────
+  let privEl = null, privMountTries = 0, privNoticeTimer = 0;
+
+  /** index.html's `<template id="wf-privacy-copy">` overrides the defaults, so
+   *  the wording is a one-line edit in the HTML with no JS change. */
+  function privacyCopy() {
+    const out = Object.assign({}, SCHEDULE_PRIVACY_COPY);
+    const t = document.getElementById('wf-privacy-copy');
+    if (t && t.content) {
+      for (const n of t.content.querySelectorAll('[data-k]')) {
+        const k = n.getAttribute('data-k');
+        if (k in out) out[k] = n.textContent.trim();
+      }
+    }
+    return out;
+  }
+
+  function buildPrivacyPanel() {
+    if (privEl) return privEl;
+    if (!document.getElementById('wf-priv-css')) {
+      const s = document.createElement('style');
+      s.id = 'wf-priv-css'; s.textContent = SCHEDULE_PRIVACY_CSS;
+      document.head.appendChild(s);
+    }
+    const C = privacyCopy();
+    const root = h('div', null); root.id = 'wf-priv';
+    root.appendChild(h('div', 'wf-priv-line', C.line));
+    const st = h('div', 'wf-priv-state', ''); root.appendChild(st);
+    const del = h('button', null, ''); del.id = 'wf-priv-del';
+    del.type = 'button';
+    del.appendChild(icon(null, IC.close, 2.2));
+    del.appendChild(h('span', null, C.deleteBtn));
+    del.addEventListener('click', async () => {
+      if (SCHEDULE_STORE.deleteNeedsConfirm && !window.confirm(C.confirm)) return;
+      await scheduleClearAsync();
+      st.textContent = C.deleted;
+      clearTimeout(privNoticeTimer);
+      privNoticeTimer = setTimeout(renderPrivacyPanel, SCHEDULE_STORE.deletedNoticeMs);
+    });
+    root.appendChild(del);
+    privEl = { root, state: st, del };
+    return privEl;
+  }
+
+  function renderPrivacyPanel() {
+    if (!privEl) return;
+    const C = privacyCopy();
+    const d = scheduleLoad();
+    const has = !!(d && !d.tooNew && d.classes && d.classes.length);
+    privEl.root.classList.toggle('has-schedule', has);
+    if (has) {
+      const src = (d.sources && d.sources[0] && d.sources[0].label) || 'an import';
+      privEl.state.textContent = scheduleSavedLine(d.classes.length, src);
+    } else {
+      privEl.state.textContent = C.empty;
+    }
+  }
+
+  /**
+   * Where the panel goes. The import bar does not exist in this lane's files —
+   * four other lanes are building it — so this mounts itself into the sheet's
+   * own footer, which is where this feature already puts the things it has to
+   * say about itself, and `WAYFIND.store.mount(el)` lets whoever builds the
+   * import bar move it into the bar in one line instead.
+   */
+  function mountPrivacyPanel(host) {
+    const p = buildPrivacyPanel();
+    const target = host || document.querySelector('#wf-sheet .wf-foot');
+    if (!target) {
+      // The sheet is built on first open, so retry for a while and then stop
+      // rather than leaving a timer running forever on a page nobody opened.
+      if (privMountTries++ < 200) setTimeout(() => mountPrivacyPanel(), 250);
+      return null;
+    }
+    if (p.root.parentNode !== target) target.insertBefore(p.root, target.firstChild);
+    renderPrivacyPanel();
+    return p.root;
+  }
+
+  // ── install, and the public seam the import lanes call ────────────────────
+  installEgressGuard();
+  scheduleLoad();
+  if (schedCache) setWatchlist(buildWatchlist(schedCache));
+  setTimeout(() => mountPrivacyPanel(), 0);
+
+  WAYFIND.store = {
+    KEY: SCHEDULE_STORE.key,
+    PREFIX: SCHEDULE_STORE.prefix,
+    IDB: SCHEDULE_STORE.idbName,
+    VERSION: SCHEDULE_SCHEMA_VERSION,
+    SOURCES: SCHEDULE_SOURCES,
+    copy: privacyCopy,
+    defaultCopy: SCHEDULE_PRIVACY_COPY,
+    normalise: normaliseSchedule,
+    save: scheduleSave,
+    load: scheduleLoad,
+    has: () => { const d = scheduleLoad(); return !!(d && !d.tooNew && d.classes && d.classes.length); },
+    clear: scheduleClear,
+    clearAsync: scheduleClearAsync,
+    inventory: scheduleInventory,
+    mount: mountPrivacyPanel,
+    onChange: (fn) => { schedListeners.add(fn); return () => schedListeners.delete(fn); },
+    guard: {
+      state: () => ({
+        installed: schedGuard.installed,
+        armed: schedGuard.armed,
+        watched: schedWatch.length,
+        checked: schedGuard.checked,
+        quietChecked: schedGuard.quietChecked,
+        blocked: schedGuard.blocked,
+        inspectFailures: schedGuard.inspectFailures,
+        unreadableBodies: schedGuard.unreadableBodies,
+      }),
+      log: () => schedGuard.log.slice(),
+      /** ONLY so the audit can prove its own network capture is not blind. A
+       *  "zero requests carried the schedule" result means nothing unless the
+       *  instrument is shown catching one; this lets the audit fire a real
+       *  leak, watch the capture catch it, and re-arm. Nothing in the app
+       *  calls it. */
+      __disarmForAudit: () => { schedGuard.armed = false; return schedGuard.armed; },
+      arm: () => { schedGuard.armed = true; return schedGuard.armed; },
+    },
+  };
+  window.wayfindStore = WAYFIND.store;
+
   function boot() {
     const map = window.__map;
     if (!map) return setTimeout(boot, 60);

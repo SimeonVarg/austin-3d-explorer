@@ -2259,3 +2259,51 @@ schedule change. If the feature ever promises "always up to date," a webcal
 subscription alone doesn't deliver that promise on its own schedule.
 
 Nothing in `js/wayfind.js` touched, `WAYFIND.on` untouched.
+
+## 2026-08-24 — the class schedule stays on the phone: storage, one-tap delete, and the proof (`acer/si-privacy`)
+
+Built the storage half of the class-schedule import Simeon asked for: where a
+student's schedule lives, how it gets deleted, and the one sentence that tells
+them the truth about both. The three importers themselves are other lanes'; this
+lane owns what happens to the data once they hand it over.
+
+The sentence, in the footer of the walk panel: **"Your schedule stays on this
+device — saved in this browser only, never uploaded anywhere, and Delete wipes
+it for good."** Under it, a line saying what is actually stored ("4 classes from
+a Google Calendar export, on this device only") and a Delete button that only
+exists when there is something to delete. One tap, no "are you sure" — the brief
+asked for one tap, and an undo would mean keeping the data around after telling
+someone it was gone. The wording lives in `index.html` as a `<template>` so it is
+a one-line edit, and the audit fails on purpose if that copy and the JS defaults
+ever say different things.
+
+The interesting part is that all three clauses of that sentence are now things a
+machine checks rather than things a doc claims. A real Google Calendar `.ics` is
+parsed and imported, every request the page and its workers make is recorded
+across the import window, and every one of them is scanned for the schedule's own
+strings: zero carried any. That zero would be worth nothing from a blind
+instrument, so the same run disarms the in-page guard, fires one real POST with
+the schedule as its body, and proves the capture sees it and the scanner flags
+it — then re-arms and proves the identical request is refused before it reaches
+the wire. Delete is a real mouse click on the real button, followed by a reload,
+followed by reading storage out of the fresh document: nothing left but the
+graphics preference the app already had. 34 assertions, five runs, all green, and
+`walkmeter.mjs` still passes on this branch including its live click-the-checkbox
+gate, so the shipped walk feature and another lane's stairs work are intact.
+
+Two things worth carrying forward. The stored format already reserves the three
+fields a photo-of-a-schedule import or a Registration-Plus API would otherwise
+force a rewrite for — a list of sources rather than one, per-class confidence and
+provenance, and a version chain — and Delete already sweeps a whole key prefix
+plus the IndexedDB database an OCR pass will need, so a source added next month
+is covered by a delete written today. And the guard that enforces "nothing
+leaves" sits on MapLibre's per-tile worker path, so it was measured rather than
+assumed: the first version cost 42.6 µs a message, the fixed one costs 3.8 µs,
+which is about 19 ms across an entire heavy session and only when a schedule is
+stored at all. Two earlier attempts at that measurement were wrong in instructive
+ways and both are written down in `docs/si-privacy.md` §8.
+
+Write-up and the audit script verbatim: `docs/si-privacy.md`. Frames:
+`shots/si/privacy/`. `WAYFIND.on` untouched; the whole section is inside the
+feature's existing off-switch and the audit proves the page is unchanged without
+`?walk=1`.
