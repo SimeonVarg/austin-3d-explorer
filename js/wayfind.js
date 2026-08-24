@@ -1077,6 +1077,15 @@
     graphUrl: 'data/walk_graph.json',
     registerUrl: 'data/ut_buildings.json',  // UT's own 198-code register; the
                            // codes the graph lacks still deserve an answer
+
+    // ── THE CODES THE REGISTER FILE ITSELF MISSES ─────────────────────────
+    // Two switches, one each for the two tables below §4b. Both default on;
+    // either one off restores the behaviour this file had before 2026-08-24,
+    // which was to answer `notfound` — the same word a typo gets.
+    campusExtraCodes: true,  // a code UT surveys and files as main campus that
+                           // `registerUrl`'s snapshot does not list. SSW.
+    offMapCodes: true,     // a code UT surveys at a campus this app does not
+                           // draw. The ten at Pickle, 11 km north.
     minZoom: 13,
   };
 
@@ -2259,6 +2268,39 @@
         entries.push(e);
       }
     }
+    // THE TWO MERGES THE REGISTER MERGE ABOVE CANNOT DO, because the register
+    // file does not contain these codes to merge (§4b). Both run AFTER it and
+    // both skip anything already indexed, so neither can take a code away from
+    // the register or from the graph — they can only fill a hole the register
+    // left. Order matters only in that direction.
+    if (WAYFIND.campusExtraCodes) {
+      for (const row of CAMPUS_EXTRA) {
+        if (byCode.has(row[0])) continue;
+        // `reg: true` on purpose. This IS a register building — ours is the
+        // register snapshot that is short a row — so it deserves the same
+        // "findable, and honestly answered if it will not route" treatment,
+        // and doorSet()'s rule 4 will in fact route it from UT's own door.
+        const e = { kind: 'reg', reg: true, extra: true, code: row[0],
+          name: norm(row[1]), number: row[2] || '', display: row[1], doors: [] };
+        byCode.set(row[0], e);
+        entries.push(e);
+      }
+    }
+    if (WAYFIND.offMapCodes) {
+      for (const r of offMapIndex().values()) {
+        if (byCode.has(r.code)) continue;
+        // NO `reg` FLAG, and that is the point of the whole table: a register
+        // entry means "not walkable in this build YET", which is a promise.
+        // This one is not walkable in any build, because it is not in this
+        // city. The record rides along on the entry so anything that resolves
+        // the code — the route card, the search list, a schedule import — has
+        // the reason in hand without a second lookup.
+        const e = { kind: 'offmap', offMap: r, code: r.code,
+          name: norm(r.name), number: '', display: r.name, doors: [] };
+        byCode.set(r.code, e);
+        entries.push(e);
+      }
+    }
     for (const e of entries) {
       // TOKENS COME FROM BOTH NAMES, NOT ONE (QUEUE Z9). The index key and the
       // door's own register name genuinely differ — JCD is `jester residence
@@ -2271,6 +2313,33 @@
       for (const w of norm(e.display).split(' ')) if (w) t.add(w);
       e.tokens = Array.from(t);
       e.routable = e.doors.some(di => g.doors[di][2] && g.doors[di][2].length);
+      // ── `routable` IS NARROWER THAN THE ROUTER, AND SAYING SO COSTS NOTHING
+      //
+      // `e.routable` means "has a door OUR BAKE anchored". That was the whole
+      // truth when it was written and stopped being it when doorSet() grew
+      // rule 4 — walk to UT's own coordinate when we have no door of our own.
+      // Since then two buildings have routed perfectly well while the search
+      // list greyed their row out and refused to let anybody pick it.
+      //
+      // MEASURED rather than argued: exactly two entries are in that state —
+      // HLB (PCL -> HLB, 1339 m) and SSW (JES -> SSW, 660 m). Both route. The
+      // set is small because rule 4 needs UT to have surveyed the building AND
+      // our bake to have missed it, which is a narrow overlap.
+      //
+      // THIS FLAG CHANGES NO BEHAVIOUR ON PURPOSE. Widening `routable` itself
+      // was tried and reverted: the row became pickable and then read
+      // "0 doors", because renderList() counts `e.doors`, which is empty for
+      // exactly these two until virtualDoor() runs at route time. Both the
+      // count and the tag live in the copy/render block this lane does not
+      // own, so the honest move is to publish the fact and let that lane make
+      // one coherent change. The patch is written out in docs/si-gaps.md §6.
+      //
+      // `utTruth` and not `utIndex`, so the useUTSurvey gate applies here
+      // exactly as it does on the routing path. `!e.offMap` because a Pickle
+      // building has UT rows and still cannot be reached — virtualDoor() finds
+      // no node within utVirtualSnapM of a point eleven kilometres away.
+      e.utRoutable = !e.routable &&
+        !!(!e.offMap && WAYFIND.utVirtualDoors && utTruth(e.code));
     }
     g.entries = entries;
     g.byCode = byCode;
@@ -2608,6 +2677,169 @@
     }
     return { doors: UT_CELEBRATED.length, buildings: codes.length, codes };
   };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4b. THE CODES `registerUrl` DOES NOT COVER — AND WHY THEY GET AN ANSWER
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // A class schedule is a list of building CODES. Import one and every code in
+  // it lands in exactly one of four buckets, and until 2026-08-24 two of those
+  // four buckets were the same silence:
+  //
+  //   1. routable                 136 of the 209 codes a schedule can name
+  //   2. known, not walkable yet   62  — the register merge above already
+  //                                     gives these the honest sentence
+  //   3. real, but not on this map  10  <- said `notfound`, i.e. "you typed it
+  //   4. not a UT code at all        —      wrong". So did bucket 4.
+  //
+  // Buckets 3 and 4 reading identically is the whole defect. A student whose
+  // Tuesday 2 pm is at MER should be told MER is eleven kilometres north at
+  // another campus, not that MER does not exist. The two tables below are the
+  // only thing standing between those two answers, and they exist because
+  // `data/ut_buildings.json` — UT's own register, retrieved 2026-08-05 — is a
+  // MAIN-CAMPUS snapshot: 198 codes, none of them at a satellite campus, and
+  // (measured, not assumed) missing one main-campus building outright.
+  //
+  // MEASURED 2026-08-24, on this repo's own files, before either table existed:
+  // eleven UT-surveyed codes answered `notfound`. Every one of them was put
+  // through the same two questions — how far is UT's own surveyed door from
+  // the nearest node of `data/walk_graph.json`, and is there a footprint in
+  // the snapshot the app actually draws:
+  //
+  //   SSW   nearest walk node  37.4 m   both UT doors land 0.4 m and 2.5 m
+  //                                     from the edge of ONE drawn footprint
+  //                                     (id 3fcbe266-…, h 9.8 m, unnamed)
+  //   the other ten          9.6–10.6 km to the nearest node; no footprint
+  //                                     within 200 m of any of them
+  //
+  // Three orders of magnitude apart, so they are two different problems and
+  // they get two different tables. Full working: docs/si-gaps.md.
+
+  // The middle of the Forty Acres, for saying how far away "away" is. It is
+  // the Main Building's OWN surveyed door out of UT_CELEBRATED above ('MAI
+  // 30.286023 -97.739757') rather than a second hand-typed coordinate, so
+  // there is exactly one place a campus centre can be wrong.
+  const OFF_MAP_ORIGIN = ['MAI', -97.739757, 30.286023];
+
+  // ── TABLE A: on this map, surveyed by UT, absent from the register ────────
+  //
+  // `[CODE, display name, UT building number]`.
+  //
+  // SSW is the only member, and it is not a special case bolted on — it is the
+  // register file being incomplete. UT files SSW as main campus (its own
+  // maps.utexas.edu record redirects to the `UTM` path, not the `PRC` one; see
+  // docs/import-bar-ut.md, which checked three public sources). Our register
+  // snapshot simply does not list it, so the register merge never made an
+  // entry, so `resolve('SSW')` returned null, so `doorSet()`'s rule 4 — walk to
+  // UT's own coordinate when we have no door of our own, the rule that already
+  // makes HLB work — never got the chance to fire.
+  //
+  // NOTHING ELSE IS NEEDED. Adding the entry is the entire fix: UT_CELEBRATED
+  // already carries SSW's two doors, and `utVirtualSnapM` (75 m) already
+  // reaches the network from both of them.
+  const CAMPUS_EXTRA = [
+    ['SSW', 'School of Social Work Building', '0625'],
+  ];
+
+  // ── TABLE B: a real UT building, at a campus this app does not draw ───────
+  //
+  // `[CODE, display name, campus]`.
+  //
+  // The coordinate is deliberately NOT repeated here — it is read back out of
+  // UT_CELEBRATED, which already has every one of these, so the distance below
+  // cannot drift away from the survey. Names are UT Direct's own Pickle
+  // Research Campus building index, quoted in docs/import-bar-ut.md.
+  //
+  // ROUTING TO THESE IS NOT THE FIX AND WOULD BE A LIE: there is no pavement
+  // in `data/walk_graph.json` within nine kilometres of any of them. Saying so
+  // is the fix.
+  const OFF_MAP_CAMPUS_PICKLE = 'J.J. Pickle Research Campus';
+  const OFF_MAP = [
+    ['BE1', 'BEG Lab Building', OFF_MAP_CAMPUS_PICKLE],
+    ['BEG', 'BEG Main Building', OFF_MAP_CAMPUS_PICKLE],
+    ['EME', 'Electro-Mechanical Engineering Research Center', OFF_MAP_CAMPUS_PICKLE],
+    ['FS1', 'Ferguson Engineering Lab Annex', OFF_MAP_CAMPUS_PICKLE],
+    ['FSL', 'Ferguson Laboratory — Main Building', OFF_MAP_CAMPUS_PICKLE],
+    ['MER', 'Microelectronics & Engineering Research Center', OFF_MAP_CAMPUS_PICKLE],
+    ['PX3', 'PETEX', OFF_MAP_CAMPUS_PICKLE],
+    ['ROC', 'Research Office Complex', OFF_MAP_CAMPUS_PICKLE],
+    ['SV1', 'PRC Service Center Trades', OFF_MAP_CAMPUS_PICKLE],
+    ['TCB', 'J. Neils Thompson Commons', OFF_MAP_CAMPUS_PICKLE],
+  ];
+
+  // Eight points is as fine as a direction can honestly be for a place eleven
+  // kilometres away that the reader cannot see on the map anyway.
+  const COMPASS_8 = ['north', 'northeast', 'east', 'southeast',
+    'south', 'southwest', 'west', 'northwest'];
+
+  let offMapByCode = null;
+  /**
+   * What we know about a code that names a building this map does not draw:
+   * its name, its campus, UT's own coordinate for it, and how far and which
+   * way that is from the middle of campus.
+   *
+   * Everything derived is derived HERE rather than stored, so the table above
+   * holds only facts that are not computable from another fact in this file.
+   * `km` uses the same flat MPD_LON/MPD_LAT this whole file routes with; over
+   * a span that is 99% north-south the longitude term barely participates and
+   * the error against a great circle is under a metre.
+   */
+  function offMapIndex() {
+    if (!offMapByCode) {
+      offMapByCode = new Map();
+      for (const row of OFF_MAP) {
+        const ut = utIndex().get(row[0]) || [];
+        const p = ut.length ? ut[0] : null;
+        let km = null, dir = null;
+        if (p) {
+          const dx = (p.lon - OFF_MAP_ORIGIN[1]) * MPD_LON;
+          const dy = (p.lat - OFF_MAP_ORIGIN[2]) * MPD_LAT;
+          // Two decimals. A reader is going to see "11 km"; more precision
+          // than a centidegree of it would be false confidence in a straight
+          // line nobody walks.
+          km = Math.round(Math.hypot(dx, dy) / 10) / 100;
+          // Bearing clockwise from north, bucketed to eight.
+          const deg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+          dir = COMPASS_8[Math.round(deg / 45) % 8];
+        }
+        offMapByCode.set(row[0], {
+          code: row[0], name: row[1], campus: row[2],
+          lat: p ? p.lat : null, lon: p ? p.lon : null,
+          km: km, direction: dir, doors: ut.length,
+          from: OFF_MAP_ORIGIN[0],
+        });
+      }
+    }
+    return offMapByCode;
+  }
+
+  /**
+   * THE SEAM A SCHEDULE IMPORT CONSUMES. With a code, the record above or
+   * null; with nothing, the whole table plus the campuses in it.
+   *
+   * This is the contract, and it is deliberately data rather than a sentence:
+   * an import bar, a search box and a route card each want to phrase "MER is
+   * at the J.J. Pickle Research Campus, 11 km north" differently, and the copy
+   * block is somebody else's file. Adding a second satellite campus later — UT
+   * has several — is a row in OFF_MAP and nothing else.
+   *
+   * NOT gated on `offMapCodes`, for the same reason `wayfindUTDoors` is not
+   * gated on `useUTSurvey`: the switch turns the behaviour off inside the
+   * ROUTER, and a harness that flips it still has to be able to ask what the
+   * table says.
+   */
+  window.wayfindOffMap = function (code) {
+    if (code) return offMapIndex().get(String(code).toUpperCase()) || null;
+    const idx = offMapIndex();
+    const campuses = {};
+    for (const r of idx.values()) campuses[r.campus] = (campuses[r.campus] || 0) + 1;
+    return {
+      buildings: idx.size, campuses,
+      codes: Array.from(idx.keys()),
+      extras: CAMPUS_EXTRA.map(r => r[0]),
+      origin: { code: OFF_MAP_ORIGIN[0], lon: OFF_MAP_ORIGIN[1], lat: OFF_MAP_ORIGIN[2] },
+    };
+  };
   // Where a door index actually is. A verify script cannot read this out of
   // data/walk_graph.json any more, because a door UT surveyed and our bake
   // never placed is created here at run time and has no index in that file.
@@ -2643,6 +2875,11 @@
       code: e.code, display: e.display,
       doors: doorSet(G, e, !!avoidStairs).map(di => window.wayfindDoorAt(di)),
       ut: (utTruth(e.code) || []).slice(),
+      // §4b. Present only on a code that names a building at another campus.
+      // The doors array is still empty for those, so anything counting
+      // routable buildings counts them exactly as it did before — this adds a
+      // reason next to the zero, it does not change the zero.
+      offMap: e.offMap || null,
     };
   };
 
@@ -8020,6 +8257,18 @@
     opts = opts || {};
     await loadGraph();
     const f = resolve(from), t = resolve(to);
+    // §4b — THE CLEAN "NOT ON THIS MAP" SIGNAL, and it has to come out BEFORE
+    // the UI is built. Without this branch an off-map code takes one of two
+    // wrong exits: `notfound` when the tables are off, which is the word a
+    // typo gets, or `nodoor` when they are on, which the card renders as
+    // "not walkable in this build yet" — a promise nobody can keep about a
+    // building eleven kilometres away. Named `offmap` so a caller can tell the
+    // three apart, with the whole record attached so it never has to ask twice.
+    const offEnd = (f && f.offMap) || (t && t.offMap) || null;
+    if (offEnd) {
+      return { ok: false, why: 'offmap', offMap: offEnd, from: f, to: t,
+        fromOffMap: (f && f.offMap) || null, toOffMap: (t && t.offMap) || null };
+    }
     if (!f || !t) return { ok: false, why: 'notfound', from: f, to: t };
     buildUI();
     state.from = f; state.to = t;

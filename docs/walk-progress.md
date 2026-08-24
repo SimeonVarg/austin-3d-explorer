@@ -2259,3 +2259,46 @@ schedule change. If the feature ever promises "always up to date," a webcal
 subscription alone doesn't deliver that promise on its own schedule.
 
 Nothing in `js/wayfind.js` touched, `WAYFIND.on` untouched.
+
+---
+
+**2026-08-24, acer lane, `acer/si-gaps` — the eleven buildings the router had
+no answer for.** A schedule import hands the router a building code, so the
+eleven UT codes that came back with nothing were the feature's real ceiling.
+Re-checked the list first (`walkmeter.mjs` still said the same eleven), then
+measured each one two ways: how far UT's own surveyed door is from the nearest
+piece of mapped pavement, and whether the app draws a building there at all.
+The answer split them three orders of magnitude apart. Ten are 10.8–11.8 km
+north at the Pickle Research Campus with no pavement within nine kilometres —
+the brief's claim about those was right. The eleventh, **SSW, the School of
+Social Work, is on this map**: UT's two published doors land 0.4 m and 2.5 m
+from the wall of a building we already draw, 37 m from the path network. It was
+not a pavement problem and not a door problem — the code simply was not in any
+index the search could reach, because our copy of UT's building register is
+missing that row, so it answered the same word a typo gets.
+
+**SSW now routes** (JES → SSW, 660 m; PCL → SSW, 755 m) through the same
+mechanism that already made HLB work — walk to UT's own coordinate when we have
+no door of our own. `walkmeter`'s "cannot route to at all" count went **11 → 10**,
+routable buildings scored 56 → 57 with all 57 landing inside 15 m of UT's own
+door, step-free reachability 56/56 → 57/57, and the avoid-stairs door check
+9/9 → 10/10 clean. **All twenty baseline pairs are identical across all seventeen
+measured fields — 340 comparisons, no differences** — and the live UI gate still
+passes. The ten Pickle codes now return a specific `why: 'offmap'` carrying the
+building's name, campus, distance and direction, through a new
+`window.wayfindOffMap()`, so the import lane gets a real reason instead of
+silence. Across the whole 209-code surface a schedule can name, codes answering
+`notfound` went **11 → 0**.
+
+Nothing was re-baked. The obvious fix — add SSW to `entrances.geojson` and
+re-run the bake — was tried and rolled back after measuring what it dragged in:
+`data/walk_graph.json` on `main` is stale (`snapshot: 2026-08-16` against the
+app's `2026-08-24`), and a clean re-bake with no input changes at all moves
++50 doors and +69 nodes. That is a real finding for whoever owns
+`scripts/bake_walk.py`, not something to smuggle in under a one-building fix,
+so the graph is left byte-for-byte `main`'s. Four other things found and
+deliberately not fixed — a now-stale line in `walkmeter.mjs`, the missing copy
+for an off-map building, the stale bake, and two buildings the search list greys
+out even though they route — are written up with exact patches in
+`docs/si-gaps.md`. Frames: `shots/si/gaps/`. `WAYFIND.on` untouched; the change
+is additive only, five hunks, no deletions.
