@@ -1,0 +1,60 @@
+{
+  "at": "2026-08-23T17:36:58.366Z",
+  "url": "http://127.0.0.1:8711/index.html?walk=1&intro=0&drift=0",
+  "viewport": "1440x900",
+  "gl": "swiftshader",
+  "note": "stairsdoor-* are one hand-set pose straight down, centred on the midpoint of Parlin Hall's two UT-surveyed doors, so both are in frame by construction.",
+  "shots": [
+    {
+      "name": "stairsdoor-par-off",
+      "note": "CAL->PAR, avoid stairs OFF - the walk ends at Parlin Hall's EAST entrance, which UT records as neither barrier-free nor auto-opening",
+      "avoidStairs": false,
+      "info": {
+        "ok": true,
+        "distM": 160,
+        "door": [
+          -97.739851,
+          30.284876999999998
+        ],
+        "src": "osm",
+        "headline": "1-3 min walk · 160 m · No stairs on this route",
+        "sub": "Parlin Hall · The main entrance"
+      },
+      "cam": {
+        "center": [
+          -97.740056,
+          30.2849415
+        ],
+        "zoom": 19.35,
+        "pitch": 0,
+        "bearing": 0
+      }
+    },
+    {
+      "name": "stairsdoor-par-on",
+      "note": "the same walk, avoid stairs ON - the door moves 41 m round to the WEST entrance, which UT records as both barrier-free and auto-opening",
+      "avoidStairs": true,
+      "info": {
+        "ok": true,
+        "distM": 197,
+        "door": [
+          -97.740252,
+          30.285003
+        ],
+        "src": "ut",
+        "headline": "2-3 min walk · 200 m · No stairs on this route",
+        "sub": "Parlin Hall · Entrances are on this side"
+      },
+      "cam": {
+        "center": [
+          -97.740056,
+          30.2849415
+        ],
+        "zoom": 19.35,
+        "pitch": 0,
+        "bearing": 0
+      }
+    }
+  ],
+  "pageErrors": []
+}

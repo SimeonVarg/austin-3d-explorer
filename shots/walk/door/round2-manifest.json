@@ -1,0 +1,70 @@
+{
+ "when": "2026-08-23",
+ "branch": "acer/w-door",
+ "lane": "w-door round 2",
+ "how": "scripts/verify/doorwalk.mjs (eye shots) and a route-shot script on the same launcher; python scripts/serve.py 8711; VERIFY_GL=hardware; ?walk=1&drift=0&intro=0; window.cancelGraphicsAutoDetect() called; waited for #veil to go and for austin-entrances to be source-loaded before every frame; screenshot taken twice, second kept",
+ "eyeAltitudeNote": "eye altitude read back off window.__fly.eye() AFTER the jump, not requested and assumed. controls.js pins ZOOM_MAX 21.5, so below ~18 m of standoff the derived zoom saturates and the app's own floor is ~2.23 m rather than the requested 1.70 m. That floor is reported, not fought.",
+ "shots": [
+  {
+   "file": "eye-mai-west.jpg",
+   "what": "Main Building (MAI) west entrance, the door UT publishes and this bake placed. Walking height.",
+   "eyeAltM": 1.7,
+   "standoffM": 22,
+   "zoom": 21.244,
+   "entranceSourceFeatures": 42392
+  },
+  {
+   "file": "eye-bio-west.jpg",
+   "what": "Biological Laboratories (BIO) west entrance. Our own nearest door is 62 m away; this is the one a student climbs.",
+   "eyeAltM": 2.23,
+   "standoffM": 14,
+   "zoom": 21.5,
+   "entranceSourceFeatures": 29204
+  },
+  {
+   "file": "eye-sea-southwest.jpg",
+   "what": "Seay Building (SEA) southwest entrance. Oracle error before the bake placed it: 79.8 m.",
+   "eyeAltM": 2.23,
+   "standoffM": 14,
+   "zoom": 21.5,
+   "entranceSourceFeatures": 23458
+  },
+  {
+   "file": "jon-courtyard-eye.jpg",
+   "what": "Standing on the node the router snaps Jesse H. Jones Hall's UT door to, looking north up exactly the 57 m the dashed leg runs. This is the picture utVirtualSnapM = 58 was set on.",
+   "eyeAltM": 1.7,
+   "standoffM": 40,
+   "route": "RLP -> JON"
+  },
+  {
+   "file": "jon-route-before.jpg",
+   "what": "RLP -> JON with the old 45 m cap: 830 m, ends at a derived door 62.1 m from UT's entrance, and those 62 m are not counted.",
+   "pose": "center -97.73152,30.28845 zoom 18.4 bearing 8 pitch 52",
+   "distM": 832,
+   "doorSrc": "derived",
+   "doorErrToUTm": 62.1
+  },
+  {
+   "file": "jon-route-after.jpg",
+   "what": "The same pose at the shipped 58 m cap: 700 m, ends at UT's own entrance, last 57 m dashed and counted.",
+   "pose": "center -97.73152,30.28845 zoom 18.4 bearing 8 pitch 52",
+   "distM": 703,
+   "doorSrc": "ut",
+   "doorErrToUTm": 0.0
+  },
+  {
+   "file": "hlb-route-after.jpg",
+   "what": "PCL -> Health Learning Building. This building answered 'we cannot take you there' before this round: we hold no door on it and doorSet() gave up before consulting UT.",
+   "distM": 1339,
+   "doorSrc": "ut",
+   "toLinkM": 41.6
+  }
+ ],
+ "numbers": {
+  "utBuildingsRoutable": 56,
+  "meanWorstCaseDoorErrorM": 2.5,
+  "buildingsAllCandidatesWithin15m": "56/56",
+  "twentyPairExtraTotalM": 96.8,
+  "longestDashedLegM": 57
+ }
+}
