@@ -350,6 +350,45 @@
     // recovered walks. Shipped at double the measured need. The cost was
     // real: WAG>GEA measured p50 247 ms at 24 and 86 ms at 8.
     stairAltWideMax: 4,
+
+    // ── ROUND 6. AND THEN THE DOOR ITSELF ────────────────────────────────
+    // Rounds 1-5 verified the PATH: no stepped edge, no door leg lying on a
+    // drawn flight, and a real way round where the app used to refuse. All
+    // five checks stop at the threshold. Nobody ever asked whether the door
+    // the walk ARRIVES AT is a door a wheelchair can get through.
+    //
+    // UT publishes the answer per entrance, and it is not a guess: field
+    // `BarrierFree` in `Celebrated_Entrances_view`, with a prose Description
+    // that names the barrier. Gearing Hall's celebrated entrance reads
+    // "Access is off 24th Street UP THE STAIRS and through the courtyard",
+    // and our door 386 sits 1.2 m from it. Measured over the same 300 pairs:
+    // 20 of the 38 step-free endpoints at a building UT surveyed a
+    // barrier-free door for went to a DIFFERENT door — up to 63 m away.
+    //
+    // False restores round 5 exactly, and is the A/B every §R38 number is
+    // from. The pass runs only under the step-free profile, only after a
+    // clean answer already exists, and only at an end where UT names a door
+    // we are not already using.
+    stairBarrierFree: true,
+    // HOW FAR OUT OF THE WAY A DOOR YOU CAN ACTUALLY GET THROUGH IS WORTH.
+    // This is the taste knob and it is the whole argument of the feature:
+    // for the person the toggle exists for, a door with steps is not a
+    // slightly worse door, it is a wall. docs/walk-baseline.md measured that
+    // forcing UT's door on EVERYBODY makes 9 of 19 ordinary trips longer —
+    // which is why this is a slack, not a rule, and why it is confined to
+    // the step-free profile where the other door is not an option at all.
+    //
+    // Swept over 300 pairs (docs/walk-stairs.md §R38): endpoints moved onto
+    // UT's barrier-free door, and the total metres that cost.
+    stairBarrierFreeSlackM: 150,
+    // How close a UT survey point must be to one of our doors before the two
+    // are the same physical door, and how much nearer than the closest row
+    // of the OPPOSITE verdict. Read off a sweep, not guessed: the two doors
+    // this convicts (GEA 386, PAR 512) are the same two at 5, 8, 12 and
+    // 20 m. A building whose accessible and inaccessible entrances are both
+    // near one of our doors gets NO label rather than a coin toss.
+    stairBarrierFreeMatchM: 8,
+    stairBarrierFreeMarginX: 2,
     stairListMax: 12,      // most staircases we will name in one leg list. A
                            // route with more than this is not a leg list, it
                            // is a wall of text; the count above it is still
@@ -1210,6 +1249,13 @@
       // say so, and because a route found this way is worth being able to tell
       // apart in a census. See docs/walk-stairs.md §R28.
       doorsWide: !!r.doorsWide,
+      // ROUND 6 — how many ends of this walk were moved onto the entrance UT
+      // publishes as barrier-free. 0 means either that no end had one or that
+      // the walk was already using it. Nothing on the card reads it yet; the
+      // card SHOULD eventually say "arrives at the barrier-free entrance UT
+      // lists", and that sentence belongs in
+      // docs/walk/what-we-can-honestly-say.md and another lane's function.
+      doorsBF: r.doorsBF || 0,
       avoidStairs: true,
     };
   }
@@ -1951,9 +1997,129 @@
   // the whole point: the offer and the toggle cannot be different routes.
   // ══════════════════════════════════════════════════════════════════════════
 
+  // ── ROUND 6. UT'S OWN BARRIER-FREE ENTRANCE SURVEY ───────────────────────
+  //
+  // Every row of `Celebrated_Entrances_view` that publishes coordinates AND
+  // names a building `walk_graph.json` has, as `[code, lon, lat, barrierFree]`.
+  // 66 rows over 50 buildings; 29 of UT's 98 rows carry null coordinates and
+  // cannot be placed, 2 name buildings the graph does not have, 1 is an exact
+  // duplicate. Source, sha256 and the re-derivation are docs/walk-stairs.md
+  // §R38 — this is a TRANSCRIPTION, and the doc is where it is argued for.
+  //
+  // It is here rather than in a data file for the same reason round 5's radius
+  // is: the client cannot fetch it, no bake this lane owns writes it, and a
+  // number nobody can see is worse than a number in the open. The honest
+  // permanent home is a `barrierFree` flag per door, published by whoever owns
+  // `scripts/bake_entrances.py` — written up in §R38, not made here.
+  //
+  // NOTHING READS THIS OUTSIDE THE STEP-FREE PROFILE. It cannot change an
+  // ordinary walk by construction.
+  const UT_ENTRANCES = [
+    ['ASE',-97.737604,30.291228,1], ['BAT',-97.738677,30.284796,1],
+    ['BEN',-97.738771,30.283956,1], ['BIO',-97.740083,30.287254,1],
+    ['BME',-97.738752,30.289431,1], ['BRB',-97.737006,30.285259,1],
+    ['BUR',-97.738492,30.288627,1], ['BWY',-97.738079,30.290797,1],
+    ['CCJ',-97.730652,30.287988,1], ['CCJ',-97.730635,30.288093,0],
+    ['CMB',-97.74101,30.289279,1], ['CPE',-97.736153,30.289992,1],
+    ['DMC',-97.740528,30.290092,1], ['ECJ',-97.735751,30.289045,0],
+    ['ECJ',-97.735494,30.288962,1], ['EER',-97.735633,30.288143,1],
+    ['EPS',-97.736945,30.285801,1], ['EPS',-97.736684,30.285686,0],
+    ['ETC',-97.735587,30.289903,1], ['FAC',-97.740629,30.286422,1],
+    ['FAC',-97.7401,30.286257,1], ['FNT',-97.737753,30.287855,1],
+    ['GAR',-97.738772,30.28506,1], ['GAR',-97.73854,30.285101,1],
+    ['GDC',-97.736679,30.285996,1], ['GEA',-97.739222,30.287691,0],
+    ['GEA',-97.738956,30.287668,1], ['GOL',-97.741276,30.285697,1],
+    ['GWB',-97.740069,30.287863,1], ['HRH',-97.740424,30.284081,1],
+    ['HSM',-97.740945,30.288992,1], ['JES',-97.737014,30.283089,1],
+    ['JGB',-97.735853,30.285757,1], ['JHH',-97.732079,30.278383,1],
+    ['JHH',-97.731978,30.278357,1], ['JON',-97.731335,30.288508,1],
+    ['MAI',-97.739719,30.286186,1], ['MBB',-97.737132,30.28859,1],
+    ['MEZ',-97.739144,30.284308,1], ['MEZ',-97.738739,30.284377,1],
+    ['NHB',-97.737621,30.287738,1], ['PAI',-97.738471,30.287011,1],
+    ['PAR',-97.740252,30.285003,1], ['PAR',-97.73986,30.28488,0],
+    ['PAT',-97.736524,30.28817,1], ['PCL',-97.737865,30.282994,1],
+    ['PHR',-97.738917,30.288355,1], ['PHR',-97.738815,30.288104,1],
+    ['PMA',-97.736342,30.288903,1], ['PMA',-97.736006,30.288912,1],
+    ['RLP',-97.735365,30.285229,1], ['RLP',-97.734889,30.285002,1],
+    ['SEA',-97.737745,30.289739,1], ['SUT',-97.740788,30.285065,1],
+    ['SZB',-97.738621,30.281952,1], ['UA9',-97.738825,30.290245,1],
+    ['UTA',-97.743022,30.279461,1], ['UTA',-97.74263,30.279248,1],
+    ['UTC',-97.738594,30.283339,1], ['WAG',-97.737505,30.285273,1],
+    ['WCH',-97.738658,30.28613,1], ['WCH',-97.738138,30.286121,0],
+    ['WIN',-97.734505,30.285631,1], ['WMB',-97.740594,30.285617,1],
+    ['WWH',-97.741895,30.289318,1], ['WWH',-97.741842,30.289196,0],
+  ];
+
+  /**
+   * ROUND 6 — the door of `code` that UT publishes as barrier-free, or -1.
+   *
+   * The match is deterministic and deliberately fussy, because the failure
+   * mode is sending somebody to the wrong door with more confidence than
+   * before: the nearest survey row must be inside
+   * `stairBarrierFreeMatchM`, and the nearest row of the OPPOSITE verdict
+   * must be at least `stairBarrierFreeMarginX` times farther. A building that
+   * cannot pass both gets -1 and this whole pass never fires for it — which
+   * is why a re-bake that renumbers or moves doors degrades to round 5's
+   * behaviour rather than to a wrong answer.
+   *
+   * Memoised on the decoded graph, so the scan is one pass per building per
+   * page load.
+   */
+  function barrierFreeDoor(g, code) {
+    if (!g._bfDoor) {
+      const rows = new Map();
+      for (const r of UT_ENTRANCES) {
+        if (!rows.has(r[0])) rows.set(r[0], []);
+        rows.get(r[0]).push(r);
+      }
+      g._bfRows = rows;
+      g._bfDoor = new Map();
+    }
+    if (g._bfDoor.has(code)) return g._bfDoor.get(code);
+    const rows = g._bfRows.get(code), entry = g.code && g.code[code];
+    let best = -1;
+    if (rows && entry) {
+      const M = WAYFIND.stairBarrierFreeMatchM, X = WAYFIND.stairBarrierFreeMarginX;
+      let bestM = Infinity;
+      for (const di of entry) {
+        const dll2 = doorLL(g, di);
+        let near = null, opp = Infinity;
+        for (const r of rows) {
+          const m = metresBetween(dll2, [r[1], r[2]]);
+          if (!near || m < near.m) near = { m, bf: r[3] };
+        }
+        for (const r of rows) {
+          const m = metresBetween(dll2, [r[1], r[2]]);
+          if (r[3] !== near.bf && m < opp) opp = m;
+        }
+        if (near.bf !== 1 || near.m > M || opp < near.m * X) continue;
+        if (near.m < bestM) { bestM = near.m; best = di; }
+      }
+    }
+    g._bfDoor.set(code, best);
+    return best;
+  }
+
+  // Which ENTRIES this pass is currently restricting to their barrier-free
+  // door. Set and cleared in a `finally` inside one synchronous call, exactly
+  // as round 5's `stairWidePass` is, and for the same reason: computeRoute()
+  // is another lane's function this round, so the signal cannot be an option
+  // travelling down through it. It should become a plain option the moment
+  // that lane lands. Nothing in this file is re-entrant.
+  let stairBFOnly = null;
+
   /** Every door with an anchor, not only `role: main`. See STAIRS above. */
   function stepFreeDoors(g, entry) {
-    return entry.doors.filter(di => g.doors[di][2] && g.doors[di][2].length);
+    const all = entry.doors.filter(di => g.doors[di][2] && g.doors[di][2].length);
+    // ROUND 6 — and when this pass is running for THIS end, only the door UT
+    // publishes as barrier-free. `all` is returned untouched when the entry is
+    // not in the set, which is every call the first three passes make.
+    if (stairBFOnly && stairBFOnly.has(entry)) {
+      const want = stairBFOnly.get(entry);
+      const only = all.filter(di => di === want);
+      if (only.length) return only;
+    }
+    return all;
   }
 
   /**
@@ -1992,6 +2158,48 @@
       if (wide && wide.ok && wide.stair && wide.stair.clean) {
         wide.doorsWide = true;
         r = wide;
+      }
+    }
+    // ── ROUND 6. THE FOURTH PASS: THE DOOR AT THE END OF IT ────────────────
+    // Everything above is untouched. This runs only on a route that ALREADY
+    // has a clean step-free answer, and only at an end where UT names a
+    // barrier-free door we are not already using. It can never turn an offer
+    // into a refusal: `r` is only replaced by a candidate that is itself ok,
+    // clean, and within STAIRS' own slack. See WAYFIND.stairBarrierFree and
+    // docs/walk-stairs.md §R38.
+    if (WAYFIND.stairBarrierFree && r && r.ok && r.stair && r.stair.clean) {
+      const wantFrom = barrierFreeDoor(g, from.code), wantTo = barrierFreeDoor(g, to.code);
+      // A door the bake never snapped to the network cannot be insisted on:
+      // stepFreeDoors() would find nothing to keep, fall back to every door,
+      // and hand back the SAME walk — which would then be recorded as a move
+      // that never happened. Checked here rather than there so the restriction
+      // stays a filter and never a silent no-op.
+      const usable = (entry, di) => di >= 0 && entry.doors.indexOf(di) >= 0 &&
+        g.doors[di][2] && g.doors[di][2].length;
+      const fix = [];
+      if (usable(from, wantFrom) && r.fromDoor !== wantFrom) fix.push([from, wantFrom]);
+      if (usable(to, wantTo) && r.toDoor !== wantTo) fix.push([to, wantTo]);
+      if (fix.length) {
+        // Both ends together first — it is the cheapest and the usual answer.
+        // Then each end alone, because one unreachable barrier-free door must
+        // not cost the walker the other end's.
+        const tries = fix.length === 2 ? [fix, [fix[0]], [fix[1]]] : [fix];
+        let bestBF = null;
+        for (const set of tries) {
+          let cand = null;
+          stairBFOnly = new Map(set);
+          try { cand = one(true); } finally { stairBFOnly = null; }
+          if (!cand || !cand.ok || !cand.stair || !cand.stair.clean) continue;
+          if (cand.distM - r.distM > WAYFIND.stairBarrierFreeSlackM) continue;
+          // More ends moved wins; among equals, the shorter walk wins.
+          const moved = set.length;
+          if (!bestBF || moved > bestBF.moved ||
+              (moved === bestBF.moved && cand.distM < bestBF.route.distM)) {
+            bestBF = { moved, route: cand };
+          }
+          if (moved === fix.length) break;   // nothing better is available
+        }
+        if (bestBF) { bestBF.route.doorsBF = bestBF.moved; r = bestBF.route; }
       }
     }
     if (!r) return { ok: false, why: (front.why || (any && any.why) || 'nostepfree') };

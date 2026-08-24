@@ -339,3 +339,46 @@ connections in `scripts/bake_walk.py`, written up with the exact IDs for
 whoever owns it. Also re-checked the thing this lane is judged on first: all
 189 mapped staircases are still drawn, none missing, none invented. The feature
 is still switched off; nothing here is public yet. Branch `acer/w-stairs`.
+
+## 2026-08-24 — Stairs, round 6: the walk was step-free and the door at the end of it was not
+
+Every check this lane has ever run stops at the threshold. We prove the route
+doesn't climb anything and that our own last straight line doesn't lie on a
+flight — and then we deliver somebody to a door nobody ever asked about. UT
+publishes the answer itself: for 98 celebrated entrances it says outright
+whether each one is barrier-free, and where it isn't, it says why. Gearing
+Hall's reads "Access is off 24th Street **up the stairs** and through the
+courtyard." Our door sits four feet from that spot and is labelled the main
+entrance.
+
+Checked the step-free walks against that survey: of the 38 endpoints at a
+building UT has surveyed an accessible entrance for, **20 were going to a
+different door** — one of them 63 metres away, round the far side. So the
+step-free pass now finishes the job: once it has a clean walk, it tries the
+door UT actually names, and takes it if it isn't more than 150 m further. **29
+of 38 now, for 353 metres of extra walking spread over 300 routes** — about
+31 m on the ones it moves. Nothing that already worked got worse: the number of
+walks offered and the number refused don't move at any setting, including with
+the limit removed entirely.
+
+The picture is Perry-Castañeda Library to the Physics building. Before, the
+ribbon stops at the south side. After, on the same camera, it carries on round
+to the north-east corner — which is the entrance UT lists as barrier-free.
+Frames are in `shots/walk/stairs/`.
+
+Two things it couldn't fix and one it shouldn't. Waggener Hall's accessible
+door can only be reached over a mapped flight on our map, so refusing it is the
+feature working. The Computational Engineering building's accessible door is
+marooned on a 16-node island. And the big one, which belongs to the
+map-building script and not here: **38 of the 60 accessible entrances UT
+publishes have no door of ours within eight metres at all** — including Parlin
+Hall, where the ramp UT describes simply isn't in our data, so every step-free
+walk there arrives at the door UT flags. That list is written up with distances
+for whoever owns it.
+
+Also re-checked the thing this lane is judged on first: all 189 mapped
+staircases still drawn, none missing, none invented, and all seven of last
+round's checks still green. The stopwatch was thrown out — a route proved to do
+zero extra work "slowed down" 72 % on a machine with five other lanes running,
+which is what that number is worth today. The feature is still switched off.
+Branch `acer/w-stairs`.
