@@ -21,12 +21,26 @@ Five separate pieces were built for this: **the door** (which door you walk to),
 **the lighting** (telling you which of the walk has a mapped streetlight on it),
 and **the interface** (the whole answer card, rebuilt for a phone).
 
-**Which of them beat the bar blind? None — because none of them were ever
-judged.** The blind comparison came back empty for all five. Three of them graded
-their own last round a win, which is not the same thing and I have not counted it
-as one. So nothing here is being presented as having won; it is being presented
-as measurably better than what was on the site this morning, which is a claim the
-numbers above do support.
+**Which of them beat the bar blind? One did — the interface.** This pass was
+handed a summary saying none of the five were ever judged, and that turned out to
+be wrong; the record in the repository says otherwise, so here is the real state,
+piece by piece:
+
+- **The interface — judged blind, and won.** Real Citymapper walking cards were
+  put beside ours, shuffled, and scored *before* anyone knew which was which.
+  Ours was preferred on both. It also recorded the one thing Citymapper does
+  better and we cannot copy: it names the actual street at every turn, and our
+  walking map simply has no street names in it to print.
+- **The door and the pavement — checked by someone else and confirmed, but
+  against ourselves, not against Citymapper.** Both were independently re-run
+  from scratch and both reproduced their claims. That is a real check. It is not
+  the same as beating an outside product blind, and I have not counted it as one.
+- **The stairs — the only verdict on record is a loss.** Round 1 was judged and
+  failed. Rounds 2 through 8 were never judged at all.
+- **The lighting — never judged, at any round.**
+
+So: one blind win, two confirmed-but-not-blind, one recorded loss with seven
+unjudged rounds after it, and one never looked at.
 
 Two things broke on the way in, both found by driving the app rather than reading
 the code:
@@ -43,12 +57,13 @@ the code:
   centimetre on every trip.
 
 **Would I switch it on for everyone? Not yet — but it is close.** The routing is
-in good shape and nothing else on the site regressed. What is missing is that the
-stairs and lighting pieces were never independently judged, and those two are the
-ones that make *accessibility* promises — "step-free", "no mapped streetlight
-along this route". Getting a distance wrong costs someone a detour. Getting
-"step-free" wrong strands someone at the bottom of a staircase. That is the one
-promise I would not turn on because it looked right in a screenshot.
+in good shape, the interface has beaten a real product blind, and nothing else on
+the site regressed. The reason to wait is narrow and specific: **the two pieces
+that were never properly judged are exactly the two that make promises about
+accessibility** — "step-free", "no mapped streetlight along this route". Getting
+a distance wrong costs someone a detour. Getting "step-free" wrong strands
+someone at the bottom of a staircase. That is the one promise I would not turn on
+because it looked right in a screenshot.
 
 Until then it stays where it is: invisible unless you add `?walk=1` to the
 address. Nothing on the live site has changed for anyone else.
@@ -2095,12 +2110,27 @@ its self-check failed on 15 of 19 pairs with drifts to 27 m — every "extra
 metres" it printed on those branches was uncalibrated. It reads both terms off
 the page now; drift is 0.00 m on all 19.
 
-**Judgement, stated honestly: no piece has a blind result. The critic returned
-nothing for all five.** Door, sidewalks and ui graded their own final round a
-win; stairs' only recorded verdict is round 1 `oursWins=false` and rounds 2–8
-were never judged; lit was never judged at all. Nothing here is presented as
-having beaten a bar — only as measurably better than what `main` carried this
-morning.
+**Judgement — and the brief for this pass was wrong about it, twice over.** It
+said the critic returned nothing for all five and that no piece had a blind
+result. The commit record says otherwise, so it was read rather than taken:
+
+- `w-ui` **06dd719, round 8: a genuine blind win.** Citymapper's own product
+  frames were pulled as the bar (their web app has no live walking navigation to
+  drive), shuffled, and judged before the mapping was revealed — ours preferred
+  on both pieces. It also recorded the one gap it cannot close: Citymapper names
+  the street at every turn and `data/walk_graph.json`'s edges carry no name
+  field at all.
+- `w-door` **bd73cc6, post-round-7 `oursWins=true`**, and `w-sidewalks`
+  **da63da4, "it wins, verified independently"** — both independently
+  reproduced from a clean checkout, but judged against `origin/main`/doing
+  nothing, NOT blind against Citymapper. Real checks; not blind wins.
+- `w-stairs` **bdff3f8, round 1 `oursWins=false`** (Citymapper bar unfetched) is
+  the ONLY verdict this lane ever got. Round 3 fetched the bar, but that was the
+  builder; rounds 2–8 were never judged.
+- `w-lit` — **no verdict at any round.**
+
+One blind win, two confirmed-but-not-blind, one recorded loss with seven
+unjudged rounds after it, one never looked at.
 
 **Gate, photographed:** `autopilot`, `sliderdemo` and `clip` all correct at
 390×844 with touch and the walk UI not painted in any of them; plain page 0

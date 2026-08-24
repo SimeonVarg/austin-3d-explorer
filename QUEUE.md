@@ -16,9 +16,14 @@ step-free claim strands someone. That is the open item before the switch.
 
 Still open, and none of it blocks the merge:
 
-- **W1. `stairs` and `lit` have no blind verdict.** stairs' only recorded
-  judgement is round 1 `oursWins=false`; rounds 2–8 unjudged. lit unjudged at
-  every round. Judge these two before flipping `WAYFIND.on`.
+- **W1. `stairs` and `lit` have no blind verdict — judge them before flipping
+  `WAYFIND.on`.** `w-stairs`' only verdict is round 1 `oursWins=false`
+  (`bdff3f8`, Citymapper bar unfetched); rounds 2–8 were never judged. `w-lit`
+  was never judged at any round. For contrast, `w-ui` DOES have a real blind win
+  (`06dd719` round 8, Citymapper's own frames shuffled and judged before the
+  reveal), and `w-door`/`w-sidewalks` have independent verdicts against `main`
+  but not blind ones. These two are the gap, and they are the two that make the
+  accessibility claims.
 - **W2. PHR→BIO is unmeasurable.** BIO's UT-verified door (286) carries empty
   node/cost arrays in `data/walk_graph.json` — never snapped to the path
   network. A bake gap for whoever owns `scripts/bake_walk.py`, not a router bug.

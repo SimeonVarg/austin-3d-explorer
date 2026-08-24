@@ -24379,11 +24379,25 @@ are carried.
    declared — the value was sitting in a `const` in a function body, against
    rule 11 and invisible outside the file.
 
-**Judgement, honestly.** No piece has a blind result; the critic returned nothing
-for all five. Door, sidewalks and ui graded their own final round a win; stairs'
-only recorded verdict is round 1 `oursWins=false` with rounds 2–8 unjudged; lit
-was never judged. Nothing is presented as having beaten a bar — only as
-measurably better than what `main` carried that morning.
+**Judgement — and the brief for this pass was wrong about it, which is the second
+stale premise it carried.** It stated the critic returned nothing for all five
+and no piece had a blind result. The commit record contradicts that and was read
+rather than taken:
+
+- `w-ui` **06dd719 round 8 — a genuine blind win.** Citymapper's own product
+  frames as the bar (their web app has no live walking nav to drive), shuffled,
+  judged before the mapping was revealed, ours preferred on both pieces. It also
+  logged the gap it cannot close: Citymapper names the street at every turn and
+  `walk_graph.json` edges carry no name field.
+- `w-door` **bd73cc6 `oursWins=true`** and `w-sidewalks` **da63da4 "it wins,
+  verified independently"** — both independently reproduced from clean
+  checkouts, but judged against `origin/main`, not blind against Citymapper.
+- `w-stairs` **bdff3f8 round 1 `oursWins=false`** is the only verdict it ever
+  got; rounds 2–8 unjudged. `w-lit` — no verdict at any round.
+
+One blind win, two confirmed-but-not-blind, one recorded loss with seven
+unjudged rounds after it, one never looked at. **Two stale premises in one brief
+is the lesson: check the status line against the repo before building to it.**
 
 **Gate, photographed.** `autopilot`, `sliderdemo`, `clip` all correct at 390×844
 with touch, walk UI not painted in any; plain page 0 console errors; OSM
