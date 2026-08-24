@@ -27,6 +27,17 @@ what it is worth, and the case for the design that came out of it.
 > a live oak sitting on the lamp, which is now a field in the index and a
 > sentence in the card, and which was measured *out* of the router rather than
 > argued into it. §17–§24, and they are the sections to read first.
+>
+> **ROUND 6 went to the two places five rounds had never looked.** The strip has
+> three colours and only two of them had ever been in a matrix: the violet tick,
+> where a resident said it was too dark, had been checked at two of 182 pins and
+> both were picked by hand. And every site in every matrix in this document was
+> photographed from directly overhead — a pose in which nothing can stand in
+> front of anything — in an app that opens at `pitch: 78` and is judged off a
+> phone recording of somebody walking. Round 6 audits the violet column,
+> re-shoots all three colours from an eye placed ON the pavement at the app's own
+> walking height, runs the null control this lane's masked diff had never had,
+> and gives the picture the key it did not have. §42–§50.
 
 ---
 
@@ -1825,3 +1836,351 @@ apart) rediscovered from the other end.
   use it. Still true.
 * **Anything about crime, response times, or how safe a stretch is.** Unchanged
   across five rounds, and it will stay unchanged.
+
+---
+
+# ROUND 6 — the colour that had never been in a matrix, and the pose that had never been used
+
+`shots/walk/lit/pinpose.mjs`, `decorpx.mjs`, `swatch.mjs`, all committed with
+their JSON. **[M]**, 2026-08-24, port 8814, `p = 0.92`, hardware GL,
+`?walk=1&intro=0&drift=0`, graphics auto-detect cancelled, veil waited out.
+
+## 42. The violet column, audited for the first time
+
+The strip has three colours. §18 audited COOL at 43 sites. §28 audited the
+25-60 m band at 18. §33 finally audited AMBER at 12 and called it *"the column
+that had never been sampled"*. **The violet tick has been checked at exactly two
+of 182 pins**, in round 2 (§13), and both were chosen by hand as the extremes —
+the pin furthest from a lamp and the pin nearest one. That is the claim this
+feature would look worst being wrong about: a mark saying *somebody stood here
+and said it was too dark*, drawn across a burning pool of lamplight.
+
+**The sample.** 70 seeded building pairs driven through the real
+`window.wayfindRoute`; 35 of them enter the surveyed area carrying at least one
+pin. 24 sites — 8 violet, 8 amber, 8 cool — taken from the app's own
+`wayfindLit()` geometry, deduplicated by coordinate at 40 m and spread across
+distinct routes first (§27, §40c). Every site read at **two** poses, so 48
+readings.
+
+```
+pin  0  SAG->CS3   nearest mapped lamp   74.8 m   0 px   "Street light does not work."
+pin  1  BME->MAI   nearest mapped lamp  209.8 m   0 px   "Too dark here"
+pin  2  WMB->FDH   nearest mapped lamp  128.4 m   0 px   (no words)
+pin  3  CRH->N24   nearest mapped lamp  255.6 m   0 px   "PAI is too dark here"
+pin  4  SUT->COM   nearest mapped lamp  285.8 m   0 px   "MAI is too dark here"
+pin  5  BMC->CRD   nearest mapped lamp  103.9 m   0 px   (no words)
+pin  6  WCH->HRC   nearest mapped lamp  381.3 m   0 px   "Dark at BAT"
+pin  7  SZB->GSB   nearest mapped lamp  464.4 m   0 px   "Too dark under the bridge / over the street."
+```
+
+**Not one violet tick in the sample has a surveyed street lamp in it** — zero
+pool pixels inside the 35 m disc, zero anywhere in the frame, at either pose.
+The median pin is **255.6 m** from the nearest mapped lamp and the nearest of
+the eight is 74.8 m. The person who typed *"Street light does not work"* is
+standing where OpenStreetMap has no lamp for seventy-five metres in any
+direction — which is the two sources agreeing, rather than either of them being
+checked against the other.
+
+`r6-pin-04-eye.png` is the picture: standing on the pavement at 1.70 m outside
+Main Building, where a resident wrote *"MAI is too dark here"*, at night. The
+facade is unlit, there is no pole, and the violet mark is under the camera.
+
+## 43. The pose every matrix in this document was shot from
+
+`litaudit.mjs` (§17), `boundary.mjs` (§28) and `stretchscene.mjs` (§33) all pose
+at `pitch: 0`. A plan view has one property that matters here: **nothing can
+stand in front of anything.** Round 5 already found that pose changes the answer
+— straight down, a live oak hides the receipt ring completely (§35) — and then
+measured the whole matrix from straight down anyway. This is a walking app.
+`js/app.js` opens it at `pitch: 78`, and it is judged off a phone recording.
+
+### The first attempt was wrong, and one frame said so
+
+The obvious fix is `jumpTo({ center: site, pitch: 78 })`. Run that and it reports
+that **half the counted amber lamps vanish at walking pose** — a clean, quotable,
+completely false collapse. At pitch 78 the centre is the point the camera is
+AIMED at; the eye is tens of metres behind it at ground level, and at one site
+that put it *inside a live oak*, filling the frame with leaves. A buried camera
+saying "the lamp is gone" is precisely what the house rule about proving the
+subject is on screen exists for, and it is §27.3's camera-through-the-card in a
+new costume: the instrument is not looking at the subject, and it agrees with you
+anyway. That number appears in no table here.
+
+### So the eye is placed, and the placement is asserted every time
+
+`transform.getCameraLngLat()` is MapLibre's own answer to where the eye is —
+`getFreeCameraOptions` does not exist here, and `js/entrances.js` §751 records
+the gate that was written against it and therefore passed everything.
+`pinpose.mjs` solves the centre until that value lands ON the site, and the zoom
+until `getCameraAltitude()` lands on **1.70 m**, the walking height
+`scripts/verify/walk.mjs` gates, at `pitch: 84` under `js/app.js`'s ceiling of
+88. Read back per site:
+
+```
+eye solved to within 2 m and 1.70 +/- 0.25 m:   24 / 24
+worst miss over all 24 sites:  0.00 m        altitude: 1.70 m at every one
+```
+
+### And why the eye column does not use the disc
+
+The eye stands AT the site, so **half of the site's own ground circle is behind
+the camera**, and points behind the camera do not project — they return on the
+wrong side of the screen and the "disc" draws as a few crossing lines. Even from
+further back, the far half of a ground circle compresses into a handful of
+pixels, so a lamp well beyond it lands within a hair of the boundary and its pool
+spills inside (§49b is the false number that came of exactly that). Eye frames
+therefore carry **no overlay at all** — they are what a person standing there
+sees — and the eye column is read off the masked diff over the whole frame.
+
+## 44. THE MATRIX — three colours, two poses
+
+```
+                                            PIN (violet)   LIT (amber)   COOL
+  plan  a surveyed lamp pool inside the disc    0 / 8          7 / 8       1 / 8
+  eye   surveyed lamplight in the frame you
+        actually see, standing there            0 / 8          6 / 8       0 / 8
+  median lamp-pool pixels in the disc (plan)    0              3,859       0
+  median metres to the nearest mapped lamp    255.6             13.6     268.6
+```
+
+**The violet column is clean in both poses, and the amber column holds in both.**
+`r6-lit-04-eye.png` is an amber site 3.2 m from a mapped lamp photographed from
+the pavement: two lamp posts standing in their own pools of light across the
+crossing.
+
+**The three that miss are each already written down in this document.**
+
+* **`lit 6` (AFP→BBR, 7.1 m), zero at BOTH poses.** `queryRenderedFeatures` at
+  the site's own point returns `trees-canopy`, and `r6-lit-06-plan.png` shows the
+  crosshair between two live oak crowns. Round 3's covered lamp, found a third
+  time by an instrument that was not looking for it — and it is one of the lamps
+  the card already calls *under tree cover* and already draws a dimmer ring for
+  (§35).
+* **`lit 5` (CRH→N24, 21.9 m), 2,600 px from above and 27 from the pavement.**
+  A lamp near the edge of the radius, on the far side of something.
+* **`cool 1` (MNAC→SEA, 26.3 m), the only cool site with a lamp pool in it** —
+  inside the 25-40 m near-miss band §28 measured and §36 narrowed the clause to.
+  The card already has a sentence for exactly this route shape.
+
+## 45. The null control this lane had never run
+
+Every lamp-pixel number since round 3 comes from diffing two frames taken a
+moment apart with `props-lit` repainted between them. In five rounds nobody had
+taken the two frames with **nothing** repainted and run the identical classifier,
+which is the only way to know whether the number has a floor.
+
+```
+sites with any "lamp" pixel from repainting NOTHING:   0 / 48 poses   (max 0 px)
+```
+
+Zero, at every site, at both poses. The five rounds of pixel numbers stand — they
+were not *known* to stand until now, and a noise floor would have been quietly
+reporting canopy as lamplight since 23 August.
+
+## 46. The decoration, counted at a calibrated bar — and the change that did not happen
+
+§22 put one line in the card because the scene paints road glow with no surveyed
+pole under it. `decorpx.mjs` counts it: warm, bright pixels inside the disc in
+the untouched frame that the props-lit mask does not account for.
+
+**The bar was set before the table was finished** (05:26, five of twenty-four
+sites in): if more than a third of sampled sites carried 1,000 px or more of
+unexplained light, the disclaimer would stop being folded — not as a new line,
+because round 4's whole finding was that this block had too many, but promoted
+into the fold's always-visible LABEL beside the two already there.
+
+```
+                     sites with >= 1000 px    median
+  violet ticks             1 / 8                491 px
+  cool stretches           2 / 8                175 px
+```
+
+**3 of 16 — 19 %.** The bar is not met and the card does not change. (The amber
+column is left out of that count on purpose: where a real lamp pool is present
+the measure has to subtract one instrument's answer from another's, and a number
+that needs that subtraction is not comparable with one that does not.)
+
+For the column this round is about it is **one pin in eight**, and that one is
+1,255 px at a pin 381 m from any mapped lamp. Third time this lane has measured
+an idea out rather than argued it out — after `litCanopyMult` (§21) and the third
+strip colour (§32).
+
+`r6-pin-00-plan.png` is what is being counted, and it is also why the count had
+to be calibrated rather than eyeballed. The violet diamond is the pin where
+somebody wrote *"Street light does not work"*; there is a warm pool on the
+pavement below and to the right of it, inside the 35 m disc, with no pole under
+it — and at the calibrated bar that pool is **491 px**, under the threshold. The
+eye is a poor judge of how much of a frame a glow occupies, which is the whole
+argument for having a number at all.
+
+## 47. The picture had no key
+
+Round 4 replaced twenty lines of prose with a bar. Round 5 proved the bar
+survives a 390 px handset. Neither asked the question underneath both: **can a
+person tell what its colours mean?** Read off the shipped card, the three are
+anchored very unevenly.
+
+| strip colour | what anchors it on screen | how far from the bar |
+|---|---|---|
+| amber `litStripLitCol` | the count line, `litLampCol`, the same hex | directly under it |
+| violet `litStripTickCol` | the reported line, `darkTextCol`, the same hex | two to four lines down |
+| cool `litStripDarkCol` | **nothing at all** | — |
+
+Cool is the one that matters, and the route where it matters is not a corner
+case: on the walk home into West Campus the bar is **one flat colour end to end**
+and nothing on screen names it.
+`r6-key-before-desktop-GDC-TheCastilian.png` is that card.
+
+**A legend row is the obvious answer and it does not fit.** §37 measured
+`#wf-card` at 153 px on a 390 × 844 handset, and the caps row's `START` / `DOOR`
+already fill it.
+
+**So the key is not a row — it is one mark.** `litSwatchOn`: a 9 px square in the
+strip's own colour at the head of the count, and a `litStripTickW`-wide bar in
+the strip's tick colour at the head of the reported-dark line. Only where the bar
+actually carries that mark — a violet tick beside a sentence on a bar with no
+ticks would be a key explaining a colour that is not on screen. Both are
+`aria-hidden`, because the sentence beside them already says the thing in words.
+`r6-key-after-desktop-GDC-TheCastilian.png`, and at 153 px
+`r6-key-after-iphone-ANB-ETC.png`.
+
+### What it cost, measured as an A/B on the same card
+
+`swatch.mjs` flips `window.WAYFIND.litSwatchOn` and re-renders the same route
+seconds apart, so the comparison is of the key and nothing else. Same line and
+word measure `cardshot.mjs` uses.
+
+| | words | block height | key marks |
+|---|---|---|---|
+| iphone 390 · ANB → ETC | 67 → **67** | 395 px → **395 px** | 1 |
+| iphone 390 · GDC → The Castilian | 87 → **87** | 469 px → **469 px** | 2 |
+| iphone 390 · PMA → WEL | 63 → **63** | 375 px → **375 px** | 1 |
+| desktop 1280 · ANB → ETC | 67 → **67** | 195 px → **195 px** | 1 |
+| desktop 1280 · GDC → The Castilian | 87 → **87** | 240 px → **240 px** | 2 |
+| desktop 1280 · PMA → WEL | 63 → **63** | 195 px → **195 px** | 1 |
+
+**Not one word, and not one pixel of height, at either width.** The rendered-line
+count does rise by one or two — that is the measure, not the card: an
+inline-block sitting on the baseline has a different rect top from the text
+beside it, so `Range.getClientRects` reports two rows where a reader sees one.
+Height is the metric `cardshot.mjs`'s own comment calls the one that cannot be
+gamed, and it did not move by a pixel.
+
+### And the colours are the same colours, sampled off the screen
+
+A key that agrees with the bar in the source and disagrees on screen is worse
+than no key — §40b is this lane's own record of a paint constant and a composited
+pixel being two different numbers. Both are sampled from the same screenshot, so
+opacity and blending apply equally to both:
+
+```
+headline mark  255,194,122   bar amber  255,194,122     match
+headline mark   70, 83,111   bar cool    70, 83,111     match   (the flat-bar route)
+tick mark      195,176,255   bar tick   195,176,255     match
+PASS  6 / 6 route-widths
+```
+
+`smoke.mjs` gained seven assertions for it, including the one that matters most:
+`litSwatchOn: false` removes the key entirely (rule 11).
+
+## 48. Requests to lanes that own other files (round 6)
+
+§7's, §14's and §38's requests still stand. One new, and it is small.
+
+**g) Whoever owns `js/night.js`'s road glow.** Unchanged in substance from §7,
+now with a number taken at a calibrated bar rather than an eyeballed one:
+**3 of 16 discs the card calls unmapped carry 1,000 px or more of warm light with
+no surveyed pole under it** (`shots/walk/lit/decorpx.json`). It is not enough to
+move anything in this card, and it is the whole of what a user who flies down to
+check will argue with.
+
+## 49. Six instruments that were wrong first, and what each false number was
+
+Recorded for the same reason §40 was: every one produced a confident, plausible
+answer, and three of them would have gone into this document.
+
+**a) A camera buried in a tree, reporting that the lamp had gone.** §43 has it:
+*half the amber lamps vanish at walking pose*, from an eye standing inside a live
+oak. Caught by opening the frame.
+
+**b) A screen-space disc at a grazing pitch counts things far outside it.** The
+same first cut scored **522 "lamp" pixels inside the 35 m disc of a pin whose
+nearest mapped lamp is 209.8 m away** — a violet tick apparently standing in
+lamplight, the single worst thing this column could report. Killed three ways:
+`data/props.geojson` read directly in node says the nearest warm prop to that
+coordinate is 209.8 m; a re-shoot of the identical pose scored it zero; and the
+warm glow that IS in that frame survives the props-lit mask unchanged, which is
+what decoration looks like.
+
+**c) `queryRenderedFeatures` cannot see a lamp at pitch 84.** The eye column was
+built on it, and it returned **0 rendered lamps at all 24 eye poses** — including
+a site 3.2 m from a lamp whose own masked diff scores **17,107 pool pixels in the
+same frame**, and which `r6-lit-04-eye.png` shows as two lit lamp posts. A hit
+test on a `circle-pitch-scale: 'map'` layer does not survive that pose. Both
+numbers are still in the JSON so the disagreement is on the record; the table
+uses the one that agrees with the picture. The two agree at 8/8 pin and 8/8 cool
+— where the answer is zero either way — and at **2 of 8** amber.
+
+**d) A warm-tinted surface is not light.** `pinpose.mjs`'s own decoration counter
+(`R >= 60`, warm) reported **5,279 px of "decoration" at a pin whose frame is a
+black tree-lined path with no light in it at all** (`r6-pin-02-plan.png`). This
+city's ground is a warm dark brown after dark. The value is still in the JSON
+with a comment saying not to read it; `decorpx.mjs` is the calibrated answer.
+
+**e) The app's own controls, counted as streetlight.** The rewrite then scored
+~3,000 px of "unexplained light" at that same black frame — the joystick ring,
+the BOOST button, the time-of-day knob and the amber hint bar, all warm, all
+bright, all inside the disc. `decorpx.mjs` excludes them by rectangle **and
+checks the exclusion**: the frame this lane looked at and called black must come
+back at zero, and it does.
+
+**f) A flood fill seeded on its own crosshair.** The first run of `decorpx.mjs`
+returned 0 px for every disc at every site — a total, silent, plausible zero. The
+fill starts at the frame centre, which is exactly where `pinpose.mjs` draws its
+magenta crosshair, so the seed pixel was a boundary pixel and the stack emptied
+on the first pop. It never got inside anything.
+
+**g) A run that would have been killed four minutes before it finished.** The
+first full v2 run was launched with `chrome.mjs`'s watchdog at 45 minutes and was
+measuring at ~49 s per frame, for 60 frames, with `pinpose.json` written only on
+the last line. Caught by doing arithmetic on the frame timestamps rather than
+waiting to find out. The watchdog is 90 minutes now, with a comment saying why —
+README already has the sentence: a gate that cannot finish inside its own
+watchdog is a dead gate.
+
+*(And one that was not wrong: §45's null control, run for the first time in six
+rounds, came back clean.)*
+
+## 50. What round 6 changed
+
+* `js/wayfind.js` §6b only — `litSwatchOn`, `litSwatchPx`, `litSwatchRadius`,
+  `litSwatchGap` and the `litSwatch()` helper; two calls inside `litCard`. Four
+  new named constants, one of which reverses the whole idea in a line.
+  **No routing constant moved.** `litAltMult` 1.7, `litAltMaxFrac` 1.35,
+  `litAltMinGainM` 40, `darkAltMult` 1.5, `darkAltMinDrop` 2, `litCanopyMult` 1,
+  `litRadiusM` 25 and `litNearMissM` 40 are byte-identical to round 5, and
+  `smoke.mjs` still asserts ANB→ETC at 24 lamps, 2 phones, 678 m, 4 under canopy,
+  20 full rings and 4 dim ones.
+* `shots/walk/lit/` — `pinpose.mjs`, `decorpx.mjs`, `swatch.mjs` and their JSON;
+  `smoke.mjs` gained seven assertions. Eight frames, the ones this document
+  cites, 2.5 MB (rule 12: the round made ~40 MB of frames in the scratchpad and
+  committed eight files).
+* No data file was re-baked. `scripts/bake_props.py` is untouched this round.
+* `WAYFIND.on` untouched.
+
+## 51. What round 6 did NOT establish
+
+* **That a person can read the key.** It puts the strip's own colour beside the
+  sentence that names it, and the two are proven identical on screen. Whether
+  that is enough for somebody seeing the card for the first time is a question
+  about a person, and in six rounds nobody has watched one use this. Still the
+  largest untested claim in the block.
+* **That the eye column generalises past eight sites a colour.** It is the first
+  look at this pose, not a survey of it.
+* **That 1.70 m and pitch 84 are the right eye.** They are the app's own walking
+  height and a pitch under its own ceiling. A person turns their head; this
+  camera looks along the route and nowhere else.
+* **Anything about the glow that is not surveyed.** Counted here at a calibrated
+  bar and left alone, and it is `js/night.js`'s. §48 has the request.
+* **Anything about crime, response times, or how safe a stretch is.** Unchanged
+  across six rounds, and it will stay unchanged.

@@ -318,3 +318,70 @@ candidates open so the router picks per-trip is. Full writeup, the 20-pair
 table, and the re-run instructions are in `docs/walk-baseline.md`.
 `WAYFIND.on` still untouched; nothing in `js/wayfind.js` changed this round
 either. Pushed as `acer/w-baseline`, self-merged after the self-check passed.
+
+## 2026-08-24 — streetlights, round 6 (`acer/w-lit`): the third colour, and standing on the pavement instead of hovering over it
+
+**The bar in the lighting box has three colours and I had only ever checked
+two of them.** Amber means a streetlight is mapped beside your path, cool means
+none is, and the little violet ticks are the spots where a West Campus resident
+in 2017 dropped a pin and said it was too dark. Five rounds of checking, and the
+violet one had been looked at in exactly two places — both picked by hand. So
+this round the script picked them: eight of them, off eight different walks, and
+flew to every one at night.
+
+**Not one of them has a streetlight standing in it.** The typical violet tick is
+**255 m from the nearest mapped lamp** and the closest is 75 m. One of them is a
+person who wrote *"Street light does not work"* — and OpenStreetMap has no lamp
+within seventy-five metres of where they stood, so the two sources are telling
+the same story rather than one of them being checked against the other.
+
+**Then the bigger thing, and it is embarrassing.** Every check this feature has
+ever passed was taken from a camera pointed straight down at the ground from
+about a hundred metres up. That is a fine way to see whether a lamp exists and a
+terrible way to see what a person walking there sees — nothing can stand in
+front of anything from directly above. This is a walking app. So I put the
+camera **on the pavement, at 1.70 m, looking the way you're walking**, and did
+all twenty-four sites again. The claim survives: still nothing at any violet
+tick, still nothing at any cool stretch, and at the amber ones there is a lamp
+post standing in its own pool of light in front of you
+(`shots/walk/lit/r6-lit-04-eye.png` — that's the picture worth looking at).
+Three sites out of twenty-four miss, and all three are things this feature had
+already written down: one is a lamp with a live oak on top of it, one is a lamp
+just past the edge of the radius, and one is the "just outside" band the card
+already has a sentence for.
+
+**Getting that pose right took four wrong instruments and every one of them
+handed me a confident, wrong number first.** The first version put the camera
+*inside a tree* and reported that half the streetlights had disappeared. Another
+counted a lamp two hundred metres away as being inside a thirty-five metre
+circle. Another asked the map "what lamps are on screen" and got told "none"
+while the picture plainly had two lamp posts in it. And one counted the app's own
+joystick and BOOST button as streetlight. All four were caught by opening the
+frame and looking at it, which is the only thing that has ever caught anything in
+this lane.
+
+**What actually shipped is small and it is about reading, not data.** The bar
+under "Street lighting" had no key. Amber explained itself, because the count
+right underneath it is written in the same amber. But the *cool* colour was
+named nowhere on the card — and on the walk home into West Campus the bar is
+that one colour end to end, so a person is looking at a flat blue-grey stripe
+with nothing anywhere telling them what it means. A legend row doesn't fit; the
+whole card is 153 px wide on a phone. So instead each sentence now carries the
+mark it is about: a small square of the bar's own colour before the count, and
+the bar's own violet tick before "6 spots on this route were reported too dark".
+Measured before and after on the same card, at phone width and laptop width:
+**not one extra word and not one extra pixel of height**, and the colours are
+proven identical by reading them off the screenshot rather than off the source.
+Before and after: `shots/walk/lit/r6-key-before-desktop-GDC-TheCastilian.png`
+and `r6-key-after-desktop-GDC-TheCastilian.png`.
+
+One idea got measured and thrown away again, which is now three for this lane.
+The scene paints soft warm glow along roads that has no surveyed lamp under it,
+and the card explains that behind a tap. I set the bar first — if more than a
+third of places had real glow with nothing under it, that sentence comes out from
+behind the tap — then measured it properly and got **3 in 16**, and for the
+violet ticks alone 1 in 8. Under the bar, so nothing changed.
+
+Routing untouched for the fourth round running; every steering number identical
+to round 3. Full argument, all the numbers and all six wrong instruments:
+`docs/walk-lit.md` §42-§51.

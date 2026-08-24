@@ -186,6 +186,73 @@ ok((pads.n.lamp || 0) + (pads.n.lampcanopy || 0) === 24,
   'every counted lamp still gets a ring — the count and the map agree');
 ok(typeof pads.canopyCol === 'string' && /^#[0-9a-f]{6}$/i.test(pads.canopyCol),
   'the dim value is a named constant', pads.canopyCol);
+
+// ROUND 6: the strip's key. Asserted on TWO named routes because the whole
+// point of the mark is that it says a different thing on each — amber on a
+// route with lamps, the bar's own cool on a route with none, and the violet
+// tick ONLY where the bar actually carries ticks. A key that appears
+// unconditionally would be explaining a colour that is not on screen.
+//
+// The colours are compared against `window.WAYFIND`'s own constants rather than
+// against literals, so overruling one (rule 11) moves the mark and this gate
+// with it. That the RENDERED mark matches the RENDERED bar is a different
+// question and a pixel one — `shots/walk/lit/swatch.mjs` samples both off a
+// screenshot, for the reason §40b records about paint constants and composited
+// pixels being two different numbers.
+const keyOf = async (from, to) => page.evaluate(async ([f, t]) => {
+  await window.wayfindRoute(f, t, { expand: true });
+  await window.wayfindLit();
+  const card = document.getElementById('wf-card');
+  const kids = Array.from(card.children);
+  const i = kids.findIndex(k => /^Street lighting/.test(k.textContent || ''));
+  const block = kids.slice(Math.max(0, i));
+  const marks = [];
+  for (const b of block) {
+    for (const s of b.querySelectorAll('span[aria-hidden="true"]')) {
+      const cs = getComputedStyle(s);
+      if (cs.display === 'none') continue;
+      marks.push({
+        w: Math.round(parseFloat(cs.width)), h: Math.round(parseFloat(cs.height)),
+        bg: cs.backgroundColor, hidden: s.getAttribute('aria-hidden') === 'true',
+        of: (b.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 44),
+      });
+    }
+  }
+  const hex = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+  };
+  return { marks, lamps: (await window.wayfindLit()).lamps,
+    want: { lit: hex(window.WAYFIND.litStripLitCol), dark: hex(window.WAYFIND.litStripDarkCol),
+      tick: hex(window.WAYFIND.litStripTickCol), tickW: window.WAYFIND.litStripTickW } };
+}, [from, to]);
+
+const keyLit = await keyOf('ANB', 'ETC');
+ok(keyLit.marks.length === 1, 'a route with lamps carries exactly one key mark', keyLit.marks.length);
+ok(keyLit.marks[0] && keyLit.marks[0].bg === keyLit.want.lit,
+  'and it is the strip\'s amber, on the count', keyLit.marks[0] && [keyLit.marks[0].bg, keyLit.want.lit]);
+ok(keyLit.marks.every(m => m.hidden), 'the key is aria-hidden — the sentence already says it');
+
+const keyDark = await keyOf('GDC', 'The Castilian');
+ok(keyDark.lamps === 0, 'GDC->The Castilian still has no counted lamp', keyDark.lamps);
+ok(keyDark.marks.length === 2, 'a cool route with reports carries two key marks', keyDark.marks.length);
+ok(keyDark.marks[0] && keyDark.marks[0].bg === keyDark.want.dark,
+  'the headline mark is the bar\'s own cool — the only place that colour is named',
+  keyDark.marks[0] && [keyDark.marks[0].bg, keyDark.want.dark]);
+const tickMark = keyDark.marks.find(m => m.bg === keyDark.want.tick);
+ok(!!tickMark, 'the reported-dark line carries the strip\'s violet tick');
+ok(tickMark && tickMark.w === keyDark.want.tickW,
+  'at the strip\'s own tick width, so it reads as the same object', tickMark && tickMark.w);
+
+const keyOff = await page.evaluate(async () => {
+  window.WAYFIND.litSwatchOn = false;
+  await window.wayfindRoute('GDC', 'The Castilian', { expand: true });
+  const n = document.querySelectorAll('#wf-card span[aria-hidden="true"]').length;
+  window.WAYFIND.litSwatchOn = true;
+  return n;
+});
+ok(keyOff === 0, 'litSwatchOn:false takes the key away entirely (rule 11)', keyOff);
+
 await browser.close();
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nall pass');
 process.exit(fails.length ? 1 : 0);

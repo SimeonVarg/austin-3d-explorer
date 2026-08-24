@@ -405,6 +405,41 @@
     litStripTickW: 2,      // px
     litStripCapsOn: true,  // the two end labels under the strip. Without them
                            // nothing says which end is your door.
+    // ── THE PICTURE HAD NO KEY ─────────────────────────────────────────────
+    //
+    // Round 4 replaced twenty lines of prose with a bar, and round 5 proved the
+    // bar survives a 390 px handset. Neither asked the question underneath
+    // both: can a person tell what its colours MEAN? Read off the shipped card,
+    // the three colours are anchored very unevenly.
+    //
+    //   amber   `litStripLitCol` === `litLampCol`, and the count line is set in
+    //           `litLampCol` DIRECTLY under the bar. Amber explains itself.
+    //   violet  `litStripTickCol` === `darkTextCol`, so the tie exists — but
+    //           the line it ties to sits two to four lines below the bar, past
+    //           the longest-gap and the emergency phones.
+    //   cool    tied to NOTHING. `litStripDarkCol` appears nowhere else on the
+    //           card, and "No mapped streetlight along this route" is set in
+    //           `litTextDim`, a deliberately different value for the reason
+    //           `litTextDim` itself records. On a route with no counted lamp —
+    //           the West Campus walk home, the walk this feature exists for —
+    //           the bar is one flat colour that nothing on screen names.
+    //
+    // A LEGEND ROW IS THE OBVIOUS ANSWER AND IT DOES NOT FIT. §37 measured
+    // `#wf-card` at 153 px on a 390 px handset and the caps row's START/DOOR
+    // already fill that width. Adding words also runs straight back at round
+    // 4's finding, which was that this block had too many.
+    //
+    // So the key is not a row. It is ONE MARK, in the strip's own colour, at
+    // the head of the sentence that colour means: no words, no new line, no
+    // height. The swatch beside the count is the strip's amber (or its cool,
+    // when there is nothing to count); the mark beside the reported-dark line
+    // is the strip's tick, at the strip's tick width, so it reads as the same
+    // object rather than as a bullet.
+    litSwatchOn: true,
+    litSwatchPx: 9,        // square side / tick height, px. Just under the
+                           // 10 px strip, so it reads as a piece of it.
+    litSwatchRadius: 2,
+    litSwatchGap: 6,       // px between the mark and the words it labels
     // ── THE LAMP JUST OFF THE PATH ─────────────────────────────────────────
     //
     // MEASURED, AND IT IS THE FINDING OF ROUND 4 (shots/walk/lit/boundary.mjs).
@@ -2499,6 +2534,31 @@
     return wrap;
   }
 
+  /**
+   * One mark from the strip, inline, at the head of the sentence that mark
+   * means. This is the strip's key — see `litSwatchOn` for why it is a mark
+   * and not a legend row.
+   *
+   * It takes the colour it is given rather than looking one up, so the caller
+   * is always naming which of the strip's own constants it is echoing; a
+   * swatch that quietly drifted off the bar's colour would be worse than no
+   * swatch at all, and `shots/walk/lit/swatch.mjs` samples both off the
+   * rendered card to prove they still match.
+   */
+  function litSwatch(col, asTick) {
+    if (!WAYFIND.litSwatchOn) return null;
+    const s = h('span', null);
+    const px = WAYFIND.litSwatchPx;
+    s.style.cssText = 'display:inline-block;vertical-align:baseline;' +
+      'width:' + (asTick ? WAYFIND.litStripTickW : px) + 'px;height:' + px + 'px;' +
+      'border-radius:' + (asTick ? 0 : WAYFIND.litSwatchRadius) + 'px;' +
+      'margin-right:' + WAYFIND.litSwatchGap + 'px;background:' + col + ';';
+    // It is decoration for a sentence that already says the thing in words, so
+    // it must not be read out twice.
+    s.setAttribute('aria-hidden', 'true');
+    return s;
+  }
+
   /** The block in the open card: what is mapped, where it runs out, what that
    *  claim is and is not, and the priced alternative. */
   function litCard(card, r) {
@@ -2523,6 +2583,16 @@
     const lamps = h('div', 'wf-c', n ? SAY.litLamps(n) : SAY.litNone);
     lamps.style.cssText = 'font-size:13px;font-weight:600;margin:6px 0 2px;color:' +
       (n ? WAYFIND.litLampCol : WAYFIND.litTextDim);
+    // The strip's key, at the head of the strip's headline. Amber when there is
+    // something counted — the colour of the runs the bar drew amber — and the
+    // bar's own cool otherwise, which is the ONLY place on this card that
+    // colour is named. `litTextDim` stays the text colour: a swatch may be the
+    // map's value because it is a mark, and text may not, because it has to be
+    // read (see `litTextDim`).
+    if (strip) {
+      const sw = litSwatch(n ? WAYFIND.litStripLitCol : WAYFIND.litStripDarkCol, false);
+      if (sw) lamps.insertBefore(sw, lamps.firstChild);
+    }
     // Under tree cover rides ON the count rather than under it — it is a
     // qualifier on that number and nothing else, and a separate line gave it
     // the standing of a separate fact.
@@ -2572,6 +2642,13 @@
       } else {
         const rep = h('div', 'wf-c', spots ? SAY.darkSpots(spots) : SAY.darkNoneOnRoute);
         rep.style.color = spots ? WAYFIND.darkTextCol : WAYFIND.litTextDim;
+        // ...and the tick's key, at the head of the only sentence that names
+        // what the ticks are. Only when there ARE ticks on the bar: a mark
+        // explaining a mark that is not drawn is a mark that lies.
+        if (strip && spots) {
+          const sw = litSwatch(WAYFIND.litStripTickCol, true);
+          if (sw) rep.insertBefore(sw, rep.firstChild);
+        }
         card.appendChild(rep);
         const q = darkQuoteFor(scan);
         if (q) {
