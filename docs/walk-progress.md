@@ -70,6 +70,48 @@ address. Nothing on the live site has changed for anyone else.
 
 ---
 
+## 2026-08-24 — critic pass, round 1 on the schedule-import "parser" piece: oursWins = false, because there is no "ours" to look at
+
+Spawned as the harsh critic for round 1 of the class-schedule import (the
+Google Calendar / Apple Calendar / UT registration `.ics` importer that turns
+"MAI 220, TTh 2pm" into a routable building code). Instructed to check out and
+serve `acer/si-parser` at port 8951 and drive it blind against Google
+Calendar's own partial-failure behaviour on a bad file.
+
+That branch does not exist. Checked every way I know how before writing this
+down: `git fetch origin --prune` then `git branch -a` (local and remote),
+`git for-each-ref` grepped for "pars", `gh pr list --state all` and a GitHub
+search-issues query for "parser" (0 results), `gh api .../branches` grepped
+for "pars", and `git worktree list` across every sibling worktree on this
+machine (11 of them) — none is named or contains anything for a parser piece.
+The only related work anywhere is two **recon-only** commits already sitting
+on `main` (`e29f683`, `f8015d9`), which produced `docs/import-bar-apple.md`
+(167 lines) and `docs/import-bar-ut.md` (268 lines) — real-format writeups for
+Apple Calendar's subscribe/import flow and UT's registration schedule export.
+There is no recon doc for Google Calendar's `.ics` export, and zero lines of
+implementation: `js/wayfind.js` (still 8,238 lines, `WAYFIND.on = false`) has
+no `parseICS`, no `VEVENT` handling, no schedule-import code of any kind, in
+any branch, anywhere.
+
+So there is no server to start, no `?walk=1` UI to drive, no fixtures to test
+against a bad-file bar, and nothing to photograph blind against anything.
+**oursWins = false** — not a loss on merits, a piece that was never built.
+
+**The single biggest gap, stated so a builder can act on it without asking a
+question:** create branch `acer/si-parser` off current `main`
+(`a902c32`/`origin/main`) and actually build the importer described in the
+brief — a Google Calendar `.ics` export parser, an Apple Calendar
+subscribe/import-flow parser, and a UT registration schedule-export parser,
+all normalizing to the building-code seam at the `[CODE, lon, lat, ...]`
+tuple array around `js/wayfind.js:3609` — using the two recon docs that
+already exist (`docs/import-bar-apple.md`, `docs/import-bar-ut.md`) as the
+format ground truth, and write a third recon doc for Google Calendar's `.ics`
+format before coding against it, since nobody has looked at that one yet.
+Nothing the parser piece owns was touched by this pass; no server was
+started, no port was bound, nothing was committed to `js/wayfind.js`.
+
+---
+
 ## 2026-08-23 — the lighting claim, checked at 43 places instead of six: it holds, and it turned up a live oak sitting on top of a street lamp
 
 The walk feature can already tell you which parts of a route have a streetlight
