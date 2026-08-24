@@ -2307,3 +2307,60 @@ Write-up and the audit script verbatim: `docs/si-privacy.md`. Frames:
 `shots/si/privacy/`. `WAYFIND.on` untouched; the whole section is inside the
 feature's existing off-switch and the audit proves the page is unchanged without
 `?walk=1`.
+
+## 2026-08-24 — the storage lane, round 4 (`acer/si-privacy`): a retraction, and nine doors instead of one
+
+A reviewer read round 3 of `docs/si-privacy.md` and found the worst kind of
+mistake in it: the doc's central factual claim about the SSW building was
+sourced, four times, to a file that has never existed on any branch — and the
+claim itself, that SSW was demolished in 2024 and the school moved to Walter
+Webb Hall, was wrong as well as unsourced. That is retracted. All eleven
+unroutable codes were re-measured on this branch from the repo's own files:
+SSW's UT-surveyed door sits 0.4 m from the edge of a building footprint this app
+already draws, and 37 m from mapped pavement, while the ten Pickle codes are
+nine to ten kilometres from the nearest walk-graph node with nothing within
+200 m of them. A demolished building does not have that. The numbers land
+exactly on the ones `acer/si-gaps` measured independently, and its one-row fix
+is what takes the count from eleven to ten.
+
+The fix that matters is not "be more careful" — nothing was checking. So the
+doc now has a gate in front of it that resolves every path it cites, either
+here, or in a sibling branch's tree if the doc names the branch, or declared
+proposed if it is a file this lane may not write. It also asserts the privacy
+sentence the doc quotes is byte-identical to the one `index.html` serves and
+the one `js/wayfind.js` falls back to. It failed on its first run and named the
+phantom, which is the only evidence worth having that a gate works.
+
+The other half of the round: the negative control went from one channel to
+nine. The guard advertises that it closes seven doors and rounds 1–3 had only
+ever shown it closing `fetch`. Every channel is now fired twice — once disarmed
+to prove the channel really carries and the capture really sees it, once armed
+to prove the guard is what stopped it — and each asserts the two outcomes
+*differ*, because a case that fails identically in both states proves nothing.
+Building it found a real blind spot in the instrument rather than in the guard:
+the form test was submitting into `target="_blank"`, so the request belonged to
+a popup the page-scoped capture could never see, and the disarmed control was
+reporting a clean zero that meant the test was blind. It submits into a hidden
+same-page iframe now. `form.submit()` and `form.requestSubmit()` are also two
+genuinely different doors — only the second fires the `submit` event the guard's
+capture listener watches — so both are tested. 88 assertions, exit 0.
+
+And because a lane's own pass has already been wrong about this once in this
+project, the branch was merged with `si-gaps`, `si-ui` and `si-parser` and
+everything was run again on the merged tree: audit ALL PASS, `walkmeter` green
+with the stairs UI gate still working and the unroutable count down to ten, and
+a screenshot showing this lane's sentence sitting correctly under `si-ui`'s
+import row with no overlap. Two notes for whoever integrates: all four lanes
+append their new section at the same seam above `function boot()`, and git
+aligns coincidentally identical trailing braces between the unrelated bodies, so
+a naive "keep both sides" silently drops a closing brace and leaves a file that
+still reads plausibly — `node --check js/wayfind.js` catches it in a second and
+reading the diff does not. `si-dayview` collides the same way and was
+deliberately left unresolved rather than guessed at. There is also one piece of
+copy for Simeon to choose on, written up in §9: the promise is currently made
+twice on that screen, once by `si-ui`'s row subtitle and once by this lane's
+sentence, and it would read better made once.
+
+Branch `acer/si-privacy`, not merged, no PR. Server on 8915 killed and the port
+re-confirmed free; one browser; scratch frames stayed in the scratchpad, and the
+six frames in `shots/si/privacy/` are all cited by the doc.

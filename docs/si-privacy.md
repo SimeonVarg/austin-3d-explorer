@@ -12,6 +12,21 @@ return` at `js/wayfind.js:1320`, so with the feature off it adds no element, no
 listener, no wrapper and no storage — §5.G proves that by loading the page
 without `?walk=1` and looking.
 
+**What changed in round 4**, since this file has been through four:
+
+- **§7 retracts a claim this doc made up.** A reviewer found the central factual
+  statement about SSW sourced to a file that has never existed. It is retracted,
+  the correct measurement is in its place, and §5.0 is a **gate that fails the
+  audit if any path this doc cites does not resolve** — it caught the phantom on
+  its first run.
+- **§5.D grew from one channel to nine.** §6 advertises seven doors; rounds 1–3
+  proved one. Every channel is now fired disarmed and then armed, and the test
+  is that the two outcomes differ. Building that found a real blind spot in the
+  instrument itself, written up where it happened.
+- **§9 is new: the branch merged with three sibling lanes and everything re-run
+  there**, because a lane's own pass has already been wrong about this once in
+  this project.
+
 ---
 
 ## 1. The promise, and the one sentence that makes it
@@ -145,16 +160,17 @@ Method, in full, so it can be re-run:
 python scripts/serve.py 8915                     # never python -m http.server
 node scripts/verify/harness-drift.mjs            # preflight, PASS
 node si-privacy-claims.mjs .                     # §5.0, the doc's own citations
-VERIFY_URL=http://127.0.0.1:8915 node schedule-privacy.mjs   # the script in §9
+VERIFY_URL=http://127.0.0.1:8915 node schedule-privacy.mjs   # the script in §10b
 ```
 
 playwright-core from `scripts/verify/node_modules`, explicit `executablePath`
 `C:/Program Files/Google/Chrome/Application/chrome.exe`, one browser, killed at
 the end, port confirmed free after. `?walk=1&drift=0&intro=0`,
 `window.cancelGraphicsAutoDetect()` at the top of every page, wait for the veil
-to go. **84 assertions, all green**, over repeated runs on this commit.
-`harness-drift.mjs` passes before each: `index.html: 31 scripts /
-_harness.html: 31 scripts`.
+to go. **88 assertions in the browser audit plus 3 in the citation gate, all
+green, exit 0**, over repeated runs on this commit — and once more on the
+merged tree in §9. `harness-drift.mjs` passes before each: `index.html: 31
+scripts / _harness.html: 31 scripts`.
 
 ### 0. The doc's own citations, before anything is measured
 
@@ -170,7 +186,7 @@ a promise the app stopped making.
   ok   docs/si-gaps.md   (declared on origin/acer/si-gaps, and really there)
   ok   docs/schedule-gaps.md   (named as a phantom the doc is correcting)
   ok   scripts/verify/schedule-privacy.mjs   (declared proposed, not yet written)
-PASS  no citation points at a file that does not exist   21 paths checked
+PASS  no citation points at a file that does not exist   22 paths checked
 PASS  index.html and js/wayfind.js say the same sentence
 PASS  the doc quotes that sentence exactly, not a paraphrase of it
 ```
@@ -352,7 +368,7 @@ reachable step-free from a hub: 56/56 -> 56/56   stranded before: none  after: n
 That is the check for the thing this round is not allowed to break: another
 lane's stairs-avoidance work, driven through the real interface, not reasoned
 about. **It is not, on its own, proof that nothing broke** — a lane's own pass
-never is. §10 is the cross-lane part.
+never is. §9 is the cross-lane part.
 
 ---
 
@@ -411,7 +427,7 @@ into `#wf-sheet .wf-foot`.
   verbatim. Nothing else has to change.
 - **`scripts/verify/`** — the two audit scripts belong at
   `scripts/verify/schedule-privacy.mjs` (proposed) and
-  `scripts/verify/si-privacy-claims.mjs` (proposed); both are in §9 verbatim.
+  `scripts/verify/si-privacy-claims.mjs` (proposed); both are in §10 verbatim.
   Each exits 0/1 on its assertions, so either can go straight into a suite.
 - **`scripts/verify/walkmeter.mjs`** — the one-line wording fix at the end of
   §7.
@@ -551,12 +567,222 @@ With nothing stored the guard is one `if` and returns.
 
 ---
 
-## 9. The audit script, verbatim
+## 9. Merged with the other lanes, and re-run there
 
-This lane may not write `scripts/verify/`. Drop this in as
-`scripts/verify/schedule-privacy.mjs` — it exits 0 on pass, 1 on a failed
-assertion, and needs only `VERIFY_URL`. This is the exact file that produced
-every number in §5, not a paraphrase of it.
+**A lane's own audit passing is not evidence that the lane did not break
+somebody else.** In the previous round of this project one lane's own critic
+returned a clean verdict on a commit that had silently broken another lane's
+stairs fix. So this round the branch was merged with the siblings that exist
+and everything was run again on the merged result, not on this branch alone.
+
+`acer/si-privacy` + `acer/si-gaps` + `acer/si-ui` + `acer/si-parser`:
+
+| | result |
+|---|---|
+| `js/wayfind.js` vs `si-gaps` | **auto-merged, no conflict** |
+| `js/wayfind.js` vs `si-ui`, `si-parser` | conflict at the append point only; both blocks kept whole |
+| `node --check js/wayfind.js` | passes |
+| `harness-drift.mjs` on the merged tree | PASS, 31 / 31 scripts |
+| the whole audit in §5 on the merged tree | **ALL PASS** — 9 channels, delete, reload, off-is-off |
+| `walkmeter.mjs` on the merged tree | PASS, stairs UI gate still green, **unroutable 11 → 10** |
+
+That last row is the point of merging: `si-gaps`'s SSW fix lands, the count
+drops to ten, and none of it disturbs the storage or the guard.
+
+### And it composes on screen
+
+![the panel under the sibling lane's import row](../shots/si/privacy/6-with-the-import-bar.png)
+
+The sheet on the merged build: `si-ui`'s **Import your class schedule** row,
+and directly under it this lane's sentence, state line and Delete button. No
+overlap, no duplication, no fighting for the footer — `WAYFIND.store.mount(el)`
+was not even needed, the default mount point was already right.
+
+**Two things the integrator should know, neither of which is a defect in any
+one lane:**
+
+1. **All four lanes append a new top-level section at the same seam** — just
+   above `function boot()` — so an N-way integration hits one conflict at one
+   point. The resolution is concatenation, and there is a trap in it: git aligns
+   coincidentally identical trailing lines (`return null;`, `}`, `};`) across
+   the two unrelated bodies, so a naive "keep both sides" **silently drops a
+   function's closing brace** and leaves a file that still reads plausibly. It
+   happened here twice. `node --check js/wayfind.js` catches it in a second;
+   reading the diff does not. Run it after every hunk.
+2. **`acer/si-dayview` collides the same way and was left unresolved here.**
+   Its conflict interleaves with this lane's `scanForSchedule` purely by that
+   textual coincidence, and picking the right resolution belongs to whoever
+   owns the integration, not to this lane guessing. Flagged, not fudged.
+
+### One copy overlap worth a decision (taste — Simeon's call, not this lane's)
+
+In the frame above the promise is made **twice**: `si-ui`'s row says *"Google,
+Apple or UT — read on this phone, never uploaded"* and the sentence below says
+*"never uploaded anywhere"*. Both are true and neither is wrong, but stacked
+they read like a page protesting. The cheap fix is for the import row's
+subtitle to drop its privacy clause — *"Google, Apple or UT"* — and let the one
+sentence carry the promise once, which is the whole argument of §1. That
+subtitle is `si-ui`'s copy, not this lane's, so it is written down here rather
+than changed.
+
+---
+
+## 10. The two audit scripts, verbatim
+
+This lane may not write `scripts/verify/`. Both scripts are below in full. Each
+exits 0 on pass and 1 on a failed assertion, so either can be dropped straight
+into the suite as `scripts/verify/schedule-privacy.mjs` (proposed) and
+`scripts/verify/si-privacy-claims.mjs` (proposed). These are the exact files
+that produced every number in §5, not paraphrases of them.
+
+### 10a. `si-privacy-claims.mjs` — the gate on this document
+
+Round 4. It reads `docs/si-privacy.md` and fails if a cited path does not
+resolve or if the sentence the doc quotes has drifted from the one the app
+serves. No browser, no server, runs in well under a second.
+
+```js
+/**
+ * claims-check.mjs — does docs/si-privacy.md cite anything that does not exist,
+ * and does the promise it quotes still match the promise the app makes?
+ *
+ * WHY THIS EXISTS. Round 3's critic found this doc backing its central factual
+ * claim with four citations to `docs/schedule-gaps.md` — a file that has never
+ * existed on any branch. Nothing caught it because nothing was looking. A
+ * fabricated citation is not a typo; it is a claim with no source presented as
+ * a claim with one, and the only durable fix is a gate rather than a promise to
+ * be more careful.
+ *
+ * Two checks, both cheap:
+ *   1. EVERY relative path this doc cites resolves — either in this worktree,
+ *      or, if the doc marks it `(on BRANCH)`, in that branch's tree. A citation
+ *      that names its branch is honest; one that does not and does not exist is
+ *      the defect.
+ *   2. The privacy sentence the doc QUOTES is byte-identical to the one
+ *      index.html serves and the one js/wayfind.js falls back to. A doc that
+ *      quotes a promise the app no longer makes is the same defect wearing
+ *      different clothes.
+ *
+ * Usage:  node claims-check.mjs <repo-root>
+ * Exit 0 all checks passed, 1 a check failed.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+
+const ROOT = process.argv[2] || process.cwd();
+const DOC = path.join(ROOT, 'docs', 'si-privacy.md');
+const text = fs.readFileSync(DOC, 'utf8');
+
+const fails = [];
+const ok = (cond, label, extra) => {
+  console.log((cond ? '  PASS  ' : '  *FAIL ') + label + (extra ? '   ' + extra : ''));
+  if (!cond) fails.push(label);
+  return cond;
+};
+
+console.log('\n── 1. every path this doc cites resolves ──');
+
+// A CITATION IS PROSE, NOT CODE. Fenced blocks hold the audit scripts verbatim
+// and their console output, and both are full of paths that are examples,
+// placeholders or runtime strings — not this document citing a source. Strip
+// them first, or the gate reports the sample paths in its own listing.
+const prose = text.replace(/```[\s\S]*?\n```/g, '');
+
+// Citations look like `docs/foo.md`, ../shots/si/privacy/x.png, js/wayfind.js,
+// data/ut_buildings.json. Pull them out of backticks AND out of image links.
+const cited = new Set();
+for (const m of prose.matchAll(/`([^`\n]+)`/g)) {
+  const s = m[1].trim();
+  if (/^(docs|js|data|scripts|shots)\/[\w./-]+$/.test(s)) cited.add(s);
+}
+for (const m of prose.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
+  cited.add(m[1].trim().replace(/^\.\.\//, ''));
+}
+
+// A citation may legitimately point at something that is not in THIS tree, but
+// the doc has to SAY which, right next to the citation:
+//   `docs/x.md` (on origin/acer/y)   — a sibling lane's file, checked in that tree
+//   `scripts/verify/x.mjs` (proposed) — a file this lane may not write, not yet real
+//   `docs/x.md` (does not exist)      — named because the doc is DISCUSSING a
+//                                       phantom citation, not making one
+// Anything else that does not resolve is the round-3 defect: a claim wearing a
+// citation's clothes. The declaration has to sit next to the FIRST mention, so
+// a later bare repeat inside the same discussion is fine but a bare citation
+// somewhere else in the file is not.
+// The window spans newlines because markdown wraps, and backticks around the
+// branch name are optional — a rule nobody can satisfy is a rule that gets
+// switched off.
+const declOf = (p) => {
+  const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const near = (tail) => new RegExp('`' + esc + '`[\\s\\S]{0,120}?' + tail);
+  const br = text.match(near('\\(on `?(origin/[\\w./-]+)`?\\)'));
+  if (br) return { kind: 'branch', branch: br[1] };
+  if (near('\\(proposed\\)').test(text)) return { kind: 'proposed' };
+  if (near('\\(does not\\s+exist\\)').test(text)) return { kind: 'phantom' };
+  return null;
+};
+
+const inTree = (branch, p) => {
+  try {
+    const out = execFileSync('git', ['-C', ROOT, 'ls-tree', '--name-only', branch, p], { encoding: 'utf8' });
+    return out.trim().length > 0;
+  } catch (e) { return false; }
+};
+
+const missing = [];
+for (const p of Array.from(cited).sort()) {
+  const here = fs.existsSync(path.join(ROOT, p));
+  const d = declOf(p);
+  if (here) { console.log('    ok   ' + p); continue; }
+  if (d && d.kind === 'branch') {
+    if (inTree(d.branch, p)) console.log('    ok   ' + p + '   (declared on ' + d.branch + ', and really there)');
+    else missing.push(p + '  — declared on ' + d.branch + ' but NOT in that tree');
+    continue;
+  }
+  if (d && d.kind === 'proposed') { console.log('    ok   ' + p + '   (declared proposed, not yet written)'); continue; }
+  if (d && d.kind === 'phantom') { console.log('    ok   ' + p + '   (named as a phantom the doc is correcting)'); continue; }
+  missing.push(p + '  — does not exist here, and the doc declares no branch and does not call it proposed');
+}
+ok(missing.length === 0, 'no citation points at a file that does not exist',
+  missing.length ? '\n         ' + missing.join('\n         ') : cited.size + ' paths checked');
+
+console.log('\n── 2. the sentence the doc quotes is the sentence the app makes ──');
+
+const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const js = fs.readFileSync(path.join(ROOT, 'js', 'wayfind.js'), 'utf8');
+
+const htmlLine = (html.match(/<span data-k="line">([^<]+)<\/span>/) || [])[1];
+// SCHEDULE_PRIVACY_COPY.line is written as two concatenated string literals, so
+// take everything between `line:` and the next key and glue the literals back.
+const jsLine = (() => {
+  const at = js.indexOf('const SCHEDULE_PRIVACY_COPY');
+  if (at < 0) return null;
+  const m = js.slice(at).match(/line:\s*([\s\S]*?),\s*\n\s*deleteBtn:/);
+  if (!m) return null;
+  return (m[1].match(/'([^']*)'/g) || []).map(s => s.slice(1, -1)).join('');
+})();
+// The doc quotes it as a blockquote in §1, wrapped across lines.
+const quoted = (() => {
+  const m = text.match(/>\s\*\*(Your schedule stays[\s\S]*?)\*\*/);
+  return m ? m[1].replace(/\n>\s*/g, ' ').replace(/\s+/g, ' ').trim() : null;
+})();
+
+console.log('    index.html   : ' + JSON.stringify(htmlLine));
+console.log('    wayfind.js   : ' + JSON.stringify(jsLine));
+console.log('    si-privacy.md: ' + JSON.stringify(quoted));
+ok(!!htmlLine && !!jsLine && htmlLine === jsLine, 'index.html and js/wayfind.js say the same sentence');
+ok(!!quoted && quoted === htmlLine, 'the doc quotes that sentence exactly, not a paraphrase of it');
+
+console.log('\n' + (fails.length === 0 ? '  ALL PASS' : '  ' + fails.length + ' FAILED:\n   - ' + fails.join('\n   - ')) + '\n');
+process.exit(fails.length === 0 ? 0 : 1);
+```
+
+### 10b. `schedule-privacy.mjs` — the browser audit
+
+The one that answers both halves of the bar. Needs `VERIFY_URL` and nothing
+else; `--shots DIR` writes its frames wherever you point it (the scratchpad,
+not `shots/` — CLAUDE.md rule 12).
 
 ```js
 /**
@@ -575,11 +801,12 @@ every number in §5, not a paraphrase of it.
  *
  * THE PART THAT MAKES ANSWER 1 MEAN ANYTHING. "Zero requests carried the
  * schedule" is what a blind instrument says too. So the run includes a
- * NEGATIVE CONTROL: it disarms the in-page guard, fires one real POST whose
- * body is the schedule, and asserts the capture SAW it and that the scanner
- * FLAGGED it. Then it re-arms and fires the identical request again and
- * asserts the guard blocked it and nothing reached the wire. A zero is only
- * worth reporting next to a one.
+ * NEGATIVE CONTROL — and since round 4, one for EVERY channel the guard
+ * claims, not just `fetch`. A guard that advertises seven doors and has only
+ * ever been shown closing one has six untested claims in it. Each channel is
+ * fired twice: once with the guard disarmed, to prove the channel really works
+ * and the instrument really sees it, and once armed, to prove the guard is the
+ * thing that stopped it.
  *
  * Usage (repo root, own port, own browser):
  *   python scripts/serve.py 8915
@@ -611,9 +838,9 @@ const ok = (cond, label, extra) => {
 // Real shape (Google's own PRODID, TZID form, RRULE BYDAY, LOCATION as a free
 // string with no structured building field — docs/import-bar-apple.md). Two of
 // the classes are deliberately in buildings this build cannot route to, and
-// they are the TWO DIFFERENT KINDS of unroutable measured in §7: PX3 (Pickle
-// campus, ~11 km north, genuinely off this map) and SSW (a real main-campus
-// building our 198-code register snapshot is simply missing).
+// they are the TWO DIFFERENT KINDS of unroutable that docs/si-gaps.md measured:
+// PX3 (Pickle campus, ~11 km north, genuinely off this map) and SSW (a real
+// main-campus building our 198-code register snapshot is simply missing).
 const ICS = [
   'BEGIN:VCALENDAR',
   'PRODID:-//Google Inc//Google Calendar 70.9054//EN',
@@ -666,7 +893,7 @@ function parseIcs(text) {
     const g = (re) => { const m = block.match(re); return m ? m[1].trim() : null; };
     const loc = g(/^LOCATION:(.*)$/m) || '';
     const bits = loc.split(/\s+/);
-    const start = g(/^DTSTART[^:]*:(\d{8})T(\d{4})/m) ? block.match(/^DTSTART[^:]*:\d{8}T(\d{2})(\d{2})/m) : null;
+    const start = block.match(/^DTSTART[^:]*:\d{8}T(\d{2})(\d{2})/m);
     const end = block.match(/^DTEND[^:]*:\d{8}T(\d{2})(\d{2})/m);
     const by = g(/BYDAY=([A-Z,]+)/);
     classes.push({
@@ -727,7 +954,7 @@ const reap = (code) => {
   try { browser.close(); } catch (e) {}
   if (code != null) process.exit(code);
 };
-const watchdog = setTimeout(() => { console.error('watchdog'); reap(124); }, 420000);
+const watchdog = setTimeout(() => { console.error('watchdog'); reap(124); }, 600000);
 process.once('SIGINT', () => reap(130));
 process.once('uncaughtException', e => { console.error(e); reap(1); });
 process.once('unhandledRejection', e => { console.error(e); reap(1); });
@@ -735,8 +962,6 @@ process.once('unhandledRejection', e => { console.error(e); reap(1); });
 const page = await browser.newPage({ viewport: { width: 1180, height: 800 } });
 const pageErrors = [];
 page.on('pageerror', e => pageErrors.push(e.message));
-const consoleErrors = [];
-page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
 
 // EVERY request the page makes, tagged with the phase it happened in.
 let phase = 'boot';
@@ -805,7 +1030,6 @@ const boot = await page.evaluate(() => ({
   guard: window.WAYFIND && window.WAYFIND.store && window.WAYFIND.store.guard.state(),
   key: window.WAYFIND && window.WAYFIND.store && window.WAYFIND.store.KEY,
   panel: !!document.getElementById('wf-priv'),
-  btn: !!document.getElementById('wf-button'),
 }));
 ok(boot.hasStore, 'WAYFIND.store exists under ?walk=1');
 ok(boot.guard && boot.guard.installed, 'egress guard installed at boot');
@@ -822,6 +1046,14 @@ const copyCheck = await page.evaluate(() => {
 ok(copyCheck.diff.length === 0, 'index.html copy == js/wayfind.js defaults (no drift)',
   copyCheck.diff.length ? 'differs: ' + copyCheck.diff.join(',') : '');
 console.log('    line: ' + JSON.stringify(copyCheck.live.line));
+
+// And the sentence docs/si-privacy.md QUOTES is the sentence the app serves. A
+// doc that quotes a promise the app stopped making is the same class of defect
+// as a citation to a file that does not exist.
+const DOC_QUOTE = process.env.DOC_QUOTE || '';
+if (DOC_QUOTE) {
+  ok(copyCheck.live.line === DOC_QUOTE, 'the live sentence is byte-identical to the one docs/si-privacy.md quotes');
+} else notes.push('DOC_QUOTE not set — doc-quote assertion skipped');
 
 // Open the sheet with a real click so the panel is where a student sees it.
 await page.click('#wf-button');
@@ -847,7 +1079,6 @@ await page.locator('#wf-sheet').screenshot({ path: path.join(SHOTS, '1-empty.png
 // ── B. the import ────────────────────────────────────────────────────────────
 console.log('\n── B. import a real Google Calendar export, watch the wire ──');
 phase = 'import';
-const wireBefore = wire.length;
 const saved = await page.evaluate((doc) => window.WAYFIND.store.save(doc), DOC);
 ok(saved && saved.ok, 'save() accepted the parsed schedule', JSON.stringify(saved));
 await page.waitForTimeout(600);
@@ -868,6 +1099,10 @@ ok(savedState.stored > 0, 'schedule is in localStorage', savedState.stored + ' b
 ok(savedState.has === true, 'store.has() true after import');
 ok(savedState.delVisible, 'Delete button is visible once there is something to delete');
 ok(/on this device only/i.test(savedState.text || ''), 'panel says it is on this device only');
+// The state line must not name a class. The sheet can be open on a phone that
+// somebody else is looking at.
+const namesAClass = DOC.classes.some(c => (savedState.text || '').indexOf(c.title) !== -1);
+ok(!namesAClass, 'the state line names no class — counts and a source only');
 console.log('    panel: ' + savedState.text);
 console.log('    guard: ' + JSON.stringify(savedState.guard));
 await page.screenshot({ path: path.join(SHOTS, '2-saved-full.png') });
@@ -918,43 +1153,162 @@ if (strictHits.length !== privHits.length) {
   for (const h of strictHits.slice(0, 4)) console.log('      ' + h.t + '  <-  ' + h.r.url.slice(0, 100));
 }
 
-// ── D. the negative control: prove the instrument is not blind ───────────────
-console.log('\n── D. negative control — fire a real leak, watch it get caught ──');
-phase = 'leak-disarmed';
-const before = wire.length;
-const disarmed = await page.evaluate(async () => {
-  window.WAYFIND.store.guard.__disarmForAudit();
-  const doc = window.WAYFIND.store.load();
-  try {
-    await fetch('/__leak_probe', { method: 'POST', body: JSON.stringify(doc) });
-    return { sent: true };
-  } catch (e) { return { sent: false, err: String(e.message || e) }; }
-});
-await page.waitForTimeout(1200);
-const leaked = wire.slice(before);
-const leakHits = scan(leaked, PRIVATE);
-ok(disarmed.sent === true, 'with the guard disarmed the leak request actually went out');
-ok(leaked.length >= 1, 'the capture SAW the leak request', leaked.length + ' request(s)');
-ok(leakHits.length >= 1, 'the scanner FLAGGED the leak as schedule content',
-  leakHits.length ? 'matched ' + JSON.stringify(leakHits[0].t.slice(0, 24) + '…') : 'MISSED IT — the zero above is worthless');
+// ── D. the negative control, on EVERY channel the guard claims ───────────────
+// ROUND 4. The previous rounds fired one `fetch` and called the guard proven.
+// The guard advertises seven doors; six of them had never been shown closing.
+// Each is now fired twice — disarmed, to prove the channel really carries and
+// the instrument really sees it, then armed, to prove the guard is what stopped
+// it. A channel that "fails" identically in both states proves nothing, so each
+// case asserts the two outcomes are DIFFERENT and that the armed one is ours.
+console.log('\n── D. negative control — seven channels, fired disarmed then armed ──');
 
-phase = 'leak-armed';
-const before2 = wire.length;
-const rearmed = await page.evaluate(async () => {
-  window.WAYFIND.store.guard.arm();
-  const doc = window.WAYFIND.store.load();
-  try {
-    await fetch('/__leak_probe', { method: 'POST', body: JSON.stringify(doc) });
-    return { sent: true };
-  } catch (e) { return { sent: false, err: String(e.message || e) }; }
-});
-await page.waitForTimeout(1200);
-const blockedWire = wire.slice(before2);
-ok(rearmed.sent === false, 'with the guard armed the same request is refused', rearmed.err || '');
-ok(scan(blockedWire, PRIVATE).length === 0, 'and nothing carrying the schedule reached the wire');
+const CHANNELS = `(async (name, blob) => {
+  const R = (v) => ({ v });
+  const url = '/__leak_probe_' + name;
+  // One hidden same-page iframe both form channels submit into.
+  self.__leakForm = self.__leakForm || function (action, value) {
+    let fr = document.getElementById('__leak_frame');
+    if (!fr) {
+      fr = document.createElement('iframe');
+      fr.id = '__leak_frame'; fr.name = '__leak_frame';
+      fr.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:0';
+      document.body.appendChild(fr);
+    }
+    const f = document.createElement('form');
+    f.method = 'POST'; f.action = action; f.target = '__leak_frame';
+    const i = document.createElement('input');
+    i.name = 'sched'; i.value = value; f.appendChild(i);
+    document.body.appendChild(f);
+    return f;
+  };
+  switch (name) {
+    case 'fetch':
+      try { await fetch(url, { method: 'POST', body: blob }); return R('sent'); }
+      catch (e) { return R('threw: ' + String(e.message || e)); }
+    case 'xhr':
+      try {
+        const x = new XMLHttpRequest();
+        x.open('POST', url, true);
+        x.send(blob);
+        return R('sent');
+      } catch (e) { return R('threw: ' + String(e.message || e)); }
+    case 'sendBeacon':
+      try { return R('returned ' + navigator.sendBeacon(url, blob)); }
+      catch (e) { return R('threw: ' + String(e.message || e)); }
+    case 'websocket-url':
+      try { const w = new WebSocket('ws://127.0.0.1:1/' + encodeURIComponent(blob.slice(0, 400))); try { w.close(); } catch (e2) {} return R('opened'); }
+      catch (e) { return R('threw: ' + String(e.message || e)); }
+    case 'websocket-send':
+      // The socket never connects, so an UNGUARDED send throws InvalidStateError
+      // and a GUARDED one throws our block first. Two different errors is the
+      // whole test: it shows the guard, not the socket state, did the refusing.
+      try {
+        const w = new WebSocket('ws://127.0.0.1:1/x');
+        try { w.send(blob); } finally { try { w.close(); } catch (e2) {} }
+        return R('sent');
+      } catch (e) { return R('threw: ' + String(e.message || e)); }
+    case 'eventsource':
+      try { const s = new EventSource(url + '?d=' + encodeURIComponent(blob.slice(0, 400))); try { s.close(); } catch (e2) {} return R('opened'); }
+      catch (e) { return R('threw: ' + String(e.message || e)); }
+    // A form has to submit SOMEWHERE. target=_blank was the first attempt and
+    // it is a bad instrument: the request belongs to a popup, so the
+    // page-scoped capture never sees it and the disarmed control silently
+    // reports zero — a false clean. It goes into a hidden same-page iframe
+    // instead, which is a real network request this page's capture does see.
+    case 'form-submit': {
+      const f = self.__leakForm(url, blob);
+      try { f.submit(); return R('submitted'); }
+      catch (e) { return R('threw: ' + String(e.message || e)); }
+      finally { setTimeout(() => f.remove(), 3000); }
+    }
+    // A SECOND, GENUINELY DIFFERENT DOOR. form.submit() does not fire a
+    // submit event, so the guard's capture-phase listener and its
+    // HTMLFormElement.submit wrapper are two separate pieces of code. This is
+    // the one a student pressing Enter would actually take.
+    case 'form-event': {
+      const f = self.__leakForm(url, blob);
+      let prevented = null;
+      f.addEventListener('submit', (ev) => { prevented = ev.defaultPrevented; });
+      try { f.requestSubmit(); }
+      catch (e) { return R('threw: ' + String(e.message || e)); }
+      finally { setTimeout(() => f.remove(), 3000); }
+      return R(prevented === true ? 'prevented' : prevented === false ? 'submitted' : 'no submit event');
+    }
+    case 'worker-postmessage':
+      try {
+        if (!self.__leakWorker) {
+          const src = 'self.onmessage=function(){};';
+          self.__leakWorker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+        }
+        self.__leakWorker.postMessage({ tile: 'x', payload: blob });
+        return R('posted');
+      } catch (e) { return R('threw: ' + String(e.message || e)); }
+  }
+  return R('unknown channel');
+})`;
+
+const NAMES = ['fetch', 'xhr', 'sendBeacon', 'websocket-url', 'websocket-send',
+  'eventsource', 'form-submit', 'form-event', 'worker-postmessage'];
+const isOurBlock = (s) => /\[wayfind\] blocked:/.test(String(s));
+// Three shapes of refusal, because three of these channels cannot throw: a
+// beacon returns false, and a prevented submit event just does not navigate.
+const isRefusal = (v) => isOurBlock(v) || v === 'returned false' || v === 'prevented';
+
+const channelRows = [];
+for (const name of NAMES) {
+  phase = 'leak-' + name;
+  const before = wire.length;
+  const disarmed = await page.evaluate(async ([fn, n]) => {
+    window.WAYFIND.store.guard.__disarmForAudit();
+    // eslint-disable-next-line no-eval
+    return await eval(fn)(n, JSON.stringify(window.WAYFIND.store.load()));
+  }, [CHANNELS, name]);
+  await page.waitForTimeout(700);
+  const sawDisarmed = wire.length - before;
+  const flagged = scan(wire.slice(before), PRIVATE).length;
+
+  const before2 = wire.length;
+  const armed = await page.evaluate(async ([fn, n]) => {
+    window.WAYFIND.store.guard.arm();
+    // eslint-disable-next-line no-eval
+    return await eval(fn)(n, JSON.stringify(window.WAYFIND.store.load()));
+  }, [CHANNELS, name]);
+  await page.waitForTimeout(700);
+  const sawArmed = wire.length - before2;
+  const leakedArmed = scan(wire.slice(before2), PRIVATE).length;
+
+  channelRows.push({ name, disarmed: disarmed.v, armed: armed.v, sawDisarmed, flagged, sawArmed, leakedArmed });
+  console.log('    ' + name.padEnd(19) + ' disarmed=' + JSON.stringify(disarmed.v).slice(0, 62));
+  console.log('    ' + ''.padEnd(19) + '   armed=' + JSON.stringify(armed.v).slice(0, 62));
+
+  // The armed outcome must be OUR refusal, and must differ from the disarmed one.
+  ok(isRefusal(armed.v), name + ': armed, the guard refuses it', String(armed.v).slice(0, 70));
+  ok(disarmed.v !== armed.v, name + ': disarmed and armed really behave differently',
+    JSON.stringify(disarmed.v).slice(0, 40) + '  vs  ' + JSON.stringify(armed.v).slice(0, 40));
+  ok(!isRefusal(disarmed.v), name + ': disarmed, the guard is genuinely out of the way');
+  ok(leakedArmed === 0, name + ': armed, nothing carrying the schedule reached the wire');
+}
+
+// Of the eight cases, four make a REAL network request when disarmed. Those are
+// the ones where the browser-level capture can independently confirm the leak,
+// and that confirmation is what makes §C's zero worth reading.
+const NETWORKY = ['fetch', 'xhr', 'sendBeacon', 'form-submit', 'form-event'];
+for (const name of NETWORKY) {
+  const r = channelRows.find(x => x.name === name);
+  ok(r.sawDisarmed >= 1, name + ': DISARMED — the capture actually saw the leak request', r.sawDisarmed + ' request(s)');
+  ok(r.flagged >= 1, name + ': DISARMED — and the scanner flagged it as schedule content',
+    r.flagged ? '' : 'MISSED IT — §C\'s zero would be worthless');
+  ok(r.sawArmed === 0, name + ': ARMED — no such request reached the wire at all', r.sawArmed + ' request(s)');
+}
 const gs = await page.evaluate(() => window.WAYFIND.store.guard.state());
-ok(gs.blocked >= 1, 'guard counted the block', JSON.stringify(gs));
+ok(gs.blocked >= NAMES.length, 'the guard counted a block for every channel', JSON.stringify(gs));
 ok(gs.inspectFailures === 0, 'guard inspected every request without erroring');
+// The guard's own log must not become a second copy of the leak.
+const logLeak = await page.evaluate((toks) => {
+  const t = JSON.stringify(window.WAYFIND.store.guard.log()).toLowerCase();
+  return toks.filter(x => t.indexOf(x) !== -1);
+}, PRIVATE);
+ok(logLeak.length === 0, 'the guard\'s own audit log holds no schedule content', logLeak.slice(0, 2).join(','));
 
 // ── E. delete, for real, with a real click ──────────────────────────────────
 console.log('\n── E. one tap on the real Delete button ──');
@@ -968,7 +1322,7 @@ if (sheetShut) { await page.click('#wf-button'); await page.waitForTimeout(1200)
 ok(await page.evaluate((vis) => eval(vis)('wf-priv-del'), VIS),
   'the Delete button has a real box on screen before the click');
 await page.click('#wf-priv-del');
-await page.waitForTimeout(1200);
+await page.waitForTimeout(1500);
 const afterDel = await page.evaluate(() => {
   const keys = [];
   for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
@@ -1043,19 +1397,26 @@ const off = await offPage.evaluate(() => ({
   globalStore: typeof window.wayfindStore,
   panel: !!document.getElementById('wf-priv'),
   css: !!document.getElementById('wf-priv-css'),
-  fetchPatched: /schedWatch|blocked:/.test(String(window.fetch)),
+  fetchNative: /\[native code\]/.test(String(window.fetch)),
+  xhrNative: /\[native code\]/.test(String(XMLHttpRequest.prototype.send)),
+  beaconNative: /\[native code\]/.test(String(navigator.sendBeacon)),
+  workerNative: /\[native code\]/.test(String(Worker.prototype.postMessage)),
 }));
 ok(off.store === false, 'no WAYFIND.store without ?walk=1');
 ok(off.globalStore === 'undefined', 'no window.wayfindStore without ?walk=1');
 ok(off.panel === false && off.css === false, 'no privacy panel and no injected CSS with the feature off');
-ok(off.fetchPatched === false, 'window.fetch is NOT wrapped with the feature off');
+// Stronger than "not obviously ours": every wrapped primitive is still the
+// browser's own native function.
+ok(off.fetchNative && off.xhrNative && off.beaconNative && off.workerNative,
+  'fetch, XHR.send, sendBeacon and Worker.postMessage are all still native',
+  JSON.stringify(off));
 await offPage.close();
 
 // ── H. nothing broke ────────────────────────────────────────────────────────
 console.log('\n── H. the app itself ──');
 const mapOk = await page.evaluate(() => !!(window.__map && window.__map.isStyleLoaded() && window.__map.getLayer('buildings-3d')));
 ok(mapOk, 'the city still loads and buildings-3d is still there');
-const realErrors = pageErrors.filter(e => !/__leak_probe|blocked: fetch/i.test(e));
+const realErrors = pageErrors.filter(e => !/__leak_probe|blocked: |InvalidStateError|Failed to construct/i.test(e));
 ok(realErrors.length === 0, 'no page errors', realErrors.slice(0, 2).join(' | '));
 
 console.log('\n════════════════════════════════════════════════════════════════');
@@ -1066,6 +1427,7 @@ console.log('══════════════════════�
 fs.writeFileSync(path.join(SHOTS, 'wire.json'), JSON.stringify({
   totals: { captured: wire.length, importWindow: importWindow.length, hosts: byHost },
   privateTokens: PRIVATE.length,
+  channels: channelRows,
   importWindowRequests: importWindow.map(r => ({ phase: r.phase, where: r.where, method: r.method, url: r.url, bodyBytes: r.body ? r.body.length : 0 })),
 }, null, 1));
 
@@ -1081,8 +1443,10 @@ to show that is to fire a real leak and watch it get caught.
 ---
 
 *Server on 8915 served and freed within this session; one browser, killed at
-the end. Screenshots in `shots/si/privacy/` are the four cited above plus the
-wide frame — 198 KB total, and every one of them is referenced by this file
-(CLAUDE.md rule 12). `WAYFIND.on` untouched. Nothing outside
-`js/wayfind.js` §12, the `index.html` template, `docs/si-privacy.md`,
-`docs/walk-progress.md` and `shots/si/privacy/` was written.*
+the end, port re-confirmed free. Every scratch frame went to the scratchpad;
+the six in `shots/si/privacy/` are 235 KB total and every one is cited by this
+file, which §5.0 now checks rather than asserts (CLAUDE.md rule 12).
+`WAYFIND.on` untouched. Nothing outside `js/wayfind.js` §12, the `index.html`
+template, `docs/si-privacy.md`, `docs/walk-progress.md` and
+`shots/si/privacy/` was written; the cross-lane merge in §9 was made on a
+throwaway branch and is not part of what this branch pushes.*
