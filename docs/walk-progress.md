@@ -385,3 +385,43 @@ violet ticks alone 1 in 8. Under the bar, so nothing changed.
 Routing untouched for the fourth round running; every steering number identical
 to round 3. Full argument, all the numbers and all six wrong instruments:
 `docs/walk-lit.md` §42-§51.
+
+## 2026-08-24 — lighting (acer/w-lit), round 7
+
+Six rounds measured this block's height, its word count and whether its key was
+the same colour as its picture. None of them measured whether a person can see
+it. I did, off the rendered pixels at both a laptop and a phone width, and every
+one of the sixteen sentences was fine — while **three of the marks were not**:
+the bar's "nothing is mapped here" colour, the little key square round 6 added
+to name that colour, and the START / DOOR labels under the bar. The two colour
+ones are the same colour, and it is the one that fills the whole bar on the West
+Campus walk home.
+
+The fix is a one-pixel edge, not a repaint. The colour itself is fine at the job
+it has — telling a lit stretch from an unlit one — so I framed the bar and framed
+the key square instead and left both fills untouched, which also keeps round 6's
+proof that the key and the bar match. I swept six candidate edge colours and six
+label brightnesses on the real card and took the quietest value that clears with
+real margin, not the safest-looking one. Nothing on the card moved: same words,
+same height to the pixel. The change is a pixel wide, so I magnified it six times
+to check it is actually visible — `shots/walk/lit/r7-edge-ab-zoom.png`, and the
+key square goes from a dark smudge to a mark you can read as part of the bar.
+
+Then I went and stood in the city. Two frames of the same walk at night at
+walking height with the card open: where the bar is amber there are two lamp
+posts in their own pools of light, and where the same walk goes cool there is a
+bare path running off into the dark. `shots/walk/lit/r7-scene-ANB-mapped.png` and
+`r7-scene-ANB-unmapped.png`. Hiding every mapped lamp in the city takes 25,983
+pixels out of the first frame and 7 out of the second.
+
+Two honest corrections. One number in that test was about to go into the document
+as a defect — a spot the card calls unlit that seemed to have light in it — and it
+was a screenshot taken before the picture had settled; re-run properly it is three
+pixels, not three thousand. Which means **every lamp-pixel figure in the previous
+six rounds was a single reading of an instrument that swings threefold**; the
+conclusions survive because the gaps are thousands-against-single-digits, but the
+values should not be quoted. And I found the bar draws its stripes and its tick
+marks in two different coordinate systems — real, and measured at under one pixel
+on 90 routes, so I wrote the bound down and changed nothing.
+
+Routing untouched for the fifth round running. `docs/walk-lit.md` §52-§58.

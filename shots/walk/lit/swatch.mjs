@@ -126,7 +126,16 @@ for (const [W, H, dev] of WIDTHS) {
         for (const seg of Array.from(track.children)) {
           const r = seg.getBoundingClientRect();
           if (r.width < 2) continue;
-          const isTick = r.width <= 3 && Math.abs(r.height - tb.height) < 2 && seg.style.position === 'absolute';
+          // A TICK IS AN ABSOLUTELY POSITIONED CHILD, AND NOTHING ELSE.
+          // Round 6 also required `|tick height - track height| < 2`, which was
+          // true until round 7 gave the track a 1 px inset border: the tick
+          // spans the PADDING box (8 px) and the track's rect is the BORDER box
+          // (10 px), the difference became exactly 2, and every tick silently
+          // reclassified as a cool run. The failure printed as "the key is the
+          // same colour as the picture at 4 / 6" — a colour complaint, from a
+          // geometry assumption, about an element that had not changed at all.
+          // `position:absolute` is what litStrip actually guarantees.
+          const isTick = seg.style.position === 'absolute';
           const p = { x: r.x + r.width / 2, y: tb.y + tb.height / 2, w: +r.width.toFixed(1) };
           if (isTick) { if (!tick) tick = p; continue; }
           const isAmber = /255,\s*194|ffc27a/i.test(seg.style.background || '');

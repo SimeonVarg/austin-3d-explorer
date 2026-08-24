@@ -2184,3 +2184,278 @@ rounds, came back clean.)*
   bar and left alone, and it is `js/night.js`'s. §48 has the request.
 * **Anything about crime, response times, or how safe a stretch is.** Unchanged
   across six rounds, and it will stay unchanged.
+
+# ROUND 7 — the block was measured for height, for words and for colour match,
+# and never once for whether a person can physically see it
+
+`shots/walk/lit/readable.mjs`, `edgesweep.mjs`, `barcoords.mjs`,
+`sceneproof.mjs`, `streakwhere.mjs`, `zoomab.mjs`, all committed with their
+JSON. **[M]**, 2026-08-24, port 8814, `p = 0.92`, hardware GL,
+`?walk=1&intro=0&drift=0`, graphics auto-detect cancelled, veil waited out.
+
+§51's first bullet named the largest untested claim in this block: *"whether
+that is enough for somebody seeing the card for the first time is a question
+about a person, and in six rounds nobody has watched one use this."* Round 7
+cannot watch a person. It can measure the floor underneath that question —
+whether the ink and the glass are far enough apart to resolve at all — and that
+floor is where two of round 6's own marks turned out to be standing.
+
+## 52. Every word in this block clears AA. Two of its three marks did not.
+
+`readable.mjs` walks the lighting block element by element, screenshots the
+card, and for each element takes **INK** — the pixel furthest in luminance from
+the local background, which is a fully covered glyph stem and therefore the
+composited text colour — and **GLASS**, the modal pixel of the same rect. Both
+off the same frame at the same moment, so the multiplied opacities, the backdrop
+blur and whatever the city happens to be painting behind the card all apply
+equally to both. `getComputedStyle` is recorded beside every number and used for
+none of them, for the reason §40b is in this document.
+
+WCAG 2.1 AA is the bar: 4.5:1 for body text, 3:1 for large text, and 3:1 for a
+non-text mark that carries meaning (1.4.11 — which is exactly what round 6's key
+swatch is).
+
+```
+                                            iphone 390   desktop 1280
+  bar, unmapped run   litStripDarkCol           2.48         2.34      FAIL
+  key swatch, cool    the same value, 9 px sq   2.48         2.46      FAIL
+  START / DOOR        9.5 px at opacity .45     3.90         3.86      FAIL
+  ---- every other line in the block          4.61-15.5    4.55-14.6     ok
+```
+
+**Sixteen sentences, no failures. Three marks, three failures** — and the two
+colour ones are the same colour: the one meaning *"nothing is mapped here"*,
+which on the West Campus walk home is the entire bar end to end, and the mark
+round 6 added in §47 to give that colour its first anchor on the card. Round 6
+proved the key matches the bar. It never asked whether either could be seen.
+
+### The instrument was wrong twice first, and both were silent
+
+**a) The caps row was never sampled at all.** `k.querySelector('div:not([role])')`
+on the strip's wrapper returns a RUN — the runs are divs inside the track and
+`querySelector` is depth-first — so the first complete table came back with the
+bar's own label missing and read as a clean 2-of-17. START and DOOR are the
+worst text in the block; the reader that was supposed to find them found a piece
+of the bar instead, and reported no error.
+
+**b) A single pixel read at `rect.top + 0.5` is not the border.** The first
+`edgesweep.mjs` returned **the identical 2.51:1 for all six candidate edge
+colours** — a perfectly flat column, which is what a sampler that has missed its
+subject looks like. A 1 CSS px border is two device rows at DPR 2 and
+`getBoundingClientRect` returns fractional tops, so a rounded single coordinate
+lands on either side of it at random; it had landed on the fill every time.
+Bands and rings now, and the bar's frame and the swatch's frame are read by two
+independent samplers that agree to within 0.05 at every candidate.
+
+## 53. The fix is an edge, and the reason is that the fill was never the problem
+
+The obvious move is to lighten `litStripDarkCol` until it clears. Measured, that
+would be fixing the wrong thing. What that colour has to separate from is the
+AMBER beside it — *is this stretch lit or not* is the only claim the fill makes
+— and on that comparison it is fine:
+
+```
+  THE INFORMATION: unmapped run vs mapped run     4.86:1     ok at both widths
+```
+
+The failing comparison is against the CARD, which is a question about seeing the
+object's extent, not about reading its meaning, and WCAG's own wording is
+*adjacent* colours. Moving the fill would also have cost §47's proof that the key
+and the bar are the same colour on screen — for a problem the fill does not have.
+
+So: `litStripEdgeCol`, a 1 px inset frame on the bar and the same frame on the
+key swatch, with the fill of both left byte-identical. `box-sizing:border-box` is
+load-bearing rather than tidy — inset, the bar stays `litStripH` tall and the
+swatch stays `litSwatchPx` square, and round 4's block-height metric does not
+move by a pixel.
+
+**The tick does not get one.** It is `litStripTickW` (2 px) wide, so a 1 px frame
+would leave no fill and the mark would stop being the colour it exists to name.
+Measured, it does not need one: violet renders at 9.4-10.1:1 here.
+
+### Both values were swept on the real card, not chosen
+
+`edgesweep.mjs`, six candidates each, at both widths, on the all-cool bar and the
+mixed one, scored with `readable.mjs`'s own sampler:
+
+```
+  litStripEdgeCol   bar edge   swatch edge   | litStripCapsOpacity   caps
+  #46536f (= fill)    2.34        2.46       |   0.45                3.88
+  #5a6688             3.17        3.33       |   0.52                4.84
+  #6b779a  <-         4.06        4.27       |   0.58   <-           5.69
+  #7b88a6             5.08        5.34       |   0.62                6.37
+  #9fb0cc             8.21        8.63       |   0.75                8.81
+  control: cool vs lit  4.86 at every candidate — the fill does not move
+```
+
+Both winners are **the lowest value that clears with real margin, not the
+highest**. `#5a6688` and `0.52` both technically clear; the glass behind this
+block measured anywhere from (17,13,11) to (29,19,30) depending on what the city
+is painting, so a 0.17 margin is inside the noise. And the frames were looked at
+as well as scored — above `#6b779a` the frame starts reading as a pill outline
+rather than as the bar's own edge.
+
+```
+  after, at both widths:   0 of 20 below AA
+```
+
+### And it is visible, which is a separate claim from being measurable
+
+At 1x the before and after block frames are nearly indistinguishable, which is a
+fair objection to the whole change and is not answered by quoting the ratio
+again. `zoomab.mjs` magnifies the bar's left end and the key swatch 6x with
+smoothing off, so a 1 px border stays a hard band and is not invented by the
+resampler. `r7-edge-ab-zoom.png` is that render, before over after: the bar gains
+a quiet frame, and **the key swatch goes from a filled dark smudge to an outlined
+mark that reads as a piece of the bar above it.** The swatch is where this change
+earns its keep — a 9 px square of a dark colour and a 1050 px bar of the same
+colour are not the same perceptual object, and only one of them was ever going to
+be found by a reader. `r7-read-after-iphone-GDC-TheCastilian.png` is the shipped
+block at 390 px.
+
+## 54. The bar's two layers are drawn in different coordinate systems
+
+Six rounds have asked whether the bar's colours are true. `barcoords.mjs` asks
+the question underneath all of them — **is the mark in the right PLACE** — and it
+is arithmetic, so it needs no camera. `litStrip` lays the runs out with a floor:
+
+```
+  fracs = runs.map(r => max(litStripMinFrac, r.m / totalM))
+  sum   = Σ fracs                    // > 1 as soon as ANY run is floored
+  flex  = fracs[i] / sum             // every run squeezed by 1/sum
+```
+
+...and then places the ticks at `left: 100 * at / totalM`, the TRUE fraction,
+un-squeezed. The runs live in a renormalised space and the ticks live in the
+metric one, and the disagreement accumulates left to right. A tick could in
+principle end up drawn on a run it does not lie on — the picture saying somebody
+reported darkness on a stretch this feature is calling lit.
+
+**Measured over 90 seeded routes at each width, off the rendered DOM rather than
+the formula, so flex's own sub-pixel rounding is inside the number:**
+
+```
+  routes where any run hits the floor:        7 / 90     worst sum 1.0044
+  tick displacement:      median 0.04 px      worst 0.87 px  (desktop 1280)
+  ticks drawn in the wrong run:               0
+  ticks drawn on the wrong COLOUR of run:     0
+```
+
+Flooring needs a run shorter than 0.8 % of the walk, and runs are built from
+`litSampleM` = 8 m samples, so it takes a route over a kilometre carrying a
+single-sample run — 7 of 90. **Nothing changed.** The defect is real in the
+source and invisible in the product, and this is the fourth time this lane has
+measured an idea out rather than argued it out (after `litCanopyMult` §21, the
+third strip colour §32 and the promoted disclaimer §46). The bound is written
+down so the next lane to raise `litStripMinFrac` or lower `litSampleM` knows what
+it is spending: worst-case displacement is `barW × (1 − 1/sum)`, about 4.6 px at
+the widest sum this sample found.
+
+## 55. The card and the place it describes, in ONE photograph
+
+Every matrix in this document samples SITES, and produces frames that are either
+a picture of the city with no card in it or a picture of the card with no city in
+it. The claim a person actually judges is the CORRESPONDENCE. `sceneproof.mjs`
+puts both in one frame — the app's own walking height (1.70 m), pitch 84, looking
+down the walk, at night, card open — at the **midpoint of the widest mapped run
+and the midpoint of the widest unmapped run of the same route**, so the two
+frames differ by the thing the bar says they differ by and by nothing else.
+
+```
+  ANB -> ETC   amber stretch, 170 m run    lamp-layer pixels in frame  25,983
+               nearest mapped lamp 7.9 m, four within 25 m       peak +190
+  ANB -> ETC   cool stretch, 678 m run     lamp-layer pixels in frame       7
+               nearest mapped lamp 259.5 m, none within 40 m     peak +162
+  GDC -> Cast  the walk home, 698 m run    lamp-layer pixels in frame       3
+               nearest mapped lamp 208.2 m, none within 40 m     peak  +43
+```
+
+`r7-scene-ANB-mapped.png` is two lamp posts standing in their own pools on the
+pavement, with the bar on screen above them. `r7-scene-ANB-unmapped.png` is the
+same walk, the same card, the same night and the same eye: a bare path running
+off into the dark with no pole and no pool anywhere in it.
+`r7-scene-GDC-unmapped.png` is the walk home, where the bar is cool end to end
+and the card says *"No mapped streetlight along this route"* — and hiding every
+surveyed lamp in the city changes three pixels of it.
+
+**One confirmation worth having in writing.** `data/props.geojson` carries a
+`lamp` kind (532 features) as well as a `lit` kind (236). `props-lit` and
+`props-lit-core` filter on `lit` only — the 193 warm plus 43 blue that
+`data/walk_lamps.json` carries. The poles are `props-lamp`, a fill-extrusion, and
+they are geometry, not light. **The scene lights exactly the set the card
+counts**, which is a thing every audit here has assumed for five rounds without
+checking.
+
+## 56. A number this lane nearly printed as a defect
+
+The GDC frame first scored **3,182 px** of light that vanished when `props-lit`
+was hidden — at a spot the card calls unmapped, 208 m from the nearest lamp. A
+second run agreed at 3,234. Two agreeing readings, a mechanism to blame it on,
+and a headline ready to write.
+
+The mask said otherwise: it showed those pixels as **one hard-edged diagonal
+streak in a corner**, not a pool. So `streakwhere.mjs` unprojected every
+differing pixel back to a coordinate to ask which ground it was standing on — and
+that run found **one** differing pixel, 244 m from the eye and 17 m from a mapped
+lamp. Not 3,182. One.
+
+The streak is a repaint artefact of toggling a layer's visibility and
+screenshotting before the tile has settled. `sceneproof.mjs` now takes **three
+interleaved reps and discards the first capture of each**, per
+`scripts/verify/README.md`, and takes the minimum — an artefact adds pixels, it
+never removes them. Three reps now agree to within 63 px at the amber site and
+exactly at the two cool ones. The earlier amber readings swung 26,112 -> 7,810 ->
+25,983 across runs for the identical pose, which is the same instrument saying
+the same thing in the other direction.
+
+Six rounds of this document quote whole-frame lamp-pixel counts. **Every one of
+them was a single reading.** They are ordinal claims — thousands against single
+digits — and at that separation the conclusions survive; but no absolute value in
+§18, §33 or §44 should be read as a measurement, and this is the round that found
+out why.
+
+## 57. What round 7 changed
+
+* `js/wayfind.js` §6b only — `litStripEdgeOn`, `litStripEdgeCol`,
+  `litStripEdgePx`, `litStripCapsPx`, `litStripCapsOpacity`; the border added to
+  `litStrip`'s track and to `litSwatch`'s square; and the caps row's two buried
+  values promoted out of a style string (rule 11 — they had been hardcoded since
+  round 4, and both rounds since have wanted to tune one of them).
+  **No routing constant moved.** `litAltMult` 1.7, `litAltMaxFrac` 1.35,
+  `litAltMinGainM` 40, `darkAltMult` 1.5, `darkAltMinDrop` 2, `litCanopyMult` 1,
+  `litRadiusM` 25, `litNearMissM` 40 and `litStripDarkCol` #46536f are
+  byte-identical to round 6. `smoke.mjs` still passes every assertion, including
+  ANB→ETC at 24 lamps, 2 phones, 4 under canopy, 20 full rings and 4 dim ones.
+* `swatch.mjs` — one gate fixed that ROUND 7 ITSELF BROKE. It identified a tick
+  as "an absolutely positioned child whose height is within 2 px of the track's",
+  true until the track got a 1 px inset border: the tick spans the padding box
+  (8 px), the track's rect is the border box (10 px), the difference became
+  exactly 2, and every tick reclassified as a cool run. It printed as
+  `the key is the same colour as the picture at 4 / 6` — a colour complaint, from
+  a geometry assumption, about an element that had not changed at all. 6/6 again,
+  and the block heights are identical to round 6's table.
+* `shots/walk/lit/` — `readable.mjs`, `edgesweep.mjs`, `barcoords.mjs`,
+  `sceneproof.mjs`, `streakwhere.mjs`, `zoomab.mjs` and their JSON. Five frames,
+  the ones this document cites, 1.8 MB (rule 12: the round made ~7 MB of frames
+  in the scratchpad and committed five).
+* No data file was re-baked. `scripts/bake_props.py` is untouched this round.
+* `WAYFIND.on` untouched.
+
+## 58. What round 7 did NOT establish
+
+* **That a person can read the key.** §51's bullet is not closed and this round
+  does not claim to close it. What it establishes is that the failure mode
+  underneath it was mechanical and is gone: the mark is now above the threshold
+  at which seeing it is possible at all. Whether it is *noticed* is still a
+  question about a person, and still the largest untested claim in the block.
+* **That contrast is the whole of readability.** It is the floor. A sentence can
+  clear 7:1 and go unread because it is the fifth grey line in a row, and four of
+  the lines here clear AA by less than 0.2.
+* **That any absolute lamp-pixel figure in this document is a measurement.** §56
+  is the retraction: they are single readings of an instrument that swings 3x on
+  the identical pose. The orderings stand; the values do not.
+* **That the eye column generalises.** Round 7 added three eye poses to round 6's
+  twenty-four, chosen for being the confident middle of a run rather than at
+  random. It is a photograph of the claim, not a survey of it.
+* **Anything about crime, response times, or how safe a stretch is.** Unchanged
+  across seven rounds, and it will stay unchanged.

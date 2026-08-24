@@ -1,0 +1,29 @@
+{
+ "site": {
+  "from": "GDC",
+  "to": "The Castilian",
+  "why": "the walk home — the bar is cool end to end",
+  "kind": "unmapped",
+  "ll": [
+   -97.739499,
+   30.2874465
+  ],
+  "runM": 698,
+  "bearing": 274.8,
+  "eyeErrM": 0,
+  "altM": 1.7,
+  "zoom": 21.514,
+  "lampPx": 3234,
+  "peak": 64,
+  "frame": "r7-scene-GDC-unmapped"
+ },
+ "diffMin": 26,
+ "sampled": 1,
+ "onGround": 1,
+ "eyeToNearestLampM": 208.2,
+ "medianFromEyeM": 243.8,
+ "minFromEyeM": 243.8,
+ "maxFromEyeM": 243.8,
+ "medianToLampM": 17.4,
+ "within25m": 0
+}

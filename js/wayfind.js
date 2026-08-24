@@ -405,6 +405,56 @@
     litStripTickW: 2,      // px
     litStripCapsOn: true,  // the two end labels under the strip. Without them
                            // nothing says which end is your door.
+    // ...and both of the caps row's own values, which sat buried in a style
+    // string from round 4 until round 7 measured them. 9.5 px at 45 % opacity
+    // renders at 3.86:1 on this card (shots/walk/lit/readable-before.json) —
+    // under the 4.5:1 a person needs to resolve text this size. Every number
+    // here is now a named constant because CLAUDE.md rule 11 says so and
+    // because the last two rounds have both wanted to tune one of them.
+    litStripCapsPx: 9.5,
+    litStripCapsOpacity: 0.58,   // MEASURED UP FROM 0.45, not felt. Swept on
+                                 // the real card (shots/walk/lit/edgesweep.mjs):
+                                 // .45 -> 3.88:1, .52 -> 4.84:1, .58 -> 5.69:1.
+                                 // .52 already clears, by 0.34 — and the glass
+                                 // behind this block measured anywhere from
+                                 // (17,13,11) to (29,19,30) depending on what
+                                 // the city is painting, so 0.34 is inside the
+                                 // noise. The lowest value that clears at BOTH
+                                 // widths with margin wins.
+    // ── THE PICTURE COULD NOT BE SEEN, WHICH IS UPSTREAM OF WHAT IT MEANS ──
+    //
+    // Round 6 gave the bar a key. Round 7 measured the bar and the key against
+    // the glass they are drawn on (shots/walk/lit/readable.mjs) and found the
+    // one thing six rounds of colour work had never checked:
+    //
+    //   bar, unmapped run  `litStripDarkCol` on the card   2.34:1
+    //   key swatch, cool   the same value, 9 px square     2.46:1
+    //   WCAG 2.1 AA for a mark that carries meaning        3.00:1
+    //
+    // Every WORD in this block clears AA. The two things that do not are the
+    // colour meaning "nothing is mapped here" and the mark round 6 added to
+    // name it — and on the West Campus walk home the whole bar is that colour.
+    //
+    // THE FIX IS NOT TO LIGHTEN `litStripDarkCol`. What that colour has to
+    // separate from is the AMBER beside it, and measured, it does: cool against
+    // lit is 4.86:1, well clear. The failing comparison is against the CARD,
+    // which is a question about seeing the object's extent, not about reading
+    // its meaning — and the answer to that is an edge, not a repaint. Moving
+    // the fill would also have cost §47's proof that the key and the bar are
+    // the same colour on screen, for a problem the fill does not have.
+    litStripEdgeOn: true,
+    // `litStripDarkCol` lifted along its own ramp, so the frame reads as the
+    // bar's own edge and not as a new colour brought in to pass a test. Swept
+    // over six values (shots/walk/lit/edgesweep.json): #46536f 2.34:1,
+    // #5a6688 3.17:1, #6b779a 4.06:1, #7b88a6 5.08:1, #9fb0cc 8.21:1, all at
+    // the worse of the two widths. #5a6688 clears by 0.17 and that is inside
+    // the glass's own variation; #6b779a is the lowest with real margin, and
+    // the frames were looked at as well as scored — anything above it starts
+    // reading as a pill outline instead of an edge.
+    litStripEdgeCol: '#6b779a',
+    litStripEdgePx: 1,     // inset, via box-sizing: the bar stays litStripH
+                           // tall and the swatch stays litSwatchPx square, so
+                           // no line of this card moves (round 4's metric).
     // ── THE PICTURE HAD NO KEY ─────────────────────────────────────────────
     //
     // Round 4 replaced twenty lines of prose with a bar, and round 5 proved the
@@ -2484,8 +2534,14 @@
     wrap.style.cssText = 'margin:7px 0 4px';
 
     const track = h('div', null);
+    // `box-sizing:border-box` is load-bearing, not tidiness: the edge is inset
+    // so the bar stays exactly `litStripH` tall and this block's height — the
+    // one measure round 4 called the one that cannot be gamed — does not move.
     track.style.cssText = 'position:relative;display:flex;width:100%;overflow:hidden;' +
+      'box-sizing:border-box;' +
       'height:' + WAYFIND.litStripH + 'px;border-radius:' + WAYFIND.litStripRadius + 'px;' +
+      (WAYFIND.litStripEdgeOn
+        ? 'border:' + WAYFIND.litStripEdgePx + 'px solid ' + WAYFIND.litStripEdgeCol + ';' : '') +
       'background:' + WAYFIND.litStripDarkCol + ';';
     // Runs first, in order, as flex children — so they tile the full width with
     // no sub-pixel gaps, which absolute lefts computed from rounded percentages
@@ -2525,8 +2581,10 @@
 
     if (WAYFIND.litStripCapsOn) {
       const caps = h('div', null);
-      caps.style.cssText = 'display:flex;justify-content:space-between;font-size:9.5px;' +
-        'opacity:.45;letter-spacing:.05em;text-transform:uppercase;margin-top:3px';
+      caps.style.cssText = 'display:flex;justify-content:space-between;' +
+        'font-size:' + WAYFIND.litStripCapsPx + 'px;' +
+        'opacity:' + WAYFIND.litStripCapsOpacity + ';' +
+        'letter-spacing:.05em;text-transform:uppercase;margin-top:3px';
       caps.appendChild(h('span', null, SAY.litStripFrom));
       caps.appendChild(h('span', null, SAY.litStripTo));
       wrap.appendChild(caps);
@@ -2549,9 +2607,22 @@
     if (!WAYFIND.litSwatchOn) return null;
     const s = h('span', null);
     const px = WAYFIND.litSwatchPx;
-    s.style.cssText = 'display:inline-block;vertical-align:baseline;' +
+    // The square carries the bar's own edge, for the reason the bar has one:
+    // measured on the shipped card the cool swatch was 2.46:1 against the
+    // glass, under the 3:1 a mark needs, and a 9 px square is far easier to
+    // miss than a full-width bar of the identical colour. The FILL is left
+    // exactly as it was — it has to keep matching the bar (§47), and
+    // `swatch.mjs` samples the centre, which the inset edge does not touch.
+    //
+    // The tick does NOT take an edge: it is `litStripTickW` (2 px) wide, so a
+    // 1 px frame would leave no fill at all and the mark would stop being the
+    // colour it exists to name. Measured, it does not need one — the violet
+    // renders at 9.9:1 on this card.
+    const edge = WAYFIND.litStripEdgeOn && !asTick;
+    s.style.cssText = 'display:inline-block;vertical-align:baseline;box-sizing:border-box;' +
       'width:' + (asTick ? WAYFIND.litStripTickW : px) + 'px;height:' + px + 'px;' +
       'border-radius:' + (asTick ? 0 : WAYFIND.litSwatchRadius) + 'px;' +
+      (edge ? 'border:' + WAYFIND.litStripEdgePx + 'px solid ' + WAYFIND.litStripEdgeCol + ';' : '') +
       'margin-right:' + WAYFIND.litSwatchGap + 'px;background:' + col + ';';
     // It is decoration for a sentence that already says the thing in words, so
     // it must not be read out twice.
