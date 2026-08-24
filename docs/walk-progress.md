@@ -2145,3 +2145,35 @@ two-buildings-one-doorway case is unchanged at 5), `walkmeter` exit 0.
 gate is clean, but stairs and lit are unjudged and they are the two that make
 accessibility claims. A wrong distance costs a detour; a wrong "step-free"
 strands someone. That is the claim not to ship on a screenshot.
+
+## 2026-08-24 — recon only, no code: what UT itself actually exports
+
+Went and looked for UT's own class-schedule export, ahead of building the
+three-source schedule-import lane (Google/Apple/UT). No code changed; the
+full writeup is `docs/import-bar-ut.md`.
+
+The short version: UT's own registrar page spells out, in public writing with
+no login needed, that every class listing's location is "the building and
+room where the class meets. Buildings are abbreviated with three letters" —
+the same three-letter codes this app already routes on. A real, currently-
+shipping student extension (UT Registration Plus, 50,000+ users, not an
+official UT tool) confirmed the exact shape by example: `LOCATION:UTC 3.102`,
+`CMA 6.146`, `JGB 2.302` — code, space, room, nothing fancier. UT itself does
+not appear to publish a native calendar/.ics export of a personal schedule
+anywhere public — the actual registration system (`utdirect.utexas.edu`)
+bounces straight to a UT EID login wall, and I stopped there rather than
+guess what's past it. And "RIS" turns out to mean Registration Information
+Sheet (your registration time and holds), not a schedule tool at all — the
+brief's guess on that name was wrong.
+
+Also re-checked the two claims behind the 11 unroutable building codes,
+independently. Ten of them (BE1, BEG, EME, FS1, FSL, MER, PX3, ROC, SV1, TCB)
+really are Pickle Research Campus, about 11 km north of the map — confirmed
+against UT Direct's own PRC building list, so the right fix there is telling
+someone that class is off-map, not routing to it. The eleventh, SSW, is NOT
+missing from UT's register the way the brief said — it's a real, registered
+main-campus building (UT Direct lists it as `SSW - 0625` under the main-
+campus code, not Pickle), at coordinates that match this app's own
+`UT_CELEBRATED` door rows for SSW almost exactly. So SSW being unroutable is
+a bug in this app's own routing graph, not a missing UT record — a smaller
+and different fix than the brief assumed.
