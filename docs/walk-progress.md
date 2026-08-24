@@ -203,6 +203,76 @@ earlier ways of measuring that all gave wrong answers and are written up in
 a stale row for a useful one; no horizontal overflow anywhere; the feature is
 still completely invisible in all three recording modes.
 
+## 2026-08-24 — round 1 critic verdict on `acer/w-ui`: oursWins = NO
+
+Fresh context, drove the shipped build on branch `acer/w-ui` (7 commits ahead
+of the round-5 entry above) at 390x844 with a real Chromium
+(`scripts/verify/chrome.mjs`, both SwiftShader and hardware GL), not the
+builder's own screenshots. Confirmed the capture-mode hiding (`.clip` drops
+`#wf-root` entirely; `.autopilot`/`.sliderdemo` leave it present but 0 of 64
+descendants visible — clean) and re-ran `scripts/verify/walkmeter.mjs` against
+this branch's own served app: 19/20 pairs measured, self-check held at 0.00 m
+drift on every pair, 795 m total extra walking — same figure round `w-baseline`
+reported off unmodified `main`, so nothing in this branch's routing regressed.
+
+The finding that decides the verdict is not cosmetic. Traced `__fly.eye().alt`
+every 500 ms after tapping **Walk it** on `JES → WEL` (an ordinary 530 m
+class-to-class walk, not an edge case): the camera drops to 1.70 m (real
+walking height) as it should, but across two of three independent runs it was
+silently ejected back to 900 m — the exact altitude `Show route` uses — within
+2-6 seconds, with no input from the user. The bar dutifully reverts to the
+pre-walk summary the moment that happens (this is round 5's own "way out" fix
+working correctly), but the net effect is that tapping the feature's headline
+button, on a real route, does not reliably keep you walking. The two seconds
+before ejection also render broken — a band of magenta and a flat olive-green
+block cut across the top of the frame, consistent with the camera sitting hard
+against or inside the building at the route's start (the same failure class
+`scripts/verify/README.md`'s walking-suite section documents for the
+*scripted* walker, whose `findStart()` searches outward for open ground before
+placing the camera; `walkIt()` in `js/wayfind.js` does not appear to run the
+same check before dropping the live camera at the route start). Reproduced
+with `?walk=1&from=JES&to=WEL&fit=1&drift=0`, click `.wf-act-go`, sample
+`window.__fly.eye().alt` every 500 ms — two frames cited,
+`shots/walk/ui/r6-critic-eject-groundview.jpg` (t=2s, still on the ground,
+glitching) and `r6-critic-eject-reverted.jpg` (t=4s, back at 900 m, `Walk it`
+button restored, headline back to the whole-journey sentence).
+
+Blind side-by-side against real Citymapper product screenshots (their own
+"Turn-by-turn directions for Walking" post, phone-cropped) was still run for
+the two requested views and it also does not go ours' way on its own terms:
+Citymapper's pre-walk sheet has exactly one action (a single green **GO**
+pill) and its during-walk view has exactly one instruction in a dedicated
+full-width bottom card. Ours puts three same-weight actions (Walk it / Show
+route / ✕) in one row of the closed bar and stacks current-turn + remaining
+ETA + destination note + next-step preview + two buttons into a single
+persistent top card while walking — denser and more capable (no-stairs and
+entrance-side callouts Citymapper doesn't have) but not calmer, which was the
+brief. That alone would be a real but arguable loss; the camera ejection is
+not arguable.
+
+**oursWins = false.**
+
+**Single biggest gap, concretely:** `walkIt()` in `js/wayfind.js` places the
+live camera at the route's start point without the open-ground clearance check
+`scripts/verify/lib/walker.mjs`'s `findStart()` already does for the scripted
+test walker (search outward for a point where `roofAt(p, 7 m) === 0` before
+dropping to walking height) — so on at least one ordinary real route the
+walking view renders broken for ~2 seconds and then self-ejects back to the
+900 m aerial summary within 2-6 seconds of tapping the feature's own primary
+button, with no user input. Port the same clearance search into `walkIt()`'s
+start placement before this ships.
+
+Not independently re-verified by me, corroborated only from the branch's own
+round-5 writeup: the separate, already-documented "`Show route` puts up to
+100% of some routes behind the answer bar" defect (measured by round 5, not
+fixed, explicitly handed to whoever owns the camera). Still open.
+
+Branch left as found — no files the builder owns were touched. Ran from a
+worktree on port 8855, server killed and confirmed free, browser processes
+closed, no scratch scripts left in `scripts/verify`. Two frames added under
+`shots/walk/ui/` (114 KB combined) because this entry cites them; nothing else
+written to the repo.
+
 ## 2026-08-24 — the baseline meter, built: 20 real class-to-class pairs, a real number
 
 The recon above never got turned into an actual measurement before the run
