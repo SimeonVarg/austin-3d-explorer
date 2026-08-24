@@ -2392,3 +2392,73 @@ re-confirmed free (`Get-NetTCPConnection` empty). No scratch scripts left in
 One frame kept because this entry cites it:
 `shots/import/main-walk1-mobile.png` (the panel `main` actually renders,
 proving the "nothing to import with" finding rather than asserting it).
+
+## 2026-08-24 — the schedule-import screen exists now, and it says what failed (`acer/si-ui`, round 4)
+
+The last critic's verdict on this piece was that there was nothing to judge:
+no branch, no code, no button, no paste box anywhere in the repo. That is
+closed. `acer/si-ui` now carries the screen a student adds their class
+schedule on, behind `?walk=1` like the rest of the walk feature, with
+`WAYFIND.on` still `false` so `main` is unchanged for anyone who has not
+asked for it.
+
+It has three ways in, and each one is shaped by what the two recon lanes
+actually found rather than by what a calendar import usually looks like.
+**Google** leads with a file, because Google's export is a download — and it
+hands you a `.zip`, which every guide forgets and which now has its own
+sentence on screen when you pick one. **Apple** leads with an address,
+because Apple's flow is a `webcal://` subscription the OS registers, and the
+address is the thing a student already has; the field takes `webcal://` or
+`https://` and swaps the scheme itself. **UT** leads with a paste box,
+because `docs/import-bar-ut.md` looked hard for a first-party UT `.ics` feed
+and could not find one, so a URL field there would have been a control that
+cannot work. Underneath, all three land in one place: Google's export,
+Apple's export and Apple's live feed are the same ICS payload, so there is
+one decoder behind all of them and the tabs differ only in what they tell you
+to go and fetch.
+
+The half that took the work is the other screen — what did **not** import. A
+real schedule names a real building and some of those this router cannot
+reach, so the brief's "11 unroutable codes" was re-checked rather than
+believed: every code in the app's own tables was put to the live page's
+`wayfindSearch` after the graph loaded, and it is **twelve**, not eleven.
+`HLB`, Dell Med's Health Learning Building, has zero walkable doors and is
+not in the brief's list — and it is not off-map, it is on main campus. The
+Pickle claim holds for all ten. The "SSW isn't in UT's register" claim is
+false; SSW is a registered main-campus building this codebase already has
+coordinates for, so its unroutability is our graph's gap, not UT's. That is
+three different pieces of news and the screen now says three different
+things, because telling a student their real building 400 m away "couldn't be
+imported" is the wrong-building failure with the lights off.
+
+Six defects were found by photographing it at 390 x 844 and reading the
+frame, not by reasoning about the code. The failures were listed *under* the
+six that worked, so a phone showed nothing but ticks. The error message was
+the last child of a scrolling body, so pressing Import on an address that
+cannot be fetched appeared to do nothing at all — and the re-render wiped the
+address too. Then, with that fixed, the message said "choose the file
+instead" while the file button was scrolled off the bottom of the same frame.
+A course number was being read as a room (`RHE 306` became a building), and a
+day abbreviation nearly was too — `MW 3:00 pm` is two capitals, a space and a
+digit, which is a UT room's exact shape. All fixed, all now asserted rather
+than eyeballed, and written up with the pictures in `docs/si-ui.md`.
+
+It is invisible on every recording surface — `?clip=1`, `?autopilot=1` and
+`?sliderdemo=1` were each loaded with the import screen **opened on purpose**
+first, and all five of the feature's elements measure zero. That needed one
+edit to the `.clip` rule in `style.css`: the old rule listed three ids and
+carried a comment saying every element this feature adds is a child of one of
+them, "which is why the rule has not had to grow". The import panel is a
+fourth child of `#wf-root`, because a panel that covers the search sheet
+cannot live inside it. It is listed now and the comment says why, since that
+sentence is exactly what would have let this ship visible in the AWS
+recording.
+
+Nothing above §9 of `js/wayfind.js` was edited and no existing function was
+touched — the block is appended whole and the entry row is a DOM append onto
+the sheet, so the four other lanes in this file have nothing to collide with.
+Image-OCR and a Registration-Plus API are deliberately **not** built, per
+Simeon; both have a named seat in the source and a one-function contract, so
+adding either later is a decoder plus one table row and touches no placement,
+no failure taxonomy and no line of the screen. Branch `acer/si-ui`, pushed,
+not merged. Server on 8913 killed and the port confirmed free.

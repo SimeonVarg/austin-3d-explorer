@@ -8199,6 +8199,1027 @@
     })();
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 9. THE SCHEDULE IMPORT — THE SCREEN A STUDENT ADDS THEIR CLASSES ON
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // WHAT THIS IS. The router already speaks UT building codes: `MAI`, `WEL`,
+  // `JES` are the app's native vocabulary (UT_ENTRANCES, §6). A class schedule
+  // is a list of times and a list of those same codes. So the import's whole
+  // job is one function — turn "MAI 220, TTh 2:00pm" into `MAI` — and the three
+  // routes Simeon asked for (Google Calendar, Apple Calendar, UT registration)
+  // are three ways of getting the bytes to that function, not three features.
+  //
+  // ── THE SHAPE, AND WHY IMAGE-OCR AND REGISTRATION-PLUS ARE A ROW EACH ──────
+  // Everything below is a two-stage pipe with ONE joint:
+  //
+  //     bytes ──[ decoder ]──> RAW ROWS ──[ impPlace ]──> classes + rejects
+  //
+  // A DECODER is per-format and knows nothing about UT. `impDecodeICS` handles
+  // Google's export, Apple's `.ics` and any webcal feed, because all three end
+  // up as the identical VEVENT payload (docs/import-bar-apple.md proved that
+  // for Apple's two paths; docs/import-bar-ut.md proved UT Registration Plus
+  // emits the same). `impDecodeUTText` handles a block of rows pasted straight
+  // off UT Direct.
+  //
+  // A RAW ROW is `{ title, location, days, start, end, raw }` and nothing else.
+  // It is the only thing the two halves agree on.
+  //
+  // `impPlace` is per-CAMPUS and knows nothing about calendars. It splits the
+  // location on its first space, uppercases the head, and asks the router.
+  //
+  // So adding image-OCR later is adding `impDecodeImage(pixels) -> RAW ROWS`
+  // and one row to IMP_SOURCES. Adding a Registration-Plus API is adding
+  // `impDecodeRegPlus(json) -> RAW ROWS` and one row to IMP_SOURCES. Neither
+  // touches the placement, the failure taxonomy, or one line of this screen.
+  // That is the whole reason the joint is where it is. NOT BUILT NOW, on
+  // purpose — Simeon said "not in this pass".
+  //
+  // ── AND THE PARSER IS A SEAM, NOT A DEPENDENCY ────────────────────────────
+  // A sibling lane owns the parser proper. If it lands, it publishes
+  // `window.wayfindParseSchedule(text, opts) -> RAW ROWS` and this screen uses
+  // it (impRawRows checks for it first). Until then the reference decoders
+  // below run, so the screen is real and photographable today rather than a
+  // mockup waiting on someone else. Neither side has to change when the swap
+  // happens: RAW ROWS is the contract.
+  //
+  // ── WHAT FAILED AND WHY IS HALF THE FEATURE, AND IT WAS MEASURED ──────────
+  // A real schedule names a real building and some of those buildings this
+  // router cannot reach. RE-VERIFIED 2026-08-24 against the live page rather
+  // than taken from the brief (docs/si-ui.md): **12** codes in the app's own
+  // tables have no walkable door, not the 11 the brief carried — HLB, the Dell
+  // Med Health Learning Building, is a twelfth and it is NOT off-map. Ten are
+  // genuinely 11 km north at the Pickle Research Campus. SSW is a real,
+  // registered main-campus building that this app simply cannot walk to yet.
+  // Those are three different sentences and the screen says three different
+  // sentences, because "couldn't import" for a building that exists 400 m away
+  // is the "wrong building, beautifully drawn" failure with the lights off.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // TASTE BLOCK for the import screen — CLAUDE.md rule 11. Nothing below
+  // invents a number or a word; it is all here.
+  const IMP = {
+    // The button that opens it, in the walk sheet under the examples. It is a
+    // ROW, not a chip beside `Try WEL PCL GDC JES`: those four fill a field,
+    // this one opens a different screen, and a control that changes screens
+    // sitting in a row of controls that fill a field is how you get tapped by
+    // accident on a phone.
+    entryOn: true,
+    // Which acquisition front-end opens first. Google is the biggest calendar
+    // on a student phone; it is not a judgement about which is best.
+    defaultSource: 'gcal',
+    // How many placed classes the result list shows before it scrolls. The
+    // panel scrolls anyway; this is about the FIRST screenful being the
+    // answer rather than the beginning of a list.
+    resultPeek: 6,
+    // A schedule is one term. Anything past this in one paste is somebody's
+    // whole calendar, not their classes, and importing 400 events silently is
+    // worse than saying no.
+    maxEvents: 200,
+    // A pasted URL is fetched by the browser, which is subject to the calendar
+    // host's CORS policy — Google's and Apple's both refuse. That is not a bug
+    // to hide; it is the commonest way this screen fails and it has its own
+    // sentence and its own way out (choose the file instead).
+    fetchTimeoutMs: 12000,
+    // The two-letter ICS day codes, in the order a week is read. Sunday last,
+    // because a class schedule is a working week.
+    dayOrder: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
+    // How each day is printed on a result row. UT prints TTh; ICS says TU,TH.
+    dayShort: { MO: 'M', TU: 'T', WE: 'W', TH: 'Th', FR: 'F', SA: 'Sa', SU: 'Su' },
+  };
+
+  // THE THREE ROUTES. A row here is one acquisition front-end. `accepts` is the
+  // controls the panel draws for it, in order — so adding OCR later is
+  // `{ id:'ocr', accepts:['image'] }` and a decoder, and this file's layout
+  // code does not change.
+  const IMP_SOURCES = [
+    {
+      id: 'gcal', tab: 'Google', label: 'Google Calendar',
+      accepts: ['file', 'url'],
+      // Read off Google Calendar's own export flow. The .zip is the part every
+      // guide forgets and the part that produces a real, confusing failure.
+      steps: [
+        'In Google Calendar on a computer: Settings → Import & export → Export.',
+        'Google hands you a .zip. Unzip it — the .ics files are inside.',
+      ],
+      fileLabel: 'Choose the .ics file',
+      urlLabel: 'or paste the secret address in iCal format',
+      urlHint: 'Settings → your calendar → Integrate calendar → Secret address in iCal format.',
+      urlPlaceholder: 'https://calendar.google.com/calendar/ical/…/basic.ics',
+    },
+    {
+      id: 'apple', tab: 'Apple', label: 'Apple Calendar',
+      // URL FIRST FOR APPLE, and that is not a coin toss. Apple's own flow is
+      // a SUBSCRIPTION: `webcal://` is a URI scheme the OS registers, so the
+      // address is the thing a student already has in their hand.
+      // docs/import-bar-apple.md, quoting Apple's own guide.
+      accepts: ['url', 'file'],
+      steps: [
+        'Mac: Calendar → File → New Calendar Subscription. iPhone: Calendars → Add Calendar → Add Subscription Calendar.',
+        'Copy the webcal:// address you subscribed with. (File → Export → Export… gives an .ics instead.)',
+      ],
+      fileLabel: 'or choose an exported .ics',
+      urlLabel: 'The subscription address',
+      urlHint: 'webcal:// and https:// are the same feed — either works here.',
+      urlPlaceholder: 'webcal://p00-calendars.icloud.com/published/…',
+    },
+    {
+      id: 'ut', tab: 'UT', label: 'UT registration',
+      // TEXT FIRST FOR UT, AND THE REASON IS RESEARCH, NOT PREFERENCE. There
+      // is no confirmed first-party UT .ics or webcal feed for a personal
+      // class schedule — docs/import-bar-ut.md looked and found none, and the
+      // existence of a 50,000-user third-party extension that exists solely to
+      // produce one is the evidence. So the honest control is a paste box.
+      accepts: ['text', 'file'],
+      steps: [
+        'Open your class schedule on UT Direct and select the rows.',
+        'Paste them below. One class per line, however they come out.',
+      ],
+      textLabel: 'Paste your schedule',
+      // A PLACEHOLDER IS AN EXAMPLE, SO IT HAS TO BE ONE THAT WORKS. The first
+      // one ended `RLM 5.104` — a code this app cannot route, because RLM was
+      // renamed PMA — so the one line on the screen teaching the format would
+      // have failed if a student had typed it back.
+      textPlaceholder: 'M 408C  DIFFERENTIAL CALCULUS   MWF 10:00 am-11:00 am   PMA 5.104',
+      fileLabel: 'or choose an .ics you exported',
+    },
+    // LATER, WITHOUT A REWRITE — see the header. A photo of a printed schedule
+    // is `{ id:'ocr', accepts:['image'] }` plus `impDecodeImage`. Registration
+    // Plus is `{ id:'regplus', accepts:['api'] }` plus `impDecodeRegPlus`.
+    // Both feed RAW ROWS into the same impPlace and render on the same screen.
+  ];
+
+  // THE CODES THIS ROUTER CANNOT REACH, AND WHICH KIND OF UNREACHABLE EACH IS.
+  // Measured, not assumed: `docs/si-ui.md` records the run. Every code in the
+  // app's own UT_CELEBRATED / UT_ENTRANCES tables was put to the live
+  // `wayfindSearch`; twelve came back with no walkable door.
+  //
+  // Kept as a table rather than derived at runtime because the two kinds are
+  // not distinguishable from inside the router — a code with no doors looks
+  // identical whether it is 11 km away or across the street, and the whole
+  // point of this screen is that the student is told which.
+  // `CODE: [kind, the building's own name]`. THE NAME IS NOT DECORATION: a
+  // student reading `BEG 1.116 — Pickle Research Campus` has to take our word
+  // for it, and `BEG 1.116 · Bureau of Economic Geology — Pickle Research
+  // Campus` they can check against their own registration page. Every name
+  // below is sourced — the PRC ones from UT Direct's own PRC building index
+  // (quoted in docs/import-bar-ut.md), SSW from UT's building register via the
+  // same doc, HLB from this app's own register, which returned it by name
+  // during the re-verification run.
+  const IMP_UNREACHABLE = {
+    // Pickle Research Campus, ~11 km north of the modelled city. Confirmed
+    // twice: against UT Direct's own PRC building index (docs/import-bar-ut.md)
+    // and against these buildings' own latitudes in UT_CELEBRATED, all of
+    // which sit at 30.38–30.39 against main campus's 30.28–30.29.
+    BE1: ['prc', 'Bureau of Economic Geology Lab'],
+    BEG: ['prc', 'Bureau of Economic Geology'],
+    EME: ['prc', 'Electrical & Mechanical Engineering Research'],
+    FS1: ['prc', 'Ferguson Engineering Lab Annex'],
+    FSL: ['prc', 'Ferguson Laboratory'],
+    MER: ['prc', 'Microelectronics & Engineering Research'],
+    PX3: ['prc', 'PETEX'],
+    ROC: ['prc', 'Research Office Complex'],
+    SV1: ['prc', 'PRC Service Center'],
+    TCB: ['prc', 'J. Neils Thompson Commons'],
+    // ON MAIN CAMPUS AND STILL UNREACHABLE, which is a different sentence and
+    // a different fix. SSW (School of Social Work, 1925 San Jacinto) is in
+    // UT's own register — the brief's claim that it is not was checked and is
+    // false — and has two door rows in this codebase already; the walking
+    // graph just has no way in. HLB is Dell Med's Health Learning Building,
+    // found by this lane's own re-verification and absent from the brief's list.
+    SSW: ['nodoor', 'School of Social Work'],
+    HLB: ['nodoor', 'Health Learning Building'],
+  };
+  const IMP_PLACES = {
+    prc: {
+      name: 'Pickle Research Campus',
+      why: 'about 11 km north of here, outside the city this app models',
+    },
+    nodoor: {
+      name: null,
+      why: 'on campus, but the walking network has no door for it yet',
+    },
+  };
+
+  // EVERY SENTENCE THIS SCREEN CAN SAY. Same rule as SAY and SAY_UI: wording
+  // is data, so it can be read, argued with and changed without touching a
+  // render function.
+  const SAY_IMP = {
+    entry: 'Import your class schedule',
+    entryNote: 'Google, Apple or UT — read on this phone, never uploaded',
+    title: 'Add your schedule',
+    resultTitle: 'What imported',
+    failTitle: 'Nothing imported',
+    importBtn: 'Import',
+    working: 'Reading…',
+    back: 'Back',
+    chooseFile: 'Choose a file',
+    // THE PRIVACY LINE IS A FACT, NOT A REASSURANCE. There is no server in
+    // this app; a file picked here is read by FileReader in the tab and is
+    // gone when the tab is. Saying so is the difference between a student
+    // pasting their schedule and closing the panel.
+    privacy: 'Read on your device. This app has no server to send it to.',
+    placed: (n, total) => n + ' of ' + total + (total === 1 ? ' class placed' : ' classes placed'),
+    placedAll: (n) => 'All ' + n + (n === 1 ? ' class' : ' classes') + ' placed',
+    fromSource: (label) => 'from ' + label,
+    couldNot: (n) => "Couldn't place " + n,
+    placedSec: (n) => 'Placed ' + n,
+    andMore: (n) => '+ ' + n + ' more',
+    useThese: (n) => 'Use ' + (n === 1 ? 'this class' : 'these ' + n),
+    noneUsable: 'Nothing here can be routed to',
+    // The failure taxonomy, one sentence each. Every one of them names the
+    // thing that went wrong instead of the thing we wanted.
+    whyOffmap: (name, place) => (name ? name + ' — ' : '') +
+      place.name + ', ' + place.why + '.',
+    whyNodoor: (name) => (name ? name + ' — ' : '') +
+      'we know where it is; the walking network has no door for it yet.',
+    whyUnknown: (code) => code + " isn't a UT building code this app knows.",
+    // TWO SENTENCES FOR ONE STATUS, because the student did two different
+    // things. A calendar export that omitted LOCATION is not their doing and
+    // the sentence says so; a pasted line with no room in it is a line they
+    // can look at and fix, and telling them "the export" would send them
+    // hunting through Google for a setting that was never involved.
+    whyNoLocation: 'No room on this event — the export carried no location.',
+    whyNoLocationText: 'No room on this line — nothing in it named a building.',
+    // The ways the whole import can fail before a single row is read.
+    errNoEvents: 'That file had no calendar events in it.',
+    errNoClasses: 'That calendar had events, but none of them named a room.',
+    errNoClassesText: 'None of those lines named a building and a room, so there is nothing to place.',
+    errZip: 'That is a .zip. Google exports one — unzip it and choose the .ics inside.',
+    errNotICS: "That file isn't a calendar. An .ics starts with BEGIN:VCALENDAR.",
+    errEmptyText: 'Paste your schedule rows first.',
+    errEmptyUrl: 'Paste the calendar address first.',
+    errBadUrl: "That doesn't look like a web address.",
+    // ONE SENTENCE FOR TWO CAUSES, BECAUSE THE BROWSER GIVES US ONE ERROR.
+    // A cross-origin refusal and a dead network are the SAME `TypeError` here
+    // by design — the spec hides which, so a page cannot probe another site.
+    // Claiming "blocked" when it might be "offline" would be a guess, so the
+    // sentence names only what is certain (we could not read it, from there)
+    // and spends its length on the way round, which is a control already on
+    // this screen.
+    errBlocked: (host) => "Couldn't read a calendar from " + host + '. A browser ' +
+      "won't let this page fetch another site's calendar. Download the .ics and " +
+      'choose the file instead.',
+    errHttp: (code) => 'That address answered ' + code + ', not a calendar.',
+    errTimeout: 'That address took too long to answer.',
+    errTooMany: (n) => 'That is ' + n + ' events — a whole calendar, not one term. ' +
+      'Export just your class calendar.',
+    unnamed: 'Untitled class',
+    noRoom: '(no room)',
+    // The payoff. Two consecutive classes go into the two ends of the router
+    // that already exists, which is the whole reason a schedule is worth
+    // importing into THIS app rather than into a calendar.
+    handoffTwo: (a, b) => 'Routed ' + a + ' → ' + b,
+    handoffOne: 'Put in the To field',
+  };
+
+  // THIS SCREEN'S OWN GLYPHS. A separate table from `IC` on purpose: `IC` is
+  // the walk bar's and four other lanes are editing that region of this file
+  // this round. Same drawn-path rule as IC — no font glyphs, because `✓` and
+  // `⚠` render at a different size and weight on Android than on this laptop.
+  const IC_IMP = {
+    // A file going up into a tray.
+    upload: 'M12 15.5V4.3M12 4.3 7.8 8.6M12 4.3l4.2 4.3M4.5 15.2v3.3a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-3.3',
+    check: 'M4.8 12.4 9.6 17.2 19.2 6.8',
+    warn: 'M12 3.6 21.2 19.4H2.8zM12 9.6v4.6M12 17.1v.01',
+    // A month grid with its two hangers — a calendar, not a clock.
+    cal: 'M4.2 6.6h15.6v13.2H4.2zM4.2 10.6h15.6M8.6 4v3.4M15.4 4v3.4',
+    chevR: 'M9.5 5.5 15.5 12 9.5 18.5',
+  };
+
+  // ── decoders: bytes of one format -> RAW ROWS ─────────────────────────────
+
+  /** ICS line unfolding. A continuation line starts with a space or a tab. */
+  function impUnfold(text) {
+    return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+      .replace(/\n[ \t]/g, '');
+  }
+  function impUnescape(v) {
+    return String(v).replace(/\\n/gi, ' ').replace(/\\,/g, ',')
+      .replace(/\\;/g, ';').replace(/\\\\/g, '\\').trim();
+  }
+  /** `DTSTART;TZID=America/Chicago:20250825T160000` -> { day:'MO', hm:'16:00' } */
+  function impStamp(val) {
+    const m = /(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/.exec(val || '');
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const dow = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][d.getDay()];
+    return { day: dow, hm: m[4] ? m[4] + ':' + m[5] : null };
+  }
+
+  /**
+   * Google's export, Apple's export, Apple's webcal feed and UT Registration
+   * Plus's output are all this. One decoder, four sources — which is exactly
+   * the claim docs/import-bar-apple.md's last section makes.
+   */
+  function impDecodeICS(text) {
+    const src = impUnfold(text);
+    const rows = [];
+    const blocks = src.split(/BEGIN:VEVENT/i).slice(1);
+    for (const b of blocks) {
+      const body = b.split(/END:VEVENT/i)[0];
+      const get = (name) => {
+        const re = new RegExp('^' + name + '(?:;[^:\\n]*)?:(.*)$', 'im');
+        const m = re.exec(body);
+        return m ? m[1] : '';
+      };
+      const start = impStamp(get('DTSTART'));
+      const end = impStamp(get('DTEND'));
+      const rrule = get('RRULE');
+      let days = [];
+      const by = /BYDAY=([A-Z,+\-0-9]+)/i.exec(rrule);
+      if (by) days = by[1].split(',').map(s => s.replace(/[^A-Z]/gi, '').toUpperCase()).filter(Boolean);
+      else if (start) days = [start.day];
+      rows.push({
+        title: impUnescape(get('SUMMARY')),
+        location: impUnescape(get('LOCATION')),
+        days: days,
+        start: start ? start.hm : null,
+        end: end ? end.hm : null,
+        raw: impUnescape(get('LOCATION')) || impUnescape(get('SUMMARY')),
+      });
+    }
+    return rows;
+  }
+
+  /** `MWF` / `TTh` / `TTH` -> ['MO','WE','FR'] / ['TU','TH']. TH is greedy. */
+  function impDays(tok) {
+    const s = String(tok || '').toUpperCase();
+    const out = [];
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] === 'T' && s[i + 1] === 'H') { out.push('TH'); i++; continue; }
+      if (s[i] === 'S' && s[i + 1] === 'U') { out.push('SU'); i++; continue; }
+      if (s[i] === 'M') out.push('MO');
+      else if (s[i] === 'T') out.push('TU');
+      else if (s[i] === 'W') out.push('WE');
+      else if (s[i] === 'F') out.push('FR');
+      else if (s[i] === 'S') out.push('SA');
+    }
+    return out;
+  }
+  function impTo24(h, m, ap) {
+    let hh = Number(h);
+    if (/p/i.test(ap) && hh !== 12) hh += 12;
+    if (/a/i.test(ap) && hh === 12) hh = 0;
+    return String(hh).padStart(2, '0') + ':' + m;
+  }
+
+  /**
+   * A block of rows copied off UT Direct. Deliberately forgiving about
+   * everything except the ONE thing UT's own glossary guarantees: the room is
+   * a three-letter building code, a space, then a room number
+   * (registrar.utexas.edu/schedules/…/using — see docs/import-bar-ut.md).
+   * A line where that pattern is absent is not silently dropped; it comes back
+   * as a reject with the line printed, so the student can see what we could
+   * not read.
+   */
+  function impDecodeUTText(text) {
+    const rows = [];
+    for (const lineRaw of String(text).split('\n')) {
+      const line = lineRaw.trim();
+      if (!line) continue;
+      // A LINE IS READ BY SUBTRACTION, NOT BY POSITION. UT's own row is
+      // `course · title · unique · days · hours · room · instructor`, but a
+      // student's copy-paste reflows it, drops columns and re-orders them. So
+      // each field that IS unambiguous is found and then BLANKED OUT of a
+      // working copy, and the next field is looked for in what is left.
+      //
+      // THIS IS NOT TIDINESS, IT IS THE BUG THAT WAS ACTUALLY THERE. Reading
+      // the location off the raw line matched `MW 3` in
+      // `RHE 306 … 42655  MW 3:00 pm-4:00 pm` — two capitals, a space, a digit,
+      // which is a UT room's exact shape — so a class with NO room at all was
+      // reported as a class in a building called MW. A wrong building silently
+      // invented out of a day abbreviation is the one failure this feature is
+      // not allowed to have, and no amount of care in the regex fixes it while
+      // the day token is still on the line.
+      let rest = line;
+      const blank = (at, len) => {
+        rest = rest.slice(0, at) + ' '.repeat(len) + rest.slice(at + len);
+      };
+      // 1. TIMES. The least ambiguous token on the line: nothing else on a
+      //    class row carries a colon between two digits.
+      const t = /(\d{1,2}):(\d{2})\s*([ap])\.?\s*m\.?\s*(?:[-–—]|to)\s*(\d{1,2}):(\d{2})\s*([ap])\.?\s*m\.?/i.exec(rest)
+        || /(\d{1,2}):(\d{2})()\s*[-–—]\s*(\d{1,2}):(\d{2})()/.exec(rest);
+      const start = t ? impTo24(t[1], t[2], t[3] || t[6] || '') : null;
+      const end = t ? impTo24(t[4], t[5], t[6] || '') : null;
+      const cut = t ? t.index : rest.length;
+      if (t) blank(t.index, t[0].length);
+      // 2. DAYS. A standalone token of day letters, before where the time was.
+      //    Anchored to the time because `M 408C` is a FIELD OF STUDY that
+      //    happens to be spelled like a Monday.
+      let days = [];
+      const dm = /(?:^|\s)(TTH|TTh|MWF|MW|TT|WF|MF|TH|M|T|W|F|S|SU)(?=\s|$)/g;
+      let dHit = null, dPick = null;
+      while ((dHit = dm.exec(rest))) {
+        if (dHit.index + dHit[0].length > cut) break;
+        dPick = dHit;
+      }
+      if (dPick) {
+        days = impDays(dPick[1]);
+        blank(dPick.index + dPick[0].length - dPick[1].length, dPick[1].length);
+      }
+      // 3. THE ROOM, in what is left — AND ONLY AFTER THE DAYS AND THE HOUR.
+      //
+      //    A COURSE NUMBER AND A ROOM ARE THE SAME SHAPE. `RHE 306` is a
+      //    course; `PAR 201` is a room; nothing about the characters tells
+      //    them apart, which docs/import-bar-ut.md flagged as "a real parser
+      //    trap" before a line of this was written. Photographed: a class with
+      //    NO room, `RHE 306  RHETORIC AND WRITING  42655  MW 3:00 pm-4:00 pm`,
+      //    came back as a class in a building called RHE.
+      //
+      //    What separates them is not shape, it is COLUMN ORDER, which UT's
+      //    own listing fixes: course, title, unique, days, hour, ROOM. So the
+      //    room is only looked for after where the days and the hour were. On
+      //    a line with neither, the last match anywhere is taken — that is a
+      //    bare `MAI 220` typed by hand, which has no columns to be after.
+      //
+      //    The cost of the rule is a line whose paste reflowed the room in
+      //    front of the time: it comes back as "no room", which the student
+      //    SEES and can fix. The cost of not having it is a confident route to
+      //    a building nobody has a class in. Those are not the same mistake.
+      const minAt = dPick ? dPick.index + dPick[0].length
+        : (t ? t.index + t[0].length : 0);
+      const lm = /\b([A-Z]{2,4})\s+([0-9][A-Za-z0-9.\-]*)\b/g;
+      let hit = null, loc = null, locAt = rest.length;
+      while ((hit = lm.exec(rest))) {
+        if (hit.index < minAt) continue;
+        loc = hit[1] + ' ' + hit[2]; locAt = hit.index;
+      }
+      if (loc) blank(locAt, loc.length);
+      // 4. THE TITLE is whatever is in front of the first thing we recognised,
+      //    less the five-digit unique number, which is not a name.
+      const headEnd = Math.min(dPick ? dPick.index : Infinity, cut, locAt);
+      const title = rest.slice(0, headEnd === Infinity ? rest.length : headEnd)
+        .replace(/\b\d{5}\b/g, ' ').replace(/\s+/g, ' ').trim();
+      rows.push({ title: title, location: loc || '', days: days, start: start, end: end, raw: line });
+    }
+    return rows;
+  }
+
+  /**
+   * THE JOINT. Everything above produces RAW ROWS; everything below consumes
+   * them. If the parser lane has landed, its function is the producer instead
+   * and nothing else here changes — that is what makes the seam a seam.
+   */
+  function impRawRows(text, sourceId) {
+    if (typeof window.wayfindParseSchedule === 'function') {
+      try {
+        const r = window.wayfindParseSchedule(text, { source: sourceId });
+        if (Array.isArray(r) && r.length) return r;
+      } catch (e) { /* fall through to the reference decoders */ }
+    }
+    if (/BEGIN:VCALENDAR/i.test(text) || /BEGIN:VEVENT/i.test(text)) return impDecodeICS(text);
+    return impDecodeUTText(text);
+  }
+
+  // ── placement: a RAW ROW -> a placed class, or a reject with a reason ─────
+
+  /**
+   * `MAI 220` -> `MAI`. One split on the first space, per UT's own glossary,
+   * which is what makes this a line of code rather than a regex minefield.
+   */
+  function impCodeOf(location) {
+    const s = String(location || '').trim();
+    if (!s) return { code: null, room: '' };
+    const parts = s.split(/\s+/);
+    const head = parts[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!/^[A-Z][A-Z0-9]{1,3}$/.test(head)) return { code: null, room: s };
+    return { code: head, room: parts.slice(1).join(' ') };
+  }
+
+  function impPlace(row) {
+    const { code, room } = impCodeOf(row.location);
+    const base = {
+      title: row.title || SAY_IMP.unnamed, room: room, code: code,
+      days: row.days || [], start: row.start || null, end: row.end || null,
+      raw: row.raw || row.location || row.title || '',
+    };
+    if (!code) return Object.assign(base, { status: 'nolocation', name: null });
+    const off = IMP_UNREACHABLE[code];
+    if (off) {
+      return Object.assign(base, {
+        status: off[0] === 'prc' ? 'offmap' : 'nodoor',
+        place: IMP_PLACES[off[0]], name: off[1] || null,
+      });
+    }
+    let hit = null;
+    try {
+      const r = window.wayfindSearch ? window.wayfindSearch(code) : [];
+      hit = r.find(x => x.code === code) || null;
+    } catch (e) { hit = null; }
+    if (!hit) return Object.assign(base, { status: 'unknown', name: null });
+    if (!hit.routable) {
+      return Object.assign(base, { status: 'nodoor', name: hit.name, place: IMP_PLACES.nodoor });
+    }
+    return Object.assign(base, { status: 'ok', name: hit.name });
+  }
+
+  /**
+   * THE IMPORT RESULT — the one object the rest of the feature (and anything
+   * added later) reads. Versioned, because a saved schedule outlives the
+   * session that made it.
+   */
+  function impBuild(text, sourceId, via) {
+    const rows = impRawRows(text, sourceId);
+    if (!rows.length) return { err: SAY_IMP.errNoEvents };
+    if (rows.length > IMP.maxEvents) return { err: SAY_IMP.errTooMany(rows.length) };
+    const classes = [], rejects = [];
+    const seen = new Set();
+    for (const r of rows) {
+      const p = impPlace(r);
+      // ONE CLASS, NOT ONE MEETING. A weekly class is one VEVENT with an
+      // RRULE, but a hand-pasted block can repeat a room on three lines; the
+      // key is what makes the count on screen the number of classes.
+      const key = p.code + '|' + p.room + '|' + p.start + '|' + (p.days || []).join('');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (p.status === 'ok') classes.push(p); else rejects.push(p);
+    }
+    if (!classes.length && !rejects.length) return { err: SAY_IMP.errNoEvents };
+    if (!classes.length && rejects.every(r => r.status === 'nolocation')) {
+      return { err: via === 'text' ? SAY_IMP.errNoClassesText : SAY_IMP.errNoClasses };
+    }
+    return {
+      v: 1, source: sourceId, via: via, at: Date.now(),
+      classes: classes, rejects: rejects,
+    };
+  }
+
+  // ── the screen ────────────────────────────────────────────────────────────
+
+  let impEl = null;
+  // `url` and `text` LIVE IN STATE, NOT IN THE DOM, and that is not tidiness
+  // either. `impRender` rebuilds the body, so the first cut threw away the
+  // address the student had just typed every time it drew the error about it
+  // — photographed at 390 x 844: an empty field, an invisible message and no
+  // way to see what had been tried. A field whose value the screen forgets is
+  // worse than no field.
+  const impState = { source: IMP.defaultSource, result: null, err: null, busy: false,
+    url: '', text: '' };
+
+  function impSource(id) {
+    return IMP_SOURCES.find(s => s.id === id) || IMP_SOURCES[0];
+  }
+
+  function impBuildDOM() {
+    if (impEl) return impEl;
+    const panel = h('div', 'hidden'); panel.id = 'wf-imp';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', SAY_IMP.title);
+
+    const head = h('div', null); head.id = 'wf-imp-head';
+    const title = h('div', 'wf-h', SAY_IMP.title); title.id = 'wf-imp-title';
+    head.appendChild(title);
+    const close = h('button', null); close.id = 'wf-imp-close';
+    close.setAttribute('aria-label', 'Close');
+    close.appendChild(icon(null, IC.close, 2.1));
+    close.addEventListener('click', () => impClose());
+    head.appendChild(close);
+    panel.appendChild(head);
+
+    // THE TABS. Three sources, one panel — three stacked panels do not fit on
+    // a 390 px phone and a source a student does not use is not worth the
+    // scroll. `role=tablist` because they are tabs and a screen reader should
+    // hear them as tabs.
+    const tabs = h('div', null); tabs.id = 'wf-imp-tabs';
+    tabs.setAttribute('role', 'tablist');
+    for (const s of IMP_SOURCES) {
+      const b = h('button', 'wf-imp-tab', s.tab);
+      b.setAttribute('role', 'tab');
+      b.dataset.src = s.id;
+      b.addEventListener('click', () => { impState.source = s.id; impState.err = null; impRender(); });
+      tabs.appendChild(b);
+    }
+    panel.appendChild(tabs);
+
+    const body = h('div', null); body.id = 'wf-imp-body';
+    panel.appendChild(body);
+
+    // WHAT WENT WRONG IS NOT A RESULT, SO IT DOES NOT LIVE IN THE SCROLLER.
+    // Exactly the lesson `#wf-more` in the search sheet already learned and
+    // wrote down: a note ABOUT the contents, put inside the contents, gets cut
+    // in half by their max-height. The first cut put this at the end of
+    // `#wf-imp-body` and photographed at 390 x 844 the message was entirely
+    // below the fold — the student pressed Import, nothing appeared to happen,
+    // and the explanation was two scrolls away. Its own row, above the action,
+    // where the eye already is.
+    const errSlot = h('div', null); errSlot.id = 'wf-imp-errslot';
+    panel.appendChild(errSlot);
+
+    const foot = h('div', null); foot.id = 'wf-imp-foot';
+    panel.appendChild(foot);
+
+    const note = h('div', 'wf-imp-note', SAY_IMP.privacy);
+    panel.appendChild(note);
+
+    // ONE FILE INPUT FOR THE WHOLE SCREEN, kept out of the flow. A file input
+    // is styled differently by every browser and cannot be made to match this
+    // panel; the visible control is a real button that clicks this.
+    const file = document.createElement('input');
+    file.type = 'file'; file.id = 'wf-imp-file';
+    file.accept = '.ics,text/calendar';
+    file.addEventListener('change', () => {
+      const f = file.files && file.files[0];
+      if (f) impFromFile(f);
+      file.value = '';
+    });
+    panel.appendChild(file);
+
+    el.root.appendChild(panel);
+    impEl = { panel, head, title, tabs, body, errSlot, foot, file, note };
+    return impEl;
+  }
+
+  function impOpen() {
+    buildUI();
+    impBuildDOM();
+    // The graph is what turns a code into a building name and a verdict, so
+    // the screen asks for it the moment it opens rather than at Import — a
+    // student who has just chosen a file should not then wait 300 ms for a
+    // fetch that could have run while they were choosing.
+    loadGraph().catch(() => {});
+    impState.result = null; impState.err = null; impState.busy = false;
+    impState.url = ''; impState.text = '';
+    el.sheet.classList.add('hidden');
+    el.btn.classList.remove('active');
+    impEl.panel.classList.remove('hidden');
+    impRender();
+  }
+  function impClose() {
+    if (!impEl) return;
+    impEl.panel.classList.add('hidden');
+  }
+  function impBack() {
+    impState.result = null; impState.err = null; impState.busy = false;
+    impRender();
+  }
+
+  /** A labelled block of small print above a control. */
+  function impSteps(src) {
+    const box = h('div', 'wf-imp-steps');
+    src.steps.forEach((s, i) => {
+      const row = h('div', 'wf-imp-step');
+      row.appendChild(h('span', 'wf-imp-n', String(i + 1)));
+      row.appendChild(h('span', 'wf-imp-t', s));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  function impRenderAdd() {
+    const src = impSource(impState.source);
+    const { body, foot, tabs, title } = impEl;
+    title.textContent = SAY_IMP.title;
+    for (const b of tabs.children) b.classList.toggle('on', b.dataset.src === src.id);
+    for (const b of tabs.children) b.setAttribute('aria-selected', b.dataset.src === src.id ? 'true' : 'false');
+    tabs.classList.remove('hidden');
+    body.innerHTML = ''; foot.innerHTML = '';
+    body.appendChild(impSteps(src));
+    impRenderErr();
+
+    // The controls this source actually produces, in the order it produces
+    // them. `accepts` is the whole layout rule — see IMP_SOURCES.
+    //
+    // A label is written for the SECOND slot ("or choose an exported .ics")
+    // because that is where its source puts it; a source that puts the same
+    // control first drops the "or ", and then it has to be a capital again.
+    // Photographed: `choose an exported .ics` on a button, lowercase, sitting
+    // directly under a sentence-case error.
+    const lead = (s) => (s || '').replace(/^or /, '').replace(/^./, c => c.toUpperCase());
+    let first = true;
+    for (const kind of src.accepts) {
+      if (!first) body.appendChild(h('div', 'wf-imp-or', 'or'));
+      if (kind === 'file') {
+        const b = h('button', 'wf-imp-file-btn');
+        b.appendChild(icon('wf-imp-ic', IC_IMP.upload, 1.9));
+        b.appendChild(h('span', null, first ? src.fileLabel : lead(src.fileLabel)));
+        b.addEventListener('click', () => impEl.file.click());
+        body.appendChild(b);
+      } else if (kind === 'url') {
+        const lab = h('div', 'wf-imp-lab', first ? src.urlLabel : lead(src.urlLabel));
+        body.appendChild(lab);
+        const inp = document.createElement('input');
+        inp.type = 'url'; inp.id = 'wf-imp-url'; inp.className = 'wf-imp-in';
+        inp.placeholder = src.urlPlaceholder;
+        inp.autocomplete = 'off'; inp.spellcheck = false; inp.enterKeyHint = 'go';
+        inp.value = impState.url;
+        inp.addEventListener('input', () => { impState.url = inp.value; });
+        inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') impGo(); });
+        body.appendChild(inp);
+        if (src.urlHint) body.appendChild(h('div', 'wf-imp-hint', src.urlHint));
+      } else if (kind === 'text') {
+        const lab = h('div', 'wf-imp-lab', src.textLabel);
+        body.appendChild(lab);
+        const ta = document.createElement('textarea');
+        ta.id = 'wf-imp-text'; ta.className = 'wf-imp-in wf-imp-ta';
+        ta.placeholder = src.textPlaceholder;
+        ta.spellcheck = false; ta.rows = 4;
+        ta.value = impState.text;
+        ta.addEventListener('input', () => { impState.text = ta.value; });
+        body.appendChild(ta);
+      }
+      first = false;
+    }
+
+    // The primary action only exists for the sources that have something to
+    // press it with. A file picker imports on pick — a second button after it
+    // would be a control with nothing to do.
+    if (src.accepts.indexOf('url') >= 0 || src.accepts.indexOf('text') >= 0) {
+      const go = h('button', 'wf-imp-go', impState.busy ? SAY_IMP.working : SAY_IMP.importBtn);
+      go.disabled = !!impState.busy;
+      go.addEventListener('click', () => impGo());
+      foot.appendChild(go);
+    }
+  }
+
+  function impRenderErr() {
+    const slot = impEl.errSlot;
+    slot.innerHTML = '';
+    if (!impState.err) return;
+    const e = h('div', 'wf-imp-err');
+    e.setAttribute('role', 'alert');
+    e.appendChild(icon('wf-imp-err-ic', IC_IMP.warn, 2));
+    e.appendChild(h('span', null, impState.err));
+    slot.appendChild(e);
+    // AND THE WAY OUT OF THE FAILURE HAS TO BE VISIBLE UNDER IT. Photographed
+    // at 390 x 844 on the Apple tab: the message said "download the .ics and
+    // choose the file instead" while the file button it means was scrolled off
+    // the bottom of the body — an instruction pointing at a control the same
+    // frame is hiding. The message itself costs the body ~86 px, so an error
+    // is exactly the moment the controls stop fitting.
+    //
+    // Scrolling the body to its END is the fix and not an arbitrary one: every
+    // source puts its numbered instructions first and its CONTROLS last, so
+    // the bottom of that scroller is always the doing half. The steps are what
+    // the student has already followed.
+    const b = impEl.body;
+    if (b) requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; });
+  }
+
+  function impDayStr(days) {
+    if (!days || !days.length) return '';
+    const order = IMP.dayOrder;
+    return days.slice().sort((a, b) => order.indexOf(a) - order.indexOf(b))
+      .map(d => IMP.dayShort[d] || d).join('');
+  }
+  function impTimeStr(c) {
+    if (!c.start) return '';
+    return c.start + (c.end ? '–' + c.end : '');
+  }
+  function impWhy(r, via) {
+    if (r.status === 'offmap') return SAY_IMP.whyOffmap(r.name, r.place);
+    if (r.status === 'nodoor') return SAY_IMP.whyNodoor(r.name);
+    if (r.status === 'nolocation') {
+      return via === 'text' ? SAY_IMP.whyNoLocationText : SAY_IMP.whyNoLocation;
+    }
+    return SAY_IMP.whyUnknown(r.code);
+  }
+
+  function impRenderResult() {
+    const res = impState.result;
+    const { body, foot, tabs, title } = impEl;
+    const src = impSource(res.source);
+    title.textContent = res.classes.length ? SAY_IMP.resultTitle : SAY_IMP.failTitle;
+    tabs.classList.add('hidden');
+    body.innerHTML = ''; foot.innerHTML = '';
+    impRenderErr();
+
+    const total = res.classes.length + res.rejects.length;
+    const sum = h('div', 'wf-imp-sum');
+    sum.appendChild(h('div', 'wf-imp-count',
+      res.rejects.length ? SAY_IMP.placed(res.classes.length, total)
+        : SAY_IMP.placedAll(res.classes.length)));
+    sum.appendChild(h('div', 'wf-imp-src', SAY_IMP.fromSource(src.label)));
+    body.appendChild(sum);
+
+    // ── WHAT FAILED COMES FIRST, AND THIS IS THE ONE ORDERING DECISION ON
+    //    THE SCREEN THAT WAS MADE FROM A PHOTOGRAPH RATHER THAN FROM TASTE.
+    //    The first cut listed the six that worked and then the three that did
+    //    not. Photographed at 390 x 844 that put FOUR placed rows on screen
+    //    and every failure below the fold: a student who imports nine classes
+    //    sees six ticks, believes they are done, and finds out on the second
+    //    Tuesday of term that the app has never heard of their Friday lab.
+    //    The count line above already delivers the good news in five words.
+    //    The three rows that change what they have to do go where the eye is.
+    if (res.rejects.length) {
+      body.appendChild(h('div', 'wf-imp-sec bad', SAY_IMP.couldNot(res.rejects.length)));
+      const bad = h('div', 'wf-imp-list');
+      for (const r of res.rejects) {
+        const row = h('div', 'wf-imp-row bad');
+        row.appendChild(icon('wf-imp-row-ic', IC_IMP.warn, 2));
+        const mid = h('div', 'wf-imp-mid');
+        const l1 = h('div', 'wf-imp-l1');
+        // WHAT THE STUDENT ACTUALLY TYPED OR EXPORTED, verbatim. A failure
+        // row that shows our normalised guess instead of their own text is a
+        // failure row they cannot check.
+        l1.appendChild(h('span', 'wf-imp-rawtxt',
+          r.code ? (r.code + (r.room ? ' ' + r.room : '')) : SAY_IMP.noRoom));
+        if (r.title && r.title !== SAY_IMP.unnamed) l1.appendChild(h('span', 'wf-imp-rtitle', r.title));
+        mid.appendChild(l1);
+        mid.appendChild(h('div', 'wf-imp-l2 why', impWhy(r, res.via)));
+        row.appendChild(mid);
+        bad.appendChild(row);
+      }
+      body.appendChild(bad);
+    }
+
+    if (res.classes.length) {
+      body.appendChild(h('div', 'wf-imp-sec', SAY_IMP.placedSec(res.classes.length)));
+      const list = h('div', 'wf-imp-list');
+      const shown = res.classes.slice(0, IMP.resultPeek);
+      for (const c of shown) {
+        const row = h('div', 'wf-imp-row ok');
+        row.appendChild(icon('wf-imp-row-ic', IC_IMP.check, 2.4));
+        const mid = h('div', 'wf-imp-mid');
+        const l1 = h('div', 'wf-imp-l1');
+        l1.appendChild(h('span', 'wf-imp-code', c.code));
+        l1.appendChild(h('span', 'wf-imp-bname', c.name || ''));
+        if (c.room) l1.appendChild(h('span', 'wf-imp-room', c.room));
+        mid.appendChild(l1);
+        // WHEN FIRST, THEN THE COURSE. The second line is one line with an
+        // ellipsis on it, so whichever half is last is the half that gets
+        // eaten — and `TTh 12:30–14:00` is what makes the row a class rather
+        // than a building, while `C S 429 - COMPUTER ORGANIZATION AND…` is
+        // the student's own course title, which they can already recite.
+        const when = [[impDayStr(c.days), impTimeStr(c)].filter(Boolean).join(' '), c.title]
+          .filter(Boolean).join(' · ');
+        mid.appendChild(h('div', 'wf-imp-l2', when));
+        row.appendChild(mid);
+        list.appendChild(row);
+      }
+      body.appendChild(list);
+      if (res.classes.length > shown.length) {
+        body.appendChild(h('div', 'wf-imp-more',
+          SAY_IMP.andMore(res.classes.length - shown.length)));
+      }
+    }
+
+    if (res.classes.length) {
+      const use = h('button', 'wf-imp-go', SAY_IMP.useThese(res.classes.length));
+      use.addEventListener('click', () => impUse(res));
+      foot.appendChild(use);
+    } else {
+      foot.appendChild(h('div', 'wf-imp-none', SAY_IMP.noneUsable));
+    }
+    const back = h('button', 'wf-imp-back', SAY_IMP.back);
+    back.addEventListener('click', () => impBack());
+    foot.appendChild(back);
+  }
+
+  function impRender() {
+    if (!impEl) return;
+    if (impState.result) impRenderResult(); else impRenderAdd();
+  }
+
+  // ── the three ways bytes arrive ───────────────────────────────────────────
+
+  function impFinish(text, via) {
+    impState.busy = false;
+    const out = impBuild(text, impState.source, via);
+    if (out.err) { impState.err = out.err; impState.result = null; }
+    else { impState.result = out; impState.err = null; }
+    impRender();
+  }
+
+  function impFromFile(f) {
+    impState.err = null;
+    if (/\.zip$/i.test(f.name)) { impState.err = SAY_IMP.errZip; impRender(); return; }
+    impState.busy = true; impRender();
+    const rd = new FileReader();
+    rd.onerror = () => { impState.busy = false; impState.err = SAY_IMP.errNotICS; impRender(); };
+    rd.onload = () => {
+      const text = String(rd.result || '');
+      // A .zip that has been renamed still starts PK\x03\x04, and the message
+      // for it is the useful one rather than "this is not a calendar".
+      if (text.slice(0, 2) === 'PK') { impState.busy = false; impState.err = SAY_IMP.errZip; impRender(); return; }
+      if (!/BEGIN:VCALENDAR|BEGIN:VEVENT/i.test(text) && /\.ics$/i.test(f.name)) {
+        impState.busy = false; impState.err = SAY_IMP.errNotICS; impRender(); return;
+      }
+      impFinish(text, 'file');
+    };
+    rd.readAsText(f);
+  }
+
+  async function impFromUrl(raw) {
+    const s = String(raw || '').trim();
+    if (!s) { impState.err = SAY_IMP.errEmptyUrl; impRender(); return; }
+    // webcal:// and https:// are the same feed and both ends accept the swap —
+    // docs/import-bar-apple.md. So an Apple subscription address pasted here
+    // works without the student having to know that.
+    const url = s.replace(/^webcal:\/\//i, 'https://');
+    let host = '';
+    try { host = new URL(url).host; } catch (e) { impState.err = SAY_IMP.errBadUrl; impRender(); return; }
+    impState.busy = true; impState.err = null; impRender();
+    const ctl = ('AbortController' in window) ? new AbortController() : null;
+    const timer = setTimeout(() => { if (ctl) ctl.abort(); }, IMP.fetchTimeoutMs);
+    try {
+      const res = await fetch(url, ctl ? { signal: ctl.signal } : undefined);
+      clearTimeout(timer);
+      if (!res.ok) { impState.busy = false; impState.err = SAY_IMP.errHttp(res.status); impRender(); return; }
+      impFinish(await res.text(), 'url');
+    } catch (e) {
+      clearTimeout(timer);
+      impState.busy = false;
+      // THE COMMONEST FAILURE THIS SCREEN HAS, AND IT IS NOT OUR BUG. A browser
+      // will not let this page read calendar.google.com's response; the fetch
+      // fails identically whether the address is wrong, the network is down or
+      // CORS refused. The honest sentence names the host and gives the way
+      // round it, because the way round is a control already on this screen.
+      impState.err = (e && e.name === 'AbortError') ? SAY_IMP.errTimeout : SAY_IMP.errBlocked(host);
+      impRender();
+    }
+  }
+
+  function impGo() {
+    if (impState.busy) return;
+    const ta = document.getElementById('wf-imp-text');
+    if (ta) {
+      impState.text = ta.value;
+      if (!impState.text.trim()) { impState.err = SAY_IMP.errEmptyText; impRender(); return; }
+      impState.err = null; impState.busy = true; impRender();
+      // A paste can be long; yield once so `Reading…` actually paints.
+      setTimeout(() => impFinish(impState.text, 'text'), 0);
+      return;
+    }
+    const u = document.getElementById('wf-imp-url');
+    if (u) { impState.url = u.value; impFromUrl(impState.url); }
+  }
+
+  /**
+   * THE HANDOFF. The schedule is published on `window.wayfindSchedule` — the
+   * one object anything else in this feature reads — and the two ends of the
+   * router that already exists are filled with the first two consecutive
+   * classes, which is the answer to "why import this into a MAP".
+   */
+  function impUse(res) {
+    window.wayfindSchedule = res;
+    try {
+      window.dispatchEvent(new CustomEvent('wayfind:schedule', { detail: res }));
+    } catch (e) {}
+    const cs = res.classes.slice().sort(impByTime);
+    impClose();
+    el.sheet.classList.remove('hidden');
+    el.btn.classList.add('active');
+    if (cs.length >= 2) {
+      const a = resolve(cs[0].code), b = resolve(cs[1].code);
+      if (a && b) {
+        state.from = a; state.to = b;
+        el.inFrom.value = a.display; el.inTo.value = b.display;
+      }
+    } else if (cs.length === 1) {
+      const b = resolve(cs[0].code);
+      if (b) { state.to = b; el.inTo.value = b.display; }
+    }
+    try { syncClears(); renderList(el.inTo); } catch (e) {}
+  }
+  function impByTime(a, b) {
+    const da = IMP.dayOrder.indexOf((a.days || [])[0] || 'MO');
+    const db = IMP.dayOrder.indexOf((b.days || [])[0] || 'MO');
+    if (da !== db) return da - db;
+    return String(a.start || '').localeCompare(String(b.start || ''));
+  }
+
+  /**
+   * THE DOOR IN. Appended to the walk sheet rather than written into
+   * `buildUI` — four other lanes are editing this file this round and a DOM
+   * append is a change no one of them can conflict with.
+   */
+  function impInstallEntry() {
+    if (!IMP.entryOn || !el || !el.sheet || document.getElementById('wf-imp-entry')) return;
+    const row = h('button', null, null); row.id = 'wf-imp-entry';
+    row.appendChild(icon('wf-imp-entry-ic', IC_IMP.cal, 1.9));
+    const t = h('span', 'wf-imp-entry-t');
+    t.appendChild(h('span', 'wf-imp-entry-lab', SAY_IMP.entry));
+    t.appendChild(h('span', 'wf-imp-entry-sub', SAY_IMP.entryNote));
+    row.appendChild(t);
+    row.appendChild(icon('wf-imp-entry-go', IC_IMP.chevR, 2.2));
+    row.addEventListener('click', (ev) => { ev.preventDefault(); impOpen(); });
+    // Above the footnotes, below the hint: it is an action, and the two lines
+    // under it are provenance, not controls.
+    const foot = el.sheet.querySelector('.wf-foot');
+    if (foot) el.sheet.insertBefore(row, foot); else el.sheet.appendChild(row);
+  }
+  (function impBoot() {
+    if (el && el.sheet) { impInstallEntry(); return; }
+    setTimeout(impBoot, 80);
+  })();
+
+  // The screen, for the verify harness and for anything added later. Opening
+  // it from a script is how it gets photographed.
+  window.wayfindImportOpen = impOpen;
+  window.wayfindImportClose = impClose;
+  window.wayfindImportSet = function (sourceId) {
+    impState.source = sourceId; impState.result = null; impState.err = null; impRender();
+  };
+  window.wayfindImportText = function (text, sourceId) {
+    if (sourceId) impState.source = sourceId;
+    impFinish(String(text), 'text');
+    return impState.result || { err: impState.err };
+  };
+  window.wayfindImportParse = function (text, sourceId) {
+    return impBuild(String(text), sourceId || impState.source, 'text');
+  };
+
   function boot() {
     const map = window.__map;
     if (!map) return setTimeout(boot, 60);

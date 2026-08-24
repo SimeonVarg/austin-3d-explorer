@@ -1734,14 +1734,202 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-act-go{background:rgba(245,166,35,.26);border-color:rgba(245,166,35,.5);color:#fff3d4}
 .wf-act-go:hover{background:rgba(245,166,35,.44)}
 
+/* ══ THE SCHEDULE IMPORT ═══════════════════════════════════════════════════
+   The screen a student adds their class schedule on — three routes in, one
+   panel, and a second screen that says what landed and what did not. The code
+   and the argument for every choice are in js/wayfind.js §9.
+
+   IT IS THE SHEET'S TWIN, NOT A NEW SURFACE. Same glass, same radius, same
+   shadow, same corner of the screen, same "give up height at the bottom, never
+   at the top" rule — so on a phone it lands exactly where the search panel it
+   replaces was, and the joystick and the time slider are still reachable with
+   it open. Every size and colour below is either a token off #wf-root or a
+   `--wf-imp-*` declared here (CLAUDE.md rule 11); nothing is a number in a
+   rule body that cannot be found by name. */
+#wf-imp{
+  --wf-imp-step:11px;       /* the numbered instructions above a control */
+  --wf-imp-n:15px;          /* the little numeral beside each of them */
+  --wf-imp-lab:9.5px;       /* the uppercase label over a field */
+  --wf-imp-row:12.5px;      /* a result row's first line */
+  --wf-imp-row2:10.5px;     /* ...and its second, the when/why line */
+  --wf-imp-gap:9px;         /* the rhythm of the body */
+  /* THE TWO VERDICT COLOURS. Green is not in this feature's palette anywhere
+     else and it is not being introduced here: a placed class gets the same
+     warm ink everything else that worked gets, and only the FAILURE is
+     coloured, because the failure is the thing the eye has to find. */
+  --wf-imp-bad:#ffb4a0;
+  --wf-imp-bad-bg:rgba(255,120,80,.10);
+  --wf-imp-bad-edge:rgba(255,140,100,.24);
+  position:absolute;top:68px;left:16px;z-index:31;width:344px;
+  max-width:calc(100vw - 32px);max-height:calc(100vh - 110px);
+  background:var(--wf-glass-solid);backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid rgba(255,190,90,.18);border-radius:var(--wf-radius);
+  box-shadow:var(--wf-shadow);color:var(--wf-ink);font-size:12.5px;
+  overflow:hidden;display:flex;flex-direction:column}
+#wf-imp.hidden,#wf-imp-tabs.hidden{display:none}
+#wf-imp-head{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 10px 8px 14px;border-bottom:1px solid var(--wf-edge-soft);flex:none}
+#wf-imp-title{font-size:11px;font-weight:700;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--wf-dim)}
+#wf-imp-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
+  width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
+#wf-imp-close svg{width:15px;height:15px}
+#wf-imp-close:hover{opacity:1;background:rgba(255,255,255,.07)}
+
+/* THE THREE ROUTES IN. A segmented control, because they are three views of
+   one job and not three jobs — a student picks where their schedule already
+   lives, not what they want to do. Three stacked panels was the other option
+   and it does not fit on a 390 px phone without a scroll before the first
+   control. */
+#wf-imp-tabs{display:flex;gap:4px;padding:8px 10px;flex:none;
+  border-bottom:1px solid var(--wf-edge-soft)}
+.wf-imp-tab{flex:1;min-width:0;background:rgba(255,255,255,.05);
+  border:1px solid var(--wf-edge-soft);border-radius:9px;color:var(--wf-dim);
+  font:inherit;font-size:11.5px;font-weight:700;letter-spacing:.04em;
+  padding:0 6px;height:32px;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-imp-tab:hover{background:var(--wf-hot);color:#fff3d4}
+.wf-imp-tab.on{background:rgba(245,166,35,.24);border-color:rgba(245,166,35,.5);
+  color:#fff3d4}
+
+/* THE BODY IS THE ONLY CHILD THAT YIELDS HEIGHT, same rule as #wf-sheet's
+   result list — so the head, the tabs, the action and the privacy line are
+   whole at any panel height and the instructions scroll instead. */
+#wf-imp-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:11px 14px 4px}
+.wf-imp-steps{display:flex;flex-direction:column;gap:7px;margin-bottom:11px}
+.wf-imp-step{display:flex;align-items:flex-start;gap:8px}
+.wf-imp-n{flex:none;width:var(--wf-imp-n);height:var(--wf-imp-n);border-radius:50%;
+  background:rgba(255,198,99,.18);color:var(--wf-accent);
+  font-size:9.5px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+.wf-imp-t{font-size:var(--wf-imp-step);line-height:1.5;color:var(--wf-dim)}
+.wf-imp-lab{font-size:var(--wf-imp-lab);font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--wf-dimmer);margin-bottom:5px}
+.wf-imp-in{width:100%;box-sizing:border-box;background:rgba(255,255,255,.055);
+  border:1px solid var(--wf-edge-soft);border-radius:10px;color:#fff6e2;
+  font:inherit;font-size:14px;padding:0 11px;height:40px;outline:none;
+  transition:border-color .12s,background .12s}
+.wf-imp-in::placeholder{color:rgba(248,234,208,.30);font-size:11px;letter-spacing:0}
+.wf-imp-in:focus{border-color:rgba(245,166,35,.55);background:rgba(255,255,255,.09)}
+.wf-imp-ta{height:auto;min-height:82px;padding:9px 11px;line-height:1.5;
+  resize:vertical;font-size:12.5px}
+.wf-imp-ta::placeholder{font-size:11px;line-height:1.5}
+.wf-imp-hint{font-size:10px;color:var(--wf-dimmer);line-height:1.45;margin-top:5px}
+/* THE SEPARATOR BETWEEN TWO WAYS OF DOING THE SAME THING. A word on a rule,
+   because two controls stacked with nothing between them read as two steps. */
+.wf-imp-or{display:flex;align-items:center;gap:8px;margin:11px 0;
+  font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--wf-dimmer)}
+.wf-imp-or::before,.wf-imp-or::after{content:"";flex:1;height:1px;
+  background:var(--wf-edge-soft)}
+.wf-imp-file-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;box-sizing:border-box;min-height:var(--touch-min);
+  background:rgba(255,255,255,.06);border:1px dashed var(--wf-edge);
+  border-radius:10px;color:var(--wf-ink);font:inherit;font-size:12.5px;
+  font-weight:700;padding:10px;cursor:pointer}
+.wf-imp-file-btn:hover{background:rgba(245,166,35,.22)}
+.wf-imp-ic{width:16px;height:16px;flex:none;color:var(--wf-accent)}
+#wf-imp-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+/* WHAT WENT WRONG BEFORE A SINGLE ROW WAS READ — a blocked fetch, a .zip, an
+   empty box. It sits under the controls it is about, not in a toast, because
+   the fix is one of those controls. */
+#wf-imp-errslot{flex:none;padding:0 14px}
+#wf-imp-errslot:not(:empty){padding:11px 14px 0}
+.wf-imp-err{display:flex;align-items:flex-start;gap:8px;
+  padding:9px 10px;border-radius:10px;background:var(--wf-imp-bad-bg);
+  border:1px solid var(--wf-imp-bad-edge);color:var(--wf-imp-bad);
+  font-size:11px;line-height:1.5}
+.wf-imp-err-ic{width:15px;height:15px;flex:none;margin-top:1px}
+
+/* ══ WHAT HAPPENED ═════════════════════════════════════════════════════════ */
+.wf-imp-sum{margin-bottom:11px}
+.wf-imp-count{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--wf-ink)}
+.wf-imp-src{font-size:var(--wf-imp-row2);color:var(--wf-dimmer);margin-top:2px}
+.wf-imp-list{display:flex;flex-direction:column}
+.wf-imp-row{display:flex;align-items:flex-start;gap:9px;padding:8px 0;
+  border-top:1px solid var(--wf-edge-soft)}
+.wf-imp-row:first-child{border-top:none}
+.wf-imp-row-ic{width:14px;height:14px;flex:none;margin-top:2px}
+.wf-imp-row.ok .wf-imp-row-ic{color:var(--wf-accent)}
+.wf-imp-row.bad .wf-imp-row-ic{color:var(--wf-imp-bad)}
+.wf-imp-mid{flex:1;min-width:0}
+.wf-imp-l1{display:flex;align-items:baseline;gap:7px;min-width:0}
+/* THE CODE IS THE SUBJECT OF THE ROW — it is what the router speaks and what
+   the student typed. Same weight and same amber as .wf-code in the result
+   list, so the two lists read as one vocabulary. */
+.wf-imp-code,.wf-imp-rawtxt{font-weight:700;letter-spacing:.06em;color:#ffcf7a;
+  font-size:var(--wf-imp-row);flex:none}
+.wf-imp-rawtxt{color:var(--wf-imp-bad)}
+.wf-imp-bname{font-size:var(--wf-imp-row);color:var(--wf-ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-imp-rtitle{font-size:var(--wf-imp-row2);color:var(--wf-dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-imp-room{font-size:var(--wf-imp-row2);color:var(--wf-dimmer);flex:none;
+  margin-left:auto;padding-left:6px}
+/* ONE LINE, WITH THE ELLIPSIS AT THE FAR END — and which half is at the far
+   end is decided in js (§9, impRenderResult): the days and the time lead, the
+   course title trails, so a truncation eats the thing the student already
+   knows by heart rather than the thing that makes the row a class. */
+.wf-imp-l2{font-size:var(--wf-imp-row2);color:var(--wf-dim);line-height:1.45;
+  margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ...EXCEPT THE REASON, which is the one sentence on this screen a student has
+   to read all of. It wraps. */
+.wf-imp-l2.why{color:var(--wf-imp-bad);opacity:.92;white-space:normal}
+.wf-imp-sec{margin:14px 0 4px;font-size:var(--wf-imp-lab);font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--wf-dimmer)}
+.wf-imp-sec.bad{color:var(--wf-imp-bad);opacity:.85;margin-top:11px}
+.wf-imp-more{padding:7px 0 0;font-size:var(--wf-imp-row2);color:var(--wf-dimmer)}
+
+/* THE ACTION ROW. `Import` / `Use these N` is the one filled control on the
+   screen, the same amber `Walk it` is on the answer bar — this feature has
+   exactly one filled thing at a time and it always means "the thing to do". */
+#wf-imp-foot{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  border-top:1px solid var(--wf-edge-soft);flex:none}
+#wf-imp-foot:empty{display:none}
+.wf-imp-go{flex:1;min-height:var(--touch-min);background:var(--wf-go-bg);
+  border:1px solid var(--wf-go-edge);border-radius:10px;color:var(--wf-go-ink);
+  font:inherit;font-size:13px;font-weight:700;padding:10px;cursor:pointer}
+.wf-imp-go:hover{background:var(--wf-go-edge)}
+.wf-imp-go:disabled{opacity:.55;cursor:default}
+.wf-imp-back{flex:none;min-height:var(--touch-min);background:none;
+  border:1px solid var(--wf-edge);border-radius:10px;color:var(--wf-dim);
+  font:inherit;font-size:12px;font-weight:700;padding:10px 14px;cursor:pointer}
+.wf-imp-back:hover{background:rgba(255,255,255,.07);color:var(--wf-ink)}
+.wf-imp-none{flex:1;font-size:11px;color:var(--wf-dimmer);line-height:1.45}
+.wf-imp-note{padding:8px 14px 10px;border-top:1px solid rgba(255,190,90,.11);
+  font-size:9.5px;color:var(--wf-dimmer);line-height:1.55;flex:none}
+
+/* THE DOOR IN, in the search panel. A ROW and not a chip: the four chips above
+   it fill a field, this one changes screens, and mixing the two in one strip
+   is how a thumb opens the wrong thing. */
+#wf-imp-entry{display:flex;align-items:center;gap:10px;width:100%;
+  box-sizing:border-box;min-height:var(--touch-min);
+  background:rgba(245,166,35,.10);border:none;
+  border-top:1px solid var(--wf-edge-soft);
+  color:var(--wf-ink);font:inherit;text-align:left;padding:9px 12px;
+  cursor:pointer;flex:none}
+#wf-imp-entry:hover{background:rgba(245,166,35,.20)}
+.wf-imp-entry-ic{width:17px;height:17px;flex:none;color:var(--wf-accent)}
+.wf-imp-entry-t{flex:1;min-width:0}
+.wf-imp-entry-lab{display:block;font-size:12.5px;font-weight:700}
+.wf-imp-entry-sub{display:block;font-size:9.5px;color:var(--wf-dimmer);
+  margin-top:1px;line-height:1.4}
+.wf-imp-entry-go{width:14px;height:14px;flex:none;color:var(--wf-dimmer)}
+
 /* ?clip=1 — the chrome is UI, the ribbon is scene. So the panel, the button and
    the bar go and the route stays: ?clip=1&from=JES&to=WEL&fit=1 is a recordable
    shot of a route with nothing on screen but the city. `?autopilot=1` and
    `?sliderdemo=1` both add `.clip` in index.html's head script, so all three
    recording surfaces are covered by this one rule — and every element this
    feature has ever added is a CHILD of one of these three, which is why the
-   rule has not had to grow as the bar did. */
-.clip #wf-button,.clip #wf-sheet,.clip #wf-pill{display:none!important}
+   rule has not had to grow as the bar did.
+
+   #wf-imp IS THE ONE EXCEPTION TO THAT LAST SENTENCE AND IT IS NAMED HERE ON
+   PURPOSE. The import screen is a fourth child of #wf-root, not a child of the
+   three above — a panel that has to be able to cover the sheet cannot be
+   inside it. So it is listed. If a fifth ever appears, list that too: the
+   comment claiming the rule never has to grow is what let this one nearly ship
+   visible in a recording. */
+.clip #wf-button,.clip #wf-sheet,.clip #wf-pill,.clip #wf-imp{display:none!important}
 /* ...and with the chrome hidden the title pill must come back for nobody, so
    the #hud override above is undone too — .clip already hides #hud. */
 
@@ -1776,6 +1964,28 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
   #wf-sheet{--wf-tod-clear:calc(8px + var(--touch-min) + 14px + 8px);
     top:auto;bottom:var(--drive-clear);left:8px;right:var(--wf-tod-clear);width:auto;
     max-height:calc(62vh - var(--drive-clear));border-radius:16px}
+  /* THE IMPORT SCREEN LANDS WHERE THE SHEET DOES, and it has to be the same
+     rule and not a similar one: the two swap places on a tap, so any
+     difference between them is a jump on the frame. Same inset off the drive
+     controls, same clearance from #tod-panel on the right, same "give up
+     height at the bottom" — it just gets more of it, because a schedule's
+     result list is longer than a search's and the body is the child that
+     scrolls. */
+  #wf-imp{--wf-tod-clear:calc(8px + var(--touch-min) + 14px + 8px);
+    top:auto;bottom:var(--drive-clear);left:8px;right:var(--wf-tod-clear);
+    width:auto;max-width:none;
+    /* 84vh, MEASURED, NOT PICKED. At 74 the panel ran y219–y658 on a 390 x 844
+       phone and both the Google hint line and Apple's second control were
+       below the fold with no scroll affordance to say so — photographed. The
+       ceiling is what is above it: #wf-button ends at y60 and the right-hand
+       column stacks a second button to about y112, so the top edge must not
+       come above ~y120. 84vh − --drive-clear puts it at y135. Any higher and
+       this panel is the thing that collides with the buttons, which is the
+       exact defect QUEUE Z7 spent a round fixing for #wf-pill. */
+    max-height:calc(84vh - var(--drive-clear));border-radius:16px}
+  .wf-imp-in{font-size:16px}      /* iOS zooms a focused field under 16 px */
+  .wf-imp-ta{font-size:16px}
+  .wf-imp-tab{height:var(--touch-min)}
   #wf-list{max-height:none;flex:1 1 auto}
   .wf-row input{font-size:16px}   /* iOS zooms a focused field under 16 px */
   /* A RESULT ROW IS A THUMB TARGET. At 34 px it was under the size this
