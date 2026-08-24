@@ -284,3 +284,37 @@ rebuilding that card.
 Routing untouched again — every steering number identical to round 3.
 Full argument, every number and the three instruments that lied to me first:
 `docs/walk-lit.md` §32-§41.
+
+## 2026-08-24 — the baseline meter, built: 20 real class-to-class pairs, a real number
+
+The recon above never got turned into an actual measurement before the run
+that was doing it died (disk full, not a code failure). This picks that up.
+Built `scripts/verify/walk-pairs.json` (20 real building-code pairs a UT
+student would actually walk back-to-back — GDC→JES, WEL→PAI, and 18 more,
+spread across campus, 5 crossing Speedway, 1 crossing the Drag, 2 confirmed
+level-change routes) and `scripts/verify/walkmeter.mjs`, a reusable script any
+of the five w-* lanes can point at their own branch to get the identical
+measurement. Drove all 20 through the live app's own `wayfindRoute()` API
+against unmodified `origin/main`, then compared each app-picked door against
+the door UT Austin's own public entrance survey says is correct, using a
+from-scratch Dijkstra reimplementation that self-checks against the app's own
+reported numbers every single run (drift was 0.00 m on all 19 measurable
+pairs this round — the one unmeasurable pair, PHR→BIO, is its own finding:
+BIO's UT-verified door was never snapped to the path network in the bake at
+all).
+
+The headline number: **795 m of real extra walking**, summed only over the 6
+pairs the current door mislabelling actually makes worse, worst single case
+EER→NHB at +298 m (screenshotted, matches the measured number to the metre —
+`docs/shots/walk-baseline-eer-nhb.jpg`). But the more useful finding for
+whoever builds the fix: 9 of the other 19 pairs would get LONGER, not
+shorter, if every building were simply forced onto UT's single verified door
+— PMA→MEZ alone would get 231 m worse, because MEZ's two real, front-facing
+doors sit on different sides of the building and PMA approaches from the side
+the "wrong" door already faces. That's a live demonstration of exactly what
+`docs/walk-evidence.md`'s own fix list warned about: collapsing a building to
+one door, even a UT-verified one, isn't the fix — keeping near-tied
+candidates open so the router picks per-trip is. Full writeup, the 20-pair
+table, and the re-run instructions are in `docs/walk-baseline.md`.
+`WAYFIND.on` still untouched; nothing in `js/wayfind.js` changed this round
+either. Pushed as `acer/w-baseline`, self-merged after the self-check passed.
