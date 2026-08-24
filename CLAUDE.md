@@ -90,6 +90,29 @@ memory and is never written here, in any tracked file, or in a commit message.
       (`window.cancelGraphicsAutoDetect()`). Note it is a correctness measure,
       not a speed one — measured, it costs nothing.
 
+## Disk
+
+12. **Screenshots are working artifacts, not deliverables. Keep the repo a
+    pickup, not a semi.** Every `isolation: 'worktree'` agent gets a full
+    checkout of every TRACKED file, so anything committed is multiplied by the
+    number of parallel lanes. On 2026-08-23 that arithmetic filled a 476 GB
+    disk to 0.3% free and froze the machine overnight: `shots/` was 1.9 GB,
+    twenty-odd lanes were live, and `.claude/worktrees/` held **45 GB**.
+
+    - **Write scratch frames to the scratchpad**, not into `shots/`. Only a
+      frame a doc actually CITES as evidence belongs in the repo. A prune on
+      2026-08-23 found **1,546 of 2,127 committed screenshots that nothing
+      referenced** — 1.4 GB of pure multiplier.
+    - **`git worktree remove` and `git worktree prune` UNREGISTER without
+      deleting.** The worktree list can read clean while the bytes are still
+      there; it had read clean for two days. Sweep the directory itself
+      between rounds: `rmdir /s /q .claude\worktrees` then
+      `git worktree prune`, and delete the orphan `worktree-wf_*` branches.
+    - **Check free space before launching a wide round.** Going wide is fine —
+      Simeon asked for it — but the debris is the lane's problem, not his.
+    - If a doc cites a frame, commit that frame. 149 citations already point at
+      files that were only ever in a deleted worktree and are gone for good.
+
 ## Taste
 
 11. **Parameterise every taste value** so Simeon can overrule any aesthetic call
