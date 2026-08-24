@@ -377,3 +377,58 @@ can disagree with the call rather than rediscover it. The same measurement also
 found that 23 of UT's 84 doors already had this problem before this round
 existed, and wrote down the fix — it belongs in the entrance bake, not the router.
 `WAYFIND.on` still false.
+
+## 2026-08-24 — critic pass, door round (after round 6): it still wins, and the "UT door" it's scored against is sometimes the wrong point
+
+Fresh critic, port 8851, no memory of how hard rounds 4-6 were. Re-ran
+`scripts/verify/walkmeter.mjs --baseline` myself against a clean server on this
+branch's HEAD (`994e705`, round 6): it reproduced the branch's own numbers to
+the decimal — route-length extra 795.3 m -> 142.1 m, signed total +209.5 m ->
+-354.3 m, door-offset extra 1151.6 m -> 83.7 m, 38/38 pair-ends within 15 m of
+UT's published door, self-check drift 0.00 m, live UI gate PASS. Then drove the
+checkbox myself through the real API and the real page: 250.7 m / 1 stair set
+with the box off, 162.7 m / 0 stair sets on, and two real screenshots of the
+real card (WCH -> Tower) with a real click in between — unchecked "3-4 min walk
+· 250 m · Stairs: 1 set", checked "1-3 min walk · 160 m · No stairs on this
+route · Avoids 189 mapped staircases." The checkbox genuinely avoids stairs.
+
+**The gap.** UT's own `Celebrated_Entrances_view` carries two different
+coordinates per row — a `Longitude`/`Latitude` attribute pair and a separate
+point `geometry` — and this branch (rounds 1-6, `js/wayfind.js` and
+`scripts/bake_entrances.py`) reads only the attribute pair. Queried the SAME
+Experience Builder widget that maps.utexas.edu itself loads
+(`experience.arcgis.com/experience/81d900a3c906482e9731a7a71eaaa178`,
+layer `Celebrated Entrance`, id `194a972f836-layer-6`) directly through its own
+`queryFeatures()`, live: for MAI the attribute pair is 30.286186/-97.739719 but
+the point the map actually draws is 30.286023/-97.739757 — **18.5 m away**. For
+EER, attribute 30.288143/-97.735633 vs geometry 30.288310/-97.735657 — **18.75
+m away**. A 69-row sample of the whole layer (`Longitude`/`Latitude` present
+and non-null) found 15 buildings 10 m+ apart between the two coordinates,
+2 of them 20 m+ (MBB at 39.4 m), and only 19 of 69 under 1 m agreement. Round
+4's "97/97 matched, worst 0.07 m" check never caught this because it compared
+the branch's own copy of the attribute field against a fresh pull of the same
+attribute field — an internal-consistency check, not a check against what
+maps.utexas.edu actually renders on screen.
+
+This means "38/38 ends at the right door" and "worst single pair 10.9 m" are
+scored against the wrong ground-truth point for an unknown-but-real subset of
+the 20 pairs — EER and MAI both appear in the headline pair set (EER->NHB is
+the baseline doc's worst offender; WCH->MAI is walkmeter's own UI-gate pair).
+**The fix**: in whichever bake/table-building step reads
+`Celebrated_Entrances_view`, take the row's `geometry.x`/`geometry.y`, not the
+`Longitude`/`Latitude` attribute fields, and re-run `walkmeter.mjs` to see how
+much of the 83.7 m residual door-offset was real and how much was measurement
+error.
+
+**oursWins = true anyway.** All three bars in the brief — extra metres to the
+door a student would use, agreement with the door maps.utexas.edu actually
+presents, and a checkbox that actually avoids stairs — still land far ahead of
+doing nothing, even accounting for a coordinate source that inflates the
+precision claim by 10-20 m on a handful of buildings; none of it reverses which
+side of the building the router sends you to. The through-building residual on
+invented-door last stretches (76/619 legs, documented in round 6 as unchanged
+and unfixed by this round) is real and already written up with a concrete fix
+design in `docs/walk-door.md` round 6 §6 — still open, not this round's find.
+
+Server on 8851 killed and port confirmed free. Touched only this file
+(`docs/walk-progress.md`) — no file `acer/w-door` owns.
