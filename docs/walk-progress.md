@@ -2462,3 +2462,235 @@ Simeon; both have a named seat in the source and a one-function contract, so
 adding either later is a decoder plus one table row and touches no placement,
 no failure taxonomy and no line of the screen. Branch `acer/si-ui`, pushed,
 not merged. Server on 8913 killed and the port confirmed free.
+## 2026-08-24 — critic round 4 verdict on `acer/si-parser`: oursWins = true, one real gap found in the auto-sniff path
+
+Fresh context. `acer/si-parser` finally exists (e855af3, "Schedule import, the
+parsing half"), so this is the first round that could actually review it.
+Checked out the branch fresh from `origin`, served it on 8951, drove the real
+`?walk=1` page with `playwright-core` and real Chrome — not the builder's own
+screenshots.
+
+**Confirmed additive-only independently**, not from the commit message: `git
+diff origin/main...acer/si-parser -- js/wayfind.js` shows zero deleted lines,
+1185 added, everything else in the repo untouched except two new docs files,
+six new fixture files and two shot files.
+
+**Re-ran the builder's own gate rather than trusting its printed number**:
+`schedule-fixtures/schedule-parse.mjs` against a freshly served copy of this
+branch — 209/209 assertions, independently reproduced.
+
+**Then built four fixtures of my own from scratch** — different building
+codes than the builder ever used (BUR, CBA, SZB, GDC, SEA, PAR, ANT), a
+different malformed-date shape (an ISO-8601-style `2026-08-28T09:00:00`
+pasted into `DTSTART` instead of the builder's letter-O typo), a genuinely
+empty `LOCATION:` property (not merely an absent one), a `LOCATION` forced to
+fold across real 75-octet lines by a long real Austin address with the code
+in parens at the very end, and a manual-paste ambiguity trap with a building
+code (`SEA`) sitting both as a plausible course prefix AND as the correct
+answer next to a decoy course-shaped token — to make sure I wasn't grading the
+builder's own tuned inputs. All of it resolved and routed correctly: every
+clean event became a real leg through `wayfindScheduleCheck`'s actual
+`computeRoute()` path, every bad row failed with the specific right problem
+code and a suggestion where one existed (`WEK`→`WEL`, `CBQ`→`CBA`), and the
+DST-aware `UNTIL` conversion landed on the correct Chicago calendar date on a
+`RRULE` I wrote myself. Independently re-verified the doc's central factual
+claims by calling the functions directly rather than reading the write-up:
+`HLB` resolves and **routes** despite `resolved.routable` never being asked
+first, `SSW` fails `BUILDING_NOT_WALKABLE`, a Pickle code fails
+`BUILDING_OFF_MAP`, and both `webcal://` and `webcals://` rewrite to the same
+`https://` feed. Looked at the two committed screenshots with the Read tool
+per house rule — both really do show a drawn card and route (GDC→Welch,
+140 m, "No stairs on this route"), not a buried camera.
+
+**The one thing that doesn't hold up: the auto-sniff path is blind to the
+exact failure the builder's own docs call "the single likeliest real-world
+'bad file.'"** `wayfindParseSchedule(text, opts)` is documented to auto-detect
+`kind` when it's omitted, via `schedLooksLikeICS()`, which only checks for the
+literal substrings `BEGIN:VCALENDAR` / `BEGIN:VEVENT`. An HTML sign-in page —
+`docs/si-parser.md`'s own `not-a-calendar.ics` fixture, modelled on the UT EID
+wall — contains neither, so it auto-detects as `'rows'` and is fed to
+`schedParseRows`, which has no "this isn't a schedule at all" check. The
+result, reproduced verbatim with the builder's own fixture through the public
+entry point exactly as documented (`wayfindParseSchedule(text, {})`, no kind
+forced): **nine `LOCATION_MISSING` errors, one per line of markup**, each
+reading `Line 3 ("<head><title>Sign in with your UT EID</title></head>") names
+a course but no building` — a wrong, actively misleading sentence (there is no
+course on that line at all) instead of the crafted, correct message that
+exists specifically for this case: *"That is not a calendar file... you
+probably saved the sign-in page instead of the .ics."* That crafted message is
+only reachable if the caller manually forces `kind:'ics'` — which is exactly
+what the builder's own gate does (`EXPECT['not-a-calendar.ics'].kind` is
+hardcoded `'ics'` and the harness passes it straight through), so 209/209
+green never actually exercised the code path a real unqualified call takes.
+This is the failure mode CLAUDE.md's house rule about a passing critic not
+being proof exists for: the gate is green and the exact scenario it was built
+to catch still gets through when called the documented way.
+
+**Why this doesn't flip the verdict.** The brief's bar is Google Calendar's
+own import UX, and I went and got the actual wording rather than assuming it
+(`support.google.com` via WebFetch, cross-checked against a second query):
+Google's own partial-failure message is **"Processed x of y events,"** a bare
+count with no per-row reason ever surfaced, for any failure, of any kind. Even
+in the one scenario where this branch's own wording goes wrong, it still
+names every failing line individually with a problem code and an actionable
+hint — which is more than Google's bar gives a student on any bad file, ever.
+The defect is real and worth a fast follow-up (teach `schedLooksLikeICS`, or a
+sibling check in `schedParseRows`, to recognise `<!DOCTYPE`/`<html` and reuse
+the existing `FILE_NOT_CALENDAR` message instead of running the row parser on
+markup), but it is a wording bug on top of a design that already clears the
+stated bar, not a bar-losing one.
+
+**oursWins = true.**
+
+**Single biggest remaining gap, concretely:** `schedLooksLikeICS()` in
+`js/wayfind.js` (used by `wayfindParseSchedule` to pick `'ics'` vs `'rows'`
+when `opts.kind` is omitted) only tests for `BEGIN:VCALENDAR` / `BEGIN:VEVENT`
+substrings, so any non-calendar text that lacks those literal tokens —
+starting with the HTML sign-in page the builder's own docs name as the most
+likely real bad file — is silently routed into `schedParseRows` and reported
+as a schedule full of buildingless "courses" instead of hitting
+`FILE_NOT_CALENDAR`'s purpose-built message. Fix the sniff (or add the same
+markup check inside `schedParseRows`) and then change the test harness's
+`EXPECT['not-a-calendar.ics']` to call `wayfindParseSchedule(text, {})` with
+no forced `kind`, so the gate can no longer go green while blind to the one
+scenario it exists to catch.
+
+**What I actually looked at or measured:** the branch's own 209-assertion gate
+re-run fresh (pass); four fixtures I wrote myself covering every category the
+brief named (bad code, missing location, malformed date, multi-line address),
+run against the live page via `wayfindParseSchedule`/`wayfindScheduleCheck`/
+`wayfindScheduleFrom`; a direct call reproducing `HLB`/`SSW`/Pickle-code
+behaviour; both `webcal://` and `webcals://` rewrite; the builder's own
+`not-a-calendar.ics` fixture re-run through the *undecorated* public entry
+point (the defect above); the two committed screenshots opened and read, not
+assumed; `git diff origin/main...acer/si-parser` read directly for the
+additive-only claim. Branch left as found — deleted the four scratch `.mjs`
+scripts I wrote into `scripts/verify` before finishing, and reverted the two
+`shots/si/parser/*.png` files that the builder's own gate script rewrote when
+I re-ran it (same camera, same fixture — not a real change, just noise from
+running their own script). Server on 8951 killed, port re-confirmed free by
+`netstat`. No files the builder owns were edited.
+
+## 2026-08-24 — critic round 3 on the privacy piece (`acer/si-privacy`), oursWins=true
+
+Drove `acer/si-privacy` for real on port 8955, own browser, own scripts — not the
+builder's `schedule-privacy.mjs`. Server on 8955, `npm install` run fresh in
+`scripts/verify` (empty `node_modules`), `harness-drift.mjs` PASS first.
+
+Both halves of THE BAR hold under independent testing, and harder than the
+builder's own audit tried: imported a schedule with a distinct canary string
+under `?walk=1&drift=0&intro=0`, routed GDC→PAR to generate real traffic, and
+scanned all 153 captured requests (page + worker fetches) — zero carried any
+schedule content, and the canary string appeared in none of them at any phase.
+Then went further than the builder's negative control, which only fired a
+`fetch`: a raw `XMLHttpRequest.send()` and a `navigator.sendBeacon()` carrying
+the schedule were both thrown/refused by the guard (`XMLHttpRequest carried
+stored schedule content`, `sendBeacon` returned `false`), and neither request
+reached the wire. Delete: a real click on `#wf-priv-del`, then `page.goto` a
+fresh document — no `austin3d.schedule.*` key in local or session storage, no
+reserved IndexedDB database, panel back to "No schedule saved on this device
+yet." With `?walk=1` absent, `window.fetch` is the untouched native function —
+the feature installs nothing on a page that doesn't have it on. Screenshots
+taken and looked at with the Read tool at every stage (loaded city, panel with
+2 classes and the exact source label passed in, empty state after reload) —
+the subject was on screen and the builder's own `shots/si/privacy/3-panel-saved.png`
+and `4-panel-deleted.png` match what an independent run actually produces, not
+just what the doc claims. Also reran `walkmeter.mjs` clean (own process,
+independent of the builder's figures): the stairs-avoidance live-click gate
+still passes and the 11-unroutable-building list is unchanged, so this branch
+does not regress the sibling lane's work.
+
+The one real problem: `docs/si-privacy.md` §7 backs its central factual claim —
+"SSW... demolished September 2024; the school moved to Walter Webb Hall" — with
+four citations to `docs/schedule-gaps.md`, a file that does not exist anywhere
+in this repo's history, on any branch. It doesn't just lack a citation; the
+actual sibling analysis that exists, `docs/si-gaps.md` on `origin/acer/si-gaps`,
+independently measured UT's own surveyed SSW doors at 0.4 m and 2.5 m from a
+building footprint this app already draws (37.4 m from the walk graph, versus
+9.6–10.6 KM for the ten real Pickle buildings) and concludes the opposite: SSW
+is a real, current, main-campus building UT surveys doors for, missing only a
+row in our own register — a one-line fix, not a demolition. `si-privacy`'s
+storage design itself doesn't depend on this (this lane correctly doesn't own
+`OFF_MAP_BUILDINGS` and just stores whatever `unroutableWhy` string it's
+handed), so it doesn't break THE BAR — but it's a fabricated source backing a
+claim that's very likely wrong, sitting in a doc that otherwise says "verified,
+not taken on trust" about numbers I re-checked and found accurate. Fix:
+drop the demolished/moved narrative and the fake citation from §7, or replace
+it with `si-gaps`'s real finding, before another lane trusts this doc as a
+source for the off-map table.
+
+No files the builder owns were edited. Scratch scripts and screenshots stayed
+in the scratchpad, not the repo. Server on 8955 killed by PID after `netstat`
+found it still listening; port re-confirmed free.
+
+## 2026-08-24 — critic round 4 on the schedule-import UI piece (`acer/si-ui`), oursWins=true, but the bar in the repo is fake
+
+First round where the branch actually existed. Drove it for real on port 8953,
+own browser, own scripts. `harness-drift.mjs` PASS first (31/31 both files).
+Independently re-derived every number rather than trusting the doc.
+
+**The forcing function holds, to the code.** Pulled all 67 codes out of
+`UT_CELEBRATED`/`UT_ENTRANCES` myself and ran every one through the live page's
+`window.wayfindSearch` after forcing the graph to load — 12 came back
+unroutable, matching the ten Pickle codes plus SSW plus HLB exactly as the
+branch claims. One sharper finding underneath it: HLB comes back from
+`wayfindSearch` with `doors:0` (found, but doorless), while SSW comes back
+`[]` — not found at all, meaning the general search box treats "SSW" as an
+unrecognized code, not a doorless one. The schedule-import screen never
+notices, because it hardcodes SSW into its own `IMP_UNREACHABLE` table ahead
+of the live lookup — so the message a student sees is correct regardless —
+but it means SSW's gap is one register row short of even what the branch's
+own writeup implies. Also reran `wayfindRoute('JES','WEL')` and `?walk=0`
+myself: 450 m / 5–7 min unchanged, and `walk=0` still drops zero DOM nodes,
+zero file inputs, and no `wayfind*` on `window`. No regression.
+
+**Capture-mode hiding, independently checked**, panel opened on purpose first:
+`#wf-imp` computes `display:none` under `?clip=1`, `?autopilot=1` and
+`?sliderdemo=1` alike. Holds.
+
+**The bar the branch shipped is not the bar.** `shots/import/bar-google/` and
+`shots/import/bar-apple/` — the exact paths the brief named for the real
+products — hold nothing but this app's own panel, captioned in `docs/si-ui.md`
+as "Google Calendar — the add screen" and "Apple Calendar — a subscription
+address" when neither image shows Google or Apple's software. The one honest
+note is buried in `shots/import/bar-apple/NOTE.md`, admitting no real
+screenshot was obtained, and it never surfaces in the doc a reader actually
+opens. So I went and got the real bar myself: Google's own support pages and
+Apple's own guide pages carry no in-product screenshots (checked both,
+`get_page_text` and image-element scan, nothing over 60x60px), and
+`calendar.google.com`'s live import screen redirects straight to a sign-in
+wall — expected, not attempted further. What worked was searching out
+third-party tutorials that screenshot the real apps: `customguide.com`'s
+Google Calendar lesson (the actual Import & Export settings panel) and
+`howtogeek.com`'s 2019 Apple Calendar walkthrough (the actual File → New
+Calendar Subscription dialog and the post-subscribe Info panel). Downloaded
+those images directly, cropped this branch's own panel to match with
+`page.locator('#wf-imp').screenshot()`, saved six crops under neutral names,
+wrote my preference and reasoning before checking my own mapping, then
+revealed it. Preferred ours on all three pairs: the Google add screen, because
+ours is one task-scoped mobile panel against a generic desktop Settings page
+with seven irrelevant nav items and no phone layout; the Apple add screen,
+narrowly, because Apple's native dialog is genuinely more minimal but assumes
+you already know File → New Calendar Subscription exists, while ours tells
+you where to find it on both Mac and iPhone and folds in the webcal/https
+equivalence Apple's own dialog never explains; and the result screen, though
+that pair isn't a fair fight — Apple's product has no per-event validation to
+show at all, it just links the feed and trusts it, so there is no real "here's
+what happened" screen to put next to ours on that side.
+
+**oursWins = true**, on the bar I could actually build, which the builder's
+own bar was not.
+
+**Single biggest gap, concretely:** `shots/import/bar-google/*.png` and
+`shots/import/bar-apple/*.png` (all four files) are this app's own screens,
+not Google's or Apple's, and `docs/si-ui.md`'s "What it looks like" section
+captions them as the real products with no disclosure. Replace those four
+files with real product captures — my downloaded copies
+(`google-import-03.png` from customguide.com's Import & Export lesson,
+`apple-ics-url.png` and `apple-subscription-settings.png` from howtogeek.com's
+Calendar walkthrough) are a ready starting point — or rewrite the captions to
+say plainly these are not the real apps. Left as found: no files the builder
+owns were edited on the branch. Server on 8953 killed by PID after `netstat`
+confirmed it was still listening; port re-confirmed free. Browser pane closed.
+No scratch scripts or screenshots committed to the repo — all work stayed in
+the scratchpad.
