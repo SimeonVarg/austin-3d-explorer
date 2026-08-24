@@ -190,3 +190,50 @@ the new switch off reproduced the old file byte for byte, so the whole change is
 that one switch. Full method, the two rejected explanations, and what is left
 for the door and graph lanes: `docs/walk-sidewalks.md` §12–§16. `WAYFIND.on`
 untouched.
+
+## 2026-08-24 — acer/w-sidewalks, round 4: the other half of the question, and 5.75 km of sidewalk nobody can walk on
+
+Three rounds of this lane all answered "is there paint under the walking line",
+and that is now 99 %. But the thing this lane is supposed to prove has two
+halves, and nobody had ever measured the second one: **how much of a route runs
+along a real sidewalk that actually exists in the map, and how much is a line
+this project drew itself.** So that got built, and it comes out at **98.5 % real
+on this lane's twenty test walks and 97.5 % on the twenty the baseline froze for
+everybody** — and every single invented metre, in all forty walks, is the short
+dashed hop between a door and the nearest path. **Not one metre of the routed
+part is made up.** The instrument was checked three ways before any of that was
+believed, including running it against the old router, where it correctly
+reports two and a half times as much invented line.
+
+The obvious next move was to lean harder on the door-link penalty, and it was
+measured and **rejected**: the absolute best case removes 18 more metres of
+invented line and costs 223 metres of extra walking, and on the harder fixture
+it makes every route 11 % longer. Simeon's own complaint is that routes take you
+farther than you have to go, so that trade is the wrong way round.
+
+Then the more interesting question — his actual sentence, *"so many sidewalks
+are not being utilized properly"* — got a number for the first time. Walking all
+**161 km** of surveyed campus footway instead of just the test routes:
+**5.75 km of sidewalk is painted in the city, is in the walking graph, and the
+router can never use it**, because it sits on a piece of network disconnected
+from everything else. Confirmed two independent ways. Fourteen places; the worst
+one in the middle of campus is **321 m of pavement 45 m from the UT Tower**, and
+**175 m of it is two metres from the network it should be joined to**. That is
+not this lane's file to fix — `scripts/bake_walk.py` owns the joining — so it is
+written up with coordinates and the exact gap widths as a request, not a change.
+The mirror-image question, "is any sidewalk the router uses missing paint", came
+back at **54 m across the whole campus** once the crossings-over-streets (which
+are deliberately never painted) are separated out. The ground file is done.
+
+Finally, the picture. Every frame this lane has ever taken was from straight
+overhead, which is the one angle that cannot see whether the walking ribbon is
+lying on the pavement or hovering over it — the exact defect round 2 fixed. So
+these are taken standing on the route at eye level:
+`shots/walk/sidewalks/eye-mainmall.png` on the Main Mall looking at the Tower,
+`eye-eastmall.png` outside Jester, `eye-speedway.png` by the geology building.
+Next to each is the same camera with the route switched off, so you can see
+exactly which pixels are the ribbon, and one with the ribbon deliberately raised
+a metre — where it turns into a kerb-height wall you cannot miss. The camera can
+see the mistake; the shipped ribbon does not have it. No pixel of the city
+changed this round and `js/wayfind.js` was not touched. Method and every number:
+`docs/walk-sidewalks.md` §17–§21. `WAYFIND.on` untouched.

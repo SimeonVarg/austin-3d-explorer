@@ -913,3 +913,375 @@ this lane's**:
   `PCL>UNB` still walks 1,058 m for a 449 m straight line. Painting the hem makes
   that detour *look* correct, which is precisely why the detour ratio and not the
   pavement percentage is the number to watch there.
+
+---
+
+# Round 4 — the provenance half of the goal, and the sidewalks that are switched off
+
+Rounds 1–3 all measured the same thing: *is there paint under the ribbon.* That
+number is 99.03 % and pushing it further is now a matter of tenths. But the goal
+this lane is judged on has **two** halves, and the other one had never been
+measured at all:
+
+> how much of each route lies on **an actual footway feature versus invented
+> edges** — measured as a percentage **per route** across the twenty pairs
+
+Paint and provenance are not the same question, and they disagree in both
+directions. A metre can be over beautiful concrete and still be a line this
+project made up — a door link across a plaza is exactly that. A metre can be over
+bare ground and still be a surveyed OSM footway nobody has drawn paint for. So
+round 4 builds the second meter, runs the controls that decide whether to believe
+it, and then goes after what it exposes.
+
+Nothing rounds 1–3 built was rewritten. **`js/wayfind.js` is untouched** — four
+sibling lanes are in it. `WAYFIND.on` untouched. Everything added to
+`scripts/bake_ground.py` this round is audit-only, and that is checked rather
+than asserted: re-running `python scripts/bake_ground.py` on this branch
+reproduces both **`data/ground.geojson`** (SHA-256 `ac152d1a…d090b5`) and
+**`data/roads.geojson`** (`b5b454af…503cf8`) byte for byte. **This round changes
+no pixel of the city.** **[M]**
+
+## 17. `--walkaudit --prov` — a real OSM way, or a line we invented
+
+`python scripts/bake_ground.py --walkaudit --prov`
+
+**How it can know.** `scripts/bake_walk.py`'s `build_raw()` ingests every way in
+`data/osm_cache/footways.json` and emits one graph edge per consecutive OSM
+**node pair**; `road_access()` does the same for the walkable classes of
+`data/osm_cache/roads.json`. So every honest graph edge is either a whole OSM
+segment or — after the bake's 578 anchor splits — a sub-piece of one, and either
+way it lies exactly on that way's polyline. `--prov` indexes all **56,025** OSM
+way segments, walks the drawn ribbon at 1 m, and asks whether some OSM segment
+running the **same way** (within `WALKAUDIT_PROV_BEARING_DEG` = 20°) passes
+within `WALKAUDIT_PROV_TOL_M` = 0.30 m. The bearing gate is what makes the answer
+mean anything: without it an invented straight line gets credited the instant it
+*touches* a sidewalk it is merely crossing.
+
+**The twenty pairs, per route [M]:**
+
+```
+  pair                    drawn m | footway   road | INVENT m INVENT %
+  JES>GDC                     472 |   99.2%   0.0% |      4.0     0.8%
+  JES>WEL                     525 |   99.9%   0.0% |      0.7     0.1%
+  PCL>RLP                     518 |   99.9%   0.0% |      0.6     0.1%
+  GRE>MAI                     578 |   99.8%   0.0% |      0.9     0.2%
+  BUR>CBA                     735 |   96.8%   0.0% |     23.3     3.2%
+  STD>MAI                    1003 |   99.9%   0.0% |      0.9     0.1%
+  21 Rio>WEL                 1015 |   99.6%   0.0% |      3.6     0.4%
+  The Castilian>GDC           700 |   99.2%   0.0% |      5.9     0.8%
+  PCL>JES                     157 |   99.6%   0.0% |      0.6     0.4%
+  GDC>BIO                     406 |   86.2%   8.5% |     21.4     5.3%
+  WEL>TSG                     646 |   94.5%   5.5% |      0.4     0.1%
+  GDC>DMC                     806 |   96.6%   0.0% |     27.6     3.4%
+  GRE>MNC                     993 |   99.9%   0.0% |      0.6     0.1%
+  GRE>NEZ                     710 |   98.3%   0.0% |     12.0     1.7%
+  GRE>TCP                     529 |   99.0%   0.0% |      5.1     1.0%
+  GRE>AF2                    1511 |   99.7%   0.0% |      4.8     0.3%
+  JES>BMS                     234 |   99.4%   0.0% |      1.3     0.6%
+  JES>BMK                     215 |   99.1%   0.0% |      1.9     0.9%
+  JES>MCA                     880 |   99.9%   0.0% |      1.2     0.1%
+  GDC>PCL                     465 |   99.1%   0.0% |      4.0     0.9%
+
+  ALL, weighted             13097 |   98.5%   0.5% |    120.5     0.9%
+```
+
+| the number the goal is phrased in | own twenty | house twenty |
+|---|---:|---:|
+| **on a real OSM footway feature**, weighted | **98.55 %** | **97.46 %** |
+| on any real OSM way (footway or walkable road) | 99.08 % | 97.83 % |
+| **mean per-route footway share** | **98.29 %** | **95.53 %** |
+| invented | 0.92 % (121 m) | 2.17 % (205 m) |
+| …of which door legs | **121 m** | **205 m** |
+| …of which **inside the graph** | **0 m** | **0 m** |
+| routes at or above 95 % real | **19 of 20** | 14 of 20 |
+| worst route | GDC>BIO, 5.3 % | WAG>GAR, 24.4 % |
+
+**Every invented metre in all forty routes is a door leg. Not one metre of the
+routed graph itself is a line this project made up.** That is a measurement, not
+a design claim — the meter was never told what a door leg is.
+
+The house fixture is the harsher of the two and it should be: `walk-pairs.json`
+was frozen by the baseline lane precisely because it contains the wrong-door
+cases. It is the number to quote against the other four lanes.
+
+### 17.1 Three controls, because a meter that says "yes" to everything says nothing
+
+**(a) It rediscovers the door legs independently, to the metre.** Summing the
+drawn door legs straight off `data/walk_graph.json` — the two dashed legs of each
+of the twenty routes, no provenance test anywhere in it — gives **126.7 m**. Run
+the meter at the graph quantiser's own resolution (0.10 m) and it marks
+**126.6 m** invented. It finds exactly the lines we already knew were invented,
+and nothing else. **[M]**
+
+**(b) Neither threshold is doing the work.** The answer is a plateau, not a
+knife-edge. It only moves below 0.10 m, which is the 1e-6-degree quantiser's own
+0.11 m:
+
+```
+   tol m  bearing    footway %   invented m
+    0.05       20       97.28%        287.5   <- below the quantiser: noise
+    0.10       20       98.50%        126.6
+    0.20       20       98.55%        120.5
+    0.30       20       98.55%        120.5   <- shipped setting
+    0.60       20       98.60%        114.2
+    1.20       20       98.61%        112.3
+    0.30        5       98.49%        127.5
+    0.30       45       98.56%        117.6
+    0.30       90       98.59%        113.8
+```
+**[M]** A 24× change in tolerance and an 18× change in the bearing gate move the
+headline by 0.12 of a percentage point.
+
+**(c) It reads the router, not a constant.** Set `WAYFIND.linkCostMult` back to
+1.0 — what `main` ships — and the same meter reports **312.8 m** invented on the
+same twenty pairs instead of 120.5. A meter that could not tell those two routers
+apart would be measuring nothing. **[M]**
+
+## 18. The anchor knob is spent, and here is the measurement that says so
+
+Round 1 introduced `LINK_COST_MULT = 4.0` on the argument that a door link is not
+pavement and must not cost what pavement costs. The obvious round-4 move was to
+turn it up. **It was measured on both fixtures and rejected.**
+
+```
+== OWN twenty ==                        == HOUSE twenty ==
+mult   invent m    route         mult   invent m    route
+1.0       312.8   +0.00%          1.0      393.2   +0.00%
+2.0       228.7   +0.13%          2.0      276.7   +0.67%
+4.0       120.5   +1.02%  <-      4.0      204.7   +1.89%  <- shipped
+6.0       120.5   +1.02%          6.0      206.1   +2.19%   (WORSE — see below)
+8.0       120.5   +1.02%          8.0      206.1   +2.19%
+12.0      102.7   +2.74%         12.0      116.7  +11.33%
+inf       102.7   +2.75%          inf      116.7  +11.34%
+```
+**[M]**
+
+Three things fall out and all three say leave it at 4.0.
+
+* **The absolute floor is 102.7 m** — that is "always take the nearest anchor,
+  whatever it costs". The most left to win on the own twenty is 17.8 m of
+  invented line and it costs 223 m of extra walking: **12.5 metres of real detour
+  per metre of invented line removed.**
+* On the house twenty the stiffer setting buys more (204.7 → 116.7 m) but costs
+  **+11.33 % route length**, 873 m over twenty trips. The brief this feature
+  exists to answer opens *"many routes if not most take you to a farther entrance
+  than you have to go"*. Making every route 11 % longer to improve a provenance
+  statistic is the wrong answer to that sentence — and a student would see the
+  detour, where 88 m of dashed line spread over twenty trips they would not.
+* **The knob is not monotone.** 6.0 is *worse* than 4.0 on the house twenty
+  (206.1 vs 204.7 m). A stiffer link penalty can push the router onto a different
+  **door**, whose own link is longer. Anyone tuning this again should know that
+  before they assume the curve only goes one way.
+
+`LINK_COST_MULT` stays 4.0, and it now has a two-fixture curve behind it instead
+of one.
+
+## 19. `--walkaudit --coverage` — and now the sidewalks themselves
+
+`--prov` walks the route and grades the ground it visits. It can read 98.55 %
+while the router quietly ignores half the sidewalks on campus, because a route
+can only ever be graded on the ground it actually goes to. The brief's real
+sentence runs the other way:
+
+> *"so many sidewalks are not being utilized properly… at least make sure
+> existing sidewalks are identified properly and used to the advantage"*
+
+`python scripts/bake_ground.py --walkaudit --coverage` answers it by walking the
+**sidewalks** rather than the routes — all 160.78 km of surveyed campus footway —
+and asking of every metre whether this scene paints it and whether the router can
+reach it at all.
+
+```
+  160.78 km of surveyed footway in data/osm_cache/footways.json
+
+                                                    km   share
+  painted in this scene                         159.58   99.2%
+  in the walking graph at all                   160.78  100.0%
+  ROUTABLE (graph, main component)              155.02   96.4%
+
+  PAINTED BUT NOT ROUTABLE                        5.75    3.6%
+     ...of which in the graph but off-main        5.75    3.6%
+     ...of which not in the graph at all          0.00    0.0%
+  ROUTABLE BUT NOT PAINTED                        1.19    0.7%
+```
+**[M]**
+
+**The bake drops nothing.** 100.0 % of surveyed footway is in the graph, so the
+suspicion that sidewalks are being *lost on import* is dead. And **0.00 km** of
+the unroutable kilometres is missing from the graph. Every one of them is in it
+and switched off.
+
+**5.75 km of campus sidewalk is painted, surveyed, in the graph, and
+unreachable.** A student can see it in the 3D city and the router will never send
+them down it. That is the brief's sentence, in kilometres.
+
+### 19.1 Verified twice, because it is the round's headline
+
+1. **`F_OFFMAIN` is exactly "not in the largest component".** Recomputing the
+   components from the raw edge list and comparing against the flag byte:
+   **12,231 edges agree, 0 disagree**, 5.76 km either way. The flag is not
+   mislabelling anything — the sidewalk really is disconnected. **[M]**
+2. **The app's own Dijkstra agrees.** Routing from GDC's doors with the app's own
+   cost model, the nearest graph node to the Tower cluster sits **5 m** from that
+   cluster's centroid and is **not reached at all**. Same for the West Campus and
+   Jester West clusters. **[M]**
+
+### 19.2 Where it is — 14 places, and one of them is 45 m from the Tower
+
+```
+  DEAD SIDEWALK — painted, surveyed, and unroutable — 14 places over 60 m, 5.44 km
+       2558 m  -97.74950,30.29307   nearest door: The Nine at West Campus (236 m)
+        588 m  -97.72713,30.27652   nearest door: East Campus Garage (283 m)
+        424 m  -97.72667,30.28125   nearest door: East Campus Garage (192 m)
+        413 m  -97.73724,30.29338   nearest door: University Sign Shop (120 m)
+        332 m  -97.75131,30.27994   nearest door: Crest at Pearl (581 m)
+        321 m  -97.73971,30.28668   nearest door: UT Tower (45 m)
+        181 m  -97.73990,30.29456   nearest door: Scottish Rite Dormitory (213 m)
+        118 m  -97.75219,30.29352   nearest door: The Nine at West Campus (405 m)
+        107 m  -97.74089,30.28977   nearest door: Belo Center for New Media (38 m)
+         97 m  -97.73683,30.28192   nearest door: Jester West Hall (30 m)
+```
+**[M]**
+
+The 2.5 km block sits at the north-west corner of the fetched area and is a
+boundary artefact — its network continues outside the bbox and was never
+downloaded. The rows that matter are the small ones in the middle of campus.
+
+### 19.3 How wide is the gap? Mostly one stride
+
+For every off-main component of 40 m or more, the shortest distance from any of
+its nodes to any node of the main network:
+
+```
+  <=  3 m:  1 component,   175 m of sidewalk
+  <=  5 m:  4 components,  987 m
+  <=  8 m:  6 components, 1215 m
+  <= 12 m:  9 components, 1491 m
+  <= 20 m: 13 components, 4345 m
+  total off-main (components >= 40 m): 5359 m in 19 components
+```
+**[M]**
+
+**175 m of painted sidewalk beside the UT Tower is 2.0 metres from the walking
+network** — closest approach at `-97.73929, 30.28705`. Two metres.
+`scripts/bake_walk.py` already owns the machinery: its own report prints
+`snap_candidates 61, snap_accepted 6, snap_rejected_layer 4` against a cap of
+`SNAP_MAX_ACCEPTED = 80`. Fifty-one candidates were rejected for something other
+than layer, and the cap was never close to binding.
+
+**This is not this lane's file to write** (CLAUDE.md rule 1: a lane may read any
+file and may only write its own). §21 states it as a request instead of making it.
+
+### 19.4 The other cell, which IS this lane's file: 54 m, and the rest is crossings
+
+The mirror-image cell — routable but unpainted — is `data/ground.geojson`'s own
+number, so it is graded at a **10 m** grain rather than the 60 m used above, on
+purpose: "nothing to find" has to be a measurement and not a threshold that hid
+something. It comes to **1.19 km, 41 places over 10 m, none longer than 54 m.**
+
+Then it was broken down rather than shrugged at:
+
+```
+  by OSM highway tag              what is actually under those metres
+  footway     1020 m              NOTHING AT ALL      1080 m
+  cycleway     121 m              area/lawn             75 m
+  pedestrian    51 m              area/construction     13 m
+  path           3 m              area/park             12 m
+                                  area/wood + other      9 m
+```
+**[M]**
+
+**1,140 of the 1,194 metres are tagged `footway=crossing` or
+`cycleway=crossing`** — the middles of crossings, i.e. the part **over the
+street** that this bake deliberately never draws. §2 is explicit about it:
+`CROSSING_APRON_M` paints the first and last 2.5 m of each crossing "so the part
+over the street is still never drawn". The tarmac under those metres is in
+`data/roads.geojson`, which draws roads as styled **lines**, and this audit
+samples **polygons** — so it cannot see them and scores them bare. That is an
+instrument limit, disclosed here rather than quietly excluded, and it is *not* a
+hole in the ground file.
+
+Which leaves **54 metres** of non-crossing footway with nothing painted under it,
+across 160.78 km of campus. After three rounds of kerb aprons, mall slabs and
+mall rims there is no remaining hole in `data/ground.geojson` under the walking
+network worth a pass.
+
+## 20. The picture: the ribbon at walking height, and the control that proves it
+
+Every frame this lane has taken across three rounds has been near-nadir, and
+nadir is the one angle that **cannot** answer the question it was taken to
+answer. `js/wayfind.js`'s own comment records why: the first ribbon was coplanar
+with the pavement and it *"appeared from altitude (1,064 px, up from 9) and was
+still invisible at walking height, because at eye level you are looking along a
+coplanar pair and the pavement wins."* Whether a ribbon **sits on** the pavement
+is a side-view question. So round 4 stands the camera on the route.
+
+Pose: `?intro=0&drift=0&walk=1`, `cancelGraphicsAutoDetect()` called, veil waited
+out, tiles waited on, **screenshot twice and the second kept**. Pitch 78°, zoom
+20.0, map centre `LOOK_AHEAD_M` = 28 m further along the route so the camera
+itself stands on it, bearing along the walk. Tree crowns are hidden for these
+three frames — they sit at exactly eye height over these malls and render
+slightly differently run to run, and the question here is what the ribbon is
+lying on.
+
+**Three frames per pose, one camera:**
+
+| frame | what it is for |
+|---|---|
+| `eye-mainmall.png`, `eye-eastmall.png`, `eye-speedway.png` | this branch as it ships |
+| `eye-mainmall-noroute.png` | `wayfindClear()` at the identical camera. Every pixel that differs from the shipping frame **is** the ribbon. |
+| `eye-mainmall-float.png`, `eye-eastmall-float.png` | the same route with `routeBaseM` raised to `FLOAT_TEST_M` = 0.95 m — what a ribbon that does **not** sit on the pavement looks like from this exact camera |
+
+```
+eye-mainmall  GRE>MAI  pill 580 m   ribbon owns 29,567 px (2.89 % of frame)   a 0.95 m float moves 23,338 px
+eye-eastmall  PCL>JES  pill 160 m   ribbon owns 30,695 px (3.00 %)            a 0.95 m float moves 22,610 px
+eye-speedway  PCL>RLP  pill 520 m   ribbon owns 32,532 px (3.18 %)            a 0.95 m float moves 20,039 px
+```
+**[M]** The three pills read 580 / 160 / 520 m against the audit's 578 / 157 /
+518 m for the same three pairs, so the frames are of the routes the numbers
+describe.
+
+**Why the float frame is the whole point.** In `eye-mainmall.png` the ribbon is a
+flat painted strip lying on the concrete band beside the brick of the Main Mall.
+In `eye-mainmall-float.png`, at the identical camera, the same ribbon is a
+kerb-height wall with a visible side face standing clear of the paving. **The
+camera can see height error, and the shipping ribbon shows none.** Without that
+control "it sits on the pavement" would be an assertion about a picture rather
+than a measurement of one.
+
+### 20.1 An instrument correction the earlier rounds' method needs
+
+Rounds 1–3 proved "the subject is on screen" by counting the ribbon features
+`queryRenderedFeatures` reports in the viewport. **At nadir that works. At pitch
+78 it does not.** In all three frames above `queryRenderedFeatures` returned
+**0** ribbon features while the ribbon demonstrably owned about 30,000 pixels.
+For a `fill-extrusion` under a steep pitch the feature count is not a valid
+on-screen test; the clear-and-diff pixel count is. Nothing already published is
+wrong — every frame that method was used on was near-nadir — but
+`shots/walk/sidewalks/README.md` would have carried it into a false negative the
+first time somebody pointed the camera at eye level, so it is written down there
+too.
+
+## 21. What is left, and whose it is
+
+The §16 list stands, and round 4 adds the biggest item on it.
+
+* **NEW, and the largest single thing left in this feature: 5.75 km of painted,
+  surveyed campus sidewalk is unroutable, and 175 m of it beside the UT Tower is
+  2.0 m from the network.** `scripts/bake_walk.py`'s snapping owns it —
+  `snap_candidates 61 / snap_accepted 6` against a cap of 80 that never binds.
+  **Request to that lane:** find out why 51 of 61 candidates are rejected, then
+  re-measure with `python scripts/bake_ground.py --walkaudit --coverage`, which
+  prints the kilometres and names the places. A rule that closed gaps up to ~3 m
+  would reconnect 175 m; up to ~5 m, 987 m; up to ~12 m, 1.49 km. Anything wider
+  starts inventing, and this lane's entire argument is against that.
+* **All 121 m of invented line on the own twenty and all 205 m on the house
+  twenty is door legs** — `w-door`'s ground, and unchanged by this round, which
+  is the right outcome. `WAG>GAR` at 24.4 % invented is the worst route in either
+  fixture and it is entirely a door problem.
+* **`GDC>BIO`, the worst route on this lane's own fixture at 5.3 % invented,
+  cannot be improved by any anchor policy.** BIO's door 287 has exactly two
+  anchors and both are 17.8 m away; there is no shorter one to prefer. That is a
+  door-placement question in the bake, not a routing one.
+* §10's per-feature ribbon base (17 m of ribbon riding a `roadarea`) and §6's
+  plaza interiors are unchanged and still not this lane's files.

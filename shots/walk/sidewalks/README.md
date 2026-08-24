@@ -94,3 +94,50 @@ subject cannot be off screen. Ribbon features actually rasterised: 29 in the
 shooting the identical poses twice off the identical file changed **0 pixels**
 on five of six frames (0.03 % on the city frame), which is why the before/after
 diffs can be believed.
+
+## `eye-` — the ribbon from WALKING HEIGHT (round 4, 2026-08-24)
+
+Taken on port 8812, `?intro=0&drift=0&walk=1`, `cancelGraphicsAutoDetect()`
+called, veil waited out, tiles waited on, screenshot twice and the second kept.
+Full method and every number: `docs/walk-sidewalks.md` §20.
+
+Every frame above this section is near-nadir, and nadir is the one angle that
+cannot see whether the ribbon SITS on the pavement or floats over it —
+`js/wayfind.js`'s own comment records a coplanar ribbon that was "invisible at
+walking height". These are pitch 78°, zoom 20.0, camera standing on the route
+with the map centre 28 m further along it. Tree crowns hidden: they sit at eye
+height over these malls and render slightly differently run to run.
+
+| frame | what it is |
+|---|---|
+| `eye-mainmall` | Main Mall beside Waggener, looking at the Tower. GRE → MAI, pill 580 m. **The pair to look at.** |
+| `eye-mainmall-noroute` | the identical camera with `wayfindClear()`. Every pixel that differs from `eye-mainmall` IS the ribbon. |
+| `eye-mainmall-float` | the identical camera with `WAYFIND.routeBaseM` = 0.95 m. This is what a ribbon that does NOT sit on the pavement looks like — a kerb-height wall with a side face. |
+| `eye-eastmall` / `-float` | the East Mall outside Jester. PCL → JES, pill 160 m. |
+| `eye-speedway` | Speedway beside the Jackson Geological Sciences steps. PCL → RLP, pill 520 m. |
+
+```
+eye-mainmall  ribbon owns 29,567 px (2.89 % of frame)   a 0.95 m float moves 23,338 px
+eye-eastmall  ribbon owns 30,695 px (3.00 %)            a 0.95 m float moves 22,610 px
+eye-speedway  ribbon owns 32,532 px (3.18 %)            a 0.95 m float moves 20,039 px
+```
+
+The pills read 580 / 160 / 520 m against `bake_ground.py --walkaudit`'s 578 /
+157 / 518 m for the same three pairs.
+
+`eyeshot.mjs` in this directory is the script that took them. It is here rather
+than in `scripts/verify/` because that directory is not this lane's to write, and
+round 2 already lost a set of measuring scripts to a session scratchpad; its
+header says how to run it.
+
+### METHOD WARNING for anyone taking the next frame here
+
+The `-x1`/`-x4` and `aprons-`/`malls-` sections above prove "the subject is on
+screen" by counting the ribbon features `queryRenderedFeatures` reports. **That
+works at nadir and FAILS at eye level.** In all three `eye-` frames
+`queryRenderedFeatures` returned **0** ribbon features while the ribbon
+demonstrably owned ~30,000 pixels — a `fill-extrusion` under a steep pitch is not
+reliably reported. Use the clear-and-diff pixel count instead: screenshot, call
+`wayfindClear()`, screenshot again at the same camera, and count differing
+pixels. Nothing already published here is wrong; every frame that used the
+feature count was near-nadir.
