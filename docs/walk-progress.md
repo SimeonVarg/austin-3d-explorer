@@ -2553,3 +2553,75 @@ source for the off-map table.
 No files the builder owns were edited. Scratch scripts and screenshots stayed
 in the scratchpad, not the repo. Server on 8955 killed by PID after `netstat`
 found it still listening; port re-confirmed free.
+
+## 2026-08-24 — critic round 4 on the schedule-import UI piece (`acer/si-ui`), oursWins=true, but the bar in the repo is fake
+
+First round where the branch actually existed. Drove it for real on port 8953,
+own browser, own scripts. `harness-drift.mjs` PASS first (31/31 both files).
+Independently re-derived every number rather than trusting the doc.
+
+**The forcing function holds, to the code.** Pulled all 67 codes out of
+`UT_CELEBRATED`/`UT_ENTRANCES` myself and ran every one through the live page's
+`window.wayfindSearch` after forcing the graph to load — 12 came back
+unroutable, matching the ten Pickle codes plus SSW plus HLB exactly as the
+branch claims. One sharper finding underneath it: HLB comes back from
+`wayfindSearch` with `doors:0` (found, but doorless), while SSW comes back
+`[]` — not found at all, meaning the general search box treats "SSW" as an
+unrecognized code, not a doorless one. The schedule-import screen never
+notices, because it hardcodes SSW into its own `IMP_UNREACHABLE` table ahead
+of the live lookup — so the message a student sees is correct regardless —
+but it means SSW's gap is one register row short of even what the branch's
+own writeup implies. Also reran `wayfindRoute('JES','WEL')` and `?walk=0`
+myself: 450 m / 5–7 min unchanged, and `walk=0` still drops zero DOM nodes,
+zero file inputs, and no `wayfind*` on `window`. No regression.
+
+**Capture-mode hiding, independently checked**, panel opened on purpose first:
+`#wf-imp` computes `display:none` under `?clip=1`, `?autopilot=1` and
+`?sliderdemo=1` alike. Holds.
+
+**The bar the branch shipped is not the bar.** `shots/import/bar-google/` and
+`shots/import/bar-apple/` — the exact paths the brief named for the real
+products — hold nothing but this app's own panel, captioned in `docs/si-ui.md`
+as "Google Calendar — the add screen" and "Apple Calendar — a subscription
+address" when neither image shows Google or Apple's software. The one honest
+note is buried in `shots/import/bar-apple/NOTE.md`, admitting no real
+screenshot was obtained, and it never surfaces in the doc a reader actually
+opens. So I went and got the real bar myself: Google's own support pages and
+Apple's own guide pages carry no in-product screenshots (checked both,
+`get_page_text` and image-element scan, nothing over 60x60px), and
+`calendar.google.com`'s live import screen redirects straight to a sign-in
+wall — expected, not attempted further. What worked was searching out
+third-party tutorials that screenshot the real apps: `customguide.com`'s
+Google Calendar lesson (the actual Import & Export settings panel) and
+`howtogeek.com`'s 2019 Apple Calendar walkthrough (the actual File → New
+Calendar Subscription dialog and the post-subscribe Info panel). Downloaded
+those images directly, cropped this branch's own panel to match with
+`page.locator('#wf-imp').screenshot()`, saved six crops under neutral names,
+wrote my preference and reasoning before checking my own mapping, then
+revealed it. Preferred ours on all three pairs: the Google add screen, because
+ours is one task-scoped mobile panel against a generic desktop Settings page
+with seven irrelevant nav items and no phone layout; the Apple add screen,
+narrowly, because Apple's native dialog is genuinely more minimal but assumes
+you already know File → New Calendar Subscription exists, while ours tells
+you where to find it on both Mac and iPhone and folds in the webcal/https
+equivalence Apple's own dialog never explains; and the result screen, though
+that pair isn't a fair fight — Apple's product has no per-event validation to
+show at all, it just links the feed and trusts it, so there is no real "here's
+what happened" screen to put next to ours on that side.
+
+**oursWins = true**, on the bar I could actually build, which the builder's
+own bar was not.
+
+**Single biggest gap, concretely:** `shots/import/bar-google/*.png` and
+`shots/import/bar-apple/*.png` (all four files) are this app's own screens,
+not Google's or Apple's, and `docs/si-ui.md`'s "What it looks like" section
+captions them as the real products with no disclosure. Replace those four
+files with real product captures — my downloaded copies
+(`google-import-03.png` from customguide.com's Import & Export lesson,
+`apple-ics-url.png` and `apple-subscription-settings.png` from howtogeek.com's
+Calendar walkthrough) are a ready starting point — or rewrite the captions to
+say plainly these are not the real apps. Left as found: no files the builder
+owns were edited on the branch. Server on 8953 killed by PID after `netstat`
+confirmed it was still listening; port re-confirmed free. Browser pane closed.
+No scratch scripts or screenshots committed to the repo — all work stayed in
+the scratchpad.
