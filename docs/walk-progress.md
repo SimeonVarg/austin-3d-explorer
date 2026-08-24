@@ -422,3 +422,62 @@ staying invisible in all three capture modes. Frames:
 `r6-summary.jpg`, `r6-walk.jpg`, `r6-walk-approach.jpg`. Full writeup in
 `docs/walk-ui.md` §35–40. Branch `acer/w-ui`, port 8815, server killed and port
 confirmed free, no scratch scripts left in `scripts/verify`.
+
+## 2026-08-24 — the walk bar reads as one journey again (`acer/w-ui`, round 7)
+
+No critic came back this round, so I put our two frames side by side with real
+Citymapper ones and judged them myself, at phone size.
+
+**The one thing they have that we don't, we are not allowed to have — and that
+is the right call.** Every Citymapper frame carries an arrival time: "Arrive
+14:38" on the pre-walk sheet, "19 min / 14:38" while you walk. For a student
+between classes that is the whole question. I was about to build it, and then
+found this project's own honesty audit says in writing that we may never print
+an arrival clock, because our minutes are a guess about somebody else's legs and
+a clock turns a guess into a promise. So the gap stays open on purpose, and it
+is now written down so the next round doesn't spend an afternoon rediscovering
+it. The honest version of that answer is already on our bar and I think it is
+better than a clock: "Longer than a 10-minute passing period."
+
+**What was actually broken was ours, and we did it to ourselves.** Round 4 put a
+little tick beside the building you start from and a little ring beside the one
+you're going to, so the answer would read as one journey with a line between
+them. Round 5 then deleted that line on every route with nothing on it — which
+is most short walks — and nobody looked at what was left. What was left was two
+stray marks two rows apart, with the middle of the bar set to a different left
+edge, and the tick and the ring not even lined up with each other. It looked
+like four unrelated lines of text.
+
+The bar now has a spine: one hairline down the left, from the start mark to the
+door mark, with everything about the walk sitting inside it. No new row, no new
+word, nothing new claimed — just the two marks we already drew, joined. Before
+and after: `shots/walk/ui/r7-bar-before-after.jpg`.
+
+**And one thing on the walking bar was still dressed as a button that isn't
+one.** "and then left" — the turn after your next turn — wore an amber disc in
+the same row as two real buttons. Last round's rule was that only "Walk it"
+gets a fill, and last round's test checked three buttons by name, so it could
+not see this. It is a plain grey glyph now, and the test was rewritten to sweep
+every element on the bar instead of a list somebody has to remember to update.
+`shots/walk/ui/r7-walkbar-before-after.jpg`.
+
+**Twenty-two checks, all green**, including the four the brief asked me to
+re-confirm (the arrow agreeing with its words, "Show route" being visible, the
+walk not starting on a line we drew ourselves, and the phone rule a duplicated
+comment had once switched off), and the feature staying invisible in all three
+capture modes. I also ran the same test against the old code first and watched
+four of them go red, so they mean something.
+
+**One thing I measured and did not fix, honestly:** tapping "Walk it" still
+loses the camera roughly one time in five — the app's opening flight lands on
+top of the walk a couple of seconds later and wins. I measured it before my
+change and after, on the same machine, and it is the same on both, so I am not
+claiming it. I did fix the half of it that is ours: the bar could end up showing
+the summary while you were already standing on the pavement, because it stopped
+asking where you were 720 ms after the tap and the camera doesn't settle that
+fast on a busy machine. It keeps asking now.
+
+Frames: `shots/walk/ui/r7-summary.jpg`, `r7-walk.jpg`, `r7-bar-before-after.jpg`,
+`r7-walkbar-before-after.jpg`. Full writeup in `docs/walk-ui.md` §41–46. Branch
+`acer/w-ui`, port 8815, one browser, server killed and the port confirmed free,
+no scratch scripts left in `scripts/verify`. `WAYFIND.on` is still false.

@@ -1584,3 +1584,254 @@ No new string, so `SAY` and `SAY_UI` are unchanged and nothing new is claimed.
 `shots/walk/ui/` — `r6-bar-before-after.jpg`, `r6-walkbar-before-after.jpg`,
 `r6-summary.jpg`, `r6-walk.jpg`, `r6-walk-approach.jpg`. Five frames. Every
 other frame this round stayed in the scratchpad (CLAUDE.md rule 12).
+
+---
+---
+
+# ROUND 7
+
+Same lane, `acer/w-ui`, continued from c06733a. Round 6's critic returned
+nothing at all, so this round is its own critic: the two frames this lane is
+judged on — the pre-walk summary and the during-walk view at 390 x 844 — were
+re-shot on the shipped build and read beside real Citymapper product frames
+(their pre-walk sheet and their during-walk manoeuvre card).
+
+Three things came out of that reading. One of them was a feature Citymapper has
+and we deliberately may not; one was a regression this lane caused itself and
+did not look at; one was a rule round 6 wrote that round 6's own gate could not
+see break.
+
+## 41. The biggest gap against Citymapper is one this project has already ruled out
+
+Every Citymapper frame in the reference set carries an **arrival clock**:
+`Arrive 14:38` anchoring the pre-walk sheet, `19 min / 14:38` in the persistent
+pill while you walk. It is the fact their interface is built around, and for a
+student between classes it is *the* question — not "how long is this" but "am I
+there before it starts". We have nothing like it, and the first plan for this
+round was to add it.
+
+It is forbidden, in writing, by this project's own audit.
+`docs/walk/what-we-can-honestly-say.md` §3, "a range, never a number, and never
+a clock time":
+
+> may not show a single number, may not show seconds, and **may not show an
+> arrival clock time or a "leave by"** — those convert an assumption into a
+> promise, and a promise is the thing that makes someone late.
+
+The reasoning is the same one-sided rule §15 uses for the passing period, and it
+is right: our range is `WALK_SPEED_LOW`..`WALK_SPEED_HIGH` plus a per-signal
+wait, multiplied by somebody else's legs. So the gap stays open **on purpose**,
+and it is written down here rather than rediscovered and re-proposed by round 8.
+The nearest honest thing to an arrival time is already on the bar and is
+arguably better than a clock: `Longer than a 10-minute passing period`, which
+answers the question the clock only implies.
+
+## 42. Round 5 deleted the thing holding the two ends together, and nobody looked at what was left
+
+Round 4 gave the origin line a tick and the destination line a ring, and
+`style.css` says why in the code: *"Identical shapes to `.wf-cap-a` and
+`.wf-cap-b` on the rail — so the origin line, the rail and the destination line
+are visibly one object."* That was true when it was written.
+
+Round 5 then stopped drawing the rail on any route with nothing on it —
+correctly; an empty rail is a slider at 100 % and it had been argued out of that
+shape twice already. But **most short walks have nothing on them**, so on most
+routes the sentence above became a claim about an object that is no longer
+there.
+
+Photographed at 390 x 844 on `JES -> WEL`, the commonest shape of route there is
+(`shots/walk/ui/r7-bar-before-after.jpg`, left half):
+
+```
+ |  FROM  Beauford H. Jester Center            STEPS v
+ *  6-8 min walk . 530 m                  <- flush left
+    No stairs on this route               <- flush left
+ O  Robert A. Welch Hall   Entrances are on this side
+```
+
+Two marks, two rows apart, with nothing between them, and **two different left
+edges 21 px apart alternating down four rows**. Measured: `#wf-orig` and
+`#wf-sub` are indented into the `--wf-mk-w` gutter; `#wf-headline` was not.
+
+And the two marks were not even on one axis. `--wf-mk-w` made the two NAMES
+share a left edge — the comment says so — but the marks themselves were both
+pinned at `left:0` of that gutter at two different widths, so the 3 px tick's
+centre sat at **x=1.5** and the 11 px ring's centre at **x=5.5**. Four pixels;
+invisible on either mark alone and fatal to a line drawn between them.
+`#wf-steps .wf-mk::before` has centred them since round 3, because the itinerary
+runs a thread through them; the bar never did, because until now it had nothing
+to run.
+
+### The spine
+
+`#wf-spine` — the rail, stood on its end. A `--wf-spine-w` hairline down the
+same gutter, from the tick to the ring, behind the text, and `#wf-headline`
+joins the column. It adds **no row, no word and no claim**: it is the two marks
+the bar already draws, joined.
+
+It is drawn only when the rail is not, so the bar never carries two pictures of
+one walk, and it is down while walking (there is no origin row then — the bar
+has stopped describing a journey and started describing the next twenty metres).
+
+It is **measured, not declared**, and `drawSpine`'s header says why: the two rows
+it runs between change height with the route, so there is no CSS length that is
+right on every route, and the other CSS-only way — a `::before` segment per row
+— breaks at every margin and gives you a dashed line nobody asked for. Two
+things that cost a debugging pass each and are now written down in the code: a
+`.wf-mk` is an EMPTY inline-block, so `align-self:center` gives it **zero
+height** and its `y` is the row's centre (a `!rect.height` guard silently
+switched the whole feature off); and `#wf-pill` has a 1 px border, so an
+absolutely positioned child is placed from the padding box and the join sat one
+pixel low until `clientTop`/`clientLeft` were read rather than assumed.
+
+## 43. The second amber disc — which round 6's rule forbids and round 6's gate could not see
+
+Round 6's ruling: three 44 px rounded boxes in a row are not three actions, they
+are an iOS segmented control, so the panel and the border come off `Show route`
+and the close control, and **`Walk it` is the only filled or bordered thing in
+the feature**. It asserted that over `.wf-act-go / .wf-act-show / .wf-act-clr` —
+a list of three class names typed by hand.
+
+`#wf-then2` is in the same row and is not on that list. Measured on the shipped
+build while walking: `background: rgba(255, 198, 99, 0.15)`, `box-shadow:
+rgba(22, 14, 4, 0.96) 0 0 0 2.5px`. An amber disc with a dark ring, 250 px from
+two glyph-and-label pairs that really are buttons.
+
+The class is shared with the itinerary, where the disc is exactly right — it
+punches the thread that runs behind the list. In the footer row there is no
+thread. `and then left` is a fact, so it is now set like one
+(`shots/walk/ui/r7-walkbar-before-after.jpg`).
+
+**And the gate was rewritten so this class of miss cannot recur**: the rule is
+now swept over EVERY element inside `#wf-pill`, computing fill, border and ring
+off the CSSOM, rather than over a list somebody remembered to update. It is also
+state-aware, because the honest version of round 6's rule is *one filled object
+per state*: `Walk it` on the summary, the manoeuvre disc while walking.
+
+## 44. Measured on the camera, and NOT fixed: `Walk it` still loses the camera about one time in five
+
+Driving the tap for real (`page.mouse.click`, not a synthetic `.click()`),
+390 x 844, `?walk=1&drift=0&from=JES&to=WEL`, on a machine with four sibling
+lanes rendering:
+
+| build | landed at 1.70 m on the route | lost the camera |
+|---|---|---|
+| `origin/acer/w-ui`, before this round | 4 / 5 | 1 / 5 — ended at 141.98 m |
+| this round | 3 / 5, then 3 / 4 | 218.87 m, 312.38 m, 354.86 m |
+
+The A/B was run by restoring the branch's own files, measuring, restoring this
+round's, and measuring again, on the same server and the same browser. **The
+failure is on both sides**, the samples are small, and the machine was loaded —
+so this round neither caused it nor fixed it, and says so rather than quoting
+the greener half. The end poses (354.86 m, 2 km from the route) are
+`js/app.js`'s opening flight landing its second leg on top of the walk, which is
+§35's defect exactly; `holdWalk` answers it and `walkHoldMaxN` (3) can be spent
+before the delayed leg arrives when the machine is slow. Raising it is a
+one-line taste change and it belongs to a round that can measure it on a quiet
+machine.
+
+What this round DID change is the other half of the same window. `walkIt`'s
+eight re-asks are eight `setTimeout`s armed at once, so **all of them have fired
+720 ms after the tap** — while the flight lands 2-3 s later and `holdWalk`'s
+re-jump, the one the readout actually has to see, is later still. That jump's
+`moveend` starts `onCamEnd`'s chain, which is `endSettleN * endSettleMs` =
+880 ms, and `sampleLive` reads `__fly.eye()`, which `js/controls.js` only
+refreshes on its own next tick. Miss that window with the camera parked and
+there is no further `move` event, so nothing is ever going to ask again:
+photographed, the eye at **1.70 m on the route with the bar still on the summary
+layout**. Same shape as the bug §29 found on the way OUT of the walk, on the way
+in. The asking now lasts `walkSettleMaxMs`, which is set to cover `walkHoldMs`
+because that is exactly the window in which something can still put the camera
+back on the pavement, and it stops on the first sample that arms.
+
+## 45. What was verified this round, and how
+
+`node scripts/verify/harness-drift.mjs` first: **31 scripts in each**, PASS. No
+`<script>` was added, so `index.html` and `_harness.html` are unchanged.
+
+Then a 22-item gate. Server `python scripts/serve.py 8815`, playwright-core from
+`scripts/verify/node_modules` with an explicit `executablePath`, ONE browser,
+390 x 844 at dpr 2, `?drift=0`, `window.cancelGraphicsAutoDetect()` at the top
+of every page, the veil waited out, every screenshot taken twice.
+
+```
+1. The closed bar, JES -> WEL (no stairs, no crossings: no rail)
+  PASS 1a phone rule for #wf-pill really in the CSSOM — left=12px right=12px transform=none width=366
+  PASS 1b `Show route` on the closed bar, labelled — 106.2x44 at y220.44
+  PASS 1c exactly ONE control costume in the whole bar — [".wf-act.wf-act-go"]
+  PASS 1d rail down on this route, so the spine is up — spine 2x64.28
+  PASS 1e spine, tick and ring on ONE axis — 32.50 / 32.50 / 32.50
+  PASS 1f the spine reaches both marks — 138.0..202.3 vs 138.0 and 202.3
+  PASS 1g #wf-headline.textContent unchanged
+  PASS 1h #wf-sub.textContent unchanged
+2. Walk it, and the during-walk view
+  PASS 2a the walking readout is up — bar 131.9 px
+  PASS 2b the spine is DOWN while walking
+  PASS 2c the chained turn is not wearing a control costume — bg rgba(0,0,0,0), shadow none
+  PASS 2d exactly ONE filled object while walking, and it is the manoeuvre disc
+  PASS 2e the way OUT of the walk is on the bar
+  PASS 2f #wf-sub.textContent is the same string in both states
+3. The manoeuvre disc and its words, down the REAL route line
+  PASS 3.0 the camera really walked the line — 16 distinct positions
+  PASS 3a no glyph appeared with two different words — 16 samples, 2 glyphs, 0 contradictions
+  PASS 3b the words really varied — [", then right", ", then left"]
+4. PASS 4a hiding the wayfind layers changes the pixels under your feet — 5/5
+5. PASS 5a a route WITH marks: rail up => spine down (PCL -> UNB, Stairs: 1 set)
+6. PASS clip=1 / autopilot=1 / sliderdemo=1 — no wayfind element has a box
+
+22 passed, 0 failed
+```
+
+**Watched failing on the code it guards.** The identical gate, same server, same
+browser, run against this branch *before* the change: **18 passed, 4 failed** —
+1d, 1e and 1f red (there is no `#wf-spine` at all) and 2c red with the amber
+disc's computed style printed. Items 1a, 1b, 3a and 4a are the round-1, round-2,
+round-4 and round-4 defects the brief names, re-asserted on the shipped build;
+5a is round 5's.
+
+Two honest notes about the instrument itself, both of which cost a run:
+
+* **A placer that no-ops reads as a green gate.** The first cut read the route
+  line off `map.getSource('wayfind-route')._data` — on this MapLibre the data is
+  one level down, under `.geojson` — so the placer returned false, the camera
+  never moved, and sixteen identical samples came back as "no contradictions".
+  Item **3.0** exists to make that impossible: it counts distinct camera
+  positions before 3a is allowed to mean anything.
+* **The general costume sweep is set at 24 x 18 px** and `#wf-then2`'s disc is
+  17 px, so item 2d did not see it — which is exactly why 2c names it. Lowering
+  the threshold is a good idea for round 8; it was not changed this round
+  because it would have re-run green without a matching watched failure.
+
+The gate lives in the scratchpad rather than in `scripts/verify/`, because four
+sibling lanes were editing the rest of `js/wayfind.js` at the same time and this
+lane's ownership line for this round is `index.html`, `_harness.html`,
+`style.css`, the UI half of `js/wayfind.js`, `shots/walk/ui/` and this file. It
+is described above in enough detail to be rebuilt:
+
+```
+scripts/verify/_scratch-r7gate.mjs   (scratchpad copy)
+  python scripts/serve.py 8815
+  VERIFY_URL=http://127.0.0.1:8815 node _scratch-r7gate.mjs <outDir>
+
+  __wfPlace(f) stands the eye at fraction f of the route's OWN drawn line
+  (`wayfind-route`, the k:'path' LineString), facing 12 m further on, using the
+  same closed form walkIt and doorwalk.mjs both use. Everything in item 3 and
+  item 4 is posed with it.
+```
+
+## 46. Taste values added this round (CLAUDE.md rule 11)
+
+`WF_UI`: `spineOn` true, `spineMinPx` 10, `walkSettleTailOn` true,
+`walkSettleTailMs` 250, `walkSettleMaxMs` 10000.
+Custom properties: `--wf-mk-gap` 6px (the mark-to-name gutter, named because
+three rows now share it), `--wf-spine-w` 2px, `--wf-spine-col`
+rgba(248,234,208,.20), `--wf-then2-ic` 15px.
+**No new string.** `SAY` and `SAY_UI` are untouched, `#wf-headline`.textContent
+and `#wf-sub`.textContent are byte-identical, and nothing new is claimed —
+which, given §41, is the whole point.
+
+### Shots
+
+`shots/walk/ui/` — `r7-bar-before-after.jpg`, `r7-walkbar-before-after.jpg`,
+`r7-summary.jpg`, `r7-walk.jpg`. Four frames, 260 KB. Every other frame this
+round stayed in the scratchpad (CLAUDE.md rule 12).

@@ -1542,6 +1542,26 @@
     // is drawn from the SAME counts the card prints — `r.m.stairSets`,
     // `r.m.signals` — so the picture and the sentences cannot disagree.
     keyOn: true,
+    // ── ROUND 7: THE SPINE ────────────────────────────────────────────────
+    // ROUND 5 DELETED THE ONLY THING HOLDING THE TWO ENDS TOGETHER AND NOBODY
+    // LOOKED AT WHAT WAS LEFT. Round 4 gave the origin line a tick and the
+    // destination line a ring, "identical shapes to .wf-cap-a and .wf-cap-b on
+    // the rail — so the origin line, the rail and the destination line are
+    // visibly one object" (style.css says exactly that, and it was true).
+    // Round 5 then stopped drawing the rail on any route with nothing on it,
+    // which is most short walks — and on those routes the sentence above is a
+    // claim about an object that is no longer there. Photographed at 390 x 844
+    // on JES -> WEL: a tick, then two rows of figures at a DIFFERENT left edge,
+    // then a ring. Two stray marks, not a journey.
+    //
+    // The spine is the rail stood on its end: a hairline down the same gutter
+    // both name lines are already indented into, from the tick to the ring,
+    // behind the text. It adds no row, no word and no claim — it is the two
+    // marks the bar already draws, joined. It is drawn ONLY when the rail is
+    // not, so the bar never carries two pictures of one walk.
+    spineOn: true,
+    spineMinPx: 10,        // below this the two marks are on adjacent lines and
+                           // a stub between them is noise, not structure.
     // Which way the route turns at the next turn, in words, because the arrow
     // says where the turn IS and not which way it goes. Beyond this many
     // degrees the turn is described as a sharp one.
@@ -1638,6 +1658,17 @@
     // the answer changes.
     walkSettleMs: 90,
     walkSettleN: 8,
+    // ROUND 7. The burst above is armed all at once and is therefore over
+    // 720 ms after the tap — and the walk is not settled at 720 ms. See the
+    // tail's own note at the bottom of `walkIt` for the measurement. These
+    // three are the whole of it and all three are taste values.
+    walkSettleTailOn: true,
+    walkSettleTailMs: 250,   // four looks a second, each one projection
+    walkSettleMaxMs: 10000,  // >= walkHoldMs, because that is exactly the
+                             // window in which something can still put the
+                             // camera back on the pavement. It stops the
+                             // instant the readout arms, which is usually
+                             // before this chain runs at all.
     // ── ROUND 6: THE HOLD ─────────────────────────────────────────────────
     // Measured, 3 runs of 3: `Walk it` put the eye at 1.70 m and js/app.js's
     // opening flight put it back at 158 m two and a half seconds later, with
@@ -2368,6 +2399,14 @@
     // one that changes what you do.
     footrow.appendChild(verdict); footrow.appendChild(then2); footrow.appendChild(acts);
     const card = h('div', 'hidden'); card.id = 'wf-card';
+    // THE SPINE IS APPENDED FIRST ON PURPOSE. It is an absolutely positioned
+    // child of the bar and `.wf-mk` is `position:relative`, so both paint in
+    // the positioned layer and DOM order decides which is on top. Last would
+    // draw the hairline OVER the tick and the ring it joins; first tucks it
+    // under them, which is the only way the join has no seam.
+    const spine = h('div', 'hidden'); spine.id = 'wf-spine';
+    spine.setAttribute('aria-hidden', 'true');
+    pill.appendChild(spine);
     pill.appendChild(chev);
     pill.appendChild(orig);
     pill.appendChild(liveEl); pill.appendChild(headline); pill.appendChild(strip);
@@ -2380,7 +2419,7 @@
 
     el = { root, btn, sheet, list, more, egs, hint, inFrom: from.inp, inTo: to.inp,
       xFrom: from.x, xTo: to.x, swap, pill, chev, chevLab, liveEl, orig, headline, strip, key, sub,
-      verdict, acts, footrow, then2, card, close, ends };
+      verdict, acts, footrow, then2, card, close, ends, spine };
     // The way out of the walk, and it is a taste value because it is one:
     // round 4's reading was that framing the route from above is not what you
     // want while standing on it, which is true right up until the only other
@@ -2392,7 +2431,7 @@
     // A rotation changes both the room above the controls and the height of the
     // bar above the card, and the card is the only thing in this feature whose
     // size is measured rather than declared.
-    window.addEventListener('resize', () => { if (state.expanded) fitCard(); });
+    window.addEventListener('resize', () => { if (state.expanded) fitCard(); drawSpine(); });
     const toggle = () => { state.expanded = !state.expanded; renderPill(); };
     pill.addEventListener('click', toggle);
     // The BAR toggles the card; the CARD does not. Reading the accessibility
@@ -2737,6 +2776,10 @@
         applyVerdict(state.route.time);
       }
       renderStrip();
+      // STEPPING OFF THE ROUTE PUTS THE JOURNEY BACK, so it puts the spine
+      // back with it. `renderLive` is the only thing that moves the bar between
+      // the two layouts and it does not go through `renderPill`.
+      drawSpine();
       return;
     }
     el.liveEl.innerHTML = '';
@@ -2803,6 +2846,7 @@
     }
     el.liveEl.appendChild(txt);
     renderStrip();
+    drawSpine();
     // The readout appearing or going away moves everything under it, so the
     // card's ceiling moves with it. Only when the card is open, which is never
     // the common case while walking.
@@ -2993,6 +3037,63 @@
   }
 
   /**
+   * THE SPINE — the two end marks, joined. (Round 7.)
+   *
+   * It is MEASURED rather than declared, and that is not laziness. The two
+   * marks it runs between are `::before`s on inline-blocks inside two flex rows
+   * whose heights depend on the route: the figure line is one line or two, the
+   * strip is there or it is not, the key is there or it is not. There is no
+   * CSS length that is the distance between those two dots on every route, and
+   * a stack of per-row `::before` segments — the other way to do this without
+   * measuring — breaks at every margin between the rows and gives you a dashed
+   * line nobody asked for. So it asks the two elements where they are.
+   *
+   * THREE CONDITIONS, and each of them is the answer to "when would this be
+   * wrong":
+   *   - not while walking. `#wf-orig` is `display:none` then, so there is no
+   *     tick to start from and the bar is not describing a journey any more,
+   *     it is describing the next twenty metres.
+   *   - not when the RAIL is up. The rail already joins the same two marks,
+   *     horizontally, and two pictures of one walk is worse than either.
+   *   - not on a failure, where the two names are on screen precisely because
+   *     we could NOT join them.
+   */
+  function drawSpine() {
+    if (!el || !el.spine) return;
+    const off = () => { el.spine.classList.add('hidden'); };
+    if (!WF_UI.spineOn) return off();
+    if (document.body.classList.contains('wf-live')) return off();
+    const r = state.route;
+    if (!r || !r.ok) return off();
+    if (!el.strip.classList.contains('hidden')) return off();
+    const a = el.orig.querySelector('.wf-mk-a');
+    const b = el.sub.querySelector('.wf-mk-b');
+    if (!a || !b || el.orig.classList.contains('hidden')) return off();
+    const pr = el.pill.getBoundingClientRect();
+    const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+    // WIDTH, NOT HEIGHT, IS THE LIVENESS TEST. A `.wf-mk` is an EMPTY
+    // inline-block carrying its shape in a `::before`, and `align-self:center`
+    // in a flex row gives an empty box zero height — measured, 15 x 0 on both.
+    // Its `y` is then exactly the vertical centre of the row, which is where
+    // `top:50%` puts the mark, so the arithmetic below is right and a
+    // `!ar.height` guard would have silently switched the whole thing off.
+    if (!ar.width || !br.width) return off();
+    // AND THE BAR HAS A 1 px BORDER. `getBoundingClientRect()` measures the
+    // border box; an absolutely positioned child is placed from the PADDING
+    // box. Ignoring that put the spine one pixel below the tick — invisible on
+    // its own and exactly the kind of thing that makes a join look like a
+    // mistake. `clientTop`/`clientLeft` are that border, read rather than typed.
+    const bt = el.pill.clientTop, bl = el.pill.clientLeft;
+    const top = ar.top + ar.height / 2 - pr.top - bt;
+    const bot = br.top + br.height / 2 - pr.top - bt;
+    if (bot - top < WF_UI.spineMinPx) return off();
+    el.spine.style.left = (ar.left + ar.width / 2 - pr.left - bl) + 'px';
+    el.spine.style.top = top + 'px';
+    el.spine.style.height = (bot - top) + 'px';
+    el.spine.classList.remove('hidden');
+  }
+
+  /**
    * WALK IT — the door into the walking readout. (Round 4.)
    *
    * THE DEFECT IT CLOSES, and it is a whole half of this feature. Everything
@@ -3142,6 +3243,44 @@
         liveAt = 0;
         try { onCam(); } catch (e) {}
       }, i * WF_UI.walkSettleMs);
+    }
+    // ROUND 7: AND THE FIRST 720 ms IS NOT THE WINDOW.
+    //
+    // MEASURED, on this branch and on the one before it, 390 x 844, real
+    // Chromium, `?walk=1&drift=0&from=JES&to=WEL`, on a machine with four
+    // sibling lanes running: `Walk it` puts the eye at **1.70 m** and the bar
+    // stays on the SUMMARY layout for as long as you care to watch. Not the
+    // camera being ejected — that is the other failure, it is older than this
+    // round and its trace is in §35. This one is the camera standing exactly
+    // where it should with the during-walk view never appearing.
+    //
+    // WHY. The eight re-asks above are eight `setTimeout`s armed at once, so
+    // every one of them has fired 720 ms after the tap. But the walk is not
+    // settled at 720 ms: js/app.js's opening flight lands its second leg 2-3 s
+    // later, `holdWalk` answers by re-jumping, and THAT jump is the one the
+    // readout has to see. Its `moveend` starts `onCamEnd`'s chain —
+    // `endSettleN` x `endSettleMs` = 880 ms — and `sampleLive` reads
+    // `__fly.eye()`, which js/controls.js only refreshes on its own next tick.
+    // Under load that refresh can miss an 880 ms window, and with the camera
+    // now parked there is no further `move` event, so nothing is ever going to
+    // ask again. Exactly the shape of the bug §29 found on the way OUT of the
+    // walk, on the way IN, and one tier further down the stack.
+    //
+    // So the asking lasts as long as the walk is contested. `walkSettleMaxMs`
+    // is set to cover `walkHoldMs`, because that IS the window in which
+    // something can still put the camera back on the pavement. It stops on the
+    // first sample that arms the readout — the common case is that the burst
+    // above already did, and this never runs a second poll.
+    if (WF_UI.walkSettleTailOn) {
+      const until = performance.now() + WF_UI.walkSettleMaxMs;
+      const tail = () => {
+        if (document.body.classList.contains('wf-live')) return;
+        liveAt = 0;
+        try { onCam(); } catch (e) {}
+        if (document.body.classList.contains('wf-live')) return;
+        if (performance.now() < until) setTimeout(tail, WF_UI.walkSettleTailMs);
+      };
+      setTimeout(tail, WF_UI.walkSettleN * WF_UI.walkSettleMs + WF_UI.walkSettleTailMs);
     }
     return true;
   }
@@ -3339,6 +3478,7 @@
       document.body.classList.remove('wf-live');
       document.body.classList.remove('wf-near');
       el.chev.classList.add('hidden');
+      drawSpine();
       return;
     }
     el.acts.classList.remove('hidden');
@@ -3432,7 +3572,7 @@
 
     renderLive();
 
-    if (!state.expanded) { fitCard(); return; }
+    if (!state.expanded) { fitCard(); drawSpine(); return; }
 
     // THE ITINERARY IS THE FIRST THING IN THE CARD, because it is the thing the
     // card is opened for. The disclaimers that used to lead it are the thing
@@ -3502,6 +3642,7 @@
     el.card.appendChild(f);
 
     fitCard();
+    drawSpine();
   }
 
   function viaOffset() {

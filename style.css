@@ -957,6 +957,17 @@ html.has-touch #joystick-zone{display:block}
      reads as the walk between those two places and not as a slider */
   --wf-mk-col:rgba(248,234,208,.8);
   --wf-mk-w:15px;           /* the gutter both name lines are indented into */
+  --wf-mk-gap:6px;          /* ...and the air between that gutter and the name.
+                               Named because ROUND 7 makes the figure line share
+                               the same left edge, and one column that is set in
+                               three places is three columns waiting to happen. */
+  /* THE SPINE (round 7). The rail, stood on its end, in that same gutter —
+     drawn only on the routes where the rail is not. Deliberately quieter than
+     the marks it joins: it is the connection, not a fourth thing to read. */
+  --wf-spine-w:2px;
+  --wf-spine-col:rgba(248,234,208,.20);
+  --wf-then2-ic:15px;       /* the chained-turn glyph in the footer row, once it
+                               stopped being a disc and became a glyph */
   /* the walking readout */
   --wf-arrow:44px;
   --wf-then:15px;           /* `, then left` beside the distance to the turn */
@@ -1162,7 +1173,7 @@ body.wf-live .wf-chev-lab{display:none}
 /* WHERE IT THINKS YOU ARE STARTING FROM. The From default is the routable
    building nearest the CAMERA, which is a guess the app makes on your behalf,
    so the bar shows it rather than hiding it under a tap. */
-#wf-orig{display:flex;align-items:baseline;gap:6px;margin-bottom:3px;
+#wf-orig{display:flex;align-items:baseline;gap:var(--wf-mk-gap);margin-bottom:3px;
   padding-right:var(--wf-chev-clear);
   font-size:var(--wf-small);min-width:0}
 #wf-orig.hidden{display:none}
@@ -1177,15 +1188,41 @@ body.wf-live #wf-orig{display:none}
    `--wf-mk-w` is the gutter, and it is the SAME on both lines: two markers of
    different widths would leave the two names off each other's left edge, which
    is the whole reason a route header reads as a route in the first place. */
+/* AND THE TWO MARKS ARE ON ONE AXIS, WHICH THEY WERE NOT. `--wf-mk-w` made the
+   two NAMES share a left edge and the comment above says so — but the marks
+   themselves were both pinned at `left:0` of that gutter at two different
+   widths, so the 3 px tick's centre sat at x=1.5 and the 11 px ring's centre at
+   x=5.5. Four pixels of offset between the start of the journey and the end of
+   it, invisible on either mark alone and fatal to a line drawn between them.
+   `#wf-steps .wf-mk::before` has centred them since round 3, because the
+   itinerary runs a thread through them; the BAR never did, because until round
+   7 it had nothing to run. Same declaration, one place higher. */
 .wf-mk{flex:none;display:inline-block;width:var(--wf-mk-w);position:relative;
   align-self:center}
-.wf-mk::before{content:"";position:absolute;top:50%;left:0}
+.wf-mk::before{content:"";position:absolute;top:50%;left:50%;
+  transform:translateX(-50%)}
 .wf-mk-a::before{width:3px;height:11px;margin-top:-5.5px;border-radius:2px;
   background:var(--wf-mk-col)}
 .wf-mk-b::before{width:11px;height:11px;margin-top:-5.5px;border-radius:50%;
   box-sizing:border-box;background:rgba(20,12,4,.9);border:2.5px solid var(--wf-accent)}
 
-#wf-headline{line-height:1.15;padding-right:var(--wf-chev-clear)}
+/* ROUND 7: THE FIGURE LINE JOINS THE COLUMN. It was the only run of text in
+   the closed bar set flush to the panel's padding while the origin line above
+   it and the destination line below it were both indented into the mark gutter
+   — so the bar had two left edges 21 px apart, alternating down four rows.
+   Photographed at 390 x 844 on JES -> WEL. One column, and the gutter it opens
+   is where the spine runs. */
+#wf-headline{line-height:1.15;padding-right:var(--wf-chev-clear);
+  padding-left:calc(var(--wf-mk-w) + var(--wf-mk-gap))}
+/* THE SPINE. Position and height are written by `drawSpine()` — see its header
+   for why this one is measured and not declared. It is `hidden` far more often
+   than not: it appears only on a route with nothing on its rail, which is where
+   round 5 left the two end marks with nothing between them. */
+#wf-spine{position:absolute;width:var(--wf-spine-w);
+  margin-left:calc(var(--wf-spine-w) / -2);
+  background:var(--wf-spine-col);border-radius:calc(var(--wf-spine-w) / 2);
+  pointer-events:none}
+#wf-spine.hidden{display:none}
 /* THE MODE, IN FRONT OF THE NUMBER. Sized off the minutes so it comes down with
    them on a phone, and set in the ink colour rather than the accent — the
    accent is the number's, and two amber things on one line is two headlines. */
@@ -1333,7 +1370,7 @@ body.wf-live #wf-orig{display:none}
 #wf-key .wf-pip{position:static;margin:0;flex:none}
 .wf-keytx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-#wf-sub{display:flex;align-items:baseline;gap:6px;font-size:var(--wf-line);
+#wf-sub{display:flex;align-items:baseline;gap:var(--wf-mk-gap);font-size:var(--wf-line);
   line-height:1.35;flex-wrap:wrap}
 #wf-sub .wf-dest{font-weight:700;color:var(--wf-ink)}
 #wf-sub .wf-mid{color:var(--wf-dim);font-weight:400}
@@ -1396,6 +1433,20 @@ body.wf-live:not(.wf-near) #wf-sub .wf-mk-b{opacity:.55}
 #wf-then2{display:flex;align-items:center;gap:7px;min-width:0;order:-1;
   font-size:var(--wf-line);font-weight:600;color:var(--wf-dim)}
 #wf-then2.hidden{display:none}
+/* ROUND 7: THE SECOND AMBER DISC, WHICH ROUND 6 MISSED BECAUSE ITS OWN GATE
+   ONLY LOOKED AT THREE CLASSES. Round 6's ruling was that `Walk it` is the only
+   filled or bordered thing in the feature — three 44 px rounded boxes in a row
+   are not three actions, they are an iOS segmented control — and it stripped
+   the panel and the border off `Show route` and `✕` to make that true. It
+   asserted the result over `.wf-act-go / .wf-act-show / .wf-act-clr`, a list
+   typed by hand, and `#wf-then2` is in the same row and is not on it.
+   `.wf-sturn` is shared with the itinerary, where a filled amber disc with a
+   dark halo is exactly right: it punches the thread that runs behind the list.
+   In the footer row there is no thread, and what is left is a glyph-and-label
+   pair wearing an amber fill 250 px from two glyph-and-label pairs that are
+   real buttons. `and then left` is a fact, so it is set like one. */
+#wf-then2 .wf-sturn{background:none;box-shadow:none;padding:0;
+  color:var(--wf-dim);width:var(--wf-then2-ic);height:var(--wf-then2-ic)}
 /* THREE THINGS DO NOT FIT ON 342 px, and when they do not, the warning wins.
    Photographed walking 21 Rio -> WEL: the chained turn and the passing-period
    chip filled the row and `Clear` wrapped to a line of its own, putting the bar
