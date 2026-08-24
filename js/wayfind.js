@@ -1086,6 +1086,11 @@
                            // `registerUrl`'s snapshot does not list. SSW.
     offMapCodes: true,     // a code UT surveys at a campus this app does not
                            // draw. The ten at Pickle, 11 km north.
+    // ROUND 3 — materialise doorSet()'s rule-4 door AT INDEX TIME for the two
+    // buildings that route only through it, so the search list can offer them
+    // instead of greying them out. Measured before it was believed: §4c and
+    // docs/si-gaps.md §6. Off restores the round-2 behaviour exactly.
+    utDoorsIndexed: true,
     minZoom: 13,
   };
 
@@ -2340,6 +2345,59 @@
       // no node within utVirtualSnapM of a point eleven kilometres away.
       e.utRoutable = !e.routable &&
         !!(!e.offMap && WAYFIND.utVirtualDoors && utTruth(e.code));
+    }
+    // ── §4c. AND THEN ROUND 3 SHUT THAT GAP INSTEAD OF DESCRIBING IT ───────
+    //
+    // The paragraph above says publishing the fact is the honest move. It was
+    // half right: `utRoutable` costs nothing and it also FIXES nothing — a
+    // student who types SSW still gets a grey row that will not open, and a
+    // schedule import that hands the search box a code gets the same. The
+    // reason the row reads "0 doors" was never a copy problem. `e.doors` is
+    // simply EMPTY until virtualDoor() runs at route time.
+    //
+    // So run it here instead. The list then counts real doors, `routable` is
+    // true because those doors really are anchored to the network, and the
+    // copy/render block this lane does not own needs no change at all.
+    //
+    // THE TRAP THIS NEARLY WALKED INTO. virtualDoor() snaps DIFFERENTLY with
+    // "avoid stairs" on — the anchor has to sit in the step-free component
+    // (utVirtualStepFree). Filling `e.doors` hands doorSet() a non-empty
+    // `all`, so it stops taking its `!pool.length` branch, and that branch is
+    // where the step-free re-snap lives. Giving an avoid-stairs walker the
+    // stair-climbing anchor is the exact bug utVirtualStepFree exists to
+    // prevent, reintroduced one level up.
+    //
+    // It does not happen, because of a line that was already there:
+    // doorSet() filters the pool through stepFreeDoor(), which keeps a door
+    // only when one of its anchors is in the big step-free component. If the
+    // plain snap landed somewhere a step-free walker can stand, using it is
+    // correct; if it did not, the pool empties and the `!pool.length` branch
+    // re-snaps exactly as before. MEASURED, not reasoned: with this switch
+    // off and on, all 67 UT-surveyed buildings return the identical candidate
+    // doors AS COORDINATES in both stairs modes, and walkmeter's stairs and
+    // reachability rows do not move. docs/si-gaps.md §4.
+    //
+    // Scope, measured on this graph rather than assumed: `utRoutable` is true
+    // for exactly two entries — HLB and SSW — so this loop makes at most
+    // three node scans, once, at load.
+    if (WAYFIND.utDoorsIndexed) {
+      for (const e of entries) {
+        if (!e.utRoutable) continue;
+        const truth = utTruth(e.code);
+        if (!truth) continue;
+        const made = [];
+        // avoidStairs FALSE on purpose — see the trap above. The step-free
+        // variant stays lazy so it is snapped under its own constraint.
+        for (const t of utWant(truth, false)) {
+          const v = virtualDoor(g, e, t, false);
+          if (v >= 0 && made.indexOf(v) < 0) made.push(v);
+        }
+        if (!made.length) continue;
+        e.doors = made;
+        e.utIndexed = true;          // provenance: UT's own coordinate, not a
+                                     // door this project's bake ever placed.
+        e.routable = e.doors.some(di => g.doors[di][2] && g.doors[di][2].length);
+      }
     }
     g.entries = entries;
     g.byCode = byCode;
