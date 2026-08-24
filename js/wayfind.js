@@ -406,6 +406,78 @@
     // near one of our doors gets NO label rather than a coin toss.
     stairBarrierFreeMatchM: 8,
     stairBarrierFreeMarginX: 2,
+
+    // ── ROUND 8a. THE OTHER HALF OF THE SAME TABLE ───────────────────────
+    // Round 6 used the rows UT publishes as `BarrierFree = Y` and moved 29
+    // of 38 step-free endpoints onto them. The rows it had in the same array
+    // marked `N` — whose own field notes name the barrier, "Access is off
+    // 24th Street UP THE STAIRS" — were used ONLY as the margin test for the
+    // positive verdict. Nothing has ever declined one, moved off one, or
+    // said a word about one.
+    //
+    // Two of our doors carry that verdict (GEA 386, PAR 512), and neither
+    // building has a barrier-free door of ours for round 6's pass to move
+    // to, so round 6 never fires there. Measured over the same 300 pairs: 2
+    // step-free offers of 123 START at PAR 512 and are handed over with a
+    // clean tick and no sentence.
+    //
+    // This pass does the one thing the router can honestly do about it —
+    // leave by a door UT has NOT convicted, if the building has one — and
+    // where it does not, marks the answer so the card can say so instead of
+    // promising silently. False restores round 7 exactly.
+    stairBarrierDoor: true,
+    // A door UT convicts is a wall for the person this profile exists for,
+    // so this is deliberately the same slack round 6 spends to REACH a good
+    // door. Same trade, opposite sign; keep the two together.
+    stairBarrierDoorSlackM: 150,
+
+    // ── ROUND 8b. AND THE WALK ITSELF WAS LONGER THAN IT HAD TO BE ───────
+    // Round 5's widened anchors are gated to last resort: they fire only
+    // when the first two passes cannot produce a clean walk at all. That was
+    // the safe way to land them and it left the obvious question unasked —
+    // when the ordinary passes DO succeed, is the walk they found the
+    // SHORTEST step-free walk to the same two doors, or just the shortest
+    // one reachable from at most three baked anchors?
+    //
+    // It is the second — and the answer to the question is that it barely
+    // matters, which is the round's result and not an excuse for not
+    // shipping. The pass is built, it works, and it is OFF, because the
+    // measurement says it should be. Over the same 300 pairs, letting a
+    // widened anchor shorten the walk by ANY amount at all:
+    //
+    //     shortened  55 of 123 walks     292 m of 130,596  (0.22 %)
+    //     median 3 m, and exactly ONE walk gains more than 25 m (63 m)
+    //     offers 123 and refusals 9 at EVERY margin, unbounded included
+    //
+    //   ...for +246 computeRoute calls over 300 pairs (+31.9 %), and +2.5 ms
+    //   on a control pair whose answer is byte-identical both ways, so that
+    //   is real cost and not the neighbours. There is no cheap precondition
+    //   to gate it on either: only 1 of the 3 walks that gain more than 15 m
+    //   has an anchor `cleanAnchors()` refused, so "only look where a door
+    //   lost an anchor" predicts nothing.
+    //
+    // A third of the Dijkstras for 0.08 % of the metres is a bad trade, and
+    // the honest report is that `scripts/bake_walk.py`'s three anchors per
+    // door were already right. TRUE turns it on; §R56 has the whole curve.
+    stairAltShortcut: false,
+    // HOW MUCH SHORTER IS WORTH MOVING SOMEBODY'S WALK, when it is on. Taste
+    // (rule 9), so it is one line (rule 11). Read off §R56's curve: below
+    // 5 m the pass is moving people for noise.
+    stairAltShortcutMinM: 15,
+
+    // ── ROUND 8c. AND THE CLOCK WAS STILL BILLING A DESCENT AS A CLIMB ───
+    // Round 7 taught the ROUTER which way a flight goes and wrote the
+    // matching patch for the arithmetic out in §R50 instead of making it.
+    // `timeRange()` charged EVERY stair metre at `stairUpMult`, including
+    // flights the very same card was printing "down the steps" beside.
+    // The worst case is the fair thing to assume about a flight nobody has
+    // tagged. It is not the fair thing to assume about one OSM has.
+    //
+    // False restores round 7's clock exactly and is the A/B §R57 is quoted
+    // against. Untagged metres are unaffected either way — silence still
+    // costs the worst case, because silence is not a downhill.
+    stairDownDiscount: true,
+
     stairListMax: 12,      // most staircases we will name in one leg list. A
                            // route with more than this is not a leg list, it
                            // is a wall of text; the count above it is still
@@ -665,6 +737,20 @@
     return ex.down.size ? (ex.down.has(i) ? !ab : false) : false;
   }
 
+  // ROUND 8 — the same test with the sense inverted, and the SAME rule about
+  // silence: an edge nobody has tagged is not downhill, so it is in neither
+  // bucket and is billed the worst case, which is the fair thing to assume
+  // about a flight nobody has surveyed. It is not the fair thing to assume
+  // about one this very card has just called "down the steps". §R57.
+  function isDescent(g, i, from) {
+    if (from == null) return false;
+    if (!(g.F[i] & F_STEPS)) return false;
+    const ab = from === g.A[i];
+    if (g.F[i] & F_UP_AB) return !ab;
+    const ex = stairExtras(g);
+    return ex.down.size ? (ex.down.has(i) ? ab : false) : false;
+  }
+
   // Edge cost in "equivalent flat metres". Stairs cost what they cost because a
   // staircase is slow, not because of any claim about a hill — except where OSM
   // does say which way the hill goes, and then a climb costs more than the same
@@ -786,15 +872,22 @@
   // 3. WHAT THE ROUTE ACTUALLY IS — measured off the path, never estimated
   // ══════════════════════════════════════════════════════════════════════════
   function measure(g, leg) {
-    let flat = 0, stair = 0, signals = 0;
+    let flat = 0, stair = 0, stairDown = 0, signals = 0;
     const sets = new Set();
-    for (const e of leg.edges) {
+    for (let i = 0; i < leg.edges.length; i++) {
+      const e = leg.edges[i];
       const m = g.W[e] / 100;
-      if (g.F[e] & F_STEPS) { stair += m; sets.add(g.S[e]); }
-      else flat += m;
+      if (g.F[e] & F_STEPS) {
+        stair += m; sets.add(g.S[e]);
+        // ROUND 8 (§R57) — `leg.nodes[i]` is the node this edge is entered
+        // from, exactly as stairLegs() uses it to print "down the steps". The
+        // walk this measures is the walk the card describes, so the two can
+        // no longer disagree about which way it goes.
+        if (leg.nodes && isDescent(g, e, leg.nodes[i])) stairDown += m;
+      } else flat += m;
       if (g.F[e] & F_SIGNAL) signals++;
     }
-    return { flat, stair, signals, stairSets: sets.size };
+    return { flat, stair, stairDown, signals, stairSets: sets.size };
   }
 
   // The printed range. NEVER one number: see §3 of the honesty audit — a 1.1 to
@@ -806,8 +899,15 @@
       m.stair / WAYFIND.stairSpeed +
       m.stairSets * WAYFIND.stairFixedS +
       m.signals * WAYFIND.signalWaitLowS;
+    // ROUND 8 (§R57). The high end is a worst case, and a worst case is a fair
+    // thing to assume about a flight nobody has tagged. It is not a fair thing
+    // to assume about one this very card has just called "down the steps".
+    // Round 7 made the ROUTER know which way a flight goes and left the clock
+    // billing every metre of every flight as a climb. Only metres OSM says are
+    // downhill are taken out; silence still costs the worst case.
+    const down = WAYFIND.stairDownDiscount ? (m.stairDown || 0) : 0;
     const highS = m.flat / WAYFIND.speedLow +
-      (m.stair / WAYFIND.stairSpeed) * WAYFIND.stairUpMult +
+      (down + (m.stair - down) * WAYFIND.stairUpMult) / WAYFIND.stairSpeed +
       m.stairSets * WAYFIND.stairFixedS +
       m.signals * WAYFIND.signalWaitHighS;
     let lo = Math.floor(lowS / 60), hi = Math.ceil(highS / 60);
@@ -1332,6 +1432,21 @@
       // lists", and that sentence belongs in
       // docs/walk/what-we-can-honestly-say.md and another lane's function.
       doorsBF: r.doorsBF || 0,
+      // ROUND 8a — the ends of this walk that sit on a door UT PUBLISHES as
+      // not barrier-free, after §8a has already tried to leave by another
+      // one. `null` on almost every walk, and when it is not null it is the
+      // one thing on this object the card must not drop: it is UT saying the
+      // entrance is up the stairs while we hand over a green tick. See
+      // docs/walk-stairs.md §R55 for the sentence and where it goes.
+      doorBarriered: r.doorBarriered || null,
+      doorsOffBarriered: r.doorsOffBarriered || 0,
+      // ...and the ends that sit on a door UT publishes AS barrier-free —
+      // Citymapper's `Best Step-Free Entrance`, which §R17 could not say.
+      // Reachable on 19 of the 22 doors UT surveyed (§R54).
+      doorBarrierFree: r.doorBarrierFree || null,
+      // ROUND 8b — metres this walk is shorter than the one the baked
+      // anchors alone could reach, 0 when the pass changed nothing.
+      shortcutM: r.shortcutM || 0,
       avoidStairs: true,
     };
   }
@@ -1691,7 +1806,11 @@
     const sets = new Set();
     for (const leg of legs) {
       const s = measure(g, leg);
+      // ROUND 8 §R57 — `stairDown` rides along with the other three. It is the
+      // one line of this function this lane touched; neither open sibling PR
+      // touches the accumulator, and the arithmetic it feeds is §3's.
       m.flat += s.flat; m.stair += s.stair; m.signals += s.signals;
+      m.stairDown = (m.stairDown || 0) + s.stairDown;
       for (const e of leg.edges) if (g.F[e] & F_STEPS) sets.add(g.S[e]);
     }
     m.stairSets = sets.size;
@@ -2141,7 +2260,19 @@
    * Memoised on the decoded graph, so the scan is one pass per building per
    * page load.
    */
-  function barrierFreeDoor(g, code) {
+  function barrierFreeDoor(g, code) { return utDoor(g, code, 1); }
+
+  /**
+   * ROUND 8a — and the SAME join run for the other verdict, which is the
+   * whole point: the two answers cannot come from different rules, different
+   * radii or different margins, because they come from one function. `want`
+   * is 1 for the doors UT publishes as barrier-free and 0 for the doors it
+   * publishes as not. A door that fails the margin gets NO verdict either
+   * way, exactly as it did in round 6.
+   */
+  function barrieredDoor(g, code) { return utDoor(g, code, 0); }
+
+  function utDoor(g, code, want) {
     if (!g._bfDoor) {
       const rows = new Map();
       for (const r of UT_ENTRANCES) {
@@ -2151,7 +2282,8 @@
       g._bfRows = rows;
       g._bfDoor = new Map();
     }
-    if (g._bfDoor.has(code)) return g._bfDoor.get(code);
+    const key = want + ':' + code;
+    if (g._bfDoor.has(key)) return g._bfDoor.get(key);
     const rows = g._bfRows.get(code), entry = g.code && g.code[code];
     let best = -1;
     if (rows && entry) {
@@ -2168,11 +2300,11 @@
           const m = metresBetween(dll2, [r[1], r[2]]);
           if (r[3] !== near.bf && m < opp) opp = m;
         }
-        if (near.bf !== 1 || near.m > M || opp < near.m * X) continue;
+        if (near.bf !== want || near.m > M || opp < near.m * X) continue;
         if (near.m < bestM) { bestM = near.m; best = di; }
       }
     }
-    g._bfDoor.set(code, best);
+    g._bfDoor.set(key, best);
     return best;
   }
 
@@ -2192,7 +2324,11 @@
     // not in the set, which is every call the first three passes make.
     if (stairBFOnly && stairBFOnly.has(entry)) {
       const want = stairBFOnly.get(entry);
-      const only = all.filter(di => di === want);
+      // ROUND 8 — a LIST is allowed as well as a single door, so the same
+      // one-line filter serves "only UT's barrier-free door" (round 6, one
+      // door), "any door but the one UT convicts" (§8a) and "the door this
+      // walk already chose" (§8b). A number behaves exactly as it did.
+      const only = all.filter(di => Array.isArray(want) ? want.indexOf(di) >= 0 : di === want);
       if (only.length) return only;
     }
     return all;
@@ -2276,6 +2412,128 @@
           if (moved === fix.length) break;   // nothing better is available
         }
         if (bestBF) { bestBF.route.doorsBF = bestBF.moved; r = bestBF.route; }
+      }
+    }
+    // ── ROUND 8a. THE DOOR UT PUBLISHES AS **NOT** BARRIER-FREE ────────────
+    // Round 6 spent the Y rows of UT's table and left the N rows on the floor.
+    // An N row is a stronger statement than a missing Y row: it is UT saying,
+    // in prose, that this entrance is up a flight of steps. Two of our doors
+    // carry it, and neither building has a Y door for round 6's pass to move
+    // to — so round 6 never fires there and the walk is handed over with a
+    // clean tick.
+    //
+    // Two things happen here and only the first can move anybody: leave by a
+    // door UT has not convicted, if the building has one; and where it has
+    // not, SAY SO. `r` is only ever replaced by a candidate that is itself
+    // ok, clean and within slack, so this cannot turn an offer into a
+    // refusal, and it cannot undo round 6's choice because a door UT
+    // publishes as barrier-free is by construction never one it convicts.
+    if (WAYFIND.stairBarrierDoor && r && r.ok && r.stair && r.stair.clean) {
+      const ends = [{ entry: from, which: 'start' }, { entry: to, which: 'end' }];
+      const convicted = (route) => ends
+        .map((e, i) => ({ ...e, door: i === 0 ? route.fromDoor : route.toDoor }))
+        .filter(e => barrieredDoor(g, e.entry.code) === e.door);
+      const bad = convicted(r);
+      if (bad.length) {
+        // Every OTHER door of that building the router could actually use.
+        // A building whose only linked door is the convicted one has no
+        // alternative to find, and inventing one is not this file's job.
+        const alt = [];
+        for (const e of bad) {
+          const others = e.entry.doors.filter(x => x !== e.door &&
+            g.doors[x][2] && g.doors[x][2].length);
+          if (others.length) alt.push([e.entry, others]);
+        }
+        if (alt.length) {
+          // Both ends together first, then each alone — one end with no way
+          // off its convicted door must not cost the other end its move.
+          const tries = alt.length === 2 ? [alt, [alt[0]], [alt[1]]] : [alt];
+          let bestOff = null;
+          for (const set of tries) {
+            // BAKED ANCHORS FIRST, THEN ROUND 5'S WIDENED ONES, and the second
+            // half is not optional: at the one building on this campus where
+            // this pass has anywhere to go, the door it wants — Gearing Hall's
+            // 387 — has no baked anchor a step-free walk can use at all. Round
+            // 5 already ships that rescue and already bounds its through-wall
+            // risk (§R31's matrix, 0.00 m at the shipped radius and cap); this
+            // is the same last resort for the same reason, one door later.
+            let cand = null, wide = false;
+            for (const w of [false, true]) {
+              stairBFOnly = new Map(set);
+              stairWidePass = w;
+              try { cand = one(true); } finally { stairWidePass = false; stairBFOnly = null; }
+              if (cand && cand.ok && cand.stair && cand.stair.clean) { wide = w; break; }
+              cand = null;
+              if (!WAYFIND.stairAltWide) break;
+            }
+            if (!cand) continue;
+            if (cand.distM - r.distM > WAYFIND.stairBarrierDoorSlackM) continue;
+            const off = bad.length - convicted(cand).length;
+            if (off <= 0) continue;
+            if (!bestOff || off > bestOff.off ||
+                (off === bestOff.off && cand.distM < bestOff.route.distM)) {
+              bestOff = { off, route: cand, wide };
+            }
+            if (off === bad.length) break;
+          }
+          if (bestOff) {
+            bestOff.route.doorsOffBarriered = bestOff.off;
+            if (bestOff.wide) bestOff.route.doorsWide = true;
+            r = bestOff.route;
+          }
+        }
+        // Recomputed against the route actually being returned, so this is a
+        // statement about the answer and not about an earlier draft of it.
+        const left = convicted(r);
+        if (left.length) {
+          r.doorBarriered = left.map(e => ({
+            door: e.door, code: e.entry.code, end: e.which,
+            only: e.entry.doors.filter(x => g.doors[x][2] && g.doors[x][2].length).length === 1,
+          }));
+        }
+      }
+      // AND THE SENTENCE CITYMAPPER'S FRAME HAS AND OURS NEVER DID. sf3 labels
+      // the door `Best Step-Free Entrance`; docs/walk-stairs.md §R17 answered
+      // "we do not — we verified the walk, not the door", and that was the
+      // right answer for three rounds. It is not the right answer at a door UT
+      // has stood in front of and published a verdict for. Same join, positive
+      // verdict, no route change: this only NAMES what the walk already chose.
+      const verified = [];
+      for (const e of [{ entry: from, which: 'start', door: r.fromDoor },
+                       { entry: to, which: 'end', door: r.toDoor }]) {
+        if (barrierFreeDoor(g, e.entry.code) === e.door) {
+          verified.push({ door: e.door, code: e.entry.code, end: e.which });
+        }
+      }
+      if (verified.length) r.doorBarrierFree = verified;
+    }
+    // ── ROUND 8b. AND THE WALK WAS LONGER THAN IT HAD TO BE ────────────────
+    // Round 5's widened anchors only ever run as a rescue. When the ordinary
+    // passes succeed, the walk they found is the shortest one reachable from
+    // at most three BAKED anchors per door — which is not the same thing as
+    // the shortest step-free walk between those two doors, and the difference
+    // is metres a person has to push.
+    //
+    // Pinned to the doors already chosen, so every door decision above —
+    // front-door slack, round 5's rescue, round 6's barrier-free door,
+    // §8a's move off a convicted one — survives this pass by construction.
+    // Accepted only if it is itself clean and shorter by more than the
+    // margin, so it can only ever subtract metres.
+    if (WAYFIND.stairAltShortcut && WAYFIND.stairAltWide &&
+        r && r.ok && r.stair && r.stair.clean) {
+      let cand = null;
+      stairBFOnly = new Map([[from, [r.fromDoor]], [to, [r.toDoor]]]);
+      stairWidePass = true;
+      try { cand = one(true); } finally { stairWidePass = false; stairBFOnly = null; }
+      if (cand && cand.ok && cand.stair && cand.stair.clean &&
+          cand.fromDoor === r.fromDoor && cand.toDoor === r.toDoor &&
+          r.distM - cand.distM > WAYFIND.stairAltShortcutMinM) {
+        cand.shortcutM = r.distM - cand.distM;
+        cand.doorsBF = r.doorsBF;
+        cand.doorsOffBarriered = r.doorsOffBarriered;
+        cand.doorBarriered = r.doorBarriered;
+        cand.doorBarrierFree = r.doorBarrierFree;
+        r = cand;
       }
     }
     if (!r) return { ok: false, why: (front.why || (any && any.why) || 'nostepfree') };
@@ -3425,6 +3683,13 @@
         // arrival door did not move.
         toDoorChanged: sf.toDoorChanged, fromDoorChanged: sf.fromDoorChanged,
         toDoorWhere: sf.toDoorWhere,
+        // ROUND 8 — the two facts this lane added, on the verification
+        // surface as well as on the offer, because a census that cannot see
+        // them cannot hold the code to them. Both are null/0 on the ordinary
+        // walk, which is most of them.
+        doorBarriered: sf.doorBarriered, doorsOffBarriered: sf.doorsOffBarriered,
+        doorBarrierFree: sf.doorBarrierFree,
+        shortcutM: Math.round(sf.shortcutM || 0),
         avoided: r.stair.sets, vertices: sf.geom.line.length,
       } : null,
       stepFreeNone: !!r.stepFreeNone,

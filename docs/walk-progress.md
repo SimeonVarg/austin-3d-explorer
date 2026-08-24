@@ -431,3 +431,47 @@ on a route whose answer is identical either way, it costs 0.06 ms on 7.6.
 Re-checked first, before anything was touched: all 189 mapped staircases still
 drawn, none missing, none invented, and all seven of round 4's checks still
 green. The feature is still switched off. Branch `acer/w-stairs`.
+
+**2026-08-24 — stairs, round 8 (`acer/w-stairs`).** UT publishes an official
+list of campus entrances and says, for each one, whether you can get in
+without stairs. Round 6 used the half of that list that says "yes, this door is
+fine" and moved the step-free walk onto those doors. Nobody ever used the other
+half — the entrances UT says are *up a flight of steps*, in its own words:
+"Access is off 24th Street up the stairs and through the courtyard." That's
+Gearing Hall, and our front door for it sits about a metre from that spot.
+
+So this round asked the question that half of the list is for. Two of our doors
+carry a "not accessible" verdict from UT. Two walks out of 123 in the test set
+start at one of them — both from Parlin Hall — and the app handed both over with
+a green "step-free" tick and said nothing. It now says something: the answer
+carries which door, which building, which end of the walk, and whether it's the
+only entrance we have for that building. And where a building *does* have
+another door, the walk now leaves by that one instead.
+
+The bigger result was accidental and it's the one worth reading. Before
+changing anything I asked a question nobody had: **of the entrances UT has
+surveyed, how many can a step-free walk on our map actually reach?** 19 of 22.
+The three it can't are the same three the last round explained in prose, found
+again by a completely different method — which is the strongest cross-check
+this feature has. And Gearing Hall's stepped entrance turns out to be one our
+own geometry had already ruled out months ago, for reasons that have nothing to
+do with UT's list. Two sources that share no data agree on the same door.
+They disagree in exactly one place, Parlin Hall, and that's the one this round
+now discloses.
+
+The app can also finally say the thing Citymapper says and we couldn't: 25 of
+123 step-free walks now name the entrance UT lists as barrier-free, instead of
+just promising the walk was flat.
+
+Two more things. A question left open since round 5 — is the step-free walk
+longer than it needs to be? — got measured properly and the answer is no: at
+best it could be shortened by 292 metres out of 130,000, median 3 metres, for a
+third more work every time somebody asks for a route. So that pass is built,
+proven, and switched off, with the numbers written down and one line to turn it
+on. And the clock stopped charging people for climbing stairs it had just told
+them they were walking *down* — eight walks now print a minute less, and none
+print more.
+
+Re-checked before anything was touched and again after: all 189 mapped
+staircases still drawn, none missing or invented, and all seven of round 4's
+checks still green at the same 132 / 123 / 9. The feature is still switched off.

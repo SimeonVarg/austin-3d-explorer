@@ -28,6 +28,12 @@ belong to other lanes are written out verbatim in §5 and §6 rather than made.
 
 ## 0. The headline
 
+> **Rounds 2-8 are appended below in order and each one starts with its own
+> headline.** Round 8 is the last: UT publishes a verdict on 24 of our doors
+> and round 6 only ever spent the half that says YES — §R52 onwards. The
+> shortest way in is §R54's table, which is the first time this app's own
+> geometry and UT's survey have been asked the same question.
+
 Three things were wrong and are now right.
 
 1. **One mapped staircase on campus was drawn nowhere.** OSM way `147362093`
@@ -5038,3 +5044,1857 @@ await browser.close();
 process.exit(pass.every(Boolean) ? 0 : 1);
 ```
 
+---
+---
+
+# ROUND 8 — half of UT's table was never spent, and the half nobody spent is the half that says NO
+
+Round 6 fetched `Celebrated_Entrances_view`, joined it to our doors, and moved
+29 of 38 step-free endpoints onto the entrance UT publishes as barrier-free.
+The rows in the same array marked `BarrierFree = N` — the ones whose own field
+notes name the barrier — were used for exactly one thing: as the margin test
+that stops the POSITIVE verdict guessing. Nothing has ever declined one, moved
+off one, or said a word about one.
+
+> *"The celebrated entrance for Gearing Hall is located on the south side.
+> Access is off 24th Street UP THE STAIRS and through the courtyard."*
+> — `Celebrated_Entrances_view`, GEA, `BarrierFree: N`
+
+And this is the row that answers round 3's one open question against
+Citymapper. §R17's table has a line in it that reads, in full:
+
+| Citymapper, from the frame | us, at round 3 |
+|---|---|
+| sf3 — the label asserts the entrance itself is step-free | **we do not.** We verified the walk, not the door |
+
+That was the honest answer for three rounds and it is not the honest answer any
+more. For 24 of our doors somebody from UT has stood in front of the entrance
+and written down a verdict. Round 8 spends both halves of it.
+
+## R52. First: the 189 still hold, and rounds 4 and 7 reproduce to the digit
+
+Re-run before a line was written, because every round of this lane is allowed
+to be wrong about its own subject and none of them is allowed to break the one
+before:
+
+```
+OSM highway=steps ways      : 189
+drawn staircase polygons    : 180
+distinct way ids drawn      : 189
+OSM ways NOT drawn          : 0  []
+drawn ids NOT in OSM        : 0  []
+
+routes 300 | with stairs 132 | step-free offered 123 | no way round 9
+ PASS  routes completed — 300 of 300
+ PASS  no offered step-free walk TRAVERSES an OSM staircase — 0 dirty of 123
+ PASS  no offered step-free walk lays a DOOR LEG over a drawn staircase — 0 dirty of 123
+ PASS  every staircase the card states is one the walk comes within 1.5 m of — 0 routes
+ PASS  every staircase the walk touches is stated by the card — 0 routes
+ PASS  a staircase the router walks along is filed as climbed, not as a door leg — 0
+ PASS  the leg list carries every staircase the router climbs — 0 bad of 300
+```
+
+`132 | 123 | 9` is round 7's census to the digit, and it is still `132 | 123 |
+9` with everything below shipped. `harness-drift` PASS 31/31, no new `<script>`
+in either page. `scripts/bake_ground.py` unchanged, as in rounds 2-7.
+`WAYFIND.on` still false.
+
+## R53. The join, run for the verdict it was never run for
+
+Same function, same radius, same margin — literally the same function, because
+`barrierFreeDoor()` and the new `barrieredDoor()` are now one parameterised
+`utDoor(g, code, want)` and the two verdicts cannot drift apart by construction.
+
+```
+UT rows transcribed 66 over 51 buildings | Y 59  N 7
+doors labelled 24  |  Y 22  N 2
+   N  door 386  GEA @1.26 m (next opposite 25.5 m)  role=main  building has 2 doors
+   N  door 512  PAR @0.93 m (next opposite 41.0 m)  role=main  building has 1 door
+```
+
+**Two positive controls, and neither is this round's own work.** The census
+refuses to evaluate anything and exits 1 if either fails:
+
+* **Round 6's two convictions come back out exactly** — GEA 386 and PAR 512,
+  no more and no fewer. Round 6 named those two in prose while doing nothing
+  with them; this reproduces them from the shipped transcription.
+* **`docs/walk-baseline.md`'s 19 UT-verified doors, 19 of 19.** Another lane
+  built that table from the same FeatureServer by a different method. If this
+  join disagreed with it, it is this join that would be wrong.
+
+The transcription is read out of `js/wayfind.js` itself rather than retyped, so
+the instrument and the shipped code cannot hold different tables.
+
+## R54. AND THE PRIOR QUESTION NOBODY HAD ASKED: can we even GET to UT's doors?
+
+Round 6 asked whether the walk went to UT's barrier-free door where one exists.
+It never asked whether a step-free walk can reach those doors at all — and a
+door nothing can reach is a door round 6's pass can never move anybody onto.
+
+`utreach.py` answers it in python, with no browser and nothing but
+`data/walk_graph.json`: round 6's `reach.py` (step-free connected components,
+`F_STEPS` priced Infinity and `F_OFFMAIN` skipped exactly as `dijkstra()` does)
+and round 6's `anchdiag.py` (`legCrossesStairs()` re-implemented outside the
+app) run together over all 24 labelled doors.
+
+```
+step-free components 597 | largest 10383 of 11284 nodes (92.0%)
+
+  verdict door bldg  baked anchors            reachable  widened
+    Y       323 CMB   452~,11040~,441~        no         NO
+    Y       324 CMB   452~,11040~             no         NO
+    N       386 GEA   1089~,10582!~,1095!     no         NO
+    N       512 PAR   10283,325,10300         YES        -
+    Y       636 WAG   10294~,10295!,908!      no         NO
+    ...19 others, all YES
+  ! = door leg lies along a mapped flight   ~ = not on the main step-free component
+
+UT BARRIER-FREE doors reachable step-free from a BAKED anchor : 19 of 22
+   ...of the rest, rescued by round 5's widened anchors       : 0 of 3
+   ...unreachable step-free by any means this app has          : CMB 323, CMB 324, WAG 636
+UT NOT-barrier-free doors the step-free profile can reach       : PAR 512
+   ...and that it cannot reach anyway                           : GEA 386
+```
+
+Three things worth saying out loud about that table.
+
+**It reproduces round 6's nine refusals from the outside.** Round 6 explained
+them in prose — "CMB's barrier-free door has both anchors on a 16-node
+step-free island", "WAG's is reachable only over a flight, 3.5 m and 2.0 m
+along mapped steps". This is a different instrument, in a different language,
+reading a different property, and it names the same three doors. That is the
+strongest corroboration this lane has produced of anything.
+
+**AND UT'S SURVEY AND OUR OWN GEOMETRY CONVICT THE SAME DOOR, INDEPENDENTLY.**
+Gearing Hall's door 386 is the one UT says is up the stairs. It is also the one
+whose only main-component anchor has its door leg lying *along* a mapped
+flight, which is round 4's width test — written eighteen months of rounds
+before anybody had heard of `Celebrated_Entrances_view`, from OSM geometry
+alone. Two sources that share no code and no data agree that you cannot get a
+wheelchair to Gearing Hall's celebrated entrance. Nineteen of 22 the same way
+in the other direction.
+
+**They disagree in exactly one place, and that place is the round.** Parlin
+Hall's only door in the graph is 512, UT publishes it as not barrier-free, and
+the step-free profile walks straight to it.
+
+## R55. What was actually wrong, and it is a sentence not a route
+
+Over round 4's 300 seeded pairs:
+
+```
+STEP-FREE OFFERS TOUCHING A DOOR UT PUBLISHES AS NOT BARRIER-FREE: 2
+   ...where the building has another door in the graph : 0
+   ...where it is the building's ONLY door             : 2
+   PAR>GRE  starts at door 512 (PAR)   481 m  clean=true
+   PAR>PAC  starts at door 512 (PAR)  1382 m  clean=true
+(scale: ordinary walks touching one: 8 endpoints of 600)
+```
+
+Two of 123. Round 6 saw the same two — its own gate excused them with the
+clause *"at a building that has another door at all"*, and filed the rest under
+somebody else's missing data. Parlin's barrier-free entrance is real; UT
+describes it as *"down a ramp accessed from the northwest corner"*; it is
+simply not in `data/entrances.geojson`. **The missing door is somebody else's
+file. The green tick is ours.** A person who cannot climb stairs asked this app
+for a step-free walk to Parlin Hall, and got one, and UT's own survey says the
+door at the end of it is up a flight.
+
+### The fix, in two halves, and only one of them can move anybody
+
+`stepFreeRoute()` gains a fifth pass, after round 6's fourth, on a route that
+already has a clean step-free answer.
+
+1. **Leave by a door UT has not convicted, if the building has one.** Baked
+   anchors first, then round 5's widened ones — and the second half is not
+   optional: at the one building where this pass has anywhere to go, the door
+   it wants (Gearing Hall's 387) has *no baked anchor a step-free walk can
+   use*. The first cut of this pass tried baked anchors only, moved nobody, and
+   said so in a log line rather than in a green assertion, which is how it was
+   caught. `r` is only ever replaced by a candidate that is itself ok, clean and
+   within `stairBarrierDoorSlackM`, so no offer can become a refusal and round
+   6's door choice cannot be undone — a door UT publishes as barrier-free is by
+   construction never one it convicts.
+2. **Where it has nowhere to go, say so.** `doorBarriered` carries the door,
+   the building, which end of the walk it is, and whether it is the building's
+   only door — recomputed against the route actually being returned, so it is a
+   statement about the answer and not about an earlier draft of it.
+
+**And the sentence Citymapper has and we did not.** `doorBarrierFree` names the
+ends sitting on a door UT publishes *as* barrier-free — sf3's
+`Best Step-Free Entrance`, which §R17 said we could not honestly print. **25 of
+123 offers carry it.** It changes no route; it only names what the walk already
+chose, and it is only ever set where UT has surveyed the door.
+
+Both fields are on the offer object AND on `wayfindStairs()`'s verification
+surface, because a census that cannot see them cannot hold the code to them.
+
+### The routing half fires ZERO times today, and that is the finding
+
+`gea.mjs` drives every routable code against Gearing Hall, both directions,
+four configurations:
+
+```
+round-4 leg test, §8a off      walks 308 | on door 386   0 | on 387 308 | moved 0
+round-4 leg test, §8a ON       walks 308 | on door 386   0 | on 387 308 | moved 0
+rounds 1-3 leg test, §8a off   walks 304 | on door 386 304 | on 387   0 | moved 0
+rounds 1-3 leg test, §8a ON    walks 304 | on door 386   0 | on 387 304 | moved 304
+ PASS  SHIPPED: the step-free profile never reaches the convicted door anyway
+ PASS  CONTROL: with round 4 turned off the convicted door comes back within reach
+ PASS  ...and §8a is then the only thing that takes them off it
+ PASS  every walk it moved is still verified step-free — 304 of 304
+ PASS  the pass never turned a walk into a refusal — 304 -> 304
+```
+
+An untested branch is a branch that does not work, so the control is the point
+of that table: `stairLegOverlapMinM = Infinity` is round 4's own documented
+switch back to rounds 1-3, it puts door 386 within reach again, and §8a then
+moves all 304 walks off it — for **-8,614 m**, i.e. the accessible door is also
+the nearer one, median 28 m nearer, and not one walk got longer.
+
+On the SHIPPED build the pass is a no-op, because round 4's door-leg width test
+already keeps every step-free walk off that door. It is kept anyway: it costs
+nothing measurable (§R58), it is the only thing standing there if a re-bake
+moves an anchor, and it is what makes the negative half of UT's table mean
+something in the router rather than only in a doc.
+
+## R56. AND THE OTHER QUESTION ROUND 5 LEFT OPEN, WHICH TURNED OUT TO BE A NO
+
+Round 5's widened anchors fire only as a rescue — only when the first two
+passes cannot produce a clean walk at all. That left the obvious question
+unasked for three rounds: when the ordinary passes DO succeed, is the walk they
+found the shortest step-free walk between those two doors, or just the shortest
+one reachable from at most three baked anchors?
+
+It is the second. It also barely matters, and **that is the answer, not an
+excuse for not shipping.** `stairAltShortcut` is built, works, and is OFF.
+
+The pass is pinned to the doors the passes above already chose, so every door
+decision survives it by construction; it is accepted only if it is itself clean
+and shorter by more than `stairAltShortcutMinM`. Swept over the same 300 pairs:
+
+```
+   min    offered  refused  shortened   metres saved   max   median
+    0.001      123        9         55            292     63       3
+        1      123        9         44            281     63       3
+        5      123        9         14            206     63      13
+       10      123        9          8            167     63      14
+       15      123        9          3            101     63      22
+       25      123        9          1             63     63      63
+      100      123        9          0              0      0       0
+   100000      123        9          0              0      0       0
+```
+
+**292 m of 130,596 at an unbounded margin — 0.22 %, median 3 m, and exactly one
+walk in 123 gains more than 25 m.** Offers stay at 123 and refusals at 9 at
+EVERY rung, unbounded included, so the pass genuinely cannot take a walk away
+from anybody. The A/B at the shipped 15 m:
+
+```
+walks shorter 3 | longer 0 | identical 120 | door moved 0
+metres saved 101 of 130,596 (0.08%), worst single walk 63 m
+   GLT>HDB  1341 -> 1278 m   JGB>HRH  773 -> 751 m   BEL>UPB  594 -> 578 m
+ PASS  no step-free walk got LONGER — 0 of 123
+ PASS  the pass offered exactly the same walks — 123 vs 123
+ PASS  the pass refused exactly the same walks — 9 vs 9
+ PASS  no door changed — every door decision above §8b survives it — 0 of 123
+ PASS  every walk it moved somebody onto is still verified step-free — 123 of 123
+```
+
+**And it costs a third of the Dijkstras.** 772 `computeRoute` calls over 300
+pairs becomes 1,018, +31.9 %, and +2.5 ms on a control pair whose answer is
+byte-identical in both configurations — so that is real cost and not the five
+sibling agents. There is no cheap gate to hang it on either: only **1 of the 3**
+walks that gain more than 15 m has an anchor `cleanAnchors()` refused, so "look
+only where a door lost an anchor" predicts nothing.
+
+A third of the work for 0.08 % of the metres is a bad trade, and the honest
+report is the one this lane would want from somebody else: **`bake_walk.py`'s
+three anchors per door were already right.** One line turns it on.
+
+## R57. §R50, MADE — the card said "down the steps" and the clock charged for the climb
+
+Round 7 taught the ROUTER which way a flight goes and wrote the matching patch
+for the arithmetic out in §R50 rather than making it, on the grounds that four
+sibling lanes were in this file. `measure()` and `timeRange()` ARE the cost
+model — §3, every constant in them a cost constant — and neither open sibling
+PR touches them or the accumulator they feed, checked before touching either.
+So it is made.
+
+`measure()` now splits the descent out using `leg.nodes[i]`, the same node
+`stairLegs()` uses to print the sentence, and `timeRange()` charges
+`stairUpMult` only to metres that are not KNOWN to be downhill. **Silence is
+still billed as a climb** — the worst case is a fair assumption about a flight
+nobody has surveyed; it is not a fair assumption about one this very card has
+just called a descent. Driven over the same 300 pairs BOTH WAYS, because
+direction is the whole subject:
+
+```
+walks driven 600 (both directions of 300 seeded pairs)
+   with a mapped DESCENT on them            : 33
+   descending a known flight and climbing 0 : 33
+   with a mapped CLIMB on them              : 23
+seconds of climbing that does not happen, taken off the HIGH end: 603.0 s, worst 40.0 s
+
+printed bands that CHANGED: 8 of 600 walks (high end 8, low end 0)
+   PAC>BME   1028 m   13-18 min -> 13-17 min   descends 48.7 m, climbs 0 m
+   CBA>SJG    759 m   10-14 min -> 10-13 min   descends 50.6 m, climbs 0 m
+   TMM>GWB    821 m   11-15 min -> 11-14 min   descends 57.1 m, climbs 0 m
+   ...5 more
+ PASS  the census contains walks that descend a KNOWN flight — 33 of 600
+ PASS  no printed band got WIDER — the fix can only ever remove a climb — 0 of 8
+ PASS  the optimistic low end is untouched — it never billed a climb — 0 of 600
+ PASS  every band that moved belongs to a walk OSM says goes DOWN — 8 bands
+ PASS  the printed band is still a band, never a point — 600 of 600
+ PASS  a walk with no tagged descent is byte-identical to round 7 — 567 walks
+```
+
+`stairDownDiscount: false` restores round 7's clock exactly and is the A/B every
+number above is quoted against.
+
+### The frames, and one of them was true and unreadable at the same time
+
+ONE page load, quiet gate before every shot, `?walk=1&intro=0&drift=0`,
+`cancelGraphicsAutoDetect()`, veil waited out.
+
+| file | what it shows |
+|---|---|
+| `shots/walk/stairs/r8-A1-clock-round7.jpg` | PAC>BME, round 7's clock: **`13-18 min walk · 1.0 km · Stairs: 1 set`** |
+| `shots/walk/stairs/r8-A2-clock-round8.jpg` | identical camera, identical walk, one constant flipped: **`13-17 min`** |
+| `shots/walk/stairs/r8-B1-door386-round7-crop.png` | Gearing Hall, the walk ending at door **386** — UT: *up the stairs* |
+| `shots/walk/stairs/r8-B2-door387-round8-crop.png` | same camera, §8a on: it ends at **387** instead |
+
+Frame A is the cleanest pixel result this lane has produced: **94 px differ
+inside the card and 0 px differ anywhere else in the picture**, against a quiet
+floor the same instrument measured at 0. The walk is 1,028 m in both — this is
+the clock, not the router.
+
+Frame B needed three cuts and both failures are worth writing down.
+
+* **A frame can be true and unreadable at once.** The first cut fitted at zoom
+  18 and reported 3,751 changed pixels when the walk layers were hidden — a
+  correct measurement of a route that a human being cannot see, because a warm
+  white 1.6 m ribbon on tan ground is invisible at that scale and
+  `wayfind-thread`, the line that actually reads at a glance, is faded out
+  above `threadFadeZoom` 17.2 and gone by 18.4. Capped at zoom 17 the route is
+  a line anybody can follow. That is the house's own *"visible in the DOM is
+  not visible on camera"*, in pixels.
+* **`fitBounds` does not give you the pitch you ask for.** Passing `pitch: 0`
+  came back oblique, which puts the ground you aimed at near the bottom edge:
+  the frame was aimed at Gearing Hall and returned a picture of Norman
+  Hackerman Building with Gearing off the bottom. The fit now picks the zoom
+  and the camera is then set outright, and the pose is re-read AT THE SHUTTER
+  and printed, not at the moment it was requested.
+* **And the first version claimed a difference smaller than its own noise.** It
+  passed a quiet gate at 820 px of residual motion and then reported a 73 px
+  difference. The gate is 200 px now — round 7's 1,500 is the allowance for a
+  whole city settling after a page load, and this file loads the page once —
+  and both frames reach 0.
+
+With that fixed: the ribbon is 2,458 px and 2,404 px against a measured 0 px
+quiet floor in the two frames, and the two pictures differ by 114 px in a
+12x61 px band right at the door. Small, because 25 m of a 590 m walk is small.
+The crops are there so it can be seen rather than taken on trust.
+
+## R58. What it costs
+
+The structural number first, because five sibling agents drive browsers on this
+machine and the clock reads the neighbours — round 6 and round 7 both threw a
+stopwatch out for exactly that.
+
+```
+computeRoute calls over the same 300 seeded pairs:
+   round 7 (8a off, 8b off)     772
+   round 8a only                772  (+0, 0.0%)
+   round 8b only               1018  (+246, +31.9%)
+   round 8 shipped              772  (+0, 0.0%)
+```
+
+**§8a is free.** It only ever runs on a route with a convicted door at an end —
+2 of 300 — and at Parlin there is no other door to try, so it makes no extra
+call at all. `doorBarrierFree` costs one memoised map lookup per end.
+§R57 is arithmetic on numbers `measure()` was already walking.
+
+§8b's +31.9 % is why it is off (§R56).
+
+## R59. Where the doubt is, stated rather than buried
+
+* **The negative half of UT's table is THIN and this round does not pretend
+  otherwise.** 7 rows of 66 carry `BarrierFree = N` with coordinates, and only
+  2 survive the 8 m / 2x join. ECJ is refused on the margin — UT's accessible
+  and inaccessible entrances there are 17 m and 37 m from the same door of ours
+  — and refusing it is right, but it means a real N verdict is being dropped
+  for want of a door we can pin it to.
+* **A door with no N label is not thereby accessible. It is unsurveyed.** 24 of
+  656 doors carry any verdict at all. Everything this round says is about those
+  24 and nothing else, and the card must never round that up.
+* **PAR 512 still gets a step-free offer.** The walk to it is verified
+  step-free and the door at the end of it is not, and both halves are now on
+  the answer object. Withholding the offer was considered and rejected: UT
+  publishes a ramp at Parlin's northwest corner, so *"there is no step-free way
+  to Parlin Hall"* would be a second false sentence, and round 5 is this lane's
+  own evidence that a false refusal is as bad as a false promise. The honest
+  answer is the walk plus the caveat, and the caveat needs the card.
+* **THE CARD DOES NOT PRINT EITHER SENTENCE YET.** `stairsSection()` is the UI
+  lane's function this round and its branch is +1,881 lines in this same file;
+  writing into it would be picking a fight with work in flight. §R60 has the
+  patch, and until it lands `doorBarriered` is a fact in an object rather than
+  a sentence on a screen. That is the biggest single thing wrong with round 8
+  and it is stated here rather than buried.
+* **`utreach.py` implements only the parallel half of `legCrossesStairs()`**
+  (round 5's `anchdiag.py` did too). It is therefore a LOWER bound on dropped
+  anchors: a door leg that genuinely crosses a flight at an angle is not
+  counted, so 19 of 22 could only ever get worse, never better.
+* **Round 1 §5a and §5b, round 3 §R15, round 4 §R23, round 5 §R32 and round 7
+  §R49's 150 direction-blind flights all still stand unmade.** §R50 is made
+  (§R57); the rest are other lanes' files.
+* **`scripts/bake_ground.py` is unchanged this round**, as in rounds 2-7, and
+  round 1's fix re-verified at 189 of 189 first.
+
+## R60. A PATCH FOR THE CARD — NOT THIS LANE'S FUNCTION
+
+Everything it needs is on the object `stairsSection()` is already handed. Two
+sentences, and the negative one must never be softened into the positive one.
+
+```js
+    // ROUND 8 §R55. UT has surveyed this entrance and published a verdict.
+    // The POSITIVE sentence is Citymapper's `Best Step-Free Entrance` (sf3),
+    // and it is only ever printed where UT has actually stood in front of the
+    // door — 24 of 656 doors. The NEGATIVE one is the one that matters: it is
+    // UT saying, in prose, that the entrance is up a flight of steps, on a
+    // walk this card is about to call step-free.
+    if (alt.doorBarrierFree) {
+      for (const d of alt.doorBarrierFree) {
+        row(card, 'wf-stepfree',
+          d.end === 'end' ? 'Arrives at the barrier-free entrance UT lists.'
+                          : 'Leaves by the barrier-free entrance UT lists.');
+      }
+    }
+    if (alt.doorBarriered) {
+      for (const d of alt.doorBarriered) {
+        row(card, 'wf-nostepfree',
+          (d.end === 'end' ? 'Ends at ' : 'Starts at ') +
+          placeName(g, d.code) + ', which UT lists as NOT barrier-free' +
+          (d.only ? ' — and it is the only entrance we have for it.' : '.'));
+      }
+    }
+```
+
+`.wf-nostepfree` already exists in `STAIRS_CSS` and is already the warning
+colour. The negative row must come SECOND and must not be suppressed by the
+positive one: a walk can leave by a surveyed accessible door and arrive at a
+convicted one, and both facts belong on the card.
+
+## R61. The instruments, written out
+
+Save these beside `lib.mjs` from §R27 (`PORT` defaulted to 8813), run
+`npm install playwright-core`, start `python scripts/serve.py 8813`:
+
+```bash
+python drawn189.py /path/to/repo            # 189 of 189, before anything
+python bfneg.py   /path/to/repo             # the join, both verdicts, no browser
+python utreach.py /path/to/repo             # THE PRIOR QUESTION. §R54.
+REPO_ROOT=/path/to/repo node gate.mjs 300   # round 4's seven, on the round-8 build
+REPO_ROOT=/path/to/repo node bfneg.mjs 300  # §8a's census, five assertions
+REPO_ROOT=/path/to/repo node gea.mjs --all  # §8a's other branch, with its control
+node shortcut.mjs 300                       # §8b's A/B
+node shortcut.mjs 300 --curve               # ...and the curve it is OFF because of
+node gate8b.mjs                             # the precondition that does not exist
+node clock8.mjs 300                         # §R57, both directions
+node cost8.mjs 300 9                        # calls first, then the clock
+node frames8.mjs ./frames8                  # the four pictures
+python flagmix.py /path/to/repo             # what the flag byte actually asserts
+```
+
+`scripts/verify/` is still not this lane's directory, so the sources are below
+rather than there.
+
+### `bfneg.py`
+
+The join in python, both verdicts, no browser and nothing but the repo.
+
+```python
+"""bfneg.py — ROUND 8. The NEGATIVE half of UT's entrance survey.
+
+Round 6 joined UT's `Celebrated_Entrances_view` rows with `BarrierFree = Y`
+to our doors and moved the step-free walk onto them. The rows with
+`BarrierFree = N` -- the ones whose own field notes say "up the stairs" --
+were used only as the margin test and never as a verdict.
+
+This asks the other question with the SAME join, the same radius and the same
+margin: which of our doors is a door UT has surveyed and published as NOT
+barrier-free?
+
+Run:  python bfneg.py <repo-root>
+"""
+import json, io, re, math, sys
+from collections import defaultdict
+
+ROOT = sys.argv[1] if len(sys.argv) > 1 else '.'
+MATCH_M = 8.0      # WAYFIND.stairBarrierFreeMatchM
+MARGIN_X = 2.0     # WAYFIND.stairBarrierFreeMarginX
+
+
+def load_rows(root):
+    src = io.open(root + '/js/wayfind.js', encoding='utf-8').read()
+    m = re.search(r'const UT_ENTRANCES = \[(.*?)\n  \];', src, re.S)
+    rows = re.findall(r"\['([A-Z0-9]+)',(-?[\d\.]+),([\d\.]+),(\d)\]", m.group(1))
+    return [(a, float(b), float(c), int(d)) for a, b, c, d in rows]
+
+
+def metres(a, b):
+    R = 6371000.0
+    la = math.radians((a[1] + b[1]) / 2)
+    dx = math.radians(b[0] - a[0]) * math.cos(la) * R
+    dy = math.radians(b[1] - a[1]) * R
+    return math.hypot(dx, dy)
+
+
+def main():
+    rows = load_rows(ROOT)
+    g = json.load(io.open(ROOT + '/data/walk_graph.json', encoding='utf-8'))
+    q, d, code = g['q'], g['d'], g['code']
+    print('UT rows transcribed  : %d  (bf=Y %d, bf=N %d)' % (
+        len(rows), sum(1 for r in rows if r[3] == 1), sum(1 for r in rows if r[3] == 0)))
+    print('bf=N rows            : %s' % ', '.join(
+        '%s %.6f,%.6f' % (r[0], r[1], r[2]) for r in rows if r[3] == 0))
+
+    byc = defaultdict(list)
+    for r in rows:
+        byc[r[0]].append(r)
+
+    convict, bfree = {}, {}
+    for c, entry in code.items():
+        rs = byc.get(c)
+        if not rs:
+            continue
+        for di in entry:
+            p = (d[di][0] * q, d[di][1] * q)
+            near = min(((metres(p, (r[1], r[2])), r[3]) for r in rs), key=lambda t: t[0])
+            opp = min([metres(p, (r[1], r[2])) for r in rs if r[3] != near[1]] or [float('inf')])
+            if near[0] > MATCH_M or opp < near[0] * MARGIN_X:
+                continue
+            anch = len(d[di][2]) if d[di][2] else 0
+            rec = (di, round(near[0], 1), (round(opp, 1) if opp < 1e9 else None),
+                   d[di][4], anch)
+            (convict if near[1] == 0 else bfree).setdefault(c, []).append(rec)
+
+    print()
+    print('DOORS UT PUBLISHES AS **NOT** BARRIER-FREE  (<=%.0f m, %.0fx margin)' % (MATCH_M, MARGIN_X))
+    print('  code  door  dist  opp   role     anchors')
+    n = 0
+    for c, v in sorted(convict.items()):
+        for di, m1, m2, role, anch in v:
+            print('  %-4s  %4d  %4.1f  %-5s %-8s %d' % (c, di, m1, ('%.1f' % m2) if m2 else '-', role, anch))
+            n += 1
+    print('  total %d doors over %d buildings' % (n, len(convict)))
+    print()
+    print('positive control (round 6): bf doors %d over %d buildings' % (
+        sum(len(v) for v in bfree.values()), len(bfree)))
+    for c in sorted(convict):
+        print('  %-4s has a bf door too: %s' % (c, bfree.get(c, 'NO')))
+
+
+main()
+```
+
+### `utreach.py`
+
+**THE PRIOR QUESTION.** Round 6's `reach.py` and `anchdiag.py` run together over
+all 24 labelled doors: can a step-free walk get to the entrances UT surveyed?
+
+```python
+"""utreach.py — ROUND 8. UT publishes an entrance as barrier-free. Can a
+step-free walk on OUR graph actually get to it?
+
+Round 6 asked whether the walk went to UT's barrier-free door where one
+existed and moved 29 of 38 endpoints onto it. It never asked the prior
+question: of the doors UT has surveyed and published a verdict for, how many
+can this app's step-free profile reach AT ALL? A door nobody can reach
+step-free is a door round 6's pass can never move anybody onto, and that is
+the whole of the nine refusals it could not explain away.
+
+This is reach.py (round 6) and anchdiag.py (round 6) run together over the
+join, in python, against data/walk_graph.json only. Nothing in the browser.
+
+    python utreach.py <repo-root>
+"""
+import json, io, os, sys, math, re
+from collections import defaultdict
+
+ROOT = sys.argv[1] if len(sys.argv) > 1 else '.'
+F_STEPS, F_OFFMAIN = 1, 128
+HALF_W = 1.5          # WAYFIND.stairLegHalfWidthM
+OVERLAP_MIN = 1.5     # WAYFIND.stairLegOverlapMinM
+PAR_DEG = 20          # WAYFIND.stairLegParallelDeg
+WIDE_R = 20.0         # WAYFIND.stairAltWideRadiusM
+LEG_SAMPLE_DIV = 6
+UT_MATCH_M, UT_MARGIN = 8.0, 2.0
+MPD_LON, MPD_LAT = 96061, 111195
+
+g = json.load(io.open(os.path.join(ROOT, 'data/walk_graph.json'), encoding='utf-8'))
+Q = g['q']
+X, Y = [], []
+ax = ay = 0
+for dx, dy in zip(g['n']['x'], g['n']['y']):
+    ax += dx
+    ay += dy
+    X.append(ax * Q)
+    Y.append(ay * Q)
+N = len(X)
+E = len(g['e']['a'])
+A, B = [], []
+a = 0
+for i in range(E):
+    a += g['e']['a'][i]
+    A.append(a)
+    B.append(a + g['e']['b'][i])
+F, W, S = g['e']['f'], g['e']['w'], g['e']['s']
+D, CODE = g['d'], g['code']
+
+
+def mdist(p, q):
+    return math.hypot((p[0] - q[0]) * MPD_LON, (p[1] - q[1]) * MPD_LAT)
+
+
+# ── the step-free component structure of the app's own graph (reach.py) ────
+adj = [[] for _ in range(N)]
+for i in range(E):
+    if F[i] & F_OFFMAIN or F[i] & F_STEPS:
+        continue
+    adj[A[i]].append(B[i])
+    adj[B[i]].append(A[i])
+comp = [-1] * N
+sizes = []
+for s in range(N):
+    if comp[s] != -1:
+        continue
+    k = len(sizes)
+    stack = [s]
+    comp[s] = k
+    n = 0
+    while stack:
+        u = stack.pop()
+        n += 1
+        for v in adj[u]:
+            if comp[v] == -1:
+                comp[v] = k
+                stack.append(v)
+    sizes.append(n)
+MAIN = sizes.index(max(sizes))
+print('step-free components %d | largest %d of %d nodes (%.1f%%)'
+      % (len(sizes), max(sizes), N, 100.0 * max(sizes) / N))
+
+# ── legCrossesStairs()'s parallel half (anchdiag.py) ───────────────────────
+steps = [(A[i], B[i]) for i in range(E) if F[i] & F_STEPS]
+COS = math.cos(PAR_DEG * math.pi / 180)
+
+
+def m2(p, q):
+    return ((p[0] - q[0]) * MPD_LON, (p[1] - q[1]) * MPD_LAT)
+
+
+def seg_overlap(p1, p2, c, d, r):
+    ux, uy = m2(p2, p1)
+    L = math.hypot(ux, uy)
+    if L == 0:
+        return 0.0
+    n = max(1, int(math.ceil(L / (r / LEG_SAMPLE_DIV))))
+    step = L / n
+    vx, vy = m2(d, c)
+    vv = vx * vx + vy * vy
+    tot = 0.0
+    for i in range(n + 1):
+        t = i / n
+        px = p1[0] + (p2[0] - p1[0]) * t
+        py = p1[1] + (p2[1] - p1[1]) * t
+        wx, wy = m2((px, py), c)
+        s = 0.0 if vv == 0 else max(0.0, min(1.0, (wx * vx + wy * vy) / vv))
+        qx = c[0] + (d[0] - c[0]) * s
+        qy = c[1] + (d[1] - c[1]) * s
+        ex, ey = m2((px, py), (qx, qy))
+        if math.hypot(ex, ey) <= r:
+            tot += step
+    return tot
+
+
+def parallel(p1, p2, c, d):
+    ux, uy = m2(p2, p1)
+    vx, vy = m2(d, c)
+    lu, lv = math.hypot(ux, uy), math.hypot(vx, vy)
+    if lu == 0 or lv == 0:
+        return False
+    return abs((ux * vx + uy * vy) / (lu * lv)) >= COS
+
+
+def leg_dirty(dll, nll):
+    for (u, v) in steps:
+        p, q = (X[u], Y[u]), (X[v], Y[v])
+        if min(p[0], q[0]) - 0.001 > max(dll[0], nll[0]):
+            continue
+        if max(p[0], q[0]) + 0.001 < min(dll[0], nll[0]):
+            continue
+        if min(p[1], q[1]) - 0.001 > max(dll[1], nll[1]):
+            continue
+        if max(p[1], q[1]) + 0.001 < min(dll[1], nll[1]):
+            continue
+        if not parallel(dll, nll, p, q):
+            continue
+        if seg_overlap(dll, nll, p, q, HALF_W) >= OVERLAP_MIN:
+            return True
+    return False
+
+
+# ── the join, from the transcription in the shipped file ──────────────────
+src = io.open(os.path.join(ROOT, 'js/wayfind.js'), encoding='utf-8').read()
+blk = re.search(r'const UT_ENTRANCES = \[(.*?)\n  \];', src, re.S).group(1)
+rows = [(m[0], float(m[1]), float(m[2]), int(m[3]))
+        for m in re.findall(r"\['([A-Z0-9]+)',(-?[\d\.]+),([\d\.]+),(\d)\]", blk)]
+byc = defaultdict(list)
+for r in rows:
+    byc[r[0]].append(r)
+
+LABEL, WHY = {}, {}
+for c, entry in CODE.items():
+    rs = byc.get(c)
+    if not rs:
+        continue
+    for di in entry:
+        p = (D[di][0] * Q, D[di][1] * Q)
+        near = min(((mdist(p, (r[1], r[2])), r[3]) for r in rs), key=lambda t: t[0])
+        opp = min([mdist(p, (r[1], r[2])) for r in rs if r[3] != near[1]] or [1e18])
+        if near[0] > UT_MATCH_M or opp < near[0] * UT_MARGIN:
+            continue
+        LABEL[di] = 'Y' if near[1] == 1 else 'N'
+        WHY[di] = (c, near[0])
+
+print('UT rows %d | doors labelled %d (Y %d, N %d)'
+      % (len(rows), len(LABEL), sum(1 for v in LABEL.values() if v == 'Y'),
+         sum(1 for v in LABEL.values() if v == 'N')))
+
+# ── the question ──────────────────────────────────────────────────────────
+grid = defaultdict(list)
+CELL = 0.0006
+for i in range(N):
+    grid[(int(X[i] / CELL), int(Y[i] / CELL))].append(i)
+
+
+def wide_ok(dll):
+    """round 5's widened anchor: any node within WIDE_R on the main step-free
+    component whose straight leg is clean."""
+    dlon, dlat = WIDE_R / MPD_LON, WIDE_R / MPD_LAT
+    best = None
+    cand = []
+    for cx in range(int((dll[0] - dlon) / CELL), int((dll[0] + dlon) / CELL) + 1):
+        for cy in range(int((dll[1] - dlat) / CELL), int((dll[1] + dlat) / CELL) + 1):
+            for i in grid.get((cx, cy), ()):
+                m = mdist(dll, (X[i], Y[i]))
+                if m <= WIDE_R:
+                    cand.append((m, i))
+    cand.sort()
+    for m, i in cand[:40]:
+        if comp[i] != MAIN:
+            continue
+        if leg_dirty(dll, (X[i], Y[i])):
+            continue
+        best = (i, m)
+        break
+    return best
+
+
+print('')
+print('  verdict door bldg  baked anchors                       reachable  widened')
+rowsout = []
+for di in sorted(LABEL):
+    d = D[di]
+    dll = (d[0] * Q, d[1] * Q)
+    parts, good = [], False
+    for nd in (d[2] or []):
+        nll = (X[nd], Y[nd])
+        dirty = leg_dirty(dll, nll)
+        island = comp[nd] != MAIN
+        okk = (not dirty) and (not island)
+        good = good or okk
+        parts.append('%d%s%s' % (nd, '!' if dirty else '', '~' if island else ''))
+    w = None if good else wide_ok(dll)
+    rowsout.append((LABEL[di], di, WHY[di][0], good, w))
+    print('    %-6s %4d %-5s %-34s %-10s %s'
+          % (LABEL[di], di, WHY[di][0], ','.join(parts) or '(none)',
+             'YES' if good else 'no',
+             '-' if good else ('node %d @%.1f m' % w if w else 'NO')))
+
+print('')
+print('  ! = door leg lies along a mapped flight (dropped by cleanAnchors)')
+print('  ~ = anchor is not on the main step-free component')
+Yr = [r for r in rowsout if r[0] == 'Y']
+Nr = [r for r in rowsout if r[0] == 'N']
+print('')
+print('UT BARRIER-FREE doors reachable step-free from a BAKED anchor : %d of %d'
+      % (sum(1 for r in Yr if r[3]), len(Yr)))
+print('   ...of the rest, rescued by round 5\'s widened anchors      : %d of %d'
+      % (sum(1 for r in Yr if not r[3] and r[4]), sum(1 for r in Yr if not r[3])))
+print('   ...unreachable step-free by any means this app has         : %s'
+      % ', '.join('%s %d' % (r[2], r[1]) for r in Yr if not r[3] and not r[4]) or 'none')
+print('UT NOT-barrier-free doors the step-free profile can reach      : %s'
+      % ', '.join('%s %d (%s)' % (r[2], r[1], 'baked' if r[3] else 'widened only')
+                  for r in Nr if r[3] or r[4]) or 'none')
+print('   ...and that it cannot reach anyway                          : %s'
+      % ', '.join('%s %d' % (r[2], r[1]) for r in Nr if not r[3] and not r[4]) or 'none')
+```
+
+### `bfneg.mjs`
+
+**THE GATE for §8a.** The join, its two positive controls, and five assertions.
+
+```js
+/**
+ * bfneg.mjs — ROUND 8. The NEGATIVE half of round 6's join.
+ *
+ * Round 6 asked "does UT publish a barrier-free entrance for this building,
+ * and are we using it?" and moved 29 of 38 endpoints onto one. It also had the
+ * other half of the same table in its hands the whole time — the rows UT
+ * publishes as BarrierFree = N, whose own field notes name the barrier ("up
+ * the stairs") — and used them ONLY as the margin test for the positive
+ * verdict. Nothing has ever refused, moved off, or even mentioned a door UT
+ * itself says is up a flight of steps.
+ *
+ * This is round 6's join, run for the N verdict, over round 4's 300 seeded
+ * pairs, and asking one question: does the app hand somebody a green
+ * "step-free" walk that ENDS at a door UT publishes as not barrier-free?
+ *
+ *   node bfneg.mjs [pairs] [--off]
+ *
+ * --off turns round 8's pass off in the page (WAYFIND.stairBarrierDoor=false)
+ * and is the A/B every number is quoted against.
+ *
+ * The UT rows come from the TRANSCRIPTION already in js/wayfind.js, not from
+ * a fetched cache, so this runs with nothing but the repo. The transcription
+ * is trusted only because it reproduces two independent things first: round
+ * 6's two convictions (GEA 386, PAR 512) and docs/walk-baseline.md's 19
+ * UT-verified doors, built by another lane by another method.
+ */
+import fs from 'node:fs';
+import { open, ok } from './lib.mjs';
+
+const ROOT = process.env.REPO_ROOT || process.cwd();
+const N = Number(process.argv.find(a => /^\d+$/.test(a)) || 300);
+const OFF = process.argv.includes('--off');
+
+const UT_MATCH_M = Number(process.env.UT_MATCH_M || 8);
+const UT_MARGIN = Number(process.env.UT_MARGIN || 2.0);
+
+const MPD_LON = 96061, MPD_LAT = 111195;
+const mBetween = (a, b) => Math.hypot((a[0] - b[0]) * MPD_LON, (a[1] - b[1]) * MPD_LAT);
+
+const graph = JSON.parse(fs.readFileSync(`${ROOT}/data/walk_graph.json`, 'utf8'));
+const D = graph.d, CODE = graph.code;
+const dll = (i) => [D[i][0] * 1e-6, D[i][1] * 1e-6];
+
+// ── the transcription, read out of the shipped file rather than retyped ────
+const src = fs.readFileSync(`${ROOT}/js/wayfind.js`, 'utf8');
+const block = src.match(/const UT_ENTRANCES = \[([\s\S]*?)\n {2}\];/)[1];
+const ROWS = [...block.matchAll(/\['([A-Z0-9]+)',(-?[\d.]+),([\d.]+),(\d)\]/g)]
+  .map(m => ({ code: m[1], ll: [Number(m[2]), Number(m[3])], bf: Number(m[4]) }));
+const byBldg = new Map();
+for (const r of ROWS) {
+  if (!byBldg.has(r.code)) byBldg.set(r.code, []);
+  byBldg.get(r.code).push(r);
+}
+console.log(`UT rows transcribed ${ROWS.length} over ${byBldg.size} buildings ` +
+  `| Y ${ROWS.filter(r => r.bf === 1).length}  N ${ROWS.filter(r => r.bf === 0).length}`);
+
+const LABEL = new Map(), WHY = new Map();
+for (const [c, rows] of byBldg) {
+  for (const di of (CODE[c] || [])) {
+    const near = rows.map(r => ({ m: mBetween(dll(di), r.ll), r })).sort((a, b) => a.m - b.m);
+    const best = near[0];
+    if (best.m > UT_MATCH_M) continue;
+    const opp = near.slice(1).find(x => x.r.bf !== best.r.bf);
+    if (opp && opp.m < best.m * UT_MARGIN) continue;
+    LABEL.set(di, best.r.bf === 1 ? 'Y' : 'N');
+    WHY.set(di, { code: c, m: +best.m.toFixed(2), next: opp ? +opp.m.toFixed(1) : null,
+      role: D[di][4], siblings: (CODE[c] || []).length });
+  }
+}
+const labN = [...LABEL].filter(([, v]) => v === 'N').map(([i]) => i);
+const labY = [...LABEL].filter(([, v]) => v === 'Y').map(([i]) => i);
+console.log(`doors labelled ${LABEL.size}  |  Y ${labY.length}  N ${labN.length}`);
+for (const di of labN) {
+  const w = WHY.get(di);
+  console.log(`   N  door ${di}  ${w.code} @${w.m} m (next opposite ${w.next ?? '—'} m)  ` +
+    `role=${w.role}  the building has ${w.siblings} door(s) in the graph`);
+}
+
+// ── POSITIVE CONTROLS. Two, and neither is this round's own work. ──────────
+const CONTROL6 = [386, 512];                 // round 6's two convictions
+const c6 = CONTROL6.every(di => LABEL.get(di) === 'N') && labN.length === CONTROL6.length;
+const CONTROL = [['BUR', 306], ['ECJ', 362], ['EER', 363], ['GAR', 377],
+  ['GDC', 382], ['JES', 435], ['MAI', 463], ['MEZ', 481], ['NHB', 499],
+  ['PAI', 509], ['PAT', 513], ['PCL', 518], ['PHR', 521], ['PMA', 526],
+  ['RLP', 545], ['SZB', 594], ['UTC', 627], ['WAG', 636], ['WCH', 637]];
+let cB = 0;
+for (const [c, want] of CONTROL) {
+  const rows = byBldg.get(c) || []; let b = null;
+  for (const di of (CODE[c] || [])) for (const r of rows) {
+    const m = mBetween(dll(di), r.ll); if (!b || m < b.m) b = { di, m };
+  }
+  if (b && b.di === want) cB++;
+}
+console.log(`   control A — round 6's convictions reproduced exactly: ${c6 ? 'YES' : 'NO'}`);
+console.log(`   control B — docs/walk-baseline.md's UT-verified doors: ${cB} of ${CONTROL.length}`);
+if (!c6 || cB !== CONTROL.length) {
+  console.log('Join not trusted. Stopping before it accuses anything.');
+  process.exit(1);
+}
+
+// ── the census ────────────────────────────────────────────────────────────
+const { browser, page } = await open();
+await page.evaluate((off) => {
+  if (off && window.WAYFIND) window.WAYFIND.stairBarrierDoor = false;
+}, OFF);
+console.log(`\npairs ${N} | stairBarrierDoor=${!OFF}`);
+
+const res = await page.evaluate(async (n) => {
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code);
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const out = []; let tries = 0;
+  while (out.length < n && tries < n * 6) {
+    tries++;
+    const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+    if (a === b) continue;
+    const r = await window.wayfindStairs(a, b, {});
+    if (!r || !r.ok) continue;
+    out.push({
+      from: a, to: b, sets: r.sets, legWayCount: r.legWayCount,
+      fromDoor: r.fromDoor, toDoor: r.toDoor,
+      distM: Math.round(r.distM), stepFreeNone: !!r.stepFreeNone,
+      sf: r.stepFree ? {
+        fromDoor: r.stepFree.fromDoor, toDoor: r.stepFree.toDoor,
+        distM: Math.round(r.stepFree.distM), clean: r.stepFree.clean,
+        doorsBF: r.stepFree.doorsBF || 0,
+        barriered: r.stepFree.doorBarriered || null,
+        bfree: r.stepFree.doorBarrierFree || null,
+      } : null,
+    });
+  }
+  return out;
+}, N);
+
+const offers = res.filter(r => r.sf);
+const refused = res.filter(r => r.stepFreeNone);
+console.log(`routes ${res.length} | with a staircase ${res.filter(r => r.sets > 0).length}` +
+  ` | step-free offered ${offers.length} | no way round ${refused.length}`);
+
+const touch = [];
+for (const r of offers) {
+  for (const [role, di] of [['ends at', r.sf.toDoor], ['starts at', r.sf.fromDoor]]) {
+    if (LABEL.get(di) === 'N') touch.push({ r, role, di });
+  }
+}
+const fixable = touch.filter(t => WHY.get(t.di).siblings > 1);
+const only = touch.filter(t => WHY.get(t.di).siblings === 1);
+console.log('');
+console.log(`STEP-FREE OFFERS TOUCHING A DOOR UT PUBLISHES AS NOT BARRIER-FREE: ${touch.length}`);
+console.log(`   ...where the building has another door in the graph : ${fixable.length}`);
+console.log(`   ...where it is the building's ONLY door             : ${only.length}`);
+for (const t of touch.slice(0, 24)) {
+  console.log(`   ${t.r.from}>${t.r.to}  ${t.role} door ${t.di} (${WHY.get(t.di).code})` +
+    `  ${t.r.sf.distM} m  clean=${t.r.sf.clean}  disclosed=${t.r.sf.barriered ? 'YES' : 'no'}`);
+}
+const disclosed = touch.filter(t => t.r.sf.barriered);
+console.log(`   ...disclosed by the answer object: ${disclosed.length} of ${touch.length}`);
+
+// for scale: the ordinary walk, which is allowed to use any door
+const ord = res.reduce((n, r) =>
+  n + (LABEL.get(r.toDoor) === 'N' ? 1 : 0) + (LABEL.get(r.fromDoor) === 'N' ? 1 : 0), 0);
+console.log(`(scale: ordinary walks touching one: ${ord} endpoints of ${res.length * 2})`);
+
+const pass = [];
+pass.push(ok(fixable.length === 0,
+  'no step-free walk uses a door UT publishes as NOT barrier-free when the building has another',
+  `${fixable.length} of ${offers.length} offers`));
+pass.push(ok(only.length === disclosed.length,
+  'where it IS the only door, the answer says so instead of promising step-free silently',
+  `${disclosed.length} of ${only.length} disclosed`));
+pass.push(ok(LABEL.size >= 20 && labN.length >= 2,
+  'the join labelled doors at all (a vacuous check passes by labelling none)',
+  `${LABEL.size} doors, ${labN.length} of them N`));
+// A route is "stairy" when the router walks a flight OR one of our own two
+// door legs lies on one — `sets` alone misses the second, which is exactly the
+// family round 4 found. 132, not 127.
+const stairy = res.filter(r => r.sets > 0 || r.legWayCount > 0).length;
+pass.push(ok(offers.length + refused.length === stairy,
+  'every stairy route is either offered a way round or told there is none',
+  `${offers.length} + ${refused.length} = ${stairy}`));
+pass.push(ok(res.filter(r => r.sf && r.sf.bfree).length > 0,
+  'the answer NAMES the door where UT has published one as barrier-free (Citymapper sf3)',
+  `${res.filter(r => r.sf && r.sf.bfree).length} of ${offers.length} offers`));
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `gea.mjs`
+
+§8a's other branch, driven on purpose, with the control that makes it fire.
+
+```js
+/**
+ * gea.mjs — ROUND 8a's OTHER BRANCH, driven on purpose, with a control that
+ * makes it fire.
+ *
+ * The 300-pair census never lands on Gearing Hall, so the half of §8a that
+ * MOVES somebody off a door UT convicts is untested by it. GEA is the only
+ * building on this campus with both a convicted door (386, "Access is off
+ * 24th Street up the stairs") and another door in the graph (387), so every
+ * GEA pair is driven here, both directions, four ways.
+ *
+ * AND THE FIRST TWO RUNS FIND NOTHING, which is the round's result rather
+ * than a broken test: 386's usable anchor is dropped by round 4's door-leg
+ * width test, so the step-free profile could never reach it in the first
+ * place. UT's survey and this app's own geometry convict the same door from
+ * two directions that share no code and no data.
+ *
+ * So the control turns round 4 off — `stairLegOverlapMinM = Infinity` is the
+ * documented switch that restores rounds 1-3 exactly — which puts 386 back
+ * within reach and leaves §8a as the only thing standing between the walker
+ * and it.
+ *
+ *   node gea.mjs [--all]
+ */
+import { open, ok } from './lib.mjs';
+
+const ALL = process.argv.includes('--all');
+const { browser, page } = await open();
+
+const run = (cfg) => page.evaluate(async ({ cfg, all }) => {
+  const W = window.WAYFIND;
+  W.stairBarrierDoor = cfg.on;
+  W.stairLegOverlapMinM = cfg.round4 ? 1.5 : Infinity;
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code).filter(c => c !== 'GEA');
+  const pick = all ? codes : codes.filter((_, i) => i % 4 === 0);
+  const out = [];
+  for (const c of pick) {
+    for (const [a, b] of [['GEA', c], [c, 'GEA']]) {
+      const r = await window.wayfindStairs(a, b, {});
+      if (!r || !r.ok || !r.stepFree) continue;
+      const geaDoor = a === 'GEA' ? r.stepFree.fromDoor : r.stepFree.toDoor;
+      out.push({ k: a + '>' + b, geaDoor, distM: r.stepFree.distM,
+        clean: r.stepFree.clean, off: r.stepFree.doorsOffBarriered || 0,
+        barr386: !!(r.stepFree.doorBarriered || []).some(x => x.door === 386) });
+    }
+  }
+  return out;
+}, { cfg, all: ALL });
+
+const label = (c) => `${c.round4 ? 'round-4 leg test' : 'rounds 1-3 leg test'}, §8a ${c.on ? 'ON ' : 'off'}`;
+const cfgs = [
+  { round4: true, on: false }, { round4: true, on: true },
+  { round4: false, on: false }, { round4: false, on: true },
+];
+const R = [];
+for (const c of cfgs) {
+  const rows = await run(c);
+  R.push(rows);
+  console.log(`${label(c).padEnd(34)} walks ${String(rows.length).padStart(3)} | ` +
+    `on door 386 ${String(rows.filter(r => r.geaDoor === 386).length).padStart(3)} | ` +
+    `on 387 ${String(rows.filter(r => r.geaDoor === 387).length).padStart(3)} | ` +
+    `moved off ${rows.filter(r => r.off > 0).length} | disclosed ${rows.filter(r => r.barr386).length}`);
+}
+const [S_off, S_on, C_off, C_on] = R;
+
+// what the control's move actually costs, walk by walk
+const byK = new Map(C_off.map(r => [r.k, r]));
+let moved = 0, cost = 0, worst = 0, shown = 0;
+for (const b of C_on) {
+  const a = byK.get(b.k);
+  if (!a || a.geaDoor === b.geaDoor) continue;
+  moved++;
+  const d = b.distM - a.distM;
+  cost += d; if (d > worst) worst = d;
+  if (shown++ < 8) console.log(`   ${b.k}: door ${a.geaDoor} -> ${b.geaDoor}, ` +
+    `${Math.round(a.distM)} -> ${Math.round(b.distM)} m (${d >= 0 ? '+' : ''}${Math.round(d)})`);
+}
+if (moved) console.log(`   moved ${moved} walks off the convicted door, ` +
+  `${Math.round(cost)} m in total, worst ${Math.round(worst)} m, median ${Math.round(cost / moved)} m`);
+
+const pass = [];
+pass.push(ok(S_off.filter(r => r.geaDoor === 386).length === 0 &&
+             S_on.filter(r => r.geaDoor === 386).length === 0,
+  'SHIPPED: the step-free profile never reaches the convicted door anyway — round 4 already had it',
+  `${S_off.length} walks, 0 on door 386 with §8a off and on`));
+pass.push(ok(C_off.filter(r => r.geaDoor === 386).length > 0,
+  'CONTROL: with round 4 turned off the convicted door comes back within reach',
+  `${C_off.filter(r => r.geaDoor === 386).length} of ${C_off.length} walks`));
+pass.push(ok(C_on.filter(r => r.geaDoor === 386).length === 0,
+  '...and §8a is then the only thing that takes them off it',
+  `${C_on.filter(r => r.geaDoor === 386).length} of ${C_on.length} walks`));
+pass.push(ok(C_on.every(r => r.clean) && S_on.every(r => r.clean),
+  'every walk it moved is still verified step-free',
+  `${C_on.filter(r => r.clean).length} of ${C_on.length}`));
+pass.push(ok(C_on.length === C_off.length && S_on.length === S_off.length,
+  'the pass never turned a walk into a refusal', `${C_off.length} -> ${C_on.length}`));
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `shortcut.mjs`
+
+§8b's A/B and the curve it is switched OFF because of.
+
+```js
+/**
+ * shortcut.mjs — ROUND 8b. How much longer is the step-free walk than it has
+ * to be, and what does §8b get back?
+ *
+ * The same 300 seeded pairs rounds 4-7 use, driven twice in ONE page with the
+ * pass on and off, so the two censuses cannot differ by anything except the
+ * constant. Every offer is compared field by field, not just in total.
+ *
+ *   node shortcut.mjs [pairs] [--min N] [--curve]
+ *
+ * --curve sweeps stairAltShortcutMinM instead, which is where the shipped
+ * value is read off.
+ */
+import { open, ok } from './lib.mjs';
+
+const N = Number(process.argv.find(a => /^\d+$/.test(a)) || 300);
+const CURVE = process.argv.includes('--curve');
+const MIN = (() => { const i = process.argv.indexOf('--min'); return i > 0 ? Number(process.argv[i + 1]) : null; })();
+
+const { browser, page } = await open();
+
+const census = async (cfg) => page.evaluate(async ({ n, cfg }) => {
+  const W = window.WAYFIND;
+  W.stairAltShortcut = cfg.on;
+  if (cfg.min != null) W.stairAltShortcutMinM = cfg.min;
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code);
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const out = []; let tries = 0;
+  while (out.length < n && tries < n * 6) {
+    tries++;
+    const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+    if (a === b) continue;
+    const r = await window.wayfindStairs(a, b, {});
+    if (!r || !r.ok) continue;
+    out.push({
+      k: a + '>' + b, sets: r.sets, legWayCount: r.legWayCount,
+      distM: Math.round(r.distM), stepFreeNone: !!r.stepFreeNone,
+      sf: r.stepFree ? {
+        distM: r.stepFree.distM, clean: r.stepFree.clean,
+        fromDoor: r.stepFree.fromDoor, toDoor: r.stepFree.toDoor,
+        extraM: r.stepFree.extraM, lo: r.stepFree.lo, hi: r.stepFree.hi,
+        shortcutM: r.stepFree.shortcutM || 0,
+        barr: r.stepFree.doorBarriered ? r.stepFree.doorBarriered.map(x => x.door).join(',') : null,
+        off: r.stepFree.doorsOffBarriered || 0,
+        verts: r.stepFree.vertices,
+      } : null,
+    });
+  }
+  return out;
+}, { n: N, cfg });
+
+const summarise = (tag, rows) => {
+  const off = rows.filter(r => r.sf);
+  console.log(`${tag}: routes ${rows.length} | stairy ${rows.filter(r => r.sets > 0 || r.legWayCount > 0).length}` +
+    ` | offered ${off.length} | refused ${rows.filter(r => r.stepFreeNone).length}` +
+    ` | total step-free metres ${Math.round(off.reduce((s, r) => s + r.sf.distM, 0))}`);
+  return off;
+};
+
+if (CURVE) {
+  console.log('stairAltShortcutMinM sweep — offers, refusals, walks shortened, metres saved\n');
+  console.log('   min    offered  refused  shortened   metres saved   max   median');
+  for (const min of [0.001, 1, 5, 10, 15, 25, 50, 100, 100000]) {
+    const rows = await census({ on: true, min });
+    const off = rows.filter(r => r.sf);
+    const cut = off.filter(r => r.sf.shortcutM > 0).map(r => r.sf.shortcutM).sort((a, b) => a - b);
+    const sum = cut.reduce((s, v) => s + v, 0);
+    console.log(`  ${String(min).padStart(7)}  ${String(off.length).padStart(7)}  ` +
+      `${String(rows.filter(r => r.stepFreeNone).length).padStart(7)}  ${String(cut.length).padStart(9)}  ` +
+      `${String(Math.round(sum)).padStart(13)}  ${String(Math.round(cut[cut.length - 1] || 0)).padStart(5)}  ` +
+      `${String(Math.round(cut[cut.length >> 1] || 0)).padStart(6)}`);
+  }
+  await browser.close();
+  process.exit(0);
+}
+
+const offRows = await census({ on: false, min: MIN });
+const onRows = await census({ on: true, min: MIN });
+const A = summarise('OFF (round 7)', offRows);
+const B = summarise('ON  (round 8) ', onRows);
+
+const byK = new Map(A.map(r => [r.k, r]));
+let shorter = 0, longer = 0, same = 0, doorMoved = 0, saved = 0, worst = 0;
+const list = [];
+for (const b of B) {
+  const a = byK.get(b.k);
+  if (!a) continue;
+  const d = a.sf.distM - b.sf.distM;
+  if (d > 0.5) { shorter++; saved += d; if (d > worst) worst = d; list.push([b.k, a.sf.distM, b.sf.distM, d]); }
+  else if (d < -0.5) { longer++; list.push([b.k, a.sf.distM, b.sf.distM, d]); }
+  else same++;
+  if (a.sf.fromDoor !== b.sf.fromDoor || a.sf.toDoor !== b.sf.toDoor) doorMoved++;
+}
+list.sort((x, y) => y[3] - x[3]);
+console.log('');
+console.log(`walks shorter ${shorter} | longer ${longer} | identical ${same} | door moved ${doorMoved}`);
+console.log(`metres saved ${Math.round(saved)} of ${Math.round(A.reduce((s, r) => s + r.sf.distM, 0))} ` +
+  `(${(100 * saved / A.reduce((s, r) => s + r.sf.distM, 0)).toFixed(2)}%), worst single walk ${Math.round(worst)} m`);
+for (const [k, a, b, d] of list.slice(0, 15)) console.log(`   ${k}  ${Math.round(a)} -> ${Math.round(b)} m  (-${Math.round(d)})`);
+
+const pass = [];
+pass.push(ok(longer === 0, 'no step-free walk got LONGER', `${longer} of ${B.length}`));
+pass.push(ok(A.length === B.length, 'the pass offered exactly the same walks',
+  `${A.length} vs ${B.length}`));
+pass.push(ok(offRows.filter(r => r.stepFreeNone).length === onRows.filter(r => r.stepFreeNone).length,
+  'the pass refused exactly the same walks',
+  `${offRows.filter(r => r.stepFreeNone).length} vs ${onRows.filter(r => r.stepFreeNone).length}`));
+pass.push(ok(doorMoved === 0, 'no door changed — every door decision above §8b survives it',
+  `${doorMoved} of ${B.length}`));
+pass.push(ok(B.every(r => r.sf.clean), 'every walk it moved somebody onto is still verified step-free',
+  `${B.filter(r => r.sf.clean).length} of ${B.length}`));
+pass.push(ok(B.filter(r => r.sf.shortcutM > 0).length === shorter,
+  'the route reports the same number of shortcuts the A/B measures',
+  `${B.filter(r => r.sf.shortcutM > 0).length} vs ${shorter}`));
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `gate8b.mjs`
+
+The cheap precondition for §8b — which does not exist. 1 of 3.
+
+```js
+/** gate8b.mjs — is there a cheap precondition that predicts the shortcut? */
+import { open } from './lib.mjs';
+const { browser, page } = await open();
+const rows = await page.evaluate(async (n) => {
+  window.WAYFIND.stairAltShortcut = true;
+  window.WAYFIND.stairAltShortcutMinM = 0.001;
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code);
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const out = []; let tries = 0;
+  while (out.length < n && tries < n * 6) {
+    tries++;
+    const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+    if (a === b) continue;
+    const r = await window.wayfindStairs(a, b, {});
+    if (!r || !r.ok) continue;
+    out.push(r.stepFree ? { cut: r.stepFree.shortcutM || 0,
+      refused: r.stepFree.doorsRefused || 0, forced: !!r.stepFree.doorsForced } : null);
+  }
+  return out.filter(Boolean);
+}, 300);
+const cut = rows.filter(r => r.cut > 0);
+const big = rows.filter(r => r.cut >= 15);
+console.log(`offers ${rows.length} | shortened at all ${cut.length} | by >=15 m ${big.length}`);
+console.log(`   of those shortened, doorsRefused>0 : ${cut.filter(r => r.refused > 0).length}`);
+console.log(`   of those >=15 m,    doorsRefused>0 : ${big.filter(r => r.refused > 0).length}`);
+console.log(`   offers with doorsRefused>0 overall : ${rows.filter(r => r.refused > 0).length}`);
+console.log(`   offers with doorsForced           : ${rows.filter(r => r.forced).length}`);
+await browser.close();
+```
+
+### `clock8.mjs`
+
+§R57. Every seeded pair driven BOTH WAYS, the fix off and on in one page.
+
+```js
+/**
+ * clock8.mjs — ROUND 8 §R57. The card said "down the steps" and the clock
+ * charged for the climb.
+ *
+ * Round 7 gave the ROUTER the direction of a flight and wrote the matching
+ * patch for the arithmetic out in §R50 rather than making it. This is that
+ * patch, measured: every seeded pair driven BOTH WAYS — the direction is the
+ * whole subject, so a one-way census cannot see it — with the fix off and on
+ * in ONE page, so the two runs cannot differ by anything but the constant.
+ *
+ *   node clock8.mjs [pairs]
+ */
+import { open, ok } from './lib.mjs';
+
+const N = Number(process.argv.find(a => /^\d+$/.test(a)) || 300);
+const { browser, page } = await open();
+
+const census = (on) => page.evaluate(async ({ n, on }) => {
+  window.WAYFIND.stairDownDiscount = on;
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code);
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const out = []; let tries = 0, pairs = 0;
+  while (pairs < n && tries < n * 6) {
+    tries++;
+    const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+    if (a === b) continue;
+    const probe = await window.wayfindStairs(a, b, {});
+    if (!probe || !probe.ok) continue;
+    pairs++;
+    for (const [x, y] of [[a, b], [b, a]]) {
+      const r = x === a ? probe : await window.wayfindStairs(x, y, {});
+      if (!r || !r.ok) continue;
+      // the descent metres this walk has, read off the leg list the CARD
+      // prints — the same source the sentence "down the steps" comes from.
+      const dn = (r.list || []).filter(s => s.dir === 'down').reduce((s, v) => s + v.m, 0);
+      const up = (r.list || []).filter(s => s.dir === 'up').reduce((s, v) => s + v.m, 0);
+      out.push({ k: x + '>' + y, sets: r.sets, lo: r.lo, hi: r.hi,
+        distM: Math.round(r.distM), dn: +dn.toFixed(1), up: +up.toFixed(1) });
+    }
+  }
+  return out;
+}, { n: N, on });
+
+const A = await census(false);   // round 7's clock
+const B = await census(true);    // round 8's
+const tune = await page.evaluate(() => ({
+  stairSpeed: window.WAYFIND.stairSpeed, up: window.WAYFIND.stairUpMult,
+  fixed: window.WAYFIND.stairFixedS }));
+
+console.log(`walks driven ${A.length} (both directions of ${N} seeded pairs)`);
+const withDown = A.filter(r => r.dn > 0);
+const pureDown = A.filter(r => r.dn > 0 && r.up === 0);
+console.log(`   with a mapped DESCENT on them            : ${withDown.length}`);
+console.log(`   descending a known flight and climbing 0 : ${pureDown.length}`);
+console.log(`   with a mapped CLIMB on them              : ${A.filter(r => r.up > 0).length}`);
+
+let secs = 0, worst = 0, worstK = '';
+for (const r of withDown) {
+  const s = (r.dn * (tune.up - 1)) / tune.stairSpeed;
+  secs += s;
+  if (s > worst) { worst = s; worstK = r.k; }
+}
+console.log(`seconds of climbing that does not happen, taken off the HIGH end: ` +
+  `${secs.toFixed(1)} s total, worst ${worst.toFixed(1)} s (${worstK})`);
+console.log(`   (stairSpeed ${tune.stairSpeed} m/s, stairUpMult ${tune.up} — both read out of the page)`);
+
+const byK = new Map(A.map(r => [r.k, r]));
+let moved = 0, wider = 0, loMoved = 0;
+const list = [];
+for (const b of B) {
+  const a = byK.get(b.k);
+  if (!a) continue;
+  if (a.lo !== b.lo) loMoved++;
+  if (a.hi !== b.hi) {
+    moved++;
+    if (b.hi > a.hi) wider++;
+    list.push([b.k, a.lo, a.hi, b.lo, b.hi, a.dn, a.up, a.distM]);
+  }
+}
+console.log('');
+console.log(`printed bands that CHANGED: ${moved} of ${B.length} walks (high end ${moved}, low end ${loMoved})`);
+for (const [k, alo, ahi, blo, bhi, dn, up, d] of list.slice(0, 12)) {
+  console.log(`   ${k.padEnd(10)} ${d} m   ${alo}-${ahi} min  ->  ${blo}-${bhi} min` +
+    `   descends ${dn} m, climbs ${up} m`);
+}
+
+const pass = [];
+pass.push(ok(withDown.length > 0,
+  'the census contains walks that descend a KNOWN flight (otherwise it proves nothing)',
+  `${withDown.length} of ${A.length}`));
+pass.push(ok(wider === 0, 'no printed band got WIDER — the fix can only ever remove a climb',
+  `${wider} of ${moved} changed`));
+pass.push(ok(loMoved === 0, 'the optimistic low end is untouched — it never billed a climb',
+  `${loMoved} of ${B.length}`));
+pass.push(ok(list.every(([, , , , , dn]) => dn > 0),
+  'every band that moved belongs to a walk OSM says goes DOWN', `${list.length} bands`));
+pass.push(ok(B.every(r => r.hi > r.lo), 'the printed band is still a band, never a point',
+  `${B.filter(r => r.hi > r.lo).length} of ${B.length}`));
+pass.push(ok(A.filter(r => r.dn === 0).every(r => {
+  const b = B.find(x => x.k === r.k); return b && b.lo === r.lo && b.hi === r.hi;
+}), 'a walk with no tagged descent is byte-identical to round 7',
+  `${A.filter(r => r.dn === 0).length} walks`));
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `cost8.mjs`
+
+What round 8 costs: the Dijkstra count first, then the clock with its control.
+
+```js
+/**
+ * cost8.mjs — what round 8 costs, counted before it is timed.
+ *
+ * The stopwatch has been thrown out twice on this lane (round 6, round 7) for
+ * the same reason: five sibling agents drive browsers on this machine and the
+ * clock reads the neighbours. So the STRUCTURAL number comes first — how many
+ * Dijkstras each pair costs — because that one cannot be moved by load. Then
+ * the clock, interleaved, minimum of reps, against a control pair whose answer
+ * is asserted byte-identical in both configurations before either time is
+ * read.
+ *
+ *   node cost8.mjs [pairs] [reps]
+ */
+import { open, ok } from './lib.mjs';
+
+const N = Number(process.argv[2] || 300);
+const REPS = Number(process.argv[3] || 9);
+const { browser, page } = await open();
+
+// ── 1. THE STRUCTURAL COST, over the whole seeded census ───────────────────
+const calls = await page.evaluate(async (n) => {
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code);
+  const mk = () => { let s = 12345; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; };
+  const modes = {
+    'round 7 (8a off, 8b off)': { a: false, b: false },
+    'round 8a only': { a: true, b: false },
+    'round 8b only': { a: false, b: true },
+    'round 8 shipped': { a: true, b: true },
+  };
+  const out = {};
+  for (const [name, cfg] of Object.entries(modes)) {
+    window.WAYFIND.stairBarrierDoor = cfg.a;
+    window.WAYFIND.stairAltShortcut = cfg.b;
+    const rnd = mk();
+    let tries = 0, done = 0;
+    const before = window.wayfindStats().timings.routes;
+    while (done < n && tries < n * 6) {
+      tries++;
+      const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+      if (a === b) continue;
+      const r = await window.wayfindStairs(a, b, {});
+      if (!r || !r.ok) continue;
+      done++;
+    }
+    out[name] = { routes: done, calls: window.wayfindStats().timings.routes - before };
+  }
+  return out;
+}, N);
+const base = calls['round 7 (8a off, 8b off)'].calls;
+console.log(`computeRoute calls over the same ${N} seeded pairs:`);
+for (const [k, v] of Object.entries(calls)) {
+  console.log(`   ${k.padEnd(26)} ${String(v.calls).padStart(5)}  ` +
+    `(${v.calls >= base ? '+' : ''}${v.calls - base}, ${((100 * (v.calls - base)) / base).toFixed(1)}%)  ` +
+    `over ${v.routes} routes`);
+}
+
+// ── 2. THE CLOCK, with its control ─────────────────────────────────────────
+// PAR>PAC is the pair §8a actually touches; GEA>JON is the control, chosen
+// because its answer is identical in both configurations.
+const PAIRS = [['PAR', 'PAC'], ['GEA', 'JON']];
+const times = await page.evaluate(async ({ pairs, reps }) => {
+  const key = (r) => !r || !r.ok ? 'x' : JSON.stringify([r.distM, r.fromDoor, r.toDoor,
+    r.stepFree && [r.stepFree.distM, r.stepFree.fromDoor, r.stepFree.toDoor]]);
+  const out = {};
+  for (const [a, b] of pairs) {
+    const k = `${a}>${b}`;
+    out[k] = { off: [], on: [], same: null };
+    const seen = {};
+    for (let i = 0; i < reps; i++) {
+      for (const mode of ['off', 'on']) {
+        window.WAYFIND.stairBarrierDoor = (mode === 'on');
+        window.WAYFIND.stairAltShortcut = (mode === 'on');
+        const t = performance.now();
+        const r = await window.wayfindStairs(a, b, {});
+        out[k][mode].push(performance.now() - t);
+        seen[mode] = key(r);
+      }
+    }
+    out[k].same = seen.off === seen.on;
+  }
+  return out;
+}, { pairs: PAIRS, reps: REPS });
+
+console.log('');
+console.log(`the clock, ${REPS} interleaved reps, MINIMUM of each (the house rule):`);
+const pass = [];
+for (const [k, v] of Object.entries(times)) {
+  const lo = (a) => Math.min(...a);
+  console.log(`   ${k.padEnd(10)} answer identical both ways: ${v.same ? 'YES' : 'NO — do not read the times'}` +
+    `   off ${lo(v.off).toFixed(2)} ms   on ${lo(v.on).toFixed(2)} ms   ` +
+    `(${(lo(v.on) - lo(v.off) >= 0 ? '+' : '')}${(lo(v.on) - lo(v.off)).toFixed(2)})`);
+}
+pass.push(ok(times['GEA>JON'].same,
+  'the control pair answers identically in both configurations, so its drift is the instrument\'s',
+  ''));
+pass.push(ok(calls['round 8 shipped'].routes === calls['round 7 (8a off, 8b off)'].routes,
+  'the same routes completed in every configuration',
+  `${calls['round 8 shipped'].routes} vs ${calls['round 7 (8a off, 8b off)'].routes}`));
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `frames8.mjs`
+
+The four pictures, quiet floor first, pose re-read at the shutter.
+
+```js
+/**
+ * frames8.mjs — ROUND 8 in two pictures, proved in PIXELS, noise floor first.
+ *
+ * ONE page load, so the only thing that can move between frames is the thing
+ * being changed. Quiet gate before every shot. The card is an HTML overlay
+ * whose TEXT is the subject of frame 1 and NOT the subject of frame 2, so it
+ * is measured in frame 1 and excluded from frame 2.
+ *
+ *   A  §R57  PAC>BME, stairDownDiscount off then on. The card prints the leg
+ *            "down the steps" and the clock stops charging for the climb:
+ *            13-18 min becomes 13-17.
+ *   B  §8a   GEA>ADH under rounds 1-3's leg test (the control config that puts
+ *            the convicted door back within reach), §8a off then on. The walk
+ *            leaves Gearing Hall by 387 instead of the door UT publishes as
+ *            "up the stairs", and the ribbon moves.
+ *
+ *   node frames8.mjs [outdir]
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { open, shot, ok } from './lib.mjs';
+
+const OUT = process.argv[2] || './frames8';
+fs.mkdirSync(OUT, { recursive: true });
+const W = 1100, H = 700;
+const WALK_LAYERS = ['wayfind-ribbon', 'wayfind-ghost', 'wayfind-thread', 'wayfind-column'];
+const DIFF_STRICT = 120;
+// THE QUIET GATE IS TIGHTER THAN ROUND 7's AND IT HAD TO BE. 1500 px is the
+// allowance for a whole city settling after a page load; this file loads the
+// page ONCE and only moves the camera, and the difference frame B is about is
+// 25 m of a 590 m walk. The first cut passed its gate at 820 px of residual
+// motion and then claimed a 73 px difference -- a claim smaller than its own
+// noise. 200 px, and both frames reach 0.
+const QUIET_GAP_MS = 700, QUIET_PX = 200, QUIET_TRIES = 30;
+const PAD_M = 60, DIVERGE_M = 20;
+
+const { browser, page } = await open({ w: W, h: H });
+
+const grab = async (name) => { const p = path.join(OUT, name + '.png'); await shot(page, p); return p; };
+const diff = async (pa, pb, excl, only) => {
+  const a = 'data:image/png;base64,' + fs.readFileSync(pa).toString('base64');
+  const b = 'data:image/png;base64,' + fs.readFileSync(pb).toString('base64');
+  return page.evaluate(async ([sa, sb, TH, EX, ON]) => {
+    const load = (s) => new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = s; });
+    const [ia, ib] = await Promise.all([load(sa), load(sb)]);
+    const c = document.createElement('canvas'); c.width = ia.width; c.height = ia.height;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(ia, 0, 0); const A = x.getImageData(0, 0, c.width, c.height).data;
+    x.clearRect(0, 0, c.width, c.height);
+    x.drawImage(ib, 0, 0); const B = x.getImageData(0, 0, c.width, c.height).data;
+    let n = 0, n24 = 0, x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+    for (let i = 0; i < A.length; i += 4) {
+      const p = (i / 4) | 0, px = p % c.width, py = (p / c.width) | 0;
+      if (EX && px >= EX[0] && px <= EX[2] && py >= EX[1] && py <= EX[3]) continue;
+      if (ON && !(px >= ON[0] && px <= ON[2] && py >= ON[1] && py <= ON[3])) continue;
+      const d = Math.abs(A[i] - B[i]) + Math.abs(A[i + 1] - B[i + 1]) + Math.abs(A[i + 2] - B[i + 2]);
+      if (d >= 24) n24++;
+      if (d < TH) continue;
+      n++;
+      if (px < x0) x0 = px; if (px > x1) x1 = px;
+      if (py < y0) y0 = py; if (py > y1) y1 = py;
+    }
+    return { n, n24, bbox: [x0, y0, x1, y1] };
+  }, [a, b, DIFF_STRICT, excl || null, only || null]);
+};
+
+async function quiet(tag) {
+  for (let i = 0; i < QUIET_TRIES; i++) {
+    const p1 = await grab(`${tag}-q1`);
+    await page.waitForTimeout(QUIET_GAP_MS);
+    const p2 = await grab(`${tag}-q2`);
+    const d = await diff(p1, p2);
+    fs.unlinkSync(p1);
+    if (d.n <= QUIET_PX) return { tries: i + 1, n: d.n, still: p2 };
+    fs.unlinkSync(p2);
+  }
+  throw new Error(`${tag}: scene never went quiet`);
+}
+
+const cardOf = () => page.evaluate(() => {
+  const c = document.getElementById('wf-pill');
+  if (!c) return null;
+  const r = c.getBoundingClientRect();
+  return { text: c.innerText.replace(/\n+/g, ' | ').slice(0, 400),
+    rect: [Math.max(0, Math.floor(r.x) - 4), Math.max(0, Math.floor(r.y) - 4),
+      Math.ceil(r.right) + 4, Math.ceil(r.bottom) + 4] };
+});
+
+/** camera: the ground where two walks put a person in different places */
+const camFor = (lineA, lineB) => page.evaluate(([a, b, dm]) => {
+  const MPD_LON = 96061, MPD_LAT = 111195;
+  const far = (p, L) => {
+    let best = 1e9;
+    for (const q of L) {
+      const d = Math.hypot((p[0] - q[0]) * MPD_LON, (p[1] - q[1]) * MPD_LAT);
+      if (d < best) best = d;
+    }
+    return best;
+  };
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  const add = (p) => { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; };
+  for (const p of b) if (far(p, a) > dm) add(p);
+  for (const p of a) if (far(p, b) > dm) add(p);
+  if (x1 < x0) { for (const p of a) add(p); }
+  return [x0, y0, x1, y1];
+}, [lineA, lineB, DIVERGE_M]);
+
+// MAX ZOOM 17, AND IT IS NOT A TASTE CHOICE. The first cut of frame B fitted
+// at zoom 18 and the walk was INVISIBLE to the eye at 3,751 changed pixels —
+// a warm-white 1.6 m ribbon on tan ground, and `wayfind-thread`, the line that
+// actually reads at a glance, is faded out above `threadFadeZoom` 17.2 and
+// gone by 18.4. So the frame was true and unreadable at the same time, which
+// is the house's own "visible in the DOM is not visible on camera" written in
+// pixels. Below 17.2 the thread is at full opacity and the route is a line
+// anybody can follow.
+const MAX_Z = 17;
+// ...AND `fitBounds` DOES NOT GIVE YOU THE PITCH YOU ASK FOR. The first cut
+// passed `pitch: 0` and the frame came back oblique, which puts the ground you
+// aimed at near the bottom edge instead of the middle: frame B was framed on
+// Gearing Hall and returned a picture of Norman Hackerman Building with
+// Gearing off the bottom. So the fit is used only to pick the ZOOM, and the
+// camera is then set outright.
+const fit = (bb, pad) => page.evaluate(([b, p, mz]) => {
+  const dx = p / 96061, dy = p / 111195;
+  const m = window.__map;
+  m.fitBounds([[b[0] - dx, b[1] - dy], [b[2] + dx, b[3] + dy]],
+    { padding: 10, duration: 0, pitch: 0, maxZoom: mz });
+  m.jumpTo({ center: [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2],
+    zoom: Math.min(mz, m.getZoom()), pitch: 0, bearing: 0 });
+  return { z: +m.getZoom().toFixed(3), pitch: m.getPitch(), bearing: m.getBearing(),
+    c: m.getCenter().toArray().map(v => +v.toFixed(6)) };
+}, [bb, pad == null ? PAD_M : pad, MAX_Z]);
+
+const setCfg = (cfg) => page.evaluate((c) => { Object.assign(window.WAYFIND, c); }, cfg);
+const route = (f, t) => page.evaluate(async ([a, b]) => {
+  await window.wayfindRoute(a, b);
+  const r = window.wayfindStairs();
+  return r ? { distM: Math.round(r.distM), sets: r.sets, lo: r.lo, hi: r.hi,
+    fromDoor: r.fromDoor, toDoor: r.toDoor,
+    dirs: (r.list || []).map(x => x.dir),
+    sf: r.stepFree ? { fromDoor: r.stepFree.fromDoor, toDoor: r.stepFree.toDoor,
+      distM: r.stepFree.distM, barr: r.stepFree.doorBarriered, off: r.stepFree.doorsOffBarriered } : null } : null;
+}, [f, t]);
+
+const pass = [];
+
+// ══ A. §R57 — the card says "down the steps" and the clock stops charging ══
+console.log('A  §R57  PAC>BME — the printed band, with the descent billed as a climb and not');
+await setCfg({ stairDownDiscount: false });
+const aAns = await route('PAC', 'BME');
+const aLine = await page.evaluate(async () => (await window.wayfindStairs('PAC', 'BME', { geom: true })).geom.line);
+await fit(await camFor(aLine, aLine));
+let q = await quiet('A-off');
+const cardOff = await cardOf();
+await page.screenshot({ path: path.join(OUT, 'r8-A1-clock-round7.jpg'), type: 'jpeg', quality: 80 });
+const stillOff = q.still;
+
+await setCfg({ stairDownDiscount: true });
+const aAns2 = await route('PAC', 'BME');
+q = await quiet('A-on');
+const cardOn = await cardOf();
+await page.screenshot({ path: path.join(OUT, 'r8-A2-clock-round8.jpg'), type: 'jpeg', quality: 80 });
+const cardDiff = await diff(stillOff, q.still, null, cardOff.rect);
+const mapDiff = await diff(stillOff, q.still, cardOff.rect, null);
+fs.unlinkSync(stillOff); fs.unlinkSync(q.still);
+console.log(`   round 7 clock: ${aAns.lo}-${aAns.hi} min, ${aAns.distM} m, dirs ${JSON.stringify(aAns.dirs)}`);
+console.log(`   round 8 clock: ${aAns2.lo}-${aAns2.hi} min, ${aAns2.distM} m`);
+console.log(`   card off : ${cardOff.text}`);
+console.log(`   card on  : ${cardOn.text}`);
+console.log(`   pixels: inside the card ${cardDiff.n} strict (${cardDiff.n24} loose), ` +
+  `everywhere else ${mapDiff.n} strict (${mapDiff.n24} loose)`);
+pass.push(ok(aAns.hi !== aAns2.hi, 'the printed high end actually moved',
+  `${aAns.lo}-${aAns.hi} -> ${aAns2.lo}-${aAns2.hi} min`));
+pass.push(ok(aAns.dirs.includes('down'), 'the card really is calling this flight a descent',
+  JSON.stringify(aAns.dirs)));
+pass.push(ok(cardDiff.n > 0, 'the change is VISIBLE — the card\'s own pixels differ',
+  `${cardDiff.n} px`));
+pass.push(ok(mapDiff.n <= QUIET_PX, 'and nothing else in the picture moved',
+  `${mapDiff.n} px outside the card, quiet floor ${QUIET_PX}`));
+pass.push(ok(aAns.distM === aAns2.distM, 'the WALK is byte-identical — this is the clock, not the router',
+  `${aAns.distM} m both ways`));
+
+// ══ B. §8a — the walk leaves by the door UT has not convicted ══════════════
+console.log('');
+console.log('B  §8a  GEA>ADH — off the door UT publishes as "up the stairs"');
+console.log('   (under rounds 1-3\'s door-leg test, the config that puts door 386 back in reach;');
+console.log('    on the SHIPPED test round 4 already keeps every step-free walk off it)');
+await setCfg({ stairLegOverlapMinM: Infinity, stairBarrierDoor: false });
+// the two Gearing Hall doors, straight out of the graph the app loaded
+await page.evaluate(async () => {
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  window.__gdoors = g.code['GEA'].map(di => [g.d[di][0] * g.q, g.d[di][1] * g.q]);
+});
+const bOff = await route('GEA', 'ADH');
+const bLineOff = await page.evaluate(async () => {
+  const r = await window.wayfindStairs('GEA', 'ADH', { geom: true });
+  return r.stepFree ? r.stepFree.geom.line : r.geom.line;
+});
+await setCfg({ stairBarrierDoor: true });
+const bOn = await route('GEA', 'ADH');
+const bLineOn = await page.evaluate(async () => {
+  const r = await window.wayfindStairs('GEA', 'ADH', { geom: true });
+  return r.stepFree ? r.stepFree.geom.line : r.geom.line;
+});
+// THE CAMERA IS DERIVED AND THE FIRST CUT OF IT WAS POINTING AT THE WRONG
+// BUILDING. "Where the two walks diverge by more than 20 m" put the frame at
+// Almetris Duren Hall, because the arrival door moves too and moves further.
+// The subject of §8a is the DEPARTURE door, so the camera is the two Gearing
+// Hall doors plus every metre of either walk within GEA_NEAR_M of them.
+const GEA_NEAR_M = 120;
+const camB = await page.evaluate(([a, b, near]) => {
+  const MPD_LON = 96061, MPD_LAT = 111195;
+  const g = window.__map;
+  const doors = [386, 387];
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  const add = (p) => { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; };
+  const D = window.__gdoors;
+  for (const d of D) add(d);
+  for (const line of [a, b]) for (const p of line) {
+    for (const d of D) {
+      if (Math.hypot((p[0] - d[0]) * MPD_LON, (p[1] - d[1]) * MPD_LAT) <= near) { add(p); break; }
+    }
+  }
+  return [x0, y0, x1, y1];
+}, [bLineOff, bLineOn, GEA_NEAR_M]);
+console.log(`   camera bbox (both Gearing Hall doors + ${GEA_NEAR_M} m of each walk): ${JSON.stringify(camB)}`);
+
+// the ground the two walks disagree about, padded, read off the first A/B run
+const CROP = [560, 250, 780, 470];
+const frameB = async (tag, on) => {
+  await setCfg({ stairBarrierDoor: on });
+  const ans = await page.evaluate(async () => {
+    await window.wayfindRoute('GEA', 'ADH', { avoidStairs: true });
+    const r = window.wayfindStairs();
+    return { distM: Math.round(r.distM), fromDoor: r.fromDoor, toDoor: r.toDoor,
+      sets: r.sets, lo: r.lo, hi: r.hi };
+  });
+  const camState = await fit(camB);
+  console.log(`      camera z=${camState.z} pitch=${camState.pitch} bearing=${camState.bearing} c=${JSON.stringify(camState.c)}`);
+  const qq = await quiet(tag);
+  const card = await cardOf();
+  const pose = await page.evaluate(() => ({ z: +window.__map.getZoom().toFixed(3),
+    pitch: +window.__map.getPitch().toFixed(1), bearing: +window.__map.getBearing().toFixed(1),
+    c: window.__map.getCenter().toArray().map(v => +v.toFixed(6)) }));
+  console.log(`      pose AT THE SHUTTER: z=${pose.z} pitch=${pose.pitch} bearing=${pose.bearing} c=${JSON.stringify(pose.c)}`);
+  await page.screenshot({ path: path.join(OUT, `r8-${tag}.jpg`), type: 'jpeg', quality: 80 });
+  // ...and a crop of the ground the two answers disagree about, because a
+  // 25 m difference inside a 567 m frame is true and unreadable at once.
+  await page.screenshot({ path: path.join(OUT, `r8-${tag}-crop.png`),
+    clip: { x: CROP[0], y: CROP[1], width: CROP[2] - CROP[0], height: CROP[3] - CROP[1] } });
+  // mask: the same camera with the walk layers off, so "is the ribbon on screen"
+  // is measured rather than assumed
+  await page.evaluate((ls) => { for (const l of ls) if (window.__map.getLayer(l)) window.__map.setLayoutProperty(l, 'visibility', 'none'); }, WALK_LAYERS);
+  await page.waitForTimeout(QUIET_GAP_MS);
+  const offp = await grab(`${tag}-hidden`);
+  await page.evaluate((ls) => { for (const l of ls) if (window.__map.getLayer(l)) window.__map.setLayoutProperty(l, 'visibility', 'visible'); }, WALK_LAYERS);
+  await page.waitForTimeout(QUIET_GAP_MS);
+  const mask = await diff(qq.still, offp, card.rect, null);
+  fs.unlinkSync(offp);
+  console.log(`   ${tag}: door ${ans.fromDoor} -> ${ans.toDoor}, ${ans.distM} m, ${ans.lo}-${ans.hi} min` +
+    ` | quiet ${qq.n} px | ribbon ${mask.n} px strict bbox ${JSON.stringify(mask.bbox)}`);
+  console.log(`      card: ${card.text}`);
+  return { ans, still: qq.still, mask, card, quiet: qq.n };
+};
+
+const B1 = await frameB('B1-door386-round7', false);
+const B2 = await frameB('B2-door387-round8', true);
+const bDiff = await diff(B1.still, B2.still, B1.card.rect, null);
+fs.unlinkSync(B1.still); fs.unlinkSync(B2.still);
+console.log(`   the two ribbons differ by ${bDiff.n} px strict (${bDiff.n24} loose) ` +
+  `bbox ${JSON.stringify(bDiff.bbox)}, card excluded`);
+pass.push(ok(B1.ans.fromDoor === 386 && B2.ans.fromDoor === 387,
+  'the walk left by the convicted door and then by the other one',
+  `${B1.ans.fromDoor} -> ${B2.ans.fromDoor}`));
+// THE BAR IS THE MEASURED FLOOR, NOT THE CONSTANT. QUIET_PX 1500 is the
+// allowance for a whole city still settling; these two frames measured their
+// own quiet at B1 and B2 above, and on a static scene that is the number a
+// pixel claim has to clear. MIN_WALK_PX is a ribbon's worth of pixels.
+const MIN_WALK_PX = 300;
+// ...and the bar for "the two frames are different pictures" is separate and
+// smaller, because the two walks share every metre except the last stretch
+// into the door: that stretch is the whole subject and it is 25 m of a 590 m
+// walk. 100 px against a measured 0 px quiet floor is signal, not settling.
+const DIFF_MIN_PX = 50;
+pass.push(ok(B1.mask.n > MIN_WALK_PX && B2.mask.n > MIN_WALK_PX,
+  'THE SUBJECT IS ON SCREEN — hiding the walk layers changes the picture in both frames',
+  `${B1.mask.n} px and ${B2.mask.n} px, against measured quiet of ${B1.quiet} and ${B2.quiet} px`));
+pass.push(ok(bDiff.n > DIFF_MIN_PX,
+  'and the two frames are genuinely different pictures, not the same one twice',
+  `${bDiff.n} px, against measured quiet of ${B1.quiet} and ${B2.quiet} px`));
+
+for (const f of fs.readdirSync(OUT)) if (/-q2\.png$|-q1\.png$|-hidden\.png$/.test(f)) {
+  try { fs.unlinkSync(path.join(OUT, f)); } catch (e) {}
+}
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `flagmix.py`
+
+What the flag byte actually asserts, edge by edge. 0 stepped edges carry
+`wheelchair=yes`, so the step-free profile is not refusing a way OSM calls
+accessible; 21 of 189 flights are `F_OFFMAIN`, which is exactly 189 - 168.
+
+```python
+"""flagmix.py — what the flag byte actually asserts, edge by edge.
+
+e.f: 1 steps, 2 crossing, 4 signalled, 8 incline-up-a-to-b, 16 bridge,
+32 covered, 64 wheelchair=yes, 128 off-main-component.
+"""
+import json, io, sys
+from collections import defaultdict
+
+ROOT = sys.argv[1] if len(sys.argv) > 1 else '.'
+g = json.load(io.open(ROOT + '/data/walk_graph.json', encoding='utf-8'))
+e = g['e']
+A = []
+a = 0
+for d in e['a']:
+    a += d
+    A.append(a)
+F, W, S = e['f'], e['w'], e['s']
+E = len(A)
+
+NAMES = [(1, 'steps'), (2, 'crossing'), (4, 'signal'), (8, 'up_ab'),
+         (16, 'bridge'), (32, 'covered'), (64, 'wheelchair'), (128, 'offmain')]
+tot = defaultdict(int)
+mlen = defaultdict(float)
+for i in range(E):
+    for b, n in NAMES:
+        if F[i] & b:
+            tot[n] += 1
+            mlen[n] += W[i] / 100.0
+print('edges %d, %.1f km' % (E, sum(W) / 100.0 / 1000))
+for b, n in NAMES:
+    print('  %-11s %5d edges  %8.1f m' % (n, tot[n], mlen[n]))
+
+print()
+print('CROSS-TABULATION AGAINST steps')
+steps = [i for i in range(E) if F[i] & 1]
+for b, n in NAMES:
+    if b == 1:
+        continue
+    k = [i for i in steps if F[i] & b]
+    print('  steps AND %-11s %4d edges  %7.1f m  %d ways' % (
+        n, len(k), sum(W[i] / 100.0 for i in k), len(set(S[i] for i in k))))
+
+print()
+print('WHEELCHAIR=YES EDGES THAT ARE ALSO steps (the step-free profile refuses these):')
+for i in steps:
+    if F[i] & 64:
+        print('   edge %d  way %d  %.1f m  flags %d' % (i, S[i], W[i] / 100.0, F[i]))
+
+print()
+print('STEPPED WAYS BY PLAN LENGTH (the router prices every one of these as impassable)')
+byway = defaultdict(float)
+for i in steps:
+    byway[S[i]] += W[i] / 100.0
+ls = sorted(byway.values())
+buckets = [(0, 1), (1, 2), (2, 4), (4, 8), (8, 16), (16, 32), (32, 1e9)]
+for lo, hi in buckets:
+    n = sum(1 for v in ls if lo <= v < hi)
+    print('   %5.0f - %-6.0f m : %3d ways' % (lo, hi if hi < 1e9 else 999, n))
+print('   total %d ways, %.0f m, median %.1f m' % (len(ls), sum(ls), ls[len(ls) // 2]))
+```
