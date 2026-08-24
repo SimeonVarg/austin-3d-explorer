@@ -64,3 +64,33 @@ The non-`-city` frames have the five tree and canopy layers hidden so the ground
 is the subject. The filter is `/^trees-|canopy/` and NOT `/tree|canop/i`: the
 loose one also matches s-**tree**-t and hid `bridge_street` and both
 night-streetlight layers in frames that are evidence about streets.
+
+## `rim-` — a mall's OUTLINE is a walk too
+
+Round 3, 2026-08-24, port 8812. Same camera, same route, only
+`data/ground.geojson` swapped: **`-before`** is this branch as round 2 left it,
+**`-after`** is the same bake with `PEDESTRIAN_RIM_IS_A_WALK`. See
+`docs/walk-sidewalks.md` §12–§14.
+
+The router walks the RIM of the 41 `highway=pedestrian area=yes` rings, because
+`bake_walk.py` puts a closed way into the graph as a ring of edges — but this
+bake was painting only the polygon, so the ribbon's outer rail hung over nothing
+for 7.1 km of rim. 88 % of every bare metre in the twenty routes was on one of
+those outlines, and 87 % of it within five centimetres of paving.
+
+* `rim-pcljes-before` / `-after` — **the pair to look at.** PCL → Jester. The
+  mall's hairline edge becomes a proper paved border and the ribbon sits on it.
+* `rim-pcljes-diff` — the same pair as a change mask, dimmed original with every
+  changed pixel in red. Everything bright is the hem; the speckle on other walks
+  is one-pixel pattern phase, accounted for in §14.
+* `rim-city-before` / `-after` — **the control.** A 1.2 m hem round 41 malls must
+  not read as a halo at the scale a person looks at the city. It does not; the
+  two frames are indistinguishable by eye.
+
+Poses are derived offline **from the router itself** — each sits on the midpoint
+of that route's longest bare run measured against the `-before` file — so the
+subject cannot be off screen. Ribbon features actually rasterised: 29 in the
+`pcljes` pair, 100 in the `city` pair. The renderer is deterministic here:
+shooting the identical poses twice off the identical file changed **0 pixels**
+on five of six frames (0.03 % on the city frame), which is why the before/after
+diffs can be believed.

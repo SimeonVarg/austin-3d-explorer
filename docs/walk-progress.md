@@ -147,3 +147,46 @@ candidates open so the router picks per-trip is. Full writeup, the 20-pair
 table, and the re-run instructions are in `docs/walk-baseline.md`.
 `WAYFIND.on` still untouched; nothing in `js/wayfind.js` changed this round
 either. Pushed as `acer/w-baseline`, self-merged after the self-check passed.
+
+## 2026-08-24 — the malls were painted but their EDGES were not, and the edge is where the router walks (`acer/w-sidewalks`)
+
+Round 2 finished by saying the last problem — the walking line running along the
+outline of a mall rather than across it — was a routing problem and not
+something the ground could fix. That was wrong, and this round found out by
+measuring instead of guessing. Of every metre of route sitting on unpainted
+ground, **not one was more than five metres from pavement, and seven eighths of
+it was within five centimetres.** Nothing was missing. The route was walking
+along a seam.
+
+The seam is this: OpenStreetMap draws the campus malls as closed shapes, and the
+part of the app that builds the walking network turns a closed shape into a
+line you can walk — around the edge. The part that paints the ground drew only
+the shape. So for seven kilometres of mall edge, the router was sending students
+down a line the scene painted nothing under, and half the width of the drawn
+ribbon hung out over bare dirt. It is exactly the kerb-ramp problem the first
+pass fixed at street corners, in the one place that pass could not see it.
+
+So the edge of a mall is now painted as what it is — a walk, at the same 2.4 m
+this file has always used when nobody says otherwise, in the mall's own colour.
+The share of the twenty test routes lying on drawn paving goes **90.2 % to
+93.4 %**, and the metres over bare ground drop from 534 to 128. Ten routes
+improved, ten stayed the same, **none got worse**. On the twenty pairs the
+baseline lane froze for everybody (`--pairs house`, so this lane's number can
+sit beside the others') it is **90.2 % to 95.0 %**, eleven better and none
+worse: Winship→Main goes 71 % to 100 %, RLP→Garrison 71 % to 98 %.
+
+The honest version of the headline is the one about the ribbon rather than its
+centreline — how much of the drawn strip a person actually sees is off the
+paving — and that goes **4.2 % to 1.2 %**.
+
+It costs 8 KB gzipped. Two things were checked hard rather than assumed. First,
+that this is not a lie about grass: 87 % of the new paving went over ground the
+scene painted as *nothing*, 12 % trims a lawn edge by up to a metre, and the
+malls themselves were not made one square metre bigger. Second, that it does not
+put a halo round every mall — look at `shots/walk/sidewalks/rim-city-before.png`
+next to `rim-city-after.png` and they are indistinguishable, while
+`rim-pcljes-before/after` shows the change close up. Re-running the bake with
+the new switch off reproduced the old file byte for byte, so the whole change is
+that one switch. Full method, the two rejected explanations, and what is left
+for the door and graph lanes: `docs/walk-sidewalks.md` §12–§16. `WAYFIND.on`
+untouched.

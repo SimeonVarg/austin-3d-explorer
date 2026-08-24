@@ -177,6 +177,52 @@ CROSSING_APRON_SURFACE = "concrete"
 # Set False and the malls go back to flat plaza fills with no other change.
 PEDESTRIAN_AREA_IS_A_WALK = True
 
+# ── the mall rim ───────────────────────────────────────────────────────────
+#
+# THE SAME DEFECT AS THE KERB APRON, IN THE ONE PLACE THAT PASS COULD NOT SEE.
+# Measured on this branch with `--walkaudit --where`: of the 454 m of walking
+# graph the twenty routes ride over ground this file paints as NOTHING, **not
+# one metre is more than 5 m from pavement, 87 % is within 5 CENTIMETRES, and
+# 88 % of it is riding the outline of a `('patharea','pedestrian')` polygon**.
+# 81 % of those metres have pavement on one side and open, unpainted ground on
+# the other. It is not a missing sidewalk. It is a seam.
+#
+# WHY THE SEAM IS THERE. The loop below drops every `area=yes` way with the
+# comment "a pedestrian AREA is a plaza, not a line", and for PAINT that is
+# right — the polygon is emitted with the areas. But `scripts/bake_walk.py`
+# reads the SAME `data/osm_cache/footways.json` and does not drop them: a closed
+# way goes into the walking graph as an ordinary ring of edges (its own
+# `areas` counter counts them). So 41 of these rings are simultaneously the
+# outer EDGE of a painted polygon and a line the router sends people down, and
+# the scene paints a walk's worth of nothing on the far side of it. The ribbon
+# is 1.6 m wide and centred on that line, so its outer half hangs over bare
+# ground for 7.1 km of rim.
+#
+# So paint under the line, exactly as the kerb apron does. The rim goes in as an
+# ordinary footway of PEDESTRIAN_RIM_WALK_M, which is DEFAULT_WIDTH['footway']
+# and not a new number: when OSM does not say how wide a walk is, this file has
+# always said 2.4 m, and this is a walk.
+#
+# THREE THINGS MAKE IT SAFE, and all three are machinery that already exists:
+#   * `u:'footway'` (52) is CUT BY the mall (60), so the inward half is
+#     discarded and only the hem outside the polygon survives — see the rank
+#     ladder, and the round-2 note that already relies on this cut.
+#   * `u:'footway'` is also cut by the carriageway, so a mall that ends on a
+#     street cannot creep onto the asphalt. `u:'pedestrian'` would NOT have
+#     been: "a pedestrian mall outranks a carriageway" is right for a surveyed
+#     mall and wrong for a 1.2 m hem this file derived itself.
+#   * colour in js/ground.js is keyed on `s`, never on `u`, so taking the
+#     mall's own surface makes the hem the mall's own colour. There is no halo
+#     to see; that was checked on the frames, not assumed.
+#
+# Set False and the rims go back to unpainted with no other change.
+# Default True / 2.4 m. Both read the environment ONLY so the control bake can
+# flip them without editing this file -- `RIM=0 python scripts/bake_ground.py`
+# reproduced the pre-change data/ground.geojson to the same SHA-256, which is
+# what lets §14 of docs/walk-sidewalks.md say the whole diff is this change.
+PEDESTRIAN_RIM_IS_A_WALK = os.environ.get("RIM", "1") != "0"
+PEDESTRIAN_RIM_WALK_M = float(os.environ.get("RIM_W", DEFAULT_WIDTH["footway"]))
+
 
 def crossing_aprons(coords, apron_m=None):
     """The two ends of a crossing way, `apron_m` metres each, as coordinate
@@ -3131,6 +3177,28 @@ WALKAUDIT_PAIRS = [
     ("JES", "MCA"), ("GDC", "PCL"),
 ]
 
+# THE HOUSE FIXTURE, added 2026-08-24. `scripts/verify/walk-pairs.json` is the
+# twenty pairs the walk baseline (docs/walk-baseline.md) froze for every w-*
+# lane, so a per-route percentage from here can be laid beside one from
+# scripts/verify/walkmeter.mjs without re-deriving anything. It is a DIFFERENT
+# twenty from the set above, which stays the default so this branch's own
+# round-over-round deltas remain apples to apples.
+#
+#   python scripts/bake_ground.py --walkaudit --pairs house
+#
+WALKAUDIT_HOUSE_PAIRS_JSON = os.path.join("scripts", "verify", "walk-pairs.json")
+
+
+def walkaudit_house_pairs():
+    """The house twenty, or None if the fixture is not on this branch yet."""
+    p = os.path.join(ROOT, WALKAUDIT_HOUSE_PAIRS_JSON)
+    if not os.path.exists(p):
+        return None
+    with open(p, "r", encoding="utf-8") as fh:
+        j = json.load(fh)
+    return [(d["from"], d["to"]) for d in j.get("pairs", [])]
+
+
 WALKAUDIT_SAMPLE_M = 1.0     # one reading per metre of ribbon
 # MUST EQUAL js/wayfind.js's LINK_COST_MULT. A door link is charged this many
 # pavement metres per real metre while the route is being chosen, so the router
@@ -3373,11 +3441,118 @@ def _wa_route(G, a_key, b_key):
     return dict(line=line, legs=[[da, line[0]], [line[-1], db]])
 
 
-def walkaudit():
+# ── --where: WHAT KIND of miss is a bare metre? ────────────────────────────
+#
+# "4.08 % of the ribbon is over bare ground" does not say whether the scene is
+# missing a sidewalk or missing a hem, and those want completely different
+# fixes. This bins every bare sample by its distance to the nearest paved
+# polygon and names the polygon whose EDGE it is riding.
+#
+# The reading that produced PEDESTRIAN_RIM_IS_A_WALK, 2026-08-24, before it:
+#
+#   <5cm 395.8   <15cm 15.5   <30cm 3.1   <60cm 8.1   <1.2m 17.7   ...   >=10m 0.0
+#   88 % of it on the boundary of a ('patharea','pedestrian')
+#
+# A missing sidewalk would have put metres in the far buckets. Not one metre of
+# the walking graph is more than 5 m from pavement anywhere in the twenty
+# routes, which is why this round painted a hem instead of hunting for a path.
+WALKAUDIT_WHERE_BUCKETS = [0.05, 0.15, 0.30, 0.60, 1.20, 2.40, 5.0, 10.0, 1e9]
+WALKAUDIT_WHERE_NAMES = ["<5cm", "<15cm", "<30cm", "<60cm", "<1.2m",
+                         "<2.4m", "<5m", "<10m", ">=10m"]
+# Half the drawn ribbon's width, `WAYFIND.routeWidthM` / 2 in js/wayfind.js.
+# A centreline exactly on a seam is a coin flip; the RAILS are what a person
+# sees hanging off the pavement, so --where grades those too.
+WALKAUDIT_RIBBON_HALF_M = 0.8
+
+
+def _wa_where(polys, ix, G, pairs):
+    """The bucket table. Needs shapely; returns None without it."""
+    try:
+        from shapely.geometry import Polygon, Point
+        from shapely.strtree import STRtree
+    except ImportError:
+        print("  (--where needs shapely)")
+        return None
+    shp, lab = [], []
+    for k_u, rings, _bb in polys:
+        try:
+            q = Polygon(rings[0], rings[1:])
+            if not q.is_valid:
+                q = q.buffer(0)
+            if q.is_empty:
+                continue
+        except Exception:
+            continue
+        shp.append(q)
+        lab.append(k_u)
+    tree = STRtree(shp)
+
+    buck = Counter()
+    owner = Counter()
+    rail_off = rail_tot = 0.0
+    for a, b in pairs:
+        r = _wa_route(G, a, b)
+        if r is None:
+            continue
+        for kind, co in [("path", r["line"])] + [("leg", L) for L in r["legs"]]:
+            for i in range(len(co) - 1):
+                ax, ay = _wa_xy(*co[i])
+                bx, by = _wa_xy(*co[i + 1])
+                L = math.hypot(bx - ax, by - ay)
+                if L <= 0.001:
+                    continue
+                nx, ny = -(by - ay) / L, (bx - ax) / L
+                n = max(1, int(round(L / WALKAUDIT_SAMPLE_M)))
+                step = L / n
+                for s in range(n):
+                    t = (s + 0.5) / n
+                    px, py = ax + (bx - ax) * t, ay + (by - ay) * t
+                    for off in (-WALKAUDIT_RIBBON_HALF_M, WALKAUDIT_RIBBON_HALF_M):
+                        rail_tot += step
+                        if _wa_under(polys, ix, px + nx * off, py + ny * off) is None:
+                            rail_off += step
+                    if _wa_under(polys, ix, px, py) is not None:
+                        continue
+                    pt = Point(px, py)
+                    cand = list(tree.query(pt.buffer(12.0)))
+                    d = min([shp[j].distance(pt) for j in cand], default=1e9)
+                    for k, lim in enumerate(WALKAUDIT_WHERE_BUCKETS):
+                        if d < lim:
+                            buck[(kind, WALKAUDIT_WHERE_NAMES[k])] += step
+                            break
+                    if kind == "path" and cand and d < 1.2:
+                        j = min(cand, key=lambda j: shp[j].distance(pt))
+                        owner[lab[j]] += step
+
+    print("")
+    print("  WHERE THE BARE METRES ARE — distance to the nearest paved polygon")
+    print("  %-10s %10s %10s" % ("bucket", "graph m", "doorleg m"))
+    gs = ls = 0.0
+    for nm in WALKAUDIT_WHERE_NAMES:
+        g, l = buck[("path", nm)], buck[("leg", nm)]
+        gs += g
+        ls += l
+        if g or l:
+            print("  %-10s %10.1f %10.1f" % (nm, g, l))
+    print("  %-10s %10.1f %10.1f" % ("", gs, ls))
+    near = sum(buck[("path", nm)] for nm in WALKAUDIT_WHERE_NAMES[:5])
+    print("  seam (graph metres within 1.2 m of pavement)   %.1f of %.1f = %.0f %%"
+          % (near, gs, 100.0 * near / gs if gs else 0.0))
+    print("  whose edge is the seam on:")
+    for kv, v in owner.most_common(8):
+        print("     %-26s %7.1f m" % (str(kv), v))
+    print("  RIBBON RAILS at +/- %.1f m off pavement   %.2f %%   (%.0f of %.0f m)"
+          % (WALKAUDIT_RIBBON_HALF_M, 100.0 * rail_off / rail_tot if rail_tot else 0.0,
+             rail_off, rail_tot))
+    return True
+
+
+def walkaudit(pairs=None, where=False):
     """Print the pavement table. Bakes nothing."""
     if not os.path.exists(OUT):
         print("no %s — run the bake first" % OUT)
         return 2
+    pairs = WALKAUDIT_PAIRS if pairs is None else pairs
     polys = _wa_paved_polys()
     ix = _wa_index(polys)
     G = _wa_load_graph()
@@ -3386,7 +3561,7 @@ def walkaudit():
     print("  ground   %s (%d hard-surface polygons)" % (os.path.basename(OUT), len(polys)))
     print("  graph    data/walk_graph.json, as of %s" % G["raw"].get("as_of", "?"))
     print("  method   %s pairs, sampled every %.1f m of drawn ribbon"
-          % (len(WALKAUDIT_PAIRS), WALKAUDIT_SAMPLE_M))
+          % (len(pairs), WALKAUDIT_SAMPLE_M))
     print("")
     head = ("pair", "drawn m", "leg m", "path", "mall", "road", "other", "BARE")
     print("  %-22s %8s %7s | %6s %6s %6s %6s | %7s" % head)
@@ -3394,7 +3569,7 @@ def walkaudit():
     grand = Counter()
     grand_len = 0.0
     rows = []
-    for a, b in WALKAUDIT_PAIRS:
+    for a, b in pairs:
         r = _wa_route(G, a, b)
         if r is None:
             print("  %-22s   NO ROUTE" % (a + ">" + b))
@@ -3447,6 +3622,8 @@ def walkaudit():
     print("  worst five:")
     for w in worst:
         print("    %-22s %6.1f %% bare" % (w[0], w[7]))
+    if where:
+        _wa_where(polys, ix, G, pairs)
     return 0
 
 
@@ -3467,7 +3644,28 @@ def main():
         if hw not in ("footway", "steps", "path", "pedestrian"):
             continue
         # A pedestrian AREA is a plaza, not a line — handled with the areas.
+        # Its RIM is both, though: bake_walk.py puts this same closed way into
+        # the walking graph as a ring of edges and routes people along it, so
+        # the walk's own width gets painted here or the ribbon hangs off the
+        # side of the polygon. See PEDESTRIAN_RIM_IS_A_WALK.
         if t.get("area") == "yes":
+            coords = [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]]
+            if (PEDESTRIAN_RIM_IS_A_WALK and hw == "pedestrian"
+                    and len(coords) > 3 and coords[0] == coords[-1]):
+                feats.append({
+                    "type": "Feature",
+                    "geometry": {"type": "LineString", "coordinates": coords},
+                    "properties": {
+                        "k": "path", "u": "footway",
+                        # the mall's OWN surface, so the hem is the mall's own
+                        # colour rather than a ring of a different concrete
+                        "s": surface_of(t, "pedestrian")[0],
+                        "w": PEDESTRIAN_RIM_WALK_M, "wt": 0,
+                    },
+                })
+                stats["pedestrian_rim_walk"] += 1
+            else:
+                stats["skipped_area_way"] += 1
             continue
         coords = [[round(p["lon"], 6), round(p["lat"], 6)] for p in el["geometry"]]
         if len(coords) < 2:
@@ -3797,5 +3995,21 @@ if __name__ == "__main__":
     if "--walkaudit" in sys.argv:
         # AUDIT ONLY. Reads the ground already on disk and never writes it, so
         # it can be run against a shipped file to grade it.
-        sys.exit(walkaudit())
+        #   --pairs house   grade the twenty in scripts/verify/walk-pairs.json
+        #                   instead, so a number here lines up with the ones
+        #                   scripts/verify/walkmeter.mjs prints
+        #   --where         bin the bare metres by distance to pavement, i.e.
+        #                   "is this a missing sidewalk or a missing hem"
+        pairs = None
+        if "--pairs" in sys.argv:
+            which = sys.argv[sys.argv.index("--pairs") + 1]
+            if which == "house":
+                pairs = walkaudit_house_pairs()
+                if pairs is None:
+                    print("no %s on this branch" % WALKAUDIT_HOUSE_PAIRS_JSON)
+                    sys.exit(2)
+            elif which != "own":
+                print("--pairs takes `house` or `own`")
+                sys.exit(2)
+        sys.exit(walkaudit(pairs=pairs, where="--where" in sys.argv))
     main()

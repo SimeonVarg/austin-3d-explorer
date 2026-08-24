@@ -630,3 +630,286 @@ it crosses the building, and the app was drawing a dashed leg over the roof. The
 extra metres are not paid for a nicer picture, they are paid to stop claiming a
 line nobody can walk. Recorded here so the measurement is not repeated a third
 time and so the reasoning that beat it is on the record.
+
+---
+
+# Round 3 — the mall RIM, and a number the whole gauntlet can compare
+
+Same lane, same branch, 2026-08-24. §0–§11 stand and none of it was rewritten.
+Every number below was measured **on top of** the branch as round 2 left it —
+kerb aprons painted, `LINK_COST_MULT` at 4.0, malls promoted into the walk band
+— so the deltas are this change and nothing else, and §14 proves that with a
+checksum instead of asserting it.
+
+**Round 2 closed by saying "the rim straddle itself is untouched, and that is
+expected — it is a routing problem, not a paint problem". That was wrong. It is
+a paint problem, it is four lines, and this is the measurement that shows it.**
+
+|  | round 2 | round 3 |
+|---|---:|---:|
+| **on a drawn WALK** (`k:'patharea'`) | 90.20 % | **93.38 %** |
+| on any drawn surface | 95.92 % | **99.03 %** |
+| over bare ground | 4.08 % (534 m) | **0.97 % (128 m)** |
+| of which GRAPH metres, not door legs | 454 m | **49 m** |
+| **ribbon RAILS off pavement** (§13) | 4.21 % | **1.23 %** |
+
+`python scripts/bake_ground.py --walkaudit`, twenty pairs, 13,097 drawn metres,
+1 m sampling, zero tolerance. **[M]**
+
+## 12. First, stop guessing which KIND of miss it is — `--walkaudit --where`
+
+"4 % of the ribbon is over bare ground" does not say whether the scene is
+missing a sidewalk or missing a hem, and those want opposite fixes: one is a
+data hunt, the other is four lines in this bake. So the first thing this round
+built was the instrument that tells them apart, and per §8's own lesson it lives
+in the repo rather than in a scratchpad:
+
+```bash
+python scripts/bake_ground.py --walkaudit --where
+```
+
+It bins every bare sample by distance to the nearest paved polygon and names the
+polygon whose edge it is riding. On the branch as round 2 left it:
+
+```
+bucket        graph m  doorleg m
+<5cm            395.8        0.0
+<15cm            15.5        0.0
+<30cm             3.1        7.6
+<60cm             8.1        9.0
+<1.2m            17.7       35.2
+<2.4m            10.0       18.5
+<5m               4.0        4.0
+<10m              0.0        5.0
+>=10m             0.0        1.0
+                454.2       80.3
+```
+**[M]** The answer is not ambiguous:
+
+* **Not one metre of the walking graph, in any of the twenty routes, is more
+  than 5 m from pavement.** There is no missing sidewalk to find. §1 said the
+  footway network is 99.9 % painted; this is the same fact measured from the
+  route's side instead of the network's.
+* **87 % of the miss is inside FIVE CENTIMETRES**, 97 % inside 1.2 m.
+* **88 % of it — 398 of 454 m — rides the outline of a
+  `('patharea','pedestrian')` polygon.** A campus mall.
+
+Two competing explanations were tested before anything was built, because either
+would have made the fix wrong:
+
+* **"the far side is a lawn, so painting it would be a lie."** Sampled 0.8 m
+  either side of every bare metre: **331.6 m has the mall on one side and ground
+  painted as NOTHING on the other; only 38.2 m has a lawn out there.** **[M]**
+  That is the signature §1 already named for the kerb gap — a hole, not a route
+  crossing grass.
+* **"it is standing on a building, and buildings are not in this file."** Tested
+  every bare sample against all 11,152 footprints in `campus_storeys.geojson`,
+  `westcampus.geojson` and `outer_ring.geojson`: **6.3 m of 454 m, 1.4 %.**
+  **[M]** Not the explanation — and worth the check, because the first close
+  frame taken this round has a building roof right beside the ribbon and looks
+  exactly like that theory.
+
+## 13. A mall's rim is a WALK, and the router already sends people down it
+
+This bake drops every `area=yes` way with the comment *"a pedestrian AREA is a
+plaza, not a line"*. For paint that is right — the polygon is emitted with the
+areas. But `scripts/bake_walk.py` reads the **same**
+`data/osm_cache/footways.json` and does **not** drop them: a closed way goes
+into the walking graph as an ordinary ring of edges, and bake_walk's own `areas`
+counter counts them. Measured in that cache: **41 closed
+`highway=pedestrian area=yes` ways, 7,119 m of rim.** **[M]**
+
+So 41 rings are simultaneously the outer EDGE of a painted polygon and a line
+the router sends students along, and the scene paints a walk's worth of nothing
+on the far side of every one. The drawn ribbon is `WAYFIND.routeWidthM` = 1.6 m
+and centred on that line, so its outer rail hangs over bare ground the whole way.
+
+The fix is the kerb apron's argument in the one place that pass could not see —
+**paint under the line the router uses**:
+
+```python
+PEDESTRIAN_RIM_IS_A_WALK = True
+PEDESTRIAN_RIM_WALK_M = DEFAULT_WIDTH["footway"]     # 2.4
+```
+
+The rim goes in as an ordinary `k:'path', u:'footway'` LineString carrying the
+mall's own surface. The width is **not a new number**: when OSM does not say how
+wide a walk is, this file has always said 2.4 m, and this is a walk.
+
+### Three existing mechanisms make it safe, and each was checked, not assumed
+
+* **The mall cuts it.** `('patharea','pedestrian')` is 60 and
+  `('patharea','footway')` is 52, so the resolver discards the inward half and
+  only the hem outside the polygon survives — the same cut round 2 already
+  relied on, running the other way. Measured: **`('patharea','pedestrian')` is
+  73,944 m² before and 73,944 m² after. The malls themselves were not enlarged
+  by one square metre.** **[M]**
+* **The carriageway cuts it.** `u:'pedestrian'` would NOT have been cut: this
+  file's own rule is "a pedestrian mall outranks a carriageway", which is right
+  for a surveyed mall and wrong for a 1.2 m hem the bake derived itself. As
+  `u:'footway'` the ordinary cross-band cut applies. Measured: **carriageway ×
+  path residual is 81 pairs / 108 m² — the same figure §2 and §9 report.** **[M]**
+* **No halo.** Colour in `js/ground.js` is keyed on `s`, never on `u`
+  (`['match', ['get','s'], …]`), so taking the mall's own surface makes the hem
+  the mall's own colour rather than a ring of a different concrete. Confirmed on
+  the frames below, not reasoned.
+
+### What it moved
+
+Per route, the ones that changed — share of drawn ribbon on a drawn walk:
+
+| pair | round 2 | round 3 | bare m |
+|---|---:|---:|---|
+| PCL>RLP | 78.1 % | **99.4 %** | 113 → 3 |
+| GRE>MAI | 85.3 % | **98.9 %** | 79 → 0 |
+| PCL>JES | 89.3 % | **100.0 %** | 17 → 0 |
+| STD>MAI | 88.9 % | **95.2 %** | 70 → 8 |
+| GRE>MNC | 89.9 % | **96.2 %** | 60 → 6 |
+| 21 Rio>WEL | 87.0 % | **92.5 %** | 66 → 9 |
+| GDC>PCL | 97.8 % | **99.4 %** | 10 → 3 |
+| JES>BMK | 99.0 % | **100.0 %** | 2 → 0 |
+| GRE>NEZ | 88.0 % | 89.4 % | 26 → 17 |
+| GRE>AF2 | 79.2 % | 79.8 % | 20 → 11 |
+
+**Ten of twenty better, ten unchanged, none worse.** **[M]**
+
+### Grade the ribbon, not just the centreline
+
+A centreline lying exactly on a seam is a coin flip, and grading it alone
+overstates the defect. `--where` therefore also grades the ribbon's two **rails**
+at ±`WAYFIND.routeWidthM`/2 = 0.8 m — the half a person actually sees hanging
+off the paving:
+
+```
+rails off pavement    4.21 %  ->  1.23 %      (322 m of 26,195 rail-metres)
+```
+**[M]** That is the honest form of the judged claim and it is the one to quote.
+
+## 14. The whole diff IS this change, and the blast radius is measured
+
+`data/ground.geojson` goes to 5,533 KB raw / **1,003 KB gzipped**, up from
+995 KB: **+8 KB on the wire.** Features 11,904 → 12,324.
+
+**The control was run, not argued.** `PEDESTRIAN_RIM_IS_A_WALK` reads `RIM` from
+the environment *only* so the flag can be flipped without editing the file, and
+the bake was re-run with it off:
+
+```
+RIM=0 python scripts/bake_ground.py
+  ->  2325d64cb3183655ca85bbfea0a7329101135df87c58b74848ace1863a3aef3e
+committed data/ground.geojson before this round
+  ->  2325d64cb3183655ca85bbfea0a7329101135df87c58b74848ace1863a3aef3e
+```
+**[M]** Byte-identical. The bake is deterministic and the entire diff in that
+file — including the citywide part below — is this one flag.
+
+Which matters, because the pixel diff between the before and after frames is
+**citywide**, not confined to 41 malls, and that deserved an explanation rather
+than a shrug. It has one, and it is small:
+
+```
+painted WALK area     374,067 m2  ->  380,923 m2      (+1.8 %)
+added   7,329 m2      lost  473 m2
+added INSIDE the hem band (rim, +1.2 m)   6,892 m2    94.0 % of everything added
+added OUTSIDE it                            437 m2
+lost  OUTSIDE it                            472 m2     net -35 m2
+```
+**[M]** **94 % of the change is the hem.** Everything else is ±0.01 % of the walk
+area shuffling by about a pixel at polygon boundaries, because adding 41 rings to
+the `(u, s)` union groups makes `unary_union` and the scored-concrete direction
+partition re-split (10,398 → 10,853 hard-surface polygons). Net area outside the
+hem band: **minus 35 m² out of 374,067.**
+
+What the hem was painted over:
+
+```
+over ground painted as NOTHING                        6,377 m2   87.0 %
+over former SOFT ground (lawn/park/garden/scrub/wood)   915 m2   12.5 %
+over former carriageway                                  36 m2    0.5 %
+```
+**[M]** The 12.5 % is a mall trimming by up to 1.2 m the lawn edge it abuts. The
+0.5 % is disclosed rather than hidden, and the bake's own carriageway × path
+residual is unchanged at 81 pairs / 108 m², so no street lost drawable width.
+
+### The frames
+
+`shots/walk/sidewalks/rim-*`, same camera, same route, near-nadir, tree layers
+hidden; **the only difference between before and after is
+`data/ground.geojson`.** Poses are derived offline from the router itself —
+each sits on the midpoint of that route's longest bare run measured against the
+BEFORE file — so the subject cannot be off screen, and every frame records how
+many wayfind ribbon features the renderer actually rasterised in that viewport
+(20–100 across the set). The route pill in each frame agrees with the audit:
+520 m / 580 m / 160 m / 1.0 km against a predicted 518 / 578 / 157 / 1015.
+
+* **`rim-pcljes-before.png` / `rim-pcljes-after.png`** — the pair to look at.
+  PCL → Jester. The mall's hairline edge becomes a proper paved border and the
+  ribbon sits on it instead of half over nothing.
+* **`rim-pcljes-diff.png`** — the same pair as a change mask. Everything bright
+  is the hem; the speckle is the one-pixel pattern-phase noise §14 accounts for.
+* **`rim-city-before.png` / `rim-city-after.png`** — campus scale, the control.
+  The hem must not become a halo around every mall. It does not: at this scale
+  the two frames are indistinguishable by eye.
+
+**The renderer is deterministic here, so those diffs are real.** Shooting the
+identical poses twice off the identical data file gives **0 pixels changed on
+five of six frames** and 0.03 % on the city frame. That control was run first,
+because a 3.9 % pixel diff means nothing without a noise floor.
+
+**One frame was taken and deliberately not committed.** With the tree layers
+left on, tree crowns render slightly differently between the two runs. Trees
+come from `data/trees.geojson` through their own source and nothing in this
+change can move them, so that frame is not evidence about anything.
+
+## 15. `--pairs house` — one number the other four lanes can use
+
+`docs/walk-baseline.md` froze twenty pairs in `scripts/verify/walk-pairs.json`
+for every `w-*` lane. This audit's own twenty are a different set, chosen in
+round 2 on purpose so its deltas stay comparable with `bake_walk.py`'s route
+regression. Rather than swap the fixture and break that, `--pairs house` grades
+the house twenty with the identical method:
+
+```bash
+python scripts/bake_ground.py --walkaudit --pairs house
+```
+
+| house twenty | round 2 | round 3 |
+|---|---:|---:|
+| on a drawn WALK | 90.21 % | **95.01 %** |
+| on any drawn surface | 93.63 % | **98.37 %** |
+| over bare ground | 6.37 % (600 m) | **1.63 % (154 m)** |
+
+Biggest movers **[M]**:
+
+| pair | round 2 | round 3 |
+|---|---:|---:|
+| WCH>MAI | 71.3 % | **100.0 %** |
+| RLP>GAR | 70.5 % | **98.1 %** |
+| PAT>RLP | 79.7 % | **99.6 %** |
+| UTC>FAC | 81.1 % | **94.2 %** |
+| MEZ>CAL | 67.6 % | **71.3 %** |
+| PMA>MEZ | 94.9 % | **96.8 %** |
+| PCL>GDC | 97.8 % | **99.4 %** |
+
+**Eleven of twenty better, nine unchanged, none worse.**
+
+## 16. What is left, and whose it is
+
+The remaining 128 m of bare ribbon across the twenty pairs is now mostly **not
+this lane's**:
+
+* **79 m of it is door legs**, and `--where` puts 30 m of those beyond 1.2 m
+  from any pavement. That is `docs/walk-evidence.md`'s wrong-door problem and
+  the `w-door` lane's ground. `WAG>GAR` on the house fixture is the clearest
+  single case — 81 drawn metres, 21 of them dashed, 25.2 % bare, and
+  **completely unchanged by this round**, which is the right outcome: a paint
+  fix should not be able to flatter a door defect.
+* **49 m is graph**, and 17 m of that rides the edge of a `roadarea` — the
+  ribbon at a marked crossing. §10's second finding still stands and still needs
+  a per-feature base chosen in `ribbonPolys()`, which is not a graph-building
+  function and so is not this lane's to write.
+* **§6's plaza interiors are still open and still `bake_walk.py`'s.** This round
+  paints the rim honestly; it does not let the router cut ACROSS a mall, so
+  `PCL>UNB` still walks 1,058 m for a 449 m straight line. Painting the hem makes
+  that detour *look* correct, which is precisely why the detour ratio and not the
+  pavement percentage is the number to watch there.
