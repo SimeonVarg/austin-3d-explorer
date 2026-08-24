@@ -376,9 +376,10 @@ pitch 72, bearing 93.8` — which is not a guess, it is `wayfindRoute()`'s own
 screenshot twice and keep the second.
 
 **And it is our line, proved with a control rather than asserted.** At the
-identical camera, the eight layers this feature owns — `wayfind-ribbon`,
-`-ghost`, `-thread`, `-column`, `-lit-pad`, `-lit-dark`, `-lit-thread`,
-`-dark-mark` — were set `visibility: none` and nothing else was touched:
+identical camera, every layer id this feature owns — `wayfind-ribbon`, `-ghost`,
+`-thread`, `-column`, `-lit-pad`, `-lit-dark`, `-lit-thread`, `-dark-mark`, of
+which the ones actually present in the style were set `visibility: none` — and
+nothing else was touched:
 
 | | changed pixels vs its own control | where |
 |---|---|---|
