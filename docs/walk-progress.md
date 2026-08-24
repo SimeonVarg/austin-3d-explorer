@@ -2259,3 +2259,60 @@ schedule change. If the feature ever promises "always up to date," a webcal
 subscription alone doesn't deliver that promise on its own schedule.
 
 Nothing in `js/wayfind.js` touched, `WAYFIND.on` untouched.
+
+## 2026-08-24 — the walk feature can show a whole day now, not one leg at a time
+
+Branch `acer/si-dayview`. Until now the walking directions answered one question
+at a time: I am here, my next class is in WEL. A student with four classes asks
+that three times a day, retypes both ends every time, and the thing they actually
+want to know — **which of today's three walks is the one that will make me
+late** — is not any single one of those three answers. It is the sequence.
+
+So there is a day plan. Give it an imported schedule and it lays the whole day
+out in order: every class, and between each pair, the walk. How long it takes,
+how far, which one is next, and what is wrong with the ones that have something
+wrong with them. Tapping a walk draws it on the ground and fills in the answer
+bar that already existed — nothing was rebuilt, it just picks the two ends for
+you.
+
+The best picture of it is `shots/si/dayview/mwf-desktop.jpg`: a Monday with three
+walks, and you can see which one has the problem before reading a word, because
+each walk gets a little bar showing the gap the timetable leaves and the walk
+drawn inside it. Two of them sit comfortably inside their ten minutes. The third
+runs off the end of its bar.
+
+The one rule this stuck to hardest: **it warns and it never reassures.** That was
+already the law for the single-leg card and it is easier to break on a day view,
+because it would be so natural to print "12 minutes spare" on every row. It does
+not, anywhere, and there is a check that greps the whole screen for that kind of
+sentence on every run. What it does print is the gap the timetable itself holds —
+which is a real improvement on the old card, because that one had to *assume* a
+fifteen-minute passing period, and a schedule actually knows. On a Monday-
+Wednesday-Friday day with real ten-minute gaps, that is the difference between
+one warning and three.
+
+Three things were found only by opening the pictures and looking at them, none of
+which was red in any test: the same twelve-word explanation of why a building is
+out of reach was on screen three times in a five-row panel; a 43-metre walk
+printed "0–1 min" where the answer bar says "Under 1 min"; and on a laptop the
+last class of the day sat permanently one scroll below the fold, which rather
+defeats a thing whose whole argument is that you can see the day.
+
+The forcing function was re-checked rather than taken on trust. Eleven UT
+building codes still cannot be routed to. Ten of them really are ten to twelve
+kilometres north at the Pickle Research Campus, measured off UT's own surveyed
+door for each one. **The eleventh, SSW, is not — it is 900 metres from the Tower,
+on main campus, with two surveyed doors already sitting in this codebase.** And
+all eleven fail in a way nobody had noticed: the app has never heard of the codes
+at all, rather than failing to find a path. So SSW is a smaller and different fix
+than anyone had written down, and it is upstream of the walking graph. Written
+down, not made — that file belongs to another lane.
+
+Nothing about the routing moved: the ruler reads the same 87 metres of wasted
+walking it read before, all 38 ends still land at UT's own door, and the "avoid
+stairs" tickbox still works under a real mouse click. The change is 1,025 lines
+added to `js/wayfind.js` and **not one line removed**, which is deliberate with
+four other lanes inside that file. Everything is behind `?walk=1` as before and
+`WAYFIND.on` is untouched. Details, the fixtures, and every number:
+`docs/si-dayview.md`; the ruler is `scripts/verify/dayview.mjs` (59 checks, all
+green).

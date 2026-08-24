@@ -8199,6 +8199,1025 @@
     })();
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 10. THE DAY PLAN — a schedule's whole day of walks, not one leg at a time
+  //
+  // WHAT THIS IS FOR. Everything above answers ONE question: "I am here, my
+  // next class is in WEL". A student with four classes asks it three times a
+  // day and has to retype both ends every time, and the answer that matters —
+  // which of today's three walks is the one that will make me late — is not
+  // any single one of those three answers. It is the SEQUENCE. So this is the
+  // sequence: every class the schedule holds, every walk between them, in
+  // order, with the one that is next marked, before you pick one to navigate.
+  //
+  // IT IS A CHOOSER, NOT A SECOND FEATURE. Tapping a walk row calls the same
+  // run() the search panel calls, with the same two ends, so the ribbon, the
+  // answer bar, `Walk it`, the stairs card and the lighting card are all the
+  // ones that already shipped. Nothing here re-implements a route or re-prints
+  // a number the bar prints; every figure on a row comes out of the same
+  // computeRoute() the bar is drawn from, which is why they cannot disagree.
+  //
+  // ── THE SEAM, AND WHY IT IS SHAPED LIKE THIS ─────────────────────────────
+  // A schedule import's whole job is turning "MAI 220, TTh 2:00pm" into the
+  // three-letter code this router already speaks. `docs/import-bar-ut.md`
+  // established that UT's own location field IS `{CODE} {FLOOR.ROOM}`, space
+  // separated, code first — the same vocabulary as UT_ENTRANCES above — so the
+  // normalised shape below is deliberately thin. A plan is:
+  //
+  //   { day, date, tz, source, items: [ { course, title, code, room, raw,
+  //       startMin, endMin, unique, codeSource, codeConfidence } ] }
+  //
+  // Only `code`, `startMin` and `endMin` are load-bearing. Everything else is
+  // display or provenance.
+  //
+  // THE THREE FIELDS THAT ARE NOT FOR TODAY'S THREE IMPORTERS. `raw`,
+  // `codeSource` and `codeConfidence` exist so that an image-OCR importer or a
+  // Registration-Plus API importer can land later WITHOUT a rewrite here.
+  // Google's, Apple's and UT's .ics all give a code we either read or do not;
+  // confidence is 1 or the item is dropped by the parser. An OCR of a
+  // photographed timetable cannot do that — it will hand over `MA1` for `MAI`
+  // with 0.6 of a belief — and a renderer with no branch for "the code might
+  // be wrong" would have to grow one, which is exactly the rewrite. So the
+  // branch is here now and today's importers simply never take it: an item
+  // with `codeConfidence < WF_DAY.confidenceSure` renders with the raw string
+  // it came from and asks to be checked, instead of silently routing to a
+  // building nobody has a class in. Nothing else in this file reads a calendar
+  // field of any kind.
+  //
+  // ── WHAT IT MAY SAY ABOUT TIME ───────────────────────────────────────────
+  // docs/walk/what-we-can-honestly-say.md §15 rules that this feature may WARN
+  // and may never REASSURE, which is why SAY.passingOver and SAY.passingTight
+  // exist above with deliberately no third sentence for the good case. That
+  // rule gets STRICTER here, not looser, because a day plan is tempting in a
+  // way a single leg is not: it would be very easy to print "12 min spare" on
+  // every row. It does not. What it prints is the gap the SCHEDULE itself
+  // holds — a fact read off the calendar, not a claim about a walk — and it
+  // draws the walk's range inside that gap. An empty tail on the bar is left
+  // empty and unlabelled. No row anywhere says you will make it.
+  //
+  // The one thing this does better than the single-leg bar: that bar measures
+  // against `WAYFIND.passingMin`, which its own comment calls the only value
+  // in the feature with no file behind it. A schedule KNOWS the real gap, so
+  // when there is one it is used instead, and the row says which it used.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── TASTE (CLAUDE.md rule 11). Every judgement on this surface is one line ─
+  const WF_DAY = {
+    // Which built-in fixture `?walk=1&day=1` shows. The fixtures are demo and
+    // verification data (see DAY_FIXTURES); a real import replaces them.
+    demoPlan: 'tth',
+    // A walk row is "next" until the class it leads to has begun. After that it
+    // is behind you and dims. `nextGraceMin` keeps the row you are ON marked as
+    // next for a few minutes after that class started, because someone running
+    // late is exactly who is looking at this.
+    nextGraceMin: 5,
+    // Below this the parser is telling us it is not sure of the code, and the
+    // row asks rather than routes. Today's three importers always send 1.
+    confidenceSure: 1,
+    // ── the gap bar ───────────────────────────────────────────────────────
+    // The single strongest thing on a row: the track is the gap the schedule
+    // holds, and the walk's own range is drawn inside it. Overflow past the
+    // right-hand end is the whole point, so it is drawn, not clipped away.
+    gapBar: true,
+    gapBarH: 8,            // px. Thick enough to read as a bar, thin enough
+                           // that four of them stacked are not the row.
+    gapBarR: 2,            // and NOT a pill — same argument as --wf-rail-r
+                           // above: a rounded track with a cap is a slider.
+    gapBarMinPct: 3,       // a 43 m walk in a 15 minute gap is 3 % of the
+                           // track and would otherwise render as nothing at
+                           // all, which reads as "no walk" rather than "a
+                           // short one"
+    gapBarOverPct: 14,     // how much of the track the overflow stub takes
+                           // when the slow end of the range runs past the gap
+    // The longest gap a bar is drawn for. Past this the bar is all tail and
+    // says nothing — a 105-minute lunch gap is not a race, and drawing an
+    // eleven-twelfths-empty track next to a 14-22 minute walk makes the walk
+    // look like nothing when it is the longest one of the day.
+    gapBarMaxMin: 45,
+    // ── the ladder (§15) ──────────────────────────────────────────────────
+    // 'late'  the FAST end of the range already exceeds the gap
+    // 'tight' the SLOW end does
+    // null    nothing is printed. There is no third rung and there must not be.
+    warnOn: true,
+    // A crossing chip is worth a row only when the lights are a real part of
+    // the trip. Under this it is noise the answer bar already carries.
+    signalChipMin: 3,
+    // ── layout ────────────────────────────────────────────────────────────
+    panelW: 348,           // matches #wf-sheet, because it takes the same slot
+    // The scroller's share of the viewport on a DESKTOP (the phone rule lets it
+    // fill the sheet instead). 66, not 56: at 56 a four-class day is 470 px of
+    // rows in a 448 px scroller, so the last class of the day was permanently
+    // one scroll below the fold — photographed, and the whole argument for this
+    // surface is that you can see the day. 66 fits four classes and three walks
+    // on an 800 px window with the header and the footer.
+    listMaxVh: 66,
+    railW: 2,
+    dotR: 4.5,             // the class pip on the spine
+    // ── the clock ─────────────────────────────────────────────────────────
+    // `?dayat=HH:MM` freezes it. A screenshot of "which walk is next" cannot be
+    // taken against a real clock and be the same picture tomorrow.
+    clockFrom: 'real',
+  };
+
+  // COPY. Same rule as SAY above: docs/walk/what-we-can-honestly-say.md
+  // outranks this file on every question of wording, and §15 is why there is
+  // no sentence anywhere below for the case where the walk fits the gap.
+  const SAY_D = {
+    title: 'My day',
+    open: 'Import my class schedule',
+    openHint: 'Google Calendar, Apple Calendar or a UT registration export',
+    heading: (n, w) => n + (n === 1 ? ' class' : ' classes') + ' · ' +
+      w + (w === 1 ? ' walk' : ' walks'),
+    toCheck: (n, w) => n + ' of ' + w + (w === 1 ? ' walk has' : ' walks have') +
+      ' something to check',
+    next: 'NEXT',
+    now: 'NOW',
+    done: 'Every walk in this day is behind you',
+    walkTo: (code) => 'Walk to ' + code,
+    gapWas: (m) => m + ' min between them',
+    // The passing period, when the schedule does NOT give us a real gap (a
+    // day with one class, or two classes that overlap). Same wording as the
+    // single-leg bar so the two surfaces cannot be read as two claims.
+    gapAssumed: (m) => 'assuming a ' + m + '-minute passing period',
+    late: 'Longer than the gap, even at a walking pace',
+    tight: 'Tight for this gap',
+    stairsOnly: (n) => n + (n === 1 ? ' set' : ' sets') + ' of stairs · no way round it',
+    stairs: (n) => n + (n === 1 ? ' set' : ' sets') + ' of stairs',
+    stairsFree: (d) => 'a step-free way is ' + d + ' further',
+    stairsFreeShorter: (d) => 'a step-free way is ' + d + ' shorter',
+    stairsFreeSame: 'a step-free way is no further',
+    signals: (n) => 'Crosses ' + n + ' signalised crossings',
+    // ── the three ways a real schedule breaks this router ─────────────────
+    // Each says WHICH KIND of gap it is, because the three need three
+    // different things from a person and lumping them into "can't route
+    // there" tells them nothing about which.
+    offMap: (code, d, dir) => code + ' is ' + d + ' ' + dir + ' of campus — off this map',
+    offMapWhy: 'This map is main campus only.',
+    unknown: (code) => "We've never heard of " + code,
+    unknownWhy: 'Not in the building list this map was built from.',
+    noDoor: (code) => 'No door or path for ' + code,
+    noDoorWhy: 'It is in the building list, but nothing is mapped to walk to.',
+    // What a WALK row says about the same building. The explanation is on the
+    // class row; this is only the consequence for this one leg.
+    cannotTo: (code) => "We can't take you to " + code,
+    cannotFrom: (code) => "We can't take you from " + code,
+    noRoute: 'No walking route between these two',
+    lowConf: (raw) => 'Read as “' + raw + '” — check this one',
+    // The whole-day banner when a plan holds a building we cannot reach.
+    someUnreachable: (n) => n + (n === 1 ? ' class is' : ' classes are') +
+      ' somewhere this map cannot take you',
+    close: 'Close the day plan',
+    source: { google: 'Google Calendar', apple: 'Apple Calendar', ut: 'UT registration',
+      image: 'a photo of a schedule', api: 'Registration Plus', manual: 'typed in' },
+    from: (s) => 'From ' + s,
+  };
+
+  /**
+   * THE DAY PLAN'S STYLESHEET, injected rather than added to style.css.
+   *
+   * WHY INJECTED. style.css belongs to another lane this round. More
+   * importantly the RECORDING GATE lives in it, as
+   * `.clip #wf-button,.clip #wf-sheet,.clip #wf-pill{display:none!important}`,
+   * with a comment claiming "every element this feature has ever added is a
+   * CHILD of one of these three, which is why the rule has not had to grow as
+   * the bar did". This surface adds two elements that are children of
+   * `#wf-root` and of neither of those three, so that claim stops being true
+   * here. The gate for them is therefore in this block, one line, next to the
+   * elements it covers — and the one-line consolidation for whoever owns
+   * style.css is written down in docs/si-dayview.md rather than made from here.
+   *
+   * `?clip=1`, `?autopilot=1` and `?sliderdemo=1` all put `.clip` on <html> in
+   * index.html's head script, so one rule covers all three recording surfaces.
+   *
+   * Every size and colour below is either a token off `#wf-root` (so the day
+   * plan cannot drift from the answer bar it feeds) or a WF_DAY value written
+   * in from JS. Nothing here is a number typed twice.
+   */
+  const DAY_CSS = `
+.clip #wf-day,.clip #wf-day-btn{display:none!important}
+#wf-day.hidden{display:none}
+
+/* THE WAY IN. A row at the foot of the search sheet, above the small print. It
+   is a row and not a chip because what it offers is a different SHAPE of answer
+   — a whole day rather than one leg — and a two-line label is what says that. */
+#wf-day-btn{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;
+  margin:0;padding:10px 14px;background:rgba(255,255,255,.05);border:none;
+  border-top:1px solid var(--wf-edge-soft);color:var(--wf-ink);font:inherit;
+  text-align:left;cursor:pointer}
+#wf-day-btn:hover,#wf-day-btn.on{background:var(--wf-hot)}
+#wf-day-btn .wf-day-btn-ic{width:17px;height:17px;flex:none;color:var(--wf-accent)}
+.wf-day-btn-l{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wf-day-btn-l1{font-size:12.5px;font-weight:600}
+.wf-day-btn-l2{font-size:var(--wf-small);color:var(--wf-dimmer)}
+
+/* THE PANEL takes the search sheet's slot, because it answers the same
+   question at a different scale and two panels in one corner is two panels. */
+#wf-day{position:absolute;top:68px;left:16px;z-index:30;
+  width:__PANELW__px;max-width:calc(100vw - 32px);
+  background:var(--wf-glass-solid);backdrop-filter:blur(14px) saturate(1.1);
+  border:1px solid rgba(255,190,90,.18);border-radius:var(--wf-radius);
+  box-shadow:var(--wf-shadow);color:var(--wf-ink);font-size:12.5px;overflow:hidden;
+  display:flex;flex-direction:column;text-align:left}
+#wf-day-head{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 10px 6px 14px;flex:none}
+#wf-day-title{font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--wf-dim)}
+#wf-day-close{background:none;border:none;color:inherit;opacity:.6;cursor:pointer;
+  width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:8px}
+#wf-day-close svg{width:15px;height:15px}
+#wf-day-close:hover{opacity:1;background:rgba(255,255,255,.07)}
+
+/* THE SUMMARY. Three facts, in falling order of how much they change what you
+   do: how big the day is, how many of its walks have something wrong with
+   them, and whether any of its classes is somewhere this map cannot go. The
+   second is the one this whole surface exists to put on screen at a glance. */
+#wf-day-sum{display:flex;flex-direction:column;gap:3px;padding:0 14px 9px;flex:none;
+  border-bottom:1px solid var(--wf-edge-soft)}
+.wf-d-count{font-size:14px;font-weight:600}
+.wf-d-checks{font-size:11.5px;color:#ffc077}
+.wf-d-unreach{font-size:11.5px;color:var(--wf-dim)}
+
+#wf-day-list{overflow-y:auto;min-height:0;max-height:__LISTVH__vh;padding:4px 0 2px}
+#wf-day-foot{padding:7px 14px 9px;border-top:1px solid rgba(255,190,90,.11);
+  font-size:9.5px;color:var(--wf-dimmer);flex:none}
+
+/* A ROW IS THREE COLUMNS: when, the spine, and what happens.
+   The spine is continuous down the whole list — the same argument as the
+   itinerary's thread above: the picture and the list cannot say different
+   things if the picture IS the list. */
+.wf-d-row{display:grid;grid-template-columns:46px 16px 1fr;align-items:stretch;
+  width:100%;box-sizing:border-box;padding:0 12px 0 10px;text-align:left;
+  background:none;border:none;color:inherit;font:inherit}
+.wf-d-when{padding-top:7px;text-align:right;padding-right:2px}
+.wf-d-t1{font-size:11.5px;font-weight:600;color:var(--wf-ink)}
+.wf-d-t2{font-size:10px;color:var(--wf-dimmer)}
+.wf-d-t3{font-size:10px;color:var(--wf-dimmer);padding-top:2px}
+.wf-d-walk.next .wf-d-t3{color:var(--wf-dim)}
+.wf-d-rail{position:relative}
+.wf-d-rail:before{content:"";position:absolute;left:50%;top:0;bottom:0;
+  width:__RAILW__px;margin-left:-__RAILHALF__px;background:var(--wf-spine-col)}
+.wf-d-dot{position:absolute;left:50%;top:11px;width:__DOTD__px;height:__DOTD__px;
+  margin-left:-__DOTR__px;border-radius:50%;background:var(--wf-mk-col);
+  box-shadow:0 0 0 3px var(--wf-glass-solid)}
+.wf-d-body{padding:6px 0 8px;min-width:0}
+
+/* ── A CLASS ──────────────────────────────────────────────────────────────
+   Deliberately the quiet row. The classes are the anchors; the WALKS are the
+   thing you can act on, and a day plan that gives them the same weight is a
+   calendar with a map in it rather than a walking plan. */
+.wf-d-class .wf-d-course{font-size:13px;font-weight:600;line-height:1.25}
+.wf-d-class.in .wf-d-course{color:var(--wf-accent)}
+.wf-d-class.in .wf-d-dot{background:var(--wf-accent)}
+.wf-d-nowtag{margin-left:7px;font-size:9px;font-weight:700;letter-spacing:.14em;
+  color:var(--wf-go-ink);background:var(--wf-accent);border-radius:4px;padding:1px 4px;
+  vertical-align:1px}
+.wf-d-place{font-size:11px;color:var(--wf-dim);line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf-d-where{display:flex;align-items:baseline;gap:6px;margin-top:1px}
+.wf-d-code{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#ffcf7a}
+.wf-d-room{font-size:11px;color:var(--wf-dimmer)}
+
+/* ── A WALK ───────────────────────────────────────────────────────────────
+   The row you can press. The minutes are the biggest thing on it, for the same
+   reason they are the biggest thing on the answer bar: it is the one number
+   read at a glance. */
+.wf-d-walk{cursor:pointer;position:relative}
+.wf-d-walk:disabled{cursor:default}
+.wf-d-walk .wf-d-rail-w:before{background:var(--wf-rail)}
+.wf-d-walk:hover:not(:disabled){background:rgba(255,255,255,.045)}
+.wf-d-walk.past{opacity:.42}
+.wf-d-walk.picked{background:rgba(245,166,35,.13)}
+/* WHICH ONE IS NEXT, and it is the only amber rail in the list. Everything
+   else on this surface is set in the answer bar's quiet cream; one warm rail
+   and one warm word is the whole "at a glance" budget, spent on the one row
+   that is about to matter. */
+.wf-d-walk.next .wf-d-rail-w:before{background:var(--wf-accent);width:__RAILNEXTW__px;
+  margin-left:-__RAILNEXTH__px}
+.wf-d-walk.next .wf-d-min{color:var(--wf-accent)}
+.wf-d-next{font-size:9px;font-weight:700;letter-spacing:.13em;color:var(--wf-accent);
+  padding-top:9px}
+.wf-d-fig{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+.wf-d-mode{width:var(--wf-mode);height:var(--wf-mode);font-size:17px;flex:none;
+  align-self:center;color:var(--wf-dim)}
+.wf-d-min{font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.wf-d-unit{font-size:10.5px;color:var(--wf-dim)}
+.wf-d-dist{font-size:11px;color:var(--wf-dim);margin-left:2px}
+.wf-d-figoff .wf-d-min{color:var(--wf-dimmer)}
+.wf-d-ends{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
+.wf-d-arr{width:12px;height:12px;color:var(--wf-dimmer);flex:none}
+.wf-d-gap{font-size:10px;color:var(--wf-dimmer);margin-left:2px}
+
+/* ── THE GAP BAR ──────────────────────────────────────────────────────────
+   The track is the gap the schedule holds. Solid to the fast end of the walk,
+   lighter out to the slow end, and the tail left EMPTY AND UNLABELLED — the
+   honesty doc's §15 lets us draw what the calendar says and forbids us saying
+   you will make it, and an empty tail says the first without saying the
+   second. Overflow is drawn OUTSIDE the track, because a walk that does not
+   fit is the one state worth seeing from across the room. */
+.wf-d-bar{margin:5px 0 1px;display:flex;align-items:center}
+.wf-d-bar-tr{display:flex;height:__BARH__px;border-radius:__BARR__px;overflow:hidden;
+  width:100%;background:rgba(255,255,255,.07)}
+.wf-d-bar-lo{background:var(--wf-fill)}
+.wf-d-bar-hi{background:var(--wf-rail)}
+.wf-d-bar-ov{background:repeating-linear-gradient(-45deg,#ff8f6b 0 3px,#7a2f18 3px 6px);
+  flex:none;margin-left:auto}
+.wf-d-bar.over .wf-d-bar-tr{box-shadow:inset 0 0 0 1px rgba(255,143,107,.5)}
+
+/* ── A CHIP ───────────────────────────────────────────────────────────────
+   One problem, one line, and its own colour only where the colour is earned.
+   Only the late chip changes what you do today; everything else is amber
+   or grey, because five colours on a four-row list is a colour key nobody
+   reads. */
+.wf-d-chip{display:flex;align-items:flex-start;gap:5px;margin-top:4px;
+  font-size:11px;line-height:1.35;color:var(--wf-dim)}
+.wf-d-chip-ic{width:13px;height:13px;flex:none;margin-top:1px}
+.wf-d-chip-s{color:var(--wf-dimmer)}
+.wf-d-late{color:#ffab8c}
+.wf-d-tight{color:#ffc077}
+.wf-d-stairsOnly{color:#ffc077}
+.wf-d-stairs{color:var(--wf-dim)}
+.wf-d-off{color:#ffab8c}
+.wf-d-class .wf-d-off{color:rgba(255,171,140,.85)}
+
+@media(max-width:640px){
+  /* Same slot the search sheet takes on a phone, and for the same reasons:
+     above the drive controls, clear of the time-of-day panel on the right.
+     IT IS TALLER THAN THE SEARCH SHEET, THOUGH, AND MEASURED RATHER THAN
+     COPIED. At the sheet's 62vh the day plan is 337 px on an 844 px phone: it
+     showed one class, one walk and the top of the next class, with 321 px of
+     empty sky above it. A search panel is short by nature and a day is not.
+     78vh puts its top edge at y186 — below the two rows of top buttons
+     (16..112), which is the thing that must not be covered.
+     WITH A ROUTE DRAWN it goes back to 62vh, because the answer bar then owns
+     the top of the screen (--wf-pill-top is 120 px and the closed bar runs
+     to about 310) and a taller list would slide underneath it. wf-routed is
+     already on <body> whenever a route exists, so this costs no new state. */
+  #wf-day{--wf-tod-clear:calc(8px + var(--touch-min) + 14px + 8px);
+    top:auto;bottom:var(--drive-clear);left:8px;right:var(--wf-tod-clear);width:auto;
+    max-width:none;max-height:calc(78vh - var(--drive-clear));border-radius:16px}
+  body.wf-routed #wf-day{max-height:calc(62vh - var(--drive-clear))}
+  #wf-day-list{max-height:none;flex:1 1 auto}
+  /* A WALK ROW IS A THUMB TARGET. It is the control that decides which of
+     three walks gets drawn on the ground, so it takes --touch-min like the
+     result rows next door do. The class rows do not: they are not pressable
+     and giving them the same height would push the walks off the screen. */
+  .wf-d-walk{min-height:var(--touch-min)}
+  .wf-d-walk .wf-d-body{padding:8px 0 10px}
+}
+`.replace(/__PANELW__/g, String(WF_DAY.panelW))
+  .replace(/__LISTVH__/g, String(WF_DAY.listMaxVh))
+  .replace(/__RAILNEXTW__/g, String(WF_DAY.railW + 1))
+  .replace(/__RAILNEXTH__/g, String((WF_DAY.railW + 1) / 2))
+  .replace(/__RAILHALF__/g, String(WF_DAY.railW / 2))
+  .replace(/__RAILW__/g, String(WF_DAY.railW))
+  .replace(/__DOTD__/g, String(WF_DAY.dotR * 2))
+  .replace(/__DOTR__/g, String(WF_DAY.dotR))
+  .replace(/__BARH__/g, String(WF_DAY.gapBarH))
+  .replace(/__BARR__/g, String(WF_DAY.gapBarR));
+
+  /** This surface's own glyphs. A separate object from IC above on purpose:
+   *  four lanes are inside this file this round and appending a key to a shared
+   *  literal is the one edit that conflicts every time. */
+  const IC_D = {
+    cal: 'M4.5 6.8a1.8 1.8 0 0 1 1.8-1.8h11.4a1.8 1.8 0 0 1 1.8 1.8v11.4a1.8 1.8 0 0 1-1.8 1.8H6.3a1.8 1.8 0 0 1-1.8-1.8zM4.5 9.6h15M8.6 3.2v3.4M15.4 3.2v3.4',
+    warn: 'M12 4.4 21 19.6H3zM12 10v4M12 17.2v.01',
+    stairs: 'M3 20h4v-4h4v-4h4V8h4V4',
+    info: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 11v5.4M12 7.6v.01',
+    arrowR: 'M4.5 12h14M13 6.5 18.5 12 13 17.5',
+  };
+
+  /**
+   * THE FIXTURES. Demo and verification data, not a shipped feature — a real
+   * import replaces `items` wholesale. They are here rather than in a JSON file
+   * for the same reason UT_CELEBRATED is a literal table: a fixture in the file
+   * cannot go stale against a fetch that fails.
+   *
+   * `tth` and `mwf` are ordinary days on UT's own two class grids (TTh: 75
+   * minutes, 15 between; MWF: 50 minutes, 10 between). Every location string in
+   * `tth` is verbatim a real UT `LOCATION:` line quoted in
+   * `docs/import-bar-ut.md` from UT-Registration-Plus's own test fixtures, so
+   * the format being parsed is a real one and not one invented here.
+   *
+   * `gaps` is CONSTRUCTED, and says so: it is `tth` with two classes moved onto
+   * the two codes the forcing function names — SSW, which is a real registered
+   * main-campus building this app has never heard of, and BE1, which is a real
+   * UT building eleven kilometres north at the Pickle Research Campus. Nobody's
+   * real Tuesday looks like that; the renderer still has to survive it.
+   */
+  const DAY_FIXTURES = {
+    tth: {
+      day: 'Tuesday', source: 'ut', tz: 'America/Chicago',
+      items: [
+        { course: 'CMS 306M', title: 'Professional Communication Skills',
+          raw: 'CMA 6.146', startMin: 570, endMin: 645 },
+        { course: 'C S 429', title: 'Computer Organization and Architecture',
+          raw: 'UTC 3.102', startMin: 660, endMin: 735, unique: '54795' },
+        { course: 'BA 101S', title: 'Business Foundations',
+          raw: 'GSB 2.122', startMin: 750, endMin: 825 },
+        { course: 'J 310F', title: 'Fundamental Issues in Journalism',
+          raw: 'DMC 3.208', startMin: 840, endMin: 915 },
+      ],
+    },
+    mwf: {
+      day: 'Monday', source: 'google', tz: 'America/Chicago',
+      items: [
+        { course: 'ECO 304K', title: 'Introduction to Microeconomics',
+          raw: 'WAG 214', startMin: 540, endMin: 590 },
+        { course: 'UGS 302', title: 'Undergraduate Signature Course',
+          raw: 'FAC 21', startMin: 600, endMin: 650 },
+        { course: 'CH 301', title: 'Principles of Chemistry I',
+          raw: 'WEL 2.122', startMin: 660, endMin: 710 },
+        { course: 'ARH 301', title: 'Introduction to the Visual Arts',
+          raw: 'ART 1.102', startMin: 720, endMin: 770 },
+      ],
+    },
+    gaps: {
+      day: 'Thursday', source: 'apple', tz: 'America/Chicago',
+      items: [
+        { course: 'SW 327', title: 'Social Work Practice',
+          raw: 'SSW 2.132', startMin: 570, endMin: 645 },
+        { course: 'C S 429', title: 'Computer Organization and Architecture',
+          raw: 'UTC 3.102', startMin: 660, endMin: 735 },
+        // ONE LEG OF THIS DAY HAS TO WORK. A fixture where every walk is
+        // blocked cannot show that the good rows and the bad rows sit in one
+        // list and read as one sequence — which is the whole claim being made
+        // about a mixed day. UTC -> GSB is 43 m and routes.
+        { course: 'BA 101S', title: 'Business Foundations',
+          raw: 'GSB 2.122', startMin: 750, endMin: 825 },
+        { course: 'BME 383J', title: 'Laboratory Rotation',
+          raw: 'BE1 1.100', startMin: 900, endMin: 1020 },
+      ],
+    },
+  };
+
+  let dayEl = null;              // the panel, built once
+  let dayPlan = null;            // the normalised plan on screen
+  let dayRows = null;            // the computed sequence (classes and walks)
+  let dayPicked = -1;            // which walk row is drawn on the ground
+  let dayBtn = null;             // the way in, appended to the search sheet
+  let dayBBox = null;            // the routable graph's own extent
+
+  // ── THE SEAM, IN CODE ─────────────────────────────────────────────────────
+  /**
+   * Take whatever an importer produced and make it safe to render. It is
+   * deliberately forgiving about what it is given and strict about what it
+   * hands on: an item with no usable time or no code is DROPPED rather than
+   * rendered half-formed, because half a row on a schedule is worse than a
+   * missing one.
+   *
+   * `raw` is split exactly as docs/import-bar-ut.md's recon says UT's own
+   * field is shaped — first token is the code, the rest is the room — but only
+   * when the importer did not already separate them. An importer that knows
+   * better (an API, say) sets `code` and `room` itself and this never runs.
+   */
+  function dayNormalise(plan) {
+    if (!plan || !plan.items) return null;
+    const items = [];
+    for (const it of plan.items) {
+      let code = it.code, room = it.room, src = it.codeSource;
+      if (!code && it.raw) {
+        const parts = String(it.raw).trim().split(/\s+/);
+        code = parts[0]; room = parts.slice(1).join(' ');
+        src = src || 'location-field';
+      }
+      if (!code) continue;
+      const a = Number(it.startMin), b = Number(it.endMin);
+      if (!isFinite(a) || !isFinite(b) || b <= a) continue;
+      items.push({
+        course: it.course || null, title: it.title || null,
+        code: String(code).toUpperCase(), room: room || '',
+        raw: it.raw || (room ? code + ' ' + room : code),
+        startMin: a, endMin: b, unique: it.unique || null,
+        codeSource: src || 'given',
+        codeConfidence: it.codeConfidence == null ? 1 : Number(it.codeConfidence),
+      });
+    }
+    items.sort((x, y) => x.startMin - y.startMin);
+    if (!items.length) return null;
+    return { day: plan.day || null, date: plan.date || null,
+      source: plan.source || 'manual', tz: plan.tz || null, items };
+  }
+
+  /** The routable city's own extent, so "off this map" is measured rather than
+   *  asserted against a hardcoded list of eleven codes that would go stale the
+   *  next time the graph is rebaked. */
+  function dayBounds() {
+    if (dayBBox || !G) return dayBBox;
+    let w = 180, s = 90, e = -180, n = -90;
+    for (let i = 0; i < G.X.length; i++) {
+      if (G.X[i] < w) w = G.X[i];
+      if (G.X[i] > e) e = G.X[i];
+      if (G.Y[i] < s) s = G.Y[i];
+      if (G.Y[i] > n) n = G.Y[i];
+    }
+    dayBBox = { w, s, e, n, c: [(w + e) / 2, (s + n) / 2] };
+    return dayBBox;
+  }
+
+  /**
+   * WHICH OF THE FOUR THINGS A CODE IS. A real schedule names a real building
+   * and this app can be in one of four states about it, and they need four
+   * different sentences:
+   *
+   *   ok       routable, walk to it
+   *   nodoor   in the register, but we hold no door or no path — "not walkable
+   *            in this build yet", which SAY.notWalkable already says
+   *   offmap   UT publishes a door for it and the door is outside the extent of
+   *            the graph we route on. Ten of the eleven codes the forcing
+   *            function names are this, at 10.8-11.8 km north (Pickle Research
+   *            Campus), measured here rather than looked up.
+   *   unknown  nothing in this app has ever heard of it. SSW is this, and it is
+   *            NOT the same problem as Pickle: SSW is a real registered
+   *            main-campus building 900 m from the Tower with two doors in
+   *            UT_CELEBRATED above, which the search index simply does not
+   *            carry. Telling a student "off the map" about a building they
+   *            can see from the Tower would be a lie.
+   */
+  function dayPlace(code) {
+    const entry = G ? resolve(code) : null;
+    if (entry && entry.routable) return { kind: 'ok', code, entry, name: entry.display };
+    if (entry) return { kind: 'nodoor', code, entry, name: entry.display };
+    const ut = utIndex().get(String(code).toUpperCase());
+    const bb = dayBounds();
+    if (ut && ut.length && bb) {
+      const ll = [ut[0].lon, ut[0].lat];
+      const out = ll[0] < bb.w || ll[0] > bb.e || ll[1] < bb.s || ll[1] > bb.n;
+      if (out) {
+        const d = metresBetween(ll, bb.c);
+        const brg = (Math.atan2(ll[0] - bb.c[0], ll[1] - bb.c[1]) * 180 / Math.PI + 360) % 360;
+        return { kind: 'offmap', code, entry: null, name: null,
+          distM: d, dir: COMPASS8[Math.round(brg / 45) % 8] };
+      }
+      // UT knows it, it is on this map's ground, and we still cannot route to
+      // it. That is a hole in this app, not in the schedule.
+      return { kind: 'unknown', code, entry: null, name: null, utKnows: true };
+    }
+    return { kind: 'unknown', code, entry: null, name: null, utKnows: false };
+  }
+
+  /** §15's ladder, and there are only two rungs on purpose. */
+  function dayVerdict(lo, hi, gapMin) {
+    if (!WF_DAY.warnOn || gapMin == null) return null;
+    if (lo > gapMin) return 'late';
+    if (hi > gapMin) return 'tight';
+    return null;
+  }
+
+  /**
+   * The sequence. Classes and the walks between them, in one array, each walk
+   * routed ONCE through the same computeRoute() the answer bar is drawn from.
+   */
+  function dayBuild(plan) {
+    const out = [];
+    let checks = 0, unreachable = 0;
+    const places = plan.items.map(it => dayPlace(it.code));
+    for (let i = 0; i < plan.items.length; i++) {
+      const it = plan.items[i], pl = places[i];
+      if (pl.kind !== 'ok') unreachable++;
+      out.push({ type: 'class', i, item: it, place: pl });
+      const nx = plan.items[i + 1];
+      if (!nx) continue;
+      const pn = places[i + 1];
+      // The gap the SCHEDULE holds. When two classes overlap or abut there is
+      // no gap to measure against and we fall back to the same assumed passing
+      // period the single-leg bar uses — and the row says which one it used.
+      const raw = nx.startMin - it.endMin;
+      const gapMin = raw > 0 ? raw : null;
+      const leg = { type: 'walk', i, from: it, to: nx, fromPlace: pl, toPlace: pn,
+        gapMin, gapAssumed: gapMin == null ? WAYFIND.passingMin : null,
+        problems: [], route: null };
+      const budget = gapMin == null ? WAYFIND.passingMin : gapMin;
+      if (pl.kind !== 'ok' || pn.kind !== 'ok') {
+        leg.status = 'blocked';
+        for (const p of [pl, pn]) if (p.kind !== 'ok') leg.problems.push({ kind: p.kind, place: p });
+      } else {
+        const r = computeRoute(G, pl.entry, pn.entry, {});
+        if (!r.ok) { leg.status = 'noroute'; leg.problems.push({ kind: 'noroute' }); }
+        else {
+          leg.status = 'ok';
+          leg.route = r;
+          leg.lo = r.time.lo; leg.hi = r.time.hi; leg.distM = r.distM;
+          leg.sets = r.m.stairSets; leg.signals = r.m.signals;
+          leg.verdict = dayVerdict(r.time.lo, r.time.hi, budget);
+          if (leg.verdict) leg.problems.push({ kind: leg.verdict });
+          if (leg.sets > 0) {
+            // The stairs lane already computed the way round, or established
+            // there is none, on this same answer object. Do not re-route it.
+            const sf = r.stepFree;
+            if (!sf) leg.problems.push({ kind: 'stairsOnly', sets: leg.sets });
+            else leg.problems.push({ kind: 'stairs', sets: leg.sets,
+              extraM: Math.round(sf.distM - r.distM) });
+          }
+          if (leg.signals >= WF_DAY.signalChipMin) leg.problems.push({ kind: 'signals', n: leg.signals });
+        }
+      }
+      if (leg.problems.length) checks++;
+      out.push(leg);
+    }
+    return { rows: out, checks, walks: out.filter(r => r.type === 'walk').length,
+      classes: plan.items.length, unreachable };
+  }
+
+  // ── THE CLOCK ────────────────────────────────────────────────────────────
+  /** Minutes past local midnight, or a frozen value so a screenshot of "which
+   *  walk is next" is the same picture tomorrow. */
+  function dayNow() {
+    const s = q.get('dayat');
+    if (s) {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim());
+      if (m) return (+m[1]) * 60 + (+m[2]);
+    }
+    if (WF_DAY.clockFrom !== 'real') return null;
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  function dayFmtTime(min) {
+    let h = Math.floor(min / 60), m = min % 60;
+    const ap = h >= 12 ? 'pm' : 'am';
+    h = h % 12; if (h === 0) h = 12;
+    return h + ':' + String(m).padStart(2, '0') + ap;
+  }
+
+  // ── THE PANEL ────────────────────────────────────────────────────────────
+  function dayEnsureCss() {
+    if (document.getElementById('wf-day-css')) return;
+    const s = document.createElement('style');
+    s.id = 'wf-day-css';
+    s.textContent = DAY_CSS;
+    document.head.appendChild(s);
+  }
+
+  /**
+   * The panel is a CHILD OF #wf-root and its stylesheet is injected from here
+   * rather than added to style.css, for one reason each.
+   *
+   * Child of #wf-root: it inherits every type and colour token the answer bar
+   * uses, so the day plan cannot drift from the bar it feeds.
+   *
+   * Injected: style.css belongs to another lane this round, and the recording
+   * gate lives in it. `.clip #wf-button,.clip #wf-sheet,.clip #wf-pill` names
+   * three ids and its own comment claims "every element this feature has ever
+   * added is a CHILD of one of these three" — which stops being true the moment
+   * this panel exists. So the gate for the two elements this surface adds is in
+   * DAY_CSS below, next to them, and the one-line consolidation for whoever
+   * owns style.css is written down in docs/si-dayview.md.
+   */
+  function dayBuildPanel() {
+    if (dayEl) return dayEl;
+    dayEnsureCss();
+    buildUI();
+    const panel = h('div', 'hidden'); panel.id = 'wf-day';
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', SAY_D.title);
+    const head = h('div', null); head.id = 'wf-day-head';
+    const hl = h('div', null); hl.id = 'wf-day-title';
+    head.appendChild(hl);
+    const close = h('button', null); close.id = 'wf-day-close';
+    close.setAttribute('aria-label', SAY_D.close);
+    close.appendChild(icon(null, IC.close, 2.1));
+    close.addEventListener('click', (ev) => { ev.stopPropagation(); dayHide(); });
+    head.appendChild(close);
+    panel.appendChild(head);
+    const sum = h('div', null); sum.id = 'wf-day-sum';
+    panel.appendChild(sum);
+    const list = h('div', null); list.id = 'wf-day-list';
+    panel.appendChild(list);
+    const foot = h('div', null); foot.id = 'wf-day-foot';
+    panel.appendChild(foot);
+    el.root.appendChild(panel);
+    dayEl = { panel, title: hl, sum, list, foot };
+    return dayEl;
+  }
+
+  function dayHide() {
+    if (dayEl) dayEl.panel.classList.add('hidden');
+    if (dayBtn) dayBtn.classList.remove('on');
+  }
+  function dayShow() {
+    dayBuildPanel();
+    dayEl.panel.classList.remove('hidden');
+    if (dayBtn) dayBtn.classList.add('on');
+    // Two panels in one slot is two panels. The search sheet and the day plan
+    // take the same corner, so opening one closes the other — the same rule
+    // run() already applies when the answer replaces the question.
+    if (el && el.sheet) { el.sheet.classList.add('hidden'); el.btn.classList.remove('active'); }
+  }
+
+  /** A chip: one problem, one line, its own severity. */
+  function dayChip(kind, text, sub) {
+    const c = h('div', 'wf-d-chip wf-d-' + kind);
+    c.appendChild(icon('wf-d-chip-ic', kind === 'late' || kind === 'tight' ? IC_D.warn
+      : (kind === 'stairs' || kind === 'stairsOnly' ? IC_D.stairs : IC_D.info), 2));
+    const t = h('span', 'wf-d-chip-t', text);
+    if (sub) { t.appendChild(h('span', 'wf-d-chip-s', ' · ' + sub)); }
+    c.appendChild(t);
+    return c;
+  }
+
+  /**
+   * THE GAP BAR. The track is the gap the schedule holds; the walk's own range
+   * is drawn inside it, solid to the fast end and lighter out to the slow end.
+   * The tail is left EMPTY AND UNLABELLED on purpose — §15 permits drawing what
+   * the calendar says and forbids saying you will make it, and an empty tail
+   * says the first without saying the second. Overflow past the end is drawn as
+   * a stub outside the track, because that is the one state worth seeing from
+   * across the room.
+   */
+  function dayGapBar(leg) {
+    if (!WF_DAY.gapBar || leg.status !== 'ok') return null;
+    const gap = leg.gapMin == null ? leg.gapAssumed : leg.gapMin;
+    if (!gap || gap > WF_DAY.gapBarMaxMin) return null;
+    const wrap = h('div', 'wf-d-bar');
+    wrap.setAttribute('aria-hidden', 'true');
+    const track = h('div', 'wf-d-bar-tr');
+    const pct = (m) => Math.max(0, Math.min(100, (m / gap) * 100));
+    const lo = Math.max(WF_DAY.gapBarMinPct, pct(leg.lo));
+    const hi = Math.max(lo, pct(leg.hi));
+    const sure = h('div', 'wf-d-bar-lo'); sure.style.width = lo.toFixed(1) + '%';
+    const maybe = h('div', 'wf-d-bar-hi'); maybe.style.width = (hi - lo).toFixed(1) + '%';
+    track.appendChild(sure); track.appendChild(maybe);
+    if (leg.hi > gap) {
+      const over = h('div', 'wf-d-bar-ov');
+      over.style.width = WF_DAY.gapBarOverPct + '%';
+      track.appendChild(over);
+      wrap.classList.add('over');
+    }
+    wrap.appendChild(track);
+    return wrap;
+  }
+
+  function dayRenderClass(row, nowMin) {
+    const r = h('div', 'wf-d-row wf-d-class');
+    if (nowMin != null && nowMin >= row.item.startMin && nowMin < row.item.endMin) r.classList.add('in');
+    const when = h('div', 'wf-d-when');
+    when.appendChild(h('div', 'wf-d-t1', dayFmtTime(row.item.startMin)));
+    when.appendChild(h('div', 'wf-d-t2', dayFmtTime(row.item.endMin)));
+    r.appendChild(when);
+    const rail = h('div', 'wf-d-rail'); rail.setAttribute('aria-hidden', 'true');
+    rail.appendChild(h('span', 'wf-d-dot'));
+    r.appendChild(rail);
+    const body = h('div', 'wf-d-body');
+    const t = h('div', 'wf-d-course', row.item.course || row.item.code);
+    if (nowMin != null && nowMin >= row.item.startMin && nowMin < row.item.endMin) {
+      t.appendChild(h('span', 'wf-d-nowtag', SAY_D.now));
+    }
+    body.appendChild(t);
+    const nm = row.place.name || (row.place.kind === 'offmap' || row.place.kind === 'unknown'
+      ? null : row.item.code);
+    if (nm) body.appendChild(h('div', 'wf-d-place', nm));
+    const where = h('div', 'wf-d-where');
+    where.appendChild(h('span', 'wf-d-code', row.item.code));
+    if (row.item.room) where.appendChild(h('span', 'wf-d-room', row.item.room));
+    body.appendChild(where);
+    if (row.item.codeConfidence < WF_DAY.confidenceSure) {
+      body.appendChild(dayChip('info', SAY_D.lowConf(row.item.raw)));
+    }
+    // WHY A BUILDING IS OUT OF REACH BELONGS TO THE CLASS ROW, ONCE. It is a
+    // fact about the BUILDING, and a building appears on exactly one class row
+    // but on up to two walk rows either side of it — photographed on the
+    // constructed fixture, "BE1 is 11.8 km north of campus — off this map ·
+    // This map is main campus only." was on screen THREE times in a panel five
+    // rows long. The class row carries the sentence and its explanation; the
+    // walk rows carry only the short consequence (see dayRenderWalk).
+    if (row.place.kind === 'offmap') {
+      body.appendChild(dayChip('off', SAY_D.offMap(row.item.code,
+        fmtDist(row.place.distM), row.place.dir), SAY_D.offMapWhy));
+    } else if (row.place.kind === 'unknown') {
+      body.appendChild(dayChip('off', SAY_D.unknown(row.item.code), SAY_D.unknownWhy));
+    } else if (row.place.kind === 'nodoor') {
+      body.appendChild(dayChip('off', SAY_D.noDoor(row.item.code), SAY_D.noDoorWhy));
+    }
+    r.appendChild(body);
+    return r;
+  }
+
+  function dayRenderWalk(row, nowMin, isNext, idx) {
+    const past = nowMin != null && nowMin >= row.to.startMin + WF_DAY.nextGraceMin;
+    const btn = document.createElement('button');
+    btn.className = 'wf-d-row wf-d-walk' + (isNext ? ' next' : '') + (past ? ' past' : '') +
+      (dayPicked === idx ? ' picked' : '');
+    btn.type = 'button';
+    const when = h('div', 'wf-d-when');
+    if (isNext) when.appendChild(h('div', 'wf-d-next', SAY_D.next));
+    // WHEN THE WALK STARTS, in the same gutter the classes put their times in,
+    // so the column is one clock all the way down instead of a clock with
+    // three holes in it. It is the previous class's END TIME — a fact read off
+    // the schedule, not a claim about when you should leave, which §15 would
+    // not let this surface make.
+    when.appendChild(h('div', 'wf-d-t3', dayFmtTime(row.from.endMin)));
+    btn.appendChild(when);
+    const rail = h('div', 'wf-d-rail wf-d-rail-w'); rail.setAttribute('aria-hidden', 'true');
+    btn.appendChild(rail);
+    const body = h('div', 'wf-d-body');
+
+    if (row.status === 'ok') {
+      const line = h('div', 'wf-d-fig');
+      line.appendChild(icon('wf-d-mode', IC.walk, 1.9));
+      // `0–1 min` is what the arithmetic produces on a 43 m walk and it is not
+      // what the answer bar says: SAY.minWalkUnder above prints `Under 1 min
+      // walk`, because a range whose fast end is zero is not a range. The two
+      // surfaces have to use one vocabulary or they read as two claims.
+      line.appendChild(h('span', 'wf-d-min', row.lo === 0 ? 'Under ' + row.hi : row.lo + '–' + row.hi));
+      line.appendChild(h('span', 'wf-d-unit', 'min'));
+      line.appendChild(h('span', 'wf-d-dist', fmtDist(row.distM)));
+      body.appendChild(line);
+      const bar = dayGapBar(row);
+      if (bar) body.appendChild(bar);
+      const ends = h('div', 'wf-d-ends');
+      ends.appendChild(h('span', 'wf-d-code', row.fromPlace.code));
+      ends.appendChild(icon('wf-d-arr', IC_D.arrowR, 2.1));
+      ends.appendChild(h('span', 'wf-d-code', row.toPlace.code));
+      ends.appendChild(h('span', 'wf-d-gap', row.gapMin == null
+        ? SAY_D.gapAssumed(row.gapAssumed) : SAY_D.gapWas(row.gapMin)));
+      body.appendChild(ends);
+    } else {
+      // A BLOCKED WALK IS STILL A WALK ROW. It keeps the figure line, the mode
+      // glyph and the two codes, so the sequence does not develop a hole where
+      // the row you cannot take should be — an absent row reads as "there is no
+      // walk here", which is the opposite of what has happened.
+      const line = h('div', 'wf-d-fig wf-d-figoff');
+      line.appendChild(icon('wf-d-mode', IC.walk, 1.9));
+      line.appendChild(h('span', 'wf-d-min', '—'));
+      body.appendChild(line);
+      const ends = h('div', 'wf-d-ends');
+      ends.appendChild(h('span', 'wf-d-code', row.fromPlace.code));
+      ends.appendChild(icon('wf-d-arr', IC_D.arrowR, 2.1));
+      ends.appendChild(h('span', 'wf-d-code', row.toPlace.code));
+      if (row.gapMin != null) ends.appendChild(h('span', 'wf-d-gap', SAY_D.gapWas(row.gapMin)));
+      body.appendChild(ends);
+    }
+
+    for (const p of row.problems) {
+      if (p.kind === 'late') body.appendChild(dayChip('late', SAY_D.late));
+      else if (p.kind === 'tight') body.appendChild(dayChip('tight', SAY_D.tight));
+      else if (p.kind === 'stairsOnly') body.appendChild(dayChip('stairsOnly', SAY_D.stairsOnly(p.sets)));
+      else if (p.kind === 'stairs') body.appendChild(dayChip('stairs', SAY_D.stairs(p.sets),
+        p.extraM > 0 ? SAY_D.stairsFree(fmtDist(p.extraM))
+          : (p.extraM < 0 ? SAY_D.stairsFreeShorter(fmtDist(-p.extraM)) : SAY_D.stairsFreeSame)));
+      else if (p.kind === 'signals') body.appendChild(dayChip('signals', SAY_D.signals(p.n)));
+      else if (p.kind === 'noroute') body.appendChild(dayChip('off', SAY_D.noRoute));
+      // THE SHORT CONSEQUENCE, NOT THE EXPLANATION. Why BE1 is out of reach is
+      // printed once, on BE1's own class row directly above or below this one.
+      // Repeating it here put the same twelve-word sentence on screen three
+      // times in a five-row panel.
+      else if (p.kind === 'offmap' || p.kind === 'unknown' || p.kind === 'nodoor') {
+        body.appendChild(dayChip('off', p.place === row.toPlace
+          ? SAY_D.cannotTo(p.place.code) : SAY_D.cannotFrom(p.place.code)));
+      }
+    }
+    btn.appendChild(body);
+    if (row.status === 'ok') {
+      btn.setAttribute('aria-label', SAY_D.walkTo(row.toPlace.code) + ' — ' +
+        row.lo + '–' + row.hi + ' min, ' + fmtDist(row.distM));
+      btn.addEventListener('click', (ev) => { ev.stopPropagation(); dayPick(idx); });
+    } else {
+      btn.disabled = true;
+    }
+    return btn;
+  }
+
+  /**
+   * PICK ONE AND NAVIGATE IT. This is the whole reason the day plan is a
+   * chooser rather than a second answer surface: it hands the two ends to the
+   * SAME run() the search panel calls, so everything downstream — the ribbon,
+   * the answer bar, `Walk it`, the stairs card, the lighting card — is the
+   * shipped single-leg feature, unmodified and unduplicated.
+   */
+  function dayPick(idx) {
+    const row = dayRows && dayRows.rows[idx];
+    if (!row || row.type !== 'walk' || row.status !== 'ok') return;
+    dayPicked = idx;
+    buildUI();
+    state.from = row.fromPlace.entry;
+    state.to = row.toPlace.entry;
+    el.inFrom.value = row.fromPlace.entry.display;
+    el.inTo.value = row.toPlace.entry.display;
+    state.via = null; state.viaKind = null; state.viaList = []; state.viaAt = 0;
+    run();
+    dayRender();
+  }
+
+  function dayRender() {
+    if (!dayPlan || !dayEl) return;
+    const nowMin = dayNow();
+    dayRows = dayBuild(dayPlan);
+    dayEl.title.textContent = dayPlan.day || SAY_D.title;
+    dayEl.sum.innerHTML = '';
+    dayEl.sum.appendChild(h('span', 'wf-d-count',
+      SAY_D.heading(dayRows.classes, dayRows.walks)));
+    if (dayRows.checks) {
+      dayEl.sum.appendChild(h('span', 'wf-d-checks',
+        SAY_D.toCheck(dayRows.checks, dayRows.walks)));
+    }
+    if (dayRows.unreachable) {
+      dayEl.sum.appendChild(h('span', 'wf-d-unreach',
+        SAY_D.someUnreachable(dayRows.unreachable)));
+    }
+    // WHICH ONE IS NEXT, and exactly one row may be it. The first walk whose
+    // destination class has not started yet (plus a grace window, because
+    // somebody looking at this while a class starts is running late and the row
+    // they want is still the one they are on).
+    let nextIdx = -1;
+    if (nowMin != null) {
+      for (let i = 0; i < dayRows.rows.length; i++) {
+        const r = dayRows.rows[i];
+        if (r.type !== 'walk') continue;
+        if (nowMin < r.to.startMin + WF_DAY.nextGraceMin) { nextIdx = i; break; }
+      }
+      // AND WHEN NOTHING IS NEXT, SAY SO. A panel with no marked row and no
+      // sentence explaining why reads as a panel that failed to work out which
+      // one was next — the same "absence of a claim read as an all-clear"
+      // failure SAY.darkOutside exists to stop.
+      if (nextIdx < 0 && dayRows.walks) {
+        dayEl.sum.appendChild(h('span', 'wf-d-unreach', SAY_D.done));
+      }
+    }
+    dayEl.list.innerHTML = '';
+    for (let i = 0; i < dayRows.rows.length; i++) {
+      const r = dayRows.rows[i];
+      dayEl.list.appendChild(r.type === 'class'
+        ? dayRenderClass(r, nowMin)
+        : dayRenderWalk(r, nowMin, i === nextIdx, i));
+    }
+    dayEl.foot.textContent = SAY_D.from(SAY_D.source[dayPlan.source] || dayPlan.source);
+  }
+
+  /**
+   * PUBLIC. An importer calls this with a normalised plan and the day appears.
+   * It is the only entry point this surface has, and it takes the shape
+   * documented at the top of this section — nothing calendar-shaped reaches
+   * this file.
+   */
+  window.wayfindDay = async function (plan) {
+    const p = dayNormalise(plan);
+    if (!p) return { ok: false, why: 'empty' };
+    await loadGraph();
+    dayBuildPanel();
+    dayPlan = p; dayPicked = -1;
+    dayRender();
+    dayShow();
+    return { ok: true, classes: p.items.length,
+      walks: dayRows.walks, checks: dayRows.checks, unreachable: dayRows.unreachable,
+      rows: dayRows.rows.map(r => r.type === 'class'
+        ? { type: 'class', code: r.item.code, kind: r.place.kind,
+            startMin: r.item.startMin, endMin: r.item.endMin }
+        : { type: 'walk', from: r.fromPlace.code, to: r.toPlace.code, status: r.status,
+            lo: r.lo, hi: r.hi, distM: r.distM == null ? null : Math.round(r.distM),
+            sets: r.sets, signals: r.signals, gapMin: r.gapMin,
+            verdict: r.verdict || null, problems: r.problems.map(x => x.kind) }) };
+  };
+  /** The built-in fixtures, by name, so a verify script can drive the same day
+   *  this file ships rather than carrying its own copy of it. */
+  window.wayfindDayFixture = function (name) {
+    const f = DAY_FIXTURES[name] || DAY_FIXTURES[WF_DAY.demoPlan];
+    return JSON.parse(JSON.stringify(f));
+  };
+
+  /**
+   * THE WAY IN. A row appended to the bottom of the search sheet at run time,
+   * not a line added to buildUI() — four lanes are inside this file this round
+   * and a DOM append cannot collide with any of them the way a source edit can.
+   */
+  function dayMount() {
+    buildUI();
+    dayEnsureCss();
+    if (dayBtn) return;
+    dayBtn = h('button', null); dayBtn.id = 'wf-day-btn';
+    dayBtn.appendChild(icon('wf-day-btn-ic', IC_D.cal, 1.9));
+    const lab = h('span', 'wf-day-btn-l');
+    lab.appendChild(h('span', 'wf-day-btn-l1', SAY_D.open));
+    lab.appendChild(h('span', 'wf-day-btn-l2', SAY_D.openHint));
+    dayBtn.appendChild(lab);
+    dayBtn.addEventListener('click', async (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (dayEl && !dayEl.panel.classList.contains('hidden')) { dayHide(); return; }
+      if (!dayPlan) await window.wayfindDay(window.wayfindDayFixture(WF_DAY.demoPlan));
+      else dayShow();
+    });
+    const foot = el.sheet.querySelector('.wf-foot');
+    if (foot) el.sheet.insertBefore(dayBtn, foot); else el.sheet.appendChild(dayBtn);
+    // Opening the question closes the day plan, for the same one-panel reason
+    // dayShow() closes the question. An extra listener, not an edited one.
+    el.btn.addEventListener('click', () => dayHide());
+  }
+
+  function dayBoot() {
+    const map = window.__map;
+    if (!map) return setTimeout(dayBoot, 80);
+    const go = async () => {
+      if (!map.getLayer('buildings-3d')) return setTimeout(go, 140);
+      dayMount();
+      const d = q.get('day');
+      if (d && d !== '0') {
+        try { await window.wayfindDay(window.wayfindDayFixture(d === '1' ? WF_DAY.demoPlan : d)); }
+        catch (e) {}
+      }
+    };
+    if (map.isStyleLoaded && map.isStyleLoaded()) go();
+    else map.once('load', () => setTimeout(go, 0));
+  }
+
   function boot() {
     const map = window.__map;
     if (!map) return setTimeout(boot, 60);
@@ -8235,4 +9254,5 @@
     else map.once('load', () => setTimeout(go, 0));
   }
   boot();
+  dayBoot();
 })();
