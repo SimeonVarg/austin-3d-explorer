@@ -889,6 +889,13 @@ html.has-touch #joystick-zone{display:block}
   --wf-shadow:0 10px 34px rgba(0,0,0,.42);
   --wf-radius:16px;
   --wf-pad:13px;
+  /* ROUND 6. The side padding on a GHOST control — one with no border and no
+     panel behind it. Smaller than a boxed button's, because the padding of a
+     box is what keeps ink off its edge and there is no edge here; it is only
+     buying the tap target its width now. Lowering it to 0 would make the words
+     touch their neighbours, raising it above ~14 pushes `Show route` and the ✕
+     off a 342 px bar next to a wide `Walk it`. */
+  --wf-ghost-pad:10px;
   /* the strip */
   /* THE RIBBON'S THICKNESS, AND IT IS THE WHOLE ARGUMENT ABOUT WHAT IT IS.
      At 7 px this was a hairline track with a bright round cap at one end and,
@@ -1340,6 +1347,32 @@ body.wf-live #wf-orig{display:none}
   color:rgba(248,234,208,.72);font-weight:500;min-width:0}
 .wf-door-ic{width:12px;height:12px;flex:none;opacity:.75;transform:translateY(.5px)}
 body.wf-live #wf-sub{margin-top:2px}
+/* ROUND 6: AND WHILE YOU ARE WALKING IT WAITS UNTIL YOU ARE NEARLY THERE.
+   Photographed at 390 x 844 walking JES -> WEL, `Entrances are on this side`
+   is the LONGEST line on the bar and it was on screen for the whole six
+   minutes — a sentence about which face of a building to aim for, printed
+   over half a kilometre before you can see the building. `body.wf-near`
+   arrives at `WF_UI.liveDoorNoteM` of route left (js/wayfind.js), and the
+   destination's NAME never goes anywhere, so what you lose is one long
+   qualifier for the first two thirds of the walk and what you gain is a bar
+   with one fewer thing on it. `visibility` rather than `display`, and the
+   phrase keeps its place in `#wf-sub`.textContent either way — the honesty
+   gates read that string and it must not move. */
+body.wf-live:not(.wf-near) #wf-sub .wf-door{
+  visibility:hidden;position:absolute;width:1px;height:1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap}
+/* ...AND THE BUILDING'S NAME GOES QUIET WHILE YOU ARE STILL A WAY OFF.
+   Photographed at 390 x 844 walking JES -> WEL: the remaining-figures row and
+   the destination row were set at the SAME weight and the same ink, two bold
+   lines stacked under one big amber number, which is the "stacked live card"
+   half of round 1's verdict. In the middle of a walk the live fact is how far
+   is left; the building's name is context you already chose. So it holds the
+   line, in the dim ink, at normal weight — and comes back to full weight with
+   the entrance phrase beside it the moment `wf-near` arrives, which is the
+   moment it becomes the thing you are about to act on. Nothing appears or
+   disappears; one line changes weight once, on approach. */
+body.wf-live:not(.wf-near) #wf-sub .wf-dest{color:var(--wf-dim);font-weight:500}
+body.wf-live:not(.wf-near) #wf-sub .wf-mk-b{opacity:.55}
 /* THE PASSING-PERIOD LINE (docs/walk/what-we-can-honestly-say.md §15). Above the
    fold in the closed bar because "do I have time" is the question, and an
    answer you have to tap to see is not an answer. Two states and deliberately
@@ -1412,18 +1445,49 @@ body.wf-live #wf-sub{margin-top:2px}
   box-shadow:0 3px 13px rgba(255,190,90,.22)}
 #wf-acts .wf-act-go:hover{background:#ffd484;border-color:#ffe1a8}
 #wf-acts .wf-act-go .wf-act-walk{width:17px;height:17px}
-#wf-acts .wf-act-show{flex:0 1 auto;padding-left:13px;padding-right:13px;
-  background:rgba(255,255,255,.05);border-color:var(--wf-edge);
-  color:var(--wf-ink);font-weight:700;white-space:nowrap}
-#wf-acts .wf-act-show:hover{background:rgba(245,166,35,.22)}
+/* ── ROUND 6: ONE BOX ON THE BAR ────────────────────────────────────────────
+   Round 1's critic ran the blind comparison and this is what it came back
+   with: Citymapper's pre-walk sheet has exactly ONE action on it — a single
+   green GO pill — and ours had three, "three same-weight actions in one row",
+   "denser and more capable but not calmer, which was the brief".
+
+   Looked at, at 390 x 844, that is exactly right and the reason is not the
+   COUNT. It is that all three wore the same costume: three rounded 44 px
+   rectangles, each with a 1 px warm border and a lit panel behind it, sitting
+   in a row with 8 px between them. Three of those in a row is not three
+   actions, it is a SEGMENTED CONTROL — one widget with three equal cells, the
+   iOS shape that means "pick which of these you are in". That is the third
+   time this bar has accidentally drawn a stock phone control (see the rail,
+   twice) and the fix is the same as it was there: stop spending the shape.
+
+   So the border and the panel come off the two that are not the point.
+   `Walk it` keeps the fill, and it is now the ONLY filled or bordered thing in
+   the whole feature — `Show route` and the ✕ become what they always were,
+   words and a glyph you can tap. Nothing is hidden, nothing moves behind a
+   chevron, no label is lost: round 2 of this lane took `Show route` out from
+   behind the chevron precisely because the control that mattered was the one
+   you could not see, and it is still on the frame, still labelled, still
+   44 px of touch target. It just stops pretending to be the same kind of
+   thing as the answer. */
+#wf-acts .wf-act-show{flex:0 1 auto;
+  padding-left:var(--wf-ghost-pad);padding-right:var(--wf-ghost-pad);
+  background:none;border-color:transparent;
+  color:var(--wf-dim);font-weight:600;white-space:nowrap}
+#wf-acts .wf-act-show:hover{background:rgba(255,255,255,.07);color:var(--wf-ink)}
+#wf-acts .wf-act-show:focus-visible{border-color:var(--wf-edge)}
 /* THE WAY OUT IS A GLYPH. It was a 90 px box of the same dark grey as the
    panel, and at that width it read as the second half of a two-button choice
    rather than as a dismissal — the ✕ says "leave" in the width of a thumb and
    gives the two real actions the other 60 px. */
+/* ROUND 6: AND IT IS A GLYPH WITH NOTHING AROUND IT. Same argument as
+   `.wf-act-show` above — a bordered 44 px square beside a bordered 44 px
+   rectangle beside a filled 44 px rectangle is one segmented control, and the
+   dismiss is the last thing on the bar that should be asking for a box. */
 #wf-acts .wf-act-clr{flex:0 0 auto;width:var(--touch-min);padding:0;
-  background:rgba(255,255,255,.045);border-color:var(--wf-edge-soft);
-  color:var(--wf-dim);font-weight:600}
-#wf-acts .wf-act-clr:hover{background:rgba(255,255,255,.1);color:var(--wf-ink)}
+  background:none;border-color:transparent;
+  color:var(--wf-dimmer);font-weight:600}
+#wf-acts .wf-act-clr:hover{background:rgba(255,255,255,.07);color:var(--wf-ink)}
+#wf-acts .wf-act-clr:focus-visible{border-color:var(--wf-edge-soft)}
 #wf-acts .wf-act-clr .wf-act-ic{width:14px;height:14px}
 .wf-act-ic{width:15px;height:15px;flex:none}
 /* While you are walking it, being put back at the START of it is not what you
@@ -1462,8 +1526,17 @@ body.wf-live #wf-root.wf-out #wf-acts .wf-act-show{min-height:36px;height:36px;
 body.wf-live #wf-root.wf-out #wf-verdict:not(:empty) ~ #wf-acts .wf-act-show span{display:none}
 body.wf-live #wf-root.wf-out #wf-verdict:not(:empty) ~ #wf-acts .wf-act-show{
   width:var(--touch-min);padding:0}
-body.wf-live #wf-root.wf-out #wf-acts .wf-act-show{color:var(--wf-accent);
-  background:var(--wf-out-bg);border-color:var(--wf-out-edge)}
+/* ROUND 6: AND THE WAY OUT IS GHOST TOO, FOR A REASON THAT ONLY SHOWS UP
+   WHILE WALKING. It wore the accent ink on a warm-edged panel, which put a
+   SECOND amber object on the walking bar — and the first one is `24 m`, the
+   distance to the next turn, which is the whole reason the bar is on screen.
+   Photographed at 390 x 844 on JES -> WEL: the eye is pulled to the button,
+   not to the number. There is one amber thing on this bar at a time and it is
+   never a control you are being asked to leave by. */
+body.wf-live #wf-root.wf-out #wf-acts .wf-act-show{color:var(--wf-dim);
+  background:none;border-color:transparent}
+body.wf-live #wf-root.wf-out #wf-acts .wf-act-show:hover{
+  background:rgba(255,255,255,.07);color:var(--wf-ink)}
 /* On a failure there is no route to frame and none to stand on, so only the
    way out is left. */
 #wf-acts.fail{justify-content:flex-end}

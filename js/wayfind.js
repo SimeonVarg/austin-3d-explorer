@@ -1402,6 +1402,14 @@
     let quietSince = 0;
     const tick = () => {
       if (state.route !== route) return;      // cleared or replaced while waiting
+      // ROUND 6: AND NOT IF SOMEBODY IS ALREADY WALKING IT. This poll is
+      // waiting for the camera to go quiet, and `Walk it` produces exactly that
+      // quiet — it calls `map.stop()` and then jumps. So a person who tapped
+      // `Walk it` while this was still waiting for the opening flight got their
+      // walk framed away from under them at ~900 m, which is the number round
+      // 1's critic reported. The deep link loses its fit; the person standing
+      // on the pavement keeps their view. See holdWalk.
+      if (walkHold) return;
       const waited = performance.now() - t0;
       let busy = true;
       try {
@@ -1630,6 +1638,36 @@
     // the answer changes.
     walkSettleMs: 90,
     walkSettleN: 8,
+    // ── ROUND 6: THE HOLD ─────────────────────────────────────────────────
+    // Measured, 3 runs of 3: `Walk it` put the eye at 1.70 m and js/app.js's
+    // opening flight put it back at 158 m two and a half seconds later, with
+    // no input. See holdWalk's header for the trace and for why a real finger
+    // dodges it by coincidence rather than by design. These five numbers are
+    // the whole of the defence and every one of them is a taste value.
+    walkHoldOn: true,
+    walkHoldMs: 9000,      // how long after the tap the walk owns the camera.
+                           // Long enough to outlast the intro's second leg
+                           // (which lands 2-3 s after the tap) and a stalled
+                           // `?fit=1` poll, short enough that it is over before
+                           // anybody has finished reading the bar.
+    walkHoldPollMs: 200,   // five looks a second. It is one `eye()` read and a
+                           // distance while it is armed, and nothing at all
+                           // afterwards.
+    walkHoldAltM: 12,      // above this the eye is not on the pavement any
+                           // more. Well clear of the 1.7 m we stand at and of
+                           // the metre or two the controller's own ground net
+                           // moves it by, and well under `liveAltMaxM` (90) so
+                           // the hold fires long before the readout would give
+                           // up and fall back to the summary layout.
+    walkHoldSlipM: 60,     // ...or this far off the spot we stood on. Catches
+                           // a lateral yank (a pending fitBounds recentres
+                           // before it climbs) without firing on the metre of
+                           // settle the controller does on arrival.
+    walkHoldMaxN: 3,       // AND THEN IT GIVES UP. A camera that fights back
+                           // forever is worse than one that loses once: if
+                           // three re-takes have not stuck, something we do not
+                           // model is driving, and flickering is the one
+                           // outcome worse than being lifted out.
     // A FEW STEPS IN, NOT ON THE JOINT. At pitch 85 and 1.7 m the bottom of the
     // frame is a metre or two in front of your shoes, so standing exactly on
     // the vertex where the route turns fills the near field with the segment
@@ -1683,6 +1721,28 @@
     // the row it frees is what lets the way out sit beside `and then left`
     // instead of under it.
     liveVerdictRemaining: true,
+    // ── ROUND 6: THE ENTRANCE CALLOUT ARRIVES WHEN YOU DO ─────────────────
+    // `Entrances are on this side` is the single most valuable thing this app
+    // says — it is the whole reason the feature exists and no maps app says it
+    // — and while walking it was printed on the bar for the ENTIRE journey,
+    // where it is the longest line on a 342 px phone bar and, six minutes from
+    // the door, not yet a fact you can act on. Round 1's critic measured the
+    // walking bar as "current turn + remaining ETA + destination note + next
+    // step + two buttons stacked into a single persistent card... denser and
+    // more capable but not calmer, which was the brief."
+    //
+    // So it holds until the walk has this far left, and then it appears. The
+    // building's NAME stays on the bar the whole way — you never lose track of
+    // where you are going — and the sentence about which face of it to aim for
+    // turns up at about the point you can see the building. Nothing is deleted
+    // and `#wf-sub`.textContent is unchanged in both states (the phrase is
+    // hidden in CSS, the same way the middot beside it already is), so every
+    // honesty gate and verify script that reads that string still reads it.
+    liveDoorNoteOnApproach: true,
+    liveDoorNoteM: 160,    // metres of route left when the door phrase appears.
+                           // About two minutes at this app's own walking speed,
+                           // and further than the longest sightline on the
+                           // malls — you are looking at the building by then.
     // THE WORD ON THE DOOR. The itinerary — the one shape this bar shares with
     // every walking-directions app on the phone — sits behind a bare 28 px
     // chevron in the corner with nothing anywhere saying it is there. Round 2
@@ -1805,6 +1865,10 @@
   // segment (see routeProfile); `live` is the last projection of the camera
   // onto it, or null when the view is not on the route.
   let prof = null, live = null, liveHooked = false, liveAt = 0, liveFrom = null;
+  // ROUND 6. The walk's claim on the camera — see holdWalk. Null except in the
+  // few seconds after `Walk it`, and released by the first thing the person
+  // touches.
+  let walkHold = null;
 
   function h(tag, cls, txt) {
     const n = document.createElement(tag);
@@ -2267,6 +2331,11 @@
     showBtn.title = SAY.showRoute;
     showBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
+      // ASKING TO BE LIFTED OUT IS TAKING THE CAMERA BACK. The hold is already
+      // released by this tap's own `mousedown` (holdWalk listens in the capture
+      // phase), but a synthetic `.click()` from a script has no `mousedown`, so
+      // say it here too rather than depend on the order of two other things.
+      releaseWalkHold();
       if (state.route && state.route.ok) fitTo(window.__map, state.route);
     });
     const clrBtn = h('button', 'wf-act wf-act-clr');
@@ -2512,6 +2581,7 @@
     closeSheet();          // the answer replaces the question; two panels is two panels
     prof = r.ok ? routeProfile(G, r) : null;
     live = null; liveFrom = null;
+    releaseWalkHold();     // a new route is a new walk; the old claim is void
     if (!r.ok) { renderPill(); draw(window.__map, null); return; }
     draw(window.__map, r);
     armLive();
@@ -2650,6 +2720,11 @@
     if (!el) return;
     const on = !!live;
     document.body.classList.toggle('wf-live', on);
+    // ROUND 6. HOW CLOSE THE END IS, as one class, so the bar can hold the
+    // entrance callout back until it is a thing you can act on. See
+    // `liveDoorNoteM`. Off the route entirely, it is not "near" anything.
+    document.body.classList.toggle('wf-near',
+      !!(WF_UI.liveDoorNoteOnApproach && on && live.rem && live.rem.distM <= WF_UI.liveDoorNoteM));
     el.liveEl.classList.toggle('hidden', !on);
     el.then2.innerHTML = '';
     el.then2.classList.add('hidden');
@@ -3047,8 +3122,13 @@
     const cLat = stand[1] + lead * Math.cos(rad(face)) / MPD_LAT;
     const cLng = stand[0] + lead * Math.sin(rad(face)) / MPD_LON;
     const z = Math.log2(40030228.884 * Math.cos(rad(cLat)) * camPx / (512 * D));
+    const pose = { center: [cLng, cLat], zoom: z, bearing: face, pitch: pit };
     if (map.stop) map.stop();
-    map.jumpTo({ center: [cLng, cLat], zoom: z, bearing: face, pitch: pit });
+    map.jumpTo(pose);
+    // AND THEN THE WALK KEEPS THE CAMERA. See holdWalk — round 1's critic
+    // measured this button putting you on the pavement and something else
+    // taking you back off it two seconds later, with no input.
+    holdWalk(map, pose, stand);
     // AND THEN ASK THE READOUT AGAIN, A FEW TIMES. `jumpTo` does fire `move`
     // and `moveend`, and `onCam` is on both — but the readout reads
     // `__fly.eye()`, and the controller has not re-read the map yet on either
@@ -3064,6 +3144,90 @@
       }, i * WF_UI.walkSettleMs);
     }
     return true;
+  }
+
+  /**
+   * ROUND 6: THE WALK KEEPS THE CAMERA UNTIL YOU TAKE IT BACK.
+   *
+   * WHAT WAS MEASURED. Round 1's critic drove the shipped build at 390 x 844,
+   * tapped `Walk it` on JES -> WEL, and traced `__fly.eye().alt` — the camera
+   * dropped correctly to 1.70 m and was then silently put back up in the air
+   * within a few seconds with no input at all. Reproduced here 3 runs out of 3
+   * (`?walk=1&drift=0&from=JES&to=WEL`, 390 x 844, real Chromium), and the
+   * culprit came back NAMED, off a monkey-patched log of every camera call with
+   * a stack on it:
+   *
+   *     t=+0.0 s  jumpTo   at walkIt      (js/wayfind.js)
+   *     t=+2.5 s  easeTo   at js/app.js:1948          <- the opening flight
+   *
+   * `js/app.js`'s title sequence is TWO legs with a `setTimeout` between them.
+   * Leg 2 is armed the moment leg 1 departs and it is only ever disarmed by the
+   * intro's own `cancel()`. `walkIt` calls `map.stop()`, which kills the ease
+   * that is RUNNING and cannot touch the timer that has not fired yet — so the
+   * second leg lands on top of the walk and carries the camera to the intro's
+   * end pose at 158 m. With `?fit=1` there is a second one of these: the Z6
+   * `fitWhenFree` poll, which is waiting for exactly the quiet that `walkIt`'s
+   * own `map.stop()` produces, and it fits to ~900 m — which is the number the
+   * critic reported.
+   *
+   * A real FINGER dodges the first of the two by luck: the intro cancels itself
+   * on `mousedown`, which a tap fires before the `click` that runs this button,
+   * so the timer is cleared a few milliseconds before we need it gone. That is
+   * not a fix, it is a coincidence — it does not hold for a keyboard `Enter`
+   * arriving without a preceding pointer event, for `?fit=1`, for anything a
+   * future pass schedules, and it did not hold for the critic.
+   *
+   * SO THE RULE IS THE OTHER WAY UP: for `walkHoldMs` after the tap, the walk
+   * owns the camera. Anything that lifts the eye above `walkHoldAltM` or slides
+   * it more than `walkHoldSlipM` off the spot we stood on — with no input in
+   * between — is undone. THE MOMENT THE PERSON TOUCHES ANYTHING the hold is
+   * released for good, so it can never fight the user: it is armed inside the
+   * `click` handler, which is after that tap's own `mousedown`, and released by
+   * the next one.
+   *
+   * TWO BRAKES, because a camera that fights back is worse than one that gives
+   * up. It re-takes at most `walkHoldMaxN` times, and it will not re-take at
+   * all unless the ground it wants is still clear (`roofAt` again) — so if the
+   * controller's own hard net is pushing the eye out of geometry, this yields
+   * to it instead of flickering in and out of a wall.
+   */
+  function releaseWalkHold() {
+    if (!walkHold) return;
+    clearInterval(walkHold.timer);
+    try { walkHold.off(); } catch (e) {}
+    walkHold = null;
+  }
+  function holdWalk(map, pose, stand) {
+    releaseWalkHold();
+    if (!WF_UI.walkHoldOn) return;
+    const fly = window.__fly;
+    const until = performance.now() + WF_UI.walkHoldMs;
+    const evts = ['pointerdown', 'mousedown', 'touchstart', 'wheel', 'keydown'];
+    const let_go = () => releaseWalkHold();
+    const off = () => { for (const e of evts) window.removeEventListener(e, let_go, true); };
+    for (const e of evts) window.addEventListener(e, let_go, true);
+    let took = 0;
+    const timer = setInterval(() => {
+      if (!walkHold) return;
+      if (performance.now() >= until) { releaseWalkHold(); return; }
+      let eye = null;
+      try { eye = fly && fly.eye ? fly.eye() : null; } catch (e) {}
+      if (!eye) return;
+      const slipped = metresBetween([eye.lng, eye.lat], stand) > WF_UI.walkHoldSlipM;
+      if (eye.alt <= WF_UI.walkHoldAltM && !slipped) return;
+      // Something took it. Is the spot we want still standable? If the height
+      // field now says there is a roof over it, the controller is right and we
+      // are wrong — stop.
+      let clear = true;
+      try {
+        if (fly && typeof fly.roofAt === 'function') clear = fly.roofAt(stand[0], stand[1], WF_UI.walkClearR) === 0;
+      } catch (e) {}
+      if (!clear || ++took > WF_UI.walkHoldMaxN) { releaseWalkHold(); return; }
+      try { if (map.stop) map.stop(); map.jumpTo(pose); } catch (e) {}
+      liveAt = 0;
+      try { onCam(); } catch (e) {}
+    }, WF_UI.walkHoldPollMs);
+    walkHold = { timer, off };
   }
 
   /**
@@ -3173,6 +3337,7 @@
       el.acts.classList.add('fail');
       el.liveEl.classList.add('hidden');
       document.body.classList.remove('wf-live');
+      document.body.classList.remove('wf-near');
       el.chev.classList.add('hidden');
       return;
     }
@@ -3374,6 +3539,7 @@
     state.route = null; state.via = null; state.viaKind = null; state.expanded = false;
     prof = null; live = null;
     disarmLive();
+    releaseWalkHold();   // no route left to hold a camera on
     if (el) {
       el.pill.classList.add('hidden'); el.card.classList.add('hidden');
       el.pill.classList.remove('open');
@@ -3381,6 +3547,7 @@
     }
     document.body.classList.remove('wf-routed');
     document.body.classList.remove('wf-live');
+    document.body.classList.remove('wf-near');
     if (window.__map && layersAdded) draw(window.__map, null);
   }
 

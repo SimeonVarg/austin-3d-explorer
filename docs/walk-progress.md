@@ -361,3 +361,64 @@ different route), and the fix is in the camera, which is not this lane's. An
 offset on the fit was tried and measured and made it worse, same as round 2's
 version of the idea. Branch `acer/w-ui`. `WAYFIND.on` still false, so none of
 this is on for anybody who has not asked for it by URL.
+
+## 2026-08-24 — w-ui round 6: the walk can keep the camera now, and the bar stopped looking like a segmented control
+
+Picked up round 1's critic verdict on `acer/w-ui` and closed both halves of it.
+
+**The ejection is real and I reproduced it 3 times out of 3** — tap `Walk it` on
+`JES → WEL` at phone size, the eye drops correctly to 1.70 m, and two and a half
+seconds later it is back up at 158 m with nobody having touched anything. But it
+is not the defect it was reported as, and the reported fix would not have worked.
+I logged every camera call in the page with its own stack, and the thing that
+takes the camera away is **the opening title flight**: it is two legs with a
+timer between them, `Walk it` stops the leg that is running and cannot stop the
+leg that has not started, so leg two lands on top of the walk. On a deep link
+with `&fit=1` there is a second one — the "frame the route" wait is watching for
+exactly the quiet that `Walk it` itself produces, and it fits to 900 m, which is
+the number in the report. The open-ground search the report asked for was
+already there and working: probed at the walk pose, there is nothing over the
+eye out to 2 m, and the nearest building mass is 4 m away, which is what a
+pavement beside Jester looks like. The "renders broken, magenta banding" frames
+are the same story — I re-shot that pose with every building layer hidden, then
+every route layer, then every road layer, and the band is identical in all four:
+it is the dusk sky and the flattened basemap seen at grazing angle, which is
+forced, because the controller pins the camera's pitch to 84–88° at walking
+height and a walking camera physically cannot look down. Handed to whoever owns
+the sky.
+
+**The fix is written the other way up: the walk owns the camera until you take
+it back.** For nine seconds after the tap, anything that lifts the eye off the
+pavement with no input in between gets undone; the first touch of anything at
+all releases it for good, so it can never fight the person holding the phone,
+and it gives up after three attempts rather than flicker. Before: ejected 3/3.
+After: 4 runs, two with a real finger and two with a scripted click, still
+standing on the pavement twelve seconds later with no input.
+
+**The other half was the look, and the critic was right.** Three buttons in a
+row — `Walk it`, `Show route`, `✕` — all wearing the same rounded box with the
+same warm border. That is not three actions, it is the shape a phone uses for
+one segmented control with three cells. The border and the panel came off the
+two that are not the point, so there is now exactly one filled thing in the
+whole feature and it is `Walk it`. Nothing is hidden and no word is lost —
+`Show route` is still on the frame, still labelled, still a full-size touch
+target. While walking, the same change removed a second amber object that had
+been competing with the distance to your next turn, which is the only reason the
+bar is on screen.
+
+**And the entrance callout now arrives when you do.** `Entrances are on this
+side` is the best thing this app says and it was printed for the entire six
+minutes of the walk, where it is the longest line on the bar and not yet
+something you can act on. It holds until about two minutes out and then appears,
+with the building's name brightening beside it. The name is on the bar the whole
+way, so nothing is lost.
+
+Fourteen assertions, all green, including the four things the brief asked me to
+re-check specifically (the arrow agreeing with the words, `Show route` being
+visible, the walk not opening onto a line we drew ourselves, and the phone rule
+that a duplicated comment terminator had once switched off), plus the feature
+staying invisible in all three capture modes. Frames:
+`shots/walk/ui/r6-bar-before-after.jpg`, `r6-walkbar-before-after.jpg`,
+`r6-summary.jpg`, `r6-walk.jpg`, `r6-walk-approach.jpg`. Full writeup in
+`docs/walk-ui.md` §35–40. Branch `acer/w-ui`, port 8815, server killed and port
+confirmed free, no scratch scripts left in `scripts/verify`.

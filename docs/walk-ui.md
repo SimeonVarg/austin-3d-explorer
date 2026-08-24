@@ -1330,3 +1330,257 @@ above the strip became `var(--wf-chev-clear)` on the two rows that need it.
 total, because CLAUDE.md rule 12 counts every committed byte once per lane;
 round 4's eighteen PNGs are 15 MB. Scratch frames from this round stayed in the
 scratchpad.
+
+---
+
+# Round 6 — the walk stopped being able to keep the camera, and the bar stopped being a segmented control
+
+Round 1's critic drove the shipped `acer/w-ui` build fresh and returned
+`oursWins = false` on two counts. Both are closed here, and one of the two
+turned out to be a different defect from the one it was reported as. Everything
+below was measured on this branch, at 390 x 844, in real Chromium, and the
+frames are cited by name.
+
+## 35. `Walk it` put you on the pavement and something else took you back off it
+
+**The report.** *"the camera correctly drops to 1.70 m, but in 2 of 3
+independent runs it was silently ejected back to 900 m — the Show route
+altitude — within 2-6 s with no input... `walkIt()` doesn't appear to run the
+same open-ground clearance search the scripted test walker's `findStart()`
+already does."*
+
+**Reproduced, 3 runs out of 3.** `?walk=1&drift=0&from=JES&to=WEL`, 390 x 844,
+`.wf-act-go` clicked, `__fly.eye().alt` sampled every 250 ms for 14 s. Every
+run: down to 1.70 m, back up to 158.24 m, parked there for the rest of the
+trace.
+
+**But not for the reported reason, and that matters because the reported fix
+would not have worked.** Every call into the camera was monkey-patched to log
+its own stack before forwarding, so the culprit came back named rather than
+inferred:
+
+```
+t=+0.0 s  jumpTo   at walkIt   (js/wayfind.js)
+t=+2.5 s  easeTo   at js/app.js:1948          <- the opening title flight
+```
+
+`js/app.js`'s intro is **two legs with a `setTimeout` between them**. Leg 2 is
+armed the instant leg 1 departs and is only ever disarmed by the intro's own
+`cancel()`. `walkIt` calls `map.stop()`, which kills the ease that is *running*
+and cannot touch a timer that has not fired yet — so leg 2 lands on top of the
+walk and carries the camera to the intro's end pose. With `?fit=1` there is a
+second one: the QUEUE Z6 `fitWhenFree` poll is waiting for exactly the quiet
+that `walkIt`'s own `map.stop()` produces, and it fits to **900 m**, which is
+the number in the report.
+
+The clearance search the report asked for **was already there and it is
+working**. Probed at the walk pose on `JES -> WEL`:
+
+```
+__fly.roofAt(eye, 0.5 m) = 0     __fly.roofAt(eye, 2 m) = 0
+__fly.roofAt(eye, 4 m) = 51.6    <- Jester's mass, four metres away
+```
+
+Nothing over the eye out to 2 m. `walkClearR` is 2.0 and the search stops at the
+first sample that reads zero, so the pose is on open ground by construction; the
+51.6 m at 4 m is what a pavement beside a seventeen-storey building looks like.
+
+**The "renders broken (magenta/olive banding)" evidence is a misattribution
+too,** and it was worth five minutes to say so rather than chase it. Re-shot the
+same pose with every `build*` and `facade*` layer hidden: the band is still
+there. Then with every wayfind layer hidden, then with every road layer hidden:
+`rgb(110,45,74)` at three sample points, identical in all four states. It is not
+the camera inside a building, it is not our ribbon (the route palette is
+`#fff4d8` / `#ffcf6a` — there is no magenta anywhere in this feature), and it is
+not the road casing. It is the app's dusk sky and the basemap's own fills seen
+at **grazing angle**, which is unavoidable at walking height: `js/controls.js`
+pins the pitch between `pitchFloor()` 84.42 and `PITCH_MAX` 88 at 1.7 m, so a
+walking camera cannot look down. Recorded for whoever owns the sky; nothing in
+this lane can change it and `walkPitch` is not free to lower.
+
+### The fix: the walk owns the camera until you take it back
+
+`holdWalk` in `js/wayfind.js`. For `walkHoldMs` after the tap, anything that
+lifts the eye above `walkHoldAltM` or slides it more than `walkHoldSlipM` off
+the spot we stood on — **with no input in between** — is undone: `map.stop()`
+and the same `jumpTo` again. The hold is armed inside the `click` handler, which
+is after that tap's own `mousedown`, and **the next `pointerdown`, `mousedown`,
+`touchstart`, `wheel` or `keydown` releases it for good**, so it can never fight
+the person holding the phone. `fitWhenFree`'s poll bails while it is up, and
+`Show route` releases it explicitly (a synthetic `.click()` from a script has no
+`mousedown` to do it).
+
+Two brakes, because a camera that fights back is worse than one that gives up
+once: at most `walkHoldMaxN` re-takes, and it will not re-take at all unless
+`roofAt` still says the ground it wants is clear — so if the controller's own
+hard net is pushing the eye out of geometry, this yields instead of flickering
+in and out of a wall.
+
+**A real finger dodged the intro half of this by luck**, and that is why the fix
+is written the other way up rather than as a patch to the intro. The intro
+cancels itself on `mousedown`, which a tap fires a few milliseconds before the
+`click` that runs the button — so with `page.mouse.click()` the ejection is 1 in
+3 and with `element.click()` it is 3 in 3. That coincidence does not hold for a
+keyboard `Enter`, for `?fit=1`, or for anything a future pass schedules.
+
+## 36. Three same-weight actions were not three actions, they were one segmented control
+
+**The report.** *"Citymapper's pre-walk sheet has exactly one action (a single
+green GO pill)... Ours puts three same-weight actions (Walk it / Show route / ✕)
+in one row of the closed bar and stacks current-turn + remaining ETA +
+destination note + next-step preview + two buttons into a single persistent top
+card while walking — denser and more capable but not calmer, which was the
+brief."*
+
+Looked at on the frame, that is right, and the reason is not the count. All
+three wore the same costume: three rounded 44 px rectangles, each with a 1 px
+warm border and a lit panel behind it, 8 px apart. Three of those in a row is
+the iOS **segmented control** — one widget with three equal cells, meaning "pick
+which of these you are in". That is the third time this bar has accidentally
+drawn a stock phone control (the rail did it twice) and the fix is the same one
+that worked there: stop spending the shape.
+
+So the border and the panel come off the two that are not the point. `Walk it`
+keeps the fill and is now the only filled or bordered thing in the whole
+feature. **Nothing is hidden and no label is lost** — round 2 of this lane took
+`Show route` out from behind the chevron precisely because the control that
+mattered was the one you could not see, and it is still on the frame, still
+labelled `Show route`, still 106 x 44 px of touch target (measured).
+
+`shots/walk/ui/r6-bar-before-after.jpg` — the same 390 x 844 crop, before and
+after.
+
+### And on the walking bar the same rule removed the second amber
+
+While walking, the way out wore the accent ink on a warm-edged panel, which put
+a **second amber object** on the bar — and the first one is `24 m`, the distance
+to the next turn, which is the entire reason the bar is on screen. It is ghost
+now too.
+
+## 37. The entrance callout arrives when you do
+
+`Entrances are on this side` is the single most valuable thing this app says and
+no maps app says it. While walking it was printed for the **whole** journey,
+where it is the longest line on a 342 px bar and, six minutes from the door, not
+yet a fact anybody can act on.
+
+It now holds until `WF_UI.liveDoorNoteM` (160 m, about two minutes at this app's
+own walking speed) of route is left, and then appears — and the destination's
+name, which was set at the same weight as the live remaining figures, goes quiet
+for the same stretch and comes back to full weight with it. One line changes
+weight once, on approach. Nothing appears from nowhere: the building's name is
+on the bar the whole way.
+
+`#wf-sub`.textContent is byte-identical in both states — the phrase is hidden in
+CSS the same way the middot beside it already is — so every honesty gate and
+verify script that reads that string still reads it. Asserted in both
+directions (see the gate, item 7).
+
+`shots/walk/ui/r6-walkbar-before-after.jpg` (far from the end),
+`shots/walk/ui/r6-walk-approach.jpg` (`GDC -> WEL`, 110 m, so the whole walk is
+inside the band and the callout is up from the first frame).
+
+## 38. What was verified this round, and how
+
+`node scripts/verify/harness-drift.mjs` first: **31 scripts in each**, PASS. No
+`<script>` was added this round, so `index.html` and `_harness.html` are
+unchanged.
+
+Then a fourteen-assertion gate, every item of which is a thing some round of
+this lane shipped broken. Server `python scripts/serve.py 8815`, playwright-core
+from `scripts/verify/node_modules` with an explicit `executablePath`, one
+browser, 390 x 844 at dpr 2, `?drift=0`, `window.cancelGraphicsAutoDetect()` at
+the top of every page, veil waited out.
+
+```
+1. Walk it holds the camera (no input for 12 s)
+  PASS  [tap 1] alt=1.7 m, walking layout=true
+  PASS  [tap 2] alt=1.7 m, walking layout=true
+  PASS  [click 1] alt=1.7 m, walking layout=true
+  PASS  [click 2] alt=1.7 m, walking layout=true
+2. Manoeuvre disc and the words are the same turn
+  PASS  10 samples, 2 distinct glyphs, 0 that contradicted their words
+3. Show route is on screen and tappable
+  PASS  summary: 106.2x44 at y220.4, "Show route"
+4. Exactly one filled control on the bar
+  PASS  filled: .wf-act-go
+5. The phone rule for #wf-pill really applies
+  PASS  left=12px right=12px transform=none width=366
+6. The walk opens on a real path, not on the line we drew
+  PASS  ribbon layers (4) changed 5/5 samples down the centre of the lower frame
+7. The entrance note waits for the approach
+  PASS  530 m route: near=false doorOnFrame=false inTextContent=true
+  PASS  110 m route: near=true  doorOnFrame=true  inTextContent=true
+8. Hidden in every capture mode
+  PASS  clip=1: visible wayfind elements = []
+  PASS  autopilot=1: visible wayfind elements = []
+  PASS  sliderdemo=1: visible wayfind elements = []
+
+14 passed, 0 failed
+```
+
+**Item 1 was watched failing on the code it guards.** The identical script, same
+server, same browser, run against this branch *before* the change: `EJECTED 3/3`
+with the `js/app.js:1948` stack in the log. Items 3, 5 and 6 are the round-2,
+round-1 and round-4 defects respectively, re-asserted because the brief asked
+for exactly that; item 2 is round 4's arrow-versus-words defect.
+
+The gate lives in the scratchpad rather than in `scripts/verify/`, because this
+lane's ownership line for this round is `index.html`, `_harness.html`,
+`style.css`, the UI half of `js/wayfind.js`, `shots/walk/ui/` and this file, and
+four sibling lanes were editing the rest of `js/wayfind.js` at the same time. It
+is described here in enough detail to be rebuilt without rediscovering it:
+
+```
+scripts/verify/_scratch-uigate.mjs   (scratchpad copy)
+  python scripts/serve.py 8815
+  VERIFY_URL=http://127.0.0.1:8815 node scripts/verify/_scratch-uigate.mjs
+
+ 1  tap Walk it, then no input for 12 s: still at walking height and still in
+    the walking layout. Run with a real pointer tap AND with a synthetic
+    .click() -- the second does not fire the mousedown that cancels
+    js/app.js's intro, and is the case round 1's critic measured.
+ 2  the manoeuvre disc and `then left/right` are the same turn, sampled down
+    the route by jumping the camera forward on its own bearing.
+ 3  `Show route` is on screen, >= 44 px of touch target, labelled.
+ 4  exactly one of .wf-act-go / .wf-act-show / .wf-act-clr computes to a
+    non-transparent background or border.
+ 5  #wf-pill computes to left:12px right:12px transform:none -- i.e. the
+    @media(max-width:640px) block was not dropped by a comment that closed
+    twice.
+ 6  hide the four `wayfind-*` layers and re-sample five points down the centre
+    of the lower frame: >= 4 must change, so the ribbon really is under the
+    walk and not off to one side.
+ 7  JES->WEL is 530 m and GDC->WEL is 110 m: the door phrase must be off the
+    frame on the first and on it on the second, and in `#wf-sub`.textContent
+    on both.
+ 8  ?clip=1 / ?autopilot=1 / ?sliderdemo=1: no wayfind element has a box.
+```
+
+## 39. Measured and NOT fixed, handed on
+
+* **The grazing horizon at walking height.** `js/controls.js` pins pitch to
+  [84.42, 88] at 1.7 m, so `WF_UI.walkPitch` is not a free taste value and a
+  third of the walking frame is sky and flattened basemap. Whoever owns the sky
+  owns this. Pose and pixel samples are in §35.
+* **`Show route` still frames some routes off the bottom of the phone.** Round 5
+  measured it (`ALT_MAX` 900 binds on a campus-scale fit) and it is unchanged;
+  the fix belongs to whoever owns the camera. Round 6 makes it less costly to
+  hit, because `Show route` no longer looks like the primary action.
+* **`fmtDist` prints `10.0 m` from a rounded 9.96.** Fourth flagging; the
+  formatter is in the arithmetic half of the file, one line.
+* **`WAYFIND.viaRingCol` `#8fd3ff` vs the bar's `#8fe6bd`.** Third flagging.
+
+## 40. Taste values added this round (CLAUDE.md rule 11)
+
+`WF_UI`: `walkHoldOn` true, `walkHoldMs` 9000, `walkHoldPollMs` 200,
+`walkHoldAltM` 12, `walkHoldSlipM` 60, `walkHoldMaxN` 3,
+`liveDoorNoteOnApproach` true, `liveDoorNoteM` 160.
+Custom property on `#wf-root`: `--wf-ghost-pad` 10px.
+No new string, so `SAY` and `SAY_UI` are unchanged and nothing new is claimed.
+
+### Shots
+
+`shots/walk/ui/` — `r6-bar-before-after.jpg`, `r6-walkbar-before-after.jpg`,
+`r6-summary.jpg`, `r6-walk.jpg`, `r6-walk-approach.jpg`. Five frames. Every
+other frame this round stayed in the scratchpad (CLAUDE.md rule 12).
