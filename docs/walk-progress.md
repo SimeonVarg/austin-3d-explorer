@@ -382,3 +382,52 @@ round's checks still green. The stopwatch was thrown out — a route proved to d
 zero extra work "slowed down" 72 % on a machine with five other lanes running,
 which is what that number is worth today. The feature is still switched off.
 Branch `acer/w-stairs`.
+
+## 2026-08-24 — stairs, round 7: the app says "up the steps", and nothing used it
+
+The card has always told you which way a flight goes — "up the steps", "down
+the steps", off the direction OSM tags. Nobody had noticed that the part of the
+app that *chooses* the route never looked at it. Walking up a hill and walking
+down it cost the same, so every walk on campus came out identical in both
+directions: over 300 pairs driven both ways, the distance matched **300 times
+out of 300**, to the millimetre, including the 33 where the map says which way
+is up.
+
+The two pictures in `shots/walk/stairs/` are the whole thing. Same camera, same
+two buildings, opposite directions. Going one way the walk comes down a 60-metre
+flight beside Music Recital Hall. Going the other way, the old app climbed the
+same flight — and the two photographs differed by **ten pixels**. Now the
+reverse walk goes round the north side instead and the card reads "No stairs on
+this route" for 62 metres more.
+
+Eleven walks out of 600 changed. **Every single one got longer, none got
+shorter, and not one picked up a staircase it didn't have** — eight dropped
+one. Every flight anything walked away from is one the map tags as a climb;
+there is nothing else in that list. Two of them are a 64-metre flight the router
+swapped for a 6-metre one, which is a trade it simply couldn't see before. Total
+extra walking: 449 metres spread across 600 walks, less than a tenth of a
+percent.
+
+The step-free walk did not move at all — 243 of them compared field by field,
+zero changes, and the number of routes with no way round stayed at nine. Two
+ordinary walks stopped touching stairs by themselves, so they no longer need an
+alternative offered at all.
+
+The price of a climb is the number that was already in the file — the same one
+the time estimate has always used. Worth flagging for Simeon: **making it
+higher keeps working.** Pushed hard, the router gets 32 of 34 climbs off the
+route instead of 11, but people walk about 80 metres each to dodge flights as
+short as two metres. That's a taste call, not a correctness one, so it's one
+line to change and the whole ladder is written up.
+
+Two things went red on the way and both deserved to. The pixel test was
+measuring the city still loading — it claimed 193,000 "walk pixels" on a frame
+where the real answer is about 9,800 — so a noise floor got measured first and
+the test now refuses to shoot a scene that is still moving. And the stopwatch
+was timing the wrong pair: it compared a route that *changes* between the two
+settings, so it "proved" the new code made routing five times faster. Retimed
+on a route whose answer is identical either way, it costs 0.06 ms on 7.6.
+
+Re-checked first, before anything was touched: all 189 mapped staircases still
+drawn, none missing, none invented, and all seven of round 4's checks still
+green. The feature is still switched off. Branch `acer/w-stairs`.

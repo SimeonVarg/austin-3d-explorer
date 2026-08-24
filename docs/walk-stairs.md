@@ -3669,3 +3669,1372 @@ for c, dirn, mm, di in sorted(far, key=lambda t: -t[2]):
     print('     %-4s %-10s nearest door %-4s at %6.1f m  (%d doors in graph)'
           % (c, dirn, di, mm, len(code[c])))
 ```
+
+---
+
+# ROUND 7 — the app says "up the steps", and nothing downstream of that sentence used it
+
+Rounds 1-6 asked, six different ways, **whether there is a staircase on the
+walk**. Round 1 stopped the router climbing when told not to, round 4 stopped
+the two straight door legs lying on a flight, round 5 found real ways round
+where the app was refusing, round 6 checked the door at the end. Not one of
+them asked **which way the staircase goes**.
+
+The file already knows. `js/wayfind.js` `stairLegs()` reads `F_UP_AB` against
+the direction you are walking and puts the word on the card:
+
+```js
+const ab = leg.nodes[i] === g.A[e];
+if (g.F[e] & F_UP_AB) dir = ab ? 'up' : 'down';
+```
+
+`WAYFIND.stairUpMult` has sat in the constants block since the arithmetic was
+written, commented *"going up costs more, where `incline` is known"*. And
+`edgeCost()` — the function that CHOSE the route — had no direction in it at
+all.
+
+## R41. The defect, and it is a claim about the world that is false
+
+An undirected cost function makes an undirected graph, and an undirected graph
+gives you the same answer both ways. Over the same 300 seeded pairs rounds 4-6
+use, run **in both directions** (600 walks):
+
+```
+routable both ways        : 300 of 300
+with >=1 mapped flight    : 129
+with >=1 KNOWN direction  : 33
+dist(A->B) == dist(B->A)  : 300 of 300   (differ: 0)
+doors mirror exactly      : 300 of 300
+routes that only CLIMB    : 8
+routes that only DESCEND  : 10
+```
+
+**300 of 300**, to the millimetre, including the 33 pairs where OSM says which
+way the hill goes. There is no rounding in that number and no near-miss in it:
+the router could not tell up from down, so it did not.
+
+### And the same is true of the clock, which is worse, because the clock TELLS you
+
+`timeRange()` bills the high end of the printed band at `stairUpMult` for
+**every stair metre on the route**, regardless of direction — including
+flights the very same card has just labelled "down the steps":
+
+```
+CCJ>LTD   1151 m, 48.7 m of steps, ALL down  -> "14-19 min"; the high end
+                                                includes 34.1 s of climbing
+                                                that does not happen
+CBA>ARC    900 m, 50.6 m of steps, ALL down  -> 35.4 s of it
+AFP>CT2   1197 m, 48.7 m of steps, ALL down  -> 34.1 s
+PAC>BME   1028 m, 48.7 m of steps, ALL down  -> 34.1 s
+STD>SSB   1022 m,  7.4 m of steps, ALL down  ->  5.2 s
+GRE>UTA   1137 m,  4.9 m of steps, ALL down  ->  3.4 s
+PAT>MNAC  1174 m,  4.5 m of steps, ALL down  ->  3.2 s
+RSC>HTB    533 m,  2.1 m of steps, ALL down  ->  1.5 s
+```
+
+Ten of 600 walks descend a known flight and climb nothing, and every one of
+them is billed for the climb. A worst-case upper bound is a fair thing to
+print about an UNKNOWN flight; it is not a fair thing to print about one the
+app has just told you is downhill. **`timeRange()` is not this lane's function
+this round** — §R44 has the patch, written out and not made.
+
+## R42. What the graph actually asserts, measured before touching anything
+
+| | |
+|---|---|
+| `highway=steps` ways in `data/osm_cache/footways.json` | **189** |
+| ...tagged `incline` | **80** — 44 `up`, 36 `down` |
+| ...reaching the client with a usable direction | **39** |
+| steps EDGES in `data/walk_graph.json` | 215, 1,374.3 m of plan length |
+| ...carrying `F_UP_AB` | **45**, 343.2 m |
+| edges inside an up-tagged way with the bit MISSING | **4**, 46.2 m |
+| NON-steps edges carrying `F_UP_AB` | **17**, 120.0 m (16 of them `wheelchair=yes`) |
+
+Three things fall out of that table and each changed a decision:
+
+1. **An edge without the bit is UNTAGGED, not downhill.** `scripts/bake_walk.py`
+   sets bit 8 only for `incline=up` and then CLEARS it again when the edge's
+   stored order is reversed, instead of inverting it — so `down` is dropped
+   entirely and five `up` ways lose their direction as well. That is round 1
+   §5a, still unmade, and it is why 109 of 189 flights arrive here with nothing
+   said about them. **Those cost exactly what they cost in round 6.** Guessing
+   a direction for them would be inventing data.
+2. **Three ways are MIXED** — some edges flagged, some not, inside one OSM way
+   whose `incline` tag is by definition uniform. Way `581040959`, the 64.0 m
+   flight this round moves four walks off, ships with **2 of its 4 edges**
+   flagged, so even where the router now knows it is climbing, it is only
+   pricing half the climb.
+3. **The 17 non-steps inclined edges are left alone on purpose.** 16 are
+   `wheelchair=yes` — they are ramps, and an uphill ramp is genuinely harder.
+   But the flat-walk cost model has no gradient term at all, and inventing one
+   for 6 ways out of 3,430 on 120 m of campus would be a constant with almost
+   no evidence under it. Round 5's lesson stands: a number that looks like it
+   answers everything is what a wrong constant looks like. Written down, not
+   made.
+
+### And the client-side workaround was considered and rejected
+
+The 4 missing edges inside up-tagged ways ARE recoverable without touching the
+bake: the edges of one way form a chain, the stored order is ascending node
+index, and one flagged edge orients the whole chain. It is about thirty lines
+and a chain reconstruction that can be subtly wrong, to recover **46.2 m of
+1,374**. §5a recovers four times as much with eight lines in the file that
+owns the problem. Not done; named here so the next round does not rediscover it.
+
+## R43. The fix, and its whole safety argument is one clamp
+
+`edgeCost()` gains the node the walk arrives from — one extra argument, at one
+call site, and `dijkstra()` is otherwise untouched because it is
+`acer/w-door`'s function this round:
+
+```js
+function stairClimbMult() {
+  const v = WAYFIND.stairClimbCostMult;
+  const m = Number(v == null ? WAYFIND.stairUpMult : v);
+  return isFinite(m) && m > 1 ? m : 1;
+}
+
+function isClimb(g, i, from) {
+  if (from == null) return false;
+  const ab = from === g.A[i];
+  if (g.F[i] & F_UP_AB) return ab;
+  const ex = stairExtras(g);
+  return ex.down.size ? (ex.down.has(i) ? !ab : false) : false;
+}
+```
+
+Three decisions in that, and each is load-bearing:
+
+* **Never below 1.** At `>= 1` no edge in this graph can get CHEAPER than
+  round 6 priced it, so the pass can only ever move a route OFF a climb. A bad
+  override cannot turn that around — it can only turn the pass off. Watched
+  refusing 0.2, 0.5, 0.99, 0, −3, `NaN` and `"banana"` in §R46.
+* **Only the TRAVEL term is multiplied.** `stairFixedS` is the cost of spotting
+  the flight and turning onto it, and that is the same job whichever way you
+  then go.
+* **`ex.down` is read from `stairExtras()`** — the same place `stairLegs()`
+  reads it. The bake does not emit `e.dn` yet; the day §5a lands, the sentence
+  on the card and the price in the router turn on together, and the 39 becomes
+  80 with no further change here.
+
+The constant is `WAYFIND.stairClimbCostMult`, default `null`, meaning **use
+`stairUpMult`** — the number `walk_graph.json`'s own `tune` block already
+ships (`STAIR_UP_MULT: 1.35`) and the card already bills a climb at. So this
+round does not introduce a number. It stops two parts of the same file
+disagreeing about one that was already there. Setting it to `1` restores the
+round-6 router exactly, and that is the A/B every measurement below uses.
+
+## R44. What it did, over the same 600 walks
+
+11 of 600 walks changed. **Every one of them got longer, none got shorter, and
+not one gained a staircase.**
+
+```
+directed walks compared         : 600
+walks that CHANGED              : 11
+  ...longer in metres           : 11
+  ...shorter in metres          :  0
+  ...GAINED a staircase         :  0
+  ...LOST a staircase           :  8
+  ...changed a DOOR             :  0
+total walked metres before/after: 604,701.7 / 605,150.9   (+449.2 m, +0.07 %)
+```
+
+```
+  CBA>MBE   956.1 -> 1048.2 m  sets 2->1  left [130882578, 581040959]  took [129733844]
+  LTD>CCJ  1150.8 -> 1212.5 m  sets 1->0  left [130882578]             took []
+  SEA>CCJ   881.9 ->  941.3 m  sets 1->0  left [130882578]             took []
+  ARC>CBA   899.6 ->  958.9 m  sets 1->1  left [581040959]             took [147365574]
+  SJG>CBA   759.0 ->  818.3 m  sets 1->1  left [581040959]             took [147365574]
+  MBE>CBA   956.1 -> 1015.5 m  sets 2->2  left [581040959]             took [147365574]
+  SSB>STD  1022.5 -> 1039.2 m  sets 1->0  left [1419272907]            took []
+  PHR>STD   908.3 ->  925.0 m  sets 1->0  left [1419272907]            took []
+  HTB>RSC   533.1 ->  541.3 m  sets 1->0  left [1429644803]            took []
+  CS3>RSC   349.8 ->  358.0 m  sets 2->1  left [1429644803]            took []
+  EAS>RSC   614.9 ->  623.1 m  sets 2->1  left [1429644803]            took []
+```
+
+**Every flight left is one OSM tags `incline=up`. There are no exceptions and
+there is nothing else in the column.**
+
+| way | `incline` | other tags | plan m | edges / flagged |
+|---|---|---|---|---|
+| `130882578` | **up** | `handrail=no`, `wheelchair=no`, `ramp=no` | 60.7 | 4 / 3 |
+| `581040959` | **up** | `step_count=21`, `handrail=yes` | 64.0 | 4 / 2 |
+| `1419272907` | **up** | `handrail=yes` | 7.4 | 1 / 1 |
+| `1429644803` | **up** | — | 2.1 | 1 / 1 |
+| `129733844` | *(none)* | taken instead | 10.8 | 1 / 0 |
+| `147365574` | *(none)* | taken instead | 5.8 | 1 / 0 |
+
+The two flights taken INSTEAD are 10.8 m and 5.8 m. The router traded a 64 m
+climb for a 5.8 m one — a trade it could not see when both cost the same per
+metre in either direction.
+
+### The step-free walk did not move, and that is checked rather than argued
+
+`edgeCost()` returns `Infinity` for a steps edge under `avoidStairs` **before**
+it ever asks which way the flight goes, so a step-free walk cannot see this
+round by construction. "By construction" is what rounds 1-3 said about claims
+that turned out to be false, so it was measured instead — every step-free
+answer on the 600, at `mult=1` and at the shipped setting, compared field by
+field:
+
+```
+walks with a step-free answer at BOTH settings : 243
+   ...that changed in any field                :   0
+refused at both                                :  18
+turned from refused into offered               :   0
+turned from offered into refused               :   0
+```
+
+Same distance, same verified distance, same two doors, same verified step-edge
+count, same verified leg-way count. **0 of 243.**
+
+And round 4's gate, re-run on the merged result, in both configurations:
+
+```
+--mult 1 (round 6)  routes 300 | with stairs 134 | step-free offered 125 | no way round 9
+shipped             routes 300 | with stairs 132 | step-free offered 123 | no way round 9
+```
+
+All seven assertions green in both. Round 6's numbers reproduce to the digit
+under the switch, which is the strongest thing that can be said about an A/B.
+The 125 → 123 is not a loss: **two ordinary walks stopped touching a staircase
+at all**, so there is no longer anything to offer a way round. `SEA>CCJ` is one
+of them by name — it used to need a step-free alternative and now the ordinary
+answer is already step-free.
+
+## R45. The constant, read off a curve — which does NOT plateau, and saying so is the point
+
+Same 600 walks at a ladder of prices, one browser, one page:
+
+```
+  mult    changed  longer  shorter  +stair  -stair   climbing   extra m   sf offer  refused
+       1        0       0        0       0       0         34         0        250       18
+     1.1        0       0        0       0       0         34         0        250       18
+     1.2        1       1        0       0       1         33        92        250       18
+    1.35       11      11        0       0       8         23       449        245       18   SHIPPED
+     1.6       14      13        1       0      11         20       554        244       18
+     2.5       23      22        1       0      18         12      1119        240       18
+      10       32      31        1       0      28          2      2549        236       18
+  100000       32      31        1       0      28          2      2549        236       18
+```
+
+Rounds 5 and 6 both shipped the knee of a curve. **This one has no knee.** It
+keeps buying climbs off the route all the way to unbounded, at a rising price
+in real metres — 2,549 m across 600 walks at the top, and 32 walks doing about
+80 m each to dodge flights as short as 2.1 m.
+
+So the number is not chosen off the curve. It is **1.35 because that is
+`STAIR_UP_MULT`**, already in `walk_graph.json`'s `tune` block, already what
+the card bills a climb at. The router now charges exactly what the clock
+charges and nothing has been invented. *How much harder than that a walking
+router should work to dodge a climb* is a taste question, not a correctness
+one — CLAUDE.md rule 9 says that one goes to Simeon, and rule 11 says it must
+be a one-line edit, so it is: `WAYFIND.stairClimbCostMult`.
+
+What the ladder DOES settle, on all 4,800 walks it drove:
+
+* **`+stair` is 0 at every rung, unbounded included.** No setting of this
+  constant puts a staircase on a walk that did not have one.
+* **`refused` is 18 at every rung, unbounded included.** The pass cannot turn
+  a walk into a refusal. It is measured across the whole curve, not argued
+  from the code.
+* **`climbing` only ever falls**: 34, 34, 33, 23, 20, 12, 2, 2.
+
+### The assertion that went red, and it deserved to
+
+The first cut of the ladder asserted *"no walk comes out shorter in metres
+than round 6"* and it is **false** — four rungs produce one. Cost is
+equivalent-flat-metres, not metres: a road crossing costs 8 m of nothing, so a
+path can be physically shorter and still dearer. When the climb finally
+outprices it, the router picks a route that is **both shorter and stair-free**:
+
+```
+  mult >=1.6   UTA>GRE   1137.3 -> 1112.4 m   sets 1->0   ways [1199982733] -> []
+```
+
+25 m shorter and one flight fewer, sitting there the whole time behind a road
+crossing. The monotone property this round actually has is about **cost**, not
+metres, and the assertion now says so.
+
+### And how close these decisions are
+
+`LTD>CCJ` is a near-tie broken by a hair, not a landslide — swept finely:
+
+```
+   x1.00 .. x1.30   1151 m   sets=1   ways=[130882578]
+   x1.35            1213 m   sets=0   ways=[]
+```
+
+The flip is between ×1.30 and ×1.35. A 62 m detour and a 48.7 m climb are
+within about thirty equivalent-flat-metres of each other, and the price of
+climbing is what separates them.
+
+## R46. Watched failing
+
+* **`--mult 1`** on round 4's gate returns `134 | 125 | 9` — round 6's census,
+  to the digit. If the switch did nothing, that is the run that would say so.
+* **The clamp, fed rubbish.** `stairClimbCostMult` set to `0.2`, `0.5`, `0.99`,
+  `0`, `-3`, `NaN`, `Infinity` and `"banana"`, each over a 240-walk census:
+  every one comes back **byte-identical to `mult=1`**. And the shipped setting
+  over the same census comes back **different** (4 walks), so "identical" is a
+  clamp working rather than an instrument that cannot tell two censuses apart.
+  `Infinity` is in that list on purpose and it fails to OFF, not to "never
+  climb" — anyone wanting that wants a large finite number, and the constant's
+  own comment says so.
+* **The pixel proof went red first, and it was right to.** See §R47.
+
+## R47. The frames — and the first cut of them was measuring the city loading
+
+The instrument reloaded the page for each frame and shot 2.6 s later. It
+reported **193,687 "walk pixels"** on a 1,100×700 frame with a mask bounding
+box covering the entire picture. A 3 m ribbon is not half a photograph.
+
+`pxfloor.mjs` was written before believing any of it — the same camera shot
+twice with **nothing changed at all**:
+
+```
+NOISE FLOOR (same camera, nothing changed, 500 ms apart):
+   >=24: 1535 px (0.2%)   >=120: 954 px
+   hiding wayfind-ribbon   >=24:  7104 px   >=120:  2801 px
+   hiding wayfind-ghost    >=24:  6356 px   >=120:  2795 px
+   hiding wayfind-thread   >=24:  9730 px   >=120:  5430 px
+   hiding wayfind-column   >=24:  6345 px   >=120:  2795 px
+   hiding ALL FOUR         >=24:  9790 px   >=120:  5852 px
+```
+
+The whole walk is worth about 9,800 pixels. The first cut's 193,687 was ~95 %
+tiles, trees and labels still arriving. Three changes followed, and all three
+are in the file:
+
+1. **One page load** for all three frames, so the scene is identical by
+   construction and the only thing that moves is the ribbon.
+2. **A quiet gate.** Two shots 700 ms apart must differ by under 1,500 px
+   before anything is believed, re-checked before every frame. It reports what
+   it measured: `0 px strict` on all three.
+3. **The strict threshold** (≥120 summed RGB), where the floor is 954 px.
+
+And one more: the whole-frame comparison excludes the **card**, which is an
+HTML overlay whose text differs per walk. Comparing two frames through it
+measures the wording. Uncropped it read 4,869 px; cropped, 10.
+
+### The three frames, one camera, and the camera is derived not chosen
+
+The camera is the box holding OSM way `130882578` plus every point of the
+reversed walk more than 25 m from the forward one — exactly the ground where
+the two answers disagree — padded 60 m. The first cut framed the staircase
+alone and the way round left the picture: **215 walk pixels, in a corner.** A
+frame that cannot show the thing the round is about is not evidence, however
+green its assertions are.
+
+| | |
+|---|---|
+| ![A](../shots/walk/stairs/r7-ccj-ltd-down.jpg) | **A — CCJ → LTD, shipped.** 1,151 m, `ways=[130882578]`, `dirs=["down"]`. Card: *"14-19 min walk · 1.2 km · Stairs: 1 set"*. Comes DOWN the flight. |
+| ![B](../shots/walk/stairs/r7-ltd-ccj-round6-up.jpg) | **B — LTD → CCJ, `mult=1` (round 6).** 1,151 m, the SAME way, `dirs=["up"]`. Card: *"Stairs: 1 set"*. Climbs it. |
+| ![C](../shots/walk/stairs/r7-ltd-ccj-round7-way-round.jpg) | **C — LTD → CCJ, shipped.** 1,213 m, `ways=[]`. Card: *"14-21 min walk · 1.2 km · No stairs on this route"*. Goes round, north of Townes Hall. |
+
+```
+camera bbox [-97.734677, 30.287075, -97.729365, 30.289150]   z=16.8205  c=[-97.732021, 30.288113]
+walk mask (strict)   A 2785 px   B 2800 px   C 3514 px       floor 954 px
+whole-frame diff     A~B    10 px      A~C  5946 px      B~C  5985 px
+walk-mask IoU        A~B  0.991       A~C  0.026        B~C  0.027
+```
+
+**A and B differ by ten pixels.** Round 6's router drew, quite literally, the
+same photograph walking up as walking down — that is the defect stated in
+pixels rather than argued from the code. C shares 2.6 % of its ribbon with it.
+
+## R48. What it costs
+
+The pass adds **no `computeRoute` call at all**. It is one extra argument, a
+bitmask test and a comparison inside a Dijkstra relaxation, on the 215 steps
+edges of a 12,231-edge graph — and only where the bit is set, which is 45 of
+them.
+
+The stopwatch was run anyway, interleaved, minimum of nine reps of five routes,
+on a machine with sibling lanes driving browsers:
+
+```
+    CCJ>LTD  (walks a tagged flight)  off 7.56 ms   on 7.62 ms     drift +0.06 ms
+    BUR>SZB  (no tagged flight)       off 1.34 ms   on 1.32 ms     drift -0.02 ms
+    subject answer identical both ways: true  (1150.810|130882578|1|1)
+    control answer identical both ways: true  (1039.520||0|0)
+```
+
++0.06 ms on a 7.6 ms route, against a control that moved −0.02 ms on its own.
+That is the machine, not the pass.
+
+**And the first cut of this measurement was nonsense, for a reason worth
+keeping.** It timed `LTD>CCJ` — the pair whose whole point is that the ANSWER
+changes. At `mult=1` that route has a staircase, so `wayfindStairs()` runs a
+second avoid-stairs Dijkstra and a third to re-derive the claim; shipped, it
+has none and runs one. It read **9.18 ms "off" against 1.94 ms "on"** — the
+pass making routing nearly five times faster, which is not a thing that
+happens. `CCJ>LTD` is the same flight in the descending direction: byte-
+identical answer in both configurations, and the tagged edges are still walked,
+so `isClimb()` is still evaluated. **Both timed pairs are now asserted to
+return the same answer in both configurations before either time is read.**
+
+## R49. Where the doubt is, stated rather than buried
+
+* **39 of 189 flights, not 189 of 189.** The router is blind to direction on
+  the other 150 and prices them exactly as round 6 did. That is `bake_walk.py`'s
+  §5a and it is named, measured and unmade.
+* **Half of one climb.** `581040959` ships 2 of its 4 edges flagged, so even
+  where the router knows, it under-prices. Same defect, same file.
+* **`incline` is a direction, not a gradient.** A tagged flight might be three
+  steps or thirty; OSM says `step_count` on 10 of 189. This round prices the
+  climb by the flight's PLAN LENGTH, which is what round 6 did too, and does
+  not pretend to know the rise.
+* **The 17 inclined non-steps edges are untouched.** 16 are ramps and an uphill
+  ramp is real. Not modelled, because a gradient term for 6 ways of 3,430 is a
+  constant with nothing under it.
+* **1.35 is not the knee of anything**, because there is no knee. It is the
+  number already in the file. §R45 says so in the open, and the ladder is there
+  for Simeon to move it with one line.
+* **`stairClimbCostMult` is read at every relaxation**, not cached per query.
+  It is a property read on an object literal and the profile could not see it,
+  but it means a mid-query mutation would be honoured mid-query. Nothing does
+  that; the harness sets it between queries.
+* **The card and the clock still bill every flight as a climb** (§R41). Not
+  this lane's function; patch in §R50.
+* **`scripts/bake_ground.py` is unchanged this round**, as in rounds 2-6.
+  Round 1's fix re-verified at 189 of 189 before anything else was touched:
+  189 OSM `highway=steps` ways, 180 drawn polygons, 189 distinct way ids drawn,
+  **0 not drawn, 0 invented**.
+* Round 1 §5a and §5b, round 3 §R15 (`#wf-pill` is 197 px wide on a phone),
+  round 4 §R23 (the headline) and round 5 §R32 (the nine refusals) **all still
+  stand unmade.**
+
+## R50. A PATCH FOR `timeRange()` — NOT THIS LANE'S FUNCTION
+
+Four sibling lanes are in `js/wayfind.js` this round and this lane owns the
+cost and alternate-route functions, so this is written out rather than made.
+Everything it needs is already on the objects it is handed.
+
+`measure()` totals stair metres with no direction, and `timeRange()` bills the
+high end at `stairUpMult` for all of them:
+
+```js
+    if (g.F[e] & F_STEPS) { stair += m; sets.add(g.S[e]); }
+...
+    const highS = m.flat / WAYFIND.speedLow +
+      (m.stair / WAYFIND.stairSpeed) * WAYFIND.stairUpMult + ...
+```
+
+`measure()` already has what it needs to split them — it walks `leg.edges`,
+and `leg.nodes[i]` is the node each edge is entered from, exactly as
+`stairLegs()` uses it. Split the total three ways:
+
+```js
+  function measure(g, leg) {
+    let flat = 0, stair = 0, stairUp = 0, stairDown = 0, signals = 0;
+    const sets = new Set();
+    for (let i = 0; i < leg.edges.length; i++) {
+      const e = leg.edges[i];
+      const m = g.W[e] / 100;
+      if (g.F[e] & F_STEPS) {
+        stair += m; sets.add(g.S[e]);
+        // ROUND 7 §R41 — the same test the card's "up the steps" is printed
+        // from. An edge with no known direction stays in neither bucket.
+        if (isClimb(g, e, leg.nodes[i])) stairUp += m;
+        else if (isDescent(g, e, leg.nodes[i])) stairDown += m;
+      } else flat += m;
+      if (g.F[e] & F_SIGNAL) signals++;
+    }
+    return { flat, stair, stairUp, stairDown, signals, stairSets: sets.size };
+  }
+```
+
+...and charge the climb multiplier only to metres that are not KNOWN to be
+downhill:
+
+```js
+    // ROUND 7 §R41. The high end is a worst case, and a worst case is a fair
+    // thing to assume about a flight nobody has tagged. It is not a fair thing
+    // to assume about one this very card has just called "down the steps":
+    // over 600 walks, ten descend a known flight and climb nothing, and every
+    // one of them was billed up to 35.4 s of climbing that does not happen.
+    const climbable = m.stair - (m.stairDown || 0);
+    const highS = m.flat / WAYFIND.speedLow +
+      ((m.stair - climbable) + climbable * WAYFIND.stairUpMult) / WAYFIND.stairSpeed +
+      m.stairSets * WAYFIND.stairFixedS +
+      m.signals * WAYFIND.signalWaitHighS;
+```
+
+`isDescent()` is `isClimb()` with the sense inverted and the same
+"untagged is not downhill" rule; both belong beside `isClimb()` in the cost
+block. On today's data this narrows the printed band on 10 of 600 walks and
+changes nothing else, because `stairDown` is 0 wherever OSM is silent.
+
+The low end is deliberately left alone: it is the optimistic floor and
+`stairSpeed` unmultiplied is already the fastest honest number for a flight.
+
+## R51. The instruments, written out
+
+Save these beside `lib.mjs` and `gate.mjs` from §R27 (this round's copies
+import `_r7lib.mjs`, which is `lib.mjs` with `PORT` defaulted to 8813), run
+`npm install playwright-core`, and start `python scripts/serve.py 8813`:
+
+```bash
+python drawn189.py /path/to/repo                 # 189 of 189, before anything
+REPO_ROOT=/path/to/repo node updown.mjs 300      # the defect: 300 of 300 symmetric
+REPO_ROOT=/path/to/repo node gate.mjs 300        # round 4's seven, shipped
+REPO_ROOT=/path/to/repo node gate.mjs 300 --mult 1   # ...and round 6's numbers back
+node sfsame.mjs 300                              # the step-free walk did not move
+node climbcurve.mjs 300                          # the ladder, 4,800 walks
+node pxfloor.mjs 500                             # the noise floor, FIRST
+node frames7.mjs ./frames                        # the three pictures
+node clampcost.mjs 120 9                         # the clamp, and the stopwatch
+```
+
+`scripts/verify/` is still not this lane's directory, so they are here rather
+than there — but they are in the repository, and every number in §R41-§R48 is
+the printed output of one of them.
+
+### The `--mult` hook added to round 4's `gate.mjs`
+
+Five lines, right after the `--oldleg` banner, so the A/B runs on the
+same gate rather than a copy of it:
+
+```js
+const R7MULT = process.argv.includes('--mult')
+  ? Number(process.argv[process.argv.indexOf('--mult') + 1]) : null;
+if (R7MULT !== null) {
+  await page.evaluate(m => { window.WAYFIND.stairClimbCostMult = m; }, R7MULT);
+  console.log('*** stairClimbCostMult := ' + R7MULT + ' ***');
+}
+```
+
+### `updown.mjs` — THE DEFECT. Every seeded pair driven both ways.
+
+```js
+/**
+ * updown.mjs — ROUND 7. Is a walk UP a flight the same walk as the walk DOWN it?
+ *
+ * The app tells you "up the steps" or "down the steps" per flight (js/wayfind.js
+ * stairLegs(), which reads F_UP_AB against the traversal direction). This asks
+ * whether anything downstream of that sentence ever uses it:
+ *
+ *   1. THE ROUTER. Runs every seeded pair BOTH WAYS and compares. A cost
+ *      function with no direction in it makes an undirected graph, and an
+ *      undirected graph gives dist(A->B) == dist(B->A) exactly, on every pair,
+ *      including the ones that climb.
+ *   2. THE CLOCK. Compares the printed time band on a route whose flights are
+ *      ALL known descents against what it would be if the climb multiplier were
+ *      only charged for a climb.
+ *
+ * Nothing here reads a cost. It reads `distM`, the stair `list` (with `dir`),
+ * and `lo`/`hi` off the public `wayfindStairs()` answer — the same numbers the
+ * card prints.
+ *
+ *   node updown.mjs [pairs] [--mult N] [--json out.json]
+ *
+ * --mult sets WAYFIND.stairClimbCostMult live, so the A/B is one browser and
+ * one page: `--mult 1` is the router with direction OFF (round 6 behaviour).
+ */
+import fs from 'node:fs';
+import { open, ok } from './_r7lib.mjs';
+
+const N = Number(process.argv.find(a => /^\d+$/.test(a)) || 300);
+const MULT = process.argv.includes('--mult')
+  ? Number(process.argv[process.argv.indexOf('--mult') + 1]) : null;
+const JSON_OUT = process.argv.includes('--json')
+  ? process.argv[process.argv.indexOf('--json') + 1] : null;
+
+const { browser, page } = await open();
+
+if (MULT !== null) {
+  const applied = await page.evaluate((m) => {
+    if (!window.WAYFIND) return 'no WAYFIND';
+    window.WAYFIND.stairClimbCostMult = m;
+    return String(window.WAYFIND.stairClimbCostMult);
+  }, MULT);
+  console.log(`*** stairClimbCostMult := ${applied} ***`);
+}
+
+const tune = await page.evaluate(() => ({
+  stairUpMult: window.WAYFIND && window.WAYFIND.stairUpMult,
+  stairSpeed: window.WAYFIND && window.WAYFIND.stairSpeed,
+  speedLow: window.WAYFIND && window.WAYFIND.speedLow,
+  climb: window.WAYFIND && window.WAYFIND.stairClimbCostMult,
+}));
+console.log(`pairs ${N} | stairUpMult=${tune.stairUpMult} stairSpeed=${tune.stairSpeed} ` +
+  `speedLow=${tune.speedLow} stairClimbCostMult=${tune.climb}`);
+
+const res = await page.evaluate(async (n) => {
+  const g = await fetch('data/walk_graph.json').then(r => r.json());
+  const codes = Object.keys(g.code);
+  // the same LCG and the same seed as gate.mjs, so this census is the same 300
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const strip = (r) => ({
+    ok: !!(r && r.ok), distM: r && r.ok ? +r.distM.toFixed(3) : -1,
+    lo: r && r.ok ? r.lo : -1, hi: r && r.ok ? r.hi : -1,
+    sets: r && r.ok ? r.sets : -1,
+    ways: r && r.ok ? r.ways.slice() : [],
+    fromDoor: r && r.ok ? r.fromDoor : -1, toDoor: r && r.ok ? r.toDoor : -1,
+    list: r && r.ok ? r.list.map(x => ({ way: x.way, m: +x.m.toFixed(2), dir: x.dir || '' })) : [],
+  });
+  const out = []; let tries = 0;
+  while (out.length < n && tries < n * 6) {
+    tries++;
+    const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+    if (a === b) continue;
+    const fwd = await window.wayfindStairs(a, b, {});
+    if (!fwd || !fwd.ok) continue;
+    const rev = await window.wayfindStairs(b, a, {});
+    out.push({ a, b, fwd: strip(fwd), rev: strip(rev) });
+  }
+  return out;
+}, N);
+
+// ── the accounting ────────────────────────────────────────────────────────
+const upM = (s) => s.list.filter(x => x.dir === 'up').reduce((t, x) => t + x.m, 0);
+const dnM = (s) => s.list.filter(x => x.dir === 'down').reduce((t, x) => t + x.m, 0);
+const unkM = (s) => s.list.filter(x => x.dir !== 'up' && x.dir !== 'down').reduce((t, x) => t + x.m, 0);
+
+let bothOk = 0, sameDist = 0, sameDoors = 0, directedPairs = 0;
+let asymDist = [], climbOnly = [], descentOnly = [];
+let stairyPairs = 0;
+for (const p of res) {
+  if (!p.rev.ok) continue;
+  bothOk++;
+  const d = Math.abs(p.fwd.distM - p.rev.distM);
+  if (d < 1e-6) sameDist++; else asymDist.push({ ...p, d: +d.toFixed(2) });
+  if (p.fwd.fromDoor === p.rev.toDoor && p.fwd.toDoor === p.rev.fromDoor) sameDoors++;
+  if (p.fwd.sets > 0 || p.rev.sets > 0) stairyPairs++;
+  const directed = upM(p.fwd) + dnM(p.fwd) + upM(p.rev) + dnM(p.rev);
+  if (directed > 0) directedPairs++;
+  // a route whose every mapped flight is a KNOWN descent
+  if (p.fwd.sets > 0 && dnM(p.fwd) > 0 && upM(p.fwd) === 0 && unkM(p.fwd) === 0) descentOnly.push(p);
+  if (p.fwd.sets > 0 && upM(p.fwd) > 0 && dnM(p.fwd) === 0 && unkM(p.fwd) === 0) climbOnly.push(p);
+}
+
+console.log(`\nroutable both ways        : ${bothOk} of ${res.length}`);
+console.log(`with >=1 mapped flight    : ${stairyPairs}`);
+console.log(`with >=1 KNOWN direction  : ${directedPairs}`);
+console.log(`dist(A->B) == dist(B->A)  : ${sameDist} of ${bothOk}   (differ: ${asymDist.length})`);
+console.log(`doors mirror exactly      : ${sameDoors} of ${bothOk}`);
+console.log(`routes that only CLIMB    : ${climbOnly.length}`);
+console.log(`routes that only DESCEND  : ${descentOnly.length}`);
+
+if (asymDist.length) {
+  console.log('\nasymmetric pairs (metres apart), worst first:');
+  for (const p of asymDist.sort((x, y) => y.d - x.d).slice(0, 12)) {
+    console.log(`  ${p.a}>${p.b}  ${p.fwd.distM.toFixed(1)} m  vs  ` +
+      `${p.b}>${p.a} ${p.rev.distM.toFixed(1)} m   D=${p.d} m` +
+      `   up/down/? fwd ${upM(p.fwd).toFixed(0)}/${dnM(p.fwd).toFixed(0)}/${unkM(p.fwd).toFixed(0)}` +
+      `  rev ${upM(p.rev).toFixed(0)}/${dnM(p.rev).toFixed(0)}/${unkM(p.rev).toFixed(0)}`);
+  }
+}
+
+// THE CLOCK. On a route whose flights are all known DESCENTS, the printed high
+// end still bills every stair metre at stairUpMult.
+if (descentOnly.length) {
+  console.log('\nthe clock, on routes with no climb on them at all:');
+  for (const p of descentOnly.slice(0, 8)) {
+    const st = dnM(p.fwd);
+    const overS = (st / tune.stairSpeed) * (tune.stairUpMult - 1);
+    console.log(`  ${p.a}>${p.b}  ${p.fwd.distM.toFixed(0)} m, ${st.toFixed(1)} m of steps, ` +
+      `ALL down  ->  card says ${p.fwd.lo}-${p.fwd.hi} min; the high end includes ` +
+      `${overS.toFixed(1)} s of climbing that does not happen`);
+  }
+}
+
+const pass = [];
+pass.push(ok(bothOk > 0, 'both directions routable on at least one pair', `${bothOk}`));
+pass.push(ok(directedPairs > 0, 'the census reaches routes with a KNOWN stair direction',
+  `${directedPairs} pairs`));
+if (MULT === 1 || MULT === null) {
+  // nothing asserted here; this run is the description of the defect
+}
+
+if (JSON_OUT) {
+  fs.writeFileSync(JSON_OUT, JSON.stringify({ tune, N, res }, null, 1));
+  console.log(`\nwrote ${JSON_OUT}`);
+}
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `sfsame.mjs` — The step-free walk did not move, checked field by field. Plus the tipping point.
+
+```js
+/**
+ * sfsame.mjs — ROUND 7. The step-free walk did not move, and that is checked,
+ * not assumed.
+ *
+ * `edgeCost()` returns Infinity for a steps edge under `avoidStairs` BEFORE it
+ * ever asks which way the flight goes, so a step-free walk cannot see round 7
+ * by construction. "By construction" is what rounds 1-3 said about things that
+ * turned out to be false, so: same 300 pairs, both directions, at mult=1 and
+ * at the shipped setting, and every step-free answer compared field by field.
+ *
+ *   node sfsame.mjs [pairs]
+ */
+import { open, ok } from './_r7lib.mjs';
+
+const N = Number(process.argv.find(a => /^\d+$/.test(a)) || 300);
+const { browser, page } = await open();
+
+async function run(mult) {
+  return page.evaluate(async ([n, m]) => {
+    window.WAYFIND.stairClimbCostMult = m;
+    const g = await fetch('data/walk_graph.json').then(r => r.json());
+    const codes = Object.keys(g.code);
+    let seed = 12345;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const out = {}; let tries = 0, pairs = 0;
+    while (pairs < n && tries < n * 6) {
+      tries++;
+      const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+      if (a === b) continue;
+      const fwd = await window.wayfindStairs(a, b, {});
+      if (!fwd || !fwd.ok) continue;
+      pairs++;
+      const rev = await window.wayfindStairs(b, a, {});
+      for (const [k, s] of [[a + '>' + b, fwd], [b + '>' + a, rev]]) {
+        if (!s || !s.ok) continue;
+        out[k] = s.stepFree ? {
+          d: Math.round(s.stepFree.distM), vd: Math.round(s.stepFree.verifiedDistM),
+          f: s.stepFree.fromDoor, t: s.stepFree.toDoor,
+          clean: s.stepFree.clean, se: s.stepFree.verifiedStepEdges,
+          lw: s.stepFree.verifiedLegWays,
+        } : (s.stepFreeNone ? 'NONE' : null);
+      }
+    }
+    return out;
+  }, [N, mult]);
+}
+
+const off = await run(1);
+const on = await run(null);
+
+const keys = new Set([...Object.keys(off), ...Object.keys(on)]);
+let both = 0, moved = 0, gained = 0, lost = 0, sameNone = 0;
+const detail = [];
+for (const k of keys) {
+  const a = off[k], b = on[k];
+  if (a === 'NONE' && b === 'NONE') { sameNone++; continue; }
+  if (a === 'NONE' && b !== 'NONE') { gained++; detail.push(`${k}: refused -> offered`); continue; }
+  if (a !== 'NONE' && b === 'NONE') { lost++; detail.push(`${k}: offered -> refused`); continue; }
+  if (!a || !b) { detail.push(`${k}: ${JSON.stringify(a)} vs ${JSON.stringify(b)} (one side had no stairs)`); continue; }
+  both++;
+  if (JSON.stringify(a) !== JSON.stringify(b)) {
+    moved++; detail.push(`${k}: ${JSON.stringify(a)} -> ${JSON.stringify(b)}`);
+  }
+}
+console.log(`walks with a step-free answer at BOTH settings : ${both}`);
+console.log(`refused at both                                : ${sameNone}`);
+console.log(`turned from refused into offered              : ${gained}`);
+console.log(`turned from offered into refused              : ${lost}`);
+for (const d of detail.slice(0, 20)) console.log('   ' + d);
+
+// ── and the tipping point on the frame pair, measured rather than argued ────
+// LTD>CCJ is a NEAR TIE, not a landslide: the climb has to get slightly dearer
+// than the flight is long before the way round wins. Finding the exact price
+// at which it flips says how close the two answers were.
+const tip = await page.evaluate(async () => {
+  const out = [];
+  for (const m of [1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4]) {
+    window.WAYFIND.stairClimbCostMult = m;
+    const r = await window.wayfindStairs('LTD', 'CCJ', {});
+    out.push({ m, d: Math.round(r.distM), sets: r.sets, ways: r.ways });
+  }
+  window.WAYFIND.stairClimbCostMult = null;
+  return out;
+});
+console.log('\nLTD>CCJ, the price of a climb against the answer:');
+for (const t of tip) console.log(`   x${t.m.toFixed(2)}  ${t.d} m  sets=${t.sets}  ways=${JSON.stringify(t.ways)}`);
+
+const pass = [];
+pass.push(ok(both > 0, 'the comparison actually reached step-free answers', `${both}`));
+pass.push(ok(moved === 0,
+  'not one step-free walk changed: same distance, same doors, same verified step edges',
+  `${moved} of ${both}`));
+pass.push(ok(lost === 0, 'no step-free offer was turned into a refusal', `${lost}`));
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `climbcurve.mjs` — THE LADDER. 4,800 walks, and the two assertions that survive it.
+
+```js
+/**
+ * climbcurve.mjs — ROUND 7. The curve `stairClimbCostMult` is read off.
+ *
+ * Runs the same 300 seeded pairs BOTH WAYS at a ladder of settings, in ONE
+ * browser and one page, and reports what each setting buys. 1 is the round-6
+ * router. The last rung is effectively unbounded: if the numbers stop moving
+ * there, no larger value can buy anything, and a bigger constant would only be
+ * a bigger claim.
+ *
+ *   node climbcurve.mjs [pairs]
+ */
+import { open, ok } from './_r7lib.mjs';
+
+const N = Number(process.argv.find(a => /^\d+$/.test(a)) || 300);
+const LADDER = [1, 1.1, 1.2, 1.35, 1.6, 2.5, 10, 100000];
+
+const { browser, page } = await open();
+
+const rows = [];
+for (const mult of LADDER) {
+  const r = await page.evaluate(async ([n, m]) => {
+    window.WAYFIND.stairClimbCostMult = m;
+    const g = await fetch('data/walk_graph.json').then(r => r.json());
+    const codes = Object.keys(g.code);
+    let seed = 12345;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const walks = []; let tries = 0, pairs = 0;
+    while (pairs < n && tries < n * 6) {
+      tries++;
+      const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+      if (a === b) continue;
+      const fwd = await window.wayfindStairs(a, b, {});
+      if (!fwd || !fwd.ok) continue;
+      pairs++;
+      const rev = await window.wayfindStairs(b, a, {});
+      for (const [k, s] of [[a + '>' + b, fwd], [b + '>' + a, rev]]) {
+        if (!s || !s.ok) continue;
+        walks.push({ k, d: +s.distM.toFixed(3), sets: s.sets, ways: s.ways.slice(),
+          none: !!s.stepFreeNone, sf: s.stepFree ? 1 : 0,
+          climbM: +s.list.filter(x => x.dir === 'up').reduce((t, x) => t + x.m, 0).toFixed(2) });
+      }
+    }
+    return walks;
+  }, [N, mult]);
+  rows.push({ mult, walks: r });
+  console.log(`  ${String(mult).padStart(7)} done — ${r.length} walks`);
+}
+
+const base = new Map(rows[0].walks.map(w => [w.k, w]));
+console.log('\n  mult    changed  longer  shorter  +stair  -stair   climbing   extra m   sf offer  refused');
+for (const row of rows) {
+  let chg = 0, up = 0, dn = 0, plus = 0, minus = 0, extra = 0, climbing = 0, sf = 0, none = 0;
+  for (const w of row.walks) {
+    const b = base.get(w.k); if (!b) continue;
+    if (w.climbM > 0) climbing++;
+    if (w.sf) sf++;
+    if (w.none) none++;
+    if (Math.abs(w.d - b.d) > 1e-6 || String(w.ways) !== String(b.ways)) {
+      chg++;
+      if (w.d > b.d + 1e-6) up++;
+      if (w.d < b.d - 1e-6) dn++;
+      if (w.sets > b.sets) plus++;
+      if (w.sets < b.sets) minus++;
+    }
+    extra += w.d - b.d;
+  }
+  console.log(`  ${String(row.mult).padStart(6)}  ${String(chg).padStart(7)} ${String(up).padStart(7)} ` +
+    `${String(dn).padStart(8)} ${String(plus).padStart(7)} ${String(minus).padStart(7)} ` +
+    `${String(climbing).padStart(10)} ${extra.toFixed(0).padStart(9)} ${String(sf).padStart(10)} ${String(none).padStart(8)}`);
+}
+
+// THE CURVE DOES NOT PLATEAU AT THE SHIPPED VALUE, and saying so is the point
+// of running it. 1.35 is not a tuning choice — it is STAIR_UP_MULT, the number
+// `walk_graph.json` already ships and the card already bills a climb at. How
+// much harder than that the router should work to dodge a climb is a taste
+// call (CLAUDE.md rule 9), so the ladder is reported rather than optimised and
+// the constant is one line (rule 11).
+let plusAny = 0, minusAny = 0;
+const shorter = [], refusedAt = [], climbingAt = [];
+for (const row of rows) {
+  let none = 0, climbing = 0;
+  for (const w of row.walks) {
+    const b = base.get(w.k); if (!b) continue;
+    if (w.none) none++;
+    if (w.climbM > 0) climbing++;
+    if (w.sets > b.sets) plusAny++;
+    if (w.sets < b.sets) minusAny++;
+    if (w.d < b.d - 1e-6) shorter.push({ mult: row.mult, k: w.k, was: b.d, now: w.d,
+      sets: [b.sets, w.sets], ways: [b.ways, w.ways] });
+  }
+  refusedAt.push(none); climbingAt.push(climbing);
+}
+const pass = [];
+pass.push(ok(plusAny === 0,
+  'NO setting on the ladder — unbounded included — puts a staircase on a walk that had none',
+  `${plusAny} of ${rows.length * rows[0].walks.length} walks`));
+pass.push(ok(new Set(refusedAt).size === 1,
+  'the refusal count does not move at ANY setting, unbounded included', refusedAt.join(' ')));
+pass.push(ok(climbingAt.every((v, i) => i === 0 || v <= climbingAt[i - 1]),
+  'walks still climbing a KNOWN flight only ever falls as the price rises', climbingAt.join(' ')));
+// NOT asserted: "no walk comes out shorter in metres". It is false, and the
+// first cut of this file asserted it and went red. Cost is equivalent-flat-
+// metres, not metres: a shorter path can be dearer (a road crossing costs 8 m
+// of nothing), so when a climb finally outprices it the router can pick a path
+// that is BOTH shorter and dearer. Named rather than hidden:
+console.log(`\n  walks that came out SHORTER in metres than round 6: ${shorter.length}`);
+for (const s of shorter) console.log(`    mult ${s.mult}  ${s.k}  ${s.was.toFixed(1)} -> ` +
+  `${s.now.toFixed(1)} m  sets ${s.sets.join('->')}  ways ${JSON.stringify(s.ways)}`);
+console.log(`  walks that dropped a staircase, summed over the ladder: ${minusAny}`);
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `pxfloor.mjs` — THE NOISE FLOOR, measured before any pixel claim.
+
+```js
+/**
+ * pxfloor.mjs — ROUND 7. The NOISE FLOOR of the pixel proof.
+ *
+ * frames7.mjs's first cut reported 193,687 "walk pixels" on a 1,100x700 frame
+ * and a mask bbox covering the whole picture. A 3 m ribbon is not half a frame.
+ * So before any IoU is believed: shoot the SAME camera twice with NOTHING
+ * changed and diff that. Whatever that costs is what the scene does on its own,
+ * and any mask smaller than it is noise wearing a ribbon's name.
+ *
+ *   node pxfloor.mjs [settleMs]
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { open, shot, ok } from './_r7lib.mjs';
+
+const SETTLE = Number(process.argv[2] || 500);
+const OUT = process.env.OUT || './pxfloor';
+fs.mkdirSync(OUT, { recursive: true });
+const W = 1100, H = 700, PORT = process.env.PORT || 8813;
+const WAY_BBOX = [-97.733293, 30.287075, -97.732741, 30.287190];
+const PAD_M = 150;
+const ALL = ['wayfind-ribbon', 'wayfind-ghost', 'wayfind-thread', 'wayfind-column'];
+
+const { browser, page } = await open({ w: W, h: H });
+await page.goto(`http://127.0.0.1:${PORT}/index.html?walk=1&intro=0&drift=0`,
+  { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
+await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 180000 });
+await page.waitForFunction(() => !!window.__map && !!window.wayfindRoute, null, { timeout: 120000 });
+await page.evaluate(async () => { await window.wayfindRoute('CCJ', 'LTD'); });
+await page.evaluate(([bb, pad]) => {
+  const dx = pad / 96061, dy = pad / 111195;
+  window.__map.jumpTo({ pitch: 0, bearing: 0 });
+  window.__map.fitBounds([[bb[0] - dx, bb[1] - dy], [bb[2] + dx, bb[3] + dy]],
+    { padding: 10, duration: 0, pitch: 0, maxZoom: 18 });
+}, [WAY_BBOX, PAD_M]);
+await page.waitForTimeout(3000);
+
+const grab = async (name) => { const p = path.join(OUT, name + '.png'); await shot(page, p); return p; };
+const diff = async (pa, pb) => {
+  const a = 'data:image/png;base64,' + fs.readFileSync(pa).toString('base64');
+  const b = 'data:image/png;base64,' + fs.readFileSync(pb).toString('base64');
+  return page.evaluate(async ([sa, sb]) => {
+    const load = (s) => new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = s; });
+    const [ia, ib] = await Promise.all([load(sa), load(sb)]);
+    const c = document.createElement('canvas'); c.width = ia.width; c.height = ia.height;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(ia, 0, 0); const pa2 = x.getImageData(0, 0, c.width, c.height).data;
+    x.clearRect(0, 0, c.width, c.height);
+    x.drawImage(ib, 0, 0); const pb2 = x.getImageData(0, 0, c.width, c.height).data;
+    let n = 0, big = 0;
+    for (let i = 0; i < pa2.length; i += 4) {
+      const d = Math.abs(pa2[i] - pb2[i]) + Math.abs(pa2[i + 1] - pb2[i + 1]) + Math.abs(pa2[i + 2] - pb2[i + 2]);
+      if (d >= 24) n++;
+      if (d >= 120) big++;
+    }
+    return { n, big, tot: (pa2.length / 4) | 0 };
+  }, [a, b]);
+};
+
+const s1 = await grab('still1');
+await page.waitForTimeout(SETTLE);
+const s2 = await grab('still2');
+const floor = await diff(s1, s2);
+console.log(`NOISE FLOOR (same camera, nothing changed, ${SETTLE} ms apart):`);
+console.log(`   >=24: ${floor.n} px (${(100 * floor.n / floor.tot).toFixed(1)}%)   >=120: ${floor.big} px`);
+
+// per layer, one at a time
+for (const l of ALL) {
+  await page.evaluate((x) => { if (window.__map.getLayer(x)) window.__map.setLayoutProperty(x, 'visibility', 'none'); }, l);
+  await page.waitForTimeout(SETTLE);
+  const p = await grab('off-' + l);
+  const d = await diff(s2, p);
+  await page.evaluate((x) => { if (window.__map.getLayer(x)) window.__map.setLayoutProperty(x, 'visibility', 'visible'); }, l);
+  await page.waitForTimeout(SETTLE);
+  console.log(`   hiding ${l.padEnd(16)} >=24: ${String(d.n).padStart(7)} px   >=120: ${String(d.big).padStart(7)} px`);
+}
+
+// all four at once
+await page.evaluate((ls) => { for (const x of ls) if (window.__map.getLayer(x)) window.__map.setLayoutProperty(x, 'visibility', 'none'); }, ALL);
+await page.waitForTimeout(SETTLE);
+const pAll = await grab('off-all');
+const dAll = await diff(s2, pAll);
+console.log(`   hiding ALL FOUR         >=24: ${String(dAll.n).padStart(7)} px   >=120: ${String(dAll.big).padStart(7)} px`);
+
+ok(dAll.big > 10 * Math.max(1, floor.big),
+  'the walk is worth more than ten times the noise floor at the strict threshold',
+  `${dAll.big} vs ${floor.big}`);
+
+await browser.close();
+```
+
+### `frames7.mjs` — The three pictures, on one derived camera.
+
+```js
+/**
+ * frames7.mjs — ROUND 7. The round in three pictures, proved in PIXELS, with
+ * the noise floor measured FIRST.
+ *
+ * ONE page load, ONE camera, three walks over OSM way 130882578 — a 60.7 m
+ * flight tagged `incline=up`, `handrail=no`, `wheelchair=no`:
+ *
+ *   A  CCJ > LTD, shipped        comes DOWN the flight
+ *   B  LTD > CCJ, mult=1         round 6's router: climbs the SAME flight
+ *   C  LTD > CCJ, shipped        goes round it
+ *
+ * A and B must be the SAME PICTURE to within the noise floor — that is round
+ * 6's defect stated as pixels rather than argued. C must not be.
+ *
+ * THE FIRST CUT OF THIS FILE WAS MEASURING THE CITY LOADING. It reloaded the
+ * page per frame and shot 2.6 s later, and reported 193,687 "walk pixels" with
+ * a mask bbox covering the whole 1,100x700 frame. A 3 m ribbon is not half a
+ * picture. pxfloor.mjs put the real number at ~9,800 px for all four walk
+ * layers together and ~1,500 px for the scene doing nothing at all, so the
+ * first cut was ~95 % tiles and trees still popping in. Hence:
+ *
+ *   - ONE page load. The scene is then identical by construction and the only
+ *     thing that moves between frames is the ribbon.
+ *   - QUIET FIRST. Two shots QUIET_GAP_MS apart must differ by less than
+ *     QUIET_PX before anything is believed, re-checked before every frame.
+ *   - The strict threshold. A pixel counts at >=120 of summed RGB, where the
+ *     floor was 954 px and the walk is 5,852.
+ *
+ *   node frames7.mjs [outdir]
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { open, shot, ok } from './_r7lib.mjs';
+
+const OUT = process.argv[2] || './frames7';
+fs.mkdirSync(OUT, { recursive: true });
+const W = 1100, H = 700, PORT = process.env.PORT || 8813;
+
+const WAY = 130882578;
+const WAY_BBOX = [-97.733293, 30.287075, -97.732741, 30.287190];
+// The camera is NOT chosen. It is the box that holds the flight plus every
+// point of the reversed walk that is more than DIVERGE_M from the forward one
+// — i.e. exactly the ground where the two answers disagree — padded. The first
+// cut framed the staircase alone at 150 m and the way round left the picture:
+// 215 walk pixels for C, in a corner. A frame that cannot show the thing the
+// round is about is not evidence, however green its assertions are.
+const DIVERGE_M = 25;
+const PAD_M = 60;
+const WALK_LAYERS = ['wayfind-ribbon', 'wayfind-ghost', 'wayfind-thread', 'wayfind-column'];
+// A pixel is DIFFERENT at this much summed |dR|+|dG|+|dB|. 24 is what round 5
+// used; at 24 the settling scene alone spends 1,535 px, so this round reads the
+// strict one and quotes both.
+const DIFF_STRICT = 120;
+// The scene is QUIET when two shots this far apart differ by less than this at
+// the strict threshold. Measured floor: 954 px.
+const QUIET_GAP_MS = 700, QUIET_PX = 1500, QUIET_TRIES = 20;
+// Two masks this alike are the same ribbon.
+const SAME_IOU = 0.90;
+// A mask this small is not a walk. Measured: all four layers = 5,852 px strict.
+const MIN_WALK_PX = 1500;   // re-read after the camera moved; see the run log
+
+const { browser, page } = await open({ w: W, h: H });
+await page.goto(`http://127.0.0.1:${PORT}/index.html?walk=1&intro=0&drift=0`,
+  { waitUntil: 'domcontentloaded', timeout: 120000 });
+await page.evaluate(() => { try { window.cancelGraphicsAutoDetect(); } catch (e) {} });
+await page.waitForFunction(() => !document.getElementById('veil'), null, { timeout: 180000 });
+await page.waitForFunction(() => !!window.__map && !!window.wayfindRoute, null, { timeout: 120000 });
+
+// ── the camera, derived: where the two answers put a person on different ground
+const CAM_BBOX = await page.evaluate(async ([wb, dm]) => {
+  const MPD_LON = 96061, MPD_LAT = 111195;
+  const line = async (f, t, m) => {
+    window.WAYFIND.stairClimbCostMult = m;
+    const r = await window.wayfindStairs(f, t, { geom: true });
+    return r && r.geom ? r.geom.line : null;
+  };
+  const a = await line('CCJ', 'LTD', null);
+  const c = await line('LTD', 'CCJ', null);
+  const far = (p, L) => {
+    let best = 1e9;
+    for (const q of L) {
+      const d = Math.hypot((p[0] - q[0]) * MPD_LON, (p[1] - q[1]) * MPD_LAT);
+      if (d < best) best = d;
+    }
+    return best;
+  };
+  let x0 = wb[0], y0 = wb[1], x1 = wb[2], y1 = wb[3];
+  for (const p of c) if (far(p, a) > dm) {
+    if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
+    if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1];
+  }
+  for (const p of a) if (far(p, c) > dm) {
+    if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
+    if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1];
+  }
+  return [x0, y0, x1, y1];
+}, [WAY_BBOX, DIVERGE_M]);
+console.log(`camera bbox (flight + where the two walks diverge): ${JSON.stringify(CAM_BBOX)}`);
+
+const grab = async (name) => { const p = path.join(OUT, name + '.png'); await shot(page, p); return p; };
+const diff = async (pa, pb, excl) => {
+  const a = 'data:image/png;base64,' + fs.readFileSync(pa).toString('base64');
+  const b = 'data:image/png;base64,' + fs.readFileSync(pb).toString('base64');
+  return page.evaluate(async ([sa, sb, TH, EX]) => {
+    const load = (s) => new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = s; });
+    const [ia, ib] = await Promise.all([load(sa), load(sb)]);
+    const c = document.createElement('canvas'); c.width = ia.width; c.height = ia.height;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(ia, 0, 0); const pa2 = x.getImageData(0, 0, c.width, c.height).data;
+    x.clearRect(0, 0, c.width, c.height);
+    x.drawImage(ib, 0, 0); const pb2 = x.getImageData(0, 0, c.width, c.height).data;
+    const bits = []; let n24 = 0, x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+    for (let i = 0; i < pa2.length; i += 4) {
+      const p = (i / 4) | 0, px = p % c.width, py = (p / c.width) | 0;
+      // EX is the card. It is an HTML overlay, its text differs per walk, and
+      // it is not the map — comparing two frames THROUGH it just measures the
+      // wording. Excluded for the whole-frame comparisons only.
+      if (EX && px >= EX[0] && px <= EX[2] && py >= EX[1] && py <= EX[3]) continue;
+      const d = Math.abs(pa2[i] - pb2[i]) + Math.abs(pa2[i + 1] - pb2[i + 1]) + Math.abs(pa2[i + 2] - pb2[i + 2]);
+      if (d >= 24) n24++;
+      if (d < TH) continue;
+      bits.push(p);
+      if (px < x0) x0 = px; if (px > x1) x1 = px;
+      if (py < y0) y0 = py; if (py > y1) y1 = py;
+    }
+    return { n: bits.length, n24, bbox: [x0, y0, x1, y1], bits };
+  }, [a, b, DIFF_STRICT, excl || null]);
+};
+
+/** Refuse to shoot a scene that is still moving. */
+async function quiet(tag) {
+  for (let i = 0; i < QUIET_TRIES; i++) {
+    const p1 = await grab(`${tag}-q1`);
+    await page.waitForTimeout(QUIET_GAP_MS);
+    const p2 = await grab(`${tag}-q2`);
+    const d = await diff(p1, p2);
+    fs.unlinkSync(p1);
+    if (d.n <= QUIET_PX) return { tries: i + 1, n: d.n, n24: d.n24, still: p2 };
+    fs.unlinkSync(p2);
+  }
+  throw new Error(`${tag}: scene never went quiet`);
+}
+
+async function frame(tag, from, to, mult) {
+  await page.evaluate((m) => { window.WAYFIND.stairClimbCostMult = m; }, mult);
+  const answer = await page.evaluate(async ([f, t]) => {
+    await window.wayfindRoute(f, t);
+    const r = window.wayfindStairs();
+    return r ? { distM: Math.round(r.distM), sets: r.sets, ways: r.ways,
+      dirs: r.list.map(x => x.dir), lo: r.lo, hi: r.hi } : null;
+  }, [from, to]);
+  await page.evaluate(([bb, pad]) => {
+    const dx = pad / 96061, dy = pad / 111195;
+    window.__map.jumpTo({ pitch: 0, bearing: 0 });
+    window.__map.fitBounds([[bb[0] - dx, bb[1] - dy], [bb[2] + dx, bb[3] + dy]],
+      { padding: 10, duration: 0, pitch: 0, maxZoom: 18 });
+  }, [CAM_BBOX, PAD_M]);
+  const q = await quiet(tag);
+  const cam = await page.evaluate(() => ({ z: +window.__map.getZoom().toFixed(4),
+    c: window.__map.getCenter().toArray().map(v => +v.toFixed(6)) }));
+  const card = await page.evaluate(() => {
+    const c = document.getElementById('wf-pill');
+    if (!c) return null;
+    const r = c.getBoundingClientRect();
+    return { text: c.innerText.replace(/\n+/g, ' | ').slice(0, 300),
+      rect: [Math.floor(r.x) - 4, Math.floor(r.y) - 4, Math.ceil(r.right) + 4, Math.ceil(r.bottom) + 4] };
+  });
+  const cardText = card && card.text;
+  await page.screenshot({ path: path.join(OUT, `r7-${tag}.jpg`), type: 'jpeg', quality: 74 });
+  // the mask: the same camera with the walk off
+  await page.evaluate((ls) => { for (const l of ls) if (window.__map.getLayer(l)) window.__map.setLayoutProperty(l, 'visibility', 'none'); }, WALK_LAYERS);
+  await page.waitForTimeout(QUIET_GAP_MS);
+  const off = await grab(`${tag}-off`);
+  await page.evaluate((ls) => { for (const l of ls) if (window.__map.getLayer(l)) window.__map.setLayoutProperty(l, 'visibility', 'visible'); }, WALK_LAYERS);
+  await page.waitForTimeout(QUIET_GAP_MS);
+  const mask = await diff(q.still, off);
+  fs.unlinkSync(off);
+  console.log(`  ${tag}: ${answer.distM} m sets=${answer.sets} ways=${JSON.stringify(answer.ways)} ` +
+    `dirs=${JSON.stringify(answer.dirs)}`);
+  console.log(`     quiet after ${q.tries} try(s) (${q.n} px strict / ${q.n24} loose) | ` +
+    `camera z=${cam.z} c=${JSON.stringify(cam.c)}`);
+  console.log(`     walk mask ${mask.n} px strict (${mask.n24} loose) bbox ${JSON.stringify(mask.bbox)}`);
+  console.log(`     card: ${cardText}`);
+  return { tag, from, to, mult, answer, cam, cardText, cardRect: card && card.rect,
+    still: q.still, quietPx: q.n,
+    n: mask.n, n24: mask.n24, bbox: mask.bbox, bits: new Set(mask.bits) };
+}
+
+const A = await frame('A-CCJ-LTD-shipped', 'CCJ', 'LTD', null);
+const B = await frame('B-LTD-CCJ-round6', 'LTD', 'CCJ', 1);
+const C = await frame('C-LTD-CCJ-shipped', 'LTD', 'CCJ', null);
+
+// A vs B as WHOLE PICTURES: if round 6 drew the same ribbon both ways, these
+// two frames are the same photograph.
+const CARD = [A, B, C].reduce((r, f) => [Math.min(r[0], f.cardRect[0]), Math.min(r[1], f.cardRect[1]),
+  Math.max(r[2], f.cardRect[2]), Math.max(r[3], f.cardRect[3])], A.cardRect);
+console.log(`\n  card rect excluded from the whole-frame diffs: ${JSON.stringify(CARD)}`);
+const wholeAB = await diff(A.still, B.still, CARD);
+const wholeAC = await diff(A.still, C.still, CARD);
+const wholeBC = await diff(B.still, C.still, CARD);
+for (const f of [A, B, C]) fs.unlinkSync(f.still);
+
+const iou = (a, b) => { let i = 0; for (const p of a) if (b.has(p)) i++; return i / (a.size + b.size - i); };
+const iAB = iou(A.bits, B.bits), iAC = iou(A.bits, C.bits), iBC = iou(B.bits, C.bits);
+console.log(`\n  whole-frame diff  A~B ${wholeAB.n} px   A~C ${wholeAC.n} px   B~C ${wholeBC.n} px  (strict)`);
+console.log(`  walk-mask IoU     A~B ${iAB.toFixed(3)}   A~C ${iAC.toFixed(3)}   B~C ${iBC.toFixed(3)}`);
+
+const camSame = JSON.stringify(A.cam) === JSON.stringify(B.cam) && JSON.stringify(A.cam) === JSON.stringify(C.cam);
+const pass = [];
+pass.push(ok(camSame, 'ONE camera in all three frames', JSON.stringify(A.cam)));
+pass.push(ok(A.n > MIN_WALK_PX && B.n > MIN_WALK_PX && C.n > MIN_WALK_PX,
+  'the walk is on screen in every frame, proved by hiding it and diffing',
+  `${A.n} / ${B.n} / ${C.n} px strict`));
+pass.push(ok(wholeAB.n <= QUIET_PX,
+  'ROUND 6 DREW THE SAME PHOTOGRAPH BOTH WAYS — A and B differ by no more than the scene does standing still',
+  `${wholeAB.n} px vs a ${QUIET_PX} px floor`));
+pass.push(ok(iAB >= SAME_IOU, '...and their walk masks are the same ribbon', `IoU ${iAB.toFixed(3)}`));
+pass.push(ok(wholeAC.n > QUIET_PX && wholeBC.n > QUIET_PX && iAC < SAME_IOU && iBC < SAME_IOU,
+  'ROUND 7 DOES NOT — C is a different picture and a different ribbon',
+  `${wholeAC.n}/${wholeBC.n} px, IoU ${iAC.toFixed(3)}/${iBC.toFixed(3)}`));
+pass.push(ok(A.answer.ways.includes(WAY) && B.answer.ways.includes(WAY) && !C.answer.ways.includes(WAY),
+  `A and B walk way ${WAY}; C does not`,
+  `${JSON.stringify(A.answer.ways)} / ${JSON.stringify(B.answer.ways)} / ${JSON.stringify(C.answer.ways)}`));
+pass.push(ok(A.answer.dirs.includes('down') && B.answer.dirs.includes('up'),
+  'and the card called the direction correctly both times: A down, B up',
+  `${JSON.stringify(A.answer.dirs)} / ${JSON.stringify(B.answer.dirs)}`));
+pass.push(ok(A.answer.distM === B.answer.distM && C.answer.distM > A.answer.distM,
+  'the numbers agree with the pictures',
+  `A ${A.answer.distM} = B ${B.answer.distM} < C ${C.answer.distM} m`));
+
+fs.writeFileSync(path.join(OUT, 'frames7.json'), JSON.stringify({
+  frames: [A, B, C].map(f => ({ ...f, bits: undefined, still: undefined })),
+  wholeAB: wholeAB.n, wholeAC: wholeAC.n, wholeBC: wholeBC.n, iAB, iAC, iBC,
+  DIFF_STRICT, QUIET_PX, QUIET_GAP_MS,
+}, null, 1));
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+
+### `clampcost.mjs` — The clamp watched refusing, and the stopwatch with its control.
+
+```js
+/**
+ * clampcost.mjs — ROUND 7. The clamp, watched refusing; and what the pass costs.
+ *
+ * 1. THE CLAMP. `stairClimbMult()` never returns below 1, so no override can
+ *    make a staircase CHEAPER than round 6 priced it and no override can turn
+ *    the pass into one that pulls people ONTO stairs. Fed 0.2, 0.5, 0.99, NaN,
+ *    'banana' and -3, the router must come back byte-identical to mult=1.
+ *    And then the shipped setting, which must come back DIFFERENT — otherwise
+ *    "identical" above is an instrument that cannot tell two censuses apart
+ *    rather than a clamp that works.
+ *
+ * 2. THE COST. Interleaved reps, minimum of each, on a machine with sibling
+ *    lanes running (CLAUDE.md rule 10). The pass adds no computeRoute call at
+ *    all — it is three integer operations inside one Dijkstra relaxation — so
+ *    the expectation is that the clock cannot see it, and the control is the
+ *    point: a pair with NO tagged flight on it must move the same way the
+ *    subject pair does, or the reading is machine noise.
+ *
+ *   node clampcost.mjs [pairs] [reps]
+ */
+import { open, ok } from './_r7lib.mjs';
+
+const N = Number(process.argv[2] || 120);
+const REPS = Number(process.argv[3] || 9);
+const { browser, page } = await open();
+
+async function census(mult) {
+  return page.evaluate(async ([n, m]) => {
+    window.WAYFIND.stairClimbCostMult = m;
+    const g = await fetch('data/walk_graph.json').then(r => r.json());
+    const codes = Object.keys(g.code);
+    let seed = 12345;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const out = []; let tries = 0, pairs = 0;
+    while (pairs < n && tries < n * 6) {
+      tries++;
+      const a = codes[Math.floor(rnd() * codes.length)], b = codes[Math.floor(rnd() * codes.length)];
+      if (a === b) continue;
+      const f = await window.wayfindStairs(a, b, {});
+      if (!f || !f.ok) continue;
+      pairs++;
+      const r = await window.wayfindStairs(b, a, {});
+      for (const s of [f, r]) if (s && s.ok) out.push(`${s.from}>${s.to}|${s.distM.toFixed(3)}|${s.ways}`);
+    }
+    return out.join('\n');
+  }, [N, mult]);
+}
+
+const base = await census(1);
+console.log(`baseline (mult=1): ${base.split('\n').length} walks`);
+
+const pass = [];
+// `null` is NOT in this list: null is the documented "use stairUpMult" value.
+// NaN is printed as its own name because JSON.stringify(NaN) is the string
+// "null", which would read here as a claim about the wrong thing entirely.
+const RUBBISH = [[0.2, '0.2'], [0.5, '0.5'], [0.99, '0.99'], [-3, '-3'],
+  [NaN, 'NaN'], ['banana', '"banana"'], [0, '0'], [Infinity, 'Infinity']];
+for (const [bad, label] of RUBBISH) {
+  const c = await census(bad);
+  pass.push(ok(c === base, `an override of ${label} is clamped to 1, not obeyed`,
+    c === base ? 'identical' : 'DIFFERENT'));
+}
+const good = await census(null);
+pass.push(ok(good !== base,
+  '...and the instrument CAN tell two censuses apart — the shipped setting is not identical',
+  `${good.split('\n').filter((l, i) => l !== base.split('\n')[i]).length} walks differ`));
+
+// ── 2. the cost, interleaved, minimum of each ─────────────────────────────
+// THE SUBJECT MUST DO THE SAME WORK IN BOTH CONFIGURATIONS or the clock is
+// timing the answer, not the pass. The first cut used LTD>CCJ, whose whole
+// point is that the answer CHANGES: at mult=1 it has a staircase, so
+// wayfindStairs() runs a second avoid-stairs Dijkstra and a third to re-derive
+// the claim; shipped, it has none and runs one. It read 9.18 ms "off" against
+// 1.94 ms "on" — the pass making routing five times faster, which is not a
+// thing that happens. CCJ>LTD is the same flight in the DESCENDING direction:
+// its answer is byte-identical in both configurations, it traverses the tagged
+// way, so `isClimb()` is evaluated on those edges and nothing else moves.
+const SUBJECT = ['CCJ', 'LTD'];     // walks a tagged flight; answer unchanged
+const CONTROL = ['BUR', 'SZB'];     // no tagged flight anywhere on it
+const t = { subOn: [], subOff: [], conOn: [], conOff: [] };
+for (let i = 0; i < REPS; i++) {
+  for (const [key, pair, mult] of [
+    ['subOff', SUBJECT, 1], ['subOn', SUBJECT, null],
+    ['conOff', CONTROL, 1], ['conOn', CONTROL, null]]) {
+    const ms = await page.evaluate(async ([p, m]) => {
+      window.WAYFIND.stairClimbCostMult = m;
+      await window.wayfindStairs(p[0], p[1], {});           // warm
+      const t0 = performance.now();
+      for (let k = 0; k < 5; k++) await window.wayfindStairs(p[0], p[1], {});
+      return (performance.now() - t0) / 5;
+    }, [pair, mult]);
+    t[key].push(ms);
+  }
+}
+const mn = (a) => +Math.min(...a).toFixed(2);
+// and the control that the control needs: prove the two configurations really
+// did produce the same answer on both pairs, or the times are incomparable.
+const stable = await page.evaluate(async ([s, c]) => {
+  const one = async (p, m) => {
+    window.WAYFIND.stairClimbCostMult = m;
+    const r = await window.wayfindStairs(p[0], p[1], {});
+    return `${r.distM.toFixed(3)}|${r.ways}|${r.sets}|${r.stepFree ? 1 : 0}`;
+  };
+  return { sub: [await one(s, 1), await one(s, null)], con: [await one(c, 1), await one(c, null)] };
+}, [SUBJECT, CONTROL]);
+console.log(`\n  ${REPS} interleaved reps, 5 routes each, MINIMUM (sibling lanes were running):`);
+console.log(`    ${SUBJECT.join('>')}  (walks a tagged flight)  off ${mn(t.subOff)} ms   on ${mn(t.subOn)} ms`);
+console.log(`    ${CONTROL.join('>')}  (no tagged flight)       off ${mn(t.conOff)} ms   on ${mn(t.conOn)} ms`);
+console.log(`    subject answer identical both ways: ${stable.sub[0] === stable.sub[1]}  (${stable.sub[0]})`);
+console.log(`    control answer identical both ways: ${stable.con[0] === stable.con[1]}  (${stable.con[0]})`);
+pass.push(ok(stable.sub[0] === stable.sub[1] && stable.con[0] === stable.con[1],
+  'both timed pairs return the SAME answer in both configurations, so the clock is timing the pass',
+  `${stable.sub[0]} / ${stable.con[0]}`));
+console.log(`    subject drift ${(mn(t.subOn) - mn(t.subOff)).toFixed(2)} ms | ` +
+  `control drift ${(mn(t.conOn) - mn(t.conOff)).toFixed(2)} ms — the control is the machine`);
+
+await browser.close();
+process.exit(pass.every(Boolean) ? 0 : 1);
+```
+

@@ -172,6 +172,23 @@
     stairSpeed: 0.50,      // m/s along the plan length of a staircase
     stairFixedS: 4.0,      // per staircase, for finding it and turning
     stairUpMult: 1.35,     // going up costs more, where `incline` is known
+    // ROUND 7 (docs/walk-stairs.md §R41). What the ROUTER charges for a flight
+    // it KNOWS it is climbing, as a multiple of the same flight taken downhill
+    // or with no `incline` tag at all. `null` means "whatever the card already
+    // bills a climb at", i.e. `stairUpMult` — so the thing that CHOOSES the
+    // route and the thing that PRICES it can never disagree, which they did
+    // for six rounds. A number overrides it; **1 turns direction-aware routing
+    // off entirely** and restores exactly the round-6 router.
+    //
+    // §R45 has the ladder this was NOT read off: the curve does not plateau,
+    // it keeps buying climbs off the route all the way up, at a rising price
+    // in real metres. How hard a walking router should work to dodge a climb
+    // is a taste call, so it is one line here rather than a decision buried in
+    // a function (CLAUDE.md rules 9 and 11). To say "never climb if there is
+    // any way round", use a large FINITE number — 100000 saturates, measured.
+    // Anything unreadable (below 1, negative, NaN, Infinity, a string) fails
+    // SAFE to 1, i.e. to round 6, rather than to a guess: stairClimbMult().
+    stairClimbCostMult: null,
     signalWaitLowS: 0,     // a green light on arrival
     signalWaitHighS: 45,   // half a cycle on Guadalupe or MLK
     crossingPenaltyM: 8,   // a nudge so the router mildly prefers fewer roads
@@ -601,9 +618,59 @@
 
   const F_STEPS = 1, F_CROSS = 2, F_SIGNAL = 4, F_UP_AB = 8, F_OFFMAIN = 128;
 
+  // ROUND 7 — what a climb costs, resolved once per call and never below 1.
+  //
+  // The clamp is the whole safety argument of this pass, not decoration: at
+  // >= 1 no edge in this graph can ever get CHEAPER than it was in round 6, so
+  // the router can only ever move a route OFF a climb and can never put a
+  // staircase on a route that did not already have one. A bad override cannot
+  // turn that around; it can only turn the pass off.
+  function stairClimbMult() {
+    const v = WAYFIND.stairClimbCostMult;
+    const m = Number(v == null ? WAYFIND.stairUpMult : v);
+    return isFinite(m) && m > 1 ? m : 1;
+  }
+
+  // Is traversing edge `i` FROM node `from` a climb? `F_UP_AB` is the only
+  // thing the file asserts about direction and it means "the stored a->b order
+  // of this edge is uphill". Stored order is ascending node index (the bake
+  // sorts the key), so it says nothing on its own — it only becomes `up` or
+  // `down` once you know which end you are walking from, which is exactly what
+  // stairLegs() already does to print "up the steps".
+  //
+  // AN EDGE WITHOUT THE BIT IS UNTAGGED, NOT DOWNHILL. `scripts/bake_walk.py`
+  // CLEARS the bit for a reverse-stored edge instead of inverting it, and drops
+  // `incline=down` on the floor (docs/walk-stairs.md §5a), so 109 of 189 mapped
+  // flights arrive here with nothing said about them and 46 m more inside ways
+  // that ARE tagged. Those cost exactly what they cost in round 6. Guessing a
+  // direction for them would be inventing data.
+  //
+  // `ex.down` is the down list §5a proposes and the bake does not emit yet. It
+  // is read from the same place stairLegs() reads it, so the sentence on the
+  // card and the price in the router turn on together the day it lands.
+  //
+  // STEPS ONLY, on purpose. 17 edges in this graph carry the incline bit
+  // WITHOUT being steps — 16 of them `wheelchair=yes`, i.e. ramps, 120 m in
+  // total — and an uphill ramp is genuinely harder. But the flat-walk cost
+  // model has no gradient term at all, and inventing one for 6 ways out of
+  // 3,430 would be a constant with almost nothing under it (§R42). The guard
+  // is here rather than at the call site so a later caller cannot re-open it
+  // by accident.
+  function isClimb(g, i, from) {
+    if (from == null) return false;         // caller supplied no direction
+    if (!(g.F[i] & F_STEPS)) return false;
+    const ab = from === g.A[i];
+    if (g.F[i] & F_UP_AB) return ab;
+    const ex = stairExtras(g);
+    return ex.down.size ? (ex.down.has(i) ? !ab : false) : false;
+  }
+
   // Edge cost in "equivalent flat metres". Stairs cost what they cost because a
-  // staircase is slow, not because of any claim about a hill.
-  function edgeCost(g, i, avoidStairs) {
+  // staircase is slow, not because of any claim about a hill — except where OSM
+  // does say which way the hill goes, and then a climb costs more than the same
+  // flight downhill. `from` is the node the walk arrives from; without it the
+  // cost is the round-6 symmetric one.
+  function edgeCost(g, i, avoidStairs, from) {
     const m = g.W[i] / 100;
     if (g.F[i] & F_STEPS) {
       // 5b — `STAIRS.breakStepFree` makes this filter leaky ON PURPOSE, so the
@@ -611,7 +678,11 @@
       // false; a step-free route is step-free by construction, not by hope.
       if (avoidStairs && !STAIRS.breakStepFree) return Infinity;
       const n = g.swEdges.get(g.S[i]) || 1;
-      return m * (WAYFIND.speedLow / WAYFIND.stairSpeed) +
+      // Only the TRAVEL term is multiplied. `stairFixedS` is the cost of
+      // spotting the flight and turning onto it, and that is the same job
+      // whichever way you then go.
+      const climb = isClimb(g, i, from) ? stairClimbMult() : 1;
+      return m * (WAYFIND.speedLow / WAYFIND.stairSpeed) * climb +
         (WAYFIND.stairFixedS * WAYFIND.speedLow) / n;
     }
     let c = m;
@@ -690,7 +761,12 @@
       for (let k = g.off[u]; k < g.off[u + 1]; k++) {
         const e = g.eix[k];
         if (g.F[e] & F_OFFMAIN) continue;      // never route on a stranded island
-        const c = edgeCost(g, e, avoidStairs);
+        // ROUND 7 — `u` is the node the walk arrives from, so edgeCost() can
+        // tell a climb from a descent. Every seed here is a FROM door and every
+        // target a TO door (legBetween(), and both halves of the via route), so
+        // this search always runs in walking order. One argument; the rest of
+        // this function is acer/w-door's this round and is untouched.
+        const c = edgeCost(g, e, avoidStairs, u);
         if (!isFinite(c)) continue;
         const v = g.to[k];
         const nd = d + c;
