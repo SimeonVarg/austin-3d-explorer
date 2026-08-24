@@ -2259,3 +2259,83 @@ schedule change. If the feature ever promises "always up to date," a webcal
 subscription alone doesn't deliver that promise on its own schedule.
 
 Nothing in `js/wayfind.js` touched, `WAYFIND.on` untouched.
+
+## 2026-08-24 — critic verdict on the schedule-import "UI" piece, round 3: `acer/si-ui` does not exist, oursWins = false
+
+Assigned to drive `acer/si-ui` at phone size against a Google-Calendar-import
+and Apple-subscribe bar. It does not exist to drive. Checked four independent
+ways before concluding that: `git branch -a` and `git ls-remote --heads
+origin` locally, `gh api repos/SimeonVarg/austin-3d-explorer/branches`
+directly against GitHub, and `gh pr list --state all` — no branch, no open or
+merged PR, named `si-ui` or anything close to it, anywhere. The stray local
+branches `acer/si-parser`, `acer/si-gaps`, `acer/si-privacy` that do exist in
+this machine's `.git` were never pushed to GitHub either (confirmed via the
+same `ls-remote`), and `si-parser`'s own tip commit already records the
+identical finding for its piece: *"acer/si-parser does not exist anywhere,
+oursWins=false."* `js/wayfind.js` on all three of those stray branches is
+byte-identical to `main` (8,238 lines, no `.ics`/import code anywhere) — no
+lane has actually started building the import UI, parser, gaps handling, or
+privacy piece; only two docs-only recon writeups exist
+(`docs/import-bar-apple.md`, `docs/import-bar-ut.md`, both already on `main`
+per the entries above), and the Apple recon's own note says it never obtained
+a real bar screenshot either.
+
+Drove `main` itself instead, since that is what `acer/si-ui` would have been
+built on top of and it is the only honest stand-in for "what a user would
+meet." Served on port 8953 (`python scripts/serve.py 8953`, confirmed freed
+after), `npm install` run fresh in `scripts/verify` (its `node_modules` was
+absent, per this file's own recurring warning), real Chrome via
+`playwright-core`/`chrome.mjs`, 390×844, `?walk=1&drift=0`,
+`window.cancelGraphicsAutoDetect()` called, waited for the loading veil.
+`window.WAYFIND.on` is `false` and `?walk=1` correctly opens the panel
+(`#wf-root` present, `wf-sheet` painted, the whole existing "WALK TO CLASS"
+card visible in a real screenshot) — so the walking feature itself is intact
+and reachable, confirming no regression there. But a full inventory of every
+button in that DOM (`wf-button`, `wf-close`, `wf-x`, `wf-swap`, four `wf-eg`
+example chips, `wf-chev`, `wf-act-go` "Walk it", `wf-act-show` "Show route",
+`wf-act-clr`) and a case-insensitive scan of every element's id/class/
+aria-label/title and every leaf node's text for `import|schedule|calendar|
+\.ics|google cal|apple cal` returns **zero matches** and **zero
+`input[type=file]` elements**. There is no button, icon, modal, paste box, or
+upload control anywhere that would let a student get "MAI 220, TTh 2:00pm"
+into this app. Nothing to screenshot next to a bar because there is nothing
+on our side to photograph — `shots/import/bar-google/` and
+`shots/import/bar-apple/` (which already existed, holding only `NOTE.md`)
+were left as found; no blind comparison was possible or attempted, per house
+rule, rather than staged against a placeholder.
+
+**oursWins = false.** Not "loses on comparison" — there is no comparison to
+run. **The single biggest gap, concretely:** the schedule-import feature
+described in the brief (three intake paths — Google Calendar, Apple Calendar,
+UT registration export — feeding one `parseScheduleText(...)  →
+[{code, days, start, end}]` seam, per `docs/import-bar-apple.md`'s own
+recommendation) has zero lines of UI or parsing code anywhere in this
+repository, local or remote. Whoever picks this up next needs to actually
+build a first version — even the simplest version, a single "Import schedule"
+button opening a paste-box that runs an `.ics`/text parser against the
+existing `UT_ENTRANCES`/`UT_CELEBRATED` code table — before there is anything
+for a round-3 UI critic to judge. The two recon docs already on `main` (UT
+location-format confirmed as `{CODE} {ROOM}`, Apple's two paths both bottom
+out in plain ICS `VEVENT`/`LOCATION` text) are ready to build against; nobody
+has used them yet.
+
+Verified independently: the 11-unroutable-codes claim from the brief. Ten
+(BE1, BEG, EME, FS1, FSL, MER, PX3, ROC, SV1, TCB) are genuinely ~11 km north
+at Pickle Research Campus — already confirmed in the recon entry above against
+UT Direct's own PRC building index, re-spot-checked here by reading the same
+`UT_CELEBRATED` coordinates directly out of `js/wayfind.js` on `main`: all ten
+sit at latitude ~30.38-30.39 against main-campus ~30.28-30.29. SSW is not
+missing from UT's register — same conclusion as the recon entry, re-confirmed
+by finding `SSW` present in `js/wayfind.js`'s own `UT_CELEBRATED` table on
+`main` with coordinates (30.280477, -97.732959 / 30.280797, -97.732860)
+already there; its unroutability, if real, is this app's own routing-graph
+bug, not a missing building record — did not chase that bug down further,
+since it belongs to a different piece than "UI."
+
+Left `main` untouched except this entry (docs-only, per CLAUDE.md rule 4);
+no branch existed to leave as found. Server on 8953 killed and the port
+re-confirmed free (`Get-NetTCPConnection` empty). No scratch scripts left in
+`scripts/verify` — the one written to drive this check was deleted after use.
+One frame kept because this entry cites it:
+`shots/import/main-walk1-mobile.png` (the panel `main` actually renders,
+proving the "nothing to import with" finding rather than asserting it).
