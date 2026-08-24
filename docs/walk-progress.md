@@ -475,3 +475,62 @@ for headroom, not fit, with more slack than the worst disagreement between UT's
 own two fields, so the next data refresh cannot silently strand a building the
 way this one did. Jones Hall is back at 0 m. `WAYFIND.on` still false. Branch
 `acer/w-door`.
+
+## 2026-08-24 — critic pass, door round (post-round-7), oursWins=true
+
+Fresh critic, port 8851, no memory of rounds 1-7. Did not read the diff first;
+drove `?walk=1` cold, then checked the branch's own claims from scratch rather
+than accepting them.
+
+**Independently re-ran `walkmeter.mjs --baseline`** against a clean checkout of
+HEAD (`8d32030`) served on 8851: it reproduced the round's own numbers to the
+decimal against the "doors off" baseline (main, no correction) — route-length
+extra 795.3 m -> 78.5 m, signed total +209.5 m -> -404.6 m, door-offset extra
+1144.0 m -> 81.4 m, 8/38 -> 38/38 pair-ends within 15 m of UT's door, the
+independent pair-file oracle 1080.3 m -> 349.0 m and 7/30 -> 19/30, mean
+worst-case door error across all 55 UT-surveyed buildings 29.8 m -> 2.3 m,
+17/55 -> 56/56 inside 15 m, self-check drift 0.00 m, live UI gate PASS.
+
+**Independently queried UT's live `Celebrated_Entrances_view` layer myself**
+(not through the branch's tooling — a raw `curl` against
+`services9.arcgis.com/.../Celebrated_Entrances_view/FeatureServer/0/query`) for
+EER and MAI, the two buildings the round's coordinate-source fix hinges on.
+Both rows' `geometry.x/y` matched `js/wayfind.js`'s baked `UT_CELEBRATED` rows
+for those codes to the sixth decimal (EER 30.288310/-97.735657, MAI
+30.286023/-97.739757), confirming the branch is really reading the field
+ArcGIS renders position from and not misquoting its own source.
+
+**Drove the feature myself with a standalone Playwright script**, independent
+of `walkmeter.mjs`, calling `window.wayfindRoute('WCH','MAI',...)` directly and
+screenshotting the live 3D scene both times: unchecked gave `stairSets:1`,
+"2-4 min walk · 230 m · Stairs: 1 set", a visible ribbon descending the Tower's
+east side; checked gave `stairSets:0`, "3-5 min walk · 270 m · No stairs on
+this route," and the ribbon visibly moved to the other side of the Tower in
+the screenshot. The subject is on screen and the checkbox genuinely changes
+which door and which path it draws, not just the label.
+
+**oursWins = true.** All three things this piece is judged on beat doing
+nothing by a wide, independently-reproduced margin, and the avoid-stairs
+checkbox demonstrably avoids stairs on a real click through the real API.
+
+**The single biggest remaining gap:** the independent pair-file oracle —
+doors matched to UT's rows by hand, offline, so it can't be moved by rewriting
+a table — still lands on the wrong door for **11 of its 30 ends (37%)** even
+after this round's fix, and round 6's own diagnosis is almost certainly why:
+23 of 84 UT doors have their nearest walkable node on the *far side of a wall*
+from the door itself (`docs/walk-door.md` round 6 §6), so the router's last
+stretch snaps to a node that can't actually see the door. That defect was
+found in round 6, a concrete fix was designed (a per-door 24-bucket
+"clear-reach profile" baked in `scripts/bake_entrances.py`, gating
+`usableNodesNear()`), and it is still unbuilt three rounds later. Compounding
+it: round 7 moved 54 of 97 doors by up to 39 m switching coordinate fields,
+but the through-building residual on invented last-stretches (measured in
+round 6 at 76 of 619 legs, 12%, using the OLD coordinates) was never
+re-measured against the new ones — nobody knows today whether that number
+went up, down, or stayed put. Next round should build the clear-reach-profile
+fix (it is the highest-leverage undone item in the doc) and re-run the
+through-building intersection check against the current baked table before
+claiming that number still holds.
+
+Server on 8851 killed, port confirmed free. Touched only this file
+(`docs/walk-progress.md`) — no file `acer/w-door` owns.
