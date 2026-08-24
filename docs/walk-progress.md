@@ -2364,3 +2364,95 @@ sentence, and it would read better made once.
 Branch `acer/si-privacy`, not merged, no PR. Server on 8915 killed and the port
 re-confirmed free; one browser; scratch frames stayed in the scratchpad, and the
 six frames in `shots/si/privacy/` are all cited by the doc.
+
+## 2026-08-24 — critic round 4 on the privacy piece (`acer/si-privacy`), oursWins=true, one real hole found in the safety net itself
+
+Fresh context, port 8955, own scripts (not `docs/si-privacy.md`'s own
+`schedule-privacy.mjs`) — own canary strings, own route, own delete-then-reload
+check. `harness-drift.mjs` PASS first; `npm install` fresh (empty
+`node_modules`).
+
+**Round 3's finding is really fixed.** It flagged a citation to
+`docs/schedule-gaps.md`, a file that never existed, backing a claim that SSW was
+demolished. This round retracted the claim, added a gate (`§5.0`) that resolves
+every path the doc cites before anything else runs, and independently re-derived
+the correction: SSW's UT-surveyed door really is 0.4 m off a footprint this app
+draws and 37 m from the walk graph — a real main-campus building missing a row
+in our own register, not a demolition. Confirmed `docs/si-gaps.md` really exists
+on `origin/acer/si-gaps` (fetched it myself) and really does fix SSW the way
+this doc says it does.
+
+**THE BAR, both halves, re-driven for real and independently measured.**
+Imported a schedule carrying my own canary strings (a class title, an
+instructor, a room — none of them borrowed from the builder's fixtures), routed
+GDC→PAR to generate real traffic, and scanned all captured requests — page-level
+via `page.on('request')` and worker-level via an injected `self.fetch`/`XHR`
+recorder, because `scripts/verify/README.md` documents a page-scoped capture
+missing MapLibre's own worker fetches. Zero of 25 import-window requests (153
+total) carried any canary string. Proved the capture instrument itself isn't
+blind by disarming the guard, firing one real probe fetch with the canary, and
+confirming the capture DID catch it — then re-arming and confirming the guard
+refused it and nothing reached the wire. Delete: a real click on `#wf-priv-del`
+on a sheet the click reopened itself, then a hard reload to a fresh document —
+no `austin3d.schedule.*` key anywhere, `store.has()` false, no reserved
+IndexedDB database, panel back to "No schedule saved on this device yet."
+Screenshots looked at with the Read tool at every stage, not trusted from the
+exit code: the panel names no class, ever, only a count and a source
+(`shots/si/privacy/r4-critic-panel-saved.png`, `-panel-deleted.png`). With
+`?walk=1` absent, `window.fetch` and `XMLHttpRequest.prototype.open` are still
+the native functions and nothing of the panel exists — confirmed separately.
+Also reran `walkmeter.mjs --baseline` against this branch: self-check drift
+0.00 m on every pair, the live "Avoid stairs" UI gate still passes with a real
+click, 56/56 buildings step-free-reachable, stranded-before/after both none —
+this branch has not broken the door or stairs lanes' work.
+
+**The one real hole, found by going past the builder's own negative control
+rather than repeating it.** The guard's `bodyToText()` returns `undefined` for
+a `Blob` or `ReadableStream` request body — documented in the code as "fails
+open, counted, not blocked." Neither this round's negative control nor mine
+originally tested that path; both only fired string bodies. So I built a
+separate probe: `fetch(url, { body: new Blob([canary]) })` while the guard was
+installed and armed, aimed at a bare TCP listener on another port so nothing
+about HTTP semantics or CORS could hide the answer. The guard did not block it
+— `blocked` stayed 0, only `unreadableBodies` ticked up — and the raw bytes the
+listener received contained the canary string verbatim. This is a real,
+reproducible channel past the guard, not a hypothetical: any future code in
+this app (or a library it pulls in) that ever posts a `Blob`- or
+stream-bodied request while a schedule is stored gets through unblocked. It
+also means the audit's own capture has the identical blind spot as its subject:
+Playwright's `request.postData()` returns nothing for a Blob body either, so if
+this ever leaks for real, `docs/si-privacy.md`'s own script would report a
+clean "zero requests carried schedule content" while being wrong — the same
+shape of bug this whole round's citation gate exists to catch, just in the
+capture instrument instead of the doc. Nothing in this branch's OWN code
+constructs a Blob-bodied request, so nothing ships broken today — normal use of
+the feature, including everything the brief asks to be driven, is clean. But
+"the seatbelt is not the safety case" undersells it: the seatbelt has a
+buckle that doesn't close over one input shape, and the crash-test only ever
+used the other shape.
+
+**oursWins = true.** Both halves of THE BAR hold under a harder, independent
+test than the one the doc itself ran, the round-3 citation defect is genuinely
+fixed rather than hidden, and this branch does not regress the stairs or door
+lanes.
+
+**The single biggest remaining gap, concretely:** in `js/wayfind.js`'s egress
+guard (§12), make an **unreadable body fail CLOSED, not open, whenever
+`schedWatch.length` is non-zero** — a `Blob`/`ReadableStream` body on `fetch`,
+`XMLHttpRequest.send`, or `sendBeacon` while a schedule is stored should be
+refused the same way a string match is refused (nothing in this app has a
+legitimate reason to POST an opaque binary body while a schedule is on the
+device; the tile/basemap traffic the guard has to stay fast for is all GET).
+Separately, `docs/si-privacy.md`'s own capture needs a body-reading path that
+doesn't rely on Playwright's `postData()` — a `page.route()` interceptor that
+reads `request.postDataBuffer()` or the raw request body would actually see a
+Blob payload — or its "zero requests carried schedule content" claim is only
+proven for string-shaped leaks, which is exactly the gap this round's fix to
+the guard should also close.
+
+Server on 8955 killed by PID, port re-confirmed free by `netstat`. No file the
+builder owns (`js/wayfind.js`, `docs/si-privacy.md`, `index.html`) was edited —
+only `docs/walk-progress.md` and two cited frames in `shots/si/privacy/`
+(`r4-critic-panel-saved.png`, `r4-critic-panel-deleted.png`) were added. Four
+scratch scripts written into `scripts/verify` during this pass were deleted
+before finishing; nothing else was left in the repo.
