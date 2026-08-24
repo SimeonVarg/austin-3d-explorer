@@ -8199,6 +8199,1191 @@
     })();
   };
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 14. SCHEDULE IMPORT — three front ends, one shape, one seam
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // THE WHOLE JOB OF THIS SECTION is turning `"MAI 220, TTh 2:00pm"` into the
+  // string `MAI`, because `MAI` is already this app's native vocabulary: it is
+  // what `search()` matches on rung 1, what `UT_CELEBRATED` is keyed by, and
+  // what `wayfindRoute` takes. Everything else here is bookkeeping around that
+  // one conversion.
+  //
+  // THREE FRONT ENDS, ONE BACK END. Google Calendar, Apple Calendar and UT
+  // Registration Plus all terminate in the same place — a standard ICS payload
+  // of VEVENT blocks with SUMMARY / LOCATION / DTSTART / RRULE (docs/
+  // import-bar-apple.md, docs/import-bar-ut.md). They differ only in HOW the
+  // bytes arrive: an uploaded file, a webcal:// subscription, or a block of
+  // text pasted off UT's own course-schedule page. So there is one parser and
+  // three ways to feed it, and `wayfindScheduleFrom()` below is a FOURTH way in
+  // that takes already-structured rows — that is the seam an image-OCR source
+  // or a Registration-Plus API can be bolted onto later without touching a line
+  // of this code. Neither is built here, on purpose.
+  //
+  // PARTIAL FAILURE IS THE POINT, and the bar is Google Calendar's own import:
+  // it never lets one bad row kill the file. It imports what it can, tells you
+  // "N of M", and lists what it skipped and why. So every function below is
+  // written to keep going: a malformed date fails ONE event, a location it
+  // cannot resolve fails ONE event, and a file that is not a calendar at all
+  // fails with a sentence a student can act on rather than a stack trace.
+  //
+  // WHAT IT REFUSES TO DO. `search()` above documents the one rule this file
+  // does not break: NEVER fuzzy-match a building code, because the 1-edit
+  // neighbourhood of `WEL` contains `WCP`, `WMB` and `MEL`, and confidently
+  // routing a student to a building one letter away from the one on their
+  // schedule is the exact failure this feature is not allowed to have. So a
+  // near miss is SUGGESTED in the error text and never applied. The student
+  // picks.
+  //
+  // THE ELEVEN GAPS, RE-MEASURED 2026-08-24 (docs/si-parser.md has the run).
+  // The brief this lane was given listed eleven codes that cannot be routed to
+  // and both of its explanations were partly wrong, so the answers are worth
+  // stating where the code that uses them lives:
+  //   - Ten of them (BE1 BEG EME FS1 FSL MER PX3 ROC SV1 TCB) are 10.8-11.8 km
+  //     from MAI's door, measured off UT_CELEBRATED above. Pickle Research
+  //     Campus, genuinely off this map. `offmap` says so by name.
+  //   - SSW is NOT off-map and NOT unregistered: it is 0.88 km from MAI with
+  //     two surveyed doors in UT_CELEBRATED right here in this file. What it is
+  //     missing from is data/ut_buildings.json, this app's own 198-code
+  //     register, so `search()` returns nothing for it. Different status,
+  //     different sentence: `unmapped`.
+  //   - HLB is a TWELFTH code the brief's list missed, and it fails in the
+  //     opposite direction: `wayfindSearch('HLB')[0].routable` is FALSE and
+  //     `wayfindRoute('PCL','HLB')` nevertheless succeeds at 1339 m, because
+  //     computeRoute() invents a virtual door off the UT survey. So this file
+  //     NEVER reports routability from `entry.routable`. The only honest test
+  //     is trying the route, which is what wayfindScheduleCheck() does.
+
+  const SCHEDULE = {
+    // ── the shape ─────────────────────────────────────────────────────────
+    // Bump `shapeVersion` if a consumer could be broken by a change. A future
+    // OCR or Registration-Plus source stamps the same two fields.
+    shape: 'ut-walk-schedule',
+    shapeVersion: 1,
+    tz: 'America/Chicago',            // UT is one campus in one zone
+
+    // ── limits, so a pasted 40 MB file cannot wedge the tab ────────────────
+    maxBytes: 4194304,
+    maxEvents: 500,
+
+    // ── resolution ────────────────────────────────────────────────────────
+    codeMinLen: 2,                    // shortest UT building code (none are 1)
+    codeMaxLen: 4,                    // longest, e.g. `UA9`, `PX3`, `FS1`
+    suggestMax: 3,                    // did-you-mean candidates offered, never applied
+    // Farther than this from `campusCentre` and the building is not on this
+    // map at all. Pickle Research Campus is 10.8-11.8 km out; the farthest
+    // main-campus door in UT_CELEBRATED is under 1.5 km. 3 km is the gap.
+    offMapM: 3000,
+    campusCentre: [-97.739719, 30.286186],   // MAI's celebrated door
+
+    // ── manual / pasted entry ─────────────────────────────────────────────
+    // A bare hour below this reads as afternoon: "TTh 2:00" is 14:00, because
+    // no UT class meets at 02:00. Raise it if that ever stops being true.
+    pmCutoffHour: 8,
+    dayWords: [
+      // LONGEST FIRST — `TTH` must win over `T`. Uppercased before matching.
+      ['MTWTHF', ['MO', 'TU', 'WE', 'TH', 'FR']],
+      ['MTWTH', ['MO', 'TU', 'WE', 'TH']],
+      ['MTWRF', ['MO', 'TU', 'WE', 'TH', 'FR']],
+      ['TWTH', ['TU', 'WE', 'TH']],
+      ['MWF', ['MO', 'WE', 'FR']],
+      ['TTH', ['TU', 'TH']],
+      ['MW', ['MO', 'WE']],
+      ['MF', ['MO', 'FR']],
+      ['TW', ['TU', 'WE']],
+      ['WF', ['WE', 'FR']],
+      ['TH', ['TH']],
+      ['SU', ['SU']],
+      ['M', ['MO']], ['T', ['TU']], ['W', ['WE']], ['F', ['FR']], ['S', ['SA']],
+    ],
+
+    // ── network ───────────────────────────────────────────────────────────
+    fetchTimeoutMs: 12000,
+    // `webcal://` is not a wire protocol — it is an OS handoff that means
+    // "subscribe to the feed at this host and path". The feed itself is served
+    // over HTTPS, which is what the scheme is swapped for. Set to 'http' only
+    // if you are testing against a plain-HTTP server.
+    webcalScheme: 'https',
+
+    // ── the sentences ─────────────────────────────────────────────────────
+    // Every string a student can read is here, so the interface lane can
+    // reword any of them without going near the parsing (CLAUDE.md rule 11).
+    // `{n}` is the 1-based row, `{title}` the class, `{loc}` what they wrote.
+    say: {
+      summaryAllOk: 'Imported all {ok} classes.',
+      summaryPartial: 'Imported {ok} of {total} classes. {failed} could not be used.',
+      summaryNone: 'None of the {total} entries in that file could be used.',
+      fileNotCalendar: 'That is not a calendar file — it has no BEGIN:VCALENDAR line. If you saved it from a page that asked you to sign in, you probably saved the sign-in page instead of the .ics.',
+      fileEmpty: 'That calendar has no events in it.',
+      fileTooBig: 'That file is {mb} MB. The importer stops at {maxmb} MB.',
+      fileTruncated: 'The file stops in the middle of an event, so the last entry was skipped. Re-export it and try again.',
+      fileTooMany: 'That calendar has more than {max} events, so only the first {max} were read.',
+      locationMissing: 'Row {n} ({title}) has no location, so there is nowhere to walk to. Add the building and room to that event, or type it in below.',
+      buildingUnknown: 'Row {n} ({title}): "{loc}" is not a UT building code.',
+      buildingSuggest: ' Did you mean {suggest}?',
+      buildingAddress: 'Row {n} ({title}): "{loc}" looks like a street address, not a UT building code. Class locations read like "WEL 2.224".',
+      buildingOffMap: 'Row {n} ({title}): {code} is at the Pickle Research Campus, about {km} km north of here. This map only covers the main campus.',
+      buildingUnmapped: 'Row {n} ({title}): {code} is a real UT building, but this build has no walkable doors for it yet.',
+      dateMalformed: 'Row {n} ({title}) has an unreadable {field} ("{raw}"), so we do not know when it meets.',
+      timeMissing: 'Row {n} ({title}) has no start time.',
+      eventTruncated: 'Row {n} ({title}) is cut off at the end of the file and was skipped.',
+      guessedByName: 'Row {n} ({title}) says "{loc}" — matched to {code} ({name}) by name rather than by building code. Worth a look.',
+      noRoute: '{fromCode} to {toCode}: no walking route found between those two buildings.',
+      rowNoLocation: 'Line {n} ("{line}") names a course but no building.',
+      rowUnreadable: 'Line {n} ("{line}") could not be read as a class.',
+    },
+  };
+  WAYFIND.schedule = SCHEDULE;
+
+  const SCHED_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  // A date, or a date-time, with an optional trailing Z for UTC. Deliberately
+  // strict: `2026O826T140000` (letter O for zero) must FAIL rather than be
+  // silently coerced, because a wrong class time is worse than a missing one.
+  const SCHED_DT_RE = /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/;
+  // UT's own format, from registrar.utexas.edu/schedules/269/using: a code,
+  // one space, a floor.room. The room may be `220`, `2.224`, `A121A`, `1.606D`.
+  //
+  // THE CODE HALF IS DELIBERATELY WIDER THAN A VALID CODE — up to six
+  // characters, not three — AND THAT IS THE WHOLE POINT. "Does this string
+  // CLAIM a building code" is a question about shape; "is that code real" is a
+  // question about vocabulary, and running them together is what broke the
+  // first cut of this parser. `MAII 220` (a real typo for `MAI 220`) did not
+  // fit a 2-3 character code, so it fell past this test to the free-text name
+  // ladder — and `search()`, which is a forgiving type-ahead, fuzzed `maii`
+  // onto `mail` and resolved a Government lecture to the **Comal Mail Service
+  // Building**. That is precisely the wrong-building-with-confidence failure
+  // the note above `search()` exists to prevent, arriving through the back
+  // door. A wide claim plus a strict vocabulary check gives the student
+  // "MAII is not a UT building code. Did you mean MAI?" instead.
+  const SCHED_CODE_ROOM_RE = /^([A-Z][A-Z0-9]{1,5})\s+([0-9A-Z][0-9A-Z.\-]*)$/;
+  // A ROOM CONTAINS A DIGIT, always — `220`, `2.224`, `A121A`, `1.606D`. Without
+  // that, `Welch Hall` parses as building `WELCH` room `HALL` and a perfectly
+  // good name match is turned into an error.
+  const SCHED_ROOM_DIGIT_RE = /[0-9]/;
+  const SCHED_PARENS_RE = /\(\s*([A-Z]{2,3}[0-9]?)\s*\)/;
+  // Anything that opens with a street number, or carries a US ZIP, is an
+  // ADDRESS and must never be handed to the name ladder — `search()` is a
+  // forgiving type-ahead and will happily fuzzy a street name onto a building.
+  const SCHED_ADDRESS_RE = /(^\s*\d{2,6}\s+\S)|(\b\d{5}(-\d{4})?\b)/;
+  // A time, only where a colon or an am/pm marker proves it is one. Without
+  // that guard `MWF 10` parses as building `MWF` room `10`.
+  const SCHED_TIME_RE = /\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?\b|\b(\d{1,2}):(\d{2})\b/gi;
+  const SCHED_COURSE_RE = /\b([A-Z]{1,3}(?:\s+[A-Z])?\s+\d{3}[A-Z]?)\b/;
+
+  /** Fill `{k}` placeholders in one of SCHEDULE.say's strings. */
+  function schedSay(key, vars) {
+    let s = String((SCHEDULE.say && SCHEDULE.say[key]) || key);
+    if (vars) for (const k in vars) s = s.split('{' + k + '}').join(String(vars[k]));
+    return s;
+  }
+
+  function schedProblem(level, code, text, at, hint) {
+    return { level: level, code: code, text: text, at: at || null, hint: hint || '' };
+  }
+
+  // ── ICS lexing ────────────────────────────────────────────────────────────
+
+  /**
+   * RFC 5545 §3.1 line unfolding, and it has to happen before anything else.
+   *
+   * Google and Apple both fold at 75 octets: the value continues on the next
+   * physical line, marked by a leading space or tab. A LOCATION carrying a
+   * street address is routinely split across three lines that way — which is
+   * exactly the "multi-line address" case this lane is judged on. A parser
+   * that reads physical lines sees `LOCATION:2617 Wichita Street\, Building`
+   * and a mystery line starting with a space.
+   *
+   * The source line number of the FIRST physical line is kept, so an error can
+   * say where in the file to look.
+   */
+  function schedUnfold(text) {
+    let s = String(text == null ? '' : text);
+    if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);       // BOM
+    const raw = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    const out = [];
+    for (let i = 0; i < raw.length; i++) {
+      const l = raw[i];
+      const c = l.charCodeAt(0);
+      if (out.length && (c === 32 || c === 9)) out[out.length - 1].text += l.slice(1);
+      else out.push({ text: l, line: i + 1 });
+    }
+    return out;
+  }
+
+  /** RFC 5545 §3.3.11 TEXT unescaping. `\n` and `\N` are both a newline. */
+  function schedUnescape(v) {
+    return String(v == null ? '' : v).replace(/\\([\\;,nN])/g,
+      (m, c) => (c === 'n' || c === 'N') ? '\n' : c);
+  }
+
+  /**
+   * One content line -> { name, params, value }.
+   *
+   * Scanned, not `split(':')`, because a quoted parameter value may contain a
+   * colon and every Apple export has one: `X-APPLE-STRUCTURED-LOCATION;
+   * X-ADDRESS="...":geo:30.28,-97.73` breaks a naive split three ways.
+   */
+  function schedLine(text) {
+    let i = 0, q = false;
+    const n = text.length;
+    for (; i < n; i++) {
+      const c = text[i];
+      if (c === '"') { q = !q; continue; }
+      if (c === ':' && !q) break;
+    }
+    if (i >= n) return null;                       // no colon: not a content line
+    const head = text.slice(0, i), value = text.slice(i + 1);
+    const parts = [];
+    let cur = '', inq = false;
+    for (let k = 0; k < head.length; k++) {
+      const c = head[k];
+      if (c === '"') { inq = !inq; continue; }
+      if (c === ';' && !inq) { parts.push(cur); cur = ''; continue; }
+      cur += c;
+    }
+    parts.push(cur);
+    const params = {};
+    for (let k = 1; k < parts.length; k++) {
+      const eq = parts[k].indexOf('=');
+      if (eq < 0) params[parts[k].toUpperCase().trim()] = '';
+      else params[parts[k].slice(0, eq).toUpperCase().trim()] = parts[k].slice(eq + 1);
+    }
+    return { name: parts[0].toUpperCase().trim(), params: params, value: value };
+  }
+
+  /**
+   * A UTC instant -> wall-clock date and minute in `tz`, via the platform's own
+   * zone database. No offset table in this file, so DST is never wrong.
+   *
+   * It matters more than it looks: every real export ends its RRULE with
+   * `UNTIL=20261208T055959Z`, which is 23:59:59 on 7 December in Chicago. Read
+   * as a UTC date the semester appears to run a day longer than it does.
+   */
+  function schedZoned(ms, tz) {
+    try {
+      const f = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hour12: false, year: 'numeric', month: '2-digit',
+        day: '2-digit', hour: '2-digit', minute: '2-digit',
+      });
+      const p = {};
+      for (const x of f.formatToParts(new Date(ms))) p[x.type] = x.value;
+      let h = +p.hour; if (h === 24) h = 0;
+      return { date: p.year + '-' + p.month + '-' + p.day, min: h * 60 + (+p.minute) };
+    } catch (e) {
+      const d = new Date(ms);
+      const p2 = (x) => (x < 10 ? '0' : '') + x;
+      return {
+        date: d.getUTCFullYear() + '-' + p2(d.getUTCMonth() + 1) + '-' + p2(d.getUTCDate()),
+        min: d.getUTCHours() * 60 + d.getUTCMinutes(),
+      };
+    }
+  }
+
+  /**
+   * A DTSTART/DTEND/UNTIL value -> { ok, date, min, kind }.
+   *
+   * `min` is minutes past LOCAL midnight and nothing here ever builds a Date
+   * from a floating or TZID value, because the browser's own zone would leak
+   * into a class time that is defined in Austin's.
+   */
+  function schedDT(value, params) {
+    const v = String(value == null ? '' : value).trim();
+    const m = SCHED_DT_RE.exec(v);
+    if (!m) return { ok: false, why: 'malformed', raw: v };
+    const y = +m[1], mo = +m[2], d = +m[3];
+    const probe = new Date(Date.UTC(y, mo - 1, d));
+    if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== mo - 1 || probe.getUTCDate() !== d) {
+      return { ok: false, why: 'range', raw: v };
+    }
+    const dateStr = m[1] + '-' + m[2] + '-' + m[3];
+    if (!m[4]) return { ok: true, kind: 'date', date: dateStr, min: null, raw: v };
+    const hh = +m[4], mi = +m[5], ss = +m[6];
+    if (hh > 23 || mi > 59 || ss > 60) return { ok: false, why: 'range', raw: v };
+    if (m[7]) {
+      const z = schedZoned(Date.UTC(y, mo - 1, d, hh, mi, ss),
+        (params && params.TZID) || SCHEDULE.tz);
+      return { ok: true, kind: 'utc', date: z.date, min: z.min, raw: v };
+    }
+    return {
+      ok: true, kind: (params && params.TZID) ? 'zoned' : 'floating',
+      date: dateStr, min: hh * 60 + mi, raw: v,
+    };
+  }
+
+  /** `YYYY-MM-DD` -> `MO` / `TU` / ... */
+  function schedDow(dateStr) {
+    const p = String(dateStr || '').split('-');
+    if (p.length !== 3) return '';
+    return SCHED_DAYS[new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay()] || '';
+  }
+
+  /** RRULE -> the only three fields a class schedule needs from it. */
+  function schedRRule(v) {
+    const out = { freq: '', interval: 1, byday: [], until: null, count: null, raw: String(v || '') };
+    for (const part of out.raw.split(';')) {
+      const eq = part.indexOf('=');
+      if (eq < 0) continue;
+      const k = part.slice(0, eq).toUpperCase(), val = part.slice(eq + 1);
+      if (k === 'FREQ') out.freq = val.toUpperCase();
+      else if (k === 'INTERVAL') out.interval = Math.max(1, parseInt(val, 10) || 1);
+      else if (k === 'COUNT') out.count = parseInt(val, 10) || null;
+      else if (k === 'UNTIL') { const d = schedDT(val, {}); out.until = d.ok ? d.date : null; }
+      else if (k === 'BYDAY') {
+        out.byday = val.toUpperCase().split(',')
+          // `2SU` (second Sunday) is an ordinal form VTIMEZONE uses; the
+          // ordinal is dropped, the weekday kept.
+          .map(s => s.replace(/^[-+]?\d+/, '').trim())
+          .filter(s => SCHED_DAYS.indexOf(s) >= 0);
+      }
+    }
+    return out;
+  }
+
+  // ── location -> building code ─────────────────────────────────────────────
+
+  let schedCodeCache = null;
+  /**
+   * Every building code this app has any knowledge of, and where from.
+   *
+   * Three sources, and they genuinely disagree — that disagreement is what
+   * lets an error say WHICH kind of gap a code fell into:
+   *   graph     walk_graph.json, has doors, routes today
+   *   register  data/ut_buildings.json, findable, may or may not route
+   *   ut        UT_CELEBRATED only — not findable by `search()` at all (SSW)
+   */
+  function schedCodes() {
+    if (schedCodeCache && schedCodeCache.g === G) return schedCodeCache.map;
+    const map = new Map();
+    if (G && G.byCode) {
+      for (const [c, e] of G.byCode) {
+        if (!c || !/^[A-Z0-9]{2,4}$/.test(c)) continue;
+        map.set(c, { name: (e && e.display) || c, where: (e && e.routable) ? 'graph' : 'register' });
+      }
+    }
+    for (const c of utIndex().keys()) if (!map.has(c)) map.set(c, { name: c, where: 'ut' });
+    schedCodeCache = { g: G, map: map };
+    return map;
+  }
+
+  /** Metres from `campusCentre` to a UT_CELEBRATED row. */
+  function schedMetresOut(rec) {
+    const dx = (rec.lon - SCHEDULE.campusCentre[0]) * MPD_LON;
+    const dy = (rec.lat - SCHEDULE.campusCentre[1]) * MPD_LAT;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /**
+   * Codes one edit away from `up`, for the error text ONLY.
+   *
+   * `search()` refuses to fuzzy-match codes and it is right to: `WEL`'s 1-edit
+   * neighbourhood holds `WCP`, `WMB` and `MEL`. So this never resolves
+   * anything — it hands the student a name and lets them decide.
+   */
+  function schedSuggest(up) {
+    const out = [];
+    for (const [c, rec] of schedCodes()) {
+      if (c !== up && withinOne(up, c)) out.push({ code: c, name: rec.name });
+    }
+    out.sort((a, b) => a.code.localeCompare(b.code));
+    return out.slice(0, SCHEDULE.suggestMax);
+  }
+
+  /**
+   * A LOCATION string -> { code, room, text, lines } with nothing resolved yet.
+   *
+   * The order is the evidence ladder, strongest first:
+   *   1. a code in parentheses anywhere — Apple writes `Welch Hall (WEL), ...`
+   *   2. UT's own `CODE ROOM` on the first line — the format registrar.utexas.
+   *      edu documents and the one UT Registration Plus emits
+   *   3. the first line IS a bare code
+   *   4. nothing structural; the text is handed on for a name match, unless it
+   *      is an address (see SCHED_ADDRESS_RE)
+   */
+  function schedLocation(value) {
+    const whole = schedUnescape(value);
+    const lines = whole.split('\n').map(s => s.trim()).filter(Boolean);
+    if (!lines.length) return { empty: true, text: '', lines: [], raw: whole };
+    const head = lines[0];
+    const out = { empty: false, code: null, room: '', text: head, lines: lines, raw: whole };
+
+    const par = SCHED_PARENS_RE.exec(whole);
+    if (par) {
+      out.code = par[1].toUpperCase();
+      const rest = head.replace(SCHED_PARENS_RE, ' ').replace(/[,;]/g, ' ').trim();
+      const cr = SCHED_CODE_ROOM_RE.exec(rest.toUpperCase());
+      if (cr && cr[1] === out.code && SCHED_ROOM_DIGIT_RE.test(cr[2])) out.room = cr[2];
+      return out;
+    }
+    // A trailing `, Austin, TX 78712` is decoration on an otherwise fine
+    // `WEL 2.224` — drop it before testing the shape, but only the tail.
+    const trimmed = head.replace(/\s*,\s*Austin\b.*$/i, '').trim();
+    const cr = SCHED_CODE_ROOM_RE.exec(trimmed.toUpperCase());
+    if (cr && SCHED_ROOM_DIGIT_RE.test(cr[2])) { out.code = cr[1]; out.room = cr[2]; return out; }
+    const bare = trimmed.toUpperCase();
+    if (/^[A-Z]{2,4}[0-9]?$/.test(bare)) { out.code = bare; return out; }
+    out.address = SCHED_ADDRESS_RE.test(whole);
+    return out;
+  }
+
+  /**
+   * A free-text location -> a building, but only on REAL evidence.
+   *
+   * `search()` is the type-ahead ladder and it is forgiving on purpose: a
+   * student watching a list of suggestions can see it guessed wrong. An
+   * importer has no such feedback loop — it takes the top hit and routes. So
+   * the top hit is only accepted here when a whole alphabetic word of four
+   * characters or more from the location is a genuine PREFIX of one of the
+   * building's own words. A one-edit fuzz is not evidence; `maii` is not
+   * allowed to become `mail`.
+   */
+  function schedByName(text) {
+    const t = String(text || '');
+    if (!t.trim() || SCHED_ADDRESS_RE.test(t)) return null;
+    let hits = [];
+    try { hits = (G ? search(t) : []) || []; } catch (e) { return null; }
+    const top = hits[0];
+    if (!top || !top.code) return null;
+    const words = norm(t).split(' ').filter(w => w.length >= 4 && /^[a-z]+$/.test(w));
+    if (!words.length) return null;
+    const own = (top.tokens || []).concat(norm(top.display || '').split(' ')).filter(Boolean);
+    if (!words.some(w => own.some(o => o.startsWith(w)))) return null;
+    return {
+      status: 'byName', code: top.code, room: '',
+      name: top.display || top.code, routable: null,
+    };
+  }
+
+  /**
+   * A parsed location -> what this app can actually say about it.
+   *
+   * status is one of:
+   *   ok        a code `search()` finds. It may still not route — see the HLB
+   *             note at the top of this section — so `routable` stays null
+   *             until wayfindScheduleCheck() has actually tried.
+   *   byName    no code, but the free text matched a building name. A WARNING,
+   *             never silent: the student is told what we guessed.
+   *   offmap    a real UT code more than `offMapM` from campus (Pickle)
+   *   unmapped  a real UT code on campus that this build cannot find (SSW)
+   *   unknown   not a UT building code at all
+   *   missing   no location on the event
+   */
+  function schedResolve(loc) {
+    if (!loc || loc.empty) return { status: 'missing', code: null, room: '' };
+    if (loc.code) {
+      const up = loc.code.toUpperCase();
+      const hit = (G && G.byCode) ? G.byCode.get(up) : null;
+      if (hit) {
+        return {
+          status: 'ok', code: up, room: loc.room, name: hit.display || up,
+          indexed: true, routable: null,
+        };
+      }
+      const ut = utIndex().get(up);
+      if (ut && ut.length) {
+        const m = schedMetresOut(ut[0]);
+        return {
+          status: m > SCHEDULE.offMapM ? 'offmap' : 'unmapped',
+          code: up, room: loc.room, name: up, routable: false,
+          km: Math.round(m / 100) / 10,
+        };
+      }
+      // A code-shaped token this app has never heard of. Before failing it,
+      // ask whether the WHOLE string is a building name we do know — that is
+      // how `Jester Center` survives being read as a code-shaped `JESTER`.
+      const named = schedByName(loc.text);
+      if (named) return named;
+      return { status: 'unknown', code: up, room: loc.room, routable: false, suggest: schedSuggest(up) };
+    }
+    // No code. An address never goes to the name ladder — `search()` is a
+    // forgiving type-ahead and would fuzz a street name onto a building.
+    if (loc.address) {
+      return { status: 'unknown', code: null, room: '', address: true, routable: false, suggest: [] };
+    }
+    const named = schedByName(loc.text);
+    if (named) return named;
+    return { status: 'unknown', code: null, room: '', routable: false, suggest: [] };
+  }
+
+  /** Turn one resolution into the problem, if any, a student should read. */
+  function schedLocProblem(res, ev, at) {
+    const n = ev.index, title = ev.title || ev.course || 'untitled';
+    if (res.status === 'ok') return null;
+    if (res.status === 'missing') {
+      return schedProblem('error', 'LOCATION_MISSING',
+        schedSay('locationMissing', { n: n, title: title }), at,
+        'Every class needs a building before it can be walked to.');
+    }
+    if (res.status === 'byName') {
+      return schedProblem('warning', 'BUILDING_BY_NAME',
+        schedSay('guessedByName', { n: n, title: title, loc: ev.locationText, code: res.code, name: res.name }),
+        at, 'Building codes are exact; names are matched loosely.');
+    }
+    if (res.status === 'offmap') {
+      return schedProblem('error', 'BUILDING_OFF_MAP',
+        schedSay('buildingOffMap', { n: n, title: title, code: res.code, km: res.km }), at,
+        'Nothing at the Pickle Research Campus can be routed on this map.');
+    }
+    if (res.status === 'unmapped') {
+      return schedProblem('error', 'BUILDING_NOT_WALKABLE',
+        schedSay('buildingUnmapped', { n: n, title: title, code: res.code }), at,
+        'The building is real; this build is missing its doors.');
+    }
+    if (res.address) {
+      return schedProblem('error', 'BUILDING_IS_ADDRESS',
+        schedSay('buildingAddress', { n: n, title: title, loc: ev.locationText }), at,
+        'Replace the address with the building code and room.');
+    }
+    let text = schedSay('buildingUnknown', { n: n, title: title, loc: ev.locationText || res.code || '' });
+    if (res.suggest && res.suggest.length) {
+      text += schedSay('buildingSuggest', {
+        suggest: res.suggest.map(s => s.code + (s.name && s.name !== s.code ? ' (' + s.name + ')' : '')).join(' or '),
+      });
+    }
+    return schedProblem('error', 'BUILDING_UNKNOWN', text, at,
+      'We will not guess between codes one letter apart — pick one.');
+  }
+
+  // ── ICS -> raw events ─────────────────────────────────────────────────────
+
+  /**
+   * Walk the file once, tracking component nesting.
+   *
+   * NESTING IS NOT OPTIONAL AND THIS IS THE TRAP. Every Google and Apple export
+   * carries a VTIMEZONE whose BEGIN:STANDARD and BEGIN:DAYLIGHT blocks each
+   * hold their own `DTSTART:19701101T020000`. A parser that collects properties
+   * without knowing which component it is inside reads 2 a.m. on 1 November
+   * 1970 as a class time. Only properties whose immediately enclosing
+   * component is VEVENT are kept — which also drops VALARM's DESCRIPTION and
+   * TRIGGER for free.
+   */
+  function schedScanICS(text) {
+    const lines = schedUnfold(text);
+    const stack = [];
+    const events = [];
+    const cal = { name: '', prodId: '', tz: '', sawCalendar: false, truncated: false };
+    let cur = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const L = lines[i];
+      if (!L.text || !L.text.trim()) continue;
+      const p = schedLine(L.text);
+      if (!p) continue;
+      if (p.name === 'BEGIN') {
+        const comp = p.value.toUpperCase().trim();
+        stack.push(comp);
+        if (comp === 'VCALENDAR') cal.sawCalendar = true;
+        if (comp === 'VEVENT' && !cur) cur = { line: L.line, props: [], truncated: false };
+        continue;
+      }
+      if (p.name === 'END') {
+        const comp = p.value.toUpperCase().trim();
+        if (comp === 'VEVENT' && cur) { events.push(cur); cur = null; }
+        const at = stack.lastIndexOf(comp);
+        if (at >= 0) stack.length = at; else stack.pop();
+        continue;
+      }
+      if (stack.length === 1 && stack[0] === 'VCALENDAR') {
+        if (p.name === 'X-WR-CALNAME') cal.name = schedUnescape(p.value).trim();
+        else if (p.name === 'PRODID') cal.prodId = schedUnescape(p.value).trim();
+        else if (p.name === 'X-WR-TIMEZONE') cal.tz = p.value.trim();
+        continue;
+      }
+      if (cur && stack[stack.length - 1] === 'VEVENT') cur.props.push({ p: p, line: L.line });
+    }
+    if (cur) { cur.truncated = true; cal.truncated = true; events.push(cur); }
+    return { cal: cal, events: events };
+  }
+
+  /** One raw VEVENT -> one event in the shape, with its own problems attached. */
+  function schedEventFromICS(raw, idx, defTz) {
+    const first = (name) => {
+      for (const q of raw.props) if (q.p.name === name) return q;
+      return null;
+    };
+    const ev = {
+      index: idx, id: '', title: '', course: '', locationText: '',
+      code: null, room: '', days: [], startMin: null, endMin: null,
+      firstDate: null, lastDate: null, exDates: [], tz: defTz || SCHEDULE.tz,
+      status: 'ok', problems: [], resolved: null,
+      raw: { line: raw.line, uid: '', summary: '', location: '', rrule: '' },
+    };
+    const at = (field, line) => ({ event: idx, line: line || raw.line, field: field || '' });
+
+    const uid = first('UID');
+    ev.id = uid ? schedUnescape(uid.p.value).trim() : ('row-' + idx);
+    ev.raw.uid = ev.id;
+
+    const sum = first('SUMMARY');
+    ev.title = sum ? schedUnescape(sum.p.value).trim() : '';
+    ev.raw.summary = ev.title;
+    const cm = SCHED_COURSE_RE.exec(ev.title.toUpperCase());
+    ev.course = cm ? cm[1].replace(/\s+/g, ' ').trim() : '';
+
+    if (raw.truncated) {
+      ev.status = 'failed';
+      ev.problems.push(schedProblem('error', 'EVENT_TRUNCATED',
+        schedSay('eventTruncated', { n: idx, title: ev.title || 'untitled' }), at('', raw.line),
+        'The file ended before this event closed, so its fields cannot be trusted.'));
+    }
+
+    const ds = first('DTSTART');
+    if (!ds) {
+      ev.status = 'failed';
+      ev.problems.push(schedProblem('error', 'TIME_MISSING',
+        schedSay('timeMissing', { n: idx, title: ev.title || 'untitled' }), at('DTSTART')));
+    } else {
+      ev.tz = ds.p.params.TZID || defTz || SCHEDULE.tz;
+      const d = schedDT(ds.p.value, ds.p.params);
+      if (!d.ok) {
+        ev.status = 'failed';
+        ev.problems.push(schedProblem('error', 'DATE_MALFORMED',
+          schedSay('dateMalformed', { n: idx, title: ev.title || 'untitled', field: 'start date', raw: d.raw }),
+          at('DTSTART', ds.line), 'Dates look like 20260826T100000.'));
+      } else {
+        ev.firstDate = d.date;
+        ev.startMin = d.min;
+      }
+    }
+    const de = first('DTEND');
+    if (de) {
+      const d2 = schedDT(de.p.value, de.p.params);
+      if (!d2.ok) {
+        ev.problems.push(schedProblem('warning', 'DATE_MALFORMED',
+          schedSay('dateMalformed', { n: idx, title: ev.title || 'untitled', field: 'end date', raw: d2.raw }),
+          at('DTEND', de.line), 'The class still imports; only its length is unknown.'));
+      } else ev.endMin = d2.min;
+    }
+
+    const rr = first('RRULE');
+    if (rr) {
+      const r = schedRRule(rr.p.value);
+      ev.raw.rrule = r.raw;
+      ev.days = r.byday.slice();
+      ev.lastDate = r.until;
+    }
+    if (!ev.days.length && ev.firstDate) {
+      const d = schedDow(ev.firstDate);
+      if (d) ev.days = [d];
+    }
+    for (const q of raw.props) {
+      if (q.p.name !== 'EXDATE') continue;
+      for (const one of String(q.p.value).split(',')) {
+        const d = schedDT(one, q.p.params);
+        if (d.ok && ev.exDates.indexOf(d.date) < 0) ev.exDates.push(d.date);
+      }
+    }
+
+    const loc = first('LOCATION');
+    ev.raw.location = loc ? loc.p.value : '';
+    const parsed = schedLocation(loc ? loc.p.value : '');
+    ev.locationText = parsed.empty ? '' : parsed.text;
+    const res = schedResolve(parsed);
+    ev.resolved = res;
+    ev.code = res.code;
+    ev.room = res.room || parsed.room || '';
+    const lp = schedLocProblem(res, ev, at('LOCATION', loc ? loc.line : raw.line));
+    if (lp) {
+      ev.problems.push(lp);
+      if (lp.level === 'error') ev.status = 'failed';
+    }
+    return ev;
+  }
+
+  // ── manual / pasted text ─────────────────────────────────────────────────
+
+  /** Minutes past midnight for `h:mm` with UT's afternoon convention. */
+  function schedClock(h, m, ap) {
+    let hh = h % 24;
+    if (ap === 'p') { if (hh !== 12) hh += 12; }
+    else if (ap === 'a') { if (hh === 12) hh = 0; }
+    else if (hh < SCHEDULE.pmCutoffHour) hh += 12;      // "TTh 2:00" is 14:00
+    return hh * 60 + (m || 0);
+  }
+
+  /**
+   * Pull the times out of one pasted line and hand back the line with them
+   * blanked, so the building scan that follows cannot mistake `10:00` for a
+   * room number.
+   */
+  function schedTimesOf(line) {
+    const found = [];
+    SCHED_TIME_RE.lastIndex = 0;
+    const masked = line.replace(SCHED_TIME_RE, function (m, h1, m1, ap, h2, m2) {
+      if (h1 != null) found.push(schedClock(+h1, m1 == null ? 0 : +m1, String(ap).toLowerCase()));
+      else found.push({ h: +h2, m: +m2 });
+      return ' '.repeat(m.length);
+    });
+    // A bare `12:30-2:00` carries no marker. The first one sets the half of the
+    // day; anything after it that would run backwards is pushed to the
+    // afternoon, which is what "12:30-2:00" means on every schedule ever
+    // printed.
+    const out = [];
+    for (const f of found) {
+      if (typeof f === 'number') { out.push(f); continue; }
+      let v = schedClock(f.h, f.m, '');
+      if (out.length && v < out[out.length - 1] && v + 720 <= 1439) v += 720;
+      out.push(v);
+    }
+    return { times: out, masked: masked };
+  }
+
+  /**
+   * The day pattern in one pasted line, and the line with it blanked.
+   *
+   * LONGEST MATCH WINS, ACROSS THE WHOLE LINE — not the first match found.
+   * `C S 429  MWF 10:00 am  GDC 2.216` is a real UT row and its first
+   * day-word-shaped token is the `S` of the field-of-study `C S`, which reads
+   * as Saturday. `M 340L ... TTh ...` reads as Monday for the same reason. A
+   * three-letter `MWF` sitting later in the same line is far better evidence
+   * than a one-letter token, so length decides and position only breaks ties.
+   */
+  function schedDaysOf(line) {
+    const toks = line.split(/[\s,;|–—]+/);
+    let best = null;
+    for (let i = 0; i < toks.length; i++) {
+      const up = toks[i].toUpperCase().replace(/[^A-Z]/g, '');
+      if (!up) continue;
+      for (const [word, days] of SCHEDULE.dayWords) {
+        if (up !== word) continue;
+        if (!best || word.length > best.word.length) best = { word: word, days: days, tok: toks[i] };
+        break;
+      }
+    }
+    if (!best) return { days: [], masked: line };
+    const esc = best.tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return {
+      days: best.days.slice(),
+      masked: line.replace(new RegExp('\\b' + esc + '\\b'), ' '.repeat(best.tok.length)),
+    };
+  }
+
+  /**
+   * One pasted row -> one event.
+   *
+   * THE TRAP THE UT RECON DOC NAMED: a course number and a building+room are
+   * the same SHAPE. `GOV 312L` and `WEL 2.224` both read `three letters, a
+   * space, a number`. Nothing in the string tells them apart, so the shape is
+   * not what decides — the app's own vocabulary is. Every `CODE NUM` candidate
+   * on the line is collected and the one whose code is a KNOWN BUILDING wins.
+   * If none is known the LAST candidate is reported as the failure, because UT
+   * prints the room after the course on its own schedule rows.
+   */
+  function schedEventFromRow(line, idx) {
+    const ev = {
+      index: idx, id: 'row-' + idx, title: '', course: '', locationText: '',
+      code: null, room: '', days: [], startMin: null, endMin: null,
+      firstDate: null, lastDate: null, exDates: [], tz: SCHEDULE.tz,
+      status: 'ok', problems: [], resolved: null,
+      raw: { line: idx, uid: '', summary: line, location: '', rrule: '' },
+    };
+    const at = { event: idx, line: idx, field: '' };
+    const flat = line.replace(/[–—|]/g, ' ');
+    const t = schedTimesOf(flat);
+    ev.startMin = t.times.length ? t.times[0] : null;
+    ev.endMin = t.times.length > 1 ? t.times[1] : null;
+    const d = schedDaysOf(t.masked);
+    ev.days = d.days;
+
+    const known = schedCodes();
+    const cands = [];
+    // Same width as SCHED_CODE_ROOM_RE and for the same reason: a typo has to
+    // be CAUGHT here, not silently skipped. `MAII 220` must become a candidate
+    // so it can be reported, otherwise the row degrades to "no building" and
+    // the student never learns which letter is wrong.
+    const re = /\b([A-Za-z][A-Za-z0-9]{1,5})\s+([0-9A-Za-z][0-9A-Za-z.\-]*)\b/g;
+    let m;
+    while ((m = re.exec(d.masked))) {
+      if (!SCHED_ROOM_DIGIT_RE.test(m[2])) continue;
+      const code = m[1].toUpperCase();
+      cands.push({ code: code, room: m[2], text: m[1] + ' ' + m[2], known: known.has(code) });
+    }
+    const cm = SCHED_COURSE_RE.exec(line.toUpperCase());
+    ev.course = cm ? cm[1].replace(/\s+/g, ' ').trim() : '';
+    ev.title = ev.course || line.trim();
+
+    // WHICH TOKEN IS THE BUILDING. `GOV 312L` and `WEL 2.224` are the same
+    // SHAPE — three letters, a space, a number — so shape cannot decide, and
+    // docs/import-bar-ut.md flagged exactly this as the trap. The app's own
+    // vocabulary decides instead: the LAST candidate whose code is a real
+    // building wins, because UT prints the room after the course on its own
+    // schedule rows. `MAI 220, TTh 2:00pm` — the brief's own example — is a
+    // line where the only candidate is BOTH a course-shaped token and a known
+    // building, and there the building wins: a known code is hard evidence and
+    // course-shape is not. The residual ambiguity is real and documented in
+    // docs/si-parser.md (`ART 302` could be either), and it resolves the way a
+    // walking app should: toward a building it can actually take you to.
+    let pick = null;
+    for (let i = cands.length - 1; i >= 0; i--) {
+      if (cands[i].known) { pick = cands[i]; break; }
+    }
+    if (!pick && cands.length) {
+      const tail = cands[cands.length - 1];
+      if (!(cands.length === 1 && tail.text === ev.course)) pick = tail;
+    }
+    if (!pick) {
+      ev.status = 'failed';
+      ev.problems.push(schedProblem('error', 'LOCATION_MISSING',
+        schedSay('rowNoLocation', { n: idx, line: line.trim() }), at,
+        'Add the building and room, e.g. "WEL 2.224".'));
+      return ev;
+    }
+    ev.locationText = pick.text;
+    const res = schedResolve({ empty: false, code: pick.code, room: pick.room, text: pick.text, lines: [pick.text] });
+    ev.resolved = res;
+    ev.code = res.code;
+    ev.room = res.room || pick.room;
+    const lp = schedLocProblem(res, ev, at);
+    if (lp) {
+      ev.problems.push(lp);
+      if (lp.level === 'error') ev.status = 'failed';
+    }
+    if (ev.startMin == null) {
+      ev.problems.push(schedProblem('warning', 'TIME_MISSING',
+        schedSay('timeMissing', { n: idx, title: ev.title }), at,
+        'The class imports; we just cannot order it in the day.'));
+    }
+    return ev;
+  }
+
+  // ── assembly ──────────────────────────────────────────────────────────────
+
+  /**
+   * The one internal shape, and the reason it looks like this.
+   *
+   * NOTHING AT THE TOP LEVEL IS ICS-SPECIFIC. `source.kind` names where the
+   * bytes came from and `raw` per event keeps whatever that source had, but a
+   * consumer reads `code`, `room`, `days`, `startMin`, `endMin` and never has
+   * to know whether an .ics, a paste, an OCR pass or a Registration-Plus API
+   * produced them. That is the whole "add a fourth source without a rewrite"
+   * requirement, and `wayfindScheduleFrom()` is the door it comes in through.
+   */
+  function schedAssemble(source, events, problems, note) {
+    const ok = events.filter(e => e.status === 'ok');
+    const failed = events.filter(e => e.status !== 'ok');
+    const all = problems.slice();
+    for (const e of events) for (const p of e.problems) all.push(p);
+    const total = events.length;
+    let summary;
+    if (!total) summary = note || schedSay('fileEmpty', {});
+    else if (!ok.length) summary = schedSay('summaryNone', { total: total });
+    else if (failed.length) summary = schedSay('summaryPartial', { ok: ok.length, total: total, failed: failed.length });
+    else summary = schedSay('summaryAllOk', { ok: ok.length });
+    return {
+      shape: SCHEDULE.shape,
+      version: SCHEDULE.shapeVersion,
+      source: source,
+      tz: SCHEDULE.tz,
+      events: events,
+      problems: all,
+      counts: {
+        total: total, ok: ok.length, failed: failed.length,
+        errors: all.filter(p => p.level === 'error').length,
+        warnings: all.filter(p => p.level === 'warning').length,
+      },
+      summary: summary,
+      // A convenience the interface lane asked for in docs/import-bar-*.md:
+      // the classes that CAN be walked to, in day order then clock order.
+      routable: ok.filter(e => e.code).slice().sort((a, b) =>
+        (SCHED_DAYS.indexOf(a.days[0] || '') - SCHED_DAYS.indexOf(b.days[0] || '')) ||
+        ((a.startMin == null ? 1e9 : a.startMin) - (b.startMin == null ? 1e9 : b.startMin))),
+    };
+  }
+
+  /** ICS text -> the shape. Synchronous; `G` must already be loaded to resolve. */
+  function schedParseICS(text, source) {
+    const problems = [];
+    const bytes = String(text || '').length;
+    if (bytes > SCHEDULE.maxBytes) {
+      problems.push(schedProblem('error', 'FILE_TOO_BIG', schedSay('fileTooBig', {
+        mb: Math.round(bytes / 104857.6) / 10, maxmb: Math.round(SCHEDULE.maxBytes / 1048576),
+      }), null, 'Export just this semester rather than the whole calendar.'));
+      return schedAssemble(source, [], problems, problems[0].text);
+    }
+    const scan = schedScanICS(text);
+    if (!scan.cal.sawCalendar && !scan.events.length) {
+      problems.push(schedProblem('error', 'FILE_NOT_CALENDAR', schedSay('fileNotCalendar', {}), null,
+        'Look for a file ending in .ics.'));
+      return schedAssemble(source, [], problems, problems[0].text);
+    }
+    if (scan.cal.truncated) {
+      problems.push(schedProblem('error', 'FILE_TRUNCATED', schedSay('fileTruncated', {}), null, ''));
+    }
+    let raws = scan.events;
+    if (raws.length > SCHEDULE.maxEvents) {
+      problems.push(schedProblem('warning', 'FILE_TOO_MANY',
+        schedSay('fileTooMany', { max: SCHEDULE.maxEvents }), null, ''));
+      raws = raws.slice(0, SCHEDULE.maxEvents);
+    }
+    if (source && scan.cal.name) source.label = source.label || scan.cal.name;
+    if (source) source.producer = scan.cal.prodId || '';
+    const events = raws.map((r, i) => schedEventFromICS(r, i + 1, scan.cal.tz || SCHEDULE.tz));
+    if (!events.length) {
+      problems.push(schedProblem('error', 'NO_EVENTS', schedSay('fileEmpty', {}), null,
+        'Check you exported the calendar your classes are on.'));
+    }
+    return schedAssemble(source, events, problems, schedSay('fileEmpty', {}));
+  }
+
+  /** Pasted text -> the shape. One class per non-blank line. */
+  function schedParseRows(text, source) {
+    const problems = [];
+    const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n')
+      .map(s => s.trim()).filter(Boolean);
+    const events = lines.slice(0, SCHEDULE.maxEvents).map((l, i) => schedEventFromRow(l, i + 1));
+    if (!events.length) {
+      problems.push(schedProblem('error', 'NO_EVENTS', schedSay('fileEmpty', {}), null,
+        'Type one class per line, e.g. "GOV 312L, WEL 2.224, MWF 1:00pm".'));
+    }
+    return schedAssemble(source, events, problems, schedSay('fileEmpty', {}));
+  }
+
+  /** Is this text an iCalendar payload, or a paste? Cheap and decisive. */
+  function schedLooksLikeICS(text) {
+    const head = String(text || '').slice(0, 4096).toUpperCase();
+    return head.indexOf('BEGIN:VCALENDAR') >= 0 || head.indexOf('BEGIN:VEVENT') >= 0;
+  }
+
+  // ── the public entry points ───────────────────────────────────────────────
+
+  /**
+   * wayfindParseSchedule(text, opts) — the file/paste front end.
+   *
+   * `opts.kind` forces `'ics'` or `'rows'`; left off, the text decides. Async
+   * only because the building vocabulary lives in walk_graph.json and a
+   * resolution made before it loads would be wrong about every code.
+   */
+  window.wayfindParseSchedule = async function (text, opts) {
+    opts = opts || {};
+    try { await loadGraph(); } catch (e) { /* resolve against UT_CELEBRATED alone */ }
+    const source = {
+      kind: opts.kind || (schedLooksLikeICS(text) ? 'ics' : 'rows'),
+      label: opts.label || '', url: opts.url || '', producer: '',
+      importedAt: new Date().toISOString(),
+    };
+    if (source.kind === 'rows') return schedParseRows(text, source);
+    return schedParseICS(text, source);
+  };
+
+  /**
+   * wayfindFetchSchedule(url) — the subscribe-by-URL front end.
+   *
+   * `webcal://` is not a protocol a browser can fetch; it is an OS handoff to
+   * a calendar app (docs/import-bar-apple.md). The feed behind it is ordinary
+   * HTTPS at the same host and path, so the scheme is rewritten and fetched.
+   *
+   * A REAL GOOGLE OR UT FEED WILL USUALLY FAIL HERE, and saying so plainly is
+   * the whole value: those hosts send no `Access-Control-Allow-Origin`, so the
+   * browser blocks the read before this code sees a byte. That is a CORS fact
+   * about the other end, not a bug at this one, and the student's move is to
+   * download the .ics and drop it in — which the error says.
+   */
+  window.wayfindFetchSchedule = async function (url, opts) {
+    opts = opts || {};
+    const given = String(url || '').trim();
+    const source = {
+      kind: 'ics-url', label: opts.label || '', url: given, producer: '',
+      importedAt: new Date().toISOString(),
+    };
+    if (!given) {
+      return schedAssemble(source, [], [schedProblem('error', 'URL_MISSING',
+        'No calendar address was given.', null, '')], 'No calendar address was given.');
+    }
+    let target = given;
+    const scheme = SCHEDULE.webcalScheme + '://';
+    if (/^webcal:\/\//i.test(target)) target = scheme + target.slice(9);
+    else if (/^webcals:\/\//i.test(target)) target = scheme + target.slice(10);
+    if (!/^https?:\/\//i.test(target)) {
+      return schedAssemble(source, [], [schedProblem('error', 'URL_UNSUPPORTED',
+        'Calendar addresses start with webcal:// or https://.', null,
+        'Copy the "subscribe" link out of your calendar app.')], 'Unsupported address.');
+    }
+    source.fetched = target;
+    let text = '';
+    const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = setTimeout(() => { try { ctl && ctl.abort(); } catch (e) {} }, SCHEDULE.fetchTimeoutMs);
+    try {
+      const r = await fetch(target, ctl ? { signal: ctl.signal } : undefined);
+      if (!r.ok) {
+        clearTimeout(timer);
+        return schedAssemble(source, [], [schedProblem('error', 'URL_STATUS',
+          'That calendar address answered ' + r.status + '.', null,
+          r.status === 401 || r.status === 403
+            ? 'A private feed cannot be read from a web page. Download the .ics instead.'
+            : 'Check the address and try again.')], 'That address answered ' + r.status + '.');
+      }
+      text = await r.text();
+    } catch (e) {
+      clearTimeout(timer);
+      const aborted = e && (e.name === 'AbortError');
+      return schedAssemble(source, [], [schedProblem('error', aborted ? 'URL_TIMEOUT' : 'URL_BLOCKED',
+        aborted
+          ? 'That calendar address did not answer within ' + Math.round(SCHEDULE.fetchTimeoutMs / 1000) + ' seconds.'
+          : 'The browser would not let this page read that calendar address. Google and UT do not allow other sites to read a feed directly.',
+        null, 'Download the .ics from your calendar and drop the file in here instead.')],
+      'That calendar could not be read.');
+    }
+    clearTimeout(timer);
+    try { await loadGraph(); } catch (e) {}
+    if (!schedLooksLikeICS(text)) {
+      return schedAssemble(source, [], [schedProblem('error', 'FILE_NOT_CALENDAR',
+        schedSay('fileNotCalendar', {}), null, '')], schedSay('fileNotCalendar', {}));
+    }
+    return schedParseICS(text, source);
+  };
+
+  /**
+   * wayfindScheduleFrom(rows, meta) — THE SEAM FOR A SOURCE THAT DOES NOT EXIST
+   * YET.
+   *
+   * An image-OCR pass, or a Registration-Plus API, will not hand this app an
+   * .ics; it will hand it rows. So it comes in here, and everything downstream
+   * — resolution, the gap statuses, the problem list, the summary line, the
+   * shape itself — is shared with the three sources that do exist. Adding one
+   * is writing an adapter to this signature, not touching the parser.
+   *
+   *   rows: [{ title?, course?, location, days?, startMin?, endMin?,
+   *            firstDate?, lastDate?, room?, confidence?, raw? }]
+   *
+   * `location` may be anything a LOCATION field may be: `WEL 2.224`, a name, a
+   * folded address. `days` accepts either the ICS vocabulary (`['MO','WE']`) or
+   * a UT day word (`'MWF'`). Nothing is trusted: a row from OCR gets exactly
+   * the same scrutiny and the same readable failures as a row from Google.
+   */
+  window.wayfindScheduleFrom = async function (rows, meta) {
+    meta = meta || {};
+    try { await loadGraph(); } catch (e) {}
+    const source = {
+      kind: meta.kind || 'rows', label: meta.label || '', url: meta.url || '',
+      producer: meta.producer || '', importedAt: new Date().toISOString(),
+    };
+    const list = Array.isArray(rows) ? rows.slice(0, SCHEDULE.maxEvents) : [];
+    const events = list.map((r, i) => {
+      const idx = i + 1;
+      const ev = {
+        index: idx, id: r.id || ('row-' + idx), title: String(r.title || r.course || '').trim(),
+        course: String(r.course || '').trim(), locationText: '',
+        code: null, room: String(r.room || ''), days: [], startMin: null, endMin: null,
+        firstDate: r.firstDate || null, lastDate: r.lastDate || null, exDates: r.exDates || [],
+        tz: r.tz || SCHEDULE.tz, status: 'ok', problems: [], resolved: null,
+        confidence: (r.confidence == null ? null : r.confidence),
+        raw: r.raw || { line: idx },
+      };
+      const at = { event: idx, line: idx, field: 'location' };
+      if (Array.isArray(r.days)) ev.days = r.days.map(d => String(d).toUpperCase().slice(0, 2))
+        .filter(d => SCHED_DAYS.indexOf(d) >= 0);
+      else if (r.days) {
+        const up = String(r.days).toUpperCase().replace(/[^A-Z]/g, '');
+        for (const [w, ds] of SCHEDULE.dayWords) if (up === w) { ev.days = ds.slice(); break; }
+      }
+      if (r.startMin != null) ev.startMin = +r.startMin;
+      if (r.endMin != null) ev.endMin = +r.endMin;
+      if (ev.startMin == null && r.start) {
+        const t = schedTimesOf(String(r.start));
+        ev.startMin = t.times.length ? t.times[0] : null;
+      }
+      if (ev.endMin == null && r.end) {
+        const t = schedTimesOf(String(r.end));
+        ev.endMin = t.times.length ? t.times[0] : null;
+      }
+      const parsed = schedLocation(String(r.location == null ? '' : r.location));
+      ev.locationText = parsed.empty ? '' : parsed.text;
+      if (!ev.title) ev.title = ev.course || ('row ' + idx);
+      const res = schedResolve(parsed);
+      ev.resolved = res;
+      ev.code = res.code;
+      ev.room = ev.room || res.room || parsed.room || '';
+      const lp = schedLocProblem(res, ev, at);
+      if (lp) { ev.problems.push(lp); if (lp.level === 'error') ev.status = 'failed'; }
+      return ev;
+    });
+    return schedAssemble(source, events, [], schedSay('fileEmpty', {}));
+  };
+
+  /**
+   * wayfindScheduleCheck(schedule) — the only honest routability test.
+   *
+   * `entry.routable` from buildIndex() reads the graph's own door list, and HLB
+   * proves that is not the same question: it reports false and routes anyway,
+   * off a virtual door computeRoute() invents from the UT survey. So this
+   * ROUTES — every consecutive same-day pair in the schedule, headless, through
+   * the same code path the card uses, and writes the answer back onto the
+   * events.
+   *
+   * It does not draw anything and does not touch the interface.
+   */
+  window.wayfindScheduleCheck = async function (schedule, opts) {
+    opts = opts || {};
+    if (!schedule || !Array.isArray(schedule.events)) return schedule;
+    await loadGraph();
+    const usable = schedule.events.filter(e => e.status === 'ok' && e.code);
+    const seen = new Map();
+    for (const e of usable) {
+      if (seen.has(e.code)) { e.resolved.routable = seen.get(e.code); continue; }
+      let ok = false;
+      try {
+        const r = await window.wayfindStairs(e.code, e.code === 'PCL' ? 'MAI' : 'PCL',
+          { avoidStairs: !!opts.avoidStairs });
+        ok = !!(r && r.ok);
+      } catch (err) { ok = false; }
+      seen.set(e.code, ok);
+      e.resolved.routable = ok;
+      if (!ok) {
+        e.status = 'failed';
+        e.problems.push(schedProblem('error', 'BUILDING_NOT_WALKABLE',
+          schedSay('buildingUnmapped', { n: e.index, title: e.title || 'untitled', code: e.code }),
+          { event: e.index, line: e.raw && e.raw.line, field: 'LOCATION' },
+          'The code is known but no walking route reaches it.'));
+        schedule.problems.push(e.problems[e.problems.length - 1]);
+      }
+    }
+    // The legs a student actually walks: consecutive classes on the same day.
+    const legs = [];
+    for (const day of SCHED_DAYS) {
+      const onDay = schedule.events
+        .filter(e => e.status === 'ok' && e.code && e.days.indexOf(day) >= 0)
+        .sort((a, b) => (a.startMin == null ? 1e9 : a.startMin) - (b.startMin == null ? 1e9 : b.startMin));
+      for (let i = 0; i + 1 < onDay.length; i++) {
+        const a = onDay[i], b = onDay[i + 1];
+        if (a.code === b.code) continue;
+        legs.push({
+          day: day, from: a.code, to: b.code, fromIndex: a.index, toIndex: b.index,
+          fromTitle: a.title, toTitle: b.title,
+          gapMin: (b.startMin != null && a.endMin != null) ? (b.startMin - a.endMin) : null,
+          ok: false, distM: null, lo: null, hi: null, why: null,
+        });
+      }
+    }
+    for (const leg of legs) {
+      try {
+        const r = await window.wayfindStairs(leg.from, leg.to, { avoidStairs: !!opts.avoidStairs });
+        if (r && r.ok) {
+          leg.ok = true;
+          leg.distM = r.distM != null ? r.distM : null;
+        } else {
+          leg.why = (r && r.why) || 'noroute';
+        }
+      } catch (err) { leg.why = 'threw'; }
+      if (!leg.ok) {
+        schedule.problems.push(schedProblem('error', 'LEG_NO_ROUTE',
+          schedSay('noRoute', { fromCode: leg.from, toCode: leg.to }),
+          { event: leg.toIndex, line: null, field: '' }, ''));
+      }
+    }
+    schedule.legs = legs;
+    schedule.counts.legs = legs.length;
+    schedule.counts.legsOk = legs.filter(l => l.ok).length;
+    return schedule;
+  };
+
+  /** The vocabulary, for a test or for the interface's own type-ahead. */
+  window.wayfindScheduleCodes = async function () {
+    try { await loadGraph(); } catch (e) {}
+    const out = [];
+    for (const [c, rec] of schedCodes()) out.push({ code: c, name: rec.name, where: rec.where });
+    out.sort((a, b) => a.code.localeCompare(b.code));
+    return out;
+  };
+
   function boot() {
     const map = window.__map;
     if (!map) return setTimeout(boot, 60);

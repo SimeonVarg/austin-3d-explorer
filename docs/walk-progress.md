@@ -2392,3 +2392,64 @@ re-confirmed free (`Get-NetTCPConnection` empty). No scratch scripts left in
 One frame kept because this entry cites it:
 `shots/import/main-walk1-mobile.png` (the panel `main` actually renders,
 proving the "nothing to import with" finding rather than asserting it).
+
+---
+
+## 2026-08-24 — the schedule importer's parser (`acer/si-parser`)
+
+There is now a class-schedule importer, or at least the half of it that does
+the reading. Give it a calendar file from Google, from Apple, or from UT
+Registration Plus, or a `webcal://` subscribe link, or just a block of text
+typed by hand, and it comes back with the same answer every time: a list of
+classes, each pinned to a UT building code the walking router already knows how
+to route to. Three ways in, one thing out. The parsing lives at the end of
+`js/wayfind.js` and added 1,185 lines without deleting a single one, which
+matters because four other lanes were editing that file at the same time.
+
+The part worth caring about is what happens when a file is wrong, because a
+real schedule usually is. The bar was Google Calendar's own import — one bad
+row must never kill the file. So the test file has one good class surrounded by
+eight broken ones: a typo'd building code, a class with no room at all, a date
+with a letter O typed for a zero, a street address instead of a building, a
+class at the Pickle Research Campus eleven kilometres north, a building UT knows
+about and this app does not, and a file that just stops in the middle of an
+event. The good class still comes through, the answer reads *"Imported 1 of 9
+classes. 8 could not be used,"* and each of the eight gets a plain sentence
+naming the class and saying what to do — *"MAII 220 is not a UT building code.
+Did you mean MAI (UT Tower)?"* rather than a shrug.
+
+One near-miss is worth recording because it was the exact accident this
+codebase already had a warning against. The first version let that typo `MAII`
+slip past the building-code check and into the loose name search, which
+helpfully decided `maii` was close enough to `mail` and routed a history
+lecture to the Comal Mail Service Building — confidently, with correct
+distances. It only surfaced because the test asserts the *sentence a student
+reads*, not just that something failed. The fix was to make the parser suggest
+a near miss and never apply one.
+
+Two things the brief said turned out to be wrong, and running it rather than
+believing it is what caught both. It was right that ten codes are off the map
+at Pickle (measured 10.8–11.8 km from the Tower's own door). It was wrong that
+SSW is missing from UT's records — SSW is 0.9 km away on the main campus with
+two surveyed doors sitting in this repo already; what it is missing from is
+*our* building list, which is a much smaller fix, and the exact patch is written
+into `docs/si-parser.md` for whoever owns that file. And the brief missed a
+twelfth building, HLB, which the app *labels* unroutable and then routes to
+perfectly well at 1,339 m. So "is it routable" cannot be read off a flag; the
+importer routes for real before it promises anything.
+
+Verified by driving the real app: 209 assertions, all green, and thirteen
+class-to-class walks routed out of the three clean schedules. The Monday walk
+from the Gates Computer Science Complex to Welch Hall — a real leg out of a real
+parsed calendar — is photographed twice, fitted and down on the ribbon, in
+`shots/si/parser/`. The proof that the route is actually painted and not merely
+present in a data structure got rebuilt three times before it was honest: the
+first two versions needed a threshold picked after seeing the answer. The one
+that shipped measures the renderer's own noise first (it moves 0 pixels when
+nothing changes) and then removes the route from an unmoved camera (1,437
+pixels move). Nothing left running: server on 8911 stopped, port confirmed free.
+
+The drop zone, the error list and the import bar itself are still to build —
+that is the interface lane's half. Everything it needs is five functions and a
+paragraph in `docs/si-parser.md`. Nothing here is wired into the shipped app;
+`WAYFIND.on` is untouched and still false.
