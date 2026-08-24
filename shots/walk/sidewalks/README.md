@@ -125,6 +125,12 @@ eye-speedway  ribbon owns 32,532 px (3.18 %)            a 0.95 m float moves 20,
 The pills read 580 / 160 / 520 m against `bake_ground.py --walkaudit`'s 578 /
 157 / 518 m for the same three pairs.
 
+All nine frames were taken; six are here. `eye-eastmall-noroute`,
+`eye-speedway-noroute` and `eye-speedway-float` are deliberately NOT committed —
+their pixel counts above are the evidence and CLAUDE.md rule 12 says a frame no
+doc points at is a multiplier, not a deliverable. `eyeshot.mjs` regenerates all
+nine.
+
 `eyeshot.mjs` in this directory is the script that took them. It is here rather
 than in `scripts/verify/` because that directory is not this lane's to write, and
 round 2 already lost a set of measuring scripts to a session scratchpad; its

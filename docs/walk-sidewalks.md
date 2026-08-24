@@ -1239,7 +1239,11 @@ eye-speedway  PCL>RLP  pill 520 m   ribbon owns 32,532 px (3.18 %)            a 
 ```
 **[M]** The three pills read 580 / 160 / 520 m against the audit's 578 / 157 /
 518 m for the same three pairs, so the frames are of the routes the numbers
-describe.
+describe. All nine frames were taken; six are committed. `-noroute` for East Mall
+and Speedway and `-float` for Speedway are **deliberately not** in the repo —
+their pixel counts above are the evidence, and CLAUDE.md rule 12 says a frame no
+doc points at is a multiplier, not a deliverable. `eyeshot.mjs` in
+`shots/walk/sidewalks/` regenerates all nine.
 
 **Why the float frame is the whole point.** In `eye-mainmall.png` the ribbon is a
 flat painted strip lying on the concrete band beside the brick of the Main Mall.
