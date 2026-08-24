@@ -2902,3 +2902,116 @@ under `scripts/verify/_critic_ssw.mjs` and deleted before finishing,
 `package.json`/`package-lock.json` reverted to the committed copy after
 `npm install`, `scripts/verify/node_modules` is gitignored and not committed,
 server on 8952 killed by PID and the port re-confirmed free by `netstat`.
+
+---
+
+## 2026-08-24 — critic verdict on the "dayview" piece, round 4: oursWins = true, and a real defect the harness cannot see
+
+Fresh context, own port (8954). Checked out `acer/si-dayview` at its round-4 tip
+(`16c13ab`) and, since the brief specifically wants "a realistic 3-4-class UT
+day built from the parser lane's fixtures," did not trust the branch's own
+hardcoded demo fixtures for that part — reproduced the round-4 builder's scratch
+merge myself, independently, in a throwaway worktree: merged `origin/acer/si-parser`
+into the dayview tip, resolved the two conflicts (`js/wayfind.js`,
+`docs/walk-progress.md`) the same mechanical way the builder's doc describes
+(concatenate both pure-append blocks), confirmed with `node --check` and by
+diffing hunk boundaries that the resolution really is a plain concatenation, and
+served the result. `harness-drift.mjs` passed (31/31). Ran the branch's own
+`dayview.mjs` fresh against this independently-built merge: exit 0, all gates
+green, including the round-4 gates (the `week` fixture through the real adapter,
+the `MAII`→`MAI` typo refusal, the done-state, off-stays-off).
+
+**Then, separately from the builder's own fixtures, fed the parser lane's real
+`ut-regplus.ics`** — a genuine UT Registration Plus export, not written by
+either lane's harness — through the real running pipeline
+(`window.wayfindParseSchedule` → `window.wayfindDayFromSchedule`), no shortcuts.
+It resolves to a completely ordinary Tuesday: 3 classes (RTF 305, J 310F, C S
+429), 2 walks, 1.5 km on foot — exactly the "realistic 3-4-class day" the brief
+asked for, and one nobody on this branch had written a fixture for. Screenshotted
+at `?dayat=12:15` (mid-gap, so `NOW`/`NEXT` are live) on both desktop and phone.
+
+**Blind visual judgement.** Bar = a real, current Google Calendar screenshot —
+not the same one round 3 used, deliberately, to avoid re-testing against a
+source already known to lose: the official Google Calendar Play Store listing's
+"Schedule" view, showing a real Monday's stacked, colour-coded, timed event
+blocks. Ours = a panel-only crop of the `ut-regplus.ics` Tuesday at 12:15, from
+the render above. Saved as `neutral-1.png` / `neutral-2.png` in the scratchpad,
+shuffled, judged on the stated question — does it read at a glance which walk is
+next, how long it takes, and whether it has a problem — before revealing the
+mapping. Preference written down first: neutral-1, clearly, because it carries
+an explicit `NEXT` badge on the walk row, the walk's minutes are the single
+biggest text on the card, and two named chips turn "problem" into specifics
+(`1 set of stairs · a step-free way is 180 m shorter`, `Crosses 3 signalised
+crossings`) rather than something to infer; neutral-2 is a well-designed list of
+appointments with zero visual language for travel between them — the gap
+between two of its events is blank white space carrying no information at all,
+because a calendar was never built to model a walk as a thing with a duration or
+a hazard. Revealed after writing that down: neutral-1 = ours. Same result round
+3 got, independently reproduced with a different real fixture and a different
+real bar image, so this isn't one lucky comparison — the day-view's core claim
+holds up twice against two different Google Calendar surfaces.
+
+**The gap, and it is real, not a nitpick.** The same phone screenshot that won
+the blind test also showed the day's third class (`C S 429`, 4:00–5:00pm,
+University Teaching Center) silently truncated mid-line, with no scrollbar, no
+fade, no "more below" cue of any kind — the row is just cut, mid-glyph, and the
+card's footer sits directly under the cut as if the list had ended. Confirmed
+this is a real scroll clip and not a viewport overflow: `#wf-day-list`'s
+`scrollHeight` (398px) exceeds its `clientHeight` (348px) at 390×844, the row is
+reachable by scrolling (a forced `scrollTop` reveals it completely, screenshot
+taken to confirm), and `#wf-day-list{overflow-y:auto;max-height:__LISTVH__vh}`
+(`listMaxVh: 66` in `js/wayfind.js`) carries no mask, gradient, or affordance of
+any kind — grepped the file for `mask-image`, `fade`, `gradient.*transparent`
+near the list rule and found nothing. **The reason this survived 103 green
+checks is that the harness's own phone gate (`dayview.mjs`, both instances of
+"on a 390 px phone the panel is on screen and not cut off") only bounds-checks
+the OUTER panel's bounding box against the viewport — which is true, the panel
+itself ends at y=658 of 844 — and never checks whether every row inside the
+internal scroll region is reachable or hinted at.** That is a real, ordinary UT
+schedule — three classes is not an edge case — silently losing its last class on
+the exact device size this feature is built for, and the existing test suite is
+structurally blind to it because it is checking the wrong box.
+
+**Single biggest remaining gap, stated so a builder can act on it without
+asking a question:** on a 390×844 phone, `#wf-day-list` needs a visible
+affordance that content continues past its `max-height:66vh` clip — a bottom
+fade/mask-image gradient over the last ~24px of the list is the standard fix and
+costs nothing measured (this feature's own gap-bar and chip rendering already
+happens inside the same rule), or, if the taste call is to never truncate
+silently, shrink `WF_DAY.listMaxVh` or the row height so a routine 3-class day
+always fits without scrolling. Either way, add a gate to `dayview.mjs` that
+checks `list.scrollHeight <= list.clientHeight` (or that a fade/affordance
+element exists when it doesn't) for a 3+ class day at phone width — the current
+"panel bounding box is on screen" gate will keep passing forever regardless,
+because it is not measuring the thing that broke.
+
+**What was checked, concretely:** `node --check` on the independently-merged
+`js/wayfind.js` (11,134 lines); `harness-drift.mjs` 31/31; the branch's own
+`dayview.mjs` re-run fresh on that merge, exit 0; a from-scratch render of
+`schedule-fixtures/ut-regplus.ics` through the real `wayfindParseSchedule` /
+`wayfindDayFromSchedule` pipeline at both 1280×800 and 390×844; the `#wf-day`
+element's own bounding box and `#wf-day-list`'s scroll geometry read directly
+off the DOM before and after a forced scroll; a blind pairwise comparison
+against a real, freshly-fetched Google Calendar product screenshot with the
+preference written down before the mapping was revealed; a diff-stat sanity
+check (`git diff --stat 3103eac 16c13ab -- js/wayfind.js`, 553+/27-) confirming
+every deletion in this round sits inside the day-plan's own identifiers
+(`dayPlace`, `dayRows`, `dayEl`, `wf-d-*`) and none of it touches routing,
+stairs, doors, or lighting code owned by sibling lanes.
+
+**oursWins = true.** The blind visual win is real and now independently
+reproduced twice on two different real fixtures and two different real Google
+Calendar surfaces. It is not a tie and not a squeak — Calendar structurally
+cannot answer the question being judged. The phone-scroll defect above does not
+change that verdict (it is a real UT day rendering correctly and legibly right
+up to the cut), but it is the thing to fix before this ships to a phone, which
+is the device this whole feature is for.
+
+Nothing the builder owns was edited. All work happened in a throwaway worktree
+under the scratchpad (merged tree, `node_modules` installed there and in this
+worktree, both removed afterward), never pushed anywhere. Server on 8954 killed
+by PID after `netstat` confirmed it was still listening; port re-confirmed free.
+Browser pane closed. `git worktree remove` + `git worktree prune` run after
+`rm -rf` cleared the scratch tree by hand (git's own delete hit Windows'
+path-length limit on the nested `node_modules`). No screenshots committed to
+the repo — all frames stayed in the scratchpad.
