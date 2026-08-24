@@ -301,10 +301,22 @@
                            // survey calls that entrance barrier-free with an
                            // auto-opener. It costs 3.8 m of extra dashed leg at
                            // the Tower (42.8 -> 46.6 m) and recovers 3 of the 4
-                           // buildings that were stranded (CMA, JGB, MAI; CMB's
-                           // own mapped doors are all on a stairs island, which
-                           // is a data gap, not a snapping one). Set false to
-                           // snap the same way in both modes.
+                           // buildings that were stranded (CMA, JGB, MAI). Set
+                           // false to snap the same way in both modes.
+    stepFreeDoors: true,   // and the same test applied to the doors we did NOT
+                           // snap — our own baked ones. A door whose every
+                           // anchor node sits outside the step-free component
+                           // is a door this walker cannot arrive at, so it is
+                           // not offered. Measured across all 158 buildings
+                           // with mapped doors, from three hubs, live: it
+                           // changes the candidate list for exactly three
+                           // (CMB, AHG, NUR) and turns exactly one "No walking
+                           // route found" into a walk (CMB).
+                           // It adds no new endpoint of its own: a door it
+                           // drops falls through to the same UT-coordinate
+                           // snap round 3 already built, so all 20 pairs and
+                           // every stairs-allowed route are bit-identical.
+                           // Set false to offer unreachable doors again.
 
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
@@ -1144,10 +1156,10 @@
   // ticks the box. The largest component is 92.0% of the graph; the runner-up is
   // 68 nodes, so "largest" is not a close call that could flip between bakes.
   //
-  // What it does NOT do: move a REAL door. If a building's own mapped doors all
-  // anchor onto a stairs island (CMB), the honest answer is still that we cannot
-  // take you there step-free, and changing which real door we pick to dodge that
-  // would walk people to a door UT did not survey. One building, left alone.
+  // What it does NOT do: move a REAL door. Choosing between real doors is
+  // doorSet()'s job, and round 5 gave it the same component test — see
+  // stepFreeDoor() below, and CMB, which this round's flooding could see was
+  // stranded and had no way to act on.
   let stepFree = null;
   function stepFreeComp(g) {
     if (stepFree && stepFree.g === g) return stepFree;
@@ -1233,6 +1245,38 @@
     return bf.length ? bf : truth;
   }
 
+  // ── A DOOR YOU CANNOT GET TO IS NOT A CANDIDATE ───────────────────────────
+  //
+  // Round 3 taught the SNAP about the step-free component (see utVirtualStepFree
+  // above) and stopped there, because a snap is the only thing that INVENTS a
+  // target. That left a hole with a real building in it, and round 4's critic
+  // walked straight into it: the router still offered doors it had not snapped
+  // — our own baked ones — without ever asking whether the walker could reach
+  // them.
+  //
+  // CMB, Jesse H. Jones Communication Center B. UT publishes its east entrance
+  // at 30.289279,-97.741010 and calls it BarrierFree with an auto-opener. Our
+  // bake has a door 3.1 m from that point (door #324), so the UT match fires,
+  // and #324 anchors nodes 452 and 11040 — both on a 16-node island in the
+  // CMA/CMB courtyard whose every exit OSM has drawn as `highway=steps`. So the
+  // candidate list came back with one door on it, the door was unreachable by
+  // construction, and dijkstra answered `noroute`. Measured from three separate
+  // hubs (GDC, PCL, UTC): the walk is fine with the box unticked and refused
+  // the moment you tick it, and the card says "No walking route found" to the
+  // one person on campus who cannot just take the steps.
+  //
+  // This is the same class of bug one level up, so it gets the same rule: with
+  // "avoid stairs" on, a door is only a candidate if one of its anchor nodes is
+  // in the step-free component. Dropping the rest cannot lose a route — a node
+  // outside that component is one dijkstra could never have arrived at with the
+  // toggle on — so this is subtraction that only ever removes refusals.
+  function stepFreeDoor(g, di) {
+    const sf = stepFreeComp(g);
+    const nodes = g.doors[di][2] || [];
+    for (let k = 0; k < nodes.length; k++) if (sf.comp[nodes[k]] === sf.big) return true;
+    return false;
+  }
+
   /**
    * The candidate doors for one end of a route, in order of how much we know.
    *
@@ -1249,22 +1293,36 @@
    *      cannot take you there" (SAY.notRoutable) even when UT publishes the
    *      entrance. HLB, the Health Learning Building, is the live case.
    *
+   * Every one of those is filtered through `pool` first when the walker has
+   * ticked "avoid stairs": see stepFreeDoor() above.
+   *
    * Returns the same shape it always did (an array of door indices) so the
    * `via` branch of computeRoute keeps its old, conservative behaviour.
    */
   function doorSet(g, entry, avoidStairs) {
     const all = entry.doors.filter(di => g.doors[di][2] && g.doors[di][2].length);
     const truth = utTruth(entry.code);
-    if (!all.length) {
-      // Nothing of ours is anchored to the network here. If UT surveyed the
-      // entrance, walk to UT's own coordinate rather than refusing the trip.
+    // The doors this particular walker can actually arrive at. Identical to
+    // `all` unless the toggle is on, so nothing below this line can move a
+    // stairs-allowed route by a single metre.
+    const gate = !!avoidStairs && WAYFIND.stepFreeDoors;
+    const pool = gate ? all.filter(di => stepFreeDoor(g, di)) : all;
+    if (!pool.length) {
+      // Nothing of ours is anchored to the network here — or, with the toggle
+      // on, nothing of ours is anchored anywhere this walker can stand. If UT
+      // surveyed the entrance, walk to UT's own coordinate rather than refusing
+      // the trip; virtualDoor() snaps into the step-free component in that mode.
       if (!truth || !WAYFIND.utVirtualDoors) return all;
       const made = [];
       for (const t of utWant(truth, avoidStairs)) {
         const v = virtualDoor(g, entry, t, avoidStairs);
         if (v >= 0 && made.indexOf(v) < 0) made.push(v);
       }
-      return made;
+      // A building with mapped doors and no step-free one (LTH, TS2) still
+      // answers with the doors that exist. The route then fails, and it SHOULD:
+      // we have no evidence of a step-free way in, and inventing one is worse
+      // than saying so.
+      return made.length ? made : all;
     }
     if (truth) {
       const want = utWant(truth, avoidStairs);
@@ -1280,7 +1338,7 @@
       let far = -1, farD = Infinity;
       for (const t of want) {
         let best = -1, bd = Infinity;
-        for (const di of all) {
+        for (const di of pool) {
           const d = metresBetween(doorLL(g, di), [t.lon, t.lat]);
           if (d < bd) { bd = d; best = di; }
         }
@@ -1288,6 +1346,28 @@
           if (picked.indexOf(best) < 0) picked.push(best);
           continue;
         }
+        // AND THE THING THAT WAS TRIED HERE AND REJECTED, because the numbers
+        // said so and the reasoning had not. Falling past utDoorMatchM in
+        // avoid-stairs mode no longer only means "we have no door there" — it
+        // can now also mean "the door we have there is up the steps", so it is
+        // tempting to take the nearest REACHABLE door of our own instead (CMB's
+        // mapped main entrance, 29 m round the building, on pavement) rather
+        // than let the line below snap a target onto UT's coordinate with a
+        // 41 m dashed leg. Measured on the live page with a 35 m cap, that
+        // branch recovered CMB and moved EIGHTEEN other buildings off UT's
+        // exact coordinate by 12.4-33.8 m (BEN 25.7, ECJ 33.7, UTA 33.8,
+        // WEL 27.8; three more changed candidate without moving) —
+        // reintroducing, inside the step-free mode, the exact "walks you to a
+        // farther door than you have to go" complaint this lane exists to fix.
+        // Table in docs/walk-door.md round 5.
+        //
+        // The virtual door is also the better ANSWER for CMB, not just the
+        // cheaper diff: UT's survey records CMB East as BarrierFree with an
+        // auto-opener, which is UT asserting a step-free approach that OSM has
+        // simply not drawn. Our door #322 is a door UT never certified either
+        // way. Sending a wheelchair user to the entrance UT certified, with the
+        // unmapped stretch drawn dashed and labelled, beats sending them to one
+        // nobody surveyed because we happen to have pavement to it.
         const v = WAYFIND.utVirtualDoors ? virtualDoor(g, entry, t, avoidStairs) : -1;
         if (v >= 0) { if (picked.indexOf(v) < 0) picked.push(v); }
         else if (best >= 0 && bd < farD) { farD = bd; far = best; }
@@ -1295,8 +1375,19 @@
       if (picked.length) return picked;
       if (far >= 0 && WAYFIND.utDoorNearest) return [far];
     }
-    const mains = all.filter(di => g.doors[di][4] === 'main');
-    return mains.length ? mains : all;
+    // Buildings UT never surveyed. Same subtraction, and MEASURED RATHER THAN
+    // ASSUMED: the offline read of the bake said this rescued two more, AHG and
+    // NUR, whose `main` door is on a stairs island while a real secondary door
+    // is not. Driving the live app said otherwise — both already routed, both
+    // modes, from all three hubs. legBetween()'s wide pass had been quietly
+    // covering them, because widenSideDoors reopens every routable door on a
+    // building UT does not cover. So the honest claim is smaller than the one
+    // this comment first made: the candidate list AHG and NUR offer is now the
+    // door you can reach rather than the one you cannot (the unmapped last
+    // stretch halves, 9.9 -> 4.5 m and 8.8 -> 4.1 m), and the route a user gets
+    // is the same route it always was.
+    const mains = pool.filter(di => g.doors[di][4] === 'main');
+    return mains.length ? mains : pool;
   }
 
   // What a door has to BEAT to be worth walking round the building for. Zero

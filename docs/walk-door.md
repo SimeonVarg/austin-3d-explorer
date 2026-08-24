@@ -1071,3 +1071,249 @@ headless Chrome via `scripts/verify/chrome.mjs`, `?drift=0`,
 python scripts/serve.py 8811
 cd scripts/verify && VERIFY_URL=http://127.0.0.1:8811 node walkmeter.mjs --baseline
 ```
+
+---
+
+# Round 5, 2026-08-24 — the one building "Avoid stairs" still refused
+
+Round 4's critic passed the round (`oursWins = true`) and then named one
+concrete thing wrong with it, so this round is that one thing.
+
+> Ticking "Avoid stairs" for a route to CMB (Jesse H. Jones Communication
+> Center - B) returns `{ok:false, why:"noroute"}` from three different hubs, and
+> the live UI shows the user "No walking route found" for a route that works
+> fine with the box unchecked.
+
+It was right, and it was worse than "one awkward building": it was a hole in the
+rule round 3 wrote, sitting in plain sight in the code comment that shipped
+alongside it.
+
+## 1. What was actually broken
+
+Round 3 taught the *snap* about the step-free component. `utVirtualStepFree`
+made sure that when the router **invents** a target at UT's published
+coordinate, the node it hangs that target on is one the walker can leave without
+climbing anything. It fixed CMA, JGB and MAI, and the comment next to it said,
+in as many words, that CMB was a data gap it had decided to leave alone.
+
+That was the wrong reading. The rule was never about snapping — it is about
+whether a walker can *arrive*. And the doors the router had **not** invented —
+our own baked ones, straight out of `data/entrances.geojson` — were never asked
+the same question at all.
+
+The trace, node by node, off the served `data/walk_graph.json`:
+
+| CMB door | role | metres from UT's east entrance | anchor nodes | in the step-free component |
+|---|---|---|---|---|
+| #321 | secondary | 45.9 | 11042, 457, 8268 | **yes** (11042, 8268) |
+| #322 | main | 29.2 | 457, 439, 8273 | **yes** (8273) |
+| #323 | secondary | 5.4 | 452, 11040, 441 | no — all on component #20 |
+| #324 | secondary | **3.1** | 452, 11040 | no — all on component #20 |
+
+Component #20 is sixteen nodes in the CMA/CMB courtyard, and every edge leaving
+it is tagged `highway=steps` in OpenStreetMap. UT publishes CMB's entrance at
+`30.289279, -97.741010`; our door #324 is 3.1 m from it, comfortably inside
+`utDoorMatchM` (12 m). So the UT match fired, `doorSet()` returned exactly one
+candidate, that candidate was unreachable **by construction** the moment
+`avoidStairs` was on, and Dijkstra said `noroute`. Every time, from every hub.
+
+The building was not hard to reach. The *only door we offered* was.
+
+## 2. The rule
+
+One function, `stepFreeDoor(g, di)`, and one line in `doorSet()`:
+
+> With "avoid stairs" on, a door is a candidate only if one of its anchor nodes
+> is in the step-free component.
+
+It is subtraction, and subtraction that cannot cost a route: a node outside that
+component is a node Dijkstra could never have reached with the toggle on, so
+dropping it removes refusals and nothing else. Everything downstream — the UT
+match, the virtual-door snap, the `main`/everything fallbacks — then runs on the
+filtered list. For CMB that means the 3.1 m door is no longer a match, the
+nearest *reachable* door is 29.2 m away (past `utDoorMatchM`), and the building
+falls through to exactly the machinery round 3 already built and defended: a
+target at UT's own published coordinate, snapped 41.2 m to the nearest step-free
+node, with the last stretch drawn dashed and the card saying so in words.
+
+Switch: `WAYFIND.stepFreeDoors` (default `true`).
+
+## 3. The thing that was tried here and rejected
+
+The obvious alternative was to take CMB's own door #322 — a real, mapped, main
+entrance, 29.2 m round the building, anchored to pavement — instead of letting a
+41 m dashed leg run into the courtyard the steps are in. It was implemented,
+capped with a named `stepFreeDoorDetourM` at 35 m, and measured on the live page
+against every building with a mapped door. It recovered CMB, and it also did
+this:
+
+| building | door offset from UT's own point, "avoid stairs" on |
+|---|---|
+| BEN | 0 → 25.7 m |
+| BUR | 0 → 22.0 m |
+| CAL | 0 → 15.6 m |
+| DMC | 0 → 30.0 m |
+| ECJ | 0 → 33.7 m |
+| EER | 0 → 18.5 m |
+| GEA | 0 → 25.6 m |
+| GOL | 0 → 20.3 m |
+| GWB | 0 → 23.6 m |
+| HRH | 0 → 25.4 m |
+| PAI | 0 → 20.0 m |
+| PAT | 0 → 16.9 m |
+| PCL | 0 → 12.4 m |
+| SZB | 0 → 15.1 m |
+| UA9 | 0 → 24.1 m |
+| UTA | 0 → 33.8 m |
+| WEL | 0 → 27.8 m |
+| WWH | 14.5 → 25.0 m |
+
+Eighteen buildings pushed off UT's exact coordinate, plus GAR, PHR and RLP whose
+candidate changed without moving. That is this lane's own founding complaint —
+*"many routes take you to a farther entrance than you have to go"* —
+reintroduced inside the step-free mode, to fix one building. The branch was
+reverted before it was committed and the reasoning is kept in the comment where
+the next person will trip over the same idea.
+
+The virtual door is also the better **answer**, not merely the cheaper diff. UT's
+survey records CMB East as `BarrierFree` **with an auto-opener** — that is UT
+asserting a step-free approach exists that OSM has not drawn. Our door #322 is
+one UT never surveyed either way. Given a choice between the entrance UT
+certified for wheelchair use, with the unmapped stretch drawn dashed and
+labelled *"The last stretch isn't a mapped path"*, and one nobody surveyed that
+we happen to have pavement to — send them to the certified one and be honest
+about the gap.
+
+## 4. The numbers
+
+Same page, same graph, same browser, one pose, `WAYFIND.stepFreeDoors` the only
+difference. 158 buildings with a mapped door, routed from GDC, PCL and UTC.
+
+|  | rule off | rule on |
+|---|---|---|
+| step-free dead ends, all 158 buildings | 3 (CMB, LTH, TS2) | **2 (LTH, TS2)** |
+| GDC → CMB, "avoid stairs" | `noroute` | **866 m, 0 stair sets** |
+| CMB's endpoint vs UT's published door | — | **0.0 m** |
+| stairs-**allowed** routes that moved | — | **0 of 158** |
+
+`scripts/verify/walkmeter.mjs`, the house ruler, on the same server:
+
+|  | round 4 | round 5 |
+|---|---|---|
+| route-length extra, pairs it hurts | 162.1 m | 162.1 m |
+| route-length extra, signed | −276.7 m | −276.7 m |
+| door offset from UT's own door, 20 pairs | 83.7 m | 83.7 m |
+| ends at the right door | 38/38 | 38/38 |
+| every UT building: worst-case door err | 2.5 m | 2.5 m |
+| UT buildings scored at all | 55 | **56** |
+| reachable step-free from a hub | 55/56 | **56/56** |
+| **stranded** | **CMB** | **none** |
+| live UI gate (real mouse on the checkbox) | PASS | PASS |
+
+Metrics A and B are measured with stairs **allowed** (`walkmeter.mjs` routes
+every pair with `{}`), which is why they are bit-identical: this round cannot
+reach them. That is the point of it. The one number that moves is the one the
+critic pointed at.
+
+`walkmeter.mjs --baseline` also still reprints the baseline lane's `origin/main`
+headline (795.3 m / +209.5 m) to the decimal, and self-check drift is 0.00 m on
+all 20 pairs.
+
+## 5. Two claims this round MADE and then had to withdraw
+
+Written down because both were caught by running the thing, and neither by
+reading it.
+
+**"It rescues AHG and NUR too."** An offline read of the bake said both have
+their `main` door on a stairs island and a real secondary door that is not, so
+both must have been dead ends. Driving the live app said no: both already
+routed, both modes, from all three hubs. `legBetween()`'s wide pass had been
+quietly covering them, because `widenSideDoors` reopens every routable door on a
+building UT does not cover. What actually changed for AHG and NUR is smaller and
+honest: the candidate list is now the door you can reach rather than the one you
+cannot, and the unmapped last stretch halves (9.9 → 4.5 m, 8.8 → 4.1 m). The
+route a user gets is the route they always got.
+
+**The first "before" photograph was the loading screen.** The DOM readback was
+already correct — the card really did say "790 m · Stairs: 1 set" — while the
+map underneath was still *0 of 4 layers ready*, so the frame shows the veil.
+Every map frame in this round now waits the veil out and reports how many
+features each `wayfind-*` layer actually painted, so "the route is on screen" is
+asserted rather than eyeballed: 83 ribbon features in the after frame, 0 in the
+before, at a pose read back after the shutter.
+
+## 6. The pictures
+
+The card, GDC → CMB, one real mouse click at the checkbox's own pixel centre:
+
+- `shots/walk/door/cmb-card-off.jpg` — "9-13 min walk · 790 m · Stairs: 1 set",
+  box unticked.
+- `shots/walk/door/cmb-card-on.jpg` — after the click: "10-15 min walk · 870 m ·
+  No stairs on this route", box ticked, and the card volunteers *"The last
+  stretch isn't a mapped path"* for the 41 m dashed leg.
+
+The map, one camera pose (30.28779, −97.73850, z 16.55, pitch 12, bearing 0),
+held and read back, `stepFreeDoors` the only difference:
+
+- `shots/walk/door/cmb-whole-before.jpg` — "No walking route found". Nothing
+  drawn; all four `wayfind-*` layers paint 0 features.
+- `shots/walk/door/cmb-whole-after.jpg` — the walk drawn up Speedway to CMB;
+  83 ribbon, 6 ghost, 4 thread, 1 column feature on screen.
+
+(The brown hatched strip up the middle is in **both** frames — it is the
+Speedway mall, and its presence in both is what proves the two frames are the
+same scene.)
+
+## 7. What round 5 changed in the code
+
+`js/wayfind.js`, entrance-choice functions only, and nothing else in the repo:
+
+- **new** `stepFreeDoor(g, di)` — is any of this door's anchor nodes in the
+  step-free component. Reuses `stepFreeComp()`'s existing lazy flood; no new
+  traversal, and it still never runs for a walker who never ticks the box.
+- **`doorSet()`** now derives `pool` from `all` through that test when
+  `avoidStairs && WAYFIND.stepFreeDoors`, and every branch below reads `pool`.
+  The "nothing anchored" branch falls back to `all` when the building has no
+  step-free door at all, so LTH and TS2 keep answering with the doors that exist
+  and the route keeps failing — which is the honest answer when we have no
+  evidence of a step-free way in.
+- **new switch** `WAYFIND.stepFreeDoors` (default `true`), with the measured
+  before/after in its comment.
+- **corrected** the `stepFreeComp()` header, which claimed CMB was a data gap
+  nothing could be done about. It was a hole in this file.
+
+`data/entrances.geojson` and `scripts/bake_entrances.py` unchanged — read, not
+edited. `WAYFIND.on` still `false`. `?walk=0` still draws no pill, no sheet, no
+`wayfind-*` layer, exposes no `wayfindRoute`/`wayfindDoors`/`wayfindUTDoors`,
+and logs no error. `harness-drift`: 31 scripts both sides, PASS.
+
+## 8. Still not done
+
+- **LTH and TS2 have no step-free door in the bake at all** — not one anchor in
+  the step-free component between them. They are honest dead ends today and the
+  card says so, but they are the next thing to look at, and the answer is
+  probably upstream in the walk bake rather than here.
+- **`walkmeter.mjs` does not print `stepFreeDoors` in its `flags` line.** That
+  file is not this round's to write. The switch is readable at
+  `window.WAYFIND.stepFreeDoors`, and the metric it moves is the
+  `stranded before/after` line, which walkmeter already reports. A request for
+  whoever owns the ruler next: add it to the flag dump.
+- Everything in round 4 §8 that was not CMB still stands — the unrebaked
+  `data/walk_graph.json`, BIO's unanchored door, `doorPhrase()` calling a UT
+  door a guess, and a UI gate that covers one control on one pair.
+
+## Round 5 sources
+
+UT Austin `Celebrated_Entrances_view`, public unauthenticated ArcGIS
+FeatureServer, `services9.arcgis.com/w9x0fkENXvuWZY26`; the copy shipped in
+`js/wayfind.js` was re-verified against the live layer in round 4 §6 and is
+unchanged since. © The University of Texas at Austin. Step-free components read
+off the served `data/walk_graph.json` with the same flood `stepFreeComp()` uses.
+All measurements on `python scripts/serve.py 8811`, headless Chrome via
+`scripts/verify/chrome.mjs`, `?drift=0`, `cancelGraphicsAutoDetect()` called,
+veil waited out, one browser. Re-run:
+
+```
+python scripts/serve.py 8811
+cd scripts/verify && VERIFY_URL=http://127.0.0.1:8811 node walkmeter.mjs --baseline
+```

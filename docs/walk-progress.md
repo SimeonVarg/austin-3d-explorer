@@ -299,3 +299,42 @@ already documented as tried.
 
 Server on 8851 stopped and confirmed free after this pass. No file this branch
 owns (`js/wayfind.js`, `data/*`, `scripts/bake_entrances.py`) was touched.
+
+## 2026-08-24 — the last building "Avoid stairs" refused to take you to
+
+Branch `acer/w-door`, round 5. Last round's critic passed the work and then
+found one real hole in it: tick "Avoid stairs" and ask for a walk to the Jesse
+H. Jones Communication Center B, and the app said "No walking route found" — for
+a walk it happily gives you with the box unticked. That is the one person on
+campus who cannot just take the steps, being told to go away.
+
+It turned out not to be about that building. The rule we wrote two rounds ago
+made sure that when we *invent* a destination point we hang it somewhere a
+person can actually reach without steps. It never asked the same question of the
+doors we already had on file. Jones B has four of them; the one sitting closest
+to the entrance UT publishes — three metres away — opens onto a courtyard whose
+every way out, as far as OpenStreetMap knows, is a staircase. So we offered
+exactly one door, it was a door nobody could get to, and the router did the only
+thing it could.
+
+The fix is a subtraction, not an addition: with the box ticked, a door is only
+offered if you can actually walk to it. Nothing else changed — every one of the
+twenty test walks measures the same to the decimal, and not one of the 158
+buildings routes differently with the box unticked. What did change: the app now
+gets you to every single building UT has surveyed without stairs, 56 of 56, up
+from 55. Jones B is a ten-to-fifteen minute walk that ends at the east entrance
+UT's own accessibility survey certifies — with the last forty metres drawn
+dashed, because we genuinely do not have a path mapped there and the card says
+so out loud.
+
+Two things this round claimed and then took back, both caught by driving the app
+instead of reading it: two other buildings we thought we had rescued had never
+been broken (a widening rule was already covering them), and the first "before"
+photograph turned out to be the loading screen with the map still four layers
+from ready. Every picture now waits the loading screen out and counts how many
+pieces of route actually got painted before the shutter — 83 in the after frame,
+zero in the before. Also tried and thrown away: sending step-free walkers round
+to Jones B's other, reachable door. It fixes that one building and drags
+eighteen others 12 to 34 metres off the entrance UT publishes, which is the
+exact complaint this whole lane exists to fix. Pictures and the full table are in
+`docs/walk-door.md` round 5. `WAYFIND.on` still false.
