@@ -2695,3 +2695,136 @@ removed with `git worktree remove --force` and pruned. No screenshots
 committed — all frames stayed in the scratchpad; the five already-committed
 `shots/si/dayview/*.jpg` from the builder's own harness run were reused rather
 than re-shot.
+
+## 2026-08-24 — critic round 5 verdict on `acer/si-parser`: oursWins = true, the round-4 bug is actually fixed
+
+Fresh context, own port (8951). Round 4's critic found one real defect: the
+auto-sniff that decides which parser gets a file was blind to the single
+likeliest real bad upload (a saved sign-in page), so an unqualified
+`wayfindParseSchedule(text, {})` call reported nine `LOCATION_MISSING` errors
+about lines of HTML instead of the one correct sentence that already existed.
+This round (`b40e0d7`, on top of e855af3) is the builder's fix for exactly
+that bug, so the job was to find out whether it actually holds — not to take
+the commit message's word for it.
+
+**Re-ran the builder's own gate fresh, not trusted from a printout:** copied
+the shared `playwright-core` install from the main checkout into this
+worktree's empty `scripts/verify/node_modules` (it started empty here too,
+same as the main checkout — `npm install` was needed), served the branch on
+8951, ran `schedule-fixtures/schedule-parse.mjs` twice. 285 of 286 passed both
+times; the one failure is a rendering self-check, not a parsing one (below).
+
+**Then built my own fixtures from scratch — different building codes, wording,
+and even a different HTML shape than the builder's or round 4's — because a
+lane's own gate passing is not the question.** Fed straight to the live
+`window.wayfindParseSchedule` / `wayfindScheduleCheck` / `wayfindRoute` on the
+running page:
+
+- A clean two-class `.ics` (CBA/UTC, codes nobody else in this gauntlet has
+  used) imported both classes cleanly.
+- A four-event bad file covering the brief's four named categories in one
+  file: a transposed building code (`CBQ`) got `BUILDING_UNKNOWN` with the
+  correct suggestion ("Did you mean CBA?"); an event with the `LOCATION`
+  property omitted entirely got `LOCATION_MISSING`; an ISO-shaped bad
+  `DTSTART` (`2026-08-28T09:00:00`, a different malformation than the
+  builder's letter-O typo) got `DATE_MALFORMED` naming the exact bad string; a
+  real 75-octet-folded three-line street address ending in a parenthesised
+  code correctly resolved to `WCH` (a real building, confirmed in
+  `js/wayfind.js:3627`) rather than erroring — the multi-line-address case is
+  a success path, not a failure one, and it worked.
+- A same-day back-to-back pair (`PAR`→`SZB`, codes nobody else has used)
+  produced three real legs (MO/WE/FR) through `wayfindScheduleCheck`, each
+  `ok:true` at 451.74 m — checked against a direct `wayfindRoute('PAR','SZB')`
+  call, which returned the identical 451.74 m. Not "marked routable" — an
+  actual route, matching to the centimetre.
+- My own saved-sign-in-page fixture — a UT **CAS** login shell, deliberately a
+  different markup shape than the builder's UT-EID-styled fixture, to check
+  the fix generalises rather than being tuned to one exact file — correctly
+  produced exactly one `FILE_NOT_CALENDAR` problem, not nine. The round-4 bug
+  is fixed, and the fix is not narrow.
+- My own syllabus-paragraph junk text correctly produced one `FILE_NOT_SCHEDULE`
+  verdict, not five per-line errors.
+- My own "one real class buried in unrelated boilerplate" paste (registration
+  reminders, not the builder's wording) still imported the one real class
+  (`JGB`, GEO 401) while flagging the four junk lines individually — the
+  new file-level guard does not swallow a good row, on a text I wrote myself.
+
+**The one thing that did not hold up on re-measurement, and it is worth
+re-running twice before believing either way: the gate's own "the route was
+actually drawn" pixel check is flaky.** It measures a noise floor by grabbing
+the same still frame twice, then compares the pixels that change when the
+route is cleared against a bar derived from that floor. Independent run 1:
+1,448 pixels moved vs a bar of 21,340 — fail. Independent run 2, same
+fixtures, same machine, immediately after: 472 pixels moved vs a bar of
+1,160 — fail again, but with entirely different numbers. The doc's own
+writeup reports this same instrument reading 0-noise and a clean 1,437-pixel
+signal when the builder ran it. That is three different noise floors (0,
+2,134, 116) for a "hold the camera still and diff two frames" measurement on
+the same scene — the city's own ambient animation (the day/night dial, or
+similar) is swamping a genuinely thin signal, because a 140 m route ribbon in
+this camera framing only occupies a sliver of the 256,000-pixel sample.
+**Checked the actual claim by looking, per house rule, since the instrument
+disagreed with itself:** opened both `shots/si/parser/leg-from-schedule.png`
+and `leg-walking-height.png` with the Read tool. The dashed white route line
+is plainly visible in both frames, especially the second. The underlying
+claim — the leg is really drawn — is true. The instrument measuring it is not
+reliable enough to trust unsupervised. Reverted the two shot files my re-runs
+regenerated (same camera, same fixture, not a real change) back to the
+committed versions.
+
+**Independently re-confirmed the bar itself, not just round 4's word for it:**
+fetched `support.google.com/calendar/answer/45654` directly. Google's own
+documented behaviour for an `.ics` import with bad events is **"Processed x
+of y events"** — a bare count, no per-event detail, "does not provide
+detailed per-event feedback or granular error messages for individual invalid
+events." A second, independent web search corroborated the same wording. This
+branch's `BUILDING_UNKNOWN` / `LOCATION_MISSING` / `DATE_MALFORMED` /
+`FILE_NOT_CALENDAR` sentences, each naming the row, the class, and a hint,
+are a real and substantial step past that bar, not a marginal one.
+
+**Also spot-checked for cross-lane breakage, since a lane's own gate passing
+is never the last word:** `git diff --numstat origin/main -- js/wayfind.js`
+reads `1351  0` — confirmed additive-only myself, not quoted from the
+commit message; no other file changed outside `docs/`, `shots/`, and this
+lane's own fixtures. `WAYFIND.on` is still `false`. An ordinary route
+(`JES`→`WEL`) still returns 449.61 m through the live page, matching prior
+rounds' figures — the shared file's core routing is intact. The eleven
+Pickle-campus/SSW gaps re-verified exactly as the doc states: `wayfindSearch`
+returns `[]` for `SSW` and `MER`, `HLB` reports `routable:false` yet
+`wayfindRoute('PCL','HLB')` still succeeds at 1,339.08 m, and a schedule row
+naming `SSW 1.107` gets the honest, specific `BUILDING_NOT_WALKABLE` sentence
+rather than a wrong or generic one — the parser's own resolver already knows
+more about SSW than the general building search does.
+
+**oursWins = true.**
+
+**Single biggest remaining gap, concretely:** the "was it actually drawn"
+pixel-diff assertion in `scripts/verify/schedule-fixtures/schedule-parse.mjs`
+computes its pass/fail bar from a noise floor sampled once, on whatever the
+scene's ambient animation happens to be doing that instant, and that floor
+varied 0 / 116 / 2,134 pixels across three runs on the same machine — twice
+enough to swamp the actual signal outright. Fix it by masking the sample to
+the route's own screen-space bounding box (available from the fly/fit call
+that framed the shot) instead of the whole 256,000-pixel canvas, or by taking
+the noise floor as the minimum of several still-frame pairs rather than one,
+per CLAUDE.md's own "take the minimum of interleaved reps" rule — right now a
+future round could see this line fail for a reason that has nothing to do
+with anything they touched, or worse, could get a lucky green and never learn
+it doesn't mean what it says.
+
+**What I actually looked at or measured:** the branch's own gate re-run twice
+fresh (285/286, 285/286); six fixtures I wrote myself (clean two-class `.ics`,
+a four-category bad `.ics`, a same-day leg pair, a differently-shaped sign-in
+page, syllabus junk, and a junk-plus-one-real-class paste) driven live against
+`wayfindParseSchedule`/`wayfindScheduleCheck`/`wayfindRoute`/`wayfindSearch`
+on the running page; both committed screenshots opened and read directly;
+`support.google.com`'s own import-error page fetched fresh plus one
+independent web search corroborating it; `git diff --numstat` for the
+additive-only claim; a same-machine sanity route (`JES`→`WEL`); and the
+`SSW`/`HLB`/`MER` claims reproduced by calling the functions myself. Branch
+left as found — the two regenerated screenshots were reverted to the
+committed bytes, `scripts/verify/node_modules` (this worktree's own copy,
+`npm install`-ed fresh, same as the main checkout needed) is gitignored and
+not committed, server on 8951 killed by PID and the port re-confirmed free by
+`netstat`, no scratch scripts committed to `scripts/verify`. No file the
+builder owns was edited.
