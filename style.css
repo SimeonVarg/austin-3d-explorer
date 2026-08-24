@@ -1796,6 +1796,46 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
    result list — so the head, the tabs, the action and the privacy line are
    whole at any panel height and the instructions scroll instead. */
 #wf-imp-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:11px 14px 4px}
+
+/* ── AN EDGE THAT IS CUT MUST NOT LOOK LIKE AN EDGE THAT IS FINISHED ───────
+   Found in two photographs of a working build, not in the code — the argument
+   and both frames are written up at `impShade` in js/wayfind.js §9. Short
+   version: the result screen showed one of six placed classes and clipped the
+   rest against a crisp border with nothing to say so, and the error screen's
+   deliberate scroll-to-the-end landed mid-line and read as a rendering fault.
+
+   A MASK, NOT A GRADIENT OVERLAY, and that is the whole reason this is three
+   lines instead of two absolutely-positioned children. `#wf-imp-body` is a
+   scroller inside a translucent panel over a live 3D city: an overlay would
+   have to be painted in the panel's own glass colour to hide the text under
+   it, and that colour is `--wf-glass-solid` composited over whatever the map
+   is doing that second — it is not a colour this stylesheet can name. A mask
+   removes the pixels instead of covering them, so the fade is correct over any
+   scene, at any time of day, and stays correct if the glass is ever retuned.
+
+   The classes are put on by `impShade` off measured scroll geometry. An end
+   with nothing past it keeps its hard edge on purpose: if both ends always
+   faded, the fade would carry no information. */
+#wf-imp-body{
+  /* One line of the smallest type on this screen is about 15 px, so the fade
+     is deep enough that a clipped line is unmistakably ghosted and shallow
+     enough that the line below it is still fully legible. */
+  --wf-imp-fade:16px;
+}
+#wf-imp-body.cut-top{
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 var(--wf-imp-fade));
+  mask-image:linear-gradient(to bottom,transparent 0,#000 var(--wf-imp-fade));
+}
+#wf-imp-body.cut-bot{
+  -webkit-mask-image:linear-gradient(to top,transparent 0,#000 var(--wf-imp-fade));
+  mask-image:linear-gradient(to top,transparent 0,#000 var(--wf-imp-fade));
+}
+#wf-imp-body.cut-top.cut-bot{
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 var(--wf-imp-fade),
+    #000 calc(100% - var(--wf-imp-fade)),transparent 100%);
+  mask-image:linear-gradient(to bottom,transparent 0,#000 var(--wf-imp-fade),
+    #000 calc(100% - var(--wf-imp-fade)),transparent 100%);
+}
 .wf-imp-steps{display:flex;flex-direction:column;gap:7px;margin-bottom:11px}
 .wf-imp-step{display:flex;align-items:flex-start;gap:8px}
 .wf-imp-n{flex:none;width:var(--wf-imp-n);height:var(--wf-imp-n);border-radius:50%;
@@ -1877,7 +1917,19 @@ body.wf-live .wf-steps-h{margin-bottom:4px}
 .wf-imp-sec{margin:14px 0 4px;font-size:var(--wf-imp-lab);font-weight:700;
   letter-spacing:.14em;text-transform:uppercase;color:var(--wf-dimmer)}
 .wf-imp-sec.bad{color:var(--wf-imp-bad);opacity:.85;margin-top:11px}
-.wf-imp-more{padding:7px 0 0;font-size:var(--wf-imp-row2);color:var(--wf-dimmer)}
+/* `Show N more` — a REAL control now, not a caption. It was `+ N more` in
+   dimmer type with no handler, so the six placed classes on screen and the
+   three off it were the same news presented as different news. A thumb has to
+   be able to hit it, so it takes --touch-min like every other target in this
+   feature, and it looks like a control (border, hover) rather than like the
+   dimmed footnote it used to be mistaken for. Full width, because a lone
+   short button under a list of full-width rows reads as belonging to the last
+   row rather than to the list. */
+.wf-imp-more{display:block;width:100%;margin-top:8px;min-height:var(--touch-min);
+  background:rgba(255,255,255,.05);border:1px solid var(--wf-edge-soft);
+  border-radius:9px;color:var(--wf-dim);font:inherit;font-size:var(--wf-imp-row2);
+  font-weight:700;letter-spacing:.06em;cursor:pointer;padding:0 10px}
+.wf-imp-more:hover{background:var(--wf-hot);color:var(--wf-ink)}
 
 /* THE ACTION ROW. `Import` / `Use these N` is the one filled control on the
    screen, the same amber `Walk it` is on the answer bar — this feature has

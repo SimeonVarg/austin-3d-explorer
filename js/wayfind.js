@@ -8268,10 +8268,17 @@
     // Which acquisition front-end opens first. Google is the biggest calendar
     // on a student phone; it is not a judgement about which is best.
     defaultSource: 'gcal',
-    // How many placed classes the result list shows before it scrolls. The
-    // panel scrolls anyway; this is about the FIRST screenful being the
-    // answer rather than the beginning of a list.
+    // The CEILING on how many placed classes the result list shows before
+    // `Show N more`. It is a ceiling and no longer the whole rule: how many
+    // actually show is measured against the panel this phone gave us (see
+    // `impFitList`), because a fixed number cannot be right on both a result
+    // with three failures above it and a result with none.
     resultPeek: 6,
+    // ...and the floor under that measurement. ZERO, deliberately: when the
+    // failures have eaten the whole panel, `PLACED 6` over a `Show 6 more`
+    // button is a complete, honest screen, and one placed row over a button
+    // nobody can see is not. A visible control beats a visible sample.
+    minPeek: 0,
     // A schedule is one term. Anything past this in one paste is somebody's
     // whole calendar, not their classes, and importing 400 events silently is
     // worse than saying no.
@@ -8286,6 +8293,12 @@
     dayOrder: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'],
     // How each day is printed on a result row. UT prints TTh; ICS says TU,TH.
     dayShort: { MO: 'M', TU: 'T', WE: 'W', TH: 'Th', FR: 'F', SA: 'Sa', SU: 'Su' },
+    // HOW FAR THE BODY HAS TO BE OFF AN END BEFORE THAT END IS CALLED CUT.
+    // Not zero: a scroller sitting on 0.5 px of subpixel rounding is not
+    // scrolled, and a shade that flickers on and off under a thumb is worse
+    // than no shade. 6 px is under one line of the smallest type on this
+    // screen (--wf-imp-row2, 10.5px), so nothing readable can hide inside it.
+    edgeSlopPx: 6,
   };
 
   // THE THREE ROUTES. A row here is one acquisition front-end. `accepts` is the
@@ -8424,7 +8437,13 @@
     fromSource: (label) => 'from ' + label,
     couldNot: (n) => "Couldn't place " + n,
     placedSec: (n) => 'Placed ' + n,
-    andMore: (n) => '+ ' + n + ' more',
+    // A COUNT THE STUDENT CANNOT CHECK IS NOT A COUNT. This used to be a plain
+    // line of text: `Use these 9` on the button, six rows on screen, `+ 3 more`
+    // under them, and no way — scroll, tap or otherwise — to find out which
+    // three. The screen was naming buildings it would then route them to and
+    // refusing to say which buildings. It is a button now, and it says what
+    // pressing it does rather than restating the arithmetic above it.
+    andMore: (n) => 'Show ' + n + ' more',
     useThese: (n) => 'Use ' + (n === 1 ? 'this class' : 'these ' + n),
     noneUsable: 'Nothing here can be routed to',
     // The failure taxonomy, one sentence each. Every one of them names the
@@ -8755,7 +8774,12 @@
   // way to see what had been tried. A field whose value the screen forgets is
   // worse than no field.
   const impState = { source: IMP.defaultSource, result: null, err: null, busy: false,
-    url: '', text: '' };
+    url: '', text: '', showAll: false,
+    // How many placed rows this panel turned out to have room for, measured
+    // once per result by `impFitList`. `null` means "not measured yet", which
+    // is the state every new result starts in, and `fitDone` latches once
+    // the panel is whole so a thumb on the scroller cannot restart the search.
+    fit: null, fitDone: false };
 
   function impSource(id) {
     return IMP_SOURCES.find(s => s.id === id) || IMP_SOURCES[0];
@@ -8793,6 +8817,10 @@
     panel.appendChild(tabs);
 
     const body = h('div', null); body.id = 'wf-imp-body';
+    // The shade is a function of where this scroller actually is, so it is
+    // recomputed from the scroller itself and never from what a render thought
+    // it had drawn. `passive` because it only reads geometry.
+    body.addEventListener('scroll', () => impShade(), { passive: true });
     panel.appendChild(body);
 
     // WHAT WENT WRONG IS NOT A RESULT, SO IT DOES NOT LIVE IN THE SCROLLER.
@@ -8827,6 +8855,13 @@
 
     el.root.appendChild(panel);
     impEl = { panel, head, title, tabs, body, errSlot, foot, file, note };
+    // A rotation, or the software keyboard opening under a focused field,
+    // changes how much of the body is visible without a scroll event ever
+    // firing — so the shade would go stale in exactly the moment a phone is
+    // most cramped. Bound once, and it costs nothing while the panel is shut.
+    window.addEventListener('resize', () => {
+      if (impEl && !impEl.panel.classList.contains('hidden')) impShade();
+    }, { passive: true });
     return impEl;
   }
 
@@ -8839,7 +8874,8 @@
     // fetch that could have run while they were choosing.
     loadGraph().catch(() => {});
     impState.result = null; impState.err = null; impState.busy = false;
-    impState.url = ''; impState.text = '';
+    impState.url = ''; impState.text = ''; impState.showAll = false;
+    impState.fit = null; impState.fitDone = false;
     el.sheet.classList.add('hidden');
     el.btn.classList.remove('active');
     impEl.panel.classList.remove('hidden');
@@ -8851,6 +8887,7 @@
   }
   function impBack() {
     impState.result = null; impState.err = null; impState.busy = false;
+    impState.showAll = false; impState.fit = null; impState.fitDone = false;
     impRender();
   }
 
@@ -8953,7 +8990,7 @@
     // the bottom of that scroller is always the doing half. The steps are what
     // the student has already followed.
     const b = impEl.body;
-    if (b) requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; });
+    if (b) requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; impShade(); });
   }
 
   function impDayStr(days) {
@@ -9026,7 +9063,9 @@
     if (res.classes.length) {
       body.appendChild(h('div', 'wf-imp-sec', SAY_IMP.placedSec(res.classes.length)));
       const list = h('div', 'wf-imp-list');
-      const shown = res.classes.slice(0, IMP.resultPeek);
+      const cap = impState.showAll ? res.classes.length
+        : Math.min(IMP.resultPeek, impState.fit == null ? IMP.resultPeek : impState.fit);
+      const shown = res.classes.slice(0, cap);
       for (const c of shown) {
         const row = h('div', 'wf-imp-row ok');
         row.appendChild(icon('wf-imp-row-ic', IC_IMP.check, 2.4));
@@ -9049,8 +9088,13 @@
       }
       body.appendChild(list);
       if (res.classes.length > shown.length) {
-        body.appendChild(h('div', 'wf-imp-more',
-          SAY_IMP.andMore(res.classes.length - shown.length)));
+        const more = h('button', 'wf-imp-more',
+          SAY_IMP.andMore(res.classes.length - shown.length));
+        // The list is the last thing in the body, so opening it always adds
+        // height BELOW where the eye already is — the scroll shade picks that
+        // up on the next frame and the new rows are reachable by thumb.
+        more.addEventListener('click', () => { impState.showAll = true; impRender(); });
+        body.appendChild(more);
       }
     }
 
@@ -9066,16 +9110,185 @@
     foot.appendChild(back);
   }
 
+  /**
+   * THE SCROLLER HAS TO SAY THAT IT IS A SCROLLER, AND THIS WAS FOUND IN A
+   * FRAME, NOT IN THE CODE.
+   *
+   * `#wf-imp-body` is the one child that yields height, so on a 390 x 844 phone
+   * it is almost always shorter than its contents — and it clipped them with a
+   * hard edge and no mark of any kind. Two photographs, both from a working
+   * build:
+   *
+   *   - THE RESULT SCREEN. "6 of 9 classes placed", three failures, `PLACED 6`,
+   *     and then ONE placed row before the edge. The other five were below it
+   *     with nothing on screen to say so, and `+ N more` does not fire here
+   *     because six is exactly `IMP.resultPeek`. A student who is told six
+   *     classes were placed and shown one has been given a number they cannot
+   *     check.
+   *   - THE ERROR SCREEN. `impRenderErr` scrolls the body to its end on purpose
+   *     (so the control the message names is under the message), and the end
+   *     landed mid-line: the bottom halves of the letters of "…Subscription
+   *     Calendar" sat under the tab divider like a rendering fault.
+   *
+   * Both are the same missing thing — an edge that is CUT looks identical to an
+   * edge that is FINISHED. So each end that has content past it is faded, and
+   * an end that has nothing past it is left hard, which is what makes the fade
+   * mean something. A half-line under a fade reads as "there is more up there";
+   * a half-line under a crisp border reads as a bug.
+   *
+   * Driven off measured scroll geometry rather than a render-time guess,
+   * because the same body is scrolled by a thumb, by `impRenderErr`, and by the
+   * keyboard opening under a focused field.
+   */
+  function impShade() {
+    const b = impEl && impEl.body;
+    if (!b) return;
+    const slop = IMP.edgeSlopPx;
+    const over = b.scrollHeight - b.clientHeight;
+    b.classList.toggle('cut-top', over > slop && b.scrollTop > slop);
+    b.classList.toggle('cut-bot', over > slop && (over - b.scrollTop) > slop);
+  }
+
+  /**
+   * HOW MANY PLACED CLASSES FIT, ASKED OF THE PANEL RATHER THAN GUESSED.
+   *
+   * `IMP.resultPeek` was the whole rule and a fixed number cannot be right
+   * twice. Photographed on a 390 x 844 phone: nine imported, three failed,
+   * `PLACED 6` — and ONE placed row before the edge of the scroller. The other
+   * five were below the fold, `Show N more` did not appear because six is
+   * exactly the peek, and the button said `Use these 6`. A screen that names a
+   * number, shows one of it, and then routes you somewhere on the strength of
+   * the rest is asking to be trusted about a thing it is hiding.
+   *
+   * Whether they fit depends on what is ABOVE them — three failures whose
+   * reasons each wrap to two or three lines cost about 210 px of a 373 px
+   * body, and a clean import costs none of it. So it is measured: render once,
+   * count the rows that landed whole inside the scroller, and if any did not,
+   * re-render with the list cut to what fits and a real `Show N more` under
+   * it. The count on the screen becomes a count the student can check.
+   *
+   * THE BUTTON IS PART OF WHAT HAS TO FIT, and the first cut of this function
+   * forgot that: it counted the rows that fitted, dropped one, and shipped —
+   * and the `Show 5 more` it had just added landed below the fold, which is
+   * the identical defect to the one this feature already fixed once, when an
+   * error message named a file button the same frame was hiding. Photographed:
+   * `PLACED 6`, one WEL row, and no control anywhere on the panel. So the exit
+   * condition is not "the rows fit", it is "the rows fit AND the way to the
+   * rest is reachable".
+   *
+   * IT TERMINATES BY CONSTRUCTION. Each pass renders one fewer row than the
+   * last, so it runs at most `IMP.resultPeek + 1` times and cannot oscillate —
+   * `fit` never grows. `fitDone` latches the moment the panel is whole, so a
+   * thumb scrolling the body afterwards cannot restart it. A layout loop on a
+   * panel over a live map is not a bug anyone would enjoy finding on a phone.
+   */
+  /**
+   * How deep the bottom shade currently eats, in px — 0 when it is not on.
+   * READ OFF THE STYLESHEET, not restated here: `--wf-imp-fade` is a taste
+   * value and CLAUDE.md rule 11 puts taste values where Simeon can change
+   * them in one line. A copy of the number in this file would be a second
+   * place to change it and therefore a place to forget.
+   */
+  function impFadePx() {
+    const b = impEl && impEl.body;
+    if (!b) return 0;
+    if ((b.scrollHeight - b.clientHeight) <= IMP.edgeSlopPx) return 0;
+    const v = parseFloat(getComputedStyle(b).getPropertyValue('--wf-imp-fade'));
+    return isFinite(v) ? v : 0;
+  }
+
+  function impFitList() {
+    if (!impEl || !impState.result || impState.showAll || impState.fitDone) return;
+    const b = impEl.body;
+    for (let pass = 0; pass <= IMP.resultPeek; pass++) {
+      const bb = b.getBoundingClientRect();
+      // CLEAR OF THE SHADE, not merely inside the box. An earlier cut stopped
+      // the moment `Show 6 more` was technically within the scroller — and the
+      // scroller was still overflowing, so the shade was on, and the bottom
+      // 16 px of that button was ghosted out. A control half-dissolved by the
+      // affordance that says "there is more below" is a worse frame than the
+      // one this function was written to fix.
+      const guard = impFadePx();
+      const inside = (e) => !!e && e.getBoundingClientRect().bottom <= bb.bottom - guard + 1;
+      const rows = [].slice.call(b.querySelectorAll('.wf-imp-row.ok'));
+      const more = b.querySelector('.wf-imp-more');
+      if (rows.every(inside) && (!more || inside(more))) break;
+      // Nothing left to give. The failures alone have filled the panel, which
+      // is a real result and not a layout bug — five reasons a student has to
+      // read are worth more than a sample of the six that worked. The shade
+      // and the scroller take it from here, and the two numbers that matter
+      // are already above the fold and on the button.
+      if (rows.length <= IMP.minPeek) break;
+      impState.fit = rows.length - 1;
+      impRenderResult();
+    }
+    impState.fitDone = true;
+  }
+
   function impRender() {
     if (!impEl) return;
-    if (impState.result) impRenderResult(); else impRenderAdd();
+    // ONE SYNCHRONOUS PASS, and the fit runs INSIDE it rather than a frame
+    // later. This used to post `impFitList` to `requestAnimationFrame` and let
+    // it chain a frame per shrink, which reasons fine and measures badly: on
+    // the headless Chrome this suite drives, a UT paste with five failures was
+    // still visibly mid-shrink FOUR SECONDS after the result rendered, with
+    // `Show 6 more` hanging below the fold the whole time. Whatever throttles
+    // rAF for an offscreen surface will throttle it on a phone whose browser
+    // has decided the tab is busy, and a panel that reflows six times in front
+    // of a student is worse than the defect it is fixing.
+    // `getBoundingClientRect` forces layout, so the measurement is available
+    // now, not next frame.
+    if (impState.result) { impRenderResult(); impFitList(); } else impRenderAdd();
+    impShade();
+    // One more, a frame later, only for the shade: a web font swapping in
+    // after this returns changes how much overflows, and the shade is the one
+    // thing here that is cheap enough to recompute for free.
+    requestAnimationFrame(impShade);
   }
 
   // ── the three ways bytes arrive ───────────────────────────────────────────
 
+  /**
+   * THE VERDICT CANNOT BE COMPUTED BEFORE THE GRAPH EXISTS, AND UNTIL THIS
+   * ROUND IT WAS COMPUTED ANYWAY.
+   *
+   * `impPlace` asks `wayfindSearch` whether a code has a walkable door.
+   * `impOpen` kicks off `loadGraph()` when the panel opens — deliberately, so
+   * that the fetch overlaps the student reading the instructions — but nothing
+   * WAITED for it. Reproduced on the real page: open the panel, paste twelve
+   * real UT rows, press Import inside two seconds, and the screen says
+   *
+   *     12 · Couldn't place 12 · Nothing here can be routed to
+   *
+   * for a schedule where seven of them are two minutes' walk away. Do the same
+   * thing five seconds later and it says `7 of 12 classes placed`. Same input,
+   * same build, two different answers — the worst shape a bug can have on a
+   * screen whose entire job is telling a student the truth about their own
+   * timetable, and it is silent: nothing on the panel suggests waiting.
+   *
+   * `loadGraph` memoises its own promise, so awaiting it here costs nothing
+   * after the first time and cannot start a second fetch. A rejection is
+   * swallowed on purpose: if the graph genuinely will not load, the honest
+   * thing is still to place what the static register can and say so per row,
+   * which is exactly what the failure taxonomy is for.
+   */
   function impFinish(text, via) {
+    let p = null;
+    try { p = loadGraph(); } catch (e) { p = null; }
+    if (!p || typeof p.then !== 'function') { impFinishNow(text, via); return; }
+    // `Reading…` stays on the button for as long as this takes. It is the
+    // campus graph being fetched rather than the student's file being read,
+    // but from their side the import has not finished either way, and a second
+    // busy state saying "waiting for the campus map" is a state they cannot
+    // act on and did not ask about.
+    impState.busy = true; impRender();
+    p.then(() => impFinishNow(text, via), () => impFinishNow(text, via));
+  }
+
+  function impFinishNow(text, via) {
     impState.busy = false;
     const out = impBuild(text, impState.source, via);
+    impState.showAll = false; impState.fit = null; impState.fitDone = false;
     if (out.err) { impState.err = out.err; impState.result = null; }
     else { impState.result = out; impState.err = null; }
     impRender();
@@ -9209,14 +9422,23 @@
   window.wayfindImportOpen = impOpen;
   window.wayfindImportClose = impClose;
   window.wayfindImportSet = function (sourceId) {
-    impState.source = sourceId; impState.result = null; impState.err = null; impRender();
+    impState.source = sourceId; impState.result = null; impState.err = null;
+    impState.showAll = false; impState.fit = null; impState.fitDone = false; impRender();
   };
-  window.wayfindImportText = function (text, sourceId) {
+  // BOTH OF THESE RETURN A PROMISE NOW, and that is not tidying. They used to
+  // return the result object synchronously, which meant they answered before
+  // the walking graph had loaded and reported every code as unreachable — the
+  // same race `impFinish` documents, except a harness hitting it gets a
+  // confident wrong number instead of a visibly wrong screen. `loadGraph`
+  // memoises, so awaiting costs nothing on the second call.
+  window.wayfindImportText = async function (text, sourceId) {
     if (sourceId) impState.source = sourceId;
-    impFinish(String(text), 'text');
+    try { await loadGraph(); } catch (e) {}
+    impFinishNow(String(text), 'text');
     return impState.result || { err: impState.err };
   };
-  window.wayfindImportParse = function (text, sourceId) {
+  window.wayfindImportParse = async function (text, sourceId) {
+    try { await loadGraph(); } catch (e) {}
     return impBuild(String(text), sourceId || impState.source, 'text');
   };
 

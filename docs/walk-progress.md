@@ -2694,3 +2694,90 @@ owns were edited on the branch. Server on 8953 killed by PID after `netstat`
 confirmed it was still listening; port re-confirmed free. Browser pane closed.
 No scratch scripts or screenshots committed to the repo — all work stayed in
 the scratchpad.
+
+## 2026-08-24 — the import screen, round 5: honest names, a screen that fits, and a race that made it lie (`acer/si-ui`)
+
+The round-4 critic said this piece won its blind comparison but that the
+screenshots it shipped were fake. It was right, and it was the first thing
+fixed. `shots/import/bar-google/` and `shots/import/bar-apple/` held **this
+app's own screens** under names like `si-google-add.png` and
+`si-apple-result.png` — a reviewer opening `bar-apple/si-apple-add.png` would
+read that as a picture of Apple Calendar. The honest admission existed, in a
+`NOTE.md` nobody linked, and the file names said otherwise. Names beat notes.
+Every frame is `ours-*` now, each folder carries a `README.md` at its top level
+saying plainly that no capture of Google's or Apple's real product is in this
+repo and why (Google's import screen is behind a signed-in account; Apple
+Calendar is macOS/iOS software this harness cannot drive), and the same
+statement sits above the pictures in `docs/si-ui.md` instead of two directories
+away.
+
+Then three defects, and only one of them was visible in a frame.
+
+**The result screen was hiding most of the count it was quoting.** Round 4's
+own committed evidence shows it: nine events in, *6 of 9 classes placed*,
+`PLACED 6` — and then one placed row whole, the second cut through its middle
+by the edge of the scroller, and four more below the fold with nothing anywhere
+on the panel to say they exist. `+ N more` never fired, because six is exactly
+`IMP.resultPeek` and nothing had been truncated, and the button underneath said
+`Use these 6`. Two fixes: `+ N more` became a real full-width `Show N more`
+button at thumb size, and the peek stopped being a fixed number. How many
+placed rows fit depends entirely on what is above them — three failures whose
+reasons each wrap to two or three lines eat about 210 px of a 373 px body — so
+it is measured now: render, count the rows that landed whole, re-render with
+the list cut to what fits and a real control under it. `Use these 6` and
+`Show 6 more` add up to the 6 the headline claims, and both are on screen.
+
+**Importing too fast said every class was unreachable.** This one was not
+visible in any frame and was not being looked for; it fell out of running the
+same UT paste twice in a script and getting two different answers. The panel
+starts loading the walking graph when it opens, deliberately, so the fetch
+overlaps the student reading the instructions — but nothing waited for it.
+Paste twelve real UT rows, press Import inside two seconds, and the screen said
+*Couldn't place 12 · Nothing here can be routed to* for a schedule with seven
+routable classes in it. Five seconds later, the same rows gave *7 of 12 classes
+placed*. Same input, same build, two answers, the wrong one delivered as
+confidently as the right one, and nothing on screen suggesting waiting. The
+import awaits the graph now; the two `window.wayfindImport*` helpers return
+promises for the same reason.
+
+**A cut edge looked exactly like a finished edge.** The panel body is the one
+child that yields height, so on a phone it is nearly always shorter than its
+contents, and it clipped them against a crisp border with no mark of any kind.
+Worst on the error screen, which scrolls the body to its end **on purpose** so
+the control the message names sits under the message — and the end landed
+mid-line, leaving the bottom halves of the letters of "…Subscription Calendar"
+under the tab divider looking like a rendering fault. Each end that has content
+past it is faded now and an end that has nothing past it keeps its hard edge,
+which is what makes the fade mean anything. It is a CSS mask rather than a
+gradient overlay because the panel is glass over a live 3D city and there is no
+colour this stylesheet can name that would hide the text under an overlay.
+Measured rather than eyeballed: in the top 78 px of the scroller, 317 pixels
+change to a maximum of 131/255 with the shade on versus off; below the fade
+band, in the same strip, 0 pixels change, maximum delta 1/255.
+
+Two of the fixes were themselves wrong first, and both were caught by measuring
+instead of reasoning. The fit loop stopped as soon as the rows fitted — and the
+`Show 6 more` it had just added landed below the fold, which is the identical
+defect this panel had already fixed once when an error message named a file
+button the same frame was hiding. And the loop chained one
+`requestAnimationFrame` per shrink, which reads perfectly sensibly and measures
+badly: a UT paste with five failures was still visibly mid-shrink four seconds
+after the result rendered. It is one synchronous loop now, at most seven
+layouts of one small panel.
+
+**35 assertions, all passing, on the branch after `origin/main` was merged into
+it — not before.** Including the two the existing feature makes:
+`wayfindRoute('JES','WEL')` still returns *"5-7 min walk · 450 m · No stairs on
+this route"*, the same 450 m round 4 measured; and `?walk=0&from=JES&to=WEL`
+still leaves zero of this feature's elements, zero `input[type=file]`, no
+`wayfind*` function on `window` and no `wayfind*` map source, measured six
+seconds after the map exists. On `?clip=1`, `?autopilot=1` and `?sliderdemo=1`
+everything measures zero **with the import screen opened on purpose first** —
+"hidden because nobody opened it" is not the claim. `harness-drift.mjs`: 31
+scripts in both files, unchanged, because §9 needs no new `<script>` tag.
+
+Seventeen frames committed, 4.4 MB, every one of them cited by `docs/si-ui.md`
+and none of them named after somebody else's product. Three scratch drivers
+lived in `scripts/verify/_si-ui-*.mjs` and were deleted after the runs; scratch
+frames stayed in the scratchpad. Branch `acer/si-ui`, pushed, not merged.
+Server on 8913 killed and the port confirmed free.
