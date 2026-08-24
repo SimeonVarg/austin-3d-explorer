@@ -2754,3 +2754,57 @@ four other lanes inside that file. Everything is behind `?walk=1` as before and
 `WAYFIND.on` is untouched. Details, the fixtures, and every number:
 `docs/si-dayview.md`; the ruler is `scripts/verify/dayview.mjs` (59 checks, all
 green).
+
+---
+
+## 2026-08-24 — the day plan takes a real imported schedule, and doing that found two bugs
+
+Branch `acer/si-dayview`, round 4. Round 3 built the panel that lays a whole day
+out. This round plugged it into an actual import, and plugging it in is what
+turned up the things nobody's own harness could see.
+
+**It reads a parsed schedule now.** `wayfindDayFromSchedule(schedule, {day})`
+takes the shape the parser lane publishes — a whole week — and shows one of its
+days. Round 3 had written down what a day looks like and left the conversion to
+whoever called it, which meant nothing had ever made the trip end to end.
+`?walk=1&day=week` is that trip.
+
+**A class the importer could not place used to disappear.** If your calendar had
+a 2:00pm class with the room field left blank, the panel quietly deleted it —
+and then showed a two-hour gap your day does not have, while the header still
+said "3 classes". It looked complete and it was wrong. Every class with a time
+is on the day now; the ones with no building say so, in the importer's own
+words, and the walks either side say they can't be taken.
+
+**A typo in a building code used to send you to the wrong building.** `MAII 220`
+is a real mis-typing of `MAI 220` and it is sitting in the parser lane's own
+test file. The panel was handing that code to the search box's forgiving
+type-ahead — the thing that lets you type "wel" and get Welch — and drawing a
+confident 10-14 minute walk to the UT Tower for a class that is not in it. Every
+number on that row was measured correctly. The building was wrong and nothing
+was red. A code off a schedule is exact now: a near miss is offered as a
+question on the row ("Did you mean MAI (UT Tower)?") and never as a route. That
+bug could only be found by running the two lanes together, because every fixture
+written on this branch spells its codes correctly.
+
+**Three things it now says at a glance.** A line across the list at the current
+time, which is the one thing Google Calendar's day view has that this did not —
+everything above the line has happened. The header names the walk that is tight
+("WEL to ART is the tight one") instead of only counting them, which matters
+most on a phone where the header is all you can see. And the tight row itself
+gets a faint warm wash, so scanning the list finds the problem before you read a
+word. Plus the day's total on foot on the top line.
+
+**What was checked.** `scripts/verify/dayview.mjs` — 59 checks in round 3, 103
+now, all green, and the new ones are the ones that would have caught this
+round's bugs. The eleven unroutable codes were re-probed live again and the
+figures are unchanged (ten at 10.8-11.8 km north at Pickle; SSW 0.90 km from the
+Tower with two UT-surveyed doors, so the brief's second claim is still false).
+Separately, the two lanes were merged in a scratch tree and the parser's own
+four `.ics` files were driven all the way to this panel — 17 checks, none
+failed. That merge is not pushed; what is now known rather than assumed is that
+the resolution is a plain concatenation, that it compiles, and that the halves
+work together. Full account and every number: `docs/si-dayview.md`.
+
+Still behind `?walk=1`, `WAYFIND.on` untouched, and the whole branch is two pure
+inserts into `js/wayfind.js` with zero lines changed or removed anywhere else.

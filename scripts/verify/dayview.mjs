@@ -119,6 +119,8 @@ async function readPanel(page) {
         type: walk ? 'walk' : 'class',
         next: r.classList.contains('next'),
         past: r.classList.contains('past'),
+        warn: r.classList.contains('warn'),
+        warnLate: r.classList.contains('warn-late'),
         picked: r.classList.contains('picked'),
         disabled: !!r.disabled,
         codes: [...r.querySelectorAll('.wf-d-code')].map(n => n.textContent.trim()),
@@ -140,6 +142,18 @@ async function readPanel(page) {
       count: (document.querySelector('.wf-d-count') || {}).textContent,
       checks: (document.querySelector('.wf-d-checks') || {}).textContent || null,
       unreach: (document.querySelector('.wf-d-unreach') || {}).textContent || null,
+      unreachAll: [...document.querySelectorAll('.wf-d-unreach')].map(n => n.textContent.trim()),
+      worst: (document.querySelector('.wf-d-worst') || {}).textContent || null,
+      // The now line is NOT a .wf-d-row, so it never enters `rows` above and
+      // every existing index in this file still means what it meant.
+      now: (() => {
+        const ns = [...document.querySelectorAll('#wf-day-list > .wf-d-now')];
+        if (!ns.length) return null;
+        const all = [...document.querySelectorAll('#wf-day-list > *')];
+        return { count: ns.length, at: ns[0].querySelector('.wf-d-now-t').textContent.trim(),
+          // how many .wf-d-row siblings come BEFORE the line
+          before: all.slice(0, all.indexOf(ns[0])).filter(n => n.classList.contains('wf-d-row')).length };
+      })(),
       foot: (document.getElementById('wf-day-foot') || {}).textContent,
       box: (() => { const b = p.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; })(),
       rows,
@@ -269,7 +283,8 @@ for (const [fixture, at] of [['tth', '10:50'], ['mwf', '09:55'], ['gaps', '10:50
     const have = new Set(row.chips.map(c => (c.cls || '').replace('wf-d-', '')));
     for (const p of a.problems) {
       const want = { late: 'late', tight: 'tight', stairsOnly: 'stairsOnly', stairs: 'stairs',
-        signals: 'signals', noroute: 'off', offmap: 'off', unknown: 'off', nodoor: 'off' }[p];
+        signals: 'signals', noroute: 'off', offmap: 'off', unknown: 'off', nodoor: 'off',
+        unplaced: 'off' }[p];
       if (want && !have.has(want)) { chipMiss++; console.log(`       leg ${i + 1} is ${p} and has no ${want} chip`); }
     }
     if (!a.problems.length && row.chips.length) {
@@ -290,6 +305,93 @@ for (const [fixture, at] of [['tth', '10:50'], ['mwf', '09:55'], ['gaps', '10:50
   ok('a day holding a building we cannot reach says so at the top',
     (api.unreachable > 0) === !!panel.unreach,
     `${api.unreachable} unreachable — header: ${JSON.stringify(panel.unreach)}`);
+
+  // ── ROUND 4, GATE 6: THE NOW LINE ────────────────────────────────────────
+  // Google Calendar's day view has one and this list did not. It has to be
+  // there exactly once, carry the frozen clock, and land where "everything
+  // above this has happened" is actually TRUE — which is the only part of it
+  // that can be wrong in a way a screenshot would not show.
+  ok('there is exactly one now line and it carries the clock',
+    panel.now && panel.now.count === 1 && panel.now.at === fmt(atMin),
+    panel.now ? `${panel.now.count} line(s), reads ${JSON.stringify(panel.now.at)}` : 'no now line');
+  if (panel.now) {
+    // Re-derived here rather than read off the page (same rule as gate 1): the
+    // line goes before the first row that has not ENDED, except that a class
+    // you are sitting in goes above the line.
+    const seq = api.rows.map(r => r.type === 'class'
+      ? { type: 'class', a: r.startMin, b: r.endMin }
+      : { type: 'walk', a: null, b: null });
+    for (let i = 0; i < seq.length; i++) {
+      if (seq[i].type !== 'walk') continue;
+      seq[i].a = seq[i - 1].b; seq[i].b = seq[i + 1].a;
+    }
+    let want = seq.length;
+    for (let i = 0; i < seq.length; i++) {
+      if (seq[i].b <= atMin) continue;
+      want = (seq[i].type === 'class' && atMin >= seq[i].a) ? i + 1 : i;
+      break;
+    }
+    ok('and it sits where everything above it has already happened',
+      panel.now.before === want, `${panel.now.before} rows above it, expected ${want}`);
+  }
+
+  // ── ROUND 4, GATE 7: THE HEADER NAMES THE LEG ────────────────────────────
+  // The count line said how MANY walks had something wrong. On a phone only two
+  // rows fit, so the header is the only always-visible part of this panel and
+  // it has to say WHICH.
+  {
+    const late = apiWalks.filter(w => w.verdict === 'late');
+    const tight = apiWalks.filter(w => w.verdict === 'tight');
+    const worstApi = api.worst;
+    ok('the header names a leg exactly when one does not fit its gap',
+      (!!panel.worst) === (late.length + tight.length > 0),
+      `${late.length} late, ${tight.length} tight — header: ${JSON.stringify(panel.worst)}`);
+    if (panel.worst) {
+      const wantsLate = late.length > 0;
+      ok('and it names the LATE leg when there is one, else the tight one',
+        worstApi && worstApi.verdict === (wantsLate ? 'late' : 'tight') &&
+        (wantsLate || tight.length > 1
+          ? true
+          : panel.worst.indexOf(worstApi.from) >= 0 && panel.worst.indexOf(worstApi.to) >= 0),
+        `${worstApi.from}->${worstApi.to} ${worstApi.verdict} — header: ${JSON.stringify(panel.worst)}`);
+      // The named leg has to BE one of the legs, not a leg that fits.
+      const named = apiWalks.find(w => panel.worst.indexOf(w.from) >= 0 && panel.worst.indexOf(w.to) >= 0);
+      ok('the leg the header names is a leg the router flagged',
+        tight.length > 1 ? /\d+ of the walks/.test(panel.worst) : !!(named && named.verdict),
+        `header: ${JSON.stringify(panel.worst)}`);
+    }
+  }
+
+  // ── ROUND 4, GATE 8: HOW FAR YOU WALK TODAY ──────────────────────────────
+  // Summed off the same route objects the rows are drawn from, then compared
+  // against fmtDist's own rounding of that sum. A day total that disagrees with
+  // its own rows is the gate-1 failure at a different scale.
+  {
+    const sum = apiWalks.filter(w => w.status === 'ok').reduce((a, w) => a + w.distM, 0);
+    const printed = /·\s*([\d.]+)\s*(km|m)\s*on foot/.exec(panel.count || '');
+    ok('the count line prints the day\'s own total distance on foot',
+      sum > 0 ? !!printed : !printed,
+      `router sum ${Math.round(sum)} m — header: ${JSON.stringify(panel.count)}`);
+    if (printed) {
+      const asM = printed[2] === 'km' ? parseFloat(printed[1]) * 1000 : parseFloat(printed[1]);
+      ok('and that total is the sum of this day\'s own legs',
+        Math.abs(asM - sum) / sum <= EPS_M, `printed ${printed[0].trim()}, legs sum to ${Math.round(sum)} m`);
+    }
+  }
+
+  // ── ROUND 4, GATE 9: THE ROW THAT DOES NOT FIT IS WASHED ─────────────────
+  // A second visual channel from NEXT, so scanning the list finds the trouble
+  // without reading. No wash without a verdict, no verdict without a wash.
+  {
+    let bad = 0;
+    for (let i = 0; i < apiWalks.length; i++) {
+      const a = apiWalks[i], row = walks[i];
+      if (!row) continue;
+      if (!!a.verdict !== row.warn) { bad++; console.log(`       leg ${i + 1} verdict=${a.verdict} wash=${row.warn}`); }
+      if ((a.verdict === 'late') !== row.warnLate) { bad++; console.log(`       leg ${i + 1} late=${a.verdict === 'late'} late-wash=${row.warnLate}`); }
+    }
+    ok('exactly the legs that do not fit their gap carry the warning wash', bad === 0);
+  }
 
   // NEVER REASSURE (docs/walk/what-we-can-honestly-say.md §15). No row anywhere
   // may tell a student they have time.
@@ -348,6 +450,173 @@ for (const [fixture, at] of [['tth', '10:50'], ['mwf', '09:55'], ['gaps', '10:50
   await shot(ph, `${fixture}-phone.png`);
   await ph.close();
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// ROUND 4, GATE 10: THE OTHER HALF OF THE SEAM.
+//
+// A parsed schedule is a WEEK; this panel shows a DAY. Round 3 documented the
+// day shape and left the conversion to the caller, so nothing had ever made
+// the trip. `?walk=1&day=week` drives `wayfindDayFromSchedule()` on a fixture
+// written to the parser lane's published `ut-walk-schedule` shape.
+//
+// THE REGRESSION THIS BLOCK EXISTS FOR: a class the importer could not place
+// used to be DROPPED, which turned a 2:00pm class into empty afternoon on a
+// panel that still said "3 classes" and looked complete. Every Tuesday event
+// with a time must be on screen, including the one that failed.
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n[week] a parsed schedule, through the adapter, on one of its days');
+{
+  const page = await open('walk=1&day=week&dayat=10:50&drift=0&intro=0');
+  await page.waitForFunction(() => document.getElementById('wf-day') &&
+    !document.getElementById('wf-day').classList.contains('hidden'), null, { timeout: 60000 });
+  const p = await readPanel(page);
+  ok('the panel rendered from a schedule rather than a day', !!p);
+
+  // What the FIXTURE says, counted here rather than asked of the code.
+  const fx = await page.evaluate(() => window.wayfindDayScheduleFixture());
+  const tue = fx.events.filter(e => e.days.indexOf('TU') >= 0 && e.startMin != null);
+  const notTue = fx.events.filter(e => e.days.indexOf('TU') < 0);
+  const failed = tue.filter(e => e.status !== 'ok' || !e.code);
+  ok('the fixture is a real week, not a day',
+    notTue.length > 0 && tue.length >= 3,
+    `${tue.length} classes on Tuesday, ${notTue.length} events on other days`);
+
+  const api = await page.evaluate(() =>
+    window.wayfindDayFromSchedule(window.wayfindDayScheduleFixture(), { day: 'TU', show: false }));
+  ok('the adapter picked the day it was asked for', api.ok && api.day === 'Tuesday', api.day);
+  ok('and left the other days out of it', api.skipped === notTue.length,
+    `${api.skipped} skipped, ${notTue.length} are not on a Tuesday`);
+
+  const classes = p.rows.filter(r => r.type === 'class');
+  const walks = p.rows.filter(r => r.type === 'walk');
+  ok('EVERY class with a time is on the day, including the one that failed to import',
+    classes.length === tue.length && walks.length === tue.length - 1,
+    `${classes.length} class rows for ${tue.length} Tuesday classes (${failed.length} of them unplaced)`);
+
+  // The unplaced one, specifically: right time, its own name, and the string
+  // the calendar actually had — never a blank where a building code goes.
+  const bad = failed[0];
+  const hh = (m) => { let h = Math.floor(m / 60) % 12; if (!h) h = 12; return h + ':' + String(m % 60).padStart(2, '0') + (Math.floor(m / 60) >= 12 ? 'pm' : 'am'); };
+  const badRow = classes.find(c => c.t1 === hh(bad.startMin));
+  ok('the class that failed to import keeps its real time and its own name',
+    !!(badRow && (badRow.course || '').indexOf(bad.course) >= 0),
+    badRow ? `${badRow.t1} ${JSON.stringify(badRow.course)}` : 'not on screen');
+  ok('and says we do not know where it is, in the importer\'s own words',
+    !!(badRow && badRow.chips.some(c => /don't know where/i.test(c.text)) &&
+       badRow.chips.some(c => c.text.indexOf(bad.problems[0].hint) >= 0)),
+    badRow ? badRow.chips.map(c => c.text).join(' / ') : '');
+  // ...and says it ONCE. The first cut of this row also carried the low-
+  // confidence chip, which has no code to quote for an unplaced class and
+  // rendered a literal `Read as "null" — check this one` beside a sentence that
+  // already said the true thing. No gate caught it; reading the output did.
+  ok('and does not also print a chip about a code it never had',
+    !!(badRow && badRow.chips.length === 1 && !/null|undefined/i.test(badRow.chips[0].text)),
+    badRow ? `${badRow.chips.length} chip(s): ` + badRow.chips.map(c => c.text).join(' / ') : '');
+  ok('the header counts it apart from a building this map cannot reach',
+    p.unreachAll.some(t => /no building we could read/i.test(t)),
+    JSON.stringify(p.unreachAll));
+
+  // The walk INTO an unplaced class is dead, and says so by the class's name —
+  // there is no code to name it by.
+  const dead = walks.filter(w => w.disabled);
+  ok('the walk into it is disabled and names the class, not a code',
+    dead.length === 1 && dead[0].chips.some(c => c.text.indexOf(bad.course) >= 0),
+    dead.length ? dead.map(w => w.chips.map(c => c.text).join(';')).join(' | ') : 'no disabled walk');
+  // ...and the class standing in for the missing building is NOT set in the
+  // building code's own style. `PSY 301` in the code's amber weight next to
+  // `GSB` would be this surface asserting a code it never read.
+  const endStyles = await page.evaluate(() => [...document.querySelectorAll('#wf-day-list > .wf-d-walk')]
+    .map(r => [...r.querySelectorAll('.wf-d-ends > span')].map(s => s.className)));
+  ok('and the class standing in for the missing building is not set as a code',
+    endStyles.some(e => e.indexOf('wf-d-noplace') >= 0) &&
+    endStyles.every(e => e.filter(c => c === 'wf-d-code').length + e.filter(c => c === 'wf-d-noplace').length >= 2),
+    JSON.stringify(endStyles));
+
+  // Same file, different day, and it is a different day.
+  const mon = await page.evaluate(() =>
+    window.wayfindDayFromSchedule(window.wayfindDayScheduleFixture(), { day: 'MO', show: false }));
+  ok('asking the same schedule for another day gives that day',
+    mon.ok && mon.day === 'Monday' && mon.plan.items.length === notTue.length,
+    `${mon.day}, ${mon.ok ? mon.plan.items.length : 0} classes`);
+
+
+
+  // Provenance survives the trip: the footer names the importer the PRODID says.
+  ok('the footer names the source the calendar file claims',
+    /UT registration/i.test(p.foot || ''), JSON.stringify(p.foot));
+
+  const body = await page.evaluate(() => document.getElementById('wf-day').textContent);
+  const banned2 = /\bspare\b|\byou'?ll make it\b|\bplenty of time\b|\benough time\b|\bin time\b|\beasy\b|\bno rush\b/i;
+  ok('§15 holds on this day too', !banned2.test(body));
+
+  await shot(page, 'week-desktop.png');
+  await page.close();
+
+  const ph = await open('walk=1&day=week&dayat=10:50&drift=0&intro=0', PHONE);
+  await ph.waitForFunction(() => document.getElementById('wf-day') &&
+    !document.getElementById('wf-day').classList.contains('hidden'), null, { timeout: 60000 });
+  const pp = await readPanel(ph);
+  ok('on a 390 px phone the imported day is on screen and not cut off',
+    pp && pp.box.x >= 0 && pp.box.x + pp.box.w <= PHONE.width && pp.box.y >= 0 &&
+    pp.box.y + pp.box.h <= PHONE.height,
+    pp ? `x${pp.box.x} y${pp.box.y} ${pp.box.w}x${pp.box.h}` : 'no panel');
+  ok('and the header still names the leg with the problem, above the fold',
+    !!(pp && pp.worst), JSON.stringify(pp && pp.worst));
+  await shot(ph, 'week-phone.png');
+  await ph.close();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ROUND 4, GATE 11: A TYPO IN A BUILDING CODE MUST NOT ROUTE.
+//
+// `resolve()` is `search()[0]` and `search()` is the FORGIVING type-ahead the
+// field uses, so that typing "wel" finds Welch. A schedule's building code is
+// not a type-ahead query, and handing one straight to it meant `MAII 220` — a
+// real mis-typing of `MAI 220`, verbatim in the parser lane's own messy.ics —
+// drew a confident 10-14 minute walk to the UT TOWER for a class that is not
+// in it. Nothing was red. The walk was measured; the building was wrong.
+//
+// Found by running the MERGED tree (this lane + acer/si-parser) against the
+// parser's own fixture files. It cannot be found on this branch alone, because
+// every fixture written here spells its codes correctly — which is the whole
+// argument for the cross-lane run and the reason this gate now exists.
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n[typo] a mis-typed building code, on the same schedule\'s Monday');
+{
+  const page = await open('walk=1&day=week&dayof=MO&dayat=12:10&drift=0&intro=0');
+  await page.waitForFunction(() => document.getElementById('wf-day') &&
+    !document.getElementById('wf-day').classList.contains('hidden'), null, { timeout: 60000 });
+  const p = await readPanel(page);
+  const fx = await page.evaluate(() => window.wayfindDayScheduleFixture());
+  const typo = fx.events.find(e => /^[A-Z]+$/.test(e.code || '') && e.status !== 'ok');
+  ok('the fixture carries a real mis-typed code', !!typo, typo ? typo.locationText : '');
+
+  const api = await page.evaluate(() =>
+    window.wayfindDayFromSchedule(window.wayfindDayScheduleFixture(), { day: 'MO', show: false }));
+  const live = await page.evaluate((c) => window.wayfindSearch(c)[0] || null, typo.code);
+  ok('the type-ahead DOES still answer that code with a different building',
+    !!live && live.code !== typo.code,
+    live ? `wayfindSearch(${typo.code})[0] = ${live.code} (${live.name})` : 'nothing');
+
+  const rows = p.rows;
+  const typoRow = rows.find(r => r.type === 'class' && (r.course || '').indexOf(typo.course) >= 0);
+  ok('and the day plan refuses it anyway', !!(typoRow &&
+    typoRow.chips.some(c => new RegExp('never heard of ' + typo.code).test(c.text))),
+    typoRow ? typoRow.chips.map(c => c.text).join(' / ') : 'no row');
+  ok('while still offering the near miss as a question, not a substitution',
+    !!(typoRow && typoRow.chips.some(c => /Did you mean/.test(c.text) && c.text.indexOf(live.code) >= 0)),
+    typoRow ? typoRow.chips.map(c => c.text).join(' / ') : '');
+  const walksInto = rows.filter(r => r.type === 'walk' && r.disabled);
+  ok('and no walk is drawn to it', walksInto.length >= 1 &&
+    walksInto.every(w => w.chips.some(c => c.text.indexOf(typo.code) >= 0)),
+    walksInto.map(w => w.chips.map(c => c.text).join(';')).join(' | '));
+  ok('nothing on the day claims a route to the building the typo resembles',
+    !rows.some(r => r.type === 'walk' && !r.disabled && r.codes.indexOf(live.code) >= 0),
+    `no live leg touches ${live.code}`);
+  await shot(page, 'typo-desktop.png');
+  await page.close();
+}
+
 
 // ══════════════════════════════════════════════════════════════════════════
 // The end of the day. No row is next, and the panel has to SAY that rather

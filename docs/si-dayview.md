@@ -1,8 +1,53 @@
 # The day plan — the whole day's walks, not one leg at a time
 
-Lane `acer/si-dayview`. Round 3. Everything below was produced by running the
-app, not by reading the code; the instrument is `scripts/verify/dayview.mjs` and
-anybody can re-run every number in this file with it.
+Lane `acer/si-dayview`. Rounds 3 and 4. Everything below was produced by running
+the app, not by reading the code; the instrument is `scripts/verify/dayview.mjs`
+and anybody can re-run every number in this file with it.
+
+---
+
+## Round 4, in one page
+
+Round 3 built the panel. Round 4 connected it to a real import, and connecting
+it turned up two bugs that could not have been found any other way.
+
+**1. It is fed by a parsed schedule now, not only by a hand-written day.**
+`window.wayfindDayFromSchedule(schedule, {day})` takes the parser lane's own
+published `ut-walk-schedule` shape — a WEEK — and shows one of its days. Round 3
+documented the day shape and left the conversion to whoever called it, which
+meant nothing had ever actually made the trip. It has now, on all four of the
+parser lane's real `.ics` fixture files, in a merged tree. See *The seam, run
+end to end* below.
+
+**2. A class the importer could not place is no longer deleted from your day.**
+It used to be dropped. A 2:00pm class with a blank `LOCATION` simply vanished
+and the panel showed an invented afternoon gap while still saying "3 classes" —
+a panel that looked complete and was wrong. Every class with a time is on the
+day now, and the ones without a building say so in the importer's own words.
+
+**3. A mis-typed building code no longer routes.** `MAII 220` is a real
+mis-typing of `MAI 220` and it is verbatim in the parser lane's `messy.ics`.
+`dayPlace()` was handing the code to `resolve()`, which is `search()[0]` — the
+*forgiving type-ahead* the search field uses so that typing "wel" finds Welch —
+and the panel was drawing a confident **10–14 minute walk, 860 m, to the UT
+Tower** for a class that is not in it. Nothing was red. The walk was correctly
+measured and the building was wrong. A schedule's code is exact vocabulary, so an inexact hit
+is now not a hit; it is kept as a *suggestion* on the row instead
+(`Did you mean MAI (UT Tower)?`).
+
+**4. Three things it says at a glance that it did not say before.** A **now
+line** across the list at the current time — the one thing Google Calendar's day
+view has that this list did not, and the thing that makes "which walk is next"
+spatial instead of a badge you have to find. The header **names** the leg that
+does not fit (`WEL → ART is the tight one`) instead of only counting them, which
+matters most on a phone where the header is the only part always in view. And a
+faint **wash on the row itself** for a leg that overruns its gap — a second
+channel from `NEXT`, which owns the rail and the gutter badge.
+
+Also: the day's **total on foot** on the count line, and an unplaced end of a
+walk set in its own style rather than in the building code's, because
+`PSY 301` in the code's amber weight next to `GSB` would be this surface
+asserting a building code it never read.
 
 ---
 
@@ -43,11 +88,50 @@ So the normalised shape this renderer reads is deliberately thin:
       codeSource, codeConfidence } ] }
 ```
 
-Only `code`, `startMin` and `endMin` are load-bearing. Everything else is display
-or provenance. `window.wayfindDay(plan)` takes it; nothing calendar-shaped —
-no `VEVENT`, no `RRULE`, no `webcal`, no timezone arithmetic — reaches the
-renderer at all. That is the parser lane's side of the seam and this side has no
-opinion about which of the three sources produced it.
+Only `startMin` and `endMin` are load-bearing. Everything else is display or
+provenance. `window.wayfindDay(plan)` takes it; nothing calendar-shaped — no
+`VEVENT`, no `RRULE`, no `webcal`, no timezone arithmetic — reaches the renderer
+at all. That is the parser lane's side of the seam and this side has no opinion
+about which of the three sources produced it.
+
+**`code` stopped being load-bearing in round 4, and that is the point.** An item
+with a time and no code is a class on your timetable that the importer could not
+place, and round 3 dropped it. Dropping it is the worst answer available: a
+2:00pm class with a blank `LOCATION` vanished, the panel showed a two-hour gap
+the student's day does not have, and the header still said "3 classes". It
+looked complete and it was wrong. Time is now the only field the surface cannot
+render around, because the whole panel is an ordering and a row with no place in
+the order has nowhere to go.
+
+### The week half of the seam
+
+A parsed schedule is a WEEK; this panel is a DAY. The conversion is
+`window.wayfindDayFromSchedule(schedule, opts)`:
+
+```js
+wayfindDayFromSchedule(schedule, { day: 'TU' | 'Tuesday' | 2, show: false })
+```
+
+`opts.day`, else today, else the first weekday the schedule actually has a class
+on — a Sunday visitor with a Mon/Wed timetable should see Monday, not an empty
+panel that reads as a broken import. It lives here rather than in the parser for
+the same reason `dayNormalise` does: the renderer is the side that knows what a
+day is. **It reads a plain object.** There is no call into the parser lane's
+code and no reference to any of its identifiers, which is what lets the two
+halves be verified separately and then together, and what keeps two lanes out of
+each other's functions.
+
+Two decisions inside it are load-bearing:
+
+* **A class that failed to import is still on the day.** Every event with a time
+  comes through. What it lost is a *place*, and the row says so — in the
+  importer's own `hint`, which is a better sentence than a renderer can write
+  because the parser knows *which way* the location field failed.
+* **A code is passed through raw, never pre-judged.** The parser already knows
+  MER is at Pickle and SSW is unregistered, but this file asks `dayPlace()` the
+  same question again, against the graph it is actually going to route on. Two
+  surfaces answering "can I get there" from two different sources is exactly the
+  failure this feature's own gate 1 exists to catch.
 
 ### The three fields that are not for today's three importers
 
@@ -56,7 +140,8 @@ Registration-Plus API can land later without a rewrite here**, which the brief
 asked for explicitly.
 
 Google's, Apple's and UT's `.ics` all hand over a code we either read or do not:
-confidence is 1, or the parser drops the item. An OCR of a photographed timetable
+confidence is 1, or there is no code and the class shows as unplaced (round 4 —
+it used to be dropped). An OCR of a photographed timetable
 cannot do that — it will hand over `MA1` for `MAI` with 0.6 of a belief — and a
 renderer with no branch for *the code might be wrong* would have to grow one,
 which is exactly the rewrite. So the branch is here now and today's three
@@ -103,6 +188,31 @@ The ladder has exactly two rungs and must not grow a third:
 
 ---
 
+## The now line, and why it is not a ruler
+
+Google Calendar's day view has exactly one thing this list did not: a line
+across the column at the current time. It is what makes *which one is next* a
+spatial fact — everything above it has happened — instead of a badge you have to
+find. So there is one.
+
+It is **not proportional**, and that is deliberate. A calendar column is a ruler
+and this is a list, so the line sits *between* two rows rather than at a pixel
+offset inside one; a 105-minute lunch gap would otherwise push the afternoon off
+the bottom of the panel to make room for empty air. Where it goes is a rule
+about reading rather than about arithmetic:
+
+* before the first row that has not **ended** — so at 10:50, inside a 10:45→11:00
+  passing period, the line sits above the walk row and the walk reads as *ahead
+  of you*, which it is;
+* **except** when the clock is inside a class, where it goes after that class
+  instead — you are in the room, the class is current, and what is below the line
+  is what is left of the day. (Not for a walk: a walk you have not finished is
+  still ahead of you.)
+
+A day that is over draws the line at the foot of the list; a day that has not
+started draws it at the top. `dayview.mjs` re-derives the expected index itself
+rather than asking the page where it put the line.
+
 ## The gap bar
 
 The single strongest thing on a walk row, and the reason the sequence reads at a
@@ -116,6 +226,36 @@ state worth seeing from across the room.
 It is not drawn at all past `WF_DAY.gapBarMaxMin` (45 min). A 105-minute lunch
 gap is not a race, and an eleven-twelfths-empty track next to a 14–22 minute walk
 makes the longest walk of the day look like nothing.
+
+## The header, and the row's own ground
+
+Round 3's header counted: *2 of 3 walks have something to check*. Counting makes
+you scroll three rows to find out which two — and on a 390 px phone only two
+rows are on screen at once, so the header is the only part of this panel that is
+always in view. It now **names** the leg first and counts second:
+
+```
+4 classes · 3 walks · 1.2 km on foot
+CMA → UTC is the tight one
+2 of 3 walks have something to check
+1 class has no building we could read
+```
+
+The named line is set in the same warning amber the tight chip on the row
+carries, so the header and the row you scroll to are visibly one claim and not
+two; the count below it is set quieter, because two amber lines running together
+read as one paragraph nobody ranks. §15 survives intact — every form of the
+named sentence is a *warning about a specific leg*, and a day whose walks all
+fit gets no sentence there at all (the `gaps` fixture, which has no verdicts,
+prints none: verified).
+
+The leg that overruns its gap also gets a **faint wash on the row itself**.
+Google Calendar's day view puts colour on the *block*; ours had colour only on
+the rail, and the rail was already spent on `NEXT`. So the wash is a second,
+independent channel: `NEXT` owns the rail and the gutter badge, "does not fit"
+owns the row's ground, and a row can be both without either mark being misread.
+`.picked` deliberately outranks it — once you have chosen a leg, which one you
+are navigating is the more urgent fact.
 
 ---
 
@@ -211,6 +351,30 @@ This day is also where the gap bar earns its place: the first two walks fill
 about half a 10-minute track and the third runs off the end of it, so which leg
 has the problem is visible before a word is read.
 
+**`week` — a whole WEEK, in the parser lane's published shape.** New in round 4,
+reachable as `window.wayfindDayScheduleFixture()` and at
+`?walk=1&day=week` (`&dayof=MO` picks a different day of it). It is written to
+`ut-walk-schedule` v1 as `docs/si-parser.md` publishes it, so it proves the
+ADAPTER without needing the parser branch in the tree — which is what lets this
+lane verify itself. It is **not** a claim that the parser emits exactly this;
+that claim needs the parser's own `.ics` run through the parser's own code, and
+that run is recorded separately below.
+
+Its Tuesday is UT's real TTh grid with the same four real `LOCATION` strings the
+`tth` fixture uses, plus one class the importer could not use:
+
+| row | what it is | what the day says |
+|---|---|---|
+| CMS 306M · CMA 6.146 | ordinary | — |
+| C S 429 · UTC 3.102 | ordinary | — |
+| BA 101S · GSB 2.122 | ordinary | — |
+| PSY 301 · *(blank `LOCATION`)* | the commonest way a real export loses a class | class row at its real 2:00pm, *We don't know where PSY 301 is · Every class needs a building before it can be walked to.*; the walk into it disabled, *We can't take you to PSY 301* |
+
+Its Monday/Wednesday carries the other kind of failure — `HIS 315K`, whose
+`LOCATION` is `MAII 220`. That is a real mis-typing of `MAI 220` and it is
+verbatim in the parser lane's own `messy.ics`. It is the fixture for the
+type-ahead bug: see below.
+
 **`gaps` — constructed, and it says so.** The `tth` day with two classes moved
 onto `SSW` and `BE1`, the two codes the forcing function names, and one leg left
 routable on purpose so the good rows and the bad rows can be seen in one list.
@@ -227,6 +391,116 @@ photographed before that fix, *"BE1 is 11.8 km north of campus — off this map 
 This map is main campus only."* was on screen three times in a five-row panel,
 because a building appears on one class row but on up to two walk rows either
 side of it.
+
+---
+
+## The bug the merged tree found, and could only have found there
+
+`dayPlace()` asks the app whether it knows a building code. It did that through
+`resolve()`, which is `search()[0]` — and `search()` is the **forgiving
+type-ahead** the search field uses, so that typing `wel` finds Welch Hall. That
+is exactly right for a person typing into a box and exactly wrong for a code
+read off a calendar file.
+
+`messy.ics` in `scripts/verify/schedule-fixtures/` carries a real mis-typing:
+
+```
+SUMMARY:HIS 315K – THE UNITED STATES 1492-1865
+LOCATION:MAII 220
+```
+
+The parser handles it correctly. Measured from the running merged app rather
+than read out of its doc:
+
+```
+{"i":2,"course":"HIS 315K","loc":"MAII 220","code":"MAII",
+ "status":"failed","resolved":"unknown","problems":["BUILDING_UNKNOWN"]}
+```
+
+It hands back the code it read, `MAII`, and marks the row failed. This panel
+then took `MAII`, gave it to the type-ahead, got **MAI — the UT Tower** — and
+drew a confident **10–14 minute walk, 860 m, 4 sets of stairs, a step-free way
+130 m further** to a building the student has no class in. Every number on that
+row was correctly measured. The row was pretty. Nothing was red in any gate on
+either branch.
+
+**The fix.** A code off a schedule is exact vocabulary, so an inexact hit is not
+a hit:
+
+```js
+const hit   = resolve(up);
+const entry = hit && String(hit.code).toUpperCase() === up ? hit : null;
+const near  = (hit && !entry) ? { code: hit.code, name: hit.display } : null;
+```
+
+The near miss is kept as the useful half of what the type-ahead knew, and it is
+offered as a **question on the row**, never as a substitution in the router:
+*We've never heard of MAII · Did you mean MAI (UT Tower)?* The walks either side
+of that class are disabled, as they are for any building we cannot reach.
+
+**Why it could only be found in a merged tree.** Every fixture written on this
+branch spells its codes correctly, because the person writing a fixture knows
+what the codes are. The typo lives in the *parser* lane's fixtures, because that
+lane's job is broken input. Neither lane's own harness could see this, and both
+were green. It is now a gate here (`[typo]`, driven off a `MAII 220` event added
+to the `week` fixture) so it stays fixed on this branch alone.
+
+**A second, quieter mismatch from the same run.** `messy.ics` also holds
+`LAH 350` in `PCL` — a real class, real building, real time, whose only problem
+is that the file was cut off. The parser's report says *"8 could not be used"*;
+this panel showed it as an ordinary class with an ordinary walk, and the two
+surfaces were telling a student two different things about one import. Every
+failed event now carries the parser's own sentence onto its row — printed only
+where the building itself is *not* the problem, because everywhere else
+`dayPlace()` already says something more specific and printing both is the
+"same fact three times" defect round 3 had to fix once.
+
+---
+
+## The seam, run end to end
+
+The round-3 critic's single named gap was that this branch and its siblings all
+append at the same point in `js/wayfind.js` and had never been test-merged. That
+merge has now been done, in a scratch tree, and driven.
+
+**The resolution is mechanical, and both lanes really are pure appends**
+(measured with `difflib`, not asserted):
+
+```
+parser : 1 hunk   insert at main:8201   +1185 / -0
+dayview: 2 hunks  insert at main:8201   +1545 / -0
+                  insert at main:8237   +1     / -0   (the `dayBoot();` line)
+
+merged = main[:8201] + parser block + dayview block + main[8201:]   → 10,908 lines
+```
+
+`node --check` passes on the result, both lanes' entry points are present in one
+page, and neither shadows the other:
+
+```
+{"parse":"function","fromSched":"function","day":"function",
+ "fixture":"function","scheduleFrom":"function"}
+```
+
+**Then the parser lane's own four `.ics` fixtures were taken all the way to this
+panel** — file bytes → `wayfindParseSchedule` → `wayfindDayFromSchedule` → the
+day list on screen. 17 checks, 0 failed:
+
+| fixture | what the parser said | what the day showed |
+|---|---|---|
+| `ut-regplus.ics` | `Imported all 4 classes.` | Tuesday: 3 classes, 2 walks, 1.5 km on foot, footer *From UT registration* |
+| `google-clean.ics` | `Imported all 4 classes.` | 2 classes, 1 walk, 140 m, footer *From Google Calendar* |
+| `apple-clean.ics` | `Imported all 4 classes.` | 2 classes, 1 walk, 450 m, footer *From Apple Calendar* |
+| `messy.ics` | `Imported 1 of 9 classes. 8 could not be used.` | survives it — and is where both bugs above surfaced |
+
+The provenance survives the whole trip: the footer names the importer the file's
+own `PRODID` claims, without this lane ever parsing a calendar field.
+
+**What this run is not.** It is a scratch tree. Nothing of the parser lane is
+committed here, the merge is not pushed anywhere, and whichever lane merges
+second still has to do it for real and re-run both harnesses on the result — per
+CLAUDE.md rule 2. What is now known, rather than assumed, is that the resolution
+is a concatenation, that it compiles, and that the two halves work together.
 
 ---
 
@@ -258,6 +532,30 @@ waited out, screenshot twice and the second kept — the house rules in
 6. **The phone.** 390 × 844: the panel is on screen and uncut, the page does not
    scroll sideways, and every pressable walk row clears 44 px.
 7. **§15**, grepped (above).
+
+Round 4 added five more, and they are the ones that would have caught this
+round's bugs:
+
+8. **The now line is there once, carries the frozen clock, and is in the right
+   place** — the expected index is re-derived in the harness rather than read
+   back off the page.
+9. **The header names a leg exactly when one does not fit its gap**, names the
+   *late* one when there is one, and the leg it names is a leg the router
+   actually flagged. On the `gaps` fixture, which has no verdicts, it names
+   nothing — which is the §15 half of the same gate.
+10. **The day's total on foot is the sum of that day's own legs**, to `fmtDist`'s
+    own rounding. A day total that disagrees with its own rows is gate 1 at a
+    different scale.
+11. **The seam** (`[week]`): the adapter picks the day it is asked for, leaves
+    the other days out, and — the regression this exists for — **every class
+    with a time is on screen, including the one that failed to import**, with
+    its real time, its own name, the importer's own sentence, and exactly one
+    chip. The walk into it is disabled and names the class rather than a code,
+    and that name is not set in the building code's style.
+12. **A typo does not route** (`[typo]`): the gate first confirms the type-ahead
+    *does* still answer `MAII` with a different building, then confirms the day
+    plan refuses it anyway, offers the near miss as a question, disables the
+    walks either side, and draws no live leg touching MAI.
 
 ### The one place this surface writes CSS instead of asking
 
@@ -295,10 +593,16 @@ else this round was committed; the working frames stayed in the scratchpad).
 
 | frame | what it is evidence for |
 |---|---|
+| `shots/si/dayview/week-desktop.jpg` | **round 4's headline**: a parsed schedule's Tuesday — the now line at 10:50, the header naming CMA → UTC, the warning wash on that row, and PSY 301 present at its real 2:00pm instead of deleted |
+| `shots/si/dayview/week-phone.jpg` | the same imported day at 390 × 844, with the named leg still above the fold |
+| `shots/si/dayview/typo-desktop.jpg` | `MAII 220`: refused, with *Did you mean MAI (UT Tower)?* under it and no walk drawn |
 | `shots/si/dayview/mwf-desktop.jpg` | the whole claim: three walks, three different states, and which one is next, read before a word |
 | `shots/si/dayview/mwf-phone.jpg` | 390 × 844, two walk rows visible, every pressable row over 44 px |
 | `shots/si/dayview/tth-desktop.jpg` | an ordinary Tuesday, with a picked leg driving the shipped answer bar above it |
+| `shots/si/dayview/tth-phone.jpg` | the same day on the phone |
+| `shots/si/dayview/tth-done.jpg` | after the last class: nothing marked next, and the panel says so |
 | `shots/si/dayview/gaps-desktop.jpg` | the three unreachable sentences, the whole-day banner, and one good leg among them |
+| `shots/si/dayview/gaps-phone.jpg` | the same, on the phone |
 | `shots/si/dayview/clip-nothing.jpg` | `?clip=1`: nothing of this on the frame |
 
 ### What the harness does NOT prove
@@ -313,10 +617,14 @@ else this round was committed; the working frames stayed in the scratchpad).
 
 ### The sibling check
 
-Adding to a file four other lanes are inside is the failure this round was warned
-about, so the diff was kept to a shape that cannot cause it: **1,025 lines added,
-zero lines removed**, in one hunk near the end of the file, plus one appended
-`dayBoot();` call on the last line. No existing function was edited.
+Adding to a file four other lanes are inside is the failure this work was warned
+about, so the diff is kept to a shape that cannot cause it. Round 3 added
+**1,025 lines and removed none**, in one hunk near the end of the file plus one
+appended `dayBoot();` call. Round 4 edits lines *inside that hunk* — it is this
+lane's own block — and still adds nothing anywhere else: measured with `difflib`
+against `origin/main`, the whole branch is **two pure inserts** (`+1,545` at main
+line 8201 and `+1` at 8237) and **zero** changed or deleted lines in the 8,239
+that main already had. No existing function was edited by either round.
 
 And the routing was re-measured rather than assumed. `node
 scripts/verify/walkmeter.mjs` against this branch's own served app:
@@ -365,6 +673,12 @@ from those values rather than carrying a second copy of them.
 | `gapBar`, `gapBarH`, `gapBarR`, `gapBarMinPct`, `gapBarOverPct`, `gapBarMaxMin` | the bar |
 | `warnOn` | the §15 ladder |
 | `signalChipMin` | how many lights before the crossings are worth a row |
+| `headlineWorst` | whether the header names the leg that does not fit, or only counts |
+| `totalOnFoot` | the day's distance on the count line |
+| `showUnplaced` | whether a class the importer could not place is shown or dropped |
+| `nowLine`, `nowLineDot` | the line across the list at the current time |
+| `warnRail` | the wash on a row that overruns its gap |
+| `weekFrom` | which day of a parsed week opens when the caller does not say |
 | `panelW`, `listMaxVh`, `railW`, `dotR` | layout |
 | `clockFrom` | the clock, and `?dayat=HH:MM` freezes it |
 
@@ -376,7 +690,12 @@ from those values rather than carrying a second copy of them.
 python scripts/serve.py 8914
 ```
 
-* `http://127.0.0.1:8914/index.html?walk=1&day=tth&dayat=10:50` — the ordinary day
+* `http://127.0.0.1:8914/index.html?walk=1&day=week&dayat=10:50` — **a parsed
+  schedule's Tuesday**, through the adapter: the now line, the named leg, and
+  the class the importer could not place
+* `...&day=week&dayof=MO&dayat=12:10` — the same schedule's Monday, with the
+  `MAII 220` typo refused
+* `...&day=tth&dayat=10:50` — the ordinary day
 * `...&day=mwf&dayat=09:55` — the stair-only leg
 * `...&day=gaps&dayat=10:50` — the three unreachable sentences
 * `...&day=tth&dayat=16:30` — after the last class

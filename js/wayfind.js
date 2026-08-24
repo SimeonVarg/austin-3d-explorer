@@ -8302,6 +8302,35 @@
     // A crossing chip is worth a row only when the lights are a real part of
     // the trip. Under this it is noise the answer bar already carries.
     signalChipMin: 3,
+    // ── the summary, and the three things it may add (round 4) ────────────
+    // NAME THE BAD LEG IN THE HEADER. "2 of 3 walks have something to check"
+    // makes you scan three rows to find out which two, and on a phone only two
+    // rows are on screen at once — so the header is the only part of this
+    // surface that is ALWAYS visible and it was spending itself on a count. It
+    // now names the leg, which is a warning and therefore §15-legal; there is
+    // still no sentence anywhere for a leg that fits.
+    headlineWorst: true,
+    // How far you walk today, rolled into the count line. A fact off the
+    // router, not a claim about it — and the one number a day plan can give
+    // that no per-leg row can.
+    totalOnFoot: true,
+    // A CLASS THE IMPORTER COULD NOT PLACE IS STILL ON YOUR TIMETABLE. Before
+    // round 4 it was dropped, which silently turned a 10am class with a blank
+    // room field into a three-hour gap — the worst kind of wrong, because the
+    // panel looked complete. Off, it drops them again.
+    showUnplaced: true,
+    // ── the now line ──────────────────────────────────────────────────────
+    // Google Calendar's day view has exactly one thing this list did not: a
+    // line across the column at the current time. It is what makes "which one
+    // is next" spatial instead of a badge you have to find. Pure fact — the
+    // clock — so §15 has no opinion about it.
+    nowLine: true,
+    nowLineDot: 4,         // px radius of the pip in the time gutter
+    // Tint the walk row's own rail when the router says the leg is tight or
+    // longer than its gap, so scanning the left edge finds the trouble before
+    // any word is read. The NEXT rail stays amber and stays wider — it is a
+    // different question and must not be confused with this one.
+    warnRail: true,
     // ── layout ────────────────────────────────────────────────────────────
     panelW: 348,           // matches #wf-sheet, because it takes the same slot
     // The scroller's share of the viewport on a DESKTOP (the phone rule lets it
@@ -8317,6 +8346,11 @@
     // `?dayat=HH:MM` freezes it. A screenshot of "which walk is next" cannot be
     // taken against a real clock and be the same picture tomorrow.
     clockFrom: 'real',
+    // A parsed schedule is a WEEK. Which of its days opens, when the caller did
+    // not say: 'today', or 'first' to always open the first day the schedule
+    // has a class on. Either way a day with no classes falls through to the
+    // first that has one, because an empty panel reads as a broken import.
+    weekFrom: 'today',
   };
 
   // COPY. Same rule as SAY above: docs/walk/what-we-can-honestly-say.md
@@ -8330,8 +8364,28 @@
       w + (w === 1 ? ' walk' : ' walks'),
     toCheck: (n, w) => n + ' of ' + w + (w === 1 ? ' walk has' : ' walks have') +
       ' something to check',
+    // ── the header names the leg (round 4) ────────────────────────────────
+    // §15 again, and it survives it for the same reason the chips do: every
+    // sentence here is a WARNING about a specific leg. There is deliberately no
+    // header sentence for a day whose walks all fit — a day with nothing wrong
+    // says "4 classes · 3 walks · 2.1 km on foot" and stops.
+    worstLate: (a, b) => a + ' → ' + b + ' is longer than its gap',
+    worstTight: (a, b) => a + ' → ' + b + ' is the tight one',
+    worstTightN: (n) => n + ' of the walks are tight for their gaps',
+    onFoot: (d) => d + ' on foot',
     next: 'NEXT',
     now: 'NOW',
+    // A real schedule holds classes the importer could not place at all — a
+    // blank LOCATION, or a string nothing in this app recognises. Before round
+    // 4 such a class was DROPPED, and a dropped 10am class reads on this panel
+    // as a three-hour gap, which is worse than any error message: the panel
+    // looks complete and is wrong. It now takes an ordinary class row, at its
+    // real time, carrying this sentence and — when the importer supplied one —
+    // the importer's own explanation underneath it.
+    unplaced: (label) => "We don't know where " + label + ' is',
+    unplacedWhy: 'The import could not read a building for this class.',
+    cannotToLabel: (label) => "We can't take you to " + label,
+    cannotFromLabel: (label) => "We can't take you from " + label,
     done: 'Every walk in this day is behind you',
     walkTo: (code) => 'Walk to ' + code,
     gapWas: (m) => m + ' min between them',
@@ -8355,6 +8409,10 @@
     offMapWhy: 'This map is main campus only.',
     unknown: (code) => "We've never heard of " + code,
     unknownWhy: 'Not in the building list this map was built from.',
+    // ...and when the type-ahead had a near miss, SAY it rather than silently
+    // walking there. `MAII 220` is a real typo in a real UT calendar export;
+    // the useful answer names both halves and lets the student decide.
+    unknownMaybe: (code, name) => 'Did you mean ' + code + (name ? ' (' + name + ')' : '') + '?',
     noDoor: (code) => 'No door or path for ' + code,
     noDoorWhy: 'It is in the building list, but nothing is mapped to walk to.',
     // What a WALK row says about the same building. The explanation is on the
@@ -8366,6 +8424,8 @@
     // The whole-day banner when a plan holds a building we cannot reach.
     someUnreachable: (n) => n + (n === 1 ? ' class is' : ' classes are') +
       ' somewhere this map cannot take you',
+    someUnplaced: (n) => n + (n === 1 ? ' class has' : ' classes have') +
+      ' no building we could read',
     close: 'Close the day plan',
     source: { google: 'Google Calendar', apple: 'Apple Calendar', ut: 'UT registration',
       image: 'a photo of a schedule', api: 'Registration Plus', manual: 'typed in' },
@@ -8434,8 +8494,16 @@
 #wf-day-sum{display:flex;flex-direction:column;gap:3px;padding:0 14px 9px;flex:none;
   border-bottom:1px solid var(--wf-edge-soft)}
 .wf-d-count{font-size:14px;font-weight:600}
-.wf-d-checks{font-size:11.5px;color:#ffc077}
+.wf-d-count-sub{font-weight:400;color:var(--wf-dim)}
+/* The COUNT of flagged walks sits below the NAMED one and is set quieter than
+   it, because two amber lines running together read as one paragraph nobody
+   ranks. Which leg is the actionable half; how many is the footnote. */
+.wf-d-checks{font-size:11.5px;color:var(--wf-dim)}
 .wf-d-unreach{font-size:11.5px;color:var(--wf-dim)}
+/* THE HEADER'S NAMED LEG. Set in the same warning amber the tight chip on the
+   row carries, so the header and the row you scroll to are visibly one claim
+   and not two. */
+.wf-d-worst{font-size:11.5px;color:#ffc077;font-weight:600}
 
 #wf-day-list{overflow-y:auto;min-height:0;max-height:__LISTVH__vh;padding:4px 0 2px}
 #wf-day-foot{padding:7px 14px 9px;border-top:1px solid rgba(255,190,90,.11);
@@ -8475,6 +8543,10 @@
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wf-d-where{display:flex;align-items:baseline;gap:6px;margin-top:1px}
 .wf-d-code{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#ffcf7a}
+/* An end of a walk that has NO building code — the class stands in for it. It
+   must not be set in the code's colour and weight: a course number that looks
+   like a building code is this surface asserting a code it never read. */
+.wf-d-noplace{font-size:11.5px;font-weight:600;color:var(--wf-dim);font-style:italic}
 .wf-d-room{font-size:11px;color:var(--wf-dimmer)}
 
 /* ── A WALK ───────────────────────────────────────────────────────────────
@@ -8486,6 +8558,16 @@
 .wf-d-walk .wf-d-rail-w:before{background:var(--wf-rail)}
 .wf-d-walk:hover:not(:disabled){background:rgba(255,255,255,.045)}
 .wf-d-walk.past{opacity:.42}
+/* THE ROW THAT DOES NOT FIT ITS GAP, WASHED. Google Calendar's day view puts
+   colour on the BLOCK; ours had colour only on the rail, and the rail was
+   already spent on "next". So this is a second, independent channel: "next"
+   owns the rail and the gutter badge, "does not fit" owns the row's ground,
+   and a row can be both without either mark being misread. Faint on purpose —
+   it has to survive being stacked three deep without turning the list into a
+   warning, and .picked below deliberately outranks it, because which row you
+   are actually navigating is the more urgent fact once you have chosen one. */
+.wf-d-walk.warn{background:rgba(255,192,119,.055)}
+.wf-d-walk.warn-late{background:rgba(255,143,107,.08)}
 .wf-d-walk.picked{background:rgba(245,166,35,.13)}
 /* WHICH ONE IS NEXT, and it is the only amber rail in the list. Everything
    else on this surface is set in the answer bar's quiet cream; one warm rail
@@ -8506,6 +8588,28 @@
 .wf-d-ends{display:flex;align-items:center;gap:5px;margin-top:3px;flex-wrap:wrap}
 .wf-d-arr{width:12px;height:12px;color:var(--wf-dimmer);flex:none}
 .wf-d-gap{font-size:10px;color:var(--wf-dimmer);margin-left:2px}
+
+/* ── THE NOW LINE ─────────────────────────────────────────────────────────
+   The one thing Google Calendar's day view has that this list did not. It
+   answers "which one is next" SPATIALLY — everything above it has happened,
+   everything below it has not — which is a different and faster act of reading
+   than finding a badge. It is drawn between two rows, at the position in the
+   sequence the clock is actually at, and it carries the time in the same
+   gutter every other row puts its time in, so the column stays one clock.
+
+   Deliberately NOT proportional. A calendar column is a ruler and this is a
+   list, so the line sits BETWEEN rows rather than at a pixel offset inside
+   one: a 105-minute lunch gap would otherwise push the afternoon off the
+   bottom to make room for empty air. */
+.wf-d-now{display:grid;grid-template-columns:46px 16px 1fr;align-items:center;
+  width:100%;box-sizing:border-box;padding:0 12px 0 10px;margin:1px 0}
+.wf-d-now-t{text-align:right;padding-right:2px;font-size:10px;font-weight:700;
+  color:var(--wf-accent);letter-spacing:.02em}
+.wf-d-now-p{position:relative;height:__NOWD__px}
+.wf-d-now-p:before{content:"";position:absolute;left:50%;top:0;
+  width:__NOWD__px;height:__NOWD__px;margin-left:-__NOWR__px;border-radius:50%;
+  background:var(--wf-accent)}
+.wf-d-now-l{height:1px;background:var(--wf-accent);opacity:.55}
 
 /* ── THE GAP BAR ──────────────────────────────────────────────────────────
    The track is the gap the schedule holds. Solid to the fast end of the walk,
@@ -8572,6 +8676,8 @@
   .replace(/__RAILW__/g, String(WF_DAY.railW))
   .replace(/__DOTD__/g, String(WF_DAY.dotR * 2))
   .replace(/__DOTR__/g, String(WF_DAY.dotR))
+  .replace(/__NOWD__/g, String(WF_DAY.nowLineDot * 2))
+  .replace(/__NOWR__/g, String(WF_DAY.nowLineDot))
   .replace(/__BARH__/g, String(WF_DAY.gapBarH))
   .replace(/__BARR__/g, String(WF_DAY.gapBarR));
 
@@ -8650,6 +8756,83 @@
     },
   };
 
+  /**
+   * A WEEK, IN THE PARSER LANE'S OWN PUBLISHED SHAPE (`ut-walk-schedule` v1,
+   * docs/si-parser.md). Round 3 documented the day shape and stopped there,
+   * so nothing had ever made the trip from a parsed calendar to this panel.
+   * `?walk=1&day=week` makes it, through `wayfindDayFromSchedule` below.
+   *
+   * WHAT IT IS AND IS NOT. It is hand-written to the published shape, so it
+   * proves the ADAPTER without needing the parser branch in the tree — which
+   * is what lets this lane verify itself. It is NOT a claim that the parser
+   * emits exactly this; that claim needs the parser's own .ics run through the
+   * parser's own code, and docs/si-dayview.md records that run separately.
+   *
+   * The Tuesday it holds is UT's real TTh grid (75-minute classes, 15 between)
+   * and its four LOCATION strings are the same real ones the `tth` fixture
+   * uses. The Monday/Wednesday classes exist so that picking a day is a real
+   * choice rather than a formality, and PSY 301 exists because a real export
+   * has a class with a blank LOCATION in it and this panel used to silently
+   * delete that class from the student's day.
+   */
+  const DAY_SCHED_FIXTURE = {
+    shape: 'ut-walk-schedule', version: 1, tz: 'America/Chicago',
+    source: { kind: 'ics', label: 'My Schedule',
+      producer: '-//UT Registration Plus//Course Schedule//EN',
+      url: '', importedAt: null },
+    events: [
+      { index: 1, id: 'ev-1', course: 'CMS 306M', title: 'CMS 306M – PROFESSIONAL COMMUNICATION',
+        locationText: 'CMA 6.146', code: 'CMA', room: '6.146', days: ['TU', 'TH'],
+        startMin: 570, endMin: 645, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      { index: 2, id: 'ev-2', course: 'C S 429', title: 'C S 429 – COMP ORGANIZATN AND ARCH',
+        locationText: 'UTC 3.102', code: 'UTC', room: '3.102', days: ['TU', 'TH'],
+        startMin: 660, endMin: 735, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      { index: 3, id: 'ev-3', course: 'BA 101S', title: 'BA 101S – BUSINESS FOUNDATIONS',
+        locationText: 'GSB 2.122', code: 'GSB', room: '2.122', days: ['TU', 'TH'],
+        startMin: 750, endMin: 825, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      // THE ONE THAT DID NOT IMPORT. A blank LOCATION is the commonest way a
+      // real export loses a class, and before round 4 this row was dropped —
+      // which turned a 2:00pm class into empty afternoon on a panel that
+      // otherwise looked complete.
+      { index: 4, id: 'ev-4', course: 'PSY 301', title: 'PSY 301 – INTRODUCTION TO PSYCHOLOGY',
+        locationText: '', code: null, room: '', days: ['TU', 'TH'],
+        startMin: 840, endMin: 915, firstDate: '2026-08-25', lastDate: '2026-12-08',
+        exDates: [], tz: 'America/Chicago', status: 'failed', confidence: null,
+        problems: [{ level: 'error', code: 'LOCATION_MISSING',
+          text: 'Row 4 (PSY 301 – INTRODUCTION TO PSYCHOLOGY) has no location, so there is nowhere to walk to.',
+          hint: 'Every class needs a building before it can be walked to.',
+          at: { event: 4, line: 31, field: 'LOCATION' } }] },
+      { index: 5, id: 'ev-5', course: 'ACC 311', title: 'ACC 311 – FUNDAMENTALS OF ACCOUNTING',
+        locationText: 'WAG 214', code: 'WAG', room: '214', days: ['MO', 'WE'],
+        startMin: 570, endMin: 620, firstDate: '2026-08-26', lastDate: '2026-12-07',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      { index: 6, id: 'ev-6', course: 'CH 301', title: 'CH 301 – PRINCIPLES OF CHEMISTRY I',
+        locationText: 'WEL 2.122', code: 'WEL', room: '2.122', days: ['MO', 'WE'],
+        startMin: 630, endMin: 680, firstDate: '2026-08-26', lastDate: '2026-12-07',
+        exDates: [], tz: 'America/Chicago', status: 'ok', problems: [], confidence: null },
+      // THE TYPO, kept off Tuesday so the demo day stays an ordinary four-class
+      // one. `MAII 220` is a real mis-typing of `MAI 220` and it is verbatim in
+      // the parser lane's own `messy.ics`; the parser reads the shape, hands
+      // back the code `MAII`, and marks the row failed. Before round 4 this
+      // panel drew a confident walk to the UT TOWER for it, because the code
+      // went through `resolve()`, which is the field's forgiving type-ahead.
+      // See dayPlace(). This event is the fixture for that fix.
+      { index: 7, id: 'ev-7', course: 'HIS 315K', title: 'HIS 315K – THE UNITED STATES 1492-1865',
+        locationText: 'MAII 220', code: 'MAII', room: '220', days: ['MO', 'WE'],
+        startMin: 720, endMin: 770, firstDate: '2026-08-26', lastDate: '2026-12-07',
+        exDates: [], tz: 'America/Chicago', status: 'failed', confidence: null,
+        problems: [{ level: 'error', code: 'BUILDING_UNKNOWN',
+          text: 'Row 7 (HIS 315K): "MAII 220" is not a UT building code.',
+          hint: 'Class locations read like "WEL 2.224".',
+          at: { event: 7, line: 44, field: 'LOCATION' } }] },
+    ],
+    problems: [], counts: { total: 7, ok: 5, failed: 2, errors: 2, warnings: 0 },
+    summary: 'Imported 5 of 7 classes. 2 could not be used.',
+  };
+
   let dayEl = null;              // the panel, built once
   let dayPlan = null;            // the normalised plan on screen
   let dayRows = null;            // the computed sequence (classes and walks)
@@ -8680,16 +8863,41 @@
         code = parts[0]; room = parts.slice(1).join(' ');
         src = src || 'location-field';
       }
-      if (!code) continue;
+      // A CLASS WITH NO USABLE TIME IS STILL DROPPED. Time is the one field
+      // this surface cannot render around: the whole panel is an ordering, and
+      // a row with no place in the order has nowhere to go.
       const a = Number(it.startMin), b = Number(it.endMin);
       if (!isFinite(a) || !isFinite(b) || b <= a) continue;
+      // A CLASS WITH NO CODE IS NOT. Round 3 dropped it, and dropping it is the
+      // worst available answer: a 10am class whose LOCATION field was blank
+      // vanished, and the panel then showed a three-hour gap that the student's
+      // day does not have. It looked complete and it was wrong. It now takes an
+      // ordinary row at its real time, marked as unplaced, and the two walks
+      // either side of it say they cannot be taken. `note` is whatever the
+      // importer wanted to say about it — the parser lane's own sentence for
+      // this event, when there is one.
+      if (!code) {
+        if (!WF_DAY.showUnplaced) continue;
+        items.push({
+          course: it.course || null, title: it.title || null,
+          code: null, room: '', raw: it.raw || null,
+          label: it.course || it.title || String(it.raw || '').trim() || null,
+          note: it.note || null,
+          startMin: a, endMin: b, unique: it.unique || null,
+          codeSource: src || 'none', codeConfidence: 0, unplaced: true,
+        });
+        continue;
+      }
       items.push({
         course: it.course || null, title: it.title || null,
         code: String(code).toUpperCase(), room: room || '',
         raw: it.raw || (room ? code + ' ' + room : code),
+        label: it.course || it.title || String(code).toUpperCase(),
+        note: it.note || null,
         startMin: a, endMin: b, unique: it.unique || null,
         codeSource: src || 'given',
         codeConfidence: it.codeConfidence == null ? 1 : Number(it.codeConfidence),
+        unplaced: false,
       });
     }
     items.sort((x, y) => x.startMin - y.startMin);
@@ -8734,10 +8942,30 @@
    *            can see from the Tower would be a lie.
    */
   function dayPlace(code) {
-    const entry = G ? resolve(code) : null;
-    if (entry && entry.routable) return { kind: 'ok', code, entry, name: entry.display };
-    if (entry) return { kind: 'nodoor', code, entry, name: entry.display };
-    const ut = utIndex().get(String(code).toUpperCase());
+    const up = String(code || '').toUpperCase();
+    const hit = G ? resolve(up) : null;
+    // ── A CODE OFF A SCHEDULE IS EXACT VOCABULARY, NOT A TYPE-AHEAD QUERY ──
+    // `resolve()` is `search()[0]`, and `search()` is the FORGIVING type-ahead
+    // the field uses so that typing "wel" finds Welch. Handing a schedule's
+    // building code straight to it means a typo routes: the parser lane's
+    // `messy.ics` carries the real-world typo `MAII 220`, the parser correctly
+    // hands back the code `MAII` and marks the row failed — and until this line
+    // existed, this panel drew a confident 10-14 minute walk to the UT TOWER
+    // for a class that is not in it. Nothing was red; the walk was measured,
+    // the row was pretty, and the building was wrong.
+    //
+    // Found by running the merged tree (this lane + acer/si-parser) against the
+    // parser's own fixture files, which is the only place it can be found:
+    // every fixture on this branch alone spells its codes correctly.
+    //
+    // So an inexact hit is not a hit. It is kept only as a SUGGESTION, which is
+    // the useful half of what the type-ahead knew.
+    const entry = hit && String(hit.code || '').toUpperCase() === up ? hit : null;
+    const near = (hit && !entry) ? { code: hit.code, name: hit.display } : null;
+    if (entry && entry.routable) return { kind: 'ok', code: up, entry, name: entry.display };
+    if (entry) return { kind: 'nodoor', code: up, entry, name: entry.display };
+    const code2 = up;
+    const ut = utIndex().get(up);
     const bb = dayBounds();
     if (ut && ut.length && bb) {
       const ll = [ut[0].lon, ut[0].lat];
@@ -8745,14 +8973,14 @@
       if (out) {
         const d = metresBetween(ll, bb.c);
         const brg = (Math.atan2(ll[0] - bb.c[0], ll[1] - bb.c[1]) * 180 / Math.PI + 360) % 360;
-        return { kind: 'offmap', code, entry: null, name: null,
+        return { kind: 'offmap', code: code2, entry: null, name: null,
           distM: d, dir: COMPASS8[Math.round(brg / 45) % 8] };
       }
       // UT knows it, it is on this map's ground, and we still cannot route to
       // it. That is a hole in this app, not in the schedule.
-      return { kind: 'unknown', code, entry: null, name: null, utKnows: true };
+      return { kind: 'unknown', code: code2, entry: null, name: null, utKnows: true, near };
     }
-    return { kind: 'unknown', code, entry: null, name: null, utKnows: false };
+    return { kind: 'unknown', code: code2, entry: null, name: null, utKnows: false, near };
   }
 
   /** §15's ladder, and there are only two rungs on purpose. */
@@ -8769,11 +8997,26 @@
    */
   function dayBuild(plan) {
     const out = [];
-    let checks = 0, unreachable = 0;
-    const places = plan.items.map(it => dayPlace(it.code));
+    // `unreachable` and `unplaced` are counted apart because they are not the
+    // same news. "This map cannot take you there" is a fact about the map;
+    // "we could not read a building for this class" is a fact about the import,
+    // and only the second one is something the student can go and fix.
+    let checks = 0, unreachable = 0, unplaced = 0, onFootM = 0;
+    // WORST-FIRST, not first-worst. The header names ONE leg and there may be
+    // two, so 'late' outranks 'tight' and, within a rung, the earlier leg wins
+    // — the one you hit first is the one you can still do something about.
+    let worst = null, tights = 0;
+    // An unplaced class has no code to look up, so it never reaches dayPlace()
+    // — which resolves against the building register and would answer
+    // `unknown` about a null, i.e. the wrong one of its four sentences.
+    const places = plan.items.map(it => (it.unplaced
+      ? { kind: 'unplaced', code: null, entry: null, name: null,
+          label: it.label || it.course || it.title || '', note: it.note || null }
+      : dayPlace(it.code)));
     for (let i = 0; i < plan.items.length; i++) {
       const it = plan.items[i], pl = places[i];
-      if (pl.kind !== 'ok') unreachable++;
+      if (pl.kind === 'unplaced') unplaced++;
+      else if (pl.kind !== 'ok') unreachable++;
       out.push({ type: 'class', i, item: it, place: pl });
       const nx = plan.items[i + 1];
       if (!nx) continue;
@@ -8798,8 +9041,13 @@
           leg.route = r;
           leg.lo = r.time.lo; leg.hi = r.time.hi; leg.distM = r.distM;
           leg.sets = r.m.stairSets; leg.signals = r.m.signals;
+          onFootM += r.distM;
           leg.verdict = dayVerdict(r.time.lo, r.time.hi, budget);
-          if (leg.verdict) leg.problems.push({ kind: leg.verdict });
+          if (leg.verdict) {
+            leg.problems.push({ kind: leg.verdict });
+            if (leg.verdict === 'tight') tights++;
+            if (!worst || (worst.verdict === 'tight' && leg.verdict === 'late')) worst = leg;
+          }
           if (leg.sets > 0) {
             // The stairs lane already computed the way round, or established
             // there is none, on this same answer object. Do not re-route it.
@@ -8815,7 +9063,7 @@
       out.push(leg);
     }
     return { rows: out, checks, walks: out.filter(r => r.type === 'walk').length,
-      classes: plan.items.length, unreachable };
+      classes: plan.items.length, unreachable, unplaced, onFootM, worst, tights };
   }
 
   // ── THE CLOCK ────────────────────────────────────────────────────────────
@@ -8947,6 +9195,48 @@
     return wrap;
   }
 
+  /**
+   * WHERE THE NOW LINE GOES, and it is a rule about reading rather than about
+   * arithmetic. Google Calendar draws its line at a pixel offset inside a
+   * proportional column; this is a list, so the line goes BETWEEN two rows and
+   * has to land where "everything above has happened" is actually true.
+   *
+   *   before the first row that has not ENDED yet — so at 10:50, in a
+   *   10:45→11:00 passing period, the line sits above the walk row and the
+   *   walk reads as ahead of you, which it is;
+   *
+   *   except when the clock is INSIDE a class, where it goes after that class
+   *   instead — you are in the room, the class is current, and what is below
+   *   the line is what is left of the day. (Not for a walk row: the walk you
+   *   have not finished is still ahead of you.)
+   *
+   * Returns rows.length for a day that is over, which draws the line at the
+   * foot of the list, and 0 for a day that has not started.
+   */
+  function dayNowIndex(rows, nowMin) {
+    if (!WF_DAY.nowLine || nowMin == null || !rows.length) return -1;
+    const endOf = (r) => r.type === 'class' ? r.item.endMin : r.to.startMin;
+    const startOf = (r) => r.type === 'class' ? r.item.startMin : r.from.endMin;
+    for (let i = 0; i < rows.length; i++) {
+      if (endOf(rows[i]) <= nowMin) continue;
+      if (rows[i].type === 'class' && nowMin >= startOf(rows[i])) return i + 1;
+      return i;
+    }
+    return rows.length;
+  }
+
+  /** The line itself: the clock in the same gutter every row puts its time in,
+   *  a pip on the spine, and a hairline across the body. Three columns, the
+   *  same three a row has, so it cannot drift out of the grid. */
+  function dayNowLine(nowMin) {
+    const w = h('div', 'wf-d-now');
+    w.setAttribute('aria-hidden', 'true');
+    w.appendChild(h('div', 'wf-d-now-t', dayFmtTime(nowMin)));
+    w.appendChild(h('div', 'wf-d-now-p'));
+    w.appendChild(h('div', 'wf-d-now-l'));
+    return w;
+  }
+
   function dayRenderClass(row, nowMin) {
     const r = h('div', 'wf-d-row wf-d-class');
     if (nowMin != null && nowMin >= row.item.startMin && nowMin < row.item.endMin) r.classList.add('in');
@@ -8966,11 +9256,28 @@
     const nm = row.place.name || (row.place.kind === 'offmap' || row.place.kind === 'unknown'
       ? null : row.item.code);
     if (nm) body.appendChild(h('div', 'wf-d-place', nm));
-    const where = h('div', 'wf-d-where');
-    where.appendChild(h('span', 'wf-d-code', row.item.code));
-    if (row.item.room) where.appendChild(h('span', 'wf-d-room', row.item.room));
-    body.appendChild(where);
-    if (row.item.codeConfidence < WF_DAY.confidenceSure) {
+    // AN UNPLACED CLASS SHOWS THE STRING IT ACTUALLY HAD, not a blank where a
+    // code goes. Whatever the calendar put in LOCATION is what the student will
+    // recognise and what they have to go and fix, so it is printed verbatim.
+    if (row.place.kind === 'unplaced') {
+      if (row.item.raw) {
+        const where = h('div', 'wf-d-where');
+        where.appendChild(h('span', 'wf-d-room', String(row.item.raw)));
+        body.appendChild(where);
+      }
+    } else {
+      const where = h('div', 'wf-d-where');
+      where.appendChild(h('span', 'wf-d-code', row.item.code));
+      if (row.item.room) where.appendChild(h('span', 'wf-d-room', row.item.room));
+      body.appendChild(where);
+    }
+    // "Read as X — check this one" is for a code we DID read and are not sure
+    // of. An unplaced class has no code and no raw string to quote, and printing
+    // this for it produced a literal `Read as "null" — check this one` on screen
+    // next to a sentence that already said the true thing. Caught by looking at
+    // the harness's own output, not by any gate.
+    if (row.place.kind !== 'unplaced' && row.item.raw &&
+        row.item.codeConfidence < WF_DAY.confidenceSure) {
       body.appendChild(dayChip('info', SAY_D.lowConf(row.item.raw)));
     }
     // WHY A BUILDING IS OUT OF REACH BELONGS TO THE CLASS ROW, ONCE. It is a
@@ -8984,9 +9291,25 @@
       body.appendChild(dayChip('off', SAY_D.offMap(row.item.code,
         fmtDist(row.place.distM), row.place.dir), SAY_D.offMapWhy));
     } else if (row.place.kind === 'unknown') {
-      body.appendChild(dayChip('off', SAY_D.unknown(row.item.code), SAY_D.unknownWhy));
+      // The near miss, when the type-ahead had one. It is a SUGGESTION on the
+      // row and never a substitution in the router — see dayPlace().
+      body.appendChild(dayChip('off', SAY_D.unknown(row.item.code),
+        row.place.near ? SAY_D.unknownMaybe(row.place.near.code, row.place.near.name)
+          : SAY_D.unknownWhy));
     } else if (row.place.kind === 'nodoor') {
       body.appendChild(dayChip('off', SAY_D.noDoor(row.item.code), SAY_D.noDoorWhy));
+    } else if (row.place.kind === 'unplaced') {
+      // The importer's own sentence when it gave one, this surface's when it
+      // did not — the parser lane already writes a better one than a renderer
+      // can, because it knows WHICH way the location field failed.
+      body.appendChild(dayChip('off',
+        SAY_D.unplaced(row.place.label || row.item.code || ''),
+        row.place.note || SAY_D.unplacedWhy));
+    } else if (row.item.note) {
+      // A CLASS WE CAN ROUTE TO THAT THE IMPORTER STILL COULD NOT USE. Only
+      // here — every other branch above already says something more specific
+      // about this building, and saying both puts one fact on screen twice.
+      body.appendChild(dayChip('info', row.item.note));
     }
     r.appendChild(body);
     return r;
@@ -8995,8 +9318,12 @@
   function dayRenderWalk(row, nowMin, isNext, idx) {
     const past = nowMin != null && nowMin >= row.to.startMin + WF_DAY.nextGraceMin;
     const btn = document.createElement('button');
+    // The row's own ground carries "does not fit its gap" — a second channel
+    // from `next`, which owns the rail and the gutter badge. See DAY_CSS.
+    const wash = !WF_DAY.warnRail ? '' :
+      (row.verdict === 'late' ? ' warn warn-late' : (row.verdict === 'tight' ? ' warn' : ''));
     btn.className = 'wf-d-row wf-d-walk' + (isNext ? ' next' : '') + (past ? ' past' : '') +
-      (dayPicked === idx ? ' picked' : '');
+      wash + (dayPicked === idx ? ' picked' : '');
     btn.type = 'button';
     const when = h('div', 'wf-d-when');
     if (isNext) when.appendChild(h('div', 'wf-d-next', SAY_D.next));
@@ -9041,9 +9368,18 @@
       line.appendChild(h('span', 'wf-d-min', '—'));
       body.appendChild(line);
       const ends = h('div', 'wf-d-ends');
-      ends.appendChild(h('span', 'wf-d-code', row.fromPlace.code));
+      // An unplaced end has no code, so the ends line prints what the class is
+      // called instead. It must print SOMETHING: an ends line with one code and
+      // an arrow into nothing reads as a rendering bug.
+      // AND IT IS NOT SET AS A CODE. `PSY 301` in the code's amber weight looks
+      // exactly like `GSB` next to it, which would have this surface asserting
+      // a building code it does not have and never read. It is a course number
+      // standing in for a building we could not find, and it is set as one.
+      const endName = (p, it) => p.code || p.label || (it && (it.course || it.title)) || '?';
+      const endCell = (p, it) => h('span', p.code ? 'wf-d-code' : 'wf-d-noplace', endName(p, it));
+      ends.appendChild(endCell(row.fromPlace, row.from));
       ends.appendChild(icon('wf-d-arr', IC_D.arrowR, 2.1));
-      ends.appendChild(h('span', 'wf-d-code', row.toPlace.code));
+      ends.appendChild(endCell(row.toPlace, row.to));
       if (row.gapMin != null) ends.appendChild(h('span', 'wf-d-gap', SAY_D.gapWas(row.gapMin)));
       body.appendChild(ends);
     }
@@ -9064,6 +9400,14 @@
       else if (p.kind === 'offmap' || p.kind === 'unknown' || p.kind === 'nodoor') {
         body.appendChild(dayChip('off', p.place === row.toPlace
           ? SAY_D.cannotTo(p.place.code) : SAY_D.cannotFrom(p.place.code)));
+      }
+      // An unplaced end is named by its CLASS, not by a code, because there is
+      // no code — "We can't take you to BIO 206L" is the only true sentence
+      // available and it is also the one the student can act on.
+      else if (p.kind === 'unplaced') {
+        const lab = p.place.label || (p.place === row.toPlace ? row.to : row.from).course || '';
+        body.appendChild(dayChip('off', p.place === row.toPlace
+          ? SAY_D.cannotToLabel(lab) : SAY_D.cannotFromLabel(lab)));
       }
     }
     btn.appendChild(body);
@@ -9104,8 +9448,29 @@
     dayRows = dayBuild(dayPlan);
     dayEl.title.textContent = dayPlan.day || SAY_D.title;
     dayEl.sum.innerHTML = '';
-    dayEl.sum.appendChild(h('span', 'wf-d-count',
-      SAY_D.heading(dayRows.classes, dayRows.walks)));
+    const count = h('span', 'wf-d-count', SAY_D.heading(dayRows.classes, dayRows.walks));
+    // HOW FAR YOU WALK TODAY, on the end of the count line rather than on a
+    // line of its own — it is the same KIND of fact as "3 walks" (the size of
+    // the day) and giving it its own row would rank it with the warnings.
+    if (WF_DAY.totalOnFoot && dayRows.onFootM > 0) {
+      count.appendChild(h('span', 'wf-d-count-sub',
+        ' · ' + SAY_D.onFoot(fmtDist(dayRows.onFootM))));
+    }
+    dayEl.sum.appendChild(count);
+    // WHICH LEG, ABOVE THE COUNT. The count says how many walks have something
+    // wrong; this says WHICH, and which is the more useful of the two — the
+    // count was making you scroll to find out what this line just tells you.
+    // On a phone only two rows are on screen, so the header is the only part of
+    // this panel always in view and the order inside it is the ranking. §15
+    // holds: every form of this sentence is a warning about a named leg, and a
+    // day whose walks all fit gets no sentence here at all.
+    if (WF_DAY.headlineWorst && dayRows.worst) {
+      const w = dayRows.worst;
+      const a = w.fromPlace.code, b = w.toPlace.code;
+      const line = w.verdict === 'late' ? SAY_D.worstLate(a, b)
+        : (dayRows.tights > 1 ? SAY_D.worstTightN(dayRows.tights) : SAY_D.worstTight(a, b));
+      dayEl.sum.appendChild(h('span', 'wf-d-worst', line));
+    }
     if (dayRows.checks) {
       dayEl.sum.appendChild(h('span', 'wf-d-checks',
         SAY_D.toCheck(dayRows.checks, dayRows.walks)));
@@ -9113,6 +9478,10 @@
     if (dayRows.unreachable) {
       dayEl.sum.appendChild(h('span', 'wf-d-unreach',
         SAY_D.someUnreachable(dayRows.unreachable)));
+    }
+    if (dayRows.unplaced) {
+      dayEl.sum.appendChild(h('span', 'wf-d-unreach',
+        SAY_D.someUnplaced(dayRows.unplaced)));
     }
     // WHICH ONE IS NEXT, and exactly one row may be it. The first walk whose
     // destination class has not started yet (plus a grace window, because
@@ -9133,13 +9502,16 @@
         dayEl.sum.appendChild(h('span', 'wf-d-unreach', SAY_D.done));
       }
     }
+    const nowAt = dayNowIndex(dayRows.rows, nowMin);
     dayEl.list.innerHTML = '';
     for (let i = 0; i < dayRows.rows.length; i++) {
+      if (i === nowAt) dayEl.list.appendChild(dayNowLine(nowMin));
       const r = dayRows.rows[i];
       dayEl.list.appendChild(r.type === 'class'
         ? dayRenderClass(r, nowMin)
         : dayRenderWalk(r, nowMin, i === nextIdx, i));
     }
+    if (nowAt === dayRows.rows.length) dayEl.list.appendChild(dayNowLine(nowMin));
     dayEl.foot.textContent = SAY_D.from(SAY_D.source[dayPlan.source] || dayPlan.source);
   }
 
@@ -9159,6 +9531,10 @@
     dayShow();
     return { ok: true, classes: p.items.length,
       walks: dayRows.walks, checks: dayRows.checks, unreachable: dayRows.unreachable,
+      unplaced: dayRows.unplaced, onFootM: Math.round(dayRows.onFootM),
+      tights: dayRows.tights,
+      worst: dayRows.worst ? { from: dayRows.worst.fromPlace.code,
+        to: dayRows.worst.toPlace.code, verdict: dayRows.worst.verdict } : null,
       rows: dayRows.rows.map(r => r.type === 'class'
         ? { type: 'class', code: r.item.code, kind: r.place.kind,
             startMin: r.item.startMin, endMin: r.item.endMin }
@@ -9172,6 +9548,147 @@
   window.wayfindDayFixture = function (name) {
     const f = DAY_FIXTURES[name] || DAY_FIXTURES[WF_DAY.demoPlan];
     return JSON.parse(JSON.stringify(f));
+  };
+  /** A whole WEEK in the parser lane's published shape, for driving the
+   *  schedule adapter below without the parser branch in the tree. */
+  window.wayfindDayScheduleFixture = function () {
+    return JSON.parse(JSON.stringify(DAY_SCHED_FIXTURE));
+  };
+
+  // ── THE OTHER HALF OF THE SEAM ────────────────────────────────────────────
+  // A parsed schedule is a WEEK; this panel shows a DAY. Round 3 documented the
+  // shape the renderer wants and left the conversion to whoever called it,
+  // which meant nothing had ever actually made the trip end to end. This is the
+  // conversion, and it is here rather than in the parser for the same reason
+  // `dayNormalise` is here: the renderer is the side that knows what a day is.
+  //
+  // It reads a plain object. There is no call into the parser lane's code, no
+  // reference to any of its identifiers, and nothing here breaks if it is not
+  // loaded — which is what lets both halves be verified separately and then
+  // together, and what keeps two lanes out of one another's functions.
+  const DAY_ICS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday'];
+
+  /** 'TU' | 'Tuesday' | 'tue' | 2 -> 2, or -1. */
+  function dayIndexOf(v) {
+    if (v == null || v === '') return -1;
+    if (typeof v === 'number' && v >= 0 && v <= 6) return v;
+    const s = String(v).trim().toUpperCase();
+    const i = DAY_ICS.indexOf(s.slice(0, 2));
+    if (i >= 0 && (s.length === 2 || DAY_NAMES[i].toUpperCase().indexOf(s) === 0)) return i;
+    for (let k = 0; k < 7; k++) if (DAY_NAMES[k].toUpperCase().indexOf(s) === 0) return k;
+    return -1;
+  }
+
+  /** Which of the three importers produced this, from what the file says about
+   *  itself. PRODID is the honest signal; the front end's own label is second;
+   *  a paste is nobody's calendar and says so. */
+  function daySourceOf(src) {
+    const p = String((src && (src.producer || src.label)) || '').toLowerCase();
+    if (/google/.test(p)) return 'google';
+    if (/apple|mac os|ical\b|core ?data/.test(p)) return 'apple';
+    if (/utexas|registration|ut ?registration/.test(p)) return 'ut';
+    if (src && src.kind === 'rows') return 'manual';
+    return 'manual';
+  }
+
+  /**
+   * PUBLIC. Take a parsed schedule — the `ut-walk-schedule` shape the parser
+   * lane produces from a Google export, an Apple export or subscription, or a
+   * UT registration export — and show ONE of its days.
+   *
+   *   opts.day   'TU' | 'Tuesday' | 2 | omitted (today, then the first day the
+   *              schedule actually has classes on)
+   *   opts.show  false to build the plan and not open the panel
+   *
+   * TWO DECISIONS IN HERE ARE THE WHOLE POINT.
+   *
+   * 1. A CLASS THAT FAILED TO IMPORT IS STILL ON THE DAY. The parser marks an
+   *    event `failed` when it cannot read a building for it; dropping those
+   *    would leave a student looking at a panel that says "3 classes" on a
+   *    four-class Tuesday, with an invented two-hour gap where the fourth one
+   *    is. Every event that has a TIME comes through. What it lost is a place,
+   *    and the row says so, in the importer's own words where it gave any.
+   *
+   * 2. A CODE THAT RESOLVED IS PASSED THROUGH RAW, NOT PRE-JUDGED. The parser
+   *    already knows MER is at Pickle and SSW is unregistered — but this file
+   *    asks `dayPlace()` the same question again, against the graph it is
+   *    actually going to route on. Two surfaces that answer "can I get there"
+   *    from two different sources is exactly the failure the day plan's own
+   *    gate exists to catch, and it would be perverse to introduce it here.
+   */
+  window.wayfindDayFromSchedule = async function (schedule, opts) {
+    opts = opts || {};
+    const evs = (schedule && (schedule.events || schedule.routable)) || [];
+    if (!evs.length) return { ok: false, why: 'empty' };
+
+    // WHICH DAY. Asked for, else today, else the first day this schedule has a
+    // class on — because a Sunday visitor with a Mon/Wed timetable should see
+    // Monday, not an empty panel that looks broken.
+    const has = (d) => evs.some(e => Array.isArray(e.days) && e.days.indexOf(DAY_ICS[d]) >= 0);
+    let di = dayIndexOf(opts.day);
+    if (di < 0 && WF_DAY.weekFrom === 'today') di = new Date().getDay();
+    if (di < 0 || !has(di)) { for (let k = 0; k < 7; k++) if (has(k)) { di = k; break; } }
+    if (di < 0) di = 0;
+    const want = DAY_ICS[di];
+
+    let skipped = 0, noTime = 0;
+    const items = [];
+    for (const e of evs) {
+      const days = Array.isArray(e.days) ? e.days : [];
+      if (days.length && days.indexOf(want) < 0) { skipped++; continue; }
+      // A one-off event carries no RRULE day list. Its own date decides.
+      if (!days.length) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(e.firstDate || ''));
+        if (!m) { skipped++; continue; }
+        if (new Date(+m[1], +m[2] - 1, +m[3]).getDay() !== di) { skipped++; continue; }
+      }
+      if (e.startMin == null || e.endMin == null) { noTime++; continue; }
+      // The parser's own sentence about why this one has no building. The HINT,
+      // not the problem text: the text names a row number and repeats the class
+      // title, which is right for an import report and wrong under a row that
+      // already carries both.
+      // The parser's own sentence about why this event failed. Carried for
+      // EVERY failed event, not only the placeless ones, and here is why.
+      //
+      // `messy.ics` holds LAH 350: a real class, in PCL, at a real time, whose
+      // only problem is that the file was cut off. The parser's report says
+      // "8 could not be used"; this panel would have shown LAH 350 as an
+      // ordinary class with an ordinary walk to it, and the two surfaces would
+      // have been telling a student two different things about the same
+      // import. The note makes them agree.
+      //
+      // It is only PRINTED on a class this map can actually route to — see
+      // dayRenderClass. Where the building itself is the problem, dayPlace()
+      // says a better and more specific thing, and printing both put the same
+      // fact on screen twice, which is the defect round 3 had to fix once.
+      let note = null;
+      if (Array.isArray(e.problems) && (e.status !== 'ok' || !e.code)) {
+        for (const p of e.problems) if (p && p.level === 'error') { note = p.hint || p.text || null; break; }
+      }
+      items.push({
+        course: e.course || null, title: e.title || null,
+        code: e.code || null, room: e.room || '',
+        raw: e.locationText || (e.code ? (e.room ? e.code + ' ' + e.room : e.code) : null),
+        note: note,
+        startMin: e.startMin, endMin: e.endMin, unique: e.unique || null,
+        codeSource: 'schedule',
+        codeConfidence: e.confidence == null ? 1 : Number(e.confidence),
+      });
+    }
+    if (!items.length) return { ok: false, why: 'no-classes-that-day', day: DAY_NAMES[di] };
+
+    const plan = {
+      day: DAY_NAMES[di], date: null, tz: schedule.tz || null,
+      source: daySourceOf(schedule.source), items,
+    };
+    if (opts.show === false) { return { ok: true, plan, day: DAY_NAMES[di], skipped, noTime }; }
+    const r = await window.wayfindDay(plan);
+    r.day = DAY_NAMES[di];
+    r.skipped = skipped;
+    r.noTime = noTime;
+    return r;
   };
 
   /**
@@ -9210,8 +9727,17 @@
       dayMount();
       const d = q.get('day');
       if (d && d !== '0') {
-        try { await window.wayfindDay(window.wayfindDayFixture(d === '1' ? WF_DAY.demoPlan : d)); }
-        catch (e) {}
+        try {
+          // `?day=week` goes in through the SCHEDULE door instead of the day
+          // door, so the adapter is on the same path a real import takes
+          // rather than only on the harness's.
+          if (d === 'week') {
+            await window.wayfindDayFromSchedule(window.wayfindDayScheduleFixture(),
+              { day: q.get('dayof') || 'TU' });
+          } else {
+            await window.wayfindDay(window.wayfindDayFixture(d === '1' ? WF_DAY.demoPlan : d));
+          }
+        } catch (e) {}
       }
     };
     if (map.isStyleLoaded && map.isStyleLoaded()) go();
