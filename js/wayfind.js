@@ -8383,11 +8383,18 @@
         days: Array.isArray(o.days) ? o.days.map(String) : [],
         startMin: Number.isFinite(o.startMin) ? o.startMin : null,
         endMin: Number.isFinite(o.endMin) ? o.endMin : null,
-        // WHY THIS IS NOT `resolved: true/false`. docs/schedule-gaps.md found
-        // eleven codes a real UT schedule can name that this map cannot route
-        // to — ten at the Pickle campus 11 km north, one (SSW) demolished in
-        // 2024. "unknown code" and "known, just not on this map" want
-        // different sentences, so the reason is stored, not a boolean.
+        // WHY THIS IS NOT `resolved: true/false`. Eleven codes a real UT
+        // schedule can name do not route in this build, and they are TWO
+        // different problems, not one: ten sit at the Pickle campus ~11 km
+        // north and are off this map for good, while SSW is a main-campus
+        // building whose UT-surveyed door lands 0.4 m from a footprint this
+        // app already draws — missing only a row in our register snapshot.
+        // "Unknown code" and "real building, just not on this map" want
+        // different sentences, and a boolean cannot tell them apart, so the
+        // reason is stored as a string. Re-measured on this branch from
+        // data/ut_buildings.json, the UT door table in §3 above and the drawn
+        // snapshot; the numbers are in docs/si-privacy.md §7, and
+        // docs/si-gaps.md (on origin/acer/si-gaps) reaches them independently.
         unroutableWhy: o.unroutableWhy == null ? null : String(o.unroutableWhy),
         // Reserved for OCR. An .ics sets 1; a photo will not.
         confidence: Number.isFinite(o.confidence) ? o.confidence : 1,

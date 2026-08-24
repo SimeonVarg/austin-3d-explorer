@@ -104,11 +104,14 @@ the three being built. They are listed before they exist on purpose: it is the
 forward compatibility, written down, and it means the delete sweep in §4
 already covers what they will write.
 
-**`unroutableWhy` is a string, not a boolean**, and that is because of
-`docs/schedule-gaps.md`: eleven codes a real UT schedule can name cannot be
-routed to at all. "Unknown code, probably a typo" and "real building, just not
-on this map" want different sentences. Re-verified on this branch today, not
-taken on trust — see §7.
+**`unroutableWhy` is a string, not a boolean**, because eleven codes a real UT
+schedule can name cannot be routed to in this build, and they are **two
+different problems wearing one label**. "Unknown code, probably a typo", "real
+building, 11 km north at Pickle" and "real building on this campus, missing a
+row in our register" are three different sentences to a student, and a boolean
+can only tell them apart if you never needed to. Re-measured on this branch
+today from the repo's own files — see §7, which also corrects what an earlier
+round of this doc said about one of the eleven.
 
 ---
 
@@ -141,6 +144,7 @@ Method, in full, so it can be re-run:
 ```
 python scripts/serve.py 8915                     # never python -m http.server
 node scripts/verify/harness-drift.mjs            # preflight, PASS
+node si-privacy-claims.mjs .                     # §5.0, the doc's own citations
 VERIFY_URL=http://127.0.0.1:8915 node schedule-privacy.mjs   # the script in §9
 ```
 
@@ -148,10 +152,31 @@ playwright-core from `scripts/verify/node_modules`, explicit `executablePath`
 `C:/Program Files/Google/Chrome/Application/chrome.exe`, one browser, killed at
 the end, port confirmed free after. `?walk=1&drift=0&intro=0`,
 `window.cancelGraphicsAutoDetect()` at the top of every page, wait for the veil
-to go. **34 assertions, five separate runs, all green.** Two of the five were
-before the performance rewrite in §8 and three after, and they agree — which is
-the point of running it more than once. `harness-drift.mjs` passes before each:
-`index.html: 31 scripts / _harness.html: 31 scripts`.
+to go. **84 assertions, all green**, over repeated runs on this commit.
+`harness-drift.mjs` passes before each: `index.html: 31 scripts /
+_harness.html: 31 scripts`.
+
+### 0. The doc's own citations, before anything is measured
+
+Added in round 4, because the defect a reviewer found in round 3 was not in the
+code — it was in this file. Every path `docs/si-privacy.md` cites has to
+resolve: here, or in a sibling branch's tree if the doc names the branch, or
+declared `(proposed)` if it is a file this lane may not write. And the privacy
+sentence quoted in §1 has to be **byte-identical** to the one `index.html`
+serves and the one `js/wayfind.js` falls back to, so a doc cannot go on quoting
+a promise the app stopped making.
+
+```
+  ok   docs/si-gaps.md   (declared on origin/acer/si-gaps, and really there)
+  ok   docs/schedule-gaps.md   (named as a phantom the doc is correcting)
+  ok   scripts/verify/schedule-privacy.mjs   (declared proposed, not yet written)
+PASS  no citation points at a file that does not exist   21 paths checked
+PASS  index.html and js/wayfind.js say the same sentence
+PASS  the doc quotes that sentence exactly, not a paraphrase of it
+```
+
+On its first run it failed, and named `docs/schedule-gaps.md` — which is the
+only evidence worth having that a gate works.
 
 ### A. The feature is on and the panel is really mounted
 
@@ -202,26 +227,69 @@ is deliberately not on that list**: `?from=WEL&to=MAI` is a documented URL
 feature of this app and the codes are its public vocabulary. The scan is run at
 both thresholds and reports the difference; on all three runs there was none.
 
-### D. The negative control — because a zero from a blind instrument is also a zero
+### D. The negative control — nine channels, not one
 
-This is the assertion that makes §5.C mean anything.
+This is what makes §5.C mean anything, and in round 4 it got nine times bigger
+for a reason. §6 advertises that the guard closes seven doors. Rounds 1–3 fired
+**one `fetch`** and called the guard proven — six advertised claims with no
+evidence behind them, in a section whose whole argument is that a claim about
+code is not a measurement. So every channel is now fired **twice**: once with
+the guard disarmed, to show the channel really carries and the instrument
+really sees it, and once armed, to show the guard is what stopped it. A case
+that fails identically in both states proves nothing, so each channel asserts
+the two outcomes **differ** and that the armed one is ours.
+
+| channel | disarmed | armed |
+|---|---|---|
+| `fetch` | sent | `[wayfind] blocked: fetch carried stored schedule content` |
+| `XMLHttpRequest` | sent | `[wayfind] blocked: XMLHttpRequest carried…` |
+| `navigator.sendBeacon` | returned true | returned **false** |
+| `new WebSocket(url)` | opened | `[wayfind] blocked: WebSocket carried…` |
+| `WebSocket.send` | `InvalidStateError: Still in CONNECTING state` | `[wayfind] blocked: WebSocket.send carried…` |
+| `new EventSource(url)` | opened | `[wayfind] blocked: EventSource carried…` |
+| `form.submit()` | submitted | `[wayfind] blocked: form.submit carried…` |
+| `form.requestSubmit()` | submitted | **prevented** |
+| `Worker.postMessage` | posted | `[wayfind] blocked: Worker.postMessage carried…` |
+
+Three of those deserve a note, because they are the ones where a lazy test
+would have passed while proving nothing:
+
+- **`WebSocket.send` throws either way.** The socket never connects, so an
+  unguarded `send` throws `InvalidStateError`. The test is that the two errors
+  are *different* — the guarded one is our block, thrown before `super.send`
+  is reached. Same call, same socket state, different refuser.
+- **`form.submit()` and `form.requestSubmit()` are two different doors.**
+  `submit()` does not fire a `submit` event, so the prototype wrapper and the
+  capture-phase listener are separate pieces of code with separate bugs
+  available to them. Only `requestSubmit()` exercises the listener, and its
+  refusal is not a throw at all — the event is simply prevented.
+- **The form test found a bug in the instrument, not the guard.** The first
+  version submitted into `target="_blank"`. The request then belongs to a
+  popup, the page-scoped capture never sees it, and the *disarmed* control
+  reported zero captured requests — a clean-looking result that meant the
+  instrument was blind. It submits into a hidden same-page iframe now, and the
+  capture sees it. Worth recording because that is exactly the failure mode
+  this whole section exists to rule out, and it appeared in the tool built to
+  rule it out.
+
+Of the nine, five make a real network request when disarmed, so the
+browser-level capture can independently confirm each leak:
 
 ```
-PASS  with the guard disarmed the leak request actually went out
-PASS  the capture SAW the leak request                    1 request(s)
-PASS  the scanner FLAGGED the leak as schedule content    matched "fall 2026…"
-PASS  with the guard armed the same request is refused
-      [wayfind] blocked: fetch carried stored schedule content (20…(24)).
-      The schedule never leaves this device.
-PASS  and nothing carrying the schedule reached the wire
-PASS  guard counted the block        blocked:1  inspectFailures:0
+PASS  fetch:       DISARMED — the capture actually saw the leak request   1 request(s)
+PASS  fetch:       DISARMED — and the scanner flagged it as schedule content
+PASS  fetch:       ARMED — no such request reached the wire at all        0 request(s)
+   …xhr, sendBeacon, form-submit, form-event, all the same three…
+PASS  the guard counted a block for every channel
+      {"watched":26,"checked":268,"quietChecked":247,"blocked":9,"inspectFailures":0}
+PASS  guard inspected every request without erroring
+PASS  the guard's own audit log holds no schedule content
 ```
 
-The guard is disarmed, one real `POST /__leak_probe` fires with the schedule as
-its body, and the capture and the scanner both catch it. Then it is re-armed,
-the identical request is fired again, and it is refused before it reaches the
-wire. The instrument is proven to see a leak *and* the guard is proven to stop
-one, in the same run, on the same request.
+That last one is new too: the guard keeps a log of what it blocked, and a log
+that quoted the blocked content would be a second copy of the leak sitting in
+memory. It stores `20…(24)` — first two characters and a length — and the
+assertion scans the whole serialised log against the watchlist to prove it.
 
 ### E and F. Delete, then reload
 
@@ -249,30 +317,42 @@ The one surviving key is the graphics preference this app already had.
 PASS  no WAYFIND.store without ?walk=1
 PASS  no window.wayfindStore without ?walk=1
 PASS  no privacy panel and no injected CSS with the feature off
-PASS  window.fetch is NOT wrapped with the feature off
+PASS  fetch, XHR.send, sendBeacon and Worker.postMessage are all still native
+      {"fetchNative":true,"xhrNative":true,"beaconNative":true,"workerNative":true}
 ```
 
 `main` is being screen-recorded. A privacy feature that installs a `fetch`
 wrapper on every visitor to a page that does not have the feature turned on
 would be a real regression.
 
+The last assertion was weakened in earlier rounds and is fixed here. It used to
+test `!/schedWatch|blocked:/.test(String(window.fetch))` — a check that passes
+for *any* wrapper that happens not to contain those two words, including one
+this lane might add later under a different name. It now asserts each primitive
+still stringifies to `[native code]`, which is the browser's own function or
+nothing.
+
 ### H. And the shipped feature still works
 
-`node scripts/verify/walkmeter.mjs` passes on this branch, twice — before and
-after the §8 rewrite — including its **live UI gate**, a real mouse click on
-the "Avoid stairs" checkbox:
+Re-run on this commit. `node scripts/verify/walkmeter.mjs` passes, including its
+**live UI gate** — a real mouse click on the "Avoid stairs" checkbox:
 
 ```
-before             checked=false  "2-4 min walk · 240 m · Stairs: 1 set"
-after one click    checked=true   "Under 1 min walk · 46 m · No stairs on this route"
-after clicking back checked=false "2-4 min walk · 240 m · Stairs: 1 set"
+before              checked=false  "2-4 min walk · 240 m · Stairs: 1 set"
+after one click     checked=true   "Under 1 min walk · 46 m · No stairs on this route"
+after clicking back checked=false  "2-4 min walk · 240 m · Stairs: 1 set"
+same route via the API with avoidStairs:true — 46 m, 0 stair sets
 PASS  the checkbox turns the routing on AND back off, and the pill still toggles
 PASS  self-check drift 0 over limit, 0 route error(s), UI gate pass
+buildings still outside 15 m: none
+"avoid stairs" at the door: 9/9 clean
+reachable step-free from a hub: 56/56 -> 56/56   stranded before: none  after: none
 ```
 
 That is the check for the thing this round is not allowed to break: another
 lane's stairs-avoidance work, driven through the real interface, not reasoned
-about.
+about. **It is not, on its own, proof that nothing broke** — a lane's own pass
+never is. §10 is the cross-lane part.
 
 ---
 
@@ -329,57 +409,92 @@ into `#wf-sheet .wf-foot`.
   because this lane does not own `style.css`. They are one array of strings,
   `SCHEDULE_PRIVACY_CSS`, ready to lift into the stylesheet's `#wf-root` block
   verbatim. Nothing else has to change.
-- **`scripts/verify/`** — the audit script belongs at
-  `scripts/verify/schedule-privacy.mjs`; it is in §9 verbatim. It exits 0/1 on
-  its assertions, so it can go straight into a suite.
-- **The `OFF_MAP_BUILDINGS` table** proposed by `docs/schedule-gaps.md` §5
-  belongs in whichever lane owns the import module, not in storage. `save()`
-  stores whatever `unroutableWhy` it is handed and does not invent one.
+- **`scripts/verify/`** — the two audit scripts belong at
+  `scripts/verify/schedule-privacy.mjs` (proposed) and
+  `scripts/verify/si-privacy-claims.mjs` (proposed); both are in §9 verbatim.
+  Each exits 0/1 on its assertions, so either can go straight into a suite.
+- **`scripts/verify/walkmeter.mjs`** — the one-line wording fix at the end of
+  §7.
+- **The off-map building table.** It belongs to whichever lane owns the import
+  module; `docs/si-gaps.md` (on `origin/acer/si-gaps`) has already built it as
+  `CAMPUS_EXTRA` + `OFF_MAP` with a `window.wayfindOffMap(code)` seam. `save()`
+  stores whatever `unroutableWhy` string it is handed and never invents one, so
+  that seam and this one compose without either lane changing.
 
 ---
 
-## 7. The eleven unroutable codes, re-derived on this branch
+## 7. The eleven unroutable codes — and a correction this doc owes the reader
 
-The brief said to re-verify rather than trust. Three independent checks, all
-run today on this commit:
+**Round 3 of this doc got SSW wrong, and got it wrong in the worst available
+way: it stated a confident reason and attached a citation to a file that has
+never existed.** It said SSW was *"demolished September 2024; the school moved
+to Walter Webb Hall"* and sourced that to `docs/schedule-gaps.md` (does not
+exist) — not on this branch, not on any other, not at any point in this repo's
+history. A reviewer caught it. What follows is the measurement that should have
+been there, run on this branch today, and the claim it actually supports.
 
-1. **`walkmeter.mjs`, live, on this branch:** `UT buildings this build cannot
-   route to at all (11): BE1 BEG EME FS1 FSL MER PX3 ROC SSW SV1 TCB`. The list
-   is current.
-2. **"Off this map", computed from `data/ground.geojson` and the coordinate
-   tables in `js/wayfind.js`** — not from the walk graph the walkmeter reads.
-   The rendered city's own footprint is `lat 30.231157 … 30.321774`.
+**The list itself, live.** `walkmeter.mjs` on this branch, port 8915:
+`UT buildings this build cannot route to at all (11): BE1 BEG EME FS1 FSL MER
+PX3 ROC SSW SV1 TCB`. Eleven, unchanged.
 
-   | code | lon | lat | km from campus centre | inside the rendered bbox |
-   |---|---|---|---|---|
-   | SV1 | -97.72573 | 30.38245 | 10.78 | no |
-   | MER | -97.72828 | 30.38529 | 11.07 | no |
-   | FS1 | -97.73200 | 30.38688 | 11.22 | no |
-   | FSL | -97.73155 | 30.38737 | 11.28 | no |
-   | PX3 | -97.72973 | 30.38732 | 11.28 | no |
-   | TCB | -97.72705 | 30.38722 | 11.29 | no |
-   | EME | -97.72733 | 30.38959 | 11.55 | no |
-   | ROC | -97.72567 | 30.39053 | 11.68 | no |
-   | BEG | -97.72535 | 30.39102 | 11.73 | no |
-   | BE1 | -97.72699 | 30.39182 | 11.80 | no |
-   | **SSW** | **-97.73296** | **30.28048** | **0.89** | **yes** |
+**What each of them actually is.** Three numbers per code, all from this
+worktree's own files and none from the walkmeter: straight-line distance from
+`MAI`'s surveyed door; distance to the nearest node of `data/walk_graph.json`
+(quantised x/y deltas, decoded per its own `_format`); and distance to the
+nearest **edge** of any footprint in `data/snapshots/2026-08-24/` — edges, not
+centroids, because an L-shaped building's centroid is nowhere near its wall.
 
-   Ten cluster at 10.8–11.8 km north, outside everything this map draws. **SSW
-   is not one of them** — it is 0.89 km away, inside the rendered footprint.
-   Treating it as "the eleventh Pickle building", which the brief's phrasing
-   invites, would be wrong.
-3. **UT's own register, `data/ut_buildings.json` (198 codes, retrieved
-   2026-08-05):** none of the eleven appear, while `MAI WEL GDC WWH SSB` all
-   do — the sanity check that proves the lookup works rather than returning
-   empty for everything.
+| code | km from MAI's door | nearest walk node | nearest drawn footprint |
+|---|---|---|---|
+| BE1 | 11.84 | 10.63 km | nothing |
+| BEG | 11.77 | 10.55 km | nothing |
+| EME | 11.59 | 10.38 km | nothing |
+| FS1 | 11.25 | 10.01 km | nothing |
+| FSL | 11.31 | 10.07 km | nothing |
+| MER | 11.11 | 9.89 km | nothing |
+| PX3 | 11.32 | 10.09 km | nothing |
+| ROC | 11.71 | 10.50 km | nothing |
+| SV1 | 10.82 | 9.60 km | nothing |
+| TCB | 11.33 | 10.12 km | nothing |
+| **SSW** | **0.90** | **37.4 m** | **0.4 m — UT's own door is on the wall** |
 
-So the brief's two claims hold, with one correction to how they are stated: the
-"~11 km north" reason covers **ten**, not eleven, and SSW is absent from the
-register for a different reason. `docs/schedule-gaps.md` §2 establishes what
-that reason is (demolished September 2024; the school moved to Walter Webb
-Hall, which this app already routes to) from live sources; this lane confirmed
-the *geometry and the register absence* from local data and did not re-fetch
-`utdirect` itself.
+Three orders of magnitude apart. **These are two different problems.** Ten are
+genuinely off this map and always will be. SSW is a main-campus building whose
+UT-surveyed door sits 0.4 m off a footprint this app draws today and 37 m from
+mapped pavement. **A demolished building does not have that.** The round-3
+narrative was not merely uncited; the geometry contradicts it.
+
+**The register absence is real, and it is our file that is short.** SSW is
+genuinely missing from `data/ut_buildings.json` — 198 entries, zero
+occurrences, checked in one line. But that file is a **snapshot retrieved
+2026-08-05**, not an authority, and `MAI WEL GDC WWH` are all present, which is
+the sanity check that the lookup works rather than returning empty for
+everything. Absent-from-our-snapshot is not the same claim as does-not-exist,
+and round 3 slid from one to the other.
+
+**A sibling lane reached the same numbers first and acted on them.**
+`docs/si-gaps.md` (on `origin/acer/si-gaps`) measured SSW's doors at 0.4 m and
+2.5 m from the same footprint, found UT filing SSW under its own main-campus
+path, and fixed it with one table row — taking the unroutable count from 11 to
+10. Its numbers and the ones above were derived independently and agree. This
+lane stores whatever `unroutableWhy` string it is handed and does not own that
+table, so nothing here changes; what changes is that this doc no longer tells
+the next reader something false about SSW.
+
+**Patch this lane cannot make.** `scripts/verify/walkmeter.mjs` prints, under
+its own list, `(10 of those are 11 km north at the Pickle campus, off this map;
+SSW is not in UT's own register)`. That parenthetical carries the same wrong
+implication. This lane does not own `scripts/verify/`; the accurate wording is
+*"SSW is on main campus and is missing from our register snapshot"*, and
+`si-gaps` removing SSW from the list makes the clause moot anyway.
+
+### Why this section now has a gate in front of it
+
+A fabricated citation is not a typo. It is a claim with no source, presented as
+a claim with one, and no amount of care prevents the next one — nothing was
+looking. So §5.0 now **reads this file and checks every path it cites**, and
+fails if one does not resolve. It found the two that were wrong on the first
+run, which is the only evidence worth having that it works.
 
 ---
 
@@ -494,10 +609,11 @@ const ok = (cond, label, extra) => {
 
 // ── the schedule, as a real Google Calendar export ────────────────────────────
 // Real shape (Google's own PRODID, TZID form, RRULE BYDAY, LOCATION as a free
-// string with no structured building field — docs/import-bar-apple.md §the
-// finding). Two of the classes are deliberately in buildings this map cannot
-// route to: SSW (demolished 2024) and PX3 (Pickle campus, 11 km north), per
-// docs/schedule-gaps.md.
+// string with no structured building field — docs/import-bar-apple.md). Two of
+// the classes are deliberately in buildings this build cannot route to, and
+// they are the TWO DIFFERENT KINDS of unroutable measured in §7: PX3 (Pickle
+// campus, ~11 km north, genuinely off this map) and SSW (a real main-campus
+// building our 198-code register snapshot is simply missing).
 const ICS = [
   'BEGIN:VCALENDAR',
   'PRODID:-//Google Inc//Google Calendar 70.9054//EN',
