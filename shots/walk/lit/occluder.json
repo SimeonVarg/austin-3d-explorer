@@ -1,0 +1,22 @@
+{
+ "when": "2026-08-23T17:31:01.505Z",
+ "tod": 0.92,
+ "rows": [
+  {
+   "site": "flag-A",
+   "shipped": 0,
+   "trees": 3285,
+   "buildings": 0,
+   "ground": 0,
+   "allThree": 2962
+  },
+  {
+   "site": "flag-B",
+   "shipped": 0,
+   "trees": 3282,
+   "buildings": 0,
+   "ground": 0,
+   "allThree": 2960
+  }
+ ]
+}

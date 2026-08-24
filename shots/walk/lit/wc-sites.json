@@ -1,0 +1,304 @@
+{
+  "route": {
+    "from": "PCL",
+    "to": "The Block",
+    "ok": true,
+    "distM": 1892
+  },
+  "lit": {
+    "ok": true,
+    "preferred": false,
+    "indexWarm": 193,
+    "indexBlue": 43,
+    "asOf": "2026-06-12",
+    "radiusM": 25,
+    "lamps": 0,
+    "phones": 3,
+    "litM": 0,
+    "darkM": 1892,
+    "totalM": 1892,
+    "pct": 0,
+    "longestGapM": 1892,
+    "runs": 1,
+    "lampsAt": [],
+    "phonesAt": [
+      [
+        -97.73807599999999,
+        30.283583
+      ],
+      [
+        -97.739949,
+        30.283769
+      ],
+      [
+        -97.74162899999999,
+        30.285124999999997
+      ]
+    ],
+    "darkAt": [
+      {
+        "m": 1892,
+        "mid": [
+          -97.74493799999999,
+          30.28568
+        ]
+      }
+    ],
+    "indexDark": 182,
+    "darkAsOf": "2018-01-26",
+    "darkNearM": 35,
+    "inDarkArea": true,
+    "reported": 26,
+    "reportedAt": [
+      {
+        "at": [
+          -97.738456,
+          30.283627
+        ],
+        "note": "Too dark under the bridge / over the street."
+      },
+      {
+        "at": [
+          -97.739176,
+          30.283825
+        ],
+        "note": "This entire area in front of BEN too dark"
+      },
+      {
+        "at": [
+          -97.73989999999999,
+          30.28392
+        ],
+        "note": "Dark at HRH"
+      },
+      {
+        "at": [
+          -97.74197099999999,
+          30.284482999999998
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.741957,
+          30.285021999999998
+        ],
+        "note": "hard to see walkers coming off of guad as a driver"
+      },
+      {
+        "at": [
+          -97.74301299999999,
+          30.285272
+        ],
+        "note": "very dark corner"
+      },
+      {
+        "at": [
+          -97.74342899999999,
+          30.285258
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.743737,
+          30.284947
+        ],
+        "note": "Needs Lighting by the dumpster"
+      },
+      {
+        "at": [
+          -97.744428,
+          30.285203
+        ],
+        "note": "v spooky"
+      },
+      {
+        "at": [
+          -97.74501699999999,
+          30.285163999999998
+        ],
+        "note": "Walking behind 2400 is really sketchy for the most part"
+      },
+      {
+        "at": [
+          -97.744942,
+          30.285975999999998
+        ],
+        "note": "dark; not fun to walk"
+      },
+      {
+        "at": [
+          -97.74480199999999,
+          30.286699
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.744765,
+          30.286648
+        ],
+        "note": "dark and unsafe"
+      },
+      {
+        "at": [
+          -97.744635,
+          30.286576999999998
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.744755,
+          30.286782
+        ],
+        "note": "too dim"
+      },
+      {
+        "at": [
+          -97.74475299999999,
+          30.287118
+        ],
+        "note": "literally no l"
+      },
+      {
+        "at": [
+          -97.744725,
+          30.287321
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.744742,
+          30.287495999999997
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.744711,
+          30.287678999999997
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.74458899999999,
+          30.287813999999997
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.74547199999999,
+          30.287865999999998
+        ],
+        "note": "very dark"
+      },
+      {
+        "at": [
+          -97.746,
+          30.287876999999998
+        ],
+        "note": "LED lights"
+      },
+      {
+        "at": [
+          -97.745971,
+          30.287979
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.74749899999999,
+          30.288135999999998
+        ],
+        "note": "24th is the heart of west campus and should appear as so when walking, and driving"
+      },
+      {
+        "at": [
+          -97.74759999999999,
+          30.289452999999998
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.748965,
+          30.289606
+        ],
+        "note": ""
+      }
+    ],
+    "quote": "24th is the heart of west campus and should appear as so when walking, and driving",
+    "alt": {
+      "distM": 1964,
+      "baseDistM": 1892,
+      "extraM": 72,
+      "lamps": 8,
+      "litM": 320,
+      "pct": 16,
+      "why": "lamps",
+      "reported": 16
+    }
+  },
+  "sites": [
+    {
+      "key": "agree",
+      "at": [
+        -97.747965,
+        30.286507
+      ],
+      "lampM": 563,
+      "note": "San gabriel from 23rd to MLK is very dark",
+      "planSeen": {
+        "props-lit": 0,
+        "props-lit-core": 0,
+        "props-lamp": 0,
+        "wayfind-lit-pad": 0,
+        "wayfind-dark-mark": 0,
+        "wayfind-lit-dark": 0
+      },
+      "eyeSeen": {
+        "props-lit": 0,
+        "props-lit-core": 0,
+        "props-lamp": 0,
+        "wayfind-lit-pad": 0,
+        "wayfind-dark-mark": 0,
+        "wayfind-lit-dark": 20
+      },
+      "plan": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-agree-plan.png",
+      "eye": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-agree-eye.png"
+    },
+    {
+      "key": "disagree",
+      "at": [
+        -97.74167,
+        30.287032
+      ],
+      "lampM": 9.3,
+      "note": "too dim",
+      "planSeen": {
+        "props-lit": 2,
+        "props-lit-core": 1,
+        "props-lamp": 1,
+        "wayfind-lit-pad": 0,
+        "wayfind-dark-mark": 0,
+        "wayfind-lit-dark": 0
+      },
+      "eyeSeen": {
+        "props-lit": 10,
+        "props-lit-core": 10,
+        "props-lamp": 13,
+        "wayfind-lit-pad": 0,
+        "wayfind-dark-mark": 15,
+        "wayfind-lit-dark": 261
+      },
+      "plan": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-disagree-plan.png",
+      "eye": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-disagree-eye.png"
+    }
+  ]
+}

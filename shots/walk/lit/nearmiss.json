@@ -1,0 +1,482 @@
+[
+ {
+  "f": "PPE",
+  "t": "TRG",
+  "distM": 1319,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "MNAC",
+  "t": "SEA",
+  "distM": 1376,
+  "lamps": 36,
+  "nearMiss": 9,
+  "ring": 50
+ },
+ {
+  "f": "SAG",
+  "t": "CS3",
+  "distM": 1608,
+  "lamps": 2,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "BME",
+  "t": "MAI",
+  "distM": 789,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "PPE",
+  "t": "TS2",
+  "distM": 1500,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "DFA",
+  "t": "PCL",
+  "distM": 894,
+  "lamps": 8,
+  "nearMiss": 1,
+  "ring": 50
+ },
+ {
+  "f": "WMB",
+  "t": "FDH",
+  "distM": 1296,
+  "lamps": 1,
+  "nearMiss": 2,
+  "ring": 50
+ },
+ {
+  "f": "NEZ",
+  "t": "MNC",
+  "distM": 520,
+  "lamps": 23,
+  "nearMiss": 5,
+  "ring": 50
+ },
+ {
+  "f": "CMA",
+  "t": "BWY",
+  "distM": 426,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "SJG",
+  "t": "TCC",
+  "distM": 375,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "CBA",
+  "t": "BME",
+  "distM": 732,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "HCG",
+  "t": "GRE",
+  "distM": 1152,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "RLP",
+  "t": "PHD",
+  "distM": 679,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "CRH",
+  "t": "N24",
+  "distM": 1206,
+  "lamps": 2,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "SUT",
+  "t": "COM",
+  "distM": 310,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "AFP",
+  "t": "BBR",
+  "distM": 945,
+  "lamps": 6,
+  "nearMiss": 3,
+  "ring": 50
+ },
+ {
+  "f": "LDH",
+  "t": "UTX",
+  "distM": 454,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "JES",
+  "t": "SJH",
+  "distM": 345,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "CT7",
+  "t": "BHD",
+  "distM": 820,
+  "lamps": 2,
+  "nearMiss": 8,
+  "ring": 50
+ },
+ {
+  "f": "CRD",
+  "t": "TNH",
+  "distM": 1101,
+  "lamps": 2,
+  "nearMiss": 1,
+  "ring": 50
+ },
+ {
+  "f": "BMC",
+  "t": "CRD",
+  "distM": 219,
+  "lamps": 0,
+  "nearMiss": 1,
+  "ring": 50
+ },
+ {
+  "f": "AF2",
+  "t": "BME",
+  "distM": 1732,
+  "lamps": 4,
+  "nearMiss": 2,
+  "ring": 50
+ },
+ {
+  "f": "GEA",
+  "t": "CS5",
+  "distM": 679,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "WCH",
+  "t": "HRC",
+  "distM": 470,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "SZB",
+  "t": "GSB",
+  "distM": 357,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "PAI",
+  "t": "LLF",
+  "distM": 723,
+  "lamps": 4,
+  "nearMiss": 2,
+  "ring": 50
+ },
+ {
+  "f": "LLD",
+  "t": "BHD",
+  "distM": 1337,
+  "lamps": 3,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "TMM",
+  "t": "D21",
+  "distM": 1200,
+  "lamps": 4,
+  "nearMiss": 6,
+  "ring": 50
+ },
+ {
+  "f": "JGB",
+  "t": "AFP",
+  "distM": 1377,
+  "lamps": 4,
+  "nearMiss": 4,
+  "ring": 50
+ },
+ {
+  "f": "PCL",
+  "t": "SUT",
+  "distM": 477,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "SAG",
+  "t": "JCD",
+  "distM": 1406,
+  "lamps": 2,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "MAI",
+  "t": "CS3",
+  "distM": 1034,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "GOL",
+  "t": "AFP",
+  "distM": 1984,
+  "lamps": 4,
+  "nearMiss": 3,
+  "ring": 50
+ },
+ {
+  "f": "BAT",
+  "t": "HTB",
+  "distM": 1177,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "MHD",
+  "t": "SJH",
+  "distM": 145,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "CMB",
+  "t": "TMM",
+  "distM": 1053,
+  "lamps": 0,
+  "nearMiss": 2,
+  "ring": 50
+ },
+ {
+  "f": "CS3",
+  "t": "EAS",
+  "distM": 384,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "D21",
+  "t": "SZB",
+  "distM": 394,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "ECG",
+  "t": "JON",
+  "distM": 1687,
+  "lamps": 10,
+  "nearMiss": 3,
+  "ring": 50
+ },
+ {
+  "f": "CMB",
+  "t": "UTC",
+  "distM": 961,
+  "lamps": 5,
+  "nearMiss": 1,
+  "ring": 50
+ },
+ {
+  "f": "LCH",
+  "t": "BMK",
+  "distM": 1180,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "GSB",
+  "t": "HMA",
+  "distM": 956,
+  "lamps": 2,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "PPA",
+  "t": "PCL",
+  "distM": 847,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "LTD",
+  "t": "BME",
+  "distM": 226,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "WAG",
+  "t": "GLT",
+  "distM": 403,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "POB",
+  "t": "BEL",
+  "distM": 765,
+  "lamps": 6,
+  "nearMiss": 8,
+  "ring": 50
+ },
+ {
+  "f": "WCP",
+  "t": "LLF",
+  "distM": 1120,
+  "lamps": 4,
+  "nearMiss": 2,
+  "ring": 50
+ },
+ {
+  "f": "SZB",
+  "t": "UNB",
+  "distM": 1176,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "MFH",
+  "t": "ARC",
+  "distM": 1664,
+  "lamps": 34,
+  "nearMiss": 11,
+  "ring": 50
+ },
+ {
+  "f": "UA9",
+  "t": "PHD",
+  "distM": 1325,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "UPB",
+  "t": "HMA",
+  "distM": 1453,
+  "lamps": 5,
+  "nearMiss": 14,
+  "ring": 50
+ },
+ {
+  "f": "STD",
+  "t": "GEA",
+  "distM": 842,
+  "lamps": 7,
+  "nearMiss": 4,
+  "ring": 50
+ },
+ {
+  "f": "GEA",
+  "t": "MBB",
+  "distM": 411,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "BIO",
+  "t": "GSB",
+  "distM": 797,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "BEL",
+  "t": "BMA",
+  "distM": 699,
+  "lamps": 2,
+  "nearMiss": 2,
+  "ring": 50
+ },
+ {
+  "f": "MAI",
+  "t": "ART",
+  "distM": 939,
+  "lamps": 3,
+  "nearMiss": 2,
+  "ring": 50
+ },
+ {
+  "f": "NEZ",
+  "t": "TMM",
+  "distM": 290,
+  "lamps": 0,
+  "nearMiss": 1,
+  "ring": 50
+ },
+ {
+  "f": "CBA",
+  "t": "BMS",
+  "distM": 462,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "PPE",
+  "t": "LTD",
+  "distM": 949,
+  "lamps": 0,
+  "nearMiss": 0,
+  "ring": 50
+ },
+ {
+  "f": "UA9",
+  "t": "MFH",
+  "distM": 1747,
+  "lamps": 34,
+  "nearMiss": 10,
+  "ring": 50
+ }
+]

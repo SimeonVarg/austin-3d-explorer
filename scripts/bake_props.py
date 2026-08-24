@@ -37,6 +37,7 @@ import json
 import math
 import os
 import sys
+import urllib.request
 from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -45,6 +46,56 @@ CACHE = os.path.join(DATA, "osm_cache")
 GROUND = os.path.join(DATA, "ground.geojson")
 MANIFEST = os.path.join(DATA, "manifest.json")
 OUT = os.path.join(DATA, "props.geojson")
+# The lamp index: the SAME light points this bake writes into props.geojson,
+# republished as a ~5 KB file so js/wayfind.js can ask "is there a mapped light
+# near this path" without downloading a 1.5 MB prop file it does not otherwise
+# need (props ship as data/tiles/props.pmtiles at runtime, so the GeoJSON is
+# never fetched by the page at all). Written ONLY by this script — see
+# `lamp_index()` for why it is derived from the shipped file rather than a
+# re-bake.
+LAMP_OUT = os.path.join(DATA, "walk_lamps.json")
+# The Overpass snapshot behind every `k:lit` point. It is NOT the same snapshot
+# as the walk network's (data/walk_graph.json, 2026-07-30): the furniture caches
+# under data/osm_cache/furn_*.json carry their own `osm3s.timestamp_osm_base`,
+# and the interface must not print one date over the other's data. Read from the
+# cache when it is present; this is the fallback so the index is never undated.
+LAMP_AS_OF_FALLBACK = "2026-06-12"
+# ── The OTHER lighting source, and the only one in this project that is about
+# the WORLD rather than the MAP ───────────────────────────────────────────────
+#
+# In 2017 the City of Austin Transportation Department ran a public-input map
+# for West Campus: residents dropped a pin wherever they thought a light was
+# needed and typed why. 262 pins came back, with comments like "this entire
+# street is very dark" and "the alleyway here is very dark at night". The last
+# pin was dropped 2018-01-26 (`dataLastEditDate` on the layer), which is why
+# every sentence built on this data carries its year.
+#
+# WHY IT MATTERS MORE THAN ITS AGE SUGGESTS. OSM's street lamps are dense on
+# campus and nearly absent in West Campus — 58 mapped lamps for the whole
+# neighbourhood, covering 7.1% of its walk-network metres. The pins touch 32.6%
+# of the same metres. West Campus at 1 a.m. is the walk this feature exists for,
+# and the lamp layer has almost nothing to say about it.
+#
+# AND THE TWO SOURCES AGREE. Only 3 of the 184 in-area pins have a mapped lamp
+# within 25 m — where the residents say it is dark, OSM has no light either.
+# A point placed at random along the same network would land near a mapped lamp
+# about 7% of the time; the pins do it 2% of the time. They are not noise.
+WC_LIGHTING_URL = ("https://services.arcgis.com/0L95CJ0VTaxqcmED/ArcGIS/rest/services/"
+                   "WestCampusLightingSurvey/FeatureServer/%d/query"
+                   "?where=1%%3D1&outFields=*&outSR=4326&returnGeometry=true"
+                   "&f=json&resultRecordCount=5000")
+WC_LIGHTING_CACHE = os.path.join(CACHE, "city_wc_lighting.json")
+# The date the survey stopped taking pins, from the layer's own `editingInfo.
+# dataLastEditDate` (1516985019079 ms). Printed by the interface, every time.
+WC_LIGHTING_AS_OF = "2018-01-26"
+# Comments that are somebody testing the form, not somebody reporting a street.
+# Matched on the whole trimmed lower-cased comment, never on a substring, so a
+# real report reading "dark" survives — it did not survive the first filter.
+WC_JUNK = {"test", "te", "vintage", "mat", "sdsd", "cfcfv", "esri test",
+           "esri test2", "esri test 3", "the 4 other points around this one are esri test"}
+# The rendered city, from scripts/config.sh (W, S, E, N). A pin outside this
+# cannot be verified by flying to it, so it is not shipped.
+BBOX = (-97.752, 30.276, -97.726, 30.296)
 M_LAT = 111320.0
 LAT0 = 30.286
 
@@ -1581,10 +1632,310 @@ def _seg_dist(px, py, a, b):
     return math.hypot(px - (a[0] + t * dx), py - (a[1] + t * dy))
 
 
+def _point_in_ring(pt, ring):
+    """Even-odd test. The survey ships its own study-area polygon and it is the
+    only honest clip: a pin the city collected outside the area it was asking
+    about is not a West Campus report."""
+    x, y = pt
+    inside = False
+    n = len(ring)
+    for i in range(n):
+        x1, y1 = ring[i][0], ring[i][1]
+        x2, y2 = ring[(i + 1) % n][0], ring[(i + 1) % n][1]
+        if ((y1 > y) != (y2 > y)) and (x < (x2 - x1) * (y - y1) / (y2 - y1) + x1):
+            inside = not inside
+    return inside
+
+
+def wc_dark_spots(refresh=False):
+    """The City of Austin's 2017 West Campus lighting survey — the pins, cleaned.
+
+    Returns (points, stats). Each point is (lon, lat, comment-or-"").
+
+    THREE FILTERS, IN THIS ORDER, EACH FOR A STATED REASON:
+
+      1. Inside the survey's OWN study-area polygon (layer 1). 78 of the 262
+         pins are outside it — the public map let people drop pins anywhere in
+         Austin, one landed at 30.353, six kilometres north of West Campus.
+      2. Inside this project's render bbox. A pin outside the city we draw
+         cannot be checked by flying to it and looking, and the router never
+         goes there. This is the house rule about proving the subject is on
+         screen, applied to the data rather than to the camera.
+      3. Not somebody testing the form. `WC_JUNK` is an exact-match list, not
+         a substring one: the first cut dropped a pin whose entire comment was
+         the word "dark".
+
+    The pin's own words are carried through. "This street isn't lit at all at
+    night" is the most honest thing in this whole feature and it should reach
+    the person reading the card, not be summarised into a count.
+    """
+    if refresh or not os.path.exists(WC_LIGHTING_CACHE):
+        blob = {}
+        for lid in (0, 1):
+            req = urllib.request.Request(
+                WC_LIGHTING_URL % lid,
+                headers={"User-Agent": "austin-3d-explorer/1.0 (educational low-poly map)"})
+            # DECODE EXPLICITLY. `json.load(response)` on this endpoint turns the
+            # curly apostrophe in "This street isn't lit at all at night" into a
+            # U+FFFD replacement character — the bytes on the wire are correct
+            # UTF-8 (`\xe2\x80\x99`), the sniffing is what loses it. This
+            # feature quotes people; mangling their punctuation is not an option.
+            with urllib.request.urlopen(req, timeout=90) as r:
+                blob[str(lid)] = json.loads(r.read().decode("utf-8"))
+        os.makedirs(CACHE, exist_ok=True)
+        with open(WC_LIGHTING_CACHE, "w", encoding="utf-8") as f:
+            json.dump(blob, f)
+    with open(WC_LIGHTING_CACHE, encoding="utf-8") as f:
+        blob = json.load(f)
+
+    ring = blob["1"]["features"][0]["geometry"]["rings"][0]
+    raw = blob["0"]["features"]
+    kept, out_of_area, out_of_bbox, junk = [], 0, 0, 0
+    for feat in raw:
+        g = feat.get("geometry") or {}
+        lon, lat = g.get("x"), g.get("y")
+        if lon is None or lat is None:
+            continue
+        note = (feat["attributes"].get("Comments") or "").strip()
+        if not _point_in_ring((lon, lat), ring):
+            out_of_area += 1
+            continue
+        if not (BBOX[0] <= lon <= BBOX[2] and BBOX[1] <= lat <= BBOX[3]):
+            out_of_bbox += 1
+            continue
+        if note.lower() in WC_JUNK:
+            junk += 1
+            continue
+        kept.append((lon, lat, note))
+    return kept, {"raw": len(raw), "dropped_outside_study_area": out_of_area,
+                  "dropped_outside_render_bbox": out_of_bbox,
+                  "dropped_form_tests": junk, "kept": len(kept),
+                  "kept_with_a_written_comment": sum(1 for p in kept if p[2])}
+
+
+# How far outside a canopy's own radius still counts as being under the tree.
+# Zero: the lamp has to be inside the disc the renderer draws, because the whole
+# point of this flag is that it agrees with what a camera sees. Named per
+# CLAUDE.md rule 11 — widen it and the count rises (measured: 0 m -> 56 lamps,
+# 1 m -> 77, 2 m -> 87 of 193).
+CANOPY_MARGIN_M = 0.0
+# A canopy only shades a lamp if it reaches the lamp's head. Allow a metre of
+# slack because both heights are modelled, not surveyed.
+CANOPY_REACH_SLACK_M = 1.0
+TREES_SRC = os.path.join(DATA, "trees.geojson")
+
+
+def canopy_cover(warm_pts, Q):
+    """Flag every warm street lamp that is standing inside a tree canopy.
+
+    WHY THIS EXISTS, AND WHY IT IS NOT A GUESS. The pixel audit in
+    `shots/walk/lit/litaudit.mjs` sampled 43 places on real routes and found two
+    where the card counted a mapped lamp and the night frame showed no light at
+    all. Hiding the tree and building layers and re-reading the same frame
+    brought ~2,950 lamp pixels back at both — so the lamp was there and the
+    scene was covering it. Looked up in `data/trees.geojson`, both lamps (4.93 m
+    heads) sit under a stack of canopy shells of radius 10.3 m centred within a
+    metre of them, reaching 12 m. A live oak over a street lamp.
+
+    Across the whole city that is **56 of 193 warm lamps (29%)**. A lamp under a
+    canopy is not a lamp that is off, and this does NOT remove it from the
+    count — it is reported separately, because "there is a street light here but
+    it is under a tree" is a different fact from "there is a street light here",
+    and it is the one a walker can check by looking up.
+
+    Returns a list of 0/1 aligned with `pack()`'s sort order, so `canopy[i]`
+    belongs to `warm` point `i` after decoding.
+    """
+    if not os.path.exists(TREES_SRC):
+        return None
+    with open(TREES_SRC, encoding="utf-8") as f:
+        trees = json.load(f)
+    MPD_LAT, MPD_LON, CELL = 111320.0, 96500.0, 30.0
+    cans, grid = [], {}
+    for feat in trees.get("features", ()):
+        p = feat["properties"]
+        if p.get("kind") != "canopy":
+            continue
+        ring = feat["geometry"]["coordinates"][0]
+        xs = [q[0] for q in ring]
+        ys = [q[1] for q in ring]
+        cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+        r = p.get("r0") or ((max(xs) - min(xs)) * MPD_LON / 2)
+        i = len(cans)
+        cans.append((cx, cy, float(r), float(p.get("h") or 0)))
+        grid.setdefault((int(cx * MPD_LON / CELL), int(cy * MPD_LAT / CELL)), []).append(i)
+
+    # Lamp heights come off the same shipped file the points did.
+    with open(OUT, encoding="utf-8") as f:
+        gj = json.load(f)
+    height = {}
+    for feat in gj["features"]:
+        p = feat["properties"]
+        if p.get("k") == "lit" and (p.get("c") or "warm") == "warm":
+            c = feat["geometry"]["coordinates"]
+            height[(int(round(c[0] / Q)), int(round(c[1] / Q)))] = float(p.get("h") or 5.0)
+
+    out = []
+    for x, y in sorted((int(round(lo / Q)), int(round(la / Q))) for lo, la in warm_pts):
+        lon, lat = x * Q, y * Q
+        lh = height.get((x, y), 5.0)
+        gx, gy = int(lon * MPD_LON / CELL), int(lat * MPD_LAT / CELL)
+        span = int((14 + CANOPY_MARGIN_M) / CELL) + 1
+        hit = 0
+        for dx in range(-span, span + 1):
+            for dy in range(-span, span + 1):
+                for i in grid.get((gx + dx, gy + dy), ()):
+                    cx, cy, r, h = cans[i]
+                    d = math.hypot((cx - lon) * MPD_LON, (cy - lat) * MPD_LAT)
+                    if d <= r + CANOPY_MARGIN_M and h >= lh - CANOPY_REACH_SLACK_M:
+                        hit = 1
+                        break
+                if hit:
+                    break
+            if hit:
+                break
+        out.append(hit)
+    return out
+
+
+def lamp_index():
+    """Republish the light points from the SHIPPED data/props.geojson as
+    data/walk_lamps.json, for js/wayfind.js.
+
+    WHY IT READS THE SHIPPED FILE INSTEAD OF RE-BAKING. Same reason `reshape()`
+    above does, and it is not a shortcut: HANDOFF §44 records that a full
+    `bake_props.py` run on a machine without the City of Austin inventory caches
+    emits a fraction of the shipped file. An index built from a local re-bake
+    would therefore claim lights the scene does not draw, and miss lights it
+    does — which is the exact failure this index exists to prevent. The shipped
+    props.geojson IS the source the renderer was built from, so it is the only
+    honest source for a claim about what the renderer draws.
+
+    WHAT COUNTS AS A LIGHT. `k: "lit"` and nothing else. props.geojson also
+    carries 532 `k: "lamp"` POLES, but only 236 of them have a `lit` point — the
+    other 296 are flagpoles, masts, bus-stop poles, gates and traffic signals,
+    which are drawn as dark verticals and throw no light in the scene. Indexing
+    poles instead of lights would put a "lit" claim under a flagpole. Split by
+    colour class, because they are two different facts a walker cares about
+    separately: `warm` = highway=street_lamp, `blue` = emergency=phone, UT's
+    blue-light call boxes.
+
+    FORMAT. Quantised integers, delta-coded after a sort, same convention as
+    data/walk_graph.json — about 3 KB for 236 points against 12 KB of raw
+    coordinate text, and the decode is one cumulative sum.
+    """
+    with open(OUT, encoding="utf-8") as f:
+        gj = json.load(f)
+    buckets = {"warm": [], "blue": []}
+    for feat in gj["features"]:
+        p = feat["properties"]
+        if p.get("k") != "lit":
+            continue
+        c = feat["geometry"]["coordinates"]
+        buckets.setdefault(p.get("c") or "warm", []).append((c[0], c[1]))
+
+    as_of = LAMP_AS_OF_FALLBACK
+    for key in ("furn_vertical", "furniture"):
+        p = os.path.join(CACHE, key + ".json")
+        if not os.path.exists(p):
+            continue
+        with open(p, encoding="utf-8") as f:
+            stamp = (json.load(f).get("osm3s") or {}).get("timestamp_osm_base")
+        if stamp:
+            as_of = stamp[:10]
+            break
+
+    Q = 1e-6
+
+    def pack(pts):
+        q = sorted((int(round(lo / Q)), int(round(la / Q))) for lo, la in pts)
+        xs, ys, px, py = [], [], 0, 0
+        for x, y in q:
+            xs.append(x - px)
+            ys.append(y - py)
+            px, py = x, y
+        return {"x": xs, "y": ys}
+
+    # ── which lamps are standing under a tree ────────────────────────────────
+    canopy = canopy_cover([(lo, la) for lo, la in buckets.get("warm", [])], Q)
+
+    # The city's reported-dark pins ride in the SAME file. They are a different
+    # source with a different licence and a different date, so each set carries
+    # its own provenance rather than inheriting one banner — but it is one file
+    # and one fetch, because the page asks one question ("what is known about
+    # light on this walk") and should not pay for two round trips to answer it.
+    dark, dstats = wc_dark_spots("--refresh" in sys.argv)
+
+    def pack_notes(pts):
+        """Sorted the same way `pack` sorts, so note[i] belongs to point[i]."""
+        return [n for _, _, n in sorted(pts, key=lambda p: (int(round(p[0] / Q)),
+                                                           int(round(p[1] / Q))))]
+
+    out = {
+        "_source": "data/props.geojson `k:lit` points, republished by "
+                   "scripts/bake_props.py --lamp-index",
+        "_license": "© OpenStreetMap contributors, ODbL",
+        "_format": "x/y: quantised by q, first absolute then deltas, sorted by x. "
+                   "warm = highway=street_lamp, blue = emergency=phone, "
+                   "dark = a resident's pin, with dark_notes[i] their words.",
+        "_what_it_is_not": "Not a lighting survey. These are the lights OSM "
+                           "mappers recorded and the scene draws; real campus "
+                           "lighting is denser and a mapped lamp may be out.",
+        "as_of": as_of,
+        "q": Q,
+        "n_warm": len(buckets.get("warm", [])),
+        "n_blue": len(buckets.get("blue", [])),
+        "warm": pack(buckets.get("warm", [])),
+        "blue": pack(buckets.get("blue", [])),
+        # 1 where the lamp is standing inside a tree canopy the scene draws over
+        # it. Aligned with `warm` after decoding. Not a claim that the lamp is
+        # off — a claim that a walker looking up would find a tree between the
+        # head and the pavement, which is why it is counted apart rather than
+        # deducted. See canopy_cover() for how the two flagged sites were found.
+        "canopy_source": "data/trees.geojson `kind:canopy`, the same canopies "
+                         "the renderer draws; a lamp counts as covered when it "
+                         "is inside a canopy disc that reaches its own head.",
+        "n_warm_under_canopy": (sum(canopy) if canopy else None),
+        "warm_canopy": canopy,
+        # ── the second source ────────────────────────────────────────────────
+        "dark_source": "City of Austin Transportation Department, West Campus "
+                       "Lighting Survey public-input map (ArcGIS item "
+                       "2dddd24022e64b809188fa15e12a05ee). Residents dropped a "
+                       "pin where they wanted a light and typed why.",
+        "dark_license": "City of Austin open data (public ArcGIS FeatureServer, "
+                        "no authentication).",
+        "dark_is_not": "Not a measurement of darkness and not current. It is "
+                       "what people reported in 2017; lights may have been "
+                       "added since, and nobody surveyed the streets nobody "
+                       "pinned.",
+        "dark_as_of": WC_LIGHTING_AS_OF,
+        "n_dark": len(dark),
+        "dark": pack([(lo, la) for lo, la, _ in dark]),
+        "dark_notes": pack_notes(dark),
+    }
+    with open(LAMP_OUT, "w", encoding="utf-8") as f:
+        json.dump(out, f, separators=(",", ":"))
+    print(json.dumps({
+        "mode": "lamp-index (derived from the shipped props.geojson)",
+        "out": os.path.relpath(LAMP_OUT, ROOT).replace("\\", "/"),
+        "warm_street_lamps": out["n_warm"],
+        "blue_emergency_phones": out["n_blue"],
+        "as_of": as_of,
+        "reported_dark_spots": out["n_dark"],
+        "warm_under_canopy": out["n_warm_under_canopy"],
+        "reported_dark_as_of": WC_LIGHTING_AS_OF,
+        "reported_dark_filtering": dstats,
+        "file_kb": round(os.path.getsize(LAMP_OUT) / 1024, 1),
+        "props_untouched": True,
+    }, indent=2))
+
+
 if __name__ == "__main__":
     if "--reshape" in sys.argv:
         reshape()
     elif "--relines" in sys.argv:
         relines()
+    elif "--lamp-index" in sys.argv:
+        lamp_index()
     else:
         main()

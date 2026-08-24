@@ -1,0 +1,382 @@
+{
+ "widths": [
+  [
+   360,
+   780,
+   "android"
+  ],
+  [
+   390,
+   844,
+   "iphone"
+  ],
+  [
+   1280,
+   900,
+   "desktop"
+  ]
+ ],
+ "rows": [
+  {
+   "width": 360,
+   "wname": "android",
+   "route": "ANB->ETC",
+   "kind": "lamps",
+   "blockH": 772,
+   "cardH": 872,
+   "contentW": 138,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 89,
+   "lines": 7,
+   "words": 116,
+   "strip": {
+    "w": 138,
+    "h": 10,
+    "segs": 15,
+    "ticks": 0,
+    "minSegPx": 1.09,
+    "tickCoverPct": 0,
+    "aria": "Lighting along the walk, start on the left: 31% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 680 m."
+   },
+   "clipped": true,
+   "headline": "24 mapped streetlights along this route · 4 under tree cover",
+   "cardW": 138,
+   "box": {
+    "x": 109,
+    "y": -4,
+    "w": 142,
+    "h": 780
+   },
+   "px": {
+    "devW": 276,
+    "devH": 22,
+    "amberRuns": 7,
+    "amberPx": 84,
+    "widestAmberPx": 26,
+    "amberSharePct": 30.43
+   }
+  },
+  {
+   "width": 360,
+   "wname": "android",
+   "route": "GDC->The Castilian",
+   "kind": "none-reported",
+   "blockH": 799,
+   "cardH": 947,
+   "contentW": 138,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 84,
+   "lines": 9,
+   "words": 174,
+   "strip": {
+    "w": 138,
+    "h": 10,
+    "segs": 1,
+    "ticks": 6,
+    "minSegPx": 138,
+    "tickCoverPct": 8.7,
+    "aria": "Lighting along the walk, start on the left: 0% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 700 m, 6 spots reported too dark."
+   },
+   "clipped": true,
+   "headline": "No mapped streetlight along this route",
+   "cardW": 138,
+   "box": {
+    "x": 109,
+    "y": -4,
+    "w": 142,
+    "h": 807
+   },
+   "px": {
+    "devW": 276,
+    "devH": 22,
+    "amberRuns": 0,
+    "amberPx": 0,
+    "widestAmberPx": 0,
+    "amberSharePct": 0
+   }
+  },
+  {
+   "width": 360,
+   "wname": "android",
+   "route": "CMB->TMM",
+   "kind": "nearmiss",
+   "blockH": 825,
+   "cardH": 939,
+   "contentW": 138,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 88,
+   "lines": 10,
+   "words": 186,
+   "strip": {
+    "w": 138,
+    "h": 10,
+    "segs": 1,
+    "ticks": 5,
+    "minSegPx": 138,
+    "tickCoverPct": 7.2,
+    "aria": "Lighting along the walk, start on the left: 0% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 1.1 km, 5 spots reported too dark."
+   },
+   "clipped": true,
+   "headline": "No mapped streetlight along this route · 2 more are mapped within 50 m of it",
+   "cardW": 138,
+   "box": {
+    "x": 109,
+    "y": -4,
+    "w": 142,
+    "h": 833
+   },
+   "px": {
+    "devW": 276,
+    "devH": 22,
+    "amberRuns": 0,
+    "amberPx": 0,
+    "widestAmberPx": 0,
+    "amberSharePct": 0
+   }
+  },
+  {
+   "width": 390,
+   "wname": "iphone",
+   "route": "ANB->ETC",
+   "kind": "lamps",
+   "blockH": 726,
+   "cardH": 825,
+   "contentW": 153,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 88,
+   "lines": 7,
+   "words": 116,
+   "strip": {
+    "w": 153,
+    "h": 10,
+    "segs": 15,
+    "ticks": 0,
+    "minSegPx": 1.22,
+    "tickCoverPct": 0,
+    "aria": "Lighting along the walk, start on the left: 31% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 680 m."
+   },
+   "clipped": true,
+   "headline": "24 mapped streetlights along this route · 4 under tree cover",
+   "cardW": 153,
+   "box": {
+    "x": 117,
+    "y": -4,
+    "w": 157,
+    "h": 734
+   },
+   "px": {
+    "devW": 308,
+    "devH": 20,
+    "amberRuns": 7,
+    "amberPx": 96,
+    "widestAmberPx": 30,
+    "amberSharePct": 31.17
+   }
+  },
+  {
+   "width": 390,
+   "wname": "iphone",
+   "route": "GDC->The Castilian",
+   "kind": "none-reported",
+   "blockH": 783,
+   "cardH": 917,
+   "contentW": 153,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 85,
+   "lines": 9,
+   "words": 174,
+   "strip": {
+    "w": 153,
+    "h": 10,
+    "segs": 1,
+    "ticks": 6,
+    "minSegPx": 153,
+    "tickCoverPct": 7.8,
+    "aria": "Lighting along the walk, start on the left: 0% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 700 m, 6 spots reported too dark."
+   },
+   "clipped": true,
+   "headline": "No mapped streetlight along this route",
+   "cardW": 153,
+   "box": {
+    "x": 117,
+    "y": -4,
+    "w": 157,
+    "h": 791
+   },
+   "px": {
+    "devW": 308,
+    "devH": 22,
+    "amberRuns": 0,
+    "amberPx": 0,
+    "widestAmberPx": 0,
+    "amberSharePct": 0
+   }
+  },
+  {
+   "width": 390,
+   "wname": "iphone",
+   "route": "CMB->TMM",
+   "kind": "nearmiss",
+   "blockH": 810,
+   "cardH": 909,
+   "contentW": 153,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 89,
+   "lines": 10,
+   "words": 186,
+   "strip": {
+    "w": 153,
+    "h": 10,
+    "segs": 1,
+    "ticks": 5,
+    "minSegPx": 153,
+    "tickCoverPct": 6.5,
+    "aria": "Lighting along the walk, start on the left: 0% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 1.1 km, 5 spots reported too dark."
+   },
+   "clipped": true,
+   "headline": "No mapped streetlight along this route · 2 more are mapped within 50 m of it",
+   "cardW": 153,
+   "box": {
+    "x": 117,
+    "y": -4,
+    "w": 157,
+    "h": 818
+   },
+   "px": {
+    "devW": 308,
+    "devH": 22,
+    "amberRuns": 0,
+    "amberPx": 0,
+    "widestAmberPx": 0,
+    "amberSharePct": 0
+   }
+  },
+  {
+   "width": 1280,
+   "wname": "desktop",
+   "route": "ANB->ETC",
+   "kind": "lamps",
+   "blockH": 389,
+   "cardH": 409,
+   "contentW": 518,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 95,
+   "lines": 7,
+   "words": 116,
+   "strip": {
+    "w": 518,
+    "h": 10,
+    "segs": 15,
+    "ticks": 0,
+    "minSegPx": 4.13,
+    "tickCoverPct": 0,
+    "aria": "Lighting along the walk, start on the left: 31% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 680 m."
+   },
+   "clipped": false,
+   "headline": "24 mapped streetlights along this route · 4 under tree cover",
+   "cardW": 518,
+   "box": {
+    "x": 379,
+    "y": -4,
+    "w": 522,
+    "h": 397
+   },
+   "px": {
+    "devW": 1036,
+    "devH": 22,
+    "amberRuns": 7,
+    "amberPx": 320,
+    "widestAmberPx": 102,
+    "amberSharePct": 30.89
+   }
+  },
+  {
+   "width": 1280,
+   "wname": "desktop",
+   "route": "GDC->The Castilian",
+   "kind": "none-reported",
+   "blockH": 415,
+   "cardH": 454,
+   "contentW": 518,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 91,
+   "lines": 9,
+   "words": 174,
+   "strip": {
+    "w": 518,
+    "h": 10,
+    "segs": 1,
+    "ticks": 6,
+    "minSegPx": 518,
+    "tickCoverPct": 2.3,
+    "aria": "Lighting along the walk, start on the left: 0% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 700 m, 6 spots reported too dark."
+   },
+   "clipped": false,
+   "headline": "No mapped streetlight along this route",
+   "cardW": 518,
+   "box": {
+    "x": 379,
+    "y": -4,
+    "w": 522,
+    "h": 423
+   },
+   "px": {
+    "devW": 1036,
+    "devH": 22,
+    "amberRuns": 0,
+    "amberPx": 0,
+    "widestAmberPx": 0,
+    "amberSharePct": 0
+   }
+  },
+  {
+   "width": 1280,
+   "wname": "desktop",
+   "route": "CMB->TMM",
+   "kind": "nearmiss",
+   "blockH": 450,
+   "cardH": 470,
+   "contentW": 518,
+   "overflowsBox": false,
+   "scroller": null,
+   "share": 96,
+   "lines": 10,
+   "words": 186,
+   "strip": {
+    "w": 518,
+    "h": 10,
+    "segs": 1,
+    "ticks": 5,
+    "minSegPx": 518,
+    "tickCoverPct": 1.9,
+    "aria": "Lighting along the walk, start on the left: 0% of it has a mapped streetlight within 25 metres, longest stretch with none mapped 1.1 km, 5 spots reported too dark."
+   },
+   "clipped": false,
+   "headline": "No mapped streetlight along this route · 2 more are mapped within 50 m of it",
+   "cardW": 518,
+   "box": {
+    "x": 379,
+    "y": -4,
+    "w": 522,
+    "h": 458
+   },
+   "px": {
+    "devW": 1036,
+    "devH": 22,
+    "amberRuns": 0,
+    "amberPx": 0,
+    "widestAmberPx": 0,
+    "amberSharePct": 0
+   }
+  }
+ ],
+ "errs": []
+}

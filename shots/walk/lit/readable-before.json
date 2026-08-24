@@ -1,0 +1,2274 @@
+{
+ "tag": "before",
+ "night": 0.92,
+ "aa": {
+  "AA_BODY": 4.5,
+  "AA_LARGE": 3,
+  "AA_MARK": 3
+ },
+ "rows": [
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "Street lighting",
+   "fontPx": 11.5,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    247,
+    230,
+    189
+   ],
+   "bg": [
+    22,
+    18,
+    17
+   ],
+   "ratioFill": 15.07,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 15.07,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "THE BAR against the card",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    23,
+    18,
+    16
+   ],
+   "ratioFill": 2.41,
+   "ratioRing": 2.41,
+   "carriedBy": "fill",
+   "ratio": 2.41,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "note",
+   "label": "bar: unmapped run vs the card (context, not a 1.4.11 test)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    23,
+    18,
+    16
+   ],
+   "ratioFill": 2.41,
+   "ratioRing": 2.41,
+   "carriedBy": "fill",
+   "ratio": 2.41,
+   "need": 3,
+   "pass": null
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "bar: mapped run (litStripLitCol)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    255,
+    194,
+    122
+   ],
+   "bg": [
+    23,
+    19,
+    17
+   ],
+   "ratioFill": 11.65,
+   "ratioRing": 11.65,
+   "carriedBy": "fill",
+   "ratio": 11.65,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "cap: start",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    124,
+    114,
+    94
+   ],
+   "bg": [
+    23,
+    18,
+    16
+   ],
+   "ratioFill": 3.91,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.91,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "cap: door",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    121,
+    113,
+    93
+   ],
+   "bg": [
+    17,
+    17,
+    16
+   ],
+   "ratioFill": 3.9,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.9,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "key swatch: 24 mapped streetlights along this ",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(255, 194, 122)",
+   "fg": [
+    255,
+    194,
+    122
+   ],
+   "bg": [
+    20,
+    16,
+    14
+   ],
+   "ratioFill": 11.93,
+   "ratioRing": 11.93,
+   "carriedBy": "fill",
+   "ratio": 11.93,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "24 mapped streetlights along this route · 4 under tree cov",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(255, 194, 122)",
+   "fg": [
+    18,
+    15,
+    13
+   ],
+   "bg": [
+    255,
+    194,
+    122
+   ],
+   "ratioFill": 12.05,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 12.05,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "Longest stretch with none mapped: 680 m · 2 emergency phon",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.8,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    202,
+    188,
+    154
+   ],
+   "bg": [
+    19,
+    14,
+    10
+   ],
+   "ratioFill": 10.2,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 10.2,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "Nobody was asked about lighting along this route",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    136,
+    126,
+    104
+   ],
+   "bg": [
+    18,
+    13,
+    10
+   ],
+   "ratioFill": 4.81,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.81,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "No way with more mapped light within the extra distance we",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    137,
+    126,
+    104
+   ],
+   "bg": [
+    22,
+    17,
+    14
+   ],
+   "ratioFill": 4.68,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.68,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "▸ Mapped lamps only, and not a safety rating — where these",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.62,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    195,
+    165,
+    112
+   ],
+   "bg": [
+    17,
+    14,
+    11
+   ],
+   "ratioFill": 8.19,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 8.19,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "THE INFORMATION: unmapped run vs mapped run",
+   "fontPx": 0,
+   "weight": "400",
+   "opacity": 1,
+   "css": "",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    255,
+    194,
+    122
+   ],
+   "ratioFill": 4.86,
+   "ratioRing": null,
+   "carriedBy": "fill",
+   "ratio": 4.86,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "Street lighting",
+   "fontPx": 11.5,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    247,
+    230,
+    189
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 15.43,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 15.43,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "THE BAR against the card",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 2.47,
+   "ratioRing": 2.47,
+   "carriedBy": "fill",
+   "ratio": 2.47,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "note",
+   "label": "bar: unmapped run vs the card (context, not a 1.4.11 test)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 2.47,
+   "ratioRing": 2.47,
+   "carriedBy": "fill",
+   "ratio": 2.47,
+   "need": 3,
+   "pass": null
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "bar: reported tick (litStripTickCol)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    195,
+    176,
+    255
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 9.96,
+   "ratioRing": 9.96,
+   "carriedBy": "fill",
+   "ratio": 9.96,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "cap: start",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    122,
+    113,
+    93
+   ],
+   "bg": [
+    21,
+    17,
+    14
+   ],
+   "ratioFill": 3.89,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.89,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "cap: door",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    121,
+    117,
+    98
+   ],
+   "bg": [
+    18,
+    24,
+    24
+   ],
+   "ratioFill": 3.88,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.88,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "key swatch: No mapped streetlight along this r",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    20,
+    16,
+    14
+   ],
+   "ratioFill": 2.46,
+   "ratioRing": 2.46,
+   "carriedBy": "fill",
+   "ratio": 2.46,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "No mapped streetlight along this route",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    159,
+    176,
+    204
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 8.67,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 8.67,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "Longest stretch with none mapped: 700 m · 1 emergency phon",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.8,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    204,
+    188,
+    155
+   ],
+   "bg": [
+    19,
+    14,
+    10
+   ],
+   "ratioFill": 10.26,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 10.26,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "key swatch: 6 spots on this route were reporte",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(195, 176, 255)",
+   "fg": [
+    195,
+    176,
+    255
+   ],
+   "bg": [
+    22,
+    17,
+    16
+   ],
+   "ratioFill": 9.78,
+   "ratioRing": 9.78,
+   "carriedBy": "fill",
+   "ratio": 9.78,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "6 spots on this route were reported too dark",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(195, 176, 255)",
+   "fg": [
+    195,
+    176,
+    255
+   ],
+   "bg": [
+    27,
+    17,
+    10
+   ],
+   "ratioFill": 9.7,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 9.7,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "“This entire corner of the GWB building is too dark.”",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.9,
+   "css": "rgb(195, 176, 255)",
+   "fg": [
+    178,
+    161,
+    231
+   ],
+   "bg": [
+    18,
+    13,
+    10
+   ],
+   "ratioFill": 8.41,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 8.41,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "— a resident, City of Austin lighting survey, 2017–18",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    135,
+    124,
+    103
+   ],
+   "bg": [
+    20,
+    15,
+    12
+   ],
+   "ratioFill": 4.63,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.63,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "No way with more mapped light, or past fewer reported-dark",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    178,
+    148,
+    97
+   ],
+   "bg": [
+    17,
+    14,
+    11
+   ],
+   "ratioFill": 6.69,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 6.69,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "▸ Mapped lamps only, and not a safety rating — where these",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.62,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    168,
+    160,
+    132
+   ],
+   "bg": [
+    19,
+    17,
+    8
+   ],
+   "ratioFill": 7.22,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 7.22,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "Street lighting",
+   "fontPx": 11.5,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    247,
+    230,
+    189
+   ],
+   "bg": [
+    20,
+    16,
+    16
+   ],
+   "ratioFill": 15.3,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 15.3,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "mark",
+   "label": "THE BAR against the card",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    20,
+    16,
+    16
+   ],
+   "ratioFill": 2.45,
+   "ratioRing": 2.45,
+   "carriedBy": "fill",
+   "ratio": 2.45,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "note",
+   "label": "bar: unmapped run vs the card (context, not a 1.4.11 test)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    20,
+    16,
+    16
+   ],
+   "ratioFill": 2.45,
+   "ratioRing": 2.45,
+   "carriedBy": "fill",
+   "ratio": 2.45,
+   "need": 3,
+   "pass": null
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "cap: start",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    123,
+    113,
+    92
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 3.95,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.95,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "cap: door",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    122,
+    113,
+    94
+   ],
+   "bg": [
+    21,
+    17,
+    16
+   ],
+   "ratioFill": 3.89,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.89,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "mark",
+   "label": "key swatch: No mapped streetlight along this r",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    21,
+    17,
+    14
+   ],
+   "ratioFill": 2.44,
+   "ratioRing": 2.44,
+   "carriedBy": "fill",
+   "ratio": 2.44,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "No mapped streetlight along this route",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    17,
+    15,
+    13
+   ],
+   "bg": [
+    159,
+    176,
+    204
+   ],
+   "ratioFill": 8.7,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 8.7,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "Longest stretch with none mapped: 330 m · No emergency pho",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.8,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    204,
+    188,
+    155
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 10.19,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 10.19,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "Nobody was asked about lighting along this route",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    134,
+    124,
+    101
+   ],
+   "bg": [
+    19,
+    14,
+    10
+   ],
+   "ratioFill": 4.64,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.64,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "No way with more mapped light within the extra distance we",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    136,
+    126,
+    100
+   ],
+   "bg": [
+    27,
+    17,
+    10
+   ],
+   "ratioFill": 4.61,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.61,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "▸ Mapped lamps only, and not a safety rating — where these",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.62,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    161,
+    150,
+    123
+   ],
+   "bg": [
+    18,
+    13,
+    10
+   ],
+   "ratioFill": 6.59,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 6.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "Street lighting",
+   "fontPx": 11.5,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    247,
+    230,
+    189
+   ],
+   "bg": [
+    27,
+    20,
+    30
+   ],
+   "ratioFill": 14.59,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 14.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "THE BAR against the card",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    21,
+    15,
+    16
+   ],
+   "ratioFill": 2.46,
+   "ratioRing": 2.46,
+   "carriedBy": "fill",
+   "ratio": 2.46,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "note",
+   "label": "bar: unmapped run vs the card (context, not a 1.4.11 test)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    23,
+    18,
+    24
+   ],
+   "ratioFill": 2.4,
+   "ratioRing": 2.4,
+   "carriedBy": "fill",
+   "ratio": 2.4,
+   "need": 3,
+   "pass": null
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "bar: mapped run (litStripLitCol)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    255,
+    194,
+    122
+   ],
+   "bg": [
+    21,
+    15,
+    16
+   ],
+   "ratioFill": 11.96,
+   "ratioRing": 11.96,
+   "carriedBy": "fill",
+   "ratio": 11.96,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "cap: start",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    122,
+    113,
+    95
+   ],
+   "bg": [
+    20,
+    15,
+    17
+   ],
+   "ratioFill": 3.94,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.94,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "cap: door",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    122,
+    112,
+    93
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 3.9,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.9,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "key swatch: 24 mapped streetlights along this ",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(255, 194, 122)",
+   "fg": [
+    255,
+    194,
+    122
+   ],
+   "bg": [
+    19,
+    16,
+    16
+   ],
+   "ratioFill": 11.94,
+   "ratioRing": 11.94,
+   "carriedBy": "fill",
+   "ratio": 11.94,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "24 mapped streetlights along this route · 4 under tree cov",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(255, 194, 122)",
+   "fg": [
+    255,
+    194,
+    122
+   ],
+   "bg": [
+    19,
+    15,
+    15
+   ],
+   "ratioFill": 12.01,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 12.01,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "Longest stretch with none mapped: 680 m · 2 emergency phon",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.8,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    201,
+    187,
+    154
+   ],
+   "bg": [
+    18,
+    17,
+    14
+   ],
+   "ratioFill": 9.94,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 9.94,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "Nobody was asked about lighting along this route",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    133,
+    124,
+    101
+   ],
+   "bg": [
+    19,
+    16,
+    15
+   ],
+   "ratioFill": 4.57,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.57,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "No way with more mapped light within the extra distance we",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    133,
+    124,
+    101
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 4.6,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.6,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "text",
+   "label": "▸ Mapped lamps only, and not a safety rating — where these",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.62,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    160,
+    150,
+    124
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 6.48,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 6.48,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "campus crossing — amber marks and no ticks",
+   "kind": "mark",
+   "label": "THE INFORMATION: unmapped run vs mapped run",
+   "fontPx": 0,
+   "weight": "400",
+   "opacity": 1,
+   "css": "",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    255,
+    194,
+    122
+   ],
+   "ratioFill": 4.86,
+   "ratioRing": null,
+   "carriedBy": "fill",
+   "ratio": 4.86,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "Street lighting",
+   "fontPx": 11.5,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    247,
+    230,
+    189
+   ],
+   "bg": [
+    31,
+    19,
+    29
+   ],
+   "ratioFill": 14.55,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 14.55,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "THE BAR against the card",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    29,
+    19,
+    30
+   ],
+   "ratioFill": 2.34,
+   "ratioRing": 2.34,
+   "carriedBy": "fill",
+   "ratio": 2.34,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "note",
+   "label": "bar: unmapped run vs the card (context, not a 1.4.11 test)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    29,
+    19,
+    30
+   ],
+   "ratioFill": 2.34,
+   "ratioRing": 2.34,
+   "carriedBy": "fill",
+   "ratio": 2.34,
+   "need": 3,
+   "pass": null
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "bar: reported tick (litStripTickCol)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    195,
+    176,
+    255
+   ],
+   "bg": [
+    29,
+    20,
+    30
+   ],
+   "ratioFill": 9.37,
+   "ratioRing": 9.37,
+   "carriedBy": "fill",
+   "ratio": 9.37,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "cap: start",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    124,
+    114,
+    98
+   ],
+   "bg": [
+    21,
+    16,
+    20
+   ],
+   "ratioFill": 3.98,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.98,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "cap: door",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    124,
+    114,
+    98
+   ],
+   "bg": [
+    22,
+    17,
+    20
+   ],
+   "ratioFill": 3.95,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.95,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "key swatch: No mapped streetlight along this r",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    20,
+    15,
+    18
+   ],
+   "ratioFill": 2.46,
+   "ratioRing": 2.46,
+   "carriedBy": "fill",
+   "ratio": 2.46,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "No mapped streetlight along this route",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    159,
+    176,
+    204
+   ],
+   "bg": [
+    20,
+    15,
+    18
+   ],
+   "ratioFill": 8.63,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 8.63,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "Longest stretch with none mapped: 700 m · 1 emergency phon",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.8,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    201,
+    187,
+    154
+   ],
+   "bg": [
+    18,
+    15,
+    16
+   ],
+   "ratioFill": 10.04,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 10.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "mark",
+   "label": "key swatch: 6 spots on this route were reporte",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(195, 176, 255)",
+   "fg": [
+    195,
+    176,
+    255
+   ],
+   "bg": [
+    18,
+    16,
+    14
+   ],
+   "ratioFill": 9.92,
+   "ratioRing": 9.92,
+   "carriedBy": "fill",
+   "ratio": 9.92,
+   "need": 3,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "6 spots on this route were reported too dark",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(195, 176, 255)",
+   "fg": [
+    195,
+    176,
+    255
+   ],
+   "bg": [
+    18,
+    17,
+    14
+   ],
+   "ratioFill": 9.87,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 9.87,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "“This entire corner of the GWB building is too dark.”",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.9,
+   "css": "rgb(195, 176, 255)",
+   "fg": [
+    178,
+    161,
+    231
+   ],
+   "bg": [
+    19,
+    15,
+    15
+   ],
+   "ratioFill": 8.29,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 8.29,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "— a resident, City of Austin lighting survey, 2017–18",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    133,
+    123,
+    101
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 4.55,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.55,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "No way with more mapped light, or past fewer reported-dark",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    134,
+    124,
+    104
+   ],
+   "bg": [
+    18,
+    14,
+    13
+   ],
+   "ratioFill": 4.66,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.66,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "the walk home — an all-cool bar with ticks",
+   "kind": "text",
+   "label": "▸ Mapped lamps only, and not a safety rating — where these",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.62,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    161,
+    150,
+    123
+   ],
+   "bg": [
+    19,
+    15,
+    13
+   ],
+   "ratioFill": 6.5,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 6.5,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "Street lighting",
+   "fontPx": 11.5,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    247,
+    230,
+    189
+   ],
+   "bg": [
+    30,
+    19,
+    29
+   ],
+   "ratioFill": 14.59,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 14.59,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "mark",
+   "label": "THE BAR against the card",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    28,
+    20,
+    30
+   ],
+   "ratioFill": 2.33,
+   "ratioRing": 2.33,
+   "carriedBy": "fill",
+   "ratio": 2.33,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "note",
+   "label": "bar: unmapped run vs the card (context, not a 1.4.11 test)",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 1,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    28,
+    20,
+    30
+   ],
+   "ratioFill": 2.33,
+   "ratioRing": 2.33,
+   "carriedBy": "fill",
+   "ratio": 2.33,
+   "need": 3,
+   "pass": null
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "cap: start",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    124,
+    114,
+    98
+   ],
+   "bg": [
+    21,
+    16,
+    20
+   ],
+   "ratioFill": 3.98,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.98,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "cap: door",
+   "fontPx": 9.5,
+   "weight": "400",
+   "opacity": 0.45,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    124,
+    114,
+    98
+   ],
+   "bg": [
+    21,
+    16,
+    19
+   ],
+   "ratioFill": 3.98,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 3.98,
+   "need": 4.5,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "mark",
+   "label": "key swatch: No mapped streetlight along this r",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    70,
+    83,
+    111
+   ],
+   "bg": [
+    19,
+    15,
+    18
+   ],
+   "ratioFill": 2.47,
+   "ratioRing": 2.47,
+   "carriedBy": "fill",
+   "ratio": 2.47,
+   "need": 3,
+   "pass": false
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "No mapped streetlight along this route",
+   "fontPx": 13,
+   "weight": "600",
+   "opacity": 1,
+   "css": "rgb(159, 176, 204)",
+   "fg": [
+    159,
+    176,
+    204
+   ],
+   "bg": [
+    20,
+    15,
+    18
+   ],
+   "ratioFill": 8.63,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 8.63,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "Longest stretch with none mapped: 330 m · No emergency pho",
+   "fontPx": 11.5,
+   "weight": "400",
+   "opacity": 0.8,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    201,
+    187,
+    154
+   ],
+   "bg": [
+    18,
+    15,
+    16
+   ],
+   "ratioFill": 10.04,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 10.04,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "Nobody was asked about lighting along this route",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    133,
+    124,
+    101
+   ],
+   "bg": [
+    18,
+    16,
+    14
+   ],
+   "ratioFill": 4.58,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.58,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "No way with more mapped light within the extra distance we",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.5,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    133,
+    124,
+    101
+   ],
+   "bg": [
+    19,
+    15,
+    15
+   ],
+   "ratioFill": 4.6,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 4.6,
+   "need": 4.5,
+   "pass": true
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "PMA",
+   "to": "WEL",
+   "shape": "a short hop",
+   "kind": "text",
+   "label": "▸ Mapped lamps only, and not a safety rating — where these",
+   "fontPx": 10.5,
+   "weight": "400",
+   "opacity": 0.62,
+   "css": "rgb(247, 230, 189)",
+   "fg": [
+    161,
+    149,
+    123
+   ],
+   "bg": [
+    19,
+    15,
+    14
+   ],
+   "ratioFill": 6.44,
+   "ratioRing": null,
+   "carriedBy": "ink",
+   "ratio": 6.44,
+   "need": 4.5,
+   "pass": true
+  }
+ ],
+ "errs": []
+}
