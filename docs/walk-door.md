@@ -1317,3 +1317,225 @@ veil waited out, one browser. Re-run:
 python scripts/serve.py 8811
 cd scripts/verify && VERIFY_URL=http://127.0.0.1:8811 node walkmeter.mjs --baseline
 ```
+
+---
+
+# Round 6, 2026-08-24 — a door with one way in, and the straight line at the end of it
+
+Round 5's critic returned nothing, so this round went looking for its own gap
+and found it in the last place the door work had not looked: not WHICH door the
+router walks to, but HOW it walks up to it.
+
+## 1. The gap
+
+`walkmeter.mjs` still had 162.1 m of route-length extra on the twenty pairs, all
+of it in six pairs. Every one of those six ends on a door this file INVENTS at
+run time — a UT entrance our own bake never placed — and every invented door had
+exactly **one** anchor: the single nearest usable node.
+
+That is the right answer to "where does this door attach to the network" and the
+wrong answer to "how does a walker arrive at it", and the router only ever asked
+the second question. Read off the live page:
+
+```
+  PCL  UT north entrance   our door #518 anchors node 544 at 1.7 m
+                           the invented door anchors node 544 at 11.6 m
+  EER  UT west entrance    our door #363 anchors node 10436 at 0.4 m
+                           the invented door anchors node 10436 at 18.4 m
+  MAI  UT west entrance    the invented door anchors node 871 at 42.8 m
+                           and nodes 872, 913, 914, 9889 sit 46-48 m away,
+                           unused, because only one node could be an anchor
+```
+
+**A baked door has never worked that way.** `scripts/bake_walk.py` gives a real
+door every anchor it finds — Welch's main door carries two, 0.4 m and 22.6 m out
+— and `anchors()` hands all of them to dijkstra, which picks whichever the walk
+makes cheapest. The invented door was the only kind of door left that could not
+be approached from more than one direction, which is this lane's founding
+complaint ("routes take you to a farther entrance than you have to go") committed
+one level down: not at the door, at the approach.
+
+## 2. The rule
+
+`usableNodesNear()` replaces `nearestUsableNode()`. It returns the walked nodes
+near UT's coordinate, nearest first, and an invented door now carries all of
+them — the same multi-anchor node/cost arrays a baked door carries, so nothing
+downstream needed changing: `anchors()`, `stepFreeDoor()`, `geometryOf()`,
+`wayfindDoorAt()` and `walkmeter.mjs`'s own replay all already looped over the
+array.
+
+Three bounds, all named constants, all measured below:
+
+- **`utVirtualAnchors: 8`** — how many.
+- **`utVirtualSpreadM: 14`** — how much longer than the nearest one an anchor's
+  dashed stretch may run. The extra anchors are a different approach to the same
+  door, not a different door.
+- **`utVirtualClusterM: 15`** — how far from the nearest anchor they may sit.
+  This is the one that matters and §4 is about it.
+
+Setting `utVirtualAnchors: 1` restores round 5 exactly, which is how every
+before-number below was measured: same page, same graph, same browser.
+
+## 3. What it does to the walk
+
+`walkmeter.mjs --baseline`, the house ruler, unchanged:
+
+|  | round 5 | round 6 |
+|---|---|---|
+| A. route-length extra, pairs it hurts | 162.1 m | **142.1 m** |
+| A. signed total (credit for the rest) | −276.7 m | **−354.3 m** |
+| A. median per pair | −8.4 m | **−19.0 m** |
+| B. door offset from UT's own door | 83.7 m | 83.7 m |
+| B. ends at the right door | 38/38 | 38/38 |
+| B. worst single pair | 10.9 m | 10.9 m |
+| mean route length | 439.5 m | **435.6 m** |
+| every UT building: worst-case door error | 2.5 m | 2.5 m |
+| every candidate inside 15 m | 56/56 | 56/56 |
+| live UI gate, real mouse on the checkbox | PASS | PASS |
+| self-check drift, 20 pairs | 0.00 m | 0.00 m |
+
+**Metric B is bit-identical and that is the point.** On the twenty pairs this
+round does not move a single endpoint: it is the same door, reached better. The
+`--baseline` column still reprints `origin/main`'s 795.3 m / +209.5 m to the
+decimal.
+
+Wider than the pair list — every UT building from GDC, PCL and UTC, both modes,
+416 trips:
+
+```
+  trips that got shorter                 127
+  trips that got longer                    5   (max +15.0 m, PCL->UTA)
+  total walk over all 416 trips     236.9 km -> 235.3 km
+  routes lost                              0
+  step-free routes that cross a staircase  0
+```
+
+The five that lengthen are honest: `edgeCost()` charges `crossingPenaltyM` for a
+signalised crossing and `measure()` does not count it in the distance, so
+dijkstra will trade up to 8 m of pavement to avoid a road. A cheaper route can be
+a slightly longer one, and always has been.
+
+## 4. The straight line at the end, and why the cluster bound exists
+
+The last stretch to an invented door is a straight line over ground nobody has
+mapped. **The further round the building an anchor sits, the more of that line
+runs through the building** — and routing through a building is the one thing
+Simeon ruled out ("a bit not verifyable"). This dashed leg was the only part of a
+walk still exempt from it.
+
+So it was measured rather than argued. Every last stretch the router actually
+DRAWS on those 416 trips was intersected with the pinned snapshot's own
+footprints (`data/snapshots/2026-08-24/buildings.detailed.geojson`), marching the
+segment at 1 m and asking where it first enters a footprint. A leg that enters
+one more than 4 m from the door is walking through a building. An anchor that is
+ITSELF inside a footprint is a mapped footway through an outline — an arcade or a
+breezeway, the map disagreeing with itself — and is counted separately, never as
+blocked.
+
+```
+  anchors  cluster      stretches drawn   through a building   walk, 416 trips
+        1        —            615                 70 (11%)          236.9 km
+        8   no bound         626                115 (18%)          230.3 km
+        8      25 m           623                 91 (15%)          230.4 km
+        8      20 m           625                 88 (14%)          230.7 km
+        8      15 m           619                 76 (12%)          235.3 km
+        8       8 m           616                 70 (11%)          236.7 km
+```
+
+**Unbounded, this round would have scored 67.7 m on metric A instead of 142.1 —
+and drawn 45 more lines through buildings.** That is the trade, and it is
+refused: a shorter number under a wronger picture is exactly what this lane's own
+ruler warns about in its header ("a rule that wins on B and loses on A has traded
+one complaint for another"). 15 m keeps the picture within 6 stretches of where
+round 5 left it and still takes 1.6 km off the campus-wide walk.
+
+An ANGULAR version of the same idea was written, measured and deleted: a ±60°
+cone off the nearest anchor's bearing scored 92 blocked stretches and was
+strictly worse than the cluster bound at every setting, so there is one knob here
+and not two.
+
+**The 70 that were already there are not this round's doing and are not fixed by
+it.** 23 of the 84 UT doors with a mapped node near them have their NEAREST
+anchor on the far side of a wall — the Main Building's west entrance among them,
+whose only nearby node is 42.8 m away on the other side of the south wing. That
+is a real defect, it shipped in round 5 and every round before it, and §6 says
+what would fix it.
+
+## 5. The picture
+
+One camera pose (30.28426, −97.73896, z 17.2, pitch 0), two page loads,
+`utVirtualAnchors` the only difference, veil waited out and the pose read back
+after the shutter. UTC → Garrison Hall:
+
+- `shots/walk/door/gar-anchors-before.jpg` — "3-5 min walk · 320 m · Stairs:
+  1 set". The walk goes the long way round to Garrison's west entrance. 47
+  ribbon, 3 ghost, 1 thread, 1 column feature painted.
+- `shots/walk/door/gar-anchors-after.jpg` — "2-4 min walk · 200 m · No stairs on
+  this route". Straight up from the University Teaching Center to Garrison's
+  south entrance. 40 ribbon, 2 ghost, 1 thread, 1 column.
+
+Both endpoints are entrances UT publishes and calls barrier-free; the router now
+takes the nearer one because it can finally see a way onto it. 120 m and a
+staircase, on one building, from one rule.
+
+## 6. Still not done
+
+- **The nearest anchor can be on the wrong side of a wall — 23 of 84 UT doors.**
+  The fix is not a runtime one: the router has no footprints and should not grow
+  them. It belongs in `scripts/bake_entrances.py`, which already loads the
+  footprints and already snaps each UT point to its host wall in `stage_ut()`.
+  The concrete design, measured this round and left for the next: bake a
+  per-UT-row **clear-reach profile** — 24 bearing buckets of 15°, each holding
+  how far you can walk from the door in that direction before entering a
+  footprint, quantised to 4 m, one hex digit per bucket, 24 characters per row —
+  and gate every anchor on it in `usableNodesNear()`. A cheaper half-measure was
+  tested here and rejected on its own numbers: an outward wall normal on its own
+  drops 134 anchors of which only 82% were actually blocked while still keeping
+  84 that are, so it removes 57% of the defect and introduces a new baked field
+  to do it. The reach profile removes it by construction.
+- Everything in round 5 §8 that was not the checkbox still stands: LTH and TS2
+  have no step-free door in the bake, `data/walk_graph.json` is still unrebaked,
+  BIO's ground-truth door still has no anchor, `doorPhrase()` still calls a UT
+  door a guess, and the UI gate still covers one control on one pair.
+- **A note for whoever owns `scripts/verify/walkmeter.mjs`.** Its `UI_GATE_PAIR`
+  (WCH → MAI) is chosen because that route "really does cross a mapped
+  staircase". An earlier configuration of this round removed the staircase from
+  that walk and the gate went red for the right reason — the feature was fine,
+  the pair had stopped demonstrating it. The shipped setting leaves WCH → MAI
+  crossing a staircase and the gate green, but the gate is one routing
+  improvement away from failing again, and it should assert its own premise
+  (route the pair, check `stairSets > 0`, and say so) rather than depend on it.
+  Not this lane's file, so it is written down rather than taken.
+
+## 7. What round 6 changed in the code
+
+`js/wayfind.js`, entrance-choice functions only, and nothing else in the repo:
+
+- **new** `usableNodesNear()` replaces `nearestUsableNode()` — the ways there are
+  of walking up to a point, nearest first, bounded by spread, cluster and count.
+  It was the only caller.
+- **`virtualDoor()`** pushes the whole anchor list into the door record instead
+  of one node.
+- **new switches** `utVirtualAnchors` (8), `utVirtualSpreadM` (14),
+  `utVirtualClusterM` (15), each with its measured table in its own comment.
+
+`data/entrances.geojson` and `scripts/bake_entrances.py` read, not edited — the
+UT table shipped in `js/wayfind.js` is unchanged since round 4 verified it row by
+row against the live ArcGIS layer. `WAYFIND.on` still `false`. `?walk=0`
+re-checked: no `wayfindRoute`, no `wayfindDoors`, no `wayfindUTDoors`, no
+`wayfindDoorAt`, no `#wf-root`, no pill, no `wayfind-*` layer, no page or console
+error. `harness-drift`: 31 scripts both sides, PASS.
+
+## Round 6 sources
+
+Footprints from the snapshot `scripts/bake_entrances.py` itself pins,
+`data/snapshots/2026-08-24/buildings.detailed.geojson`; UT Austin
+`Celebrated_Entrances_view` as verified in round 4 §6. All measurements on
+`python scripts/serve.py 8811`, headless Chrome via `scripts/verify/chrome.mjs`,
+`?drift=0`, `cancelGraphicsAutoDetect()` called, veil waited out, one browser,
+one page load per setting (`virtualDoor()` memoises its refusals). Re-run:
+
+```
+python scripts/serve.py 8811
+cd scripts/verify && VERIFY_URL=http://127.0.0.1:8811 node walkmeter.mjs --baseline
+```

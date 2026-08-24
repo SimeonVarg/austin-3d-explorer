@@ -338,3 +338,42 @@ to Jones B's other, reachable door. It fixes that one building and drags
 eighteen others 12 to 34 metres off the entrance UT publishes, which is the
 exact complaint this whole lane exists to fix. Pictures and the full table are in
 `docs/walk-door.md` round 5. `WAYFIND.on` still false.
+
+## 2026-08-24 — the door lane, round 6 (`acer/w-door`): one way in became eight
+
+Round 5's critic came back empty, so this round went hunting for its own gap.
+It turned out not to be about which door the app walks you to — that part has
+been right since round 4 — but about how you walk up to it. When UT publishes an
+entrance our own data never mapped, the app builds a target at UT's coordinate
+and hangs it on the single nearest bit of pavement. One bit. So no matter which
+direction you were coming from, you had to reach that one spot before you could
+reach the door, and the walk went round the houses to get there. Every real door
+in the city already gets several — the app picks whichever suits your walk — and
+this was the only kind of door that did not.
+
+It does now. Across every UT building, walked from three different starting
+points in both modes — 416 trips — 127 of them got shorter, five got a few metres
+longer (the router will trade a little pavement to skip a road crossing, and
+always has), none broke, and about a kilometre and a half of walking came off the
+total. On the twenty measured pairs the extra walking the door choice costs you
+fell from 162 m to 142 m and the credit it earns you went from 277 m to 354 m,
+while the door you arrive at did not move by so much as a centimetre — same
+entrance, better approach. The best single case is in the pictures: from the
+University Teaching Center to Garrison Hall, 320 m and a staircase became 200 m
+and no stairs, ending at the other entrance UT publishes on that building — the
+one you were always closer to.
+
+The part worth reading twice is what this round refused. Letting the app pick
+freely among all the nearby pavement scored much better — 68 m of extra walking
+instead of 142 — but the last few metres to one of these doors is a straight
+dashed line over ground nobody has surveyed, and the further round the building
+that line starts, the more of it goes through the building. That is the one thing
+we are not allowed to do. So every one of those lines, on all 416 trips, was
+measured against the real building outlines: unbounded, the number of walks whose
+last stretch cuts through a building went from 70 to 115. Bounded the way it now
+ships, it is 76. The better score was available and it was not worth the picture,
+and the whole trade-off table is in `docs/walk-door.md` round 6 so the next person
+can disagree with the call rather than rediscover it. The same measurement also
+found that 23 of UT's 84 doors already had this problem before this round
+existed, and wrote down the fix — it belongs in the entrance bake, not the router.
+`WAYFIND.on` still false.

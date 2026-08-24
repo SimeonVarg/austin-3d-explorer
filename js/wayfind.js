@@ -317,6 +317,48 @@
                            // snap round 3 already built, so all 20 pairs and
                            // every stairs-allowed route are bit-identical.
                            // Set false to offer unreachable doors again.
+    utVirtualAnchors: 8,   // HOW MANY WAYS THERE ARE OF WALKING UP TO A DOOR.
+                           // A baked door carries every anchor the bake found
+                           // for it — Welch's main carries two, 0.4 m and
+                           // 22.6 m out — and dijkstra picks whichever suits
+                           // the walk. A door we invent at UT's coordinate
+                           // used to carry exactly ONE, the nearest node, so
+                           // the router had no choice to make: it had to reach
+                           // that node however far round it came. This is the
+                           // count of anchors such a door may carry. 1
+                           // restores the old single-snap behaviour exactly.
+    utVirtualClusterM: 15, // and how far from the NEAREST anchor the extra
+                           // ones may sit. THE LAST STRETCH IS A STRAIGHT LINE
+                           // OVER GROUND NOBODY HAS MAPPED, so the further
+                           // round the building an anchor sits, the more of
+                           // that line runs through the building itself —
+                           // which is the one thing this feature is not
+                           // allowed to do. Measured over 416 trips by
+                           // intersecting every drawn stretch with the pinned
+                           // snapshot's own footprints:
+                           //
+                           //   anchors  cluster   stretches through a building
+                           //         1     —        70 of 615   (round 5)
+                           //         8     no bound 115 of 626
+                           //         8     25 m      91 of 623
+                           //         8     15 m      76 of 619
+                           //         8      8 m      70 of 616
+                           //
+                           // and the walk over all 416 trips: 236.9 km at one
+                           // anchor, 230.3 km unbounded, 235.3 km at 15. So 15
+                           // buys 1.6 km of the 6.6 km on offer and ACCEPTS
+                           // only 6 of the 45 extra through-building stretches
+                           // the unbounded rule drew. A tried-and-dropped
+                           // ANGULAR version of the same idea (a ±60° cone off
+                           // the nearest anchor) scored 92 and was strictly
+                           // worse than this at every setting, so there is one
+                           // knob here and not two.
+    utVirtualSpreadM: 14,  // and how much LONGER than the nearest one an
+                           // anchor's dashed stretch may be. The point of the
+                           // extra anchors is a different approach to the same
+                           // door, not a different door: past this they stop
+                           // being the same last stretch. Straight metres, so
+                           // it reads against utVirtualSnapM above.
 
     // ── plumbing ──────────────────────────────────────────────────────────
     graphUrl: 'data/walk_graph.json',
@@ -1189,13 +1231,37 @@
     return stepFree;
   }
 
-  function nearestUsableNode(g, lon, lat, stepFreeOnly) {
+  /**
+   * THE WAYS THERE ARE OF WALKING UP TO A POINT, nearest first.
+   *
+   * This used to return one node and only one: the nearest usable node to UT's
+   * coordinate. That is the right answer to "where does this door attach to the
+   * network" and the WRONG answer to "how does a walker arrive at it", and the
+   * router only ever asked the second question. A door with one anchor forces
+   * every walk in the city through that node no matter which direction it came
+   * from — which is this lane's founding complaint ("routes take you to a
+   * farther entrance than you have to go") committed one level down, at the
+   * approach instead of at the door.
+   *
+   * A BAKED DOOR HAS NEVER WORKED THAT WAY. `scripts/bake_walk.py` gives a real
+   * door every anchor it found — Welch's main door carries two, 0.4 m and
+   * 22.6 m out — and `anchors()` hands all of them to dijkstra, which picks
+   * whichever the walk makes cheapest. The door we invent at UT's coordinate is
+   * now built the same way, and it is the only kind of door left that was not.
+   *
+   * `spreadM` is what stops that from becoming a different door: an anchor whose
+   * dashed stretch runs much longer than the nearest one's is not another way to
+   * the same entrance, it is a straight line across somewhere else. The list is
+   * nearest-first and capped, so the cheapest approach is always in it.
+   */
+  function usableNodesNear(g, lon, lat, stepFreeOnly, maxM, spreadM, cap) {
     const sf = stepFreeOnly ? stepFreeComp(g) : null;
-    let best = -1, bd = Infinity;
+    const lim = maxM * maxM;
+    const found = [];
     for (let i = 0; i < g.N; i++) {
       const dx = (g.X[i] - lon) * MPD_LON, dy = (g.Y[i] - lat) * MPD_LAT;
       const d2 = dx * dx + dy * dy;
-      if (d2 >= bd) continue;
+      if (d2 > lim) continue;
       // A node whose every edge is F_OFFMAIN is on a stranded island the router
       // refuses to walk on, so snapping to it would produce "no route found"
       // for a building that was fine before. With "avoid stairs" on, the same
@@ -1209,9 +1275,32 @@
           if (!(g.F[g.eix[k]] & F_OFFMAIN)) { usable = true; break; }
         }
       }
-      if (usable) { bd = d2; best = i; }
+      if (usable) found.push({ node: i, m: Math.sqrt(d2) });
     }
-    return best < 0 ? null : { node: best, m: Math.sqrt(bd) };
+    if (!found.length) return [];
+    found.sort((a, b) => a.m - b.m);
+    const keep = found[0].m + spreadM;
+    // ONE STRETCH OF PAVEMENT, NOT A RING ROUND THE BUILDING. The extra
+    // anchors have to stay near the nearest one, because the leg from an
+    // anchor to the door is a STRAIGHT LINE over ground nobody has mapped:
+    // the further round the building an anchor sits, the more of that line
+    // runs through the building. Routing through a building is the one thing
+    // Simeon ruled out ("a bit not verifyable"), and this dashed leg was the
+    // only part of a walk still exempt from it. Measured — see
+    // utVirtualClusterM's own comment for the table.
+    const nx = (g.X[found[0].node] - lon) * MPD_LON;
+    const ny = (g.Y[found[0].node] - lat) * MPD_LAT;
+    const out = [];
+    for (let k = 0; k < found.length && out.length < cap; k++) {
+      if (found[k].m > keep) break;
+      if (k > 0) {
+        const vx = (g.X[found[k].node] - lon) * MPD_LON;
+        const vy = (g.Y[found[k].node] - lat) * MPD_LAT;
+        if (Math.hypot(vx - nx, vy - ny) > WAYFIND.utVirtualClusterM) continue;
+      }
+      out.push(found[k]);
+    }
+    return out;
   }
   function virtualDoor(g, entry, t, avoidStairs) {
     const wantStepFree = !!avoidStairs && WAYFIND.utVirtualStepFree;
@@ -1221,14 +1310,17 @@
     const key = entry.code + '|' + t.lat + ',' + t.lon + (wantStepFree ? '|sf' : '');
     if (utVirtual.has(key)) return utVirtual.get(key);
     let di = -1;
-    const s = nearestUsableNode(g, t.lon, t.lat, wantStepFree);
-    if (s && s.m <= WAYFIND.utVirtualSnapM) {
+    const near = usableNodesNear(g, t.lon, t.lat, wantStepFree,
+      WAYFIND.utVirtualSnapM, WAYFIND.utVirtualSpreadM,
+      Math.max(1, WAYFIND.utVirtualAnchors | 0));
+    if (near.length) {
       di = g.doors.length;
       // Same 8-field door record scripts/bake_walk.py writes, with `src: 'ut'`
-      // so a door phrase or a verify script can tell where it came from.
+      // so a door phrase or a verify script can tell where it came from — and
+      // now with the same MULTI-anchor node/cost arrays a baked door carries.
       g.doors.push([Math.round(t.lon / g.q), Math.round(t.lat / g.q),
-        [s.node], [Math.round(s.m * 100)], 'main', 'ut', entry.code || '',
-        entry.display || '']);
+        near.map(s => s.node), near.map(s => Math.round(s.m * 100)),
+        'main', 'ut', entry.code || '', entry.display || '']);
       utVirtualIdx.add(di);
     }
     utVirtual.set(key, di);
