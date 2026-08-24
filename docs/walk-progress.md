@@ -247,3 +247,55 @@ only "new" row is a duplicate UT has of its own Will C. Hogg entrance. And one h
 finding written down: the door score can be driven to a perfect zero by never using
 our own modelled doorways at all, which would score better and look worse, so it was
 not done. `WAYFIND.on` untouched.
+
+## 2026-08-24 — critic pass, door round 4: it wins, but avoid-stairs strands a real building
+
+Judged fresh, no memory of how hard round 4 was to build. Checked out
+`acer/w-door` on its own port (8851), drove the live page with `?walk=1`, and
+did not take a single number on faith.
+
+Re-ran `scripts/verify/walkmeter.mjs` myself, `--baseline`, against the live
+server: it reproduced the branch's own claim to the decimal — route-length
+extra 795.3 m -> 162.1 m, door-offset extra 1151.6 m -> 83.7 m, every one of
+20 pairs ends within 15 m of UT's own published door (38/38, up from 7/38),
+self-check drift 0.00 m on every measurable pair. Then went further than
+trusting the script: pulled `Celebrated_Entrances_view` straight from UT's own
+ArcGIS endpoint myself, live, for four buildings the app claims to know exactly
+(WCH, MAI, WEL, CAL) — every coordinate the app reports off `wayfindUTDoors()`
+matched the live UT feed to six decimal places, and the two buildings the app
+reports as unsurveyed (CBA, UNB) really do have zero rows in UT's own layer.
+The door data is not fabricated or stale.
+
+The checkbox: wrote my own Playwright script from scratch (not walkmeter's own
+UI-gate code) and clicked the real `label.wf-toggle input[type=checkbox]` at
+its real pixel centre on WCH->MAI. Screenshot before: unchecked, "3-5 min walk
+· 260 m · Stairs: 1 set". After one real click: checked, "1-3 min walk · 170 m
+· No stairs on this route". Click again: unchecked, back to 260 m and Stairs: 1
+set. It works, independently confirmed.
+
+**oursWins = true.** Every one of the three bars in the brief — extra metres
+to the door a student would use, agreement with the door maps.utexas.edu
+itself presents, and a checkbox that actually avoids stairs — beats what
+shipped before this round by a wide margin, and I obtained the maps.utexas.edu
+bar myself rather than accepting the branch's account of it.
+
+**The gap that should be next**: "Avoid stairs" doesn't just fail to help for
+some buildings, it actively stops working for at least one real one. Routing
+to CMB (Jesse H. Jones Communication Center - B, an occupied campus building)
+with the box unchecked works fine from three different hubs (GDC, PCL, UTC —
+790 m / 1.1 km / 1.1 km, 1-2 stair sets). Tick the box on any of those three
+and the API returns `{ok:false, why:"noroute"}` — and the real UI, driven with
+a real click, shows the user "No walking route found" (screenshotted:
+the pill card, GDC to CMB, after clicking Avoid stairs for real — kept only in
+the session scratchpad, not committed). This is a dead end a step-free user
+can actually hit, not a hypothetical: CMB is one of the buildings the branch's
+own round-4 commit already named as still stranded (`stranded before: CMA CMB
+JGB MAI after: CMB`), but "the checkbox works" and "the checkbox strands you at
+a real building" are two different claims and only the first one got
+screenshotted before this round shipped. Next round should trace CMB's
+step-free component specifically — which edge or door is cutting it off from
+every hub — rather than re-sweeping the global tuning constants, which are
+already documented as tried.
+
+Server on 8851 stopped and confirmed free after this pass. No file this branch
+owns (`js/wayfind.js`, `data/*`, `scripts/bake_entrances.py`) was touched.
