@@ -8237,10 +8237,16 @@
    *     would not match. Whole field values are the tokens, because whole
    *     field values are what a serialiser emits and word fragments are what
    *     tile URLs are full of.
-   *   - inspection failures fail OPEN (the request proceeds) and are counted.
-   *     Failing closed would let a bug in this file break the map. The count
-   *     is asserted to be zero by the audit, which is the right place to catch
-   *     it.
+   *   - a THROW inside the inspector fails OPEN (the request proceeds) and is
+   *     counted. Failing closed there would let a bug in this file break the
+   *     map. The count is asserted to be zero by the audit, which is the right
+   *     place to catch it.
+   *   - an UNREADABLE BODY used to fail open too, and no longer does. Round
+   *     4's critic sent a `Blob` carrying the schedule past an armed guard and
+   *     watched it land on a raw socket; since round 5, while a schedule is
+   *     stored, a body the guard cannot read is refused rather than counted.
+   *     `SCHEDULE_STORE.blockUnreadableBodies` is the switch, and §6 of
+   *     docs/si-privacy.md is the run that shows the probe now being refused.
    *
    * THE SHAPE IS BUILT FOR THE SOURCES THAT DO NOT EXIST YET. Simeon asked for
    * Google Calendar, Apple Calendar and UT's registration export now, and said
@@ -8284,6 +8290,39 @@
     minTokenLen: 4,
     /** Ring buffer for the guard's log. */
     logCap: 400,
+    /**
+     * AN OPAQUE BODY IS REFUSED, NOT WAVED THROUGH — and this is the round-5
+     * change, so it gets the whole reason written down.
+     *
+     * `bodyToText()` cannot read a `Blob` or a `ReadableStream` synchronously,
+     * and until now it returned `undefined` for those and the guard counted
+     * them and let them past. Round 4's critic did the obvious thing nobody
+     * else had done: fired `fetch(url, { body: new Blob([canary]) })` at a
+     * bare TCP listener with the guard armed, and watched the canary arrive on
+     * the wire verbatim while `blocked` stayed 0. A seatbelt with a buckle
+     * that does not close over one shape of passenger.
+     *
+     * So: while a schedule is stored, a body the guard cannot read is treated
+     * as a body it cannot clear, and refused. The cost of that is bounded and
+     * was checked rather than assumed — every request this app makes on the
+     * hot path (tiles, glyphs, sprites, style JSON, the baked city data) is a
+     * bodyless GET, so `bodyToText` returns `''` for all of them and none of
+     * them ever reaches this rule. See docs/si-privacy.md §6.
+     *
+     * Flip to false to go back to fail-open if a later lane ever needs a
+     * genuine binary upload while a schedule is on the device — and if you do,
+     * read the audit's blob probe first, because that is the thing you are
+     * turning off.
+     */
+    blockUnreadableBodies: true,
+    /** The same rule one layer down, for a `Blob`/`ReadableStream` handed to a
+     *  worker rather than to the network. Separate constant because this one
+     *  is on MapLibre's per-tile path and the other is not: measured on a real
+     *  map load before it was turned on (docs/si-privacy.md §6), and the
+     *  measurement is republished by `guard.state().opaqueWorkerLeaves` so the
+     *  next person can re-check it in one line instead of trusting this
+     *  comment. */
+    blockOpaqueWorkerLeaves: true,
     /** One tap deletes, with no "are you sure". Flip to true if that ever
      *  reads as too sharp — the brief asked for one tap and an undo would
      *  mean keeping the data around after saying it was gone. */
@@ -8434,7 +8473,19 @@
     quietChecked: 0,          // worker messages: counted, not individually logged
     inspectFailures: 0,
     unreadableBodies: 0,
+    blockedOpaque: 0,          // of `blocked`, how many were refused unread
+    opaqueWorkerLeaves: 0,     // Blob/stream leaves seen in worker payloads
   };
+
+  /** The stand-in "token" for a body the guard could not read. It is not a real
+   *  watched string, so it is never used as a needle and never redacted as one
+   *  — it exists so an unreadable body can travel the same refusal path as a
+   *  real match and show up in the log saying honestly what happened. The
+   *  LEADING SPACE is what makes a collision impossible rather than unlikely:
+   *  `buildWatchlist` only ever stores `s.trim().toLowerCase()`, so no watched
+   *  token can begin with whitespace, so no schedule string can ever equal
+   *  this one however a student names their classes. */
+  const EGRESS_OPAQUE_BODY = ' opaque-body';
 
   /** Every string leaf in the schedule, long enough to be distinctive, plus
    *  the serialised blob itself and the `CODE ROOM` composites the router will
@@ -8462,7 +8513,10 @@
 
   /** The redaction the log itself needs, so reading the audit log is not a
    *  second copy of the leak. */
-  const redactToken = (t) => t.slice(0, 2) + '…(' + t.length + ')';
+  const redactToken = (t) =>
+    t === EGRESS_OPAQUE_BODY
+      ? 'a body the guard could not read'
+      : t.slice(0, 2) + '…(' + t.length + ')';
 
   /**
    * WHAT SCANS ONE STRING, AND WHY IT IS A LOOP OF `indexOf` AND NOT A REGEX.
@@ -8517,9 +8571,21 @@
    * Testing leaf by leaf finds exactly the same leaks and builds nothing.
    * Typed arrays and buffers are skipped — they cannot hold a JS string — and
    * the walk stops at `maxNodes` so a hostile payload cannot make it unbounded.
+   *
+   * `opaque` IS THE ROUND-5 ADDITION, and it is the same defect as the Blob
+   * body on `fetch`, one layer in. A `Blob` or a `ReadableStream` is an object
+   * with no own enumerable properties, so the `for (const k in x)` walk below
+   * used to stroll straight past one and report a clean `hit: null` — a worker
+   * handed `postMessage(new Blob([scheduleText]))` was waved through by a
+   * guard whose whole job is to stop schedule bytes reaching a worker. It
+   * cannot be read synchronously here any more than a request body can, so it
+   * is reported as unread rather than as clear, and the caller decides.
    */
   function scanStructured(v, maxNodes) {
-    let nodes = 0, hit = null;
+    let nodes = 0, hit = null, opaque = false;
+    const isOpaqueLeaf = (x) =>
+      (typeof Blob !== 'undefined' && x instanceof Blob) ||
+      (typeof ReadableStream !== 'undefined' && x instanceof ReadableStream);
     const walk = (x) => {
       if (hit !== null || nodes++ > maxNodes) return;
       if (x == null) return;
@@ -8527,6 +8593,7 @@
       if (t === 'string') { hit = scanForSchedule(x); return; }
       if (t !== 'object') return;
       if (ArrayBuffer.isView(x) || x instanceof ArrayBuffer) return;
+      if (isOpaqueLeaf(x)) { opaque = true; return; }
       if (Array.isArray(x)) { for (let i = 0; i < x.length && hit === null; i++) walk(x[i]); return; }
       for (const k in x) {
         if (hit !== null) return;
@@ -8534,12 +8601,14 @@
       }
     };
     walk(v);
-    return { hit, complete: nodes <= maxNodes };
+    return { hit, opaque, complete: nodes <= maxNodes };
   }
 
-  /** Best-effort synchronous text of a request body. Returns `undefined` for a
-   *  body we cannot read without going async (a Blob, a big buffer) — counted,
-   *  never silently treated as empty. */
+  /** Best-effort synchronous text of a request body. Returns `''` for a body
+   *  that is genuinely absent, and `undefined` for one that EXISTS but cannot
+   *  be read without going async (a Blob, a ReadableStream, a buffer past
+   *  `maxBytes`). The caller must keep those two apart: `''` clears the
+   *  request, `undefined` refuses it while a schedule is stored. */
   function bodyToText(b) {
     if (b == null) return '';
     if (typeof b === 'string') return b;
@@ -8567,7 +8636,10 @@
   function noteEgress(via, method, url, hit, blocked, bytes) {
     if (schedGuard.log.length >= SCHEDULE_STORE.logCap) schedGuard.log.shift();
     let u = String(url == null ? '' : url);
-    if (hit) {
+    // The sentinel is not a needle — it never appeared in the URL, so there is
+    // nothing in the URL to redact and building a regex for it is pure waste
+    // on a path that also runs for ordinary traffic.
+    if (hit && hit !== EGRESS_OPAQUE_BODY) {
       const re = new RegExp(hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
       u = u.replace(re, '[REDACTED]');
     }
@@ -8601,8 +8673,15 @@
     let hit = null;
     try {
       hit = scanForSchedule(url);
-      if (!hit && body !== undefined) hit = scanForSchedule(body);
-      if (!hit && body === undefined) schedGuard.unreadableBodies++;
+      if (body === undefined) {
+        // UNREADABLE IS NOT THE SAME AS EMPTY, and treating it as empty is the
+        // hole round 4's critic drove a Blob through. While a schedule is
+        // stored, a body the guard cannot read is a body it cannot clear.
+        schedGuard.unreadableBodies++;
+        if (!hit && SCHEDULE_STORE.blockUnreadableBodies) hit = EGRESS_OPAQUE_BODY;
+      } else if (!hit) {
+        hit = scanForSchedule(body);
+      }
     } catch (e) {
       // FAIL OPEN, AND COUNT IT. A throw in here must not be able to stop the
       // map loading; the audit asserts this counter is zero, which is where a
@@ -8615,7 +8694,10 @@
     if (!quiet || hit) {
       noteEgress(via, method, url, hit, block, body === undefined ? -1 : String(body || '').length);
     }
-    if (block) schedGuard.blocked++;
+    if (block) {
+      schedGuard.blocked++;
+      if (hit === EGRESS_OPAQUE_BODY) schedGuard.blockedOpaque++;
+    }
     return block ? hit : null;
   }
 
@@ -8717,11 +8799,24 @@
           schedGuard.checked++; schedGuard.quietChecked++;
           let hit = null;
           try {
-            hit = (typeof msg === 'string') ? scanForSchedule(msg)
-              : scanStructured(msg, WORKER_SCAN_NODES).hit;
+            if (typeof msg === 'string') {
+              hit = scanForSchedule(msg);
+            } else {
+              const r = scanStructured(msg, WORKER_SCAN_NODES);
+              hit = r.hit;
+              if (r.opaque) {
+                // Counted ALWAYS, blocked only if the policy says so, so the
+                // count is a real measurement of this app's own worker traffic
+                // rather than a number the policy shaped. Measured zero across
+                // a full map load — see docs/si-privacy.md §6.
+                schedGuard.opaqueWorkerLeaves++;
+                if (!hit && SCHEDULE_STORE.blockOpaqueWorkerLeaves) hit = EGRESS_OPAQUE_BODY;
+              }
+            }
           } catch (e) { schedGuard.inspectFailures++; hit = null; }
           if (hit && schedGuard.armed) {
             schedGuard.blocked++;
+            if (hit === EGRESS_OPAQUE_BODY) schedGuard.blockedOpaque++;
             noteEgress('worker.postMessage', 'POST', '[worker]', hit, true, -1);
             throw egressError('Worker.postMessage', hit);
           }
@@ -8968,6 +9063,12 @@
         blocked: schedGuard.blocked,
         inspectFailures: schedGuard.inspectFailures,
         unreadableBodies: schedGuard.unreadableBodies,
+        blockedOpaque: schedGuard.blockedOpaque,
+        opaqueWorkerLeaves: schedGuard.opaqueWorkerLeaves,
+        policy: {
+          blockUnreadableBodies: SCHEDULE_STORE.blockUnreadableBodies,
+          blockOpaqueWorkerLeaves: SCHEDULE_STORE.blockOpaqueWorkerLeaves,
+        },
       }),
       log: () => schedGuard.log.slice(),
       /** ONLY so the audit can prove its own network capture is not blind. A

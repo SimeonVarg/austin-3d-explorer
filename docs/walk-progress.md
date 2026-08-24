@@ -3025,3 +3025,59 @@ only `docs/walk-progress.md` and two cited frames in `shots/si/privacy/`
 (`r4-critic-panel-saved.png`, `r4-critic-panel-deleted.png`) were added. Four
 scratch scripts written into `scripts/verify` during this pass were deleted
 before finishing; nothing else was left in the repo.
+
+## 2026-08-24 — round 5 on the privacy piece (`acer/si-privacy`): the Blob hole is shut, and a socket says so
+
+Round 4's critic found something real: the thing that stops a stored schedule
+leaving the browser could read a normal request body, but not a `Blob` or a
+stream. It counted those and let them through — so it fired a `Blob` carrying a
+schedule at a bare socket, with the guard switched on, and watched the schedule
+land. A seatbelt with a buckle that doesn't close over one shape of passenger.
+
+That is fixed. While a schedule is on the device, anything the guard can't read
+is now refused instead of waved past, and the same rule covers a `Blob` handed
+to a background worker. Both are named switches at the top of the section, so
+either can be turned back off in one line if some later feature genuinely needs
+to upload a file.
+
+I didn't take my own word for it. The test stands up a **bare TCP listener** and
+reads the literal bytes that arrive, because the round-4 finding was partly a
+claim about what the browser-automation tool can see, and a socket has no
+opinion about its own input. With the guard off, a schedule sent as a `Blob`
+turns up in the socket's buffer at `fetch`, at `XMLHttpRequest` and at
+`sendBeacon` — so the channel really carries and the listener really sees. With
+the guard on, all four doors refuse and **nothing arrives at all**. A
+`ReadableStream` body is refused the same way. A plain page request still gets
+its 200, which is the whole app.
+
+**One correction back to the critic.** It also said this audit's own capture was
+blind to `Blob` bodies — that the tool reports nothing for one, so a clean
+result could be a wrong result. Measured on this machine, that isn't true:
+playwright-core 1.62.0 builds the string capture out of the byte capture, so the
+two can't disagree about whether a body is there, and the run shows both reading
+the canary. The critic reasoned where it could have measured. The socket stays
+anyway, since "what the tool can see" is a version-dependent variable.
+
+Cost: nothing. With a schedule seeded *before* the app boots — so the guard is
+armed for the whole cold load rather than switched on afterwards, which is where
+round 4 measured — a cold load of the city runs 2,086 to 2,679 worker messages
+through the guard across four runs and blocks zero of them every time. Every
+request this app makes on that path asks for a file and sends no body.
+
+Also ran the other lanes' scoreboard rather than assuming: `walkmeter.mjs`
+passes on this branch — the door lane's nine doors clean, 56/56 buildings
+reachable without stairs, nobody stranded, the live "Avoid stairs" click still
+turning routing on and back off, drift 0, no route errors. And the round-4
+nine-door test passes unchanged, so the fix didn't cost the old coverage.
+
+The write-up got shorter on purpose — it had grown to 1,452 lines over four
+rounds, the verdict was buried, and round 5's reviewer came back with nothing at
+all. It now opens with the result and the three commands that reproduce it, and
+the unchanged nine-door script is pointed at in this branch's own history
+(`git show 83382d4:docs/si-privacy.md`) rather than carried twice.
+
+Branch `acer/si-privacy`, pushed, not merged, no PR. Server on 8915 killed and
+the port re-confirmed free; one browser; scratch frames stayed in the
+scratchpad; the two scratch scripts written into `scripts/verify` were deleted
+before finishing, along with the output directories they created. Three new
+frames in `shots/si/privacy/` (135 KB together), all three cited by the doc.
