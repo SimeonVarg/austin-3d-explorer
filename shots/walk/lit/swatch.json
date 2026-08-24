@@ -1,0 +1,402 @@
+{
+ "night": 0.92,
+ "tol": 6,
+ "rows": [
+  {
+   "dev": "iphone",
+   "W": 390,
+   "on": false,
+   "from": "ANB",
+   "to": "ETC",
+   "why": "campus crossing — amber marks and no ticks",
+   "blockH": 395,
+   "cardH": 825,
+   "cardW": 153,
+   "lines": 22,
+   "words": 67,
+   "hidden": 52,
+   "stripW": 153,
+   "swatches": 0,
+   "headSw": null,
+   "barLit": [
+    255,
+    194,
+    122
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "(none)",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-before-iphone-ANB-ETC.png",
+   "errs": []
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "on": true,
+   "from": "ANB",
+   "to": "ETC",
+   "why": "campus crossing — amber marks and no ticks",
+   "blockH": 395,
+   "cardH": 825,
+   "cardW": 153,
+   "lines": 23,
+   "words": 67,
+   "hidden": 52,
+   "stripW": 153,
+   "swatches": 1,
+   "headSw": [
+    255,
+    194,
+    122
+   ],
+   "barLit": [
+    255,
+    194,
+    122
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "amber",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-after-iphone-ANB-ETC.png",
+   "errs": []
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "on": false,
+   "from": "GDC",
+   "to": "The Castilian",
+   "why": "the walk home — an all-cool bar with ticks",
+   "blockH": 469,
+   "cardH": 917,
+   "cardW": 153,
+   "lines": 27,
+   "words": 87,
+   "hidden": 90,
+   "stripW": 153,
+   "swatches": 0,
+   "headSw": null,
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "barTick": [
+    195,
+    176,
+    255
+   ],
+   "headMatch": "(none)",
+   "tickMatch": "MISSING",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-before-iphone-GDC-TheCastilian.png",
+   "errs": []
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "on": true,
+   "from": "GDC",
+   "to": "The Castilian",
+   "why": "the walk home — an all-cool bar with ticks",
+   "blockH": 469,
+   "cardH": 917,
+   "cardW": 153,
+   "lines": 29,
+   "words": 87,
+   "hidden": 90,
+   "stripW": 153,
+   "swatches": 2,
+   "headSw": [
+    70,
+    83,
+    111
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": [
+    195,
+    176,
+    255
+   ],
+   "barTick": [
+    195,
+    176,
+    255
+   ],
+   "headMatch": "cool",
+   "tickMatch": "tick",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-after-iphone-GDC-TheCastilian.png",
+   "errs": []
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "on": false,
+   "from": "PMA",
+   "to": "WEL",
+   "why": "a short hop",
+   "blockH": 375,
+   "cardH": 788,
+   "cardW": 153,
+   "lines": 21,
+   "words": 63,
+   "hidden": 52,
+   "stripW": 153,
+   "swatches": 0,
+   "headSw": null,
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "(none)",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-before-iphone-PMA-WEL.png",
+   "errs": []
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "on": true,
+   "from": "PMA",
+   "to": "WEL",
+   "why": "a short hop",
+   "blockH": 375,
+   "cardH": 788,
+   "cardW": 153,
+   "lines": 22,
+   "words": 63,
+   "hidden": 52,
+   "stripW": 153,
+   "swatches": 1,
+   "headSw": [
+    70,
+    83,
+    111
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "cool",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-after-iphone-PMA-WEL.png",
+   "errs": []
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "on": false,
+   "from": "ANB",
+   "to": "ETC",
+   "why": "campus crossing — amber marks and no ticks",
+   "blockH": 195,
+   "cardH": 409,
+   "cardW": 518,
+   "lines": 10,
+   "words": 67,
+   "hidden": 52,
+   "stripW": 518,
+   "swatches": 0,
+   "headSw": null,
+   "barLit": [
+    255,
+    194,
+    122
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "(none)",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-before-desktop-ANB-ETC.png",
+   "errs": []
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "on": true,
+   "from": "ANB",
+   "to": "ETC",
+   "why": "campus crossing — amber marks and no ticks",
+   "blockH": 195,
+   "cardH": 409,
+   "cardW": 518,
+   "lines": 11,
+   "words": 67,
+   "hidden": 52,
+   "stripW": 518,
+   "swatches": 1,
+   "headSw": [
+    255,
+    194,
+    122
+   ],
+   "barLit": [
+    255,
+    194,
+    122
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "amber",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-after-desktop-ANB-ETC.png",
+   "errs": []
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "on": false,
+   "from": "GDC",
+   "to": "The Castilian",
+   "why": "the walk home — an all-cool bar with ticks",
+   "blockH": 240,
+   "cardH": 454,
+   "cardW": 518,
+   "lines": 13,
+   "words": 87,
+   "hidden": 90,
+   "stripW": 518,
+   "swatches": 0,
+   "headSw": null,
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "barTick": [
+    195,
+    176,
+    255
+   ],
+   "headMatch": "(none)",
+   "tickMatch": "MISSING",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-before-desktop-GDC-TheCastilian.png",
+   "errs": []
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "on": true,
+   "from": "GDC",
+   "to": "The Castilian",
+   "why": "the walk home — an all-cool bar with ticks",
+   "blockH": 240,
+   "cardH": 454,
+   "cardW": 518,
+   "lines": 15,
+   "words": 87,
+   "hidden": 90,
+   "stripW": 518,
+   "swatches": 2,
+   "headSw": [
+    70,
+    83,
+    111
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": [
+    195,
+    176,
+    255
+   ],
+   "barTick": [
+    195,
+    176,
+    255
+   ],
+   "headMatch": "cool",
+   "tickMatch": "tick",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-after-desktop-GDC-TheCastilian.png",
+   "errs": []
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "on": false,
+   "from": "PMA",
+   "to": "WEL",
+   "why": "a short hop",
+   "blockH": 195,
+   "cardH": 409,
+   "cardW": 518,
+   "lines": 11,
+   "words": 63,
+   "hidden": 52,
+   "stripW": 518,
+   "swatches": 0,
+   "headSw": null,
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "(none)",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-before-desktop-PMA-WEL.png",
+   "errs": []
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "on": true,
+   "from": "PMA",
+   "to": "WEL",
+   "why": "a short hop",
+   "blockH": 195,
+   "cardH": 409,
+   "cardW": 518,
+   "lines": 12,
+   "words": 63,
+   "hidden": 52,
+   "stripW": 518,
+   "swatches": 1,
+   "headSw": [
+    70,
+    83,
+    111
+   ],
+   "barCool": [
+    70,
+    83,
+    111
+   ],
+   "tickSw": null,
+   "headMatch": "cool",
+   "tickMatch": "(no ticks on this bar)",
+   "frame": "C:/Users/simip/AppData/Local/Temp/claude/C--Users-simip-Projects-austin-3d-explorer/0146a935-c528-400f-a01e-47c376ec8199/scratchpad/lit7/r6-key-after-desktop-PMA-WEL.png",
+   "errs": []
+  }
+ ]
+}

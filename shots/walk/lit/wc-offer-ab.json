@@ -1,0 +1,965 @@
+{
+  "res": {
+    "A": {
+      "label": "darkOn=false (lamps only)",
+      "routed": 36,
+      "inWestCampusSurveyArea": 0,
+      "offers": 17,
+      "offerRateInArea": null,
+      "medianExtraM": 24,
+      "byReason": {
+        "lamps": 17
+      },
+      "routesWithZeroLamps": 17,
+      "medianReported": null
+    },
+    "B": {
+      "label": "darkOn=true (+ reported dark)",
+      "routed": 36,
+      "inWestCampusSurveyArea": 34,
+      "offers": 25,
+      "offerRateInArea": 74,
+      "medianExtraM": 24,
+      "byReason": {
+        "lamps": 17,
+        "reports": 8
+      },
+      "routesWithZeroLamps": 17,
+      "medianReported": 8
+    }
+  },
+  "A": [
+    {
+      "f": "COM",
+      "t": "The Standard",
+      "ok": true,
+      "distM": 1073,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "RHD",
+      "t": "The G",
+      "ok": true,
+      "distM": 1086,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "SW7",
+      "t": "Inspire on 22nd",
+      "ok": true,
+      "distM": 1303,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 47,
+        "why": "lamps",
+        "lamps": 6,
+        "reported": 0
+      }
+    },
+    {
+      "f": "NHB",
+      "t": "Cambridge Tower",
+      "ok": true,
+      "distM": 1190,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "CS3",
+      "t": "Skyloft Austin",
+      "ok": true,
+      "distM": 1450,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "FDH",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 2013,
+      "lamps": 1,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 60,
+        "why": "lamps",
+        "lamps": 9,
+        "reported": 0
+      }
+    },
+    {
+      "f": "GOL",
+      "t": "Rambler",
+      "ok": true,
+      "distM": 829,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 24,
+        "why": "lamps",
+        "lamps": 8,
+        "reported": 0
+      }
+    },
+    {
+      "f": "ADH",
+      "t": "Pointe on Rio",
+      "ok": true,
+      "distM": 1400,
+      "lamps": 7,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 66,
+        "why": "lamps",
+        "lamps": 14,
+        "reported": 0
+      }
+    },
+    {
+      "f": "TSC",
+      "t": "Moontower",
+      "ok": true,
+      "distM": 1646,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 12,
+        "why": "lamps",
+        "lamps": 10,
+        "reported": 0
+      }
+    },
+    {
+      "f": "UTX",
+      "t": "Inspire on 22nd",
+      "ok": true,
+      "distM": 1322,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "LDH",
+      "t": "Block on 25th East",
+      "ok": true,
+      "distM": 1770,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": -8,
+        "why": "lamps",
+        "lamps": 6,
+        "reported": 0
+      }
+    },
+    {
+      "f": "D21",
+      "t": "The Venue on Guadalupe",
+      "ok": true,
+      "distM": 1359,
+      "lamps": 24,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 24,
+        "why": "lamps",
+        "lamps": 24,
+        "reported": 0
+      }
+    },
+    {
+      "f": "GSB",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 353,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "PHR",
+      "t": "The Nine at Rio",
+      "ok": true,
+      "distM": 1128,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 3,
+        "why": "lamps",
+        "lamps": 2,
+        "reported": 0
+      }
+    },
+    {
+      "f": "EER",
+      "t": "Signature 1909",
+      "ok": true,
+      "distM": 1474,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "CRH",
+      "t": "The G",
+      "ok": true,
+      "distM": 1785,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": -11,
+        "why": "lamps",
+        "lamps": 9,
+        "reported": 0
+      }
+    },
+    {
+      "f": "STD",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 1521,
+      "lamps": 3,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "GEB",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 533,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "RSC",
+      "t": "Cambridge Tower",
+      "ok": true,
+      "distM": 896,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "BMC",
+      "t": "The G",
+      "ok": true,
+      "distM": 1153,
+      "lamps": 7,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "POB",
+      "t": "The Nine at Rio",
+      "ok": true,
+      "distM": 1169,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 54,
+        "why": "lamps",
+        "lamps": 2,
+        "reported": 0
+      }
+    },
+    {
+      "f": "ADH",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 1098,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 78,
+        "why": "lamps",
+        "lamps": 14,
+        "reported": 0
+      }
+    },
+    {
+      "f": "BBR",
+      "t": "Signature 1909",
+      "ok": true,
+      "distM": 1474,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 12,
+        "why": "lamps",
+        "lamps": 10,
+        "reported": 0
+      }
+    },
+    {
+      "f": "TCC",
+      "t": "2400 Nueces",
+      "ok": true,
+      "distM": 1481,
+      "lamps": 1,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "SWG",
+      "t": "Pointe on Rio",
+      "ok": true,
+      "distM": 1643,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 121,
+        "why": "lamps",
+        "lamps": 14,
+        "reported": 0
+      }
+    },
+    {
+      "f": "HRH",
+      "t": "Signature 1909",
+      "ok": true,
+      "distM": 512,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "BMK",
+      "t": "The Nine at West Campus",
+      "ok": true,
+      "distM": 2197,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": -5,
+        "why": "lamps",
+        "lamps": 8,
+        "reported": 0
+      }
+    },
+    {
+      "f": "TMM",
+      "t": "Cambridge Tower",
+      "ok": true,
+      "distM": 1426,
+      "lamps": 4,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "HMA",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 730,
+      "lamps": 2,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "LLF",
+      "t": "The Nine at West Campus",
+      "ok": true,
+      "distM": 869,
+      "lamps": 3,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "IPF",
+      "t": "Moontower",
+      "ok": true,
+      "distM": 2096,
+      "lamps": 4,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "STD",
+      "t": "The Venue on Guadalupe",
+      "ok": true,
+      "distM": 1739,
+      "lamps": 24,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 24,
+        "why": "lamps",
+        "lamps": 31,
+        "reported": 0
+      }
+    },
+    {
+      "f": "PHD",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 1285,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "CCJ",
+      "t": "Pointe on Rio",
+      "ok": true,
+      "distM": 1948,
+      "lamps": 4,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "PCL",
+      "t": "The Block",
+      "ok": true,
+      "distM": 1892,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 54,
+        "why": "lamps",
+        "lamps": 8,
+        "reported": 0
+      }
+    },
+    {
+      "f": "ARC",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 1896,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": {
+        "extraM": 57,
+        "why": "lamps",
+        "lamps": 6,
+        "reported": 0
+      }
+    }
+  ],
+  "B": [
+    {
+      "f": "COM",
+      "t": "The Standard",
+      "ok": true,
+      "distM": 1073,
+      "lamps": 0,
+      "reported": 14,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "RHD",
+      "t": "The G",
+      "ok": true,
+      "distM": 1086,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "SW7",
+      "t": "Inspire on 22nd",
+      "ok": true,
+      "distM": 1303,
+      "lamps": 0,
+      "reported": 8,
+      "inArea": true,
+      "alt": {
+        "extraM": 47,
+        "why": "lamps",
+        "lamps": 6,
+        "reported": 8
+      }
+    },
+    {
+      "f": "NHB",
+      "t": "Cambridge Tower",
+      "ok": true,
+      "distM": 1190,
+      "lamps": 2,
+      "reported": 13,
+      "inArea": true,
+      "alt": {
+        "extraM": 116,
+        "why": "reports",
+        "lamps": 0,
+        "reported": 0
+      }
+    },
+    {
+      "f": "CS3",
+      "t": "Skyloft Austin",
+      "ok": true,
+      "distM": 1450,
+      "lamps": 0,
+      "reported": 10,
+      "inArea": true,
+      "alt": {
+        "extraM": 7,
+        "why": "reports",
+        "lamps": 0,
+        "reported": 7
+      }
+    },
+    {
+      "f": "FDH",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 2013,
+      "lamps": 1,
+      "reported": 13,
+      "inArea": true,
+      "alt": {
+        "extraM": 64,
+        "why": "lamps",
+        "lamps": 9,
+        "reported": 10
+      }
+    },
+    {
+      "f": "GOL",
+      "t": "Rambler",
+      "ok": true,
+      "distM": 829,
+      "lamps": 2,
+      "reported": 14,
+      "inArea": true,
+      "alt": {
+        "extraM": 24,
+        "why": "lamps",
+        "lamps": 8,
+        "reported": 8
+      }
+    },
+    {
+      "f": "ADH",
+      "t": "Pointe on Rio",
+      "ok": true,
+      "distM": 1400,
+      "lamps": 7,
+      "reported": 11,
+      "inArea": true,
+      "alt": {
+        "extraM": 69,
+        "why": "lamps",
+        "lamps": 14,
+        "reported": 10
+      }
+    },
+    {
+      "f": "TSC",
+      "t": "Moontower",
+      "ok": true,
+      "distM": 1646,
+      "lamps": 2,
+      "reported": 8,
+      "inArea": true,
+      "alt": {
+        "extraM": 15,
+        "why": "lamps",
+        "lamps": 10,
+        "reported": 5
+      }
+    },
+    {
+      "f": "UTX",
+      "t": "Inspire on 22nd",
+      "ok": true,
+      "distM": 1322,
+      "lamps": 0,
+      "reported": 8,
+      "inArea": true,
+      "alt": {
+        "extraM": -8,
+        "why": "reports",
+        "lamps": 0,
+        "reported": 5
+      }
+    },
+    {
+      "f": "LDH",
+      "t": "Block on 25th East",
+      "ok": true,
+      "distM": 1770,
+      "lamps": 0,
+      "reported": 23,
+      "inArea": true,
+      "alt": {
+        "extraM": -3,
+        "why": "lamps",
+        "lamps": 6,
+        "reported": 13
+      }
+    },
+    {
+      "f": "D21",
+      "t": "The Venue on Guadalupe",
+      "ok": true,
+      "distM": 1359,
+      "lamps": 24,
+      "reported": 6,
+      "inArea": true,
+      "alt": {
+        "extraM": 24,
+        "why": "lamps",
+        "lamps": 24,
+        "reported": 6
+      }
+    },
+    {
+      "f": "GSB",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 353,
+      "lamps": 0,
+      "reported": 4,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "PHR",
+      "t": "The Nine at Rio",
+      "ok": true,
+      "distM": 1128,
+      "lamps": 2,
+      "reported": 18,
+      "inArea": true,
+      "alt": {
+        "extraM": 34,
+        "why": "lamps",
+        "lamps": 2,
+        "reported": 14
+      }
+    },
+    {
+      "f": "EER",
+      "t": "Signature 1909",
+      "ok": true,
+      "distM": 1474,
+      "lamps": 0,
+      "reported": 10,
+      "inArea": true,
+      "alt": {
+        "extraM": -4,
+        "why": "reports",
+        "lamps": 0,
+        "reported": 3
+      }
+    },
+    {
+      "f": "CRH",
+      "t": "The G",
+      "ok": true,
+      "distM": 1785,
+      "lamps": 2,
+      "reported": 6,
+      "inArea": true,
+      "alt": {
+        "extraM": 12,
+        "why": "lamps",
+        "lamps": 9,
+        "reported": 0
+      }
+    },
+    {
+      "f": "STD",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 1521,
+      "lamps": 3,
+      "reported": 5,
+      "inArea": true,
+      "alt": {
+        "extraM": 58,
+        "why": "reports",
+        "lamps": 3,
+        "reported": 2
+      }
+    },
+    {
+      "f": "GEB",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 533,
+      "lamps": 0,
+      "reported": 1,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "RSC",
+      "t": "Cambridge Tower",
+      "ok": true,
+      "distM": 896,
+      "lamps": 0,
+      "reported": 0,
+      "inArea": false,
+      "alt": null
+    },
+    {
+      "f": "BMC",
+      "t": "The G",
+      "ok": true,
+      "distM": 1153,
+      "lamps": 7,
+      "reported": 8,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "POB",
+      "t": "The Nine at Rio",
+      "ok": true,
+      "distM": 1169,
+      "lamps": 0,
+      "reported": 13,
+      "inArea": true,
+      "alt": {
+        "extraM": 12,
+        "why": "reports",
+        "lamps": 0,
+        "reported": 3
+      }
+    },
+    {
+      "f": "ADH",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 1098,
+      "lamps": 2,
+      "reported": 9,
+      "inArea": true,
+      "alt": {
+        "extraM": 78,
+        "why": "lamps",
+        "lamps": 14,
+        "reported": 6
+      }
+    },
+    {
+      "f": "BBR",
+      "t": "Signature 1909",
+      "ok": true,
+      "distM": 1474,
+      "lamps": 2,
+      "reported": 6,
+      "inArea": true,
+      "alt": {
+        "extraM": 12,
+        "why": "lamps",
+        "lamps": 10,
+        "reported": 6
+      }
+    },
+    {
+      "f": "TCC",
+      "t": "2400 Nueces",
+      "ok": true,
+      "distM": 1481,
+      "lamps": 1,
+      "reported": 6,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "SWG",
+      "t": "Pointe on Rio",
+      "ok": true,
+      "distM": 1643,
+      "lamps": 0,
+      "reported": 10,
+      "inArea": true,
+      "alt": {
+        "extraM": 124,
+        "why": "lamps",
+        "lamps": 14,
+        "reported": 10
+      }
+    },
+    {
+      "f": "HRH",
+      "t": "Signature 1909",
+      "ok": true,
+      "distM": 512,
+      "lamps": 0,
+      "reported": 4,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "BMK",
+      "t": "The Nine at West Campus",
+      "ok": true,
+      "distM": 2197,
+      "lamps": 0,
+      "reported": 28,
+      "inArea": true,
+      "alt": {
+        "extraM": 30,
+        "why": "lamps",
+        "lamps": 8,
+        "reported": 14
+      }
+    },
+    {
+      "f": "TMM",
+      "t": "Cambridge Tower",
+      "ok": true,
+      "distM": 1426,
+      "lamps": 4,
+      "reported": 2,
+      "inArea": true,
+      "alt": {
+        "extraM": 21,
+        "why": "reports",
+        "lamps": 4,
+        "reported": 0
+      }
+    },
+    {
+      "f": "HMA",
+      "t": "Dobie Twenty21",
+      "ok": true,
+      "distM": 730,
+      "lamps": 2,
+      "reported": 8,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "LLF",
+      "t": "The Nine at West Campus",
+      "ok": true,
+      "distM": 869,
+      "lamps": 3,
+      "reported": 9,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "IPF",
+      "t": "Moontower",
+      "ok": true,
+      "distM": 2096,
+      "lamps": 4,
+      "reported": 8,
+      "inArea": true,
+      "alt": {
+        "extraM": 116,
+        "why": "lamps",
+        "lamps": 9,
+        "reported": 3
+      }
+    },
+    {
+      "f": "STD",
+      "t": "The Venue on Guadalupe",
+      "ok": true,
+      "distM": 1739,
+      "lamps": 24,
+      "reported": 0,
+      "inArea": true,
+      "alt": {
+        "extraM": 24,
+        "why": "lamps",
+        "lamps": 31,
+        "reported": 1
+      }
+    },
+    {
+      "f": "PHD",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 1285,
+      "lamps": 0,
+      "reported": 5,
+      "inArea": true,
+      "alt": {
+        "extraM": 2,
+        "why": "reports",
+        "lamps": 0,
+        "reported": 0
+      }
+    },
+    {
+      "f": "CCJ",
+      "t": "Pointe on Rio",
+      "ok": true,
+      "distM": 1948,
+      "lamps": 4,
+      "reported": 5,
+      "inArea": true,
+      "alt": null
+    },
+    {
+      "f": "PCL",
+      "t": "The Block",
+      "ok": true,
+      "distM": 1892,
+      "lamps": 0,
+      "reported": 26,
+      "inArea": true,
+      "alt": {
+        "extraM": 72,
+        "why": "lamps",
+        "lamps": 8,
+        "reported": 16
+      }
+    },
+    {
+      "f": "ARC",
+      "t": "Crest at Pearl",
+      "ok": true,
+      "distM": 1896,
+      "lamps": 0,
+      "reported": 13,
+      "inArea": true,
+      "alt": {
+        "extraM": 61,
+        "why": "lamps",
+        "lamps": 6,
+        "reported": 10
+      }
+    }
+  ]
+}

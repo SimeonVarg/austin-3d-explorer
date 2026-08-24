@@ -1,0 +1,66 @@
+{
+ "night": 0.92,
+ "eye": {
+  "pitch": 84,
+  "altM": 1.7,
+  "zoom0": 19.2
+ },
+ "diffMin": 26,
+ "rows": [
+  {
+   "from": "ANB",
+   "to": "ETC",
+   "why": "mixed bar — one amber stretch and one cool stretch of the same walk",
+   "kind": "mapped",
+   "ll": [
+    -97.733368,
+    30.282325
+   ],
+   "runM": 170,
+   "bearing": 337.6,
+   "eyeErrM": 0,
+   "altM": 1.7,
+   "zoom": 21.514,
+   "lampPx": 25983,
+   "peak": 190,
+   "frame": "r7-scene-ANB-mapped"
+  },
+  {
+   "from": "ANB",
+   "to": "ETC",
+   "why": "mixed bar — one amber stretch and one cool stretch of the same walk",
+   "kind": "unmapped",
+   "ll": [
+    -97.73218,
+    30.279729999999997
+   ],
+   "runM": 678,
+   "bearing": 19.7,
+   "eyeErrM": 0,
+   "altM": 1.7,
+   "zoom": 21.515,
+   "lampPx": 7,
+   "peak": 162,
+   "frame": "r7-scene-ANB-unmapped"
+  },
+  {
+   "from": "GDC",
+   "to": "The Castilian",
+   "why": "the walk home — the bar is cool end to end",
+   "kind": "unmapped",
+   "ll": [
+    -97.739499,
+    30.2874465
+   ],
+   "runM": 698,
+   "bearing": 274.8,
+   "eyeErrM": 0,
+   "altM": 1.7,
+   "zoom": 21.514,
+   "lampPx": 3,
+   "peak": 43,
+   "frame": "r7-scene-GDC-unmapped"
+  }
+ ],
+ "errs": []
+}

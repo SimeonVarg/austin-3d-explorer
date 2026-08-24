@@ -1,0 +1,128 @@
+{
+  "base": "http://127.0.0.1:8714",
+  "nightP": 0.92,
+  "frames": [
+    {
+      "what": "route from the air",
+      "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-air.png"
+    },
+    {
+      "what": "standing at a reported-dark pin",
+      "note": "This entire corner of the GWB building is too dark.",
+      "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-pin.png"
+    },
+    {
+      "what": "the card",
+      "file": "C:\\Users\\simip\\Projects\\austin-3d-explorer\\.claude\\worktrees\\wf_9103c8d4-6c9-8\\shots\\walk\\lit\\wc-card.png"
+    }
+  ],
+  "lit": {
+    "ok": true,
+    "preferred": false,
+    "indexWarm": 193,
+    "indexBlue": 43,
+    "asOf": "2026-06-12",
+    "radiusM": 25,
+    "lamps": 0,
+    "phones": 1,
+    "litM": 0,
+    "darkM": 788,
+    "totalM": 788,
+    "pct": 0,
+    "longestGapM": 788,
+    "runs": 1,
+    "lampsAt": [],
+    "phonesAt": [
+      [
+        -97.740229,
+        30.28745
+      ]
+    ],
+    "darkAt": [
+      {
+        "m": 788,
+        "mid": [
+          -97.73994528571428,
+          30.287482999999998
+        ]
+      }
+    ],
+    "indexDark": 182,
+    "darkAsOf": "2018-01-26",
+    "darkNearM": 35,
+    "inDarkArea": true,
+    "reported": 6,
+    "reportedAt": [
+      {
+        "at": [
+          -97.739074,
+          30.287157999999998
+        ],
+        "note": "PAI is too dark here"
+      },
+      {
+        "at": [
+          -97.739649,
+          30.287376
+        ],
+        "note": "The front of this building is too dark."
+      },
+      {
+        "at": [
+          -97.739751,
+          30.287366
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.74022199999999,
+          30.287651
+        ],
+        "note": "This entire corner of the GWB building is too dark."
+      },
+      {
+        "at": [
+          -97.740793,
+          30.287785999999997
+        ],
+        "note": ""
+      },
+      {
+        "at": [
+          -97.742623,
+          30.28774
+        ],
+        "note": "street lighting at every intersection"
+      }
+    ],
+    "quote": "This entire corner of the GWB building is too dark.",
+    "alt": null
+  },
+  "pin": {
+    "at": [
+      -97.74022199999999,
+      30.287651
+    ],
+    "note": "This entire corner of the GWB building is too dark.",
+    "seen": {
+      "counts": {
+        "props-lit": 37,
+        "props-lit-core": 37,
+        "props-lamp": 41,
+        "wayfind-lit-pad": 1,
+        "wayfind-dark-mark": 1,
+        "wayfind-lit-dark": 15,
+        "wayfind-thread": 2
+      },
+      "centre": [
+        -97.740222,
+        30.287651
+      ],
+      "zoom": 20.2,
+      "pitch": 60,
+      "alt": 20.223425318451955
+    }
+  },
+  "cardText": "Crosses 4 signalised crossings — add up to 3 minutes if the lights are against you\nAvoid stairs\nRoutes around every staircase OpenStreetMap has mapped on campus.\nThis is not an accessibility check. We don't have data on kerbs, ramps, door widths or automatic doors, and there may be steps nobody has mapped.\nStreet lighting\nNo mapped streetlight along this route\nLongest stretch with none mapped: 790 m\n1 emergency phone near this route\n6 spots on this route were reported too dark\n“This entire corner of the GWB building is too dark.”\n— a resident, City of Austin lighting survey, 2017–18\nNo way with more mapped light, or past fewer reported-dark spots, within the extra distance we allow\nOpenStreetMap has 193 streetlights mapped in this area, from 12 June 2026. Real lighting is denser than that, and a mapped lamp can be out. This is not a safety rating.\nThe City of Austin asked West Campus where lighting was needed and 182 pins came back in this area, the last on 26 January 2018. Lights may have been added since — that is what the survey was for.\n+ Coffee\n+ Food\n+ Store\nShow route ⤡\nClear\nCampus paths from OpenStreetMap, 30 July 2026 · Paths may have changed since then\nWe can't route inside buildings · © OpenStreetMap contributors · Not affiliated with UT Austin"
+}

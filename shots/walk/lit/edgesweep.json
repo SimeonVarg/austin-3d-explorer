@@ -1,0 +1,670 @@
+{
+ "night": 0.92,
+ "edges": [
+  "#46536f",
+  "#5a6688",
+  "#6b779a",
+  "#7b88a6",
+  "#8b98b6",
+  "#9fb0cc"
+ ],
+ "caps": [
+  0.45,
+  0.52,
+  0.58,
+  0.62,
+  0.68,
+  0.75
+ ],
+ "rows": [
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#46536f",
+   "capsOp": 0.45,
+   "trackH": 10,
+   "edgeVsGlass": 2.51,
+   "swEdgeVsAround": 2.49,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 3.9
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#5a6688",
+   "capsOp": 0.52,
+   "trackH": 10,
+   "edgeVsGlass": 3.4,
+   "swEdgeVsAround": 3.37,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 4.84
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#6b779a",
+   "capsOp": 0.58,
+   "trackH": 10,
+   "edgeVsGlass": 4.35,
+   "swEdgeVsAround": 4.32,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 5.69
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#7b88a6",
+   "capsOp": 0.62,
+   "trackH": 10,
+   "edgeVsGlass": 5.44,
+   "swEdgeVsAround": 5.41,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 6.44
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#8b98b6",
+   "capsOp": 0.68,
+   "trackH": 10,
+   "edgeVsGlass": 6.69,
+   "swEdgeVsAround": 6.64,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 7.43
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#9fb0cc",
+   "capsOp": 0.75,
+   "trackH": 10,
+   "edgeVsGlass": 8.8,
+   "swEdgeVsAround": 8.74,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 8.93
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#46536f",
+   "capsOp": 0.45,
+   "trackH": 10,
+   "edgeVsGlass": 2.49,
+   "swEdgeVsAround": 2.48,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 3.94
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#5a6688",
+   "capsOp": 0.52,
+   "trackH": 10,
+   "edgeVsGlass": 3.37,
+   "swEdgeVsAround": 3.35,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 4.83
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#6b779a",
+   "capsOp": 0.58,
+   "trackH": 10,
+   "edgeVsGlass": 4.32,
+   "swEdgeVsAround": 4.3,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 5.75
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#7b88a6",
+   "capsOp": 0.62,
+   "trackH": 10,
+   "edgeVsGlass": 5.41,
+   "swEdgeVsAround": 5.37,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 6.44
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#8b98b6",
+   "capsOp": 0.68,
+   "trackH": 10,
+   "edgeVsGlass": 6.64,
+   "swEdgeVsAround": 6.6,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 7.5
+  },
+  {
+   "dev": "iphone",
+   "W": 390,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#9fb0cc",
+   "capsOp": 0.75,
+   "trackH": 10,
+   "edgeVsGlass": 8.74,
+   "swEdgeVsAround": 8.68,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 8.91
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#46536f",
+   "capsOp": 0.45,
+   "trackH": 10,
+   "edgeVsGlass": 2.34,
+   "swEdgeVsAround": 2.46,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 3.98
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#5a6688",
+   "capsOp": 0.52,
+   "trackH": 10,
+   "edgeVsGlass": 3.17,
+   "swEdgeVsAround": 3.33,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 4.86
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#6b779a",
+   "capsOp": 0.58,
+   "trackH": 10,
+   "edgeVsGlass": 4.06,
+   "swEdgeVsAround": 4.27,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 5.77
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#7b88a6",
+   "capsOp": 0.62,
+   "trackH": 10,
+   "edgeVsGlass": 5.08,
+   "swEdgeVsAround": 5.34,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 6.45
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#8b98b6",
+   "capsOp": 0.68,
+   "trackH": 10,
+   "edgeVsGlass": 6.24,
+   "swEdgeVsAround": 6.56,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 7.5
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "GDC",
+   "to": "The Castilian",
+   "shape": "all-cool bar",
+   "edgeCol": "#9fb0cc",
+   "capsOp": 0.75,
+   "trackH": 10,
+   "edgeVsGlass": 8.21,
+   "swEdgeVsAround": 8.63,
+   "swFill": [
+    70,
+    83,
+    111
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": null,
+   "coolVsLit": null,
+   "capsVsGlass": 8.9
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#46536f",
+   "capsOp": 0.45,
+   "trackH": 10,
+   "edgeVsGlass": 2.39,
+   "swEdgeVsAround": 2.46,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 3.93
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#5a6688",
+   "capsOp": 0.52,
+   "trackH": 10,
+   "edgeVsGlass": 3.23,
+   "swEdgeVsAround": 3.33,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 4.83
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#6b779a",
+   "capsOp": 0.58,
+   "trackH": 10,
+   "edgeVsGlass": 4.15,
+   "swEdgeVsAround": 4.26,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 5.74
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#7b88a6",
+   "capsOp": 0.62,
+   "trackH": 10,
+   "edgeVsGlass": 5.18,
+   "swEdgeVsAround": 5.33,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 6.42
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#8b98b6",
+   "capsOp": 0.68,
+   "trackH": 10,
+   "edgeVsGlass": 6.37,
+   "swEdgeVsAround": 6.55,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 7.47
+  },
+  {
+   "dev": "desktop",
+   "W": 1280,
+   "from": "ANB",
+   "to": "ETC",
+   "shape": "mixed bar",
+   "edgeCol": "#9fb0cc",
+   "capsOp": 0.75,
+   "trackH": 10,
+   "edgeVsGlass": 8.37,
+   "swEdgeVsAround": 8.61,
+   "swFill": [
+    255,
+    194,
+    122
+   ],
+   "darkFill": [
+    70,
+    83,
+    111
+   ],
+   "litFill": [
+    255,
+    194,
+    122
+   ],
+   "coolVsLit": 4.86,
+   "capsVsGlass": 8.87
+  }
+ ],
+ "errs": []
+}

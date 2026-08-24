@@ -1,0 +1,44 @@
+# canopy canopy — 2026-08-23T17:33:40.084Z
+tod asserted: 0.92
+
+## routes, and how many of their lamps are under a tree
+routes: [{"pair":"ANB->ETC","m":1738,"lamps":24,"underTree":4,"inClear":20},{"pair":"KIN->LTH","m":1223,"lamps":0,"underTree":0,"inClear":0},{"pair":"PMA->JES","m":811,"lamps":0,"underTree":0,"inClear":0},{"pair":"GDC->JES","m":472,"lamps":0,"underTree":0,"inClear":0},{"pair":"UTC->DKR","m":637,"lamps":3,"underTree":0,"inClear":3},{"pair":"MAI->SZB","m":653,"lamps":0,"underTree":0,"inClear":0},{"pair":"WEL->BUR","m":450,"lamps":0,"underTree":0,"inClear":0},{"pair":"CLA->PAI","m":1088,"lamps":0,"underTree":0,"inClear":0},{"pair":"GRE->JGB","m":458,"lamps":0,"underTree":0,"inClear":0},{"pair":"BAT->ETC","m":795,"lamps":0,"underTree":0,"inClear":0},{"pair":"UNB->PCL","m":1057,"lamps":0,"underTree":0,"inClear":0},{"pair":"NHB->ECJ","m":505,"lamps":0,"underTree":0,"inClear":0}]
+city-wide, the index flags 56 of its warm street lamps as under a canopy
+comparing on ANB->ETC: covered lamp [-97.73339399999999,30.282479] vs clear lamp [-97.733246,30.281917]
+tree layers hidden for the B frame: trees-trunk, trees-trunk-capitol, trees-canopy, trees-canopy-capitol
+25 m disc = 338 device px
+frames: [{"lamp":"covered","pose":"plan","withTrees":17337,"noTrees":17989,"revealed":652},{"lamp":"covered","pose":"eye","withTrees":5055,"noTrees":5203,"revealed":148},{"lamp":"clear","pose":"plan","withTrees":3050,"noTrees":3050,"revealed":0},{"lamp":"clear","pose":"eye","withTrees":1923,"noTrees":1967,"revealed":44}]
+
+hiding the trees at the COVERED lamp reveals 800 more warm pixels
+hiding the trees at the CLEAR   lamp reveals 44 more warm pixels
+PASS — the flag separates a lamp with a tree over it from one without
+
+## the search A/B: litCanopyMult 1.25 (shipped) vs 1.0 (off)
+ab: [{"mult":1.25,"pair":"ANB->ETC","lamps":24,"underTree":4,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"KIN->LTH","lamps":0,"underTree":0,"altExtraM":5,"altLamps":7,"why":"lamps"},{"mult":1.25,"pair":"PMA->JES","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"GDC->JES","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"UTC->DKR","lamps":3,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"MAI->SZB","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"WEL->BUR","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"CLA->PAI","lamps":0,"underTree":0,"altExtraM":136,"altLamps":9,"why":"lamps"},{"mult":1.25,"pair":"GRE->JGB","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"BAT->ETC","lamps":0,"underTree":0,"altExtraM":-15,"altLamps":0,"why":"reports"},{"mult":1.25,"pair":"UNB->PCL","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1.25,"pair":"NHB->ECJ","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"ANB->ETC","lamps":24,"underTree":4,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"KIN->LTH","lamps":0,"underTree":0,"altExtraM":5,"altLamps":7,"why":"lamps"},{"mult":1,"pair":"PMA->JES","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"GDC->JES","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"UTC->DKR","lamps":3,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"MAI->SZB","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"WEL->BUR","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"CLA->PAI","lamps":0,"underTree":0,"altExtraM":136,"altLamps":9,"why":"lamps"},{"mult":1,"pair":"GRE->JGB","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"BAT->ETC","lamps":0,"underTree":0,"altExtraM":-15,"altLamps":0,"why":"reports"},{"mult":1,"pair":"UNB->PCL","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null},{"mult":1,"pair":"NHB->ECJ","lamps":0,"underTree":0,"altExtraM":null,"altLamps":null,"why":null}]
+offers that differ between the two settings: 0/12
+
+card reads:
+  20-33 min walk · 1.7 km · No stairs on this route
+  Engineering Teaching Center II · The main entrance
+  Longer than a 15-minute passing period
+  24 mapped streetlights along this route
+  Crosses 8 signalised crossings — add up to 6 minutes if the lights are against you
+  Avoid stairs
+  Routes around every staircase OpenStreetMap has mapped on campus.
+  This is not an accessibility check. We don't have data on kerbs, ramps, door widths or automatic doors, and there may be steps nobody has mapped.
+  Street lighting
+  24 mapped streetlights along this route
+  4 of them are under tree cover
+  Longest stretch with none mapped: 680 m
+  2 emergency phones near this route
+  Nobody was asked about lighting along this route
+  No way with more mapped light within the extra distance we allow
+  OpenStreetMap has 193 streetlights mapped in this area, from 12 June 2026. Real lighting is denser than that, and a mapped lamp can be out. This is not a safety rating.
+  The soft glow along roads after dark is scenery, not mapped light. Every counted lamp has a ring drawn at its foot.
+  + Coffee
+  + Food
+  + Store
+  Show route ⤡
+  Clear
+  Campus paths from OpenStreetMap, 30 July 2026 · Paths may have changed since then
+  We can't route inside buildings · © OpenStreetMap contributors · Not affiliated with UT Austin

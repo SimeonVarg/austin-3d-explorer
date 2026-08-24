@@ -1,0 +1,21 @@
+# canopy-ab — 2026-08-23T17:36:43.350Z
+147 building codes in data/entrances.geojson
+sampling 60 seeded pairs
+tod: 0.92
+
+routed pairs                                    60/60
+...carrying at least one tree-covered lamp      12
+offers made at litCanopyMult 1.25               17
+offers made at litCanopyMult 1.0                18
+routes where the OFFER differs between the two  1
+...of those, routes that had a covered lamp     0
+differences: [
+ {
+  "pair": "PHD>SW7",
+  "canopy": 0,
+  "at1_25": "none",
+  "at1_0": "1201/10/lamps"
+ }
+]
+
+VERDICT: the multiplier changes 1 offer(s). Keep it, and say what it bought.
