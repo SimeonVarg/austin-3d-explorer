@@ -202,6 +202,7 @@ earlier ways of measuring that all gave wrong answers and are written up in
 `docs/walk-ui.md`. The bar is 195 px walking, the same as before, having traded
 a stale row for a useful one; no horizontal overflow anywhere; the feature is
 still completely invisible in all three recording modes.
+
 ## 2026-08-24 — the baseline meter, built: 20 real class-to-class pairs, a real number
 
 The recon above never got turned into an actual measurement before the run
@@ -235,3 +236,58 @@ candidates open so the router picks per-trip is. Full writeup, the 20-pair
 table, and the re-run instructions are in `docs/walk-baseline.md`.
 `WAYFIND.on` still untouched; nothing in `js/wayfind.js` changed this round
 either. Pushed as `acer/w-baseline`, self-merged after the self-check passed.
+
+## 2026-08-24 — the walk interface, round 5: the door into the walk had no door out, and the little bar of the journey was still a slider
+
+Lane `acer/w-ui`. Started by re-checking the four things the last rounds said
+were fixed, on the shipped build, by driving the page rather than reading the
+diff — the arrow that used to argue with its own words, "Show route" being
+reachable without opening anything, no route opening with a turn onto a line the
+app drew itself, and the phone rule that a doubled comment had once switched
+off. All four hold, on three routes each where that made sense.
+
+Then the two things that were wrong. Last round put a **Walk it** button on the
+bar so you can stand on the pavement it just drew. Standing there, the only
+button left on the bar was the ✕ — and the ✕ throws the route away. So the way
+in was a trapdoor: tap the one control you can see and you are at eye level in
+the middle of campus with nothing, and both buildings to type again. **Show
+route** comes back while you are walking now; it lifts you out and the answer is
+still there when you land. Tested end to end on two routes: the camera goes up,
+the bar goes back to the whole-journey summary, the route survives and **Walk
+it** is waiting again. Fixing that turned up a real bug hiding underneath it —
+after the camera flew up, the bar sometimes kept showing the walking readout
+from nine hundred metres in the air, and because the camera had stopped moving
+nothing was ever going to correct it. It was stuck. It asks again now, a few
+times, after any move that ends.
+
+The other one: the little bar of the journey, with a mark on it for every
+staircase and every crossing. On a route that has nothing on it — which is most
+short walks between two neighbouring buildings — it is an empty band with one
+bright round cap at the end, which is a volume slider and nothing else. That is
+the third round in a row this one element has had to be argued out of looking
+like a control, and the answer this time is to not draw it. If there is nothing
+on the walk, the line above it already says so in words. The bar got a fifth
+shorter on those routes (195 px down to 156 standing still, 133 while walking)
+and did not move by a pixel on the routes that do have something to show.
+
+Two smaller ones. The line that says **"Tight for a 15-minute passing period"**
+was worked out once, for the whole walk, and never asked again — so three
+minutes from the door it was still warning you about a walk you had nearly
+finished. It is about what is left now, and it goes quiet as you get close;
+measured walking down one route, it says it at the start and stops saying it
+just under halfway. And the step-by-step list — the one thing this bar has that
+looks like every other walking app — was behind a bare chevron in the corner
+with nothing anywhere saying it was there. The chevron says **STEPS** now.
+
+Photographed at phone size, six frames in `shots/walk/ui/`, and the bar was
+checked at 320 px for the first time (it holds; the 21 px of overflow the page
+reports at that width is not ours — it is identical with the whole feature
+switched off). One thing measured and deliberately **not** fixed, written up
+with the numbers: "Show route" frames every route from the same height, 900 m,
+because the camera controller's ceiling is 900 m and the fit is asking for
+higher — so on some bearings the whole route lands behind the answer bar. That
+is not new and it is not the new button's doing (the old path does it too, on a
+different route), and the fix is in the camera, which is not this lane's. An
+offset on the fit was tried and measured and made it worse, same as round 2's
+version of the idea. Branch `acer/w-ui`. `WAYFIND.on` still false, so none of
+this is on for anybody who has not asked for it by URL.

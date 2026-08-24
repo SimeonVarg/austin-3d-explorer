@@ -973,6 +973,19 @@ html.has-touch #joystick-zone{display:block}
   /* the two rows the answer bar is measured against, so a button move carries
      the bar with it instead of leaving it to be re-measured by hand */
   --wf-btn-row:calc(var(--touch-min) + 8px);
+  /* ROUND 5. THE WORD ON THE CHEVRON, and the room every row above the strip
+     has to leave for it. `--wf-chev-clear` is what the three top rows are
+     padded by, so the label's size and the clearance are ONE number: the
+     previous 26 px was written out three times and would have gone stale the
+     moment the control changed width. */
+  --wf-chev-lab:10px;
+  --wf-chev-clear:74px;
+  /* THE WAY OUT OF THE WALK. Warm, but not filled — `Walk it` is the only
+     filled thing this feature has and it always means "the thing to do". A
+     wash is enough to stop the way out and the dismiss reading as a matched
+     pair of grey squares in the state where the way out has lost its word. */
+  --wf-out-bg:rgba(245,166,35,.16);
+  --wf-out-edge:rgba(255,190,90,.34);
 }
 
 #wf-button{position:absolute;top:16px;left:16px;z-index:30;
@@ -1105,18 +1118,35 @@ body.wf-routed.flying #wf-pill{opacity:1}
    a thumb-sized target. The visible disc stays 26 px; the hit area is grown to
    --touch-min with a negative-inset pseudo-element rather than by drawing a
    44 px control in the corner of a bar that is only 172 px tall. */
-#wf-chev{position:absolute;top:8px;right:8px;width:28px;height:28px;
-  display:grid;place-items:center;color:var(--wf-dimmer);
-  background:none;border:none;padding:0;cursor:pointer;border-radius:50%;
-  transition:transform .16s ease,color .12s,background .12s}
+/* ROUND 5: THE CHEVRON CARRIES A WORD, because the list behind it is the one
+   shape this bar shares with every walking-directions app on a phone and
+   nothing on the frame said it was there. The disc is now a pill that sizes
+   itself to its label; the glyph alone still turns, so only ONE thing on this
+   control changes state and the word can stay put.
+   The rotation moves to the glyph, not the button — rotating the whole pill
+   would swing the word upside down. */
+#wf-chev{position:absolute;top:8px;right:8px;min-width:28px;height:28px;
+  display:flex;align-items:center;justify-content:flex-end;gap:5px;
+  color:var(--wf-dimmer);
+  background:none;border:none;padding:0 0 0 6px;cursor:pointer;border-radius:14px;
+  transition:color .12s,background .12s}
 #wf-chev::after{content:"";position:absolute;
-  top:calc((28px - var(--touch-min)) / 2);left:calc((28px - var(--touch-min)) / 2);
+  top:calc((28px - var(--touch-min)) / 2);right:calc((28px - var(--touch-min)) / 2);
   width:var(--touch-min);height:var(--touch-min)}
 #wf-chev:hover{background:rgba(255,255,255,.08);color:var(--wf-ink)}
 #wf-chev:focus-visible{outline:2px solid var(--wf-accent);outline-offset:1px}
-#wf-chev svg{width:16px;height:16px}
+#wf-chev svg{width:16px;height:16px;flex:none;
+  transition:transform .16s ease}
+.wf-chev-lab{font-size:var(--wf-chev-lab);font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;white-space:nowrap;line-height:1}
+.wf-chev-lab:empty{display:none}
 #wf-pill:hover #wf-chev{color:var(--wf-ink)}
-#wf-pill.open #wf-chev{transform:rotate(180deg);color:var(--wf-ink)}
+#wf-pill.open #wf-chev{color:var(--wf-ink)}
+#wf-pill.open #wf-chev svg{transform:rotate(180deg)}
+/* Walking, `#wf-orig` is gone and that row belongs to the manoeuvre disc and
+   the distance to the next turn. A word in the corner of it is one more thing
+   to read at exactly the moment there is least time to read. */
+body.wf-live .wf-chev-lab{display:none}
 
 /* THE FIGURE LINE. The minutes are the one number read at a glance, so they are
    the only thing on this bar set larger than the body. The rest of the sentence
@@ -1125,7 +1155,8 @@ body.wf-routed.flying #wf-pill{opacity:1}
 /* WHERE IT THINKS YOU ARE STARTING FROM. The From default is the routable
    building nearest the CAMERA, which is a guess the app makes on your behalf,
    so the bar shows it rather than hiding it under a tap. */
-#wf-orig{display:flex;align-items:baseline;gap:6px;margin-bottom:3px;padding-right:26px;
+#wf-orig{display:flex;align-items:baseline;gap:6px;margin-bottom:3px;
+  padding-right:var(--wf-chev-clear);
   font-size:var(--wf-small);min-width:0}
 #wf-orig.hidden{display:none}
 .wf-from-lab{font-weight:700;letter-spacing:.15em;text-transform:uppercase;
@@ -1147,7 +1178,7 @@ body.wf-live #wf-orig{display:none}
 .wf-mk-b::before{width:11px;height:11px;margin-top:-5.5px;border-radius:50%;
   box-sizing:border-box;background:rgba(20,12,4,.9);border:2.5px solid var(--wf-accent)}
 
-#wf-headline{line-height:1.15;padding-right:26px}
+#wf-headline{line-height:1.15;padding-right:var(--wf-chev-clear)}
 /* THE MODE, IN FRONT OF THE NUMBER. Sized off the minutes so it comes down with
    them on a phone, and set in the ink colour rather than the accent — the
    accent is the number's, and two amber things on one line is two headlines. */
@@ -1395,13 +1426,44 @@ body.wf-live #wf-sub{margin-top:2px}
 #wf-acts .wf-act-clr:hover{background:rgba(255,255,255,.1);color:var(--wf-ink)}
 #wf-acts .wf-act-clr .wf-act-ic{width:14px;height:14px}
 .wf-act-ic{width:15px;height:15px;flex:none}
-/* While you are walking it, framing it from above is not what you want and
-   neither is being put back at the start of it. Clearing it still is — and
-   with both gone the row shrinks to the ✕'s own width, which is what lets it
-   sit beside the passing-period warning instead of under it. */
+/* While you are walking it, being put back at the START of it is not what you
+   want, so `Walk it` goes. */
 body.wf-live #wf-acts{justify-content:flex-end;flex:0 0 auto}
 body.wf-live #wf-acts .wf-act-go,body.wf-live #wf-acts .wf-act-show{display:none}
 body.wf-live #wf-acts .wf-act-clr{min-height:36px;height:36px}
+/* ROUND 5: AND THERE HAS TO BE A WAY BACK UP.
+   Round 4 hid `Show route` here too, on the reading that framing the route from
+   above is not what you want while standing on it — which left the ✕ as the
+   ONLY control on the walking bar, and the ✕ deletes the answer. Photographed
+   at 390 x 844 on both walking routes: one button, and tapping it strands you
+   at eye level in the middle of campus with no route and both fields to type
+   again. `Walk it` and `Show route` are the pair every navigation app has —
+   the one that puts you on the ground and the one that lifts you out — and
+   hiding the second one turned a toggle into a trapdoor. */
+body.wf-live #wf-root.wf-out #wf-acts .wf-act-show{display:flex}
+body.wf-live #wf-root.wf-out #wf-acts .wf-act-show{min-height:36px;height:36px;
+  font-size:12.5px;padding-left:11px;padding-right:11px}
+/* THREE THINGS STILL DO NOT FIT ON 340 px, and the same rule decides it as in
+   round 3: the warning wins. MEASURED on the shipped build at 390 x 844, not
+   guessed — the footer's content box is 340 px, the warning chip is 219 px, and
+   the actions are 96 px as glyphs or 165 px with the word on:
+
+     219 + 8 +  96  = 323   one row, footer 36 px, bar 194.6 px
+     219 + 8 + 165  = 392   two rows, footer 67 px, bar 225.6 px
+
+   so the label costs 31 px of an 844 px screen on exactly the routes that
+   already have the most to say. It comes off, and the reason that is not a
+   mystery-glyph is that THE GLYPH WAS TAUGHT ONE STATE EARLIER: the way you
+   got here is by tapping `Walk it` on a bar where this same frame glyph was
+   sitting next to the words `Show route`. It also keeps its title and its
+   aria-label. To stop the two dark squares reading as a matched pair, the way
+   OUT takes the warm edge and the accent ink and the DISMISS stays grey — they
+   are not the same kind of thing and should not look it. */
+body.wf-live #wf-root.wf-out #wf-verdict:not(:empty) ~ #wf-acts .wf-act-show span{display:none}
+body.wf-live #wf-root.wf-out #wf-verdict:not(:empty) ~ #wf-acts .wf-act-show{
+  width:var(--touch-min);padding:0}
+body.wf-live #wf-root.wf-out #wf-acts .wf-act-show{color:var(--wf-accent);
+  background:var(--wf-out-bg);border-color:var(--wf-out-edge)}
 /* On a failure there is no route to frame and none to stand on, so only the
    way out is left. */
 #wf-acts.fail{justify-content:flex-end}
@@ -1413,6 +1475,8 @@ body.wf-live #wf-footrow{margin-top:6px}
    (js/wayfind.js §7d), and when it is, the whole-journey figures demote to a
    footnote rather than disappearing — you still want to know what the whole
    walk was while you are halfway through it. */
+/* The walking readout keeps the NARROW clearance, because `.wf-chev-lab` is
+   hidden while walking and the chevron is back to a 28 px disc. */
 #wf-live{display:flex;align-items:center;gap:11px;padding-right:26px}
 .wf-arrow{width:var(--wf-arrow);height:var(--wf-arrow);flex:none;border-radius:50%;
   display:grid;place-items:center;color:#1b1204;background:var(--wf-accent);

@@ -1035,3 +1035,298 @@ first cut of 7), `walkStepM` 4, `walkMaxM` 200, `walkSettleMs` 90,
 `#wf-root`: `--wf-rail-r` 4px, `--wf-you-w` 4px, `--wf-you-h` 24px,
 `--wf-notch`, `--wf-notch-pad`; `--wf-rail-h` 7 -> 14,
 `--wf-rail` `rgba(255,222,170,.17)` -> `rgba(255,198,99,.26)`.
+
+---
+---
+
+# ROUND 5
+
+Same lane, `acer/w-ui` continued. Round 4 gave the bar a door INTO the walking
+view. Round 5 found it had no door out, that the one element this bar has spent
+three rounds arguing out of being a slider is still a slider on the commonest
+shape of route there is, and that the line under the numbers goes stale the
+moment you start walking. Everything below was photographed at 390 x 844 and
+every frame reported was opened and looked at.
+
+**Before anything new, the four fixes the brief names were re-verified on the
+shipped build, by driving the page:**
+
+```
+ PASS  CSS: the phone rule for #wf-pill parses and is in the CSSOM  @media (max-width: 640px)
+ PASS  CSS: the bar is full-width on a 390 px phone                 366 px of 390
+ PASS  CSS: the bar sits BELOW the top button row                   top 120 px
+ PASS  `Show route` is visible on the CLOSED bar, not in the card   114.6 x 44
+ PASS  exactly one copy of `Show route` exists in the DOM
+ PASS  the FIRST thing after the origin is not a turn               "33 m"
+ PASS  the LAST thing before the door is not a turn                 "24 m"
+ PASS  21 Rio -> WEL: the disc and the words agree                  disc right / words right
+ PASS  JES -> DKR:    the disc and the words agree                  disc left  / words left
+ PASS  GDC -> PCL:    the disc and the words agree                  disc left  / words left
+```
+
+The disc test hides nothing: it reads the `d` of the path inside the disc, maps
+it to left/right, reads the words out of `#wf-live`, and fails if they disagree.
+
+## 28. The rail was STILL a slider, on the commonest route there is
+
+Round 4's fix for this element is right and it cannot help the case it does not
+cover. Every mark cuts a notch through the band, so the band comes apart into
+the stretches of uninterrupted walking — **on a route that has marks.**
+
+`JES -> WEL` has none. `No stairs on this route`, no crossings, no stop: the
+route a student walks between two neighbouring buildings, which is most of them.
+Photographed at 390 x 844 (`shots/walk/ui/pre-summary.png`, round 4's own
+committed frame, is the before): **one continuous amber band, empty, with a
+bright round amber ring at the right end.** That is a slider at 100 % and it is
+nothing else — and it is carrying zero information, because the line directly
+above it already says in words that there is nothing on this walk.
+
+So: **the picture is drawn only when there is something to picture.**
+`stripNeedsMarks`.
+
+**And the same rule holds while walking, which was not the first cut.** The
+first cut kept the rail on the move, on the reasoning that the playhead is
+itself a fact — how far along you are. Photographed walking `JES -> WEL`: an
+empty band with a white bar near its left end and a bright ring at the right,
+i.e. a volume slider at five per cent, which is word for word what round 4 said
+about the shape it had just spent a round killing. The fact is not lost —
+`6-8 min walk REMAINING | 520 m`, directly above it, is the same progress in
+words. One rule, both states.
+
+What it costs, measured at 390 x 844:
+
+| | before | after |
+|---|---|---|
+| `JES -> WEL` summary | 195 px | **156.4 px** |
+| `JES -> WEL` walking | 195 px | **133.3 px** |
+| `21 Rio -> WEL` summary (3 marks) | 245.1 px | 245.1 px, unchanged |
+| `21 Rio -> WEL` walking (3 marks) | 194.6 px | 194.6 px, unchanged |
+
+A fifth of the bar back on the routes that had nothing to say, and not one pixel
+moved on the routes that did. `shots/walk/ui/r5-summary.jpg`,
+`r5-during-walk-2.jpg`.
+
+## 29. The way out: the only control on the walking bar DELETED the answer
+
+Round 4 gave the bar a door in and did not give it a door out. Photographed on
+both walking routes: `Walk it` and `Show route` are both `display:none` under
+`body.wf-live`, so the **only** control on the bar while standing on the route
+was the X, and the X clears the route. A person who taps it to get back to the
+map is standing at eye level in the middle of campus with no route and both
+fields to type again. The door in was a trapdoor.
+
+`Show route` comes back while walking. `Walk it` stays hidden — you are already
+there — and the pair now reads as the toggle it always was: one puts you on the
+pavement, one lifts you out. Driven end to end rather than reasoned about:
+
+```
+ PASS  21 Rio->WEL: walking bar has TWO controls, not one   ["Show route@44","Clear@44"]
+ PASS  21 Rio->WEL: the way out LIFTS the camera            1.7 m -> 900 m
+ PASS  21 Rio->WEL: the bar goes back to the summary
+ PASS  21 Rio->WEL: the ROUTE SURVIVES the way out          12-18 min walk | 1.0 km | Stairs: 3 sets
+ PASS  21 Rio->WEL: and Walk it is back                     ["Walk it","Show route","Clear"]
+ (all five again on JES->WEL, with the way out at 113 px and its word on)
+```
+
+`shots/walk/ui/r5-during-walk.jpg` (warned route, glyph), `r5-during-walk-2.jpg`
+(unwarned, labelled), `r5-wayout.jpg` (after the tap).
+
+**And it uncovered a real bug that was already there.** `sampleLive` reads
+`__fly.eye()`, and `js/controls.js` only re-reads the map on its own next tick,
+so the sample taken ON `moveend` after a map-driven move can still report where
+the camera *was*. Round 4 found this jumping DOWN onto the route and fixed it
+inside `Walk it`. The way out jumps UP off the route and hit the identical lag
+in the other direction: measured on `JES -> WEL`, the bar kept the walking
+readout with the camera at **982 m of altitude** — and with the camera now
+parked there was no further `move` event, so nothing was ever going to sample
+again. **It stuck.** The re-ask now lives in `onCamEnd`, once, for every move
+that ends, and stops at the first sample that changes anything
+(`endSettleN` 8 at `endSettleMs` 110). Both routes now land at 900 m with the
+readout correctly disarmed, on repeated runs.
+
+**Three things still do not fit on 340 px** and the same rule decides it as in
+round 3 — the warning wins. Measured on the shipped build, not guessed: the
+footer's content box is 340 px, the warning chip is 219 px, the actions are
+96 px as glyphs or 165 px with the word on.
+
+```
+  219 + 8 +  96 = 323   one row,  footer 36 px, bar 194.6 px
+  219 + 8 + 165 = 392   two rows, footer 67 px, bar 225.6 px
+```
+
+So with a warning present the way out loses its word and keeps the frame glyph.
+That is not a mystery glyph: **the glyph was taught one state earlier** — the
+way you got here is by tapping `Walk it` on a bar where that same frame glyph
+was sitting next to the words `Show route` — and it keeps its title and its
+aria-label. To stop the two dark squares reading as a matched pair, the way OUT
+takes a warm wash and the accent ink (`--wf-out-bg`, `--wf-out-edge`) and the
+dismiss stays grey. They are not the same kind of thing and should not look it.
+
+## 30. The passing-period line was about a walk you were no longer taking
+
+`Tight for a 15-minute passing period` was computed once, off the WHOLE route's
+range, and never re-asked. Three minutes from the door the bar still said it.
+This is exactly the defect round 4 fixed one row higher up — `Stairs: 3 sets`
+counting sets already behind you — left in place one row lower down.
+
+It is re-asked of `live.rem.time` now: the same range arithmetic over the same
+permitted wording, run on the part of the route that is left, which is the same
+measurement class as `remaining` and as the `ahead` counts, both already
+audited. **The rule is unchanged and stays one-sided** (honesty doc 15): over ->
+say so, crossing -> say it is tight, under -> say nothing. So it goes quiet as
+you get close, which is the honest thing for it to do. There is still no
+"you'll make it" and there must not be.
+
+Driven down `21 Rio -> WEL`, standing on the line at four fractions of it:
+
+```
+  t=0.10   10-15 min walk REMAINING | 820 m    "Tight for a 15-minute passing period"
+  t=0.45    5-8 min walk REMAINING | 440 m     ""
+  t=0.72    2-4 min walk REMAINING | 170 m     ""
+  t=0.90    1-2 min walk REMAINING |  91 m     ""
+```
+
+The row it frees is what lets the way out sit beside `and then left` instead of
+under it. Stepping off the route puts the whole-route answer back, from the same
+one function (`applyVerdict`) — the old copy of this logic was inline in
+`renderPill` and is gone, so there is one definition of it.
+
+## 31. The list had no sign on the door
+
+The itinerary is the one shape this bar shares with every walking-directions app
+on a phone, and it sat behind a bare 28 px chevron in the corner with nothing on
+the frame saying it was there. Round 2 took `Show route` out from behind that
+chevron for exactly this reason and left the list behind it.
+
+The chevron carries a word now — `STEPS`, 64.3 px including the glyph — and only
+the glyph rotates, so one thing on the control changes state and the word can
+stay put. It is hidden while walking (`#wf-orig` is gone then and that row
+belongs to the manoeuvre) and on a failure, where the chevron itself is hidden
+because there is nothing to open. The clearance the top rows leave for it is
+`--wf-chev-clear`, one token instead of the `padding-right:26px` that was
+written out three times and would have gone stale the moment the control changed
+width. `shots/walk/ui/r5-summary.jpg`, `r5-details.jpg`.
+
+## 32. What was verified this round, and how
+
+One browser, port 8815, `python scripts/serve.py 8815`,
+`?walk=1&drift=0&intro=0`, `cancelGraphicsAutoDetect()`, waited on `!#veil`, two
+screenshots and the second kept, 390 x 844 at DSF 2. Every frame reported was
+opened and looked at with the Read tool.
+
+```
+node scripts/verify/harness-drift.mjs
+  index.html:    31 scripts
+  _harness.html: 31 scripts
+  PASS  the harness loads the same city the site does
+```
+
+No `<script>` was added, so neither HTML file needed an edit; the check is quoted
+because the rule says to run it. `style.css` balances: 188 comment openers, 188
+closers, brace depth 0, no stray terminators.
+
+**The rail rule, both states, on three routes**
+
+```
+ PASS  JES->WEL:     summary rail NOT drawn (nothing on it)   marks=0 bar=156.4
+ PASS  JES->ANB:     summary rail drawn                       marks=1 bar=245.1
+ PASS  21 Rio->WEL:  summary rail drawn                       marks=3 bar=245.1
+ PASS  JES->WEL:     walking rail NOT drawn                   marks=0 bar=133.3
+ PASS  21 Rio->WEL:  walking rail drawn                       marks=3 bar=194.6
+```
+
+**The recording surfaces, all three, measured rather than assumed** — the gate
+walks every descendant of `#wf-root` and counts anything with a box, so the new
+chevron label and the new walking control are inside it by construction:
+
+```
+ PASS  ?clip=1:       visible=0 of 83 descendants
+ PASS  ?autopilot=1:  visible=0 of 83 descendants
+ PASS  ?sliderdemo=1: visible=0 of 83 descendants
+ PASS  OFF: no walk parameter adds no element     elements=0
+ PASS  OFF: ?walk=0 beats from/to                 elements=0
+```
+
+**The failure state**, `FC1 -> WEL`: `Clear` alone, no chevron (so no `STEPS`
+label promising a list that does not exist), no rail, overflow 0.
+
+**320 px, photographed for the first time** (round 2 listed it as never
+checked). Nothing in the bar escapes it, the three actions still fit, the
+destination wraps to two lines, and the bar is 266.5 px. The page reports 21 px
+of horizontal overflow at that width and **it is not ours** — measured with the
+feature switched off entirely it is the identical 21 px, from `#controls-hint` /
+`.mobile-hint` (362.5 px wide) and `#sky-bloom`. `shots/walk/ui/r5-320.jpg`.
+Flagging it for whoever owns the drive hint rather than fixing it from here.
+
+## 33. Measured, NOT fixed, and written down so the next round does not rediscover it
+
+**`Show route` frames every route from the same altitude, and on some bearings
+it puts the whole route behind the bar.** Found by measuring the frame the new
+way out produces, then measuring the old path as a control. Every vertex of the
+drawn line projected to screen, twice, on separate runs — the two runs agree to
+the decimal:
+
+| route | from the summary | after the way out |
+|---|---|---|
+| `21 Rio -> WEL` (66 pts) | 100 % in view, 56 % clear of the bar | 100 % in view, **0 % clear** |
+| `JES -> WEL` (30) | 100 % / 100 % | 100 % / 100 % |
+| `JES -> ANB` (86) | 100 % / **0 %** | 100 % / 45 % |
+
+Both paths hit 0 % on one route each, so **this is not the way out's doing** —
+it is `Show route` itself and it has been shipping since round 2, whose own
+measurement of it happened to sample three bearings where it was fine.
+
+The mechanism, probed rather than guessed: `cameraForBounds` asks for zoom
+14.30 / 14.75 / 14.92 for the three routes, and the camera settles at **zoom
+15.00 and altitude 900 m on all six runs** — `__fly.consts().ALT_MAX` is 900.
+`js/controls.js` clamps the altitude and then rewrites the centre from the eye,
+so the framing is whatever falls out of the clamp, and every route, 530 m or
+1.1 km, gets the same camera height.
+
+**An offset on the fit was measured and made it worse**, which is also what
+round 2 found for bar-aware padding: `cameraForBounds` returns the *identical*
+zoom for uniform 90 padding and for bar-aware padding, and pushing the centre
+down 160 px drops 60-80 % of the route off the frame entirely. So nothing was
+shipped. The fix belongs to whoever owns the camera: either the fit needs to
+know about `ALT_MAX`, or `ALT_MAX` needs to not bind on a campus-scale fit.
+`WAYFIND.fitPitch` / `fitPadPx` live in the shared taste block, so this is a
+written request and not an edit from here.
+
+*(One thing round 5 improves here by accident: the bar is 156 px instead of 195
+on a no-mark route, so the bar's bottom edge is at y276 instead of y365 and
+there is 89 px more frame for the route to land in.)*
+
+**`fmtDist` still prints a decimal under 10 m** — `9.2 m, then left` was on the
+frame this round on `GDC -> PCL`. Correct at that distance; the only place it
+looks wrong is `10.0 m` from a rounded 9.96. Third round of flagging it. The
+formatter is in the arithmetic half of `js/wayfind.js`:
+
+```js
+  if (m < 10) return (m >= 9.95 ? '10' : m.toFixed(1)) + ' m';
+```
+
+**`WAYFIND.viaRingCol`** still paints the stop's ring on the ground in the old
+`#8fd3ff` while the bar uses `#8fe6bd`. Round 2's request, still open, still one
+line.
+
+**Not done:** the night bar is still untuned; nothing this round was chosen for
+it. And at 320 px the taller bar states overlap the top of the time slider —
+measured at 266.5 px of bar against a panel that starts around y318. Nothing in
+this round changed the height of that state (it changed only no-mark routes, and
+downward), so it is recorded rather than claimed as new.
+
+## 34. Taste values added this round (CLAUDE.md rule 11)
+
+`WF_UI`: `stripNeedsMarks`, `liveShowRoute`, `liveVerdictRemaining`,
+`stepsPeekOn`, `endSettleN` 8, `endSettleMs` 110. `SAY_UI`: `stepsPeek`.
+Custom properties on `#wf-root`: `--wf-chev-lab` 10px, `--wf-chev-clear` 74px,
+`--wf-out-bg`, `--wf-out-edge`. The `padding-right:26px` written out three times
+above the strip became `var(--wf-chev-clear)` on the two rows that need it.
+
+### Shots
+
+`shots/walk/ui/` — `r5-summary.jpg`, `r5-details.jpg`, `r5-during-walk.jpg`,
+`r5-during-walk-2.jpg`, `r5-wayout.jpg`, `r5-320.jpg`. Six frames, 1.2 MB in
+total, because CLAUDE.md rule 12 counts every committed byte once per lane;
+round 4's eighteen PNGs are 15 MB. Scratch frames from this round stayed in the
+scratchpad.

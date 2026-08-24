@@ -1505,6 +1505,29 @@
                            // capsule of four, which is also the number the card
                            // prints two lines below.
     stripMinPipT: 0.01,    // a pip exactly on an end would be half off the rail
+    // A RAIL WITH NOTHING ON IT IS A SLIDER AT 100 %, and this is the THIRD
+    // round this one element has had to be argued out of being a control.
+    // Round 4's fix — every mark cuts a notch clean through the band, so it
+    // comes apart into the stretches of uninterrupted walking — is the right
+    // fix and it cannot help the case with no marks in it. Photographed at
+    // 390 x 844 on JES -> WEL, the commonest shape of route there is (`No
+    // stairs on this route`, no crossings): one continuous amber band, empty,
+    // with a bright round amber ring at the right end. That is a slider at
+    // 100 % and it is nothing else, and it is carrying ZERO information — the
+    // line directly above it already says there is nothing on this walk.
+    // So the picture is drawn only when there is something to picture.
+    //
+    // AND THE SAME RULE HOLDS WHILE WALKING, which was not the first cut. The
+    // first cut kept the rail on the move, on the reasoning that the playhead
+    // is itself a fact — how far along you are. Photographed walking JES -> WEL
+    // at 390 x 844, that is an empty band with a white bar sitting near its
+    // left end and a bright ring at the right: a volume slider at five per
+    // cent, which is word for word what round 4 said about the shape it had
+    // just spent a round killing. And the fact is not lost — `6–8 min walk
+    // REMAINING · 520 m`, directly above it, is the same progress in words.
+    // One rule: the rail is drawn when the walk has something on it, in both
+    // states, and otherwise the sentences carry it.
+    stripNeedsMarks: true,
     // THE KEY under the strip. A `title` attribute is not reachable on a phone,
     // which is the only device this bar is judged at, so the marks were three
     // colours of dot with nothing anywhere saying what a colour meant. The key
@@ -1625,6 +1648,48 @@
     // route in the middle of the frame through a bend, which is what a person
     // looking down a path does with their head.
     walkLookM: 25,
+    // ── ROUND 5 ───────────────────────────────────────────────────────────
+    // THE WAY BACK OUT OF THE WALK. Round 4 gave the bar a door IN (`Walk it`)
+    // and left it with no door out: photographed at 390 x 844 on both walking
+    // routes, the only control on the bar while standing on the route was the
+    // ✕, and the ✕ DELETES THE ANSWER. A person who taps it to get back to the
+    // map is standing at eye level in the middle of campus with no route and
+    // has to type both ends again. So `Show route` — which is exactly the
+    // "lift me out and frame the whole thing" every navigation app offers in
+    // its GO screen — comes back while walking, and the pair reads as the
+    // toggle it always was: `Walk it` puts you on the pavement, `Show route`
+    // takes you back up. `Walk it` itself stays hidden while walking; you are
+    // already there.
+    liveShowRoute: true,
+    // HOW LONG THE READOUT KEEPS ASKING AFTER A MOVE ENDS. `__fly.eye()` lags a
+    // map-driven move by a tick or two (see onCamEnd), and the sample taken on
+    // `moveend` can be the camera you have already left. Eight asks 110 ms
+    // apart covers ~0.9 s of controller lag; it stops at the first one that
+    // changes anything, and a parked camera that has not moved still costs
+    // nothing once they are done.
+    endSettleN: 8,
+    endSettleMs: 110,
+    // AND THE PASSING-PERIOD LINE IS RE-ASKED OF WHAT IS LEFT. It was computed
+    // once, off the WHOLE route's time range, and never recomputed — so three
+    // minutes from the door the bar still read `Tight for a 15-minute passing
+    // period` about a walk that was nearly over. That is the identical defect
+    // round 4 fixed one row higher up (`Stairs: 3 sets` counting sets already
+    // behind you) left in place one row lower down. `live.rem.time` is the same
+    // range arithmetic over the same permitted wording, run on the part of the
+    // route that is left — the same measurement class as `remaining` and as the
+    // `ahead` counts, both already audited. The rule stays one-sided (§15):
+    // over -> say so, crossing -> say it is tight, under -> SAY NOTHING. So it
+    // goes quiet as you get close, which is the honest thing for it to do, and
+    // the row it frees is what lets the way out sit beside `and then left`
+    // instead of under it.
+    liveVerdictRemaining: true,
+    // THE WORD ON THE DOOR. The itinerary — the one shape this bar shares with
+    // every walking-directions app on the phone — sits behind a bare 28 px
+    // chevron in the corner with nothing anywhere saying it is there. Round 2
+    // took `Show route` out from behind that chevron for exactly this reason
+    // and left the list behind it. A label costs about 40 px of a row whose
+    // only other tenant is a building name that already ellipsizes.
+    stepsPeekOn: true,
     stepMinLegM: 12,       // shorter than this and the distance row is noise —
                            // the 10 m of median between the two halves of a
                            // divided crossing is not a leg of anybody's walk.
@@ -1701,6 +1766,11 @@
     // it is already careful not to say.
     walkIt: 'Walk it',
     walkItHint: 'Stand at the start of this route, at eye level',
+    // ROUND 5. The word on the chevron. `Steps` names the list behind it and
+    // claims nothing — the rows of that list are the drawn line measured, and
+    // the label promises no street name and no instruction, neither of which
+    // they contain.
+    stepsPeek: 'Steps',
     // ROUND 4. WHAT IS STILL IN FRONT OF YOU. While walking, the third line of
     // the bar was the WHOLE-ROUTE figure line demoted to footnote size — a
     // second complete trip summary under the first, and a stale one: `Stairs:
@@ -2142,6 +2212,15 @@
     // that exists, rather than the only way in.
     const chev = h('button', null); chev.id = 'wf-chev';
     chev.setAttribute('aria-controls', 'wf-card');
+    // ROUND 5: A WORD ON THE DOOR. The itinerary is the one shape this bar
+    // shares with every walking-directions app on a phone, and it was behind a
+    // bare 28 px chevron in the corner with nothing on the frame saying it was
+    // there — the same mistake round 2 fixed for `Show route` and left in place
+    // for the list. The label is hidden while walking (`#wf-orig` is gone then
+    // and the row belongs to the manoeuvre) and on a failure, where the chevron
+    // itself is hidden because there is nothing to open.
+    const chevLab = h('span', 'wf-chev-lab');
+    if (WF_UI.stepsPeekOn) chev.appendChild(chevLab);
     chev.appendChild(icon(null, IC.chev, 2.2));
     // THE WALKING READOUT. Above the headline, and the headline hides under it
     // rather than being replaced, so `#wf-headline`.textContent is still the
@@ -2231,8 +2310,13 @@
     document.body.appendChild(root);
 
     el = { root, btn, sheet, list, more, egs, hint, inFrom: from.inp, inTo: to.inp,
-      xFrom: from.x, xTo: to.x, swap, pill, chev, liveEl, orig, headline, strip, key, sub,
+      xFrom: from.x, xTo: to.x, swap, pill, chev, chevLab, liveEl, orig, headline, strip, key, sub,
       verdict, acts, footrow, then2, card, close, ends };
+    // The way out of the walk, and it is a taste value because it is one:
+    // round 4's reading was that framing the route from above is not what you
+    // want while standing on it, which is true right up until the only other
+    // control on the bar is the one that deletes the route.
+    root.classList.toggle('wf-out', !!WF_UI.liveShowRoute);
 
     btn.addEventListener('click', () => openSheet());
     close.addEventListener('click', () => closeSheet());
@@ -2470,7 +2554,35 @@
   // the frame the camera actually stopped on whenever the move was shorter than
   // one tick — which is every jump — and leaves the readout one step stale at
   // exactly the moment somebody stops to read it.
-  function onCamEnd() { liveAt = 0; onCam(); }
+  //
+  // ROUND 5: AND THE LAST SAMPLE ITSELF CAN BE STALE. `sampleLive` reads
+  // `__fly.eye()`, and js/controls.js only re-reads the map on its OWN next
+  // tick — so the sample taken ON `moveend` after a map-driven move can still
+  // report where the camera WAS. Round 4 found this jumping DOWN onto the route
+  // (`Walk it` left the bar on the summary layout with the view on the
+  // pavement) and fixed it inside that one button. Round 5's way out of the
+  // walk jumps UP off the route and hits the identical lag in the other
+  // direction: MEASURED on JES -> WEL, the bar kept the walking readout with
+  // the camera at 982 m — and with the camera now parked there was no further
+  // `move` event, so nothing was ever going to sample again. It stuck.
+  //
+  // So the re-ask lives here, on every move that ENDS, instead of in each
+  // button. It stops at the first sample that changes anything, and when
+  // nothing changes — the common case, you stopped where you already were — it
+  // is `endSettleN` projections spread over `endSettleN * endSettleMs` and then
+  // silence. Still zero while parked.
+  function onCamEnd() {
+    liveAt = 0;
+    onCam();
+    let n = 0;
+    const again = () => {
+      if (++n > WF_UI.endSettleN) return;
+      liveAt = 0;
+      if (sampleLive()) { renderLive(); return; }
+      setTimeout(again, WF_UI.endSettleMs);
+    };
+    setTimeout(again, WF_UI.endSettleMs);
+  }
 
   /** Camera -> a point on the route, or null. Returns true if it changed. */
   function sampleLive() {
@@ -2498,6 +2610,42 @@
     return true;
   }
 
+  /**
+   * "WILL I MAKE IT?" — the one-sided answer, honesty doc §15, in ONE place.
+   *
+   * It used to be written inline in renderPill off the WHOLE route's range and
+   * never re-asked, so it went stale the moment you started walking: the bar
+   * kept saying `Tight for a 15-minute passing period` about a walk with three
+   * minutes left in it. This is the same defect round 4 fixed one row higher
+   * (`Stairs: 3 sets` counting sets already climbed), and the fix is the same —
+   * ask the question again of the part of the route that is left.
+   *
+   * The RULE is unchanged and stays one-sided, because that is what §15
+   * permits:
+   *   both ends over the period   -> say so. If we are wrong they walk faster.
+   *   the range crosses it        -> say it is tight. True of our own numbers.
+   *   both ends under it          -> SAY NOTHING, on purpose.
+   *
+   * There is no "you'll make it" and there must not be. Our range measures
+   * pavement between two doors; it knows nothing about getting out of a lecture
+   * hall, a lift, a stairwell inside the building, the crowd on Speedway at the
+   * hour, or finding the room.
+   */
+  function applyVerdict(t) {
+    const pm = WAYFIND.passingMin;
+    el.verdict.className = '';
+    if (!t) { el.verdict.textContent = ''; return; }
+    if (t.lo >= pm) {
+      el.verdict.textContent = SAY.passingOver(pm);
+      el.verdict.className = 'over';
+    } else if (t.hi >= pm) {
+      el.verdict.textContent = SAY.passingTight(pm);
+      el.verdict.className = 'tight';
+    } else {
+      el.verdict.textContent = '';
+    }
+  }
+
   function renderLive() {
     if (!el) return;
     const on = !!live;
@@ -2505,7 +2653,17 @@
     el.liveEl.classList.toggle('hidden', !on);
     el.then2.innerHTML = '';
     el.then2.classList.add('hidden');
-    if (!on) { renderStrip(); return; }
+    if (!on) {
+      // BACK TO THE WHOLE WALK. Stepping off the route (or lifting the camera
+      // above `liveAltMaxM`) has to put the passing-period line back on the
+      // whole-route range, or the bar would keep the last remaining-based
+      // answer under a summary that is about the whole journey.
+      if (WF_UI.liveVerdictRemaining && state.route && state.route.ok) {
+        applyVerdict(state.route.time);
+      }
+      renderStrip();
+      return;
+    }
     el.liveEl.innerHTML = '';
     // THE DISC SHOWS THE MANOEUVRE. It used to show the BEARING to the turn
     // vertex — the arrow rotated to point at where the turn was, relative to
@@ -2526,6 +2684,8 @@
     const txt = h('div', 'wf-livetxt');
     if (live.done) {
       txt.appendChild(h('div', 'wf-liveline', SAY_UI.atTheEnd));
+      // At the end of the drawn route there is no walk left to be tight about.
+      if (WF_UI.liveVerdictRemaining) applyVerdict(null);
     } else {
       // THE NEXT THING THAT HAPPENS, FIRST AND BIGGEST. What a person walking
       // wants off a glance is not how long the whole thing takes — it is how
@@ -2539,6 +2699,11 @@
       txt.appendChild(nx);
 
       const t = live.rem.time;
+      // ROUND 5: THE PASSING-PERIOD LINE IS ABOUT WHAT IS LEFT. Same rule, same
+      // permitted strings, asked of the same range this line is printing. See
+      // applyVerdict's header for why it was wrong before and why re-asking it
+      // is the same class of measurement as `remaining` itself.
+      if (WF_UI.liveVerdictRemaining) applyVerdict(t);
       const fig = h('div', 'wf-figs');
       fig.appendChild(h('span', 'wf-mins', t.lo === 0 ? ('<' + t.hi) : (t.lo + '–' + t.hi)));
       fig.appendChild(h('span', 'wf-unit', SAY_UI.unitMin));
@@ -2588,6 +2753,13 @@
       el.key.classList.add('hidden'); el.key.innerHTML = '';
       return;
     }
+    // ROUND 5: NOTHING ON IT, NOTHING TO DRAW. See `stripNeedsMarks`.
+    const marks = routeMarks(G, r, prof);
+    if (WF_UI.stripNeedsMarks && !marks.length) {
+      el.strip.classList.add('hidden');
+      renderKey(r);
+      return;
+    }
     el.strip.classList.remove('hidden');
     const rail = h('div', 'wf-rail');
     const fill = h('div', 'wf-fill');
@@ -2596,7 +2768,7 @@
     rail.appendChild(fill);
     // THE NOTCH PAD, read once off the element rather than hard-coded twice.
     const notchPad = parseFloat(getComputedStyle(el.root).getPropertyValue('--wf-notch-pad')) || 3;
-    for (const m of routeMarks(G, r, prof)) {
+    for (const m of marks) {
       const pip = h('span', 'wf-pip wf-pip-' + m.kind);
       pip.style.left = (m.t * 100).toFixed(2) + '%';
       // A MERGED PIP IS WIDER, and that is the only way the picture can agree
@@ -2952,6 +3124,11 @@
     el.chev.setAttribute('aria-expanded', state.expanded ? 'true' : 'false');
     el.chev.title = state.expanded ? SAY_UI.hideDetails : SAY_UI.details;
     el.chev.setAttribute('aria-label', state.expanded ? SAY_UI.hideDetails : SAY_UI.details);
+    // The visible word does NOT flip with the state — the chevron already turns
+    // to say which way the door swings, and a label that changes under your
+    // thumb is a second thing to read. It names what is behind the door, and it
+    // only promises a list when there is one to promise.
+    el.chevLab.textContent = WF_UI.stepsOn ? SAY_UI.stepsPeek : SAY_UI.details;
     el.headline.innerHTML = '';
     el.sub.innerHTML = '';
     el.orig.innerHTML = '';
@@ -3086,17 +3263,7 @@
     // pavement between two doors; it knows nothing about getting out of a
     // lecture hall, a lift, a stairwell inside the building, the crowd on
     // Speedway at the hour, or finding the room.
-    const pm = WAYFIND.passingMin;
-    el.verdict.className = '';
-    if (t.lo >= pm) {
-      el.verdict.textContent = SAY.passingOver(pm);
-      el.verdict.className = 'over';
-    } else if (t.hi >= pm) {
-      el.verdict.textContent = SAY.passingTight(pm);
-      el.verdict.className = 'tight';
-    } else {
-      el.verdict.textContent = '';
-    }
+    applyVerdict(t);
 
     renderLive();
 
