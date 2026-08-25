@@ -274,8 +274,6 @@ So `confirm-line.mjs` runs the corpus twice:
 A threshold that is cheap on STRICT and safe on LOOSE is the one to ship, and
 neither pass on its own can tell you that.
 
-<!--NUMBERS-->
-
 ### The first line was wrong, and the measurement is what said so
 
 Round one of this file used Tesseract's word confidence as the **base** of every
@@ -310,6 +308,75 @@ the reading stays first and the clash is the printed reason for asking. Merging
 those two into one `trustBelow` comparison produced a screen that offered
 *"9:30 pm"* as the leading answer to a class the picture plainly said was in the
 morning.
+
+---
+
+### Where it landed
+
+Run against the committed tree, `askBelow = 0.72`:
+
+```
+             classes asked about      wrong answers          taps across
+             (of 136, all correct)    caught / in silence    15 images
+  STRICT     28   (20.6%)             —                      16
+  LOOSE      67                       39 of 39  /  0         56
+```
+
+and **the buttons contained the right answer on 37 of 37** of the wrong classes
+the line asked about — a question whose options do not contain the truth costs a
+tap and fixes nothing.
+
+Per image, on the shipping tune: **nine of the fifteen ask nothing at all.**
+Image 09, a dark-mode registrar table whose type comes off the page at
+word-confidence 55, costs eight taps; image 05, an angled table, costs four;
+images 01, 03, 07 and 10 cost one each. **Sixteen taps for a hundred and
+thirty-six classes across fifteen schedules** — about one per picture.
+
+And the separation is not marginal: every one of the 39 wrong answers scores
+between **0.19 and 0.47**, and the line clears the highest of them by 0.25.
+
+### 0.72 is derived, not fitted — and that matters more than the number
+
+Look at the STRICT column between 0.60 and 0.78: it does not move. 28 classes,
+16 taps, at every one of those thresholds. That plateau is not luck, it is the
+shape of the penalty table:
+
+- every penalty meant to **trigger a question on its own** is at most **0.70**
+  (`offGrid`, the largest of them);
+- every penalty meant only to **corroborate** is at least **0.85**
+  (`oddLength`, a partial overlap).
+
+0.72 is the gap between those two sets. Any single named defect asks; no single
+corroborating hint does. No penalty value lies between 0.70 and 0.85, which is
+exactly why nothing changes as the line moves across that range.
+
+**It is also why 0.50 is not the answer**, even though on this corpus 0.50 is
+strictly better — 7 classes asked instead of 28, and still 39 of 39 caught. The
+39 errors cluster at 0.43–0.47 and a 0.50 line clears them by 0.03. But those 39
+are one error wearing two coats: `endOffGrid` (0.55) times `oddLength` (0.85).
+A variant of the same seam whose length happened to be standard would score
+**0.55 on the single signal alone** and slip straight under a 0.50 line. 0.72
+catches it. A threshold with three hundredths of margin against a mono-culture
+of errors is a threshold that has been fitted, not derived.
+
+### The benchmark number did not move, and that is the correct outcome
+
+```
+image-bench  ours   (15 images, 171 scored meetings)
+  ALL FOUR FIELDS RIGHT   134 / 171    78.4%
+  precision               100.0%   (136 predictions, 0 matched nothing)
+  hallucinations 0    three-of-four near miss 0    end-time-only losses 0
+```
+
+Identical to `acer/img-extract`, image for image, against a bar of 36/171. That
+is what this piece had to do to the bench: **nothing.** `image-bench.mjs` calls a
+function fifteen times and there is no student in it, so what it scores is the
+proposal set — and a confirm flow that changed the proposal set would be doing
+the reader's job rather than its own. What it must not do is regress it, and the
+run above is against the committed tree.
+
+The numbers that belong to this piece are the two in the table above: **16 taps**
+and **39 of 39**.
 
 ---
 

@@ -25017,4 +25017,161 @@ reading rather than only the reading.
 Built on `acer/img-extract`. **`js/wayfind.js` is not in the diff and
 `WAYFIND.on` is still `false`.**
 
-<!--BODY-->
+**The line is two lines, and that is the one real design decision.** A single
+threshold makes two different questions share one answer: *am I sure enough to
+save this without asking* (`CONF.askBelow`) and *am I sure enough to put this in
+the first button* (a separate rule). With nothing specific wrong, the reading
+leads and one press ends it. When the app can NAME what is wrong with what it
+read, the reading must not be under the student's thumb as the first button —
+that is how a wrong answer gets confirmed by somebody skimming. There turned out
+to be three cases, not two: a **defect** in the reading (the correction leads), a
+**relational** doubt about its neighbours (the reading leads, the clash is the
+printed reason), and a defect this file has **already corrected** — `PAL`
+repaired to `PAI` — where the button says `PAI` because there is nothing wrong
+with `PAI`. Merging them produced a screen that offered *"7:00 pm"* as the
+leading answer to a class the picture plainly said was at two.
+
+**A THRESHOLD CANNOT BE CALIBRATED AGAINST ERRORS THAT ARE NOT THERE, and that
+is the honest difficulty of the whole piece.** The shipping pipeline scores 136
+predictions on the corpus with ZERO wrong answers. So `confirm-line.mjs` runs the
+corpus TWICE: once on the shipping tune, which measures the COST; and once with
+the four hard refusals `acer/img-extract` installed switched off through `TUNE` —
+the edge-of-crop guard, the class-length guard, the across-days room vote and the
+quarter-hour snap. Those four guards are the *reason* the strict pass has no
+errors, so switching them off reproduces exactly the wrong answers they were
+built for: real OCR mistakes, from the real engine, on the real images, rather
+than errors invented to be caught.
+
+**The first model was expensive AND blind, and only the measurement said so.**
+It used Tesseract's word confidence as the base of every field, mapped 15 to 0
+and 95 to 1. Scored: it asked about **48 of 136 correct classes** (34 taps) and
+caught **4 of 39** wrong answers, letting 35 through in silence. Reading the two
+passes class by class gave four reasons, not four knob-turns:
+
+- word confidence has **no discriminating power on this corpus** — every correct
+  reading spans 41 to 96 and every wrong one in the loose pass is a GEOMETRIC
+  error carried at 90+. So it is no longer the base. The base is 1.0 and
+  confidence only bites below 62, barely above `js/schedimg.js`'s own noise
+  floor of 26;
+- **37 of the 39** wrong answers are one shape — `10:55` for `11:00`, `12:25`
+  for `12:30` — because a calendar paints a gap between touching events. The
+  model checked only the START time. Nothing at UT ends at five to;
+- six false questions came from an "overlap" penalty firing on **the answer
+  key's own data**: schedule s3 has C S 429 at 10:00-11:00 MWF and HIS 315K at
+  10:30-11:30 MW, both marked `required`, on three images. Exact and partial
+  clashes are now different checks — the same hour in two buildings is a misread
+  every time, a 30-minute clash is a thing real students carry;
+- `JES A121A` was called *"not a shape UT room numbers take"*. It is one.
+
+**Where it landed.** Run against the committed tree, `askBelow = 0.72`:
+
+```
+             classes asked about      wrong answers          taps across
+             (of 136, all correct)    caught / in silence    15 images
+  STRICT     28   (20.6%)             —                      16
+  LOOSE      67                       39 of 39  /  0         56
+```
+
+and **the buttons contained the right answer on 37 of 37** of the wrong classes
+the line asked about — a question whose options do not contain the truth costs a
+tap and fixes nothing.
+
+Per image, on the shipping tune: **nine of the fifteen ask nothing at all.**
+Image 09, a dark-mode registrar table whose type comes off the page at
+word-confidence 55, costs eight taps; image 05, an angled table, costs four;
+images 01, 03, 07 and 10 cost one each. **Sixteen taps for a hundred and
+thirty-six classes across fifteen schedules** — about one per picture.
+
+And the separation is not marginal: every one of the 39 wrong answers scores
+between **0.19 and 0.47**, and the line clears the highest of them by 0.25.
+
+
+**The benchmark number did not move, and that is the correct outcome.**
+`image-bench.mjs` on the committed tree: **134 / 171, precision 100.0%**, 136
+predictions, 0 false positives, 0 hallucinations, 0 three-of-four near misses —
+identical to `acer/img-extract` image for image, against a bar of 36/171. That
+is what this piece had to do to the bench: nothing. The bench calls a function
+fifteen times and there is no student in it, so what it scores is the PROPOSAL
+set, and a confirm flow that changed the proposal set would be doing the
+reader's job rather than its own. What it must not do is regress it, and it does
+not. The numbers that belong to this piece are the sixteen taps and the 39 of 39.
+
+**`askBelow = 0.72` is derived rather than fitted, and that matters more than
+the number.** Every penalty meant to trigger a question on its own is at most
+0.70 (`offGrid`); every penalty meant only to corroborate is at least 0.85
+(`oddLength`, a partial overlap). 0.72 sits in the gap between those two sets,
+which is why the strict cost is FLAT from 0.60 to 0.78 — no penalty value lies
+in that range. It is also why 0.50 is not the answer even though it scores
+better on this corpus: a single-signal version of the same seam error scores
+0.55 and would slip under it.
+
+**"Here are the two it might be" is a new export, deliberately separate.**
+`repairCode()` answers *may I write this down myself* and has to say no whenever
+two real codes fit. But *"I cannot write this down"* and *"I have nothing to
+show you"* are different sentences. `codeCandidates()` returns the whole set and
+nothing that writes an answer down may reach it. `CRE` is one confusable
+character from `CPE` (Chemical and Petroleum Engineering) and `GRE` (Gregory
+Gymnasium) in the app's own register — the gate asserts that against
+`data/ut_buildings.json` itself, and prints the **thirteen** pairs of real UT
+codes that are one such character apart.
+
+**One question per READING, not per meeting.** A Tue/Thu course is two rows and
+one line of the picture; `js/schedimg.js` now hands both rows the SAME evidence
+object by reference, which is what makes them identifiable as one reading. Days
+get five chips rather than a list of single days, because picking Wednesday off
+a list silently deletes Monday and Friday.
+
+**The screen shows the student the piece of their own picture.** Rectified, so
+it is upright even off an angled photo; padded out to the row around the field,
+because four characters alone are unrecognisable; with the field ringed in the
+app's own accent. Measured on the FRAME rather than the DOM — the panel at
+344x523 in a 390x844 viewport, no sideways scroll, every step-ending control at
+least 44 px, the topmost answer button at y=352, and the crop's luma spread at
+56.5 where a blank canvas is 0.
+
+**Nothing leaves the browser.** The rectified page is kept as a CANVAS rather
+than as pixels, which is a safety property: a canvas does not survive
+`structuredClone`, so it cannot cross into a worker, a message or a fetch body
+without somebody writing the conversion by hand. Every string off the picture
+reaches the DOM through `textContent`, never `innerHTML`. `destroy()` sets the
+canvas to 1x1 so an emptied backing store cannot be recovered. The gate asserts
+it at the network level with a context-level capture and a raw TCP sink, then
+PROVES the instruments are not blind with a canary through `fetch` and through a
+real `Worker`. The allowlist is MEASURED, not written down: the hosts the app
+already used before the image was handed over are the allowlist, and one new one
+fails.
+
+**Two requests for whoever owns `js/wayfind.js` next**, written here rather than
+made, per rule 1:
+
+1. **A pure `window.wayfindMinutes(fromCode, toCode)`.** The strongest
+   cross-check in `js/schedconfirm.js` is the campus graph — two classes twelve
+   minutes apart in buildings nineteen minutes apart on foot is a contradiction,
+   and this app is the only thing on the phone that can measure the second
+   number. It is built and tested against an injected `routeMinutes`, and it is
+   INERT in the real app, because `window.wayfindRoute` is async AND
+   side-effecting: it calls `buildUI()`, fills both router inputs and draws the
+   ribbon on the city. A probe cannot do that. One function with no UI in it
+   turns the check on — and it is also the only thing that would catch the
+   failure named at the end of this entry.
+2. **Three lines in `impFromFile`** to reach the screen at all:
+   `const { extract } = await import('./js/schedimg.js')`, then
+   `const { review, mount } = await import('./js/schedconfirm.js')`, then
+   `mount(host, review(await extract(file, { keepSheet: true }), { routeMinutes, buildingName }), { onDone })`.
+   Both modules are lazy and neither is referenced from `index.html`.
+
+**What is still weak, and the biggest one is not fixable from this lane.** `MEZ`
+is Mezes Hall, on the South Mall. `NEZ` is the North End Zone Building, inside
+the football stadium. They are one stroke apart, **both real codes**, and the
+corpus's own schedule s3 puts a class in `MEZ 1.306`. If the engine reads one as
+the other, every check in this file scores it 1.00 and it is saved in silence.
+There are thirteen such pairs and the gate enumerates them from the data rather
+than taking anyone's word for it. The one check that would catch it is the
+campus graph, which is request 1 above. Beyond that: the line is calibrated
+against a mono-culture of errors (37 of 39 are the same seam), and there is no
+floor table in this repo — measured, not assumed: joining
+`data/entrances.geojson` to `data/places.geojson` yields 8 buildings and gives
+JES, a 27-storey dormitory, a height of 5.35 m.
+
+`docs/img-confidence.md` has all of it, with the screenshots.
+
